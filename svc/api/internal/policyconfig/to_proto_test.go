@@ -28,12 +28,13 @@ func TestMapPoliciesToProtoValidation(t *testing.T) {
 				}},
 				{Name: "firewall", Enabled: false, Firewall: firewall},
 				{Name: "openapi", Enabled: true, Openapi: &openapi.OpenapiPolicy{}},
+				{Name: "logging", Enabled: true, Logging: &openapi.LoggingPolicy{}},
 			},
 		},
 		{
 			name:     "no variant set",
 			policies: []openapi.Policy{{Name: "empty", Enabled: true}},
-			wantErr:  "policies[0] must set exactly one of keyauth, ratelimit, firewall or openapi; none are set.",
+			wantErr:  "policies[0] must set exactly one of keyauth, ratelimit, firewall, openapi or logging; none are set.",
 		},
 		{
 			name: "two variants set",
@@ -41,7 +42,7 @@ func TestMapPoliciesToProtoValidation(t *testing.T) {
 				Name: "double", Enabled: true, Firewall: firewall,
 				Openapi: &openapi.OpenapiPolicy{},
 			}},
-			wantErr: "policies[0] must set exactly one of keyauth, ratelimit, firewall or openapi; 2 are set.",
+			wantErr: "policies[0] must set exactly one of keyauth, ratelimit, firewall, openapi or logging; 2 are set.",
 		},
 		{
 			name: "match expr with no variant",

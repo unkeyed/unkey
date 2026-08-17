@@ -35,6 +35,11 @@ func WithClickHouseLogging(buf *batch.BatchProcessor[schema.FrontlineRequest], c
 			// handler stamps DeploymentID/InstanceID before forwarding. If
 			// those are empty the request was forwarded cross-region and
 			// the peer logs it.
+			//
+			// The base row is written unconditionally — the traffic and
+			// latency charts depend on it. Headers, query data, and bodies
+			// are only included when an enabled logging policy opted the
+			// request in via the tracking.Log* capture flags.
 			if !s.ShouldLogRequestToClickHouse() || tracking.DeploymentID == "" || tracking.InstanceID == "" {
 				return err
 			}
@@ -50,20 +55,44 @@ func WithClickHouseLogging(buf *batch.BatchProcessor[schema.FrontlineRequest], c
 
 			req := s.Request()
 
-			// Redact API keys delivered via custom header or query parameter.
-			// The handler records the configured KeyAuth locations on tracking;
-			// without this, keys would be persisted verbatim in the request log.
-			secretHeaders := toSet(tracking.RedactedHeaders)
-			secretParams := toSet(tracking.RedactedQueryParams)
+			// Headers and query data are opt-in: URLs and headers routinely
+			// carry secrets, so they only reach ClickHouse when an enabled
+			// logging policy opted the request in.
+			var queryString string
+			var queryParams url.Values
+			var requestHeaders, responseHeaders []string
+			var userAgent, ipAddress string
+			if tracking.LogRequestHeaders {
+				// User agent is a request header and the client IP is
+				// client-identifying data of the same sensitivity class, so
+				// both ride on the request-headers opt-in rather than the
+				// always-on base row.
+				userAgent = req.UserAgent()
+				ipAddress = s.Location()
+				// Redact API keys delivered via custom header. The handler
+				// records the configured KeyAuth locations on tracking;
+				// without this, keys would be persisted verbatim in the
+				// request log.
+				requestHeaders = formatHeaders(req.Header, toSet(tracking.RedactedHeaders))
+			}
+			if tracking.LogQuery {
+				// Redact API keys delivered via query parameter, mirroring
+				// the header redaction above.
+				secretParams := toSet(tracking.RedactedQueryParams)
 
-			queryString := req.URL.RawQuery
-			queryParams := req.URL.Query()
-			if len(secretParams) > 0 {
-				queryParams = redactQueryParams(queryParams, secretParams)
-				// Re-encode rather than log the raw string so the secret never
-				// reaches ClickHouse. This loses the original key ordering and
-				// encoding, which is acceptable for a debug log field.
-				queryString = queryParams.Encode()
+				queryString = req.URL.RawQuery
+				queryParams = req.URL.Query()
+				if len(secretParams) > 0 {
+					queryParams = redactQueryParams(queryParams, secretParams)
+					// Re-encode rather than log the raw string so the secret
+					// never reaches ClickHouse. This loses the original key
+					// ordering and encoding, which is acceptable for a debug
+					// log field.
+					queryString = queryParams.Encode()
+				}
+			}
+			if tracking.LogResponseHeaders {
+				responseHeaders = formatHeaders(s.ResponseWriter().Header(), nil)
 			}
 
 			buf.Buffer(schema.FrontlineRequest{
@@ -84,13 +113,13 @@ func WithClickHouseLogging(buf *batch.BatchProcessor[schema.FrontlineRequest], c
 				Path:             req.URL.Path,
 				QueryString:      queryString,
 				QueryParams:      queryParams,
-				RequestHeaders:   formatHeaders(req.Header, secretHeaders),
+				RequestHeaders:   requestHeaders,
 				RequestBody:      redactBody(tracking.RequestBody, tracking.BodyRedactors),
 				ResponseStatus:   int32(s.StatusCode()),
-				ResponseHeaders:  formatHeaders(s.ResponseWriter().Header(), nil),
+				ResponseHeaders:  responseHeaders,
 				ResponseBody:     redactBody(tracking.ResponseBody, tracking.BodyRedactors),
-				UserAgent:        req.UserAgent(),
-				IPAddress:        s.Location(),
+				UserAgent:        userAgent,
+				IPAddress:        ipAddress,
 				TotalLatency:     totalLatency,
 				InstanceLatency:  instanceLatency,
 				FrontlineLatency: frontlineLatency,

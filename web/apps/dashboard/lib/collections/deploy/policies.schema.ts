@@ -239,6 +239,34 @@ export const openapiPolicySchema = z
   .strict();
 export type OpenapiPolicy = z.infer<typeof openapiPolicySchema>;
 
+// ── Logging policy ──────────────────────────────────────────────────────
+
+// Opts matching requests into capturing more request data in the request
+// log (Requests tab). The gateway always records a base log entry per
+// request (method, host, path, status, latency) — that cannot be turned
+// off. This policy adds five independent captures on top: request headers
+// (with user agent and client IP), response headers, request body,
+// response body, and query data (query string and parameters). An empty
+// `match` list matches every request, so a policy without match conditions
+// captures the extras for all traffic.
+// All fields are optional because protojson omits false booleans.
+export const loggingPolicySchema = z
+  .object({
+    ...policyBase,
+    type: z.literal("logging"),
+    logging: z
+      .object({
+        requestHeaders: z.boolean().optional(),
+        responseHeaders: z.boolean().optional(),
+        requestBody: z.boolean().optional(),
+        responseBody: z.boolean().optional(),
+        query: z.boolean().optional(),
+      })
+      .strict(),
+  })
+  .strict();
+export type LoggingPolicy = z.infer<typeof loggingPolicySchema>;
+
 // ── Gateway policy (discriminated union — extend with new types here) ──
 
 export const policySchema = z.discriminatedUnion("type", [
@@ -246,6 +274,7 @@ export const policySchema = z.discriminatedUnion("type", [
   ratelimitPolicySchema,
   firewallPolicySchema,
   openapiPolicySchema,
+  loggingPolicySchema,
 ]);
 export type Policy = z.infer<typeof policySchema>;
 export type PolicyType = Policy["type"];
@@ -290,6 +319,9 @@ export function fromWirePolicy(raw: unknown): Policy {
   }
   if ("openapi" in obj) {
     return policySchema.parse({ ...obj, type: "openapi" });
+  }
+  if ("logging" in obj) {
+    return policySchema.parse({ ...obj, type: "logging" });
   }
   throw new Error("unknown gateway policy variant");
 }

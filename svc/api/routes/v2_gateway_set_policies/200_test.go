@@ -38,7 +38,7 @@ func TestSetPoliciesSuccessfully(t *testing.T) {
 		require.NotEmpty(t, res.Body.Meta.RequestId)
 	}
 
-	t.Run("batch of all four variants stores dashboard-compatible wire JSON", func(t *testing.T) {
+	t.Run("batch of all five variants stores dashboard-compatible wire JSON", func(t *testing.T) {
 		env := seedEnvironment(t, h)
 		api := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspace.ID})
 
@@ -65,10 +65,15 @@ func TestSetPoliciesSuccessfully(t *testing.T) {
 				Enabled: true,
 				Openapi: &openapi.OpenapiPolicy{},
 			},
+			{
+				Name:    "logging",
+				Enabled: true,
+				Logging: &openapi.LoggingPolicy{},
+			},
 		}))
 
 		stored := readStoredPolicies(t, h, env)
-		require.Len(t, stored, 4)
+		require.Len(t, stored, 5)
 
 		// The gateway must be able to parse the stored blob the way its
 		// ParseMiddleware does.
@@ -92,7 +97,7 @@ func TestSetPoliciesSuccessfully(t *testing.T) {
 			byName[name] = keys
 		}
 
-		require.Equal(t, []string{"keyauth", "ratelimit", "KEBAP", "openapi"}, names,
+		require.Equal(t, []string{"keyauth", "ratelimit", "KEBAP", "openapi", "logging"}, names,
 			"stored order must be the request order")
 		require.JSONEq(t, `false`, string(byName["KEBAP"]["enabled"]))
 		require.JSONEq(t, `{"action":"ACTION_DENY"}`, string(byName["KEBAP"]["firewall"]))
@@ -103,6 +108,7 @@ func TestSetPoliciesSuccessfully(t *testing.T) {
 		require.NotContains(t, readStoredBlob(t, h, env), `"keyspaces"`,
 			"the public field name must never leak into the stored blob")
 		require.JSONEq(t, `{}`, string(byName["openapi"]["openapi"]))
+		require.JSONEq(t, `{}`, string(byName["logging"]["logging"]))
 		require.JSONEq(
 			t,
 			`{"limit":"100","windowMs":"60000","identifiers":[{"remoteIp":{}}]}`,
@@ -110,7 +116,7 @@ func TestSetPoliciesSuccessfully(t *testing.T) {
 		)
 
 		logs := h.FindAuditLogsByTargetID(ctx, t, env.environmentID)
-		require.Len(t, logs, 4)
+		require.Len(t, logs, 5)
 		for _, l := range logs {
 			require.Contains(t, l.Description, "Set policy")
 			require.NotEmpty(t, l.Targets)

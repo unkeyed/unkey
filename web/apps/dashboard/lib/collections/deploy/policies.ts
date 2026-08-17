@@ -217,6 +217,12 @@ function dispatchCreate(environmentId: string, policy: Policy): Promise<unknown>
         policy: p,
       }),
     )
+    .with({ type: "logging" }, (p) =>
+      trpcClient.deploy.environmentSettings.policies.logging.create.mutate({
+        environmentId,
+        policy: p,
+      }),
+    )
     .exhaustive();
 }
 
@@ -246,6 +252,12 @@ function dispatchUpdate(environmentId: string, policy: Policy): Promise<unknown>
         policy: p,
       }),
     )
+    .with({ type: "logging" }, (p) =>
+      trpcClient.deploy.environmentSettings.policies.logging.update.mutate({
+        environmentId,
+        policy: p,
+      }),
+    )
     .exhaustive();
 }
 
@@ -271,6 +283,12 @@ function dispatchDelete(environmentId: string, policy: Policy): Promise<unknown>
     )
     .with({ type: "openapi" }, (p) =>
       trpcClient.deploy.environmentSettings.policies.openapi.delete.mutate({
+        environmentId,
+        policyId: p.id,
+      }),
+    )
+    .with({ type: "logging" }, (p) =>
+      trpcClient.deploy.environmentSettings.policies.logging.delete.mutate({
         environmentId,
         policyId: p.id,
       }),
