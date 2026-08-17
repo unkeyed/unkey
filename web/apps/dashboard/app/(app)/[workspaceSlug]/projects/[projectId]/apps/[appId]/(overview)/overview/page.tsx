@@ -4,8 +4,8 @@ import { PageBody, PageContainer, PageHeader, PageHeaderContent, PageHeaderTitle
 import { ActiveDeploymentCardEmpty } from "../../components/active-deployment-card/components/active-deployment-card-empty";
 import { useProjectData } from "../data-provider";
 import { CreateDeploymentButton } from "../navigations/create-deployment-button";
+import { AppProductionCard } from "./components/app-production-card";
 import { OverviewPageTitle } from "./components/overview-page-title";
-import { ProductionDeploymentCard } from "./components/production-deployment-card";
 import { RecentDeployments } from "./components/recent-deployments";
 
 export default function Overview() {
@@ -30,7 +30,7 @@ export default function Overview() {
           />
         ) : (
           <div className="flex flex-col gap-5">
-            <ProductionDeploymentCard />
+            <AppProductionCard />
             <RecentDeployments />
           </div>
         )}
