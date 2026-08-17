@@ -33,10 +33,8 @@ CREATE TABLE frontline_requests_raw_v1 (
   total_latency Int64,
   -- Milliseconds - instance processing time
   instance_latency Int64,
-  -- Milliseconds - frontline overhead
-  frontline_latency Int64,
-  -- Milliseconds - gateway overhead, replaces frontline_latency
-  gateway_latency Int64 DEFAULT frontline_latency,
+  -- Milliseconds - gateway overhead
+  gateway_latency Int64,
   INDEX idx_request_id (request_id) TYPE bloom_filter GRANULARITY 1,
   INDEX idx_deployment_id (deployment_id) TYPE bloom_filter GRANULARITY 1,
   INDEX idx_instance_id (instance_id) TYPE bloom_filter GRANULARITY 1,
