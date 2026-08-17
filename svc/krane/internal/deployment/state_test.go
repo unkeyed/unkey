@@ -71,9 +71,11 @@ func TestBuildDeploymentStatus_PodStatuses(t *testing.T) {
 
 	failed := podBase("pod-failed")
 	failed.Status.Phase = corev1.PodFailed
+	succeeded := podBase("pod-succeeded")
+	succeeded.Status.Phase = corev1.PodSucceeded
 
 	client := fake.NewSimpleClientset(
-		&runningReady, &runningUnready, &runningNoCondition, &pending, &failed,
+		&runningReady, &runningUnready, &runningNoCondition, &pending, &failed, &succeeded,
 	)
 	ctrl := New(Config{
 		ClientSet:     client,
@@ -110,8 +112,6 @@ func TestBuildDeploymentStatus_PodStatuses(t *testing.T) {
 		ctrlv1.ReportDeploymentStatusRequest_Update_Instance_STATUS_PENDING,
 		byName["pod-pending"],
 	)
-	require.Equal(t,
-		ctrlv1.ReportDeploymentStatusRequest_Update_Instance_STATUS_FAILED,
-		byName["pod-failed"],
-	)
+	require.NotContains(t, byName, "pod-failed", "failed pods must not remain active instances")
+	require.NotContains(t, byName, "pod-succeeded", "succeeded pods must not remain active instances")
 }
