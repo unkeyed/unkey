@@ -6,10 +6,12 @@ import (
 	"net/http"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/hash"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
@@ -19,16 +21,18 @@ import (
 func TestDeleteAppSuccessfully(t *testing.T) {
 	ctx := context.Background()
 	h := testutil.NewHarness(t)
+	restateClient, deletes := newRecordingRestate(t)
 
-	ctrlClient := &testutil.MockAppClient{}
 	route := &handler.Handler{
-		DB:         h.DB,
-		CtrlClient: ctrlClient,
+		DB:      h.DB,
+		Restate: restateClient,
 	}
 	h.Register(route)
 
 	workspace := h.Resources().UserWorkspace
 	rootKey := h.CreateRootKey(workspace.ID, "app.*.delete_app")
+	rootKeyID, err := db.Query.FindKeyIDByHash(ctx, h.DB.RO(), hash.Sha256(rootKey))
+	require.NoError(t, err)
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
@@ -59,15 +63,13 @@ func TestDeleteAppSuccessfully(t *testing.T) {
 	require.Equal(t, 202, res.Status, "expected 202, received: %s", res.RawBody)
 	require.NotEmpty(t, res.Body.Meta.RequestId)
 
-	// Deletion is delegated to the control plane, which also writes the audit
-	// log. Assert the RPC carried the resolved app id and the actor. The row is
-	// torn down asynchronously, so we do not assert it is gone here.
-	require.Len(t, ctrlClient.DeleteAppCalls, 1)
-	require.Equal(t, app.ID, ctrlClient.DeleteAppCalls[0].GetAppId())
-	require.Equal(t, ctrlv1.ActorType_ACTOR_TYPE_ROOT_KEY, ctrlClient.DeleteAppCalls[0].GetActor().GetType())
+	observed := testutil.Receive(t, deletes, 10*time.Second)
+	require.Equal(t, app.ID, observed.virtualObjectKey)
+	require.Equal(t, ctrlv1.ActorType_ACTOR_TYPE_ROOT_KEY, observed.request.GetActor().GetType())
+	require.Equal(t, rootKeyID, observed.request.GetActor().GetId())
+	require.NotEmpty(t, observed.request.GetCorrelationId())
 
-	// Sanity: the app still exists in our DB because the cascade runs in the
-	// (mocked) control plane, not in this handler.
-	_, err := db.Query.FindAppById(ctx, h.DB.RO(), app.ID)
+	// The route only submits the asynchronous workflow.
+	_, err = db.Query.FindAppById(ctx, h.DB.RO(), app.ID)
 	require.NoError(t, err)
 }
