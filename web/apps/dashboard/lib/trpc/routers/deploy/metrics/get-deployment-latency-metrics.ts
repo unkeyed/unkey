@@ -6,7 +6,7 @@ import {
   TIMESERIES_INTERVAL_MINUTES,
   TIMESERIES_WINDOW_HOURS,
   percentileSchema,
-} from "@unkey/clickhouse/src/sentinel";
+} from "@unkey/clickhouse/src/frontline";
 import { z } from "zod";
 
 const INTERVAL_MS = TIMESERIES_INTERVAL_MINUTES * 60 * 1000;
@@ -38,7 +38,7 @@ export const getDeploymentLatencyMetrics = workspaceProcedure
       }
 
       try {
-        const result = await clickhouse.sentinel.latency.withTimeseries({
+        const result = await clickhouse.frontline.latency.withTimeseries({
           workspaceId: ctx.workspace.id,
           projectId: deployment.projectId,
           deploymentId: input.deploymentId,

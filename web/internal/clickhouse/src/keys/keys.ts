@@ -94,7 +94,6 @@ export const keyDetailsResponseSchema = z.object({
   id: z.string(),
   key_auth_id: z.string(),
   name: z.string().nullable(),
-  owner_id: z.string().nullable(),
   identity_id: z.string().nullable(),
   meta: z.string().nullable(),
   enabled: z.boolean(),

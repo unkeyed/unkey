@@ -23,12 +23,16 @@ const CHART_CONFIG: ChartConfig = {
 const FILL_COLORS = { total: BLUE_FILL, errors: ERROR_FILL };
 
 const formatCountTooltip = (value: number) => ({ value: `${Math.round(value)}`, unit: "req" });
+const COUNT_TICK_FORMATTER = new Intl.NumberFormat("en", {
+  notation: "compact",
+  maximumSignificantDigits: 1,
+});
 
 function formatCountYTick(v: number): string {
   if (!Number.isFinite(v) || v <= 0) {
     return "";
   }
-  return formatNumber(v);
+  return COUNT_TICK_FORMATTER.format(v);
 }
 
 function LegendStat({
@@ -104,13 +108,13 @@ export function ProductionCardChart() {
         fillColors={FILL_COLORS}
         paleFill
         height={120}
-        axisFloor={0}
+        axis={{
+          x: { domain: xDomain, utc: true },
+          y: { floor: 0, formatTick: formatCountYTick },
+        }}
         isLoading={isChartLoading}
         isError={isChartError}
         formatTooltipValue={formatCountTooltip}
-        formatYTick={formatCountYTick}
-        xAxisDomain={xDomain}
-        xAxisUTC
         hideTooltip
         onActiveChange={setActive}
       />

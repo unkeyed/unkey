@@ -3,10 +3,6 @@ title: App settings
 description: Configure build, runtime, and advanced settings for an app. Settings are scoped per environment and take effect on the next deployment.
 ---
 
-import DeployBeta from "/snippets/deploy-beta.mdx";
-
-<DeployBeta />
-
 App settings control how Unkey builds and runs your service. Each [app](/platform/apps/overview) has its own settings, and most settings are scoped per environment so production and preview can differ. You can configure these during project creation or update them from the **Settings** tab in your project dashboard.
 
 <Note>
@@ -26,6 +22,21 @@ Connect a GitHub repository to trigger automatic deployments on push events. Pus
 The directory your application is built from. It is the directory Unkey [analyzes and builds](/builds/overview); for [Dockerfile builds](/builds/dockerfile) it is the build context that `COPY` and `ADD` commands are relative to. Defaults to the repository root (`.`).
 
 Set this when your application lives in a subdirectory, for example `services/api`.
+
+The root directory must be relative to the repository root. Use `.` for the repository root, or enter a slash-separated directory such as `api` or `services/api`. Don't start the path with `/` or `./`, and don't end it with `/`.
+
+Each directory name can contain letters, digits, periods (`.`), underscores (`_`), and hyphens (`-`). Empty directory names, `.` segments, `..` segments, whitespace, backslashes, and other characters aren't supported.
+
+| Value             | Valid | Reason                                 |
+| ----------------- | ----- | -------------------------------------- |
+| `.`               | Yes   | Selects the repository root            |
+| `api`             | Yes   | Selects a top-level directory          |
+| `services/api`    | Yes   | Selects a nested directory             |
+| `/api`            | No    | Starts with `/`                        |
+| `./api`           | No    | Starts with `./`                       |
+| `services/api/`   | No    | Ends with `/`                          |
+| `services/../api` | No    | Contains a `..` path traversal segment |
+| `services/api v2` | No    | Contains whitespace                    |
 
 ### Dockerfile
 

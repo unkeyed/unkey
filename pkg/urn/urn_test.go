@@ -49,6 +49,62 @@ func TestParseV1_AllowsResourcePatterns(t *testing.T) {
 			},
 		},
 		{
+			name:  "concrete app below wildcard project",
+			value: "unkey:v1:ws_123:projects/*/apps/app_123",
+			want: V1{
+				WorkspaceID: "ws_123",
+				Resource:    "projects/*/apps/app_123",
+			},
+		},
+		{
+			name:  "concrete environment below wildcard app",
+			value: "unkey:v1:ws_123:projects/proj_123/apps/*/environments/env_123",
+			want: V1{
+				WorkspaceID: "ws_123",
+				Resource:    "projects/proj_123/apps/*/environments/env_123",
+			},
+		},
+		{
+			name:  "concrete deployment below nested wildcard hierarchy",
+			value: "unkey:v1:ws_123:projects/proj_123/apps/*/environments/*/deployments/dep_123",
+			want: V1{
+				WorkspaceID: "ws_123",
+				Resource:    "projects/proj_123/apps/*/environments/*/deployments/dep_123",
+			},
+		},
+		{
+			name:  "concrete override below wildcard namespace",
+			value: "unkey:v1:ws_123:ratelimits/namespaces/*/overrides/override_123",
+			want: V1{
+				WorkspaceID: "ws_123",
+				Resource:    "ratelimits/namespaces/*/overrides/override_123",
+			},
+		},
+		{
+			name:  "project ratelimit namespaces",
+			value: "unkey:v1:ws_123:projects/*/ratelimits/namespaces/*",
+			want: V1{
+				WorkspaceID: "ws_123",
+				Resource:    "projects/*/ratelimits/namespaces/*",
+			},
+		},
+		{
+			name:  "project RBAC roles",
+			value: "unkey:v1:ws_123:projects/*/rbac/roles/*",
+			want: V1{
+				WorkspaceID: "ws_123",
+				Resource:    "projects/*/rbac/roles/*",
+			},
+		},
+		{
+			name:  "project app environment gateway policies",
+			value: "unkey:v1:ws_123:projects/*/apps/*/environments/*/gateway/policies/*",
+			want: V1{
+				WorkspaceID: "ws_123",
+				Resource:    "projects/*/apps/*/environments/*/gateway/policies/*",
+			},
+		},
+		{
 			name:  "wildcard project apps descendant scope",
 			value: "unkey:v1:ws_123:projects/*/apps/**",
 			want: V1{
@@ -138,10 +194,6 @@ func TestParseV1_RejectsAmbiguousPatterns(t *testing.T) {
 	for _, value := range []string{
 		"unkey:v1:ws_123:ratelimits/**/overrides/*",
 		"unkey:v1:ws_123:ratelimits/namespaces/ns_*",
-		"unkey:v1:ws_123:projects/*/apps/app_123",
-		"unkey:v1:ws_123:projects/proj_123/apps/*/environments/env_123",
-		"unkey:v1:ws_123:projects/proj_123/apps/*/environments/*/deployments/dep_123",
-		"unkey:v1:ws_123:ratelimits/namespaces/*/overrides/override_123",
 		"unkey:v1:ws_123:/ratelimits/*",
 		"unkey:v1:ws_123:ratelimits//namespaces/*",
 		"unkey:v1:ws_123:ratelimits/*/",

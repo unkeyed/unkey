@@ -33,7 +33,7 @@ func (s *Service) WatchDeploymentChanges(
 		return err
 	}
 
-	region, err := s.resolveRegion(ctx, req.Msg.GetRegion())
+	cluster, err := s.resolveCluster(ctx, req.Msg.GetCluster())
 	if err != nil {
 		return err
 	}
@@ -43,12 +43,12 @@ func (s *Service) WatchDeploymentChanges(
 	// When version is 0 and replay is not requested, jump to the current max pk
 	// so we only see new changes.
 	if versionCursor == 0 && !req.Msg.GetReplay() {
-		maxVersion, err := s.db.GetDeploymentChangesMaxVersion(ctx, region.ID)
+		maxVersion, err := s.db.GetDeploymentChangesMaxVersion(ctx, cluster.Region.ID)
 		if err != nil {
 			return connect.NewError(connect.CodeInternal, err)
 		}
 		versionCursor = uint64(maxVersion)
-		logger.Info("watch: starting from max version", "region_id", region.ID, "cursor", versionCursor)
+		logger.Info("watch: starting from max version", "region_id", cluster.Region.ID, "cursor", versionCursor)
 	}
 
 	// Poll deployment_changes for new entries.
@@ -59,7 +59,7 @@ func (s *Service) WatchDeploymentChanges(
 		default:
 		}
 
-		events, err := s.fetchDeploymentChangeEvents(ctx, region.ID, versionCursor)
+		events, err := s.fetchDeploymentChangeEvents(ctx, cluster.Region.ID, versionCursor)
 		if err != nil {
 			logger.Error("failed to fetch deployment change events", "error", err)
 			return connect.NewError(connect.CodeInternal, err)
@@ -160,8 +160,8 @@ func (s *Service) loadChangeEvent(ctx context.Context, change db.DeploymentChang
 		return &ctrlv1.DeploymentChangeEvent{Version: change.Pk}, nil
 
 	case db.DeploymentChangesResourceTypeSentinel:
-		// Sentinel resources are no longer dispatched — frontline took
-		// over the request path. The outbox row exists during the
+		// This legacy resource type is no longer dispatched. Frontline owns
+		// the request path. The outbox row exists during the
 		// cutover so we just acknowledge it and advance the version.
 		return &ctrlv1.DeploymentChangeEvent{Version: change.Pk}, nil
 

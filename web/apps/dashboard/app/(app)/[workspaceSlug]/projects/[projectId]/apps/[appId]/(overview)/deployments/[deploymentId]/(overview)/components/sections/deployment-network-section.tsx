@@ -5,7 +5,7 @@ import {
   formatMemoryParts,
   formatTooltipPercent,
 } from "@/lib/utils/deployment-formatters";
-import type { PERCENTILE_VALUES } from "@unkey/clickhouse/src/sentinel";
+import type { PERCENTILE_VALUES } from "@unkey/clickhouse/src/frontline";
 import { ChartActivity, Layers2, Microchip, Ram, TimeClock } from "@unkey/icons";
 import { useMemo, useState } from "react";
 import { Section, SectionHeader } from "../../../../../../components/section";
@@ -94,8 +94,7 @@ export function DeploymentNetworkSection() {
               data: latencyTimeseries,
               dataKey: "y",
             }}
-            xAxisDomain={sixHourDomain}
-            contractOnSparseData
+            axis={{ x: { domain: sixHourDomain, contractOnSparseData: true } }}
             timeWindow={{
               chart: "Last 6h",
             }}
@@ -114,8 +113,7 @@ export function DeploymentNetworkSection() {
               data: cpuTimeseries,
               dataKey: "y",
             }}
-            xAxisDomain={sixHourDomain}
-            contractOnSparseData
+            axis={{ x: { domain: sixHourDomain, contractOnSparseData: true } }}
             timeWindow={{
               chart: "Last 6h",
             }}
@@ -141,8 +139,7 @@ export function DeploymentNetworkSection() {
               data: memoryTimeseries,
               dataKey: "y",
             }}
-            xAxisDomain={sixHourDomain}
-            contractOnSparseData
+            axis={{ x: { domain: sixHourDomain, contractOnSparseData: true } }}
             timeWindow={{
               chart: "Last 6h",
             }}

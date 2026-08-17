@@ -4,11 +4,11 @@ import (
 	restateingress "github.com/restatedev/sdk-go/ingress"
 	"github.com/unkeyed/unkey/gen/proto/ctrl/v1/ctrlv1connect"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
+	githubclient "github.com/unkeyed/unkey/pkg/github"
 	restateadmin "github.com/unkeyed/unkey/pkg/restate/admin"
 	"github.com/unkeyed/unkey/svc/ctrl/dedup"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/auditlogs"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
-	githubclient "github.com/unkeyed/unkey/svc/ctrl/worker/github"
 )
 
 // Service implements the DeployService ConnectRPC API. It coordinates
@@ -57,9 +57,10 @@ type Config struct {
 	AllowUnauthenticatedDeployments bool
 	// Bearer is the preshared token that callers must provide in the Authorization header.
 	Bearer string
-	// EnforceDeployGate hard-blocks deployment creation for workspaces with
-	// no Deploy entitlement (same switch as project creation). False runs in
-	// observe mode: logs what it would block but allows creation.
+	// EnforceDeployGate hard-blocks deployment actions that create, start, or
+	// activate compute for workspaces with no Deploy entitlement (same switch as
+	// project creation). False runs the plan check in observe mode. Spend-cap
+	// suspension is always enforced.
 	EnforceDeployGate bool
 }
 

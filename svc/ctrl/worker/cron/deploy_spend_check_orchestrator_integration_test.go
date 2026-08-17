@@ -61,7 +61,7 @@ func TestRunDeploySpendCheck_OrchestratorIntegration(t *testing.T) {
 
 	period := time.Now().UTC().Format("2006-01")
 	run := func() (*hydrav1.RunDeploySpendCheckResponse, error) {
-		return hydrav1.NewCronServiceIngressClient(h.Restate, period).
+		return hydrav1.NewCronServiceIngressClient(h.Restate, "deploy-spend-check-"+period).
 			RunDeploySpendCheck().
 			Request(h.Ctx, &hydrav1.RunDeploySpendCheckRequest{})
 	}
@@ -90,5 +90,20 @@ func TestRunDeploySpendCheck_OrchestratorIntegration(t *testing.T) {
 		resp, err := run()
 		require.NoError(t, err)
 		require.Equal(t, int32(0), resp.GetWorkspacesDispatched())
+	})
+
+	t.Run("limits concurrent instance usage shards", func(t *testing.T) {
+		reader.set(nil)
+		for range 8 {
+			seedBudgetedWorkspace(t, h, uid.New("cus"), 1_000_000)
+		}
+		reader.trackInstanceConcurrency(50 * time.Millisecond)
+
+		resp, err := run()
+		require.NoError(t, err)
+		require.Equal(t, int32(0), resp.GetWorkspacesDispatched())
+		instanceReads, _ := reader.reads()
+		require.Equal(t, 8, instanceReads)
+		require.Equal(t, 2, reader.maxInstanceConcurrency())
 	})
 }

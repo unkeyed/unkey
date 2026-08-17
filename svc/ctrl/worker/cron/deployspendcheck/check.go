@@ -82,6 +82,22 @@ func suspendGenerationKey(period string) string {
 	return "spend_suspend_generation:" + period
 }
 
+// underBudgetStreakKey counts consecutive ticks seen under budget while
+// suspended (and still stop-enabled), scoped to a billing period. A spend-driven
+// resume waits for resumeConfirmations of them: gross month-to-date only grows
+// within a period, so a genuine dip below a fixed budget means the ClickHouse
+// read moved, not the spend, and trusting one read would teardown/resume flap at
+// the tick cadence. Deliberate resumes (stop toggled off, budget removed) ignore
+// it.
+func underBudgetStreakKey(period string) string {
+	return "spend_under_budget_streak:" + period
+}
+
+// resumeConfirmations is how many consecutive under-budget ticks must be
+// observed before compute auto-resumes. Two absorbs an isolated underread while
+// still resuming within a couple of ticks once spend is genuinely under budget.
+const resumeConfirmations = 2
+
 // setSuspended persists the workspace's deploy_spend_suspended column on a
 // suspend/resume transition. The column (not VO state) is authoritative: it
 // lets the orchestrator keep dispatching a suspended workspace after its budget
@@ -94,6 +110,26 @@ func (h *CheckHandler) setSuspended(ctx restate.ObjectContext, workspaceID strin
 			ID:        workspaceID,
 		})
 	}, restate.WithName("set spend-suspended"))
+}
+
+// hasActiveDeployPlan reports whether the workspace currently holds a Deploy
+// entitlement (a Stripe-mirrored plan or a manual override), read live rather
+// than from the orchestrator's snapshot. The snapshot that dispatched this
+// check can predate a cancel: deprovisionCompute clears deploy_plan and
+// deploy_spend_suspended when Compute is cancelled, so enforcing off the stale
+// snapshot would suspend a workspace with no plan and nothing running. A missing
+// workspace or billing row reads as not entitled.
+func (h *CheckHandler) hasActiveDeployPlan(ctx restate.ObjectContext, workspaceID string) (bool, error) {
+	entitlement, err := restate.Run(ctx, func(rc restate.RunContext) (db.FindWorkspaceDeployEntitlementRow, error) {
+		return h.db.FindWorkspaceDeployEntitlement(rc, workspaceID)
+	}, restate.WithName("read deploy entitlement"))
+	if err != nil {
+		if db.IsNotFound(err) {
+			return false, nil
+		}
+		return false, fmt.Errorf("read deploy entitlement: %w", err)
+	}
+	return entitlement.Plan.Valid || entitlement.PlanOverride.Valid, nil
 }
 
 // CheckWorkspaceSpend takes the workspace's priced month-to-date usage from
@@ -137,6 +173,7 @@ func (h *CheckHandler) CheckWorkspaceSpend(
 	prev := reqPeriod.Prev()
 	restate.Clear(ctx, alertHighWaterKey(prev.Key()))
 	restate.Clear(ctx, suspendGenerationKey(prev.Key()))
+	restate.Clear(ctx, underBudgetStreakKey(prev.Key()))
 
 	if req.GetBudgetCents() <= 0 {
 		if req.GetCurrentlySuspended() {
@@ -148,6 +185,7 @@ func (h *CheckHandler) CheckWorkspaceSpend(
 			if err := h.setSuspended(ctx, workspaceID, false); err != nil {
 				return nil, fmt.Errorf("clear spend-suspended: %w", err)
 			}
+			restate.Clear(ctx, underBudgetStreakKey(req.GetPeriod()))
 			logger.Info("deploy spend cap: resumed after budget removed",
 				"workspace_id", workspaceID)
 		}
@@ -226,6 +264,20 @@ func (h *CheckHandler) CheckWorkspaceSpend(
 	// stopping is turned off, or the period rolls.
 	switch {
 	case willSuspend:
+		// Skip enforcement when the plan was cancelled after the snapshot that
+		// dispatched this check: suspending a plan-less workspace re-sets
+		// deploy_spend_suspended that deprovisionCompute just cleared and strands
+		// it, so a later resubscribe starts blocked. Nothing is running to stop.
+		entitled, err := h.hasActiveDeployPlan(ctx, workspaceID)
+		if err != nil {
+			return nil, err
+		}
+		if !entitled {
+			logger.Info("deploy spend cap: skipping suspend for workspace with no active plan",
+				"workspace_id", workspaceID, "billing_period", req.GetPeriod())
+			return &hydrav1.CheckWorkspaceSpendResponse{}, nil
+		}
+
 		logger.Info("deploy spend threshold crossed",
 			"workspace_id", workspaceID,
 			"billing_period", req.GetPeriod(),
@@ -241,6 +293,8 @@ func (h *CheckHandler) CheckWorkspaceSpend(
 			return nil, fmt.Errorf("set spend-suspended: %w", err)
 		}
 		suspended = true
+		// A fresh suspension starts a clean resume streak.
+		restate.Clear(ctx, underBudgetStreakKey(req.GetPeriod()))
 
 		hydrav1.NewDeployTeardownServiceClient(ctx, workspaceID).
 			Teardown().
@@ -278,7 +332,26 @@ func (h *CheckHandler) CheckWorkspaceSpend(
 		restate.Set(ctx, stateKey, gross)
 		alerted = crossed
 
-	case suspended && req.GetStop() && gross >= budgetMicroCents:
+	case suspended && !req.GetStop():
+		// Stopping was turned off while suspended: a deliberate user action, so
+		// resume immediately without waiting for the under-budget streak.
+		hydrav1.NewDeployTeardownServiceClient(ctx, workspaceID).
+			Resume().
+			Send(&hydrav1.ResumeRequest{})
+		if err := h.setSuspended(ctx, workspaceID, false); err != nil {
+			return nil, fmt.Errorf("clear spend-suspended: %w", err)
+		}
+		suspended = false
+		restate.Clear(ctx, underBudgetStreakKey(req.GetPeriod()))
+		logger.Info("deploy spend cap: resumed compute (stop disabled)",
+			"workspace_id", workspaceID, "billing_period", req.GetPeriod(),
+			"gross_cents", gross/deploybilling.MicroCentsPerCent, "budget_cents", req.GetBudgetCents())
+
+	case suspended && gross >= budgetMicroCents:
+		// Still at or over budget (stop is on; the stop-disabled case above ran
+		// otherwise). Reset the resume streak: spend is back over the cap, so any
+		// earlier under-budget tick was a transient underread, not a real drop.
+		restate.Clear(ctx, underBudgetStreakKey(req.GetPeriod()))
 		// The flag can say stopped while compute still runs (kill before the
 		// teardown send, drain grace expired, create racing the gate). Re-send
 		// Teardown: it early-returns when nothing runs and merges into the
@@ -291,9 +364,27 @@ func (h *CheckHandler) CheckWorkspaceSpend(
 			"workspace_id", workspaceID, "billing_period", req.GetPeriod(),
 			"gross_cents", gross/deploybilling.MicroCentsPerCent, "budget_cents", req.GetBudgetCents())
 
-	case suspended && (!req.GetStop() || gross < budgetMicroCents):
-		// Budget raised above gross spend, period reset, or stopping turned
-		// off while suspended. Bring compute back.
+	case suspended && gross < budgetMicroCents:
+		// Spend is under budget with stop still on. Gross only grows within a
+		// period, so against an unchanged budget this can only be a transient
+		// ClickHouse underread (a budget raise is the other reason gross lands
+		// here); require resumeConfirmations consecutive under-budget ticks before
+		// resuming so a one-tick dip cannot teardown/resume flap.
+		streakKey := underBudgetStreakKey(req.GetPeriod())
+		streak, err := restate.Get[int32](ctx, streakKey)
+		if err != nil {
+			return nil, fmt.Errorf("get under-budget streak: %w", err)
+		}
+		streak++
+		if streak < resumeConfirmations {
+			restate.Set(ctx, streakKey, streak)
+			logger.Info("deploy spend cap: under budget, awaiting confirmation before resume",
+				"workspace_id", workspaceID, "billing_period", req.GetPeriod(),
+				"streak", streak, "needed", int32(resumeConfirmations),
+				"gross_cents", gross/deploybilling.MicroCentsPerCent, "budget_cents", req.GetBudgetCents())
+			break
+		}
+
 		hydrav1.NewDeployTeardownServiceClient(ctx, workspaceID).
 			Resume().
 			Send(&hydrav1.ResumeRequest{})
@@ -301,6 +392,7 @@ func (h *CheckHandler) CheckWorkspaceSpend(
 			return nil, fmt.Errorf("clear spend-suspended: %w", err)
 		}
 		suspended = false
+		restate.Clear(ctx, streakKey)
 		logger.Info("deploy spend cap: resumed compute",
 			"workspace_id", workspaceID, "billing_period", req.GetPeriod(),
 			"gross_cents", gross/deploybilling.MicroCentsPerCent, "budget_cents", req.GetBudgetCents())

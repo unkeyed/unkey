@@ -8,12 +8,10 @@ package db
 import (
 	"context"
 	"database/sql"
-
-	dbtype "github.com/unkeyed/unkey/pkg/db/types"
 )
 
 const listPermissions = `-- name: ListPermissions :many
-SELECT p.pk, p.id, p.workspace_id, p.name, p.slug, p.description, p.created_at_m, p.updated_at_m
+SELECT p.pk, p.id, p.workspace_id, p.project_id, p.name, p.slug, p.description, p.created_at_m, p.updated_at_m
 FROM permissions p
 WHERE p.workspace_id = ?
   AND p.id >= ?
@@ -21,22 +19,22 @@ WHERE p.workspace_id = ?
   -- by mysql.SearchContains; NULL disables the filter. They are separate params
   -- because sqlc types each param after the compared column, and description's
   -- dbtype.NullString override conflicts with the plain string columns.
-  AND (? IS NULL OR p.id LIKE ? OR p.name LIKE ? OR p.slug LIKE ? OR p.description LIKE ?)
+  AND (? IS NULL OR LOWER(p.id) LIKE LOWER(?) OR LOWER(p.name) LIKE LOWER(?) OR LOWER(p.slug) LIKE LOWER(?) OR LOWER(p.description) LIKE LOWER(?))
 ORDER BY p.id
 LIMIT ?
 `
 
 type ListPermissionsParams struct {
-	WorkspaceID       string            `db:"workspace_id"`
-	IDCursor          string            `db:"id_cursor"`
-	Search            sql.NullString    `db:"search"`
-	DescriptionSearch dbtype.NullString `db:"description_search"`
-	Limit             int32             `db:"limit"`
+	WorkspaceID       string         `db:"workspace_id"`
+	IDCursor          string         `db:"id_cursor"`
+	Search            sql.NullString `db:"search"`
+	DescriptionSearch sql.NullString `db:"description_search"`
+	Limit             int32          `db:"limit"`
 }
 
 // ListPermissions
 //
-//	SELECT p.pk, p.id, p.workspace_id, p.name, p.slug, p.description, p.created_at_m, p.updated_at_m
+//	SELECT p.pk, p.id, p.workspace_id, p.project_id, p.name, p.slug, p.description, p.created_at_m, p.updated_at_m
 //	FROM permissions p
 //	WHERE p.workspace_id = ?
 //	  AND p.id >= ?
@@ -44,7 +42,7 @@ type ListPermissionsParams struct {
 //	  -- by mysql.SearchContains; NULL disables the filter. They are separate params
 //	  -- because sqlc types each param after the compared column, and description's
 //	  -- dbtype.NullString override conflicts with the plain string columns.
-//	  AND (? IS NULL OR p.id LIKE ? OR p.name LIKE ? OR p.slug LIKE ? OR p.description LIKE ?)
+//	  AND (? IS NULL OR LOWER(p.id) LIKE LOWER(?) OR LOWER(p.name) LIKE LOWER(?) OR LOWER(p.slug) LIKE LOWER(?) OR LOWER(p.description) LIKE LOWER(?))
 //	ORDER BY p.id
 //	LIMIT ?
 func (q *Queries) ListPermissions(ctx context.Context, db DBTX, arg ListPermissionsParams) ([]Permission, error) {
@@ -69,6 +67,7 @@ func (q *Queries) ListPermissions(ctx context.Context, db DBTX, arg ListPermissi
 			&i.Pk,
 			&i.ID,
 			&i.WorkspaceID,
+			&i.ProjectID,
 			&i.Name,
 			&i.Slug,
 			&i.Description,

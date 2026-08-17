@@ -132,14 +132,14 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				return fault.New(
 					"policy not found",
 					fault.Code(codes.Data.Policy.NotFound.URN()),
-					fault.Internal("no sentinel config for environment"),
+					fault.Internal("no gateway policy config for environment"),
 					fault.Public("The requested policy does not exist. Note that policy ids change when the policy list is replaced."),
 				)
 			}
 			return fault.Wrap(
 				err,
 				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-				fault.Internal("unable to read sentinel config"),
+				fault.Internal("unable to read gateway policy config"),
 				fault.Public("We're unable to update the policy."),
 			)
 		}
@@ -148,7 +148,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			return fault.Wrap(
 				parseErr,
 				fault.Code(codes.App.Internal.UnexpectedError.URN()),
-				fault.Internal("stored sentinel config is not valid protojson"),
+				fault.Internal("stored gateway policy config is not valid protojson"),
 				fault.Public("We're unable to update the policy."),
 			)
 		}
@@ -246,7 +246,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 
 		now := time.Now().UnixMilli()
-		if upsertErr := db.Query.UpsertAppRuntimeSettingsSentinelConfig(ctx, tx, db.UpsertAppRuntimeSettingsSentinelConfigParams{
+		if upsertErr := db.Query.UpsertAppRuntimeSettingsPolicyConfig(ctx, tx, db.UpsertAppRuntimeSettingsPolicyConfigParams{
 			WorkspaceID:    env.WorkspaceID,
 			AppID:          env.AppID,
 			EnvironmentID:  env.ID,
@@ -257,7 +257,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			return fault.Wrap(
 				upsertErr,
 				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-				fault.Internal("unable to write sentinel config"),
+				fault.Internal("unable to write gateway policy config"),
 				fault.Public("We're unable to update the policy."),
 			)
 		}

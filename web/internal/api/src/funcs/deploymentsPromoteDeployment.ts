@@ -30,13 +30,13 @@ import { Result } from "../types/fp.js";
  * Promote deployment
  *
  * @remarks
- * Promote a deployment to become the live deployment for its environment.
- * All sticky domains are reassigned from the current live deployment to the
+ * Promote a deployment to become the current deployment for its environment.
+ * All sticky domains are reassigned from the current deployment to the
  * promoted one, and the previous deployment is scheduled for standby.
  *
  * The deployment must be ready, not already shutting down, belong to the
- * production environment, and its app must already have a live deployment.
- * Promoting the deployment that is already live fails, unless the app is in
+ * production environment, and its app must already have a current deployment.
+ * Promoting the deployment that is already current fails, unless the app is in
  * a rolled-back state, in which case promoting the current deployment
  * confirms the rollback and re-enables automatic promotion of future
  * deployments.

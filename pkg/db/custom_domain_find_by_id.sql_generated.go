@@ -10,41 +10,41 @@ import (
 )
 
 const findCustomDomainById = `-- name: FindCustomDomainById :one
-SELECT pk, id, workspace_id, project_id, app_id, environment_id, domain, challenge_type, verification_status, verification_token, ownership_verified, cname_verified, target_cname, last_checked_at, check_attempts, verification_error, domain_connect_provider, domain_connect_url, invocation_id, created_at, updated_at
+SELECT
+    id,
+    domain,
+    verification_token,
+    target_cname
 FROM custom_domains
 WHERE id = ?
+LIMIT 1
 `
+
+type FindCustomDomainByIdRow struct {
+	ID                string `db:"id"`
+	Domain            string `db:"domain"`
+	VerificationToken string `db:"verification_token"`
+	TargetCname       string `db:"target_cname"`
+}
 
 // FindCustomDomainById
 //
-//	SELECT pk, id, workspace_id, project_id, app_id, environment_id, domain, challenge_type, verification_status, verification_token, ownership_verified, cname_verified, target_cname, last_checked_at, check_attempts, verification_error, domain_connect_provider, domain_connect_url, invocation_id, created_at, updated_at
+//	SELECT
+//	    id,
+//	    domain,
+//	    verification_token,
+//	    target_cname
 //	FROM custom_domains
 //	WHERE id = ?
-func (q *Queries) FindCustomDomainById(ctx context.Context, db DBTX, id string) (CustomDomain, error) {
+//	LIMIT 1
+func (q *Queries) FindCustomDomainById(ctx context.Context, db DBTX, id string) (FindCustomDomainByIdRow, error) {
 	row := db.QueryRowContext(ctx, findCustomDomainById, id)
-	var i CustomDomain
+	var i FindCustomDomainByIdRow
 	err := row.Scan(
-		&i.Pk,
 		&i.ID,
-		&i.WorkspaceID,
-		&i.ProjectID,
-		&i.AppID,
-		&i.EnvironmentID,
 		&i.Domain,
-		&i.ChallengeType,
-		&i.VerificationStatus,
 		&i.VerificationToken,
-		&i.OwnershipVerified,
-		&i.CnameVerified,
 		&i.TargetCname,
-		&i.LastCheckedAt,
-		&i.CheckAttempts,
-		&i.VerificationError,
-		&i.DomainConnectProvider,
-		&i.DomainConnectUrl,
-		&i.InvocationID,
-		&i.CreatedAt,
-		&i.UpdatedAt,
 	)
 	return i, err
 }

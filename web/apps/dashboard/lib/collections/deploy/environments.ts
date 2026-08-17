@@ -9,6 +9,7 @@ const schema = z.object({
   id: z.string(),
   projectId: z.string(),
   slug: z.string(),
+  kind: z.enum(["production", "preview"]),
   appId: z.string(),
 });
 

@@ -20,6 +20,7 @@ interface PreviousAttributes {
   cancel_at_period_end?: boolean;
   collection_method?: string;
   latest_invoice?: string | Stripe.Invoice | null;
+  schedule?: string | Stripe.SubscriptionSchedule | null;
 
   // Payment method changes (when users update their card)
   default_payment_method?: string | Stripe.PaymentMethod | null;
@@ -163,12 +164,22 @@ export function isCardUpdateOnly(
   return false;
 }
 
+/** Attaching or releasing a schedule does not change the active API plan. */
+export function isScheduleUpdateOnly(previousAttributes: PreviousAttributes | undefined): boolean {
+  if (!previousAttributes) {
+    return false;
+  }
+
+  const changedKeys = Object.keys(previousAttributes);
+  return changedKeys.length === 1 && changedKeys[0] === "schedule";
+}
+
 export type { PreviousAttributes };
 
 /**
- * A subscription that is over and can never bill again. workspaces.
- * stripe_subscription_id can point at one of these: cancelDeploy cancels a
- * Compute-only subscription outright, and the customer.subscription.deleted
+ * A subscription that is over and can never bill again. A recorded
+ * subscription-id column can point at one of these: cancelDeploy cancels a
+ * Compute subscription outright, and the customer.subscription.deleted
  * webhook that clears the column may lag or be missed. Callers that gate on
  * "workspace already has a subscription" must treat a dead one as absent, or
  * a workspace that cancels mid-month can never subscribe again.
@@ -177,90 +188,9 @@ export function isDeadSubscription(sub: Stripe.Subscription): boolean {
   return sub.status === "canceled" || sub.status === "incomplete_expired";
 }
 
-/**
- * Metadata marker on subscription schedules created by cancelSubscription to
- * phase the API plan off a mixed (API + Compute) subscription at period end —
- * Stripe has no per-item cancel_at_period_end, so a schedule stands in for it.
- * uncancelSubscription releases marked schedules to resume the plan,
- * getBillingInfo reports their phase boundary as cancelAt, and the
- * subscription.updated webhook downgrades the workspace when the boundary hits.
- */
-export const API_CANCEL_SCHEDULE_MARKER = "unkey_api_cancel_at_period_end";
-
-/**
- * The API-plan cancellation schedule managing this subscription, or null when
- * the subscription is unmanaged or managed by some other schedule (which the
- * cancel flows must not touch).
- */
-export async function getApiCancelSchedule(
-  stripe: Stripe,
-  sub: Stripe.Subscription,
-): Promise<Stripe.SubscriptionSchedule | null> {
-  if (!sub.schedule) {
-    return null;
-  }
-  const schedule =
-    typeof sub.schedule === "string"
-      ? await stripe.subscriptionSchedules.retrieve(sub.schedule)
-      : sub.schedule;
-  return schedule.metadata?.[API_CANCEL_SCHEDULE_MARKER] === "true" ? schedule : null;
-}
-
-/**
- * Whether a schedule is still governing upcoming phases (releasing or
- * composing with it only makes sense then).
- */
-export function isPendingSchedule(schedule: Stripe.SubscriptionSchedule): boolean {
-  return schedule.status === "active" || schedule.status === "not_started";
-}
-
-/**
- * Creates the schedule that phases the API items off a mixed subscription at
- * period end: the current items run to the boundary, then one Compute-only
- * iteration, then end_behavior "release" detaches the schedule and the
- * subscription returns to normal item-level management. Marked with
- * API_CANCEL_SCHEDULE_MARKER so the other billing flows can recognize (and
- * compose with) the pending cancellation.
- */
-export async function createApiCancelSchedule(
-  stripe: Stripe,
-  subscriptionId: string,
-  deployItems: Stripe.SubscriptionItem[],
-): Promise<void> {
-  const schedule = await stripe.subscriptionSchedules.create({
-    from_subscription: subscriptionId,
-  });
-  const currentPhase = schedule.phases[0];
-
-  const phaseItems = (
-    items: Array<{ price: string | Stripe.Price | Stripe.DeletedPrice; quantity?: number }>,
-  ): Stripe.SubscriptionScheduleUpdateParams.Phase.Item[] =>
-    items.map((item) => ({
-      price: typeof item.price === "string" ? item.price : item.price.id,
-      // Metered prices must not carry a quantity; licensed ones keep theirs.
-      ...(item.quantity ? { quantity: item.quantity } : {}),
-    }));
-
-  await stripe.subscriptionSchedules.update(schedule.id, {
-    metadata: { [API_CANCEL_SCHEDULE_MARKER]: "true" },
-    end_behavior: "release",
-    phases: [
-      // The current phase must be passed back unchanged (Stripe requires
-      // restating in-progress phases on every update).
-      {
-        items: phaseItems(currentPhase.items),
-        start_date: currentPhase.start_date,
-        end_date: currentPhase.end_date,
-      },
-      {
-        items: phaseItems(deployItems),
-        // One billing month of the Compute-only phase, then release. Compute
-        // is anchored to the 1st, so this spans exactly one billing period.
-        duration: { interval: "month" },
-        // The API item ran its full paid period, so there is nothing to
-        // credit at the boundary.
-        proration_behavior: "none",
-      },
-    ],
-  });
+/** Returns the Stripe-hosted recovery page when latest_invoice was expanded. */
+export function hostedInvoiceUrl(sub: Stripe.Subscription): string | null {
+  const invoice =
+    sub.latest_invoice && typeof sub.latest_invoice !== "string" ? sub.latest_invoice : null;
+  return invoice?.hosted_invoice_url ?? null;
 }

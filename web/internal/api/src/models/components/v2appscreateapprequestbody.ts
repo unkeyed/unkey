@@ -3,6 +3,11 @@
  */
 
 import * as z from "zod/v3";
+import {
+  AppGitCreateInput,
+  AppGitCreateInput$Outbound,
+  AppGitCreateInput$outboundSchema,
+} from "./appgitcreateinput.js";
 
 export type V2AppsCreateAppRequestBody = {
   /**
@@ -26,6 +31,13 @@ export type V2AppsCreateAppRequestBody = {
    * Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
    */
   slug: string;
+  /**
+   * Connect a GitHub repository to the app on creation. Omit to create the app
+   *
+   * @remarks
+   * without a repository and connect one later with apps.updateApp.
+   */
+  git?: AppGitCreateInput | undefined;
 };
 
 /** @internal */
@@ -33,6 +45,7 @@ export type V2AppsCreateAppRequestBody$Outbound = {
   project: string;
   name: string;
   slug: string;
+  git?: AppGitCreateInput$Outbound | undefined;
 };
 
 /** @internal */
@@ -44,6 +57,7 @@ export const V2AppsCreateAppRequestBody$outboundSchema: z.ZodType<
   project: z.string(),
   name: z.string(),
   slug: z.string(),
+  git: AppGitCreateInput$outboundSchema.optional(),
 });
 
 export function v2AppsCreateAppRequestBodyToJSON(

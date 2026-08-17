@@ -10,5 +10,5 @@ SELECT
    b.stripe_customer_id,
    w.enabled
 FROM `workspaces` w
-LEFT JOIN `workspace_billing` b ON b.workspace_id = w.id
+LEFT JOIN `workspace_billing` b ON w.id = b.workspace_id
 WHERE w.id IN (sqlc.slice('workspace_ids'));

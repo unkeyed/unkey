@@ -116,12 +116,14 @@ func TestToKeyData_EmptyValues(t *testing.T) {
 
 func TestToKeyData_WithIdentity(t *testing.T) {
 	t.Run("with valid identity data", func(t *testing.T) {
+		meta, err := json.Marshal(map[string]string{"role": "admin"})
+		require.NoError(t, err)
 		row := FindLiveKeyByHashRow{
 			ID:                 "key-with-identity",
 			WorkspaceID:        "workspace-123",
 			IdentityTableID:    sql.NullString{String: "identity-123", Valid: true},
 			IdentityExternalID: sql.NullString{String: "user-456", Valid: true},
-			IdentityMeta:       []byte(`{"role": "admin"}`),
+			IdentityMeta:       meta,
 		}
 
 		result := ToKeyData(row)
@@ -131,7 +133,7 @@ func TestToKeyData_WithIdentity(t *testing.T) {
 		require.Equal(t, "identity-123", result.Identity.ID)
 		require.Equal(t, "user-456", result.Identity.ExternalID)
 		require.Equal(t, "workspace-123", result.Identity.WorkspaceID)
-		require.Equal(t, []byte(`{"role": "admin"}`), result.Identity.Meta)
+		require.Equal(t, meta, result.Identity.Meta)
 	})
 
 	t.Run("without identity data", func(t *testing.T) {

@@ -2,7 +2,9 @@
   "name": "@unkey/migrate",
   "version": "1.0.0",
   "scripts": {
-    "migrate": "dotenv -e .env npx tsx ./main.ts"
+    "environment-kind": "tsx ./environment-kind.ts",
+    "migrate": "dotenv -e .env npx tsx ./main.ts",
+    "project-ownership": "tsx ./project-ownership.ts"
   },
   "keywords": [],
   "author": "Andreas Thomas",

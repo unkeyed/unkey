@@ -25,9 +25,9 @@ const (
 	LabelComponent  = "app.kubernetes.io/component"
 	LabelWorkspace  = "unkey.com/workspace.id"
 	LabelProject    = "unkey.com/project.id"
+	LabelApp        = "unkey.com/app.id"
 	LabelEnv        = "unkey.com/environment.id"
 	LabelDeployment = "unkey.com/deployment.id"
-	LabelSentinel   = "unkey.com/sentinel.id"
 )
 
 type Config struct {
@@ -110,7 +110,7 @@ func New(cfg Config) *Collector {
 
 func (c *Collector) Run(ctx context.Context, interval time.Duration) error {
 	stop := repeat.Every(interval, func() {
-		c.collectWithMetrics(ctx)
+		c.collectWithMetrics(ctx, interval)
 	})
 	defer stop()
 
@@ -153,11 +153,17 @@ func (c *Collector) Run(ctx context.Context, interval time.Duration) error {
 	return ctx.Err()
 }
 
-func (c *Collector) collectWithMetrics(ctx context.Context) {
+func (c *Collector) collectWithMetrics(ctx context.Context, interval time.Duration) {
 	start := time.Now()
 
+	// Defence in depth only. repeat.Every invokes this synchronously from a single
+	// goroutine and nothing else takes c.mu, so this cannot contend today and the
+	// skip counter it used to feed could never fire. Overrun is detected below
+	// instead, which is the condition that actually costs money: a tick slower
+	// than the interval widens the gap between samples, and the billing query
+	// drops any pair more than max_sample_gap apart, silently zeroing every meter
+	// for every pod on the node.
 	if !c.mu.TryLock() {
-		metrics.CollectionTicksSkipped.Inc()
 		logger.Info("skipping collection, previous tick still running")
 		return
 	}
@@ -165,7 +171,13 @@ func (c *Collector) collectWithMetrics(ctx context.Context) {
 
 	err := c.collect(ctx)
 
-	metrics.CollectionDuration.Observe(time.Since(start).Seconds())
+	elapsed := time.Since(start)
+	metrics.CollectionDuration.Observe(elapsed.Seconds())
+	if interval > 0 && elapsed > interval {
+		metrics.CollectionTicksOverrun.Inc()
+		logger.Warn("collection overran its interval; sample gaps are widening",
+			"elapsed", elapsed.String(), "interval", interval.String())
+	}
 
 	if err != nil {
 		metrics.CollectionTotal.WithLabelValues("error").Inc()
@@ -270,6 +282,7 @@ func (c *Collector) emitLifecycleCheckpoint(podUID, kind string) {
 		NodeID:                     c.nodeName,
 		WorkspaceID:                info.workspaceID,
 		ProjectID:                  info.projectID,
+		AppID:                      info.appID,
 		EnvironmentID:              info.environmentID,
 		ResourceType:               info.resourceType,
 		ResourceID:                 info.resourceID,
@@ -391,7 +404,7 @@ func terminatedTransition(old, new *corev1.ContainerStatus) bool {
 	return false
 }
 
-// findPodByUID locates a krane/sentinel pod on this node by UID. Returns nil
+// findPodByUID locates a krane pod on this node by UID. Returns nil
 // if the UID doesn't match a billable pod.
 func (c *Collector) findPodByUID(uid string) *corev1.Pod {
 	all, err := c.podLister.List(labels.Everything())

@@ -91,11 +91,9 @@ func TestListKeys(t *testing.T) {
 		},
 	}
 
-	listResponse := `{"meta":{"requestId":"test"},"data":[]}`
-
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			req := util.CaptureRequestWithResponse[openapi.V2ApisListKeysRequestBody](t, Cmd(), tt.args, listResponse)
+			req := util.CaptureRequestWithData[openapi.V2ApisListKeysRequestBody](t, Cmd(), tt.args, []any{})
 			require.Equal(t, tt.want, req)
 		})
 	}

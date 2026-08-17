@@ -217,12 +217,11 @@ components:
                 name:
                     type: string
                     minLength: 3
-                    maxLength: 255
-                    pattern: "^[a-zA-Z][a-zA-Z0-9._-]*$"
+                    maxLength: 256
                     description: |
-                        Unique identifier for this API namespace within your workspace.
-                        Use descriptive names like 'payment-service-prod' or 'user-api-dev' to clearly identify purpose and environment.
-                    example: payment-service-production
+                        Human-readable name for this API within your workspace.
+                        Use descriptive names like 'Payment Service (prod)' or 'user-api-dev' to clearly identify purpose and environment.
+                    example: Payment Service (prod)
             additionalProperties: false
         V2ApisCreateApiResponseBody:
             type: object
@@ -393,6 +392,8 @@ components:
                     example: Payments API
                 slug:
                     "$ref": "#/components/schemas/ResourceIdentifier"
+                git:
+                    "$ref": "#/components/schemas/AppGitCreateInput"
             additionalProperties: false
         V2AppsCreateAppResponseBody:
             type: object
@@ -531,14 +532,15 @@ components:
                     example: Payments API
                 slug:
                     "$ref": "#/components/schemas/ResourceIdentifier"
-                defaultBranch:
-                    type: string
-                    minLength: 1
-                    maxLength: 256
+                git:
                     description: |
-                        New default git branch deployments track for this app.
-                        Omit this field to leave the current branch unchanged.
-                    example: main
+                        Connect, reconfigure, or disconnect this app's GitHub repository.
+                        Omit to leave unchanged, set null to disconnect, or set an object with a
+                        "repository" to connect or replace it and/or a "defaultBranch" to set which
+                        branch it tracks. Fields are independent, so send only the one you change.
+                    anyOf:
+                        - "$ref": "#/components/schemas/AppGitUpdateInput"
+                        - type: "null"
                 deleteProtection:
                     type: boolean
                     description: |
@@ -831,6 +833,127 @@ components:
                     "$ref": "#/components/schemas/Meta"
                 data:
                     "$ref": "#/components/schemas/EmptyResponse"
+            additionalProperties: false
+        V2DomainsCreateDomainRequestBody:
+            type: object
+            required:
+                - project
+                - app
+                - environment
+                - domain
+            properties:
+                project:
+                    "$ref": "#/components/schemas/ResourceIdentifier"
+                app:
+                    "$ref": "#/components/schemas/ResourceIdentifier"
+                environment:
+                    "$ref": "#/components/schemas/ResourceIdentifier"
+                domain:
+                    type: string
+                    minLength: 4
+                    maxLength: 253
+                    description: |
+                        Fully qualified domain name to attach to the environment, without a scheme, port, or path.
+                        Must be unique across your entire workspace: the same name cannot be attached to two environments.
+
+                        The name must sit under a registrable domain: 'api.acme.co.uk' is accepted, the public suffix
+                        'co.uk' itself is not. Internationalized names may be sent in Unicode or Punycode form; either
+                        way the domain is stored and returned in its canonical form, lowercase ASCII with Unicode labels
+                        Punycode encoded, and the DNS records in the response use that form.
+                    example: api.acme.com
+            additionalProperties: false
+        V2DomainsCreateDomainResponseBody:
+            type: object
+            required:
+                - meta
+                - data
+            properties:
+                meta:
+                    "$ref": "#/components/schemas/Meta"
+                data:
+                    "$ref": "#/components/schemas/V2DomainsCreateDomainResponseData"
+            additionalProperties: false
+        V2DomainsGetDomainRequestBody:
+            type: object
+            required:
+                - domain
+            properties:
+                domain:
+                    type: string
+                    minLength: 4
+                    maxLength: 253
+                    description: |
+                        Identifies a domain by its Unkey ID or by its name. Pass a 'dom_'-prefixed ID, or a fully
+                        qualified domain name such as 'api.acme.com' without a scheme, port, or path. You can give an
+                        internationalized name in Unicode or Punycode form. Both forms address the same domain.
+
+                        Domain names are unique per workspace, so the name alone addresses the domain. You do not
+                        need to supply a project, app, or environment.
+                    example: api.acme.com
+            additionalProperties: false
+        V2DomainsGetDomainResponseBody:
+            type: object
+            required:
+                - meta
+                - data
+            properties:
+                meta:
+                    "$ref": "#/components/schemas/Meta"
+                data:
+                    "$ref": "#/components/schemas/Domain"
+            additionalProperties: false
+        V2DomainsListDomainsRequestBody:
+            type: object
+            required:
+                - project
+                - app
+                - environment
+            properties:
+                project:
+                    "$ref": "#/components/schemas/ResourceIdentifier"
+                app:
+                    "$ref": "#/components/schemas/ResourceIdentifier"
+                environment:
+                    "$ref": "#/components/schemas/ResourceIdentifier"
+                limit:
+                    type: integer
+                    description: |
+                        The maximum number of domains one response contains.
+                        A small limit makes the response smaller, but makes more requests necessary.
+                    default: 100
+                    minimum: 1
+                    maximum: 100
+                cursor:
+                    type: string
+                    description: |
+                        The pagination cursor from the response that came before.
+                        Send it to get the next page when that response has `hasMore: true`.
+                    example: dom_1234abcd
+                search:
+                    type: string
+                    maxLength: 256
+                    description: Free-form text to filter domains. Returns domains whose ID or name contains the search string. Matching is case-insensitive.
+                    example: acme.com
+            additionalProperties: false
+        V2DomainsListDomainsResponseBody:
+            type: object
+            required:
+                - meta
+                - data
+                - pagination
+            properties:
+                meta:
+                    "$ref": "#/components/schemas/Meta"
+                data:
+                    type: array
+                    maxItems: 100
+                    items:
+                        "$ref": "#/components/schemas/Domain"
+                    description: |
+                        The domains attached to the environment, sorted by their id.
+                        The array is empty when the environment has no domains. This is not an error.
+                pagination:
+                    "$ref": "#/components/schemas/Pagination"
             additionalProperties: false
         V2EnvironmentsGetEnvironmentRequestBody:
             type: object
@@ -1310,6 +1433,17 @@ components:
                 data:
                     "$ref": "#/components/schemas/EmptyResponse"
             additionalProperties: false
+        V2GithubInstallAppResponseBody:
+            type: object
+            required:
+                - meta
+                - data
+            properties:
+                meta:
+                    $ref: "#/components/schemas/Meta"
+                data:
+                    $ref: "#/components/schemas/V2GithubInstallAppResponseData"
+            additionalProperties: false
         V2IdentitiesCreateIdentityRequestBody:
             type: object
             required:
@@ -1519,7 +1653,8 @@ components:
                         Any permissions that do not exist will be auto created if the root key has permissions, otherwise this operation will fail with a 403 error.
                     items:
                         type: string
-                        minLength: 3
+                        minLength: 1
+                        maxLength: 128
                         pattern: ^[a-zA-Z0-9_:\-\.\*]+$
                         description: Specify the permission by its slug.
             additionalProperties: false
@@ -1562,9 +1697,8 @@ components:
                         Invalid roles cause the entire operation to fail atomically, ensuring consistent state.
                     items:
                         type: string
-                        minLength: 3
-                        maxLength: 255
-                        pattern: "^[a-zA-Z][a-zA-Z0-9._-]*$"
+                        minLength: 1
+                        maxLength: 128
                         description: Specify the role by name.
             additionalProperties: false
         V2KeysAddRolesResponseBody:
@@ -1657,8 +1791,7 @@ components:
                     items:
                         type: string
                         minLength: 1
-                        maxLength: 100
-                        pattern: ^[a-zA-Z0-9_:\-\.\*]+$
+                        maxLength: 128
                     description: |
                         Assigns existing roles to this key for permission management through role-based access control.
                         Roles must already exist in your workspace before assignment.
@@ -1673,8 +1806,8 @@ components:
                     items:
                         type: string
                         minLength: 1
-                        maxLength: 100
-                    pattern: "^[a-zA-Z][a-zA-Z0-9._-]*$"
+                        maxLength: 128
+                        pattern: ^[a-zA-Z0-9_:\-\.\*]+$
                     description: |
                         Grants specific permissions directly to this key without requiring role membership.
                         Wildcard permissions like `documents.*` grant access to all sub-permissions including `documents.read` and `documents.write`.
@@ -1892,7 +2025,8 @@ components:
                         After removal, verification checks for these permissions will fail unless granted through roles.
                     items:
                         type: string
-                        minLength: 3
+                        minLength: 1
+                        maxLength: 128
                         pattern: ^[a-zA-Z0-9_:\-\.\*]+$
                         description: Specify the permission by its slug.
             additionalProperties: false
@@ -1935,9 +2069,8 @@ components:
                         Invalid role references cause the entire operation to fail atomically, ensuring consistent state.
                     items:
                         type: string
-                        pattern: ^[a-zA-Z0-9_:\-\.\*]+$
-                        minLength: 3
-                        maxLength: 255
+                        minLength: 1
+                        maxLength: 128
                         description: Specify the role by name.
             additionalProperties: false
         V2KeysRemoveRolesResponseBody:
@@ -2031,7 +2164,8 @@ components:
                         Any permissions that do not exist will be auto created if the root key has permissions, otherwise this operation will fail with a 403 error.
                     items:
                         type: string
-                        minLength: 3
+                        minLength: 1
+                        maxLength: 128
                         pattern: ^[a-zA-Z0-9_:\-\.\*]+$
                         description: Specify the permission by its slug.
             additionalProperties: false
@@ -2074,9 +2208,8 @@ components:
                         Invalid role references cause the entire operation to fail atomically, ensuring consistent state.
                     items:
                         type: string
-                        pattern: ^[a-zA-Z0-9_:\-\.\*]+$
-                        minLength: 3
-                        maxLength: 255
+                        minLength: 1
+                        maxLength: 128
                         description: Specify the role by name.
             additionalProperties: false
         V2KeysSetRolesResponseBody:
@@ -2246,8 +2379,7 @@ components:
                     items:
                         type: string
                         minLength: 1
-                        maxLength: 100
-                        pattern: ^[a-zA-Z0-9_:\-\.\*]+$
+                        maxLength: 128
                         description: |
                             Assigns existing roles to this key for permission management through role-based access control.
                             Roles must already exist in your workspace before assignment.
@@ -2261,8 +2393,8 @@ components:
                     maxItems: 1000
                     items:
                         type: string
-                        minLength: 3
-                        maxLength: 100
+                        minLength: 1
+                        maxLength: 128
                         pattern: ^[a-zA-Z0-9_:\-\.\*]+$
                         description: |
                             Grants specific permissions directly to this key without requiring role membership.
@@ -2294,6 +2426,7 @@ components:
                     type: string
                     minLength: 1
                     maxLength: 512
+                    x-unkey-redact: true
                     description: |
                         The API key to verify, exactly as provided by your user.
                         Include any prefix - even small changes will cause verification to fail.
@@ -2363,6 +2496,7 @@ components:
                     type: string
                     minLength: 1
                     maxLength: 512
+                    x-unkey-redact: true
                     description: |
                         The complete API key string provided by you, including any prefix.
                         Never log, cache, or store API keys in your system as they provide full access to user resources.
@@ -2413,7 +2547,7 @@ components:
                     type: string
                     minLength: 1
                     maxLength: 128
-                    pattern: "^[a-zA-Z][a-zA-Z0-9._-]*$"
+                    pattern: ^[a-zA-Z0-9_:\-\.\*]+$
                     description: |
                         Creates a URL-safe identifier for this permission that can be used in APIs and integrations.
                         Must start with a letter and contain only letters, numbers, periods, underscores, and hyphens.
@@ -2458,12 +2592,11 @@ components:
                 name:
                     type: string
                     minLength: 1
-                    maxLength: 512
-                    pattern: "^[a-zA-Z][a-zA-Z0-9._-]*$"
+                    maxLength: 128
                     description: |
-                        The unique name for this role. Must be unique within your workspace and clearly indicate the role's purpose. Use descriptive names like 'admin', 'editor', or 'billing_manager'.
+                        The unique name for this role. Must be unique within your workspace and clearly indicate the role's purpose. Use descriptive names like 'admin', 'editor', or 'Billing Manager'.
 
-                        Examples: 'admin.billing', 'support.readonly', 'developer.api', 'manager.analytics'
+                        Examples: 'admin.billing', 'support.readonly', 'developer.api', 'Billing Manager'
                     example: "support.readonly"
                 description:
                     type: string
@@ -2481,6 +2614,18 @@ components:
                         - Any security considerations or limitations
                         - Related roles that might be used together
                     example: "Provides read-only access for customer support representatives. Includes permissions to view user accounts, support tickets, and basic analytics. Does not include access to billing, admin functions, or data modification capabilities."
+                permissions:
+                    type: array
+                    description: |
+                        Permission slugs to attach to the role. Existing permissions are reused. Missing permissions are created automatically when the root key has `rbac.*.create_permission`.
+
+                        Omit this field or provide an empty array to create the role without permissions.
+                    items:
+                        type: string
+                        minLength: 1
+                        maxLength: 128
+                        pattern: ^[a-zA-Z0-9_:\-\.\*]+$
+                        description: Specify the permission by its slug.
             additionalProperties: false
         V2PermissionsCreateRoleResponseBody:
             type: object
@@ -2500,9 +2645,9 @@ components:
             properties:
                 permission:
                     type: string
-                    minLength: 3
-                    maxLength: 255
-                    pattern: "^[a-zA-Z][a-zA-Z0-9._-]*$"
+                    minLength: 1
+                    maxLength: 128
+                    pattern: ^[a-zA-Z0-9_:\-\.\*]+$
                     description: |
                         Specifies which permission to permanently delete from your workspace.
 
@@ -2538,9 +2683,8 @@ components:
             properties:
                 role:
                     type: string
-                    pattern: ^[a-zA-Z0-9_:\-\.\*]+$
-                    minLength: 3
-                    maxLength: 255
+                    minLength: 1
+                    maxLength: 128
                     description: |
                         Unique identifier of the role to permanently delete from your workspace.
                         Must either be a valid role ID that begins with 'role_' or the given role name and exists within your workspace.
@@ -2575,9 +2719,9 @@ components:
             properties:
                 permission:
                     type: string
-                    minLength: 3
-                    maxLength: 255
-                    pattern: "^[a-zA-Z][a-zA-Z0-9._-]*$"
+                    minLength: 1
+                    maxLength: 128
+                    pattern: ^[a-zA-Z0-9_:\-\.\*]+$
                     description: |
                         The unique identifier of the permission to retrieve. Must be a valid permission ID that begins with 'perm_' and exists within your workspace.
                     example: perm_1234567890abcdef
@@ -2600,9 +2744,8 @@ components:
             properties:
                 role:
                     type: string
-                    minLength: 3
-                    maxLength: 255
-                    pattern: ^[a-zA-Z0-9_:\-\.\*]+$
+                    minLength: 1
+                    maxLength: 128
                     description: |
                         Unique identifier of the role to permanently delete from your workspace.
                         Must either be a valid role ID that begins with 'role_' or the given role name and exists within your workspace.
@@ -2706,6 +2849,34 @@ components:
                 pagination:
                     "$ref": "#/components/schemas/Pagination"
             additionalProperties: false
+        V2PermissionsSetRolePermissionsRequestBody:
+            type: object
+            required:
+                - roleId
+                - permissions
+            properties:
+                roleId:
+                    "$ref": "#/components/schemas/ResourceIdentifier"
+                    description: The ID of the role whose directly assigned permissions will be replaced.
+                permissions:
+                    type: array
+                    description: The complete set of permission slugs to assign directly to the role. Missing permissions are created when authorized. An empty array clears all direct permissions.
+                    items:
+                        type: string
+                        minLength: 1
+                        maxLength: 128
+                        pattern: ^[a-zA-Z0-9_:\-\.\*]+$
+            additionalProperties: false
+        V2PermissionsSetRolePermissionsResponseBody:
+            type: object
+            required:
+                - meta
+                - data
+            properties:
+                meta:
+                    "$ref": "#/components/schemas/Meta"
+                data:
+                    "$ref": "#/components/schemas/V2PermissionsSetRolePermissionsResponseData"
         V2PortalCreateSessionRequestBody:
             type: object
             required:
@@ -2780,6 +2951,7 @@ components:
                 sessionId:
                     type: string
                     minLength: 1
+                    x-unkey-redact: true
                     description: |
                         The session token ID received from `portal.createSession`.
                         Must be valid, unexpired, and not previously exchanged.
@@ -3033,7 +3205,7 @@ components:
                     description: The id or name of the namespace containing the override.
                     type: string
                     minLength: 1
-                    maxLength: 255
+                    maxLength: 512
                 identifier:
                     description: |-
                         The exact identifier pattern of the override to delete. This must match exactly as it was specified when creating the override.
@@ -3046,7 +3218,7 @@ components:
                         After deletion, any identifiers previously affected by this override will immediately revert to using the default rate limit for the namespace.
                     type: string
                     minLength: 1
-                    maxLength: 255
+                    maxLength: 512
             required:
                 - namespace
                 - identifier
@@ -3077,7 +3249,7 @@ components:
                     description: The id or name of the namespace containing the override.
                     type: string
                     minLength: 1
-                    maxLength: 255
+                    maxLength: 512
                 identifier:
                     description: |-
                         The exact identifier pattern for the override you want to retrieve. This must match exactly as it was specified when creating the override.
@@ -3090,7 +3262,7 @@ components:
                         This field is used to look up the specific override configuration for this pattern.
                     type: string
                     minLength: 1
-                    maxLength: 255
+                    maxLength: 512
             required:
                 - namespace
                 - identifier
@@ -3111,7 +3283,7 @@ components:
                 namespace:
                     type: string
                     minLength: 1
-                    maxLength: 255
+                    maxLength: 512
                     description: The id or name of the namespace.
                     example: sms.sign_up
                 cost:
@@ -3139,7 +3311,7 @@ components:
                 identifier:
                     type: string
                     minLength: 1
-                    maxLength: 255
+                    maxLength: 512
                     description: |
                         Defines the scope of rate limiting by identifying the entity being limited.
                         Use user IDs for per-user limits, IP addresses for anonymous limiting, or API key IDs for per-key limits.
@@ -3197,7 +3369,7 @@ components:
                     description: The id or name of the rate limit namespace to list overrides for.
                     type: string
                     minLength: 1
-                    maxLength: 255
+                    maxLength: 512
                 cursor:
                     description: Pagination cursor from a previous response. Include this when fetching subsequent pages of results. Each response containing more results than the requested limit will include a cursor value in the pagination object that can be used here.
                     type: string
@@ -3263,7 +3435,7 @@ components:
                     description: The ID or name of the rate limit namespace.
                     type: string
                     minLength: 1
-                    maxLength: 255
+                    maxLength: 512
                 duration:
                     description: |-
                         The duration in milliseconds for the rate limit window. This defines how long the rate limit counter accumulates before resetting to zero.
@@ -3293,7 +3465,7 @@ components:
                         More detailed information on wildcard pattern rules is available at https://www.unkey.com/docs/ratelimiting/overrides#wildcard-rules
                     type: string
                     minLength: 1
-                    maxLength: 255
+                    maxLength: 512
                 limit:
                     description: |-
                         The maximum number of requests allowed for this override. This defines the custom quota for the specified identifier(s).
@@ -3469,7 +3641,7 @@ components:
                 name:
                     type: string
                     minLength: 3
-                    maxLength: 255
+                    maxLength: 256
                     description: |
                         The internal name of this API as specified during creation.
                         Used for organization and identification within your workspace.
@@ -3605,9 +3777,10 @@ components:
                     x-go-type-skip-optional-pointer-with-omitzero: true
                 plaintext:
                     type: string
+                    x-unkey-redact: true
                     description: Decrypted key value (only when decrypt=true).
-                    example: sk_test_abc123def456
                     x-go-type-skip-optional-pointer: true
+                    example: sk_test_abc123def456
                     x-go-type-skip-optional-pointer-with-omitzero: true
                 ratelimits:
                     type: array
@@ -3751,6 +3924,31 @@ components:
                 Identifies a resource by either its unique ID or its slug.
                 Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
             example: proj_1234abcd
+        AppGitCreateInput:
+            type: object
+            description: |
+                Connect a GitHub repository to the app on creation. Omit to create the app
+                without a repository and connect one later with apps.updateApp.
+            required:
+                - repository
+            properties:
+                repository:
+                    type: string
+                    minLength: 1
+                    maxLength: 255
+                    description: |
+                        The GitHub repository to connect, as "owner/repo". The workspace must have
+                        the Unkey GitHub App installed with access to it.
+                    example: unkeyed/unkey
+                defaultBranch:
+                    type: string
+                    minLength: 1
+                    maxLength: 256
+                    description: |
+                        The branch this app's deployments track. Omit to adopt the repository's
+                        default branch on GitHub.
+                    example: main
+            additionalProperties: false
         V2AppsCreateAppResponseData:
             type: object
             required:
@@ -3772,7 +3970,6 @@ components:
                 - id
                 - name
                 - slug
-                - defaultBranch
                 - isRolledBack
                 - deleteProtection
                 - createdAt
@@ -3793,11 +3990,13 @@ components:
                         URL-safe handle for this app, unique within its project.
                         Chosen at creation time.
                     example: payments-api
-                defaultBranch:
-                    type: string
+                git:
                     description: |
-                        The default git branch deployments track for this app.
-                    example: main
+                        The connected GitHub repository and the branch its deployments track.
+                        Omitted when the app has no repository connected (for example a
+                        Docker-based app).
+                    allOf:
+                        - "$ref": "#/components/schemas/AppGit"
                 currentDeploymentId:
                     type: string
                     description: |
@@ -3836,6 +4035,48 @@ components:
                     example: 1704153600000
                     x-go-type-skip-optional-pointer: true
                     x-go-type-skip-optional-pointer-with-omitzero: true
+            additionalProperties: false
+        AppGit:
+            type: object
+            required:
+                - repository
+            properties:
+                repository:
+                    type: string
+                    minLength: 1
+                    maxLength: 255
+                    description: The connected GitHub repository, as "owner/repo".
+                    example: unkeyed/unkey
+                defaultBranch:
+                    type: string
+                    minLength: 1
+                    maxLength: 256
+                    description: The branch this app's deployments track.
+                    example: main
+            additionalProperties: false
+        AppGitUpdateInput:
+            type: object
+            minProperties: 1
+            properties:
+                repository:
+                    type: string
+                    minLength: 1
+                    maxLength: 255
+                    description: |
+                        The GitHub repository to connect, as "owner/repo". Omit to change only the
+                        tracked branch of the already-connected repository. The workspace must have
+                        the Unkey GitHub App installed with access to it.
+                    example: unkeyed/unkey
+                defaultBranch:
+                    type: string
+                    minLength: 1
+                    maxLength: 256
+                    description: |
+                        The branch this app's deployments track. Omit to adopt the repository's
+                        GitHub default branch on a new connection, keep the current branch when
+                        replacing an already-connected repository, or set it alone to retarget the
+                        branch of the connected repository.
+                    example: main
             additionalProperties: false
         V2DeployGitCommit:
             type: object
@@ -4319,12 +4560,231 @@ components:
                         Delay before the first probe runs, in seconds. Defaults to 0 when omitted.
                     example: 5
             additionalProperties: false
+        V2DomainsCreateDomainResponseData:
+            type: object
+            required:
+                - domainId
+                - dnsRecords
+            properties:
+                domainId:
+                    "$ref": "#/components/schemas/ResourceIdentifier"
+                dnsRecords:
+                    type: array
+                    minItems: 1
+                    items:
+                        "$ref": "#/components/schemas/DnsRecord"
+                    description: |
+                        Every DNS record needed to finish setting up this domain, ready to create at your provider.
+                        The list already accounts for whether the domain is an apex or a subdomain, so no further
+                        branching is needed: create each entry as given.
+
+                        One record establishes routing and one proves ownership. Create all of them: whether ownership
+                        can be inferred from the routing record depends on how your provider publishes it, and a name
+                        another workspace has already verified can only be claimed through the ownership record.
+                        Neither is knowable before the records exist.
+                domainConnect:
+                    "$ref": "#/components/schemas/DomainConnect"
+            additionalProperties: false
+        DnsRecord:
+            type: object
+            required:
+                - type
+                - name
+                - value
+                - ttl
+                - verified
+            properties:
+                type:
+                    type: string
+                    enum:
+                        - CNAME
+                        - ALIAS
+                        - TXT
+                    description: |
+                        Record type to create. `ALIAS` is not a real DNS record type: it means an apex-compatible
+                        alias, which providers expose as ALIAS, ANAME, or a flattened CNAME. Apex domains cannot
+                        hold a plain CNAME, so they receive `ALIAS` where a subdomain receives `CNAME`.
+                    example: CNAME
+                name:
+                    type: string
+                    minLength: 1
+                    maxLength: 253
+                    description: |
+                        Fully qualified name of the record, ready to use as-is.
+
+                        Some providers want a name relative to the zone instead. Drop the zone and its trailing dot:
+                        in zone `acme.com`, `api.acme.com` becomes `api` and `_unkey.api.acme.com` becomes
+                        `_unkey.api`. A name equal to the zone itself is usually entered as `@`.
+                    example: api.acme.com
+                value:
+                    type: string
+                    minLength: 1
+                    maxLength: 512
+                    description: |
+                        The value to set on the record, exactly as given, including any prefix.
+                        Do not trim or reformat it: verification compares the published record against this string.
+
+                        Use the lowest TTL your provider allows until the domain is verified. Verification polls DNS,
+                        so a long TTL keeps a stale value cached and can burn the verification window on a value you
+                        have already corrected. Raise it afterwards if you want.
+                    example: a1b2c3d4e5f6g7h8.cname.unkey.com
+                ttl:
+                    type: integer
+                    minimum: 1
+                    description: |
+                        Seconds a resolver may cache this record. Set it in your provider alongside the record's
+                        name and value.
+                    example: 60
+                verified:
+                    type: boolean
+                    description: |
+                        Whether Unkey has read this record back with the expected value. Use it to see which
+                        records are still outstanding.
+
+                        False does not always mean the record is missing. A provider that does not expose the
+                        published value to a DNS lookup, such as a proxied or flattened routing record, leaves
+                        this false for as long as it serves traffic; such a domain verifies through its TXT
+                        record instead. Always false on a domain no check has run against yet.
+                    example: false
+                note:
+                    type: string
+                    maxLength: 512
+                    description: |
+                        What this record is for and any provider-specific caveat that applies to it.
+                        Worth surfacing to whoever edits the DNS zone. Treat it as optional: it carries
+                        no data the record itself needs, so a future record type may omit it.
+                    example: Create as DNS-only if your provider offers the choice.
+            additionalProperties: false
+        DomainConnect:
+            type: object
+            description: |
+                One-click setup at the domain's DNS provider. Omitted entirely when the provider does not support
+                Domain Connect or discovery failed, so the object's presence is the signal that the shortcut is
+                available and both of its fields are filled.
+            required:
+                - provider
+                - url
+            properties:
+                provider:
+                    type: string
+                    maxLength: 256
+                    description: |
+                        Display name of the DNS provider the domain is delegated to, such as 'Cloudflare'. Discovered
+                        from the domain's nameservers, so it reflects where DNS is actually hosted rather than where the
+                        domain was registered.
+                    example: Cloudflare
+                url:
+                    type: string
+                    maxLength: 2048
+                    description: |
+                        Signed Domain Connect URL that pre-fills the records in `dnsRecords` at the provider. Open it in a
+                        browser and the domain owner approves them in one step instead of entering them by hand. The URL is
+                        signed with an Unkey key, so it cannot be constructed or altered by the caller.
+
+                        Intended for a browser, not a script: after approval the provider sends the browser to this
+                        workspace's app settings page in the Unkey dashboard, so it suits a caller who administers this
+                        workspace. Anyone who does not have access to it approves the records successfully but lands on a
+                        page they cannot open. Approving is what writes the records; verification then proceeds on its own,
+                        so nothing depends on completing that return trip.
+                    example: https://dash.cloudflare.com/domainconnect/v2/domaintemplates/apply?domain=acme.com&host=api
+            additionalProperties: false
+        Domain:
+            type: object
+            required:
+                - id
+                - domain
+                - projectId
+                - appId
+                - environmentId
+                - status
+                - dnsRecords
+                - createdAt
+            properties:
+                id:
+                    "$ref": "#/components/schemas/ResourceIdentifier"
+                domain:
+                    type: string
+                    minLength: 4
+                    maxLength: 253
+                    description: Fully qualified domain name attached to the environment.
+                    example: api.acme.com
+                projectId:
+                    type: string
+                    minLength: 8
+                    maxLength: 255
+                    pattern: "^[a-zA-Z0-9_]+$"
+                    description: The project the domain's environment belongs to.
+                    example: proj_1234abcd
+                appId:
+                    type: string
+                    minLength: 8
+                    maxLength: 255
+                    pattern: "^[a-zA-Z0-9_]+$"
+                    description: The app the domain's environment belongs to.
+                    example: app_1234abcd
+                environmentId:
+                    type: string
+                    minLength: 8
+                    maxLength: 255
+                    pattern: "^[a-zA-Z0-9_]+$"
+                    description: |
+                        The environment this domain serves. Traffic to the domain reaches whatever is currently
+                        deployed to this environment.
+                    example: env_1234abcd
+                status:
+                    type: string
+                    enum:
+                        - pending
+                        - verifying
+                        - verified
+                        - failed
+                    x-enum-varnames:
+                        - DomainStatusPending
+                        - DomainStatusVerifying
+                        - DomainStatusVerified
+                        - DomainStatusFailed
+                    description: |
+                        The verification status of the domain.
+
+                        - `pending`: the domain is created. No DNS check has completed yet.
+                        - `verifying`: Unkey checks the DNS records approximately each minute.
+                        - `verified`: the domain is verified. Unkey has configured routing and requested a certificate.
+                        - `failed`: the required DNS records did not appear within 24 hours. Fix the records, then retry verification.
+                    example: verified
+                verificationError:
+                    type: string
+                    maxLength: 512
+                    description: |
+                        Why the most recent verification attempt did not succeed, in plain language.
+                        Omitted while verification is progressing normally.
+                    example: domain verification timed out after 24 hours
+                dnsRecords:
+                    type: array
+                    minItems: 1
+                    items:
+                        "$ref": "#/components/schemas/DnsRecord"
+                    description: |
+                        The DNS records this domain needs. Create each record at your DNS provider.
+                        Each record has a `verified` flag. The flag shows whether Unkey has read that record back,
+                        so it tells you which records are still missing.
+                createdAt:
+                    type: integer
+                    format: int64
+                    description: Unix timestamp in milliseconds when the domain was created. The 24 hour verification window runs from here.
+                    example: 1704067200000
+                updatedAt:
+                    type: integer
+                    format: int64
+                    description: Unix timestamp in milliseconds of the last change to this domain. Omitted if it has never changed.
+                    example: 1704153600000
+            additionalProperties: false
         Environment:
             type: object
             required:
                 - id
                 - slug
                 - description
+                - kind
                 - deleteProtection
                 - createdAt
             properties:
@@ -4344,6 +4804,10 @@ components:
                         Human-readable description of this environment.
                         Empty string if none was provided.
                     example: Production environment
+                kind:
+                    "$ref": "#/components/schemas/EnvironmentKind"
+                    description: |
+                        How deployments in this environment participate in the deployment lifecycle.
                 deleteProtection:
                     type: boolean
                     description: |
@@ -4381,6 +4845,17 @@ components:
                         Per-region deployment settings for this environment.
                         Empty until regional settings are configured.
             additionalProperties: false
+        EnvironmentKind:
+            type: string
+            enum:
+                - production
+                - preview
+            description: |
+                The deployment lifecycle role of an environment.
+
+                - `production`: Deployments serve production traffic, support promotion and rollback, and cannot be stopped.
+                - `preview`: Deployments can be stopped and started and are eligible for preview lifecycle automation.
+            example: production
         EnvironmentRuntime:
             type: object
             description: |
@@ -4522,11 +4997,12 @@ components:
                     "$ref": "#/components/schemas/EnvironmentVariableKind"
                 value:
                     type: string
+                    x-unkey-redact: true
                     description: |
                         The decrypted plaintext value. Present only for `recoverable` variables.
                         Omitted for `writeonly` variables, which can never be read back.
-                    example: postgresql://user:pass@host:5432/db
                     x-go-type-skip-optional-pointer: true
+                    example: postgresql://user:pass@host:5432/db
                 description:
                     type: string
                     description: Human-readable description. Omitted if none was provided.
@@ -4571,6 +5047,7 @@ components:
                     type: string
                     minLength: 1
                     maxLength: 16384
+                    x-unkey-redact: true
                     description: |
                         The variable value. Always encrypted at rest. The limit is enforced
                         server-side in UTF-8 bytes, so a multibyte value may be rejected before
@@ -4698,6 +5175,15 @@ components:
                     items:
                         "$ref": "#/components/schemas/KeyRatelimit"
                     description: Rate limits applied during key verification.
+                credits:
+                    type: integer
+                    format: int64
+                    minimum: 0
+                    description: |-
+                        Usage credits a matching request deducts from the verified key. Defaults
+                        to 1. Set to 0 to verify the key without spending credits, or to a higher
+                        value to charge more per request. Keys with unlimited usage are
+                        unaffected.
             additionalProperties: false
             description: Verifies Unkey API keys on matching requests.
             example:
@@ -4708,7 +5194,6 @@ components:
             required:
                 - limit
                 - windowMs
-                - identifier
             properties:
                 limit:
                     type: integer
@@ -4721,14 +5206,34 @@ components:
                     minimum: 1
                     description: Window duration in milliseconds.
                 identifier:
-                    "$ref": "#/components/schemas/RatelimitIdentifier"
+                    allOf:
+                        - "$ref": "#/components/schemas/RatelimitIdentifier"
+                    deprecated: true
+                    description: |-
+                        Deprecated. Accepted for compatibility with old clients. Use
+                        `identifiers` with one entry. Responses always return `identifiers`.
+                identifiers:
+                    type: array
+                    items:
+                        "$ref": "#/components/schemas/RatelimitIdentifier"
+                    minItems: 1
+                    maxItems: 5
+                    description: |-
+                        Ordered list of sources that form a compound rate limit key. The
+                        gateway resolves each source for each request. Each unique
+                        combination of resolved values has its own counter. All counters use
+                        the same limit and window. Example: `[authenticatedSubject, path]`
+                        limits each subject separately on each path.
             additionalProperties: false
-            description: Rate limits matching requests.
+            description: |-
+                Rate limits matching requests. Set `identifiers` with 1 to 5 sources.
+                The deprecated `identifier` field is accepted in place of a one-entry
+                `identifiers` list; set exactly one of the two.
             example:
                 limit: 100
                 windowMs: 60000
-                identifier:
-                    remoteIp: {}
+                identifiers:
+                    - remoteIp: {}
         FirewallPolicy:
             type: object
             required:
@@ -5010,6 +5515,28 @@ components:
                             prefix: /internal/
                 firewall:
                     action: ACTION_DENY
+        V2GithubInstallAppResponseData:
+            type: object
+            required:
+                - url
+                - expiresAt
+            properties:
+                url:
+                    type: string
+                    format: uri
+                    description: |
+                        The GitHub App install URL. Open it in a browser to install the app and
+                        grant repository access. After installation GitHub returns to Unkey, which
+                        binds the installation and lands you in the workspace settings.
+                    example: https://github.com/apps/unkey/installations/new?state=eyJ...
+                expiresAt:
+                    type: integer
+                    format: int64
+                    description: |
+                        Unix timestamp in milliseconds after which the URL's signed state expires
+                        and the link must be requested again.
+                    example: 1700000900000
+            additionalProperties: false
         RatelimitRequest:
             type: object
             required:
@@ -5208,6 +5735,7 @@ components:
                     example: key_2cGKbMxRyIzhCxo1Idjz8q
                 key:
                     type: string
+                    x-unkey-redact: true
                     description: "The full generated API key that should be securely provided to your user.\nSECURITY WARNING: This is the only time you'll receive the complete key - Unkey only stores a securely hashed version. Never log or store this value in your own systems; provide it directly to your end user via secure channels. After this API call completes, this value cannot be retrieved again (unless created with `recoverable=true`)."
                     example: prod_2cGKbMxRjIzhCxo1IdjH3arELti7Sdyc8w6XYbvtcyuBowPT
             required:
@@ -5265,7 +5793,7 @@ components:
                     items:
                         type: string
                         minLength: 1
-                        maxLength: 100
+                        maxLength: 128
                     description: |
                         Assigns existing roles to this key for permission management through role-based access control.
                         Roles must already exist in your workspace before assignment.
@@ -5280,7 +5808,8 @@ components:
                     items:
                         type: string
                         minLength: 1
-                        maxLength: 100
+                        maxLength: 128
+                        pattern: ^[a-zA-Z0-9_:\-\.\*]+$
                     description: |
                         Grants specific permissions directly to this key without requiring role membership.
                         Wildcard permissions like `documents.*` grant access to all sub-permissions including `documents.read` and `documents.write`.
@@ -5420,6 +5949,7 @@ components:
                     example: key_2cGKbMxRyIzhCxo1Idjz8q
                 key:
                     type: string
+                    x-unkey-redact: true
                     description: |
                         The newly generated API key token (the actual secret that authenticates requests).
 
@@ -5807,6 +6337,11 @@ components:
             description: Array of roles with their assigned permissions.
             items:
                 "$ref": "#/components/schemas/Role"
+        V2PermissionsSetRolePermissionsResponseData:
+            type: array
+            description: Complete list of permissions now directly assigned to the role.
+            items:
+                "$ref": "#/components/schemas/Permission"
         V2PortalCreateSessionResponseData:
             type: object
             required:
@@ -5815,12 +6350,14 @@ components:
             properties:
                 sessionId:
                     type: string
+                    x-unkey-redact: true
                     description: |
                         The short-lived session token ID. Valid for 15 minutes and can be exchanged once for a browser session.
                     example: pst_abc123def456
                 url:
                     type: string
                     format: uri
+                    x-unkey-redact: true
                     description: |
                         The full portal URL with the session parameter. Redirect the end user to this URL.
                     example: "https://portal.unkey.com/?session=pst_abc123def456"
@@ -5833,6 +6370,7 @@ components:
             properties:
                 token:
                     type: string
+                    x-unkey-redact: true
                     description: |
                         The browser session token. Store this as an httpOnly cookie for subsequent portal requests.
                     example: ps_xyz789abc123
@@ -8230,6 +8768,813 @@ paths:
             tags:
                 - deployments
             x-speakeasy-name-override: stopDeployment
+    /v2/domains.createDomain:
+        post:
+            description: |
+                Attach a custom domain to an environment and start verifying it.
+
+                The domain is created in the `pending` state and does not serve traffic until verification succeeds. Verification runs in the background and polls DNS, so it is eventually consistent.
+
+                The response returns `dnsRecords`: every record needed to finish setup, already resolved for whether this domain is an apex or a subdomain. Create every entry exactly as given. One record establishes routing and one proves ownership, and both are needed: whether ownership can be inferred from the routing record depends on how your provider publishes it, and a name another workspace has already verified can only be claimed through the ownership record. Neither is knowable before the records exist.
+
+                When your DNS provider supports Domain Connect, the response also carries a `domainConnect` object; opening its `url` applies the same records at the provider in one step. The object is absent when the shortcut is unavailable.
+
+                Domains are unique per workspace, so the same name cannot be attached to two environments. Attaching a domain that already exists in your workspace returns a 409 conflict.
+
+                How many domains you may attach is set by your plan. Attaching one beyond that allowance returns a 403; upgrade the plan or remove a domain you no longer need.
+
+                **Important**: verification stops after 24 hours without the required DNS records, and the domain moves to `failed`.
+
+                **Required Permissions**
+
+                Your root key must have one of the following permissions:
+                - `environment.*.create_domain` (to attach domains to any environment)
+                - `environment.<environment_id>.create_domain` (to attach domains to a specific environment)
+            operationId: domains.createDomain
+            requestBody:
+                content:
+                    application/json:
+                        examples:
+                            apex:
+                                description: An apex domain receives an apex-compatible alias, which the provider resolves to the A or AAAA records that carry traffic, plus a TXT record proving ownership.
+                                summary: Attach an apex domain
+                                value:
+                                    app: payments-api
+                                    domain: acme.com
+                                    environment: production
+                                    project: payments
+                            byId:
+                                description: Uses the ids returned by the corresponding list endpoints.
+                                summary: Attach a domain, locating the environment by ID
+                                value:
+                                    app: app_1234abcd
+                                    domain: api.acme.com
+                                    environment: env_1234abcd
+                                    project: proj_1234abcd
+                            bySlug:
+                                description: Uses the project, app, and environment slugs.
+                                summary: Attach a domain, locating the environment by slug
+                                value:
+                                    app: payments-api
+                                    domain: api.acme.com
+                                    environment: production
+                                    project: payments
+                        schema:
+                            $ref: '#/components/schemas/V2DomainsCreateDomainRequestBody'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            examples:
+                                apex:
+                                    description: An apex domain cannot hold a CNAME, so it needs an apex-compatible alias and the TXT record.
+                                    summary: Apex domain attached
+                                    value:
+                                        data:
+                                            dnsRecords:
+                                                - name: acme.com
+                                                  note: Apex domains cannot hold a CNAME. Use ALIAS, ANAME, or a flattened CNAME depending on your provider.
+                                                  type: ALIAS
+                                                  value: a1b2c3d4e5f6g7h8.cname.unkey.com
+                                                  verified: false
+                                                - name: _unkey.acme.com
+                                                  note: Proves ownership. An apex domain cannot be verified through its routing record, so this is the only proof available.
+                                                  type: TXT
+                                                  value: unkey-domain-verify=3ZQ8xK1mP7vT5nR2wY6bJ4hL
+                                                  verified: false
+                                            domainId: dom_1234abcd
+                                        meta:
+                                            requestId: req_1234abcd
+                                domainConnect:
+                                    description: The same records can be applied through the returned URL.
+                                    summary: Domain attached at a Domain Connect provider
+                                    value:
+                                        data:
+                                            dnsRecords:
+                                                - name: api.acme.com
+                                                  note: Create as DNS-only if your provider offers the choice.
+                                                  type: CNAME
+                                                  value: a1b2c3d4e5f6g7h8.cname.unkey.com
+                                                  verified: false
+                                                - name: _unkey.api.acme.com
+                                                  note: Proves ownership. Create it alongside the routing record.
+                                                  type: TXT
+                                                  value: unkey-domain-verify=3ZQ8xK1mP7vT5nR2wY6bJ4hL
+                                                  verified: false
+                                            domainConnect:
+                                                provider: Cloudflare
+                                                url: https://dash.cloudflare.com/domainconnect/v2/domaintemplates/apply?domain=acme.com&host=api
+                                            domainId: dom_1234abcd
+                                        meta:
+                                            requestId: req_1234abcd
+                                subdomain:
+                                    description: A subdomain can hold a CNAME, so it gets the CNAME record for routing and the TXT record for ownership.
+                                    summary: Subdomain attached
+                                    value:
+                                        data:
+                                            dnsRecords:
+                                                - name: api.acme.com
+                                                  note: Create as DNS-only if your provider offers the choice.
+                                                  type: CNAME
+                                                  value: a1b2c3d4e5f6g7h8.cname.unkey.com
+                                                  verified: false
+                                                - name: _unkey.api.acme.com
+                                                  note: Proves ownership. Create it alongside the routing record.
+                                                  type: TXT
+                                                  value: unkey-domain-verify=3ZQ8xK1mP7vT5nR2wY6bJ4hL
+                                                  verified: false
+                                            domainId: dom_1234abcd
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/V2DomainsCreateDomainResponseBody'
+                    description: |
+                        Domain created and verification started. The domain is `pending` until the DNS records resolve.
+                "400":
+                    content:
+                        application/json:
+                            examples:
+                                invalidDomain:
+                                    summary: Invalid domain format
+                                    value:
+                                        error:
+                                            detail: The domain 'https://api.acme.com' is not a valid fully qualified domain name. Pass a name such as 'api.acme.com', without a scheme, port, or path.
+                                            status: 400
+                                            title: Bad Request
+                                            type: https://unkey.com/docs/errors/unkey/application/invalid_input
+                                        meta:
+                                            requestId: req_1234abcd
+                                publicSuffix:
+                                    summary: Public suffix rejected
+                                    value:
+                                        error:
+                                            detail: The domain 'co.uk' is a public suffix that nobody can own. Pass a domain registered to you, such as 'api.acme.com'.
+                                            status: 400
+                                            title: Bad Request
+                                            type: https://unkey.com/docs/errors/unkey/application/invalid_input
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/BadRequestErrorResponse'
+                    description: Bad request
+                "401":
+                    content:
+                        application/json:
+                            examples:
+                                invalidRootKey:
+                                    summary: Root key not found
+                                    value:
+                                        error:
+                                            detail: The provided root key is invalid.
+                                            status: 401
+                                            title: Unauthorized
+                                            type: unauthorized
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
+                    description: Unauthorized
+                "403":
+                    content:
+                        application/json:
+                            examples:
+                                allowanceExceeded:
+                                    description: The workspace already holds every custom domain its plan permits.
+                                    summary: Plan allowance reached
+                                    value:
+                                        error:
+                                            detail: Your plan does not allow another custom domain. Upgrade your plan, or remove a domain you no longer need, then retry.
+                                            status: 403
+                                            title: Forbidden
+                                            type: https://unkey.com/docs/errors/unkey/limits/custom_domain_limit_exceeded
+                                        meta:
+                                            requestId: req_1234abcd
+                                keyDisabled:
+                                    summary: Root key disabled
+                                    value:
+                                        error:
+                                            detail: The provided root key is disabled.
+                                            status: 403
+                                            title: Forbidden
+                                            type: forbidden
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/ForbiddenErrorResponse'
+                    description: |
+                        Forbidden - The root key or its workspace is disabled, or the workspace has already attached as
+                        many custom domains as its plan allows. A root key that simply lacks
+                        `environment.*.create_domain` receives a 404 instead, so permissions cannot be used to discover
+                        which environments exist.
+                "404":
+                    content:
+                        application/json:
+                            examples:
+                                environmentNotFound:
+                                    summary: Environment not found
+                                    value:
+                                        error:
+                                            detail: The requested environment does not exist.
+                                            status: 404
+                                            title: Not Found
+                                            type: not-found
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/NotFoundErrorResponse'
+                    description: |
+                        Not Found - The environment does not exist in your workspace, or your root key may not read it.
+                "409":
+                    content:
+                        application/json:
+                            examples:
+                                domainExists:
+                                    summary: Domain already attached
+                                    value:
+                                        error:
+                                            detail: The domain 'api.acme.com' is already attached to this workspace.
+                                            status: 409
+                                            title: Conflict
+                                            type: conflict
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/ConflictErrorResponse'
+                    description: Conflict - The domain is already attached to an environment in this workspace.
+                "429":
+                    content:
+                        application/json:
+                            examples:
+                                rateLimited:
+                                    summary: Workspace rate limit exceeded
+                                    value:
+                                        error:
+                                            detail: You have exceeded the rate limit for this operation. Retry after the window resets.
+                                            status: 429
+                                            title: Too Many Requests
+                                            type: rate-limited
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/TooManyRequestsErrorResponse'
+                    description: Too Many Requests
+                "500":
+                    content:
+                        application/json:
+                            examples:
+                                internalError:
+                                    summary: Unexpected server error
+                                    value:
+                                        error:
+                                            detail: An unexpected error occurred. Contact support@unkey.com with the requestId.
+                                            status: 500
+                                            title: Internal Server Error
+                                            type: internal-server-error
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: Internal server error
+            security:
+                - bearer: []
+            summary: Create domain
+            tags:
+                - domains
+            x-speakeasy-name-override: createDomain
+            x-unkey-idempotency: conditionally-idempotent
+    /v2/domains.getDomain:
+        post:
+            description: |
+                Retrieve a custom domain and its verification status.
+
+                Address the domain by its id or by its name. Names are unique per workspace, so
+                `api.acme.com` is sufficient. You do not need to supply a project, app, or environment.
+
+                Use this endpoint to poll after `domains.createDomain`. Verification runs in the background
+                and checks DNS approximately each minute.
+
+                `status: verified` means the domain is verified. Unkey has configured routing and requested a
+                certificate. Each entry in `dnsRecords` has a `verified` flag. The flag shows which records
+                Unkey has read back, so you can see which records are still missing. Some providers hide a
+                record from DNS lookups, for example a proxied or flattened routing record. Such a record stays
+                `false` while it serves traffic. `verificationError` gives the reason for the last failed
+                attempt.
+
+                `dnsRecords` contains the same values that `domains.createDomain` returned. Use it to recover
+                the values without creating the domain again.
+
+                **Important**: verification stops 24 hours after the domain was created, and the status becomes
+                `failed`. The window starts at `createdAt`, not at the last attempt.
+
+                **Required Permissions**
+
+                Your root key must have one of the following permissions:
+                - `environment.*.read_domain` (to read domains in any environment)
+                - `environment.<environment_id>.read_domain` (to read domains in a specific environment)
+            operationId: domains.getDomain
+            requestBody:
+                content:
+                    application/json:
+                        examples:
+                            byId:
+                                description: Uses the id that domains.createDomain returned.
+                                summary: Retrieve by domain ID
+                                value:
+                                    domain: dom_1234abcd
+                            byName:
+                                description: The name is unique per workspace. It addresses the domain on its own.
+                                summary: Retrieve by domain name
+                                value:
+                                    domain: api.acme.com
+                        schema:
+                            $ref: '#/components/schemas/V2DomainsGetDomainRequestBody'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            examples:
+                                failed:
+                                    description: The required DNS records did not appear within 24 hours.
+                                    summary: Verification timed out
+                                    value:
+                                        data:
+                                            appId: app_1234abcd
+                                            createdAt: 1704067200000
+                                            dnsRecords:
+                                                - name: api.acme.com
+                                                  note: Create as DNS-only if your provider offers the choice.
+                                                  ttl: 60
+                                                  type: CNAME
+                                                  value: a1b2c3d4e5f6g7h8.cname.unkey.com
+                                                  verified: false
+                                                - name: _unkey.api.acme.com
+                                                  note: Proves ownership. Create it alongside the routing record.
+                                                  ttl: 60
+                                                  type: TXT
+                                                  value: unkey-domain-verify=3ZQ8xK1mP7vT5nR2wY6bJ4hL
+                                                  verified: false
+                                            domain: api.acme.com
+                                            environmentId: env_1234abcd
+                                            id: dom_1234abcd
+                                            projectId: proj_1234abcd
+                                            status: failed
+                                            updatedAt: 1704153600000
+                                            verificationError: domain verification timed out after 24 hours
+                                        meta:
+                                            requestId: req_1234abcd
+                                pending:
+                                    description: No DNS check has run yet. Neither record is verified, and updatedAt is absent.
+                                    summary: Domain created, not checked yet
+                                    value:
+                                        data:
+                                            appId: app_1234abcd
+                                            createdAt: 1704067200000
+                                            dnsRecords:
+                                                - name: api.acme.com
+                                                  note: Create as DNS-only if your provider offers the choice.
+                                                  ttl: 60
+                                                  type: CNAME
+                                                  value: a1b2c3d4e5f6g7h8.cname.unkey.com
+                                                  verified: false
+                                                - name: _unkey.api.acme.com
+                                                  note: Proves ownership. Create it alongside the routing record.
+                                                  ttl: 60
+                                                  type: TXT
+                                                  value: unkey-domain-verify=3ZQ8xK1mP7vT5nR2wY6bJ4hL
+                                                  verified: false
+                                            domain: api.acme.com
+                                            environmentId: env_1234abcd
+                                            id: dom_1234abcd
+                                            projectId: proj_1234abcd
+                                            status: pending
+                                        meta:
+                                            requestId: req_1234abcd
+                                verified:
+                                    description: The routing record verified the domain. Unkey did not need the TXT record.
+                                    summary: Domain serving traffic
+                                    value:
+                                        data:
+                                            appId: app_1234abcd
+                                            createdAt: 1704067200000
+                                            dnsRecords:
+                                                - name: api.acme.com
+                                                  note: Create as DNS-only if your provider offers the choice.
+                                                  ttl: 60
+                                                  type: CNAME
+                                                  value: a1b2c3d4e5f6g7h8.cname.unkey.com
+                                                  verified: true
+                                                - name: _unkey.api.acme.com
+                                                  note: Proves ownership. Create it alongside the routing record.
+                                                  ttl: 60
+                                                  type: TXT
+                                                  value: unkey-domain-verify=3ZQ8xK1mP7vT5nR2wY6bJ4hL
+                                                  verified: false
+                                            domain: api.acme.com
+                                            environmentId: env_1234abcd
+                                            id: dom_1234abcd
+                                            projectId: proj_1234abcd
+                                            status: verified
+                                            updatedAt: 1704067260000
+                                        meta:
+                                            requestId: req_1234abcd
+                                verifiedThroughOwnership:
+                                    description: An apex domain routes through an alias that Unkey cannot read back. Only its TXT record reports verified while the domain serves traffic.
+                                    summary: Apex domain serving, routing record unreadable
+                                    value:
+                                        data:
+                                            appId: app_1234abcd
+                                            createdAt: 1704067200000
+                                            dnsRecords:
+                                                - name: acme.com
+                                                  note: Apex domains cannot hold a CNAME. Use ALIAS, ANAME, or a flattened CNAME depending on your provider.
+                                                  ttl: 60
+                                                  type: ALIAS
+                                                  value: a1b2c3d4e5f6g7h8.cname.unkey.com
+                                                  verified: false
+                                                - name: _unkey.acme.com
+                                                  note: Proves ownership. An apex domain cannot be verified through its routing record, so this is the only proof available.
+                                                  ttl: 60
+                                                  type: TXT
+                                                  value: unkey-domain-verify=3ZQ8xK1mP7vT5nR2wY6bJ4hL
+                                                  verified: true
+                                            domain: acme.com
+                                            environmentId: env_1234abcd
+                                            id: dom_1234abcd
+                                            projectId: proj_1234abcd
+                                            status: verified
+                                            updatedAt: 1704067260000
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/V2DomainsGetDomainResponseBody'
+                    description: |
+                        Successfully retrieved the domain.
+                "400":
+                    content:
+                        application/json:
+                            examples:
+                                invalidIdentifier:
+                                    description: The schema only bounds the identifier's length. An identifier that is neither a valid name nor a stored id returns a 404.
+                                    summary: Identifier too short
+                                    value:
+                                        error:
+                                            detail: The domain identifier must be between 4 and 253 characters.
+                                            errors:
+                                                - fix: Pass a domain name such as 'api.acme.com' or an id such as 'dom_1234abcd'
+                                                  location: body.domain
+                                                  message: minLength must be at least 4 characters
+                                            status: 400
+                                            title: Bad Request
+                                            type: validation-error
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/BadRequestErrorResponse'
+                    description: Bad request
+                "401":
+                    content:
+                        application/json:
+                            examples:
+                                invalidRootKey:
+                                    summary: Root key not found
+                                    value:
+                                        error:
+                                            detail: The provided root key is invalid.
+                                            status: 401
+                                            title: Unauthorized
+                                            type: unauthorized
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
+                    description: Unauthorized
+                "403":
+                    content:
+                        application/json:
+                            examples:
+                                keyDisabled:
+                                    summary: Root key disabled
+                                    value:
+                                        error:
+                                            detail: The provided root key is disabled.
+                                            status: 403
+                                            title: Forbidden
+                                            type: forbidden
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/ForbiddenErrorResponse'
+                    description: |
+                        Forbidden - The root key or its workspace is disabled. A root key that simply lacks
+                        `environment.*.read_domain` receives a 404 instead, so permissions cannot be used to discover
+                        which domains exist.
+                "404":
+                    content:
+                        application/json:
+                            examples:
+                                domainNotFound:
+                                    summary: Domain not found
+                                    value:
+                                        error:
+                                            detail: The requested domain does not exist.
+                                            status: 404
+                                            title: Not Found
+                                            type: not-found
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/NotFoundErrorResponse'
+                    description: |
+                        Not Found - The domain does not exist in your workspace, or your root key may not read it.
+                "429":
+                    content:
+                        application/json:
+                            examples:
+                                rateLimited:
+                                    summary: Workspace rate limit exceeded
+                                    value:
+                                        error:
+                                            detail: You have exceeded the rate limit for this operation. Retry after the window resets.
+                                            status: 429
+                                            title: Too Many Requests
+                                            type: rate-limited
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/TooManyRequestsErrorResponse'
+                    description: Too Many Requests
+                "500":
+                    content:
+                        application/json:
+                            examples:
+                                internalError:
+                                    summary: Unexpected server error
+                                    value:
+                                        error:
+                                            detail: An unexpected error occurred. Contact support@unkey.com with the requestId.
+                                            status: 500
+                                            title: Internal Server Error
+                                            type: internal-server-error
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: Internal server error
+            security:
+                - bearer: []
+            summary: Get domain
+            tags:
+                - domains
+            x-speakeasy-name-override: getDomain
+            x-unkey-idempotency: idempotent
+    /v2/domains.listDomains:
+        post:
+            description: |
+                List the custom domains attached to an environment and their verification status.
+
+                Results are paginated and sorted by their id. When `hasMore` is true, send the
+                returned `cursor` to get the next page. An environment with no domains returns an
+                empty array, not a 404.
+
+                `status: verified` means the domain is verified. Unkey has configured routing and requested a
+                certificate. Each domain includes its full `dnsRecords`. Each record has a `verified` flag.
+                The flag shows which records Unkey has read back, so you can see which records are still
+                missing without a second call. Some providers hide a record from DNS lookups, for example a
+                proxied or flattened routing record. Such a record stays `false` while it serves traffic.
+
+                **Required Permissions**
+
+                Your root key must have one of the following permissions:
+                - `environment.*.read_domain` (to read domains in any environment)
+                - `environment.<environment_id>.read_domain` (to read domains in a specific environment)
+            operationId: domains.listDomains
+            requestBody:
+                content:
+                    application/json:
+                        examples:
+                            byIds:
+                                description: Uses the ids returned by the corresponding list endpoints.
+                                summary: List an environment's domains by ID
+                                value:
+                                    app: app_1234abcd
+                                    environment: env_1234abcd
+                                    project: proj_1234abcd
+                            bySlugs:
+                                description: Uses the project, app, and environment slugs.
+                                summary: List an environment's domains by slugs
+                                value:
+                                    app: payments-api
+                                    environment: production
+                                    project: payments
+                            paginated:
+                                description: Get a smaller page and continue from a cursor.
+                                summary: Paginate with a smaller page size
+                                value:
+                                    app: payments-api
+                                    cursor: dom_1234abcd
+                                    environment: production
+                                    limit: 20
+                                    project: payments
+                            search:
+                                description: Returns only domains whose id or name contains the search string.
+                                summary: Filter by name
+                                value:
+                                    app: payments-api
+                                    environment: production
+                                    project: payments
+                                    search: acme.com
+                        schema:
+                            $ref: '#/components/schemas/V2DomainsListDomainsRequestBody'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            examples:
+                                domainList:
+                                    description: Two verified domains. The routing record verified the subdomain. The TXT record verified the apex domain, because Unkey cannot read its alias back.
+                                    summary: Domain list
+                                    value:
+                                        data:
+                                            - appId: app_1234abcd
+                                              createdAt: 1704067200000
+                                              dnsRecords:
+                                                - name: api.acme.com
+                                                  note: Create as DNS-only if your provider offers the choice.
+                                                  ttl: 60
+                                                  type: CNAME
+                                                  value: a1b2c3d4e5f6g7h8.cname.unkey.com
+                                                  verified: true
+                                                - name: _unkey.api.acme.com
+                                                  note: Proves ownership. Create it alongside the routing record.
+                                                  ttl: 60
+                                                  type: TXT
+                                                  value: unkey-domain-verify=3ZQ8xK1mP7vT5nR2wY6bJ4hL
+                                                  verified: false
+                                              domain: api.acme.com
+                                              environmentId: env_1234abcd
+                                              id: dom_1234abcd
+                                              projectId: proj_1234abcd
+                                              status: verified
+                                              updatedAt: 1704067260000
+                                            - appId: app_1234abcd
+                                              createdAt: 1704067200000
+                                              dnsRecords:
+                                                - name: acme.com
+                                                  note: Apex domains cannot hold a CNAME. Use ALIAS, ANAME, or a flattened CNAME depending on your provider.
+                                                  ttl: 60
+                                                  type: ALIAS
+                                                  value: i9j8k7l6m5n4o3p2.cname.unkey.com
+                                                  verified: false
+                                                - name: _unkey.acme.com
+                                                  note: Proves ownership. An apex domain cannot be verified through its routing record, so this is the only proof available.
+                                                  ttl: 60
+                                                  type: TXT
+                                                  value: unkey-domain-verify=7Kp2Rq9wZx4mB6nT1yL8vJ3h
+                                                  verified: true
+                                              domain: acme.com
+                                              environmentId: env_1234abcd
+                                              id: dom_5678efgh
+                                              projectId: proj_1234abcd
+                                              status: verified
+                                              updatedAt: 1704067260000
+                                        meta:
+                                            requestId: req_1234abcd
+                                        pagination:
+                                            hasMore: false
+                                empty:
+                                    description: An environment with no custom domains returns an empty array, not a 404.
+                                    summary: No domains attached
+                                    value:
+                                        data: []
+                                        meta:
+                                            requestId: req_1234abcd
+                                        pagination:
+                                            cursor: null
+                                            hasMore: false
+                            schema:
+                                $ref: '#/components/schemas/V2DomainsListDomainsResponseBody'
+                    description: |
+                        Successfully retrieved the environment's domains.
+                "400":
+                    content:
+                        application/json:
+                            examples:
+                                searchTooLong:
+                                    summary: Search string above the maximum
+                                    value:
+                                        error:
+                                            detail: The search string must be at most 256 characters.
+                                            errors:
+                                                - fix: Shorten the search string, or omit it to return the environment's domains unfiltered
+                                                  location: body.search
+                                                  message: must be at most 256 characters
+                                            status: 400
+                                            title: Bad Request
+                                            type: validation-error
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/BadRequestErrorResponse'
+                    description: Bad request
+                "401":
+                    content:
+                        application/json:
+                            examples:
+                                invalidRootKey:
+                                    summary: Root key not found
+                                    value:
+                                        error:
+                                            detail: The provided root key is invalid.
+                                            status: 401
+                                            title: Unauthorized
+                                            type: unauthorized
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
+                    description: Unauthorized
+                "403":
+                    content:
+                        application/json:
+                            examples:
+                                keyDisabled:
+                                    summary: Root key disabled
+                                    value:
+                                        error:
+                                            detail: The provided root key is disabled.
+                                            status: 403
+                                            title: Forbidden
+                                            type: forbidden
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/ForbiddenErrorResponse'
+                    description: |
+                        Forbidden - The root key or its workspace is disabled. A root key that simply lacks
+                        `environment.*.read_domain` receives a 404 instead, so permissions cannot be used to discover
+                        which environments exist.
+                "404":
+                    content:
+                        application/json:
+                            examples:
+                                environmentNotFound:
+                                    summary: Environment not found
+                                    value:
+                                        error:
+                                            detail: The requested environment does not exist.
+                                            status: 404
+                                            title: Not Found
+                                            type: not-found
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/NotFoundErrorResponse'
+                    description: |
+                        Not Found - The environment does not exist in your workspace, or your root key may not read it.
+                "429":
+                    content:
+                        application/json:
+                            examples:
+                                rateLimited:
+                                    summary: Workspace rate limit exceeded
+                                    value:
+                                        error:
+                                            detail: You have exceeded the rate limit for this operation. Retry after the window resets.
+                                            status: 429
+                                            title: Too Many Requests
+                                            type: rate-limited
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/TooManyRequestsErrorResponse'
+                    description: Too Many Requests
+                "500":
+                    content:
+                        application/json:
+                            examples:
+                                internalError:
+                                    summary: Unexpected server error
+                                    value:
+                                        error:
+                                            detail: An unexpected error occurred. Contact support@unkey.com with the requestId.
+                                            status: 500
+                                            title: Internal Server Error
+                                            type: internal-server-error
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: Internal server error
+            security:
+                - bearer: []
+            summary: List domains
+            tags:
+                - domains
+            x-speakeasy-name-override: listDomains
+            x-unkey-idempotency: idempotent
     /v2/environments.getEnvironment:
         post:
             description: |
@@ -9275,6 +10620,79 @@ paths:
             tags:
                 - gateway
             x-speakeasy-name-override: updatePolicy
+    /v2/github.installApp:
+        post:
+            description: |
+                Start installing the Unkey GitHub App for your workspace. Returns a GitHub
+                App install URL: open it in a browser to install the app and grant
+                repository access. After installation GitHub returns to Unkey, which binds
+                the installation to your workspace and lands you in the workspace settings.
+
+                Installation is workspace-wide and takes no parameters. Once installed, link
+                repositories to individual apps with the `git` field on `apps.createApp` and
+                `apps.updateApp`.
+
+                **Required Permissions**
+
+                Your root key must have the following permission:
+                - `workspace.*.install_github`
+            operationId: github.installApp
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            examples:
+                                success:
+                                    description: Open the returned url to install the GitHub App
+                                    summary: Install URL created
+                                    value:
+                                        data:
+                                            expiresAt: 1700000900000
+                                            url: https://github.com/apps/unkey/installations/new?state=eyJ...
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/V2GithubInstallAppResponseBody'
+                    description: |
+                        Install URL created. Open the returned url to install the GitHub App and
+                        finish binding it to your workspace.
+                "400":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/BadRequestErrorResponse'
+                    description: Bad request
+                "401":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
+                    description: Unauthorized
+                "403":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ForbiddenErrorResponse'
+                    description: Forbidden - Insufficient permissions (requires `workspace.*.install_github`)
+                "429":
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/TooManyRequestsErrorResponse'
+                    description: Too Many Requests
+                "500":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: Internal server error
+            security:
+                - bearer: []
+            summary: Install GitHub App
+            tags:
+                - github
+            x-speakeasy-name-override: installApp
+            x-unkey-idempotency: idempotent
     /v2/identities.createIdentity:
         post:
             description: |
@@ -11103,14 +12521,20 @@ paths:
     /v2/permissions.createRole:
         post:
             description: |
-                Create a new role to group related permissions for easier management. Roles enable consistent permission assignment across multiple API keys.
+                Create a new role to group related permissions for easier management. Roles enable consistent permission assignment across multiple API keys. Permission slugs supplied in `permissions` are attached during creation. Missing permissions are created automatically.
 
                 **Important:** Role names must be unique within the workspace. Once created, roles are immediately available for assignment.
 
                 **Required Permissions**
 
-                Your root key must have the following permission:
+                Your root key must always have:
                 - `rbac.*.create_role`
+
+                When `permissions` is not empty, it must also have:
+                - `rbac.*.add_permission_to_role`
+
+                When any requested permission slug does not exist, it must also have:
+                - `rbac.*.create_permission`
             operationId: permissions.createRole
             requestBody:
                 content:
@@ -11121,6 +12545,9 @@ paths:
                                 value:
                                     description: Can read and write content
                                     name: content.editor
+                                    permissions:
+                                        - content.read
+                                        - content.write
                             withoutDescription:
                                 summary: Role without description
                                 value:
@@ -11582,6 +13009,73 @@ paths:
                 outputs:
                     nextCursor: $.pagination.cursor
                 type: cursor
+    /v2/permissions.setRolePermissions:
+        post:
+            description: |
+                Atomically replaces all permissions directly assigned to a role. An empty `permissions` array removes every permission from the role. Permissions that do not exist are created when the caller has permission to create them.
+
+                **Required Permissions**
+
+                Your root key must have:
+                - `rbac.*.add_permission_to_role`
+                - `rbac.*.remove_permission_from_role`
+
+                When any requested permission slug does not exist, it must also have:
+                - `rbac.*.create_permission`
+            operationId: permissions.setRolePermissions
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/V2PermissionsSetRolePermissionsRequestBody'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/V2PermissionsSetRolePermissionsResponseBody'
+                    description: Permissions set successfully.
+                "400":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/BadRequestErrorResponse'
+                    description: Bad request
+                "401":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
+                    description: Unauthorized
+                "403":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ForbiddenErrorResponse'
+                    description: Forbidden
+                "404":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/NotFoundErrorResponse'
+                    description: Role not found
+                "429":
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/TooManyRequestsErrorResponse'
+                    description: Too Many Requests
+                "500":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: Internal server error
+            summary: Set role permissions
+            tags:
+                - permissions
+            x-speakeasy-name-override: setRolePermissions
     /v2/portal.createSession:
         post:
             description: |
@@ -11663,6 +13157,7 @@ paths:
             summary: Create portal session
             tags:
                 - portal
+            x-excluded: true
             x-speakeasy-name-override: createSession
     /v2/portal.exchangeSession:
         post:
@@ -11730,6 +13225,7 @@ paths:
             summary: Exchange session token
             tags:
                 - portal
+            x-excluded: true
             x-speakeasy-name-override: exchangeSession
     /v2/portal.getVerifications:
         post:
@@ -11798,6 +13294,7 @@ paths:
             summary: Get portal verifications
             tags:
                 - portal
+            x-excluded: true
             x-speakeasy-name-override: getVerifications
     /v2/portal.listKeys:
         post:
@@ -11866,6 +13363,7 @@ paths:
             summary: List portal keys
             tags:
                 - portal
+            x-excluded: true
             x-speakeasy-name-override: listKeys
             x-speakeasy-pagination:
                 inputs:
@@ -11940,6 +13438,7 @@ paths:
             summary: Reroll portal key
             tags:
                 - portal
+            x-excluded: true
             x-speakeasy-name-override: rerollKey
     /v2/projects.createProject:
         post:
@@ -13276,6 +14775,8 @@ tags:
       name: deploy
     - description: Deployment operations
       name: deployments
+    - description: Custom domain operations
+      name: domains
     - description: Environment management operations
       name: environments
     - description: Identity management operations
@@ -13292,6 +14793,8 @@ tags:
       name: portal
     - description: Rate limiting operations
       name: ratelimit
+    - description: GitHub App installation operations
+      name: github
 x-speakeasy-retries:
     backoff:
         exponent: 1.5

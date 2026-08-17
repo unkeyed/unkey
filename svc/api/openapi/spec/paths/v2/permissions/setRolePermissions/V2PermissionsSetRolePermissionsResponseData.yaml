@@ -1,0 +1,4 @@
+type: array
+description: Complete list of permissions now directly assigned to the role.
+items:
+  "$ref": "../../../../common/Permission.yaml"

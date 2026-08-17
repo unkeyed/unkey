@@ -223,6 +223,16 @@ export const workspacePermissions = {
       permission: "app.*.delete_app",
     },
   },
+  GitHub: {
+    install_github: {
+      description: "Install the Unkey GitHub App for this workspace",
+      permission: "workspace.*.install_github",
+    },
+    connect_repository: {
+      description: "Connect or disconnect a GitHub repository for any app in this workspace",
+      permission: "app.*.connect_repository",
+    },
+  },
   Environments: {
     read_environment: {
       description: "Read any environment in this workspace",
@@ -255,6 +265,14 @@ export const workspacePermissions = {
     read_policies: {
       description: "Read gateway policies for any environment in this workspace",
       permission: "environment.*.read_policies",
+    },
+    create_domain: {
+      description: "Attach custom domains to any environment in this workspace",
+      permission: "environment.*.create_domain",
+    },
+    read_domain: {
+      description: "Read custom domains for any environment in this workspace",
+      permission: "environment.*.read_domain",
     },
   },
   Deployments: {
@@ -412,6 +430,14 @@ export function environmentPermissions(environmentId: string): {
       read_policies: {
         description: "Read gateway policies for this environment.",
         permission: `environment.${environmentId}.read_policies`,
+      },
+      create_domain: {
+        description: "Attach custom domains to this environment.",
+        permission: `environment.${environmentId}.create_domain`,
+      },
+      read_domain: {
+        description: "Read custom domains for this environment.",
+        permission: `environment.${environmentId}.read_domain`,
       },
     },
     Deployments: {

@@ -25,7 +25,7 @@ func (p *Principal) Marshal() (string, error) {
 //
 // The struct tags on this file are the authoritative wire contract — if
 // any json tag, omitempty flag, or field type changes here, update
-// docs/product/platform/sentinel/principal/*.mdx and the wire-format test
+// docs/product/platform/gateway/principal/*.mdx and the wire-format test
 // in the same commit.
 //
 // Every Principal contains exactly one populated variant of Source matching
@@ -112,6 +112,12 @@ type KeySource struct {
 	// still valid.
 	ExpiresAt *int64 `json:"expiresAt,omitempty"`
 
+	// Credits is the number of credits remaining after this request's cost
+	// was deducted. Omitted entirely for keys with unlimited credits. A value
+	// of 0 is emitted (it means the key just spent its last credit), so the
+	// upstream can distinguish "no credits left" from "unlimited".
+	Credits *int64 `json:"credits,omitempty"`
+
 	// Meta is the custom metadata attached to the key. Always emitted as a
 	// JSON object — {} when no metadata was set. Must be non-nil.
 	Meta map[string]any `json:"meta"`
@@ -179,6 +185,13 @@ func KeyPrincipalFromVerifier(verifier *keys.KeyVerifier) (*Principal, error) {
 		expiresAt = ptr.P(verifier.Key.Expires.Time.UnixMilli())
 	}
 
+	// RemainingRequests is NULL for keys with unlimited credits; leave Credits
+	// nil in that case so the field is omitted from the wire format.
+	var credits *int64
+	if verifier.Key.RemainingRequests.Valid {
+		credits = ptr.P(verifier.Key.RemainingRequests.Int64)
+	}
+
 	var roles []string
 	if len(verifier.Roles) > 0 {
 		roles = verifier.Roles
@@ -200,6 +213,7 @@ func KeyPrincipalFromVerifier(verifier *keys.KeyVerifier) (*Principal, error) {
 				KeySpaceID:  verifier.Key.KeyAuthID,
 				Name:        name,
 				ExpiresAt:   expiresAt,
+				Credits:     credits,
 				Meta:        keyMeta,
 				Roles:       roles,
 				Permissions: permissions,

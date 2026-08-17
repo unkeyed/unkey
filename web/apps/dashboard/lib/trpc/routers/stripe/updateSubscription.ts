@@ -2,12 +2,16 @@ import { insertAuditLogs } from "@/lib/audit";
 import { db, eq, schema } from "@/lib/db";
 import { stripeEnv } from "@/lib/env";
 import { getStripeClient } from "@/lib/stripe";
-import {
-  deployBillingConfig,
-  deployBillingConfigured,
-  findApiItem,
-} from "@/lib/stripe/deployBilling";
+import { changeSubscriptionPrice } from "@/lib/stripe/changeSubscriptionPrice";
+import { deployBillingConfig, findApiItem } from "@/lib/stripe/deployBilling";
+import { parseDeployPlan } from "@/lib/stripe/deployPlan";
 import { validateAndParseQuotas } from "@/lib/stripe/productUtils";
+import {
+  SubscriptionScheduleConflictError,
+  releaseScheduledApiPlanDowngrade,
+  scheduleApiPlanDowngrade,
+} from "@/lib/stripe/scheduleApiPlanDowngrade";
+import { setWorkspaceLimits } from "@/lib/stripe/setWorkspaceLimits";
 import { TRPCError } from "@trpc/server";
 import Stripe from "stripe";
 import { z } from "zod";
@@ -89,26 +93,13 @@ export const updateSubscription = workspaceProcedure
       });
     }
 
-    // Derive the current subscription item from the existing subscription
-    // rather than trusting a client-supplied `oldProductId`. The client should
-    // not be able to influence which item gets repriced. On a mixed
-    // subscription the Deploy items (plan-fee + meters) are skipped — items[0]
-    // would be one of them on a Compute-first subscription, and repricing it
-    // to an API price would destroy the Compute plan.
-    //
-    // Fail closed when Deploy is configured but its config can't be resolved:
-    // findApiItem(null) falls back to items[0], which on a Compute-first
-    // subscription is a Deploy item, so repricing under a transient resolution
-    // failure would destroy Compute. Unconfigured (no Deploy at all) still uses
-    // the items[0] fallback safely.
-    const deployConfig = await deployBillingConfig();
-    if (!deployConfig && deployBillingConfigured()) {
-      throw new TRPCError({
-        code: "INTERNAL_SERVER_ERROR",
-        message: "Billing is temporarily unavailable. Please try again in a moment.",
-      });
-    }
-    const item = findApiItem(deployConfig, sub.items.data);
+    // Reprice the API plan item specifically. findApiItem skips any Deploy price
+    // (metered or plan-fee) the subscription might also carry, so we never
+    // reprice a Deploy line and charge a bad proration. Derived from the
+    // subscription, not a client-supplied product id, so the client cannot
+    // influence which item gets repriced.
+    const config = await deployBillingConfig();
+    const item = findApiItem(config, sub.items.data);
 
     if (!item) {
       throw new TRPCError({
@@ -123,19 +114,62 @@ export const updateSubscription = workspaceProcedure
         message: `Product ${newProduct.id} is missing a default price.`,
       });
     }
+    const newPriceId =
+      typeof newProduct.default_price === "string"
+        ? newProduct.default_price
+        : newProduct.default_price.id;
+    const newPrice =
+      typeof newProduct.default_price === "string"
+        ? await stripe.prices.retrieve(newPriceId)
+        : newProduct.default_price;
+    const isUpgrade =
+      item.price.unit_amount !== null &&
+      newPrice.unit_amount !== null &&
+      newPrice.unit_amount > item.price.unit_amount;
+    const isDowngrade =
+      item.price.unit_amount !== null &&
+      newPrice.unit_amount !== null &&
+      newPrice.unit_amount < item.price.unit_amount;
 
-    /**
-     * `error_if_incomplete` rejects the call with a 402 if the proration invoice cannot
-     * be charged. We surface that to the user so they know to fix their payment method
-     * before the plan switch is applied.
-     */
-    try {
-      await stripe.subscriptionItems.update(item.id, {
-        price: newProduct.default_price.toString(),
-        proration_behavior: "always_invoice",
-        payment_behavior: "error_if_incomplete",
+    if (sub.cancel_at_period_end) {
+      throw new TRPCError({
+        code: "PRECONDITION_FAILED",
+        message: "Resume your API plan before changing it.",
       });
+    }
+
+    let result:
+      | Awaited<ReturnType<typeof changeSubscriptionPrice>>
+      | { kind: "scheduled"; effectiveAt: number };
+    try {
+      if (isDowngrade) {
+        const { effectiveAt } = await scheduleApiPlanDowngrade(stripe, {
+          subscriptionId: sub.id,
+          schedule: sub.schedule,
+          currentPriceId: item.price.id,
+          newPriceId,
+        });
+        result = { kind: "scheduled", effectiveAt };
+      } else {
+        // A new immediate change replaces an API downgrade that was scheduled
+        // through this route. Never release schedules owned by another flow.
+        if (sub.schedule) {
+          await releaseScheduledApiPlanDowngrade(stripe, sub.schedule);
+        }
+        result = await changeSubscriptionPrice(stripe, {
+          subscriptionId: sub.id,
+          subscriptionItemId: item.id,
+          newPriceId,
+          prorationBehavior: "always_invoice",
+        });
+      }
     } catch (err) {
+      if (err instanceof SubscriptionScheduleConflictError) {
+        throw new TRPCError({
+          code: "PRECONDITION_FAILED",
+          message: err.message,
+        });
+      }
       if (err instanceof Stripe.errors.StripeCardError) {
         throw new TRPCError({
           code: "BAD_REQUEST",
@@ -155,11 +189,34 @@ export const updateSubscription = workspaceProcedure
       throw err;
     }
 
-    if (sub.cancel_at) {
-      await stripe.subscriptions.update(sub.id, {
-        cancel_at_period_end: false,
+    if (result.kind === "scheduled") {
+      await insertAuditLogs(db, {
+        workspaceId: ctx.workspace.id,
+        actor: {
+          type: "user",
+          id: ctx.user.id,
+        },
+        event: "workspace.update",
+        description: `Scheduled switch to ${newProduct.name} plan for ${new Date(
+          result.effectiveAt,
+        ).toISOString()}.`,
+        resources: [],
+        context: {
+          location: ctx.audit.location,
+          userAgent: ctx.audit.userAgent,
+        },
       });
+      return result;
     }
+
+    if (result.kind === "payment_required") {
+      return result;
+    }
+
+    // Workspace API rate limits are manually applied safety limits, not plan
+    // limits. Clear them when a customer pays for a higher tier, but preserve
+    // deliberate limits on same-price changes and downgrades.
+    const rateLimitReset = isUpgrade ? { apiRequestsCountMaxPerMinute: null } : {};
 
     await db.transaction(async (tx) => {
       await tx
@@ -169,23 +226,20 @@ export const updateSubscription = workspaceProcedure
         })
         .where(eq(schema.workspaceBilling.workspaceId, ctx.workspace.id));
 
-      await tx
-        .insert(schema.quotas)
-        .values({
-          workspaceId: ctx.workspace.id,
-          requestsPerMonth: newQuotas.requestsPerMonth,
-          logsRetentionDays: newQuotas.logsRetentionDays,
-          auditLogsRetentionDays: newQuotas.auditLogsRetentionDays,
-          team: true,
-        })
-        .onDuplicateKeyUpdate({
-          set: {
-            requestsPerMonth: newQuotas.requestsPerMonth,
-            logsRetentionDays: newQuotas.logsRetentionDays,
-            auditLogsRetentionDays: newQuotas.auditLogsRetentionDays,
-            team: true,
-          },
-        });
+      await setWorkspaceLimits(tx, {
+        workspaceId: ctx.workspace.id,
+        plan:
+          parseDeployPlan(ctx.workspace.deployPlanOverride) ??
+          parseDeployPlan(ctx.workspace.deployPlan),
+        preserveApiLimits: true,
+        limitUpdate: {
+          apiBillableOperationsCountMaxPerMonth: newQuotas.requestsPerMonth,
+          logsRetentionDaysMax: newQuotas.logsRetentionDays,
+          logsAuditRetentionDaysMax: newQuotas.auditLogsRetentionDays,
+          teamEnabled: true,
+          ...rateLimitReset,
+        },
+      });
 
       await insertAuditLogs(tx, {
         workspaceId: ctx.workspace.id,
@@ -202,4 +256,6 @@ export const updateSubscription = workspaceProcedure
         },
       });
     });
+
+    return result;
   });

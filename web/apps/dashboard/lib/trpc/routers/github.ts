@@ -1,4 +1,5 @@
 import crypto from "node:crypto";
+import { insertAuditLogs } from "@/lib/audit";
 import { and, db, eq, schema } from "@/lib/db";
 import { githubAppEnv, githubOAuthEnv } from "@/lib/env";
 import {
@@ -20,21 +21,59 @@ import { t, workspaceProcedure } from "../trpc";
 
 const STATE_TTL_MS = 15 * 60 * 1000;
 
-// State payload signed and handed to GitHub's install URL. The signature
-// binds the state to a specific user + workspace + project so the callback
-// cannot be replayed across sessions or used by an attacker who phishes
-// a logged-in victim into hitting /integrations/github/callback?state=...
-const signedStatePayload = z.object({
-  projectId: z.string().min(1),
-  appId: z.string().min(1),
-  returnTo: z.enum(["settings"]).optional(),
+// State payload signed and handed to GitHub's install URL. The signature binds
+// the state to a workspace (and, per flow, a user + app) so the callback cannot
+// be replayed across sessions or used by an attacker who phishes a logged-in
+// victim into hitting /integrations/github/callback?state=
+//
+// `flow` is the discriminator over the three install flows, and it also drives
+// where the callback lands the user:
+//   - "api":       CLI/API workspace install (github.installApp). No user;
+//                  secured by the OAuth-code ownership proof. -> workspace settings.
+//   - "workspace": dashboard workspace install (settings). User-bound. -> workspace settings.
+//   - "app":       dashboard app install (onboarding or app settings). User- and
+//                  app-bound. -> the app.
+const stateBaseFields = {
   workspaceId: z.string().min(1),
-  userId: z.string().min(1),
   nonce: z.string().min(1),
   exp: z.number().int().positive(),
-});
+};
 
-const signedState = signedStatePayload.extend({ sig: z.string().min(1) });
+// Each variant is strict: a state may carry ONLY the fields its flow declares.
+// An "api" state with a userId, or a "workspace" state with an appId, fails to
+// verify rather than being silently stripped.
+const apiInstallState = z.object({ ...stateBaseFields, flow: z.literal("api") }).strict();
+
+const workspaceInstallState = z
+  .object({
+    ...stateBaseFields,
+    flow: z.literal("workspace"),
+    userId: z.string().min(1),
+  })
+  .strict();
+
+const appInstallState = z
+  .object({
+    ...stateBaseFields,
+    flow: z.literal("app"),
+    userId: z.string().min(1),
+    projectId: z.string().min(1),
+    appId: z.string().min(1),
+    returnTo: z.enum(["settings"]).optional(),
+  })
+  .strict();
+
+const signedStatePayload = z.discriminatedUnion("flow", [
+  apiInstallState,
+  workspaceInstallState,
+  appInstallState,
+]);
+
+const signedState = z.discriminatedUnion("flow", [
+  apiInstallState.extend({ sig: z.string().min(1) }),
+  workspaceInstallState.extend({ sig: z.string().min(1) }),
+  appInstallState.extend({ sig: z.string().min(1) }),
+]);
 
 type SignedStatePayload = z.infer<typeof signedStatePayload>;
 
@@ -48,7 +87,7 @@ const stateSigningKey = (): Buffer | null => {
   // leaves the server and rotates with the GitHub App credentials.
   return crypto
     .createHash("sha256")
-    .update(`unkey-github-install-state:${env.UNKEY_GITHUB_PRIVATE_KEY_PEM}`)
+    .update(`unkey-github-install-state:${env.UNKEY_GITHUB_PRIVATE_KEY_PEM.trim()}`)
     .digest();
 };
 
@@ -221,6 +260,29 @@ export const githubRouter = t.router({
     return { hasInstallation: Boolean(installation) };
   }),
 
+  // Mint a signed install state for a workspace-wide install started from the
+  // dashboard settings. No app target, but bound to the initiating user; the
+  // callback's OAuth-code ownership proof is the primary access control. The
+  // CLI/API equivalent is the github.installApp route (flow "api").
+  prepareWorkspaceInstall: workspaceProcedure.mutation(async ({ ctx }) => {
+    if (!githubAppEnv()) {
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: "GitHub App not configured",
+      });
+    }
+
+    return {
+      state: signState({
+        flow: "workspace",
+        workspaceId: ctx.workspace.id,
+        userId: ctx.user.id,
+        nonce: crypto.randomBytes(16).toString("base64url"),
+        exp: Date.now() + STATE_TTL_MS,
+      }),
+    };
+  }),
+
   prepareInstallation: workspaceProcedure
     .input(
       z.object({
@@ -254,6 +316,7 @@ export const githubRouter = t.router({
 
       return {
         state: signState({
+          flow: "app",
           projectId: input.projectId,
           appId: input.appId,
           returnTo: input.returnTo,
@@ -299,7 +362,10 @@ export const githubRouter = t.router({
       if (
         !parsedState ||
         parsedState.workspaceId !== ctx.workspace.id ||
-        parsedState.userId !== ctx.user.id
+        // The dashboard flows ("workspace", "app") are bound to the initiating
+        // user, so the caller must match. The "api" flow carries no user and is
+        // secured by the OAuth-code ownership proof below.
+        (parsedState.flow !== "api" && parsedState.userId !== ctx.user.id)
       ) {
         throw new TRPCError({
           code: "BAD_REQUEST",
@@ -307,7 +373,15 @@ export const githubRouter = t.router({
         });
       }
 
-      const projectId = parsedState.projectId;
+      // The app to land back on, or null for a workspace-wide install.
+      const target =
+        parsedState.flow === "app"
+          ? {
+              projectId: parsedState.projectId,
+              appId: parsedState.appId,
+              returnTo: parsedState.returnTo ?? null,
+            }
+          : null;
 
       // Look up any existing binding for this installation id up front; whether
       // we must re-prove ownership depends on who (if anyone) already owns it.
@@ -387,37 +461,64 @@ export const githubRouter = t.router({
         }
       }
 
-      const projectInstallation = await fetchProjectInstallation(
-        ctx.workspace.id,
-        projectId,
-        input.installationId,
-      ).catch((err) => {
-        console.error(err);
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: "Failed to load project installation",
+      // Only the app-targeted flow references a project; validate it exists and
+      // owns this installation before landing the user back on it.
+      if (target) {
+        const projectInstallation = await fetchProjectInstallation(
+          ctx.workspace.id,
+          target.projectId,
+          input.installationId,
+        ).catch((err) => {
+          console.error(err);
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message: "Failed to load project installation",
+          });
         });
-      });
 
-      if (!projectInstallation) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Project not found",
-        });
+        if (!projectInstallation) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "Project not found",
+          });
+        }
       }
 
+      // Bind the installation and record the audit event atomically so an audit
+      // entry can never orphan or go missing. Repositories are linked to apps
+      // separately (apps.createApp / apps.updateApp), not during install.
       await db
-        .insert(schema.githubAppInstallations)
-        .values({
-          workspaceId: ctx.workspace.id,
-          installationId: input.installationId,
-          createdAt: Date.now(),
-          updatedAt: null,
-        })
-        .onDuplicateKeyUpdate({
-          set: {
-            updatedAt: Date.now(),
-          },
+        .transaction(async (tx) => {
+          await tx
+            .insert(schema.githubAppInstallations)
+            .values({
+              workspaceId: ctx.workspace.id,
+              installationId: input.installationId,
+              createdAt: Date.now(),
+              updatedAt: null,
+            })
+            .onDuplicateKeyUpdate({ set: { updatedAt: Date.now() } });
+
+          await insertAuditLogs(tx, [
+            {
+              workspaceId: ctx.workspace.id,
+              actor: { type: "user", id: ctx.user.id },
+              event: "workspace.install_github",
+              description: `Bound GitHub installation ${input.installationId}`,
+              resources: [
+                {
+                  type: "workspace",
+                  id: ctx.workspace.id,
+                  meta: {
+                    flow: parsedState.flow,
+                    installationId: input.installationId,
+                    appId: target?.appId,
+                  },
+                },
+              ],
+              context: { location: ctx.audit.location, userAgent: ctx.audit.userAgent },
+            },
+          ]);
         })
         .catch((err) => {
           console.error(err);
@@ -429,9 +530,10 @@ export const githubRouter = t.router({
 
       return {
         workspaceSlug: ctx.workspace.slug,
-        projectId,
-        appId: parsedState.appId,
-        returnTo: parsedState.returnTo ?? null,
+        flow: parsedState.flow,
+        projectId: target?.projectId ?? null,
+        appId: target?.appId ?? null,
+        returnTo: target?.returnTo ?? null,
       };
     }),
 

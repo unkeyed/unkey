@@ -15,6 +15,21 @@ import (
 	"github.com/unkeyed/unkey/pkg/logger"
 )
 
+// batchLimit bounds each DELETE. PlanetScale rejects a single DML statement
+// that would affect more than 100,000 rows, so an unbounded DELETE fails
+// outright once a backlog builds; the handler loops until a batch deletes fewer
+// than this. Sized well under the ceiling so row locks stay short and
+// replication lag stays bounded.
+const batchLimit int32 = 25_000
+
+// maxBatches caps how much one invocation drains. The handler is a
+// singleton-keyed VO on an hourly schedule, so an unbounded loop over a large
+// backlog would both grow the journal without limit and keep later ticks queued
+// behind it. Leftover rows are only a storage concern: the hot path filters on
+// expires_at, so they are never read as live counters, and the next tick
+// continues where this one stopped.
+const maxBatches = 40
+
 // Config holds the handler's dependencies.
 type Config struct {
 	// DB is the ratelimit database. Must not be nil.
@@ -40,36 +55,62 @@ func New(cfg Config) (*Handler, error) {
 	return &Handler{db: cfg.DB, clock: cfg.Clock}, nil
 }
 
-// Handle deletes every ratelimit_global_counters row whose expires_at is
-// in the past relative to h.clock. The DELETE is wrapped in restate.Run
-// so a crash or retry replays cleanly: at-least-once delivery on a
-// deterministic DELETE is safe.
+// Handle deletes ratelimit_global_counters rows whose expires_at is in the
+// past relative to h.clock, in bounded batches. Each batch DELETE is wrapped
+// in restate.Run so a crash or retry replays cleanly: at-least-once delivery
+// on a deterministic, cutoff-bounded DELETE is safe — re-running only removes
+// rows that were already eligible.
 //
-// Stateless — the VO key is fixed at "ratelimit-global-counters-cleanup"
-// so a paused/wedged invocation cannot block other cron handlers. Local
-// in-memory state in the ratelimit service is cleaned by its own janitor,
-// and the hot path filters on expires_at, so the lag between this cron
-// firing and rows actually disappearing is only a storage concern, not
-// a correctness one.
+// Stateless — the VO key is fixed at "ratelimit-global-counters-cleanup" so a
+// wedged invocation cannot block other cron handlers. It does block later ticks
+// of this handler, which is why the registered retry policy kills rather than
+// pauses on exhaustion. Local in-memory state in the ratelimit service is
+// cleaned by its own janitor, and the hot path filters on expires_at, so the
+// lag between this cron firing and rows actually disappearing is only a storage
+// concern, not a correctness one.
 func (h *Handler) Handle(
 	ctx restate.ObjectContext,
 	_ *hydrav1.RunRatelimitGlobalCountersCleanupRequest,
 ) (*hydrav1.RunRatelimitGlobalCountersCleanupResponse, error) {
 	cutoff := h.clock.Now().UnixMilli()
 
-	deleted, err := restate.Run(ctx, func(rc restate.RunContext) (int64, error) {
-		return h.db.RW().GlobalCountersDeleteExpired(rc, uint64(cutoff))
-	}, restate.WithName("delete expired"))
-	if err != nil {
-		return nil, fmt.Errorf("delete expired global counter rows: %w", err)
+	var totalDeleted int64
+	drained := false
+	for batchNum := range maxBatches {
+		deleted, err := restate.Run(ctx, func(rc restate.RunContext) (int64, error) {
+			return h.db.RW().GlobalCountersDeleteExpired(rc, rldb.GlobalCountersDeleteExpiredParams{
+				Cutoff: uint64(cutoff),
+				Limit:  batchLimit,
+			})
+		}, restate.WithName(fmt.Sprintf("delete batch-%d", batchNum)))
+		if err != nil {
+			return nil, fmt.Errorf("delete expired global counter rows batch %d: %w", batchNum, err)
+		}
+
+		totalDeleted += deleted
+
+		if deleted < int64(batchLimit) {
+			drained = true
+			break
+		}
+	}
+
+	if !drained {
+		logger.Warn("ratelimit global counters cleanup hit batch cap; expired rows remain for the next tick",
+			"rows_deleted", totalDeleted,
+			"max_batches", maxBatches,
+			"batch_limit", batchLimit,
+			"cutoff_ms", cutoff,
+		)
 	}
 
 	logger.Info("ratelimit global counters cleanup complete",
-		"rows_deleted", deleted,
+		"rows_deleted", totalDeleted,
+		"drained", drained,
 		"cutoff_ms", cutoff,
 	)
 
 	return &hydrav1.RunRatelimitGlobalCountersCleanupResponse{
-		RowsDeleted: deleted,
+		RowsDeleted: totalDeleted,
 	}, nil
 }

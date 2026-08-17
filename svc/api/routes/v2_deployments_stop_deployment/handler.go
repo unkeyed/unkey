@@ -76,7 +76,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	if err := deploygate.CheckStopTarget(deploygate.StopInput{
 		Status:          dep.Status,
 		DesiredState:    dep.DesiredState,
-		EnvironmentSlug: dep.EnvironmentSlug,
+		EnvironmentKind: dep.EnvironmentKind,
 	}); err != nil {
 		return err
 	}

@@ -1,16 +1,18 @@
-import { bigint, index, mysqlEnum, mysqlTable, varchar } from "drizzle-orm/mysql-core";
+import { bigint, index, mysqlEnum, mysqlTable } from "drizzle-orm/mysql-core";
+import { id } from "./util/id";
+import { primaryKey } from "./util/primary_key";
 
 export const deploymentChanges = mysqlTable(
   "deployment_changes",
   {
-    pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
+    pk: primaryKey(),
     resourceType: mysqlEnum("resource_type", [
       "deployment_topology",
       "sentinel",
       "cilium_network_policy",
     ]).notNull(),
-    resourceId: varchar("resource_id", { length: 64 }).notNull(),
-    regionId: varchar("region_id", { length: 64 }).notNull(),
+    resourceId: id("resource_id").notNull(),
+    regionId: id("region_id").notNull(),
     createdAt: bigint("created_at", { mode: "number" }).notNull(),
   },
   (table) => [

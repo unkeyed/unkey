@@ -693,6 +693,7 @@ type Api struct {
 	ID               string           `db:"id"`
 	Name             string           `db:"name"`
 	WorkspaceID      string           `db:"workspace_id"`
+	ProjectID        string           `db:"project_id"`
 	IpWhitelist      sql.NullString   `db:"ip_whitelist"`
 	AuthType         NullApisAuthType `db:"auth_type"`
 	KeyAuthID        sql.NullString   `db:"key_auth_id"`
@@ -774,6 +775,14 @@ type ClickhouseWorkspaceSetting struct {
 	MaxQueryResultRows        int32         `db:"max_query_result_rows"`
 	CreatedAt                 int64         `db:"created_at"`
 	UpdatedAt                 sql.NullInt64 `db:"updated_at"`
+}
+
+type Cluster struct {
+	Pk              uint64         `db:"pk"`
+	ID              string         `db:"id"`
+	CellID          sql.NullString `db:"cell_id"`
+	RegionID        string         `db:"region_id"`
+	LastHeartbeatAt uint64         `db:"last_heartbeat_at"`
 }
 
 type CustomDomain struct {
@@ -862,16 +871,17 @@ type DeploymentTopology struct {
 }
 
 type Environment struct {
-	Pk               uint64        `db:"pk"`
-	ID               string        `db:"id"`
-	WorkspaceID      string        `db:"workspace_id"`
-	ProjectID        string        `db:"project_id"`
-	AppID            string        `db:"app_id"`
-	Slug             string        `db:"slug"`
-	Description      string        `db:"description"`
-	DeleteProtection sql.NullBool  `db:"delete_protection"`
-	CreatedAt        int64         `db:"created_at"`
-	UpdatedAt        sql.NullInt64 `db:"updated_at"`
+	Pk               uint64                    `db:"pk"`
+	ID               string                    `db:"id"`
+	WorkspaceID      string                    `db:"workspace_id"`
+	ProjectID        string                    `db:"project_id"`
+	AppID            string                    `db:"app_id"`
+	Slug             string                    `db:"slug"`
+	Description      string                    `db:"description"`
+	Kind             mysqltype.EnvironmentKind `db:"kind"`
+	DeleteProtection sql.NullBool              `db:"delete_protection"`
+	CreatedAt        int64                     `db:"created_at"`
+	UpdatedAt        sql.NullInt64             `db:"updated_at"`
 }
 
 type FrontlineRoute struct {
@@ -916,36 +926,11 @@ type Instance struct {
 	ContainerStatus mysqltype.ContainerStatus `db:"container_status"`
 }
 
-type Key struct {
-	Pk                 uint64         `db:"pk"`
-	ID                 string         `db:"id"`
-	KeyAuthID          string         `db:"key_auth_id"`
-	Hash               string         `db:"hash"`
-	Start              string         `db:"start"`
-	WorkspaceID        string         `db:"workspace_id"`
-	ForWorkspaceID     sql.NullString `db:"for_workspace_id"`
-	Name               sql.NullString `db:"name"`
-	OwnerID            sql.NullString `db:"owner_id"`
-	IdentityID         sql.NullString `db:"identity_id"`
-	Meta               sql.NullString `db:"meta"`
-	Expires            sql.NullTime   `db:"expires"`
-	CreatedAtM         int64          `db:"created_at_m"`
-	UpdatedAtM         sql.NullInt64  `db:"updated_at_m"`
-	DeletedAtM         sql.NullInt64  `db:"deleted_at_m"`
-	RefillDay          sql.NullInt16  `db:"refill_day"`
-	RefillAmount       sql.NullInt64  `db:"refill_amount"`
-	LastRefillAt       sql.NullTime   `db:"last_refill_at"`
-	Enabled            bool           `db:"enabled"`
-	RemainingRequests  sql.NullInt64  `db:"remaining_requests"`
-	Environment        sql.NullString `db:"environment"`
-	LastUsedAt         uint64         `db:"last_used_at"`
-	PendingMigrationID sql.NullString `db:"pending_migration_id"`
-}
-
 type KeyAuth struct {
 	Pk                 uint64         `db:"pk"`
 	ID                 string         `db:"id"`
 	WorkspaceID        string         `db:"workspace_id"`
+	ProjectID          string         `db:"project_id"`
 	CreatedAtM         int64          `db:"created_at_m"`
 	UpdatedAtM         sql.NullInt64  `db:"updated_at_m"`
 	DeletedAtM         sql.NullInt64  `db:"deleted_at_m"`
@@ -954,6 +939,25 @@ type KeyAuth struct {
 	DefaultBytes       sql.NullInt32  `db:"default_bytes"`
 	SizeApprox         int32          `db:"size_approx"`
 	SizeLastUpdatedAt  int64          `db:"size_last_updated_at"`
+}
+
+type Limit struct {
+	Pk                                    uint64        `db:"pk"`
+	WorkspaceID                           string        `db:"workspace_id"`
+	ApiBillableOperationsCountMaxPerMonth uint64        `db:"api_billable_operations_count_max_per_month"`
+	ApiRequestsCountMaxPerMinute          sql.NullInt32 `db:"api_requests_count_max_per_minute"`
+	LogsRetentionDaysMax                  uint16        `db:"logs_retention_days_max"`
+	LogsAuditRetentionDaysMax             uint16        `db:"logs_audit_retention_days_max"`
+	TeamEnabled                           bool          `db:"team_enabled"`
+	CpuCoresMax                           uint32        `db:"cpu_cores_max"`
+	CpuCoresMaxPerInstance                uint32        `db:"cpu_cores_max_per_instance"`
+	MemoryMibMax                          uint32        `db:"memory_mib_max"`
+	MemoryMibMaxPerInstance               uint32        `db:"memory_mib_max_per_instance"`
+	StorageMibMax                         uint32        `db:"storage_mib_max"`
+	StorageMibMaxPerInstance              uint32        `db:"storage_mib_max_per_instance"`
+	BuildsConcurrentMax                   uint16        `db:"builds_concurrent_max"`
+	CustomDomainsMax                      uint32        `db:"custom_domains_max"`
+	AutoscalingReplicasMax                uint16        `db:"autoscaling_replicas_max"`
 }
 
 type OpenapiSpec struct {
@@ -971,6 +975,7 @@ type Permission struct {
 	Pk          uint64               `db:"pk"`
 	ID          string               `db:"id"`
 	WorkspaceID string               `db:"workspace_id"`
+	ProjectID   string               `db:"project_id"`
 	Name        string               `db:"name"`
 	Slug        string               `db:"slug"`
 	Description mysqltype.NullString `db:"description"`
@@ -990,25 +995,6 @@ type Project struct {
 	UpdatedAt        sql.NullInt64  `db:"updated_at"`
 }
 
-type Quotas struct {
-	Pk                          uint64        `db:"pk"`
-	WorkspaceID                 string        `db:"workspace_id"`
-	RequestsPerMonth            int64         `db:"requests_per_month"`
-	LogsRetentionDays           int32         `db:"logs_retention_days"`
-	AuditLogsRetentionDays      int32         `db:"audit_logs_retention_days"`
-	Team                        bool          `db:"team"`
-	RatelimitApiLimit           sql.NullInt32 `db:"ratelimit_api_limit"`
-	RatelimitApiDuration        sql.NullInt32 `db:"ratelimit_api_duration"`
-	AllocatedCpuMillicoresTotal uint32        `db:"allocated_cpu_millicores_total"`
-	AllocatedMemoryMibTotal     uint32        `db:"allocated_memory_mib_total"`
-	AllocatedStorageMibTotal    uint32        `db:"allocated_storage_mib_total"`
-	MaxCpuMillicoresPerInstance uint32        `db:"max_cpu_millicores_per_instance"`
-	MaxMemoryMibPerInstance     uint32        `db:"max_memory_mib_per_instance"`
-	MaxStorageMibPerInstance    uint32        `db:"max_storage_mib_per_instance"`
-	MaxConcurrentBuilds         uint32        `db:"max_concurrent_builds"`
-	MaxReplicasPerRegion        uint32        `db:"max_replicas_per_region"`
-}
-
 type Region struct {
 	Pk          uint64 `db:"pk"`
 	ID          string `db:"id"`
@@ -1018,41 +1004,17 @@ type Region struct {
 }
 
 type Workspace struct {
-	Pk                     uint64          `db:"pk"`
-	ID                     string          `db:"id"`
-	OrgID                  string          `db:"org_id"`
-	Name                   string          `db:"name"`
-	Slug                   string          `db:"slug"`
-	K8sNamespace           sql.NullString  `db:"k8s_namespace"`
-	Tier                   sql.NullString  `db:"tier"`
-	StripeCustomerID       sql.NullString  `db:"stripe_customer_id"`
-	StripeSubscriptionID   sql.NullString  `db:"stripe_subscription_id"`
-	DeployPlan             sql.NullString  `db:"deploy_plan"`
-	DeployPlanOverride     sql.NullString  `db:"deploy_plan_override"`
-	DeploySpendBudgetCents sql.NullInt64   `db:"deploy_spend_budget_cents"`
-	DeploySpendBudgetStop  bool            `db:"deploy_spend_budget_stop"`
-	DeploySpendSuspended   bool            `db:"deploy_spend_suspended"`
-	BetaFeatures           json.RawMessage `db:"beta_features"`
-	Subscriptions          []byte          `db:"subscriptions"`
-	Enabled                bool            `db:"enabled"`
-	DeleteProtection       sql.NullBool    `db:"delete_protection"`
-	CreatedAtM             int64           `db:"created_at_m"`
-	UpdatedAtM             sql.NullInt64   `db:"updated_at_m"`
-	DeletedAtM             sql.NullInt64   `db:"deleted_at_m"`
-}
-
-type WorkspaceBilling struct {
-	Pk                   uint64         `db:"pk"`
-	WorkspaceID          string         `db:"workspace_id"`
-	Tier                 sql.NullString `db:"tier"`
-	StripeCustomerID     sql.NullString `db:"stripe_customer_id"`
-	StripeSubscriptionID sql.NullString `db:"stripe_subscription_id"`
-	Plan                 sql.NullString `db:"plan"`
-	PlanOverride         sql.NullString `db:"plan_override"`
-	SpendBudgetCents     sql.NullInt64  `db:"spend_budget_cents"`
-	SpendBudgetStop      bool           `db:"spend_budget_stop"`
-	SpendSuspended       bool           `db:"spend_suspended"`
-	CreatedAtM           int64          `db:"created_at_m"`
-	UpdatedAtM           sql.NullInt64  `db:"updated_at_m"`
-	DeletedAtM           sql.NullInt64  `db:"deleted_at_m"`
+	Pk               uint64          `db:"pk"`
+	ID               string          `db:"id"`
+	OrgID            string          `db:"org_id"`
+	Name             string          `db:"name"`
+	Slug             string          `db:"slug"`
+	K8sNamespace     sql.NullString  `db:"k8s_namespace"`
+	BetaFeatures     json.RawMessage `db:"beta_features"`
+	Subscriptions    []byte          `db:"subscriptions"`
+	Enabled          bool            `db:"enabled"`
+	DeleteProtection sql.NullBool    `db:"delete_protection"`
+	CreatedAtM       int64           `db:"created_at_m"`
+	UpdatedAtM       sql.NullInt64   `db:"updated_at_m"`
+	DeletedAtM       sql.NullInt64   `db:"deleted_at_m"`
 }

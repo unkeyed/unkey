@@ -31,14 +31,14 @@ SELECT
             )
         )
         FROM ratelimits r
-        WHERE r.identity_id = i.id),
+        WHERE i.id = r.identity_id),
         JSON_ARRAY()
     ) as ratelimits
 FROM identities i
 WHERE i.workspace_id = ?
 AND i.deleted = ?
 AND i.id >= ?
-AND (? IS NULL OR i.id LIKE ? OR i.external_id LIKE ?)
+AND (? IS NULL OR LOWER(i.id) LIKE LOWER(?) OR LOWER(i.external_id) LIKE LOWER(?))
 ORDER BY i.id ASC
 LIMIT ?
 `
@@ -89,14 +89,14 @@ type ListIdentitiesRow struct {
 //	            )
 //	        )
 //	        FROM ratelimits r
-//	        WHERE r.identity_id = i.id),
+//	        WHERE i.id = r.identity_id),
 //	        JSON_ARRAY()
 //	    ) as ratelimits
 //	FROM identities i
 //	WHERE i.workspace_id = ?
 //	AND i.deleted = ?
 //	AND i.id >= ?
-//	AND (? IS NULL OR i.id LIKE ? OR i.external_id LIKE ?)
+//	AND (? IS NULL OR LOWER(i.id) LIKE LOWER(?) OR LOWER(i.external_id) LIKE LOWER(?))
 //	ORDER BY i.id ASC
 //	LIMIT ?
 func (q *Queries) ListIdentities(ctx context.Context, db DBTX, arg ListIdentitiesParams) ([]ListIdentitiesRow, error) {

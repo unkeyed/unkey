@@ -8,6 +8,7 @@ import (
 	"github.com/unkeyed/unkey/gen/rpc/ctrl"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/deploy/projectgate"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/zen"
@@ -63,6 +64,15 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
 			fault.Internal("database error"),
 			fault.Public("Failed to retrieve project."),
+		)
+	}
+
+	if project.Slug == projectgate.DefaultSlug {
+		return fault.New(
+			"project not found",
+			fault.Code(codes.Data.Project.NotFound.URN()),
+			fault.Internal("default project is not exposed by the projects API"),
+			fault.Public("The requested project does not exist."),
 		)
 	}
 

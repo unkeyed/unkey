@@ -1,0 +1,23 @@
+type: object
+minProperties: 1
+properties:
+  repository:
+    type: string
+    minLength: 1
+    maxLength: 255
+    description: |
+      The GitHub repository to connect, as "owner/repo". Omit to change only the
+      tracked branch of the already-connected repository. The workspace must have
+      the Unkey GitHub App installed with access to it.
+    example: unkeyed/unkey
+  defaultBranch:
+    type: string
+    minLength: 1
+    maxLength: 256
+    description: |
+      The branch this app's deployments track. Omit to adopt the repository's
+      GitHub default branch on a new connection, keep the current branch when
+      replacing an already-connected repository, or set it alone to retarget the
+      branch of the connected repository.
+    example: main
+additionalProperties: false

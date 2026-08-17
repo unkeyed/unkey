@@ -14,11 +14,12 @@ const upsertKeySpace = `-- name: UpsertKeySpace :exec
 INSERT INTO key_auth (
     id,
     workspace_id,
+    project_id,
     created_at_m,
     default_prefix,
     default_bytes,
     store_encrypted_keys
-) VALUES (?, ?, ?, ?, ?, ?)
+) VALUES (?, ?, ?, ?, ?, ?, ?)
 ON DUPLICATE KEY UPDATE
     workspace_id = VALUES(workspace_id),
     store_encrypted_keys = VALUES(store_encrypted_keys)
@@ -27,6 +28,7 @@ ON DUPLICATE KEY UPDATE
 type UpsertKeySpaceParams struct {
 	ID                 string         `db:"id"`
 	WorkspaceID        string         `db:"workspace_id"`
+	ProjectID          string         `db:"project_id"`
 	CreatedAtM         int64          `db:"created_at_m"`
 	DefaultPrefix      sql.NullString `db:"default_prefix"`
 	DefaultBytes       sql.NullInt32  `db:"default_bytes"`
@@ -38,11 +40,12 @@ type UpsertKeySpaceParams struct {
 //	INSERT INTO key_auth (
 //	    id,
 //	    workspace_id,
+//	    project_id,
 //	    created_at_m,
 //	    default_prefix,
 //	    default_bytes,
 //	    store_encrypted_keys
-//	) VALUES (?, ?, ?, ?, ?, ?)
+//	) VALUES (?, ?, ?, ?, ?, ?, ?)
 //	ON DUPLICATE KEY UPDATE
 //	    workspace_id = VALUES(workspace_id),
 //	    store_encrypted_keys = VALUES(store_encrypted_keys)
@@ -50,6 +53,7 @@ func (q *Queries) UpsertKeySpace(ctx context.Context, db DBTX, arg UpsertKeySpac
 	_, err := db.ExecContext(ctx, upsertKeySpace,
 		arg.ID,
 		arg.WorkspaceID,
+		arg.ProjectID,
 		arg.CreatedAtM,
 		arg.DefaultPrefix,
 		arg.DefaultBytes,

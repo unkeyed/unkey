@@ -35,7 +35,7 @@ func Execute(ctx context.Context, manager ConnectionManager, req ExecuteRequest)
 		AllowedTables:     req.AllowedTables,
 		SecurityFilters:   append([]queryparser.SecurityFilter(nil), req.SecurityFilters...),
 		Limit:             int(settings.ClickhouseWorkspaceSetting.MaxQueryResultRows),
-		QueryRangeDaysMax: settings.Quotas.LogsRetentionDays,
+		QueryRangeDaysMax: int32(settings.Limit.LogsRetentionDaysMax),
 	})
 
 	parsedQuery, err := parser.Parse(ctx, req.Query)
@@ -44,7 +44,9 @@ func Execute(ctx context.Context, manager ConnectionManager, req ExecuteRequest)
 	}
 
 	logger.Debug("executing query", "original", req.Query, "parsed", parsedQuery)
-	rows, err := conn.QueryToMaps(ctx, parsedQuery)
+	queryCtx, cancel := context.WithTimeout(ctx, clickhouse.AnalyticsQueryTimeout)
+	defer cancel()
+	rows, err := conn.QueryToMaps(queryCtx, parsedQuery)
 	if err != nil {
 		return nil, clickhouse.WrapClickHouseError(err)
 	}

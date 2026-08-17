@@ -2,11 +2,11 @@
 
 import { collection } from "@/lib/collections";
 import type { EnvironmentSettings } from "@/lib/collections/deploy/environment-settings";
-import { freeTierQuotas } from "@/lib/quotas";
+import { freeTierLimits } from "@/lib/limits";
 import type { FormattedParts } from "@/lib/utils/deployment-formatters";
 import { useWorkspace } from "@/providers/workspace-provider";
 import { zodResolver } from "@hookform/resolvers/zod";
-import type { Quotas } from "@unkey/db";
+import type { Limits } from "@unkey/db";
 import { Slider } from "@unkey/ui";
 import type React from "react";
 import { useContext, useEffect, useMemo } from "react";
@@ -42,18 +42,18 @@ export type ResourceSliderConfig = {
   extraSaveChecks?: (settings: EnvironmentSettings[]) => SaveState | null;
   sliderAdornment?: (s: EnvironmentSettings) => React.ReactNode;
   /**
-   * Returns the per-instance quota that caps this resource. Index-mapped sliders
-   * hide options above it, so the slider matches the workspace's real quota.
-   * Falls back to the default quota until quotas load.
+   * Returns the per-instance limit that caps this resource. Index-mapped sliders
+   * hide options above it, so the slider matches the workspace's real limit.
+   * Falls back to the default limit until limits load.
    */
-  resolveMax?: (quotas: Quotas | null) => number;
+  resolveMax?: (limits: Limits | null) => number;
 };
 
-// Numeric quota columns a slider can bound to. Taken from freeTierQuotas so the
+// Numeric limit columns a slider can bound to. Taken from freeTierLimits so the
 // fallback lookup always resolves; that type omits pk and workspaceId.
-type PerInstanceQuotaKey = {
-  [K in keyof typeof freeTierQuotas]: (typeof freeTierQuotas)[K] extends number ? K : never;
-}[keyof typeof freeTierQuotas];
+type PerInstanceLimitKey = {
+  [K in keyof typeof freeTierLimits]: (typeof freeTierLimits)[K] extends number ? K : never;
+}[keyof typeof freeTierLimits];
 
 function optionForValue(value: number, formatValue: (n: number) => FormattedParts) {
   const parts = formatValue(value);
@@ -61,35 +61,33 @@ function optionForValue(value: number, formatValue: (n: number) => FormattedPart
 }
 
 /**
- * Bounds an index-mapped slider to the workspace quota. Drops options above the
+ * Bounds an index-mapped slider to the workspace limit. Drops options above the
  * cap. When the cap is not already one of the options, adds it as the final stop
- * so a raised quota is always reachable.
+ * so a raised limit is always reachable.
  */
 function resolveStrategy(
   strategy: SliderStrategy,
-  quotas: Quotas | null,
+  limits: Limits | null,
   resolveMax: ResourceSliderConfig["resolveMax"],
   formatValue: (n: number) => FormattedParts,
 ): SliderStrategy {
   if (strategy.kind !== "index-mapped" || !resolveMax) {
     return strategy;
   }
-  const max = resolveMax(quotas);
-  const withinQuota = strategy.options.filter((o) => o.value <= max);
+  const max = resolveMax(limits);
+  const withinLimit = strategy.options.filter((o) => o.value <= max);
 
-  // Quota sits below the lowest defined tier: the only coherent stop is the
-  // quota itself. Keeping the smallest tier here would offer a value above the
-  // cap and, once the quota is appended, produce an out-of-order list like
-  // [{250}, {100}]. Fall back to the smallest tier only for a non-positive cap,
-  // which can't happen for real quotas but keeps the option list non-empty.
-  if (withinQuota.length === 0) {
+  // Limit sits below the lowest defined tier: the only coherent stop is the
+  // limit itself. Fall back to the smallest tier only for a non-positive cap,
+  // which keeps the option list non-empty.
+  if (withinLimit.length === 0) {
     return {
       ...strategy,
       options: max > 0 ? [optionForValue(max, formatValue)] : strategy.options.slice(0, 1),
     };
   }
 
-  const options = [...withinQuota];
+  const options = [...withinLimit];
   const top = options.at(-1);
   if (top && max > 0 && top.value !== max) {
     options.push(optionForValue(max, formatValue));
@@ -99,7 +97,7 @@ function resolveStrategy(
 
 /**
  * Keeps stored values selectable. resolveStrategy rebuilds the option list from
- * the quota alone, so a value saved under an old quota (e.g. 3000 saved when the
+ * the limit alone, so a value saved under an old limit (e.g. 3000 saved when the
  * cap was 3000, then raised to 5000) can fall off the list. valueToIndex would
  * then return 0 and the thumb would render at the minimum while the label still
  * shows the true value; the next drag auto-saves a silent downgrade. Re-inserting
@@ -136,18 +134,21 @@ type ResourceSliderDefinition = {
   read: (s: EnvironmentSettings) => number;
   write: (draft: EnvironmentSettings, value: number) => void;
   /**
-   * Quota column that caps this resource. The slider tops out at the workspace's
-   * value for this column, or the default quota until quotas load.
+   * Limit column that caps this resource. The slider tops out at the workspace's
+   * value for this column, or the default limit until limits load.
    */
-  quotaKey: PerInstanceQuotaKey;
+  limitKey: PerInstanceLimitKey;
+  limitMultiplier?: number;
 };
 
 /**
- * Builds a quota-bounded, index-mapped slider config. Callers pass the options,
- * the quota column, and how to read and write the value. The slider strategy and
- * quota fallback stay here.
+ * Builds a limit-bounded, index-mapped slider config. Callers pass the options,
+ * the limit column, and how to read and write the value. The slider strategy and
+ * limit fallback stay here.
  */
 export function defineResourceSlider(definition: ResourceSliderDefinition): ResourceSliderConfig {
+  const limitMultiplier = definition.limitMultiplier ?? 1;
+
   return {
     icon: definition.icon,
     title: definition.title,
@@ -158,7 +159,10 @@ export function defineResourceSlider(definition: ResourceSliderDefinition): Reso
     formatValue: definition.formatValue,
     readValue: definition.read,
     writeValue: definition.write,
-    resolveMax: (quotas) => quotas?.[definition.quotaKey] ?? freeTierQuotas[definition.quotaKey],
+    resolveMax: (limits) => {
+      const limit = limits?.[definition.limitKey] ?? freeTierLimits[definition.limitKey];
+      return limit * limitMultiplier;
+    },
   };
 }
 
@@ -190,14 +194,14 @@ function getSliderProps(strategy: SliderStrategy, currentValue: number) {
 
 export const ResourceSliderSetting = ({ config }: { config: ResourceSliderConfig }) => {
   const envContext = useContext(EnvironmentContext);
-  const { quotas } = useWorkspace();
+  const { limits } = useWorkspace();
 
   const effectiveConfig = useMemo<ResourceSliderConfig>(
     () => ({
       ...config,
-      slider: resolveStrategy(config.slider, quotas, config.resolveMax, config.formatValue),
+      slider: resolveStrategy(config.slider, limits, config.resolveMax, config.formatValue),
     }),
-    [config, quotas],
+    [config, limits],
   );
 
   if (!envContext) {

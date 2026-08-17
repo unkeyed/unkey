@@ -4,11 +4,13 @@ import (
 	"context"
 	"fmt"
 	"math"
+	"sort"
 
 	restate "github.com/restatedev/sdk-go"
 	"github.com/unkeyed/unkey/pkg/billingperiod"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/billingmeter"
+	"golang.org/x/sync/semaphore"
 )
 
 // UsageReader returns billable Deploy usage for a time window, one row per
@@ -26,7 +28,21 @@ const (
 	// bytesPerGiB converts egress bytes to binary GiB; the egress meter is
 	// deploy.egress_public_gib (GiB, 2^30), not decimal GB.
 	bytesPerGiB = 1024 * 1024 * 1024
+	// maxInstanceUsageShards works around the ordered ClickHouse window stage,
+	// which processes a fleet query through one read stream. Each shard is a
+	// disjoint workspace-id range, matching the table's leading sort key, so the
+	// reads run in parallel without scanning or billing any row twice.
+	maxInstanceUsageShards = 8
+	// maxConcurrentInstanceUsageShards limits the actual ClickHouse calls while
+	// retaining eight disjoint shards to bound each query's input.
+	maxConcurrentInstanceUsageShards = 2
 )
+
+// instanceUsageQueries is process-wide rather than invocation-local because
+// the billing push, spend check, and invoice close use independent Restate
+// objects and can overlap. ClickHouse user/server limits remain the backstop
+// across worker replicas and other services.
+var instanceUsageQueries = semaphore.NewWeighted(maxConcurrentInstanceUsageShards)
 
 // Per-unit Deploy meter rates in cents, mirroring the canonical catalog in
 // tools/pricing/catalog.go (CentsPerUnit), which the reconciler writes to
@@ -101,12 +117,43 @@ func MergeActiveKeys(
 	}
 }
 
-// FleetMeterValues reads instance and active-keys usage for
-// [p.Start(), endMillis) as two journaled steps and returns the aggregated
-// per-workspace MeterValues. workspaceIDs scopes the ClickHouse scan; nil
-// scans the whole fleet. Exported so the spend-cap check prices the exact
-// same values the hourly push bills, scoped to its budgeted set instead of
-// re-aggregating everyone's month at its tight cadence.
+// instanceMeterUsageShards splits a usage request into stable, disjoint
+// workspace-id ranges. Sorting matches the table's leading order key and makes
+// the Restate RunAsync journal entries deterministic across replays.
+func instanceMeterUsageShards(
+	req clickhouse.GetInstanceMeterUsageRequest,
+) []clickhouse.GetInstanceMeterUsageRequest {
+	if len(req.WorkspaceIDs) < 2 {
+		return []clickhouse.GetInstanceMeterUsageRequest{req}
+	}
+
+	workspaceIDs := append([]string(nil), req.WorkspaceIDs...)
+	sort.Strings(workspaceIDs)
+	shardCount := min(len(workspaceIDs), maxInstanceUsageShards)
+	shards := make([]clickhouse.GetInstanceMeterUsageRequest, shardCount)
+
+	for shard := range shardCount {
+		start := shard * len(workspaceIDs) / shardCount
+		end := (shard + 1) * len(workspaceIDs) / shardCount
+		shardReq := req
+		shardReq.WorkspaceIDs = workspaceIDs[start:end]
+		shards[shard] = shardReq
+	}
+
+	return shards
+}
+
+type instanceMeterUsageShardResult struct {
+	Shard int
+	Rows  []clickhouse.InstanceMeterUsage
+}
+
+// FleetMeterValues reads instance usage as independently journaled shards and
+// active-keys usage as one journaled step for [p.Start(), endMillis), then
+// returns the aggregated per-workspace MeterValues. workspaceIDs scopes the
+// ClickHouse scan; nil scans the whole fleet. Exported so the spend-cap check
+// prices the exact same values the hourly push bills, scoped to its budgeted
+// set instead of re-aggregating everyone's month at its tight cadence.
 func FleetMeterValues(
 	ctx restate.ObjectContext,
 	usage UsageReader,
@@ -114,16 +161,52 @@ func FleetMeterValues(
 	endMillis int64,
 	workspaceIDs []string,
 ) (map[string]billingmeter.MeterValues, error) {
-	rows, err := restate.Run(ctx, func(rc restate.RunContext) ([]clickhouse.InstanceMeterUsage, error) {
-		return usage.GetInstanceMeterUsage(rc, clickhouse.GetInstanceMeterUsageRequest{
-			WorkspaceID:  "",
-			WorkspaceIDs: workspaceIDs,
-			Start:        p.Start().UnixMilli(),
-			End:          endMillis,
-		})
-	}, restate.WithName("get period usage"))
-	if err != nil {
-		return nil, fmt.Errorf("get period usage: %w", err)
+	if workspaceIDs != nil && len(workspaceIDs) == 0 {
+		return map[string]billingmeter.MeterValues{}, nil
+	}
+
+	shards := instanceMeterUsageShards(clickhouse.GetInstanceMeterUsageRequest{
+		WorkspaceID:  "",
+		WorkspaceIDs: workspaceIDs,
+		Start:        p.Start().UnixMilli(),
+		End:          endMillis,
+	})
+	futures := make([]restate.Selectable, len(shards))
+	for shard, shardReq := range shards {
+		futures[shard] = restate.RunAsync(ctx, func(rc restate.RunContext) (instanceMeterUsageShardResult, error) {
+			if err := instanceUsageQueries.Acquire(rc, 1); err != nil {
+				return instanceMeterUsageShardResult{Shard: shard, Rows: nil}, err
+			}
+			defer instanceUsageQueries.Release(1)
+
+			rows, err := usage.GetInstanceMeterUsage(rc, shardReq)
+			if err != nil {
+				return instanceMeterUsageShardResult{}, fmt.Errorf(
+					"query instance usage shard %d/%d: %w",
+					shard+1,
+					len(shards),
+					err,
+				)
+			}
+			return instanceMeterUsageShardResult{Shard: shard, Rows: rows}, nil
+		}, restate.WithName(fmt.Sprintf("get period usage shard %d/%d", shard+1, len(shards))))
+	}
+
+	rowsByShard := make([][]clickhouse.InstanceMeterUsage, len(shards))
+	for future, waitErr := range restate.Wait(ctx, futures...) {
+		if waitErr != nil {
+			return nil, fmt.Errorf("wait for period usage shards: %w", waitErr)
+		}
+		result, resultErr := future.(restate.RunAsyncFuture[instanceMeterUsageShardResult]).Result()
+		if resultErr != nil {
+			return nil, fmt.Errorf("get period usage: %w", resultErr)
+		}
+		rowsByShard[result.Shard] = result.Rows
+	}
+
+	var rows []clickhouse.InstanceMeterUsage
+	for _, shardRows := range rowsByShard {
+		rows = append(rows, shardRows...)
 	}
 
 	keyRows, err := restate.Run(ctx, func(rc restate.RunContext) ([]clickhouse.ActiveKeysUsage, error) {

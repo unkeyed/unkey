@@ -20,7 +20,7 @@ SELECT
    b.spend_budget_stop,
    b.spend_suspended
 FROM ` + "`" + `workspaces` + "`" + ` w
-LEFT JOIN ` + "`" + `workspace_billing` + "`" + ` b ON b.workspace_id = w.id
+LEFT JOIN ` + "`" + `workspace_billing` + "`" + ` b ON w.id = b.workspace_id
 WHERE (b.spend_budget_cents IS NOT NULL OR b.spend_suspended = TRUE)
   AND w.enabled = true
   AND w.deleted_at_m IS NULL
@@ -56,7 +56,7 @@ type ListWorkspacesWithDeployBudgetRow struct {
 //	   b.spend_budget_stop,
 //	   b.spend_suspended
 //	FROM `workspaces` w
-//	LEFT JOIN `workspace_billing` b ON b.workspace_id = w.id
+//	LEFT JOIN `workspace_billing` b ON w.id = b.workspace_id
 //	WHERE (b.spend_budget_cents IS NOT NULL OR b.spend_suspended = TRUE)
 //	  AND w.enabled = true
 //	  AND w.deleted_at_m IS NULL

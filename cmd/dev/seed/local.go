@@ -17,6 +17,7 @@ import (
 	dbtype "github.com/unkeyed/unkey/pkg/db/types"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/mysql/sqlcomment"
+	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
 	"github.com/unkeyed/unkey/pkg/uid"
 )
 
@@ -105,7 +106,6 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 				Name:         workspaceName,
 				Slug:         slug,
 				CreatedAtM:   now,
-				Tier:         sql.NullString{String: "Free", Valid: true},
 				BetaFeatures: json.RawMessage(`{}`),
 			},
 			{
@@ -114,12 +114,29 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 				Name:         "Unkey",
 				Slug:         fmt.Sprintf("unkey-%s", slug),
 				CreatedAtM:   now,
-				Tier:         sql.NullString{String: "Free", Valid: true},
 				BetaFeatures: json.RawMessage(`{}`),
 			},
 		})
 		if err != nil {
 			return fmt.Errorf("failed to create workspaces: %w", err)
+		}
+
+		err = db.Query.UpsertWorkspaceBillingPlanOverride(ctx, tx, db.UpsertWorkspaceBillingPlanOverrideParams{
+			WorkspaceID:  workspaceID,
+			PlanOverride: sql.NullString{String: "starter", Valid: true},
+			CreatedAtM:   now,
+		})
+		if err != nil {
+			return fmt.Errorf("failed to create workspace billing: %w", err)
+		}
+
+		rootDefaultProjectID, err := ensureDefaultProject(ctx, tx, rootWorkspaceID, now)
+		if err != nil {
+			return fmt.Errorf("failed to ensure root default project: %w", err)
+		}
+		userDefaultProjectID, err := ensureDefaultProject(ctx, tx, workspaceID, now)
+		if err != nil {
+			return fmt.Errorf("failed to ensure user default project: %w", err)
 		}
 
 		err = db.Query.InsertProject(ctx, tx, db.InsertProjectParams{
@@ -180,6 +197,7 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 				AppID:       appID,
 				Slug:        "preview",
 				Description: "",
+				Kind:        mysqltype.EnvironmentKindPreview,
 				CreatedAt:   time.Now().UnixMilli(),
 				UpdatedAt:   sql.NullInt64{Valid: false, Int64: 0},
 			}, {
@@ -189,6 +207,7 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 				AppID:       appID,
 				Slug:        "production",
 				Description: "",
+				Kind:        mysqltype.EnvironmentKindProduction,
 				CreatedAt:   time.Now().UnixMilli(),
 				UpdatedAt:   sql.NullInt64{Valid: false, Int64: 0},
 			},
@@ -335,34 +354,51 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 			return fmt.Errorf("failed to create regional settings: %w", err)
 		}
 
-		err = db.BulkQuery.UpsertQuota(ctx, tx, []db.UpsertQuotaParams{
+		err = db.BulkQuery.UpsertLimit(ctx, tx, []db.UpsertLimitParams{
 			{
-				WorkspaceID:            workspaceID,
-				RequestsPerMonth:       150000,
-				AuditLogsRetentionDays: 30,
-				LogsRetentionDays:      7,
-				Team:                   false,
-				RatelimitApiLimit:      sql.NullInt32{}, //nolint:exhaustruct
-				RatelimitApiDuration:   sql.NullInt32{}, //nolint:exhaustruct
+				WorkspaceID:                           workspaceID,
+				ApiBillableOperationsCountMaxPerMonth: 150_000,
+				ApiRequestsCountMaxPerMinute:          sql.NullInt32{}, //nolint:exhaustruct
+				LogsRetentionDaysMax:                  7,
+				LogsAuditRetentionDaysMax:             30,
+				TeamEnabled:                           false,
+				CpuCoresMax:                           10,
+				CpuCoresMaxPerInstance:                2,
+				MemoryMibMax:                          20_480,
+				MemoryMibMaxPerInstance:               4_096,
+				StorageMibMax:                         51_200,
+				StorageMibMaxPerInstance:              10_240,
+				BuildsConcurrentMax:                   1,
+				CustomDomainsMax:                      0,
+				AutoscalingReplicasMax:                0,
 			},
 			{
-				WorkspaceID:            rootWorkspaceID,
-				RequestsPerMonth:       150000,
-				AuditLogsRetentionDays: 30,
-				LogsRetentionDays:      7,
-				Team:                   false,
-				RatelimitApiLimit:      sql.NullInt32{}, //nolint:exhaustruct
-				RatelimitApiDuration:   sql.NullInt32{}, //nolint:exhaustruct
+				WorkspaceID:                           rootWorkspaceID,
+				ApiBillableOperationsCountMaxPerMonth: 150_000,
+				ApiRequestsCountMaxPerMinute:          sql.NullInt32{}, //nolint:exhaustruct
+				LogsRetentionDaysMax:                  7,
+				LogsAuditRetentionDaysMax:             30,
+				TeamEnabled:                           false,
+				CpuCoresMax:                           10,
+				CpuCoresMaxPerInstance:                2,
+				MemoryMibMax:                          20_480,
+				MemoryMibMaxPerInstance:               4_096,
+				StorageMibMax:                         51_200,
+				StorageMibMaxPerInstance:              10_240,
+				BuildsConcurrentMax:                   1,
+				CustomDomainsMax:                      0,
+				AutoscalingReplicasMax:                0,
 			},
 		})
 		if err != nil {
-			return fmt.Errorf("failed to create quotas: %w", err)
+			return fmt.Errorf("failed to create limits: %w", err)
 		}
 
 		err = db.BulkQuery.UpsertKeySpace(ctx, tx, []db.UpsertKeySpaceParams{
 			{
 				ID:                 rootKeySpaceID,
 				WorkspaceID:        rootWorkspaceID,
+				ProjectID:          rootDefaultProjectID,
 				CreatedAtM:         now,
 				DefaultPrefix:      sql.NullString{String: "unkey", Valid: true},
 				DefaultBytes:       sql.NullInt32{Int32: 16, Valid: true},
@@ -371,6 +407,7 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 			{
 				ID:                 userKeySpaceID,
 				WorkspaceID:        workspaceID,
+				ProjectID:          userDefaultProjectID,
 				CreatedAtM:         now,
 				DefaultPrefix:      sql.NullString{String: "sk", Valid: true},
 				DefaultBytes:       sql.NullInt32{Int32: 16, Valid: true},
@@ -386,6 +423,7 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 				ID:          rootApiID,
 				Name:        "Unkey",
 				WorkspaceID: rootWorkspaceID,
+				ProjectID:   rootDefaultProjectID,
 				AuthType:    db.NullApisAuthType{Valid: true, ApisAuthType: db.ApisAuthTypeKey},
 				IpWhitelist: sql.NullString{},
 				KeyAuthID:   sql.NullString{String: rootKeySpaceID, Valid: true},
@@ -395,6 +433,7 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 				ID:          userApiID,
 				Name:        fmt.Sprintf("%s API", titleCase),
 				WorkspaceID: workspaceID,
+				ProjectID:   userDefaultProjectID,
 				AuthType:    db.NullApisAuthType{Valid: true, ApisAuthType: db.ApisAuthTypeKey},
 				IpWhitelist: sql.NullString{},
 				KeyAuthID:   sql.NullString{String: userKeySpaceID, Valid: true},
@@ -473,6 +512,7 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 			permissionParams[i] = db.InsertPermissionParams{
 				PermissionID: permID,
 				WorkspaceID:  rootWorkspaceID,
+				ProjectID:    rootDefaultProjectID,
 				Name:         perm,
 				Slug:         perm,
 				Description:  dbtype.NullString{Valid: false, String: ""},
@@ -587,4 +627,35 @@ UNKEY_ROOT_KEY=%s
 	)
 
 	return nil
+}
+
+// ensureDefaultProject returns the workspace's exact default project, creating
+// it when absent so local seed writers never persist empty ownership.
+func ensureDefaultProject(ctx context.Context, database db.DBTX, workspaceID string, createdAtM int64) (string, error) {
+	projectID, err := db.Query.FindDefaultProjectByWorkspaceID(ctx, database, workspaceID)
+	if err == nil {
+		return projectID, nil
+	}
+	if !db.IsNotFound(err) {
+		return "", err
+	}
+
+	projectID = uid.New(uid.ProjectPrefix)
+	err = db.Query.InsertProject(ctx, database, db.InsertProjectParams{
+		ID:               projectID,
+		WorkspaceID:      workspaceID,
+		Name:             "Default",
+		Slug:             "default",
+		DeleteProtection: sql.NullBool{Valid: true, Bool: true},
+		CreatedAt:        createdAtM,
+		UpdatedAt:        sql.NullInt64{Valid: false, Int64: 0},
+	})
+	if err == nil {
+		return projectID, nil
+	}
+	if !db.IsDuplicateKeyError(err) {
+		return "", err
+	}
+
+	return db.Query.FindDefaultProjectByWorkspaceID(ctx, database, workspaceID)
 }

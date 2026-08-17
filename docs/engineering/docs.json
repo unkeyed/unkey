@@ -38,6 +38,7 @@
             "pages": [
               "contributing/quality/code-quality",
               "contributing/quality/documentation",
+              "contributing/quality/screenshots-and-recordings",
               {
                 "group": "Testing",
                 "pages": [
@@ -198,7 +199,7 @@
               "architecture/rfcs/0011-unkey-resource-names",
               "architecture/rfcs/0012-stricter-linter",
               "architecture/rfcs/0013-custom-domains",
-              "architecture/rfcs/0014-sentinel-middleware",
+              "architecture/rfcs/0014-frontline-middleware",
               "architecture/rfcs/0015-ratelimit-cross-region-counts",
               "architecture/rfcs/0016-vault-s3-storage"
             ]
@@ -222,7 +223,10 @@
           },
           {
             "group": "Runbooks",
-            "pages": ["infra/runbooks/key-migration"]
+            "pages": [
+              "infra/runbooks/key-migration",
+              "infra/runbooks/legacy-billing"
+            ]
           },
           {
             "group": "ClickHouse",
@@ -278,6 +282,12 @@
         "href": "https://github.com/unkeyed/unkey"
       }
     ]
-  }
+  },
+  "redirects": [
+    {
+      "source": "/architecture/rfcs/0014-sentinel-middleware",
+      "destination": "/architecture/rfcs/0014-frontline-middleware"
+    }
+  ]
 
 }

@@ -139,10 +139,10 @@ func TestProtectedRouteRejectsPortalSession(t *testing.T) {
 		zen.WithLogging(),
 		middleware.WithErrorHandling(),
 		middleware.WithAuthentication(middleware.AuthenticationConfig{
-			Auth:       h.Auth,
-			Database:   h.DB,
-			QuotaCache: h.Caches.WorkspaceQuota,
-			Ratelimit:  h.Ratelimit,
+			Auth:        h.Auth,
+			Database:    h.DB,
+			LimitsCache: h.Caches.WorkspaceLimits,
+			Ratelimit:   h.Ratelimit,
 		}),
 	}
 	h.Register(route, authOnly...)

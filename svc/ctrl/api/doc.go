@@ -7,7 +7,7 @@
 // # Architecture
 //
 // The control plane sits at the center of Unkey's infrastructure. It coordinates
-// sentinel instances that run customer workloads, Restate for durable workflow
+// Frontline and customer workload instances, Restate for durable workflow
 // execution, build artifact storage, and ACME providers for automatic TLS
 // certificates. Connect RPC services are exposed for core control plane
 // operations, deployment workflows, ACME management, OpenAPI specs, and cluster

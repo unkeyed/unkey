@@ -24,7 +24,7 @@ import (
 )
 
 // TestCreateSessionAppMapped verifies that an app-mapped portal config resolves
-// its keyspaces from the app's current deployment sentinel config (the keyauth
+// its keyspaces from the app's current deployment policy config (the keyauth
 // policies' keySpaceIds) rather than from the public request.
 func TestCreateSessionAppMapped(t *testing.T) {
 	h := testutil.NewHarness(t)
@@ -40,7 +40,7 @@ func TestCreateSessionAppMapped(t *testing.T) {
 	workspaceID := h.Resources().UserWorkspace.ID
 	now := time.Now().UnixMilli()
 
-	// A keyspace the app's sentinel config verifies keys against at the gateway.
+	// A keyspace the app's policy config verifies keys against at the gateway.
 	keySpaceID := uid.New(uid.KeySpacePrefix)
 	require.NoError(t, db.Query.InsertKeySpace(ctx, h.DB.RW(), db.InsertKeySpaceParams{
 		ID:            keySpaceID,
@@ -51,7 +51,7 @@ func TestCreateSessionAppMapped(t *testing.T) {
 	}))
 
 	// A project + app + environment + deployment, with the deployment carrying a
-	// sentinel config whose keyauth policy references the keyspace above.
+	// policy config whose keyauth policy references the keyspace above.
 	project := h.CreateProject(seed.CreateProjectRequest{
 		WorkspaceID: workspaceID,
 		Name:        "portal-app-project",
@@ -72,10 +72,11 @@ func TestCreateSessionAppMapped(t *testing.T) {
 		ProjectID:   project.ID,
 		AppID:       app.ID,
 		Slug:        "production",
+		Kind:        mysqltype.EnvironmentKindProduction,
 		Description: "production environment",
 	})
 
-	sentinelConfig, err := protojson.Marshal(&frontlinev1.Config{
+	policyConfig, err := protojson.Marshal(&frontlinev1.Config{
 		Policies: []*frontlinev1.Policy{
 			{
 				Id:      "pol_keyauth",
@@ -99,7 +100,7 @@ func TestCreateSessionAppMapped(t *testing.T) {
 		ProjectID:                     project.ID,
 		AppID:                         app.ID,
 		EnvironmentID:                 environment.ID,
-		SentinelConfig:                sentinelConfig,
+		SentinelConfig:                policyConfig,
 		EncryptedEnvironmentVariables: []byte{},
 		Status:                        mysqltype.DeploymentsStatusReady,
 		CpuMillicores:                 100,
@@ -146,7 +147,7 @@ func TestCreateSessionAppMapped(t *testing.T) {
 	require.NotEmpty(t, res.Body.Data.SessionId)
 
 	// The persisted grant must be scoped to the keyspace resolved from the app's
-	// sentinel config, not anything in the request.
+	// policy config, not anything in the request.
 	token, err := db.Query.FindValidPortalSessionToken(ctx, h.DB.RO(), db.FindValidPortalSessionTokenParams{
 		ID:  res.Body.Data.SessionId,
 		Now: time.Now().UnixMilli(),

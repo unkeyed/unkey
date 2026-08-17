@@ -57,7 +57,7 @@ func (s *Service) Rollback(ctx context.Context, req *connect.Request[ctrlv1.Roll
 	if err := deploygate.CheckRollbackTarget(deploygate.RollbackInput{
 		Status:              targetDeployment.Status,
 		DesiredState:        targetDeployment.DesiredState,
-		EnvironmentSlug:     targetDeployment.EnvironmentSlug,
+		EnvironmentKind:     targetDeployment.EnvironmentKind,
 		CurrentDeploymentID: targetDeployment.CurrentDeploymentID.String,
 		DeploymentID:        targetDeployment.ID,
 	}); err != nil {
@@ -73,6 +73,9 @@ func (s *Service) Rollback(ctx context.Context, req *connect.Request[ctrlv1.Roll
 	)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
+	}
+	if err := s.ensureWorkspaceCanDeploy(ctx, sourceDeployment.WorkspaceID, "rollback"); err != nil {
+		return nil, err
 	}
 
 	logger.Info(

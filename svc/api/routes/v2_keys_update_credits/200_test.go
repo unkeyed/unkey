@@ -181,11 +181,14 @@ func TestKeyUpdateCreditsSuccess(t *testing.T) {
 		authBefore, err := h.Keys.Get(ctx, &zen.Session{}, hash.Sha256(cacheTestKey.Key))
 		require.NoError(t, err)
 
-		err = authBefore.Verify(ctx, keys.WithCredits(1))
+		// Initialize the usage counter without queueing a nonzero DB decrement. A
+		// nonzero cost is replayed to MySQL asynchronously and can race the credit
+		// update this test is meant to invalidate.
+		err = authBefore.Verify(ctx, keys.WithCredits(0))
 		require.NoError(t, err)
 
 		require.True(t, authBefore.Key.RemainingRequests.Valid)
-		require.Equal(t, initialCredits-1, authBefore.Key.RemainingRequests.Int64)
+		require.Equal(t, initialCredits, authBefore.Key.RemainingRequests.Int64)
 
 		// Update the key's credits
 		newCredits := int64(50)
@@ -207,6 +210,8 @@ func TestKeyUpdateCreditsSuccess(t *testing.T) {
 		// Verify the key again to check if cache was properly invalidated
 		authAfter, err := h.Keys.Get(ctx, &zen.Session{}, hash.Sha256(cacheTestKey.Key))
 		require.NoError(t, err)
+		require.True(t, authAfter.Key.RemainingRequests.Valid)
+		require.Equal(t, newCredits, authAfter.Key.RemainingRequests.Int64)
 
 		err = authAfter.Verify(ctx, keys.WithCredits(1))
 		require.NoError(t, err)

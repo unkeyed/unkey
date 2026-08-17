@@ -9,10 +9,10 @@ SELECT
     r.name AS region_name,
     grc.repository_full_name AS git_repo
 FROM `deployment_topology` dt
-INNER JOIN `deployments` d ON dt.deployment_id = d.id
-INNER JOIN `workspaces` w ON d.workspace_id = w.id
-INNER JOIN `regions` r ON dt.region_id = r.id
-INNER JOIN `environments` e ON d.environment_id = e.id
-LEFT JOIN `github_repo_connections` grc ON d.app_id = grc.app_id
+INNER JOIN `deployments` d ON d.id = dt.deployment_id
+INNER JOIN `workspaces` w ON w.id = d.workspace_id
+INNER JOIN `regions` r ON r.id = dt.region_id
+INNER JOIN `environments` e ON e.id = d.environment_id
+LEFT JOIN `github_repo_connections` grc ON grc.app_id = d.app_id
 WHERE dt.deployment_id = sqlc.arg(deployment_id) AND dt.region_id = sqlc.arg(region_id)
 LIMIT 1;

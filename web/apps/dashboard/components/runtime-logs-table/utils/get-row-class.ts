@@ -56,20 +56,22 @@ export const getSeverityStyle = (severity: string): StatusStyle => {
   return STATUS_STYLES.success;
 };
 
-// Content identity of a log line (runtime logs have no server id); drives
-// realtime dedup and selection. Not collision-proof on its own, so the table
-// derives unique React keys via RuntimeLogRow.
-export const getLogKey = (log: RuntimeLog): string =>
-  `${log.time}-${log.region}-${log.instance_id}-${log.message}`;
+// Rows that predate log_id (or arrived from an old Vector during rollout) read
+// as an empty string. Keep content identity as a fallback until those rows expire.
+export const getLogKey = (log: RuntimeLog): string => {
+  if (log.log_id !== "") {
+    return log.log_id;
+  }
+  return `${log.time}-${log.region}-${log.instance_id}-${log.message}`;
+};
 
 // A log row plus a unique render key for DataTable getRowId. Optional so a bare
 // RuntimeLog (the selected log from context) stays assignable; getRowId falls
 // back to getLogKey when absent.
 export type RuntimeLogRow = RuntimeLog & { rowKey?: string };
 
-// Suffix duplicate getLogKey values so byte-identical lines get a unique `rowKey`
-// for DataTable getRowId. The first occurrence keeps the bare key so realtime and
-// historical rows for the same line still match during the table's merge dedup.
+// Suffix duplicate legacy keys so byte-identical pre-log_id lines still get a
+// unique `rowKey` for DataTable getRowId.
 export const attachRowKeys = (logs: RuntimeLog[]): RuntimeLogRow[] => {
   const counts = new Map<string, number>();
   return logs.map((log) => {

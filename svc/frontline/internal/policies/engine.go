@@ -15,6 +15,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/fault"
+	"github.com/unkeyed/unkey/pkg/redaction"
 	"github.com/unkeyed/unkey/pkg/zen"
 	firewallExec "github.com/unkeyed/unkey/svc/frontline/internal/policies/firewall"
 	keyauthExec "github.com/unkeyed/unkey/svc/frontline/internal/policies/keyauth"
@@ -38,7 +39,7 @@ type Config struct {
 
 // Evaluator evaluates policies against incoming requests.
 type Evaluator interface {
-	Evaluate(ctx context.Context, sess *zen.Session, req *http.Request, workspaceID string, mw []*frontlinev1.Policy) (Result, error)
+	Evaluate(ctx context.Context, sess *zen.Session, req *http.Request, workspaceID, appID string, mw []*frontlinev1.Policy) (Result, error)
 }
 
 // Engine implements Evaluator.
@@ -54,7 +55,8 @@ var _ Evaluator = (*Engine)(nil)
 
 // Result holds the outcome of policy evaluation.
 type Result struct {
-	Principal *principal.Principal
+	Principal     *principal.Principal
+	BodyRedactors []*redaction.Redactor
 }
 
 // New creates a new Engine with the given configuration.
@@ -119,6 +121,7 @@ func (e *Engine) Evaluate(
 	sess *zen.Session,
 	req *http.Request,
 	workspaceID string,
+	appID string,
 	policies []*frontlinev1.Policy,
 ) (Result, error) {
 	var result Result
@@ -145,7 +148,7 @@ func (e *Engine) Evaluate(
 			}
 
 			t := time.Now()
-			principal, execErr := e.keyAuth.Execute(ctx, sess, req, cfg.Keyauth)
+			principal, execErr := e.keyAuth.Execute(ctx, sess, req, appID, cfg.Keyauth)
 			engineEvaluationDuration.WithLabelValues("keyauth").Observe(time.Since(t).Seconds())
 
 			if execErr != nil {
@@ -185,12 +188,15 @@ func (e *Engine) Evaluate(
 
 		case *frontlinev1.Policy_Openapi:
 			t := time.Now()
-			execErr := e.openapi.Execute(ctx, sess, req, cfg.Openapi)
+			bodyRedactor, execErr := e.openapi.Execute(ctx, sess, req, cfg.Openapi)
 			engineEvaluationDuration.WithLabelValues("openapi").Observe(time.Since(t).Seconds())
 
 			if execErr != nil {
 				engineEvaluationsTotal.WithLabelValues("openapi", "rejected").Inc()
 				return result, execErr
+			}
+			if bodyRedactor != nil {
+				result.BodyRedactors = append(result.BodyRedactors, bodyRedactor)
 			}
 
 			engineEvaluationsTotal.WithLabelValues("openapi", "success").Inc()

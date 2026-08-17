@@ -1,6 +1,12 @@
 import type Stripe from "stripe";
 import { describe, expect, it, vi } from "vitest";
-import { detectDeployPlan } from "./deployPlan";
+import {
+  computeLimitUpdateForPlan,
+  computeLimitsForPlan,
+  deployPlanGrantsTeam,
+  detectDeployPlan,
+  parseDeployPlan,
+} from "./deployPlan";
 
 // Minimal subscription stub. detectDeployPlan reads items[].price.metadata.plan.
 function subWithItems(...items: Array<{ id?: string; plan?: string }>): Stripe.Subscription {
@@ -52,5 +58,73 @@ describe("detectDeployPlan", () => {
     expect(detectDeployPlan(subWithItems({ plan: "enterprise" }))).toBeNull();
     expect(warn).toHaveBeenCalledOnce();
     warn.mockRestore();
+  });
+});
+
+describe("computeLimitsForPlan", () => {
+  it("returns the advertised plan limits", () => {
+    expect(computeLimitsForPlan("starter")).toEqual({
+      logsRetentionDaysMax: 3,
+      logsAuditRetentionDaysMax: 7,
+      teamEnabled: false,
+      cpuCoresMaxPerInstance: 2,
+      memoryMibMaxPerInstance: 2_048,
+      storageMibMaxPerInstance: 10_240,
+      buildsConcurrentMax: 1,
+    });
+    expect(computeLimitsForPlan("pro")).toEqual({
+      logsRetentionDaysMax: 7,
+      logsAuditRetentionDaysMax: 14,
+      teamEnabled: true,
+      cpuCoresMaxPerInstance: 8,
+      memoryMibMaxPerInstance: 8_192,
+      storageMibMaxPerInstance: 10_240,
+      buildsConcurrentMax: 1,
+    });
+    expect(computeLimitsForPlan("business")).toEqual({
+      logsRetentionDaysMax: 14,
+      logsAuditRetentionDaysMax: 30,
+      teamEnabled: true,
+      cpuCoresMaxPerInstance: 16,
+      memoryMibMaxPerInstance: 32_768,
+      storageMibMaxPerInstance: 10_240,
+      buildsConcurrentMax: 1,
+    });
+  });
+
+  it("returns the default Compute limits without a plan", () => {
+    expect(computeLimitsForPlan(null)).toEqual({
+      logsRetentionDaysMax: 7,
+      logsAuditRetentionDaysMax: 30,
+      teamEnabled: false,
+      cpuCoresMaxPerInstance: 2,
+      memoryMibMaxPerInstance: 4_096,
+      storageMibMaxPerInstance: 10_240,
+      buildsConcurrentMax: 1,
+    });
+  });
+
+  it("preserves API-owned team and retention limits when an API plan is paid", () => {
+    expect(computeLimitUpdateForPlan("business", true)).toEqual({
+      cpuCoresMaxPerInstance: 16,
+      memoryMibMaxPerInstance: 32_768,
+      storageMibMaxPerInstance: 10_240,
+      buildsConcurrentMax: 1,
+    });
+  });
+});
+
+describe("Deploy plan entitlement helpers", () => {
+  it("grants team access only to Pro and Business", () => {
+    expect(deployPlanGrantsTeam("starter")).toBe(false);
+    expect(deployPlanGrantsTeam("pro")).toBe(true);
+    expect(deployPlanGrantsTeam("business")).toBe(true);
+    expect(deployPlanGrantsTeam(null)).toBe(false);
+  });
+
+  it("fails closed when parsing persisted plan values", () => {
+    expect(parseDeployPlan("starter")).toBe("starter");
+    expect(parseDeployPlan("enterprise")).toBeNull();
+    expect(parseDeployPlan(null)).toBeNull();
   });
 });

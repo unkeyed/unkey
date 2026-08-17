@@ -1,10 +1,12 @@
 import { DeployService } from "@/gen/proto/ctrl/v1/deployment_pb";
 import { insertAuditLogs } from "@/lib/audit";
+import { deactivateNonCreatorMemberships } from "@/lib/auth/deactivateNonCreatorMemberships";
 import { createCtrlClient } from "@/lib/ctrl-client";
 import { db } from "@/lib/db";
 import { getStripeClient } from "@/lib/stripe";
 import { cancelDeploySubscription } from "@/lib/stripe/cancelDeploySubscription";
-import { deployBillingConfig } from "@/lib/stripe/deployBilling";
+import { deployPlanGrantsTeam } from "@/lib/stripe/deployPlan";
+import { setWorkspaceLimits } from "@/lib/stripe/setWorkspaceLimits";
 import { TRPCError } from "@trpc/server";
 import { requireWorkspaceAdmin, workspaceProcedure } from "../../trpc";
 
@@ -14,29 +16,20 @@ import { requireWorkspaceAdmin, workspaceProcedure } from "../../trpc";
  * mixed one, never refunding), then calls ctrl to tear down the workspace's
  * running compute and clear the deploy_plan entitlement. The Stripe logic lives
  * here alongside subscribe and change-plan so subscription knowledge is not
- * duplicated in Go. The audit log stays here so the user actor is recorded.
+ * duplicated in Go. Compute-owned limits return to their defaults, while any API
+ * plan limits remain intact. The audit log stays here so the user actor is recorded.
  */
 export const cancelDeploy = workspaceProcedure
   .use(requireWorkspaceAdmin)
   .mutation(async ({ ctx }) => {
     // Stop the Stripe renewal first. A workspace with a Deploy plan but no
     // subscription (a comped override) has no renewal to stop and goes straight
-    // to teardown.
-    const subscriptionId = ctx.workspace.stripeSubscriptionId;
+    // to teardown. Cancelling the Deploy subscription is now a native whole-
+    // subscription cancel at period end, so no billing-config lookup is needed.
+    const subscriptionId = ctx.workspace.stripeDeploySubscriptionId;
     if (subscriptionId) {
-      // The renewal must be stopped before ctrl clears the entitlement. If the
-      // billing config can't resolve (unconfigured, or a transient Stripe/reprice
-      // window), fail the whole cancel rather than clearing deploy_plan while the
-      // subscription keeps auto-renewing the plan fee.
-      const config = await deployBillingConfig();
-      if (!config) {
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: "Compute billing is unavailable right now. Please try again.",
-        });
-      }
       try {
-        await cancelDeploySubscription(getStripeClient(), subscriptionId, config);
+        await cancelDeploySubscription(getStripeClient(), subscriptionId);
       } catch (error) {
         console.error("Stripe cancel for Compute failed:", error);
         throw new TRPCError({
@@ -65,12 +58,23 @@ export const cancelDeploy = workspaceProcedure
       });
     }
 
-    await insertAuditLogs(db, {
-      workspaceId: ctx.workspace.id,
-      actor: { type: "user", id: ctx.user.id },
-      event: "workspace.update",
-      description: "Cancelled Compute.",
-      resources: [],
-      context: { location: ctx.audit.location, userAgent: ctx.audit.userAgent },
+    await db.transaction(async (tx) => {
+      await setWorkspaceLimits(tx, {
+        workspaceId: ctx.workspace.id,
+        plan: null,
+        preserveApiLimits: ctx.workspace.tier !== "Free",
+      });
+      await insertAuditLogs(tx, {
+        workspaceId: ctx.workspace.id,
+        actor: { type: "user", id: ctx.user.id },
+        event: "workspace.update",
+        description: "Cancelled Compute.",
+        resources: [],
+        context: { location: ctx.audit.location, userAgent: ctx.audit.userAgent },
+      });
     });
+
+    if (ctx.workspace.tier === "Free" && deployPlanGrantsTeam(ctx.workspace.deployPlan)) {
+      await deactivateNonCreatorMemberships(ctx.workspace.orgId);
+    }
   });

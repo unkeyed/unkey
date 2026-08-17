@@ -5,20 +5,15 @@ package harness
 
 import (
 	"context"
-	"fmt"
+	"errors"
 	"io"
 	"log/slog"
-	"net"
-	"net/http"
-	"net/http/httptest"
-	"runtime"
 	"sync"
 	"testing"
 	"time"
 
 	ch "github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/restatedev/sdk-go/ingress"
-	restateServer "github.com/restatedev/sdk-go/server"
 	"github.com/stretchr/testify/require"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/gen/rpc/vault"
@@ -43,8 +38,6 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/worker/deployment"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/keylastusedsync"
 	vaulttestutil "github.com/unkeyed/unkey/svc/vault/testutil"
-	"golang.org/x/net/http2"
-	"golang.org/x/net/http2/h2c"
 )
 
 // Harness holds all test dependencies for ctrl worker integration tests.
@@ -162,21 +155,15 @@ func New(t *testing.T, opts ...Option) *Harness {
 
 	start := time.Now()
 
-	// Start all containers in parallel
+	// Start the shared backing services in parallel. Restate starts after its
+	// handlers are constructed because it is private to this test and is
+	// registered as one complete worker deployment.
 	var wg sync.WaitGroup
-	var restateCfg containers.RestateConfig
 	var mysqlCfg containers.MySQLConfig
 	var chCfg containers.ClickHouseConfig
 	var testVault *vaulttestutil.TestVault
 
-	wg.Add(4)
-
-	go func() {
-		defer wg.Done()
-		s := time.Now()
-		restateCfg = containers.Restate(t)
-		t.Logf("Restate started in %s", time.Since(s))
-	}()
+	wg.Add(3)
 
 	go func() {
 		defer wg.Done()
@@ -200,7 +187,7 @@ func New(t *testing.T, opts ...Option) *Harness {
 	}()
 
 	wg.Wait()
-	t.Logf("All containers started in %s", time.Since(start))
+	t.Logf("Backing containers started in %s", time.Since(start))
 
 	// Connect to MySQL
 	database, err := db.New(mysqlCfg.DSN, sqlcomment.Disabled())
@@ -292,47 +279,37 @@ func New(t *testing.T, opts ...Option) *Harness {
 		DB: database,
 	})
 
+	// The build slot service audits slot occupancy against the Restate
+	// admin API, but the admin URL is only known after containers.Restate
+	// starts below, and that start needs the constructed services. The
+	// lazy adapter breaks the cycle: it is set directly after the
+	// container is up, and no handler runs before that.
+	buildSlotLiveness := &lazyInvocationLiveness{mu: sync.Mutex{}, client: nil}
 	buildSlotSvc := buildslot.New(buildslot.Config{
-		DB: database,
+		DB:           database,
+		RestateAdmin: buildSlotLiveness,
 	})
 
-	// Set up Restate server with all services
-	// Use the proto-generated wrappers (same as run.go) to get correct service names
-	restateSrv := restateServer.NewRestate()
-	restateSrv.Bind(hydrav1.NewCronServiceServer(cronSvc))
-	// The deploy billing orchestrator (push and close) fans out to this per-workspace
-	// push service, so it must be bound for those handlers to route end to end.
-	restateSrv.Bind(hydrav1.NewDeployBillingPushServiceServer(cronSvc.DeployBillingPushServer()))
-	restateSrv.Bind(hydrav1.NewDeploySpendCheckServiceServer(cronSvc.DeploySpendCheckServer()))
-	restateSrv.Bind(hydrav1.NewClickhouseUserServiceServer(clickhouseUserSvc))
-	restateSrv.Bind(hydrav1.NewKeyLastUsedPartitionServiceServer(keyLastUsedPartitionSvc))
-	restateSrv.Bind(hydrav1.NewDeployServiceServer(deploySvc))
-	restateSrv.Bind(hydrav1.NewDeploymentServiceServer(deploymentSvc))
-	restateSrv.Bind(hydrav1.NewBuildSlotServiceServer(buildSlotSvc))
-
-	restateHandler, err := restateSrv.Handler()
-	require.NoError(t, err)
-
-	workerMux := http.NewServeMux()
-	workerMux.HandleFunc("/health", func(w http.ResponseWriter, _ *http.Request) {
-		w.WriteHeader(http.StatusOK)
-	})
-	workerMux.Handle("/", restateHandler)
-
-	workerListener, err := net.Listen("tcp", "0.0.0.0:0") //nolint:gosec // Test server needs to bind all interfaces for Docker access
-	require.NoError(t, err)
-	workerServer := httptest.NewUnstartedServer(h2c.NewHandler(workerMux, &http2.Server{})) //nolint:exhaustruct // Only need default settings for test
-	workerServer.Listener = workerListener
-	workerServer.Start()
-	t.Cleanup(workerServer.Close)
-
-	tcpAddr, ok := workerListener.Addr().(*net.TCPAddr)
-	require.True(t, ok, "listener address must be TCP")
-	workerPort := tcpAddr.Port
-	registerAs := fmt.Sprintf("http://%s:%d", dockerHost(), workerPort)
-
-	adminClient := restateadmin.New(restateadmin.Config{BaseURL: restateCfg.AdminURL, APIKey: ""})
-	require.NoError(t, adminClient.RegisterDeployment(ctx, registerAs))
+	// Register every worker service as one deployment on this test's own
+	// Restate. Use the proto-generated wrappers (same as run.go) to get
+	// correct service names.
+	restateCfg := containers.Restate(t,
+		hydrav1.NewCronServiceServer(cronSvc),
+		// The deploy billing orchestrator (push and close) fans out to this
+		// per-workspace push service, so it must be bound for those handlers to
+		// route end to end.
+		hydrav1.NewDeployBillingPushServiceServer(cronSvc.DeployBillingPushServer()),
+		hydrav1.NewDeploySpendCheckServiceServer(cronSvc.DeploySpendCheckServer()),
+		hydrav1.NewClickhouseUserServiceServer(clickhouseUserSvc),
+		hydrav1.NewKeyLastUsedPartitionServiceServer(keyLastUsedPartitionSvc),
+		hydrav1.NewDeployServiceServer(deploySvc),
+		hydrav1.NewDeploymentServiceServer(deploymentSvc),
+		hydrav1.NewBuildSlotServiceServer(buildSlotSvc),
+	)
+	buildSlotLiveness.set(restateadmin.New(restateadmin.Config{
+		BaseURL: restateCfg.AdminURL,
+		APIKey:  "",
+	}))
 	t.Logf("Total harness setup in %s", time.Since(start))
 
 	return &Harness{
@@ -352,10 +329,27 @@ func New(t *testing.T, opts ...Option) *Harness {
 	}
 }
 
-// dockerHost returns the hostname to use for connecting from Docker containers.
-func dockerHost() string {
-	if runtime.GOOS == "darwin" {
-		return "host.docker.internal"
+// lazyInvocationLiveness defers the Restate admin client until the test
+// container is running. See the comment at the buildslot.New call site.
+type lazyInvocationLiveness struct {
+	mu     sync.Mutex
+	client *restateadmin.Client
+}
+
+var _ buildslot.InvocationLiveness = (*lazyInvocationLiveness)(nil)
+
+func (l *lazyInvocationLiveness) set(client *restateadmin.Client) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	l.client = client
+}
+
+func (l *lazyInvocationLiveness) FindLiveInvocations(ctx context.Context, invocationIDs []string) (map[string]bool, error) {
+	l.mu.Lock()
+	client := l.client
+	l.mu.Unlock()
+	if client == nil {
+		return nil, errors.New("restate admin client not initialized yet")
 	}
-	return "172.17.0.1"
+	return client.FindLiveInvocations(ctx, invocationIDs)
 }

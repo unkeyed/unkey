@@ -1,10 +1,22 @@
 "use client";
 
+import { useDeployActionGate } from "@/app/(app)/[workspaceSlug]/projects/_components/hooks/use-deploy-action-gate";
 import { type MenuItem, TableActionPopover } from "@/components/logs/table-action.popover";
 import type { Deployment } from "@/lib/collections";
-import { Ban, Bolt, Clone, Dots, Github, Hammer2 } from "@unkey/icons";
+import {
+  ArrowOppositeDirectionY,
+  Ban,
+  Bolt,
+  Clone,
+  Dots,
+  Github,
+  Hammer2,
+  Layers3,
+} from "@unkey/icons";
 import { Button, toast } from "@unkey/ui";
+import type { Route } from "next";
 import dynamic from "next/dynamic";
+import { useRouter } from "next/navigation";
 import { useMemo } from "react";
 import { isRedeployableDeploymentStatus } from "../../deployments/components/table/components/actions/deployment-action-eligibility";
 import type { DeploymentDisplayStatus } from "./status";
@@ -21,15 +33,22 @@ type ProductionCardActionsMenuProps = {
   deployment: Deployment;
   status: DeploymentDisplayStatus;
   commitUrl?: string;
+  logsHref: Route;
+  requestsHref: Route;
 };
 
 export function ProductionCardActionsMenu({
   deployment,
   status,
   commitUrl,
+  logsHref,
+  requestsHref,
 }: ProductionCardActionsMenuProps) {
+  const router = useRouter();
+  const { gated, openPaywall, planGate } = useDeployActionGate();
   const items = useMemo((): MenuItem[] => {
     const stopped = status === "stopped";
+    const canRedeploy = isRedeployableDeploymentStatus(deployment.status);
     return [
       {
         id: "stop-wake",
@@ -42,8 +61,28 @@ export function ProductionCardActionsMenu({
         id: "redeploy",
         label: "Redeploy",
         icon: <Hammer2 iconSize="md-regular" />,
-        disabled: !isRedeployableDeploymentStatus(deployment.status),
-        ActionComponent: (props) => <RedeployDialog {...props} selectedDeployment={deployment} />,
+        disabled: !canRedeploy,
+        // Without a Compute plan, redeploy opens the paywall instead of building.
+        ...(gated && canRedeploy
+          ? { onClick: () => openPaywall() }
+          : {
+              ActionComponent: (props) => (
+                <RedeployDialog {...props} selectedDeployment={deployment} />
+              ),
+            }),
+        divider: true,
+      },
+      {
+        id: "view-logs",
+        label: "Go to logs",
+        icon: <Layers3 iconSize="md-regular" />,
+        onClick: () => router.push(logsHref),
+      },
+      {
+        id: "view-requests",
+        label: "Go to requests",
+        icon: <ArrowOppositeDirectionY iconSize="md-regular" />,
+        onClick: () => router.push(requestsHref),
         divider: true,
       },
       {
@@ -69,19 +108,22 @@ export function ProductionCardActionsMenu({
         },
       },
     ];
-  }, [deployment, status, commitUrl]);
+  }, [deployment, status, commitUrl, gated, openPaywall, router, logsHref, requestsHref]);
 
   return (
-    <TableActionPopover items={items}>
-      <Button
-        variant="outline"
-        size="sm"
-        aria-label="More actions"
-        className="w-7 p-0"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <Dots iconSize="sm-regular" />
-      </Button>
-    </TableActionPopover>
+    <>
+      <TableActionPopover items={items}>
+        <Button
+          variant="outline"
+          size="sm"
+          aria-label="More actions"
+          className="w-7 p-0"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <Dots iconSize="sm-regular" />
+        </Button>
+      </TableActionPopover>
+      {planGate}
+    </>
   );
 }
