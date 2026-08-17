@@ -28,9 +28,7 @@ Set the maximum number of instances per region in **Settings > Runtime settings 
 
 Running multiple instances in a region provides redundancy and distributes load. If one instance fails, the rest keep serving requests without interruption.
 
-<Note>
-  During the beta, the maximum is 4 instances per region. Contact [support@unkey.com](mailto:support@unkey.com) if you need more.
-</Note>
+The Starter plan supports up to 4 instances per region, the Pro plan supports up to 8, and the Business plan supports up to 16.
 
 ## High availability
 
@@ -57,17 +55,15 @@ Each instance has configurable limits for CPU, memory, and storage. CPU and memo
 
 Configure limits in **Settings > Runtime settings**:
 
-- CPU: 1/4 vCPU to 2 vCPU (default 1/4 vCPU, billed on usage)
-- Memory: 256 MiB to 4 GiB (default 256 MiB, billed on allocation)
-- Storage: None to 10 GiB ephemeral disk (default none, mounted at `/data`)
+- CPU: 1/4 vCPU to 16 vCPU, depending on your plan (default 1/4 vCPU, billed on usage)
+- Memory: 256 MiB to 32 GiB, depending on your plan (default 256 MiB, billed on usage)
+- Storage: None to 10 GiB ephemeral disk (default none, mounted at `/data`, billed on allocation)
 
 A `/tmp` directory backed by memory is always available for scratch files. For larger temporary storage needs, configure [ephemeral storage](/platform/apps/settings#ephemeral-storage) to attach a dedicated disk volume per instance.
 
 All instances in a deployment share the same resource configuration. Changing these values takes effect on the next deployment.
 
-<Note>
-  These limits apply during the beta. Larger instance sizes are planned once the beta ends. Contact [support@unkey.com](mailto:support@unkey.com) if you need more resources now.
-</Note>
+The Starter plan supports up to 2 vCPU and 2 GiB per instance. The Pro plan supports up to 8 vCPU and 8 GiB. The Business plan supports up to 16 vCPU and 32 GiB.
 
 See [App settings](/platform/apps/settings#cpu) for details on each option.
 
