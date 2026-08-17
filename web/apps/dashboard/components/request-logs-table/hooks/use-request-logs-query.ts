@@ -107,7 +107,7 @@ export function useRequestLogsQuery({
         operator: f.operator,
         value: String(f.value),
       }));
-    const valuesFor = (field: "host" | "requestId" | "region" | "userAgent") =>
+    const valuesFor = (field: "host" | "requestId" | "region") =>
       filters.filter((filter) => filter.field === field).map((filter) => String(filter.value));
 
     const appIdFilters = filters
@@ -138,7 +138,6 @@ export function useRequestLogsQuery({
       host: valuesFor("host"),
       requestId: valuesFor("requestId"),
       region: valuesFor("region"),
-      userAgent: valuesFor("userAgent"),
     };
   }, [filters, limit, projectId, effectivePage, timeWindow]);
 

@@ -1,26 +1,6 @@
-import { Ok, type Result } from "@unkey/error";
 import { describe, expect, it } from "vitest";
-import type { z } from "zod";
-import type { QueryError } from "./client/error";
-import type { Querier } from "./client/interface";
 import { type RuntimeLogsRequest, getRuntimeLogs, runtimeLogsRequestSchema } from "./runtime-logs";
-
-class CapturingQuerier implements Querier {
-  public readonly queries: string[] = [];
-  public readonly params: unknown[] = [];
-
-  public query<TIn extends z.ZodType<unknown>, TOut extends z.ZodType<unknown>>(req: {
-    query: string;
-    params?: TIn;
-    schema: TOut;
-  }): (params: z.input<TIn>) => Promise<Result<z.output<TOut>[], QueryError>> {
-    this.queries.push(req.query);
-    return async (params) => {
-      this.params.push(params);
-      return Ok([]);
-    };
-  }
-}
+import { CapturingQuerier } from "./test-utils";
 
 const baseRequest: RuntimeLogsRequest = {
   workspaceId: "ws_123",
@@ -100,36 +80,13 @@ describe("getRuntimeLogs", () => {
 });
 
 describe("runtimeLogsRequestSchema", () => {
-  it("requires trigram-sized message and attribute searches", () => {
-    expect(
-      runtimeLogsRequestSchema.safeParse({
-        ...baseRequest,
-        message: "ab",
-      }).success,
-    ).toBe(false);
-    expect(
-      runtimeLogsRequestSchema.safeParse({
-        ...baseRequest,
-        attributes: "ab",
-      }).success,
-    ).toBe(false);
-    expect(
-      runtimeLogsRequestSchema.safeParse({
-        ...baseRequest,
-        attributes: "key",
-      }).success,
-    ).toBe(true);
-    expect(
-      runtimeLogsRequestSchema.safeParse({
-        ...baseRequest,
-        attributeMatch: { path: "request.id", value: "xy" },
-      }).success,
-    ).toBe(false);
-    expect(
-      runtimeLogsRequestSchema.safeParse({
-        ...baseRequest,
-        attributeMatch: { path: "request.id", value: "xyz" },
-      }).success,
-    ).toBe(true);
+  it.each([
+    [{ message: "ab" }, false],
+    [{ attributes: "ab" }, false],
+    [{ attributes: "key" }, true],
+    [{ attributeMatch: { path: "request.id", value: "xy" } }, false],
+    [{ attributeMatch: { path: "request.id", value: "xyz" } }, true],
+  ])("validates indexed search bounds", (input, valid) => {
+    expect(runtimeLogsRequestSchema.safeParse({ ...baseRequest, ...input }).success).toBe(valid);
   });
 });

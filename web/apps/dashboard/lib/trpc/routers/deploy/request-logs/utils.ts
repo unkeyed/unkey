@@ -34,7 +34,6 @@ export function transformRequestLogsFilters(params: Omit<RequestLogsRequest, "wo
     host: params.host ?? [],
     requestId: params.requestId ?? [],
     region: params.region ?? [],
-    userAgent: params.userAgent ?? [],
     page: params.page,
   };
 }

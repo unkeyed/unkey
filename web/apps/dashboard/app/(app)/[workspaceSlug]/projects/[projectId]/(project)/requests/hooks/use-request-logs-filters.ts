@@ -30,7 +30,6 @@ const arrayFields = [
   "host",
   "requestId",
   "region",
-  "userAgent",
 ] as const;
 const timeFields = ["startTime", "endTime", "since"] as const;
 
@@ -45,7 +44,6 @@ export const queryParamsPayload = {
   host: parseAsFilterValArray,
   requestId: parseAsFilterValArray,
   region: parseAsFilterValArray,
-  userAgent: parseAsFilterValArray,
   startTime: parseAsInteger,
   endTime: parseAsInteger,
   since: parseAsRelativeTime,

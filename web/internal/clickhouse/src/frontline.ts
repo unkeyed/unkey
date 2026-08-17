@@ -98,7 +98,6 @@ export const requestLogsRequestSchema = z.object({
   host: z.array(z.string().min(1).max(512)).nullable().default(null),
   requestId: z.array(z.string().min(1).max(512)).nullable().default(null),
   region: z.array(z.string().min(1).max(256)).nullable().default(null),
-  userAgent: z.array(z.string().min(3).max(512)).nullable().default(null),
   // 1-based page for offset pagination. Defaults to 1 (offset 0).
   page: z.number().int().min(1).default(1),
 });
@@ -131,47 +130,13 @@ export type RequestLogsResponse = z.infer<typeof requestLogsResponseSchema>;
 
 export function getRequestLogs(ch: Querier) {
   return async (args: RequestLogsRequest) => {
-    const wheres = [
-      "workspace_id = {workspaceId: String}",
-      "project_id = {projectId: String}",
-      "time BETWEEN {startTime: UInt64} AND {endTime: UInt64}",
-    ];
-    const dynamicParamSchemas: Record<string, z.ZodString> = {};
-    const dynamicParamValues: Record<string, string> = {};
+    let pathConditions = "TRUE";
+    const pathParams: Record<string, z.ZodString> = {};
 
-    if (args.appId.length > 0) {
-      wheres.push("app_id IN {appId: Array(String)}");
-    }
-    if (args.deploymentId.length > 0) {
-      wheres.push("deployment_id IN {deploymentId: Array(String)}");
-    }
-    if (args.environmentId.length > 0) {
-      wheres.push("environment_id IN {environmentId: Array(String)}");
-    }
-    if (args.statusCodes !== null && args.statusCodes.length > 0) {
-      // Class codes (200, 300, 400, 500) and exact codes can be mixed.
-      wheres.push(`(
-        response_status IN {statusCodes: Array(Int32)}
-        OR intDiv(response_status, 100) * 100 IN {statusCodes: Array(Int32)}
-      )`);
-    }
-    if (args.methods !== null && args.methods.length > 0) {
-      wheres.push("method IN {methods: Array(String)}");
-    }
-    if (args.host !== null && args.host.length > 0) {
-      wheres.push("host IN {host: Array(String)}");
-    }
-    if (args.requestId !== null && args.requestId.length > 0) {
-      wheres.push("request_id IN {requestId: Array(String)}");
-    }
-    if (args.region !== null && args.region.length > 0) {
-      wheres.push("region IN {region: Array(String)}");
-    }
     if (args.paths !== null && args.paths.length > 0) {
-      const pathConditions = args.paths.map((pathFilter, index) => {
+      const conditions = args.paths.map((pathFilter, index) => {
         const key = `pathValue${index}`;
-        dynamicParamSchemas[key] = z.string();
-        dynamicParamValues[key] = pathFilter.value;
+        pathParams[key] = z.string();
 
         switch (pathFilter.operator) {
           case "is":
@@ -179,25 +144,55 @@ export function getRequestLogs(ch: Querier) {
           case "startsWith":
             return `startsWith(path, {${key}: String})`;
           case "contains":
-            dynamicParamValues[key] = escapeLikePattern(pathFilter.value);
             return `path LIKE concat('%', {${key}: String}, '%')`;
         }
       });
-      wheres.push(`(${pathConditions.join(" OR ")})`);
-    }
-    if (args.userAgent !== null && args.userAgent.length > 0) {
-      const userAgentConditions = args.userAgent.map((value, index) => {
-        const key = `userAgentValue${index}`;
-        dynamicParamSchemas[key] = z.string();
-        dynamicParamValues[key] = escapeLikePattern(value);
-        // lower() on both sides keeps the ngrambf_v1 skip index eligible.
-        return `lower(user_agent) LIKE concat('%', lower({${key}: String}), '%')`;
-      });
-      wheres.push(`(${userAgentConditions.join(" OR ")})`);
+      pathConditions = `(${conditions.join(" OR ")})`;
     }
 
-    const filterConditions = wheres.join("\n      AND ");
-    const queryParamsSchema = requestLogsRequestSchema.extend(dynamicParamSchemas);
+    const baseFilter = `
+      workspace_id = {workspaceId: String}
+      AND project_id = {projectId: String}
+    `;
+    const optionalConditions = [
+      args.host?.length ? "host IN {host: Array(String)}" : null,
+      args.requestId?.length ? "request_id IN {requestId: Array(String)}" : null,
+      args.region?.length ? "region IN {region: Array(String)}" : null,
+    ].filter((condition): condition is string => condition !== null);
+
+    const filterConditions = `
+      ${baseFilter}
+      AND time BETWEEN {startTime: UInt64} AND {endTime: UInt64}
+      AND (CASE WHEN length({appId: Array(String)}) > 0
+           THEN app_id IN {appId: Array(String)}
+           ELSE TRUE END)
+      AND (CASE WHEN length({deploymentId: Array(String)}) > 0
+           THEN deployment_id IN {deploymentId: Array(String)}
+           ELSE TRUE END)
+      AND (CASE WHEN length({environmentId: Array(String)}) > 0
+           THEN environment_id IN {environmentId: Array(String)}
+           ELSE TRUE END)
+      -- Class codes (200,300,400,500) match via intDiv: intDiv(404,100)*100=400.
+      -- Specific codes (401,503) match via exact IN; their class won't be in the array.
+      AND (CASE WHEN length({statusCodes: Array(Int32)}) > 0
+           THEN (
+             response_status IN {statusCodes: Array(Int32)}
+             OR intDiv(response_status, 100) * 100 IN {statusCodes: Array(Int32)}
+           )
+           ELSE TRUE END)
+      AND (CASE WHEN length({methods: Array(String)}) > 0
+           THEN method IN {methods: Array(String)}
+           ELSE TRUE END)
+      AND ${pathConditions}
+      ${optionalConditions.map((condition) => `AND ${condition}`).join("\n      ")}
+    `;
+    const queryParamsSchema = requestLogsRequestSchema.extend(pathParams);
+
+    const pathValues: Record<string, string> = {};
+    args.paths?.forEach((pathFilter, index) => {
+      pathValues[`pathValue${index}`] =
+        pathFilter.operator === "contains" ? escapeLikePattern(pathFilter.value) : pathFilter.value;
+    });
 
     const totalQuery = ch.query({
       query: `SELECT count(*) as total_count FROM ${TABLE} WHERE ${filterConditions}`,
@@ -233,8 +228,8 @@ export function getRequestLogs(ch: Querier) {
     });
 
     return {
-      totalQuery: totalQuery({ ...args, ...dynamicParamValues } as never),
-      logsQuery: logsQuery({ ...args, ...dynamicParamValues, offset } as never),
+      totalQuery: totalQuery({ ...args, ...pathValues } as never),
+      logsQuery: logsQuery({ ...args, ...pathValues, offset } as never),
     };
   };
 }

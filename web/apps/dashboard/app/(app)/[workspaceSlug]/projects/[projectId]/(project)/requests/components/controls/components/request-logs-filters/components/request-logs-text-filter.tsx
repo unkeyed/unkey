@@ -8,7 +8,7 @@ import type {
 } from "@/lib/schemas/request-logs.filter.schema";
 
 type RequestLogsTextFilterProps = {
-  field: Extract<RequestLogsFilterField, "paths" | "host" | "requestId" | "region" | "userAgent">;
+  field: Extract<RequestLogsFilterField, "paths" | "host" | "requestId" | "region">;
   label: string;
   operators: readonly RequestLogsFilterOperator[];
   validate?: (operator: RequestLogsFilterOperator, value: string) => string | null;

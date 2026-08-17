@@ -1,13 +1,7 @@
 "use client";
 
-import { createAppEnvironmentSearchItems } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/(project)/components/app-environment-search-items";
-import {
-  type AppEnvironmentSelection,
-  createAppEnvironmentFilters,
-  getAppEnvironmentSelection,
-  groupEnvironmentsByApp,
-} from "@/app/(app)/[workspaceSlug]/projects/[projectId]/(project)/components/app-environment-selection";
-import { useAppFilterOptions } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/(project)/components/app-filter-options";
+import { AppEnvironmentFilter } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/(project)/components/app-environment-filter";
+import { useAppEnvironmentSearchItems } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/(project)/components/use-app-environment-search-items";
 import { useRuntimeLogsFilters } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/(project)/logs/hooks/use-runtime-logs-filters";
 import { useProjectData } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/data-provider";
 import {
@@ -24,12 +18,32 @@ import { BarsFilter } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 import { useCallback, useMemo, useState } from "react";
-import { RuntimeLogsAppFilter } from "./runtime-logs-app-filter";
 import { RuntimeLogsDeploymentFilter } from "./runtime-logs-deployment-filter";
 import { RuntimeLogsInstanceFilter } from "./runtime-logs-instance-filter";
 import { RuntimeLogsRegionFilter } from "./runtime-logs-region-filter";
 import { RuntimeLogsSeverityFilter, severityOptions } from "./runtime-logs-severity-filter";
 import { RuntimeLogsTextFilter } from "./runtime-logs-text-filter";
+
+const createAppFilter = (
+  field: "appId" | "environmentId",
+  value: string,
+): RuntimeLogsFilterValue => ({
+  id: crypto.randomUUID(),
+  field,
+  operator: "is",
+  value,
+});
+
+function RuntimeLogsAppFilter() {
+  const { filters, updateFilters } = useRuntimeLogsFilters();
+  return (
+    <AppEnvironmentFilter
+      filters={filters}
+      updateFilters={updateFilters}
+      createFilter={createAppFilter}
+    />
+  );
+}
 
 const FILTER_ITEMS: FilterItemConfig[] = [
   {
@@ -85,8 +99,7 @@ const FILTER_ITEMS: FilterItemConfig[] = [
 
 export function RuntimeLogsFilters() {
   const { filters, updateFilters } = useRuntimeLogsFilters();
-  const apps = useAppFilterOptions();
-  const { deployments, environments, projectId } = useProjectData();
+  const { deployments, projectId } = useProjectData();
   const [isPopoverOpen, setIsPopoverOpen] = useState(false);
   // Region and instance options are only needed once the popover opens; keep
   // the rate-limited queries off the logs page critical path.
@@ -98,43 +111,11 @@ export function RuntimeLogsFilters() {
     { projectId },
     { enabled: isPopoverOpen },
   );
-
-  const environmentsByAppId = useMemo(() => groupEnvironmentsByApp(environments), [environments]);
-
-  const environmentIdsByApp = useMemo(
-    () =>
-      new Map(
-        apps.map((app) => [
-          app.appId,
-          (environmentsByAppId.get(app.appId) ?? []).map((environment) => environment.id),
-        ]),
-      ),
-    [apps, environmentsByAppId],
-  );
-
-  const appEnvironmentSelection = useMemo(() => getAppEnvironmentSelection(filters), [filters]);
-
-  const updateAppEnvironmentSelection = useCallback(
-    (selection: AppEnvironmentSelection) => {
-      const otherFilters = filters.filter(
-        (filter) => filter.field !== "appId" && filter.field !== "environmentId",
-      );
-      updateFilters([
-        ...otherFilters,
-        ...createAppEnvironmentFilters<RuntimeLogsFilterValue>(
-          selection,
-          environmentIdsByApp,
-          (field, value) => ({
-            id: crypto.randomUUID(),
-            field,
-            operator: "is",
-            value,
-          }),
-        ),
-      ]);
-    },
-    [environmentIdsByApp, filters, updateFilters],
-  );
+  const appItems = useAppEnvironmentSearchItems({
+    filters,
+    updateFilters,
+    createFilter: createAppFilter,
+  });
 
   const toggleFilter = useCallback(
     (field: RuntimeLogsFilterField, value: string) => {
@@ -161,13 +142,6 @@ export function RuntimeLogsFilters() {
   const searchItems = useMemo<FilterSearchItem[]>(() => {
     const isFilterSelected = (field: RuntimeLogsFilterField, value: string) =>
       filters.some((filter) => filter.field === field && String(filter.value) === value);
-
-    const appItems = createAppEnvironmentSearchItems({
-      apps,
-      environmentsByAppId,
-      selection: appEnvironmentSelection,
-      onSelectionChange: updateAppEnvironmentSelection,
-    });
 
     const severityItems: FilterSearchItem[] = severityOptions.map((option) => ({
       kind: "option",
@@ -210,17 +184,7 @@ export function RuntimeLogsFilters() {
     }));
 
     return [...appItems, ...severityItems, ...deploymentItems, ...regionItems, ...instanceItems];
-  }, [
-    appEnvironmentSelection,
-    apps,
-    availableRegions,
-    deployments,
-    environmentsByAppId,
-    filters,
-    instances,
-    toggleFilter,
-    updateAppEnvironmentSelection,
-  ]);
+  }, [appItems, availableRegions, deployments, filters, instances, toggleFilter]);
 
   const filterCount = filters.filter(
     (f) =>

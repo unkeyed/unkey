@@ -7,7 +7,7 @@ type MethodOption = {
   checked: boolean;
 };
 
-export const requestMethodOptions: MethodOption[] = [
+const options: MethodOption[] = [
   { id: 1, method: "GET", checked: false },
   { id: 2, method: "POST", checked: false },
   { id: 3, method: "PUT", checked: false },
@@ -19,7 +19,7 @@ export const RequestMethodsFilter = () => {
   const { filters, updateFilters } = useRequestLogsFilters();
   return (
     <FilterCheckbox
-      options={requestMethodOptions}
+      options={options}
       filterField="methods"
       checkPath="method"
       renderOptionContent={(checkbox) => (

@@ -1,26 +1,6 @@
-import { Ok, type Result } from "@unkey/error";
 import { describe, expect, it } from "vitest";
-import type { z } from "zod";
-import type { QueryError } from "./client/error";
-import type { Querier } from "./client/interface";
 import { type RequestLogsRequest, getRequestLogs, requestLogsRequestSchema } from "./frontline";
-
-class CapturingQuerier implements Querier {
-  public readonly queries: string[] = [];
-  public readonly params: unknown[] = [];
-
-  public query<TIn extends z.ZodType<unknown>, TOut extends z.ZodType<unknown>>(req: {
-    query: string;
-    params?: TIn;
-    schema: TOut;
-  }): (params: z.input<TIn>) => Promise<Result<z.output<TOut>[], QueryError>> {
-    this.queries.push(req.query);
-    return async (params) => {
-      this.params.push(params);
-      return Ok([]);
-    };
-  }
-}
+import { CapturingQuerier } from "./test-utils";
 
 const baseRequest: RequestLogsRequest = {
   workspaceId: "ws_123",
@@ -38,7 +18,6 @@ const baseRequest: RequestLogsRequest = {
   host: null,
   requestId: null,
   region: null,
-  userAgent: null,
   page: 1,
 };
 
@@ -59,7 +38,6 @@ describe("getRequestLogs", () => {
         { operator: "startsWith", value: "/api" },
         { operator: "contains", value: "%users_" },
       ],
-      userAgent: ["Mozilla%_\\"],
     });
 
     expect(ch.queries).toHaveLength(2);
@@ -73,15 +51,10 @@ describe("getRequestLogs", () => {
       expect(query).toContain("path = {pathValue0: String}");
       expect(query).toContain("startsWith(path, {pathValue1: String})");
       expect(query).toContain("path LIKE concat('%', {pathValue2: String}, '%')");
-      expect(query).toContain(
-        "lower(user_agent) LIKE concat('%', lower({userAgentValue0: String}), '%')",
-      );
-      expect(query).not.toContain("CASE WHEN");
     }
     for (const params of ch.params) {
       expect(params).toMatchObject({
         pathValue2: "\\%users\\_",
-        userAgentValue0: "Mozilla\\%\\_\\\\",
       });
     }
   });
@@ -98,30 +71,17 @@ describe("getRequestLogs", () => {
       expect(query).not.toContain("region IN");
       expect(query).not.toContain("path LIKE");
       expect(query).not.toContain("startsWith(path");
-      expect(query).not.toContain("lower(user_agent)");
     }
   });
 });
 
 describe("requestLogsRequestSchema", () => {
-  it("requires trigram-sized substring filters but permits short exact paths", () => {
-    expect(
-      requestLogsRequestSchema.safeParse({
-        ...baseRequest,
-        paths: [{ operator: "contains", value: "ab" }],
-      }).success,
-    ).toBe(false);
-    expect(
-      requestLogsRequestSchema.safeParse({
-        ...baseRequest,
-        userAgent: ["ab"],
-      }).success,
-    ).toBe(false);
-    expect(
-      requestLogsRequestSchema.safeParse({
-        ...baseRequest,
-        paths: [{ operator: "is", value: "/" }],
-      }).success,
-    ).toBe(true);
+  it.each([
+    [{ operator: "contains", value: "ab" }, false],
+    [{ operator: "is", value: "/" }, true],
+  ] as const)("validates indexed path bounds", (path, valid) => {
+    expect(requestLogsRequestSchema.safeParse({ ...baseRequest, paths: [path] }).success).toBe(
+      valid,
+    );
   });
 });

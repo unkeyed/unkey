@@ -13,7 +13,7 @@ type StatusOption = {
   checked: boolean;
 };
 
-export const requestStatusOptions: StatusOption[] = [
+const RANGE_OPTIONS: StatusOption[] = [
   { id: 1, status: 200, display: "2xx", label: "Success", color: "bg-success-9", checked: false },
   { id: 2, status: 300, display: "3xx", label: "Redirect", color: "bg-info-8", checked: false },
   { id: 3, status: 400, display: "4xx", label: "Warning", color: "bg-warning-8", checked: false },
@@ -29,10 +29,7 @@ export const RequestStatusFilter = () => {
     const activeStatuses = new Set(
       filters.filter((f) => f.field === "status").map((f) => Number(f.value)),
     );
-    return requestStatusOptions.map((opt) => ({
-      ...opt,
-      checked: activeStatuses.has(opt.status),
-    }));
+    return RANGE_OPTIONS.map((opt) => ({ ...opt, checked: activeStatuses.has(opt.status) }));
   });
 
   const [customCode, setCustomCode] = useState(() => {

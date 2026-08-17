@@ -1,7 +1,4 @@
-import {
-  requestLogsFilterFieldConfig,
-  requestLogsFilterOutputSchema,
-} from "@/lib/schemas/request-logs.filter.schema";
+import { filterOutputSchema, logsFilterFieldConfig } from "@/lib/schemas/logs.filter.schema";
 import { TRPCError } from "@trpc/server";
 import type OpenAI from "openai";
 import z from "zod";
@@ -36,7 +33,7 @@ export async function getStructuredSearchFromLLM(
         json_schema: {
           name: "request-logs-ai-search",
           strict: true,
-          schema: z.toJSONSchema(requestLogsFilterOutputSchema, { target: "draft-7" }),
+          schema: z.toJSONSchema(filterOutputSchema, { target: "draft-7" }),
         },
       },
     });
@@ -80,7 +77,7 @@ export async function getStructuredSearchFromLLM(
 }
 
 export const getSystemPrompt = (usersReferenceMS: number) => {
-  const operatorsByField = Object.entries(requestLogsFilterFieldConfig)
+  const operatorsByField = Object.entries(logsFilterFieldConfig)
     .map(([field, config]) => {
       const operators = config.operators.join(", ");
       let constraints = "";
@@ -234,7 +231,7 @@ Result: [
   {
     field: "environmentId",
     filters: [
-      { operator: "is", value: "staging" }
+      { operator: "contains", value: "staging" }
     ]
   }
 ]
@@ -254,7 +251,7 @@ Result: [
   {
     field: "environmentId",
     filters: [
-      { operator: "is", value: "production" }
+      { operator: "contains", value: "production" }
     ]
   },
   {
@@ -338,7 +335,7 @@ Result: [
   {
     field: "environmentId",
     filters: [
-      { operator: "is", value: "production" }
+      { operator: "contains", value: "production" }
     ]
   }
 ]
@@ -385,10 +382,9 @@ ${operatorsByField}
   • Nx[d] for days (e.g., 1d, 7d)
 - status must be between 200-599
 - methods must be exactly one of: GET, POST, PUT, DELETE, PATCH (case-sensitive)
-- paths uses "is" for exact paths, "startsWith" for route prefixes, and "contains" for substrings
-- path startsWith/contains values and userAgent contains values must have at least 3 characters
+- paths uses "contains" operator for substring matching
 - deploymentId matches a full, exact deployment id only (operator "is"); emit it only when the user gives an explicit id, never inferred from keywords
-- appId, deploymentId, and environmentId use "is"
+- environmentId uses "contains" for flexible matching
 - since and startTime/endTime are mutually exclusive - prefer since for relative time
 - For multiple time ranges mentioned, use the longest duration
 
