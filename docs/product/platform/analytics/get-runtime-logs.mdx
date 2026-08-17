@@ -26,7 +26,15 @@ Send a JSON object with a `query` string. The response contains
 `meta.requestId`, which identifies the API request, and `data`, which contains
 an array of result objects.
 
-```bash
+<CodeGroup>
+```sql SQL
+SELECT time, severity, message
+FROM runtime_logs_v1
+ORDER BY time DESC
+LIMIT 100
+```
+
+```bash cURL
 curl --request POST \
   --url https://api.unkey.com/v2/analytics.getRuntimeLogs \
   --header "Authorization: Bearer $UNKEY_ROOT_KEY" \
@@ -34,7 +42,9 @@ curl --request POST \
   --data '{"query":"SELECT time, severity, message FROM runtime_logs_v1 ORDER BY time DESC LIMIT 100"}'
 ```
 
-```json
+</CodeGroup>
+
+```json Response
 {
   "meta": {
     "requestId": "req_1234"
@@ -56,15 +66,27 @@ permitted. CTEs, subqueries, UNION, and EXCEPT are also permitted.
 ## Select the logs of one project, app, environment, or deployment
 
 Each row contains `project_id`, `app_id`, `environment_id`, and `deployment_id`.
-Add a filter on one of these columns to get the logs of one target.
+Add a filter on one of these columns to get the logs of one target. You can also
+combine them, for example `app_id = 'app_1234' AND environment_id = 'env_1234'`.
 
-```sql
+<CodeGroup>
+```sql SQL
+SELECT time, severity, message
+FROM runtime_logs_v1
 WHERE deployment_id = 'dep_1234'
+ORDER BY time DESC
+LIMIT 100
 ```
 
-```sql
-WHERE app_id = 'app_1234' AND environment_id = 'env_1234'
+```bash cURL
+curl --request POST \
+  --url https://api.unkey.com/v2/analytics.getRuntimeLogs \
+  --header "Authorization: Bearer $UNKEY_ROOT_KEY" \
+  --header "Content-Type: application/json" \
+  --data '{"query":"SELECT time, severity, message FROM runtime_logs_v1 WHERE deployment_id = '\''dep_1234'\'' ORDER BY time DESC LIMIT 100"}'
 ```
+
+</CodeGroup>
 
 If you do not add one of these filters, the query reads all projects in the
 workspace.
@@ -78,9 +100,24 @@ time filter, Unkey limits the results to your workspace retention range.
 The `time` column holds Unix milliseconds, thus a time filter uses
 `toUnixTimestamp64Milli`.
 
-```sql
+<CodeGroup>
+```sql SQL
+SELECT time, severity, message
+FROM runtime_logs_v1
 WHERE time >= toUnixTimestamp64Milli(now64(3) - INTERVAL 24 HOUR)
+ORDER BY time DESC
+LIMIT 100
 ```
+
+```bash cURL
+curl --request POST \
+  --url https://api.unkey.com/v2/analytics.getRuntimeLogs \
+  --header "Authorization: Bearer $UNKEY_ROOT_KEY" \
+  --header "Content-Type: application/json" \
+  --data '{"query":"SELECT time, severity, message FROM runtime_logs_v1 WHERE time >= toUnixTimestamp64Milli(now64(3) - INTERVAL 24 HOUR) ORDER BY time DESC LIMIT 100"}'
+```
+
+</CodeGroup>
 
 ## Reference available columns
 
@@ -94,7 +131,6 @@ automatically, thus you do not need to add it to a query.
 | `inserted_at` | Int64 | Time that Unkey received the log, in milliseconds |
 | `severity` | String | One of `debug`, `info`, `warn`, or `error` |
 | `message` | String | The log line |
-| `workspace_id` | String | Workspace ID, filtered automatically |
 | `project_id` | String | Project ID |
 | `app_id` | String | App ID |
 | `environment_id` | String | Environment ID |
@@ -107,11 +143,11 @@ of your logger. A line that reports an error gets `error`.
 
 ## Find text in a log
 
-Use `lower(message) LIKE '%text%'` to find a substring. Always put the column in
-`lower()`. This form is much faster than a search on `message` without
-`lower()`, and it also ignores the case of the log line.
+Use `lower(message) LIKE '%text%'` to find a substring. The `lower()` form
+ignores the case of the log line.
 
-```sql
+<CodeGroup>
+```sql SQL
 SELECT time, severity, message
 FROM runtime_logs_v1
 WHERE lower(message) LIKE '%timeout%'
@@ -120,7 +156,7 @@ ORDER BY time DESC
 LIMIT 100
 ```
 
-```bash
+```bash cURL
 curl --request POST \
   --url https://api.unkey.com/v2/analytics.getRuntimeLogs \
   --header "Authorization: Bearer $UNKEY_ROOT_KEY" \
@@ -128,14 +164,28 @@ curl --request POST \
   --data '{"query":"SELECT time, severity, message FROM runtime_logs_v1 WHERE lower(message) LIKE '\''%timeout%'\'' AND time >= toUnixTimestamp64Milli(now64(3) - INTERVAL 24 HOUR) ORDER BY time DESC LIMIT 100"}'
 ```
 
+</CodeGroup>
+
 Use `lower(attributes_text) LIKE '%text%'` to search the attributes, and
 `NOT LIKE` to remove the lines that you do not want.
 
-```sql
+<CodeGroup>
+```sql SQL
 SELECT time, message
 FROM runtime_logs_v1
 WHERE lower(message) NOT LIKE '%healthcheck%'
+LIMIT 100
 ```
+
+```bash cURL
+curl --request POST \
+  --url https://api.unkey.com/v2/analytics.getRuntimeLogs \
+  --header "Authorization: Bearer $UNKEY_ROOT_KEY" \
+  --header "Content-Type: application/json" \
+  --data '{"query":"SELECT time, message FROM runtime_logs_v1 WHERE lower(message) NOT LIKE '\''%healthcheck%'\'' LIMIT 100"}'
+```
+
+</CodeGroup>
 
 ## Read the structured attributes
 
@@ -144,16 +194,28 @@ line with no attributes gives the string `{}`. This column is never null.
 
 Select the column to get the full JSON, then parse it in your own code.
 
-```sql
+<CodeGroup>
+```sql SQL
 SELECT time, message, attributes_text
 FROM runtime_logs_v1
 LIMIT 100
 ```
 
+```bash cURL
+curl --request POST \
+  --url https://api.unkey.com/v2/analytics.getRuntimeLogs \
+  --header "Authorization: Bearer $UNKEY_ROOT_KEY" \
+  --header "Content-Type: application/json" \
+  --data '{"query":"SELECT time, message, attributes_text FROM runtime_logs_v1 LIMIT 100"}'
+```
+
+</CodeGroup>
+
 To group or to sort by one attribute, use `JSONExtractString` to read that
 attribute as a column.
 
-```sql
+<CodeGroup>
+```sql SQL
 SELECT
   JSONExtractString(attributes_text, 'route') AS route,
   count() AS total
@@ -162,12 +224,23 @@ GROUP BY route
 ORDER BY total DESC
 ```
 
+```bash cURL
+curl --request POST \
+  --url https://api.unkey.com/v2/analytics.getRuntimeLogs \
+  --header "Authorization: Bearer $UNKEY_ROOT_KEY" \
+  --header "Content-Type: application/json" \
+  --data '{"query":"SELECT JSONExtractString(attributes_text, '\''route'\'') AS route, count() AS total FROM runtime_logs_v1 GROUP BY route ORDER BY total DESC"}'
+```
+
+</CodeGroup>
+
 ## Count the errors of each deployment
 
 Use `countIf` to count a subset of the rows in the same query. This example
 compares the failed lines with all lines of each deployment.
 
-```sql
+<CodeGroup>
+```sql SQL
 SELECT
   deployment_id,
   count() AS total,
@@ -178,9 +251,20 @@ GROUP BY deployment_id
 ORDER BY errors DESC
 ```
 
+```bash cURL
+curl --request POST \
+  --url https://api.unkey.com/v2/analytics.getRuntimeLogs \
+  --header "Authorization: Bearer $UNKEY_ROOT_KEY" \
+  --header "Content-Type: application/json" \
+  --data '{"query":"SELECT deployment_id, count() AS total, countIf(severity = '\''error'\'') AS errors FROM runtime_logs_v1 WHERE time >= toUnixTimestamp64Milli(now64(3) - INTERVAL 24 HOUR) GROUP BY deployment_id ORDER BY errors DESC"}'
+```
+
+</CodeGroup>
+
 ## Get a breakdown of the severities
 
-```sql
+<CodeGroup>
+```sql SQL
 SELECT
   severity,
   count() AS total
@@ -190,21 +274,15 @@ GROUP BY severity
 ORDER BY total DESC
 ```
 
-## Make a large query faster
-
-Add a filter on `inserted_at` next to your filter on `time`. Give the
-`inserted_at` bound two more hours than the `time` bound. The two extra hours
-cover the short delay between the time of a log line and the time that Unkey
-received it.
-
-```sql
-SELECT time, severity, message
-FROM runtime_logs_v1
-WHERE time >= toUnixTimestamp64Milli(now64(3) - INTERVAL 24 HOUR)
-  AND inserted_at >= toUnixTimestamp64Milli(now64(3) - INTERVAL 26 HOUR)
-ORDER BY time DESC
-LIMIT 100
+```bash cURL
+curl --request POST \
+  --url https://api.unkey.com/v2/analytics.getRuntimeLogs \
+  --header "Authorization: Bearer $UNKEY_ROOT_KEY" \
+  --header "Content-Type: application/json" \
+  --data '{"query":"SELECT severity, count() AS total FROM runtime_logs_v1 WHERE time >= toUnixTimestamp64Milli(now64(3) - INTERVAL 24 HOUR) GROUP BY severity ORDER BY total DESC"}'
 ```
+
+</CodeGroup>
 
 ## Page through a large result
 
@@ -212,12 +290,23 @@ Use `LIMIT` and `OFFSET` to read a large result in pages. Many log lines can
 have the same `time`. Thus `ORDER BY time` alone does not give a stable order,
 and one row can appear on two pages. Add more columns to make the order stable.
 
-```sql
+<CodeGroup>
+```sql SQL
 SELECT time, severity, message
 FROM runtime_logs_v1
 ORDER BY time DESC, deployment_id DESC, message DESC, log_id DESC
 LIMIT 100 OFFSET 100
 ```
+
+```bash cURL
+curl --request POST \
+  --url https://api.unkey.com/v2/analytics.getRuntimeLogs \
+  --header "Authorization: Bearer $UNKEY_ROOT_KEY" \
+  --header "Content-Type: application/json" \
+  --data '{"query":"SELECT time, severity, message FROM runtime_logs_v1 ORDER BY time DESC, deployment_id DESC, message DESC, log_id DESC LIMIT 100 OFFSET 100"}'
+```
+
+</CodeGroup>
 
 ## Errors
 
