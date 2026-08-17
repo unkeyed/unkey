@@ -10,17 +10,17 @@ import { and, eq, useLiveQuery } from "@tanstack/react-db";
 import dynamic from "next/dynamic";
 import { useState } from "react";
 import { ActiveDeploymentCardEmpty } from "../../../components/active-deployment-card/components/active-deployment-card-empty";
-import { getDomainPriority } from "../../../components/domain-priority";
+import { getAppOverviewDomains, getDomainPriority } from "../../../components/domain-priority";
 import { Card } from "../../components/card";
 import { useAppId, useProjectData } from "../../data-provider";
 import { CreateDeploymentButton } from "../../navigations/create-deployment-button";
+import { AppProductionCardSkeleton } from "./app-production-card-skeleton";
 import { BuildInProgressChart, ProductionCardChart } from "./card-chart";
 import { ProductionCardHeader } from "./card-header";
 import { ProductionCardMetadata } from "./card-metadata";
 import { ProductionCardRollbackBanner } from "./card-rollback-banner";
 import { buildPulse } from "./g-pulse";
 import { type ProductionCardContextValue, ProductionCardProvider } from "./production-card-context";
-import { ProductionDeploymentCardSkeleton } from "./production-deployment-card-skeleton";
 import { deriveProductionStatus } from "./status";
 
 const RollbackDialog = dynamic(
@@ -36,15 +36,9 @@ const UndoRollbackDialog = dynamic(
   { ssr: false },
 );
 
-export function ProductionDeploymentCard() {
-  const {
-    projectId,
-    deployments,
-    environments,
-    customDomains,
-    getDomainsForDeployment,
-    isDeploymentsLoading,
-  } = useProjectData();
+export function AppProductionCard() {
+  const { projectId, deployments, environments, customDomains, domains, isDeploymentsLoading } =
+    useProjectData();
   const appId = useAppId();
   const workspace = useWorkspaceNavigation();
   const { gated, openPaywall, planGate } = useDeployActionGate();
@@ -100,7 +94,7 @@ export function ProductionDeploymentCard() {
     currentDeploymentId != null && currentDeploymentQuery.isLoading;
 
   if (isDeploymentsLoading || appsQuery.isLoading || isResolvingCurrentDeployment) {
-    return <ProductionDeploymentCardSkeleton />;
+    return <AppProductionCardSkeleton />;
   }
 
   if (!deployment) {
@@ -122,7 +116,7 @@ export function ProductionDeploymentCard() {
   const sourceRepo = deployment.forkRepositoryFullName || repoFullName;
 
   const { primary, additional } = getDomainPriority({
-    domains: getDomainsForDeployment(deployment.id),
+    domains: getAppOverviewDomains(domains, deployment.id),
     customDomains,
     environmentId: deployment.environmentId,
     deploymentId: deployment.id,
