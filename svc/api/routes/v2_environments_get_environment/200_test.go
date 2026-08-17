@@ -202,27 +202,26 @@ func TestGetEnvironment(t *testing.T) {
 				Description: "Autoscaling replicas",
 			})
 
-			require.NoError(t, db.Query.UpsertAppRegionalSettings(ctx, h.DB.RW(), db.UpsertAppRegionalSettingsParams{
-				WorkspaceID:   workspace.ID,
-				AppID:         app.ID,
-				EnvironmentID: environment.ID,
-				RegionID:      regionID,
-				Replicas:      2,
-				CreatedAt:     now,
-				UpdatedAt:     sql.NullInt64{Valid: false},
+			policyID := uid.New(uid.AutoscalingPolicyPrefix)
+			require.NoError(t, db.Query.InsertHorizontalAutoscalingPolicy(ctx, h.DB.RW(), db.InsertHorizontalAutoscalingPolicyParams{
+				ID:           policyID,
+				WorkspaceID:  workspace.ID,
+				ReplicasMin:  1,
+				ReplicasMax:  5,
+				CpuThreshold: sql.NullInt16{Int16: 80, Valid: true},
+				CreatedAt:    now,
 			}))
 
-			// No typed query for autoscaling policies on this branch; insert raw and
-			// point the regional setting at it.
-			policyID := uid.New("hap")
-			_, err := h.DB.RW().ExecContext(ctx,
-				"INSERT INTO horizontal_autoscaling_policies (id, workspace_id, replicas_min, replicas_max, cpu_threshold, memory_threshold, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
-				policyID, workspace.ID, 1, 5, 80, 80, now)
-			require.NoError(t, err)
-			_, err = h.DB.RW().ExecContext(ctx,
-				"UPDATE app_regional_settings SET horizontal_autoscaling_policy_id = ? WHERE app_id = ? AND environment_id = ? AND region_id = ?",
-				policyID, app.ID, environment.ID, regionID)
-			require.NoError(t, err)
+			require.NoError(t, db.Query.UpsertAppRegionalSettings(ctx, h.DB.RW(), db.UpsertAppRegionalSettingsParams{
+				WorkspaceID:                   workspace.ID,
+				AppID:                         app.ID,
+				EnvironmentID:                 environment.ID,
+				RegionID:                      regionID,
+				Replicas:                      2,
+				HorizontalAutoscalingPolicyID: sql.NullString{String: policyID, Valid: true},
+				CreatedAt:                     now,
+				UpdatedAt:                     sql.NullInt64{Valid: false},
+			}))
 
 			res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
 				Project:     project.ID,

@@ -55,7 +55,10 @@ export const DeployProductCard: React.FC<DeployProductCardProps> = ({
     trpc.stripe.getDeploySubscription.useQuery(undefined, { staleTime: 30_000 });
   const { data: plansData, isLoading: plansLoading } = trpc.stripe.getDeployPlans.useQuery(
     undefined,
-    { staleTime: 60_000 },
+    {
+      staleTime: 60_000,
+      trpc: { context: { skipBatch: true } },
+    },
   );
 
   const currentPlan = subscription?.plan ?? null;
@@ -66,6 +69,7 @@ export const DeployProductCard: React.FC<DeployProductCardProps> = ({
   const { data: deployCredit } = trpc.stripe.getDeployCredit.useQuery(undefined, {
     enabled: Boolean(currentPlan),
     staleTime: 30_000,
+    trpc: { context: { skipBatch: true } },
   });
 
   // For the renewal date. The billing summary strip already fetches this, so on
@@ -73,6 +77,7 @@ export const DeployProductCard: React.FC<DeployProductCardProps> = ({
   const { data: upcomingInvoice } = trpc.stripe.getUpcomingInvoice.useQuery(undefined, {
     enabled: Boolean(currentPlan) && hasPaymentMethod,
     staleTime: 30_000,
+    trpc: { context: { skipBatch: true } },
   });
 
   // Usage is only worth fetching (and rendering) once there is a plan.

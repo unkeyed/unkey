@@ -114,7 +114,6 @@ export async function createKeyCore(
     hash,
     start,
     identityId: input.identityId,
-    ownerId: input.externalId,
     meta: JSON.stringify(input.meta ?? {}),
     workspaceId: ctx.workspace.id,
     forWorkspaceId: null,

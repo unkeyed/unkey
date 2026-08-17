@@ -3,10 +3,6 @@ title: Gateway
 description: The gateway enforces policies on every request before it reaches your app, rejecting traffic that fails authentication, rate limits, or other checks.
 ---
 
-import DeployBeta from "/snippets/deploy-beta.mdx";
-
-<DeployBeta />
-
 The gateway enforces [policies](/platform/gateway/policies/overview) on every inbound request before it reaches your app. It runs as part of [Frontline](/networking/public-networking), Unkey's network layer. If you know API gateways, it fills the same role. It checks each request, applies policies like authentication and rate limiting, and forwards only traffic that passes every check.
 
 ## Per-environment policies

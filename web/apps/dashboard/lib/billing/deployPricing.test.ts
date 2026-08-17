@@ -1,9 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
+  type ComputeMeterQuantities,
   type DeployMeterRates,
   type DeployUsageQuantities,
   MICRO_CENTS_PER_CENT,
   microCentsToCents,
+  priceActiveKeysMicroCents,
+  priceComputeMeterMicroCents,
   priceDeployMetersCents,
   priceDeployUsageMicroCents,
   projectDeployUsage,
@@ -85,6 +88,75 @@ describe("sumDeployMeterCents", () => {
         activeKeys: 0,
       }),
     ).toBe(0);
+  });
+});
+
+describe("priceActiveKeysMicroCents", () => {
+  it("prices no keys as zero", () => {
+    expect(priceActiveKeysMicroCents(0)).toBe(0);
+  });
+
+  it("splits across apps to the same price as the combined count", () => {
+    expect(priceActiveKeysMicroCents(120) + priceActiveKeysMicroCents(80)).toBe(
+      priceActiveKeysMicroCents(200),
+    );
+  });
+
+  it("adds to the compute meters to give the full usage price", () => {
+    const compute: ComputeMeterQuantities = {
+      cpuSeconds: 1234.5,
+      memoryGiBHours: 7.25,
+      diskGiBHours: 3,
+      egressGiB: 0.4,
+    };
+
+    expect(priceComputeMeterMicroCents(compute) + priceActiveKeysMicroCents(37)).toBe(
+      priceDeployUsageMicroCents({ ...compute, activeKeys: 37 }),
+    );
+  });
+});
+
+describe("priceComputeMeterMicroCents", () => {
+  const tinySlice: ComputeMeterQuantities = {
+    cpuSeconds: 100,
+    memoryGiBHours: 0.1,
+    diskGiBHours: 1,
+    egressGiB: 0.01,
+  };
+
+  it("keeps a sub-cent slice non-zero", () => {
+    expect(priceComputeMeterMicroCents(tinySlice)).toBeGreaterThan(0);
+    expect(sumDeployMeterCents({ ...tinySlice, activeKeys: 0 })).toBe(0);
+  });
+
+  it("sums across slices to the same price as the combined usage", () => {
+    const a: ComputeMeterQuantities = {
+      cpuSeconds: 1234.5,
+      memoryGiBHours: 7.25,
+      diskGiBHours: 3,
+      egressGiB: 0.4,
+    };
+    const b: ComputeMeterQuantities = {
+      cpuSeconds: 987.25,
+      memoryGiBHours: 2.5,
+      diskGiBHours: 11,
+      egressGiB: 1.6,
+    };
+    const combined: ComputeMeterQuantities = {
+      cpuSeconds: a.cpuSeconds + b.cpuSeconds,
+      memoryGiBHours: a.memoryGiBHours + b.memoryGiBHours,
+      diskGiBHours: a.diskGiBHours + b.diskGiBHours,
+      egressGiB: a.egressGiB + b.egressGiB,
+    };
+
+    const summed = priceComputeMeterMicroCents(a) + priceComputeMeterMicroCents(b);
+    expect(Math.abs(summed - priceComputeMeterMicroCents(combined))).toBeLessThanOrEqual(1);
+  });
+
+  it("excludes active keys, which have no project attribution", () => {
+    expect(priceComputeMeterMicroCents({ ...tinySlice })).toBe(
+      priceDeployUsageMicroCents({ ...tinySlice, activeKeys: 0 }),
+    );
   });
 });
 

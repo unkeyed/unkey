@@ -279,6 +279,7 @@ func Run(ctx context.Context, cfg Config) error {
 		Database:                   database,
 		Restate:                    restateClient,
 		RestateAdmin:               restateAdminClient,
+		Auditlogs:                  auditlogSvc,
 		CnameDomain:                cfg.CnameDomain,
 		DomainConnectPrivateKeyPEM: dcPrivateKeyPEM,
 		Bearer:                     cfg.AuthToken,

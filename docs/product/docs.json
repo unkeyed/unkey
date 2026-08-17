@@ -503,6 +503,8 @@
                       "errors/unkey/data/app_not_found",
                       "errors/unkey/data/audit_log_not_found",
                       "errors/unkey/data/deployment_not_found",
+                      "errors/unkey/data/domain_already_exists",
+                      "errors/unkey/data/domain_not_found",
                       "errors/unkey/data/environment_not_found",
                       "errors/unkey/data/identity_already_exists",
                       "errors/unkey/data/identity_not_found",
@@ -522,6 +524,12 @@
                       "errors/unkey/data/role_already_exists",
                       "errors/unkey/data/role_not_found",
                       "errors/unkey/data/workspace_not_found"
+                    ]
+                  },
+                  {
+                    "group": "Limits",
+                    "pages": [
+                      "errors/unkey/limits/custom_domain_limit_exceeded"
                     ]
                   }
                 ]
@@ -581,7 +589,8 @@
                       "errors/frontline/client/invalid_key",
                       "errors/frontline/client/missing_credentials",
                       "errors/frontline/client/openapi_validation_failed",
-                      "errors/frontline/client/rate_limited"
+                      "errors/frontline/client/rate_limited",
+                      "errors/frontline/client/usage_exceeded"
                     ]
                   },
                   {

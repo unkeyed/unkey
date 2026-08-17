@@ -4,8 +4,7 @@
   "scripts": {
     "environment-kind": "tsx ./environment-kind.ts",
     "logging-policy": "tsx ./logging-policy.ts",
-    "migrate": "dotenv -e .env npx tsx ./main.ts",
-    "project-ownership": "tsx ./project-ownership.ts"
+    "migrate": "dotenv -e .env npx tsx ./main.ts"
   },
   "keywords": [],
   "author": "Andreas Thomas",

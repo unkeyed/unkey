@@ -3,14 +3,20 @@ post:
     - permissions
   summary: Create role
   description: |
-    Create a new role to group related permissions for easier management. Roles enable consistent permission assignment across multiple API keys.
+    Create a new role to group related permissions for easier management. Roles enable consistent permission assignment across multiple API keys. Permission slugs supplied in `permissions` are attached during creation. Missing permissions are created automatically.
 
     **Important:** Role names must be unique within the workspace. Once created, roles are immediately available for assignment.
 
     **Required Permissions**
 
-    Your root key must have the following permission:
+    Your root key must always have:
     - `rbac.*.create_role`
+
+    When `permissions` is not empty, it must also have:
+    - `rbac.*.add_permission_to_role`
+
+    When any requested permission slug does not exist, it must also have:
+    - `rbac.*.create_permission`
   operationId: permissions.createRole
   x-speakeasy-name-override: CreateRole
   security:
@@ -26,6 +32,9 @@ post:
             value:
               name: content.editor
               description: Can read and write content
+              permissions:
+                - content.read
+                - content.write
           withoutDescription:
             summary: Role without description
             value:

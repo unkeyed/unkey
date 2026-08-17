@@ -31,3 +31,5 @@ overrides:
   "@tanstack/react-start-config>zod": "3.24.4"
   "@types/react": "19.2.4"
   "@types/react-dom": "19.2.3"
+  "blume>react": "19.2.3"
+  "blume>react-dom": "19.2.3"

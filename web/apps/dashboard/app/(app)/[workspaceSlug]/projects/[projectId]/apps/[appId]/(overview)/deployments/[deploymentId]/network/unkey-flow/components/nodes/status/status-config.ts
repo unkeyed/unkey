@@ -88,7 +88,7 @@ const STATUS_CONFIG: Record<HealthStatus, StatusConfig> = {
   disabled: {
     label: "Disabled",
     icon: TriangleWarning2,
-    message: "Instance is inactive or sentinel is paused.",
+    message: "Instance is inactive or unavailable.",
     showBanner: true,
     colors: {
       dotBg: "bg-gray-9",

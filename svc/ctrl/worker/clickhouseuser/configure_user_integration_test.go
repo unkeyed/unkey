@@ -12,9 +12,9 @@ import (
 )
 
 func TestConfigureUser_Integration(t *testing.T) {
-	h := harness.New(t)
-
 	t.Run("creates new user with default settings", func(t *testing.T) {
+		h := harness.New(t)
+
 		ws := h.Seed.CreateWorkspaceWithLimits(h.Ctx, seed.CreateWorkspaceWithLimitsRequest{
 			RequestsPerMonth:  1_000_000,
 			LogsRetentionDays: 30,
@@ -53,6 +53,8 @@ func TestConfigureUser_Integration(t *testing.T) {
 	})
 
 	t.Run("updates existing user settings", func(t *testing.T) {
+		h := harness.New(t)
+
 		ws := h.Seed.CreateWorkspaceWithLimits(h.Ctx, seed.CreateWorkspaceWithLimitsRequest{
 			RequestsPerMonth:  1_000_000,
 			LogsRetentionDays: 30,

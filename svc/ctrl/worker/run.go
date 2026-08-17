@@ -63,6 +63,8 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/worker/routing"
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 )
 
 // Run starts the Restate worker service with the provided configuration.
@@ -158,7 +160,7 @@ func Run(ctx context.Context, cfg Config) error {
 
 	// Create GitHub client for deploy workflow (optional)
 	var ghClient githubclient.GitHubClient = githubclient.NewNoop()
-	if cfg.GitHub != nil {
+	if cfg.GitHub != nil && cfg.GitHub.AppID != 0 && cfg.GitHub.PrivateKeyPEM != "" {
 		client, ghErr := githubclient.NewClient(githubclient.ClientConfig{
 			AppID:         cfg.GitHub.AppID,
 			PrivateKeyPEM: cfg.GitHub.PrivateKeyPEM,
@@ -251,21 +253,47 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("invalid build platform: %w", err)
 	}
 
-	restateSrv.Bind(hydrav1.NewDeployServiceServer(deploy.New(deploy.Config{
+	buildConfig := deploy.BuildConfig{
+		Backend:    deploy.BuildBackend(cfg.Build.Backend),
+		Depot:      deploy.DepotConfig(cfg.GetDepotConfig()),
+		Kubernetes: deploy.KubernetesBuildConfig(cfg.Build.Kubernetes),
+	}
+
+	// The kubernetes build backend runs build Jobs in the worker's own
+	// cluster, so it only works when the worker itself runs in-cluster.
+	var k8sClient kubernetes.Interface
+	if buildConfig.Backend == deploy.BuildBackendKubernetes {
+		restCfg, restErr := rest.InClusterConfig()
+		if restErr != nil {
+			return fmt.Errorf("kubernetes build backend requires in-cluster credentials: %w", restErr)
+		}
+		k8sClient, err = kubernetes.NewForConfig(restCfg)
+		if err != nil {
+			return fmt.Errorf("failed to create kubernetes client: %w", err)
+		}
+	}
+
+	deployWorkflow, err := deploy.New(deploy.Config{
 		DB:            database,
 		DefaultDomain: cfg.DefaultDomain,
 		Vault:         vaultClient,
 
 		GitHub:                          ghClient,
+		Build:                           buildConfig,
+		K8s:                             k8sClient,
 		RegistryConfig:                  deploy.RegistryConfig(cfg.GetRegistryConfig()),
 		BuildPlatform:                   deploy.BuildPlatform(buildPlatform),
-		DepotConfig:                     deploy.DepotConfig(cfg.GetDepotConfig()),
 		Clickhouse:                      ch,
 		BuildSteps:                      buildSteps,
 		BuildStepLogs:                   buildStepLogs,
 		AllowUnauthenticatedDeployments: ptr.SafeDeref(cfg.GitHub).AllowUnauthenticatedDeployments,
 		DashboardURL:                    cfg.DashboardURL,
-	}),
+	})
+	if err != nil {
+		return fmt.Errorf("failed to create deploy workflow: %w", err)
+	}
+
+	restateSrv.Bind(hydrav1.NewDeployServiceServer(deployWorkflow,
 		// Retry with exponential backoff: 2s → 4s → 8s → 16s → 30s (capped),
 		// 15 attempts (~5 min total). Short backoffs keep the worst-case
 		// cancel latency low — a user-initiated cancel only lands at the
@@ -339,6 +367,7 @@ func Run(ctx context.Context, cfg Config) error {
 		RestateAdmin:                    restateAdminClient,
 		DashboardURL:                    cfg.DashboardURL,
 		AllowUnauthenticatedDeployments: ptr.SafeDeref(cfg.GitHub).AllowUnauthenticatedDeployments,
+		EnforceDeployGate:               cfg.DeployGate.Enforce,
 	})))
 
 	// Deletion workflows write their audit logs as durable steps, so the audit
@@ -380,11 +409,27 @@ func Run(ctx context.Context, cfg Config) error {
 	// journals have no debugging value (each invocation just reads state,
 	// maybe resolves an awakeable, and returns), so keep their retention
 	// minimal.
+	//
+	// Kill on retry exhaustion, not pause, and never the unset default of
+	// endless retries. This Virtual Object serializes all slot traffic for
+	// a workspace, so one stuck invocation blocks every deployment in that
+	// workspace. The handlers are idempotent and hold no compensations.
+	// The lease mechanism audits every durable effect (slot grants, wait
+	// entries, ExpireSlot leases), so the next call or audit repairs
+	// everything a killed invocation loses.
 	restateSrv.Bind(hydrav1.NewBuildSlotServiceServer(buildslot.New(buildslot.Config{
-		DB: database,
+		DB:           database,
+		RestateAdmin: restateAdminClient,
 	}),
 		restate.WithIngressPrivate(true),
 		restate.WithJournalRetention(1*time.Minute),
+		restate.WithInvocationRetryPolicy(
+			restate.WithInitialInterval(100*time.Millisecond),
+			restate.WithExponentiationFactor(2.0),
+			restate.WithMaxInterval(10*time.Second),
+			restate.WithMaxAttempts(20),
+			restate.KillOnMaxAttempts(),
+		),
 	))
 
 	restateSrv.Bind(hydrav1.NewCustomDomainServiceServer(workercustomdomain.New(workercustomdomain.Config{

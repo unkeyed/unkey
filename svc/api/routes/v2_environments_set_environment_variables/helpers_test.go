@@ -2,6 +2,7 @@ package handler_test
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"net/http"
 	"strings"
@@ -81,22 +82,24 @@ type rawVar struct {
 	description string
 }
 
-func listRawVars(t *testing.T, h *testutil.Harness, environmentID string) map[string]rawVar {
+func listRawVars(t *testing.T, h *testutil.Harness, env seededEnv) map[string]rawVar {
 	t.Helper()
-	rows, err := h.DB.RO().QueryContext(context.Background(),
-		"SELECT `key`, value, `type`, COALESCE(description, '') FROM app_environment_variables WHERE environment_id = ?",
-		environmentID)
+	rows, err := db.Query.ListAppEnvVarsByAppAndEnv(context.Background(), h.DB.RO(), db.ListAppEnvVarsByAppAndEnvParams{
+		AppID:         env.appID,
+		EnvironmentID: env.environmentID,
+		IDCursor:      "",
+		Limit:         100,
+	})
 	require.NoError(t, err)
-	defer func() { _ = rows.Close() }()
 
 	out := make(map[string]rawVar)
-	for rows.Next() {
-		var key string
-		var v rawVar
-		require.NoError(t, rows.Scan(&key, &v.value, &v.varType, &v.description))
-		out[key] = v
+	for _, row := range rows {
+		out[row.Key] = rawVar{
+			value:       row.Value,
+			varType:     row.Type,
+			description: row.Description.String,
+		}
 	}
-	require.NoError(t, rows.Err())
 	return out
 }
 
@@ -110,14 +113,17 @@ func seedVar(t *testing.T, h *testutil.Harness, env seededEnv, key, value string
 // seedVarFull is seedVar with an explicit description (empty string stored as NULL).
 func seedVarFull(t *testing.T, h *testutil.Harness, env seededEnv, key, value string, varType db.AppEnvironmentVariablesType, description string) {
 	t.Helper()
-	var desc any
-	if description != "" {
-		desc = description
-	}
-	_, err := h.DB.RW().ExecContext(context.Background(),
-		"INSERT INTO app_environment_variables (id, workspace_id, app_id, environment_id, `key`, value, `type`, description, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-		uid.New(uid.EnvironmentVariablePrefix), env.workspaceID, env.appID, env.environmentID, key, value, varType, desc, 1)
-	require.NoError(t, err)
+	require.NoError(t, db.Query.InsertAppEnvironmentVariable(context.Background(), h.DB.RW(), db.InsertAppEnvironmentVariableParams{
+		ID:            uid.New(uid.EnvironmentVariablePrefix),
+		WorkspaceID:   env.workspaceID,
+		AppID:         env.appID,
+		EnvironmentID: env.environmentID,
+		EnvKey:        key,
+		Value:         value,
+		Type:          varType,
+		Description:   sql.NullString{String: description, Valid: description != ""},
+		CreatedAt:     1,
+	}))
 }
 
 func authHeaders(rootKey string) http.Header {

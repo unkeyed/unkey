@@ -1,7 +1,7 @@
 # kitchensink
 
 Stdlib-only HTTP server. Each probe lives in its own subpackage and
-demonstrates one platform feature end-to-end — sentinel policies,
+demonstrates one platform feature end-to-end — gateway policies,
 deployment routing, env injection, header propagation, and so on.
 
 Probes double as worked examples: an engineer reading one subpackage

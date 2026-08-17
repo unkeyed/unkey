@@ -84,7 +84,7 @@ func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 	// body capture below is skipped entirely and the row carries no headers
 	// or bodies.
 	if len(decision.Policies) > 0 && h.Engine != nil {
-		result, evalErr := h.Engine.Evaluate(ctx, sess, req, decision.WorkspaceID, decision.Policies)
+		result, evalErr := h.Engine.Evaluate(ctx, sess, req, decision.WorkspaceID, decision.AppID, decision.Policies)
 		if evalErr != nil {
 			return evalErr
 		}

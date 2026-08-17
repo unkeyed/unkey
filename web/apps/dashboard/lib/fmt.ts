@@ -25,6 +25,30 @@ export function formatPrice(price: number) {
   }).format(price / 100);
 }
 
+// Formatted in UTC instead of with date-fns, because billing periods are cut at
+// UTC midnight while date-fns formats in the reader's own timezone, which prints
+// the previous day for anyone west of UTC.
+export function formatPeriod(startMillis: number, endMillis: number): string {
+  const part = (millis: number, options: Intl.DateTimeFormatOptions) =>
+    new Date(millis).toLocaleDateString("en-US", { timeZone: "UTC", ...options });
+
+  const day = (millis: number) => part(millis, { day: "numeric" });
+  const monthDay = (millis: number) => part(millis, { month: "short", day: "numeric" });
+  const year = (millis: number) => part(millis, { year: "numeric" });
+  const month = (millis: number) => part(millis, { month: "short" });
+
+  if (year(startMillis) !== year(endMillis)) {
+    return `${monthDay(startMillis)}, ${year(startMillis)} – ${monthDay(endMillis)}, ${year(endMillis)}`;
+  }
+  if (month(startMillis) !== month(endMillis)) {
+    return `${monthDay(startMillis)} – ${monthDay(endMillis)}, ${year(endMillis)}`;
+  }
+  if (day(startMillis) === day(endMillis)) {
+    return `${monthDay(endMillis)}, ${year(endMillis)}`;
+  }
+  return `${monthDay(startMillis)} – ${day(endMillis)}, ${year(endMillis)}`;
+}
+
 /**
  * Formats cents as dollars, dropping the cents when the amount is whole:
  * $5 instead of $5.00, but $46.20 stays $46.20. For plan fees and billing

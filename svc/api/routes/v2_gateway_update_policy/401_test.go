@@ -23,9 +23,9 @@ func TestUpdatePolicyUnauthorized(t *testing.T) {
 	}
 	req := makeRequest(seededEnv{
 		workspaceID:   "",
-		projectID:     "payments",
-		appID:         "payments-api",
-		environmentID: "env_1234abcd",
+		projectID:     uid.New(uid.ProjectPrefix),
+		appID:         uid.New(uid.AppPrefix),
+		environmentID: uid.New(uid.EnvironmentPrefix),
 	}, uid.New(uid.PolicyPrefix))
 	req.Name = ptr.P("KEBAP")
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)

@@ -15,6 +15,15 @@ import (
 	"github.com/unkeyed/unkey/pkg/cli"
 )
 
+type responseMeta struct {
+	RequestID string `json:"requestId"`
+}
+
+type responseEnvelope struct {
+	Meta responseMeta `json:"meta"`
+	Data any          `json:"data"`
+}
+
 // CaptureRequest runs a CLI command against a local test server, captures the
 // JSON request body, and unmarshals it into T. The test server responds with a
 // minimal valid envelope so the SDK does not error.
@@ -26,14 +35,12 @@ import (
 //	require.Equal(t, handler.Request{ApiId: "api_123"}, req)
 func CaptureRequest[T any](t *testing.T, cmd *cli.Command, args string) T {
 	t.Helper()
-	return CaptureRequestWithResponse[T](t, cmd, args, `{"meta":{"requestId":"test"},"data":{}}`)
+	return CaptureRequestWithData[T](t, cmd, args, struct{}{})
 }
 
-// CaptureRequestWithResponse is like CaptureRequest but lets the caller supply
-// a custom JSON response body. Use this when the default object-shaped data
-// envelope (`"data":{}`) does not match the SDK's expected response type (e.g.
-// endpoints that return an array in `data`).
-func CaptureRequestWithResponse[T any](t *testing.T, cmd *cli.Command, args string, response string) T {
+// CaptureRequestWithData is like CaptureRequest but lets the caller supply the
+// response envelope's data value. Use this for endpoints that return an array.
+func CaptureRequestWithData[T any](t *testing.T, cmd *cli.Command, args string, responseData any) T {
 	t.Helper()
 
 	var body []byte
@@ -45,7 +52,13 @@ func CaptureRequestWithResponse[T any](t *testing.T, cmd *cli.Command, args stri
 		}
 		body = b
 		w.Header().Set("Content-Type", "application/json")
-		_, _ = w.Write([]byte(response))
+		response := responseEnvelope{
+			Meta: responseMeta{RequestID: "test"},
+			Data: responseData,
+		}
+		if err := json.NewEncoder(w).Encode(response); err != nil {
+			t.Errorf("failed to encode response: %v", err)
+		}
 	}))
 	t.Cleanup(srv.Close)
 

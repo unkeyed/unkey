@@ -201,14 +201,16 @@ func TestInvoiceCreated_IgnoresMismatchedSubscription(t *testing.T) {
 	// invocations, so hardcoded ids made this pass once and then fail on every
 	// re-run with a duplicate-key error on workspaces.id.
 	wsID := uid.New(uid.WorkspacePrefix)
-	customerID := "cus_" + uid.New("test")
-	subID := "sub_" + uid.New("test")
+	customerID := uid.New("cus")
+	subID := uid.New("sub")
 
-	_, err = database.RW().ExecContext(context.Background(),
-		`INSERT INTO workspaces (id, org_id, name, slug, beta_features) VALUES (?, ?, ?, ?, ?)`,
-		wsID, "org_"+uid.New("test"), "Deploy WS", wsID, "[]",
-	)
-	require.NoError(t, err)
+	require.NoError(t, database.InsertWorkspace(context.Background(), db.InsertWorkspaceParams{
+		ID:        wsID,
+		OrgID:     uid.New(uid.OrgPrefix),
+		Name:      "Deploy WS",
+		Slug:      wsID,
+		CreatedAt: time.Now().UnixMilli(),
+	}))
 	_, err = database.RW().ExecContext(context.Background(),
 		`INSERT INTO workspace_billing (workspace_id, plan, stripe_customer_id) VALUES (?, ?, ?)`,
 		wsID, "pro", customerID,

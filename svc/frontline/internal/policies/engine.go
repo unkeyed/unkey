@@ -39,7 +39,7 @@ type Config struct {
 
 // Evaluator evaluates policies against incoming requests.
 type Evaluator interface {
-	Evaluate(ctx context.Context, sess *zen.Session, req *http.Request, workspaceID string, mw []*frontlinev1.Policy) (Result, error)
+	Evaluate(ctx context.Context, sess *zen.Session, req *http.Request, workspaceID, appID string, mw []*frontlinev1.Policy) (Result, error)
 }
 
 // Engine implements Evaluator.
@@ -131,6 +131,7 @@ func (e *Engine) Evaluate(
 	sess *zen.Session,
 	req *http.Request,
 	workspaceID string,
+	appID string,
 	policies []*frontlinev1.Policy,
 ) (Result, error) {
 	var result Result
@@ -157,7 +158,7 @@ func (e *Engine) Evaluate(
 			}
 
 			t := time.Now()
-			principal, execErr := e.keyAuth.Execute(ctx, sess, req, cfg.Keyauth)
+			principal, execErr := e.keyAuth.Execute(ctx, sess, req, appID, cfg.Keyauth)
 			engineEvaluationDuration.WithLabelValues("keyauth").Observe(time.Since(t).Seconds())
 
 			if execErr != nil {

@@ -48,7 +48,6 @@ export const keys = mysqlTable(
      */
     forWorkspaceId: id("for_workspace_id"),
     name: caseInsensitiveVarchar("name", { length: 256 }),
-    ownerId: caseSensitiveVarchar("owner_id", { length: 256 }),
     identityId: id("identity_id"),
     meta: text("meta"),
     expires: datetime("expires", { fsp: 3 }), // unix milli,
@@ -108,7 +107,6 @@ export const keys = mysqlTable(
     forWorkspaceIdIndex: index("idx_keys_on_for_workspace_id").on(table.forWorkspaceId),
     pendingMigrationIdIndex: index("pending_migration_id_idx").on(table.pendingMigrationId),
     workspaceIdIndex: index("idx_keys_on_workspace_id").on(table.workspaceId),
-    ownerIdIndex: index("owner_id_idx").on(table.ownerId),
     identityIdIndex: index("identity_id_idx").on(table.identityId, table.keyAuthId, table.id),
     refillIndex: index("idx_keys_refill").on(table.refillAmount, table.deletedAtM),
   }),

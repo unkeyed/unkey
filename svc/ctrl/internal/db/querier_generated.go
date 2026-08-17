@@ -52,6 +52,12 @@ type Querier interface {
 	//  FROM instances i
 	//  WHERE i.deployment_id IN (/*SLICE:ids*/?)
 	CountActiveDeploymentsByIds(ctx context.Context, ids []string) (int64, error)
+	// Covered by unique_domain_workspace_idx, which leads on workspace_id.
+	//
+	//  SELECT COUNT(*)
+	//  FROM custom_domains
+	//  WHERE workspace_id = ?
+	CountCustomDomainsByWorkspace(ctx context.Context, workspaceID string) (int64, error)
 	//DeleteAcmeChallengeByDomainID
 	//
 	//  DELETE FROM acme_challenges WHERE domain_id = ?
@@ -346,6 +352,14 @@ type Querier interface {
 	//  SELECT pk, id, workspace_id, project_id, app_id, environment_id, domain, challenge_type, verification_status, verification_token, ownership_verified, cname_verified, target_cname, last_checked_at, check_attempts, verification_error, domain_connect_provider, domain_connect_url, invocation_id, created_at, updated_at FROM custom_domains
 	//  WHERE workspace_id = ? AND domain = ?
 	FindCustomDomainByWorkspaceAndDomain(ctx context.Context, arg FindCustomDomainByWorkspaceAndDomainParams) (CustomDomain, error)
+	// Covered by unique_domain_workspace_idx.
+	//
+	//  SELECT id
+	//  FROM custom_domains
+	//  WHERE workspace_id = ?
+	//    AND domain = ?
+	//  LIMIT 1
+	FindCustomDomainIDByWorkspaceAndDomain(ctx context.Context, arg FindCustomDomainIDByWorkspaceAndDomainParams) (string, error)
 	// FindDefaultProjectByWorkspaceID resolves only the exact lowercase default slug.
 	// BINARY prevents case-insensitive collations from accepting a different project.
 	//
@@ -524,9 +538,14 @@ type Querier interface {
 	FindInstancesByDeploymentIdAndRegionID(ctx context.Context, arg FindInstancesByDeploymentIdAndRegionIDParams) ([]Instance, error)
 	//FindKeyByID
 	//
-	//  SELECT pk, id, key_auth_id, hash, start, workspace_id, for_workspace_id, name, owner_id, identity_id, meta, expires, created_at_m, updated_at_m, deleted_at_m, refill_day, refill_amount, last_refill_at, enabled, remaining_requests, environment, last_used_at, pending_migration_id FROM `keys` k
+	//  SELECT
+	//      k.pk, k.id, k.key_auth_id, k.hash, k.start, k.workspace_id, k.for_workspace_id,
+	//      k.name, k.identity_id, k.meta, k.expires, k.created_at_m, k.updated_at_m,
+	//      k.deleted_at_m, k.refill_day, k.refill_amount, k.last_refill_at, k.enabled,
+	//      k.remaining_requests, k.environment, k.last_used_at, k.pending_migration_id
+	//  FROM `keys` k
 	//  WHERE k.id = ?
-	FindKeyByID(ctx context.Context, id string) (Key, error)
+	FindKeyByID(ctx context.Context, id string) (FindKeyByIDRow, error)
 	// FindKeyIDByHash returns just the key ID for a given hash. Use this when
 	// you only need the ID for a subsequent mutation and do not need the full
 	// verification payload with roles, permissions, and rate limits.
@@ -1131,7 +1150,6 @@ type Querier interface {
 	//      workspace_id,
 	//      for_workspace_id,
 	//      name,
-	//      owner_id,
 	//      identity_id,
 	//      meta,
 	//      expires,
@@ -1149,7 +1167,6 @@ type Querier interface {
 	//      ?,
 	//      ?,
 	//      ?,
-	//      null,
 	//      ?,
 	//      ?,
 	//      ?,

@@ -5,12 +5,15 @@ import (
 	"database/sql"
 	"fmt"
 	"net/http"
+	"slices"
+	"strings"
 	"time"
 
 	"github.com/unkeyed/unkey/internal/services/auditlogs"
 	"github.com/unkeyed/unkey/pkg/auditlog"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
+	dbtype "github.com/unkeyed/unkey/pkg/db/types"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/ptr"
@@ -23,6 +26,13 @@ import (
 
 type Request = openapi.V2PermissionsCreateRoleRequestBody
 type Response = openapi.V2PermissionsCreateRoleResponseBody
+
+type rolePermission struct {
+	ID          string
+	Name        string
+	Slug        string
+	Description dbtype.NullString
+}
 
 // Handler implements zen.Route interface for the v2 permissions create role endpoint
 type Handler struct {
@@ -68,16 +78,135 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
+	permissionSlugs := make([]string, 0)
+	if req.Permissions != nil {
+		seen := make(map[string]struct{}, len(*req.Permissions))
+		for _, slug := range *req.Permissions {
+			normalizedSlug := strings.ToLower(slug)
+			if _, ok := seen[normalizedSlug]; ok {
+				continue
+			}
+			seen[normalizedSlug] = struct{}{}
+			permissionSlugs = append(permissionSlugs, slug)
+		}
+	}
+	slices.Sort(permissionSlugs)
+
+	if len(permissionSlugs) > 0 {
+		err = principal.Authorize(rbac.T(rbac.Tuple{
+			ResourceType: rbac.Rbac,
+			ResourceID:   "*",
+			Action:       rbac.AddPermissionToRole,
+		}))
+		if err != nil {
+			return err
+		}
+	}
+
 	// 4. Prepare role creation
 	roleID := uid.New(uid.RolePrefix)
 	description := ptr.SafeDeref(req.Description)
 
-	// 5. Create role in a transaction with audit log
+	// 5. Create role and permissions in a transaction with audit logs
 	err = db.TxRetry(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
+		permissions := make([]rolePermission, 0, len(permissionSlugs))
+		createdPermissions := make([]rolePermission, 0)
+		var missingSlugs []string
+
+		if len(permissionSlugs) > 0 {
+			foundPermissions, findErr := db.Query.FindPermissionsBySlugsForUpdate(ctx, tx, db.FindPermissionsBySlugsForUpdateParams{
+				WorkspaceID: principal.WorkspaceID,
+				Slugs:       permissionSlugs,
+			})
+			if findErr != nil {
+				return fault.Wrap(findErr,
+					fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+					fault.Internal("database error"), fault.Public("Failed to lookup permissions."),
+				)
+			}
+
+			permissionsBySlug := make(map[string]rolePermission, len(foundPermissions))
+			for _, permission := range foundPermissions {
+				permissionsBySlug[strings.ToLower(permission.Slug)] = rolePermission(permission)
+			}
+
+			missingSlugs = make([]string, 0, len(permissionSlugs)-len(foundPermissions))
+			for _, slug := range permissionSlugs {
+				if permission, ok := permissionsBySlug[strings.ToLower(slug)]; ok {
+					permissions = append(permissions, permission)
+					continue
+				}
+				missingSlugs = append(missingSlugs, slug)
+			}
+
+			if len(missingSlugs) > 0 {
+				if authorizeErr := principal.Authorize(rbac.T(rbac.Tuple{
+					ResourceType: rbac.Rbac,
+					ResourceID:   "*",
+					Action:       rbac.CreatePermission,
+				})); authorizeErr != nil {
+					return authorizeErr
+				}
+
+				projectID, projectErr := projects.EnsureDefaultProject(ctx, tx, principal.WorkspaceID)
+				if projectErr != nil {
+					return projectErr
+				}
+
+				candidates := make(map[string]db.UpsertPermissionParams, len(missingSlugs))
+				for _, slug := range missingSlugs {
+					candidate := db.UpsertPermissionParams{
+						PermissionID: uid.New(uid.PermissionPrefix),
+						WorkspaceID:  principal.WorkspaceID,
+						ProjectID:    projectID,
+						Name:         slug,
+						Slug:         slug,
+						Description:  dbtype.NullString{String: "", Valid: false},
+						CreatedAtM:   time.Now().UnixMilli(),
+					}
+					candidates[strings.ToLower(slug)] = candidate
+					if upsertErr := db.Query.UpsertPermission(ctx, tx, candidate); upsertErr != nil {
+						return fault.Wrap(upsertErr,
+							fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+							fault.Internal("database error"), fault.Public("Failed to create permissions."),
+						)
+					}
+				}
+
+				foundPermissions, findErr = db.Query.FindPermissionsBySlugsForUpdate(ctx, tx, db.FindPermissionsBySlugsForUpdateParams{
+					WorkspaceID: principal.WorkspaceID,
+					Slugs:       permissionSlugs,
+				})
+				if findErr != nil {
+					return fault.Wrap(findErr,
+						fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+						fault.Internal("database error"), fault.Public("Failed to lookup created permissions."),
+					)
+				}
+
+				permissionsBySlug = make(map[string]rolePermission, len(foundPermissions))
+				for _, permission := range foundPermissions {
+					normalizedSlug := strings.ToLower(permission.Slug)
+					canonicalPermission := rolePermission(permission)
+					permissionsBySlug[normalizedSlug] = canonicalPermission
+					candidate, ok := candidates[normalizedSlug]
+					if ok && candidate.PermissionID == permission.ID {
+						createdPermissions = append(createdPermissions, canonicalPermission)
+					}
+				}
+			}
+
+			permissions = permissions[:0]
+			for _, slug := range permissionSlugs {
+				permissions = append(permissions, permissionsBySlug[strings.ToLower(slug)])
+			}
+		}
+
 		projectID, resolveErr := projects.EnsureDefaultProject(ctx, tx, principal.WorkspaceID)
 		if resolveErr != nil {
 			return resolveErr
 		}
+		now := time.Now().UnixMilli()
 
 		// Insert the role
 		err = db.Query.InsertRole(ctx, tx, db.InsertRoleParams{
@@ -101,13 +230,29 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			)
 		}
 
-		// Create audit log
+		rolePermissions := make([]db.InsertRolePermissionParams, len(permissions))
+		for i, permission := range permissions {
+			rolePermissions[i] = db.InsertRolePermissionParams{
+				RoleID:       roleID,
+				PermissionID: permission.ID,
+				WorkspaceID:  principal.WorkspaceID,
+				CreatedAtM:   now,
+			}
+		}
+		if err = db.BulkQuery.InsertRolePermissions(ctx, tx, rolePermissions); err != nil {
+			return fault.Wrap(err,
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Internal("database error"), fault.Public("Failed to attach permissions to role."),
+			)
+		}
+
+		// Create audit logs
 		metaData := map[string]interface{}{
 			"name":        req.Name,
 			"description": description,
 		}
 
-		err = h.Auditlogs.Insert(ctx, tx, []auditlog.AuditLog{
+		auditLogs := []auditlog.AuditLog{
 			{
 				WorkspaceID:   principal.WorkspaceID,
 				Event:         auditlog.RoleCreateEvent,
@@ -129,7 +274,67 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 					},
 				},
 			},
-		})
+		}
+
+		for _, permission := range createdPermissions {
+			auditLogs = append(auditLogs, auditlog.AuditLog{
+				WorkspaceID:   principal.WorkspaceID,
+				Event:         auditlog.PermissionCreateEvent,
+				ActorType:     auditlog.AuditLogActor(principal.Subject.Type),
+				ActorID:       principal.Subject.ID,
+				ActorName:     principal.Subject.Name,
+				ActorMeta:     map[string]any{},
+				Display:       fmt.Sprintf("Created %s (%s)", permission.Slug, permission.ID),
+				RemoteIP:      s.Location(),
+				UserAgent:     s.UserAgent(),
+				CorrelationID: "",
+				Resources: []auditlog.AuditLogResource{
+					{
+						Type:        auditlog.PermissionResourceType,
+						ID:          permission.ID,
+						Name:        permission.Slug,
+						DisplayName: permission.Name,
+						Meta: map[string]any{
+							"name": permission.Name,
+							"slug": permission.Slug,
+						},
+					},
+				},
+			})
+		}
+
+		for _, permission := range permissions {
+			auditLogs = append(auditLogs, auditlog.AuditLog{
+				WorkspaceID:   principal.WorkspaceID,
+				Event:         auditlog.AuthConnectRolePermissionEvent,
+				ActorType:     auditlog.AuditLogActor(principal.Subject.Type),
+				ActorID:       principal.Subject.ID,
+				ActorName:     principal.Subject.Name,
+				ActorMeta:     map[string]any{},
+				Display:       fmt.Sprintf("Added permission %s to role %s", permission.Name, req.Name),
+				RemoteIP:      s.Location(),
+				UserAgent:     s.UserAgent(),
+				CorrelationID: "",
+				Resources: []auditlog.AuditLogResource{
+					{
+						Type:        auditlog.RoleResourceType,
+						ID:          roleID,
+						Name:        req.Name,
+						DisplayName: req.Name,
+						Meta:        metaData,
+					},
+					{
+						Type:        auditlog.PermissionResourceType,
+						ID:          permission.ID,
+						Name:        permission.Slug,
+						DisplayName: permission.Name,
+						Meta:        map[string]any{},
+					},
+				},
+			})
+		}
+
+		err = h.Auditlogs.Insert(ctx, tx, auditLogs)
 		if err != nil {
 			return err
 		}

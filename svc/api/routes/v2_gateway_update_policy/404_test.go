@@ -6,11 +6,14 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	frontlinev1 "github.com/unkeyed/unkey/gen/proto/frontline/v1"
+	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_gateway_update_policy"
+	"google.golang.org/protobuf/proto"
 )
 
 func TestUpdatePolicyNotFound(t *testing.T) {
@@ -60,17 +63,21 @@ func TestUpdatePolicyNotFound(t *testing.T) {
 
 	t.Run("policy id from another environment", func(t *testing.T) {
 		other := seedEnvironment(t, h)
-		foreign := firewallPolicy("KEBAP")
-		seedSentinelConfig(t, h, other, foreign)
-		call(t, makeRequest(env, foreign.GetId()))
+		foreignPolicyID := uid.New(uid.PolicyPrefix)
+		seedSentinelConfig(t, h, other, &frontlinev1.Config{Policies: []*frontlinev1.Policy{{
+			Id:      foreignPolicyID,
+			Name:    "KEBAP",
+			Enabled: proto.Bool(true),
+			Config: &frontlinev1.Policy_Firewall{Firewall: &frontlinev1.Firewall{
+				Action: frontlinev1.Action_ACTION_DENY,
+			}},
+		}}})
+		call(t, makeRequest(env, foreignPolicyID))
 	})
 
 	t.Run("missing runtime settings row", func(t *testing.T) {
 		bare := seedEnvironment(t, h)
-		_, err := h.DB.RW().ExecContext(context.Background(),
-			"DELETE FROM app_runtime_settings WHERE app_id = ? AND environment_id = ?",
-			bare.appID, bare.environmentID)
-		require.NoError(t, err)
+		require.NoError(t, db.Query.DeleteAppRuntimeSettingsByEnvironmentId(context.Background(), h.DB.RW(), bare.environmentID))
 
 		res := call(t, makeRequest(bare, uid.New(uid.PolicyPrefix)))
 		require.Contains(t, res.Body.Error.Type, "policy_not_found")
@@ -78,7 +85,7 @@ func TestUpdatePolicyNotFound(t *testing.T) {
 
 	t.Run("unowned keyspace", func(t *testing.T) {
 		req := makeRequest(env, ids[0])
-		req.Keyauth = &openapi.KeyauthPolicy{Keyspaces: []string{"ks_kebap_unowned"}}
+		req.Keyauth = &openapi.KeyauthPolicy{Keyspaces: []string{uid.New(uid.KeySpacePrefix)}}
 		res := call(t, req)
 		require.Contains(t, res.Body.Error.Type, "key_space_not_found")
 	})

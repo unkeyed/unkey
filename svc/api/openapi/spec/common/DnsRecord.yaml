@@ -1,0 +1,69 @@
+type: object
+required:
+  - type
+  - name
+  - value
+  - ttl
+  - verified
+properties:
+  type:
+    type: string
+    enum:
+      - CNAME
+      - ALIAS
+      - TXT
+    description: |
+      Record type to create. `ALIAS` is not a real DNS record type: it means an apex-compatible
+      alias, which providers expose as ALIAS, ANAME, or a flattened CNAME. Apex domains cannot
+      hold a plain CNAME, so they receive `ALIAS` where a subdomain receives `CNAME`.
+    example: CNAME
+  name:
+    type: string
+    minLength: 1
+    maxLength: 253
+    description: |
+      Fully qualified name of the record, ready to use as-is.
+
+      Some providers want a name relative to the zone instead. Drop the zone and its trailing dot:
+      in zone `acme.com`, `api.acme.com` becomes `api` and `_unkey.api.acme.com` becomes
+      `_unkey.api`. A name equal to the zone itself is usually entered as `@`.
+    example: api.acme.com
+  value:
+    type: string
+    minLength: 1
+    maxLength: 512
+    description: |
+      The value to set on the record, exactly as given, including any prefix.
+      Do not trim or reformat it: verification compares the published record against this string.
+
+      Use the lowest TTL your provider allows until the domain is verified. Verification polls DNS,
+      so a long TTL keeps a stale value cached and can burn the verification window on a value you
+      have already corrected. Raise it afterwards if you want.
+    example: a1b2c3d4e5f6g7h8.cname.unkey.com
+  ttl:
+    type: integer
+    minimum: 1
+    description: |
+      Seconds a resolver may cache this record. Set it in your provider alongside the record's
+      name and value.
+    example: 60
+  verified:
+    type: boolean
+    description: |
+      Whether Unkey has read this record back with the expected value. Use it to see which
+      records are still outstanding.
+
+      False does not always mean the record is missing. A provider that does not expose the
+      published value to a DNS lookup, such as a proxied or flattened routing record, leaves
+      this false for as long as it serves traffic; such a domain verifies through its TXT
+      record instead. Always false on a domain no check has run against yet.
+    example: false
+  note:
+    type: string
+    maxLength: 512
+    description: |
+      What this record is for and any provider-specific caveat that applies to it.
+      Worth surfacing to whoever edits the DNS zone. Treat it as optional: it carries
+      no data the record itself needs, so a future record type may omit it.
+    example: Create as DNS-only if your provider offers the choice.
+additionalProperties: false

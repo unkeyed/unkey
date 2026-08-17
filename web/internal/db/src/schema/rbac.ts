@@ -12,7 +12,7 @@ export const permissions = mysqlTable(
     pk: primaryKey(),
     id: id("id").notNull().unique(),
     workspaceId: id("workspace_id").notNull(),
-    projectId: id("project_id").notNull().default(""),
+    projectId: id("project_id").notNull(),
     name: caseInsensitiveVarchar("name", { length: 512 }).notNull(),
     slug: varchar("slug", { length: 128 }).notNull(),
     description: varchar("description", { length: 512 }),
@@ -82,7 +82,7 @@ export const roles = mysqlTable(
     pk: primaryKey(),
     id: id("id").notNull().unique(),
     workspaceId: id("workspace_id").notNull(),
-    projectId: id("project_id").notNull().default(""),
+    projectId: id("project_id").notNull(),
     name: caseInsensitiveVarchar("name", { length: 512 }).notNull(),
     description: varchar("description", { length: 512 }),
     createdAtM: bigint("created_at_m", { mode: "number" })

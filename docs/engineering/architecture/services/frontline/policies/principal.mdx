@@ -50,6 +50,7 @@ The wire format is authoritative. For the full public reference, see the <a href
       "keySpaceId": "ks_abc123",
       "name": "ACME Production",
       "expiresAt": 1717200000000,
+      "credits": 4900,
       "meta": {},
       "roles": ["admin"],
       "permissions": ["api.read", "api.write"]
@@ -93,6 +94,7 @@ When produced by a KeyAuth policy, `source.key` carries the verified key detail.
 | `keySpaceId`   |          | The keyspace the key belongs to.                                                   |
 | `name`         | yes      | Human-readable key name, when set.                                                 |
 | `expiresAt`    | yes      | Unix timestamp in milliseconds (JSON number). Omitted when the key has no expiry.  |
+| `credits`      | yes      | Credits remaining after this request. Omitted for unlimited keys; `0` is emitted.  |
 | `meta`         |          | Custom key metadata. Always emitted, `{}` when empty.                              |
 | `roles`        | yes      | Raw RBAC role names. Omitted when empty.                                           |
 | `permissions`  | yes      | Raw RBAC permissions. Omitted when empty.                                          |

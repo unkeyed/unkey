@@ -32,6 +32,22 @@ export type DomainPriorityResult = {
   all: ReadonlyArray<DisplayDomain>;
 };
 
+/**
+ * Returns the app-level aliases shown on the overview together with immutable
+ * URLs for the displayed deployment. The `deployment` sticky value identifies
+ * an immutable URL, so routes of that type from older deployments are excluded.
+ */
+export function getAppOverviewDomains(
+  domains: ReadonlyArray<Domain>,
+  deploymentId: string,
+): ReadonlyArray<Domain> {
+  return domains.filter(
+    (domain) =>
+      domain.deploymentId === deploymentId ||
+      (domain.sticky !== "none" && domain.sticky !== "deployment"),
+  );
+}
+
 export function getDomainPriority(ctx: DomainPriorityContext): DomainPriorityResult {
   const isCurrentDeployment = ctx.deploymentId === ctx.currentDeploymentId;
 
@@ -50,11 +66,17 @@ export function getDomainPriority(ctx: DomainPriorityContext): DomainPriorityRes
         }))
     : [];
 
-  // Exclude platform domains that match a verified custom domain to avoid duplicates
-  const customHostnames = new Set(customDisplayDomains.map((cd) => cd.hostname));
+  // A verified custom domain also has a live frontline route. Exclude that route
+  // even when the custom domain belongs to another environment; otherwise the
+  // route would be misclassified as a generated platform alias.
+  const verifiedCustomHostnames = new Set(
+    ctx.customDomains
+      .filter((domain) => domain.verificationStatus === "verified")
+      .map((d) => d.domain),
+  );
 
   const platformDisplayDomains: ReadonlyArray<DisplayDomain> = [...ctx.domains]
-    .filter((d) => !customHostnames.has(d.fullyQualifiedDomainName))
+    .filter((d) => !verifiedCustomHostnames.has(d.fullyQualifiedDomainName))
     .sort((a, b) => a.fullyQualifiedDomainName.localeCompare(b.fullyQualifiedDomainName))
     .map((d) => ({
       source: "platform" as const,

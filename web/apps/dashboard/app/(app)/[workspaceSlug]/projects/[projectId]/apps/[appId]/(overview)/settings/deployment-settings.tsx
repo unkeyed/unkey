@@ -26,7 +26,7 @@ import { UpstreamProtocol } from "./components/advanced-settings/upstream-protoc
 import { SettingsGroup } from "./components/shared/settings-group";
 
 // build is only required to invalidate other defaults. E.g onboarding settings, passes build=true to prevent expanding other sections.
-type DeploymentSection = "advanced" | "sentinel" | "runtime" | "build";
+type DeploymentSection = "advanced" | "runtime" | "build";
 
 type DeploymentSettingsProps = {
   githubReadOnly?: boolean;
@@ -36,7 +36,7 @@ type DeploymentSettingsProps = {
 
 export const DeploymentSettings = ({
   githubReadOnly = false,
-  sections = { build: true, runtime: true, advanced: true, sentinel: true },
+  sections = { build: true, runtime: true, advanced: true },
   onBeforeNavigate,
 }: DeploymentSettingsProps) => {
   const { projectId } = useProjectData();

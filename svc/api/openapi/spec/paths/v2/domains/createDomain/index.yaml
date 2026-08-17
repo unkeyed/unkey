@@ -1,0 +1,274 @@
+post:
+  tags:
+    - domains
+  summary: Create domain
+  description: |
+    Attach a custom domain to an environment and start verifying it.
+
+    The domain is created in the `pending` state and does not serve traffic until verification succeeds. Verification runs in the background and polls DNS, so it is eventually consistent.
+
+    The response returns `dnsRecords`: every record needed to finish setup, already resolved for whether this domain is an apex or a subdomain. Create every entry exactly as given. One record establishes routing and one proves ownership, and both are needed: whether ownership can be inferred from the routing record depends on how your provider publishes it, and a name another workspace has already verified can only be claimed through the ownership record. Neither is knowable before the records exist.
+
+    When your DNS provider supports Domain Connect, the response also carries a `domainConnect` object; opening its `url` applies the same records at the provider in one step. The object is absent when the shortcut is unavailable.
+
+    Domains are unique per workspace, so the same name cannot be attached to two environments. Attaching a domain that already exists in your workspace returns a 409 conflict.
+
+    How many domains you may attach is set by your plan. Attaching one beyond that allowance returns a 403; upgrade the plan or remove a domain you no longer need.
+
+    **Important**: verification stops after 24 hours without the required DNS records, and the domain moves to `failed`.
+
+    **Required Permissions**
+
+    Your root key must have one of the following permissions:
+    - `environment.*.create_domain` (to attach domains to any environment)
+    - `environment.<environment_id>.create_domain` (to attach domains to a specific environment)
+  operationId: domains.createDomain
+  x-speakeasy-name-override: createDomain
+  x-unkey-idempotency: conditionally-idempotent
+  security:
+    - bearer: []
+  requestBody:
+    content:
+      application/json:
+        schema:
+          "$ref": "./V2DomainsCreateDomainRequestBody.yaml"
+        examples:
+          bySlug:
+            summary: Attach a domain, locating the environment by slug
+            description: Uses the project, app, and environment slugs.
+            value:
+              project: payments
+              app: payments-api
+              environment: production
+              domain: api.acme.com
+          byId:
+            summary: Attach a domain, locating the environment by ID
+            description: Uses the ids returned by the corresponding list endpoints.
+            value:
+              project: proj_1234abcd
+              app: app_1234abcd
+              environment: env_1234abcd
+              domain: api.acme.com
+          apex:
+            summary: Attach an apex domain
+            description: An apex domain receives an apex-compatible alias, which the provider resolves to the A or AAAA records that carry traffic, plus a TXT record proving ownership.
+            value:
+              project: payments
+              app: payments-api
+              environment: production
+              domain: acme.com
+    required: true
+  responses:
+    "200":
+      content:
+        application/json:
+          schema:
+            "$ref": "./V2DomainsCreateDomainResponseBody.yaml"
+          examples:
+            subdomain:
+              summary: Subdomain attached
+              description: A subdomain can hold a CNAME, so it gets the CNAME record for routing and the TXT record for ownership.
+              value:
+                meta:
+                  requestId: req_1234abcd
+                data:
+                  domainId: dom_1234abcd
+                  dnsRecords:
+                    - type: CNAME
+                      name: api.acme.com
+                      value: a1b2c3d4e5f6g7h8.cname.unkey.com
+                      verified: false
+                      note: Create as DNS-only if your provider offers the choice.
+                    - type: TXT
+                      name: _unkey.api.acme.com
+                      value: unkey-domain-verify=3ZQ8xK1mP7vT5nR2wY6bJ4hL
+                      verified: false
+                      note: Proves ownership. Create it alongside the routing record.
+            apex:
+              summary: Apex domain attached
+              description: An apex domain cannot hold a CNAME, so it needs an apex-compatible alias and the TXT record.
+              value:
+                meta:
+                  requestId: req_1234abcd
+                data:
+                  domainId: dom_1234abcd
+                  dnsRecords:
+                    - type: ALIAS
+                      name: acme.com
+                      value: a1b2c3d4e5f6g7h8.cname.unkey.com
+                      verified: false
+                      note: Apex domains cannot hold a CNAME. Use ALIAS, ANAME, or a flattened CNAME depending on your provider.
+                    - type: TXT
+                      name: _unkey.acme.com
+                      value: unkey-domain-verify=3ZQ8xK1mP7vT5nR2wY6bJ4hL
+                      verified: false
+                      note: Proves ownership. An apex domain cannot be verified through its routing record, so this is the only proof available.
+            domainConnect:
+              summary: Domain attached at a Domain Connect provider
+              description: The same records can be applied through the returned URL.
+              value:
+                meta:
+                  requestId: req_1234abcd
+                data:
+                  domainId: dom_1234abcd
+                  dnsRecords:
+                    - type: CNAME
+                      name: api.acme.com
+                      value: a1b2c3d4e5f6g7h8.cname.unkey.com
+                      verified: false
+                      note: Create as DNS-only if your provider offers the choice.
+                    - type: TXT
+                      name: _unkey.api.acme.com
+                      value: unkey-domain-verify=3ZQ8xK1mP7vT5nR2wY6bJ4hL
+                      verified: false
+                      note: Proves ownership. Create it alongside the routing record.
+                  domainConnect:
+                    provider: Cloudflare
+                    url: https://dash.cloudflare.com/domainconnect/v2/domaintemplates/apply?domain=acme.com&host=api
+      description: |
+        Domain created and verification started. The domain is `pending` until the DNS records resolve.
+    "400":
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/BadRequestErrorResponse.yaml"
+          examples:
+            invalidDomain:
+              summary: Invalid domain format
+              value:
+                meta:
+                  requestId: req_1234abcd
+                error:
+                  title: Bad Request
+                  detail: The domain 'https://api.acme.com' is not a valid fully qualified domain name. Pass a name such as 'api.acme.com', without a scheme, port, or path.
+                  status: 400
+                  type: https://unkey.com/docs/errors/unkey/application/invalid_input
+            publicSuffix:
+              summary: Public suffix rejected
+              value:
+                meta:
+                  requestId: req_1234abcd
+                error:
+                  title: Bad Request
+                  detail: The domain 'co.uk' is a public suffix that nobody can own. Pass a domain registered to you, such as 'api.acme.com'.
+                  status: 400
+                  type: https://unkey.com/docs/errors/unkey/application/invalid_input
+    "401":
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/UnauthorizedErrorResponse.yaml"
+          examples:
+            invalidRootKey:
+              summary: Root key not found
+              value:
+                meta:
+                  requestId: req_1234abcd
+                error:
+                  title: Unauthorized
+                  detail: The provided root key is invalid.
+                  status: 401
+                  type: unauthorized
+    "403":
+      description: |
+        Forbidden - The root key or its workspace is disabled, or the workspace has already attached as
+        many custom domains as its plan allows. A root key that simply lacks
+        `environment.*.create_domain` receives a 404 instead, so permissions cannot be used to discover
+        which environments exist.
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/ForbiddenErrorResponse.yaml"
+          examples:
+            keyDisabled:
+              summary: Root key disabled
+              value:
+                meta:
+                  requestId: req_1234abcd
+                error:
+                  title: Forbidden
+                  detail: The provided root key is disabled.
+                  status: 403
+                  type: forbidden
+            allowanceExceeded:
+              summary: Plan allowance reached
+              description: The workspace already holds every custom domain its plan permits.
+              value:
+                meta:
+                  requestId: req_1234abcd
+                error:
+                  title: Forbidden
+                  detail: Your plan does not allow another custom domain. Upgrade your plan, or remove a domain you no longer need, then retry.
+                  status: 403
+                  type: https://unkey.com/docs/errors/unkey/limits/custom_domain_limit_exceeded
+    "404":
+      description: |
+        Not Found - The environment does not exist in your workspace, or your root key may not read it.
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/NotFoundErrorResponse.yaml"
+          examples:
+            environmentNotFound:
+              summary: Environment not found
+              value:
+                meta:
+                  requestId: req_1234abcd
+                error:
+                  title: Not Found
+                  detail: The requested environment does not exist.
+                  status: 404
+                  type: not-found
+    "409":
+      description: Conflict - The domain is already attached to an environment in this workspace.
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/ConflictErrorResponse.yaml"
+          examples:
+            domainExists:
+              summary: Domain already attached
+              value:
+                meta:
+                  requestId: req_1234abcd
+                error:
+                  title: Conflict
+                  detail: The domain 'api.acme.com' is already attached to this workspace.
+                  status: 409
+                  type: conflict
+    "429":
+      description: Too Many Requests
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/TooManyRequestsErrorResponse.yaml"
+          examples:
+            rateLimited:
+              summary: Workspace rate limit exceeded
+              value:
+                meta:
+                  requestId: req_1234abcd
+                error:
+                  title: Too Many Requests
+                  detail: You have exceeded the rate limit for this operation. Retry after the window resets.
+                  status: 429
+                  type: rate-limited
+    "500":
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/InternalServerErrorResponse.yaml"
+          examples:
+            internalError:
+              summary: Unexpected server error
+              value:
+                meta:
+                  requestId: req_1234abcd
+                error:
+                  title: Internal Server Error
+                  detail: An unexpected error occurred. Contact support@unkey.com with the requestId.
+                  status: 500
+                  type: internal-server-error
