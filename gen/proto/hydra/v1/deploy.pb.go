@@ -179,6 +179,8 @@ func (*StopDeploymentResponse) Descriptor() ([]byte, []int) {
 type WakeDeploymentRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	DeploymentId  string                 `protobuf:"bytes,1,opt,name=deployment_id,json=deploymentId,proto3" json:"deployment_id,omitempty"`
+	Actor         *v1.ActorInfo          `protobuf:"bytes,2,opt,name=actor,proto3" json:"actor,omitempty"`
+	CorrelationId string                 `protobuf:"bytes,3,opt,name=correlation_id,json=correlationId,proto3" json:"correlation_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -216,6 +218,20 @@ func (*WakeDeploymentRequest) Descriptor() ([]byte, []int) {
 func (x *WakeDeploymentRequest) GetDeploymentId() string {
 	if x != nil {
 		return x.DeploymentId
+	}
+	return ""
+}
+
+func (x *WakeDeploymentRequest) GetActor() *v1.ActorInfo {
+	if x != nil {
+		return x.Actor
+	}
+	return nil
+}
+
+func (x *WakeDeploymentRequest) GetCorrelationId() string {
+	if x != nil {
+		return x.CorrelationId
 	}
 	return ""
 }
@@ -1014,9 +1030,11 @@ const file_hydra_v1_deploy_proto_rawDesc = "" +
 	"\rdeployment_id\x18\x01 \x01(\tR\fdeploymentId\x12(\n" +
 	"\x05actor\x18\x02 \x01(\v2\x12.ctrl.v1.ActorInfoR\x05actor\x12%\n" +
 	"\x0ecorrelation_id\x18\x03 \x01(\tR\rcorrelationId\"\x18\n" +
-	"\x16StopDeploymentResponse\"<\n" +
+	"\x16StopDeploymentResponse\"\x8d\x01\n" +
 	"\x15WakeDeploymentRequest\x12#\n" +
-	"\rdeployment_id\x18\x01 \x01(\tR\fdeploymentId\"\x18\n" +
+	"\rdeployment_id\x18\x01 \x01(\tR\fdeploymentId\x12(\n" +
+	"\x05actor\x18\x02 \x01(\v2\x12.ctrl.v1.ActorInfoR\x05actor\x12%\n" +
+	"\x0ecorrelation_id\x18\x03 \x01(\tR\rcorrelationId\"\x18\n" +
 	"\x16WakeDeploymentResponse\"B\n" +
 	"\x1bNotifyInstancesReadyRequest\x12#\n" +
 	"\rdeployment_id\x18\x01 \x01(\tR\fdeploymentId\":\n" +
@@ -1113,30 +1131,31 @@ var file_hydra_v1_deploy_proto_goTypes = []any{
 }
 var file_hydra_v1_deploy_proto_depIdxs = []int32{
 	19, // 0: hydra.v1.StopDeploymentRequest.actor:type_name -> ctrl.v1.ActorInfo
-	8,  // 1: hydra.v1.DeployRequest.git:type_name -> hydra.v1.GitSource
-	7,  // 2: hydra.v1.DeployRequest.docker_image:type_name -> hydra.v1.DockerImage
-	0,  // 3: hydra.v1.TeardownRequest.mode:type_name -> hydra.v1.TeardownMode
-	9,  // 4: hydra.v1.DeployService.Deploy:input_type -> hydra.v1.DeployRequest
-	11, // 5: hydra.v1.DeployService.Rollback:input_type -> hydra.v1.RollbackRequest
-	13, // 6: hydra.v1.DeployService.Promote:input_type -> hydra.v1.PromoteRequest
-	1,  // 7: hydra.v1.DeployService.StopDeployment:input_type -> hydra.v1.StopDeploymentRequest
-	3,  // 8: hydra.v1.DeployService.WakeDeployment:input_type -> hydra.v1.WakeDeploymentRequest
-	5,  // 9: hydra.v1.DeployService.NotifyInstancesReady:input_type -> hydra.v1.NotifyInstancesReadyRequest
-	15, // 10: hydra.v1.DeployTeardownService.Teardown:input_type -> hydra.v1.TeardownRequest
-	17, // 11: hydra.v1.DeployTeardownService.Resume:input_type -> hydra.v1.ResumeRequest
-	10, // 12: hydra.v1.DeployService.Deploy:output_type -> hydra.v1.DeployResponse
-	12, // 13: hydra.v1.DeployService.Rollback:output_type -> hydra.v1.RollbackResponse
-	14, // 14: hydra.v1.DeployService.Promote:output_type -> hydra.v1.PromoteResponse
-	2,  // 15: hydra.v1.DeployService.StopDeployment:output_type -> hydra.v1.StopDeploymentResponse
-	4,  // 16: hydra.v1.DeployService.WakeDeployment:output_type -> hydra.v1.WakeDeploymentResponse
-	6,  // 17: hydra.v1.DeployService.NotifyInstancesReady:output_type -> hydra.v1.NotifyInstancesReadyResponse
-	16, // 18: hydra.v1.DeployTeardownService.Teardown:output_type -> hydra.v1.TeardownResponse
-	18, // 19: hydra.v1.DeployTeardownService.Resume:output_type -> hydra.v1.ResumeResponse
-	12, // [12:20] is the sub-list for method output_type
-	4,  // [4:12] is the sub-list for method input_type
-	4,  // [4:4] is the sub-list for extension type_name
-	4,  // [4:4] is the sub-list for extension extendee
-	0,  // [0:4] is the sub-list for field type_name
+	19, // 1: hydra.v1.WakeDeploymentRequest.actor:type_name -> ctrl.v1.ActorInfo
+	8,  // 2: hydra.v1.DeployRequest.git:type_name -> hydra.v1.GitSource
+	7,  // 3: hydra.v1.DeployRequest.docker_image:type_name -> hydra.v1.DockerImage
+	0,  // 4: hydra.v1.TeardownRequest.mode:type_name -> hydra.v1.TeardownMode
+	9,  // 5: hydra.v1.DeployService.Deploy:input_type -> hydra.v1.DeployRequest
+	11, // 6: hydra.v1.DeployService.Rollback:input_type -> hydra.v1.RollbackRequest
+	13, // 7: hydra.v1.DeployService.Promote:input_type -> hydra.v1.PromoteRequest
+	1,  // 8: hydra.v1.DeployService.StopDeployment:input_type -> hydra.v1.StopDeploymentRequest
+	3,  // 9: hydra.v1.DeployService.WakeDeployment:input_type -> hydra.v1.WakeDeploymentRequest
+	5,  // 10: hydra.v1.DeployService.NotifyInstancesReady:input_type -> hydra.v1.NotifyInstancesReadyRequest
+	15, // 11: hydra.v1.DeployTeardownService.Teardown:input_type -> hydra.v1.TeardownRequest
+	17, // 12: hydra.v1.DeployTeardownService.Resume:input_type -> hydra.v1.ResumeRequest
+	10, // 13: hydra.v1.DeployService.Deploy:output_type -> hydra.v1.DeployResponse
+	12, // 14: hydra.v1.DeployService.Rollback:output_type -> hydra.v1.RollbackResponse
+	14, // 15: hydra.v1.DeployService.Promote:output_type -> hydra.v1.PromoteResponse
+	2,  // 16: hydra.v1.DeployService.StopDeployment:output_type -> hydra.v1.StopDeploymentResponse
+	4,  // 17: hydra.v1.DeployService.WakeDeployment:output_type -> hydra.v1.WakeDeploymentResponse
+	6,  // 18: hydra.v1.DeployService.NotifyInstancesReady:output_type -> hydra.v1.NotifyInstancesReadyResponse
+	16, // 19: hydra.v1.DeployTeardownService.Teardown:output_type -> hydra.v1.TeardownResponse
+	18, // 20: hydra.v1.DeployTeardownService.Resume:output_type -> hydra.v1.ResumeResponse
+	13, // [13:21] is the sub-list for method output_type
+	5,  // [5:13] is the sub-list for method input_type
+	5,  // [5:5] is the sub-list for extension type_name
+	5,  // [5:5] is the sub-list for extension extendee
+	0,  // [0:5] is the sub-list for field type_name
 }
 
 func init() { file_hydra_v1_deploy_proto_init() }

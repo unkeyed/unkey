@@ -4,8 +4,9 @@ import (
 	"context"
 	"net/http"
 
-	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
-	"github.com/unkeyed/unkey/gen/rpc/ctrl"
+	restateingress "github.com/restatedev/sdk-go/ingress"
+	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
+	"github.com/unkeyed/unkey/pkg/auditlog"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/deploy/deploygate"
@@ -25,8 +26,8 @@ type (
 )
 
 type Handler struct {
-	DB         db.Database
-	CtrlClient ctrl.DeployServiceClient
+	DB      db.Database
+	Restate *restateingress.Client
 }
 
 func (h *Handler) Method() string {
@@ -80,7 +81,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	// A missing billing row means the workspace was never linked to billing and
 	// is not suspended.
-	billing, err := db.Query.FindWorkspaceBillingByWorkspaceID(ctx, h.DB.RO(), principal.WorkspaceID)
+	billing, err := db.Query.FindWorkspaceBillingByWorkspaceID(ctx, h.DB.RW(), principal.WorkspaceID)
 	if err != nil && !db.IsNotFound(err) {
 		return fault.Wrap(
 			err,
@@ -88,6 +89,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			fault.Internal("database error loading workspace billing"),
 			fault.Public("Failed to retrieve workspace billing state."),
 		)
+	}
+
+	if err := deploygate.CheckWorkspacePlan(billing.Plan, billing.PlanOverride); err != nil {
+		return err
 	}
 
 	// "Stopped" is keyed on desired_state, not status: stopping sets
@@ -106,13 +111,20 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	_, err = h.CtrlClient.WakeDeployment(ctx, &ctrlv1.WakeDeploymentRequest{
-		DeploymentId: dep.ID,
-		Actor:        actor,
-	})
+	_, err = hydrav1.NewDeployServiceIngressClient(h.Restate, dep.ID).
+		WakeDeployment().
+		Send(ctx, &hydrav1.WakeDeploymentRequest{
+			DeploymentId:  dep.ID,
+			Actor:         actor,
+			CorrelationId: auditlog.NewCorrelationID(),
+		})
 	if err != nil {
-		return deployment.MapCtrlError(err, "start deployment",
-			"The deployment could not be started. It must be stopped and belong to a non-production environment.")
+		return fault.Wrap(
+			err,
+			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+			fault.Internal("failed to submit deployment start to Restate"),
+			fault.Public("Failed to start deployment."),
+		)
 	}
 
 	return s.JSON(http.StatusAccepted, Response{
