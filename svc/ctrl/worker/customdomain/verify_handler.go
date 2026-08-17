@@ -91,8 +91,7 @@ func (s *Service) VerifyDomain(
 		return nil, fault.Wrap(err, fault.Internal("failed to fetch domain record"))
 	}
 
-	// Check if we've exceeded the verification window
-	elapsed := time.Since(time.UnixMilli(dom.CreatedAt))
+	elapsed := time.Since(startedAt)
 	if elapsed > maxVerificationDuration {
 		return s.onVerificationFailed(ctx, dom, "domain verification timed out after 24 hours")
 	}

@@ -79,7 +79,8 @@ func ParseDomain(input string) (string, error) {
 	}
 
 	if _, err := publicsuffix.EffectiveTLDPlusOne(hostname); err != nil {
-		return "", fault.New("domain is not registrable",
+		return "", fault.New(
+			"domain is not registrable",
 			fault.Code(codes.App.Validation.InvalidInput.URN()),
 			fault.Internal(fmt.Sprintf("domain %q has no registrable domain: %v", input, err)),
 			fault.Public(fmt.Sprintf("The domain '%s' is a public suffix that nobody can own. Pass a domain registered to you, such as 'api.acme.com'.", input)),
@@ -89,16 +90,37 @@ func ParseDomain(input string) (string, error) {
 	return hostname, nil
 }
 
+// CanonicalizeIdentifier prepares a domain identifier for lookup. The identifier is
+// a domain name or a domain id. Names are stored in canonical form, so this returns
+// the canonical form of a name. All other input stays unchanged.
+func CanonicalizeIdentifier(input string) string {
+	if canonical, err := ParseDomain(input); err == nil {
+		return canonical
+	}
+
+	return input
+}
+
 // AlreadyExists is the outcome for a domain the workspace already holds. Domains
 // are unique per workspace, so the same name cannot serve two environments.
 //
 // Scoped to the workspace, not to Unkey: the unique index is (workspace_id, domain), and
 // a name another workspace holds can still be claimed here by proving ownership.
 func AlreadyExists(domain string) error {
-	return fault.New("domain already exists",
+	return fault.New(
+		"domain already exists",
 		fault.Code(codes.Data.Domain.Duplicate.URN()),
 		fault.Internal(fmt.Sprintf("domain %q is already attached to this workspace", domain)),
 		fault.Public(fmt.Sprintf("The domain '%s' is already attached to this workspace.", domain)),
+	)
+}
+
+func AlreadyVerified(domain string) error {
+	return fault.New(
+		"domain already verified",
+		fault.Code(codes.App.Precondition.PreconditionFailed.URN()),
+		fault.Internal(fmt.Sprintf("domain %q is already verified", domain)),
+		fault.Public(fmt.Sprintf("The domain '%s' is already verified. No action is needed.", domain)),
 	)
 }
 
@@ -109,7 +131,8 @@ func CheckAllowance(attached int64, allowed uint32) error {
 		return nil
 	}
 
-	return fault.New("custom domain allowance reached",
+	return fault.New(
+		"custom domain allowance reached",
 		fault.Code(codes.Limits.CustomDomain.Exceeded.URN()),
 		fault.Internal(fmt.Sprintf("workspace holds %d of %d allowed custom domains", attached, allowed)),
 		fault.Public("Your plan does not allow another custom domain. Upgrade your plan, or remove a domain you no longer need, then retry."),
@@ -120,7 +143,8 @@ func CheckAllowance(attached int64, allowed uint32) error {
 // writes every allowance, so a missing row means unknown billing state, not free
 // tier. The caller cannot fix it, hence support rather than an upgrade.
 func LimitsNotConfigured(workspaceID string) error {
-	return fault.New("workspace limits not configured",
+	return fault.New(
+		"workspace limits not configured",
 		fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
 		fault.Internal(fmt.Sprintf("workspace %q has no limits row", workspaceID)),
 		fault.Public("Resource limits are not configured for this workspace. Contact support@unkey.com."),
@@ -128,7 +152,8 @@ func LimitsNotConfigured(workspaceID string) error {
 }
 
 func invalidDomain(domain, reason string) error {
-	return fault.New("invalid domain",
+	return fault.New(
+		"invalid domain",
 		fault.Code(codes.App.Validation.InvalidInput.URN()),
 		fault.Internal(fmt.Sprintf("domain %q rejected: %s", domain, reason)),
 		fault.Public(fmt.Sprintf("The domain '%s' is not a valid fully qualified domain name. Pass a name such as 'api.acme.com', without a scheme, port, or path.", domain)),

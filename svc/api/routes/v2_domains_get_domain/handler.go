@@ -44,14 +44,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	// Domains are stored in their canonical form, so a name-shaped identifier is
-	// canonicalized before lookup and 'münchen.de' finds the row stored as
-	// 'xn--mnchen-3ya.de'. An identifier ParseDomain rejects can only be an ID,
-	// which the query compares as given.
-	identifier := req.Domain
-	if canonical, parseErr := domaingate.ParseDomain(req.Domain); parseErr == nil {
-		identifier = canonical
-	}
+	identifier := domaingate.CanonicalizeIdentifier(req.Domain)
 
 	row, err := db.Query.FindCustomDomainByIdentifier(ctx, h.DB.RO(), db.FindCustomDomainByIdentifierParams{
 		WorkspaceID: principal.WorkspaceID,

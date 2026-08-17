@@ -8,6 +8,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/domain/domaingate"
 	"github.com/unkeyed/unkey/pkg/fault"
+	"github.com/unkeyed/unkey/pkg/uid"
 )
 
 // requireCode asserts err is a fault carrying the given code.
@@ -146,6 +147,40 @@ func TestParseDomainRejectsPublicSuffixes(t *testing.T) {
 	require.Equal(t,
 		"The domain 'co.uk' is a public suffix that nobody can own. Pass a domain registered to you, such as 'api.acme.com'.",
 		fault.UserFacingMessage(err))
+}
+
+// The lookup handlers accept one field that holds either a name or an id, and they
+// tell the two apart by whether ParseDomain accepts the value. Pin both halves: a
+// name arrives canonical, and everything else arrives untouched for the id column.
+func TestCanonicalizeIdentifier(t *testing.T) {
+	t.Parallel()
+
+	for input, want := range map[string]string{
+		"api.acme.com": "api.acme.com",
+		"MÜNCHEN.DE":   "xn--mnchen-3ya.de",
+		"münchen.de":   "xn--mnchen-3ya.de",
+	} {
+		require.Equal(t, want, domaingate.CanonicalizeIdentifier(input), "input %q", input)
+	}
+
+	// An id contains an underscore, which is not a legal hostname rune, so no id can
+	// reach the canonicalizing branch. Rejection is what routes it to the id column.
+	id := uid.New(uid.DomainPrefix)
+	requireParseRejects(t, id)
+	require.Equal(t, id, domaingate.CanonicalizeIdentifier(id))
+
+	// Values that are neither a name nor an id also pass through. The caller reports
+	// the lookup miss, so this function has no rejection of its own.
+	for _, input := range []string{
+		"KEBAP",
+		"co.uk",
+		"*.acme.com",
+		"api.acme.com/nope",
+		"api.acme.com:443",
+		"",
+	} {
+		require.Equal(t, input, domaingate.CanonicalizeIdentifier(input), "input %q", input)
+	}
 }
 
 func TestAlreadyExists(t *testing.T) {
