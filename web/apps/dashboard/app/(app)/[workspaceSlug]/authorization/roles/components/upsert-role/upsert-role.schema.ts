@@ -1,10 +1,13 @@
 import { z } from "zod";
 
+// 128 matches the role name cap in the v2 API and permissions.slug, so a role
+// created here can always be assigned to a key. The roles.name column is wider
+// (varchar(512)), but names above this cap could not be used at key creation.
 export const roleNameSchema = z
   .string()
   .trim()
   .min(1, { message: "Role name must be at least 1 characters long" })
-  .max(512, { message: "Role name cannot exceed 512 characters" })
+  .max(128, { message: "Role name cannot exceed 128 characters" })
   .refine((name) => !name.match(/^\s|\s$/), {
     error: "Role name cannot start or end with whitespace",
   })

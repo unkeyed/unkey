@@ -35,13 +35,30 @@ import (
 	"github.com/unkeyed/unkey/svc/frontline/internal/policies/principal"
 )
 
+const testAppID = "app_test"
+
+type testEngine struct {
+	*policies.Engine
+}
+
+func (e *testEngine) Evaluate(
+	ctx context.Context,
+	sess *zen.Session,
+	req *http.Request,
+	workspaceID string,
+	configuredPolicies []*frontlinev1.Policy,
+) (policies.Result, error) {
+	return e.Engine.Evaluate(ctx, sess, req, workspaceID, testAppID, configuredPolicies)
+}
+
 // testHarness holds all real services needed for integration tests.
 type testHarness struct {
-	t          *testing.T
-	db         db.Database
-	keyService keys.KeyService
-	engine     *policies.Engine
-	clk        clock.Clock
+	t                  *testing.T
+	db                 db.Database
+	keyService         keys.KeyService
+	engine             *testEngine
+	clk                clock.Clock
+	verificationEvents <-chan schema.KeyVerification
 }
 
 func newTestHarness(t *testing.T) *testHarness {
@@ -118,20 +135,37 @@ func newTestHarness(t *testing.T) *testHarness {
 	})
 	require.NoError(t, err)
 
+	verificationEvents := make(chan schema.KeyVerification, 100)
+	keyVerifications := batch.New(batch.Config[schema.KeyVerification]{
+		Name:          "test_key_verifications",
+		BatchSize:     1,
+		BufferSize:    100,
+		FlushInterval: time.Hour,
+		Drop:          false,
+		Consumers:     1,
+		Flush: func(_ context.Context, verifications []schema.KeyVerification) {
+			for _, verification := range verifications {
+				verificationEvents <- verification
+			}
+		},
+	})
+	t.Cleanup(keyVerifications.Close)
+
 	eng, err := policies.New(policies.Config{
 		KeyService:       keyService,
 		RateLimiter:      rateLimiter,
 		Clock:            clk,
-		KeyVerifications: batch.NewNoop[schema.KeyVerification](),
+		KeyVerifications: keyVerifications,
 	})
 	require.NoError(t, err)
 
 	return &testHarness{
-		t:          t,
-		db:         database,
-		keyService: keyService,
-		engine:     eng,
-		clk:        clk,
+		t:                  t,
+		db:                 database,
+		keyService:         keyService,
+		engine:             &testEngine{Engine: eng},
+		clk:                clk,
+		verificationEvents: verificationEvents,
 	}
 }
 
@@ -386,6 +420,13 @@ func TestKeyAuth_ValidKey(t *testing.T) {
 	result, err := h.engine.Evaluate(ctx, sess, req, "ws_test", policies)
 	require.NoError(t, err)
 	require.NotNil(t, result.Principal)
+	select {
+	case verification := <-h.verificationEvents:
+		require.Equal(t, testAppID, verification.AppID)
+		require.Equal(t, schema.SourceGateway, verification.Source)
+	case <-time.After(time.Second):
+		t.Fatal("timed out waiting for key verification telemetry")
+	}
 
 	// Subject falls back to key ID when no external ID is set
 	require.Equal(t, principal.PrincipalVersion, result.Principal.Version)
@@ -401,6 +442,9 @@ func TestKeyAuth_ValidKey(t *testing.T) {
 	require.NotNil(t, key.Meta)
 	require.Empty(t, key.Roles)
 	require.Empty(t, key.Permissions)
+	// The seeded key has unlimited credits (RemainingRequests NULL), so the
+	// principal omits the credits field entirely.
+	require.Nil(t, key.Credits)
 }
 
 func TestKeyAuth_ValidKey_WithIdentity(t *testing.T) {
@@ -434,6 +478,114 @@ func TestKeyAuth_ValidKey_WithIdentity(t *testing.T) {
 	require.NotEmpty(t, identity.ExternalID)
 	require.Equal(t, identity.ExternalID, result.Principal.Subject)
 	require.NotNil(t, identity.Meta)
+}
+
+func TestKeyAuth_UsageExceededHasDistinctCode(t *testing.T) {
+	h := newTestHarness(t)
+	ctx := context.Background()
+	s := h.seed(ctx)
+
+	err := db.Query.UpdateKeyCreditsSet(ctx, h.db.RW(), db.UpdateKeyCreditsSetParams{
+		Credits: sql.NullInt64{Int64: 0, Valid: true},
+		ID:      s.KeyID,
+	})
+	require.NoError(t, err)
+
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req.Header.Set("Authorization", "Bearer "+s.RawKey)
+	sess := newSession(t, req)
+
+	_, err = h.engine.Evaluate(ctx, sess, req, s.WorkspaceID, []*frontlinev1.Policy{
+		keyAuthPolicy("auth", []string{s.KeySpaceID}),
+	})
+	require.Error(t, err)
+	urn, ok := fault.GetCode(err)
+	require.True(t, ok)
+	require.Equal(t, codes.Frontline.Auth.UsageExceeded.URN(), urn)
+}
+
+// A credits override of 0 verifies the key without spending credits, so a key
+// with no remaining usage still authenticates. The same setup with the default
+// cost of 1 fails with USAGE_EXCEEDED (see TestKeyAuth_UsageExceededHasDistinctCode).
+func TestKeyAuth_CreditsOverrideZero_DoesNotSpend(t *testing.T) {
+	h := newTestHarness(t)
+	ctx := context.Background()
+	s := h.seed(ctx)
+
+	err := db.Query.UpdateKeyCreditsSet(ctx, h.db.RW(), db.UpdateKeyCreditsSetParams{
+		Credits: sql.NullInt64{Int64: 0, Valid: true},
+		ID:      s.KeyID,
+	})
+	require.NoError(t, err)
+
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req.Header.Set("Authorization", "Bearer "+s.RawKey)
+	sess := newSession(t, req)
+
+	policies := []*frontlinev1.Policy{
+		{
+			Id:      "auth",
+			Enabled: proto.Bool(true),
+			Config: &frontlinev1.Policy_Keyauth{
+				Keyauth: &frontlinev1.KeyAuth{
+					KeySpaceIds: []string{s.KeySpaceID},
+					Credits:     proto.Int64(0),
+				},
+			},
+		},
+	}
+
+	result, err := h.engine.Evaluate(ctx, sess, req, s.WorkspaceID, policies)
+	require.NoError(t, err)
+	require.NotNil(t, result.Principal)
+	require.Equal(t, s.KeyID, result.Principal.Subject)
+
+	// The zero-cost override spends nothing, so the key's balance is still 0.
+	// A limited key surfaces its remaining credits on the principal.
+	key := result.Principal.Source.Key
+	require.NotNil(t, key)
+	require.NotNil(t, key.Credits)
+	require.Equal(t, int64(0), *key.Credits)
+}
+
+// A credits override above the key's remaining usage rejects the request with
+// USAGE_EXCEEDED, proving the override raises the per-request cost beyond the
+// default of 1.
+func TestKeyAuth_CreditsOverride_ChargesConfiguredCost(t *testing.T) {
+	h := newTestHarness(t)
+	ctx := context.Background()
+	s := h.seed(ctx)
+
+	// Two remaining credits: the default cost of 1 would pass, but a cost of 3
+	// exceeds the balance.
+	err := db.Query.UpdateKeyCreditsSet(ctx, h.db.RW(), db.UpdateKeyCreditsSetParams{
+		Credits: sql.NullInt64{Int64: 2, Valid: true},
+		ID:      s.KeyID,
+	})
+	require.NoError(t, err)
+
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req.Header.Set("Authorization", "Bearer "+s.RawKey)
+	sess := newSession(t, req)
+
+	policies := []*frontlinev1.Policy{
+		{
+			Id:      "auth",
+			Enabled: proto.Bool(true),
+			Config: &frontlinev1.Policy_Keyauth{
+				Keyauth: &frontlinev1.KeyAuth{
+					KeySpaceIds: []string{s.KeySpaceID},
+					Credits:     proto.Int64(3),
+				},
+			},
+		},
+	}
+
+	_, err = h.engine.Evaluate(ctx, sess, req, s.WorkspaceID, policies)
+	require.Error(t, err)
+	urn, ok := fault.GetCode(err)
+	require.True(t, ok)
+	require.Equal(t, codes.Frontline.Auth.UsageExceeded.URN(), urn)
 }
 
 func TestKeyAuth_MissingKey_Reject(t *testing.T) {
@@ -508,6 +660,13 @@ func TestKeyAuth_InvalidKey_Disabled(t *testing.T) {
 
 	_, err := h.engine.Evaluate(ctx, sess, req, "ws_test", policies)
 	require.Error(t, err)
+	select {
+	case verification := <-h.verificationEvents:
+		require.Equal(t, testAppID, verification.AppID)
+		require.Equal(t, keys.StatusDisabled, keys.KeyStatus(verification.Outcome))
+	case <-time.After(time.Second):
+		t.Fatal("timed out waiting for key verification telemetry")
+	}
 }
 
 func TestKeyAuth_WrongKeySpace(t *testing.T) {

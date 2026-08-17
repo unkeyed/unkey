@@ -10,6 +10,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/batch"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/clock"
+	"github.com/unkeyed/unkey/pkg/redaction"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/frontline/internal/proxy"
 )
@@ -84,10 +85,10 @@ func WithClickHouseLogging(buf *batch.BatchProcessor[schema.FrontlineRequest], c
 				QueryString:      queryString,
 				QueryParams:      queryParams,
 				RequestHeaders:   formatHeaders(req.Header, secretHeaders),
-				RequestBody:      unsafe.String(unsafe.SliceData(tracking.RequestBody), len(tracking.RequestBody)),
+				RequestBody:      redactBody(tracking.RequestBody, tracking.BodyRedactors),
 				ResponseStatus:   int32(s.StatusCode()),
 				ResponseHeaders:  formatHeaders(s.ResponseWriter().Header(), nil),
-				ResponseBody:     unsafe.String(unsafe.SliceData(tracking.ResponseBody), len(tracking.ResponseBody)),
+				ResponseBody:     redactBody(tracking.ResponseBody, tracking.BodyRedactors),
 				UserAgent:        req.UserAgent(),
 				IPAddress:        s.Location(),
 				TotalLatency:     totalLatency,
@@ -98,6 +99,19 @@ func WithClickHouseLogging(buf *batch.BatchProcessor[schema.FrontlineRequest], c
 			return err
 		}
 	}
+}
+
+func redactBody(body []byte, redactors []*redaction.Redactor) string {
+	for _, r := range redactors {
+		body = r.Redact(body)
+	}
+	if len(body) == 0 {
+		return ""
+	}
+	// Captured and redacted bodies are immutable after this point. The string
+	// stored in the batch keeps the backing bytes alive. Avoid a second
+	// full-body allocation when converting []byte to string.
+	return unsafe.String(unsafe.SliceData(body), len(body))
 }
 
 func formatHeader(key, value string) string {

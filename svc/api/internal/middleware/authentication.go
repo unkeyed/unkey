@@ -25,13 +25,13 @@ type AuthenticationConfig struct {
 	// Auth resolves request credentials into a session principal.
 	Auth auth.Authenticator
 
-	// Database loads workspace quota rows when they are not cached.
+	// Database loads workspace limit rows when they are not cached.
 	Database db.Database
 
-	// QuotaCache caches workspace quota rows by workspace ID.
-	QuotaCache cache.Cache[string, keysdb.Quotas]
+	// LimitsCache caches workspace limit rows by workspace ID.
+	LimitsCache cache.Cache[string, keysdb.Limit]
 
-	// Ratelimit enforces workspace-level API request quotas.
+	// Ratelimit enforces workspace-level API request limits.
 	Ratelimit ratelimit.Service
 }
 
@@ -59,30 +59,30 @@ func WithAuthentication(config AuthenticationConfig) zen.Middleware {
 }
 
 func checkWorkspaceRateLimit(ctx context.Context, sess *zen.Session, config AuthenticationConfig, workspaceID string) error {
-	if config.QuotaCache == nil || config.Ratelimit == nil {
+	if config.LimitsCache == nil || config.Ratelimit == nil {
 		return nil
 	}
 
-	quota, _, err := config.QuotaCache.SWR(ctx, workspaceID, func(ctx context.Context) (keysdb.Quotas, error) {
-		return keysdb.Query.FindQuotaByWorkspaceID(ctx, config.Database.RO(), workspaceID)
+	limits, _, err := config.LimitsCache.SWR(ctx, workspaceID, func(ctx context.Context) (keysdb.Limit, error) {
+		return keysdb.Query.FindLimitsByWorkspaceID(ctx, config.Database.RO(), workspaceID)
 	}, caches.DefaultFindFirstOp)
 	if err != nil {
-		logger.Error("workspace rate limit: failed to load quota",
+		logger.Error("workspace rate limit: failed to load limits",
 			"workspace_id", workspaceID,
 			"error", err.Error(),
 		)
-		// Workspace API rate limiting fails open when quota lookup is unavailable.
+		// Workspace API rate limiting fails open when limit lookup is unavailable.
 		return nil
 	}
 
-	if !quota.RatelimitApiLimit.Valid || !quota.RatelimitApiDuration.Valid {
+	if !limits.ApiRequestsCountMaxPerMinute.Valid {
 		return nil
 	}
 
-	limit := quota.RatelimitApiLimit.Int32
-	duration := time.Duration(quota.RatelimitApiDuration.Int32) * time.Millisecond
+	limit := limits.ApiRequestsCountMaxPerMinute.Int32
+	duration := time.Minute
 
-	if limit == 0 || duration == 0 {
+	if limit == 0 {
 		return fault.New("workspace rate limit exceeded",
 			fault.Code(codes.User.TooManyRequests.WorkspaceRateLimited.URN()),
 			fault.Internal("workspace rate limit is zero"),

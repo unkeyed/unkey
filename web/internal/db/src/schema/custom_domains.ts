@@ -9,7 +9,10 @@ import {
   varchar,
 } from "drizzle-orm/mysql-core";
 import { challengeType } from "./acme_challenges";
+import { caseSensitiveVarchar } from "./util/case_sensitive_varchar";
+import { id } from "./util/id";
 import { lifecycleDates } from "./util/lifecycle_dates";
+import { primaryKey } from "./util/primary_key";
 
 export const verificationStatus = mysqlEnum("verification_status", [
   "pending",
@@ -21,12 +24,12 @@ export const verificationStatus = mysqlEnum("verification_status", [
 export const customDomains = mysqlTable(
   "custom_domains",
   {
-    pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
-    id: varchar("id", { length: 128 }).notNull().unique(),
-    workspaceId: varchar("workspace_id", { length: 256 }).notNull(),
-    projectId: varchar("project_id", { length: 256 }).notNull(),
-    appId: varchar("app_id", { length: 64 }).notNull(),
-    environmentId: varchar("environment_id", { length: 256 }).notNull(),
+    pk: primaryKey(),
+    id: id("id").notNull().unique(),
+    workspaceId: id("workspace_id").notNull(),
+    projectId: id("project_id").notNull(),
+    appId: id("app_id").notNull(),
+    environmentId: id("environment_id").notNull(),
 
     domain: varchar("domain", { length: 256 }).notNull(),
     challengeType: challengeType,
@@ -35,7 +38,7 @@ export const customDomains = mysqlTable(
     verificationStatus: verificationStatus.notNull().default("pending"),
     // TXT record verification token (e.g., "abc123xyz...")
     // User adds TXT record: _unkey.domain.com -> unkey-domain-verify=<token>
-    verificationToken: varchar("verification_token", { length: 64 }).notNull(),
+    verificationToken: caseSensitiveVarchar("verification_token", { length: 64 }).notNull(),
     // Whether the TXT record has been verified (proves ownership)
     ownershipVerified: boolean("ownership_verified").notNull().default(false),
     // Whether the CNAME record has been verified (enables routing)
@@ -56,5 +59,6 @@ export const customDomains = mysqlTable(
     index("project_idx").on(table.projectId),
     index("verification_status_idx").on(table.verificationStatus),
     uniqueIndex("unique_domain_workspace_idx").on(table.workspaceId, table.domain),
+    index("environment_id_id_domain_idx").on(table.environmentId, table.id, table.domain),
   ],
 );

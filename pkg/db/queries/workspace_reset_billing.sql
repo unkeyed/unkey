@@ -4,7 +4,7 @@
 -- plus stripe_customer_id, which no webhook ever clears. Stripe subscription
 -- ids live on billing_subscriptions and are cleared separately by
 -- DeleteWorkspaceBillingSubscriptions. Used by the `unkey dev stripe reset`
--- tooling; quota is reset separately via UpdateQuota.
+-- tooling.
 UPDATE `workspace_billing`
 SET stripe_customer_id = NULL,
     plan = NULL,

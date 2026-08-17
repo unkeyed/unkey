@@ -1,26 +1,19 @@
 package api
 
 import (
-	"bytes"
 	"context"
 	"crypto/tls"
-	"encoding/json"
 	"fmt"
 	"net"
 	"net/http"
-	"net/http/httptest"
-	"runtime"
 	"strings"
 	"testing"
 	"time"
 
 	"connectrpc.com/connect"
 	restate "github.com/restatedev/sdk-go"
-	"github.com/restatedev/sdk-go/ingress"
-	restateServer "github.com/restatedev/sdk-go/server"
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/config"
-	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/mysql/sqlcomment"
 	"github.com/unkeyed/unkey/pkg/rpc/interceptor"
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
@@ -28,17 +21,12 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/integration/seed"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 	"golang.org/x/net/http2"
-	"golang.org/x/net/http2/h2c"
-)
-
-const (
-	readinessServiceName = "harnessReadiness"
-	readinessHandlerName = "ping"
 )
 
 type webhookHarnessConfig struct {
-	Services      []restate.ServiceDefinition
-	WebhookSecret string
+	Services          []restate.ServiceDefinition
+	WebhookSecret     string
+	EnforceDeployGate bool
 }
 
 type webhookHarness struct {
@@ -56,55 +44,7 @@ func newWebhookHarness(t *testing.T, cfg webhookHarnessConfig) *webhookHarness {
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	t.Cleanup(cancel)
 
-	restateCfg := containers.Restate(t)
-
-	restateSrv := restateServer.NewRestate().WithLogger(logger.GetHandler(), false)
-	for _, service := range cfg.Services {
-		restateSrv.Bind(service)
-	}
-
-	// Readiness probe object. Registering a deployment (register below) only
-	// confirms Restate discovered the worker, not that its partition processor
-	// can route invocations to it yet. Until it can, a Send is accepted but
-	// never dispatched, so the first test would time out waiting for its
-	// invocation. This is a virtual object, matching the keyed services under
-	// test: on cold start keyed routing becomes ready later than unkeyed
-	// service routing, so probing a plain service would pass too early. We
-	// invoke it synchronously after registration and only return once it
-	// responds, proving keyed invocations actually reach this worker.
-	restateSrv.Bind(restate.NewObject(readinessServiceName).
-		Handler(readinessHandlerName, restate.NewObjectHandler(
-			func(_ restate.ObjectContext, in string) (string, error) { return in, nil })))
-
-	restateHandler, err := restateSrv.Handler()
-	require.NoError(t, err)
-
-	workerMux := http.NewServeMux()
-	workerMux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-	})
-	workerMux.Handle("/", restateHandler)
-
-	workerListener, err := net.Listen("tcp", "0.0.0.0:0")
-	require.NoError(t, err)
-	workerServer := httptest.NewUnstartedServer(h2c.NewHandler(workerMux, &http2.Server{}))
-	workerServer.Listener = workerListener
-	workerServer.Start()
-	t.Cleanup(workerServer.Close)
-
-	workerPort := workerListener.Addr().(*net.TCPAddr).Port
-	registration := &restateRegistration{adminURL: restateCfg.AdminURL, registerAs: fmt.Sprintf("http://%s:%d", dockerHost(), workerPort)}
-	deploymentID, err := registration.register(ctx)
-	require.NoError(t, err)
-	t.Cleanup(func() { registration.deregister(context.Background(), deploymentID) })
-
-	ingressClient := ingress.NewClient(restateCfg.IngressURL)
-	require.Eventually(t, func() bool {
-		reqCtx, reqCancel := context.WithTimeout(ctx, 2*time.Second)
-		defer reqCancel()
-		_, err := ingress.Object[string, string](ingressClient, readinessServiceName, "probe", readinessHandlerName).Request(reqCtx, "ready")
-		return err == nil
-	}, 30*time.Second, 250*time.Millisecond, "restate never routed an invocation to the test worker")
+	restateCfg := containers.Restate(t, cfg.Services...)
 
 	mysqlCfg := containers.MySQL(t)
 	database, err := db.New(mysqlCfg.DSN, sqlcomment.Disabled())
@@ -141,14 +81,20 @@ func newWebhookHarness(t *testing.T, cfg webhookHarnessConfig) *webhookHarness {
 		GitHub: GitHubConfig{
 			WebhookSecret: secret,
 		},
+		DeployGate: DeployGateConfig{
+			Enforce: cfg.EnforceDeployGate,
+		},
 	}
 
 	ctrlCtx, ctrlCancel := context.WithCancel(ctx)
-	t.Cleanup(ctrlCancel)
-
+	runErr := make(chan error, 1)
 	go func() {
-		require.NoError(t, Run(ctrlCtx, apiConfig))
+		runErr <- Run(ctrlCtx, apiConfig)
 	}()
+	t.Cleanup(func() {
+		ctrlCancel()
+		require.NoError(t, <-runErr)
+	})
 
 	ctrlURL := fmt.Sprintf("http://127.0.0.1:%d", ctrlPort)
 	require.Eventually(t, func() bool {
@@ -217,80 +163,6 @@ func (h *webhookHarness) CreateAppWithSettings(ctx context.Context, req seed.Cre
 	return h.Seed.CreateAppWithSettings(ctx, req, environmentID)
 }
 
-type restateRegistration struct {
-	adminURL   string
-	registerAs string
-}
-
-// register registers the harness's worker as a Restate deployment and returns
-// its deployment id so the caller can deregister it on cleanup.
-func (r *restateRegistration) register(ctx context.Context) (string, error) {
-	registerURL := r.adminURL + "/deployments"
-	payload := []byte("{\"uri\": \"" + r.registerAs + "\"}")
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, registerURL, bytes.NewReader(payload))
-	if err != nil {
-		return "", err
-	}
-	requireJSON(req)
-
-	client := &http.Client{Timeout: 10 * time.Second}
-	resp, err := client.Do(req)
-	if err != nil {
-		return "", err
-	}
-	defer func() { _ = resp.Body.Close() }()
-
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return "", fmtStatus(resp.StatusCode)
-	}
-
-	var body struct {
-		ID string `json:"id"`
-	}
-	if err := json.NewDecoder(resp.Body).Decode(&body); err != nil {
-		return "", err
-	}
-	return body.ID, nil
-}
-
-// deregister removes the deployment from Restate. Each test registers a fresh
-// worker deployment on the shared Restate container; without removing them the
-// container collects one dead deployment per test run. force=true drops it even
-// while invocations reference it. Best effort: cleanup failures must not fail
-// the test.
-func (r *restateRegistration) deregister(ctx context.Context, id string) {
-	if id == "" {
-		return
-	}
-	req, err := http.NewRequestWithContext(ctx, http.MethodDelete, r.adminURL+"/deployments/"+id+"?force=true", nil)
-	if err != nil {
-		return
-	}
-	client := &http.Client{Timeout: 10 * time.Second}
-	resp, err := client.Do(req)
-	if err != nil {
-		return
-	}
-	_ = resp.Body.Close()
-}
-
-func requireJSON(req *http.Request) {
-	req.Header.Set("Content-Type", "application/json")
-}
-
-type statusErr struct {
-	code int
-}
-
-func (e statusErr) Error() string {
-	return fmt.Sprintf("unexpected status code: %d", e.code)
-}
-
-func fmtStatus(code int) error {
-	return statusErr{code: code}
-}
-
 type addrInfo struct {
 	Host string
 	Port int
@@ -305,11 +177,4 @@ func pickAddr(t *testing.T) addrInfo {
 	require.True(t, ok)
 
 	return addrInfo{Host: addr.IP.String(), Port: addr.Port}
-}
-
-func dockerHost() string {
-	if runtime.GOOS == "darwin" {
-		return "host.docker.internal"
-	}
-	return "172.17.0.1"
 }

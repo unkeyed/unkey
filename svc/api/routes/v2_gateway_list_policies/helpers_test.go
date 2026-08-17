@@ -2,16 +2,23 @@ package handler_test
 
 import (
 	"context"
+	"database/sql"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	frontlinev1 "github.com/unkeyed/unkey/gen/proto/frontline/v1"
+	"github.com/unkeyed/unkey/pkg/db"
+	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_gateway_list_policies"
+	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/proto"
 )
 
 func makeRequest(env seededEnv) handler.Request {
@@ -56,6 +63,7 @@ func seedEnvironment(t *testing.T, h *testutil.Harness) seededEnv {
 		ProjectID:   project.ID,
 		AppID:       app.ID,
 		Slug:        "production",
+		Kind:        mysqltype.EnvironmentKindProduction,
 		Description: "Production environment",
 	})
 
@@ -67,40 +75,66 @@ func seedEnvironment(t *testing.T, h *testutil.Harness) seededEnv {
 	}
 }
 
-// seedSentinelConfig overwrites the seeded runtime settings row's blob
+// seedSentinelConfig overwrites the seeded runtime settings row's policy blob
 // directly, bypassing the write handler, so tests can set up pre-existing
 // state including shapes the API cannot create. The environment seeder
 // always creates the row (with the legacy "{}" blob).
-func seedSentinelConfig(t *testing.T, h *testutil.Harness, env seededEnv, blob string) {
+func seedSentinelConfig(t *testing.T, h *testutil.Harness, env seededEnv, config *frontlinev1.Config) {
 	t.Helper()
-	_, err := h.DB.RW().ExecContext(context.Background(),
-		"UPDATE app_runtime_settings SET sentinel_config = ? WHERE app_id = ? AND environment_id = ?",
-		blob, env.appID, env.environmentID)
+	blob, err := protojson.Marshal(config)
 	require.NoError(t, err)
-
-	// MySQL reports 0 affected rows when the value is unchanged, so verify by
-	// reading back instead.
-	var stored []byte
-	err = h.DB.RO().QueryRowContext(context.Background(),
-		"SELECT sentinel_config FROM app_runtime_settings WHERE app_id = ? AND environment_id = ?",
-		env.appID, env.environmentID).Scan(&stored)
-	require.NoError(t, err)
-	require.Equal(t, blob, string(stored))
+	seedSentinelConfigBlob(t, h, env, blob)
 }
 
-// seedFirewallPolicies stores n firewall policies with deterministic ids
-// pol_000, pol_001, ... and returns those ids in stored order.
+func seedEmptySentinelConfig(t *testing.T, h *testutil.Harness, env seededEnv) {
+	t.Helper()
+	blob, err := json.Marshal(struct {
+		Policies []*frontlinev1.Policy `json:"policies"`
+	}{Policies: []*frontlinev1.Policy{}})
+	require.NoError(t, err)
+	seedSentinelConfigBlob(t, h, env, blob)
+}
+
+func seedSentinelConfigBlob(t *testing.T, h *testutil.Harness, env seededEnv, blob []byte) {
+	t.Helper()
+	ctx := context.Background()
+	now := h.Clock.Now().UnixMilli()
+	require.NoError(t, db.Query.UpsertAppRuntimeSettingsPolicyConfig(ctx, h.DB.RW(), db.UpsertAppRuntimeSettingsPolicyConfigParams{
+		WorkspaceID:    env.workspaceID,
+		AppID:          env.appID,
+		EnvironmentID:  env.environmentID,
+		SentinelConfig: blob,
+		CreatedAt:      now,
+		UpdatedAt:      sql.NullInt64{Int64: now, Valid: true},
+	}))
+
+	stored, err := db.Query.FindAppRuntimeSettingsByAppAndEnv(ctx, h.DB.RO(), db.FindAppRuntimeSettingsByAppAndEnvParams{
+		AppID:         env.appID,
+		EnvironmentID: env.environmentID,
+	})
+	require.NoError(t, err)
+	require.Equal(t, blob, stored.AppRuntimeSetting.SentinelConfig)
+}
+
+// seedFirewallPolicies stores n firewall policies and returns their ids in
+// stored order.
 func seedFirewallPolicies(t *testing.T, h *testutil.Harness, env seededEnv, n int) []string {
 	t.Helper()
 	ids := make([]string, 0, n)
-	docs := make([]string, 0, n)
+	policies := make([]*frontlinev1.Policy, 0, n)
 	for i := range n {
-		id := fmt.Sprintf("pol_%03d", i)
+		id := uid.New(uid.PolicyPrefix)
 		ids = append(ids, id)
-		docs = append(docs, fmt.Sprintf(
-			`{"id":%q,"name":"KEBAP %d","enabled":true,"firewall":{"action":"ACTION_DENY"}}`, id, i))
+		policies = append(policies, &frontlinev1.Policy{
+			Id:      id,
+			Name:    fmt.Sprintf("KEBAP %d", i),
+			Enabled: proto.Bool(true),
+			Config: &frontlinev1.Policy_Firewall{Firewall: &frontlinev1.Firewall{
+				Action: frontlinev1.Action_ACTION_DENY,
+			}},
+		})
 	}
-	seedSentinelConfig(t, h, env, fmt.Sprintf(`{"policies":[%s]}`, strings.Join(docs, ",")))
+	seedSentinelConfig(t, h, env, &frontlinev1.Config{Policies: policies})
 	return ids
 }
 

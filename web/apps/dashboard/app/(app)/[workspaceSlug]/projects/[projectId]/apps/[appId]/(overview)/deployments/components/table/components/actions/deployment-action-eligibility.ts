@@ -4,7 +4,7 @@ type DeploymentActionContext = {
   selectedDeployment: { id: string; status: DeploymentStatus };
   currentDeploymentId: string | null;
   isRolledBack: boolean;
-  environmentSlug: string | null;
+  environmentKind: "production" | "preview" | null;
 };
 
 type DeploymentActionEligibility = {
@@ -54,8 +54,8 @@ export function getDeploymentActionEligibility(
 ): DeploymentActionEligibility {
   const status = ctx.selectedDeployment.status;
   const isActionable = status === "ready";
-  const isProduction = ctx.environmentSlug === "production";
-  const isNonProduction = ctx.environmentSlug !== null && !isProduction;
+  const isProduction = ctx.environmentKind === "production";
+  const isPreview = ctx.environmentKind === "preview";
   const hasCurrent = ctx.currentDeploymentId !== null;
   const isCurrent = hasCurrent && ctx.currentDeploymentId === ctx.selectedDeployment.id;
 
@@ -66,8 +66,8 @@ export function getDeploymentActionEligibility(
   const canRedeploy = isRedeployableDeploymentStatus(status);
   // Cancel: available for any in-flight deployment.
   const canCancel = isCancellableDeploymentStatus(status);
-  const canStop = isNonProduction && status === "ready";
-  const canWake = isNonProduction && status === "stopped";
+  const canStop = isPreview && status === "ready";
+  const canWake = isPreview && status === "stopped";
 
   return { canRollback, canPromote, canRedeploy, canCancel, canStop, canWake };
 }

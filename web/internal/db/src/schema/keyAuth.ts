@@ -2,16 +2,18 @@ import { relations } from "drizzle-orm";
 import { bigint, boolean, index, int, mysqlTable, varchar } from "drizzle-orm/mysql-core";
 import { apis } from "./apis";
 import { keys } from "./keys";
+import { id } from "./util/id";
 import { lifecycleDatesMigration } from "./util/lifecycle_dates";
+import { primaryKey } from "./util/primary_key";
 import { workspaces } from "./workspaces";
 
 export const keyAuth = mysqlTable(
   "key_auth",
   {
-    pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
-    id: varchar("id", { length: 256 }).notNull().unique(),
-    workspaceId: varchar("workspace_id", { length: 256 }).notNull(),
-    projectId: varchar("project_id", { length: 64 }).notNull(),
+    pk: primaryKey(),
+    id: id("id").notNull().unique(),
+    workspaceId: id("workspace_id").notNull(),
+    projectId: id("project_id").notNull(),
 
     ...lifecycleDatesMigration,
 

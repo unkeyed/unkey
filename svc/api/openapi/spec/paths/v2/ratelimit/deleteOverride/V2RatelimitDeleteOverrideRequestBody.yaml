@@ -15,7 +15,9 @@ properties:
     description: The id or name of the namespace containing the override.
     type: string
     minLength: 1
-    maxLength: 255
+    # Matches the ratelimit_namespaces.name / ratelimit_overrides.identifier
+    # columns, both varchar(512).
+    maxLength: 512
   identifier:
     description: |-
       The exact identifier pattern of the override to delete. This must match exactly as it was specified when creating the override.
@@ -28,7 +30,9 @@ properties:
       After deletion, any identifiers previously affected by this override will immediately revert to using the default rate limit for the namespace.
     type: string
     minLength: 1
-    maxLength: 255
+    # Matches the ratelimit_namespaces.name / ratelimit_overrides.identifier
+    # columns, both varchar(512).
+    maxLength: 512
 required:
   - namespace
   - identifier

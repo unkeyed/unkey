@@ -3,10 +3,6 @@ title: Deploy with the CLI
 description: "Deploy a pre-built Docker image to Unkey with `unkey deploy`. Use from CI/CD pipelines, custom build systems, or your local machine."
 ---
 
-import DeployBeta from "/snippets/deploy-beta.mdx";
-
-<DeployBeta />
-
 The `unkey deploy` command ships a **pre-built Docker image** to Unkey infrastructure. Unlike the [GitHub integration](/build-and-deploy/github), the CLI does not build your image, you build it yourself (locally or in CI), push it to a registry Unkey can pull from, and `unkey deploy` creates the deployment and streams status until it is ready.
 
 Use the CLI when you want to own the build step: custom CI pipelines, monorepo build systems, pre-release images from a tag, or deploying without connecting a GitHub repository.

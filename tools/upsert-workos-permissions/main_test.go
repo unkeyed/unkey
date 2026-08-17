@@ -20,6 +20,16 @@ func TestRunUpsertsPermissions(t *testing.T) {
 		Query  string
 		Body   permissionBody
 	}
+	type permissionResponse struct {
+		Permission permissionBody `json:"permission"`
+	}
+	type errorResponse struct {
+		Message string `json:"message"`
+	}
+	writeJSON := func(w http.ResponseWriter, status int, body any) {
+		w.WriteHeader(status)
+		require.NoError(t, json.NewEncoder(w).Encode(body))
+	}
 
 	requests := []recordedRequest{}
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -38,23 +48,20 @@ func TestRunUpsertsPermissions(t *testing.T) {
 
 		switch {
 		case r.Method == http.MethodGet && r.URL.EscapedPath() == "/authorization/permissions" && r.URL.Query().Get("after") == "":
-			w.WriteHeader(http.StatusOK)
-			_, _ = w.Write([]byte(`{"data":[{"slug":"projects:read"}],"list_metadata":{"after":"cursor_1"}}`))
+			after := "cursor_1"
+			response := permissionListResponse{Data: []permissionBody{{Slug: "projects:read"}}}
+			response.ListMetadata.After = &after
+			writeJSON(w, http.StatusOK, response)
 		case r.Method == http.MethodGet && r.URL.EscapedPath() == "/authorization/permissions" && r.URL.Query().Get("after") == "cursor_1":
-			w.WriteHeader(http.StatusOK)
-			_, _ = w.Write([]byte(`{"data":[{"slug":"legacy:stale"}],"list_metadata":{"after":null}}`))
+			writeJSON(w, http.StatusOK, permissionListResponse{Data: []permissionBody{{Slug: "legacy:stale"}}})
 		case r.Method == http.MethodGet && r.URL.EscapedPath() == "/authorization/permissions/projects:read":
-			w.WriteHeader(http.StatusOK)
-			_, _ = w.Write([]byte(`{"permission":{"slug":"projects:read"}}`))
+			writeJSON(w, http.StatusOK, permissionResponse{Permission: permissionBody{Slug: "projects:read"}})
 		case r.Method == http.MethodPatch && r.URL.EscapedPath() == "/authorization/permissions/projects:read":
-			w.WriteHeader(http.StatusOK)
-			_, _ = w.Write([]byte(`{"permission":{"slug":"projects:read"}}`))
+			writeJSON(w, http.StatusOK, permissionResponse{Permission: permissionBody{Slug: "projects:read"}})
 		case r.Method == http.MethodGet && r.URL.EscapedPath() == "/authorization/permissions/projects:create":
-			w.WriteHeader(http.StatusNotFound)
-			_, _ = w.Write([]byte(`{"message":"not found"}`))
+			writeJSON(w, http.StatusNotFound, errorResponse{Message: "not found"})
 		case r.Method == http.MethodPost && r.URL.EscapedPath() == "/authorization/permissions":
-			w.WriteHeader(http.StatusCreated)
-			_, _ = w.Write([]byte(`{"permission":{"slug":"projects:create"}}`))
+			writeJSON(w, http.StatusCreated, permissionResponse{Permission: permissionBody{Slug: "projects:create"}})
 		default:
 			t.Fatalf("unexpected request: %s %s", r.Method, r.URL.EscapedPath())
 		}

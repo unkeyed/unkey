@@ -75,11 +75,16 @@ const (
 	ProjectDeleteEvent AuditLogEvent = "project.delete"
 
 	// App events
-	AppCreateEvent AuditLogEvent = "app.create"
-	AppUpdateEvent AuditLogEvent = "app.update"
-	AppDeleteEvent AuditLogEvent = "app.delete"
+	AppCreateEvent               AuditLogEvent = "app.create"
+	AppUpdateEvent               AuditLogEvent = "app.update"
+	AppDeleteEvent               AuditLogEvent = "app.delete"
+	AppConnectRepositoryEvent    AuditLogEvent = "app.connect_repository"
+	AppDisconnectRepositoryEvent AuditLogEvent = "app.disconnect_repository"
 
 	// Environment events
 	EnvironmentUpdateEvent AuditLogEvent = "environment.update"
 	EnvironmentDeleteEvent AuditLogEvent = "environment.delete"
+
+	// Custom domain events
+	DomainCreateEvent AuditLogEvent = "domain.create"
 )

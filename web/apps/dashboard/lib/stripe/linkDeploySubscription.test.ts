@@ -29,14 +29,27 @@ const h = vi.hoisted(() => {
 });
 
 vi.mock("@/lib/db", () => ({
-  db: { query: { workspaces: { findFirst: h.findFirst } }, transaction: h.transaction },
+  db: {
+    query: {
+      workspaces: { findFirst: h.findFirst },
+    },
+    transaction: h.transaction,
+    insert: h.insert,
+  },
   eq: vi.fn(),
-  schema: { workspaces: { id: {} }, workspaceBilling: { workspaceId: {} } },
+  schema: {
+    workspaces: { id: {} },
+    workspaceBilling: { workspaceId: {} },
+    limits: {},
+  },
 }));
 vi.mock("@unkey/db", () => ({
   and: vi.fn(),
   eq: vi.fn(),
-  schema: { billingSubscriptions: { workspaceId: {}, product: {} } },
+  schema: {
+    billingSubscriptions: { workspaceId: {}, product: {} },
+    limits: {},
+  },
 }));
 vi.mock("@/lib/audit", () => ({ insertAuditLogs: h.insertAuditLogs }));
 
@@ -71,6 +84,24 @@ function subscription(overrides: Partial<Stripe.Subscription> = {}): Stripe.Subs
 }
 
 const customersUpdate = vi.fn(async () => ({}));
+
+const starterLimitValues = {
+  workspaceId: WORKSPACE_ID,
+  apiBillableOperationsCountMaxPerMonth: 150_000,
+  apiRequestsCountMaxPerMinute: null,
+  logsRetentionDaysMax: 3,
+  logsAuditRetentionDaysMax: 7,
+  teamEnabled: false,
+  cpuCoresMax: 30,
+  cpuCoresMaxPerInstance: 2,
+  memoryMibMax: 61_440,
+  memoryMibMaxPerInstance: 2_048,
+  storageMibMax: 122_880,
+  storageMibMaxPerInstance: 10_240,
+  buildsConcurrentMax: 1,
+  customDomainsMax: 1,
+  autoscalingReplicasMax: 4,
+};
 
 function stubStripe(opts: {
   session?: Stripe.Checkout.Session;
@@ -254,10 +285,11 @@ describe("linkDeploySubscription", () => {
       product: "compute",
       stripeSubscriptionId: "sub_1",
     });
+    expect(h.values).toHaveBeenCalledWith(starterLimitValues);
     expect(h.insertAuditLogs).toHaveBeenCalledOnce();
   });
 
-  it("is an idempotent no-op when the same subscription+plan is already linked", async () => {
+  it("repairs limits without relinking when the same subscription and plan are linked", async () => {
     h.findFirst.mockResolvedValue({
       id: WORKSPACE_ID,
       orgId: "org_1",
@@ -272,6 +304,7 @@ describe("linkDeploySubscription", () => {
     });
     expect(result).toEqual({ ok: true, plan: "starter", alreadyLinked: true });
     expect(h.transaction).not.toHaveBeenCalled();
+    expect(h.values).toHaveBeenCalledWith(starterLimitValues);
   });
 
   it("hard-fails rather than repoint a workspace with a different LIVE subscription", async () => {

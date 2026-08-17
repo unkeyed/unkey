@@ -29,11 +29,11 @@ import (
 
 	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
+	githubclient "github.com/unkeyed/unkey/pkg/github"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/validation"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
-	githubclient "github.com/unkeyed/unkey/svc/ctrl/worker/github"
 )
 
 const (
@@ -160,11 +160,17 @@ func isValidPathNameSegment(segment string) bool {
 	return segment != "." && segment != ".." && pathNameSegmentRegex.MatchString(segment)
 }
 
-// buildResult contains the output of a Docker image build, including the image
-// name and identifiers needed to trace builds in Depot.
+// buildResult contains the output of a Docker image build: the pushed image
+// name and identifiers to trace the build in the backend that ran it.
 type buildResult struct {
-	ImageName      string
-	DepotBuildID   string
+	ImageName string
+
+	// BuildID identifies the build in the backend that ran it: the Depot
+	// build ID on the depot backend, the deployment ID on the kubernetes
+	// backend (which has no external build system to reference).
+	BuildID string
+
+	// DepotProjectID is empty on non-depot backends.
 	DepotProjectID string
 }
 
@@ -195,6 +201,7 @@ type gitBuildParams struct {
 // resolves identically for every build method: Dockerfile and Railpack
 // builders receive it and only implement what differentiates them.
 type gitBuildContext struct {
+	// DepotProjectID is empty on non-depot backends.
 	DepotProjectID string
 
 	// GithubToken is empty when the clone needs no credential: unauthenticated
@@ -212,10 +219,10 @@ type gitBuildContext struct {
 }
 
 // runGitBuild wraps the lifecycle shared by every git-based image build:
-// validating the untrusted git params, resolving the Depot project and the
-// least-privilege clone credential, decrypting env vars, and invoking the
-// method-specific buildFn inside a single durable Run with the standard
-// retry bounds.
+// validating the untrusted git params, resolving the Depot project (depot
+// backend only) and the least-privilege clone credential, decrypting env
+// vars, and invoking the method-specific buildFn inside a single durable Run
+// with the standard retry bounds.
 //
 // buildFn executes entirely within one Run attempt on one process. It must
 // keep all process-local state (temp files, BuildKit connections) inside its
@@ -230,11 +237,15 @@ func (w *Workflow) runGitBuild(
 		return nil, restate.TerminalError(fmt.Errorf("invalid git build params: %w", err))
 	}
 
-	depotProjectID, err := restate.Run(ctx, func(runCtx restate.RunContext) (string, error) {
-		return w.getOrCreateDepotProject(runCtx, params.ProjectID)
-	}, restate.WithName("get or create depot project"), restate.WithMaxRetryAttempts(runMaxAttempts))
-	if err != nil {
-		return nil, fmt.Errorf("failed to get/create depot project: %w", err)
+	depotProjectID := ""
+	if w.buildConfig.Backend == BuildBackendDepot {
+		var err error
+		depotProjectID, err = restate.Run(ctx, func(runCtx restate.RunContext) (string, error) {
+			return w.getOrCreateDepotProject(runCtx, params.ProjectID)
+		}, restate.WithName("get or create depot project"), restate.WithMaxRetryAttempts(runMaxAttempts))
+		if err != nil {
+			return nil, fmt.Errorf("failed to get/create depot project: %w", err)
+		}
 	}
 
 	return restate.Run(ctx, func(runCtx restate.RunContext) (*buildResult, error) {
@@ -285,12 +296,13 @@ func (w *Workflow) runGitBuild(
 		restate.WithMaxRetryDuration(buildImageRetryCeiling))
 }
 
-// buildDockerImageFromGit builds a container image from a GitHub repository using Depot.
+// buildDockerImageFromGit builds a container image from a GitHub repository
+// on the configured build backend.
 //
-// The method retrieves or creates a Depot project for the Unkey project,
-// acquires a remote build machine, and executes the build. BuildKit fetches
-// the repository directly from GitHub using the provided installation token.
-// Build progress is streamed to ClickHouse for observability.
+// The method acquires a BuildKit client from the backend and executes the
+// build. BuildKit fetches the repository directly from GitHub using the
+// provided installation token. Build progress is streamed to ClickHouse for
+// observability.
 func (w *Workflow) buildDockerImageFromGit(
 	ctx restate.Context,
 	params gitBuildParams,
@@ -332,7 +344,7 @@ func (w *Workflow) buildDockerImageFromGit(
 			solverOptions = w.buildGitSolverOptions(platform, bctx.GitContextURL, dockerfilePath, bctx.ImageName, bctx.GithubToken, bctx.EnvVars)
 		}
 
-		return w.solveOnDepotMachine(runCtx, bctx.DepotProjectID, bctx.ImageName, params, solverOptions)
+		return w.solveOnBuildMachine(runCtx, bctx.DepotProjectID, bctx.ImageName, params, solverOptions)
 	})
 }
 
@@ -378,6 +390,22 @@ func buildGitContextURL(params gitBuildParams) string {
 		return fmt.Sprintf("https://github.com/%s.git#%s:%s", buildRepo, ref, contextPath)
 	}
 	return fmt.Sprintf("https://github.com/%s.git#%s", buildRepo, ref)
+}
+
+// withBuildkit acquires a connected BuildKit client from the configured
+// build backend and invokes fn with it. Returns the backend's build ID
+// alongside fn's error. The backend value is validated at config load, so
+// anything but the two known backends is unreachable.
+func (w *Workflow) withBuildkit(
+	runCtx context.Context,
+	depotProjectID string,
+	params gitBuildParams,
+	fn func(buildClient *client.Client) error,
+) (string, error) {
+	if w.buildConfig.Backend == BuildBackendKubernetes {
+		return w.withKubernetesBuildkit(runCtx, params, fn)
+	}
+	return w.withDepotBuildkit(runCtx, depotProjectID, params, fn)
 }
 
 // withDepotBuildkit creates a Depot build, acquires a remote BuildKit
@@ -490,18 +518,18 @@ func isTransientSolveError(err error) bool {
 	return false
 }
 
-// solveOnDepotMachine runs a single solve on a freshly acquired Depot
+// solveOnBuildMachine runs a single solve on a freshly acquired build
 // machine. Used by the Dockerfile build path; the Railpack path composes
-// [Workflow.withDepotBuildkit] and [Workflow.solveWithStatus] directly since
-// it performs two solves on one machine.
-func (w *Workflow) solveOnDepotMachine(
+// [Workflow.withBuildkit] and [Workflow.solveWithStatus] directly since it
+// performs two solves on one machine.
+func (w *Workflow) solveOnBuildMachine(
 	runCtx context.Context,
 	depotProjectID string,
 	imageName string,
 	params gitBuildParams,
 	solverOptions client.SolveOpt,
 ) (*buildResult, error) {
-	depotBuildID, err := w.withDepotBuildkit(runCtx, depotProjectID, params, func(buildClient *client.Client) error {
+	buildID, err := w.withBuildkit(runCtx, depotProjectID, params, func(buildClient *client.Client) error {
 		return w.solveWithStatus(runCtx, buildClient, params, solverOptions)
 	})
 	if err != nil {
@@ -512,9 +540,30 @@ func (w *Workflow) solveOnDepotMachine(
 
 	return &buildResult{
 		ImageName:      imageName,
-		DepotBuildID:   depotBuildID,
+		BuildID:        buildID,
 		DepotProjectID: depotProjectID,
 	}, nil
+}
+
+// imageExports returns the BuildKit export entry that pushes the built image
+// to the registry. registry.insecure permits the plain-HTTP push local dev
+// registries need; BuildKit refuses HTTP without it.
+func (w *Workflow) imageExports(imageName string) []client.ExportEntry {
+	attrs := map[string]string{
+		"name":           imageName,
+		"oci-mediatypes": "true",
+		"push":           "true",
+	}
+	if w.registryConfig.Insecure {
+		attrs["registry.insecure"] = "true"
+	}
+	//nolint: exhaustruct
+	return []client.ExportEntry{
+		{
+			Type:  "image",
+			Attrs: attrs,
+		},
+	}
 }
 
 // registryAuthProvider returns a session attachable that authenticates image
@@ -588,17 +637,7 @@ func (w *Workflow) buildSolverOptions(
 		Frontend:      "dockerfile.v0",
 		FrontendAttrs: frontendAttrs,
 		Session:       sessionAttachables,
-		//nolint: exhaustruct
-		Exports: []client.ExportEntry{
-			{
-				Type: "image",
-				Attrs: map[string]string{
-					"name":           imageName,
-					"oci-mediatypes": "true",
-					"push":           "true",
-				},
-			},
-		},
+		Exports:       w.imageExports(imageName),
 	}
 }
 
@@ -638,17 +677,7 @@ func (w *Workflow) buildGitSolverOptions(
 			w.registryAuthProvider(),
 			secretsprovider.FromMap(secrets),
 		},
-		//nolint: exhaustruct
-		Exports: []client.ExportEntry{
-			{
-				Type: "image",
-				Attrs: map[string]string{
-					"name":           imageName,
-					"oci-mediatypes": "true",
-					"push":           "true",
-				},
-			},
-		},
+		Exports: w.imageExports(imageName),
 	}
 }
 
@@ -660,7 +689,7 @@ func (w *Workflow) getOrCreateDepotProject(ctx context.Context, unkeyProjectID s
 		return "", fmt.Errorf("failed to query project: %w", err)
 	}
 
-	projectName := fmt.Sprintf("%s-%s", w.depotConfig.ProjectPrefix, unkeyProjectID)
+	projectName := fmt.Sprintf("%s-%s", w.buildConfig.Depot.ProjectPrefix, unkeyProjectID)
 	if project.DepotProjectID.Valid && project.DepotProjectID.String != "" {
 		logger.Info(
 			"Returning existing depot project",
@@ -679,11 +708,11 @@ func (w *Workflow) getOrCreateDepotProject(ctx context.Context, unkeyProjectID s
 		}
 	})
 
-	projectClient := corev1connect.NewProjectServiceClient(httpClient, w.depotConfig.APIUrl, connect.WithInterceptors(authInterceptor))
+	projectClient := corev1connect.NewProjectServiceClient(httpClient, w.buildConfig.Depot.APIUrl, connect.WithInterceptors(authInterceptor))
 	//nolint: exhaustruct // optional fields
 	createResp, err := projectClient.CreateProject(ctx, connect.NewRequest(&corev1.CreateProjectRequest{
 		Name:     projectName,
-		RegionId: w.depotConfig.ProjectRegion,
+		RegionId: w.buildConfig.Depot.ProjectRegion,
 		//nolint: exhaustruct // missing fields is deprecated
 		CachePolicy: &corev1.CachePolicy{
 			KeepGb:   defaultCacheKeepGB,

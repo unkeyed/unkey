@@ -1,24 +1,26 @@
 import { relations } from "drizzle-orm";
-import { bigint, index, mysqlEnum, mysqlTable, varchar } from "drizzle-orm/mysql-core";
+import { index, mysqlEnum, mysqlTable, varchar } from "drizzle-orm/mysql-core";
 import { keyAuth } from "./keyAuth";
 import { deleteProtection } from "./util/delete_protection";
+import { id } from "./util/id";
 import { lifecycleDatesMigration } from "./util/lifecycle_dates";
+import { primaryKey } from "./util/primary_key";
 import { workspaces } from "./workspaces";
 
 export const apis = mysqlTable(
   "apis",
   {
-    pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
-    id: varchar("id", { length: 256 }).notNull().unique(),
+    pk: primaryKey(),
+    id: id("id").notNull().unique(),
     name: varchar("name", { length: 256 }).notNull(),
-    workspaceId: varchar("workspace_id", { length: 256 }).notNull(),
-    projectId: varchar("project_id", { length: 64 }).notNull(),
+    workspaceId: id("workspace_id").notNull(),
+    projectId: id("project_id").notNull(),
     /**
      * comma separated ips
      */
     ipWhitelist: varchar("ip_whitelist", { length: 512 }),
     authType: mysqlEnum("auth_type", ["key", "jwt"]),
-    keyAuthId: varchar("key_auth_id", { length: 256 }).unique(),
+    keyAuthId: id("key_auth_id").unique(),
 
     ...lifecycleDatesMigration,
     ...deleteProtection,

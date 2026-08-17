@@ -1,4 +1,5 @@
 "use client";
+import { useDeployActionGate } from "@/app/(app)/[workspaceSlug]/projects/_components/hooks/use-deploy-action-gate";
 import { collection } from "@/lib/collections";
 import { trpcClient } from "@/lib/collections/client";
 import { createAppRequestSchema } from "@/lib/collections/deploy/apps";
@@ -23,6 +24,7 @@ type CreateAppStepProps = {
 
 export const CreateAppStep = ({ projectId, onAppCreated }: CreateAppStepProps) => {
   const { next } = useStepWizard();
+  const { gated, openPaywall, planGate } = useDeployActionGate();
 
   const { data: availableRegions } = trpc.deploy.environmentSettings.getAvailableRegions.useQuery();
 
@@ -39,6 +41,11 @@ export const CreateAppStep = ({ projectId, onAppCreated }: CreateAppStepProps) =
   });
 
   const onSubmitForm = async (values: FormValues) => {
+    // Without a Compute plan, block app creation and surface the paywall.
+    if (gated) {
+      openPaywall();
+      return;
+    }
     try {
       const tx = collection.apps.insert({
         projectId,
@@ -104,6 +111,7 @@ export const CreateAppStep = ({ projectId, onAppCreated }: CreateAppStepProps) =
             requirement="required"
             label="App Name"
             className="[&_input:first-of-type]:h-[36px]"
+            autoFocus
             description="A descriptive name for your app."
             data-1p-ignore
             error={errors.name?.message}
@@ -136,6 +144,7 @@ export const CreateAppStep = ({ projectId, onAppCreated }: CreateAppStepProps) =
       </div>
       <div className="mb-7" />
       <OnboardingLinks />
+      {planGate}
     </div>
   );
 };

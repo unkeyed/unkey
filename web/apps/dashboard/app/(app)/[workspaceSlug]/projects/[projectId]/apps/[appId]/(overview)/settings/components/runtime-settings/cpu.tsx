@@ -4,8 +4,8 @@ import { formatCpuParts } from "@/lib/utils/deployment-formatters";
 import { Microchip } from "@unkey/icons";
 import { ResourceSliderSetting, defineResourceSlider } from "../shared/resource-slider";
 
-// CPU tiers on the slider. resolveStrategy bounds these to the workspace quota
-// and adds the exact quota value as a stop when it is not one of these tiers.
+// CPU tiers on the slider. resolveStrategy bounds these to the workspace limit
+// and adds the exact limit value as a stop when it is not one of these tiers.
 const CPU_OPTIONS = [
   { label: "1/4 vCPU", value: 250 },
   { label: "1/2 vCPU", value: 500 },
@@ -14,7 +14,6 @@ const CPU_OPTIONS = [
   { label: "4 vCPU", value: 4000 },
   { label: "8 vCPU", value: 8000 },
   { label: "16 vCPU", value: 16000 },
-  { label: "32 vCPU", value: 32000 },
 ] as const;
 
 const cpuConfig = defineResourceSlider({
@@ -31,7 +30,8 @@ const cpuConfig = defineResourceSlider({
   write: (draft, value) => {
     draft.cpuMillicores = value;
   },
-  quotaKey: "maxCpuMillicoresPerInstance",
+  limitKey: "cpuCoresMaxPerInstance",
+  limitMultiplier: 1_000,
 });
 
 export const Cpu = () => <ResourceSliderSetting config={cpuConfig} />;

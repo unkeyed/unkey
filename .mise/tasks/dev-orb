@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+#MISE description="Start the reduced Kubernetes development environment for Amp orbs"
+#MISE depends=["install-web"]
+#MISE raw=true
+set -euo pipefail
+
+ctlptl apply -f ./dev/cluster.orb.yaml
+minikube addons enable metrics-server
+tilt up \
+  --file ./dev/Tiltfile \
+  --host 0.0.0.0 \
+  --port "${PORT:-10350}" \
+  --stream \
+  -- \
+  --orb=true

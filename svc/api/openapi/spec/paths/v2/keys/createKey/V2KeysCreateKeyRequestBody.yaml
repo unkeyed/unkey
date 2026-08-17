@@ -77,8 +77,15 @@ properties:
     items:
       type: string
       minLength: 1
-      maxLength: 100 # Keep role names concise and readable
-      pattern: ^[a-zA-Z0-9_:\-\.\*]+$
+      # No character pattern: role names are human-readable labels today, the
+      # dashboard lets users create names with spaces, and unknown names are
+      # already rejected by the handler.
+      #
+      # 128 matches permissions.slug (varchar(128)) rather than the wider
+      # roles.name column (varchar(512)), so this field does not have to
+      # narrow later when roles start accepting slugs. Keep this value in step
+      # with the other role endpoints and the dashboard role editor.
+      maxLength: 128
     description: |
       Assigns existing roles to this key for permission management through role-based access control.
       Roles must already exist in your workspace before assignment.
@@ -93,8 +100,15 @@ properties:
     items:
       type: string
       minLength: 1
-      maxLength: 100 # Keep permission names concise and readable
-    pattern: "^[a-zA-Z][a-zA-Z0-9._-]*$"
+      # Matches the permissions.slug column (varchar(128)).
+      maxLength: 128
+      # Slugs are machine identifiers, so unlike role names they do carry a
+      # pattern. The character set covers what customers actually create:
+      # dotted slugs (documents.read), wildcards (documents.*), colons
+      # (api:read) and leading digits (2fa.read). Keep this rule identical
+      # across every endpoint that accepts a permission slug and in the
+      # dashboard.
+      pattern: ^[a-zA-Z0-9_:\-\.\*]+$
     description: |
       Grants specific permissions directly to this key without requiring role membership.
       Wildcard permissions like `documents.*` grant access to all sub-permissions including `documents.read` and `documents.write`.

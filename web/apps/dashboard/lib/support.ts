@@ -1,0 +1,5 @@
+import type { Route } from "next";
+
+// typedRoutes only knows app-router paths, so an off-app destination has to be
+// asserted. Done once here so call sites stay cast-free.
+export const SUPPORT_MAILTO = "mailto:support@unkey.com" as Route;

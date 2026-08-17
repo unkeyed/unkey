@@ -2,6 +2,7 @@
 
 import { DEPLOY_METER_RATE_LABELS, priceDeployMetersCents } from "@/lib/billing/deployPricing";
 import { formatCompactQuantity, formatDollars } from "@/lib/fmt";
+import { routes } from "@/lib/navigation/routes";
 import type { DeployPlan } from "@/lib/stripe/deployPlan";
 import { trpc } from "@/lib/trpc/client";
 import { Cube } from "@unkey/icons";
@@ -27,6 +28,7 @@ function formatRenewalDate(millis: number): string {
 type DeployProductCardProps = {
   isAdmin: boolean;
   hasPaymentMethod: boolean;
+  workspaceSlug: string;
   /** Open the plan picker on mount (post-checkout intent hand-off). */
   autoOpenPlanModal?: boolean;
 };
@@ -40,18 +42,23 @@ type DeployProductCardProps = {
 export const DeployProductCard: React.FC<DeployProductCardProps> = ({
   isAdmin,
   hasPaymentMethod,
+  workspaceSlug,
   autoOpenPlanModal = false,
 }) => {
   const trpcUtils = trpc.useUtils();
   const [isPlanModalOpen, setPlanModalOpen] = useState(autoOpenPlanModal);
   const [isCancelOpen, setCancelOpen] = useState(false);
   const [pendingPlan, setPendingPlan] = useState<DeployPlan | null>(null);
+  const [isStartingCheckout, setIsStartingCheckout] = useState(false);
 
   const { data: subscription, isLoading: subscriptionLoading } =
     trpc.stripe.getDeploySubscription.useQuery(undefined, { staleTime: 30_000 });
   const { data: plansData, isLoading: plansLoading } = trpc.stripe.getDeployPlans.useQuery(
     undefined,
-    { staleTime: 60_000 },
+    {
+      staleTime: 60_000,
+      trpc: { context: { skipBatch: true } },
+    },
   );
 
   const currentPlan = subscription?.plan ?? null;
@@ -62,6 +69,7 @@ export const DeployProductCard: React.FC<DeployProductCardProps> = ({
   const { data: deployCredit } = trpc.stripe.getDeployCredit.useQuery(undefined, {
     enabled: Boolean(currentPlan),
     staleTime: 30_000,
+    trpc: { context: { skipBatch: true } },
   });
 
   // For the renewal date. The billing summary strip already fetches this, so on
@@ -69,6 +77,7 @@ export const DeployProductCard: React.FC<DeployProductCardProps> = ({
   const { data: upcomingInvoice } = trpc.stripe.getUpcomingInvoice.useQuery(undefined, {
     enabled: Boolean(currentPlan) && hasPaymentMethod,
     staleTime: 30_000,
+    trpc: { context: { skipBatch: true } },
   });
 
   // Usage is only worth fetching (and rendering) once there is a plan.
@@ -90,17 +99,12 @@ export const DeployProductCard: React.FC<DeployProductCardProps> = ({
     ]);
   };
 
-  const subscribe = trpc.stripe.subscribeDeploy.useMutation({
-    onSuccess: async () => {
-      setPendingPlan(null);
-      setPlanModalOpen(false);
-      toast.success("Subscribed to Compute");
-      await revalidate();
-    },
-    onError: (err) => toast.error(err.message),
-  });
   const change = trpc.stripe.changeDeployPlan.useMutation({
-    onSuccess: async () => {
+    onSuccess: async (result) => {
+      if (result.kind === "payment_required") {
+        window.location.assign(result.paymentUrl);
+        return;
+      }
       setPendingPlan(null);
       setPlanModalOpen(false);
       toast.success("Compute plan changed");
@@ -240,8 +244,8 @@ export const DeployProductCard: React.FC<DeployProductCardProps> = ({
         ]
       : null;
 
-  const submittingPlan = subscribe.isLoading
-    ? (subscribe.variables?.plan ?? null)
+  const submittingPlan = isStartingCheckout
+    ? pendingPlan
     : change.isLoading
       ? (change.variables?.plan ?? null)
       : null;
@@ -268,7 +272,15 @@ export const DeployProductCard: React.FC<DeployProductCardProps> = ({
     if (currentPlan) {
       change.mutate({ plan: pendingPlan });
     } else {
-      subscribe.mutate({ plan: pendingPlan });
+      setIsStartingCheckout(true);
+      window.location.assign(
+        routes.settings.stripe.checkout({
+          workspaceSlug,
+          intent: "deploy",
+          plan: pendingPlan,
+          from: "billing",
+        }),
+      );
     }
   };
 
@@ -526,7 +538,7 @@ export const DeployProductCard: React.FC<DeployProductCardProps> = ({
           }
         }}
         onConfirm={commitPending}
-        isLoading={subscribe.isLoading || change.isLoading}
+        isLoading={isStartingCheckout || change.isLoading}
         currentPlanName={currentPlan ? (currentPlanOption?.name ?? currentPlan) : undefined}
         note="Takes effect immediately. Upgrades are charged now and add the difference as usage credits; downgrades keep this period's credits, with the new fee starting next period."
       />

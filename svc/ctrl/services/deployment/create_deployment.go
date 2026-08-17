@@ -16,6 +16,7 @@ import (
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/auditlog"
 	"github.com/unkeyed/unkey/pkg/deploy/deployfail"
+	githubclient "github.com/unkeyed/unkey/pkg/github"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/pkg/validation"
@@ -23,7 +24,6 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/internal/actor"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/auth"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
-	githubclient "github.com/unkeyed/unkey/svc/ctrl/worker/github"
 	"google.golang.org/protobuf/encoding/protojson"
 )
 
@@ -97,34 +97,6 @@ func (s *Service) CreateDeployment(
 		return nil, err
 	}
 
-	if err := s.ensureEnvironmentDeployable(ctx, ctxLoad); err != nil {
-		return nil, err
-	}
-
-	// Entitlement gate, mirroring project creation: cancel clears deploy_plan
-	// but leaves the projects behind, so without this a cancelled (or never
-	// entitled) workspace could keep starting new compute through an existing
-	// project — teardown only stops what it snapshotted. Observe mode (the
-	// default) logs would-block instead of failing.
-	entitlement, err := s.db.FindWorkspaceDeployEntitlement(ctx, ctxLoad.workspaceID)
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal,
-			fmt.Errorf("failed to load workspace entitlement: %w", err))
-	}
-	if !deployEntitled(entitlement.Plan, entitlement.PlanOverride) {
-		if s.enforceDeployGate {
-			return nil, connect.NewError(
-				connect.CodeFailedPrecondition,
-				fmt.Errorf("workspace %q has no Compute plan", ctxLoad.workspaceID),
-			)
-		}
-		logger.Warn("deploy gate would block deployment creation",
-			"event", "deploy_gate.would_block",
-			"workspaceId", ctxLoad.workspaceID,
-			"projectId", req.Msg.GetProjectId(),
-		)
-	}
-
 	keyspaceID := req.Msg.GetKeyspaceId()
 	var keyAuthID *string
 	if keyspaceID != "" {
@@ -132,15 +104,15 @@ func (s *Service) CreateDeployment(
 	}
 
 	deploymentID, err := s.createAndDeploy(ctx, createParams{
-		context:        ctxLoad,
-		dockerImage:    req.Msg.GetDockerImage(),
-		gitCommit:      req.Msg.GetGitCommit(),
-		keyAuthID:      keyAuthID,
-		command:        req.Msg.GetCommand(),
-		trigger:        triggerFromProto(req.Msg.GetTrigger()),
-		triggeredBy:    req.Msg.GetTriggeredBy(),
-		triggerReason:  req.Msg.GetTriggerReason(),
-		spendSuspended: entitlement.SpendSuspended.Bool,
+		context:       ctxLoad,
+		action:        "create",
+		dockerImage:   req.Msg.GetDockerImage(),
+		gitCommit:     req.Msg.GetGitCommit(),
+		keyAuthID:     keyAuthID,
+		command:       req.Msg.GetCommand(),
+		trigger:       triggerFromProto(req.Msg.GetTrigger()),
+		triggeredBy:   req.Msg.GetTriggeredBy(),
+		triggerReason: req.Msg.GetTriggerReason(),
 	})
 	if err != nil {
 		return nil, err
@@ -346,6 +318,7 @@ func (s *Service) loadDeploymentContext(
 // createParams carries everything createAndDeploy needs from a caller.
 type createParams struct {
 	context deploymentContext
+	action  string
 
 	// Source overrides. dockerImage wins if set; otherwise we auto-detect
 	// from git repo connection (using gitCommit.commit_sha if provided) or
@@ -359,34 +332,24 @@ type createParams struct {
 	trigger       db.DeploymentsTrigger
 	triggeredBy   string
 	triggerReason string
-
-	// spendSuspended blocks starting compute when the workspace hit its
-	// Compute spend cap. Gated here rather than at each RPC because both
-	// CreateDeployment and the ops Rebuild path start compute through
-	// createAndDeploy, and Rebuild must not resurrect suspended compute.
-	spendSuspended bool
 }
 
 // createAndDeploy is the shared path used by both CreateDeployment and
-// RebuildDeployment. It resolves the source (docker image / git / fallback),
-// inserts the deployment row, kicks off the Restate workflow, persists the
-// invocation id, and cancels superseded siblings.
+// RebuildDeployment. It checks workspace access and environment deployability,
+// resolves the source (docker image / git / fallback), inserts the deployment
+// row, kicks off the Restate workflow, persists the invocation id, and cancels
+// superseded siblings.
 func (s *Service) createAndDeploy(ctx context.Context, p createParams) (string, error) {
+	c := p.context
+	if err := s.ensureWorkspaceCanDeploy(ctx, c.workspaceID, p.action); err != nil {
+		return "", err
+	}
+	if err := s.ensureEnvironmentDeployable(ctx, c); err != nil {
+		return "", err
+	}
+
 	deploymentID := uid.New(uid.DeploymentPrefix)
 	now := time.Now().UnixMilli()
-
-	c := p.context
-
-	// Spend-cap gate, unconditional (no observe mode): the workspace opted
-	// into stopping at its budget and the spend check tore its compute down.
-	// Starting compute now would restart what the suspension deliberately
-	// stopped and keep accruing spend past the cap.
-	if p.spendSuspended {
-		return "", connect.NewError(
-			connect.CodeFailedPrecondition,
-			fmt.Errorf("workspace %q is suspended by its Compute spend cap; raise the budget to resume", c.workspaceID),
-		)
-	}
 
 	// Per-request command override (CLI/API) wins over the app's stored
 	// default. Persisting only the default would mean the row disagrees with

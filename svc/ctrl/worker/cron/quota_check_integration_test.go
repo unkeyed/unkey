@@ -24,9 +24,9 @@ func TestRunQuotaCheck_Integration(t *testing.T) {
 	billingPeriod := fmt.Sprintf("%d-%02d", year, month)
 
 	t.Run("detects workspaces exceeding quota", func(t *testing.T) {
-		ws1 := h.Seed.CreateWorkspaceWithQuota(h.Ctx, seed.CreateWorkspaceWithQuotaRequest{RequestsPerMonth: 100_000})
-		ws2 := h.Seed.CreateWorkspaceWithQuota(h.Ctx, seed.CreateWorkspaceWithQuotaRequest{RequestsPerMonth: 500_000})
-		ws3 := h.Seed.CreateWorkspaceWithQuota(h.Ctx, seed.CreateWorkspaceWithQuotaRequest{RequestsPerMonth: 200_000})
+		ws1 := h.Seed.CreateWorkspaceWithLimits(h.Ctx, seed.CreateWorkspaceWithLimitsRequest{RequestsPerMonth: 100_000})
+		ws2 := h.Seed.CreateWorkspaceWithLimits(h.Ctx, seed.CreateWorkspaceWithLimitsRequest{RequestsPerMonth: 500_000})
+		ws3 := h.Seed.CreateWorkspaceWithLimits(h.Ctx, seed.CreateWorkspaceWithLimitsRequest{RequestsPerMonth: 200_000})
 
 		h.ClickHouseSeed.InsertVerifications(h.Ctx, ws1.ID, 200_000, now, "VALID")
 		h.ClickHouseSeed.InsertVerifications(h.Ctx, ws2.ID, 300_000, now, "VALID")
@@ -44,7 +44,7 @@ func TestRunQuotaCheck_Integration(t *testing.T) {
 	})
 
 	t.Run("skips workspaces below minimum usage threshold", func(t *testing.T) {
-		ws := h.Seed.CreateWorkspaceWithQuota(h.Ctx, seed.CreateWorkspaceWithQuotaRequest{RequestsPerMonth: 50_000})
+		ws := h.Seed.CreateWorkspaceWithLimits(h.Ctx, seed.CreateWorkspaceWithLimitsRequest{RequestsPerMonth: 50_000})
 
 		h.ClickHouseSeed.InsertVerifications(h.Ctx, ws.ID, 100_000, now, "VALID")
 		waitForVerificationCount(t, h.Ctx, h.ClickHouseConn, ws.ID, 100_000, year, month)
@@ -56,7 +56,7 @@ func TestRunQuotaCheck_Integration(t *testing.T) {
 	})
 
 	t.Run("handles combined verifications and ratelimits", func(t *testing.T) {
-		ws := h.Seed.CreateWorkspaceWithQuota(h.Ctx, seed.CreateWorkspaceWithQuotaRequest{RequestsPerMonth: 300_000})
+		ws := h.Seed.CreateWorkspaceWithLimits(h.Ctx, seed.CreateWorkspaceWithLimitsRequest{RequestsPerMonth: 300_000})
 
 		h.ClickHouseSeed.InsertVerifications(h.Ctx, ws.ID, 200_000, now, "VALID")
 		h.ClickHouseSeed.InsertRatelimits(h.Ctx, ws.ID, 150_000, now, true)
@@ -71,7 +71,7 @@ func TestRunQuotaCheck_Integration(t *testing.T) {
 	})
 
 	t.Run("skips disabled workspaces", func(t *testing.T) {
-		ws := h.Seed.CreateWorkspaceWithQuota(h.Ctx, seed.CreateWorkspaceWithQuotaRequest{RequestsPerMonth: 100_000})
+		ws := h.Seed.CreateWorkspaceWithLimits(h.Ctx, seed.CreateWorkspaceWithLimitsRequest{RequestsPerMonth: 100_000})
 
 		_, err := h.DB.UpdateWorkspaceEnabled(h.Ctx, db.UpdateWorkspaceEnabledParams{
 			Enabled: false,

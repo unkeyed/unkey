@@ -85,6 +85,7 @@ func TestProjectDeletion_CleansUpAllData(t *testing.T) {
 		ProjectID:      project.ID,
 		AppID:          app.ID,
 		Slug:           "production",
+		Kind:           mysqltype.EnvironmentKindProduction,
 		Description:    "",
 		SentinelConfig: []byte("{}"),
 	})
@@ -128,6 +129,10 @@ func TestProjectDeletion_CleansUpAllData(t *testing.T) {
 	require.NoError(t, err)
 
 	// Cilium network policy
+	policy, err := json.Marshal(struct {
+		APIVersion string `json:"apiVersion"`
+	}{APIVersion: "cilium.io/v2"})
+	require.NoError(t, err)
 	err = h.DB.InsertCiliumNetworkPolicy(ctx, db.InsertCiliumNetworkPolicyParams{
 		ID:            uid.New("cnp"),
 		WorkspaceID:   workspaceID,
@@ -138,7 +143,7 @@ func TestProjectDeletion_CleansUpAllData(t *testing.T) {
 		K8sName:       uid.New("k8s"),
 		K8sNamespace:  "test-ns",
 		RegionID:      region.ID,
-		Policy:        json.RawMessage(`{"apiVersion":"cilium.io/v2"}`),
+		Policy:        policy,
 		CreatedAt:     now,
 	})
 	require.NoError(t, err)

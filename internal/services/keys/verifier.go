@@ -138,6 +138,7 @@ func (k *KeyVerifier) TelemetrySnapshot() schema.KeyVerification {
 		Tags:         k.tags,
 		Region:       k.region,
 		Source:       k.source,
+		AppID:        "",
 		ExternalID:   k.Key.ExternalID.String,
 		SpentCredits: k.spentCredits,
 		Latency:      float64(time.Since(k.startTime).Milliseconds()),

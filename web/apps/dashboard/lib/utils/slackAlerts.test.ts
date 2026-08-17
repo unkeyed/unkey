@@ -1,13 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
-  alertIsCancellingSubscription,
+  alertCustomerLifecycle,
   alertPaymentFailed,
   alertPaymentRecovered,
-  alertSubscriptionCancelled,
-  alertSubscriptionCreation,
-  alertSubscriptionUpdate,
   escapeSlackText,
   mrkdwn,
+  stripeCustomerUrl,
 } from "./slackAlerts";
 
 describe("escapeSlackText", () => {
@@ -100,6 +98,26 @@ describe("mrkdwn", () => {
   });
 });
 
+describe("stripeCustomerUrl", () => {
+  it("links to the live dashboard for live-mode customers", () => {
+    expect(stripeCustomerUrl("cus_123", true)).toBe(
+      "https://dashboard.stripe.com/customers/cus_123",
+    );
+  });
+
+  it("links under /test for test-mode customers so the link resolves", () => {
+    expect(stripeCustomerUrl("cus_123", false)).toBe(
+      "https://dashboard.stripe.com/test/customers/cus_123",
+    );
+  });
+
+  it("encodes the id", () => {
+    expect(stripeCustomerUrl("cus a/b", true)).toBe(
+      "https://dashboard.stripe.com/customers/cus%20a%2Fb",
+    );
+  });
+});
+
 const fetchMock = vi.fn();
 
 beforeEach(() => {
@@ -116,22 +134,52 @@ afterEach(() => {
 });
 
 type SentTextObject = { type: string; text: string; verbatim?: boolean };
+type SentBlock = {
+  type: string;
+  text?: SentTextObject;
+  fields?: SentTextObject[];
+  elements?: Array<{ type: string; url?: string; text?: SentTextObject }>;
+};
 
-const sentBlocks = (): Array<{ text: SentTextObject }> => {
+const sentBlocks = (): SentBlock[] => {
   expect(fetchMock).toHaveBeenCalledTimes(1);
   return JSON.parse(fetchMock.mock.calls[0][1].body).blocks;
 };
 
-/** Every mrkdwn text object in the posted payload. */
-const sentTextObjects = (): SentTextObject[] => {
-  return sentBlocks().map((block) => block.text);
+/** Every mrkdwn text object in the payload: single-text sections plus every field cell. */
+const sentMrkdwnObjects = (): SentTextObject[] => {
+  const objects: SentTextObject[] = [];
+  for (const block of sentBlocks()) {
+    if (block.text?.type === "mrkdwn") {
+      objects.push(block.text);
+    }
+    if (Array.isArray(block.fields)) {
+      objects.push(...block.fields);
+    }
+  }
+  return objects;
 };
 
-/** Every mrkdwn string in the posted payload. */
+/** Every mrkdwn string in the payload (excludes the plain_text header/button labels). */
 const sentText = (): string => {
-  return sentTextObjects()
+  return sentMrkdwnObjects()
     .map((obj) => obj.text)
     .join("\n");
+};
+
+const headerText = (): string => {
+  const header = sentBlocks().find((block) => block.type === "header");
+  return header?.text?.text ?? "";
+};
+
+const fieldTexts = (): string[] => {
+  const section = sentBlocks().find((block) => Array.isArray(block.fields));
+  return (section?.fields ?? []).map((field) => field.text);
+};
+
+const buttonUrl = (): string | undefined => {
+  const actions = sentBlocks().find((block) => block.type === "actions");
+  return actions?.elements?.[0]?.url;
 };
 
 // Every value below is free text an attacker can set (Stripe billing name, signup email),
@@ -149,36 +197,65 @@ const HOSTILE_TIER = "<https://evil.example|Pro>";
 describe("alerts escape attacker-controlled fields", () => {
   const cases: Array<{ name: string; send: () => Promise<void> }> = [
     {
-      name: "alertSubscriptionCreation",
-      send: () => alertSubscriptionCreation(HOSTILE_TIER, "$25", HOSTILE_EMAIL, HOSTILE_NAME),
-    },
-    {
-      name: "alertSubscriptionUpdate",
+      name: "signup",
       send: () =>
-        alertSubscriptionUpdate(
-          HOSTILE_TIER,
-          "$25",
-          HOSTILE_EMAIL,
-          HOSTILE_NAME,
-          "upgraded",
-          HOSTILE_TIER,
-        ),
+        alertCustomerLifecycle({
+          action: "signup",
+          name: HOSTILE_NAME,
+          email: HOSTILE_EMAIL,
+          workspaceId: "ws_test",
+          workspaceName: HOSTILE_NAME,
+          product: HOSTILE_TIER,
+          price: "$25",
+          stripeCustomerId: "cus_123",
+          livemode: true,
+        }),
     },
     {
-      name: "alertIsCancellingSubscription",
-      send: () => alertIsCancellingSubscription(HOSTILE_TIER, "$25", HOSTILE_EMAIL, HOSTILE_NAME),
+      name: "upgrade",
+      send: () =>
+        alertCustomerLifecycle({
+          action: "upgrade",
+          name: HOSTILE_NAME,
+          email: HOSTILE_EMAIL,
+          workspaceId: "ws_test",
+          workspaceName: HOSTILE_NAME,
+          product: HOSTILE_TIER,
+          previousProduct: HOSTILE_TIER,
+          price: "$25",
+        }),
     },
     {
-      name: "alertSubscriptionCancelled",
-      send: () => alertSubscriptionCancelled(HOSTILE_EMAIL, HOSTILE_NAME),
+      name: "cancelling",
+      send: () =>
+        alertCustomerLifecycle({
+          action: "cancelling",
+          name: HOSTILE_NAME,
+          email: HOSTILE_EMAIL,
+          workspaceId: "ws_test",
+          workspaceName: HOSTILE_NAME,
+          product: HOSTILE_TIER,
+          price: "$25",
+        }),
+    },
+    {
+      name: "cancelled",
+      send: () =>
+        alertCustomerLifecycle({
+          action: "cancelled",
+          name: HOSTILE_NAME,
+          email: HOSTILE_EMAIL,
+          workspaceId: "ws_test",
+          workspaceName: HOSTILE_NAME,
+        }),
     },
     {
       name: "alertPaymentFailed",
-      send: () => alertPaymentFailed(HOSTILE_EMAIL, HOSTILE_NAME, 2500, "usd"),
+      send: () => alertPaymentFailed({ email: HOSTILE_EMAIL, name: HOSTILE_NAME, amount: 2500 }),
     },
     {
       name: "alertPaymentRecovered",
-      send: () => alertPaymentRecovered(HOSTILE_EMAIL, HOSTILE_NAME, 2500, "usd"),
+      send: () => alertPaymentRecovered({ email: HOSTILE_EMAIL, name: HOSTILE_NAME, amount: 2500 }),
     },
   ];
 
@@ -193,10 +270,10 @@ describe("alerts escape attacker-controlled fields", () => {
       expect(text).toContain("&lt;");
     });
 
-    it(`${name} sets verbatim on every text object`, async () => {
+    it(`${name} sets verbatim on every mrkdwn text object`, async () => {
       await send();
 
-      const objects = sentTextObjects();
+      const objects = sentMrkdwnObjects();
       expect(objects.length).toBeGreaterThan(0);
       for (const obj of objects) {
         expect(obj.verbatim).toBe(true);
@@ -210,14 +287,146 @@ describe("alerts escape attacker-controlled fields", () => {
    * billing name of `http://evil.example/rotate` from becoming a live link.
    */
   it("does not let a bare-url billing name become a link", async () => {
-    await alertSubscriptionCreation("Pro", "$25", "jane@acme.com", "http://evil.example/rotate");
+    await alertCustomerLifecycle({
+      action: "signup",
+      name: "http://evil.example/rotate",
+      email: "jane@acme.com",
+      workspaceId: "ws_123",
+      workspaceName: "Acme",
+    });
 
     const text = sentText();
     // The value survives as plain text (nothing to escape) but verbatim keeps it unlinked.
     expect(text).toContain("http://evil.example/rotate");
-    for (const obj of sentTextObjects()) {
+    expect(text).toContain("ws_123");
+    for (const obj of sentMrkdwnObjects()) {
       expect(obj.verbatim).toBe(true);
     }
+  });
+});
+
+describe("alertCustomerLifecycle", () => {
+  it("renders a header, the customer/workspace/plan fields, and a Stripe link", async () => {
+    await alertCustomerLifecycle({
+      action: "signup",
+      name: "Jane",
+      email: "jane@acme.com",
+      workspaceId: "ws_123",
+      workspaceName: "Acme",
+      product: "Pro",
+      price: "$25",
+      stripeCustomerId: "cus_123",
+      livemode: true,
+    });
+
+    expect(headerText()).toBe(":bugeyes: New customer signup");
+    expect(fieldTexts()).toEqual([
+      "*Customer*\nJane",
+      "*Email*\njane@acme.com",
+      "*Workspace*\nAcme",
+      "*Workspace ID*\nws_123",
+      "*Tier / Product*\nPro",
+      "*Price*\n$25",
+    ]);
+    expect(buttonUrl()).toBe("https://dashboard.stripe.com/customers/cus_123");
+  });
+
+  it("shows the tier transition for an upgrade", async () => {
+    await alertCustomerLifecycle({
+      action: "upgrade",
+      name: "Jane",
+      email: "jane@acme.com",
+      workspaceId: "ws_123",
+      workspaceName: "Acme",
+      product: "Pro",
+      previousProduct: "Free",
+      price: "$25",
+    });
+
+    expect(headerText()).toBe(":stonks: Subscription upgraded");
+    expect(fieldTexts()).toContain("*Tier / Product*\nFree → Pro");
+  });
+
+  it("marks a downgrade with its own emoji", async () => {
+    await alertCustomerLifecycle({
+      action: "downgrade",
+      name: "Jane",
+      email: "jane@acme.com",
+      workspaceId: "ws_123",
+      workspaceName: "Acme",
+      product: "Free",
+      previousProduct: "Pro",
+    });
+
+    expect(headerText()).toBe(":notstonks: Subscription downgraded");
+  });
+
+  it("adds a standing note for a cancellation", async () => {
+    await alertCustomerLifecycle({
+      action: "cancelling",
+      name: "Jane",
+      email: "jane@acme.com",
+      workspaceId: "ws_123",
+      workspaceName: "Acme",
+      product: "Pro",
+      price: "$25",
+    });
+
+    expect(headerText()).toBe(":warning: Subscription cancelling");
+    expect(sentText()).toContain("Worth reaching out to learn why.");
+  });
+
+  it("links to the test dashboard when the customer is not live", async () => {
+    await alertCustomerLifecycle({
+      action: "signup",
+      name: "Jane",
+      email: "jane@acme.com",
+      workspaceId: "ws_123",
+      workspaceName: "Acme",
+      stripeCustomerId: "cus_123",
+      livemode: false,
+    });
+
+    expect(buttonUrl()).toBe("https://dashboard.stripe.com/test/customers/cus_123");
+  });
+
+  it("omits the workspace fields and the Stripe link when they are not known", async () => {
+    // A created event can race ahead of the row that links the subscription to its workspace.
+    await alertCustomerLifecycle({
+      action: "signup",
+      name: "Jane",
+      email: "jane@acme.com",
+      product: "Compute Pro",
+      price: "$25",
+    });
+
+    expect(fieldTexts()).toEqual([
+      "*Customer*\nJane",
+      "*Email*\njane@acme.com",
+      "*Tier / Product*\nCompute Pro",
+      "*Price*\n$25",
+    ]);
+    expect(buttonUrl()).toBeUndefined();
+  });
+});
+
+describe("alertPaymentFailed", () => {
+  it("renders the amount and a Stripe link", async () => {
+    await alertPaymentFailed({
+      email: "jane@acme.com",
+      name: "Jane",
+      amount: 2500,
+      stripeCustomerId: "cus_123",
+      livemode: true,
+    });
+
+    expect(headerText()).toBe(":warning: Payment failed");
+    expect(fieldTexts()).toEqual([
+      "*Customer*\nJane",
+      "*Email*\njane@acme.com",
+      "*Amount*\n$25.00",
+    ]);
+    expect(buttonUrl()).toBe("https://dashboard.stripe.com/customers/cus_123");
   });
 });
 
@@ -225,7 +434,7 @@ describe("postToSlack", () => {
   it("does not post when the webhook is not configured", async () => {
     vi.stubEnv("SLACK_WEBHOOK_CUSTOMERS", "");
 
-    await alertSubscriptionCancelled("jane@acme.com", "Jane");
+    await alertCustomerLifecycle({ action: "cancelled", name: "Jane", email: "jane@acme.com" });
 
     expect(fetchMock).not.toHaveBeenCalled();
   });
@@ -237,7 +446,9 @@ describe("postToSlack", () => {
   it("swallows transport failures", async () => {
     fetchMock.mockRejectedValue(new Error("slack is down"));
 
-    await expect(alertSubscriptionCancelled("jane@acme.com", "Jane")).resolves.toBeUndefined();
+    await expect(
+      alertCustomerLifecycle({ action: "cancelled", name: "Jane", email: "jane@acme.com" }),
+    ).resolves.toBeUndefined();
   });
 
   /**
@@ -248,47 +459,11 @@ describe("postToSlack", () => {
     const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
     fetchMock.mockResolvedValue(new Response(null, { status: 500, statusText: "Server Error" }));
 
-    await alertPaymentFailed("jane@acme.com", "Jane", 2500, "usd");
+    await alertPaymentFailed({ email: "jane@acme.com", name: "Jane", amount: 2500 });
 
     expect(consoleError).toHaveBeenCalledTimes(1);
     const logged = JSON.stringify(consoleError.mock.calls[0]);
     expect(logged).not.toContain("jane@acme.com");
     expect(logged).toContain("payment_failed");
-  });
-});
-
-describe("alertSubscriptionUpdate", () => {
-  const blockText = (index: number): string => {
-    return sentBlocks()[index].text?.text ?? "";
-  };
-
-  it("describes the tier change when a previous tier is known", async () => {
-    await alertSubscriptionUpdate("Pro", "$25", "jane@acme.com", "Jane", "upgraded", "Free");
-
-    expect(blockText(0)).toBe(":stonks: Jane upgraded their subscription");
-    expect(blockText(1)).toBe(
-      "Jane's subscription upgraded from Free to Pro tier, they are now paying $25. ",
-    );
-    expect(blockText(2)).toBe("Here is their contact information: jane@acme.com");
-  });
-
-  it("falls back to the plain message when the previous tier is unknown", async () => {
-    // changeType is "upgraded", so only the missing previousTier can select the fallback.
-    await alertSubscriptionUpdate("Pro", "$25", "jane@acme.com", "Jane", "upgraded");
-
-    expect(blockText(1)).toBe("Subscription upgraded to the Pro tier");
-  });
-
-  it("falls back to the plain message for a plain update", async () => {
-    await alertSubscriptionUpdate("Pro", "$25", "jane@acme.com", "Jane", "updated", "Free");
-
-    expect(blockText(0)).toBe(":stonks: Jane updated their subscription");
-    expect(blockText(1)).toBe("Subscription updated to the Pro tier");
-  });
-
-  it("marks downgrades with a different emoji", async () => {
-    await alertSubscriptionUpdate("Free", "$0", "jane@acme.com", "Jane", "downgraded", "Pro");
-
-    expect(blockText(0)).toBe(":notstonks: Jane downgraded their subscription");
   });
 });

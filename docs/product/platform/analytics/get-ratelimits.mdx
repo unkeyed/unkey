@@ -7,6 +7,21 @@ The `POST /v2/analytics.getRatelimits` endpoint runs SQL queries against your
 rate limit analytics. Use it from a trusted backend with a root key. Never
 expose a root key in browser code.
 
+For the request and response schemas, see the [API
+reference](/api-reference/analytics/query-rate-limit-data).
+
+## Authenticate the request
+
+Use a root key with one of these permissions:
+
+- `ratelimit.*.read_analytics` to query every rate limit namespace in the workspace
+- `ratelimit.<namespaceId>.read_analytics` to query a specific namespace
+
+Unkey always restricts queries to the root key's workspace. A namespace-scoped
+permission also adds a `namespace_id` filter to every table in the query. You
+can grant a root key access to multiple namespaces by adding one scoped
+permission for each namespace.
+
 ## Send a query
 
 Send a JSON object with a `query` string. The response uses the same shape as
@@ -38,8 +53,8 @@ curl --request POST \
 
 Queries follow the shared SQL and resource limits described in [Query
 restrictions](/platform/analytics/query-restrictions). CTEs, subqueries, UNION,
-and EXCEPT are supported. The query must contain a positive literal filter in one
-of these forms. You can optionally qualify `namespace_id` with a table alias:
+and EXCEPT are supported. Use a `namespace_id` filter to select one or more
+namespaces when the root key has wildcard access:
 
 ```sql
 WHERE namespace_id = 'rlns_1234'
@@ -49,10 +64,10 @@ WHERE namespace_id = 'rlns_1234'
 WHERE r.namespace_id IN ('rlns_1234', 'rlns_5678')
 ```
 
-You can name at most 10 unique namespace IDs. Every named namespace must exist
-and your root key must be authorized to access it. The root key needs
-`ratelimit.<namespaceId>.read_analytics` for each namespace, or the
-`ratelimit.*.read_analytics` wildcard permission.
+You can omit this filter. A wildcard root key then queries every namespace in
+the workspace, while a namespace-scoped root key returns only data permitted by
+its `ratelimit.<namespaceId>.read_analytics` permissions. A query cannot bypass
+these automatic workspace and namespace filters.
 
 ## Choose a table
 
@@ -70,40 +85,60 @@ fields such as the applied limit, remaining tokens, and reset time.
 
 Your workspace retention setting controls the time range that a query can
 request. If you omit a time filter, Unkey automatically constrains results to
-your workspace retention range. A query that stays within your workspace quota can request a range
-beyond a table's retention, but it returns only the rows that remain in that
-table. For example, a 30-day query against the minute table can contain partial
-data because that table retains 7 days. Select the hour table when you need the
-complete 30-day range.
+your workspace retention range. A query that stays within your workspace quota
+can request a range beyond a table's retention, but it returns only the rows
+that remain in that table. For example, a 30-day query against the minute table
+can contain partial data because that table retains 7 days. Select the hour
+table when you need the complete 30-day range.
 
 ## Reference available columns
 
-The raw table contains one row for each rate limit request.
+The raw table contains one row for each rate limit request. Unkey automatically
+filters `workspace_id`, so you don't need to include it in a query.
 
-| Column | Description |
-| --- | --- |
-| `request_id` | Unique request ID |
-| `time` | Request time as a Unix timestamp in milliseconds |
-| `namespace_id` | Rate limit namespace ID |
-| `identifier` | Identifier that was limited |
-| `passed` | Whether the request passed the rate limit |
-| `override_id` | Applied override ID, when an override matched |
-| `limit` | Applied token limit |
-| `remaining` | Tokens remaining after the request |
-| `reset_at` | Reset time as a Unix timestamp in milliseconds |
-| `tokens` | Tokens requested |
+| Column | Type | Description |
+| --- | --- | --- |
+| `request_id` | String | Unique request ID |
+| `time` | Int64 | Request time as a Unix timestamp in milliseconds |
+| `workspace_id` | String | Workspace ID, automatically filtered |
+| `namespace_id` | String | Rate limit namespace ID |
+| `identifier` | String | Identifier that was limited |
+| `passed` | Bool | Whether the request passed the rate limit |
+| `latency` | Float64 | Time spent on the rate limit check in milliseconds |
+| `override_id` | String | Applied override ID, when an override matched |
+| `limit` | UInt64 | Applied token limit |
+| `remaining` | UInt64 | Tokens remaining after the request |
+| `reset_at` | Int64 | Reset time as a Unix timestamp in milliseconds |
+| `tokens` | UInt64 | Tokens requested |
 
 The minute, hour, day, and month tables contain pre-aggregated rows.
 
-| Column | Description |
-| --- | --- |
-| `time` | Start of the aggregation interval |
-| `namespace_id` | Rate limit namespace ID |
-| `identifier` | Identifier that was limited |
-| `passed` | Number of requests that passed the rate limit |
-| `total` | Number of requests |
-| `total_tokens` | Number of requested tokens |
-| `passed_tokens` | Number of tokens from passed requests |
+| Column | Type | Description |
+| --- | --- | --- |
+| `time` | DateTime or Date | Start of the aggregation interval |
+| `workspace_id` | String | Workspace ID, automatically filtered |
+| `namespace_id` | String | Rate limit namespace ID |
+| `identifier` | String | Identifier that was limited |
+| `passed` | Int64 | Number of requests that passed the rate limit |
+| `total` | Int64 | Number of requests |
+| `total_tokens` | Int64 | Number of requested tokens |
+| `passed_tokens` | Int64 | Number of tokens from passed requests |
+| `latency_avg` | AggregateFunction | State for calculating average latency with `avgMerge` |
+| `latency_p75` | AggregateFunction | State for calculating p75 latency with `quantilesTDigestMerge(0.75)` |
+| `latency_p99` | AggregateFunction | State for calculating p99 latency with `quantilesTDigestMerge(0.99)` |
+
+Use ClickHouse aggregate merge functions when selecting latency from an
+aggregated table:
+
+```sql
+SELECT
+  avgMerge(latency_avg) AS average_latency,
+  quantilesTDigestMerge(0.75)(latency_p75)[1] AS p75_latency,
+  quantilesTDigestMerge(0.99)(latency_p99)[1] AS p99_latency
+FROM ratelimits_per_hour_v1
+WHERE namespace_id = 'rlns_1234'
+  AND time >= now() - INTERVAL 24 HOUR
+```
 
 ## Build a zero-filled time series
 

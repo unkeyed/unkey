@@ -91,4 +91,19 @@ func TestRunDeploySpendCheck_OrchestratorIntegration(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, int32(0), resp.GetWorkspacesDispatched())
 	})
+
+	t.Run("limits concurrent instance usage shards", func(t *testing.T) {
+		reader.set(nil)
+		for range 8 {
+			seedBudgetedWorkspace(t, h, uid.New("cus"), 1_000_000)
+		}
+		reader.trackInstanceConcurrency(50 * time.Millisecond)
+
+		resp, err := run()
+		require.NoError(t, err)
+		require.Equal(t, int32(0), resp.GetWorkspacesDispatched())
+		instanceReads, _ := reader.reads()
+		require.Equal(t, 8, instanceReads)
+		require.Equal(t, 2, reader.maxInstanceConcurrency())
+	})
 }

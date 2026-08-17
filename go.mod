@@ -65,7 +65,7 @@ require (
 	github.com/shirou/gopsutil/v4 v4.25.6
 	github.com/sqlc-dev/plugin-sdk-go v1.23.0
 	github.com/stretchr/testify v1.11.1
-	github.com/stripe/stripe-go/v86 v86.0.0
+	github.com/stripe/stripe-go/v86 v86.1.1
 	github.com/tonistiigi/fsutil v0.0.0-20250605211040-586307ad452f
 	github.com/unkeyed/sdks/api/go/v2 v2.6.1
 	github.com/vishvananda/netlink v1.3.1
@@ -303,6 +303,7 @@ require (
 	github.com/spf13/pflag v1.0.10 // indirect
 	github.com/spyzhov/ajson v0.8.0 // indirect
 	github.com/sqlc-dev/sqlc v1.30.0 // indirect
+	github.com/stretchr/objx v0.5.2 // indirect
 	github.com/testcontainers/testcontainers-go v0.40.0 // indirect
 	github.com/tetratelabs/wazero v1.11.0 // indirect
 	github.com/tidwall/btree v1.8.1 // indirect

@@ -10,9 +10,9 @@ noindex: true
 
 You can now rotate any API key or root key from the dashboard with an optional grace period (revoke immediately, 15 minutes, 1 hour, 6 hours, or 24 hours). The replacement key inherits the original's permissions, ratelimits, identity, metadata, and remaining lifetime. Find it under the new lifecycle group in the keys table action menu. See [Key rerolling](/platform/apis/features/rerolling-key) for details.
 
-### OpenAPI validation Sentinel policy
+### OpenAPI validation policy
 
-A new [OpenAPI validation policy](/platform/sentinel/policies/openapi-validation) checks incoming requests against your OpenAPI 3.0 or 3.1 spec and rejects malformed requests with a `400 Bad Request` before they reach your app. Path parameters, query parameters, headers, and request bodies are all validated. Add it from the policies tab in your Deploy project.
+A new [OpenAPI validation policy](/platform/gateway/policies/openapi-validation) checks incoming requests against your OpenAPI 3.0 or 3.1 spec and rejects malformed requests with a `400 Bad Request` before they reach your app. Path parameters, query parameters, headers, and request bodies are all validated. Add it from the policies tab in your Deploy project.
 
 ### WebSocket support on Deploy
 

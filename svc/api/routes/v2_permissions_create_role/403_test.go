@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
+	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_permissions_create_role"
 )
@@ -58,6 +59,53 @@ func TestAuthorizationErrors(t *testing.T) {
 			WorkspaceID: workspace.ID,
 		})
 		require.True(t, db.IsNotFound(err), "No role should have been created")
+	})
+
+	t.Run("missing add_permission_to_role permission", func(t *testing.T) {
+		rootKey := h.CreateRootKey(workspace.ID, "rbac.*.create_role", "rbac.*.create_permission")
+		headers := http.Header{
+			"Content-Type":  {"application/json"},
+			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+		}
+		permissions := []string{"documents.read.missing.add"}
+		req := handler.Request{Name: "test.role.missing.add", Permissions: &permissions}
+
+		res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, headers, req)
+
+		require.Equal(t, http.StatusForbidden, res.Status)
+		_, err := db.Query.FindRoleByNameAndWorkspaceID(context.Background(), h.DB.RO(), db.FindRoleByNameAndWorkspaceIDParams{
+			Name: req.Name, WorkspaceID: workspace.ID,
+		})
+		require.True(t, db.IsNotFound(err))
+	})
+
+	t.Run("missing create_permission permission", func(t *testing.T) {
+		existingPermission := h.CreatePermission(seed.CreatePermissionRequest{
+			WorkspaceID: workspace.ID,
+			Name:        "documents.read.existing.create.role",
+			Slug:        "documents.read.existing.create.role",
+		})
+		rootKey := h.CreateRootKey(workspace.ID, "rbac.*.create_role", "rbac.*.add_permission_to_role")
+		headers := http.Header{
+			"Content-Type":  {"application/json"},
+			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+		}
+		permissions := []string{existingPermission.Slug, "documents.write.missing.create.role"}
+		req := handler.Request{Name: "test.role.missing.create", Permissions: &permissions}
+
+		res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, headers, req)
+
+		require.Equal(t, http.StatusForbidden, res.Status)
+		_, err := db.Query.FindRoleByNameAndWorkspaceID(context.Background(), h.DB.RO(), db.FindRoleByNameAndWorkspaceIDParams{
+			Name: req.Name, WorkspaceID: workspace.ID,
+		})
+		require.True(t, db.IsNotFound(err))
+		missing, err := db.Query.FindPermissionsBySlugs(context.Background(), h.DB.RO(), db.FindPermissionsBySlugsParams{
+			WorkspaceID: workspace.ID,
+			Slugs:       []string{"documents.write.missing.create.role"},
+		})
+		require.NoError(t, err)
+		require.Empty(t, missing)
 	})
 
 	// Test case for wrong workspace

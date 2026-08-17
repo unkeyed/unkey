@@ -68,15 +68,28 @@ type InstanceMeterUsage struct {
 //   - CPU and egress are monotonic counters: each pair contributes its
 //     non-negative delta, which telescopes to (last - first) when there are
 //     no dropped gaps.
+//   - Egress additionally requires both samples in a pair to be marked
+//     network_attached. The eBPF counters live on a pinned map that outlives
+//     the agent, so a checkpoint written while the collector is detached
+//     reports 0 rather than the true total, and the next attached sample's
+//     delta against that 0 is the whole accumulated counter. Charging that
+//     re-bills the container's entire lifetime egress on every reattach.
+//     Requiring both endpoints to be attached drops those pairs instead, which
+//     under-counts the detached interval rather than over-charging.
 //   - Memory and disk are gauges: each pair contributes value * dt, the lower
 //     of the two endpoint values (conservative on a resize) times the
 //     interval. Summing the products is a left-Riemann integral with the gap
 //     intervals removed.
 //
-// The query reads the instance_checkpoints view (FINAL applied) so un-merged
-// duplicate inserts can't double-count the integrals. Memory and disk
-// products are accumulated in Float64 because byte-milliseconds over a month
-// for a large container overflow Int64.
+// The query reads the physical table with FINAL so un-merged duplicate inserts
+// can't double-count the integrals. It deliberately does not use the
+// instance_checkpoints view: although that view also applies FINAL, ClickHouse
+// 25.6 and 26.2 lose the table's input-order metadata through the view and sort
+// the full window input. Reading the table directly preserves the ordered plan.
+// The query also runs FINAL on one thread: this is a background billing path
+// where lower peak memory matters more than maximum read parallelism. Memory
+// and disk products are accumulated in Float64 because byte-milliseconds over
+// a month for a large container overflow Int64.
 func (c *Client) GetInstanceMeterUsage(ctx context.Context, req GetInstanceMeterUsageRequest) ([]InstanceMeterUsage, error) {
 	// leadInFrame over a (container_uid) partition gives each row its next
 	// sample. The last sample in a partition has no successor: leadInFrame
@@ -104,10 +117,15 @@ func (c *Client) GetInstanceMeterUsage(ctx context.Context, req GetInstanceMeter
 			resource_id,
 			leadInFrame(ts) OVER w - ts AS dt,
 			greatest(0, leadInFrame(cpu_usage_usec) OVER w - cpu_usage_usec) AS cpu_usec_delta,
-			greatest(0, leadInFrame(network_egress_public_bytes) OVER w - network_egress_public_bytes) AS egress_bytes_delta,
+			if(
+				ifNull(attributes.network_attached::Nullable(Bool), false)
+				AND leadInFrame(ifNull(attributes.network_attached::Nullable(Bool), false)) OVER w,
+				greatest(0, leadInFrame(network_egress_public_bytes) OVER w - network_egress_public_bytes),
+				0
+			) AS egress_bytes_delta,
 			toFloat64(least(memory_bytes, leadInFrame(memory_bytes) OVER w)) * toFloat64(leadInFrame(ts) OVER w - ts) AS memory_byte_ms,
 			toFloat64(least(disk_allocated_bytes, leadInFrame(disk_allocated_bytes) OVER w)) * toFloat64(leadInFrame(ts) OVER w - ts) AS disk_byte_ms
-		FROM instance_checkpoints
+		FROM instance_checkpoints_v1 FINAL
 		WHERE ts >= {start:Int64}
 		  AND ts < {end:Int64}
 		  AND ({workspace_id:String} = '' OR workspace_id = {workspace_id:String})
@@ -120,7 +138,11 @@ func (c *Client) GetInstanceMeterUsage(ctx context.Context, req GetInstanceMeter
 	)
 	WHERE dt > 0 AND dt <= {max_gap_ms:Int64}
 	GROUP BY workspace_id, project_id, environment_id, resource_type, resource_id
-	SETTINGS do_not_merge_across_partitions_select_final = 1
+	SETTINGS
+		do_not_merge_across_partitions_select_final = 1,
+		max_final_threads = 1,
+		optimize_read_in_order = 1,
+		optimize_read_in_window_order = 1
 	`
 
 	usage, err := Select[InstanceMeterUsage](ctx, c.conn, query, map[string]string{

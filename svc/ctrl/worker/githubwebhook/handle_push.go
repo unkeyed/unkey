@@ -12,6 +12,7 @@ import (
 	restate "github.com/restatedev/sdk-go"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
+	"github.com/unkeyed/unkey/pkg/deploy/deploygate"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/match"
 	"github.com/unkeyed/unkey/pkg/uid"
@@ -35,7 +36,7 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 	branch := req.GetBranch()
 
 	// Single query: connections + apps + projects + environments + build/runtime settings
-	// Filters by environment slug based on branch vs project default_branch in SQL.
+	// Selects the production environment for the default branch and preview for others.
 	// Fork PRs always go to preview via the is_fork_pr flag.
 	contexts, err := restate.Run(ctx, func(runCtx restate.RunContext) ([]db.ListRepoConnectionDeployContextsRow, error) {
 		return s.db.ListRepoConnectionDeployContexts(runCtx, db.ListRepoConnectionDeployContextsParams{
@@ -55,6 +56,71 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 			"repository_id", req.GetRepositoryId(),
 			"branch", req.GetBranch(),
 		)
+		return &hydrav1.HandlePushResponse{}, nil
+	}
+
+	// Gate before loading env vars, calling GitHub, or writing even a skipped
+	// deployment row. A policy rejection is a successful no-op so Restate does
+	// not retry a permanently ineligible workspace and stall the repository.
+	entitlements := make(map[string]db.FindWorkspaceDeployEntitlementRow)
+	eligibleContexts := make([]db.ListRepoConnectionDeployContextsRow, 0, len(contexts))
+	for _, row := range contexts {
+		project := row.Project
+		app := row.App
+		entitlement, ok := entitlements[project.WorkspaceID]
+		if !ok {
+			entitlement, err = restate.Run(ctx, func(runCtx restate.RunContext) (db.FindWorkspaceDeployEntitlementRow, error) {
+				loaded, loadErr := s.db.FindWorkspaceDeployEntitlement(runCtx, project.WorkspaceID)
+				if db.IsNotFound(loadErr) {
+					return db.FindWorkspaceDeployEntitlementRow{
+						Plan:           sql.NullString{},
+						PlanOverride:   sql.NullString{},
+						SpendSuspended: sql.NullBool{},
+					}, nil
+				}
+				return loaded, loadErr
+			}, restate.WithName("load workspace deploy entitlement "+project.WorkspaceID))
+			if err != nil {
+				return nil, err
+			}
+			entitlements[project.WorkspaceID] = entitlement
+		}
+
+		if !deploygate.Entitled(entitlement.Plan, entitlement.PlanOverride) {
+			if s.enforceDeployGate {
+				logger.Info("skipping deployment: workspace has no Compute plan",
+					"event", "deploy_gate.blocked",
+					"reason", "no_plan",
+					"workspace_id", project.WorkspaceID,
+					"project_id", project.ID,
+					"app_id", app.ID,
+					"delivery_id", req.GetDeliveryId(),
+				)
+				continue
+			}
+			logger.Warn("deploy gate would block GitHub deployment",
+				"event", "deploy_gate.would_block",
+				"workspaceId", project.WorkspaceID,
+				"projectId", project.ID,
+				"appId", app.ID,
+			)
+		}
+		if entitlement.SpendSuspended.Bool {
+			logger.Info("skipping deployment: workspace is spend suspended",
+				"event", "deploy_gate.blocked",
+				"reason", "spend_suspended",
+				"workspace_id", project.WorkspaceID,
+				"project_id", project.ID,
+				"app_id", app.ID,
+				"delivery_id", req.GetDeliveryId(),
+			)
+			continue
+		}
+
+		eligibleContexts = append(eligibleContexts, row)
+	}
+	contexts = eligibleContexts
+	if len(contexts) == 0 {
 		return &hydrav1.HandlePushResponse{}, nil
 	}
 

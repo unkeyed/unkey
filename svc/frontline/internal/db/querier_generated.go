@@ -59,7 +59,7 @@ type Querier interface {
 	//    d.desired_state,
 	//    wb.spend_suspended
 	//  FROM frontline_routes fr
-	//  INNER JOIN deployments d ON fr.deployment_id = d.id
+	//  INNER JOIN deployments d ON d.id = fr.deployment_id
 	//  LEFT JOIN workspace_billing wb ON wb.workspace_id = d.workspace_id
 	//  WHERE fr.fully_qualified_domain_name = ?
 	FindFrontlineRouteByFQDN(ctx context.Context, fqdn string) (FindFrontlineRouteByFQDNRow, error)
@@ -71,7 +71,7 @@ type Querier interface {
 	//    r.name AS region_name,
 	//    r.platform AS region_platform
 	//  FROM instances i
-	//  INNER JOIN regions r ON i.region_id = r.id
+	//  INNER JOIN regions r ON r.id = i.region_id
 	//  WHERE i.deployment_id = ?
 	FindInstancesByDeploymentID(ctx context.Context, deploymentID string) ([]FindInstancesByDeploymentIDRow, error)
 	// FindOpenApiSpecByDeploymentID returns the scraped OpenAPI spec for a

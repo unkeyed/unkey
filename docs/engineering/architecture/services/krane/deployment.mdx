@@ -4,12 +4,12 @@ description: "Deployment model and failover expectations for the krane service"
 ---
 
 Krane runs as a single control agent for one Kubernetes cluster and one
-control-plane region key. The region key is the `platform` and `region` pair
-that Krane sends to the control plane.
+control-plane cluster key. The cluster key is the `cell_id`, `platform`, and
+`region` tuple that Krane sends to the control plane.
 
 ## Deployment model
 
-Run one active Krane instance for each cluster and `(platform, region)` pair.
+Run one active Krane instance for each `(cell_id, platform, region)` tuple.
 That instance owns reconciliation for the cluster. It watches desired state from
 the control plane, applies Kubernetes resources, reports workload status, and
 sends heartbeats.

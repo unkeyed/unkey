@@ -1,0 +1,24 @@
+type: object
+required:
+  - domainId
+  - dnsRecords
+properties:
+  domainId:
+    "$ref": "../../../../common/ResourceIdentifier.yaml"
+  dnsRecords:
+    type: array
+    minItems: 1
+    items:
+      "$ref": "../../../../common/DnsRecord.yaml"
+    description: |
+      Every DNS record needed to finish setting up this domain, ready to create at your provider.
+      The list already accounts for whether the domain is an apex or a subdomain, so no further
+      branching is needed: create each entry as given.
+
+      One record establishes routing and one proves ownership. Create all of them: whether ownership
+      can be inferred from the routing record depends on how your provider publishes it, and a name
+      another workspace has already verified can only be claimed through the ownership record.
+      Neither is knowable before the records exist.
+  domainConnect:
+    "$ref": "../../../../common/DomainConnect.yaml"
+additionalProperties: false

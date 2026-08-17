@@ -43,18 +43,34 @@ function activePointFromState(state: unknown, data: AreaChartPoint[]): AreaChart
   return isAreaChartPoint(candidate) ? candidate : null;
 }
 
-// Fixed horizontal gutter on the left of every chart. When the Y-axis is
-// shown this is its reserved width; when hidden, the AreaChart's left
-// margin consumes the same amount. Keeping this symmetric across charts
-// aligns plot-area left edges vertically down the stack — otherwise the
-// CPU row (hideYAxis) starts further left than mem/disk/network. 60
-// comfortably fits the longest byte tick ("999MB" / "9.9GB") at 10px.
+// Visible Y-axes reserve a fixed gutter so plot areas align across a chart stack.
+// Hidden axes use no gutter because their cards render as standalone sparklines.
 const Y_GUTTER_PX = 36;
 
 // Tooltip row value. `value` is the primary (bold) number, `unit` the
 // immediate suffix ("MiB"), and `hint` a muted trailing annotation used
 // for secondary context like "(17%)" next to memory values.
 export type ValueParts = { value: string; unit?: string; hint?: string };
+
+// AreaTimeseriesAxisOptions groups axis visibility, domains, scaling, and formatting.
+export type AreaTimeseriesAxisOptions = {
+  // Set false to retain configured domains while hiding both axes.
+  visible?: boolean;
+  x?: {
+    // Forces the axis to span an explicit [start, end] range in milliseconds.
+    domain?: [number, number];
+    // Contracts an explicit domain when non-zero data sparsely covers it.
+    contractOnSparseData?: boolean;
+    utc?: boolean;
+  };
+  y?: {
+    // Minimum top-of-axis when data is tiny or idle.
+    floor?: number;
+    // Calculates the top-of-axis from the floored observed maximum.
+    getTop?: (max: number) => number;
+    formatTick?: (value: number) => string;
+  };
+};
 
 type Props = {
   data: AreaChartPoint[];
@@ -67,28 +83,11 @@ type Props = {
   // Renders a tooltip row value, e.g. `24.01` + ` MiB/s`. Defaults to
   // bytes/s for network rate charts.
   formatTooltipValue?: (value: number) => ValueParts;
-  // Renders a compact Y-axis tick, e.g. `24M`. Defaults to the bytes/s
-  // single-letter scale.
-  formatYTick?: (value: number) => string;
-  // Minimum top-of-axis when data is tiny / idle, so baselines aren't
-  // compressed to nothing. Defaults to 1 KiB for the network rate chart.
-  axisFloor?: number;
-  // Force the X-axis to span this explicit [start, end] range (millis).
-  // Used to anchor the axis to the selected window (e.g. "Past day"
-  // always reads as 24h of x-axis even when the deployment is only
-  // 1h old), so the tick labels change visibly between windows.
-  xAxisDomain?: [number, number];
-  // Opt in to contracting the x-axis to the non-zero data extent when that
-  // data sparsely covers `xAxisDomain` (see [resolveXAxisDomain]). Off by
-  // default: an explicit window is honored as-is, so a header that commits to
-  // it (e.g. "requests this week") never disagrees with the axis. The
-  // deployment resource panels turn this on, where a brand-new deployment with
-  // minutes of data on a multi-day axis reads as broken.
-  contractOnSparseData?: boolean;
-  hideAxes?: boolean;
+  // Defaults to visible axes and a byte-oriented Y-axis with a 1 KiB floor.
+  // Pass null to hide both axes.
+  axis?: AreaTimeseriesAxisOptions | null;
   paleFill?: boolean;
   fillColors?: Record<string, string>;
-  xAxisUTC?: boolean;
   onActiveChange?: (point: AreaChartPoint | null) => void;
   hideTooltip?: boolean;
 };
@@ -102,14 +101,9 @@ export function AreaTimeseriesChart({
   chartContainerClassname,
   showDateInTooltip,
   formatTooltipValue = formatBytesPerSecondParts,
-  formatYTick = formatYAxisCompactBytes,
-  axisFloor = 1024,
-  xAxisDomain,
-  contractOnSparseData,
-  hideAxes,
+  axis,
   paleFill,
   fillColors,
-  xAxisUTC,
   onActiveChange,
   hideTooltip,
 }: Props) {
@@ -149,7 +143,10 @@ export function AreaTimeseriesChart({
     (m, p) => configKeys.reduce((mm, k) => Math.max(mm, Number(p[k]) || 0), m),
     0,
   );
-  const top = niceCeil(Math.max(dataMax, axisFloor));
+  const yAxisFloor = axis === null ? 0 : (axis?.y?.floor ?? 1024);
+  const formatYTick = axis?.y?.formatTick ?? formatYAxisCompactBytes;
+  const yAxisMax = Math.max(dataMax, yAxisFloor);
+  const top = axis?.y?.getTop ? axis.y.getTop(yAxisMax) : yAxisMax * 1.1;
   const yTicks = [0, top / 3, (2 * top) / 3, top];
   const yDomain: [number, number] = [0, top];
 
@@ -166,12 +163,13 @@ export function AreaTimeseriesChart({
     }
   }
   const { effectiveDomain, spanMs } = resolveXAxisDomain({
-    xAxisDomain,
-    contractOnSparseData,
+    xAxisDomain: axis?.x?.domain,
+    contractOnSparseData: axis?.x?.contractOnSparseData,
     firstNonZeroTs,
     lastNonZeroTs,
   });
-  const xTickFormatter = (v: number) => formatXAxisTick(v, spanMs, xAxisUTC);
+  const xTickFormatter = (v: number) => formatXAxisTick(v, spanMs, axis?.x?.utc);
+  const showAxes = axis !== null && axis?.visible !== false;
 
   // Explicit ticks at 0% / 33% / 66% / 100% of the anchored domain so the
   // user always sees the window's start and end labeled. Without this,
@@ -196,9 +194,9 @@ export function AreaTimeseriesChart({
         onMouseMove={handleActive}
         onMouseLeave={onActiveChange ? () => onActiveChange(null) : undefined}
         margin={
-          hideAxes
-            ? { top: 4, right: 0, bottom: 0, left: 0 }
-            : { top: 16, right: 8, bottom: 0, left: 0 }
+          showAxes
+            ? { top: 16, right: 8, bottom: 0, left: 0 }
+            : { top: 4, right: 0, bottom: 0, left: 0 }
         }
       >
         <defs>
@@ -251,7 +249,7 @@ export function AreaTimeseriesChart({
             );
           })}
         </defs>
-        {!hideAxes && (
+        {showAxes && (
           <CartesianGrid
             vertical={false}
             stroke="hsl(var(--gray-4))"
@@ -266,24 +264,23 @@ export function AreaTimeseriesChart({
           allowDataOverflow={Boolean(effectiveDomain)}
           scale="time"
           tickFormatter={xTickFormatter}
-          tick={hideAxes ? false : { fill: "hsl(var(--gray-10))", fontSize: 10 }}
+          tick={showAxes ? { fill: "hsl(var(--gray-10))", fontSize: 10 } : false}
           tickLine={false}
           axisLine={false}
           ticks={xTicks}
           minTickGap={48}
-          hide={hideAxes}
+          hide={!showAxes}
         />
-        {!hideAxes && (
-          <YAxis
-            width={Y_GUTTER_PX}
-            tickLine={false}
-            axisLine={false}
-            tickFormatter={formatYTick}
-            tick={{ fill: "hsl(var(--gray-10))", fontSize: 10 }}
-            ticks={yTicks}
-            domain={yDomain}
-          />
-        )}
+        <YAxis
+          width={showAxes ? Y_GUTTER_PX : 0}
+          tickLine={false}
+          axisLine={false}
+          tickFormatter={formatYTick}
+          tick={showAxes ? { fill: "hsl(var(--gray-10))", fontSize: 10 } : false}
+          ticks={yTicks}
+          domain={yDomain}
+          hide={!showAxes}
+        />
         <ChartTooltip
           allowEscapeViewBox={{ x: false, y: true }}
           wrapperStyle={{ zIndex: 1000, pointerEvents: "none" }}
@@ -451,19 +448,6 @@ function trim(n: number): string {
     return `${rounded}`;
   }
   return n.toFixed(1);
-}
-
-// niceCeil rounds `max` up to a multiple of 3 × unit (B/K/M/G) so the
-// intermediate evenly-spaced ticks (top/3, 2*top/3) land on readable
-// values — e.g. max=5000 → top=6144 giving 0 / 2K / 4K / 6K instead of
-// 0 / 341 / 682 / 1024.
-function niceCeil(max: number): number {
-  const kib = 1024;
-  const mib = kib * 1024;
-  const gib = mib * 1024;
-  const unit = max >= gib ? gib : max >= mib ? mib : max >= kib ? kib : 1;
-  const step = 3 * unit;
-  return Math.max(step, Math.ceil(max / step) * step);
 }
 
 // X-axis tick format: "HH:MM" for sub-2-day spans, "MMM d" once we're

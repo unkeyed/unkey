@@ -35,9 +35,9 @@ type (
 // handler, which requires a per-workspace ClickHouse user and a query-language
 // parser that are inappropriate for an end user.
 type Handler struct {
-	ClickHouse clickhouse.ClickHouse
-	DB         db.Database
-	QuotaCache cache.Cache[string, keysdb.Quotas]
+	ClickHouse  clickhouse.ClickHouse
+	DB          db.Database
+	LimitsCache cache.Cache[string, keysdb.Limit]
 }
 
 // Method returns the HTTP method this route responds to.
@@ -82,25 +82,25 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	// Bound the window to the workspace's log retention. This runs on the shared
 	// ClickHouse connection, so an unbounded window (e.g. the unix epoch to a far
 	// future) would let an end user force an arbitrarily large scan and
-	// zero-filled series. We reuse LogsRetentionDays, the same quota the protected
-	// analytics.getVerifications enforces as MaxQueryRangeDays, so the portal can
-	// never query a wider range than the workspace itself.
-	quota, _, err := h.QuotaCache.SWR(ctx, principal.WorkspaceID, func(ctx context.Context) (keysdb.Quotas, error) {
-		return keysdb.Query.FindQuotaByWorkspaceID(ctx, h.DB.RO(), principal.WorkspaceID)
+	// zero-filled series. We use the same log retention limit that the protected
+	// analytics.getVerifications path uses as MaxQueryRangeDays, so the portal
+	// cannot query a wider range than the workspace itself.
+	limits, _, err := h.LimitsCache.SWR(ctx, principal.WorkspaceID, func(ctx context.Context) (keysdb.Limit, error) {
+		return keysdb.Query.FindLimitsByWorkspaceID(ctx, h.DB.RO(), principal.WorkspaceID)
 	}, caches.DefaultFindFirstOp)
 	if err != nil {
 		return fault.Wrap(err,
 			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-			fault.Internal("failed to load workspace quota"),
+			fault.Internal("failed to load workspace limits"),
 			fault.Public("Failed to validate the requested time window."),
 		)
 	}
 
-	if quota.LogsRetentionDays > 0 && req.EndTime-req.StartTime > int64(quota.LogsRetentionDays)*millisPerDay {
+	if limits.LogsRetentionDaysMax > 0 && req.EndTime-req.StartTime > int64(limits.LogsRetentionDaysMax)*millisPerDay {
 		return fault.New("time window too large",
 			fault.Code(codes.App.Validation.InvalidInput.URN()),
 			fault.Internal("requested window exceeds workspace log retention"),
-			fault.Public(fmt.Sprintf("The requested time window is too large. The maximum window is %d days.", quota.LogsRetentionDays)),
+			fault.Public(fmt.Sprintf("The requested time window is too large. The maximum window is %d days.", limits.LogsRetentionDaysMax)),
 		)
 	}
 

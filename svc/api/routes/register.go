@@ -46,6 +46,7 @@ import (
 	v2PermissionsGetRole "github.com/unkeyed/unkey/svc/api/routes/v2_permissions_get_role"
 	v2PermissionsListPermissions "github.com/unkeyed/unkey/svc/api/routes/v2_permissions_list_permissions"
 	v2PermissionsListRoles "github.com/unkeyed/unkey/svc/api/routes/v2_permissions_list_roles"
+	v2PermissionsSetRolePermissions "github.com/unkeyed/unkey/svc/api/routes/v2_permissions_set_role_permissions"
 
 	v2KeysAddPermissions "github.com/unkeyed/unkey/svc/api/routes/v2_keys_add_permissions"
 	v2KeysAddRoles "github.com/unkeyed/unkey/svc/api/routes/v2_keys_add_roles"
@@ -77,6 +78,9 @@ import (
 	v2AppsGetApp "github.com/unkeyed/unkey/svc/api/routes/v2_apps_get_app"
 	v2AppsListApps "github.com/unkeyed/unkey/svc/api/routes/v2_apps_list_apps"
 	v2AppsUpdateApp "github.com/unkeyed/unkey/svc/api/routes/v2_apps_update_app"
+	v2DomainsCreateDomain "github.com/unkeyed/unkey/svc/api/routes/v2_domains_create_domain"
+	v2DomainsGetDomain "github.com/unkeyed/unkey/svc/api/routes/v2_domains_get_domain"
+	v2DomainsListDomains "github.com/unkeyed/unkey/svc/api/routes/v2_domains_list_domains"
 	v2EnvironmentsGetEnvironment "github.com/unkeyed/unkey/svc/api/routes/v2_environments_get_environment"
 	v2EnvironmentsListEnvironmentVariables "github.com/unkeyed/unkey/svc/api/routes/v2_environments_list_environment_variables"
 	v2EnvironmentsListEnvironments "github.com/unkeyed/unkey/svc/api/routes/v2_environments_list_environments"
@@ -91,6 +95,8 @@ import (
 	v2ProjectsGetProject "github.com/unkeyed/unkey/svc/api/routes/v2_projects_get_project"
 	v2ProjectsListProjects "github.com/unkeyed/unkey/svc/api/routes/v2_projects_list_projects"
 	v2ProjectsUpdateProject "github.com/unkeyed/unkey/svc/api/routes/v2_projects_update_project"
+
+	v2GithubInstallApp "github.com/unkeyed/unkey/svc/api/routes/v2_github_install_app"
 
 	zen "github.com/unkeyed/unkey/pkg/zen"
 )
@@ -115,16 +121,16 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 	withValidation := zen.WithValidation(svc.Validator)
 	withTimeout := zen.WithTimeout(time.Minute)
 	withAuthentication := middleware.WithAuthentication(middleware.AuthenticationConfig{
-		Auth:       svc.Auth,
-		Database:   svc.Database,
-		QuotaCache: svc.Caches.WorkspaceQuota,
-		Ratelimit:  svc.Ratelimit,
+		Auth:        svc.Auth,
+		Database:    svc.Database,
+		LimitsCache: svc.Caches.WorkspaceLimits,
+		Ratelimit:   svc.Ratelimit,
 	})
 	withPortalAuthentication := middleware.WithAuthentication(middleware.AuthenticationConfig{
-		Auth:       svc.PortalAuth,
-		Database:   svc.Database,
-		QuotaCache: svc.Caches.WorkspaceQuota,
-		Ratelimit:  svc.Ratelimit,
+		Auth:        svc.PortalAuth,
+		Database:    svc.Database,
+		LimitsCache: svc.Caches.WorkspaceLimits,
+		Ratelimit:   svc.Ratelimit,
 	})
 
 	publicMiddlewares := []zen.Middleware{
@@ -503,6 +509,15 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 		},
 	)
 
+	// v2/permissions.setRolePermissions
+	srv.RegisterRoute(
+		protectedMiddlewares,
+		&v2PermissionsSetRolePermissions.Handler{
+			DB:        svc.Database,
+			Auditlogs: svc.Auditlogs,
+		},
+	)
+
 	// ---------------------------------------------------------------------------
 	// v2/keys
 
@@ -741,9 +756,9 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 	srv.RegisterRoute(
 		portalMiddlewares,
 		&v2PortalGetVerifications.Handler{
-			ClickHouse: svc.ClickHouse,
-			DB:         svc.Database,
-			QuotaCache: svc.Caches.WorkspaceQuota,
+			ClickHouse:  svc.ClickHouse,
+			DB:          svc.Database,
+			LimitsCache: svc.Caches.WorkspaceLimits,
 		},
 	)
 
@@ -793,8 +808,21 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 	srv.RegisterRoute(
 		protectedMiddlewares,
 		&v2AppsCreateApp.Handler{
-			DB:         svc.Database,
-			CtrlClient: svc.CtrlAppClient,
+			DB:            svc.Database,
+			CtrlClient:    svc.CtrlAppClient,
+			Auditlogs:     svc.Auditlogs,
+			GitHubClient:  svc.GitHubClient,
+			GitHubAppName: svc.GitHubAppName,
+		},
+	)
+
+	// v2/github.installApp
+	srv.RegisterRoute(
+		protectedMiddlewares,
+		&v2GithubInstallApp.Handler{
+			DB:                  svc.Database,
+			GitHubAppName:       svc.GitHubAppName,
+			GitHubPrivateKeyPEM: svc.GitHubPrivateKeyPEM,
 		},
 	)
 
@@ -818,8 +846,10 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 	srv.RegisterRoute(
 		protectedMiddlewares,
 		&v2AppsUpdateApp.Handler{
-			DB:        svc.Database,
-			Auditlogs: svc.Auditlogs,
+			DB:            svc.Database,
+			Auditlogs:     svc.Auditlogs,
+			GitHubClient:  svc.GitHubClient,
+			GitHubAppName: svc.GitHubAppName,
 		},
 	)
 
@@ -852,9 +882,9 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 	srv.RegisterRoute(
 		protectedMiddlewares,
 		&v2EnvironmentsUpdateSettings.Handler{
-			DB:         svc.Database,
-			Auditlogs:  svc.Auditlogs,
-			QuotaCache: svc.Caches.WorkspaceQuota,
+			DB:          svc.Database,
+			Auditlogs:   svc.Auditlogs,
+			LimitsCache: svc.Caches.WorkspaceLimits,
 		},
 	)
 
@@ -883,6 +913,32 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 		&v2EnvironmentsListEnvironmentVariables.Handler{
 			DB:    svc.Database,
 			Vault: svc.Vault,
+		},
+	)
+
+	// v2/domains.createDomain
+	srv.RegisterRoute(
+		protectedMiddlewares,
+		&v2DomainsCreateDomain.Handler{
+			DB:          svc.Database,
+			CtrlClient:  svc.CtrlCustomDomainClient,
+			LimitsCache: svc.Caches.WorkspaceLimits,
+		},
+	)
+
+	// v2/domains.getDomain
+	srv.RegisterRoute(
+		protectedMiddlewares,
+		&v2DomainsGetDomain.Handler{
+			DB: svc.Database,
+		},
+	)
+
+	// v2/domains.listDomains
+	srv.RegisterRoute(
+		protectedMiddlewares,
+		&v2DomainsListDomains.Handler{
+			DB: svc.Database,
 		},
 	)
 

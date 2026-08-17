@@ -316,7 +316,9 @@ export function generateMatchingApiRequestForVerification(
     apiRequest.response_body = JSON.stringify({
       valid: true,
       keyId: verificationEvent.key_id,
-      ownerId: `user_${generateRandomString(16)}`,
+      identity: {
+        externalId: `user_${generateRandomString(16)}`,
+      },
       meta: Math.random() < 0.7 ? generateMetadata() : undefined,
     });
   }

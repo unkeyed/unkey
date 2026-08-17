@@ -204,6 +204,98 @@ func (*ReleaseSlotResponse) Descriptor() ([]byte, []int) {
 	return file_hydra_v1_build_slot_proto_rawDescGZIP(), []int{3}
 }
 
+type ExpireSlotRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The deployment whose slot lease or wait-list entry is checked.
+	DeploymentId string `protobuf:"bytes,1,opt,name=deployment_id,json=deploymentId,proto3" json:"deployment_id,omitempty"`
+	// Count of lease renewals already granted for this slot. The handler
+	// renews the lease for a live invocation until the renewal cap, then
+	// force-fails the deployment.
+	Renewals      uint32 `protobuf:"varint,2,opt,name=renewals,proto3" json:"renewals,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ExpireSlotRequest) Reset() {
+	*x = ExpireSlotRequest{}
+	mi := &file_hydra_v1_build_slot_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ExpireSlotRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ExpireSlotRequest) ProtoMessage() {}
+
+func (x *ExpireSlotRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_hydra_v1_build_slot_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ExpireSlotRequest.ProtoReflect.Descriptor instead.
+func (*ExpireSlotRequest) Descriptor() ([]byte, []int) {
+	return file_hydra_v1_build_slot_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *ExpireSlotRequest) GetDeploymentId() string {
+	if x != nil {
+		return x.DeploymentId
+	}
+	return ""
+}
+
+func (x *ExpireSlotRequest) GetRenewals() uint32 {
+	if x != nil {
+		return x.Renewals
+	}
+	return 0
+}
+
+type ExpireSlotResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ExpireSlotResponse) Reset() {
+	*x = ExpireSlotResponse{}
+	mi := &file_hydra_v1_build_slot_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ExpireSlotResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ExpireSlotResponse) ProtoMessage() {}
+
+func (x *ExpireSlotResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_hydra_v1_build_slot_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ExpireSlotResponse.ProtoReflect.Descriptor instead.
+func (*ExpireSlotResponse) Descriptor() ([]byte, []int) {
+	return file_hydra_v1_build_slot_proto_rawDescGZIP(), []int{5}
+}
+
 var File_hydra_v1_build_slot_proto protoreflect.FileDescriptor
 
 const file_hydra_v1_build_slot_proto_rawDesc = "" +
@@ -216,10 +308,16 @@ const file_hydra_v1_build_slot_proto_rawDesc = "" +
 	"\x15AcquireOrWaitResponse\"9\n" +
 	"\x12ReleaseSlotRequest\x12#\n" +
 	"\rdeployment_id\x18\x01 \x01(\tR\fdeploymentId\"\x15\n" +
-	"\x13ReleaseSlotResponse2\xb6\x01\n" +
+	"\x13ReleaseSlotResponse\"T\n" +
+	"\x11ExpireSlotRequest\x12#\n" +
+	"\rdeployment_id\x18\x01 \x01(\tR\fdeploymentId\x12\x1a\n" +
+	"\brenewals\x18\x02 \x01(\rR\brenewals\"\x14\n" +
+	"\x12ExpireSlotResponse2\x81\x02\n" +
 	"\x10BuildSlotService\x12R\n" +
 	"\rAcquireOrWait\x12\x1e.hydra.v1.AcquireOrWaitRequest\x1a\x1f.hydra.v1.AcquireOrWaitResponse\"\x00\x12H\n" +
-	"\aRelease\x12\x1c.hydra.v1.ReleaseSlotRequest\x1a\x1d.hydra.v1.ReleaseSlotResponse\"\x00\x1a\x04\x98\x80\x01\x01B\x94\x01\n" +
+	"\aRelease\x12\x1c.hydra.v1.ReleaseSlotRequest\x1a\x1d.hydra.v1.ReleaseSlotResponse\"\x00\x12I\n" +
+	"\n" +
+	"ExpireSlot\x12\x1b.hydra.v1.ExpireSlotRequest\x1a\x1c.hydra.v1.ExpireSlotResponse\"\x00\x1a\x04\x98\x80\x01\x01B\x94\x01\n" +
 	"\fcom.hydra.v1B\x0eBuildSlotProtoP\x01Z3github.com/unkeyed/unkey/gen/proto/hydra/v1;hydrav1\xa2\x02\x03HXX\xaa\x02\bHydra.V1\xca\x02\bHydra\\V1\xe2\x02\x14Hydra\\V1\\GPBMetadata\xea\x02\tHydra::V1b\x06proto3"
 
 var (
@@ -234,20 +332,24 @@ func file_hydra_v1_build_slot_proto_rawDescGZIP() []byte {
 	return file_hydra_v1_build_slot_proto_rawDescData
 }
 
-var file_hydra_v1_build_slot_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
+var file_hydra_v1_build_slot_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
 var file_hydra_v1_build_slot_proto_goTypes = []any{
 	(*AcquireOrWaitRequest)(nil),  // 0: hydra.v1.AcquireOrWaitRequest
 	(*AcquireOrWaitResponse)(nil), // 1: hydra.v1.AcquireOrWaitResponse
 	(*ReleaseSlotRequest)(nil),    // 2: hydra.v1.ReleaseSlotRequest
 	(*ReleaseSlotResponse)(nil),   // 3: hydra.v1.ReleaseSlotResponse
+	(*ExpireSlotRequest)(nil),     // 4: hydra.v1.ExpireSlotRequest
+	(*ExpireSlotResponse)(nil),    // 5: hydra.v1.ExpireSlotResponse
 }
 var file_hydra_v1_build_slot_proto_depIdxs = []int32{
 	0, // 0: hydra.v1.BuildSlotService.AcquireOrWait:input_type -> hydra.v1.AcquireOrWaitRequest
 	2, // 1: hydra.v1.BuildSlotService.Release:input_type -> hydra.v1.ReleaseSlotRequest
-	1, // 2: hydra.v1.BuildSlotService.AcquireOrWait:output_type -> hydra.v1.AcquireOrWaitResponse
-	3, // 3: hydra.v1.BuildSlotService.Release:output_type -> hydra.v1.ReleaseSlotResponse
-	2, // [2:4] is the sub-list for method output_type
-	0, // [0:2] is the sub-list for method input_type
+	4, // 2: hydra.v1.BuildSlotService.ExpireSlot:input_type -> hydra.v1.ExpireSlotRequest
+	1, // 3: hydra.v1.BuildSlotService.AcquireOrWait:output_type -> hydra.v1.AcquireOrWaitResponse
+	3, // 4: hydra.v1.BuildSlotService.Release:output_type -> hydra.v1.ReleaseSlotResponse
+	5, // 5: hydra.v1.BuildSlotService.ExpireSlot:output_type -> hydra.v1.ExpireSlotResponse
+	3, // [3:6] is the sub-list for method output_type
+	0, // [0:3] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name
 	0, // [0:0] is the sub-list for extension extendee
 	0, // [0:0] is the sub-list for field type_name
@@ -264,7 +366,7 @@ func file_hydra_v1_build_slot_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_hydra_v1_build_slot_proto_rawDesc), len(file_hydra_v1_build_slot_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   4,
+			NumMessages:   6,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

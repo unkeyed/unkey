@@ -8,9 +8,9 @@ import (
 
 	restate "github.com/restatedev/sdk-go"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
+	githubclient "github.com/unkeyed/unkey/pkg/github"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/webhook"
-	githubclient "github.com/unkeyed/unkey/svc/ctrl/worker/github"
 )
 
 type pushPayload struct {

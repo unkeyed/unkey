@@ -1,0 +1,66 @@
+post:
+  tags:
+    - permissions
+  summary: Set role permissions
+  description: |
+    Atomically replaces all permissions directly assigned to a role. An empty `permissions` array removes every permission from the role. Permissions that do not exist are created when the caller has permission to create them.
+
+    **Required Permissions**
+
+    Your root key must have:
+    - `rbac.*.add_permission_to_role`
+    - `rbac.*.remove_permission_from_role`
+
+    When any requested permission slug does not exist, it must also have:
+    - `rbac.*.create_permission`
+  operationId: permissions.setRolePermissions
+  x-speakeasy-name-override: setRolePermissions
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          "$ref": "./V2PermissionsSetRolePermissionsRequestBody.yaml"
+  responses:
+    "200":
+      description: Permissions set successfully.
+      content:
+        application/json:
+          schema:
+            "$ref": "./V2PermissionsSetRolePermissionsResponseBody.yaml"
+    "400":
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/BadRequestErrorResponse.yaml"
+    "401":
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/UnauthorizedErrorResponse.yaml"
+    "403":
+      description: Forbidden
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/ForbiddenErrorResponse.yaml"
+    "404":
+      description: Role not found
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/NotFoundErrorResponse.yaml"
+    "429":
+      description: Too Many Requests
+      content:
+        application/problem+json:
+          schema:
+            $ref: "../../../../error/TooManyRequestsErrorResponse.yaml"
+    "500":
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/InternalServerErrorResponse.yaml"

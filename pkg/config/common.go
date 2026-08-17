@@ -87,7 +87,7 @@ type ControlConfig struct {
 
 // PprofConfig controls the Go pprof profiling endpoints.
 // The path prefix is set per-service (e.g. /debug/pprof/* for the API,
-// /_unkey/internal/pprof/* for frontline and sentinel).
+// /_unkey/internal/pprof/* for Frontline).
 // Pprof is enabled only when both Username and Password are non-empty;
 // otherwise the endpoints are not registered.
 type PprofConfig struct {

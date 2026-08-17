@@ -1,14 +1,14 @@
 CREATE TABLE `custom_domains` (
 	`pk` bigint unsigned AUTO_INCREMENT NOT NULL,
-	`id` varchar(128) NOT NULL,
-	`workspace_id` varchar(256) NOT NULL,
-	`project_id` varchar(256) NOT NULL,
-	`app_id` varchar(64) NOT NULL,
-	`environment_id` varchar(256) NOT NULL,
+	`id` varchar(48) COLLATE utf8mb4_0900_as_cs NOT NULL,
+	`workspace_id` varchar(48) COLLATE utf8mb4_0900_as_cs NOT NULL,
+	`project_id` varchar(48) COLLATE utf8mb4_0900_as_cs NOT NULL,
+	`app_id` varchar(48) COLLATE utf8mb4_0900_as_cs NOT NULL,
+	`environment_id` varchar(48) COLLATE utf8mb4_0900_as_cs NOT NULL,
 	`domain` varchar(256) NOT NULL,
 	`challenge_type` enum('HTTP-01','DNS-01') NOT NULL,
 	`verification_status` enum('pending','verifying','verified','failed') NOT NULL DEFAULT 'pending',
-	`verification_token` varchar(64) NOT NULL,
+	`verification_token` varchar(64) COLLATE utf8mb4_0900_as_cs NOT NULL,
 	`ownership_verified` boolean NOT NULL DEFAULT false,
 	`cname_verified` boolean NOT NULL DEFAULT false,
 	`target_cname` varchar(256) NOT NULL,
@@ -29,4 +29,6 @@ CREATE TABLE `custom_domains` (
 CREATE INDEX `project_idx` ON `custom_domains` (`project_id`);
 
 CREATE INDEX `verification_status_idx` ON `custom_domains` (`verification_status`);
+
+CREATE INDEX `environment_id_id_domain_idx` ON `custom_domains` (`environment_id`,`id`,`domain`);
 

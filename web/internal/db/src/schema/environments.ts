@@ -1,23 +1,26 @@
 import { relations } from "drizzle-orm";
-import { bigint, index, mysqlTable, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
+import { index, mysqlEnum, mysqlTable, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
 import { apps } from "./apps";
 import { deleteProtection } from "./util/delete_protection";
 import { lifecycleDates } from "./util/lifecycle_dates";
 import { workspaces } from "./workspaces";
 
 import { projects } from "./projects";
+import { id } from "./util/id";
+import { primaryKey } from "./util/primary_key";
 export const environments = mysqlTable(
   "environments",
   {
-    pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
-    id: varchar("id", { length: 128 }).notNull().unique(),
+    pk: primaryKey(),
+    id: id("id").notNull().unique(),
 
-    workspaceId: varchar("workspace_id", { length: 256 }).notNull(),
-    projectId: varchar("project_id", { length: 256 }).notNull(),
-    appId: varchar("app_id", { length: 64 }).notNull(),
+    workspaceId: id("workspace_id").notNull(),
+    projectId: id("project_id").notNull(),
+    appId: id("app_id").notNull(),
 
     slug: varchar("slug", { length: 256 }).notNull(), // URL-safe identifier within workspace
     description: varchar("description", { length: 255 }).notNull().default(""),
+    kind: mysqlEnum("kind", ["production", "preview"]).notNull().default("preview"),
 
     ...deleteProtection,
     ...lifecycleDates,

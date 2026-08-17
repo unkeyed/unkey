@@ -9,6 +9,8 @@ import (
 	"context"
 	"database/sql"
 	"strings"
+
+	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
 )
 
 const listDeploymentEnvAndAppState = `-- name: ListDeploymentEnvAndAppState :many
@@ -17,12 +19,13 @@ SELECT
   p.slug AS project_slug,
   a.slug AS app_slug,
   e.slug AS environment_slug,
+  e.kind AS environment_kind,
   a.current_deployment_id AS app_current_deployment_id,
   a.is_rolled_back AS app_is_rolled_back
 FROM deployments d
-JOIN projects p ON p.id = d.project_id
-JOIN environments e ON e.id = d.environment_id
-JOIN apps a ON a.id = d.app_id
+JOIN projects p ON d.project_id = p.id
+JOIN environments e ON d.environment_id = e.id
+JOIN apps a ON d.app_id = a.id
 WHERE d.workspace_id = ?
   AND d.id IN (/*SLICE:deployment_ids*/?)
 `
@@ -33,12 +36,13 @@ type ListDeploymentEnvAndAppStateParams struct {
 }
 
 type ListDeploymentEnvAndAppStateRow struct {
-	DeploymentID           string         `db:"deployment_id"`
-	ProjectSlug            string         `db:"project_slug"`
-	AppSlug                string         `db:"app_slug"`
-	EnvironmentSlug        string         `db:"environment_slug"`
-	AppCurrentDeploymentID sql.NullString `db:"app_current_deployment_id"`
-	AppIsRolledBack        bool           `db:"app_is_rolled_back"`
+	DeploymentID           string                    `db:"deployment_id"`
+	ProjectSlug            string                    `db:"project_slug"`
+	AppSlug                string                    `db:"app_slug"`
+	EnvironmentSlug        string                    `db:"environment_slug"`
+	EnvironmentKind        mysqltype.EnvironmentKind `db:"environment_kind"`
+	AppCurrentDeploymentID sql.NullString            `db:"app_current_deployment_id"`
+	AppIsRolledBack        bool                      `db:"app_is_rolled_back"`
 }
 
 // ListDeploymentEnvAndAppState
@@ -48,12 +52,13 @@ type ListDeploymentEnvAndAppStateRow struct {
 //	  p.slug AS project_slug,
 //	  a.slug AS app_slug,
 //	  e.slug AS environment_slug,
+//	  e.kind AS environment_kind,
 //	  a.current_deployment_id AS app_current_deployment_id,
 //	  a.is_rolled_back AS app_is_rolled_back
 //	FROM deployments d
-//	JOIN projects p ON p.id = d.project_id
-//	JOIN environments e ON e.id = d.environment_id
-//	JOIN apps a ON a.id = d.app_id
+//	JOIN projects p ON d.project_id = p.id
+//	JOIN environments e ON d.environment_id = e.id
+//	JOIN apps a ON d.app_id = a.id
 //	WHERE d.workspace_id = ?
 //	  AND d.id IN (/*SLICE:deployment_ids*/?)
 func (q *Queries) ListDeploymentEnvAndAppState(ctx context.Context, db DBTX, arg ListDeploymentEnvAndAppStateParams) ([]ListDeploymentEnvAndAppStateRow, error) {
@@ -81,6 +86,7 @@ func (q *Queries) ListDeploymentEnvAndAppState(ctx context.Context, db DBTX, arg
 			&i.ProjectSlug,
 			&i.AppSlug,
 			&i.EnvironmentSlug,
+			&i.EnvironmentKind,
 			&i.AppCurrentDeploymentID,
 			&i.AppIsRolledBack,
 		); err != nil {

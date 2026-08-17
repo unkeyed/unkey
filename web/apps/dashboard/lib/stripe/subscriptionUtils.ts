@@ -20,6 +20,7 @@ interface PreviousAttributes {
   cancel_at_period_end?: boolean;
   collection_method?: string;
   latest_invoice?: string | Stripe.Invoice | null;
+  schedule?: string | Stripe.SubscriptionSchedule | null;
 
   // Payment method changes (when users update their card)
   default_payment_method?: string | Stripe.PaymentMethod | null;
@@ -163,6 +164,16 @@ export function isCardUpdateOnly(
   return false;
 }
 
+/** Attaching or releasing a schedule does not change the active API plan. */
+export function isScheduleUpdateOnly(previousAttributes: PreviousAttributes | undefined): boolean {
+  if (!previousAttributes) {
+    return false;
+  }
+
+  const changedKeys = Object.keys(previousAttributes);
+  return changedKeys.length === 1 && changedKeys[0] === "schedule";
+}
+
 export type { PreviousAttributes };
 
 /**
@@ -175,4 +186,11 @@ export type { PreviousAttributes };
  */
 export function isDeadSubscription(sub: Stripe.Subscription): boolean {
   return sub.status === "canceled" || sub.status === "incomplete_expired";
+}
+
+/** Returns the Stripe-hosted recovery page when latest_invoice was expanded. */
+export function hostedInvoiceUrl(sub: Stripe.Subscription): string | null {
+  const invoice =
+    sub.latest_invoice && typeof sub.latest_invoice !== "string" ? sub.latest_invoice : null;
+  return invoice?.hosted_invoice_url ?? null;
 }

@@ -47,12 +47,21 @@ export function EnvVarActionMenu({ envVarId, variableKey, type, onEdit }: EnvVar
       tooltip: type === "writeonly" ? "Write-only variables cannot be copied" : undefined,
       onClick: async (e) => {
         e.stopPropagation();
+        let value: string;
         try {
           const result = await decryptMutation.mutateAsync({ envVarId });
-          navigator.clipboard.writeText(`${variableKey}=${result.value}`);
-          toast.success("Copied to clipboard");
+          value = result.value;
         } catch {
           toast.error("Failed to decrypt value");
+          return;
+        }
+        try {
+          // Can reject with NotAllowedError if the document lost focus
+          // while the decrypt request was in flight.
+          await navigator.clipboard.writeText(`${variableKey}=${value}`);
+          toast.success("Copied to clipboard");
+        } catch {
+          toast.error("Failed to copy to clipboard");
         }
       },
     },

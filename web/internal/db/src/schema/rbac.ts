@@ -1,16 +1,19 @@
 import { relations } from "drizzle-orm";
 import { bigint, index, mysqlTable, unique, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
 import { keys } from "./keys";
+import { caseInsensitiveVarchar } from "./util/case_insensitive_varchar";
+import { id } from "./util/id";
+import { primaryKey } from "./util/primary_key";
 import { workspaces } from "./workspaces";
 
 export const permissions = mysqlTable(
   "permissions",
   {
-    pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
-    id: varchar("id", { length: 256 }).notNull().unique(),
-    workspaceId: varchar("workspace_id", { length: 256 }).notNull(),
-    projectId: varchar("project_id", { length: 64 }).notNull(),
-    name: varchar("name", { length: 512 }).notNull(),
+    pk: primaryKey(),
+    id: id("id").notNull().unique(),
+    workspaceId: id("workspace_id").notNull(),
+    projectId: id("project_id").notNull(),
+    name: caseInsensitiveVarchar("name", { length: 512 }).notNull(),
     slug: varchar("slug", { length: 128 }).notNull(),
     description: varchar("description", { length: 512 }),
     createdAtM: bigint("created_at_m", { mode: "number" })
@@ -40,10 +43,10 @@ export const permissionsRelations = relations(permissions, ({ one, many }) => ({
 export const keysPermissions = mysqlTable(
   "keys_permissions",
   {
-    pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
-    keyId: varchar("key_id", { length: 256 }).notNull(),
-    permissionId: varchar("permission_id", { length: 256 }).notNull(),
-    workspaceId: varchar("workspace_id", { length: 256 }).notNull(),
+    pk: primaryKey(),
+    keyId: id("key_id").notNull(),
+    permissionId: id("permission_id").notNull(),
+    workspaceId: id("workspace_id").notNull(),
 
     createdAtM: bigint("created_at_m", { mode: "number" })
       .notNull()
@@ -76,11 +79,11 @@ export const keysPermissionsRelations = relations(keysPermissions, ({ one }) => 
 export const roles = mysqlTable(
   "roles",
   {
-    pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
-    id: varchar("id", { length: 256 }).notNull().unique(),
-    workspaceId: varchar("workspace_id", { length: 256 }).notNull(),
-    projectId: varchar("project_id", { length: 64 }).notNull(),
-    name: varchar("name", { length: 512 }).notNull(),
+    pk: primaryKey(),
+    id: id("id").notNull().unique(),
+    workspaceId: id("workspace_id").notNull(),
+    projectId: id("project_id").notNull(),
+    name: caseInsensitiveVarchar("name", { length: 512 }).notNull(),
     description: varchar("description", { length: 512 }),
     createdAtM: bigint("created_at_m", { mode: "number" })
       .notNull()
@@ -111,10 +114,10 @@ export const rolesRelations = relations(roles, ({ one, many }) => ({
 export const rolesPermissions = mysqlTable(
   "roles_permissions",
   {
-    pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
-    roleId: varchar("role_id", { length: 256 }).notNull(),
-    permissionId: varchar("permission_id", { length: 256 }).notNull(),
-    workspaceId: varchar("workspace_id", { length: 256 }).notNull(),
+    pk: primaryKey(),
+    roleId: id("role_id").notNull(),
+    permissionId: id("permission_id").notNull(),
+    workspaceId: id("workspace_id").notNull(),
 
     createdAtM: bigint("created_at_m", { mode: "number" })
       .notNull()
@@ -148,10 +151,10 @@ export const rolesPermissionsRelations = relations(rolesPermissions, ({ one }) =
 export const keysRoles = mysqlTable(
   "keys_roles",
   {
-    pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
-    keyId: varchar("key_id", { length: 256 }).notNull(),
-    roleId: varchar("role_id", { length: 256 }).notNull(),
-    workspaceId: varchar("workspace_id", { length: 256 }).notNull(),
+    pk: primaryKey(),
+    keyId: id("key_id").notNull(),
+    roleId: id("role_id").notNull(),
+    workspaceId: id("workspace_id").notNull(),
 
     createdAtM: bigint("created_at_m", { mode: "number" })
       .notNull()

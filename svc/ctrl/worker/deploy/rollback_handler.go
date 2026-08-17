@@ -101,7 +101,7 @@ func (w *Workflow) Rollback(ctx restate.ObjectContext, req *hydrav1.RollbackRequ
 	if err := deploygate.CheckRollbackTarget(deploygate.RollbackInput{
 		Status:              targetDeployment.Status,
 		DesiredState:        targetDeployment.DesiredState,
-		EnvironmentSlug:     environment.Slug,
+		EnvironmentKind:     environment.Kind,
 		CurrentDeploymentID: app.CurrentDeploymentID.String,
 		DeploymentID:        targetDeployment.ID,
 	}); err != nil {

@@ -1,0 +1,17 @@
+type: object
+required:
+  - repository
+properties:
+  repository:
+    type: string
+    minLength: 1
+    maxLength: 255
+    description: The connected GitHub repository, as "owner/repo".
+    example: unkeyed/unkey
+  defaultBranch:
+    type: string
+    minLength: 1
+    maxLength: 256
+    description: The branch this app's deployments track.
+    example: main
+additionalProperties: false

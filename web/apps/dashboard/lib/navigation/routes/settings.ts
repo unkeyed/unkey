@@ -13,7 +13,7 @@ export type CheckoutIntent = "compute" | "api" | "payment" | "deploy";
 /** Compute-plan tiers carried through the deploy-gate checkout round-trip. */
 export type DeployCheckoutPlan = "starter" | "pro" | "business";
 /** Where the deploy-gate dialog was opened from, for post-subscribe routing. */
-export type DeployCheckoutOrigin = "create" | "banner" | "billing";
+export type DeployCheckoutOrigin = "create" | "banner" | "billing" | "deploy";
 
 export const settingsRoutes = {
   general({ workspaceSlug }: WorkspaceScope): Route {
@@ -28,8 +28,20 @@ export const settingsRoutes = {
     return buildRoute("/[workspaceSlug]/settings/root-keys", { workspaceSlug });
   },
 
-  billing({ workspaceSlug }: WorkspaceScope): Route {
-    return buildRoute("/[workspaceSlug]/settings/billing", { workspaceSlug });
+  billing({ workspaceSlug, intent }: WorkspaceScope & { intent?: "compute" | "api" }): Route {
+    return buildRoute(
+      "/[workspaceSlug]/settings/billing",
+      { workspaceSlug },
+      intent ? { intent } : undefined,
+    );
+  },
+
+  usage({ workspaceSlug }: WorkspaceScope): Route {
+    return buildRoute("/[workspaceSlug]/settings/usage", { workspaceSlug });
+  },
+
+  limits({ workspaceSlug }: WorkspaceScope): Route {
+    return buildRoute("/[workspaceSlug]/settings/limits", { workspaceSlug });
   },
 
   security({ workspaceSlug }: WorkspaceScope): Route {

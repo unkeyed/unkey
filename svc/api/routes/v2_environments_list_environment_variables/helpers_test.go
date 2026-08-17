@@ -2,6 +2,7 @@ package handler_test
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"net/http"
 	"strings"
@@ -10,6 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 	vaultv1 "github.com/unkeyed/unkey/gen/proto/vault/v1"
 	"github.com/unkeyed/unkey/pkg/db"
+	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
@@ -65,6 +67,7 @@ func seedEnvironment(t *testing.T, h *testutil.Harness) seededEnv {
 		ProjectID:   project.ID,
 		AppID:       app.ID,
 		Slug:        "production",
+		Kind:        mysqltype.EnvironmentKindProduction,
 		Description: "Production environment",
 	})
 
@@ -91,14 +94,17 @@ func seedVar(t *testing.T, h *testutil.Harness, env seededEnv, key, value string
 	item, ok := encrypted.GetItems()[id]
 	require.True(t, ok)
 
-	var desc any
-	if description != "" {
-		desc = description
-	}
-	_, err = h.DB.RW().ExecContext(ctx,
-		"INSERT INTO app_environment_variables (id, workspace_id, app_id, environment_id, `key`, value, `type`, description, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-		id, env.workspaceID, env.appID, env.environmentID, key, item.GetEncrypted(), varType, desc, 1)
-	require.NoError(t, err)
+	require.NoError(t, db.Query.InsertAppEnvironmentVariable(ctx, h.DB.RW(), db.InsertAppEnvironmentVariableParams{
+		ID:            id,
+		WorkspaceID:   env.workspaceID,
+		AppID:         env.appID,
+		EnvironmentID: env.environmentID,
+		EnvKey:        key,
+		Value:         item.GetEncrypted(),
+		Type:          varType,
+		Description:   sql.NullString{String: description, Valid: description != ""},
+		CreatedAt:     1,
+	}))
 }
 
 func authHeaders(rootKey string) http.Header {
