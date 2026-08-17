@@ -56,8 +56,8 @@ Each instance has configurable limits for CPU, memory, and storage. CPU and memo
 Configure limits in **Settings > Runtime settings**:
 
 - CPU: 1/4 vCPU to 16 vCPU, depending on your plan (default 1/4 vCPU, billed on usage)
-- Memory: 256 MiB to 32 GiB, depending on your plan (default 256 MiB, billed on allocation)
-- Storage: None to 10 GiB ephemeral disk (default none, mounted at `/data`)
+- Memory: 256 MiB to 32 GiB, depending on your plan (default 256 MiB, billed on usage)
+- Storage: None to 10 GiB ephemeral disk (default none, mounted at `/data`, billed on allocation)
 
 A `/tmp` directory backed by memory is always available for scratch files. For larger temporary storage needs, configure [ephemeral storage](/platform/apps/settings#ephemeral-storage) to attach a dedicated disk volume per instance.
 
