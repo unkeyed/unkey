@@ -810,8 +810,8 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 	srv.RegisterRoute(
 		protectedMiddlewares,
 		&v2ProjectsDeleteProject.Handler{
-			DB:         svc.Database,
-			CtrlClient: svc.CtrlProjectClient,
+			DB:      svc.Database,
+			Restate: svc.Restate,
 		},
 	)
 

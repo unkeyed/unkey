@@ -331,7 +331,7 @@ func New(t *testing.T, opts ...Option) *Harness {
 		ClickHouseDSN:  chDSN,
 		VaultClient:    vaultClient,
 		VaultToken:     testVault.Token,
-		Restate:        ingress.NewClient(restateCfg.IngressURL),
+		Restate:        restateCfg.IngressClient,
 		RestateIngress: restateCfg.IngressURL,
 		RestateAdmin:   restateCfg.AdminURL,
 		Clock:          o.clock,
