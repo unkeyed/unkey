@@ -114,6 +114,7 @@ func runDeploymentPortals(args []string) error {
 func findPortalContext(publicURLs []string) (string, string, error) {
 	deadline := time.Now().Add(time.Minute)
 	for {
+		threadID := os.Getenv("AMP_THREAD_ID")
 		urls := append([]string(nil), publicURLs...)
 		if len(urls) == 0 {
 			manifests, err := filepath.Glob(filepath.Join(portalsDirectory, "*.json"))
@@ -144,6 +145,12 @@ func findPortalContext(publicURLs []string) (string, string, error) {
 			match := threadHostPattern.FindStringSubmatch(parsed.Hostname())
 			if len(match) == 3 {
 				return "T-" + match[1], match[2], nil
+			}
+			if threadID != "" {
+				_, domain, found := strings.Cut(parsed.Hostname(), ".")
+				if found && domain != "" {
+					return threadID, domain, nil
+				}
 			}
 		}
 
