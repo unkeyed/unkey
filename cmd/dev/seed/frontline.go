@@ -241,37 +241,37 @@ func (s *FrontlineSeeder) generateRequests(
 		}
 
 		instanceLatency := generateLatency()
-		frontlineLatency := rand.Float64()*3 + 1
-		totalLatency := instanceLatency + frontlineLatency
+		gatewayLatency := rand.Float64()*3 + 1
+		totalLatency := instanceLatency + gatewayLatency
 
 		s.frontlineRequests.Buffer(schema.FrontlineRequest{
-			RequestID:        uid.New("req"),
-			Time:             timestamp.UnixMilli(),
-			WorkspaceID:      deployment.WorkspaceID,
-			ProjectID:        deployment.ProjectID,
-			AppID:            deployment.AppID,
-			DeploymentID:     deployment.ID,
-			EnvironmentID:    deployment.EnvironmentID,
-			FrontlineID:      frontlineIDs[rand.IntN(len(frontlineIDs))],
-			InstanceID:       instanceIDs[rand.IntN(len(instanceIDs))],
-			InstanceAddress:  generateIP(),
-			Region:           weightedSelectString(regions),
-			Platform:         "dev",
-			Method:           weightedSelectString(methods),
-			Host:             domain,
-			Path:             paths[rand.IntN(len(paths))],
-			ResponseStatus:   weightedSelectInt32(statuses),
-			UserAgent:        userAgents[rand.IntN(len(userAgents))],
-			IPAddress:        generateIP(),
-			TotalLatency:     int64(totalLatency),
-			InstanceLatency:  int64(instanceLatency),
-			FrontlineLatency: int64(frontlineLatency),
-			QueryString:      "",
-			QueryParams:      make(map[string][]string),
-			RequestHeaders:   []string{},
-			RequestBody:      "",
-			ResponseHeaders:  []string{},
-			ResponseBody:     "",
+			RequestID:       uid.New("req"),
+			Time:            timestamp.UnixMilli(),
+			WorkspaceID:     deployment.WorkspaceID,
+			ProjectID:       deployment.ProjectID,
+			AppID:           deployment.AppID,
+			DeploymentID:    deployment.ID,
+			EnvironmentID:   deployment.EnvironmentID,
+			FrontlineID:     frontlineIDs[rand.IntN(len(frontlineIDs))],
+			InstanceID:      instanceIDs[rand.IntN(len(instanceIDs))],
+			InstanceAddress: generateIP(),
+			Region:          weightedSelectString(regions),
+			Platform:        "dev",
+			Method:          weightedSelectString(methods),
+			Host:            domain,
+			Path:            paths[rand.IntN(len(paths))],
+			ResponseStatus:  weightedSelectInt32(statuses),
+			UserAgent:       userAgents[rand.IntN(len(userAgents))],
+			IPAddress:       generateIP(),
+			TotalLatency:    int64(totalLatency),
+			InstanceLatency: int64(instanceLatency),
+			GatewayLatency:  int64(gatewayLatency),
+			QueryString:     "",
+			QueryParams:     make(map[string][]string),
+			RequestHeaders:  []string{},
+			RequestBody:     "",
+			ResponseHeaders: []string{},
+			ResponseBody:    "",
 		})
 
 		if (i+1)%10000 == 0 {
