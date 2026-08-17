@@ -27,6 +27,7 @@ import (
 	restateadmin "github.com/unkeyed/unkey/pkg/restate/admin"
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/svc/ctrl/integration/seed"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/auditlogs"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/billingmeter"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/invoicecloser"
@@ -250,8 +251,12 @@ func New(t *testing.T, opts ...Option) *Harness {
 		Clickhouse: chClient,
 	})
 
+	auditlogSvc, err := auditlogs.New(auditlogs.Config{DB: database})
+	require.NoError(t, err)
+
 	deploySvc, err := deploy.New(deploy.Config{
 		DB:            database,
+		Auditlogs:     auditlogSvc,
 		Clickhouse:    chClient,
 		DefaultDomain: "test.example.com",
 		DashboardURL:  "https://app.unkey.com",

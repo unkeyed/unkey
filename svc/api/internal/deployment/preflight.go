@@ -19,7 +19,7 @@ import (
 // It deliberately does no authorization: each handler authorizes inline so the
 // exact permission checked stays visible at the call site.
 func FindDeployment(ctx context.Context, database db.Database, workspaceID, deploymentID string) (db.FindDeploymentWithEnvironmentRow, error) {
-	dep, err := db.Query.FindDeploymentWithEnvironment(ctx, database.RO(), deploymentID)
+	dep, err := db.Query.FindDeploymentWithEnvironment(ctx, database.RW(), deploymentID)
 	if err != nil && !db.IsNotFound(err) {
 		return db.FindDeploymentWithEnvironmentRow{}, fault.Wrap(
 			err,

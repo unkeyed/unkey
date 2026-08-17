@@ -273,8 +273,16 @@ func Run(ctx context.Context, cfg Config) error {
 		}
 	}
 
+	// Lifecycle and deletion workflows write audit records as durable steps so
+	// they are retried with the operation that owns them.
+	auditlogSvc, err := auditlogs.New(auditlogs.Config{DB: database})
+	if err != nil {
+		return fmt.Errorf("failed to create audit log service: %w", err)
+	}
+
 	deployWorkflow, err := deploy.New(deploy.Config{
 		DB:            database,
+		Auditlogs:     auditlogSvc,
 		DefaultDomain: cfg.DefaultDomain,
 		Vault:         vaultClient,
 
@@ -369,13 +377,6 @@ func Run(ctx context.Context, cfg Config) error {
 		AllowUnauthenticatedDeployments: ptr.SafeDeref(cfg.GitHub).AllowUnauthenticatedDeployments,
 		EnforceDeployGate:               cfg.DeployGate.Enforce,
 	})))
-
-	// Deletion workflows write their audit logs as durable steps, so the audit
-	// record is tied to the retried deletion unit rather than the enqueueing RPC.
-	auditlogSvc, err := auditlogs.New(auditlogs.Config{DB: database})
-	if err != nil {
-		return fmt.Errorf("failed to create audit log service: %w", err)
-	}
 
 	projectSvc, err := workerproject.New(workerproject.Config{
 		DB:        database,

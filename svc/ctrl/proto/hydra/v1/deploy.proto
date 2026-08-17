@@ -1,6 +1,7 @@
 syntax = "proto3";
 package hydra.v1;
 
+import "ctrl/v1/actor.proto";
 import "dev/restate/sdk/go.proto";
 
 option go_package = "github.com/unkeyed/unkey/gen/proto/hydra/v1;hydrav1";
@@ -59,6 +60,8 @@ service DeployService {
 
 message StopDeploymentRequest {
   string deployment_id = 1;
+  ctrl.v1.ActorInfo actor = 2;
+  string correlation_id = 3;
 }
 
 message StopDeploymentResponse {}

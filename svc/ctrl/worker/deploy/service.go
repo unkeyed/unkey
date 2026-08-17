@@ -10,6 +10,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	githubclient "github.com/unkeyed/unkey/pkg/github"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/auditlogs"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
 
@@ -81,7 +82,8 @@ type RegistryConfig struct {
 // across different apps within the same project.
 type Workflow struct {
 	hydrav1.UnimplementedDeployServiceServer
-	db db.Database
+	db        db.Database
+	auditlogs auditlogs.AuditLogService
 
 	defaultDomain string
 	vault         vault.VaultServiceClient
@@ -106,6 +108,8 @@ var _ hydrav1.DeployServiceServer = (*Workflow)(nil)
 type Config struct {
 	// DB is the main database connection for workspace, project, and deployment data.
 	DB db.Database
+	// Auditlogs writes lifecycle events as durable workflow steps.
+	Auditlogs auditlogs.AuditLogService
 
 	// DefaultDomain is the apex domain for generated deployment URLs (e.g., "unkey.app").
 	DefaultDomain string
@@ -150,6 +154,9 @@ type Config struct {
 
 // New creates a new deployment workflow instance.
 func New(cfg Config) (*Workflow, error) {
+	if err := assert.NotNil(cfg.Auditlogs, "Auditlogs must not be nil"); err != nil {
+		return nil, err
+	}
 	if cfg.Build.Backend == BuildBackendKubernetes {
 		if err := assert.NotNil(cfg.K8s, "kubernetes build backend requires a k8s client"); err != nil {
 			return nil, err
@@ -163,6 +170,7 @@ func New(cfg Config) (*Workflow, error) {
 	return &Workflow{
 		UnimplementedDeployServiceServer: hydrav1.UnimplementedDeployServiceServer{},
 		db:                               cfg.DB,
+		auditlogs:                        cfg.Auditlogs,
 		defaultDomain:                    cfg.DefaultDomain,
 		vault:                            cfg.Vault,
 
