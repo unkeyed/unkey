@@ -2,13 +2,10 @@ package deployment
 
 import (
 	"context"
-	"errors"
 
-	"connectrpc.com/connect"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
-	"github.com/unkeyed/unkey/svc/api/internal/ctrlclient"
 )
 
 // FindDeployment loads a deployment by ID scoped to the caller's workspace. A
@@ -39,36 +36,4 @@ func FindDeployment(ctx context.Context, database db.Database, workspaceID, depl
 	}
 
 	return dep, nil
-}
-
-// MapCtrlError converts a ctrl connect error from a lifecycle RPC into an API
-// fault: precondition failures become a 412 with preconditionMsg, not-found
-// stays a 404, and everything else falls through to the generic ctrl mapping.
-// Ctrl re-runs the same deploygate checks the handler already passed, so a
-// precondition failure here means the state changed between the two checks (a
-// race); the caller-supplied preconditionMsg describes the action rather than
-// leaking ctrl's internal message.
-func MapCtrlError(err error, action string, preconditionMsg string) error {
-	var connectErr *connect.Error
-	if errors.As(err, &connectErr) {
-		//nolint:exhaustive // all other Connect error codes fall through to the generic mapping
-		switch connectErr.Code() {
-		case connect.CodeFailedPrecondition:
-			return fault.Wrap(
-				err,
-				fault.Code(codes.App.Precondition.PreconditionFailed.URN()),
-				fault.Internal("ctrl reported a precondition failure: "+connectErr.Message()),
-				fault.Public(preconditionMsg),
-			)
-		case connect.CodeNotFound:
-			return fault.Wrap(
-				err,
-				fault.Code(codes.Data.Deployment.NotFound.URN()),
-				fault.Internal("ctrl reported not found: "+connectErr.Message()),
-				fault.Public("The requested deployment does not exist."),
-			)
-		default:
-		}
-	}
-	return ctrlclient.HandleError(err, action)
 }
