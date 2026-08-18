@@ -60,6 +60,13 @@ var permissionMappings = map[string]permissionMapping{
 			{resource: "projects/*/apps/*/environments/*/deployments/*", action: action(rbacpermissions.StartDeployment{})},
 		},
 	},
+	"deployments:rollback": {
+		name:        "Roll back deployments",
+		description: "Allows rolling live traffic back to a previous deployment.",
+		permissions: []permissionGrant{
+			{resource: "projects/*/apps/*/environments/*/deployments/*", action: action(rbacpermissions.RollbackDeployment{})},
+		},
+	},
 	"identities:create": {
 		name:        "Create identities",
 		description: "Allows creating identities.",
