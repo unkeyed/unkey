@@ -25,11 +25,3 @@ type DeleteProject struct{}
 
 func (DeleteProject) ActionFor(urn.Project) {}
 func (DeleteProject) String() string        { return "delete_project" }
-
-// CreateApp authorizes creating apps in a project.
-//
-// Valid resource: urn.Project.
-type CreateApp struct{}
-
-func (CreateApp) ActionFor(urn.Project) {}
-func (CreateApp) String() string        { return "create_app" }

@@ -95,6 +95,20 @@ var permissionMappings = map[string]permissionMapping{
 			{resource: "projects/*", action: action(rbacpermissions.DeleteProject{})},
 		},
 	},
+	"apps:create": {
+		name:        "Create apps",
+		description: "Allows creating apps in a project.",
+		permissions: []permissionGrant{
+			{resource: "projects/*/apps/*", action: action(rbacpermissions.CreateApp{})},
+		},
+	},
+	"apps:delete": {
+		name:        "Delete apps",
+		description: "Allows deleting apps.",
+		permissions: []permissionGrant{
+			{resource: "projects/*/apps/*", action: action(rbacpermissions.DeleteApp{})},
+		},
+	},
 	"identities:create": {
 		name:        "Create identities",
 		description: "Allows creating identities.",
