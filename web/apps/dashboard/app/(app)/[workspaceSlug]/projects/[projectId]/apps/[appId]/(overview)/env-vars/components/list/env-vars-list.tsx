@@ -2,7 +2,7 @@
 
 import { collection } from "@/lib/collections";
 import type { Environment } from "@/lib/collections/deploy/environments";
-import { eq, useLiveQuery } from "@tanstack/react-db";
+import { and, eq, useLiveQuery } from "@tanstack/react-db";
 import { useCallback, useDeferredValue, useEffect, useMemo, useState } from "react";
 import { useRowSelection } from "../../hooks/use-row-selection";
 import { useVirtualList } from "../../hooks/use-virtual-list";
@@ -21,6 +21,7 @@ import {
 import { EnvVarSelectionBar } from "./env-var-selection-bar";
 
 type EnvVarsListProps = {
+  projectId: string;
   appId: string;
   environments: Environment[];
   searchQuery: string;
@@ -29,6 +30,7 @@ type EnvVarsListProps = {
 };
 
 export function EnvVarsList({
+  projectId,
   appId,
   environments,
   searchQuery,
@@ -57,8 +59,11 @@ export function EnvVarsList({
   }, []);
 
   const { data: envVarData, isLoading } = useLiveQuery(
-    (q) => q.from({ v: collection.envVars }).where(({ v }) => eq(v.appId, appId)),
-    [appId],
+    (q) =>
+      q
+        .from({ v: collection.envVars })
+        .where(({ v }) => and(eq(v.projectId, projectId), eq(v.appId, appId))),
+    [projectId, appId],
   );
 
   const displayRows = useMemo((): DisplayRow[] => {
@@ -77,13 +82,8 @@ export function EnvVarsList({
         continue;
       }
       filtered.push({
-        id: v.id,
-        key: v.key,
-        environmentId: v.environmentId,
+        ...v,
         environmentName: environments.find((e) => e.id === v.environmentId)?.slug ?? "Unknown",
-        type: v.type,
-        updatedAt: v.updatedAt,
-        note: v.description,
       });
     }
 
@@ -112,7 +112,7 @@ export function EnvVarsList({
     handleBulkDelete,
     handleBulkMakeSensitive,
     clearSelection,
-  } = useRowSelection(displayRows);
+  } = useRowSelection(displayRows, envVarData);
 
   useCloseEditOnGroupCollapse(displayRows, expandedRow, editingId, setEditingId);
 

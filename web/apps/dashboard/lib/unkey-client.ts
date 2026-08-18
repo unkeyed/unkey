@@ -20,16 +20,17 @@ export function getUnkeyClient(): Unkey {
 
 /**
  * Maps an SDK error to a toast title and description. `fallbackMessage` names
- * the failed operation, e.g. "Failed to Delete App", and is only used for
- * errors we don't classify.
+ * the failed operation, e.g. "Failed to Delete App", and `fallbackDescription`
+ * replaces the generic description. Both apply only to errors we don't classify.
  */
 export function getErrorToast(
   error: unknown,
   fallbackMessage: string,
+  fallbackDescription?: string,
 ): { message: string; description: string } {
   const toast = errorToasts.find(({ matches }) => matches(error));
   if (!toast) {
-    return { message: fallbackMessage, description: getErrorMessage(error) };
+    return { message: fallbackMessage, description: getErrorMessage(error, fallbackDescription) };
   }
 
   return {
