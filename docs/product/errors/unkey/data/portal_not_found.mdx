@@ -55,8 +55,8 @@ curl -X POST https://api.unkey.com/v2/portal.createSession \
 ## Common Mistakes
 
 - **Wrong root key**: Using a root key from a different workspace returns this error rather than a 401, because the lookup is workspace-scoped.
-- **Malformed rather than missing**: A value that is not a valid identifier returns a 400 naming the rule it broke, not this error. `My-Portal`, `my--portal`, and `-portal` are all rejected that way. A slug is 3-64 characters, lowercase alphanumeric and hyphens, and cannot start or end with a hyphen or contain consecutive hyphens.
-- **Underscores mean id, not slug**: A value containing an underscore is read as a portal id (`pc_3ZfN2abcd`) and is not held to the slug rules. So `my_portal` is a lookup for an id that does not exist, which returns this error.
+- **Malformed looks the same as missing**: The lookup does not distinguish a mistyped identifier from one that was never provisioned, so `My-Portal`, `my--portal`, and `-portal` all return this error rather than a validation error. Check the spelling of `portal` before assuming the portal does not exist. Only values the request schema rejects outright return a 400: shorter than 3 characters, longer than 255, or containing anything other than letters, digits, hyphens, and underscores.
+- **Underscores are only ever ids**: Portal slugs never contain an underscore, so a value like `my_portal` can only match a portal id. It returns this error unless a portal carries exactly that id.
 
 ## Related Errors
 

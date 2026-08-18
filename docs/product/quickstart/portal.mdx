@@ -47,7 +47,7 @@ Dashboard configuration UI is coming soon. During early access, reach out to the
 
 When configuring your portal, you'll choose a slug: a short, human-readable identifier like `my-portal` or `billing-dashboard`. You can pass either that slug or the portal's ID when creating sessions.
 
-Slugs must be 3–64 characters, lowercase alphanumeric and hyphens only, cannot start or end with a hyphen, and cannot contain consecutive hyphens. A value containing an underscore is treated as a portal ID rather than a slug.
+Slugs must be 3–64 characters, lowercase alphanumeric and hyphens only, cannot start or end with a hyphen, and cannot contain consecutive hyphens. A `portal` value that matches neither a slug nor an ID in your workspace returns a 404, so a typo and a portal that was never provisioned look the same.
 
 Optionally, you can customize branding with your logo and brand colors.
 
