@@ -11,7 +11,15 @@ description: A basic meter component.
 
 <Component path="meter/thresholds" />
 
+### Inline layout
+
+<Component path="meter/inline" />
+
 ## Usage
 
 Use a meter to show how much of a resource has been used. It works best against
 a fixed limit, like a monthly request quota or a workspace CPU ceiling.
+
+`layout` decides where the text sits. `stacked` puts the label and value above
+the track. `inline` puts them on the same line and lets the track take the
+slack, which keeps rows one line tall in a dense list such as the limits page.

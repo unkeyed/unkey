@@ -1,5 +1,6 @@
 "use client";
 
+import { cn } from "@/lib/utils";
 import { CircleInfo } from "@unkey/icons";
 import { P, match } from "@unkey/match";
 import {
@@ -10,12 +11,12 @@ import {
   ItemContent,
   ItemTitle,
   Meter,
-  MeterHeader,
   MeterIndicator,
   MeterTrack,
   MeterValue,
   Skeleton,
 } from "@unkey/ui";
+import type { ReactNode } from "react";
 import type { LimitRow } from "./limit-groups";
 
 export function LimitItem({ row }: { row: LimitRow }) {
@@ -36,50 +37,66 @@ export function LimitItem({ row }: { row: LimitRow }) {
           )}
         </div>
       </ItemContent>
-      <ItemActions className="w-64 flex-col items-stretch gap-1.5">
+      <ItemActions className="w-80">
         <LimitValue row={row} />
       </ItemActions>
     </Item>
   );
 }
 
+/**
+ * Used, track, and limit each own a column. The limit column is content-width so
+ * it stays flush to the card's right edge with the track ending one gap before
+ * it, whatever the number's length.
+ */
+const CELLS = "grid w-full grid-cols-[4.5rem_1fr_auto] items-center gap-3";
+
 function LimitValue({ row }: { row: LimitRow }) {
   const breached = row.status !== "ok";
 
   return match(row.usage)
-    .with(P.nullish, () => <span className="text-right tabular-nums">{row.limit}</span>)
+    .with(P.nullish, () => (
+      <div className={CELLS}>
+        <span />
+        <span />
+        <Limit>{row.limit}</Limit>
+      </div>
+    ))
     .with({ state: "loading" }, () => (
-      <>
-        <div className="flex items-baseline justify-between gap-3">
-          <Skeleton className="h-3 w-14" />
-          <span className="tabular-nums">{row.limit}</span>
-        </div>
+      <div className={CELLS}>
+        <Skeleton className="h-3 w-14 justify-self-end" />
         <Skeleton className="h-1.5 w-full rounded-full" />
-      </>
+        <Limit>{row.limit}</Limit>
+      </div>
     ))
     .with({ state: "error" }, () => (
-      <div className="flex items-baseline justify-between gap-3">
-        <span className="text-xs text-gray-9">Usage unavailable</span>
-        <span className="tabular-nums">{row.limit}</span>
+      <div className={CELLS}>
+        <span className="col-span-2 text-right text-xs text-gray-9">Usage unavailable</span>
+        <Limit>{row.limit}</Limit>
       </div>
     ))
     .with({ state: "ready" }, (usage) => (
       <Meter
+        layout="inline"
+        className={CELLS}
         aria-label={row.name}
         value={usage.value}
         max={Math.max(usage.max, 1)}
-        className="gap-1.5"
       >
-        <MeterHeader className="gap-3">
-          <MeterValue className={breached ? "text-error-11" : "font-normal text-gray-11"}>
-            {() => usage.label}
-          </MeterValue>
-          <span className="tabular-nums">{row.limit}</span>
-        </MeterHeader>
+        <MeterValue
+          className={cn("text-right", breached ? "text-error-11" : "font-normal text-gray-11")}
+        >
+          {() => usage.label}
+        </MeterValue>
         <MeterTrack>
           <MeterIndicator className={breached ? "bg-error-9" : undefined} />
         </MeterTrack>
+        <Limit>{row.limit}</Limit>
       </Meter>
     ))
     .exhaustive();
+}
+
+function Limit({ children }: { children: ReactNode }) {
+  return <span className="text-right tabular-nums">{children}</span>;
 }
