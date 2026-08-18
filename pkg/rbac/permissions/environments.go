@@ -18,14 +18,6 @@ type UpdateEnvironment struct{}
 func (UpdateEnvironment) ActionFor(urn.Environment) {}
 func (UpdateEnvironment) String() string            { return "update_environment" }
 
-// CreateDeployment authorizes creating deployments in an environment.
-//
-// Valid resource: urn.Environment.
-type CreateDeployment struct{}
-
-func (CreateDeployment) ActionFor(urn.Environment) {}
-func (CreateDeployment) String() string            { return "create_deployment" }
-
 // CreateDomain authorizes creating domains in an environment.
 //
 // Valid resource: urn.Environment.

@@ -1,4 +1,5 @@
 unkey:v1:ws_123:**#*
+unkey:v1:ws_123:projects/*/apps/*/environments/*/deployments/*#stop_deployment
 unkey:v1:ws_123:projects/*/identities/*#create_identity
 unkey:v1:ws_123:projects/*/identities/*#delete_identity
 unkey:v1:ws_123:projects/*/identities/*#read_identity

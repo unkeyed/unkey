@@ -1,7 +1,8 @@
 "use client";
 
 import { type Deployment, collection } from "@/lib/collections";
-import { trpc } from "@/lib/trpc/client";
+import { getErrorMessage, getUnkeyClient } from "@/lib/unkey-client";
+import { useMutation } from "@tanstack/react-query";
 import { Button, DialogContainer, toast } from "@unkey/ui";
 import { DeploymentCard } from "./components/deployment-card";
 
@@ -12,7 +13,9 @@ type StopDialogProps = {
 };
 
 export const StopDialog = ({ isOpen, onClose, deployment }: StopDialogProps) => {
-  const stop = trpc.deploy.deployment.stop.useMutation({
+  const stop = useMutation({
+    mutationFn: (deploymentId: string) =>
+      getUnkeyClient().deployments.stopDeployment({ deploymentId }),
     onSuccess: () => {
       collection.deployments.utils.refetch();
       onClose();
@@ -20,12 +23,12 @@ export const StopDialog = ({ isOpen, onClose, deployment }: StopDialogProps) => 
   });
 
   const handleStop = () => {
-    toast.promise(stop.mutateAsync({ deploymentId: deployment.id }), {
+    toast.promise(stop.mutateAsync(deployment.id), {
       loading: "Stopping deployment...",
       success: "Deployment stopped",
       error: (err) => ({
         message: "Failed to stop deployment",
-        description: err.message,
+        description: getErrorMessage(err),
       }),
     });
   };
