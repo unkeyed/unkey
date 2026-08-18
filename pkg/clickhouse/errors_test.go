@@ -39,12 +39,6 @@ func TestExtractUserFriendlyError(t *testing.T) {
 			input:    `code: 497, message: ws_test: Not enough privileges. To execute this query, it's necessary to have the grant SELECT(path, platform) ON default.frontline_requests_raw_v1. (Missing permissions: SELECT(platform) ON default.frontline_requests_raw_v1)`,
 			expected: "The query reads a column that is not available. Select only the documented columns instead of *",
 		},
-		// The Go driver answers this for a percentile column of a rollup table.
-		{
-			name:     "aggregate state column",
-			input:    `read data: failed to decode block: clickhouse: unsupported column type "AggregateFunction(quantileTDigest(0.5), Float64)"`,
-			expected: "The query selects an aggregate state column. Use quantileTDigestMerge to read a percentile from it",
-		},
 	}
 
 	for _, tt := range tests {

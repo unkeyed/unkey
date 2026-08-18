@@ -112,15 +112,11 @@ func Test200_RetentionBoundary(t *testing.T) {
 	bufferRequest(t, h, schema.FrontlineRequest{WorkspaceID: workspaceID, Path: "/kebap", ResponseStatus: 200})
 
 	// The default workspace retention is 30 days. The raw table stores time as
-	// unix milliseconds, and every rollup stores DateTime, so each shape is
-	// asserted against the table it belongs to.
+	// unix milliseconds.
 	for name, query := range map[string]string{
 		"raw within retention":    "SELECT count() AS total FROM gateway_requests_v1 WHERE time >= toUnixTimestamp64Milli(now64(3) - INTERVAL 7 DAY)",
 		"raw at exact limit":      "SELECT count() AS total FROM gateway_requests_v1 WHERE time >= toUnixTimestamp64Milli(now64(3) - INTERVAL 30 DAY)",
 		"raw without time filter": "SELECT count() AS total FROM gateway_requests_v1",
-		"minute rollup":           "SELECT count() AS total FROM gateway_requests_per_minute_v1 WHERE time >= now() - INTERVAL 7 DAY",
-		"hour rollup":             "SELECT count() AS total FROM gateway_requests_per_hour_v1 WHERE time >= now() - INTERVAL 7 DAY",
-		"day rollup":              "SELECT count() AS total FROM gateway_requests_per_day_v1 WHERE time >= now() - INTERVAL 7 DAY",
 	} {
 		t.Run(name, func(t *testing.T) {
 			res := testutil.CallRoute[Request, Response](h, route, auth(rootKey), Request{Query: query})
@@ -201,14 +197,6 @@ func Test200_EmptyResultAggregate(t *testing.T) {
 			query:    "SELECT sum(total_latency) / countIf(response_status = 599) AS value FROM gateway_requests_v1",
 			expected: nil,
 		},
-		"merge on rollup with no match": {
-			query:    "SELECT quantileTDigestMerge(0.95)(latency_p95) AS value FROM gateway_requests_per_minute_v1 WHERE response_status = 599",
-			expected: nil,
-		},
-		"merge on rollup over empty range": {
-			query:    "SELECT quantileTDigestMerge(0.95)(latency_p95) AS value FROM gateway_requests_per_hour_v1 WHERE time >= now() - INTERVAL 2 DAY AND time < now() - INTERVAL 1 DAY",
-			expected: nil,
-		},
 		"nullable non-finite value": {
 			query:    "SELECT if(1, total_latency / 0, NULL) AS value FROM gateway_requests_v1",
 			expected: nil,
@@ -231,37 +219,4 @@ func Test200_EmptyResultAggregate(t *testing.T) {
 			}, 30*time.Second, time.Second)
 		})
 	}
-
-	// The percentile example in docs/product/platform/analytics has three columns
-	// and an app filter. Each column must give null when no row matches.
-	t.Run("documented percentile query", func(t *testing.T) {
-		res := testutil.CallRoute[Request, Response](h, route, auth(rootKey), Request{Query: `
-			SELECT
-			  quantileTDigestMerge(0.5)(latency_p50) AS p50,
-			  quantileTDigestMerge(0.95)(latency_p95) AS p95,
-			  quantileTDigestMerge(0.99)(latency_p99) AS p99
-			FROM gateway_requests_per_hour_v1
-			WHERE app_id = 'app_absent'
-			  AND time >= now() - INTERVAL 24 HOUR`,
-		})
-		require.Equal(t, 200, res.Status, "response: %s", res.RawBody)
-		require.Equal(t, []map[string]any{{"p50": nil, "p95": nil, "p99": nil}}, res.Body.Data)
-	})
-}
-
-// Test200_LatencyPercentileFromRollup guarantees the merge function documented
-// in the spec reads the aggregate states in a rollup table.
-func Test200_LatencyPercentileFromRollup(t *testing.T) {
-	h, route, workspaceID := newRoute(t, true)
-	rootKey := h.CreateRootKey(workspaceID, "project.*.read_gateway_requests")
-	bufferRequest(t, h, schema.FrontlineRequest{WorkspaceID: workspaceID, Path: "/slow", ResponseStatus: 200, TotalLatency: 120})
-
-	require.EventuallyWithT(t, func(c *assert.CollectT) {
-		res := testutil.CallRoute[Request, Response](h, route, auth(rootKey), Request{
-			Query: "SELECT quantileTDigestMerge(0.95)(latency_p95) AS p95 FROM gateway_requests_per_minute_v1",
-		})
-		require.Equal(c, 200, res.Status)
-		require.Len(c, res.Body.Data, 1)
-		require.NotNil(c, res.Body.Data[0]["p95"])
-	}, 30*time.Second, time.Second)
 }

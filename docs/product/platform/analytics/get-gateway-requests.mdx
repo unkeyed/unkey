@@ -111,35 +111,21 @@ curl --request POST \
 If you do not add one of these filters, the query reads all projects in the
 workspace.
 
-## Choose a table
+## Understand the time range
 
-Select the table with the largest interval that gives the data you need. The
-aggregated tables read fewer rows. The raw table shows each request and its
-path, status, and latency.
-
-| Public table | Granularity | Maximum history | Best for |
-| --- | --- | --- | --- |
-| `gateway_requests_v1` | Individual request | 7 days | Recent request details and exact request times |
-| `gateway_requests_per_minute_v1` | Minute | 14 days | Recent dashboard charts |
-| `gateway_requests_per_hour_v1` | Hour | 90 days | Daily and weekly trends |
-| `gateway_requests_per_day_v1` | Day | 365 days | Longer reports |
-
-Two limits control the time range of a query: the maximum history of the
-table and the retention setting of your workspace plan. A query gets only the
-rows that satisfy both limits. If you do not add a time filter, Unkey limits
-the results to your workspace retention range. For example, on a plan with 30
-days of retention, a query on the hour table gets at most 30 days of data,
-and a query on the raw table gets at most 7 days, because that table keeps 7
-days. Select the hour table for a full 30 day range.
+Two limits control the time range of a query: the 7 day history of
+`gateway_requests_v1` and the retention setting of your workspace plan. A
+query gets only the rows that satisfy both limits. If you do not add a time
+filter, Unkey limits the results to your workspace retention range.
 
 ## Reference available columns
 
-The raw table contains one row for each request. Unkey filters `workspace_id`
+The table contains one row for each request. Unkey filters `workspace_id`
 automatically, thus you do not need to add it to a query.
 
-A query must name the columns that it needs. `SELECT *` fails on the raw table,
-because the table also contains columns of the Unkey infrastructure that a
-workspace cannot read.
+A query must name the columns that it needs. `SELECT *` fails, because the
+table also contains columns of the Unkey infrastructure that a workspace
+cannot read.
 
 | Column | Type | Description |
 | --- | --- | --- |
@@ -167,29 +153,10 @@ workspace cannot read.
 | `instance_latency` | Int64 | Time your instance used, in milliseconds |
 | `frontline_latency` | Int64 | Time the Unkey gateway added, in milliseconds |
 
-The minute, hour, and day tables contain aggregated rows.
-
-| Column | Type | Description |
-| --- | --- | --- |
-| `time` | DateTime | Start of the aggregation interval |
-| `project_id` | String | Project ID |
-| `app_id` | String | App ID |
-| `environment_id` | String | Environment ID |
-| `deployment_id` | String | Deployment that received the requests |
-| `response_status` | Int32 | HTTP status code of the responses |
-| `count` | Int64 | Number of requests |
-| `latency_p50` | AggregateFunction | State for the p50 latency |
-| `latency_p75` | AggregateFunction | State for the p75 latency |
-| `latency_p90` | AggregateFunction | State for the p90 latency |
-| `latency_p95` | AggregateFunction | State for the p95 latency |
-| `latency_p99` | AggregateFunction | State for the p99 latency |
-
 ## Read a latency percentile
 
-The function that you use depends on the table.
-
-The raw table keeps `total_latency`, `instance_latency`, and
-`frontline_latency` as plain numbers. Use `quantile` on these columns.
+The table keeps `total_latency`, `instance_latency`, and `frontline_latency`
+as plain numbers. Use `quantile` on these columns.
 
 <CodeGroup>
 ```sql SQL
@@ -208,36 +175,10 @@ curl --request POST \
 
 </CodeGroup>
 
-The aggregated tables do not contain these columns. They keep the latency data
-in ClickHouse aggregate states, in one column for each percentile. A query that
-selects one of these columns directly fails. Use `quantileTDigestMerge` to read
-a percentile from them.
-
-<CodeGroup>
-```sql SQL
-SELECT
-  quantileTDigestMerge(0.5)(latency_p50) AS p50,
-  quantileTDigestMerge(0.95)(latency_p95) AS p95,
-  quantileTDigestMerge(0.99)(latency_p99) AS p99
-FROM gateway_requests_per_hour_v1
-WHERE app_id = 'app_1234'
-  AND time >= now() - INTERVAL 24 HOUR
-```
-
-```bash cURL
-curl --request POST \
-  --url https://api.unkey.com/v2/analytics.getGatewayRequests \
-  --header "Authorization: Bearer $UNKEY_ROOT_KEY" \
-  --header "Content-Type: application/json" \
-  --data '{"query":"SELECT quantileTDigestMerge(0.5)(latency_p50) AS p50, quantileTDigestMerge(0.95)(latency_p95) AS p95, quantileTDigestMerge(0.99)(latency_p99) AS p99 FROM gateway_requests_per_hour_v1 WHERE app_id = '\''app_1234'\'' AND time >= now() - INTERVAL 24 HOUR"}'
-```
-
-</CodeGroup>
-
 ## Find the paths with the most errors
 
 Group by `path` to find the endpoints that return the most server errors. The
-raw table keeps `time` as Unix milliseconds, thus the time filter uses
+table keeps `time` as Unix milliseconds, thus the time filter uses
 `toUnixTimestamp64Milli`.
 
 <CodeGroup>
@@ -300,14 +241,13 @@ client.
 <CodeGroup>
 ```sql SQL
 SELECT
-  time,
-  sum(count) AS requests
-FROM gateway_requests_per_minute_v1
+  toStartOfMinute(fromUnixTimestamp64Milli(time)) AS minute,
+  count() AS requests
+FROM gateway_requests_v1
 WHERE app_id = 'app_1234'
-  AND time >= toStartOfMinute(now() - INTERVAL 6 HOUR)
-  AND time < toStartOfMinute(now())
-GROUP BY time
-ORDER BY time WITH FILL
+  AND time >= toUnixTimestamp64Milli(now64(3) - INTERVAL 6 HOUR)
+GROUP BY minute
+ORDER BY minute WITH FILL
   FROM toStartOfMinute(now() - INTERVAL 6 HOUR)
   TO toStartOfMinute(now())
   STEP INTERVAL 1 MINUTE
@@ -318,7 +258,7 @@ curl --request POST \
   --url https://api.unkey.com/v2/analytics.getGatewayRequests \
   --header "Authorization: Bearer $UNKEY_ROOT_KEY" \
   --header "Content-Type: application/json" \
-  --data '{"query":"SELECT time, sum(count) AS requests FROM gateway_requests_per_minute_v1 WHERE app_id = '\''app_1234'\'' AND time >= toStartOfMinute(now() - INTERVAL 6 HOUR) AND time < toStartOfMinute(now()) GROUP BY time ORDER BY time WITH FILL FROM toStartOfMinute(now() - INTERVAL 6 HOUR) TO toStartOfMinute(now()) STEP INTERVAL 1 MINUTE"}'
+  --data '{"query":"SELECT toStartOfMinute(fromUnixTimestamp64Milli(time)) AS minute, count() AS requests FROM gateway_requests_v1 WHERE app_id = '\''app_1234'\'' AND time >= toUnixTimestamp64Milli(now64(3) - INTERVAL 6 HOUR) GROUP BY minute ORDER BY minute WITH FILL FROM toStartOfMinute(now() - INTERVAL 6 HOUR) TO toStartOfMinute(now()) STEP INTERVAL 1 MINUTE"}'
 ```
 
 </CodeGroup>
@@ -332,9 +272,9 @@ Group by `app_id` and `response_status` to see the response mix of each app.
 SELECT
   app_id,
   response_status,
-  sum(count) AS total
-FROM gateway_requests_per_hour_v1
-WHERE time >= now() - INTERVAL 7 DAY
+  count() AS total
+FROM gateway_requests_v1
+WHERE time >= toUnixTimestamp64Milli(now64(3) - INTERVAL 7 DAY)
 GROUP BY app_id, response_status
 ORDER BY app_id, total DESC
 ```
@@ -344,7 +284,7 @@ curl --request POST \
   --url https://api.unkey.com/v2/analytics.getGatewayRequests \
   --header "Authorization: Bearer $UNKEY_ROOT_KEY" \
   --header "Content-Type: application/json" \
-  --data '{"query":"SELECT app_id, response_status, sum(count) AS total FROM gateway_requests_per_hour_v1 WHERE time >= now() - INTERVAL 7 DAY GROUP BY app_id, response_status ORDER BY app_id, total DESC"}'
+  --data '{"query":"SELECT app_id, response_status, count() AS total FROM gateway_requests_v1 WHERE time >= toUnixTimestamp64Milli(now64(3) - INTERVAL 7 DAY) GROUP BY app_id, response_status ORDER BY app_id, total DESC"}'
 ```
 
 </CodeGroup>

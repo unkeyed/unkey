@@ -300,10 +300,7 @@ var gatewayRequestColumns = []string{
 	"frontline_latency",
 }
 
-// DefaultAllowedTables returns the default list of tables for analytics access.
-// The frontline_requests_per_5m_v1 and _per_15m_v1 rollups are intentionally
-// absent: they have no public alias, so granting them would widen access beyond
-// what any endpoint exposes.
+// DefaultAllowedTables returns the default list of tables for analytics access
 func DefaultAllowedTables() []AllowedTable {
 	return []AllowedTable{
 		// Key verifications
@@ -320,8 +317,5 @@ func DefaultAllowedTables() []AllowedTable {
 		{Name: "default.ratelimits_per_month_v2", Columns: nil},
 		// Gateway requests
 		{Name: "default.frontline_requests_raw_v1", Columns: gatewayRequestColumns},
-		{Name: "default.frontline_requests_per_minute_v1", Columns: nil},
-		{Name: "default.frontline_requests_per_hour_v1", Columns: nil},
-		{Name: "default.frontline_requests_per_day_v1", Columns: nil},
 	}
 }

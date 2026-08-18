@@ -21,22 +21,15 @@ type (
 )
 
 var (
-	// These aliases are the only table names that the endpoint accepts. It
-	// refuses the physical names. Thus you can change a frontline table name
-	// without a change to the public API. The per_5m and per_15m rollups have no
-	// alias, and workspace users have no grant for them.
+	// This alias is the only table name that the endpoint accepts. It refuses
+	// the physical name. Thus you can change the frontline table name without a
+	// change to the public API.
 	tableAliases = map[string]string{
-		"gateway_requests_v1":            "default.frontline_requests_raw_v1",
-		"gateway_requests_per_minute_v1": "default.frontline_requests_per_minute_v1",
-		"gateway_requests_per_hour_v1":   "default.frontline_requests_per_hour_v1",
-		"gateway_requests_per_day_v1":    "default.frontline_requests_per_day_v1",
+		"gateway_requests_v1": "default.frontline_requests_raw_v1",
 	}
 
 	allowedTables = []string{
 		"default.frontline_requests_raw_v1",
-		"default.frontline_requests_per_minute_v1",
-		"default.frontline_requests_per_hour_v1",
-		"default.frontline_requests_per_day_v1",
 	}
 )
 

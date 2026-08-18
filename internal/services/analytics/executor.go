@@ -68,8 +68,8 @@ func Execute(ctx context.Context, manager ConnectionManager, req ExecuteRequest)
 // matches the query. It gives Inf for a division by zero. JSON has no encoding
 // for a non-finite float. Thus json.Marshal fails the full response.
 //
-// A percentile from a rollup table needs the Float32 case. quantileTDigestMerge
-// gives Float32. The aggregate state holds Float64.
+// The Float32 case covers ClickHouse functions that give Float32 rather than
+// Float64.
 //
 // An array column can also hold such a value. One example is
 // groupArray(latency / 0). That query still answers 500. Each array depth is a
@@ -84,7 +84,7 @@ func nullifyNonFinite(value any) any {
 		if math.IsNaN(v) || math.IsInf(v, 0) {
 			return nil
 		}
-	case float32: // quantileTDigestMerge
+	case float32:
 		if math.IsNaN(float64(v)) || math.IsInf(float64(v), 0) {
 			return nil
 		}

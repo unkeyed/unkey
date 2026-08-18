@@ -2,7 +2,6 @@ package queryparser
 
 import (
 	"context"
-	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -327,18 +326,18 @@ func TestParser_AllowsFilterableSetOperands(t *testing.T) {
 	}
 }
 
-// TestParser_QuantileTDigestMerge covers the parametric aggregate form used to
-// read the AggregateFunction states on the gateway rollups. The vendored parser
-// models `f(0.95)(col)` as a ParamExprList carrying a ColumnArgList, so this
-// also pins that the validation walk descends into the column argument.
-func TestParser_QuantileTDigestMerge(t *testing.T) {
+// TestParser_ParametricAggregates covers the parametric aggregate form
+// `f(0.95)(col)`. The vendored parser models it as a ParamExprList carrying a
+// ColumnArgList, so this pins that the validation walk descends into both
+// argument lists.
+func TestParser_ParametricAggregates(t *testing.T) {
 	p := NewParser(Config{
 		WorkspaceID: "ws_KEBAP",
 		TableAliases: map[string]string{
-			"gateway_requests_per_hour_v1": "default.frontline_requests_per_hour_v1",
+			"events_v1": "default.events",
 		},
 		AllowedTables: []string{
-			"default.frontline_requests_per_hour_v1",
+			"default.events",
 		},
 	})
 
@@ -348,13 +347,8 @@ func TestParser_QuantileTDigestMerge(t *testing.T) {
 		shouldFail bool
 	}{
 		{
-			name:       "merge state on the rollup",
-			query:      "SELECT quantileTDigestMerge(0.95)(latency_p95) AS p95 FROM gateway_requests_per_hour_v1",
-			shouldFail: false,
-		},
-		{
-			name:       "lowercase spelling is accepted",
-			query:      "SELECT quantiletdigestmerge(0.5)(latency_p50) AS p50 FROM gateway_requests_per_hour_v1",
+			name:       "allowed parametric aggregate",
+			query:      "SELECT quantile(0.95)(latency) AS p95 FROM events_v1",
 			shouldFail: false,
 		},
 		{
@@ -362,17 +356,22 @@ func TestParser_QuantileTDigestMerge(t *testing.T) {
 			// allow-list. If this passes, the walk is not reaching ColumnArgList
 			// and every disallowed function can be smuggled through it.
 			name:       "disallowed function in the column argument",
-			query:      "SELECT quantileTDigestMerge(0.95)(file('/etc/passwd')) FROM gateway_requests_per_hour_v1",
+			query:      "SELECT quantile(0.95)(file('/etc/passwd')) FROM events_v1",
 			shouldFail: true,
 		},
 		{
 			name:       "disallowed function in the parameter argument",
-			query:      "SELECT quantileTDigestMerge(file('/etc/passwd'))(latency_p95) FROM gateway_requests_per_hour_v1",
+			query:      "SELECT quantile(file('/etc/passwd'))(latency) FROM events_v1",
 			shouldFail: true,
 		},
 		{
-			name:       "unmerged state accessor stays blocked",
-			query:      "SELECT quantileTDigestState(0.95)(latency_p95) FROM gateway_requests_per_hour_v1",
+			name:       "state accessor stays blocked",
+			query:      "SELECT quantileTDigestState(0.95)(latency) FROM events_v1",
+			shouldFail: true,
+		},
+		{
+			name:       "merge accessor stays blocked",
+			query:      "SELECT quantileTDigestMerge(0.95)(latency) FROM events_v1",
 			shouldFail: true,
 		},
 	}
@@ -387,30 +386,4 @@ func TestParser_QuantileTDigestMerge(t *testing.T) {
 			require.NoError(t, err)
 		})
 	}
-}
-
-// TestParser_QuantileTDigestMergeCanonicalSpelling guarantees the rewritten
-// query reaches ClickHouse with the case-sensitive spelling it requires.
-func TestParser_QuantileTDigestMergeCanonicalSpelling(t *testing.T) {
-	p := NewParser(Config{
-		WorkspaceID: "ws_KEBAP",
-		TableAliases: map[string]string{
-			"gateway_requests_per_hour_v1": "default.frontline_requests_per_hour_v1",
-		},
-		AllowedTables: []string{
-			"default.frontline_requests_per_hour_v1",
-		},
-	})
-
-	parsed, err := p.Parse(
-		context.Background(),
-		"SELECT quantiletdigestmerge(0.95)(latency_p95) AS p95 FROM gateway_requests_per_hour_v1",
-	)
-	require.NoError(t, err)
-	require.Contains(t, parsed, "quantileTDigestMerge")
-	require.NotContains(t, parsed, "quantiletdigestmerge")
-
-	// The rewrite must not disturb the parametric argument or the workspace filter.
-	require.Contains(t, parsed, "latency_p95")
-	require.Contains(t, strings.ToLower(parsed), "workspace_id = 'ws_kebap'")
 }

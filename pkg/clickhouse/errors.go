@@ -109,8 +109,6 @@ func ExtractUserFriendlyError(err error) string {
 	switch {
 	case strings.Contains(errMsg, "not enough privileges"):
 		return "The query reads a column that is not available. Select only the documented columns instead of *"
-	case strings.Contains(errMsg, "unsupported column type"):
-		return "The query selects an aggregate state column. Use quantileTDigestMerge to read a percentile from it"
 	case strings.Contains(errMsg, "unknown function"),
 		strings.Contains(errMsg, "no matching signature"):
 		return "Unknown function in analytics query"

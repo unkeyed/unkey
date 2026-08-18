@@ -1533,10 +1533,9 @@ type UpdateKeyCreditsRefillInterval string
 // V2AnalyticsGetGatewayRequestsRequestBody defines model for V2AnalyticsGetGatewayRequestsRequestBody.
 type V2AnalyticsGetGatewayRequestsRequestBody struct {
 	// Query The SQL query to run on your gateway request data.
-	// A query can use only these four public aliases: `gateway_requests_v1`, `gateway_requests_per_minute_v1`, `gateway_requests_per_hour_v1`, or `gateway_requests_per_day_v1`. The physical `default.*` table names are not permitted.
+	// A query can use only the public alias `gateway_requests_v1`. The physical `default.*` table names are not permitted.
 	// Only SELECT queries are permitted. CTEs, subqueries, UNION, and EXCEPT are also permitted.
 	// Unkey limits each query to the workspace of the root key. To get the data for one project, app, or environment, add a filter on `project_id`, `app_id`, or `environment_id`.
-	// The three aggregated tables keep the latency data in ClickHouse aggregate states. To read a percentile from them, use `quantileTDigestMerge(0.95)(latency_p95)`.
 	// The workspace retention period and the workspace query limits apply.
 	Query string `json:"query"`
 }

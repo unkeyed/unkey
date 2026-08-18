@@ -384,21 +384,6 @@ func TestDefaultAllowedTables_HidesGatewayInternalColumns(t *testing.T) {
 		require.Contains(t, raw.Columns, granted)
 	}
 
-	// The rollups carry no infrastructure columns, so they stay unrestricted.
-	for _, name := range []string{
-		"default.frontline_requests_per_minute_v1",
-		"default.frontline_requests_per_hour_v1",
-		"default.frontline_requests_per_day_v1",
-	} {
-		table, found := byName[name]
-		require.True(t, found, "%s must be granted", name)
-		require.Empty(t, table.Columns, "%s must not be column-restricted", name)
-	}
-
-	// Rollups without a public alias must not be granted at all.
-	require.NotContains(t, byName, "default.frontline_requests_per_5m_v1")
-	require.NotContains(t, byName, "default.frontline_requests_per_15m_v1")
-
 	// Converting the existing entries must not have narrowed them.
 	for _, name := range []string{
 		"default.key_verifications_raw_v2",
@@ -446,40 +431,12 @@ func TestValidateIdentifiers_RejectsUnsafeColumns(t *testing.T) {
 	require.NoError(t, err, "the shipped table list must pass its own validation")
 }
 
-// TestGetTimeRetentionFilter_GatewayTables guarantees each gateway table lands
-// in the branch matching its time column type. The raw table stores unix
-// milliseconds while every rollup stores DateTime, so a misrouted table would
-// produce a retention filter that never matches.
+// TestGetTimeRetentionFilter_GatewayTables guarantees the gateway raw table
+// lands in the unix-milliseconds branch. A misrouted table would produce a
+// retention filter that never matches.
 func TestGetTimeRetentionFilter_GatewayTables(t *testing.T) {
-	tests := []struct {
-		table    string
-		expected string
-	}{
-		{
-			table:    "default.frontline_requests_raw_v1",
-			expected: "time >= toUnixTimestamp(toStartOfDay(now() - INTERVAL 30 DAY)) * 1000",
-		},
-		{
-			table:    "default.frontline_requests_per_minute_v1",
-			expected: "time >= toStartOfDay(now() - INTERVAL 30 DAY)",
-		},
-		{
-			table:    "default.frontline_requests_per_hour_v1",
-			expected: "time >= toStartOfDay(now() - INTERVAL 30 DAY)",
-		},
-		{
-			// The day rollup stores DateTime rather than Date, unlike the
-			// verification and ratelimit day tables this branch was written for.
-			// ClickHouse promotes the Date bound to midnight DateTime, so the
-			// comparison still holds.
-			table:    "default.frontline_requests_per_day_v1",
-			expected: "time >= today() - INTERVAL 30 DAY",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.table, func(t *testing.T) {
-			require.Equal(t, tt.expected, getTimeRetentionFilter(tt.table, 30))
-		})
-	}
+	require.Equal(t,
+		"time >= toUnixTimestamp(toStartOfDay(now() - INTERVAL 30 DAY)) * 1000",
+		getTimeRetentionFilter("default.frontline_requests_raw_v1", 30),
+	)
 }

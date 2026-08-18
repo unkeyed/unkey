@@ -22,7 +22,10 @@ func Test400_RejectedQueries(t *testing.T) {
 		"introspection":          "DESCRIBE TABLE gateway_requests_v1",
 		"multiple statements":    "SELECT count() FROM gateway_requests_v1; SELECT count() FROM gateway_requests_v1",
 		"physical table name":    "SELECT count() FROM default.frontline_requests_raw_v1",
-		"ungranted 5m rollup":    "SELECT count() FROM gateway_requests_per_5m_v1",
+		"minute rollup":          "SELECT count() FROM gateway_requests_per_minute_v1",
+		"hour rollup":            "SELECT count() FROM gateway_requests_per_hour_v1",
+		"day rollup":             "SELECT count() FROM gateway_requests_per_day_v1",
+		"5m rollup":              "SELECT count() FROM gateway_requests_per_5m_v1",
 		"another endpoint table": "SELECT count() FROM key_verifications_v1",
 		"system table":           "SELECT count() FROM system.tables",
 		"unknown column":         "SELECT no_such_column FROM gateway_requests_v1",
@@ -61,36 +64,20 @@ func Test400_InternalColumnsAreUnreachable(t *testing.T) {
 	}
 }
 
-// Test400_MessagesNameTheFix guarantees the two ClickHouse failures that a
-// caller reaches on these tables give an actionable message instead of the
-// generic one.
+// Test400_MessagesNameTheFix guarantees the ClickHouse failure that a caller
+// reaches on this table gives an actionable message instead of the generic one.
 //
 // SELECT * fails because ClickHouse expands the star to every physical column,
-// which includes the columns outside the grant. A percentile column fails
-// because the driver cannot decode an aggregate state.
+// which includes the columns outside the grant.
 func Test400_MessagesNameTheFix(t *testing.T) {
 	h, route, workspaceID := newRoute(t, true)
 	rootKey := h.CreateRootKey(workspaceID, "project.*.read_gateway_requests")
 
-	for name, testCase := range map[string]struct {
-		query   string
-		message string
-	}{
-		"select star on the raw table": {
-			query:   "SELECT * FROM gateway_requests_v1",
-			message: "Select only the documented columns instead of *",
-		},
-		"aggregate state column": {
-			query:   "SELECT latency_p95 FROM gateway_requests_per_hour_v1 WHERE time >= now() - INTERVAL 1 DAY",
-			message: "Use quantileTDigestMerge to read a percentile from it",
-		},
-	} {
-		t.Run(name, func(t *testing.T) {
-			res := testutil.CallRoute[Request, Response](h, route, auth(rootKey), Request{Query: testCase.query})
-			require.Equal(t, 400, res.Status, "response: %s", res.RawBody)
-			require.Contains(t, res.RawBody, testCase.message)
-		})
-	}
+	res := testutil.CallRoute[Request, Response](h, route, auth(rootKey), Request{
+		Query: "SELECT * FROM gateway_requests_v1",
+	})
+	require.Equal(t, 400, res.Status, "response: %s", res.RawBody)
+	require.Contains(t, res.RawBody, "Select only the documented columns instead of *")
 }
 
 // Test400_ErrorsDoNotDiscloseInternals guarantees a rejection never returns the

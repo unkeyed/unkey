@@ -105,7 +105,7 @@ func TestExecuteNullifiesNonFiniteValues(t *testing.T) {
 		"dynamic positive inf": ch.NewDynamic(math.Inf(1)),
 		"dynamic negative inf": ch.NewDynamic(math.Inf(-1)),
 		"typed dynamic nan":    ch.NewDynamicWithType(math.NaN(), "Float64"),
-		"float32 nan":          float32(math.NaN()), // quantileTDigestMerge gives Float32
+		"float32 nan":          float32(math.NaN()),
 		"float32 inf":          float32(math.Inf(1)),
 		"dynamic null":         ch.NewDynamic(nil),
 		"bare nan":             math.NaN(),
