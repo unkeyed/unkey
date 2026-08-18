@@ -5,7 +5,7 @@ import { routes } from "@/lib/navigation/routes";
 import type { DeployPlan } from "@/lib/stripe/deployPlan";
 import { trpc } from "@/lib/trpc/client";
 import { Cube } from "@unkey/icons";
-import { toast } from "@unkey/ui";
+import { Item, ItemMedia, ItemTitle, Skeleton, toast } from "@unkey/ui";
 import { useState } from "react";
 import { CancelComputeDialog, CancelPlanLink } from "./cancel-actions";
 import {
@@ -17,15 +17,20 @@ import {
 } from "./compute-plan-picker-v2";
 import { ADMIN_ONLY_TOOLTIP } from "./constants";
 import { periodCredit } from "./deploy-invoice";
-import {
-  PlanRowAction,
-  PlanTableRow,
-  PlanTableRowMessage,
-  PlanTableRowSkeleton,
-} from "./plan-table-row";
+import { PLAN_COLUMNS, PlanName, PlanPrice, PlanRowAction } from "./plan-row";
 
 const NEEDS_PAYMENT_TOOLTIP = "Add a payment method first";
-const COMPUTE_MEDIA = "bg-orangeA-3 text-orange-11";
+
+function ProductCell() {
+  return (
+    <div className="flex min-w-0 items-center gap-3">
+      <ItemMedia className="bg-orangeA-3 text-orange-11">
+        <Cube />
+      </ItemMedia>
+      <ItemTitle className="truncate">Compute</ItemTitle>
+    </div>
+  );
+}
 
 type ComputePlanRowProps = {
   isAdmin: boolean | undefined;
@@ -98,14 +103,24 @@ export function ComputePlanRow({
   });
 
   if (subscriptionLoading || plansLoading) {
-    return <PlanTableRowSkeleton icon={<Cube />} mediaClassName={COMPUTE_MEDIA} />;
+    return (
+      <Item className={PLAN_COLUMNS}>
+        <ProductCell />
+        <Skeleton className="h-3 w-16" />
+        <Skeleton className="h-3 w-24" />
+        <span />
+      </Item>
+    );
   }
 
   if (subscriptionError || plansError) {
     return (
-      <PlanTableRowMessage icon={<Cube />} mediaClassName={COMPUTE_MEDIA} title="Compute">
-        Compute plans could not be loaded. Reload the page or contact support@unkey.com.
-      </PlanTableRowMessage>
+      <Item className={PLAN_COLUMNS}>
+        <ProductCell />
+        <p className="col-span-3 text-[13px] text-gray-11">
+          Compute plans could not be loaded. Reload the page or contact support@unkey.com.
+        </p>
+      </Item>
     );
   }
 
@@ -149,16 +164,16 @@ export function ComputePlanRow({
 
   return (
     <>
-      <PlanTableRow
-        icon={<Cube />}
-        mediaClassName={COMPUTE_MEDIA}
-        title="Compute"
-        planName={currentPlan ? (currentPlanOption?.name ?? currentPlan) : null}
-        feeCents={currentPlan ? planFee : null}
-        interval={currentPlanOption?.interval ?? "month"}
-        usageCreditCents={credit?.cents ?? null}
-        usageCreditProrated={credit?.prorated ?? false}
-        action={
+      <Item className={PLAN_COLUMNS}>
+        <ProductCell />
+        <PlanName>{currentPlan ? (currentPlanOption?.name ?? currentPlan) : null}</PlanName>
+        <PlanPrice
+          feeCents={currentPlan ? planFee : null}
+          interval={currentPlanOption?.interval ?? "month"}
+          usageCreditCents={credit?.cents ?? null}
+          usageCreditProrated={credit?.prorated ?? false}
+        />
+        <span className="flex justify-end">
           <PlanRowAction
             isAdmin={isAdmin}
             hasPlan={currentPlan !== null}
@@ -168,8 +183,8 @@ export function ComputePlanRow({
             onClick={() => setPlanModalOpen(true)}
             chooseLabel="Choose a plan"
           />
-        }
-      />
+        </span>
+      </Item>
 
       <ComputePlanDialog
         isOpen={isPlanModalOpen}

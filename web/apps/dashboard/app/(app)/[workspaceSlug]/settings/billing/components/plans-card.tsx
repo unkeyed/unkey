@@ -19,7 +19,7 @@ import { AdminGate } from "./admin-gate";
 import { currentApiProduct } from "./api-plan";
 import { ApiPlanRow } from "./api-plan-row";
 import { ComputePlanRow } from "./compute-plan-row";
-import { PlanTableHeader } from "./plan-table-row";
+import { PlanTableHeader } from "./plan-row";
 
 type BillingInfo = inferRouterOutputs<Router>["stripe"]["getBillingInfo"];
 

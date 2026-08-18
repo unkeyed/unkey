@@ -6,12 +6,12 @@ import { trpc } from "@/lib/trpc/client";
 import type { Router } from "@/lib/trpc/routers";
 import type { inferRouterOutputs } from "@trpc/server";
 import { Nodes } from "@unkey/icons";
-import { toast } from "@unkey/ui";
+import { Item, ItemMedia, ItemTitle, toast } from "@unkey/ui";
 import { useState } from "react";
 import { currentApiProduct } from "./api-plan";
 import { CancelApiDialog, CancelPlanLink } from "./cancel-actions";
 import { PlanChangeModal } from "./plan-change-modal";
-import { PlanRowAction, PlanTableRow } from "./plan-table-row";
+import { PLAN_COLUMNS, PlanName, PlanPrice, PlanRowAction } from "./plan-row";
 
 const NEEDS_PAYMENT_TOOLTIP = "Add a payment method before upgrading the API plan";
 
@@ -103,13 +103,16 @@ export function ApiPlanRow({
 
   return (
     <>
-      <PlanTableRow
-        icon={<Nodes />}
-        mediaClassName="bg-infoA-3 text-info-11"
-        title="API management"
-        planName={currentProduct ? currentProduct.name : "Free"}
-        feeCents={(currentProduct?.dollar ?? 0) * 100}
-        action={
+      <Item className={PLAN_COLUMNS}>
+        <div className="flex min-w-0 items-center gap-3">
+          <ItemMedia className="bg-infoA-3 text-info-11">
+            <Nodes />
+          </ItemMedia>
+          <ItemTitle className="truncate">API management</ItemTitle>
+        </div>
+        <PlanName>{currentProduct ? currentProduct.name : "Free"}</PlanName>
+        <PlanPrice feeCents={(currentProduct?.dollar ?? 0) * 100} />
+        <span className="flex justify-end">
           <PlanRowAction
             isAdmin={isAdmin}
             hasPlan={currentProduct !== undefined}
@@ -119,8 +122,8 @@ export function ApiPlanRow({
             onClick={() => setShowPlanModal(true)}
             chooseLabel="Upgrade"
           />
-        }
-      />
+        </span>
+      </Item>
 
       {hasPaymentMethod ? (
         <PlanChangeModal
