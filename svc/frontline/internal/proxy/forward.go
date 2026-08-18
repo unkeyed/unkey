@@ -36,6 +36,21 @@ type forwardConfig struct {
 // The handler retry loop uses [IsDialError] on the returned error to decide
 // whether the request is safe to replay against another instance.
 func (s *service) forward(ctx context.Context, sess *zen.Session, cfg forwardConfig) error {
+	req := sess.Request()
+	// Go's HTTP/1 server consumes the rest of an open request body before it
+	// writes a response unless full duplex is enabled. ReverseProxy can receive
+	// upstream response headers while it is still forwarding the request body,
+	// so allow that interleaving only where the transport requires it. HTTP/2
+	// supports full duplex by default, and requests without bodies do not need it.
+	if req.ProtoMajor == 1 && req.ContentLength != 0 {
+		if err := http.NewResponseController(sess.ResponseWriter()).EnableFullDuplex(); err != nil {
+			return fault.Wrap(err,
+				fault.Internal("unable to enable full-duplex HTTP/1 proxying"),
+				fault.Public("An error occurred processing the request."),
+			)
+		}
+	}
+
 	sess.ResponseWriter().Header().Set(HeaderFrontlineID, s.instanceID)
 	sess.ResponseWriter().Header().Set(HeaderRegion, fmt.Sprintf("%s::%s", s.platform, s.region))
 	sess.ResponseWriter().Header().Set(HeaderRequestID, sess.RequestID())
@@ -167,7 +182,7 @@ func (s *service) forward(ctx context.Context, sess *zen.Session, cfg forwardCon
 	}
 
 	// Proxy the request with the middleware context (carries timeout deadline).
-	serveWithAbortRecovery(proxy, wrapper, sess.Request().WithContext(ctx))
+	serveWithAbortRecovery(proxy, wrapper, req.WithContext(ctx))
 
 	// Record upstream duration after the full response (including streaming
 	// body / WebSocket tunnel) has finished. Idempotent — if ErrorHandler

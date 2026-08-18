@@ -5,6 +5,8 @@ import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { queryClient } from "@/lib/collections/client";
 import { routes } from "@/lib/navigation/routes";
 import { trpc } from "@/lib/trpc/client";
+import { getErrorMessage, getUnkeyClient } from "@/lib/unkey-client";
+import { useMutation } from "@tanstack/react-query";
 import { ChevronLeft, Docker } from "@unkey/icons";
 import { Button, Input, toast } from "@unkey/ui";
 import { useRouter } from "next/navigation";
@@ -36,7 +38,16 @@ export const DeployImageCard = ({
   const environmentSlug =
     appEnvironments.find((e) => e.kind === "preview")?.slug ?? appEnvironments[0]?.slug;
 
-  const createDeployment = trpc.deploy.deployment.create.useMutation({
+  const createDeployment = useMutation({
+    mutationFn: async (source: { environment: string; image: string }) => {
+      const res = await getUnkeyClient().deployments.createDeployment({
+        project: projectId,
+        app: appId,
+        environment: source.environment,
+        image: { dockerImage: source.image },
+      });
+      return { deploymentId: res.data.deploymentId };
+    },
     async onSuccess(data) {
       await queryClient.invalidateQueries({ queryKey: ["deployments", projectId] });
       onBeforeNavigate?.();
@@ -50,7 +61,7 @@ export const DeployImageCard = ({
       );
     },
     onError(error) {
-      toast.error(error.message);
+      toast.error(getErrorMessage(error));
     },
   });
 
@@ -66,13 +77,7 @@ export const DeployImageCard = ({
       openPaywall();
       return;
     }
-    createDeployment.mutate({
-      projectId,
-      appId,
-      environmentSlug,
-      source: "image",
-      image: imageRef,
-    });
+    createDeployment.mutate({ environment: environmentSlug, image: imageRef });
   };
 
   return (

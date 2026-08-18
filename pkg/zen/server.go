@@ -57,6 +57,12 @@ type Config struct {
 	// This helps prevent DoS attacks from excessively large request bodies.
 	MaxRequestBodySize int64
 
+	// StreamRequestBody passes request bodies to handlers without eagerly
+	// reading them. Reverse proxies should enable this regardless of their
+	// upstream protocol. Handlers remain responsible for reading and closing
+	// the body.
+	StreamRequestBody bool
+
 	// ReadTimeout is the maximum duration for reading the entire request, including the body.
 	// If 0, defaults to 10 seconds.
 	ReadTimeout time.Duration
@@ -148,6 +154,7 @@ func New(config Config) (*Server, error) {
 			New: func() any {
 				return &Session{
 					logRequestToClickHouse: true,
+					streamRequestBody:      config.StreamRequestBody,
 					principal:              nil,
 					requestID:              "",
 					internalError:          "",

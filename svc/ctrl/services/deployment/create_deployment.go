@@ -97,18 +97,11 @@ func (s *Service) CreateDeployment(
 		return nil, err
 	}
 
-	keyspaceID := req.Msg.GetKeyspaceId()
-	var keyAuthID *string
-	if keyspaceID != "" {
-		keyAuthID = &keyspaceID
-	}
-
 	deploymentID, err := s.createAndDeploy(ctx, createParams{
 		context:       ctxLoad,
 		action:        "create",
 		dockerImage:   req.Msg.GetDockerImage(),
 		gitCommit:     req.Msg.GetGitCommit(),
-		keyAuthID:     keyAuthID,
 		command:       req.Msg.GetCommand(),
 		trigger:       triggerFromProto(req.Msg.GetTrigger()),
 		triggeredBy:   req.Msg.GetTriggeredBy(),
@@ -325,7 +318,6 @@ type createParams struct {
 	// fall back to the live deployment's image.
 	dockerImage string
 	gitCommit   *ctrlv1.GitCommitInfo
-	keyAuthID   *string
 	command     []string
 
 	// Attribution persisted on the deployment row.
@@ -397,7 +389,6 @@ func (s *Service) createAndDeploy(ctx context.Context, p createParams) (string, 
 
 		deployReq = &hydrav1.DeployRequest{
 			DeploymentId: deploymentID,
-			KeyAuthId:    p.keyAuthID,
 			Command:      command,
 			Source: &hydrav1.DeployRequest_DockerImage{
 				DockerImage: &hydrav1.DockerImage{
@@ -439,7 +430,6 @@ func (s *Service) createAndDeploy(ctx context.Context, p createParams) (string, 
 		}
 		deployReq = &hydrav1.DeployRequest{
 			DeploymentId: deploymentID,
-			KeyAuthId:    p.keyAuthID,
 			Command:      command,
 			Source: &hydrav1.DeployRequest_Git{
 				Git: &hydrav1.GitSource{
@@ -467,7 +457,6 @@ func (s *Service) createAndDeploy(ctx context.Context, p createParams) (string, 
 
 		deployReq = &hydrav1.DeployRequest{
 			DeploymentId: deploymentID,
-			KeyAuthId:    p.keyAuthID,
 			Command:      command,
 			Source: &hydrav1.DeployRequest_DockerImage{
 				DockerImage: &hydrav1.DockerImage{

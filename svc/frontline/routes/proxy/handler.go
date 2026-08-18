@@ -124,6 +124,17 @@ func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 		}()
 	}
 
+	// Shield the body from being closed between attempts. http.Transport
+	// closes the outgoing request body even when the dial fails, and the
+	// ReverseProxy clone shares this inbound body. With a streaming
+	// (unbuffered) body, that close would poison the retry attempt with
+	// "http: invalid Read on closed Body" even though no bytes were read.
+	// The server closes the real body after the handler returns, so
+	// nothing leaks.
+	if req.Body != nil {
+		req.Body = io.NopCloser(req.Body)
+	}
+
 	// Try each candidate instance in turn. We only move to the next
 	// instance on dial-phase failures: the proxy never opened a TCP
 	// connection, so the request body has not been read and replay is

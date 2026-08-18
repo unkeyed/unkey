@@ -107,7 +107,6 @@ func (s *Service) AuthorizeDeployment(ctx context.Context, req *connect.Request[
 
 	deployReq := &hydrav1.DeployRequest{
 		DeploymentId: deploymentID,
-		KeyAuthId:    nil,
 		Command:      deployment.Command,
 		Source: &hydrav1.DeployRequest_Git{
 			Git: &hydrav1.GitSource{

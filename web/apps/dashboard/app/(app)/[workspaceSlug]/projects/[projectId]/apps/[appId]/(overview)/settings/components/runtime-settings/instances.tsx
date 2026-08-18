@@ -311,28 +311,43 @@ const DualInner = ({ production, preview }: DualInnerProps) => {
   const currentPreviewReplicasMax = useWatch({ control, name: "previewReplicasMax" });
 
   const onSubmit = async (values: DualFormValues) => {
+    // One transaction for both environments. The collection refetches every
+    // loaded environment after a transaction settles.
+    const targets: { id: string; replicasMin: number; replicasMax: number }[] = [];
     if (
       values.productionReplicasMin !== defaultProduction.replicasMin ||
       values.productionReplicasMax !== defaultProduction.replicasMax
     ) {
-      collection.environmentSettings.update(production.environmentId, (draft) => {
-        writeRange(draft, {
-          replicasMin: values.productionReplicasMin,
-          replicasMax: values.productionReplicasMax,
-        });
+      targets.push({
+        id: production.environmentId,
+        replicasMin: values.productionReplicasMin,
+        replicasMax: values.productionReplicasMax,
       });
     }
     if (
       values.previewReplicasMin !== defaultPreview.replicasMin ||
       values.previewReplicasMax !== defaultPreview.replicasMax
     ) {
-      collection.environmentSettings.update(preview.environmentId, (draft) => {
-        writeRange(draft, {
-          replicasMin: values.previewReplicasMin,
-          replicasMax: values.previewReplicasMax,
-        });
+      targets.push({
+        id: preview.environmentId,
+        replicasMin: values.previewReplicasMin,
+        replicasMax: values.previewReplicasMax,
       });
     }
+    if (targets.length === 0) {
+      return;
+    }
+
+    collection.environmentSettings.update(
+      targets.map((t) => t.id),
+      (drafts) =>
+        drafts.forEach((draft, i) => {
+          writeRange(draft, {
+            replicasMin: targets[i].replicasMin,
+            replicasMax: targets[i].replicasMax,
+          });
+        }),
+    );
   };
 
   const productionHasChanges =
