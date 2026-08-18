@@ -543,30 +543,22 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 
 		// Optionally seed a portal, branding included.
 		if cmd.Bool("portal") {
-			branding, brandingErr := json.Marshal(map[string]string{
-				"logoUrl":      "https://avatars.githubusercontent.com/u/138932600",
-				"primaryColor": "#2563eb",
-			})
-			if brandingErr != nil {
-				return fmt.Errorf("failed to marshal portal branding: %w", brandingErr)
-			}
-
 			// Keyspace-mapped, not app-mapped: a portal must reference exactly
 			// one of key_auth_id or app_id, and portal.createSession rejects a
 			// portal that sets both. App-mapping additionally resolves its
 			// keyspaces from the app's current deployment, which this seed does
 			// not create, so the keyspace is the only mapping that works here.
 			err = db.Query.InsertPortal(ctx, tx, db.InsertPortalParams{
-				ID:          portalID,
-				WorkspaceID: workspaceID,
-				Slug:        "awesome",
-				AppID:       sql.NullString{Valid: false},
-				KeyAuthID:   sql.NullString{Valid: true, String: userKeySpaceID},
-				Enabled:     true,
-				ReturnUrl:   sql.NullString{Valid: true, String: "http://localhost:3000/portal-return"},
-				Branding:    branding,
-				CreatedAt:   now,
-				UpdatedAt:   sql.NullInt64{},
+				ID:           portalID,
+				WorkspaceID:  workspaceID,
+				Slug:         "awesome",
+				AppID:        sql.NullString{Valid: false},
+				KeyAuthID:    sql.NullString{Valid: true, String: userKeySpaceID},
+				Enabled:      true,
+				LogoUrl:      sql.NullString{Valid: true, String: "https://avatars.githubusercontent.com/u/138932600"},
+				PrimaryColor: sql.NullString{Valid: true, String: "#2563eb"},
+				CreatedAt:    now,
+				UpdatedAt:    sql.NullInt64{},
 			})
 			if err != nil && !db.IsDuplicateKeyError(err) {
 				return fmt.Errorf("failed to create portal: %w", err)

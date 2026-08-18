@@ -6,8 +6,8 @@ INSERT INTO portals (
     app_id,
     key_auth_id,
     enabled,
-    return_url,
-    branding,
+    logo_url,
+    primary_color,
     created_at,
     updated_at
 ) VALUES (
@@ -17,8 +17,8 @@ INSERT INTO portals (
     sqlc.narg(app_id),
     sqlc.narg(key_auth_id),
     sqlc.arg(enabled),
-    sqlc.narg(return_url),
-    sqlc.narg(branding),
+    sqlc.narg(logo_url),
+    sqlc.narg(primary_color),
     sqlc.arg(created_at),
     sqlc.narg(updated_at)
 );

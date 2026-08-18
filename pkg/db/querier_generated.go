@@ -809,7 +809,7 @@ type Querier interface {
 	// UNION ALL of two index seeks instead of `id = ? OR slug = ?`, which would
 	// force a scan: `portals_id_unique` and `idx_workspace_slug` each serve one arm.
 	//
-	//  SELECT p.pk, p.id, p.workspace_id, p.slug, p.app_id, p.key_auth_id, p.enabled, p.return_url, p.branding, p.created_at, p.updated_at
+	//  SELECT p.pk, p.id, p.workspace_id, p.slug, p.app_id, p.key_auth_id, p.enabled, p.logo_url, p.primary_color, p.created_at, p.updated_at
 	//  FROM portals p
 	//  JOIN (
 	//      SELECT p1.id
@@ -830,7 +830,7 @@ type Querier interface {
 	// true at fill time. The caller derives session state from the row against the
 	// current clock instead.
 	//
-	//  SELECT pk, id, workspace_id, portal_id, external_id, scopes, preview, exchange_code_hash, exchange_code_expires_at, access_token_hash, access_token_created_at, access_token_expires_at, revoked_at, created_at FROM portal_sessions
+	//  SELECT pk, id, workspace_id, portal_id, external_id, scopes, preview, exchange_code_hash, exchange_code_expires_at, access_token_hash, access_token_created_at, access_token_expires_at, revoked_at, return_url, created_at FROM portal_sessions
 	//  WHERE access_token_hash = ?
 	FindPortalSessionByAccessTokenHash(ctx context.Context, db DBTX, accessTokenHash sql.NullString) (PortalSession, error)
 	// Reads back the row a redemption just claimed, to build the response and the
@@ -838,7 +838,7 @@ type Querier interface {
 	// reported one affected row: the hash is UNIQUE, so this is the same row, and
 	// the caller already established it won the race.
 	//
-	//  SELECT pk, id, workspace_id, portal_id, external_id, scopes, preview, exchange_code_hash, exchange_code_expires_at, access_token_hash, access_token_created_at, access_token_expires_at, revoked_at, created_at FROM portal_sessions
+	//  SELECT pk, id, workspace_id, portal_id, external_id, scopes, preview, exchange_code_hash, exchange_code_expires_at, access_token_hash, access_token_created_at, access_token_expires_at, revoked_at, return_url, created_at FROM portal_sessions
 	//  WHERE exchange_code_hash = ?
 	FindPortalSessionByExchangeCodeHash(ctx context.Context, db DBTX, exchangeCodeHash string) (PortalSession, error)
 	//FindProjectById
@@ -1583,8 +1583,8 @@ type Querier interface {
 	//      app_id,
 	//      key_auth_id,
 	//      enabled,
-	//      return_url,
-	//      branding,
+	//      logo_url,
+	//      primary_color,
 	//      created_at,
 	//      updated_at
 	//  ) VALUES (
@@ -1613,8 +1613,10 @@ type Querier interface {
 	//      preview,
 	//      exchange_code_hash,
 	//      exchange_code_expires_at,
+	//      return_url,
 	//      created_at
 	//  ) VALUES (
+	//      ?,
 	//      ?,
 	//      ?,
 	//      ?,
@@ -2667,9 +2669,12 @@ type Querier interface {
 	UpdateKeySpaceKeyEncryption(ctx context.Context, db DBTX, arg UpdateKeySpaceKeyEncryptionParams) error
 	// Branding lives on the portal row, so the dashboard's branding form is one
 	// write against an existing portal rather than an upsert into a side table.
+	// Discrete columns rather than a JSON blob, so each field is typed and length
+	// bounded by the database.
 	//
 	//  UPDATE portals
-	//  SET branding = ?,
+	//  SET logo_url = ?,
+	//      primary_color = ?,
 	//      updated_at = ?
 	//  WHERE id = ?
 	//    AND workspace_id = ?

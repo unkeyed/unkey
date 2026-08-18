@@ -3883,6 +3883,14 @@ type V2PortalCreateSessionRequestBody struct {
 	// Preview When true, creates a preview session for testing the portal experience.
 	Preview *bool `json:"preview,omitempty"`
 
+	// ReturnUrl Absolute URL the end user is sent back to when they leave the portal, or
+	// when their session expires mid-visit. Set per session rather than per
+	// portal, so one portal can serve several entry points and return each user
+	// to the page they came from.
+	//
+	// When omitted, the portal shows no return link.
+	ReturnUrl *string `json:"returnUrl,omitempty"`
+
 	// Scopes The capabilities granted to the end user in the Portal, from a fixed
 	// vocabulary. All capabilities are scoped to this end user: key capabilities
 	// (`keys:*`) apply only to keys the end user owns within the keyspace

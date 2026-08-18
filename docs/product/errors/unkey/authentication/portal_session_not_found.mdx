@@ -1,8 +1,6 @@
 ---
 title: "portal_session_not_found"
 description: "The provided exchange code or access token was not found, has expired, or has already been redeemed. Create a new session from your backend and redirect the user again."
-hidden: true
-noindex: true
 ---
 
 <Danger>`err:unkey:authentication:portal_session_not_found`</Danger>
@@ -51,7 +49,7 @@ Then redirect the user to the returned `url`. The portal will redeem the new cod
 
 Re-authenticating always mints a new session rather than extending the existing one, so this is the correct response to every case above.
 
-If you have configured a `return_url` on your portal, expired sessions will automatically redirect there with `?reason=session_expired`. Use that hook to re-mint a session and bounce the user back into the portal seamlessly.
+If you passed a `returnUrl` when creating the session, expired sessions will automatically redirect there with `?reason=session_expired`. Use that hook to re-mint a session and bounce the user back into the portal seamlessly.
 
 ```typescript
 // In your backend route handler

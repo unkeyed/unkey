@@ -11,6 +11,7 @@ INSERT INTO portal_sessions (
     preview,
     exchange_code_hash,
     exchange_code_expires_at,
+    return_url,
     created_at
 ) VALUES (
     sqlc.arg(id),
@@ -21,5 +22,6 @@ INSERT INTO portal_sessions (
     sqlc.arg(preview),
     sqlc.arg(exchange_code_hash),
     sqlc.arg(exchange_code_expires_at),
+    sqlc.narg(return_url),
     sqlc.arg(created_at)
 );

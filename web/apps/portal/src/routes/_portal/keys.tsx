@@ -24,7 +24,7 @@ export const Route = createFileRoute("/_portal/keys")({
 });
 
 function KeysPage() {
-  const { portal } = Route.useRouteContext();
+  const { session, portal } = Route.useRouteContext();
   const { keys, isInitialLoading, isError, error, refetch } = useKeysListQuery();
   const reroll = useRerollKey();
 
@@ -42,7 +42,7 @@ function KeysPage() {
       ) : isError && isUnauthorizedError(error) ? (
         // Expired/invalid session: retrying won't help — point the user back to
         // the application that launched the portal.
-        <SessionExpired returnUrl={portal?.returnUrl ?? null} />
+        <SessionExpired returnUrl={session.returnUrl} />
       ) : isError ? (
         <KeysError message={error instanceof Error ? error.message : undefined} onRetry={refetch} />
       ) : (

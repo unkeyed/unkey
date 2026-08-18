@@ -874,17 +874,17 @@ type Permission struct {
 }
 
 type Portal struct {
-	Pk          uint64         `db:"pk"`
-	ID          string         `db:"id"`
-	WorkspaceID string         `db:"workspace_id"`
-	Slug        string         `db:"slug"`
-	AppID       sql.NullString `db:"app_id"`
-	KeyAuthID   sql.NullString `db:"key_auth_id"`
-	Enabled     bool           `db:"enabled"`
-	ReturnUrl   sql.NullString `db:"return_url"`
-	Branding    []byte         `db:"branding"`
-	CreatedAt   int64          `db:"created_at"`
-	UpdatedAt   sql.NullInt64  `db:"updated_at"`
+	Pk           uint64         `db:"pk"`
+	ID           string         `db:"id"`
+	WorkspaceID  string         `db:"workspace_id"`
+	Slug         string         `db:"slug"`
+	AppID        sql.NullString `db:"app_id"`
+	KeyAuthID    sql.NullString `db:"key_auth_id"`
+	Enabled      bool           `db:"enabled"`
+	LogoUrl      sql.NullString `db:"logo_url"`
+	PrimaryColor sql.NullString `db:"primary_color"`
+	CreatedAt    int64          `db:"created_at"`
+	UpdatedAt    sql.NullInt64  `db:"updated_at"`
 }
 
 type PortalSession struct {
@@ -901,6 +901,7 @@ type PortalSession struct {
 	AccessTokenCreatedAt  sql.NullInt64   `db:"access_token_created_at"`
 	AccessTokenExpiresAt  sql.NullInt64   `db:"access_token_expires_at"`
 	RevokedAt             sql.NullInt64   `db:"revoked_at"`
+	ReturnUrl             sql.NullString  `db:"return_url"`
 	CreatedAt             int64           `db:"created_at"`
 }
 

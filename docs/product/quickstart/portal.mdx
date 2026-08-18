@@ -64,7 +64,8 @@ curl -X POST https://api.unkey.com/v2/portal.createSession \
   -d '{
     "portal": "my-portal",
     "externalId": "user_123",
-    "scopes": ["keys:read", "keys:reroll", "analytics:read"]
+    "scopes": ["keys:read", "keys:reroll", "analytics:read"],
+    "returnUrl": "https://app.example.com/settings/api-keys"
   }'
 ```
 
@@ -79,6 +80,8 @@ const response = await fetch("https://api.unkey.com/v2/portal.createSession", {
     portal: "my-portal",
     externalId: "user_123",
     scopes: ["keys:read", "keys:reroll", "analytics:read"],
+    // Optional, per session: where this user goes when they leave the portal.
+    returnUrl: "https://app.example.com/settings/api-keys",
   }),
 });
 
@@ -190,8 +193,11 @@ Both credentials are stored only as hashes, so they cannot be recovered from Unk
 Re-authenticating creates a new session with a fresh code rather than extending an existing one.
 
 When the access token expires:
-- If `return_url` is set on the portal → redirects to `{return_url}?reason=session_expired`
+- If `returnUrl` was set on the session → redirects to `{returnUrl}?reason=session_expired`
 - Otherwise → shows a "Session expired" error page
+
+`returnUrl` is set per session on `portal.createSession`, not once on the portal,
+so one portal can return each user to whichever page they came from.
 
 ## Branding
 

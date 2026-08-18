@@ -7,6 +7,7 @@ package db
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 )
 
@@ -20,8 +21,10 @@ INSERT INTO portal_sessions (
     preview,
     exchange_code_hash,
     exchange_code_expires_at,
+    return_url,
     created_at
 ) VALUES (
+    ?,
     ?,
     ?,
     ?,
@@ -43,6 +46,7 @@ type InsertPortalSessionParams struct {
 	Preview               bool            `db:"preview"`
 	ExchangeCodeHash      string          `db:"exchange_code_hash"`
 	ExchangeCodeExpiresAt int64           `db:"exchange_code_expires_at"`
+	ReturnUrl             sql.NullString  `db:"return_url"`
 	CreatedAt             int64           `db:"created_at"`
 }
 
@@ -59,8 +63,10 @@ type InsertPortalSessionParams struct {
 //	    preview,
 //	    exchange_code_hash,
 //	    exchange_code_expires_at,
+//	    return_url,
 //	    created_at
 //	) VALUES (
+//	    ?,
 //	    ?,
 //	    ?,
 //	    ?,
@@ -81,6 +87,7 @@ func (q *Queries) InsertPortalSession(ctx context.Context, db DBTX, arg InsertPo
 		arg.Preview,
 		arg.ExchangeCodeHash,
 		arg.ExchangeCodeExpiresAt,
+		arg.ReturnUrl,
 		arg.CreatedAt,
 	)
 	return err

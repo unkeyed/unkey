@@ -2981,6 +2981,18 @@ components:
                     default: false
                     description: |
                         When true, creates a preview session for testing the portal experience.
+                returnUrl:
+                    type: string
+                    format: uri
+                    maxLength: 500
+                    description: |
+                        Absolute URL the end user is sent back to when they leave the portal, or
+                        when their session expires mid-visit. Set per session rather than per
+                        portal, so one portal can serve several entry points and return each user
+                        to the page they came from.
+
+                        When omitted, the portal shows no return link.
+                    example: https://app.example.com/settings/api-keys
             additionalProperties: false
         V2PortalCreateSessionResponseBody:
             type: object

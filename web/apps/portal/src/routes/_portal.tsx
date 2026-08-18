@@ -38,7 +38,7 @@ function PortalLayout() {
       {session.preview && <PreviewBanner />}
       <PortalHeader
         logoUrl={portal?.branding?.logoUrl ?? undefined}
-        returnUrl={portal?.returnUrl ?? undefined}
+        returnUrl={session.returnUrl ?? undefined}
         appName={portal?.slug ?? undefined}
       />
       <div className="flex-1">

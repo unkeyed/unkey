@@ -404,6 +404,7 @@ func (h *Harness) CreatePortalSession(workspaceID, externalID string, keyspaceID
 		Preview:               false,
 		ExchangeCodeHash:      hash.Sha256(exchangeCode),
 		ExchangeCodeExpiresAt: now.Add(15 * time.Minute).UnixMilli(),
+		ReturnUrl:             sql.NullString{Valid: false, String: ""},
 		CreatedAt:             now.UnixMilli(),
 	})
 	require.NoError(h.t, err)

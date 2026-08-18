@@ -9,7 +9,7 @@ import (
 )
 
 // bulkInsertPortal is the base query for bulk insert
-const bulkInsertPortal = `INSERT INTO portals ( id, workspace_id, slug, app_id, key_auth_id, enabled, return_url, branding, created_at, updated_at ) VALUES %s`
+const bulkInsertPortal = `INSERT INTO portals ( id, workspace_id, slug, app_id, key_auth_id, enabled, logo_url, primary_color, created_at, updated_at ) VALUES %s`
 
 // InsertPortals performs bulk insert in a single query
 func (q *BulkQueries) InsertPortals(ctx context.Context, db DBTX, args []InsertPortalParams) error {
@@ -35,8 +35,8 @@ func (q *BulkQueries) InsertPortals(ctx context.Context, db DBTX, args []InsertP
 		allArgs = append(allArgs, arg.AppID)
 		allArgs = append(allArgs, arg.KeyAuthID)
 		allArgs = append(allArgs, arg.Enabled)
-		allArgs = append(allArgs, arg.ReturnUrl)
-		allArgs = append(allArgs, arg.Branding)
+		allArgs = append(allArgs, arg.LogoUrl)
+		allArgs = append(allArgs, arg.PrimaryColor)
 		allArgs = append(allArgs, arg.CreatedAt)
 		allArgs = append(allArgs, arg.UpdatedAt)
 	}

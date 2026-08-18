@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -222,6 +223,13 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		preview = *req.Preview
 	}
 
+	// Optional, and an empty string is treated as absent: a portal with no
+	// return URL simply shows no return link.
+	returnURL := sql.NullString{Valid: false, String: ""}
+	if req.ReturnUrl != nil && *req.ReturnUrl != "" {
+		returnURL = sql.NullString{Valid: true, String: *req.ReturnUrl}
+	}
+
 	err = db.Tx(ctx, h.DB.RW(), func(txCtx context.Context, tx db.DBTX) error {
 		if txErr := db.Query.InsertPortalSession(txCtx, tx, db.InsertPortalSessionParams{
 			ID:                    sessionID,
@@ -232,6 +240,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			Preview:               preview,
 			ExchangeCodeHash:      hash.Sha256(exchangeCode),
 			ExchangeCodeExpiresAt: exchangeCodeExpiresAt,
+			ReturnUrl:             returnURL,
 			CreatedAt:             now.UnixMilli(),
 		}); txErr != nil {
 			return fault.Wrap(txErr,

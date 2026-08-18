@@ -11,7 +11,7 @@ import (
 )
 
 const findPortalSessionByAccessTokenHash = `-- name: FindPortalSessionByAccessTokenHash :one
-SELECT pk, id, workspace_id, portal_id, external_id, scopes, preview, exchange_code_hash, exchange_code_expires_at, access_token_hash, access_token_created_at, access_token_expires_at, revoked_at, created_at FROM portal_sessions
+SELECT pk, id, workspace_id, portal_id, external_id, scopes, preview, exchange_code_hash, exchange_code_expires_at, access_token_hash, access_token_created_at, access_token_expires_at, revoked_at, return_url, created_at FROM portal_sessions
 WHERE access_token_hash = ?
 `
 
@@ -23,7 +23,7 @@ WHERE access_token_hash = ?
 // true at fill time. The caller derives session state from the row against the
 // current clock instead.
 //
-//	SELECT pk, id, workspace_id, portal_id, external_id, scopes, preview, exchange_code_hash, exchange_code_expires_at, access_token_hash, access_token_created_at, access_token_expires_at, revoked_at, created_at FROM portal_sessions
+//	SELECT pk, id, workspace_id, portal_id, external_id, scopes, preview, exchange_code_hash, exchange_code_expires_at, access_token_hash, access_token_created_at, access_token_expires_at, revoked_at, return_url, created_at FROM portal_sessions
 //	WHERE access_token_hash = ?
 func (q *Queries) FindPortalSessionByAccessTokenHash(ctx context.Context, db DBTX, accessTokenHash sql.NullString) (PortalSession, error) {
 	row := db.QueryRowContext(ctx, findPortalSessionByAccessTokenHash, accessTokenHash)
@@ -42,6 +42,7 @@ func (q *Queries) FindPortalSessionByAccessTokenHash(ctx context.Context, db DBT
 		&i.AccessTokenCreatedAt,
 		&i.AccessTokenExpiresAt,
 		&i.RevokedAt,
+		&i.ReturnUrl,
 		&i.CreatedAt,
 	)
 	return i, err

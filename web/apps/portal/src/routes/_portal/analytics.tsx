@@ -37,7 +37,7 @@ export const Route = createFileRoute("/_portal/analytics")({
 });
 
 function AnalyticsPage() {
-  const { portal, logsRetentionDays } = Route.useRouteContext();
+  const { session, logsRetentionDays } = Route.useRouteContext();
 
   // Only offer windows the workspace can actually query; a longer one than its
   // retention would just error server-side. Retention is fixed for the session,
@@ -88,7 +88,7 @@ function AnalyticsPage() {
       ) : isError && isUnauthorizedError(error) ? (
         // Expired/invalid session: retrying won't help — send the user back to
         // the application that launched the portal.
-        <SessionExpired returnUrl={portal?.returnUrl ?? null} />
+        <SessionExpired returnUrl={session.returnUrl} />
       ) : isError && isRetentionExceededError(error) ? (
         // Window isn't available (e.g. retention lowered mid-session). Options
         // are gated to what's available, so this is rare; show a neutral,

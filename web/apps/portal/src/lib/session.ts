@@ -15,6 +15,12 @@ export type SessionData = {
   scopes: string[];
   preview: boolean;
   expiresAt: number;
+  /**
+   * Where to send the user when they leave, or when the session expires
+   * mid-visit. Set per session by the caller that minted it, so one portal can
+   * return users to whichever page they came from. Null means show no link.
+   */
+  returnUrl: string | null;
 };
 
 /**
@@ -147,6 +153,7 @@ export const getSessionWithConfig = createServerFn({ method: "GET" }).handler(
         preview: true,
         accessTokenExpiresAt: true,
         revokedAt: true,
+        returnUrl: true,
       },
     });
 
@@ -199,6 +206,7 @@ export const getSessionWithConfig = createServerFn({ method: "GET" }).handler(
         scopes: readScopes(session.scopes),
         preview: session.preview,
         expiresAt: session.accessTokenExpiresAt,
+        returnUrl: session.returnUrl,
       },
       config,
       logsRetentionDays,

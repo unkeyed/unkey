@@ -1,5 +1,13 @@
 import { relations } from "drizzle-orm";
-import { bigint, boolean, index, json, mysqlTable, uniqueIndex } from "drizzle-orm/mysql-core";
+import {
+  bigint,
+  boolean,
+  index,
+  json,
+  mysqlTable,
+  uniqueIndex,
+  varchar,
+} from "drizzle-orm/mysql-core";
 import { portals } from "./portals";
 import { caseSensitiveVarchar } from "./util/case_sensitive_varchar";
 import { id } from "./util/id";
@@ -57,6 +65,15 @@ export const portalSessions = mysqlTable(
     accessTokenExpiresAt: bigint("access_token_expires_at", { mode: "number" }),
 
     revokedAt: bigint("revoked_at", { mode: "number" }),
+
+    /**
+     * Where to send the end user when they leave the portal, or when their
+     * session expires mid-visit. Per session rather than per portal because one
+     * portal serves many entry points: the caller that mints the session knows
+     * which page the user came from, and the portal does not.
+     */
+    returnUrl: varchar("return_url", { length: 500 }),
+
     createdAt: bigint("created_at", { mode: "number" }).notNull(),
   },
   (table) => [

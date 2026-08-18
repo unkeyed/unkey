@@ -12,6 +12,7 @@ CREATE TABLE `portal_sessions` (
 	`access_token_created_at` bigint,
 	`access_token_expires_at` bigint,
 	`revoked_at` bigint,
+	`return_url` varchar(500),
 	`created_at` bigint NOT NULL,
 	CONSTRAINT `portal_sessions_pk` PRIMARY KEY(`pk`),
 	CONSTRAINT `portal_sessions_id_unique` UNIQUE(`id`),

@@ -18,8 +18,8 @@ INSERT INTO portals (
     app_id,
     key_auth_id,
     enabled,
-    return_url,
-    branding,
+    logo_url,
+    primary_color,
     created_at,
     updated_at
 ) VALUES (
@@ -37,16 +37,16 @@ INSERT INTO portals (
 `
 
 type InsertPortalParams struct {
-	ID          string         `db:"id"`
-	WorkspaceID string         `db:"workspace_id"`
-	Slug        string         `db:"slug"`
-	AppID       sql.NullString `db:"app_id"`
-	KeyAuthID   sql.NullString `db:"key_auth_id"`
-	Enabled     bool           `db:"enabled"`
-	ReturnUrl   sql.NullString `db:"return_url"`
-	Branding    []byte         `db:"branding"`
-	CreatedAt   int64          `db:"created_at"`
-	UpdatedAt   sql.NullInt64  `db:"updated_at"`
+	ID           string         `db:"id"`
+	WorkspaceID  string         `db:"workspace_id"`
+	Slug         string         `db:"slug"`
+	AppID        sql.NullString `db:"app_id"`
+	KeyAuthID    sql.NullString `db:"key_auth_id"`
+	Enabled      bool           `db:"enabled"`
+	LogoUrl      sql.NullString `db:"logo_url"`
+	PrimaryColor sql.NullString `db:"primary_color"`
+	CreatedAt    int64          `db:"created_at"`
+	UpdatedAt    sql.NullInt64  `db:"updated_at"`
 }
 
 // InsertPortal
@@ -58,8 +58,8 @@ type InsertPortalParams struct {
 //	    app_id,
 //	    key_auth_id,
 //	    enabled,
-//	    return_url,
-//	    branding,
+//	    logo_url,
+//	    primary_color,
 //	    created_at,
 //	    updated_at
 //	) VALUES (
@@ -82,8 +82,8 @@ func (q *Queries) InsertPortal(ctx context.Context, db DBTX, arg InsertPortalPar
 		arg.AppID,
 		arg.KeyAuthID,
 		arg.Enabled,
-		arg.ReturnUrl,
-		arg.Branding,
+		arg.LogoUrl,
+		arg.PrimaryColor,
 		arg.CreatedAt,
 		arg.UpdatedAt,
 	)
