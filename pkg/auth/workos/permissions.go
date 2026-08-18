@@ -53,6 +53,13 @@ var permissionMappings = map[string]permissionMapping{
 			{resource: "projects/*/apps/*/environments/*/deployments/*", action: action(rbacpermissions.StopDeployment{})},
 		},
 	},
+	"deployments:start": {
+		name:        "Start deployments",
+		description: "Allows starting a stopped deployment.",
+		permissions: []permissionGrant{
+			{resource: "projects/*/apps/*/environments/*/deployments/*", action: action(rbacpermissions.StartDeployment{})},
+		},
+	},
 	"identities:create": {
 		name:        "Create identities",
 		description: "Allows creating identities.",
