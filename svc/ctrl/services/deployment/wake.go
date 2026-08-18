@@ -7,6 +7,7 @@ import (
 	"connectrpc.com/connect"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
+	"github.com/unkeyed/unkey/pkg/auditlog"
 	"github.com/unkeyed/unkey/pkg/deploy/deploygate"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/auth"
@@ -63,6 +64,17 @@ func (s *Service) WakeDeployment(ctx context.Context, req *connect.Request[ctrlv
 	if err != nil {
 		logger.Error("wake deployment workflow failed", "deployment_id", deploymentID, "error", err.Error())
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("wake deployment workflow failed: %w", err))
+	}
+
+	if auditErr := s.recordLifecycleAudit(ctx,
+		auditlog.DeploymentWakeEvent,
+		fmt.Sprintf("Woke deployment %s", deploymentID),
+		deployment.WorkspaceID,
+		deploymentID,
+		lifecycleAuditMeta(deployment.ProjectID, deployment.AppID, deployment.EnvironmentID),
+		req.Msg.GetActor(),
+	); auditErr != nil {
+		return nil, connect.NewError(connect.CodeInternal, auditFailure("wake deployment", auditErr))
 	}
 
 	return connect.NewResponse(&ctrlv1.WakeDeploymentResponse{}), nil

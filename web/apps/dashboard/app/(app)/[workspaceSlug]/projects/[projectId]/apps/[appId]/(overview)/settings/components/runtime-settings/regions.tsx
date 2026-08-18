@@ -208,9 +208,7 @@ const RegionsSingle = () => {
         if (existing) {
           return existing;
         }
-        const available = (availableRegions ?? []).find((r) => r.name === name);
         return {
-          id: available?.id ?? name,
           name,
           replicasMin: defaultReplicasMin,
           replicasMax: defaultReplicasMax,
@@ -329,45 +327,35 @@ const RegionsDualInner = ({ production, preview }: RegionsDualInnerProps) => {
       values.previewRegions.length !== defaultPreviewRegions.length ||
       values.previewRegions.some((r) => !defaultPreviewRegions.includes(r));
 
+    // One transaction for both environments. The collection refetches every
+    // loaded environment after a transaction settles.
+    const targets: { id: string; regionNames: string[] }[] = [];
     if (prodChanged) {
-      collection.environmentSettings.update(production.environmentId, (draft) => {
-        const defaultReplicasMin = draft.regions[0]?.replicasMin ?? 1;
-        const defaultReplicasMax = draft.regions[0]?.replicasMax ?? 1;
-        draft.regions = values.productionRegions.map((name) => {
-          const existing = draft.regions.find((r) => r.name === name);
-          if (existing) {
-            return existing;
-          }
-          const available = (availableRegions ?? []).find((r) => r.name === name);
-          return {
-            id: available?.id ?? name,
-            name,
-            replicasMin: defaultReplicasMin,
-            replicasMax: defaultReplicasMax,
-          };
-        });
-      });
+      targets.push({ id: production.environmentId, regionNames: values.productionRegions });
+    }
+    if (prevChanged) {
+      targets.push({ id: preview.environmentId, regionNames: values.previewRegions });
+    }
+    if (targets.length === 0) {
+      return;
     }
 
-    if (prevChanged) {
-      collection.environmentSettings.update(preview.environmentId, (draft) => {
-        const defaultReplicasMin = draft.regions[0]?.replicasMin ?? 1;
-        const defaultReplicasMax = draft.regions[0]?.replicasMax ?? 1;
-        draft.regions = values.previewRegions.map((name) => {
-          const existing = draft.regions.find((r) => r.name === name);
-          if (existing) {
-            return existing;
-          }
-          const available = (availableRegions ?? []).find((r) => r.name === name);
-          return {
-            id: available?.id ?? name,
-            name,
-            replicasMin: defaultReplicasMin,
-            replicasMax: defaultReplicasMax,
-          };
-        });
-      });
-    }
+    collection.environmentSettings.update(
+      targets.map((t) => t.id),
+      (drafts) =>
+        drafts.forEach((draft, i) => {
+          const defaultReplicasMin = draft.regions[0]?.replicasMin ?? 1;
+          const defaultReplicasMax = draft.regions[0]?.replicasMax ?? 1;
+          draft.regions = targets[i].regionNames.map(
+            (name) =>
+              draft.regions.find((r) => r.name === name) ?? {
+                name,
+                replicasMin: defaultReplicasMin,
+                replicasMax: defaultReplicasMax,
+              },
+          );
+        }),
+    );
   };
 
   const prodHasChanges =

@@ -281,6 +281,11 @@ func localDecision(addrs ...string) router.RouteDecision {
 // region-fallback test, which would otherwise need TLS infrastructure).
 func startFrontlineWith(t *testing.T, decision router.RouteDecision, proxySvc proxy.Service) (string, func()) {
 	t.Helper()
+	return startFrontlineWithH2CIngress(t, decision, proxySvc, false)
+}
+
+func startFrontlineWithH2CIngress(t *testing.T, decision router.RouteDecision, proxySvc proxy.Service, enableH2CIngress bool) (string, func()) {
+	t.Helper()
 
 	if proxySvc == nil {
 		//nolint:exhaustruct
@@ -309,6 +314,8 @@ func startFrontlineWith(t *testing.T, decision router.RouteDecision, proxySvc pr
 		ReadTimeout:        -1,
 		WriteTimeout:       -1,
 		MaxRequestBodySize: 0,
+		EnableH2C:          enableH2CIngress,
+		StreamRequestBody:  true,
 	})
 	require.NoError(t, err)
 	// Mirror the production middleware chain. Observability is load-

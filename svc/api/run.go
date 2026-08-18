@@ -219,6 +219,7 @@ func Run(ctx context.Context, cfg Config) error {
 		},
 		TLS:                cfg.TLSConfig,
 		EnableH2C:          false,
+		StreamRequestBody:  false,
 		MaxRequestBodySize: cfg.MaxRequestBodySize,
 		ReadTimeout:        0,
 		WriteTimeout:       0,

@@ -2,20 +2,25 @@
 
 import { type MenuItem, TableActionPopover } from "@/components/logs/table-action.popover";
 import { collection } from "@/lib/collections";
-import { trpc } from "@/lib/trpc/client";
 import { Clone, Dots, PenWriting3, Trash } from "@unkey/icons";
 import { Button, ConfirmPopover, toast } from "@unkey/ui";
 import { useRef, useState } from "react";
 
 type EnvVarActionMenuProps = {
   envVarId: string;
+  value: string;
   variableKey: string;
   type: "writeonly" | "recoverable";
   onEdit: () => void;
 };
 
-export function EnvVarActionMenu({ envVarId, variableKey, type, onEdit }: EnvVarActionMenuProps) {
-  const decryptMutation = trpc.deploy.envVar.decrypt.useMutation();
+export function EnvVarActionMenu({
+  envVarId,
+  value,
+  variableKey,
+  type,
+  onEdit,
+}: EnvVarActionMenuProps) {
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const deleteButtonRef = useRef<HTMLButtonElement>(null);
 
@@ -47,17 +52,7 @@ export function EnvVarActionMenu({ envVarId, variableKey, type, onEdit }: EnvVar
       tooltip: type === "writeonly" ? "Write-only variables cannot be copied" : undefined,
       onClick: async (e) => {
         e.stopPropagation();
-        let value: string;
         try {
-          const result = await decryptMutation.mutateAsync({ envVarId });
-          value = result.value;
-        } catch {
-          toast.error("Failed to decrypt value");
-          return;
-        }
-        try {
-          // Can reject with NotAllowedError if the document lost focus
-          // while the decrypt request was in flight.
           await navigator.clipboard.writeText(`${variableKey}=${value}`);
           toast.success("Copied to clipboard");
         } catch {
