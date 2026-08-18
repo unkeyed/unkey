@@ -4,7 +4,8 @@ import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import type { Deployment } from "@/lib/collections";
 import { queryClient } from "@/lib/collections/client";
 import { routes } from "@/lib/navigation/routes";
-import { trpc } from "@/lib/trpc/client";
+import { getErrorMessage, getUnkeyClient } from "@/lib/unkey-client";
+import { useMutation } from "@tanstack/react-query";
 import { Button, DialogContainer, toast } from "@unkey/ui";
 import { useRouter } from "next/navigation";
 import { useProjectData } from "../../../../../data-provider";
@@ -21,7 +22,16 @@ export const RedeployDialog = ({ isOpen, onClose, selectedDeployment }: Redeploy
   const workspace = useWorkspaceNavigation();
   const { projectId } = useProjectData();
 
-  const redeploy = trpc.deploy.deployment.redeploy.useMutation({
+  const redeploy = useMutation({
+    mutationFn: async () => {
+      const res = await getUnkeyClient().deployments.createDeployment({
+        project: selectedDeployment.projectId,
+        app: selectedDeployment.appId,
+        environment: selectedDeployment.environmentId,
+        deployment: { deploymentId: selectedDeployment.id },
+      });
+      return { deploymentId: res.data.deploymentId };
+    },
     onSuccess: async (data) => {
       await queryClient.invalidateQueries({ queryKey: ["deployments", projectId] });
       onClose();
@@ -36,19 +46,15 @@ export const RedeployDialog = ({ isOpen, onClose, selectedDeployment }: Redeploy
     },
     onError: (error) => {
       toast.error("Redeploy failed", {
-        description: error.message,
+        description: getErrorMessage(error),
       });
     },
   });
 
   const handleRedeploy = async () => {
-    await redeploy
-      .mutateAsync({
-        deploymentId: selectedDeployment.id,
-      })
-      .catch((error) => {
-        console.error("Redeploy error:", error);
-      });
+    await redeploy.mutateAsync().catch((error) => {
+      console.error("Redeploy error:", error);
+    });
   };
 
   return (
