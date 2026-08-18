@@ -3,18 +3,23 @@
 import { formatDollars } from "@/lib/fmt";
 import { cn } from "@/lib/utils";
 import { CircleInfo } from "@unkey/icons";
-import { Button, InfoTooltip, ItemMedia, Skeleton } from "@unkey/ui";
+import { Button, InfoTooltip, Item, ItemMedia, ItemTitle, Skeleton } from "@unkey/ui";
 import type { ReactNode } from "react";
 import { AdminGate } from "./admin-gate";
 
-const COLUMNS = "grid grid-cols-[1fr_8rem_11rem_6rem] items-center gap-x-4 px-4";
+/**
+ * The header and every row are separate grids, so the last three columns are
+ * fixed widths to line up across them. Only product flexes, and it truncates.
+ */
+const COLUMNS =
+  "grid grid-cols-[minmax(0,1fr)_5.5rem_6.5rem_5.5rem] items-center gap-x-3 lg:grid-cols-[minmax(0,1fr)_7rem_9.5rem_5.5rem] lg:gap-x-4";
 
 export function PlanTableHeader() {
   return (
     <div
       className={cn(
         COLUMNS,
-        "bg-grayA-2 py-2 font-semibold text-[10px] text-gray-9 uppercase tracking-wider",
+        "bg-grayA-2 px-4 py-2 font-semibold text-[10px] text-gray-9 uppercase tracking-wider",
       )}
     >
       <span>Product</span>
@@ -34,6 +39,8 @@ type PlanTableRowProps = {
   interval?: string;
   /** Null for products billed at a flat fee with a hard quota. */
   usageCreditCents?: number | null;
+  /** A mid-cycle plan change prorates the credit, so this period gets less than the fee. */
+  usageCreditProrated?: boolean;
   action: ReactNode;
 };
 
@@ -45,13 +52,14 @@ export function PlanTableRow({
   feeCents,
   interval = "month",
   usageCreditCents = null,
+  usageCreditProrated = false,
   action,
 }: PlanTableRowProps) {
   return (
-    <div className={cn(COLUMNS, "py-3")}>
-      <div className="flex items-center gap-3">
+    <Item className={COLUMNS}>
+      <div className="flex min-w-0 items-center gap-3">
         <ItemMedia className={mediaClassName}>{icon}</ItemMedia>
-        <span className="font-medium text-[13px] text-gray-12">{title}</span>
+        <ItemTitle className="truncate">{title}</ItemTitle>
       </div>
       <span className="truncate text-[13px] text-gray-11">{planName ?? "—"}</span>
       <span className="whitespace-nowrap text-[13px] tabular-nums">
@@ -61,27 +69,30 @@ export function PlanTableRow({
           <>
             <span className="font-medium text-gray-12">{formatDollars(feeCents)}</span>
             <span className="text-gray-10">/{interval}</span>
-            {usageCreditCents === null ? null : <UsageNote creditCents={usageCreditCents} />}
+            {usageCreditCents === null ? null : (
+              <UsageNote creditCents={usageCreditCents} prorated={usageCreditProrated} />
+            )}
           </>
         )}
       </span>
       <span className="flex justify-end">{action}</span>
-    </div>
+    </Item>
   );
 }
 
-function UsageNote({ creditCents }: { creditCents: number }) {
+function UsageNote({ creditCents, prorated }: { creditCents: number; prorated: boolean }) {
   return (
     <InfoTooltip
       asChild
       content={
         <p className="max-w-[220px] text-[12px]">
-          Includes {formatDollars(creditCents)} of usage. Extra usage is billed on top.
+          Includes {formatDollars(creditCents)} of usage
+          {prorated ? " this period, prorated" : ""}. Extra usage is billed on top.
         </p>
       }
     >
       <span className="ml-1 inline-flex cursor-help items-center gap-1 text-gray-10">
-        + usage
+        <span className="hidden lg:inline">+ usage</span>
         <CircleInfo iconSize="sm-regular" className="text-gray-9" />
       </span>
     </InfoTooltip>
@@ -96,20 +107,38 @@ export function PlanTableRowSkeleton({
   mediaClassName: string;
 }) {
   return (
-    <div className={cn(COLUMNS, "py-3")}>
-      <div className="flex items-center gap-3">
+    <Item className={COLUMNS}>
+      <div className="flex min-w-0 items-center gap-3">
         <ItemMedia className={mediaClassName}>{icon}</ItemMedia>
         <Skeleton className="h-3.5 w-20" />
       </div>
       <Skeleton className="h-3 w-16" />
       <Skeleton className="h-3 w-24" />
       <span />
-    </div>
+    </Item>
   );
 }
 
-export function PlanTableRowMessage({ children }: { children: ReactNode }) {
-  return <p className="px-4 py-3 text-[13px] text-gray-11">{children}</p>;
+export function PlanTableRowMessage({
+  icon,
+  mediaClassName,
+  title,
+  children,
+}: {
+  icon: ReactNode;
+  mediaClassName: string;
+  title: string;
+  children: ReactNode;
+}) {
+  return (
+    <Item className={COLUMNS}>
+      <div className="flex min-w-0 items-center gap-3">
+        <ItemMedia className={mediaClassName}>{icon}</ItemMedia>
+        <ItemTitle className="truncate">{title}</ItemTitle>
+      </div>
+      <p className="col-span-3 text-[13px] text-gray-11">{children}</p>
+    </Item>
+  );
 }
 
 export function PlanRowAction({

@@ -37,7 +37,7 @@ export function LimitItem({ row }: { row: LimitRow }) {
           )}
         </div>
       </ItemContent>
-      <ItemActions className="w-80">
+      <ItemActions className="w-56 sm:w-80">
         <LimitValue row={row} />
       </ItemActions>
     </Item>

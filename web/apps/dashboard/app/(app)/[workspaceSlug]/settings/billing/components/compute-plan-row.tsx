@@ -103,7 +103,7 @@ export function ComputePlanRow({
 
   if (subscriptionError || plansError) {
     return (
-      <PlanTableRowMessage>
+      <PlanTableRowMessage icon={<Cube />} mediaClassName={COMPUTE_MEDIA} title="Compute">
         Compute plans could not be loaded. Reload the page or contact support@unkey.com.
       </PlanTableRowMessage>
     );
@@ -157,6 +157,7 @@ export function ComputePlanRow({
         feeCents={currentPlan ? planFee : null}
         interval={currentPlanOption?.interval ?? "month"}
         usageCreditCents={credit?.cents ?? null}
+        usageCreditProrated={credit?.prorated ?? false}
         action={
           <PlanRowAction
             isAdmin={isAdmin}
