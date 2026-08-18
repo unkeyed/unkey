@@ -6,13 +6,12 @@ import { trpc } from "@/lib/trpc/client";
 import type { Router } from "@/lib/trpc/routers";
 import type { inferRouterOutputs } from "@trpc/server";
 import { Nodes } from "@unkey/icons";
-import { Button, toast } from "@unkey/ui";
+import { toast } from "@unkey/ui";
 import { useState } from "react";
-import { AdminGate } from "./admin-gate";
 import { currentApiProduct } from "./api-plan";
 import { CancelApiDialog, CancelPlanLink } from "./cancel-actions";
 import { PlanChangeModal } from "./plan-change-modal";
-import { PlanTableRow } from "./plan-table-row";
+import { PlanRowAction, PlanTableRow } from "./plan-table-row";
 
 const NEEDS_PAYMENT_TOOLTIP = "Add a payment method before upgrading the API plan";
 
@@ -111,37 +110,15 @@ export function ApiPlanRow({
         planName={currentProduct ? currentProduct.name : "Free"}
         feeCents={(currentProduct?.dollar ?? 0) * 100}
         action={
-          currentProduct ? (
-            <AdminGate isAdmin={isAdmin}>
-              {(disabled) => (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={disabled}
-                  onClick={() => setShowPlanModal(true)}
-                >
-                  Change
-                </Button>
-              )}
-            </AdminGate>
-          ) : (
-            <AdminGate
-              isAdmin={isAdmin}
-              blocked={!hasPaymentMethod}
-              blockedReason={NEEDS_PAYMENT_TOOLTIP}
-            >
-              {(disabled) => (
-                <Button
-                  variant={emphasize ? "primary" : "outline"}
-                  size="sm"
-                  disabled={disabled}
-                  onClick={() => setShowPlanModal(true)}
-                >
-                  Upgrade
-                </Button>
-              )}
-            </AdminGate>
-          )
+          <PlanRowAction
+            isAdmin={isAdmin}
+            hasPlan={currentProduct !== undefined}
+            hasPaymentMethod={hasPaymentMethod}
+            needsPaymentReason={NEEDS_PAYMENT_TOOLTIP}
+            emphasize={emphasize}
+            onClick={() => setShowPlanModal(true)}
+            chooseLabel="Upgrade"
+          />
         }
       />
 

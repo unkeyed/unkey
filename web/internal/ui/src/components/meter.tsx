@@ -17,13 +17,12 @@ export type MeterProps = MeterPrimitive.Root.Props & {
   layout?: keyof typeof layoutClassName;
 };
 
-export function Meter({ className, children, layout = "stacked", ...props }: MeterProps) {
-  const empty = typeof props.value === "number" && props.value <= 0;
-
+export function Meter({ className, children, layout = "stacked", value, ...props }: MeterProps) {
   return (
     <MeterPrimitive.Root
+      value={value}
       data-layout={layout}
-      data-empty={empty ? "" : undefined}
+      data-empty={typeof value === "number" && value <= 0 ? "" : undefined}
       className={cn("group/meter flex w-full", layoutClassName[layout], className)}
       {...props}
     >

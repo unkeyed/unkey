@@ -3,8 +3,9 @@
 import { formatDollars } from "@/lib/fmt";
 import { cn } from "@/lib/utils";
 import { CircleInfo } from "@unkey/icons";
-import { InfoTooltip, ItemMedia, Skeleton } from "@unkey/ui";
+import { Button, InfoTooltip, ItemMedia, Skeleton } from "@unkey/ui";
 import type { ReactNode } from "react";
+import { AdminGate } from "./admin-gate";
 
 const COLUMNS = "grid grid-cols-[1fr_8rem_11rem_6rem] items-center gap-x-4 px-4";
 
@@ -112,4 +113,53 @@ export function PlanTableRowSkeleton({
 
 export function PlanTableRowMessage({ children }: { children: ReactNode }) {
   return <p className="px-4 py-3 text-[13px] text-gray-11">{children}</p>;
+}
+
+/**
+ * Both plan rows offer the same two shapes: change an existing plan, or pick a
+ * first one, which additionally needs a payment method.
+ */
+export function PlanRowAction({
+  isAdmin,
+  hasPlan,
+  hasPaymentMethod,
+  needsPaymentReason,
+  emphasize,
+  onClick,
+  chooseLabel,
+}: {
+  isAdmin: boolean | undefined;
+  hasPlan: boolean;
+  hasPaymentMethod: boolean;
+  needsPaymentReason: string;
+  emphasize: boolean;
+  onClick: () => void;
+  chooseLabel: string;
+}) {
+  if (hasPlan) {
+    return (
+      <AdminGate isAdmin={isAdmin}>
+        {(disabled) => (
+          <Button variant="outline" size="sm" disabled={disabled} onClick={onClick}>
+            Change
+          </Button>
+        )}
+      </AdminGate>
+    );
+  }
+
+  return (
+    <AdminGate isAdmin={isAdmin} blocked={!hasPaymentMethod} blockedReason={needsPaymentReason}>
+      {(disabled) => (
+        <Button
+          variant={emphasize ? "primary" : "outline"}
+          size="sm"
+          disabled={disabled}
+          onClick={onClick}
+        >
+          {chooseLabel}
+        </Button>
+      )}
+    </AdminGate>
+  );
 }

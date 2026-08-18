@@ -5,9 +5,8 @@ import { routes } from "@/lib/navigation/routes";
 import type { DeployPlan } from "@/lib/stripe/deployPlan";
 import { trpc } from "@/lib/trpc/client";
 import { Cube } from "@unkey/icons";
-import { Button, toast } from "@unkey/ui";
+import { toast } from "@unkey/ui";
 import { useState } from "react";
-import { AdminGate } from "./admin-gate";
 import { CancelComputeDialog, CancelPlanLink } from "./cancel-actions";
 import {
   AllPlansInclude,
@@ -18,10 +17,15 @@ import {
 } from "./compute-plan-picker-v2";
 import { ADMIN_ONLY_TOOLTIP } from "./constants";
 import { periodCredit } from "./deploy-invoice";
-import { PlanTableRow, PlanTableRowMessage, PlanTableRowSkeleton } from "./plan-table-row";
+import {
+  PlanRowAction,
+  PlanTableRow,
+  PlanTableRowMessage,
+  PlanTableRowSkeleton,
+} from "./plan-table-row";
 
 const NEEDS_PAYMENT_TOOLTIP = "Add a payment method first";
-const MEDIA = "bg-orangeA-3 text-orange-11";
+const COMPUTE_MEDIA = "bg-orangeA-3 text-orange-11";
 
 type ComputePlanRowProps = {
   isAdmin: boolean | undefined;
@@ -94,7 +98,7 @@ export function ComputePlanRow({
   });
 
   if (subscriptionLoading || plansLoading) {
-    return <PlanTableRowSkeleton icon={<Cube />} mediaClassName={MEDIA} />;
+    return <PlanTableRowSkeleton icon={<Cube />} mediaClassName={COMPUTE_MEDIA} />;
   }
 
   if (subscriptionError || plansError) {
@@ -147,44 +151,22 @@ export function ComputePlanRow({
     <>
       <PlanTableRow
         icon={<Cube />}
-        mediaClassName={MEDIA}
+        mediaClassName={COMPUTE_MEDIA}
         title="Compute"
         planName={currentPlan ? (currentPlanOption?.name ?? currentPlan) : null}
         feeCents={currentPlan ? planFee : null}
         interval={currentPlanOption?.interval ?? "month"}
         usageCreditCents={credit?.cents ?? null}
         action={
-          currentPlan ? (
-            <AdminGate isAdmin={isAdmin}>
-              {(disabled) => (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={disabled}
-                  onClick={() => setPlanModalOpen(true)}
-                >
-                  Change
-                </Button>
-              )}
-            </AdminGate>
-          ) : (
-            <AdminGate
-              isAdmin={isAdmin}
-              blocked={!hasPaymentMethod}
-              blockedReason={NEEDS_PAYMENT_TOOLTIP}
-            >
-              {(disabled) => (
-                <Button
-                  variant={emphasize ? "primary" : "outline"}
-                  size="sm"
-                  disabled={disabled}
-                  onClick={() => setPlanModalOpen(true)}
-                >
-                  Choose a plan
-                </Button>
-              )}
-            </AdminGate>
-          )
+          <PlanRowAction
+            isAdmin={isAdmin}
+            hasPlan={currentPlan !== null}
+            hasPaymentMethod={hasPaymentMethod}
+            needsPaymentReason={NEEDS_PAYMENT_TOOLTIP}
+            emphasize={emphasize}
+            onClick={() => setPlanModalOpen(true)}
+            chooseLabel="Choose a plan"
+          />
         }
       />
 
