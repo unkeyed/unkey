@@ -5,16 +5,12 @@ import { formatDollars } from "@/lib/fmt";
 import { trpc } from "@/lib/trpc/client";
 import { Button, DialogContainer, FormInput, toast } from "@unkey/ui";
 import { useState } from "react";
+import { ALERT_STEPS } from "./constants";
 
-/** Mirrors MAX_BUDGET_CENTS in the deploy-budget router so an over-cap value
- *  fails client-side with a readable message. */
+const ALERT_STEPS_LABEL = ALERT_STEPS.map((step) => `${step * 100}%`).join(", ");
+
 const MAX_BUDGET_CENTS = 1_000_000_000;
 
-/**
- * Parses a whole-dollar form value into cents. Empty = no budget (null);
- * anything non-numeric, non-positive, or above the server's budget cap is
- * invalid (undefined).
- */
 function parseDollars(value: string): number | null | undefined {
   const trimmed = value.trim();
   if (trimmed === "") {
@@ -25,29 +21,6 @@ function parseDollars(value: string): number | null | undefined {
   }
   const cents = Number.parseInt(trimmed, 10) * 100;
   return cents > 0 && cents <= MAX_BUDGET_CENTS ? cents : undefined;
-}
-
-/** The spend bar's fill and severity: neutral, amber from 75%, red at 100%.
- *  Suspended means the cap was reached, so the bar reads full-and-red even
- *  while the usage query lags behind it. */
-export function spendBar(
-  usageCents: number | null,
-  budgetCents: number | null,
-  suspended: boolean,
-): { fraction: number | null; fillClassName: string } {
-  const fraction = suspended
-    ? 1
-    : usageCents !== null && budgetCents
-      ? Math.min(1, Math.max(0, usageCents / budgetCents))
-      : null;
-  const usedFraction = usageCents !== null && budgetCents ? usageCents / budgetCents : 0;
-  const fillClassName =
-    suspended || usedFraction >= 1
-      ? "bg-error-9"
-      : usedFraction >= 0.75
-        ? "bg-warning-9"
-        : "bg-gray-9";
-  return { fraction, fillClassName };
 }
 
 type SpendBudgetDialogProps = {
@@ -65,8 +38,6 @@ export function SpendBudgetDialog({ open, onOpenChange }: SpendBudgetDialogProps
   const currentBudget = budget?.budgetCents ?? null;
   const hasBudget = currentBudget !== null;
 
-  // null = untouched, fall through to the saved budget; only edits are stored,
-  // so a background refetch can't wipe input mid-edit.
   const [budgetDraft, setBudgetDraft] = useState<string | null>(null);
   const [stopDraft, setStopDraft] = useState<boolean | null>(null);
   const budgetInput = budgetDraft ?? (currentBudget != null ? String(currentBudget / 100) : "");
@@ -84,8 +55,6 @@ export function SpendBudgetDialog({ open, onOpenChange }: SpendBudgetDialogProps
     onSuccess: async () => {
       setOpen(false);
       toast.success("Spend budget saved");
-      // workspace.getCurrent carries deploySpendSuspended, which drives the
-      // app-wide paused banner.
       await Promise.all([
         trpcUtils.billing.getDeployBudget.invalidate(),
         trpcUtils.workspace.getCurrent.invalidate(),
@@ -141,7 +110,7 @@ export function SpendBudgetDialog({ open, onOpenChange }: SpendBudgetDialogProps
       <div className="flex flex-col gap-5">
         <FormInput
           label="Monthly budget"
-          description="We email you when your usage spend reaches 50%, 75% and 100% of this amount. Leave empty for no budget."
+          description={`We email you when your usage spend reaches ${ALERT_STEPS_LABEL} of this amount. Leave empty for no budget.`}
           placeholder="300"
           prefix="$"
           inputMode="numeric"
@@ -149,8 +118,6 @@ export function SpendBudgetDialog({ open, onOpenChange }: SpendBudgetDialogProps
           onChange={(e) => {
             const next = e.currentTarget.value;
             setBudgetDraft(next);
-            // Clearing the budget clears the stop too: a stop without a
-            // budget has no trigger point.
             if (parseDollars(next) === null) {
               setStopDraft(false);
             }
