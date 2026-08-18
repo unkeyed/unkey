@@ -15,3 +15,6 @@ unkey:v1:ws_123:keyspaces/*/keys/*#read_key
 unkey:v1:ws_123:keyspaces/*#read_keyspace
 unkey:v1:ws_123:keyspaces/*/keys/*#update_key
 unkey:v1:ws_123:keyspaces/*/keys/*#verify_key
+unkey:v1:ws_123:projects/*#create_project
+unkey:v1:ws_123:projects/*#delete_project
+unkey:v1:ws_123:projects/*#update_project
