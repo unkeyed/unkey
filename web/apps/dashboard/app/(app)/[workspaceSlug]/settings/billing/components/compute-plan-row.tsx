@@ -5,7 +5,7 @@ import { routes } from "@/lib/navigation/routes";
 import type { DeployPlan } from "@/lib/stripe/deployPlan";
 import { trpc } from "@/lib/trpc/client";
 import { Cube } from "@unkey/icons";
-import { Item, ItemMedia, ItemTitle, Skeleton, toast } from "@unkey/ui";
+import { Item, ItemActions, ItemContent, ItemMedia, ItemTitle, Skeleton, toast } from "@unkey/ui";
 import { useState } from "react";
 import { CancelComputeDialog, CancelPlanLink } from "./cancel-actions";
 import {
@@ -17,18 +17,20 @@ import {
 } from "./compute-plan-picker-v2";
 import { ADMIN_ONLY_TOOLTIP } from "./constants";
 import { periodCredit } from "./deploy-invoice";
-import { PLAN_COLUMNS, PlanName, PlanPrice, PlanRowAction } from "./plan-row";
+import { PlanName, PlanPrice, PlanRowAction } from "./plan-row";
 
 const NEEDS_PAYMENT_TOOLTIP = "Add a payment method first";
 
 function ProductCell() {
   return (
-    <div className="flex min-w-0 items-center gap-3">
+    <>
       <ItemMedia className="bg-orangeA-3 text-orange-11">
         <Cube />
       </ItemMedia>
-      <ItemTitle className="truncate">Compute</ItemTitle>
-    </div>
+      <ItemContent>
+        <ItemTitle className="truncate">Compute</ItemTitle>
+      </ItemContent>
+    </>
   );
 }
 
@@ -104,20 +106,22 @@ export function ComputePlanRow({
 
   if (subscriptionLoading || plansLoading) {
     return (
-      <Item className={PLAN_COLUMNS}>
+      <Item>
         <ProductCell />
-        <Skeleton className="h-3 w-16" />
-        <Skeleton className="h-3 w-24" />
-        <span />
+        <ItemActions className="gap-3">
+          <Skeleton className="h-3 w-28" />
+          <Skeleton className="h-3 w-36" />
+          <span className="w-20" />
+        </ItemActions>
       </Item>
     );
   }
 
   if (subscriptionError || plansError) {
     return (
-      <Item className={PLAN_COLUMNS}>
+      <Item>
         <ProductCell />
-        <p className="col-span-3 text-[13px] text-gray-11">
+        <p className="text-[13px] text-gray-11">
           Compute plans could not be loaded. Reload the page or contact support@unkey.com.
         </p>
       </Item>
@@ -164,26 +168,28 @@ export function ComputePlanRow({
 
   return (
     <>
-      <Item className={PLAN_COLUMNS}>
+      <Item>
         <ProductCell />
-        <PlanName>{currentPlan ? (currentPlanOption?.name ?? currentPlan) : null}</PlanName>
-        <PlanPrice
-          feeCents={currentPlan ? planFee : null}
-          interval={currentPlanOption?.interval ?? "month"}
-          usageCreditCents={credit?.cents ?? null}
-          usageCreditProrated={credit?.prorated ?? false}
-        />
-        <span className="flex justify-end">
-          <PlanRowAction
-            isAdmin={isAdmin}
-            hasPlan={currentPlan !== null}
-            hasPaymentMethod={hasPaymentMethod}
-            needsPaymentReason={NEEDS_PAYMENT_TOOLTIP}
-            emphasize={emphasize}
-            onClick={() => setPlanModalOpen(true)}
-            chooseLabel="Choose a plan"
+        <ItemActions className="gap-3">
+          <PlanName>{currentPlan ? (currentPlanOption?.name ?? currentPlan) : null}</PlanName>
+          <PlanPrice
+            feeCents={currentPlan ? planFee : null}
+            interval={currentPlanOption?.interval ?? "month"}
+            usageCreditCents={credit?.cents ?? null}
+            usageCreditProrated={credit?.prorated ?? false}
           />
-        </span>
+          <span className="flex w-20 justify-end">
+            <PlanRowAction
+              isAdmin={isAdmin}
+              hasPlan={currentPlan !== null}
+              hasPaymentMethod={hasPaymentMethod}
+              needsPaymentReason={NEEDS_PAYMENT_TOOLTIP}
+              emphasize={emphasize}
+              onClick={() => setPlanModalOpen(true)}
+              chooseLabel="Choose a plan"
+            />
+          </span>
+        </ItemActions>
       </Item>
 
       <ComputePlanDialog

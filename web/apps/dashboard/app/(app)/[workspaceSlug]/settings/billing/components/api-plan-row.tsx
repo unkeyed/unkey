@@ -6,12 +6,12 @@ import { trpc } from "@/lib/trpc/client";
 import type { Router } from "@/lib/trpc/routers";
 import type { inferRouterOutputs } from "@trpc/server";
 import { Nodes } from "@unkey/icons";
-import { Item, ItemMedia, ItemTitle, toast } from "@unkey/ui";
+import { Item, ItemActions, ItemContent, ItemMedia, ItemTitle, toast } from "@unkey/ui";
 import { useState } from "react";
 import { currentApiProduct } from "./api-plan";
 import { CancelApiDialog, CancelPlanLink } from "./cancel-actions";
 import { PlanChangeModal } from "./plan-change-modal";
-import { PLAN_COLUMNS, PlanName, PlanPrice, PlanRowAction } from "./plan-row";
+import { PlanName, PlanPrice, PlanRowAction } from "./plan-row";
 
 const NEEDS_PAYMENT_TOOLTIP = "Add a payment method before upgrading the API plan";
 
@@ -103,26 +103,28 @@ export function ApiPlanRow({
 
   return (
     <>
-      <Item className={PLAN_COLUMNS}>
-        <div className="flex min-w-0 items-center gap-3">
-          <ItemMedia className="bg-infoA-3 text-info-11">
-            <Nodes />
-          </ItemMedia>
+      <Item>
+        <ItemMedia className="bg-infoA-3 text-info-11">
+          <Nodes />
+        </ItemMedia>
+        <ItemContent>
           <ItemTitle className="truncate">API management</ItemTitle>
-        </div>
-        <PlanName>{currentProduct ? currentProduct.name : "Free"}</PlanName>
-        <PlanPrice feeCents={(currentProduct?.dollar ?? 0) * 100} />
-        <span className="flex justify-end">
-          <PlanRowAction
-            isAdmin={isAdmin}
-            hasPlan={currentProduct !== undefined}
-            hasPaymentMethod={hasPaymentMethod}
-            needsPaymentReason={NEEDS_PAYMENT_TOOLTIP}
-            emphasize={emphasize}
-            onClick={() => setShowPlanModal(true)}
-            chooseLabel="Upgrade"
-          />
-        </span>
+        </ItemContent>
+        <ItemActions className="gap-3">
+          <PlanName>{currentProduct ? currentProduct.name : "Free"}</PlanName>
+          <PlanPrice feeCents={(currentProduct?.dollar ?? 0) * 100} />
+          <span className="flex w-20 justify-end">
+            <PlanRowAction
+              isAdmin={isAdmin}
+              hasPlan={currentProduct !== undefined}
+              hasPaymentMethod={hasPaymentMethod}
+              needsPaymentReason={NEEDS_PAYMENT_TOOLTIP}
+              emphasize={emphasize}
+              onClick={() => setShowPlanModal(true)}
+              chooseLabel="Upgrade"
+            />
+          </span>
+        </ItemActions>
       </Item>
 
       {hasPaymentMethod ? (
