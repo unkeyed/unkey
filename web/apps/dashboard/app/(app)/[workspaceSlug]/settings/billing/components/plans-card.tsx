@@ -1,12 +1,23 @@
 "use client";
 
+import { routes } from "@/lib/navigation/routes";
 import { trpc } from "@/lib/trpc/client";
 import type { Router } from "@/lib/trpc/routers";
 import type { inferRouterOutputs } from "@trpc/server";
-import { ItemContent, ItemGroup, ItemHeader, ItemSeparator, ItemTitle } from "@unkey/ui";
+import {
+  Button,
+  ItemActions,
+  ItemContent,
+  ItemGroup,
+  ItemHeader,
+  ItemSeparator,
+  ItemTitle,
+} from "@unkey/ui";
+import { AdminGate } from "./admin-gate";
 import { currentApiProduct } from "./api-plan";
 import { ApiPlanRow } from "./api-plan-row";
 import { ComputePlanRow } from "./compute-plan-row";
+import { PlanTableHeader } from "./plan-table-row";
 
 type BillingInfo = inferRouterOutputs<Router>["stripe"]["getBillingInfo"];
 
@@ -42,8 +53,32 @@ export function PlansCard({
         <ItemContent>
           <ItemTitle>Plans</ItemTitle>
         </ItemContent>
+        {hasPaymentMethod ? (
+          <ItemActions>
+            <AdminGate isAdmin={isAdmin}>
+              {(disabled) => (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={disabled}
+                  onClick={() =>
+                    window.open(
+                      routes.settings.stripe.portal({ workspaceSlug }),
+                      "_blank",
+                      "noopener,noreferrer",
+                    )
+                  }
+                >
+                  View invoices
+                </Button>
+              )}
+            </AdminGate>
+          </ItemActions>
+        ) : null}
       </ItemHeader>
 
+      <ItemSeparator />
+      <PlanTableHeader />
       <ItemSeparator />
       <ComputePlanRow
         isAdmin={isAdmin}

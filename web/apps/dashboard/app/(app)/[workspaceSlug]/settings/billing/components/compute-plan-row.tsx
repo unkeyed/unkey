@@ -5,17 +5,7 @@ import { routes } from "@/lib/navigation/routes";
 import type { DeployPlan } from "@/lib/stripe/deployPlan";
 import { trpc } from "@/lib/trpc/client";
 import { Cube } from "@unkey/icons";
-import {
-  Button,
-  Item,
-  ItemActions,
-  ItemContent,
-  ItemDescription,
-  ItemMedia,
-  ItemTitle,
-  Skeleton,
-  toast,
-} from "@unkey/ui";
+import { Button, toast } from "@unkey/ui";
 import { useState } from "react";
 import { AdminGate } from "./admin-gate";
 import { CancelComputeDialog, CancelPlanLink } from "./cancel-actions";
@@ -27,9 +17,11 @@ import {
   CreditsInfoStrip,
 } from "./compute-plan-picker-v2";
 import { ADMIN_ONLY_TOOLTIP } from "./constants";
-import { creditLabel, periodCredit } from "./deploy-invoice";
+import { periodCredit } from "./deploy-invoice";
+import { PlanTableRow, PlanTableRowMessage, PlanTableRowSkeleton } from "./plan-table-row";
 
 const NEEDS_PAYMENT_TOOLTIP = "Add a payment method first";
+const MEDIA = "bg-orangeA-3 text-orange-11";
 
 type ComputePlanRowProps = {
   isAdmin: boolean | undefined;
@@ -102,32 +94,14 @@ export function ComputePlanRow({
   });
 
   if (subscriptionLoading || plansLoading) {
-    return (
-      <Item>
-        <ItemMedia className="bg-orangeA-3 text-orange-11">
-          <Cube />
-        </ItemMedia>
-        <ItemContent className="gap-1">
-          <Skeleton className="h-3.5 w-20" />
-          <Skeleton className="h-3 w-32" />
-        </ItemContent>
-      </Item>
-    );
+    return <PlanTableRowSkeleton icon={<Cube />} mediaClassName={MEDIA} />;
   }
 
   if (subscriptionError || plansError) {
     return (
-      <Item>
-        <ItemMedia className="bg-orangeA-3 text-orange-11">
-          <Cube />
-        </ItemMedia>
-        <ItemContent>
-          <ItemTitle>Compute</ItemTitle>
-          <ItemDescription>
-            Compute plans could not be loaded. Reload the page or contact support@unkey.com.
-          </ItemDescription>
-        </ItemContent>
-      </Item>
+      <PlanTableRowMessage>
+        Compute plans could not be loaded. Reload the page or contact support@unkey.com.
+      </PlanTableRowMessage>
     );
   }
 
@@ -141,12 +115,6 @@ export function ComputePlanRow({
   const usageAmount = usage?.grossCents ?? null;
 
   const credit = periodCredit(planFee, deployCredit?.includedCreditCents ?? null);
-
-  const description = currentPlan
-    ? planFee === null
-      ? "The plan fee includes usage credits; usage beyond them is billed on top."
-      : creditLabel(planFee, credit)
-    : "Choose a plan to start deploying on Unkey";
 
   const warningFor = (option: (typeof plans)[number]): string | null =>
     option.amount !== null && usageAmount !== null && usageAmount > option.amount
@@ -177,58 +145,48 @@ export function ComputePlanRow({
 
   return (
     <>
-      <Item>
-        <ItemMedia className="bg-orangeA-3 text-orange-11">
-          <Cube />
-        </ItemMedia>
-        <ItemContent>
-          <ItemTitle>Compute</ItemTitle>
-          <ItemDescription>{description}</ItemDescription>
-        </ItemContent>
-        <ItemActions className="gap-4">
-          {currentPlan && planFee !== null ? (
-            <span className="w-48 text-right tabular-nums">
-              <span className="text-gray-11">{currentPlanOption?.name ?? currentPlan} - </span>
-              <span className="font-medium text-gray-12">
-                {formatDollars(planFee)}/{currentPlanOption?.interval ?? "month"}
-              </span>
-            </span>
-          ) : null}
-          <span className="flex w-32 justify-end">
-            {currentPlan ? (
-              <AdminGate isAdmin={isAdmin}>
-                {(disabled) => (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    disabled={disabled}
-                    onClick={() => setPlanModalOpen(true)}
-                  >
-                    Change
-                  </Button>
-                )}
-              </AdminGate>
-            ) : (
-              <AdminGate
-                isAdmin={isAdmin}
-                blocked={!hasPaymentMethod}
-                blockedReason={NEEDS_PAYMENT_TOOLTIP}
-              >
-                {(disabled) => (
-                  <Button
-                    variant={emphasize ? "primary" : "outline"}
-                    size="sm"
-                    disabled={disabled}
-                    onClick={() => setPlanModalOpen(true)}
-                  >
-                    Choose a plan
-                  </Button>
-                )}
-              </AdminGate>
-            )}
-          </span>
-        </ItemActions>
-      </Item>
+      <PlanTableRow
+        icon={<Cube />}
+        mediaClassName={MEDIA}
+        title="Compute"
+        planName={currentPlan ? (currentPlanOption?.name ?? currentPlan) : null}
+        feeCents={currentPlan ? planFee : null}
+        interval={currentPlanOption?.interval ?? "month"}
+        usageCreditCents={credit?.cents ?? null}
+        action={
+          currentPlan ? (
+            <AdminGate isAdmin={isAdmin}>
+              {(disabled) => (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={disabled}
+                  onClick={() => setPlanModalOpen(true)}
+                >
+                  Change
+                </Button>
+              )}
+            </AdminGate>
+          ) : (
+            <AdminGate
+              isAdmin={isAdmin}
+              blocked={!hasPaymentMethod}
+              blockedReason={NEEDS_PAYMENT_TOOLTIP}
+            >
+              {(disabled) => (
+                <Button
+                  variant={emphasize ? "primary" : "outline"}
+                  size="sm"
+                  disabled={disabled}
+                  onClick={() => setPlanModalOpen(true)}
+                >
+                  Choose a plan
+                </Button>
+              )}
+            </AdminGate>
+          )
+        }
+      />
 
       <ComputePlanDialog
         isOpen={isPlanModalOpen}
