@@ -44,12 +44,8 @@ export function LimitItem({ row }: { row: LimitRow }) {
   );
 }
 
-/**
- * Used, track, and limit each own a column. The limit column is content-width so
- * it stays flush to the card's right edge with the track ending one gap before
- * it, whatever the number's length.
- */
-const CELLS = "grid w-full grid-cols-[4.5rem_1fr_auto] items-center gap-3";
+/** Content-width limit column, so the number stays flush right whatever its length. */
+const CELLS = "grid w-full grid-cols-[5.5rem_1fr_auto] items-center gap-3";
 
 function LimitValue({ row }: { row: LimitRow }) {
   const breached = row.status !== "ok";

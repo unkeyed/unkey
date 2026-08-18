@@ -14,7 +14,7 @@ export function PlanTableHeader() {
     <div
       className={cn(
         COLUMNS,
-        "bg-grayA-2 py-2 font-medium text-[10px] text-gray-9 uppercase tracking-wider",
+        "bg-grayA-2 py-2 font-semibold text-[10px] text-gray-9 uppercase tracking-wider",
       )}
     >
       <span>Product</span>
@@ -32,10 +32,7 @@ type PlanTableRowProps = {
   planName: string | null;
   feeCents: number | null;
   interval?: string;
-  /**
-   * Usage the fee already covers, which turns the price into "+ usage". Null for
-   * products billed at a flat fee with a hard quota.
-   */
+  /** Null for products billed at a flat fee with a hard quota. */
   usageCreditCents?: number | null;
   action: ReactNode;
 };
@@ -115,10 +112,6 @@ export function PlanTableRowMessage({ children }: { children: ReactNode }) {
   return <p className="px-4 py-3 text-[13px] text-gray-11">{children}</p>;
 }
 
-/**
- * Both plan rows offer the same two shapes: change an existing plan, or pick a
- * first one, which additionally needs a payment method.
- */
 export function PlanRowAction({
   isAdmin,
   hasPlan,

@@ -22,7 +22,7 @@ export function UsagePanel({ summary }: { summary: UsageSummary }) {
         <Link
           href={summary.href}
           aria-label="Usage"
-          className="absolute inset-0 rounded-lg hover:bg-grayA-2"
+          className="absolute inset-0 rounded-lg outline-hidden hover:bg-grayA-2 focus-visible:ring-2 focus-visible:ring-grayA-7"
         />
       )}
       <div

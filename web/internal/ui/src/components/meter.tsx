@@ -6,9 +6,7 @@ import type React from "react";
 import { cn } from "../lib/utils";
 
 const layoutClassName = {
-  /** Label and value sit above the track. */
   stacked: "flex-col gap-2",
-  /** Label, track, and value share one line, with the track taking the slack. */
   inline:
     "flex-row items-center gap-3 [&_[data-slot=meter-track]]:min-w-0 [&_[data-slot=meter-track]]:flex-1",
 } as const;
@@ -22,7 +20,7 @@ export function Meter({ className, children, layout = "stacked", value, ...props
     <MeterPrimitive.Root
       value={value}
       data-layout={layout}
-      data-empty={typeof value === "number" && value <= 0 ? "" : undefined}
+      data-empty={value <= (props.min ?? 0) ? "" : undefined}
       className={cn("group/meter flex w-full", layoutClassName[layout], className)}
       {...props}
     >
@@ -71,10 +69,8 @@ export function MeterIndicator({ className, ...props }: MeterPrimitive.Indicator
   return (
     <MeterPrimitive.Indicator
       className={cn(
-        // Square edges: the track already clips the left cap to its own radius, and
-        // rounding a few-pixel fill turns it into an ellipse.
-        // The min width distinguishes "barely used" from "unused": a value that
-        // rounds below a pixel still draws a hairline, and only a real zero draws nothing.
+        // Square because the track clips the left cap already, and the minimum width
+        // keeps a sub-pixel value visible so "barely used" reads apart from "unused".
         "min-w-1 bg-gray-12 transition-[width] duration-300 group-data-[empty]/meter:min-w-0 motion-reduce:transition-none",
         className,
       )}
