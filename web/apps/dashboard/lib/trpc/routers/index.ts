@@ -38,8 +38,6 @@ import { queryComputeAllocation } from "./billing/query-compute-allocation";
 import { queryDeployUsage } from "./billing/query-deploy-usage";
 import { queryDeployUsageBreakdown } from "./billing/query-deploy-usage-breakdown";
 import { queryUsage } from "./billing/query-usage";
-import { createApp } from "./deploy/app/create";
-import { deleteApp } from "./deploy/app/delete";
 import { listApps } from "./deploy/app/list";
 import { addCustomDomain } from "./deploy/custom-domains/add";
 import { deleteCustomDomain } from "./deploy/custom-domains/delete";
@@ -66,12 +64,6 @@ import { listEnvVars } from "./deploy/env-vars/list";
 import { makeSensitive } from "./deploy/env-vars/make-sensitive";
 import { renameEnvVars } from "./deploy/env-vars/rename";
 import { updateEnvVar } from "./deploy/env-vars/update";
-import { updateAutoDeploy } from "./deploy/environment-settings/build/update-auto-deploy";
-import { updateBuildCommand } from "./deploy/environment-settings/build/update-build-command";
-import { updateDockerContext } from "./deploy/environment-settings/build/update-docker-context";
-import { updateDockerfile } from "./deploy/environment-settings/build/update-dockerfile";
-import { updateWatchPaths } from "./deploy/environment-settings/build/update-watch-paths";
-import { getEnvironmentSettings } from "./deploy/environment-settings/get";
 import { getAvailableKeyspaces } from "./deploy/environment-settings/get-available-keyspaces";
 import { getAvailableRegions } from "./deploy/environment-settings/get-available-regions";
 import { create as createFirewallPolicy } from "./deploy/environment-settings/policies/firewall/create";
@@ -92,16 +84,6 @@ import { create as createRatelimitPolicy } from "./deploy/environment-settings/p
 import { remove as deleteRatelimitPolicy } from "./deploy/environment-settings/policies/ratelimit/delete";
 import { update as updateRatelimitPolicy } from "./deploy/environment-settings/policies/ratelimit/update";
 import { reorder as reorderPolicies } from "./deploy/environment-settings/policies/reorder";
-import { updateCommand } from "./deploy/environment-settings/runtime/update-command";
-import { updateCpu } from "./deploy/environment-settings/runtime/update-cpu";
-import { updateHealthcheck } from "./deploy/environment-settings/runtime/update-healthcheck";
-import { updateInstances } from "./deploy/environment-settings/runtime/update-instances";
-import { updateMemory } from "./deploy/environment-settings/runtime/update-memory";
-import { updateOpenapiSpecPath } from "./deploy/environment-settings/runtime/update-openapi-spec-path";
-import { updatePort } from "./deploy/environment-settings/runtime/update-port";
-import { updateRegions } from "./deploy/environment-settings/runtime/update-regions";
-import { updateStorage } from "./deploy/environment-settings/runtime/update-storage";
-import { updateUpstreamProtocol } from "./deploy/environment-settings/runtime/update-upstream-protocol";
 import { getAppRpsMetrics } from "./deploy/metrics/get-app-rps-metrics";
 import { getDeploymentCpuTimeseries } from "./deploy/metrics/get-deployment-cpu-timeseries";
 import { getDeploymentDiskTimeseries } from "./deploy/metrics/get-deployment-disk-timeseries";
@@ -447,11 +429,8 @@ export const router = t.router({
     }),
     app: t.router({
       list: listApps,
-      create: createApp,
-      delete: deleteApp,
     }),
     environmentSettings: t.router({
-      get: getEnvironmentSettings,
       getAvailableRegions,
       getAvailableKeyspaces,
       policies: t.router({
@@ -483,25 +462,6 @@ export const router = t.router({
           delete: deleteLoggingPolicy,
         }),
         generateRegex,
-      }),
-      runtime: t.router({
-        updateCpu,
-        updateMemory,
-        updateStorage,
-        updatePort,
-        updateCommand,
-        updateHealthcheck,
-        updateRegions,
-        updateInstances,
-        updateOpenapiSpecPath,
-        updateUpstreamProtocol,
-      }),
-      build: t.router({
-        updateAutoDeploy,
-        updateDockerfile,
-        updateDockerContext,
-        updateBuildCommand,
-        updateWatchPaths,
       }),
     }),
     environment: t.router({

@@ -122,8 +122,8 @@ message GitSource {
 message DeployRequest {
   string deployment_id = 1;
 
-  // TODO: remove this field, it is unused.
-  optional string key_auth_id = 2;
+  reserved 2;
+  reserved "key_auth_id";
 
   oneof source {
     GitSource git = 3;
