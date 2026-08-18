@@ -2,10 +2,6 @@ package db
 
 import "database/sql"
 
-// Key is the application-facing key record. It intentionally excludes
-// deprecated database columns so removing them doesn't change this contract.
-type Key = FindKeyByIDRow
-
 // KeyData represents the complete data for a key including all relationships
 type KeyData struct {
 	Key             Key

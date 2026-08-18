@@ -28,6 +28,15 @@ export function formatPrice(price: number) {
 // Formatted in UTC instead of with date-fns, because billing periods are cut at
 // UTC midnight while date-fns formats in the reader's own timezone, which prints
 // the previous day for anyone west of UTC.
+export function formatDate(millis: number): string {
+  return new Date(millis).toLocaleDateString("en-US", {
+    timeZone: "UTC",
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
 export function formatPeriod(startMillis: number, endMillis: number): string {
   const part = (millis: number, options: Intl.DateTimeFormatOptions) =>
     new Date(millis).toLocaleDateString("en-US", { timeZone: "UTC", ...options });

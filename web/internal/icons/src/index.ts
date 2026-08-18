@@ -134,6 +134,7 @@ export * from "./icons/nut";
 export * from "./icons/page-2";
 export * from "./icons/paperclip-2";
 export * from "./icons/pen-writing-3";
+export * from "./icons/phone";
 export * from "./icons/plus";
 export * from "./icons/progress-bar";
 export * from "./icons/progress-circle";

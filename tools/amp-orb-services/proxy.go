@@ -89,6 +89,7 @@ func bridgeConnections(first, second net.Conn) {
 // locally and preserves the public Host header for Frontline route lookup.
 type frontlineProxy struct {
 	publicHostname string
+	portalDomain   string
 	sourceHostname string
 	registered     map[string]struct{}
 	routeMu        sync.Mutex
@@ -114,6 +115,7 @@ func runFrontlineProxy(args []string) error {
 
 	proxy := &frontlineProxy{
 		publicHostname: publicURL.Hostname(),
+		portalDomain:   portalDomain(publicURL.Hostname()),
 		sourceHostname: sourceHostname,
 		registered:     make(map[string]struct{}),
 		routeMu:        sync.Mutex{},
@@ -292,7 +294,14 @@ func (p *frontlineProxy) handle(client net.Conn) {
 }
 
 func (p *frontlineProxy) isPortalHostname(hostname string) bool {
-	return hostname == p.publicHostname || e2bHostnamePattern.MatchString(hostname)
+	return hostname == p.publicHostname ||
+		e2bHostnamePattern.MatchString(hostname) ||
+		(p.portalDomain != "" && strings.HasSuffix(hostname, "."+p.portalDomain))
+}
+
+func portalDomain(hostname string) string {
+	_, domain, _ := strings.Cut(hostname, ".")
+	return domain
 }
 
 // readInitialRequest avoids net/http normalization before Frontline sees the
