@@ -118,7 +118,6 @@ func (s *Service) Rebuild(ctx context.Context, sourceDeploymentID, reason string
 			Timestamp:       src.GitCommitTimestamp.Int64,
 			ForkRepository:  src.ForkRepositoryFullName.String,
 		},
-		keyAuthID:     nil,
 		command:       nil,
 		trigger:       db.DeploymentsTriggerUnkey,
 		triggeredBy:   "",
