@@ -123,21 +123,21 @@ var permissionMappings = map[string]permissionMapping{
 			{resource: "projects/*/apps/*/environments/*", action: action(rbacpermissions.UpdateEnvironment{})},
 		},
 	},
-	"environments:read_variables": {
+	"environment_variables:read": {
 		name:        "Read environment variables",
 		description: "Allows reading environment variables, including recoverable values.",
 		permissions: []permissionGrant{
 			{resource: "projects/*/apps/*/environments/*", action: action(rbacpermissions.ReadEnvironmentVariables{})},
 		},
 	},
-	"environments:set_variables": {
+	"environment_variables:set": {
 		name:        "Set environment variables",
 		description: "Allows creating and overwriting environment variables.",
 		permissions: []permissionGrant{
 			{resource: "projects/*/apps/*/environments/*", action: action(rbacpermissions.SetEnvironmentVariables{})},
 		},
 	},
-	"environments:remove_variables": {
+	"environment_variables:remove": {
 		name:        "Remove environment variables",
 		description: "Allows removing environment variables.",
 		permissions: []permissionGrant{
