@@ -65,6 +65,7 @@ func TestListPoliciesSuccessfully(t *testing.T) {
 		ratelimitPolicyID := uid.New(uid.PolicyPrefix)
 		firewallPolicyID := uid.New(uid.PolicyPrefix)
 		openapiPolicyID := uid.New(uid.PolicyPrefix)
+		loggingPolicyID := uid.New(uid.PolicyPrefix)
 		keySpaceID := uid.New(uid.KeySpacePrefix)
 		// protojson wire shape, including int64-as-string, exactly as the
 		// write path stores it.
@@ -129,10 +130,16 @@ func TestListPoliciesSuccessfully(t *testing.T) {
 				Name:   "openapi",
 				Config: &frontlinev1.Policy_Openapi{Openapi: &frontlinev1.OpenApiRequestValidation{}},
 			},
+			{
+				Id:      loggingPolicyID,
+				Name:    "logging",
+				Enabled: proto.Bool(true),
+				Config:  &frontlinev1.Policy_Logging{Logging: &frontlinev1.Logging{}},
+			},
 		}})
 
 		res := call(t, makeRequest(env))
-		require.Len(t, res.Body.Data, 4)
+		require.Len(t, res.Body.Data, 5)
 
 		keyauth := res.Body.Data[0]
 		require.Equal(t, keyauthPolicyID, keyauth.Id)
@@ -208,6 +215,15 @@ func TestListPoliciesSuccessfully(t *testing.T) {
 		// false, matching frontline evaluation semantics.
 		require.False(t, oa.Enabled)
 		require.NotNil(t, oa.Openapi)
+
+		logging := res.Body.Data[4]
+		require.Equal(t, loggingPolicyID, logging.Id)
+		require.True(t, logging.Enabled)
+		require.NotNil(t, logging.Logging)
+		require.Nil(t, logging.Keyauth)
+		require.Nil(t, logging.Ratelimit)
+		require.Nil(t, logging.Firewall)
+		require.Nil(t, logging.Openapi)
 	})
 
 	t.Run("every ratelimit identifier source maps", func(t *testing.T) {

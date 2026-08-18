@@ -79,8 +79,10 @@ import (
 	v2AppsListApps "github.com/unkeyed/unkey/svc/api/routes/v2_apps_list_apps"
 	v2AppsUpdateApp "github.com/unkeyed/unkey/svc/api/routes/v2_apps_update_app"
 	v2DomainsCreateDomain "github.com/unkeyed/unkey/svc/api/routes/v2_domains_create_domain"
+	v2DomainsDeleteDomain "github.com/unkeyed/unkey/svc/api/routes/v2_domains_delete_domain"
 	v2DomainsGetDomain "github.com/unkeyed/unkey/svc/api/routes/v2_domains_get_domain"
 	v2DomainsListDomains "github.com/unkeyed/unkey/svc/api/routes/v2_domains_list_domains"
+	v2DomainsVerifyDomain "github.com/unkeyed/unkey/svc/api/routes/v2_domains_verify_domain"
 	v2EnvironmentsGetEnvironment "github.com/unkeyed/unkey/svc/api/routes/v2_environments_get_environment"
 	v2EnvironmentsListEnvironmentVariables "github.com/unkeyed/unkey/svc/api/routes/v2_environments_list_environment_variables"
 	v2EnvironmentsListEnvironments "github.com/unkeyed/unkey/svc/api/routes/v2_environments_list_environments"
@@ -939,6 +941,24 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 		protectedMiddlewares,
 		&v2DomainsListDomains.Handler{
 			DB: svc.Database,
+		},
+	)
+
+	// v2/domains.deleteDomain
+	srv.RegisterRoute(
+		protectedMiddlewares,
+		&v2DomainsDeleteDomain.Handler{
+			DB:         svc.Database,
+			CtrlClient: svc.CtrlCustomDomainClient,
+		},
+	)
+
+	// v2/domains.verifyDomain
+	srv.RegisterRoute(
+		protectedMiddlewares,
+		&v2DomainsVerifyDomain.Handler{
+			DB:         svc.Database,
+			CtrlClient: svc.CtrlCustomDomainClient,
 		},
 	)
 

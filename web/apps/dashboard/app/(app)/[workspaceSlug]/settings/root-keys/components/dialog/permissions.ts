@@ -274,6 +274,14 @@ export const workspacePermissions = {
       description: "Read custom domains for any environment in this workspace",
       permission: "environment.*.read_domain",
     },
+    delete_domain: {
+      description: "Remove custom domains from any environment in this workspace",
+      permission: "environment.*.delete_domain",
+    },
+    verify_domain: {
+      description: "Restart verification for custom domains in any environment in this workspace",
+      permission: "environment.*.verify_domain",
+    },
   },
   Deployments: {
     create_deployment: {
@@ -438,6 +446,14 @@ export function environmentPermissions(environmentId: string): {
       read_domain: {
         description: "Read custom domains for this environment.",
         permission: `environment.${environmentId}.read_domain`,
+      },
+      delete_domain: {
+        description: "Remove custom domains from this environment.",
+        permission: `environment.${environmentId}.delete_domain`,
+      },
+      verify_domain: {
+        description: "Restart verification for custom domains in this environment.",
+        permission: `environment.${environmentId}.verify_domain`,
       },
     },
     Deployments: {

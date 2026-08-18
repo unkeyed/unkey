@@ -55,12 +55,8 @@ import { getOpenApiDiff } from "./deploy/deployment/getOpenApiDiff";
 import { getDeploymentInstanceEvents } from "./deploy/deployment/instance-events";
 import { listDeployments } from "./deploy/deployment/list";
 import { searchDeployments } from "./deploy/deployment/llm-search";
-import { promote } from "./deploy/deployment/promote";
 import { redeploy } from "./deploy/deployment/redeploy";
-import { rollback } from "./deploy/deployment/rollback";
 import { getDeploymentRuntimeLogs } from "./deploy/deployment/runtime-logs";
-import { stopDeployment } from "./deploy/deployment/stop";
-import { wakeDeployment } from "./deploy/deployment/wake";
 import { listDomains } from "./deploy/domains/list";
 import { createEnvVars } from "./deploy/env-vars/create";
 import { createBulkEnvVars } from "./deploy/env-vars/create-bulk";
@@ -86,6 +82,9 @@ import { create as createKeyauthPolicy } from "./deploy/environment-settings/pol
 import { remove as deleteKeyauthPolicy } from "./deploy/environment-settings/policies/keyauth/delete";
 import { update as updateKeyauthPolicy } from "./deploy/environment-settings/policies/keyauth/update";
 import { list as listPolicies } from "./deploy/environment-settings/policies/list";
+import { create as createLoggingPolicy } from "./deploy/environment-settings/policies/logging/create";
+import { remove as deleteLoggingPolicy } from "./deploy/environment-settings/policies/logging/delete";
+import { update as updateLoggingPolicy } from "./deploy/environment-settings/policies/logging/update";
 import { create as createOpenapiPolicy } from "./deploy/environment-settings/policies/openapi/create";
 import { remove as deleteOpenapiPolicy } from "./deploy/environment-settings/policies/openapi/delete";
 import { update as updateOpenapiPolicy } from "./deploy/environment-settings/policies/openapi/update";
@@ -117,11 +116,8 @@ import { generateDeploymentTree } from "./deploy/network/generate";
 import { getDeploymentTree } from "./deploy/network/get";
 import { getInstanceRps } from "./deploy/network/get-instance-rps";
 import { getRegionRps } from "./deploy/network/get-region-rps";
-import { createProject } from "./deploy/project/create";
 import { creationContext } from "./deploy/project/creation-context";
-import { deleteProject } from "./deploy/project/delete";
 import { listProjects } from "./deploy/project/list";
-import { updateProject } from "./deploy/project/update";
 import { createSharedSecret } from "./share/create";
 import { revealSharedSecret } from "./share/reveal";
 
@@ -447,9 +443,6 @@ export const router = t.router({
     }),
     project: t.router({
       list: listProjects,
-      create: createProject,
-      update: updateProject,
-      delete: deleteProject,
       creationContext,
     }),
     app: t.router({
@@ -483,6 +476,11 @@ export const router = t.router({
           create: createOpenapiPolicy,
           update: updateOpenapiPolicy,
           delete: deleteOpenapiPolicy,
+        }),
+        logging: t.router({
+          create: createLoggingPolicy,
+          update: updateLoggingPolicy,
+          delete: deleteLoggingPolicy,
         }),
         generateRegex,
       }),
@@ -538,14 +536,10 @@ export const router = t.router({
       steps: getDeploymentSteps,
       search: searchDeployments,
       getOpenApiDiff: getOpenApiDiff,
-      rollback,
-      promote,
       redeploy,
       create: createDeploy,
       authorize: authorizeDeployment,
       cancel: cancelDeployment,
-      stop: stopDeployment,
-      wake: wakeDeployment,
     }),
     requestLogs: t.router({
       query: queryRequestLogs,

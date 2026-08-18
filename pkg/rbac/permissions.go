@@ -270,6 +270,11 @@ const (
 	CreateDomain ActionType = "create_domain"
 	// ReadDomain permits reading a specific environment's custom domains
 	ReadDomain ActionType = "read_domain"
+	// DeleteDomain permits removing a custom domain from a specific environment
+	DeleteDomain ActionType = "delete_domain"
+	// VerifyDomain permits a restart of verification for the custom domains of a
+	// specific environment
+	VerifyDomain ActionType = "verify_domain"
 )
 
 // Tuple represents a specific permission as a combination of resource type,

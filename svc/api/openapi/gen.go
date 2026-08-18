@@ -996,6 +996,35 @@ type KeysVerifyKeyRatelimit struct {
 	Name string `json:"name"`
 }
 
+// LoggingPolicy Adds request data to the log entries of matching requests. The gateway
+// always records a basic log entry for every request: method, host, path,
+// status, and latency. Each capture setting is a separate opt-in: request
+// headers, response headers, request body, response body, and query data.
+// The policy's `match` expressions select the requests. A policy without
+// `match` expressions matches every request. If more than one enabled
+// logging policy matches a request, the gateway combines their settings.
+// The gateway always redacts the `Authorization` header and configured key
+// locations before it stores headers or query data.
+type LoggingPolicy struct {
+	// Query Capture the query string and query parameters. Query data is a
+	// separate opt-in because URLs can contain secrets, for example
+	// `?api_key=...`.
+	Query *bool `json:"query,omitempty"`
+
+	// RequestBody Capture the request body, up to the capture limit.
+	RequestBody *bool `json:"requestBody,omitempty"`
+
+	// RequestHeaders Capture request headers, the user agent, and the client IP. The user
+	// agent and client IP are included because they identify the client.
+	RequestHeaders *bool `json:"requestHeaders,omitempty"`
+
+	// ResponseBody Capture the response body, up to the capture limit.
+	ResponseBody *bool `json:"responseBody,omitempty"`
+
+	// ResponseHeaders Capture response headers.
+	ResponseHeaders *bool `json:"responseHeaders,omitempty"`
+}
+
 // MatchExpr A single request match expression. Exactly one of `path`, `method`,
 // `header` or `queryParam` must be set.
 type MatchExpr struct {
@@ -1092,9 +1121,9 @@ type Permission struct {
 	Slug string `json:"slug"`
 }
 
-// Policy A gateway policy. Exactly one of `keyauth`, `ratelimit`, `firewall` or
-// `openapi` must be set. The server generates an id for every policy it
-// stores.
+// Policy A gateway policy. Exactly one of `keyauth`, `ratelimit`, `firewall`,
+// `openapi` or `logging` must be set. The server generates an id for every
+// policy it stores.
 type Policy struct {
 	// Enabled Disabled policies are stored but skipped during evaluation.
 	Enabled bool `json:"enabled"`
@@ -1104,6 +1133,17 @@ type Policy struct {
 
 	// Keyauth Verifies Unkey API keys on matching requests.
 	Keyauth *KeyauthPolicy `json:"keyauth,omitempty"`
+
+	// Logging Adds request data to the log entries of matching requests. The gateway
+	// always records a basic log entry for every request: method, host, path,
+	// status, and latency. Each capture setting is a separate opt-in: request
+	// headers, response headers, request body, response body, and query data.
+	// The policy's `match` expressions select the requests. A policy without
+	// `match` expressions matches every request. If more than one enabled
+	// logging policy matches a request, the gateway combines their settings.
+	// The gateway always redacts the `Authorization` header and configured key
+	// locations before it stores headers or query data.
+	Logging *LoggingPolicy `json:"logging,omitempty"`
 
 	// Match Optional request matchers. The policy applies only to requests matching
 	// all expressions; omit to apply to every request.
@@ -1124,7 +1164,7 @@ type Policy struct {
 }
 
 // PolicyResponse A stored gateway policy as returned by list endpoints. Exactly one of
-// `keyauth`, `ratelimit`, `firewall` or `openapi` is set.
+// `keyauth`, `ratelimit`, `firewall`, `openapi` or `logging` is set.
 type PolicyResponse struct {
 	// Enabled Disabled policies are stored but skipped during evaluation.
 	Enabled bool `json:"enabled"`
@@ -1137,6 +1177,17 @@ type PolicyResponse struct {
 
 	// Keyauth Verifies Unkey API keys on matching requests.
 	Keyauth *KeyauthPolicy `json:"keyauth,omitempty"`
+
+	// Logging Adds request data to the log entries of matching requests. The gateway
+	// always records a basic log entry for every request: method, host, path,
+	// status, and latency. Each capture setting is a separate opt-in: request
+	// headers, response headers, request body, response body, and query data.
+	// The policy's `match` expressions select the requests. A policy without
+	// `match` expressions matches every request. If more than one enabled
+	// logging policy matches a request, the gateway combines their settings.
+	// The gateway always redacts the `Authorization` header and configured key
+	// locations before it stores headers or query data.
+	Logging *LoggingPolicy `json:"logging,omitempty"`
 
 	// Match Optional request matchers. The policy applies only to requests matching
 	// all expressions; omitted when the policy applies to every request.
@@ -2116,6 +2167,26 @@ type V2DomainsCreateDomainResponseData struct {
 	DomainId ResourceIdentifier `json:"domainId"`
 }
 
+// V2DomainsDeleteDomainRequestBody defines model for V2DomainsDeleteDomainRequestBody.
+type V2DomainsDeleteDomainRequestBody struct {
+	// Domain Identifies a domain by its Unkey ID or by its name. Pass a 'dom_'-prefixed ID, or a fully
+	// qualified domain name such as 'api.acme.com' without a scheme, port, or path. You can give an
+	// internationalized name in Unicode or Punycode form. Both forms address the same domain.
+	//
+	// Domain names are unique per workspace, so the name alone addresses the domain. You do not
+	// need to supply a project, app, or environment.
+	Domain string `json:"domain"`
+}
+
+// V2DomainsDeleteDomainResponseBody defines model for V2DomainsDeleteDomainResponseBody.
+type V2DomainsDeleteDomainResponseBody struct {
+	// Data Empty response object by design. A successful response indicates this operation was successfully executed.
+	Data EmptyResponse `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
 // V2DomainsGetDomainRequestBody defines model for V2DomainsGetDomainRequestBody.
 type V2DomainsGetDomainRequestBody struct {
 	// Domain Identifies a domain by its Unkey ID or by its name. Pass a 'dom_'-prefixed ID, or a fully
@@ -2172,6 +2243,24 @@ type V2DomainsListDomainsResponseBody struct {
 
 	// Pagination Pagination metadata for list endpoints. Provides information necessary to traverse through large result sets efficiently using cursor-based pagination.
 	Pagination Pagination `json:"pagination"`
+}
+
+// V2DomainsVerifyDomainRequestBody defines model for V2DomainsVerifyDomainRequestBody.
+type V2DomainsVerifyDomainRequestBody struct {
+	// Domain Identifies a domain by its name or by its ID. Send the fully qualified domain name, such as
+	// 'api.acme.com', without a scheme, port, or path, or send the domain ID that
+	// domains.createDomain returns. You can send an internationalized name in Unicode or in
+	// Punycode form. Both forms address the same domain.
+	Domain string `json:"domain"`
+}
+
+// V2DomainsVerifyDomainResponseBody defines model for V2DomainsVerifyDomainResponseBody.
+type V2DomainsVerifyDomainResponseBody struct {
+	// Data Empty response object by design. A successful response indicates this operation was successfully executed.
+	Data EmptyResponse `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
 }
 
 // V2EnvironmentsGetEnvironmentRequestBody defines model for V2EnvironmentsGetEnvironmentRequestBody.
@@ -2477,8 +2566,9 @@ type V2GatewaySetPoliciesResponseBody struct {
 
 // V2GatewayUpdatePolicyRequestBody Partial update of a single policy. Omitted fields keep their stored
 // values; at least one updatable field must be provided. Providing one of
-// `keyauth`, `ratelimit`, `firewall` or `openapi` replaces the policy's
-// rule entirely, including switching its type; at most one may be set.
+// `keyauth`, `ratelimit`, `firewall`, `openapi` or `logging` replaces the
+// policy's rule entirely, including switching its type; at most one may be
+// set.
 type V2GatewayUpdatePolicyRequestBody struct {
 	// App Identifies a resource by either its unique ID or its slug.
 	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
@@ -2497,6 +2587,17 @@ type V2GatewayUpdatePolicyRequestBody struct {
 
 	// Keyauth Verifies Unkey API keys on matching requests.
 	Keyauth *KeyauthPolicy `json:"keyauth,omitempty"`
+
+	// Logging Adds request data to the log entries of matching requests. The gateway
+	// always records a basic log entry for every request: method, host, path,
+	// status, and latency. Each capture setting is a separate opt-in: request
+	// headers, response headers, request body, response body, and query data.
+	// The policy's `match` expressions select the requests. A policy without
+	// `match` expressions matches every request. If more than one enabled
+	// logging policy matches a request, the gateway combines their settings.
+	// The gateway always redacts the `Authorization` header and configured key
+	// locations before it stores headers or query data.
+	Logging *LoggingPolicy `json:"logging,omitempty"`
 
 	// Match Replaces all match expressions. Set null to remove them so the policy
 	// applies to every request. Omit to keep the current expressions.
@@ -4463,11 +4564,17 @@ type DeploymentsStopDeploymentJSONRequestBody = V2DeploymentsStopDeploymentReque
 // DomainsCreateDomainJSONRequestBody defines body for DomainsCreateDomain for application/json ContentType.
 type DomainsCreateDomainJSONRequestBody = V2DomainsCreateDomainRequestBody
 
+// DomainsDeleteDomainJSONRequestBody defines body for DomainsDeleteDomain for application/json ContentType.
+type DomainsDeleteDomainJSONRequestBody = V2DomainsDeleteDomainRequestBody
+
 // DomainsGetDomainJSONRequestBody defines body for DomainsGetDomain for application/json ContentType.
 type DomainsGetDomainJSONRequestBody = V2DomainsGetDomainRequestBody
 
 // DomainsListDomainsJSONRequestBody defines body for DomainsListDomains for application/json ContentType.
 type DomainsListDomainsJSONRequestBody = V2DomainsListDomainsRequestBody
+
+// DomainsVerifyDomainJSONRequestBody defines body for DomainsVerifyDomain for application/json ContentType.
+type DomainsVerifyDomainJSONRequestBody = V2DomainsVerifyDomainRequestBody
 
 // EnvironmentsGetEnvironmentJSONRequestBody defines body for EnvironmentsGetEnvironment for application/json ContentType.
 type EnvironmentsGetEnvironmentJSONRequestBody = V2EnvironmentsGetEnvironmentRequestBody

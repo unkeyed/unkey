@@ -1,6 +1,7 @@
 import {
   type FirewallPolicy,
   type KeyauthPolicy,
+  type LoggingPolicy,
   type MatchExpr,
   type OpenapiPolicy,
   POLICY_LIMITS,
@@ -246,11 +247,22 @@ const openapiFormSchema = z.object({
   type: z.literal("openapi"),
 });
 
+const loggingFormSchema = z.object({
+  ...basePolicyFields,
+  type: z.literal("logging"),
+  requestHeaders: z.boolean(),
+  responseHeaders: z.boolean(),
+  requestBody: z.boolean(),
+  responseBody: z.boolean(),
+  query: z.boolean(),
+});
+
 export const policyFormSchema = z.discriminatedUnion("type", [
   keyauthFormSchema,
   ratelimitFormSchema,
   firewallFormSchema,
   openapiFormSchema,
+  loggingFormSchema,
 ]);
 export type PolicyFormValues = z.infer<typeof policyFormSchema>;
 export type PolicyType = PolicyFormValues["type"];
@@ -260,6 +272,7 @@ export const POLICY_TYPE_OPTIONS: { value: PolicyType; label: string }[] = [
   { value: "ratelimit", label: "Rate Limit" },
   { value: "firewall", label: "Firewall" },
   { value: "openapi", label: "OpenAPI Validation" },
+  { value: "logging", label: "Logging" },
 ];
 
 export function getDefaultCondition(
@@ -313,6 +326,17 @@ export function getDefaultValues(type: PolicyType): PolicyFormValues {
     .with("openapi", () => ({
       ...base,
       type: "openapi" as const,
+    }))
+    .with("logging", () => ({
+      ...base,
+      type: "logging" as const,
+      // Someone adding a logging policy wants to capture request data, so
+      // all opt-ins default on; the base log row exists regardless.
+      requestHeaders: true,
+      responseHeaders: true,
+      requestBody: true,
+      responseBody: true,
+      query: true,
     }))
     .exhaustive();
 }
@@ -382,12 +406,12 @@ function toRateLimitIdentifier(
 export function toPolicy(
   values: PolicyFormValues,
   existingId?: string,
-): KeyauthPolicy | RatelimitPolicy | FirewallPolicy | OpenapiPolicy {
+): KeyauthPolicy | RatelimitPolicy | FirewallPolicy | OpenapiPolicy | LoggingPolicy {
   const id = existingId ?? newUid("policy");
   const matchExprs = values.matchConditions.map(toMatchExpr);
 
   return match(values)
-    .returnType<KeyauthPolicy | RatelimitPolicy | FirewallPolicy | OpenapiPolicy>()
+    .returnType<KeyauthPolicy | RatelimitPolicy | FirewallPolicy | OpenapiPolicy | LoggingPolicy>()
     .with({ type: "keyauth" }, (v) => {
       const locations = v.locations.map((loc) =>
         match(loc.locationType)
@@ -453,6 +477,20 @@ export function toPolicy(
       enabled: true,
       type: "openapi" as const,
       openapi: {},
+      match: matchExprs,
+    }))
+    .with({ type: "logging" }, (v) => ({
+      id,
+      name: v.name,
+      enabled: true,
+      type: "logging" as const,
+      logging: {
+        requestHeaders: v.requestHeaders,
+        responseHeaders: v.responseHeaders,
+        requestBody: v.requestBody,
+        responseBody: v.responseBody,
+        query: v.query,
+      },
       match: matchExprs,
     }))
     .exhaustive();
@@ -609,6 +647,17 @@ export function fromPolicy(policy: Policy, environmentId: string): PolicyFormVal
       name: p.name,
       environmentId,
       matchConditions,
+    }))
+    .with({ type: "logging" }, (p) => ({
+      type: "logging" as const,
+      name: p.name,
+      environmentId,
+      matchConditions,
+      requestHeaders: p.logging.requestHeaders ?? false,
+      responseHeaders: p.logging.responseHeaders ?? false,
+      requestBody: p.logging.requestBody ?? false,
+      responseBody: p.logging.responseBody ?? false,
+      query: p.logging.query ?? false,
     }))
     .exhaustive();
 }

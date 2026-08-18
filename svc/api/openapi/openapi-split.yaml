@@ -290,6 +290,10 @@ paths:
     $ref: "./spec/paths/v2/domains/getDomain/index.yaml"
   /v2/domains.listDomains:
     $ref: "./spec/paths/v2/domains/listDomains/index.yaml"
+  /v2/domains.deleteDomain:
+    $ref: "./spec/paths/v2/domains/deleteDomain/index.yaml"
+  /v2/domains.verifyDomain:
+    $ref: "./spec/paths/v2/domains/verifyDomain/index.yaml"
 
   # Gateway Endpoints
   /v2/gateway.setPolicies:

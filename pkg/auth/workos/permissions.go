@@ -46,6 +46,55 @@ var permissionMappings = map[string]permissionMapping{
 			{resource: "**", action: "*"},
 		},
 	},
+	"deployments:stop": {
+		name:        "Stop deployments",
+		description: "Allows stopping a running deployment.",
+		permissions: []permissionGrant{
+			{resource: "projects/*/apps/*/environments/*/deployments/*", action: action(rbacpermissions.StopDeployment{})},
+		},
+	},
+	"deployments:start": {
+		name:        "Start deployments",
+		description: "Allows starting a stopped deployment.",
+		permissions: []permissionGrant{
+			{resource: "projects/*/apps/*/environments/*/deployments/*", action: action(rbacpermissions.StartDeployment{})},
+		},
+	},
+	"deployments:rollback": {
+		name:        "Roll back deployments",
+		description: "Allows rolling live traffic back to a previous deployment.",
+		permissions: []permissionGrant{
+			{resource: "projects/*/apps/*/environments/*/deployments/*", action: action(rbacpermissions.RollbackDeployment{})},
+		},
+	},
+	"deployments:promote": {
+		name:        "Promote deployments",
+		description: "Allows promoting a deployment to live.",
+		permissions: []permissionGrant{
+			{resource: "projects/*/apps/*/environments/*/deployments/*", action: action(rbacpermissions.PromoteDeployment{})},
+		},
+	},
+	"projects:create": {
+		name:        "Create projects",
+		description: "Allows creating projects.",
+		permissions: []permissionGrant{
+			{resource: "projects/*", action: action(rbacpermissions.CreateProject{})},
+		},
+	},
+	"projects:update": {
+		name:        "Update projects",
+		description: "Allows updating projects.",
+		permissions: []permissionGrant{
+			{resource: "projects/*", action: action(rbacpermissions.UpdateProject{})},
+		},
+	},
+	"projects:delete": {
+		name:        "Delete projects",
+		description: "Allows deleting projects.",
+		permissions: []permissionGrant{
+			{resource: "projects/*", action: action(rbacpermissions.DeleteProject{})},
+		},
+	},
 	"identities:create": {
 		name:        "Create identities",
 		description: "Allows creating identities.",

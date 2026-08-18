@@ -1,4 +1,8 @@
 unkey:v1:ws_123:**#*
+unkey:v1:ws_123:projects/*/apps/*/environments/*/deployments/*#promote_deployment
+unkey:v1:ws_123:projects/*/apps/*/environments/*/deployments/*#rollback_deployment
+unkey:v1:ws_123:projects/*/apps/*/environments/*/deployments/*#start_deployment
+unkey:v1:ws_123:projects/*/apps/*/environments/*/deployments/*#stop_deployment
 unkey:v1:ws_123:projects/*/identities/*#create_identity
 unkey:v1:ws_123:projects/*/identities/*#delete_identity
 unkey:v1:ws_123:projects/*/identities/*#read_identity
@@ -11,3 +15,6 @@ unkey:v1:ws_123:keyspaces/*/keys/*#read_key
 unkey:v1:ws_123:keyspaces/*#read_keyspace
 unkey:v1:ws_123:keyspaces/*/keys/*#update_key
 unkey:v1:ws_123:keyspaces/*/keys/*#verify_key
+unkey:v1:ws_123:projects/*#create_project
+unkey:v1:ws_123:projects/*#delete_project
+unkey:v1:ws_123:projects/*#update_project
