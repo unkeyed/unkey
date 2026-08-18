@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"fmt"
 	"net/http"
-	"strings"
 	"testing"
 	"time"
 
@@ -115,39 +114,8 @@ func TestCreateSessionBadRequest(t *testing.T) {
 		require.NotNil(t, res.Body)
 	})
 
-	// --- Identifier shape validation (id-shaped or slug-shaped, nothing between) ---
-	//
-	// The shared ResourceIdentifier schema has to admit both shapes, so it alone
-	// would let these through to the lookup and answer 404. They are malformed
-	// input, not a missing portal, and must say so.
-
-	for _, tt := range []struct {
-		name   string
-		portal string
-	}{
-		{name: "uppercase slug", portal: "Test-Portal"},
-		{name: "consecutive hyphens", portal: "test--portal"},
-		{name: "leading hyphen", portal: "-test-portal"},
-		{name: "trailing hyphen", portal: "test-portal-"},
-		{name: "slug over 64 characters", portal: strings.Repeat("a", 65)},
-	} {
-		t.Run("rejects "+tt.name, func(t *testing.T) {
-			req := handler.Request{
-				Portal:     tt.portal,
-				ExternalId: "user_123",
-				Scopes:     validScopes,
-			}
-			res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
-			require.Equal(t, 400, res.Status, "malformed identifier must be an input error, not a 404")
-			require.NotNil(t, res.Body)
-			require.Contains(t, res.Body.Error.Detail, "slug",
-				"the message must name the rule that was broken")
-		})
-	}
-
 	t.Run("rejects a slug under 3 characters", func(t *testing.T) {
-		// Owned by the schema's minLength, which runs before the handler, so
-		// this one carries the generic schema message rather than the slug rule.
+		// Owned by the schema's minLength.
 		req := handler.Request{
 			Portal:     "ab",
 			ExternalId: "user_123",
@@ -159,8 +127,6 @@ func TestCreateSessionBadRequest(t *testing.T) {
 	})
 
 	t.Run("accepts an id-shaped identifier", func(t *testing.T) {
-		// Same lookup path, but the id branch skips the slug rules entirely.
-		// A 400 here would mean the split rejected a legitimate id.
 		req := handler.Request{
 			Portal:     portalID,
 			ExternalId: "user_123",

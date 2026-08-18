@@ -4,7 +4,6 @@
 // It includes validators for:
 //   - Environment variable keys (Kubernetes Secret data key format)
 //   - Portal configuration slugs (human-readable identifiers)
-//   - Resource identifiers that accept either a prefixed id or a slug
 //
 // All validators are pure functions with no external dependencies, making them
 // suitable for use in handlers, tests, and property-based testing.

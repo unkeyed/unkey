@@ -17,7 +17,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/hash"
 	"github.com/unkeyed/unkey/pkg/uid"
-	"github.com/unkeyed/unkey/pkg/validation"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/internal/policyconfig"
 	"github.com/unkeyed/unkey/svc/api/openapi"
@@ -140,18 +139,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	workspaceID := principal.WorkspaceID
-
-	// The shared ResourceIdentifier schema has to be wide enough for both an id
-	// and a slug, so on its own it drops every slug rule. Validating the two
-	// shapes separately keeps a mistyped slug an input error that names the rule
-	// it broke, instead of a not-found for a portal that was never spelled right.
-	if !validation.ValidateResourceIdentifier(req.Portal) {
-		return fault.New("invalid portal identifier",
-			fault.Code(codes.App.Validation.InvalidInput.URN()),
-			fault.Internal(fmt.Sprintf("portal %q failed validation", req.Portal)),
-			fault.Public("portal "+validation.ErrMsgInvalidResourceIdentifier+"."),
-		)
-	}
 
 	portal, err := db.Query.FindPortalByIdOrSlug(ctx, h.DB.RO(), db.FindPortalByIdOrSlugParams{
 		WorkspaceID: workspaceID,
