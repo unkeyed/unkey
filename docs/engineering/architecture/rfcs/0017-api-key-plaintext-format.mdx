@@ -5,51 +5,70 @@ date: 2026-08-17
 authors:
   - Andreas Thomas
 ---
-
 ## Summary
 
-This RFC proposes one plaintext format for all Unkey-generated API keys,
-including customer API keys and Unkey root keys. The format uses a controlled
-prefix, 256 random bits, Bitcoin Base58, a version marker, and a 32-bit CRC-32C
-checksum.
-
-Imported and existing keys retain their original plaintext. Verification stays
-format-agnostic and uses the SHA-256 hash of the complete value.
-
-## Motivation
-
-{/* TODO: Add the product and security motivation. */}
-
-The legacy generator accepts an optional prefix and a caller-selected random
-byte length from 16 through 255:
-
-```plaintext
-{optional_prefix}_{variable_length_base58_randomness}
-```
+This RFC proposes one plaintext format for all Unkey-generated API keys, including customer API keys and Unkey root keys.
+Imported and existing keys retain their original plaintext. 
 
 This RFC supersedes the proposal in the
 [historical key shape RFC](/architecture/rfcs/0003-key-shape).
+
+
+## Motivation
+
+The currently generated keys are not unkey-branded in a way that would let us write a regular expression to detect them in source control systems.
+This only works for root keys right now, as they have a constant `unkey_` prefix, but it does not work for our customer's keys.
+
 
 ## Detailed design
 
 ### Format
 
-The general grammar is:
+The general grammar is as follows. `[x]` indicates the number of characters.
 
 ```plaintext
-{prefix}_{display_nonce}unkeyv{version}{version_payload}
-```
-
-```diagram
-┌────────┬───┬────────────────┬────────┬──────────────────────────┐
-│ prefix │ _ │ display nonce  │ unkeyv │ version-specific payload │
-│ 1–7    │   │ 8 Base58 chars │        │                          │
-└────────┴───┴────────────────┴────────┴──────────────────────────┘
+{prefix[1-7]}_{random[8]}unkeyv{version[1]}{random[36]}{checksum[6]}
 ```
 
 Version numbering starts at `1`. The version occupies one Base58 character and
 increments in Base58 alphabet order. It appears before every version-dependent
 field, so a parser can select the payload definition before reading its lengths.
+
+I do not like the fact, that the version is not at the very beginning or very end of the key. That would make parsing and versioning it simpler.
+But the version is - by design - not random and if it's part of the shown data (first 4 chars and 4 last chars) it doesn't help users to see a difference between keys.
+I chose to put it after 8 chars of randomness. This works, but also means that this is now fixed for eternity. A new format must also embed its version after the first 8 chars, otherwise we couldn't parse a key reliably if we ever wanted to.  
+
+
+### Version 1
+
+Version 1 has this exact shape:
+
+```plaintext
+{prefix[1-7]}_{random[8]}unkeyv1{random[36]}{checksum[6]}
+```
+
+
+| Field              | Length | Contents                       |
+| ------------------ | -----: | ------------------------------ |
+| Prefix             | 1–7    | User controlled prefix         |
+| Separator          | 1      | `_`                            |
+| Random head        | 8      | First part of the random value |
+| Marker and version | 7      | Literal `unkeyv1`              |
+| Random tail        | 36     | Rest of the random value       |
+| Checksum           | 6      | Fixed-width Base58 CRC-32C     |
+
+
+The complete key is between 59 and 65 characters.
+
+It provides 256 random bits and base58 encodes that into 44 characters, split into 8 and 36 sections. Prefixes, markers, and checksums add
+no entropy.
+
+<a href="https://pages.nist.gov/800-63-4/sp800-63b.html" target="_blank">
+
+  NIST SP 800-63B
+
+</a>
+
 
 ### Prefix
 
@@ -63,33 +82,6 @@ They contain one through seven ASCII letters, numbers, or underscores, and must
 end in an alphanumeric character. `prod_sk`, `pk_live`, and `unkey` are valid.
 `prod_sk_` and eight-character prefixes are invalid.
 
-### Version 1
-
-Version 1 has this exact shape:
-
-```plaintext
-{prefix}_{8 random chars}unkeyv1{36 random chars}{6 checksum chars}
-```
-
-| Field | Length | Contents |
-| --- | ---: | --- |
-| Prefix | 1–7 | Controlled prefix |
-| Separator | 1 | `_` |
-| Random head | 8 | First part of the random value |
-| Marker and version | 7 | Literal `unkeyv1` |
-| Random tail | 36 | Rest of the random value |
-| Checksum | 6 | Fixed-width Base58 CRC-32C |
-
-The complete key is between 59 and 65 characters.
-
-The random field is the fixed-width, 44-character Bitcoin Base58 encoding of 32
-random bytes. It provides 256 random bits. Prefixes, markers, and checksums add
-no entropy.
-
-<a href="https://pages.nist.gov/800-63-4/sp800-63b.html" target="_blank">
-  NIST SP 800-63B
-</a>
-
 #### Checksum
 
 Calculate CRC-32C over the complete key up to, but excluding, the checksum:
@@ -101,34 +93,6 @@ checksum_text  = base58Fixed(checksum_value, 6)
 key            = unsigned_key + checksum_text
 ```
 
-The checksum detects corruption and filters unrelated scanner matches with an
-approximately 1 in 2³² pass rate. It does not provide entropy or authenticity.
-
-### Parsing and future versions
-
-After the prefix separator, the version 1 body has these fixed offsets:
-
-```diagram
-┌──────────┬─────────┬─────────┬─────────────┬──────────┐
-│ 0–7      │ 8–13    │ 14      │ 15–50       │ 51–56    │
-│ random   │ unkeyv  │ version │ random tail │ checksum │
-│ 8 chars  │ 6 chars │ 1 char  │ 36 chars    │ 6 chars  │
-└──────────┴─────────┴─────────┴─────────────┴──────────┘
-```
-
-A parser reads the prefix separator, eight display characters, `unkeyv`, and
-the one-character version before dispatching the remaining value to that
-version's parser.
-
-All version-dependent fields follow the version. Version 2 can therefore use a
-different random or checksum length without changing version discovery:
-
-```plaintext
-{prefix}_{8 random}unkeyv2{version 2 payload}
-```
-
-A valid checksum confirms only structural validity. Database state determines
-whether a key was issued, is enabled, and remains active.
 
 ### GitHub secret scanning
 
@@ -138,73 +102,54 @@ The version 1 secret format is:
 [A-Za-z0-9_]{0,6}[A-Za-z0-9]_[1-9A-HJ-NP-Za-km-z]{8}unkeyv1[1-9A-HJ-NP-Za-km-z]{42}
 ```
 
-Use separate boundaries:
-
-```plaintext
-Before: \A|[^A-Za-z0-9_]
-After:  \z|[^1-9A-HJ-NP-Za-km-z]
-```
-
 GitHub recommends a unique identifier, high-entropy randomness, and a 32-bit
-checksum for partner patterns. The scanner or webhook validates CRC-32C before
+checksum for partner patterns. The scanner or webhook validates CRC-32 before
 hashing the complete match and querying the live-key database.
 
 <a href="https://docs.github.com/code-security/secret-scanning/secret-scanning-partnership-program/secret-scanning-partner-program#identify-your-secrets-and-create-regular-expressions" target="_blank">
+
   GitHub secret scanning partner guidance
+
 </a>
 
 Legacy root keys keep their existing GitHub pattern. Version 1 uses the pattern
 above for both root and customer API keys.
 
-### Database representation
+### Database changes
 
-Store the format, prefix, first four random characters, and final four
+Separately I do want to change how we display keys in our dashboard. I think it would be nice to show not only the first 4 chars, but also the last 4. This just helps to visually discriminate between two keys when looking at them at a glance.
+
+To do that, we'd store the prefix, first four random characters, and final four
 characters for newly generated keys:
 
 ```plaintext
-format = "unkey_v1"
 prefix = "prod_sk"
 start  = "K7pQ"
 end    = "X2Ks"
 ```
 
-Display them as `prod_sk_K7pQ...X2Ks`. These fields are display hints, not
-identifiers or verification inputs. The final four version 1 characters are
-part of the checksum and still vary with the complete key.
+And then display them as `prod_sk_K7pQ...X2Ks`. 
 
 Existing non-recoverable keys cannot backfill `end`. Legacy rows retain their
-existing `start`, use the `legacy` format, and use `""` for unavailable fields.
+existing `start`, and use `""` for unavailable fields.
+
+Storing the prefix like this, also makes it easier to reroll keys, cause we don't have to parse the key to figure out what the prefix should be.
 
 ### Deprecating configurable lengths
 
-Migration removes request `byteLength`, keyspace `default_bytes`, and dashboard
-byte controls without changing existing plaintexts.
-
-1. Mark `byteLength` deprecated, remove dashboard controls, and measure explicit
-   lengths, non-default stored lengths, and incompatible prefixes.
-2. Make version 1 the default when `byteLength` is omitted. Stop applying
-   `default_bytes`. Keep explicit API v2 lengths on observable legacy generation
-   until the API v2 sunset. Never silently ignore an explicit length.
-3. Remove `byteLength` in the next breaking API version. Remove the legacy
-   generator and default-byte readers and writers after API v2 sunsets. Drop the
-   unused database column after the rollback window.
+We should remove the option to choose a custom length and just follow the NIST recommendation of 256 bits of entropy. There's no good reason for us to allow a user to use less.
 
 ## Drawbacks
 
-- New keys are longer, and customers have less control over their shape.
-- Migration requires supporting legacy and versioned plaintext generations at
-  the same time.
-- Every future version requires corresponding parser and secret-scanner support.
+- New keys are a little longer.
 
 ## Alternatives
 
 - **Put `unkeyv1` at the beginning:** easier to scan, but customer keys become
-  harder to distinguish visually and appear Unkey-branded.
+harder to distinguish visually and appear Unkey-branded.
 - **Put the version at the end:** keeps the body visually clean, but a parser
-  cannot know version-dependent payload and checksum lengths before reaching it.
-- **Encode or hide the marker:** produces a more uniform Base58 value, but loses
-  the obvious, stable identifier used by secret scanning.
-- **Omit the checksum:** shortens keys, but removes a 32-bit filter for secret
-  scanning false positives and accidental corruption.
-- **Keep caller-selected random lengths:** preserves flexibility, but prevents a
-  predictable schema and consistent security strength.
+cannot know version-dependent payload and checksum lengths before reaching it.
+- **Omit the checksum:** shortens keys, but always requires database lookups for secret
+scanning false positives.
+
+
