@@ -65,7 +65,14 @@ LEFT JOIN `github_repo_connections` AS `connection` ON `connection`.`app_id` = `
 LEFT JOIN `app_docker_sources` AS `docker_source` ON `docker_source`.`app_id` = `app`.`id`
 WHERE `app`.`source_type` = 'unknown'
   AND `connection`.`app_id` IS NULL
-  AND `docker_source`.`app_id` IS NULL;
+  AND `docker_source`.`app_id` IS NULL
+  -- New Docker app sources require an explicit tag or digest. Leave apps
+  -- whose newest historical reference relied on implicit :latest unknown;
+  -- SQL cannot safely reproduce OCI reference normalization.
+  AND (
+    LOCATE('@', `candidate`.`image_reference`) > 0
+    OR LOCATE(':', SUBSTRING_INDEX(`candidate`.`image_reference`, '/', -1)) > 0
+  );
 
 UPDATE `apps` AS `app`
 INNER JOIN `app_docker_sources` AS `docker_source` ON `docker_source`.`app_id` = `app`.`id`
