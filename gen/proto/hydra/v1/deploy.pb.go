@@ -500,8 +500,6 @@ func (x *GitSource) GetBuildCommand() string {
 type DeployRequest struct {
 	state        protoimpl.MessageState `protogen:"open.v1"`
 	DeploymentId string                 `protobuf:"bytes,1,opt,name=deployment_id,json=deploymentId,proto3" json:"deployment_id,omitempty"`
-	// TODO: remove this field, it is unused.
-	KeyAuthId *string `protobuf:"bytes,2,opt,name=key_auth_id,json=keyAuthId,proto3,oneof" json:"key_auth_id,omitempty"`
 	// Types that are valid to be assigned to Source:
 	//
 	//	*DeployRequest_Git
@@ -546,13 +544,6 @@ func (*DeployRequest) Descriptor() ([]byte, []int) {
 func (x *DeployRequest) GetDeploymentId() string {
 	if x != nil {
 		return x.DeploymentId
-	}
-	return ""
-}
-
-func (x *DeployRequest) GetKeyAuthId() string {
-	if x != nil && x.KeyAuthId != nil {
-		return *x.KeyAuthId
 	}
 	return ""
 }
@@ -1026,15 +1017,13 @@ const file_hydra_v1_deploy_proto_rawDesc = "" +
 	"\x06branch\x18\x06 \x01(\tR\x06branch\x12\x1b\n" +
 	"\tpr_number\x18\a \x01(\x03R\bprNumber\x12'\n" +
 	"\x0ffork_repository\x18\b \x01(\tR\x0eforkRepository\x12#\n" +
-	"\rbuild_command\x18\t \x01(\tR\fbuildCommand\"\xf2\x01\n" +
+	"\rbuild_command\x18\t \x01(\tR\fbuildCommand\"\xd0\x01\n" +
 	"\rDeployRequest\x12#\n" +
-	"\rdeployment_id\x18\x01 \x01(\tR\fdeploymentId\x12#\n" +
-	"\vkey_auth_id\x18\x02 \x01(\tH\x01R\tkeyAuthId\x88\x01\x01\x12'\n" +
+	"\rdeployment_id\x18\x01 \x01(\tR\fdeploymentId\x12'\n" +
 	"\x03git\x18\x03 \x01(\v2\x13.hydra.v1.GitSourceH\x00R\x03git\x12:\n" +
 	"\fdocker_image\x18\x04 \x01(\v2\x15.hydra.v1.DockerImageH\x00R\vdockerImage\x12\x18\n" +
 	"\acommand\x18\x05 \x03(\tR\acommandB\b\n" +
-	"\x06sourceB\x0e\n" +
-	"\f_key_auth_id\"\x10\n" +
+	"\x06sourceJ\x04\b\x02\x10\x03R\vkey_auth_id\"\x10\n" +
 	"\x0eDeployResponse\"u\n" +
 	"\x0fRollbackRequest\x120\n" +
 	"\x14source_deployment_id\x18\x01 \x01(\tR\x12sourceDeploymentId\x120\n" +

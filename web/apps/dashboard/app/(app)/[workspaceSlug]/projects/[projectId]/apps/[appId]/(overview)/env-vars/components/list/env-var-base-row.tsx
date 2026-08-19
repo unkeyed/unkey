@@ -57,10 +57,14 @@ export function EnvVarBaseRow({
         <div
           className="pl-4 flex items-center w-8 shrink-0"
           onClick={(e) => {
-            if (showCheckbox && onCheckboxClick) {
-              e.stopPropagation();
-              onCheckboxClick(e.shiftKey);
+            if (!showCheckbox || !onCheckboxClick) {
+              return;
             }
+            e.stopPropagation();
+            if (e.target instanceof HTMLInputElement) {
+              return;
+            }
+            onCheckboxClick(e.shiftKey);
           }}
         >
           {showCheckbox && (

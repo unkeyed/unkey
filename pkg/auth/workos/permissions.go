@@ -67,6 +67,13 @@ var permissionMappings = map[string]permissionMapping{
 			{resource: "projects/*/apps/*/environments/*/deployments/*", action: action(rbacpermissions.RollbackDeployment{})},
 		},
 	},
+	"deployments:create": {
+		name:        "Create deployments",
+		description: "Allows creating and redeploying deployments.",
+		permissions: []permissionGrant{
+			{resource: "projects/*/apps/*/environments/*/deployments/*", action: action(rbacpermissions.CreateDeployment{})},
+		},
+	},
 	"deployments:promote": {
 		name:        "Promote deployments",
 		description: "Allows promoting a deployment to live.",
@@ -93,6 +100,55 @@ var permissionMappings = map[string]permissionMapping{
 		description: "Allows deleting projects.",
 		permissions: []permissionGrant{
 			{resource: "projects/*", action: action(rbacpermissions.DeleteProject{})},
+		},
+	},
+	"apps:create": {
+		name:        "Create apps",
+		description: "Allows creating apps in a project.",
+		permissions: []permissionGrant{
+			{resource: "projects/*/apps/*", action: action(rbacpermissions.CreateApp{})},
+		},
+	},
+	"apps:delete": {
+		name:        "Delete apps",
+		description: "Allows deleting apps.",
+		permissions: []permissionGrant{
+			{resource: "projects/*/apps/*", action: action(rbacpermissions.DeleteApp{})},
+		},
+	},
+	"environments:read": {
+		name:        "Read environments",
+		description: "Allows reading environment build and runtime settings.",
+		permissions: []permissionGrant{
+			{resource: "projects/*/apps/*/environments/*", action: action(rbacpermissions.ReadEnvironment{})},
+		},
+	},
+	"environments:update": {
+		name:        "Update environments",
+		description: "Allows updating environment build and runtime settings.",
+		permissions: []permissionGrant{
+			{resource: "projects/*/apps/*/environments/*", action: action(rbacpermissions.UpdateEnvironment{})},
+		},
+	},
+	"environment_variables:read": {
+		name:        "Read environment variables",
+		description: "Allows reading environment variables, including recoverable values.",
+		permissions: []permissionGrant{
+			{resource: "projects/*/apps/*/environments/*", action: action(rbacpermissions.ReadEnvironmentVariables{})},
+		},
+	},
+	"environment_variables:set": {
+		name:        "Set environment variables",
+		description: "Allows creating and overwriting environment variables.",
+		permissions: []permissionGrant{
+			{resource: "projects/*/apps/*/environments/*", action: action(rbacpermissions.SetEnvironmentVariables{})},
+		},
+	},
+	"environment_variables:remove": {
+		name:        "Remove environment variables",
+		description: "Allows removing environment variables.",
+		permissions: []permissionGrant{
+			{resource: "projects/*/apps/*/environments/*", action: action(rbacpermissions.RemoveEnvironmentVariables{})},
 		},
 	},
 	"identities:create": {
