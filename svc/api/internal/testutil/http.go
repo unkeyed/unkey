@@ -76,6 +76,7 @@ type Harness struct {
 	ClickHouse                 clickhouse.ClickHouse
 	KeyVerifications           *batch.BatchProcessor[schema.KeyVerification]
 	RatelimitEvents            *batch.BatchProcessor[schema.Ratelimit]
+	FrontlineRequests          *batch.BatchProcessor[schema.FrontlineRequest]
 	Ratelimit                  ratelimit.Service
 	Vault                      vault.VaultServiceClient
 	AnalyticsConnectionManager analytics.ConnectionManager
@@ -154,6 +155,7 @@ func NewHarness(t *testing.T, configs ...HarnessConfig) *Harness {
 	var ch clickhouse.ClickHouse
 	var keyVerifications *batch.BatchProcessor[schema.KeyVerification]
 	var ratelimitsfer *batch.BatchProcessor[schema.Ratelimit]
+	var frontlineRequests *batch.BatchProcessor[schema.FrontlineRequest]
 	if cfg.ClickHouse {
 		var err error
 		chClient, err := clickhouse.New(clickhouse.Config{
@@ -184,11 +186,24 @@ func NewHarness(t *testing.T, configs ...HarnessConfig) *Harness {
 			OnFlushError:  nil,
 		})
 		t.Cleanup(ratelimitsfer.Close)
+
+		frontlineRequests = clickhouse.NewBuffer[schema.FrontlineRequest](chClient, clickhouse.BufferConfig{
+			Name:          "frontline_requests",
+			BatchSize:     10,
+			BufferSize:    100,
+			FlushInterval: 100 * time.Millisecond,
+			Consumers:     2,
+			Drop:          true,
+			OnFlushError:  nil,
+		})
+		t.Cleanup(frontlineRequests.Close)
 	} else {
 		keyVerifications = batch.NewNoop[schema.KeyVerification]()
 		t.Cleanup(keyVerifications.Close)
 		ratelimitsfer = batch.NewNoop[schema.Ratelimit]()
 		t.Cleanup(ratelimitsfer.Close)
+		frontlineRequests = batch.NewNoop[schema.FrontlineRequest]()
+		t.Cleanup(frontlineRequests.Close)
 	}
 
 	validator, err := validation.New()
@@ -292,6 +307,7 @@ func NewHarness(t *testing.T, configs ...HarnessConfig) *Harness {
 		ClickHouse:                 ch,
 		KeyVerifications:           keyVerifications,
 		RatelimitEvents:            ratelimitsfer,
+		FrontlineRequests:          frontlineRequests,
 		DB:                         database,
 		seeder:                     seeder,
 		Clock:                      clk,

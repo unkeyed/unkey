@@ -135,6 +135,8 @@ paths:
     $ref: "./spec/paths/v2/liveness/index.yaml"
 
   # Analytics Endpoints
+  /v2/analytics.getGatewayRequests:
+    $ref: "./spec/paths/v2/analytics/getGatewayRequests/index.yaml"
   /v2/analytics.getRatelimits:
     $ref: "./spec/paths/v2/analytics/getRatelimits/index.yaml"
   /v2/analytics.getVerifications:

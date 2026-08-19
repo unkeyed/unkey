@@ -143,6 +143,40 @@ func TestParser_OnlySelectAllowed(t *testing.T) {
 	}
 }
 
+// TestParser_RejectsIntrospectionStatements guarantees schema introspection
+// never gets to ClickHouse. These statements list every column of a table
+// without selecting from it, so a column allow-list on a SELECT does not apply
+// to them. ClickHouse also refuses them for a workspace user, but the parser is
+// the first of the two barriers.
+func TestParser_RejectsIntrospectionStatements(t *testing.T) {
+	parser := NewParser(Config{
+		WorkspaceID: "ws_123",
+		TableAliases: map[string]string{
+			"events_v1": "default.events",
+		},
+		AllowedTables: []string{"default.events"},
+	})
+
+	queries := []string{
+		"DESCRIBE TABLE events_v1",
+		"DESCRIBE events_v1",
+		"DESC events_v1",
+		"SHOW CREATE TABLE events_v1",
+		"SHOW COLUMNS FROM events_v1",
+		"SHOW TABLES",
+		"EXISTS TABLE events_v1",
+		"EXPLAIN SELECT count() FROM events_v1",
+		"SELECT count() FROM events_v1; DESCRIBE TABLE events_v1",
+	}
+
+	for _, query := range queries {
+		t.Run(query, func(t *testing.T) {
+			_, err := parser.Parse(context.Background(), query)
+			require.Error(t, err, "introspection must not reach ClickHouse")
+		})
+	}
+}
+
 // TestParser_RejectsMultipleStatements guarantees validation covers the full
 // input instead of executing a valid first statement and ignoring the rest.
 func TestParser_RejectsMultipleStatements(t *testing.T) {
@@ -289,5 +323,67 @@ func TestParser_AllowsFilterableSetOperands(t *testing.T) {
 	for _, query := range queries {
 		_, err := parser.Parse(context.Background(), query)
 		require.NoError(t, err, query)
+	}
+}
+
+// TestParser_ParametricAggregates covers the parametric aggregate form
+// `f(0.95)(col)`. The vendored parser models it as a ParamExprList carrying a
+// ColumnArgList, so this pins that the validation walk descends into both
+// argument lists.
+func TestParser_ParametricAggregates(t *testing.T) {
+	p := NewParser(Config{
+		WorkspaceID: "ws_KEBAP",
+		TableAliases: map[string]string{
+			"events_v1": "default.events",
+		},
+		AllowedTables: []string{
+			"default.events",
+		},
+	})
+
+	tests := []struct {
+		name       string
+		query      string
+		shouldFail bool
+	}{
+		{
+			name:       "allowed parametric aggregate",
+			query:      "SELECT quantile(0.95)(latency) AS p95 FROM events_v1",
+			shouldFail: false,
+		},
+		{
+			// The parametric position must not become a hole in the function
+			// allow-list. If this passes, the walk is not reaching ColumnArgList
+			// and every disallowed function can be smuggled through it.
+			name:       "disallowed function in the column argument",
+			query:      "SELECT quantile(0.95)(file('/etc/passwd')) FROM events_v1",
+			shouldFail: true,
+		},
+		{
+			name:       "disallowed function in the parameter argument",
+			query:      "SELECT quantile(file('/etc/passwd'))(latency) FROM events_v1",
+			shouldFail: true,
+		},
+		{
+			name:       "state accessor stays blocked",
+			query:      "SELECT quantileTDigestState(0.95)(latency) FROM events_v1",
+			shouldFail: true,
+		},
+		{
+			name:       "merge accessor stays blocked",
+			query:      "SELECT quantileTDigestMerge(0.95)(latency) FROM events_v1",
+			shouldFail: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := p.Parse(context.Background(), tt.query)
+			if tt.shouldFail {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+		})
 	}
 }
