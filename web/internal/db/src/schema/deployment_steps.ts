@@ -38,6 +38,9 @@ export const deploymentSteps = mysqlTable(
   (table) => [
     index("workspace_idx").on(table.workspaceId),
     uniqueIndex("unique_step_per_deployment").on(table.deploymentId, table.step),
+    // Serves the step-duration average: WHERE step = ? AND started_at >= ?
+    // reading ended_at. All three columns in the index keep it index-only.
+    index("step_started_at_idx").on(table.step, table.startedAt, table.endedAt),
   ],
 );
 

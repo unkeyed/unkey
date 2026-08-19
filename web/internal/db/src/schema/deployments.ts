@@ -141,6 +141,9 @@ export const deployments = mysqlTable(
     index("workspace_idx").on(table.workspaceId),
     index("project_idx").on(table.projectId),
     index("status_idx").on(table.status),
+    // Serves the recency pollers: ORDER BY created_at DESC LIMIT n, and
+    // 7-day windows aggregating status. status makes those index-only.
+    index("created_at_status_idx").on(table.createdAt, table.status),
   ],
 );
 

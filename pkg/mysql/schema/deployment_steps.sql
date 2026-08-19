@@ -15,3 +15,5 @@ CREATE TABLE `deployment_steps` (
 
 CREATE INDEX `workspace_idx` ON `deployment_steps` (`workspace_id`);
 
+CREATE INDEX `step_started_at_idx` ON `deployment_steps` (`step`,`started_at`,`ended_at`);
+
