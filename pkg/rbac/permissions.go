@@ -80,7 +80,7 @@ const (
 	// VerifyKey permits verifying API keys
 	VerifyKey ActionType = "verify_key"
 
-	// ReadAnalytics permits viewing API analytics
+	// ReadAnalytics permits reading the analytics data of a resource with SQL
 	ReadAnalytics ActionType = "read_analytics"
 )
 
@@ -221,6 +221,10 @@ const (
 
 	// DeleteProject permits deleting projects
 	DeleteProject ActionType = "delete_project"
+
+	// ReadGatewayRequests permits reading the gateway request data of a project
+	// with SQL
+	ReadGatewayRequests ActionType = "read_gateway_requests"
 )
 
 // Predefined app actions. These constants define operations that can be

@@ -55,6 +55,11 @@ export function transformFilters(
     region,
     environmentId,
     message: params.message,
+    attributes: params.attributes?.operator === "contains" ? params.attributes.value : null,
+    attributeMatch:
+      params.attributes?.operator === "is"
+        ? { path: params.attributes.path, value: params.attributes.value }
+        : null,
     page: params.page,
   };
 }

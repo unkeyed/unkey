@@ -32,6 +32,13 @@ func TestExtractUserFriendlyError(t *testing.T) {
 			input:    `Code: 60. DB::Exception: Table default.nonexistent doesn't exist. (UNKNOWN_TABLE) (version 25.6.4.12)`,
 			expected: "Invalid analytics query",
 		},
+		// ClickHouse answers this for SELECT * on a table with a column grant,
+		// because it expands the star to every physical column.
+		{
+			name:     "column outside the grant",
+			input:    `code: 497, message: ws_test: Not enough privileges. To execute this query, it's necessary to have the grant SELECT(path, platform) ON default.frontline_requests_raw_v1. (Missing permissions: SELECT(platform) ON default.frontline_requests_raw_v1)`,
+			expected: "The query reads a column that is not available. Select only the documented columns instead of *",
+		},
 	}
 
 	for _, tt := range tests {

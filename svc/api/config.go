@@ -53,6 +53,17 @@ type GitHubConfig struct {
 	PrivateKeyPEM string `toml:"private_key_pem"`
 }
 
+// RestateConfig configures the Restate ingress used to submit durable
+// workflows.
+type RestateConfig struct {
+	// URL is the Restate ingress endpoint.
+	URL string `toml:"url" config:"required,nonempty"`
+
+	// APIKey authenticates every ingress request. Local Restate ignores the
+	// configured dummy key because ingress authentication is disabled there.
+	APIKey string `toml:"api_key" config:"required,nonempty"`
+}
+
 const (
 	authTypeJWT           = "jwt"
 	authTypePortalSession = "portal_session"
@@ -356,6 +367,9 @@ type Config struct {
 	// Control configures the deployment management service. See [config.ControlConfig].
 	Control config.ControlConfig `toml:"control"`
 
+	// Restate configures durable workflow ingress. See [RestateConfig].
+	Restate RestateConfig `toml:"restate"`
+
 	// PortalBaseURL is the base URL for the customer portal.
 	// Example: "https://portal.unkey.com"
 	// Used to construct session redirect URLs in portal.createSession responses.
@@ -476,6 +490,25 @@ func (c *Config) Validate() error {
 		default:
 			return fmt.Errorf("auth[%d] has unsupported auth config type", i)
 		}
+	}
+
+	// Run also accepts programmatically constructed configs and calls Validate
+	// directly, so enforce these requirements here as well as in struct tags.
+	if strings.TrimSpace(c.Restate.URL) == "" {
+		return fmt.Errorf("restate.url is required")
+	}
+	restateURL, err := url.Parse(c.Restate.URL)
+	if err != nil || restateURL.Host == "" || (restateURL.Scheme != "http" && restateURL.Scheme != "https") {
+		return fmt.Errorf("restate.url must be an absolute HTTP(S) URL")
+	}
+	if restateURL.Path != "" || strings.ContainsAny(c.Restate.URL, "?#") {
+		return fmt.Errorf("restate.url must not include a path, query, or fragment")
+	}
+	if strings.TrimSpace(c.Restate.APIKey) == "" {
+		return fmt.Errorf("restate.api_key is required")
+	}
+	if c.Restate.APIKey != strings.TrimSpace(c.Restate.APIKey) {
+		return fmt.Errorf("restate.api_key must not have surrounding whitespace")
 	}
 	return nil
 }

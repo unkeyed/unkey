@@ -1,5 +1,6 @@
 import { z } from "zod";
 import type { Querier } from "./client";
+import { escapeLikePattern } from "./util";
 
 export const TIMESERIES_WINDOW_HOURS = 6;
 export const TIMESERIES_INTERVAL_MINUTES = 15;
@@ -65,6 +66,18 @@ const rpsResponseSchema = z.object({ avg_rps: z.number() });
 // callers coalesce to 0; the previous z.number() crashed the request.
 const timeseriesPointSchema = z.object({ x: z.number().int(), y: z.number() });
 
+const pathFilterSchema = z.discriminatedUnion("operator", [
+  z.object({
+    operator: z.literal("is"),
+    value: z.string().min(1).max(2_048),
+  }),
+  z.object({
+    operator: z.enum(["startsWith", "contains"]),
+    // The path ngram index uses trigrams, so shorter values cannot use it.
+    value: z.string().min(3).max(2_048),
+  }),
+]);
+
 // ─────────────────────────────────────────────────────────────
 // Logs
 // ─────────────────────────────────────────────────────────────
@@ -81,15 +94,10 @@ export const requestLogsRequestSchema = z.object({
   since: z.string().nullable().default(null),
   statusCodes: z.array(z.number().int()).nullable().default(null),
   methods: z.array(z.string()).nullable().default(null),
-  paths: z
-    .array(
-      z.object({
-        operator: z.literal("contains"),
-        value: z.string(),
-      }),
-    )
-    .nullable()
-    .default(null),
+  paths: z.array(pathFilterSchema).nullable().default(null),
+  host: z.array(z.string().min(1).max(512)).nullable().default(null),
+  requestId: z.array(z.string().min(1).max(512)).nullable().default(null),
+  region: z.array(z.string().min(1).max(256)).nullable().default(null),
   // 1-based page for offset pagination. Defaults to 1 (offset 0).
   page: z.number().int().min(1).default(1),
 });
@@ -122,24 +130,35 @@ export type RequestLogsResponse = z.infer<typeof requestLogsResponseSchema>;
 
 export function getRequestLogs(ch: Querier) {
   return async (args: RequestLogsRequest) => {
-    // Build path filter conditions
     let pathConditions = "TRUE";
     const pathParams: Record<string, z.ZodString> = {};
 
-    if (args.paths && args.paths.length > 0) {
-      const conditions = args.paths.map((_, i) => {
-        const key = `pathValue${i}`;
+    if (args.paths !== null && args.paths.length > 0) {
+      const conditions = args.paths.map((pathFilter, index) => {
+        const key = `pathValue${index}`;
         pathParams[key] = z.string();
-        return `position(path, {${key}: String}) > 0`;
+
+        switch (pathFilter.operator) {
+          case "is":
+            return `path = {${key}: String}`;
+          case "startsWith":
+            return `startsWith(path, {${key}: String})`;
+          case "contains":
+            return `path LIKE concat('%', {${key}: String}, '%')`;
+        }
       });
       pathConditions = `(${conditions.join(" OR ")})`;
     }
 
-    // Build base filters (workspace + project only)
     const baseFilter = `
       workspace_id = {workspaceId: String}
       AND project_id = {projectId: String}
     `;
+    const optionalConditions = [
+      args.host?.length ? "host IN {host: Array(String)}" : null,
+      args.requestId?.length ? "request_id IN {requestId: Array(String)}" : null,
+      args.region?.length ? "region IN {region: Array(String)}" : null,
+    ].filter((condition): condition is string => condition !== null);
 
     const filterConditions = `
       ${baseFilter}
@@ -165,21 +184,19 @@ export function getRequestLogs(ch: Querier) {
            THEN method IN {methods: Array(String)}
            ELSE TRUE END)
       AND ${pathConditions}
+      ${optionalConditions.map((condition) => `AND ${condition}`).join("\n      ")}
     `;
+    const queryParamsSchema = requestLogsRequestSchema.extend(pathParams);
 
-    // Convert path params to actual values
     const pathValues: Record<string, string> = {};
-    if (args.paths) {
-      args.paths.forEach((p, i) => {
-        pathValues[`pathValue${i}`] = p.value;
-      });
-    }
+    args.paths?.forEach((pathFilter, index) => {
+      pathValues[`pathValue${index}`] =
+        pathFilter.operator === "contains" ? escapeLikePattern(pathFilter.value) : pathFilter.value;
+    });
 
     const totalQuery = ch.query({
       query: `SELECT count(*) as total_count FROM ${TABLE} WHERE ${filterConditions}`,
-      params: requestLogsRequestSchema.extend(
-        Object.fromEntries(Object.keys(pathParams).map((k) => [k, z.string()])),
-      ),
+      params: queryParamsSchema,
       schema: z.object({ total_count: z.number().int() }),
     });
 
@@ -204,9 +221,8 @@ export function getRequestLogs(ch: Querier) {
         SETTINGS
           query_plan_optimize_lazy_materialization = 1,
           query_plan_max_limit_for_lazy_materialization = ${LAZY_MATERIALIZATION_MAX_LIMIT}`,
-      params: requestLogsRequestSchema.extend({
+      params: queryParamsSchema.extend({
         offset: z.number().int(),
-        ...Object.fromEntries(Object.keys(pathParams).map((k) => [k, z.string()])),
       }),
       schema: requestLogsResponseSchema,
     });

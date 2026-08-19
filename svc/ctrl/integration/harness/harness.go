@@ -150,9 +150,6 @@ func New(t *testing.T, opts ...Option) *Harness {
 		o.clock = clock.New()
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), o.timeout)
-	t.Cleanup(cancel)
-
 	start := time.Now()
 
 	// Start the shared backing services in parallel. Restate starts after its
@@ -317,6 +314,12 @@ func New(t *testing.T, opts ...Option) *Harness {
 		APIKey:  "",
 	}))
 	t.Logf("Total harness setup in %s", time.Since(start))
+
+	// The timeout limits test operations, not container startup and service
+	// readiness. Starting it before setup can return an already-expired context
+	// to the first request when CI is under load.
+	ctx, cancel := context.WithTimeout(context.Background(), o.timeout)
+	t.Cleanup(cancel)
 
 	return &Harness{
 		Ctx:            ctx,
