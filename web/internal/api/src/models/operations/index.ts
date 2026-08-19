@@ -9,7 +9,7 @@ export * from "./identitieslistidentities.js";
 export * from "./permissionslistpermissions.js";
 export * from "./permissionslistroles.js";
 export * from "./portalcreatesession.js";
-export * from "./portalexchangesession.js";
+export * from "./portalexchangecode.js";
 export * from "./portalgetverifications.js";
 export * from "./portallistkeys.js";
 export * from "./portalrerollkey.js";

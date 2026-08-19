@@ -184,10 +184,10 @@ const (
 	// NotFound indicates the requested audit log was not found.
 	UnkeyDataErrorsAuditLogNotFound URN = "err:unkey:data:audit_log_not_found"
 
-	// PortalConfig
+	// Portal
 
-	// NotFound indicates the requested portal configuration was not found.
-	UnkeyDataErrorsPortalConfigNotFound URN = "err:unkey:data:portal_config_not_found"
+	// NotFound indicates the requested portal was not found.
+	UnkeyDataErrorsPortalNotFound URN = "err:unkey:data:portal_not_found"
 
 	// Analytics
 

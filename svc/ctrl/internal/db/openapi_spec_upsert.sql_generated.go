@@ -11,7 +11,7 @@ import (
 )
 
 const upsertOpenApiSpec = `-- name: UpsertOpenApiSpec :exec
-INSERT INTO openapi_specs (id,workspace_id, deployment_id, portal_config_id, content, created_at, updated_at)
+INSERT INTO openapi_specs (id,workspace_id, deployment_id, portal_id, content, created_at, updated_at)
 VALUES (?,?, ?, ?,
         ?, ?, ?)
 ON DUPLICATE KEY UPDATE
@@ -20,18 +20,18 @@ ON DUPLICATE KEY UPDATE
 `
 
 type UpsertOpenApiSpecParams struct {
-	ID             string         `db:"id"`
-	WorkspaceID    string         `db:"workspace_id"`
-	DeploymentID   sql.NullString `db:"deployment_id"`
-	PortalConfigID sql.NullString `db:"portal_config_id"`
-	Content        []byte         `db:"content"`
-	CreatedAt      int64          `db:"created_at"`
-	UpdatedAt      sql.NullInt64  `db:"updated_at"`
+	ID           string         `db:"id"`
+	WorkspaceID  string         `db:"workspace_id"`
+	DeploymentID sql.NullString `db:"deployment_id"`
+	PortalID     sql.NullString `db:"portal_id"`
+	Content      []byte         `db:"content"`
+	CreatedAt    int64          `db:"created_at"`
+	UpdatedAt    sql.NullInt64  `db:"updated_at"`
 }
 
 // UpsertOpenApiSpec
 //
-//	INSERT INTO openapi_specs (id,workspace_id, deployment_id, portal_config_id, content, created_at, updated_at)
+//	INSERT INTO openapi_specs (id,workspace_id, deployment_id, portal_id, content, created_at, updated_at)
 //	VALUES (?,?, ?, ?,
 //	        ?, ?, ?)
 //	ON DUPLICATE KEY UPDATE
@@ -42,7 +42,7 @@ func (q *Queries) UpsertOpenApiSpec(ctx context.Context, arg UpsertOpenApiSpecPa
 		arg.ID,
 		arg.WorkspaceID,
 		arg.DeploymentID,
-		arg.PortalConfigID,
+		arg.PortalID,
 		arg.Content,
 		arg.CreatedAt,
 		arg.UpdatedAt,
