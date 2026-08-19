@@ -1,0 +1,75 @@
+post:
+  tags:
+    - analytics
+  security:
+    - bearer: []
+  x-speakeasy-name-override: getGatewayRequests
+  operationId: analytics.getGatewayRequests
+  summary: Query gateway request data
+  description: |
+    A query can use only the public alias `gateway_requests_v1`. CTEs, subqueries, UNION, and EXCEPT are permitted.
+    The root key must have the `project.*.read_gateway_requests` permission.
+    Unkey limits each query to the workspace of the root key. To get the data for one project, app, or environment, add a filter on `project_id`, `app_id`, or `environment_id`.
+    The workspace retention period and the workspace query limits apply.
+    For the columns and more query examples, see the gateway request analytics documentation.
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          "$ref": "./V2AnalyticsGetGatewayRequestsRequestBody.yaml"
+  responses:
+    "200":
+      content:
+        application/json:
+          schema:
+            "$ref": "./V2AnalyticsGetGatewayRequestsResponseBody.yaml"
+      description: Query executed successfully
+    "400":
+      content:
+        application/json:
+          schema:
+            $ref: "../../../../error/BadRequestErrorResponse.yaml"
+      description: Invalid SQL query, blocked operation, or missing required authentication
+    "401":
+      content:
+        application/json:
+          schema:
+            $ref: "../../../../error/UnauthorizedErrorResponse.yaml"
+      description: Invalid authentication credentials
+    "403":
+      content:
+        application/json:
+          schema:
+            $ref: "../../../../error/ForbiddenErrorResponse.yaml"
+      description: Insufficient permissions
+    "412":
+      content:
+        application/json:
+          schema:
+            $ref: "../../../../error/PreconditionFailedErrorResponse.yaml"
+      description: Analytics is not configured for the workspace
+    "422":
+      content:
+        application/json:
+          schema:
+            $ref: "../../../../error/UnprocessableEntityErrorResponse.yaml"
+      description: Query exceeds workspace query limits
+    "429":
+      content:
+        application/problem+json:
+          schema:
+            $ref: "../../../../error/TooManyRequestsErrorResponse.yaml"
+      description: Query quota exceeded
+    "500":
+      content:
+        application/json:
+          schema:
+            $ref: "../../../../error/InternalServerErrorResponse.yaml"
+      description: Query execution failed
+    "503":
+      content:
+        application/json:
+          schema:
+            $ref: "../../../../error/ServiceUnavailableErrorResponse.yaml"
+      description: Connection to the database failed

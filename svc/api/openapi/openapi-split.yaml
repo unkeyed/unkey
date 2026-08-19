@@ -135,6 +135,8 @@ paths:
     $ref: "./spec/paths/v2/liveness/index.yaml"
 
   # Analytics Endpoints
+  /v2/analytics.getGatewayRequests:
+    $ref: "./spec/paths/v2/analytics/getGatewayRequests/index.yaml"
   /v2/analytics.getRatelimits:
     $ref: "./spec/paths/v2/analytics/getRatelimits/index.yaml"
   /v2/analytics.getVerifications:
@@ -232,8 +234,8 @@ paths:
   # Portal Endpoints
   /v2/portal.createSession:
     $ref: "./spec/paths/v2/portal/createSession/index.yaml"
-  /v2/portal.exchangeSession:
-    $ref: "./spec/paths/v2/portal/exchangeSession/index.yaml"
+  /v2/portal.exchangeCode:
+    $ref: "./spec/paths/v2/portal/exchangeCode/index.yaml"
   /v2/portal.listKeys:
     $ref: "./spec/paths/v2/portal/listKeys/index.yaml"
   /v2/portal.rerollKey:
@@ -348,7 +350,7 @@ components:
       in: cookie
       name: portal_session
       description: |-
-        Browser session cookie for the Customer Portal. Set by `portal.exchangeSession`
+        Session cookie for the Customer Portal. Set by `portal.exchangeCode`
         and sent automatically by the browser on `portal.*` requests. Portal sessions
         are scoped to a single end user (external identity) and can only access the
         `portal.*` routes.

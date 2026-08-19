@@ -22,7 +22,6 @@ import type { ReactNode } from "react";
 import { currentApiProduct } from "./components/api-plan";
 import { BillingNotices } from "./components/billing-notices";
 import { CostControl } from "./components/cost-control";
-import { InvoiceCard } from "./components/invoice-card";
 import { PlansCard } from "./components/plans-card";
 import { RelatedPages } from "./components/related-pages";
 
@@ -95,12 +94,6 @@ export function DeployBillingClientV2() {
   return (
     <Shell>
       <BillingNotices isAdmin={isAdmin} subscription={subscription} />
-
-      <InvoiceCard
-        workspaceSlug={workspace.slug}
-        isAdmin={isAdmin}
-        hasPaymentMethod={hasPaymentMethod}
-      />
 
       {billingError ? (
         <Empty>

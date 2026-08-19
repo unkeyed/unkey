@@ -1,10 +1,7 @@
-import { limitsByPlan } from "@/lib/limits";
 import type { Router } from "@/lib/trpc/routers";
 import type { inferRouterOutputs } from "@trpc/server";
 
 type BillingInfo = inferRouterOutputs<Router>["stripe"]["getBillingInfo"];
-
-export const FREE_TIER_QUOTA = limitsByPlan.free.apiBillableOperationsCountMaxPerMonth;
 
 const BILLING_STATUSES = ["active", "trialing", "past_due"];
 

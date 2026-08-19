@@ -361,6 +361,9 @@ importers:
       '@unkey/db':
         specifier: workspace:^
         version: link:../../internal/db
+      '@unkey/hash':
+        specifier: workspace:^
+        version: link:../../internal/hash
       '@unkey/icons':
         specifier: workspace:^
         version: link:../../internal/icons

@@ -1,0 +1,9 @@
+type: array
+description: The gateway request rows that the query returned. The SELECT clause of the query controls the fields in each row.
+items:
+  type: object
+  additionalProperties: true
+  description: One result row. The query controls its fields.
+example:
+  - path: "/v1/orders"
+    total: 1234

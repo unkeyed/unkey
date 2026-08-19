@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from "react";
 type FilterOption<T extends string = string> = {
   id: T;
   label: string;
+  placeholder?: string;
 };
 
 type FilterOperatorInputProps<T extends string> = {
@@ -13,6 +14,7 @@ type FilterOperatorInputProps<T extends string> = {
   defaultOption?: T;
   defaultText?: string;
   label: string;
+  validate?: (selectedId: T, text: string) => string | null;
   onApply: (selectedId: T, text: string) => void;
 };
 
@@ -22,9 +24,11 @@ export const FilterOperatorInput = <T extends string>({
   defaultText = "",
   onApply,
   label,
+  validate,
 }: FilterOperatorInputProps<T>) => {
   const [selectedOption, setSelectedOption] = useState<T>(defaultOption);
   const [text, setText] = useState(defaultText);
+  const [error, setError] = useState<string | null>(null);
   const optionRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -34,8 +38,13 @@ export const FilterOperatorInput = <T extends string>({
   }, [options.length]);
 
   const handleApply = () => {
-    if (text.trim()) {
-      onApply(selectedOption, text);
+    const trimmedText = text.trim();
+    if (trimmedText) {
+      const validationError = validate?.(selectedOption, trimmedText) ?? null;
+      setError(validationError);
+      if (!validationError) {
+        onApply(selectedOption, trimmedText);
+      }
     }
   };
 
@@ -135,11 +144,23 @@ export const FilterOperatorInput = <T extends string>({
           <Textarea
             ref={textareaRef}
             value={text}
-            onChange={(e) => setText(e.target.value)}
-            placeholder="Enter text"
+            onChange={(e) => {
+              setText(e.target.value);
+              setError(null);
+            }}
+            placeholder={
+              options.find((option) => option.id === selectedOption)?.placeholder ?? "Enter text"
+            }
             onKeyDown={handleTextareaKeyDown}
+            aria-invalid={error !== null}
+            aria-describedby={error ? "filter-operator-error" : undefined}
             className="h-20"
           />
+          {error ? (
+            <p id="filter-operator-error" className="text-error-11 text-xs">
+              {error}
+            </p>
+          ) : null}
         </div>
         <Button variant="primary" className="py-[14px] w-full h-9 rounded-md" onClick={handleApply}>
           Search

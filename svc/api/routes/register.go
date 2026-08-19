@@ -64,11 +64,12 @@ import (
 	v2KeysVerifyKey "github.com/unkeyed/unkey/svc/api/routes/v2_keys_verify_key"
 	v2KeysWhoami "github.com/unkeyed/unkey/svc/api/routes/v2_keys_whoami"
 
+	v2AnalyticsGetGatewayRequests "github.com/unkeyed/unkey/svc/api/routes/v2_analytics_get_gateway_requests"
 	v2AnalyticsGetRatelimits "github.com/unkeyed/unkey/svc/api/routes/v2_analytics_get_ratelimits"
 	v2AnalyticsGetVerifications "github.com/unkeyed/unkey/svc/api/routes/v2_analytics_get_verifications"
 
 	v2PortalCreateSession "github.com/unkeyed/unkey/svc/api/routes/v2_portal_create_session"
-	v2PortalExchangeSession "github.com/unkeyed/unkey/svc/api/routes/v2_portal_exchange_session"
+	v2PortalExchangeCode "github.com/unkeyed/unkey/svc/api/routes/v2_portal_exchange_code"
 	v2PortalGetVerifications "github.com/unkeyed/unkey/svc/api/routes/v2_portal_get_verifications"
 	v2PortalListKeys "github.com/unkeyed/unkey/svc/api/routes/v2_portal_list_keys"
 	v2PortalRerollKey "github.com/unkeyed/unkey/svc/api/routes/v2_portal_reroll_key"
@@ -693,6 +694,14 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 	// ---------------------------------------------------------------------------
 	// v2/analytics
 
+	// v2/analytics.getGatewayRequests
+	srv.RegisterRoute(
+		protectedMiddlewares,
+		&v2AnalyticsGetGatewayRequests.Handler{
+			AnalyticsConnectionManager: svc.AnalyticsConnectionManager,
+		},
+	)
+
 	// v2/analytics.getVerifications
 	srv.RegisterRoute(
 		protectedMiddlewares,
@@ -724,10 +733,10 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 		},
 	)
 
-	// v2/portal.exchangeSession
+	// v2/portal.exchangeCode
 	srv.RegisterRoute(
 		publicMiddlewares,
-		&v2PortalExchangeSession.Handler{
+		&v2PortalExchangeCode.Handler{
 			DB:        svc.Database,
 			Auditlogs: svc.Auditlogs,
 		},

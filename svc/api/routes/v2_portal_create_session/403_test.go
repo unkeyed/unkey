@@ -28,12 +28,12 @@ func TestCreateSessionForbiddenDisabledPortal(t *testing.T) {
 	h.Register(route)
 
 	workspaceID := h.Resources().UserWorkspace.ID
-	portalConfigID := uid.New(uid.PortalConfigPrefix)
+	portalID := uid.New(uid.PortalPrefix)
 	now := time.Now().UnixMilli()
 
-	// Insert a disabled portal config.
-	err := db.Query.InsertPortalConfig(ctx, h.DB.RW(), db.InsertPortalConfigParams{
-		ID:          portalConfigID,
+	// Insert a disabled portal.
+	err := db.Query.InsertPortal(ctx, h.DB.RW(), db.InsertPortalParams{
+		ID:          portalID,
 		WorkspaceID: workspaceID,
 		Slug:        "disabled-portal",
 		KeyAuthID:   sql.NullString{Valid: true, String: uid.New(uid.KeySpacePrefix)},
@@ -50,9 +50,9 @@ func TestCreateSessionForbiddenDisabledPortal(t *testing.T) {
 	}
 
 	req := handler.Request{
-		Slug:        "disabled-portal",
-		ExternalId:  "user_123",
-		Permissions: []openapi.V2PortalCreateSessionRequestBodyPermissions{"keys:read"},
+		Portal:     "disabled-portal",
+		ExternalId: "user_123",
+		Scopes:     []openapi.V2PortalCreateSessionRequestBodyScopes{"keys:read"},
 	}
 
 	res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, headers, req)

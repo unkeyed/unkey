@@ -17,6 +17,8 @@ const formatFieldName = (field: string): string => {
       return "Severity";
     case "message":
       return "Message";
+    case "attributes":
+      return "Attributes";
     case "appId":
       return "App";
     case "deploymentId":
