@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+cd "$(dirname "$0")/.."
+# shellcheck source=lib.sh
+. "$(dirname "$0")/lib.sh"
+
+echo "Restoring Docker access..."
+start_docker
+ensure_docker_storage
+grant_docker_sock
+raise_inotify_quota
+
+mise="$HOME/.local/bin/mise"
+if [ ! -x "$mise" ]; then
+  echo "mise is missing; running full setup..."
+  bash "$(dirname "$0")/setup"
+fi
+
+echo "Cursor Cloud resume complete."

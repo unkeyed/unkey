@@ -1,6 +1,7 @@
-// Command amp-orb-services provides the network adapters used by .amp/services.yaml.
+// Command amp-orb-services provides the network adapters used by .amp/services.yaml
+// and by Cursor Cloud's local app index.
 //
-// Amp can expose only processes that listen directly in the orb. The local Unkey
+// Amp and Cursor can expose only processes that listen in the VM. The local Unkey
 // stack instead exposes some services through minikube loopback ports and routes
 // deployed applications through Frontline. These commands bridge those boundaries
 // without changing the production services or bypassing Frontline behavior.
@@ -22,7 +23,7 @@ const commandTimeout = 30 * time.Second
 
 func main() {
 	if len(os.Args) < 2 {
-		fatalf("usage: amp-orb-services <proxy|frontline|deployment-portals> [arguments]")
+		fatalf("usage: amp-orb-services <proxy|frontline|deployment-portals|local-apps|host-frontline> [arguments]")
 	}
 
 	var err error
@@ -33,6 +34,10 @@ func main() {
 		err = runFrontlineProxy(os.Args[2:])
 	case "deployment-portals":
 		err = runDeploymentPortals(os.Args[2:])
+	case "local-apps":
+		err = runLocalApps(os.Args[2:])
+	case "host-frontline":
+		err = runHostFrontline(os.Args[2:])
 	default:
 		err = fmt.Errorf("unknown command %q", os.Args[1])
 	}
