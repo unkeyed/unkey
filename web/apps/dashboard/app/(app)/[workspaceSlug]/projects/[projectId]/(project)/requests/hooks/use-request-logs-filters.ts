@@ -3,13 +3,13 @@ import {
   parseAsRelativeTime,
 } from "@/components/logs/validation/utils/nuqs-parsers";
 import {
-  type LogsFilterField as RequestLogsFilterField,
-  type LogsFilterOperator as RequestLogsFilterOperator,
-  type LogsFilterUrlValue as RequestLogsFilterUrlValue,
-  type LogsFilterValue as RequestLogsFilterValue,
-  type QuerySearchParams as RequestLogsQuerySearchParams,
-  logsFilterFieldConfig as requestLogsFilterFieldConfig,
-} from "@/lib/schemas/logs.filter.schema";
+  type RequestLogsFilterField,
+  type RequestLogsFilterOperator,
+  type RequestLogsFilterUrlValue,
+  type RequestLogsFilterValue,
+  type RequestLogsQuerySearchParams,
+  requestLogsFilterFieldConfig,
+} from "@/lib/schemas/request-logs.filter.schema";
 import { parseAsInteger, useQueryStates } from "nuqs";
 import { useCallback, useMemo } from "react";
 
@@ -17,6 +17,7 @@ import { useCallback, useMemo } from "react";
 const parseAsFilterValArray = parseAsFilterValueArray<RequestLogsFilterOperator>([
   "is",
   "contains",
+  "startsWith",
 ]);
 
 const arrayFields = [
@@ -26,6 +27,9 @@ const arrayFields = [
   "appId",
   "deploymentId",
   "environmentId",
+  "host",
+  "requestId",
+  "region",
 ] as const;
 const timeFields = ["startTime", "endTime", "since"] as const;
 
@@ -37,6 +41,9 @@ export const queryParamsPayload = {
   appId: parseAsFilterValArray,
   deploymentId: parseAsFilterValArray,
   environmentId: parseAsFilterValArray,
+  host: parseAsFilterValArray,
+  requestId: parseAsFilterValArray,
+  region: parseAsFilterValArray,
   startTime: parseAsInteger,
   endTime: parseAsInteger,
   since: parseAsRelativeTime,
@@ -53,20 +60,23 @@ export const useRequestLogsFilters = () => {
     // Handle array filters
     arrayFields.forEach((field) => {
       searchParams[field]?.forEach((item) => {
+        if (
+          !requestLogsFilterFieldConfig[field].operators.some(
+            (operator) => operator === item.operator,
+          )
+        ) {
+          return;
+        }
+        const colorClass =
+          field === "status"
+            ? requestLogsFilterFieldConfig.status.getColorClass?.(Number(item.value))
+            : undefined;
         activeFilters.push({
           id: crypto.randomUUID(),
           field,
           operator: item.operator,
           value: item.value,
-          metadata: requestLogsFilterFieldConfig[field].getColorClass
-            ? {
-                colorClass: requestLogsFilterFieldConfig[field].getColorClass(
-                  //TODO: Handle this later
-                  //@ts-expect-error will fix it
-                  field === "status" ? Number(item.value) : item.value,
-                ),
-              }
-            : undefined,
+          metadata: colorClass ? { colorClass } : undefined,
         });
       });
     });

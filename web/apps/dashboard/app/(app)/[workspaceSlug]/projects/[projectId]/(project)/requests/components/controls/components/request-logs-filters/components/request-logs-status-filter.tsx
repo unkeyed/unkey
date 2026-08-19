@@ -1,5 +1,5 @@
 import { useRequestLogsFilters } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/(project)/requests/hooks/use-request-logs-filters";
-import type { LogsFilterValue } from "@/lib/schemas/logs.filter.schema";
+import type { RequestLogsFilterValue } from "@/lib/schemas/request-logs.filter.schema";
 import { Button, Checkbox } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 import { useCallback, useState } from "react";
@@ -71,7 +71,7 @@ export const RequestStatusFilter = () => {
   const handleApply = useCallback(() => {
     const otherFilters = filters.filter((f) => f.field !== "status");
 
-    const rangeFilters: LogsFilterValue[] = checkboxes
+    const rangeFilters: RequestLogsFilterValue[] = checkboxes
       .filter((c) => c.checked)
       .map((c) => ({
         id: crypto.randomUUID(),
@@ -81,7 +81,7 @@ export const RequestStatusFilter = () => {
         metadata: { colorClass: c.color },
       }));
 
-    const exactFilters: LogsFilterValue[] = [];
+    const exactFilters: RequestLogsFilterValue[] = [];
     if (customCode !== "") {
       if (!codeMeta.label) {
         setCodeError(true);

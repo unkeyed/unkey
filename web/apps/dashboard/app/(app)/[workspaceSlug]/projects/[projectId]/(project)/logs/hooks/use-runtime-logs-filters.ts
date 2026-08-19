@@ -23,6 +23,7 @@ const parseAsFilterValArray = parseAsFilterValueArray<RuntimeLogsFilterOperator>
 const arrayFields = [
   "severity",
   "message",
+  "attributes",
   "appId",
   "environmentId",
   "deploymentId",
@@ -34,6 +35,7 @@ const timeFields = ["startTime", "endTime", "since"] as const;
 export const queryParamsPayload = {
   severity: parseAsFilterValArray,
   message: parseAsFilterValArray,
+  attributes: parseAsFilterValArray,
   appId: parseAsFilterValArray,
   environmentId: parseAsFilterValArray,
   deploymentId: parseAsFilterValArray,
