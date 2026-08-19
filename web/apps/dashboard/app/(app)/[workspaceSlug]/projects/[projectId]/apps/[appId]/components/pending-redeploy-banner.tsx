@@ -1,5 +1,6 @@
 "use client";
 
+import { useDeployActionGate } from "@/app/(app)/[workspaceSlug]/projects/_components/hooks/use-deploy-action-gate";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { queryClient } from "@/lib/collections/client";
 import {
@@ -7,8 +8,9 @@ import {
   useSettingsBannerVisible,
 } from "@/lib/collections/deploy/environment-settings";
 import { routes } from "@/lib/navigation/routes";
-import { trpc } from "@/lib/trpc/client";
+import { getErrorMessage, getUnkeyClient } from "@/lib/unkey-client";
 import { cn } from "@/lib/utils";
+import { useMutation } from "@tanstack/react-query";
 import { Hammer2, XMark } from "@unkey/icons";
 import { Button, toast } from "@unkey/ui";
 import { useRouter } from "next/navigation";
@@ -20,6 +22,7 @@ export function PendingRedeployBanner() {
   const { project, deployments, projectId } = useProjectData();
   const router = useRouter();
   const workspace = useWorkspaceNavigation();
+  const { gated, openPaywall, planGate } = useDeployActionGate();
   const visible = useSettingsBannerVisible();
   const currentDeploymentId = project?.currentDeploymentId;
 
@@ -29,7 +32,21 @@ export function PendingRedeployBanner() {
 
   const show = visible && !!currentDeployment;
 
-  const redeploy = trpc.deploy.deployment.redeploy.useMutation({
+  const redeploy = useMutation({
+    mutationFn: async (deployment: {
+      id: string;
+      projectId: string;
+      appId: string;
+      environmentId: string;
+    }) => {
+      const res = await getUnkeyClient().deployments.createDeployment({
+        project: deployment.projectId,
+        app: deployment.appId,
+        environment: deployment.environmentId,
+        deployment: { deploymentId: deployment.id },
+      });
+      return { deploymentId: res.data.deploymentId };
+    },
     onSuccess: async (data) => {
       if (!currentDeployment) {
         return;
@@ -46,7 +63,7 @@ export function PendingRedeployBanner() {
       dismissSettingsBanner();
     },
     onError: (error) => {
-      toast.error("Redeploy failed", { description: error.message });
+      toast.error("Redeploy failed", { description: getErrorMessage(error) });
     },
   });
 
@@ -101,8 +118,12 @@ export function PendingRedeployBanner() {
             disabled={redeploy.isLoading}
             loading={redeploy.isLoading}
             onClick={() => {
+              if (gated) {
+                openPaywall();
+                return;
+              }
               if (currentDeployment) {
-                redeploy.mutate({ deploymentId: currentDeployment.id });
+                redeploy.mutate(currentDeployment);
               }
             }}
           >
@@ -110,6 +131,7 @@ export function PendingRedeployBanner() {
           </Button>
         </div>
       </div>
+      {planGate}
     </div>
   );
 }

@@ -145,35 +145,25 @@ export const InviteForm = ({ organization }: InviteFormProps) => {
         </div>
 
         <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
-          <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-4">
             {fields.map((field, index) => (
-              <div key={field.id} className="flex flex-row gap-2 items-end">
-                <div className="flex-1 h-22">
-                  <label
-                    htmlFor={`invites.${index}.email`}
-                    className="text-sm text-content-subtle mb-1.5 block"
-                  >
-                    Email
-                  </label>
-                  <FormInput
-                    id={`invites.${index}.email`}
-                    placeholder="jane@example.com"
-                    className="email"
-                    error={errors.invites?.[index]?.email?.message}
-                    {...register(`invites.${index}.email`)}
-                  />
-                </div>
-                <div className="flex flex-col w-48 h-22">
-                  <label
-                    htmlFor={`invites.${index}.role`}
-                    className="text-sm text-content-subtle mb-1.5 block"
-                  >
-                    Role
-                  </label>
-                  <Controller
-                    control={control}
-                    name={`invites.${index}.role`}
-                    render={({ field: roleField }) => (
+              <div key={field.id} className="flex items-start gap-2">
+                <FormInput
+                  label="Email"
+                  id={`invites.${index}.email`}
+                  placeholder="jane@example.com"
+                  className="flex-1"
+                  error={errors.invites?.[index]?.email?.message}
+                  {...register(`invites.${index}.email`)}
+                />
+                <Controller
+                  control={control}
+                  name={`invites.${index}.role`}
+                  render={({ field: roleField }) => (
+                    <fieldset className="flex flex-col gap-1.5 border-0 m-0 p-0 w-48">
+                      <label htmlFor={`invites.${index}.role`} className="text-gray-11 text-[13px]">
+                        Role
+                      </label>
                       <Select
                         onValueChange={roleField.onChange}
                         value={roleField.value}
@@ -190,14 +180,15 @@ export const InviteForm = ({ organization }: InviteFormProps) => {
                           <SelectItem value="admin">Admin</SelectItem>
                         </SelectContent>
                       </Select>
-                    )}
-                  />
-                </div>
+                    </fieldset>
+                  )}
+                />
                 {fields.length > 1 && (
                   <Button
                     type="button"
                     variant="ghost"
                     size="sm"
+                    className="size-9 shrink-0 px-0 justify-center mt-6.5"
                     onClick={() => remove(index)}
                     aria-label={`Remove invite ${index + 1}`}
                   >

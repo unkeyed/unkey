@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
@@ -45,6 +46,7 @@ func TestGetEnvironmentForbidden(t *testing.T) {
 		ProjectID:   project.ID,
 		AppID:       app.ID,
 		Slug:        "production",
+		Kind:        mysqltype.EnvironmentKindProduction,
 		Description: "Production environment",
 	})
 
@@ -124,6 +126,7 @@ func TestGetEnvironmentExistenceNotLeaked(t *testing.T) {
 		ProjectID:   project.ID,
 		AppID:       app.ID,
 		Slug:        "production",
+		Kind:        mysqltype.EnvironmentKindProduction,
 		Description: "Production environment",
 	})
 

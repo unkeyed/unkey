@@ -28,6 +28,42 @@ type ClickHouseConfig struct {
 	AnalyticsURL string `toml:"analytics_url"`
 }
 
+// GitHubConfig holds the API's GitHub App settings: the App slug and private
+// key for github.installApp (install URL + state signing), and the
+// numeric App ID for the authenticated client that connects repositories via
+// the `git` field on apps.createApp / apps.updateApp. Leaving fields empty
+// disables the corresponding flow.
+type GitHubConfig struct {
+	// AppName is the GitHub App slug used in the install URL
+	// (https://github.com/apps/<app_name>/installations/new). Matches the
+	// dashboard's NEXT_PUBLIC_GITHUB_APP_NAME.
+	AppName string `toml:"app_name"`
+
+	// AppID is the numeric GitHub App ID. Used to sign the App JWT when minting
+	// installation tokens for repo-connection lookups. Matches the dashboard's
+	// GITHUB_APP_ID.
+	AppID int64 `toml:"app_id"`
+
+	// PrivateKeyPEM is the GitHub App private key in PEM format. Used both to
+	// derive the install-state signing key (github.installApp) and to
+	// sign the App JWT for installation tokens (repo connection). Must be the
+	// same key the dashboard uses so its callback can verify the install state.
+	// See the signer in the github.installApp handler
+	// (svc/api/routes/v2_github_install_app/state.go).
+	PrivateKeyPEM string `toml:"private_key_pem"`
+}
+
+// RestateConfig configures the Restate ingress used to submit durable
+// workflows.
+type RestateConfig struct {
+	// URL is the Restate ingress endpoint.
+	URL string `toml:"url" config:"required,nonempty"`
+
+	// APIKey authenticates every ingress request. Local Restate ignores the
+	// configured dummy key because ingress authentication is disabled there.
+	APIKey string `toml:"api_key" config:"required,nonempty"`
+}
+
 const (
 	authTypeJWT           = "jwt"
 	authTypePortalSession = "portal_session"
@@ -331,6 +367,9 @@ type Config struct {
 	// Control configures the deployment management service. See [config.ControlConfig].
 	Control config.ControlConfig `toml:"control"`
 
+	// Restate configures durable workflow ingress. See [RestateConfig].
+	Restate RestateConfig `toml:"restate"`
+
 	// PortalBaseURL is the base URL for the customer portal.
 	// Example: "https://portal.unkey.com"
 	// Used to construct session redirect URLs in portal.createSession responses.
@@ -339,6 +378,10 @@ type Config struct {
 
 	// Auth configures the ordered authentication resolver chain.
 	Auth AuthConfigs `toml:"auth"`
+
+	// GitHub configures the GitHub App install flow. See [GitHubConfig].
+	// When unset, github.installApp reports the feature as unconfigured.
+	GitHub GitHubConfig `toml:"github"`
 
 	// Pprof configures Go profiling endpoints. See [config.PprofConfig].
 	// When nil (section omitted), pprof endpoints are not registered.
@@ -447,6 +490,25 @@ func (c *Config) Validate() error {
 		default:
 			return fmt.Errorf("auth[%d] has unsupported auth config type", i)
 		}
+	}
+
+	// Run also accepts programmatically constructed configs and calls Validate
+	// directly, so enforce these requirements here as well as in struct tags.
+	if strings.TrimSpace(c.Restate.URL) == "" {
+		return fmt.Errorf("restate.url is required")
+	}
+	restateURL, err := url.Parse(c.Restate.URL)
+	if err != nil || restateURL.Host == "" || (restateURL.Scheme != "http" && restateURL.Scheme != "https") {
+		return fmt.Errorf("restate.url must be an absolute HTTP(S) URL")
+	}
+	if restateURL.Path != "" || strings.ContainsAny(c.Restate.URL, "?#") {
+		return fmt.Errorf("restate.url must not include a path, query, or fragment")
+	}
+	if strings.TrimSpace(c.Restate.APIKey) == "" {
+		return fmt.Errorf("restate.api_key is required")
+	}
+	if c.Restate.APIKey != strings.TrimSpace(c.Restate.APIKey) {
+		return fmt.Errorf("restate.api_key must not have surrounding whitespace")
 	}
 	return nil
 }

@@ -1,0 +1,32 @@
+type: object
+description: |
+  One-click setup at the domain's DNS provider. Omitted entirely when the provider does not support
+  Domain Connect or discovery failed, so the object's presence is the signal that the shortcut is
+  available and both of its fields are filled.
+required:
+  - provider
+  - url
+properties:
+  provider:
+    type: string
+    maxLength: 256
+    description: |
+      Display name of the DNS provider the domain is delegated to, such as 'Cloudflare'. Discovered
+      from the domain's nameservers, so it reflects where DNS is actually hosted rather than where the
+      domain was registered.
+    example: Cloudflare
+  url:
+    type: string
+    maxLength: 2048
+    description: |
+      Signed Domain Connect URL that pre-fills the records in `dnsRecords` at the provider. Open it in a
+      browser and the domain owner approves them in one step instead of entering them by hand. The URL is
+      signed with an Unkey key, so it cannot be constructed or altered by the caller.
+
+      Intended for a browser, not a script: after approval the provider sends the browser to this
+      workspace's app settings page in the Unkey dashboard, so it suits a caller who administers this
+      workspace. Anyone who does not have access to it approves the records successfully but lands on a
+      page they cannot open. Approving is what writes the records; verification then proceeds on its own,
+      so nothing depends on completing that return trip.
+    example: https://dash.cloudflare.com/domainconnect/v2/domaintemplates/apply?domain=acme.com&host=api
+additionalProperties: false

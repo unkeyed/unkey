@@ -15,12 +15,14 @@ INSERT INTO apis (
     id,
     name,
     workspace_id,
+    project_id,
     auth_type,
     ip_whitelist,
     key_auth_id,
     created_at_m,
     deleted_at_m
 ) VALUES (
+    ?,
     ?,
     ?,
     ?,
@@ -36,6 +38,7 @@ type InsertApiParams struct {
 	ID          string           `db:"id"`
 	Name        string           `db:"name"`
 	WorkspaceID string           `db:"workspace_id"`
+	ProjectID   string           `db:"project_id"`
 	AuthType    NullApisAuthType `db:"auth_type"`
 	IpWhitelist sql.NullString   `db:"ip_whitelist"`
 	KeyAuthID   sql.NullString   `db:"key_auth_id"`
@@ -48,12 +51,14 @@ type InsertApiParams struct {
 //	    id,
 //	    name,
 //	    workspace_id,
+//	    project_id,
 //	    auth_type,
 //	    ip_whitelist,
 //	    key_auth_id,
 //	    created_at_m,
 //	    deleted_at_m
 //	) VALUES (
+//	    ?,
 //	    ?,
 //	    ?,
 //	    ?,
@@ -68,6 +73,7 @@ func (q *Queries) InsertApi(ctx context.Context, db DBTX, arg InsertApiParams) e
 		arg.ID,
 		arg.Name,
 		arg.WorkspaceID,
+		arg.ProjectID,
 		arg.AuthType,
 		arg.IpWhitelist,
 		arg.KeyAuthID,

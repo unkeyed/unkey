@@ -1,7 +1,9 @@
 "use client";
 
+import { trpc } from "@/lib/trpc/client";
 import { CircleHalfDottedClock, Gear } from "@unkey/icons";
 import { SettingCardGroup } from "@unkey/ui";
+import { useAppId, useProjectData } from "../data-provider";
 import { AutoDeploy } from "./components/build-settings/auto-deploy-settings";
 import { BuildCommand } from "./components/build-settings/build-command-settings";
 import { Dockerfile } from "./components/build-settings/dockerfile-settings";
@@ -24,7 +26,7 @@ import { UpstreamProtocol } from "./components/advanced-settings/upstream-protoc
 import { SettingsGroup } from "./components/shared/settings-group";
 
 // build is only required to invalidate other defaults. E.g onboarding settings, passes build=true to prevent expanding other sections.
-type DeploymentSection = "advanced" | "sentinel" | "runtime" | "build";
+type DeploymentSection = "advanced" | "runtime" | "build";
 
 type DeploymentSettingsProps = {
   githubReadOnly?: boolean;
@@ -34,19 +36,30 @@ type DeploymentSettingsProps = {
 
 export const DeploymentSettings = ({
   githubReadOnly = false,
-  sections = { build: true, runtime: true, advanced: true, sentinel: true },
+  sections = { build: true, runtime: true, advanced: true },
   onBeforeNavigate,
 }: DeploymentSettingsProps) => {
+  const { projectId } = useProjectData();
+  const appId = useAppId();
+  const { data } = trpc.github.getInstallations.useQuery({ projectId, appId });
+
+  // An app's source is fixed at creation: a repo connection means git, its
+  // absence means a published image. Nothing here can switch between them, so
+  // the whole group is hidden for image apps rather than offering a repo.
+  const isGitSourced = !data || Boolean(data.repoConnection?.repositoryFullName);
+
   return (
     <div className="flex flex-col gap-6">
-      <SettingCardGroup>
-        <GitHub readOnly={githubReadOnly} onBeforeNavigate={onBeforeNavigate} />
-        <RootDirectory />
-        <Dockerfile />
-        <BuildCommand />
-        <WatchPaths />
-        <AutoDeploy />
-      </SettingCardGroup>
+      {isGitSourced ? (
+        <SettingCardGroup>
+          <GitHub readOnly={githubReadOnly} onBeforeNavigate={onBeforeNavigate} />
+          <RootDirectory />
+          <Dockerfile />
+          <BuildCommand />
+          <WatchPaths />
+          <AutoDeploy />
+        </SettingCardGroup>
+      ) : null}
       <SettingsGroup
         icon={<CircleHalfDottedClock iconSize="md-medium" />}
         title="Runtime settings"

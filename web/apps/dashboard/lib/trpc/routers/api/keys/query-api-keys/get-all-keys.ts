@@ -1,6 +1,6 @@
 import type { AllOperatorsUrlValue } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/_overview/filters.schema";
 import { clickhouse } from "@/lib/clickhouse";
-import { type SQL, and, count, db, eq, gt, isNull, like, or, sql } from "@/lib/db";
+import { type SQL, and, count, db, eq, gt, isNull, or, sql } from "@/lib/db";
 import { TRPCError } from "@trpc/server";
 import { identities, keys as keysSchema } from "@unkey/db/src/schema";
 import { z } from "zod";
@@ -175,13 +175,13 @@ export async function getAllKeys({
               nameConditions.push(helpers.eq(key.name, value));
               break;
             case "contains":
-              nameConditions.push(helpers.sql`${key.name} LIKE ${`%${value}%`}`);
+              nameConditions.push(helpers.sql`LOWER(${key.name}) LIKE LOWER(${`%${value}%`})`);
               break;
             case "startsWith":
-              nameConditions.push(helpers.sql`${key.name} LIKE ${`${value}%`}`);
+              nameConditions.push(helpers.sql`LOWER(${key.name}) LIKE LOWER(${`${value}%`})`);
               break;
             case "endsWith":
-              nameConditions.push(helpers.sql`${key.name} LIKE ${`%${value}`}`);
+              nameConditions.push(helpers.sql`LOWER(${key.name}) LIKE LOWER(${`%${value}`})`);
               break;
           }
         }
@@ -203,13 +203,13 @@ export async function getAllKeys({
               keyIdConditions.push(helpers.eq(key.id, value));
               break;
             case "contains":
-              keyIdConditions.push(helpers.sql`${key.id} LIKE ${`%${value}%`}`);
+              keyIdConditions.push(helpers.sql`LOWER(${key.id}) LIKE LOWER(${`%${value}%`})`);
               break;
             case "startsWith":
-              keyIdConditions.push(helpers.sql`${key.id} LIKE ${`${value}%`}`);
+              keyIdConditions.push(helpers.sql`LOWER(${key.id}) LIKE LOWER(${`${value}%`})`);
               break;
             case "endsWith":
-              keyIdConditions.push(helpers.sql`${key.id} LIKE ${`%${value}`}`);
+              keyIdConditions.push(helpers.sql`LOWER(${key.id}) LIKE LOWER(${`%${value}`})`);
               break;
           }
         }
@@ -226,26 +226,7 @@ export async function getAllKeys({
             continue;
           }
 
-          let ownerIdCondition: SQL<unknown>;
-          switch (filter.operator) {
-            case "is":
-              ownerIdCondition = helpers.eq(key.ownerId, value);
-              break;
-            case "contains":
-              ownerIdCondition = helpers.like(key.ownerId, `%${value}%`);
-              break;
-            case "startsWith":
-              ownerIdCondition = helpers.like(key.ownerId, `${value}%`);
-              break;
-            case "endsWith":
-              ownerIdCondition = helpers.like(key.ownerId, `%${value}`);
-              break;
-            default:
-              ownerIdCondition = helpers.eq(key.ownerId, value);
-          }
-
-          const combinedCheckForThisFilter = helpers.or(
-            helpers.sql`EXISTS (
+          const identityCondition = helpers.sql`EXISTS (
                 SELECT 1 FROM ${identities} -- Use schema object for table name is fine
                 WHERE ${helpers.sql.raw("identities.id")} = ${
                   key.identityId
@@ -256,20 +237,18 @@ export async function getAllKeys({
                       case "is":
                         return helpers.sql`${rawExternalIdColumn} = ${value}`;
                       case "contains":
-                        return helpers.sql`${rawExternalIdColumn} LIKE ${`%${value}%`}`;
+                        return helpers.sql`LOWER(${rawExternalIdColumn}) LIKE LOWER(${`%${value}%`})`;
                       case "startsWith":
-                        return helpers.sql`${rawExternalIdColumn} LIKE ${`${value}%`}`;
+                        return helpers.sql`LOWER(${rawExternalIdColumn}) LIKE LOWER(${`${value}%`})`;
                       case "endsWith":
-                        return helpers.sql`${rawExternalIdColumn} LIKE ${`%${value}`}`;
+                        return helpers.sql`LOWER(${rawExternalIdColumn}) LIKE LOWER(${`%${value}`})`;
                       default:
                         return helpers.sql`${rawExternalIdColumn} = ${value}`;
                     }
                   })()}
-            )`,
-            ownerIdCondition,
-          );
+            )`;
 
-          individualIdentityFilterConditions.push(combinedCheckForThisFilter);
+          individualIdentityFilterConditions.push(identityCondition);
         }
 
         if (individualIdentityFilterConditions.length > 0) {
@@ -284,11 +263,25 @@ export async function getAllKeys({
     const [countResult] = await db
       .select({ count: count() })
       .from(keysSchema)
-      .where(buildFilterConditions(keysSchema, { and, isNull, eq, sql, like, or, gt }));
+      .where(buildFilterConditions(keysSchema, { and, isNull, eq, sql, or, gt }));
 
     const totalCount = countResult?.count ?? 0;
     const keysQuery = await db.query.keys.findMany({
       where: (key, helpers) => buildFilterConditions(key, helpers),
+      columns: {
+        id: true,
+        name: true,
+        identityId: true,
+        enabled: true,
+        expires: true,
+        updatedAtM: true,
+        start: true,
+        lastUsedAt: true,
+        meta: true,
+        remaining: true,
+        refillAmount: true,
+        refillDay: true,
+      },
       with: {
         ratelimits: {
           columns: {
@@ -326,7 +319,6 @@ export async function getAllKeys({
       return {
         id: key.id,
         name: key.name,
-        owner_id: key.ownerId,
         identity_id: key.identityId,
         enabled: key.enabled,
         expires: key.expires ? key.expires.getTime() : null,

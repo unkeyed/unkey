@@ -1,9 +1,8 @@
 import { Plus, Trash } from "@unkey/icons";
-import { Button, FormInput } from "@unkey/ui";
+import { Button, FormInput, FormTextarea } from "@unkey/ui";
 import type { ClipboardEvent, KeyboardEvent } from "react";
 import { useCallback } from "react";
-import type { Control, FieldErrors, UseFormRegister } from "react-hook-form";
-import { useWatch } from "react-hook-form";
+import type { FieldErrors, UseFormRegister } from "react-hook-form";
 import { parseEnvText } from "../../hooks/use-drop-zone";
 import type { EnvVarsFormValues } from "./schema";
 
@@ -11,7 +10,6 @@ type EnvVarRowProps = {
   index: number;
   isOnly: boolean;
   register: UseFormRegister<EnvVarsFormValues>;
-  control: Control<EnvVarsFormValues>;
   onRemove: (index: number) => void;
   onPasteEntries: (index: number, entries: { key: string; value: string }[]) => void;
   onAdvanceRow: () => void;
@@ -24,7 +22,6 @@ export const EnvVarRow = ({
   index,
   isOnly,
   register,
-  control,
   onRemove,
   onPasteEntries,
   onAdvanceRow,
@@ -33,8 +30,6 @@ export const EnvVarRow = ({
   errors,
 }: EnvVarRowProps) => {
   const fieldErrors = errors?.[index];
-  const value = useWatch({ control, name: `envVars.${index}.value` });
-  const hasSpaces = value?.trim().includes(" ");
 
   const handleKeyPaste = useCallback(
     (e: ClipboardEvent<HTMLInputElement>) => {
@@ -63,8 +58,10 @@ export const EnvVarRow = ({
   );
 
   const handleValueKeyDown = useCallback(
-    (e: KeyboardEvent<HTMLInputElement>) => {
-      if (e.key === "Enter" && !e.shiftKey && isLast) {
+    (e: KeyboardEvent<HTMLTextAreaElement>) => {
+      // Plain Enter inserts a newline so multi-line values are typeable;
+      // Cmd/Ctrl+Enter advances to the next row from the last one.
+      if (e.key === "Enter" && (e.metaKey || e.ctrlKey) && isLast) {
         e.preventDefault();
         onAdvanceRow();
       }
@@ -88,13 +85,12 @@ export const EnvVarRow = ({
           onPaste={handleKeyPaste}
           onKeyDown={handleKeyKeyDown}
         />
-        <FormInput
+        <FormTextarea
           label="Value"
-          className="flex-1 [&_input]:font-mono"
+          rows={1}
+          className="flex-1 [&_textarea]:font-mono [&_textarea]:min-h-9 [&_textarea]:max-h-40 [&_textarea]:resize-y [&_textarea]:overflow-y-auto"
           placeholder="value"
           error={fieldErrors?.value?.message}
-          variant={!fieldErrors?.value && hasSpaces ? "warning" : undefined}
-          description={!fieldErrors?.value && hasSpaces ? "Value contains spaces" : undefined}
           {...valueRegistration}
           onKeyDown={handleValueKeyDown}
         />

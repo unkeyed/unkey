@@ -55,9 +55,23 @@ type dataEnvironment struct {
 	NotFound Code
 }
 
+// dataDomain defines errors related to custom domain operations.
+type dataDomain struct {
+	// Duplicate indicates the domain is already attached to this workspace.
+	Duplicate Code
+	// NotFound indicates the requested domain does not exist.
+	NotFound Code
+}
+
 // dataDeployment defines errors related to deployment operations.
 type dataDeployment struct {
 	// NotFound indicates the requested deployment does not exist.
+	NotFound Code
+}
+
+// dataPolicy defines errors related to gateway policy operations.
+type dataPolicy struct {
+	// NotFound indicates the requested policy does not exist.
 	NotFound Code
 }
 
@@ -139,7 +153,9 @@ type UnkeyDataErrors struct {
 	Project            dataProject
 	App                dataApp
 	Environment        dataEnvironment
+	Domain             dataDomain
 	Deployment         dataDeployment
+	Policy             dataPolicy
 	Migration          dataMigration
 	KeySpace           dataKeySpace
 	Permission         dataPermission
@@ -191,8 +207,17 @@ var Data = UnkeyDataErrors{
 		NotFound: Code{SystemUnkey, CategoryUnkeyData, "environment_not_found"},
 	},
 
+	Domain: dataDomain{
+		Duplicate: Code{SystemUnkey, CategoryUnkeyData, "domain_already_exists"},
+		NotFound:  Code{SystemUnkey, CategoryUnkeyData, "domain_not_found"},
+	},
+
 	Deployment: dataDeployment{
 		NotFound: Code{SystemUnkey, CategoryUnkeyData, "deployment_not_found"},
+	},
+
+	Policy: dataPolicy{
+		NotFound: Code{SystemUnkey, CategoryUnkeyData, "policy_not_found"},
 	},
 
 	Permission: dataPermission{

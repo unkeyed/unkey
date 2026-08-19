@@ -7,13 +7,23 @@ import { trpc } from "@/lib/trpc/client";
 import type { Router } from "@/lib/trpc/routers";
 import type { inferRouterOutputs } from "@trpc/server";
 import { Nodes, TriangleWarning2 } from "@unkey/icons";
-import { Button, DialogContainer, InfoTooltip, toast } from "@unkey/ui";
+import {
+  Button,
+  DialogContainer,
+  InfoTooltip,
+  Meter,
+  MeterHeader,
+  MeterIndicator,
+  MeterLabel,
+  MeterTrack,
+  MeterValue,
+  toast,
+} from "@unkey/ui";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { ADMIN_ONLY_TOOLTIP } from "./constants";
 import { PlanChangeModal } from "./plan-change-modal";
 import { ProductCard } from "./product-card";
-import { UsageMeter } from "./usage-meter";
 
 const NEEDS_PAYMENT_TOOLTIP = "Add a payment method before upgrading the API plan";
 const FREE_TIER_QUOTA = 150_000;
@@ -66,7 +76,17 @@ export const ApiAddOnCard: React.FC<ApiAddOnCardProps> = ({
   };
 
   const createSubscription = trpc.stripe.createSubscription.useMutation({
-    onSuccess: async () => {
+    onSuccess: async (result) => {
+      if (result.status === "checkout") {
+        window.location.assign(result.checkoutUrl);
+        return;
+      }
+      if (result.status === "payment_required") {
+        window.location.assign(
+          result.paymentUrl ?? routes.settings.stripe.checkout({ workspaceSlug, intent: "api" }),
+        );
+        return;
+      }
       setShowPlanModal(false);
       toast.success("Plan activated");
       await revalidate();
@@ -74,9 +94,17 @@ export const ApiAddOnCard: React.FC<ApiAddOnCardProps> = ({
     onError: (err) => toast.error(err.message),
   });
   const updateSubscription = trpc.stripe.updateSubscription.useMutation({
-    onSuccess: async () => {
+    onSuccess: async (result) => {
+      if (result.kind === "payment_required") {
+        window.location.assign(result.paymentUrl);
+        return;
+      }
       setShowPlanModal(false);
-      toast.success("API plan changed");
+      toast.success(
+        result.kind === "scheduled"
+          ? `API plan downgrade scheduled for ${new Date(result.effectiveAt).toLocaleDateString()}`
+          : "API plan changed",
+      );
       await revalidate();
     },
     onError: (err) => toast.error(err.message),
@@ -219,12 +247,17 @@ export const ApiAddOnCard: React.FC<ApiAddOnCardProps> = ({
               </InfoTooltip>
             </div>
           ) : null}
-          <UsageMeter
-            label="Verifications & ratelimits this month"
-            value={usage ? `${formatNumber(used)} / ${formatNumber(quota)}` : "—"}
-            fraction={usage && quota > 0 ? used / quota : null}
-            fillClassName="bg-info-9"
-          />
+          <Meter value={usage ? used : 0} max={quota > 0 ? quota : 1}>
+            <MeterHeader>
+              <MeterLabel>Verifications & ratelimits this month</MeterLabel>
+              <MeterValue>
+                {() => (usage ? `${formatNumber(used)} / ${formatNumber(quota)}` : "—")}
+              </MeterValue>
+            </MeterHeader>
+            <MeterTrack>
+              <MeterIndicator className="bg-info-9" />
+            </MeterTrack>
+          </Meter>
         </div>
       </ProductCard>
 
@@ -244,17 +277,7 @@ export const ApiAddOnCard: React.FC<ApiAddOnCardProps> = ({
             detail: `${formatNumber(product.quotas.requestsPerMonth)} requests/month`,
           }))}
           currentId={currentProduct?.id ?? null}
-          // Informational: downgrading below this month's usage means requests
-          // beyond the smaller quota get rejected once it is exhausted.
-          warningFor={(option) => {
-            const target = products.find((p) => p.id === option.id);
-            return target && used > target.quotas.requestsPerMonth
-              ? `Your usage this month (${formatNumber(used)}) already exceeds the ${formatNumber(
-                  target.quotas.requestsPerMonth,
-                )} requests ${target.name} includes.`
-              : null;
-          }}
-          changeNote="Takes effect immediately; the prorated difference is invoiced right away."
+          changeNote="Upgrades take effect immediately and are prorated. Downgrades start next billing period; your current plan stays active and no refund is issued."
           submittingId={
             createSubscription.isLoading
               ? createSubscription.variables?.productId

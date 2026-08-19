@@ -1,4 +1,5 @@
 import { collection } from "@/lib/collections";
+import type { EnvVar } from "@/lib/collections/deploy/env-vars";
 import { trpc } from "@/lib/trpc/client";
 import { toast } from "@unkey/ui";
 import { useCallback, useRef, useState } from "react";
@@ -8,9 +9,14 @@ function getRowIds(row: DisplayRow): string[] {
   return row.kind === "single" ? [row.item.id] : row.items.map((i) => i.id);
 }
 
-export function useRowSelection(displayRows: DisplayRow[]) {
+export function useRowSelection(displayRows: DisplayRow[], envVars: EnvVar[] | undefined) {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const lastClickedIndexRef = useRef<number | null>(null);
+
+  const resolveSelection = useCallback(
+    () => (envVars ?? []).filter((item) => selectedIds.has(item.id)),
+    [envVars, selectedIds],
+  );
 
   const toggleRowSelection = useCallback(
     (rowIndex: number, shiftKey: boolean) => {
@@ -66,13 +72,14 @@ export function useRowSelection(displayRows: DisplayRow[]) {
   );
 
   const handleBulkDelete = useCallback(() => {
-    const ids = Array.from(selectedIds);
+    const ids = resolveSelection().map((item) => item.id);
     if (ids.length === 0) {
+      setSelectedIds(new Set());
       return;
     }
     collection.envVars.delete(ids);
     setSelectedIds(new Set());
-  }, [selectedIds]);
+  }, [resolveSelection]);
 
   const toggleItemSelection = useCallback((itemId: string) => {
     setSelectedIds((prev) => {
@@ -89,23 +96,24 @@ export function useRowSelection(displayRows: DisplayRow[]) {
   const makeSensitiveMutation = trpc.deploy.envVar.makeSensitive.useMutation();
 
   const handleBulkMakeSensitive = useCallback(async () => {
-    const ids = Array.from(selectedIds);
-    if (ids.length === 0) {
+    const recoverable = resolveSelection().filter((item) => item.type === "recoverable");
+    if (recoverable.length === 0) {
+      toast.info("No recoverable variables are selected");
+      setSelectedIds(new Set());
       return;
     }
     try {
-      const { updated } = await makeSensitiveMutation.mutateAsync({ envVarIds: ids });
-      await collection.envVars.utils.refetch();
-      if (updated === 0) {
-        toast.info("Selected variables are already sensitive");
-      } else {
-        toast.success(`Marked ${updated} variable${updated > 1 ? "s" : ""} as sensitive`);
-      }
+      const { updated } = await makeSensitiveMutation.mutateAsync({
+        appId: recoverable[0].appId,
+        targets: recoverable.map((v) => ({ environmentId: v.environmentId, key: v.key })),
+      });
+      toast.success(`Marked ${updated} variable${updated === 1 ? "" : "s"} as sensitive`);
     } catch {
       toast.error("Failed to mark variables as sensitive");
     }
+    await collection.envVars.utils.refetch().catch(() => {});
     setSelectedIds(new Set());
-  }, [selectedIds, makeSensitiveMutation.mutateAsync]);
+  }, [resolveSelection, makeSensitiveMutation.mutateAsync]);
 
   const clearSelection = useCallback(() => setSelectedIds(new Set()), []);
 

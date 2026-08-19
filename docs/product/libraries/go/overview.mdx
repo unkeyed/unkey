@@ -81,8 +81,8 @@ func main() {
     }
 
     fmt.Println("Key is valid!")
-    if result.OwnerID != nil {
-        fmt.Printf("Owner: %s\n", *result.OwnerID)
+    if result.Identity != nil {
+        fmt.Printf("Identity external ID: %s\n", result.Identity.ExternalID)
     }
     if result.Credits != nil {
         fmt.Printf("Credits remaining: %d\n", *result.Credits)

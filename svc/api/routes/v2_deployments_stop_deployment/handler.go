@@ -8,9 +8,13 @@ import (
 	"github.com/unkeyed/unkey/gen/rpc/ctrl"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/deploy/deploygate"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/pkg/zen"
+	"github.com/unkeyed/unkey/svc/api/internal/ctrlclient"
 	"github.com/unkeyed/unkey/svc/api/internal/deployment"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
@@ -60,6 +64,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			ResourceID:   dep.EnvironmentID,
 			Action:       rbac.StopDeployment,
 		}),
+		rbac.U(
+			urn.New().Workspace(principal.WorkspaceID).Project(dep.ProjectID).App(dep.AppID).Environment(dep.EnvironmentID).Deployment(dep.ID),
+			permissions.StopDeployment{},
+		),
 	))
 	if err != nil {
 		return fault.New(
@@ -70,40 +78,24 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	if dep.Status != db.DeploymentsStatusReady {
-		return fault.New(
-			"deployment not running",
-			fault.Code(codes.App.Precondition.PreconditionFailed.URN()),
-			fault.Internal("stop target is not in ready status"),
-			fault.Public("The deployment is not running."),
-		)
-	}
-
 	// A draining deployment keeps status ready until krane removes its last
-	// instance, so desired_state is the only signal that a stop is already in
-	// flight. Ctrl enforces the same rule; checking it here avoids a doomed
-	// round-trip and returns a precise message.
-	if dep.DesiredState != db.DeploymentsDesiredStateRunning {
-		return fault.New(
-			"deployment already stopping",
-			fault.Code(codes.App.Precondition.PreconditionFailed.URN()),
-			fault.Internal("stop target desired_state is not running"),
-			fault.Public("The deployment is already stopping."),
-		)
+	// instance, so desired_state is the signal that a stop is already in flight.
+	if err := deploygate.CheckStopTarget(deploygate.StopInput{
+		Status:          dep.Status,
+		DesiredState:    dep.DesiredState,
+		EnvironmentKind: dep.EnvironmentKind,
+	}); err != nil {
+		return err
 	}
 
-	// Production deployments are never stopped, so this action does not apply.
-	if dep.EnvironmentSlug == "production" {
-		return fault.New(
-			"production deployment",
-			fault.Code(codes.App.Precondition.PreconditionFailed.URN()),
-			fault.Internal("stop is not allowed on production environments"),
-			fault.Public("Production deployments cannot be stopped."),
-		)
+	actor, err := ctrlclient.Actor(s)
+	if err != nil {
+		return err
 	}
 
 	_, err = h.CtrlClient.StopDeployment(ctx, &ctrlv1.StopDeploymentRequest{
 		DeploymentId: dep.ID,
+		Actor:        actor,
 	})
 	if err != nil {
 		return deployment.MapCtrlError(err, "stop deployment",

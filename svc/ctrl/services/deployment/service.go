@@ -4,11 +4,11 @@ import (
 	restateingress "github.com/restatedev/sdk-go/ingress"
 	"github.com/unkeyed/unkey/gen/proto/ctrl/v1/ctrlv1connect"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
+	githubclient "github.com/unkeyed/unkey/pkg/github"
 	restateadmin "github.com/unkeyed/unkey/pkg/restate/admin"
 	"github.com/unkeyed/unkey/svc/ctrl/dedup"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/auditlogs"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
-	githubclient "github.com/unkeyed/unkey/svc/ctrl/worker/github"
 )
 
 // Service implements the DeployService ConnectRPC API. It coordinates
@@ -24,6 +24,7 @@ type Service struct {
 	allowUnauthenticatedDeployments bool
 	bearer                          string
 	dedup                           *dedup.Service
+	enforceDeployGate               bool
 }
 
 // deploymentClient creates a typed Restate ingress client for the DeployService
@@ -56,6 +57,11 @@ type Config struct {
 	AllowUnauthenticatedDeployments bool
 	// Bearer is the preshared token that callers must provide in the Authorization header.
 	Bearer string
+	// EnforceDeployGate hard-blocks deployment actions that create, start, or
+	// activate compute for workspaces with no Deploy entitlement (same switch as
+	// project creation). False runs the plan check in observe mode. Spend-cap
+	// suspension is always enforced.
+	EnforceDeployGate bool
 }
 
 // New creates a new [Service] with the given configuration.
@@ -70,5 +76,6 @@ func New(cfg Config) *Service {
 		allowUnauthenticatedDeployments:   cfg.AllowUnauthenticatedDeployments,
 		bearer:                            cfg.Bearer,
 		dedup:                             dedup.New(cfg.Database, cfg.RestateAdmin),
+		enforceDeployGate:                 cfg.EnforceDeployGate,
 	}
 }

@@ -1,6 +1,7 @@
 import type { InstanceStatus } from "@/lib/collections/deploy/instance-status";
 import { and, db, eq } from "@/lib/db";
-import { apps, deployments } from "@unkey/db/src/schema";
+import type { LastExit } from "@/lib/types/deploy";
+import { type ContainerStatus, apps, deployments } from "@unkey/db/src/schema";
 import { mapRegionToFlag } from "../network/utils";
 
 export const deploymentSelectFields = {
@@ -45,6 +46,49 @@ export function mapInstanceRow(row: {
     flagCode: mapRegionToFlag(row.regionName),
     status: row.status,
   };
+}
+
+// computeLastExit picks the most recent exit across all instances of a
+// deployment so that a multi-region rollout with one OOM-ing pod still
+// surfaces the failure even when others are healthy. Tie-break by
+// finishedAt (preferred) and fall back to the live waiting reason
+// (CrashLoopBackOff, ImagePullBackOff, …) when there's no exit yet.
+// Returns null when no instance has reported a termination or waiting
+// reason (healthy deployments). Shared by the list and getById routes so
+// both surface the same header badge data.
+export function computeLastExit(
+  rows: { containerStatus: ContainerStatus | null }[],
+): LastExit | null {
+  let result: LastExit | null = null;
+  for (const row of rows) {
+    const status = row.containerStatus ?? ({} as ContainerStatus);
+    const term = status.lastTerminationState ?? null;
+    const waiting = status.waiting ?? null;
+    const candidate: LastExit = {
+      restartCount: status.restartCount ?? 0,
+      exitCode: term?.exitCode ?? null,
+      signal: term?.signal ?? null,
+      reason: term?.reason ?? null,
+      finishedAt: term?.finishedAt ?? null,
+      statusReason: waiting?.reason ?? null,
+    };
+    if (candidate.reason === null && candidate.statusReason === null) {
+      continue;
+    }
+    if (!result) {
+      result = candidate;
+      continue;
+    }
+    // Prefer the candidate with a more recent finishedAt; if neither has
+    // one (only statusReason populated) keep whichever has higher
+    // restartCount as a coarse recency tiebreaker.
+    const prevTs = result.finishedAt ?? -1;
+    const candTs = candidate.finishedAt ?? -1;
+    if (candTs > prevTs || (candTs === prevTs && candidate.restartCount > result.restartCount)) {
+      result = candidate;
+    }
+  }
+  return result;
 }
 
 export function normalizeDeploymentRow(deployment: {

@@ -32,17 +32,13 @@ type Caches struct {
 	// Keys are string (workspace ID) and values are db.FindClickhouseWorkspaceSettingsByWorkspaceIDRow.
 	ClickhouseSetting cache.Cache[string, db.FindClickhouseWorkspaceSettingsByWorkspaceIDRow]
 
-	// KeyAuthToApiRow caches key_auth_id to api row mappings.
-	// Keys are string (key_auth_id) and values are db.FindKeyAuthsByKeyAuthIdsRow (has both KeyAuthID and ApiID).
-	KeyAuthToApiRow cache.Cache[cache.ScopedKey, db.FindKeyAuthsByKeyAuthIdsRow]
-
 	// ApiToKeyAuthRow caches api_id to key_auth row mappings.
 	// Keys are string (api_id) and values are db.FindKeyAuthsByIdsRow (has both KeyAuthID and ApiID).
 	ApiToKeyAuthRow cache.Cache[cache.ScopedKey, db.FindKeyAuthsByIdsRow]
 
-	// WorkspaceQuota caches workspace quota lookups by workspace ID.
-	// Keys are string (workspace ID) and values are keysdb.Quotas.
-	WorkspaceQuota cache.Cache[string, keysdb.Quotas]
+	// WorkspaceLimits caches workspace limit lookups by workspace ID.
+	// Keys are string (workspace ID) and values are keysdb.Limit.
+	WorkspaceLimits cache.Cache[string, keysdb.Limit]
 
 	// PortalSession caches portal session lookups by session token.
 	// Keys are string (session token ID) and values are db.PortalSession.
@@ -129,17 +125,6 @@ func New(config Config) (Caches, error) {
 		return Caches{}, err
 	}
 
-	keyAuthToApiRow, err := cache.New(cache.Config[cache.ScopedKey, db.FindKeyAuthsByKeyAuthIdsRow]{
-		Fresh:    10 * time.Minute,
-		Stale:    24 * time.Hour,
-		MaxSize:  1_000_000,
-		Resource: "key_auth_to_api_row",
-		Clock:    config.Clock,
-	})
-	if err != nil {
-		return Caches{}, err
-	}
-
 	apiToKeyAuthRow, err := cache.New(cache.Config[cache.ScopedKey, db.FindKeyAuthsByIdsRow]{
 		Fresh:    10 * time.Minute,
 		Stale:    24 * time.Hour,
@@ -151,11 +136,11 @@ func New(config Config) (Caches, error) {
 		return Caches{}, err
 	}
 
-	workspaceQuota, err := cache.New(cache.Config[string, keysdb.Quotas]{
+	workspaceLimits, err := cache.New(cache.Config[string, keysdb.Limit]{
 		Fresh:    time.Minute,
 		Stale:    24 * time.Hour,
 		MaxSize:  100_000,
-		Resource: "workspace_quota",
+		Resource: "workspace_limits",
 		Clock:    config.Clock,
 	})
 	if err != nil {
@@ -189,9 +174,8 @@ func New(config Config) (Caches, error) {
 		LiveApiByID:           middleware.WithTracing(liveApiByID),
 		VerificationKeyByHash: middleware.WithTracing(verificationKeyByHash),
 		ClickhouseSetting:     middleware.WithTracing(clickhouseSetting),
-		KeyAuthToApiRow:       middleware.WithTracing(keyAuthToApiRow),
 		ApiToKeyAuthRow:       middleware.WithTracing(apiToKeyAuthRow),
-		WorkspaceQuota:        middleware.WithTracing(workspaceQuota),
+		WorkspaceLimits:       middleware.WithTracing(workspaceLimits),
 		PortalSession:         middleware.WithTracing(portalSession),
 		WorkspaceByOrgID:      middleware.WithTracing(workspaceByOrgID),
 	}, nil

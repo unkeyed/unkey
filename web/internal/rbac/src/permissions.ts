@@ -1,10 +1,8 @@
 /**
  * The database takes care of isolating roles between workspaces.
- * That's why we can assume the highest scope of a role is an `api` or later `sentinel`
  *
  * role identifiers can look like this:
  * - `api_id.xxx`
- * - `sentinel_id.xxx`
  *
  */
 import { z } from "zod";
@@ -19,12 +17,13 @@ export function buildIdSchema(prefix: string) {
   });
 }
 const apiId = buildIdSchema("api");
-const ratelimitNamespaceId = buildIdSchema("rl");
+const ratelimitNamespaceId = buildIdSchema("rlns");
 const rbacId = buildIdSchema("rbac");
 const identityEnvId = z.string();
 const projectId = buildIdSchema("proj");
 const appId = buildIdSchema("app");
 const environmentId = buildIdSchema("env");
+const workspaceId = buildIdSchema("ws");
 export const apiActions = z.enum([
   "read_api",
   "create_api",
@@ -41,6 +40,7 @@ export const apiActions = z.enum([
 ]);
 export const ratelimitActions = z.enum([
   "limit",
+  "read_analytics",
   "create_namespace",
   "read_namespace",
   "update_namespace",
@@ -81,7 +81,8 @@ export const projectActions = z.enum([
   "read_deployment",
   "generate_upload_url",
 ]);
-export const appActions = z.enum(["read_app", "update_app", "delete_app"]);
+export const appActions = z.enum(["read_app", "update_app", "delete_app", "connect_repository"]);
+export const workspaceActions = z.enum(["install_github"]);
 export const environmentActions = z.enum([
   "read_environment",
   "update_environment",
@@ -94,6 +95,13 @@ export const environmentActions = z.enum([
   "start_deployment",
   "promote_deployment",
   "rollback_deployment",
+  "set_policies",
+  "update_policy",
+  "read_policies",
+  "create_domain",
+  "read_domain",
+  "delete_domain",
+  "verify_domain",
 ]);
 
 // Resources that require an ID (resource.id.action format)
@@ -105,6 +113,7 @@ const scopedResources = {
   project: { idSchema: projectId, actionsSchema: projectActions },
   app: { idSchema: appId, actionsSchema: appActions },
   environment: { idSchema: environmentId, actionsSchema: environmentActions },
+  workspace: { idSchema: workspaceId, actionsSchema: workspaceActions },
 } as const;
 
 export type Resources = {
@@ -125,6 +134,8 @@ export type Resources = {
   [resourceId in `environment.${z.infer<typeof environmentId>}`]: z.infer<
     typeof environmentActions
   >;
+} & {
+  [resourceId in `workspace.${z.infer<typeof workspaceId>}`]: z.infer<typeof workspaceActions>;
 };
 
 export type UnkeyPermission = Flatten<Resources> | "*";

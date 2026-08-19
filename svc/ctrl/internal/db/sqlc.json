@@ -30,9 +30,7 @@
           "output_batch_file_name": "batch_generated",
           "output_copyfrom_file_name": "copyfrom_generated",
           "output_db_file_name": "delete_me",
-          "rename": {
-            "quotum": "Quotas"
-          },
+          "omit_unused_structs": true,
           "overrides": [
             {
               "db_type": "json",
@@ -45,7 +43,7 @@
               "column": "permissions.description",
               "go_type": {
                 "type": "NullString",
-                "package": "dbtype",
+                "package": "mysqltype",
                 "import": "github.com/unkeyed/unkey/pkg/mysql/types"
               },
               "nullable": true
@@ -54,7 +52,7 @@
               "column": "deployments.command",
               "go_type": {
                 "type": "StringSlice",
-                "package": "dbtype",
+                "package": "mysqltype",
                 "import": "github.com/unkeyed/unkey/pkg/mysql/types"
               }
             },
@@ -62,7 +60,7 @@
               "column": "environment_runtime_settings.command",
               "go_type": {
                 "type": "StringSlice",
-                "package": "dbtype",
+                "package": "mysqltype",
                 "import": "github.com/unkeyed/unkey/pkg/mysql/types"
               }
             },
@@ -70,7 +68,7 @@
               "column": "environment_runtime_settings.healthcheck",
               "go_type": {
                 "type": "NullHealthcheck",
-                "package": "dbtype",
+                "package": "mysqltype",
                 "import": "github.com/unkeyed/unkey/pkg/mysql/types"
               },
               "nullable": true
@@ -79,7 +77,7 @@
               "column": "deployments.healthcheck",
               "go_type": {
                 "type": "NullHealthcheck",
-                "package": "dbtype",
+                "package": "mysqltype",
                 "import": "github.com/unkeyed/unkey/pkg/mysql/types"
               },
               "nullable": true
@@ -88,7 +86,7 @@
               "column": "app_runtime_settings.command",
               "go_type": {
                 "type": "StringSlice",
-                "package": "dbtype",
+                "package": "mysqltype",
                 "import": "github.com/unkeyed/unkey/pkg/mysql/types"
               }
             },
@@ -96,7 +94,7 @@
               "column": "app_runtime_settings.healthcheck",
               "go_type": {
                 "type": "NullHealthcheck",
-                "package": "dbtype",
+                "package": "mysqltype",
                 "import": "github.com/unkeyed/unkey/pkg/mysql/types"
               },
               "nullable": true
@@ -105,7 +103,7 @@
               "column": "app_build_settings.watch_paths",
               "go_type": {
                 "type": "StringSlice",
-                "package": "dbtype",
+                "package": "mysqltype",
                 "import": "github.com/unkeyed/unkey/pkg/mysql/types"
               }
             },
@@ -113,7 +111,31 @@
               "column": "instances.container_status",
               "go_type": {
                 "type": "ContainerStatus",
-                "package": "dbtype",
+                "package": "mysqltype",
+                "import": "github.com/unkeyed/unkey/pkg/mysql/types"
+              }
+            },
+            {
+              "column": "deployments.status",
+              "go_type": {
+                "type": "DeploymentsStatus",
+                "package": "mysqltype",
+                "import": "github.com/unkeyed/unkey/pkg/mysql/types"
+              }
+            },
+            {
+              "column": "deployments.desired_state",
+              "go_type": {
+                "type": "DeploymentsDesiredState",
+                "package": "mysqltype",
+                "import": "github.com/unkeyed/unkey/pkg/mysql/types"
+              }
+            },
+            {
+              "column": "environments.kind",
+              "go_type": {
+                "type": "EnvironmentKind",
+                "package": "mysqltype",
                 "import": "github.com/unkeyed/unkey/pkg/mysql/types"
               }
             }

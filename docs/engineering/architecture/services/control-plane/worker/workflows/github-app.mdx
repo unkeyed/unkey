@@ -7,7 +7,7 @@ The control worker uses a GitHub App to access repositories for git-based builds
 
 Key components:
 
-- GitHub App client ([`svc/ctrl/worker/github`](https://github.com/unkeyed/unkey/blob/main/svc/ctrl/worker/github)).
+- GitHub App client ([`pkg/github`](https://github.com/unkeyed/unkey/blob/main/pkg/github)).
 - App credentials in `UNKEY_GITHUB_APP_ID` and `UNKEY_GITHUB_PRIVATE_KEY_PEM`.
 - Webhook signature verification using `UNKEY_GITHUB_APP_WEBHOOK_SECRET`.
 

@@ -8,9 +8,13 @@ import (
 	"github.com/unkeyed/unkey/gen/rpc/ctrl"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/deploy/deploygate"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/pkg/zen"
+	"github.com/unkeyed/unkey/svc/api/internal/ctrlclient"
 	"github.com/unkeyed/unkey/svc/api/internal/deployment"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
@@ -60,6 +64,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			ResourceID:   dep.EnvironmentID,
 			Action:       rbac.PromoteDeployment,
 		}),
+		rbac.U(
+			urn.New().Workspace(principal.WorkspaceID).Project(dep.ProjectID).App(dep.AppID).Environment(dep.EnvironmentID).Deployment(dep.ID),
+			permissions.PromoteDeployment{},
+		),
 	))
 	if err != nil {
 		return fault.New(
@@ -70,40 +78,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	// The deployment starts serving live traffic the moment routes swap, so it
-	// must have completed successfully.
-	if dep.Status != db.DeploymentsStatusReady {
-		return fault.New(
-			"deployment not ready",
-			fault.Code(codes.App.Precondition.PreconditionFailed.URN()),
-			fault.Internal("promotion target is not in ready status"),
-			fault.Public("The deployment is not ready."),
-		)
-	}
-
-	// A demoted deployment keeps status ready while it drains toward standby
-	// (only krane's final instance report flips it to stopped), so status alone
-	// would let traffic swap onto a deployment that is shutting down.
-	if dep.DesiredState != db.DeploymentsDesiredStateRunning {
-		return fault.New(
-			"deployment shutting down",
-			fault.Code(codes.App.Precondition.PreconditionFailed.URN()),
-			fault.Internal("promotion target desired_state is not running"),
-			fault.Public("The deployment is shutting down and cannot serve traffic."),
-		)
-	}
-
-	// Promote swaps apps.current_deployment_id, which tracks the production live
-	// deployment, so it only applies to production.
-	if dep.EnvironmentSlug != "production" {
-		return fault.New(
-			"not a production deployment",
-			fault.Code(codes.App.Precondition.PreconditionFailed.URN()),
-			fault.Internal("promote is only allowed on production environments"),
-			fault.Public("Only production deployments can be promoted."),
-		)
-	}
-
+	// The current live pointer decides promote eligibility. See
+	// deploygate.CheckPromoteTarget for the invariant the API, ctrl service, and
+	// worker all enforce.
 	app, err := db.Query.FindAppById(ctx, h.DB.RO(), dep.AppID)
 	if err != nil {
 		return fault.Wrap(
@@ -113,27 +90,26 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			fault.Public("Failed to resolve the current live deployment."),
 		)
 	}
-	if !app.CurrentDeploymentID.Valid || app.CurrentDeploymentID.String == "" {
-		return fault.New(
-			"no live deployment",
-			fault.Code(codes.App.Precondition.PreconditionFailed.URN()),
-			fault.Internal("app has no current deployment to promote over"),
-			fault.Public("The app has no live deployment to promote over."),
-		)
+
+	if err := deploygate.CheckPromoteTarget(deploygate.PromoteInput{
+		Status:              dep.Status,
+		DesiredState:        dep.DesiredState,
+		EnvironmentKind:     dep.EnvironmentKind,
+		CurrentDeploymentID: app.CurrentDeploymentID.String,
+		DeploymentID:        dep.ID,
+		IsRolledBack:        app.IsRolledBack,
+	}); err != nil {
+		return err
 	}
-	// Promoting the live deployment is only meaningful as a rollback
-	// confirmation; otherwise it is a no-op the caller likely did not intend.
-	if app.CurrentDeploymentID.String == dep.ID && !app.IsRolledBack {
-		return fault.New(
-			"deployment already live",
-			fault.Code(codes.App.Precondition.PreconditionFailed.URN()),
-			fault.Internal("promotion target is already the live deployment"),
-			fault.Public("The deployment is already live."),
-		)
+
+	actor, err := ctrlclient.Actor(s)
+	if err != nil {
+		return err
 	}
 
 	_, err = h.CtrlClient.Promote(ctx, &ctrlv1.PromoteRequest{
 		TargetDeploymentId: dep.ID,
+		Actor:              actor,
 	})
 	if err != nil {
 		return deployment.MapCtrlError(err, "promote deployment",

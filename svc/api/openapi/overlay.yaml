@@ -51,6 +51,11 @@ actions:
   - target: $["components"]["schemas"]["UpdateKeyCreditsRefill"]
     update:
       nullable: true
+  - target: $["components"]["schemas"]["V2GatewayUpdatePolicyRequestBody"]["properties"]["match"]["type"]
+    update: array
+  - target: $["components"]["schemas"]["V2GatewayUpdatePolicyRequestBody"]["properties"]["match"]
+    update:
+      nullable: true
   - target: $["components"]["schemas"]["V2EnvironmentsUpdateSettingsRequestBody"]["properties"]["healthcheck"]["anyOf"]
     remove: true
   - target: $["components"]["schemas"]["V2EnvironmentsUpdateSettingsRequestBody"]["properties"]["healthcheck"]
@@ -73,3 +78,10 @@ actions:
   - target: $["components"]["schemas"]["V2EnvironmentsUpdateSettingsRequestBody"]["properties"]["buildCommand"]
     update:
       nullable: true
+  - target: $["components"]["schemas"]["V2AppsUpdateAppRequestBody"]["properties"]["git"]["anyOf"]
+    remove: true
+  - target: $["components"]["schemas"]["V2AppsUpdateAppRequestBody"]["properties"]["git"]
+    update:
+      nullable: true
+      allOf:
+        - "$ref": "#/components/schemas/AppGitUpdateInput"

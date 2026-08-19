@@ -13,4 +13,16 @@ describe("LocalAuthProvider", () => {
     expect(session.orgId).toBe(LOCAL_ORG_ID);
     expect(session.permissions).toEqual(LOCAL_AUTH_PERMISSIONS);
   });
+
+  it("sanitizes the OAuth redirect target instead of echoing it verbatim", () => {
+    const auth = new LocalAuthProvider();
+
+    expect(auth.signInViaOAuth({ provider: "github", redirectUrlComplete: "/apis" })).toBe("/apis");
+    expect(
+      auth.signInViaOAuth({ provider: "github", redirectUrlComplete: "https://evil.com" }),
+    ).toBe("/apis");
+    expect(auth.signInViaOAuth({ provider: "github", redirectUrlComplete: "//evil.com" })).toBe(
+      "/apis",
+    );
+  });
 });

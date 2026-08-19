@@ -10,10 +10,10 @@ import (
 )
 
 const findEnvironmentByIdentifiers = `-- name: FindEnvironmentByIdentifiers :one
-SELECT e.pk, e.id, e.workspace_id, e.project_id, e.app_id, e.slug, e.description, e.delete_protection, e.created_at, e.updated_at
+SELECT e.pk, e.id, e.workspace_id, e.project_id, e.app_id, e.slug, e.description, e.kind, e.delete_protection, e.created_at, e.updated_at
 FROM environments e
-JOIN apps a ON a.id = e.app_id AND a.workspace_id = e.workspace_id
-JOIN projects p ON p.id = a.project_id AND p.workspace_id = a.workspace_id
+JOIN apps a ON e.app_id = a.id AND e.workspace_id = a.workspace_id
+JOIN projects p ON a.project_id = p.id AND a.workspace_id = p.workspace_id
 WHERE e.workspace_id = ?
   AND (p.id = ? OR p.slug = ?)
   AND (a.id = ? OR a.slug = ?)
@@ -30,10 +30,10 @@ type FindEnvironmentByIdentifiersParams struct {
 
 // FindEnvironmentByIdentifiers
 //
-//	SELECT e.pk, e.id, e.workspace_id, e.project_id, e.app_id, e.slug, e.description, e.delete_protection, e.created_at, e.updated_at
+//	SELECT e.pk, e.id, e.workspace_id, e.project_id, e.app_id, e.slug, e.description, e.kind, e.delete_protection, e.created_at, e.updated_at
 //	FROM environments e
-//	JOIN apps a ON a.id = e.app_id AND a.workspace_id = e.workspace_id
-//	JOIN projects p ON p.id = a.project_id AND p.workspace_id = a.workspace_id
+//	JOIN apps a ON e.app_id = a.id AND e.workspace_id = a.workspace_id
+//	JOIN projects p ON a.project_id = p.id AND a.workspace_id = p.workspace_id
 //	WHERE e.workspace_id = ?
 //	  AND (p.id = ? OR p.slug = ?)
 //	  AND (a.id = ? OR a.slug = ?)
@@ -58,6 +58,7 @@ func (q *Queries) FindEnvironmentByIdentifiers(ctx context.Context, db DBTX, arg
 		&i.AppID,
 		&i.Slug,
 		&i.Description,
+		&i.Kind,
 		&i.DeleteProtection,
 		&i.CreatedAt,
 		&i.UpdatedAt,

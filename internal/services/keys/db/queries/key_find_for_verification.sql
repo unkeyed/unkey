@@ -81,10 +81,10 @@ select k.id,
        ws.enabled      as workspace_enabled,
        fws.enabled     as for_workspace_enabled
 from `keys` k
-         JOIN apis a USING (key_auth_id)
+         JOIN apis a ON a.key_auth_id = k.key_auth_id
          JOIN key_auth ka ON ka.id = k.key_auth_id
          JOIN workspaces ws ON ws.id = k.workspace_id
          LEFT JOIN workspaces fws ON fws.id = k.for_workspace_id
-         LEFT JOIN identities i ON k.identity_id = i.id AND i.deleted = 0
+         LEFT JOIN identities i ON i.id = k.identity_id AND i.deleted = 0
 where k.hash = ?
   and k.deleted_at_m is null;

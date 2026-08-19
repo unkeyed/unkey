@@ -6,7 +6,7 @@ import { Avatar } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[a
 import type { Deployment, Environment } from "@/lib/collections";
 import { shortenId } from "@/lib/shorten-id";
 import { CodeBranch, CodeCommit, Layers2 } from "@unkey/icons";
-import { TimestampInfo } from "@unkey/ui";
+import { ResourceListItem, TimestampInfo } from "@unkey/ui";
 import type { Route } from "next";
 import dynamic from "next/dynamic";
 import Link from "next/link";
@@ -47,7 +47,7 @@ export function DeploymentRow({
   const needsApproval = deployment.status === "awaiting_approval";
 
   return (
-    <div className="relative flex flex-col md:flex-row md:items-center px-4 py-3 gap-3 md:gap-0 transition-colors hover:bg-grayA-2">
+    <ResourceListItem className="flex flex-col gap-3 px-4 py-3 transition-colors hover:bg-grayA-2 md:flex-row md:items-center md:gap-0">
       {needsApproval ? (
         <button
           type="button"
@@ -191,6 +191,6 @@ export function DeploymentRow({
           <DeploymentListTableActions selectedDeployment={deployment} environment={environment} />
         </div>
       </div>
-    </div>
+    </ResourceListItem>
   );
 }

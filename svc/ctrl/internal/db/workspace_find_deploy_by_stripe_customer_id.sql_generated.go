@@ -13,33 +13,39 @@ import (
 const findDeployWorkspaceByStripeCustomerID = `-- name: FindDeployWorkspaceByStripeCustomerID :one
 SELECT
    w.id,
-   w.stripe_subscription_id
-FROM ` + "`" + `workspaces` + "`" + ` w
-WHERE w.stripe_customer_id = ?
-  AND w.deploy_plan IS NOT NULL
+   bs.stripe_subscription_id AS stripe_deploy_subscription_id
+FROM ` + "`" + `workspace_billing` + "`" + ` b
+JOIN ` + "`" + `workspaces` + "`" + ` w ON w.id = b.workspace_id
+LEFT JOIN ` + "`" + `billing_subscriptions` + "`" + ` bs
+   ON bs.workspace_id = b.workspace_id AND bs.product = 'compute'
+WHERE b.stripe_customer_id = ?
+  AND b.plan IS NOT NULL
   AND w.deleted_at_m IS NULL
 `
 
 type FindDeployWorkspaceByStripeCustomerIDRow struct {
-	ID                   string         `db:"id"`
-	StripeSubscriptionID sql.NullString `db:"stripe_subscription_id"`
+	ID                         string         `db:"id"`
+	StripeDeploySubscriptionID sql.NullString `db:"stripe_deploy_subscription_id"`
 }
 
 // Resolves a Stripe customer to its Deploy workspace. The ctrl Stripe webhook
 // uses this as the relevance check for month-end invoice closing: invoices of
 // customers without a Deploy plan are left entirely to Stripe's own
-// finalization.
+// finalization. The Deploy subscription id now lives on billing_subscriptions.
 //
 //	SELECT
 //	   w.id,
-//	   w.stripe_subscription_id
-//	FROM `workspaces` w
-//	WHERE w.stripe_customer_id = ?
-//	  AND w.deploy_plan IS NOT NULL
+//	   bs.stripe_subscription_id AS stripe_deploy_subscription_id
+//	FROM `workspace_billing` b
+//	JOIN `workspaces` w ON w.id = b.workspace_id
+//	LEFT JOIN `billing_subscriptions` bs
+//	   ON bs.workspace_id = b.workspace_id AND bs.product = 'compute'
+//	WHERE b.stripe_customer_id = ?
+//	  AND b.plan IS NOT NULL
 //	  AND w.deleted_at_m IS NULL
 func (q *Queries) FindDeployWorkspaceByStripeCustomerID(ctx context.Context, stripeCustomerID sql.NullString) (FindDeployWorkspaceByStripeCustomerIDRow, error) {
 	row := q.db.QueryRowContext(ctx, findDeployWorkspaceByStripeCustomerID, stripeCustomerID)
 	var i FindDeployWorkspaceByStripeCustomerIDRow
-	err := row.Scan(&i.ID, &i.StripeSubscriptionID)
+	err := row.Scan(&i.ID, &i.StripeDeploySubscriptionID)
 	return i, err
 }

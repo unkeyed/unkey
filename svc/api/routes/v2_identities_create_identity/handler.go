@@ -18,6 +18,8 @@ import (
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/pkg/zen"
+	apierrors "github.com/unkeyed/unkey/svc/api/internal/errors"
+	"github.com/unkeyed/unkey/svc/api/internal/projects"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
@@ -88,12 +90,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			)
 		}
 
-		sizeInMB := float64(len(rawMeta)) / 1024 / 1024
-		if sizeInMB > MAX_META_LENGTH_MB {
-			return fault.New("metadata is too large",
-				fault.Code(codes.App.Validation.InvalidInput.URN()),
-				fault.Internal("metadata is too large"), fault.Public(fmt.Sprintf("Metadata is too large, it must be less than %dMB, got: %.2f", MAX_META_LENGTH_MB, sizeInMB)),
-			)
+		if err := apierrors.MaxByteSize("Metadata", len(rawMeta), MAX_META_LENGTH_MB*1024*1024); err != nil {
+			return err
 		}
 
 		meta = rawMeta
@@ -102,10 +100,16 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	identityID := uid.New(uid.IdentityPrefix)
 
 	err = db.TxRetry(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
+		projectID, resolveErr := projects.EnsureDefaultProject(ctx, tx, principal.WorkspaceID)
+		if resolveErr != nil {
+			return resolveErr
+		}
+
 		args := db.InsertIdentityParams{
 			ID:          identityID,
 			ExternalID:  req.ExternalId,
 			WorkspaceID: principal.WorkspaceID,
+			ProjectID:   projectID,
 			Environment: "default",
 			CreatedAt:   time.Now().UnixMilli(),
 			Meta:        meta,

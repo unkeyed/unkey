@@ -14,6 +14,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/dns/domainconnect"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/logger"
+	"github.com/unkeyed/unkey/pkg/restate/restateutil"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
@@ -21,6 +22,13 @@ import (
 // maxVerificationDuration limits how long we retry DNS verification before
 // marking a domain as failed.
 const maxVerificationDuration = 24 * time.Hour
+
+// rowVisibilityGrace is how long a missing domain row stays retryable before it
+// means deletion. AddCustomDomain submits this workflow inside the transaction
+// that inserts the row, so the first attempts can run before the commit lands;
+// treating that as terminal would kill the workflow and strand the row in
+// `pending`. The race resolves in milliseconds, the window is padding.
+const rowVisibilityGrace = 2 * time.Minute
 
 // errNotVerified signals incomplete verification and triggers Restate retries.
 var errNotVerified = errors.New("domain not verified yet")
@@ -57,10 +65,21 @@ func (s *Service) VerifyDomain(
 ) (*hydrav1.VerifyDomainResponse, error) {
 	domainID := restate.Key(ctx)
 
+	// Journaled so every retry measures the row-visibility grace from the first
+	// attempt rather than from itself, which would never let the window expire.
+	startedAt, err := restateutil.Now(ctx)
+	if err != nil {
+		return nil, err
+	}
+
 	// Fetch domain - NOT journaled so we get fresh state on each retry
 	dom, err := s.db.FindCustomDomainById(ctx, domainID)
 	if err != nil {
 		if db.IsNotFound(err) {
+			if time.Since(startedAt) < rowVisibilityGrace {
+				return nil, fault.Wrap(err, fault.Internal("domain row not visible yet"))
+			}
+
 			// The domain row was deleted (DeleteCustomDomain, environment cascade,
 			// etc.) while verification was still running. Stop retrying instead of
 			// surfacing a retryable internal error for up to 24 hours.
@@ -72,8 +91,7 @@ func (s *Service) VerifyDomain(
 		return nil, fault.Wrap(err, fault.Internal("failed to fetch domain record"))
 	}
 
-	// Check if we've exceeded the verification window
-	elapsed := time.Since(time.UnixMilli(dom.CreatedAt))
+	elapsed := time.Since(startedAt)
 	if elapsed > maxVerificationDuration {
 		return s.onVerificationFailed(ctx, dom, "domain verification timed out after 24 hours")
 	}
@@ -243,7 +261,7 @@ func (s *Service) checkTXTRecord(domain, expectedToken string) (bool, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), dns.DefaultTimeout)
 	defer cancel()
 
-	txtRecords, err := dns.LookupTXT(ctx, "_unkey."+domain)
+	txtRecords, err := dns.LookupTXT(ctx, dns.OwnershipTXTName(domain))
 	if err != nil {
 		if dns.IsNotFoundError(err) {
 			return false, nil
@@ -251,7 +269,7 @@ func (s *Service) checkTXTRecord(domain, expectedToken string) (bool, error) {
 		return false, err
 	}
 
-	expected := "unkey-domain-verify=" + expectedToken
+	expected := dns.OwnershipTXTValue(expectedToken)
 	for _, txt := range txtRecords {
 		if strings.EqualFold(txt, expected) {
 			return true, nil

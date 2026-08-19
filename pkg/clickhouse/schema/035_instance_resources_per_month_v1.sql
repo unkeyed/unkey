@@ -15,6 +15,7 @@ CREATE TABLE instance_resources_per_month_v1 (
   time DateTime,
   workspace_id String,
   project_id LowCardinality(String),
+  app_id LowCardinality(String),
   environment_id LowCardinality(String),
   resource_type LowCardinality(String),
   resource_id LowCardinality(String),
@@ -50,7 +51,7 @@ CREATE MATERIALIZED VIEW instance_resources_per_month_mv_v1
 TO instance_resources_per_month_v1 AS
 SELECT
   toStartOfMonth(fromUnixTimestamp64Milli(ts)) AS time,
-  workspace_id, project_id, environment_id, resource_type, resource_id, container_uid, instance_id,
+  workspace_id, project_id, app_id, environment_id, resource_type, resource_id, container_uid, instance_id,
   min(cpu_usage_usec) AS cpu_usage_usec_min,
   max(cpu_usage_usec) AS cpu_usage_usec_max,
   max(memory_bytes) AS memory_bytes_max,
@@ -68,4 +69,4 @@ SELECT
   max(network_ingress_private_bytes) AS network_ingress_private_bytes_max,
   toInt64(count()) AS sample_count
 FROM instance_checkpoints_v1
-GROUP BY time, workspace_id, project_id, environment_id, resource_type, resource_id, container_uid, instance_id;
+GROUP BY time, workspace_id, project_id, app_id, environment_id, resource_type, resource_id, container_uid, instance_id;

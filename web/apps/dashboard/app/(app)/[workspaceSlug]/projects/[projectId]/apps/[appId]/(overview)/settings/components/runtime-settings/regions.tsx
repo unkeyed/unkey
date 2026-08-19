@@ -1,17 +1,28 @@
 "use client";
 
 import { RegionFlag } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/region-flag";
-import type { ComboboxOption } from "@/components/ui/combobox";
-import { FormCombobox } from "@/components/ui/form-combobox";
+import {
+  Multibox,
+  MultiboxChip,
+  MultiboxChipRemove,
+  MultiboxChips,
+  MultiboxContent,
+  MultiboxEmpty,
+  MultiboxInput,
+  MultiboxItem,
+  MultiboxList,
+  MultiboxTrigger,
+  useMultiboxAnchor,
+} from "@/components/ui/multibox";
 import { collection } from "@/lib/collections";
 import type { EnvironmentSettings } from "@/lib/collections/deploy/environment-settings";
 import { trpc } from "@/lib/trpc/client";
 import { mapRegionToFlag } from "@/lib/trpc/routers/deploy/network/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Location2, XMark } from "@unkey/icons";
+import { Location2 } from "@unkey/icons";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@unkey/ui";
-import type * as React from "react";
-import { useContext, useEffect, useMemo } from "react";
+import { FormLabel } from "@unkey/ui/src/components/form/form-helpers";
+import { useContext, useEffect, useId, useMemo } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
 import { EnvironmentContext, useEnvironmentSettings } from "../../environment-provider";
@@ -31,79 +42,93 @@ export const Regions = () => {
   return <RegionsDual />;
 };
 
-const buildRegionComboboxOptions = (
-  regions: Array<{ id: string; name: string }>,
-): ComboboxOption[] =>
-  regions.map((region) => ({
-    value: region.name,
-    searchValue: region.name,
-    label: (
-      <div className="flex items-center gap-2">
-        <RegionFlag flagCode={mapRegionToFlag(region.name)} size="xs" className="[&_img]:size-3" />
-        <span className="text-gray-11 text-xs font-mono">{region.name}</span>
-      </div>
-    ),
-  }));
-
-const RegionTags = ({
+const RegionMultibox = ({
+  inputId,
   regions,
-  onRemove,
-  canRemove,
-  unschedulableRegions,
+  onChange,
+  availableRegions,
 }: {
+  inputId?: string;
   regions: string[];
-  onRemove: (region: string) => void;
-  canRemove: boolean;
-  unschedulableRegions?: Set<string>;
-}) => (
-  <TooltipProvider>
-    <div className="w-full flex flex-wrap gap-1.5 py-0.5">
-      {regions.map((r) => {
-        const isUnschedulable = unschedulableRegions?.has(r);
-        const tag = (
-          <span
-            key={r}
-            className={`flex items-center gap-1 px-1.5 py-0.5 rounded-md text-xs ${
-              isUnschedulable
-                ? "bg-warning-3 border border-warning-6 text-warning-11"
-                : "bg-grayA-3 border border-grayA-4 text-accent-12"
-            }`}
-          >
-            <RegionFlag
-              flagCode={mapRegionToFlag(r)}
-              size="xs"
-              shape="circle"
-              className="[&_img]:size-3"
-            />
-            {r}
-            {canRemove && (
-              //biome-ignore lint/a11y/useKeyWithClickEvents: we can't use button here otherwise we'll nest two buttons
-              <span
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onRemove(r);
-                }}
-                className="p-0.5 hover:bg-grayA-4 rounded text-grayA-9 hover:text-accent-12 transition-colors"
-              >
-                <XMark iconSize="sm-regular" />
-              </span>
-            )}
-          </span>
-        );
+  onChange: (regions: string[]) => void;
+  availableRegions: Array<{ name: string; canSchedule: boolean }>;
+}) => {
+  const schedulableRegions = availableRegions.filter((r) => r.canSchedule).map((r) => r.name);
+  const unschedulableRegions = new Set(
+    availableRegions.filter((r) => !r.canSchedule).map((r) => r.name),
+  );
+  const canRemove = regions.length > 1;
+  const anchor = useMultiboxAnchor();
 
-        if (isUnschedulable) {
-          return (
-            <Tooltip key={r}>
-              <TooltipTrigger render={tag as React.ReactElement} />
-              <TooltipContent>This region is currently unavailable for scheduling</TooltipContent>
-            </Tooltip>
-          );
-        }
-        return tag;
-      })}
-    </div>
-  </TooltipProvider>
-);
+  return (
+    <TooltipProvider>
+      <Multibox
+        items={schedulableRegions}
+        value={regions}
+        onValueChange={(next) => {
+          if (next.length > 0) {
+            onChange(next);
+          }
+        }}
+      >
+        <MultiboxChips ref={anchor}>
+          {regions.map((region) => {
+            const isUnschedulable = unschedulableRegions.has(region);
+            const chip = (
+              <MultiboxChip
+                key={region}
+                className={
+                  isUnschedulable ? "bg-warning-3 border-warning-6 text-warning-11" : undefined
+                }
+              >
+                <RegionFlag
+                  flagCode={mapRegionToFlag(region)}
+                  size="xs"
+                  shape="circle"
+                  className="[&_img]:size-3"
+                />
+                {region}
+                {canRemove && <MultiboxChipRemove />}
+              </MultiboxChip>
+            );
+
+            if (isUnschedulable) {
+              return (
+                <Tooltip key={region}>
+                  <TooltipTrigger render={chip} />
+                  <TooltipContent>
+                    This region is currently unavailable for scheduling
+                  </TooltipContent>
+                </Tooltip>
+              );
+            }
+            return chip;
+          })}
+          <MultiboxInput
+            id={inputId}
+            placeholder={regions.length === 0 ? "Select a region" : undefined}
+          />
+          <MultiboxTrigger />
+        </MultiboxChips>
+        <MultiboxContent anchor={anchor}>
+          <MultiboxEmpty>No regions available.</MultiboxEmpty>
+          <MultiboxList>
+            {(region: string) => (
+              <MultiboxItem key={region} value={region}>
+                <RegionFlag
+                  flagCode={mapRegionToFlag(region)}
+                  size="xs"
+                  className="[&_img]:size-3"
+                />
+                <span className="text-gray-11 text-xs font-mono">{region}</span>
+              </MultiboxItem>
+            )}
+          </MultiboxList>
+        </MultiboxContent>
+      </Multibox>
+    </TooltipProvider>
+  );
+};
 
 const RegionDisplayValue = ({ regions }: { regions: string[] }) => {
   if (regions.length === 0) {
@@ -172,14 +197,7 @@ const RegionsSingle = () => {
   }, [defaultRegions, reset]);
 
   const currentRegions = useWatch({ control, name: "regions" });
-  const allRegions = availableRegions ?? [];
-  const unselectedRegions = allRegions.filter(
-    (r) => r.canSchedule && !currentRegions.includes(r.name),
-  );
-  const unschedulableRegions = useMemo(
-    () => new Set(allRegions.filter((r) => !r.canSchedule).map((r) => r.name)),
-    [allRegions],
-  );
+  const inputId = useId();
 
   const onSubmit = async (values: RegionsSingleFormValues) => {
     updateAllEnvironments((draft) => {
@@ -190,29 +208,13 @@ const RegionsSingle = () => {
         if (existing) {
           return existing;
         }
-        const available = (availableRegions ?? []).find((r) => r.name === name);
         return {
-          id: available?.id ?? name,
           name,
           replicasMin: defaultReplicasMin,
           replicasMax: defaultReplicasMax,
         };
       });
     });
-  };
-
-  const addRegion = (regionName: string) => {
-    if (regionName && !currentRegions.includes(regionName)) {
-      setValue("regions", [...currentRegions, regionName], { shouldValidate: true });
-    }
-  };
-
-  const removeRegion = (regionName: string) => {
-    setValue(
-      "regions",
-      currentRegions.filter((r) => r !== regionName),
-      { shouldValidate: true },
-    );
   };
 
   const hasChanges =
@@ -236,28 +238,15 @@ const RegionsSingle = () => {
       autoSave={variant === "onboarding"}
     >
       <SettingField>
-        <FormCombobox
-          label="Region"
-          requirement="optional"
-          options={buildRegionComboboxOptions(unselectedRegions)}
-          value=""
-          onSelect={addRegion}
-          closeOnSelect={false}
-          placeholder={
-            currentRegions.length === 0 ? (
-              <span className="text-grayA-8 w-full text-left">Select a region</span>
-            ) : (
-              <RegionTags
-                regions={currentRegions}
-                onRemove={removeRegion}
-                canRemove={currentRegions.length > 1}
-                unschedulableRegions={unschedulableRegions}
-              />
-            )
-          }
-          searchPlaceholder="Search regions..."
-          emptyMessage={<div className="mt-2">No regions available.</div>}
-        />
+        <fieldset className="flex flex-col gap-1.5 border-0 m-0 p-0">
+          <FormLabel label="Region" requirement="optional" htmlFor={inputId} />
+          <RegionMultibox
+            inputId={inputId}
+            regions={currentRegions}
+            onChange={(next) => setValue("regions", next, { shouldValidate: true })}
+            availableRegions={availableRegions ?? []}
+          />
+        </fieldset>
       </SettingField>
 
       <SettingDescription>
@@ -329,18 +318,6 @@ const RegionsDualInner = ({ production, preview }: RegionsDualInnerProps) => {
   const currentProdRegions = useWatch({ control, name: "productionRegions" });
   const currentPreviewRegions = useWatch({ control, name: "previewRegions" });
 
-  const allRegions = availableRegions ?? [];
-  const unselectedProdRegions = allRegions.filter(
-    (r) => r.canSchedule && !currentProdRegions.includes(r.name),
-  );
-  const unselectedPreviewRegions = allRegions.filter(
-    (r) => r.canSchedule && !currentPreviewRegions.includes(r.name),
-  );
-  const unschedulableRegions = useMemo(
-    () => new Set(allRegions.filter((r) => !r.canSchedule).map((r) => r.name)),
-    [allRegions],
-  );
-
   const onSubmit = async (values: RegionsDualFormValues) => {
     const prodChanged =
       values.productionRegions.length !== defaultProdRegions.length ||
@@ -350,45 +327,35 @@ const RegionsDualInner = ({ production, preview }: RegionsDualInnerProps) => {
       values.previewRegions.length !== defaultPreviewRegions.length ||
       values.previewRegions.some((r) => !defaultPreviewRegions.includes(r));
 
+    // One transaction for both environments. The collection refetches every
+    // loaded environment after a transaction settles.
+    const targets: { id: string; regionNames: string[] }[] = [];
     if (prodChanged) {
-      collection.environmentSettings.update(production.environmentId, (draft) => {
-        const defaultReplicasMin = draft.regions[0]?.replicasMin ?? 1;
-        const defaultReplicasMax = draft.regions[0]?.replicasMax ?? 1;
-        draft.regions = values.productionRegions.map((name) => {
-          const existing = draft.regions.find((r) => r.name === name);
-          if (existing) {
-            return existing;
-          }
-          const available = (availableRegions ?? []).find((r) => r.name === name);
-          return {
-            id: available?.id ?? name,
-            name,
-            replicasMin: defaultReplicasMin,
-            replicasMax: defaultReplicasMax,
-          };
-        });
-      });
+      targets.push({ id: production.environmentId, regionNames: values.productionRegions });
+    }
+    if (prevChanged) {
+      targets.push({ id: preview.environmentId, regionNames: values.previewRegions });
+    }
+    if (targets.length === 0) {
+      return;
     }
 
-    if (prevChanged) {
-      collection.environmentSettings.update(preview.environmentId, (draft) => {
-        const defaultReplicasMin = draft.regions[0]?.replicasMin ?? 1;
-        const defaultReplicasMax = draft.regions[0]?.replicasMax ?? 1;
-        draft.regions = values.previewRegions.map((name) => {
-          const existing = draft.regions.find((r) => r.name === name);
-          if (existing) {
-            return existing;
-          }
-          const available = (availableRegions ?? []).find((r) => r.name === name);
-          return {
-            id: available?.id ?? name,
-            name,
-            replicasMin: defaultReplicasMin,
-            replicasMax: defaultReplicasMax,
-          };
-        });
-      });
-    }
+    collection.environmentSettings.update(
+      targets.map((t) => t.id),
+      (drafts) =>
+        drafts.forEach((draft, i) => {
+          const defaultReplicasMin = draft.regions[0]?.replicasMin ?? 1;
+          const defaultReplicasMax = draft.regions[0]?.replicasMax ?? 1;
+          draft.regions = targets[i].regionNames.map(
+            (name) =>
+              draft.regions.find((r) => r.name === name) ?? {
+                name,
+                replicasMin: defaultReplicasMin,
+                replicasMax: defaultReplicasMax,
+              },
+          );
+        }),
+    );
   };
 
   const prodHasChanges =
@@ -404,34 +371,6 @@ const RegionsDualInner = ({ production, preview }: RegionsDualInnerProps) => {
     [!isValid, { status: "disabled" }],
     [!hasChanges, { status: "disabled", reason: "No changes to save" }],
   ]);
-
-  const addProdRegion = (region: string) => {
-    if (region && !currentProdRegions.includes(region)) {
-      setValue("productionRegions", [...currentProdRegions, region], { shouldValidate: true });
-    }
-  };
-
-  const removeProdRegion = (region: string) => {
-    setValue(
-      "productionRegions",
-      currentProdRegions.filter((r) => r !== region),
-      { shouldValidate: true },
-    );
-  };
-
-  const addPreviewRegion = (region: string) => {
-    if (region && !currentPreviewRegions.includes(region)) {
-      setValue("previewRegions", [...currentPreviewRegions, region], { shouldValidate: true });
-    }
-  };
-
-  const removePreviewRegion = (region: string) => {
-    setValue(
-      "previewRegions",
-      currentPreviewRegions.filter((r) => r !== region),
-      { shouldValidate: true },
-    );
-  };
 
   return (
     <FormSettingCard
@@ -450,48 +389,18 @@ const RegionsDualInner = ({ production, preview }: RegionsDualInnerProps) => {
     >
       <SettingField>
         <EnvironmentSliderSection label="Production">
-          <FormCombobox
-            options={buildRegionComboboxOptions(unselectedProdRegions)}
-            value=""
-            onSelect={addProdRegion}
-            closeOnSelect={false}
-            placeholder={
-              currentProdRegions.length === 0 ? (
-                <span className="text-grayA-8 w-full text-left">Select a region</span>
-              ) : (
-                <RegionTags
-                  regions={currentProdRegions}
-                  onRemove={removeProdRegion}
-                  canRemove={currentProdRegions.length > 1}
-                  unschedulableRegions={unschedulableRegions}
-                />
-              )
-            }
-            searchPlaceholder="Search regions..."
-            emptyMessage={<div className="mt-2">No regions available.</div>}
+          <RegionMultibox
+            regions={currentProdRegions}
+            onChange={(next) => setValue("productionRegions", next, { shouldValidate: true })}
+            availableRegions={availableRegions ?? []}
           />
         </EnvironmentSliderSection>
 
         <EnvironmentSliderSection label="Preview">
-          <FormCombobox
-            options={buildRegionComboboxOptions(unselectedPreviewRegions)}
-            value=""
-            onSelect={addPreviewRegion}
-            closeOnSelect={false}
-            placeholder={
-              currentPreviewRegions.length === 0 ? (
-                <span className="text-grayA-8 w-full text-left">Select a region</span>
-              ) : (
-                <RegionTags
-                  regions={currentPreviewRegions}
-                  onRemove={removePreviewRegion}
-                  canRemove={currentPreviewRegions.length > 1}
-                  unschedulableRegions={unschedulableRegions}
-                />
-              )
-            }
-            searchPlaceholder="Search regions..."
-            emptyMessage={<div className="mt-2">No regions available.</div>}
+          <RegionMultibox
+            regions={currentPreviewRegions}
+            onChange={(next) => setValue("previewRegions", next, { shouldValidate: true })}
+            availableRegions={availableRegions ?? []}
           />
         </EnvironmentSliderSection>
       </SettingField>

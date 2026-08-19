@@ -1,0 +1,148 @@
+name: Database Schema Gate
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+  merge_group:
+    branches: [main]
+  schedule:
+    - cron: "17 3 * * *"
+concurrency:
+  group: database-schema-gate
+  cancel-in-progress: false
+permissions:
+  contents: read
+  pull-requests: read
+env:
+  PSCALE_ORG: unkey
+  PSCALE_DB: unkey
+  FROM: main
+  BRANCH: schema-check-${{ github.run_id }}-${{ github.run_attempt }}
+jobs:
+  gate:
+    if: github.event_name == 'pull_request' || github.event_name == 'merge_group'
+    name: Compare production schema
+    runs-on: depot-ubuntu-24.04-4
+    timeout-minutes: 15
+    env:
+      PLANETSCALE_SERVICE_TOKEN_ID: ${{ secrets.PLANETSCALE_SERVICE_TOKEN_ID }}
+      PLANETSCALE_SERVICE_TOKEN: ${{ secrets.PLANETSCALE_SERVICE_TOKEN }}
+    steps:
+      - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4
+
+      - uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36 # v3.0.2
+        id: changes
+        with:
+          filters: |
+            db_schema:
+              - 'web/internal/db/src/schema/**'
+              - 'web/internal/db/drizzle.config.ts'
+              - 'web/internal/db/package.json'
+
+      - name: Report schema check decision
+        env:
+          DB_SCHEMA_CHANGED: ${{ steps.changes.outputs.db_schema }}
+        run: |
+          echo "Event: $GITHUB_EVENT_NAME"
+          echo "Schema files changed: $DB_SCHEMA_CHANGED"
+          if [ "$DB_SCHEMA_CHANGED" != "true" ]; then
+            echo "No schema changes to compare."
+          fi
+
+      - name: Install mise
+        if: steps.changes.outputs.db_schema == 'true'
+        run: |
+          ./dev/install-mise
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: Install toolchain
+        if: steps.changes.outputs.db_schema == 'true'
+        run: mise install --locked --yes node github:pnpm/pnpm github:planetscale/cli github:jqlang/jq
+
+      - name: Compare proposed schema with production
+        if: steps.changes.outputs.db_schema == 'true'
+        run: |
+          set -euo pipefail
+          echo "Creating PlanetScale branch $BRANCH from $FROM."
+          mise run pscale-branch
+          echo "Applied the proposed schema to $BRANCH."
+
+          # PlanetScale may take a few seconds to show schema changes. We're retrying
+          # to ensure it's stable and no changes are detected for 30s
+          for attempt in $(seq 1 7); do
+            BRANCH_DIFF=$(mise exec -- pscale branch diff "$PSCALE_DB" "$BRANCH" \
+              --org "$PSCALE_ORG" --format json)
+
+            if ! DIFF_COUNT=$(mise exec -- jq -e 'if type == "array" then length else error("expected an array") end' <<< "$BRANCH_DIFF"); then
+              echo "::error::PlanetScale returned an invalid branch diff."
+              exit 1
+            fi
+            echo "Diff check $attempt/7 found $DIFF_COUNT change(s)."
+            if [ "$DIFF_COUNT" -gt 0 ]; then
+              echo "::error::The production PlanetScale schema does not match this pull request. Deploy the schema changes through staging and main, then rerun this check."
+              mise exec -- jq -r '.[].raw' <<< "$BRANCH_DIFF"
+              exit 1
+            fi
+            if [ "$attempt" -lt 7 ]; then
+              sleep 5
+            fi
+          done
+
+          echo "The production PlanetScale schema matches this change."
+
+      - name: Delete schema check branch
+        if: always() && steps.changes.outputs.db_schema == 'true'
+        run: |
+          # Preserve the comparison result if immediate cleanup fails. The
+          # scheduled cleanup job removes any branch left behind.
+          echo "Deleting PlanetScale branch $BRANCH."
+          if mise exec -- pscale branch delete "$PSCALE_DB" "$BRANCH" \
+              --org "$PSCALE_ORG" --force; then
+            echo "Deleted $BRANCH."
+          else
+            echo "::warning::Could not delete $BRANCH. The daily cleanup job will retry."
+          fi
+
+  # A runner can stop before the delete step runs. Clean up any temporary
+  # branches left behind so they do not build up in PlanetScale.
+  cleanup:
+    if: github.event_name == 'schedule'
+    name: Delete stale schema check branches
+    runs-on: depot-ubuntu-24.04-4
+    timeout-minutes: 5
+    env:
+      PLANETSCALE_SERVICE_TOKEN_ID: ${{ secrets.PLANETSCALE_SERVICE_TOKEN_ID }}
+      PLANETSCALE_SERVICE_TOKEN: ${{ secrets.PLANETSCALE_SERVICE_TOKEN }}
+    steps:
+      - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4
+
+      - name: Install mise
+        run: |
+          ./dev/install-mise
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: Install toolchain
+        run: mise install --locked --yes github:planetscale/cli github:jqlang/jq
+
+      - name: Delete leftover schema check branches
+        run: |
+          set -euo pipefail
+          BRANCH_LIST=$(mise exec -- pscale branch list "$PSCALE_DB" \
+            --org "$PSCALE_ORG" --format json)
+          if ! mise exec -- jq -e 'type == "array"' <<< "$BRANCH_LIST" >/dev/null; then
+            echo "::error::PlanetScale returned an invalid branch list."
+            exit 1
+          fi
+          mapfile -t BRANCHES < <(
+            mise exec -- jq -r '
+                .[]
+                | select(.name | startswith("schema-check-"))
+                | .name
+              ' <<< "$BRANCH_LIST"
+          )
+          echo "Found ${#BRANCHES[@]} leftover schema check branch(es)."
+          for branch in "${BRANCHES[@]}"; do
+            echo "Deleting $branch."
+            mise exec -- pscale branch delete "$PSCALE_DB" "$branch" \
+              --org "$PSCALE_ORG" --force
+          done
+          echo "Daily schema branch cleanup complete."

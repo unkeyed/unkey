@@ -1,0 +1,72 @@
+post:
+  tags:
+    - github
+  summary: Install GitHub App
+  description: |
+    Start installing the Unkey GitHub App for your workspace. Returns a GitHub
+    App install URL: open it in a browser to install the app and grant
+    repository access. After installation GitHub returns to Unkey, which binds
+    the installation to your workspace and lands you in the workspace settings.
+
+    Installation is workspace-wide and takes no parameters. Once installed, link
+    repositories to individual apps with the `git` field on `apps.createApp` and
+    `apps.updateApp`.
+
+    **Required Permissions**
+
+    Your root key must have the following permission:
+    - `workspace.*.install_github`
+  operationId: github.installApp
+  x-speakeasy-name-override: installApp
+  x-unkey-idempotency: idempotent
+  security:
+    - bearer: []
+  responses:
+    "200":
+      content:
+        application/json:
+          schema:
+            "$ref": "./V2GithubInstallAppResponseBody.yaml"
+          examples:
+            success:
+              summary: Install URL created
+              description: Open the returned url to install the GitHub App
+              value:
+                meta:
+                  requestId: req_1234abcd
+                data:
+                  url: https://github.com/apps/unkey/installations/new?state=eyJ...
+                  expiresAt: 1700000900000
+      description: |
+        Install URL created. Open the returned url to install the GitHub App and
+        finish binding it to your workspace.
+    "400":
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/BadRequestErrorResponse.yaml"
+    "401":
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/UnauthorizedErrorResponse.yaml"
+    "403":
+      description: Forbidden - Insufficient permissions (requires `workspace.*.install_github`)
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/ForbiddenErrorResponse.yaml"
+    "429":
+      description: Too Many Requests
+      content:
+        application/problem+json:
+          schema:
+            "$ref": "../../../../error/TooManyRequestsErrorResponse.yaml"
+    "500":
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/InternalServerErrorResponse.yaml"

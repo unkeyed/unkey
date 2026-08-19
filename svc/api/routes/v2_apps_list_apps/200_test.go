@@ -81,7 +81,7 @@ func TestListAppsSuccessfully(t *testing.T) {
 			require.True(t, ok, "unexpected app %s in response", a.Id)
 			require.True(t, strings.HasPrefix(a.Id, "app_"), "id should have app_ prefix: %s", a.Id)
 			require.Equal(t, slug, a.Slug)
-			require.Equal(t, "main", a.DefaultBranch)
+			require.Nil(t, a.Git, "seeded app has no repo connection")
 			require.NotEmpty(t, a.Name)
 			require.Empty(t, a.CurrentDeploymentId, "freshly seeded app has no active deployment")
 			require.False(t, a.IsRolledBack)

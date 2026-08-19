@@ -13,8 +13,8 @@ import (
 
 // FindDeployment loads a deployment by ID scoped to the caller's workspace. A
 // cross-workspace match is masked as not found so a caller can't probe for
-// deployments it can't see. The row carries EnvironmentSlug (joined) so
-// lifecycle handlers can gate on the environment without a second query.
+// deployments it can't see. The row carries the joined environment's slug and
+// kind so lifecycle handlers can gate without a second query.
 //
 // It deliberately does no authorization: each handler authorizes inline so the
 // exact permission checked stays visible at the call site.
@@ -44,6 +44,10 @@ func FindDeployment(ctx context.Context, database db.Database, workspaceID, depl
 // MapCtrlError converts a ctrl connect error from a lifecycle RPC into an API
 // fault: precondition failures become a 412 with preconditionMsg, not-found
 // stays a 404, and everything else falls through to the generic ctrl mapping.
+// Ctrl re-runs the same deploygate checks the handler already passed, so a
+// precondition failure here means the state changed between the two checks (a
+// race); the caller-supplied preconditionMsg describes the action rather than
+// leaking ctrl's internal message.
 func MapCtrlError(err error, action string, preconditionMsg string) error {
 	var connectErr *connect.Error
 	if errors.As(err, &connectErr) {

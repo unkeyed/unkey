@@ -7,7 +7,8 @@
 -- trip regardless of how many workspaces had usage.
 SELECT
    w.id,
-   w.stripe_customer_id,
+   b.stripe_customer_id,
    w.enabled
 FROM `workspaces` w
+LEFT JOIN `workspace_billing` b ON w.id = b.workspace_id
 WHERE w.id IN (sqlc.slice('workspace_ids'));

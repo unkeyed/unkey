@@ -11,9 +11,12 @@
 -- hourly tick, the same bound the hourly push accepts everywhere else.
 SELECT
    w.id,
-   w.stripe_customer_id,
-   w.stripe_subscription_id
+   b.stripe_customer_id,
+   bs.stripe_subscription_id AS stripe_deploy_subscription_id
 FROM `workspaces` w
-WHERE w.deploy_plan IS NOT NULL
-  AND w.stripe_customer_id IS NOT NULL
+LEFT JOIN `workspace_billing` b ON b.workspace_id = w.id
+LEFT JOIN `billing_subscriptions` bs
+   ON bs.workspace_id = w.id AND bs.product = 'compute'
+WHERE b.plan IS NOT NULL
+  AND b.stripe_customer_id IS NOT NULL
   AND w.deleted_at_m IS NULL;

@@ -36,6 +36,7 @@ func TestFrontlineURNsEncodeAttributionDomain(t *testing.T) {
 		{codes.Frontline.Auth.InvalidKey, "err:frontline:client:invalid_key"},
 		{codes.Frontline.Auth.InsufficientPermissions, "err:frontline:client:insufficient_permissions"},
 		{codes.Frontline.Auth.RateLimited, "err:frontline:client:rate_limited"},
+		{codes.Frontline.Auth.UsageExceeded, "err:frontline:client:usage_exceeded"},
 		{codes.Frontline.Firewall.Denied, "err:frontline:client:firewall_denied"},
 		{codes.Frontline.OpenApi.InvalidRequest, "err:frontline:client:openapi_validation_failed"},
 	}

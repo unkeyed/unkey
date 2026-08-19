@@ -23,6 +23,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/dns/domainconnect"
+	githubclient "github.com/unkeyed/unkey/pkg/github"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/mysql/sqlcomment"
 	"github.com/unkeyed/unkey/pkg/otel"
@@ -44,7 +45,6 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/services/openapi"
 	"github.com/unkeyed/unkey/svc/ctrl/services/ops"
 	"github.com/unkeyed/unkey/svc/ctrl/services/project"
-	githubclient "github.com/unkeyed/unkey/svc/ctrl/worker/github"
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
 )
@@ -180,6 +180,7 @@ func Run(ctx context.Context, cfg Config) error {
 		Clock:          clk,
 		TopologyCache:  topologyCache,
 		InstanceEvents: instanceEvents,
+		RegionalDomain: cfg.RegionalDomain,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to create cluster service: %w", err)
@@ -243,6 +244,7 @@ func Run(ctx context.Context, cfg Config) error {
 		Auditlogs:                       auditlogSvc,
 		AllowUnauthenticatedDeployments: cfg.GitHub.AllowUnauthenticatedDeployments,
 		Bearer:                          cfg.AuthToken,
+		EnforceDeployGate:               cfg.DeployGate.Enforce,
 	})
 	mux.Handle(ctrlv1connect.NewDeployServiceHandler(deploymentSvc))
 	mux.Handle(ctrlv1connect.NewOpsServiceHandler(ops.New(ops.Config{
@@ -277,6 +279,7 @@ func Run(ctx context.Context, cfg Config) error {
 		Database:                   database,
 		Restate:                    restateClient,
 		RestateAdmin:               restateAdminClient,
+		Auditlogs:                  auditlogSvc,
 		CnameDomain:                cfg.CnameDomain,
 		DomainConnectPrivateKeyPEM: dcPrivateKeyPEM,
 		Bearer:                     cfg.AuthToken,
@@ -358,15 +361,14 @@ func Run(ctx context.Context, cfg Config) error {
 		return nil
 	})
 
-	// Bootstrap certificates (wildcard domain records)
+	// Ensure the default wildcard certificate (*.{DefaultDomain}) exists and
+	// trigger issuance. This is the one infra cert not tied to a region event;
+	// per-region wildcards are provisioned on demand when a region first
+	// registers via cluster.Heartbeat. Best-effort: EnsureInfraCertificate
+	// never fails and is a no-op once the cert exists.
 	if cfg.DefaultDomain != "" {
-		certBootstrap := &certificateBootstrap{
-			database:       database,
-			defaultDomain:  cfg.DefaultDomain,
-			regionalDomain: cfg.RegionalDomain,
-		}
 		r.Go(func(ctx context.Context) error {
-			certBootstrap.run(ctx)
+			c.EnsureInfraCertificate(ctx, "*."+cfg.DefaultDomain)
 			return nil
 		})
 	}

@@ -1,133 +1,69 @@
+import { DeployService } from "@/gen/proto/ctrl/v1/deployment_pb";
 import { insertAuditLogs } from "@/lib/audit";
-import { db, eq, schema } from "@/lib/db";
+import { deactivateNonCreatorMemberships } from "@/lib/auth/deactivateNonCreatorMemberships";
+import { createCtrlClient } from "@/lib/ctrl-client";
+import { db } from "@/lib/db";
 import { getStripeClient } from "@/lib/stripe";
-import { deployBillingConfig, findDeployItems } from "@/lib/stripe/deployBilling";
-import {
-  getApiCancelSchedule,
-  isDeadSubscription,
-  isPendingSchedule,
-} from "@/lib/stripe/subscriptionUtils";
+import { cancelDeploySubscription } from "@/lib/stripe/cancelDeploySubscription";
+import { deployPlanGrantsTeam } from "@/lib/stripe/deployPlan";
+import { setWorkspaceLimits } from "@/lib/stripe/setWorkspaceLimits";
 import { TRPCError } from "@trpc/server";
 import { requireWorkspaceAdmin, workspaceProcedure } from "../../trpc";
 
 /**
- * Cancels Unkey Deploy immediately: clears deploy_plan so the dashboard gate
- * blocks new deploys, and removes the Deploy items (plan-fee + metered) from
- * Stripe now, with no refund of the prepaid plan-fee. If Deploy was the only
- * thing on the subscription (the free-tier path created it), the whole
- * subscription is cancelled now instead, since Stripe requires at least one
- * item. The webhook reconciles deploy_plan to the same value.
- *
- * This does NOT stop running compute and does NOT bill usage correctly. Nothing
- * in ctrl/krane reacts to the cancel, so instances keep running and keep
- * emitting meter events after the items are gone, and those events are
- * uncollectable. The Deploy-only path invoices usage up to now (best effort);
- * the mixed path cannot, because subscriptionItems.del has no invoice_now.
- * Either way, usage between cancel and actual shutdown is lost.
- *
- * Correct cancel can only bill as the last step of a teardown sequence (stop
- * compute, wait for drain, flush final meter events, then bill and remove
- * items). Tracked in ENG-2922.
+ * Cancels Unkey Deploy. Stops the Stripe renewal here in the dashboard (cancel
+ * at period end for a Deploy-only subscription, remove the plan-fee item from a
+ * mixed one, never refunding), then calls ctrl to tear down the workspace's
+ * running compute and clear the deploy_plan entitlement. The Stripe logic lives
+ * here alongside subscribe and change-plan so subscription knowledge is not
+ * duplicated in Go. Compute-owned limits return to their defaults, while any API
+ * plan limits remain intact. The audit log stays here so the user actor is recorded.
  */
 export const cancelDeploy = workspaceProcedure
   .use(requireWorkspaceAdmin)
   .mutation(async ({ ctx }) => {
-    const config = await deployBillingConfig();
-    if (!config) {
+    // Stop the Stripe renewal first. A workspace with a Deploy plan but no
+    // subscription (a comped override) has no renewal to stop and goes straight
+    // to teardown. Cancelling the Deploy subscription is now a native whole-
+    // subscription cancel at period end, so no billing-config lookup is needed.
+    const subscriptionId = ctx.workspace.stripeDeploySubscriptionId;
+    if (subscriptionId) {
+      try {
+        await cancelDeploySubscription(getStripeClient(), subscriptionId);
+      } catch (error) {
+        console.error("Stripe cancel for Compute failed:", error);
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to cancel Compute billing.",
+        });
+      }
+    }
+
+    // ctrl tears down running compute and clears the local entitlement. It runs
+    // after the Stripe cancel and is safe to retry: teardown is keyed and
+    // idempotent and the entitlement clear is a pure set, so a failure here
+    // leaves billing already stopped and a retry finishes the teardown.
+    const ctrl = createCtrlClient(DeployService);
+    try {
+      await ctrl.deprovisionCompute({ workspaceId: ctx.workspace.id });
+    } catch (error) {
+      if (error instanceof TRPCError) {
+        throw error;
+      }
+
+      console.error("Cancel Compute request failed:", error);
       throw new TRPCError({
         code: "INTERNAL_SERVER_ERROR",
-        message: "Compute billing is not configured.",
+        message: "Failed to cancel Compute.",
       });
     }
 
-    if (!ctx.workspace.stripeSubscriptionId) {
-      throw new TRPCError({
-        code: "PRECONDITION_FAILED",
-        message: "Workspace has no Compute plan to cancel.",
-      });
-    }
-
-    const stripe = getStripeClient();
-    const sub = await stripe.subscriptions.retrieve(ctx.workspace.stripeSubscriptionId);
-
-    // Set when the subscription itself is over (cancelled below, or already
-    // dead) so the column clears with the plan. Leaving a dead subscription id
-    // behind blocks every resubscribe path: they gate on "already has a
-    // subscription" and die against the corpse.
-    let subscriptionGone = false;
-
-    if (isDeadSubscription(sub)) {
-      // Already over on Stripe's side (a repeat cancel racing the deleted
-      // webhook, or a payment-failure auto-cancel). Nothing to mutate
-      // remotely; just clear the local columns.
-      subscriptionGone = true;
-    } else {
-      const deployItems = findDeployItems(config, sub.items.data);
-      if (deployItems.length === 0) {
-        throw new TRPCError({
-          code: "PRECONDITION_FAILED",
-          message: "Workspace has no Compute plan to cancel.",
-        });
-      }
-
-      // A pending API-plan cancellation is a schedule whose next phase
-      // snapshots the current Compute items — left in place, it would re-add
-      // the items we're about to remove at the period boundary and resume
-      // billing them. Release it first; the API cancellation is re-applied as
-      // a plain cancel_at_period_end below, which is exactly what it means on
-      // the API-only subscription this cancel leaves behind.
-      const apiCancelSchedule = await getApiCancelSchedule(stripe, sub);
-      const pendingApiCancel = apiCancelSchedule !== null && isPendingSchedule(apiCancelSchedule);
-      if (pendingApiCancel && apiCancelSchedule) {
-        await stripe.subscriptionSchedules.release(apiCancelSchedule.id);
-      }
-
-      if (deployItems.length === sub.items.data.length) {
-        // Deploy-only subscription: can't delete the last item, so cancel the
-        // whole subscription now. prorate:false = no plan-fee refund; invoice_now
-        // bills metered usage up to now. Usage after this point is not billed,
-        // because compute is not torn down here (ENG-2922).
-        await stripe.subscriptions.cancel(sub.id, { prorate: false, invoice_now: true });
-        subscriptionGone = true;
-      } else {
-        // Mixed subscription: drop just the Deploy items now, keep the API items.
-        // One subscriptions.update marking each Deploy item deleted, so the
-        // removal is atomic: a per-item del loop that dies mid-way would leave
-        // orphaned metered items still billing while deploy_plan is never cleared.
-        // proration_behavior:none = no plan-fee refund. There is no invoice_now on
-        // this path, so metered usage since the last invoice on these meters is
-        // NOT billed; the teardown-then-bill flow in ENG-2922 is the real fix.
-        await stripe.subscriptions.update(sub.id, {
-          items: deployItems.map((item) => ({ id: item.id, deleted: true })),
-          proration_behavior: "none",
-        });
-
-        if (pendingApiCancel) {
-          // Preserve the API cancellation the released schedule was carrying.
-          // Best-effort: the Deploy items are already removed, so a throw here
-          // would skip clearing deploy_plan below; losing the flag means the
-          // API plan keeps billing until the user cancels again, not a wrong
-          // charge.
-          try {
-            await stripe.subscriptions.update(sub.id, { cancel_at_period_end: true });
-          } catch (reapplyErr) {
-            console.error("Failed to reapply pending API cancellation after Compute cancel", {
-              subscriptionId: sub.id,
-              error: reapplyErr instanceof Error ? reapplyErr.message : reapplyErr,
-            });
-          }
-        }
-      }
-    }
-
-    // Immediate cutoff: clear the plan now so access stops right away. One
-    // transaction so the clear and its audit log commit together; a failure in
-    // either rolls back the other. The resulting webhook reconciles to null.
     await db.transaction(async (tx) => {
-      await tx
-        .update(schema.workspaces)
-        .set({ deployPlan: null, ...(subscriptionGone ? { stripeSubscriptionId: null } : {}) })
-        .where(eq(schema.workspaces.id, ctx.workspace.id));
+      await setWorkspaceLimits(tx, {
+        workspaceId: ctx.workspace.id,
+        plan: null,
+        preserveApiLimits: ctx.workspace.tier !== "Free",
+      });
       await insertAuditLogs(tx, {
         workspaceId: ctx.workspace.id,
         actor: { type: "user", id: ctx.user.id },
@@ -137,4 +73,8 @@ export const cancelDeploy = workspaceProcedure
         context: { location: ctx.audit.location, userAgent: ctx.audit.userAgent },
       });
     });
+
+    if (ctx.workspace.tier === "Free" && deployPlanGrantsTeam(ctx.workspace.deployPlan)) {
+      await deactivateNonCreatorMemberships(ctx.workspace.orgId);
+    }
   });

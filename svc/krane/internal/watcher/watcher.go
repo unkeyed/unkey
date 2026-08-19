@@ -27,6 +27,7 @@ type Watcher struct {
 	cluster     ctrl.ClusterServiceClient
 	deployments *deployment.Controller
 	sem         *semaphore.Weighted
+	cellID      string
 	region      string
 	platform    string
 }
@@ -35,6 +36,7 @@ type Watcher struct {
 type Config struct {
 	Cluster     ctrl.ClusterServiceClient
 	Deployments *deployment.Controller
+	CellID      string
 	Region      string
 	Platform    string
 }
@@ -45,13 +47,14 @@ func New(cfg Config) *Watcher {
 		cluster:     cfg.Cluster,
 		deployments: cfg.Deployments,
 		sem:         semaphore.NewWeighted(maxConcurrentDispatches),
+		cellID:      cfg.CellID,
 		region:      cfg.Region,
 		platform:    cfg.Platform,
 	}
 }
 
-func (s *Watcher) regionKey() *ctrlv1.RegionKey {
-	return &ctrlv1.RegionKey{Platform: s.platform, Name: s.region}
+func (s *Watcher) clusterKey() *ctrlv1.ClusterKey {
+	return &ctrlv1.ClusterKey{CellId: s.cellID, Platform: s.platform, Region: s.region}
 }
 
 // Watch runs two independent loops:
@@ -83,7 +86,7 @@ func (s *Watcher) runStream(ctx context.Context) {
 		}
 
 		stream, err := s.cluster.WatchDeploymentChanges(ctx, &ctrlv1.WatchDeploymentChangesRequest{
-			Region:          s.regionKey(),
+			Cluster:         s.clusterKey(),
 			VersionLastSeen: versionLastSeen,
 		})
 		if err != nil {
@@ -148,7 +151,7 @@ func (s *Watcher) doFullSync(ctx context.Context) {
 	start := time.Now()
 
 	stream, err := s.cluster.SyncDesiredState(ctx, &ctrlv1.SyncDesiredStateRequest{
-		Region: s.regionKey(),
+		Cluster: s.clusterKey(),
 	})
 	if err != nil {
 		logger.Error("full sync: error opening connection", "error", err)

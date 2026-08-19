@@ -45,7 +45,11 @@ type Policy struct {
 	// This allows operators to toggle policies on and off without modifying
 	// or removing the underlying configuration, which is useful during
 	// incidents, gradual rollouts, and debugging.
-	Enabled bool `protobuf:"varint,3,opt,name=enabled,proto3" json:"enabled,omitempty"`
+	//
+	// Explicit presence so writers that serialize configs with protojson emit
+	// `"enabled": false` instead of dropping the field; the dashboard's strict
+	// schema requires it to always be present.
+	Enabled *bool `protobuf:"varint,3,opt,name=enabled,proto3,oneof" json:"enabled,omitempty"`
 	// Match conditions that determine which requests this policy applies to.
 	// All entries must match for the policy to run (implicit AND). An empty
 	// list matches all requests — this is the common case for global policies
@@ -63,6 +67,7 @@ type Policy struct {
 	//	*Policy_Ratelimit
 	//	*Policy_Firewall
 	//	*Policy_Openapi
+	//	*Policy_Logging
 	Config        isPolicy_Config `protobuf_oneof:"config"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -113,8 +118,8 @@ func (x *Policy) GetName() string {
 }
 
 func (x *Policy) GetEnabled() bool {
-	if x != nil {
-		return x.Enabled
+	if x != nil && x.Enabled != nil {
+		return *x.Enabled
 	}
 	return false
 }
@@ -178,6 +183,15 @@ func (x *Policy) GetOpenapi() *OpenApiRequestValidation {
 	return nil
 }
 
+func (x *Policy) GetLogging() *Logging {
+	if x != nil {
+		if x, ok := x.Config.(*Policy_Logging); ok {
+			return x.Logging
+		}
+	}
+	return nil
+}
+
 type isPolicy_Config interface {
 	isPolicy_Config()
 }
@@ -202,6 +216,10 @@ type Policy_Openapi struct {
 	Openapi *OpenApiRequestValidation `protobuf:"bytes,10,opt,name=openapi,proto3,oneof"`
 }
 
+type Policy_Logging struct {
+	Logging *Logging `protobuf:"bytes,11,opt,name=logging,proto3,oneof"`
+}
+
 func (*Policy_Keyauth) isPolicy_Config() {}
 
 func (*Policy_Jwtauth) isPolicy_Config() {}
@@ -212,23 +230,28 @@ func (*Policy_Firewall) isPolicy_Config() {}
 
 func (*Policy_Openapi) isPolicy_Config() {}
 
+func (*Policy_Logging) isPolicy_Config() {}
+
 var File_frontline_policies_v1_policy_proto protoreflect.FileDescriptor
 
 const file_frontline_policies_v1_policy_proto_rawDesc = "" +
 	"\n" +
-	"\"frontline/policies/v1/policy.proto\x12\ffrontline.v1\x1a$frontline/policies/v1/firewall.proto\x1a#frontline/policies/v1/jwtauth.proto\x1a#frontline/policies/v1/keyauth.proto\x1a!frontline/policies/v1/match.proto\x1a#frontline/policies/v1/openapi.proto\x1a%frontline/policies/v1/ratelimit.proto\"\x98\x03\n" +
+	"\"frontline/policies/v1/policy.proto\x12\ffrontline.v1\x1a$frontline/policies/v1/firewall.proto\x1a#frontline/policies/v1/jwtauth.proto\x1a#frontline/policies/v1/keyauth.proto\x1a#frontline/policies/v1/logging.proto\x1a!frontline/policies/v1/match.proto\x1a#frontline/policies/v1/openapi.proto\x1a%frontline/policies/v1/ratelimit.proto\"\xdc\x03\n" +
 	"\x06Policy\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
-	"\x04name\x18\x02 \x01(\tR\x04name\x12\x18\n" +
-	"\aenabled\x18\x03 \x01(\bR\aenabled\x12-\n" +
+	"\x04name\x18\x02 \x01(\tR\x04name\x12\x1d\n" +
+	"\aenabled\x18\x03 \x01(\bH\x01R\aenabled\x88\x01\x01\x12-\n" +
 	"\x05match\x18\x04 \x03(\v2\x17.frontline.v1.MatchExprR\x05match\x121\n" +
 	"\akeyauth\x18\x05 \x01(\v2\x15.frontline.v1.KeyAuthH\x00R\akeyauth\x121\n" +
 	"\ajwtauth\x18\x06 \x01(\v2\x15.frontline.v1.JWTAuthH\x00R\ajwtauth\x127\n" +
 	"\tratelimit\x18\b \x01(\v2\x17.frontline.v1.RateLimitH\x00R\tratelimit\x124\n" +
 	"\bfirewall\x18\t \x01(\v2\x16.frontline.v1.FirewallH\x00R\bfirewall\x12B\n" +
 	"\aopenapi\x18\n" +
-	" \x01(\v2&.frontline.v1.OpenApiRequestValidationH\x00R\aopenapiB\b\n" +
-	"\x06configB\xad\x01\n" +
+	" \x01(\v2&.frontline.v1.OpenApiRequestValidationH\x00R\aopenapi\x121\n" +
+	"\alogging\x18\v \x01(\v2\x15.frontline.v1.LoggingH\x00R\aloggingB\b\n" +
+	"\x06configB\n" +
+	"\n" +
+	"\b_enabledB\xad\x01\n" +
 	"\x10com.frontline.v1B\vPolicyProtoP\x01Z;github.com/unkeyed/unkey/gen/proto/frontline/v1;frontlinev1\xa2\x02\x03FXX\xaa\x02\fFrontline.V1\xca\x02\fFrontline\\V1\xe2\x02\x18Frontline\\V1\\GPBMetadata\xea\x02\rFrontline::V1b\x06proto3"
 
 var (
@@ -252,6 +275,7 @@ var file_frontline_policies_v1_policy_proto_goTypes = []any{
 	(*RateLimit)(nil),                // 4: frontline.v1.RateLimit
 	(*Firewall)(nil),                 // 5: frontline.v1.Firewall
 	(*OpenApiRequestValidation)(nil), // 6: frontline.v1.OpenApiRequestValidation
+	(*Logging)(nil),                  // 7: frontline.v1.Logging
 }
 var file_frontline_policies_v1_policy_proto_depIdxs = []int32{
 	1, // 0: frontline.v1.Policy.match:type_name -> frontline.v1.MatchExpr
@@ -260,11 +284,12 @@ var file_frontline_policies_v1_policy_proto_depIdxs = []int32{
 	4, // 3: frontline.v1.Policy.ratelimit:type_name -> frontline.v1.RateLimit
 	5, // 4: frontline.v1.Policy.firewall:type_name -> frontline.v1.Firewall
 	6, // 5: frontline.v1.Policy.openapi:type_name -> frontline.v1.OpenApiRequestValidation
-	6, // [6:6] is the sub-list for method output_type
-	6, // [6:6] is the sub-list for method input_type
-	6, // [6:6] is the sub-list for extension type_name
-	6, // [6:6] is the sub-list for extension extendee
-	0, // [0:6] is the sub-list for field type_name
+	7, // 6: frontline.v1.Policy.logging:type_name -> frontline.v1.Logging
+	7, // [7:7] is the sub-list for method output_type
+	7, // [7:7] is the sub-list for method input_type
+	7, // [7:7] is the sub-list for extension type_name
+	7, // [7:7] is the sub-list for extension extendee
+	0, // [0:7] is the sub-list for field type_name
 }
 
 func init() { file_frontline_policies_v1_policy_proto_init() }
@@ -275,6 +300,7 @@ func file_frontline_policies_v1_policy_proto_init() {
 	file_frontline_policies_v1_firewall_proto_init()
 	file_frontline_policies_v1_jwtauth_proto_init()
 	file_frontline_policies_v1_keyauth_proto_init()
+	file_frontline_policies_v1_logging_proto_init()
 	file_frontline_policies_v1_match_proto_init()
 	file_frontline_policies_v1_openapi_proto_init()
 	file_frontline_policies_v1_ratelimit_proto_init()
@@ -284,6 +310,7 @@ func file_frontline_policies_v1_policy_proto_init() {
 		(*Policy_Ratelimit)(nil),
 		(*Policy_Firewall)(nil),
 		(*Policy_Openapi)(nil),
+		(*Policy_Logging)(nil),
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{

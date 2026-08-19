@@ -1,3 +1,4 @@
+import { type PlanLimits, limitsByPlan } from "@/lib/limits";
 import type Stripe from "stripe";
 
 /**
@@ -11,6 +12,70 @@ import type Stripe from "stripe";
  */
 export const DEPLOY_PLANS = ["starter", "pro", "business"] as const;
 export type DeployPlan = (typeof DEPLOY_PLANS)[number];
+
+type ComputeLimits = Pick<
+  PlanLimits,
+  | "logsRetentionDaysMax"
+  | "logsAuditRetentionDaysMax"
+  | "teamEnabled"
+  | "cpuCoresMaxPerInstance"
+  | "memoryMibMaxPerInstance"
+  | "storageMibMaxPerInstance"
+  | "buildsConcurrentMax"
+>;
+
+type ComputeOnlyLimits = Pick<
+  ComputeLimits,
+  | "cpuCoresMaxPerInstance"
+  | "memoryMibMaxPerInstance"
+  | "storageMibMaxPerInstance"
+  | "buildsConcurrentMax"
+>;
+
+function computeLimitsFromPlan(limits: PlanLimits): ComputeLimits {
+  return {
+    logsRetentionDaysMax: limits.logsRetentionDaysMax,
+    logsAuditRetentionDaysMax: limits.logsAuditRetentionDaysMax,
+    teamEnabled: limits.teamEnabled,
+    cpuCoresMaxPerInstance: limits.cpuCoresMaxPerInstance,
+    memoryMibMaxPerInstance: limits.memoryMibMaxPerInstance,
+    storageMibMaxPerInstance: limits.storageMibMaxPerInstance,
+    buildsConcurrentMax: limits.buildsConcurrentMax,
+  };
+}
+
+export function computeLimitsForPlan(plan: DeployPlan | null): ComputeLimits {
+  return computeLimitsFromPlan(limitsByPlan[plan ?? "free"]);
+}
+
+/**
+ * Returns the limit fields a Compute subscription may safely update. A paid
+ * API plan owns the shared retention and team fields, so Compute must preserve
+ * those while still applying its resource limits.
+ */
+export function computeLimitUpdateForPlan(
+  plan: DeployPlan | null,
+  preserveApiLimits: boolean,
+): ComputeLimits | ComputeOnlyLimits {
+  const limits = computeLimitsForPlan(plan);
+  if (!preserveApiLimits) {
+    return limits;
+  }
+  return {
+    cpuCoresMaxPerInstance: limits.cpuCoresMaxPerInstance,
+    memoryMibMaxPerInstance: limits.memoryMibMaxPerInstance,
+    storageMibMaxPerInstance: limits.storageMibMaxPerInstance,
+    buildsConcurrentMax: limits.buildsConcurrentMax,
+  };
+}
+
+export function deployPlanGrantsTeam(plan: string | null): boolean {
+  return plan === "pro" || plan === "business";
+}
+
+export function parseDeployPlan(plan: string | null): DeployPlan | null {
+  return plan !== null && isDeployPlan(plan) ? plan : null;
+}
 
 function isDeployPlan(value: string): value is DeployPlan {
   return (DEPLOY_PLANS as readonly string[]).includes(value);

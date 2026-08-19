@@ -29,7 +29,7 @@ export const RootKeysList = () => {
   const {
     rootKeys,
     isInitialLoading,
-    isFetching,
+    isNavigating,
     totalCount,
     onPageChange,
     page,
@@ -84,8 +84,6 @@ export const RootKeysList = () => {
     () => createRootKeyColumns({ selectedRootKeyId, onEditKey: handleEditKey }),
     [selectedRootKeyId, handleEditKey],
   );
-
-  const isNavigating = isFetching && !isInitialLoading;
 
   return (
     <>

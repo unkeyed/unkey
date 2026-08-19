@@ -1,0 +1,239 @@
+---
+title: Query rate limit analytics
+description: "Query rate limit requests and token usage with the analytics.getRatelimits endpoint."
+---
+
+The `POST /v2/analytics.getRatelimits` endpoint runs SQL queries against your
+rate limit analytics. Use it from a trusted backend with a root key. Never
+expose a root key in browser code.
+
+For the request and response schemas, see the [API
+reference](/api-reference/analytics/query-rate-limit-data).
+
+## Authenticate the request
+
+Use a root key with one of these permissions:
+
+- `ratelimit.*.read_analytics` to query every rate limit namespace in the workspace
+- `ratelimit.<namespaceId>.read_analytics` to query a specific namespace
+
+Unkey always restricts queries to the root key's workspace. A namespace-scoped
+permission also adds a `namespace_id` filter to every table in the query. You
+can grant a root key access to multiple namespaces by adding one scoped
+permission for each namespace.
+
+## Send a query
+
+Send a JSON object with a `query` string. The response uses the same shape as
+`analytics.getVerifications`: `meta.requestId` identifies the API request, and
+`data` contains an array of result objects.
+
+```bash
+curl --request POST \
+  --url https://api.unkey.com/v2/analytics.getRatelimits \
+  --header "Authorization: Bearer $UNKEY_ROOT_KEY" \
+  --header "Content-Type: application/json" \
+  --data '{"query":"SELECT identifier, passed, tokens FROM ratelimits_v1 WHERE namespace_id = '\''rlns_1234'\'' ORDER BY time DESC LIMIT 10"}'
+```
+
+```json
+{
+  "meta": {
+    "requestId": "req_1234"
+  },
+  "data": [
+    {
+      "identifier": "customer_123",
+      "passed": true,
+      "tokens": 1
+    }
+  ]
+}
+```
+
+Queries follow the shared SQL and resource limits described in [Query
+restrictions](/platform/analytics/query-restrictions). CTEs, subqueries, UNION,
+and EXCEPT are supported. Use a `namespace_id` filter to select one or more
+namespaces when the root key has wildcard access:
+
+```sql
+WHERE namespace_id = 'rlns_1234'
+```
+
+```sql
+WHERE r.namespace_id IN ('rlns_1234', 'rlns_5678')
+```
+
+You can omit this filter. A wildcard root key then queries every namespace in
+the workspace, while a namespace-scoped root key returns only data permitted by
+its `ratelimit.<namespaceId>.read_analytics` permissions. A query cannot bypass
+these automatic workspace and namespace filters.
+
+## Choose a table
+
+Choose the least granular table that supports the chart or report. Aggregated
+tables scan fewer rows, while the raw table exposes individual requests and
+fields such as the applied limit, remaining tokens, and reset time.
+
+| Public table | Granularity | Retention | Best for |
+| --- | --- | --- | --- |
+| `ratelimits_v1` | Individual request | 1 month | Recent request details and exact request times |
+| `ratelimits_per_minute_v1` | Minute | 7 days | Recent dashboard charts |
+| `ratelimits_per_hour_v1` | Hour | 30 days | Daily and weekly trends |
+| `ratelimits_per_day_v1` | Day | 100 days | Longer reports |
+| `ratelimits_per_month_v1` | Month | 3 years | Long-term trends |
+
+Your workspace retention setting controls the time range that a query can
+request. If you omit a time filter, Unkey automatically constrains results to
+your workspace retention range. A query that stays within your workspace quota
+can request a range beyond a table's retention, but it returns only the rows
+that remain in that table. For example, a 30-day query against the minute table
+can contain partial data because that table retains 7 days. Select the hour
+table when you need the complete 30-day range.
+
+## Reference available columns
+
+The raw table contains one row for each rate limit request. Unkey automatically
+filters `workspace_id`, so you don't need to include it in a query.
+
+| Column | Type | Description |
+| --- | --- | --- |
+| `request_id` | String | Unique request ID |
+| `time` | Int64 | Request time as a Unix timestamp in milliseconds |
+| `workspace_id` | String | Workspace ID, automatically filtered |
+| `namespace_id` | String | Rate limit namespace ID |
+| `identifier` | String | Identifier that was limited |
+| `passed` | Bool | Whether the request passed the rate limit |
+| `latency` | Float64 | Time spent on the rate limit check in milliseconds |
+| `override_id` | String | Applied override ID, when an override matched |
+| `limit` | UInt64 | Applied token limit |
+| `remaining` | UInt64 | Tokens remaining after the request |
+| `reset_at` | Int64 | Reset time as a Unix timestamp in milliseconds |
+| `tokens` | UInt64 | Tokens requested |
+
+The minute, hour, day, and month tables contain pre-aggregated rows.
+
+| Column | Type | Description |
+| --- | --- | --- |
+| `time` | DateTime or Date | Start of the aggregation interval |
+| `workspace_id` | String | Workspace ID, automatically filtered |
+| `namespace_id` | String | Rate limit namespace ID |
+| `identifier` | String | Identifier that was limited |
+| `passed` | Int64 | Number of requests that passed the rate limit |
+| `total` | Int64 | Number of requests |
+| `total_tokens` | Int64 | Number of requested tokens |
+| `passed_tokens` | Int64 | Number of tokens from passed requests |
+| `latency_avg` | AggregateFunction | State for calculating average latency with `avgMerge` |
+| `latency_p75` | AggregateFunction | State for calculating p75 latency with `quantilesTDigestMerge(0.75)` |
+| `latency_p99` | AggregateFunction | State for calculating p99 latency with `quantilesTDigestMerge(0.99)` |
+
+Use ClickHouse aggregate merge functions when selecting latency from an
+aggregated table:
+
+```sql
+SELECT
+  avgMerge(latency_avg) AS average_latency,
+  quantilesTDigestMerge(0.75)(latency_p75)[1] AS p75_latency,
+  quantilesTDigestMerge(0.99)(latency_p99)[1] AS p99_latency
+FROM ratelimits_per_hour_v1
+WHERE namespace_id = 'rlns_1234'
+  AND time >= now() - INTERVAL 24 HOUR
+```
+
+## Build a zero-filled time series
+
+Use `WITH FILL` to return every minute, including intervals without requests.
+This query produces passed, blocked, and total metrics for both requests and
+tokens, which supports a dashboard chart without client-side gap filling.
+
+```sql
+SELECT
+  time,
+  sum(passed) AS passed_requests,
+  sum(total) - sum(passed) AS blocked_requests,
+  sum(total) AS total_requests,
+  sum(passed_tokens) AS passed_tokens,
+  sum(total_tokens) - sum(passed_tokens) AS blocked_tokens,
+  sum(total_tokens) AS total_tokens
+FROM ratelimits_per_minute_v1
+WHERE namespace_id = 'rlns_1234'
+  AND time >= toStartOfMinute(now() - INTERVAL 6 HOUR)
+  AND time < toStartOfMinute(now())
+GROUP BY time
+ORDER BY time WITH FILL
+  FROM toStartOfMinute(now() - INTERVAL 6 HOUR)
+  TO toStartOfMinute(now())
+  STEP INTERVAL 1 MINUTE
+```
+
+```bash
+curl --request POST \
+  --url https://api.unkey.com/v2/analytics.getRatelimits \
+  --header "Authorization: Bearer $UNKEY_ROOT_KEY" \
+  --header "Content-Type: application/json" \
+  --data '{"query":"SELECT time, sum(passed) AS passed_requests, sum(total) - sum(passed) AS blocked_requests, sum(total) AS total_requests, sum(passed_tokens) AS passed_tokens, sum(total_tokens) - sum(passed_tokens) AS blocked_tokens, sum(total_tokens) AS total_tokens FROM ratelimits_per_minute_v1 WHERE namespace_id = '\''rlns_1234'\'' AND time >= toStartOfMinute(now() - INTERVAL 6 HOUR) AND time < toStartOfMinute(now()) GROUP BY time ORDER BY time WITH FILL FROM toStartOfMinute(now() - INTERVAL 6 HOUR) TO toStartOfMinute(now()) STEP INTERVAL 1 MINUTE"}'
+```
+
+## Combine multiple identifiers
+
+Filter with `IN` and omit `identifier` from `GROUP BY` to combine several
+identifiers into one result. This example returns daily totals for three
+customers.
+
+```sql
+SELECT
+  time,
+  sum(passed) AS passed_requests,
+  sum(total) - sum(passed) AS blocked_requests,
+  sum(total) AS total_requests,
+  sum(passed_tokens) AS passed_tokens,
+  sum(total_tokens) - sum(passed_tokens) AS blocked_tokens,
+  sum(total_tokens) AS total_tokens
+FROM ratelimits_per_day_v1
+WHERE namespace_id = 'rlns_1234'
+  AND identifier IN ('customer_123', 'customer_456', 'customer_789')
+  AND time >= toStartOfDay(now() - INTERVAL 30 DAY)
+GROUP BY time
+ORDER BY time ASC
+```
+
+```bash
+curl --request POST \
+  --url https://api.unkey.com/v2/analytics.getRatelimits \
+  --header "Authorization: Bearer $UNKEY_ROOT_KEY" \
+  --header "Content-Type: application/json" \
+  --data '{"query":"SELECT time, sum(passed) AS passed_requests, sum(total) - sum(passed) AS blocked_requests, sum(total) AS total_requests, sum(passed_tokens) AS passed_tokens, sum(total_tokens) - sum(passed_tokens) AS blocked_tokens, sum(total_tokens) AS total_tokens FROM ratelimits_per_day_v1 WHERE namespace_id = '\''rlns_1234'\'' AND identifier IN ('\''customer_123'\'', '\''customer_456'\'', '\''customer_789'\'') AND time >= toStartOfDay(now() - INTERVAL 30 DAY) GROUP BY time ORDER BY time ASC"}'
+```
+
+## Paginate an identifier breakdown
+
+Group by `identifier` to build a table with usage totals and the last request
+time. The secondary identifier sort makes ordering stable when multiple rows
+have the same request count. Keep the same ordering while changing `OFFSET`
+for subsequent pages.
+
+```sql
+SELECT
+  identifier,
+  max(time) AS last_request_time,
+  countIf(passed) AS passed_requests,
+  countIf(not passed) AS blocked_requests,
+  count() AS total_requests,
+  sumIf(tokens, passed) AS passed_tokens,
+  sumIf(tokens, not passed) AS blocked_tokens,
+  sum(tokens) AS total_tokens
+FROM ratelimits_v1
+WHERE namespace_id = 'rlns_1234'
+  AND time >= toUnixTimestamp64Milli(now64(3) - INTERVAL 7 DAY)
+GROUP BY identifier
+ORDER BY total_requests DESC, identifier ASC
+LIMIT 50 OFFSET 0
+```
+
+```bash
+curl --request POST \
+  --url https://api.unkey.com/v2/analytics.getRatelimits \
+  --header "Authorization: Bearer $UNKEY_ROOT_KEY" \
+  --header "Content-Type: application/json" \
+  --data '{"query":"SELECT identifier, max(time) AS last_request_time, countIf(passed) AS passed_requests, countIf(not passed) AS blocked_requests, count() AS total_requests, sumIf(tokens, passed) AS passed_tokens, sumIf(tokens, not passed) AS blocked_tokens, sum(tokens) AS total_tokens FROM ratelimits_v1 WHERE namespace_id = '\''rlns_1234'\'' AND time >= toUnixTimestamp64Milli(now64(3) - INTERVAL 7 DAY) GROUP BY identifier ORDER BY total_requests DESC, identifier ASC LIMIT 50 OFFSET 0"}'
+```

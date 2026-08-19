@@ -25,7 +25,7 @@ export const queryRuntimeLogs = workspaceProcedure
       columns: { id: true },
       with: {
         environments: {
-          columns: { id: true, appId: true, slug: true },
+          columns: { id: true, appId: true },
         },
       },
     });
@@ -36,15 +36,6 @@ export const queryRuntimeLogs = workspaceProcedure
         message: "Project not found or access denied",
       });
     }
-
-    if (project.environments.length === 0) {
-      throw new TRPCError({
-        code: "NOT_FOUND",
-        message: "No environment found for this project",
-      });
-    }
-
-    const defaultEnvironment = project.environments[0];
 
     // Resolve instanceIds to k8sPodNames for ClickHouse filtering,
     // and build the reverse map to avoid a redundant DB query later.
@@ -72,18 +63,20 @@ export const queryRuntimeLogs = workspaceProcedure
       }
     }
 
+    // If no app filter and no environment filter apply, the query reads all apps
+    // and all environments of the project.
     const transformedInputs = transformFilters(input);
 
-    // App-scoped view: default to the production environment when the user
-    // hasn't picked one. Without an appId the view is project-wide: every
-    // app, no forced environment.
-    const appId = input.appId || null;
-    if (appId && transformedInputs.environmentId.length === 0) {
-      const prod =
-        project.environments.find((e) => e.appId === appId && e.slug === "production") ??
-        project.environments.find((e) => e.appId === appId) ??
-        defaultEnvironment;
-      transformedInputs.environmentId = [prod.id];
+    // `environment_id` comes before `app_id` and `time` in the sort key. If only
+    // `app_id` applies, ClickHouse cannot use `app_id` or the time bound to skip
+    // granules. The environments of an app contain all rows of that app, so this
+    // filter keeps the same rows. If the apps have no environments, the array
+    // stays empty and no environment filter applies.
+    if (input.appId.length > 0 && transformedInputs.environmentId.length === 0) {
+      const selectedApps = new Set(input.appId);
+      transformedInputs.environmentId = project.environments
+        .filter((environment) => selectedApps.has(environment.appId))
+        .map((environment) => environment.id);
     }
 
     const { logsQuery, totalQuery } = await clickhouse.runtimeLogs.logs(
@@ -93,7 +86,7 @@ export const queryRuntimeLogs = workspaceProcedure
         workspaceId: ctx.workspace.id,
         projectId: project.id,
         deploymentId: input.deploymentId,
-        appId,
+        appId: input.appId,
       },
       { includeTotal: input.includeTotal },
     );
@@ -115,6 +108,7 @@ export const queryRuntimeLogs = workspaceProcedure
     const k8sNameToInstanceId = new Map([...knownK8sToInstanceId, ...resolvedMapping]);
 
     const logs = chLogs.map((log) => ({
+      log_id: log.log_id,
       time: log.time,
       severity: log.severity,
       message: log.message,

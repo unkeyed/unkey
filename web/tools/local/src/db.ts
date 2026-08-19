@@ -1,10 +1,11 @@
 import { randomUUID } from "node:crypto";
-import { drizzle, schema } from "@unkey/db";
+import { and, drizzle, eq, schema, sql } from "@unkey/db";
 import mysql from "mysql2/promise";
 import { task } from "./util";
 
 const ROW_IDS = {
   rootWorkspace: "ws_local_root",
+  rootProject: "proj_local_root",
   rootKeySpace: "ks_local_root_keys",
   rootApi: "api_local_root_keys",
   webhookKeySpace: "ks_local_webhook_keys",
@@ -33,23 +34,60 @@ export async function prepareDatabase(): Promise<{
       .onDuplicateKeyUpdate({ set: { createdAtM: Date.now() } });
 
     await db
-      .insert(schema.quotas)
+      .insert(schema.limits)
       .values({
         workspaceId: ROW_IDS.rootWorkspace,
-        requestsPerMonth: 150_000,
-        auditLogsRetentionDays: 30,
-        logsRetentionDays: 7,
-        team: false,
+        apiBillableOperationsCountMaxPerMonth: 150_000,
+        apiRequestsCountMaxPerMinute: null,
+        logsRetentionDaysMax: 7,
+        logsAuditRetentionDaysMax: 30,
+        teamEnabled: false,
+        cpuCoresMax: 10,
+        cpuCoresMaxPerInstance: 2,
+        memoryMibMax: 20_480,
+        memoryMibMaxPerInstance: 4_096,
+        storageMibMax: 51_200,
+        storageMibMaxPerInstance: 10_240,
+        buildsConcurrentMax: 1,
+        customDomainsMax: 0,
+        autoscalingReplicasMax: 0,
       })
       .onDuplicateKeyUpdate({ set: { workspaceId: ROW_IDS.rootWorkspace } });
 
     s.message("Created root workspace");
 
     await db
+      .insert(schema.projects)
+      .values({
+        id: ROW_IDS.rootProject,
+        workspaceId: ROW_IDS.rootWorkspace,
+        name: "Default",
+        slug: "default",
+        deleteProtection: true,
+      })
+      .onDuplicateKeyUpdate({ set: { updatedAt: Date.now() } });
+    s.message("Created root default project");
+
+    const [defaultProject] = await db
+      .select({ id: schema.projects.id })
+      .from(schema.projects)
+      .where(
+        and(
+          eq(schema.projects.workspaceId, ROW_IDS.rootWorkspace),
+          sql`BINARY ${schema.projects.slug} = 'default'`,
+        ),
+      )
+      .limit(1);
+    if (!defaultProject) {
+      throw new Error(`Default project not found for workspace ${ROW_IDS.rootWorkspace}`);
+    }
+
+    await db
       .insert(schema.keyAuth)
       .values({
         id: ROW_IDS.rootKeySpace,
         workspaceId: ROW_IDS.rootWorkspace,
+        projectId: defaultProject.id,
       })
       .onDuplicateKeyUpdate({ set: { createdAtM: Date.now() } });
     s.message("Created root keyspace");
@@ -63,6 +101,7 @@ export async function prepareDatabase(): Promise<{
         id: ROW_IDS.rootApi,
         name: "Unkey",
         workspaceId: ROW_IDS.rootWorkspace,
+        projectId: defaultProject.id,
         authType: "key",
         keyAuthId: ROW_IDS.rootKeySpace,
         createdAtM: Date.now(),

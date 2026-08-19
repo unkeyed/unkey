@@ -4,14 +4,19 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"slices"
 	"strings"
 	"time"
 	"unicode/utf8"
+
+	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
 
 	"connectrpc.com/connect"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/auditlog"
+	"github.com/unkeyed/unkey/pkg/deploy/deployfail"
+	githubclient "github.com/unkeyed/unkey/pkg/github"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/pkg/validation"
@@ -19,7 +24,6 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/internal/actor"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/auth"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
-	githubclient "github.com/unkeyed/unkey/svc/ctrl/worker/github"
 	"google.golang.org/protobuf/encoding/protojson"
 )
 
@@ -93,17 +97,11 @@ func (s *Service) CreateDeployment(
 		return nil, err
 	}
 
-	keyspaceID := req.Msg.GetKeyspaceId()
-	var keyAuthID *string
-	if keyspaceID != "" {
-		keyAuthID = &keyspaceID
-	}
-
 	deploymentID, err := s.createAndDeploy(ctx, createParams{
 		context:       ctxLoad,
+		action:        "create",
 		dockerImage:   req.Msg.GetDockerImage(),
 		gitCommit:     req.Msg.GetGitCommit(),
-		keyAuthID:     keyAuthID,
 		command:       req.Msg.GetCommand(),
 		trigger:       triggerFromProto(req.Msg.GetTrigger()),
 		triggeredBy:   req.Msg.GetTriggeredBy(),
@@ -125,6 +123,40 @@ func (s *Service) CreateDeployment(
 		DeploymentId: deploymentID,
 		Status:       ctrlv1.DeploymentStatus_DEPLOYMENT_STATUS_PENDING,
 	}), nil
+}
+
+// ensureEnvironmentDeployable rejects an environment whose runtime or regional
+// settings would fail the deploy pipeline, before the workflow is enqueued. This
+// is the RPC-level enforcement point every caller (v2 API, deprecated deploy API,
+// CLI, future internal callers) passes through, so an undeployable deployment
+// never gets enqueued; the worker keeps the same checks as a backstop. Runtime
+// bounds share deployfail.RuntimeViolations with the worker and the API pre-flight.
+func (s *Service) ensureEnvironmentDeployable(ctx context.Context, dctx deploymentContext) error {
+	messages := make([]string, 0)
+	for _, v := range deployfail.RuntimeViolations(
+		dctx.appRuntimeSettings.Port,
+		dctx.appRuntimeSettings.CpuMillicores,
+		dctx.appRuntimeSettings.MemoryMib,
+	) {
+		messages = append(messages, v.Message)
+	}
+
+	regional, err := s.db.FindAppRegionalSettingsByAppAndEnv(ctx, db.FindAppRegionalSettingsByAppAndEnvParams{
+		AppID:         dctx.app.ID,
+		EnvironmentID: dctx.env.Environment.ID,
+	})
+	if err != nil {
+		return connect.NewError(connect.CodeInternal, fmt.Errorf("failed to load regional settings: %w", err))
+	}
+	if !slices.ContainsFunc(regional, func(r db.FindAppRegionalSettingsByAppAndEnvRow) bool { return r.RegionCanSchedule }) {
+		messages = append(messages, deployfail.MsgNoSchedulableRegions)
+	}
+
+	if len(messages) == 0 {
+		return nil
+	}
+	return connect.NewError(connect.CodeFailedPrecondition,
+		fmt.Errorf("environment %q is not deployable: %s", dctx.env.Environment.Slug, strings.Join(messages, "; ")))
 }
 
 // recordCreateAudit writes a deployment.create audit log attributed to the
@@ -279,13 +311,13 @@ func (s *Service) loadDeploymentContext(
 // createParams carries everything createAndDeploy needs from a caller.
 type createParams struct {
 	context deploymentContext
+	action  string
 
 	// Source overrides. dockerImage wins if set; otherwise we auto-detect
 	// from git repo connection (using gitCommit.commit_sha if provided) or
 	// fall back to the live deployment's image.
 	dockerImage string
 	gitCommit   *ctrlv1.GitCommitInfo
-	keyAuthID   *string
 	command     []string
 
 	// Attribution persisted on the deployment row.
@@ -295,14 +327,21 @@ type createParams struct {
 }
 
 // createAndDeploy is the shared path used by both CreateDeployment and
-// RebuildDeployment. It resolves the source (docker image / git / fallback),
-// inserts the deployment row, kicks off the Restate workflow, persists the
-// invocation id, and cancels superseded siblings.
+// RebuildDeployment. It checks workspace access and environment deployability,
+// resolves the source (docker image / git / fallback), inserts the deployment
+// row, kicks off the Restate workflow, persists the invocation id, and cancels
+// superseded siblings.
 func (s *Service) createAndDeploy(ctx context.Context, p createParams) (string, error) {
+	c := p.context
+	if err := s.ensureWorkspaceCanDeploy(ctx, c.workspaceID, p.action); err != nil {
+		return "", err
+	}
+	if err := s.ensureEnvironmentDeployable(ctx, c); err != nil {
+		return "", err
+	}
+
 	deploymentID := uid.New(uid.DeploymentPrefix)
 	now := time.Now().UnixMilli()
-
-	c := p.context
 
 	// Per-request command override (CLI/API) wins over the app's stored
 	// default. Persisting only the default would mean the row disagrees with
@@ -350,7 +389,6 @@ func (s *Service) createAndDeploy(ctx context.Context, p createParams) (string, 
 
 		deployReq = &hydrav1.DeployRequest{
 			DeploymentId: deploymentID,
-			KeyAuthId:    p.keyAuthID,
 			Command:      command,
 			Source: &hydrav1.DeployRequest_DockerImage{
 				DockerImage: &hydrav1.DockerImage{
@@ -392,7 +430,6 @@ func (s *Service) createAndDeploy(ctx context.Context, p createParams) (string, 
 		}
 		deployReq = &hydrav1.DeployRequest{
 			DeploymentId: deploymentID,
-			KeyAuthId:    p.keyAuthID,
 			Command:      command,
 			Source: &hydrav1.DeployRequest_Git{
 				Git: &hydrav1.GitSource{
@@ -420,7 +457,6 @@ func (s *Service) createAndDeploy(ctx context.Context, p createParams) (string, 
 
 		deployReq = &hydrav1.DeployRequest{
 			DeploymentId: deploymentID,
-			KeyAuthId:    p.keyAuthID,
 			Command:      command,
 			Source: &hydrav1.DeployRequest_DockerImage{
 				DockerImage: &hydrav1.DockerImage{
@@ -449,7 +485,7 @@ func (s *Service) createAndDeploy(ctx context.Context, p createParams) (string, 
 		SentinelConfig:                c.appRuntimeSettings.SentinelConfig,
 		EncryptedEnvironmentVariables: c.secretsBlob,
 		Command:                       command,
-		Status:                        db.DeploymentsStatusPending,
+		Status:                        mysqltype.DeploymentsStatusPending,
 		CreatedAt:                     now,
 		UpdatedAt:                     sql.NullInt64{Valid: false, Int64: 0},
 		GitCommitSha:                  sql.NullString{String: commit.SHA, Valid: commit.SHA != ""},
@@ -496,7 +532,7 @@ func (s *Service) createAndDeploy(ctx context.Context, p createParams) (string, 
 
 		updateErr := s.db.UpdateDeploymentStatus(ctx, db.UpdateDeploymentStatusParams{
 			ID:        deploymentID,
-			Status:    db.DeploymentsStatusFailed,
+			Status:    mysqltype.DeploymentsStatusFailed,
 			UpdatedAt: sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
 		})
 		if updateErr != nil {

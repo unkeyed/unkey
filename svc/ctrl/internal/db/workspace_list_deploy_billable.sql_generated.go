@@ -13,18 +13,21 @@ import (
 const listDeployBillableWorkspaces = `-- name: ListDeployBillableWorkspaces :many
 SELECT
    w.id,
-   w.stripe_customer_id,
-   w.stripe_subscription_id
+   b.stripe_customer_id,
+   bs.stripe_subscription_id AS stripe_deploy_subscription_id
 FROM ` + "`" + `workspaces` + "`" + ` w
-WHERE w.deploy_plan IS NOT NULL
-  AND w.stripe_customer_id IS NOT NULL
+LEFT JOIN ` + "`" + `workspace_billing` + "`" + ` b ON b.workspace_id = w.id
+LEFT JOIN ` + "`" + `billing_subscriptions` + "`" + ` bs
+   ON bs.workspace_id = w.id AND bs.product = 'compute'
+WHERE b.plan IS NOT NULL
+  AND b.stripe_customer_id IS NOT NULL
   AND w.deleted_at_m IS NULL
 `
 
 type ListDeployBillableWorkspacesRow struct {
-	ID                   string         `db:"id"`
-	StripeCustomerID     sql.NullString `db:"stripe_customer_id"`
-	StripeSubscriptionID sql.NullString `db:"stripe_subscription_id"`
+	ID                         string         `db:"id"`
+	StripeCustomerID           sql.NullString `db:"stripe_customer_id"`
+	StripeDeploySubscriptionID sql.NullString `db:"stripe_deploy_subscription_id"`
 }
 
 // Lists every workspace with an active Deploy plan and a Stripe customer:
@@ -40,11 +43,14 @@ type ListDeployBillableWorkspacesRow struct {
 //
 //	SELECT
 //	   w.id,
-//	   w.stripe_customer_id,
-//	   w.stripe_subscription_id
+//	   b.stripe_customer_id,
+//	   bs.stripe_subscription_id AS stripe_deploy_subscription_id
 //	FROM `workspaces` w
-//	WHERE w.deploy_plan IS NOT NULL
-//	  AND w.stripe_customer_id IS NOT NULL
+//	LEFT JOIN `workspace_billing` b ON b.workspace_id = w.id
+//	LEFT JOIN `billing_subscriptions` bs
+//	   ON bs.workspace_id = w.id AND bs.product = 'compute'
+//	WHERE b.plan IS NOT NULL
+//	  AND b.stripe_customer_id IS NOT NULL
 //	  AND w.deleted_at_m IS NULL
 func (q *Queries) ListDeployBillableWorkspaces(ctx context.Context) ([]ListDeployBillableWorkspacesRow, error) {
 	rows, err := q.db.QueryContext(ctx, listDeployBillableWorkspaces)
@@ -55,7 +61,7 @@ func (q *Queries) ListDeployBillableWorkspaces(ctx context.Context) ([]ListDeplo
 	var items []ListDeployBillableWorkspacesRow
 	for rows.Next() {
 		var i ListDeployBillableWorkspacesRow
-		if err := rows.Scan(&i.ID, &i.StripeCustomerID, &i.StripeSubscriptionID); err != nil {
+		if err := rows.Scan(&i.ID, &i.StripeCustomerID, &i.StripeDeploySubscriptionID); err != nil {
 			return nil, err
 		}
 		items = append(items, i)

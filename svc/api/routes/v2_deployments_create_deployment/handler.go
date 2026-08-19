@@ -3,7 +3,9 @@ package handler
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
+	"slices"
 	"strings"
 
 	"connectrpc.com/connect"
@@ -11,9 +13,12 @@ import (
 	"github.com/unkeyed/unkey/gen/rpc/ctrl"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/deploy/deployfail"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/internal/ctrlclient"
 	"github.com/unkeyed/unkey/svc/api/openapi"
@@ -77,16 +82,25 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			ResourceID:   environment.ID,
 			Action:       rbac.CreateDeployment,
 		}),
+		rbac.U(
+			urn.New().Workspace(principal.WorkspaceID).Project(environment.ProjectID).App(environment.AppID).Environment(environment.ID).Deployment("*"),
+			permissions.CreateDeployment{},
+		),
 	))
 	if err != nil {
 		return err
 	}
 
-	// CLI announces itself via X-Unkey-Client: unkey-cli/<version>.
-	// Anything else (or absent) is attributed to the API.
+	// Clients announce themselves via X-Unkey-Client: the CLI as
+	// unkey-cli/<version>, the dashboard proxy as unkey-dashboard. Anything else
+	// (or absent) is attributed to the API.
+	client := s.Request().Header.Get("X-Unkey-Client")
 	trigger := ctrlv1.DeploymentTrigger_DEPLOYMENT_TRIGGER_API
-	if strings.HasPrefix(s.Request().Header.Get("X-Unkey-Client"), "unkey-cli/") {
+	switch {
+	case strings.HasPrefix(client, "unkey-cli/"):
 		trigger = ctrlv1.DeploymentTrigger_DEPLOYMENT_TRIGGER_CLI
+	case strings.HasPrefix(client, "unkey-dashboard"):
+		trigger = ctrlv1.DeploymentTrigger_DEPLOYMENT_TRIGGER_DASHBOARD
 	}
 
 	actorInfo, err := ctrlclient.Actor(s)
@@ -154,6 +168,13 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			fault.Internal("no source set after validation"),
 			fault.Public("Provide exactly one of image, git, or deployment."),
 		)
+	}
+
+	// Reject environments whose runtime/regional settings would fail the deploy
+	// pipeline before enqueuing, so callers get a synchronous 400 instead of a
+	// build that dies mid-flight. The worker keeps the same asserts as a backstop.
+	if err = h.ensureEnvironmentDeployable(ctx, environment); err != nil {
+		return err
 	}
 
 	ctrlResp, err := h.CtrlClient.CreateDeployment(ctx, ctrlReq)
@@ -232,6 +253,54 @@ func (h *Handler) resolveRedeploy(ctx context.Context, workspaceID, appID, envir
 	default:
 		return nil, "", fault.Wrap(err, fault.Internal("failed to check repo connection"))
 	}
+}
+
+// ensureEnvironmentDeployable mirrors the deploy worker's runtime and region
+// preconditions (svc/ctrl/worker/deploy: port 1..65535, cpu>0, mem>0, and at
+// least one schedulable region) so an undeployable environment is rejected up
+// front rather than after a full build. It reports every failing field in one
+// message so the caller can fix them in a single pass.
+func (h *Handler) ensureEnvironmentDeployable(ctx context.Context, environment db.Environment) error {
+	runtime, err := db.Query.FindAppRuntimeSettingsByAppAndEnv(ctx, h.DB.RO(), db.FindAppRuntimeSettingsByAppAndEnvParams{
+		AppID:         environment.AppID,
+		EnvironmentID: environment.ID,
+	})
+	if err != nil && !db.IsNotFound(err) {
+		return fault.Wrap(err, fault.Internal("failed to load runtime settings"))
+	}
+
+	var problems []string
+	if db.IsNotFound(err) {
+		problems = append(problems, "runtime settings are not configured")
+	} else {
+		s := runtime.AppRuntimeSetting
+		for _, v := range deployfail.RuntimeViolations(s.Port, s.CpuMillicores, s.MemoryMib) {
+			problems = append(problems, fmt.Sprintf("%s (is %d)", v.Message, v.Actual))
+		}
+	}
+
+	regional, err := db.Query.FindAppRegionalSettingsByAppAndEnv(ctx, h.DB.RO(), db.FindAppRegionalSettingsByAppAndEnvParams{
+		AppID:         environment.AppID,
+		EnvironmentID: environment.ID,
+	})
+	if err != nil {
+		return fault.Wrap(err, fault.Internal("failed to load regional settings"))
+	}
+	if !slices.ContainsFunc(regional, func(r db.FindAppRegionalSettingsByAppAndEnvRow) bool { return r.RegionCanSchedule }) {
+		problems = append(problems, "no schedulable regions are configured")
+	}
+
+	if len(problems) == 0 {
+		return nil
+	}
+
+	joined := strings.Join(problems, "; ")
+	return fault.New(
+		"environment not deployable",
+		fault.Code(codes.App.Validation.InvalidEnvironmentSettings.URN()),
+		fault.Internal(fmt.Sprintf("environment %s fails deploy preconditions: %s", environment.Slug, joined)),
+		fault.Public(fmt.Sprintf("Environment %q cannot be deployed: %s. Update the environment's settings before deploying.", environment.Slug, joined)),
+	)
 }
 
 func hasValue(p *string) bool {

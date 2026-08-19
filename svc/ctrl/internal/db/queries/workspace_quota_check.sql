@@ -1,27 +1,13 @@
--- name: ListWorkspacesForQuotaCheck :many
-SELECT
-   w.id,
-   w.org_id,
-   w.name,
-   w.stripe_customer_id,
-   w.tier,
-   w.enabled,
-   q.requests_per_month
-FROM `workspaces` w
-LEFT JOIN quota q ON w.id = q.workspace_id
-WHERE w.id > sqlc.arg('cursor')
-ORDER BY w.id ASC
-LIMIT 100;
-
 -- name: GetWorkspacesForQuotaCheckByIDs :many
 SELECT
    w.id,
    w.org_id,
    w.name,
-   w.stripe_customer_id,
-   w.tier,
+   b.stripe_customer_id,
+   b.tier,
    w.enabled,
-   q.requests_per_month
+   l.api_billable_operations_count_max_per_month AS requests_per_month
 FROM `workspaces` w
-LEFT JOIN quota q ON w.id = q.workspace_id
+LEFT JOIN `limits` l ON l.workspace_id = w.id
+LEFT JOIN `workspace_billing` b ON b.workspace_id = w.id
 WHERE w.id IN (sqlc.slice('workspace_ids'));

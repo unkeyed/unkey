@@ -2,6 +2,7 @@ package handler_test
 
 import (
 	"context"
+	"database/sql"
 	"testing"
 
 	"github.com/oapi-codegen/nullable"
@@ -15,11 +16,30 @@ import (
 func TestUpdateSettingsSuccessfully(t *testing.T) {
 	h := testutil.NewHarness(t)
 
-	route := &handler.Handler{DB: h.DB, Auditlogs: h.Auditlogs, QuotaCache: h.Caches.WorkspaceQuota}
+	route := &handler.Handler{DB: h.DB, Auditlogs: h.Auditlogs, LimitsCache: h.Caches.WorkspaceLimits}
 	h.Register(route)
 
 	ctx := context.Background()
 	workspace := h.Resources().UserWorkspace
+	err := db.Query.UpsertLimit(ctx, h.DB.RW(), db.UpsertLimitParams{
+		WorkspaceID:                           workspace.ID,
+		ApiBillableOperationsCountMaxPerMonth: 1_000_000,
+		ApiRequestsCountMaxPerMinute:          sql.NullInt32{}, //nolint:exhaustruct
+		LogsRetentionDaysMax:                  30,
+		LogsAuditRetentionDaysMax:             30,
+		TeamEnabled:                           false,
+		CpuCoresMax:                           10,
+		CpuCoresMaxPerInstance:                2,
+		MemoryMibMax:                          20_480,
+		MemoryMibMaxPerInstance:               4_096,
+		StorageMibMax:                         51_200,
+		StorageMibMaxPerInstance:              10_240,
+		BuildsConcurrentMax:                   1,
+		CustomDomainsMax:                      0,
+		AutoscalingReplicasMax:                3,
+	})
+	require.NoError(t, err)
+
 	rootKey := h.CreateRootKey(workspace.ID, "environment.*.update_environment")
 	headers := authHeaders(rootKey)
 
@@ -40,7 +60,7 @@ func TestUpdateSettingsSuccessfully(t *testing.T) {
 			App:           env.appID,
 			Environment:   env.environmentID,
 			Dockerfile:    nullable.NewNullableWithValue("Dockerfile.prod"),
-			RootDirectory: ptr("./app"),
+			RootDirectory: ptr("app"),
 			WatchPaths:    ptr([]string{"src/**"}),
 			AutoDeploy:    ptr(false),
 		})
@@ -51,7 +71,7 @@ func TestUpdateSettingsSuccessfully(t *testing.T) {
 		require.NoError(t, err)
 		require.True(t, got.Dockerfile.Valid)
 		require.Equal(t, "Dockerfile.prod", got.Dockerfile.String)
-		require.Equal(t, "./app", got.DockerContext)
+		require.Equal(t, "app", got.DockerContext)
 		require.Equal(t, []string{"src/**"}, []string(got.WatchPaths))
 		require.False(t, got.AutoDeploy)
 	})
@@ -179,7 +199,7 @@ func TestUpdateSettingsSuccessfully(t *testing.T) {
 			App:         env.appID,
 			Environment: env.environmentID,
 			Healthcheck: nullable.NewNullableWithValue(openapi.EnvironmentHealthcheck{
-				Method: openapi.GET,
+				Method: openapi.EnvironmentHealthcheckMethodGET,
 				Path:   "/health",
 			}),
 		})
@@ -280,7 +300,7 @@ func TestUpdateSettingsSuccessfully(t *testing.T) {
 			UpstreamProtocol: ptr(openapi.H2c),
 			OpenapiSpecPath:  nullable.NewNullableWithValue("/openapi.yaml"),
 			Healthcheck: nullable.NewNullableWithValue(openapi.EnvironmentHealthcheck{
-				Method:          openapi.GET,
+				Method:          openapi.EnvironmentHealthcheckMethodGET,
 				Path:            "/health",
 				IntervalSeconds: ptr(15),
 			}),
@@ -321,7 +341,7 @@ func TestUpdateSettingsSuccessfully(t *testing.T) {
 			App:         env.appID,
 			Environment: env.environmentID,
 			Healthcheck: nullable.NewNullableWithValue(openapi.EnvironmentHealthcheck{
-				Method:              openapi.GET,
+				Method:              openapi.EnvironmentHealthcheckMethodGET,
 				Path:                "/v1/liveness",
 				IntervalSeconds:     ptr(5),
 				TimeoutSeconds:      ptr(5),
@@ -383,7 +403,7 @@ func TestUpdateSettingsSuccessfully(t *testing.T) {
 		})
 		require.NoError(t, err)
 		require.Equal(t, int32(500), rt.AppRuntimeSetting.CpuMillicores)
-		require.Equal(t, int32(128), rt.AppRuntimeSetting.MemoryMib, "memory untouched, keeps seed default")
+		require.Equal(t, int32(256), rt.AppRuntimeSetting.MemoryMib, "memory untouched, keeps seed default")
 		require.Equal(t, int32(8080), rt.AppRuntimeSetting.Port, "port untouched, keeps seed default")
 	})
 

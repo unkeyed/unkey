@@ -1,11 +1,16 @@
 "use client";
-import { queryCollectionOptions } from "@tanstack/query-db-collection";
+import { getErrorToast, getUnkeyClient } from "@/lib/unkey-client";
+import { parseLoadSubsetOptions, queryCollectionOptions } from "@tanstack/query-db-collection";
 import { createCollection } from "@tanstack/react-db";
+import type {
+  Environment,
+  V2EnvironmentsUpdateSettingsRequestBody,
+} from "@unkey/api/models/components";
 import { toast } from "@unkey/ui";
 import { useSyncExternalStore } from "react";
 import { z } from "zod";
-import { queryClient, trpcClient } from "../client";
-import { parseEnvironmentIdFromWhere, validateEnvironmentIdInQuery } from "./utils";
+import { queryClient } from "../client";
+import { extractStringFilter } from "./utils";
 
 const healthcheckSchema = z
   .object({
@@ -20,6 +25,10 @@ const healthcheckSchema = z
 
 const schema = z.object({
   environmentId: z.string(),
+  // The API identifies an environment by project, app, and environment
+  // together, so a mutation needs all three.
+  projectId: z.string(),
+  appId: z.string(),
   // Build settings
   autoDeploy: z.boolean().default(true),
   dockerfile: z.string(),
@@ -37,7 +46,6 @@ const schema = z.object({
   healthcheck: healthcheckSchema,
   regions: z.array(
     z.object({
-      id: z.string(),
       name: z.string(),
       replicasMin: z.number().int().min(1),
       replicasMax: z.number().int().min(1),
@@ -51,49 +59,53 @@ const schema = z.object({
 /**
  * Environment settings collection - flattened build + runtime settings.
  *
- * IMPORTANT: All queries MUST filter by environmentId:
- * .where(({ s }) => eq(s.environmentId, environmentId))
+ * IMPORTANT: All queries MUST filter by projectId and appId. Add environmentId
+ * to select one environment; the collection holds every environment of the app,
+ * so that filter runs in memory and needs no extra request:
+ * .where(({ s }) => and(
+ *   eq(s.projectId, projectId),
+ *   eq(s.appId, appId),
+ *   eq(s.environmentId, environmentId),
+ * ))
  */
 export const environmentSettings = createCollection<EnvironmentSettings, string>(
   queryCollectionOptions({
     queryClient,
     queryKey: (opts) => {
-      const environmentId = parseEnvironmentIdFromWhere(opts.where);
-      return environmentId ? ["environmentSettings", environmentId] : ["environmentSettings"];
+      const { filters } = parseLoadSubsetOptions(opts);
+      const appId = extractStringFilter(filters, "appId");
+      return appId ? ["environmentSettings", appId] : ["environmentSettings"];
     },
     retry: 3,
     syncMode: "on-demand",
     queryFn: async (ctx) => {
-      const options = ctx.meta?.loadSubsetOptions;
+      const { filters } = parseLoadSubsetOptions(ctx.meta?.loadSubsetOptions);
+      const projectId = extractStringFilter(filters, "projectId");
+      const appId = extractStringFilter(filters, "appId");
 
-      validateEnvironmentIdInQuery(options?.where);
-      const environmentId = parseEnvironmentIdFromWhere(options?.where);
-
-      if (!environmentId) {
-        throw new Error(
-          "Query must include eq(collection.environmentId, environmentId) constraint",
-        );
+      if (!projectId || !appId) {
+        throw new Error("Query must include eq(s.projectId, ...) and eq(s.appId, ...) constraints");
       }
 
-      const result = await trpcClient.deploy.environmentSettings.get.query({
-        environmentId,
+      // One request carries the settings of every environment in the app, so
+      // selecting one environment costs no extra round trip.
+      const result = await getUnkeyClient().environments.listEnvironments({
+        project: projectId,
+        app: appId,
       });
 
-      return [
-        flattenSettingsResponse(
-          environmentId,
-          result.buildSettings,
-          result.runtimeSettings,
-          result.regionalSettings,
-        ),
-      ];
+      return result.data.map((env) => flattenEnvironment(projectId, appId, env));
     },
     getKey: (item) => item.environmentId,
     id: "environmentSettings",
     onUpdate: async ({ transaction }) => {
-      const { original, modified } = transaction.mutations[0];
       const silent = transaction.metadata?.silent === true;
-      await dispatchSettingsMutations(original, modified, silent);
+      // A transaction can carry one environment or every environment of an app,
+      // so send them together and report the outcome once.
+      await dispatchSettingsMutations(
+        transaction.mutations.map((m) => ({ original: m.original, modified: m.modified })),
+        silent,
+      );
     },
   }),
 );
@@ -116,234 +128,214 @@ export const ENVIRONMENT_SETTINGS_DEFAULTS = {
   upstreamProtocol: "http1",
 } as const;
 
-type SettingsResponse = Awaited<ReturnType<typeof trpcClient.deploy.environmentSettings.get.query>>;
-
 function changed<T>(a: T, b: T): boolean {
   return JSON.stringify(a) !== JSON.stringify(b);
 }
 
-function flattenSettingsResponse(
-  environmentId: string,
-  build: SettingsResponse["buildSettings"],
-  runtime: SettingsResponse["runtimeSettings"],
-  regional: SettingsResponse["regionalSettings"],
+function flattenEnvironment(
+  projectId: string,
+  appId: string,
+  env: Environment,
 ): EnvironmentSettings {
   const d = ENVIRONMENT_SETTINGS_DEFAULTS;
+  const { build, runtime } = env;
   return {
-    environmentId,
+    environmentId: env.id,
+    projectId,
+    appId,
     autoDeploy: build?.autoDeploy ?? d.autoDeploy,
     dockerfile: build?.dockerfile ?? d.dockerfile,
-    dockerContext: build?.dockerContext || d.dockerContext,
+    dockerContext: build?.rootDirectory || d.dockerContext,
     buildCommand: build?.buildCommand ?? d.buildCommand,
     watchPaths: build?.watchPaths ?? [],
     port: runtime?.port ?? d.port,
-    cpuMillicores: runtime?.cpuMillicores ?? d.cpuMillicores,
+    // The API uses vCPUs. The UI uses millicores.
+    cpuMillicores: runtime ? Math.round(runtime.vCpus * 1000) : d.cpuMillicores,
     memoryMib: runtime?.memoryMib ?? d.memoryMib,
     storageMib: runtime?.storageMib ?? d.storageMib,
     command: runtime?.command ?? [],
-    healthcheck: runtime?.healthcheck ?? null,
-    regions: regional
-      .filter((r): r is typeof r & { region: NonNullable<typeof r.region> } => r.region !== null)
-      .map((r) => ({
-        id: r.region.id,
-        name: r.region.name,
-        replicasMin: r.horizontalAutoscalingPolicy?.replicasMin ?? 1,
-        replicasMax: r.replicas,
-      })),
-    shutdownSignal: d.shutdownSignal,
-    upstreamProtocol: (runtime?.upstreamProtocol as "http1" | "h2c") ?? d.upstreamProtocol,
+    healthcheck: runtime?.healthcheck
+      ? {
+          method: runtime.healthcheck.method,
+          path: runtime.healthcheck.path,
+          intervalSeconds: runtime.healthcheck.intervalSeconds ?? 10,
+          timeoutSeconds: runtime.healthcheck.timeoutSeconds ?? 5,
+          failureThreshold: runtime.healthcheck.failureThreshold ?? 3,
+          initialDelaySeconds: runtime.healthcheck.initialDelaySeconds ?? 0,
+        }
+      : null,
+    regions: (env.regions ?? []).map((r) => ({
+      name: r.name,
+      replicasMin: r.replicas.min,
+      replicasMax: r.replicas.max,
+    })),
+    shutdownSignal: runtime?.shutdownSignal ?? d.shutdownSignal,
+    upstreamProtocol: runtime?.upstreamProtocol ?? d.upstreamProtocol,
     openapiSpecPath: runtime?.openapiSpecPath ?? null,
   };
 }
 
 /**
- * Build an array of tRPC mutation promises for settings that changed between
- * `original` and `modified`, targeting `environmentId`.
+ * Makes the updateSettings request body for the fields that changed between
+ * `original` and `modified`. The API keeps a field that the body does not
+ * contain. To clear a nullable field, send null.
  *
- * Pure function — no toasts, no side-effects beyond the network calls.
+ * Returns null if nothing changed, so the caller can skip the request.
+ *
+ * This function is pure. It shows no toasts and sends no requests.
  */
-export function buildSettingsMutations(
-  environmentId: string,
+export function buildSettingsUpdate(
   original: EnvironmentSettings,
   modified: EnvironmentSettings,
-): Promise<unknown>[] {
-  const mutations: Promise<unknown>[] = [];
+): V2EnvironmentsUpdateSettingsRequestBody | null {
+  const body: V2EnvironmentsUpdateSettingsRequestBody = {
+    project: original.projectId,
+    app: original.appId,
+    environment: original.environmentId,
+  };
+  let dirty = false;
 
   if (modified.autoDeploy !== original.autoDeploy) {
-    mutations.push(
-      trpcClient.deploy.environmentSettings.build.updateAutoDeploy.mutate({
-        environmentId,
-        autoDeploy: modified.autoDeploy,
-      }),
-    );
+    body.autoDeploy = modified.autoDeploy;
+    dirty = true;
   }
 
   if (modified.dockerfile !== original.dockerfile) {
-    mutations.push(
-      trpcClient.deploy.environmentSettings.build.updateDockerfile.mutate({
-        environmentId,
-        dockerfile: modified.dockerfile,
-      }),
-    );
+    // An empty string means no Dockerfile. The API clears the field with null.
+    body.dockerfile = modified.dockerfile || null;
+    dirty = true;
   }
 
   if (modified.dockerContext !== original.dockerContext) {
-    mutations.push(
-      trpcClient.deploy.environmentSettings.build.updateDockerContext.mutate({
-        environmentId,
-        dockerContext: modified.dockerContext,
-      }),
-    );
+    body.rootDirectory = modified.dockerContext;
+    dirty = true;
   }
 
   if (modified.buildCommand !== original.buildCommand) {
-    mutations.push(
-      trpcClient.deploy.environmentSettings.build.updateBuildCommand.mutate({
-        environmentId,
-        buildCommand: modified.buildCommand,
-      }),
-    );
+    // An empty string lets Railpack find the command. The API spells that null.
+    body.buildCommand = modified.buildCommand || null;
+    dirty = true;
   }
 
   if (changed(original.watchPaths, modified.watchPaths)) {
-    mutations.push(
-      trpcClient.deploy.environmentSettings.build.updateWatchPaths.mutate({
-        environmentId,
-        watchPaths: modified.watchPaths,
-      }),
-    );
+    body.watchPaths = modified.watchPaths;
+    dirty = true;
   }
 
   if (modified.port !== original.port) {
-    mutations.push(
-      trpcClient.deploy.environmentSettings.runtime.updatePort.mutate({
-        environmentId,
-        port: modified.port,
-      }),
-    );
+    body.port = modified.port;
+    dirty = true;
   }
 
   if (modified.cpuMillicores !== original.cpuMillicores) {
-    mutations.push(
-      trpcClient.deploy.environmentSettings.runtime.updateCpu.mutate({
-        environmentId,
-        cpuMillicores: modified.cpuMillicores,
-      }),
-    );
+    body.vCpus = modified.cpuMillicores / 1000;
+    dirty = true;
   }
 
   if (modified.memoryMib !== original.memoryMib) {
-    mutations.push(
-      trpcClient.deploy.environmentSettings.runtime.updateMemory.mutate({
-        environmentId,
-        memoryMib: modified.memoryMib,
-      }),
-    );
+    body.memoryMib = modified.memoryMib;
+    dirty = true;
   }
 
   if (modified.storageMib !== original.storageMib) {
-    mutations.push(
-      trpcClient.deploy.environmentSettings.runtime.updateStorage.mutate({
-        environmentId,
-        storageMib: modified.storageMib,
-      }),
-    );
+    body.storageMib = modified.storageMib;
+    dirty = true;
   }
 
   if (changed(original.command, modified.command)) {
-    mutations.push(
-      trpcClient.deploy.environmentSettings.runtime.updateCommand.mutate({
-        environmentId,
-        command: modified.command,
-      }),
-    );
+    body.command = modified.command;
+    dirty = true;
   }
 
   if (changed(original.healthcheck, modified.healthcheck)) {
-    mutations.push(
-      trpcClient.deploy.environmentSettings.runtime.updateHealthcheck.mutate({
-        environmentId,
-        healthcheck: modified.healthcheck,
-      }),
-    );
-  }
-
-  const origRegionIds = original.regions.map((r) => r.id).sort();
-  const modRegionIds = modified.regions.map((r) => r.id).sort();
-  const regionsChanged = changed(origRegionIds, modRegionIds);
-
-  if (regionsChanged) {
-    mutations.push(
-      trpcClient.deploy.environmentSettings.runtime.updateRegions.mutate({
-        environmentId,
-        regionIds: modRegionIds,
-      }),
-    );
-  }
-
-  const origReplicasMin = original.regions.at(0)?.replicasMin ?? 1;
-  const modReplicasMin = modified.regions.at(0)?.replicasMin ?? 1;
-  const origReplicasMax = original.regions.at(0)?.replicasMax ?? 1;
-  const modReplicasMax = modified.regions.at(0)?.replicasMax ?? 1;
-  const instancesChanged =
-    !regionsChanged &&
-    modified.regions.length > 0 &&
-    (modReplicasMin !== origReplicasMin || modReplicasMax !== origReplicasMax);
-
-  if (instancesChanged) {
-    mutations.push(
-      trpcClient.deploy.environmentSettings.runtime.updateInstances.mutate({
-        environmentId,
-        replicasMin: modReplicasMin,
-        replicasMax: modReplicasMax,
-      }),
-    );
+    body.healthcheck = modified.healthcheck;
+    dirty = true;
   }
 
   if (modified.upstreamProtocol !== original.upstreamProtocol) {
-    mutations.push(
-      trpcClient.deploy.environmentSettings.runtime.updateUpstreamProtocol.mutate({
-        environmentId,
-        upstreamProtocol: modified.upstreamProtocol,
-      }),
-    );
+    body.upstreamProtocol = modified.upstreamProtocol;
+    dirty = true;
   }
 
   if (modified.openapiSpecPath !== original.openapiSpecPath) {
-    mutations.push(
-      trpcClient.deploy.environmentSettings.runtime.updateOpenapiSpecPath.mutate({
-        environmentId,
-        openapiSpecPath: modified.openapiSpecPath,
-      }),
-    );
+    body.openapiSpecPath = modified.openapiSpecPath;
+    dirty = true;
   }
 
-  return mutations;
+  // The API rejects an empty list, because an environment must have one region
+  // or more.
+  if (modified.regions.length > 0 && changed(original.regions, modified.regions)) {
+    body.regions = modified.regions.map((r) => ({
+      name: r.name,
+      replicas: { min: r.replicasMin, max: r.replicasMax },
+    }));
+    dirty = true;
+  }
+
+  return dirty ? body : null;
+}
+
+/**
+ * Persist real defaults for a new environment at create time, so a user who
+ * bails before configuring deployment still has usable settings instead of the
+ * empty placeholders it starts with.
+ */
+export function applyDefaultSettings(
+  projectId: string,
+  appId: string,
+  environmentId: string,
+  regionNames: string[],
+): Promise<unknown> {
+  const d = ENVIRONMENT_SETTINGS_DEFAULTS;
+
+  return getUnkeyClient().environments.updateSettings({
+    project: projectId,
+    app: appId,
+    environment: environmentId,
+    autoDeploy: d.autoDeploy,
+    dockerfile: null,
+    rootDirectory: d.dockerContext,
+    buildCommand: null,
+    watchPaths: [],
+    port: d.port,
+    vCpus: d.cpuMillicores / 1000,
+    memoryMib: d.memoryMib,
+    storageMib: d.storageMib,
+    command: [],
+    healthcheck: null,
+    upstreamProtocol: d.upstreamProtocol,
+    openapiSpecPath: null,
+    // The API rejects an empty list, so keep the regions if the available ones
+    // have not loaded.
+    ...(regionNames.length > 0
+      ? { regions: regionNames.map((name) => ({ name, replicas: { min: 1, max: 1 } })) }
+      : {}),
+  });
 }
 
 async function dispatchSettingsMutations(
-  original: EnvironmentSettings,
-  modified: EnvironmentSettings,
+  changes: { original: EnvironmentSettings; modified: EnvironmentSettings }[],
   silent = false,
 ): Promise<void> {
-  const mutations = buildSettingsMutations(original.environmentId, original, modified);
+  const bodies = changes
+    .map(({ original, modified }) => buildSettingsUpdate(original, modified))
+    .filter((body) => body !== null);
 
-  if (mutations.length === 0) {
+  if (bodies.length === 0) {
     return;
   }
 
-  const allMutations = Promise.all(mutations);
+  const client = getUnkeyClient();
+  const mutation = Promise.all(bodies.map((body) => client.environments.updateSettings(body)));
+
   if (!silent) {
-    toast.promise(allMutations, {
+    toast.promise(mutation, {
       loading: "Saving settings...",
       success: "Settings updated",
-      error: (err) => ({
-        message: "Failed to update settings",
-        description: err instanceof Error ? err.message : "An unexpected error occurred",
-      }),
+      error: (err) => getErrorToast(err, "Failed to update settings"),
     });
   }
-  await trackSave(allMutations);
+  await trackSave(mutation);
 }
 
 /**

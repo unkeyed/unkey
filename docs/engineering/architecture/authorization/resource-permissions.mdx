@@ -91,9 +91,17 @@ Creating nested deploy resources follows the same parent-resource rule:
 ```plaintext
 unkey:v1:ws_123:projects/proj_123#create_app
 unkey:v1:ws_123:projects/proj_123/apps/app_456#create_environment
-unkey:v1:ws_123:projects/proj_123/apps/app_456/environments/env_789#create_deployment
 unkey:v1:ws_123:projects/proj_123/apps/app_456/environments/env_789#create_domain
 unkey:v1:ws_123:projects/proj_123/apps/app_456/environments/env_789#create_variable
+```
+
+Deployment actions are an exception. They always target the deployment resource,
+so `create_deployment` uses a wildcard deployment id:
+
+```plaintext
+unkey:v1:ws_123:projects/proj_123/apps/app_456/environments/env_789/deployments/*#create_deployment
+unkey:v1:ws_123:projects/proj_123/apps/app_456/environments/env_789/deployments/dep_123#stop_deployment
+unkey:v1:ws_123:projects/proj_123/apps/app_456/environments/env_789/deployments/dep_123#start_deployment
 ```
 
 The same parent can still hold non-create actions that target the parent itself,
@@ -145,24 +153,6 @@ logs and authorization checks must always use concrete URNs.
 
 The `/**` operator is valid only at the end of a resource path. It matches the
 path before `/**` and all descendants below that path.
-
-After a resource path uses `*` for an ID selector, every descendant ID selector
-must also use `*`. A permission can continue through child collection segments,
-but it can't select a specific child under a wildcard parent.
-
-Valid:
-
-```plaintext
-unkey:v1:ws_123:projects/*/apps/*#read_app
-unkey:v1:ws_123:projects/*/apps/*/environments/*/deployments/*#read_deployment
-```
-
-Invalid:
-
-```plaintext
-unkey:v1:ws_123:projects/*/apps/app_123#read_app
-unkey:v1:ws_123:projects/proj_123/apps/*/environments/env_123#read_environment
-```
 
 ## Matching rules
 
@@ -349,5 +339,4 @@ These permissions are invalid.
 | `unkey:v1:ws_123:keyspaces/ks_123#*` | Uses an action wildcard outside the global resource pattern. |
 | `unkey:v1:ws_123:**/deployments/*#delete_deployment` | Uses recursive wildcard outside the trailing position. |
 | `unkey:v1:ws_123:projects/proj_123/**/deployments/*#delete_deployment` | Uses recursive wildcard in the middle of the path. |
-| `unkey:v1:ws_123:projects/*/apps/app_123#read_app` | Selects a specific child under a wildcard parent. |
 | `unkey:v1:ws_123:keyspaces/*/keys#read_key` | Does not match a catalog path shape. |

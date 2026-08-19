@@ -3,12 +3,11 @@
 import { Switch } from "@/components/ui/switch";
 import { collection } from "@/lib/collections";
 import { envVarKeySchema, envVarValueSchema } from "@/lib/schemas/env-var";
-import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { CircleInfo, Plus } from "@unkey/icons";
-import { Button, FormInput, InfoTooltip, toast } from "@unkey/ui";
-import { type ClipboardEvent, useCallback, useEffect } from "react";
-import { Controller, useForm, useWatch } from "react-hook-form";
+import { Button, FormInput, FormTextarea, InfoTooltip } from "@unkey/ui";
+import { type ClipboardEvent, useCallback } from "react";
+import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
 import { parseEnvText } from "../../hooks/use-drop-zone";
 
@@ -23,21 +22,28 @@ type EditEnvVarFormValues = z.infer<typeof editEnvVarSchema>;
 
 type EnvVarEditRowProps = {
   envVarId: string;
+  value: string;
   variableKey: string;
   type: "writeonly" | "recoverable";
   note: string | null;
   onClose: () => void;
 };
 
-export function EnvVarEditRow({ envVarId, variableKey, type, note, onClose }: EnvVarEditRowProps) {
-  const decryptMutation = trpc.deploy.envVar.decrypt.useMutation();
-
+export function EnvVarEditRow({
+  envVarId,
+  value,
+  variableKey,
+  type,
+  note,
+  onClose,
+}: EnvVarEditRowProps) {
   const isWriteonly = type === "writeonly";
 
   const {
     register,
     handleSubmit,
     setValue,
+    setError,
     control,
     formState: { isSubmitting, errors },
   } = useForm<EditEnvVarFormValues>({
@@ -45,44 +51,25 @@ export function EnvVarEditRow({ envVarId, variableKey, type, note, onClose }: En
     resolver: zodResolver(editEnvVarSchema),
     defaultValues: {
       key: variableKey,
-      value: "",
+      // The API never returns a writeonly value. The field starts empty, and a
+      // blank value keeps the stored one.
+      value: isWriteonly ? "" : value,
       description: note ?? "",
       sensitive: isWriteonly,
     },
   });
 
-  const watchedValue = useWatch({ control, name: "value" });
-  const hasSpaces = watchedValue?.trim().includes(" ");
-
-  // biome-ignore lint/correctness/useExhaustiveDependencies: decryptMutation is not stable
-  useEffect(
-    function decryptValue() {
-      if (isWriteonly) {
-        return;
-      }
-      let cancelled = false;
-      decryptMutation.mutateAsync({ envVarId }).then(
-        (result) => {
-          if (!cancelled) {
-            setValue("value", result.value);
-          }
-        },
-        () => {
-          if (!cancelled) {
-            toast.error("Failed to decrypt value");
-          }
-        },
-      );
-      return () => {
-        cancelled = true;
-      };
-    },
-    [envVarId, isWriteonly, setValue],
-  );
-
   const onSubmit = useCallback(
     async (values: EditEnvVarFormValues) => {
       if (isWriteonly && !values.value) {
+        // A write replaces the whole variable and the API never returns a
+        // sensitive value, so the note cannot be saved on its own.
+        if ((values.description || "") !== (note ?? "")) {
+          setError("value", {
+            message: "Type the new value to save a change to a sensitive variable.",
+          });
+          return;
+        }
         onClose();
         return;
       }
@@ -95,7 +82,7 @@ export function EnvVarEditRow({ envVarId, variableKey, type, note, onClose }: En
       });
       onClose();
     },
-    [envVarId, isWriteonly, onClose],
+    [envVarId, isWriteonly, note, setError, onClose],
   );
 
   const handleKeyPaste = useCallback(
@@ -142,20 +129,17 @@ export function EnvVarEditRow({ envVarId, variableKey, type, note, onClose }: En
           {...register("key")}
           onPaste={handleKeyPaste}
         />
-        <FormInput
-          label={isWriteonly ? "New Value" : "Value"}
-          className="[&_input]:font-mono"
-          placeholder={
+        <FormTextarea
+          label="Value"
+          rows={1}
+          className="[&_textarea]:font-mono [&_textarea]:min-h-9 [&_textarea]:max-h-40 [&_textarea]:resize-y [&_textarea]:overflow-y-auto"
+          placeholder={isWriteonly ? "Leave empty to keep the current value" : "value"}
+          description={
             isWriteonly
-              ? "Enter new value to replace"
-              : decryptMutation.isLoading
-                ? "Decrypting..."
-                : "value"
+              ? "A sensitive value cannot be shown. Type a new value to replace it, or leave this empty to keep the current one."
+              : undefined
           }
-          disabled={decryptMutation.isLoading}
           error={errors.value?.message}
-          variant={!errors.value && hasSpaces ? "warning" : undefined}
-          description={!errors.value && hasSpaces ? "Value contains spaces" : undefined}
           {...register("value")}
         />
         <details className="group" open={Boolean(note)}>

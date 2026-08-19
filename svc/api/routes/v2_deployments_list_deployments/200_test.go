@@ -5,8 +5,9 @@ import (
 	"strings"
 	"testing"
 
+	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
+
 	"github.com/stretchr/testify/require"
-	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
@@ -33,6 +34,7 @@ func TestListWorkspaceWide(t *testing.T) {
 			AppID:         setup.App.ID,
 			EnvironmentID: setup.Environment.ID,
 			GitBranch:     "main",
+			GitCommitSha:  "abc123",
 		})
 		want[dep.ID] = true
 	}
@@ -46,6 +48,21 @@ func TestListWorkspaceWide(t *testing.T) {
 	for _, d := range res.Body.Data {
 		require.True(t, want[d.Id], "unexpected deployment %s", d.Id)
 		require.Equal(t, openapi.DeploymentStatusPending, d.Status)
+
+		// Enriched fields present on list items (cheap, batched).
+		require.Equal(t, setup.Environment.Slug, d.Environment)
+		require.Equal(t, setup.App.Slug, d.App)
+		require.Equal(t, setup.Project.Slug, d.Project)
+		require.NotNil(t, d.AvailableActions)
+		require.Empty(t, d.Regions, "no topology seeded")
+		require.NotNil(t, d.Git)
+		require.Equal(t, "abc123", d.Git.CommitSha)
+
+		// error is only set for failed deployments; these are pending.
+		require.Nil(t, d.Error, "pending deployments have no error")
+		// domains are always present as a slice, empty when none are configured.
+		require.NotNil(t, d.Domains)
+		require.Empty(t, *d.Domains)
 	}
 
 	// Internal fields must never appear in the response body.
@@ -138,6 +155,7 @@ func TestListFilterByProject(t *testing.T) {
 		ProjectID:   otherProject.ID,
 		AppID:       otherApp.ID,
 		Slug:        "production",
+		Kind:        mysqltype.EnvironmentKindProduction,
 		Description: "other project production",
 	})
 	h.CreateDeployment(seed.CreateDeploymentRequest{
@@ -181,6 +199,7 @@ func TestListFilterByApp(t *testing.T) {
 		ProjectID:   setup.Project.ID,
 		AppID:       otherApp.ID,
 		Slug:        "production",
+		Kind:        mysqltype.EnvironmentKindProduction,
 		Description: "other app production",
 	})
 
@@ -288,7 +307,7 @@ func TestListFilterByMultipleStatuses(t *testing.T) {
 		ProjectID:     setup.Project.ID,
 		AppID:         setup.App.ID,
 		EnvironmentID: setup.Environment.ID,
-		Status:        db.DeploymentsStatusPending,
+		Status:        mysqltype.DeploymentsStatusPending,
 	})
 	failed := h.CreateDeployment(seed.CreateDeploymentRequest{
 		ID:            uid.New(uid.DeploymentPrefix),
@@ -296,7 +315,7 @@ func TestListFilterByMultipleStatuses(t *testing.T) {
 		ProjectID:     setup.Project.ID,
 		AppID:         setup.App.ID,
 		EnvironmentID: setup.Environment.ID,
-		Status:        db.DeploymentsStatusFailed,
+		Status:        mysqltype.DeploymentsStatusFailed,
 	})
 	// A ready deployment that must be excluded by the filter below.
 	h.CreateDeployment(seed.CreateDeploymentRequest{
@@ -305,7 +324,7 @@ func TestListFilterByMultipleStatuses(t *testing.T) {
 		ProjectID:     setup.Project.ID,
 		AppID:         setup.App.ID,
 		EnvironmentID: setup.Environment.ID,
-		Status:        db.DeploymentsStatusReady,
+		Status:        mysqltype.DeploymentsStatusReady,
 	})
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, authHeaders(setup.RootKey), handler.Request{

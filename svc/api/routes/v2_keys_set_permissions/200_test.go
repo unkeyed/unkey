@@ -1,9 +1,13 @@
 package handler_test
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/http/httptest"
+	"slices"
 	"testing"
 	"time"
 
@@ -467,8 +471,8 @@ func TestSuccess(t *testing.T) {
 }
 
 // TestSetPermissionsConcurrent tests that concurrent requests to set permissions
-// on the same key don't deadlock. The handler uses SELECT ... FOR UPDATE
-// on the key row to serialize concurrent modifications.
+// on the same key don't deadlock. The key-row lock must serialize each replacement
+// transaction so the final state is one complete submitted set, never a partial or merge.
 func TestSetPermissionsConcurrent(t *testing.T) {
 	t.Parallel()
 
@@ -521,17 +525,29 @@ func TestSetPermissionsConcurrent(t *testing.T) {
 	})
 	require.Equal(t, 200, warmup.Status, "warmup request should succeed")
 
+	submittedPermissionSets := make([][]string, numConcurrent)
+	for i := range numConcurrent {
+		submittedPermissionSets[i] = []string{permissions[i], permissions[(i+1)%numConcurrent], permissions[(i+2)%numConcurrent]}
+	}
+
 	g := errgroup.Group{}
 	for i := range numConcurrent {
 		g.Go(func() error {
-			// Each request sets a different subset of permissions on the same key
-			req := handler.Request{
+			body, err := json.Marshal(handler.Request{
 				KeyId:       keyResponse.KeyID,
-				Permissions: []string{permissions[i], permissions[(i+1)%numConcurrent], permissions[(i+2)%numConcurrent]},
+				Permissions: submittedPermissionSets[i],
+			})
+			if err != nil {
+				return fmt.Errorf("request %d: marshal body: %w", i, err)
 			}
-			res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
-			if res.Status != 200 {
-				return fmt.Errorf("request %d: unexpected status %d", i, res.Status)
+
+			req := httptest.NewRequest(route.Method(), route.Path(), bytes.NewReader(body))
+			req.Header = headers.Clone()
+			recorder := httptest.NewRecorder()
+			h.Mux().ServeHTTP(recorder, req)
+
+			if recorder.Code != http.StatusOK {
+				return fmt.Errorf("request %d: unexpected status %d: %s", i, recorder.Code, recorder.Body.String())
 			}
 			return nil
 		})
@@ -540,8 +556,19 @@ func TestSetPermissionsConcurrent(t *testing.T) {
 	err := g.Wait()
 	require.NoError(t, err, "All concurrent updates should succeed without deadlock")
 
-	// Verify the key has some permissions (exact count depends on which request won)
 	finalPermissions, err := db.Query.ListDirectPermissionsByKeyID(t.Context(), h.DB.RO(), keyResponse.KeyID)
 	require.NoError(t, err)
-	require.NotEmpty(t, finalPermissions)
+
+	finalPermissionNames := make([]string, len(finalPermissions))
+	for i, permission := range finalPermissions {
+		finalPermissionNames[i] = permission.Name
+	}
+	slices.Sort(finalPermissionNames)
+
+	matchesCompleteReplacement := slices.ContainsFunc(submittedPermissionSets, func(submitted []string) bool {
+		expected := slices.Clone(submitted)
+		slices.Sort(expected)
+		return slices.Equal(expected, finalPermissionNames)
+	})
+	require.Truef(t, matchesCompleteReplacement, "final permissions must exactly match one submitted replacement, got %v", finalPermissionNames)
 }

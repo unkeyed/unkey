@@ -112,7 +112,10 @@ func TestCreateIdentitySuccessfully(t *testing.T) {
 			Deleted:     false,
 		})
 		require.NoError(t, err)
+		projectID, err := db.Query.FindDefaultProjectByWorkspaceID(ctx, h.DB.RO(), h.Resources().UserWorkspace.ID)
+		require.NoError(t, err)
 		require.Equal(t, identity.ExternalID, req.ExternalId)
+		require.Equal(t, projectID, identity.ProjectID)
 	})
 
 	// Test creating a identity with metadata

@@ -122,8 +122,8 @@ message GitSource {
 message DeployRequest {
   string deployment_id = 1;
 
-  // TODO: remove this field, it is unused.
-  optional string key_auth_id = 2;
+  reserved 2;
+  reserved "key_auth_id";
 
   oneof source {
     GitSource git = 3;
@@ -154,3 +154,61 @@ message PromoteRequest {
 }
 
 message PromoteResponse {}
+
+// DeployTeardownService stops a workspace's running Deploy compute and waits
+// for it to drain, keyed by workspace id so teardowns serialize per workspace.
+service DeployTeardownService {
+  option (dev.restate.sdk.go.service_type) = VIRTUAL_OBJECT;
+
+  // Teardown stops every running deployment in the workspace and polls until
+  // they drain, forcing completion after a grace timeout so a stuck pod can't
+  // block the caller forever. Clears apps.current_deployment_id for any app
+  // whose current deployment it stops, so the DeploymentService guard permits
+  // the state change. Idempotent.
+  rpc Teardown(TeardownRequest) returns (TeardownResponse) {}
+
+  // Resume reverses a SUSPEND: it brings the workspace's suspended deployments
+  // back to running and restores each app's current deployment from the record
+  // Teardown(SUSPEND) saved. Idempotent: a no-op when the workspace was not
+  // suspended (no record).
+  rpc Resume(ResumeRequest) returns (ResumeResponse) {}
+}
+
+// TeardownMode selects whether the stopped deployments are permanently archived
+// (cancel) or left resumable (spend cap). It does not affect the desired state
+// they land in, both stop and drain identically; it selects resumability:
+// SUSPEND records what was stopped so Resume can restore it, ARCHIVE does not.
+enum TeardownMode {
+  TEARDOWN_MODE_UNSPECIFIED = 0;
+
+  // ARCHIVE permanently decommissions the deployments (cancel). The cleared
+  // current_deployment_id stays cleared.
+  TEARDOWN_MODE_ARCHIVE = 1;
+
+  // SUSPEND stops the deployments but records what it stopped so Resume can
+  // bring them back (spend cap).
+  TEARDOWN_MODE_SUSPEND = 2;
+}
+
+message TeardownRequest {
+  // Mode selects archive (cancel) vs suspend (spend cap). See TeardownMode.
+  TeardownMode mode = 1;
+}
+
+message TeardownResponse {
+  // DeploymentsStopped is how many running deployments this teardown scheduled
+  // a stop for.
+  int32 deployments_stopped = 1;
+
+  // Drained is true when every stopped deployment reached a terminal state
+  // before the grace timeout. False means the grace timeout forced completion
+  // with compute still draining (an alert was logged).
+  bool drained = 2;
+}
+
+message ResumeRequest {}
+
+message ResumeResponse {
+  // DeploymentsResumed is how many deployments were returned to running.
+  int32 deployments_resumed = 1;
+}

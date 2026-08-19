@@ -20,6 +20,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/pkg/zen"
+	"github.com/unkeyed/unkey/svc/api/internal/projects"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
@@ -119,12 +120,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	currentPermissions, err := db.Query.ListDirectPermissionsByKeyID(ctx, h.DB.RO(), req.KeyId)
+	projectID, err := projects.EnsureDefaultProject(ctx, h.DB.RW(), principal.WorkspaceID)
 	if err != nil {
-		return fault.Wrap(err,
-			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-			fault.Internal("database error"), fault.Public("Failed to retrieve current permissions."),
-		)
+		return err
 	}
 
 	foundPermissions, err := db.Query.FindPermissionsBySlugs(ctx, h.DB.RO(), db.FindPermissionsBySlugsParams{
@@ -177,6 +175,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			PermissionID: permissionID,
 			Name:         perm,
 			WorkspaceID:  principal.WorkspaceID,
+			ProjectID:    projectID,
 			Slug:         perm,
 			Description:  dbtype.NullString{String: "", Valid: false},
 			CreatedAtM:   now,
@@ -187,6 +186,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			ID:          permissionID,
 			Name:        perm,
 			WorkspaceID: principal.WorkspaceID,
+			ProjectID:   projectID,
 			Slug:        perm,
 			Description: dbtype.NullString{String: "", Valid: false},
 			CreatedAtM:  now,
@@ -194,31 +194,11 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		})
 	}
 
-	currentPermissionMap := make(map[string]db.Permission)
-	for _, permission := range currentPermissions {
-		currentPermissionMap[permission.ID] = permission
-	}
-
 	requestedPermissionIDs := make(map[string]bool)
 	requestedPermissionMap := make(map[string]db.Permission)
 	for _, permission := range permissionsToSet {
 		requestedPermissionIDs[permission.ID] = true
 		requestedPermissionMap[permission.ID] = permission
-	}
-
-	permissionsToRemove := make([]string, 0)
-	for _, permission := range currentPermissions {
-		if !requestedPermissionIDs[permission.ID] {
-			permissionsToRemove = append(permissionsToRemove, permission.ID)
-		}
-	}
-
-	permissionsToAdd := make([]db.Permission, 0)
-	for _, permission := range permissionsToSet {
-		_, ok := currentPermissionMap[permission.ID]
-		if !ok {
-			permissionsToAdd = append(permissionsToAdd, permission)
-		}
 	}
 
 	err = db.TxRetry(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
@@ -229,6 +209,34 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				fault.Internal("unable to lock key"),
 				fault.Public("We're unable to update the key."),
 			)
+		}
+
+		currentPermissions, err := db.Query.ListDirectPermissionsByKeyID(ctx, tx, req.KeyId)
+		if err != nil {
+			return fault.Wrap(err,
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Internal("database error"), fault.Public("Failed to retrieve current permissions."),
+			)
+		}
+
+		currentPermissionMap := make(map[string]db.Permission)
+		for _, permission := range currentPermissions {
+			currentPermissionMap[permission.ID] = permission
+		}
+
+		permissionsToRemove := make([]string, 0)
+		for _, permission := range currentPermissions {
+			if !requestedPermissionIDs[permission.ID] {
+				permissionsToRemove = append(permissionsToRemove, permission.ID)
+			}
+		}
+
+		permissionsToAdd := make([]db.Permission, 0)
+		for _, permission := range permissionsToSet {
+			_, ok := currentPermissionMap[permission.ID]
+			if !ok {
+				permissionsToAdd = append(permissionsToAdd, permission)
+			}
 		}
 
 		var auditLogs []auditlog.AuditLog

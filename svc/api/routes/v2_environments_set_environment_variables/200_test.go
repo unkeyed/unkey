@@ -3,6 +3,7 @@ package handler_test
 import (
 	"context"
 	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -46,7 +47,7 @@ func TestSetEnvironmentVariablesSuccessfully(t *testing.T) {
 			{Key: "LOG_LEVEL", Value: "debug", Kind: ptr(openapi.Recoverable), Description: ptr("verbosity")},
 		}))
 
-		raw := listRawVars(t, h, env.environmentID)
+		raw := listRawVars(t, h, env)
 		require.Len(t, raw, 2)
 
 		require.Equal(t, db.AppEnvironmentVariablesTypeWriteonly, raw["DATABASE_URL"].varType)
@@ -63,7 +64,7 @@ func TestSetEnvironmentVariablesSuccessfully(t *testing.T) {
 			{Key: "PLAIN", Value: "v"},
 		}))
 
-		raw := listRawVars(t, h, env.environmentID)
+		raw := listRawVars(t, h, env)
 		require.Equal(t, db.AppEnvironmentVariablesTypeWriteonly, raw["PLAIN"].varType)
 	})
 
@@ -76,7 +77,7 @@ func TestSetEnvironmentVariablesSuccessfully(t *testing.T) {
 			{Key: "KEEP_ONE", Value: "updated", Kind: ptr(openapi.Recoverable)},
 		}))
 
-		raw := listRawVars(t, h, env.environmentID)
+		raw := listRawVars(t, h, env)
 		require.Len(t, raw, 2)
 		require.Equal(t, "updated", decrypt(t, env.environmentID, raw["KEEP_ONE"].value))
 		_, ok := raw["KEEP_TWO"]
@@ -91,7 +92,7 @@ func TestSetEnvironmentVariablesSuccessfully(t *testing.T) {
 			{Key: "NEW_ONE", Value: "z"},
 		}))
 
-		raw := listRawVars(t, h, env.environmentID)
+		raw := listRawVars(t, h, env)
 		require.Len(t, raw, 2)
 		_, hasExisting := raw["EXISTING"]
 		_, hasNew := raw["NEW_ONE"]
@@ -107,7 +108,7 @@ func TestSetEnvironmentVariablesSuccessfully(t *testing.T) {
 			{Key: "API_KEY", Value: "new"},
 		}))
 
-		raw := listRawVars(t, h, env.environmentID)
+		raw := listRawVars(t, h, env)
 		require.Len(t, raw, 1)
 		require.Equal(t, "new", decrypt(t, env.environmentID, raw["API_KEY"].value))
 	})
@@ -120,7 +121,7 @@ func TestSetEnvironmentVariablesSuccessfully(t *testing.T) {
 			{Key: "SECRET", Value: "rotated"},
 		}))
 
-		raw := listRawVars(t, h, env.environmentID)
+		raw := listRawVars(t, h, env)
 		require.Len(t, raw, 1)
 		require.Equal(t, "rotated", decrypt(t, env.environmentID, raw["SECRET"].value))
 		// Nothing merged: kind defaults to writeonly and description is cleared.
@@ -139,7 +140,7 @@ func TestSetEnvironmentVariablesSuccessfully(t *testing.T) {
 		req.Prune = ptr(true)
 		call(t, req)
 
-		raw := listRawVars(t, h, env.environmentID)
+		raw := listRawVars(t, h, env)
 		require.Len(t, raw, 1)
 		_, ok := raw["NEW_ONE"]
 		require.True(t, ok)
@@ -156,7 +157,7 @@ func TestSetEnvironmentVariablesSuccessfully(t *testing.T) {
 		req.Prune = ptr(true)
 		call(t, req)
 
-		raw := listRawVars(t, h, env.environmentID)
+		raw := listRawVars(t, h, env)
 		require.Len(t, raw, 1)
 		require.Equal(t, "new", decrypt(t, env.environmentID, raw["KEEP"].value))
 		_, gone := raw["GONE"]
@@ -177,7 +178,7 @@ func TestSetEnvironmentVariablesSuccessfully(t *testing.T) {
 		req.Prune = ptr(true)
 		call(t, req)
 
-		raw := listRawVars(t, h, env.environmentID)
+		raw := listRawVars(t, h, env)
 		require.Empty(t, raw)
 
 		// The wipe has no keys to log per-var, so it emits one summary event.
@@ -194,7 +195,7 @@ func TestSetEnvironmentVariablesSuccessfully(t *testing.T) {
 
 		call(t, makeRequest(env, []openapi.EnvironmentVariableInput{}))
 
-		raw := listRawVars(t, h, env.environmentID)
+		raw := listRawVars(t, h, env)
 		require.Len(t, raw, 2, "an empty payload without prune must not touch existing vars")
 	})
 
@@ -225,5 +226,26 @@ func TestSetEnvironmentVariablesSuccessfully(t *testing.T) {
 		// Separate entries are auto-correlated so one set call is traceable as a unit.
 		require.NotEmpty(t, logs[0].CorrelationID)
 		require.Equal(t, logs[0].CorrelationID, logs[1].CorrelationID)
+	})
+
+	t.Run("multi-line and large values round-trip through vault and the TEXT column", func(t *testing.T) {
+		env := seedEnvironment(t, h)
+
+		// A PEM block carries interior newlines that the previous varchar(4096)
+		// column and 3000-byte cap could not hold; a 16384-byte value sits at
+		// the new plaintext cap. Both must survive encryption, the widened TEXT
+		// column, and decryption byte for byte.
+		pem := "-----BEGIN PRIVATE KEY-----\nMIIabc/def+123==\nghi/JKL+456==\n-----END PRIVATE KEY-----\n"
+		atCap := strings.Repeat("a", 16384)
+
+		call(t, makeRequest(env, []openapi.EnvironmentVariableInput{
+			{Key: "TLS_KEY", Value: pem, Kind: ptr(openapi.Recoverable)},
+			{Key: "BIG_BLOB", Value: atCap, Kind: ptr(openapi.Recoverable)},
+		}))
+
+		raw := listRawVars(t, h, env)
+		require.Len(t, raw, 2)
+		require.Equal(t, pem, decrypt(t, env.environmentID, raw["TLS_KEY"].value))
+		require.Equal(t, atCap, decrypt(t, env.environmentID, raw["BIG_BLOB"].value))
 	})
 }

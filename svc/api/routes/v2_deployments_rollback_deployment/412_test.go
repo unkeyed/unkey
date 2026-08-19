@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"testing"
 
+	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
+
 	"connectrpc.com/connect"
 	"github.com/stretchr/testify/require"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
@@ -35,12 +37,13 @@ func TestRollbackDeploymentTargetNotReady(t *testing.T) {
 		ProjectID:     setup.Project.ID,
 		AppID:         setup.App.ID,
 		EnvironmentID: setup.Environment.ID,
-		Status:        db.DeploymentsStatusFailed,
+		Status:        mysqltype.DeploymentsStatusFailed,
 	})
 
 	res := testutil.CallRoute[handler.Request, openapi.PreconditionFailedErrorResponse](h, route, authHeaders(setup.RootKey), handler.Request{DeploymentId: dep.ID})
 	require.Equal(t, http.StatusPreconditionFailed, res.Status, "expected 412, received: %s", res.RawBody)
 	require.Contains(t, res.Body.Error.Detail, "is not ready")
+	require.Contains(t, res.Body.Error.Type, "deployment_not_ready")
 	require.Empty(t, mock.RollbackCalls, "ctrl must not be called for a non-ready target")
 }
 
@@ -63,18 +66,19 @@ func TestRollbackDeploymentTargetShuttingDown(t *testing.T) {
 		ProjectID:     setup.Project.ID,
 		AppID:         setup.App.ID,
 		EnvironmentID: setup.Environment.ID,
-		Status:        db.DeploymentsStatusReady,
+		Status:        mysqltype.DeploymentsStatusReady,
 	})
 
 	err := db.Query.UpdateDeploymentDesiredState(t.Context(), h.DB.RW(), db.UpdateDeploymentDesiredStateParams{
 		ID:           dep.ID,
-		DesiredState: db.DeploymentsDesiredStateStopped,
+		DesiredState: mysqltype.DeploymentsDesiredStateStopped,
 	})
 	require.NoError(t, err)
 
 	res := testutil.CallRoute[handler.Request, openapi.PreconditionFailedErrorResponse](h, route, authHeaders(setup.RootKey), handler.Request{DeploymentId: dep.ID})
 	require.Equal(t, http.StatusPreconditionFailed, res.Status, "expected 412, received: %s", res.RawBody)
 	require.Contains(t, res.Body.Error.Detail, "shutting down")
+	require.Contains(t, res.Body.Error.Type, "deployment_not_ready")
 	require.Empty(t, mock.RollbackCalls, "ctrl must not be called for a target that is shutting down")
 }
 
@@ -105,12 +109,13 @@ func TestRollbackDeploymentNonProduction(t *testing.T) {
 		ProjectID:     setup.Project.ID,
 		AppID:         setup.App.ID,
 		EnvironmentID: preview.ID,
-		Status:        db.DeploymentsStatusReady,
+		Status:        mysqltype.DeploymentsStatusReady,
 	})
 
 	res := testutil.CallRoute[handler.Request, openapi.PreconditionFailedErrorResponse](h, route, authHeaders(setup.RootKey), handler.Request{DeploymentId: dep.ID})
 	require.Equal(t, http.StatusPreconditionFailed, res.Status, "expected 412, received: %s", res.RawBody)
-	require.Contains(t, res.Body.Error.Detail, "Only production deployments can be rolled back.")
+	require.Contains(t, res.Body.Error.Detail, "Only production deployments")
+	require.Contains(t, res.Body.Error.Type, "deployment_not_production")
 	require.Empty(t, mock.RollbackCalls, "ctrl must not be called for non-production deployments")
 }
 
@@ -131,12 +136,13 @@ func TestRollbackDeploymentNoLiveDeployment(t *testing.T) {
 		ProjectID:     setup.Project.ID,
 		AppID:         setup.App.ID,
 		EnvironmentID: setup.Environment.ID,
-		Status:        db.DeploymentsStatusReady,
+		Status:        mysqltype.DeploymentsStatusReady,
 	})
 
 	res := testutil.CallRoute[handler.Request, openapi.PreconditionFailedErrorResponse](h, route, authHeaders(setup.RootKey), handler.Request{DeploymentId: dep.ID})
 	require.Equal(t, http.StatusPreconditionFailed, res.Status, "expected 412, received: %s", res.RawBody)
-	require.Contains(t, res.Body.Error.Detail, "no live deployment")
+	require.Contains(t, res.Body.Error.Detail, "no current deployment")
+	require.Contains(t, res.Body.Error.Type, "deployment_no_current")
 	require.Empty(t, mock.RollbackCalls, "ctrl must not be called when the app has no live deployment")
 }
 
@@ -157,12 +163,13 @@ func TestRollbackDeploymentAlreadyLive(t *testing.T) {
 		ProjectID:     setup.Project.ID,
 		AppID:         setup.App.ID,
 		EnvironmentID: setup.Environment.ID,
-		Status:        db.DeploymentsStatusReady,
+		Status:        mysqltype.DeploymentsStatusReady,
 	})
 	setCurrentDeployment(t, h, setup.App.ID, live.ID)
 
 	res := testutil.CallRoute[handler.Request, openapi.PreconditionFailedErrorResponse](h, route, authHeaders(setup.RootKey), handler.Request{DeploymentId: live.ID})
 	require.Equal(t, http.StatusPreconditionFailed, res.Status, "expected 412, received: %s", res.RawBody)
+	require.Contains(t, res.Body.Error.Type, "deployment_is_current")
 	require.Empty(t, mock.RollbackCalls, "ctrl must not be called when the target is already live")
 }
 
@@ -188,7 +195,7 @@ func TestRollbackDeploymentCtrlPreconditionFailed(t *testing.T) {
 		ProjectID:     setup.Project.ID,
 		AppID:         setup.App.ID,
 		EnvironmentID: setup.Environment.ID,
-		Status:        db.DeploymentsStatusReady,
+		Status:        mysqltype.DeploymentsStatusReady,
 	})
 	live := h.CreateDeployment(seed.CreateDeploymentRequest{
 		ID:            uid.New(uid.DeploymentPrefix),
@@ -196,7 +203,7 @@ func TestRollbackDeploymentCtrlPreconditionFailed(t *testing.T) {
 		ProjectID:     setup.Project.ID,
 		AppID:         setup.App.ID,
 		EnvironmentID: setup.Environment.ID,
-		Status:        db.DeploymentsStatusReady,
+		Status:        mysqltype.DeploymentsStatusReady,
 	})
 	setCurrentDeployment(t, h, setup.App.ID, live.ID)
 

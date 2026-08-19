@@ -1,0 +1,79 @@
+services:
+  dev:
+    command: >-
+      "$HOME/.local/bin/mise" run dev-orb
+    port: 10350
+    portal:
+      title: Tilt
+      description: Reduced Deploy development stack running in minikube.
+
+  dashboard:
+    command: >-
+      "$HOME/.local/bin/mise" exec --
+      go run ./tools/amp-orb-services proxy "$PORT" 3000
+    port: 13000
+    portal:
+      title: Dashboard
+      description: Local dashboard with seeded data and local authentication.
+
+  api:
+    command: >-
+      "$HOME/.local/bin/mise" exec --
+      go run ./tools/amp-orb-services proxy "$PORT" 7070
+    port: 17070
+    health: /health/live
+    portal:
+      title: Unkey API
+      url: /v2/liveness
+      description: Local API from the minikube Deploy stack.
+
+  vault:
+    command: >-
+      "$HOME/.local/bin/mise" exec --
+      go run ./tools/amp-orb-services proxy "$PORT" 8060
+    port: 18060
+    health: /health/live
+    portal:
+      title: Vault RPC
+      url: /health/live
+      description: Local Vault Connect RPC service from the minikube stack.
+
+  control-api:
+    command: >-
+      "$HOME/.local/bin/mise" exec --
+      go run ./tools/amp-orb-services proxy "$PORT" 7091
+    port: 17091
+    health: /health/live
+    portal:
+      title: Control API
+      url: /health/live
+      description: Local Deploy control-plane API from the minikube stack.
+
+  deployment-portals:
+    command: >-
+      "$HOME/.local/bin/mise" exec --
+      go run ./tools/amp-orb-services deployment-portals "$PORT"
+    port: 19081
+    health: /
+
+  portal:
+    command: >-
+      AMP_ORB=1
+      "$HOME/.local/bin/mise" exec --
+      pnpm --dir=web --filter=@unkey/portal exec
+      vite dev --host 0.0.0.0 --port "$PORT"
+    port: 3100
+    portal:
+      title: API Portal
+      description: API portal backed by the local Kubernetes API.
+
+  design:
+    command: >-
+      AMP_ORB=1
+      HOST=0.0.0.0
+      "$HOME/.local/bin/mise" exec --
+      pnpm --dir=web --filter=@unkey/design dev
+    port: 4321
+    portal:
+      title: Design System
+      description: Unkey UI components and design patterns.

@@ -1,6 +1,7 @@
+import { useAppNameById } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/(project)/components/app-filter-options";
 import { ControlCloud } from "@unkey/ui";
 import { format } from "date-fns";
-import { useSentinelLogsFilters } from "../../hooks/use-sentinel-logs-filters";
+import { useRequestLogsFilters } from "../../hooks/use-request-logs-filters";
 
 const formatFieldName = (field: string): string => {
   switch (field) {
@@ -14,6 +15,8 @@ const formatFieldName = (field: string): string => {
       return "Path";
     case "methods":
       return "Method";
+    case "appId":
+      return "App";
     case "deploymentId":
       return "Deployment ID";
     case "since":
@@ -51,21 +54,25 @@ const formatStatusCode = (raw: string): string => {
   return `${raw} (Success)`;
 };
 
-const formatValue = (value: string | number, field: string): string => {
+const formatValue = (value: string | number, field: string, appName?: string): string => {
   if (field === "status" && /^\d+$/.test(String(value))) {
     return formatStatusCode(String(value));
   }
   if (typeof value === "number" && (field === "startTime" || field === "endTime")) {
     return format(value, "MMM d, yyyy HH:mm:ss");
   }
+  if (field === "appId") {
+    return appName ?? String(value);
+  }
   return String(value);
 };
 
-export const SentinelLogsControlCloud = () => {
-  const { filters, updateFilters, removeFilter } = useSentinelLogsFilters();
+export const RequestLogsControlCloud = () => {
+  const { filters, updateFilters, removeFilter } = useRequestLogsFilters();
+  const appNameById = useAppNameById();
   return (
     <ControlCloud
-      formatValue={formatValue}
+      formatValue={(value, field) => formatValue(value, field, appNameById.get(String(value)))}
       formatFieldName={formatFieldName}
       filters={filters}
       removeFilter={removeFilter}

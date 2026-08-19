@@ -3,11 +3,11 @@ package deploybilling
 import (
 	"fmt"
 	"sort"
+	"strings"
 
 	restate "github.com/restatedev/sdk-go"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/billingperiod"
-	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/restate/restateutil"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/billingmeter"
@@ -23,7 +23,10 @@ func (h *Handler) Handle(
 	ctx restate.ObjectContext,
 	_ *hydrav1.RunDeployBillingPushRequest,
 ) (*hydrav1.RunDeployBillingPushResponse, error) {
-	period := restate.Key(ctx)
+	// Task-prefixed VO key ("deploy-billing-push-YYYY-MM") keeps this off the
+	// other period-keyed tasks' virtual object. TrimPrefix is a no-op on a bare
+	// key, so old in-flight invocations still parse during a rolling deploy.
+	period := strings.TrimPrefix(restate.Key(ctx), "deploy-billing-push-")
 	logger.Info("running deploy billing push", "billing_period", period)
 
 	if h.usage == nil {
@@ -40,9 +43,40 @@ func (h *Handler) Handle(
 	if err != nil {
 		return nil, fmt.Errorf("get current time: %w", err)
 	}
+
+	// A stale-period push must not run. This handler writes money: the value it
+	// sends becomes the billed quantity under "last" aggregation, and the event
+	// timestamp decides which Stripe period it lands in. An invocation for a
+	// closed month executing after the roll (a manual re-trigger, or a queued tick
+	// crossing midnight UTC on the 1st) would stamp the OLD month's total into the
+	// NEW period, and the zero-skip below means nothing ever corrects it downward.
+	// Mirrors the spend check's guard, which has had this since it was written,
+	// including its heartbeat: the handler ran and correctly decided not to act,
+	// so withholding the ping would page someone for a skip that lost nothing.
+	// Nothing is lost because the next tick pushes absolute month-to-date under
+	// the "last" formula, so a skipped hour is re-covered rather than dropped.
+	if p != billingperiod.From(nowTime) {
+		logger.Info("deploy billing push: skipping stale period",
+			"billing_period", period,
+			"current_period", billingperiod.From(nowTime).Key(),
+		)
+		if err := h.pingHeartbeat(ctx); err != nil {
+			return nil, err
+		}
+		return &hydrav1.RunDeployBillingPushResponse{}, nil
+	}
+
 	// The ClickHouse usage query is bounded in milliseconds; the Stripe meter
-	// event timestamp is unix seconds. Both come from the one journaled "now"
-	// so the window and the event agree.
+	// event timestamp is unix seconds. Both come from the one journaled "now" so
+	// the window and the event agree.
+	//
+	// Deliberately unclamped: the stale-period guard above already establishes
+	// nowTime is inside p, so a clamp to p.End() would be unreachable, and a
+	// clamp is the wrong shape for this anyway. p.End() is the query's exclusive
+	// upper bound but one second INTO the next period as an event timestamp,
+	// which is why the close path stamps p.End().Add(-time.Second) instead.
+	// Clamping both to p.End() would push the month's final total into the next
+	// Stripe period.
 	nowMillis := nowTime.UnixMilli()
 	nowUnixSeconds := nowTime.Unix()
 
@@ -137,53 +171,44 @@ func (h *Handler) resolvePushTasks(
 	endMillis int64,
 	eventTimestamp int64,
 ) (tasks []pushTask, workspacesWithUsage int, err error) {
-	rows, err := restate.Run(ctx, func(rc restate.RunContext) ([]clickhouse.InstanceMeterUsage, error) {
-		return h.usage.GetInstanceMeterUsage(rc, clickhouse.GetInstanceMeterUsageRequest{
-			WorkspaceID: "", // all workspaces; we filter to billable ones below
-			Start:       p.Start().UnixMilli(),
-			End:         endMillis,
-		})
-	}, restate.WithName("get period usage"))
+	// Resolve the only workspaces whose usage can become a Stripe meter event
+	// before reading ClickHouse. Besides avoiding work that would be discarded
+	// below, the stable id set lets FleetMeterValues split the single-threaded
+	// checkpoint window query into disjoint, index-backed shards.
+	workspaces, err := restate.Run(ctx, func(rc restate.RunContext) ([]db.ListDeployBillingCustomersRow, error) {
+		return h.db.ListDeployBillingCustomers(rc)
+	}, restate.WithName("list deploy billing customers"))
 	if err != nil {
-		return nil, 0, fmt.Errorf("get period usage: %w", err)
+		return nil, 0, fmt.Errorf("list deploy billing customers: %w", err)
+	}
+	if len(workspaces) == 0 {
+		logger.Info("no deploy billing customers", "billing_period", period)
+		return nil, 0, nil
+	}
+	sort.Slice(workspaces, func(i, j int) bool { return workspaces[i].ID < workspaces[j].ID })
+
+	workspaceIDs := make([]string, 0, len(workspaces))
+	workspacesByID := make(map[string]db.ListDeployBillingCustomersRow, len(workspaces))
+	for _, workspace := range workspaces {
+		workspaceIDs = append(workspaceIDs, workspace.ID)
+		workspacesByID[workspace.ID] = workspace
 	}
 
-	keyRows, err := restate.Run(ctx, func(rc restate.RunContext) ([]clickhouse.ActiveKeysUsage, error) {
-		return h.usage.GetActiveKeysUsage(rc, clickhouse.GetActiveKeysUsageRequest{
-			WorkspaceID: "", // all workspaces; we filter to billable ones below
-			Year:        p.Year,
-			Month:       p.Month,
-		})
-	}, restate.WithName("get active keys"))
+	valuesByWorkspace, err := FleetMeterValues(ctx, h.usage, p, endMillis, workspaceIDs)
 	if err != nil {
-		return nil, 0, fmt.Errorf("get active keys: %w", err)
+		return nil, 0, err
 	}
-
-	valuesByWorkspace := aggregateUsage(rows)
-	mergeActiveKeys(valuesByWorkspace, keyRows)
 	if len(valuesByWorkspace) == 0 {
 		logger.Info("no deploy usage this period", "billing_period", period)
 		return nil, 0, nil
 	}
 
 	// Stable order so the journaled fan-out steps replay identically.
-	workspaceIDs := make([]string, 0, len(valuesByWorkspace))
+	workspaceIDs = workspaceIDs[:0]
 	for id := range valuesByWorkspace {
 		workspaceIDs = append(workspaceIDs, id)
 	}
 	sort.Strings(workspaceIDs)
-
-	workspaces, err := restate.Run(ctx, func(rc restate.RunContext) ([]db.ListWorkspacesForDeployBillingByIDsRow, error) {
-		return h.db.ListWorkspacesForDeployBillingByIDs(rc, workspaceIDs)
-	}, restate.WithName("fetch workspace billing identities"))
-	if err != nil {
-		return nil, 0, fmt.Errorf("fetch workspace billing identities: %w", err)
-	}
-
-	workspacesByID := make(map[string]db.ListWorkspacesForDeployBillingByIDsRow, len(workspaces))
-	for _, w := range workspaces {
-		workspacesByID[w.ID] = w
-	}
 
 	tasks = make([]pushTask, 0, len(workspaceIDs))
 	for _, id := range workspaceIDs {
@@ -200,10 +225,6 @@ func (h *Handler) resolvePushTasks(
 		// regardless of the workspace's current state. The only blocker is a
 		// missing Stripe customer, since there is nothing to map the usage onto.
 		if !w.StripeCustomerID.Valid || w.StripeCustomerID.String == "" {
-			logger.Info("workspace has deploy usage but no stripe customer; skipping",
-				"workspace_id", id,
-				"billing_period", period,
-			)
 			continue
 		}
 

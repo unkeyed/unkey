@@ -5,7 +5,7 @@
 import * as z from "zod/v3";
 
 /**
- * Promote a ready deployment to become the live deployment for its environment.
+ * Promote a ready deployment to become the current deployment for its environment.
  */
 export type V2DeploymentsPromoteDeploymentRequestBody = {
   /**

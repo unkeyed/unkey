@@ -32,6 +32,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/counter"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/mysql/sqlcomment"
+	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
 	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/pkg/uid"
@@ -142,10 +143,11 @@ func NewHarness(t *testing.T, configs ...HarnessConfig) *Harness {
 		Flags: &zen.Flags{
 			TestMode: true,
 		},
-		TLS:          nil,
-		EnableH2C:    false,
-		ReadTimeout:  0,
-		WriteTimeout: 0,
+		TLS:               nil,
+		EnableH2C:         false,
+		StreamRequestBody: false,
+		ReadTimeout:       0,
+		WriteTimeout:      0,
 	})
 	require.NoError(t, err)
 
@@ -311,10 +313,10 @@ func NewHarness(t *testing.T, configs ...HarnessConfig) *Harness {
 		middleware.WithErrorHandling(),
 		zen.WithValidation(validator),
 		middleware.WithAuthentication(middleware.AuthenticationConfig{
-			Auth:       authService,
-			Database:   database,
-			QuotaCache: caches.WorkspaceQuota,
-			Ratelimit:  ratelimitService,
+			Auth:        authService,
+			Database:    database,
+			LimitsCache: caches.WorkspaceLimits,
+			Ratelimit:   ratelimitService,
 		}),
 	}
 	h.portalMiddleware = []zen.Middleware{
@@ -323,10 +325,10 @@ func NewHarness(t *testing.T, configs ...HarnessConfig) *Harness {
 		middleware.WithErrorHandling(),
 		zen.WithValidation(validator),
 		middleware.WithAuthentication(middleware.AuthenticationConfig{
-			Auth:       portalAuthService,
-			Database:   database,
-			QuotaCache: caches.WorkspaceQuota,
-			Ratelimit:  ratelimitService,
+			Auth:        portalAuthService,
+			Database:    database,
+			LimitsCache: caches.WorkspaceLimits,
+			Ratelimit:   ratelimitService,
 		}),
 	}
 
@@ -460,6 +462,11 @@ func (h *Harness) CreateEnvironment(req seed.CreateEnvironmentRequest) db.Enviro
 	return h.seeder.CreateEnvironment(h.t.Context(), req)
 }
 
+// CreateCustomDomain attaches a custom domain to an environment.
+func (h *Harness) CreateCustomDomain(req seed.CreateCustomDomainRequest) db.FindCustomDomainByIdRow {
+	return h.seeder.CreateCustomDomain(h.t.Context(), req)
+}
+
 // CreateDeployment creates a deployment within a project and environment.
 func (h *Harness) CreateDeployment(req seed.CreateDeploymentRequest) db.Deployment {
 	return h.seeder.CreateDeployment(context.Background(), req)
@@ -480,6 +487,7 @@ type CreateTestDeploymentSetupOptions struct {
 	ProjectName     string
 	ProjectSlug     string
 	EnvironmentSlug string
+	EnvironmentKind mysqltype.EnvironmentKind
 	SkipEnvironment bool
 	Permissions     []string
 }
@@ -496,6 +504,7 @@ func (h *Harness) CreateTestDeploymentSetup(opts ...CreateTestDeploymentSetupOpt
 		ProjectName:     "test-project",
 		ProjectSlug:     "production",
 		EnvironmentSlug: "production",
+		EnvironmentKind: mysqltype.EnvironmentKindProduction,
 		SkipEnvironment: false,
 		Permissions:     nil,
 	}
@@ -509,6 +518,9 @@ func (h *Harness) CreateTestDeploymentSetup(opts ...CreateTestDeploymentSetupOpt
 		}
 		if opts[0].EnvironmentSlug != "" {
 			config.EnvironmentSlug = opts[0].EnvironmentSlug
+		}
+		if opts[0].EnvironmentKind != "" {
+			config.EnvironmentKind = opts[0].EnvironmentKind
 		}
 		config.SkipEnvironment = opts[0].SkipEnvironment
 		if opts[0].Permissions != nil {
@@ -552,6 +564,7 @@ func (h *Harness) CreateTestDeploymentSetup(opts ...CreateTestDeploymentSetupOpt
 			AppID:            app.ID,
 			Slug:             config.EnvironmentSlug,
 			Description:      config.EnvironmentSlug + " environment",
+			Kind:             config.EnvironmentKind,
 			DeleteProtection: false,
 			SentinelConfig:   nil,
 		})
@@ -652,15 +665,23 @@ func (h *Harness) SetupAnalytics(workspaceID string, opts ...SetupAnalyticsOptio
 	})
 	require.NoError(h.t, err)
 
-	// Ensure quota exists with retention days
-	err = db.Query.UpsertQuota(ctx, h.DB.RW(), db.UpsertQuotaParams{
-		WorkspaceID:            workspaceID,
-		LogsRetentionDays:      config.RetentionDays,
-		AuditLogsRetentionDays: config.RetentionDays,
-		RequestsPerMonth:       1_000_000,
-		Team:                   false,
-		RatelimitApiLimit:      sql.NullInt32{}, //nolint:exhaustruct
-		RatelimitApiDuration:   sql.NullInt32{}, //nolint:exhaustruct
+	// Ensure limits exist with retention days.
+	err = db.Query.UpsertLimit(ctx, h.DB.RW(), db.UpsertLimitParams{
+		WorkspaceID:                           workspaceID,
+		ApiBillableOperationsCountMaxPerMonth: 1_000_000,
+		ApiRequestsCountMaxPerMinute:          sql.NullInt32{}, //nolint:exhaustruct
+		LogsRetentionDaysMax:                  uint16(config.RetentionDays),
+		LogsAuditRetentionDaysMax:             uint16(config.RetentionDays),
+		TeamEnabled:                           false,
+		CpuCoresMax:                           10,
+		CpuCoresMaxPerInstance:                2,
+		MemoryMibMax:                          20_480,
+		MemoryMibMaxPerInstance:               4_096,
+		StorageMibMax:                         51_200,
+		StorageMibMaxPerInstance:              10_240,
+		BuildsConcurrentMax:                   1,
+		CustomDomainsMax:                      0,
+		AutoscalingReplicasMax:                0,
 	})
 	require.NoError(h.t, err)
 

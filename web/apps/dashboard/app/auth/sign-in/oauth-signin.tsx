@@ -1,6 +1,7 @@
 "use client";
 
 import { GitHub, Google } from "@/components/ui/icons";
+import { sanitizeRedirectPath } from "@/lib/auth/redirect-utils";
 import type { OAuthStrategy } from "@/lib/auth/types";
 import { Loading, toast } from "@unkey/ui";
 import { useSearchParams } from "next/navigation";
@@ -9,7 +10,6 @@ import { signInViaOAuth } from "../actions";
 import { OAuthButton } from "../oauth-button";
 import { useRadarSignals } from "../radar/radar-signals";
 import { LastUsed, useLastUsed } from "./last_used";
-import { isSafeRedirectPath } from "./redirect-utils";
 
 export const OAuthSignIn: React.FC = () => {
   const [isLoading, setIsLoading] = React.useState<OAuthStrategy | null>(null);
@@ -18,8 +18,7 @@ export const OAuthSignIn: React.FC = () => {
   const { getToken } = useRadarSignals();
   const searchParams = useSearchParams();
   const rawRedirect = searchParams?.get("redirect");
-  const redirectUrlComplete =
-    rawRedirect && isSafeRedirectPath(rawRedirect) ? rawRedirect : "/apis";
+  const redirectUrlComplete = sanitizeRedirectPath(rawRedirect);
 
   // Set clientReady to true after hydration is complete
   React.useEffect(() => {

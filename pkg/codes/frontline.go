@@ -28,6 +28,16 @@ type frontlineRouting struct {
 
 	// NoRunningInstances represents a 503 error - no deployments have running instances
 	NoRunningInstances Code
+
+	// DeploymentOffline represents a 503 error - the deployment was stopped or the
+	// project was cancelled, so it is intentionally offline. Distinct from the
+	// transient NoRunningInstances seen mid-deploy or mid-scale.
+	DeploymentOffline Code
+
+	// SpendLimitReached represents a 402 error - the workspace reached its Compute
+	// spend limit and its deployments were paused. Resumes when the budget is
+	// raised or removed, so it is a billing gate rather than an outage.
+	SpendLimitReached Code
 }
 
 // frontlineInternal defines errors related to internal frontline functionality.
@@ -55,8 +65,11 @@ type frontlineAuth struct {
 	// InsufficientPermissions represents a 403 error - the credential lacks the permissions required by a permission_query.
 	InsufficientPermissions Code
 
-	// RateLimited represents a 429 error - the credential or its auto-applied rate limit was exceeded.
+	// RateLimited represents a 429 error - a configured request rate limit was exceeded.
 	RateLimited Code
+
+	// UsageExceeded represents a 429 error - the credential has no remaining credits.
+	UsageExceeded Code
 }
 
 // frontlineFirewall defines errors raised by the Firewall policy.
@@ -111,6 +124,8 @@ var Frontline = UnkeyFrontlineErrors{
 		DeploymentNotFound:        Code{SystemFrontline, CategoryRouting, "deployment_not_found"},
 		DeploymentSelectionFailed: Code{SystemFrontline, CategoryPlatform, "deployment_selection_failed"},
 		NoRunningInstances:        Code{SystemFrontline, CategoryCapacity, "no_running_instances"},
+		DeploymentOffline:         Code{SystemFrontline, CategoryCapacity, "deployment_offline"},
+		SpendLimitReached:         Code{SystemFrontline, CategoryCapacity, "spend_limit_reached"},
 	},
 	Internal: frontlineInternal{
 		InternalServerError:  Code{SystemFrontline, CategoryPlatform, "internal_server_error"},
@@ -122,6 +137,7 @@ var Frontline = UnkeyFrontlineErrors{
 		InvalidKey:              Code{SystemFrontline, CategoryClient, "invalid_key"},
 		InsufficientPermissions: Code{SystemFrontline, CategoryClient, "insufficient_permissions"},
 		RateLimited:             Code{SystemFrontline, CategoryClient, "rate_limited"},
+		UsageExceeded:           Code{SystemFrontline, CategoryClient, "usage_exceeded"},
 	},
 	Firewall: frontlineFirewall{
 		Denied: Code{SystemFrontline, CategoryClient, "firewall_denied"},

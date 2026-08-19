@@ -15,6 +15,11 @@ type GetActiveKeysUsageRequest struct {
 	// across every workspace (the reconciliation / shadow-mode path).
 	WorkspaceID string
 
+	// WorkspaceIDs restricts the query to the listed workspaces. Nil applies
+	// no list filter. The spend-cap check passes its budgeted set so a
+	// tight-cadence scan does not aggregate the whole fleet's month.
+	WorkspaceIDs []string
+
 	// Year and Month name the billing month directly. The per-month rollup is
 	// keyed by calendar month, so no instant or timezone is involved.
 	Year  int
@@ -46,13 +51,15 @@ func (c *Client) GetActiveKeysUsage(
 	WHERE time = makeDate({year:Int32}, {month:Int32}, 1)
 	  AND source = 'gateway'
 	  AND ({workspace_id:String} = '' OR workspace_id = {workspace_id:String})
+	  AND (empty({workspace_ids:Array(String)}) OR workspace_id IN {workspace_ids:Array(String)})
 	GROUP BY workspace_id
 	`
 
 	usage, err := Select[ActiveKeysUsage](ctx, c.conn, query, map[string]string{
-		"year":         strconv.Itoa(req.Year),
-		"month":        strconv.Itoa(int(req.Month)),
-		"workspace_id": req.WorkspaceID,
+		"year":          strconv.Itoa(req.Year),
+		"month":         strconv.Itoa(int(req.Month)),
+		"workspace_id":  req.WorkspaceID,
+		"workspace_ids": stringArrayParam(req.WorkspaceIDs),
 	})
 	if err != nil {
 		return nil, fault.Wrap(err, fault.Internal("failed to query active keys usage"))

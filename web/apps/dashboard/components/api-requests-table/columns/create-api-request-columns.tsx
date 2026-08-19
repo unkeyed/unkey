@@ -69,12 +69,7 @@ export const createApiRequestColumns = ({
       width: "15%",
     },
     cell: ({ row }) => (
-      <TruncatedTextCell
-        value={
-          (row.original.key_details?.identity?.external_id ?? row.original.key_details?.owner_id) ||
-          "—"
-        }
-      />
+      <TruncatedTextCell value={row.original.key_details?.identity?.external_id || "—"} />
     ),
   },
   {

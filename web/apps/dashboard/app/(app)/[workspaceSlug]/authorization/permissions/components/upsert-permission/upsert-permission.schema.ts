@@ -11,11 +11,20 @@ export const permissionNameSchema = z
     error: "Permission name cannot contain consecutive spaces",
   });
 
+// Mirrors the shared permission slug rule in the OpenAPI spec, so a slug
+// created here can always be assigned to a key. Allows dotted slugs
+// (documents.read), wildcards (documents.*), colons (api:read) and leading
+// digits (2fa.read); rejects whitespace. 128 matches permissions.slug.
+export const permissionSlugPattern = /^[a-zA-Z0-9_:\-.*]+$/;
+
 export const permissionSlugSchema = z
   .string()
   .trim()
   .min(2, { message: "Permission slug must be at least 2 characters long" })
-  .max(128, { message: "Permission slug cannot exceed 128 characters" });
+  .max(128, { message: "Permission slug cannot exceed 128 characters" })
+  .refine((slug) => permissionSlugPattern.test(slug), {
+    error: "Permission slug can only contain letters, numbers, and the characters _ : - . *",
+  });
 
 export const permissionDescriptionSchema = z
   .string()

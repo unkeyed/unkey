@@ -1,10 +1,12 @@
 import { relations } from "drizzle-orm";
-import { bigint, index, int, mysqlTable, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
+import { index, int, mysqlTable, uniqueIndex } from "drizzle-orm/mysql-core";
 import { apps } from "./apps";
 import { environments } from "./environments";
 import { horizontalAutoscalingPolicies } from "./horizontal_autoscaling_policies";
 import { regions } from "./regions";
+import { id } from "./util/id";
 import { lifecycleDates } from "./util/lifecycle_dates";
+import { primaryKey } from "./util/primary_key";
 import { workspaces } from "./workspaces";
 
 /**
@@ -16,19 +18,17 @@ import { workspaces } from "./workspaces";
 export const appRegionalSettings = mysqlTable(
   "app_regional_settings",
   {
-    pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
+    pk: primaryKey(),
 
-    workspaceId: varchar("workspace_id", { length: 256 }).notNull(),
-    appId: varchar("app_id", { length: 64 }).notNull(),
-    environmentId: varchar("environment_id", { length: 128 }).notNull(),
-    regionId: varchar("region_id", { length: 64 }).notNull(),
+    workspaceId: id("workspace_id").notNull(),
+    appId: id("app_id").notNull(),
+    environmentId: id("environment_id").notNull(),
+    regionId: id("region_id").notNull(),
 
     replicas: int("replicas").notNull().default(1),
 
     // Optional reference to a horizontal autoscaling policy. null = no autoscaling.
-    horizontalAutoscalingPolicyId: varchar("horizontal_autoscaling_policy_id", {
-      length: 64,
-    }),
+    horizontalAutoscalingPolicyId: id("horizontal_autoscaling_policy_id"),
 
     ...lifecycleDates,
   },

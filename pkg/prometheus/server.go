@@ -70,6 +70,7 @@ func New() (*zen.Server, error) {
 		Flags:              nil,
 		TLS:                nil,
 		EnableH2C:          false,
+		StreamRequestBody:  false,
 		ReadTimeout:        0,
 		WriteTimeout:       0,
 	})
@@ -100,6 +101,7 @@ func NewWithRegistry(reg *prometheus.Registry) (*zen.Server, error) {
 		Flags:              nil,
 		TLS:                nil,
 		EnableH2C:          false,
+		StreamRequestBody:  false,
 		ReadTimeout:        0,
 		WriteTimeout:       0,
 	})

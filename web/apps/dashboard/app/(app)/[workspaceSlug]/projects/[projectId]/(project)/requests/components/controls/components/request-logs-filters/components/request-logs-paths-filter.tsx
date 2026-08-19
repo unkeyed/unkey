@@ -1,0 +1,31 @@
+import { useRequestLogsFilters } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/(project)/requests/hooks/use-request-logs-filters";
+import { FilterOperatorInput } from "@/components/logs/filter-operator-input";
+
+export const RequestPathsFilter = () => {
+  const { filters, updateFilters } = useRequestLogsFilters();
+
+  const options = [{ id: "contains" as const, label: "contains" }];
+
+  const activePathFilter = filters.find((f) => f.field === "paths");
+
+  return (
+    <FilterOperatorInput
+      label="Path"
+      options={options}
+      defaultOption={activePathFilter?.operator}
+      defaultText={activePathFilter?.value as string}
+      onApply={(_, text) => {
+        const activeFiltersWithoutPaths = filters.filter((f) => f.field !== "paths");
+        updateFilters([
+          ...activeFiltersWithoutPaths,
+          {
+            field: "paths",
+            id: crypto.randomUUID(),
+            operator: "contains",
+            value: text,
+          },
+        ]);
+      }}
+    />
+  );
+};

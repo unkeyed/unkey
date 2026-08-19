@@ -18,6 +18,7 @@ import (
 
 const (
 	scaleWorkspaceID = "ws_bench_identity_search"
+	scaleProjectID   = "proj_bench_identity_search"
 	scaleIdentities  = 1_000_000
 
 	// The LIKE '%...%' filter cannot use an index, so any search returning
@@ -96,7 +97,7 @@ func seedScaleIdentities(t *testing.T, ctx context.Context, h *testutil.Harness)
 	).Scan(&seeded)
 	require.NoError(t, err)
 	if seeded {
-		seedScaleQuota(t, ctx, h)
+		seedScaleLimits(t, ctx, h)
 		return
 	}
 
@@ -112,6 +113,8 @@ func seedScaleIdentities(t *testing.T, ctx context.Context, h *testutil.Harness)
 	// Drop leftovers from an interrupted run before reseeding
 	_, err = tx.ExecContext(ctx, "DELETE FROM identities WHERE workspace_id = ?", scaleWorkspaceID)
 	require.NoError(t, err)
+	_, err = tx.ExecContext(ctx, "DELETE FROM projects WHERE workspace_id = ?", scaleWorkspaceID)
+	require.NoError(t, err)
 	_, err = tx.ExecContext(ctx, "DELETE FROM workspaces WHERE id = ?", scaleWorkspaceID)
 	require.NoError(t, err)
 
@@ -124,6 +127,16 @@ func seedScaleIdentities(t *testing.T, ctx context.Context, h *testutil.Harness)
 	})
 	require.NoError(t, err)
 
+	err = db.Query.InsertProject(ctx, tx, db.InsertProjectParams{
+		ID:               scaleProjectID,
+		WorkspaceID:      scaleWorkspaceID,
+		Name:             "Default",
+		Slug:             "default",
+		DeleteProtection: sql.NullBool{Bool: true, Valid: true},
+		CreatedAt:        time.Now().UnixMilli(),
+	})
+	require.NoError(t, err)
+
 	// The recursion depth override applies to the transaction's connection,
 	// which is the one running the CTE
 	_, err = tx.ExecContext(ctx,
@@ -132,7 +145,7 @@ func seedScaleIdentities(t *testing.T, ctx context.Context, h *testutil.Harness)
 	require.NoError(t, err)
 
 	_, err = tx.ExecContext(ctx, `
-		INSERT INTO identities (id, external_id, workspace_id, environment, deleted, created_at)
+		INSERT INTO identities (id, external_id, workspace_id, project_id, environment, deleted, created_at)
 		WITH RECURSIVE seq (n) AS (
 			SELECT 1
 			UNION ALL
@@ -142,34 +155,43 @@ func seedScaleIdentities(t *testing.T, ctx context.Context, h *testutil.Harness)
 			CONCAT('id_bench_', LPAD(n, 9, '0')),
 			CONCAT('user_bench_', LPAD(n, 9, '0')),
 			?,
+			?,
 			'default',
 			false,
 			0
 		FROM seq`,
 		scaleIdentities,
 		scaleWorkspaceID,
+		scaleProjectID,
 	)
 	require.NoError(t, err)
 
 	require.NoError(t, tx.Commit())
-	seedScaleQuota(t, ctx, h)
+	seedScaleLimits(t, ctx, h)
 	t.Logf("seeded %d identities in %s", scaleIdentities, time.Since(seedStart))
 }
 
-// seedScaleQuota ensures the scale workspace has a quota row. Without one the
-// auth middleware's workspace rate limiting fails open after logging a quota
-// lookup error, which is not the path production requests take.
-func seedScaleQuota(t *testing.T, ctx context.Context, h *testutil.Harness) {
+// seedScaleLimits ensures the scale workspace has the rows auth reads before
+// the route runs.
+func seedScaleLimits(t *testing.T, ctx context.Context, h *testutil.Harness) {
 	t.Helper()
 
-	err := db.Query.UpsertQuota(ctx, h.DB.RW(), db.UpsertQuotaParams{
-		WorkspaceID:            scaleWorkspaceID,
-		LogsRetentionDays:      30,
-		AuditLogsRetentionDays: 30,
-		RequestsPerMonth:       1_000_000,
-		Team:                   false,
-		RatelimitApiLimit:      sql.NullInt32{}, //nolint:exhaustruct
-		RatelimitApiDuration:   sql.NullInt32{}, //nolint:exhaustruct
+	err := db.Query.UpsertLimit(ctx, h.DB.RW(), db.UpsertLimitParams{
+		WorkspaceID:                           scaleWorkspaceID,
+		ApiBillableOperationsCountMaxPerMonth: 1_000_000,
+		ApiRequestsCountMaxPerMinute:          sql.NullInt32{}, //nolint:exhaustruct
+		LogsRetentionDaysMax:                  30,
+		LogsAuditRetentionDaysMax:             30,
+		TeamEnabled:                           false,
+		CpuCoresMax:                           10,
+		CpuCoresMaxPerInstance:                2,
+		MemoryMibMax:                          20_480,
+		MemoryMibMaxPerInstance:               4_096,
+		StorageMibMax:                         51_200,
+		StorageMibMaxPerInstance:              10_240,
+		BuildsConcurrentMax:                   1,
+		CustomDomainsMax:                      0,
+		AutoscalingReplicasMax:                0,
 	})
 	require.NoError(t, err)
 }

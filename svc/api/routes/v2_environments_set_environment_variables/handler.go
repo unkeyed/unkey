@@ -18,8 +18,11 @@ import (
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/pkg/zen"
+	apierrors "github.com/unkeyed/unkey/svc/api/internal/errors"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
@@ -27,6 +30,14 @@ type (
 	Request  = openapi.V2EnvironmentsSetEnvironmentVariablesRequestBody
 	Response = openapi.V2EnvironmentsSetEnvironmentVariablesResponseBody
 )
+
+// maxEnvVarValueBytes caps a variable value in UTF-8 bytes. The encrypted
+// ciphertext is a base64 wrapper roughly 4/3 * (bytes + 71) large and must fit
+// the TEXT value column. Enforced server-side via apierrors.MaxByteSize since
+// the spec's maxLength counts code points. Keep in sync with
+// MAX_ENV_VAR_VALUE_BYTES in the dashboard schema
+// (web/apps/dashboard/lib/schemas/env-var.ts).
+const maxEnvVarValueBytes = 16384
 
 type Handler struct {
 	DB        db.Database
@@ -92,6 +103,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			ResourceID:   env.ID,
 			Action:       rbac.SetEnvironmentVariables,
 		}),
+		rbac.U(
+			urn.New().Workspace(principal.WorkspaceID).Project(env.ProjectID).App(env.AppID).Environment(env.ID),
+			permissions.SetEnvironmentVariables{},
+		),
 	))
 	if err != nil {
 		return err
@@ -106,6 +121,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				fault.Internal("duplicate variable key in request"),
 				fault.Public(fmt.Sprintf("Variable %q is listed more than once. Each key may appear at most once.", v.Key)),
 			)
+		}
+		if err := apierrors.MaxByteSize(fmt.Sprintf("Variable %q value", v.Key), len(v.Value), maxEnvVarValueBytes); err != nil {
+			return err
 		}
 		byKey[v.Key] = v
 	}

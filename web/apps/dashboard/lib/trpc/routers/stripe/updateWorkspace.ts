@@ -1,9 +1,10 @@
 import { insertAuditLogs } from "@/lib/audit";
-import { db, eq, schema } from "@/lib/db";
+import { db, schema } from "@/lib/db";
 import { getStripeClient } from "@/lib/stripe";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { requireWorkspaceAdmin, workspaceProcedure } from "../../trpc";
+import { expandableId, retrieveCompletedWorkspaceCheckoutSession } from "../utils/stripe";
 
 export const updateWorkspaceStripeCustomer = workspaceProcedure
   .use(requireWorkspaceAdmin)
@@ -19,22 +20,14 @@ export const updateWorkspaceStripeCustomer = workspaceProcedure
     // the session was created for this workspace. This prevents an attacker
     // from tricking a logged-in user into binding the attacker's Stripe
     // customer to the victim's workspace via a /success?session_id=... link.
-    const session = await stripe.checkout.sessions.retrieve(input.sessionId);
-    if (!session) {
-      throw new TRPCError({
-        code: "NOT_FOUND",
-        message: "Checkout session not found",
-      });
-    }
-    if (session.client_reference_id !== ctx.workspace.id) {
-      throw new TRPCError({
-        code: "FORBIDDEN",
-        message: "Checkout session does not belong to this workspace",
-      });
-    }
+    const session = await retrieveCompletedWorkspaceCheckoutSession({
+      stripe,
+      sessionId: input.sessionId,
+      workspaceId: ctx.workspace.id,
+      notFoundMessage: "Checkout session not found for this workspace",
+    });
 
-    const stripeCustomerId =
-      typeof session.customer === "string" ? session.customer : (session.customer?.id ?? null);
+    const stripeCustomerId = expandableId(session.customer);
     if (!stripeCustomerId) {
       throw new TRPCError({
         code: "PRECONDITION_FAILED",
@@ -44,12 +37,17 @@ export const updateWorkspaceStripeCustomer = workspaceProcedure
 
     await db
       .transaction(async (tx) => {
+        // Upsert: binding the Stripe customer is the first billing write a
+        // workspace gets, so create the billing row if none exists yet (a
+        // workspace created before it had one). On conflict only the customer
+        // id is set, leaving tier and the rest of the row untouched.
         await tx
-          .update(schema.workspaces)
-          .set({
+          .insert(schema.workspaceBilling)
+          .values({
+            workspaceId: ctx.workspace.id,
             stripeCustomerId,
           })
-          .where(eq(schema.workspaces.id, ctx.workspace.id));
+          .onDuplicateKeyUpdate({ set: { stripeCustomerId } });
 
         await insertAuditLogs(tx, {
           workspaceId: ctx.workspace.id,
@@ -69,11 +67,12 @@ export const updateWorkspaceStripeCustomer = workspaceProcedure
           },
         });
       })
-      .catch((_err) => {
+      .catch((err) => {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
-          message:
-            "We are unable to update the workspace Stripe customer. Please try again or contact support@unkey.com",
+          // No "contact support" line: /success appends one when it renders.
+          message: "We are unable to update the workspace Stripe customer. Please try again.",
+          cause: err,
         });
       });
 

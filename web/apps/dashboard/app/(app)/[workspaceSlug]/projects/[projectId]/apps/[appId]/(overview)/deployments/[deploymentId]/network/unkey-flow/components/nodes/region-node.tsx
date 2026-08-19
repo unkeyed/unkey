@@ -16,7 +16,7 @@ export function RegionNode({ node, deploymentId }: RegionNodeProps) {
   const regionInfo = REGION_INFO[flagCode];
 
   // node.label is the region's name as it appears on
-  // sentinel_requests_raw_v1.region, so we can filter ClickHouse by it
+  // frontline_requests_raw_v1.region, so we can filter ClickHouse by it
   // directly without an extra DB lookup.
   const { data: rps } = trpc.deploy.network.getRegionRps.useQuery(
     {

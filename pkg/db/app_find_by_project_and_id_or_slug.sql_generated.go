@@ -12,7 +12,7 @@ import (
 const findAppByProjectAndIdOrSlug = `-- name: FindAppByProjectAndIdOrSlug :one
 SELECT a.pk, a.id, a.workspace_id, a.project_id, a.name, a.slug, a.default_branch, a.current_deployment_id, a.is_rolled_back, a.delete_protection, a.created_at, a.updated_at
 FROM apps a
-JOIN projects p ON p.id = a.project_id AND p.workspace_id = a.workspace_id
+JOIN projects p ON a.project_id = p.id AND a.workspace_id = p.workspace_id
 WHERE a.workspace_id = ?
   AND (p.id = ? OR p.slug = ?)
   AND (a.id = ? OR a.slug = ?)
@@ -29,7 +29,7 @@ type FindAppByProjectAndIdOrSlugParams struct {
 //
 //	SELECT a.pk, a.id, a.workspace_id, a.project_id, a.name, a.slug, a.default_branch, a.current_deployment_id, a.is_rolled_back, a.delete_protection, a.created_at, a.updated_at
 //	FROM apps a
-//	JOIN projects p ON p.id = a.project_id AND p.workspace_id = a.workspace_id
+//	JOIN projects p ON a.project_id = p.id AND a.workspace_id = p.workspace_id
 //	WHERE a.workspace_id = ?
 //	  AND (p.id = ? OR p.slug = ?)
 //	  AND (a.id = ? OR a.slug = ?)

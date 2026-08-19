@@ -8,13 +8,14 @@ package db
 import (
 	"context"
 
-	dbtype "github.com/unkeyed/unkey/pkg/mysql/types"
+	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
 )
 
 const insertPermission = `-- name: InsertPermission :exec
 INSERT INTO permissions (
   id,
   workspace_id,
+  project_id,
   name,
   slug,
   description,
@@ -26,17 +27,19 @@ VALUES (
   ?,
   ?,
   ?,
+  ?,
   ?
 )
 `
 
 type InsertPermissionParams struct {
-	PermissionID string            `db:"permission_id"`
-	WorkspaceID  string            `db:"workspace_id"`
-	Name         string            `db:"name"`
-	Slug         string            `db:"slug"`
-	Description  dbtype.NullString `db:"description"`
-	CreatedAtM   int64             `db:"created_at_m"`
+	PermissionID string               `db:"permission_id"`
+	WorkspaceID  string               `db:"workspace_id"`
+	ProjectID    string               `db:"project_id"`
+	Name         string               `db:"name"`
+	Slug         string               `db:"slug"`
+	Description  mysqltype.NullString `db:"description"`
+	CreatedAtM   int64                `db:"created_at_m"`
 }
 
 // InsertPermission
@@ -44,6 +47,7 @@ type InsertPermissionParams struct {
 //	INSERT INTO permissions (
 //	  id,
 //	  workspace_id,
+//	  project_id,
 //	  name,
 //	  slug,
 //	  description,
@@ -55,12 +59,14 @@ type InsertPermissionParams struct {
 //	  ?,
 //	  ?,
 //	  ?,
+//	  ?,
 //	  ?
 //	)
 func (q *Queries) InsertPermission(ctx context.Context, arg InsertPermissionParams) error {
 	_, err := q.db.ExecContext(ctx, insertPermission,
 		arg.PermissionID,
 		arg.WorkspaceID,
+		arg.ProjectID,
 		arg.Name,
 		arg.Slug,
 		arg.Description,

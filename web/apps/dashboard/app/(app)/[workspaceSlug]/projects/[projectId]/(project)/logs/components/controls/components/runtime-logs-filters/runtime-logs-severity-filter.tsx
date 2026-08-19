@@ -12,7 +12,7 @@ type SeverityOption = {
   checked: boolean;
 };
 
-const options: SeverityOption[] = [
+export const severityOptions: SeverityOption[] = [
   {
     id: 1,
     severity: "error",
@@ -52,7 +52,7 @@ export function RuntimeLogsSeverityFilter() {
 
   return (
     <FilterCheckbox
-      options={options}
+      options={severityOptions}
       filterField="severity"
       checkPath="severity"
       renderOptionContent={(checkbox) => (

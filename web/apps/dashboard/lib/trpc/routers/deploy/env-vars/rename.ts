@@ -1,73 +1,57 @@
-import { and, db, eq, inArray, notInArray, schema } from "@/lib/db";
+import { and, db, eq, inArray, schema } from "@/lib/db";
 import { envVarKeySchema } from "@/lib/schemas/env-var";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { workspaceProcedure } from "../../../trpc";
 
-// Renames a set of environment variables to a new key in a single operation.
-// This exists so variables that share a key across environments (e.g. prod and
-// dev) can be renamed together and stay in sync. Only the key is touched, so
-// values are never re-encrypted and writeonly variables can be renamed safely.
+// Renames a variable across environments in one statement.
+//
+// The v2 API identifies a variable by key, so a rename there is a write of the
+// new key and a delete of the old one. That write needs the value, which the
+// API never returns for a writeonly variable. It also cannot refuse a rename
+// onto a key that is in use. This changes only the key column.
 export const renameEnvVars = workspaceProcedure
   .input(
     z.object({
-      envVarIds: z.array(z.string()).min(1),
-      key: envVarKeySchema,
+      appId: z.string().min(1),
+      environmentIds: z.array(z.string()).min(1),
+      key: z.string().min(1),
+      newKey: envVarKeySchema,
     }),
   )
   .mutation(async ({ ctx, input }) => {
+    if (input.key === input.newKey) {
+      return { updated: 0 };
+    }
+
     try {
-      const envVars = await db.query.appEnvironmentVariables.findMany({
+      const environmentIds = [...new Set(input.environmentIds)];
+
+      const targets = await db.query.appEnvironmentVariables.findMany({
         where: and(
-          inArray(schema.appEnvironmentVariables.id, input.envVarIds),
           eq(schema.appEnvironmentVariables.workspaceId, ctx.workspace.id),
+          eq(schema.appEnvironmentVariables.appId, input.appId),
+          eq(schema.appEnvironmentVariables.key, input.key),
+          inArray(schema.appEnvironmentVariables.environmentId, environmentIds),
         ),
-        columns: {
-          id: true,
-          appId: true,
-          environmentId: true,
-          key: true,
-        },
+        columns: { id: true },
       });
 
-      if (envVars.length === 0) {
+      if (targets.length === 0) {
         throw new TRPCError({
           code: "NOT_FOUND",
           message: "Environment variable(s) not found",
         });
       }
 
-      // All targeted variables must belong to the same app, otherwise the
-      // unique (appId, environmentId, key) constraint cannot be reasoned about.
-      const appIds = new Set(envVars.map((v) => v.appId));
-      if (appIds.size > 1) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "Cannot rename environment variables across different apps",
-        });
-      }
-      const appId = envVars[0].appId;
-
-      // Two targets in the same environment would both resolve to the same new
-      // key and violate the unique (appId, environmentId, key) constraint. Reject
-      // that here so it surfaces as an actionable error rather than a generic 500.
-      const environmentIds = [...new Set(envVars.map((v) => v.environmentId))];
-      if (environmentIds.length !== envVars.length) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "Cannot rename multiple variables in the same environment to the same key",
-        });
-      }
-
-      // A rename would collide if another variable (not in this set) already
-      // uses the new key in any of the targeted environments.
+      // Another variable can already hold the new key in one of these
+      // environments. Fail the rename instead of replacing it.
       const conflicts = await db.query.appEnvironmentVariables.findMany({
         where: and(
           eq(schema.appEnvironmentVariables.workspaceId, ctx.workspace.id),
-          eq(schema.appEnvironmentVariables.appId, appId),
-          eq(schema.appEnvironmentVariables.key, input.key),
+          eq(schema.appEnvironmentVariables.appId, input.appId),
+          eq(schema.appEnvironmentVariables.key, input.newKey),
           inArray(schema.appEnvironmentVariables.environmentId, environmentIds),
-          notInArray(schema.appEnvironmentVariables.id, input.envVarIds),
         ),
         columns: { id: true },
       });
@@ -75,16 +59,19 @@ export const renameEnvVars = workspaceProcedure
       if (conflicts.length > 0) {
         throw new TRPCError({
           code: "CONFLICT",
-          message: `A variable named "${input.key}" already exists in one of these environments`,
+          message: `A variable named "${input.newKey}" already exists in one of these environments`,
         });
       }
 
       const result = await db
         .update(schema.appEnvironmentVariables)
-        .set({ key: input.key })
+        .set({ key: input.newKey })
         .where(
           and(
-            inArray(schema.appEnvironmentVariables.id, input.envVarIds),
+            inArray(
+              schema.appEnvironmentVariables.id,
+              targets.map((t) => t.id),
+            ),
             eq(schema.appEnvironmentVariables.workspaceId, ctx.workspace.id),
           ),
         );

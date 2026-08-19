@@ -49,12 +49,14 @@ func TestRunAuditLogOutboxCleanup_Integration(t *testing.T) {
 // fresh workspace.
 func seedPendingRow(t *testing.T, h *harness.Harness) seededRow {
 	t.Helper()
-	row := seededRow{workspaceID: uid.New("ws"), eventID: uid.New("evt")}
-	err := h.DB.InsertClickhouseOutbox(h.Ctx, db.InsertClickhouseOutboxParams{
+	row := seededRow{workspaceID: uid.New(uid.WorkspacePrefix), eventID: uid.New(uid.AuditLogPrefix)}
+	payload, err := json.Marshal(struct{}{})
+	require.NoError(t, err)
+	err = h.DB.InsertClickhouseOutbox(h.Ctx, db.InsertClickhouseOutboxParams{
 		Version:     "audit_log.v1",
 		WorkspaceID: row.workspaceID,
 		EventID:     row.eventID,
-		Payload:     json.RawMessage(`{}`),
+		Payload:     payload,
 		CreatedAt:   time.Now().UnixMilli(),
 	})
 	require.NoError(t, err)

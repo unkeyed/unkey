@@ -6,12 +6,15 @@ import (
 	"testing"
 	"time"
 
+	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
+
 	"connectrpc.com/connect"
 	restate "github.com/restatedev/sdk-go"
 	"github.com/stretchr/testify/require"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/gen/proto/ctrl/v1/ctrlv1connect"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
+	"github.com/unkeyed/unkey/pkg/deploy/deploygate"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/ctrl/integration/seed"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
@@ -56,6 +59,10 @@ type lifecycleFixture struct {
 }
 
 func newLifecycleFixture(t *testing.T) *lifecycleFixture {
+	return newLifecycleFixtureWithDeployGate(t, false)
+}
+
+func newLifecycleFixtureWithDeployGate(t *testing.T, enforceDeployGate bool) *lifecycleFixture {
 	t.Helper()
 
 	mock := &mockLifecycleService{
@@ -63,7 +70,8 @@ func newLifecycleFixture(t *testing.T) *lifecycleFixture {
 		rollbacks: make(chan *hydrav1.RollbackRequest, 8),
 	}
 	h := newWebhookHarness(t, webhookHarnessConfig{
-		Services: []restate.ServiceDefinition{hydrav1.NewDeployServiceServer(mock)},
+		Services:          []restate.ServiceDefinition{hydrav1.NewDeployServiceServer(mock)},
+		EnforceDeployGate: enforceDeployGate,
 	})
 
 	ctx := h.RequestContext()
@@ -77,7 +85,7 @@ func newLifecycleFixture(t *testing.T) *lifecycleFixture {
 		ID: uid.New("app"), WorkspaceID: wsID, ProjectID: project.ID, Name: "default", Slug: "default", DefaultBranch: "main",
 	}, prodEnvID)
 	prodEnv := h.CreateEnvironment(ctx, seed.CreateEnvironmentRequest{
-		ID: prodEnvID, WorkspaceID: wsID, ProjectID: project.ID, AppID: app.ID, Slug: "production", SentinelConfig: []byte("{}"),
+		ID: prodEnvID, WorkspaceID: wsID, ProjectID: project.ID, AppID: app.ID, Slug: "production", Kind: mysqltype.EnvironmentKindProduction, SentinelConfig: []byte("{}"),
 	})
 	previewEnv := h.CreateEnvironment(ctx, seed.CreateEnvironmentRequest{
 		ID: uid.New("env"), WorkspaceID: wsID, ProjectID: project.ID, AppID: app.ID, Slug: "preview", SentinelConfig: []byte("{}"),
@@ -101,7 +109,7 @@ func newLifecycleFixture(t *testing.T) *lifecycleFixture {
 
 // deployment seeds a deployment in the given environment with an explicit status
 // and desired_state.
-func (f *lifecycleFixture) deployment(env db.Environment, status db.DeploymentsStatus, desired db.DeploymentsDesiredState) db.Deployment {
+func (f *lifecycleFixture) deployment(env db.Environment, status mysqltype.DeploymentsStatus, desired mysqltype.DeploymentsDesiredState) db.Deployment {
 	f.t.Helper()
 	d := f.seed.CreateDeployment(f.ctx, seed.CreateDeploymentRequest{
 		WorkspaceID: f.workspaceID, ProjectID: f.projectID, AppID: f.appID, EnvironmentID: env.ID, Status: status,
@@ -166,6 +174,43 @@ func requireConnectError(t *testing.T, err error, code connect.Code, msgSubstr s
 	require.ErrorContains(t, err, msgSubstr)
 }
 
+func TestDeployment_ActivationRequiresComputePlan(t *testing.T) {
+	f := newLifecycleFixtureWithDeployGate(t, true)
+
+	live := f.deployment(f.prodEnv, mysqltype.DeploymentsStatusReady, mysqltype.DeploymentsDesiredStateRunning)
+	target := f.deployment(f.prodEnv, mysqltype.DeploymentsStatusReady, mysqltype.DeploymentsDesiredStateRunning)
+	f.setLive(live.ID, false)
+
+	wake := f.deployment(f.previewEnv, mysqltype.DeploymentsStatusStopped, mysqltype.DeploymentsDesiredStateStopped)
+	authorize := f.deployment(f.previewEnv, mysqltype.DeploymentsStatusAwaitingApproval, mysqltype.DeploymentsDesiredStateRunning)
+
+	tests := []struct {
+		name string
+		call func() error
+	}{
+		{name: "promote", call: func() error { return f.promote(target.ID) }},
+		{name: "rollback", call: func() error { return f.rollback(live.ID, target.ID) }},
+		{name: "wake", call: func() error {
+			_, err := f.client.WakeDeployment(f.ctx, connect.NewRequest(&ctrlv1.WakeDeploymentRequest{DeploymentId: wake.ID}))
+			return err
+		}},
+		{name: "authorize", call: func() error {
+			_, err := f.client.AuthorizeDeployment(f.ctx, connect.NewRequest(&ctrlv1.AuthorizeDeploymentRequest{DeploymentId: authorize.ID}))
+			return err
+		}},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			requireConnectError(t, test.call(), connect.CodeFailedPrecondition, "no active Compute plan")
+		})
+	}
+
+	stored, err := f.db.FindDeploymentById(f.ctx, authorize.ID)
+	require.NoError(t, err)
+	require.Equal(t, mysqltype.DeploymentsStatusAwaitingApproval, stored.Status)
+}
+
 func TestDeployment_Promote_Validation(t *testing.T) {
 	f := newLifecycleFixture(t)
 
@@ -179,21 +224,21 @@ func TestDeployment_Promote_Validation(t *testing.T) {
 		{"deployment not found", connect.CodeNotFound, "deployment not found", func() string {
 			return uid.New("deployment")
 		}},
-		{"not ready", connect.CodeFailedPrecondition, "deployment is not ready", func() string {
-			return f.deployment(f.prodEnv, db.DeploymentsStatusPending, db.DeploymentsDesiredStateRunning).ID
+		{"not ready", connect.CodeFailedPrecondition, deploygate.TargetNotReady.Message(), func() string {
+			return f.deployment(f.prodEnv, mysqltype.DeploymentsStatusPending, mysqltype.DeploymentsDesiredStateRunning).ID
 		}},
-		{"shutting down", connect.CodeFailedPrecondition, "deployment is shutting down", func() string {
-			return f.deployment(f.prodEnv, db.DeploymentsStatusReady, db.DeploymentsDesiredStateStopped).ID
+		{"shutting down", connect.CodeFailedPrecondition, deploygate.TargetIsDraining.Message(), func() string {
+			return f.deployment(f.prodEnv, mysqltype.DeploymentsStatusReady, mysqltype.DeploymentsDesiredStateStopped).ID
 		}},
-		{"non-production", connect.CodeFailedPrecondition, "only production deployments can be promoted", func() string {
-			return f.deployment(f.previewEnv, db.DeploymentsStatusReady, db.DeploymentsDesiredStateRunning).ID
+		{"non-production", connect.CodeFailedPrecondition, deploygate.TargetNotProduction.Message(), func() string {
+			return f.deployment(f.previewEnv, mysqltype.DeploymentsStatusReady, mysqltype.DeploymentsDesiredStateRunning).ID
 		}},
-		{"app has no live deployment", connect.CodeFailedPrecondition, "app has no live deployment", func() string {
+		{"app has no live deployment", connect.CodeFailedPrecondition, deploygate.TargetNoCurrentDeployment.Message(), func() string {
 			f.setLive("", false)
-			return f.deployment(f.prodEnv, db.DeploymentsStatusReady, db.DeploymentsDesiredStateRunning).ID
+			return f.deployment(f.prodEnv, mysqltype.DeploymentsStatusReady, mysqltype.DeploymentsDesiredStateRunning).ID
 		}},
-		{"already live", connect.CodeFailedPrecondition, "deployment is already live", func() string {
-			d := f.deployment(f.prodEnv, db.DeploymentsStatusReady, db.DeploymentsDesiredStateRunning)
+		{"already live", connect.CodeFailedPrecondition, deploygate.TargetIsCurrent.Message(), func() string {
+			d := f.deployment(f.prodEnv, mysqltype.DeploymentsStatusReady, mysqltype.DeploymentsDesiredStateRunning)
 			f.setLive(d.ID, false)
 			return d.ID
 		}},
@@ -207,16 +252,16 @@ func TestDeployment_Promote_Validation(t *testing.T) {
 	// Promoting the current live deployment is allowed only when it confirms a
 	// rollback (is_rolled_back = true).
 	t.Run("promotes a rolled-back live deployment", func(t *testing.T) {
-		d := f.deployment(f.prodEnv, db.DeploymentsStatusReady, db.DeploymentsDesiredStateRunning)
+		d := f.deployment(f.prodEnv, mysqltype.DeploymentsStatusReady, mysqltype.DeploymentsDesiredStateRunning)
 		f.setLive(d.ID, true)
 		require.NoError(t, f.promote(d.ID))
 		f.requirePromoteWorkflow(d.ID)
 	})
 
 	t.Run("promotes a ready deployment over the live one", func(t *testing.T) {
-		live := f.deployment(f.prodEnv, db.DeploymentsStatusReady, db.DeploymentsDesiredStateRunning)
+		live := f.deployment(f.prodEnv, mysqltype.DeploymentsStatusReady, mysqltype.DeploymentsDesiredStateRunning)
 		f.setLive(live.ID, false)
-		target := f.deployment(f.prodEnv, db.DeploymentsStatusReady, db.DeploymentsDesiredStateRunning)
+		target := f.deployment(f.prodEnv, mysqltype.DeploymentsStatusReady, mysqltype.DeploymentsDesiredStateRunning)
 		require.NoError(t, f.promote(target.ID))
 		f.requirePromoteWorkflow(target.ID)
 	})
@@ -233,41 +278,52 @@ func TestDeployment_Rollback_Validation(t *testing.T) {
 		arrange func() (source, target string)
 	}{
 		{"source equals target", connect.CodeFailedPrecondition, "must be different", func() (string, string) {
-			d := f.deployment(f.prodEnv, db.DeploymentsStatusReady, db.DeploymentsDesiredStateRunning)
+			d := f.deployment(f.prodEnv, mysqltype.DeploymentsStatusReady, mysqltype.DeploymentsDesiredStateRunning)
 			return d.ID, d.ID
 		}},
 		{"source not found", connect.CodeNotFound, "source deployment not found", func() (string, string) {
-			return uid.New("deployment"), f.deployment(f.prodEnv, db.DeploymentsStatusReady, db.DeploymentsDesiredStateRunning).ID
+			return uid.New("deployment"), f.deployment(f.prodEnv, mysqltype.DeploymentsStatusReady, mysqltype.DeploymentsDesiredStateRunning).ID
 		}},
 		{"target not found", connect.CodeNotFound, "target deployment not found", func() (string, string) {
-			return f.deployment(f.prodEnv, db.DeploymentsStatusReady, db.DeploymentsDesiredStateRunning).ID, uid.New("deployment")
+			return f.deployment(f.prodEnv, mysqltype.DeploymentsStatusReady, mysqltype.DeploymentsDesiredStateRunning).ID, uid.New("deployment")
 		}},
 		{"different environment", connect.CodeFailedPrecondition, "same environment", func() (string, string) {
-			return f.deployment(f.prodEnv, db.DeploymentsStatusReady, db.DeploymentsDesiredStateRunning).ID,
-				f.deployment(f.previewEnv, db.DeploymentsStatusReady, db.DeploymentsDesiredStateRunning).ID
-		}},
-		{"target not ready", connect.CodeFailedPrecondition, "target deployment is not ready", func() (string, string) {
-			source := f.deployment(f.prodEnv, db.DeploymentsStatusReady, db.DeploymentsDesiredStateRunning)
-			target := f.deployment(f.prodEnv, db.DeploymentsStatusPending, db.DeploymentsDesiredStateRunning)
+			// The target must pass the shared gate (production, ready, running), so
+			// the source lives in preview to make the environment-mismatch assert fire.
+			source := f.deployment(f.previewEnv, mysqltype.DeploymentsStatusReady, mysqltype.DeploymentsDesiredStateRunning)
+			target := f.deployment(f.prodEnv, mysqltype.DeploymentsStatusReady, mysqltype.DeploymentsDesiredStateRunning)
 			f.setLive(source.ID, false)
 			return source.ID, target.ID
 		}},
-		{"target shutting down", connect.CodeFailedPrecondition, "target deployment is shutting down", func() (string, string) {
-			source := f.deployment(f.prodEnv, db.DeploymentsStatusReady, db.DeploymentsDesiredStateRunning)
-			target := f.deployment(f.prodEnv, db.DeploymentsStatusReady, db.DeploymentsDesiredStateStopped)
+		{"target not ready", connect.CodeFailedPrecondition, deploygate.TargetNotReady.Message(), func() (string, string) {
+			source := f.deployment(f.prodEnv, mysqltype.DeploymentsStatusReady, mysqltype.DeploymentsDesiredStateRunning)
+			target := f.deployment(f.prodEnv, mysqltype.DeploymentsStatusPending, mysqltype.DeploymentsDesiredStateRunning)
 			f.setLive(source.ID, false)
 			return source.ID, target.ID
 		}},
-		{"non-production", connect.CodeFailedPrecondition, "only production deployments can be rolled back", func() (string, string) {
-			source := f.deployment(f.previewEnv, db.DeploymentsStatusReady, db.DeploymentsDesiredStateRunning)
-			target := f.deployment(f.previewEnv, db.DeploymentsStatusReady, db.DeploymentsDesiredStateRunning)
+		{"target shutting down", connect.CodeFailedPrecondition, deploygate.TargetIsDraining.Message(), func() (string, string) {
+			source := f.deployment(f.prodEnv, mysqltype.DeploymentsStatusReady, mysqltype.DeploymentsDesiredStateRunning)
+			target := f.deployment(f.prodEnv, mysqltype.DeploymentsStatusReady, mysqltype.DeploymentsDesiredStateStopped)
 			f.setLive(source.ID, false)
+			return source.ID, target.ID
+		}},
+		{"non-production", connect.CodeFailedPrecondition, deploygate.TargetNotProduction.Message(), func() (string, string) {
+			source := f.deployment(f.previewEnv, mysqltype.DeploymentsStatusReady, mysqltype.DeploymentsDesiredStateRunning)
+			target := f.deployment(f.previewEnv, mysqltype.DeploymentsStatusReady, mysqltype.DeploymentsDesiredStateRunning)
+			f.setLive(source.ID, false)
+			return source.ID, target.ID
+		}},
+		{"target already live", connect.CodeFailedPrecondition, deploygate.TargetIsCurrent.Message(), func() (string, string) {
+			source := f.deployment(f.prodEnv, mysqltype.DeploymentsStatusReady, mysqltype.DeploymentsDesiredStateRunning)
+			target := f.deployment(f.prodEnv, mysqltype.DeploymentsStatusReady, mysqltype.DeploymentsDesiredStateRunning)
+			f.setLive(target.ID, false)
 			return source.ID, target.ID
 		}},
 		{"source not current live", connect.CodeFailedPrecondition, "source deployment is not the current live deployment", func() (string, string) {
-			source := f.deployment(f.prodEnv, db.DeploymentsStatusReady, db.DeploymentsDesiredStateRunning)
-			target := f.deployment(f.prodEnv, db.DeploymentsStatusReady, db.DeploymentsDesiredStateRunning)
-			f.setLive(target.ID, false)
+			live := f.deployment(f.prodEnv, mysqltype.DeploymentsStatusReady, mysqltype.DeploymentsDesiredStateRunning)
+			source := f.deployment(f.prodEnv, mysqltype.DeploymentsStatusReady, mysqltype.DeploymentsDesiredStateRunning)
+			target := f.deployment(f.prodEnv, mysqltype.DeploymentsStatusReady, mysqltype.DeploymentsDesiredStateRunning)
+			f.setLive(live.ID, false)
 			return source.ID, target.ID
 		}},
 	}
@@ -279,8 +335,8 @@ func TestDeployment_Rollback_Validation(t *testing.T) {
 	}
 
 	t.Run("rolls back the live deployment to a previous one", func(t *testing.T) {
-		source := f.deployment(f.prodEnv, db.DeploymentsStatusReady, db.DeploymentsDesiredStateRunning)
-		target := f.deployment(f.prodEnv, db.DeploymentsStatusReady, db.DeploymentsDesiredStateRunning)
+		source := f.deployment(f.prodEnv, mysqltype.DeploymentsStatusReady, mysqltype.DeploymentsDesiredStateRunning)
+		target := f.deployment(f.prodEnv, mysqltype.DeploymentsStatusReady, mysqltype.DeploymentsDesiredStateRunning)
 		f.setLive(source.ID, false)
 		require.NoError(t, f.rollback(source.ID, target.ID))
 		f.requireRollbackWorkflow(source.ID, target.ID)

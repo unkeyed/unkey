@@ -17,7 +17,7 @@ import (
 // Test clocks cannot run backwards, so "rewinding" a billing test means
 // tearing down and starting over: delete the Stripe test clock (which removes
 // its customers and their subscriptions), then clear the workspace's billing
-// columns and quota the way the subscription.deleted webhook would, plus the
+// columns and limits the way the subscription.deleted webhook would, plus the
 // customer id, which no webhook ever clears. Afterwards a fresh clocked
 // customer is one add-payment-method away.
 var resetCmd = &cli.Command{
@@ -48,17 +48,17 @@ func reset(ctx context.Context, cmd *cli.Command) error {
 		_ = database.Close()
 	}()
 
-	ws, err := db.Query.FindWorkspaceByID(ctx, database.RW(), workspaceID)
-	if err != nil {
-		return fmt.Errorf("find workspace %s: %w", workspaceID, err)
+	billing, err := db.Query.FindWorkspaceBillingByWorkspaceID(ctx, database.RW(), workspaceID)
+	if err != nil && !db.IsNotFound(err) {
+		return fmt.Errorf("find workspace billing %s: %w", workspaceID, err)
 	}
 
-	if !cmd.Bool("keep-stripe") && ws.StripeCustomerID.Valid && ws.StripeCustomerID.String != "" {
+	if !cmd.Bool("keep-stripe") && billing.StripeCustomerID.Valid && billing.StripeCustomerID.String != "" {
 		sc, err := newClient(cmd)
 		if err != nil {
 			return err
 		}
-		customerID := ws.StripeCustomerID.String
+		customerID := billing.StripeCustomerID.String
 		customer, err := sc.V1Customers.Retrieve(ctx, customerID, nil)
 		switch {
 		case err != nil && isResourceMissing(err):
@@ -89,27 +89,33 @@ func reset(ctx context.Context, cmd *cli.Command) error {
 		return fmt.Errorf("reset workspace row: %w", err)
 	}
 
-	// Free-tier quota values, mirroring freeTierQuotas in the dashboard
-	// (web/apps/dashboard/lib/quotas.ts). Every column is set, not just the core
-	// quotas, so a previously paid workspace does not keep elevated rate-limit or
-	// Deploy-resource allowances.
-	if err := db.Query.UpdateQuota(ctx, database.RW(), db.UpdateQuotaParams{
-		RequestsPerMonth:            150_000,
-		LogsRetentionDays:           7,
-		AuditLogsRetentionDays:      30,
-		Team:                        false,
-		RatelimitApiLimit:           sql.NullInt32{},
-		RatelimitApiDuration:        sql.NullInt32{},
-		AllocatedCpuMillicoresTotal: 10_000,
-		AllocatedMemoryMibTotal:     20_480,
-		AllocatedStorageMibTotal:    51_200,
-		MaxCpuMillicoresPerInstance: 2_000,
-		MaxMemoryMibPerInstance:     4_096,
-		MaxStorageMibPerInstance:    10_240,
-		MaxConcurrentBuilds:         1,
-		WorkspaceID:                 workspaceID,
+	// Stripe subscription ids live on billing_subscriptions, not
+	// workspace_billing; clear them too so a fresh subscribe starts clean.
+	if err := db.Query.DeleteWorkspaceBillingSubscriptions(ctx, database.RW(), workspaceID); err != nil {
+		return fmt.Errorf("reset workspace billing subscriptions: %w", err)
+	}
+
+	// Free-tier limit values, mirroring freeTierLimits in the dashboard
+	// (web/apps/dashboard/lib/limits.ts). Every column is set, so a previously
+	// paid workspace does not keep elevated rate-limit or Deploy-resource allowances.
+	if err := db.Query.UpsertLimit(ctx, database.RW(), db.UpsertLimitParams{
+		WorkspaceID:                           workspaceID,
+		ApiBillableOperationsCountMaxPerMonth: 150_000,
+		ApiRequestsCountMaxPerMinute:          sql.NullInt32{}, //nolint:exhaustruct
+		LogsRetentionDaysMax:                  7,
+		LogsAuditRetentionDaysMax:             30,
+		TeamEnabled:                           false,
+		CpuCoresMax:                           10,
+		CpuCoresMaxPerInstance:                2,
+		MemoryMibMax:                          20_480,
+		MemoryMibMaxPerInstance:               4_096,
+		StorageMibMax:                         51_200,
+		StorageMibMaxPerInstance:              10_240,
+		BuildsConcurrentMax:                   1,
+		CustomDomainsMax:                      0,
+		AutoscalingReplicasMax:                0,
 	}); err != nil {
-		return fmt.Errorf("reset quota row: %w", err)
+		return fmt.Errorf("reset limits row: %w", err)
 	}
 
 	out.Println(out.Green(fmt.Sprintf("Workspace %s reset to Free.", workspaceID)))

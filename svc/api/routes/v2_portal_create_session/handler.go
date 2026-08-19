@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"time"
 
-	frontlinev1 "github.com/unkeyed/unkey/gen/proto/frontline/v1"
 	"github.com/unkeyed/unkey/internal/services/auditlogs"
 	"github.com/unkeyed/unkey/pkg/auditlog"
 	"github.com/unkeyed/unkey/pkg/codes"
@@ -16,8 +15,8 @@ import (
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/pkg/validation"
 	"github.com/unkeyed/unkey/pkg/zen"
+	"github.com/unkeyed/unkey/svc/api/internal/policyconfig"
 	"github.com/unkeyed/unkey/svc/api/openapi"
-	"google.golang.org/protobuf/encoding/protojson"
 )
 
 // storedGrant is the JSON shape persisted in the portal session's permissions
@@ -50,9 +49,9 @@ func (h *Handler) Path() string   { return "/v2/portal.createSession" }
 //
 //   - keyspace-mapped (key_auth_id): the configured keyspace scopes key
 //     capabilities directly.
-//   - app-mapped (app_id): the app's current deployment carries a sentinel
-//     config whose keyauth policies list the keyspaces it verifies keys against
-//     at the gateway; those keySpaceIds become the session's keyspaces.
+//   - app-mapped (app_id): the app's current deployment carries a gateway
+//     policy config whose keyauth policies list the keyspaces it verifies keys
+//     against at the gateway; those keySpaceIds become the session's keyspaces.
 //
 // The config is bound to the caller's workspace, so the resolved keyspaces can
 // never belong to another workspace.
@@ -74,7 +73,7 @@ func (h *Handler) resolveKeyspaceIDs(ctx context.Context, workspaceID string, po
 		return []string{portalConfig.KeyAuthID.String}, nil
 	}
 
-	raw, err := db.Query.FindAppSentinelConfigByID(ctx, h.DB.RO(), db.FindAppSentinelConfigByIDParams{
+	raw, err := db.Query.FindAppPolicyConfigByID(ctx, h.DB.RO(), db.FindAppPolicyConfigByIDParams{
 		AppID:       portalConfig.AppID.String,
 		WorkspaceID: workspaceID,
 	})
@@ -88,19 +87,19 @@ func (h *Handler) resolveKeyspaceIDs(ctx context.Context, workspaceID string, po
 		}
 		return nil, fault.Wrap(err,
 			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-			fault.Internal("database error looking up app sentinel config"),
+			fault.Internal("database error looking up app gateway policy config"),
 			fault.Public("Failed to look up portal configuration."),
 		)
 	}
 
-	keyspaceIDs, err := keyspacesFromSentinelConfig(raw)
+	keyspaceIDs, err := keyspacesFromPolicyConfig(raw)
 	if err != nil {
 		return nil, err
 	}
 	if len(keyspaceIDs) == 0 {
 		return nil, fault.New("portal app has no keyauth policies",
 			fault.Code(codes.Auth.Authorization.Forbidden.URN()),
-			fault.Internal("app sentinel config declares no keyauth keyspaces"),
+			fault.Internal("app gateway policy config declares no keyauth keyspaces"),
 			fault.Public("Portal is not available: the app has no key verification configured."),
 		)
 	}
@@ -108,20 +107,15 @@ func (h *Handler) resolveKeyspaceIDs(ctx context.Context, workspaceID string, po
 	return keyspaceIDs, nil
 }
 
-// keyspacesFromSentinelConfig parses a deployment's sentinel_config and returns
+// keyspacesFromPolicyConfig parses a deployment's gateway policy config and returns
 // the deduplicated keyspaces declared across its keyauth policies. Empty or
-// legacy empty-object configs yield no keyspaces (mirrors the frontline
-// gateway's lenient parsing).
-func keyspacesFromSentinelConfig(raw []byte) ([]string, error) {
-	if len(raw) == 0 || string(raw) == "{}" {
-		return nil, nil
-	}
-
-	cfg := &frontlinev1.Config{}
-	if err := (protojson.UnmarshalOptions{DiscardUnknown: true}).Unmarshal(raw, cfg); err != nil {
+// legacy empty-object configs yield no keyspaces.
+func keyspacesFromPolicyConfig(raw []byte) ([]string, error) {
+	cfg, err := policyconfig.Parse(raw)
+	if err != nil {
 		return nil, fault.Wrap(err,
 			fault.Code(codes.App.Internal.UnexpectedError.URN()),
-			fault.Internal("failed to unmarshal app sentinel config"),
+			fault.Internal("failed to unmarshal app gateway policy config"),
 			fault.Public("Portal configuration is invalid."),
 		)
 	}

@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/unkeyed/unkey/pkg/redaction"
 	"github.com/unkeyed/unkey/pkg/zen"
 )
 
@@ -29,6 +30,18 @@ type RequestTracking struct {
 	AppID         string
 	EnvironmentID string
 
+	// Capture flags set by the handler from matching enabled logging
+	// policies; each defaults to off and the base row is always written.
+	// LogRequestHeaders also covers the user agent and client IP.
+	// LogQuery covers the query string and query parameters.
+	// LogRequestBody and LogResponseBody gate the TeeReader body capture in
+	// the handler and the proxy respectively.
+	LogRequestHeaders  bool
+	LogResponseHeaders bool
+	LogRequestBody     bool
+	LogResponseBody    bool
+	LogQuery           bool
+
 	// Credential locations derived from the route's KeyAuth policies, set by
 	// the handler. The ClickHouse logging middleware redacts the value of any
 	// request header named in RedactedHeaders (lowercased) and any query
@@ -36,6 +49,7 @@ type RequestTracking struct {
 	// header or query parameter are not persisted in cleartext.
 	RedactedHeaders     []string
 	RedactedQueryParams []string
+	BodyRedactors       []*redaction.Redactor
 
 	// Reset by the handler before each ForwardToInstance attempt.
 	InstanceID string

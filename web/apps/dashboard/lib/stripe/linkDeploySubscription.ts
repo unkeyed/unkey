@@ -1,7 +1,9 @@
 import { insertAuditLogs } from "@/lib/audit";
 import { db, eq, schema } from "@/lib/db";
 import Stripe from "stripe";
+import { subscriptionIdsByProduct, upsertBillingSubscription } from "./billingSubscriptions";
 import { type DeployPlan, detectDeployPlan } from "./deployPlan";
+import { setWorkspaceLimits } from "./setWorkspaceLimits";
 import { isDeadSubscription } from "./subscriptionUtils";
 
 /**
@@ -36,16 +38,16 @@ export type LinkDeployResult =
  * Links a subscription-mode Compute checkout onto its workspace: verifies the
  * session belongs to the workspace and was paid, that the resulting
  * subscription is live and carries a recognized Deploy plan, then writes
- * `stripeCustomerId` + `stripeSubscriptionId` + `deployPlan` optimistically
- * (mirroring subscribeDeploy; the customer.subscription.* webhook then derives
- * the same value and no-ops).
+ * `stripeCustomerId` + `stripeDeploySubscriptionId` + `plan` to workspace_billing
+ * optimistically (mirroring subscribeDeploy; the customer.subscription.* webhook
+ * then derives the same value and no-ops).
  *
  * Shared by `/success` (fast-path when the user returns) and the
  * `checkout.session.completed` webhook (guaranteed, fires even if the user
  * never returns). Both entry points call this with the same session, so it is
- * idempotent: a matching already-linked subscription is a success no-op, and a
- * *different* existing subscription is a hard failure (never repoint/orphan a
- * live subscription).
+ * idempotent: a matching already-linked subscription only reasserts its Compute
+ * limits, and a *different* existing subscription is a hard failure (never
+ * repoint/orphan a live subscription).
  *
  * The session and subscription are resolved server-side; no id is trusted from
  * the caller beyond the session id and the workspace id to check ownership
@@ -103,8 +105,13 @@ export async function linkDeploySubscription(
   const sub = await stripe.subscriptions.retrieve(subscriptionId);
   // Only a live subscription grants a plan. Mirrors subscribeDeploy's
   // active/trialing guard so an incomplete/past_due first charge cannot
-  // entitle the workspace.
-  if (sub.status !== "active" && sub.status !== "trialing") {
+  // entitle the workspace. A subscription already set to cancel is excluded
+  // too (it is still "active" until the boundary): a checkout.session.completed
+  // redelivered after the user cancelled would otherwise re-detect the plan-fee
+  // item and resurrect the plan the cancel cleared, the same failure
+  // mirrorDeployPlan guards against.
+  const cancelling = Boolean(sub.cancel_at_period_end) || Boolean(sub.cancel_at);
+  if ((sub.status !== "active" && sub.status !== "trialing") || cancelling) {
     return { ok: false, reason: "not_active", message: "Subscription is not active." };
   }
 
@@ -120,25 +127,31 @@ export async function linkDeploySubscription(
   const ws = await db.query.workspaces.findFirst({
     where: (table, { and, eq: eqFn, isNull }) =>
       and(eqFn(table.id, input.expectedWorkspaceId), isNull(table.deletedAtM)),
+    with: { billing: true, billingSubscriptions: true },
   });
   if (!ws) {
     return { ok: false, reason: "workspace_not_found", message: "Workspace not found." };
   }
+  const preserveApiLimits = (ws.billing?.tier ?? "Free") !== "Free";
+
+  const recordedSubscriptionId = subscriptionIdsByProduct(
+    ws.billingSubscriptions ?? [],
+  ).stripeDeploySubscriptionId;
 
   // Idempotency + conflict: re-entry (webhook + /success, refresh, redelivery)
-  // for the same subscription is a success no-op; a *different* LIVE existing
-  // subscription is a hard failure so we never orphan a live one by repointing.
-  // A dead recorded subscription (cancelDeploy cancels a Compute-only
-  // subscription outright, and the deleted-webhook that clears the column may
-  // lag) is safe to repoint away from — refusing would strand this checkout's
-  // paid subscription instead.
-  if (ws.stripeSubscriptionId === subscriptionId) {
-    if (ws.deployPlan === plan) {
+  // for the same subscription only repairs its limit fields; a *different* LIVE
+  // existing subscription is a hard failure so we never orphan a live one by repointing.
+  // A dead recorded subscription (cancelDeploy cancels the Compute subscription
+  // outright, and the deleted-webhook that clears the column may lag) is safe to
+  // repoint away from — refusing would strand this checkout's paid subscription.
+  if (recordedSubscriptionId === subscriptionId) {
+    if (ws.billing?.plan === plan) {
+      await setWorkspaceLimits(db, { workspaceId: ws.id, plan, preserveApiLimits });
       return { ok: true, plan, alreadyLinked: true };
     }
-  } else if (ws.stripeSubscriptionId) {
+  } else if (recordedSubscriptionId) {
     const recorded = await stripe.subscriptions
-      .retrieve(ws.stripeSubscriptionId)
+      .retrieve(recordedSubscriptionId)
       .catch((err: unknown) => {
         if (err instanceof Stripe.errors.StripeError && err.code === "resource_missing") {
           return null;
@@ -156,9 +169,15 @@ export async function linkDeploySubscription(
 
   await db.transaction(async (tx) => {
     await tx
-      .update(schema.workspaces)
-      .set({ stripeCustomerId, stripeSubscriptionId: subscriptionId, deployPlan: plan })
-      .where(eq(schema.workspaces.id, ws.id));
+      .update(schema.workspaceBilling)
+      .set({ stripeCustomerId, plan })
+      .where(eq(schema.workspaceBilling.workspaceId, ws.id));
+    await setWorkspaceLimits(tx, { workspaceId: ws.id, plan, preserveApiLimits });
+    await upsertBillingSubscription(tx, {
+      workspaceId: ws.id,
+      product: "compute",
+      stripeSubscriptionId: subscriptionId,
+    });
     await insertAuditLogs(tx, {
       workspaceId: ws.id,
       actor: input.audit.actor,

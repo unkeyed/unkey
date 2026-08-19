@@ -17,9 +17,16 @@ export function useUpdateAllEnvironments() {
 
   return useCallback(
     (updater: (draft: EnvironmentSettings) => void) => {
-      for (const env of environments) {
-        collection.environmentSettings.update(env.id, updater);
+      if (environments.length === 0) {
+        return;
       }
+      // One transaction for every environment. The collection refetches each
+      // loaded environment after a transaction settles, so a transaction per
+      // environment would multiply the reads.
+      collection.environmentSettings.update(
+        environments.map((env) => env.id),
+        (drafts) => drafts.forEach(updater),
+      );
     },
     [environments],
   );

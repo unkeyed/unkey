@@ -35,6 +35,8 @@ type MockDeploymentClient struct {
 	AuthorizeDeploymentCalls []*ctrlv1.AuthorizeDeploymentRequest
 	CancelDeploymentFunc     func(context.Context, *ctrlv1.CancelDeploymentRequest) (*ctrlv1.CancelDeploymentResponse, error)
 	CancelDeploymentCalls    []*ctrlv1.CancelDeploymentRequest
+	DeprovisionComputeFunc   func(context.Context, *ctrlv1.DeprovisionComputeRequest) (*ctrlv1.DeprovisionComputeResponse, error)
+	DeprovisionComputeCalls  []*ctrlv1.DeprovisionComputeRequest
 }
 
 func (m *MockDeploymentClient) CreateDeployment(ctx context.Context, req *ctrlv1.CreateDeploymentRequest) (*ctrlv1.CreateDeploymentResponse, error) {
@@ -115,4 +117,14 @@ func (m *MockDeploymentClient) CancelDeployment(ctx context.Context, req *ctrlv1
 		return m.CancelDeploymentFunc(ctx, req)
 	}
 	return &ctrlv1.CancelDeploymentResponse{}, nil
+}
+
+func (m *MockDeploymentClient) DeprovisionCompute(ctx context.Context, req *ctrlv1.DeprovisionComputeRequest) (*ctrlv1.DeprovisionComputeResponse, error) {
+	m.mu.Lock()
+	m.DeprovisionComputeCalls = append(m.DeprovisionComputeCalls, req)
+	m.mu.Unlock()
+	if m.DeprovisionComputeFunc != nil {
+		return m.DeprovisionComputeFunc(ctx, req)
+	}
+	return &ctrlv1.DeprovisionComputeResponse{}, nil
 }

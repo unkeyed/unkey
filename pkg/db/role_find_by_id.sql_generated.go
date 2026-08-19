@@ -10,7 +10,7 @@ import (
 )
 
 const findRoleByID = `-- name: FindRoleByID :one
-SELECT pk, id, workspace_id, name, description, created_at_m, updated_at_m
+SELECT pk, id, workspace_id, project_id, name, description, created_at_m, updated_at_m
 FROM roles
 WHERE id = ?
 LIMIT 1
@@ -19,7 +19,7 @@ LIMIT 1
 // Finds a role record by its ID
 // Returns: The role record if found
 //
-//	SELECT pk, id, workspace_id, name, description, created_at_m, updated_at_m
+//	SELECT pk, id, workspace_id, project_id, name, description, created_at_m, updated_at_m
 //	FROM roles
 //	WHERE id = ?
 //	LIMIT 1
@@ -30,6 +30,7 @@ func (q *Queries) FindRoleByID(ctx context.Context, db DBTX, roleID string) (Rol
 		&i.Pk,
 		&i.ID,
 		&i.WorkspaceID,
+		&i.ProjectID,
 		&i.Name,
 		&i.Description,
 		&i.CreatedAtM,

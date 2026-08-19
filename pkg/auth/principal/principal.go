@@ -55,7 +55,7 @@ type Principal struct {
 	// WorkspaceID scopes all handler reads and writes for this principal.
 	WorkspaceID string
 
-	// Permissions is the flat RBAC permission set granted to this principal.
+	// Permissions is the flat set of exact or resource-scoped authorization grants.
 	Permissions []string
 }
 
@@ -140,7 +140,7 @@ type PortalSessionSource struct {
 	// these; the request never carries a keyspace or api id.
 	KeyspaceIDs []string
 
-	// Permissions are the raw RBAC permission strings attached to the portal session.
+	// Permissions are the capabilities attached to the portal session.
 	Permissions []string
 }
 

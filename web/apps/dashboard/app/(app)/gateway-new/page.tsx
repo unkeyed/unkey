@@ -10,7 +10,7 @@
 import { randomInt } from "node:crypto";
 import { getAuth } from "@/lib/auth";
 import { db, schema } from "@/lib/db";
-import { freeTierQuotas } from "@/lib/quotas";
+import { freeTierLimits } from "@/lib/limits";
 import { dns1035, newId } from "@unkey/id";
 import { redirect } from "next/navigation";
 
@@ -25,18 +25,23 @@ export default async function Page() {
 
   if (!ws) {
     const id = newId("workspace");
-    await db.insert(schema.workspaces).values({
-      id,
-      name: "Personal Workspace",
-      slug: `personal-workspace-${randomInt(100000)}`,
-      orgId,
-      betaFeatures: {},
-      k8sNamespace: dns1035(12),
-    });
-
-    await db.insert(schema.quotas).values({
-      workspaceId: id,
-      ...freeTierQuotas,
+    await db.transaction(async (tx) => {
+      await tx.insert(schema.workspaces).values({
+        id,
+        name: "Personal Workspace",
+        slug: `personal-workspace-${randomInt(100000)}`,
+        orgId,
+        betaFeatures: {},
+        k8sNamespace: dns1035(12),
+      });
+      await tx.insert(schema.limits).values({
+        workspaceId: id,
+        ...freeTierLimits,
+      });
+      await tx.insert(schema.workspaceBilling).values({
+        workspaceId: id,
+        tier: "Free",
+      });
     });
   }
 

@@ -4,6 +4,8 @@ import (
 	"testing"
 	"time"
 
+	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
+
 	"github.com/stretchr/testify/require"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/uid"
@@ -48,7 +50,7 @@ func TestChangeDesiredState_NoOpsWhenDeploymentDeleted(t *testing.T) {
 		ProjectID:     project.ID,
 		AppID:         app.ID,
 		EnvironmentID: env.ID,
-		Status:        db.DeploymentsStatusReady,
+		Status:        mysqltype.DeploymentsStatusReady,
 	})
 
 	client := hydrav1.NewDeploymentServiceIngressClient(h.Restate, dep.ID)
@@ -59,10 +61,8 @@ func TestChangeDesiredState_NoOpsWhenDeploymentDeleted(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	_, err = h.DB.RW().ExecContext(h.Ctx, "DELETE FROM deployment_topology WHERE deployment_id = ?", dep.ID)
-	require.NoError(t, err)
-	_, err = h.DB.RW().ExecContext(h.Ctx, "DELETE FROM deployments WHERE id = ?", dep.ID)
-	require.NoError(t, err)
+	require.NoError(t, h.DB.DeleteDeploymentTopologiesByEnvironmentId(h.Ctx, env.ID))
+	require.NoError(t, h.DB.DeleteDeploymentsByEnvironmentId(h.Ctx, env.ID))
 
 	time.Sleep(time.Second)
 

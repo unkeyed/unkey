@@ -15,10 +15,12 @@ INSERT INTO ` + "`" + `identities` + "`" + ` (
     id,
     external_id,
     workspace_id,
+    project_id,
     environment,
     created_at,
     meta
 ) VALUES (
+    ?,
     ?,
     ?,
     ?,
@@ -33,6 +35,7 @@ type UpsertIdentityParams struct {
 	ID          string          `db:"id"`
 	ExternalID  string          `db:"external_id"`
 	WorkspaceID string          `db:"workspace_id"`
+	ProjectID   string          `db:"project_id"`
 	Environment string          `db:"environment"`
 	CreatedAt   int64           `db:"created_at"`
 	Meta        json.RawMessage `db:"meta"`
@@ -45,10 +48,12 @@ type UpsertIdentityParams struct {
 //	    id,
 //	    external_id,
 //	    workspace_id,
+//	    project_id,
 //	    environment,
 //	    created_at,
 //	    meta
 //	) VALUES (
+//	    ?,
 //	    ?,
 //	    ?,
 //	    ?,
@@ -62,6 +67,7 @@ func (q *Queries) UpsertIdentity(ctx context.Context, db DBTX, arg UpsertIdentit
 		arg.ID,
 		arg.ExternalID,
 		arg.WorkspaceID,
+		arg.ProjectID,
 		arg.Environment,
 		arg.CreatedAt,
 		arg.Meta,

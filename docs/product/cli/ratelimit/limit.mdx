@@ -26,11 +26,11 @@ unkey api ratelimit limit [flags]
 ## Flags
 
 <ParamField body="--namespace" type="string" required>
-The id or name of the namespace. Use namespaces to organize rate limits by service or purpose, such as `api.requests` or `auth.login`. Must be 1-255 characters.
+The id or name of the namespace. Use namespaces to organize rate limits by service or purpose, such as `api.requests` or `auth.login`. Must be 1-512 characters.
 </ParamField>
 
 <ParamField body="--identifier" type="string" required>
-The entity being rate limited. Use user IDs for per-user limits, IP addresses for anonymous limiting, or API key IDs for per-key limits. The same identifier can be used across different namespaces to apply multiple rate limit types. Must be 1-255 characters.
+The entity being rate limited. Use user IDs for per-user limits, IP addresses for anonymous limiting, or API key IDs for per-key limits. The same identifier can be used across different namespaces to apply multiple rate limit types. Must be 1-512 characters.
 </ParamField>
 
 <ParamField body="--limit" type="integer" required>
