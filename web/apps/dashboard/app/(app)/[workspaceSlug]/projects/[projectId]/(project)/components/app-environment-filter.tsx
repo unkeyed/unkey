@@ -1,7 +1,6 @@
 "use client";
 
 import { useAppFilterOptionsWithLoading } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/(project)/components/app-filter-options";
-import { useRuntimeLogsFilters } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/(project)/logs/hooks/use-runtime-logs-filters";
 import { useProjectData } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/data-provider";
 import { Button, Checkbox } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
@@ -14,10 +13,24 @@ import {
   isEntireAppSelected,
   toggleAppSelection,
   toggleEnvironmentSelection,
-} from "./runtime-logs-app-environment-selection";
+} from "./app-environment-selection";
 
-export const RuntimeLogsAppFilter = () => {
-  const { filters, updateFilters } = useRuntimeLogsFilters();
+type FilterLike = {
+  field: string;
+  value: string | number;
+};
+
+type AppEnvironmentFilterProps<TFilter extends FilterLike> = {
+  filters: TFilter[];
+  updateFilters: (filters: TFilter[]) => void;
+  createFilter: (field: "appId" | "environmentId", value: string) => TFilter;
+};
+
+export function AppEnvironmentFilter<TFilter extends FilterLike>({
+  filters,
+  updateFilters,
+  createFilter,
+}: AppEnvironmentFilterProps<TFilter>) {
   const { options: apps, isLoading: isAppsLoading } = useAppFilterOptionsWithLoading();
   const { environments, isEnvironmentsLoading } = useProjectData();
   const isLoading = isAppsLoading || isEnvironmentsLoading;
@@ -46,7 +59,11 @@ export const RuntimeLogsAppFilter = () => {
   );
 
   const applyFilter = () => {
-    const appEnvironmentFilters = createAppEnvironmentFilters(draft, environmentIdsByApp);
+    const appEnvironmentFilters = createAppEnvironmentFilters(
+      draft,
+      environmentIdsByApp,
+      createFilter,
+    );
     const otherFilters = filters.filter(
       (filter) => filter.field !== "appId" && filter.field !== "environmentId",
     );
@@ -99,14 +116,14 @@ export const RuntimeLogsAppFilter = () => {
               return (
                 <div key={app.appId}>
                   <label
-                    htmlFor={`runtime-app-${app.appId}`}
+                    htmlFor={`app-filter-${app.appId}`}
                     className={cn(
                       "flex h-9 cursor-pointer items-center gap-2 rounded-md px-2 hover:bg-grayA-3",
                       checkboxState !== false && "bg-grayA-3",
                     )}
                   >
                     <Checkbox
-                      id={`runtime-app-${app.appId}`}
+                      id={`app-filter-${app.appId}`}
                       checked={checkboxState}
                       onCheckedChange={() =>
                         setDraft((current) =>
@@ -128,11 +145,11 @@ export const RuntimeLogsAppFilter = () => {
                         return (
                           <label
                             key={environment.id}
-                            htmlFor={`runtime-environment-${environment.id}`}
+                            htmlFor={`environment-filter-${environment.id}`}
                             className="flex h-8 cursor-pointer items-center gap-2 rounded-md px-2 hover:bg-grayA-3"
                           >
                             <Checkbox
-                              id={`runtime-environment-${environment.id}`}
+                              id={`environment-filter-${environment.id}`}
                               checked={checked}
                               onCheckedChange={() =>
                                 setDraft((current) =>
@@ -169,4 +186,4 @@ export const RuntimeLogsAppFilter = () => {
       </div>
     </div>
   );
-};
+}

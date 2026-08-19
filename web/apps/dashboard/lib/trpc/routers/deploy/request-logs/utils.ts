@@ -31,6 +31,9 @@ export function transformRequestLogsFilters(params: Omit<RequestLogsRequest, "wo
     statusCodes: params.statusCodes ?? [],
     methods: params.methods ?? [],
     paths: params.paths ?? [],
+    host: params.host ?? [],
+    requestId: params.requestId ?? [],
+    region: params.region ?? [],
     page: params.page,
   };
 }

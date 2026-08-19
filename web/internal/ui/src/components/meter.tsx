@@ -5,9 +5,25 @@ import type React from "react";
 
 import { cn } from "../lib/utils";
 
-export function Meter({ className, children, ...props }: MeterPrimitive.Root.Props) {
+const layoutClassName = {
+  stacked: "flex-col gap-2",
+  inline:
+    "flex-row items-center gap-3 [&_[data-slot=meter-track]]:min-w-0 [&_[data-slot=meter-track]]:flex-1",
+} as const;
+
+export type MeterProps = MeterPrimitive.Root.Props & {
+  layout?: keyof typeof layoutClassName;
+};
+
+export function Meter({ className, children, layout = "stacked", value, ...props }: MeterProps) {
   return (
-    <MeterPrimitive.Root className={cn("flex w-full flex-col gap-2", className)} {...props}>
+    <MeterPrimitive.Root
+      value={value}
+      data-layout={layout}
+      data-empty={value <= (props.min ?? 0) ? "" : undefined}
+      className={cn("group/meter flex w-full", layoutClassName[layout], className)}
+      {...props}
+    >
       {children ? (
         children
       ) : (
@@ -53,7 +69,7 @@ export function MeterIndicator({ className, ...props }: MeterPrimitive.Indicator
   return (
     <MeterPrimitive.Indicator
       className={cn(
-        "rounded-full bg-gray-12 transition-[width] duration-300 motion-reduce:transition-none",
+        "min-w-1 bg-gray-12 transition-[width] duration-300 group-data-[empty]/meter:min-w-0 motion-reduce:transition-none",
         className,
       )}
       data-slot="meter-indicator"

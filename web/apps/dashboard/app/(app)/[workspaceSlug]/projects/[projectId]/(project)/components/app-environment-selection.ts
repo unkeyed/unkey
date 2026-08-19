@@ -1,11 +1,11 @@
-import type { RuntimeLogsFilterValue } from "@/lib/schemas/runtime-logs.filter.schema";
-
 export type AppEnvironmentSelection = {
   appIds: Set<string>;
   environmentIds: Set<string>;
 };
 
 type EnvironmentIdsByApp = ReadonlyMap<string, readonly string[]>;
+type AppEnvironmentField = "appId" | "environmentId";
+type FilterLike = { field: string; value: string | number };
 
 export function groupEnvironmentsByApp<T extends { appId: string; slug: string }>(
   environments: readonly T[],
@@ -23,7 +23,7 @@ export function groupEnvironmentsByApp<T extends { appId: string; slug: string }
 }
 
 export function getAppEnvironmentSelection(
-  filters: RuntimeLogsFilterValue[],
+  filters: readonly FilterLike[],
 ): AppEnvironmentSelection {
   return {
     appIds: new Set(
@@ -93,10 +93,11 @@ export function toggleEnvironmentSelection(
   return { appIds, environmentIds: selectedEnvironmentIds };
 }
 
-export function createAppEnvironmentFilters(
+export function createAppEnvironmentFilters<TFilter>(
   selection: AppEnvironmentSelection,
   environmentIdsByApp: EnvironmentIdsByApp,
-): RuntimeLogsFilterValue[] {
+  createFilter: (field: AppEnvironmentField, value: string) => TFilter,
+): TFilter[] {
   const appIds = new Set(selection.appIds);
   const environmentIds = new Set(selection.environmentIds);
 
@@ -125,21 +126,7 @@ export function createAppEnvironmentFilters(
   }
 
   return [
-    ...[...appIds].map(
-      (appId): RuntimeLogsFilterValue => ({
-        id: crypto.randomUUID(),
-        field: "appId",
-        operator: "is",
-        value: appId,
-      }),
-    ),
-    ...[...environmentIds].map(
-      (environmentId): RuntimeLogsFilterValue => ({
-        id: crypto.randomUUID(),
-        field: "environmentId",
-        operator: "is",
-        value: environmentId,
-      }),
-    ),
+    ...[...appIds].map((appId) => createFilter("appId", appId)),
+    ...[...environmentIds].map((environmentId) => createFilter("environmentId", environmentId)),
   ];
 }

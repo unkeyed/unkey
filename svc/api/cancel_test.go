@@ -46,6 +46,10 @@ func TestContextCancellation(t *testing.T) {
 			Primary: dbDsn,
 		},
 		Observability: config.Observability{},
+		Restate: api.RestateConfig{
+			URL:    "http://restate:8080",
+			APIKey: "test-restate-auth-disabled",
+		},
 		Auth: api.AuthConfigs{
 			api.RootKeyAuthConfig{Enabled: nil},
 		},
