@@ -195,7 +195,7 @@ const HOSTILE_TIER = "<https://evil.example|Pro>";
  * this table.
  */
 describe("alerts escape attacker-controlled fields", () => {
-  const cases: Array<{ name: string; send: () => Promise<void> }> = [
+  const cases: Array<{ name: string; send: () => Promise<unknown> }> = [
     {
       name: "signup",
       send: () =>
@@ -434,9 +434,14 @@ describe("postToSlack", () => {
   it("does not post when the webhook is not configured", async () => {
     vi.stubEnv("SLACK_WEBHOOK_CUSTOMERS", "");
 
-    await alertCustomerLifecycle({ action: "cancelled", name: "Jane", email: "jane@acme.com" });
+    const status = await alertCustomerLifecycle({
+      action: "cancelled",
+      name: "Jane",
+      email: "jane@acme.com",
+    });
 
     expect(fetchMock).not.toHaveBeenCalled();
+    expect(status).toBe("not_configured");
   });
 
   /**
@@ -448,7 +453,7 @@ describe("postToSlack", () => {
 
     await expect(
       alertCustomerLifecycle({ action: "cancelled", name: "Jane", email: "jane@acme.com" }),
-    ).resolves.toBeUndefined();
+    ).resolves.toBe("failed");
   });
 
   /**
