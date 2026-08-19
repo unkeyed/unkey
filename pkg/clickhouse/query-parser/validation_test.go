@@ -53,6 +53,11 @@ func TestParser_BlockNonWhitelistedFunctions(t *testing.T) {
 			query:      "SELECT count(DISTINCT key_id) FROM key_verifications_v1",
 			shouldFail: false,
 		},
+		{
+			name:       "json extract does not admit its arguments",
+			query:      "SELECT JSONExtractString(file('/etc/passwd'), 'user_id') FROM key_verifications_v1",
+			shouldFail: true,
+		},
 	}
 
 	for _, tt := range tests {
@@ -223,6 +228,11 @@ func TestParser_EmitsClickHouseCompatibleAllowedFunctionNames(t *testing.T) {
 	require.NoError(t, err)
 	require.Contains(t, output, "countIf(")
 	require.NotContains(t, output, "COUNTIF(")
+
+	output, err = parser.Parse(context.Background(), "SELECT jsonextractstring(attributes_text, 'user_id') FROM events_v1")
+	require.NoError(t, err)
+	require.Contains(t, output, "JSONExtractString(")
+	require.NotContains(t, output, "jsonextractstring(")
 }
 
 // TestParser_RejectsSettingsClauses guarantees customer SQL cannot attach
