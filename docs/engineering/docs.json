@@ -201,7 +201,8 @@
               "architecture/rfcs/0013-custom-domains",
               "architecture/rfcs/0014-frontline-middleware",
               "architecture/rfcs/0015-ratelimit-cross-region-counts",
-              "architecture/rfcs/0016-vault-s3-storage"
+              "architecture/rfcs/0016-vault-s3-storage",
+              "architecture/rfcs/0017-api-key-plaintext-format"
             ]
           }
         ]
