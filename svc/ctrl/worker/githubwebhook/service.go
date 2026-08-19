@@ -2,10 +2,10 @@ package githubwebhook
 
 import (
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
+	githubclient "github.com/unkeyed/unkey/pkg/github"
 	restateadmin "github.com/unkeyed/unkey/pkg/restate/admin"
 	"github.com/unkeyed/unkey/svc/ctrl/dedup"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
-	githubclient "github.com/unkeyed/unkey/svc/ctrl/worker/github"
 )
 
 // Service implements the GitHubWebhookService virtual object for processing
@@ -19,6 +19,7 @@ type Service struct {
 	dedup                           *dedup.Service
 	dashboardURL                    string
 	allowUnauthenticatedDeployments bool
+	enforceDeployGate               bool
 }
 
 var _ hydrav1.GitHubWebhookServiceServer = (*Service)(nil)
@@ -32,6 +33,9 @@ type Config struct {
 	RestateAdmin                    *restateadmin.Client
 	DashboardURL                    string
 	AllowUnauthenticatedDeployments bool
+	// EnforceDeployGate hard-blocks webhook deployments for workspaces without
+	// a Compute plan. Spend-cap suspension is always enforced.
+	EnforceDeployGate bool
 }
 
 // New creates a new [Service] with the provided configuration.
@@ -44,5 +48,6 @@ func New(cfg Config) *Service {
 		dedup:                                   dedup.New(cfg.DB, cfg.RestateAdmin),
 		dashboardURL:                            cfg.DashboardURL,
 		allowUnauthenticatedDeployments:         cfg.AllowUnauthenticatedDeployments,
+		enforceDeployGate:                       cfg.EnforceDeployGate,
 	}
 }

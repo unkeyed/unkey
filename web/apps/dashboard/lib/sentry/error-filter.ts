@@ -23,51 +23,6 @@ import { scrubEventPii } from "./pii-scrubber";
 export type BeforeSendHook = Parameters<typeof Sentry.init>[0]["beforeSend"];
 
 /**
- * Input field names that may carry plaintext secrets and must never be sent to
- * Sentry. The tRPC Sentry middleware attaches the raw procedure input to
- * `event.contexts.trpc.input` (via `attachRpcInput: true`), which would
- * otherwise exfiltrate env-var secret values (`value`, `variables[].value`,
- * `items[].value`) when an unexpected error is forwarded. `sendDefaultPii: false`
- * does not scrub custom contexts, so we redact these explicitly.
- */
-const SENSITIVE_INPUT_KEYS = new Set(["value"]);
-
-const REDACTED = "[REDACTED]";
-
-/**
- * Recursively replaces the values of sensitive keys with a redaction marker.
- * Walks nested objects and arrays so secrets nested under `variables`/`items`
- * are also scrubbed. Returns a new structure and never mutates the input.
- */
-function redactSensitiveValues(value: unknown): unknown {
-  if (Array.isArray(value)) {
-    return value.map(redactSensitiveValues);
-  }
-
-  if (value && typeof value === "object") {
-    const result: Record<string, unknown> = {};
-    for (const [key, nested] of Object.entries(value as Record<string, unknown>)) {
-      result[key] = SENSITIVE_INPUT_KEYS.has(key) ? REDACTED : redactSensitiveValues(nested);
-    }
-    return result;
-  }
-
-  return value;
-}
-
-/**
- * Scrubs plaintext secrets from the tRPC input attached by the Sentry tRPC
- * middleware before an event is forwarded to Sentry. Mutates the event in place
- * because Sentry consumes the same object returned from `beforeSend`.
- */
-function scrubTrpcInput(event: Sentry.ErrorEvent): void {
-  const trpcContext = event.contexts?.trpc;
-  if (trpcContext && "input" in trpcContext) {
-    trpcContext.input = redactSensitiveValues(trpcContext.input);
-  }
-}
-
-/**
  * Configuration options for error filtering
  */
 export interface ErrorFilterOptions {
@@ -104,15 +59,11 @@ export function createErrorFilter(options: ErrorFilterOptions = {}): BeforeSendH
   const { logFilteredErrors = true, additionalFilters = [], contextProvider } = options;
 
   return (event, hint) => {
-    // Always redact plaintext secrets from the attached tRPC input before any
-    // forwarding path returns the event. This must run regardless of error
-    // classification so that INTERNAL_SERVER_ERROR and uncaught errors do not
-    // leak secret values through `contexts.trpc.input`.
-    scrubTrpcInput(event);
-
-    // Scrub secrets/PII that leak through URLs in the request and breadcrumbs
-    // (e.g. root keys or OAuth codes in query strings). `sendDefaultPii: false`
-    // does not cover URLs we generate ourselves, so this runs on every event.
+    // Scrub secrets/PII before any forwarding path returns the event: URLs in
+    // the request and breadcrumbs (root keys, OAuth codes in query strings)
+    // and the tRPC input attached under `contexts.trpc.input`. This runs
+    // regardless of error classification so INTERNAL_SERVER_ERROR and
+    // uncaught errors do not leak secret values either.
     scrubEventPii(event, hint);
 
     const error = hint.originalException;

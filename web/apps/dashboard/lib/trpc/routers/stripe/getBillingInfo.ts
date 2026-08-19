@@ -3,6 +3,7 @@ import { getStripeClient } from "@/lib/stripe";
 import { deployBillingConfig, findApiItem } from "@/lib/stripe/deployBilling";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
+import Stripe from "stripe";
 import { z } from "zod";
 import { mapProduct } from "../utils/stripe";
 
@@ -44,48 +45,68 @@ export const getBillingInfo = workspaceProcedure
       });
     }
 
-    const [subscription, hasPreviousSubscriptions] = await Promise.all([
-      ctx.workspace.stripeSubscriptionId
-        ? await stripe.subscriptions.retrieve(ctx.workspace.stripeSubscriptionId)
-        : undefined,
+    const subscriptionPromise = ctx.workspace.stripeSubscriptionId
+      ? // A stale recorded subscription id (cancelled and pruned from Stripe,
+        // A stale id (lost deleted-webhook) 404s; treat as no subscription
+        // instead of breaking the billing page. Anything else propagates.
+        stripe.subscriptions
+          .retrieve(ctx.workspace.stripeSubscriptionId)
+          .catch((err: unknown) => {
+            if (err instanceof Stripe.errors.StripeError && err.code === "resource_missing") {
+              return undefined;
+            }
+            throw err;
+          })
+      : Promise.resolve(undefined);
 
-      ctx.workspace.stripeCustomerId
-        ? await stripe.subscriptions
-            .list({
-              customer: ctx.workspace.stripeCustomerId,
-              status: "canceled",
-            })
-            .then((res) => res.data.length > 0)
-        : false,
-    ]);
+    const configPromise = ctx.workspace.stripeSubscriptionId
+      ? deployBillingConfig()
+      : Promise.resolve(null);
+    const subscriptionStatePromise = Promise.all([subscriptionPromise, configPromise]).then(
+      ([subscription, config]) => {
+        // Resolve the API plan item specifically, skipping any Deploy price the
+        // subscription might carry; product via the item's price.
+        const apiItem = subscription ? findApiItem(config, subscription.items.data) : undefined;
+        const apiProduct = apiItem?.price.product;
+        const currentProductId = typeof apiProduct === "string" ? apiProduct : apiProduct?.id;
+        return { subscription, currentProductId };
+      },
+    );
 
-    // The API plan item, skipping Deploy items: on a Compute-first
-    // subscription items[0] is a Deploy price, not the API plan.
-    const apiItem = subscription
-      ? findApiItem(await deployBillingConfig(), subscription.items.data)
-      : undefined;
-    // Product via the item's price; the plan field is legacy.
-    const apiProduct = apiItem?.price.product;
-    const currentProductId = typeof apiProduct === "string" ? apiProduct : apiProduct?.id;
+    const hasPreviousSubscriptionsPromise = ctx.workspace.stripeCustomerId
+      ? stripe.subscriptions
+          .list({
+            customer: ctx.workspace.stripeCustomerId,
+            status: "canceled",
+          })
+          .then((res) => res.data.length > 0)
+      : Promise.resolve(false);
 
-    // Check if user has an active enterprise subscription
-    let enterpriseProductId: string | undefined;
-    if (currentProductId && e.STRIPE_PRODUCT_IDS_ENTERPRISE.includes(currentProductId)) {
-      enterpriseProductId = currentProductId;
-    }
+    const productsPromise = subscriptionStatePromise.then(({ currentProductId }) => {
+      const enterpriseProductId =
+        currentProductId && e.STRIPE_PRODUCT_IDS_ENTERPRISE.includes(currentProductId)
+          ? currentProductId
+          : undefined;
+      const productIds = enterpriseProductId
+        ? [...e.STRIPE_PRODUCT_IDS_PRO, enterpriseProductId]
+        : e.STRIPE_PRODUCT_IDS_PRO;
 
-    const productIds = enterpriseProductId
-      ? [...e.STRIPE_PRODUCT_IDS_PRO, enterpriseProductId]
-      : e.STRIPE_PRODUCT_IDS_PRO;
+      return stripe.products
+        .list({
+          active: true,
+          ids: productIds,
+          limit: 100,
+          expand: ["data.default_price"],
+        })
+        .then((res) => res.data.map(mapProduct).sort((a, b) => a.dollar - b.dollar));
+    });
 
-    const products = await stripe.products
-      .list({
-        active: true,
-        ids: productIds,
-        limit: 100,
-        expand: ["data.default_price"],
-      })
-      .then((res) => res.data.map(mapProduct).sort((a, b) => a.dollar - b.dollar));
+    const [{ subscription, currentProductId }, hasPreviousSubscriptions, products] =
+      await Promise.all([
+        subscriptionStatePromise,
+        hasPreviousSubscriptionsPromise,
+        productsPromise,
+      ]);
 
     return {
       products,
@@ -93,6 +114,7 @@ export const getBillingInfo = workspaceProcedure
         ? {
             id: subscription.id,
             status: subscription.status,
+            // Native cancel_at, set by cancelSubscription's cancel_at_period_end.
             cancelAt: subscription.cancel_at ? subscription.cancel_at * 1000 : undefined,
           }
         : undefined,

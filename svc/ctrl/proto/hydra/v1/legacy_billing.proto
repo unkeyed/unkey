@@ -1,0 +1,28 @@
+syntax = "proto3";
+
+package hydra.v1;
+
+import "dev/restate/sdk/go.proto";
+
+option go_package = "github.com/unkeyed/unkey/gen/proto/hydra/v1;hydrav1";
+
+// LegacyBillingWorkflow prepares one standalone Stripe draft for a legacy
+// workspace and completed UTC month.
+service LegacyBillingWorkflow {
+  option (dev.restate.sdk.go.service_type) = SERVICE;
+
+  rpc Run(LegacyBillingRunRequest) returns (LegacyBillingRunResponse) {}
+}
+
+message LegacyBillingRunRequest {
+  string workspace_id = 1;
+  int32 year = 2;
+  int32 month = 3;
+}
+
+message LegacyBillingRunResponse {
+  string invoice_id = 1;
+  int32 item_count = 2;
+  int64 verifications = 3;
+  int64 ratelimits = 4;
+}

@@ -1,12 +1,13 @@
 "use client";
 
 import { Sidebar, SidebarContent, SidebarFooter, useSidebar } from "@/components/ui/sidebar";
+import { useBillingUIUpgrades } from "@/lib/flags/use-billing-ui-upgrades";
 import { cn } from "@/lib/utils";
 import { SidebarLeftHide, SidebarLeftShow } from "@unkey/icons";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@unkey/ui";
-import { TOP_NAV_HEIGHT } from "../top-nav";
 import { SidebarBody } from "./sidebar-body";
 import { UsageBanner } from "./usage-banner";
+import { UsageCard } from "./usage-card";
 
 export const SIDEBAR_WIDTH_VARS: React.CSSProperties & {
   "--sidebar-width": string;
@@ -20,6 +21,7 @@ type Props = React.ComponentProps<typeof Sidebar>;
 
 export function SidebarV2(props: Props) {
   const { isMobile } = useSidebar();
+  const billingUpgrades = useBillingUIUpgrades();
   if (isMobile) {
     return null;
   }
@@ -27,17 +29,15 @@ export function SidebarV2(props: Props) {
     <Sidebar
       {...props}
       collapsible="icon"
-      className={cn("[&_[data-sidebar=sidebar]]:bg-gray-1", props.className)}
-      style={{
-        top: TOP_NAV_HEIGHT,
-        height: `calc(100svh - ${TOP_NAV_HEIGHT}px)`,
-      }}
+      // absolute, not the default viewport-fixed: the layout's relative content
+      // row already starts below the top nav and the paused banner.
+      className={cn("absolute h-auto [&_[data-sidebar=sidebar]]:bg-gray-1", props.className)}
     >
       <SidebarContent>
         <SidebarBody />
       </SidebarContent>
       <SidebarFooter className="mx-0 gap-2 border-t-0 p-2">
-        <UsageBanner />
+        {billingUpgrades ? <UsageCard /> : <UsageBanner />}
         <CollapseButton />
       </SidebarFooter>
     </Sidebar>
@@ -51,16 +51,18 @@ function CollapseButton() {
   const label = collapsed ? "Expand sidebar" : "Collapse sidebar";
   return (
     <Tooltip>
-      <TooltipTrigger asChild>
-        <button
-          type="button"
-          onClick={toggleSidebar}
-          aria-label={label}
-          className="flex size-8 items-center justify-center rounded-md text-gray-11 hover:bg-grayA-3 hover:text-gray-12"
-        >
-          <Icon iconSize="md-regular" className="shrink-0" />
-        </button>
-      </TooltipTrigger>
+      <TooltipTrigger
+        render={
+          <button
+            type="button"
+            onClick={toggleSidebar}
+            aria-label={label}
+            className="flex size-8 items-center justify-center rounded-md text-gray-11 hover:bg-grayA-3 hover:text-gray-12"
+          >
+            <Icon iconSize="md-regular" className="shrink-0" />
+          </button>
+        }
+      />
       <TooltipContent
         side="right"
         align="center"

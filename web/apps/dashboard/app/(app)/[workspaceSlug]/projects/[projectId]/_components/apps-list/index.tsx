@@ -1,4 +1,5 @@
 "use client";
+import { useDeployActionGate } from "@/app/(app)/[workspaceSlug]/projects/_components/hooks/use-deploy-action-gate";
 import { ResourceCard } from "@/app/(app)/[workspaceSlug]/projects/_components/list/resource-card";
 import { ResourceCardSkeleton } from "@/app/(app)/[workspaceSlug]/projects/_components/list/resource-card-skeleton";
 import { useAppHomeHref } from "@/hooks/use-app-home-href";
@@ -22,8 +23,12 @@ export const AppsList = () => {
   const workspace = useWorkspaceNavigation();
   const appHomeHref = useAppHomeHref();
   const projectId = typeof params?.projectId === "string" ? params.projectId : "";
+  const { gated, openPaywall, planGate } = useDeployActionGate();
+  // Without a Compute plan, creating an app opens the paywall instead.
   const openCreateApp = () =>
-    router.push(routes.projects.apps.new({ workspaceSlug: workspace.slug, projectId }));
+    gated
+      ? openPaywall()
+      : router.push(routes.projects.apps.new({ workspaceSlug: workspace.slug, projectId }));
 
   const apps = useLiveQuery(
     (q) => q.from({ app: collection.apps }).where(({ app }) => eq(app.projectId, projectId)),
@@ -40,7 +45,7 @@ export const AppsList = () => {
           ))}
         </div>
       ) : apps.data.length === 0 ? (
-        <div className="flex-1 flex justify-center items-center px-4 py-16 border border-grayA-4 rounded-[14px] overflow-hidden">
+        <div className="flex-1 flex justify-center items-center px-4 py-16 border border-grayA-4 rounded-lg overflow-hidden">
           <Empty className="w-[400px] flex items-start">
             <Empty.Icon className="w-auto" />
             <Empty.Title>No Apps Found</Empty.Title>
@@ -101,6 +106,7 @@ export const AppsList = () => {
           ))}
         </div>
       )}
+      {planGate}
     </>
   );
 };

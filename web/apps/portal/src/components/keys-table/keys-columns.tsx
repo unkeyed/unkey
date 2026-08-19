@@ -1,5 +1,6 @@
 import type { ColumnDef, FilterFn, RowData, SortingFn } from "@tanstack/react-table";
 import { MoreHorizontal, Pencil, RefreshCw, Trash2 } from "lucide-react";
+import type { Key } from "~/components/keys-table/schema/keys.schema";
 import { UsageSparkline } from "~/components/keys-table/usage-sparkline";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
@@ -12,7 +13,6 @@ import {
   DropdownMenuTrigger,
 } from "~/components/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipTrigger } from "~/components/ui/tooltip";
-import type { Key } from "~/routes/dave-initial-design/-seed";
 
 declare module "@tanstack/react-table" {
   // biome-ignore lint/correctness/noUnusedVariables: type-parameter names must match the upstream declaration for module augmentation
@@ -70,7 +70,9 @@ export function createKeysColumns({
   onEdit,
   onRotate,
 }: ColumnCallbacks): ColumnDef<Key>[] {
-  return [
+  const hasActions = Boolean(onEdit || onRotate || onDelete);
+
+  const columns: ColumnDef<Key>[] = [
     {
       id: "name",
       accessorKey: "name",
@@ -132,7 +134,10 @@ export function createKeysColumns({
         ),
       meta: { className: "w-32" },
     },
-    {
+  ];
+
+  if (hasActions) {
+    columns.push({
       id: "actions",
       header: () => <span className="sr-only">Actions</span>,
       cell: ({ row }) => {
@@ -140,46 +145,61 @@ export function createKeysColumns({
         return (
           <div className="text-center">
             <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" aria-label="Open key actions">
-                  <MoreHorizontal />
-                </Button>
-              </DropdownMenuTrigger>
+              <DropdownMenuTrigger
+                render={
+                  <Button variant="ghost" size="icon" aria-label="Open key actions">
+                    <MoreHorizontal />
+                  </Button>
+                }
+              />
               <DropdownMenuContent align="end">
-                <DropdownMenuGroup>
-                  <DropdownMenuItem onSelect={() => onEdit?.(row.original.id)}>
-                    <Pencil />
-                    Edit key
-                  </DropdownMenuItem>
-                  {expired ? (
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <span>
-                          <DropdownMenuItem disabled>
-                            <RefreshCw />
-                            Rotate key
-                          </DropdownMenuItem>
-                        </span>
-                      </TooltipTrigger>
-                      <TooltipContent side="left">Expired keys can't be rotated.</TooltipContent>
-                    </Tooltip>
-                  ) : (
-                    <DropdownMenuItem onSelect={() => onRotate?.(row.original.id)}>
-                      <RefreshCw />
-                      Rotate key
-                    </DropdownMenuItem>
-                  )}
-                </DropdownMenuGroup>
-                <DropdownMenuSeparator />
-                <DropdownMenuGroup>
-                  <DropdownMenuItem
-                    variant="destructive"
-                    onSelect={() => onDelete?.(row.original.id)}
-                  >
-                    <Trash2 />
-                    Delete
-                  </DropdownMenuItem>
-                </DropdownMenuGroup>
+                {(onEdit || onRotate) && (
+                  <DropdownMenuGroup>
+                    {onEdit && (
+                      <DropdownMenuItem onClick={() => onEdit(row.original.id)}>
+                        <Pencil />
+                        Edit key
+                      </DropdownMenuItem>
+                    )}
+                    {onRotate &&
+                      (expired ? (
+                        <Tooltip>
+                          <TooltipTrigger
+                            render={
+                              <span>
+                                <DropdownMenuItem disabled>
+                                  <RefreshCw />
+                                  Rotate key
+                                </DropdownMenuItem>
+                              </span>
+                            }
+                          />
+                          <TooltipContent side="left">
+                            Expired keys can't be rotated.
+                          </TooltipContent>
+                        </Tooltip>
+                      ) : (
+                        <DropdownMenuItem onClick={() => onRotate(row.original.id)}>
+                          <RefreshCw />
+                          Rotate key
+                        </DropdownMenuItem>
+                      ))}
+                  </DropdownMenuGroup>
+                )}
+                {onDelete && (
+                  <>
+                    {(onEdit || onRotate) && <DropdownMenuSeparator />}
+                    <DropdownMenuGroup>
+                      <DropdownMenuItem
+                        variant="destructive"
+                        onClick={() => onDelete(row.original.id)}
+                      >
+                        <Trash2 />
+                        Delete
+                      </DropdownMenuItem>
+                    </DropdownMenuGroup>
+                  </>
+                )}
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
@@ -187,8 +207,10 @@ export function createKeysColumns({
       },
       enableSorting: false,
       meta: { className: "w-14" },
-    },
-  ];
+    });
+  }
+
+  return columns;
 }
 
 function KeyIdCell({ id, name }: { id: string; name: string | null }) {

@@ -3,12 +3,13 @@ import { ratelimitLogsSort } from "@unkey/clickhouse/src/ratelimits";
 import { z } from "zod";
 
 export const ratelimitQueryLogsPayload = z.object({
-  limit: z.int(),
+  limit: z.int().min(1).max(100),
   startTime: z.int(),
   endTime: z.int(),
   namespaceId: z.string(),
   since: z.string(),
-  page: z.int().optional().default(1),
+  // min(1) keeps the derived offset (page - 1) * limit non-negative in the query builder.
+  page: z.int().min(1).optional().default(1),
   sorts: z.array(ratelimitLogsSort).nullable().optional(),
   identifiers: z
     .object({

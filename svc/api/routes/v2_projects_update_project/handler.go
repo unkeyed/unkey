@@ -11,8 +11,11 @@ import (
 	"github.com/unkeyed/unkey/pkg/auditlog"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/deploy/projectgate"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
@@ -69,6 +72,15 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			)
 		}
 
+		if project.Slug == projectgate.DefaultSlug {
+			return openapi.Project{}, fault.New(
+				"project not found",
+				fault.Code(codes.Data.Project.NotFound.URN()),
+				fault.Internal("default project is not exposed by the projects API"),
+				fault.Public("The requested project does not exist."),
+			)
+		}
+
 		err = principal.Authorize(rbac.Or(
 			rbac.T(rbac.Tuple{
 				ResourceType: rbac.Project,
@@ -80,9 +92,19 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				ResourceID:   project.ID,
 				Action:       rbac.UpdateProject,
 			}),
+			rbac.U(
+				urn.New().Workspace(principal.WorkspaceID).Project(project.ID),
+				permissions.UpdateProject{},
+			),
 		))
 		if err != nil {
 			return openapi.Project{}, err
+		}
+
+		if req.Slug != nil {
+			if err = projectgate.CheckSlug(*req.Slug); err != nil {
+				return openapi.Project{}, err
+			}
 		}
 
 		updatedAt := time.Now().UnixMilli()

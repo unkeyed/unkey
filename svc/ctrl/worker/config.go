@@ -7,6 +7,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/config"
+	"github.com/unkeyed/unkey/svc/ctrl/worker/deploy"
 )
 
 // Route53Config holds AWS Route53 configuration for ACME DNS-01 challenges.
@@ -77,6 +78,35 @@ type RestateConfig struct {
 	RegisterAs string `toml:"register_as"`
 }
 
+// BuildConfig selects and configures the backend that executes container
+// image builds.
+type BuildConfig struct {
+	// Backend selects the build execution backend.
+	// "depot" (the default) runs builds on Depot.dev remote machines and is
+	// what production uses. "kubernetes" runs each build as a one-off
+	// BuildKit Job in the cluster the worker runs in and needs no Depot
+	// account; it is meant for local development only, since build pods run
+	// privileged without further isolation.
+	Backend string `toml:"backend" config:"default=depot"`
+
+	// Depot configures the "depot" backend. Ignored otherwise.
+	Depot DepotConfig `toml:"depot"`
+
+	// Kubernetes configures the "kubernetes" backend. Ignored otherwise.
+	Kubernetes KubernetesBuildConfig `toml:"kubernetes"`
+}
+
+// KubernetesBuildConfig configures the Kubernetes Job build backend.
+type KubernetesBuildConfig struct {
+	// Namespace is where build Jobs are created. The worker's service
+	// account needs permission to manage Jobs and read Pods there.
+	Namespace string `toml:"namespace" config:"default=unkey"`
+
+	// Image is the BuildKit daemon image each build Job runs. Pinned to the
+	// same minor version as the BuildKit client library in go.mod.
+	Image string `toml:"image" config:"default=moby/buildkit:v0.26.3"`
+}
+
 // DepotConfig holds configuration for Depot.dev build service integration.
 //
 // This configuration enables cloud-native container builds through
@@ -114,6 +144,10 @@ type RegistryConfig struct {
 	// Password is the registry password or authentication token.
 	// Should be stored securely and rotated regularly.
 	Password string `toml:"password"`
+
+	// Insecure allows plain-HTTP pushes to the registry. Only for local
+	// registries without TLS; never enable it against a production registry.
+	Insecure bool `toml:"insecure"`
 }
 
 // ClickHouseConfig holds ClickHouse connection configuration.
@@ -156,43 +190,60 @@ type GitHubConfig struct {
 	AllowUnauthenticatedDeployments bool `toml:"allow_unauthenticated_deployments"`
 }
 
-// HeartbeatConfig holds Checkly heartbeat URLs for health monitoring.
+// DeployGateConfig gates webhook-triggered deployments on a synced Compute
+// plan or manual override.
+type DeployGateConfig struct {
+	// Enforce hard-blocks webhook deployments for workspaces with no entitlement.
+	// Default false runs the plan check in observe mode. Spend-cap suspension is
+	// always enforced.
+	Enforce bool `toml:"enforce"`
+}
+
+// HeartbeatConfig holds heartbeat URLs for health monitoring.
 type HeartbeatConfig struct {
-	// CertRenewalURL is the Checkly heartbeat URL for certificate renewal.
+	// CertRenewalURL is the heartbeat URL for certificate renewal.
 	// When set, a heartbeat is sent after successful certificate renewal runs.
 	// Optional - if empty, no heartbeat is sent.
 	CertRenewalURL string `toml:"cert_renewal_url"`
 
-	// QuotaCheckURL is the Checkly heartbeat URL for quota checks.
+	// QuotaCheckURL is the heartbeat URL for quota checks.
 	// When set, a heartbeat is sent after successful quota check runs.
 	// Optional - if empty, no heartbeat is sent.
 	QuotaCheckURL string `toml:"quota_check_url"`
 
-	// KeyRefillURL is the Checkly heartbeat URL for key refill runs.
+	// KeyRefillURL is the heartbeat URL for key refill runs.
 	// When set, a heartbeat is sent after successful key refill runs.
 	// Optional - if empty, no heartbeat is sent.
 	KeyRefillURL string `toml:"key_refill_url"`
 
-	// KeyLastUsedSyncURL is the Checkly heartbeat URL for key last-used sync runs.
+	// KeyLastUsedSyncURL is the heartbeat URL for key last-used sync runs.
 	// When set, a heartbeat is sent after successful sync runs.
 	// Optional - if empty, no heartbeat is sent.
 	KeyLastUsedSyncURL string `toml:"key_last_used_sync_url"`
 
-	// AuditLogExportURL is the Checkly heartbeat URL for audit log export runs.
+	// AuditLogExportURL is the heartbeat URL for audit log export runs.
 	// When set, a heartbeat is sent after successful drains of the MySQL outbox
 	// into ClickHouse. Optional - if empty, no heartbeat is sent.
 	AuditLogExportURL string `toml:"audit_log_export_url"`
 
-	// AuditLogOutboxCleanupURL is the Checkly heartbeat URL for the daily sweep
+	// AuditLogOutboxCleanupURL is the heartbeat URL for the daily sweep
 	// that hard-deletes exported clickhouse_outbox rows past the retention
 	// window. When set, a heartbeat is sent after a successful sweep.
 	// Optional - if empty, no heartbeat is sent.
 	AuditLogOutboxCleanupURL string `toml:"audit_log_outbox_cleanup_url"`
 
-	// DeployBillingPushURL is the Checkly heartbeat URL for the hourly Deploy
+	// DeployBillingPushURL is the heartbeat URL for the hourly Deploy
 	// billing push. When set, a heartbeat is sent after a successful push.
 	// Optional - if empty, no heartbeat is sent.
 	DeployBillingPushURL string `toml:"deploy_billing_push_url"`
+	// DeployBillingCloseURL is the heartbeat URL for the month-end
+	// Deploy billing close. Optional.
+	DeployBillingCloseURL string `toml:"deploy_billing_close_url"`
+
+	// DeploySpendCheckURL is the heartbeat URL for the Compute spend-cap
+	// check orchestrator. When set, a heartbeat is sent after a successful run.
+	// Optional - if empty, no heartbeat is sent.
+	DeploySpendCheckURL string `toml:"deploy_spend_check_url"`
 }
 
 // BillingConfig holds Stripe configuration for the hourly Deploy billing push.
@@ -213,6 +264,15 @@ type SlackConfig struct {
 	// When set, Slack notifications are sent when workspaces exceed their quota.
 	// Optional - if empty, no Slack notifications are sent.
 	QuotaCheckWebhookURL string `toml:"quota_check_webhook_url"`
+}
+
+// EmailConfig holds transactional email (Resend) configuration. Used by the
+// spend-cap check to send budget alerts. Disabled (logs instead of sending)
+// unless ResendAPIKey is set. Sender and subject come from the published
+// template, so there is no From to configure here.
+type EmailConfig struct {
+	// ResendAPIKey authenticates the Resend send API. Empty uses a noop sender.
+	ResendAPIKey string `toml:"resend_api_key"`
 }
 
 // Config holds the complete configuration for the Restate worker service.
@@ -240,7 +300,7 @@ type Config struct {
 	Observability config.Observability `toml:"observability"`
 
 	// DefaultDomain is the fallback domain for system operations.
-	// Used for sentinel deployment and automatic certificate bootstrapping.
+	// Used for automatic certificate bootstrapping.
 	DefaultDomain string `toml:"default_domain" config:"default=unkey.app"`
 
 	// DashboardURL is the base URL of the dashboard, used for constructing links
@@ -269,7 +329,11 @@ type Config struct {
 	// Enables asynchronous deployment and certificate renewal workflows.
 	Restate RestateConfig `toml:"restate"`
 
-	// Depot configures Depot.dev build service integration.
+	// Build selects and configures the build backend. See [BuildConfig].
+	Build BuildConfig `toml:"build"`
+
+	// Depot preserves the legacy top-level [depot] configuration during the
+	// migration to [build.depot]. New configuration should use Build.Depot.
 	Depot DepotConfig `toml:"depot"`
 
 	// Registry configures container registry authentication.
@@ -281,7 +345,10 @@ type Config struct {
 	// GitHub configures GitHub App integration for webhook-triggered deployments.
 	GitHub *GitHubConfig `toml:"github"`
 
-	// Heartbeat configures Checkly heartbeat URLs for health monitoring.
+	// DeployGate configures the entitlement gate for webhook deployments.
+	DeployGate DeployGateConfig `toml:"deploy_gate"`
+
+	// Heartbeat configures heartbeat URLs for health monitoring.
 	Heartbeat HeartbeatConfig `toml:"heartbeat"`
 
 	// Slack configures Slack webhook URLs for notifications.
@@ -289,6 +356,14 @@ type Config struct {
 
 	// Billing configures the hourly Deploy billing push to Stripe.
 	Billing BillingConfig `toml:"billing"`
+
+	// Email configures transactional email (Resend) for budget alerts.
+	Email EmailConfig `toml:"email"`
+
+	// WorkOSAPIKey authenticates the spend-cap check's lookup of org admin
+	// emails (budget-alert recipients). Empty resolves no recipients, so the
+	// check logs crossings but sends no email.
+	WorkOSAPIKey string `toml:"workos_api_key"`
 
 	// Clock provides time operations for testing and scheduling.
 	// Use clock.New() for production deployments.
@@ -342,14 +417,12 @@ func (c Config) GetRegistryConfig() RegistryConfig {
 	return c.Registry
 }
 
-// GetDepotConfig returns the depot configuration.
-//
-// This method returns the DepotConfig from the main Config struct.
-// Should only be called after Validate() succeeds to ensure
-// depot configuration is complete and valid.
-//
-// Returns the DepotConfig containing API URL and project region.
+// GetDepotConfig returns nested Depot configuration when present, otherwise
+// falling back to the legacy top-level [depot] table.
 func (c Config) GetDepotConfig() DepotConfig {
+	if c.Build.Depot.APIUrl != "" {
+		return c.Build.Depot
+	}
 	return c.Depot
 }
 
@@ -381,18 +454,33 @@ func (c *Config) Validate() error {
 		}
 	}
 
-	// Validate build configuration (Depot backend) - only if registry password is provided
-	// The registry password is the depot token, which is required for builds.
-	// URL and username may be hardcoded in k8s manifests, password comes from secrets.
-	if c.Registry.Password != "" {
+	switch deploy.BuildBackend(c.Build.Backend) {
+	case deploy.BuildBackendDepot:
+		// Depot is only usable with a registry password (the depot token),
+		// which is required for builds. URL and username may be hardcoded in
+		// k8s manifests, password comes from secrets.
+		if c.Registry.Password != "" {
+			depotConfig := c.GetDepotConfig()
+			if err := assert.All(
+				assert.NotEmpty(c.Registry.Repository, "registry repository is required when registry password is configured"),
+				assert.NotEmpty(c.Registry.Username, "registry username is required when registry password is configured"),
+				assert.NotEmpty(depotConfig.APIUrl, "Depot API URL is required when registry password is configured"),
+				assert.NotEmpty(depotConfig.ProjectRegion, "Depot project region is required when registry password is configured"),
+			); err != nil {
+				return err
+			}
+		}
+	case deploy.BuildBackendKubernetes:
 		if err := assert.All(
-			assert.NotEmpty(c.Registry.Repository, "registry repository is required when registry password is configured"),
-			assert.NotEmpty(c.Registry.Username, "registry username is required when registry password is configured"),
-			assert.NotEmpty(c.Depot.APIUrl, "Depot API URL is required when registry password is configured"),
-			assert.NotEmpty(c.Depot.ProjectRegion, "Depot project region is required when registry password is configured"),
+			assert.NotEmpty(c.Registry.Repository, "registry repository is required for the kubernetes build backend"),
+			assert.NotEmpty(c.Build.Kubernetes.Namespace, "build job namespace is required for the kubernetes build backend"),
+			assert.NotEmpty(c.Build.Kubernetes.Image, "buildkit image is required for the kubernetes build backend"),
 		); err != nil {
 			return err
 		}
+	default:
+		return fmt.Errorf("invalid build backend %q: must be %q or %q",
+			c.Build.Backend, deploy.BuildBackendDepot, deploy.BuildBackendKubernetes)
 	}
 
 	return nil

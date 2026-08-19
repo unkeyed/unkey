@@ -11,6 +11,8 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
+	restate "github.com/restatedev/sdk-go"
+	restateingress "github.com/restatedev/sdk-go/ingress"
 	"github.com/unkeyed/unkey/gen/proto/ctrl/v1/ctrlv1connect"
 	"github.com/unkeyed/unkey/gen/proto/vault/v1/vaultv1connect"
 	"github.com/unkeyed/unkey/gen/rpc/ctrl"
@@ -30,6 +32,7 @@ import (
 	portalsession "github.com/unkeyed/unkey/pkg/auth/portal_session"
 	rootkey "github.com/unkeyed/unkey/pkg/auth/root_key"
 	authworkos "github.com/unkeyed/unkey/pkg/auth/workos"
+
 	"github.com/unkeyed/unkey/pkg/batch"
 	"github.com/unkeyed/unkey/pkg/buildinfo"
 	"github.com/unkeyed/unkey/pkg/cache"
@@ -38,17 +41,21 @@ import (
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/counter"
 	"github.com/unkeyed/unkey/pkg/db"
+	githubclient "github.com/unkeyed/unkey/pkg/github"
 	"github.com/unkeyed/unkey/pkg/logger"
+	"github.com/unkeyed/unkey/pkg/mysql/sqlcomment"
 	"github.com/unkeyed/unkey/pkg/otel"
 	"github.com/unkeyed/unkey/pkg/prometheus"
 	"github.com/unkeyed/unkey/pkg/prometheus/lazy"
 	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/redaction"
 	"github.com/unkeyed/unkey/pkg/rpc/interceptor"
 	"github.com/unkeyed/unkey/pkg/runner"
 	"github.com/unkeyed/unkey/pkg/tls"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/pkg/zen/validation"
+	"github.com/unkeyed/unkey/svc/api/openapi"
 	"github.com/unkeyed/unkey/svc/api/routes"
 )
 
@@ -129,6 +136,7 @@ func Run(ctx context.Context, cfg Config) error {
 	database, err := db.New(db.Config{
 		PrimaryDSN:  cfg.Database.Primary,
 		ReadOnlyDSN: cfg.Database.ReadonlyReplica,
+		Tags:        sqlcomment.ForService("api", cfg.Region),
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create db: %w", err)
@@ -171,7 +179,7 @@ func Run(ctx context.Context, cfg Config) error {
 		}
 		ch = chClient
 
-		apiRequests = clickhouse.NewBuffer[schema.ApiRequest](chClient, "default.api_requests_raw_v2", clickhouse.BufferConfig{
+		apiRequests = clickhouse.NewBuffer[schema.ApiRequest](chClient, clickhouse.BufferConfig{
 			Name:          "api_requests",
 			BatchSize:     10_000,
 			BufferSize:    20_000,
@@ -180,7 +188,7 @@ func Run(ctx context.Context, cfg Config) error {
 			Drop:          true,
 			OnFlushError:  nil,
 		})
-		keyVerifications = clickhouse.NewBuffer[schema.KeyVerification](chClient, "default.key_verifications_raw_v2", clickhouse.BufferConfig{
+		keyVerifications = clickhouse.NewBuffer[schema.KeyVerification](chClient, clickhouse.BufferConfig{
 			Name:          "key_verifications",
 			BatchSize:     10_000,
 			BufferSize:    20_000,
@@ -189,7 +197,7 @@ func Run(ctx context.Context, cfg Config) error {
 			Drop:          true,
 			OnFlushError:  nil,
 		})
-		ratelimits = clickhouse.NewBuffer[schema.Ratelimit](chClient, "default.ratelimits_raw_v2", clickhouse.BufferConfig{
+		ratelimits = clickhouse.NewBuffer[schema.Ratelimit](chClient, clickhouse.BufferConfig{
 			Name:          "ratelimits",
 			BatchSize:     10_000,
 			BufferSize:    20_000,
@@ -213,6 +221,7 @@ func Run(ctx context.Context, cfg Config) error {
 		},
 		TLS:                cfg.TLSConfig,
 		EnableH2C:          false,
+		StreamRequestBody:  false,
 		MaxRequestBodySize: cfg.MaxRequestBodySize,
 		ReadTimeout:        0,
 		WriteTimeout:       0,
@@ -228,6 +237,19 @@ func Run(ctx context.Context, cfg Config) error {
 	if err != nil {
 		return fmt.Errorf("unable to create validator: %w", err)
 	}
+
+	// Bodies are logged to ClickHouse verbatim apart from this, so an empty
+	// field set means every annotated secret would be persisted in the clear.
+	// Refuse to start rather than log plaintext keys.
+	redactedPaths, err := redaction.PathsFromSpec(openapi.Spec)
+	if err != nil {
+		return fmt.Errorf("unable to load redaction paths: %w", err)
+	}
+	if len(redactedPaths) == 0 {
+		return fmt.Errorf("openapi spec declares no %s properties, refusing to log request bodies unredacted", redaction.Extension)
+	}
+	redactor := redaction.New(redactedPaths)
+	logger.Info("request body redaction enabled", "paths", redactor.Paths())
 
 	var ctr counter.Counter
 	if cfg.Test.Counter != nil {
@@ -310,6 +332,7 @@ func Run(ctx context.Context, cfg Config) error {
 		RBAC:         rbac.New(),
 		Region:       cfg.Region,
 		UsageLimiter: ulSvc,
+		Source:       schema.SourceAPI,
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create key service: %w", err)
@@ -317,6 +340,7 @@ func Run(ctx context.Context, cfg Config) error {
 	portalSvc := portal.New(portal.Config{
 		DB:           database,
 		SessionCache: caches.PortalSession,
+		Clock:        cfg.Clock,
 	})
 
 	// JWT resolvers hit this lookup on every authenticated request, so the
@@ -345,7 +369,10 @@ func Run(ctx context.Context, cfg Config) error {
 		return workspace.ID, nil
 	})
 
+	// Portal sessions authenticate on a dedicated auth service used only by the
+	// portal routes, so protected routes never accept a portal-session cookie.
 	authResolvers := []auth.Resolver{}
+	portalResolvers := []auth.Resolver{}
 	for i, authConfig := range cfg.Auth {
 		switch authConfig := authConfig.(type) {
 		case JWTAuthConfig:
@@ -373,7 +400,7 @@ func Run(ctx context.Context, cfg Config) error {
 			}
 			authResolvers = append(authResolvers, jwtResolver)
 		case PortalSessionAuthConfig:
-			authResolvers = append(authResolvers, portalsession.NewResolver(portalSvc))
+			portalResolvers = append(portalResolvers, portalsession.NewResolver(portalSvc))
 		case RootKeyAuthConfig:
 			authResolvers = append(authResolvers, rootkey.NewResolver(keySvc))
 		default:
@@ -381,6 +408,7 @@ func Run(ctx context.Context, cfg Config) error {
 		}
 	}
 	authSvc := auth.New(authResolvers...)
+	portalAuthSvc := auth.New(portalResolvers...)
 
 	r.Defer(keySvc.Close)
 	r.Defer(ctr.Close)
@@ -431,6 +459,22 @@ func Run(ctx context.Context, cfg Config) error {
 		),
 	)
 
+	ctrlCustomDomainClient := ctrl.NewConnectCustomDomainServiceClient(
+		ctrlv1connect.NewCustomDomainServiceClient(
+			&http.Client{},
+			cfg.Control.URL,
+			connect.WithInterceptors(interceptor.NewHeaderInjector(map[string]string{
+				"Authorization": fmt.Sprintf("Bearer %s", cfg.Control.Token),
+			})),
+		),
+	)
+
+	restateClient := restateingress.NewClient(
+		cfg.Restate.URL,
+		restate.WithAuthKey(cfg.Restate.APIKey),
+		restate.WithHttpClient(&http.Client{Timeout: 30 * time.Second}),
+	)
+
 	logger.Info("Control plane clients initialized", "url", cfg.Control.URL)
 
 	pprofEnabled := cfg.Pprof != nil && cfg.Pprof.Username != "" && cfg.Pprof.Password != ""
@@ -438,6 +482,24 @@ func Run(ctx context.Context, cfg Config) error {
 	if pprofEnabled {
 		pprofUsername = cfg.Pprof.Username
 		pprofPassword = cfg.Pprof.Password
+	}
+
+	// A real GitHub client is only built when the App ID and private key are
+	// both configured. Without them the repo-connection path on apps.createApp /
+	// apps.updateApp reports the feature as unconfigured; the Noop stand-in keeps
+	// the handlers non-nil and returns that "not configured" error on use.
+	var githubClient githubclient.GitHubClient = githubclient.NewNoop()
+	if cfg.GitHub.AppID != 0 && cfg.GitHub.PrivateKeyPEM != "" {
+		ghc, ghErr := githubclient.NewClient(githubclient.ClientConfig{
+			AppID:         cfg.GitHub.AppID,
+			PrivateKeyPEM: cfg.GitHub.PrivateKeyPEM,
+			// Repo connection never verifies webhooks, so no secret is needed.
+			WebhookSecret: "",
+		})
+		if ghErr != nil {
+			return fmt.Errorf("unable to create github client: %w", ghErr)
+		}
+		githubClient = ghc
 	}
 
 	routes.Register(srv, &routes.Services{
@@ -448,7 +510,9 @@ func Run(ctx context.Context, cfg Config) error {
 		KeyVerifications:     keyVerifications,
 		Keys:                 keySvc,
 		Auth:                 authSvc,
+		PortalAuth:           portalAuthSvc,
 		Validator:            validator,
+		Redactor:             redactor,
 		Ratelimit:            rlSvc,
 		Auditlogs:            auditlogSvc,
 		Caches:               caches,
@@ -456,13 +520,19 @@ func Run(ctx context.Context, cfg Config) error {
 		CtrlDeploymentClient: ctrlDeploymentClient,
 		CtrlProjectClient:    ctrlProjectClient,
 		CtrlAppClient:        ctrlAppClient,
-		PprofEnabled:         pprofEnabled,
-		PprofUsername:        pprofUsername,
-		PprofPassword:        pprofPassword,
+		Restate:              restateClient,
+
+		CtrlCustomDomainClient: ctrlCustomDomainClient,
+		PprofEnabled:           pprofEnabled,
+		PprofUsername:          pprofUsername,
+		PprofPassword:          pprofPassword,
 
 		UsageLimiter:               ulSvc,
 		AnalyticsConnectionManager: analyticsConnMgr,
 		PortalBaseURL:              cfg.PortalBaseURL,
+		GitHubAppName:              cfg.GitHub.AppName,
+		GitHubPrivateKeyPEM:        cfg.GitHub.PrivateKeyPEM,
+		GitHubClient:               githubClient,
 	},
 		zen.InstanceInfo{
 			ID:     cfg.InstanceID,

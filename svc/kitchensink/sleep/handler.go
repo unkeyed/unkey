@@ -1,5 +1,5 @@
 // Package sleep blocks for a caller-specified duration before returning
-// 200. Useful for testing sentinel timeouts and slow-upstream behavior.
+// 200. Useful for testing Frontline timeouts and slow-upstream behavior.
 package sleep
 
 import (

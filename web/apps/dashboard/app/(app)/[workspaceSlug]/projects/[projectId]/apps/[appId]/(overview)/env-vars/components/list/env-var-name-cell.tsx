@@ -1,13 +1,12 @@
 "use client";
 
-import { trpc } from "@/lib/trpc/client";
 import { Note3 } from "@unkey/icons";
 import { Badge, InfoTooltip, toast } from "@unkey/ui";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { HighlightMatch } from "../shared/highlight-match";
 
 type EnvVarNameCellProps = {
-  envVarId: string;
+  value: string;
   variableKey: string;
   environmentName: string;
   note?: string | null;
@@ -16,7 +15,7 @@ type EnvVarNameCellProps = {
 };
 
 export const EnvVarNameCell = ({
-  envVarId,
+  value,
   variableKey,
   environmentName,
   note,
@@ -25,7 +24,6 @@ export const EnvVarNameCell = ({
 }: EnvVarNameCellProps) => {
   const [copied, setCopied] = useState(false);
   const copyTimeoutRef = useRef<ReturnType<typeof setTimeout>>(undefined);
-  const decryptMutation = trpc.deploy.envVar.decrypt.useMutation();
 
   useEffect(() => {
     return () => {
@@ -36,13 +34,9 @@ export const EnvVarNameCell = ({
   const handleCopy = useCallback(
     async (e: React.MouseEvent) => {
       e.stopPropagation();
+      const text = type === "recoverable" ? `${variableKey}=${value}` : variableKey;
       try {
-        if (type === "recoverable") {
-          const result = await decryptMutation.mutateAsync({ envVarId });
-          navigator.clipboard.writeText(`${variableKey}=${result.value}`);
-        } else {
-          navigator.clipboard.writeText(variableKey);
-        }
+        await navigator.clipboard.writeText(text);
         setCopied(true);
         toast.success("Copied to clipboard");
         clearTimeout(copyTimeoutRef.current);
@@ -51,7 +45,7 @@ export const EnvVarNameCell = ({
         toast.error("Failed to copy variable");
       }
     },
-    [variableKey, type, envVarId, decryptMutation],
+    [variableKey, type, value],
   );
 
   return (

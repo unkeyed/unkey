@@ -1,5 +1,4 @@
 import { getStripeClient } from "@/lib/stripe";
-import { deployBillingConfig, findDeployItems } from "@/lib/stripe/deployBilling";
 import { TRPCError } from "@trpc/server";
 import { requireWorkspaceAdmin, workspaceProcedure } from "../../trpc";
 
@@ -21,38 +20,22 @@ export const cancelSubscription = workspaceProcedure
       });
     }
 
-    // Cancelling at period end ends the WHOLE subscription — on a mixed
-    // subscription that would silently take Compute (and its deployments)
-    // down with the API plan. Until per-item scheduled cancellation exists,
-    // require Compute to be cancelled first.
-    //
-    // Fail closed when config can't be resolved: a null config means we can't
-    // tell whether this subscription carries Compute, so proceeding would skip
-    // the guard and risk cancelling Compute along with the API plan. A transient
-    // resolution failure is better surfaced as a retryable error than as a
-    // silent Compute teardown.
-    const config = await deployBillingConfig();
-    if (!config) {
-      throw new TRPCError({
-        code: "INTERNAL_SERVER_ERROR",
-        message: "Billing is temporarily unavailable. Please try again in a moment.",
-      });
-    }
-    const sub = await stripe.subscriptions.retrieve(ctx.workspace.stripeSubscriptionId);
-    if (findDeployItems(config, sub.items.data).length > 0) {
-      throw new TRPCError({
-        code: "PRECONDITION_FAILED",
-        message:
-          "This subscription also carries your Compute plan. Cancel Compute first, then cancel the API plan.",
-      });
+    const subscription = await stripe.subscriptions.retrieve(ctx.workspace.stripeSubscriptionId);
+    if (subscription.schedule) {
+      const scheduleId =
+        typeof subscription.schedule === "string"
+          ? subscription.schedule
+          : subscription.schedule.id;
+      // Cancellation supersedes any pending plan change. Release the schedule
+      // first so the native period-end cancellation remains authoritative.
+      await stripe.subscriptionSchedules.release(scheduleId);
     }
 
-    /**
-     * Stripe deletes the subscription at period end. The webhook handler for
-     * `customer.subscription.deleted` reverts tier/quotas and deactivates all non-creator
-     * memberships, so we don't need to block cancellation on member count here.
-     */
-    await stripe.subscriptions.update(ctx.workspace.stripeSubscriptionId, {
+    // The API product owns its own subscription, so cancelling is a native
+    // whole-subscription cancel at period end. Stripe deletes it at the boundary
+    // and the customer.subscription.deleted webhook reverts tier/quotas and
+    // deactivates non-creator memberships, so no member-count block is needed here.
+    await stripe.subscriptions.update(subscription.id, {
       cancel_at_period_end: true,
     });
   });

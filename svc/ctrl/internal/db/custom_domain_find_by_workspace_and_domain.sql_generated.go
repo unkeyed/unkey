@@ -7,10 +7,19 @@ package db
 
 import (
 	"context"
+	"database/sql"
 )
 
 const findCustomDomainByWorkspaceAndDomain = `-- name: FindCustomDomainByWorkspaceAndDomain :one
-SELECT pk, id, workspace_id, project_id, app_id, environment_id, domain, challenge_type, verification_status, verification_token, ownership_verified, cname_verified, target_cname, last_checked_at, check_attempts, verification_error, domain_connect_provider, domain_connect_url, invocation_id, created_at, updated_at FROM custom_domains
+SELECT
+    id,
+    project_id,
+    app_id,
+    environment_id,
+    domain,
+    verification_status,
+    invocation_id
+FROM custom_domains
 WHERE workspace_id = ? AND domain = ?
 `
 
@@ -19,35 +28,39 @@ type FindCustomDomainByWorkspaceAndDomainParams struct {
 	Domain      string `db:"domain"`
 }
 
+type FindCustomDomainByWorkspaceAndDomainRow struct {
+	ID                 string                          `db:"id"`
+	ProjectID          string                          `db:"project_id"`
+	AppID              string                          `db:"app_id"`
+	EnvironmentID      string                          `db:"environment_id"`
+	Domain             string                          `db:"domain"`
+	VerificationStatus CustomDomainsVerificationStatus `db:"verification_status"`
+	InvocationID       sql.NullString                  `db:"invocation_id"`
+}
+
 // FindCustomDomainByWorkspaceAndDomain
 //
-//	SELECT pk, id, workspace_id, project_id, app_id, environment_id, domain, challenge_type, verification_status, verification_token, ownership_verified, cname_verified, target_cname, last_checked_at, check_attempts, verification_error, domain_connect_provider, domain_connect_url, invocation_id, created_at, updated_at FROM custom_domains
+//	SELECT
+//	    id,
+//	    project_id,
+//	    app_id,
+//	    environment_id,
+//	    domain,
+//	    verification_status,
+//	    invocation_id
+//	FROM custom_domains
 //	WHERE workspace_id = ? AND domain = ?
-func (q *Queries) FindCustomDomainByWorkspaceAndDomain(ctx context.Context, arg FindCustomDomainByWorkspaceAndDomainParams) (CustomDomain, error) {
+func (q *Queries) FindCustomDomainByWorkspaceAndDomain(ctx context.Context, arg FindCustomDomainByWorkspaceAndDomainParams) (FindCustomDomainByWorkspaceAndDomainRow, error) {
 	row := q.db.QueryRowContext(ctx, findCustomDomainByWorkspaceAndDomain, arg.WorkspaceID, arg.Domain)
-	var i CustomDomain
+	var i FindCustomDomainByWorkspaceAndDomainRow
 	err := row.Scan(
-		&i.Pk,
 		&i.ID,
-		&i.WorkspaceID,
 		&i.ProjectID,
 		&i.AppID,
 		&i.EnvironmentID,
 		&i.Domain,
-		&i.ChallengeType,
 		&i.VerificationStatus,
-		&i.VerificationToken,
-		&i.OwnershipVerified,
-		&i.CnameVerified,
-		&i.TargetCname,
-		&i.LastCheckedAt,
-		&i.CheckAttempts,
-		&i.VerificationError,
-		&i.DomainConnectProvider,
-		&i.DomainConnectUrl,
 		&i.InvocationID,
-		&i.CreatedAt,
-		&i.UpdatedAt,
 	)
 	return i, err
 }

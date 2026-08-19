@@ -1,0 +1,28 @@
+type: object
+required:
+  - domain
+properties:
+  domain:
+    type: string
+    minLength: 4
+    maxLength: 253
+    description: |
+      Identifies a domain by its Unkey ID or by its name. Pass a 'dom_'-prefixed ID, or a fully
+      qualified domain name such as 'api.acme.com' without a scheme, port, or path. You can give an
+      internationalized name in Unicode or Punycode form. Both forms address the same domain.
+
+      Domain names are unique per workspace, so the name alone addresses the domain. You do not
+      need to supply a project, app, or environment.
+    example: api.acme.com
+additionalProperties: false
+examples:
+  byName:
+    summary: Retrieve by domain name
+    description: The name is unique per workspace. It addresses the domain on its own.
+    value:
+      domain: api.acme.com
+  byId:
+    summary: Retrieve by domain ID
+    description: Uses the id that domains.createDomain returned.
+    value:
+      domain: dom_1234abcd

@@ -483,6 +483,105 @@ describe("WorkOSAuthProvider", () => {
       }
     });
 
+    it("replaces an unsafe redirectUrlComplete with /apis before it enters state", () => {
+      workos.userManagement.getAuthorizationUrl.mockReturnValue("https://workos.test/authorize");
+
+      provider.signInViaOAuth({
+        provider: "github",
+        redirectUrlComplete: "https://evil.com",
+        signalsId: "signals_123",
+      });
+
+      const callArgs = workos.userManagement.getAuthorizationUrl.mock.calls[0][0];
+      expect(JSON.parse(decodeURIComponent(callArgs.state))).toEqual({
+        redirectUrlComplete: "/apis",
+        signalsId: "signals_123",
+      });
+    });
+
+    it.each(["https://evil.com", "//evil.com", "/\\evil.com"])(
+      "falls back to /apis when the callback state carries the unsafe redirect %s",
+      async (unsafeRedirect) => {
+        workos.userManagement.authenticateWithCode.mockResolvedValue({
+          sealedSession: "sealed_123",
+        });
+
+        const state = encodeURIComponent(JSON.stringify({ redirectUrlComplete: unsafeRedirect }));
+        const result = await provider.completeOAuthSignIn(
+          new Request(`http://localhost:3000/auth/sso-callback?code=auth_code_1&state=${state}`),
+        );
+
+        expect(result.success).toBe(true);
+        if (result.success) {
+          expect(result.redirectTo).toBe("/apis");
+        }
+      },
+    );
+
+    it("falls back to /apis when the callback state redirect is not a string", async () => {
+      workos.userManagement.authenticateWithCode.mockResolvedValue({ sealedSession: "sealed_123" });
+
+      // JSON.parse of the state can yield any type; a non-string value must
+      // not turn a successful authentication into a failure.
+      const state = encodeURIComponent(JSON.stringify({ redirectUrlComplete: 123 }));
+      const result = await provider.completeOAuthSignIn(
+        new Request(`http://localhost:3000/auth/sso-callback?code=auth_code_1&state=${state}`),
+      );
+
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.redirectTo).toBe("/apis");
+      }
+    });
+
+    it("tolerates a root-level non-object state value", async () => {
+      workos.userManagement.authenticateWithCode.mockResolvedValue({ sealedSession: "sealed_123" });
+
+      // JSON.parse("null") yields null; property access on it must not turn a
+      // successful authentication into a failure.
+      const result = await provider.completeOAuthSignIn(
+        new Request("http://localhost:3000/auth/sso-callback?code=auth_code_1&state=null"),
+      );
+
+      expect(workos.userManagement.authenticateWithCode).toHaveBeenCalledWith(
+        expect.objectContaining({ code: "auth_code_1", signalsId: undefined }),
+      );
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.redirectTo).toBe("/apis");
+      }
+    });
+
+    it("drops a non-string signalsId from the callback state", async () => {
+      workos.userManagement.authenticateWithCode.mockResolvedValue({ sealedSession: "sealed_123" });
+
+      const state = encodeURIComponent(JSON.stringify({ signalsId: 123 }));
+      const result = await provider.completeOAuthSignIn(
+        new Request(`http://localhost:3000/auth/sso-callback?code=auth_code_1&state=${state}`),
+      );
+
+      expect(workos.userManagement.authenticateWithCode).toHaveBeenCalledWith(
+        expect.objectContaining({ code: "auth_code_1", signalsId: undefined }),
+      );
+      expect(result.success).toBe(true);
+    });
+
+    it("preserves a safe deep link from the callback state", async () => {
+      workos.userManagement.authenticateWithCode.mockResolvedValue({ sealedSession: "sealed_123" });
+
+      const state = encodeURIComponent(
+        JSON.stringify({ redirectUrlComplete: "/my-workspace/settings/billing?tab=usage" }),
+      );
+      const result = await provider.completeOAuthSignIn(
+        new Request(`http://localhost:3000/auth/sso-callback?code=auth_code_1&state=${state}`),
+      );
+
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.redirectTo).toBe("/my-workspace/settings/billing?tab=usage");
+      }
+    });
+
     it("completes OAuth without a token when none was collected", async () => {
       workos.userManagement.authenticateWithCode.mockResolvedValue({ sealedSession: "sealed_123" });
 

@@ -1,5 +1,14 @@
 import { useFilters } from "@/app/(app)/[workspaceSlug]/ratelimits/[namespaceId]/logs/hooks/use-filters";
 import { HISTORICAL_DATA_WINDOW } from "@/components/logs/constants";
+import {
+  PAGINATED_LIST_PREFETCH_OPTIONS,
+  PAGINATED_LIST_QUERY_OPTIONS,
+  computeTotalPages,
+  paginationFilterKey,
+  useFallbackTotalPages,
+  usePaginatedNavigation,
+  usePaginatedPage,
+} from "@/hooks/use-paginated-list-query";
 import { trpc } from "@/lib/trpc/client";
 import { useQueryTime } from "@/providers/query-time-provider";
 import type { SortingState } from "@tanstack/react-table";
@@ -8,7 +17,7 @@ import type {
   RatelimitLogEnrichment,
   RatelimitLogsSort,
 } from "@unkey/clickhouse/src/ratelimits";
-import { createParser, parseAsInteger, useQueryState } from "nuqs";
+import { createParser, useQueryState } from "nuqs";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { RatelimitQueryLogsPayload } from "../schema/query-logs.schema";
 
@@ -84,7 +93,6 @@ function enrichLogs(
 
 // Maximum number of real-time logs to store
 const REALTIME_DATA_LIMIT = 100;
-const PREFETCH_PAGES_AHEAD = 2;
 
 // The enrichment row (from api_requests_raw_v2) for a ratelimit event is the
 // request record, whose `time` is slightly later than the ratelimit-decision
@@ -117,9 +125,6 @@ export function useRatelimitLogsQuery({
   const queryClient = trpc.useUtils();
   const { queryTime: timestamp } = useQueryTime();
 
-  const [page, setPage] = useQueryState("page", parseAsInteger.withDefault(1));
-  const normalizedPage = Math.max(1, page);
-
   // Server-side sort state, persisted in the URL (`?sort=`). Single-column
   // (TanStack is configured for single sort), defaults to newest-first.
   const [sorting, setSorting] = useQueryState("sort", sortingParser);
@@ -128,37 +133,27 @@ export function useRatelimitLogsQuery({
   // either changes we reset pagination and clear the realtime/enrichment
   // buffers, since cached rows no longer belong to the new result set.
   const filtersKey = useMemo(
-    () => `${filters.map((f) => `${f.field}:${f.operator}:${f.value}`).join("|")}|ts:${timestamp}`,
+    () => `${paginationFilterKey(filters)}|ts:${timestamp}`,
     [filters, timestamp],
   );
 
-  // When the filter content changes, the render that observes it still sees the
-  // old page until setPage(1) commits. Without this synchronous correction the
-  // hook would fire one stale request for the previous page against the new
-  // filters before the reset effect below runs. The null guard keeps
-  // URL-persisted pages intact on first mount; we only override on a real
-  // filter transition.
-  const prevFiltersKeyRef = useRef<string | null>(null);
-  const isFilterTransition =
-    prevFiltersKeyRef.current !== null && filtersKey !== prevFiltersKeyRef.current;
-
-  // Same synchronous-reset trick for sort changes: a new sort must restart at
-  // page 1, and we force queryPage to 1 on the transition render so we never
-  // fire a stale request for the previous page against the new ordering. Unlike
-  // a filter change, the result *set* is unchanged, so the realtime/enrichment
-  // buffers are left intact.
+  // Sort changes also reset pagination (the current OFFSET is only meaningful
+  // relative to the current ordering), but unlike a filter change the result
+  // *set* is unchanged, so the realtime/enrichment buffers are left intact —
+  // the buffer-flush effect below keys off filtersKey alone.
   const sortKey = useMemo(
     () => sorting.map((sort) => `${sort.id}:${sort.desc ? "desc" : "asc"}`).join("|"),
     [sorting],
   );
-  const prevSortKeyRef = useRef<string | null>(null);
-  const isSortTransition = prevSortKeyRef.current !== null && sortKey !== prevSortKeyRef.current;
+
+  const { page, setPage } = usePaginatedPage(`${filtersKey}|sort:${sortKey}`);
 
   // Live tail only operates on page 1 and pagination is disabled while live, so
   // force the queried page to 1 whenever polling is active. Together with the
-  // filter-transition reset this keeps the query, realtime gating, and URL in
-  // sync without firing a stale request for whatever page was last viewed.
-  const queryPage = startPolling || isFilterTransition || isSortTransition ? 1 : normalizedPage;
+  // reset-key transition in usePaginatedPage this keeps the query, realtime
+  // gating, and URL in sync without firing a stale request for whatever page
+  // was last viewed.
+  const queryPage = startPolling ? 1 : page;
 
   // Real-time logs only apply on the first page while polling is active
   const activeRealtimeLogsMap = useMemo(() => {
@@ -249,9 +244,12 @@ export function useRatelimitLogsQuery({
     return params;
   }, [filters, limit, namespaceId, timestamp, queryPage, sorts]);
 
-  // Reset to page 1 and clear the realtime + enrichment buffers when filters or
-  // the time window change. queryPage already reflects the reset synchronously;
-  // this effect commits it to URL state and flushes the now-stale buffers.
+  // Flush the realtime + enrichment buffers when filters or the time window
+  // change — cached rows no longer belong to the new result set. The page reset
+  // itself (synchronous queryPage plus the setPage(1) commit) is owned by
+  // usePaginatedPage; this effect only handles the feature-specific buffers,
+  // and deliberately ignores sort changes, which keep the result set intact.
+  const prevFiltersKeyRef = useRef<string | null>(null);
   useEffect(() => {
     if (prevFiltersKeyRef.current === null) {
       prevFiltersKeyRef.current = filtersKey;
@@ -259,38 +257,18 @@ export function useRatelimitLogsQuery({
     }
     if (filtersKey !== prevFiltersKeyRef.current) {
       prevFiltersKeyRef.current = filtersKey;
-      setPage(1);
       setRealtimeLogsMap(new Map());
       enrichmentMapRef.current.clear();
       setEnrichmentVersion(0);
     }
-  }, [filtersKey, setPage]);
-
-  // Commit the page reset for a sort change to URL state. queryPage already
-  // reflects it synchronously via isSortTransition; the result set is unchanged
-  // so we deliberately do not flush the realtime/enrichment buffers here.
-  useEffect(() => {
-    if (prevSortKeyRef.current === null) {
-      prevSortKeyRef.current = sortKey;
-      return;
-    }
-    if (sortKey !== prevSortKeyRef.current) {
-      prevSortKeyRef.current = sortKey;
-      setPage(1);
-    }
-  }, [sortKey, setPage]);
+  }, [filtersKey]);
 
   // Main query for historical data (page-based)
   const {
     data: logData,
     isLoading,
     isFetching,
-  } = trpc.ratelimit.logs.query.useQuery(queryParams, {
-    staleTime: Number.POSITIVE_INFINITY,
-    refetchOnMount: false,
-    refetchOnWindowFocus: false,
-    keepPreviousData: true,
-  });
+  } = trpc.ratelimit.logs.query.useQuery(queryParams, PAGINATED_LIST_QUERY_OPTIONS);
 
   // Fetch enrichment data for a batch of logs
   const fetchEnrichment = useCallback(
@@ -369,36 +347,33 @@ export function useRatelimitLogsQuery({
   const knownTotal = logData?.total ?? null;
   const totalCount =
     knownTotal !== null ? Math.max(0, knownTotal) : (queryPage - 1) * limit + pageRowCount;
+  // useFallbackTotalPages owns the last-non-empty-page memory and drops it when
+  // filtersKey changes, so the whole count-outage rule stays in one place.
+  const fallbackTotalPages = useFallbackTotalPages({
+    isFetching,
+    hasData: logData != null,
+    pageRowCount,
+    queryPage,
+    limit,
+    resetKey: filtersKey,
+  });
   const totalPages =
-    knownTotal !== null
-      ? Math.max(1, Math.ceil(totalCount / limit))
-      : queryPage + (pageRowCount >= limit ? 1 : 0);
+    knownTotal !== null ? computeTotalPages(totalCount, limit) : fallbackTotalPages;
 
-  // Clamp page to valid range once data has loaded. The logData guard keeps a
-  // deep-linked page (e.g. ?page=3) from snapping to 1 on first render, when
-  // totalCount is still 0 and totalPages collapses to 1.
-  useEffect(() => {
-    if (!logData) {
-      return;
-    }
-    if (queryPage > totalPages) {
-      setPage(totalPages);
-    }
-  }, [logData, queryPage, totalPages, setPage]);
-
-  // Prefetch the next few pages
-  useEffect(() => {
-    for (let i = 1; i <= PREFETCH_PAGES_AHEAD; i++) {
-      const nextPage = queryPage + i;
-      if (nextPage > totalPages) {
-        break;
-      }
-      queryClient.ratelimit.logs.query.prefetch(
-        { ...queryParams, page: nextPage },
-        { staleTime: Number.POSITIVE_INFINITY },
-      );
-    }
-  }, [queryPage, totalPages, queryParams, queryClient.ratelimit.logs.query]);
+  // `enabled: !startPolling` suspends the clamp and the adjacent-page prefetch
+  // while live, where the view is pinned to page 1 and the footer is hidden.
+  const { onPageChange, isInitialLoading, isNavigating } = usePaginatedNavigation({
+    data: logData,
+    page: queryPage,
+    totalPages,
+    setPage,
+    isLoading,
+    isFetching,
+    queryParams,
+    prefetch: (params) =>
+      queryClient.ratelimit.logs.query.prefetch(params, PAGINATED_LIST_PREFETCH_OPTIONS),
+    enabled: !startPolling,
+  });
 
   // Fetch enrichment whenever new historical data arrives
   useEffect(() => {
@@ -530,19 +505,6 @@ export function useRatelimitLogsQuery({
       setPage(1);
     }
   }, [startPolling, setPage]);
-
-  const onPageChange = useCallback(
-    (newPage: number) => {
-      if (newPage < 1 || newPage > totalPages) {
-        return;
-      }
-      setPage(newPage);
-    },
-    [totalPages, setPage],
-  );
-
-  const isInitialLoading = isLoading && !logData;
-  const isNavigating = isFetching && !isInitialLoading;
 
   return {
     realtimeLogs,

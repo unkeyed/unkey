@@ -16,7 +16,7 @@ import Link from "next/link";
 
 export function UsageBanner() {
   const workspace = useWorkspaceNavigation();
-  const { quotas } = useWorkspace();
+  const { limits } = useWorkspace();
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
 
@@ -33,15 +33,18 @@ export function UsageBanner() {
   });
 
   const current = usage.data?.billableTotal ?? 0;
-  const max = quotas?.requestsPerMonth;
+  const max = limits?.apiBillableOperationsCountMaxPerMonth;
 
   if (max === undefined || max === null) {
-    console.error("UsageBanner: quotas.requestsPerMonth is undefined or null");
+    console.error("UsageBanner: limits.apiBillableOperationsCountMaxPerMonth is undefined or null");
     return null;
   }
 
   if (max <= 0) {
-    console.error("UsageBanner: quotas.requestsPerMonth must be greater than 0, got:", max);
+    console.error(
+      "UsageBanner: limits.apiBillableOperationsCountMaxPerMonth must be greater than 0, got:",
+      max,
+    );
     return null;
   }
 
@@ -52,21 +55,25 @@ export function UsageBanner() {
   return (
     <SidebarMenu>
       <SidebarMenuItem>
-        <SidebarMenuButton asChild tooltip="Usage" className={getButtonStyles(false)}>
-          <Link href={href}>
-            <ProgressCircle
-              value={current}
-              max={max}
-              color={shouldUpgrade ? "#DD4527" : "#0A9B8B"}
-            />
-            <span>Usage {Math.round(percentage).toLocaleString()}%</span>
-            {shouldUpgrade && !collapsed ? (
-              <div className="ml-auto inline-flex h-7 items-center justify-center rounded-md border border-grayA-4 bg-accent-12 px-2 text-sm font-medium text-white drop-shadow-button dark:text-black">
-                Upgrade
-              </div>
-            ) : null}
-          </Link>
-        </SidebarMenuButton>
+        <SidebarMenuButton
+          tooltip="Usage"
+          className={getButtonStyles(false)}
+          render={
+            <Link href={href}>
+              <ProgressCircle
+                value={current}
+                max={max}
+                color={shouldUpgrade ? "#DD4527" : "#0A9B8B"}
+              />
+              <span>Usage {Math.round(percentage).toLocaleString()}%</span>
+              {shouldUpgrade && !collapsed ? (
+                <div className="ml-auto inline-flex h-7 items-center justify-center rounded-md border border-grayA-4 bg-accent-12 px-2 text-sm font-medium text-white drop-shadow-button dark:text-black">
+                  Upgrade
+                </div>
+              ) : null}
+            </Link>
+          }
+        />
       </SidebarMenuItem>
     </SidebarMenu>
   );

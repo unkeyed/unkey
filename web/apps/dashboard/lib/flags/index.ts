@@ -32,10 +32,49 @@ export const deployBilling = flag<boolean, Entities>({
   adapter: adapter(),
 });
 
-export const appOverview = flag<boolean, Entities>({
-  key: "app-overview",
+export const billingUIUpgrades = flag<boolean, Entities>({
+  key: "billing-ui-upgrades",
+  description: "Show the split Billing / Usage / Limits settings pages. Requires deploy-billing.",
+  defaultValue: false,
+  options: [
+    { value: false, label: "Off" },
+    { value: true, label: "On" },
+  ],
+  identify,
+  adapter: adapter(),
+});
+
+export const showDarksoulsSuccessBanner = flag<boolean, Entities>({
+  key: "show-darksouls-success-banner",
+  description: "Show the animated deployment success easter egg.",
+  defaultValue: false,
+  options: [
+    { value: false, label: "Off" },
+    { value: true, label: "On" },
+  ],
+  identify,
+  adapter: adapter(),
+});
+
+export const projectsNav = flag<boolean, Entities>({
+  key: "projects-nav",
   description:
-    "Show the app overview page and use it as the default app landing. Off until rollout.",
+    "Use the projects-first navigation (sidebar, breadcrumbs, landing redirect). Off until rollout.",
+  defaultValue: false,
+  options: [
+    { value: false, label: "Off" },
+    { value: true, label: "On" },
+  ],
+  identify,
+  adapter: adapter(),
+});
+
+// portalManagement gates the portal configuration page and its sidebar nav
+// item. Off until portal GA so it can be developed and merged without being
+// visible. Enable per-workspace to roll out to internal workspaces first.
+export const portalManagement = flag<boolean, Entities>({
+  key: "portal-management",
+  description: "Show the portal configuration page in the dashboard sidebar. Off until portal GA.",
   defaultValue: false,
   options: [
     { value: false, label: "Off" },

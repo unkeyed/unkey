@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 
+	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
+
 	"connectrpc.com/connect"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/pkg/logger"
@@ -102,33 +104,33 @@ func (s *Service) GetDeployment(
 
 // convertDbStatusToProto maps database deployment status to the proto enum.
 // Returns DEPLOYMENT_STATUS_UNSPECIFIED for unknown status values.
-func convertDbStatusToProto(status db.DeploymentsStatus) ctrlv1.DeploymentStatus {
+func convertDbStatusToProto(status mysqltype.DeploymentsStatus) ctrlv1.DeploymentStatus {
 	switch status {
-	case db.DeploymentsStatusPending:
+	case mysqltype.DeploymentsStatusPending:
 		return ctrlv1.DeploymentStatus_DEPLOYMENT_STATUS_PENDING
-	case db.DeploymentsStatusStarting:
+	case mysqltype.DeploymentsStatusStarting:
 		return ctrlv1.DeploymentStatus_DEPLOYMENT_STATUS_STARTING
-	case db.DeploymentsStatusBuilding:
+	case mysqltype.DeploymentsStatusBuilding:
 		return ctrlv1.DeploymentStatus_DEPLOYMENT_STATUS_BUILDING
-	case db.DeploymentsStatusDeploying:
+	case mysqltype.DeploymentsStatusDeploying:
 		return ctrlv1.DeploymentStatus_DEPLOYMENT_STATUS_DEPLOYING
-	case db.DeploymentsStatusNetwork:
+	case mysqltype.DeploymentsStatusNetwork:
 		return ctrlv1.DeploymentStatus_DEPLOYMENT_STATUS_NETWORK
-	case db.DeploymentsStatusFinalizing:
+	case mysqltype.DeploymentsStatusFinalizing:
 		return ctrlv1.DeploymentStatus_DEPLOYMENT_STATUS_FINALIZING
-	case db.DeploymentsStatusReady:
+	case mysqltype.DeploymentsStatusReady:
 		return ctrlv1.DeploymentStatus_DEPLOYMENT_STATUS_READY
-	case db.DeploymentsStatusFailed:
+	case mysqltype.DeploymentsStatusFailed:
 		return ctrlv1.DeploymentStatus_DEPLOYMENT_STATUS_FAILED
-	case db.DeploymentsStatusSkipped:
+	case mysqltype.DeploymentsStatusSkipped:
 		return ctrlv1.DeploymentStatus_DEPLOYMENT_STATUS_SKIPPED
-	case db.DeploymentsStatusAwaitingApproval:
+	case mysqltype.DeploymentsStatusAwaitingApproval:
 		return ctrlv1.DeploymentStatus_DEPLOYMENT_STATUS_AWAITING_APPROVAL
-	case db.DeploymentsStatusStopped:
+	case mysqltype.DeploymentsStatusStopped:
 		return ctrlv1.DeploymentStatus_DEPLOYMENT_STATUS_STOPPED
-	case db.DeploymentsStatusSuperseded:
+	case mysqltype.DeploymentsStatusSuperseded:
 		return ctrlv1.DeploymentStatus_DEPLOYMENT_STATUS_SUPERSEDED
-	case db.DeploymentsStatusCancelled:
+	case mysqltype.DeploymentsStatusCancelled:
 		return ctrlv1.DeploymentStatus_DEPLOYMENT_STATUS_CANCELLED
 	default:
 		return ctrlv1.DeploymentStatus_DEPLOYMENT_STATUS_UNSPECIFIED

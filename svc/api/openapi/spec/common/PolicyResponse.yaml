@@ -1,0 +1,52 @@
+type: object
+required:
+  - id
+  - name
+  - enabled
+properties:
+  id:
+    type: string
+    description: Server-generated policy id. Regenerated on every
+      `gateway.setPolicies` call, so treat it as stable only until the
+      environment's policies are next replaced.
+    example: pol_2gJbXhAr4
+  name:
+    type: string
+    minLength: 1
+    maxLength: 256
+    description: Human-readable name shown in the dashboard.
+  enabled:
+    type: boolean
+    description: Disabled policies are stored but skipped during evaluation.
+  match:
+    type: array
+    maxItems: 10
+    items:
+      "$ref": "./MatchExpr.yaml"
+    description: |-
+      Optional request matchers. The policy applies only to requests matching
+      all expressions; omitted when the policy applies to every request.
+  keyauth:
+    "$ref": "./KeyauthPolicy.yaml"
+  ratelimit:
+    "$ref": "./RatelimitPolicy.yaml"
+  firewall:
+    "$ref": "./FirewallPolicy.yaml"
+  openapi:
+    "$ref": "./OpenapiPolicy.yaml"
+  logging:
+    "$ref": "./LoggingPolicy.yaml"
+additionalProperties: false
+description: |-
+  A stored gateway policy as returned by list endpoints. Exactly one of
+  `keyauth`, `ratelimit`, `firewall`, `openapi` or `logging` is set.
+example:
+  id: pol_2gJbXhAr4
+  name: Block internal paths
+  enabled: true
+  match:
+    - path:
+        path:
+          prefix: /internal/
+  firewall:
+    action: ACTION_DENY

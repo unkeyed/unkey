@@ -168,6 +168,50 @@ func TestUpdateKeyWithURNPermission(t *testing.T) {
 	require.Equal(t, "after", updatedKey.Name.String)
 }
 
+func TestUpdateKeyWithTranslatedAdminPermission(t *testing.T) {
+	t.Parallel()
+
+	h := testutil.NewHarness(t)
+	ctx := t.Context()
+
+	route := &handler.Handler{
+		DB:           h.DB,
+		Auditlogs:    h.Auditlogs,
+		KeyCache:     h.Caches.VerificationKeyByHash,
+		UsageLimiter: h.UsageLimiter,
+	}
+
+	h.Register(route)
+
+	workspace := h.Resources().UserWorkspace
+	api := h.CreateApi(seed.CreateApiRequest{
+		WorkspaceID: workspace.ID,
+	})
+	key := h.CreateKey(seed.CreateKeyRequest{
+		WorkspaceID: workspace.ID,
+		KeySpaceID:  api.KeyAuthID.String,
+		Name:        ptr.P("before"),
+	})
+
+	adminPermission := fmt.Sprintf("unkey:v1:%s:**#*", workspace.ID)
+	rootKey := h.CreateRootKey(workspace.ID, adminPermission)
+	headers := http.Header{
+		"Content-Type":  {"application/json"},
+		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+	}
+
+	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
+		KeyId: key.KeyID,
+		Name:  nullable.NewNullableWithValue("after"),
+	})
+	require.Equal(t, 200, res.Status, "Expected 200, got: %d", res.Status)
+	require.NotNil(t, res.Body)
+
+	updatedKey, err := db.Query.FindKeyByID(ctx, h.DB.RO(), key.KeyID)
+	require.NoError(t, err)
+	require.Equal(t, "after", updatedKey.Name.String)
+}
+
 func TestUpdateKeyUpdateAllFields(t *testing.T) {
 	t.Parallel()
 
@@ -287,11 +331,14 @@ func TestKeyUpdateCreditsInvalidatesCache(t *testing.T) {
 	authBefore, err := h.Keys.Get(ctx, &zen.Session{}, hash.Sha256(key.Key))
 	require.NoError(t, err)
 
-	err = authBefore.Verify(ctx, keys.WithCredits(1))
+	// Initialize the usage counter without queueing a nonzero DB decrement. A
+	// nonzero cost is replayed to MySQL asynchronously and can race the credit
+	// update this test is meant to invalidate.
+	err = authBefore.Verify(ctx, keys.WithCredits(0))
 	require.NoError(t, err)
 
 	require.True(t, authBefore.Key.RemainingRequests.Valid)
-	require.Equal(t, initialCredits-1, authBefore.Key.RemainingRequests.Int64)
+	require.Equal(t, initialCredits, authBefore.Key.RemainingRequests.Int64)
 
 	// Update the key's credits
 	newCredits := int64(50)
@@ -310,6 +357,8 @@ func TestKeyUpdateCreditsInvalidatesCache(t *testing.T) {
 	// Verify the key again to check if cache was properly invalidated
 	authAfter, err := h.Keys.Get(ctx, &zen.Session{}, hash.Sha256(key.Key))
 	require.NoError(t, err)
+	require.True(t, authAfter.Key.RemainingRequests.Valid)
+	require.Equal(t, newCredits, authAfter.Key.RemainingRequests.Int64)
 
 	err = authAfter.Verify(ctx, keys.WithCredits(1))
 	require.NoError(t, err)

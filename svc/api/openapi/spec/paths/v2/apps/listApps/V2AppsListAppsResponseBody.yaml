@@ -2,6 +2,7 @@ type: object
 required:
   - meta
   - data
+  - pagination
 properties:
   meta:
     "$ref": "../../../../common/Meta.yaml"
@@ -13,8 +14,6 @@ properties:
     description: Array of apps in the project, ordered by app id.
   pagination:
     "$ref": "../../../../common/Pagination.yaml"
-    x-go-type-skip-optional-pointer: true
-    x-go-type-skip-optional-pointer-with-omitzero: true
 additionalProperties: false
 examples:
   appList:
@@ -27,9 +26,8 @@ examples:
         - id: app_1234abcd
           name: Payments API
           slug: payments-api
-          projectId: proj_1234abcd
           defaultBranch: main
-          currentDeploymentId: dep_1234abcd
+          currentDeploymentId: d_1234abcd
           isRolledBack: false
           deleteProtection: false
           createdAt: 1704067200000
@@ -37,7 +35,6 @@ examples:
         - id: app_5678efgh
           name: Billing API
           slug: billing-api
-          projectId: proj_1234abcd
           defaultBranch: main
           isRolledBack: false
           deleteProtection: false
@@ -54,7 +51,6 @@ examples:
         - id: app_1111aaaa
           name: Payments API
           slug: payments-api
-          projectId: proj_1234abcd
           defaultBranch: main
           isRolledBack: false
           deleteProtection: false
@@ -62,7 +58,6 @@ examples:
         - id: app_2222bbbb
           name: Billing API
           slug: billing-api
-          projectId: proj_1234abcd
           defaultBranch: main
           isRolledBack: false
           deleteProtection: false

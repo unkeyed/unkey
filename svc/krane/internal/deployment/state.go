@@ -3,7 +3,8 @@ package deployment
 import (
 	"context"
 	"fmt"
-	"strings"
+	"net"
+	"strconv"
 
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	appsv1 "k8s.io/api/apps/v1"
@@ -14,15 +15,17 @@ import (
 // buildDeploymentStatus queries the pods belonging to a ReplicaSet and builds a
 // status report for the control plane.
 //
-// The report includes each pod's cluster-local DNS address, CPU and memory limits,
-// and health status. Pods without an IP address are excluded since they can't
-// receive traffic yet. The address format is "{ip-with-dashes}.{namespace}.pod.cluster.local:{port}"
-// which enables in-cluster DNS resolution without a headless Service.
+// The report includes each active pod's IP address, CPU and memory
+// limits, and health status. Pods without an IP address are excluded since they
+// can't receive traffic yet. Failed and succeeded pods are also excluded because
+// the ReplicaSet replaces them but Kubernetes retains their objects for garbage
+// collection. Reporting them would retain a stale instance for every replacement.
+// The address format is "{pod-ip}:{port}" so instances are reachable from peered
+// clusters without relying on cluster-local DNS.
 //
 // Pod phase is mapped to instance status: Running pods with ContainersReady=True
 // become STATUS_RUNNING, Pending pods and Running pods whose ContainersReady
-// condition is missing or False become STATUS_PENDING, and Failed pods become
-// STATUS_FAILED.
+// condition is missing or False become STATUS_PENDING.
 func (c *Controller) buildDeploymentStatus(ctx context.Context, replicaset *appsv1.ReplicaSet) (*ctrlv1.ReportDeploymentStatusRequest, error) {
 	selector, err := metav1.LabelSelectorAsSelector(replicaset.Spec.Selector)
 	if err != nil {
@@ -56,7 +59,7 @@ func (c *Controller) buildDeploymentStatus(ctx context.Context, replicaset *apps
 
 		instance := &ctrlv1.ReportDeploymentStatusRequest_Update_Instance{
 			K8SName:       pod.GetName(),
-			Address:       fmt.Sprintf("%s.%s.pod.cluster.local:%d", strings.ReplaceAll(pod.Status.PodIP, ".", "-"), pod.Namespace, containerPort),
+			Address:       net.JoinHostPort(pod.Status.PodIP, strconv.Itoa(int(containerPort))),
 			CpuMillicores: 0,
 			MemoryMib:     0,
 			Status:        ctrlv1.ReportDeploymentStatusRequest_Update_Instance_STATUS_UNSPECIFIED,
@@ -88,9 +91,9 @@ func (c *Controller) buildDeploymentStatus(ctx context.Context, replicaset *apps
 			} else {
 				instance.Status = ctrlv1.ReportDeploymentStatusRequest_Update_Instance_STATUS_PENDING
 			}
-		case corev1.PodFailed:
-			instance.Status = ctrlv1.ReportDeploymentStatusRequest_Update_Instance_STATUS_FAILED
-		case corev1.PodSucceeded, corev1.PodUnknown:
+		case corev1.PodFailed, corev1.PodSucceeded:
+			continue
+		case corev1.PodUnknown:
 			instance.Status = ctrlv1.ReportDeploymentStatusRequest_Update_Instance_STATUS_UNSPECIFIED
 		}
 

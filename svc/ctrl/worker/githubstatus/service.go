@@ -2,8 +2,8 @@ package githubstatus
 
 import (
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
+	githubclient "github.com/unkeyed/unkey/pkg/github"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
-	githubclient "github.com/unkeyed/unkey/svc/ctrl/worker/github"
 )
 
 // Service is a Restate virtual object keyed by deployment ID that owns all

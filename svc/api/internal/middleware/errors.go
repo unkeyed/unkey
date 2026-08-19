@@ -81,6 +81,10 @@ func WithErrorHandling() zen.Middleware {
 				codes.UnkeyDataErrorsWorkspaceNotFound,
 				codes.UnkeyDataErrorsApiNotFound,
 				codes.UnkeyDataErrorsAppNotFound,
+				codes.UnkeyDataErrorsEnvironmentNotFound,
+				codes.UnkeyDataErrorsDomainNotFound,
+				codes.UnkeyDataErrorsDeploymentNotFound,
+				codes.UnkeyDataErrorsPolicyNotFound,
 				codes.UnkeyDataErrorsMigrationNotFound,
 				codes.UnkeyDataErrorsKeySpaceNotFound,
 				codes.UnkeyDataErrorsPermissionNotFound,
@@ -106,6 +110,7 @@ func WithErrorHandling() zen.Middleware {
 
 			// Bad Request errors - General validation
 			case codes.UnkeyAppErrorsValidationInvalidInput,
+				codes.UnkeyAppErrorsValidationInvalidEnvironmentSettings,
 				codes.UnkeyAuthErrorsAuthenticationMissing,
 				codes.UnkeyAuthErrorsAuthenticationMalformed,
 				codes.UserErrorsBadRequestPermissionsQuerySyntaxError,
@@ -262,6 +267,22 @@ func WithErrorHandling() zen.Middleware {
 					},
 				})
 
+			// Plan allowance exhausted. Forbidden rather than 429: no amount of
+			// waiting changes the answer, the caller has to change their plan or
+			// free up an existing resource.
+			case codes.UnkeyLimitsErrorsCustomDomainExceeded:
+				return s.ProblemJSON(http.StatusForbidden, openapi.ForbiddenErrorResponse{
+					Meta: openapi.Meta{
+						RequestId: s.RequestID(),
+					},
+					Error: openapi.BaseError{
+						Title:  "Forbidden",
+						Type:   code.DocsURL(),
+						Detail: fault.UserFacingMessage(err),
+						Status: http.StatusForbidden,
+					},
+				})
+
 			// Insufficient Permissions
 			case codes.UnkeyAuthErrorsAuthorizationInsufficientPermissions:
 				return s.ProblemJSON(http.StatusForbidden, openapi.ForbiddenErrorResponse{
@@ -281,7 +302,8 @@ func WithErrorHandling() zen.Middleware {
 				codes.UnkeyDataErrorsRoleDuplicate,
 				codes.UnkeyDataErrorsPermissionDuplicate,
 				codes.UnkeyDataErrorsProjectDuplicate,
-				codes.UnkeyDataErrorsAppDuplicate:
+				codes.UnkeyDataErrorsAppDuplicate,
+				codes.UnkeyDataErrorsDomainDuplicate:
 				return s.ProblemJSON(http.StatusConflict, openapi.ConflictErrorResponse{
 					Meta: openapi.Meta{
 						RequestId: s.RequestID(),
@@ -310,7 +332,15 @@ func WithErrorHandling() zen.Middleware {
 
 			// Precondition Failed
 			case codes.UnkeyDataErrorsAnalyticsNotConfigured,
-				codes.UnkeyAppErrorsPreconditionPreconditionFailed:
+				codes.UnkeyAppErrorsPreconditionPreconditionFailed,
+				codes.UnkeyAppErrorsPreconditionDeploymentNotReady,
+				codes.UnkeyAppErrorsPreconditionDeploymentNotProduction,
+				codes.UnkeyAppErrorsPreconditionDeploymentNoCurrent,
+				codes.UnkeyAppErrorsPreconditionDeploymentIsCurrent,
+				codes.UnkeyAppErrorsPreconditionDeploymentNotRunning,
+				codes.UnkeyAppErrorsPreconditionDeploymentIsStopping,
+				codes.UnkeyAppErrorsPreconditionDeploymentNotStopped,
+				codes.UnkeyAppErrorsPreconditionDeploymentIsProduction:
 				return s.ProblemJSON(http.StatusPreconditionFailed, openapi.PreconditionFailedErrorResponse{
 					Meta: openapi.Meta{
 						RequestId: s.RequestID(),

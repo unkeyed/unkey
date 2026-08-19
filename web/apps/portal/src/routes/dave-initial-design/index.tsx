@@ -2,11 +2,11 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import type { SortingState } from "@tanstack/react-table";
 import { useMemo, useState } from "react";
 import { z } from "zod";
-import { KeysTable } from "~/components/keys-table/keys-table";
-import type { StatusFilter } from "~/components/keys-table/keys-toolbar";
 import { PortalFooter } from "~/components/portal-footer";
 import { PortalLogoHeader } from "~/components/portal-logo-header";
 import { TooltipProvider } from "~/components/ui/tooltip";
+import { KeysTable } from "./-keys-table/keys-table";
+import type { StatusFilter } from "./-keys-table/keys-toolbar";
 import { type DemoState, PreviewSwitcher } from "./-preview-switcher";
 import { type Key, seedBranding, seedKeys, synthesizeKeys } from "./-seed";
 
@@ -158,7 +158,7 @@ function Preview() {
   };
 
   return (
-    <TooltipProvider delayDuration={300}>
+    <TooltipProvider delay={300}>
       <div style={rootStyle} className="flex min-h-screen flex-col bg-background">
         <PortalLogoHeader branding={seedBranding} />
         <main className="flex-1">

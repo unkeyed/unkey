@@ -1,5 +1,6 @@
 import {
   type AreaChartPoint,
+  type AreaTimeseriesAxisOptions,
   AreaTimeseriesChart,
   type ValueParts,
 } from "@/components/charts/area-timeseries";
@@ -73,8 +74,7 @@ type MetricCardProps = {
   timeWindow?: {
     chart: string;
   };
-  xAxisDomain?: [number, number];
-  contractOnSparseData?: boolean;
+  axis?: AreaTimeseriesAxisOptions;
   isLoading?: boolean;
   isError?: boolean;
   formatTooltipValue?: (value: number) => ValueParts;
@@ -88,9 +88,8 @@ export function MetricCard({
   chartData,
   percentile,
   onPercentileChange,
-  xAxisDomain,
-  contractOnSparseData,
   timeWindow,
+  axis,
   isLoading = false,
   isError = false,
   formatTooltipValue,
@@ -103,7 +102,7 @@ export function MetricCard({
   const gradientColor = isError ? "hsl(var(--error-9))" : config.color;
 
   return (
-    <div className="border border-gray-4 bg-grayA-1 w-full rounded-[14px] flex flex-col">
+    <div className="border border-gray-4 bg-grayA-1 w-full rounded-lg flex flex-col">
       <div className="flex items-center gap-3 w-full px-[14px] pt-[12px] pb-[8px]">
         <div
           className={cn(
@@ -131,7 +130,7 @@ export function MetricCard({
           <span className="text-grayA-10 text-[11px]">{parts.unit}</span>
           {secondaryValue && (
             <>
-              <span className="text-grayA-9 text-[11px]">/</span>
+              <span className="text-grayA-9 text-[11px]">·</span>
               <span className="text-gray-12 font-medium text-[12px] tabular-nums">
                 {secondaryText}
               </span>
@@ -141,7 +140,7 @@ export function MetricCard({
         </div>
       </div>
       <div
-        className="flex flex-col rounded-b-[14px]"
+        className="flex flex-col rounded-b-lg"
         style={{
           background: `linear-gradient(to top, color-mix(in srgb, ${gradientColor} 6%, transparent), transparent)`,
         }}
@@ -160,10 +159,7 @@ export function MetricCard({
             isLoading={isLoading}
             isError={isError}
             formatTooltipValue={formatTooltipValue}
-            axisFloor={0}
-            xAxisDomain={xAxisDomain}
-            contractOnSparseData={contractOnSparseData}
-            hideAxes
+            axis={axis ? { ...axis, visible: false, y: { floor: 0, ...axis.y } } : null}
           />
         ) : (
           <LogsTimeseriesBarChart

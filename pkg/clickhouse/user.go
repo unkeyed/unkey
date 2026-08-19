@@ -4,9 +4,26 @@ import (
 	"context"
 	"fmt"
 	"regexp"
+	"time"
 
 	driver "github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/unkeyed/unkey/pkg/logger"
+)
+
+const (
+	// AnalyticsExecutionTimeMax is the hard server-side execution cap for customer analytics queries.
+	AnalyticsExecutionTimeMax = 30
+	// AnalyticsQueryTimeout bounds the ClickHouse phase within the API's larger
+	// request timeout. clickhouse-go adds five seconds when converting this
+	// deadline into max_execution_time, so a 10-second client timeout requests
+	// 15 seconds from ClickHouse and remains below the 30-second server cap.
+	AnalyticsQueryTimeout = 10 * time.Second
+	// AnalyticsResultBytesMax is the maximum encoded size of customer analytics results.
+	AnalyticsResultBytesMax = 4 << 20
+	// AnalyticsASTDepthMax is the maximum ClickHouse AST depth for customer analytics queries.
+	AnalyticsASTDepthMax = 100
+	// AnalyticsASTElementsMax is the maximum number of ClickHouse AST elements for customer analytics queries.
+	AnalyticsASTElementsMax = 2_000
 )
 
 var (
@@ -43,7 +60,7 @@ type UserConfig struct {
 	MaxQueryMemoryBytes   int64
 	MaxQueryResultRows    int32
 
-	// Data retention (in days) - read from quotas table
+	// Data retention in days, read from the limits table.
 	RetentionDays int32
 }
 
@@ -100,6 +117,10 @@ func getTimeRetentionFilter(tableName string, retentionDays int32) string {
 // This is idempotent - it can be run multiple times to update settings.
 func (c *Client) ConfigureUser(ctx context.Context, config UserConfig) error {
 	logger.Info("configuring clickhouse user", "workspace_id", config.WorkspaceID, "username", config.Username)
+
+	if config.MaxQueryResultRows <= 0 {
+		return fmt.Errorf("query result row limit must be positive")
+	}
 
 	// Validate all identifiers to prevent SQL injection
 	if err := validateIdentifiers(config); err != nil {
@@ -182,16 +203,24 @@ func (c *Client) ConfigureUser(ctx context.Context, config UserConfig) error {
 
 	createOrReplaceProfileSQL := fmt.Sprintf(`
 		CREATE SETTINGS PROFILE OR REPLACE %s SETTINGS
-			max_execution_time = %d,
-			max_memory_usage = %d,
-			max_result_rows = %d,
-			readonly = 2
+			max_execution_time = %d MIN 1 MAX %d CHANGEABLE_IN_READONLY,
+			max_memory_usage = %d READONLY,
+			max_result_rows = %d READONLY,
+			max_result_bytes = %d READONLY,
+			result_overflow_mode = 'throw' READONLY,
+			max_ast_depth = %d READONLY,
+			max_ast_elements = %d READONLY,
+			readonly = 1 READONLY
 		TO %s
 	`,
 		profileName,
 		config.MaxQueryExecutionTime,
+		AnalyticsExecutionTimeMax,
 		config.MaxQueryMemoryBytes,
 		config.MaxQueryResultRows,
+		AnalyticsResultBytesMax,
+		AnalyticsASTDepthMax,
+		AnalyticsASTElementsMax,
 		config.Username,
 	)
 	err = c.Exec(ctx, createOrReplaceProfileSQL)
@@ -217,5 +246,11 @@ func DefaultAllowedTables() []string {
 		"default.key_verifications_per_hour_v3",
 		"default.key_verifications_per_day_v3",
 		"default.key_verifications_per_month_v3",
+		// Rate limits
+		"default.ratelimits_raw_v2",
+		"default.ratelimits_per_minute_v2",
+		"default.ratelimits_per_hour_v2",
+		"default.ratelimits_per_day_v2",
+		"default.ratelimits_per_month_v2",
 	}
 }

@@ -1,4 +1,5 @@
 post:
+  x-excluded: true
   tags:
     - portal
   summary: Create portal session
@@ -15,7 +16,7 @@ post:
   operationId: portal.createSession
   x-speakeasy-name-override: createSession
   security:
-    - rootKey: []
+    - bearer: []
   requestBody:
     content:
       application/json:

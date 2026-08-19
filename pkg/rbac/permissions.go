@@ -34,6 +34,14 @@ const (
 
 	// App represents app resources within a project
 	App ResourceType = "app"
+
+	// Environment represents environment resources within an app
+	Environment ResourceType = "environment"
+
+	// Workspace represents workspace-wide operations that are not scoped to any
+	// project, app, or api (e.g. installing the Unkey GitHub App). There is one
+	// workspace per root key, so permissions use the "*" id.
+	Workspace ResourceType = "workspace"
 )
 
 // Predefined API actions. These constants define operations that can be
@@ -74,6 +82,15 @@ const (
 
 	// ReadAnalytics permits viewing API analytics
 	ReadAnalytics ActionType = "read_analytics"
+)
+
+// Predefined workspace actions. These constants define workspace-wide
+// operations that are not scoped to a project, app, or api.
+const (
+	// InstallGithub permits installing the Unkey GitHub App for the workspace
+	// (minting the install URL and binding the resulting installation). It is a
+	// workspace-wide action, so it is granted as workspace.*.install_github.
+	InstallGithub ActionType = "install_github"
 )
 
 // Predefined rate limiting actions. These constants define operations
@@ -178,6 +195,18 @@ const (
 	// ReadDeployment permits viewing deployment details
 	ReadDeployment ActionType = "read_deployment"
 
+	// StopDeployment permits stopping a running preview deployment
+	StopDeployment ActionType = "stop_deployment"
+
+	// StartDeployment permits starting a stopped preview deployment
+	StartDeployment ActionType = "start_deployment"
+
+	// PromoteDeployment permits promoting a deployment to live
+	PromoteDeployment ActionType = "promote_deployment"
+
+	// RollbackDeployment permits rolling back to a previous deployment
+	RollbackDeployment ActionType = "rollback_deployment"
+
 	// GenerateUploadURL permits generating S3 upload URLs for build contexts
 	GenerateUploadURL ActionType = "generate_upload_url"
 
@@ -208,6 +237,44 @@ const (
 
 	// DeleteApp permits deleting apps within a project
 	DeleteApp ActionType = "delete_app"
+
+	// ConnectRepository permits connecting or disconnecting a GitHub repository
+	// for an app (the `git` field on apps.createApp / apps.updateApp). Installing
+	// the Unkey GitHub App itself is a separate workspace-level action,
+	// InstallGithub.
+	ConnectRepository ActionType = "connect_repository"
+)
+
+// Predefined environment actions. These constants define operations that can
+// be performed on environment resources within an app.
+const (
+	// ReadEnvironment permits reading a specific environment
+	ReadEnvironment ActionType = "read_environment"
+	// UpdateEnvironment permits updating a specific environment's settings
+	UpdateEnvironment ActionType = "update_environment"
+	// SetEnvironmentVariables permits replacing a specific environment's variables
+	SetEnvironmentVariables ActionType = "set_environment_variables"
+	// RemoveEnvironmentVariables permits removing variables from a specific environment
+	RemoveEnvironmentVariables ActionType = "remove_environment_variables"
+	// ReadEnvironmentVariables permits reading a specific environment's variables
+	ReadEnvironmentVariables ActionType = "read_environment_variables"
+	// SetPolicies permits replacing a specific environment's entire gateway
+	// policy list in one call
+	SetPolicies ActionType = "set_policies"
+	// UpdatePolicy permits updating a single gateway policy in place within a
+	// specific environment
+	UpdatePolicy ActionType = "update_policy"
+	// ReadPolicies permits reading a specific environment's gateway policies
+	ReadPolicies ActionType = "read_policies"
+	// CreateDomain permits attaching a custom domain to a specific environment
+	CreateDomain ActionType = "create_domain"
+	// ReadDomain permits reading a specific environment's custom domains
+	ReadDomain ActionType = "read_domain"
+	// DeleteDomain permits removing a custom domain from a specific environment
+	DeleteDomain ActionType = "delete_domain"
+	// VerifyDomain permits a restart of verification for the custom domains of a
+	// specific environment
+	VerifyDomain ActionType = "verify_domain"
 )
 
 // Tuple represents a specific permission as a combination of resource type,

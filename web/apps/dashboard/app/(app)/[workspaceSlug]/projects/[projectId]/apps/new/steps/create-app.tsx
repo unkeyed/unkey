@@ -1,11 +1,15 @@
 "use client";
+import { useDeployActionGate } from "@/app/(app)/[workspaceSlug]/projects/_components/hooks/use-deploy-action-gate";
 import { collection } from "@/lib/collections";
+import { trpcClient } from "@/lib/collections/client";
 import { createAppRequestSchema } from "@/lib/collections/deploy/apps";
+import { applyDefaultSettings } from "@/lib/collections/deploy/environment-settings";
 import { SERVER_PLACEHOLDER } from "@/lib/collections/deploy/utils";
 import { slugify } from "@/lib/slugify";
+import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { DuplicateKeyError } from "@tanstack/react-db";
-import { Button, FormInput, useStepWizard } from "@unkey/ui";
+import { Button, FormInput, toast, useStepWizard } from "@unkey/ui";
 import { useForm } from "react-hook-form";
 import type { z } from "zod";
 import { OnboardingLinks } from "../onboarding-links";
@@ -20,6 +24,9 @@ type CreateAppStepProps = {
 
 export const CreateAppStep = ({ projectId, onAppCreated }: CreateAppStepProps) => {
   const { next } = useStepWizard();
+  const { gated, openPaywall, planGate } = useDeployActionGate();
+
+  const { data: availableRegions } = trpc.deploy.environmentSettings.getAvailableRegions.useQuery();
 
   const {
     register,
@@ -34,6 +41,11 @@ export const CreateAppStep = ({ projectId, onAppCreated }: CreateAppStepProps) =
   });
 
   const onSubmitForm = async (values: FormValues) => {
+    // Without a Compute plan, block app creation and surface the paywall.
+    if (gated) {
+      openPaywall();
+      return;
+    }
     try {
       const tx = collection.apps.insert({
         projectId,
@@ -56,7 +68,26 @@ export const CreateAppStep = ({ projectId, onAppCreated }: CreateAppStepProps) =
         domain: SERVER_PLACEHOLDER,
       });
       await tx.isPersisted.promise;
-      onAppCreated((tx.metadata as { appId: string }).appId);
+      const appId = (tx.metadata as { appId: string }).appId;
+
+      try {
+        const envs = await trpcClient.deploy.environment.list.query({ projectId });
+        const appEnvs = envs.filter((e) => e.appId === appId);
+        // The API rejects a region it cannot schedule to, which would fail the
+        // whole call and leave the new app without settings.
+        const regionNames = (availableRegions ?? [])
+          .filter((r) => r.canSchedule)
+          .map((r) => r.name);
+        await Promise.all(
+          appEnvs.map((env) => applyDefaultSettings(projectId, appId, env.id, regionNames)),
+        );
+      } catch (err) {
+        toast.error("Failed to initialize settings", {
+          description: err instanceof Error ? err.message : "An unexpected error occurred",
+        });
+      }
+
+      onAppCreated(appId);
       next();
     } catch (error) {
       if (error instanceof DuplicateKeyError) {
@@ -76,12 +107,13 @@ export const CreateAppStep = ({ projectId, onAppCreated }: CreateAppStepProps) =
 
   return (
     <div className="w-full justify-center items-center flex flex-col">
-      <div className="flex flex-col items-center border border-grayA-5 rounded-[14px] justify-center gap-4 py-[18px] px-4 min-w-[600px]">
+      <div className="flex flex-col items-center border border-grayA-5 rounded-lg justify-center gap-4 py-[18px] px-4 min-w-[600px]">
         <form onSubmit={handleSubmit(onSubmitForm)} className="flex flex-col gap-4 w-full">
           <FormInput
             requirement="required"
             label="App Name"
             className="[&_input:first-of-type]:h-[36px]"
+            autoFocus
             description="A descriptive name for your app."
             data-1p-ignore
             error={errors.name?.message}
@@ -114,6 +146,7 @@ export const CreateAppStep = ({ projectId, onAppCreated }: CreateAppStepProps) =
       </div>
       <div className="mb-7" />
       <OnboardingLinks />
+      {planGate}
     </div>
   );
 };

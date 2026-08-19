@@ -1,0 +1,18 @@
+type: object
+properties:
+  path:
+    "$ref": "./PathMatch.yaml"
+  method:
+    "$ref": "./MethodMatch.yaml"
+  header:
+    "$ref": "./FieldMatch.yaml"
+  queryParam:
+    "$ref": "./FieldMatch.yaml"
+additionalProperties: false
+description: |-
+  A single request match expression. Exactly one of `path`, `method`,
+  `header` or `queryParam` must be set.
+example:
+  path:
+    path:
+      prefix: /api/

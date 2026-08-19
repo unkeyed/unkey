@@ -10,7 +10,14 @@ type MetricSelectProps = {
 
 export function MetricSelect({ label, value, options, onValueChange }: MetricSelectProps) {
   return (
-    <Select defaultValue={value} onValueChange={onValueChange}>
+    <Select
+      defaultValue={value}
+      onValueChange={(newValue) => {
+        if (newValue !== null) {
+          onValueChange?.(newValue);
+        }
+      }}
+    >
       <SelectTrigger
         wrapperClassName="w-fit shrink-0"
         className="h-auto min-h-0! border-0 bg-transparent shadow-none text-gray-12 text-[13px] gap-1 !p-0 !pr-4 focus:ring-0 focus:outline-none focus:border-0 focus-visible:ring-0 focus-visible:outline-none hover:text-gray-11 transition-colors"

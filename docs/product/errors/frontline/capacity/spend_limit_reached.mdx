@@ -1,0 +1,21 @@
+---
+title: "spend_limit_reached"
+description: "Compute is paused because the workspace hit its spend limit. Raise or remove the budget to resume."
+---
+
+<Danger>`err:frontline:capacity:spend_limit_reached`</Danger>
+
+The workspace reached the monthly Compute spend budget it set, with "stop workloads at the budget" enabled, so its running compute was paused. Requests to its deployments return `402 Payment Required` until the pause is lifted.
+
+This is a billing gate, not an outage. Nothing is broken and no data is lost. Compute resumes automatically, usually within about a minute, once spend is no longer over the budget.
+
+## How to resume
+
+Any of these lifts the pause automatically:
+
+- Raise the spend budget above current usage.
+- Remove the spend budget.
+- Turn off **Stop workloads at the budget**.
+- Wait for the next billing period, when usage resets.
+
+All of these live under **Settings > Billing** on the Compute card. See [Spend budget](/platform/workspaces/billing#spend-budget) for details.

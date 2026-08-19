@@ -32,7 +32,7 @@ Krane is built around these core responsibilities.
 
 ## Control plane interface
 
-Krane connects upstream with a Connect RPC client that keeps long-running streams open. It injects the `Authorization: Bearer <token>` header on every request and stamps a `RegionKey` (platform, name) on every request proto message. h2c is supported for non-TLS URLs.
+Krane connects upstream with a Connect RPC client that keeps long-running streams open. It injects the `Authorization: Bearer <token>` header on every request and stamps a `ClusterKey` (cell ID, platform, and region) on every request proto message. h2c is supported for non-TLS URLs.
 
 ## Reconciliation model
 
@@ -73,7 +73,6 @@ User workloads are represented as ReplicaSets with the following characteristics
 - Pods run with `RuntimeClassName: gvisor` for isolation
 - Pods select and tolerate `node-class=untrusted` nodes
 - Topology spread keeps replicas balanced across zones
-- Pod affinity prefers zones already running pods with the environment's sentinel component label (`ComponentSentinel`). This is a soft preference inherited from the sentinel proxy layer; since that layer merged into Frontline and no pods carry the label, the affinity currently matches nothing
 - Env vars include `PORT`, `UNKEY_DEPLOYMENT_ID`, `UNKEY_ENVIRONMENT_SLUG`, `UNKEY_REGION`, `UNKEY_INSTANCE_ID`, and the `UNKEY_GIT_*` set (commit SHA, branch, repo, commit message)
 - A `command` override from the deployment spec replaces the image entrypoint when set; otherwise the image's `ENTRYPOINT`/`CMD` runs
 - Decrypted environment variables are mounted from a per-deployment K8s Secret via `envFrom.secretRef`

@@ -1,9 +1,26 @@
 "use client";
-import { Slot } from "@radix-ui/react-slot";
+import { Button as ButtonPrimitive } from "@base-ui/react/button";
+import { useRender } from "@base-ui/react/use-render";
 import { type VariantProps, cva } from "class-variance-authority";
 import * as React from "react";
 import { cn } from "../../lib/utils";
 import { AnimatedLoadingSpinner } from "../animated-loading-spinner";
+
+// Render-target composition WITHOUT button semantics. `render` targets are
+// links/anchors (Next.js <Link>, <a>); routing them through the Base UI Button
+// primitive would bolt role="button" + keyboard handlers onto a link, which is
+// wrong semantics. useRender composes the element with the button's visual
+// classes only.
+function ButtonRenderSlot({
+  render,
+  ref,
+  ...props
+}: {
+  render: React.ReactElement;
+  ref?: React.Ref<HTMLElement>;
+} & React.HTMLAttributes<HTMLElement>) {
+  return useRender({ render, ref, props });
+}
 
 // Hack to populate fumadocs' AutoTypeTable
 export type DocumentedButtonProps = VariantProps<typeof buttonVariants> & {
@@ -38,9 +55,9 @@ export type DocumentedButtonProps = VariantProps<typeof buttonVariants> & {
   };
 
   /**
-   * Allows you to use your own component as a button
+   * Render your own element/component as the button (replaces the former `asChild`)
    */
-  asChild?: boolean;
+  render?: React.ComponentProps<typeof ButtonPrimitive>["render"];
 
   /**
    * Optional label for screen readers when in loading state
@@ -62,7 +79,7 @@ const buttonVariants = cva(
           "active:bg-accent-12/80",
         ],
         outline: [
-          "p-2 text-gray-12 bg-transparent border border-grayA-6 hover:bg-grayA-2 rounded-md",
+          "p-2 text-gray-12 bg-background border border-grayA-6 hover:bg-grayA-2 rounded-md",
           "focus:border-grayA-12 focus:ring-3 focus:ring-gray-5 focus-visible:outline-hidden focus:ring-offset-0 drop-shadow-button transform-gpu",
           "disabled:border disabled:border-solid disabled:border-grayA-5 disabled:text-grayA-7",
           "active:bg-grayA-3",
@@ -116,7 +133,7 @@ const buttonVariants = cva(
         variant: "outline",
         color: "danger",
         className: [
-          "text-error-11 bg-transparent border border-grayA-6 hover:bg-grayA-2 font-medium focus:hover:bg-transparent",
+          "text-error-11 bg-background border border-grayA-6 hover:bg-grayA-2 font-medium focus:hover:bg-background",
           "focus:border-error-11 focus:ring-3 focus:ring-error-4 focus-visible:outline-hidden focus:ring-offset-0",
           "disabled:text-errorA-7 disabled:border-grayA-5",
           "active:bg-error-3",
@@ -147,7 +164,7 @@ const buttonVariants = cva(
         variant: "outline",
         color: "warning",
         className: [
-          "text-warningA-11 bg-transparent border border-grayA-6 hover:bg-grayA-2 font-medium focus:hover:bg-transparent",
+          "text-warningA-11 bg-background border border-grayA-6 hover:bg-grayA-2 font-medium focus:hover:bg-background",
           "focus:border-warning-11 focus:ring-3 focus:ring-warning-4 focus-visible:outline-hidden focus:ring-offset-0",
           "disabled:text-warningA-7 disabled:border-grayA-5",
           "active:bg-warning-3",
@@ -178,7 +195,7 @@ const buttonVariants = cva(
         variant: "outline",
         color: "success",
         className: [
-          "text-success-11 bg-transparent border border-grayA-6 hover:bg-grayA-2 font-medium focus:hover:bg-transparent",
+          "text-success-11 bg-background border border-grayA-6 hover:bg-grayA-2 font-medium focus:hover:bg-background",
           "focus:border-success-11 focus:ring-3 focus:ring-success-4 focus-visible:outline-hidden focus:ring-offset-0",
           "disabled:text-successA-7 disabled:border-grayA-5",
           "active:bg-success-3",
@@ -210,7 +227,7 @@ const buttonVariants = cva(
         variant: "outline",
         color: "info",
         className: [
-          "text-info-11 bg-transparent border border-grayA-6 hover:bg-grayA-2 font-medium focus:hover:bg-transparent",
+          "text-info-11 bg-background border border-grayA-6 hover:bg-grayA-2 font-medium focus:hover:bg-background",
           "focus:border-info-11 focus:ring-3 focus:ring-info-4 focus-visible:outline-hidden focus:ring-offset-0",
           "disabled:text-infoA-7 disabled:border-grayA-5",
           "active:bg-info-3",
@@ -256,7 +273,10 @@ export type ButtonProps = VariantProps<typeof buttonVariants> &
        */
       callback: (e: KeyboardEvent) => void | Promise<void>;
     };
-    asChild?: boolean;
+    /**
+     * Render your own element/component as the button (replaces the former `asChild`)
+     */
+    render?: React.ComponentProps<typeof ButtonPrimitive>["render"];
     /**
      * Optional label for screen readers when in loading state
      */
@@ -300,7 +320,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       variant,
       color = "default",
       size,
-      asChild = false,
+      render,
       loading,
       disabled,
       loadingLabel = "Loading, please wait",
@@ -351,14 +371,17 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       document.addEventListener("keydown", down);
       return () => document.removeEventListener("keydown", down);
     }, [props.keyboard, isClickDisabled]);
-    const Comp = asChild ? Slot : "button";
 
-    // When asChild is true, Slot expects exactly one React element child.
-    // Rendering multiple children (e.g. {false} and <div>) causes
-    // React.Children.count > 1 in React 19, which makes Slot throw.
-    if (asChild) {
+    // When `render` is provided (custom element/component, typically a link),
+    // compose it directly with the button's visual classes — no Base UI Button
+    // primitive, so the link keeps link semantics (no role="button", no
+    // synthetic keyboard handlers, no disabled-button behavior). Only the
+    // children render — the loading spinner and keyboard hint are omitted,
+    // matching the previous `asChild` behavior.
+    if (render) {
       return (
-        <Comp
+        <ButtonRenderSlot
+          render={render as React.ReactElement}
           className={cn(
             buttonVariants({
               variant: mappedVariant,
@@ -368,19 +391,16 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
             }),
           )}
           onClick={loading ? undefined : props.onClick}
-          disabled={isVisuallyDisabled}
-          aria-disabled={isClickDisabled}
-          aria-busy={loading}
-          ref={ref}
-          {...props}
-        >
-          {props.children}
-        </Comp>
+          aria-disabled={isClickDisabled || undefined}
+          aria-busy={loading || undefined}
+          ref={ref as React.Ref<HTMLElement>}
+          {...(props as React.HTMLAttributes<HTMLElement>)}
+        />
       );
     }
 
     return (
-      <Comp
+      <ButtonPrimitive
         className={cn(
           buttonVariants({
             variant: mappedVariant,
@@ -428,7 +448,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
             </kbd>
           ) : null}{" "}
         </div>
-      </Comp>
+      </ButtonPrimitive>
     );
   },
 );

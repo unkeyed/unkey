@@ -7,6 +7,20 @@ import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import { SuccessClient } from "./client";
 
+const SUPPORT_SUFFIX = "Please contact support@unkey.com if this issue persists.";
+
+const endWithPunctuation = (message: string): string => {
+  return /[.!?]$/.test(message) ? message : `${message}.`;
+};
+
+// Prepends the failed billing step, since server messages are phrased without
+// knowing the caller ("Workspace not found.") and do not say which step broke.
+const toUserFacingError = (error: unknown, context: string): string => {
+  const detail = error instanceof Error ? error.message : "Unknown error";
+
+  return `${context}: ${endWithPunctuation(detail)} ${SUPPORT_SUFFIX}`;
+};
+
 type ProcessedData = {
   workspaceSlug?: string;
   showPlanSelection?: boolean;
@@ -29,6 +43,10 @@ function SuccessContent() {
   // just add a card), so we hand them back to the billing page with that
   // intent instead of forcing the legacy API plan modal below.
   const intent = searchParams?.get("intent") ?? null;
+  // Threaded through for the "deploy" intent so /success can hand the user back
+  // to the projects page, where the subscription is created.
+  const plan = searchParams?.get("plan") ?? null;
+  const from = searchParams?.get("from") ?? null;
 
   const [processedData, setProcessedData] = useState<ProcessedData>({});
   const [loading, setLoading] = useState(true);
@@ -37,6 +55,8 @@ function SuccessContent() {
   const updateCustomerMutation = trpc.stripe.updateCustomer.useMutation();
   const updateWorkspaceStripeCustomerMutation =
     trpc.stripe.updateWorkspaceStripeCustomer.useMutation();
+  const linkApiSubscriptionMutation = trpc.stripe.linkApiSubscription.useMutation();
+  const linkDeploySubscriptionMutation = trpc.stripe.linkDeploySubscription.useMutation();
 
   const trpcUtils = trpc.useUtils();
 
@@ -53,6 +73,8 @@ function SuccessContent() {
     const processStripeSession = async (
       updateCustomerFn: typeof updateCustomerMutation.mutateAsync,
       updateWorkspaceFn: typeof updateWorkspaceStripeCustomerMutation.mutateAsync,
+      linkApiFn: typeof linkApiSubscriptionMutation.mutateAsync,
+      linkDeployFn: typeof linkDeploySubscriptionMutation.mutateAsync,
     ) => {
       try {
         if (!isMounted) {
@@ -93,6 +115,87 @@ function SuccessContent() {
           return;
         }
 
+        // API subscription Checkout owns the first payment, including CVC
+        // recollection and 3DS. Link the paid subscription before returning to
+        // billing; the completed webhook races through the same idempotent path
+        // if the user closes this page early.
+        if (intent === "api-subscription" && sessionResponse.subscription) {
+          try {
+            await linkApiFn({ sessionId });
+          } catch (error) {
+            const entitled = await trpcUtils.stripe.getBillingInfo
+              .fetch(undefined, { staleTime: 0 })
+              .then((billing) => Boolean(billing.currentProductId))
+              .catch(() => false);
+            if (!isMounted) {
+              return;
+            }
+            if (!entitled) {
+              const errorMessage = error instanceof Error ? error.message : "Unknown error";
+              setError(`Failed to activate your API plan: ${errorMessage}`);
+              setLoading(false);
+              return;
+            }
+          }
+
+          if (!isMounted) {
+            return;
+          }
+          await trpcUtils.workspace.invalidate();
+          await trpcUtils.stripe.invalidate();
+          await trpcUtils.billing.invalidate();
+          setProcessedData({ workspaceSlug: workspace.slug });
+          setLoading(false);
+          return;
+        }
+
+        // Subscription-mode deploy checkout: Stripe already created and charged
+        // the subscription, so there is no setup intent to process. Link it onto
+        // the workspace via the server-verified mutation, then hand back to the
+        // projects landing (SuccessClient redirects on intent === "deploy").
+        // The checkout.session.completed webhook may have linked it already; the
+        // shared linker is idempotent, so this is a safe fast-path.
+        if (
+          intent === "deploy" &&
+          (sessionResponse.mode === "subscription" || sessionResponse.subscription)
+        ) {
+          try {
+            await linkDeployFn({ sessionId });
+          } catch (error) {
+            // This mutation is only a fast-path; the checkout.session.completed
+            // webhook is the guaranteed linker. If it already linked (or a
+            // transient error hit after the write committed), the workspace is
+            // entitled — treat that as success rather than showing an alarming
+            // error for a charge that actually went through. Mirrors the
+            // entitlement-first check in projects/page.tsx usePendingSubscribe.
+            const entitled = await trpcUtils.stripe.getDeployEntitlement
+              .fetch(undefined, { staleTime: 0 })
+              .then((e) => Boolean(e?.entitled))
+              .catch(() => false);
+            if (!isMounted) {
+              return;
+            }
+            if (!entitled) {
+              setError(toUserFacingError(error, "Failed to activate your Compute plan"));
+              setLoading(false);
+              return;
+            }
+            // Entitled despite the fast-path error — fall through to success.
+          }
+
+          if (!isMounted) {
+            return;
+          }
+
+          await trpcUtils.workspace.invalidate();
+          await trpcUtils.stripe.invalidate();
+          await trpcUtils.billing.invalidate();
+
+          setProcessedData({ workspaceSlug: workspace.slug });
+          setLoading(false);
+          return;
+        }
+
         // Check if we have customer and setup intent
         if (!sessionResponse.customer || !sessionResponse.setup_intent) {
           console.warn("Stripe customer or setup intent not found");
@@ -104,21 +207,8 @@ function SuccessContent() {
           return;
         }
 
-        // Get customer details. We pass sessionId so the server can verify
-        // that the session (and therefore the customer) belongs to this
-        // workspace via session.client_reference_id, rather than trusting a
-        // client-supplied customer id.
-        const customer = await trpcUtils.stripe.getCustomer.fetch({
-          sessionId,
-        });
-
-        if (!isMounted) {
-          return;
-        }
-
-        // Get setup intent details. Pass sessionId so the server can verify
-        // the setup intent belongs to a session bound to this workspace,
-        // before the workspace has a stripeCustomerId of its own.
+        // Pass sessionId so the server can verify the setup intent belongs to
+        // a session bound to this workspace.
         const setupIntent = await trpcUtils.stripe.getSetupIntent.fetch({
           setupIntentId: sessionResponse.setup_intent,
           sessionId,
@@ -128,8 +218,8 @@ function SuccessContent() {
           return;
         }
 
-        if (!customer || !setupIntent?.payment_method) {
-          console.warn("Customer or payment method not found");
+        if (!setupIntent?.payment_method) {
+          console.warn("Payment method not found");
           if (!isMounted) {
             return;
           }
@@ -138,10 +228,9 @@ function SuccessContent() {
           return;
         }
 
-        // Update customer with default payment method
         try {
           await updateCustomerFn({
-            customerId: customer.id,
+            sessionId,
             paymentMethod: setupIntent.payment_method,
           });
 
@@ -149,16 +238,14 @@ function SuccessContent() {
             return;
           }
         } catch (error) {
-          const errorMessage = error instanceof Error ? error.message : "Unknown error";
           console.error("Failed to update customer with payment method:", {
-            error: errorMessage,
-            customerId: "redacted", // Don't log PII
+            error: error instanceof Error ? error.message : "Unknown error",
             hasPaymentMethod: !!setupIntent.payment_method,
           });
           if (!isMounted) {
             return;
           }
-          setError(`Failed to set up payment method: ${errorMessage}`);
+          setError(toUserFacingError(error, "Failed to set up the payment method"));
           setLoading(false);
           return;
         }
@@ -180,14 +267,13 @@ function SuccessContent() {
           await trpcUtils.stripe.invalidate();
           await trpcUtils.billing.invalidate();
         } catch (error) {
-          const errorMessage = error instanceof Error ? error.message : "Unknown error";
           console.error("Failed to update workspace with payment method:", {
-            error: errorMessage,
+            error: error instanceof Error ? error.message : "Unknown error",
           });
           if (!isMounted) {
             return;
           }
-          setError("Failed to update workspace with payment information");
+          setError(toUserFacingError(error, "Failed to update workspace with payment information"));
           setLoading(false);
           return;
         }
@@ -235,7 +321,7 @@ function SuccessContent() {
         if (!isMounted) {
           return;
         }
-        setError("Failed to process payment session");
+        setError(toUserFacingError(error, "Failed to process payment session"));
         setLoading(false);
       }
     };
@@ -243,6 +329,8 @@ function SuccessContent() {
     processStripeSession(
       updateCustomerMutation.mutateAsync,
       updateWorkspaceStripeCustomerMutation.mutateAsync,
+      linkApiSubscriptionMutation.mutateAsync,
+      linkDeploySubscriptionMutation.mutateAsync,
     );
 
     // Cleanup function to prevent state updates after unmount
@@ -255,6 +343,8 @@ function SuccessContent() {
     trpcUtils,
     updateCustomerMutation.mutateAsync,
     updateWorkspaceStripeCustomerMutation.mutateAsync,
+    linkApiSubscriptionMutation.mutateAsync,
+    linkDeploySubscriptionMutation.mutateAsync,
   ]);
 
   if (loading) {
@@ -265,9 +355,7 @@ function SuccessContent() {
     return (
       <Empty>
         <Empty.Title>Payment Processing Error</Empty.Title>
-        <Empty.Description>
-          {error}. Please contact support@unkey.com if this issue persists.
-        </Empty.Description>
+        <Empty.Description>{error}</Empty.Description>
       </Empty>
     );
   }
@@ -278,6 +366,8 @@ function SuccessContent() {
       showPlanSelection={processedData.showPlanSelection}
       products={processedData.products}
       intent={intent ?? undefined}
+      plan={plan ?? undefined}
+      from={from ?? undefined}
     />
   );
 }

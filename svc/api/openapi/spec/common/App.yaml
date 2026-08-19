@@ -3,8 +3,6 @@ required:
   - id
   - name
   - slug
-  - projectId
-  - defaultBranch
   - isRolledBack
   - deleteProtection
   - createdAt
@@ -25,22 +23,19 @@ properties:
       URL-safe handle for this app, unique within its project.
       Chosen at creation time.
     example: payments-api
-  projectId:
-    type: string
+  git:
     description: |
-      The unique identifier of the project this app belongs to.
-    example: proj_1234abcd
-  defaultBranch:
-    type: string
-    description: |
-      The default git branch deployments track for this app.
-    example: main
+      The connected GitHub repository and the branch its deployments track.
+      Omitted when the app has no repository connected (for example a
+      Docker-based app).
+    allOf:
+      - "$ref": "./AppGit.yaml"
   currentDeploymentId:
     type: string
     description: |
       The identifier of the deployment currently serving this app.
       Omitted if the app has no active deployment yet.
-    example: dep_1234abcd
+    example: d_1234abcd
     x-go-type-skip-optional-pointer: true
     x-go-type-skip-optional-pointer-with-omitzero: true
   isRolledBack:

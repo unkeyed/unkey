@@ -3,14 +3,21 @@ import type { FetchCreateContextFnOptions } from "@trpc/server/adapters/fetch";
 import type { NextRequest } from "next/server";
 
 import { getAuth } from "../auth/get-auth";
+import { getClientIp } from "../client-ip";
 import { db } from "../db";
+import { subscriptionIdsByProduct } from "../stripe/billingSubscriptions";
 
 export async function createContext({ req }: FetchCreateContextFnOptions) {
   const authResult = await getAuth(req as NextRequest);
   const { userId, orgId } = authResult;
 
-  let ws: Awaited<ReturnType<typeof db.query.workspaces.findFirst<{ with: { quotas: true } }>>> =
-    undefined;
+  let ws: Awaited<
+    ReturnType<
+      typeof db.query.workspaces.findFirst<{
+        with: { limits: true; billing: true; billingSubscriptions: true };
+      }>
+    >
+  > = undefined;
 
   // Only attempt workspace query if we have both userId and orgId
   // This prevents unnecessary queries during auth setup phase
@@ -20,17 +27,13 @@ export async function createContext({ req }: FetchCreateContextFnOptions) {
         where: (table, { eq, and, isNull }) =>
           and(eq(table.orgId, orgId), isNull(table.deletedAtM)),
         with: {
-          quotas: true,
+          limits: true,
+          billing: true,
+          billingSubscriptions: true,
         },
       });
-    } catch (error) {
-      // Log workspace query errors but don't fail context creation.
-      // Procedures that require a workspace decide how to react.
-      console.debug("Workspace query failed in context creation:", {
-        orgId,
-        userId,
-        error: error instanceof Error ? error.message : String(error),
-      });
+    } catch (_error) {
+      console.debug("Workspace query failed in context creation");
       ws = undefined;
     }
   }
@@ -39,7 +42,9 @@ export async function createContext({ req }: FetchCreateContextFnOptions) {
     req,
     audit: {
       userAgent: req.headers.get("user-agent") ?? undefined,
-      location: req.headers.get("x-forwarded-for") ?? process.env.VERCEL_REGION ?? "unknown",
+      // Recorded as `remote_ip` on every audit log, so it must be an address we trust rather than
+      // whatever the client put in a forwarding header.
+      location: getClientIp(req.headers) ?? "unknown",
     },
     user: authResult.userId
       ? {
@@ -49,7 +54,25 @@ export async function createContext({ req }: FetchCreateContextFnOptions) {
           profile: authResult.user ?? null,
         }
       : null,
-    workspace: ws,
+    // Billing state lives on the workspace_billing relation (the columns were
+    // dropped from workspaces). Surface it under the legacy workspace field names
+    // so existing ctx.workspace.<field> reads keep working against the billing
+    // row. Writers target workspaceBilling directly.
+    workspace: ws
+      ? {
+          ...ws,
+          tier: ws.billing?.tier ?? "Free",
+          stripeCustomerId: ws.billing?.stripeCustomerId ?? null,
+          // Subscription ids now live one-per-product in billing_subscriptions;
+          // flatten them back to the two legacy field names read across the app.
+          ...subscriptionIdsByProduct(ws.billingSubscriptions ?? []),
+          deployPlan: ws.billing?.plan ?? null,
+          deployPlanOverride: ws.billing?.planOverride ?? null,
+          deploySpendBudgetCents: ws.billing?.spendBudgetCents ?? null,
+          deploySpendBudgetStop: ws.billing?.spendBudgetStop ?? false,
+          deploySpendSuspended: ws.billing?.spendSuspended ?? false,
+        }
+      : ws,
     tenant: authResult.orgId
       ? {
           id: authResult.orgId,

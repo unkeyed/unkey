@@ -8,8 +8,8 @@ import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { OnboardingStepContainer } from "./onboarding-step-container";
 import { OnboardingStepHeader } from "./onboarding-step-header";
+import { ChooseSourceStep } from "./steps/choose-source";
 import { ConfigureDeploymentStep } from "./steps/configure-deployment";
-import { ConnectGithubStep } from "./steps/connect-github";
 import { CreateAppStep } from "./steps/create-app";
 import { DeploymentLiveStep } from "./steps/deployment-live";
 import { EnvVarsStep } from "./steps/env-vars";
@@ -17,7 +17,6 @@ import { SelectRepo } from "./steps/select-repo";
 
 export default function AppSetupPage() {
   const { data: context } = trpc.deploy.project.creationContext.useQuery();
-  const hasGithubInstallation = context?.hasGithubInstallation === true;
   const searchParams = useSearchParams();
   const params = useParams();
   const router = useRouter();
@@ -51,16 +50,14 @@ export default function AppSetupPage() {
           <CreateAppStep projectId={projectId} onAppCreated={setAppId} />
         </OnboardingStepContainer>
       </StepWizard.Step>
-      {!hasGithubInstallation && (
-        <StepWizard.Step id="connect-github" label="Connect GitHub">
-          {appId ? (
-            <OnboardingStepContainer>
-              {deployYourAppHeader}
-              <ConnectGithubStep projectId={projectId} appId={appId} onBeforeNavigate={bypass} />
-            </OnboardingStepContainer>
-          ) : null}
-        </StepWizard.Step>
-      )}
+      <StepWizard.Step id="choose-source" label="Choose source">
+        {appId ? (
+          <OnboardingStepContainer>
+            {deployYourAppHeader}
+            <ChooseSourceStep projectId={projectId} appId={appId} onBeforeNavigate={bypass} />
+          </OnboardingStepContainer>
+        ) : null}
+      </StepWizard.Step>
       <StepWizard.Step id="select-repo" label="Select repository" kind="optional">
         {appId ? (
           <OnboardingStepContainer>
@@ -122,7 +119,7 @@ const deployYourAppHeader = (
     showIconRow
     subtitle={
       <>
-        Connect a GitHub repo and get a live URL in minutes.
+        Connect a GitHub repo or deploy a published image, and get a live URL in minutes.
         <br />
         Unkey handles builds, infra, scaling, and routing.
       </>

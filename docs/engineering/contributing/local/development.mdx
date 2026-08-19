@@ -16,20 +16,6 @@ Unkey installs most tools and dependencies automatically. The only required prei
 
 All other tools are managed via [mise](https://mise.en.dev/), which you'll install in the next step.
 
-## Configure Depot
-
-Unkey uses Depot as the build runner for local development.
-
-To get your Depot token, sign in to <a href="https://depot.dev/orgs/25j3k7j1zw/settings" target="_blank">Depot</a>,
-then create a token. Name it something like `<your-name>-local`.
-
-The Depot org settings page is only accessible to Depot org owners. If you are
-not an owner, Depot might redirect you away from the settings page or block
-access. Ask Andreas for the appropriate token or access path.
-
-During bootstrap, paste that token when prompted or manually add it to
-`./dev/.env.depot`.
-
 ## Bootstrap
 
 Clone the repository and install mise and other tools.
@@ -48,8 +34,7 @@ Clone the repository and install mise and other tools.
     ```
   </Step>
   <Step title="Bootstrap local configuration">
-    Run the bootstrap task to install the pinned toolchain, create local environment files, write your Depot credentials, and configure the GitHub app.
-    Use the token from [Configure Depot](#configure-depot) when prompted.
+    Run the bootstrap task to install the pinned toolchain, create local environment files, and configure the GitHub app.
 
     ```bash
     mise run bootstrap
@@ -74,6 +59,8 @@ Start the full development setup:
 ```bash
 mise run dev
 ```
+
+Local deployments use in-cluster BuildKit Jobs by default and don't require Depot credentials. To test the Depot backend, copy `dev/.env.depot.example` to `dev/.env.depot` and set both values to your Depot token before starting the environment.
 
 You get:
 
@@ -146,7 +133,16 @@ The product ID lists come pre-filled in `.env.example` (the shared sandbox
 catalog), so you only add two values:
 
 - `STRIPE_SECRET_KEY` - a test-mode key (`sk_test_...`) from the shared sandbox.
-- `STRIPE_WEBHOOK_SECRET` - from forwarding events to your local dashboard:
+- `STRIPE_WEBHOOK_SECRET` - the signing secret for forwarded webhook events.
+
+If the stripe CLI is logged in (`stripe login`), `tilt up` handles webhook
+forwarding for you: it runs `stripe listen` against both the dashboard
+(`localhost:3000/api/webhooks/stripe`) and ctrl-api
+(`localhost:7091/webhooks/stripe`), and writes the shared `STRIPE_WEBHOOK_SECRET`
+into both `web/apps/dashboard/.env` and `dev/.env.stripe`. No manual step needed.
+
+If the CLI is not logged in, forward events and copy the printed `whsec_...`
+yourself:
 
 ```bash
 stripe listen --forward-to http://localhost:3000/api/webhooks/stripe
@@ -155,8 +151,25 @@ stripe listen --forward-to http://localhost:3000/api/webhooks/stripe
 To set up a fresh Stripe sandbox (products, meters, prices), follow the catalog
 guide in the infra repo: <a href="https://github.com/unkeyed/infra/blob/main/docs/services/stripe-billing.md" target="_blank">Stripe Billing</a>.
 
-The Deploy billing push (the control-plane worker) is separate and needs only a
-secret key in `dev/.env.stripe`. See [Deploy Billing Push](/architecture/services/control-plane/worker/workflows/deploy-billing).
+Deploy (control plane) billing is separate from the dashboard flow above and is
+configured through `dev/` env files that Tilt loads into Kubernetes secrets.
+Each is optional: a missing file disables that piece and never breaks startup.
+
+- `dev/.env.stripe` (the `stripe-credentials` secret, read by both ctrl-api and
+  the worker). Copy `dev/.env.stripe.example` and set:
+  - `STRIPE_SECRET_KEY` - test-mode key for the hourly usage push and the
+    month-end invoice finalize.
+  - `STRIPE_WEBHOOK_SECRET` - the close webhook's signing secret, written
+    automatically by `tilt up` when the stripe CLI is logged in (as above).
+  - `STRIPE_DEPLOY_*_LOOKUP_KEY` - the price lookup_keys `CancelDeploy` uses to
+    find a subscription's Deploy items. Same handles the dashboard uses; empty
+    disables cancel.
+- The spend-cap budget alert emails need `dev/.env.workos` (`WORKOS_API_KEY`, to
+  resolve an org's admin recipients) and `dev/.env.resend` (`RESEND_API_KEY`, to
+  send). Without them the alerts only log; the suspend/resume enforcement is
+  unaffected.
+
+See [Deploy Billing](/architecture/services/control-plane/worker/workflows/deploy-billing) and [Deploy Spend Cap](/architecture/services/control-plane/worker/workflows/deploy-spend-cap).
 
 ### Feature flags
 
@@ -172,7 +185,7 @@ mise run unkey -- dev seed local
 
 ## Test locally
 
-Run Go tests with Bazel:
+Run Go tests with Rask:
 
 ```bash
 mise run test
@@ -181,7 +194,7 @@ mise run test
 Run a single Go test:
 
 ```bash
-mise exec -- bazel test //pkg/cache:cache_test --test_filter=TestCacheName
+mise exec -- go test -run TestCacheName ./pkg/cache
 ```
 
 Run TypeScript tests with pnpm:

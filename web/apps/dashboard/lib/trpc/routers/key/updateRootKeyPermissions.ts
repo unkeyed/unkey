@@ -32,6 +32,7 @@ export const updateRootKeyPermissions = workspaceProcedure
             eq(table.forWorkspaceId, ctx.workspace.id),
             isNull(table.deletedAtM),
           ),
+        columns: { id: true, name: true },
       })
       .catch((_err) => {
         throw new TRPCError({

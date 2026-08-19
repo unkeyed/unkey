@@ -170,15 +170,15 @@ func main() {
     {
         api.GET("/data", func(c *gin.Context) {
             result := GetUnkeyResult(c)
-            ownerID := ""
+            identityExternalID := ""
             if result.Identity != nil {
-                ownerID = result.Identity.ExternalID
+                identityExternalID = result.Identity.ExternalID
             }
             c.JSON(http.StatusOK, gin.H{
-                "message": "Access granted",
-                "key_id":  *result.KeyID,
-                "owner":   ownerID,
-                "meta":    result.Meta,
+                "message":              "Access granted",
+                "key_id":               *result.KeyID,
+                "identity_external_id": identityExternalID,
+                "meta":                 result.Meta,
             })
         })
 

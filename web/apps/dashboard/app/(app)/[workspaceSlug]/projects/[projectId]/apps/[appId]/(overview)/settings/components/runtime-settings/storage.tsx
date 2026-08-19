@@ -2,8 +2,10 @@
 
 import { formatStorageParts } from "@/lib/utils/deployment-formatters";
 import { Database } from "@unkey/icons";
-import { type ResourceSliderConfig, ResourceSliderSetting } from "../shared/resource-slider";
+import { ResourceSliderSetting, defineResourceSlider } from "../shared/resource-slider";
 
+// Storage tiers on the slider. resolveStrategy bounds these to the workspace
+// limit and adds the exact limit value as a stop when it is not one of these tiers.
 const STORAGE_OPTIONS = [
   { label: "None", value: 0 },
   { label: "512 MiB", value: 512 },
@@ -11,21 +13,25 @@ const STORAGE_OPTIONS = [
   { label: "2 GiB", value: 2048 },
   { label: "5 GiB", value: 5120 },
   { label: "10 GiB", value: 10240 },
+  { label: "20 GiB", value: 20480 },
+  { label: "50 GiB", value: 51200 },
 ] as const;
 
-const storageConfig: ResourceSliderConfig = {
+const storageConfig = defineResourceSlider({
   icon: <Database className="text-gray-12" iconSize="xl-medium" />,
   title: "Storage",
   description: "Ephemeral disk space per instance",
   settingDescription:
-    "Dedicated EBS volume destroyed when the instance stops. Changes apply on next deploy. During beta, storage is limited to 10 GiB. Contact support@unkey.com for larger volumes.",
+    "We wipe this volume when the instance stops, so don't keep anything you need on it. Changes apply on next deploy. Contact support@unkey.com for larger volumes.",
   colorVar: "successA",
-  slider: { kind: "index-mapped", options: STORAGE_OPTIONS, fallback: 0 },
+  options: STORAGE_OPTIONS,
+  fallback: 0,
   formatValue: formatStorageParts,
-  readValue: (s) => s.storageMib,
-  writeValue: (draft, value) => {
+  read: (s) => s.storageMib,
+  write: (draft, value) => {
     draft.storageMib = value;
   },
-};
+  limitKey: "storageMibMaxPerInstance",
+});
 
 export const Storage = () => <ResourceSliderSetting config={storageConfig} />;

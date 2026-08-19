@@ -104,7 +104,7 @@ func (c *Controller) reconcileDesiredState(ctx context.Context, replicaSet *apps
 	}
 
 	res, err := c.cluster.GetDesiredDeploymentState(ctx, &ctrlv1.GetDesiredDeploymentStateRequest{
-		Region:       c.regionKey(),
+		Cluster:      c.clusterKey(),
 		DeploymentId: deploymentID,
 	})
 	if err != nil {

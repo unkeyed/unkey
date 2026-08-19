@@ -1,0 +1,108 @@
+package handler_test
+
+import (
+	"net/http"
+	"strings"
+	"testing"
+
+	"github.com/oapi-codegen/nullable"
+	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/svc/api/internal/testutil"
+	"github.com/unkeyed/unkey/svc/api/openapi"
+	handler "github.com/unkeyed/unkey/svc/api/routes/v2_environments_update_settings"
+)
+
+// All bad input returns 400, whether rejected by the OpenAPI validation
+// middleware (shapes, patterns, bounds, array caps) or by the handler (limits,
+// region logic). The seeded limits row uses the test defaults (cpu 2000, memory
+// 4096, storage 10240), so requests above those exceed limits.
+func TestUpdateSettings400(t *testing.T) {
+	h := testutil.NewHarness(t)
+
+	route := &handler.Handler{DB: h.DB, Auditlogs: h.Auditlogs, LimitsCache: h.Caches.WorkspaceLimits}
+	h.Register(route)
+
+	env := seedEnvironment(t, h)
+	rootKey := h.CreateRootKey(env.workspaceID, "environment.*.update_environment")
+	headers := authHeaders(rootKey)
+
+	seedRegions(t, h, "us-east-1", "us-west-2")
+	seedUnschedulableRegion(t, h, "eu-west-1")
+
+	overLimit := func(n int) []string {
+		s := make([]string, n)
+		for i := range s {
+			s[i] = "x"
+		}
+		return s
+	}
+
+	testCases := []struct {
+		name string
+		req  handler.Request
+	}{
+		// Resource quota (handler).
+		{name: "cpu over quota", req: handler.Request{VCpus: ptr(5.0)}},
+		{name: "memory over quota", req: handler.Request{MemoryMib: ptr(8192)}},
+		{name: "storage over quota", req: handler.Request{StorageMib: ptr(20480)}},
+
+		// Resource shape: floor and step (spec).
+		{name: "cpu below floor", req: handler.Request{VCpus: ptr(0.1)}},
+		{name: "cpu off step", req: handler.Request{VCpus: ptr(1.3)}},
+		{name: "memory below floor", req: handler.Request{MemoryMib: ptr(128)}},
+		{name: "memory off step", req: handler.Request{MemoryMib: ptr(1000)}},
+		{name: "storage off step", req: handler.Request{StorageMib: ptr(1000)}},
+
+		// Path validation. Dockerfile is constrained by the spec; rootDirectory is
+		// additionally checked by the handler against the control-plane contract.
+		{name: "dockerfile empty", req: handler.Request{Dockerfile: nullable.NewNullableWithValue("")}},
+		{name: "rootDirectory empty", req: handler.Request{RootDirectory: ptr("")}},
+		{name: "rootDirectory absolute", req: handler.Request{RootDirectory: ptr("/api")}},
+		{name: "rootDirectory dot prefix", req: handler.Request{RootDirectory: ptr("./api")}},
+		{name: "rootDirectory traversal", req: handler.Request{RootDirectory: ptr("services/../api")}},
+		{name: "rootDirectory fragment", req: handler.Request{RootDirectory: ptr("services/api#main")}},
+		{name: "buildCommand empty", req: handler.Request{BuildCommand: nullable.NewNullableWithValue("")}},
+		{name: "buildCommand over maxLength", req: handler.Request{BuildCommand: nullable.NewNullableWithValue(strings.Repeat("x", 1001))}},
+		{name: "openapiSpecPath no slash", req: handler.Request{OpenapiSpecPath: nullable.NewNullableWithValue("openapi.yaml")}},
+		{name: "openapiSpecPath space", req: handler.Request{OpenapiSpecPath: nullable.NewNullableWithValue("/open api.yaml")}},
+		{name: "openapiSpecPath traversal", req: handler.Request{OpenapiSpecPath: nullable.NewNullableWithValue("/../openapi.yaml")}},
+		{name: "openapiSpecPath extension only", req: handler.Request{OpenapiSpecPath: nullable.NewNullableWithValue(".yaml")}},
+		{name: "openapiSpecPath bare slash", req: handler.Request{OpenapiSpecPath: nullable.NewNullableWithValue("/")}},
+		{name: "openapiSpecPath trailing slash", req: handler.Request{OpenapiSpecPath: nullable.NewNullableWithValue("/specs/")}},
+		{name: "healthcheck path no slash", req: handler.Request{Healthcheck: nullable.NewNullableWithValue(openapi.EnvironmentHealthcheck{Method: "GET", Path: "health"})}},
+		{name: "healthcheck path bad chars", req: handler.Request{Healthcheck: nullable.NewNullableWithValue(openapi.EnvironmentHealthcheck{Method: "GET", Path: "/health check"})}},
+		{name: "healthcheck path traversal", req: handler.Request{Healthcheck: nullable.NewNullableWithValue(openapi.EnvironmentHealthcheck{Method: "GET", Path: "/../etc/passwd"})}},
+
+		// Array caps (spec).
+		{name: "watchPaths over limit", req: handler.Request{WatchPaths: ptr(overLimit(11))}},
+		{name: "command over limit", req: handler.Request{Command: ptr(overLimit(11))}},
+		{name: "regions over limit", req: handler.Request{Regions: ptr([]openapi.EnvironmentRegion{
+			regionSetting("r1", 1, 2), regionSetting("r2", 1, 2), regionSetting("r3", 1, 2),
+			regionSetting("r4", 1, 2), regionSetting("r5", 1, 2), regionSetting("r6", 1, 2),
+		})}},
+
+		// Region replica bounds (handler).
+		{name: "replicas max above limit", req: handler.Request{Regions: ptr([]openapi.EnvironmentRegion{regionSetting("us-east-1", 1, 5)})}},
+		{name: "replicas min below one", req: handler.Request{Regions: ptr([]openapi.EnvironmentRegion{regionSetting("us-east-1", 0, 2)})}},
+		{name: "empty regions list", req: handler.Request{Regions: ptr([]openapi.EnvironmentRegion{})}},
+
+		// Region logic (handler).
+		{name: "replicas min greater than max", req: handler.Request{Regions: ptr([]openapi.EnvironmentRegion{regionSetting("us-east-1", 3, 1)})}},
+		{name: "unknown region", req: handler.Request{Regions: ptr([]openapi.EnvironmentRegion{regionSetting("ap-south-1", 1, 2)})}},
+		{name: "unschedulable region", req: handler.Request{Regions: ptr([]openapi.EnvironmentRegion{regionSetting("eu-west-1", 1, 2)})}},
+		{name: "duplicate region", req: handler.Request{Regions: ptr([]openapi.EnvironmentRegion{regionSetting("us-east-1", 1, 2), regionSetting("us-east-1", 1, 3)})}},
+		{name: "mismatched replica bounds", req: handler.Request{Regions: ptr([]openapi.EnvironmentRegion{regionSetting("us-east-1", 1, 3), regionSetting("us-west-2", 2, 4)})}},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			req := tc.req
+			req.Project = env.projectID
+			req.App = env.appID
+			req.Environment = env.environmentID
+
+			res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
+			require.Equal(t, http.StatusBadRequest, res.Status, "expected 400 for %q, got: %s", tc.name, res.RawBody)
+		})
+	}
+}

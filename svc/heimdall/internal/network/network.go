@@ -33,6 +33,15 @@ var (
 	// on the next tick. Guards against unbounded memory growth under a
 	// pathological rollout storm.
 	ErrAttachQueueFull = errors.New("attach queue full")
+	// ErrNotAttached means this process has no attach record for the pod, so
+	// its counters cannot be read yet. Crucially this is NOT the same as
+	// "zero bytes": the counter map is pinned in bpffs and survives a
+	// heimdall restart, so after a restart the kernel still holds the pod's
+	// full month-to-date total while the in-process attach table is empty.
+	// Reporting zero there made the next tick's delta the entire cumulative
+	// counter, re-billing a month of egress in one 5-second interval. Callers
+	// must treat this as "not measured" and not record a value.
+	ErrNotAttached = errors.New("pod not attached in this process")
 )
 
 // Counters is the per-pod byte snapshot returned by Read. All four are
@@ -90,8 +99,9 @@ type Reader interface {
 	Detach(uid types.UID)
 
 	// Read returns the current cumulative byte counters for the pod.
-	// Returns zeros (no error) when the pod isn't attached or has not
-	// yet seen any packets.
+	// Returns ErrNotAttached when this process cannot measure the pod yet.
+	// An attached pod that has not seen any packets returns zeros without
+	// an error.
 	Read(uid types.UID) (Counters, error)
 
 	// MapEntries returns the current number of live entries in the BPF

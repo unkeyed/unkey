@@ -125,6 +125,19 @@ func TestBadRequests(t *testing.T) {
 		require.Contains(t, res.Body.Error.Type, "invalid_input")
 	})
 
+	t.Run("search exceeding max length", func(t *testing.T) {
+		tooLongSearch := strings.Repeat("a", 257)
+		req := handler.Request{
+			Search: &tooLongSearch,
+		}
+
+		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
+		require.Equal(t, 400, res.Status)
+
+		// Verify error type
+		require.Contains(t, res.Body.Error.Type, "invalid_input")
+	})
+
 	t.Run("limit at boundary (200)", func(t *testing.T) {
 		boundaryLimit := 200
 		req := handler.Request{

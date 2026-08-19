@@ -37,7 +37,7 @@ export const ProductionCardProvider = ProductionCardContext.Provider;
 export function useProductionCard(): ProductionCardContextValue {
   const ctx = use(ProductionCardContext);
   if (!ctx) {
-    throw new Error("useProductionCard must be used within ProductionDeploymentCard");
+    throw new Error("useProductionCard must be used within AppProductionCard");
   }
   return ctx;
 }

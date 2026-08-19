@@ -159,4 +159,23 @@ func TestForbidden(t *testing.T) {
 		require.True(t, foundProd, "Should find production environment identity")
 		require.True(t, foundStaging, "Should find staging environment identity")
 	})
+
+	t.Run("with exact legacy permission and targeted search", func(t *testing.T) {
+		rootKey := h.CreateRootKey(workspaceID, "identity."+prodIdentityID+".read_identity")
+		headers := http.Header{
+			"Content-Type":  {"application/json"},
+			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+		}
+		search := "test_user_prod"
+
+		res := testutil.CallRoute[handler.Request, handler.Response](
+			h,
+			route,
+			headers,
+			handler.Request{Search: &search},
+		)
+		require.Equal(t, http.StatusOK, res.Status, "got: %s", res.RawBody)
+		require.Len(t, res.Body.Data, 1)
+		require.Equal(t, prodIdentityID, res.Body.Data[0].Id)
+	})
 }

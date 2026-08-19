@@ -1,6 +1,7 @@
 package routes
 
 import (
+	restateingress "github.com/restatedev/sdk-go/ingress"
 	"github.com/unkeyed/unkey/gen/rpc/ctrl"
 	"github.com/unkeyed/unkey/gen/rpc/vault"
 	"github.com/unkeyed/unkey/internal/services/analytics"
@@ -15,6 +16,8 @@ import (
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/db"
+	githubclient "github.com/unkeyed/unkey/pkg/github"
+	"github.com/unkeyed/unkey/pkg/redaction"
 	"github.com/unkeyed/unkey/pkg/zen/validation"
 )
 
@@ -35,6 +38,11 @@ type Services struct {
 	// Auth normalizes supported credential sources into principals for protected routes.
 	Auth auth.Authenticator
 
+	// PortalAuth resolves only portal-session cookies into principals. It backs
+	// the portal routes so a portal session can never authenticate on a
+	// protected route.
+	PortalAuth auth.Authenticator
+
 	// ClickHouse provides query access to ClickHouse for analytics.
 	ClickHouse clickhouse.ClickHouse
 
@@ -50,6 +58,10 @@ type Services struct {
 
 	// Validator performs request payload validation using struct tags.
 	Validator *validation.Validator
+
+	// Redactor strips values marked x-unkey-redact in the OpenAPI spec out of
+	// the request and response bodies before they are logged to ClickHouse.
+	Redactor *redaction.Redactor
 
 	// Ratelimit provides distributed rate limiting across API requests.
 	Ratelimit ratelimit.Service
@@ -76,6 +88,13 @@ type Services struct {
 	// operations (create seeds default environments and settings).
 	CtrlAppClient ctrl.AppServiceClient
 
+	// CtrlCustomDomainClient communicates with the control plane for custom
+	// domain operations (create starts a durable DNS verification workflow).
+	CtrlCustomDomainClient ctrl.CustomDomainServiceClient
+
+	// Restate submits durable workflows through the Restate ingress.
+	Restate *restateingress.Client
+
 	// PprofEnabled controls whether pprof profiling endpoints are registered.
 	PprofEnabled bool
 
@@ -98,4 +117,17 @@ type Services struct {
 	// (e.g. "https://portal.unkey.com"). Used to construct session redirect
 	// URLs when no custom domain is configured for the portal's app.
 	PortalBaseURL string
+
+	// GitHubAppName is the GitHub App slug used to build the install URL in
+	// github.installApp. GitHubPrivateKeyPEM is the App private key
+	// used to derive the install-state signing key. Either empty disables the
+	// endpoint.
+	GitHubAppName       string
+	GitHubPrivateKeyPEM string
+
+	// GitHubClient authenticates against the GitHub API to resolve and verify
+	// repositories when connecting them to apps (apps.createApp /
+	// apps.updateApp). It is a Noop when GitHub is not configured, which makes
+	// those handlers report the repo-connection feature as unavailable.
+	GitHubClient githubclient.GitHubClient
 }

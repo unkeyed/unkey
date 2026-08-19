@@ -1,3 +1,4 @@
+import { permissionSlugPattern } from "@/app/(app)/[workspaceSlug]/authorization/permissions/components/upsert-permission/upsert-permission.schema";
 import { createConditionalSchema, metadataSchema } from "@/lib/schemas/metadata";
 import { z } from "zod";
 
@@ -26,8 +27,8 @@ export const keyBytesSchema = z.coerce
   .int({
     error: "Key length must be a whole number (integer)",
   })
-  .min(8, {
-    error: "Key length is too short (minimum 8 bytes required)",
+  .min(16, {
+    error: "Key length is too short (minimum 16 bytes required)",
   })
   .max(255, {
     error: "Key length is too long (maximum 255 bytes allowed)",
@@ -257,6 +258,29 @@ export const expirationSchema = z.object({
   }),
 });
 
+// Mirrors keys.createKey in the OpenAPI spec. Role names carry no character
+// restriction, so names with spaces round-trip; 128 matches permissions.slug
+// so role names do not have to narrow later when roles start accepting slugs.
+// Keep in step with roleNameSchema on the role editor.
+//
+// Permission slugs are machine identifiers and do carry a pattern. Keep both
+// the pattern and the 128 cap in step with permissionSlugSchema on the
+// permission editor.
+const roleNameItemSchema = z.string().trim().min(1).max(128);
+const permissionSlugItemSchema = z
+  .string()
+  .trim()
+  .min(1)
+  .max(128)
+  .refine((slug) => permissionSlugPattern.test(slug));
+
+const uniqueStrings = (items: string[]) => [...new Set(items)];
+
+export const rbacSchema = z.object({
+  roleNames: z.array(roleNameItemSchema).prefault([]).transform(uniqueStrings),
+  directPermissionSlugs: z.array(permissionSlugItemSchema).prefault([]).transform(uniqueStrings),
+});
+
 // Combined form schema for UI
 export const formSchema = z
   .object({
@@ -265,6 +289,7 @@ export const formSchema = z
     ...creditsSchema.shape,
     ...ratelimitSchema.shape,
     ...expirationSchema.shape,
+    ...rbacSchema.shape,
   })
   .superRefine((data, ctx) => {
     // For monthly refills, ensure refillDay is provided

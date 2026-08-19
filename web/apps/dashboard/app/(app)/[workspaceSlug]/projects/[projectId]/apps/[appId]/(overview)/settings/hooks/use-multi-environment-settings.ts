@@ -2,9 +2,8 @@
 
 import { collection } from "@/lib/collections";
 import type { EnvironmentSettings } from "@/lib/collections/deploy/environment-settings";
-import { eq, useLiveQuery } from "@tanstack/react-db";
-import { useMemo } from "react";
-import { useProjectData } from "../../data-provider";
+import { and, eq, useLiveQuery } from "@tanstack/react-db";
+import { useAppId, useProjectData } from "../../data-provider";
 
 type MultiEnvironmentSettings = {
   production: EnvironmentSettings;
@@ -12,35 +11,22 @@ type MultiEnvironmentSettings = {
 };
 
 export function useMultiEnvironmentSettings(): MultiEnvironmentSettings | null {
-  const { environments } = useProjectData();
+  const { environments, projectId } = useProjectData();
+  const appId = useAppId();
 
-  const productionEnvId = useMemo(
-    () => environments.find((e) => e.slug === "production")?.id,
-    [environments],
-  );
-  const previewEnvId = useMemo(
-    () => environments.find((e) => e.slug === "preview")?.id,
-    [environments],
-  );
-
-  const { data: productionData } = useLiveQuery(
+  const { data } = useLiveQuery(
     (q) =>
       q
         .from({ s: collection.environmentSettings })
-        .where(({ s }) => eq(s.environmentId, productionEnvId ?? "")),
-    [productionEnvId],
+        .where(({ s }) => and(eq(s.projectId, projectId), eq(s.appId, appId))),
+    [projectId, appId],
   );
 
-  const { data: previewData } = useLiveQuery(
-    (q) =>
-      q
-        .from({ s: collection.environmentSettings })
-        .where(({ s }) => eq(s.environmentId, previewEnvId ?? "")),
-    [previewEnvId],
-  );
+  const productionEnvId = environments.find((e) => e.kind === "production")?.id;
+  const previewEnvId = environments.find((e) => e.kind === "preview")?.id;
 
-  const production = productionData?.at(0);
-  const preview = previewData?.at(0);
+  const production = data?.find((s) => s.environmentId === productionEnvId);
+  const preview = data?.find((s) => s.environmentId === previewEnvId);
 
   if (!production || !preview) {
     return null;

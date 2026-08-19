@@ -3,10 +3,6 @@ title: App settings
 description: Configure build, runtime, and advanced settings for an app. Settings are scoped per environment and take effect on the next deployment.
 ---
 
-import DeployBeta from "/snippets/deploy-beta.mdx";
-
-<DeployBeta />
-
 App settings control how Unkey builds and runs your service. Each [app](/platform/apps/overview) has its own settings, and most settings are scoped per environment so production and preview can differ. You can configure these during project creation or update them from the **Settings** tab in your project dashboard.
 
 <Note>
@@ -26,6 +22,21 @@ Connect a GitHub repository to trigger automatic deployments on push events. Pus
 The directory your application is built from. It is the directory Unkey [analyzes and builds](/builds/overview); for [Dockerfile builds](/builds/dockerfile) it is the build context that `COPY` and `ADD` commands are relative to. Defaults to the repository root (`.`).
 
 Set this when your application lives in a subdirectory, for example `services/api`.
+
+The root directory must be relative to the repository root. Use `.` for the repository root, or enter a slash-separated directory such as `api` or `services/api`. Don't start the path with `/` or `./`, and don't end it with `/`.
+
+Each directory name can contain letters, digits, periods (`.`), underscores (`_`), and hyphens (`-`). Empty directory names, `.` segments, `..` segments, whitespace, backslashes, and other characters aren't supported.
+
+| Value             | Valid | Reason                                 |
+| ----------------- | ----- | -------------------------------------- |
+| `.`               | Yes   | Selects the repository root            |
+| `api`             | Yes   | Selects a top-level directory          |
+| `services/api`    | Yes   | Selects a nested directory             |
+| `/api`            | No    | Starts with `/`                        |
+| `./api`           | No    | Starts with `./`                       |
+| `services/api/`   | No    | Ends with `/`                          |
+| `services/../api` | No    | Contains a `..` path traversal segment |
+| `services/api v2` | No    | Contains whitespace                    |
 
 ### Dockerfile
 
@@ -84,9 +95,13 @@ Set the minimum and maximum to the same value to pin instance count and disable 
 
 Production and preview environments can use different ranges. For example, you might run production with a range of `2 – 4` for redundancy and headroom while keeping preview at `1 – 1` to reduce cost.
 
-<Note>
-  During the beta, the maximum is 4 instances per region. Contact [support@unkey.com](mailto:support@unkey.com) if you need more.
-</Note>
+The maximum depends on your Compute plan:
+
+| Plan          | Maximum instances per region |
+| ------------- | ---------------------------- |
+| Starter plan  | 4                            |
+| Pro plan      | 8                            |
+| Business plan | 16                           |
 
 ### Autoscaling
 
@@ -102,16 +117,17 @@ CPU allocation for each instance. Available options:
 
 | Option    | Millicores |
 | --------- | ---------- |
-| 1/4 vCPU  | 256        |
-| 1/2 vCPU  | 512        |
-| 1 vCPU    | 1,024      |
-| 2 vCPU    | 2,048      |
+| 1/4 vCPU  | 250        |
+| 1/2 vCPU  | 500        |
+| 1 vCPU    | 1,000      |
+| 2 vCPU    | 2,000      |
+| 4 vCPU    | 4,000      |
+| 8 vCPU    | 8,000      |
+| 16 vCPU   | 16,000     |
 
 Defaults to 1/4 vCPU.
 
-<Note>
-  During the beta, the maximum is 2 vCPU. Contact [support@unkey.com](mailto:support@unkey.com) if you need more.
-</Note>
+The Starter plan supports up to 2 vCPU per instance, the Pro plan supports up to 8 vCPU, and the Business plan supports up to 16 vCPU.
 
 ### Memory
 
@@ -122,10 +138,11 @@ Memory allocation for each instance. Available options:
 - 1 GiB
 - 2 GiB
 - 4 GiB
+- 8 GiB
+- 16 GiB
+- 32 GiB
 
-<Note>
-  During the beta, the maximum is 4 GiB. Contact [support@unkey.com](mailto:support@unkey.com) if you need more.
-</Note>
+The Starter plan supports up to 2 GiB per instance, the Pro plan supports up to 8 GiB, and the Business plan supports up to 32 GiB.
 
 ### Storage
 

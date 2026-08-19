@@ -1,18 +1,23 @@
-import { Slot } from "@radix-ui/react-slot";
+import { mergeProps } from "@base-ui/react/merge-props";
+import { useRender } from "@base-ui/react/use-render";
 import { type VariantProps, cva } from "class-variance-authority";
 import type * as React from "react";
 import { cn } from "../../lib/utils";
 
-function SecondaryNav({ className, ...props }: React.ComponentProps<"nav">) {
+function SecondaryNav({ className, children, ...props }: React.ComponentProps<"nav">) {
   return (
     <nav
       className={cn(
         "flex shrink-0 gap-1 overflow-x-auto border-b border-grayA-4 px-3 py-2",
-        "md:w-60 md:flex-col md:gap-3 md:overflow-x-visible md:overflow-y-auto md:border-r md:border-b-0 md:px-3 md:py-4",
+        "md:w-60 md:flex-col md:gap-3 md:overflow-x-visible md:border-r md:border-b-0 md:px-3 md:py-4",
         className,
       )}
       {...props}
-    />
+    >
+      <div className="contents md:sticky md:top-4 md:flex md:max-h-dvh md:flex-col md:gap-3 md:overflow-y-auto">
+        {children}
+      </div>
+    </nav>
   );
 }
 
@@ -47,20 +52,21 @@ const secondaryNavItemVariants = cva(
   },
 );
 
-type SecondaryNavItemProps = React.ComponentProps<"a"> &
-  VariantProps<typeof secondaryNavItemVariants> & {
-    asChild?: boolean;
-  };
+type SecondaryNavItemProps = useRender.ComponentProps<"a"> &
+  VariantProps<typeof secondaryNavItemVariants>;
 
-function SecondaryNavItem({ className, active, asChild = false, ...props }: SecondaryNavItemProps) {
-  const Comp = asChild ? Slot : "a";
-  return (
-    <Comp
-      aria-current={active ? "page" : undefined}
-      className={cn(secondaryNavItemVariants({ active }), className)}
-      {...props}
-    />
-  );
+function SecondaryNavItem({ className, active, render, ...props }: SecondaryNavItemProps) {
+  return useRender({
+    defaultTagName: "a",
+    render,
+    props: mergeProps<"a">(
+      {
+        "aria-current": active ? "page" : undefined,
+        className: cn(secondaryNavItemVariants({ active }), className),
+      } as React.ComponentProps<"a">,
+      props,
+    ),
+  });
 }
 
 export {

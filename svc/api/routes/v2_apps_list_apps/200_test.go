@@ -81,8 +81,7 @@ func TestListAppsSuccessfully(t *testing.T) {
 			require.True(t, ok, "unexpected app %s in response", a.Id)
 			require.True(t, strings.HasPrefix(a.Id, "app_"), "id should have app_ prefix: %s", a.Id)
 			require.Equal(t, slug, a.Slug)
-			require.Equal(t, project.ID, a.ProjectId)
-			require.Equal(t, "main", a.DefaultBranch)
+			require.Nil(t, a.Git, "seeded app has no repo connection")
 			require.NotEmpty(t, a.Name)
 			require.Empty(t, a.CurrentDeploymentId, "freshly seeded app has no active deployment")
 			require.False(t, a.IsRolledBack)
@@ -155,7 +154,6 @@ func TestListAppsSuccessfully(t *testing.T) {
 		require.Equal(t, 200, res.Status, "expected 200, received: %s", res.RawBody)
 		for _, a := range res.Body.Data {
 			require.NotEqual(t, foreignApp.ID, a.Id, "foreign app must never be returned")
-			require.Equal(t, project.ID, a.ProjectId, "only the authorized project's apps may be returned")
 		}
 		require.NotContains(t, res.RawBody, foreignProject.ID, "response must not leak the foreign project ID")
 	})
@@ -224,4 +222,94 @@ func TestListAppsPagination(t *testing.T) {
 	}
 
 	require.Len(t, seen, total)
+}
+
+func TestListAppsSearch(t *testing.T) {
+	h := testutil.NewHarness(t)
+
+	route := &handler.Handler{DB: h.DB}
+	h.Register(route)
+
+	workspace := h.Resources().UserWorkspace
+	rootKey := h.CreateRootKey(workspace.ID, "app.*.read_app")
+	headers := http.Header{
+		"Content-Type":  {"application/json"},
+		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+	}
+
+	// Fresh project so search results are not polluted by other tests
+	project := h.CreateProject(seed.CreateProjectRequest{
+		ID:          uid.New(uid.ProjectPrefix),
+		WorkspaceID: workspace.ID,
+		Name:        "Search Project",
+		Slug:        strings.ToLower(strings.ReplaceAll(uid.New("test"), "_", "-")),
+	})
+
+	seeded := []struct {
+		Name string
+		Slug string
+	}{
+		{"Checkout Flow", "checkout-flow"},
+		{"Admin Panel", "admin-panel"},
+		{"Uptime 100%", "uptime-full"},
+	}
+	appIDs := make(map[string]string)
+	for _, a := range seeded {
+		app := h.CreateApp(seed.CreateAppRequest{
+			ID:            uid.New(uid.AppPrefix),
+			WorkspaceID:   workspace.ID,
+			ProjectID:     project.ID,
+			Name:          a.Name,
+			Slug:          a.Slug,
+			DefaultBranch: "main",
+		})
+		appIDs[a.Name] = app.ID
+	}
+
+	list := func(t *testing.T, search string) []string {
+		t.Helper()
+		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
+			Project: project.ID,
+			Search:  ptr.P(search),
+		})
+		require.Equal(t, 200, res.Status, "expected 200, received: %s", res.RawBody)
+		names := make([]string, 0, len(res.Body.Data))
+		for _, a := range res.Body.Data {
+			names = append(names, a.Name)
+		}
+		return names
+	}
+
+	t.Run("matches name substring", func(t *testing.T) {
+		require.Equal(t, []string{"Checkout Flow"}, list(t, "checkout"))
+	})
+
+	t.Run("matches slug substring", func(t *testing.T) {
+		require.Equal(t, []string{"Admin Panel"}, list(t, "admin-panel"))
+	})
+
+	t.Run("matches app id", func(t *testing.T) {
+		require.Equal(t, []string{"Uptime 100%"}, list(t, appIDs["Uptime 100%"]))
+	})
+
+	t.Run("is case insensitive", func(t *testing.T) {
+		require.Equal(t, []string{"Checkout Flow"}, list(t, "CHECKOUT"))
+	})
+
+	t.Run("wildcards match literally", func(t *testing.T) {
+		// Unescaped, "%" would match every app and "p_nel" would match "Panel"
+		require.Equal(t, []string{"Uptime 100%"}, list(t, "100%"))
+		require.Empty(t, list(t, "p_nel"))
+	})
+
+	t.Run("no matches returns empty list", func(t *testing.T) {
+		require.Empty(t, list(t, "does-not-exist"))
+	})
+
+	t.Run("whitespace-only search returns all", func(t *testing.T) {
+		require.ElementsMatch(t,
+			[]string{"Checkout Flow", "Admin Panel", "Uptime 100%"},
+			list(t, "   "),
+		)
+	})
 }

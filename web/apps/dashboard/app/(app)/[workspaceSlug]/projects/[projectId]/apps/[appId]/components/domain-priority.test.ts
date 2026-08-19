@@ -1,6 +1,6 @@
 import type { CustomDomain, Domain } from "@/lib/collections";
 import { describe, expect, test } from "vitest";
-import { getDomainPriority } from "./domain-priority";
+import { getAppOverviewDomains, getDomainPriority } from "./domain-priority";
 
 function makeDomain(overrides: Partial<Domain> = {}): Domain {
   return {
@@ -48,6 +48,26 @@ const baseCtx = {
   deploymentId: "dep-current",
   currentDeploymentId: "dep-current" as string | null,
 };
+
+test("getAppOverviewDomains includes app aliases and the displayed deployment's immutable URLs", () => {
+  const domains = [
+    makeDomain({ id: "current-commit", deploymentId: "dep-current", sticky: "none" }),
+    makeDomain({ id: "current-deployment", deploymentId: "dep-current", sticky: "deployment" }),
+    makeDomain({ id: "other-branch", deploymentId: "dep-other", sticky: "branch" }),
+    makeDomain({ id: "other-environment", deploymentId: "dep-other", sticky: "environment" }),
+    makeDomain({ id: "other-live", deploymentId: "dep-other", sticky: "live" }),
+    makeDomain({ id: "other-commit", deploymentId: "dep-other", sticky: "none" }),
+    makeDomain({ id: "other-deployment", deploymentId: "dep-other", sticky: "deployment" }),
+  ];
+
+  expect(getAppOverviewDomains(domains, "dep-current").map((domain) => domain.id)).toEqual([
+    "current-commit",
+    "current-deployment",
+    "other-branch",
+    "other-environment",
+    "other-live",
+  ]);
+});
 
 describe("getDomainPriority", () => {
   const cases = [
@@ -218,6 +238,31 @@ describe("getDomainPriority", () => {
     expect(result.all).toHaveLength(2);
     expect(result.all.map((d) => d.id)).toEqual(["cd-1", "d-a"]);
     expect(result.primary?.id).toBe("cd-1");
+  });
+
+  test("verified custom domain route from another environment is not shown as a platform alias", () => {
+    const result = getDomainPriority({
+      ...baseCtx,
+      domains: [
+        makeDomain({
+          id: "d-custom-route",
+          fullyQualifiedDomainName: "custom.example.com",
+          environmentId: "env-other",
+          sticky: "live",
+        }),
+        makeDomain({ id: "d-a", fullyQualifiedDomainName: "a.example.com" }),
+      ],
+      customDomains: [
+        makeCustomDomain({
+          id: "cd-other-env",
+          domain: "custom.example.com",
+          environmentId: "env-other",
+        }),
+      ],
+    });
+
+    expect(result.all.map((domain) => domain.id)).toEqual(["d-a"]);
+    expect(result.primary?.id).toBe("d-a");
   });
 
   test("custom domains hidden when viewing non-current deployment", () => {

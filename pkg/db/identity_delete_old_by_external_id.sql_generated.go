@@ -12,7 +12,7 @@ import (
 const deleteOldIdentityByExternalID = `-- name: DeleteOldIdentityByExternalID :exec
 DELETE i, rl
 FROM identities i
-LEFT JOIN ratelimits rl ON rl.identity_id = i.id
+LEFT JOIN ratelimits rl ON i.id = rl.identity_id
 WHERE i.workspace_id = ?
   AND i.external_id = ?
   AND i.id != ?
@@ -29,7 +29,7 @@ type DeleteOldIdentityByExternalIDParams struct {
 //
 //	DELETE i, rl
 //	FROM identities i
-//	LEFT JOIN ratelimits rl ON rl.identity_id = i.id
+//	LEFT JOIN ratelimits rl ON i.id = rl.identity_id
 //	WHERE i.workspace_id = ?
 //	  AND i.external_id = ?
 //	  AND i.id != ?

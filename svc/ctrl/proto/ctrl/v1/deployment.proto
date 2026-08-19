@@ -1,6 +1,8 @@
 syntax = "proto3";
 package ctrl.v1;
 
+import "ctrl/v1/actor.proto";
+
 option go_package = "github.com/unkeyed/unkey/gen/proto/ctrl/v1;ctrlv1";
 
 // Deployment status enum
@@ -70,6 +72,11 @@ message CreateDeploymentRequest {
   // Free-form reason. Stored alongside the deployment for audit purposes.
   // Populated mostly by internal tooling (e.g. "rebuild after image loss").
   string trigger_reason = 9;
+
+  // Caller identity for the audit log ctrl writes. Carries actor type, name,
+  // and request origin. When unset, the deployment is attributed to the system
+  // actor. Preferred over triggered_by for attribution.
+  ActorInfo actor = 11;
 }
 
 message GitCommitInfo {
@@ -178,12 +185,14 @@ message RegionalConfig {
 message RollbackRequest {
   string source_deployment_id = 1;
   string target_deployment_id = 2;
+  ActorInfo actor = 3;
 }
 
 message RollbackResponse {}
 
 message PromoteRequest {
   string target_deployment_id = 1;
+  ActorInfo actor = 2;
 }
 
 message PromoteResponse {}
@@ -202,15 +211,24 @@ message CancelDeploymentResponse {}
 
 message StopDeploymentRequest {
   string deployment_id = 1;
+  ActorInfo actor = 2;
 }
 
 message StopDeploymentResponse {}
 
 message WakeDeploymentRequest {
   string deployment_id = 1;
+  ActorInfo actor = 2;
 }
 
 message WakeDeploymentResponse {}
+
+message DeprovisionComputeRequest {
+  // WorkspaceId is the workspace whose Compute plan is being deprovisioned.
+  string workspace_id = 1;
+}
+
+message DeprovisionComputeResponse {}
 
 service DeployService {
   // Create a new deployment from a docker image or by auto-detecting
@@ -240,4 +258,12 @@ service DeployService {
 
   // Wake a stopped deployment by scaling it back up.
   rpc WakeDeployment(WakeDeploymentRequest) returns (WakeDeploymentResponse) {}
+
+  // DeprovisionCompute tears down a workspace's Compute: it stops all running
+  // compute via DeployTeardownService.Teardown(ARCHIVE) and clears the local
+  // deploy_plan entitlement so the workspace can no longer deploy. The dashboard
+  // calls this when a workspace cancels its Compute plan; the dashboard stops the
+  // Stripe renewal itself. Idempotent: succeeds if the workspace already has no
+  // Compute plan.
+  rpc DeprovisionCompute(DeprovisionComputeRequest) returns (DeprovisionComputeResponse) {}
 }

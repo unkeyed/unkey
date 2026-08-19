@@ -35,9 +35,16 @@ type Session struct {
 	w http.ResponseWriter // Wrapped with statusRecorder to capture status code
 	r *http.Request
 
+	// Replaced per request, never refilled in place. WithMetrics logs these as
+	// strings that alias the slices rather than copying, and the row sits in a
+	// batch buffer until it flushes, so reusing the backing array for the next
+	// request would overwrite a body that has already been logged.
 	requestBody    []byte
 	responseStatus int
 	responseBody   []byte
+
+	// Fixed server configuration that persists when this session is reused.
+	streamRequestBody bool
 
 	// ClickHouse request logging control - defaults to true (log by default)
 	logRequestToClickHouse bool
@@ -69,10 +76,7 @@ func (s *Session) Init(w http.ResponseWriter, r *http.Request, maxBodySize int64
 		s.r.Body = http.MaxBytesReader(w, s.r.Body, maxBodySize)
 	}
 
-	// For gRPC/streaming requests, skip body buffering — the body is a stream
-	// that must be forwarded incrementally. Buffering would deadlock because the
-	// client waits for a response before sending more frames.
-	if IsStreamingContentType(r.Header.Get("Content-Type")) {
+	if s.streamRequestBody {
 		s.requestBody = nil
 	} else {
 		// Read and cache the request body so metrics middleware can access it even on early errors.
@@ -559,16 +563,8 @@ func (lw *LimitedWriter) Write(p []byte) (int, error) {
 	return total, err
 }
 
-// IsStreamingContentType returns true for content types that use streaming
-// and must not have their body buffered (gRPC, Connect streaming).
-func IsStreamingContentType(ct string) bool {
-	return strings.HasPrefix(ct, "application/grpc") ||
-		strings.HasPrefix(ct, "application/connect+")
-}
-
-// reset is called automatically before the session is returned to the pool.
-// It resets all fields to their null value to prevent leaking data between
-// requests.
+// reset clears request-specific state before the session returns to the pool.
+// Server configuration such as streamRequestBody persists across requests.
 func (s *Session) reset() {
 	s.requestID = ""
 

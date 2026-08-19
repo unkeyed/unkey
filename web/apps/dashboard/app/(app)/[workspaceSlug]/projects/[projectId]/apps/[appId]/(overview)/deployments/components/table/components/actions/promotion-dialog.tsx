@@ -3,7 +3,9 @@
 import { type Deployment, collection } from "@/lib/collections";
 import { shortenId } from "@/lib/shorten-id";
 import { trpc } from "@/lib/trpc/client";
+import { getErrorMessage, getUnkeyClient } from "@/lib/unkey-client";
 import { eq, inArray, useLiveQuery } from "@tanstack/react-db";
+import { useMutation } from "@tanstack/react-query";
 import { Button, DialogContainer, toast } from "@unkey/ui";
 import { DeploymentSection } from "./components/deployment-section";
 import { DomainsSection } from "./components/domains-section";
@@ -31,7 +33,9 @@ export const PromotionDialog = ({
         .where(({ domain }) => eq(domain.deploymentId, currentDeployment.id)),
     [currentDeployment.projectId, currentDeployment.id],
   );
-  const promote = trpc.deploy.deployment.promote.useMutation({
+  const promote = useMutation({
+    mutationFn: (deploymentId: string) =>
+      getUnkeyClient().deployments.promoteDeployment({ deploymentId }),
     onSuccess: () => {
       utils.invalidate();
       toast.success("Promotion completed", {
@@ -40,6 +44,7 @@ export const PromotionDialog = ({
       // hack to revalidate
       try {
         collection.projects.utils.refetch();
+        collection.apps.utils.refetch();
         collection.deployments.utils.refetch();
         collection.domains.utils.refetch();
       } catch (error) {
@@ -50,19 +55,15 @@ export const PromotionDialog = ({
     },
     onError: (error) => {
       toast.error("Promotion failed", {
-        description: error.message,
+        description: getErrorMessage(error),
       });
     },
   });
 
   const handlePromotion = async () => {
-    await promote
-      .mutateAsync({
-        targetDeploymentId: targetDeployment.id,
-      })
-      .catch((error) => {
-        console.error("Promotion error:", error);
-      });
+    await promote.mutateAsync(targetDeployment.id).catch((error) => {
+      console.error("Promotion error:", error);
+    });
   };
 
   return (

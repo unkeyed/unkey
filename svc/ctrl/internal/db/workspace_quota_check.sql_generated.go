@@ -16,12 +16,13 @@ SELECT
    w.id,
    w.org_id,
    w.name,
-   w.stripe_customer_id,
-   w.tier,
+   b.stripe_customer_id,
+   b.tier,
    w.enabled,
-   q.requests_per_month
+   l.api_billable_operations_count_max_per_month AS requests_per_month
 FROM ` + "`" + `workspaces` + "`" + ` w
-LEFT JOIN quota q ON w.id = q.workspace_id
+LEFT JOIN ` + "`" + `limits` + "`" + ` l ON l.workspace_id = w.id
+LEFT JOIN ` + "`" + `workspace_billing` + "`" + ` b ON b.workspace_id = w.id
 WHERE w.id IN (/*SLICE:workspace_ids*/?)
 `
 
@@ -41,12 +42,13 @@ type GetWorkspacesForQuotaCheckByIDsRow struct {
 //	   w.id,
 //	   w.org_id,
 //	   w.name,
-//	   w.stripe_customer_id,
-//	   w.tier,
+//	   b.stripe_customer_id,
+//	   b.tier,
 //	   w.enabled,
-//	   q.requests_per_month
+//	   l.api_billable_operations_count_max_per_month AS requests_per_month
 //	FROM `workspaces` w
-//	LEFT JOIN quota q ON w.id = q.workspace_id
+//	LEFT JOIN `limits` l ON l.workspace_id = w.id
+//	LEFT JOIN `workspace_billing` b ON b.workspace_id = w.id
 //	WHERE w.id IN (/*SLICE:workspace_ids*/?)
 func (q *Queries) GetWorkspacesForQuotaCheckByIDs(ctx context.Context, workspaceIds []string) ([]GetWorkspacesForQuotaCheckByIDsRow, error) {
 	query := getWorkspacesForQuotaCheckByIDs
@@ -67,78 +69,6 @@ func (q *Queries) GetWorkspacesForQuotaCheckByIDs(ctx context.Context, workspace
 	var items []GetWorkspacesForQuotaCheckByIDsRow
 	for rows.Next() {
 		var i GetWorkspacesForQuotaCheckByIDsRow
-		if err := rows.Scan(
-			&i.ID,
-			&i.OrgID,
-			&i.Name,
-			&i.StripeCustomerID,
-			&i.Tier,
-			&i.Enabled,
-			&i.RequestsPerMonth,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const listWorkspacesForQuotaCheck = `-- name: ListWorkspacesForQuotaCheck :many
-SELECT
-   w.id,
-   w.org_id,
-   w.name,
-   w.stripe_customer_id,
-   w.tier,
-   w.enabled,
-   q.requests_per_month
-FROM ` + "`" + `workspaces` + "`" + ` w
-LEFT JOIN quota q ON w.id = q.workspace_id
-WHERE w.id > ?
-ORDER BY w.id ASC
-LIMIT 100
-`
-
-type ListWorkspacesForQuotaCheckRow struct {
-	ID               string         `db:"id"`
-	OrgID            string         `db:"org_id"`
-	Name             string         `db:"name"`
-	StripeCustomerID sql.NullString `db:"stripe_customer_id"`
-	Tier             sql.NullString `db:"tier"`
-	Enabled          bool           `db:"enabled"`
-	RequestsPerMonth sql.NullInt64  `db:"requests_per_month"`
-}
-
-// ListWorkspacesForQuotaCheck
-//
-//	SELECT
-//	   w.id,
-//	   w.org_id,
-//	   w.name,
-//	   w.stripe_customer_id,
-//	   w.tier,
-//	   w.enabled,
-//	   q.requests_per_month
-//	FROM `workspaces` w
-//	LEFT JOIN quota q ON w.id = q.workspace_id
-//	WHERE w.id > ?
-//	ORDER BY w.id ASC
-//	LIMIT 100
-func (q *Queries) ListWorkspacesForQuotaCheck(ctx context.Context, cursor string) ([]ListWorkspacesForQuotaCheckRow, error) {
-	rows, err := q.db.QueryContext(ctx, listWorkspacesForQuotaCheck, cursor)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []ListWorkspacesForQuotaCheckRow
-	for rows.Next() {
-		var i ListWorkspacesForQuotaCheckRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.OrgID,

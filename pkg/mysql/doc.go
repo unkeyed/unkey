@@ -1,9 +1,11 @@
 // Package mysql provides a minimal shared MySQL abstraction for backend services.
 //
 // The package intentionally stays small: it owns connection setup, read/write
-// replica selection, tracing/metrics wrappers, transaction helpers, and
-// MySQL-specific error classification. Query logic stays in caller packages.
-// This keeps Bazel cache keys stable for dependents and avoids pulling
+// replica selection, tracing/metrics wrappers, transaction helpers,
+// MySQL-specific error classification, and LIKE pattern builders for
+// user-supplied search input ([SearchContains], [SearchPrefix],
+// [SearchSuffix]). Query logic stays in caller packages.
+// This keeps the dependency graph stable for callers and avoids pulling
 // service-specific SQL concerns into a base dependency.
 //
 // New requires [Config.PrimaryDSN] and enforces `parseTime=true` in DSNs so

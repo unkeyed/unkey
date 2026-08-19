@@ -32,6 +32,18 @@ type K8sConfig struct {
 	Burst int `toml:"burst" config:"default=200,min=1"`
 }
 
+// ClusterConfig identifies the infrastructure cell where krane is running.
+type ClusterConfig struct {
+	// CellID uniquely identifies the cell within the Unkey network.
+	CellID string `toml:"cell_id" config:"required,nonempty"`
+
+	// Region identifies the geographic region where the cell is deployed.
+	Region string `toml:"region" config:"required,nonempty"`
+
+	// Platform identifies the infrastructure provider (e.g. "aws", "gcp", "local").
+	Platform string `toml:"platform" config:"required,nonempty"`
+}
+
 // Config holds the complete configuration for the krane agent. It is designed
 // to be loaded from a TOML file using [config.Load]:
 //
@@ -47,11 +59,8 @@ type Config struct {
 	// InstanceID is the unique identifier for this krane agent instance.
 	InstanceID string `toml:"instance_id"`
 
-	// Region identifies the geographic region where this node is deployed.
-	Region string `toml:"region" config:"required,nonempty"`
-
-	// Platform identifies the infrastructure provider (e.g. "aws", "gcp", "local").
-	Platform string `toml:"platform" config:"required,nonempty"`
+	// Cluster identifies the infrastructure cell managed by this krane agent.
+	Cluster ClusterConfig `toml:"cluster"`
 
 	// RPCPort is the TCP port for the gRPC server.
 	RPCPort int `toml:"rpc_port" config:"default=8070,min=1,max=65535"`

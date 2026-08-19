@@ -1,11 +1,7 @@
 ---
 title: Instances
-description: "Understand instances in Unkey, running container replicas of your app deployed to specific regions with automatic scaling and routing."
+description: "Understand instances in Unkey, running copies of your app deployed to specific regions with automatic scaling and routing."
 ---
-
-import DeployBeta from "/snippets/deploy-beta.mdx";
-
-<DeployBeta />
 
 An instance is a single running container of your [app](/platform/apps/overview) in a specific [region](/build-and-deploy/regions). When Unkey deploys your app, it creates one or more instances per region based on your configuration. Each instance runs the same container image with the same [variables](/platform/variables/overview) and serves traffic independently. Instances are ephemeral, [ephemeral storage](/platform/apps/settings#storage) does not persist across deployments or restarts.
 
@@ -32,9 +28,23 @@ Set the maximum number of instances per region in **Settings > Runtime settings 
 
 Running multiple instances in a region provides redundancy and distributes load. If one instance fails, the rest keep serving requests without interruption.
 
-<Note>
-  During the beta, the maximum is 4 instances per region. Contact [support@unkey.com](mailto:support@unkey.com) if you need more.
-</Note>
+The Starter plan supports up to 4 instances per region, the Pro plan supports up to 8, and the Business plan supports up to 16.
+
+## High availability
+
+High availability depends on how many instances you run in each region and how many regions you select. If you configure too few instances, Unkey can't guarantee that your app stays available during infrastructure interruptions.
+
+Use this model when choosing an instance count:
+
+| Instances per region | Availability expectation |
+| -------------------- | ------------------------ |
+| 1                    | No high availability guarantee. If the instance stops, your app can become unavailable in that region. |
+| 2                    | Designed to keep at least 1 instance available during one underlying infrastructure interruption in the region. |
+| 3                    | Designed to keep at least 2 instances available during one underlying infrastructure interruption in the region. |
+
+For production workloads that need high availability, configure at least 2 instances per region. Use 3 instances when you want extra capacity during an interruption.
+
+Regional availability is separate from instance availability. To tolerate a regional outage, deploy to at least 2 regions. Each region still needs enough instances for the availability level you want.
 
 ## Resource allocation
 
@@ -45,17 +55,15 @@ Each instance has configurable limits for CPU, memory, and storage. CPU and memo
 
 Configure limits in **Settings > Runtime settings**:
 
-- CPU: 1/4 vCPU to 2 vCPU (default 1/4 vCPU, billed on usage)
-- Memory: 256 MiB to 4 GiB (default 256 MiB, billed on allocation)
-- Storage: None to 10 GiB ephemeral disk (default none, mounted at `/data`)
+- CPU: 1/4 vCPU to 16 vCPU, depending on your plan (default 1/4 vCPU, billed on usage)
+- Memory: 256 MiB to 32 GiB, depending on your plan (default 256 MiB, billed on usage)
+- Storage: None to 10 GiB ephemeral disk (default none, mounted at `/data`, billed on allocation)
 
 A `/tmp` directory backed by memory is always available for scratch files. For larger temporary storage needs, configure [ephemeral storage](/platform/apps/settings#ephemeral-storage) to attach a dedicated disk volume per instance.
 
 All instances in a deployment share the same resource configuration. Changing these values takes effect on the next deployment.
 
-<Note>
-  These limits apply during the beta. Larger instance sizes are planned once the beta ends. Contact [support@unkey.com](mailto:support@unkey.com) if you need more resources now.
-</Note>
+The Starter plan supports up to 2 vCPU and 2 GiB per instance. The Pro plan supports up to 8 vCPU and 8 GiB. The Business plan supports up to 16 vCPU and 32 GiB.
 
 See [App settings](/platform/apps/settings#cpu) for details on each option.
 

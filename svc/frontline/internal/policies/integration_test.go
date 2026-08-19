@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
+	"google.golang.org/protobuf/proto"
 
 	frontlinev1 "github.com/unkeyed/unkey/gen/proto/frontline/v1"
 	"github.com/unkeyed/unkey/internal/services/keys"
@@ -24,6 +25,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/hash"
+	"github.com/unkeyed/unkey/pkg/mysql/sqlcomment"
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
@@ -33,13 +35,30 @@ import (
 	"github.com/unkeyed/unkey/svc/frontline/internal/policies/principal"
 )
 
+const testAppID = "app_test"
+
+type testEngine struct {
+	*policies.Engine
+}
+
+func (e *testEngine) Evaluate(
+	ctx context.Context,
+	sess *zen.Session,
+	req *http.Request,
+	workspaceID string,
+	configuredPolicies []*frontlinev1.Policy,
+) (policies.Result, error) {
+	return e.Engine.Evaluate(ctx, sess, req, workspaceID, testAppID, configuredPolicies)
+}
+
 // testHarness holds all real services needed for integration tests.
 type testHarness struct {
-	t          *testing.T
-	db         db.Database
-	keyService keys.KeyService
-	engine     *policies.Engine
-	clk        clock.Clock
+	t                  *testing.T
+	db                 db.Database
+	keyService         keys.KeyService
+	engine             *testEngine
+	clk                clock.Clock
+	verificationEvents <-chan schema.KeyVerification
 }
 
 func newTestHarness(t *testing.T) *testHarness {
@@ -53,6 +72,7 @@ func newTestHarness(t *testing.T) *testHarness {
 	database, err := db.New(db.Config{
 		PrimaryDSN:  mysqlCfg.DSN,
 		ReadOnlyDSN: "",
+		Tags:        sqlcomment.Disabled(),
 	})
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = database.Close() })
@@ -110,24 +130,42 @@ func newTestHarness(t *testing.T) *testHarness {
 		RBAC:         rbac.New(),
 		Region:       "test",
 		UsageLimiter: usageLimiter,
+		Source:       schema.SourceGateway,
 		KeyCache:     keyCache,
 	})
 	require.NoError(t, err)
+
+	verificationEvents := make(chan schema.KeyVerification, 100)
+	keyVerifications := batch.New(batch.Config[schema.KeyVerification]{
+		Name:          "test_key_verifications",
+		BatchSize:     1,
+		BufferSize:    100,
+		FlushInterval: time.Hour,
+		Drop:          false,
+		Consumers:     1,
+		Flush: func(_ context.Context, verifications []schema.KeyVerification) {
+			for _, verification := range verifications {
+				verificationEvents <- verification
+			}
+		},
+	})
+	t.Cleanup(keyVerifications.Close)
 
 	eng, err := policies.New(policies.Config{
 		KeyService:       keyService,
 		RateLimiter:      rateLimiter,
 		Clock:            clk,
-		KeyVerifications: batch.NewNoop[schema.KeyVerification](),
+		KeyVerifications: keyVerifications,
 	})
 	require.NoError(t, err)
 
 	return &testHarness{
-		t:          t,
-		db:         database,
-		keyService: keyService,
-		engine:     eng,
-		clk:        clk,
+		t:                  t,
+		db:                 database,
+		keyService:         keyService,
+		engine:             &testEngine{Engine: eng},
+		clk:                clk,
+		verificationEvents: verificationEvents,
 	}
 }
 
@@ -337,7 +375,7 @@ func newSessionWithRecorder(t *testing.T, req *http.Request) (*zen.Session, *htt
 func keyAuthPolicy(id string, keySpaceIDs []string) *frontlinev1.Policy {
 	return &frontlinev1.Policy{
 		Id:      id,
-		Enabled: true,
+		Enabled: proto.Bool(true),
 		Config: &frontlinev1.Policy_Keyauth{
 			Keyauth: &frontlinev1.KeyAuth{KeySpaceIds: keySpaceIDs},
 		},
@@ -347,7 +385,7 @@ func keyAuthPolicy(id string, keySpaceIDs []string) *frontlinev1.Policy {
 func rateLimitPolicy(id string, limit int64, windowMs int64, identifier *frontlinev1.RateLimitIdentifier) *frontlinev1.Policy {
 	return &frontlinev1.Policy{
 		Id:      id,
-		Enabled: true,
+		Enabled: proto.Bool(true),
 		Config: &frontlinev1.Policy_Ratelimit{
 			Ratelimit: &frontlinev1.RateLimit{
 				Limit:      limit,
@@ -372,7 +410,7 @@ func TestKeyAuth_ValidKey(t *testing.T) {
 	policies := []*frontlinev1.Policy{
 		{
 			Id:      "auth",
-			Enabled: true,
+			Enabled: proto.Bool(true),
 			Config: &frontlinev1.Policy_Keyauth{
 				Keyauth: &frontlinev1.KeyAuth{KeySpaceIds: []string{s.KeySpaceID}},
 			},
@@ -382,6 +420,13 @@ func TestKeyAuth_ValidKey(t *testing.T) {
 	result, err := h.engine.Evaluate(ctx, sess, req, "ws_test", policies)
 	require.NoError(t, err)
 	require.NotNil(t, result.Principal)
+	select {
+	case verification := <-h.verificationEvents:
+		require.Equal(t, testAppID, verification.AppID)
+		require.Equal(t, schema.SourceGateway, verification.Source)
+	case <-time.After(time.Second):
+		t.Fatal("timed out waiting for key verification telemetry")
+	}
 
 	// Subject falls back to key ID when no external ID is set
 	require.Equal(t, principal.PrincipalVersion, result.Principal.Version)
@@ -397,6 +442,9 @@ func TestKeyAuth_ValidKey(t *testing.T) {
 	require.NotNil(t, key.Meta)
 	require.Empty(t, key.Roles)
 	require.Empty(t, key.Permissions)
+	// The seeded key has unlimited credits (RemainingRequests NULL), so the
+	// principal omits the credits field entirely.
+	require.Nil(t, key.Credits)
 }
 
 func TestKeyAuth_ValidKey_WithIdentity(t *testing.T) {
@@ -412,7 +460,7 @@ func TestKeyAuth_ValidKey_WithIdentity(t *testing.T) {
 	policies := []*frontlinev1.Policy{
 		{
 			Id:      "auth",
-			Enabled: true,
+			Enabled: proto.Bool(true),
 			Config: &frontlinev1.Policy_Keyauth{
 				Keyauth: &frontlinev1.KeyAuth{KeySpaceIds: []string{s.KeySpaceID}},
 			},
@@ -432,6 +480,114 @@ func TestKeyAuth_ValidKey_WithIdentity(t *testing.T) {
 	require.NotNil(t, identity.Meta)
 }
 
+func TestKeyAuth_UsageExceededHasDistinctCode(t *testing.T) {
+	h := newTestHarness(t)
+	ctx := context.Background()
+	s := h.seed(ctx)
+
+	err := db.Query.UpdateKeyCreditsSet(ctx, h.db.RW(), db.UpdateKeyCreditsSetParams{
+		Credits: sql.NullInt64{Int64: 0, Valid: true},
+		ID:      s.KeyID,
+	})
+	require.NoError(t, err)
+
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req.Header.Set("Authorization", "Bearer "+s.RawKey)
+	sess := newSession(t, req)
+
+	_, err = h.engine.Evaluate(ctx, sess, req, s.WorkspaceID, []*frontlinev1.Policy{
+		keyAuthPolicy("auth", []string{s.KeySpaceID}),
+	})
+	require.Error(t, err)
+	urn, ok := fault.GetCode(err)
+	require.True(t, ok)
+	require.Equal(t, codes.Frontline.Auth.UsageExceeded.URN(), urn)
+}
+
+// A credits override of 0 verifies the key without spending credits, so a key
+// with no remaining usage still authenticates. The same setup with the default
+// cost of 1 fails with USAGE_EXCEEDED (see TestKeyAuth_UsageExceededHasDistinctCode).
+func TestKeyAuth_CreditsOverrideZero_DoesNotSpend(t *testing.T) {
+	h := newTestHarness(t)
+	ctx := context.Background()
+	s := h.seed(ctx)
+
+	err := db.Query.UpdateKeyCreditsSet(ctx, h.db.RW(), db.UpdateKeyCreditsSetParams{
+		Credits: sql.NullInt64{Int64: 0, Valid: true},
+		ID:      s.KeyID,
+	})
+	require.NoError(t, err)
+
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req.Header.Set("Authorization", "Bearer "+s.RawKey)
+	sess := newSession(t, req)
+
+	policies := []*frontlinev1.Policy{
+		{
+			Id:      "auth",
+			Enabled: proto.Bool(true),
+			Config: &frontlinev1.Policy_Keyauth{
+				Keyauth: &frontlinev1.KeyAuth{
+					KeySpaceIds: []string{s.KeySpaceID},
+					Credits:     proto.Int64(0),
+				},
+			},
+		},
+	}
+
+	result, err := h.engine.Evaluate(ctx, sess, req, s.WorkspaceID, policies)
+	require.NoError(t, err)
+	require.NotNil(t, result.Principal)
+	require.Equal(t, s.KeyID, result.Principal.Subject)
+
+	// The zero-cost override spends nothing, so the key's balance is still 0.
+	// A limited key surfaces its remaining credits on the principal.
+	key := result.Principal.Source.Key
+	require.NotNil(t, key)
+	require.NotNil(t, key.Credits)
+	require.Equal(t, int64(0), *key.Credits)
+}
+
+// A credits override above the key's remaining usage rejects the request with
+// USAGE_EXCEEDED, proving the override raises the per-request cost beyond the
+// default of 1.
+func TestKeyAuth_CreditsOverride_ChargesConfiguredCost(t *testing.T) {
+	h := newTestHarness(t)
+	ctx := context.Background()
+	s := h.seed(ctx)
+
+	// Two remaining credits: the default cost of 1 would pass, but a cost of 3
+	// exceeds the balance.
+	err := db.Query.UpdateKeyCreditsSet(ctx, h.db.RW(), db.UpdateKeyCreditsSetParams{
+		Credits: sql.NullInt64{Int64: 2, Valid: true},
+		ID:      s.KeyID,
+	})
+	require.NoError(t, err)
+
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req.Header.Set("Authorization", "Bearer "+s.RawKey)
+	sess := newSession(t, req)
+
+	policies := []*frontlinev1.Policy{
+		{
+			Id:      "auth",
+			Enabled: proto.Bool(true),
+			Config: &frontlinev1.Policy_Keyauth{
+				Keyauth: &frontlinev1.KeyAuth{
+					KeySpaceIds: []string{s.KeySpaceID},
+					Credits:     proto.Int64(3),
+				},
+			},
+		},
+	}
+
+	_, err = h.engine.Evaluate(ctx, sess, req, s.WorkspaceID, policies)
+	require.Error(t, err)
+	urn, ok := fault.GetCode(err)
+	require.True(t, ok)
+	require.Equal(t, codes.Frontline.Auth.UsageExceeded.URN(), urn)
+}
+
 func TestKeyAuth_MissingKey_Reject(t *testing.T) {
 	h := newTestHarness(t)
 	ctx := context.Background()
@@ -444,7 +600,7 @@ func TestKeyAuth_MissingKey_Reject(t *testing.T) {
 	policies := []*frontlinev1.Policy{
 		{
 			Id:      "auth",
-			Enabled: true,
+			Enabled: proto.Bool(true),
 			Config: &frontlinev1.Policy_Keyauth{
 				Keyauth: &frontlinev1.KeyAuth{
 					KeySpaceIds: []string{s.KeySpaceID},
@@ -471,7 +627,7 @@ func TestKeyAuth_InvalidKey_NotFound(t *testing.T) {
 	policies := []*frontlinev1.Policy{
 		{
 			Id:      "auth",
-			Enabled: true,
+			Enabled: proto.Bool(true),
 			Config: &frontlinev1.Policy_Keyauth{
 				Keyauth: &frontlinev1.KeyAuth{KeySpaceIds: []string{s.KeySpaceID}},
 			},
@@ -495,7 +651,7 @@ func TestKeyAuth_InvalidKey_Disabled(t *testing.T) {
 	policies := []*frontlinev1.Policy{
 		{
 			Id:      "auth",
-			Enabled: true,
+			Enabled: proto.Bool(true),
 			Config: &frontlinev1.Policy_Keyauth{
 				Keyauth: &frontlinev1.KeyAuth{KeySpaceIds: []string{base.KeySpaceID}},
 			},
@@ -504,6 +660,13 @@ func TestKeyAuth_InvalidKey_Disabled(t *testing.T) {
 
 	_, err := h.engine.Evaluate(ctx, sess, req, "ws_test", policies)
 	require.Error(t, err)
+	select {
+	case verification := <-h.verificationEvents:
+		require.Equal(t, testAppID, verification.AppID)
+		require.Equal(t, keys.StatusDisabled, keys.KeyStatus(verification.Outcome))
+	case <-time.After(time.Second):
+		t.Fatal("timed out waiting for key verification telemetry")
+	}
 }
 
 func TestKeyAuth_WrongKeySpace(t *testing.T) {
@@ -518,7 +681,7 @@ func TestKeyAuth_WrongKeySpace(t *testing.T) {
 	policies := []*frontlinev1.Policy{
 		{
 			Id:      "auth",
-			Enabled: true,
+			Enabled: proto.Bool(true),
 			Config: &frontlinev1.Policy_Keyauth{
 				Keyauth: &frontlinev1.KeyAuth{KeySpaceIds: []string{"ks_wrong_space"}},
 			},
@@ -545,7 +708,7 @@ func TestKeyAuth_MultipleKeySpaceIds(t *testing.T) {
 		policies := []*frontlinev1.Policy{
 			{
 				Id:      "auth",
-				Enabled: true,
+				Enabled: proto.Bool(true),
 				Config: &frontlinev1.Policy_Keyauth{
 					Keyauth: &frontlinev1.KeyAuth{KeySpaceIds: []string{s1.KeySpaceID, s2.KeySpaceID}},
 				},
@@ -566,7 +729,7 @@ func TestKeyAuth_MultipleKeySpaceIds(t *testing.T) {
 		policies := []*frontlinev1.Policy{
 			{
 				Id:      "auth",
-				Enabled: true,
+				Enabled: proto.Bool(true),
 				Config: &frontlinev1.Policy_Keyauth{
 					Keyauth: &frontlinev1.KeyAuth{KeySpaceIds: []string{s1.KeySpaceID, s2.KeySpaceID}},
 				},
@@ -589,7 +752,7 @@ func TestKeyAuth_MultipleKeySpaceIds(t *testing.T) {
 		policies := []*frontlinev1.Policy{
 			{
 				Id:      "auth",
-				Enabled: true,
+				Enabled: proto.Bool(true),
 				Config: &frontlinev1.Policy_Keyauth{
 					Keyauth: &frontlinev1.KeyAuth{KeySpaceIds: []string{s1.KeySpaceID, s2.KeySpaceID}},
 				},
@@ -616,7 +779,7 @@ func TestEvaluate_DisabledPoliciesSkipped(t *testing.T) {
 	policies := []*frontlinev1.Policy{
 		{
 			Id:      "disabled",
-			Enabled: false,
+			Enabled: proto.Bool(false),
 			Config: &frontlinev1.Policy_Keyauth{
 				Keyauth: &frontlinev1.KeyAuth{KeySpaceIds: []string{s.KeySpaceID}},
 			},
@@ -641,7 +804,7 @@ func TestEvaluate_MatchFiltering(t *testing.T) {
 	policies := []*frontlinev1.Policy{
 		{
 			Id:      "api-auth",
-			Enabled: true,
+			Enabled: proto.Bool(true),
 			Match: []*frontlinev1.MatchExpr{
 				{Expr: &frontlinev1.MatchExpr_Path{Path: &frontlinev1.PathMatch{
 					Path: &frontlinev1.StringMatch{Match: &frontlinev1.StringMatch_Prefix{Prefix: "/api"}},
@@ -706,7 +869,7 @@ func TestKeyAuth_EnforcesNamedKeyRatelimit(t *testing.T) {
 	policies := []*frontlinev1.Policy{
 		{
 			Id:      "auth",
-			Enabled: true,
+			Enabled: proto.Bool(true),
 			Config: &frontlinev1.Policy_Keyauth{
 				Keyauth: &frontlinev1.KeyAuth{
 					KeySpaceIds: []string{s.KeySpaceID},
@@ -748,7 +911,7 @@ func TestKeyAuth_NamedRatelimitNotFound(t *testing.T) {
 	policies := []*frontlinev1.Policy{
 		{
 			Id:      "auth",
-			Enabled: true,
+			Enabled: proto.Bool(true),
 			Config: &frontlinev1.Policy_Keyauth{
 				Keyauth: &frontlinev1.KeyAuth{
 					KeySpaceIds: []string{s.KeySpaceID},
@@ -777,7 +940,7 @@ func TestKeyAuth_InlineRatelimitOverride(t *testing.T) {
 	policies := []*frontlinev1.Policy{
 		{
 			Id:      "auth",
-			Enabled: true,
+			Enabled: proto.Bool(true),
 			Config: &frontlinev1.Policy_Keyauth{
 				Keyauth: &frontlinev1.KeyAuth{
 					KeySpaceIds: []string{s.KeySpaceID},
@@ -967,7 +1130,7 @@ func TestFirewall_DenyByPath(t *testing.T) {
 		{
 			Id:      "block-xxx",
 			Name:    "Block /xxx",
-			Enabled: true,
+			Enabled: proto.Bool(true),
 			Match: []*frontlinev1.MatchExpr{
 				{Expr: &frontlinev1.MatchExpr_Path{Path: &frontlinev1.PathMatch{
 					Path: &frontlinev1.StringMatch{Match: &frontlinev1.StringMatch_Prefix{Prefix: "/xxx"}},
@@ -996,7 +1159,7 @@ func TestFirewall_DenyByPath_NonMatchPasses(t *testing.T) {
 	policies := []*frontlinev1.Policy{
 		{
 			Id:      "block-xxx",
-			Enabled: true,
+			Enabled: proto.Bool(true),
 			Match: []*frontlinev1.MatchExpr{
 				{Expr: &frontlinev1.MatchExpr_Path{Path: &frontlinev1.PathMatch{
 					Path: &frontlinev1.StringMatch{Match: &frontlinev1.StringMatch_Prefix{Prefix: "/xxx"}},
@@ -1010,6 +1173,179 @@ func TestFirewall_DenyByPath_NonMatchPasses(t *testing.T) {
 
 	_, err := h.engine.Evaluate(ctx, sess, req, "ws_test", policies)
 	require.NoError(t, err)
+}
+
+// --- Logging integration tests ---
+
+func TestLogging_EnabledMatchingPolicySetsCaptureFlags(t *testing.T) {
+	h := newTestHarness(t)
+	ctx := context.Background()
+
+	req := httptest.NewRequest(http.MethodGet, "/api/orders", nil)
+	sess := newSession(t, req)
+
+	policies := []*frontlinev1.Policy{
+		{
+			Id:      "log-api",
+			Name:    "Log /api",
+			Enabled: proto.Bool(true),
+			Match: []*frontlinev1.MatchExpr{
+				{Expr: &frontlinev1.MatchExpr_Path{Path: &frontlinev1.PathMatch{
+					Path: &frontlinev1.StringMatch{Match: &frontlinev1.StringMatch_Prefix{Prefix: "/api"}},
+				}}},
+			},
+			Config: &frontlinev1.Policy_Logging{Logging: &frontlinev1.Logging{
+				RequestHeaders: true, ResponseHeaders: true, RequestBody: true, ResponseBody: true, Query: true,
+			}},
+		},
+	}
+
+	result, err := h.engine.Evaluate(ctx, sess, req, "ws_test", policies)
+	require.NoError(t, err)
+	require.True(t, result.LogRequestHeaders)
+	require.True(t, result.LogResponseHeaders)
+	require.True(t, result.LogRequestBody)
+	require.True(t, result.LogResponseBody)
+	require.True(t, result.LogQuery)
+}
+
+// TestLogging_CaptureFlagsAreIndependent pins that every capture flag is a
+// separate opt-in: enabling one direction/kind must not turn on the others.
+func TestLogging_CaptureFlagsAreIndependent(t *testing.T) {
+	h := newTestHarness(t)
+	ctx := context.Background()
+
+	req := httptest.NewRequest(http.MethodGet, "/api/orders", nil)
+	sess := newSession(t, req)
+
+	policies := []*frontlinev1.Policy{
+		{
+			Id:      "log-response-body",
+			Enabled: proto.Bool(true),
+			Config:  &frontlinev1.Policy_Logging{Logging: &frontlinev1.Logging{ResponseBody: true}},
+		},
+	}
+
+	result, err := h.engine.Evaluate(ctx, sess, req, "ws_test", policies)
+	require.NoError(t, err)
+	require.False(t, result.LogRequestHeaders)
+	require.False(t, result.LogResponseHeaders)
+	require.False(t, result.LogRequestBody)
+	require.True(t, result.LogResponseBody)
+	require.False(t, result.LogQuery)
+}
+
+// TestLogging_NoMatchConditionsCapturesEveryRequest pins the catch-all
+// semantics: a policy with an empty match list matches every request, so a
+// logging policy without match conditions turns capture on for all traffic.
+func TestLogging_NoMatchConditionsCapturesEveryRequest(t *testing.T) {
+	h := newTestHarness(t)
+	ctx := context.Background()
+
+	req := httptest.NewRequest(http.MethodGet, "/any/path/at/all", nil)
+	sess := newSession(t, req)
+
+	policies := []*frontlinev1.Policy{
+		{
+			Id:      "log-everything",
+			Name:    "Log everything",
+			Enabled: proto.Bool(true),
+			Config:  &frontlinev1.Policy_Logging{Logging: &frontlinev1.Logging{RequestHeaders: true, ResponseHeaders: true, RequestBody: true, ResponseBody: true, Query: true}},
+		},
+	}
+
+	result, err := h.engine.Evaluate(ctx, sess, req, "ws_test", policies)
+	require.NoError(t, err)
+	require.True(t, result.LogRequestHeaders)
+	require.True(t, result.LogResponseHeaders)
+	require.True(t, result.LogRequestBody)
+	require.True(t, result.LogResponseBody)
+	require.True(t, result.LogQuery)
+}
+
+// TestLogging_MultipleMatchingPoliciesUnionFlags pins that capture flags from
+// several matching logging policies are OR-ed together rather than one policy
+// overriding another.
+func TestLogging_MultipleMatchingPoliciesUnionFlags(t *testing.T) {
+	h := newTestHarness(t)
+	ctx := context.Background()
+
+	req := httptest.NewRequest(http.MethodGet, "/api/orders", nil)
+	sess := newSession(t, req)
+
+	policies := []*frontlinev1.Policy{
+		{
+			Id:      "log-request-headers",
+			Enabled: proto.Bool(true),
+			Config:  &frontlinev1.Policy_Logging{Logging: &frontlinev1.Logging{RequestHeaders: true}},
+		},
+		{
+			Id:      "log-response-body",
+			Enabled: proto.Bool(true),
+			Config:  &frontlinev1.Policy_Logging{Logging: &frontlinev1.Logging{ResponseBody: true, Query: true}},
+		},
+	}
+
+	result, err := h.engine.Evaluate(ctx, sess, req, "ws_test", policies)
+	require.NoError(t, err)
+	require.True(t, result.LogRequestHeaders)
+	require.False(t, result.LogResponseHeaders)
+	require.False(t, result.LogRequestBody)
+	require.True(t, result.LogResponseBody)
+	require.True(t, result.LogQuery)
+}
+
+func TestLogging_NonMatchingPolicyLeavesCaptureOff(t *testing.T) {
+	h := newTestHarness(t)
+	ctx := context.Background()
+
+	req := httptest.NewRequest(http.MethodGet, "/healthz", nil)
+	sess := newSession(t, req)
+
+	policies := []*frontlinev1.Policy{
+		{
+			Id:      "log-api",
+			Enabled: proto.Bool(true),
+			Match: []*frontlinev1.MatchExpr{
+				{Expr: &frontlinev1.MatchExpr_Path{Path: &frontlinev1.PathMatch{
+					Path: &frontlinev1.StringMatch{Match: &frontlinev1.StringMatch_Prefix{Prefix: "/api"}},
+				}}},
+			},
+			Config: &frontlinev1.Policy_Logging{Logging: &frontlinev1.Logging{RequestHeaders: true, ResponseHeaders: true, RequestBody: true, ResponseBody: true, Query: true}},
+		},
+	}
+
+	result, err := h.engine.Evaluate(ctx, sess, req, "ws_test", policies)
+	require.NoError(t, err)
+	require.False(t, result.LogRequestHeaders)
+	require.False(t, result.LogResponseHeaders)
+	require.False(t, result.LogRequestBody)
+	require.False(t, result.LogResponseBody)
+	require.False(t, result.LogQuery)
+}
+
+func TestLogging_DisabledPolicyLeavesCaptureOff(t *testing.T) {
+	h := newTestHarness(t)
+	ctx := context.Background()
+
+	req := httptest.NewRequest(http.MethodGet, "/api/orders", nil)
+	sess := newSession(t, req)
+
+	policies := []*frontlinev1.Policy{
+		{
+			Id:      "log-api",
+			Enabled: proto.Bool(false),
+			Config:  &frontlinev1.Policy_Logging{Logging: &frontlinev1.Logging{RequestHeaders: true, ResponseHeaders: true, RequestBody: true, ResponseBody: true, Query: true}},
+		},
+	}
+
+	result, err := h.engine.Evaluate(ctx, sess, req, "ws_test", policies)
+	require.NoError(t, err)
+	require.False(t, result.LogRequestHeaders)
+	require.False(t, result.LogResponseHeaders)
+	require.False(t, result.LogRequestBody)
+	require.False(t, result.LogResponseBody)
+	require.False(t, result.LogQuery)
 }
 
 func TestFirewall_DenyRunsBeforeKeyAuth(t *testing.T) {
@@ -1026,7 +1362,7 @@ func TestFirewall_DenyRunsBeforeKeyAuth(t *testing.T) {
 	policies := []*frontlinev1.Policy{
 		{
 			Id:      "block-xxx",
-			Enabled: true,
+			Enabled: proto.Bool(true),
 			Match: []*frontlinev1.MatchExpr{
 				{Expr: &frontlinev1.MatchExpr_Path{Path: &frontlinev1.PathMatch{
 					Path: &frontlinev1.StringMatch{Match: &frontlinev1.StringMatch_Prefix{Prefix: "/xxx"}},
@@ -1038,7 +1374,7 @@ func TestFirewall_DenyRunsBeforeKeyAuth(t *testing.T) {
 		},
 		{
 			Id:      "auth",
-			Enabled: true,
+			Enabled: proto.Bool(true),
 			Config: &frontlinev1.Policy_Keyauth{
 				Keyauth: &frontlinev1.KeyAuth{KeySpaceIds: []string{s.KeySpaceID}},
 			},

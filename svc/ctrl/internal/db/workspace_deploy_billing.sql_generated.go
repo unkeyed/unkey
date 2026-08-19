@@ -11,12 +11,65 @@ import (
 	"strings"
 )
 
+const listDeployBillingCustomers = `-- name: ListDeployBillingCustomers :many
+SELECT
+   w.id,
+   b.stripe_customer_id
+FROM ` + "`" + `workspaces` + "`" + ` w
+INNER JOIN ` + "`" + `workspace_billing` + "`" + ` b ON b.workspace_id = w.id
+WHERE b.stripe_customer_id IS NOT NULL
+  AND b.stripe_customer_id <> ''
+`
+
+type ListDeployBillingCustomersRow struct {
+	ID               string         `db:"id"`
+	StripeCustomerID sql.NullString `db:"stripe_customer_id"`
+}
+
+// Lists the workspaces whose Deploy usage can be reported to Stripe. This is
+// intentionally not gated on an active plan or enabled workspace: usage
+// incurred while a cancelled deployment drains is still owed. The hourly
+// push uses this set to scope and shard the ClickHouse scan before doing the
+// expensive checkpoint integration; workspaces without a Stripe customer
+// could never produce a meter event and must not make that scan more costly.
+//
+//	SELECT
+//	   w.id,
+//	   b.stripe_customer_id
+//	FROM `workspaces` w
+//	INNER JOIN `workspace_billing` b ON b.workspace_id = w.id
+//	WHERE b.stripe_customer_id IS NOT NULL
+//	  AND b.stripe_customer_id <> ''
+func (q *Queries) ListDeployBillingCustomers(ctx context.Context) ([]ListDeployBillingCustomersRow, error) {
+	rows, err := q.db.QueryContext(ctx, listDeployBillingCustomers)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListDeployBillingCustomersRow
+	for rows.Next() {
+		var i ListDeployBillingCustomersRow
+		if err := rows.Scan(&i.ID, &i.StripeCustomerID); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listWorkspacesForDeployBillingByIDs = `-- name: ListWorkspacesForDeployBillingByIDs :many
 SELECT
    w.id,
-   w.stripe_customer_id,
+   b.stripe_customer_id,
    w.enabled
 FROM ` + "`" + `workspaces` + "`" + ` w
+LEFT JOIN ` + "`" + `workspace_billing` + "`" + ` b ON b.workspace_id = w.id
 WHERE w.id IN (/*SLICE:workspace_ids*/?)
 `
 
@@ -35,9 +88,10 @@ type ListWorkspacesForDeployBillingByIDsRow struct {
 //
 //	SELECT
 //	   w.id,
-//	   w.stripe_customer_id,
+//	   b.stripe_customer_id,
 //	   w.enabled
 //	FROM `workspaces` w
+//	LEFT JOIN `workspace_billing` b ON b.workspace_id = w.id
 //	WHERE w.id IN (/*SLICE:workspace_ids*/?)
 func (q *Queries) ListWorkspacesForDeployBillingByIDs(ctx context.Context, workspaceIds []string) ([]ListWorkspacesForDeployBillingByIDsRow, error) {
 	query := listWorkspacesForDeployBillingByIDs

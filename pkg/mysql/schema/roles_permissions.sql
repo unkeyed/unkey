@@ -1,8 +1,8 @@
 CREATE TABLE `roles_permissions` (
 	`pk` bigint unsigned AUTO_INCREMENT NOT NULL,
-	`role_id` varchar(256) NOT NULL,
-	`permission_id` varchar(256) NOT NULL,
-	`workspace_id` varchar(256) NOT NULL,
+	`role_id` varchar(48) COLLATE utf8mb4_0900_as_cs NOT NULL,
+	`permission_id` varchar(48) COLLATE utf8mb4_0900_as_cs NOT NULL,
+	`workspace_id` varchar(48) COLLATE utf8mb4_0900_as_cs NOT NULL,
 	`created_at_m` bigint NOT NULL DEFAULT 0,
 	`updated_at_m` bigint,
 	CONSTRAINT `roles_permissions_pk` PRIMARY KEY(`pk`),

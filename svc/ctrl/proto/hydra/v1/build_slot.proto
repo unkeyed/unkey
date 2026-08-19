@@ -18,7 +18,7 @@ option go_package = "github.com/unkeyed/unkey/gen/proto/hydra/v1;hydrav1";
 //     representing a Deploy handler blocked on its awakeable waiting for a
 //     slot to free up
 //
-// The limit is read from the workspace's quota.max_concurrent_builds.
+// The limit is read from limits.builds_concurrent_max for the workspace.
 //
 // Key: workspace_id
 service BuildSlotService {
@@ -45,6 +45,26 @@ service BuildSlotService {
   // no-op. Safe to call from both the Deploy handler's success path and
   // its compensation stack (defer).
   rpc Release(ReleaseSlotRequest) returns (ReleaseSlotResponse) {}
+
+  // ExpireSlot is the lease check. Every slot grant and every wait-list
+  // enqueue schedules a delayed self-call to ExpireSlot for that
+  // deployment. When it fires, the handler checks whether the deployment is
+  // still tracked (active or waiting):
+  //
+  //   - Not tracked: normal case, the slot was released in time. No-op.
+  //   - Tracked but the deployment row is terminal or missing: the owning
+  //     Deploy invocation died (killed, purged, crashed) without its
+  //     Release compensation. The slot or wait entry is reclaimed and the
+  //     next waiter promoted.
+  //   - Tracked, non-terminal, and the Deploy invocation is still live in
+  //     Restate: the build still runs. The lease renews, up to a hard cap
+  //     on total hold time. Past the cap the deployment is force-failed in
+  //     the database and the slot reclaimed, so one hung build cannot
+  //     block the workspace queue.
+  //
+  // Without this, a killed Deploy invocation holds its slot forever and
+  // permanently decreases the workspace's build capacity.
+  rpc ExpireSlot(ExpireSlotRequest) returns (ExpireSlotResponse) {}
 }
 
 message AcquireOrWaitRequest {
@@ -68,3 +88,15 @@ message ReleaseSlotRequest {
 }
 
 message ReleaseSlotResponse {}
+
+message ExpireSlotRequest {
+  // The deployment whose slot lease or wait-list entry is checked.
+  string deployment_id = 1;
+
+  // Count of lease renewals already granted for this slot. The handler
+  // renews the lease for a live invocation until the renewal cap, then
+  // force-fails the deployment.
+  uint32 renewals = 2;
+}
+
+message ExpireSlotResponse {}

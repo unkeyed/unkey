@@ -1,14 +1,13 @@
 CREATE TABLE `keys` (
 	`pk` bigint unsigned AUTO_INCREMENT NOT NULL,
-	`id` varchar(256) NOT NULL,
-	`key_auth_id` varchar(256) NOT NULL,
-	`hash` varchar(256) NOT NULL,
+	`id` varchar(48) COLLATE utf8mb4_0900_as_cs NOT NULL,
+	`key_auth_id` varchar(48) COLLATE utf8mb4_0900_as_cs NOT NULL,
+	`hash` varchar(256) COLLATE utf8mb4_0900_as_cs NOT NULL,
 	`start` varchar(256) NOT NULL,
-	`workspace_id` varchar(256) NOT NULL,
-	`for_workspace_id` varchar(256),
+	`workspace_id` varchar(48) COLLATE utf8mb4_0900_as_cs NOT NULL,
+	`for_workspace_id` varchar(48) COLLATE utf8mb4_0900_as_cs,
 	`name` varchar(256),
-	`owner_id` varchar(256),
-	`identity_id` varchar(256),
+	`identity_id` varchar(48) COLLATE utf8mb4_0900_as_cs,
 	`meta` text,
 	`expires` datetime(3),
 	`created_at_m` bigint NOT NULL DEFAULT 0,
@@ -21,7 +20,7 @@ CREATE TABLE `keys` (
 	`remaining_requests` bigint unsigned,
 	`environment` varchar(256),
 	`last_used_at` bigint unsigned NOT NULL DEFAULT 0,
-	`pending_migration_id` varchar(256),
+	`pending_migration_id` varchar(48) COLLATE utf8mb4_0900_as_cs,
 	CONSTRAINT `keys_pk` PRIMARY KEY(`pk`),
 	CONSTRAINT `keys_id_unique` UNIQUE(`id`),
 	CONSTRAINT `hash_idx` UNIQUE(`hash`)
@@ -36,8 +35,6 @@ CREATE INDEX `idx_keys_on_for_workspace_id` ON `keys` (`for_workspace_id`);
 CREATE INDEX `pending_migration_id_idx` ON `keys` (`pending_migration_id`);
 
 CREATE INDEX `idx_keys_on_workspace_id` ON `keys` (`workspace_id`);
-
-CREATE INDEX `owner_id_idx` ON `keys` (`owner_id`);
 
 CREATE INDEX `identity_id_idx` ON `keys` (`identity_id`,`key_auth_id`,`id`);
 

@@ -23,7 +23,7 @@ export function SidebarBody() {
     .filter((segment) => !segment.startsWith("("));
   const { slug } = useWorkspaceNavigation();
   const keyAuthId = useApiKeyAuthId(context.type === "api" ? context.apiId : undefined);
-  const appOverview = useFlag("appOverview");
+  const portalManagement = useFlag("portalManagement");
 
   const links = (() => {
     switch (context.type) {
@@ -34,13 +34,13 @@ export function SidebarBody() {
       // settings/authorization layouts).
       case "settings":
       case "authorization":
-        return buildWorkspaceSections(slug, segments);
+        return buildWorkspaceSections(slug, segments, portalManagement);
       case "project":
         return context.appId
-          ? buildAppLinks(slug, context.projectId, context.appId, segments, appOverview)
+          ? buildAppLinks(slug, context.projectId, context.appId, segments)
           : buildProjectLinks(slug, context.projectId, segments);
       case "api":
-        return buildApiLinks(slug, context.apiId, keyAuthId, segments);
+        return buildApiLinks(slug, context.apiId, keyAuthId, segments, portalManagement);
       case "namespace":
         return buildNamespaceLinks(slug, context.namespaceId, segments);
     }

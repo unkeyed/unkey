@@ -3,10 +3,12 @@ package handler_test
 import (
 	"fmt"
 	"net/http"
+	"sort"
 	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/pkg/deploy/projectgate"
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
@@ -77,6 +79,75 @@ func TestListProjectsSuccessfully(t *testing.T) {
 		})
 		require.Equal(t, 200, res.Status, "expected 200, received: %s", res.RawBody)
 		require.NotNil(t, res.Body.Pagination)
+	})
+}
+
+func TestListProjectsHidesDefaultProject(t *testing.T) {
+	h := testutil.NewHarness(t)
+
+	route := &handler.Handler{DB: h.DB}
+	h.Register(route)
+
+	workspace := h.CreateWorkspace()
+	rootKey := h.CreateRootKey(workspace.ID, "project.*.read_project")
+	headers := http.Header{
+		"Content-Type":  {"application/json"},
+		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+	}
+
+	ids := []string{
+		uid.New(uid.ProjectPrefix),
+		uid.New(uid.ProjectPrefix),
+		uid.New(uid.ProjectPrefix),
+	}
+	sort.Strings(ids)
+
+	h.CreateProject(seed.CreateProjectRequest{
+		ID:          ids[0],
+		WorkspaceID: workspace.ID,
+		Name:        "First",
+		Slug:        "first",
+	})
+	h.CreateProject(seed.CreateProjectRequest{
+		ID:               ids[1],
+		WorkspaceID:      workspace.ID,
+		Name:             "Default",
+		Slug:             projectgate.DefaultSlug,
+		DeleteProtection: true,
+	})
+	h.CreateProject(seed.CreateProjectRequest{
+		ID:          ids[2],
+		WorkspaceID: workspace.ID,
+		Name:        "Last",
+		Slug:        "last",
+	})
+
+	t.Run("omits default without breaking pagination", func(t *testing.T) {
+		firstPage := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
+			Limit: ptr.P(1),
+		})
+		require.Equal(t, http.StatusOK, firstPage.Status, "expected 200, received: %s", firstPage.RawBody)
+		require.Len(t, firstPage.Body.Data, 1)
+		require.Equal(t, ids[0], firstPage.Body.Data[0].Id)
+		require.True(t, firstPage.Body.Pagination.HasMore)
+		require.NotNil(t, firstPage.Body.Pagination.Cursor)
+
+		secondPage := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
+			Limit:  ptr.P(1),
+			Cursor: firstPage.Body.Pagination.Cursor,
+		})
+		require.Equal(t, http.StatusOK, secondPage.Status, "expected 200, received: %s", secondPage.RawBody)
+		require.Len(t, secondPage.Body.Data, 1)
+		require.Equal(t, ids[2], secondPage.Body.Data[0].Id)
+		require.False(t, secondPage.Body.Pagination.HasMore)
+	})
+
+	t.Run("does not return default in search", func(t *testing.T) {
+		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
+			Search: ptr.P(projectgate.DefaultSlug),
+		})
+		require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
+		require.Empty(t, res.Body.Data)
 	})
 }
 
@@ -189,5 +260,85 @@ func TestListProjectsWorkspaceIsolation(t *testing.T) {
 		for _, p := range res.Body.Data {
 			require.Equal(t, mine.ID, p.Id, "only own-workspace projects may be returned")
 		}
+	})
+}
+
+func TestListProjectsSearch(t *testing.T) {
+	h := testutil.NewHarness(t)
+
+	route := &handler.Handler{DB: h.DB}
+	h.Register(route)
+
+	// Fresh workspace so search results are not polluted by other tests
+	workspace := h.CreateWorkspace()
+	rootKey := h.CreateRootKey(workspace.ID, "project.*.read_project")
+	headers := http.Header{
+		"Content-Type":  {"application/json"},
+		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+	}
+
+	seeded := []struct {
+		Name string
+		Slug string
+	}{
+		{"Billing Service", "billing-service"},
+		{"Web Frontend", "web-frontend"},
+		{"Reports 100%", "reports-full"},
+	}
+	projectIDs := make(map[string]string)
+	for _, p := range seeded {
+		project := h.CreateProject(seed.CreateProjectRequest{
+			ID:          uid.New(uid.ProjectPrefix),
+			WorkspaceID: workspace.ID,
+			Name:        p.Name,
+			Slug:        p.Slug,
+		})
+		projectIDs[p.Name] = project.ID
+	}
+
+	list := func(t *testing.T, search string) []string {
+		t.Helper()
+		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
+			Search: ptr.P(search),
+		})
+		require.Equal(t, 200, res.Status, "expected 200, received: %s", res.RawBody)
+		names := make([]string, 0, len(res.Body.Data))
+		for _, p := range res.Body.Data {
+			names = append(names, p.Name)
+		}
+		return names
+	}
+
+	t.Run("matches name substring", func(t *testing.T) {
+		require.Equal(t, []string{"Billing Service"}, list(t, "billing"))
+	})
+
+	t.Run("matches slug substring", func(t *testing.T) {
+		require.Equal(t, []string{"Web Frontend"}, list(t, "web-frontend"))
+	})
+
+	t.Run("matches project id", func(t *testing.T) {
+		require.Equal(t, []string{"Reports 100%"}, list(t, projectIDs["Reports 100%"]))
+	})
+
+	t.Run("is case insensitive", func(t *testing.T) {
+		require.Equal(t, []string{"Billing Service"}, list(t, "BILLING"))
+	})
+
+	t.Run("wildcards match literally", func(t *testing.T) {
+		// Unescaped, "%" would match every project and "s_rvice" would match "Service"
+		require.Equal(t, []string{"Reports 100%"}, list(t, "100%"))
+		require.Empty(t, list(t, "s_rvice"))
+	})
+
+	t.Run("no matches returns empty list", func(t *testing.T) {
+		require.Empty(t, list(t, "does-not-exist"))
+	})
+
+	t.Run("whitespace-only search returns all", func(t *testing.T) {
+		require.ElementsMatch(t,
+			[]string{"Billing Service", "Web Frontend", "Reports 100%"},
+			list(t, "   "),
+		)
 	})
 }

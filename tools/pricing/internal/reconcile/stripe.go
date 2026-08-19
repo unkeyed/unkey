@@ -5,6 +5,8 @@ package reconcile
 // price, transfer its lookup_key, archive the old one. Never delete.
 
 import (
+	"strings"
+
 	"github.com/stripe/stripe-go/v86"
 
 	"github.com/unkeyed/unkey/tools/pricing"
@@ -94,8 +96,10 @@ func (r *reconciler) loadSnapshot() error {
 		if err != nil {
 			return err
 		}
-		if _, ok := s.webhooksByURL[w.URL]; !ok {
-			s.webhooksByURL[w.URL] = w
+		// Keyed by base URL: query parameters (the Vercel bypass secret) are
+		// mutable delivery details, not identity.
+		if _, ok := s.webhooksByURL[baseURL(w.URL)]; !ok {
+			s.webhooksByURL[baseURL(w.URL)] = w
 		}
 	}
 
@@ -133,7 +137,16 @@ func (r *reconciler) apiProductByKeyOrName(a pricing.APIProduct) *stripe.Product
 }
 
 func (r *reconciler) webhookByURL(url string) *stripe.WebhookEndpoint {
-	return r.snap.webhooksByURL[url]
+	return r.snap.webhooksByURL[baseURL(url)]
+}
+
+// baseURL strips the query string; webhook identity ignores it (see the
+// Webhook doc in the pricing package).
+func baseURL(u string) string {
+	if i := strings.Index(u, "?"); i >= 0 {
+		return u[:i]
+	}
+	return u
 }
 
 // ── Writes ───────────────────────────────────────────────────────────────────

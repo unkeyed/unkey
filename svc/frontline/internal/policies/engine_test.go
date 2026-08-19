@@ -8,6 +8,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/svc/frontline/internal/policies/principal"
 	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/proto"
 )
 
 func TestParseMiddleware_Nil(t *testing.T) {
@@ -56,7 +57,7 @@ func TestParseMiddleware_WithPolicies(t *testing.T) {
 			{
 				Id:      "p1",
 				Name:    "key auth",
-				Enabled: true,
+				Enabled: proto.Bool(true),
 				Match:   nil,
 				Config: &frontlinev1.Policy_Keyauth{
 					//nolint:exhaustruct
@@ -77,7 +78,7 @@ func TestParseMiddleware_WithPolicies(t *testing.T) {
 
 // TestPrincipal_Marshal_WireFormat pins the JSON wire format of the
 // Principal. The header contract documented in
-// docs/product/platform/sentinel/principal/overview.mdx is exactly this
+// docs/product/platform/gateway/principal/overview.mdx is exactly this
 // output — if this test changes, update the docs in the same commit.
 func TestPrincipal_Marshal_WireFormat(t *testing.T) {
 	t.Parallel()
@@ -132,6 +133,7 @@ func TestPrincipal_Marshal_WireFormat(t *testing.T) {
 					KeySpaceID:  "ks_456",
 					Name:        ptr.P("prod"),
 					ExpiresAt:   ptr.P(int64(1717200000000)),
+					Credits:     ptr.P(int64(42)),
 					Meta:        map[string]any{},
 					Roles:       []string{"admin"},
 					Permissions: []string{"api.read", "api.write"},
@@ -152,6 +154,7 @@ func TestPrincipal_Marshal_WireFormat(t *testing.T) {
 				"keySpaceId": "ks_456",
 				"name": "prod",
 				"expiresAt": 1717200000000,
+				"credits": 42,
 				"meta": {},
 				"roles": ["admin"],
 				"permissions": ["api.read", "api.write"]

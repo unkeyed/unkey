@@ -1,7 +1,7 @@
 CREATE TABLE `horizontal_autoscaling_policies` (
 	`pk` bigint unsigned AUTO_INCREMENT NOT NULL,
-	`id` varchar(64) NOT NULL,
-	`workspace_id` varchar(256) NOT NULL,
+	`id` varchar(48) COLLATE utf8mb4_0900_as_cs NOT NULL,
+	`workspace_id` varchar(48) COLLATE utf8mb4_0900_as_cs NOT NULL,
 	`replicas_min` int NOT NULL,
 	`replicas_max` int NOT NULL,
 	`memory_threshold` tinyint,

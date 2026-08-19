@@ -10,25 +10,25 @@ import (
 )
 
 const resetWorkspaceBilling = `-- name: ResetWorkspaceBilling :exec
-UPDATE ` + "`" + `workspaces` + "`" + `
+UPDATE ` + "`" + `workspace_billing` + "`" + `
 SET stripe_customer_id = NULL,
-    stripe_subscription_id = NULL,
-    deploy_plan = NULL,
+    plan = NULL,
     tier = 'Free'
-WHERE id = ?
+WHERE workspace_id = ?
 `
 
-// Clears every billing linkage on a workspace, returning it to the Free
-// tier. Mirrors what the customer.subscription.deleted webhook writes, plus
-// stripe_customer_id, which no webhook ever clears. Used by the
-// `unkey dev stripe reset` tooling; quota is reset separately via UpdateQuota.
+// Clears the workspace_billing linkage on a workspace, returning it to the
+// Free tier. Mirrors what the customer.subscription.deleted webhook writes,
+// plus stripe_customer_id, which no webhook ever clears. Stripe subscription
+// ids live on billing_subscriptions and are cleared separately by
+// DeleteWorkspaceBillingSubscriptions. Used by the `unkey dev stripe reset`
+// tooling.
 //
-//	UPDATE `workspaces`
+//	UPDATE `workspace_billing`
 //	SET stripe_customer_id = NULL,
-//	    stripe_subscription_id = NULL,
-//	    deploy_plan = NULL,
+//	    plan = NULL,
 //	    tier = 'Free'
-//	WHERE id = ?
+//	WHERE workspace_id = ?
 func (q *Queries) ResetWorkspaceBilling(ctx context.Context, db DBTX, id string) error {
 	_, err := db.ExecContext(ctx, resetWorkspaceBilling, id)
 	return err

@@ -1,26 +1,17 @@
 import { ListSearchInput } from "@/components/list-search-input";
-import {
-  ControlsContainer,
-  ControlsLeft,
-  ControlsRight,
-} from "@/components/logs/controls-container";
 import { useNamespaceListFilters } from "../hooks/use-namespace-list-filters";
 import { NamespaceListDateTime } from "./components/namespace-list-datetime";
-import { NamespaceListRefresh } from "./components/namespace-list-refresh";
 
 export function NamespaceListControls() {
   return (
-    <ControlsContainer>
-      <ControlsLeft>
+    <div className="flex min-h-10 w-full items-center gap-2">
+      <div className="w-full md:w-[calc((100%-1.25rem)/2)] xl:w-[calc((100%-2.5rem)/3)]">
         <ListSearchInput
           useFiltersHook={useNamespaceListFilters}
           placeholder="Search namespaces..."
         />
-        <NamespaceListDateTime />
-      </ControlsLeft>
-      <ControlsRight>
-        <NamespaceListRefresh />
-      </ControlsRight>
-    </ControlsContainer>
+      </div>
+      <NamespaceListDateTime />
+    </div>
   );
 }

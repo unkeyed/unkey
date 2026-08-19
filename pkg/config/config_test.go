@@ -351,29 +351,46 @@ func TestLoadBytes_ExpandsEnvVars(t *testing.T) {
 	require.Equal(t, "hunter2", got.Secret)
 }
 
-func TestLoad_DetectsFormatFromExtension(t *testing.T) {
-	t.Run("toml extension", func(t *testing.T) {
-		type tomlCfg struct {
-			Host string `toml:"host"`
-		}
+func TestLoad_AcceptsPathOrInlineContent(t *testing.T) {
+	type cfg struct {
+		Host string `toml:"host"`
+	}
+
+	t.Run("reads a .toml file path", func(t *testing.T) {
 		dir := t.TempDir()
 		path := filepath.Join(dir, "config.toml")
 		require.NoError(t, os.WriteFile(path, []byte("host = \"example.com\""), 0o644))
 
-		got, err := Load[tomlCfg](path)
+		got, err := Load[cfg](path)
 		require.NoError(t, err)
 		require.Equal(t, "example.com", got.Host)
 	})
 
-	t.Run("unsupported extension returns error", func(t *testing.T) {
-		type cfg struct {
-			Host string `toml:"host"`
-		}
+	t.Run("reads an extensionless file path", func(t *testing.T) {
 		dir := t.TempDir()
-		path := filepath.Join(dir, "config.txt")
+		path := filepath.Join(dir, "config")
 		require.NoError(t, os.WriteFile(path, []byte("host = \"example.com\""), 0o644))
 
-		_, err := Load[cfg](path)
+		got, err := Load[cfg](path)
+		require.NoError(t, err)
+		require.Equal(t, "example.com", got.Host)
+	})
+
+	t.Run("parses inline TOML content", func(t *testing.T) {
+		got, err := Load[cfg]("host = \"example.com\"")
+		require.NoError(t, err)
+		require.Equal(t, "example.com", got.Host)
+	})
+
+	t.Run("parses multi-line inline TOML content", func(t *testing.T) {
+		got, err := Load[cfg]("# comment\nhost = \"example.com\"\n")
+		require.NoError(t, err)
+		require.Equal(t, "example.com", got.Host)
+	})
+
+	t.Run("missing file path returns error", func(t *testing.T) {
+		dir := t.TempDir()
+		_, err := Load[cfg](filepath.Join(dir, "does-not-exist.toml"))
 		require.Error(t, err)
 	})
 }

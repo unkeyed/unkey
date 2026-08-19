@@ -17,7 +17,7 @@ post:
   operationId: apps.updateApp
   x-speakeasy-name-override: updateApp
   security:
-    - rootKey: []
+    - bearer: []
   requestBody:
     content:
       application/json:
@@ -58,7 +58,6 @@ post:
                   id: app_1234abcd
                   name: Payments API
                   slug: payments-api
-                  projectId: proj_1234abcd
                   defaultBranch: main
                   isRolledBack: false
                   deleteProtection: true

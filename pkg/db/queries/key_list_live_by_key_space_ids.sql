@@ -1,0 +1,93 @@
+-- name: ListLiveKeysByKeySpaceIDs :many
+SELECT k.pk, k.id, k.key_auth_id, k.hash, k.start, k.workspace_id, k.for_workspace_id,
+       k.name, k.identity_id, k.meta, k.expires, k.created_at_m, k.updated_at_m,
+       k.deleted_at_m, k.refill_day, k.refill_amount, k.last_refill_at, k.enabled,
+       k.remaining_requests, k.environment, k.last_used_at, k.pending_migration_id,
+       i.id                 as identity_table_id,
+       i.external_id        as identity_external_id,
+       i.meta               as identity_meta,
+       ek.encrypted         as encrypted_key,
+       ek.encryption_key_id as encryption_key_id,
+       -- Roles with both IDs and names (sorted by name)
+       COALESCE(
+               (SELECT JSON_ARRAYAGG(
+                               JSON_OBJECT(
+                                       'id', r.id,
+                                       'name', r.name,
+                                       'description', r.description
+                               )
+                       )
+                FROM keys_roles kr
+                         JOIN roles r ON r.id = kr.role_id
+                WHERE k.id = kr.key_id
+                ORDER BY r.name),
+               JSON_ARRAY()
+       )                    as roles,
+       -- Direct permissions attached to the key (sorted by slug)
+       COALESCE(
+               (SELECT JSON_ARRAYAGG(
+                               JSON_OBJECT(
+                                       'id', p.id,
+                                       'name', p.name,
+                                       'slug', p.slug,
+                                       'description', p.description
+                               )
+                       )
+                FROM keys_permissions kp
+                         JOIN permissions p ON kp.permission_id = p.id
+                WHERE k.id = kp.key_id
+                ORDER BY p.slug),
+               JSON_ARRAY()
+       )                    as permissions,
+       -- Permissions from roles (sorted by slug)
+       COALESCE(
+               (SELECT JSON_ARRAYAGG(
+                               JSON_OBJECT(
+                                       'id', p.id,
+                                       'name', p.name,
+                                       'slug', p.slug,
+                                       'description', p.description
+                               )
+                       )
+                FROM keys_roles kr
+                         JOIN roles_permissions rp ON kr.role_id = rp.role_id
+                         JOIN permissions p ON rp.permission_id = p.id
+                WHERE k.id = kr.key_id
+                ORDER BY p.slug),
+               JSON_ARRAY()
+       )                    as role_permissions,
+       -- Rate limits
+       COALESCE(
+               (SELECT JSON_ARRAYAGG(
+                               JSON_OBJECT(
+                                       'id', id,
+                                       'name', name,
+                                       'key_id', key_id,
+                                       'identity_id', identity_id,
+                                       'limit', `limit`,
+                                       'duration', duration,
+                                       'auto_apply', auto_apply = 1
+                               )
+                       )
+                FROM (
+                    SELECT rl.id, rl.name, rl.key_id, rl.identity_id, rl.`limit`, rl.duration, rl.auto_apply
+                    FROM ratelimits rl
+                    WHERE k.id = rl.key_id
+                    UNION ALL
+                    SELECT rl.id, rl.name, rl.key_id, rl.identity_id, rl.`limit`, rl.duration, rl.auto_apply
+                    FROM ratelimits rl
+                    WHERE i.id = rl.identity_id
+                ) AS combined_rl),
+               JSON_ARRAY()
+       )                    AS ratelimits
+FROM `keys` k
+         STRAIGHT_JOIN key_auth ka ON ka.id = k.key_auth_id
+         LEFT JOIN identities i ON k.identity_id = i.id AND i.deleted = false
+         LEFT JOIN encrypted_keys ek ON k.id = ek.key_id
+WHERE k.key_auth_id IN (sqlc.slice(key_space_ids))
+  AND k.id >= sqlc.arg(id_cursor)
+  AND (sqlc.arg(identity_id) IS NULL OR k.identity_id = sqlc.arg(identity_id))
+  AND k.deleted_at_m IS NULL
+  AND ka.deleted_at_m IS NULL
+ORDER BY k.id ASC
+LIMIT ?;

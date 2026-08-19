@@ -8,7 +8,7 @@ import { SIGN_IN_URL } from "./lib/auth/types";
 export default async function proxy(req: NextRequest, _evt: NextFetchEvent) {
   const url = new URL(req.url);
 
-  // Special redirect for sentinel.new
+  // Preserve the retired domain and route for inbound compatibility.
   if (url.host === "sentinel.new") {
     return NextResponse.redirect("https://app.unkey.com/sentinel-new");
   }
@@ -40,6 +40,10 @@ export default async function proxy(req: NextRequest, _evt: NextFetchEvent) {
     "/api/v1/github/verify",
     "/api/auth/refresh",
     "/success",
+    // Public one-time key reveal page. Recipients are unauthenticated; the share
+    // id is the bearer credential. The reveal itself runs through the public
+    // tRPC procedure at /api/trpc, which the middleware already lets through.
+    "/share",
     "/_next/*",
     // /integrations/github/callback is intentionally NOT public: the page
     // calls trpc.github.registerInstallation under the user's session, and

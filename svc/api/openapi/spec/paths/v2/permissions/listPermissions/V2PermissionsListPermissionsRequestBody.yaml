@@ -18,4 +18,11 @@ properties:
     default: 100
     description: Maximum number of permissions to return in a single response.
     example: 50
+  search:
+    type: string
+    maxLength: 256
+    description: Free-form text to filter permissions. Returns permissions
+      whose ID, name, slug, or description contains the search string. Matching
+      is case-insensitive.
+    example: documents
 additionalProperties: false

@@ -140,11 +140,11 @@ export const ListSearchInput = <T extends BaseFilter = BaseFilter>({
       <div className={cn("relative flex-1", className)}>
         <div
           className={cn(
-            "px-2 flex items-center flex-1 md:w-80 gap-2 border rounded-lg py-1 h-8 border-none cursor-pointer",
+            "px-2 flex items-center flex-1 gap-2 border border-solid border-gray-4 rounded-lg py-1 h-8 cursor-pointer",
             "bg-gray-3 opacity-50",
           )}
         >
-          <div className="flex items-center gap-2 w-full flex-1 md:w-80">
+          <div className="flex items-center gap-2 w-full flex-1">
             <div className="shrink-0">
               <Magnifier className="text-accent-9 size-4" />
             </div>
@@ -158,12 +158,12 @@ export const ListSearchInput = <T extends BaseFilter = BaseFilter>({
   }
 
   return (
-    <div className="flex items-center gap-2 w-full flex-1 md:w-80 h-8">
+    <div className="flex items-center gap-2 w-full flex-1 h-8">
       <Input
         leftIcon={<Magnifier className="text-accent-9 size-4" />}
         className={cn(
-          "truncate text-accent-12 font-medium text-[13px] bg-transparent border-none outline-hidden focus:ring-0 focus:outline-hidden placeholder:text-accent-12 selection:bg-gray-6 w-full h-8",
-          "focus-within:bg-gray-4",
+          "truncate text-accent-12 font-medium text-[13px] bg-transparent outline-hidden focus:ring-0 focus:outline-hidden placeholder:text-accent-12 selection:bg-gray-6 w-full h-8",
+          "border border-solid border-gray-4 rounded-lg hover:bg-gray-3",
           "transition-all duration-200",
         )}
         rightIcon={

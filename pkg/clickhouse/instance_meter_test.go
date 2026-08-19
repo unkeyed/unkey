@@ -3,6 +3,7 @@ package clickhouse_test
 import (
 	"context"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -180,6 +181,54 @@ func TestGetInstanceMeterUsage(t *testing.T) {
 		require.Equal(t, int64(2000), u.EgressBytes)
 	})
 
+	t.Run("never re-bills the cumulative egress counter after a heimdall restart", func(t *testing.T) {
+		ws := uid.New(uid.WorkspacePrefix)
+		resource := uid.New("res")
+		c := newContainer()
+
+		// A long-lived pod that has already accumulated 10 GiB of egress this
+		// month. The eBPF counter map is pinned to bpffs, so it survives heimdall
+		// restarting; only heimdall's in-process attach table is lost.
+		const accumulated = 10 * 1024 * 1024 * 1024
+
+		samples := []schema.InstanceCheckpoint{
+			// Measured, counter at its accumulated value.
+			c.sample(ws, resource, base, sampleValues{
+				egressBytes: accumulated, memoryBytes: gib, diskBytes: gib,
+			}),
+			// heimdall restarts. The pod is not in the new process's attach table,
+			// so the counters are not read and the row is written with zero. This
+			// is the row that used to poison the next delta.
+			c.sampleUnattached(ws, resource, base+sampleGap, sampleValues{
+				egressBytes: 0, memoryBytes: gib, diskBytes: gib,
+			}),
+			// Re-attached. The kernel counter never reset, so it reads back at its
+			// real value plus whatever flowed in between (1 MiB here).
+			c.sample(ws, resource, base+2*sampleGap, sampleValues{
+				egressBytes: accumulated + 1024*1024, memoryBytes: gib, diskBytes: gib,
+			}),
+		}
+		insertCheckpoints(t, ctx, conn, samples)
+
+		rows, err := client.GetInstanceMeterUsage(ctx, clickhouse.GetInstanceMeterUsageRequest{
+			WorkspaceID: ws,
+			Start:       windowStart,
+			End:         windowEnd,
+		})
+		require.NoError(t, err)
+
+		u := findUsage(t, rows, resource)
+		// Both deltas touching the unmeasured row are dropped, so the 1 MiB that
+		// flowed across the gap is lost. Undercounting one tick is the correct
+		// trade: the alternative billed the full 10 GiB a second time, which is
+		// what `greatest(0, lead - cur)` produced from the (0, accumulated) pair.
+		require.Equal(t, int64(0), u.EgressBytes,
+			"an unmeasured zero must not be diffed against a measured counter")
+		// The non-network meters are unaffected: they are integrated over time
+		// and their liveness comes from the cgroup read, not the eBPF attach.
+		require.Greater(t, u.MemoryGiBHours, 0.0)
+	})
+
 	t.Run("empty workspace id aggregates across workspaces", func(t *testing.T) {
 		// Two distinct workspaces, queried with an empty filter, both appear.
 		wsA := uid.New(uid.WorkspacePrefix)
@@ -210,6 +259,72 @@ func TestGetInstanceMeterUsage(t *testing.T) {
 		require.InDelta(t, 7.0, findUsage(t, rows, resB).CPUSeconds, 1e-9)
 	})
 
+	t.Run("FINAL deduplicates replacements inserted in separate parts", func(t *testing.T) {
+		ws := uid.New(uid.WorkspacePrefix)
+		resource := uid.New("res")
+		c := newContainer()
+
+		insertCheckpoints(t, ctx, conn, []schema.InstanceCheckpoint{
+			c.sample(ws, resource, base, sampleValues{
+				cpuUsec: 0, egressBytes: 0, memoryBytes: gib, diskBytes: gib,
+			}),
+			c.sample(ws, resource, base+sampleGap, sampleValues{
+				cpuUsec: 1_000_000, egressBytes: 1000, memoryBytes: gib, diskBytes: gib,
+			}),
+			c.sample(ws, resource, base+2*sampleGap, sampleValues{
+				cpuUsec: 3_000_000, egressBytes: 3000, memoryBytes: gib, diskBytes: gib,
+			}),
+		})
+		// Same replacement key as the middle checkpoint, inserted in a later
+		// part with corrected counters. FINAL must retain only this version.
+		insertCheckpoints(t, ctx, conn, []schema.InstanceCheckpoint{
+			c.sample(ws, resource, base+sampleGap, sampleValues{
+				cpuUsec: 2_000_000, egressBytes: 2000, memoryBytes: gib, diskBytes: gib,
+			}),
+		})
+
+		rows, err := client.GetInstanceMeterUsage(ctx, clickhouse.GetInstanceMeterUsageRequest{
+			WorkspaceID: ws,
+			Start:       windowStart,
+			End:         windowEnd,
+		})
+		require.NoError(t, err)
+
+		u := findUsage(t, rows, resource)
+		require.InDelta(t, 3.0, u.CPUSeconds, 1e-9)
+		require.Equal(t, int64(3000), u.EgressBytes)
+	})
+
+	t.Run("integrates a checkpoint pair across daily partitions", func(t *testing.T) {
+		ws := uid.New(uid.WorkspacePrefix)
+		resource := uid.New("res")
+		c := newContainer()
+		midnight := base + int64(24*time.Hour/time.Millisecond)
+
+		insertCheckpoints(t, ctx, conn, []schema.InstanceCheckpoint{
+			c.sample(ws, resource, midnight-sampleGap, sampleValues{
+				cpuUsec: 0, memoryBytes: gib, diskBytes: gib,
+			}),
+			c.sample(ws, resource, midnight, sampleValues{
+				cpuUsec: 1_000_000, memoryBytes: gib, diskBytes: gib,
+			}),
+			c.sample(ws, resource, midnight+sampleGap, sampleValues{
+				cpuUsec: 2_000_000, memoryBytes: gib, diskBytes: gib,
+			}),
+		})
+
+		rows, err := client.GetInstanceMeterUsage(ctx, clickhouse.GetInstanceMeterUsageRequest{
+			WorkspaceID: ws,
+			Start:       midnight - sampleGap,
+			End:         midnight + 2*sampleGap,
+		})
+		require.NoError(t, err)
+
+		u := findUsage(t, rows, resource)
+		require.InDelta(t, 2.0, u.CPUSeconds, 1e-9)
+		require.InDelta(t, gibHours(float64(gib)*float64(2*sampleGap)), u.MemoryGiBHours, 1e-9)
+	})
+
 	t.Run("returns no rows outside the window", func(t *testing.T) {
 		ws := uid.New(uid.WorkspacePrefix)
 		resource := uid.New("res")
@@ -228,6 +343,63 @@ func TestGetInstanceMeterUsage(t *testing.T) {
 		})
 		require.NoError(t, err)
 		require.Empty(t, rows)
+	})
+
+	t.Run("streams the window input without a full sort", func(t *testing.T) {
+		ws := uid.New(uid.WorkspacePrefix)
+		resource := uid.New("res")
+		c := newContainer()
+		// Separate parts ensure FINAL has real merge work when ClickHouse plans
+		// the query; an empty table can collapse to a NullSource pipeline.
+		insertCheckpoints(t, ctx, conn, []schema.InstanceCheckpoint{
+			c.sample(ws, resource, base, sampleValues{memoryBytes: gib, diskBytes: gib}),
+		})
+		insertCheckpoints(t, ctx, conn, []schema.InstanceCheckpoint{
+			c.sample(ws, resource, base+sampleGap, sampleValues{cpuUsec: 1_000_000, memoryBytes: gib, diskBytes: gib}),
+		})
+
+		queryID := uid.New("query")
+		queryCtx := ch.Context(ctx, ch.WithQueryID(queryID))
+		_, err := client.GetInstanceMeterUsage(queryCtx, clickhouse.GetInstanceMeterUsageRequest{
+			WorkspaceIDs: []string{ws},
+			Start:        windowStart,
+			End:          windowEnd,
+		})
+		require.NoError(t, err)
+		require.NoError(t, conn.Exec(ctx, "SYSTEM FLUSH LOGS"))
+
+		var loggedQuery string
+		require.Eventually(t, func() bool {
+			return conn.QueryRow(ctx, `
+				SELECT query
+				FROM system.query_log
+				WHERE query_id = ? AND type = 'QueryFinish'
+				LIMIT 1
+			`, queryID).Scan(&loggedQuery) == nil
+		}, 5*time.Second, 50*time.Millisecond)
+		require.Contains(t, loggedQuery, "FROM instance_checkpoints_v1 FINAL")
+		require.Contains(t, loggedQuery, "max_final_threads = 1")
+
+		pipelineRows, err := conn.Query(ctx, "EXPLAIN PIPELINE "+loggedQuery)
+		require.NoError(t, err)
+		defer pipelineRows.Close()
+		var pipeline []string
+		for pipelineRows.Next() {
+			var line string
+			require.NoError(t, pipelineRows.Scan(&line))
+			pipeline = append(pipeline, line)
+		}
+		require.NoError(t, pipelineRows.Err())
+		plan := strings.Join(pipeline, "\n")
+		require.Contains(t, plan, "WindowTransform")
+		for _, transform := range []string{
+			"FinishSortingTransform",
+			"PartialSortingTransform",
+			"MergeSortingTransform",
+			"ScatterByPartitionTransform",
+		} {
+			require.NotContains(t, plan, transform)
+		}
 	})
 }
 
@@ -258,7 +430,28 @@ func newContainerWithRestart(restart uint32) *container {
 	}
 }
 
+// sample builds a MEASURED checkpoint: network_attached is set, so the egress
+// counter is trusted. Use sampleUnattached for the fail-open shape.
 func (c *container) sample(ws, resource string, ts int64, v sampleValues) schema.InstanceCheckpoint {
+	s := c.rawSample(ws, resource, ts, v)
+	// Marshalled through the production type rather than a hand-written literal,
+	// so a renamed json tag breaks this test instead of silently making every
+	// row look unmeasured to the billing query.
+	s.Attributes = schema.InstanceCheckpointAttributes{NetworkAttached: true}.Marshal()
+	return s
+}
+
+// sampleUnattached builds a checkpoint whose network counters were NOT read:
+// heimdall restarted, attach had not completed, the pod is host-network, or the
+// reader is the macOS stub. The egress column is zero by fail-open and must not
+// be diffed against a neighbouring measured row.
+func (c *container) sampleUnattached(ws, resource string, ts int64, v sampleValues) schema.InstanceCheckpoint {
+	s := c.rawSample(ws, resource, ts, v)
+	s.Attributes = schema.InstanceCheckpointAttributes{NetworkAttached: false}.Marshal()
+	return s
+}
+
+func (c *container) rawSample(ws, resource string, ts int64, v sampleValues) schema.InstanceCheckpoint {
 	return schema.InstanceCheckpoint{
 		NodeID:                   "node-1",
 		WorkspaceID:              ws,
@@ -287,7 +480,7 @@ func insertCheckpoints(t *testing.T, ctx context.Context, conn ch.Conn, samples 
 	if len(samples) == 0 {
 		return
 	}
-	batch, err := conn.PrepareBatch(ctx, "INSERT INTO default.instance_checkpoints_v1")
+	batch, err := conn.PrepareBatch(ctx, clickhouse.InsertQuery[schema.InstanceCheckpoint]())
 	require.NoError(t, err)
 	for i := range samples {
 		require.NoError(t, batch.AppendStruct(&samples[i]))

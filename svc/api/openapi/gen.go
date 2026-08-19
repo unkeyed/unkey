@@ -4,18 +4,126 @@
 package openapi
 
 import (
+	"encoding/json"
+	"fmt"
+
 	"github.com/oapi-codegen/nullable"
+	"github.com/oapi-codegen/runtime"
 )
 
 const (
-	DashboardScopes = "dashboard.Scopes"
-	RootKeyScopes   = "rootKey.Scopes"
+	BearerScopes        = "bearer.Scopes"
+	PortalSessionScopes = "portalSession.Scopes"
+)
+
+// Defines values for DeploymentAction.
+const (
+	DeploymentActionPromote  DeploymentAction = "promote"
+	DeploymentActionRollback DeploymentAction = "rollback"
+	DeploymentActionStart    DeploymentAction = "start"
+	DeploymentActionStop     DeploymentAction = "stop"
+)
+
+// Defines values for DeploymentErrorCode.
+const (
+	DeploymentErrorCodeBuildFailed            DeploymentErrorCode = "build_failed"
+	DeploymentErrorCodeCpuQuotaExceeded       DeploymentErrorCode = "cpu_quota_exceeded"
+	DeploymentErrorCodeInvalidRuntimeSettings DeploymentErrorCode = "invalid_runtime_settings"
+	DeploymentErrorCodeMemoryQuotaExceeded    DeploymentErrorCode = "memory_quota_exceeded"
+	DeploymentErrorCodeNoSchedulableRegions   DeploymentErrorCode = "no_schedulable_regions"
+	DeploymentErrorCodeStorageQuotaExceeded   DeploymentErrorCode = "storage_quota_exceeded"
+	DeploymentErrorCodeUnknown                DeploymentErrorCode = "unknown"
+)
+
+// Defines values for DeploymentStatus.
+const (
+	DeploymentStatusAwaitingApproval DeploymentStatus = "awaiting_approval"
+	DeploymentStatusBuilding         DeploymentStatus = "building"
+	DeploymentStatusCancelled        DeploymentStatus = "cancelled"
+	DeploymentStatusDeploying        DeploymentStatus = "deploying"
+	DeploymentStatusFailed           DeploymentStatus = "failed"
+	DeploymentStatusFinalizing       DeploymentStatus = "finalizing"
+	DeploymentStatusNetwork          DeploymentStatus = "network"
+	DeploymentStatusPending          DeploymentStatus = "pending"
+	DeploymentStatusReady            DeploymentStatus = "ready"
+	DeploymentStatusSkipped          DeploymentStatus = "skipped"
+	DeploymentStatusStarting         DeploymentStatus = "starting"
+	DeploymentStatusStopped          DeploymentStatus = "stopped"
+	DeploymentStatusSuperseded       DeploymentStatus = "superseded"
+)
+
+// Defines values for DnsRecordType.
+const (
+	ALIAS DnsRecordType = "ALIAS"
+	CNAME DnsRecordType = "CNAME"
+	TXT   DnsRecordType = "TXT"
+)
+
+// Defines values for DomainStatus.
+const (
+	DomainStatusFailed    DomainStatus = "failed"
+	DomainStatusPending   DomainStatus = "pending"
+	DomainStatusVerified  DomainStatus = "verified"
+	DomainStatusVerifying DomainStatus = "verifying"
+)
+
+// Defines values for EnvironmentHealthcheckMethod.
+const (
+	EnvironmentHealthcheckMethodGET  EnvironmentHealthcheckMethod = "GET"
+	EnvironmentHealthcheckMethodPOST EnvironmentHealthcheckMethod = "POST"
+)
+
+// Defines values for EnvironmentKind.
+const (
+	Preview    EnvironmentKind = "preview"
+	Production EnvironmentKind = "production"
+)
+
+// Defines values for EnvironmentShutdownSignal.
+const (
+	SIGINT  EnvironmentShutdownSignal = "SIGINT"
+	SIGKILL EnvironmentShutdownSignal = "SIGKILL"
+	SIGQUIT EnvironmentShutdownSignal = "SIGQUIT"
+	SIGTERM EnvironmentShutdownSignal = "SIGTERM"
+)
+
+// Defines values for EnvironmentUpstreamProtocol.
+const (
+	H2c   EnvironmentUpstreamProtocol = "h2c"
+	Http1 EnvironmentUpstreamProtocol = "http1"
+)
+
+// Defines values for EnvironmentVariableKind.
+const (
+	Recoverable EnvironmentVariableKind = "recoverable"
+	Writeonly   EnvironmentVariableKind = "writeonly"
+)
+
+// Defines values for FieldMatchPresent.
+const (
+	True FieldMatchPresent = true
+)
+
+// Defines values for FirewallPolicyAction.
+const (
+	ACTIONDENY FirewallPolicyAction = "ACTION_DENY"
 )
 
 // Defines values for KeyCreditsRefillInterval.
 const (
 	KeyCreditsRefillIntervalDaily   KeyCreditsRefillInterval = "daily"
 	KeyCreditsRefillIntervalMonthly KeyCreditsRefillInterval = "monthly"
+)
+
+// Defines values for MethodMatchMethods.
+const (
+	MethodMatchMethodsDELETE  MethodMatchMethods = "DELETE"
+	MethodMatchMethodsGET     MethodMatchMethods = "GET"
+	MethodMatchMethodsHEAD    MethodMatchMethods = "HEAD"
+	MethodMatchMethodsOPTIONS MethodMatchMethods = "OPTIONS"
+	MethodMatchMethodsPATCH   MethodMatchMethods = "PATCH"
+	MethodMatchMethodsPOST    MethodMatchMethods = "POST"
+	MethodMatchMethodsPUT     MethodMatchMethods = "PUT"
 )
 
 // Defines values for UpdateKeyCreditsRefillInterval.
@@ -61,6 +169,14 @@ const (
 	VALID                   V2KeysVerifyKeyResponseDataCode = "VALID"
 )
 
+// Defines values for V2PortalCreateSessionRequestBodyPermissions.
+const (
+	AnalyticsRead V2PortalCreateSessionRequestBodyPermissions = "analytics:read"
+	KeysCreate    V2PortalCreateSessionRequestBodyPermissions = "keys:create"
+	KeysRead      V2PortalCreateSessionRequestBodyPermissions = "keys:read"
+	KeysReroll    V2PortalCreateSessionRequestBodyPermissions = "keys:reroll"
+)
+
 // App defines model for App.
 type App struct {
 	// CreatedAt Unix timestamp in milliseconds when the app was created.
@@ -70,12 +186,14 @@ type App struct {
 	// Omitted if the app has no active deployment yet.
 	CurrentDeploymentId string `json:"currentDeploymentId,omitempty"`
 
-	// DefaultBranch The default git branch deployments track for this app.
-	DefaultBranch string `json:"defaultBranch"`
-
 	// DeleteProtection Whether delete protection is enabled for this app.
 	// When true, the app cannot be deleted until protection is disabled.
 	DeleteProtection bool `json:"deleteProtection"`
+
+	// Git The connected GitHub repository and the branch its deployments track.
+	// Omitted when the app has no repository connected (for example a
+	// Docker-based app).
+	Git *AppGit `json:"git,omitempty"`
 
 	// Id The unique identifier of the app, generated by Unkey.
 	Id string `json:"id"`
@@ -86,9 +204,6 @@ type App struct {
 	// Name Human-readable name for this app.
 	Name string `json:"name"`
 
-	// ProjectId The unique identifier of the project this app belongs to.
-	ProjectId string `json:"projectId"`
-
 	// Slug URL-safe handle for this app, unique within its project.
 	// Chosen at creation time.
 	Slug string `json:"slug"`
@@ -97,6 +212,44 @@ type App struct {
 	// Omitted if the app has never been updated.
 	UpdatedAt int64 `json:"updatedAt,omitempty"`
 }
+
+// AppGit defines model for AppGit.
+type AppGit struct {
+	// DefaultBranch The branch this app's deployments track.
+	DefaultBranch *string `json:"defaultBranch,omitempty"`
+
+	// Repository The connected GitHub repository, as "owner/repo".
+	Repository string `json:"repository"`
+}
+
+// AppGitCreateInput Connect a GitHub repository to the app on creation. Omit to create the app
+// without a repository and connect one later with apps.updateApp.
+type AppGitCreateInput struct {
+	// DefaultBranch The branch this app's deployments track. Omit to adopt the repository's
+	// default branch on GitHub.
+	DefaultBranch *string `json:"defaultBranch,omitempty"`
+
+	// Repository The GitHub repository to connect, as "owner/repo". The workspace must have
+	// the Unkey GitHub App installed with access to it.
+	Repository string `json:"repository"`
+}
+
+// AppGitUpdateInput defines model for AppGitUpdateInput.
+type AppGitUpdateInput struct {
+	// DefaultBranch The branch this app's deployments track. Omit to adopt the repository's
+	// GitHub default branch on a new connection, keep the current branch when
+	// replacing an already-connected repository, or set it alone to retarget the
+	// branch of the connected repository.
+	DefaultBranch *string `json:"defaultBranch,omitempty"`
+
+	// Repository The GitHub repository to connect, as "owner/repo". Omit to change only the
+	// tracked branch of the already-connected repository. The workspace must have
+	// the Unkey GitHub App installed with access to it.
+	Repository *string `json:"repository,omitempty"`
+}
+
+// AuthenticatedSubjectKey Rate limit by the authenticated subject (e.g. the verified key).
+type AuthenticatedSubjectKey = map[string]interface{}
 
 // BadRequestErrorDetails defines model for BadRequestErrorDetails.
 type BadRequestErrorDetails struct {
@@ -140,6 +293,9 @@ type BaseError struct {
 	Type string `json:"type"`
 }
 
+// BearerTokenLocation Extract the key from the `Authorization Bearer` header.
+type BearerTokenLocation = map[string]interface{}
+
 // ConflictErrorResponse Error response when the request conflicts with the current state of the resource. This occurs when:
 // - Attempting to create a resource that already exists
 // - Modifying a resource that has been changed by another operation
@@ -154,8 +310,473 @@ type ConflictErrorResponse struct {
 	Meta Meta `json:"meta"`
 }
 
+// Deployment defines model for Deployment.
+type Deployment struct {
+	// App Slug of the app this deployment belongs to.
+	App string `json:"app"`
+
+	// AvailableActions Lifecycle operations you are allowed to call on this deployment right now.
+	// Empty when none apply (e.g. while building or in a terminal state).
+	AvailableActions []DeploymentAction `json:"availableActions"`
+
+	// CreatedAt Unix timestamp in milliseconds when the deployment was created.
+	CreatedAt int64             `json:"createdAt"`
+	Docker    *DeploymentDocker `json:"docker,omitempty"`
+
+	// Domains Public hostnames this deployment is reachable at.
+	Domains *[]string `json:"domains,omitempty"`
+
+	// Environment Slug of the environment this deployment belongs to.
+	Environment string           `json:"environment"`
+	Error       *DeploymentError `json:"error,omitempty"`
+	Git         *DeploymentGit   `json:"git,omitempty"`
+
+	// Id The unique identifier of the deployment, generated by Unkey.
+	Id string `json:"id"`
+
+	// IsCurrent True when this is the production deployment currently serving traffic, i.e.
+	// on api.acme.com. Only production deployments can be current, and at most one
+	// deployment is current. Rollbacks and promotions change which deployment is
+	// current and serves requests to api.acme.com.
+	IsCurrent bool `json:"isCurrent"`
+
+	// Project Slug of the project this deployment belongs to.
+	Project string `json:"project"`
+
+	// Regions Regions this deployment is configured to run in. Empty while the deployment
+	// has no scheduled regions yet.
+	Regions []string          `json:"regions"`
+	Runtime DeploymentRuntime `json:"runtime"`
+
+	// Status Current lifecycle status of the deployment. Poll until it reaches a
+	// terminal state: ready (serving), failed, skipped, superseded, stopped,
+	// or cancelled.
+	Status DeploymentStatus `json:"status"`
+
+	// UpdatedAt Unix timestamp in milliseconds when the deployment was last updated.
+	// Omitted if the deployment has never been updated.
+	UpdatedAt int64 `json:"updatedAt,omitempty"`
+}
+
+// DeploymentAction A lifecycle operation that can be performed on the deployment in its current
+// state, given its status, environment, and whether it is the current
+// deployment.
+type DeploymentAction string
+
+// DeploymentDocker defines model for DeploymentDocker.
+type DeploymentDocker struct {
+	// Image The Docker image this deployment runs.
+	Image string `json:"image"`
+}
+
+// DeploymentError defines model for DeploymentError.
+type DeploymentError struct {
+	// Code The reason a deployment failed. `unknown` means Unkey could not classify the
+	// failure; see `message` for details.
+	Code DeploymentErrorCode `json:"code"`
+
+	// Message Human-readable description of why the deployment failed. For programmatic
+	// handling, use `code`.
+	Message string `json:"message"`
+
+	// Step The pipeline step that failed (e.g. `building`, `deploying`, `starting`).
+	Step string `json:"step"`
+}
+
+// DeploymentErrorCode The reason a deployment failed. `unknown` means Unkey could not classify the
+// failure; see `message` for details.
+type DeploymentErrorCode string
+
+// DeploymentGit defines model for DeploymentGit.
+type DeploymentGit struct {
+	// Branch The git branch this deployment was built from. Omitted when unknown.
+	Branch *string `json:"branch,omitempty"`
+
+	// CommitSha The git commit SHA this deployment was built from.
+	CommitSha string `json:"commitSha"`
+}
+
+// DeploymentRuntime defines model for DeploymentRuntime.
+type DeploymentRuntime struct {
+	// Command Container entrypoint command override. Empty when none is set.
+	Command     []string                `json:"command"`
+	Healthcheck *EnvironmentHealthcheck `json:"healthcheck,omitempty"`
+
+	// MemoryMib Memory allocation in mebibytes.
+	MemoryMib int `json:"memoryMib"`
+
+	// Port Port the container listens on.
+	Port int `json:"port"`
+
+	// ShutdownSignal Signal sent to the container on shutdown.
+	ShutdownSignal EnvironmentShutdownSignal `json:"shutdownSignal"`
+
+	// StorageMib Ephemeral storage allocation in mebibytes.
+	StorageMib int `json:"storageMib"`
+
+	// UpstreamProtocol Protocol used to reach the container.
+	UpstreamProtocol EnvironmentUpstreamProtocol `json:"upstreamProtocol"`
+
+	// VCpus CPU allocation in vCPUs (1 = one vCPU, 0.5 = half a vCPU).
+	VCpus float64 `json:"vCpus"`
+}
+
+// DeploymentSourceDeployment Re-run an existing deployment.
+type DeploymentSourceDeployment struct {
+	// DeploymentId Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	DeploymentId ResourceIdentifier `json:"deploymentId"`
+}
+
+// DeploymentSourceGit Build from the app's connected GitHub repository.
+type DeploymentSourceGit struct {
+	// Branch Branch to build (its HEAD). Omit branch and commitSha to use the app's default branch.
+	Branch *string `json:"branch,omitempty"`
+
+	// CommitSha Commit to build (full or abbreviated SHA). Takes precedence over branch.
+	CommitSha *string `json:"commitSha,omitempty"`
+
+	// Repository Build from a fork instead of the app's connected repository, as "owner/repo". Requires commitSha.
+	Repository *string `json:"repository,omitempty"`
+}
+
+// DeploymentSourceImage Deploy a prebuilt Docker image as-is.
+type DeploymentSourceImage struct {
+	// DockerImage Docker image to deploy as-is.
+	DockerImage string `json:"dockerImage"`
+}
+
+// DeploymentStatus Current lifecycle status of the deployment. Poll until it reaches a
+// terminal state: ready (serving), failed, skipped, superseded, stopped,
+// or cancelled.
+type DeploymentStatus string
+
+// DnsRecord defines model for DnsRecord.
+type DnsRecord struct {
+	// Name Fully qualified name of the record, ready to use as-is.
+	//
+	// Some providers want a name relative to the zone instead. Drop the zone and its trailing dot:
+	// in zone `acme.com`, `api.acme.com` becomes `api` and `_unkey.api.acme.com` becomes
+	// `_unkey.api`. A name equal to the zone itself is usually entered as `@`.
+	Name string `json:"name"`
+
+	// Note What this record is for and any provider-specific caveat that applies to it.
+	// Worth surfacing to whoever edits the DNS zone. Treat it as optional: it carries
+	// no data the record itself needs, so a future record type may omit it.
+	Note *string `json:"note,omitempty"`
+
+	// Ttl Seconds a resolver may cache this record. Set it in your provider alongside the record's
+	// name and value.
+	Ttl int `json:"ttl"`
+
+	// Type Record type to create. `ALIAS` is not a real DNS record type: it means an apex-compatible
+	// alias, which providers expose as ALIAS, ANAME, or a flattened CNAME. Apex domains cannot
+	// hold a plain CNAME, so they receive `ALIAS` where a subdomain receives `CNAME`.
+	Type DnsRecordType `json:"type"`
+
+	// Value The value to set on the record, exactly as given, including any prefix.
+	// Do not trim or reformat it: verification compares the published record against this string.
+	//
+	// Use the lowest TTL your provider allows until the domain is verified. Verification polls DNS,
+	// so a long TTL keeps a stale value cached and can burn the verification window on a value you
+	// have already corrected. Raise it afterwards if you want.
+	Value string `json:"value"`
+
+	// Verified Whether Unkey has read this record back with the expected value. Use it to see which
+	// records are still outstanding.
+	//
+	// False does not always mean the record is missing. A provider that does not expose the
+	// published value to a DNS lookup, such as a proxied or flattened routing record, leaves
+	// this false for as long as it serves traffic; such a domain verifies through its TXT
+	// record instead. Always false on a domain no check has run against yet.
+	Verified bool `json:"verified"`
+}
+
+// DnsRecordType Record type to create. `ALIAS` is not a real DNS record type: it means an apex-compatible
+// alias, which providers expose as ALIAS, ANAME, or a flattened CNAME. Apex domains cannot
+// hold a plain CNAME, so they receive `ALIAS` where a subdomain receives `CNAME`.
+type DnsRecordType string
+
+// Domain defines model for Domain.
+type Domain struct {
+	// AppId The app the domain's environment belongs to.
+	AppId string `json:"appId"`
+
+	// CreatedAt Unix timestamp in milliseconds when the domain was created. The 24 hour verification window runs from here.
+	CreatedAt int64 `json:"createdAt"`
+
+	// DnsRecords The DNS records this domain needs. Create each record at your DNS provider.
+	// Each record has a `verified` flag. The flag shows whether Unkey has read that record back,
+	// so it tells you which records are still missing.
+	DnsRecords []DnsRecord `json:"dnsRecords"`
+
+	// Domain Fully qualified domain name attached to the environment.
+	Domain string `json:"domain"`
+
+	// EnvironmentId The environment this domain serves. Traffic to the domain reaches whatever is currently
+	// deployed to this environment.
+	EnvironmentId string `json:"environmentId"`
+
+	// Id Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	Id ResourceIdentifier `json:"id"`
+
+	// ProjectId The project the domain's environment belongs to.
+	ProjectId string `json:"projectId"`
+
+	// Status The verification status of the domain.
+	//
+	// - `pending`: the domain is created. No DNS check has completed yet.
+	// - `verifying`: Unkey checks the DNS records approximately each minute.
+	// - `verified`: the domain is verified. Unkey has configured routing and requested a certificate.
+	// - `failed`: the required DNS records did not appear within 24 hours. Fix the records, then retry verification.
+	Status DomainStatus `json:"status"`
+
+	// UpdatedAt Unix timestamp in milliseconds of the last change to this domain. Omitted if it has never changed.
+	UpdatedAt *int64 `json:"updatedAt,omitempty"`
+
+	// VerificationError Why the most recent verification attempt did not succeed, in plain language.
+	// Omitted while verification is progressing normally.
+	VerificationError *string `json:"verificationError,omitempty"`
+}
+
+// DomainStatus The verification status of the domain.
+//
+// - `pending`: the domain is created. No DNS check has completed yet.
+// - `verifying`: Unkey checks the DNS records approximately each minute.
+// - `verified`: the domain is verified. Unkey has configured routing and requested a certificate.
+// - `failed`: the required DNS records did not appear within 24 hours. Fix the records, then retry verification.
+type DomainStatus string
+
+// DomainConnect One-click setup at the domain's DNS provider. Omitted entirely when the provider does not support
+// Domain Connect or discovery failed, so the object's presence is the signal that the shortcut is
+// available and both of its fields are filled.
+type DomainConnect struct {
+	// Provider Display name of the DNS provider the domain is delegated to, such as 'Cloudflare'. Discovered
+	// from the domain's nameservers, so it reflects where DNS is actually hosted rather than where the
+	// domain was registered.
+	Provider string `json:"provider"`
+
+	// Url Signed Domain Connect URL that pre-fills the records in `dnsRecords` at the provider. Open it in a
+	// browser and the domain owner approves them in one step instead of entering them by hand. The URL is
+	// signed with an Unkey key, so it cannot be constructed or altered by the caller.
+	//
+	// Intended for a browser, not a script: after approval the provider sends the browser to this
+	// workspace's app settings page in the Unkey dashboard, so it suits a caller who administers this
+	// workspace. Anyone who does not have access to it approves the records successfully but lands on a
+	// page they cannot open. Approving is what writes the records; verification then proceeds on its own,
+	// so nothing depends on completing that return trip.
+	Url string `json:"url"`
+}
+
 // EmptyResponse Empty response object by design. A successful response indicates this operation was successfully executed.
 type EmptyResponse = map[string]interface{}
+
+// Environment defines model for Environment.
+type Environment struct {
+	// Build Build settings that control how the app is built.
+	// Omitted until the environment has build settings.
+	Build *EnvironmentBuild `json:"build,omitempty"`
+
+	// CreatedAt Unix timestamp in milliseconds when the environment was created.
+	CreatedAt int64 `json:"createdAt"`
+
+	// DeleteProtection Whether delete protection is enabled for this environment.
+	// When true, the environment cannot be deleted until protection is disabled.
+	DeleteProtection bool `json:"deleteProtection"`
+
+	// Description Human-readable description of this environment.
+	// Empty string if none was provided.
+	Description string `json:"description"`
+
+	// Id The unique identifier of the environment, generated by Unkey.
+	Id string `json:"id"`
+
+	// Kind The deployment lifecycle role of an environment.
+	//
+	// - `production`: Deployments serve production traffic, support promotion and rollback, and cannot be stopped.
+	// - `preview`: Deployments can be stopped and started and are eligible for preview lifecycle automation.
+	Kind EnvironmentKind `json:"kind"`
+
+	// Regions Per-region deployment settings for this environment.
+	// Empty until regional settings are configured.
+	Regions *[]EnvironmentRegion `json:"regions,omitempty"`
+
+	// Runtime Runtime settings that control how the container runs.
+	// Omitted until the environment has runtime settings.
+	Runtime *EnvironmentRuntime `json:"runtime,omitempty"`
+
+	// Slug Human-readable slug of the environment, unique within its app.
+	Slug string `json:"slug"`
+
+	// UpdatedAt Unix timestamp in milliseconds when the environment was last updated.
+	// Omitted if the environment has never been updated.
+	UpdatedAt int64 `json:"updatedAt,omitempty"`
+}
+
+// EnvironmentBuild Build settings that control how the app is built.
+// Omitted until the environment has build settings.
+type EnvironmentBuild struct {
+	// AutoDeploy Whether pushes automatically trigger a deployment.
+	AutoDeploy bool `json:"autoDeploy"`
+
+	// BuildCommand Overrides the build command auto-detected by Railpack, so monorepos can
+	// scope the build to a single app. Omitted when left to auto-detection or
+	// for Dockerfile builds.
+	BuildCommand *string `json:"buildCommand,omitempty"`
+
+	// Dockerfile Path to the Dockerfile used to build the app, if any.
+	Dockerfile *string `json:"dockerfile,omitempty"`
+
+	// RootDirectory The directory the app is built from. "." for the repository root.
+	RootDirectory string `json:"rootDirectory"`
+
+	// WatchPaths Paths that trigger a rebuild when changed.
+	WatchPaths []string `json:"watchPaths"`
+}
+
+// EnvironmentHealthcheck defines model for EnvironmentHealthcheck.
+type EnvironmentHealthcheck struct {
+	// FailureThreshold Consecutive failures before the container is restarted. Defaults to 3 when omitted.
+	FailureThreshold *int `json:"failureThreshold,omitempty"`
+
+	// InitialDelaySeconds Delay before the first probe runs, in seconds. Defaults to 0 when omitted.
+	InitialDelaySeconds *int `json:"initialDelaySeconds,omitempty"`
+
+	// IntervalSeconds How often the probe runs, in seconds. Defaults to 10 when omitted.
+	IntervalSeconds *int `json:"intervalSeconds,omitempty"`
+
+	// Method HTTP method used to probe the container.
+	Method EnvironmentHealthcheckMethod `json:"method"`
+
+	// Path HTTP path probed on the container. Must start with a slash.
+	Path string `json:"path"`
+
+	// TimeoutSeconds Per-probe timeout, in seconds. Defaults to 5 when omitted.
+	TimeoutSeconds *int `json:"timeoutSeconds,omitempty"`
+}
+
+// EnvironmentHealthcheckMethod HTTP method used to probe the container.
+type EnvironmentHealthcheckMethod string
+
+// EnvironmentKind The deployment lifecycle role of an environment.
+//
+// - `production`: Deployments serve production traffic, support promotion and rollback, and cannot be stopped.
+// - `preview`: Deployments can be stopped and started and are eligible for preview lifecycle automation.
+type EnvironmentKind string
+
+// EnvironmentRegion Replica bounds for a single region the environment deploys to.
+type EnvironmentRegion struct {
+	// Name Region name, such as us-east-1.
+	Name string `json:"name"`
+
+	// Replicas Min and max replica bounds for autoscaling in a region.
+	Replicas Replicas `json:"replicas"`
+}
+
+// EnvironmentRuntime Runtime settings that control how the container runs.
+// Omitted until the environment has runtime settings.
+type EnvironmentRuntime struct {
+	// Command Container entrypoint command override.
+	Command     []string                `json:"command"`
+	Healthcheck *EnvironmentHealthcheck `json:"healthcheck,omitempty"`
+
+	// MemoryMib Memory allocation in mebibytes.
+	MemoryMib int `json:"memoryMib"`
+
+	// OpenapiSpecPath Path to the OpenAPI spec served by the container, if any.
+	OpenapiSpecPath *string `json:"openapiSpecPath,omitempty"`
+
+	// Port Port the container listens on.
+	Port int `json:"port"`
+
+	// ShutdownSignal Signal sent to the container on shutdown.
+	ShutdownSignal EnvironmentShutdownSignal `json:"shutdownSignal"`
+
+	// StorageMib Ephemeral storage allocation in mebibytes.
+	StorageMib int `json:"storageMib"`
+
+	// UpstreamProtocol Protocol used to reach the container.
+	UpstreamProtocol EnvironmentUpstreamProtocol `json:"upstreamProtocol"`
+
+	// VCpus CPU allocation in vCPUs (1 = one vCPU, 0.5 = half a vCPU).
+	VCpus float64 `json:"vCpus"`
+}
+
+// EnvironmentShutdownSignal Signal sent to the container on shutdown.
+type EnvironmentShutdownSignal string
+
+// EnvironmentUpstreamProtocol Protocol used to reach the container.
+type EnvironmentUpstreamProtocol string
+
+// EnvironmentVariable defines model for EnvironmentVariable.
+type EnvironmentVariable struct {
+	// CreatedAt Unix timestamp in milliseconds when the variable was created.
+	CreatedAt int64 `json:"createdAt"`
+
+	// Description Human-readable description. Omitted if none was provided.
+	Description string `json:"description,omitempty"`
+
+	// Key The variable name.
+	Key string `json:"key"`
+
+	// Kind How the value may be read back. `writeonly` values can never be read back
+	// through the API; `recoverable` values can be decrypted. Values are encrypted
+	// at rest either way.
+	Kind EnvironmentVariableKind `json:"kind"`
+
+	// Value The decrypted plaintext value. Present only for `recoverable` variables.
+	// Omitted for `writeonly` variables, which can never be read back.
+	Value string `json:"value,omitempty"`
+}
+
+// EnvironmentVariableInput A single environment variable to set.
+type EnvironmentVariableInput struct {
+	// Description Human-readable description of the variable.
+	Description *string `json:"description,omitempty"`
+
+	// Key The variable name. Must be a POSIX shell name: letters, digits, and
+	// underscores only, and must not start with a digit. Other names are
+	// unreachable from shells and most runtimes.
+	Key string `json:"key"`
+
+	// Kind How the value may be read back. Defaults to `writeonly`.
+	Kind *EnvironmentVariableKind `json:"kind,omitempty"`
+
+	// Value The variable value. Always encrypted at rest. The limit is enforced
+	// server-side in UTF-8 bytes, so a multibyte value may be rejected before
+	// it reaches this code-point maximum.
+	Value string `json:"value"`
+}
+
+// EnvironmentVariableKind How the value may be read back. `writeonly` values can never be read back
+// through the API; `recoverable` values can be decrypted. Values are encrypted
+// at rest either way.
+type EnvironmentVariableKind string
+
+// FieldMatch Matches a named request field (header or query parameter). Exactly one of
+// `present` or `value` must be set.
+type FieldMatch struct {
+	Name string `json:"name"`
+
+	// Present Matches when the field is present, regardless of value.
+	Present *FieldMatchPresent `json:"present,omitempty"`
+
+	// Value String matcher. Exactly one of `exact`, `prefix` or `regex` must be set.
+	Value *StringMatch `json:"value,omitempty"`
+}
+
+// FieldMatchPresent Matches when the field is present, regardless of value.
+type FieldMatchPresent bool
+
+// FirewallPolicy Blocks matching requests.
+type FirewallPolicy struct {
+	// Action What to do with matching requests.
+	Action FirewallPolicyAction `json:"action"`
+}
+
+// FirewallPolicyAction What to do with matching requests.
+type FirewallPolicyAction string
 
 // ForbiddenErrorResponse Error response when the provided credentials are valid but lack sufficient permissions for the requested operation. This occurs when:
 // - The root key doesn't have the required permissions for this endpoint
@@ -183,6 +804,19 @@ type GoneErrorResponse struct {
 
 	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
 	Meta Meta `json:"meta"`
+}
+
+// HeaderKey Rate limit by the value of a request header.
+type HeaderKey struct {
+	Name string `json:"name"`
+}
+
+// HeaderKeyLocation Extract the key from a custom header.
+type HeaderKeyLocation struct {
+	Name string `json:"name"`
+
+	// StripPrefix Optional prefix removed from the header value before verification.
+	StripPrefix *string `json:"stripPrefix,omitempty"`
 }
 
 // Identity defines model for Identity.
@@ -240,6 +874,38 @@ type KeyCreditsRefill struct {
 // KeyCreditsRefillInterval How often credits are automatically refilled.
 type KeyCreditsRefillInterval string
 
+// KeyLocation Where to look for the API key on incoming requests. Exactly one of
+// `bearer`, `header` or `queryParam` must be set.
+type KeyLocation struct {
+	// Bearer Extract the key from the `Authorization Bearer` header.
+	Bearer *BearerTokenLocation `json:"bearer,omitempty"`
+
+	// Header Extract the key from a custom header.
+	Header *HeaderKeyLocation `json:"header,omitempty"`
+
+	// QueryParam Extract the key from a query parameter.
+	QueryParam *QueryParamKeyLocation `json:"queryParam,omitempty"`
+}
+
+// KeyRatelimit A rate limit applied during key verification. `limit` and `duration`
+// must be set together or both omitted; a partial pair is rejected.
+type KeyRatelimit struct {
+	// Cost Cost charged against the limit per request. Defaults to 1.
+	Cost *int64 `json:"cost,omitempty"`
+
+	// Duration Inline override: window duration in milliseconds. Must be set together
+	// with `limit`.
+	Duration *int64 `json:"duration,omitempty"`
+
+	// Limit Inline override: maximum number of operations per window. Must be set
+	// together with `duration`.
+	Limit *int64 `json:"limit,omitempty"`
+
+	// Name Name of a rate limit configured on the key or its identity, or the name
+	// of the inline override defined by `limit` and `duration`.
+	Name string `json:"name"`
+}
+
 // KeyResponseData defines model for KeyResponseData.
 type KeyResponseData struct {
 	// CreatedAt Unix timestamp in milliseconds when key was created.
@@ -280,6 +946,30 @@ type KeyResponseData struct {
 	UpdatedAt int64 `json:"updatedAt,omitempty"`
 }
 
+// KeyauthPolicy Verifies Unkey API keys on matching requests.
+type KeyauthPolicy struct {
+	// Credits Usage credits a matching request deducts from the verified key. Defaults
+	// to 1. Set to 0 to verify the key without spending credits, or to a higher
+	// value to charge more per request. Keys with unlimited usage are
+	// unaffected.
+	Credits *int64 `json:"credits,omitempty"`
+
+	// Keyspaces Keyspaces to verify keys against, referenced by id. All keyspaces must
+	// belong to your workspace.
+	Keyspaces []string `json:"keyspaces"`
+
+	// Locations Where to look for the key on incoming requests, tried in order. Defaults
+	// to the `Authorization Bearer` header when omitted.
+	Locations *[]KeyLocation `json:"locations,omitempty"`
+
+	// PermissionQuery Optional permission query the verified key must satisfy, e.g.
+	// `documents.read AND documents.write`.
+	PermissionQuery *string `json:"permissionQuery,omitempty"`
+
+	// Ratelimits Rate limits applied during key verification.
+	Ratelimits *[]KeyRatelimit `json:"ratelimits,omitempty"`
+}
+
 // KeysVerifyKeyCredits Controls credit consumption for usage-based billing and quota enforcement.
 // Omitting this field uses the default cost of 1 credit per verification.
 // Credits provide globally consistent usage tracking, essential for paid APIs with strict quotas.
@@ -306,11 +996,66 @@ type KeysVerifyKeyRatelimit struct {
 	Name string `json:"name"`
 }
 
+// LoggingPolicy Adds request data to the log entries of matching requests. The gateway
+// always records a basic log entry for every request: method, host, path,
+// status, and latency. Each capture setting is a separate opt-in: request
+// headers, response headers, request body, response body, and query data.
+// The policy's `match` expressions select the requests. A policy without
+// `match` expressions matches every request. If more than one enabled
+// logging policy matches a request, the gateway combines their settings.
+// The gateway always redacts the `Authorization` header and configured key
+// locations before it stores headers or query data.
+type LoggingPolicy struct {
+	// Query Capture the query string and query parameters. Query data is a
+	// separate opt-in because URLs can contain secrets, for example
+	// `?api_key=...`.
+	Query *bool `json:"query,omitempty"`
+
+	// RequestBody Capture the request body, up to the capture limit.
+	RequestBody *bool `json:"requestBody,omitempty"`
+
+	// RequestHeaders Capture request headers, the user agent, and the client IP. The user
+	// agent and client IP are included because they identify the client.
+	RequestHeaders *bool `json:"requestHeaders,omitempty"`
+
+	// ResponseBody Capture the response body, up to the capture limit.
+	ResponseBody *bool `json:"responseBody,omitempty"`
+
+	// ResponseHeaders Capture response headers.
+	ResponseHeaders *bool `json:"responseHeaders,omitempty"`
+}
+
+// MatchExpr A single request match expression. Exactly one of `path`, `method`,
+// `header` or `queryParam` must be set.
+type MatchExpr struct {
+	// Header Matches a named request field (header or query parameter). Exactly one of
+	// `present` or `value` must be set.
+	Header *FieldMatch `json:"header,omitempty"`
+
+	// Method Matches when the request method is one of the listed methods.
+	Method *MethodMatch `json:"method,omitempty"`
+
+	// Path Matches on the request path.
+	Path *PathMatch `json:"path,omitempty"`
+
+	// QueryParam Matches a named request field (header or query parameter). Exactly one of
+	// `present` or `value` must be set.
+	QueryParam *FieldMatch `json:"queryParam,omitempty"`
+}
+
 // Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
 type Meta struct {
 	// RequestId A unique id for this request. Always include this ID when contacting support about a specific API request. This identifier allows Unkey's support team to trace the exact request through logs and diagnostic systems to provide faster assistance.
 	RequestId string `json:"requestId"`
 }
+
+// MethodMatch Matches when the request method is one of the listed methods.
+type MethodMatch struct {
+	Methods []MethodMatchMethods `json:"methods"`
+}
+
+// MethodMatchMethods defines model for MethodMatch.Methods.
+type MethodMatchMethods string
 
 // NotFoundErrorResponse Error response when the requested resource cannot be found. This occurs when:
 // - The specified resource ID doesn't exist in your workspace
@@ -326,6 +1071,11 @@ type NotFoundErrorResponse struct {
 	Meta Meta `json:"meta"`
 }
 
+// OpenapiPolicy Validates matching requests against the app's uploaded OpenAPI spec. Has no
+// configuration of its own. If no spec has been uploaded for the deployment,
+// the policy is a no-op and requests pass through unvalidated.
+type OpenapiPolicy = map[string]interface{}
+
 // Pagination Pagination metadata for list endpoints. Provides information necessary to traverse through large result sets efficiently using cursor-based pagination.
 type Pagination struct {
 	// Cursor Opaque pagination token for retrieving the next page of results.
@@ -337,6 +1087,15 @@ type Pagination struct {
 	// When true, use the cursor to fetch the next page.
 	// When false, you have reached the end of the result set.
 	HasMore bool `json:"hasMore"`
+}
+
+// PathKey Rate limit by the request path.
+type PathKey = map[string]interface{}
+
+// PathMatch Matches on the request path.
+type PathMatch struct {
+	// Path String matcher. Exactly one of `exact`, `prefix` or `regex` must be set.
+	Path StringMatch `json:"path"`
 }
 
 // Permission defines model for Permission.
@@ -362,6 +1121,92 @@ type Permission struct {
 	Slug string `json:"slug"`
 }
 
+// Policy A gateway policy. Exactly one of `keyauth`, `ratelimit`, `firewall`,
+// `openapi` or `logging` must be set. The server generates an id for every
+// policy it stores.
+type Policy struct {
+	// Enabled Disabled policies are stored but skipped during evaluation.
+	Enabled bool `json:"enabled"`
+
+	// Firewall Blocks matching requests.
+	Firewall *FirewallPolicy `json:"firewall,omitempty"`
+
+	// Keyauth Verifies Unkey API keys on matching requests.
+	Keyauth *KeyauthPolicy `json:"keyauth,omitempty"`
+
+	// Logging Adds request data to the log entries of matching requests. The gateway
+	// always records a basic log entry for every request: method, host, path,
+	// status, and latency. Each capture setting is a separate opt-in: request
+	// headers, response headers, request body, response body, and query data.
+	// The policy's `match` expressions select the requests. A policy without
+	// `match` expressions matches every request. If more than one enabled
+	// logging policy matches a request, the gateway combines their settings.
+	// The gateway always redacts the `Authorization` header and configured key
+	// locations before it stores headers or query data.
+	Logging *LoggingPolicy `json:"logging,omitempty"`
+
+	// Match Optional request matchers. The policy applies only to requests matching
+	// all expressions; omit to apply to every request.
+	Match *[]MatchExpr `json:"match,omitempty"`
+
+	// Name Human-readable name shown in the dashboard.
+	Name string `json:"name"`
+
+	// Openapi Validates matching requests against the app's uploaded OpenAPI spec. Has no
+	// configuration of its own. If no spec has been uploaded for the deployment,
+	// the policy is a no-op and requests pass through unvalidated.
+	Openapi *OpenapiPolicy `json:"openapi,omitempty"`
+
+	// Ratelimit Rate limits matching requests. Set `identifiers` with 1 to 5 sources.
+	// The deprecated `identifier` field is accepted in place of a one-entry
+	// `identifiers` list; set exactly one of the two.
+	Ratelimit *RatelimitPolicy `json:"ratelimit,omitempty"`
+}
+
+// PolicyResponse A stored gateway policy as returned by list endpoints. Exactly one of
+// `keyauth`, `ratelimit`, `firewall`, `openapi` or `logging` is set.
+type PolicyResponse struct {
+	// Enabled Disabled policies are stored but skipped during evaluation.
+	Enabled bool `json:"enabled"`
+
+	// Firewall Blocks matching requests.
+	Firewall *FirewallPolicy `json:"firewall,omitempty"`
+
+	// Id Server-generated policy id. Regenerated on every `gateway.setPolicies` call, so treat it as stable only until the environment's policies are next replaced.
+	Id string `json:"id"`
+
+	// Keyauth Verifies Unkey API keys on matching requests.
+	Keyauth *KeyauthPolicy `json:"keyauth,omitempty"`
+
+	// Logging Adds request data to the log entries of matching requests. The gateway
+	// always records a basic log entry for every request: method, host, path,
+	// status, and latency. Each capture setting is a separate opt-in: request
+	// headers, response headers, request body, response body, and query data.
+	// The policy's `match` expressions select the requests. A policy without
+	// `match` expressions matches every request. If more than one enabled
+	// logging policy matches a request, the gateway combines their settings.
+	// The gateway always redacts the `Authorization` header and configured key
+	// locations before it stores headers or query data.
+	Logging *LoggingPolicy `json:"logging,omitempty"`
+
+	// Match Optional request matchers. The policy applies only to requests matching
+	// all expressions; omitted when the policy applies to every request.
+	Match *[]MatchExpr `json:"match,omitempty"`
+
+	// Name Human-readable name shown in the dashboard.
+	Name string `json:"name"`
+
+	// Openapi Validates matching requests against the app's uploaded OpenAPI spec. Has no
+	// configuration of its own. If no spec has been uploaded for the deployment,
+	// the policy is a no-op and requests pass through unvalidated.
+	Openapi *OpenapiPolicy `json:"openapi,omitempty"`
+
+	// Ratelimit Rate limits matching requests. Set `identifiers` with 1 to 5 sources.
+	// The deprecated `identifier` field is accepted in place of a one-entry
+	// `identifiers` list; set exactly one of the two.
+	Ratelimit *RatelimitPolicy `json:"ratelimit,omitempty"`
+}
+
 // PreconditionFailedErrorResponse Error response when one or more conditions specified in the request headers are not met. This typically occurs when:
 // - Using conditional requests with If-Match or If-None-Match headers
 // - The resource version doesn't match the expected value
@@ -374,6 +1219,11 @@ type PreconditionFailedErrorResponse struct {
 
 	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
 	Meta Meta `json:"meta"`
+}
+
+// PrincipalFieldKey Rate limit by a field extracted from the authenticated principal.
+type PrincipalFieldKey struct {
+	Path string `json:"path"`
 }
 
 // Project defines model for Project.
@@ -398,6 +1248,30 @@ type Project struct {
 	// UpdatedAt Unix timestamp in milliseconds when the project was last updated.
 	// Omitted if the project has never been updated.
 	UpdatedAt int64 `json:"updatedAt,omitempty"`
+}
+
+// QueryParamKeyLocation Extract the key from a query parameter.
+type QueryParamKeyLocation struct {
+	Name string `json:"name"`
+}
+
+// RatelimitIdentifier How requests are grouped for rate limiting. Exactly one of `remoteIp`,
+// `header`, `authenticatedSubject`, `path` or `principalField` must be set.
+type RatelimitIdentifier struct {
+	// AuthenticatedSubject Rate limit by the authenticated subject (e.g. the verified key).
+	AuthenticatedSubject *AuthenticatedSubjectKey `json:"authenticatedSubject,omitempty"`
+
+	// Header Rate limit by the value of a request header.
+	Header *HeaderKey `json:"header,omitempty"`
+
+	// Path Rate limit by the request path.
+	Path *PathKey `json:"path,omitempty"`
+
+	// PrincipalField Rate limit by a field extracted from the authenticated principal.
+	PrincipalField *PrincipalFieldKey `json:"principalField,omitempty"`
+
+	// RemoteIp Rate limit by the client's IP address.
+	RemoteIp *RemoteIpKey `json:"remoteIp,omitempty"`
 }
 
 // RatelimitOverride defines model for RatelimitOverride.
@@ -430,6 +1304,29 @@ type RatelimitOverride struct {
 
 	// OverrideId The unique identifier of this specific rate limit override. This ID is generated when the override is created and can be used for management operations like updating or deleting the override.
 	OverrideId string `json:"overrideId"`
+}
+
+// RatelimitPolicy Rate limits matching requests. Set `identifiers` with 1 to 5 sources.
+// The deprecated `identifier` field is accepted in place of a one-entry
+// `identifiers` list; set exactly one of the two.
+type RatelimitPolicy struct {
+	// Identifier Deprecated. Accepted for compatibility with old clients. Use
+	// `identifiers` with one entry. Responses always return `identifiers`.
+	// Deprecated: this property has been marked as deprecated upstream, but no `x-deprecated-reason` was set
+	Identifier *RatelimitIdentifier `json:"identifier,omitempty"`
+
+	// Identifiers Ordered list of sources that form a compound rate limit key. The
+	// gateway resolves each source for each request. Each unique
+	// combination of resolved values has its own counter. All counters use
+	// the same limit and window. Example: `[authenticatedSubject, path]`
+	// limits each subject separately on each path.
+	Identifiers *[]RatelimitIdentifier `json:"identifiers,omitempty"`
+
+	// Limit Maximum number of requests per window.
+	Limit int64 `json:"limit"`
+
+	// WindowMs Window duration in milliseconds.
+	WindowMs int64 `json:"windowMs"`
 }
 
 // RatelimitRequest defines model for RatelimitRequest.
@@ -489,6 +1386,18 @@ type RatelimitResponse struct {
 	Name string `json:"name"`
 }
 
+// RemoteIpKey Rate limit by the client's IP address.
+type RemoteIpKey = map[string]interface{}
+
+// Replicas Min and max replica bounds for autoscaling in a region.
+type Replicas struct {
+	// Max Maximum number of replicas.
+	Max int `json:"max"`
+
+	// Min Minimum number of replicas.
+	Min int `json:"min"`
+}
+
 // ResourceIdentifier Identifies a resource by either its unique ID or its slug.
 // Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
 type ResourceIdentifier = string
@@ -533,6 +1442,22 @@ type ServiceUnavailableErrorResponse struct {
 
 	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
 	Meta Meta `json:"meta"`
+}
+
+// StringMatch String matcher. Exactly one of `exact`, `prefix` or `regex` must be set.
+type StringMatch struct {
+	// Exact Matches when the input equals this value.
+	Exact *string `json:"exact,omitempty"`
+
+	// IgnoreCase Compare case-insensitively. May accompany any match mode.
+	IgnoreCase *bool `json:"ignoreCase,omitempty"`
+
+	// Prefix Matches when the input starts with this value.
+	Prefix *string `json:"prefix,omitempty"`
+
+	// Regex Matches when the input satisfies this RE2 regular expression. Invalid
+	// patterns are rejected when the policy is created.
+	Regex *string `json:"regex,omitempty"`
 }
 
 // TooManyRequestsErrorResponse Error response when the client has sent too many requests in a given time period. This occurs when you've exceeded a rate limit or quota for the resource you're accessing.
@@ -605,10 +1530,32 @@ type UpdateKeyCreditsRefill struct {
 // UpdateKeyCreditsRefillInterval How often credits are automatically refilled.
 type UpdateKeyCreditsRefillInterval string
 
+// V2AnalyticsGetRatelimitsRequestBody defines model for V2AnalyticsGetRatelimitsRequestBody.
+type V2AnalyticsGetRatelimitsRequestBody struct {
+	// Query SQL query to execute against your rate limit analytics data.
+	// Queries may reference only the five public aliases: `ratelimits_v1`, `ratelimits_per_minute_v1`, `ratelimits_per_hour_v1`, `ratelimits_per_day_v1`, or `ratelimits_per_month_v1`. Physical `default.*` table names are unsupported. CTEs, subqueries, UNION, and EXCEPT are supported.
+	// Queries are always restricted to the authenticated workspace. Wildcard analytics permission can read every namespace in that workspace; namespace-scoped permissions automatically restrict results to the permitted namespace IDs.
+	// Workspace retention and query limits apply.
+	Query string `json:"query"`
+}
+
+// V2AnalyticsGetRatelimitsResponseBody defines model for V2AnalyticsGetRatelimitsResponseBody.
+type V2AnalyticsGetRatelimitsResponseBody struct {
+	// Data Array of rate limit rows returned by the query. Fields vary based on the SQL SELECT clause.
+	Data V2AnalyticsGetRatelimitsResponseData `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
+// V2AnalyticsGetRatelimitsResponseData Array of rate limit rows returned by the query. Fields vary based on the SQL SELECT clause.
+type V2AnalyticsGetRatelimitsResponseData = []map[string]interface{}
+
 // V2AnalyticsGetVerificationsRequestBody defines model for V2AnalyticsGetVerificationsRequestBody.
 type V2AnalyticsGetVerificationsRequestBody struct {
 	// Query SQL query to execute against your analytics data.
-	// Only SELECT queries are allowed.
+	// Queries may reference only the five public aliases: `key_verifications_v1`, `key_verifications_per_minute_v1`, `key_verifications_per_hour_v1`, `key_verifications_per_day_v1`, or `key_verifications_per_month_v1`. Physical `default.*` table names are unsupported.
+	// Only SELECT queries are allowed. CTEs, subqueries, UNION, and EXCEPT are supported.
 	Query string `json:"query"`
 }
 
@@ -626,8 +1573,8 @@ type V2AnalyticsGetVerificationsResponseData = []map[string]interface{}
 
 // V2ApisCreateApiRequestBody defines model for V2ApisCreateApiRequestBody.
 type V2ApisCreateApiRequestBody struct {
-	// Name Unique identifier for this API namespace within your workspace.
-	// Use descriptive names like 'payment-service-prod' or 'user-api-dev' to clearly identify purpose and environment.
+	// Name Human-readable name for this API within your workspace.
+	// Use descriptive names like 'Payment Service (prod)' or 'user-api-dev' to clearly identify purpose and environment.
 	Name string `json:"name"`
 }
 
@@ -747,7 +1694,7 @@ type V2ApisListKeysResponseBody struct {
 	Meta Meta `json:"meta"`
 
 	// Pagination Pagination metadata for list endpoints. Provides information necessary to traverse through large result sets efficiently using cursor-based pagination.
-	Pagination *Pagination `json:"pagination,omitempty"`
+	Pagination Pagination `json:"pagination"`
 }
 
 // V2ApisListKeysResponseData Array of API keys with complete configuration and metadata.
@@ -755,6 +1702,10 @@ type V2ApisListKeysResponseData = []KeyResponseData
 
 // V2AppsCreateAppRequestBody defines model for V2AppsCreateAppRequestBody.
 type V2AppsCreateAppRequestBody struct {
+	// Git Connect a GitHub repository to the app on creation. Omit to create the app
+	// without a repository and connect one later with apps.updateApp.
+	Git *AppGitCreateInput `json:"git,omitempty"`
+
 	// Name Human-readable name for this app.
 	// Use a descriptive name like 'Payments API' to identify its purpose.
 	Name string `json:"name"`
@@ -835,6 +1786,9 @@ type V2AppsListAppsRequestBody struct {
 	// Project Identifies a resource by either its unique ID or its slug.
 	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
 	Project ResourceIdentifier `json:"project"`
+
+	// Search Free-form text to filter apps. Returns apps whose ID, name, or slug contains the search string. Matching is case-insensitive.
+	Search *string `json:"search,omitempty"`
 }
 
 // V2AppsListAppsResponseBody defines model for V2AppsListAppsResponseBody.
@@ -846,7 +1800,7 @@ type V2AppsListAppsResponseBody struct {
 	Meta Meta `json:"meta"`
 
 	// Pagination Pagination metadata for list endpoints. Provides information necessary to traverse through large result sets efficiently using cursor-based pagination.
-	Pagination *Pagination `json:"pagination,omitempty"`
+	Pagination Pagination `json:"pagination"`
 }
 
 // V2AppsUpdateAppRequestBody defines model for V2AppsUpdateAppRequestBody.
@@ -855,13 +1809,15 @@ type V2AppsUpdateAppRequestBody struct {
 	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
 	App ResourceIdentifier `json:"app"`
 
-	// DefaultBranch New default git branch deployments track for this app.
-	// Omit this field to leave the current branch unchanged.
-	DefaultBranch *string `json:"defaultBranch,omitempty"`
-
 	// DeleteProtection Enable or disable delete protection for the app.
 	// Omit this field to leave the current setting unchanged.
 	DeleteProtection *bool `json:"deleteProtection,omitempty"`
+
+	// Git Connect, reconfigure, or disconnect this app's GitHub repository.
+	// Omit to leave unchanged, set null to disconnect, or set an object with a
+	// "repository" to connect or replace it and/or a "defaultBranch" to set which
+	// branch it tracks. Fields are independent, so send only the one you change.
+	Git nullable.Nullable[AppGitUpdateInput] `json:"git,omitempty"`
 
 	// Name New human-readable name for the app.
 	// Omit this field to leave the current name unchanged.
@@ -990,6 +1946,715 @@ type V2DeployGitCommit struct {
 	Timestamp *int64 `json:"timestamp,omitempty"`
 }
 
+// V2DeploymentsCreateDeploymentRequestBody Create a deployment. Provide exactly one of git, image, or deployment.
+type V2DeploymentsCreateDeploymentRequestBody struct {
+	// App Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	App ResourceIdentifier `json:"app"`
+
+	// Deployment Re-run an existing deployment.
+	Deployment *DeploymentSourceDeployment `json:"deployment,omitempty"`
+
+	// Environment Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	Environment ResourceIdentifier `json:"environment"`
+
+	// Git Build from the app's connected GitHub repository.
+	Git *DeploymentSourceGit `json:"git,omitempty"`
+
+	// Image Deploy a prebuilt Docker image as-is.
+	Image *DeploymentSourceImage `json:"image,omitempty"`
+
+	// Project Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	Project ResourceIdentifier `json:"project"`
+	union   json.RawMessage
+}
+
+// V2DeploymentsCreateDeploymentRequestBody0 defines model for .
+type V2DeploymentsCreateDeploymentRequestBody0 = interface{}
+
+// V2DeploymentsCreateDeploymentRequestBody1 defines model for .
+type V2DeploymentsCreateDeploymentRequestBody1 = interface{}
+
+// V2DeploymentsCreateDeploymentRequestBody2 defines model for .
+type V2DeploymentsCreateDeploymentRequestBody2 = interface{}
+
+// V2DeploymentsCreateDeploymentResponseBody defines model for V2DeploymentsCreateDeploymentResponseBody.
+type V2DeploymentsCreateDeploymentResponseBody struct {
+	Data V2DeploymentsCreateDeploymentResponseData `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
+// V2DeploymentsCreateDeploymentResponseData defines model for V2DeploymentsCreateDeploymentResponseData.
+type V2DeploymentsCreateDeploymentResponseData struct {
+	// DeploymentId Unique deployment identifier. Poll deployments.getDeployment with this id to watch status.
+	DeploymentId string `json:"deploymentId"`
+}
+
+// V2DeploymentsGetDeploymentRequestBody Retrieve a single deployment, including its status and runtime configuration.
+type V2DeploymentsGetDeploymentRequestBody struct {
+	// DeploymentId Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	DeploymentId ResourceIdentifier `json:"deploymentId"`
+}
+
+// V2DeploymentsGetDeploymentResponseBody defines model for V2DeploymentsGetDeploymentResponseBody.
+type V2DeploymentsGetDeploymentResponseBody struct {
+	Data Deployment `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
+// V2DeploymentsListDeploymentsRequestBody Filter deployments within a workspace. All filters are optional; with none
+// set, every deployment in the workspace is returned, newest first.
+type V2DeploymentsListDeploymentsRequestBody struct {
+	// App Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	App *ResourceIdentifier `json:"app,omitempty"`
+
+	// Cursor Pagination cursor from a previous response to fetch the next page.
+	// Use when `hasMore: true` in the previous response.
+	Cursor *string `json:"cursor,omitempty"`
+
+	// Environment Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	Environment *ResourceIdentifier `json:"environment,omitempty"`
+
+	// Limit Maximum number of deployments to return per request.
+	// Balance between response size and number of pagination calls needed.
+	Limit *int `json:"limit,omitempty"`
+
+	// Project Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	Project *ResourceIdentifier `json:"project,omitempty"`
+
+	// Status Restrict results to deployments in any of the given lifecycle statuses.
+	// Omit to return deployments in every status.
+	Status *[]DeploymentStatus `json:"status,omitempty"`
+}
+
+// V2DeploymentsListDeploymentsResponseBody defines model for V2DeploymentsListDeploymentsResponseBody.
+type V2DeploymentsListDeploymentsResponseBody struct {
+	// Data Array of deployments, ordered newest first.
+	Data []Deployment `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+
+	// Pagination Pagination metadata for list endpoints. Provides information necessary to traverse through large result sets efficiently using cursor-based pagination.
+	Pagination Pagination `json:"pagination"`
+}
+
+// V2DeploymentsPromoteDeploymentRequestBody Promote a ready deployment to become the current deployment for its environment.
+type V2DeploymentsPromoteDeploymentRequestBody struct {
+	// DeploymentId Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	DeploymentId ResourceIdentifier `json:"deploymentId"`
+}
+
+// V2DeploymentsPromoteDeploymentResponseBody defines model for V2DeploymentsPromoteDeploymentResponseBody.
+type V2DeploymentsPromoteDeploymentResponseBody struct {
+	// Data Empty response object by design. A successful response indicates this operation was successfully executed.
+	Data EmptyResponse `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
+// V2DeploymentsRollbackDeploymentRequestBody Roll live traffic back to a previous deployment.
+type V2DeploymentsRollbackDeploymentRequestBody struct {
+	// DeploymentId Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	DeploymentId ResourceIdentifier `json:"deploymentId"`
+}
+
+// V2DeploymentsRollbackDeploymentResponseBody defines model for V2DeploymentsRollbackDeploymentResponseBody.
+type V2DeploymentsRollbackDeploymentResponseBody struct {
+	// Data Empty response object by design. A successful response indicates this operation was successfully executed.
+	Data EmptyResponse `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
+// V2DeploymentsStartDeploymentRequestBody Start a stopped preview deployment so it serves traffic again.
+type V2DeploymentsStartDeploymentRequestBody struct {
+	// DeploymentId Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	DeploymentId ResourceIdentifier `json:"deploymentId"`
+}
+
+// V2DeploymentsStartDeploymentResponseBody defines model for V2DeploymentsStartDeploymentResponseBody.
+type V2DeploymentsStartDeploymentResponseBody struct {
+	// Data Empty response object by design. A successful response indicates this operation was successfully executed.
+	Data EmptyResponse `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
+// V2DeploymentsStopDeploymentRequestBody Stop a running preview deployment to free up resources.
+type V2DeploymentsStopDeploymentRequestBody struct {
+	// DeploymentId Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	DeploymentId ResourceIdentifier `json:"deploymentId"`
+}
+
+// V2DeploymentsStopDeploymentResponseBody defines model for V2DeploymentsStopDeploymentResponseBody.
+type V2DeploymentsStopDeploymentResponseBody struct {
+	// Data Empty response object by design. A successful response indicates this operation was successfully executed.
+	Data EmptyResponse `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
+// V2DomainsCreateDomainRequestBody defines model for V2DomainsCreateDomainRequestBody.
+type V2DomainsCreateDomainRequestBody struct {
+	// App Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	App ResourceIdentifier `json:"app"`
+
+	// Domain Fully qualified domain name to attach to the environment, without a scheme, port, or path.
+	// Must be unique across your entire workspace: the same name cannot be attached to two environments.
+	//
+	// The name must sit under a registrable domain: 'api.acme.co.uk' is accepted, the public suffix
+	// 'co.uk' itself is not. Internationalized names may be sent in Unicode or Punycode form; either
+	// way the domain is stored and returned in its canonical form, lowercase ASCII with Unicode labels
+	// Punycode encoded, and the DNS records in the response use that form.
+	Domain string `json:"domain"`
+
+	// Environment Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	Environment ResourceIdentifier `json:"environment"`
+
+	// Project Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	Project ResourceIdentifier `json:"project"`
+}
+
+// V2DomainsCreateDomainResponseBody defines model for V2DomainsCreateDomainResponseBody.
+type V2DomainsCreateDomainResponseBody struct {
+	Data V2DomainsCreateDomainResponseData `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
+// V2DomainsCreateDomainResponseData defines model for V2DomainsCreateDomainResponseData.
+type V2DomainsCreateDomainResponseData struct {
+	// DnsRecords Every DNS record needed to finish setting up this domain, ready to create at your provider.
+	// The list already accounts for whether the domain is an apex or a subdomain, so no further
+	// branching is needed: create each entry as given.
+	//
+	// One record establishes routing and one proves ownership. Create all of them: whether ownership
+	// can be inferred from the routing record depends on how your provider publishes it, and a name
+	// another workspace has already verified can only be claimed through the ownership record.
+	// Neither is knowable before the records exist.
+	DnsRecords []DnsRecord `json:"dnsRecords"`
+
+	// DomainConnect One-click setup at the domain's DNS provider. Omitted entirely when the provider does not support
+	// Domain Connect or discovery failed, so the object's presence is the signal that the shortcut is
+	// available and both of its fields are filled.
+	DomainConnect *DomainConnect `json:"domainConnect,omitempty"`
+
+	// DomainId Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	DomainId ResourceIdentifier `json:"domainId"`
+}
+
+// V2DomainsDeleteDomainRequestBody defines model for V2DomainsDeleteDomainRequestBody.
+type V2DomainsDeleteDomainRequestBody struct {
+	// Domain Identifies a domain by its Unkey ID or by its name. Pass a 'dom_'-prefixed ID, or a fully
+	// qualified domain name such as 'api.acme.com' without a scheme, port, or path. You can give an
+	// internationalized name in Unicode or Punycode form. Both forms address the same domain.
+	//
+	// Domain names are unique per workspace, so the name alone addresses the domain. You do not
+	// need to supply a project, app, or environment.
+	Domain string `json:"domain"`
+}
+
+// V2DomainsDeleteDomainResponseBody defines model for V2DomainsDeleteDomainResponseBody.
+type V2DomainsDeleteDomainResponseBody struct {
+	// Data Empty response object by design. A successful response indicates this operation was successfully executed.
+	Data EmptyResponse `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
+// V2DomainsGetDomainRequestBody defines model for V2DomainsGetDomainRequestBody.
+type V2DomainsGetDomainRequestBody struct {
+	// Domain Identifies a domain by its Unkey ID or by its name. Pass a 'dom_'-prefixed ID, or a fully
+	// qualified domain name such as 'api.acme.com' without a scheme, port, or path. You can give an
+	// internationalized name in Unicode or Punycode form. Both forms address the same domain.
+	//
+	// Domain names are unique per workspace, so the name alone addresses the domain. You do not
+	// need to supply a project, app, or environment.
+	Domain string `json:"domain"`
+}
+
+// V2DomainsGetDomainResponseBody defines model for V2DomainsGetDomainResponseBody.
+type V2DomainsGetDomainResponseBody struct {
+	Data Domain `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
+// V2DomainsListDomainsRequestBody defines model for V2DomainsListDomainsRequestBody.
+type V2DomainsListDomainsRequestBody struct {
+	// App Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	App ResourceIdentifier `json:"app"`
+
+	// Cursor The pagination cursor from the response that came before.
+	// Send it to get the next page when that response has `hasMore: true`.
+	Cursor *string `json:"cursor,omitempty"`
+
+	// Environment Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	Environment ResourceIdentifier `json:"environment"`
+
+	// Limit The maximum number of domains one response contains.
+	// A small limit makes the response smaller, but makes more requests necessary.
+	Limit *int `json:"limit,omitempty"`
+
+	// Project Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	Project ResourceIdentifier `json:"project"`
+
+	// Search Free-form text to filter domains. Returns domains whose ID or name contains the search string. Matching is case-insensitive.
+	Search *string `json:"search,omitempty"`
+}
+
+// V2DomainsListDomainsResponseBody defines model for V2DomainsListDomainsResponseBody.
+type V2DomainsListDomainsResponseBody struct {
+	// Data The domains attached to the environment, sorted by their id.
+	// The array is empty when the environment has no domains. This is not an error.
+	Data []Domain `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+
+	// Pagination Pagination metadata for list endpoints. Provides information necessary to traverse through large result sets efficiently using cursor-based pagination.
+	Pagination Pagination `json:"pagination"`
+}
+
+// V2DomainsVerifyDomainRequestBody defines model for V2DomainsVerifyDomainRequestBody.
+type V2DomainsVerifyDomainRequestBody struct {
+	// Domain Identifies a domain by its name or by its ID. Send the fully qualified domain name, such as
+	// 'api.acme.com', without a scheme, port, or path, or send the domain ID that
+	// domains.createDomain returns. You can send an internationalized name in Unicode or in
+	// Punycode form. Both forms address the same domain.
+	Domain string `json:"domain"`
+}
+
+// V2DomainsVerifyDomainResponseBody defines model for V2DomainsVerifyDomainResponseBody.
+type V2DomainsVerifyDomainResponseBody struct {
+	// Data Empty response object by design. A successful response indicates this operation was successfully executed.
+	Data EmptyResponse `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
+// V2EnvironmentsGetEnvironmentRequestBody defines model for V2EnvironmentsGetEnvironmentRequestBody.
+type V2EnvironmentsGetEnvironmentRequestBody struct {
+	// App Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	App ResourceIdentifier `json:"app"`
+
+	// Environment Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	Environment ResourceIdentifier `json:"environment"`
+
+	// Project Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	Project ResourceIdentifier `json:"project"`
+}
+
+// V2EnvironmentsGetEnvironmentResponseBody defines model for V2EnvironmentsGetEnvironmentResponseBody.
+type V2EnvironmentsGetEnvironmentResponseBody struct {
+	Data Environment `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
+// V2EnvironmentsListEnvironmentVariablesRequestBody defines model for V2EnvironmentsListEnvironmentVariablesRequestBody.
+type V2EnvironmentsListEnvironmentVariablesRequestBody struct {
+	// App Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	App ResourceIdentifier `json:"app"`
+
+	// Cursor Pagination cursor from a previous response to fetch the next page.
+	// Use when `hasMore: true` in the previous response.
+	Cursor *string `json:"cursor,omitempty"`
+
+	// Environment Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	Environment ResourceIdentifier `json:"environment"`
+
+	// Limit Maximum number of variables to return per request.
+	Limit *int `json:"limit,omitempty"`
+
+	// Project Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	Project ResourceIdentifier `json:"project"`
+}
+
+// V2EnvironmentsListEnvironmentVariablesResponseBody defines model for V2EnvironmentsListEnvironmentVariablesResponseBody.
+type V2EnvironmentsListEnvironmentVariablesResponseBody struct {
+	Data []EnvironmentVariable `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+
+	// Pagination Pagination metadata for list endpoints. Provides information necessary to traverse through large result sets efficiently using cursor-based pagination.
+	Pagination Pagination `json:"pagination"`
+}
+
+// V2EnvironmentsListEnvironmentsRequestBody defines model for V2EnvironmentsListEnvironmentsRequestBody.
+type V2EnvironmentsListEnvironmentsRequestBody struct {
+	// App Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	App ResourceIdentifier `json:"app"`
+
+	// Project Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	Project ResourceIdentifier `json:"project"`
+}
+
+// V2EnvironmentsListEnvironmentsResponseBody defines model for V2EnvironmentsListEnvironmentsResponseBody.
+type V2EnvironmentsListEnvironmentsResponseBody struct {
+	// Data Array of environments in the app, ordered by environment id.
+	Data []Environment `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
+// V2EnvironmentsRemoveEnvironmentVariablesRequestBody defines model for V2EnvironmentsRemoveEnvironmentVariablesRequestBody.
+type V2EnvironmentsRemoveEnvironmentVariablesRequestBody struct {
+	// App Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	App ResourceIdentifier `json:"app"`
+
+	// Environment Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	Environment ResourceIdentifier `json:"environment"`
+
+	// Project Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	Project ResourceIdentifier `json:"project"`
+
+	// Variables The names of the variables to remove. Keys that exist are deleted; keys
+	// that are not present are ignored, since their absence already matches the
+	// requested state.
+	//
+	// Duplicate keys collapse to a single removal. The whole operation is atomic:
+	// if any part fails the environment is left unchanged. Limited to 50
+	// variables per request.
+	Variables []string `json:"variables"`
+}
+
+// V2EnvironmentsRemoveEnvironmentVariablesResponseBody defines model for V2EnvironmentsRemoveEnvironmentVariablesResponseBody.
+type V2EnvironmentsRemoveEnvironmentVariablesResponseBody struct {
+	// Data Empty response object by design. A successful response indicates this operation was successfully executed.
+	Data EmptyResponse `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
+// V2EnvironmentsSetEnvironmentVariablesRequestBody defines model for V2EnvironmentsSetEnvironmentVariablesRequestBody.
+type V2EnvironmentsSetEnvironmentVariablesRequestBody struct {
+	// App Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	App ResourceIdentifier `json:"app"`
+
+	// Environment Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	Environment ResourceIdentifier `json:"environment"`
+
+	// Project Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	Project ResourceIdentifier `json:"project"`
+
+	// Prune Optional. Defaults to false. When false, the variables above are upserted
+	// and any existing variable not in the list is kept. When true, this becomes
+	// a full replace: after upserting, every variable not in the list is deleted.
+	// Combined with an empty `variables` list, `prune: true` resets the entire
+	// environment by deleting every variable.
+	Prune *bool `json:"prune,omitempty"`
+
+	// Variables The variables to upsert. Each entry is created if its key is new or fully
+	// overwritten if the key already exists. Existing variables whose keys are
+	// not in this list are left untouched, unless `prune` is true.
+	//
+	// Each entry is written exactly as sent, never merged with the current
+	// state. Only `value` is required; omitted optional fields (`kind`,
+	// `description`) fall back to their defaults rather than any previous value,
+	// so overwriting a variable without a `description` clears it.
+	//
+	// Each key may appear at most once; a duplicate key is rejected with a 400.
+	// The whole operation is atomic: if any part fails the environment is left
+	// unchanged. All values are encrypted at rest. Limited to 50 variables per
+	// request.
+	Variables []EnvironmentVariableInput `json:"variables"`
+}
+
+// V2EnvironmentsSetEnvironmentVariablesResponseBody defines model for V2EnvironmentsSetEnvironmentVariablesResponseBody.
+type V2EnvironmentsSetEnvironmentVariablesResponseBody struct {
+	// Data Empty response object by design. A successful response indicates this operation was successfully executed.
+	Data EmptyResponse `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
+// V2EnvironmentsUpdateSettingsRequestBody defines model for V2EnvironmentsUpdateSettingsRequestBody.
+type V2EnvironmentsUpdateSettingsRequestBody struct {
+	// App Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	App ResourceIdentifier `json:"app"`
+
+	// AutoDeploy Whether pushes auto-deploy.
+	// Omit to leave unchanged.
+	AutoDeploy *bool `json:"autoDeploy,omitempty"`
+
+	// BuildCommand Overrides the build command auto-detected by Railpack.
+	// Omit to leave unchanged; set null to clear and fall back to auto-detection.
+	BuildCommand nullable.Nullable[string] `json:"buildCommand,omitempty"`
+
+	// Command Override container entrypoint command.
+	// Omit to leave unchanged.
+	Command *[]string `json:"command,omitempty"`
+
+	// Dockerfile Path to the Dockerfile used for builds.
+	// Omit to leave unchanged; set null to clear and fall back to Railpack.
+	Dockerfile nullable.Nullable[string] `json:"dockerfile,omitempty"`
+
+	// Environment Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	Environment ResourceIdentifier `json:"environment"`
+
+	// Healthcheck HTTP healthcheck configuration.
+	// Omit to leave unchanged; set null to remove.
+	Healthcheck nullable.Nullable[EnvironmentHealthcheck] `json:"healthcheck,omitempty"`
+
+	// MemoryMib Memory allocation in MiB. Minimum 256, in steps of 256.
+	// The upper bound is your workspace's per-instance quota; exceeding it returns 400.
+	// Omit to leave unchanged.
+	MemoryMib *int `json:"memoryMib,omitempty"`
+
+	// OpenapiSpecPath Path to the OpenAPI spec file within the build. Must start with a slash.
+	// Omit to leave unchanged; set null to clear.
+	OpenapiSpecPath nullable.Nullable[string] `json:"openapiSpecPath,omitempty"`
+
+	// Port Container port the app listens on.
+	// Omit to leave unchanged.
+	Port *int `json:"port,omitempty"`
+
+	// Project Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	Project ResourceIdentifier `json:"project"`
+
+	// Regions Desired set of regions with per-region replica bounds.
+	// Omit to leave regions unchanged; when present, this replaces the full set
+	// (regions absent from the list are removed). At least one region is required;
+	// an empty list is rejected because an environment cannot have zero regions.
+	Regions *[]EnvironmentRegion `json:"regions,omitempty"`
+
+	// RootDirectory The directory your app lives in. Unkey builds from here.
+	// Use "." for the repository root, or set a subdirectory when your app
+	// is nested (e.g., services/api). Omit to leave unchanged.
+	RootDirectory *string `json:"rootDirectory,omitempty"`
+
+	// ShutdownSignal Signal sent to the container on shutdown.
+	ShutdownSignal *EnvironmentShutdownSignal `json:"shutdownSignal,omitempty"`
+
+	// StorageMib Ephemeral storage allocation in MiB, in steps of 512 (0 for none).
+	// The upper bound is your workspace's per-instance quota; exceeding it returns 400.
+	// Omit to leave unchanged.
+	StorageMib *int `json:"storageMib,omitempty"`
+
+	// UpstreamProtocol Protocol used to reach the container.
+	UpstreamProtocol *EnvironmentUpstreamProtocol `json:"upstreamProtocol,omitempty"`
+
+	// VCpus CPU allocation in vCPUs. Minimum 0.25 (1/4 vCPU), in steps of 0.25.
+	// The upper bound is your workspace's per-instance quota; exceeding it returns 400.
+	// Omit to leave unchanged.
+	VCpus *float64 `json:"vCpus,omitempty"`
+
+	// WatchPaths Glob paths that trigger auto-deploys when changed.
+	// Omit to leave unchanged.
+	WatchPaths *[]string `json:"watchPaths,omitempty"`
+}
+
+// V2EnvironmentsUpdateSettingsResponseBody defines model for V2EnvironmentsUpdateSettingsResponseBody.
+type V2EnvironmentsUpdateSettingsResponseBody struct {
+	// Data Empty response object by design. A successful response indicates this operation was successfully executed.
+	Data EmptyResponse `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
+// V2GatewayListPoliciesRequestBody defines model for V2GatewayListPoliciesRequestBody.
+type V2GatewayListPoliciesRequestBody struct {
+	// App Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	App ResourceIdentifier `json:"app"`
+
+	// Environment Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	Environment ResourceIdentifier `json:"environment"`
+
+	// Project Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	Project ResourceIdentifier `json:"project"`
+}
+
+// V2GatewayListPoliciesResponseBody defines model for V2GatewayListPoliciesResponseBody.
+type V2GatewayListPoliciesResponseBody struct {
+	// Data The environment's gateway policies in evaluation order.
+	Data V2GatewayListPoliciesResponseData `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
+// V2GatewayListPoliciesResponseData The environment's gateway policies in evaluation order.
+type V2GatewayListPoliciesResponseData = []PolicyResponse
+
+// V2GatewaySetPoliciesRequestBody defines model for V2GatewaySetPoliciesRequestBody.
+type V2GatewaySetPoliciesRequestBody struct {
+	// App Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	App ResourceIdentifier `json:"app"`
+
+	// Environment Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	Environment ResourceIdentifier `json:"environment"`
+
+	// Policies The environment's complete policy list, in evaluation order. Every call
+	// replaces all stored policies with exactly this list; an empty list
+	// removes every policy. The operation is atomic: if any policy is
+	// invalid, nothing is written. An environment can hold at most 50
+	// policies.
+	Policies []Policy `json:"policies"`
+
+	// Project Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	Project ResourceIdentifier `json:"project"`
+}
+
+// V2GatewaySetPoliciesResponseBody defines model for V2GatewaySetPoliciesResponseBody.
+type V2GatewaySetPoliciesResponseBody struct {
+	// Data Empty response object by design. A successful response indicates this operation was successfully executed.
+	Data EmptyResponse `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
+// V2GatewayUpdatePolicyRequestBody Partial update of a single policy. Omitted fields keep their stored
+// values; at least one updatable field must be provided. Providing one of
+// `keyauth`, `ratelimit`, `firewall`, `openapi` or `logging` replaces the
+// policy's rule entirely, including switching its type; at most one may be
+// set.
+type V2GatewayUpdatePolicyRequestBody struct {
+	// App Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	App ResourceIdentifier `json:"app"`
+
+	// Enabled Enable or disable the policy. Disabled policies are stored but skipped
+	// during evaluation. Omit to keep the current setting.
+	Enabled *bool `json:"enabled,omitempty"`
+
+	// Environment Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	Environment ResourceIdentifier `json:"environment"`
+
+	// Firewall Blocks matching requests.
+	Firewall *FirewallPolicy `json:"firewall,omitempty"`
+
+	// Keyauth Verifies Unkey API keys on matching requests.
+	Keyauth *KeyauthPolicy `json:"keyauth,omitempty"`
+
+	// Logging Adds request data to the log entries of matching requests. The gateway
+	// always records a basic log entry for every request: method, host, path,
+	// status, and latency. Each capture setting is a separate opt-in: request
+	// headers, response headers, request body, response body, and query data.
+	// The policy's `match` expressions select the requests. A policy without
+	// `match` expressions matches every request. If more than one enabled
+	// logging policy matches a request, the gateway combines their settings.
+	// The gateway always redacts the `Authorization` header and configured key
+	// locations before it stores headers or query data.
+	Logging *LoggingPolicy `json:"logging,omitempty"`
+
+	// Match Replaces all match expressions. Set null to remove them so the policy
+	// applies to every request. Omit to keep the current expressions.
+	Match nullable.Nullable[[]MatchExpr] `json:"match,omitempty"`
+
+	// Name New human-readable name. Omit to keep the current name.
+	Name *string `json:"name,omitempty"`
+
+	// Openapi Validates matching requests against the app's uploaded OpenAPI spec. Has no
+	// configuration of its own. If no spec has been uploaded for the deployment,
+	// the policy is a no-op and requests pass through unvalidated.
+	Openapi *OpenapiPolicy `json:"openapi,omitempty"`
+
+	// PolicyId Id of the policy to update, as returned by `gateway.listPolicies`.
+	// Ids are regenerated whenever `gateway.setPolicies` replaces the list,
+	// so list the policies first if you are unsure the id is current.
+	PolicyId string `json:"policyId"`
+
+	// Project Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	Project ResourceIdentifier `json:"project"`
+
+	// Ratelimit Rate limits matching requests. Set `identifiers` with 1 to 5 sources.
+	// The deprecated `identifier` field is accepted in place of a one-entry
+	// `identifiers` list; set exactly one of the two.
+	Ratelimit *RatelimitPolicy `json:"ratelimit,omitempty"`
+}
+
+// V2GatewayUpdatePolicyResponseBody defines model for V2GatewayUpdatePolicyResponseBody.
+type V2GatewayUpdatePolicyResponseBody struct {
+	// Data Empty response object by design. A successful response indicates this operation was successfully executed.
+	Data EmptyResponse `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
+// V2GithubInstallAppResponseBody defines model for V2GithubInstallAppResponseBody.
+type V2GithubInstallAppResponseBody struct {
+	Data V2GithubInstallAppResponseData `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
+// V2GithubInstallAppResponseData defines model for V2GithubInstallAppResponseData.
+type V2GithubInstallAppResponseData struct {
+	// ExpiresAt Unix timestamp in milliseconds after which the URL's signed state expires
+	// and the link must be requested again.
+	ExpiresAt int64 `json:"expiresAt"`
+
+	// Url The GitHub App install URL. Open it in a browser to install the app and
+	// grant repository access. After installation GitHub returns to Unkey, which
+	// binds the installation and lands you in the workspace settings.
+	Url string `json:"url"`
+}
+
 // V2IdentitiesCreateIdentityRequestBody defines model for V2IdentitiesCreateIdentityRequestBody.
 type V2IdentitiesCreateIdentityRequestBody struct {
 	// ExternalId Creates an identity using your system's unique identifier for a user, organization, or entity.
@@ -1071,6 +2736,9 @@ type V2IdentitiesListIdentitiesRequestBody struct {
 
 	// Limit The maximum number of identities to return in a single request. Use this to control response size and loading performance.
 	Limit *int `json:"limit,omitempty"`
+
+	// Search Free-form text to filter identities. Returns identities whose ID or external ID contains the search string. Matching is case-insensitive.
+	Search *string `json:"search,omitempty"`
 }
 
 // V2IdentitiesListIdentitiesResponseBody defines model for V2IdentitiesListIdentitiesResponseBody.
@@ -2000,10 +3668,15 @@ type V2PermissionsCreateRoleRequestBody struct {
 	// - Related roles that might be used together
 	Description *string `json:"description,omitempty"`
 
-	// Name The unique name for this role. Must be unique within your workspace and clearly indicate the role's purpose. Use descriptive names like 'admin', 'editor', or 'billing_manager'.
+	// Name The unique name for this role. Must be unique within your workspace and clearly indicate the role's purpose. Use descriptive names like 'admin', 'editor', or 'Billing Manager'.
 	//
-	// Examples: 'admin.billing', 'support.readonly', 'developer.api', 'manager.analytics'
+	// Examples: 'admin.billing', 'support.readonly', 'developer.api', 'Billing Manager'
 	Name string `json:"name"`
+
+	// Permissions Permission slugs to attach to the role. Existing permissions are reused. Missing permissions are created automatically when the root key has `rbac.*.create_permission`.
+	//
+	// Omit this field or provide an empty array to create the role without permissions.
+	Permissions *[]string `json:"permissions,omitempty"`
 }
 
 // V2PermissionsCreateRoleResponseBody defines model for V2PermissionsCreateRoleResponseBody.
@@ -2122,6 +3795,9 @@ type V2PermissionsListPermissionsRequestBody struct {
 
 	// Limit Maximum number of permissions to return in a single response.
 	Limit *int `json:"limit,omitempty"`
+
+	// Search Free-form text to filter permissions. Returns permissions whose ID, name, slug, or description contains the search string. Matching is case-insensitive.
+	Search *string `json:"search,omitempty"`
 }
 
 // V2PermissionsListPermissionsResponseBody defines model for V2PermissionsListPermissionsResponseBody.
@@ -2133,7 +3809,7 @@ type V2PermissionsListPermissionsResponseBody struct {
 	Meta Meta `json:"meta"`
 
 	// Pagination Pagination metadata for list endpoints. Provides information necessary to traverse through large result sets efficiently using cursor-based pagination.
-	Pagination *Pagination `json:"pagination,omitempty"`
+	Pagination Pagination `json:"pagination"`
 }
 
 // V2PermissionsListPermissionsResponseData Array of permission objects with complete configuration details.
@@ -2152,6 +3828,9 @@ type V2PermissionsListRolesRequestBody struct {
 	// Use larger values when you need to process many roles efficiently.
 	// Results exceeding this limit will be paginated with a cursor for continuation.
 	Limit *int `json:"limit,omitempty"`
+
+	// Search Free-form text to filter roles. Returns roles whose ID, name, or description contains the search string. Matching is case-insensitive.
+	Search *string `json:"search,omitempty"`
 }
 
 // V2PermissionsListRolesResponseBody defines model for V2PermissionsListRolesResponseBody.
@@ -2163,11 +3842,33 @@ type V2PermissionsListRolesResponseBody struct {
 	Meta Meta `json:"meta"`
 
 	// Pagination Pagination metadata for list endpoints. Provides information necessary to traverse through large result sets efficiently using cursor-based pagination.
-	Pagination *Pagination `json:"pagination,omitempty"`
+	Pagination Pagination `json:"pagination"`
 }
 
 // V2PermissionsListRolesResponseData Array of roles with their assigned permissions.
 type V2PermissionsListRolesResponseData = []Role
+
+// V2PermissionsSetRolePermissionsRequestBody defines model for V2PermissionsSetRolePermissionsRequestBody.
+type V2PermissionsSetRolePermissionsRequestBody struct {
+	// Permissions The complete set of permission slugs to assign directly to the role. Missing permissions are created when authorized. An empty array clears all direct permissions.
+	Permissions []string `json:"permissions"`
+
+	// RoleId Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	RoleId ResourceIdentifier `json:"roleId"`
+}
+
+// V2PermissionsSetRolePermissionsResponseBody defines model for V2PermissionsSetRolePermissionsResponseBody.
+type V2PermissionsSetRolePermissionsResponseBody struct {
+	// Data Complete list of permissions now directly assigned to the role.
+	Data V2PermissionsSetRolePermissionsResponseData `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
+// V2PermissionsSetRolePermissionsResponseData Complete list of permissions now directly assigned to the role.
+type V2PermissionsSetRolePermissionsResponseData = []Permission
 
 // V2PortalCreateSessionRequestBody defines model for V2PortalCreateSessionRequestBody.
 type V2PortalCreateSessionRequestBody struct {
@@ -2175,15 +3876,18 @@ type V2PortalCreateSessionRequestBody struct {
 	// Accepts arbitrary string values (user IDs, emails, UUIDs, etc.).
 	ExternalId string `json:"externalId"`
 
-	// Permissions List of RBAC tuple permissions defining what the end user can do in the Portal.
-	// Each permission is a string in the format `{resourceType}.{resourceId}.{action}`.
-	// Use `*` as resourceId to grant access to all resources of that type.
+	// Permissions The capabilities granted to the end user in the Portal, from a fixed
+	// vocabulary. All capabilities are scoped to this end user: key capabilities
+	// (`keys:*`) apply only to keys the end user owns within the keyspace
+	// configured on the portal configuration, and `analytics:read` returns only
+	// the end user's own verification events. An end user can never see another
+	// identity's keys or analytics.
 	//
-	// Tab visibility is derived from the action segment:
-	// - Keys tab: `read_key`, `create_key`, `update_key`, `delete_key`
-	// - Analytics tab: `read_analytics`
-	// - Docs tab: visible when any permission is present
-	Permissions []string `json:"permissions"`
+	// Tab visibility is derived from the capabilities:
+	// - Keys tab: any `keys:*` capability
+	// - Analytics tab: `analytics:read`
+	// - Docs tab: visible when any capability is present
+	Permissions []V2PortalCreateSessionRequestBodyPermissions `json:"permissions"`
 
 	// Preview When true, creates a preview session for testing the portal experience.
 	Preview *bool `json:"preview,omitempty"`
@@ -2194,6 +3898,9 @@ type V2PortalCreateSessionRequestBody struct {
 	// must not start or end with a hyphen, and must not contain consecutive hyphens.
 	Slug string `json:"slug"`
 }
+
+// V2PortalCreateSessionRequestBodyPermissions defines model for V2PortalCreateSessionRequestBody.Permissions.
+type V2PortalCreateSessionRequestBodyPermissions string
 
 // V2PortalCreateSessionResponseBody defines model for V2PortalCreateSessionResponseBody.
 type V2PortalCreateSessionResponseBody struct {
@@ -2235,6 +3942,89 @@ type V2PortalExchangeSessionResponseData struct {
 	// Token The browser session token. Store this as an httpOnly cookie for subsequent portal requests.
 	Token string `json:"token"`
 }
+
+// V2PortalGetVerificationsDataPoint defines model for V2PortalGetVerificationsDataPoint.
+type V2PortalGetVerificationsDataPoint struct {
+	// Disabled Verifications rejected because the key was disabled.
+	Disabled int64 `json:"disabled"`
+
+	// Expired Verifications rejected because the key was expired.
+	Expired int64 `json:"expired"`
+
+	// Forbidden Verifications rejected as forbidden.
+	Forbidden int64 `json:"forbidden"`
+
+	// InsufficientPermissions Verifications rejected for insufficient permissions.
+	InsufficientPermissions int64 `json:"insufficientPermissions"`
+
+	// RateLimited Verifications rejected because a rate limit was exceeded.
+	RateLimited int64 `json:"rateLimited"`
+
+	// Time Bucket start as a unix timestamp in milliseconds.
+	Time int64 `json:"time"`
+
+	// Total Total verifications in this bucket, across all outcomes.
+	Total int64 `json:"total"`
+
+	// UsageExceeded Verifications rejected because remaining usage was exhausted.
+	UsageExceeded int64 `json:"usageExceeded"`
+
+	// Valid Verifications with a VALID outcome.
+	Valid int64 `json:"valid"`
+}
+
+// V2PortalGetVerificationsRequestBody defines model for V2PortalGetVerificationsRequestBody.
+type V2PortalGetVerificationsRequestBody struct {
+	// EndTime End of the query window as a unix timestamp in milliseconds (exclusive).
+	// Bucket granularity (minute, hour, or day) is chosen automatically from the
+	// window size.
+	EndTime int64 `json:"endTime"`
+
+	// KeyId Optional. Restrict results to a single key. The key must belong to the
+	// authenticated end user; results are always scoped to the session identity
+	// regardless of this value.
+	KeyId *string `json:"keyId,omitempty"`
+
+	// StartTime Start of the query window as a unix timestamp in milliseconds (inclusive).
+	StartTime int64 `json:"startTime"`
+}
+
+// V2PortalGetVerificationsResponseBody defines model for V2PortalGetVerificationsResponseBody.
+type V2PortalGetVerificationsResponseBody struct {
+	// Data Zero-filled verification timeseries for the authenticated end user, ordered
+	// by time ascending. Buckets with no verifications are present with zero
+	// counts so the series is contiguous across the requested window.
+	Data []V2PortalGetVerificationsDataPoint `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
+// V2PortalListKeysRequestBody defines model for V2PortalListKeysRequestBody.
+type V2PortalListKeysRequestBody struct {
+	// Cursor Pagination cursor from a previous response to fetch the next page.
+	// Use when `hasMore: true` in the previous response.
+	Cursor *string `json:"cursor,omitempty"`
+
+	// Limit Maximum number of keys to return per request.
+	// Balance between response size and number of pagination calls needed.
+	Limit *int `json:"limit,omitempty"`
+}
+
+// V2PortalListKeysResponseBody defines model for V2PortalListKeysResponseBody.
+type V2PortalListKeysResponseBody struct {
+	// Data Array of the portal end user's API keys.
+	Data V2PortalListKeysResponseData `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+
+	// Pagination Pagination metadata for list endpoints. Provides information necessary to traverse through large result sets efficiently using cursor-based pagination.
+	Pagination Pagination `json:"pagination"`
+}
+
+// V2PortalListKeysResponseData Array of the portal end user's API keys.
+type V2PortalListKeysResponseData = []KeyResponseData
 
 // V2ProjectsCreateProjectRequestBody defines model for V2ProjectsCreateProjectRequestBody.
 type V2ProjectsCreateProjectRequestBody struct {
@@ -2302,6 +4092,9 @@ type V2ProjectsListProjectsRequestBody struct {
 	// Limit Maximum number of projects to return per request.
 	// Balance between response size and number of pagination calls needed.
 	Limit *int `json:"limit,omitempty"`
+
+	// Search Free-form text to filter projects. Returns projects whose ID, name, or slug contains the search string. Matching is case-insensitive.
+	Search *string `json:"search,omitempty"`
 }
 
 // V2ProjectsListProjectsResponseBody defines model for V2ProjectsListProjectsResponseBody.
@@ -2313,7 +4106,7 @@ type V2ProjectsListProjectsResponseBody struct {
 	Meta Meta `json:"meta"`
 
 	// Pagination Pagination metadata for list endpoints. Provides information necessary to traverse through large result sets efficiently using cursor-based pagination.
-	Pagination *Pagination `json:"pagination,omitempty"`
+	Pagination Pagination `json:"pagination"`
 }
 
 // V2ProjectsUpdateProjectRequestBody defines model for V2ProjectsUpdateProjectRequestBody.
@@ -2518,7 +4311,7 @@ type V2RatelimitListOverridesResponseBody struct {
 	Meta Meta `json:"meta"`
 
 	// Pagination Pagination metadata for list endpoints. Provides information necessary to traverse through large result sets efficiently using cursor-based pagination.
-	Pagination *Pagination `json:"pagination,omitempty"`
+	Pagination Pagination `json:"pagination"`
 }
 
 // V2RatelimitListOverridesResponseData defines model for V2RatelimitListOverridesResponseData.
@@ -2708,6 +4501,9 @@ type VerifyKeyRatelimitData struct {
 	Reset int64 `json:"reset"`
 }
 
+// AnalyticsGetRatelimitsJSONRequestBody defines body for AnalyticsGetRatelimits for application/json ContentType.
+type AnalyticsGetRatelimitsJSONRequestBody = V2AnalyticsGetRatelimitsRequestBody
+
 // AnalyticsGetVerificationsJSONRequestBody defines body for AnalyticsGetVerifications for application/json ContentType.
 type AnalyticsGetVerificationsJSONRequestBody = V2AnalyticsGetVerificationsRequestBody
 
@@ -2743,6 +4539,69 @@ type DeployCreateDeploymentJSONRequestBody = V2DeployCreateDeploymentRequestBody
 
 // DeployGetDeploymentJSONRequestBody defines body for DeployGetDeployment for application/json ContentType.
 type DeployGetDeploymentJSONRequestBody = V2DeployGetDeploymentRequestBody
+
+// DeploymentsCreateDeploymentJSONRequestBody defines body for DeploymentsCreateDeployment for application/json ContentType.
+type DeploymentsCreateDeploymentJSONRequestBody = V2DeploymentsCreateDeploymentRequestBody
+
+// DeploymentsGetDeploymentJSONRequestBody defines body for DeploymentsGetDeployment for application/json ContentType.
+type DeploymentsGetDeploymentJSONRequestBody = V2DeploymentsGetDeploymentRequestBody
+
+// DeploymentsListDeploymentsJSONRequestBody defines body for DeploymentsListDeployments for application/json ContentType.
+type DeploymentsListDeploymentsJSONRequestBody = V2DeploymentsListDeploymentsRequestBody
+
+// DeploymentsPromoteDeploymentJSONRequestBody defines body for DeploymentsPromoteDeployment for application/json ContentType.
+type DeploymentsPromoteDeploymentJSONRequestBody = V2DeploymentsPromoteDeploymentRequestBody
+
+// DeploymentsRollbackDeploymentJSONRequestBody defines body for DeploymentsRollbackDeployment for application/json ContentType.
+type DeploymentsRollbackDeploymentJSONRequestBody = V2DeploymentsRollbackDeploymentRequestBody
+
+// DeploymentsStartDeploymentJSONRequestBody defines body for DeploymentsStartDeployment for application/json ContentType.
+type DeploymentsStartDeploymentJSONRequestBody = V2DeploymentsStartDeploymentRequestBody
+
+// DeploymentsStopDeploymentJSONRequestBody defines body for DeploymentsStopDeployment for application/json ContentType.
+type DeploymentsStopDeploymentJSONRequestBody = V2DeploymentsStopDeploymentRequestBody
+
+// DomainsCreateDomainJSONRequestBody defines body for DomainsCreateDomain for application/json ContentType.
+type DomainsCreateDomainJSONRequestBody = V2DomainsCreateDomainRequestBody
+
+// DomainsDeleteDomainJSONRequestBody defines body for DomainsDeleteDomain for application/json ContentType.
+type DomainsDeleteDomainJSONRequestBody = V2DomainsDeleteDomainRequestBody
+
+// DomainsGetDomainJSONRequestBody defines body for DomainsGetDomain for application/json ContentType.
+type DomainsGetDomainJSONRequestBody = V2DomainsGetDomainRequestBody
+
+// DomainsListDomainsJSONRequestBody defines body for DomainsListDomains for application/json ContentType.
+type DomainsListDomainsJSONRequestBody = V2DomainsListDomainsRequestBody
+
+// DomainsVerifyDomainJSONRequestBody defines body for DomainsVerifyDomain for application/json ContentType.
+type DomainsVerifyDomainJSONRequestBody = V2DomainsVerifyDomainRequestBody
+
+// EnvironmentsGetEnvironmentJSONRequestBody defines body for EnvironmentsGetEnvironment for application/json ContentType.
+type EnvironmentsGetEnvironmentJSONRequestBody = V2EnvironmentsGetEnvironmentRequestBody
+
+// EnvironmentsListEnvironmentVariablesJSONRequestBody defines body for EnvironmentsListEnvironmentVariables for application/json ContentType.
+type EnvironmentsListEnvironmentVariablesJSONRequestBody = V2EnvironmentsListEnvironmentVariablesRequestBody
+
+// EnvironmentsListEnvironmentsJSONRequestBody defines body for EnvironmentsListEnvironments for application/json ContentType.
+type EnvironmentsListEnvironmentsJSONRequestBody = V2EnvironmentsListEnvironmentsRequestBody
+
+// EnvironmentsRemoveEnvironmentVariablesJSONRequestBody defines body for EnvironmentsRemoveEnvironmentVariables for application/json ContentType.
+type EnvironmentsRemoveEnvironmentVariablesJSONRequestBody = V2EnvironmentsRemoveEnvironmentVariablesRequestBody
+
+// EnvironmentsSetEnvironmentVariablesJSONRequestBody defines body for EnvironmentsSetEnvironmentVariables for application/json ContentType.
+type EnvironmentsSetEnvironmentVariablesJSONRequestBody = V2EnvironmentsSetEnvironmentVariablesRequestBody
+
+// EnvironmentsUpdateSettingsJSONRequestBody defines body for EnvironmentsUpdateSettings for application/json ContentType.
+type EnvironmentsUpdateSettingsJSONRequestBody = V2EnvironmentsUpdateSettingsRequestBody
+
+// GatewayListPoliciesJSONRequestBody defines body for GatewayListPolicies for application/json ContentType.
+type GatewayListPoliciesJSONRequestBody = V2GatewayListPoliciesRequestBody
+
+// GatewaySetPoliciesJSONRequestBody defines body for GatewaySetPolicies for application/json ContentType.
+type GatewaySetPoliciesJSONRequestBody = V2GatewaySetPoliciesRequestBody
+
+// GatewayUpdatePolicyJSONRequestBody defines body for GatewayUpdatePolicy for application/json ContentType.
+type GatewayUpdatePolicyJSONRequestBody = V2GatewayUpdatePolicyRequestBody
 
 // IdentitiesCreateIdentityJSONRequestBody defines body for IdentitiesCreateIdentity for application/json ContentType.
 type IdentitiesCreateIdentityJSONRequestBody = V2IdentitiesCreateIdentityRequestBody
@@ -2828,11 +4687,23 @@ type PermissionsListPermissionsJSONRequestBody = V2PermissionsListPermissionsReq
 // PermissionsListRolesJSONRequestBody defines body for PermissionsListRoles for application/json ContentType.
 type PermissionsListRolesJSONRequestBody = V2PermissionsListRolesRequestBody
 
+// PermissionsSetRolePermissionsJSONRequestBody defines body for PermissionsSetRolePermissions for application/json ContentType.
+type PermissionsSetRolePermissionsJSONRequestBody = V2PermissionsSetRolePermissionsRequestBody
+
 // PortalCreateSessionJSONRequestBody defines body for PortalCreateSession for application/json ContentType.
 type PortalCreateSessionJSONRequestBody = V2PortalCreateSessionRequestBody
 
 // PortalExchangeSessionJSONRequestBody defines body for PortalExchangeSession for application/json ContentType.
 type PortalExchangeSessionJSONRequestBody = V2PortalExchangeSessionRequestBody
+
+// PortalGetVerificationsJSONRequestBody defines body for PortalGetVerifications for application/json ContentType.
+type PortalGetVerificationsJSONRequestBody = V2PortalGetVerificationsRequestBody
+
+// PortalListKeysJSONRequestBody defines body for PortalListKeys for application/json ContentType.
+type PortalListKeysJSONRequestBody = V2PortalListKeysRequestBody
+
+// PortalRerollKeyJSONRequestBody defines body for PortalRerollKey for application/json ContentType.
+type PortalRerollKeyJSONRequestBody = V2KeysRerollKeyRequestBody
 
 // ProjectsCreateProjectJSONRequestBody defines body for ProjectsCreateProject for application/json ContentType.
 type ProjectsCreateProjectJSONRequestBody = V2ProjectsCreateProjectRequestBody
@@ -2866,3 +4737,190 @@ type RatelimitMultiLimitJSONRequestBody = V2RatelimitMultiLimitRequestBody
 
 // RatelimitSetOverrideJSONRequestBody defines body for RatelimitSetOverride for application/json ContentType.
 type RatelimitSetOverrideJSONRequestBody = V2RatelimitSetOverrideRequestBody
+
+// AsV2DeploymentsCreateDeploymentRequestBody0 returns the union data inside the V2DeploymentsCreateDeploymentRequestBody as a V2DeploymentsCreateDeploymentRequestBody0
+func (t V2DeploymentsCreateDeploymentRequestBody) AsV2DeploymentsCreateDeploymentRequestBody0() (V2DeploymentsCreateDeploymentRequestBody0, error) {
+	var body V2DeploymentsCreateDeploymentRequestBody0
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromV2DeploymentsCreateDeploymentRequestBody0 overwrites any union data inside the V2DeploymentsCreateDeploymentRequestBody as the provided V2DeploymentsCreateDeploymentRequestBody0
+func (t *V2DeploymentsCreateDeploymentRequestBody) FromV2DeploymentsCreateDeploymentRequestBody0(v V2DeploymentsCreateDeploymentRequestBody0) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeV2DeploymentsCreateDeploymentRequestBody0 performs a merge with any union data inside the V2DeploymentsCreateDeploymentRequestBody, using the provided V2DeploymentsCreateDeploymentRequestBody0
+func (t *V2DeploymentsCreateDeploymentRequestBody) MergeV2DeploymentsCreateDeploymentRequestBody0(v V2DeploymentsCreateDeploymentRequestBody0) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsV2DeploymentsCreateDeploymentRequestBody1 returns the union data inside the V2DeploymentsCreateDeploymentRequestBody as a V2DeploymentsCreateDeploymentRequestBody1
+func (t V2DeploymentsCreateDeploymentRequestBody) AsV2DeploymentsCreateDeploymentRequestBody1() (V2DeploymentsCreateDeploymentRequestBody1, error) {
+	var body V2DeploymentsCreateDeploymentRequestBody1
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromV2DeploymentsCreateDeploymentRequestBody1 overwrites any union data inside the V2DeploymentsCreateDeploymentRequestBody as the provided V2DeploymentsCreateDeploymentRequestBody1
+func (t *V2DeploymentsCreateDeploymentRequestBody) FromV2DeploymentsCreateDeploymentRequestBody1(v V2DeploymentsCreateDeploymentRequestBody1) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeV2DeploymentsCreateDeploymentRequestBody1 performs a merge with any union data inside the V2DeploymentsCreateDeploymentRequestBody, using the provided V2DeploymentsCreateDeploymentRequestBody1
+func (t *V2DeploymentsCreateDeploymentRequestBody) MergeV2DeploymentsCreateDeploymentRequestBody1(v V2DeploymentsCreateDeploymentRequestBody1) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsV2DeploymentsCreateDeploymentRequestBody2 returns the union data inside the V2DeploymentsCreateDeploymentRequestBody as a V2DeploymentsCreateDeploymentRequestBody2
+func (t V2DeploymentsCreateDeploymentRequestBody) AsV2DeploymentsCreateDeploymentRequestBody2() (V2DeploymentsCreateDeploymentRequestBody2, error) {
+	var body V2DeploymentsCreateDeploymentRequestBody2
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromV2DeploymentsCreateDeploymentRequestBody2 overwrites any union data inside the V2DeploymentsCreateDeploymentRequestBody as the provided V2DeploymentsCreateDeploymentRequestBody2
+func (t *V2DeploymentsCreateDeploymentRequestBody) FromV2DeploymentsCreateDeploymentRequestBody2(v V2DeploymentsCreateDeploymentRequestBody2) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeV2DeploymentsCreateDeploymentRequestBody2 performs a merge with any union data inside the V2DeploymentsCreateDeploymentRequestBody, using the provided V2DeploymentsCreateDeploymentRequestBody2
+func (t *V2DeploymentsCreateDeploymentRequestBody) MergeV2DeploymentsCreateDeploymentRequestBody2(v V2DeploymentsCreateDeploymentRequestBody2) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t V2DeploymentsCreateDeploymentRequestBody) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	if err != nil {
+		return nil, err
+	}
+	object := make(map[string]json.RawMessage)
+	if t.union != nil {
+		err = json.Unmarshal(b, &object)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	object["app"], err = json.Marshal(t.App)
+	if err != nil {
+		return nil, fmt.Errorf("error marshaling 'app': %w", err)
+	}
+
+	if t.Deployment != nil {
+		object["deployment"], err = json.Marshal(t.Deployment)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'deployment': %w", err)
+		}
+	}
+
+	object["environment"], err = json.Marshal(t.Environment)
+	if err != nil {
+		return nil, fmt.Errorf("error marshaling 'environment': %w", err)
+	}
+
+	if t.Git != nil {
+		object["git"], err = json.Marshal(t.Git)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'git': %w", err)
+		}
+	}
+
+	if t.Image != nil {
+		object["image"], err = json.Marshal(t.Image)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'image': %w", err)
+		}
+	}
+
+	object["project"], err = json.Marshal(t.Project)
+	if err != nil {
+		return nil, fmt.Errorf("error marshaling 'project': %w", err)
+	}
+
+	b, err = json.Marshal(object)
+	return b, err
+}
+
+func (t *V2DeploymentsCreateDeploymentRequestBody) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	if err != nil {
+		return err
+	}
+	object := make(map[string]json.RawMessage)
+	err = json.Unmarshal(b, &object)
+	if err != nil {
+		return err
+	}
+
+	if raw, found := object["app"]; found {
+		err = json.Unmarshal(raw, &t.App)
+		if err != nil {
+			return fmt.Errorf("error reading 'app': %w", err)
+		}
+	}
+
+	if raw, found := object["deployment"]; found {
+		err = json.Unmarshal(raw, &t.Deployment)
+		if err != nil {
+			return fmt.Errorf("error reading 'deployment': %w", err)
+		}
+	}
+
+	if raw, found := object["environment"]; found {
+		err = json.Unmarshal(raw, &t.Environment)
+		if err != nil {
+			return fmt.Errorf("error reading 'environment': %w", err)
+		}
+	}
+
+	if raw, found := object["git"]; found {
+		err = json.Unmarshal(raw, &t.Git)
+		if err != nil {
+			return fmt.Errorf("error reading 'git': %w", err)
+		}
+	}
+
+	if raw, found := object["image"]; found {
+		err = json.Unmarshal(raw, &t.Image)
+		if err != nil {
+			return fmt.Errorf("error reading 'image': %w", err)
+		}
+	}
+
+	if raw, found := object["project"]; found {
+		err = json.Unmarshal(raw, &t.Project)
+		if err != nil {
+			return fmt.Errorf("error reading 'project': %w", err)
+		}
+	}
+
+	return err
+}

@@ -15,7 +15,7 @@ post:
   operationId: apps.getApp
   x-speakeasy-name-override: getApp
   security:
-    - rootKey: []
+    - bearer: []
   requestBody:
     content:
       application/json:
@@ -54,9 +54,8 @@ post:
                   id: app_1234abcd
                   name: Payments API
                   slug: payments-api
-                  projectId: proj_1234abcd
                   defaultBranch: main
-                  currentDeploymentId: dep_1234abcd
+                  currentDeploymentId: d_1234abcd
                   isRolledBack: false
                   deleteProtection: false
                   createdAt: 1704067200000

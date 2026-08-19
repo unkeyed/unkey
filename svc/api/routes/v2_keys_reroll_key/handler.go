@@ -14,8 +14,8 @@ import (
 	"github.com/unkeyed/unkey/svc/api/openapi"
 
 	"github.com/unkeyed/unkey/gen/rpc/vault"
+	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/auditlog"
-	authprincipal "github.com/unkeyed/unkey/pkg/auth/principal"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
@@ -50,36 +50,23 @@ func (h *Handler) Path() string {
 	return "/v2/keys.rerollKey"
 }
 
-// Handle processes the HTTP request
+// Handle processes the HTTP request.
 func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	principal, err := s.GetPrincipal()
 	if err != nil {
 		return err
 	}
 
-	// 2. Request validation
 	req, err := zen.BindBody[Request](s)
 	if err != nil {
 		return err
 	}
 
-	key, err := db.Query.FindLiveKeyByID(ctx, h.DB.RO(), req.KeyId)
+	key, err := h.FindLiveKey(ctx, req.KeyId)
 	if err != nil {
-		if db.IsNotFound(err) {
-			return fault.New("key not found",
-				fault.Code(codes.Data.Key.NotFound.URN()),
-				fault.Public("The specified key was not found."),
-			)
-		}
-
-		return fault.Wrap(err,
-			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-			fault.Internal("database error"),
-			fault.Public("Failed to retrieve key."),
-		)
+		return err
 	}
 
-	// Validate key belongs to authorized workspace
 	if key.WorkspaceID != principal.WorkspaceID {
 		return fault.New("key not found",
 			fault.Code(codes.Data.Key.NotFound.URN()),
@@ -87,83 +74,59 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			fault.Public("The specified key was not found."),
 		)
 	}
+	if err := principal.Authorize(rerollPermissionQuery(key)); err != nil {
+		return err
+	}
 
-	// Portal sessions are scoped to a single external identity and may only
-	// reroll keys belonging to that identity. Mismatches return 404 so we never
-	// leak the existence of keys owned by another externalId.
-	//
-	// Identity scoping is intentionally separate from the RBAC permission system.
-	// Permissions gate what operations a principal can perform; identity scoping
-	// gates which keys are reachable. Portal sessions carry a fixed externalId.
-	switch src := principal.Source.(type) {
-	case authprincipal.PortalSessionSource:
-		// Fail closed: a portal session without an externalId can't be scoped.
-		if src.ExternalID == "" {
-			return fault.New("portal session missing identity",
-				fault.Code(codes.App.Internal.UnexpectedError.URN()),
-				fault.Internal("portal session externalId is empty"),
-				fault.Public("An internal error occurred."),
-			)
-		}
+	return h.RerollKey(ctx, s, req, key)
+}
 
-		if !key.IdentityExternalID.Valid || key.IdentityExternalID.String != src.ExternalID {
-			return fault.New("key not found",
+// FindLiveKey loads a live key by id, mapping not-found and database failures to
+// the appropriate faults. The portal route reuses this to load a key for its
+// ownership guard before delegating to RerollKey.
+func (h *Handler) FindLiveKey(ctx context.Context, keyID string) (db.FindLiveKeyByIDRow, error) {
+	var zero db.FindLiveKeyByIDRow
+
+	key, err := db.Query.FindLiveKeyByID(ctx, h.DB.RO(), keyID)
+	if err != nil {
+		if db.IsNotFound(err) {
+			return zero, fault.New("key not found",
 				fault.Code(codes.Data.Key.NotFound.URN()),
-				fault.Internal("key identity externalId does not match portal session"),
 				fault.Public("The specified key was not found."),
 			)
 		}
-	}
 
-	// Portal-authenticated rerolls are attributed to a portalEndUser actor so
-	// customers can see end-user activity in their audit logs.
-	actor := auditactor.FromPrincipal(principal)
-
-	keyData := db.ToKeyData(key)
-
-	checks := rbac.Or(
-		rbac.T(rbac.Tuple{
-			ResourceType: rbac.Api,
-			ResourceID:   key.Api.ID,
-			Action:       rbac.CreateKey,
-		}),
-		rbac.T(rbac.Tuple{
-			ResourceType: rbac.Api,
-			ResourceID:   "*",
-			Action:       rbac.CreateKey,
-		}),
-		rbac.U(
-			urn.New().Workspace(principal.WorkspaceID).Keyspace(key.KeyAuthID),
-			permissions.CreateKey{},
-		),
-	)
-
-	if keyData.EncryptionKeyID.Valid {
-		checks = rbac.And(
-			checks,
-			rbac.Or(
-				rbac.T(rbac.Tuple{
-					ResourceType: rbac.Api,
-					ResourceID:   key.Api.ID,
-					Action:       rbac.EncryptKey,
-				}),
-				rbac.T(rbac.Tuple{
-					ResourceType: rbac.Api,
-					ResourceID:   "*",
-					Action:       rbac.EncryptKey,
-				}),
-				rbac.U(
-					urn.New().Workspace(principal.WorkspaceID).Keyspace(key.KeyAuthID).Key("*"),
-					permissions.EncryptKey{},
-				),
-			),
+		return zero, fault.Wrap(err,
+			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+			fault.Internal("database error"),
+			fault.Public("Failed to retrieve key."),
 		)
 	}
 
-	err = principal.Authorize(checks)
+	return key, nil
+}
+
+// RerollKey mutates a pre-loaded key after the route handler has completed its
+// authorization and scope checks.
+func (h *Handler) RerollKey(
+	ctx context.Context,
+	s *zen.Session,
+	req Request,
+	key db.FindLiveKeyByIDRow,
+) error {
+	principal, err := s.GetPrincipal()
 	if err != nil {
 		return err
 	}
+	if err := assert.All(
+		assert.Equal(key.WorkspaceID, principal.WorkspaceID, "reroll key workspace must match principal"),
+		assert.Equal(key.ID, req.KeyId, "preloaded reroll key must match request"),
+	); err != nil {
+		return err
+	}
+
+	actor := auditactor.FromPrincipal(principal)
+	keyData := db.ToKeyData(key)
 
 	length := 16
 	prefix := ""
@@ -431,4 +394,50 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			Key:   keyResult.Key,
 		},
 	})
+}
+
+// rerollPermissionQuery builds the generic API permission requirement. Portal
+// routes pass their product capability directly instead.
+func rerollPermissionQuery(key db.FindLiveKeyByIDRow) rbac.PermissionQuery {
+	keyData := db.ToKeyData(key)
+	checks := rbac.Or(
+		rbac.T(rbac.Tuple{
+			ResourceType: rbac.Api,
+			ResourceID:   key.Api.ID,
+			Action:       rbac.CreateKey,
+		}),
+		rbac.T(rbac.Tuple{
+			ResourceType: rbac.Api,
+			ResourceID:   "*",
+			Action:       rbac.CreateKey,
+		}),
+		rbac.U(
+			urn.New().Workspace(key.WorkspaceID).Keyspace(key.KeyAuthID),
+			permissions.CreateKey{},
+		),
+	)
+
+	if keyData.EncryptionKeyID.Valid {
+		checks = rbac.And(
+			checks,
+			rbac.Or(
+				rbac.T(rbac.Tuple{
+					ResourceType: rbac.Api,
+					ResourceID:   key.Api.ID,
+					Action:       rbac.EncryptKey,
+				}),
+				rbac.T(rbac.Tuple{
+					ResourceType: rbac.Api,
+					ResourceID:   "*",
+					Action:       rbac.EncryptKey,
+				}),
+				rbac.U(
+					urn.New().Workspace(key.WorkspaceID).Keyspace(key.KeyAuthID).Key("*"),
+					permissions.EncryptKey{},
+				),
+			),
+		)
+	}
+
+	return checks
 }

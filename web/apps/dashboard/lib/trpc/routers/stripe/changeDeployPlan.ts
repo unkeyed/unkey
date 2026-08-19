@@ -1,8 +1,11 @@
 import { insertAuditLogs } from "@/lib/audit";
+import { deactivateNonCreatorMemberships } from "@/lib/auth/deactivateNonCreatorMemberships";
 import { db, eq, schema } from "@/lib/db";
 import { getStripeClient } from "@/lib/stripe";
+import { changeSubscriptionPrice } from "@/lib/stripe/changeSubscriptionPrice";
 import { deployBillingConfig, findPlanFeeItem } from "@/lib/stripe/deployBilling";
-import { DEPLOY_PLANS } from "@/lib/stripe/deployPlan";
+import { DEPLOY_PLANS, deployPlanGrantsTeam } from "@/lib/stripe/deployPlan";
+import { setWorkspaceLimits } from "@/lib/stripe/setWorkspaceLimits";
 import { TRPCError } from "@trpc/server";
 import Stripe from "stripe";
 import { z } from "zod";
@@ -40,7 +43,7 @@ export const changeDeployPlan = workspaceProcedure
       });
     }
 
-    if (!ctx.workspace.stripeSubscriptionId) {
+    if (!ctx.workspace.stripeDeploySubscriptionId) {
       throw new TRPCError({
         code: "PRECONDITION_FAILED",
         message: "Workspace has no Compute plan to change.",
@@ -48,7 +51,7 @@ export const changeDeployPlan = workspaceProcedure
     }
 
     const stripe = getStripeClient();
-    const sub = await stripe.subscriptions.retrieve(ctx.workspace.stripeSubscriptionId);
+    const sub = await stripe.subscriptions.retrieve(ctx.workspace.stripeDeploySubscriptionId);
 
     // Find the current plan-fee item by matching its price against the
     // configured plan-fee ids, rather than trusting any client input.
@@ -62,19 +65,31 @@ export const changeDeployPlan = workspaceProcedure
 
     if (planFeeItem.plan === input.plan) {
       // Already on the requested plan; nothing to do.
-      return;
+      return { kind: "applied" } satisfies Awaited<ReturnType<typeof changeSubscriptionPrice>>;
+    }
+
+    // The Deploy subscription is set to cancel at period end. Repricing the fee
+    // would charge an upgrade proration for a plan that ends this period anyway,
+    // or repoint a plan that is on its way out. Refuse rather than take money for
+    // a plan that will not renew; the user should resume before changing tiers.
+    if (sub.cancel_at_period_end) {
+      throw new TRPCError({
+        code: "PRECONDITION_FAILED",
+        message:
+          "Your Compute plan is set to cancel at the end of this period. Resume it before changing plans.",
+      });
     }
 
     const newPriceId = config.planFeePriceIds[input.plan];
-    try {
-      // DEPLOY_PLANS is ordered lowest to highest, so plan order doubles as
-      // the upgrade/downgrade direction.
-      const isDowngrade = DEPLOY_PLANS.indexOf(input.plan) < DEPLOY_PLANS.indexOf(planFeeItem.plan);
+    const isDowngrade = DEPLOY_PLANS.indexOf(input.plan) < DEPLOY_PLANS.indexOf(planFeeItem.plan);
 
-      await stripe.subscriptionItems.update(planFeeItem.id, {
-        price: newPriceId,
-        proration_behavior: isDowngrade ? "none" : "always_invoice",
-        payment_behavior: "error_if_incomplete",
+    let result: Awaited<ReturnType<typeof changeSubscriptionPrice>>;
+    try {
+      result = await changeSubscriptionPrice(stripe, {
+        subscriptionId: sub.id,
+        subscriptionItemId: planFeeItem.id,
+        newPriceId,
+        prorationBehavior: isDowngrade ? "none" : "always_invoice",
       });
     } catch (err) {
       if (
@@ -91,14 +106,23 @@ export const changeDeployPlan = workspaceProcedure
       throw err;
     }
 
+    if (result.kind === "payment_required") {
+      return result;
+    }
+
     // One transaction so the plan write and its audit log commit together; a
     // failure in either rolls back the other. Written optimistically; the
     // subscription.updated webhook reconciles deploy_plan to the same value.
     await db.transaction(async (tx) => {
       await tx
-        .update(schema.workspaces)
-        .set({ deployPlan: input.plan })
-        .where(eq(schema.workspaces.id, ctx.workspace.id));
+        .update(schema.workspaceBilling)
+        .set({ plan: input.plan })
+        .where(eq(schema.workspaceBilling.workspaceId, ctx.workspace.id));
+      await setWorkspaceLimits(tx, {
+        workspaceId: ctx.workspace.id,
+        plan: input.plan,
+        preserveApiLimits: ctx.workspace.tier !== "Free",
+      });
       await insertAuditLogs(tx, {
         workspaceId: ctx.workspace.id,
         actor: { type: "user", id: ctx.user.id },
@@ -108,4 +132,14 @@ export const changeDeployPlan = workspaceProcedure
         context: { location: ctx.audit.location, userAgent: ctx.audit.userAgent },
       });
     });
+
+    const losesTeam =
+      ctx.workspace.tier === "Free" &&
+      deployPlanGrantsTeam(planFeeItem.plan) &&
+      !deployPlanGrantsTeam(input.plan);
+    if (losesTeam) {
+      await deactivateNonCreatorMemberships(ctx.workspace.orgId);
+    }
+
+    return result;
   });

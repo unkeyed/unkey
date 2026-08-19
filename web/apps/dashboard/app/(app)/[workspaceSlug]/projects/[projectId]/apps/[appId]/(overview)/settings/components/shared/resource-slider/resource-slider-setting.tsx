@@ -2,8 +2,11 @@
 
 import { collection } from "@/lib/collections";
 import type { EnvironmentSettings } from "@/lib/collections/deploy/environment-settings";
+import { freeTierLimits } from "@/lib/limits";
 import type { FormattedParts } from "@/lib/utils/deployment-formatters";
+import { useWorkspace } from "@/providers/workspace-provider";
 import { zodResolver } from "@hookform/resolvers/zod";
+import type { Limits } from "@unkey/db";
 import { Slider } from "@unkey/ui";
 import type React from "react";
 import { useContext, useEffect, useMemo } from "react";
@@ -38,7 +41,130 @@ export type ResourceSliderConfig = {
   writeValue: (draft: EnvironmentSettings, value: number) => void;
   extraSaveChecks?: (settings: EnvironmentSettings[]) => SaveState | null;
   sliderAdornment?: (s: EnvironmentSettings) => React.ReactNode;
+  /**
+   * Returns the per-instance limit that caps this resource. Index-mapped sliders
+   * hide options above it, so the slider matches the workspace's real limit.
+   * Falls back to the default limit until limits load.
+   */
+  resolveMax?: (limits: Limits | null) => number;
 };
+
+// Numeric limit columns a slider can bound to. Taken from freeTierLimits so the
+// fallback lookup always resolves; that type omits pk and workspaceId.
+type PerInstanceLimitKey = {
+  [K in keyof typeof freeTierLimits]: (typeof freeTierLimits)[K] extends number ? K : never;
+}[keyof typeof freeTierLimits];
+
+function optionForValue(value: number, formatValue: (n: number) => FormattedParts) {
+  const parts = formatValue(value);
+  return { value, label: parts.unit ? `${parts.value} ${parts.unit}` : parts.value };
+}
+
+/**
+ * Bounds an index-mapped slider to the workspace limit. Drops options above the
+ * cap. When the cap is not already one of the options, adds it as the final stop
+ * so a raised limit is always reachable.
+ */
+function resolveStrategy(
+  strategy: SliderStrategy,
+  limits: Limits | null,
+  resolveMax: ResourceSliderConfig["resolveMax"],
+  formatValue: (n: number) => FormattedParts,
+): SliderStrategy {
+  if (strategy.kind !== "index-mapped" || !resolveMax) {
+    return strategy;
+  }
+  const max = resolveMax(limits);
+  const withinLimit = strategy.options.filter((o) => o.value <= max);
+
+  // Limit sits below the lowest defined tier: the only coherent stop is the
+  // limit itself. Fall back to the smallest tier only for a non-positive cap,
+  // which keeps the option list non-empty.
+  if (withinLimit.length === 0) {
+    return {
+      ...strategy,
+      options: max > 0 ? [optionForValue(max, formatValue)] : strategy.options.slice(0, 1),
+    };
+  }
+
+  const options = [...withinLimit];
+  const top = options.at(-1);
+  if (top && max > 0 && top.value !== max) {
+    options.push(optionForValue(max, formatValue));
+  }
+  return { ...strategy, options };
+}
+
+/**
+ * Keeps stored values selectable. resolveStrategy rebuilds the option list from
+ * the limit alone, so a value saved under an old limit (e.g. 3000 saved when the
+ * cap was 3000, then raised to 5000) can fall off the list. valueToIndex would
+ * then return 0 and the thumb would render at the minimum while the label still
+ * shows the true value; the next drag auto-saves a silent downgrade. Re-inserting
+ * absent stored values and sorting ascending makes the thumb reflect what is
+ * stored and leaves any still-valid value selectable.
+ */
+function ensureValuesSelectable(
+  strategy: SliderStrategy,
+  values: number[],
+  formatValue: (n: number) => FormattedParts,
+): SliderStrategy {
+  if (strategy.kind !== "index-mapped") {
+    return strategy;
+  }
+  const present = new Set(strategy.options.map((o) => o.value));
+  const missing = [...new Set(values.filter((v) => v > 0 && !present.has(v)))];
+  if (missing.length === 0) {
+    return strategy;
+  }
+  const options = [...strategy.options, ...missing.map((v) => optionForValue(v, formatValue))];
+  options.sort((a, b) => a.value - b.value);
+  return { ...strategy, options };
+}
+
+type ResourceSliderDefinition = {
+  icon: React.ReactNode;
+  title: string;
+  description: string;
+  settingDescription: string;
+  colorVar: string;
+  options: readonly { readonly label: string; readonly value: number }[];
+  fallback: number;
+  formatValue: (n: number) => FormattedParts;
+  read: (s: EnvironmentSettings) => number;
+  write: (draft: EnvironmentSettings, value: number) => void;
+  /**
+   * Limit column that caps this resource. The slider tops out at the workspace's
+   * value for this column, or the default limit until limits load.
+   */
+  limitKey: PerInstanceLimitKey;
+  limitMultiplier?: number;
+};
+
+/**
+ * Builds a limit-bounded, index-mapped slider config. Callers pass the options,
+ * the limit column, and how to read and write the value. The slider strategy and
+ * limit fallback stay here.
+ */
+export function defineResourceSlider(definition: ResourceSliderDefinition): ResourceSliderConfig {
+  const limitMultiplier = definition.limitMultiplier ?? 1;
+
+  return {
+    icon: definition.icon,
+    title: definition.title,
+    description: definition.description,
+    settingDescription: definition.settingDescription,
+    colorVar: definition.colorVar,
+    slider: { kind: "index-mapped", options: definition.options, fallback: definition.fallback },
+    formatValue: definition.formatValue,
+    readValue: definition.read,
+    writeValue: definition.write,
+    resolveMax: (limits) => {
+      const limit = limits?.[definition.limitKey] ?? freeTierLimits[definition.limitKey];
+      return limit * limitMultiplier;
+    },
+  };
+}
 
 function getSliderProps(strategy: SliderStrategy, currentValue: number) {
   if (strategy.kind === "index-mapped") {
@@ -68,16 +194,25 @@ function getSliderProps(strategy: SliderStrategy, currentValue: number) {
 
 export const ResourceSliderSetting = ({ config }: { config: ResourceSliderConfig }) => {
   const envContext = useContext(EnvironmentContext);
+  const { limits } = useWorkspace();
+
+  const effectiveConfig = useMemo<ResourceSliderConfig>(
+    () => ({
+      ...config,
+      slider: resolveStrategy(config.slider, limits, config.resolveMax, config.formatValue),
+    }),
+    [config, limits],
+  );
 
   if (!envContext) {
     throw new Error("ResourceSliderSetting must be used within EnvironmentProvider");
   }
 
   if (envContext.variant === "onboarding") {
-    return <SingleMode config={config} />;
+    return <SingleMode config={effectiveConfig} />;
   }
 
-  return <DualMode config={config} />;
+  return <DualMode config={effectiveConfig} />;
 };
 
 const singleSchema = z.object({ value: z.number() });
@@ -112,8 +247,13 @@ const SingleMode = ({ config }: { config: ResourceSliderConfig }) => {
     });
   };
 
+  const slider = useMemo(
+    () => ensureValuesSelectable(config.slider, [defaultValue], config.formatValue),
+    [config.slider, config.formatValue, defaultValue],
+  );
+
   const hasChanges = currentValue !== defaultValue;
-  const sp = getSliderProps(config.slider, currentValue);
+  const sp = getSliderProps(slider, currentValue);
 
   const extraCheck = config.extraSaveChecks?.([settings]);
   const saveState = resolveSaveState([
@@ -152,7 +292,7 @@ const SingleMode = ({ config }: { config: ResourceSliderConfig }) => {
                 setValue("value", sp.toFormValue(v), { shouldValidate: true });
               }
             }}
-            onValueCommit={
+            onValueCommitted={
               variant === "onboarding"
                 ? ([v]) => {
                     if (v !== undefined) {
@@ -237,16 +377,26 @@ const DualInner = ({ config, production, preview }: DualInnerProps) => {
   const currentPreview = useWatch({ control, name: "preview" });
 
   const onSubmit = async (values: DualFormValues) => {
+    // One transaction for both environments. The collection refetches every
+    // loaded environment after a transaction settles.
+    const targets: { id: string; value: number }[] = [];
     if (values.production !== defaultProd) {
-      collection.environmentSettings.update(production.environmentId, (draft) => {
-        config.writeValue(draft, values.production);
-      });
+      targets.push({ id: production.environmentId, value: values.production });
     }
     if (values.preview !== defaultPreview) {
-      collection.environmentSettings.update(preview.environmentId, (draft) => {
-        config.writeValue(draft, values.preview);
-      });
+      targets.push({ id: preview.environmentId, value: values.preview });
     }
+    if (targets.length === 0) {
+      return;
+    }
+
+    collection.environmentSettings.update(
+      targets.map((t) => t.id),
+      (drafts) =>
+        drafts.forEach((draft, i) => {
+          config.writeValue(draft, targets[i].value);
+        }),
+    );
   };
 
   const hasChanges = currentProd !== defaultProd || currentPreview !== defaultPreview;
@@ -259,14 +409,13 @@ const DualInner = ({ config, production, preview }: DualInnerProps) => {
     [!hasChanges, { status: "disabled", reason: "No changes to save" }],
   ]);
 
-  const prodSp = useMemo(
-    () => getSliderProps(config.slider, currentProd),
-    [config.slider, currentProd],
+  const slider = useMemo(
+    () => ensureValuesSelectable(config.slider, [defaultProd, defaultPreview], config.formatValue),
+    [config.slider, config.formatValue, defaultProd, defaultPreview],
   );
-  const previewSp = useMemo(
-    () => getSliderProps(config.slider, currentPreview),
-    [config.slider, currentPreview],
-  );
+
+  const prodSp = useMemo(() => getSliderProps(slider, currentProd), [slider, currentProd]);
+  const previewSp = useMemo(() => getSliderProps(slider, currentPreview), [slider, currentPreview]);
 
   return (
     <FormSettingCard

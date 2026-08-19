@@ -1,13 +1,10 @@
 "use client";
-import { StatsCard } from "@/components/stats-card";
-import { StatsTimeseriesBarChart } from "@/components/stats-card/components/chart/stats-chart";
-import { MetricStats } from "@/components/stats-card/components/metric-stats";
+
+import { StatsListCard } from "@/components/stats-list-card";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { formatMs } from "@/lib/ms";
 import { routes } from "@/lib/navigation/routes";
-import { Clock, ProgressBar } from "@unkey/icons";
-import { Loading } from "@unkey/ui";
-import { Suspense } from "react";
+import { Clock } from "@unkey/icons";
 import type { NamespaceTimeseries } from "../hooks/use-batch-timeseries";
 
 type Props = {
@@ -20,11 +17,9 @@ type Props = {
   isError: boolean;
 };
 
-export const NamespaceCard = ({ namespace, timeseries, isLoading, isError }: Props) => {
+export function NamespaceCard({ namespace, timeseries, isLoading, isError }: Props) {
   const workspace = useWorkspaceNavigation();
 
-  const passed = timeseries?.reduce((acc, crr) => acc + crr.success, 0) ?? 0;
-  const blocked = timeseries?.reduce((acc, crr) => acc + crr.error, 0) ?? 0;
   const lastRatelimit = timeseries
     ? timeseries
         .filter((entry) => entry.total > 0)
@@ -32,54 +27,27 @@ export const NamespaceCard = ({ namespace, timeseries, isLoading, isError }: Pro
     : null;
 
   return (
-    <div>
-      <Suspense fallback={<Loading type="spinner" />}>
-        <StatsCard
-          name={namespace.name}
-          linkPath={routes.ratelimits.detail({
-            workspaceSlug: workspace.slug,
-            namespaceId: namespace.id,
-          })}
-          chart={
-            <StatsTimeseriesBarChart
-              data={timeseries}
-              isLoading={isLoading}
-              isError={isError}
-              config={{
-                success: {
-                  label: "Passed",
-                  color: "hsl(var(--accent-4))",
-                },
-                error: {
-                  label: "Blocked",
-                  color: "hsl(var(--orange-9))",
-                },
-              }}
-            />
-          }
-          stats={
-            <>
-              <MetricStats
-                successCount={passed}
-                errorCount={blocked}
-                successLabel="PASSED"
-                errorLabel="BLOCKED"
-              />
-              <div className="flex items-center gap-2 min-w-0 max-w-[40%]">
-                <Clock className="text-accent-11 shrink-0" />
-                <div className="text-xs text-accent-9 truncate">
-                  {lastRatelimit
-                    ? `${formatMs(Date.now() - lastRatelimit.originalTimestamp, {
-                        long: true,
-                      })} ago`
-                    : "No data"}
-                </div>
-              </div>
-            </>
-          }
-          icon={<ProgressBar className="text-accent-11" />}
-        />
-      </Suspense>
-    </div>
+    <StatsListCard
+      href={routes.ratelimits.detail({
+        workspaceSlug: workspace.slug,
+        namespaceId: namespace.id,
+      })}
+      ariaLabel={`View ${namespace.name} ratelimit namespace`}
+      title={namespace.name}
+      buckets={timeseries}
+      isLoading={isLoading}
+      isError={isError}
+      labels={{ success: "Passed", error: "Blocked" }}
+      footerLeft={
+        <span className="flex items-center gap-1.5 min-w-0">
+          <Clock className="shrink-0" />
+          <span className="truncate">
+            {lastRatelimit
+              ? `${formatMs(Date.now() - lastRatelimit.originalTimestamp, { long: true })} ago`
+              : "No data"}
+          </span>
+        </span>
+      }
+    />
   );
-};
+}

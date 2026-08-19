@@ -34,17 +34,21 @@ function Shell({ children }: { children: ReactNode }) {
           </PageHeaderDescription>
         </PageHeaderContent>
         <PageHeaderActions>
-          <Button asChild variant="outline" size="md">
-            <Link
-              href="https://cal.com/james-r-perkins/sales"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Schedule a call
-            </Link>
+          <Button
+            variant="outline"
+            size="md"
+            render={
+              <Link
+                href="https://cal.com/james-r-perkins/sales"
+                target="_blank"
+                rel="noopener noreferrer"
+              />
+            }
+          >
+            Schedule a call
           </Button>
-          <Button asChild variant="primary" size="md">
-            <Link href="mailto:support@unkey.com">Contact us</Link>
+          <Button variant="primary" size="md" render={<Link href="mailto:support@unkey.com" />}>
+            Contact us
           </Button>
         </PageHeaderActions>
       </PageHeader>
@@ -94,49 +98,19 @@ export const DeployBillingClient: React.FC = () => {
     data: billingInfo,
     isLoading: billingLoading,
     error: billingError,
-  } = trpc.stripe.getBillingInfo.useQuery(undefined, { staleTime: 30_000 });
+  } = trpc.stripe.getBillingInfo.useQuery(undefined, {
+    staleTime: 30_000,
+    trpc: { context: { skipBatch: true } },
+  });
 
-  // Error first: on a failed query tRPC returns isLoading=false, data=undefined,
-  // so a leading `billingLoading || !billingInfo` guard would catch the error
-  // case and render the loading skeleton forever instead of this branch.
-  if (billingError) {
-    return (
-      <Shell>
-        <Empty>
-          <Empty.Title>Failed to load billing information</Empty.Title>
-          <Empty.Description>
-            There was an error loading your billing information. Please try again later.
-          </Empty.Description>
-        </Empty>
-      </Shell>
-    );
-  }
-
-  if (billingLoading || !billingInfo) {
-    return (
-      <Shell>
-        <div className="animate-pulse">
-          <div className="flex w-full flex-col items-center gap-4 pt-4 pb-16">
-            <div className="h-[72px] w-full rounded-xl bg-grayA-3" />
-            <div className="h-[180px] w-full rounded-xl bg-grayA-3" />
-            <div className="h-[120px] w-full rounded-xl bg-grayA-3" />
-          </div>
-        </div>
-      </Shell>
-    );
-  }
-
-  const subscription = billingInfo.subscription;
+  const subscription = billingInfo?.subscription;
   const hasPaymentMethod = Boolean(workspace.stripeCustomerId);
 
   return (
     <Shell>
       <div className="flex w-full flex-col gap-4 pt-4 pb-16">
         {subscription ? (
-          <SubscriptionStatus
-            workspaceSlug={workspace.slug}
-            status={subscription.status as Stripe.Subscription.Status}
-          />
+          <SubscriptionStatus status={subscription.status as Stripe.Subscription.Status} />
         ) : null}
 
         <BillingSummary
@@ -148,18 +122,30 @@ export const DeployBillingClient: React.FC = () => {
         <DeployProductCard
           isAdmin={isAdmin}
           hasPaymentMethod={hasPaymentMethod}
+          workspaceSlug={workspace.slug}
           autoOpenPlanModal={checkoutIntent === "compute" && hasPaymentMethod}
         />
 
-        <ApiAddOnCard
-          isAdmin={isAdmin}
-          hasPaymentMethod={hasPaymentMethod}
-          workspaceSlug={workspace.slug}
-          products={billingInfo.products}
-          subscription={subscription}
-          currentProductId={billingInfo.currentProductId}
-          autoOpenPlanModal={checkoutIntent === "api" && hasPaymentMethod}
-        />
+        {billingError ? (
+          <Empty>
+            <Empty.Title>Failed to load API billing information</Empty.Title>
+            <Empty.Description>
+              There was an error loading your API billing information. Please try again later.
+            </Empty.Description>
+          </Empty>
+        ) : billingLoading || !billingInfo ? (
+          <div className="h-[120px] w-full animate-pulse rounded-lg bg-grayA-3" />
+        ) : (
+          <ApiAddOnCard
+            isAdmin={isAdmin}
+            hasPaymentMethod={hasPaymentMethod}
+            workspaceSlug={workspace.slug}
+            products={billingInfo.products}
+            subscription={subscription}
+            currentProductId={billingInfo.currentProductId}
+            autoOpenPlanModal={checkoutIntent === "api" && hasPaymentMethod}
+          />
+        )}
       </div>
     </Shell>
   );

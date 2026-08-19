@@ -8,7 +8,12 @@
 import type { Route } from "next";
 import { type WorkspaceScope, buildRoute } from "./shared";
 
-export type CheckoutIntent = "compute" | "api" | "payment";
+export type CheckoutIntent = "compute" | "api" | "payment" | "deploy";
+
+/** Compute-plan tiers carried through the deploy-gate checkout round-trip. */
+export type DeployCheckoutPlan = "starter" | "pro" | "business";
+/** Where the deploy-gate dialog was opened from, for post-subscribe routing. */
+export type DeployCheckoutOrigin = "create" | "banner" | "billing" | "deploy";
 
 export const settingsRoutes = {
   general({ workspaceSlug }: WorkspaceScope): Route {
@@ -23,8 +28,20 @@ export const settingsRoutes = {
     return buildRoute("/[workspaceSlug]/settings/root-keys", { workspaceSlug });
   },
 
-  billing({ workspaceSlug }: WorkspaceScope): Route {
-    return buildRoute("/[workspaceSlug]/settings/billing", { workspaceSlug });
+  billing({ workspaceSlug, intent }: WorkspaceScope & { intent?: "compute" | "api" }): Route {
+    return buildRoute(
+      "/[workspaceSlug]/settings/billing",
+      { workspaceSlug },
+      intent ? { intent } : undefined,
+    );
+  },
+
+  usage({ workspaceSlug }: WorkspaceScope): Route {
+    return buildRoute("/[workspaceSlug]/settings/usage", { workspaceSlug });
+  },
+
+  limits({ workspaceSlug }: WorkspaceScope): Route {
+    return buildRoute("/[workspaceSlug]/settings/limits", { workspaceSlug });
   },
 
   security({ workspaceSlug }: WorkspaceScope): Route {
@@ -33,15 +50,24 @@ export const settingsRoutes = {
 
   stripe: {
     portal({ workspaceSlug }: WorkspaceScope): Route {
-      return buildRoute("/[workspaceSlug]/settings/billing/stripe/portal", { workspaceSlug });
+      return buildRoute("/[workspaceSlug]/stripe/portal", { workspaceSlug });
     },
 
-    checkout({ workspaceSlug, intent }: WorkspaceScope & { intent?: CheckoutIntent }): Route {
-      return buildRoute(
-        "/[workspaceSlug]/settings/billing/stripe/checkout",
-        { workspaceSlug },
-        intent ? { intent } : undefined,
-      );
+    checkout({
+      workspaceSlug,
+      intent,
+      plan,
+      from,
+    }: WorkspaceScope & {
+      intent?: CheckoutIntent;
+      plan?: DeployCheckoutPlan;
+      from?: DeployCheckoutOrigin;
+    }): Route {
+      const query =
+        intent || plan || from
+          ? { ...(intent ? { intent } : {}), ...(plan ? { plan } : {}), ...(from ? { from } : {}) }
+          : undefined;
+      return buildRoute("/[workspaceSlug]/stripe/checkout", { workspaceSlug }, query);
     },
   },
 };

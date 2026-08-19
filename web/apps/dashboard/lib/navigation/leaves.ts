@@ -12,12 +12,25 @@ import {
   Nodes,
   ShieldKey,
   SquareBulletList,
+  User,
+  WindowLayout,
 } from "@unkey/icons";
 import { routes } from "./routes";
 import type { ResolvedNavLink } from "./types";
 
-export function buildWorkspaceSections(slug: string, segments: string[]): ResolvedNavLink[] {
+export function buildWorkspaceSections(
+  slug: string,
+  segments: string[],
+  portalManagementEnabled: boolean,
+): ResolvedNavLink[] {
   const top = segments[0];
+  const portalLink: ResolvedNavLink = {
+    key: "portal",
+    label: "Portal",
+    href: routes.portal.root({ workspaceSlug: slug }),
+    icon: User,
+    isActive: top === "portal",
+  };
   return [
     {
       key: "projects",
@@ -68,6 +81,7 @@ export function buildWorkspaceSections(slug: string, segments: string[]): Resolv
       icon: InputSearch,
       isActive: top === "audit",
     },
+    ...(portalManagementEnabled ? [portalLink] : []),
     {
       key: "settings",
       label: "Settings",
@@ -122,36 +136,17 @@ export function buildAppLinks(
   projectId: string,
   appId: string,
   segments: string[],
-  appOverviewEnabled: boolean,
 ): ResolvedNavLink[] {
   const page = segments[4];
   const scope = { workspaceSlug: slug, projectId, appId };
-  const overviewLink: ResolvedNavLink = {
-    key: "overview",
-    label: "Overview",
-    href: routes.projects.apps.overview(scope),
-    icon: Cube,
-    isActive: page === "overview",
-  };
-  const legacyLinks: ResolvedNavLink[] = [
-    {
-      key: "logs",
-      label: "Logs",
-      href: routes.projects.logs(scope),
-      icon: Layers3,
-      isActive: false,
-      separatorAbove: true,
-    },
-    {
-      key: "requests",
-      label: "Requests",
-      href: routes.projects.requests({ ...scope, since: "6h" }),
-      icon: ArrowOppositeDirectionY,
-      isActive: false,
-    },
-  ];
   return [
-    ...(appOverviewEnabled ? [overviewLink] : []),
+    {
+      key: "overview",
+      label: "Overview",
+      href: routes.projects.apps.overview(scope),
+      icon: Cube,
+      isActive: page === "overview",
+    },
     {
       key: "deployments",
       label: "Deployments",
@@ -167,11 +162,11 @@ export function buildAppLinks(
       isActive: page === "env-vars",
     },
     {
-      key: "sentinel-policies",
-      label: "Sentinel Policies",
-      href: routes.projects.apps.sentinelPolicies(scope),
+      key: "policies",
+      label: "Policies",
+      href: routes.projects.apps.policies(scope),
       icon: ShieldKey,
-      isActive: page === "sentinel-policies",
+      isActive: page === "policies",
     },
     {
       key: "settings",
@@ -180,7 +175,21 @@ export function buildAppLinks(
       icon: Gear,
       isActive: page === "settings",
     },
-    ...(appOverviewEnabled ? [] : legacyLinks),
+    {
+      key: "logs",
+      label: "Go to Logs",
+      href: routes.projects.logs(scope),
+      icon: Layers3,
+      isActive: page === "logs",
+      separatorAbove: true,
+    },
+    {
+      key: "requests",
+      label: "Go to Requests",
+      href: routes.projects.requests(scope),
+      icon: ArrowOppositeDirectionY,
+      isActive: page === "requests",
+    },
     // Will be polished and added back in the future iterations
     // {
     //   key: "openapi-diff",
@@ -197,8 +206,16 @@ export function buildApiLinks(
   apiId: string,
   keyAuthId: string | undefined,
   segments: string[],
+  portalManagementEnabled: boolean,
 ): ResolvedNavLink[] {
   const page = segments[2];
+  const portalLink: ResolvedNavLink = {
+    key: "portal",
+    label: "Customer portal",
+    href: routes.apis.portal({ workspaceSlug: slug, apiId }),
+    icon: WindowLayout,
+    isActive: page === "portal",
+  };
   return [
     {
       key: "requests",
@@ -217,6 +234,7 @@ export function buildApiLinks(
       isActive: page === "keys",
       disabled: !keyAuthId,
     },
+    ...(portalManagementEnabled ? [portalLink] : []),
     {
       key: "settings",
       label: "Settings",

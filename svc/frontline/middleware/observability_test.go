@@ -39,6 +39,8 @@ func TestGetErrorPageInfoFrontline_StatusMapping(t *testing.T) {
 		{codes.Frontline.Routing.ConfigNotFound.URN(), http.StatusNotFound},
 		{codes.Frontline.Routing.DeploymentNotFound.URN(), http.StatusNotFound},
 		{codes.Frontline.Routing.NoRunningInstances.URN(), http.StatusServiceUnavailable},
+		{codes.Frontline.Routing.DeploymentOffline.URN(), http.StatusServiceUnavailable},
+		{codes.Frontline.Routing.SpendLimitReached.URN(), http.StatusPaymentRequired},
 		{codes.Frontline.Proxy.BadGateway.URN(), http.StatusBadGateway},
 		{codes.Frontline.Proxy.ProxyForwardFailed.URN(), http.StatusBadGateway},
 		{codes.Frontline.Proxy.ServiceUnavailable.URN(), http.StatusServiceUnavailable},
@@ -47,6 +49,7 @@ func TestGetErrorPageInfoFrontline_StatusMapping(t *testing.T) {
 		{codes.Frontline.Auth.InvalidKey.URN(), http.StatusUnauthorized},
 		{codes.Frontline.Auth.InsufficientPermissions.URN(), http.StatusForbidden},
 		{codes.Frontline.Auth.RateLimited.URN(), http.StatusTooManyRequests},
+		{codes.Frontline.Auth.UsageExceeded.URN(), http.StatusTooManyRequests},
 		{codes.Frontline.Firewall.Denied.URN(), http.StatusForbidden},
 		{codes.Frontline.OpenApi.InvalidRequest.URN(), http.StatusBadRequest},
 
@@ -178,6 +181,7 @@ func TestWithObservability_ResponseExposesURN(t *testing.T) {
 	urns := []codes.URN{
 		codes.Frontline.Proxy.GatewayTimeout.URN(),
 		codes.Frontline.Auth.RateLimited.URN(),
+		codes.Frontline.Auth.UsageExceeded.URN(),
 		codes.Frontline.Routing.NoRunningInstances.URN(),
 		codes.Frontline.Internal.InvalidConfiguration.URN(),
 		codes.Frontline.Internal.InternalServerError.URN(),

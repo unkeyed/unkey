@@ -1,36 +1,32 @@
 package api
 
 import (
-	"bytes"
 	"context"
 	"crypto/tls"
 	"fmt"
 	"net"
 	"net/http"
-	"net/http/httptest"
-	"runtime"
 	"strings"
 	"testing"
 	"time"
 
 	"connectrpc.com/connect"
 	restate "github.com/restatedev/sdk-go"
-	restateServer "github.com/restatedev/sdk-go/server"
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/config"
-	"github.com/unkeyed/unkey/pkg/logger"
+	"github.com/unkeyed/unkey/pkg/mysql/sqlcomment"
 	"github.com/unkeyed/unkey/pkg/rpc/interceptor"
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/ctrl/integration/seed"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 	"golang.org/x/net/http2"
-	"golang.org/x/net/http2/h2c"
 )
 
 type webhookHarnessConfig struct {
-	Services      []restate.ServiceDefinition
-	WebhookSecret string
+	Services          []restate.ServiceDefinition
+	WebhookSecret     string
+	EnforceDeployGate bool
 }
 
 type webhookHarness struct {
@@ -48,35 +44,10 @@ func newWebhookHarness(t *testing.T, cfg webhookHarnessConfig) *webhookHarness {
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	t.Cleanup(cancel)
 
-	restateCfg := containers.Restate(t)
-
-	restateSrv := restateServer.NewRestate().WithLogger(logger.GetHandler(), false)
-	for _, service := range cfg.Services {
-		restateSrv.Bind(service)
-	}
-
-	restateHandler, err := restateSrv.Handler()
-	require.NoError(t, err)
-
-	workerMux := http.NewServeMux()
-	workerMux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-	})
-	workerMux.Handle("/", restateHandler)
-
-	workerListener, err := net.Listen("tcp", "0.0.0.0:0")
-	require.NoError(t, err)
-	workerServer := httptest.NewUnstartedServer(h2c.NewHandler(workerMux, &http2.Server{}))
-	workerServer.Listener = workerListener
-	workerServer.Start()
-	t.Cleanup(workerServer.Close)
-
-	workerPort := workerListener.Addr().(*net.TCPAddr).Port
-	registration := &restateRegistration{adminURL: restateCfg.AdminURL, registerAs: fmt.Sprintf("http://%s:%d", dockerHost(), workerPort)}
-	require.NoError(t, registration.register(ctx))
+	restateCfg := containers.Restate(t, cfg.Services...)
 
 	mysqlCfg := containers.MySQL(t)
-	database, err := db.New(mysqlCfg.DSN)
+	database, err := db.New(mysqlCfg.DSN, sqlcomment.Disabled())
 	require.NoError(t, err)
 	t.Cleanup(func() { require.NoError(t, database.Close()) })
 
@@ -110,14 +81,20 @@ func newWebhookHarness(t *testing.T, cfg webhookHarnessConfig) *webhookHarness {
 		GitHub: GitHubConfig{
 			WebhookSecret: secret,
 		},
+		DeployGate: DeployGateConfig{
+			Enforce: cfg.EnforceDeployGate,
+		},
 	}
 
 	ctrlCtx, ctrlCancel := context.WithCancel(ctx)
-	t.Cleanup(ctrlCancel)
-
+	runErr := make(chan error, 1)
 	go func() {
-		require.NoError(t, Run(ctrlCtx, apiConfig))
+		runErr <- Run(ctrlCtx, apiConfig)
 	}()
+	t.Cleanup(func() {
+		ctrlCancel()
+		require.NoError(t, <-runErr)
+	})
 
 	ctrlURL := fmt.Sprintf("http://127.0.0.1:%d", ctrlPort)
 	require.Eventually(t, func() bool {
@@ -186,50 +163,6 @@ func (h *webhookHarness) CreateAppWithSettings(ctx context.Context, req seed.Cre
 	return h.Seed.CreateAppWithSettings(ctx, req, environmentID)
 }
 
-type restateRegistration struct {
-	adminURL   string
-	registerAs string
-}
-
-func (r *restateRegistration) register(ctx context.Context) error {
-	registerURL := r.adminURL + "/deployments"
-	payload := []byte("{\"uri\": \"" + r.registerAs + "\"}")
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, registerURL, bytes.NewReader(payload))
-	if err != nil {
-		return err
-	}
-	requireJSON(req)
-
-	client := &http.Client{Timeout: 10 * time.Second}
-	resp, err := client.Do(req)
-	if err != nil {
-		return err
-	}
-	defer func() { _ = resp.Body.Close() }()
-
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return fmtStatus(resp.StatusCode)
-	}
-	return nil
-}
-
-func requireJSON(req *http.Request) {
-	req.Header.Set("Content-Type", "application/json")
-}
-
-type statusErr struct {
-	code int
-}
-
-func (e statusErr) Error() string {
-	return fmt.Sprintf("unexpected status code: %d", e.code)
-}
-
-func fmtStatus(code int) error {
-	return statusErr{code: code}
-}
-
 type addrInfo struct {
 	Host string
 	Port int
@@ -244,11 +177,4 @@ func pickAddr(t *testing.T) addrInfo {
 	require.True(t, ok)
 
 	return addrInfo{Host: addr.IP.String(), Port: addr.Port}
-}
-
-func dockerHost() string {
-	if runtime.GOOS == "darwin" {
-		return "host.docker.internal"
-	}
-	return "172.17.0.1"
 }

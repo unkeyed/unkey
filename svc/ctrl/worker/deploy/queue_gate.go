@@ -5,11 +5,14 @@ import (
 	"fmt"
 	"time"
 
+	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
+
 	restate "github.com/restatedev/sdk-go"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
+	"github.com/unkeyed/unkey/svc/ctrl/worker/buildslot"
 )
 
 // skipIfSuperseded marks the current deployment as superseded and returns
@@ -56,7 +59,7 @@ func (w *Workflow) skipIfSuperseded(
 		now := sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()}
 		if updErr := w.db.UpdateDeploymentStatus(runCtx, db.UpdateDeploymentStatusParams{
 			ID:        deployment.ID,
-			Status:    db.DeploymentsStatusSuperseded,
+			Status:    mysqltype.DeploymentsStatusSuperseded,
 			UpdatedAt: now,
 		}); updErr != nil {
 			return updErr
@@ -75,10 +78,20 @@ func (w *Workflow) skipIfSuperseded(
 }
 
 // waitForBuildSlot blocks until the workspace's BuildSlotService grants a
-// build slot. Push-based via a Restate awakeable: the handler parks on
-// `awakeable.Result()` and BuildSlotService resolves it when a slot becomes
-// available (immediately if one is free, or later when another deployment
-// releases its slot and this one reaches the head of the wait list).
+// build slot, or [buildslot.MaxWaitDuration] elapses. Push-based via a
+// Restate awakeable: the handler parks on the awakeable and BuildSlotService
+// resolves it when a slot becomes available (immediately if one is free, or
+// later when another deployment releases its slot and this one reaches the
+// head of the wait list).
+//
+// The wait is bounded: the awakeable races [restate.After] (same pattern as
+// [Workflow.waitForDeployments]). Without the bound, a slot accounting
+// error upstream kept waiters suspended without limit. In production some
+// Deploy invocations waited more than one week. On timeout the handler
+// returns a terminal error. The Release compensation registered before this
+// call removes the wait-list entry, or a slot granted in the same instant;
+// Release handles both. The race between timeout and grant cannot leak
+// occupancy.
 //
 // Production deployments always receive a slot immediately so a hotfix is
 // never blocked behind a preview build.
@@ -109,6 +122,19 @@ func (w *Workflow) waitForBuildSlot(
 		"workspace_id", workspaceID,
 		"deployment_id", deploymentID,
 	)
+
+	timeout := restate.After(ctx, buildslot.MaxWaitDuration)
+	winner, err := restate.WaitFirst(ctx, awakeable, timeout)
+	if err != nil {
+		return fmt.Errorf("awaiting build slot or timeout: %w", err)
+	}
+
+	if winner != awakeable {
+		return fault.Wrap(
+			restate.TerminalErrorf("no build slot became available within %v", buildslot.MaxWaitDuration),
+			fault.Public("Timed out waiting for a build slot. Too many builds are queued in this workspace."),
+		)
+	}
 
 	granted, err := awakeable.Result()
 	if err != nil {

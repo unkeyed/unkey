@@ -46,6 +46,139 @@ var permissionMappings = map[string]permissionMapping{
 			{resource: "**", action: "*"},
 		},
 	},
+	"deployments:stop": {
+		name:        "Stop deployments",
+		description: "Allows stopping a running deployment.",
+		permissions: []permissionGrant{
+			{resource: "projects/*/apps/*/environments/*/deployments/*", action: action(rbacpermissions.StopDeployment{})},
+		},
+	},
+	"deployments:start": {
+		name:        "Start deployments",
+		description: "Allows starting a stopped deployment.",
+		permissions: []permissionGrant{
+			{resource: "projects/*/apps/*/environments/*/deployments/*", action: action(rbacpermissions.StartDeployment{})},
+		},
+	},
+	"deployments:rollback": {
+		name:        "Roll back deployments",
+		description: "Allows rolling live traffic back to a previous deployment.",
+		permissions: []permissionGrant{
+			{resource: "projects/*/apps/*/environments/*/deployments/*", action: action(rbacpermissions.RollbackDeployment{})},
+		},
+	},
+	"deployments:create": {
+		name:        "Create deployments",
+		description: "Allows creating and redeploying deployments.",
+		permissions: []permissionGrant{
+			{resource: "projects/*/apps/*/environments/*/deployments/*", action: action(rbacpermissions.CreateDeployment{})},
+		},
+	},
+	"deployments:promote": {
+		name:        "Promote deployments",
+		description: "Allows promoting a deployment to live.",
+		permissions: []permissionGrant{
+			{resource: "projects/*/apps/*/environments/*/deployments/*", action: action(rbacpermissions.PromoteDeployment{})},
+		},
+	},
+	"projects:create": {
+		name:        "Create projects",
+		description: "Allows creating projects.",
+		permissions: []permissionGrant{
+			{resource: "projects/*", action: action(rbacpermissions.CreateProject{})},
+		},
+	},
+	"projects:update": {
+		name:        "Update projects",
+		description: "Allows updating projects.",
+		permissions: []permissionGrant{
+			{resource: "projects/*", action: action(rbacpermissions.UpdateProject{})},
+		},
+	},
+	"projects:delete": {
+		name:        "Delete projects",
+		description: "Allows deleting projects.",
+		permissions: []permissionGrant{
+			{resource: "projects/*", action: action(rbacpermissions.DeleteProject{})},
+		},
+	},
+	"apps:create": {
+		name:        "Create apps",
+		description: "Allows creating apps in a project.",
+		permissions: []permissionGrant{
+			{resource: "projects/*/apps/*", action: action(rbacpermissions.CreateApp{})},
+		},
+	},
+	"apps:delete": {
+		name:        "Delete apps",
+		description: "Allows deleting apps.",
+		permissions: []permissionGrant{
+			{resource: "projects/*/apps/*", action: action(rbacpermissions.DeleteApp{})},
+		},
+	},
+	"environments:read": {
+		name:        "Read environments",
+		description: "Allows reading environment build and runtime settings.",
+		permissions: []permissionGrant{
+			{resource: "projects/*/apps/*/environments/*", action: action(rbacpermissions.ReadEnvironment{})},
+		},
+	},
+	"environments:update": {
+		name:        "Update environments",
+		description: "Allows updating environment build and runtime settings.",
+		permissions: []permissionGrant{
+			{resource: "projects/*/apps/*/environments/*", action: action(rbacpermissions.UpdateEnvironment{})},
+		},
+	},
+	"environment_variables:read": {
+		name:        "Read environment variables",
+		description: "Allows reading environment variables, including recoverable values.",
+		permissions: []permissionGrant{
+			{resource: "projects/*/apps/*/environments/*", action: action(rbacpermissions.ReadEnvironmentVariables{})},
+		},
+	},
+	"environment_variables:set": {
+		name:        "Set environment variables",
+		description: "Allows creating and overwriting environment variables.",
+		permissions: []permissionGrant{
+			{resource: "projects/*/apps/*/environments/*", action: action(rbacpermissions.SetEnvironmentVariables{})},
+		},
+	},
+	"environment_variables:remove": {
+		name:        "Remove environment variables",
+		description: "Allows removing environment variables.",
+		permissions: []permissionGrant{
+			{resource: "projects/*/apps/*/environments/*", action: action(rbacpermissions.RemoveEnvironmentVariables{})},
+		},
+	},
+	"identities:create": {
+		name:        "Create identities",
+		description: "Allows creating identities.",
+		permissions: []permissionGrant{
+			{resource: "projects/*/identities/*", action: action(rbacpermissions.CreateIdentity{})},
+		},
+	},
+	"identities:read": {
+		name:        "Read identities",
+		description: "Allows reading identities.",
+		permissions: []permissionGrant{
+			{resource: "projects/*/identities/*", action: action(rbacpermissions.ReadIdentity{})},
+		},
+	},
+	"identities:update": {
+		name:        "Update identities",
+		description: "Allows updating identities.",
+		permissions: []permissionGrant{
+			{resource: "projects/*/identities/*", action: action(rbacpermissions.UpdateIdentity{})},
+		},
+	},
+	"identities:delete": {
+		name:        "Delete identities",
+		description: "Allows deleting identities.",
+		permissions: []permissionGrant{
+			{resource: "projects/*/identities/*", action: action(rbacpermissions.DeleteIdentity{})},
+		},
+	},
 	"keys:create": {
 		name:        "Create keys",
 		description: "Allows creating keys.",
@@ -131,6 +264,7 @@ func sortedPermissionSlugs() []string {
 //	keys:create        => unkey:v1:ws_1:keyspaces/*#create_key
 //	keys:read          => unkey:v1:ws_1:keyspaces/*/keys/*#read_key
 //	keys:update        => unkey:v1:ws_1:keyspaces/*/keys/*#update_key
+//	identities:read    => unkey:v1:ws_1:projects/*/identities/*#read_identity
 //	admin:*            => unkey:v1:ws_1:**#*
 //	unknown:permission => dropped with a warning log
 func translatePermissions(workspaceID string, permissions []string) []string {

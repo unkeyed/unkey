@@ -1,5 +1,6 @@
 "use client";
 
+import { ComputePausedBanner } from "@/components/navigation/compute-paused-banner";
 import { SIDEBAR_WIDTH_VARS, SidebarV2 } from "@/components/navigation/sidebar-v2";
 import { MobileNavDrawer } from "@/components/navigation/sidebar-v2/mobile-nav-drawer";
 import { TopNav } from "@/components/navigation/top-nav";
@@ -107,14 +108,13 @@ export default function Layout({ children }: LayoutProps) {
     );
   }
 
-  const isImpersonator = user?.impersonator;
-
   return (
     <SidebarProvider style={SIDEBAR_WIDTH_VARS}>
       <div className="h-dvh w-full flex flex-col overflow-hidden bg-white dark:bg-base-12">
+        <ComputePausedBanner />
         <TopNav />
         <MobileNavDrawer />
-        <div className="flex flex-1 overflow-hidden">
+        <div className="relative flex flex-1 overflow-hidden">
           {!isAppOnboarding && <SidebarV2 className="bg-gray-1 border-grayA-4" />}
           {/* Reserve the scrollbar gutter so content doesn't shift horizontally
               when the scrollbar appears/disappears (e.g. a dialog locking scroll
@@ -122,12 +122,12 @@ export default function Layout({ children }: LayoutProps) {
               "shakes" and buttons move out from under the cursor (ENG-2884). */}
           <div className="flex-1 overflow-auto" style={{ scrollbarGutter: "stable" }}>
             <div
-              className="isolate bg-base-12 w-full min-h-full overflow-x-auto flex flex-col items-center"
+              className="isolate bg-base-12 w-full min-h-full flex flex-col items-center"
               id="layout-wrapper"
             >
               <WorkspaceContent workspace={workspace}>{children}</WorkspaceContent>
             </div>
-            {isImpersonator ? <ImpersonationBanner /> : null}
+            {user?.impersonator ? <ImpersonationBanner /> : null}
           </div>
         </div>
       </div>

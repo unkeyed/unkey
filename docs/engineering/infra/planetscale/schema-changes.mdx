@@ -1,0 +1,111 @@
+---
+title: "Deploy MySQL database changes"
+description: "Make safe changes to our database through PlanetScale"
+---
+
+Use this runbook after changing Unkey's MySQL schema. 
+
+<Info>
+  Important distinction:
+ - `pull request`: A proposed code change on GitHub.
+ - `deploy request`: A proposed database schema change on PlanetScale.
+</Info>
+
+## 1. Prepare the GitHub pull request
+
+Update the
+<a href="https://github.com/unkeyed/unkey/tree/main/web/internal/db/src/schema" target="_blank">Drizzle schema</a>,
+then regenerate the SQL files used by Go tooling and code generation:
+
+```bash
+mise run generate-sql
+```
+
+Review and commit all generated files. Push the branch, then open a non-draft GitHub pull request from the Unkey repository.
+
+The <a href="https://github.com/unkeyed/unkey/blob/main/.depot/workflows/job_pscale_pr.yaml" target="_blank"><code>PlanetScale PR Branch</code></a>
+job runs automatically and creates a new branch on planetscale for you.
+For example pull request 1234 would create branch a PlanetScale branch `pr-1234` from `staging`.
+The CI job applies the schema, and opens a deploy request from `pr-1234` into `staging`.
+
+<Note>
+  The
+  <a href="https://github.com/unkeyed/unkey/blob/main/.depot/workflows/database_schema_gate.yaml" target="_blank"><code>Database Schema Gate / Compare production schema</code></a>
+  check is expected to fail until the change reaches PlanetScale `main`.
+</Note>
+
+## 2. Open and review the staging deploy request
+
+After the deploy request on PlanetScale is created, open the PlanetScale [dashboard](https://app.planetscale.com/unkey/unkey/deploy-requests) and find the deploy request
+from `pr-<number>` into `staging`.
+
+Review the schema diff and ask for a sanity check from other engineers. 
+Usually you want to merge the deploy request right away, because otherwise you cannot test anything in our canary environment.
+
+A bad migration here is recoverable, but due diligence can prevent canary disruption and cleanup work.
+
+If you update the GitHub pull request, CI reapplies its Drizzle schema to the
+same `pr-<number>` branch and reuses the open deploy request. Review the latest
+diff before continuing.
+
+## 3. Merge the deploy request into staging
+
+After the staging deploy request has been reviewed, merge it into `staging`.
+Wait for PlanetScale to report that the deployment completed successfully.
+
+## 4. Gather reviews on the GitHub pull request
+
+Get the required reviews on the GitHub pull request while the database change
+is in PlanetScale `staging`. Address feedback and repeat the staging review if a
+new commit changes the Drizzle schema.
+
+Don't merge the GitHub pull request yet. Continue after it has sufficient
+approvals.
+
+## 5. Create the production deploy request
+
+In PlanetScale, create a deploy request from `staging` into `main`. This deploy
+request promotes the reviewed staging schema to production.
+
+## 6. Get approval for the production deploy request
+
+Review the final schema diff and request approval from another engineer. Confirm
+that the deploy request contains the expected database change before approving
+it.
+
+## 7. Merge the deploy request into main
+
+After approval, merge the deploy request into `main`. Wait for PlanetScale to
+report that the production deployment completed successfully.
+
+## 8. Rerun the production schema gate
+
+PlanetScale doesn't trigger GitHub checks when a deploy request completes.
+Manually rerun
+<a href="https://github.com/unkeyed/unkey/blob/main/.depot/workflows/database_schema_gate.yaml" target="_blank"><code>Database Schema Gate / Compare production schema</code></a>
+on the GitHub pull request.
+
+The check compares the pull request's Drizzle schema with PlanetScale `main`.
+Continue when it passes. If it still reports a diff, confirm that the production
+deploy request completed and inspect the diff in the check output.
+
+## 9. Merge the GitHub pull request
+
+Merge the GitHub pull request after it has sufficient approvals and the
+production schema gate passes.
+
+<Warning>
+  Don't merge the GitHub pull request before the database change reaches
+  PlanetScale `main`.
+</Warning>
+
+<Note>
+  After merging, you can optionally release and deploy affected services
+  through ArgoCD. Application deployment is outside the scope of this runbook.
+</Note>
+
+If you close a GitHub pull request without merging it, the
+<a href="https://github.com/unkeyed/unkey/blob/main/.depot/workflows/pscale_cleanup.yaml" target="_blank"><code>PlanetScale Cleanup</code></a>
+job closes its open deploy request and deletes its `pr-<number>` branch. If the
+pull request merges, the job leaves the branch and deploy request available so
+an unfinished database promotion can still be completed.

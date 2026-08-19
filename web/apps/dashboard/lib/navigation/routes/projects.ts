@@ -6,6 +6,7 @@
  * params from the generated ParamMap.
  */
 import type { Route } from "next";
+import type { DeployCheckoutOrigin, DeployCheckoutPlan } from "./settings";
 import { type WorkspaceScope, buildRoute } from "./shared";
 
 type ProjectScope = WorkspaceScope & { projectId: string };
@@ -14,6 +15,17 @@ type AppScope = ProjectScope & { appId: string };
 export const projectRoutes = {
   list({ workspaceSlug, new: isNew }: WorkspaceScope & { new?: boolean }): Route {
     return buildRoute("/[workspaceSlug]/projects", { workspaceSlug }, { new: isNew || undefined });
+  },
+
+  // Compute-plan gate hand-off: the projects landing reads these params,
+  // subscribes the chosen plan (card already on file), and on `from=create`
+  // opens the create-project dialog.
+  pendingSubscribe({
+    workspaceSlug,
+    plan,
+    from,
+  }: WorkspaceScope & { plan: DeployCheckoutPlan; from: DeployCheckoutOrigin }): Route {
+    return buildRoute("/[workspaceSlug]/projects", { workspaceSlug }, { pendingPlan: plan, from });
   },
 
   detail(scope: ProjectScope): Route {
@@ -30,7 +42,7 @@ export const projectRoutes = {
     ...scope
   }: ProjectScope & { appId?: string; deploymentId?: string }): Route {
     return buildRoute("/[workspaceSlug]/projects/[projectId]/logs", projectParams(scope), {
-      appId,
+      appId: appId ? isFilter(appId) : undefined,
       deploymentId: deploymentId ? isFilter(deploymentId) : undefined,
     });
   },
@@ -43,7 +55,7 @@ export const projectRoutes = {
   }: ProjectScope & { since?: string; appId?: string; deploymentId?: string }): Route {
     return buildRoute("/[workspaceSlug]/projects/[projectId]/requests", projectParams(scope), {
       since,
-      appId,
+      appId: appId ? isFilter(appId) : undefined,
       deploymentId: deploymentId ? isFilter(deploymentId) : undefined,
     });
   },
@@ -77,9 +89,9 @@ export const projectRoutes = {
       );
     },
 
-    sentinelPolicies(scope: AppScope): Route {
+    policies(scope: AppScope): Route {
       return buildRoute(
-        "/[workspaceSlug]/projects/[projectId]/apps/[appId]/sentinel-policies",
+        "/[workspaceSlug]/projects/[projectId]/apps/[appId]/policies",
         appParams(scope),
       );
     },
@@ -126,6 +138,6 @@ function appParams({ appId, ...scope }: AppScope) {
  * backends match the id exactly, and the deployment filter UI emits `is`,
  * so links use the same operator to keep filter chips consistent.
  */
-function isFilter(deploymentId: string): `is:${string}` {
-  return `is:${deploymentId}`;
+function isFilter(value: string): `is:${string}` {
+  return `is:${value}`;
 }

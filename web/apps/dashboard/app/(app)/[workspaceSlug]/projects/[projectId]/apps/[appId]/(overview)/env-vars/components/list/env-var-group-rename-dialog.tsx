@@ -52,8 +52,10 @@ export function EnvVarGroupRenameDialog({
       // rename, the same way create/update/delete do via the collection.
       await trackSave(
         renameMutation.mutateAsync({
-          envVarIds: items.map((i) => i.id),
-          key: values.key,
+          appId: items[0].appId,
+          environmentIds: items.map((i) => i.environmentId),
+          key: groupKey,
+          newKey: values.key,
         }),
       );
       await collection.envVars.utils.refetch();

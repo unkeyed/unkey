@@ -130,12 +130,22 @@ export const UpsertRoleDialog = ({
 
   const onSubmit = async (data: FormValues) => {
     // Calculate limits with current form data
-    const { hasKeyWarning, hasPermWarning } = calculateLimits(data.keyIds, data.permissionIds);
+    const { hasKeyWarning, hasPermWarning, shouldAllowEdit } = calculateLimits(
+      data.keyIds,
+      data.permissionIds,
+    );
 
+    // When a role is over the attach limit on either dimension, its connected
+    // keys/permissions are never loaded, so the form baseline for BOTH is empty.
+    // Sending those empty arrays would wipe the real associations, so we send
+    // `undefined` (preserve) for any dimension we couldn't safely edit. Gating on
+    // `shouldAllowEdit` covers the mixed case (e.g. over-limit keys but
+    // under-limit permissions) where a per-dimension warning alone would still
+    // flush the under-limit dimension to empty.
     const submissionData: FormValues = {
       ...data,
-      keyIds: hasKeyWarning ? undefined : data.keyIds,
-      permissionIds: hasPermWarning ? undefined : data.permissionIds,
+      keyIds: !shouldAllowEdit || hasKeyWarning ? undefined : data.keyIds,
+      permissionIds: !shouldAllowEdit || hasPermWarning ? undefined : data.permissionIds,
     };
 
     upsertRoleMutation.mutate(submissionData);
@@ -201,7 +211,7 @@ export const UpsertRoleDialog = ({
                 className="[&_input:first-of-type]:h-9"
                 placeholder="domain.manager"
                 label="Name"
-                maxLength={512}
+                maxLength={128}
                 description="A unique name for your role. You will use this when managing roles through the API. These are not customer facing."
                 error={errors.roleName?.message}
                 variant="default"

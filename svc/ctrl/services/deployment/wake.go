@@ -7,9 +7,12 @@ import (
 	"connectrpc.com/connect"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
+	"github.com/unkeyed/unkey/pkg/auditlog"
+	"github.com/unkeyed/unkey/pkg/deploy/deploygate"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/auth"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/gatefault"
 )
 
 // WakeDeployment transitions a stopped deployment back to running. The actual
@@ -32,10 +35,6 @@ func (s *Service) WakeDeployment(ctx context.Context, req *connect.Request[ctrlv
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to load deployment: %w", err))
 	}
 
-	if deployment.DesiredState != db.DeploymentsDesiredStateStopped {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("deployment is not stopped"))
-	}
-
 	environment, err := s.db.FindEnvironmentById(ctx, deployment.EnvironmentID)
 	if err != nil {
 		if db.IsNotFound(err) {
@@ -43,8 +42,17 @@ func (s *Service) WakeDeployment(ctx context.Context, req *connect.Request[ctrlv
 		}
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to load environment: %w", err))
 	}
-	if environment.Slug == "production" {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("production deployments cannot be woken"))
+
+	if err := s.ensureWorkspaceCanDeploy(ctx, deployment.WorkspaceID, "wake"); err != nil {
+		return nil, err
+	}
+
+	if err := deploygate.CheckStartTarget(deploygate.StartInput{
+		DesiredState:    deployment.DesiredState,
+		EnvironmentKind: environment.Kind,
+		SpendSuspended:  false,
+	}); err != nil {
+		return nil, gatefault.Connect(err)
 	}
 
 	logger.Info("waking stopped deployment", "deployment_id", deploymentID)
@@ -56,6 +64,17 @@ func (s *Service) WakeDeployment(ctx context.Context, req *connect.Request[ctrlv
 	if err != nil {
 		logger.Error("wake deployment workflow failed", "deployment_id", deploymentID, "error", err.Error())
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("wake deployment workflow failed: %w", err))
+	}
+
+	if auditErr := s.recordLifecycleAudit(ctx,
+		auditlog.DeploymentWakeEvent,
+		fmt.Sprintf("Woke deployment %s", deploymentID),
+		deployment.WorkspaceID,
+		deploymentID,
+		lifecycleAuditMeta(deployment.ProjectID, deployment.AppID, deployment.EnvironmentID),
+		req.Msg.GetActor(),
+	); auditErr != nil {
+		return nil, connect.NewError(connect.CodeInternal, auditFailure("wake deployment", auditErr))
 	}
 
 	return connect.NewResponse(&ctrlv1.WakeDeploymentResponse{}), nil

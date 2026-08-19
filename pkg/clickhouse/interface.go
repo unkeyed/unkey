@@ -25,6 +25,12 @@ type Querier interface {
 
 	GetBillableVerifications(ctx context.Context, workspaceID string, year, month int) (int64, error)
 
+	// GetVerificationsByExternalID returns a zero-filled verification timeseries
+	// for a single end user (workspace_id + external_id), optionally narrowed to
+	// one key. Used by the portal getVerifications endpoint. Bucket granularity
+	// is chosen from the window size.
+	GetVerificationsByExternalID(ctx context.Context, req VerificationTimeseriesRequest) ([]VerificationTimeseriesDataPoint, error)
+
 	GetBillableRatelimits(ctx context.Context, workspaceID string, year, month int) (int64, error)
 
 	// GetBillableUsageAboveThreshold returns total billable usage for workspaces that exceed a minimum threshold.
@@ -38,7 +44,7 @@ type Querier interface {
 	// counter-delta vs time-integration rules and the sample-gap handling.
 	GetInstanceMeterUsage(ctx context.Context, req GetInstanceMeterUsageRequest) ([]InstanceMeterUsage, error)
 
-	// GetDeploymentRequestCount returns the number of sentinel requests routed to a
+	// GetDeploymentRequestCount returns the number of gateway requests routed to a
 	// deployment within a recent time window, used to detect idle deployments for scale-down.
 	// Returns 0 (not an error) when the deployment has received no traffic.
 	GetDeploymentRequestCount(ctx context.Context, req GetDeploymentRequestCountRequest) (int64, error)

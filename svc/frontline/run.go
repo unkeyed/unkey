@@ -21,6 +21,7 @@ import (
 	keysdb "github.com/unkeyed/unkey/internal/services/keys/db"
 	"github.com/unkeyed/unkey/internal/services/ratelimit"
 	"github.com/unkeyed/unkey/internal/services/usagelimiter"
+
 	"github.com/unkeyed/unkey/pkg/batch"
 	"github.com/unkeyed/unkey/pkg/buildinfo"
 	"github.com/unkeyed/unkey/pkg/cache"
@@ -30,6 +31,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/counter"
 	pkgdb "github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/logger"
+	"github.com/unkeyed/unkey/pkg/mysql/sqlcomment"
 	"github.com/unkeyed/unkey/pkg/otel"
 	pprofRoute "github.com/unkeyed/unkey/pkg/pprof"
 	"github.com/unkeyed/unkey/pkg/prometheus"
@@ -187,11 +189,13 @@ func Run(ctx context.Context, cfg Config) error {
 	// replica. When the operator omits a dedicated replica DSN we fall back
 	// to the primary; pkgdb does the same internally so both pools end up
 	// targeting the same endpoint.
+	dbTags := sqlcomment.ForService("frontline", cfg.Region)
+
 	readDSN := cfg.Database.ReadonlyReplica
 	if readDSN == "" {
 		readDSN = cfg.Database.Primary
 	}
-	database, databaseClose, err := db.New(readDSN)
+	database, databaseClose, err := db.New(readDSN, dbTags)
 	if err != nil {
 		return fmt.Errorf("unable to connect to database: %w", err)
 	}
@@ -204,6 +208,7 @@ func Run(ctx context.Context, cfg Config) error {
 	engineDatabase, err := pkgdb.New(pkgdb.Config{
 		PrimaryDSN:  cfg.Database.Primary,
 		ReadOnlyDSN: cfg.Database.ReadonlyReplica,
+		Tags:        dbTags,
 	})
 	if err != nil {
 		return fmt.Errorf("unable to connect to engine database: %w", err)
@@ -222,7 +227,7 @@ func Run(ctx context.Context, cfg Config) error {
 			return fmt.Errorf("unable to create clickhouse: %w", err)
 		}
 
-		frontlineRequests = clickhouse.NewBuffer[schema.FrontlineRequest](chClient, "default.frontline_requests_raw_v1", clickhouse.BufferConfig{
+		frontlineRequests = clickhouse.NewBuffer[schema.FrontlineRequest](chClient, clickhouse.BufferConfig{
 			Name:          "frontline_requests",
 			BatchSize:     cfg.ClickHouse.BatchSize,
 			BufferSize:    cfg.ClickHouse.BufferSize,
@@ -231,7 +236,7 @@ func Run(ctx context.Context, cfg Config) error {
 			Drop:          true,
 			OnFlushError:  nil,
 		})
-		keyVerifications = clickhouse.NewBuffer[schema.KeyVerification](chClient, "default.key_verifications_raw_v2", clickhouse.BufferConfig{
+		keyVerifications = clickhouse.NewBuffer[schema.KeyVerification](chClient, clickhouse.BufferConfig{
 			Name:          "key_verifications",
 			BatchSize:     cfg.ClickHouse.BatchSize,
 			BufferSize:    cfg.ClickHouse.BufferSize,
@@ -306,7 +311,13 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("unable to build tls config: %w", err)
 	}
 
-	acmeClient := ctrl.NewConnectAcmeServiceClient(ctrlv1connect.NewAcmeServiceClient(ptr.P(http.Client{}), cfg.CtrlAddr))
+	acmeClient := ctrl.NewConnectAcmeServiceClient(ctrlv1connect.NewAcmeServiceClient(
+		ptr.P(http.Client{}),
+		cfg.Control.URL,
+		connect.WithInterceptors(interceptor.NewHeaderInjector(map[string]string{
+			"Authorization": "Bearer " + cfg.Control.Token,
+		})),
+	))
 
 	svcs := &routes.Services{
 		Region:            cfg.Region,
@@ -331,6 +342,7 @@ func Run(ctx context.Context, cfg Config) error {
 			Flags:              nil,
 			EnableH2C:          false,
 			MaxRequestBodySize: 0,
+			StreamRequestBody:  true,
 		})
 		if httpsErr != nil {
 			return fmt.Errorf("unable to create HTTPS server: %w", httpsErr)
@@ -369,6 +381,7 @@ func Run(ctx context.Context, cfg Config) error {
 			Flags:              nil,
 			EnableH2C:          false,
 			MaxRequestBodySize: 0,
+			StreamRequestBody:  false,
 			ReadTimeout:        -1,
 			WriteTimeout:       -1,
 		})
@@ -487,6 +500,7 @@ func buildEngine(
 		RBAC:         rbac.New(),
 		Region:       region,
 		UsageLimiter: usageLimiter,
+		Source:       schema.SourceGateway,
 		KeyCache:     keyCache,
 	})
 	if err != nil {

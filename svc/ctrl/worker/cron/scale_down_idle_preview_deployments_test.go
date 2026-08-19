@@ -5,6 +5,9 @@ import (
 	"testing"
 	"time"
 
+	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
+
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/uid"
@@ -53,16 +56,14 @@ func TestScaleDownIdlePreviewDeployments_ScalesDownIdleDeploymentWithZeroRequest
 		ProjectID:     project.ID,
 		AppID:         app.ID,
 		EnvironmentID: env.ID,
-		Status:        db.DeploymentsStatusReady,
+		Status:        mysqltype.DeploymentsStatusReady,
 		CreatedAt:     oldTime,
 		UpdatedAt:     oldUpdatedAt,
 	})
 
 	triggerScaleDown(t, h)
 
-	updated, err := h.DB.FindDeploymentById(h.Ctx, dep.ID)
-	require.NoError(t, err)
-	require.Equal(t, db.DeploymentsDesiredStateStopped, updated.DesiredState)
+	requireDeploymentStopped(t, h, dep.ID)
 }
 
 // TestScaleDownIdlePreviewDeployments_DoesNotScaleDownDeploymentWithRecentRequests
@@ -105,7 +106,7 @@ func TestScaleDownIdlePreviewDeployments_DoesNotScaleDownDeploymentWithRecentReq
 		ProjectID:     project.ID,
 		AppID:         app.ID,
 		EnvironmentID: env.ID,
-		Status:        db.DeploymentsStatusReady,
+		Status:        mysqltype.DeploymentsStatusReady,
 		CreatedAt:     oldTime,
 		UpdatedAt:     oldUpdatedAt,
 	})
@@ -114,9 +115,7 @@ func TestScaleDownIdlePreviewDeployments_DoesNotScaleDownDeploymentWithRecentReq
 
 	triggerScaleDown(t, h)
 
-	updated, err := h.DB.FindDeploymentById(h.Ctx, dep.ID)
-	require.NoError(t, err)
-	require.Equal(t, db.DeploymentsDesiredStateRunning, updated.DesiredState)
+	requireDeploymentStillRunning(t, h, dep.ID)
 }
 
 // TestScaleDownIdlePreviewDeployments_IgnoresNonPreviewEnvironments guarantees
@@ -147,6 +146,7 @@ func TestScaleDownIdlePreviewDeployments_IgnoresNonPreviewEnvironments(t *testin
 		ProjectID:        project.ID,
 		AppID:            app.ID,
 		Slug:             "production",
+		Kind:             mysqltype.EnvironmentKindProduction,
 		Description:      "",
 		SentinelConfig:   nil,
 		DeleteProtection: false,
@@ -158,16 +158,14 @@ func TestScaleDownIdlePreviewDeployments_IgnoresNonPreviewEnvironments(t *testin
 		ProjectID:     project.ID,
 		AppID:         app.ID,
 		EnvironmentID: env.ID,
-		Status:        db.DeploymentsStatusReady,
+		Status:        mysqltype.DeploymentsStatusReady,
 		CreatedAt:     oldTime,
 		UpdatedAt:     oldUpdatedAt,
 	})
 
 	triggerScaleDown(t, h)
 
-	updated, err := h.DB.FindDeploymentById(h.Ctx, dep.ID)
-	require.NoError(t, err)
-	require.Equal(t, db.DeploymentsDesiredStateRunning, updated.DesiredState)
+	requireDeploymentStillRunning(t, h, dep.ID)
 }
 
 // TestScaleDownIdlePreviewDeployments_IgnoresDeploymentsNotInReadyStatus
@@ -210,16 +208,14 @@ func TestScaleDownIdlePreviewDeployments_IgnoresDeploymentsNotInReadyStatus(t *t
 		ProjectID:     project.ID,
 		AppID:         app.ID,
 		EnvironmentID: env.ID,
-		Status:        db.DeploymentsStatusPending,
+		Status:        mysqltype.DeploymentsStatusPending,
 		CreatedAt:     oldTime,
 		UpdatedAt:     oldUpdatedAt,
 	})
 
 	triggerScaleDown(t, h)
 
-	updated, err := h.DB.FindDeploymentById(h.Ctx, dep.ID)
-	require.NoError(t, err)
-	require.Equal(t, db.DeploymentsDesiredStateRunning, updated.DesiredState)
+	requireDeploymentStillRunning(t, h, dep.ID)
 }
 
 // TestScaleDownIdlePreviewDeployments_IgnoresRecentlyCreatedDeployments
@@ -261,16 +257,14 @@ func TestScaleDownIdlePreviewDeployments_IgnoresRecentlyCreatedDeployments(t *te
 		ProjectID:     project.ID,
 		AppID:         app.ID,
 		EnvironmentID: env.ID,
-		Status:        db.DeploymentsStatusReady,
+		Status:        mysqltype.DeploymentsStatusReady,
 		CreatedAt:     recentTime,
 		UpdatedAt:     sql.NullInt64{Valid: true, Int64: recentTime},
 	})
 
 	triggerScaleDown(t, h)
 
-	updated, err := h.DB.FindDeploymentById(h.Ctx, dep.ID)
-	require.NoError(t, err)
-	require.Equal(t, db.DeploymentsDesiredStateRunning, updated.DesiredState)
+	requireDeploymentStillRunning(t, h, dep.ID)
 }
 
 // TestScaleDownIdlePreviewDeployments_IgnoresRecentlyUpdatedDeployments
@@ -312,16 +306,14 @@ func TestScaleDownIdlePreviewDeployments_IgnoresRecentlyUpdatedDeployments(t *te
 		ProjectID:     project.ID,
 		AppID:         app.ID,
 		EnvironmentID: env.ID,
-		Status:        db.DeploymentsStatusReady,
+		Status:        mysqltype.DeploymentsStatusReady,
 		CreatedAt:     oldTime,
 		UpdatedAt:     sql.NullInt64{Valid: true, Int64: recentUpdate},
 	})
 
 	triggerScaleDown(t, h)
 
-	updated, err := h.DB.FindDeploymentById(h.Ctx, dep.ID)
-	require.NoError(t, err)
-	require.Equal(t, db.DeploymentsDesiredStateRunning, updated.DesiredState)
+	requireDeploymentStillRunning(t, h, dep.ID)
 }
 
 // TestScaleDownIdlePreviewDeployments_HandlesMultipleDeploymentsAcrossMultipleEnvironments
@@ -368,7 +360,7 @@ func TestScaleDownIdlePreviewDeployments_HandlesMultipleDeploymentsAcrossMultipl
 			ProjectID:     project.ID,
 			AppID:         app.ID,
 			EnvironmentID: env.ID,
-			Status:        db.DeploymentsStatusReady,
+			Status:        mysqltype.DeploymentsStatusReady,
 			CreatedAt:     oldTime,
 			UpdatedAt:     oldUpdatedAt,
 		})
@@ -380,7 +372,7 @@ func TestScaleDownIdlePreviewDeployments_HandlesMultipleDeploymentsAcrossMultipl
 			ProjectID:     project.ID,
 			AppID:         app.ID,
 			EnvironmentID: env.ID,
-			Status:        db.DeploymentsStatusReady,
+			Status:        mysqltype.DeploymentsStatusReady,
 			CreatedAt:     oldTime,
 			UpdatedAt:     oldUpdatedAt,
 		})
@@ -391,14 +383,10 @@ func TestScaleDownIdlePreviewDeployments_HandlesMultipleDeploymentsAcrossMultipl
 	triggerScaleDown(t, h)
 
 	for _, dep := range idleDeployments {
-		updated, err := h.DB.FindDeploymentById(h.Ctx, dep.ID)
-		require.NoError(t, err)
-		require.Equal(t, db.DeploymentsDesiredStateStopped, updated.DesiredState, "idle deployment %s should be stopped", dep.ID)
+		requireDeploymentStopped(t, h, dep.ID)
 	}
 	for _, dep := range activeDeployments {
-		updated, err := h.DB.FindDeploymentById(h.Ctx, dep.ID)
-		require.NoError(t, err)
-		require.Equal(t, db.DeploymentsDesiredStateRunning, updated.DesiredState, "active deployment %s should be running", dep.ID)
+		requireDeploymentStillRunning(t, h, dep.ID)
 	}
 }
 
@@ -445,7 +433,7 @@ func TestScaleDownIdlePreviewDeployments_PaginatesAcrossManyPreviewEnvironmentsA
 			ProjectID:     project.ID,
 			AppID:         app.ID,
 			EnvironmentID: env.ID,
-			Status:        db.DeploymentsStatusReady,
+			Status:        mysqltype.DeploymentsStatusReady,
 			CreatedAt:     oldTime,
 			UpdatedAt:     oldUpdatedAt,
 		})
@@ -455,9 +443,7 @@ func TestScaleDownIdlePreviewDeployments_PaginatesAcrossManyPreviewEnvironmentsA
 	triggerScaleDown(t, h)
 
 	for _, id := range depIDs {
-		updated, err := h.DB.FindDeploymentById(h.Ctx, id)
-		require.NoError(t, err)
-		require.Equal(t, db.DeploymentsDesiredStateStopped, updated.DesiredState, "deployment %s should be stopped", id)
+		requireDeploymentStopped(t, h, id)
 	}
 }
 
@@ -469,4 +455,48 @@ func triggerScaleDown(t *testing.T, h *harness.Harness) {
 	client := hydrav1.NewCronServiceIngressClient(h.Restate, "idle-preview-deployments")
 	_, err := client.RunScaleDownIdlePreviewDeployments().Request(h.Ctx, &hydrav1.RunScaleDownIdlePreviewDeploymentsRequest{})
 	require.NoError(t, err)
+}
+
+// requireDeploymentStopped waits for a scheduled scale-down to reach MySQL.
+//
+// The cron handler never writes desired_state itself. It calls
+// DeploymentService.ScheduleDesiredStateChange, which records the transition on
+// the deployment's virtual object and then Sends ChangeDesiredState, and only
+// that send updates the row. The send is asynchronous, so it can still be
+// queued when triggerScaleDown returns, and the wait grows with the number of
+// deployments the scan scheduled ahead of this one.
+func requireDeploymentStopped(t *testing.T, h *harness.Harness, deploymentID string) {
+	t.Helper()
+
+	require.EventuallyWithT(t, func(c *assert.CollectT) {
+		updated, err := h.DB.FindDeploymentById(h.Ctx, deploymentID)
+		if !assert.NoError(c, err) {
+			return
+		}
+		assert.Equal(c, mysqltype.DeploymentsDesiredStateStopped, updated.DesiredState,
+			"deployment %s should be stopped", deploymentID)
+	}, 60*time.Second, 100*time.Millisecond)
+}
+
+// requireDeploymentStillRunning asserts that the scan left a deployment alone.
+//
+// Reading MySQL straight after triggerScaleDown can observe "running" merely
+// because a wrongly scheduled stop has not been applied yet, which would let a
+// real regression pass. Requesting something on the same virtual object first
+// closes that window: the object runs one invocation at a time for a given key,
+// and any ChangeDesiredState for this deployment was enqueued during the scan,
+// so it has been processed by the time this request returns. Clearing a
+// transition that should not exist in the first place is a noop.
+func requireDeploymentStillRunning(t *testing.T, h *harness.Harness, deploymentID string) {
+	t.Helper()
+
+	_, err := hydrav1.NewDeploymentServiceIngressClient(h.Restate, deploymentID).
+		ClearScheduledStateChanges().
+		Request(h.Ctx, &hydrav1.ClearScheduledStateChangesRequest{})
+	require.NoError(t, err)
+
+	updated, err := h.DB.FindDeploymentById(h.Ctx, deploymentID)
+	require.NoError(t, err)
+	require.Equal(t, mysqltype.DeploymentsDesiredStateRunning, updated.DesiredState,
+		"deployment %s should still be running", deploymentID)
 }

@@ -75,7 +75,7 @@ const KeyIdCell = ({
   onNavigate,
 }: KeyIdCellProps) => {
   const [isHovered, setIsHovered] = useState(false);
-  const identity = keyData.identity?.external_id ?? keyData.owner_id;
+  const identity = keyData.identity?.external_id;
   const isKeySelected = selectedKeys.has(keyData.id);
 
   const iconContainer = (

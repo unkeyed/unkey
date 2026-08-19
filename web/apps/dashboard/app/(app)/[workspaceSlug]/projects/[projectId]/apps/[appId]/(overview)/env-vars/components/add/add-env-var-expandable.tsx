@@ -2,9 +2,13 @@ import { useProjectData } from "@/app/(app)/[workspaceSlug]/projects/[projectId]
 import { Switch } from "@/components/ui/switch";
 import { usePersistedForm } from "@/hooks/use-persisted-form";
 import { collection } from "@/lib/collections";
-import { trpc } from "@/lib/trpc/client";
+import {
+  type VariableInput,
+  listExistingKeys,
+  setVariables,
+} from "@/lib/collections/deploy/env-vars";
+import { getErrorMessage } from "@/lib/unkey-client";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { eq, useLiveQuery } from "@tanstack/react-db";
 import { ChevronDown, CircleInfo, CloudUp, DoubleChevronRight, Plus } from "@unkey/icons";
 import {
   Button,
@@ -25,8 +29,10 @@ import { EnvVarRow } from "./env-var-row";
 import { type EnvVarsFormValues, createEmptyEntry, envVarsSchema, findConflicts } from "./schema";
 
 import { usePreventLeave } from "@/hooks/use-prevent-leave";
+import { trackSave } from "@/lib/collections/deploy/environment-settings";
 
 type AddEnvVarExpandableProps = {
+  projectId: string;
   appId: string;
   tableDistanceToTop: number;
   isOpen: boolean;
@@ -34,17 +40,13 @@ type AddEnvVarExpandableProps = {
 };
 
 export const AddEnvVarExpandable = ({
+  projectId,
   appId,
   tableDistanceToTop,
   isOpen,
   onClose,
 }: AddEnvVarExpandableProps) => {
   const { environments } = useProjectData();
-
-  const { data: existingEnvVars } = useLiveQuery(
-    (q) => q.from({ v: collection.envVars }).where(({ v }) => eq(v.appId, appId)),
-    [appId],
-  );
 
   const {
     register,
@@ -71,10 +73,11 @@ export const AddEnvVarExpandable = ({
         secret: false,
       },
     },
-    "session",
+    // Values may be secrets (the "Sensitive" toggle), so the draft must never
+    // be written to session/local storage in plaintext.
+    "memory",
   );
 
-  const createBulk = trpc.deploy.envVar.createBulk.useMutation();
   const { fields, append, remove } = useFieldArray({ control, name: "envVars" });
 
   const handlePasteEntries = useCallback(
@@ -118,6 +121,15 @@ export const AddEnvVarExpandable = ({
   usePreventLeave(isOpen);
 
   useEffect(
+    function purgeLegacyPersistedDraft() {
+      // Earlier versions persisted this draft (possibly containing secrets) to
+      // sessionStorage, which survives page reloads. Remove any leftovers.
+      sessionStorage.removeItem(`env-vars-add-${appId}`);
+    },
+    [appId],
+  );
+
+  useEffect(
     function persistFormState() {
       if (isOpen) {
         loadSavedValues();
@@ -155,11 +167,10 @@ export const AddEnvVarExpandable = ({
       return;
     }
 
-    const existing = (existingEnvVars ?? []).map((v) => ({
-      key: v.key,
-      environmentId: v.environmentId,
-    }));
     const allEnvIds = environments.map((e) => e.id);
+    const targetEnvIds = values.environmentId === "__all__" ? allEnvIds : [values.environmentId];
+
+    const existing = await listExistingKeys(projectId, appId, targetEnvIds);
     const conflicts = findConflicts(nonEmpty, values.environmentId, existing, allEnvIds);
 
     if (conflicts.length > 0) {
@@ -177,28 +188,30 @@ export const AddEnvVarExpandable = ({
       return;
     }
 
-    const targetEnvIds =
-      values.environmentId === "__all__" ? environments.map((e) => e.id) : [values.environmentId];
-    const type = values.secret ? ("writeonly" as const) : ("recoverable" as const);
-    const variables = nonEmpty.flatMap((entry) =>
-      targetEnvIds.map((envId) => ({
-        environmentId: envId,
-        key: entry.key,
-        value: entry.value,
-        type,
-        description: entry.description || null,
-      })),
-    );
+    const kind = values.secret ? ("writeonly" as const) : ("recoverable" as const);
+    const variables: VariableInput[] = nonEmpty.map((entry) => ({
+      key: entry.key,
+      value: entry.value,
+      kind,
+      description: entry.description || undefined,
+    }));
 
     try {
-      await createBulk.mutateAsync({ variables });
-      await collection.envVars.utils.refetch();
-      toast.success(`Added ${variables.length} variable(s)`);
+      // This writes outside the collection, so call trackSave here to show
+      // the pending-redeploy banner.
+      await trackSave(
+        Promise.all(targetEnvIds.map((envId) => setVariables(projectId, appId, envId, variables))),
+      );
+      toast.success(`Added ${variables.length * targetEnvIds.length} variable(s)`);
     } catch (err) {
       toast.error("Failed to create environment variables", {
-        description: err instanceof Error ? err.message : "Unknown error",
+        description: getErrorMessage(err),
       });
       return;
+    } finally {
+      // A rejection can still leave variables written, since each environment
+      // and each part commits on its own.
+      await collection.envVars.utils.refetch().catch(() => {});
     }
 
     clearPersistedData();
@@ -278,7 +291,6 @@ export const AddEnvVarExpandable = ({
                   isOnly={fields.length === 1}
                   isLast={index === fields.length - 1}
                   register={register}
-                  control={control}
                   onRemove={remove}
                   onPasteEntries={handlePasteEntries}
                   onAdvanceRow={handleAdvanceRow}
@@ -312,7 +324,14 @@ export const AddEnvVarExpandable = ({
                     <label htmlFor="environment-select" className="text-gray-11 text-[13px]">
                       Environment
                     </label>
-                    <Select value={field.value} onValueChange={field.onChange}>
+                    <Select
+                      value={field.value}
+                      onValueChange={field.onChange}
+                      items={[
+                        { value: "__all__", label: "All Environments" },
+                        ...environments.map((env) => ({ value: env.id, label: env.slug })),
+                      ]}
+                    >
                       <SelectTrigger
                         id="environment-select"
                         className="capitalize"

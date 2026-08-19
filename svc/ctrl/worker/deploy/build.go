@@ -2,16 +2,13 @@ package deploy
 
 import (
 	"context"
-	"crypto/sha256"
 	"database/sql"
-	"encoding/hex"
 	"errors"
 	"fmt"
 	"maps"
 	"net/http"
 	"regexp"
 	"slices"
-	"sort"
 	"strings"
 	"time"
 
@@ -32,11 +29,11 @@ import (
 
 	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
+	githubclient "github.com/unkeyed/unkey/pkg/github"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/validation"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
-	githubclient "github.com/unkeyed/unkey/svc/ctrl/worker/github"
 )
 
 const (
@@ -99,10 +96,10 @@ var knownBuildErrors = []knownBuildError{
 	{substr: "linting failed", message: "Dockerfile linting failed. Please check the Dockerfile for issues."},
 }
 
-// repoFullNameRegex matches a GitHub "owner/repo" full name. Mirrors the
-// dashboard's REPO_FULL_NAME guard (resolve-deploy-ref.ts) so untrusted inputs
-// can't smuggle a URL fragment or path traversal into the git context URL.
-var repoFullNameRegex = regexp.MustCompile(`^[A-Za-z0-9._-]+/[A-Za-z0-9._-]+$`)
+// pathNameSegmentRegex matches one GitHub owner/repo or build-context path
+// segment. Additional validation rejects "." and ".." so names cannot become
+// path traversal once interpolated into the git context URL.
+var pathNameSegmentRegex = regexp.MustCompile(`^[A-Za-z0-9._-]+$`)
 
 // commitSHARegex matches a hex git object name (7-40 chars). Anything outside
 // this set (':', '#', '/', '..') could alter what BuildKit checks out once
@@ -116,10 +113,10 @@ var commitSHARegex = regexp.MustCompile(`^[0-9a-fA-F]{7,40}$`)
 // buildGitContextURL unchecked. Validating here covers the dashboard, webhook,
 // rebuild-from-DB, and API paths at once.
 func validateGitBuildParams(params gitBuildParams) error {
-	if !repoFullNameRegex.MatchString(params.Repository) {
+	if !isValidRepoFullName(params.Repository) {
 		return fmt.Errorf("invalid repository %q: must be in owner/repo form", params.Repository)
 	}
-	if params.ForkRepository != "" && !repoFullNameRegex.MatchString(params.ForkRepository) {
+	if params.ForkRepository != "" && !isValidRepoFullName(params.ForkRepository) {
 		return fmt.Errorf("invalid fork repository %q: must be in owner/repo form", params.ForkRepository)
 	}
 	// SHA is unused when a PR ref drives the build (refs/pull/<n>/head), so only
@@ -127,14 +124,53 @@ func validateGitBuildParams(params gitBuildParams) error {
 	if params.CommitSHA != "" && !commitSHARegex.MatchString(params.CommitSHA) {
 		return fmt.Errorf("invalid commit SHA %q: must be a hex git object name", params.CommitSHA)
 	}
+	if !isValidGitContextPath(params.ContextPath) {
+		return fmt.Errorf("invalid context path %q: must be a relative path using letters, digits, '.', '_', or '-'", params.ContextPath)
+	}
 	return nil
 }
 
-// buildResult contains the output of a Docker image build, including the image
-// name and identifiers needed to trace builds in Depot.
+func isValidRepoFullName(fullName string) bool {
+	owner, repo, ok := strings.Cut(fullName, "/")
+	if !ok || strings.Contains(repo, "/") {
+		return false
+	}
+	return isValidPathNameSegment(owner) && isValidPathNameSegment(repo)
+}
+
+func isValidGitContextPath(path string) bool {
+	if path != strings.TrimSpace(path) {
+		return false
+	}
+	if path == "" || path == "." {
+		return true
+	}
+	if strings.HasPrefix(path, "/") || strings.Contains(path, `\`) {
+		return false
+	}
+	for _, segment := range strings.Split(path, "/") {
+		if !isValidPathNameSegment(segment) {
+			return false
+		}
+	}
+	return true
+}
+
+func isValidPathNameSegment(segment string) bool {
+	return segment != "." && segment != ".." && pathNameSegmentRegex.MatchString(segment)
+}
+
+// buildResult contains the output of a Docker image build: the pushed image
+// name and identifiers to trace the build in the backend that ran it.
 type buildResult struct {
-	ImageName      string
-	DepotBuildID   string
+	ImageName string
+
+	// BuildID identifies the build in the backend that ran it: the Depot
+	// build ID on the depot backend, the deployment ID on the kubernetes
+	// backend (which has no external build system to reference).
+	BuildID string
+
+	// DepotProjectID is empty on non-depot backends.
 	DepotProjectID string
 }
 
@@ -165,6 +201,7 @@ type gitBuildParams struct {
 // resolves identically for every build method: Dockerfile and Railpack
 // builders receive it and only implement what differentiates them.
 type gitBuildContext struct {
+	// DepotProjectID is empty on non-depot backends.
 	DepotProjectID string
 
 	// GithubToken is empty when the clone needs no credential: unauthenticated
@@ -182,10 +219,10 @@ type gitBuildContext struct {
 }
 
 // runGitBuild wraps the lifecycle shared by every git-based image build:
-// validating the untrusted git params, resolving the Depot project and the
-// least-privilege clone credential, decrypting env vars, and invoking the
-// method-specific buildFn inside a single durable Run with the standard
-// retry bounds.
+// validating the untrusted git params, resolving the Depot project (depot
+// backend only) and the least-privilege clone credential, decrypting env
+// vars, and invoking the method-specific buildFn inside a single durable Run
+// with the standard retry bounds.
 //
 // buildFn executes entirely within one Run attempt on one process. It must
 // keep all process-local state (temp files, BuildKit connections) inside its
@@ -200,11 +237,15 @@ func (w *Workflow) runGitBuild(
 		return nil, restate.TerminalError(fmt.Errorf("invalid git build params: %w", err))
 	}
 
-	depotProjectID, err := restate.Run(ctx, func(runCtx restate.RunContext) (string, error) {
-		return w.getOrCreateDepotProject(runCtx, params.ProjectID)
-	}, restate.WithName("get or create depot project"), restate.WithMaxRetryAttempts(runMaxAttempts))
-	if err != nil {
-		return nil, fmt.Errorf("failed to get/create depot project: %w", err)
+	depotProjectID := ""
+	if w.buildConfig.Backend == BuildBackendDepot {
+		var err error
+		depotProjectID, err = restate.Run(ctx, func(runCtx restate.RunContext) (string, error) {
+			return w.getOrCreateDepotProject(runCtx, params.ProjectID)
+		}, restate.WithName("get or create depot project"), restate.WithMaxRetryAttempts(runMaxAttempts))
+		if err != nil {
+			return nil, fmt.Errorf("failed to get/create depot project: %w", err)
+		}
 	}
 
 	return restate.Run(ctx, func(runCtx restate.RunContext) (*buildResult, error) {
@@ -255,12 +296,13 @@ func (w *Workflow) runGitBuild(
 		restate.WithMaxRetryDuration(buildImageRetryCeiling))
 }
 
-// buildDockerImageFromGit builds a container image from a GitHub repository using Depot.
+// buildDockerImageFromGit builds a container image from a GitHub repository
+// on the configured build backend.
 //
-// The method retrieves or creates a Depot project for the Unkey project,
-// acquires a remote build machine, and executes the build. BuildKit fetches
-// the repository directly from GitHub using the provided installation token.
-// Build progress is streamed to ClickHouse for observability.
+// The method acquires a BuildKit client from the backend and executes the
+// build. BuildKit fetches the repository directly from GitHub using the
+// provided installation token. Build progress is streamed to ClickHouse for
+// observability.
 func (w *Workflow) buildDockerImageFromGit(
 	ctx restate.Context,
 	params gitBuildParams,
@@ -296,17 +338,13 @@ func (w *Workflow) buildDockerImageFromGit(
 		// repo) the git fetch needs no credentials, so skip the auth secret
 		// entirely.
 		var solverOptions client.SolveOpt
-		var err error
 		if bctx.GithubToken == "" {
-			solverOptions, err = w.buildSolverOptions(platform, bctx.GitContextURL, dockerfilePath, bctx.ImageName, bctx.EnvVars)
+			solverOptions = w.buildSolverOptions(platform, bctx.GitContextURL, dockerfilePath, bctx.ImageName, bctx.EnvVars)
 		} else {
-			solverOptions, err = w.buildGitSolverOptions(platform, bctx.GitContextURL, dockerfilePath, bctx.ImageName, bctx.GithubToken, bctx.EnvVars)
-		}
-		if err != nil {
-			return nil, restate.TerminalError(fmt.Errorf("failed to build solver options: %w", err))
+			solverOptions = w.buildGitSolverOptions(platform, bctx.GitContextURL, dockerfilePath, bctx.ImageName, bctx.GithubToken, bctx.EnvVars)
 		}
 
-		return w.solveOnDepotMachine(runCtx, bctx.DepotProjectID, bctx.ImageName, params, solverOptions)
+		return w.solveOnBuildMachine(runCtx, bctx.DepotProjectID, bctx.ImageName, params, solverOptions)
 	})
 }
 
@@ -352,6 +390,22 @@ func buildGitContextURL(params gitBuildParams) string {
 		return fmt.Sprintf("https://github.com/%s.git#%s:%s", buildRepo, ref, contextPath)
 	}
 	return fmt.Sprintf("https://github.com/%s.git#%s", buildRepo, ref)
+}
+
+// withBuildkit acquires a connected BuildKit client from the configured
+// build backend and invokes fn with it. Returns the backend's build ID
+// alongside fn's error. The backend value is validated at config load, so
+// anything but the two known backends is unreachable.
+func (w *Workflow) withBuildkit(
+	runCtx context.Context,
+	depotProjectID string,
+	params gitBuildParams,
+	fn func(buildClient *client.Client) error,
+) (string, error) {
+	if w.buildConfig.Backend == BuildBackendKubernetes {
+		return w.withKubernetesBuildkit(runCtx, params, fn)
+	}
+	return w.withDepotBuildkit(runCtx, depotProjectID, params, fn)
 }
 
 // withDepotBuildkit creates a Depot build, acquires a remote BuildKit
@@ -464,18 +518,18 @@ func isTransientSolveError(err error) bool {
 	return false
 }
 
-// solveOnDepotMachine runs a single solve on a freshly acquired Depot
+// solveOnBuildMachine runs a single solve on a freshly acquired build
 // machine. Used by the Dockerfile build path; the Railpack path composes
-// [Workflow.withDepotBuildkit] and [Workflow.solveWithStatus] directly since
-// it performs two solves on one machine.
-func (w *Workflow) solveOnDepotMachine(
+// [Workflow.withBuildkit] and [Workflow.solveWithStatus] directly since it
+// performs two solves on one machine.
+func (w *Workflow) solveOnBuildMachine(
 	runCtx context.Context,
 	depotProjectID string,
 	imageName string,
 	params gitBuildParams,
 	solverOptions client.SolveOpt,
 ) (*buildResult, error) {
-	depotBuildID, err := w.withDepotBuildkit(runCtx, depotProjectID, params, func(buildClient *client.Client) error {
+	buildID, err := w.withBuildkit(runCtx, depotProjectID, params, func(buildClient *client.Client) error {
 		return w.solveWithStatus(runCtx, buildClient, params, solverOptions)
 	})
 	if err != nil {
@@ -486,9 +540,30 @@ func (w *Workflow) solveOnDepotMachine(
 
 	return &buildResult{
 		ImageName:      imageName,
-		DepotBuildID:   depotBuildID,
+		BuildID:        buildID,
 		DepotProjectID: depotProjectID,
 	}, nil
+}
+
+// imageExports returns the BuildKit export entry that pushes the built image
+// to the registry. registry.insecure permits the plain-HTTP push local dev
+// registries need; BuildKit refuses HTTP without it.
+func (w *Workflow) imageExports(imageName string) []client.ExportEntry {
+	attrs := map[string]string{
+		"name":           imageName,
+		"oci-mediatypes": "true",
+		"push":           "true",
+	}
+	if w.registryConfig.Insecure {
+		attrs["registry.insecure"] = "true"
+	}
+	//nolint: exhaustruct
+	return []client.ExportEntry{
+		{
+			Type:  "image",
+			Attrs: attrs,
+		},
+	}
 }
 
 // registryAuthProvider returns a session attachable that authenticates image
@@ -524,67 +599,18 @@ func repoOwner(fullName string) string {
 	return owner
 }
 
-// buildEnvFileSecret serializes env vars into a .env-formatted byte slice
-// for injection as a BuildKit secret. Returns (nil, nil) if there are no env
-// vars. Returns an error if any value contains newline or carriage-return
-// characters, which would corrupt the .env line format.
-func buildEnvFileSecret(envVars map[string]string) ([]byte, error) {
-	if len(envVars) == 0 {
-		return nil, nil
-	}
-
-	var badKeys []string
-	for k, v := range envVars {
-		if strings.ContainsAny(v, "\n\r") {
-			badKeys = append(badKeys, k)
-		}
-	}
-	if len(badKeys) != 0 {
-		sort.Strings(badKeys)
-		return nil, fmt.Errorf("environment variables contain newlines which cannot be represented in .env format: %s", strings.Join(badKeys, ", "))
-	}
-
-	var buf strings.Builder
-	for k, v := range envVars {
-		buf.WriteString(k)
-		buf.WriteByte('=')
-		buf.WriteString(v)
-		buf.WriteByte('\n')
-	}
-	return []byte(buf.String()), nil
-}
-
-// hashEnvVars returns a hex-encoded SHA-256 hash of the sorted key=value pairs.
-// The hash is stable across runs and safe to embed in image metadata without
-// exposing secret values. Returns an empty string if there are no env vars.
-func hashEnvVars(envVars map[string]string) string {
-	if len(envVars) == 0 {
-		return ""
-	}
-	pairs := make([]string, 0, len(envVars))
-	for k, v := range envVars {
-		pairs = append(pairs, k+"="+v)
-	}
-	sort.Strings(pairs)
-	h := sha256.Sum256([]byte(strings.Join(pairs, "\n")))
-	return hex.EncodeToString(h[:])
-}
-
 // buildSolverOptions constructs the BuildKit solver configuration for URL-based
 // contexts, including registry auth and image export settings. Use
 // [Workflow.buildGitSolverOptions] when the context requires GitHub credentials.
 func (w *Workflow) buildSolverOptions(
 	platform, contextURL, dockerfilePath, imageName string,
 	envVars map[string]string,
-) (client.SolveOpt, error) {
+) client.SolveOpt {
 	sessionAttachables := []session.Attachable{
 		w.registryAuthProvider(),
 	}
 
-	envFile, err := buildEnvFileSecret(envVars)
-	if err != nil {
-		return client.SolveOpt{}, fmt.Errorf("invalid environment variables: %w", err)
-	}
+	envFile := buildEnvFileSecret(envVars)
 
 	frontendAttrs := map[string]string{
 		"platform": platform,
@@ -611,18 +637,8 @@ func (w *Workflow) buildSolverOptions(
 		Frontend:      "dockerfile.v0",
 		FrontendAttrs: frontendAttrs,
 		Session:       sessionAttachables,
-		//nolint: exhaustruct
-		Exports: []client.ExportEntry{
-			{
-				Type: "image",
-				Attrs: map[string]string{
-					"name":           imageName,
-					"oci-mediatypes": "true",
-					"push":           "true",
-				},
-			},
-		},
-	}, nil
+		Exports:       w.imageExports(imageName),
+	}
 }
 
 // buildGitSolverOptions constructs the buildkit solver configuration for a git context build.
@@ -630,14 +646,11 @@ func (w *Workflow) buildSolverOptions(
 func (w *Workflow) buildGitSolverOptions(
 	platform, gitContextURL, dockerfilePath, imageName, githubToken string,
 	envVars map[string]string,
-) (client.SolveOpt, error) {
+) client.SolveOpt {
 	secrets := map[string][]byte{
 		gitAuthTokenSecretID: []byte(githubToken),
 	}
-	envFile, err := buildEnvFileSecret(envVars)
-	if err != nil {
-		return client.SolveOpt{}, fmt.Errorf("invalid environment variables: %w", err)
-	}
+	envFile := buildEnvFileSecret(envVars)
 
 	frontendAttrs := map[string]string{
 		"platform": platform,
@@ -664,18 +677,8 @@ func (w *Workflow) buildGitSolverOptions(
 			w.registryAuthProvider(),
 			secretsprovider.FromMap(secrets),
 		},
-		//nolint: exhaustruct
-		Exports: []client.ExportEntry{
-			{
-				Type: "image",
-				Attrs: map[string]string{
-					"name":           imageName,
-					"oci-mediatypes": "true",
-					"push":           "true",
-				},
-			},
-		},
-	}, nil
+		Exports: w.imageExports(imageName),
+	}
 }
 
 // getOrCreateDepotProject retrieves the Depot project ID for an Unkey project,
@@ -686,7 +689,7 @@ func (w *Workflow) getOrCreateDepotProject(ctx context.Context, unkeyProjectID s
 		return "", fmt.Errorf("failed to query project: %w", err)
 	}
 
-	projectName := fmt.Sprintf("%s-%s", w.depotConfig.ProjectPrefix, unkeyProjectID)
+	projectName := fmt.Sprintf("%s-%s", w.buildConfig.Depot.ProjectPrefix, unkeyProjectID)
 	if project.DepotProjectID.Valid && project.DepotProjectID.String != "" {
 		logger.Info(
 			"Returning existing depot project",
@@ -705,11 +708,11 @@ func (w *Workflow) getOrCreateDepotProject(ctx context.Context, unkeyProjectID s
 		}
 	})
 
-	projectClient := corev1connect.NewProjectServiceClient(httpClient, w.depotConfig.APIUrl, connect.WithInterceptors(authInterceptor))
+	projectClient := corev1connect.NewProjectServiceClient(httpClient, w.buildConfig.Depot.APIUrl, connect.WithInterceptors(authInterceptor))
 	//nolint: exhaustruct // optional fields
 	createResp, err := projectClient.CreateProject(ctx, connect.NewRequest(&corev1.CreateProjectRequest{
 		Name:     projectName,
-		RegionId: w.depotConfig.ProjectRegion,
+		RegionId: w.buildConfig.Depot.ProjectRegion,
 		//nolint: exhaustruct // missing fields is deprecated
 		CachePolicy: &corev1.CachePolicy{
 			KeepGb:   defaultCacheKeepGB,

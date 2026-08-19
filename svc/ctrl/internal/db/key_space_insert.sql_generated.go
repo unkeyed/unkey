@@ -14,6 +14,7 @@ const insertKeySpace = `-- name: InsertKeySpace :exec
 INSERT INTO ` + "`" + `key_auth` + "`" + ` (
     id,
     workspace_id,
+    project_id,
     created_at_m,
     store_encrypted_keys,
     default_prefix,
@@ -23,7 +24,8 @@ INSERT INTO ` + "`" + `key_auth` + "`" + ` (
 ) VALUES (
     ?,
     ?,
-      ?,
+    ?,
+    ?,
     ?,
     ?,
     ?,
@@ -35,6 +37,7 @@ INSERT INTO ` + "`" + `key_auth` + "`" + ` (
 type InsertKeySpaceParams struct {
 	ID                 string         `db:"id"`
 	WorkspaceID        string         `db:"workspace_id"`
+	ProjectID          string         `db:"project_id"`
 	CreatedAtM         int64          `db:"created_at_m"`
 	StoreEncryptedKeys bool           `db:"store_encrypted_keys"`
 	DefaultPrefix      sql.NullString `db:"default_prefix"`
@@ -46,6 +49,7 @@ type InsertKeySpaceParams struct {
 //	INSERT INTO `key_auth` (
 //	    id,
 //	    workspace_id,
+//	    project_id,
 //	    created_at_m,
 //	    store_encrypted_keys,
 //	    default_prefix,
@@ -55,7 +59,8 @@ type InsertKeySpaceParams struct {
 //	) VALUES (
 //	    ?,
 //	    ?,
-//	      ?,
+//	    ?,
+//	    ?,
 //	    ?,
 //	    ?,
 //	    ?,
@@ -66,6 +71,7 @@ func (q *Queries) InsertKeySpace(ctx context.Context, arg InsertKeySpaceParams) 
 	_, err := q.db.ExecContext(ctx, insertKeySpace,
 		arg.ID,
 		arg.WorkspaceID,
+		arg.ProjectID,
 		arg.CreatedAtM,
 		arg.StoreEncryptedKeys,
 		arg.DefaultPrefix,

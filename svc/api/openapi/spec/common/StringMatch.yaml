@@ -1,0 +1,28 @@
+type: object
+properties:
+  exact:
+    type: string
+    minLength: 1
+    maxLength: 1024
+    description: Matches when the input equals this value.
+  prefix:
+    type: string
+    minLength: 1
+    maxLength: 1024
+    description: Matches when the input starts with this value.
+  regex:
+    type: string
+    minLength: 1
+    maxLength: 1024
+    description: |-
+      Matches when the input satisfies this RE2 regular expression. Invalid
+      patterns are rejected when the policy is created.
+  ignoreCase:
+    type: boolean
+    description: Compare case-insensitively. May accompany any match mode.
+additionalProperties: false
+description: |-
+  String matcher. Exactly one of `exact`, `prefix` or `regex` must be set.
+example:
+  prefix: /api/
+  ignoreCase: true

@@ -34,7 +34,7 @@ export const getRegionRps = workspaceProcedure
       }
 
       try {
-        const result = await clickhouse.sentinel.rps.byRegion({
+        const result = await clickhouse.frontline.rps.byRegion({
           workspaceId: ctx.workspace.id,
           deploymentId: input.deploymentId,
           environmentId: deployment.environmentId,

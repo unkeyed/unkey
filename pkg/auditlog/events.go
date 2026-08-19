@@ -66,7 +66,12 @@ const (
 	PortalSessionExchangeEvent AuditLogEvent = "portal.session.exchange"
 
 	// Deployment events
-	DeploymentRebuildEvent AuditLogEvent = "deployment.rebuild"
+	DeploymentCreateEvent   AuditLogEvent = "deployment.create"
+	DeploymentRebuildEvent  AuditLogEvent = "deployment.rebuild"
+	DeploymentStopEvent     AuditLogEvent = "deployment.stop"
+	DeploymentWakeEvent     AuditLogEvent = "deployment.wake"
+	DeploymentPromoteEvent  AuditLogEvent = "deployment.promote"
+	DeploymentRollbackEvent AuditLogEvent = "deployment.rollback"
 
 	// Project events
 	ProjectCreateEvent AuditLogEvent = "project.create"
@@ -74,10 +79,18 @@ const (
 	ProjectDeleteEvent AuditLogEvent = "project.delete"
 
 	// App events
-	AppCreateEvent AuditLogEvent = "app.create"
-	AppUpdateEvent AuditLogEvent = "app.update"
-	AppDeleteEvent AuditLogEvent = "app.delete"
+	AppCreateEvent               AuditLogEvent = "app.create"
+	AppUpdateEvent               AuditLogEvent = "app.update"
+	AppDeleteEvent               AuditLogEvent = "app.delete"
+	AppConnectRepositoryEvent    AuditLogEvent = "app.connect_repository"
+	AppDisconnectRepositoryEvent AuditLogEvent = "app.disconnect_repository"
 
 	// Environment events
+	EnvironmentUpdateEvent AuditLogEvent = "environment.update"
 	EnvironmentDeleteEvent AuditLogEvent = "environment.delete"
+
+	// Custom domain events
+	DomainCreateEvent AuditLogEvent = "domain.create"
+	DomainDeleteEvent AuditLogEvent = "domain.delete"
+	DomainVerifyEvent AuditLogEvent = "domain.verify"
 )

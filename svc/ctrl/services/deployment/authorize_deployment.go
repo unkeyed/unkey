@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"time"
 
+	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
+
 	"connectrpc.com/connect"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
@@ -36,9 +38,12 @@ func (s *Service) AuthorizeDeployment(ctx context.Context, req *connect.Request[
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to find deployment: %w", err))
 	}
 
-	if deployment.Status != db.DeploymentsStatusAwaitingApproval {
+	if deployment.Status != mysqltype.DeploymentsStatusAwaitingApproval {
 		return nil, connect.NewError(connect.CodeFailedPrecondition,
 			fmt.Errorf("deployment %s is not awaiting approval (current status: %s)", deploymentID, deployment.Status))
+	}
+	if err := s.ensureWorkspaceCanDeploy(ctx, deployment.WorkspaceID, "authorize"); err != nil {
+		return nil, err
 	}
 
 	// Look up build settings and repo connection before changing status,
@@ -60,8 +65,8 @@ func (s *Service) AuthorizeDeployment(ctx context.Context, req *connect.Request[
 	// concurrent authorization requests from triggering duplicate deploys.
 	casResult, err := s.db.CompareAndSwapDeploymentStatus(ctx, db.CompareAndSwapDeploymentStatusParams{
 		ID:             deploymentID,
-		ExpectedStatus: db.DeploymentsStatusAwaitingApproval,
-		NewStatus:      db.DeploymentsStatusPending,
+		ExpectedStatus: mysqltype.DeploymentsStatusAwaitingApproval,
+		NewStatus:      mysqltype.DeploymentsStatusPending,
 		UpdatedAt:      sql.NullInt64{Int64: time.Now().UnixMilli(), Valid: true},
 	})
 	if err != nil {
@@ -102,7 +107,6 @@ func (s *Service) AuthorizeDeployment(ctx context.Context, req *connect.Request[
 
 	deployReq := &hydrav1.DeployRequest{
 		DeploymentId: deploymentID,
-		KeyAuthId:    nil,
 		Command:      deployment.Command,
 		Source: &hydrav1.DeployRequest_Git{
 			Git: &hydrav1.GitSource{
@@ -126,8 +130,8 @@ func (s *Service) AuthorizeDeployment(ctx context.Context, req *connect.Request[
 		// Revert status back to awaiting_approval since the deploy failed.
 		if _, revertErr := s.db.CompareAndSwapDeploymentStatus(ctx, db.CompareAndSwapDeploymentStatusParams{
 			ID:             deploymentID,
-			ExpectedStatus: db.DeploymentsStatusPending,
-			NewStatus:      db.DeploymentsStatusAwaitingApproval,
+			ExpectedStatus: mysqltype.DeploymentsStatusPending,
+			NewStatus:      mysqltype.DeploymentsStatusAwaitingApproval,
 			UpdatedAt:      sql.NullInt64{Int64: time.Now().UnixMilli(), Valid: true},
 		}); revertErr != nil {
 			logger.Error("failed to revert deployment status after deploy failure",

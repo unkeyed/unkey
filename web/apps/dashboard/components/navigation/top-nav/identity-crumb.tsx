@@ -1,19 +1,17 @@
 "use client";
 
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
+import { useIdentities } from "@/lib/identities-query";
 import { routes } from "@/lib/navigation/routes";
-import { trpc } from "@/lib/trpc/client";
 import { Fingerprint, Plus } from "@unkey/icons";
 import { Crumb } from "./crumb";
 import type { CrumbPopoverItem } from "./crumb-popover";
 
 export function IdentityCrumb({ identityId }: { identityId: string }) {
   const workspace = useWorkspaceNavigation();
-  const { data } = trpc.identity.query.useQuery({});
+  const { identities } = useIdentities();
 
-  const identities = data?.identities ?? [];
-
-  const items: CrumbPopoverItem[] = identities.map((identity) => ({
+  const items: CrumbPopoverItem[] = identities.slice(0, 50).map((identity) => ({
     id: identity.id,
     label: identity.id,
     href: routes.identities.detail({ workspaceSlug: workspace.slug, identityId: identity.id }),

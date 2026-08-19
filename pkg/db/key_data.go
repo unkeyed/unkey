@@ -1,8 +1,6 @@
 package db
 
-import (
-	"database/sql"
-)
+import "database/sql"
 
 // KeyData represents the complete data for a key including all relationships
 type KeyData struct {
@@ -21,7 +19,7 @@ type KeyData struct {
 
 // KeyRow constraint for types that can be converted to KeyData
 type KeyRow interface {
-	FindLiveKeyByHashRow | FindLiveKeyByIDRow | ListLiveKeysByKeySpaceIDRow
+	FindLiveKeyByHashRow | FindLiveKeyByIDRow | ListLiveKeysByKeySpaceIDRow | ListLiveKeysByKeySpaceIDsRow
 }
 
 // ToKeyData converts either query result into KeyData using generics
@@ -39,6 +37,14 @@ func ToKeyData[T KeyRow](row T) *KeyData {
 		return buildKeyDataFromKeySpace(&r)
 	case *ListLiveKeysByKeySpaceIDRow:
 		return buildKeyDataFromKeySpace(r)
+	case ListLiveKeysByKeySpaceIDsRow:
+		// The plural-keyspace query selects the same columns as the singular one,
+		// so the generated rows are field-identical and convert directly.
+		kr := ListLiveKeysByKeySpaceIDRow(r)
+		return buildKeyDataFromKeySpace(&kr)
+	case *ListLiveKeysByKeySpaceIDsRow:
+		kr := ListLiveKeysByKeySpaceIDRow(*r)
+		return buildKeyDataFromKeySpace(&kr)
 	default:
 		return nil
 	}
@@ -60,7 +66,6 @@ func buildKeyDataFromKeySpace(r *ListLiveKeysByKeySpaceIDRow) *KeyData {
 			WorkspaceID:        r.WorkspaceID,
 			ForWorkspaceID:     r.ForWorkspaceID,
 			Name:               r.Name,
-			OwnerID:            r.OwnerID,
 			IdentityID:         r.IdentityID,
 			Meta:               r.Meta,
 			Expires:            r.Expires,
@@ -131,7 +136,6 @@ func buildKeyData(r *FindLiveKeyByHashRow) *KeyData {
 			WorkspaceID:       r.WorkspaceID,
 			ForWorkspaceID:    r.ForWorkspaceID,
 			Name:              r.Name,
-			OwnerID:           r.OwnerID,
 			IdentityID:        r.IdentityID,
 			Meta:              r.Meta,
 			Expires:           r.Expires,

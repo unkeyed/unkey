@@ -5,6 +5,8 @@ import (
 	"database/sql"
 	"time"
 
+	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
+
 	"connectrpc.com/connect"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
@@ -19,12 +21,12 @@ import (
 // handler may be parked on the instances-ready awakeable. If the deployment
 // is outside this set (ready, failed, cancelled, superseded, skipped,
 // stopped, awaiting_approval), there's nothing to notify.
-var deploymentActiveStatuses = map[db.DeploymentsStatus]bool{
-	db.DeploymentsStatusStarting:   true,
-	db.DeploymentsStatusBuilding:   true,
-	db.DeploymentsStatusDeploying:  true,
-	db.DeploymentsStatusNetwork:    true,
-	db.DeploymentsStatusFinalizing: true,
+var deploymentActiveStatuses = map[mysqltype.DeploymentsStatus]bool{
+	mysqltype.DeploymentsStatusStarting:   true,
+	mysqltype.DeploymentsStatusBuilding:   true,
+	mysqltype.DeploymentsStatusDeploying:  true,
+	mysqltype.DeploymentsStatusNetwork:    true,
+	mysqltype.DeploymentsStatusFinalizing: true,
 }
 
 // ReportDeploymentStatus reconciles the observed deployment state reported by a krane agent.
@@ -43,6 +45,10 @@ var deploymentActiveStatuses = map[db.DeploymentsStatus]bool{
 // Returns CodeUnauthenticated if bearer token is invalid. Database errors during the
 // transaction are returned as-is (not wrapped in Connect error codes).
 func (s *Service) ReportDeploymentStatus(ctx context.Context, req *connect.Request[ctrlv1.ReportDeploymentStatusRequest]) (response *connect.Response[ctrlv1.ReportDeploymentStatusResponse], retErr error) {
+	if err := auth.Authenticate(req, s.bearer); err != nil {
+		return nil, err
+	}
+
 	start := time.Now()
 	defer func() {
 		elapsed := time.Since(start)
@@ -59,11 +65,7 @@ func (s *Service) ReportDeploymentStatus(ctx context.Context, req *connect.Reque
 
 	logger.Info("reporting deployment status", "req", req.Msg)
 
-	if err := auth.Authenticate(req, s.bearer); err != nil {
-		return nil, err
-	}
-
-	region, err := s.resolveRegion(ctx, req.Msg.GetRegion())
+	cluster, err := s.resolveCluster(ctx, req.Msg.GetCluster())
 	if err != nil {
 		return nil, err
 	}
@@ -85,7 +87,7 @@ func (s *Service) ReportDeploymentStatus(ctx context.Context, req *connect.Reque
 
 				staleInstances, err := db.NewQueries(tx).FindInstancesByDeploymentIdAndRegionID(ctx, db.FindInstancesByDeploymentIdAndRegionIDParams{
 					DeploymentID: deployment.ID,
-					RegionID:     region.ID,
+					RegionID:     cluster.Region.ID,
 				})
 				if err != nil {
 					return err
@@ -100,7 +102,7 @@ func (s *Service) ReportDeploymentStatus(ctx context.Context, req *connect.Reque
 					if _, ok := wantInstanceNames[staleInstance.K8sName]; !ok {
 						err = db.NewQueries(tx).DeleteInstance(ctx, db.DeleteInstanceParams{
 							K8sName:  staleInstance.K8sName,
-							RegionID: region.ID,
+							RegionID: cluster.Region.ID,
 						})
 						if err != nil {
 							return err
@@ -115,7 +117,7 @@ func (s *Service) ReportDeploymentStatus(ctx context.Context, req *connect.Reque
 						WorkspaceID:   deployment.WorkspaceID,
 						ProjectID:     deployment.ProjectID,
 						AppID:         deployment.AppID,
-						RegionID:      region.ID,
+						RegionID:      cluster.Region.ID,
 						K8sName:       instance.GetK8SName(),
 						Address:       instance.GetAddress(),
 						CpuMillicores: int32(instance.GetCpuMillicores()),
@@ -137,12 +139,12 @@ func (s *Service) ReportDeploymentStatus(ctx context.Context, req *connect.Reque
 
 				if err := db.NewQueries(tx).DeleteDeploymentInstances(ctx, db.DeleteDeploymentInstancesParams{
 					DeploymentID: deployment.ID,
-					RegionID:     region.ID,
+					RegionID:     cluster.Region.ID,
 				}); err != nil {
 					return err
 				}
 
-				if deployment.DesiredState == db.DeploymentsDesiredStateStopped {
+				if deployment.DesiredState == mysqltype.DeploymentsDesiredStateStopped {
 					if err := db.NewQueries(tx).StopDeploymentIfNoInstances(ctx, db.StopDeploymentIfNoInstancesParams{
 						ID:        deployment.ID,
 						UpdatedAt: sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},

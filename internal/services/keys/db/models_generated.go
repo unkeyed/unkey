@@ -100,6 +100,7 @@ type Api struct {
 	ID               string           `db:"id"`
 	Name             string           `db:"name"`
 	WorkspaceID      string           `db:"workspace_id"`
+	ProjectID        string           `db:"project_id"`
 	IpWhitelist      sql.NullString   `db:"ip_whitelist"`
 	AuthType         NullApisAuthType `db:"auth_type"`
 	KeyAuthID        sql.NullString   `db:"key_auth_id"`
@@ -114,6 +115,7 @@ type Identity struct {
 	ID          string        `db:"id"`
 	ExternalID  string        `db:"external_id"`
 	WorkspaceID string        `db:"workspace_id"`
+	ProjectID   string        `db:"project_id"`
 	Environment string        `db:"environment"`
 	Meta        []byte        `db:"meta"`
 	Deleted     bool          `db:"deleted"`
@@ -130,7 +132,6 @@ type Key struct {
 	WorkspaceID        string         `db:"workspace_id"`
 	ForWorkspaceID     sql.NullString `db:"for_workspace_id"`
 	Name               sql.NullString `db:"name"`
-	OwnerID            sql.NullString `db:"owner_id"`
 	IdentityID         sql.NullString `db:"identity_id"`
 	Meta               sql.NullString `db:"meta"`
 	Expires            sql.NullTime   `db:"expires"`
@@ -151,6 +152,7 @@ type KeyAuth struct {
 	Pk                 uint64         `db:"pk"`
 	ID                 string         `db:"id"`
 	WorkspaceID        string         `db:"workspace_id"`
+	ProjectID          string         `db:"project_id"`
 	CreatedAtM         int64          `db:"created_at_m"`
 	UpdatedAtM         sql.NullInt64  `db:"updated_at_m"`
 	DeletedAtM         sql.NullInt64  `db:"deleted_at_m"`
@@ -186,33 +188,35 @@ type KeysRole struct {
 	UpdatedAtM  sql.NullInt64 `db:"updated_at_m"`
 }
 
+type Limit struct {
+	Pk                                    uint64        `db:"pk"`
+	WorkspaceID                           string        `db:"workspace_id"`
+	ApiBillableOperationsCountMaxPerMonth uint64        `db:"api_billable_operations_count_max_per_month"`
+	ApiRequestsCountMaxPerMinute          sql.NullInt32 `db:"api_requests_count_max_per_minute"`
+	LogsRetentionDaysMax                  uint16        `db:"logs_retention_days_max"`
+	LogsAuditRetentionDaysMax             uint16        `db:"logs_audit_retention_days_max"`
+	TeamEnabled                           bool          `db:"team_enabled"`
+	CpuCoresMax                           uint32        `db:"cpu_cores_max"`
+	CpuCoresMaxPerInstance                uint32        `db:"cpu_cores_max_per_instance"`
+	MemoryMibMax                          uint32        `db:"memory_mib_max"`
+	MemoryMibMaxPerInstance               uint32        `db:"memory_mib_max_per_instance"`
+	StorageMibMax                         uint32        `db:"storage_mib_max"`
+	StorageMibMaxPerInstance              uint32        `db:"storage_mib_max_per_instance"`
+	BuildsConcurrentMax                   uint16        `db:"builds_concurrent_max"`
+	CustomDomainsMax                      uint32        `db:"custom_domains_max"`
+	AutoscalingReplicasMax                uint16        `db:"autoscaling_replicas_max"`
+}
+
 type Permission struct {
 	Pk          uint64         `db:"pk"`
 	ID          string         `db:"id"`
 	WorkspaceID string         `db:"workspace_id"`
+	ProjectID   string         `db:"project_id"`
 	Name        string         `db:"name"`
 	Slug        string         `db:"slug"`
 	Description sql.NullString `db:"description"`
 	CreatedAtM  int64          `db:"created_at_m"`
 	UpdatedAtM  sql.NullInt64  `db:"updated_at_m"`
-}
-
-type Quotas struct {
-	Pk                          uint64        `db:"pk"`
-	WorkspaceID                 string        `db:"workspace_id"`
-	RequestsPerMonth            int64         `db:"requests_per_month"`
-	LogsRetentionDays           int32         `db:"logs_retention_days"`
-	AuditLogsRetentionDays      int32         `db:"audit_logs_retention_days"`
-	Team                        bool          `db:"team"`
-	RatelimitApiLimit           sql.NullInt32 `db:"ratelimit_api_limit"`
-	RatelimitApiDuration        sql.NullInt32 `db:"ratelimit_api_duration"`
-	AllocatedCpuMillicoresTotal uint32        `db:"allocated_cpu_millicores_total"`
-	AllocatedMemoryMibTotal     uint32        `db:"allocated_memory_mib_total"`
-	AllocatedStorageMibTotal    uint32        `db:"allocated_storage_mib_total"`
-	MaxCpuMillicoresPerInstance uint32        `db:"max_cpu_millicores_per_instance"`
-	MaxMemoryMibPerInstance     uint32        `db:"max_memory_mib_per_instance"`
-	MaxStorageMibPerInstance    uint32        `db:"max_storage_mib_per_instance"`
-	MaxConcurrentBuilds         uint32        `db:"max_concurrent_builds"`
 }
 
 type Ratelimit struct {
@@ -233,6 +237,7 @@ type Role struct {
 	Pk          uint64         `db:"pk"`
 	ID          string         `db:"id"`
 	WorkspaceID string         `db:"workspace_id"`
+	ProjectID   string         `db:"project_id"`
 	Name        string         `db:"name"`
 	Description sql.NullString `db:"description"`
 	CreatedAtM  int64          `db:"created_at_m"`
@@ -249,22 +254,17 @@ type RolesPermission struct {
 }
 
 type Workspace struct {
-	Pk                   uint64          `db:"pk"`
-	ID                   string          `db:"id"`
-	OrgID                string          `db:"org_id"`
-	Name                 string          `db:"name"`
-	Slug                 string          `db:"slug"`
-	K8sNamespace         sql.NullString  `db:"k8s_namespace"`
-	Tier                 sql.NullString  `db:"tier"`
-	StripeCustomerID     sql.NullString  `db:"stripe_customer_id"`
-	StripeSubscriptionID sql.NullString  `db:"stripe_subscription_id"`
-	DeployPlan           sql.NullString  `db:"deploy_plan"`
-	DeployPlanOverride   sql.NullString  `db:"deploy_plan_override"`
-	BetaFeatures         json.RawMessage `db:"beta_features"`
-	Subscriptions        []byte          `db:"subscriptions"`
-	Enabled              bool            `db:"enabled"`
-	DeleteProtection     sql.NullBool    `db:"delete_protection"`
-	CreatedAtM           int64           `db:"created_at_m"`
-	UpdatedAtM           sql.NullInt64   `db:"updated_at_m"`
-	DeletedAtM           sql.NullInt64   `db:"deleted_at_m"`
+	Pk               uint64          `db:"pk"`
+	ID               string          `db:"id"`
+	OrgID            string          `db:"org_id"`
+	Name             string          `db:"name"`
+	Slug             string          `db:"slug"`
+	K8sNamespace     sql.NullString  `db:"k8s_namespace"`
+	BetaFeatures     json.RawMessage `db:"beta_features"`
+	Subscriptions    []byte          `db:"subscriptions"`
+	Enabled          bool            `db:"enabled"`
+	DeleteProtection sql.NullBool    `db:"delete_protection"`
+	CreatedAtM       int64           `db:"created_at_m"`
+	UpdatedAtM       sql.NullInt64   `db:"updated_at_m"`
+	DeletedAtM       sql.NullInt64   `db:"deleted_at_m"`
 }

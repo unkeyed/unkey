@@ -6,7 +6,7 @@ import (
 
 	restate "github.com/restatedev/sdk-go"
 	"github.com/stretchr/testify/require"
-	githubclient "github.com/unkeyed/unkey/svc/ctrl/worker/github"
+	githubclient "github.com/unkeyed/unkey/pkg/github"
 )
 
 func TestBuildGitContextURL(t *testing.T) {
@@ -91,6 +91,14 @@ func TestValidateGitBuildParams(t *testing.T) {
 			params: gitBuildParams{Repository: "acme/app", PrNumber: 42},
 		},
 		{
+			name:   "valid context subdir",
+			params: gitBuildParams{Repository: "acme/app", CommitSHA: "deadbeefdeadbeef", ContextPath: "services/api.v1"},
+		},
+		{
+			name:   "valid root context dot",
+			params: gitBuildParams{Repository: "acme/app", CommitSHA: "deadbeefdeadbeef", ContextPath: "."},
+		},
+		{
 			name:    "empty repository",
 			params:  gitBuildParams{CommitSHA: "deadbeef"},
 			wantErr: true,
@@ -103,6 +111,16 @@ func TestValidateGitBuildParams(t *testing.T) {
 		{
 			name:    "repository with path traversal",
 			params:  gitBuildParams{Repository: "acme/app/../evil", CommitSHA: "deadbeef"},
+			wantErr: true,
+		},
+		{
+			name:    "repository owner dot segment",
+			params:  gitBuildParams{Repository: "./app", CommitSHA: "deadbeef"},
+			wantErr: true,
+		},
+		{
+			name:    "repository repo dot dot segment",
+			params:  gitBuildParams{Repository: "acme/..", CommitSHA: "deadbeef"},
 			wantErr: true,
 		},
 		{
@@ -128,6 +146,46 @@ func TestValidateGitBuildParams(t *testing.T) {
 		{
 			name:    "commit sha non-hex",
 			params:  gitBuildParams{Repository: "acme/app", CommitSHA: "zzzzzzz"},
+			wantErr: true,
+		},
+		{
+			name:    "context path traversal segment",
+			params:  gitBuildParams{Repository: "acme/app", CommitSHA: "deadbeef", ContextPath: "services/../api"},
+			wantErr: true,
+		},
+		{
+			name:    "context path absolute",
+			params:  gitBuildParams{Repository: "acme/app", CommitSHA: "deadbeef", ContextPath: "/services/api"},
+			wantErr: true,
+		},
+		{
+			name:    "context path dot prefix",
+			params:  gitBuildParams{Repository: "acme/app", CommitSHA: "deadbeef", ContextPath: "./services/api"},
+			wantErr: true,
+		},
+		{
+			name:    "context path with url fragment",
+			params:  gitBuildParams{Repository: "acme/app", CommitSHA: "deadbeef", ContextPath: "services/api#main"},
+			wantErr: true,
+		},
+		{
+			name:    "context path with ref separator",
+			params:  gitBuildParams{Repository: "acme/app", CommitSHA: "deadbeef", ContextPath: "services:api"},
+			wantErr: true,
+		},
+		{
+			name:    "context path with whitespace",
+			params:  gitBuildParams{Repository: "acme/app", CommitSHA: "deadbeef", ContextPath: "services/api v1"},
+			wantErr: true,
+		},
+		{
+			name:    "context path with control character",
+			params:  gitBuildParams{Repository: "acme/app", CommitSHA: "deadbeef", ContextPath: "services/api\n"},
+			wantErr: true,
+		},
+		{
+			name:    "context path with backslash",
+			params:  gitBuildParams{Repository: "acme/app", CommitSHA: "deadbeef", ContextPath: `services\api`},
 			wantErr: true,
 		},
 	}
@@ -156,15 +214,13 @@ func TestBuildGitSolverOptions_EnvSecretGating(t *testing.T) {
 	}
 
 	t.Run("nil env registers no env secret", func(t *testing.T) {
-		opts, err := w.buildGitSolverOptions("linux/amd64", "https://github.com/acme/app.git#refs/pull/1/head", "Dockerfile", "img:tag", "ghs_token", nil)
-		require.NoError(t, err)
+		opts := w.buildGitSolverOptions("linux/amd64", "https://github.com/acme/app.git#refs/pull/1/head", "Dockerfile", "img:tag", "ghs_token", nil)
 		require.NotContains(t, opts.FrontendAttrs, "label:org.unkey.env-hash")
 		require.NotContains(t, opts.FrontendAttrs, "build-arg:UNKEY_SECRETS_ID")
 	})
 
 	t.Run("non-empty env registers env secret", func(t *testing.T) {
-		opts, err := w.buildGitSolverOptions("linux/amd64", "https://github.com/acme/app.git#deadbeef", "Dockerfile", "img:tag", "ghs_token", map[string]string{"FOO": "bar"})
-		require.NoError(t, err)
+		opts := w.buildGitSolverOptions("linux/amd64", "https://github.com/acme/app.git#deadbeef", "Dockerfile", "img:tag", "ghs_token", map[string]string{"FOO": "bar"})
 		require.Contains(t, opts.FrontendAttrs, "label:org.unkey.env-hash")
 		require.Contains(t, opts.FrontendAttrs, "build-arg:UNKEY_SECRETS_ID")
 	})

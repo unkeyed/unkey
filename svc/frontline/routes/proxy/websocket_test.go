@@ -137,6 +137,7 @@ func startFrontline(t *testing.T, backendAddr string) (string, func()) {
 		ReadTimeout:        -1,
 		WriteTimeout:       -1,
 		MaxRequestBodySize: 0,
+		StreamRequestBody:  true,
 	})
 	require.NoError(t, err)
 	// Mirror the production middleware chain in svc/frontline/routes/register.go.

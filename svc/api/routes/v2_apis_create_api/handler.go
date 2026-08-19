@@ -15,6 +15,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/pkg/zen"
+	"github.com/unkeyed/unkey/svc/api/internal/projects"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
@@ -57,10 +58,16 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	apiId, err := db.TxWithResultRetry(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) (string, error) {
+		projectID, resolveErr := projects.EnsureDefaultProject(ctx, tx, principal.WorkspaceID)
+		if resolveErr != nil {
+			return "", resolveErr
+		}
+
 		keySpaceId := uid.New(uid.KeySpacePrefix)
 		err = db.Query.InsertKeySpace(ctx, tx, db.InsertKeySpaceParams{
 			ID:                 keySpaceId,
 			WorkspaceID:        principal.WorkspaceID,
+			ProjectID:          projectID,
 			CreatedAtM:         time.Now().UnixMilli(),
 			DefaultPrefix:      sql.NullString{Valid: false, String: ""},
 			DefaultBytes:       sql.NullInt32{Valid: false, Int32: 0},
@@ -78,6 +85,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			ID:          apiId,
 			Name:        req.Name,
 			WorkspaceID: principal.WorkspaceID,
+			ProjectID:   projectID,
 			AuthType:    db.NullApisAuthType{Valid: true, ApisAuthType: db.ApisAuthTypeKey},
 			KeyAuthID:   sql.NullString{Valid: true, String: keySpaceId},
 			IpWhitelist: sql.NullString{Valid: false, String: ""},

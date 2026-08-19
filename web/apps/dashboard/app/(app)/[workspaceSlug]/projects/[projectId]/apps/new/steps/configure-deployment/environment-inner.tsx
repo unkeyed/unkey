@@ -2,23 +2,20 @@
 
 import { EnvironmentContext } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/settings/environment-provider";
 import { collection } from "@/lib/collections";
-import {
-  ENVIRONMENT_SETTINGS_DEFAULTS,
-  type EnvironmentSettings,
-  buildSettingsMutations,
-  useSettingsIsSaving,
-} from "@/lib/collections/deploy/environment-settings";
-import { trpc } from "@/lib/trpc/client";
-import { eq, useLiveQuery } from "@tanstack/react-db";
-import { toast } from "@unkey/ui";
-import { type PropsWithChildren, useEffect, useMemo, useRef } from "react";
+import { useSettingsIsSaving } from "@/lib/collections/deploy/environment-settings";
+import { and, eq, useLiveQuery } from "@tanstack/react-db";
+import { type PropsWithChildren, useEffect, useMemo } from "react";
 
 export const OnboardingEnvironmentSettingsInner = ({
   children,
+  projectId,
+  appId,
   prodEnvId,
   environments,
   onSettingsReady,
 }: PropsWithChildren<{
+  projectId: string;
+  appId: string;
   prodEnvId: string;
   environments: { id: string; slug: string }[];
   onSettingsReady: () => void;
@@ -32,20 +29,16 @@ export const OnboardingEnvironmentSettingsInner = ({
     (q) =>
       q
         .from({ s: collection.environmentSettings })
-        .where(({ s }) => eq(s.environmentId, prodEnvId)),
-    [prodEnvId],
+        .where(({ s }) =>
+          and(eq(s.projectId, projectId), eq(s.appId, appId), eq(s.environmentId, prodEnvId)),
+        ),
+    [prodEnvId, projectId, appId],
   );
 
   const settings = data.at(0);
 
   const isSaving = useSettingsIsSaving();
 
-  const { data: availableRegions } = trpc.deploy.environmentSettings.getAvailableRegions.useQuery(
-    undefined,
-    { enabled: Boolean(prodEnvId) },
-  );
-
-  useInitializeSettings(environments, availableRegions);
   useEffect(() => {
     if (settings) {
       onSettingsReady();
@@ -59,93 +52,26 @@ export const OnboardingEnvironmentSettingsInner = ({
   return (
     <EnvironmentContext.Provider value={{ settings, variant: "onboarding", isSaving }}>
       {otherEnvIds.map((id) => (
-        <EnvironmentSettingsPreloader key={id} envId={id} />
+        <EnvironmentSettingsPreloader key={id} projectId={projectId} appId={appId} envId={id} />
       ))}
       {children}
     </EnvironmentContext.Provider>
   );
 };
 
-const EnvironmentSettingsPreloader = ({ envId }: { envId: string }) => {
+const EnvironmentSettingsPreloader = ({
+  projectId,
+  appId,
+  envId,
+}: { projectId: string; appId: string; envId: string }) => {
   useLiveQuery(
     (q) =>
-      q.from({ s: collection.environmentSettings }).where(({ s }) => eq(s.environmentId, envId)),
-    [envId],
+      q
+        .from({ s: collection.environmentSettings })
+        .where(({ s }) =>
+          and(eq(s.projectId, projectId), eq(s.appId, appId), eq(s.environmentId, envId)),
+        ),
+    [envId, projectId, appId],
   );
   return null;
 };
-
-// Settings are empty initially so we persist defaults for every environment.
-// Uses buildSettingsMutations directly to bypass the collection's onUpdate
-// handler (which would show toasts and whose silent metadata flag is broken).
-function useInitializeSettings(
-  environments: { id: string; slug: string }[],
-  availableRegions: { id: string; name: string }[] | undefined,
-) {
-  const hasInitializedRef = useRef(false);
-
-  useEffect(() => {
-    if (!availableRegions || environments.length === 0) {
-      return;
-    }
-    if (hasInitializedRef.current) {
-      return;
-    }
-    hasInitializedRef.current = true;
-
-    const d = ENVIRONMENT_SETTINGS_DEFAULTS;
-    const defaults = {
-      autoDeploy: d.autoDeploy,
-      dockerfile: d.dockerfile,
-      dockerContext: d.dockerContext,
-      buildCommand: d.buildCommand,
-      watchPaths: [] as string[],
-      port: d.port,
-      cpuMillicores: d.cpuMillicores,
-      memoryMib: d.memoryMib,
-      storageMib: d.storageMib,
-      command: [] as string[],
-      healthcheck: null,
-      regions: availableRegions.map((r) => ({
-        id: r.id,
-        name: r.name,
-        replicasMin: 1,
-        replicasMax: 1,
-      })),
-      shutdownSignal: d.shutdownSignal,
-      upstreamProtocol: d.upstreamProtocol,
-      openapiSpecPath: null,
-    };
-
-    const empty: EnvironmentSettings = {
-      environmentId: "",
-      autoDeploy: true,
-      dockerfile: "",
-      dockerContext: "",
-      buildCommand: "",
-      watchPaths: [],
-      port: 0,
-      cpuMillicores: 0,
-      memoryMib: 0,
-      storageMib: 0,
-      command: [],
-      healthcheck: null,
-      regions: [],
-      shutdownSignal: "",
-      upstreamProtocol: "http1",
-      openapiSpecPath: null,
-    };
-
-    const mutations = environments.flatMap((env) =>
-      buildSettingsMutations(env.id, empty, { ...defaults, environmentId: env.id }),
-    );
-
-    if (mutations.length > 0) {
-      Promise.all(mutations).catch((err) => {
-        toast.error("Failed to initialize settings", {
-          description: err instanceof Error ? err.message : "An unexpected error occurred",
-        });
-      });
-    }
-  }, [environments, availableRegions]);
-}

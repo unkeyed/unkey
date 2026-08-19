@@ -13,7 +13,9 @@ import (
 	"github.com/prometheus/client_golang/prometheus/collectors"
 	restate "github.com/restatedev/sdk-go"
 	restateIngress "github.com/restatedev/sdk-go/ingress"
+	stripesdk "github.com/stripe/stripe-go/v86"
 	"github.com/unkeyed/unkey/gen/proto/ctrl/v1/ctrlv1connect"
+
 	"github.com/unkeyed/unkey/pkg/batch"
 	"github.com/unkeyed/unkey/pkg/buildinfo"
 	"github.com/unkeyed/unkey/pkg/cache"
@@ -21,13 +23,17 @@ import (
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/dns/domainconnect"
+	githubclient "github.com/unkeyed/unkey/pkg/github"
 	"github.com/unkeyed/unkey/pkg/logger"
+	"github.com/unkeyed/unkey/pkg/mysql/sqlcomment"
 	"github.com/unkeyed/unkey/pkg/otel"
 	"github.com/unkeyed/unkey/pkg/prometheus"
 	"github.com/unkeyed/unkey/pkg/prometheus/lazy"
 	restateadmin "github.com/unkeyed/unkey/pkg/restate/admin"
 	"github.com/unkeyed/unkey/pkg/runner"
 	"github.com/unkeyed/unkey/pkg/uid"
+	githubwebhook "github.com/unkeyed/unkey/svc/ctrl/api/webhooks/github"
+	stripewebhook "github.com/unkeyed/unkey/svc/ctrl/api/webhooks/stripe"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/auditlogs"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 	"github.com/unkeyed/unkey/svc/ctrl/services/acme"
@@ -39,7 +45,6 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/services/openapi"
 	"github.com/unkeyed/unkey/svc/ctrl/services/ops"
 	"github.com/unkeyed/unkey/svc/ctrl/services/project"
-	githubclient "github.com/unkeyed/unkey/svc/ctrl/worker/github"
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
 )
@@ -106,7 +111,7 @@ func Run(ctx context.Context, cfg Config) error {
 	buildinfo.RegisterBuildInfoMetrics("ctrl")
 
 	// Initialize database
-	database, err := db.New(cfg.Database)
+	database, err := db.New(cfg.Database, sqlcomment.ForService("ctrl-api", cfg.Region))
 	if err != nil {
 		return fmt.Errorf("unable to create db: %w", err)
 	}
@@ -155,7 +160,7 @@ func Run(ctx context.Context, cfg Config) error {
 		if chErr != nil {
 			return fmt.Errorf("failed to create clickhouse client: %w", chErr)
 		}
-		instanceEvents = clickhouse.NewBuffer[schema.InstanceEventV1](chClient, "default.instance_events_raw_v1", clickhouse.BufferConfig{
+		instanceEvents = clickhouse.NewBuffer[schema.InstanceEventV1](chClient, clickhouse.BufferConfig{
 			Name:          "instance_events",
 			BatchSize:     1_000,
 			BufferSize:    2_000,
@@ -175,6 +180,7 @@ func Run(ctx context.Context, cfg Config) error {
 		Clock:          clk,
 		TopologyCache:  topologyCache,
 		InstanceEvents: instanceEvents,
+		RegionalDomain: cfg.RegionalDomain,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to create cluster service: %w", err)
@@ -238,6 +244,7 @@ func Run(ctx context.Context, cfg Config) error {
 		Auditlogs:                       auditlogSvc,
 		AllowUnauthenticatedDeployments: cfg.GitHub.AllowUnauthenticatedDeployments,
 		Bearer:                          cfg.AuthToken,
+		EnforceDeployGate:               cfg.DeployGate.Enforce,
 	})
 	mux.Handle(ctrlv1connect.NewDeployServiceHandler(deploymentSvc))
 	mux.Handle(ctrlv1connect.NewOpsServiceHandler(ops.New(ops.Config{
@@ -253,6 +260,7 @@ func Run(ctx context.Context, cfg Config) error {
 		DB:             database,
 		DomainCache:    domainCache,
 		ChallengeCache: challengeCache,
+		Bearer:         cfg.AuthToken,
 	})))
 	mux.Handle(ctrlv1connect.NewClusterServiceHandler(c))
 	// Domain Connect signing key (optional)
@@ -271,6 +279,7 @@ func Run(ctx context.Context, cfg Config) error {
 		Database:                   database,
 		Restate:                    restateClient,
 		RestateAdmin:               restateAdminClient,
+		Auditlogs:                  auditlogSvc,
 		CnameDomain:                cfg.CnameDomain,
 		DomainConnectPrivateKeyPEM: dcPrivateKeyPEM,
 		Bearer:                     cfg.AuthToken,
@@ -291,13 +300,22 @@ func Run(ctx context.Context, cfg Config) error {
 	})))
 
 	if cfg.GitHub.WebhookSecret != "" {
-		mux.Handle("POST /webhooks/github", &GitHubWebhook{
-			restate:       restateClient,
-			webhookSecret: cfg.GitHub.WebhookSecret,
-		})
+		mux.Handle("POST /webhooks/github", githubwebhook.New(restateClient, cfg.GitHub.WebhookSecret))
 		logger.Info("GitHub webhook handler registered")
 	} else {
 		logger.Info("GitHub webhook handler not registered, no webhook secret configured")
+	}
+
+	if cfg.Stripe.WebhookSecret != "" && cfg.Stripe.SecretKey != "" {
+		mux.Handle("POST /webhooks/stripe", stripewebhook.New(
+			restateClient,
+			stripesdk.NewClient(cfg.Stripe.SecretKey),
+			database,
+			cfg.Stripe.WebhookSecret,
+		))
+		logger.Info("Stripe webhook handler registered")
+	} else {
+		logger.Info("Stripe webhook handler not registered, no webhook secret configured")
 	}
 
 	// Configure server
@@ -343,15 +361,14 @@ func Run(ctx context.Context, cfg Config) error {
 		return nil
 	})
 
-	// Bootstrap certificates (wildcard domain records)
+	// Ensure the default wildcard certificate (*.{DefaultDomain}) exists and
+	// trigger issuance. This is the one infra cert not tied to a region event;
+	// per-region wildcards are provisioned on demand when a region first
+	// registers via cluster.Heartbeat. Best-effort: EnsureInfraCertificate
+	// never fails and is a no-op once the cert exists.
 	if cfg.DefaultDomain != "" {
-		certBootstrap := &certificateBootstrap{
-			database:       database,
-			defaultDomain:  cfg.DefaultDomain,
-			regionalDomain: cfg.RegionalDomain,
-		}
 		r.Go(func(ctx context.Context) error {
-			certBootstrap.run(ctx)
+			c.EnsureInfraCertificate(ctx, "*."+cfg.DefaultDomain)
 			return nil
 		})
 	}

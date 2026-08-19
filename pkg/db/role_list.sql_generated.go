@@ -11,7 +11,7 @@ import (
 )
 
 const listRoles = `-- name: ListRoles :many
-SELECT r.pk, r.id, r.workspace_id, r.name, r.description, r.created_at_m, r.updated_at_m, COALESCE(
+SELECT r.pk, r.id, r.workspace_id, r.project_id, r.name, r.description, r.created_at_m, r.updated_at_m, COALESCE(
         (SELECT JSON_ARRAYAGG(
             json_object(
                 'id', permission.id,
@@ -29,20 +29,23 @@ SELECT r.pk, r.id, r.workspace_id, r.name, r.description, r.created_at_m, r.upda
 FROM roles r
 WHERE r.workspace_id = ?
 AND r.id >= ?
+AND (? IS NULL OR LOWER(r.id) LIKE LOWER(?) OR LOWER(r.name) LIKE LOWER(?) OR LOWER(r.description) LIKE LOWER(?))
 ORDER BY r.id
 LIMIT ?
 `
 
 type ListRolesParams struct {
-	WorkspaceID string `db:"workspace_id"`
-	IDCursor    string `db:"id_cursor"`
-	Limit       int32  `db:"limit"`
+	WorkspaceID string         `db:"workspace_id"`
+	IDCursor    string         `db:"id_cursor"`
+	Search      sql.NullString `db:"search"`
+	Limit       int32          `db:"limit"`
 }
 
 type ListRolesRow struct {
 	Pk          uint64         `db:"pk"`
 	ID          string         `db:"id"`
 	WorkspaceID string         `db:"workspace_id"`
+	ProjectID   string         `db:"project_id"`
 	Name        string         `db:"name"`
 	Description sql.NullString `db:"description"`
 	CreatedAtM  int64          `db:"created_at_m"`
@@ -50,9 +53,9 @@ type ListRolesRow struct {
 	Permissions interface{}    `db:"permissions"`
 }
 
-// ListRoles
+// search is a pre-escaped LIKE pattern built by mysql.SearchContains; NULL disables the filter
 //
-//	SELECT r.pk, r.id, r.workspace_id, r.name, r.description, r.created_at_m, r.updated_at_m, COALESCE(
+//	SELECT r.pk, r.id, r.workspace_id, r.project_id, r.name, r.description, r.created_at_m, r.updated_at_m, COALESCE(
 //	        (SELECT JSON_ARRAYAGG(
 //	            json_object(
 //	                'id', permission.id,
@@ -70,10 +73,19 @@ type ListRolesRow struct {
 //	FROM roles r
 //	WHERE r.workspace_id = ?
 //	AND r.id >= ?
+//	AND (? IS NULL OR LOWER(r.id) LIKE LOWER(?) OR LOWER(r.name) LIKE LOWER(?) OR LOWER(r.description) LIKE LOWER(?))
 //	ORDER BY r.id
 //	LIMIT ?
 func (q *Queries) ListRoles(ctx context.Context, db DBTX, arg ListRolesParams) ([]ListRolesRow, error) {
-	rows, err := db.QueryContext(ctx, listRoles, arg.WorkspaceID, arg.IDCursor, arg.Limit)
+	rows, err := db.QueryContext(ctx, listRoles,
+		arg.WorkspaceID,
+		arg.IDCursor,
+		arg.Search,
+		arg.Search,
+		arg.Search,
+		arg.Search,
+		arg.Limit,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -85,6 +97,7 @@ func (q *Queries) ListRoles(ctx context.Context, db DBTX, arg ListRolesParams) (
 			&i.Pk,
 			&i.ID,
 			&i.WorkspaceID,
+			&i.ProjectID,
 			&i.Name,
 			&i.Description,
 			&i.CreatedAtM,

@@ -1,0 +1,285 @@
+post:
+  tags:
+    - domains
+  summary: Get domain
+  description: |
+    Retrieve a custom domain and its verification status.
+
+    Address the domain by its id or by its name. Names are unique per workspace, so
+    `api.acme.com` is sufficient. You do not need to supply a project, app, or environment.
+
+    Use this endpoint to poll after `domains.createDomain`. Verification runs in the background
+    and checks DNS approximately each minute.
+
+    `status: verified` means the domain is verified. Unkey has configured routing and requested a
+    certificate. Each entry in `dnsRecords` has a `verified` flag. The flag shows which records
+    Unkey has read back, so you can see which records are still missing. Some providers hide a
+    record from DNS lookups, for example a proxied or flattened routing record. Such a record stays
+    `false` while it serves traffic. `verificationError` gives the reason for the last failed
+    attempt.
+
+    `dnsRecords` contains the same values that `domains.createDomain` returned. Use it to recover
+    the values without creating the domain again.
+
+    **Important**: verification stops 24 hours after the domain was created, and the status becomes
+    `failed`. The window starts at `createdAt`, not at the last attempt.
+
+    **Required Permissions**
+
+    Your root key must have one of the following permissions:
+    - `environment.*.read_domain` (to read domains in any environment)
+    - `environment.<environment_id>.read_domain` (to read domains in a specific environment)
+  operationId: domains.getDomain
+  x-speakeasy-name-override: getDomain
+  x-unkey-idempotency: idempotent
+  security:
+    - bearer: []
+  requestBody:
+    content:
+      application/json:
+        schema:
+          "$ref": "./V2DomainsGetDomainRequestBody.yaml"
+        examples:
+          byName:
+            summary: Retrieve by domain name
+            description: The name is unique per workspace. It addresses the domain on its own.
+            value:
+              domain: api.acme.com
+          byId:
+            summary: Retrieve by domain ID
+            description: Uses the id that domains.createDomain returned.
+            value:
+              domain: dom_1234abcd
+    required: true
+  responses:
+    "200":
+      description: |
+        Successfully retrieved the domain.
+      content:
+        application/json:
+          schema:
+            "$ref": "./V2DomainsGetDomainResponseBody.yaml"
+          examples:
+            verified:
+              summary: Domain serving traffic
+              description: The routing record verified the domain. Unkey did not need the TXT record.
+              value:
+                meta:
+                  requestId: req_1234abcd
+                data:
+                  id: dom_1234abcd
+                  domain: api.acme.com
+                  projectId: proj_1234abcd
+                  appId: app_1234abcd
+                  environmentId: env_1234abcd
+                  status: verified
+                  dnsRecords:
+                    - type: CNAME
+                      name: api.acme.com
+                      value: a1b2c3d4e5f6g7h8.cname.unkey.com
+                      ttl: 60
+                      verified: true
+                      note: Create as DNS-only if your provider offers the choice.
+                    - type: TXT
+                      name: _unkey.api.acme.com
+                      value: unkey-domain-verify=3ZQ8xK1mP7vT5nR2wY6bJ4hL
+                      ttl: 60
+                      verified: false
+                      note: Proves ownership. Create it alongside the routing record.
+                  createdAt: 1704067200000
+                  updatedAt: 1704067260000
+            pending:
+              summary: Domain created, not checked yet
+              description: No DNS check has run yet. Neither record is verified, and updatedAt is absent.
+              value:
+                meta:
+                  requestId: req_1234abcd
+                data:
+                  id: dom_1234abcd
+                  domain: api.acme.com
+                  projectId: proj_1234abcd
+                  appId: app_1234abcd
+                  environmentId: env_1234abcd
+                  status: pending
+                  dnsRecords:
+                    - type: CNAME
+                      name: api.acme.com
+                      value: a1b2c3d4e5f6g7h8.cname.unkey.com
+                      ttl: 60
+                      verified: false
+                      note: Create as DNS-only if your provider offers the choice.
+                    - type: TXT
+                      name: _unkey.api.acme.com
+                      value: unkey-domain-verify=3ZQ8xK1mP7vT5nR2wY6bJ4hL
+                      ttl: 60
+                      verified: false
+                      note: Proves ownership. Create it alongside the routing record.
+                  createdAt: 1704067200000
+            verifiedThroughOwnership:
+              summary: Apex domain serving, routing record unreadable
+              description: An apex domain routes through an alias that Unkey cannot read back. Only its TXT record reports verified while the domain serves traffic.
+              value:
+                meta:
+                  requestId: req_1234abcd
+                data:
+                  id: dom_1234abcd
+                  domain: acme.com
+                  projectId: proj_1234abcd
+                  appId: app_1234abcd
+                  environmentId: env_1234abcd
+                  status: verified
+                  dnsRecords:
+                    - type: ALIAS
+                      name: acme.com
+                      value: a1b2c3d4e5f6g7h8.cname.unkey.com
+                      ttl: 60
+                      verified: false
+                      note: Apex domains cannot hold a CNAME. Use ALIAS, ANAME, or a flattened CNAME depending on your provider.
+                    - type: TXT
+                      name: _unkey.acme.com
+                      value: unkey-domain-verify=3ZQ8xK1mP7vT5nR2wY6bJ4hL
+                      ttl: 60
+                      verified: true
+                      note: Proves ownership. An apex domain cannot be verified through its routing record, so this is the only proof available.
+                  createdAt: 1704067200000
+                  updatedAt: 1704067260000
+            failed:
+              summary: Verification timed out
+              description: The required DNS records did not appear within 24 hours.
+              value:
+                meta:
+                  requestId: req_1234abcd
+                data:
+                  id: dom_1234abcd
+                  domain: api.acme.com
+                  projectId: proj_1234abcd
+                  appId: app_1234abcd
+                  environmentId: env_1234abcd
+                  status: failed
+                  verificationError: domain verification timed out after 24 hours
+                  dnsRecords:
+                    - type: CNAME
+                      name: api.acme.com
+                      value: a1b2c3d4e5f6g7h8.cname.unkey.com
+                      ttl: 60
+                      verified: false
+                      note: Create as DNS-only if your provider offers the choice.
+                    - type: TXT
+                      name: _unkey.api.acme.com
+                      value: unkey-domain-verify=3ZQ8xK1mP7vT5nR2wY6bJ4hL
+                      ttl: 60
+                      verified: false
+                      note: Proves ownership. Create it alongside the routing record.
+                  createdAt: 1704067200000
+                  updatedAt: 1704153600000
+    "400":
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/BadRequestErrorResponse.yaml"
+          examples:
+            invalidIdentifier:
+              summary: Identifier too short
+              description: The schema only bounds the identifier's length. An identifier that is neither a valid name nor a stored id returns a 404.
+              value:
+                meta:
+                  requestId: req_1234abcd
+                error:
+                  title: Bad Request
+                  detail: The domain identifier must be between 4 and 253 characters.
+                  status: 400
+                  type: validation-error
+                  errors:
+                    - location: body.domain
+                      message: minLength must be at least 4 characters
+                      fix: Pass a domain name such as 'api.acme.com' or an id such as 'dom_1234abcd'
+    "401":
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/UnauthorizedErrorResponse.yaml"
+          examples:
+            invalidRootKey:
+              summary: Root key not found
+              value:
+                meta:
+                  requestId: req_1234abcd
+                error:
+                  title: Unauthorized
+                  detail: The provided root key is invalid.
+                  status: 401
+                  type: unauthorized
+    "403":
+      description: |
+        Forbidden - The root key or its workspace is disabled. A root key that simply lacks
+        `environment.*.read_domain` receives a 404 instead, so permissions cannot be used to discover
+        which domains exist.
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/ForbiddenErrorResponse.yaml"
+          examples:
+            keyDisabled:
+              summary: Root key disabled
+              value:
+                meta:
+                  requestId: req_1234abcd
+                error:
+                  title: Forbidden
+                  detail: The provided root key is disabled.
+                  status: 403
+                  type: forbidden
+    "404":
+      description: |
+        Not Found - The domain does not exist in your workspace, or your root key may not read it.
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/NotFoundErrorResponse.yaml"
+          examples:
+            domainNotFound:
+              summary: Domain not found
+              value:
+                meta:
+                  requestId: req_1234abcd
+                error:
+                  title: Not Found
+                  detail: The requested domain does not exist.
+                  status: 404
+                  type: not-found
+    "429":
+      description: Too Many Requests
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/TooManyRequestsErrorResponse.yaml"
+          examples:
+            rateLimited:
+              summary: Workspace rate limit exceeded
+              value:
+                meta:
+                  requestId: req_1234abcd
+                error:
+                  title: Too Many Requests
+                  detail: You have exceeded the rate limit for this operation. Retry after the window resets.
+                  status: 429
+                  type: rate-limited
+    "500":
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/InternalServerErrorResponse.yaml"
+          examples:
+            internalError:
+              summary: Unexpected server error
+              value:
+                meta:
+                  requestId: req_1234abcd
+                error:
+                  title: Internal Server Error
+                  detail: An unexpected error occurred. Contact support@unkey.com with the requestId.
+                  status: 500
+                  type: internal-server-error

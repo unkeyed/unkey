@@ -289,7 +289,7 @@ See `cmd/api/apis/create_api.go` for a complete working example. Follow this pat
 
 ## Linter requirements
 
-The project uses strict linters via bazel nogo. Watch out for:
+The project uses strict linters via golangci-lint. Watch out for:
 
 - **exhaustruct**: All struct fields must be initialized, even optional ones. Use `nil` for pointer fields you're not setting:
   ```go
@@ -515,6 +515,6 @@ When running in `check` mode, also report:
 
 After generating, run:
 ```
-mise run bazel && mise run build && mise run fmt
+mise run lint && mise run build && mise run fmt
 ```
-Fix any errors before finishing. Never use `go build` directly. Always use `mise run build` (Bazel), as it runs stricter linters.
+Fix any errors before finishing. Never use `go build` directly. Always use `mise run build`.

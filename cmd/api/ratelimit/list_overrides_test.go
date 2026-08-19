@@ -9,10 +9,6 @@ import (
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
-// listResponse returns an array-shaped data envelope so the SDK can unmarshal
-// the response without error (list endpoints expect "data":[] not "data":{}).
-const listResponse = `{"meta":{"requestId":"test"},"data":[]}`
-
 func TestListOverrides(t *testing.T) {
 	tests := []struct {
 		name string
@@ -57,7 +53,7 @@ func TestListOverrides(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			req := util.CaptureRequestWithResponse[openapi.V2RatelimitListOverridesRequestBody](t, Cmd(), tt.args, listResponse)
+			req := util.CaptureRequestWithData[openapi.V2RatelimitListOverridesRequestBody](t, Cmd(), tt.args, []any{})
 			require.Equal(t, tt.want, req)
 		})
 	}

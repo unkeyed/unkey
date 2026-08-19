@@ -1,14 +1,18 @@
 "use client";
 
+import { useDeployActionGate } from "@/app/(app)/[workspaceSlug]/projects/_components/hooks/use-deploy-action-gate";
 import { RepoDisplay } from "@/app/(app)/[workspaceSlug]/projects/_components/list/repo-display";
 import { NavbarActionButton } from "@/components/navigation/action-button";
 import { collection } from "@/lib/collections";
 import { queryClient } from "@/lib/collections/client";
+import { UnsupportedDeployRefError, parseDeployRef } from "@/lib/deploy-ref";
 import { githubUrl } from "@/lib/github-url";
 import { routes } from "@/lib/navigation/routes";
 import { trpc } from "@/lib/trpc/client";
+import { getErrorMessage, getUnkeyClient } from "@/lib/unkey-client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { and, eq, useLiveQuery } from "@tanstack/react-db";
+import { useMutation } from "@tanstack/react-query";
 import { ChevronDown, CodeBranch, Plus } from "@unkey/icons";
 import {
   Button,
@@ -106,6 +110,11 @@ export const CreateDeploymentButton = ({
   const [isOpen, setIsOpen] = useState(defaultOpen ?? false);
   const { projectId, environments, deployments } = useProjectData();
   const appId = useAppId();
+  const { gated, openPaywall, planGate } = useDeployActionGate();
+
+  // Without a Compute plan the trigger opens the paywall instead of the create
+  // dialog; the backend still rejects the mutation either way.
+  const openDeploymentDialog = () => (gated ? openPaywall() : setIsOpen(true));
 
   // Repo connections are per-app, not per-project; the project-level
   // repositoryFullName is just some app's connection in this project.
@@ -149,7 +158,7 @@ export const CreateDeploymentButton = ({
   const branches = repoDetails.data?.branches ?? [];
 
   const defaultEnvironmentSlug =
-    environments.find((e) => e.slug === "preview")?.slug ?? environments[0]?.slug ?? "";
+    environments.find((e) => e.kind === "preview")?.slug ?? environments[0]?.slug ?? "";
 
   const formSchema = createFormSchema(repo, isCliApp);
 
@@ -179,7 +188,20 @@ export const CreateDeploymentButton = ({
     }
   }, [defaultEnvironmentSlug, setValue]);
 
-  const createDeployment = trpc.deploy.deployment.create.useMutation({
+  const createDeployment = useMutation({
+    mutationFn: async (source: {
+      environment: string;
+      git?: ReturnType<typeof parseDeployRef>;
+      image?: string;
+    }) => {
+      const res = await getUnkeyClient().deployments.createDeployment({
+        project: projectId,
+        app: appId,
+        environment: source.environment,
+        ...(source.image ? { image: { dockerImage: source.image } } : { git: source.git ?? {} }),
+      });
+      return { deploymentId: res.data.deploymentId };
+    },
     async onSuccess(data) {
       toast.success("Deployment has been created");
       reset();
@@ -196,19 +218,28 @@ export const CreateDeploymentButton = ({
     },
     onError(err) {
       console.error(err);
-      toast.error(err.message);
+      toast.error(getErrorMessage(err));
     },
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    createDeployment.mutate({
-      projectId,
-      appId,
-      environmentSlug: values.environment,
-      ...(isCliApp
-        ? { source: "image" as const, image: values.name }
-        : { source: "git" as const, gitRef: values.name }),
-    });
+    if (isCliApp) {
+      createDeployment.mutate({ environment: values.environment, image: values.name });
+      return;
+    }
+
+    try {
+      createDeployment.mutate({
+        environment: values.environment,
+        git: parseDeployRef(values.name),
+      });
+    } catch (err) {
+      if (err instanceof UnsupportedDeployRefError) {
+        toast.error(err.message);
+        return;
+      }
+      throw err;
+    }
   }
 
   // Past successfully deployed prebuilt images, deduped by image ref
@@ -225,18 +256,19 @@ export const CreateDeploymentButton = ({
   return (
     <>
       {renderTrigger ? (
-        renderTrigger({ onClick: () => setIsOpen(true) })
+        renderTrigger({ onClick: openDeploymentDialog })
       ) : (
         <NavbarActionButton
           {...rest}
           color="default"
           variant="outline"
           className="size-7"
-          onClick={() => setIsOpen(true)}
+          onClick={openDeploymentDialog}
         >
           <Plus iconSize="sm-regular" />
         </NavbarActionButton>
       )}
+      {planGate}
       <DynamicDialogContainer
         isOpen={isOpen}
         onOpenChange={setIsOpen}
@@ -360,13 +392,19 @@ export const CreateDeploymentButton = ({
           {isCliApp && imageRows.length > 0 && (
             <div className="flex flex-col divide-y divide-gray-4 rounded-md border border-gray-4 overflow-hidden">
               {imageRows.map((deployment) => (
-                <button
+                // TimestampInfo renders its own popover trigger button, so it
+                // must be a sibling of the row button rather than nested in it.
+                <div
                   key={deployment.id}
-                  type="button"
-                  onClick={() => setValue("name", deployment.image ?? "", { shouldValidate: true })}
-                  className="flex items-center justify-between px-3 py-2 bg-grayA-2 hover:bg-grayA-3 transition-colors cursor-pointer text-[13px] text-grayA-11"
+                  className="flex items-center justify-between px-3 py-2 bg-grayA-2 hover:bg-grayA-3 transition-colors text-[13px] text-grayA-11"
                 >
-                  <span className="flex items-center gap-1.5 min-w-0 max-w-[300px]">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setValue("name", deployment.image ?? "", { shouldValidate: true })
+                    }
+                    className="flex items-center gap-1.5 min-w-0 max-w-[300px] cursor-pointer text-left"
+                  >
                     <InfoTooltip
                       content={deployment.image}
                       asChild
@@ -374,13 +412,13 @@ export const CreateDeploymentButton = ({
                     >
                       <span className="truncate">{deployment.image}</span>
                     </InfoTooltip>
-                  </span>
+                  </button>
                   <TimestampInfo
                     value={deployment.createdAt}
                     displayType="relative"
                     className="text-gray-11 shrink-0 ml-3"
                   />
-                </button>
+                </div>
               ))}
             </div>
           )}
@@ -404,16 +442,20 @@ export const CreateDeploymentButton = ({
                   </div>
                 ))}
               {branches.map((branch) => (
-                <button
+                // TimestampInfo renders its own popover trigger button, so it
+                // must be a sibling of the row button rather than nested in it.
+                <div
                   key={branch.name}
-                  type="button"
-                  onClick={() => setValue("name", branch.name, { shouldValidate: true })}
-                  className="flex items-center justify-between px-3 py-2 bg-grayA-2 hover:bg-grayA-3 transition-colors cursor-pointer text-[13px] text-grayA-11"
+                  className="flex items-center justify-between px-3 py-2 bg-grayA-2 hover:bg-grayA-3 transition-colors text-[13px] text-grayA-11"
                 >
-                  <span className="flex items-center gap-1.5 min-w-0 max-w-[300px]">
+                  <button
+                    type="button"
+                    onClick={() => setValue("name", branch.name, { shouldValidate: true })}
+                    className="flex items-center gap-1.5 min-w-0 max-w-[300px] cursor-pointer text-left"
+                  >
                     <CodeBranch iconSize="sm-regular" className="shrink-0 text-gray-12" />
                     <span className="truncate">{branch.name}</span>
-                  </span>
+                  </button>
                   {branch.lastPushDate && (
                     <TimestampInfo
                       value={branch.lastPushDate}
@@ -421,7 +463,7 @@ export const CreateDeploymentButton = ({
                       className="text-gray-11 shrink-0 ml-3"
                     />
                   )}
-                </button>
+                </div>
               ))}
             </div>
           )}

@@ -15,7 +15,7 @@ post:
   operationId: projects.getProject
   x-speakeasy-name-override: getProject
   security:
-    - rootKey: []
+    - bearer: []
   requestBody:
     content:
       application/json:

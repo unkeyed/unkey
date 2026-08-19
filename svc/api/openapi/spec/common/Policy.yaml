@@ -1,0 +1,45 @@
+type: object
+required:
+  - name
+  - enabled
+properties:
+  name:
+    type: string
+    minLength: 1
+    maxLength: 256
+    description: Human-readable name shown in the dashboard.
+  enabled:
+    type: boolean
+    description: Disabled policies are stored but skipped during evaluation.
+  match:
+    type: array
+    maxItems: 10
+    items:
+      "$ref": "./MatchExpr.yaml"
+    description: |-
+      Optional request matchers. The policy applies only to requests matching
+      all expressions; omit to apply to every request.
+  keyauth:
+    "$ref": "./KeyauthPolicy.yaml"
+  ratelimit:
+    "$ref": "./RatelimitPolicy.yaml"
+  firewall:
+    "$ref": "./FirewallPolicy.yaml"
+  openapi:
+    "$ref": "./OpenapiPolicy.yaml"
+  logging:
+    "$ref": "./LoggingPolicy.yaml"
+additionalProperties: false
+description: |-
+  A gateway policy. Exactly one of `keyauth`, `ratelimit`, `firewall`,
+  `openapi` or `logging` must be set. The server generates an id for every
+  policy it stores.
+example:
+  name: Block internal paths
+  enabled: true
+  match:
+    - path:
+        path:
+          prefix: /internal/
+  firewall:
+    action: ACTION_DENY

@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils";
 import type { ReactNode } from "react";
 
 type ProductCardProps = {
+  className?: string;
   /** Product icon, rendered inside the colored chip. */
   icon: ReactNode;
   /** Tailwind classes for the icon chip, e.g. "bg-orange-3 text-orange-11". */
@@ -11,6 +12,8 @@ type ProductCardProps = {
   name: string;
   /** Small tag next to the name, e.g. the plan name or "Add-on". */
   tag?: string;
+  /** Status pill next to the tag, e.g. the paused badge; more prominent. */
+  badge?: ReactNode;
   /** One-line subtitle under the name: plan fee, included usage, etc. */
   subtitle: ReactNode;
   /** Primary action, top-right: change plan / upgrade / choose a plan. */
@@ -26,17 +29,24 @@ type ProductCardProps = {
  * decoration: flat card, one border, no zones.
  */
 export const ProductCard: React.FC<ProductCardProps> = ({
+  className,
   icon,
   iconClassName,
   name,
   tag,
+  badge,
   subtitle,
   action,
   children,
   footer,
 }) => {
   return (
-    <div className="w-full overflow-hidden rounded-xl border border-grayA-4 bg-white dark:bg-black">
+    <div
+      className={cn(
+        "w-full overflow-hidden rounded-lg border border-grayA-4 bg-white dark:bg-black",
+        className,
+      )}
+    >
       <div className="flex items-center justify-between gap-4 px-5 py-4">
         <div className="flex min-w-0 items-center gap-3">
           <div
@@ -55,13 +65,14 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                   {tag}
                 </span>
               ) : null}
+              {badge}
             </div>
             <div className="truncate text-[13px] text-gray-10">{subtitle}</div>
           </div>
         </div>
         {action ? <div className="shrink-0">{action}</div> : null}
       </div>
-      {children ? <div className="border-t border-grayA-3 px-5 py-4">{children}</div> : null}
+      {children ? <div className="border-grayA-3 border-t px-5 pt-4 pb-4">{children}</div> : null}
       {footer ? (
         <div className="flex justify-end border-t border-grayA-3 px-5 py-2.5">{footer}</div>
       ) : null}

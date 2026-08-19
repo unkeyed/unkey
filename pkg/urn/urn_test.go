@@ -49,6 +49,62 @@ func TestParseV1_AllowsResourcePatterns(t *testing.T) {
 			},
 		},
 		{
+			name:  "concrete app below wildcard project",
+			value: "unkey:v1:ws_123:projects/*/apps/app_123",
+			want: V1{
+				WorkspaceID: "ws_123",
+				Resource:    "projects/*/apps/app_123",
+			},
+		},
+		{
+			name:  "concrete environment below wildcard app",
+			value: "unkey:v1:ws_123:projects/proj_123/apps/*/environments/env_123",
+			want: V1{
+				WorkspaceID: "ws_123",
+				Resource:    "projects/proj_123/apps/*/environments/env_123",
+			},
+		},
+		{
+			name:  "concrete deployment below nested wildcard hierarchy",
+			value: "unkey:v1:ws_123:projects/proj_123/apps/*/environments/*/deployments/dep_123",
+			want: V1{
+				WorkspaceID: "ws_123",
+				Resource:    "projects/proj_123/apps/*/environments/*/deployments/dep_123",
+			},
+		},
+		{
+			name:  "concrete override below wildcard namespace",
+			value: "unkey:v1:ws_123:ratelimits/namespaces/*/overrides/override_123",
+			want: V1{
+				WorkspaceID: "ws_123",
+				Resource:    "ratelimits/namespaces/*/overrides/override_123",
+			},
+		},
+		{
+			name:  "project ratelimit namespaces",
+			value: "unkey:v1:ws_123:projects/*/ratelimits/namespaces/*",
+			want: V1{
+				WorkspaceID: "ws_123",
+				Resource:    "projects/*/ratelimits/namespaces/*",
+			},
+		},
+		{
+			name:  "project RBAC roles",
+			value: "unkey:v1:ws_123:projects/*/rbac/roles/*",
+			want: V1{
+				WorkspaceID: "ws_123",
+				Resource:    "projects/*/rbac/roles/*",
+			},
+		},
+		{
+			name:  "project app environment gateway policies",
+			value: "unkey:v1:ws_123:projects/*/apps/*/environments/*/gateway/policies/*",
+			want: V1{
+				WorkspaceID: "ws_123",
+				Resource:    "projects/*/apps/*/environments/*/gateway/policies/*",
+			},
+		},
+		{
 			name:  "wildcard project apps descendant scope",
 			value: "unkey:v1:ws_123:projects/*/apps/**",
 			want: V1{
@@ -138,10 +194,6 @@ func TestParseV1_RejectsAmbiguousPatterns(t *testing.T) {
 	for _, value := range []string{
 		"unkey:v1:ws_123:ratelimits/**/overrides/*",
 		"unkey:v1:ws_123:ratelimits/namespaces/ns_*",
-		"unkey:v1:ws_123:projects/*/apps/app_123",
-		"unkey:v1:ws_123:projects/proj_123/apps/*/environments/env_123",
-		"unkey:v1:ws_123:projects/proj_123/apps/*/environments/*/deployments/dep_123",
-		"unkey:v1:ws_123:ratelimits/namespaces/*/overrides/override_123",
 		"unkey:v1:ws_123:/ratelimits/*",
 		"unkey:v1:ws_123:ratelimits//namespaces/*",
 		"unkey:v1:ws_123:ratelimits/*/",
@@ -164,7 +216,6 @@ func TestResourceCatalogHelpers(t *testing.T) {
 	require.Equal(t, "unkey:v1:ws_123:keyspaces/ks_123", workspace.Keyspace("ks_123").String())
 	require.Equal(t, "unkey:v1:ws_123:keyspaces/ks_123/keys/key_123", workspace.Keyspace("ks_123").Key("key_123").String())
 	require.Equal(t, "unkey:v1:ws_123:keyspaces/ks_123/**", workspace.Keyspace("ks_123").Any().String())
-	require.Equal(t, "unkey:v1:ws_123:identities/id_123", workspace.Identity("id_123").String())
 	require.Equal(t, "unkey:v1:ws_123:ratelimits/namespaces/ns_123/overrides/ov_123", workspace.RatelimitNamespace("ns_123").Override("ov_123").String())
 	require.Equal(t, "unkey:v1:ws_123:ratelimits/namespaces/ns_123", workspace.RatelimitNamespace("ns_123").String())
 	require.Equal(t, "unkey:v1:ws_123:ratelimits/namespaces/ns_123/**", workspace.RatelimitNamespace("ns_123").Any().String())
@@ -172,6 +223,7 @@ func TestResourceCatalogHelpers(t *testing.T) {
 	require.Equal(t, "unkey:v1:ws_123:rbac/permissions/perm_123", workspace.RBAC.Permission("perm_123").String())
 	require.Equal(t, "unkey:v1:ws_123:projects/proj_123", workspace.Project("proj_123").String())
 	require.Equal(t, "unkey:v1:ws_123:projects/proj_123/**", workspace.Project("proj_123").Any().String())
+	require.Equal(t, "unkey:v1:ws_123:projects/proj_123/identities/id_123", workspace.Project("proj_123").Identity("id_123").String())
 	require.Equal(t, "unkey:v1:ws_123:projects/proj_123/apps/app_123", workspace.Project("proj_123").App("app_123").String())
 	require.Equal(t, "unkey:v1:ws_123:projects/proj_123/apps/app_123/**", workspace.Project("proj_123").App("app_123").Any().String())
 	require.Equal(t, "unkey:v1:ws_123:projects/proj_123/apps/app_123/environments/env_123", workspace.Project("proj_123").App("app_123").Environment("env_123").String())

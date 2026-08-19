@@ -7,7 +7,10 @@
     "light": "#F5E6BE",
     "dark": "#A68509"
   },
-  "favicon": "/unkey.png",
+  "favicon": {
+    "light": "/favicon-light.svg",
+    "dark": "/favicon-dark.svg"
+  },
   "navigation": {
     "tabs": [
       {
@@ -22,10 +25,10 @@
                 "group": "Tooling",
                 "pages": [
                   "contributing/tooling/mise",
-                  "contributing/tooling/bazel",
                   "contributing/tooling/builds",
                   "contributing/tooling/releases",
-                  "contributing/tooling/feature-flags"
+                  "contributing/tooling/feature-flags",
+                  "contributing/tooling/emails"
                 ]
               }
             ]
@@ -35,6 +38,7 @@
             "pages": [
               "contributing/quality/code-quality",
               "contributing/quality/documentation",
+              "contributing/quality/screenshots-and-recordings",
               {
                 "group": "Testing",
                 "pages": [
@@ -122,7 +126,8 @@
                           "architecture/services/control-plane/worker/workflows/custom-domains",
                           "architecture/services/control-plane/worker/workflows/github-app",
                           "architecture/services/control-plane/worker/workflows/key-last-used-sync",
-                          "architecture/services/control-plane/worker/workflows/deploy-billing"
+                          "architecture/services/control-plane/worker/workflows/deploy-billing",
+                          "architecture/services/control-plane/worker/workflows/deploy-spend-cap"
                         ]
                       }
                     ]
@@ -158,6 +163,7 @@
                 "group": "Krane",
                 "pages": [
                   "architecture/services/krane/overview",
+                  "architecture/services/krane/deployment",
                   "architecture/services/krane/secrets",
                   "architecture/services/krane/configuration"
                 ]
@@ -193,7 +199,7 @@
               "architecture/rfcs/0011-unkey-resource-names",
               "architecture/rfcs/0012-stricter-linter",
               "architecture/rfcs/0013-custom-domains",
-              "architecture/rfcs/0014-sentinel-middleware",
+              "architecture/rfcs/0014-frontline-middleware",
               "architecture/rfcs/0015-ratelimit-cross-region-counts",
               "architecture/rfcs/0016-vault-s3-storage"
             ]
@@ -209,13 +215,20 @@
         "groups": [
           {
             "group": "Infra",
-            "pages": ["infra/index"]
+            "pages": [
+              "infra/index",
+              "infra/planetscale/query-insights-tags",
+              "infra/planetscale/schema-changes"
+            ]
           },
           {
             "group": "Runbooks",
-            "pages": ["infra/runbooks/key-migration"]
+            "pages": [
+              "infra/runbooks/key-migration",
+              "infra/runbooks/legacy-billing"
+            ]
           },
-         {
+          {
             "group": "ClickHouse",
             "pages": [
               "infra/clickhouse/index",
@@ -259,8 +272,8 @@
     "decoration": "gradient"
   },
   "logo": {
-    "dark": "/unkey-white.png",
-    "light": "/unkey-black.png"
+    "dark": "/unkey-white.svg",
+    "light": "/unkey-black.svg"
   },
   "navbar": {
     "links": [
@@ -269,6 +282,12 @@
         "href": "https://github.com/unkeyed/unkey"
       }
     ]
-  }
+  },
+  "redirects": [
+    {
+      "source": "/architecture/rfcs/0014-sentinel-middleware",
+      "destination": "/architecture/rfcs/0014-frontline-middleware"
+    }
+  ]
 
 }

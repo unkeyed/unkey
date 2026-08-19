@@ -2,6 +2,7 @@ package handler_test
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"testing"
@@ -118,10 +119,12 @@ func TestThreeStateUpdateLogic(t *testing.T) {
 	t.Run("Meta field three-state logic", func(t *testing.T) {
 		t.Parallel()
 		// Create key with initial meta
+		initialMeta, err := json.Marshal(map[string]string{"initial": "value"})
+		require.NoError(t, err)
 		keyResponse := h.CreateKey(seed.CreateKeyRequest{
 			WorkspaceID: h.Resources().UserWorkspace.ID,
 			KeySpaceID:  api.KeyAuthID.String,
-			Meta:        ptr.P(`{"initial": "value"}`),
+			Meta:        ptr.P(string(initialMeta)),
 		})
 
 		// Test 1: Set to specific value
@@ -671,11 +674,13 @@ func TestThreeStateUpdateLogic(t *testing.T) {
 	t.Run("All fields simultaneously", func(t *testing.T) {
 		t.Parallel()
 		// Create key with initial values
+		initialMeta, err := json.Marshal(map[string]string{"initial": "value"})
+		require.NoError(t, err)
 		keyResponse := h.CreateKey(seed.CreateKeyRequest{
 			WorkspaceID: h.Resources().UserWorkspace.ID,
 			KeySpaceID:  api.KeyAuthID.String,
 			Name:        ptr.P("initial-name"),
-			Meta:        ptr.P(`{"initial": "value"}`),
+			Meta:        ptr.P(string(initialMeta)),
 			Expires:     ptr.P(time.Now().Add(24 * time.Hour)),
 		})
 

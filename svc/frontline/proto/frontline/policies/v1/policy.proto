@@ -5,6 +5,7 @@ package frontline.v1;
 import "frontline/policies/v1/firewall.proto";
 import "frontline/policies/v1/jwtauth.proto";
 import "frontline/policies/v1/keyauth.proto";
+import "frontline/policies/v1/logging.proto";
 import "frontline/policies/v1/match.proto";
 import "frontline/policies/v1/openapi.proto";
 import "frontline/policies/v1/ratelimit.proto";
@@ -36,7 +37,11 @@ message Policy {
   // This allows operators to toggle policies on and off without modifying
   // or removing the underlying configuration, which is useful during
   // incidents, gradual rollouts, and debugging.
-  bool enabled = 3;
+  //
+  // Explicit presence so writers that serialize configs with protojson emit
+  // `"enabled": false` instead of dropping the field; the dashboard's strict
+  // schema requires it to always be present.
+  optional bool enabled = 3;
 
   // Match conditions that determine which requests this policy applies to.
   // All entries must match for the policy to run (implicit AND). An empty
@@ -54,5 +59,6 @@ message Policy {
     RateLimit ratelimit = 8;
     Firewall firewall = 9;
     OpenApiRequestValidation openapi = 10;
+    Logging logging = 11;
   }
 }

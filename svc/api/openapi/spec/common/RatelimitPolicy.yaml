@@ -1,0 +1,44 @@
+type: object
+required:
+  - limit
+  - windowMs
+properties:
+  limit:
+    type: integer
+    format: int64
+    minimum: 1
+    description: Maximum number of requests per window.
+  windowMs:
+    type: integer
+    format: int64
+    minimum: 1
+    description: Window duration in milliseconds.
+  identifier:
+    allOf:
+      - "$ref": "./RatelimitIdentifier.yaml"
+    deprecated: true
+    description: |-
+      Deprecated. Accepted for compatibility with old clients. Use
+      `identifiers` with one entry. Responses always return `identifiers`.
+  identifiers:
+    type: array
+    items:
+      "$ref": "./RatelimitIdentifier.yaml"
+    minItems: 1
+    maxItems: 5
+    description: |-
+      Ordered list of sources that form a compound rate limit key. The
+      gateway resolves each source for each request. Each unique
+      combination of resolved values has its own counter. All counters use
+      the same limit and window. Example: `[authenticatedSubject, path]`
+      limits each subject separately on each path.
+additionalProperties: false
+description: |-
+  Rate limits matching requests. Set `identifiers` with 1 to 5 sources.
+  The deprecated `identifier` field is accepted in place of a one-entry
+  `identifiers` list; set exactly one of the two.
+example:
+  limit: 100
+  windowMs: 60000
+  identifiers:
+    - remoteIp: {}

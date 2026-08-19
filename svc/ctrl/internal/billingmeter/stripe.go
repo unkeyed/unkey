@@ -2,11 +2,13 @@ package billingmeter
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"math"
 	"strconv"
 	"strings"
 
+	restate "github.com/restatedev/sdk-go"
 	stripe "github.com/stripe/stripe-go/v86"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/logger"
@@ -21,6 +23,7 @@ const (
 	eventMemory = "memory_gib_seconds"
 	eventEgress = "egress_public_gib"
 	eventDisk   = "disk_gib_seconds"
+	eventKeys   = "active_keys"
 )
 
 // payloadKeyCustomer and payloadKeyValue are the meter's
@@ -80,19 +83,32 @@ func NewStripe(secretKey string) Pusher {
 // rejects a duplicate identifier with a hard 400, turning a harmless re-run
 // into a failure.)
 func (p *stripePusher) Push(ctx context.Context, req PushRequest) (int, error) {
+	// Values are pre-rendered so each meter formats in its natural
+	// representation: the continuous meters as bounded decimals, the
+	// active-keys count as an exact integer.
 	meters := []struct {
-		name  string
-		value float64
+		name     string
+		value    string
+		positive bool
 	}{
-		{eventCPU, req.Values.CPUSeconds},
-		{eventMemory, req.Values.MemoryGiBSeconds},
-		{eventEgress, req.Values.EgressGiB},
-		{eventDisk, req.Values.DiskGiBSeconds},
+		{eventCPU, formatMeterValue(req.Values.CPUSeconds), req.Values.CPUSeconds > 0},
+		{eventMemory, formatMeterValue(req.Values.MemoryGiBSeconds), req.Values.MemoryGiBSeconds > 0},
+		{eventEgress, formatMeterValue(req.Values.EgressGiB), req.Values.EgressGiB > 0},
+		{eventDisk, formatMeterValue(req.Values.DiskGiBSeconds), req.Values.DiskGiBSeconds > 0},
+		{eventKeys, strconv.FormatInt(req.Values.ActiveKeys, 10), req.Values.ActiveKeys > 0},
 	}
 
+	// Every meter is attempted even after one fails. Returning on the first error
+	// stranded every meter after it in this fixed order: a deterministic rejection
+	// on one meter (an event name archived during a catalog migration, say) fails
+	// at the same index on every retry, so the meters behind it never pushed again
+	// for the rest of the month, silently. The error names which meters failed so
+	// a partial push is diagnosable rather than just a count.
 	pushed := 0
+	var failures []error
+	allTerminal := true
 	for _, m := range meters {
-		if m.value <= 0 {
+		if !m.positive {
 			continue
 		}
 		_, err := p.client.V1BillingMeterEvents.Create(ctx, &stripe.BillingMeterEventCreateParams{
@@ -100,15 +116,47 @@ func (p *stripePusher) Push(ctx context.Context, req PushRequest) (int, error) {
 			Timestamp: stripe.Int64(req.Timestamp),
 			Payload: map[string]string{
 				payloadKeyCustomer: req.StripeCustomerID,
-				payloadKeyValue:    formatMeterValue(m.value),
+				payloadKeyValue:    m.value,
 			},
 		})
 		if err != nil {
-			return pushed, fault.Wrap(err, fault.Internal("failed to push stripe meter event"))
+			failures = append(failures, fmt.Errorf("meter %s: %w", m.name, err))
+			if !terminalMeterErr(err) {
+				allTerminal = false
+			}
+			continue
 		}
 		pushed++
 	}
+
+	if len(failures) > 0 {
+		wrapped := fault.Wrap(errors.Join(failures...),
+			fault.Internal("failed to push stripe meter events"))
+		// Terminal only when every failure is unfixable by retrying. One transient
+		// failure alongside a permanent one still deserves a retry, since the push
+		// is idempotent (absolute values under "last" aggregation) and the retry
+		// will re-attempt the transient meter.
+		if allTerminal {
+			return pushed, restate.TerminalError(wrapped)
+		}
+		return pushed, wrapped
+	}
 	return pushed, nil
+}
+
+// terminalMeterErr separates permanent Stripe rejections from transient
+// failures. Push runs inside PushWorkspaceUsage's restate.Run, whose retry
+// window (pushRetryDuration) would otherwise hammer an unfixable rejection —
+// a validation 4xx (unknown customer, malformed value, timestamp outside the
+// meter's ingestion window) fails identically on every attempt, and in the
+// month-end close every backup run would re-enter the same window. Marking it
+// terminal fails the push invocation immediately instead. Rate limits (429),
+// request timeouts (408), and 5xx/network errors stay retryable.
+func terminalMeterErr(err error) bool {
+	var sErr *stripe.Error
+	return errors.As(err, &sErr) &&
+		sErr.HTTPStatusCode >= 400 && sErr.HTTPStatusCode < 500 &&
+		sErr.HTTPStatusCode != 408 && sErr.HTTPStatusCode != 429
 }
 
 // Stripe enforces two separate limits on a meter event payload value, and a
@@ -144,5 +192,6 @@ func formatMeterValue(v float64) string {
 		s = strings.TrimRight(s, "0")
 		s = strings.TrimRight(s, ".")
 	}
+
 	return s
 }

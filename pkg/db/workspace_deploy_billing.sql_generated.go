@@ -14,9 +14,10 @@ import (
 const listWorkspacesForDeployBillingByIDs = `-- name: ListWorkspacesForDeployBillingByIDs :many
 SELECT
    w.id,
-   w.stripe_customer_id,
+   b.stripe_customer_id,
    w.enabled
 FROM ` + "`" + `workspaces` + "`" + ` w
+LEFT JOIN ` + "`" + `workspace_billing` + "`" + ` b ON w.id = b.workspace_id
 WHERE w.id IN (/*SLICE:workspace_ids*/?)
 `
 
@@ -35,9 +36,10 @@ type ListWorkspacesForDeployBillingByIDsRow struct {
 //
 //	SELECT
 //	   w.id,
-//	   w.stripe_customer_id,
+//	   b.stripe_customer_id,
 //	   w.enabled
 //	FROM `workspaces` w
+//	LEFT JOIN `workspace_billing` b ON w.id = b.workspace_id
 //	WHERE w.id IN (/*SLICE:workspace_ids*/?)
 func (q *Queries) ListWorkspacesForDeployBillingByIDs(ctx context.Context, db DBTX, workspaceIds []string) ([]ListWorkspacesForDeployBillingByIDsRow, error) {
 	query := listWorkspacesForDeployBillingByIDs

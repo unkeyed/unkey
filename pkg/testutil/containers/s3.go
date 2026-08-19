@@ -3,19 +3,17 @@ package containers
 import (
 	"fmt"
 	"testing"
-	"time"
 )
 
 const (
-	minioImage = "quay.io/minio/minio:latest"
-	minioPort  = "9000/tcp"
+	minioPort = 9000
 
-	// Default MinIO credentials used for test containers.
+	// Default MinIO credentials used for the test container.
 	minioAccessKey = "minioadmin"
 	minioSecretKey = "minioadmin"
 )
 
-// S3Config holds connection information for an S3-compatible container.
+// S3Config holds connection information for the S3-compatible test container.
 //
 // The returned configuration can be used directly with AWS SDK, MinIO client,
 // or any S3-compatible client library. Credentials are set to MinIO defaults.
@@ -30,15 +28,13 @@ type S3Config struct {
 	SecretAccessKey string
 }
 
-// S3 starts a MinIO container and returns the connection configuration.
+// S3 starts the shared Docker Compose MinIO service and returns connection info.
 //
 // MinIO is an S3-compatible object storage server. The container is configured
 // with default credentials (minioadmin/minioadmin) and a single server instance
 // suitable for testing.
 //
-// The container is reused by stable Docker name across Bazel test processes.
-// This function blocks until MinIO's health endpoint responds (up to 30s).
-// Fails the test if Docker is unavailable or the container fails to start.
+// The container is reused through the worktree's Docker Compose project.
 //
 // Example usage:
 //
@@ -50,31 +46,13 @@ type S3Config struct {
 //	    require.NoError(t, err)
 //	    // Use client...
 //	}
-func S3(t *testing.T, opts ...Opt) S3Config {
+func S3(t testing.TB) S3Config {
 	t.Helper()
 
-	cfg := containerConfig{
-		Image:        minioImage,
-		ExposedPorts: []string{minioPort},
-		Env: map[string]string{
-			"MINIO_ROOT_USER":     minioAccessKey,
-			"MINIO_ROOT_PASSWORD": minioSecretKey,
-		},
-		Cmd:          []string{"server", "/data"},
-		WaitStrategy: NewHTTPWait(minioPort, "/minio/health/live"),
-		WaitTimeout:  30 * time.Second,
-		Tmpfs:        nil,
-		Dedicated:    false,
-	}
-	for _, opt := range opts {
-		opt(&cfg)
-	}
+	c := startService(t, "s3")
 
-	ctr := startContainer(t, cfg)
-
-	port := ctr.Port(minioPort)
 	return S3Config{
-		URL:             fmt.Sprintf("http://localhost:%s", port),
+		URL:             fmt.Sprintf("http://%s", c.Addr(t, minioPort)),
 		AccessKeyID:     minioAccessKey,
 		SecretAccessKey: minioSecretKey,
 	}

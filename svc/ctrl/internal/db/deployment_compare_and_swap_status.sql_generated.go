@@ -8,6 +8,8 @@ package db
 import (
 	"context"
 	"database/sql"
+
+	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
 )
 
 const compareAndSwapDeploymentStatus = `-- name: CompareAndSwapDeploymentStatus :execresult
@@ -18,10 +20,10 @@ AND status = ?
 `
 
 type CompareAndSwapDeploymentStatusParams struct {
-	NewStatus      DeploymentsStatus `db:"new_status"`
-	UpdatedAt      sql.NullInt64     `db:"updated_at"`
-	ID             string            `db:"id"`
-	ExpectedStatus DeploymentsStatus `db:"expected_status"`
+	NewStatus      mysqltype.DeploymentsStatus `db:"new_status"`
+	UpdatedAt      sql.NullInt64               `db:"updated_at"`
+	ID             string                      `db:"id"`
+	ExpectedStatus mysqltype.DeploymentsStatus `db:"expected_status"`
 }
 
 // CompareAndSwapDeploymentStatus

@@ -12,24 +12,24 @@ import (
 const findClickhouseWorkspaceSettingsByWorkspaceID = `-- name: FindClickhouseWorkspaceSettingsByWorkspaceID :one
 SELECT
     c.pk, c.workspace_id, c.username, c.password_encrypted, c.quota_duration_seconds, c.max_queries_per_window, c.max_execution_time_per_window, c.max_query_execution_time, c.max_query_memory_bytes, c.max_query_result_rows, c.created_at, c.updated_at,
-    q.pk, q.workspace_id, q.requests_per_month, q.logs_retention_days, q.audit_logs_retention_days, q.team, q.ratelimit_api_limit, q.ratelimit_api_duration, q.allocated_cpu_millicores_total, q.allocated_memory_mib_total, q.allocated_storage_mib_total, q.max_cpu_millicores_per_instance, q.max_memory_mib_per_instance, q.max_storage_mib_per_instance, q.max_concurrent_builds
+    l.pk, l.workspace_id, l.api_billable_operations_count_max_per_month, l.api_requests_count_max_per_minute, l.logs_retention_days_max, l.logs_audit_retention_days_max, l.team_enabled, l.cpu_cores_max, l.cpu_cores_max_per_instance, l.memory_mib_max, l.memory_mib_max_per_instance, l.storage_mib_max, l.storage_mib_max_per_instance, l.builds_concurrent_max, l.custom_domains_max, l.autoscaling_replicas_max
 FROM ` + "`" + `clickhouse_workspace_settings` + "`" + ` c
-JOIN ` + "`" + `quota` + "`" + ` q ON c.workspace_id = q.workspace_id
+JOIN ` + "`" + `limits` + "`" + ` l ON c.workspace_id = l.workspace_id
 WHERE c.workspace_id = ?
 `
 
 type FindClickhouseWorkspaceSettingsByWorkspaceIDRow struct {
 	ClickhouseWorkspaceSetting ClickhouseWorkspaceSetting `db:"clickhouse_workspace_setting"`
-	Quotas                     Quotas                     `db:"quotas"`
+	Limit                      Limit                      `db:"limit"`
 }
 
 // FindClickhouseWorkspaceSettingsByWorkspaceID
 //
 //	SELECT
 //	    c.pk, c.workspace_id, c.username, c.password_encrypted, c.quota_duration_seconds, c.max_queries_per_window, c.max_execution_time_per_window, c.max_query_execution_time, c.max_query_memory_bytes, c.max_query_result_rows, c.created_at, c.updated_at,
-//	    q.pk, q.workspace_id, q.requests_per_month, q.logs_retention_days, q.audit_logs_retention_days, q.team, q.ratelimit_api_limit, q.ratelimit_api_duration, q.allocated_cpu_millicores_total, q.allocated_memory_mib_total, q.allocated_storage_mib_total, q.max_cpu_millicores_per_instance, q.max_memory_mib_per_instance, q.max_storage_mib_per_instance, q.max_concurrent_builds
+//	    l.pk, l.workspace_id, l.api_billable_operations_count_max_per_month, l.api_requests_count_max_per_minute, l.logs_retention_days_max, l.logs_audit_retention_days_max, l.team_enabled, l.cpu_cores_max, l.cpu_cores_max_per_instance, l.memory_mib_max, l.memory_mib_max_per_instance, l.storage_mib_max, l.storage_mib_max_per_instance, l.builds_concurrent_max, l.custom_domains_max, l.autoscaling_replicas_max
 //	FROM `clickhouse_workspace_settings` c
-//	JOIN `quota` q ON c.workspace_id = q.workspace_id
+//	JOIN `limits` l ON c.workspace_id = l.workspace_id
 //	WHERE c.workspace_id = ?
 func (q *Queries) FindClickhouseWorkspaceSettingsByWorkspaceID(ctx context.Context, db DBTX, workspaceID string) (FindClickhouseWorkspaceSettingsByWorkspaceIDRow, error) {
 	row := db.QueryRowContext(ctx, findClickhouseWorkspaceSettingsByWorkspaceID, workspaceID)
@@ -47,21 +47,22 @@ func (q *Queries) FindClickhouseWorkspaceSettingsByWorkspaceID(ctx context.Conte
 		&i.ClickhouseWorkspaceSetting.MaxQueryResultRows,
 		&i.ClickhouseWorkspaceSetting.CreatedAt,
 		&i.ClickhouseWorkspaceSetting.UpdatedAt,
-		&i.Quotas.Pk,
-		&i.Quotas.WorkspaceID,
-		&i.Quotas.RequestsPerMonth,
-		&i.Quotas.LogsRetentionDays,
-		&i.Quotas.AuditLogsRetentionDays,
-		&i.Quotas.Team,
-		&i.Quotas.RatelimitApiLimit,
-		&i.Quotas.RatelimitApiDuration,
-		&i.Quotas.AllocatedCpuMillicoresTotal,
-		&i.Quotas.AllocatedMemoryMibTotal,
-		&i.Quotas.AllocatedStorageMibTotal,
-		&i.Quotas.MaxCpuMillicoresPerInstance,
-		&i.Quotas.MaxMemoryMibPerInstance,
-		&i.Quotas.MaxStorageMibPerInstance,
-		&i.Quotas.MaxConcurrentBuilds,
+		&i.Limit.Pk,
+		&i.Limit.WorkspaceID,
+		&i.Limit.ApiBillableOperationsCountMaxPerMonth,
+		&i.Limit.ApiRequestsCountMaxPerMinute,
+		&i.Limit.LogsRetentionDaysMax,
+		&i.Limit.LogsAuditRetentionDaysMax,
+		&i.Limit.TeamEnabled,
+		&i.Limit.CpuCoresMax,
+		&i.Limit.CpuCoresMaxPerInstance,
+		&i.Limit.MemoryMibMax,
+		&i.Limit.MemoryMibMaxPerInstance,
+		&i.Limit.StorageMibMax,
+		&i.Limit.StorageMibMaxPerInstance,
+		&i.Limit.BuildsConcurrentMax,
+		&i.Limit.CustomDomainsMax,
+		&i.Limit.AutoscalingReplicasMax,
 	)
 	return i, err
 }

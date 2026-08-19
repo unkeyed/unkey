@@ -19,8 +19,12 @@ export default function AuthorizationLayout({ children }: { children: ReactNode 
         <SecondaryNavTitle>Authorization</SecondaryNavTitle>
         <SecondaryNavGroup>
           {items.map((item) => (
-            <SecondaryNavItem key={item.segment} asChild active={active === item.segment}>
-              <Link href={item.href}>{item.label}</Link>
+            <SecondaryNavItem
+              key={item.segment}
+              active={active === item.segment}
+              render={<Link href={item.href} />}
+            >
+              {item.label}
             </SecondaryNavItem>
           ))}
         </SecondaryNavGroup>

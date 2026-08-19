@@ -28,3 +28,8 @@ token = "vault-test-token-123"
 [control]
 url = "http://ctrl-api:7091"
 token = "your-local-dev-key"
+
+[restate]
+url = "http://restate:8080"
+# Local Restate runs without ingress authentication and ignores this key.
+api_key = "local-restate-auth-disabled"

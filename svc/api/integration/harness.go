@@ -14,6 +14,7 @@ import (
 	sharedconfig "github.com/unkeyed/unkey/pkg/config"
 	"github.com/unkeyed/unkey/pkg/counter"
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/mysql/sqlcomment"
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/svc/api"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
@@ -83,6 +84,7 @@ func New(t *testing.T, config Config) *Harness {
 	db, err := db.New(db.Config{
 		PrimaryDSN:  mysqlCfg.DSN,
 		ReadOnlyDSN: "",
+		Tags:        sqlcomment.Disabled(),
 	})
 	require.NoError(t, err)
 
@@ -187,6 +189,10 @@ func (h *Harness) RunAPI(config ApiConfig) *ApiCluster {
 				URL:   "http://control:7091",
 				Token: "your-local-dev-key",
 			},
+			Restate: api.RestateConfig{
+				URL:    "http://restate:8080",
+				APIKey: "test-restate-auth-disabled",
+			},
 			Pprof: &sharedconfig.PprofConfig{
 				Username: "unkey",
 				Password: "password",
@@ -197,6 +203,13 @@ func (h *Harness) RunAPI(config ApiConfig) *ApiCluster {
 				api.RootKeyAuthConfig{Enabled: nil},
 			},
 			PortalBaseURL: "https://portal.test.local",
+			GitHub: api.GitHubConfig{
+				AppName: "unkey-test",
+				// AppID 0 leaves GitHub unconfigured, so Run wires the Noop client;
+				// handler tests that exercise repo connection inject their own client.
+				AppID:         0,
+				PrivateKeyPEM: "test-private-key-pem",
+			},
 		}
 
 		// Start API server in goroutine

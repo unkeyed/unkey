@@ -9,14 +9,11 @@ async function main() {
   await conn.ping();
   const db = drizzle(conn, { schema, mode: "default" });
 
+  // The stripe customer id and tier moved to workspace_billing, so the only
+  // discriminator left on the workspaces row is the legacy subscriptions blob.
   let workspaces = await db.query.workspaces.findMany({
-    where: (table, { isNotNull, isNull, not, eq, and }) =>
-      and(
-        isNotNull(table.stripeCustomerId),
-        isNotNull(table.subscriptions),
-        not(eq(table.plan, "free")),
-        isNull(table.deletedAtM),
-      ),
+    where: (table, { isNotNull, isNull, and }) =>
+      and(isNotNull(table.subscriptions), isNull(table.deletedAtM)),
   });
   // hack to filter out workspaces with `{}` as subscriptions
   workspaces = workspaces.filter(

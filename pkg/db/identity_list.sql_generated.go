@@ -31,22 +31,24 @@ SELECT
             )
         )
         FROM ratelimits r
-        WHERE r.identity_id = i.id),
+        WHERE i.id = r.identity_id),
         JSON_ARRAY()
     ) as ratelimits
 FROM identities i
 WHERE i.workspace_id = ?
 AND i.deleted = ?
 AND i.id >= ?
+AND (? IS NULL OR LOWER(i.id) LIKE LOWER(?) OR LOWER(i.external_id) LIKE LOWER(?))
 ORDER BY i.id ASC
 LIMIT ?
 `
 
 type ListIdentitiesParams struct {
-	WorkspaceID string `db:"workspace_id"`
-	Deleted     bool   `db:"deleted"`
-	IDCursor    string `db:"id_cursor"`
-	Limit       int32  `db:"limit"`
+	WorkspaceID string         `db:"workspace_id"`
+	Deleted     bool           `db:"deleted"`
+	IDCursor    string         `db:"id_cursor"`
+	Search      sql.NullString `db:"search"`
+	Limit       int32          `db:"limit"`
 }
 
 type ListIdentitiesRow struct {
@@ -61,7 +63,11 @@ type ListIdentitiesRow struct {
 	Ratelimits  interface{}   `db:"ratelimits"`
 }
 
-// ListIdentities
+// ListIdentities returns one page of a workspace's identities with their
+// ratelimits aggregated into a JSON array (empty array when none exist).
+// Pagination is cursor-based: ORDER BY i.id ASC with i.id >= id_cursor makes
+// pages deterministic, and the empty-string cursor starts from the first row.
+// search is a pre-escaped LIKE pattern built by mysql.SearchContains; NULL disables the filter
 //
 //	SELECT
 //	    i.id,
@@ -83,13 +89,14 @@ type ListIdentitiesRow struct {
 //	            )
 //	        )
 //	        FROM ratelimits r
-//	        WHERE r.identity_id = i.id),
+//	        WHERE i.id = r.identity_id),
 //	        JSON_ARRAY()
 //	    ) as ratelimits
 //	FROM identities i
 //	WHERE i.workspace_id = ?
 //	AND i.deleted = ?
 //	AND i.id >= ?
+//	AND (? IS NULL OR LOWER(i.id) LIKE LOWER(?) OR LOWER(i.external_id) LIKE LOWER(?))
 //	ORDER BY i.id ASC
 //	LIMIT ?
 func (q *Queries) ListIdentities(ctx context.Context, db DBTX, arg ListIdentitiesParams) ([]ListIdentitiesRow, error) {
@@ -97,6 +104,9 @@ func (q *Queries) ListIdentities(ctx context.Context, db DBTX, arg ListIdentitie
 		arg.WorkspaceID,
 		arg.Deleted,
 		arg.IDCursor,
+		arg.Search,
+		arg.Search,
+		arg.Search,
 		arg.Limit,
 	)
 	if err != nil {

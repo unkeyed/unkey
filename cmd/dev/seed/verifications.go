@@ -17,6 +17,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/mysql/sqlcomment"
 	"github.com/unkeyed/unkey/pkg/uid"
 )
 
@@ -44,6 +45,7 @@ func seedVerifications(ctx context.Context, cmd *cli.Command) error {
 	database, err := db.New(db.Config{
 		PrimaryDSN:  cmd.RequireString("database-primary"),
 		ReadOnlyDSN: "",
+		Tags:        sqlcomment.Disabled(),
 	})
 	if err != nil {
 		return fmt.Errorf("failed to connect to MySQL: %w", err)
@@ -57,7 +59,7 @@ func seedVerifications(ctx context.Context, cmd *cli.Command) error {
 		return fmt.Errorf("failed to connect to ClickHouse: %w", err)
 	}
 
-	keyVerifications := clickhouse.NewBuffer[schema.KeyVerification](ch, "default.key_verifications_raw_v2", clickhouse.BufferConfig{
+	keyVerifications := clickhouse.NewBuffer[schema.KeyVerification](ch, clickhouse.BufferConfig{
 		Name:          "seed-key-verifications",
 		BatchSize:     50_000,
 		BufferSize:    50_000,
@@ -74,6 +76,7 @@ func seedVerifications(ctx context.Context, cmd *cli.Command) error {
 		RBAC:         nil,
 		Region:       "test",
 		UsageLimiter: nil,
+		Source:       schema.SourceAPI,
 		KeyCache:     nil,
 	})
 	if err != nil {
@@ -144,7 +147,7 @@ func (s *Seeder) Seed(ctx context.Context) error {
 
 	// 1. Get API details including workspace_id
 	log.Printf("Fetching API details...")
-	workspaceID, keyAuthID, prefix, err := s.getAPIDetails(ctx)
+	workspaceID, projectID, keyAuthID, prefix, err := s.getAPIDetails(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to get API details: %w", err)
 	}
@@ -157,7 +160,7 @@ func (s *Seeder) Seed(ctx context.Context) error {
 	// Create identities first (if needed)
 	if s.numIdentities > 0 {
 		log.Printf("Creating %d identities...", s.numIdentities)
-		identities, err = s.createIdentitiesBatched(ctx, workspaceID)
+		identities, err = s.createIdentitiesBatched(ctx, workspaceID, projectID)
 		if err != nil {
 			return fmt.Errorf("failed to create identities: %w", err)
 		}
@@ -182,17 +185,21 @@ func (s *Seeder) Seed(ctx context.Context) error {
 	return nil
 }
 
-func (s *Seeder) getAPIDetails(ctx context.Context) (workspaceID, keyAuthID, prefix string, err error) {
+func (s *Seeder) getAPIDetails(ctx context.Context) (workspaceID, projectID, keyAuthID, prefix string, err error) {
 	// Fetch API from database
 	api, err := db.Query.FindApiByID(ctx, s.db.RO(), s.apiID)
 	if err != nil {
-		return "", "", "", fmt.Errorf("failed to find API: %w", err)
+		return "", "", "", "", fmt.Errorf("failed to find API: %w", err)
 	}
 
 	workspaceID = api.WorkspaceID
+	projectID = api.ProjectID
+	if projectID == "" {
+		return "", "", "", "", fmt.Errorf("API %s does not have project ownership", s.apiID)
+	}
 
 	if !api.KeyAuthID.Valid {
-		return "", "", "", fmt.Errorf("API %s does not have key authentication enabled", s.apiID)
+		return "", "", "", "", fmt.Errorf("API %s does not have key authentication enabled", s.apiID)
 	}
 
 	keyAuthID = api.KeyAuthID.String
@@ -200,7 +207,7 @@ func (s *Seeder) getAPIDetails(ctx context.Context) (workspaceID, keyAuthID, pre
 	// Fetch keyAuth to get the prefix
 	keyAuth, err := db.Query.GetKeyAuthByID(ctx, s.db.RO(), keyAuthID)
 	if err != nil {
-		return "", "", "", fmt.Errorf("failed to get keyAuth: %w", err)
+		return "", "", "", "", fmt.Errorf("failed to get keyAuth: %w", err)
 	}
 
 	if keyAuth.DefaultPrefix.Valid {
@@ -209,7 +216,7 @@ func (s *Seeder) getAPIDetails(ctx context.Context) (workspaceID, keyAuthID, pre
 		prefix = "key" // fallback prefix
 	}
 
-	return workspaceID, keyAuthID, prefix, nil
+	return workspaceID, projectID, keyAuthID, prefix, nil
 }
 
 func (s *Seeder) createKeysBatched(ctx context.Context, workspaceID, keyAuthID, prefix string, identities []Identity) ([]Key, error) {
@@ -330,7 +337,7 @@ func (s *Seeder) createKeysBatched(ctx context.Context, workspaceID, keyAuthID, 
 	return allKeys, nil
 }
 
-func (s *Seeder) createIdentitiesBatched(ctx context.Context, workspaceID string) ([]Identity, error) {
+func (s *Seeder) createIdentitiesBatched(ctx context.Context, workspaceID, projectID string) ([]Identity, error) {
 	identities := make([]Identity, s.numIdentities)
 	identityParams := make([]db.InsertIdentityParams, s.numIdentities)
 
@@ -354,6 +361,7 @@ func (s *Seeder) createIdentitiesBatched(ctx context.Context, workspaceID string
 			ID:          identityID,
 			ExternalID:  externalID,
 			WorkspaceID: workspaceID,
+			ProjectID:   projectID,
 			Environment: "default",
 			CreatedAt:   now,
 			Meta:        []byte(`{}`),
@@ -487,6 +495,8 @@ func (s *Seeder) generateVerifications(_ context.Context, workspaceID string, ke
 			ExternalID:   externalID,
 			Latency:      latency,
 			SpentCredits: credit,
+			Source:       schema.SourceAPI,
+			AppID:        "",
 		})
 
 		// Log progress periodically

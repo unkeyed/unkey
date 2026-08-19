@@ -26,8 +26,10 @@ import (
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/clock"
+	githubclient "github.com/unkeyed/unkey/pkg/github"
 	"github.com/unkeyed/unkey/pkg/healthcheck"
 	"github.com/unkeyed/unkey/pkg/logger"
+	"github.com/unkeyed/unkey/pkg/mysql/sqlcomment"
 	"github.com/unkeyed/unkey/pkg/otel"
 	"github.com/unkeyed/unkey/pkg/prometheus"
 	"github.com/unkeyed/unkey/pkg/prometheus/lazy"
@@ -47,11 +49,12 @@ import (
 	workercustomdomain "github.com/unkeyed/unkey/svc/ctrl/worker/customdomain"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/deploy"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/deployment"
+	"github.com/unkeyed/unkey/svc/ctrl/worker/deployteardown"
 	workerenvironment "github.com/unkeyed/unkey/svc/ctrl/worker/environment"
-	githubclient "github.com/unkeyed/unkey/svc/ctrl/worker/github"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/githubstatus"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/githubwebhook"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/keylastusedsync"
+	"github.com/unkeyed/unkey/svc/ctrl/worker/legacybilling"
 
 	ratelimitdb "github.com/unkeyed/unkey/internal/services/ratelimit/db"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/auditlogs"
@@ -60,6 +63,8 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/worker/routing"
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 )
 
 // Run starts the Restate worker service with the provided configuration.
@@ -146,7 +151,7 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 
 	// Initialize database
-	database, err := db.New(cfg.Database)
+	database, err := db.New(cfg.Database, sqlcomment.ForService("ctrl-worker", cfg.Region))
 	if err != nil {
 		return fmt.Errorf("unable to create db: %w", err)
 	}
@@ -155,7 +160,7 @@ func Run(ctx context.Context, cfg Config) error {
 
 	// Create GitHub client for deploy workflow (optional)
 	var ghClient githubclient.GitHubClient = githubclient.NewNoop()
-	if cfg.GitHub != nil {
+	if cfg.GitHub != nil && cfg.GitHub.AppID != 0 && cfg.GitHub.PrivateKeyPEM != "" {
 		client, ghErr := githubclient.NewClient(githubclient.ClientConfig{
 			AppID:         cfg.GitHub.AppID,
 			PrivateKeyPEM: cfg.GitHub.PrivateKeyPEM,
@@ -175,20 +180,22 @@ func Run(ctx context.Context, cfg Config) error {
 	// (GetInstanceMeterUsage) is not on the ClickHouse interface. Nil until
 	// ClickHouse is configured, which leaves the billing push disabled.
 	var billingUsageReader deploybilling.UsageReader
+	var clickhouseClient *clickhouse.Client
 	buildSteps := batch.NewNoop[schema.BuildStepV1]()
 	buildStepLogs := batch.NewNoop[schema.BuildStepLogV1]()
 
 	if cfg.ClickHouse.URL != "" {
-		chClient, chErr := clickhouse.New(clickhouse.Config{
+		var chErr error
+		clickhouseClient, chErr = clickhouse.New(clickhouse.Config{
 			URL: cfg.ClickHouse.URL,
 		})
 		if chErr != nil {
 			logger.Error("failed to create clickhouse client, continuing with noop", "error", chErr)
 		} else {
-			ch = chClient
-			billingUsageReader = chClient
+			ch = clickhouseClient
+			billingUsageReader = clickhouseClient
 
-			buildSteps = clickhouse.NewBuffer[schema.BuildStepV1](chClient, "default.build_steps_v1", clickhouse.BufferConfig{
+			buildSteps = clickhouse.NewBuffer[schema.BuildStepV1](clickhouseClient, clickhouse.BufferConfig{
 				Name:          "build_steps",
 				BatchSize:     1_000,
 				BufferSize:    2_000,
@@ -197,7 +204,7 @@ func Run(ctx context.Context, cfg Config) error {
 				Drop:          true,
 				OnFlushError:  nil,
 			})
-			buildStepLogs = clickhouse.NewBuffer[schema.BuildStepLogV1](chClient, "default.build_step_logs_v1", clickhouse.BufferConfig{
+			buildStepLogs = clickhouse.NewBuffer[schema.BuildStepLogV1](clickhouseClient, clickhouse.BufferConfig{
 				Name:          "build_step_logs",
 				BatchSize:     1_000,
 				BufferSize:    2_000,
@@ -208,7 +215,7 @@ func Run(ctx context.Context, cfg Config) error {
 			})
 
 			// Close connection last (LIFO: first registered closes last)
-			r.Defer(chClient.Close)
+			r.Defer(clickhouseClient.Close)
 			r.Defer(func() error { buildSteps.Close(); return nil })
 			r.Defer(func() error { buildStepLogs.Close(); return nil })
 		}
@@ -221,6 +228,18 @@ func Run(ctx context.Context, cfg Config) error {
 	// panics) still surface, its routine success noise is dropped, and the
 	// app's own INFO/DEBUG logs (which honor UNKEY_LOG_LEVEL) are unaffected.
 	restateSrv := restateServer.NewRestate().WithLogger(logger.AtLevel(logger.GetHandler(), slog.LevelWarn), false)
+	if clickhouseClient == nil {
+		logger.Info("LegacyBillingWorkflow disabled: real ClickHouse client not configured")
+	} else if cfg.Billing.StripeSecretKey == "" {
+		logger.Info("LegacyBillingWorkflow disabled: Stripe secret key not configured")
+	} else {
+		restateSrv.Bind(hydrav1.NewLegacyBillingWorkflowServer(legacybilling.New(
+			database,
+			clickhouseClient,
+			cfg.Billing.StripeSecretKey,
+		)))
+		logger.Info("LegacyBillingWorkflow enabled")
+	}
 
 	// Shared Restate admin client used both for service registration and
 	// for in-flight invocation cancellation (e.g. superseded sibling cleanup).
@@ -234,21 +253,47 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("invalid build platform: %w", err)
 	}
 
-	restateSrv.Bind(hydrav1.NewDeployServiceServer(deploy.New(deploy.Config{
+	buildConfig := deploy.BuildConfig{
+		Backend:    deploy.BuildBackend(cfg.Build.Backend),
+		Depot:      deploy.DepotConfig(cfg.GetDepotConfig()),
+		Kubernetes: deploy.KubernetesBuildConfig(cfg.Build.Kubernetes),
+	}
+
+	// The kubernetes build backend runs build Jobs in the worker's own
+	// cluster, so it only works when the worker itself runs in-cluster.
+	var k8sClient kubernetes.Interface
+	if buildConfig.Backend == deploy.BuildBackendKubernetes {
+		restCfg, restErr := rest.InClusterConfig()
+		if restErr != nil {
+			return fmt.Errorf("kubernetes build backend requires in-cluster credentials: %w", restErr)
+		}
+		k8sClient, err = kubernetes.NewForConfig(restCfg)
+		if err != nil {
+			return fmt.Errorf("failed to create kubernetes client: %w", err)
+		}
+	}
+
+	deployWorkflow, err := deploy.New(deploy.Config{
 		DB:            database,
 		DefaultDomain: cfg.DefaultDomain,
 		Vault:         vaultClient,
 
 		GitHub:                          ghClient,
+		Build:                           buildConfig,
+		K8s:                             k8sClient,
 		RegistryConfig:                  deploy.RegistryConfig(cfg.GetRegistryConfig()),
 		BuildPlatform:                   deploy.BuildPlatform(buildPlatform),
-		DepotConfig:                     deploy.DepotConfig(cfg.GetDepotConfig()),
 		Clickhouse:                      ch,
 		BuildSteps:                      buildSteps,
 		BuildStepLogs:                   buildStepLogs,
 		AllowUnauthenticatedDeployments: ptr.SafeDeref(cfg.GitHub).AllowUnauthenticatedDeployments,
 		DashboardURL:                    cfg.DashboardURL,
-	}),
+	})
+	if err != nil {
+		return fmt.Errorf("failed to create deploy workflow: %w", err)
+	}
+
+	restateSrv.Bind(hydrav1.NewDeployServiceServer(deployWorkflow,
 		// Retry with exponential backoff: 2s → 4s → 8s → 16s → 30s (capped),
 		// 15 attempts (~5 min total). Short backoffs keep the worst-case
 		// cancel latency low — a user-initiated cancel only lands at the
@@ -274,6 +319,21 @@ func Run(ctx context.Context, cfg Config) error {
 	restateSrv.Bind(hydrav1.NewDeploymentServiceServer(deployment.New(deployment.Config{
 		DB: database,
 	}), restate.WithIngressPrivate(true)))
+
+	// DeployTeardownService stops all of a workspace's running Deploy compute and
+	// confirms it drained. Invoked over Restate ingress by cancel (ARCHIVE) and,
+	// later, the spend-cap check (SUSPEND).
+	teardownSvc, err := deployteardown.New(deployteardown.Config{
+		DB: database,
+		// Zero selects the production drain poll cadence and grace timeout; only
+		// tests override these to keep the drain loop fast.
+		DrainPollInterval: 0,
+		DrainGraceTimeout: 0,
+	})
+	if err != nil {
+		return fmt.Errorf("create deploy teardown service: %w", err)
+	}
+	restateSrv.Bind(hydrav1.NewDeployTeardownServiceServer(teardownSvc))
 
 	restateSrv.Bind(hydrav1.NewGitHubStatusServiceServer(githubstatus.New(githubstatus.Config{
 		GitHub: ghClient,
@@ -307,6 +367,7 @@ func Run(ctx context.Context, cfg Config) error {
 		RestateAdmin:                    restateAdminClient,
 		DashboardURL:                    cfg.DashboardURL,
 		AllowUnauthenticatedDeployments: ptr.SafeDeref(cfg.GitHub).AllowUnauthenticatedDeployments,
+		EnforceDeployGate:               cfg.DeployGate.Enforce,
 	})))
 
 	// Deletion workflows write their audit logs as durable steps, so the audit
@@ -348,11 +409,27 @@ func Run(ctx context.Context, cfg Config) error {
 	// journals have no debugging value (each invocation just reads state,
 	// maybe resolves an awakeable, and returns), so keep their retention
 	// minimal.
+	//
+	// Kill on retry exhaustion, not pause, and never the unset default of
+	// endless retries. This Virtual Object serializes all slot traffic for
+	// a workspace, so one stuck invocation blocks every deployment in that
+	// workspace. The handlers are idempotent and hold no compensations.
+	// The lease mechanism audits every durable effect (slot grants, wait
+	// entries, ExpireSlot leases), so the next call or audit repairs
+	// everything a killed invocation loses.
 	restateSrv.Bind(hydrav1.NewBuildSlotServiceServer(buildslot.New(buildslot.Config{
-		DB: database,
+		DB:           database,
+		RestateAdmin: restateAdminClient,
 	}),
 		restate.WithIngressPrivate(true),
 		restate.WithJournalRetention(1*time.Minute),
+		restate.WithInvocationRetryPolicy(
+			restate.WithInitialInterval(100*time.Millisecond),
+			restate.WithExponentiationFactor(2.0),
+			restate.WithMaxInterval(10*time.Second),
+			restate.WithMaxAttempts(20),
+			restate.KillOnMaxAttempts(),
+		),
 	))
 
 	restateSrv.Bind(hydrav1.NewCustomDomainServiceServer(workercustomdomain.New(workercustomdomain.Config{
@@ -424,16 +501,15 @@ func Run(ctx context.Context, cfg Config) error {
 	// which can take 5-10 minutes for DNS propagation
 	var certHeartbeat healthcheck.Heartbeat = healthcheck.NewNoop()
 	if cfg.Heartbeat.CertRenewalURL != "" {
-		certHeartbeat = healthcheck.NewChecklyHeartbeat(cfg.Heartbeat.CertRenewalURL)
+		certHeartbeat = healthcheck.NewHTTPHeartbeat(cfg.Heartbeat.CertRenewalURL)
 	}
 	restateSrv.Bind(hydrav1.NewCertificateServiceServer(certificate.New(certificate.Config{
-		DB:            database,
-		Vault:         vaultClient,
-		EmailDomain:   cfg.Acme.EmailDomain,
-		DefaultDomain: cfg.DefaultDomain,
-		DNSProvider:   dnsProvider,
-		HTTPProvider:  httpProvider,
-		Heartbeat:     certHeartbeat,
+		DB:           database,
+		Vault:        vaultClient,
+		EmailDomain:  cfg.Acme.EmailDomain,
+		DNSProvider:  dnsProvider,
+		HTTPProvider: httpProvider,
+		Heartbeat:    certHeartbeat,
 	}), restate.WithInactivityTimeout(15*time.Minute)))
 
 	// ClickHouse user provisioning service (optional - requires admin URL and vault)
@@ -474,13 +550,21 @@ func Run(ctx context.Context, cfg Config) error {
 		SlackQuotaCheckWebhookURL: cfg.Slack.QuotaCheckWebhookURL,
 		BillingUsageReader:        billingUsageReader,
 		StripeSecretKey:           cfg.Billing.StripeSecretKey,
+		// Derived from StripeSecretKey; only tests inject these directly.
+		BillingPusher:  nil,
+		BillingCloser:  nil,
+		WorkOSAPIKey:   cfg.WorkOSAPIKey,
+		ResendAPIKey:   cfg.Email.ResendAPIKey,
+		BillingBaseURL: cfg.DashboardURL,
 		Heartbeats: cron.Heartbeats{
-			QuotaCheck:        cronHeartbeat(cfg.Heartbeat.QuotaCheckURL),
-			KeyRefill:         cronHeartbeat(cfg.Heartbeat.KeyRefillURL),
-			KeyLastUsedSync:   cronHeartbeat(cfg.Heartbeat.KeyLastUsedSyncURL),
-			AuditLogExport:    cronHeartbeat(cfg.Heartbeat.AuditLogExportURL),
-			AuditLogCleanup:   cronHeartbeat(cfg.Heartbeat.AuditLogOutboxCleanupURL),
-			DeployBillingPush: cronHeartbeat(cfg.Heartbeat.DeployBillingPushURL),
+			QuotaCheck:         cronHeartbeat(cfg.Heartbeat.QuotaCheckURL),
+			KeyRefill:          cronHeartbeat(cfg.Heartbeat.KeyRefillURL),
+			KeyLastUsedSync:    cronHeartbeat(cfg.Heartbeat.KeyLastUsedSyncURL),
+			AuditLogExport:     cronHeartbeat(cfg.Heartbeat.AuditLogExportURL),
+			AuditLogCleanup:    cronHeartbeat(cfg.Heartbeat.AuditLogOutboxCleanupURL),
+			DeployBillingPush:  cronHeartbeat(cfg.Heartbeat.DeployBillingPushURL),
+			DeployBillingClose: cronHeartbeat(cfg.Heartbeat.DeployBillingCloseURL),
+			DeploySpendCheck:   cronHeartbeat(cfg.Heartbeat.DeploySpendCheckURL),
 		},
 	})
 	if err != nil {
@@ -505,40 +589,129 @@ func Run(ctx context.Context, cfg Config) error {
 		restate.WithMaxAttempts(5),
 		restate.KillOnMaxAttempts(),
 	)
-	// Ratelimit global-counters cleanup keeps the pre-consolidation
-	// 5-attempt / 100ms-5s policy with PauseOnMaxAttempts: stateless
-	// DELETE that the hot path doesn't depend on, so pausing for an
-	// operator to inspect a real failure is better than killing silently.
+	// Ratelimit global-counters cleanup: stateless, cutoff-bounded DELETE
+	// that re-derives its work from the clock on every tick. Kill (not
+	// Pause) on exhaustion — a paused invocation parks the fixed
+	// "ratelimit-global-counters-cleanup" key and every later tick queues
+	// behind it, so one bad run silently stops the sweep until an operator
+	// cancels it. There is no compensation to re-enter for, and the handler
+	// drains in batches, so killing just means the next hourly tick picks
+	// up where this one stopped.
 	cronRatelimitGCCRetry := restate.WithInvocationRetryPolicy(
 		restate.WithInitialInterval(100*time.Millisecond),
 		restate.WithExponentiationFactor(2.0),
 		restate.WithMaxInterval(5*time.Second),
 		restate.WithMaxAttempts(5),
-		restate.PauseOnMaxAttempts(),
+		restate.KillOnMaxAttempts(),
 	)
-	// AuditLogOutboxCleanup mirrors the ratelimit cleanup policy: a
-	// stateless, cutoff-bounded DELETE the hot path doesn't depend on, so
-	// pausing for an operator to inspect a real failure beats killing
-	// silently. The daily cadence means a paused run is caught well before
-	// the next tick.
+	// AuditLogOutboxCleanup mirrors the ratelimit cleanup policy for the
+	// same reasons: a stateless, cutoff-bounded, batched DELETE with no
+	// compensation, on a fixed singleton key that a paused invocation would
+	// wedge. Kill on exhaustion and let the next daily tick retry.
 	cronAuditLogCleanupRetry := restate.WithInvocationRetryPolicy(
 		restate.WithInitialInterval(100*time.Millisecond),
 		restate.WithExponentiationFactor(2.0),
 		restate.WithMaxInterval(5*time.Second),
 		restate.WithMaxAttempts(5),
-		restate.PauseOnMaxAttempts(),
+		restate.KillOnMaxAttempts(),
 	)
-	// AuditLogExport runs every minute and is idempotent: any failure is
-	// recovered by the next tick, not by replaying journals from
-	// yesterday. 1h journal retention keeps enough debugging headroom for
-	// an oncall to inspect a recent failure without bloating the journal
-	// store with ~1440 dead invocations/day. No retry override — SDK
-	// default behavior was the pre-consolidation contract.
+	// AuditLogExport drains the outbox every minute on the fixed singleton
+	// key "audit-log-export", so a stuck invocation blocks every later tick.
+	// The SDK default retries forever, which is the same wedge as pausing
+	// with no attempt cap — and the drainer has a known permanent failure
+	// mode (a malformed payload fails its batch until someone fixes the
+	// writer), so retrying it for eternity buys nothing while the outbox
+	// grows unbounded behind a key nobody is watching.
+	//
+	// Kill after 5 attempts instead. The drain is fully idempotent: rows are
+	// soft-deleted only after their ClickHouse insert commits, so a dropped
+	// run leaves them unmarked and the next tick re-reads the same set in
+	// the same order (ClickHouse block dedup collapses any duplicate write).
+	// Failure surfaces through the missing end-of-run heartbeat. The retry
+	// window stays inside a few seconds on purpose: with a tick every minute
+	// the meaningful retry is the next tick, not a longer in-invocation
+	// backoff that would still be running when that tick queues up.
+	cronAuditLogExportRetry := restate.WithInvocationRetryPolicy(
+		restate.WithInitialInterval(100*time.Millisecond),
+		restate.WithExponentiationFactor(2.0),
+		restate.WithMaxInterval(5*time.Second),
+		restate.WithMaxAttempts(5),
+		restate.KillOnMaxAttempts(),
+	)
+	// The fleet close runs once per month and is the fallback for webhook-driven
+	// workspace closes, so a brief infrastructure outage must not exhaust it in
+	// seconds. Nine attempts span roughly 75 minutes while staying well inside
+	// the claimed invoice's 48-hour finalization backstop. Kill on exhaustion so
+	// the period VO never remains wedged.
+	cronDeployBillingFleetCloseRetry := restate.WithInvocationRetryPolicy(
+		restate.WithInitialInterval(1*time.Minute),
+		restate.WithExponentiationFactor(2.0),
+		restate.WithMaxInterval(15*time.Minute),
+		restate.WithMaxAttempts(9),
+		restate.KillOnMaxAttempts(),
+	)
+	// The per-workspace close is dispatched by invoice.created and backed up by
+	// the fleet close. Its handler turns customer-specific push and finalization
+	// failures into deferred work, so this short policy only covers failures that
+	// escape those bounds.
+	cronDeployBillingWorkspaceCloseRetry := restate.WithInvocationRetryPolicy(
+		restate.WithInitialInterval(100*time.Millisecond),
+		restate.WithExponentiationFactor(2.0),
+		restate.WithMaxInterval(5*time.Second),
+		restate.WithMaxAttempts(5),
+		restate.KillOnMaxAttempts(),
+	)
+	// DeployBillingPush is the hourly month-to-date push orchestrator, keyed by
+	// billing period (YYYY-MM) so every hourly tick shares one VO. Its own reads
+	// (list workspaces, the ClickHouse scan) can fail non-terminally, and without
+	// a cap that invocation retries forever on the period VO while later ticks
+	// queue behind it. The push is idempotent (absolute month-to-date total,
+	// Stripe aggregates with "last"), so kill on exhaustion and let the next tick
+	// retry from a clean slate.
+	cronDeployBillingPushRetry := restate.WithInvocationRetryPolicy(
+		restate.WithInitialInterval(100*time.Millisecond),
+		restate.WithExponentiationFactor(2.0),
+		restate.WithMaxInterval(5*time.Second),
+		restate.WithMaxAttempts(5),
+		restate.KillOnMaxAttempts(),
+	)
+	// DeploySpendCheck is the spend-cap orchestrator, keyed by the current
+	// billing period (YYYY-MM) so every tick shares one VO. Its own reads (list
+	// budgeted workspaces, the ClickHouse scan, the heartbeat) can fail
+	// non-terminally, and without a cap that invocation retries forever on the
+	// period VO while later ticks queue behind it. Each tick re-prices from
+	// scratch and the per-workspace children own alert dedup, so kill on
+	// exhaustion and let the next tick retry from a clean slate.
+	cronDeploySpendCheckRetry := restate.WithInvocationRetryPolicy(
+		restate.WithInitialInterval(100*time.Millisecond),
+		restate.WithExponentiationFactor(2.0),
+		restate.WithMaxInterval(5*time.Second),
+		restate.WithMaxAttempts(5),
+		restate.KillOnMaxAttempts(),
+	)
+	// Without a cap the SDK default retries a failing quota check forever,
+	// parking its VO for the month. Kill on exhaustion and let the next daily
+	// tick retry; mirrors the billing-push and spend-check policies.
+	cronQuotaCheckRetry := restate.WithInvocationRetryPolicy(
+		restate.WithInitialInterval(100*time.Millisecond),
+		restate.WithExponentiationFactor(2.0),
+		restate.WithMaxInterval(5*time.Second),
+		restate.WithMaxAttempts(5),
+		restate.KillOnMaxAttempts(),
+	)
 	restateSrv.Bind(hydrav1.NewCronServiceServer(cronSvc).
 		ConfigureHandler("RunKeyLastUsedSync", cronKeyLastUsedRetry).
 		ConfigureHandler("RunRatelimitGlobalCountersCleanup", cronRatelimitGCCRetry).
 		ConfigureHandler("RunAuditLogOutboxCleanup", cronAuditLogCleanupRetry).
-		ConfigureHandler("RunAuditLogExport", restate.WithJournalRetention(1*time.Hour)))
+		// 1h journal retention keeps debugging headroom for an oncall to
+		// inspect a recent failure without bloating the journal store with
+		// ~1440 dead invocations/day.
+		ConfigureHandler("RunAuditLogExport", restate.WithJournalRetention(1*time.Hour), cronAuditLogExportRetry).
+		ConfigureHandler("RunQuotaCheck", cronQuotaCheckRetry).
+		ConfigureHandler("RunDeployBillingClose", cronDeployBillingFleetCloseRetry).
+		ConfigureHandler("CloseDeployBillingWorkspace", cronDeployBillingWorkspaceCloseRetry).
+		ConfigureHandler("RunDeployBillingPush", cronDeployBillingPushRetry).
+		ConfigureHandler("RunDeploySpendCheck", cronDeploySpendCheckRetry))
 	logger.Info("CronService enabled")
 
 	// KeyLastUsedPartitionService is the per-partition VO fanned out from
@@ -553,6 +726,49 @@ func Run(ctx context.Context, cfg Config) error {
 	restateSrv.Bind(hydrav1.NewKeyLastUsedPartitionServiceServer(keyLastUsedPartitionSvc, cronKeyLastUsedRetry))
 	logger.Info("KeyLastUsedPartitionService enabled")
 
+	// DeployBillingPushService is the per-workspace push VO fanned out from the
+	// deploy billing orchestrator. Standalone, not cron-triggered.
+	//
+	// The handler bounds its provider push to a 2-minute retry window and returns
+	// a TerminalError on exhaustion, so today it always completes terminally and
+	// the awaiting orchestrator resolves. This explicit kill policy is the
+	// backstop. If a non-terminal failure ever reached the handler (a second Run
+	// step, a framework error), the SDK default of infinite retries would leave
+	// the child retrying forever while the orchestrator suspends on the period
+	// VO. That is the wedge this fan-out exists to prevent. Cap and kill so the
+	// child fails visibly and the next tick re-sends the absolute total. Mirrors
+	// KeyLastUsedPartitionService.
+	deployBillingPushWorkspaceRetry := restate.WithInvocationRetryPolicy(
+		restate.WithInitialInterval(100*time.Millisecond),
+		restate.WithExponentiationFactor(2.0),
+		restate.WithMaxInterval(5*time.Second),
+		restate.WithMaxAttempts(5),
+		restate.KillOnMaxAttempts(),
+	)
+	restateSrv.Bind(hydrav1.NewDeployBillingPushServiceServer(cronSvc.DeployBillingPushServer(), deployBillingPushWorkspaceRetry))
+	logger.Info("DeployBillingPushService enabled")
+
+	// DeploySpendCheckService is the per-workspace spend-cap VO fanned out from
+	// the RunDeploySpendCheck orchestrator.
+	//
+	// CheckWorkspaceSpend is awaited by the orchestrator, so it must
+	// terminate: without a cap a check that cannot succeed (one workspace's
+	// alert email rejected, a wedged suspend) retries forever and parks the
+	// awaiting period VO, stalling every later tick fleet-wide. Alert dedup is
+	// owned by the period-scoped high-water mark and the email idempotency
+	// key, so kill on exhaustion and let the next tick retry from a clean
+	// slate.
+	deploySpendCheckWorkspaceRetry := restate.WithInvocationRetryPolicy(
+		restate.WithInitialInterval(100*time.Millisecond),
+		restate.WithExponentiationFactor(2.0),
+		restate.WithMaxInterval(5*time.Second),
+		restate.WithMaxAttempts(5),
+		restate.KillOnMaxAttempts(),
+	)
+	restateSrv.Bind(hydrav1.NewDeploySpendCheckServiceServer(cronSvc.DeploySpendCheckServer()).
+		ConfigureHandler("CheckWorkspaceSpend", deploySpendCheckWorkspaceRetry))
+	logger.Info("DeploySpendCheckService enabled")
+
 	// Get the Restate handler and mount it on a mux with health endpoint
 	restateHandler, err := restateSrv.Handler()
 	if err != nil {
@@ -561,7 +777,7 @@ func Run(ctx context.Context, cfg Config) error {
 
 	mux := http.NewServeMux()
 	r.RegisterHealth(mux)
-	mux.Handle("/", restateHandler)
+	mux.Handle("/", sqlcomment.WrapRestateInvokeHandler(restateHandler))
 
 	h2cHandler := h2c.NewHandler(mux, &http2.Server{
 		MaxHandlers:                  0,
@@ -643,12 +859,12 @@ func Run(ctx context.Context, cfg Config) error {
 	return nil
 }
 
-// cronHeartbeat returns a Checkly heartbeat for url, or a noop if url is
-// empty. Used to wire each cron task's monitoring URL without scattering
-// nil-or-noop branches through the cron service.
+// cronHeartbeat returns an HTTP heartbeat for url, or a noop if url is empty.
+// Used to wire each cron task's monitoring URL without scattering nil-or-noop
+// branches through the cron service.
 func cronHeartbeat(url string) healthcheck.Heartbeat {
 	if url == "" {
 		return healthcheck.NewNoop()
 	}
-	return healthcheck.NewChecklyHeartbeat(url)
+	return healthcheck.NewHTTPHeartbeat(url)
 }

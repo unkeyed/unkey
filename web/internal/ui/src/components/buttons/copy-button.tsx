@@ -21,7 +21,7 @@ type CopyButtonProps = ButtonProps & {
 };
 
 async function copyToClipboardWithMeta(value: string, _meta?: Record<string, unknown>) {
-  navigator.clipboard.writeText(value);
+  await navigator.clipboard.writeText(value);
 }
 
 export const CopyButton = React.forwardRef<HTMLButtonElement, CopyButtonProps>(
@@ -46,23 +46,23 @@ export const CopyButton = React.forwardRef<HTMLButtonElement, CopyButtonProps>(
         variant={variant}
         title="Copy to clipboard"
         size="icon"
-        className={cn("focus:ring-0 focus:border-grayA-6 secret", className)}
-        onClick={(e) => {
+        className={cn("focus:ring-0 focus:border-grayA-6 secret p-0", className)}
+        onClick={async (e) => {
           if (!e.defaultPrevented) {
             e.stopPropagation(); // Prevent triggering parent button click
             try {
-              copyToClipboardWithMeta(value, {
+              await copyToClipboardWithMeta(value, {
                 component: src,
               });
               toast.success("Copied to clipboard", {
                 description: toastMessage,
               });
+              setCopied(true);
             } catch (e) {
               toast.error("Failed to copy to clipboard", {
                 description: e instanceof Error ? e.message : "Unknown error",
               });
             }
-            setCopied(true);
             // Call the onClick prop if provided
             onClick?.(e);
           }
@@ -70,11 +70,7 @@ export const CopyButton = React.forwardRef<HTMLButtonElement, CopyButtonProps>(
         aria-label="Copy to clipboard"
       >
         <span className="sr-only">Copy</span>
-        {copied ? (
-          <TaskChecked className="w-full h-full" />
-        ) : (
-          <TaskUnchecked className="w-full h-full" />
-        )}
+        {copied ? <TaskChecked /> : <TaskUnchecked />}
       </Button>
     );
   },
