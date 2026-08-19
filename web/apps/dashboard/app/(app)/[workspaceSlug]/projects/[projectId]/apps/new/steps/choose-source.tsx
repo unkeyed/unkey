@@ -1,7 +1,7 @@
 "use client";
 import { queryClient, trpcClient } from "@/lib/collections/client";
 import type { CreateAppRequestSchema } from "@/lib/collections/deploy/apps";
-import { buildDefaultSettingsMutations } from "@/lib/collections/deploy/environment-settings";
+import { applyDefaultSettings } from "@/lib/collections/deploy/environment-settings";
 import { trpc } from "@/lib/trpc/client";
 import { CodeBranch, Github } from "@unkey/icons";
 import { Button, toast, useStepWizard } from "@unkey/ui";
@@ -47,11 +47,7 @@ export const ChooseSourceStep = ({
 
     setSelectedSource(source.kind);
     try {
-      const app = await createApp.mutateAsync({
-        projectId,
-        ...appDetails,
-        source,
-      });
+      const app = await createApp.mutateAsync({ projectId, ...appDetails, source });
       const nextCreatedApp = { id: app.id, sourceKind: source.kind };
       setCreatedApp(nextCreatedApp);
       onAppCreated(app.id);
@@ -67,10 +63,14 @@ export const ChooseSourceStep = ({
             availableRegions ??
             (await utils.deploy.environmentSettings.getAvailableRegions.fetch());
           const environments = await trpcClient.deploy.environment.list.query({ projectId });
-          const mutations = environments
-            .filter((environment) => environment.appId === app.id)
-            .flatMap((environment) => buildDefaultSettingsMutations(environment.id, regions));
-          await Promise.all(mutations);
+          const regionNames = regions.filter((region) => region.canSchedule).map((region) => region.name);
+          await Promise.all(
+            environments
+              .filter((environment) => environment.appId === app.id)
+              .map((environment) =>
+                applyDefaultSettings(projectId, app.id, environment.id, regionNames),
+              ),
+          );
         } catch (error) {
           toast.error("Failed to initialize settings", {
             description: error instanceof Error ? error.message : "An unexpected error occurred",

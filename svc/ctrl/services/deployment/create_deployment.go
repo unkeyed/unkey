@@ -437,7 +437,6 @@ func (s *Service) createAndDeploy(ctx context.Context, p createParams) (string, 
 		requestedImage = imageReference
 		deployReq = &hydrav1.DeployRequest{
 			DeploymentId: deploymentID,
-			KeyAuthId:    p.keyAuthID,
 			Command:      command,
 			Source: &hydrav1.DeployRequest_DockerImage{
 				DockerImage: &hydrav1.DockerImage{Image: requestedImage},
@@ -458,7 +457,6 @@ func (s *Service) createAndDeploy(ctx context.Context, p createParams) (string, 
 		requestedImage = imageReference
 		deployReq = &hydrav1.DeployRequest{
 			DeploymentId: deploymentID,
-			KeyAuthId:    p.keyAuthID,
 			Command:      command,
 			Source: &hydrav1.DeployRequest_DockerImage{
 				DockerImage: &hydrav1.DockerImage{Image: requestedImage},

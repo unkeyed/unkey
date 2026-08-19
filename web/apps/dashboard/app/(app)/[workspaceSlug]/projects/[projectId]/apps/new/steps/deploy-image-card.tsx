@@ -4,7 +4,6 @@ import { useDeployActionGate } from "@/app/(app)/[workspaceSlug]/projects/_compo
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { queryClient, trpcClient } from "@/lib/collections/client";
 import { routes } from "@/lib/navigation/routes";
-import { trpc } from "@/lib/trpc/client";
 import { getErrorMessage, getUnkeyClient } from "@/lib/unkey-client";
 import { useMutation } from "@tanstack/react-query";
 import { ChevronLeft, Docker } from "@unkey/icons";
@@ -36,7 +35,17 @@ export const DeployImageCard = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const hintId = useId();
 
-  const createDeployment = trpc.deploy.deployment.create.useMutation();
+  const createDeployment = useMutation({
+    mutationFn: async ({ appId, environment }: { appId: string; environment: string }) => {
+      const response = await getUnkeyClient().deployments.createDeployment({
+        project: projectId,
+        app: appId,
+        environment,
+        docker: { image: imageRef },
+      });
+      return { deploymentId: response.data.deploymentId };
+    },
+  });
 
   const imageRef = image.trim();
   const canDeploy = Boolean(imageRef) && !disabled && !isSubmitting && !createDeployment.isLoading;
@@ -64,11 +73,8 @@ export const DeployImageCard = ({
       }
 
       const deployment = await createDeployment.mutateAsync({
-        projectId,
         appId,
-        environmentSlug,
-        source: "docker",
-        image: imageRef,
+        environment: environmentSlug,
       });
       await queryClient.invalidateQueries({ queryKey: ["deployments", projectId] });
       onBeforeNavigate?.();
@@ -81,7 +87,7 @@ export const DeployImageCard = ({
         }),
       );
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to deploy image");
+      toast.error(getErrorMessage(error));
     } finally {
       setIsSubmitting(false);
     }

@@ -210,7 +210,20 @@ export const CreateDeploymentButton = ({
     }
   }, [app?.imageReference, getFieldState, isImageApp, isOpen, setValue]);
 
-  const createDeployment = trpc.deploy.deployment.create.useMutation({
+  const createDeployment = useMutation({
+    mutationFn: async (source: {
+      environment: string;
+      git?: ReturnType<typeof parseDeployRef>;
+      docker?: string;
+    }) => {
+      const response = await getUnkeyClient().deployments.createDeployment({
+        project: projectId,
+        app: appId,
+        environment: source.environment,
+        ...(source.docker ? { docker: { image: source.docker } } : { git: source.git ?? {} }),
+      });
+      return { deploymentId: response.data.deploymentId };
+    },
     async onSuccess(data) {
       toast.success("Deployment has been created");
       reset();
@@ -236,19 +249,23 @@ export const CreateDeploymentButton = ({
       return;
     }
 
-    createDeployment.mutate({
-      projectId,
-      appId,
-      environmentSlug: values.environment,
-      ...match(deploymentSource)
-        .with("docker", () =>
-          values.name === app?.imageReference
-            ? { source: "default" as const }
-            : { source: "docker" as const, image: values.name },
-        )
-        .with("git", () => ({ source: "git" as const, gitRef: values.name }))
-        .exhaustive(),
-    });
+    if (deploymentSource === "docker") {
+      createDeployment.mutate({ environment: values.environment, docker: values.name });
+      return;
+    }
+
+    try {
+      createDeployment.mutate({
+        environment: values.environment,
+        git: parseDeployRef(values.name),
+      });
+    } catch (error) {
+      if (error instanceof UnsupportedDeployRefError) {
+        toast.error(error.message);
+        return;
+      }
+      throw error;
+    }
   }
 
   // Past successfully deployed prebuilt images, deduped by image ref

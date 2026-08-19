@@ -106,41 +106,5 @@ export const apps = createCollection<App, string>(
 
       await deleteMutation;
     },
-    onInsert: async ({ transaction }) => {
-      const { changes } = transaction.mutations[0];
-
-      if (changes.sourceType === "unknown") {
-        throw new Error("New dashboard apps must declare a GitHub or Docker image source");
-      }
-
-      const createInput = createAppRequestSchema.parse({
-        projectId: changes.projectId,
-        name: changes.name,
-        slug: changes.slug,
-        source:
-          changes.sourceType === "docker"
-            ? { kind: "docker", imageReference: changes.imageReference }
-            : { kind: "git" },
-      });
-      const mutation = getUnkeyClient().apps.createApp({
-        project: createInput.projectId,
-        name: createInput.name,
-        slug: createInput.slug,
-      });
-
-      toast.promise(mutation, {
-        loading: "Creating app...",
-        success: "App created successfully",
-        error: (err) => {
-          console.error("Failed to create app", err);
-          return getErrorToast(err, "Failed to Create App");
-        },
-      });
-
-      const result = await mutation;
-      transaction.metadata = {
-        appId: result.data.appId,
-      };
-    },
   }),
 );

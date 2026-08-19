@@ -48,15 +48,6 @@ export type KeyauthPolicy = {
    * Rate limits applied during key verification.
    */
   ratelimits?: Array<KeyRatelimit> | undefined;
-  /**
-   * Usage credits a matching request deducts from the verified key. Defaults
-   *
-   * @remarks
-   * to 1. Set to 0 to verify the key without spending credits, or to a higher
-   * value to charge more per request. Keys with unlimited usage are
-   * unaffected.
-   */
-  credits?: number | undefined;
 };
 
 /** @internal */
@@ -69,7 +60,6 @@ export const KeyauthPolicy$inboundSchema: z.ZodType<
   locations: z.array(KeyLocation$inboundSchema).optional(),
   permissionQuery: z.string().optional(),
   ratelimits: z.array(KeyRatelimit$inboundSchema).optional(),
-  credits: z.number().int().optional(),
 });
 /** @internal */
 export type KeyauthPolicy$Outbound = {
@@ -77,7 +67,6 @@ export type KeyauthPolicy$Outbound = {
   locations?: Array<KeyLocation$Outbound> | undefined;
   permissionQuery?: string | undefined;
   ratelimits?: Array<KeyRatelimit$Outbound> | undefined;
-  credits?: number | undefined;
 };
 
 /** @internal */
@@ -90,7 +79,6 @@ export const KeyauthPolicy$outboundSchema: z.ZodType<
   locations: z.array(KeyLocation$outboundSchema).optional(),
   permissionQuery: z.string().optional(),
   ratelimits: z.array(KeyRatelimit$outboundSchema).optional(),
-  credits: z.number().int().optional(),
 });
 
 export function keyauthPolicyToJSON(keyauthPolicy: KeyauthPolicy): string {
