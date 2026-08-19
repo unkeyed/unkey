@@ -69,8 +69,6 @@ export function MeterIndicator({ className, ...props }: MeterPrimitive.Indicator
   return (
     <MeterPrimitive.Indicator
       className={cn(
-        // Square because the track clips the left cap already, and the minimum width
-        // keeps a sub-pixel value visible so "barely used" reads apart from "unused".
         "min-w-1 bg-gray-12 transition-[width] duration-300 group-data-[empty]/meter:min-w-0 motion-reduce:transition-none",
         className,
       )}
