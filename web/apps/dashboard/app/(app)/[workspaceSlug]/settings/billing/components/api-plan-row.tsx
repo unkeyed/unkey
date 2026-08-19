@@ -6,21 +6,12 @@ import { trpc } from "@/lib/trpc/client";
 import type { Router } from "@/lib/trpc/routers";
 import type { inferRouterOutputs } from "@trpc/server";
 import { Nodes } from "@unkey/icons";
-import {
-  Button,
-  Item,
-  ItemActions,
-  ItemContent,
-  ItemDescription,
-  ItemMedia,
-  ItemTitle,
-  toast,
-} from "@unkey/ui";
+import { Item, ItemActions, ItemContent, ItemMedia, ItemTitle, toast } from "@unkey/ui";
 import { useState } from "react";
-import { AdminGate } from "./admin-gate";
-import { FREE_TIER_QUOTA, currentApiProduct } from "./api-plan";
+import { currentApiProduct } from "./api-plan";
 import { CancelApiDialog, CancelPlanLink } from "./cancel-actions";
 import { PlanChangeModal } from "./plan-change-modal";
+import { PlanName, PlanPrice, PlanRowAction } from "./plan-row";
 
 const NEEDS_PAYMENT_TOOLTIP = "Add a payment method before upgrading the API plan";
 
@@ -104,7 +95,6 @@ export function ApiPlanRow({
 
   const currentProduct = currentApiProduct({ products, subscription, currentProductId });
 
-  const quota = currentProduct?.quotas.requestsPerMonth ?? FREE_TIER_QUOTA;
   const used = (usage?.billableVerifications ?? 0) + (usage?.billableRatelimits ?? 0);
 
   const canCancel = Boolean(
@@ -118,50 +108,21 @@ export function ApiPlanRow({
           <Nodes />
         </ItemMedia>
         <ItemContent>
-          <div className="flex h-4 items-center">
-            <ItemTitle>API management</ItemTitle>
-          </div>
-          <ItemDescription>{formatNumber(quota)} requests included</ItemDescription>
+          <ItemTitle className="truncate">API management</ItemTitle>
         </ItemContent>
-        <ItemActions className="gap-4">
-          <span className="w-48 text-right tabular-nums">
-            <span className="text-gray-11">{currentProduct ? currentProduct.name : "Free"} - </span>
-            <span className="font-medium text-gray-12">
-              ${currentProduct ? currentProduct.dollar : 0}/month
-            </span>
-          </span>
-          <span className="flex w-32 justify-end">
-            {currentProduct ? (
-              <AdminGate isAdmin={isAdmin}>
-                {(disabled) => (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    disabled={disabled}
-                    onClick={() => setShowPlanModal(true)}
-                  >
-                    Change
-                  </Button>
-                )}
-              </AdminGate>
-            ) : (
-              <AdminGate
-                isAdmin={isAdmin}
-                blocked={!hasPaymentMethod}
-                blockedReason={NEEDS_PAYMENT_TOOLTIP}
-              >
-                {(disabled) => (
-                  <Button
-                    variant={emphasize ? "primary" : "outline"}
-                    size="sm"
-                    disabled={disabled}
-                    onClick={() => setShowPlanModal(true)}
-                  >
-                    Upgrade
-                  </Button>
-                )}
-              </AdminGate>
-            )}
+        <ItemActions className="gap-3">
+          <PlanName>{currentProduct ? currentProduct.name : "Free"}</PlanName>
+          <PlanPrice feeCents={(currentProduct?.dollar ?? 0) * 100} />
+          <span className="flex w-20 justify-end">
+            <PlanRowAction
+              isAdmin={isAdmin}
+              hasPlan={currentProduct !== undefined}
+              hasPaymentMethod={hasPaymentMethod}
+              needsPaymentReason={NEEDS_PAYMENT_TOOLTIP}
+              emphasize={emphasize}
+              onClick={() => setShowPlanModal(true)}
+              chooseLabel="Upgrade"
+            />
           </span>
         </ItemActions>
       </Item>
