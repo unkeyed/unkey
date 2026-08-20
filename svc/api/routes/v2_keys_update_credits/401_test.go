@@ -14,7 +14,7 @@ import (
 )
 
 func TestKeyUpdateCreditsUnauthorized(t *testing.T) {
-	h := testutil.NewHarness(t)
+	h := newUpdateCreditsHarness(t)
 
 	route := &handler.Handler{
 		DB:           h.DB,

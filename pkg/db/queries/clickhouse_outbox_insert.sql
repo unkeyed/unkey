@@ -21,3 +21,33 @@ INSERT INTO `clickhouse_outbox` (
     CAST(sqlc.arg(payload) AS JSON),
     sqlc.arg(created_at)
 );
+
+-- name: InsertClickhouseOutboxForCreditUpdate :exec
+-- transactional-batch-statement
+-- This statement must immediately follow the guarded credit UPDATE. With
+-- clientFoundRows enabled on the batch pool, ROW_COUNT() is one for every
+-- valid update, including no-ops, and zero for deletion/unlimited/overflow.
+INSERT INTO `clickhouse_outbox` (
+    version,
+    workspace_id,
+    event_id,
+    payload,
+    created_at
+)
+SELECT
+    sqlc.arg(version),
+    sqlc.arg(workspace_id),
+    sqlc.arg(event_id),
+    JSON_SET(
+        CAST(sqlc.arg(payload) AS JSON),
+        '$.description',
+        CONCAT(
+            'Updated Key ', sqlc.arg(key_id), ', set remaining to ',
+            IF(k.remaining_requests IS NULL, 'unlimited', CAST(k.remaining_requests AS CHAR)),
+            '.'
+        )
+    ),
+    sqlc.arg(created_at)
+FROM `keys` k
+WHERE k.id = sqlc.arg(key_id)
+  AND ROW_COUNT() = 1;

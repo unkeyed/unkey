@@ -3430,6 +3430,8 @@ type V2KeysUpdateCreditsRequestBody struct {
 	//
 	// Set to null when using 'set' operation to make the key unlimited (removes usage restrictions entirely). When decrementing, if the result would be negative, remaining credits are automatically set to zero. Credits are consumed during successful key verification, and when credits reach zero, verification fails with `code=USAGE_EXCEEDED`.
 	//
+	// An increment is rejected if the resulting balance would exceed 9223372036854775807 credits.
+	//
 	// Required when using 'increment' or 'decrement' operations. Optional for 'set' operation (null creates unlimited usage).
 	Value nullable.Nullable[int64] `json:"value,omitempty"`
 }

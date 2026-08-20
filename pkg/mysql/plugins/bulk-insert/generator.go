@@ -118,7 +118,7 @@ func (g *Generator) isInsertQuery(query *plugin.Query) bool {
 			return false
 		}
 	}
-	return true
+	return strings.Contains(strings.ToUpper(NewSQLParser().cleanSQL(query.GetText())), " VALUES")
 }
 
 // generateBulkInsertFunction generates a bulk insert function for the given query.
