@@ -4,8 +4,9 @@ import (
 	"context"
 	"net/http"
 
-	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
-	"github.com/unkeyed/unkey/gen/rpc/ctrl"
+	restateingress "github.com/restatedev/sdk-go/ingress"
+	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
+	"github.com/unkeyed/unkey/pkg/auditlog"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/deploy/deploygate"
@@ -25,8 +26,8 @@ type (
 )
 
 type Handler struct {
-	DB         db.Database
-	CtrlClient ctrl.DeployServiceClient
+	DB      db.Database
+	Restate *restateingress.Client
 }
 
 func (h *Handler) Method() string {
@@ -93,13 +94,20 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	_, err = h.CtrlClient.StopDeployment(ctx, &ctrlv1.StopDeploymentRequest{
-		DeploymentId: dep.ID,
-		Actor:        actor,
-	})
+	_, err = hydrav1.NewDeployServiceIngressClient(h.Restate, dep.ID).
+		StopDeployment().
+		Send(ctx, &hydrav1.StopDeploymentRequest{
+			DeploymentId:  dep.ID,
+			Actor:         actor,
+			CorrelationId: auditlog.NewCorrelationID(),
+		})
 	if err != nil {
-		return deployment.MapCtrlError(err, "stop deployment",
-			"The deployment could not be stopped. It must be running and belong to a non-production environment.")
+		return fault.Wrap(
+			err,
+			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+			fault.Internal("failed to submit deployment stop to Restate"),
+			fault.Public("Failed to stop deployment."),
+		)
 	}
 
 	return s.JSON(http.StatusAccepted, Response{
