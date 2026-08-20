@@ -1,8 +1,8 @@
 import { Outlet, createFileRoute, redirect } from "@tanstack/react-router";
+import { onPrimaryColor } from "@unkey/ui/src/lib/branding";
 import { PortalFooter } from "~/components/portal-footer";
 import { PortalHeader } from "~/components/portal-header";
 import { PreviewBanner } from "~/components/preview-banner";
-import { onPrimaryColor } from "~/lib/branding";
 import { getSessionWithConfig } from "~/lib/session";
 
 export const Route = createFileRoute("/_portal")({
