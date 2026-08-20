@@ -2,67 +2,49 @@
 
 import { useDeployActionGate } from "@/app/(app)/[workspaceSlug]/projects/_components/hooks/use-deploy-action-gate";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
-import { queryClient } from "@/lib/collections/client";
+import { queryClient, trpcClient } from "@/lib/collections/client";
 import { sanitizeImageRef, validateImageRef } from "@/lib/docker-image-ref";
 import { routes } from "@/lib/navigation/routes";
-import { trpc } from "@/lib/trpc/client";
 import { getErrorMessage, getUnkeyClient } from "@/lib/unkey-client";
 import { useMutation } from "@tanstack/react-query";
-import { ChevronLeft, Docker } from "@unkey/icons";
+import { ChevronLeft, Cube } from "@unkey/icons";
 import { Button, Input, toast } from "@unkey/ui";
 import { useRouter } from "next/navigation";
 import { useId, useState } from "react";
 
 type DeployImageCardProps = {
   projectId: string;
-  appId: string;
+  onCreateApp: (imageReference: string) => Promise<string>;
   onBeforeNavigate?: () => void;
   expanded: boolean;
   onExpandedChange: (expanded: boolean) => void;
+  disabled?: boolean;
 };
 
 export const DeployImageCard = ({
   projectId,
-  appId,
+  onCreateApp,
   onBeforeNavigate,
   expanded,
   onExpandedChange,
+  disabled = false,
 }: DeployImageCardProps) => {
   const router = useRouter();
   const workspace = useWorkspaceNavigation();
   const { gated, openPaywall, planGate } = useDeployActionGate();
   const [image, setImage] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const hintId = useId();
 
-  const { data: environments } = trpc.deploy.environment.list.useQuery({ projectId });
-  const appEnvironments = (environments ?? []).filter((e) => e.appId === appId);
-  const environmentSlug =
-    appEnvironments.find((e) => e.kind === "preview")?.slug ?? appEnvironments[0]?.slug;
-
   const createDeployment = useMutation({
-    mutationFn: async (source: { environment: string; image: string }) => {
-      const res = await getUnkeyClient().deployments.createDeployment({
+    mutationFn: async ({ appId, environment }: { appId: string; environment: string }) => {
+      const response = await getUnkeyClient().deployments.createDeploymentV3({
         project: projectId,
         app: appId,
-        environment: source.environment,
-        image: { dockerImage: source.image },
+        environment,
+        oci: { image: imageRef },
       });
-      return { deploymentId: res.data.deploymentId };
-    },
-    async onSuccess(data) {
-      await queryClient.invalidateQueries({ queryKey: ["deployments", projectId] });
-      onBeforeNavigate?.();
-      router.push(
-        routes.projects.apps.deployment({
-          workspaceSlug: workspace.slug,
-          projectId,
-          appId,
-          deploymentId: data.deploymentId,
-        }),
-      );
-    },
-    onError(error) {
-      toast.error(getErrorMessage(error));
+      return { deploymentId: response.data.deploymentId };
     },
   });
 
@@ -70,25 +52,56 @@ export const DeployImageCard = ({
   const validation = validateImageRef(imageRef);
   const error = imageRef && !validation.ok ? validation.error : undefined;
   const warning = validation.ok ? validation.warning : undefined;
-  const canDeploy = validation.ok && Boolean(environmentSlug) && !createDeployment.isLoading;
+  const canDeploy = validation.ok && !disabled && !isSubmitting && !createDeployment.isLoading;
 
-  const handleSubmit = (event: React.FormEvent) => {
+  const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (!canDeploy || !environmentSlug) {
+    if (!canDeploy) {
       return;
     }
     if (gated) {
       openPaywall();
       return;
     }
-    createDeployment.mutate({ environment: environmentSlug, image: imageRef });
+
+    setIsSubmitting(true);
+    try {
+      const appId = await onCreateApp(imageRef);
+      const environments = await trpcClient.deploy.environment.list.query({ projectId });
+      const appEnvironments = environments.filter((environment) => environment.appId === appId);
+      const environmentSlug =
+        appEnvironments.find((environment) => environment.slug === "preview")?.slug ??
+        appEnvironments[0]?.slug;
+      if (!environmentSlug) {
+        throw new Error("No deployment environment was created for this app");
+      }
+
+      const deployment = await createDeployment.mutateAsync({
+        appId,
+        environment: environmentSlug,
+      });
+      await queryClient.invalidateQueries({ queryKey: ["deployments", projectId] });
+      onBeforeNavigate?.();
+      router.push(
+        routes.projects.apps.deployment({
+          workspaceSlug: workspace.slug,
+          projectId,
+          appId,
+          deploymentId: deployment.deploymentId,
+        }),
+      );
+    } catch (error) {
+      toast.error(getErrorMessage(error));
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
     <div className="border border-grayA-5 rounded-lg flex flex-col gap-4 py-[18px] px-4">
       <div className="flex justify-start items-center gap-4">
         <div className="size-8 rounded-[10px] grid place-items-center ring-1 ring-grayA-4 shadow-sm shadow-grayA-8/20 dark:shadow-none shrink-0">
-          <Docker className="size-[18px] text-gray-12" iconSize="md-medium" />
+          <Cube className="size-[18px] text-gray-12" iconSize="md-medium" />
         </div>
         <div className="flex flex-col gap-3">
           <span className="font-medium text-gray-12 text-[13px] leading-[9px]">
@@ -114,9 +127,10 @@ export const DeployImageCard = ({
             variant="outline"
             className="ml-auto rounded-lg border-grayA-4 hover:bg-grayA-2 shadow-sm hover:shadow-md transition-all"
             onClick={() => onExpandedChange(true)}
+            disabled={disabled}
           >
-            <Docker className="size-[18px]! text-gray-12 shrink-0" />
-            <span className="text-[13px] text-gray-12 font-medium">Use a Docker image</span>
+            <Cube className="size-[18px]! text-gray-12 shrink-0" />
+            <span className="text-[13px] text-gray-12 font-medium">Use an OCI image</span>
           </Button>
         )}
       </div>
@@ -150,7 +164,7 @@ export const DeployImageCard = ({
               size="lg"
               className="shrink-0"
               disabled={!canDeploy}
-              loading={createDeployment.isLoading}
+              loading={isSubmitting || createDeployment.isLoading}
             >
               Deploy
             </Button>

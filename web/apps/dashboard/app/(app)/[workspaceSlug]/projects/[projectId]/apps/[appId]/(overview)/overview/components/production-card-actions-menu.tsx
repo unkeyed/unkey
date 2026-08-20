@@ -13,6 +13,7 @@ import {
   Hammer2,
   Layers3,
 } from "@unkey/icons";
+import { match } from "@unkey/match";
 import { Button, toast } from "@unkey/ui";
 import type { Route } from "next";
 import dynamic from "next/dynamic";
@@ -49,6 +50,22 @@ export function ProductionCardActionsMenu({
   const items = useMemo((): MenuItem[] => {
     const stopped = status === "stopped";
     const canRedeploy = isRedeployableDeploymentStatus(deployment.status);
+    const sourceItems = match(deployment.source)
+      .returnType<MenuItem[]>()
+      .with("git", () =>
+        commitUrl
+          ? [
+              {
+                id: "view-commit",
+                label: "View commit on GitHub",
+                icon: <Github iconSize="md-regular" />,
+                onClick: () => window.open(commitUrl, "_blank", "noopener,noreferrer"),
+              },
+            ]
+          : [],
+      )
+      .with("oci", "unknown", () => [])
+      .exhaustive();
     return [
       {
         id: "stop-wake",
@@ -96,17 +113,7 @@ export function ProductionCardActionsMenu({
             .catch(() => toast.error("Failed to copy to clipboard"));
         },
       },
-      {
-        id: "view-commit",
-        label: "View commit on GitHub",
-        icon: <Github iconSize="md-regular" />,
-        disabled: !commitUrl,
-        onClick: () => {
-          if (commitUrl) {
-            window.open(commitUrl, "_blank", "noopener,noreferrer");
-          }
-        },
-      },
+      ...sourceItems,
     ];
   }, [deployment, status, commitUrl, gated, openPaywall, router, logsHref, requestsHref]);
 
