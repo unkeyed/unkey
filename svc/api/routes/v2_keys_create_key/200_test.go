@@ -20,19 +20,10 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-func newCreateKeyHarness(t *testing.T) *testutil.Harness {
-	t.Helper()
-	return testutil.NewHarness(t, testutil.HarnessConfig{
-		Redis:                 false,
-		ClickHouse:            false,
-		MultiStatementBatches: true,
-	})
-}
-
 func TestCreateKeySuccess(t *testing.T) {
 	t.Parallel()
 
-	h := newCreateKeyHarness(t)
+	h := testutil.NewHarness(t)
 	ctx := context.Background()
 
 	route := &handler.Handler{
@@ -110,7 +101,7 @@ func TestCreateKeyWithExplicitRecoverableFalseUsesRegularTransaction(t *testing.
 func TestCreateKeyWithURNPermission(t *testing.T) {
 	t.Parallel()
 
-	h := newCreateKeyHarness(t)
+	h := testutil.NewHarness(t)
 	ctx := context.Background()
 
 	route := &handler.Handler{
@@ -149,7 +140,7 @@ func TestCreateKeyWithURNPermission(t *testing.T) {
 func TestCreateKeyWithLegacyAPIPermission(t *testing.T) {
 	t.Parallel()
 
-	h := newCreateKeyHarness(t)
+	h := testutil.NewHarness(t)
 	ctx := context.Background()
 
 	route := &handler.Handler{
@@ -188,7 +179,7 @@ func TestCreateKeyWithLegacyAPIPermission(t *testing.T) {
 func TestCreateKeyWithOptionalFields(t *testing.T) {
 	t.Parallel()
 
-	h := newCreateKeyHarness(t)
+	h := testutil.NewHarness(t)
 	ctx := context.Background()
 
 	route := &handler.Handler{
@@ -258,7 +249,7 @@ func TestCreateKeyWithOptionalFields(t *testing.T) {
 func TestCreateKeyWithEncryption(t *testing.T) {
 	t.Parallel()
 
-	h := newCreateKeyHarness(t)
+	h := testutil.NewHarness(t)
 	ctx := context.Background()
 
 	route := &handler.Handler{
@@ -326,7 +317,7 @@ func TestCreateKeyWithEncryption(t *testing.T) {
 func TestCreateRecoverableKeyWithURNPermissions(t *testing.T) {
 	t.Parallel()
 
-	h := newCreateKeyHarness(t)
+	h := testutil.NewHarness(t)
 	ctx := context.Background()
 
 	route := &handler.Handler{
@@ -371,7 +362,7 @@ func TestCreateRecoverableKeyWithURNPermissions(t *testing.T) {
 func TestCreateKeyConcurrentWithSameExternalId(t *testing.T) {
 	t.Parallel()
 
-	h := newCreateKeyHarness(t)
+	h := testutil.NewHarness(t)
 	ctx := t.Context()
 
 	route := &handler.Handler{
@@ -456,7 +447,7 @@ func TestCreateKeyConcurrentWithSameExternalId(t *testing.T) {
 func TestCreateKeyWithCreditsRemainingNull(t *testing.T) {
 	t.Parallel()
 
-	h := newCreateKeyHarness(t)
+	h := testutil.NewHarness(t)
 
 	route := &handler.Handler{
 		DB:        h.DB,
@@ -504,7 +495,7 @@ func TestCreateKeyWithCreditsRemainingNull(t *testing.T) {
 func TestCreateKeyAppliesKeySpaceDefaults(t *testing.T) {
 	t.Parallel()
 
-	h := newCreateKeyHarness(t)
+	h := testutil.NewHarness(t)
 
 	route := &handler.Handler{
 		DB:        h.DB,
