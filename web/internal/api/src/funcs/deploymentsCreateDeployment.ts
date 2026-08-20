@@ -32,10 +32,12 @@ import { Result } from "../types/fp.js";
  * @remarks
  * Create a deployment for an app in a project.
  *
- * Provide exactly one source:
- * - `image`: deploy a prebuilt Docker image as-is (no build).
+ * Omit the source to use the app's configured default. A Git app builds its default branch. An OCI app deploys its default image.
+ *
+ * Optionally provide one source override:
+ * - `image`: deploy a prebuilt OCI image without a build. Mutable tags are resolved to immutable digests before rollout.
  * - `git`: build and deploy from the app's connected GitHub repository, a branch, a specific commit, or a fork commit. Requires the app to have a repository connected.
- * - `deployment`: re-run an existing deployment by its id. Git-connected apps rebuild from the recorded commit; other apps reuse the recorded image.
+ * - `deployment`: re-run an existing deployment by its id. Git deployments rebuild from the recorded commit; OCI deployments reuse the recorded resolved image.
  *
  * Returns immediately with a `deploymentId`. The build and rollout run asynchronously — poll `deployments.getDeployment` to watch status until it is ready.
  *
@@ -45,7 +47,7 @@ import { Result } from "../types/fp.js";
  */
 export function deploymentsCreateDeployment(
   client: UnkeyCore,
-  request: components.V2DeploymentsCreateDeploymentRequestBodyUnion,
+  request: components.V2DeploymentsCreateDeploymentRequestBody,
   options?: RequestOptions,
 ): APIPromise<
   Result<
@@ -76,7 +78,7 @@ export function deploymentsCreateDeployment(
 
 async function $do(
   client: UnkeyCore,
-  request: components.V2DeploymentsCreateDeploymentRequestBodyUnion,
+  request: components.V2DeploymentsCreateDeploymentRequestBody,
   options?: RequestOptions,
 ): Promise<
   [
@@ -104,8 +106,9 @@ async function $do(
   const parsed = safeParse(
     request,
     (value) =>
-      components.V2DeploymentsCreateDeploymentRequestBodyUnion$outboundSchema
-        .parse(value),
+      components.V2DeploymentsCreateDeploymentRequestBody$outboundSchema.parse(
+        value,
+      ),
     "Input validation failed",
   );
   if (!parsed.ok) {

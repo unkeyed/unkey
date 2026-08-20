@@ -16,7 +16,7 @@ export class Internal extends ClientSDK {
    * **INTERNAL** - This endpoint is internal and may change without notice.
    * Not recommended for production use.
    *
-   * Creates a new deployment for a project using either a pre-built Docker image or build context.
+   * Creates a new deployment for a project using either a prebuilt OCI image or build context.
    *
    * **Authentication**: Requires a valid root key with appropriate permissions.
    *
