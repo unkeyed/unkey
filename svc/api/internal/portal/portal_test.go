@@ -245,3 +245,59 @@ func TestToResponseOmitsAbsentBranding(t *testing.T) {
 		require.Error(t, err)
 	})
 }
+
+// DescribeMapping is the audit-log counterpart to MappingOf, and it must not
+// share its refusal: a mutation on a row that already violates the invariant
+// still has to be recorded, or a misconfigured portal could never be deleted.
+func TestDescribeMappingNeverFails(t *testing.T) {
+	t.Parallel()
+
+	testCases := map[string]struct {
+		row      db.Portal
+		wantType string
+		wantID   string
+	}{
+		"app mapped": {
+			row:      db.Portal{AppID: sql.NullString{String: "app_1", Valid: true}},
+			wantType: "app",
+			wantID:   "app_1",
+		},
+		"keyspace mapped": {
+			row:      db.Portal{KeyAuthID: sql.NullString{String: "ks_1", Valid: true}},
+			wantType: "keyspace",
+			wantID:   "ks_1",
+		},
+		// Both ids survive: an incident reviewer needs to know which resources the
+		// row was claiming, which is exactly what a single "invalid" would hide.
+		"both set is invalid and keeps both ids": {
+			row: db.Portal{
+				AppID:     sql.NullString{String: "app_1", Valid: true},
+				KeyAuthID: sql.NullString{String: "ks_1", Valid: true},
+			},
+			wantType: "invalid",
+			wantID:   "app_1,ks_1",
+		},
+		// Distinct from "invalid": no mapping at all is a different problem from
+		// two conflicting ones, and collapsing them loses that.
+		"neither set is none": {
+			row:      db.Portal{},
+			wantType: "none",
+			wantID:   "",
+		},
+		"valid but empty column counts as absent": {
+			row:      db.Portal{AppID: sql.NullString{String: "", Valid: true}},
+			wantType: "none",
+			wantID:   "",
+		},
+	}
+
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			gotType, gotID := portal.DescribeMapping(tc.row)
+			require.Equal(t, tc.wantType, gotType)
+			require.Equal(t, tc.wantID, gotID)
+		})
+	}
+}
