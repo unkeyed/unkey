@@ -12,7 +12,12 @@ type Props = {
 export default function ApiPortalPage(props: Props) {
   const { apiId } = use(props.params);
   const { name, isLoading: nameLoading } = useApiName(apiId);
-  const { keyAuthId, isLoading: keyAuthIdLoading } = useApiKeyAuthId(apiId);
+  const {
+    keyAuthId,
+    isLoading: keyAuthIdLoading,
+    isError: keyAuthIdError,
+    refetch: refetchKeyAuthId,
+  } = useApiKeyAuthId(apiId);
 
   return (
     <PortalLifecyclePage
@@ -22,6 +27,8 @@ export default function ApiPortalPage(props: Props) {
       // still-resolving name keeps the surface in its loading state rather than
       // rendering with a placeholder that sticks.
       keyAuthIdLoading={nameLoading || keyAuthIdLoading}
+      keyAuthIdError={keyAuthIdError}
+      onRetryKeyAuthId={refetchKeyAuthId}
     />
   );
 }

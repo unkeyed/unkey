@@ -2,6 +2,8 @@
 
 import { getPortalByMapping, keyspaceMapping } from "@/lib/portal/client";
 import {
+  AMBIGUOUS_CONFLICT_DETAIL,
+  CONFLICT_UNRESOLVED_MESSAGE,
   MAPPING_CONFLICT_MESSAGE,
   SLUG_CONFLICT_DETAIL,
   portalConflict,
@@ -13,6 +15,7 @@ import { getErrorMessage } from "@/lib/unkey-client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQueryClient } from "@tanstack/react-query";
 import type { Portal } from "@unkey/api/models/components";
+import { NotFoundErrorResponse } from "@unkey/api/models/errors";
 import { Button, DialogContainer, FormInput } from "@unkey/ui";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
@@ -53,15 +56,37 @@ export function CreatePortalDialog({ keyAuthId, resourceName, isOpen, onOpenChan
 
   /**
    * A 409 can also mean the create landed and the acknowledgement was lost, so
-   * the row is reported as a conflict against itself. A read that finds a portal
-   * settles that; a read that fails leaves the conflict to be reported.
+   * the row is reported as a conflict against itself. A read settles that.
+   *
+   * "Confirmed absent" and "could not tell" are separate outcomes: only a 404
+   * proves this keyspace has no portal. Collapsing a transient read failure into
+   * "no portal" would tell an operator whose create actually succeeded to go and
+   * pick another slug.
    */
-  const readKeyspacePortal = async (): Promise<Portal | null> => {
+  type KeyspaceRead =
+    | { status: "found"; portal: Portal }
+    | { status: "absent" }
+    | { status: "unknown" };
+
+  const readKeyspacePortal = async (): Promise<KeyspaceRead> => {
     try {
-      return await getPortalByMapping(keyspaceMapping(keyAuthId));
-    } catch {
-      return null;
+      return { status: "found", portal: await getPortalByMapping(keyspaceMapping(keyAuthId)) };
+    } catch (error) {
+      if (error instanceof NotFoundErrorResponse) {
+        return { status: "absent" };
+      }
+      return { status: "unknown" };
     }
+  };
+
+  const adopt = (portal: Portal) => {
+    // The re-read already holds the row the surface would otherwise invalidate
+    // for, so seed it rather than fetching it twice.
+    queryClient.setQueryData<PortalQueryResult>(portalQueryKey(keyAuthId), {
+      found: true,
+      portal,
+    });
+    onOpenChange(false);
   };
 
   const submit = async ({ slug }: FormValues) => {
@@ -78,26 +103,46 @@ export function CreatePortalDialog({ keyAuthId, resourceName, isOpen, onOpenChan
       return;
     } catch (error) {
       const conflict = portalConflict(error);
+      if (conflict === null) {
+        setDialogError(getErrorMessage(error));
+        return;
+      }
+
+      // Every duplicate arm can be a lost ack, so all three re-read. The server
+      // checks the slug before the mapping, so an operator who follows the slug
+      // advice lands on the mapping arm next: dead-ending there at support would
+      // hide a portal this workspace can see and owns.
+      const read = await readKeyspacePortal();
+
+      if (read.status === "unknown" && conflict !== "mapping") {
+        setDialogError(CONFLICT_UNRESOLVED_MESSAGE);
+        return;
+      }
+
       if (conflict === "mapping") {
+        // Readable means this workspace owns it, whatever its slug: the mapping
+        // is the identity here, and the row was not created by this submit.
+        // Support is for the case where the holder really is invisible.
+        if (read.status === "found") {
+          adopt(read.portal);
+          return;
+        }
         setDialogError(MAPPING_CONFLICT_MESSAGE);
         return;
       }
-      if (conflict === "slug") {
-        const existing = await readKeyspacePortal();
-        if (existing) {
-          // The re-read already holds the row the surface would otherwise
-          // invalidate for, so seed it rather than fetching it twice.
-          queryClient.setQueryData<PortalQueryResult>(portalQueryKey(keyAuthId), {
-            found: true,
-            portal: existing,
-          });
-          onOpenChange(false);
-          return;
-        }
-        setError("slug", { type: "server", message: SLUG_CONFLICT_DETAIL });
+
+      // A slug or unique-index conflict is only this submit's own row if the
+      // portal on this keyspace carries the slug that was submitted. Anything
+      // else is a genuine collision, and adopting it would close the dialog on a
+      // slug that is not live.
+      if (read.status === "found" && read.portal.slug === slug) {
+        adopt(read.portal);
         return;
       }
-      setDialogError(getErrorMessage(error));
+      setError("slug", {
+        type: "server",
+        message: conflict === "slug" ? SLUG_CONFLICT_DETAIL : AMBIGUOUS_CONFLICT_DETAIL,
+      });
     } finally {
       setSubmitting(false);
     }

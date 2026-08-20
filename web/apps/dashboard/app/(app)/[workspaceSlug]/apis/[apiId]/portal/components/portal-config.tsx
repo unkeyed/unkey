@@ -2,24 +2,22 @@
 
 import { buildPortalUpdate, portalFormValues } from "@/lib/portal/build-update";
 import { SLUG_CONFLICT_DETAIL, portalConflict } from "@/lib/portal/conflicts";
-import { useDeletePortal, useUpdatePortal } from "@/lib/portal/use-portal";
+import { useUpdatePortal } from "@/lib/portal/use-portal";
 import { logoUrlSchema, portalSlugSchema, primaryColorSchema } from "@/lib/portal/validation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { Portal } from "@unkey/api/models/components";
-import { TriangleWarning2 } from "@unkey/icons";
 import {
   Button,
   CopyButton,
   DialogContainer,
   FormInput,
-  Input,
   SettingsDangerZone,
-  SettingsZoneRow,
   toast,
 } from "@unkey/ui";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
+import { DeletePortalRow } from "./delete-portal-row";
 import { BrandColorField } from "./portal-branding";
 import { PortalPreview } from "./portal-preview";
 
@@ -98,8 +96,14 @@ export function PortalConfig({ portal, keyAuthId, resourceName }: Props) {
 
   const save = async (submitted: FormValues) => {
     clearErrors("slug");
-    // `enabled` is not on this form; disabling is its own action below.
-    const body = buildPortalUpdate(portal, { ...submitted, enabled: portal.enabled });
+    // `enabled` is not on this form; disabling is its own action below. The
+    // patch is built from the fields the operator edited, never from a diff
+    // against `portal`, which refetches out from under the mounted form.
+    const body = buildPortalUpdate(
+      portal.id,
+      { ...submitted, enabled: portal.enabled },
+      dirtyFields,
+    );
     if (!body) {
       return;
     }
@@ -237,9 +241,13 @@ export function PortalConfig({ portal, keyAuthId, resourceName }: Props) {
               className="w-full"
               loading={disablePortal.isLoading}
               loadingLabel="Disabling customer portal"
-              onClick={() => {
-                setDisableOpen(false);
-                disablePortal.mutate({ portal: portal.id, enabled: false });
+              onClick={async () => {
+                try {
+                  await disablePortal.mutateAsync({ portal: portal.id, enabled: false });
+                  setDisableOpen(false);
+                } catch {
+                  // The hook surfaced the failure; keep the dialog open to retry.
+                }
               }}
             >
               Disable portal
@@ -254,103 +262,5 @@ export function PortalConfig({ portal, keyAuthId, resourceName }: Props) {
         </p>
       </DialogContainer>
     </div>
-  );
-}
-
-/**
- * Deleting is not disabling: the row is gone, every live session is revoked by
- * `RevokePortalSessionsByPortal`, and the slug returns to the pool. The
- * type-to-confirm string is the slug because a portal carries no name.
- */
-function DeletePortalRow({ portal, keyAuthId }: { portal: Portal; keyAuthId: string }) {
-  const [isOpen, setIsOpen] = useState(false);
-  const deletePortal = useDeletePortal(keyAuthId);
-
-  // No resolver: the only gate is the exact-match comparison below, so
-  // validating the field as well would run a schema nothing reads.
-  const {
-    register,
-    watch,
-    handleSubmit,
-    formState: { isSubmitting },
-  } = useForm<{ confirmation: string }>({
-    defaultValues: { confirmation: "" },
-  });
-
-  const confirmed = watch("confirmation") === portal.slug;
-
-  const onSubmit = async () => {
-    try {
-      await deletePortal.mutateAsync({ portal: portal.id });
-      setIsOpen(false);
-      toast.success("Customer portal deleted");
-    } catch {
-      // The hook already surfaced the failure; the dialog stays open so the
-      // operator can retry without retyping the slug.
-    }
-  };
-
-  return (
-    <>
-      <SettingsZoneRow
-        title="Delete this portal"
-        description="Permanently remove the portal, end every live end-user session, and free the slug for reuse."
-        action={{
-          label: "Delete portal",
-          onClick: () => setIsOpen(true),
-        }}
-      />
-
-      <DialogContainer
-        isOpen={isOpen}
-        onOpenChange={setIsOpen}
-        title="Delete customer portal"
-        subTitle="Permanently remove this portal and end every live session"
-        footer={
-          <div className="flex w-full flex-col items-center justify-center gap-2">
-            <Button
-              type="submit"
-              form="delete-portal-form"
-              variant="primary"
-              color="danger"
-              size="xlg"
-              className="w-full rounded-lg"
-              disabled={!confirmed || isSubmitting}
-              loading={isSubmitting}
-              loadingLabel="Deleting customer portal"
-            >
-              Delete portal
-            </Button>
-            <div className="text-xs text-gray-9">
-              This action cannot be undone – proceed with caution
-            </div>
-          </div>
-        }
-      >
-        <div className="flex items-center gap-4 rounded-xl border border-errorA-3 bg-errorA-2 px-[22px] py-6 dark:bg-black">
-          <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-error-9">
-            <TriangleWarning2 iconSize="sm-regular" className="text-white" />
-          </div>
-          <div className="text-[13px] leading-6 text-error-12">
-            <span className="font-medium">Warning:</span> deleting{" "}
-            <span className="font-medium">{portal.slug}</span> is permanent. Every live end-user
-            session ends immediately, and the slug becomes available for reuse. Your users' API keys
-            keep working.
-          </div>
-        </div>
-        <form id="delete-portal-form" onSubmit={handleSubmit(onSubmit)}>
-          <div className="mt-4 flex flex-col gap-1">
-            <p className="text-[13px] text-gray-11">
-              Type <span className="font-medium text-gray-12">{portal.slug}</span> to confirm
-            </p>
-            <Input
-              aria-label="Portal slug confirmation"
-              placeholder={`Enter "${portal.slug}" to confirm`}
-              {...register("confirmation")}
-            />
-          </div>
-        </form>
-      </DialogContainer>
-    </>
   );
 }

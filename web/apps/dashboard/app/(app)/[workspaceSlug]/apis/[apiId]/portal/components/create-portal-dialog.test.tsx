@@ -1,5 +1,5 @@
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { ConflictErrorResponse } from "@unkey/api/models/errors";
+import { ConflictErrorResponse, NotFoundErrorResponse } from "@unkey/api/models/errors";
 import type { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode } from "react";
 import { forwardRef } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -7,6 +7,8 @@ import { CreatePortalDialog } from "./create-portal-dialog";
 
 const SLUG_CONFLICT_DETAIL = "That slug is already in use. Choose a different slug.";
 const MAPPING_CONFLICT_DETAIL = "That app or keyspace already has a portal.";
+/** The unique-index arm, which names no index and so could be either. */
+const AMBIGUOUS_CONFLICT_DETAIL = "A portal already exists for that slug, app, or keyspace.";
 
 /**
  * A real `ConflictErrorResponse`: `portalConflict` gates on the response class
@@ -26,6 +28,26 @@ function conflict(detail: string): ConflictErrorResponse {
     {
       request: new Request("https://api.unkey.com/v2/portal"),
       response: new Response(null, { status: 409 }),
+      body: "",
+    },
+  );
+}
+
+/** Only a 404 proves the keyspace has no portal; anything else is undetermined. */
+function notFound(): NotFoundErrorResponse {
+  return new NotFoundErrorResponse(
+    {
+      meta: { requestId: "req_test" },
+      error: {
+        title: "Not Found",
+        detail: "No portal found.",
+        status: 404,
+        type: "https://unkey.com/docs/errors/data/portal/not_found",
+      },
+    },
+    {
+      request: new Request("https://api.unkey.com/v2/portal"),
+      response: new Response(null, { status: 404 }),
       body: "",
     },
   );
@@ -125,7 +147,7 @@ describe("CreatePortalDialog", () => {
     cleanup();
     vi.clearAllMocks();
     mocks.mutateAsync.mockResolvedValue({ portalId: "portal_123" });
-    mocks.getPortalByMapping.mockRejectedValue(new Error("not found"));
+    mocks.getPortalByMapping.mockRejectedValue(notFound());
   });
 
   it("prefills the slug from the API name", () => {
@@ -185,17 +207,88 @@ describe("CreatePortalDialog", () => {
     expect(screen.queryByTestId("slug-error")).toBeNull();
   });
 
-  it("reports a mapping conflict at dialog level, not on the slug field", async () => {
+  it("reports an unreadable mapping conflict at dialog level, not on the slug field", async () => {
     mocks.mutateAsync.mockRejectedValue(conflict(MAPPING_CONFLICT_DETAIL));
     renderDialog();
 
     submitForm();
 
     expect(await screen.findByText(/already has a customer portal/i)).toBeDefined();
-    // No slug can win a mapping conflict, so the field carries no error and the
-    // owning portal is never re-read for.
+    // No slug can win a mapping conflict held by a portal this workspace cannot
+    // read, so the field carries no error.
     expect(screen.queryByTestId("slug-error")).toBeNull();
-    expect(mocks.getPortalByMapping).not.toHaveBeenCalled();
+    expect(onOpenChange).not.toHaveBeenCalled();
+  });
+
+  it("recovers into the workspace's own portal on a mapping conflict", async () => {
+    // The server checks the slug before the mapping, so an operator who renamed
+    // after a slug conflict lands here holding a portal they already own.
+    mocks.mutateAsync.mockRejectedValue(conflict(MAPPING_CONFLICT_DETAIL));
+    mocks.getPortalByMapping.mockResolvedValue({ id: "portal_123", slug: "some-other-slug" });
+    renderDialog();
+
+    submitForm();
+
+    await waitFor(() => expect(onOpenChange).toHaveBeenCalledWith(false));
+    expect(mocks.setQueryData).toHaveBeenCalledWith(["portal", "ks_123"], {
+      found: true,
+      portal: { id: "portal_123", slug: "some-other-slug" },
+    });
+    expect(screen.queryByText(/already has a customer portal/i)).toBeNull();
+  });
+
+  it("recovers from the unique-index conflict when the re-read finds this portal", async () => {
+    mocks.mutateAsync.mockRejectedValue(conflict(AMBIGUOUS_CONFLICT_DETAIL));
+    mocks.getPortalByMapping.mockResolvedValue({ id: "portal_123", slug: "payments-api" });
+    renderDialog();
+
+    submitForm();
+
+    await waitFor(() => expect(onOpenChange).toHaveBeenCalledWith(false));
+    expect(mocks.setQueryData).toHaveBeenCalledWith(["portal", "ks_123"], {
+      found: true,
+      portal: { id: "portal_123", slug: "payments-api" },
+    });
+    expect(screen.queryByTestId("slug-error")).toBeNull();
+  });
+
+  it("reports the unique-index conflict on the field when no portal exists", async () => {
+    mocks.mutateAsync.mockRejectedValue(conflict(AMBIGUOUS_CONFLICT_DETAIL));
+    renderDialog();
+
+    submitForm();
+
+    expect((await screen.findByTestId("slug-error")).textContent).toBe(AMBIGUOUS_CONFLICT_DETAIL);
+    expect(onOpenChange).not.toHaveBeenCalled();
+  });
+
+  it("does not send the operator to rename when the re-read itself fails", async () => {
+    mocks.mutateAsync.mockRejectedValue(conflict(SLUG_CONFLICT_DETAIL));
+    mocks.getPortalByMapping.mockRejectedValue(new Error("network down"));
+    renderDialog();
+
+    submitForm();
+
+    // The create may well have landed, so the dialog says so rather than
+    // claiming a slug collision it could not confirm.
+    expect(
+      await screen.findByText(/couldn't confirm whether the portal was created/i),
+    ).toBeDefined();
+    expect(screen.queryByTestId("slug-error")).toBeNull();
+    expect(onOpenChange).not.toHaveBeenCalled();
+  });
+
+  it("keeps a slug conflict when the re-read finds a portal with a different slug", async () => {
+    mocks.mutateAsync.mockRejectedValue(conflict(SLUG_CONFLICT_DETAIL));
+    // A pre-existing keyspace portal plus an unrelated portal holding the slug:
+    // adopting this row would close the dialog on a slug that is not live.
+    mocks.getPortalByMapping.mockResolvedValue({ id: "portal_999", slug: "something-else" });
+    renderDialog();
+
+    submitForm();
+
+    expect((await screen.findByTestId("slug-error")).textContent).toBe(SLUG_CONFLICT_DETAIL);
+    expect(mocks.setQueryData).not.toHaveBeenCalled();
     expect(onOpenChange).not.toHaveBeenCalled();
   });
 

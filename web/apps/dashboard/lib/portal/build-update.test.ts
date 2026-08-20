@@ -1,6 +1,11 @@
 import type { Portal } from "@unkey/api/models/components";
 import { describe, expect, it } from "vitest";
-import { type PortalFormValues, buildPortalUpdate, portalFormValues } from "./build-update";
+import {
+  type PortalDirtyFields,
+  type PortalFormValues,
+  buildPortalUpdate,
+  portalFormValues,
+} from "./build-update";
 
 const portal = (overrides: Partial<Portal> = {}): Portal => ({
   id: "pc_1234",
@@ -20,6 +25,10 @@ const edit = (original: Portal, overrides: Partial<PortalFormValues>): PortalFor
   ...overrides,
 });
 
+/** The dirty record react-hook-form would produce for `overrides`. */
+const dirty = (...fields: (keyof PortalFormValues)[]): PortalDirtyFields =>
+  Object.fromEntries(fields.map((field) => [field, true]));
+
 describe("portalFormValues", () => {
   it("normalizes absent branding to empty strings", () => {
     expect(portalFormValues(portal())).toEqual({
@@ -32,41 +41,56 @@ describe("portalFormValues", () => {
 });
 
 describe("buildPortalUpdate", () => {
-  it("returns null when nothing changed", () => {
-    expect(buildPortalUpdate(branded, portalFormValues(branded))).toBeNull();
+  it("returns null when no field is dirty", () => {
+    expect(buildPortalUpdate("pc_1234", portalFormValues(branded), {})).toBeNull();
   });
 
-  it("sends only the slug when only the slug changed", () => {
-    expect(buildPortalUpdate(branded, edit(branded, { slug: "acme-two" }))).toEqual({
+  it("returns null when every dirty flag is false", () => {
+    expect(
+      buildPortalUpdate("pc_1234", portalFormValues(branded), {
+        slug: false,
+        logoUrl: false,
+        primaryColor: false,
+      }),
+    ).toBeNull();
+  });
+
+  it("sends only the slug when only the slug is dirty", () => {
+    expect(
+      buildPortalUpdate("pc_1234", edit(branded, { slug: "acme-two" }), dirty("slug")),
+    ).toEqual({
       portal: "pc_1234",
       slug: "acme-two",
     });
   });
 
-  it("clears a set logoUrl with null", () => {
-    expect(buildPortalUpdate(branded, edit(branded, { logoUrl: "" }))).toEqual({
+  it("clears an emptied logoUrl with null", () => {
+    expect(buildPortalUpdate("pc_1234", edit(branded, { logoUrl: "" }), dirty("logoUrl"))).toEqual({
       portal: "pc_1234",
       logoUrl: null,
     });
   });
 
-  it("clears a set primaryColor with null", () => {
-    expect(buildPortalUpdate(branded, edit(branded, { primaryColor: "" }))).toEqual({
+  it("clears an emptied primaryColor with null", () => {
+    expect(
+      buildPortalUpdate("pc_1234", edit(branded, { primaryColor: "" }), dirty("primaryColor")),
+    ).toEqual({
       portal: "pc_1234",
       primaryColor: null,
     });
   });
 
-  it("omits a field that was already absent and stays empty", () => {
-    const bare = portal();
-    expect(buildPortalUpdate(bare, edit(bare, { slug: "acme-two" }))).toEqual({
-      portal: "pc_1234",
-      slug: "acme-two",
-    });
+  it("omits a branding field the operator never touched", () => {
+    // The values carry a logo the form never edited, e.g. a refetched portal.
+    expect(
+      buildPortalUpdate("pc_1234", edit(branded, { slug: "acme-two" }), dirty("slug")),
+    ).not.toHaveProperty("logoUrl");
   });
 
-  it("sends enabled when it is toggled", () => {
-    expect(buildPortalUpdate(branded, edit(branded, { enabled: false }))).toEqual({
+  it("sends enabled when it is dirty", () => {
+    expect(
+      buildPortalUpdate("pc_1234", edit(branded, { enabled: false }), dirty("enabled")),
+    ).toEqual({
       portal: "pc_1234",
       enabled: false,
     });
@@ -76,12 +100,13 @@ describe("buildPortalUpdate", () => {
     const bare = portal();
     expect(
       buildPortalUpdate(
-        bare,
+        "pc_1234",
         edit(bare, {
           slug: "acme-two",
           logoUrl: "https://acme.com/logo.png",
           primaryColor: "#00ff00",
         }),
+        dirty("slug", "logoUrl", "primaryColor"),
       ),
     ).toEqual({
       portal: "pc_1234",
