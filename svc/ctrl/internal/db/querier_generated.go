@@ -22,6 +22,14 @@ type Querier interface {
 	//  WHERE id = ?
 	//    AND current_deployment_id = ?
 	ClearAppCurrentDeployment(ctx context.Context, arg ClearAppCurrentDeploymentParams) error
+	//ClearProjectDepotIDIfMatches
+	//
+	//  UPDATE projects
+	//  SET depot_project_id = NULL,
+	//      updated_at = ?
+	//  WHERE id = ?
+	//    AND depot_project_id = ?
+	ClearProjectDepotIDIfMatches(ctx context.Context, arg ClearProjectDepotIDIfMatchesParams) (int64, error)
 	// Clears the local Deploy entitlement mirror on cancel. Leaves the Stripe
 	// linkage (customer/subscription) intact: a mixed subscription keeps running for
 	// the API plan, and a Deploy-only subscription cancels at period end. After this
@@ -1593,6 +1601,15 @@ type Querier interface {
 	//  ORDER BY d.pk
 	//  LIMIT ?
 	ListDeploymentGCCandidates(ctx context.Context, arg ListDeploymentGCCandidatesParams) ([]ListDeploymentGCCandidatesRow, error)
+	//ListDeploymentImagesForGC
+	//
+	//  SELECT pk, image
+	//  FROM deployments
+	//  WHERE pk > ?
+	//    AND image IS NOT NULL
+	//  ORDER BY pk
+	//  LIMIT ?
+	ListDeploymentImagesForGC(ctx context.Context, arg ListDeploymentImagesForGCParams) ([]ListDeploymentImagesForGCRow, error)
 	//ListDeploymentsByEnvironmentIdAndStatus
 	//
 	//  SELECT pk, id, k8s_name, workspace_id, project_id, environment_id, app_id, image, build_id, git_commit_sha, git_branch, git_commit_message, git_commit_author_handle, git_commit_author_avatar_url, git_commit_timestamp, sentinel_config, cpu_millicores, memory_mib, storage_mib, desired_state, encrypted_environment_variables, command, port, shutdown_signal, upstream_protocol, healthcheck, pr_number, fork_repository_full_name, github_deployment_id, invocation_id, status, `trigger`, triggered_by, trigger_reason, created_at, updated_at FROM `deployments`
@@ -1693,6 +1710,15 @@ type Querier interface {
 	//  WHERE environment_id = ?
 	//    AND status IN (/*SLICE:progressing_statuses*/?)
 	ListProgressingDeploymentsByEnvironmentId(ctx context.Context, arg ListProgressingDeploymentsByEnvironmentIdParams) ([]ListProgressingDeploymentsByEnvironmentIdRow, error)
+	//ListProjectDepotReferences
+	//
+	//  SELECT pk, id, depot_project_id
+	//  FROM projects
+	//  WHERE pk > ?
+	//    AND depot_project_id IS NOT NULL
+	//  ORDER BY pk
+	//  LIMIT ?
+	ListProjectDepotReferences(ctx context.Context, arg ListProjectDepotReferencesParams) ([]ListProjectDepotReferencesRow, error)
 	//ListRegions
 	//
 	//  SELECT id, name, platform, can_schedule FROM regions
@@ -1821,6 +1847,12 @@ type Querier interface {
 	//  WHERE pk IN (/*SLICE:pks*/?)
 	//    AND deleted_at IS NULL
 	MarkClickhouseOutboxBatchDeleted(ctx context.Context, arg MarkClickhouseOutboxBatchDeletedParams) error
+	//ProjectDepotIDExists
+	//
+	//  SELECT EXISTS(
+	//    SELECT 1 FROM projects WHERE depot_project_id = ?
+	//  ) AS referenced
+	ProjectDepotIDExists(ctx context.Context, depotProjectID sql.NullString) (bool, error)
 	//ReassignFrontlineRoute
 	//
 	//  UPDATE frontline_routes
