@@ -457,6 +457,12 @@ type DeploymentSourceDeployment struct {
 	DeploymentId ResourceIdentifier `json:"deploymentId"`
 }
 
+// DeploymentSourceDocker Deploy a prebuilt Docker image without a build.
+type DeploymentSourceDocker struct {
+	// Image Docker image to deploy. Mutable tags are resolved to immutable digests before rollout.
+	Image string `json:"image"`
+}
+
 // DeploymentSourceGit Build from the app's connected GitHub repository.
 type DeploymentSourceGit struct {
 	// Branch Branch to build (its HEAD). Omit branch and commitSha to use the app's default branch.
@@ -467,12 +473,6 @@ type DeploymentSourceGit struct {
 
 	// Repository Build from a fork instead of the app's connected repository, as "owner/repo". Requires commitSha.
 	Repository *string `json:"repository,omitempty"`
-}
-
-// DeploymentSourceImage Deploy a prebuilt Docker image as-is.
-type DeploymentSourceImage struct {
-	// DockerImage Docker image to deploy as-is.
-	DockerImage string `json:"dockerImage"`
 }
 
 // DeploymentStatus Current lifecycle status of the deployment. Poll until it reaches a
@@ -2039,7 +2039,7 @@ type V2DeployGitCommit struct {
 	Timestamp *int64 `json:"timestamp,omitempty"`
 }
 
-// V2DeploymentsCreateDeploymentRequestBody Create a deployment. Provide exactly one of git, image, or deployment.
+// V2DeploymentsCreateDeploymentRequestBody Create a deployment. Provide exactly one of git, docker, or deployment.
 type V2DeploymentsCreateDeploymentRequestBody struct {
 	// App Identifies a resource by either its unique ID or its slug.
 	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
@@ -2048,15 +2048,15 @@ type V2DeploymentsCreateDeploymentRequestBody struct {
 	// Deployment Re-run an existing deployment.
 	Deployment *DeploymentSourceDeployment `json:"deployment,omitempty"`
 
+	// Docker Deploy a prebuilt Docker image without a build.
+	Docker *DeploymentSourceDocker `json:"docker,omitempty"`
+
 	// Environment Identifies a resource by either its unique ID or its slug.
 	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
 	Environment ResourceIdentifier `json:"environment"`
 
 	// Git Build from the app's connected GitHub repository.
 	Git *DeploymentSourceGit `json:"git,omitempty"`
-
-	// Image Deploy a prebuilt Docker image as-is.
-	Image *DeploymentSourceImage `json:"image,omitempty"`
 
 	// Project Identifies a resource by either its unique ID or its slug.
 	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
@@ -5385,6 +5385,13 @@ func (t V2DeploymentsCreateDeploymentRequestBody) MarshalJSON() ([]byte, error) 
 		}
 	}
 
+	if t.Docker != nil {
+		object["docker"], err = json.Marshal(t.Docker)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'docker': %w", err)
+		}
+	}
+
 	object["environment"], err = json.Marshal(t.Environment)
 	if err != nil {
 		return nil, fmt.Errorf("error marshaling 'environment': %w", err)
@@ -5394,13 +5401,6 @@ func (t V2DeploymentsCreateDeploymentRequestBody) MarshalJSON() ([]byte, error) 
 		object["git"], err = json.Marshal(t.Git)
 		if err != nil {
 			return nil, fmt.Errorf("error marshaling 'git': %w", err)
-		}
-	}
-
-	if t.Image != nil {
-		object["image"], err = json.Marshal(t.Image)
-		if err != nil {
-			return nil, fmt.Errorf("error marshaling 'image': %w", err)
 		}
 	}
 
@@ -5438,6 +5438,13 @@ func (t *V2DeploymentsCreateDeploymentRequestBody) UnmarshalJSON(b []byte) error
 		}
 	}
 
+	if raw, found := object["docker"]; found {
+		err = json.Unmarshal(raw, &t.Docker)
+		if err != nil {
+			return fmt.Errorf("error reading 'docker': %w", err)
+		}
+	}
+
 	if raw, found := object["environment"]; found {
 		err = json.Unmarshal(raw, &t.Environment)
 		if err != nil {
@@ -5449,13 +5456,6 @@ func (t *V2DeploymentsCreateDeploymentRequestBody) UnmarshalJSON(b []byte) error
 		err = json.Unmarshal(raw, &t.Git)
 		if err != nil {
 			return fmt.Errorf("error reading 'git': %w", err)
-		}
-	}
-
-	if raw, found := object["image"]; found {
-		err = json.Unmarshal(raw, &t.Image)
-		if err != nil {
-			return fmt.Errorf("error reading 'image': %w", err)
 		}
 	}
 

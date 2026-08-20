@@ -1,0 +1,11 @@
+type: object
+required:
+  - image
+properties:
+  image:
+    type: string
+    minLength: 1
+    pattern: "\\S"
+    description: Docker image to deploy. Mutable tags are resolved to immutable digests before rollout.
+    example: "ghcr.io/acme/api:v1.2.3"
+description: Deploy a prebuilt Docker image without a build.

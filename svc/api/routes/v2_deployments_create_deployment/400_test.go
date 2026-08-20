@@ -40,18 +40,18 @@ func TestValidationErrors(t *testing.T) {
 		name string
 		body map[string]any
 	}{
-		{"image missing dockerImage", body(map[string]any{"image": map[string]any{}})},
-		{"image whitespace dockerImage", body(map[string]any{"image": map[string]any{"dockerImage": "   "}})},
+		{"Docker source missing image", body(map[string]any{"docker": map[string]any{}})},
+		{"Docker source whitespace image", body(map[string]any{"docker": map[string]any{"image": "   "}})},
 		{"git fork without commitSha", body(map[string]any{"git": map[string]any{"repository": "contributor/acme-api"}})},
 		{"git fork bad charset", body(map[string]any{"git": map[string]any{"commitSha": "abc123", "repository": "bad repo!"}})},
 		{"git fork path traversal", body(map[string]any{"git": map[string]any{"commitSha": "abc123", "repository": "../../etc/passwd"}})},
 		{"deployment missing deploymentId", body(map[string]any{"deployment": map[string]any{}})},
 		{"no source", body(map[string]any{})},
-		{"multiple sources", body(map[string]any{"image": map[string]any{"dockerImage": "nginx:latest"}, "git": map[string]any{"branch": "main"}})},
+		{"multiple sources", body(map[string]any{"docker": map[string]any{"image": "nginx:latest"}, "git": map[string]any{"branch": "main"}})},
 		{"missing project", map[string]any{
 			"app":         setup.App.Slug,
 			"environment": setup.Environment.Slug,
-			"image":       map[string]any{"dockerImage": "nginx:latest"},
+			"docker":      map[string]any{"image": "nginx:latest"},
 		}},
 	}
 
