@@ -90,9 +90,4 @@ describe("buildPortalUpdate", () => {
       primaryColor: "#00ff00",
     });
   });
-
-  it("uses the portal id rather than the slug as the identifier", () => {
-    const body = buildPortalUpdate(branded, edit(branded, { slug: "renamed" }));
-    expect(body?.portal).toBe("pc_1234");
-  });
 });

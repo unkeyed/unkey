@@ -1,24 +1,21 @@
 "use client";
 
+import type { PortalFormValues } from "@/lib/portal/build-update";
+import { isHexColor } from "@/lib/portal/validation";
 import { cn } from "@/lib/utils";
 import { Input } from "@unkey/ui";
 
-// Mirrors the two nullable branding columns on the `portals` row. Both are
-// spelled as strings rather than `string | null` so form inputs can bind to
-// them directly; `buildPortalUpdate` maps empty back to the API's `null`.
 // For MVP the customer hosts their own logo image and provides its URL; when
 // empty the portal falls back to a plain-text header using the slug.
-export type PortalBrandingValue = {
-  logoUrl: string;
-  primaryColor: string;
-};
+export type PortalBrandingValue = Pick<PortalFormValues, "logoUrl" | "primaryColor">;
 
-const SWATCHES = ["#18181B", "#7C3AED", "#0D9488", "#D97706", "#DC2626"];
+/**
+ * Stands in wherever a usable brand colour is missing: the swatch and the native
+ * picker while the field is empty or mid-edit, and the preview's brand bar.
+ */
+export const DEFAULT_BRAND_COLOR = "#18181B";
 
-const HEX_RE = /^#[0-9a-fA-F]{6}$/;
-
-/** Shown by the swatch and the native picker while the field is empty or mid-edit. */
-const PLACEHOLDER_COLOR = "#18181B";
+const SWATCHES = [DEFAULT_BRAND_COLOR, "#7C3AED", "#0D9488", "#D97706", "#DC2626"];
 
 /**
  * Emptying the field has to reach the form as "", which is what
@@ -41,7 +38,7 @@ export function BrandColorField({
 }) {
   // An empty or half-typed value is legal in the text field, but `input[type=color]`
   // only accepts a full hex, so the picker falls back rather than going uncontrolled.
-  const pickerColor = HEX_RE.test(color) ? color : PLACEHOLDER_COLOR;
+  const pickerColor = isHexColor(color) ? color : DEFAULT_BRAND_COLOR;
 
   return (
     <div className="flex items-center gap-2">
@@ -77,7 +74,7 @@ export function BrandColorField({
         aria-label="Primary color"
         className="w-[96px] font-mono uppercase"
         value={color}
-        placeholder={PLACEHOLDER_COLOR}
+        placeholder={DEFAULT_BRAND_COLOR}
         maxLength={7}
         onChange={(e) => onChange(normalizeTypedColor(e.target.value.trim()))}
       />

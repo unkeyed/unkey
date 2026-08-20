@@ -11,8 +11,8 @@ import { z } from "zod";
  * Sources: `pkg/validation/slug.go`, `svc/api/internal/portal/portal.go`.
  */
 
-const SLUG_MIN_LENGTH = 3;
-const SLUG_MAX_LENGTH = 64;
+export const SLUG_MIN_LENGTH = 3;
+export const SLUG_MAX_LENGTH = 64;
 const LOGO_URL_MAX_LENGTH = 500;
 
 /** Verbatim from `validation.ErrMsgInvalidSlug`. */
@@ -69,6 +69,10 @@ export const logoUrlSchema = z
   .refine((raw) => raw === "" || isValidLogoUrl(raw), INVALID_LOGO_URL_MESSAGE);
 
 /** Six digits only. Three-digit shorthand and named colours are rejected. */
+export function isHexColor(value: string): boolean {
+  return hexColorPattern.test(value);
+}
+
 export const primaryColorSchema = z
   .string()
-  .refine((raw) => raw === "" || hexColorPattern.test(raw), INVALID_COLOR_MESSAGE);
+  .refine((raw) => raw === "" || isHexColor(raw), INVALID_COLOR_MESSAGE);

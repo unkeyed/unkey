@@ -1,5 +1,6 @@
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type { Portal } from "@unkey/api/models/components";
+import { ConflictErrorResponse } from "@unkey/api/models/errors";
 import type { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode } from "react";
 import { forwardRef } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -7,11 +8,27 @@ import { PortalConfig } from "./portal-config";
 
 const SLUG_CONFLICT_DETAIL = "That slug is already in use. Choose a different slug.";
 
-/** Both portal 409s arrive under the same code, so only `detail` separates them. */
-class ApiError extends Error {
-  constructor(readonly detail: string) {
-    super(detail);
-  }
+/**
+ * A real `ConflictErrorResponse`: `portalConflict` gates on the response class
+ * before it looks at the detail, so a bare Error would not be classified.
+ */
+function conflict(detail: string): ConflictErrorResponse {
+  return new ConflictErrorResponse(
+    {
+      meta: { requestId: "req_test" },
+      error: {
+        title: "Conflict",
+        detail,
+        status: 409,
+        type: "https://unkey.com/docs/errors/data/portal/duplicate",
+      },
+    },
+    {
+      request: new Request("https://api.unkey.com/v2/portal"),
+      response: new Response(null, { status: 409 }),
+      body: "",
+    },
+  );
 }
 
 const mocks = vi.hoisted(() => ({
@@ -25,10 +42,13 @@ vi.mock("@/lib/portal/use-portal", () => ({
   useDeletePortal: () => mocks.deleteMutation,
 }));
 
-vi.mock("@/lib/unkey-client", () => ({
-  getErrorMessage: (error: unknown) =>
-    error instanceof ApiError ? error.detail : "Something went wrong",
-}));
+vi.mock("@/lib/unkey-client", async () => {
+  const { ConflictErrorResponse: Conflict } = await import("@unkey/api/models/errors");
+  return {
+    getErrorMessage: (error: unknown) =>
+      error instanceof Conflict ? error.error.detail : "Something went wrong",
+  };
+});
 
 vi.mock("./portal-preview", () => ({
   PortalPreview: ({ slug }: { slug: string }) => <div data-testid="preview">{slug}</div>,
@@ -216,7 +236,7 @@ describe("PortalConfig", () => {
   });
 
   it("puts a slug conflict on the field rather than in a toast", async () => {
-    mocks.updateMutation.mutateAsync.mockRejectedValue(new ApiError(SLUG_CONFLICT_DETAIL));
+    mocks.updateMutation.mutateAsync.mockRejectedValue(conflict(SLUG_CONFLICT_DETAIL));
     renderConfig();
 
     fireEvent.change(input("Slug"), { target: { value: "taken" } });

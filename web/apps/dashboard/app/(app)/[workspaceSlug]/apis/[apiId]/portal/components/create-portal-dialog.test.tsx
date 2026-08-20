@@ -1,4 +1,5 @@
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { ConflictErrorResponse } from "@unkey/api/models/errors";
 import type { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode } from "react";
 import { forwardRef } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -7,17 +8,34 @@ import { CreatePortalDialog } from "./create-portal-dialog";
 const SLUG_CONFLICT_DETAIL = "That slug is already in use. Choose a different slug.";
 const MAPPING_CONFLICT_DETAIL = "That app or keyspace already has a portal.";
 
-/** Both 409s arrive under the same code, so only `detail` separates them. */
-class ApiError extends Error {
-  constructor(readonly detail: string) {
-    super(detail);
-  }
+/**
+ * A real `ConflictErrorResponse`: `portalConflict` gates on the response class
+ * before it looks at the detail, so a bare Error would not be classified.
+ */
+function conflict(detail: string): ConflictErrorResponse {
+  return new ConflictErrorResponse(
+    {
+      meta: { requestId: "req_test" },
+      error: {
+        title: "Conflict",
+        detail,
+        status: 409,
+        type: "https://unkey.com/docs/errors/data/portal/duplicate",
+      },
+    },
+    {
+      request: new Request("https://api.unkey.com/v2/portal"),
+      response: new Response(null, { status: 409 }),
+      body: "",
+    },
+  );
 }
 
 const mocks = vi.hoisted(() => ({
   mutateAsync: vi.fn(),
   getPortalByMapping: vi.fn(),
   invalidateQueries: vi.fn(),
+  setQueryData: vi.fn(),
 }));
 
 vi.mock("@/lib/portal/use-portal", () => ({
@@ -30,13 +48,19 @@ vi.mock("@/lib/portal/client", () => ({
   keyspaceMapping: (id: string) => ({ type: "keyspace", id }),
 }));
 
-vi.mock("@/lib/unkey-client", () => ({
-  getErrorMessage: (error: unknown) =>
-    error instanceof ApiError ? error.detail : "Something went wrong",
-}));
+vi.mock("@/lib/unkey-client", async () => {
+  const { ConflictErrorResponse: Conflict } = await import("@unkey/api/models/errors");
+  return {
+    getErrorMessage: (error: unknown) =>
+      error instanceof Conflict ? error.error.detail : "Something went wrong",
+  };
+});
 
 vi.mock("@tanstack/react-query", () => ({
-  useQueryClient: () => ({ invalidateQueries: mocks.invalidateQueries }),
+  useQueryClient: () => ({
+    invalidateQueries: mocks.invalidateQueries,
+    setQueryData: mocks.setQueryData,
+  }),
 }));
 
 vi.mock("@unkey/ui", () => ({
@@ -101,7 +125,7 @@ describe("CreatePortalDialog", () => {
     cleanup();
     vi.clearAllMocks();
     mocks.mutateAsync.mockResolvedValue({ portalId: "portal_123" });
-    mocks.getPortalByMapping.mockRejectedValue(new ApiError("not found"));
+    mocks.getPortalByMapping.mockRejectedValue(new Error("not found"));
   });
 
   it("prefills the slug from the API name", () => {
@@ -117,8 +141,8 @@ describe("CreatePortalDialog", () => {
     await waitFor(() => expect(mocks.mutateAsync).toHaveBeenCalled());
     expect(mocks.mutateAsync).toHaveBeenCalledWith({ slug: "payments-api", enabled: true });
     await waitFor(() => expect(onOpenChange).toHaveBeenCalledWith(false));
-    // The response carries only `{ portalId }`, so the row comes from a re-read.
-    expect(mocks.invalidateQueries).toHaveBeenCalledWith({ queryKey: ["portal", "ks_123"] });
+    // The re-read is `useCreatePortal`'s invalidate, not a second one here.
+    expect(mocks.invalidateQueries).not.toHaveBeenCalled();
   });
 
   it("blocks an invalid slug without sending a request", async () => {
@@ -132,7 +156,7 @@ describe("CreatePortalDialog", () => {
   });
 
   it("puts a slug conflict on the field after re-reading by mapping", async () => {
-    mocks.mutateAsync.mockRejectedValue(new ApiError(SLUG_CONFLICT_DETAIL));
+    mocks.mutateAsync.mockRejectedValue(conflict(SLUG_CONFLICT_DETAIL));
     renderDialog();
 
     submitForm();
@@ -145,19 +169,24 @@ describe("CreatePortalDialog", () => {
   });
 
   it("treats a slug conflict as success when the re-read finds a portal", async () => {
-    mocks.mutateAsync.mockRejectedValue(new ApiError(SLUG_CONFLICT_DETAIL));
+    mocks.mutateAsync.mockRejectedValue(conflict(SLUG_CONFLICT_DETAIL));
     mocks.getPortalByMapping.mockResolvedValue({ id: "portal_123", slug: "payments-api" });
     renderDialog();
 
     submitForm();
 
     await waitFor(() => expect(onOpenChange).toHaveBeenCalledWith(false));
-    expect(mocks.invalidateQueries).toHaveBeenCalledWith({ queryKey: ["portal", "ks_123"] });
+    // The re-read already carries the row, so it seeds the cache rather than
+    // triggering a third fetch of the same resource.
+    expect(mocks.setQueryData).toHaveBeenCalledWith(["portal", "ks_123"], {
+      found: true,
+      portal: { id: "portal_123", slug: "payments-api" },
+    });
     expect(screen.queryByTestId("slug-error")).toBeNull();
   });
 
   it("reports a mapping conflict at dialog level, not on the slug field", async () => {
-    mocks.mutateAsync.mockRejectedValue(new ApiError(MAPPING_CONFLICT_DETAIL));
+    mocks.mutateAsync.mockRejectedValue(conflict(MAPPING_CONFLICT_DETAIL));
     renderDialog();
 
     submitForm();

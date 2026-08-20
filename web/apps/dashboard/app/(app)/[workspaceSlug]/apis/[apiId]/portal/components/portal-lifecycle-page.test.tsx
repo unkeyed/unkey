@@ -2,14 +2,20 @@ import type { PortalState } from "@/lib/portal/use-portal";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import type { Portal } from "@unkey/api/models/components";
 import type { ButtonHTMLAttributes, ReactNode } from "react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { type Mock, beforeEach, describe, expect, it, vi } from "vitest";
 import { PortalLifecyclePage } from "./portal-lifecycle-page";
 
-const mocks = vi.hoisted(() => ({
-  portalState: { status: "loading" } as PortalState,
-  updateMutation: { mutate: vi.fn(), isLoading: false },
-  invalidateQueries: vi.fn(),
-}));
+const mocks = vi.hoisted(
+  (): {
+    portalState: PortalState;
+    updateMutation: { mutate: Mock; isLoading: boolean };
+    invalidateQueries: Mock;
+  } => ({
+    portalState: { status: "loading" },
+    updateMutation: { mutate: vi.fn(), isLoading: false },
+    invalidateQueries: vi.fn(),
+  }),
+);
 
 vi.mock("@/lib/portal/use-portal", () => ({
   usePortal: () => mocks.portalState,

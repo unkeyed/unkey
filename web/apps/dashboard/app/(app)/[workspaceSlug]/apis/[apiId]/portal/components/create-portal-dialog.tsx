@@ -1,33 +1,22 @@
 "use client";
 
 import { getPortalByMapping, keyspaceMapping } from "@/lib/portal/client";
+import {
+  MAPPING_CONFLICT_MESSAGE,
+  SLUG_CONFLICT_DETAIL,
+  portalConflict,
+} from "@/lib/portal/conflicts";
 import { slugifyPortalName } from "@/lib/portal/slugify";
-import { portalQueryKey, useCreatePortal } from "@/lib/portal/use-portal";
+import { type PortalQueryResult, portalQueryKey, useCreatePortal } from "@/lib/portal/use-portal";
 import { portalSlugSchema } from "@/lib/portal/validation";
 import { getErrorMessage } from "@/lib/unkey-client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQueryClient } from "@tanstack/react-query";
+import type { Portal } from "@unkey/api/models/components";
 import { Button, DialogContainer, FormInput } from "@unkey/ui";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-
-/**
- * `createPortal` returns both of these as 409s under the same
- * `Data.Portal.Duplicate` code, so the public detail is the only thing that
- * separates them. Verbatim from `svc/api/routes/v2_portal_create_portal/handler.go`.
- */
-const SLUG_CONFLICT_DETAIL = "That slug is already in use. Choose a different slug.";
-const MAPPING_CONFLICT_DETAIL = "That app or keyspace already has a portal.";
-
-/**
- * The mapping check spans every workspace, so the portal holding this keyspace
- * may be one this operator cannot see. Telling them to pick another slug would
- * send them round a loop no slug can win.
- */
-const MAPPING_CONFLICT_MESSAGE =
-  "This API's keyspace already has a customer portal. It may belong to another workspace. " +
-  "Contact support@unkey.com if you think that's wrong.";
 
 const formSchema = z.object({ slug: portalSlugSchema });
 
@@ -62,19 +51,16 @@ export function CreatePortalDialog({ keyAuthId, resourceName, isOpen, onOpenChan
     defaultValues: { slug: slugifyPortalName(resourceName) },
   });
 
-  const invalidate = () => queryClient.invalidateQueries({ queryKey: portalQueryKey(keyAuthId) });
-
   /**
    * A 409 can also mean the create landed and the acknowledgement was lost, so
    * the row is reported as a conflict against itself. A read that finds a portal
    * settles that; a read that fails leaves the conflict to be reported.
    */
-  const keyspaceAlreadyHasPortal = async (): Promise<boolean> => {
+  const readKeyspacePortal = async (): Promise<Portal | null> => {
     try {
-      await getPortalByMapping(keyspaceMapping(keyAuthId));
-      return true;
+      return await getPortalByMapping(keyspaceMapping(keyAuthId));
     } catch {
-      return false;
+      return null;
     }
   };
 
@@ -83,28 +69,35 @@ export function CreatePortalDialog({ keyAuthId, resourceName, isOpen, onOpenChan
     clearErrors("slug");
     setSubmitting(true);
     try {
-      await createPortal.mutateAsync({ slug, enabled: true });
       // The response carries only `{ portalId }`, so the surface re-reads the
-      // full row rather than rendering a synthesized one.
-      await invalidate();
+      // full row rather than rendering a synthesized one. `useCreatePortal`
+      // invalidates on success, and react-query awaits `onSuccess` before
+      // `mutateAsync` resolves, so that refetch is already under way here.
+      await createPortal.mutateAsync({ slug, enabled: true });
       onOpenChange(false);
       return;
     } catch (error) {
-      const detail = getErrorMessage(error);
-      if (detail === MAPPING_CONFLICT_DETAIL) {
+      const conflict = portalConflict(error);
+      if (conflict === "mapping") {
         setDialogError(MAPPING_CONFLICT_MESSAGE);
         return;
       }
-      if (detail === SLUG_CONFLICT_DETAIL) {
-        if (await keyspaceAlreadyHasPortal()) {
-          await invalidate();
+      if (conflict === "slug") {
+        const existing = await readKeyspacePortal();
+        if (existing) {
+          // The re-read already holds the row the surface would otherwise
+          // invalidate for, so seed it rather than fetching it twice.
+          queryClient.setQueryData<PortalQueryResult>(portalQueryKey(keyAuthId), {
+            found: true,
+            portal: existing,
+          });
           onOpenChange(false);
           return;
         }
-        setError("slug", { type: "server", message: detail });
+        setError("slug", { type: "server", message: SLUG_CONFLICT_DETAIL });
         return;
       }
-      setDialogError(detail);
+      setDialogError(getErrorMessage(error));
     } finally {
       setSubmitting(false);
     }
