@@ -8,7 +8,204 @@ package db
 import (
 	"context"
 	"database/sql"
+	"strings"
 )
+
+const findKeyMutationResources = `-- name: FindKeyMutationResources :many
+SELECT
+    'identity' AS resource_type,
+    i.id AS identity_id,
+    i.external_id AS identity_external_id,
+    '' AS permission_id,
+    '' AS permission_slug,
+    '' AS role_id,
+    '' AS role_name,
+    '' AS project_id,
+    '' AS project_slug
+FROM identities i
+WHERE CAST(? AS UNSIGNED) = 1
+    AND i.workspace_id = ?
+    AND i.external_id = ?
+    AND i.deleted = false
+UNION ALL
+SELECT
+    'permission' AS resource_type,
+    '' AS identity_id,
+    '' AS identity_external_id,
+    p.id AS permission_id,
+    p.slug AS permission_slug,
+    '' AS role_id,
+    '' AS role_name,
+    '' AS project_id,
+    '' AS project_slug
+FROM permissions p
+WHERE p.workspace_id = ?
+    AND p.slug IN (/*SLICE:permission_slugs*/?)
+UNION ALL
+SELECT
+    'role' AS resource_type,
+    '' AS identity_id,
+    '' AS identity_external_id,
+    '' AS permission_id,
+    '' AS permission_slug,
+    r.id AS role_id,
+    r.name AS role_name,
+    '' AS project_id,
+    '' AS project_slug
+FROM roles r
+WHERE r.workspace_id = ?
+    AND r.name IN (/*SLICE:role_names*/?)
+UNION ALL
+SELECT
+    'project' AS resource_type,
+    '' AS identity_id,
+    '' AS identity_external_id,
+    '' AS permission_id,
+    '' AS permission_slug,
+    '' AS role_id,
+    '' AS role_name,
+    p.id AS project_id,
+    p.slug AS project_slug
+FROM projects p
+WHERE p.workspace_id = ?
+    AND BINARY p.slug = 'default'
+`
+
+type FindKeyMutationResourcesParams struct {
+	FindIdentity    int64    `db:"find_identity"`
+	WorkspaceID     string   `db:"workspace_id"`
+	ExternalID      string   `db:"external_id"`
+	PermissionSlugs []string `db:"permission_slugs"`
+	RoleNames       []string `db:"role_names"`
+}
+
+type FindKeyMutationResourcesRow struct {
+	ResourceType       string `db:"resource_type"`
+	IdentityID         string `db:"identity_id"`
+	IdentityExternalID string `db:"identity_external_id"`
+	PermissionID       string `db:"permission_id"`
+	PermissionSlug     string `db:"permission_slug"`
+	RoleID             string `db:"role_id"`
+	RoleName           string `db:"role_name"`
+	ProjectID          string `db:"project_id"`
+	ProjectSlug        string `db:"project_slug"`
+}
+
+// Resolve optional identity, permission, role, and project references in one round trip.
+//
+//	SELECT
+//	    'identity' AS resource_type,
+//	    i.id AS identity_id,
+//	    i.external_id AS identity_external_id,
+//	    '' AS permission_id,
+//	    '' AS permission_slug,
+//	    '' AS role_id,
+//	    '' AS role_name,
+//	    '' AS project_id,
+//	    '' AS project_slug
+//	FROM identities i
+//	WHERE CAST(? AS UNSIGNED) = 1
+//	    AND i.workspace_id = ?
+//	    AND i.external_id = ?
+//	    AND i.deleted = false
+//	UNION ALL
+//	SELECT
+//	    'permission' AS resource_type,
+//	    '' AS identity_id,
+//	    '' AS identity_external_id,
+//	    p.id AS permission_id,
+//	    p.slug AS permission_slug,
+//	    '' AS role_id,
+//	    '' AS role_name,
+//	    '' AS project_id,
+//	    '' AS project_slug
+//	FROM permissions p
+//	WHERE p.workspace_id = ?
+//	    AND p.slug IN (/*SLICE:permission_slugs*/?)
+//	UNION ALL
+//	SELECT
+//	    'role' AS resource_type,
+//	    '' AS identity_id,
+//	    '' AS identity_external_id,
+//	    '' AS permission_id,
+//	    '' AS permission_slug,
+//	    r.id AS role_id,
+//	    r.name AS role_name,
+//	    '' AS project_id,
+//	    '' AS project_slug
+//	FROM roles r
+//	WHERE r.workspace_id = ?
+//	    AND r.name IN (/*SLICE:role_names*/?)
+//	UNION ALL
+//	SELECT
+//	    'project' AS resource_type,
+//	    '' AS identity_id,
+//	    '' AS identity_external_id,
+//	    '' AS permission_id,
+//	    '' AS permission_slug,
+//	    '' AS role_id,
+//	    '' AS role_name,
+//	    p.id AS project_id,
+//	    p.slug AS project_slug
+//	FROM projects p
+//	WHERE p.workspace_id = ?
+//	    AND BINARY p.slug = 'default'
+func (q *Queries) FindKeyMutationResources(ctx context.Context, db DBTX, arg FindKeyMutationResourcesParams) ([]FindKeyMutationResourcesRow, error) {
+	query := findKeyMutationResources
+	var queryParams []interface{}
+	queryParams = append(queryParams, arg.FindIdentity)
+	queryParams = append(queryParams, arg.WorkspaceID)
+	queryParams = append(queryParams, arg.ExternalID)
+	queryParams = append(queryParams, arg.WorkspaceID)
+	if len(arg.PermissionSlugs) > 0 {
+		for _, v := range arg.PermissionSlugs {
+			queryParams = append(queryParams, v)
+		}
+		query = strings.Replace(query, "/*SLICE:permission_slugs*/?", strings.Repeat(",?", len(arg.PermissionSlugs))[1:], 1)
+	} else {
+		query = strings.Replace(query, "/*SLICE:permission_slugs*/?", "NULL", 1)
+	}
+	queryParams = append(queryParams, arg.WorkspaceID)
+	if len(arg.RoleNames) > 0 {
+		for _, v := range arg.RoleNames {
+			queryParams = append(queryParams, v)
+		}
+		query = strings.Replace(query, "/*SLICE:role_names*/?", strings.Repeat(",?", len(arg.RoleNames))[1:], 1)
+	} else {
+		query = strings.Replace(query, "/*SLICE:role_names*/?", "NULL", 1)
+	}
+	queryParams = append(queryParams, arg.WorkspaceID)
+	rows, err := db.QueryContext(ctx, query, queryParams...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []FindKeyMutationResourcesRow
+	for rows.Next() {
+		var i FindKeyMutationResourcesRow
+		if err := rows.Scan(
+			&i.ResourceType,
+			&i.IdentityID,
+			&i.IdentityExternalID,
+			&i.PermissionID,
+			&i.PermissionSlug,
+			&i.RoleID,
+			&i.RoleName,
+			&i.ProjectID,
+			&i.ProjectSlug,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
 
 const findLiveKeyByID = `-- name: FindLiveKeyByID :one
 SELECT
@@ -308,6 +505,81 @@ func (q *Queries) FindLiveKeyByID(ctx context.Context, db DBTX, id string) (Find
 		&i.Permissions,
 		&i.RolePermissions,
 		&i.Ratelimits,
+	)
+	return i, err
+}
+
+const findLiveKeyForUpdateByID = `-- name: FindLiveKeyForUpdateByID :one
+SELECT
+    k.id,
+    k.key_auth_id,
+    k.hash,
+    k.workspace_id,
+    k.name,
+    k.identity_id,
+    a.id AS api_id,
+    a.name AS api_name,
+    i.external_id AS identity_external_id
+FROM ` + "`" + `keys` + "`" + ` k
+JOIN apis a ON a.key_auth_id = k.key_auth_id
+JOIN key_auth ka ON ka.id = k.key_auth_id
+JOIN workspaces ws ON k.workspace_id = ws.id
+LEFT JOIN identities i ON k.identity_id = i.id AND i.deleted = false
+WHERE k.id = ?
+    AND k.deleted_at_m IS NULL
+    AND a.deleted_at_m IS NULL
+    AND ka.deleted_at_m IS NULL
+    AND ws.deleted_at_m IS NULL
+`
+
+type FindLiveKeyForUpdateByIDRow struct {
+	ID                 string         `db:"id"`
+	KeyAuthID          string         `db:"key_auth_id"`
+	Hash               string         `db:"hash"`
+	WorkspaceID        string         `db:"workspace_id"`
+	Name               sql.NullString `db:"name"`
+	IdentityID         sql.NullString `db:"identity_id"`
+	ApiID              string         `db:"api_id"`
+	ApiName            string         `db:"api_name"`
+	IdentityExternalID sql.NullString `db:"identity_external_id"`
+}
+
+// Keep this projection small: key updates do not need the RBAC and ratelimit
+// aggregates returned by FindLiveKeyByID.
+//
+//	SELECT
+//	    k.id,
+//	    k.key_auth_id,
+//	    k.hash,
+//	    k.workspace_id,
+//	    k.name,
+//	    k.identity_id,
+//	    a.id AS api_id,
+//	    a.name AS api_name,
+//	    i.external_id AS identity_external_id
+//	FROM `keys` k
+//	JOIN apis a ON a.key_auth_id = k.key_auth_id
+//	JOIN key_auth ka ON ka.id = k.key_auth_id
+//	JOIN workspaces ws ON k.workspace_id = ws.id
+//	LEFT JOIN identities i ON k.identity_id = i.id AND i.deleted = false
+//	WHERE k.id = ?
+//	    AND k.deleted_at_m IS NULL
+//	    AND a.deleted_at_m IS NULL
+//	    AND ka.deleted_at_m IS NULL
+//	    AND ws.deleted_at_m IS NULL
+func (q *Queries) FindLiveKeyForUpdateByID(ctx context.Context, db DBTX, id string) (FindLiveKeyForUpdateByIDRow, error) {
+	row := db.QueryRowContext(ctx, findLiveKeyForUpdateByID, id)
+	var i FindLiveKeyForUpdateByIDRow
+	err := row.Scan(
+		&i.ID,
+		&i.KeyAuthID,
+		&i.Hash,
+		&i.WorkspaceID,
+		&i.Name,
+		&i.IdentityID,
+		&i.ApiID,
+		&i.ApiName,
+		&i.IdentityExternalID,
 	)
 	return i, err
 }

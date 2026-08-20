@@ -69,7 +69,7 @@ type UpdateKeyParams struct {
 	ID                         string         `db:"id"`
 }
 
-// UpdateKey
+// transactional-batch-statement
 //
 //	UPDATE `keys` k SET
 //	    name = CASE

@@ -16,6 +16,14 @@ type Querier interface {
 	//  FROM custom_domains
 	//  WHERE workspace_id = ?
 	CountCustomDomainsByWorkspace(ctx context.Context, db DBTX, workspaceID string) (int64, error)
+	//DeleteAllKeyPermissionsAndRolesByKeyID
+	//
+	//  DELETE kp, kr
+	//  FROM `keys` k
+	//  LEFT JOIN keys_permissions kp ON k.id = kp.key_id
+	//  LEFT JOIN keys_roles kr ON k.id = kr.key_id
+	//  WHERE k.id = ?
+	DeleteAllKeyPermissionsAndRolesByKeyID(ctx context.Context, db DBTX, keyID string) error
 	//DeleteAllKeyPermissionsByKeyID
 	//
 	//  DELETE FROM keys_permissions
@@ -26,6 +34,11 @@ type Querier interface {
 	//  DELETE FROM keys_roles
 	//  WHERE key_id = ?
 	DeleteAllKeyRolesByKeyID(ctx context.Context, db DBTX, keyID string) error
+	//DeleteAllRatelimitsByKeyID
+	//
+	//  DELETE FROM ratelimits
+	//  WHERE key_id = ?
+	DeleteAllRatelimitsByKeyID(ctx context.Context, db DBTX, keyID sql.NullString) error
 	//DeleteAppBuildSettingsByEnvironmentId
 	//
 	//  DELETE FROM app_build_settings WHERE environment_id = ?
@@ -130,6 +143,12 @@ type Querier interface {
 	//  DELETE FROM permissions
 	//  WHERE id = ?
 	DeletePermission(ctx context.Context, db DBTX, permissionID string) error
+	//DeleteRatelimitsByKeyIDExceptNames
+	//
+	//  DELETE FROM ratelimits
+	//  WHERE key_id = ?
+	//    AND name NOT IN (/*SLICE:ratelimit_names*/?)
+	DeleteRatelimitsByKeyIDExceptNames(ctx context.Context, db DBTX, arg DeleteRatelimitsByKeyIDExceptNamesParams) error
 	//DeleteRoleByID
 	//
 	//  DELETE FROM roles
@@ -500,6 +519,66 @@ type Querier interface {
 	//  WHERE id = ?
 	//  and workspace_id = ?
 	FindKeyMigrationByID(ctx context.Context, db DBTX, arg FindKeyMigrationByIDParams) (FindKeyMigrationByIDRow, error)
+	// Resolve optional identity, permission, role, and project references in one round trip.
+	//
+	//  SELECT
+	//      'identity' AS resource_type,
+	//      i.id AS identity_id,
+	//      i.external_id AS identity_external_id,
+	//      '' AS permission_id,
+	//      '' AS permission_slug,
+	//      '' AS role_id,
+	//      '' AS role_name,
+	//      '' AS project_id,
+	//      '' AS project_slug
+	//  FROM identities i
+	//  WHERE CAST(? AS UNSIGNED) = 1
+	//      AND i.workspace_id = ?
+	//      AND i.external_id = ?
+	//      AND i.deleted = false
+	//  UNION ALL
+	//  SELECT
+	//      'permission' AS resource_type,
+	//      '' AS identity_id,
+	//      '' AS identity_external_id,
+	//      p.id AS permission_id,
+	//      p.slug AS permission_slug,
+	//      '' AS role_id,
+	//      '' AS role_name,
+	//      '' AS project_id,
+	//      '' AS project_slug
+	//  FROM permissions p
+	//  WHERE p.workspace_id = ?
+	//      AND p.slug IN (/*SLICE:permission_slugs*/?)
+	//  UNION ALL
+	//  SELECT
+	//      'role' AS resource_type,
+	//      '' AS identity_id,
+	//      '' AS identity_external_id,
+	//      '' AS permission_id,
+	//      '' AS permission_slug,
+	//      r.id AS role_id,
+	//      r.name AS role_name,
+	//      '' AS project_id,
+	//      '' AS project_slug
+	//  FROM roles r
+	//  WHERE r.workspace_id = ?
+	//      AND r.name IN (/*SLICE:role_names*/?)
+	//  UNION ALL
+	//  SELECT
+	//      'project' AS resource_type,
+	//      '' AS identity_id,
+	//      '' AS identity_external_id,
+	//      '' AS permission_id,
+	//      '' AS permission_slug,
+	//      '' AS role_id,
+	//      '' AS role_name,
+	//      p.id AS project_id,
+	//      p.slug AS project_slug
+	//  FROM projects p
+	//  WHERE p.workspace_id = ?
+	//      AND BINARY p.slug = 'default'
+	FindKeyMutationResources(ctx context.Context, db DBTX, arg FindKeyMutationResourcesParams) ([]FindKeyMutationResourcesRow, error)
 	//FindKeyRoleByKeyAndRoleID
 	//
 	//  SELECT pk, key_id, role_id, workspace_id, created_at_m, updated_at_m
@@ -721,6 +800,30 @@ type Querier interface {
 	//      AND ka.deleted_at_m IS NULL
 	//      AND ws.deleted_at_m IS NULL
 	FindLiveKeyByID(ctx context.Context, db DBTX, id string) (FindLiveKeyByIDRow, error)
+	// Keep this projection small: key updates do not need the RBAC and ratelimit
+	// aggregates returned by FindLiveKeyByID.
+	//
+	//  SELECT
+	//      k.id,
+	//      k.key_auth_id,
+	//      k.hash,
+	//      k.workspace_id,
+	//      k.name,
+	//      k.identity_id,
+	//      a.id AS api_id,
+	//      a.name AS api_name,
+	//      i.external_id AS identity_external_id
+	//  FROM `keys` k
+	//  JOIN apis a ON a.key_auth_id = k.key_auth_id
+	//  JOIN key_auth ka ON ka.id = k.key_auth_id
+	//  JOIN workspaces ws ON k.workspace_id = ws.id
+	//  LEFT JOIN identities i ON k.identity_id = i.id AND i.deleted = false
+	//  WHERE k.id = ?
+	//      AND k.deleted_at_m IS NULL
+	//      AND a.deleted_at_m IS NULL
+	//      AND ka.deleted_at_m IS NULL
+	//      AND ws.deleted_at_m IS NULL
+	FindLiveKeyForUpdateByID(ctx context.Context, db DBTX, id string) (FindLiveKeyForUpdateByIDRow, error)
 	//FindManyRatelimitNamespaces
 	//
 	//  SELECT pk, id, workspace_id, project_id, name, created_at_m, updated_at_m, deleted_at_m,
@@ -1086,6 +1189,7 @@ type Querier interface {
 	//  INSERT INTO app_environment_variables (id, workspace_id, app_id, environment_id, `key`, value, `type`, description, created_at)
 	//  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
 	InsertAppEnvironmentVariable(ctx context.Context, db DBTX, arg InsertAppEnvironmentVariableParams) error
+	// transactional-batch-statement
 	// InsertClickhouseOutbox enqueues one event for ClickHouse export. Called
 	// from the same MySQL transaction as the underlying mutation, so durability
 	// is exactly the durability of the mutation: if the mutation commits, the
@@ -1509,6 +1613,7 @@ type Querier interface {
 	//      ?,
 	//      ?
 	//  ) ON DUPLICATE KEY UPDATE
+	//  name = VALUES(name),
 	//  `limit` = VALUES(`limit`),
 	//  duration = VALUES(duration),
 	//  auto_apply = VALUES(auto_apply),
@@ -2600,7 +2705,7 @@ type Querier interface {
 	//  WHERE
 	//      id = ?
 	UpdateIdentity(ctx context.Context, db DBTX, arg UpdateIdentityParams) error
-	//UpdateKey
+	// transactional-batch-statement
 	//
 	//  UPDATE `keys` k SET
 	//      name = CASE

@@ -25,7 +25,7 @@ import (
 func TestThreeStateUpdateLogic(t *testing.T) {
 	t.Parallel()
 
-	h := testutil.NewHarness(t)
+	h := newUpdateKeyHarness(t)
 	ctx := context.Background()
 
 	route := &handler.Handler{
