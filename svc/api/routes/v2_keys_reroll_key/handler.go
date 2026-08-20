@@ -26,6 +26,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/internal/auditactor"
+	"github.com/unkeyed/unkey/svc/api/internal/keyperms"
 )
 
 type (
@@ -400,17 +401,14 @@ func (h *Handler) RerollKey(
 // routes pass their product capability directly instead.
 func rerollPermissionQuery(key db.FindLiveKeyByIDRow) rbac.PermissionQuery {
 	keyData := db.ToKeyData(key)
+	scope := keyperms.Scope{
+		WorkspaceID: key.WorkspaceID,
+		KeyspaceID:  key.KeyAuthID,
+		APIID:       key.Api.ID,
+	}
+
 	checks := rbac.Or(
-		rbac.T(rbac.Tuple{
-			ResourceType: rbac.Api,
-			ResourceID:   key.Api.ID,
-			Action:       rbac.CreateKey,
-		}),
-		rbac.T(rbac.Tuple{
-			ResourceType: rbac.Api,
-			ResourceID:   "*",
-			Action:       rbac.CreateKey,
-		}),
+		keyperms.CreateKey(scope),
 		rbac.U(
 			urn.New().Workspace(key.WorkspaceID).Keyspace(key.KeyAuthID),
 			permissions.CreateKey{},
@@ -421,16 +419,7 @@ func rerollPermissionQuery(key db.FindLiveKeyByIDRow) rbac.PermissionQuery {
 		checks = rbac.And(
 			checks,
 			rbac.Or(
-				rbac.T(rbac.Tuple{
-					ResourceType: rbac.Api,
-					ResourceID:   key.Api.ID,
-					Action:       rbac.EncryptKey,
-				}),
-				rbac.T(rbac.Tuple{
-					ResourceType: rbac.Api,
-					ResourceID:   "*",
-					Action:       rbac.EncryptKey,
-				}),
+				keyperms.EncryptKey(scope),
 				rbac.U(
 					urn.New().Workspace(key.WorkspaceID).Keyspace(key.KeyAuthID).Key("*"),
 					permissions.EncryptKey{},

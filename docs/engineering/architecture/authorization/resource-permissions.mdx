@@ -261,7 +261,40 @@ These examples show how broad and narrow permissions use the same grammar.
     ```
 
   </Accordion>
+  <Accordion title="Portal session grammar (not yet honored)">
+
+    ```plaintext
+    unkey:v1:ws_123:portals/pc_123#create_portal_session
+    unkey:v1:ws_123:portals/*#create_portal_session
+    ```
+
+    These show the grammar only. `portal.createSession` evaluates legacy tuples
+    today, so neither form authorizes it yet. Grant
+    `portal.pc_123.create_portal_session` instead until the URN migration lands.
+
+  </Accordion>
 </AccordionGroup>
+
+### Portal resource
+
+Portals sit directly under the workspace, not under a project or app. A
+`projects/*/apps/*` grant therefore does not imply portal access, even when the
+portal is bound to that app.
+
+| Action | Authorizes |
+| --- | --- |
+| `create_portal` | Creating a portal. Granted with a wildcard id, since the portal does not exist when the request is authorized. |
+| `read_portal` | Reading portal configuration. |
+| `update_portal` | Updating portal configuration. |
+| `delete_portal` | Deleting a portal. |
+| `create_portal_session` | Minting a portal session for an end user. Deliberately separate from the management actions above: it is the sensitive capability and the one a production backend needs. |
+
+Session minting is additionally bounded at mint time by the caller's own key and
+analytics permissions, so a session can never carry a capability the calling root
+key does not hold. That second stage is enforced with legacy tuples today, so a
+URN grant does not currently satisfy it, including the `**#*` admin form.
+Revisit when the URN migration lands; the route ships a test pinning the current
+denial so the migration has a signal to flip.
 
 ## Audit logs
 

@@ -2,19 +2,18 @@ package handler_test
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"net/http"
 	"net/url"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/pkg/auditlog"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/hash"
-	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
+	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_portal_create_session"
 )
@@ -43,31 +42,31 @@ func TestCreateSessionSuccess(t *testing.T) {
 	h.Register(route)
 
 	workspaceID := h.Resources().UserWorkspace.ID
-	portalID := uid.New(uid.PortalPrefix)
-	now := time.Now().UnixMilli()
-
 	// A keyspace-mapped portal: the session is scoped to this keyspace, derived
-	// from the portal rather than the request.
-	keySpaceID := uid.New(uid.KeySpacePrefix)
-	require.NoError(t, db.Query.InsertKeySpace(ctx, h.DB.RW(), db.InsertKeySpaceParams{
-		ID:            keySpaceID,
+	// from the portal rather than the request. The keyspace is created through
+	// CreateApi so it has an owning api, which is what production always has and
+	// what the mint-time ceiling needs to express its api-scoped checks.
+	api := h.CreateApi(seed.CreateApiRequest{
 		WorkspaceID:   workspaceID,
-		CreatedAtM:    now,
-		DefaultPrefix: sql.NullString{Valid: false},
-		DefaultBytes:  sql.NullInt32{Valid: false},
-	}))
-
-	err := db.Query.InsertPortal(ctx, h.DB.RW(), db.InsertPortalParams{
-		ID:          portalID,
-		WorkspaceID: workspaceID,
-		Slug:        "test-portal",
-		KeyAuthID:   sql.NullString{Valid: true, String: keySpaceID},
-		Enabled:     true,
-		CreatedAt:   now,
+		IpWhitelist:   "",
+		EncryptedKeys: false,
+		Name:          nil,
+		CreatedAt:     nil,
+		DefaultPrefix: nil,
+		DefaultBytes:  nil,
 	})
-	require.NoError(t, err)
+	keySpaceID := api.KeyAuthID.String
 
-	rootKey := h.CreateRootKey(workspaceID)
+	portalID := insertKeyspacePortal(t, h, workspaceID, "test-portal", keySpaceID)
+
+	// Every subtest below requests keys:read, so the caller needs the portal
+	// permission plus the read-keys conjunction the equivalent operator route
+	// demands. Without the second conjunct the mint is refused at stage 2.
+	rootKey := h.CreateRootKey(workspaceID,
+		"portal.*.create_portal_session",
+		"api.*.read_key",
+		"api.*.read_api",
+	)
 
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
@@ -173,4 +172,90 @@ func TestCreateSessionSuccess(t *testing.T) {
 		require.NotEqual(t, res1.Body.Data.Id, res2.Body.Data.Id)
 		require.NotEqual(t, res1.Body.Data.Url, res2.Body.Data.Url)
 	})
+}
+
+// TestCreateSessionAuditsGrantedScopesAndKeyspaces covers R11: the audit entry
+// for a created session records what the session was actually granted. Without
+// it, the log says a session was minted but not what it can do, which is the
+// question an incident responder asks first.
+//
+// Asserted here rather than in the authorization tests because it is a side
+// effect of the success path -- a denied request writes no entry at all, which
+// 403_test.go already pins.
+func TestCreateSessionAuditsGrantedScopesAndKeyspaces(t *testing.T) {
+	h := testutil.NewHarness(t)
+	ctx := context.Background()
+
+	route := &handler.Handler{
+		DB:            h.DB,
+		Auditlogs:     h.Auditlogs,
+		PortalBaseURL: "https://portal.unkey.com",
+	}
+	h.Register(route)
+
+	workspaceID := h.Resources().UserWorkspace.ID
+	api := h.CreateApi(seed.CreateApiRequest{
+		WorkspaceID:   workspaceID,
+		IpWhitelist:   "",
+		EncryptedKeys: false,
+		Name:          nil,
+		CreatedAt:     nil,
+		DefaultPrefix: nil,
+		DefaultBytes:  nil,
+	})
+	insertKeyspacePortal(t, h, workspaceID, "audit-portal", api.KeyAuthID.String)
+
+	// Several scopes, so the assertion pins the whole granted set rather than
+	// passing on a single-element slice.
+	rootKey := h.CreateRootKey(workspaceID,
+		"portal.*.create_portal_session",
+		"api.*.read_key",
+		"api.*.read_api",
+		"api.*.create_key",
+		"api.*.read_analytics",
+	)
+	headers := http.Header{
+		"Content-Type":  {"application/json"},
+		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+	}
+
+	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
+		Portal:     "audit-portal",
+		ExternalId: "user_audit",
+		Scopes: []openapi.V2PortalCreateSessionRequestBodyScopes{
+			openapi.KeysRead, openapi.KeysReroll, openapi.AnalyticsRead,
+		},
+	})
+	require.Equal(t, 200, res.Status, "got: %s", res.RawBody)
+	sessionID := res.Body.Data.Id
+	require.NotEmpty(t, sessionID)
+
+	events := h.FindAuditLogsByTargetID(ctx, t, sessionID)
+	require.Len(t, events, 1, "exactly one audit entry per minted session")
+
+	var target *auditlog.EventTarget
+	for i := range events[0].Targets {
+		if events[0].Targets[i].ID == sessionID {
+			target = &events[0].Targets[i]
+			break
+		}
+	}
+	require.NotNil(t, target, "the session must be a target of its own audit entry")
+
+	// JSON round-trips these as []any, so compare element-wise rather than
+	// against a []string literal.
+	require.ElementsMatch(t,
+		[]any{"keys:read", "keys:reroll", "analytics:read"},
+		target.Meta["scopes"],
+		"the audit entry must record every granted scope",
+	)
+	require.ElementsMatch(t,
+		[]any{api.KeyAuthID.String},
+		target.Meta["keyspaceIds"],
+		"the audit entry must record the keyspaces the session is scoped to",
+	)
+
+	// Pre-existing metadata must survive alongside the new fields.
+	require.Equal(t, "audit-portal", target.Meta["slug"])
+	require.NotEmpty(t, target.Meta["portalId"])
 }

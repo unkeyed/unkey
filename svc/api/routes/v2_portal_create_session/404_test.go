@@ -1,15 +1,11 @@
 package handler_test
 
 import (
-	"context"
-	"database/sql"
 	"fmt"
 	"net/http"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/require"
-	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/openapi"
@@ -27,7 +23,15 @@ func TestCreateSessionNotFoundNonExistentPortalId(t *testing.T) {
 	h.Register(route)
 
 	workspaceID := h.Resources().UserWorkspace.ID
-	rootKey := h.CreateRootKey(workspaceID)
+
+	// Granted deliberately: the 404 must come from the portal lookup, not from a
+	// missing permission. A caller who could mint sessions still cannot learn
+	// whether an unknown portal exists.
+	rootKey := h.CreateRootKey(workspaceID,
+		"portal.*.create_portal_session",
+		"api.*.read_key",
+		"api.*.read_api",
+	)
 
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
@@ -49,7 +53,6 @@ func TestCreateSessionNotFoundNonExistentPortalId(t *testing.T) {
 
 func TestCreateSessionNotFoundWrongWorkspace(t *testing.T) {
 	h := testutil.NewHarness(t)
-	ctx := context.Background()
 
 	route := &handler.Handler{
 		DB:            h.DB,
@@ -60,22 +63,18 @@ func TestCreateSessionNotFoundWrongWorkspace(t *testing.T) {
 
 	// Create a portal in workspace A (the default user workspace).
 	workspaceA := h.Resources().UserWorkspace.ID
-	portalID := uid.New(uid.PortalPrefix)
-	now := time.Now().UnixMilli()
 
-	err := db.Query.InsertPortal(ctx, h.DB.RW(), db.InsertPortalParams{
-		ID:          portalID,
-		WorkspaceID: workspaceA,
-		Slug:        "cross-workspace-portal",
-		KeyAuthID:   sql.NullString{Valid: true, String: uid.New(uid.KeySpacePrefix)},
-		Enabled:     true,
-		CreatedAt:   now,
-	})
-	require.NoError(t, err)
+	portalID := insertKeyspacePortal(t, h, workspaceA, "cross-workspace-portal", uid.New(uid.KeySpacePrefix))
 
-	// Authenticate as workspace B.
+	// Authenticate as workspace B, holding every permission the mint would need
+	// in its own workspace. Workspace A's portal must still be indistinguishable
+	// from one that does not exist (R12).
 	workspaceB := h.CreateWorkspace()
-	rootKeyB := h.CreateRootKey(workspaceB.ID)
+	rootKeyB := h.CreateRootKey(workspaceB.ID,
+		"portal.*.create_portal_session",
+		"api.*.read_key",
+		"api.*.read_api",
+	)
 
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
