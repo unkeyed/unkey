@@ -10,13 +10,10 @@ option go_package = "github.com/unkeyed/unkey/gen/proto/hydra/v1;hydrav1";
 // durable Restate workflows. Each RPC is idempotent and can safely resume from
 // any step after a crash.
 //
-// Deploy, Rollback, and Promote are keyed by {app_id}:{environment_id} so
-// that lifecycle operations within a single environment are serialized
-// (preventing e.g. a rollback from racing with an in-flight deploy) while
-// different environments of the same app — e.g. production vs preview — can
-// deploy in parallel. This means a production push never waits behind a
-// preview build. Workspace-wide concurrency is separately enforced by
-// BuildSlotService.
+// Each object is keyed by deployment ID, so lifecycle operations for one
+// deployment are serialized while separate deployments can run in parallel.
+// Shared app routing state is serialized by RoutingService. Workspace-wide
+// build concurrency is enforced separately by BuildSlotService.
 //
 // Deploy handles the full pipeline from building Docker images through
 // provisioning containers and configuring domain routing. Rollback and Promote
@@ -50,6 +47,10 @@ service DeployService {
   // and waits until enough instances are running again.
   rpc WakeDeployment(WakeDeploymentRequest) returns (WakeDeploymentResponse) {}
 
+  // GarbageCollect deletes a terminal deployment after rechecking its
+  // retention policy. The request ID must match the deployment-keyed object.
+  rpc GarbageCollect(GarbageCollectDeploymentRequest) returns (GarbageCollectDeploymentResponse) {}
+
   // NotifyInstancesReady is called by the control plane when enough instances
   // have become healthy across the required regions. It resolves the awakeable
   // stored by a suspended deploy or wake workflow so it can continue.
@@ -73,6 +74,14 @@ message WakeDeploymentRequest {
 }
 
 message WakeDeploymentResponse {}
+
+message GarbageCollectDeploymentRequest {
+  string deployment_id = 1;
+}
+
+message GarbageCollectDeploymentResponse {
+  bool deleted = 1;
+}
 
 message NotifyInstancesReadyRequest {
   string deployment_id = 1;

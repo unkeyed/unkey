@@ -95,6 +95,10 @@ type CronServiceClient interface {
 	// per-workspace work prices usage locally from ClickHouse, so the tight
 	// cadence costs no Stripe calls.
 	RunDeploySpendCheck(opts ...sdk_go.ClientOption) sdk_go.Client[*RunDeploySpendCheckRequest, *RunDeploySpendCheckResponse]
+	// RunDeploymentGarbageCollection removes expired deployment records and
+	// reconciles Depot images and build projects against MySQL. Key is the fixed
+	// slug "deployment-garbage-collection". Daily schedule.
+	RunDeploymentGarbageCollection(opts ...sdk_go.ClientOption) sdk_go.Client[*RunDeploymentGarbageCollectionRequest, *RunDeploymentGarbageCollectionResponse]
 }
 
 type cronServiceClient struct {
@@ -199,6 +203,14 @@ func (c *cronServiceClient) RunDeploySpendCheck(opts ...sdk_go.ClientOption) sdk
 	return sdk_go.WithRequestType[*RunDeploySpendCheckRequest](sdk_go.Object[*RunDeploySpendCheckResponse](c.ctx, "hydra.v1.CronService", c.key, "RunDeploySpendCheck", cOpts...))
 }
 
+func (c *cronServiceClient) RunDeploymentGarbageCollection(opts ...sdk_go.ClientOption) sdk_go.Client[*RunDeploymentGarbageCollectionRequest, *RunDeploymentGarbageCollectionResponse] {
+	cOpts := c.options
+	if len(opts) > 0 {
+		cOpts = append(append([]sdk_go.ClientOption{}, cOpts...), opts...)
+	}
+	return sdk_go.WithRequestType[*RunDeploymentGarbageCollectionRequest](sdk_go.Object[*RunDeploymentGarbageCollectionResponse](c.ctx, "hydra.v1.CronService", c.key, "RunDeploymentGarbageCollection", cOpts...))
+}
+
 // CronServiceIngressClient is the ingress client API for hydra.v1.CronService service.
 //
 // This client is used to call the service from outside of a Restate context.
@@ -266,6 +278,10 @@ type CronServiceIngressClient interface {
 	// per-workspace work prices usage locally from ClickHouse, so the tight
 	// cadence costs no Stripe calls.
 	RunDeploySpendCheck() ingress.Requester[*RunDeploySpendCheckRequest, *RunDeploySpendCheckResponse]
+	// RunDeploymentGarbageCollection removes expired deployment records and
+	// reconciles Depot images and build projects against MySQL. Key is the fixed
+	// slug "deployment-garbage-collection". Daily schedule.
+	RunDeploymentGarbageCollection() ingress.Requester[*RunDeploymentGarbageCollectionRequest, *RunDeploymentGarbageCollectionResponse]
 }
 
 type cronServiceIngressClient struct {
@@ -335,6 +351,11 @@ func (c *cronServiceIngressClient) CloseDeployBillingWorkspace() ingress.Request
 func (c *cronServiceIngressClient) RunDeploySpendCheck() ingress.Requester[*RunDeploySpendCheckRequest, *RunDeploySpendCheckResponse] {
 	codec := encoding.ProtoJSONCodec
 	return ingress.NewRequester[*RunDeploySpendCheckRequest, *RunDeploySpendCheckResponse](c.client, c.serviceName, "RunDeploySpendCheck", &c.key, &codec)
+}
+
+func (c *cronServiceIngressClient) RunDeploymentGarbageCollection() ingress.Requester[*RunDeploymentGarbageCollectionRequest, *RunDeploymentGarbageCollectionResponse] {
+	codec := encoding.ProtoJSONCodec
+	return ingress.NewRequester[*RunDeploymentGarbageCollectionRequest, *RunDeploymentGarbageCollectionResponse](c.client, c.serviceName, "RunDeploymentGarbageCollection", &c.key, &codec)
 }
 
 // CronServiceServer is the server API for hydra.v1.CronService service.
@@ -421,6 +442,10 @@ type CronServiceServer interface {
 	// per-workspace work prices usage locally from ClickHouse, so the tight
 	// cadence costs no Stripe calls.
 	RunDeploySpendCheck(ctx sdk_go.ObjectContext, req *RunDeploySpendCheckRequest) (*RunDeploySpendCheckResponse, error)
+	// RunDeploymentGarbageCollection removes expired deployment records and
+	// reconciles Depot images and build projects against MySQL. Key is the fixed
+	// slug "deployment-garbage-collection". Daily schedule.
+	RunDeploymentGarbageCollection(ctx sdk_go.ObjectContext, req *RunDeploymentGarbageCollectionRequest) (*RunDeploymentGarbageCollectionResponse, error)
 }
 
 // UnimplementedCronServiceServer should be embedded to have
@@ -463,6 +488,9 @@ func (UnimplementedCronServiceServer) CloseDeployBillingWorkspace(ctx sdk_go.Obj
 func (UnimplementedCronServiceServer) RunDeploySpendCheck(ctx sdk_go.ObjectContext, req *RunDeploySpendCheckRequest) (*RunDeploySpendCheckResponse, error) {
 	return nil, sdk_go.TerminalError(fmt.Errorf("method RunDeploySpendCheck not implemented"), 501)
 }
+func (UnimplementedCronServiceServer) RunDeploymentGarbageCollection(ctx sdk_go.ObjectContext, req *RunDeploymentGarbageCollectionRequest) (*RunDeploymentGarbageCollectionResponse, error) {
+	return nil, sdk_go.TerminalError(fmt.Errorf("method RunDeploymentGarbageCollection not implemented"), 501)
+}
 func (UnimplementedCronServiceServer) testEmbeddedByValue() {}
 
 // UnsafeCronServiceServer may be embedded to opt out of forward compatibility for this service.
@@ -493,5 +521,6 @@ func NewCronServiceServer(srv CronServiceServer, opts ...sdk_go.ServiceDefinitio
 	router = router.Handler("RunDeployBillingClose", sdk_go.NewObjectHandler(srv.RunDeployBillingClose))
 	router = router.Handler("CloseDeployBillingWorkspace", sdk_go.NewObjectHandler(srv.CloseDeployBillingWorkspace))
 	router = router.Handler("RunDeploySpendCheck", sdk_go.NewObjectHandler(srv.RunDeploySpendCheck))
+	router = router.Handler("RunDeploymentGarbageCollection", sdk_go.NewObjectHandler(srv.RunDeploymentGarbageCollection))
 	return router
 }
