@@ -123,6 +123,8 @@ type SlackMessage = {
   blocks: SlackBlock[];
 };
 
+export type SlackPostStatus = "sent" | "not_configured" | "rejected" | "failed";
+
 /**
  * Posts a message to a Slack incoming webhook.
  *
@@ -135,10 +137,10 @@ async function postToSlack(
   webhookUrl: string | undefined,
   alert: string,
   message: SlackMessage,
-): Promise<void> {
+): Promise<SlackPostStatus> {
   if (!webhookUrl) {
     console.warn(`Slack webhook is not configured, skipping alert: ${alert}`);
-    return;
+    return "not_configured";
   }
 
   try {
@@ -156,12 +158,15 @@ async function postToSlack(
         status: response.status,
         statusText: response.statusText,
       });
+      return "rejected";
     }
+    return "sent";
   } catch (err: unknown) {
     console.error("Error sending Slack alert:", {
       alert,
       error: err instanceof Error ? { name: err.name, message: err.message } : "unknown error",
     });
+    return "failed";
   }
 }
 
@@ -247,7 +252,9 @@ export type CustomerLifecycleAlert = {
  * note, and a button deep-linking to the customer in Stripe. Fields that are absent (e.g. no
  * price on a cancellation) are simply omitted so the grid never shows a blank cell.
  */
-export async function alertCustomerLifecycle(alert: CustomerLifecycleAlert): Promise<void> {
+export async function alertCustomerLifecycle(
+  alert: CustomerLifecycleAlert,
+): Promise<SlackPostStatus> {
   const meta = ACTION_META[alert.action];
 
   const fields: Mrkdwn[] = [mrkdwn`*Customer*\n${alert.name}`, mrkdwn`*Email*\n${alert.email}`];
@@ -281,7 +288,7 @@ export async function alertCustomerLifecycle(alert: CustomerLifecycleAlert): Pro
     );
   }
 
-  await postToSlack(process.env.SLACK_WEBHOOK_CUSTOMERS, `subscription_${alert.action}`, {
+  return postToSlack(process.env.SLACK_WEBHOOK_CUSTOMERS, `subscription_${alert.action}`, {
     blocks,
   });
 }
