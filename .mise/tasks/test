@@ -49,7 +49,26 @@ trap cleanup_test_containers EXIT
 
 # Warm shared package exports once for full-suite runs. Eight compiler processes
 # were fastest for this cache-bound graph; GOMEMLIMIT bounds memory with GOGC off.
-if [[ $# -eq 0 ]]; then
+full_suite=true
+expect_option_value=false
+for arg in "$@"; do
+  if [[ "${expect_option_value}" == true ]]; then
+    expect_option_value=false
+    continue
+  fi
+
+  case "${arg}" in
+    --concurrency)
+      expect_option_value=true
+      ;;
+    -v | --verbose | --no-cache | --version | -h | --help | --concurrency=* | -v=* | --verbose=* | --no-cache=* | --version=*) ;;
+    *)
+      full_suite=false
+      ;;
+  esac
+done
+
+if [[ "${full_suite}" == true ]]; then
   compile_parallelism="$(getconf _NPROCESSORS_ONLN 2>/dev/null || printf '8')"
   if ((compile_parallelism > 8)); then
     compile_parallelism=8
