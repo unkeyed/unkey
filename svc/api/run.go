@@ -133,7 +133,7 @@ func Run(ctx context.Context, cfg Config) error {
 
 	r.DeferCtx(shutdownGrafana)
 
-	database, err := db.New(db.Config{
+	database, err := db.NewWithMultiStatementBatches(db.Config{
 		PrimaryDSN:  cfg.Database.Primary,
 		ReadOnlyDSN: cfg.Database.ReadonlyReplica,
 		Tags:        sqlcomment.ForService("api", cfg.Region),

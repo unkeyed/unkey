@@ -12,6 +12,13 @@
           "options": {
             "emit_methods_with_db_argument": true
           }
+        },
+        {
+          "out": ".",
+          "plugin": "transactional-batch",
+          "options": {
+            "package": "db"
+          }
         }
       ],
       "gen": {
@@ -149,6 +156,12 @@
       "name": "bulk-insert",
       "process": {
         "cmd": "../mysql/plugins/dist/bulk-insert"
+      }
+    },
+    {
+      "name": "transactional-batch",
+      "process": {
+        "cmd": "../mysql/plugins/dist/transactional-batch"
       }
     }
   ]
