@@ -392,6 +392,28 @@ func (h *Harness) PortalMiddleware() []zen.Middleware {
 func (h *Harness) CreatePortalSession(workspaceID, externalID string, keyspaceIDs, scopes []string) http.Header {
 	h.t.Helper()
 
+	return h.CreatePortalSessionForPortal("", workspaceID, externalID, keyspaceIDs, scopes)
+}
+
+// CreatePortalSessionForPortal is [Harness.CreatePortalSession] bound to a
+// specific portal.
+//
+// Session rows carry the portal they were minted from, and operations on a portal
+// can affect them — deleting a portal, or re-pointing which resource it serves,
+// revokes its sessions. Proving that requires a session that actually belongs to
+// the portal under test, which the unbound helper cannot give: it mints a
+// throwaway portal id, so a test using it would assert against a session no
+// operation could ever reach.
+//
+// An empty portalID mints a throwaway one, which is what the unbound helper
+// wants and what every caller that does not care about the portal gets.
+func (h *Harness) CreatePortalSessionForPortal(portalID, workspaceID, externalID string, keyspaceIDs, scopes []string) http.Header {
+	h.t.Helper()
+
+	if portalID == "" {
+		portalID = uid.New(uid.PortalPrefix)
+	}
+
 	sessionID := uid.New(uid.PortalSessionPrefix)
 	// Credentials are minted the way the handlers mint them (crypto/rand), so
 	// tests exercise realistic values rather than math/rand ids.
@@ -413,7 +435,7 @@ func (h *Harness) CreatePortalSession(workspaceID, externalID string, keyspaceID
 	err = db.Query.InsertPortalSession(ctx, h.DB.RW(), db.InsertPortalSessionParams{
 		ID:                    sessionID,
 		WorkspaceID:           workspaceID,
-		PortalID:              uid.New(uid.PortalPrefix),
+		PortalID:              portalID,
 		ExternalID:            externalID,
 		Scopes:                scopesJSON,
 		Preview:               false,

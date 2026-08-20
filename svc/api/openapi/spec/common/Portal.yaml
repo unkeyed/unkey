@@ -48,4 +48,6 @@ properties:
       Unix timestamp in milliseconds when the portal was last changed. Omitted
       if it has never been changed since creation.
     example: 1719936000000
+    x-go-type-skip-optional-pointer: true
+    x-go-type-skip-optional-pointer-with-omitzero: true
 additionalProperties: false
