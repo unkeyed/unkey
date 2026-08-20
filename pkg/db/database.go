@@ -25,6 +25,10 @@ type Config struct {
 	// If omitted, the primary is used.
 	ReadOnlyDSN string
 
+	// MultiStatementBatches enables an isolated primary pool for generated
+	// transactional batches.
+	MultiStatementBatches bool
+
 	// Tags are appended to every SQL statement as SQLCommenter metadata for
 	// PlanetScale Query Insights. Leave Service empty to disable annotation.
 	Tags sqlcomment.Static
@@ -94,18 +98,6 @@ func open(dsn string, enableMultiStatementBatches bool) (db *sql.DB, err error) 
 // It establishes connections to the primary database and optionally to a read-only replica.
 // Returns an error if connections cannot be established or if DSNs are misconfigured.
 func New(config Config) (*database, error) {
-	return newDatabase(config, false)
-}
-
-// NewWithMultiStatementBatches creates a database whose primary pool permits
-// route-owned, parameterized statement batches. A separately configured
-// read-only pool remains unchanged. Callers must never execute untrusted SQL
-// text on this database.
-func NewWithMultiStatementBatches(config Config) (*database, error) {
-	return newDatabase(config, true)
-}
-
-func newDatabase(config Config, enableMultiStatementBatches bool) (*database, error) {
 	err := assert.All(
 		assert.NotEmpty(config.PrimaryDSN),
 	)
@@ -126,7 +118,7 @@ func newDatabase(config Config, enableMultiStatementBatches bool) (*database, er
 		tags:      config.Tags,
 	}
 	batchReplica := writeReplica
-	if enableMultiStatementBatches {
+	if config.MultiStatementBatches {
 		batch, batchErr := open(config.PrimaryDSN, true)
 		if batchErr != nil {
 			_ = write.Close()

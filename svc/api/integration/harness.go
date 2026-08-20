@@ -81,10 +81,11 @@ func New(t *testing.T, config Config) *Harness {
 	})
 	require.NoError(t, err)
 
-	db, err := db.NewWithMultiStatementBatches(db.Config{
-		PrimaryDSN:  mysqlCfg.DSN,
-		ReadOnlyDSN: "",
-		Tags:        sqlcomment.Disabled(),
+	db, err := db.New(db.Config{
+		PrimaryDSN:            mysqlCfg.DSN,
+		ReadOnlyDSN:           "",
+		MultiStatementBatches: true,
+		Tags:                  sqlcomment.Disabled(),
 	})
 	require.NoError(t, err)
 
