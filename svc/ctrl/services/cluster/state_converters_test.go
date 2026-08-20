@@ -40,6 +40,7 @@ func TestDeploymentRowToState_Running(t *testing.T) {
 	require.Equal(t, "deploy_123", apply.GetDeploymentId())
 	require.Equal(t, "my-app", apply.GetK8SName())
 	require.Equal(t, "ws-namespace", apply.GetK8SNamespace())
+	require.Equal(t, "registry.io/app:v1", apply.GetImage(), "legacy image remains readable during rollout")
 	require.Equal(t, int64(250), apply.GetCpuMillicores())
 	require.Equal(t, uint32(1), apply.GetAutoscaling().GetMinReplicas())
 	require.Equal(t, uint32(3), apply.GetAutoscaling().GetMaxReplicas())

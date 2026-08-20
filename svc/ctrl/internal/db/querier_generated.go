@@ -265,17 +265,25 @@ type Querier interface {
 	//  WHERE app_id = ?
 	//    AND environment_id = ?
 	FindAppRuntimeSettingsByAppAndEnv(ctx context.Context, arg FindAppRuntimeSettingsByAppAndEnvParams) (sql.NullString, error)
-	//FindAppWithSettings
+	//FindAppSourceOciByAppId
+	//
+	//  SELECT
+	//      pk,
+	//      workspace_id,
+	//      app_id,
+	//      image_reference,
+	//      created_at,
+	//      updated_at
+	//  FROM app_source_oci
+	//  WHERE app_id = ?
+	FindAppSourceOciByAppId(ctx context.Context, appID string) (AppSourceOci, error)
+	//FindAppWithRuntimeSettings
 	//
 	//  SELECT
 	//      a.id AS app_id,
 	//      a.project_id AS app_project_id,
 	//      a.source_type AS app_source_type,
-	//      a.default_branch AS app_default_branch,
 	//      a.current_deployment_id AS app_current_deployment_id,
-	//      abs.dockerfile AS build_settings_dockerfile,
-	//      abs.docker_context AS build_settings_docker_context,
-	//      abs.build_command AS build_settings_build_command,
 	//      ars.port AS runtime_settings_port,
 	//      ars.cpu_millicores AS runtime_settings_cpu_millicores,
 	//      ars.memory_mib AS runtime_settings_memory_mib,
@@ -286,10 +294,9 @@ type Querier interface {
 	//      ars.upstream_protocol AS runtime_settings_upstream_protocol,
 	//      ars.sentinel_config AS runtime_settings_sentinel_config
 	//  FROM apps a
-	//  INNER JOIN app_build_settings abs ON abs.app_id = a.id AND abs.environment_id = ?
 	//  INNER JOIN app_runtime_settings ars ON ars.app_id = a.id AND ars.environment_id = ?
 	//  WHERE a.id = ?
-	FindAppWithSettings(ctx context.Context, arg FindAppWithSettingsParams) (FindAppWithSettingsRow, error)
+	FindAppWithRuntimeSettings(ctx context.Context, arg FindAppWithRuntimeSettingsParams) (FindAppWithRuntimeSettingsRow, error)
 	//FindCertificateByHostname
 	//
 	//  SELECT certificates.pk, certificates.id, certificates.workspace_id, certificates.hostname, certificates.certificate, certificates.encrypted_private_key, certificates.created_at, certificates.updated_at FROM certificates WHERE hostname = ?
@@ -455,6 +462,7 @@ type Querier interface {
 	//      d.environment_id,
 	//      d.app_id,
 	//      d.image,
+	//      d.image_resolved,
 	//      d.build_id,
 	//      d.git_commit_sha,
 	//      d.git_branch,
@@ -957,6 +965,8 @@ type Querier interface {
 	//      project_id,
 	//      app_id,
 	//      environment_id,
+	//      source,
+	//      image_requested,
 	//      git_commit_sha,
 	//      git_branch,
 	//      sentinel_config,
@@ -983,6 +993,8 @@ type Querier interface {
 	//      updated_at
 	//  )
 	//  VALUES (
+	//      ?,
+	//      ?,
 	//      ?,
 	//      ?,
 	//      ?,
@@ -1443,6 +1455,7 @@ type Querier interface {
 	//      d.environment_id AS deployment_environment_id,
 	//      d.app_id AS deployment_app_id,
 	//      d.image AS deployment_image,
+	//      d.image_resolved AS deployment_image_resolved,
 	//      d.build_id AS deployment_build_id,
 	//      d.git_commit_sha AS deployment_git_commit_sha,
 	//      d.git_branch AS deployment_git_branch,
@@ -1561,7 +1574,7 @@ type Querier interface {
 	//    AND gc.repository_id = ?
 	//    AND CASE
 	//      WHEN CAST(? AS SIGNED) = 1 THEN e.kind = 'preview'
-	//      WHEN ? = COALESCE(NULLIF(a.default_branch, ''), 'main')
+	//      WHEN ? = COALESCE(NULLIF(gc.default_branch, ''), 'main')
 	//      THEN e.kind = 'production'
 	//      ELSE e.kind = 'preview'
 	//    END
@@ -1676,7 +1689,7 @@ type Querier interface {
 	//  INNER JOIN environments e ON e.app_id = a.id
 	//    AND CASE
 	//      WHEN CAST(? AS SIGNED) = 1 THEN e.kind = 'preview'
-	//      WHEN ? = COALESCE(NULLIF(a.default_branch, ''), 'main')
+	//      WHEN ? = COALESCE(NULLIF(gc.default_branch, ''), 'main')
 	//      THEN e.kind = 'production'
 	//      ELSE e.kind = 'preview'
 	//    END
@@ -2032,7 +2045,9 @@ type Querier interface {
 	//UpdateDeploymentImage
 	//
 	//  UPDATE deployments
-	//  SET image = ?, updated_at = ?
+	//  SET image = ?,
+	//      image_resolved = ?,
+	//      updated_at = ?
 	//  WHERE id = ?
 	UpdateDeploymentImage(ctx context.Context, arg UpdateDeploymentImageParams) error
 	//UpdateDeploymentInvocationID

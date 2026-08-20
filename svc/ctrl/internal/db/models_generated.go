@@ -819,6 +819,15 @@ type AppBuildSetting struct {
 	UpdatedAt     sql.NullInt64         `db:"updated_at"`
 }
 
+type AppSourceOci struct {
+	Pk             uint64        `db:"pk"`
+	WorkspaceID    string        `db:"workspace_id"`
+	AppID          string        `db:"app_id"`
+	ImageReference string        `db:"image_reference"`
+	CreatedAt      int64         `db:"created_at"`
+	UpdatedAt      sql.NullInt64 `db:"updated_at"`
+}
+
 type Certificate struct {
 	Pk                  uint64        `db:"pk"`
 	ID                  string        `db:"id"`

@@ -26,6 +26,7 @@ SELECT
     d.environment_id,
     d.app_id,
     d.image,
+    d.image_resolved,
     d.build_id,
     d.git_commit_sha,
     d.git_branch,
@@ -70,6 +71,7 @@ type FindDeploymentTopologyByDeploymentAndRegionRow struct {
 	EnvironmentID                 string                          `db:"environment_id"`
 	AppID                         string                          `db:"app_id"`
 	Image                         sql.NullString                  `db:"image"`
+	ImageResolved                 sql.NullString                  `db:"image_resolved"`
 	BuildID                       sql.NullString                  `db:"build_id"`
 	GitCommitSha                  sql.NullString                  `db:"git_commit_sha"`
 	GitBranch                     sql.NullString                  `db:"git_branch"`
@@ -104,6 +106,7 @@ type FindDeploymentTopologyByDeploymentAndRegionRow struct {
 //	    d.environment_id,
 //	    d.app_id,
 //	    d.image,
+//	    d.image_resolved,
 //	    d.build_id,
 //	    d.git_commit_sha,
 //	    d.git_branch,
@@ -144,6 +147,7 @@ func (q *Queries) FindDeploymentTopologyByDeploymentAndRegion(ctx context.Contex
 		&i.EnvironmentID,
 		&i.AppID,
 		&i.Image,
+		&i.ImageResolved,
 		&i.BuildID,
 		&i.GitCommitSha,
 		&i.GitBranch,
