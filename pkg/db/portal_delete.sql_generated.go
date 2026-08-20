@@ -9,7 +9,7 @@ import (
 	"context"
 )
 
-const deletePortal = `-- name: DeletePortal :exec
+const deletePortal = `-- name: DeletePortal :execrows
 DELETE FROM portals
 WHERE id = ?
   AND workspace_id = ?
@@ -21,13 +21,17 @@ type DeletePortalParams struct {
 }
 
 // Deletes a portal, scoped to the workspace so one workspace can never delete
-// another's. Branding lives on the portal row, so there is no side table to
+// another's. Returns the row count so a concurrent delete that already removed
+// the row is reported as not-found rather than as a second success. Branding lives on the portal row, so there is no side table to
 // clean up.
 //
 //	DELETE FROM portals
 //	WHERE id = ?
 //	  AND workspace_id = ?
-func (q *Queries) DeletePortal(ctx context.Context, db DBTX, arg DeletePortalParams) error {
-	_, err := db.ExecContext(ctx, deletePortal, arg.ID, arg.WorkspaceID)
-	return err
+func (q *Queries) DeletePortal(ctx context.Context, db DBTX, arg DeletePortalParams) (int64, error) {
+	result, err := db.ExecContext(ctx, deletePortal, arg.ID, arg.WorkspaceID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
 }

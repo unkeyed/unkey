@@ -10,7 +10,7 @@ import (
 	"database/sql"
 )
 
-const updatePortal = `-- name: UpdatePortal :exec
+const updatePortal = `-- name: UpdatePortal :execrows
 UPDATE portals p
 SET
     slug = CASE
@@ -69,6 +69,10 @@ type UpdatePortalParams struct {
 // different row, so a slug or association collision must surface as a
 // unique-constraint error the handler maps to a conflict instead.
 //
+// Returns the row count so the caller can tell a real update from one that
+// matched nothing: the resolve takes no row lock, so a concurrent delete can
+// remove the row between resolving it and this statement.
+//
 // Each field carries a `_specified` flag so an omitted field keeps its stored
 // value. `slug` and `enabled` are NOT NULL and take sqlc.arg; the two
 // associations and the two branding columns are nullable and take sqlc.narg, so
@@ -103,8 +107,8 @@ type UpdatePortalParams struct {
 //	    updated_at = ?
 //	WHERE workspace_id = ?
 //	  AND id = ?
-func (q *Queries) UpdatePortal(ctx context.Context, db DBTX, arg UpdatePortalParams) error {
-	_, err := db.ExecContext(ctx, updatePortal,
+func (q *Queries) UpdatePortal(ctx context.Context, db DBTX, arg UpdatePortalParams) (int64, error) {
+	result, err := db.ExecContext(ctx, updatePortal,
 		arg.SlugSpecified,
 		arg.Slug,
 		arg.AppIDSpecified,
@@ -121,5 +125,8 @@ func (q *Queries) UpdatePortal(ctx context.Context, db DBTX, arg UpdatePortalPar
 		arg.WorkspaceID,
 		arg.ID,
 	)
-	return err
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
 }

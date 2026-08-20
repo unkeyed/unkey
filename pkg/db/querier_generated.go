@@ -131,13 +131,14 @@ type Querier interface {
 	//  WHERE id = ?
 	DeletePermission(ctx context.Context, db DBTX, permissionID string) error
 	// Deletes a portal, scoped to the workspace so one workspace can never delete
-	// another's. Branding lives on the portal row, so there is no side table to
+	// another's. Returns the row count so a concurrent delete that already removed
+	// the row is reported as not-found rather than as a second success. Branding lives on the portal row, so there is no side table to
 	// clean up.
 	//
 	//  DELETE FROM portals
 	//  WHERE id = ?
 	//    AND workspace_id = ?
-	DeletePortal(ctx context.Context, db DBTX, arg DeletePortalParams) error
+	DeletePortal(ctx context.Context, db DBTX, arg DeletePortalParams) (int64, error)
 	//DeleteRoleByID
 	//
 	//  DELETE FROM roles
@@ -169,6 +170,7 @@ type Querier interface {
 	//      access_token_expires_at = ?
 	//  WHERE exchange_code_hash = ?
 	//    AND access_token_hash IS NULL
+	//    AND revoked_at IS NULL
 	//    AND exchange_code_expires_at > ?
 	ExchangePortalSessionCode(ctx context.Context, db DBTX, arg ExchangePortalSessionCodeParams) (sql.Result, error)
 	//FindApiByID
@@ -2759,6 +2761,10 @@ type Querier interface {
 	// different row, so a slug or association collision must surface as a
 	// unique-constraint error the handler maps to a conflict instead.
 	//
+	// Returns the row count so the caller can tell a real update from one that
+	// matched nothing: the resolve takes no row lock, so a concurrent delete can
+	// remove the row between resolving it and this statement.
+	//
 	// Each field carries a `_specified` flag so an omitted field keeps its stored
 	// value. `slug` and `enabled` are NOT NULL and take sqlc.arg; the two
 	// associations and the two branding columns are nullable and take sqlc.narg, so
@@ -2793,7 +2799,7 @@ type Querier interface {
 	//      updated_at = ?
 	//  WHERE workspace_id = ?
 	//    AND id = ?
-	UpdatePortal(ctx context.Context, db DBTX, arg UpdatePortalParams) error
+	UpdatePortal(ctx context.Context, db DBTX, arg UpdatePortalParams) (int64, error)
 	//UpdateProject
 	//
 	//  UPDATE projects p

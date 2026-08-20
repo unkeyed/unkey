@@ -1,4 +1,4 @@
--- name: UpdatePortal :exec
+-- name: UpdatePortal :execrows
 -- Updates a portal's mutable fields, scoped to the workspace so one workspace can
 -- never mutate another's portal.
 --
@@ -7,6 +7,10 @@
 -- unique indexes has undefined row selection and could silently rewrite a
 -- different row, so a slug or association collision must surface as a
 -- unique-constraint error the handler maps to a conflict instead.
+--
+-- Returns the row count so the caller can tell a real update from one that
+-- matched nothing: the resolve takes no row lock, so a concurrent delete can
+-- remove the row between resolving it and this statement.
 --
 -- Each field carries a `_specified` flag so an omitted field keeps its stored
 -- value. `slug` and `enabled` are NOT NULL and take sqlc.arg; the two
