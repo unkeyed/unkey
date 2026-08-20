@@ -9,6 +9,7 @@ on:
 concurrency:
   group: database-schema-gate
   cancel-in-progress: false
+  queue: max
 permissions:
   contents: read
   pull-requests: read
