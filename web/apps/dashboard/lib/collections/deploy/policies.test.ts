@@ -6,7 +6,7 @@ import {
   environmentsInMutations,
   orderedPolicies,
   policiesAfterMutations,
-  reconcileOrder,
+  reorderPolicies,
   rowKey,
 } from "./policies";
 import type { Policy } from "./policies.schema";
@@ -40,10 +40,9 @@ function changeOf(row: PolicyRow, removed = false): PolicyChange {
   return { key: rowKey(row.environmentId, row.id), row, removed };
 }
 
-// Regression: a collection handler runs *before* TanStack DB recomputes
-// optimistic state, so `policies.state` still shows pre-mutation rows.
-// Building a full replace straight from state sent `policies: []` on the
-// first insert into an empty environment, wiping it.
+// A collection handler runs before TanStack DB recomputes optimistic state,
+// so `policies.state` still holds the rows from before the mutation. A full
+// replace built from state alone omits the change.
 describe("policiesAfterMutations", () => {
   it("includes an inserted policy that collection state does not know about yet", () => {
     const inserted = firewallRow("pol_new", "KEBAP", "env_1", 0);
@@ -142,24 +141,6 @@ describe("environmentsInMutations", () => {
   });
 });
 
-describe("reconcileOrder", () => {
-  const a = firewallRow("pol_a", "A", "env_1", 0);
-  const b = firewallRow("pol_b", "B", "env_1", 1);
-  const c = firewallRow("pol_c", "C", "env_1", 2);
-
-  it("reorders by the requested name sequence", () => {
-    expect(reconcileOrder([a, b, c], ["C", "A", "B"]).map((p) => p.name)).toEqual(["C", "A", "B"]);
-  });
-
-  it("drops names the client requested but that no longer exist", () => {
-    expect(reconcileOrder([a, b], ["Z", "B", "A"]).map((p) => p.name)).toEqual(["B", "A"]);
-  });
-
-  it("appends policies the client didn't mention at the end, in their original order", () => {
-    expect(reconcileOrder([a, b, c], ["C"]).map((p) => p.name)).toEqual(["C", "A", "B"]);
-  });
-});
-
 describe("dispatchUpdate", () => {
   afterEach(() => {
     vi.unstubAllGlobals();
@@ -213,5 +194,67 @@ describe("dispatchUpdate", () => {
     await dispatchUpdate(row);
 
     expect(requests[0].body).toHaveProperty("match", []);
+  });
+});
+
+// A reorder sends the whole list to setPolicies, which is a full replace. The
+// list must hold every policy of the environment, also when two policies share
+// a name.
+describe("reorderPolicies", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  function captureRequests() {
+    const bodies: { policies: { id?: string; name: string }[] }[] = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+        const request = input instanceof Request ? input : new Request(input, init);
+        bodies.push(await request.clone().json());
+        return new Response(JSON.stringify({ meta: { requestId: "req_1" }, data: {} }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        });
+      }),
+    );
+    return bodies;
+  }
+
+  it("sends every policy, in the given order, when two share a name", async () => {
+    const bodies = captureRequests();
+    const ordered = [
+      firewallRow("pol_3", "Auth", "env_1", 0),
+      firewallRow("pol_1", "Ratelimit", "env_1", 1),
+      firewallRow("pol_2", "Ratelimit", "env_1", 2),
+    ];
+
+    await reorderPolicies([
+      { environmentId: "env_1", projectId: "proj_KEBAP", appId: "app_KEBAP", policies: ordered },
+    ]);
+
+    expect(bodies).toHaveLength(1);
+    expect(bodies[0].policies.map((p) => p.name)).toEqual(["Auth", "Ratelimit", "Ratelimit"]);
+  });
+
+  it("sends one request per environment", async () => {
+    const bodies = captureRequests();
+
+    await reorderPolicies([
+      {
+        environmentId: "env_prod",
+        projectId: "proj_KEBAP",
+        appId: "app_KEBAP",
+        policies: [firewallRow("pol_1", "A", "env_prod", 0)],
+      },
+      {
+        environmentId: "env_preview",
+        projectId: "proj_KEBAP",
+        appId: "app_KEBAP",
+        policies: [firewallRow("pol_2", "A", "env_preview", 0)],
+      },
+    ]);
+
+    expect(bodies).toHaveLength(2);
   });
 });

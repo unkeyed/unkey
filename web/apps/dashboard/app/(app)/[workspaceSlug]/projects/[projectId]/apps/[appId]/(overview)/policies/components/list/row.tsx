@@ -9,7 +9,7 @@ import { Button, ConfirmPopover } from "@unkey/ui";
 import { useRef, useState } from "react";
 
 type MergedPolicyRow = {
-  id: string;
+  key: string;
   name: string;
   type: Policy["type"];
   envA: Policy | null;
@@ -23,11 +23,11 @@ type PolicyRowProps = {
   isDragOver: boolean;
   envASlug: string;
   envBSlug: string;
-  onToggleEnvA: (id: string) => void;
-  onToggleEnvB: (id: string) => void;
-  onAddToEnvA: (id: string) => void;
-  onAddToEnvB: (id: string) => void;
-  onDelete: (id: string) => void;
+  onToggleEnvA: (key: string) => void;
+  onToggleEnvB: (key: string) => void;
+  onAddToEnvA: (key: string) => void;
+  onAddToEnvB: (key: string) => void;
+  onDelete: (key: string) => void;
   onEdit: (policy: Policy) => void;
   onDragStart: (index: number) => void;
   onDragOver: (index: number) => void;
@@ -101,6 +101,7 @@ export function PolicyRow({
           return;
         }
         e.dataTransfer.effectAllowed = "move";
+        setRowDragImage(e);
         onDragStart(index);
       }}
       onDragOver={(e) => {
@@ -116,7 +117,13 @@ export function PolicyRow({
         fromHandle.current = false;
         onDragEnd();
       }}
-      className={cn(!isLast && "border-b border-grayA-4", isDragOver && "bg-grayA-3")}
+      className={cn(
+        // If text under the pointer is selected, the browser drags the
+        // selection and not this row. It then shows a large page area.
+        "select-none",
+        !isLast && "border-b border-grayA-4",
+        isDragOver && "bg-grayA-3",
+      )}
     >
       <div className={cn(!isActiveAnywhere && "opacity-55")}>
         {/* biome-ignore lint/a11y/useSemanticElements: intentionally a div (not a native button) so the nested drag-handle and action buttons remain valid HTML */}
@@ -188,14 +195,14 @@ export function PolicyRow({
           {/* Env badges */}
           <div className="flex-3 min-w-0 py-5 flex items-center gap-3 pr-3">
             <EnvSwitch
-              id={policy.id}
+              policyKey={policy.key}
               slug={envASlug}
               envPolicy={policy.envA}
               onToggle={onToggleEnvA}
               onAdd={onAddToEnvA}
             />
             <EnvSwitch
-              id={policy.id}
+              policyKey={policy.key}
               slug={envBSlug}
               envPolicy={policy.envB}
               onToggle={onToggleEnvB}
@@ -219,7 +226,7 @@ export function PolicyRow({
             <ConfirmPopover
               isOpen={isDeleteConfirmOpen}
               onOpenChange={setIsDeleteConfirmOpen}
-              onConfirm={() => onDelete(policy.id)}
+              onConfirm={() => onDelete(policy.key)}
               triggerRef={deleteButtonRef}
               title="Confirm deletion"
               description={`This will permanently delete "${policy.name}". This action cannot be undone.`}
@@ -235,17 +242,17 @@ export function PolicyRow({
 }
 
 function EnvSwitch({
-  id,
+  policyKey,
   slug,
   envPolicy,
   onToggle,
   onAdd,
 }: {
-  id: string;
+  policyKey: string;
   slug: string;
   envPolicy: Policy | null;
-  onToggle: (id: string) => void;
-  onAdd: (id: string) => void;
+  onToggle: (key: string) => void;
+  onAdd: (key: string) => void;
 }) {
   if (envPolicy !== null) {
     return (
@@ -255,7 +262,7 @@ function EnvSwitch({
         onKeyDown={(e) => e.stopPropagation()}
       >
         <span className="text-[13px] text-gray-11 capitalize whitespace-nowrap">{slug}</span>
-        <Switch checked={envPolicy.enabled} onCheckedChange={() => onToggle(id)} size="sm" />
+        <Switch checked={envPolicy.enabled} onCheckedChange={() => onToggle(policyKey)} size="sm" />
       </span>
     );
   }
@@ -266,11 +273,45 @@ function EnvSwitch({
       className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border border-dashed border-grayA-4 text-gray-8 hover:text-gray-10 hover:border-grayA-6 transition-all cursor-pointer w-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-grayA-6 focus-visible:ring-offset-1"
       onClick={(e) => {
         e.stopPropagation();
-        onAdd(id);
+        onAdd(policyKey);
       }}
     >
       <span className="flex-shrink-0">+</span>
       <span className="truncate capitalize">{slug}</span>
     </button>
   );
+}
+
+/**
+ * Sets the drag image to a detached copy of the row.
+ *
+ * The browser selects the drag image. For this list it captures a large page
+ * area and not the row. The live row does not work as the drag image, because
+ * React replaces that node while the drag runs. A copy on `document.body` is
+ * outside the render tree, so nothing replaces it.
+ */
+function setRowDragImage(e: React.DragEvent<HTMLDivElement>) {
+  const source = e.currentTarget;
+  const { width, height } = source.getBoundingClientRect();
+  const clone = source.cloneNode(true) as HTMLElement;
+
+  // A row draws only its bottom divider. The list container draws the frame
+  // and the corners. The copy is outside that container, so give the copy a
+  // frame and a background.
+  clone.classList.remove("border-b");
+  clone.classList.add("border", "border-grayA-4", "rounded-lg", "bg-gray-1", "shadow-lg");
+
+  clone.style.position = "fixed";
+  // Keep the copy off-screen but laid out. The browser captures a blank
+  // image if the element is not rendered.
+  clone.style.top = "-10000px";
+  clone.style.left = "-10000px";
+  clone.style.width = `${width}px`;
+  clone.style.height = `${height}px`;
+  clone.style.pointerEvents = "none";
+  document.body.appendChild(clone);
+
+  e.dataTransfer.setDragImage(clone, 16, height / 2);
+  // The snapshot is taken synchronously, so the clone is disposable.
+  requestAnimationFrame(() => clone.remove());
 }

@@ -11,6 +11,7 @@ import {
   PageHeaderDescription,
   PageHeaderTitle,
 } from "@unkey/ui";
+import { useAppId, useProjectData } from "../data-provider";
 import { PolicyPanel } from "./components/add-panel";
 import { PoliciesList } from "./components/list";
 import { PoliciesEmpty } from "./components/list/empty";
@@ -21,15 +22,24 @@ import { usePolicyActions } from "./hooks/use-policy-actions";
 import { usePolicyPanels } from "./hooks/use-policy-panels";
 
 export default function PoliciesPage() {
+  const { projectId } = useProjectData();
+  const appId = useAppId();
   const { envAId, envBId, envASlug, envBSlug, merged, isLoading, isError } = usePoliciesData();
-  const actions = usePolicyActions({ envAId, envBId });
+  const actions = usePolicyActions({ envAId, envBId, projectId, appId, merged });
   const panels = usePolicyPanels();
 
-  const editingRow = panels.editing ? merged.find((m) => m.id === panels.editing?.id) : undefined;
+  // `panels.editing` is the copy the user clicked, from one environment. Find
+  // the row holding it by id, not by merge key: a duplicate name keys its row
+  // from one environment's id, so a click on the other copy would not match.
+  const editingRow = panels.editing
+    ? merged.find((m) => m.envA?.id === panels.editing?.id || m.envB?.id === panels.editing?.id)
+    : undefined;
   const editingEnabled = {
     a: editingRow?.envA?.enabled ?? false,
     b: editingRow?.envB?.enabled ?? false,
   };
+
+  const existingNames = merged.map((m) => m.name);
 
   const editingInitialEnvId =
     editingEnabled.a && editingEnabled.b
@@ -83,6 +93,7 @@ export default function PoliciesPage() {
           isOpen={panels.isAddPanelOpen}
           topOffset={TOP_NAV_HEIGHT}
           onClose={panels.closeAdd}
+          existingNames={existingNames}
           onSave={actions.save}
         />
         {panels.editing !== null && (
@@ -94,10 +105,11 @@ export default function PoliciesPage() {
             isOpen={panels.isEditPanelOpen}
             topOffset={TOP_NAV_HEIGHT}
             onClose={panels.closeEdit}
+            existingNames={existingNames}
             initialPolicy={panels.editing}
             initialEnvironmentId={editingInitialEnvId}
             onSave={(prodPolicy, previewPolicy) => {
-              actions.save(prodPolicy, previewPolicy);
+              actions.save(prodPolicy, previewPolicy, editingRow);
               panels.closeEdit();
             }}
           />

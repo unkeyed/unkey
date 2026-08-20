@@ -22,14 +22,14 @@ export type PolicyRow = Policy & {
 export const rowKey = (environmentId: string, policyId: string) => `${environmentId}::${policyId}`;
 
 /**
- * Gateway policies collection — one row per (environment, policy).
+ * Gateway policies collection. It holds one row for each (environment, policy).
  *
  * IMPORTANT: All queries MUST filter by projectId, appId, and environmentId.
- * `listPolicies` is per-environment, so one subset per environment maps to
- * one request; the two environments of a page load in parallel.
+ * `listPolicies` reads one environment, so each environment is its own subset
+ * and its own request. The two environments of a page load in parallel.
  *
- * Edits go through `gateway.updatePolicy`; insert, delete, and reorder have
- * no endpoint of their own and must full-replace via `gateway.setPolicies`.
+ * An edit uses `gateway.updatePolicy`. Insert, delete, and reorder have no
+ * endpoint, so they send the whole list to `gateway.setPolicies`.
  */
 export const policies = createCollection<PolicyRow, string>(
   queryCollectionOptions({
@@ -117,10 +117,11 @@ export const policies = createCollection<PolicyRow, string>(
 
 /**
  * Whole-list reorder. Batched so one drag across both environments emits a
- * single toast. `policyIds` are merge keys (names, see `merge.ts`).
+ * single toast. Each entry carries that environment's rows already in the
+ * desired order, so no policy has to be matched by name or id.
  */
 export async function reorderPolicies(
-  reorders: { environmentId: string; projectId: string; appId: string; policyIds: string[] }[],
+  reorders: { environmentId: string; projectId: string; appId: string; policies: PolicyRow[] }[],
 ): Promise<void> {
   if (reorders.length === 0) {
     return;
@@ -131,7 +132,7 @@ export async function reorderPolicies(
         project: r.projectId,
         app: r.appId,
         environment: r.environmentId,
-        policies: reconcileOrder(policiesForEnvironment(r.environmentId), r.policyIds),
+        policies: r.policies,
       });
     }),
   );
@@ -154,10 +155,6 @@ export function nextPolicyOrder(environmentId: string): number {
 
 export function findPolicyByName(environmentId: string, name: string): PolicyRow | undefined {
   return rowsForEnvironment(policies.state, environmentId).find((r) => r.name === name);
-}
-
-function policiesForEnvironment(environmentId: string): PolicyRow[] {
-  return orderedPolicies(rowsForEnvironment(policies.state, environmentId));
 }
 
 /**
@@ -255,21 +252,4 @@ export function dispatchUpdate(row: PolicyRow): Promise<unknown> {
     environment: row.environmentId,
     policyId: row.id,
   });
-}
-
-/**
- * Drops names that no longer exist and appends policies the client did not
- * mention, so a concurrently-added policy survives someone else's reorder.
- */
-export function reconcileOrder(current: PolicyRow[], requestedNames: string[]): PolicyRow[] {
-  const byName = new Map(current.map((p) => [p.name, p]));
-
-  const fromClient = Array.from(new Set(requestedNames))
-    .map((name) => byName.get(name))
-    .filter((p): p is PolicyRow => p !== undefined);
-
-  const placed = new Set(fromClient.map((p) => p.name));
-  const remaining = current.filter((p) => !placed.has(p.name));
-
-  return [...fromClient, ...remaining];
 }
