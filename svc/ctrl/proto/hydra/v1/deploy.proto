@@ -156,6 +156,8 @@ message RollbackResponse {}
 // PromoteRequest identifies a ready deployment to promote to live.
 message PromoteRequest {
   string target_deployment_id = 1;
+  ctrl.v1.ActorInfo actor = 2;
+  string correlation_id = 3;
 }
 
 message PromoteResponse {}

@@ -13,8 +13,7 @@ import (
 
 func TestPromoteDeploymentValidationErrors(t *testing.T) {
 	h := testutil.NewHarness(t)
-	mock := &testutil.MockDeploymentClient{}
-	route := newRoute(h, mock)
+	route := newRoute(h, newUncalledRestate(t))
 	h.Register(route)
 
 	workspace := h.Resources().UserWorkspace
@@ -37,5 +36,4 @@ func TestPromoteDeploymentValidationErrors(t *testing.T) {
 		})
 	}
 
-	require.Empty(t, mock.PromoteCalls, "ctrl must not be called for invalid requests")
 }
