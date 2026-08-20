@@ -1,21 +1,22 @@
 type: object
 required:
-  - sessionId
+  - id
   - url
 properties:
-  sessionId:
+  id:
     type: string
-    x-unkey-redact: true
     description: |
-      The short-lived session token ID. Valid for 15 minutes and can be exchanged once for a browser session.
-    example: pst_abc123def456
+      The portal session's identifier. Not a credential: it is safe to log and
+      to store against your own records of the end user's visit.
+    example: ps_abc123def456
   url:
     type: string
     format: uri
-    # Carries the session token as a query parameter, so it is as sensitive as
-    # sessionId itself.
+    # Carries the single-use exchange code as a query parameter, so it is a
+    # credential in its own right.
     x-unkey-redact: true
     description: |
-      The full portal URL with the session parameter. Redirect the end user to this URL.
-    example: "https://portal.unkey.com/?session=pst_abc123def456"
+      The full portal URL to redirect the end user to. Carries a single-use
+      exchange code that is valid for 15 minutes.
+    example: "https://portal.unkey.com/?code=pst_abc123def456"
 additionalProperties: false

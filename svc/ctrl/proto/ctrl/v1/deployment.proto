@@ -216,13 +216,6 @@ message StopDeploymentRequest {
 
 message StopDeploymentResponse {}
 
-message WakeDeploymentRequest {
-  string deployment_id = 1;
-  ActorInfo actor = 2;
-}
-
-message WakeDeploymentResponse {}
-
 message DeprovisionComputeRequest {
   // WorkspaceId is the workspace whose Compute plan is being deprovisioned.
   string workspace_id = 1;
@@ -255,9 +248,6 @@ service DeployService {
 
   // Stop a ready non-production deployment by scaling it down.
   rpc StopDeployment(StopDeploymentRequest) returns (StopDeploymentResponse) {}
-
-  // Wake a stopped deployment by scaling it back up.
-  rpc WakeDeployment(WakeDeploymentRequest) returns (WakeDeploymentResponse) {}
 
   // DeprovisionCompute tears down a workspace's Compute: it stops all running
   // compute via DeployTeardownService.Teardown(ARCHIVE) and clears the local

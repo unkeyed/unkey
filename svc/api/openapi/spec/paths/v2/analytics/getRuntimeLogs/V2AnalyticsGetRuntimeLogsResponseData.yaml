@@ -1,0 +1,10 @@
+type: array
+description: The runtime log rows that the query returned. The SELECT clause of the query sets the fields of each row.
+items:
+  type: object
+  additionalProperties: true
+  description: One result row. The query sets its fields.
+example:
+  - time: 1755000000000
+    severity: "error"
+    message: "upstream timeout after 30s"

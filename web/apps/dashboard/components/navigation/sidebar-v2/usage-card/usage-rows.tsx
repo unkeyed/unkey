@@ -101,13 +101,13 @@ function Shell({
       <div className="flex items-baseline gap-2">
         <span
           className={cn(
-            "flex-1 truncate font-mono text-[10px] uppercase tracking-wider transition-colors duration-150 ease-out motion-reduce:transition-none",
+            "flex-1 truncate text-[11px] transition-colors duration-150 ease-out motion-reduce:transition-none",
             atRisk ? "text-error-9" : "text-gray-9 group-hover:text-gray-12",
           )}
         >
           {label}
         </span>
-        <span className="whitespace-nowrap font-mono text-[11px] tabular-nums">{value}</span>
+        <span className="whitespace-nowrap text-[11px] tabular-nums">{value}</span>
       </div>
       {children}
     </div>

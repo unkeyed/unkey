@@ -1,0 +1,13 @@
+type: object
+required:
+  - query
+properties:
+  query:
+    type: string
+    description: |
+      The SQL query for your runtime log data.
+      A query can use only the public alias `runtime_logs_v1`. The physical `default.*` table name is not permitted. CTEs, subqueries, UNION, and EXCEPT are permitted.
+      Only SELECT queries are permitted.
+      Unkey limits each query to the workspace of the root key. To get the logs of one project, app, environment, or deployment, add a filter on `project_id`, `app_id`, `environment_id`, or `deployment_id`.
+      The workspace retention period and the workspace query limits apply.
+    example: "SELECT time, severity, message FROM runtime_logs_v1 WHERE lower(message) LIKE '%timeout%' ORDER BY time DESC LIMIT 100"

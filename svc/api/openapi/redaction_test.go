@@ -23,17 +23,22 @@ func TestSpecDeclaresRedactedPaths(t *testing.T) {
 	require.NoError(t, err)
 
 	require.Equal(t, []string{
+		"code",              // portal exchangeCode request, the single-use code
+		"data.accessToken",  // portal exchangeCode response
 		"data.key",          // createKey and rerollKey responses
 		"data.plaintext",    // getKey response, recoverable key material
-		"data.sessionId",    // portal createSession response
-		"data.token",        // portal exchangeSession response
-		"data.url",          // portal URL, which carries the session token in its query
+		"data.url",          // portal URL, which carries the exchange code in its query
 		"data[].plaintext",  // listKeys response, one entry per key
 		"data[].value",      // listEnvironmentVariables response
 		"key",               // verifyKey and whoami requests
-		"sessionId",         // portal exchangeSession request
 		"variables[].value", // setEnvironmentVariables request
 	}, paths)
+
+	// `data.sessionId` and `sessionId` used to appear here and are deliberately
+	// gone: portal.createSession now returns the non-secret session handle
+	// (`data.id`) instead of a credential, and the exchange request names its
+	// credential `code`. Nothing stopped being redacted — the secret-carrying
+	// fields were renamed, and one response field stopped being a secret.
 }
 
 // Asserts the consequence end to end rather than trusting the path list, using
@@ -46,16 +51,16 @@ func TestRedactorFromSpecStripsKnownSecrets(t *testing.T) {
 	redactor := redaction.New(paths)
 
 	bodies := map[string]string{
-		"verifyKey request":         `{"apiId":"api_123","key":"FIXTURE_LEAK"}`,
-		"createKey response":        `{"data":{"keyId":"key_123","key":"FIXTURE_LEAK"},"meta":{"requestId":"req_1"}}`,
-		"getKey response":           `{"data":{"keyId":"key_123","plaintext":"FIXTURE_LEAK"},"meta":{"requestId":"req_1"}}`,
-		"listKeys response":         `{"data":[{"keyId":"key_1","plaintext":"FIXTURE_LEAK"},{"keyId":"key_2"}],"meta":{"requestId":"req_1"}}`,
-		"setEnvironmentVariables":   `{"variables":[{"key":"DATABASE_URL","value":"postgresql://user:FIXTURE_LEAK@host/db"}]}`,
-		"listEnvironmentVariables":  `{"data":[{"key":"DATABASE_URL","kind":"recoverable","value":"postgresql://user:FIXTURE_LEAK@host/db"}],"meta":{"requestId":"req_1"}}`,
-		"portal createSession":      `{"data":{"sessionId":"pst_FIXTURE_LEAK","url":"https://portal.unkey.com/?session=pst_FIXTURE_LEAK"},"meta":{"requestId":"req_1"}}`,
-		"portal exchangeSession":    `{"sessionId":"pst_FIXTURE_LEAK"}`,
-		"portal session token":      `{"data":{"token":"ps_FIXTURE_LEAK","expiresAt":1711386400000},"meta":{"requestId":"req_1"}}`,
-		"truncated env var payload": `{"variables":[{"key":"DATABASE_URL","value":"postgresql://user:FIXTURE_LEAK`,
+		"verifyKey request":           `{"apiId":"api_123","key":"FIXTURE_LEAK"}`,
+		"createKey response":          `{"data":{"keyId":"key_123","key":"FIXTURE_LEAK"},"meta":{"requestId":"req_1"}}`,
+		"getKey response":             `{"data":{"keyId":"key_123","plaintext":"FIXTURE_LEAK"},"meta":{"requestId":"req_1"}}`,
+		"listKeys response":           `{"data":[{"keyId":"key_1","plaintext":"FIXTURE_LEAK"},{"keyId":"key_2"}],"meta":{"requestId":"req_1"}}`,
+		"setEnvironmentVariables":     `{"variables":[{"key":"DATABASE_URL","value":"postgresql://user:FIXTURE_LEAK@host/db"}]}`,
+		"listEnvironmentVariables":    `{"data":[{"key":"DATABASE_URL","kind":"recoverable","value":"postgresql://user:FIXTURE_LEAK@host/db"}],"meta":{"requestId":"req_1"}}`,
+		"portal createSession":        `{"data":{"id":"ps_123","url":"https://portal.unkey.com/?code=pst_FIXTURE_LEAK"},"meta":{"requestId":"req_1"}}`,
+		"portal exchangeCode request": `{"code":"pst_FIXTURE_LEAK"}`,
+		"portal access token":         `{"data":{"accessToken":"pat_FIXTURE_LEAK","expiresAt":1711386400000},"meta":{"requestId":"req_1"}}`,
+		"truncated env var payload":   `{"variables":[{"key":"DATABASE_URL","value":"postgresql://user:FIXTURE_LEAK`,
 	}
 
 	for name, body := range bodies {
@@ -85,4 +90,22 @@ func TestRedactorFromSpecKeepsNonSecretsReadable(t *testing.T) {
 	require.Contains(t, got, `"project":"payments"`)
 	require.Contains(t, got, `"kind":"recoverable"`)
 	require.NotContains(t, got, "secret@host")
+}
+
+// The portal createSession response deliberately carries both a credential and a
+// non-secret handle. The handle is what audit logs and support reference, so it
+// has to survive redaction while the URL beside it does not.
+func TestRedactorKeepsPortalSessionHandleReadable(t *testing.T) {
+	t.Parallel()
+
+	paths, err := redaction.PathsFromSpec(openapi.Spec)
+	require.NoError(t, err)
+	redactor := redaction.New(paths)
+
+	got := string(redactor.Redact([]byte(
+		`{"data":{"id":"ps_123","url":"https://portal.unkey.com/?code=pst_SECRET"},"meta":{"requestId":"req_1"}}`,
+	)))
+
+	require.Contains(t, got, `"id":"ps_123"`, "the session handle is not a credential and should stay readable")
+	require.NotContains(t, got, "pst_SECRET", "the url carries the exchange code and must be redacted")
 }

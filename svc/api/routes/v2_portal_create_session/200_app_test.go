@@ -14,6 +14,7 @@ import (
 	"github.com/stretchr/testify/require"
 	frontlinev1 "github.com/unkeyed/unkey/gen/proto/frontline/v1"
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/hash"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
@@ -120,9 +121,9 @@ func TestCreateSessionAppMapped(t *testing.T) {
 		AppID:               app.ID,
 	}))
 
-	// App-mapped portal config: app_id set, key_auth_id left null.
-	require.NoError(t, db.Query.InsertPortalConfig(ctx, h.DB.RW(), db.InsertPortalConfigParams{
-		ID:          uid.New(uid.PortalConfigPrefix),
+	// App-mapped portal: app_id set, key_auth_id left null.
+	require.NoError(t, db.Query.InsertPortal(ctx, h.DB.RW(), db.InsertPortalParams{
+		ID:          uid.New(uid.PortalPrefix),
 		WorkspaceID: workspaceID,
 		Slug:        "app-portal",
 		AppID:       sql.NullString{Valid: true, String: app.ID},
@@ -137,27 +138,25 @@ func TestCreateSessionAppMapped(t *testing.T) {
 	}
 
 	req := handler.Request{
-		Slug:        "app-portal",
-		ExternalId:  "user_app",
-		Permissions: []openapi.V2PortalCreateSessionRequestBodyPermissions{"keys:read"},
+		Portal:     "app-portal",
+		ExternalId: "user_app",
+		Scopes:     []openapi.V2PortalCreateSessionRequestBodyScopes{"keys:read"},
 	}
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 	require.Equal(t, 200, res.Status, "expected 200, received: %s", res.RawBody)
-	require.NotEmpty(t, res.Body.Data.SessionId)
+	require.NotEmpty(t, res.Body.Data.Id)
 
 	// The persisted grant must be scoped to the keyspace resolved from the app's
 	// policy config, not anything in the request.
-	token, err := db.Query.FindValidPortalSessionToken(ctx, h.DB.RO(), db.FindValidPortalSessionTokenParams{
-		ID:  res.Body.Data.SessionId,
-		Now: time.Now().UnixMilli(),
-	})
+	code := exchangeCodeFromURL(t, res.Body.Data.Url)
+	session, err := db.Query.FindPortalSessionByExchangeCodeHash(ctx, h.DB.RO(), hash.Sha256(code))
 	require.NoError(t, err)
 
 	var grant struct {
 		KeyspaceIDs []string `json:"keyspaceIds"`
-		Permissions []string `json:"permissions"`
+		Scopes      []string `json:"scopes"`
 	}
-	require.NoError(t, json.Unmarshal(token.Permissions, &grant))
+	require.NoError(t, json.Unmarshal(session.Scopes, &grant))
 	require.Equal(t, []string{keySpaceID}, grant.KeyspaceIDs)
 }

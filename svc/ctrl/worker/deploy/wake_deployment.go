@@ -9,6 +9,7 @@ import (
 
 	restate "github.com/restatedev/sdk-go"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
+	"github.com/unkeyed/unkey/pkg/auditlog"
 	"github.com/unkeyed/unkey/pkg/deploy/deploygate"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/restate/restateutil"
@@ -49,9 +50,7 @@ func (w *Workflow) WakeDeployment(ctx restate.ObjectContext, req *hydrav1.WakeDe
 	if err := deploygate.CheckStartTarget(deploygate.StartInput{
 		DesiredState:    deployment.DesiredState,
 		EnvironmentKind: environment.Kind,
-		// Spend is gated by the ctrl service before enqueue; the worker only
-		// re-checks lifecycle state.
-		SpendSuspended: false,
+		SpendSuspended:  false,
 	}); err != nil {
 		return nil, gatefault.Terminal(err)
 	}
@@ -140,5 +139,17 @@ func (w *Workflow) WakeDeployment(ctx restate.ObjectContext, req *hydrav1.WakeDe
 	if err != nil {
 		return nil, fmt.Errorf("mark woken deployment ready: %w", err)
 	}
+
+	if err := w.insertLifecycleAudit(
+		ctx,
+		req.GetActor(),
+		req.GetCorrelationId(),
+		deployment,
+		auditlog.DeploymentWakeEvent,
+		fmt.Sprintf("Woke deployment %s", deploymentID),
+	); err != nil {
+		return nil, fmt.Errorf("insert wake deployment audit log: %w", err)
+	}
+
 	return &hydrav1.WakeDeploymentResponse{}, nil
 }

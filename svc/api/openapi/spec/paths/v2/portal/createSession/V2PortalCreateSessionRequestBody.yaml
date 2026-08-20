@@ -1,20 +1,11 @@
 type: object
 required:
-  - slug
+  - portal
   - externalId
-  - permissions
+  - scopes
 properties:
-  slug:
-    type: string
-    minLength: 3
-    maxLength: 64
-    pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$"
-    description: |
-      The human-readable slug of the portal configuration to create the session against.
-      Identifies which app's portal the end user will access.
-      Must be 3-64 characters, lowercase alphanumeric and hyphens only,
-      must not start or end with a hyphen, and must not contain consecutive hyphens.
-    example: my-portal
+  portal:
+    "$ref": "../../../../common/ResourceIdentifier.yaml"
   externalId:
     type: string
     minLength: 1
@@ -23,7 +14,7 @@ properties:
       The end user's identifier in the customer's system.
       Accepts arbitrary string values (user IDs, emails, UUIDs, etc.).
     example: user_123
-  permissions:
+  scopes:
     type: array
     items:
       type: string
@@ -37,18 +28,30 @@ properties:
       The capabilities granted to the end user in the Portal, from a fixed
       vocabulary. All capabilities are scoped to this end user: key capabilities
       (`keys:*`) apply only to keys the end user owns within the keyspace
-      configured on the portal configuration, and `analytics:read` returns only
-      the end user's own verification events. An end user can never see another
-      identity's keys or analytics.
+      configured on the portal, and `analytics:read` returns only the end user's
+      own verification events. An end user can never see another identity's keys
+      or analytics.
 
-      Tab visibility is derived from the capabilities:
-      - Keys tab: any `keys:*` capability
+      Tab visibility is derived from the scopes:
+      - Keys tab: any `keys:*` scope
       - Analytics tab: `analytics:read`
-      - Docs tab: visible when any capability is present
+      - Docs tab: visible when any scope is present
     example: ["keys:read", "keys:reroll", "analytics:read"]
   preview:
     type: boolean
     default: false
     description: |
       When true, creates a preview session for testing the portal experience.
+  returnUrl:
+    type: string
+    format: uri
+    maxLength: 500
+    description: |
+      Absolute URL the end user is sent back to when they leave the portal, or
+      when their session expires mid-visit. Set per session rather than per
+      portal, so one portal can serve several entry points and return each user
+      to the page they came from.
+
+      When omitted, the portal shows no return link.
+    example: https://app.example.com/settings/api-keys
 additionalProperties: false
