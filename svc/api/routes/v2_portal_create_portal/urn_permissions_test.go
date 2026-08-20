@@ -34,7 +34,8 @@ func TestCreatePortalAuthorizesURNGrants(t *testing.T) {
 	for name, grant := range testCases {
 		i++
 		t.Run(name, func(t *testing.T) {
-			rootKey := h.CreateRootKey(workspace.ID, grant)
+			rootKey := h.CreateRootKey(workspace.ID,
+				append([]string{grant}, targetReadGrants...)...)
 			headers := http.Header{
 				"Content-Type":  {"application/json"},
 				"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},

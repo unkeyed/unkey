@@ -3170,6 +3170,11 @@ components:
                 mapping:
                     "$ref": "#/components/schemas/PortalMapping"
             additionalProperties: false
+            oneOf:
+                - required:
+                    - portal
+                - required:
+                    - mapping
         V2PortalGetPortalResponseBody:
             type: object
             required:

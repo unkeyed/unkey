@@ -204,6 +204,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			if err = portal.VerifyMappingOwned(ctx, tx, principal.WorkspaceID, *req.Mapping); err != nil {
 				return empty, err
 			}
+
+			if err = portal.AuthorizeMappingTarget(ctx, tx, principal, principal.WorkspaceID, *req.Mapping); err != nil {
+				return empty, err
+			}
 		}
 
 		if err = h.assertAvailable(ctx, tx, principal.WorkspaceID, found, req); err != nil {

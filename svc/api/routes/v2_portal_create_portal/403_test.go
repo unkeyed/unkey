@@ -45,7 +45,11 @@ func TestCreatePortalAuthorizationMatrix(t *testing.T) {
 
 	for i, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			rootKey := h.CreateRootKey(workspace.ID, tc.permissions...)
+			// The target-read grants are constant across cases: this matrix is about
+			// the portal action, and without them every pass case would fail on the
+			// mapping-target check instead.
+			rootKey := h.CreateRootKey(workspace.ID,
+				append(append([]string{}, tc.permissions...), targetReadGrants...)...)
 			headers := http.Header{
 				"Content-Type":  {"application/json"},
 				"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},

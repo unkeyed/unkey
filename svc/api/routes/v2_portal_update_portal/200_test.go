@@ -19,6 +19,12 @@ import (
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_portal_update_portal"
 )
 
+// targetReadGrants is what re-pointing a portal costs beyond update_portal: the
+// caller must be able to read the resource it is exposing. Carried by default so
+// each test exercises its own subject; TestUpdatePortalRequiresPermissionOnTheRemapTarget
+// withholds them deliberately.
+var targetReadGrants = []string{"api.*.read_api", "app.*.read_app"}
+
 // newRoute registers the handler and returns it with the caller's headers.
 func newRoute(t *testing.T, h *testutil.Harness, permissions ...string) (*handler.Handler, http.Header) {
 	t.Helper()
@@ -26,7 +32,8 @@ func newRoute(t *testing.T, h *testutil.Harness, permissions ...string) (*handle
 	route := &handler.Handler{DB: h.DB, Auditlogs: h.Auditlogs}
 	h.Register(route)
 
-	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, permissions...)
+	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID,
+		append(append([]string{}, permissions...), targetReadGrants...)...)
 	return route, headersFor(rootKey)
 }
 
