@@ -2986,6 +2986,59 @@ components:
                     "$ref": "#/components/schemas/Meta"
                 data:
                     "$ref": "#/components/schemas/V2PermissionsSetRolePermissionsResponseData"
+        V2PortalCreatePortalRequestBody:
+            type: object
+            required:
+                - slug
+                - mapping
+                - enabled
+            properties:
+                slug:
+                    type: string
+                    minLength: 3
+                    maxLength: 64
+                    pattern: "^[a-z0-9]([a-z0-9-]*[a-z0-9])?$"
+                    description: |
+                        URL-safe handle for this portal, unique within your workspace. Lowercase
+                        alphanumerics and single hyphens, 3-64 characters, not starting or ending
+                        with a hyphen.
+                    example: acme-portal
+                mapping:
+                    "$ref": "#/components/schemas/PortalMapping"
+                enabled:
+                    type: boolean
+                    description: |
+                        Whether sessions can be minted for this portal immediately. Set false to
+                        create it dormant and enable it later.
+                    example: true
+                logoUrl:
+                    type: string
+                    minLength: 1
+                    maxLength: 500
+                    description: |
+                        Absolute `https://` URL of the logo shown in the portal header.
+
+                        Loaded by your end users' browsers, so the host you name receives their IP
+                        and user agent on every page view.
+                    example: https://cdn.example.com/logo.svg
+                primaryColor:
+                    type: string
+                    pattern: "^#[0-9a-fA-F]{6}$"
+                    description: |
+                        Six-digit hex colour used for primary actions and accents in the portal.
+                    example: "#6366f1"
+            additionalProperties: false
+        V2PortalCreatePortalResponseBody:
+            type: object
+            required:
+                - meta
+                - data
+            properties:
+                meta:
+                    "$ref": "#/components/schemas/Meta"
+                data:
+                    "$ref": "#/components/schemas/V2PortalCreatePortalResponseData"
+            additionalProperties: false
         V2PortalCreateSessionRequestBody:
             type: object
             required:
@@ -3064,6 +3117,25 @@ components:
                 data:
                     $ref: "#/components/schemas/V2PortalCreateSessionResponseData"
             additionalProperties: false
+        V2PortalDeletePortalRequestBody:
+            type: object
+            required:
+                - portal
+            properties:
+                portal:
+                    "$ref": "#/components/schemas/ResourceIdentifier"
+            additionalProperties: false
+        V2PortalDeletePortalResponseBody:
+            type: object
+            required:
+                - meta
+                - data
+            properties:
+                meta:
+                    "$ref": "#/components/schemas/Meta"
+                data:
+                    "$ref": "#/components/schemas/EmptyResponse"
+            additionalProperties: false
         V2PortalExchangeCodeRequestBody:
             type: object
             required:
@@ -3088,6 +3160,28 @@ components:
                     $ref: "#/components/schemas/Meta"
                 data:
                     $ref: "#/components/schemas/V2PortalExchangeCodeResponseData"
+            additionalProperties: false
+        V2PortalGetPortalRequestBody:
+            type: object
+            description: |
+                Name the portal directly with `portal`, or name the resource it serves with
+                `mapping`. Exactly one of the two is required; sending both is a bad request.
+            properties:
+                portal:
+                    "$ref": "#/components/schemas/ResourceIdentifier"
+                mapping:
+                    "$ref": "#/components/schemas/PortalMapping"
+            additionalProperties: false
+        V2PortalGetPortalResponseBody:
+            type: object
+            required:
+                - meta
+                - data
+            properties:
+                meta:
+                    "$ref": "#/components/schemas/Meta"
+                data:
+                    "$ref": "#/components/schemas/Portal"
             additionalProperties: false
         V2PortalGetVerificationsRequestBody:
             type: object
@@ -3165,6 +3259,69 @@ components:
                     "$ref": "#/components/schemas/V2PortalListKeysResponseData"
                 pagination:
                     "$ref": "#/components/schemas/Pagination"
+            additionalProperties: false
+        V2PortalUpdatePortalRequestBody:
+            type: object
+            required:
+                - portal
+            properties:
+                portal:
+                    "$ref": "#/components/schemas/ResourceIdentifier"
+                slug:
+                    type: string
+                    minLength: 3
+                    maxLength: 64
+                    pattern: "^[a-z0-9]([a-z0-9-]*[a-z0-9])?$"
+                    description: |
+                        New handle for this portal. Omit to leave unchanged.
+                    example: acme-portal
+                mapping:
+                    description: |
+                        Re-point the portal at a different app or keyspace. Omit to leave the
+                        current mapping alone.
+
+                        Changing the mapping revokes the portal's live sessions, because a session
+                        carries the keyspace scope it was minted with and would otherwise keep
+                        reaching the resource the portal no longer serves.
+                    allOf:
+                        - "$ref": "#/components/schemas/PortalMapping"
+                enabled:
+                    type: boolean
+                    description: |
+                        Whether new sessions can be minted. Omit to leave unchanged.
+
+                        Disabling does not end sessions that are already live.
+                    example: false
+                logoUrl:
+                    type:
+                        - string
+                        - "null"
+                    minLength: 1
+                    maxLength: 500
+                    description: |
+                        Absolute `https://` URL of the portal logo. Omit to leave unchanged, or set
+                        null to remove the logo.
+                    example: https://cdn.example.com/logo.svg
+                primaryColor:
+                    type:
+                        - string
+                        - "null"
+                    pattern: "^#[0-9a-fA-F]{6}$"
+                    description: |
+                        Six-digit hex colour for primary actions. Omit to leave unchanged, or set
+                        null to fall back to default styling.
+                    example: "#6366f1"
+            additionalProperties: false
+        V2PortalUpdatePortalResponseBody:
+            type: object
+            required:
+                - meta
+                - data
+            properties:
+                meta:
+                    "$ref": "#/components/schemas/Meta"
+                data:
+                    "$ref": "#/components/schemas/Portal"
             additionalProperties: false
         V2ProjectsCreateProjectRequestBody:
             type: object
@@ -6535,6 +6692,49 @@ components:
             description: Complete list of permissions now directly assigned to the role.
             items:
                 "$ref": "#/components/schemas/Permission"
+        PortalMapping:
+            type: object
+            required:
+                - type
+                - id
+            description: |
+                The single resource a portal serves keys for.
+
+                A portal maps to exactly one app or one keyspace, never several and never
+                neither. Naming the kind and the id together makes that invariant part of the
+                request shape: there is no way to express a portal with two mappings, and no
+                way to express one with none.
+            properties:
+                type:
+                    type: string
+                    enum:
+                        - app
+                        - keyspace
+                    description: |
+                        Whether `id` names an app or a keyspace.
+                    example: keyspace
+                id:
+                    type: string
+                    minLength: 1
+                    maxLength: 255
+                    pattern: "^[a-zA-Z0-9_-]+$"
+                    description: |
+                        The id of the app or keyspace this portal serves. Must belong to your
+                        workspace.
+                    example: ks_1234abcd
+            additionalProperties: false
+        V2PortalCreatePortalResponseData:
+            type: object
+            required:
+                - portalId
+            properties:
+                portalId:
+                    type: string
+                    description: |
+                        The unique identifier of the newly created portal, generated by Unkey.
+                        Always begins with 'pc_' followed by a unique alphanumeric sequence.
+                    example: pc_1234abcd
+            additionalProperties: false
         V2PortalCreateSessionResponseData:
             type: object
             required:
@@ -6574,6 +6774,81 @@ components:
                     description: |
                         Unix timestamp in milliseconds when the access token expires (24 hours from creation).
                     example: 1711386400000
+            additionalProperties: false
+        Portal:
+            type: object
+            required:
+                - id
+                - slug
+                - enabled
+                - mapping
+                - createdAt
+            description: |
+                A portal you expose to your end users so they can manage their own keys.
+            properties:
+                id:
+                    type: string
+                    description: |
+                        The unique identifier of the portal, generated by Unkey.
+                    example: pc_1234abcd
+                slug:
+                    type: string
+                    minLength: 3
+                    maxLength: 64
+                    description: |
+                        URL-safe handle for this portal, unique within your workspace.
+                    example: acme-portal
+                enabled:
+                    type: boolean
+                    description: |
+                        Whether new sessions can be minted for this portal.
+
+                        Disabling a portal stops `portal.createSession` from minting new sessions.
+                        It does not end sessions that are already live.
+                    example: true
+                mapping:
+                    "$ref": "#/components/schemas/PortalMapping"
+                branding:
+                    description: |
+                        How the portal looks to your end users. Omitted when no branding is set.
+                    allOf:
+                        - "$ref": "#/components/schemas/PortalBranding"
+                createdAt:
+                    type: integer
+                    format: int64
+                    description: |
+                        Unix timestamp in milliseconds when the portal was created.
+                    example: 1719849600000
+                updatedAt:
+                    type: integer
+                    format: int64
+                    description: |
+                        Unix timestamp in milliseconds when the portal was last changed. Omitted
+                        if it has never been changed since creation.
+                    example: 1719936000000
+            additionalProperties: false
+        PortalBranding:
+            type: object
+            description: |
+                How the portal looks to your end users. Both fields are optional; a portal
+                with neither set renders with default styling.
+            properties:
+                logoUrl:
+                    type: string
+                    format: uri
+                    maxLength: 500
+                    description: |
+                        Absolute `https://` URL of the logo shown in the portal header.
+
+                        Loaded by your end users' browsers, so the host you name receives their IP
+                        and user agent on every page view.
+                    example: https://cdn.example.com/logo.svg
+                primaryColor:
+                    type: string
+                    pattern: "^#[0-9a-fA-F]{6}$"
+                    description: |
+                        Six-digit hex colour used for primary actions and accents in the portal.
+                    example: "#6366f1"
             additionalProperties: false
         V2PortalGetVerificationsDataPoint:
             type: object
@@ -13782,6 +14057,93 @@ paths:
             tags:
                 - permissions
             x-speakeasy-name-override: setRolePermissions
+    /v2/portal.createPortal:
+        post:
+            description: |
+                Create a portal for one app or keyspace in your workspace.
+
+                Unreleased and subject to change without notice.
+
+                A portal serves exactly one app or one keyspace, named by `mapping`. That
+                resource must belong to your workspace, and it can back only one portal, so
+                creating a second portal for the same app or keyspace is a conflict.
+
+                The portal's display name is not stored. Read it from the mapped app or
+                keyspace instead, so renaming that resource cannot leave the portal showing a
+                stale name.
+
+                **Required Permissions**
+
+                Your root key must have `portal.*.create_portal`. A grant scoped to a
+                specific portal id does not authorize creation, because the id does not exist
+                when the request is authorized.
+            operationId: portal.createPortal
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/V2PortalCreatePortalRequestBody'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/V2PortalCreatePortalResponseBody'
+                    description: |
+                        Portal created successfully.
+                "400":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/BadRequestErrorResponse'
+                    description: Bad request
+                "401":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
+                    description: Unauthorized
+                "403":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ForbiddenErrorResponse'
+                    description: Forbidden
+                "404":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/NotFoundErrorResponse'
+                    description: |
+                        The named app or keyspace does not exist in your workspace.
+                "409":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ConflictErrorResponse'
+                    description: |
+                        The slug is taken in your workspace, or the named app or keyspace already
+                        backs a portal.
+                "429":
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/TooManyRequestsErrorResponse'
+                    description: Too Many Requests
+                "500":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: Internal server error
+            security:
+                - bearer: []
+            summary: Create portal
+            tags:
+                - portal
+            x-excluded: true
+            x-speakeasy-name-override: createPortal
     /v2/portal.createSession:
         post:
             description: |
@@ -13885,6 +14247,82 @@ paths:
                 - portal
             x-excluded: true
             x-speakeasy-name-override: createSession
+    /v2/portal.deletePortal:
+        post:
+            description: |
+                Delete a portal and revoke the sessions it minted.
+
+                Unreleased and subject to change without notice.
+
+                Deleting a portal revokes its live sessions, so its end users lose access
+                rather than keeping it until their tokens expire. Revocation is not
+                instantaneous: session lookups are cached briefly, so a request already in
+                flight may still succeed.
+
+                The app or keyspace the portal served is untouched, and its handle becomes
+                available for a new portal.
+
+                **Required Permissions**
+
+                Your root key must have one of:
+                - `portal.*.delete_portal` (to delete any portal in the workspace)
+                - `portal.<portal_id>.delete_portal` (to delete a specific portal)
+
+                Missing the permission returns **404**, not 403: a caller who cannot delete a
+                portal is not told whether it exists.
+            operationId: portal.deletePortal
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/V2PortalDeletePortalRequestBody'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/V2PortalDeletePortalResponseBody'
+                    description: |
+                        Portal deleted and its sessions revoked.
+                "400":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/BadRequestErrorResponse'
+                    description: Bad request
+                "401":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
+                    description: Unauthorized
+                "404":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/NotFoundErrorResponse'
+                    description: |
+                        No such portal, or your root key may not delete it.
+                "429":
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/TooManyRequestsErrorResponse'
+                    description: Too Many Requests
+                "500":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: Internal server error
+            security:
+                - bearer: []
+            summary: Delete portal
+            tags:
+                - portal
+            x-excluded: true
+            x-speakeasy-name-override: deletePortal
     /v2/portal.exchangeCode:
         post:
             description: |
@@ -13953,6 +14391,82 @@ paths:
                 - portal
             x-excluded: true
             x-speakeasy-name-override: exchangeCode
+    /v2/portal.getPortal:
+        post:
+            description: |
+                Read one portal, by its id or slug, or by the app or keyspace it serves.
+
+                Unreleased and subject to change without notice.
+
+                The mapping lookup exists for callers that reach a portal through the
+                resource it serves rather than through an identifier they stored. Exactly one
+                of `portal` or `mapping` is required.
+
+                The portal's display name is not stored. Read it from the mapped app or
+                keyspace named in `mapping`.
+
+                **Required Permissions**
+
+                Your root key must have one of:
+                - `portal.*.read_portal` (to read any portal in the workspace)
+                - `portal.<portal_id>.read_portal` (to read a specific portal)
+
+                Missing the permission returns **404**, not 403: a caller who cannot read a
+                portal is not told whether it exists.
+            operationId: portal.getPortal
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/V2PortalGetPortalRequestBody'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/V2PortalGetPortalResponseBody'
+                    description: |
+                        The portal.
+                "400":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/BadRequestErrorResponse'
+                    description: |
+                        Neither `portal` nor `mapping` was given, or both were.
+                "401":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
+                    description: Unauthorized
+                "404":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/NotFoundErrorResponse'
+                    description: |
+                        No portal matches, or your root key may not read it.
+                "429":
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/TooManyRequestsErrorResponse'
+                    description: Too Many Requests
+                "500":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: Internal server error
+            security:
+                - bearer: []
+            summary: Get portal
+            tags:
+                - portal
+            x-excluded: true
+            x-speakeasy-name-override: getPortal
     /v2/portal.getVerifications:
         post:
             description: |
@@ -14166,6 +14680,91 @@ paths:
                 - portal
             x-excluded: true
             x-speakeasy-name-override: rerollKey
+    /v2/portal.updatePortal:
+        post:
+            description: |
+                Change a portal's handle, mapping, enabled state, or branding.
+
+                Unreleased and subject to change without notice.
+
+                Only the fields you send change. Omitting a field leaves it as it is, and for
+                branding, sending null clears it.
+
+                Two changes affect your end users immediately:
+                - Re-pointing `mapping` revokes the portal's live sessions, because a session
+                  carries the scope it was minted with.
+                - Disabling stops new sessions but leaves live ones running until they expire.
+
+                **Required Permissions**
+
+                Your root key must have one of:
+                - `portal.*.update_portal` (to update any portal in the workspace)
+                - `portal.<portal_id>.update_portal` (to update a specific portal)
+
+                Missing the permission returns **404**, not 403: a caller who cannot update a
+                portal is not told whether it exists.
+            operationId: portal.updatePortal
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/V2PortalUpdatePortalRequestBody'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/V2PortalUpdatePortalResponseBody'
+                    description: |
+                        The portal as it now stands.
+                "400":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/BadRequestErrorResponse'
+                    description: Bad request
+                "401":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
+                    description: Unauthorized
+                "404":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/NotFoundErrorResponse'
+                    description: |
+                        No such portal, the named app or keyspace is not in your workspace, or
+                        your root key may not update it.
+                "409":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ConflictErrorResponse'
+                    description: |
+                        The new slug is taken in your workspace, or the named app or keyspace
+                        already backs another portal.
+                "429":
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/TooManyRequestsErrorResponse'
+                    description: Too Many Requests
+                "500":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: Internal server error
+            security:
+                - bearer: []
+            summary: Update portal
+            tags:
+                - portal
+            x-excluded: true
+            x-speakeasy-name-override: updatePortal
     /v2/projects.createProject:
         post:
             description: |

@@ -1,0 +1,62 @@
+type: object
+required:
+  - slug
+  - mapping
+  - enabled
+properties:
+  slug:
+    type: string
+    minLength: 3
+    maxLength: 64
+    pattern: "^[a-z0-9]([a-z0-9-]*[a-z0-9])?$"
+    description: |
+      URL-safe handle for this portal, unique within your workspace. Lowercase
+      alphanumerics and single hyphens, 3-64 characters, not starting or ending
+      with a hyphen.
+    example: acme-portal
+  mapping:
+    "$ref": "../../../../common/PortalMapping.yaml"
+  enabled:
+    type: boolean
+    description: |
+      Whether sessions can be minted for this portal immediately. Set false to
+      create it dormant and enable it later.
+    example: true
+  logoUrl:
+    type: string
+    minLength: 1
+    maxLength: 500
+    description: |
+      Absolute `https://` URL of the logo shown in the portal header.
+
+      Loaded by your end users' browsers, so the host you name receives their IP
+      and user agent on every page view.
+    example: https://cdn.example.com/logo.svg
+  primaryColor:
+    type: string
+    pattern: "^#[0-9a-fA-F]{6}$"
+    description: |
+      Six-digit hex colour used for primary actions and accents in the portal.
+    example: "#6366f1"
+additionalProperties: false
+examples:
+  keyspacePortal:
+    summary: Create a portal for a keyspace
+    description: The common case, mapping a portal to one keyspace
+    value:
+      slug: acme-portal
+      mapping:
+        type: keyspace
+        id: ks_1234abcd
+      enabled: true
+  brandedAppPortal:
+    summary: Create a branded portal for an app
+    description: Map to an app and set branding in the same call
+    value:
+      slug: acme-portal
+      mapping:
+        type: app
+        id: app_1234abcd
+      enabled: true
+      logoUrl: https://cdn.example.com/logo.svg
+      primaryColor: "#6366f1"
