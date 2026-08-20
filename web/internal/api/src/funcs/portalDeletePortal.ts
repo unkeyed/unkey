@@ -23,56 +23,45 @@ import * as errors from "../models/errors/index.js";
 import { ResponseValidationError } from "../models/errors/responsevalidationerror.js";
 import { SDKValidationError } from "../models/errors/sdkvalidationerror.js";
 import { UnkeyError } from "../models/errors/unkeyerror.js";
-import * as operations from "../models/operations/index.js";
 import { APICall, APIPromise } from "../types/async.js";
 import { Result } from "../types/fp.js";
 
 /**
- * Create portal session
+ * Delete portal
  *
  * @remarks
- * Create a portal session for an end user and get the URL to redirect them to.
+ * Delete a portal and revoke the sessions it minted.
  *
- * The URL carries a single-use exchange code valid for 15 minutes, which the portal
- * redeems exactly once for a 24-hour access token via `portal.exchangeCode`.
+ * Unreleased and subject to change without notice.
+ *
+ * Deleting a portal revokes its live sessions, so its end users lose access
+ * rather than keeping it until their tokens expire. Revocation is not
+ * instantaneous: session lookups are cached briefly, so a request already in
+ * flight may still succeed.
+ *
+ * The app or keyspace the portal served is untouched, and its handle becomes
+ * available for a new portal.
  *
  * **Required Permissions**
  *
- * Authorization runs in two stages, and both must pass.
+ * Your root key must have one of:
+ * - `portal.*.delete_portal` (to delete any portal in the workspace)
+ * - `portal.<portal_id>.delete_portal` (to delete a specific portal)
  *
- * First, your root key must have one of the following permissions:
- * - `portal.*.create_portal_session` (to mint sessions for any portal in the workspace)
- * - `portal.<portal_id>.create_portal_session` (to mint sessions for a specific portal)
- *
- * Second, a session can never carry a capability your root key does not itself
- * hold. Each requested scope additionally requires the equivalent permission on
- * every keyspace the portal resolves to:
- * - `keys:read` requires `api.<api_id>.read_key` **and** `api.<api_id>.read_api`
- * - `keys:reroll` and `keys:create` require `api.<api_id>.create_key`, plus
- *   `api.<api_id>.encrypt_key` when the keyspace stores encrypted keys
- * - `analytics:read` requires `api.<api_id>.read_analytics`
- *
- * The `*` form of each is also accepted. Requesting a scope you do not hold
- * returns 403 for the whole request rather than minting a reduced session, so a
- * missing grant is visible instead of surfacing later as a broken portal.
- *
- * Missing the portal permission itself returns **404**, not 403: a caller who
- * cannot mint for a portal is not told whether it exists.
- *
- * Your root key must also be associated with a workspace that has an enabled portal.
+ * Missing the permission returns **404**, not 403: a caller who cannot delete a
+ * portal is not told whether it exists.
  *
  * If set, this operation will use {@link Security.rootKey} from the global security.
  */
-export function portalCreateSession(
+export function portalDeletePortal(
   client: UnkeyCore,
-  request: components.V2PortalCreateSessionRequestBody,
+  request: components.V2PortalDeletePortalRequestBody,
   options?: RequestOptions,
 ): APIPromise<
   Result<
-    operations.PortalCreateSessionResponse,
+    components.V2PortalDeletePortalResponseBody,
     | errors.BadRequestErrorResponse
     | errors.UnauthorizedErrorResponse
-    | errors.ForbiddenErrorResponse
     | errors.NotFoundErrorResponse
     | errors.TooManyRequestsErrorResponse
     | errors.InternalServerErrorResponse
@@ -95,15 +84,14 @@ export function portalCreateSession(
 
 async function $do(
   client: UnkeyCore,
-  request: components.V2PortalCreateSessionRequestBody,
+  request: components.V2PortalDeletePortalRequestBody,
   options?: RequestOptions,
 ): Promise<
   [
     Result<
-      operations.PortalCreateSessionResponse,
+      components.V2PortalDeletePortalResponseBody,
       | errors.BadRequestErrorResponse
       | errors.UnauthorizedErrorResponse
-      | errors.ForbiddenErrorResponse
       | errors.NotFoundErrorResponse
       | errors.TooManyRequestsErrorResponse
       | errors.InternalServerErrorResponse
@@ -122,7 +110,7 @@ async function $do(
   const parsed = safeParse(
     request,
     (value) =>
-      components.V2PortalCreateSessionRequestBody$outboundSchema.parse(value),
+      components.V2PortalDeletePortalRequestBody$outboundSchema.parse(value),
     "Input validation failed",
   );
   if (!parsed.ok) {
@@ -131,7 +119,7 @@ async function $do(
   const payload = parsed.value;
   const body = encodeJSON("body", payload, { explode: true });
 
-  const path = pathToFunc("/v2/portal.createSession")();
+  const path = pathToFunc("/v2/portal.deletePortal")();
 
   const headers = new Headers(compactMap({
     "Content-Type": "application/json",
@@ -145,7 +133,7 @@ async function $do(
   const context = {
     options: client._options,
     baseURL: options?.serverURL ?? client._baseURL ?? "",
-    operationID: "portal.createSession",
+    operationID: "portal.deletePortal",
     oAuth2Scopes: null,
 
     resolvedSecurity: requestSecurity,
@@ -199,10 +187,9 @@ async function $do(
   };
 
   const [result] = await M.match<
-    operations.PortalCreateSessionResponse,
+    components.V2PortalDeletePortalResponseBody,
     | errors.BadRequestErrorResponse
     | errors.UnauthorizedErrorResponse
-    | errors.ForbiddenErrorResponse
     | errors.NotFoundErrorResponse
     | errors.TooManyRequestsErrorResponse
     | errors.InternalServerErrorResponse
@@ -215,13 +202,9 @@ async function $do(
     | UnexpectedClientError
     | SDKValidationError
   >(
-    M.json(200, operations.PortalCreateSessionResponse$inboundSchema, {
-      hdrs: true,
-      key: "Result",
-    }),
+    M.json(200, components.V2PortalDeletePortalResponseBody$inboundSchema),
     M.jsonErr(400, errors.BadRequestErrorResponse$inboundSchema),
     M.jsonErr(401, errors.UnauthorizedErrorResponse$inboundSchema),
-    M.jsonErr(403, errors.ForbiddenErrorResponse$inboundSchema),
     M.jsonErr(404, errors.NotFoundErrorResponse$inboundSchema),
     M.jsonErr(429, errors.TooManyRequestsErrorResponse$inboundSchema, {
       ctype: "application/problem+json",
