@@ -206,9 +206,10 @@ func Run(ctx context.Context, cfg Config) error {
 	// required). The frontline routing/cert path keeps using the read
 	// replica pool above.
 	engineDatabase, err := pkgdb.New(pkgdb.Config{
-		PrimaryDSN:  cfg.Database.Primary,
-		ReadOnlyDSN: cfg.Database.ReadonlyReplica,
-		Tags:        dbTags,
+		PrimaryDSN:            cfg.Database.Primary,
+		ReadOnlyDSN:           cfg.Database.ReadonlyReplica,
+		MultiStatementBatches: false,
+		Tags:                  dbTags,
 	})
 	if err != nil {
 		return fmt.Errorf("unable to connect to engine database: %w", err)

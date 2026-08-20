@@ -43,9 +43,10 @@ const chunkSize = 50_000
 func seedVerifications(ctx context.Context, cmd *cli.Command) error {
 	// Connect to MySQL
 	database, err := db.New(db.Config{
-		PrimaryDSN:  cmd.RequireString("database-primary"),
-		ReadOnlyDSN: "",
-		Tags:        sqlcomment.Disabled(),
+		PrimaryDSN:            cmd.RequireString("database-primary"),
+		ReadOnlyDSN:           "",
+		MultiStatementBatches: false,
+		Tags:                  sqlcomment.Disabled(),
 	})
 	if err != nil {
 		return fmt.Errorf("failed to connect to MySQL: %w", err)
