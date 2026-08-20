@@ -316,8 +316,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			}
 		}
 
-		beforeType, beforeID := describeMapping(found)
-		afterType, afterID := describeMapping(updated)
+		beforeType, beforeID := portal.DescribeMapping(found)
+		afterType, afterID := portal.DescribeMapping(updated)
 
 		err = h.Auditlogs.Insert(ctx, tx, []auditlog.AuditLog{
 			{
@@ -457,23 +457,5 @@ func (h *Handler) assertAvailable(
 			fault.Internal("database error checking mapping availability"),
 			fault.Public("We're unable to update the portal."),
 		)
-	}
-}
-
-// describeMapping reads a row's association for the audit entry.
-//
-// Deliberately tolerant where [portal.MappingOf] is strict: a row written before
-// these routes existed may hold both columns or neither, and an audit entry
-// recording what was actually there is more useful than one that fails.
-func describeMapping(p db.Portal) (mappingType string, mappingID string) {
-	switch {
-	case p.AppID.Valid && p.KeyAuthID.Valid:
-		return "invalid", p.AppID.String + "," + p.KeyAuthID.String
-	case p.AppID.Valid:
-		return string(openapi.PortalMappingTypeApp), p.AppID.String
-	case p.KeyAuthID.Valid:
-		return string(openapi.PortalMappingTypeKeyspace), p.KeyAuthID.String
-	default:
-		return "none", ""
 	}
 }

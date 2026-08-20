@@ -98,6 +98,34 @@ func MappingOf(p db.Portal) (openapi.PortalMapping, error) {
 	return openapi.PortalMapping{Id: p.KeyAuthID.String, Type: openapi.PortalMappingTypeKeyspace}, nil
 }
 
+// DescribeMapping renders a row's mapping for an audit-log entry.
+//
+// Distinct from [MappingOf], which refuses an ambiguous row because serving one
+// would leave a portal's keyspace scope undefined. An audit entry has the
+// opposite obligation: a mutation on a row that already violates the invariant
+// still has to be recorded, and refusing to describe it would mean refusing to
+// delete a misconfigured portal, leaving it with no way out.
+//
+// So this never fails, and it keeps the two failure modes apart. "invalid" and
+// "none" are different problems — two conflicting mappings versus none at all —
+// and both ids survive the ambiguous case, because an incident reviewer needs to
+// know which resources the row was claiming.
+func DescribeMapping(p db.Portal) (mappingType string, mappingID string) {
+	hasApp := p.AppID.Valid && p.AppID.String != ""
+	hasKeyspace := p.KeyAuthID.Valid && p.KeyAuthID.String != ""
+
+	switch {
+	case hasApp && hasKeyspace:
+		return "invalid", p.AppID.String + "," + p.KeyAuthID.String
+	case hasApp:
+		return string(openapi.PortalMappingTypeApp), p.AppID.String
+	case hasKeyspace:
+		return string(openapi.PortalMappingTypeKeyspace), p.KeyAuthID.String
+	default:
+		return "none", ""
+	}
+}
+
 // VerifyMappingOwned reports whether the mapped app or keyspace exists in this
 // workspace.
 //

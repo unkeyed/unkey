@@ -178,7 +178,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			)
 		}
 
-		mappingType, mappingID := describeMapping(found)
+		mappingType, mappingID := portal.DescribeMapping(found)
 
 		return h.Auditlogs.Insert(ctx, tx, []auditlog.AuditLog{
 			{
@@ -223,19 +223,4 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		},
 		Data: openapi.EmptyResponse{},
 	})
-}
-
-// describeMapping reads the deleted row's mapping for the audit entry.
-//
-// [portal.MappingOf] is the one place that decides what a row's mapping is, so
-// it is reused rather than re-derived. Its error is recorded instead of returned:
-// a row written before these routes existed may hold both columns or neither, and
-// refusing to delete a portal because its mapping is already invalid would leave
-// the misconfiguration with no way out.
-func describeMapping(p db.Portal) (mappingType string, mappingID string) {
-	mapping, err := portal.MappingOf(p)
-	if err != nil {
-		return "invalid", ""
-	}
-	return string(mapping.Type), mapping.Id
 }
