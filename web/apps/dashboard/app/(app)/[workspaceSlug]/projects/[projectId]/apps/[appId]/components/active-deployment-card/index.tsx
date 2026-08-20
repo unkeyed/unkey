@@ -108,16 +108,21 @@ export function ActiveDeploymentCard({
             )}
           </div>
           <div className="flex items-center gap-3 min-w-0">
-            {deployment.gitCommitMessage && (
-              <GitHubLink href={githubUrl.commit(sourceRepo, deployment.gitCommitSha)}>
-                <div className="flex items-center gap-1.5 min-w-0">
-                  <CodeCommit iconSize="sm-regular" className="text-accent-12 shrink-0" />
-                  <span className="text-xs text-accent-12 truncate">
-                    {deployment.gitCommitMessage}
-                  </span>
-                </div>
-              </GitHubLink>
-            )}
+            {match(deployment.source)
+              .with("git", () =>
+                deployment.gitCommitMessage ? (
+                  <GitHubLink href={githubUrl.commit(sourceRepo, deployment.gitCommitSha)}>
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <CodeCommit iconSize="sm-regular" className="text-accent-12 shrink-0" />
+                      <span className="text-xs text-accent-12 truncate">
+                        {deployment.gitCommitMessage}
+                      </span>
+                    </div>
+                  </GitHubLink>
+                ) : null,
+              )
+              .with("oci", "unknown", () => null)
+              .exhaustive()}
             {showLastExit && deployment.lastExit && (
               <LastExitBadge lastExit={deployment.lastExit} />
             )}
@@ -129,56 +134,78 @@ export function ActiveDeploymentCard({
       <div className="border-t border-gray-4 px-4 py-3">
         <div className="grid grid-cols-2 md:grid-cols-3 gap-y-4 gap-x-6 items-start">
           <MetadataCell label="Created">
-            <div className="flex items-center gap-2">
-              <Avatar src={deployment.gitCommitAuthorAvatarUrl} alt="Author" />
-              {deployment.gitCommitAuthorHandle && (
-                <>
-                  <span className="font-medium text-accent-12 text-xs">
-                    {deployment.gitCommitAuthorHandle}
-                  </span>
-                  <span className="text-gray-9 text-xs">·</span>
-                </>
-              )}
-              <TimestampInfo
-                value={deployment.createdAt}
-                displayType="relative"
-                className="text-gray-9 text-xs"
-              />
-            </div>
+            {match(deployment.source)
+              .with("git", () => (
+                <div className="flex items-center gap-2">
+                  <Avatar src={deployment.gitCommitAuthorAvatarUrl} alt="Author" />
+                  {deployment.gitCommitAuthorHandle && (
+                    <>
+                      <span className="font-medium text-accent-12 text-xs">
+                        {deployment.gitCommitAuthorHandle}
+                      </span>
+                      <span className="text-gray-9 text-xs">·</span>
+                    </>
+                  )}
+                  <TimestampInfo
+                    value={deployment.createdAt}
+                    displayType="relative"
+                    className="text-gray-9 text-xs"
+                  />
+                </div>
+              ))
+              .with("oci", "unknown", () => (
+                <TimestampInfo
+                  value={deployment.createdAt}
+                  displayType="relative"
+                  className="text-gray-9 text-xs"
+                />
+              ))
+              .exhaustive()}
           </MetadataCell>
 
           <MetadataCell label="Source">
             <div className="flex items-center gap-2 min-w-0">
-              {/* Prebuilt-image deployments have no git metadata; show the
-                  image reference as the source instead. */}
-              {!deployment.gitBranch && !deployment.gitCommitSha && (
-                <ImageSource image={deployment.image} />
-              )}
-              {deployment.gitBranch && (
-                <GitHubLink href={githubUrl.branch(sourceRepo, deployment.gitBranch)}>
-                  <span className="flex items-center gap-1">
-                    <CodeBranch iconSize="sm-regular" className="text-accent-12 shrink-0" />
-                    <span className="font-mono text-xs text-accent-12 truncate max-w-32">
-                      {deployment.gitBranch}
-                    </span>
-                  </span>
-                </GitHubLink>
-              )}
-              {deployment.gitCommitSha && (
-                <>
-                  {deployment.gitBranch && <span className="text-gray-9 text-xs">·</span>}
-                  <GitHubLink href={githubUrl.commit(sourceRepo, deployment.gitCommitSha)}>
-                    <span className="flex items-center gap-1">
-                      {!deployment.gitBranch && (
-                        <CodeCommit iconSize="sm-regular" className="text-accent-12 shrink-0" />
-                      )}
-                      <span className="font-mono text-xs text-accent-12">
-                        {deployment.gitCommitSha.slice(0, 7)}
-                      </span>
-                    </span>
-                  </GitHubLink>
-                </>
-              )}
+              {match(deployment.source)
+                .with("oci", () => (
+                  <ImageSource
+                    image={deployment.requestedImage ?? deployment.resolvedImage}
+                    copyValue={deployment.resolvedImage}
+                  />
+                ))
+                .with("git", () => (
+                  <>
+                    {deployment.gitBranch && (
+                      <GitHubLink href={githubUrl.branch(sourceRepo, deployment.gitBranch)}>
+                        <span className="flex items-center gap-1">
+                          <CodeBranch iconSize="sm-regular" className="text-accent-12 shrink-0" />
+                          <span className="font-mono text-xs text-accent-12 truncate max-w-32">
+                            {deployment.gitBranch}
+                          </span>
+                        </span>
+                      </GitHubLink>
+                    )}
+                    {deployment.gitCommitSha && (
+                      <>
+                        {deployment.gitBranch && <span className="text-gray-9 text-xs">·</span>}
+                        <GitHubLink href={githubUrl.commit(sourceRepo, deployment.gitCommitSha)}>
+                          <span className="flex items-center gap-1">
+                            {!deployment.gitBranch && (
+                              <CodeCommit
+                                iconSize="sm-regular"
+                                className="text-accent-12 shrink-0"
+                              />
+                            )}
+                            <span className="font-mono text-xs text-accent-12">
+                              {deployment.gitCommitSha.slice(0, 7)}
+                            </span>
+                          </span>
+                        </GitHubLink>
+                      </>
+                    )}
+                  </>
+                ))
+                .with("unknown", () => <ImageSource image={null} />)
+                .exhaustive()}
             </div>
           </MetadataCell>
 

@@ -16,6 +16,8 @@ export const deploymentSelectFields = {
   id: deployments.id,
   projectId: deployments.projectId,
   environmentId: deployments.environmentId,
+  source: deployments.source,
+  requestedImage: deployments.imageRequested,
   gitCommitSha: deployments.gitCommitSha,
   gitBranch: deployments.gitBranch,
   gitCommitMessage: deployments.gitCommitMessage,
@@ -24,7 +26,9 @@ export const deploymentSelectFields = {
   gitCommitTimestamp: deployments.gitCommitTimestamp,
   prNumber: deployments.prNumber,
   forkRepositoryFullName: deployments.forkRepositoryFullName,
-  image: deployments.image,
+  resolvedImage: sql<
+    string | null
+  >`COALESCE(NULLIF(${deployments.imageResolved}, ''), ${deployments.image})`,
   status: deployments.status,
   desiredState: deployments.desiredState,
   trigger: deployments.trigger,
@@ -110,6 +114,7 @@ export function computeLastExit(
 }
 
 export function normalizeDeploymentRow(deployment: {
+  source: "unknown" | "git" | "oci";
   gitBranch: string | null;
   prNumber: number | null;
   forkRepositoryFullName: string | null;
@@ -117,6 +122,7 @@ export function normalizeDeploymentRow(deployment: {
   gitCommitTimestamp: number | null;
 }) {
   return {
+    source: deployment.source,
     gitBranch: deployment.gitBranch ?? "",
     prNumber: deployment.prNumber ?? null,
     forkRepositoryFullName: deployment.forkRepositoryFullName ?? null,
