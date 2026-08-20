@@ -78,22 +78,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	err = db.TxRetry(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
-		err = db.Query.DeleteManyRolePermissionsByRoleID(ctx, tx, role.ID)
-		if err != nil {
-			return fault.Wrap(err,
-				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-				fault.Internal("database error"), fault.Public("Failed to delete role-permission relationships."),
-			)
-		}
-
-		err = db.Query.DeleteManyKeyRolesByRoleID(ctx, tx, role.ID)
-		if err != nil {
-			return fault.Wrap(err,
-				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-				fault.Internal("database error"), fault.Public("Failed to delete key-role relationships."),
-			)
-		}
-
 		err = db.Query.DeleteRoleByID(ctx, tx, role.ID)
 		if err != nil {
 			return fault.Wrap(err,

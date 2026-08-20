@@ -78,6 +78,22 @@ func TestSuccess(t *testing.T) {
 			require.NoError(t, err)
 		}
 
+		unrelatedRoleID := uid.New(uid.TestPrefix)
+		err = db.Query.InsertRole(ctx, h.DB.RW(), db.InsertRoleParams{
+			RoleID:      unrelatedRoleID,
+			WorkspaceID: workspace.ID,
+			Name:        "unrelated.delete.role",
+			Description: sql.NullString{},
+		})
+		require.NoError(t, err)
+		err = db.Query.InsertRolePermission(ctx, h.DB.RW(), db.InsertRolePermissionParams{
+			RoleID:       unrelatedRoleID,
+			PermissionID: permIDs[0],
+			WorkspaceID:  workspace.ID,
+			CreatedAtM:   time.Now().UnixMilli(),
+		})
+		require.NoError(t, err)
+
 		// Create a key with this role assigned
 		keyID := uid.New(uid.KeyPrefix)
 		err = db.Query.InsertKey(ctx, h.DB.RW(), db.InsertKeyParams{
@@ -96,6 +112,13 @@ func TestSuccess(t *testing.T) {
 		err = db.Query.InsertKeyRole(ctx, h.DB.RW(), db.InsertKeyRoleParams{
 			KeyID:       keyID,
 			RoleID:      roleID,
+			WorkspaceID: workspace.ID,
+			CreatedAtM:  time.Now().UnixMilli(),
+		})
+		require.NoError(t, err)
+		err = db.Query.InsertKeyRole(ctx, h.DB.RW(), db.InsertKeyRoleParams{
+			KeyID:       keyID,
+			RoleID:      unrelatedRoleID,
 			WorkspaceID: workspace.ID,
 			CreatedAtM:  time.Now().UnixMilli(),
 		})
@@ -143,6 +166,26 @@ func TestSuccess(t *testing.T) {
 		})
 		require.NoError(t, err)
 		require.Empty(t, keyRoles, "Key-Role relationships should be deleted")
+
+		for _, permID := range permIDs {
+			_, err = db.Query.FindPermissionByID(ctx, h.DB.RO(), permID)
+			require.NoError(t, err, "permissions assigned to the deleted role should remain")
+		}
+		_, err = db.Query.FindKeyByID(ctx, h.DB.RO(), keyID)
+		require.NoError(t, err, "key assigned to the deleted role should remain")
+
+		unrelatedRolePermissions, err := db.Query.FindRolePermissionByRoleAndPermissionID(ctx, h.DB.RO(), db.FindRolePermissionByRoleAndPermissionIDParams{
+			RoleID:       unrelatedRoleID,
+			PermissionID: permIDs[0],
+		})
+		require.NoError(t, err)
+		require.Len(t, unrelatedRolePermissions, 1, "unrelated role-permission relationship should remain")
+		unrelatedKeyRoles, err := db.Query.FindKeyRoleByKeyAndRoleID(ctx, h.DB.RO(), db.FindKeyRoleByKeyAndRoleIDParams{
+			KeyID:  keyID,
+			RoleID: unrelatedRoleID,
+		})
+		require.NoError(t, err)
+		require.Len(t, unrelatedKeyRoles, 1, "unrelated key-role relationship should remain")
 	})
 
 	// Test case for deleting a role without permissions or key assignments
