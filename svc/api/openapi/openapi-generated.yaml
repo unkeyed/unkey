@@ -592,6 +592,13 @@ components:
                     anyOf:
                         - "$ref": "#/components/schemas/AppGitUpdateInput"
                         - type: "null"
+                oci:
+                    description: |
+                        Change the default image reference for an OCI-sourced app. This does not
+                        create a deployment. Image updates cannot be combined with other changes,
+                        and source switching is not supported.
+                    allOf:
+                        - "$ref": "#/components/schemas/AppOCIInput"
                 deleteProtection:
                     type: boolean
                     description: |
@@ -599,6 +606,20 @@ components:
                         Omit this field to leave the current setting unchanged.
                     example: true
             additionalProperties: false
+            oneOf:
+                - required:
+                    - oci
+                - anyOf:
+                    - required:
+                        - name
+                    - required:
+                        - slug
+                    - required:
+                        - git
+                    - required:
+                        - deleteProtection
+            description: |
+                Update app settings, or change an OCI app's image in a standalone request.
         V2AppsUpdateAppResponseBody:
             type: object
             required:
