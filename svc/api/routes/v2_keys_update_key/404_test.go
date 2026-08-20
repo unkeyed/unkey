@@ -16,7 +16,7 @@ import (
 func TestUpdateKeyNotFound(t *testing.T) {
 	t.Parallel()
 
-	h := newUpdateKeyHarness(t)
+	h := testutil.NewHarness(t)
 
 	route := &handler.Handler{
 		DB:           h.DB,

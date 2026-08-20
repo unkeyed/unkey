@@ -22,15 +22,6 @@ type invalidOutboxAuditService struct {
 	auditlogs.AuditLogService
 }
 
-func newUpdateKeyHarness(t *testing.T) *testutil.Harness {
-	t.Helper()
-	return testutil.NewHarness(t, testutil.HarnessConfig{
-		Redis:                 false,
-		ClickHouse:            false,
-		MultiStatementBatches: true,
-	})
-}
-
 func (invalidOutboxAuditService) PrepareOutboxRows(
 	_ context.Context,
 	_ []auditlog.AuditLog,
@@ -47,7 +38,7 @@ func (invalidOutboxAuditService) PrepareOutboxRows(
 func TestUpdateKeyBatchRollsBackWhenAuditInsertFails(t *testing.T) {
 	t.Parallel()
 
-	h := newUpdateKeyHarness(t)
+	h := testutil.NewHarness(t)
 	route := &handler.Handler{
 		DB:           h.DB,
 		Auditlogs:    invalidOutboxAuditService{AuditLogService: h.Auditlogs},

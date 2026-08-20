@@ -25,7 +25,7 @@ import (
 func TestUpdateKeySuccess(t *testing.T) {
 	t.Parallel()
 
-	h := newUpdateKeyHarness(t)
+	h := testutil.NewHarness(t)
 	ctx := t.Context()
 
 	route := &handler.Handler{
@@ -152,7 +152,7 @@ func TestUpdateKeySuccess(t *testing.T) {
 func TestUpdateKeyWithURNPermission(t *testing.T) {
 	t.Parallel()
 
-	h := newUpdateKeyHarness(t)
+	h := testutil.NewHarness(t)
 	ctx := t.Context()
 
 	route := &handler.Handler{
@@ -196,7 +196,7 @@ func TestUpdateKeyWithURNPermission(t *testing.T) {
 func TestUpdateKeyWithTranslatedAdminPermission(t *testing.T) {
 	t.Parallel()
 
-	h := newUpdateKeyHarness(t)
+	h := testutil.NewHarness(t)
 	ctx := t.Context()
 
 	route := &handler.Handler{
@@ -240,7 +240,7 @@ func TestUpdateKeyWithTranslatedAdminPermission(t *testing.T) {
 func TestUpdateKeyUpdateAllFields(t *testing.T) {
 	t.Parallel()
 
-	h := newUpdateKeyHarness(t)
+	h := testutil.NewHarness(t)
 	ctx := context.Background()
 
 	route := &handler.Handler{
@@ -350,7 +350,7 @@ func TestUpdateKeyUpdateAllFields(t *testing.T) {
 }
 
 func TestKeyUpdateCreditsInvalidatesCache(t *testing.T) {
-	h := newUpdateKeyHarness(t)
+	h := testutil.NewHarness(t)
 	ctx := context.Background()
 
 	route := &handler.Handler{
@@ -433,7 +433,7 @@ func TestKeyUpdateCreditsInvalidatesCache(t *testing.T) {
 func TestUpdateKeyConcurrentWithSameExternalId(t *testing.T) {
 	t.Parallel()
 
-	h := newUpdateKeyHarness(t)
+	h := testutil.NewHarness(t)
 	ctx := t.Context()
 
 	route := &handler.Handler{
@@ -528,7 +528,7 @@ func TestUpdateKeyConcurrentWithSameExternalId(t *testing.T) {
 func TestUpdateKeyConcurrentWithSameNewPermission(t *testing.T) {
 	t.Parallel()
 
-	h := newUpdateKeyHarness(t)
+	h := testutil.NewHarness(t)
 	ctx := t.Context()
 
 	route := &handler.Handler{
@@ -596,7 +596,7 @@ func TestUpdateKeyConcurrentWithSameNewPermission(t *testing.T) {
 func TestUpdateKeyConcurrentRatelimits(t *testing.T) {
 	t.Parallel()
 
-	h := newUpdateKeyHarness(t)
+	h := testutil.NewHarness(t)
 
 	route := &handler.Handler{
 		DB:           h.DB,
