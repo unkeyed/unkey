@@ -42,6 +42,7 @@ func TestUpdateAppBadRequest(t *testing.T) {
 		{name: "missing project and app", req: handler.Request{}},
 		{name: "missing app", req: handler.Request{Project: validProject}},
 		{name: "missing project", req: handler.Request{App: validID}},
+		{name: "no updates", req: handler.Request{Project: validProject, App: validID}},
 		{name: "app with invalid chars", req: handler.Request{Project: validProject, App: "app.1234"}},
 		{name: "app too long", req: handler.Request{Project: validProject, App: strings.Repeat("a", 256)}},
 		{name: "project with invalid chars", req: handler.Request{Project: "pay.ments", App: validID}},
@@ -51,6 +52,14 @@ func TestUpdateAppBadRequest(t *testing.T) {
 		{name: "slug too long", req: handler.Request{Project: validProject, App: validID, Slug: ptr.P(strings.Repeat("a", 256))}},
 		{name: "empty name", req: handler.Request{Project: validProject, App: validID, Name: &emptyName}},
 		{name: "name too long", req: handler.Request{Project: validProject, App: validID, Name: &longName}},
+		{
+			name: "OCI image too long",
+			req: handler.Request{
+				Project: validProject,
+				App:     validID,
+				Oci:     &openapi.AppOCIInput{Image: strings.Repeat("a", 253) + ":tag"},
+			},
+		},
 		{name: "git empty object", req: handler.Request{Project: validProject, App: validID, Git: nullable.NewNullableWithValue(openapi.AppGitUpdateInput{})}},
 		{name: "git repository empty", req: handler.Request{Project: validProject, App: validID, Git: nullable.NewNullableWithValue(openapi.AppGitUpdateInput{Repository: ptr.P("")})}},
 		{name: "git repository too long", req: handler.Request{Project: validProject, App: validID, Git: nullable.NewNullableWithValue(openapi.AppGitUpdateInput{Repository: ptr.P(strings.Repeat("a", 256))})}},
