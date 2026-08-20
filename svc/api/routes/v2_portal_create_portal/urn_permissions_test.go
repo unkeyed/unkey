@@ -24,18 +24,32 @@ func TestCreatePortalAuthorizesURNGrants(t *testing.T) {
 
 	workspace := h.Resources().UserWorkspace
 
-	testCases := map[string]string{
-		"portal-scoped wildcard URN": fmt.Sprintf("unkey:v1:%s:portals/*#create_portal", workspace.ID),
-		// The form the dashboard proxy actually mints from admin:*.
-		"workspace-wide admin URN": fmt.Sprintf("unkey:v1:%s:**#*", workspace.ID),
+	// Grants are spelled out per case rather than topped up with a shared set.
+	// Appending targetReadGrants to every case is what previously hid a real
+	// denial: those are legacy tuples, and the dashboard principal this test
+	// exists to represent holds none — the WorkOS translator and the local proxy
+	// both emit URNs only. A case that needs a legacy tuple to pass is not
+	// testing the caller it claims to.
+	testCases := map[string][]string{
+		// Exactly what a dashboard operator carries, and nothing else.
+		"workspace-wide admin URN": {
+			fmt.Sprintf("unkey:v1:%s:**#*", workspace.ID),
+		},
+		// A scoped operator still needs read on the target it points at, but can
+		// satisfy it entirely with URNs.
+		"portal-scoped URN with URN target read": {
+			fmt.Sprintf("unkey:v1:%s:portals/*#create_portal", workspace.ID),
+			fmt.Sprintf("unkey:v1:%s:keyspaces/*#read_keyspace", workspace.ID),
+		},
+		// The root-key shape, which legacy tuples must keep serving.
+		"legacy tuples": append([]string{"portal.*.create_portal"}, targetReadGrants...),
 	}
 
 	i := 0
-	for name, grant := range testCases {
+	for name, grants := range testCases {
 		i++
 		t.Run(name, func(t *testing.T) {
-			rootKey := h.CreateRootKey(workspace.ID,
-				append([]string{grant}, targetReadGrants...)...)
+			rootKey := h.CreateRootKey(workspace.ID, grants...)
 			headers := http.Header{
 				"Content-Type":  {"application/json"},
 				"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},

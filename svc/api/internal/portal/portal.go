@@ -25,6 +25,8 @@ import (
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
@@ -290,6 +292,13 @@ func AuthorizeMappingTarget(
 
 	switch m.Type {
 	case openapi.PortalMappingTypeApp:
+		// Legacy tuples only, unlike the keyspace arm below. An app URN is
+		// addressed as projects/{project_id}/apps/{app_id} and this function is
+		// handed an app id alone, and there is no ReadApp action in
+		// pkg/rbac/permissions to pair with it. Both belong to migrating
+		// v2_apps_get_app, which authorizes the same way. Until then a portal can
+		// only be pointed at an app by a caller holding a legacy grant, which is
+		// no worse than reading the app itself.
 		err := principal.Authorize(rbac.Or(
 			rbac.T(rbac.Tuple{ResourceType: rbac.App, ResourceID: "*", Action: rbac.ReadApp}),
 			rbac.T(rbac.Tuple{ResourceType: rbac.App, ResourceID: m.Id, Action: rbac.ReadApp}),
@@ -321,9 +330,20 @@ func AuthorizeMappingTarget(
 		}
 
 		apiID := rows[0].ApiID
+		// The URN arm is what makes this reachable from the dashboard. A
+		// dashboard operator authenticates with a JWT whose only grant is the
+		// workspace-wide admin URN — `admin:*` becomes `unkey:v1:{ws}:**#*`,
+		// minted by the proxy locally and by the WorkOS permission translator in
+		// production, neither of which emits a legacy tuple. URN wildcards expand
+		// for URN queries only, so a tuple-only check can never pass for the one
+		// caller this operator route exists to serve.
 		err = principal.Authorize(rbac.Or(
 			rbac.T(rbac.Tuple{ResourceType: rbac.Api, ResourceID: "*", Action: rbac.ReadAPI}),
 			rbac.T(rbac.Tuple{ResourceType: rbac.Api, ResourceID: apiID, Action: rbac.ReadAPI}),
+			rbac.U(
+				urn.New().Workspace(workspaceID).Keyspace(m.Id),
+				permissions.ReadKeyspace{},
+			),
 		))
 		if err != nil {
 			return denied(fmt.Sprintf("caller may not read api %s owning keyspace %s: %s", apiID, m.Id, fault.InternalMessage(err)))
