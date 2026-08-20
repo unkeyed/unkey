@@ -1,24 +1,27 @@
 package handler_test
 
 import (
+	"context"
 	"net/http"
 	"testing"
+	"time"
 
 	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
 
 	"github.com/stretchr/testify/require"
+	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
+	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/hash"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_deployments_start_deployment"
 )
 
-// startDeployment forwards to ctrl's WakeDeployment RPC; the public verb is
-// "start" but the wire call must be the wake RPC with the same deployment id.
 func TestStartDeployment(t *testing.T) {
 	h := testutil.NewHarness(t)
-	mock := &testutil.MockDeploymentClient{}
-	route := newRoute(h, mock)
+	restate, wakes := newRecordingRestate(t)
+	route := newRoute(h, restate)
 	h.Register(route)
 
 	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
@@ -50,8 +53,15 @@ func TestStartDeployment(t *testing.T) {
 	})
 	require.Equal(t, http.StatusAccepted, res.Status, "expected 202, received: %s", res.RawBody)
 
-	require.Len(t, mock.WakeDeploymentCalls, 1)
-	require.Equal(t, dep.ID, mock.WakeDeploymentCalls[0].GetDeploymentId())
+	rootKeyID, err := db.Query.FindKeyIDByHash(context.Background(), h.DB.RO(), hash.Sha256(setup.RootKey))
+	require.NoError(t, err)
+
+	observed := testutil.Receive(t, wakes, 10*time.Second)
+	require.Equal(t, dep.ID, observed.virtualObjectKey)
+	require.Equal(t, dep.ID, observed.request.GetDeploymentId())
+	require.Equal(t, ctrlv1.ActorType_ACTOR_TYPE_ROOT_KEY, observed.request.GetActor().GetType())
+	require.Equal(t, rootKeyID, observed.request.GetActor().GetId())
+	require.NotEmpty(t, observed.request.GetCorrelationId())
 }
 
 // Stopping sets desired_state=stopped immediately while status stays ready
@@ -59,8 +69,8 @@ func TestStartDeployment(t *testing.T) {
 // deployment still draining is wakeable.
 func TestStartDeploymentWhileDraining(t *testing.T) {
 	h := testutil.NewHarness(t)
-	mock := &testutil.MockDeploymentClient{}
-	route := newRoute(h, mock)
+	restate, wakes := newRecordingRestate(t)
+	route := newRoute(h, restate)
 	h.Register(route)
 
 	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
@@ -92,15 +102,16 @@ func TestStartDeploymentWhileDraining(t *testing.T) {
 	})
 	require.Equal(t, http.StatusAccepted, res.Status, "expected 202, received: %s", res.RawBody)
 
-	require.Len(t, mock.WakeDeploymentCalls, 1)
-	require.Equal(t, dep.ID, mock.WakeDeploymentCalls[0].GetDeploymentId())
+	observed := testutil.Receive(t, wakes, 10*time.Second)
+	require.Equal(t, dep.ID, observed.virtualObjectKey)
+	require.Equal(t, dep.ID, observed.request.GetDeploymentId())
 }
 
 // The environment-scoped permission must work as well as the wildcard.
 func TestStartDeploymentScopedPermission(t *testing.T) {
 	h := testutil.NewHarness(t)
-	mock := &testutil.MockDeploymentClient{}
-	route := newRoute(h, mock)
+	restate, wakes := newRecordingRestate(t)
+	route := newRoute(h, restate)
 	h.Register(route)
 
 	setup := h.CreateTestDeploymentSetup()
@@ -130,5 +141,7 @@ func TestStartDeploymentScopedPermission(t *testing.T) {
 		DeploymentId: dep.ID,
 	})
 	require.Equal(t, http.StatusAccepted, res.Status, "expected 202, received: %s", res.RawBody)
-	require.Len(t, mock.WakeDeploymentCalls, 1)
+	observed := testutil.Receive(t, wakes, 10*time.Second)
+	require.Equal(t, dep.ID, observed.virtualObjectKey)
+	require.Equal(t, dep.ID, observed.request.GetDeploymentId())
 }

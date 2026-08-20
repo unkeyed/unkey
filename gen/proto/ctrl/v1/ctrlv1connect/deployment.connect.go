@@ -52,9 +52,6 @@ const (
 	// DeployServiceStopDeploymentProcedure is the fully-qualified name of the DeployService's
 	// StopDeployment RPC.
 	DeployServiceStopDeploymentProcedure = "/ctrl.v1.DeployService/StopDeployment"
-	// DeployServiceWakeDeploymentProcedure is the fully-qualified name of the DeployService's
-	// WakeDeployment RPC.
-	DeployServiceWakeDeploymentProcedure = "/ctrl.v1.DeployService/WakeDeployment"
 	// DeployServiceDeprovisionComputeProcedure is the fully-qualified name of the DeployService's
 	// DeprovisionCompute RPC.
 	DeployServiceDeprovisionComputeProcedure = "/ctrl.v1.DeployService/DeprovisionCompute"
@@ -80,8 +77,6 @@ type DeployServiceClient interface {
 	CancelDeployment(context.Context, *connect.Request[v1.CancelDeploymentRequest]) (*connect.Response[v1.CancelDeploymentResponse], error)
 	// Stop a ready non-production deployment by scaling it down.
 	StopDeployment(context.Context, *connect.Request[v1.StopDeploymentRequest]) (*connect.Response[v1.StopDeploymentResponse], error)
-	// Wake a stopped deployment by scaling it back up.
-	WakeDeployment(context.Context, *connect.Request[v1.WakeDeploymentRequest]) (*connect.Response[v1.WakeDeploymentResponse], error)
 	// DeprovisionCompute tears down a workspace's Compute: it stops all running
 	// compute via DeployTeardownService.Teardown(ARCHIVE) and clears the local
 	// deploy_plan entitlement so the workspace can no longer deploy. The dashboard
@@ -144,12 +139,6 @@ func NewDeployServiceClient(httpClient connect.HTTPClient, baseURL string, opts 
 			connect.WithSchema(deployServiceMethods.ByName("StopDeployment")),
 			connect.WithClientOptions(opts...),
 		),
-		wakeDeployment: connect.NewClient[v1.WakeDeploymentRequest, v1.WakeDeploymentResponse](
-			httpClient,
-			baseURL+DeployServiceWakeDeploymentProcedure,
-			connect.WithSchema(deployServiceMethods.ByName("WakeDeployment")),
-			connect.WithClientOptions(opts...),
-		),
 		deprovisionCompute: connect.NewClient[v1.DeprovisionComputeRequest, v1.DeprovisionComputeResponse](
 			httpClient,
 			baseURL+DeployServiceDeprovisionComputeProcedure,
@@ -168,7 +157,6 @@ type deployServiceClient struct {
 	authorizeDeployment *connect.Client[v1.AuthorizeDeploymentRequest, v1.AuthorizeDeploymentResponse]
 	cancelDeployment    *connect.Client[v1.CancelDeploymentRequest, v1.CancelDeploymentResponse]
 	stopDeployment      *connect.Client[v1.StopDeploymentRequest, v1.StopDeploymentResponse]
-	wakeDeployment      *connect.Client[v1.WakeDeploymentRequest, v1.WakeDeploymentResponse]
 	deprovisionCompute  *connect.Client[v1.DeprovisionComputeRequest, v1.DeprovisionComputeResponse]
 }
 
@@ -207,11 +195,6 @@ func (c *deployServiceClient) StopDeployment(ctx context.Context, req *connect.R
 	return c.stopDeployment.CallUnary(ctx, req)
 }
 
-// WakeDeployment calls ctrl.v1.DeployService.WakeDeployment.
-func (c *deployServiceClient) WakeDeployment(ctx context.Context, req *connect.Request[v1.WakeDeploymentRequest]) (*connect.Response[v1.WakeDeploymentResponse], error) {
-	return c.wakeDeployment.CallUnary(ctx, req)
-}
-
 // DeprovisionCompute calls ctrl.v1.DeployService.DeprovisionCompute.
 func (c *deployServiceClient) DeprovisionCompute(ctx context.Context, req *connect.Request[v1.DeprovisionComputeRequest]) (*connect.Response[v1.DeprovisionComputeResponse], error) {
 	return c.deprovisionCompute.CallUnary(ctx, req)
@@ -237,8 +220,6 @@ type DeployServiceHandler interface {
 	CancelDeployment(context.Context, *connect.Request[v1.CancelDeploymentRequest]) (*connect.Response[v1.CancelDeploymentResponse], error)
 	// Stop a ready non-production deployment by scaling it down.
 	StopDeployment(context.Context, *connect.Request[v1.StopDeploymentRequest]) (*connect.Response[v1.StopDeploymentResponse], error)
-	// Wake a stopped deployment by scaling it back up.
-	WakeDeployment(context.Context, *connect.Request[v1.WakeDeploymentRequest]) (*connect.Response[v1.WakeDeploymentResponse], error)
 	// DeprovisionCompute tears down a workspace's Compute: it stops all running
 	// compute via DeployTeardownService.Teardown(ARCHIVE) and clears the local
 	// deploy_plan entitlement so the workspace can no longer deploy. The dashboard
@@ -297,12 +278,6 @@ func NewDeployServiceHandler(svc DeployServiceHandler, opts ...connect.HandlerOp
 		connect.WithSchema(deployServiceMethods.ByName("StopDeployment")),
 		connect.WithHandlerOptions(opts...),
 	)
-	deployServiceWakeDeploymentHandler := connect.NewUnaryHandler(
-		DeployServiceWakeDeploymentProcedure,
-		svc.WakeDeployment,
-		connect.WithSchema(deployServiceMethods.ByName("WakeDeployment")),
-		connect.WithHandlerOptions(opts...),
-	)
 	deployServiceDeprovisionComputeHandler := connect.NewUnaryHandler(
 		DeployServiceDeprovisionComputeProcedure,
 		svc.DeprovisionCompute,
@@ -325,8 +300,6 @@ func NewDeployServiceHandler(svc DeployServiceHandler, opts ...connect.HandlerOp
 			deployServiceCancelDeploymentHandler.ServeHTTP(w, r)
 		case DeployServiceStopDeploymentProcedure:
 			deployServiceStopDeploymentHandler.ServeHTTP(w, r)
-		case DeployServiceWakeDeploymentProcedure:
-			deployServiceWakeDeploymentHandler.ServeHTTP(w, r)
 		case DeployServiceDeprovisionComputeProcedure:
 			deployServiceDeprovisionComputeHandler.ServeHTTP(w, r)
 		default:
@@ -364,10 +337,6 @@ func (UnimplementedDeployServiceHandler) CancelDeployment(context.Context, *conn
 
 func (UnimplementedDeployServiceHandler) StopDeployment(context.Context, *connect.Request[v1.StopDeploymentRequest]) (*connect.Response[v1.StopDeploymentResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ctrl.v1.DeployService.StopDeployment is not implemented"))
-}
-
-func (UnimplementedDeployServiceHandler) WakeDeployment(context.Context, *connect.Request[v1.WakeDeploymentRequest]) (*connect.Response[v1.WakeDeploymentResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ctrl.v1.DeployService.WakeDeployment is not implemented"))
 }
 
 func (UnimplementedDeployServiceHandler) DeprovisionCompute(context.Context, *connect.Request[v1.DeprovisionComputeRequest]) (*connect.Response[v1.DeprovisionComputeResponse], error) {
