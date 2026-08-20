@@ -15,6 +15,21 @@ func insertClickhouseOutboxTransactionBatchStatement(params InsertClickhouseOutb
 	}
 }
 
+func insertClickhouseOutboxForCreditUpdateTransactionBatchStatement(params InsertClickhouseOutboxForCreditUpdateParams) transactionBatchStatement {
+	return transactionBatchStatement{
+		query: insertClickhouseOutboxForCreditUpdate,
+		args: []any{
+			params.Version,
+			params.WorkspaceID,
+			params.EventID,
+			params.Payload,
+			params.KeyID,
+			params.CreatedAt,
+			params.KeyID,
+		},
+	}
+}
+
 func insertKeyTransactionBatchStatement(params InsertKeyParams) transactionBatchStatement {
 	return transactionBatchStatement{
 		query: insertKey,
@@ -60,6 +75,40 @@ func updateKeyTransactionBatchStatement(params UpdateKeyParams) transactionBatch
 			params.RefillDaySpecified,
 			params.RefillDay,
 			params.Now,
+			params.ID,
+		},
+	}
+}
+
+func updateKeyCreditsDecrementReturningTransactionBatchStatement(params UpdateKeyCreditsDecrementReturningParams) transactionBatchStatement {
+	return transactionBatchStatement{
+		query: updateKeyCreditsDecrementReturning,
+		args: []any{
+			params.Credits,
+			params.Credits,
+			params.ID,
+		},
+	}
+}
+
+func updateKeyCreditsIncrementReturningTransactionBatchStatement(params UpdateKeyCreditsIncrementReturningParams) transactionBatchStatement {
+	return transactionBatchStatement{
+		query: updateKeyCreditsIncrementReturning,
+		args: []any{
+			params.Credits,
+			params.ID,
+			params.Credits,
+		},
+	}
+}
+
+func updateKeyCreditsSetTransactionBatchStatement(params UpdateKeyCreditsSetParams) transactionBatchStatement {
+	return transactionBatchStatement{
+		query: updateKeyCreditsSet,
+		args: []any{
+			params.Credits,
+			params.ClearRefillAmount,
+			params.ClearRefillDay,
 			params.ID,
 		},
 	}

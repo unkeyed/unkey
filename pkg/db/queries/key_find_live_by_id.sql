@@ -175,3 +175,25 @@ WHERE k.id = sqlc.arg(id)
     AND a.deleted_at_m IS NULL
     AND ka.deleted_at_m IS NULL
     AND ws.deleted_at_m IS NULL;
+
+-- name: FindLiveKeyForCreditsByID :one
+-- Credit updates only need authorization, audit, cache, and credit state.
+SELECT
+    k.id,
+    k.key_auth_id,
+    k.hash,
+    k.workspace_id,
+    k.name,
+    k.refill_day,
+    k.refill_amount,
+    k.remaining_requests,
+    a.id AS api_id
+FROM `keys` k
+JOIN apis a ON a.key_auth_id = k.key_auth_id
+JOIN key_auth ka ON ka.id = k.key_auth_id
+JOIN workspaces ws ON k.workspace_id = ws.id
+WHERE k.id = sqlc.arg(id)
+    AND k.deleted_at_m IS NULL
+    AND a.deleted_at_m IS NULL
+    AND ka.deleted_at_m IS NULL
+    AND ws.deleted_at_m IS NULL;

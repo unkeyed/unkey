@@ -20,8 +20,13 @@ import (
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_keys_update_credits"
 )
 
+func newUpdateCreditsHarness(t *testing.T) *testutil.Harness {
+	t.Helper()
+	return testutil.NewHarness(t, testutil.HarnessConfig{MultiStatementBatches: true})
+}
+
 func TestKeyUpdateCreditsSuccess(t *testing.T) {
-	h := testutil.NewHarness(t)
+	h := newUpdateCreditsHarness(t)
 	ctx := context.Background()
 
 	route := &handler.Handler{
@@ -104,6 +109,19 @@ func TestKeyUpdateCreditsSuccess(t *testing.T) {
 		require.EqualValues(t, key.RemainingRequests.Int64, setTo)
 	})
 
+	t.Run("setting the current value succeeds as a no-op", func(t *testing.T) {
+		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
+			KeyId:     keyID,
+			Operation: openapi.Set,
+			Value:     nullable.NewNullableWithValue(setTo),
+		})
+
+		require.Equal(t, http.StatusOK, res.Status)
+		remaining, err := res.Body.Data.Remaining.Get()
+		require.NoError(t, err)
+		require.Equal(t, setTo, remaining)
+	})
+
 	increaseBy := int64(rand.IntN(50) + 1)
 	t.Run(fmt.Sprintf("increase credits by %d", increaseBy), func(t *testing.T) {
 		// Get current credits before decrement
@@ -131,6 +149,17 @@ func TestKeyUpdateCreditsSuccess(t *testing.T) {
 		require.NotNil(t, key)
 		require.Equal(t, key.RemainingRequests.Valid, true)
 		require.EqualValues(t, key.RemainingRequests.Int64, currentCredits+increaseBy)
+
+		expectedDescription := fmt.Sprintf("Updated Key %s, set remaining to %d.", keyID, currentCredits+increaseBy)
+		auditLogs := h.FindAuditLogsByTargetID(ctx, t, keyID)
+		require.Condition(t, func() bool {
+			for _, event := range auditLogs {
+				if event.Description == expectedDescription {
+					return true
+				}
+			}
+			return false
+		}, "expected audit description %q", expectedDescription)
 	})
 
 	decreaseBy := int64(rand.IntN(50) + 1)
@@ -223,7 +252,7 @@ func TestKeyUpdateCreditsSuccess(t *testing.T) {
 }
 
 func TestKeyUpdateCreditsWithURNPermission(t *testing.T) {
-	h := testutil.NewHarness(t)
+	h := newUpdateCreditsHarness(t)
 	ctx := context.Background()
 
 	route := &handler.Handler{

@@ -107,7 +107,9 @@ func (g *Generator) Generate(req *plugin.GenerateRequest) (*plugin.GenerateRespo
 
 // isInsertQuery checks if a query is an INSERT query that should have a bulk function generated.
 func (g *Generator) isInsertQuery(query *plugin.Query) bool {
-	return query.GetInsertIntoTable() != nil && len(query.GetParams()) > 0
+	return query.GetInsertIntoTable() != nil &&
+		len(query.GetParams()) > 0 &&
+		strings.Contains(strings.ToUpper(NewSQLParser().cleanSQL(query.GetText())), " VALUES")
 }
 
 // generateBulkInsertFunction generates a bulk insert function for the given query.

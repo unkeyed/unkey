@@ -485,7 +485,7 @@ func TestKeyAuth_UsageExceededHasDistinctCode(t *testing.T) {
 	ctx := context.Background()
 	s := h.seed(ctx)
 
-	err := db.Query.UpdateKeyCreditsSet(ctx, h.db.RW(), db.UpdateKeyCreditsSetParams{
+	_, err := db.Query.UpdateKeyCreditsSet(ctx, h.db.RW(), db.UpdateKeyCreditsSetParams{
 		Credits: sql.NullInt64{Int64: 0, Valid: true},
 		ID:      s.KeyID,
 	})
@@ -512,7 +512,7 @@ func TestKeyAuth_CreditsOverrideZero_DoesNotSpend(t *testing.T) {
 	ctx := context.Background()
 	s := h.seed(ctx)
 
-	err := db.Query.UpdateKeyCreditsSet(ctx, h.db.RW(), db.UpdateKeyCreditsSetParams{
+	_, err := db.Query.UpdateKeyCreditsSet(ctx, h.db.RW(), db.UpdateKeyCreditsSetParams{
 		Credits: sql.NullInt64{Int64: 0, Valid: true},
 		ID:      s.KeyID,
 	})
@@ -558,7 +558,7 @@ func TestKeyAuth_CreditsOverride_ChargesConfiguredCost(t *testing.T) {
 
 	// Two remaining credits: the default cost of 1 would pass, but a cost of 3
 	// exceeds the balance.
-	err := db.Query.UpdateKeyCreditsSet(ctx, h.db.RW(), db.UpdateKeyCreditsSetParams{
+	_, err := db.Query.UpdateKeyCreditsSet(ctx, h.db.RW(), db.UpdateKeyCreditsSetParams{
 		Credits: sql.NullInt64{Int64: 2, Valid: true},
 		ID:      s.KeyID,
 	})

@@ -152,8 +152,18 @@ func TestGenerator_isInsertQuery(t *testing.T) {
 			query: &plugin.Query{
 				InsertIntoTable: &plugin.Identifier{Name: "users"},
 				Params:          []*plugin.Parameter{{Column: &plugin.Column{Name: "id"}}},
+				Text:            "INSERT INTO users (id) VALUES (?)",
 			},
 			expected: true,
+		},
+		{
+			name: "insert select query",
+			query: &plugin.Query{
+				InsertIntoTable: &plugin.Identifier{Name: "users"},
+				Params:          []*plugin.Parameter{{Column: &plugin.Column{Name: "id"}}},
+				Text:            "INSERT INTO users (id) SELECT id FROM pending_users",
+			},
+			expected: false,
 		},
 		{
 			name: "insert query without parameters",

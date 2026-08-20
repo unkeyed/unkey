@@ -86,8 +86,8 @@ func hasBatchStatementDirective(query *plugin.Query) (bool, error) {
 }
 
 func validateBatchStatement(query *plugin.Query) error {
-	if query.GetCmd() != ":exec" {
-		return fmt.Errorf("transactional batch statement %q must use :exec", query.GetName())
+	if query.GetCmd() != ":exec" && query.GetCmd() != ":execresult" {
+		return fmt.Errorf("transactional batch statement %q must use :exec or :execresult", query.GetName())
 	}
 	if len(query.GetParams()) <= 1 {
 		return fmt.Errorf("transactional batch statement %q must use a parameter struct", query.GetName())
