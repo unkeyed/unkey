@@ -78,8 +78,8 @@ actions:
   - target: $["components"]["schemas"]["V2EnvironmentsUpdateSettingsRequestBody"]["properties"]["buildCommand"]
     update:
       nullable: true
-  # oapi-codegen maps complete oneOf branches to a union wrapper. Flatten this
-  # request schema for Go while the public schema remains a strict union.
+  # oapi-codegen maps complete oneOf branches to a union wrapper. Flatten these
+  # two request schemas for Go while the public schema remains a strict union.
   - target: $["components"]["schemas"]["V2AppsCreateAppRequestBody"]["oneOf"][*]["type"]
     remove: true
   - target: $["components"]["schemas"]["V2AppsCreateAppRequestBody"]["oneOf"][*]["properties"]
@@ -104,10 +104,33 @@ actions:
         docker:
           "$ref": "#/components/schemas/AppDockerInput"
       additionalProperties: false
-  - target: $["components"]["schemas"]["V2AppsUpdateAppRequestBody"]["properties"]["git"]["anyOf"]
+  - target: $["components"]["schemas"]["V2AppsUpdateAppRequestBody"]["oneOf"][*]["type"]
     remove: true
-  - target: $["components"]["schemas"]["V2AppsUpdateAppRequestBody"]["properties"]["git"]
+  - target: $["components"]["schemas"]["V2AppsUpdateAppRequestBody"]["oneOf"][*]["properties"]
+    remove: true
+  - target: $["components"]["schemas"]["V2AppsUpdateAppRequestBody"]["oneOf"][*]["additionalProperties"]
+    remove: true
+  - target: $["components"]["schemas"]["V2AppsUpdateAppRequestBody"]
     update:
-      nullable: true
-      allOf:
-        - "$ref": "#/components/schemas/AppGitUpdateInput"
+      type: object
+      required: [project, app]
+      properties:
+        project:
+          "$ref": "#/components/schemas/ResourceIdentifier"
+        app:
+          "$ref": "#/components/schemas/ResourceIdentifier"
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+        slug:
+          "$ref": "#/components/schemas/ResourceIdentifier"
+        git:
+          nullable: true
+          allOf:
+            - "$ref": "#/components/schemas/AppGitUpdateInput"
+        docker:
+          "$ref": "#/components/schemas/AppDockerInput"
+        deleteProtection:
+          type: boolean
+      additionalProperties: false
