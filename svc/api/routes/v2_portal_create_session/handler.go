@@ -375,6 +375,23 @@ func ScopeQueries(
 		// requires. The encryption conjunct is keyspace-conditional: a portal
 		// session that can mint a key in a keyspace storing recoverable key
 		// material also hands out that material.
+		//
+		// The conjunct keys off the keyspace flag rather than an individual
+		// key's encryption row because mint time cannot know which key a
+		// session will later reroll (KTD5). That makes it a conservative proxy
+		// that can go stale, which is safe today: the reroll core gates both
+		// the encryption write and its own encrypt_key conjunct on the key
+		// itself (v2_keys_reroll_key/handler.go:161 and :418), so turning a
+		// keyspace's encryption on does not make already-existing keys
+		// recoverable and grants a live session nothing new.
+		//
+		// Two paths would escalate once UpdateKeySpaceKeyEncryption gains a
+		// production caller: a keyspace toggled on, off, then on again around a
+		// mint, and a future portal create-key route where a single flip is
+		// enough. Both belong to the toggle, which must invalidate live portal
+		// sessions on a keyspace when it turns encryption on. Do not close them
+		// here by requiring encrypt_key unconditionally: that would make this
+		// ceiling stricter than the operator route it exists to mirror.
 		queries := []rbac.PermissionQuery{keyperms.CreateKey(keyspace)}
 		if storeEncryptedKeys {
 			queries = append(queries, keyperms.EncryptKey(keyspace))
