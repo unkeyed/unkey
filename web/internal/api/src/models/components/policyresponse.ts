@@ -11,6 +11,7 @@ import {
   FirewallPolicy$inboundSchema,
 } from "./firewallpolicy.js";
 import { KeyauthPolicy, KeyauthPolicy$inboundSchema } from "./keyauthpolicy.js";
+import { LoggingPolicy, LoggingPolicy$inboundSchema } from "./loggingpolicy.js";
 import { MatchExpr, MatchExpr$inboundSchema } from "./matchexpr.js";
 import { OpenapiPolicy, OpenapiPolicy$inboundSchema } from "./openapipolicy.js";
 import {
@@ -22,7 +23,7 @@ import {
  * A stored gateway policy as returned by list endpoints. Exactly one of
  *
  * @remarks
- * `keyauth`, `ratelimit`, `firewall` or `openapi` is set.
+ * `keyauth`, `ratelimit`, `firewall`, `openapi` or `logging` is set.
  */
 export type PolicyResponse = {
   /**
@@ -68,6 +69,20 @@ export type PolicyResponse = {
    * the policy is a no-op and requests pass through unvalidated.
    */
   openapi?: OpenapiPolicy | undefined;
+  /**
+   * Adds request data to the log entries of matching requests. The gateway
+   *
+   * @remarks
+   * always records a basic log entry for every request: method, host, path,
+   * status, and latency. Each capture setting is a separate opt-in: request
+   * headers, response headers, request body, response body, and query data.
+   * The policy's `match` expressions select the requests. A policy without
+   * `match` expressions matches every request. If more than one enabled
+   * logging policy matches a request, the gateway combines their settings.
+   * The gateway always redacts the `Authorization` header and configured key
+   * locations before it stores headers or query data.
+   */
+  logging?: LoggingPolicy | undefined;
 };
 
 /** @internal */
@@ -84,6 +99,7 @@ export const PolicyResponse$inboundSchema: z.ZodType<
   ratelimit: RatelimitPolicy$inboundSchema.optional(),
   firewall: FirewallPolicy$inboundSchema.optional(),
   openapi: OpenapiPolicy$inboundSchema.optional(),
+  logging: LoggingPolicy$inboundSchema.optional(),
 });
 
 export function policyResponseFromJSON(
