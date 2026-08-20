@@ -1,0 +1,26 @@
+type: object
+description: |
+  Name the portal directly with `portal`, or name the resource it serves with
+  `mapping`. Exactly one of the two is required; sending both is a bad request.
+properties:
+  portal:
+    "$ref": "../../../../common/ResourceIdentifier.yaml"
+  mapping:
+    "$ref": "../../../../common/PortalMapping.yaml"
+additionalProperties: false
+examples:
+  byId:
+    summary: Look up by portal id
+    value:
+      portal: pc_1234abcd
+  bySlug:
+    summary: Look up by portal slug
+    value:
+      portal: acme-portal
+  byKeyspace:
+    summary: Look up by the keyspace it serves
+    description: For callers that hold the keyspace but not the portal id
+    value:
+      mapping:
+        type: keyspace
+        id: ks_1234abcd

@@ -1,0 +1,30 @@
+type: object
+required:
+  - type
+  - id
+description: |
+  The single resource a portal serves keys for.
+
+  A portal maps to exactly one app or one keyspace, never several and never
+  neither. Naming the kind and the id together makes that invariant part of the
+  request shape: there is no way to express a portal with two mappings, and no
+  way to express one with none.
+properties:
+  type:
+    type: string
+    enum:
+      - app
+      - keyspace
+    description: |
+      Whether `id` names an app or a keyspace.
+    example: keyspace
+  id:
+    type: string
+    minLength: 1
+    maxLength: 255
+    pattern: "^[a-zA-Z0-9_-]+$"
+    description: |
+      The id of the app or keyspace this portal serves. Must belong to your
+      workspace.
+    example: ks_1234abcd
+additionalProperties: false
