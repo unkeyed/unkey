@@ -11,7 +11,7 @@ import (
 )
 
 const listAppsByProject = `-- name: ListAppsByProject :many
-SELECT apps.pk, apps.id, apps.workspace_id, apps.project_id, apps.name, apps.slug, apps.default_branch, apps.current_deployment_id, apps.is_rolled_back, apps.delete_protection, apps.created_at, apps.updated_at, grc.repository_full_name AS repository_full_name
+SELECT apps.pk, apps.id, apps.workspace_id, apps.project_id, apps.name, apps.slug, apps.source_type, apps.default_branch, apps.current_deployment_id, apps.is_rolled_back, apps.delete_protection, apps.created_at, apps.updated_at, grc.repository_full_name AS repository_full_name
 FROM apps
 LEFT JOIN github_repo_connections grc ON grc.app_id = apps.id
 WHERE apps.project_id = ?
@@ -36,6 +36,7 @@ type ListAppsByProjectRow struct {
 	ProjectID           string         `db:"project_id"`
 	Name                string         `db:"name"`
 	Slug                string         `db:"slug"`
+	SourceType          AppsSourceType `db:"source_type"`
 	DefaultBranch       string         `db:"default_branch"`
 	CurrentDeploymentID sql.NullString `db:"current_deployment_id"`
 	IsRolledBack        bool           `db:"is_rolled_back"`
@@ -47,7 +48,7 @@ type ListAppsByProjectRow struct {
 
 // ListAppsByProject
 //
-//	SELECT apps.pk, apps.id, apps.workspace_id, apps.project_id, apps.name, apps.slug, apps.default_branch, apps.current_deployment_id, apps.is_rolled_back, apps.delete_protection, apps.created_at, apps.updated_at, grc.repository_full_name AS repository_full_name
+//	SELECT apps.pk, apps.id, apps.workspace_id, apps.project_id, apps.name, apps.slug, apps.source_type, apps.default_branch, apps.current_deployment_id, apps.is_rolled_back, apps.delete_protection, apps.created_at, apps.updated_at, grc.repository_full_name AS repository_full_name
 //	FROM apps
 //	LEFT JOIN github_repo_connections grc ON grc.app_id = apps.id
 //	WHERE apps.project_id = ?
@@ -80,6 +81,7 @@ func (q *Queries) ListAppsByProject(ctx context.Context, db DBTX, arg ListAppsBy
 			&i.ProjectID,
 			&i.Name,
 			&i.Slug,
+			&i.SourceType,
 			&i.DefaultBranch,
 			&i.CurrentDeploymentID,
 			&i.IsRolledBack,

@@ -267,6 +267,49 @@ func (ns NullAppRuntimeSettingsUpstreamProtocol) Value() (driver.Value, error) {
 	return string(ns.AppRuntimeSettingsUpstreamProtocol), nil
 }
 
+type AppsSourceType string
+
+const (
+	AppsSourceTypeUnknown AppsSourceType = "unknown"
+	AppsSourceTypeGit     AppsSourceType = "git"
+	AppsSourceTypeOci     AppsSourceType = "oci"
+)
+
+func (e *AppsSourceType) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = AppsSourceType(s)
+	case string:
+		*e = AppsSourceType(s)
+	default:
+		return fmt.Errorf("unsupported scan type for AppsSourceType: %T", src)
+	}
+	return nil
+}
+
+type NullAppsSourceType struct {
+	AppsSourceType AppsSourceType
+	Valid          bool // Valid is true if AppsSourceType is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullAppsSourceType) Scan(value interface{}) error {
+	if value == nil {
+		ns.AppsSourceType, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.AppsSourceType.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullAppsSourceType) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.AppsSourceType), nil
+}
+
 type BillingSubscriptionsProduct string
 
 const (
@@ -610,6 +653,49 @@ func (ns NullDeploymentsShutdownSignal) Value() (driver.Value, error) {
 		return nil, nil
 	}
 	return string(ns.DeploymentsShutdownSignal), nil
+}
+
+type DeploymentsSource string
+
+const (
+	DeploymentsSourceUnknown DeploymentsSource = "unknown"
+	DeploymentsSourceGit     DeploymentsSource = "git"
+	DeploymentsSourceOci     DeploymentsSource = "oci"
+)
+
+func (e *DeploymentsSource) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = DeploymentsSource(s)
+	case string:
+		*e = DeploymentsSource(s)
+	default:
+		return fmt.Errorf("unsupported scan type for DeploymentsSource: %T", src)
+	}
+	return nil
+}
+
+type NullDeploymentsSource struct {
+	DeploymentsSource DeploymentsSource
+	Valid             bool // Valid is true if DeploymentsSource is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullDeploymentsSource) Scan(value interface{}) error {
+	if value == nil {
+		ns.DeploymentsSource, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.DeploymentsSource.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullDeploymentsSource) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.DeploymentsSource), nil
 }
 
 type DeploymentsStatus string
@@ -971,6 +1057,7 @@ type App struct {
 	ProjectID           string         `db:"project_id"`
 	Name                string         `db:"name"`
 	Slug                string         `db:"slug"`
+	SourceType          AppsSourceType `db:"source_type"`
 	DefaultBranch       string         `db:"default_branch"`
 	CurrentDeploymentID sql.NullString `db:"current_deployment_id"`
 	IsRolledBack        bool           `db:"is_rolled_back"`
@@ -1037,6 +1124,15 @@ type AppRuntimeSetting struct {
 	OpenapiSpecPath  sql.NullString                     `db:"openapi_spec_path"`
 	CreatedAt        int64                              `db:"created_at"`
 	UpdatedAt        sql.NullInt64                      `db:"updated_at"`
+}
+
+type AppSourceOci struct {
+	Pk             uint64        `db:"pk"`
+	WorkspaceID    string        `db:"workspace_id"`
+	AppID          string        `db:"app_id"`
+	ImageReference string        `db:"image_reference"`
+	CreatedAt      int64         `db:"created_at"`
+	UpdatedAt      sql.NullInt64 `db:"updated_at"`
 }
 
 type BillingSubscription struct {
@@ -1140,7 +1236,10 @@ type Deployment struct {
 	ProjectID                     string                      `db:"project_id"`
 	EnvironmentID                 string                      `db:"environment_id"`
 	AppID                         string                      `db:"app_id"`
+	Source                        DeploymentsSource           `db:"source"`
+	ImageRequested                sql.NullString              `db:"image_requested"`
 	Image                         sql.NullString              `db:"image"`
+	ImageResolved                 sql.NullString              `db:"image_resolved"`
 	BuildID                       sql.NullString              `db:"build_id"`
 	GitCommitSha                  sql.NullString              `db:"git_commit_sha"`
 	GitBranch                     sql.NullString              `db:"git_branch"`
@@ -1252,15 +1351,16 @@ type GithubAppInstallation struct {
 }
 
 type GithubRepoConnection struct {
-	Pk                 uint64        `db:"pk"`
-	WorkspaceID        string        `db:"workspace_id"`
-	ProjectID          string        `db:"project_id"`
-	AppID              string        `db:"app_id"`
-	InstallationID     int64         `db:"installation_id"`
-	RepositoryID       int64         `db:"repository_id"`
-	RepositoryFullName string        `db:"repository_full_name"`
-	CreatedAt          int64         `db:"created_at"`
-	UpdatedAt          sql.NullInt64 `db:"updated_at"`
+	Pk                 uint64         `db:"pk"`
+	WorkspaceID        string         `db:"workspace_id"`
+	ProjectID          string         `db:"project_id"`
+	AppID              string         `db:"app_id"`
+	InstallationID     int64          `db:"installation_id"`
+	RepositoryID       int64          `db:"repository_id"`
+	RepositoryFullName string         `db:"repository_full_name"`
+	DefaultBranch      sql.NullString `db:"default_branch"`
+	CreatedAt          int64          `db:"created_at"`
+	UpdatedAt          sql.NullInt64  `db:"updated_at"`
 }
 
 type HorizontalAutoscalingPolicy struct {
@@ -1414,17 +1514,17 @@ type Permission struct {
 }
 
 type Portal struct {
-	Pk          uint64          `db:"pk"`
-	ID          string          `db:"id"`
-	WorkspaceID string          `db:"workspace_id"`
-	Slug        string          `db:"slug"`
-	AppID       sql.NullString  `db:"app_id"`
-	KeyAuthID   sql.NullString  `db:"key_auth_id"`
-	Enabled     bool            `db:"enabled"`
-	ReturnUrl   sql.NullString  `db:"return_url"`
-	Branding    json.RawMessage `db:"branding"`
-	CreatedAt   int64           `db:"created_at"`
-	UpdatedAt   sql.NullInt64   `db:"updated_at"`
+	Pk           uint64         `db:"pk"`
+	ID           string         `db:"id"`
+	WorkspaceID  string         `db:"workspace_id"`
+	Slug         string         `db:"slug"`
+	AppID        sql.NullString `db:"app_id"`
+	KeyAuthID    sql.NullString `db:"key_auth_id"`
+	Enabled      bool           `db:"enabled"`
+	LogoUrl      sql.NullString `db:"logo_url"`
+	PrimaryColor sql.NullString `db:"primary_color"`
+	CreatedAt    int64          `db:"created_at"`
+	UpdatedAt    sql.NullInt64  `db:"updated_at"`
 }
 
 type PortalSession struct {
@@ -1441,6 +1541,7 @@ type PortalSession struct {
 	AccessTokenCreatedAt  sql.NullInt64   `db:"access_token_created_at"`
 	AccessTokenExpiresAt  sql.NullInt64   `db:"access_token_expires_at"`
 	RevokedAt             sql.NullInt64   `db:"revoked_at"`
+	ReturnUrl             sql.NullString  `db:"return_url"`
 	CreatedAt             int64           `db:"created_at"`
 }
 
