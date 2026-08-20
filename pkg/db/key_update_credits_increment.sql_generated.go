@@ -30,3 +30,34 @@ func (q *Queries) UpdateKeyCreditsIncrement(ctx context.Context, db DBTX, arg Up
 	_, err := db.ExecContext(ctx, updateKeyCreditsIncrement, arg.Credits, arg.ID)
 	return err
 }
+
+const updateKeyCreditsIncrementReturning = `-- name: UpdateKeyCreditsIncrementReturning :execresult
+UPDATE ` + "`" + `keys` + "`" + `
+SET
+    remaining_requests = LAST_INSERT_ID(remaining_requests + ?)
+WHERE id = ?
+  AND deleted_at_m IS NULL
+  AND remaining_requests IS NOT NULL
+  AND remaining_requests <= 9223372036854775807 - ?
+`
+
+type UpdateKeyCreditsIncrementReturningParams struct {
+	Credits sql.NullInt64 `db:"credits"`
+	ID      string        `db:"id"`
+}
+
+// LAST_INSERT_ID(expr) returns expr in this UPDATE's OK packet, so
+// sql.Result.LastInsertId reads the new balance without another query.
+// https://dev.mysql.com/doc/refman/8.4/en/information-functions.html#function_last-insert-id
+// transactional-batch-statement
+//
+//	UPDATE `keys`
+//	SET
+//	    remaining_requests = LAST_INSERT_ID(remaining_requests + ?)
+//	WHERE id = ?
+//	  AND deleted_at_m IS NULL
+//	  AND remaining_requests IS NOT NULL
+//	  AND remaining_requests <= 9223372036854775807 - ?
+func (q *Queries) UpdateKeyCreditsIncrementReturning(ctx context.Context, db DBTX, arg UpdateKeyCreditsIncrementReturningParams) (sql.Result, error) {
+	return db.ExecContext(ctx, updateKeyCreditsIncrementReturning, arg.Credits, arg.ID, arg.Credits)
+}

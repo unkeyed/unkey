@@ -13,7 +13,7 @@ import (
 )
 
 func TestUpdateKeyCreditsNotFound(t *testing.T) {
-	h := testutil.NewHarness(t)
+	h := newUpdateCreditsHarness(t)
 
 	route := &handler.Handler{
 		DB:           h.DB,

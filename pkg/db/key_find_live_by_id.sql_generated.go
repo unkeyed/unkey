@@ -572,6 +572,78 @@ func (q *Queries) FindLiveKeyByID(ctx context.Context, db DBTX, id string) (Find
 	return i, err
 }
 
+const findLiveKeyForCreditsByID = `-- name: FindLiveKeyForCreditsByID :one
+SELECT
+    k.id,
+    k.key_auth_id,
+    k.hash,
+    k.workspace_id,
+    k.name,
+    k.refill_day,
+    k.refill_amount,
+    k.remaining_requests,
+    a.id AS api_id
+FROM ` + "`" + `keys` + "`" + ` k
+JOIN apis a ON a.key_auth_id = k.key_auth_id
+JOIN key_auth ka ON ka.id = k.key_auth_id
+JOIN workspaces ws ON k.workspace_id = ws.id
+WHERE k.id = ?
+    AND k.deleted_at_m IS NULL
+    AND a.deleted_at_m IS NULL
+    AND ka.deleted_at_m IS NULL
+    AND ws.deleted_at_m IS NULL
+`
+
+type FindLiveKeyForCreditsByIDRow struct {
+	ID                string         `db:"id"`
+	KeyAuthID         string         `db:"key_auth_id"`
+	Hash              string         `db:"hash"`
+	WorkspaceID       string         `db:"workspace_id"`
+	Name              sql.NullString `db:"name"`
+	RefillDay         sql.NullInt16  `db:"refill_day"`
+	RefillAmount      sql.NullInt64  `db:"refill_amount"`
+	RemainingRequests sql.NullInt64  `db:"remaining_requests"`
+	ApiID             string         `db:"api_id"`
+}
+
+// Credit updates only need authorization, audit, cache, and credit state.
+//
+//	SELECT
+//	    k.id,
+//	    k.key_auth_id,
+//	    k.hash,
+//	    k.workspace_id,
+//	    k.name,
+//	    k.refill_day,
+//	    k.refill_amount,
+//	    k.remaining_requests,
+//	    a.id AS api_id
+//	FROM `keys` k
+//	JOIN apis a ON a.key_auth_id = k.key_auth_id
+//	JOIN key_auth ka ON ka.id = k.key_auth_id
+//	JOIN workspaces ws ON k.workspace_id = ws.id
+//	WHERE k.id = ?
+//	    AND k.deleted_at_m IS NULL
+//	    AND a.deleted_at_m IS NULL
+//	    AND ka.deleted_at_m IS NULL
+//	    AND ws.deleted_at_m IS NULL
+func (q *Queries) FindLiveKeyForCreditsByID(ctx context.Context, db DBTX, id string) (FindLiveKeyForCreditsByIDRow, error) {
+	row := db.QueryRowContext(ctx, findLiveKeyForCreditsByID, id)
+	var i FindLiveKeyForCreditsByIDRow
+	err := row.Scan(
+		&i.ID,
+		&i.KeyAuthID,
+		&i.Hash,
+		&i.WorkspaceID,
+		&i.Name,
+		&i.RefillDay,
+		&i.RefillAmount,
+		&i.RemainingRequests,
+		&i.ApiID,
+	)
+	return i, err
+}
+
 const findLiveKeyForUpdateByID = `-- name: FindLiveKeyForUpdateByID :one
 SELECT
     k.id,
