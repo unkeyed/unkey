@@ -9,15 +9,15 @@ import {
   DeploymentSourceDeployment$outboundSchema,
 } from "./deploymentsourcedeployment.js";
 import {
+  DeploymentSourceDocker,
+  DeploymentSourceDocker$Outbound,
+  DeploymentSourceDocker$outboundSchema,
+} from "./deploymentsourcedocker.js";
+import {
   DeploymentSourceGit,
   DeploymentSourceGit$Outbound,
   DeploymentSourceGit$outboundSchema,
 } from "./deploymentsourcegit.js";
-import {
-  DeploymentSourceImage,
-  DeploymentSourceImage$Outbound,
-  DeploymentSourceImage$outboundSchema,
-} from "./deploymentsourceimage.js";
 
 export type V2DeploymentsCreateDeploymentRequestBody3 = {
   /**
@@ -46,9 +46,9 @@ export type V2DeploymentsCreateDeploymentRequestBody3 = {
    */
   git?: DeploymentSourceGit | undefined;
   /**
-   * Deploy a prebuilt Docker image as-is.
+   * Deploy a prebuilt Docker image without a build.
    */
-  image?: DeploymentSourceImage | undefined;
+  docker?: DeploymentSourceDocker | undefined;
   /**
    * Re-run an existing deployment.
    */
@@ -82,9 +82,9 @@ export type V2DeploymentsCreateDeploymentRequestBody2 = {
    */
   git: DeploymentSourceGit;
   /**
-   * Deploy a prebuilt Docker image as-is.
+   * Deploy a prebuilt Docker image without a build.
    */
-  image?: DeploymentSourceImage | undefined;
+  docker?: DeploymentSourceDocker | undefined;
   /**
    * Re-run an existing deployment.
    */
@@ -118,9 +118,9 @@ export type V2DeploymentsCreateDeploymentRequestBody1 = {
    */
   git?: DeploymentSourceGit | undefined;
   /**
-   * Deploy a prebuilt Docker image as-is.
+   * Deploy a prebuilt Docker image without a build.
    */
-  image: DeploymentSourceImage;
+  docker: DeploymentSourceDocker;
   /**
    * Re-run an existing deployment.
    */
@@ -128,7 +128,7 @@ export type V2DeploymentsCreateDeploymentRequestBody1 = {
 };
 
 /**
- * Create a deployment. Provide exactly one of git, image, or deployment.
+ * Create a deployment. Provide exactly one of git, docker, or deployment.
  */
 export type V2DeploymentsCreateDeploymentRequestBodyUnion =
   | V2DeploymentsCreateDeploymentRequestBody1
@@ -141,7 +141,7 @@ export type V2DeploymentsCreateDeploymentRequestBody3$Outbound = {
   app: string;
   environment: string;
   git?: DeploymentSourceGit$Outbound | undefined;
-  image?: DeploymentSourceImage$Outbound | undefined;
+  docker?: DeploymentSourceDocker$Outbound | undefined;
   deployment: DeploymentSourceDeployment$Outbound;
 };
 
@@ -156,7 +156,7 @@ export const V2DeploymentsCreateDeploymentRequestBody3$outboundSchema:
     app: z.string(),
     environment: z.string(),
     git: DeploymentSourceGit$outboundSchema.optional(),
-    image: DeploymentSourceImage$outboundSchema.optional(),
+    docker: DeploymentSourceDocker$outboundSchema.optional(),
     deployment: DeploymentSourceDeployment$outboundSchema,
   });
 
@@ -177,7 +177,7 @@ export type V2DeploymentsCreateDeploymentRequestBody2$Outbound = {
   app: string;
   environment: string;
   git: DeploymentSourceGit$Outbound;
-  image?: DeploymentSourceImage$Outbound | undefined;
+  docker?: DeploymentSourceDocker$Outbound | undefined;
   deployment?: DeploymentSourceDeployment$Outbound | undefined;
 };
 
@@ -192,7 +192,7 @@ export const V2DeploymentsCreateDeploymentRequestBody2$outboundSchema:
     app: z.string(),
     environment: z.string(),
     git: DeploymentSourceGit$outboundSchema,
-    image: DeploymentSourceImage$outboundSchema.optional(),
+    docker: DeploymentSourceDocker$outboundSchema.optional(),
     deployment: DeploymentSourceDeployment$outboundSchema.optional(),
   });
 
@@ -213,7 +213,7 @@ export type V2DeploymentsCreateDeploymentRequestBody1$Outbound = {
   app: string;
   environment: string;
   git?: DeploymentSourceGit$Outbound | undefined;
-  image: DeploymentSourceImage$Outbound;
+  docker: DeploymentSourceDocker$Outbound;
   deployment?: DeploymentSourceDeployment$Outbound | undefined;
 };
 
@@ -228,7 +228,7 @@ export const V2DeploymentsCreateDeploymentRequestBody1$outboundSchema:
     app: z.string(),
     environment: z.string(),
     git: DeploymentSourceGit$outboundSchema.optional(),
-    image: DeploymentSourceImage$outboundSchema,
+    docker: DeploymentSourceDocker$outboundSchema,
     deployment: DeploymentSourceDeployment$outboundSchema.optional(),
   });
 

@@ -27,37 +27,32 @@ import { APICall, APIPromise } from "../types/async.js";
 import { Result } from "../types/fp.js";
 
 /**
- * Update app
+ * Query runtime log data
  *
  * @remarks
- * Update an existing app, identified by its id.
- *
- * The app name, slug, default branch, and delete protection setting can be changed. Omitted fields are left unchanged. Changing the slug affects the deployment domains generated for this app.
- *
- * **Important**: The slug cannot collide with an existing app in the same project. A duplicate slug returns a 409 conflict.
- *
- * **Required Permissions**
- *
- * Your root key must have one of the following permissions:
- * - `app.*.update_app` (to update any app)
- * - `app.<app_id>.update_app` (to update a specific app)
+ * A query can use only the public alias `runtime_logs_v1`. CTEs, subqueries, UNION, and EXCEPT are permitted.
+ * The root key must have the `project.*.read_runtime_logs` permission.
+ * Unkey limits each query to the workspace of the root key. To get the logs of one project, app, environment, or deployment, add a filter on `project_id`, `app_id`, `environment_id`, or `deployment_id`.
+ * The workspace retention period and the workspace query limits apply.
+ * For the table, the columns, and more query examples, see [Query runtime logs](/platform/analytics/get-runtime-logs).
  *
  * If set, this operation will use {@link Security.rootKey} from the global security.
  */
-export function appsUpdateApp(
+export function analyticsGetRuntimeLogs(
   client: UnkeyCore,
-  request: components.V2AppsUpdateAppRequestBodyUnion,
+  request: components.V2AnalyticsGetRuntimeLogsRequestBody,
   options?: RequestOptions,
 ): APIPromise<
   Result<
-    components.V2AppsUpdateAppResponseBody,
+    components.V2AnalyticsGetRuntimeLogsResponseBody,
     | errors.BadRequestErrorResponse
     | errors.UnauthorizedErrorResponse
     | errors.ForbiddenErrorResponse
-    | errors.NotFoundErrorResponse
-    | errors.ConflictErrorResponse
+    | errors.PreconditionFailedErrorResponse
+    | errors.UnprocessableEntityErrorResponse
     | errors.TooManyRequestsErrorResponse
     | errors.InternalServerErrorResponse
+    | errors.ServiceUnavailableErrorResponse
     | UnkeyError
     | ResponseValidationError
     | ConnectionError
@@ -77,19 +72,20 @@ export function appsUpdateApp(
 
 async function $do(
   client: UnkeyCore,
-  request: components.V2AppsUpdateAppRequestBodyUnion,
+  request: components.V2AnalyticsGetRuntimeLogsRequestBody,
   options?: RequestOptions,
 ): Promise<
   [
     Result<
-      components.V2AppsUpdateAppResponseBody,
+      components.V2AnalyticsGetRuntimeLogsResponseBody,
       | errors.BadRequestErrorResponse
       | errors.UnauthorizedErrorResponse
       | errors.ForbiddenErrorResponse
-      | errors.NotFoundErrorResponse
-      | errors.ConflictErrorResponse
+      | errors.PreconditionFailedErrorResponse
+      | errors.UnprocessableEntityErrorResponse
       | errors.TooManyRequestsErrorResponse
       | errors.InternalServerErrorResponse
+      | errors.ServiceUnavailableErrorResponse
       | UnkeyError
       | ResponseValidationError
       | ConnectionError
@@ -105,7 +101,9 @@ async function $do(
   const parsed = safeParse(
     request,
     (value) =>
-      components.V2AppsUpdateAppRequestBodyUnion$outboundSchema.parse(value),
+      components.V2AnalyticsGetRuntimeLogsRequestBody$outboundSchema.parse(
+        value,
+      ),
     "Input validation failed",
   );
   if (!parsed.ok) {
@@ -114,7 +112,7 @@ async function $do(
   const payload = parsed.value;
   const body = encodeJSON("body", payload, { explode: true });
 
-  const path = pathToFunc("/v2/apps.updateApp")();
+  const path = pathToFunc("/v2/analytics.getRuntimeLogs")();
 
   const headers = new Headers(compactMap({
     "Content-Type": "application/json",
@@ -128,7 +126,7 @@ async function $do(
   const context = {
     options: client._options,
     baseURL: options?.serverURL ?? client._baseURL ?? "",
-    operationID: "apps.updateApp",
+    operationID: "analytics.getRuntimeLogs",
     oAuth2Scopes: null,
 
     resolvedSecurity: requestSecurity,
@@ -182,14 +180,15 @@ async function $do(
   };
 
   const [result] = await M.match<
-    components.V2AppsUpdateAppResponseBody,
+    components.V2AnalyticsGetRuntimeLogsResponseBody,
     | errors.BadRequestErrorResponse
     | errors.UnauthorizedErrorResponse
     | errors.ForbiddenErrorResponse
-    | errors.NotFoundErrorResponse
-    | errors.ConflictErrorResponse
+    | errors.PreconditionFailedErrorResponse
+    | errors.UnprocessableEntityErrorResponse
     | errors.TooManyRequestsErrorResponse
     | errors.InternalServerErrorResponse
+    | errors.ServiceUnavailableErrorResponse
     | UnkeyError
     | ResponseValidationError
     | ConnectionError
@@ -199,16 +198,17 @@ async function $do(
     | UnexpectedClientError
     | SDKValidationError
   >(
-    M.json(200, components.V2AppsUpdateAppResponseBody$inboundSchema),
+    M.json(200, components.V2AnalyticsGetRuntimeLogsResponseBody$inboundSchema),
     M.jsonErr(400, errors.BadRequestErrorResponse$inboundSchema),
     M.jsonErr(401, errors.UnauthorizedErrorResponse$inboundSchema),
     M.jsonErr(403, errors.ForbiddenErrorResponse$inboundSchema),
-    M.jsonErr(404, errors.NotFoundErrorResponse$inboundSchema),
-    M.jsonErr(409, errors.ConflictErrorResponse$inboundSchema),
+    M.jsonErr(412, errors.PreconditionFailedErrorResponse$inboundSchema),
+    M.jsonErr(422, errors.UnprocessableEntityErrorResponse$inboundSchema),
     M.jsonErr(429, errors.TooManyRequestsErrorResponse$inboundSchema, {
       ctype: "application/problem+json",
     }),
     M.jsonErr(500, errors.InternalServerErrorResponse$inboundSchema),
+    M.jsonErr(503, errors.ServiceUnavailableErrorResponse$inboundSchema),
     M.fail("4XX"),
     M.fail("5XX"),
   )(response, req, { extraFields: responseFields });

@@ -32,6 +32,8 @@ import { Result } from "../types/fp.js";
  * @remarks
  * Create an app within a project. The app is created with default `production` and `preview` environments.
  *
+ * Set exactly one source. Use `git` to create a GitHub-sourced app and connect its repository. Use `docker` to create a Docker-sourced app.
+ *
  * The slug you provide is the stable, caller-defined handle used to reference this app. It must be unique within the project.
  *
  * **Important**: The slug cannot collide with an existing app in the same project. A duplicate slug returns a 409 conflict.
@@ -46,7 +48,7 @@ import { Result } from "../types/fp.js";
  */
 export function appsCreateApp(
   client: UnkeyCore,
-  request: components.V2AppsCreateAppRequestBody,
+  request: components.V2AppsCreateAppRequestBodyUnion,
   options?: RequestOptions,
 ): APIPromise<
   Result<
@@ -77,7 +79,7 @@ export function appsCreateApp(
 
 async function $do(
   client: UnkeyCore,
-  request: components.V2AppsCreateAppRequestBody,
+  request: components.V2AppsCreateAppRequestBodyUnion,
   options?: RequestOptions,
 ): Promise<
   [
@@ -105,7 +107,7 @@ async function $do(
   const parsed = safeParse(
     request,
     (value) =>
-      components.V2AppsCreateAppRequestBody$outboundSchema.parse(value),
+      components.V2AppsCreateAppRequestBodyUnion$outboundSchema.parse(value),
     "Input validation failed",
   );
   if (!parsed.ok) {

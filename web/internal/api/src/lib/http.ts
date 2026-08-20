@@ -45,10 +45,8 @@ export class HTTPClient {
   private requestHooks: BeforeRequestHook[] = [];
   private requestErrorHooks: RequestErrorHook[] = [];
   private responseHooks: ResponseHook[] = [];
-  private options: HTTPClientOptions;
 
-  constructor(options: HTTPClientOptions = {}) {
-    this.options = options;
+  constructor(private options: HTTPClientOptions = {}) {
     this.fetcher = options.fetcher || DEFAULT_FETCHER;
   }
 
