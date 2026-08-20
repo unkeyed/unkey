@@ -231,24 +231,33 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 	}
 
+	if req.Credits != nil && req.Credits.Refill != nil {
+		if !req.Credits.Remaining.IsSpecified() || req.Credits.Remaining.IsNull() {
+			return fault.New("missing credits.remaining",
+				fault.Code(codes.App.Validation.InvalidInput.URN()),
+				fault.Internal("credits.remaining required when refill is set"),
+				fault.Public("`credits.remaining` must be provided when `credits.refill` is set."),
+			)
+		}
+		if req.Credits.Refill.Interval == openapi.KeyCreditsRefillIntervalMonthly && req.Credits.Refill.RefillDay == 0 {
+			return fault.New("missing refillDay",
+				fault.Code(codes.App.Validation.InvalidInput.URN()),
+				fault.Internal("refillDay required for monthly interval"),
+				fault.Public("`refillDay` must be provided when the refill interval is `monthly`."),
+			)
+		}
+	}
+
 	now := time.Now().UnixMilli()
 
-	// A basic create has no data-dependent writes after the authorization
-	// preflight. Send the key insert, audit outbox insert, and commit as one
-	// MySQL multi-statement query. Rich creates retain the retrying transaction
-	// path below for identity, permission, role, rate-limit, and vault work.
+	// Creates without identity, permission, or role lookups have no
+	// data-dependent writes after authorization. Send all their writes and the
+	// commit in one MySQL multi-statement query.
 	auditPreparer, canPrepareAudit := h.Auditlogs.(auditlogs.OutboxPreparer)
 	canBatch := canPrepareAudit &&
-		req.Name == nil &&
 		req.ExternalId == nil &&
-		req.Meta == nil &&
-		req.Expires == nil &&
-		req.Credits == nil &&
-		req.Enabled == nil &&
-		req.Permissions == nil &&
-		req.Roles == nil &&
-		req.Ratelimits == nil &&
-		req.Recoverable == nil
+		(req.Permissions == nil || len(*req.Permissions) == 0) &&
+		(req.Roles == nil || len(*req.Roles) == 0)
 	if canBatch {
 		batchErr := retry.New(
 			retry.Attempts(5),
@@ -274,6 +283,65 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				RefillDay:          sql.NullInt16{},
 				RefillAmount:       sql.NullInt64{},
 				PendingMigrationID: sql.NullString{},
+			}
+			if req.Name != nil {
+				insertKey.Name = sql.NullString{String: *req.Name, Valid: true}
+			}
+			if req.Meta != nil {
+				meta, marshalErr := json.Marshal(*req.Meta)
+				if marshalErr != nil {
+					return fault.Wrap(marshalErr,
+						fault.Code(codes.App.Validation.InvalidInput.URN()),
+						fault.Internal("failed to marshal meta"), fault.Public("Invalid metadata format."),
+					)
+				}
+				insertKey.Meta = sql.NullString{String: string(meta), Valid: true}
+			}
+			if req.Expires != nil {
+				insertKey.Expires = sql.NullTime{Time: time.UnixMilli(*req.Expires), Valid: true}
+			}
+			if req.Credits != nil {
+				if req.Credits.Remaining.IsSpecified() && !req.Credits.Remaining.IsNull() {
+					insertKey.RemainingRequests = sql.NullInt64{Int64: req.Credits.Remaining.MustGet(), Valid: true}
+				}
+				if req.Credits.Refill != nil {
+					insertKey.RefillAmount = sql.NullInt64{Int64: req.Credits.Refill.Amount, Valid: true}
+					if req.Credits.Refill.Interval == openapi.KeyCreditsRefillIntervalMonthly {
+						insertKey.RefillDay = sql.NullInt16{Int16: int16(req.Credits.Refill.RefillDay), Valid: true} //nolint:gosec
+					}
+				}
+			}
+			if req.Enabled != nil {
+				insertKey.Enabled = *req.Enabled
+			}
+
+			var encryptionParams *db.InsertKeyEncryptionParams
+			if encryption != nil {
+				encryptionParams = &db.InsertKeyEncryptionParams{
+					WorkspaceID:     principal.WorkspaceID,
+					KeyID:           keyID,
+					Encrypted:       encryption.GetEncrypted(),
+					EncryptionKeyID: encryption.GetKeyId(),
+					CreatedAt:       now,
+				}
+			}
+
+			ratelimits := []db.InsertKeyRatelimitParams{}
+			if req.Ratelimits != nil {
+				ratelimits = make([]db.InsertKeyRatelimitParams, len(*req.Ratelimits))
+				for i, ratelimit := range *req.Ratelimits {
+					ratelimits[i] = db.InsertKeyRatelimitParams{
+						ID:          uid.New(uid.RatelimitPrefix),
+						WorkspaceID: principal.WorkspaceID,
+						KeyID:       sql.NullString{String: keyID, Valid: true},
+						Name:        ratelimit.Name,
+						Limit:       uint64(ratelimit.Limit),
+						Duration:    uint64(ratelimit.Duration),
+						CreatedAt:   now,
+						UpdatedAt:   sql.NullInt64{},
+						AutoApply:   ratelimit.AutoApply,
+					}
+				}
 			}
 			outboxRows, prepareErr := auditPreparer.PrepareOutboxRows(ctx, []auditlog.AuditLog{{
 				WorkspaceID:   principal.WorkspaceID,
@@ -310,7 +378,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				return fault.New("invalid audit outbox batch size", fault.Internal("create key batch requires exactly one audit outbox row"))
 			}
 
-			return h.DB.BatchRW().CreateKeyWithAuditBatch(ctx, insertKey, outboxRows[0])
+			return h.DB.BatchRW().CreateKeyWithAuditBatch(ctx, insertKey, encryptionParams, ratelimits, outboxRows[0])
 		})
 		if batchErr != nil {
 			return fault.Wrap(batchErr,

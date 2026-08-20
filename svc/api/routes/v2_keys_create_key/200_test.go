@@ -2,11 +2,13 @@ package handler_test
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"net/http"
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/oapi-codegen/nullable"
 	"github.com/stretchr/testify/require"
@@ -278,15 +280,22 @@ func TestCreateKeyWithEncryption(t *testing.T) {
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
 	}
 
-	// Test key creation with optional fields
 	name := "Test Key"
+	expires := time.Now().Add(time.Hour).Truncate(time.Millisecond)
 
 	req := handler.Request{
 		ApiId:       api.ID,
 		Name:        &name,
-		ExternalId:  ptr.P("user_123"),
+		Meta:        ptr.P(map[string]any{"source": "batch"}),
+		Expires:     ptr.P(expires.UnixMilli()),
 		Enabled:     ptr.P(true),
 		Recoverable: ptr.P(true),
+		Ratelimits: ptr.P([]openapi.RatelimitRequest{{
+			Name:      "requests",
+			Limit:     10,
+			Duration:  60_000,
+			AutoApply: true,
+		}}),
 	}
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
@@ -303,12 +312,21 @@ func TestCreateKeyWithEncryption(t *testing.T) {
 	require.True(t, key.Name.Valid)
 	require.Equal(t, name, key.Name.String)
 	require.True(t, key.Enabled)
+	require.JSONEq(t, `{"source":"batch"}`, key.Meta.String)
+	require.True(t, key.Expires.Time.Equal(expires))
 
-	// Verify key fields in database
 	keyEncryption, err := db.Query.FindKeyEncryptionByKeyID(ctx, h.DB.RO(), res.Body.Data.KeyId)
 	require.NoError(t, err)
 	require.Equal(t, keyEncryption.KeyID, res.Body.Data.KeyId)
 	require.Equal(t, keyEncryption.WorkspaceID, h.Resources().UserWorkspace.ID)
+
+	ratelimits, err := db.Query.ListRatelimitsByKeyID(ctx, h.DB.RO(), sql.NullString{String: res.Body.Data.KeyId, Valid: true})
+	require.NoError(t, err)
+	require.Len(t, ratelimits, 1)
+	require.Equal(t, "requests", ratelimits[0].Name)
+	require.EqualValues(t, 10, ratelimits[0].Limit)
+	require.EqualValues(t, 60_000, ratelimits[0].Duration)
+	require.True(t, ratelimits[0].AutoApply)
 }
 
 // TestCreateRecoverableKeyWithURNPermissions guarantees WorkOS-translated

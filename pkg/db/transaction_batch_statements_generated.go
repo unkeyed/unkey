@@ -44,6 +44,19 @@ func insertKeyRoleTransactionBatchStatement(params InsertKeyRoleParams) transact
 	}
 }
 
+func insertKeyEncryptionTransactionBatchStatement(params InsertKeyEncryptionParams) transactionBatchStatement {
+	return transactionBatchStatement{
+		query: insertKeyEncryption,
+		args: []any{
+			params.WorkspaceID,
+			params.KeyID,
+			params.Encrypted,
+			params.EncryptionKeyID,
+			params.CreatedAt,
+		},
+	}
+}
+
 func insertKeyTransactionBatchStatement(params InsertKeyParams) transactionBatchStatement {
 	return transactionBatchStatement{
 		query: insertKey,
