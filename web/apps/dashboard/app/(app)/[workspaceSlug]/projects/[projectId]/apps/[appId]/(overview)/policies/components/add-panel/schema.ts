@@ -177,7 +177,7 @@ export type KeyauthRatelimitFormValues = z.infer<typeof keyauthRatelimitFormSche
 const keyauthFormSchema = z.object({
   ...basePolicyFields,
   type: z.literal("keyauth"),
-  keySpaceIds: z
+  keyspaces: z
     .array(z.string())
     .min(1, "Select at least one keyspace")
     .max(POLICY_LIMITS.maxKeyspacesPerPolicy),
@@ -303,7 +303,7 @@ export function getDefaultValues(type: PolicyType): PolicyFormValues {
     .with("keyauth", () => ({
       ...base,
       type: "keyauth" as const,
-      keySpaceIds: [],
+      keyspaces: [],
       locations: [],
       permissionQuery: "",
       ratelimits: [],
@@ -439,7 +439,7 @@ export function toPolicy(
         enabled: true,
         type: "keyauth" as const,
         keyauth: {
-          keySpaceIds: v.keySpaceIds,
+          keyspaces: v.keyspaces,
           locations,
           permissionQuery: v.permissionQuery,
           ...(ratelimits.length > 0 ? { ratelimits } : {}),
@@ -607,7 +607,7 @@ export function fromPolicy(policy: Policy, environmentId: string): PolicyFormVal
         name: p.name,
         environmentId,
         matchConditions,
-        keySpaceIds: p.keyauth.keySpaceIds,
+        keyspaces: p.keyauth.keyspaces,
         locations,
         permissionQuery: p.keyauth.permissionQuery ?? "",
         ratelimits,
