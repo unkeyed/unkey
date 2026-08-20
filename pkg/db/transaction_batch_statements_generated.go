@@ -15,6 +15,30 @@ func insertClickhouseOutboxTransactionBatchStatement(params InsertClickhouseOutb
 	}
 }
 
+func insertKeyTransactionBatchStatement(params InsertKeyParams) transactionBatchStatement {
+	return transactionBatchStatement{
+		query: insertKey,
+		args: []any{
+			params.ID,
+			params.KeySpaceID,
+			params.Hash,
+			params.Start,
+			params.WorkspaceID,
+			params.ForWorkspaceID,
+			params.Name,
+			params.IdentityID,
+			params.Meta,
+			params.Expires,
+			params.CreatedAtM,
+			params.Enabled,
+			params.RemainingRequests,
+			params.RefillDay,
+			params.RefillAmount,
+			params.PendingMigrationID,
+		},
+	}
+}
+
 func updateKeyTransactionBatchStatement(params UpdateKeyParams) transactionBatchStatement {
 	return transactionBatchStatement{
 		query: updateKey,

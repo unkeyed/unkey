@@ -182,6 +182,21 @@ type Querier interface {
 	//    AND access_token_hash IS NULL
 	//    AND exchange_code_expires_at > ?
 	ExchangePortalSessionCode(ctx context.Context, db DBTX, arg ExchangePortalSessionCodeParams) (sql.Result, error)
+	//FindApiAndKeySpaceByID
+	//
+	//  SELECT
+	//      a.id AS api_id,
+	//      a.workspace_id,
+	//      a.key_auth_id,
+	//      a.name AS api_name,
+	//      COALESCE(ka.id, '') AS key_space_id,
+	//      COALESCE(ka.store_encrypted_keys, false) AS store_encrypted_keys,
+	//      ka.default_prefix,
+	//      ka.default_bytes
+	//  FROM apis a
+	//  LEFT JOIN key_auth ka ON ka.id = a.key_auth_id
+	//  WHERE a.id = ?
+	FindApiAndKeySpaceByID(ctx context.Context, db DBTX, id string) (FindApiAndKeySpaceByIDRow, error)
 	//FindApiByID
 	//
 	//  SELECT pk, id, name, workspace_id, project_id, ip_whitelist, auth_type, key_auth_id, created_at_m, updated_at_m, deleted_at_m, delete_protection FROM apis WHERE id = ?
@@ -1522,7 +1537,7 @@ type Querier interface {
 	//      auto_apply = VALUES(auto_apply),
 	//      updated_at = VALUES(created_at)
 	InsertIdentityRatelimit(ctx context.Context, db DBTX, arg InsertIdentityRatelimitParams) error
-	//InsertKey
+	// transactional-batch-statement
 	//
 	//  INSERT INTO `keys` (
 	//      id,

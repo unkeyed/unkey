@@ -10,6 +10,7 @@ import (
 
 	"github.com/oapi-codegen/nullable"
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/pkg/auditlog"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
@@ -19,10 +20,19 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
+func newCreateKeyHarness(t *testing.T) *testutil.Harness {
+	t.Helper()
+	return testutil.NewHarness(t, testutil.HarnessConfig{
+		Redis:                 false,
+		ClickHouse:            false,
+		MultiStatementBatches: true,
+	})
+}
+
 func TestCreateKeySuccess(t *testing.T) {
 	t.Parallel()
 
-	h := testutil.NewHarness(t)
+	h := newCreateKeyHarness(t)
 	ctx := context.Background()
 
 	route := &handler.Handler{
@@ -67,6 +77,32 @@ func TestCreateKeySuccess(t *testing.T) {
 	require.NotEmpty(t, key.Hash)
 	require.NotEmpty(t, key.Start)
 	require.True(t, key.Enabled)
+
+	auditLogs := h.FindAuditLogsByTargetID(ctx, t, res.Body.Data.KeyId)
+	require.Len(t, auditLogs, 1)
+	require.Equal(t, string(auditlog.KeyCreateEvent), auditLogs[0].Event)
+}
+
+func TestCreateKeyWithExplicitRecoverableFalseUsesRegularTransaction(t *testing.T) {
+	t.Parallel()
+
+	// This harness deliberately does not enable multi-statements. An explicit
+	// optional field must retain the regular transaction path.
+	h := testutil.NewHarness(t)
+	route := &handler.Handler{DB: h.DB, Keys: h.Keys, Auditlogs: h.Auditlogs, Vault: h.Vault}
+	h.Register(route)
+	api := h.CreateApi(seed.CreateApiRequest{WorkspaceID: h.Resources().UserWorkspace.ID})
+	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "api.*.create_key")
+	headers := http.Header{
+		"Content-Type":  {"application/json"},
+		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+	}
+
+	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
+		ApiId:       api.ID,
+		Recoverable: ptr.P(false),
+	})
+	require.Equal(t, http.StatusOK, res.Status)
 }
 
 // TestCreateKeyWithURNPermission guarantees WorkOS-translated `keys:create`
@@ -74,7 +110,7 @@ func TestCreateKeySuccess(t *testing.T) {
 func TestCreateKeyWithURNPermission(t *testing.T) {
 	t.Parallel()
 
-	h := testutil.NewHarness(t)
+	h := newCreateKeyHarness(t)
 	ctx := context.Background()
 
 	route := &handler.Handler{
@@ -113,7 +149,7 @@ func TestCreateKeyWithURNPermission(t *testing.T) {
 func TestCreateKeyWithLegacyAPIPermission(t *testing.T) {
 	t.Parallel()
 
-	h := testutil.NewHarness(t)
+	h := newCreateKeyHarness(t)
 	ctx := context.Background()
 
 	route := &handler.Handler{
@@ -152,7 +188,7 @@ func TestCreateKeyWithLegacyAPIPermission(t *testing.T) {
 func TestCreateKeyWithOptionalFields(t *testing.T) {
 	t.Parallel()
 
-	h := testutil.NewHarness(t)
+	h := newCreateKeyHarness(t)
 	ctx := context.Background()
 
 	route := &handler.Handler{
@@ -222,7 +258,7 @@ func TestCreateKeyWithOptionalFields(t *testing.T) {
 func TestCreateKeyWithEncryption(t *testing.T) {
 	t.Parallel()
 
-	h := testutil.NewHarness(t)
+	h := newCreateKeyHarness(t)
 	ctx := context.Background()
 
 	route := &handler.Handler{
@@ -290,7 +326,7 @@ func TestCreateKeyWithEncryption(t *testing.T) {
 func TestCreateRecoverableKeyWithURNPermissions(t *testing.T) {
 	t.Parallel()
 
-	h := testutil.NewHarness(t)
+	h := newCreateKeyHarness(t)
 	ctx := context.Background()
 
 	route := &handler.Handler{
@@ -331,13 +367,11 @@ func TestCreateRecoverableKeyWithURNPermissions(t *testing.T) {
 }
 
 // TestCreateKeyConcurrentWithSameExternalId tests that concurrent key creation
-// with the same externalId doesn't deadlock. This was previously possible due to
-// gap locks when inserting identities. The fix uses INSERT ... ON DUPLICATE KEY
-// UPDATE (upsert) to avoid gap lock deadlocks.
+// with the same externalId recovers from the identity unique-key race.
 func TestCreateKeyConcurrentWithSameExternalId(t *testing.T) {
 	t.Parallel()
 
-	h := testutil.NewHarness(t)
+	h := newCreateKeyHarness(t)
 	ctx := t.Context()
 
 	route := &handler.Handler{
@@ -363,6 +397,11 @@ func TestCreateKeyConcurrentWithSameExternalId(t *testing.T) {
 	numConcurrent := 20
 	externalID := "user_concurrent_test"
 
+	// Warm the validator's schema cache without creating the shared identity so
+	// the burst below isolates the database race this test covers.
+	warmup := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{ApiId: api.ID})
+	require.Equal(t, http.StatusOK, warmup.Status, warmup.RawBody)
+
 	var mu sync.Mutex
 	keyIDs := make([]string, 0, numConcurrent)
 
@@ -375,7 +414,7 @@ func TestCreateKeyConcurrentWithSameExternalId(t *testing.T) {
 			}
 			res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 			if res.Status != 200 {
-				return fmt.Errorf("unexpected status code: %d", res.Status)
+				return fmt.Errorf("unexpected status code %d: %s", res.Status, res.RawBody)
 			}
 			mu.Lock()
 			keyIDs = append(keyIDs, res.Body.Data.KeyId)
@@ -417,7 +456,7 @@ func TestCreateKeyConcurrentWithSameExternalId(t *testing.T) {
 func TestCreateKeyWithCreditsRemainingNull(t *testing.T) {
 	t.Parallel()
 
-	h := testutil.NewHarness(t)
+	h := newCreateKeyHarness(t)
 
 	route := &handler.Handler{
 		DB:        h.DB,
@@ -465,7 +504,7 @@ func TestCreateKeyWithCreditsRemainingNull(t *testing.T) {
 func TestCreateKeyAppliesKeySpaceDefaults(t *testing.T) {
 	t.Parallel()
 
-	h := testutil.NewHarness(t)
+	h := newCreateKeyHarness(t)
 
 	route := &handler.Handler{
 		DB:        h.DB,

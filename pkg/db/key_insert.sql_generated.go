@@ -67,7 +67,7 @@ type InsertKeyParams struct {
 	PendingMigrationID sql.NullString `db:"pending_migration_id"`
 }
 
-// InsertKey
+// transactional-batch-statement
 //
 //	INSERT INTO `keys` (
 //	    id,
