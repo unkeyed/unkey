@@ -1,4 +1,5 @@
 import path from "node:path";
+import { nitroV2Plugin } from "@tanstack/nitro-v2-vite-plugin";
 import tailwindcss from "@tailwindcss/vite";
 import { tanstackStart } from "@tanstack/react-start/plugin/vite";
 import viteReact from "@vitejs/plugin-react";
@@ -14,5 +15,12 @@ export default defineConfig({
       "~": path.resolve(import.meta.dirname, "./src"),
     },
   },
-  plugins: [tailwindcss(), tanstackStart(), viteReact()],
+  plugins: [
+    tailwindcss(),
+    tanstackStart(),
+    // The Nitro server bundle otherwise inherits Vite's browser build target,
+    // which esbuild can't lower; pin it to the Node runtime instead.
+    nitroV2Plugin({ preset: "node-server", esbuild: { options: { target: "node22" } } }),
+    viteReact(),
+  ],
 });
