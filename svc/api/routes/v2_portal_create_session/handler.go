@@ -23,6 +23,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/zen"
 	apierrors "github.com/unkeyed/unkey/svc/api/internal/errors"
 	"github.com/unkeyed/unkey/svc/api/internal/policyconfig"
+	portalrules "github.com/unkeyed/unkey/svc/api/internal/portal"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	// The key requirements below are owned by the operator routes that
 	// enforce them, so this route borrows them rather than restating them.
@@ -276,6 +277,14 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	// return URL simply shows no return link.
 	returnURL := sql.NullString{Valid: false, String: ""}
 	if req.ReturnUrl != nil && *req.ReturnUrl != "" {
+		// Validated here rather than trusted from the spec. The field carries
+		// `format: uri`, which accepts `javascript:...` and is not asserted by the
+		// request validator anyway, and the portal renders this value as an anchor
+		// href -- so an unchecked scheme executes in the end user's browser, with
+		// the portal's origin.
+		if err = portalrules.ValidateReturnURL(*req.ReturnUrl); err != nil {
+			return err
+		}
 		returnURL = sql.NullString{Valid: true, String: *req.ReturnUrl}
 	}
 
