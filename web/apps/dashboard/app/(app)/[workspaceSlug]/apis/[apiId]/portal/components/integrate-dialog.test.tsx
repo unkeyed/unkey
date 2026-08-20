@@ -52,7 +52,6 @@ describe("IntegrateDialog", () => {
       expect(screen.getByTestId(`trigger-${language}`)).toBeDefined();
       const snippet = screen.getByTestId(`panel-${language}`).textContent ?? "";
       expect(snippet).toContain("acme-portal");
-      expect(snippet.length).toBeGreaterThan(0);
       expect(snippet).not.toContain("permissions");
       expect(snippet).not.toContain("portalId");
     }

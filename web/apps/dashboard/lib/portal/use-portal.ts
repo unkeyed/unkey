@@ -29,7 +29,7 @@ export type PortalState =
   | { status: "error"; message: string };
 
 /** A 404 means "no portal for this keyspace", which is a state, not a failure. */
-type PortalQueryResult = { found: true; portal: Portal } | { found: false };
+export type PortalQueryResult = { found: true; portal: Portal } | { found: false };
 
 export function portalQueryKey(keyAuthId: string): readonly [string, string] {
   return ["portal", keyAuthId];
@@ -41,7 +41,10 @@ export function usePortal(keyAuthId: string | undefined): PortalState {
     enabled: Boolean(keyAuthId),
     queryFn: async () => {
       if (!keyAuthId) {
-        return { found: false };
+        // `enabled` gates the query on a keyspace id, so this is unreachable.
+        // Reporting `found: false` here would spell "no portal" for what is
+        // really "no keyspace" — two states the surface treats differently.
+        throw new Error("portal query ran without a keyspace id");
       }
       try {
         const portal = await getPortalByMapping(keyspaceMapping(keyAuthId));

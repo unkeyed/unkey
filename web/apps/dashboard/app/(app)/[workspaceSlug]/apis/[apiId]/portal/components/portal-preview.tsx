@@ -1,20 +1,17 @@
 "use client";
 
+import { isHexColor } from "@/lib/portal/validation";
 import { cn } from "@/lib/utils";
 import { onPrimaryColor } from "@unkey/ui/src/lib/branding";
 import { useState } from "react";
-import type { PortalBrandingValue } from "./portal-branding";
-
-const HEX_RE = /^#[0-9a-fA-F]{6}$/;
-
-const DEFAULT_COLOR = "#18181B";
+import { DEFAULT_BRAND_COLOR, type PortalBrandingValue } from "./portal-branding";
 
 /**
- * Where end users land. A keyspace portal is always served from the configured
- * base host — only an app mapping can resolve a custom domain — so this is the
- * same address for every customer.
+ * The real address is derived from the deployment's `portal_base_url`, which the
+ * dashboard is not told, so the mock address bar stays generic rather than
+ * asserting a host that would be wrong on staging or a self-hosted install.
  */
-const PORTAL_BASE_HOST = "portal.unkey.com";
+const MOCK_ADDRESS = "Your customer portal";
 
 /**
  * Static, deliberately-lo-fi mock of the end-user portal page so operators can
@@ -35,7 +32,7 @@ export function PortalPreview({
   className?: string;
 }) {
   const [erroredUrl, setErroredUrl] = useState<string | null>(null);
-  const color = HEX_RE.test(branding.primaryColor) ? branding.primaryColor : DEFAULT_COLOR;
+  const color = isHexColor(branding.primaryColor) ? branding.primaryColor : DEFAULT_BRAND_COLOR;
   // The same helper the portal itself uses, so the preview cannot disagree with
   // what an end user sees.
   const onColor = onPrimaryColor(color);
@@ -55,7 +52,7 @@ export function PortalPreview({
           <span className="size-2 rounded-full bg-grayA-5" />
         </div>
         <div className="flex-1 truncate rounded-md border border-grayA-3 bg-gray-1 px-2 py-0.5 text-center text-[10px] text-gray-9">
-          {PORTAL_BASE_HOST}
+          {MOCK_ADDRESS}
         </div>
       </div>
 

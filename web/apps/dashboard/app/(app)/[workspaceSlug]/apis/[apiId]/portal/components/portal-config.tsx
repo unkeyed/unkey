@@ -1,9 +1,9 @@
 "use client";
 
 import { buildPortalUpdate, portalFormValues } from "@/lib/portal/build-update";
+import { SLUG_CONFLICT_DETAIL, portalConflict } from "@/lib/portal/conflicts";
 import { useDeletePortal, useUpdatePortal } from "@/lib/portal/use-portal";
 import { logoUrlSchema, portalSlugSchema, primaryColorSchema } from "@/lib/portal/validation";
-import { getErrorMessage } from "@/lib/unkey-client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { Portal } from "@unkey/api/models/components";
 import { TriangleWarning2 } from "@unkey/icons";
@@ -17,28 +17,18 @@ import {
   SettingsZoneRow,
   toast,
 } from "@unkey/ui";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { BrandColorField } from "./portal-branding";
 import { PortalPreview } from "./portal-preview";
 
 /**
- * `updatePortal` reports both of these as 409s under the same
- * `Data.Portal.Duplicate` code, so the public detail is the only thing that
- * separates them. Verbatim from `svc/api/routes/v2_portal_update_portal/handler.go`.
+ * The preview renders the logo URL in an `<img>`, so an unvalidated live value
+ * would issue one request per keystroke, most of them relative prefixes hitting
+ * the dashboard's own origin.
  */
-const SLUG_CONFLICT_DETAIL = "That slug is already in use. Choose a different slug.";
-const MAPPING_CONFLICT_DETAIL = "That app or keyspace already has a portal.";
-
-/**
- * The mapping check spans every workspace, so the portal holding this keyspace
- * may be one this operator cannot see. Telling them to pick another slug would
- * send them round a loop no slug can win.
- */
-const MAPPING_CONFLICT_MESSAGE =
-  "This API's keyspace already has a customer portal. It may belong to another workspace. " +
-  "Contact support@unkey.com if you think that's wrong.";
+const LOGO_PREVIEW_DEBOUNCE_MS = 300;
 
 const formSchema = z.object({
   slug: portalSlugSchema,
@@ -48,9 +38,29 @@ const formSchema = z.object({
 
 type FormValues = z.infer<typeof formSchema>;
 
-function isConflict(error: unknown): boolean {
-  const detail = getErrorMessage(error);
-  return detail === SLUG_CONFLICT_DETAIL || detail === MAPPING_CONFLICT_DETAIL;
+/**
+ * Only a slug conflict can reach this surface: `updatePortal` never changes a
+ * portal's mapping, and its handler returns early from the mapping-availability
+ * check when the request carries no mapping.
+ */
+function isSlugConflict(error: unknown): boolean {
+  return portalConflict(error) === "slug";
+}
+
+/**
+ * Holds back the value the preview renders until it parses as a logo URL and
+ * the operator has stopped typing.
+ */
+function useDebouncedLogoUrl(value: string, initial: string): string {
+  const [debounced, setDebounced] = useState(initial);
+
+  useEffect(() => {
+    const next = logoUrlSchema.safeParse(value).success ? value : "";
+    const timer = setTimeout(() => setDebounced(next), LOGO_PREVIEW_DEBOUNCE_MS);
+    return () => clearTimeout(timer);
+  }, [value]);
+
+  return debounced;
 }
 
 type Props = {
@@ -62,11 +72,10 @@ type Props = {
 
 export function PortalConfig({ portal, keyAuthId, resourceName }: Props) {
   const [disableOpen, setDisableOpen] = useState(false);
-  const [pageError, setPageError] = useState<string | null>(null);
 
-  // Conflicts are claimed so they land on the field or the page instead of in a
+  // The slug conflict is claimed so it lands on the field instead of in a
   // toast; every other failure keeps the hook's default toast.
-  const updatePortal = useUpdatePortal(keyAuthId, { onError: isConflict });
+  const updatePortal = useUpdatePortal(keyAuthId, { onError: isSlugConflict });
   const disablePortal = useUpdatePortal(keyAuthId);
 
   const {
@@ -85,9 +94,9 @@ export function PortalConfig({ portal, keyAuthId, resourceName }: Props) {
   });
 
   const values = watch();
+  const previewLogoUrl = useDebouncedLogoUrl(values.logoUrl, portal.branding?.logoUrl ?? "");
 
   const save = async (submitted: FormValues) => {
-    setPageError(null);
     clearErrors("slug");
     // `enabled` is not on this form; disabling is its own action below.
     const body = buildPortalUpdate(portal, { ...submitted, enabled: portal.enabled });
@@ -99,13 +108,9 @@ export function PortalConfig({ portal, keyAuthId, resourceName }: Props) {
       reset(submitted);
       toast.success("Changes saved");
     } catch (error) {
-      const detail = getErrorMessage(error);
-      if (detail === SLUG_CONFLICT_DETAIL) {
-        setError("slug", { type: "server", message: detail });
+      if (isSlugConflict(error)) {
+        setError("slug", { type: "server", message: SLUG_CONFLICT_DETAIL });
         return;
-      }
-      if (detail === MAPPING_CONFLICT_DETAIL) {
-        setPageError(MAPPING_CONFLICT_MESSAGE);
       }
       // Anything else already reached the operator as a toast.
     }
@@ -178,11 +183,6 @@ export function PortalConfig({ portal, keyAuthId, resourceName }: Props) {
                   </span>
                 )}
               </div>
-              {pageError ? (
-                <p className="rounded-lg border border-error-6 bg-error-2 p-3 text-[13px] leading-5 text-error-11">
-                  {pageError}
-                </p>
-              ) : null}
               <Button
                 type="submit"
                 variant="primary"
@@ -198,7 +198,7 @@ export function PortalConfig({ portal, keyAuthId, resourceName }: Props) {
           <div className="flex flex-col justify-end">
             <PortalPreview
               slug={values.slug || portal.slug}
-              branding={{ logoUrl: values.logoUrl, primaryColor: values.primaryColor }}
+              branding={{ logoUrl: previewLogoUrl, primaryColor: values.primaryColor }}
               className="flex-1 rounded-b-none border-b-0 shadow-none"
             />
           </div>
@@ -266,20 +266,14 @@ function DeletePortalRow({ portal, keyAuthId }: { portal: Portal; keyAuthId: str
   const [isOpen, setIsOpen] = useState(false);
   const deletePortal = useDeletePortal(keyAuthId);
 
-  const deleteSchema = z.object({
-    confirmation: z.string().refine((v) => v === portal.slug, "Please confirm the portal slug"),
-  });
-
-  type DeleteFormValues = z.infer<typeof deleteSchema>;
-
+  // No resolver: the only gate is the exact-match comparison below, so
+  // validating the field as well would run a schema nothing reads.
   const {
     register,
     watch,
     handleSubmit,
     formState: { isSubmitting },
-  } = useForm<DeleteFormValues>({
-    resolver: zodResolver(deleteSchema),
-    mode: "onChange",
+  } = useForm<{ confirmation: string }>({
     defaultValues: { confirmation: "" },
   });
 

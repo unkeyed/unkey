@@ -9,8 +9,7 @@
  * the field empty.
  */
 
-const SLUG_MIN_LENGTH = 3;
-const SLUG_MAX_LENGTH = 64;
+import { SLUG_MAX_LENGTH, SLUG_MIN_LENGTH } from "./validation";
 
 /** Used when the name contributes nothing a slug can be built from. */
 const FALLBACK_SLUG = "portal";

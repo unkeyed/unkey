@@ -18,6 +18,7 @@ import {
   PageHeaderContent,
   PageHeaderTitle,
 } from "@unkey/ui";
+import type { ReactNode } from "react";
 import { useState } from "react";
 import { CreatePortalDialog } from "./create-portal-dialog";
 import { IntegrateDialog } from "./integrate-dialog";
@@ -103,6 +104,11 @@ function DisabledBanner({ onEnable, enabling }: { onEnable: () => void; enabling
   );
 }
 
+/** Makes a missing `PortalState` variant a compile error rather than a blank body. */
+function assertNever(value: never): never {
+  throw new Error(`unhandled portal state: ${JSON.stringify(value)}`);
+}
+
 /**
  * The full customer-portal settings experience for a keyspace. Every state comes
  * from `getPortal`; a disabled portal renders the configuration view rather than
@@ -129,9 +135,38 @@ export function PortalLifecyclePage({ resourceName, keyAuthId, keyAuthIdLoading 
     updatePortal.mutate({ portal: portal.id, enabled });
   };
 
-  // Creating needs an operator-chosen slug, so the hero opens a dialog rather
-  // than firing a mutation.
-  const openCreateDialog = () => setCreateOpen(true);
+  const renderBody = (): ReactNode => {
+    switch (state.status) {
+      case "loading":
+        return <PortalLoading />;
+      case "error":
+        return <PortalErrorPanel message={state.message} onRetry={retry} />;
+      case "notConfigured":
+        return <SetupHero onEnable={() => setCreateOpen(true)} />;
+      case "disabled":
+      case "enabled":
+        // `useSurfaceState` reports a missing keyspace as an error, so a
+        // configured portal always has one; the panel keeps the impossible
+        // case from rendering an empty body.
+        return keyAuthId ? (
+          <div className="flex w-full flex-col gap-6">
+            {state.status === "disabled" && (
+              <DisabledBanner
+                enabling={updatePortal.isLoading}
+                onEnable={() => setEnabled(state.portal, true)}
+              />
+            )}
+            {/* The prop, not `state.portal.mapping.id`: a mapping id is only a
+                keyspace id for keyspace mappings. */}
+            <PortalConfig portal={state.portal} keyAuthId={keyAuthId} resourceName={resourceName} />
+          </div>
+        ) : (
+          <PortalErrorPanel message={NO_KEYSPACE_MESSAGE} />
+        );
+      default:
+        return assertNever(state);
+    }
+  };
 
   return (
     <PageContainer>
@@ -148,29 +183,7 @@ export function PortalLifecyclePage({ resourceName, keyAuthId, keyAuthIdLoading 
           </PageHeaderActions>
         </PageHeader>
       )}
-      <PageBody>
-        {state.status === "loading" && <PortalLoading />}
-        {state.status === "error" && <PortalErrorPanel message={state.message} onRetry={retry} />}
-        {state.status === "notConfigured" && (
-          <SetupHero enabling={false} onEnable={openCreateDialog} />
-        )}
-        {/* Re-tested rather than reusing `configuredPortal` so the state narrows. */}
-        {(state.status === "enabled" || state.status === "disabled") && (
-          <div className="flex w-full flex-col gap-6">
-            {state.status === "disabled" && (
-              <DisabledBanner
-                enabling={updatePortal.isLoading}
-                onEnable={() => setEnabled(state.portal, true)}
-              />
-            )}
-            <PortalConfig
-              portal={state.portal}
-              keyAuthId={state.portal.mapping.id}
-              resourceName={resourceName}
-            />
-          </div>
-        )}
-      </PageBody>
+      <PageBody>{renderBody()}</PageBody>
       {/* Mounted only while open so each run prefills a fresh slug candidate. */}
       {createOpen && keyAuthId ? (
         <CreatePortalDialog
