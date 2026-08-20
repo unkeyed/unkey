@@ -14,6 +14,21 @@ import { DEFAULT_BRAND_COLOR, type PortalBrandingValue } from "./portal-branding
 const MOCK_ADDRESS = "Your customer portal";
 
 /**
+ * Literal hex rather than palette classes. The dashboard's Tailwind config sets
+ * `theme.colors` instead of `theme.extend.colors`, which replaces the default
+ * palette outright — `neutral-*` and even `white` do not resolve here, so those
+ * classes would silently render nothing.
+ */
+const LIGHT = {
+  surface: "#ffffff",
+  chrome: "#f5f5f5",
+  border: "#e5e5e5",
+  mutedText: "#a3a3a3",
+  skeleton: "#d4d4d4",
+  skeletonWeak: "#e5e5e5",
+} as const;
+
+/**
  * Static, deliberately-lo-fi mock of the end-user portal page so operators can
  * see their logo + brand color in context before going live. Mirrors the real
  * portal layout (web/apps/portal): brand-colored header bar with the logo on
@@ -21,6 +36,13 @@ const MOCK_ADDRESS = "Your customer portal";
  *
  * The brand bar shows the slug because that is what the live portal renders:
  * `web/apps/portal/src/routes/_portal.tsx` passes `appName={portal?.slug}`.
+ *
+ * Every neutral here is a fixed light value rather than a `gray-*` token. The
+ * portal ships light-only — its root sets no `dark` class and its source has no
+ * `dark:` variants — so a preview built from dashboard tokens would turn dark
+ * with the operator's own theme and show them a portal their users never see.
+ * The brand color and its computed foreground are the only theme-varying parts,
+ * because those are the parts the operator actually controls.
  */
 export function PortalPreview({
   slug,
@@ -44,18 +66,36 @@ export function PortalPreview({
 
   return (
     <div
-      className={cn(
-        "flex w-full flex-col overflow-hidden rounded-lg border border-grayA-4 bg-gray-1 shadow-sm",
-        className,
-      )}
+      className={cn("flex w-full flex-col overflow-hidden rounded-lg shadow-sm", className)}
+      // Keeps any UA-styled descendant light too, so the mock cannot pick up the
+      // dashboard's dark scheme.
+      style={{
+        colorScheme: "light",
+        backgroundColor: LIGHT.surface,
+        border: `1px solid ${LIGHT.border}`,
+      }}
     >
-      <div className="flex items-center gap-2 border-b border-grayA-3 bg-gray-2 px-3 py-2">
+      <div
+        className="flex items-center gap-2 px-3 py-2"
+        style={{ backgroundColor: LIGHT.chrome, borderBottom: `1px solid ${LIGHT.border}` }}
+      >
         <div className="flex gap-1.5">
-          <span className="size-2 rounded-full bg-grayA-5" />
-          <span className="size-2 rounded-full bg-grayA-5" />
-          <span className="size-2 rounded-full bg-grayA-5" />
+          {[0, 1, 2].map((dot) => (
+            <span
+              key={dot}
+              className="size-2 rounded-full"
+              style={{ backgroundColor: LIGHT.skeleton }}
+            />
+          ))}
         </div>
-        <div className="flex-1 truncate rounded-md border border-grayA-3 bg-gray-1 px-2 py-0.5 text-center text-[10px] text-gray-9">
+        <div
+          className="flex-1 truncate rounded-md px-2 py-0.5 text-center text-[10px]"
+          style={{
+            backgroundColor: LIGHT.surface,
+            border: `1px solid ${LIGHT.border}`,
+            color: LIGHT.mutedText,
+          }}
+        >
           {MOCK_ADDRESS}
         </div>
       </div>
@@ -83,36 +123,45 @@ export function PortalPreview({
       <div className="flex flex-1 flex-col gap-3 px-4 py-4">
         <div className="flex items-start justify-between gap-3">
           <div className="flex flex-col gap-2">
-            <div className="h-3 w-24 rounded bg-grayA-5" />
-            <div className="h-2 w-44 max-w-full rounded bg-grayA-3" />
+            <div className="h-3 w-24 rounded" style={{ backgroundColor: LIGHT.skeleton }} />
+            <div
+              className="h-2 w-44 max-w-full rounded"
+              style={{ backgroundColor: LIGHT.skeletonWeak }}
+            />
           </div>
           <div
             className="shrink-0 rounded-md px-3 py-1.5 text-[11px] font-medium"
-            style={{ backgroundColor: color, color: onColor }}
+            style={{ backgroundColor: color }}
           >
-            <div className="h-2 bg-background/20 rounded-sm w-8" />
+            {/* Sits on the brand color, so its tint comes from the computed
+                foreground rather than a theme token. */}
+            <div className="h-2 w-8 rounded-sm" style={{ backgroundColor: `${onColor}33` }} />
           </div>
         </div>
-        <div className="rounded-lg border border-grayA-3">
+        <div className="rounded-lg" style={{ border: `1px solid ${LIGHT.border}` }}>
           {[0, 1, 2, 3].map((row) => (
             <div
               key={row}
-              className={cn(
-                "flex items-center justify-between px-3 py-3",
-                row > 0 && "border-t border-grayA-3",
-              )}
+              className="flex items-center justify-between px-3 py-3"
+              style={row > 0 ? { borderTop: `1px solid ${LIGHT.border}` } : undefined}
             >
               <div className="flex flex-col gap-1.5">
-                <div className="h-2 w-20 rounded bg-grayA-5" />
-                <div className="h-1.5 w-32 rounded bg-grayA-3" />
+                <div className="h-2 w-20 rounded" style={{ backgroundColor: LIGHT.skeleton }} />
+                <div
+                  className="h-1.5 w-32 rounded"
+                  style={{ backgroundColor: LIGHT.skeletonWeak }}
+                />
               </div>
-              <div className="h-2 w-10 rounded bg-grayA-3" />
+              <div className="h-2 w-10 rounded" style={{ backgroundColor: LIGHT.skeletonWeak }} />
             </div>
           ))}
         </div>
       </div>
 
-      <div className="border-t border-grayA-3 px-4 py-2 text-center text-[10px] text-gray-8">
+      <div
+        className="px-4 py-2 text-center text-[10px]"
+        style={{ borderTop: `1px solid ${LIGHT.border}`, color: LIGHT.mutedText }}
+      >
         Powered by Unkey
       </div>
     </div>
