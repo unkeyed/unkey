@@ -33,7 +33,7 @@ func TestUpdateKeyCorrectPermissions(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			h := newUpdateKeyHarness(t)
+			h := testutil.NewHarness(t)
 
 			route := &handler.Handler{
 				DB:           h.DB,
@@ -84,7 +84,7 @@ func TestUpdateKeyCorrectPermissions(t *testing.T) {
 func TestUpdateKeyInsufficientPermissions(t *testing.T) {
 	t.Parallel()
 
-	h := newUpdateKeyHarness(t)
+	h := testutil.NewHarness(t)
 
 	route := &handler.Handler{
 		DB:           h.DB,
@@ -128,7 +128,7 @@ func TestUpdateKeyInsufficientPermissions(t *testing.T) {
 func TestUpdateKeyCrossWorkspaceIsolation(t *testing.T) {
 	t.Parallel()
 
-	h := newUpdateKeyHarness(t)
+	h := testutil.NewHarness(t)
 
 	route := &handler.Handler{
 		DB:           h.DB,
