@@ -385,8 +385,8 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 	srv.RegisterRoute(
 		protectedMiddlewares,
 		&v2DeploymentsStopDeployment.Handler{
-			DB:         svc.Database,
-			CtrlClient: svc.CtrlDeploymentClient,
+			DB:      svc.Database,
+			Restate: svc.Restate,
 		},
 	)
 
@@ -394,8 +394,8 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 	srv.RegisterRoute(
 		protectedMiddlewares,
 		&v2DeploymentsStartDeployment.Handler{
-			DB:         svc.Database,
-			CtrlClient: svc.CtrlDeploymentClient,
+			DB:      svc.Database,
+			Restate: svc.Restate,
 		},
 	)
 
@@ -403,8 +403,8 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 	srv.RegisterRoute(
 		protectedMiddlewares,
 		&v2DeploymentsPromoteDeployment.Handler{
-			DB:         svc.Database,
-			CtrlClient: svc.CtrlDeploymentClient,
+			DB:      svc.Database,
+			Restate: svc.Restate,
 		},
 	)
 
@@ -412,8 +412,8 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 	srv.RegisterRoute(
 		protectedMiddlewares,
 		&v2DeploymentsRollbackDeployment.Handler{
-			DB:         svc.Database,
-			CtrlClient: svc.CtrlDeploymentClient,
+			DB:      svc.Database,
+			Restate: svc.Restate,
 		},
 	)
 
@@ -819,8 +819,8 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 	srv.RegisterRoute(
 		protectedMiddlewares,
 		&v2ProjectsDeleteProject.Handler{
-			DB:         svc.Database,
-			CtrlClient: svc.CtrlProjectClient,
+			DB:      svc.Database,
+			Restate: svc.Restate,
 		},
 	)
 
@@ -877,8 +877,8 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 	srv.RegisterRoute(
 		protectedMiddlewares,
 		&v2AppsDeleteApp.Handler{
-			DB:         svc.Database,
-			CtrlClient: svc.CtrlAppClient,
+			DB:      svc.Database,
+			Restate: svc.Restate,
 		},
 	)
 

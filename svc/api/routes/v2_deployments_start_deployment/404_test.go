@@ -14,8 +14,7 @@ import (
 
 func TestStartDeploymentNotFound(t *testing.T) {
 	h := testutil.NewHarness(t)
-	mock := &testutil.MockDeploymentClient{}
-	route := newRoute(h, mock)
+	route := newRoute(h, newUncalledRestate(t))
 	h.Register(route)
 
 	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
@@ -26,15 +25,13 @@ func TestStartDeploymentNotFound(t *testing.T) {
 		DeploymentId: uid.New(uid.DeploymentPrefix),
 	})
 	require.Equal(t, http.StatusNotFound, res.Status, "expected 404, received: %s", res.RawBody)
-	require.Empty(t, mock.WakeDeploymentCalls, "ctrl must not be called for unknown deployments")
 }
 
 // A key without start_deployment must not learn whether the deployment exists:
 // the handler masks the authorization failure as a 404.
 func TestStartDeploymentInsufficientPermissionsMasked(t *testing.T) {
 	h := testutil.NewHarness(t)
-	mock := &testutil.MockDeploymentClient{}
-	route := newRoute(h, mock)
+	route := newRoute(h, newUncalledRestate(t))
 	h.Register(route)
 
 	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
@@ -51,15 +48,13 @@ func TestStartDeploymentInsufficientPermissionsMasked(t *testing.T) {
 
 	res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, authHeaders(setup.RootKey), handler.Request{DeploymentId: dep.ID})
 	require.Equal(t, http.StatusNotFound, res.Status, "expected 404, received: %s", res.RawBody)
-	require.Empty(t, mock.WakeDeploymentCalls, "ctrl must not be called without start_deployment")
 }
 
 // A deployment in another workspace must be indistinguishable from one that does
 // not exist, so cross-workspace calls return 404 rather than leaking existence.
 func TestStartDeploymentInAnotherWorkspace(t *testing.T) {
 	h := testutil.NewHarness(t)
-	mock := &testutil.MockDeploymentClient{}
-	route := newRoute(h, mock)
+	route := newRoute(h, newUncalledRestate(t))
 	h.Register(route)
 
 	caller := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
@@ -77,5 +72,4 @@ func TestStartDeploymentInAnotherWorkspace(t *testing.T) {
 
 	res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, authHeaders(caller.RootKey), handler.Request{DeploymentId: dep.ID})
 	require.Equal(t, http.StatusNotFound, res.Status, "expected 404, received: %s", res.RawBody)
-	require.Empty(t, mock.WakeDeploymentCalls, "ctrl must not be called for cross-workspace deployments")
 }

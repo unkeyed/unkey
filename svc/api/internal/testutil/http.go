@@ -538,7 +538,8 @@ type CreateTestDeploymentSetupOptions struct {
 // workspace, root key, project, and environment. This is a convenience method for
 // tests that need all these resources together. Pass [CreateTestDeploymentSetupOptions]
 // to customize names, slugs, or skip environment creation. Defaults to project name
-// "test-project", slugs "production", and full permissions unless specified.
+// "test-project", slugs "production", a starter Compute entitlement, and full
+// permissions unless specified.
 func (h *Harness) CreateTestDeploymentSetup(opts ...CreateTestDeploymentSetupOptions) DeploymentTestSetup {
 	h.t.Helper()
 
@@ -571,6 +572,12 @@ func (h *Harness) CreateTestDeploymentSetup(opts ...CreateTestDeploymentSetupOpt
 	}
 
 	workspace := h.CreateWorkspace()
+	err := db.Query.UpsertWorkspaceBillingPlanOverride(h.t.Context(), h.DB.RW(), db.UpsertWorkspaceBillingPlanOverrideParams{
+		WorkspaceID:  workspace.ID,
+		PlanOverride: sql.NullString{String: "starter", Valid: true},
+		CreatedAtM:   time.Now().UnixMilli(),
+	})
+	require.NoError(h.t, err)
 
 	var rootKey string
 	if config.Permissions != nil {
@@ -619,6 +626,18 @@ func (h *Harness) CreateTestDeploymentSetup(opts ...CreateTestDeploymentSetupOpt
 		App:         app,
 		Environment: environment,
 	}
+}
+
+// ClearComputePlanOverride removes the test entitlement created by
+// [Harness.CreateTestDeploymentSetup].
+func (h *Harness) ClearComputePlanOverride(workspaceID string) {
+	h.t.Helper()
+	err := db.Query.UpsertWorkspaceBillingPlanOverride(h.t.Context(), h.DB.RW(), db.UpsertWorkspaceBillingPlanOverrideParams{
+		WorkspaceID:  workspaceID,
+		PlanOverride: sql.NullString{},
+		CreatedAtM:   time.Now().UnixMilli(),
+	})
+	require.NoError(h.t, err)
 }
 
 // SetupAnalyticsOption configures analytics settings for [Harness.SetupAnalytics].

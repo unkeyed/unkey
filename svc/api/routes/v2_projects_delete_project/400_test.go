@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
@@ -15,10 +16,11 @@ import (
 
 func TestDeleteProjectBadRequest(t *testing.T) {
 	h := testutil.NewHarness(t)
+	restate, deletes := newRecordingRestate(t)
 
 	route := &handler.Handler{
-		DB:         h.DB,
-		CtrlClient: &testutil.MockProjectClient{},
+		DB:      h.DB,
+		Restate: restate,
 	}
 	h.Register(route)
 
@@ -60,4 +62,6 @@ func TestDeleteProjectBadRequest(t *testing.T) {
 		require.NotEmpty(t, res.Body.Meta.RequestId)
 		require.Equal(t, "Bad Request", res.Body.Error.Title)
 	})
+
+	testutil.RequireNoReceive(t, deletes, time.Second)
 }

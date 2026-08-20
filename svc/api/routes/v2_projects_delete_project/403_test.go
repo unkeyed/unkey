@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/uid"
@@ -15,10 +16,11 @@ import (
 
 func TestDeleteProjectForbidden(t *testing.T) {
 	h := testutil.NewHarness(t)
+	restate, deletes := newRecordingRestate(t)
 
 	route := &handler.Handler{
-		DB:         h.DB,
-		CtrlClient: &testutil.MockProjectClient{},
+		DB:      h.DB,
+		Restate: restate,
 	}
 	h.Register(route)
 
@@ -54,8 +56,10 @@ func TestDeleteProjectForbidden(t *testing.T) {
 			res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{Project: project.ID})
 			if tc.shouldPass {
 				require.Equal(t, 202, res.Status, "expected 202 for %v, got: %s", tc.permissions, res.RawBody)
+				testutil.Receive(t, deletes, 10*time.Second)
 			} else {
 				require.Equal(t, http.StatusForbidden, res.Status, "expected 403 for %v, got: %s", tc.permissions, res.RawBody)
+				testutil.RequireNoReceive(t, deletes, time.Second)
 			}
 		})
 	}
