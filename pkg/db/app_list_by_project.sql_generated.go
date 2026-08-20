@@ -11,9 +11,26 @@ import (
 )
 
 const listAppsByProject = `-- name: ListAppsByProject :many
-SELECT apps.pk, apps.id, apps.workspace_id, apps.project_id, apps.name, apps.slug, apps.source_type, apps.default_branch, apps.current_deployment_id, apps.is_rolled_back, apps.delete_protection, apps.created_at, apps.updated_at, grc.repository_full_name AS repository_full_name
+SELECT
+  apps.pk,
+  apps.id,
+  apps.workspace_id,
+  apps.project_id,
+  apps.name,
+  apps.slug,
+  apps.source_type,
+  apps.default_branch,
+  apps.current_deployment_id,
+  apps.is_rolled_back,
+  apps.delete_protection,
+  apps.created_at,
+  apps.updated_at,
+  grc.repository_full_name AS repository_full_name,
+  grc.default_branch AS github_default_branch,
+  aso.image_reference AS oci_image_reference
 FROM apps
 LEFT JOIN github_repo_connections grc ON grc.app_id = apps.id
+LEFT JOIN app_source_oci aso ON aso.app_id = apps.id
 WHERE apps.project_id = ?
   AND apps.id >= ?
   -- search is a pre-escaped LIKE pattern built by mysql.SearchContains; NULL disables the filter
@@ -44,13 +61,32 @@ type ListAppsByProjectRow struct {
 	CreatedAt           int64          `db:"created_at"`
 	UpdatedAt           sql.NullInt64  `db:"updated_at"`
 	RepositoryFullName  sql.NullString `db:"repository_full_name"`
+	GithubDefaultBranch sql.NullString `db:"github_default_branch"`
+	OciImageReference   sql.NullString `db:"oci_image_reference"`
 }
 
 // ListAppsByProject
 //
-//	SELECT apps.pk, apps.id, apps.workspace_id, apps.project_id, apps.name, apps.slug, apps.source_type, apps.default_branch, apps.current_deployment_id, apps.is_rolled_back, apps.delete_protection, apps.created_at, apps.updated_at, grc.repository_full_name AS repository_full_name
+//	SELECT
+//	  apps.pk,
+//	  apps.id,
+//	  apps.workspace_id,
+//	  apps.project_id,
+//	  apps.name,
+//	  apps.slug,
+//	  apps.source_type,
+//	  apps.default_branch,
+//	  apps.current_deployment_id,
+//	  apps.is_rolled_back,
+//	  apps.delete_protection,
+//	  apps.created_at,
+//	  apps.updated_at,
+//	  grc.repository_full_name AS repository_full_name,
+//	  grc.default_branch AS github_default_branch,
+//	  aso.image_reference AS oci_image_reference
 //	FROM apps
 //	LEFT JOIN github_repo_connections grc ON grc.app_id = apps.id
+//	LEFT JOIN app_source_oci aso ON aso.app_id = apps.id
 //	WHERE apps.project_id = ?
 //	  AND apps.id >= ?
 //	  -- search is a pre-escaped LIKE pattern built by mysql.SearchContains; NULL disables the filter
@@ -89,6 +125,8 @@ func (q *Queries) ListAppsByProject(ctx context.Context, db DBTX, arg ListAppsBy
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.RepositoryFullName,
+			&i.GithubDefaultBranch,
+			&i.OciImageReference,
 		); err != nil {
 			return nil, err
 		}
