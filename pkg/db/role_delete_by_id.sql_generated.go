@@ -10,14 +10,20 @@ import (
 )
 
 const deleteRoleByID = `-- name: DeleteRoleByID :exec
-DELETE FROM roles
-WHERE id = ?
+DELETE r, rp, kr
+FROM roles r
+LEFT JOIN roles_permissions rp ON rp.role_id = r.id
+LEFT JOIN keys_roles kr ON kr.role_id = r.id
+WHERE r.id = ?
 `
 
 // DeleteRoleByID
 //
-//	DELETE FROM roles
-//	WHERE id = ?
+//	DELETE r, rp, kr
+//	FROM roles r
+//	LEFT JOIN roles_permissions rp ON rp.role_id = r.id
+//	LEFT JOIN keys_roles kr ON kr.role_id = r.id
+//	WHERE r.id = ?
 func (q *Queries) DeleteRoleByID(ctx context.Context, db DBTX, roleID string) error {
 	_, err := db.ExecContext(ctx, deleteRoleByID, roleID)
 	return err
