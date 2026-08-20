@@ -1243,7 +1243,7 @@ type Portal struct {
 
 	// UpdatedAt Unix timestamp in milliseconds when the portal was last changed. Omitted
 	// if it has never been changed since creation.
-	UpdatedAt *int64 `json:"updatedAt,omitempty"`
+	UpdatedAt int64 `json:"updatedAt,omitempty"`
 }
 
 // PortalBranding How the portal looks to your end users. Both fields are optional; a portal
@@ -1253,10 +1253,10 @@ type PortalBranding struct {
 	//
 	// Loaded by your end users' browsers, so the host you name receives their IP
 	// and user agent on every page view.
-	LogoUrl *string `json:"logoUrl,omitempty"`
+	LogoUrl string `json:"logoUrl,omitempty"`
 
 	// PrimaryColor Six-digit hex colour used for primary actions and accents in the portal.
-	PrimaryColor *string `json:"primaryColor,omitempty"`
+	PrimaryColor string `json:"primaryColor,omitempty"`
 }
 
 // PortalMapping The single resource a portal serves keys for.

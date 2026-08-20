@@ -6822,6 +6822,8 @@ components:
                         Unix timestamp in milliseconds when the portal was last changed. Omitted
                         if it has never been changed since creation.
                     example: 1719936000000
+                    x-go-type-skip-optional-pointer: true
+                    x-go-type-skip-optional-pointer-with-omitzero: true
             additionalProperties: false
         PortalBranding:
             type: object
@@ -6839,12 +6841,16 @@ components:
                         Loaded by your end users' browsers, so the host you name receives their IP
                         and user agent on every page view.
                     example: https://cdn.example.com/logo.svg
+                    x-go-type-skip-optional-pointer: true
+                    x-go-type-skip-optional-pointer-with-omitzero: true
                 primaryColor:
                     type: string
                     pattern: "^#[0-9a-fA-F]{6}$"
                     description: |
                         Six-digit hex colour used for primary actions and accents in the portal.
                     example: "#6366f1"
+                    x-go-type-skip-optional-pointer: true
+                    x-go-type-skip-optional-pointer-with-omitzero: true
             additionalProperties: false
         V2PortalGetVerificationsDataPoint:
             type: object
