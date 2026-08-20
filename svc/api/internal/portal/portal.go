@@ -33,16 +33,20 @@ import (
 // not exist anywhere: a caller must not be able to use the difference to learn
 // that another workspace holds it.
 const (
-	ErrMsgInvalidMapping  = "A portal must map to exactly one app or one keyspace."
-	ErrMsgMappingNotFound = "The app or keyspace was not found."
-	ErrMsgInvalidLogoURL  = "logoUrl must be an absolute https:// URL of at most 500 characters."
-	ErrMsgInvalidColor    = "primaryColor must be a six-digit hex colour, for example #6366f1."
+	ErrMsgInvalidMapping   = "A portal must map to exactly one app or one keyspace."
+	ErrMsgMappingNotFound  = "The app or keyspace was not found."
+	ErrMsgInvalidLogoURL   = "logoUrl must be an absolute https:// URL of at most 500 characters."
+	ErrMsgInvalidColor     = "primaryColor must be a six-digit hex colour, for example #6366f1."
+	ErrMsgInvalidReturnURL = "returnUrl must be an absolute https:// URL of at most 500 characters."
 )
 
 // LogoURLMaxLength matches the column width. Enforced here so an over-long value
 // is a validation error rather than a truncation or a driver error surfacing as a
 // 500.
 const LogoURLMaxLength = 500
+
+// ReturnURLMaxLength matches the portal_sessions.return_url column width.
+const ReturnURLMaxLength = 500
 
 var hexColor = regexp.MustCompile(`^#[0-9a-fA-F]{6}$`)
 
@@ -340,30 +344,50 @@ func AuthorizeMappingTarget(
 // names, handing it their IP and user agent on each page view, plus mixed content
 // on a page that displays keys.
 func ValidateLogoURL(raw string) error {
+	return validateHTTPSURL(raw, LogoURLMaxLength, "logo url", ErrMsgInvalidLogoURL)
+}
+
+// ValidateReturnURL rejects anything that is not an absolute https URL within the
+// column width.
+//
+// Stricter stakes than the logo. This value is rendered as an anchor href in the
+// end-user portal, so a `javascript:` scheme executes in the end user's browser
+// on click, with the portal's own origin -- it could call the portal API as that
+// user. The OpenAPI `format: uri` on the field does not help: `javascript:...` is
+// a perfectly valid URI, and the validator does not assert formats anyway.
+func ValidateReturnURL(raw string) error {
+	return validateHTTPSURL(raw, ReturnURLMaxLength, "return url", ErrMsgInvalidReturnURL)
+}
+
+// validateHTTPSURL is the shared check behind both. Absolute https only: a
+// scheme-relative or path-only value would resolve against the portal's own
+// origin, and every other scheme is either inert (mailto), unencrypted (http),
+// or executable (javascript, data).
+func validateHTTPSURL(raw string, maxLength int, label string, publicMessage string) error {
 	invalid := func(detail string) error {
-		return fault.New("invalid logo url",
+		return fault.New(fmt.Sprintf("invalid %s", label),
 			fault.Code(codes.App.Validation.InvalidInput.URN()),
 			fault.Internal(detail),
-			fault.Public(ErrMsgInvalidLogoURL),
+			fault.Public(publicMessage),
 		)
 	}
 
 	if raw == "" {
-		return invalid("logo url was empty")
+		return invalid(fmt.Sprintf("%s was empty", label))
 	}
-	if len(raw) > LogoURLMaxLength {
-		return invalid(fmt.Sprintf("logo url is %d characters, limit is %d", len(raw), LogoURLMaxLength))
+	if len(raw) > maxLength {
+		return invalid(fmt.Sprintf("%s is %d characters, limit is %d", label, len(raw), maxLength))
 	}
 
 	parsed, err := url.Parse(raw)
 	if err != nil {
-		return invalid(fmt.Sprintf("logo url is not parseable: %s", err))
+		return invalid(fmt.Sprintf("%s is not parseable: %s", label, err))
 	}
 	if parsed.Scheme != "https" {
-		return invalid(fmt.Sprintf("logo url scheme is %q, expected https", parsed.Scheme))
+		return invalid(fmt.Sprintf("%s scheme is %q, expected https", label, parsed.Scheme))
 	}
 	if parsed.Host == "" {
-		return invalid("logo url has no host")
+		return invalid(fmt.Sprintf("%s has no host", label))
 	}
 	return nil
 }
