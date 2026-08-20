@@ -36,7 +36,7 @@ func (invalidCreateOutboxAuditService) PrepareOutboxRows(
 func TestCreateKeyBatchRollsBackWhenAuditInsertFails(t *testing.T) {
 	t.Parallel()
 
-	h := newCreateKeyHarness(t)
+	h := testutil.NewHarness(t)
 	route := &handler.Handler{
 		DB:        h.DB,
 		Keys:      h.Keys,
