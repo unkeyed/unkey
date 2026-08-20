@@ -1,3 +1,4 @@
+import type { EnvVar } from "@/lib/collections/deploy/env-vars";
 import { EnvVarActionMenu } from "./env-var-action-menu";
 import { EnvVarBaseRow } from "./env-var-base-row";
 import { EnvVarEditRow } from "./env-var-edit-row";
@@ -6,15 +7,7 @@ import { EnvVarValueCell } from "./env-var-value-cell";
 
 export { TimestampBadge } from "./env-var-base-row";
 
-export type EnvVarItem = {
-  id: string;
-  key: string;
-  environmentId: string;
-  environmentName: string;
-  type: "writeonly" | "recoverable";
-  updatedAt: number;
-  note: string | null | undefined;
-};
+export type EnvVarItem = EnvVar & { environmentName: string };
 
 export type DisplayRow =
   | { kind: "single"; item: EnvVarItem }
@@ -22,7 +15,7 @@ export type DisplayRow =
       kind: "group";
       key: string;
       items: EnvVarItem[];
-      latestUpdatedAt: number;
+      latestCreatedAt: number;
       hasWriteonly: boolean;
     };
 
@@ -60,19 +53,20 @@ export function EnvVarItemRow({
       onRowClick={isEditing ? onCloseEdit : onEdit}
       nameCell={
         <EnvVarNameCell
-          envVarId={item.id}
+          value={item.value}
           variableKey={item.key}
           environmentName={item.environmentName}
-          note={item.note}
+          note={item.description}
           searchQuery={searchQuery}
           type={item.type}
         />
       }
-      valueCell={<EnvVarValueCell envVarId={item.id} type={item.type} />}
-      timestamp={item.updatedAt}
+      valueCell={<EnvVarValueCell value={item.value} type={item.type} />}
+      timestamp={item.createdAt}
       actionsCell={
         <EnvVarActionMenu
           envVarId={item.id}
+          value={item.value}
           variableKey={item.key}
           type={item.type}
           onEdit={onEdit}
@@ -82,9 +76,10 @@ export function EnvVarItemRow({
         isEditing ? (
           <EnvVarEditRow
             envVarId={item.id}
+            value={item.value}
             variableKey={item.key}
             type={item.type}
-            note={item.note ?? null}
+            note={item.description}
             onClose={onCloseEdit}
           />
         ) : undefined
@@ -98,7 +93,7 @@ export function rowKey(r: DisplayRow): string {
 }
 
 export function rowTime(r: DisplayRow): number {
-  return r.kind === "group" ? r.latestUpdatedAt : r.item.updatedAt;
+  return r.kind === "group" ? r.latestCreatedAt : r.item.createdAt;
 }
 
 export function groupByKey(items: EnvVarItem[]): DisplayRow[] {
@@ -122,7 +117,7 @@ export function groupByKey(items: EnvVarItem[]): DisplayRow[] {
         kind: "group",
         key,
         items: group,
-        latestUpdatedAt: Math.max(...group.map((i) => i.updatedAt)),
+        latestCreatedAt: Math.max(...group.map((i) => i.createdAt)),
         hasWriteonly: group.some((i) => i.type === "writeonly"),
       });
     }

@@ -79,7 +79,7 @@ export function GroupRow({
           />
         </span>
       }
-      timestamp={row.latestUpdatedAt}
+      timestamp={row.latestCreatedAt}
       actionsCell={<EnvVarGroupActionMenu groupKey={row.key} items={row.items} />}
       expandedContent={
         isExpanded ? (

@@ -11,6 +11,8 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
+	restate "github.com/restatedev/sdk-go"
+	restateingress "github.com/restatedev/sdk-go/ingress"
 	"github.com/unkeyed/unkey/gen/proto/ctrl/v1/ctrlv1connect"
 	"github.com/unkeyed/unkey/gen/proto/vault/v1/vaultv1connect"
 	"github.com/unkeyed/unkey/gen/rpc/ctrl"
@@ -219,6 +221,7 @@ func Run(ctx context.Context, cfg Config) error {
 		},
 		TLS:                cfg.TLSConfig,
 		EnableH2C:          false,
+		StreamRequestBody:  false,
 		MaxRequestBodySize: cfg.MaxRequestBodySize,
 		ReadTimeout:        0,
 		WriteTimeout:       0,
@@ -466,6 +469,12 @@ func Run(ctx context.Context, cfg Config) error {
 		),
 	)
 
+	restateClient := restateingress.NewClient(
+		cfg.Restate.URL,
+		restate.WithAuthKey(cfg.Restate.APIKey),
+		restate.WithHttpClient(&http.Client{Timeout: 30 * time.Second}),
+	)
+
 	logger.Info("Control plane clients initialized", "url", cfg.Control.URL)
 
 	pprofEnabled := cfg.Pprof != nil && cfg.Pprof.Username != "" && cfg.Pprof.Password != ""
@@ -511,6 +520,7 @@ func Run(ctx context.Context, cfg Config) error {
 		CtrlDeploymentClient: ctrlDeploymentClient,
 		CtrlProjectClient:    ctrlProjectClient,
 		CtrlAppClient:        ctrlAppClient,
+		Restate:              restateClient,
 
 		CtrlCustomDomainClient: ctrlCustomDomainClient,
 		PprofEnabled:           pprofEnabled,

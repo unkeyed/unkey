@@ -47,10 +47,10 @@ func WithClickHouseLogging(buf *batch.BatchProcessor[schema.FrontlineRequest], c
 			endTime := clk.Now()
 			totalLatency := endTime.Sub(tracking.StartTime).Milliseconds()
 
-			var instanceLatency, frontlineLatency int64
+			var instanceLatency, gatewayLatency int64
 			if !tracking.InstanceStart.IsZero() && !tracking.InstanceEnd.IsZero() {
 				instanceLatency = tracking.InstanceEnd.Sub(tracking.InstanceStart).Milliseconds()
-				frontlineLatency = totalLatency - instanceLatency
+				gatewayLatency = totalLatency - instanceLatency
 			}
 
 			req := s.Request()
@@ -96,33 +96,33 @@ func WithClickHouseLogging(buf *batch.BatchProcessor[schema.FrontlineRequest], c
 			}
 
 			buf.Buffer(schema.FrontlineRequest{
-				RequestID:        tracking.RequestID,
-				Time:             tracking.StartTime.UnixMilli(),
-				WorkspaceID:      tracking.WorkspaceID,
-				ProjectID:        tracking.ProjectID,
-				AppID:            tracking.AppID,
-				EnvironmentID:    tracking.EnvironmentID,
-				FrontlineID:      frontlineID,
-				DeploymentID:     tracking.DeploymentID,
-				InstanceID:       tracking.InstanceID,
-				InstanceAddress:  tracking.Address,
-				Region:           region,
-				Platform:         platform,
-				Method:           strings.ToUpper(req.Method),
-				Host:             req.Host,
-				Path:             req.URL.Path,
-				QueryString:      queryString,
-				QueryParams:      queryParams,
-				RequestHeaders:   requestHeaders,
-				RequestBody:      redactBody(tracking.RequestBody, tracking.BodyRedactors),
-				ResponseStatus:   int32(s.StatusCode()),
-				ResponseHeaders:  responseHeaders,
-				ResponseBody:     redactBody(tracking.ResponseBody, tracking.BodyRedactors),
-				UserAgent:        userAgent,
-				IPAddress:        ipAddress,
-				TotalLatency:     totalLatency,
-				InstanceLatency:  instanceLatency,
-				FrontlineLatency: frontlineLatency,
+				RequestID:       tracking.RequestID,
+				Time:            tracking.StartTime.UnixMilli(),
+				WorkspaceID:     tracking.WorkspaceID,
+				ProjectID:       tracking.ProjectID,
+				AppID:           tracking.AppID,
+				EnvironmentID:   tracking.EnvironmentID,
+				FrontlineID:     frontlineID,
+				DeploymentID:    tracking.DeploymentID,
+				InstanceID:      tracking.InstanceID,
+				InstanceAddress: tracking.Address,
+				Region:          region,
+				Platform:        platform,
+				Method:          strings.ToUpper(req.Method),
+				Host:            req.Host,
+				Path:            req.URL.Path,
+				QueryString:     queryString,
+				QueryParams:     queryParams,
+				RequestHeaders:  requestHeaders,
+				RequestBody:     redactBody(tracking.RequestBody, tracking.BodyRedactors),
+				ResponseStatus:  int32(s.StatusCode()),
+				ResponseHeaders: responseHeaders,
+				ResponseBody:    redactBody(tracking.ResponseBody, tracking.BodyRedactors),
+				UserAgent:       userAgent,
+				IPAddress:       ipAddress,
+				TotalLatency:    totalLatency,
+				InstanceLatency: instanceLatency,
+				GatewayLatency:  gatewayLatency,
 			})
 
 			return err

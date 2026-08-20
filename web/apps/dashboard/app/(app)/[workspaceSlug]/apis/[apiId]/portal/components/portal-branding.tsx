@@ -3,7 +3,9 @@
 import { cn } from "@/lib/utils";
 import { Input } from "@unkey/ui";
 
-// Mirrors the portal_branding schema columns so this can be wired to trpc later.
+// Mirrors the shape of the portals row's `branding` JSON column so this can be
+// wired up later. The column is never queried by value, so its shape is
+// validated at this form boundary rather than by the database.
 // For MVP the customer hosts their own logo image and provides its URL; when
 // empty the portal falls back to a plain-text logo using `name`.
 export type PortalBrandingValue = {

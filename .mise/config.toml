@@ -11,7 +11,7 @@ provenance_api_failures_fatal = true
 task.run_auto_install = false
 
 [tools]
-node = "24.16.0"
+node = "24.19.0"
 go = "1.25.1"
 "github:dprint/dprint" = "0.51.1"
 "github:bufbuild/buf" = "1.64.0"

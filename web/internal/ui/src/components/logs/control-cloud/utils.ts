@@ -11,5 +11,8 @@ export const formatOperator = (operator: string, field: string): string => {
   if (field === "since" && operator === "is") {
     return "Last";
   }
+  if (field === "attributes" && operator === "is") {
+    return "matches";
+  }
   return operator;
 };

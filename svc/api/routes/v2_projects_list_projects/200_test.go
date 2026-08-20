@@ -3,7 +3,6 @@ package handler_test
 import (
 	"fmt"
 	"net/http"
-	"sort"
 	"strings"
 	"testing"
 
@@ -100,7 +99,6 @@ func TestListProjectsHidesDefaultProject(t *testing.T) {
 		uid.New(uid.ProjectPrefix),
 		uid.New(uid.ProjectPrefix),
 	}
-	sort.Strings(ids)
 
 	h.CreateProject(seed.CreateProjectRequest{
 		ID:          ids[0],
@@ -128,7 +126,6 @@ func TestListProjectsHidesDefaultProject(t *testing.T) {
 		})
 		require.Equal(t, http.StatusOK, firstPage.Status, "expected 200, received: %s", firstPage.RawBody)
 		require.Len(t, firstPage.Body.Data, 1)
-		require.Equal(t, ids[0], firstPage.Body.Data[0].Id)
 		require.True(t, firstPage.Body.Pagination.HasMore)
 		require.NotNil(t, firstPage.Body.Pagination.Cursor)
 
@@ -138,8 +135,14 @@ func TestListProjectsHidesDefaultProject(t *testing.T) {
 		})
 		require.Equal(t, http.StatusOK, secondPage.Status, "expected 200, received: %s", secondPage.RawBody)
 		require.Len(t, secondPage.Body.Data, 1)
-		require.Equal(t, ids[2], secondPage.Body.Data[0].Id)
 		require.False(t, secondPage.Body.Pagination.HasMore)
+
+		// MySQL orders IDs using the column collation, not Go's bytewise string order.
+		// Pagination must return both visible projects exactly once, regardless of which is first.
+		require.ElementsMatch(t, []string{ids[0], ids[2]}, []string{
+			firstPage.Body.Data[0].Id,
+			secondPage.Body.Data[0].Id,
+		})
 	})
 
 	t.Run("does not return default in search", func(t *testing.T) {
