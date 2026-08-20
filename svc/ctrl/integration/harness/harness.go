@@ -74,9 +74,6 @@ type Harness struct {
 	// Restate is the ingress client for calling Restate services.
 	Restate *ingress.Client
 
-	// RestateIngress is the URL for calling Restate handlers.
-	RestateIngress string
-
 	// RestateAdmin is the URL for Restate admin operations.
 	RestateAdmin string
 
@@ -337,7 +334,6 @@ func New(t *testing.T, opts ...Option) *Harness {
 		VaultClient:    vaultClient,
 		VaultToken:     testVault.Token,
 		Restate:        restateCfg.IngressClient,
-		RestateIngress: restateCfg.IngressURL,
 		RestateAdmin:   restateCfg.AdminURL,
 		Clock:          o.clock,
 	}
