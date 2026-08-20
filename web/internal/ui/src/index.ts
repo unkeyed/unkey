@@ -54,4 +54,5 @@ export * from "./components/data-table";
 export * from "../css";
 
 /* Lib Export */
+export * from "./lib/branding";
 export * from "./lib/utils";
