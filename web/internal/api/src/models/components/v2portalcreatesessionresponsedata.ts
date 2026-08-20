@@ -9,15 +9,17 @@ import { SDKValidationError } from "../errors/sdkvalidationerror.js";
 
 export type V2PortalCreateSessionResponseData = {
   /**
-   * The short-lived session token ID. Valid for 15 minutes and can be exchanged once for a browser session.
+   * The portal session's identifier. Not a credential: it is safe to log and
    *
    * @remarks
+   * to store against your own records of the end user's visit.
    */
-  sessionId: string;
+  id: string;
   /**
-   * The full portal URL with the session parameter. Redirect the end user to this URL.
+   * The full portal URL to redirect the end user to. Carries a single-use
    *
    * @remarks
+   * exchange code that is valid for 15 minutes.
    */
   url: string;
 };
@@ -28,7 +30,7 @@ export const V2PortalCreateSessionResponseData$inboundSchema: z.ZodType<
   z.ZodTypeDef,
   unknown
 > = z.object({
-  sessionId: z.string(),
+  id: z.string(),
   url: z.string(),
 });
 

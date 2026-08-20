@@ -2,31 +2,26 @@ package handler
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"time"
 
 	"github.com/unkeyed/unkey/internal/services/auditlogs"
+	// Aliased: this handler's local `portal` variable is the db.Portal row it
+	// resolves, which would otherwise shadow the package.
+	portalservice "github.com/unkeyed/unkey/internal/services/portal"
 	"github.com/unkeyed/unkey/pkg/auditlog"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
+	"github.com/unkeyed/unkey/pkg/hash"
 	"github.com/unkeyed/unkey/pkg/uid"
-	"github.com/unkeyed/unkey/pkg/validation"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/internal/policyconfig"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
-
-// storedGrant is the JSON shape persisted in the portal session's permissions
-// column: the simplified capability model the resolver later expands into RBAC
-// via portalrbac. It must stay in sync with the shape parsed in
-// internal/services/portal.GetSession.
-type storedGrant struct {
-	KeyspaceIDs []string `json:"keyspaceIds"`
-	Permissions []string `json:"permissions"`
-}
 
 type (
 	Request  = openapi.V2PortalCreateSessionRequestBody
@@ -44,8 +39,7 @@ func (h *Handler) Method() string { return "POST" }
 func (h *Handler) Path() string   { return "/v2/portal.createSession" }
 
 // resolveKeyspaceIDs derives the keyspaces a portal session is scoped to from
-// the portal configuration. A config maps to exactly one of a keyspace or an
-// app:
+// the portal. A portal maps to exactly one of a keyspace or an app:
 //
 //   - keyspace-mapped (key_auth_id): the configured keyspace scopes key
 //     capabilities directly.
@@ -53,28 +47,28 @@ func (h *Handler) Path() string   { return "/v2/portal.createSession" }
 //     policy config whose keyauth policies list the keyspaces it verifies keys
 //     against at the gateway; those keySpaceIds become the session's keyspaces.
 //
-// The config is bound to the caller's workspace, so the resolved keyspaces can
+// The portal is bound to the caller's workspace, so the resolved keyspaces can
 // never belong to another workspace.
-func (h *Handler) resolveKeyspaceIDs(ctx context.Context, workspaceID string, portalConfig db.PortalConfiguration) ([]string, error) {
-	hasKeyspace := portalConfig.KeyAuthID.Valid
-	hasApp := portalConfig.AppID.Valid
+func (h *Handler) resolveKeyspaceIDs(ctx context.Context, workspaceID string, portal db.Portal) ([]string, error) {
+	hasKeyspace := portal.KeyAuthID.Valid
+	hasApp := portal.AppID.Valid
 
-	// A well-formed config maps to exactly one of a keyspace or an app. Neither
+	// A well-formed portal maps to exactly one of a keyspace or an app. Neither
 	// or both is a misconfiguration the session can't be scoped from.
 	if hasKeyspace == hasApp {
-		return nil, fault.New("portal config not mapped to exactly one target",
+		return nil, fault.New("portal not mapped to exactly one target",
 			fault.Code(codes.App.Internal.UnexpectedError.URN()),
-			fault.Internal("portal config must reference exactly one of key_auth_id or app_id"),
+			fault.Internal("portal must reference exactly one of key_auth_id or app_id"),
 			fault.Public("Portal configuration is invalid."),
 		)
 	}
 
 	if hasKeyspace {
-		return []string{portalConfig.KeyAuthID.String}, nil
+		return []string{portal.KeyAuthID.String}, nil
 	}
 
 	raw, err := db.Query.FindAppPolicyConfigByID(ctx, h.DB.RO(), db.FindAppPolicyConfigByIDParams{
-		AppID:       portalConfig.AppID.String,
+		AppID:       portal.AppID.String,
 		WorkspaceID: workspaceID,
 	})
 	if err != nil {
@@ -147,45 +141,37 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	workspaceID := principal.WorkspaceID
 
-	if !validation.ValidateSlug(req.Slug) {
-		return fault.New("invalid slug",
-			fault.Code(codes.App.Validation.InvalidInput.URN()),
-			fault.Internal(fmt.Sprintf("slug %q failed validation", req.Slug)),
-			fault.Public(validation.ErrMsgInvalidSlug),
-		)
-	}
-
-	portalConfig, err := db.Query.FindPortalConfigByWorkspaceAndSlug(ctx, h.DB.RO(), db.FindPortalConfigByWorkspaceAndSlugParams{
+	portal, err := db.Query.FindPortalByIdOrSlug(ctx, h.DB.RO(), db.FindPortalByIdOrSlugParams{
 		WorkspaceID: workspaceID,
-		Slug:        req.Slug,
+		Portal:      req.Portal,
 	})
 	if err != nil {
 		if db.IsNotFound(err) {
-			return fault.New("portal config not found",
-				fault.Code(codes.Data.PortalConfig.NotFound.URN()),
-				fault.Internal("no portal config found for the given slug"),
-				fault.Public("Portal configuration not found."),
+			return fault.New("portal not found",
+				fault.Code(codes.Data.Portal.NotFound.URN()),
+				fault.Internal("no portal found for the given id or slug"),
+				fault.Public("Portal not found."),
 			)
 		}
 		return fault.Wrap(err,
 			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-			fault.Internal("database error looking up portal config"),
+			fault.Internal("database error looking up portal"),
 			fault.Public("Failed to look up portal configuration."),
 		)
 	}
 
-	if !portalConfig.Enabled {
+	if !portal.Enabled {
 		return fault.New("portal is disabled",
 			fault.Code(codes.Auth.Authorization.Forbidden.URN()),
-			fault.Internal("portal config is disabled"),
+			fault.Internal("portal is disabled"),
 			fault.Public("Portal is disabled."),
 		)
 	}
 
-	// The keyspaces a session is scoped to come from the portal configuration,
-	// not the public request: the config is already bound to this workspace, so
-	// key capabilities can never reach another workspace's keyspaces.
-	keyspaceIDs, err := h.resolveKeyspaceIDs(ctx, workspaceID, portalConfig)
+	// The keyspaces a session is scoped to come from the portal, not the public
+	// request: the portal is already bound to this workspace, so key
+	// capabilities can never reach another workspace's keyspaces.
+	keyspaceIDs, err := h.resolveKeyspaceIDs(ctx, workspaceID, portal)
 	if err != nil {
 		return err
 	}
@@ -193,8 +179,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	// Determine the portal URL: prefer a verified custom domain for the app,
 	// fall back to the configured base URL (e.g. https://portal.unkey.com).
 	portalBaseURL := h.PortalBaseURL
-	if portalConfig.AppID.Valid {
-		customDomain, cdErr := db.Query.FindVerifiedCustomDomainByAppID(ctx, h.DB.RO(), portalConfig.AppID.String)
+	if portal.AppID.Valid {
+		customDomain, cdErr := db.Query.FindVerifiedCustomDomainByAppID(ctx, h.DB.RO(), portal.AppID.String)
 		if cdErr != nil && !db.IsNotFound(cdErr) {
 			return fault.Wrap(cdErr,
 				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
@@ -208,17 +194,21 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	now := time.Now()
-	sessionTokenID := string(uid.PortalSessionTokenPrefix) + "_" + uid.Secure()
-	expiresAt := now.Add(15 * time.Minute).UnixMilli()
+	sessionID := uid.New(uid.PortalSessionPrefix)
 
-	verbs := make([]string, len(req.Permissions))
-	for i, p := range req.Permissions {
+	// The exchange code is a bearer credential: it is returned to the caller
+	// once, embedded in the redirect URL, and stored only as a hash.
+	exchangeCode := string(uid.PortalExchangeCodePrefix) + "_" + uid.Secure()
+	exchangeCodeExpiresAt := now.Add(15 * time.Minute).UnixMilli()
+
+	verbs := make([]string, len(req.Scopes))
+	for i, p := range req.Scopes {
 		verbs[i] = string(p)
 	}
 
-	permissionsJSON, err := json.Marshal(storedGrant{
+	scopesJSON, err := json.Marshal(portalservice.Grant{
 		KeyspaceIDs: keyspaceIDs,
-		Permissions: verbs,
+		Scopes:      verbs,
 	})
 	if err != nil {
 		return fault.Wrap(err,
@@ -233,20 +223,29 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		preview = *req.Preview
 	}
 
+	// Optional, and an empty string is treated as absent: a portal with no
+	// return URL simply shows no return link.
+	returnURL := sql.NullString{Valid: false, String: ""}
+	if req.ReturnUrl != nil && *req.ReturnUrl != "" {
+		returnURL = sql.NullString{Valid: true, String: *req.ReturnUrl}
+	}
+
 	err = db.Tx(ctx, h.DB.RW(), func(txCtx context.Context, tx db.DBTX) error {
-		if txErr := db.Query.InsertPortalSessionToken(txCtx, tx, db.InsertPortalSessionTokenParams{
-			ID:             sessionTokenID,
-			WorkspaceID:    workspaceID,
-			PortalConfigID: portalConfig.ID,
-			ExternalID:     req.ExternalId,
-			Permissions:    permissionsJSON,
-			Preview:        preview,
-			ExpiresAt:      expiresAt,
-			CreatedAt:      now.UnixMilli(),
+		if txErr := db.Query.InsertPortalSession(txCtx, tx, db.InsertPortalSessionParams{
+			ID:                    sessionID,
+			WorkspaceID:           workspaceID,
+			PortalID:              portal.ID,
+			ExternalID:            req.ExternalId,
+			Scopes:                scopesJSON,
+			Preview:               preview,
+			ExchangeCodeHash:      hash.Sha256(exchangeCode),
+			ExchangeCodeExpiresAt: exchangeCodeExpiresAt,
+			ReturnUrl:             returnURL,
+			CreatedAt:             now.UnixMilli(),
 		}); txErr != nil {
 			return fault.Wrap(txErr,
 				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-				fault.Internal("failed to insert session token"),
+				fault.Internal("failed to insert portal session"),
 				fault.Public("Failed to create session."),
 			)
 		}
@@ -265,10 +264,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				CorrelationID: "",
 				Resources: []auditlog.AuditLogResource{
 					{
-						ID:          sessionTokenID,
+						ID:          sessionID,
 						DisplayName: req.ExternalId,
 						Name:        req.ExternalId,
-						Meta:        map[string]any{"portalConfigId": portalConfig.ID, "slug": req.Slug},
+						Meta:        map[string]any{"portalId": portal.ID, "slug": portal.Slug},
 						Type:        auditlog.PortalSessionResourceType,
 					},
 				},
@@ -287,16 +286,18 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	portalURL := fmt.Sprintf("%s/?session=%s", portalBaseURL, sessionTokenID)
+	portalURL := fmt.Sprintf("%s/?code=%s", portalBaseURL, exchangeCode)
 
 	s.ResponseWriter().Header().Set("Cache-Control", "no-store")
 	s.ResponseWriter().Header().Set("Pragma", "no-cache")
 
+	// The URL already carries the exchange code, so the response returns the
+	// non-secret session handle rather than duplicating the credential.
 	return s.JSON(http.StatusOK, Response{
 		Meta: openapi.Meta{RequestId: s.RequestID()},
 		Data: openapi.V2PortalCreateSessionResponseData{
-			SessionId: sessionTokenID,
-			Url:       portalURL,
+			Id:  sessionID,
+			Url: portalURL,
 		},
 	})
 }

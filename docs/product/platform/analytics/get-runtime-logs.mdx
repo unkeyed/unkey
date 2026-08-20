@@ -1,0 +1,324 @@
+---
+title: Query runtime logs
+description: "Query the stdout and stderr of your deployments with the analytics.getRuntimeLogs endpoint."
+---
+
+The `POST /v2/analytics.getRuntimeLogs` endpoint runs SQL queries on the logs
+that your deployments write to stdout and stderr. Use it from a trusted backend
+with a root key. Never put a root key in browser code.
+
+For the request and response schemas, see the [API
+reference](/api-reference/analytics/query-runtime-log-data).
+
+## Authenticate the request
+
+Use a root key with the `project.*.read_runtime_logs` permission. This
+permission gives access to the runtime logs of all projects in the workspace.
+The [gateway requests](/platform/analytics/get-gateway-requests) need the
+`project.*.read_gateway_requests` permission.
+
+Unkey limits each query to the workspace of the root key. A query cannot read
+the data of a different workspace, and it cannot remove this filter.
+
+## Send a query
+
+Send a JSON object with a `query` string. The response contains
+`meta.requestId`, which identifies the API request, and `data`, which contains
+an array of result objects.
+
+<CodeGroup>
+```sql SQL
+SELECT time, severity, message
+FROM runtime_logs_v1
+ORDER BY time DESC
+LIMIT 100
+```
+
+```bash cURL
+curl --request POST \
+  --url https://api.unkey.com/v2/analytics.getRuntimeLogs \
+  --header "Authorization: Bearer $UNKEY_ROOT_KEY" \
+  --header "Content-Type: application/json" \
+  --data '{"query":"SELECT time, severity, message FROM runtime_logs_v1 ORDER BY time DESC LIMIT 100"}'
+```
+
+</CodeGroup>
+
+```json Response
+{
+  "meta": {
+    "requestId": "req_1234"
+  },
+  "data": [
+    {
+      "time": 1755000000000,
+      "severity": "error",
+      "message": "upstream timeout after 30s"
+    }
+  ]
+}
+```
+
+Queries follow the SQL limits and the resource limits in [Query
+restrictions](/platform/analytics/query-restrictions). Only SELECT queries are
+permitted. CTEs, subqueries, UNION, and EXCEPT are also permitted.
+
+## Select the logs of one project, app, environment, or deployment
+
+Each row contains `project_id`, `app_id`, `environment_id`, and `deployment_id`.
+Add a filter on one of these columns to get the logs of one target. You can also
+combine them, for example `app_id = 'app_1234' AND environment_id = 'env_1234'`.
+
+<CodeGroup>
+```sql SQL
+SELECT time, severity, message
+FROM runtime_logs_v1
+WHERE deployment_id = 'dep_1234'
+ORDER BY time DESC
+LIMIT 100
+```
+
+```bash cURL
+curl --request POST \
+  --url https://api.unkey.com/v2/analytics.getRuntimeLogs \
+  --header "Authorization: Bearer $UNKEY_ROOT_KEY" \
+  --header "Content-Type: application/json" \
+  --data '{"query":"SELECT time, severity, message FROM runtime_logs_v1 WHERE deployment_id = '\''dep_1234'\'' ORDER BY time DESC LIMIT 100"}'
+```
+
+</CodeGroup>
+
+If you do not add one of these filters, the query reads all projects in the
+workspace.
+
+## Choose a time range
+
+Your workspace retention setting controls the time range that a query can
+request. A query for a longer range gets a 400 response. If you do not add a
+time filter, Unkey limits the results to your workspace retention range.
+
+The `time` column holds Unix milliseconds, thus a time filter uses
+`toUnixTimestamp64Milli`.
+
+<CodeGroup>
+```sql SQL
+SELECT time, severity, message
+FROM runtime_logs_v1
+WHERE time >= toUnixTimestamp64Milli(now64(3) - INTERVAL 24 HOUR)
+ORDER BY time DESC
+LIMIT 100
+```
+
+```bash cURL
+curl --request POST \
+  --url https://api.unkey.com/v2/analytics.getRuntimeLogs \
+  --header "Authorization: Bearer $UNKEY_ROOT_KEY" \
+  --header "Content-Type: application/json" \
+  --data '{"query":"SELECT time, severity, message FROM runtime_logs_v1 WHERE time >= toUnixTimestamp64Milli(now64(3) - INTERVAL 24 HOUR) ORDER BY time DESC LIMIT 100"}'
+```
+
+</CodeGroup>
+
+## Reference available columns
+
+The table contains one row for each log line. Unkey filters `workspace_id`
+automatically, thus you do not need to add it to a query.
+
+| Column | Type | Description |
+| --- | --- | --- |
+| `log_id` | String | Stable identifier of the log line |
+| `time` | Int64 | Log time as a Unix timestamp in milliseconds |
+| `inserted_at` | Int64 | Time that Unkey received the log, in milliseconds |
+| `severity` | String | One of `debug`, `info`, `warn`, or `error` |
+| `message` | String | The log line |
+| `project_id` | String | Project ID |
+| `app_id` | String | App ID |
+| `environment_id` | String | Environment ID |
+| `deployment_id` | String | Deployment that wrote the log |
+| `region` | String | Region that ran the deployment |
+| `attributes_text` | String | Structured log attributes as a JSON string |
+
+Unkey reads `severity` from the content of the log line, not from the log level
+of your logger. A line that reports an error gets `error`.
+
+## Find text in a log
+
+Use `lower(message) LIKE '%text%'` to find a substring. The `lower()` form
+ignores the case of the log line.
+
+<CodeGroup>
+```sql SQL
+SELECT time, severity, message
+FROM runtime_logs_v1
+WHERE lower(message) LIKE '%timeout%'
+  AND time >= toUnixTimestamp64Milli(now64(3) - INTERVAL 24 HOUR)
+ORDER BY time DESC
+LIMIT 100
+```
+
+```bash cURL
+curl --request POST \
+  --url https://api.unkey.com/v2/analytics.getRuntimeLogs \
+  --header "Authorization: Bearer $UNKEY_ROOT_KEY" \
+  --header "Content-Type: application/json" \
+  --data '{"query":"SELECT time, severity, message FROM runtime_logs_v1 WHERE lower(message) LIKE '\''%timeout%'\'' AND time >= toUnixTimestamp64Milli(now64(3) - INTERVAL 24 HOUR) ORDER BY time DESC LIMIT 100"}'
+```
+
+</CodeGroup>
+
+Use `lower(attributes_text) LIKE '%text%'` to search the attributes, and
+`NOT LIKE` to remove the lines that you do not want.
+
+<CodeGroup>
+```sql SQL
+SELECT time, message
+FROM runtime_logs_v1
+WHERE lower(message) NOT LIKE '%healthcheck%'
+LIMIT 100
+```
+
+```bash cURL
+curl --request POST \
+  --url https://api.unkey.com/v2/analytics.getRuntimeLogs \
+  --header "Authorization: Bearer $UNKEY_ROOT_KEY" \
+  --header "Content-Type: application/json" \
+  --data '{"query":"SELECT time, message FROM runtime_logs_v1 WHERE lower(message) NOT LIKE '\''%healthcheck%'\'' LIMIT 100"}'
+```
+
+</CodeGroup>
+
+## Read the structured attributes
+
+The `attributes_text` column contains the log attributes as a JSON string. A log
+line with no attributes gives the string `{}`. This column is never null.
+
+Select the column to get the full JSON, then parse it in your own code.
+
+<CodeGroup>
+```sql SQL
+SELECT time, message, attributes_text
+FROM runtime_logs_v1
+LIMIT 100
+```
+
+```bash cURL
+curl --request POST \
+  --url https://api.unkey.com/v2/analytics.getRuntimeLogs \
+  --header "Authorization: Bearer $UNKEY_ROOT_KEY" \
+  --header "Content-Type: application/json" \
+  --data '{"query":"SELECT time, message, attributes_text FROM runtime_logs_v1 LIMIT 100"}'
+```
+
+</CodeGroup>
+
+To group or to sort by one attribute, use `JSONExtractString` to read that
+attribute as a column.
+
+<CodeGroup>
+```sql SQL
+SELECT
+  JSONExtractString(attributes_text, 'route') AS route,
+  count() AS total
+FROM runtime_logs_v1
+GROUP BY route
+ORDER BY total DESC
+```
+
+```bash cURL
+curl --request POST \
+  --url https://api.unkey.com/v2/analytics.getRuntimeLogs \
+  --header "Authorization: Bearer $UNKEY_ROOT_KEY" \
+  --header "Content-Type: application/json" \
+  --data '{"query":"SELECT JSONExtractString(attributes_text, '\''route'\'') AS route, count() AS total FROM runtime_logs_v1 GROUP BY route ORDER BY total DESC"}'
+```
+
+</CodeGroup>
+
+## Count the errors of each deployment
+
+Use `countIf` to count a subset of the rows in the same query. This example
+compares the failed lines with all lines of each deployment.
+
+<CodeGroup>
+```sql SQL
+SELECT
+  deployment_id,
+  count() AS total,
+  countIf(severity = 'error') AS errors
+FROM runtime_logs_v1
+WHERE time >= toUnixTimestamp64Milli(now64(3) - INTERVAL 24 HOUR)
+GROUP BY deployment_id
+ORDER BY errors DESC
+```
+
+```bash cURL
+curl --request POST \
+  --url https://api.unkey.com/v2/analytics.getRuntimeLogs \
+  --header "Authorization: Bearer $UNKEY_ROOT_KEY" \
+  --header "Content-Type: application/json" \
+  --data '{"query":"SELECT deployment_id, count() AS total, countIf(severity = '\''error'\'') AS errors FROM runtime_logs_v1 WHERE time >= toUnixTimestamp64Milli(now64(3) - INTERVAL 24 HOUR) GROUP BY deployment_id ORDER BY errors DESC"}'
+```
+
+</CodeGroup>
+
+## Get a breakdown of the severities
+
+<CodeGroup>
+```sql SQL
+SELECT
+  severity,
+  count() AS total
+FROM runtime_logs_v1
+WHERE time >= toUnixTimestamp64Milli(now64(3) - INTERVAL 24 HOUR)
+GROUP BY severity
+ORDER BY total DESC
+```
+
+```bash cURL
+curl --request POST \
+  --url https://api.unkey.com/v2/analytics.getRuntimeLogs \
+  --header "Authorization: Bearer $UNKEY_ROOT_KEY" \
+  --header "Content-Type: application/json" \
+  --data '{"query":"SELECT severity, count() AS total FROM runtime_logs_v1 WHERE time >= toUnixTimestamp64Milli(now64(3) - INTERVAL 24 HOUR) GROUP BY severity ORDER BY total DESC"}'
+```
+
+</CodeGroup>
+
+## Page through a large result
+
+Use `LIMIT` and `OFFSET` to read a large result in pages. Many log lines can
+have the same `time`. Thus `ORDER BY time` alone does not give a stable order,
+and one row can appear on two pages. Add more columns to make the order stable.
+
+<CodeGroup>
+```sql SQL
+SELECT time, severity, message
+FROM runtime_logs_v1
+ORDER BY time DESC, deployment_id DESC, message DESC, log_id DESC
+LIMIT 100 OFFSET 100
+```
+
+```bash cURL
+curl --request POST \
+  --url https://api.unkey.com/v2/analytics.getRuntimeLogs \
+  --header "Authorization: Bearer $UNKEY_ROOT_KEY" \
+  --header "Content-Type: application/json" \
+  --data '{"query":"SELECT time, severity, message FROM runtime_logs_v1 ORDER BY time DESC, deployment_id DESC, message DESC, log_id DESC LIMIT 100 OFFSET 100"}'
+```
+
+</CodeGroup>
+
+## Errors
+
+| Status | Reason |
+| --- | --- |
+| 400 | The query is not valid SQL, uses a table or a function that is not permitted, or requests a range longer than your retention period. |
+| 401 | The root key is not valid. |
+| 403 | The root key does not have the `project.*.read_runtime_logs` permission. |
+| 412 | Analytics is not configured for the workspace. |
+| 422 | The query needs more memory or gives a larger result than the workspace limits permit. |
+| 429 | The workspace used all its queries for the current window. |
+| 503 | Unkey cannot reach the analytics database. |
+
+For the tables that each analytics endpoint accepts, see [Invalid analytics
+table](/errors/user/bad_request/invalid_analytics_table).

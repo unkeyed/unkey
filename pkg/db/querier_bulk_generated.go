@@ -39,16 +39,15 @@ type BulkQuerier interface {
 	UpsertLimit(ctx context.Context, db DBTX, args []UpsertLimitParams) error
 	InsertPermissions(ctx context.Context, db DBTX, args []InsertPermissionParams) error
 	UpsertPermission(ctx context.Context, db DBTX, args []UpsertPermissionParams) error
-	UpsertPortalBranding(ctx context.Context, db DBTX, args []UpsertPortalBrandingParams) error
-	InsertPortalConfigs(ctx context.Context, db DBTX, args []InsertPortalConfigParams) error
+	InsertPortals(ctx context.Context, db DBTX, args []InsertPortalParams) error
 	InsertPortalSessions(ctx context.Context, db DBTX, args []InsertPortalSessionParams) error
-	InsertPortalSessionTokens(ctx context.Context, db DBTX, args []InsertPortalSessionTokenParams) error
 	InsertProjects(ctx context.Context, db DBTX, args []InsertProjectParams) error
 	InsertRatelimitNamespaces(ctx context.Context, db DBTX, args []InsertRatelimitNamespaceParams) error
 	InsertRatelimitOverrides(ctx context.Context, db DBTX, args []InsertRatelimitOverrideParams) error
 	InsertRoles(ctx context.Context, db DBTX, args []InsertRoleParams) error
 	InsertRolePermissions(ctx context.Context, db DBTX, args []InsertRolePermissionParams) error
 	UpsertWorkspaceBillingPlanOverride(ctx context.Context, db DBTX, args []UpsertWorkspaceBillingPlanOverrideParams) error
+	UpsertWorkspaceBillingSpendSuspended(ctx context.Context, db DBTX, args []UpsertWorkspaceBillingSpendSuspendedParams) error
 	InsertWorkspaces(ctx context.Context, db DBTX, args []InsertWorkspaceParams) error
 	UpsertWorkspace(ctx context.Context, db DBTX, args []UpsertWorkspaceParams) error
 }

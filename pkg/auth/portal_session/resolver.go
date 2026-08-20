@@ -54,13 +54,15 @@ func (r *Resolver) Resolve(ctx context.Context, sess *zen.Session) (*principal.P
 		},
 		Type: principal.TypePortalSession,
 		Source: principal.PortalSessionSource{
-			SessionID:      cookie.Value,
-			PortalConfigID: session.PortalConfigID,
-			ExternalID:     session.ExternalID,
-			KeyspaceIDs:    session.KeyspaceIDs,
-			Permissions:    session.Permissions,
+			// The row handle, not the cookie value: the cookie carries the bearer
+			// access token, and the principal is logged and traced.
+			SessionID:   session.SessionID,
+			PortalID:    session.PortalID,
+			ExternalID:  session.ExternalID,
+			KeyspaceIDs: session.KeyspaceIDs,
+			Scopes:      session.Scopes,
 		},
 		WorkspaceID: session.WorkspaceID,
-		Permissions: session.Permissions,
+		Permissions: session.Scopes,
 	}, nil
 }

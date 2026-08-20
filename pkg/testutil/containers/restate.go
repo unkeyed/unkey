@@ -36,6 +36,8 @@ const (
 type RestateConfig struct {
 	// IngressURL is the Restate ingress endpoint URL.
 	IngressURL string
+	// IngressClient submits requests to the Restate ingress endpoint.
+	IngressClient *ingress.Client
 	// AdminURL is the Restate admin endpoint URL.
 	AdminURL string
 }
@@ -57,9 +59,11 @@ func Restate(t *testing.T, services ...restate.ServiceDefinition) RestateConfig 
 	require.NotEmpty(t, services, "at least one Restate service is required")
 
 	container, removeContainer := startIsolatedService(t, "restate")
+	ingressURL := fmt.Sprintf("http://%s", container.Addr(t, restatePort))
 	cfg := RestateConfig{
-		IngressURL: fmt.Sprintf("http://%s", container.Addr(t, restatePort)),
-		AdminURL:   fmt.Sprintf("http://localhost:%d", container.Port(t, restateAdminPort)),
+		IngressURL:    ingressURL,
+		IngressClient: ingress.NewClient(ingressURL),
+		AdminURL:      fmt.Sprintf("http://localhost:%d", container.Port(t, restateAdminPort)),
 	}
 
 	var worker *httptest.Server
@@ -121,7 +125,7 @@ func Restate(t *testing.T, services ...restate.ServiceDefinition) RestateConfig 
 		requestCtx, requestCancel := context.WithTimeout(readinessCtx, 2*time.Second)
 		defer requestCancel()
 		_, err := ingress.Object[string, string](
-			ingress.NewClient(cfg.IngressURL),
+			cfg.IngressClient,
 			restateReadinessServiceName,
 			"probe",
 			restateReadinessHandlerName,
