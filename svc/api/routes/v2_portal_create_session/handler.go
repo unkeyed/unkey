@@ -378,7 +378,7 @@ func ScopeQueries(
 		//
 		// The conjunct keys off the keyspace flag rather than an individual
 		// key's encryption row because mint time cannot know which key a
-		// session will later reroll (KTD5). That makes it a conservative proxy
+		// session will later reroll. That makes it a conservative proxy
 		// that can go stale, which is safe today: the reroll core gates both
 		// the encryption write and its own encrypt_key conjunct on the key
 		// itself (v2_keys_reroll_key/handler.go:161 and :418), so turning a

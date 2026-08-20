@@ -174,10 +174,10 @@ func TestCreateSessionSuccess(t *testing.T) {
 	})
 }
 
-// TestCreateSessionAuditsGrantedScopesAndKeyspaces covers R11: the audit entry
-// for a created session records what the session was actually granted. Without
-// it, the log says a session was minted but not what it can do, which is the
-// question an incident responder asks first.
+// TestCreateSessionAuditsGrantedScopesAndKeyspaces asserts that the audit
+// entry for a created session records what the session was actually granted.
+// Without it, the log says a session was minted but not what it can do, which
+// is the question an incident responder asks first.
 //
 // Asserted here rather than in the authorization tests because it is a side
 // effect of the success path -- a denied request writes no entry at all, which

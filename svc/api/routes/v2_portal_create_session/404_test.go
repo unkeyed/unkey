@@ -68,7 +68,7 @@ func TestCreateSessionNotFoundWrongWorkspace(t *testing.T) {
 
 	// Authenticate as workspace B, holding every permission the mint would need
 	// in its own workspace. Workspace A's portal must still be indistinguishable
-	// from one that does not exist (R12).
+	// from one that does not exist.
 	workspaceB := h.CreateWorkspace()
 	rootKeyB := h.CreateRootKey(workspaceB.ID,
 		"portal.*.create_portal_session",
