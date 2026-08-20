@@ -97,6 +97,29 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 	repositoryFullName := conn.RepositoryFullName
+	defaultBranch := conn.DefaultBranch.String
+
+	var docker *openapi.AppDocker
+	if app.SourceType == db.AppsSourceTypeOci {
+		ociSource, ociErr := db.Query.FindAppSourceOciByAppId(ctx, h.DB.RO(), app.ID)
+		if ociErr != nil {
+			return fault.Wrap(
+				ociErr,
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Internal("failed to load OCI app source"),
+				fault.Public("Failed to retrieve app."),
+			)
+		}
+		docker = &openapi.AppDocker{Image: ociSource.ImageReference}
+	}
+	sourceType := openapi.AppSourceType("")
+	switch app.SourceType {
+	case db.AppsSourceTypeGit:
+		sourceType = openapi.Git
+	case db.AppsSourceTypeOci:
+		sourceType = openapi.Docker
+	case db.AppsSourceTypeUnknown:
+	}
 
 	return s.JSON(http.StatusOK, Response{
 		Meta: openapi.Meta{
@@ -106,9 +129,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			Id:                  app.ID,
 			Name:                app.Name,
 			Slug:                app.Slug,
-			SourceType:          "",
-			Git:                 githubapp.GitResponse(repositoryFullName, app.DefaultBranch),
-			Docker:              nil,
+			SourceType:          sourceType,
+			Git:                 githubapp.GitResponse(repositoryFullName, defaultBranch),
+			Docker:              docker,
 			CurrentDeploymentId: app.CurrentDeploymentID.String,
 			IsRolledBack:        app.IsRolledBack,
 			DeleteProtection:    app.DeleteProtection.Bool,
