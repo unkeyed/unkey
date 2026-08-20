@@ -181,7 +181,6 @@ func TestDeployment_ActivationRequiresComputePlan(t *testing.T) {
 	target := f.deployment(f.prodEnv, mysqltype.DeploymentsStatusReady, mysqltype.DeploymentsDesiredStateRunning)
 	f.setLive(live.ID, false)
 
-	wake := f.deployment(f.previewEnv, mysqltype.DeploymentsStatusStopped, mysqltype.DeploymentsDesiredStateStopped)
 	authorize := f.deployment(f.previewEnv, mysqltype.DeploymentsStatusAwaitingApproval, mysqltype.DeploymentsDesiredStateRunning)
 
 	tests := []struct {
@@ -190,10 +189,6 @@ func TestDeployment_ActivationRequiresComputePlan(t *testing.T) {
 	}{
 		{name: "promote", call: func() error { return f.promote(target.ID) }},
 		{name: "rollback", call: func() error { return f.rollback(live.ID, target.ID) }},
-		{name: "wake", call: func() error {
-			_, err := f.client.WakeDeployment(f.ctx, connect.NewRequest(&ctrlv1.WakeDeploymentRequest{DeploymentId: wake.ID}))
-			return err
-		}},
 		{name: "authorize", call: func() error {
 			_, err := f.client.AuthorizeDeployment(f.ctx, connect.NewRequest(&ctrlv1.AuthorizeDeploymentRequest{DeploymentId: authorize.ID}))
 			return err

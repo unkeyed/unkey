@@ -31,15 +31,14 @@ import { Result } from "../types/fp.js";
  * Create portal session
  *
  * @remarks
- * Create a short-lived session token for an end user to access the Customer Portal.
+ * Create a portal session for an end user and get the URL to redirect them to.
  *
- * The returned session ID is valid for 15 minutes and can be exchanged exactly once
- * for a 24-hour browser session via `portal.exchangeSession`. Redirect the end user
- * to the returned URL to start the portal experience.
+ * The URL carries a single-use exchange code valid for 15 minutes, which the portal
+ * redeems exactly once for a 24-hour access token via `portal.exchangeCode`.
  *
  * **Required Permissions**
  *
- * Your root key must be associated with a workspace that has an enabled portal configuration.
+ * Your root key must be associated with a workspace that has an enabled portal.
  *
  * If set, this operation will use {@link Security.rootKey} from the global security.
  */

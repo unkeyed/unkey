@@ -3,14 +3,15 @@ package handler_test
 import (
 	"net/http"
 
+	restateingress "github.com/restatedev/sdk-go/ingress"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_deployments_start_deployment"
 )
 
-func newRoute(h *testutil.Harness, mock *testutil.MockDeploymentClient) *handler.Handler {
+func newRoute(h *testutil.Harness, restate *restateingress.Client) *handler.Handler {
 	return &handler.Handler{
-		DB:         h.DB,
-		CtrlClient: mock,
+		DB:      h.DB,
+		Restate: restate,
 	}
 }
 

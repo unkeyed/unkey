@@ -27,6 +27,7 @@ import (
 	restateadmin "github.com/unkeyed/unkey/pkg/restate/admin"
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/svc/ctrl/integration/seed"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/auditlogs"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/billingmeter"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/invoicecloser"
@@ -72,9 +73,6 @@ type Harness struct {
 
 	// Restate is the ingress client for calling Restate services.
 	Restate *ingress.Client
-
-	// RestateIngress is the URL for calling Restate handlers.
-	RestateIngress string
 
 	// RestateAdmin is the URL for Restate admin operations.
 	RestateAdmin string
@@ -149,9 +147,6 @@ func New(t *testing.T, opts ...Option) *Harness {
 	if o.clock == nil {
 		o.clock = clock.New()
 	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), o.timeout)
-	t.Cleanup(cancel)
 
 	start := time.Now()
 
@@ -253,8 +248,12 @@ func New(t *testing.T, opts ...Option) *Harness {
 		Clickhouse: chClient,
 	})
 
+	auditlogSvc, err := auditlogs.New(auditlogs.Config{DB: database})
+	require.NoError(t, err)
+
 	deploySvc, err := deploy.New(deploy.Config{
 		DB:            database,
+		Auditlogs:     auditlogSvc,
 		Clickhouse:    chClient,
 		DefaultDomain: "test.example.com",
 		DashboardURL:  "https://app.unkey.com",
@@ -318,6 +317,12 @@ func New(t *testing.T, opts ...Option) *Harness {
 	}))
 	t.Logf("Total harness setup in %s", time.Since(start))
 
+	// The timeout limits test operations, not container startup and service
+	// readiness. Starting it before setup can return an already-expired context
+	// to the first request when CI is under load.
+	ctx, cancel := context.WithTimeout(context.Background(), o.timeout)
+	t.Cleanup(cancel)
+
 	return &Harness{
 		Ctx:            ctx,
 		DB:             database,
@@ -328,8 +333,7 @@ func New(t *testing.T, opts ...Option) *Harness {
 		ClickHouseDSN:  chDSN,
 		VaultClient:    vaultClient,
 		VaultToken:     testVault.Token,
-		Restate:        ingress.NewClient(restateCfg.IngressURL),
-		RestateIngress: restateCfg.IngressURL,
+		Restate:        restateCfg.IngressClient,
 		RestateAdmin:   restateCfg.AdminURL,
 		Clock:          o.clock,
 	}

@@ -56,6 +56,8 @@ export const getDeploymentRuntimeLogs = workspaceProcedure
         severity: [],
         region: [],
         message: null,
+        attributes: null,
+        attributeMatch: null,
         k8sPodNames: [],
         page: 1,
       },

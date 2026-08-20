@@ -2,7 +2,9 @@ package analytics
 
 import (
 	"context"
+	"math"
 
+	ch "github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	queryparser "github.com/unkeyed/unkey/pkg/clickhouse/query-parser"
@@ -50,5 +52,43 @@ func Execute(ctx context.Context, manager ConnectionManager, req ExecuteRequest)
 	if err != nil {
 		return nil, clickhouse.WrapClickHouseError(err)
 	}
+
+	for _, row := range rows {
+		for column, value := range row {
+			row[column] = nullifyNonFinite(value)
+		}
+	}
+
 	return rows, nil
+}
+
+// nullifyNonFinite replaces a NaN or Inf value with nil.
+//
+// ClickHouse gives NaN for an aggregate such as quantile or avg when no row
+// matches the query. It gives Inf for a division by zero. JSON has no encoding
+// for a non-finite float. Thus json.Marshal fails the full response.
+//
+// The Float32 case covers ClickHouse functions that give Float32 rather than
+// Float64.
+//
+// An array column can also hold such a value. One example is
+// groupArray(latency / 0). That query still answers 500. Each array depth is a
+// different Go type, and no caller writes such a query.
+func nullifyNonFinite(value any) any {
+	switch v := value.(type) {
+	case ch.Dynamic: // QueryToMaps scans each column into a Dynamic
+		if nullifyNonFinite(v.Any()) == nil {
+			return nil
+		}
+	case float64: // quantile, avg, or a division
+		if math.IsNaN(v) || math.IsInf(v, 0) {
+			return nil
+		}
+	case float32:
+		if math.IsNaN(float64(v)) || math.IsInf(float64(v), 0) {
+			return nil
+		}
+	}
+
+	return value
 }

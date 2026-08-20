@@ -35,10 +35,16 @@ CREATE TABLE frontline_requests_raw_v1 (
   instance_latency Int64,
   -- Milliseconds - frontline overhead
   frontline_latency Int64,
+  -- Milliseconds - gateway overhead, replaces frontline_latency
+  gateway_latency Int64 DEFAULT frontline_latency,
   INDEX idx_request_id (request_id) TYPE bloom_filter GRANULARITY 1,
   INDEX idx_deployment_id (deployment_id) TYPE bloom_filter GRANULARITY 1,
   INDEX idx_instance_id (instance_id) TYPE bloom_filter GRANULARITY 1,
-  INDEX idx_frontline_id (frontline_id) TYPE bloom_filter GRANULARITY 1
+  INDEX idx_frontline_id (frontline_id) TYPE bloom_filter GRANULARITY 1,
+  INDEX idx_host (host) TYPE bloom_filter(0.01) GRANULARITY 1,
+  INDEX idx_path (path) TYPE bloom_filter(0.01) GRANULARITY 1,
+  INDEX idx_path_text_search path TYPE ngrambf_v1(3, 32768, 2, 0) GRANULARITY 1,
+  INDEX idx_region region TYPE set(64) GRANULARITY 1
 ) ENGINE = MergeTree()
 ORDER BY (`workspace_id`, `project_id`, `app_id`, `environment_id`, `time`, `deployment_id`)
 TTL toDateTime(fromUnixTimestamp64Milli(time)) + toIntervalDay(7)

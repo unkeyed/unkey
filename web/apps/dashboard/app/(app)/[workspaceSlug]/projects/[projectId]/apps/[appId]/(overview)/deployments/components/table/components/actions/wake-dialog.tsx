@@ -1,7 +1,8 @@
 "use client";
 
 import { type Deployment, collection } from "@/lib/collections";
-import { trpc } from "@/lib/trpc/client";
+import { getErrorMessage, getUnkeyClient } from "@/lib/unkey-client";
+import { useMutation } from "@tanstack/react-query";
 import { Button, DialogContainer, toast } from "@unkey/ui";
 import { DeploymentCard } from "./components/deployment-card";
 
@@ -12,7 +13,9 @@ type WakeDialogProps = {
 };
 
 export const WakeDialog = ({ isOpen, onClose, deployment }: WakeDialogProps) => {
-  const wake = trpc.deploy.deployment.wake.useMutation({
+  const wake = useMutation({
+    mutationFn: (deploymentId: string) =>
+      getUnkeyClient().deployments.startDeployment({ deploymentId }),
     onSuccess: () => {
       collection.deployments.utils.refetch();
       onClose();
@@ -20,12 +23,12 @@ export const WakeDialog = ({ isOpen, onClose, deployment }: WakeDialogProps) => 
   });
 
   const handleWake = () => {
-    toast.promise(wake.mutateAsync({ deploymentId: deployment.id }), {
+    toast.promise(wake.mutateAsync(deployment.id), {
       loading: "Waking deployment...",
       success: "Deployment is ready",
       error: (err) => ({
         message: "Failed to wake deployment",
-        description: err.message,
+        description: getErrorMessage(err),
       }),
     });
   };

@@ -128,9 +128,9 @@ type dataAuditLog struct {
 	NotFound Code
 }
 
-// dataPortalConfig defines errors related to portal configuration operations.
-type dataPortalConfig struct {
-	// NotFound indicates the requested portal configuration was not found.
+// dataPortal defines errors related to portal operations.
+type dataPortal struct {
+	// NotFound indicates the requested portal was not found.
 	NotFound Code
 }
 
@@ -165,7 +165,7 @@ type UnkeyDataErrors struct {
 	RatelimitOverride  dataRatelimitOverride
 	Identity           dataIdentity
 	AuditLog           dataAuditLog
-	PortalConfig       dataPortalConfig
+	Portal             dataPortal
 	Analytics          dataAnalytics
 }
 
@@ -252,8 +252,8 @@ var Data = UnkeyDataErrors{
 		NotFound: Code{SystemUnkey, CategoryUnkeyData, "audit_log_not_found"},
 	},
 
-	PortalConfig: dataPortalConfig{
-		NotFound: Code{SystemUnkey, CategoryUnkeyData, "portal_config_not_found"},
+	Portal: dataPortal{
+		NotFound: Code{SystemUnkey, CategoryUnkeyData, "portal_not_found"},
 	},
 
 	Analytics: dataAnalytics{

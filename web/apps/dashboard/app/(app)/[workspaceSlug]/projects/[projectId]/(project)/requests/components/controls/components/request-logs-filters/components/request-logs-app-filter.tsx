@@ -1,28 +1,24 @@
 "use client";
 
-import {
-  renderAppOption,
-  useAppFilterOptions,
-} from "@/app/(app)/[workspaceSlug]/projects/[projectId]/(project)/components/app-filter-options";
+import { AppEnvironmentFilter } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/(project)/components/app-environment-filter";
 import { useRequestLogsFilters } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/(project)/requests/hooks/use-request-logs-filters";
-import { FilterCheckbox } from "@/components/logs/checkbox/filter-checkbox";
+import type { RequestLogsFilterValue } from "@/lib/schemas/request-logs.filter.schema";
+
+const createFilter = (field: "appId" | "environmentId", value: string): RequestLogsFilterValue => ({
+  id: crypto.randomUUID(),
+  field,
+  operator: "is",
+  value,
+});
 
 export const RequestAppFilter = () => {
   const { filters, updateFilters } = useRequestLogsFilters();
-  const options = useAppFilterOptions();
 
   return (
-    <FilterCheckbox
-      options={options}
-      filterField="appId"
-      checkPath="appId"
-      selectionMode="multiple"
-      renderOptionContent={renderAppOption}
-      createFilterValue={(option) => ({
-        value: option.appId,
-      })}
+    <AppEnvironmentFilter
       filters={filters}
       updateFilters={updateFilters}
+      createFilter={createFilter}
     />
   );
 };

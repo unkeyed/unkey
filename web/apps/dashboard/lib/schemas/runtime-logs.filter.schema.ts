@@ -6,6 +6,35 @@ import type {
 import { createFilterOutputSchema } from "@/components/logs/validation/utils/structured-output-schema-generator";
 import { z } from "zod";
 
+export type RuntimeLogsAttributeMatch = {
+  path: string;
+  value: string;
+};
+
+export function parseRuntimeLogsAttributeMatch(input: string): RuntimeLogsAttributeMatch | null {
+  const separatorIndex = input.indexOf("=");
+  if (separatorIndex === -1) {
+    return null;
+  }
+
+  const pathSegments = input
+    .slice(0, separatorIndex)
+    .split(".")
+    .map((segment) => segment.trim());
+  const value = input.slice(separatorIndex + 1).trim();
+
+  if (
+    pathSegments.some((segment) => segment.length === 0) ||
+    pathSegments.join(".").length > 512 ||
+    value.length < 3 ||
+    value.length > 2_048
+  ) {
+    return null;
+  }
+
+  return { path: pathSegments.join("."), value };
+}
+
 // Configuration
 export const runtimeLogsFilterFieldConfig: RuntimeLogsFilterFieldConfigs = {
   severity: {
@@ -24,7 +53,11 @@ export const runtimeLogsFilterFieldConfig: RuntimeLogsFilterFieldConfigs = {
   },
   message: {
     type: "string",
-    operators: ["is", "contains"],
+    operators: ["contains"],
+  },
+  attributes: {
+    type: "string",
+    operators: ["contains", "is"],
   },
   startTime: {
     type: "number",
@@ -66,6 +99,7 @@ export const runtimeLogsFilterOperatorEnum = z.enum(["is", "contains"]);
 export const runtimeLogsFilterFieldEnum = z.enum([
   "severity",
   "message",
+  "attributes",
   "startTime",
   "endTime",
   "since",
@@ -89,6 +123,7 @@ export type RuntimeLogsFilterField = z.infer<typeof runtimeLogsFilterFieldEnum>;
 export type RuntimeLogsFilterFieldConfigs = {
   severity: StringConfig<RuntimeLogsFilterOperator>;
   message: StringConfig<RuntimeLogsFilterOperator>;
+  attributes: StringConfig<RuntimeLogsFilterOperator>;
   startTime: NumberConfig<RuntimeLogsFilterOperator>;
   endTime: NumberConfig<RuntimeLogsFilterOperator>;
   since: StringConfig<RuntimeLogsFilterOperator>;
@@ -108,6 +143,7 @@ export type RuntimeLogsFilterValue = FilterValue<RuntimeLogsFilterField, Runtime
 export type RuntimeLogsQuerySearchParams = {
   severity: RuntimeLogsFilterUrlValue[] | null;
   message: RuntimeLogsFilterUrlValue[] | null;
+  attributes: RuntimeLogsFilterUrlValue[] | null;
   startTime?: number | null;
   endTime?: number | null;
   since?: string | null;

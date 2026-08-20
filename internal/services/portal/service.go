@@ -11,25 +11,29 @@ import (
 // SessionInfo contains the resolved identity from a portal browser session.
 // It provides workspace and user scoping for existing API handlers.
 type SessionInfo struct {
-	WorkspaceID    string
-	ExternalID     string
-	PortalConfigID string
-	Preview        bool
+	// SessionID is the session's non-secret row handle (`ps_`), safe to log and
+	// to reference from audit logs. It is not the access token.
+	SessionID string
+
+	WorkspaceID string
+	ExternalID  string
+	PortalID    string
+	Preview     bool
 
 	// KeyspaceIDs scopes the session's key capabilities to a set of keyspaces.
 	KeyspaceIDs []string
 
-	// Permissions is the session's simplified capability verbs (e.g. "keys:reroll",
+	// Scopes is the session's simplified capability verbs (e.g. "keys:reroll",
 	// "analytics:read"). The portal_session resolver expands these into RBAC
 	// permission strings via portalrbac.
-	Permissions []string
+	Scopes []string
 }
 
 // Service defines the interface for portal session operations.
 type Service interface {
-	// GetSession validates a portal session token and returns session info
+	// GetSession validates a portal access token and returns session info
 	// for scoping existing handlers by workspace and external user identity.
-	GetSession(ctx context.Context, token string) (*SessionInfo, error)
+	GetSession(ctx context.Context, accessToken string) (*SessionInfo, error)
 }
 
 // Config holds the configuration for creating a new portal service instance.

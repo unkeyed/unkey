@@ -30,6 +30,7 @@ func New(cfg *config.PprofConfig, prefix string) (*zen.Server, error) {
 		TLS:                nil,
 		Flags:              nil,
 		EnableH2C:          false,
+		StreamRequestBody:  false,
 		MaxRequestBodySize: 0,
 		ReadTimeout:        -1,
 		WriteTimeout:       -1,
