@@ -46,6 +46,7 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/worker/clickhouseuser"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/deploybilling"
+	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/deploymentgc"
 	workercustomdomain "github.com/unkeyed/unkey/svc/ctrl/worker/customdomain"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/deploy"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/deployment"
@@ -257,6 +258,15 @@ func Run(ctx context.Context, cfg Config) error {
 		Backend:    deploy.BuildBackend(cfg.Build.Backend),
 		Depot:      deploy.DepotConfig(cfg.GetDepotConfig()),
 		Kubernetes: deploy.KubernetesBuildConfig(cfg.Build.Kubernetes),
+	}
+	var depotGCClient deploymentgc.Depot
+	var depotRegistryProjectID string
+	if buildConfig.Backend == deploy.BuildBackendDepot && cfg.Registry.Password != "" {
+		depotRegistryProjectID, err = deploymentgc.RegistryProjectID(cfg.Registry.Repository)
+		if err != nil {
+			return fmt.Errorf("configure Depot garbage collection: %w", err)
+		}
+		depotGCClient = deploymentgc.NewDepotClient(buildConfig.Depot.APIUrl, cfg.Registry.Password)
 	}
 
 	// The kubernetes build backend runs build Jobs in the worker's own
@@ -554,9 +564,16 @@ func Run(ctx context.Context, cfg Config) error {
 	// keyed VOs wedges every subsequent tick under that key. Per-handler
 	// options below mirror each task's pre-consolidation behavior.
 	cronSvc, err := cron.New(cron.Config{
-		DB:                        database,
-		Clickhouse:                ch,
-		Clock:                     clk,
+		DB:         database,
+		Clickhouse: ch,
+		Clock:      clk,
+		DeploymentGC: deploymentgc.Config{
+			DB:                 database,
+			Depot:              depotGCClient,
+			RegistryRepository: cfg.Registry.Repository,
+			RegistryProjectID:  depotRegistryProjectID,
+			ProjectPrefix:      buildConfig.Depot.ProjectPrefix,
+		},
 		RatelimitDB:               ratelimitdb.New(database.RW(), database.RO()),
 		SlackQuotaCheckWebhookURL: cfg.Slack.QuotaCheckWebhookURL,
 		BillingUsageReader:        billingUsageReader,
@@ -714,6 +731,7 @@ func Run(ctx context.Context, cfg Config) error {
 		ConfigureHandler("RunKeyLastUsedSync", cronKeyLastUsedRetry).
 		ConfigureHandler("RunRatelimitGlobalCountersCleanup", cronRatelimitGCCRetry).
 		ConfigureHandler("RunAuditLogOutboxCleanup", cronAuditLogCleanupRetry).
+		ConfigureHandler("RunDeploymentGarbageCollection", deploymentGCRetry).
 		// 1h journal retention keeps debugging headroom for an oncall to
 		// inspect a recent failure without bloating the journal store with
 		// ~1440 dead invocations/day.
