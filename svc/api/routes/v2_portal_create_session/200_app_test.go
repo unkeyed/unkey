@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"strings"
 	"testing"
 	"time"
 
@@ -34,7 +33,7 @@ func seedAppWithKeyspaces(t *testing.T, h *testutil.Harness, workspaceID, slugBa
 
 	ctx := context.Background()
 	now := time.Now().UnixMilli()
-	suffix := strings.ToLower(strings.ReplaceAll(uid.New(uid.TestPrefix), "_", "-"))
+	suffix := uid.DNS1035()
 
 	project := h.CreateProject(seed.CreateProjectRequest{
 		WorkspaceID:      workspaceID,
