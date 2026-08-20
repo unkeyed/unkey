@@ -146,14 +146,27 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		// cleanup to do: `logo_url` and `primary_color` are columns on this row, not
 		// a side table, so the row going away takes the branding with it. Do not add
 		// a second delete here.
-		if err = db.Query.DeletePortal(ctx, tx, db.DeletePortalParams{
+		affected, err := db.Query.DeletePortal(ctx, tx, db.DeletePortalParams{
 			ID:          found.ID,
 			WorkspaceID: principal.WorkspaceID,
-		}); err != nil {
+		})
+		if err != nil {
 			return fault.Wrap(err,
 				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
 				fault.Internal("unable to delete portal"),
 				fault.Public("We're unable to delete the portal."),
+			)
+		}
+
+		// Nothing matched, so a concurrent delete already removed the row between
+		// the resolve and here -- the resolve takes no row lock. Reported as
+		// not-found rather than as a second success, so two racing deletes do not
+		// both claim to have done it and write two audit entries for one deletion.
+		if affected == 0 {
+			return fault.New("portal not found",
+				fault.Code(codes.Data.Portal.NotFound.URN()),
+				fault.Internal(fmt.Sprintf("delete matched no rows for portal %s; concurrently deleted", found.ID)),
+				fault.Public(notFoundMessage),
 			)
 		}
 

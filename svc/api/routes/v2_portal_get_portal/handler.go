@@ -159,11 +159,7 @@ func (h *Handler) resolve(ctx context.Context, workspaceID string, req Request) 
 				WorkspaceID: workspaceID,
 			})
 		default:
-			return found, fault.New("unknown portal mapping type",
-				fault.Code(codes.App.Validation.InvalidInput.URN()),
-				fault.Internal(fmt.Sprintf("unknown mapping type %q", req.Mapping.Type)),
-				fault.Public(portal.ErrMsgInvalidMapping),
-			)
+			return found, portal.ErrUnknownMappingType(req.Mapping.Type)
 		}
 	}
 

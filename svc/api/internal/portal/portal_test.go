@@ -301,3 +301,52 @@ func TestDescribeMappingNeverFails(t *testing.T) {
 		})
 	}
 }
+
+// The comparison update uses to decide whether a mapping changed. Raw
+// NullString equality would call a Valid-but-empty column different from NULL
+// and revoke every live session for an identical mapping.
+func TestSameAssociationTreatsEmptyAsAbsent(t *testing.T) {
+	t.Parallel()
+
+	absent := sql.NullString{String: "", Valid: false}
+	emptyButValid := sql.NullString{String: "", Valid: true}
+	set := sql.NullString{String: "app_1", Valid: true}
+	other := sql.NullString{String: "app_2", Valid: true}
+
+	require.True(t, portal.SameAssociation(absent, absent))
+	require.True(t, portal.SameAssociation(set, set))
+	require.True(t, portal.SameAssociation(absent, emptyButValid),
+		"a Valid but empty column means the same as NULL: no association")
+	require.False(t, portal.SameAssociation(set, other))
+	require.False(t, portal.SameAssociation(set, absent))
+}
+
+// A row that already violates the one-mapping invariant must still be
+// describable, or a mutation on it would roll back and the operator could never
+// switch it off.
+func TestToResponseTolerantNeverFails(t *testing.T) {
+	t.Parallel()
+
+	ambiguous := db.Portal{
+		ID:        "pc_1",
+		Slug:      "broken",
+		Enabled:   true,
+		AppID:     sql.NullString{String: "app_1", Valid: true},
+		KeyAuthID: sql.NullString{String: "ks_1", Valid: true},
+		CreatedAt: 1,
+	}
+
+	// ToResponse refuses it, which is why the tolerant variant exists.
+	_, err := portal.ToResponse(ambiguous)
+	require.Error(t, err)
+
+	got := portal.ToResponseTolerant(ambiguous)
+	require.Equal(t, "pc_1", got.Id)
+	require.Equal(t, "broken", got.Slug)
+	require.Equal(t, "invalid", string(got.Mapping.Type),
+		"the response names the row's real state rather than guessing a mapping")
+	require.Equal(t, "app_1,ks_1", got.Mapping.Id)
+
+	unmapped := portal.ToResponseTolerant(db.Portal{ID: "pc_2", Slug: "none", CreatedAt: 1})
+	require.Equal(t, "none", string(unmapped.Mapping.Type))
+}

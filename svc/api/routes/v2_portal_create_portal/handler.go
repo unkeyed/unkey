@@ -112,16 +112,19 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	// Minted outside the transaction so a retry -- including one after a commit
-	// whose acknowledgement was lost -- replays a byte-identical insert instead of
-	// a second row or a second audit entry.
+	// Minted outside the transaction body so one request writes one id, whatever
+	// happens inside it. Note what this does not buy: the transaction below never
+	// retries its closure, and a fresh *caller* retry mints a new id, so a retry
+	// after a lost commit acknowledgement collides on the slug and reports a
+	// conflict for a create that in fact succeeded. Making that idempotent needs a
+	// caller-supplied key, which this endpoint does not take.
 	portalID := uid.New(uid.PortalPrefix)
 	now := time.Now().UnixMilli()
 	ctx = auditlog.WithCorrelation(ctx, auditlog.NewCorrelationID())
 
-	// Non-retrying: the insert is not idempotent, so a replay would collide with
-	// the caller's own committed row and report a conflict for a request that in
-	// fact succeeded. A transient failure surfaces as one instead.
+	// Non-retrying on purpose: the insert is not idempotent, so replaying the
+	// closure could double-write. A transient failure surfaces to the caller
+	// instead of being retried underneath it.
 	err = db.Tx(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
 		if err := portal.VerifyMappingOwned(ctx, tx, principal.WorkspaceID, req.Mapping); err != nil {
 			return err
@@ -253,11 +256,7 @@ func (h *Handler) assertAvailable(
 		_, claimErr = db.Query.FindPortalIdByKeyspaceAnyWorkspace(ctx, tx,
 			sql.NullString{String: mapping.Id, Valid: true})
 	default:
-		return fault.New("unknown portal mapping type",
-			fault.Code(codes.App.Validation.InvalidInput.URN()),
-			fault.Internal(fmt.Sprintf("unknown mapping type %q", mapping.Type)),
-			fault.Public(portal.ErrMsgInvalidMapping),
-		)
+		return portal.ErrUnknownMappingType(mapping.Type)
 	}
 
 	switch {

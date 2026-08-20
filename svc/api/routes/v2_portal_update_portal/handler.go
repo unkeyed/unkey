@@ -258,7 +258,12 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			update.KeyAuthIDSpecified = 1
 			updated.AppID = mappingAppID
 			updated.KeyAuthID = mappingKeyAuthID
-			mappingChanged = found.AppID != mappingAppID || found.KeyAuthID != mappingKeyAuthID
+			// Compared through the same absent-semantics the rest of the package
+			// uses, not raw NullString equality: a legacy row can hold a Valid but
+			// empty column, and treating that as different from NULL would report a
+			// change for an identical mapping and cut every live session.
+			mappingChanged = !portal.SameAssociation(found.AppID, mappingAppID) ||
+				!portal.SameAssociation(found.KeyAuthID, mappingKeyAuthID)
 		}
 
 		if req.LogoUrl.IsSpecified() {
@@ -273,7 +278,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			updated.PrimaryColor = primaryColor
 		}
 
-		if err = db.Query.UpdatePortal(ctx, tx, update); err != nil {
+		affected, err := db.Query.UpdatePortal(ctx, tx, update)
+		if err != nil {
 			// The pre-check above narrows the message for the collisions it can see,
 			// but it is not a lock: `FindPortalByIdOrSlug` takes no row lock, so a
 			// concurrent write can still win a unique key between the check and this
@@ -291,6 +297,19 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
 				fault.Internal("unable to update portal"),
 				fault.Public("We're unable to update the portal."),
+			)
+		}
+
+		// Nothing matched, so the row went away between the resolve and here -- the
+		// resolve takes no row lock, so a concurrent delete can win that window.
+		// Reported as not-found rather than as a 200 describing a portal that no
+		// longer exists, and rather than writing an audit entry for a write that
+		// changed nothing.
+		if affected == 0 {
+			return empty, fault.New("portal not found",
+				fault.Code(codes.Data.Portal.NotFound.URN()),
+				fault.Internal(fmt.Sprintf("update matched no rows for portal %s; concurrently deleted", found.ID)),
+				fault.Public(notFoundMessage),
 			)
 		}
 
@@ -363,7 +382,14 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		// Composed in-process rather than re-selected: a post-commit read would go
 		// to the read-only connection, where Vitess can serve a stale or missing
 		// row.
-		return portal.ToResponse(updated)
+		//
+		// Tolerant of an already-broken row on purpose. A portal written before
+		// these routes existed may hold both associations or neither, and refusing
+		// to describe it would roll the whole transaction back -- so `enabled:
+		// false` on a misconfigured portal would fail, leaving the operator no way
+		// to switch it off. A request that names a mapping repairs the row on its
+		// way through.
+		return portal.ToResponseTolerant(updated), nil
 	})
 	if err != nil {
 		return err
@@ -432,11 +458,7 @@ func (h *Handler) assertAvailable(
 		claimant, claimErr = db.Query.FindPortalIdByKeyspaceAnyWorkspace(ctx, tx,
 			sql.NullString{String: mappingID, Valid: true})
 	default:
-		return fault.New("unknown portal mapping type",
-			fault.Code(codes.App.Validation.InvalidInput.URN()),
-			fault.Internal(fmt.Sprintf("unknown mapping type %q", req.Mapping.Type)),
-			fault.Public(portal.ErrMsgInvalidMapping),
-		)
+		return portal.ErrUnknownMappingType(req.Mapping.Type)
 	}
 
 	switch {

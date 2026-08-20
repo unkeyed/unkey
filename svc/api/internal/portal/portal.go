@@ -66,11 +66,7 @@ func ColumnsFor(m openapi.PortalMapping) (appID sql.NullString, keyAuthID sql.Nu
 	case openapi.PortalMappingTypeKeyspace:
 		return sql.NullString{}, sql.NullString{String: id, Valid: true}, nil
 	default:
-		return sql.NullString{}, sql.NullString{}, fault.New("unknown portal mapping type",
-			fault.Code(codes.App.Validation.InvalidInput.URN()),
-			fault.Internal(fmt.Sprintf("unknown mapping type %q", m.Type)),
-			fault.Public(ErrMsgInvalidMapping),
-		)
+		return sql.NullString{}, sql.NullString{}, ErrUnknownMappingType(m.Type)
 	}
 }
 
@@ -96,6 +92,71 @@ func MappingOf(p db.Portal) (openapi.PortalMapping, error) {
 		return openapi.PortalMapping{Id: p.AppID.String, Type: openapi.PortalMappingTypeApp}, nil
 	}
 	return openapi.PortalMapping{Id: p.KeyAuthID.String, Type: openapi.PortalMappingTypeKeyspace}, nil
+}
+
+// SameAssociation reports whether two association columns name the same
+// resource.
+//
+// Not raw NullString equality: a row written before these routes existed can
+// hold a Valid but empty column, which means "no association" just as NULL does.
+// Comparing the structs directly would call those two different and report a
+// mapping change for an identical mapping — which, on update, revokes every live
+// session for nothing.
+func SameAssociation(a sql.NullString, b sql.NullString) bool {
+	return associationValue(a) == associationValue(b)
+}
+
+func associationValue(c sql.NullString) string {
+	if !c.Valid {
+		return ""
+	}
+	return c.String
+}
+
+// ErrUnknownMappingType is the single construction for a mapping kind outside
+// the enum.
+//
+// The generated enum makes this unreachable through a well-formed request, but
+// every switch over the kind needs a total default, and five copies of the same
+// fault chain is five places for the public message to drift.
+func ErrUnknownMappingType(mappingType openapi.PortalMappingType) error {
+	return fault.New("unknown portal mapping type",
+		fault.Code(codes.App.Validation.InvalidInput.URN()),
+		fault.Internal(fmt.Sprintf("unknown mapping type %q", mappingType)),
+		fault.Public(ErrMsgInvalidMapping),
+	)
+}
+
+// ToResponseTolerant maps a stored row for a response that must not fail.
+//
+// [ToResponse] refuses an ambiguous row because serving one leaves the portal's
+// keyspace scope undefined. That refusal is wrong at the end of a mutation: the
+// write has already happened, and failing here would roll it back, so a portal
+// written before these routes existed could never be disabled. This reports the
+// mapping the same way the audit entry does and lets the operator act on the row.
+func ToResponseTolerant(p db.Portal) openapi.Portal {
+	mappingType, mappingID := DescribeMapping(p)
+
+	var branding *openapi.PortalBranding
+	if p.LogoUrl.Valid || p.PrimaryColor.Valid {
+		branding = &openapi.PortalBranding{
+			LogoUrl:      p.LogoUrl.String,
+			PrimaryColor: p.PrimaryColor.String,
+		}
+	}
+
+	return openapi.Portal{
+		Branding:  branding,
+		CreatedAt: p.CreatedAt,
+		Enabled:   p.Enabled,
+		Id:        p.ID,
+		Mapping: openapi.PortalMapping{
+			Id:   mappingID,
+			Type: openapi.PortalMappingType(mappingType),
+		},
+		Slug:      p.Slug,
+		UpdatedAt: p.UpdatedAt.Int64,
+	}
 }
 
 // DescribeMapping renders a row's mapping for an audit-log entry.
@@ -183,11 +244,7 @@ func VerifyMappingOwned(ctx context.Context, tx db.DBTX, workspaceID string, m o
 		return nil
 
 	default:
-		return fault.New("unknown portal mapping type",
-			fault.Code(codes.App.Validation.InvalidInput.URN()),
-			fault.Internal(fmt.Sprintf("unknown mapping type %q", m.Type)),
-			fault.Public(ErrMsgInvalidMapping),
-		)
+		return ErrUnknownMappingType(m.Type)
 	}
 }
 
