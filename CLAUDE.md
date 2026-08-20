@@ -1,1 +1,12 @@
 @AGENTS.md
+@.agents/steering/tech.md
+@.agents/steering/structure.md
+@.agents/steering/product.md
+@.agents/steering/glossary.md
+@.agents/steering/go-style.md
+@.agents/steering/billing.md
+@.agents/steering/auth.md
+@.agents/steering/api-routes.md
+@.agents/steering/ctrl-worker.md
+@.agents/steering/dashboard.md
+@.agents/steering/portal.md
