@@ -212,7 +212,7 @@ func baseRequest(target string) handler.Request {
 	}
 }
 
-// AE1: an omitted field keeps its stored value. This is the whole point of the
+// An omitted field keeps its stored value. This is the whole point of the
 // `_specified` flags, and getting it wrong would silently blank a portal's
 // branding on every toggle.
 func TestUpdatePortalOnlyEnabled(t *testing.T) {
@@ -292,7 +292,7 @@ func TestUpdatePortalOneBrandingFieldLeavesTheOther(t *testing.T) {
 	require.Equal(t, "https://cdn.example.com/logo.svg", row.LogoUrl.String)
 }
 
-// R14: an explicit null clears, an omitted field keeps. If these two collapsed
+// An explicit null clears, an omitted field keeps. If these two collapsed
 // into one, either clearing branding would be impossible or every partial update
 // would wipe it.
 func TestUpdatePortalDistinguishesNullFromOmitted(t *testing.T) {
@@ -349,7 +349,7 @@ func TestUpdatePortalClearingAllBrandingOmitsTheObject(t *testing.T) {
 	require.False(t, row.PrimaryColor.Valid)
 }
 
-// AE6 and KTD4: naming only a keyspace on an app-mapped portal writes both
+// Naming only a keyspace on an app-mapped portal writes both
 // association columns, so the row can never hold both. It also revokes the
 // portal's live sessions, and only that portal's.
 func TestUpdatePortalRepointsMappingAndRevokesSessions(t *testing.T) {
@@ -387,7 +387,7 @@ func TestUpdatePortalRepointsMappingAndRevokesSessions(t *testing.T) {
 		"another portal's sessions must be untouched")
 }
 
-// R20: revocation is tied to the mapping changing, not to the request touching
+// Revocation is tied to the mapping changing, not to the request touching
 // the row. Disabling a portal in particular must not cut live sessions.
 func TestUpdatePortalWithoutMappingChangeKeepsSessions(t *testing.T) {
 	h := testutil.NewHarness(t)
@@ -428,7 +428,7 @@ func TestUpdatePortalWithoutMappingChangeKeepsSessions(t *testing.T) {
 	}
 }
 
-// R4: the target is an id or a slug, and both must reach the same row.
+// The target is an id or a slug, and both must reach the same row.
 func TestUpdatePortalAddressedBySlug(t *testing.T) {
 	h := testutil.NewHarness(t)
 	route, headers := newRoute(t, h, "portal.*.update_portal")
@@ -453,7 +453,7 @@ func TestUpdatePortalAddressedBySlug(t *testing.T) {
 		"the sibling must be untouched")
 }
 
-// R18: one entry, carrying enough of the before and after state that an incident
+// One entry, carrying enough of the before and after state that an incident
 // reviewer does not have to infer the previous mapping from a row that no longer
 // holds it.
 func TestUpdatePortalWritesOneAuditEntry(t *testing.T) {

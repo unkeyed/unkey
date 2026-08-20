@@ -67,8 +67,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	// Minted outside the closure so a caller-side retry replays the same write
-	// rather than correlating a second audit entry to a different attempt
-	// (KTD10).
+	// rather than correlating a second audit entry to a different attempt.
 	now := time.Now().UnixMilli()
 	ctx = auditlog.WithCorrelation(ctx, auditlog.NewCorrelationID())
 
@@ -101,7 +100,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		// scoped grant would carry. Safe because the resolve is workspace-scoped --
 		// a foreign portal is already absent above -- Authorize is an in-memory
 		// check over already-loaded permissions, and nothing has been written yet
-		// (KTD7). The wildcard arm is spelled out separately because a stored `*`
+		// The wildcard arm is spelled out separately because a stored `*`
 		// matches literally and does not expand.
 		//
 		// The URN arms are what let the dashboard reach this route: its proxy mints
@@ -133,7 +132,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			// -- which names the resolved portal id -- to the response. A caller may
 			// have addressed the portal by slug and never seen that id. The internal
 			// message carries the denial across so logs still distinguish it from a
-			// genuinely absent portal (KTD8, R19).
+			// genuinely absent portal.
 			return fault.New("portal not found",
 				fault.Code(codes.Data.Portal.NotFound.URN()),
 				fault.Internal(fmt.Sprintf("delete denied for portal %s: %s", found.ID, fault.InternalMessage(err))),
@@ -175,7 +174,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		// consistent with. The session resolver reads `portal_sessions` alone and
 		// never `portals`, so without this every live end user would keep
 		// authenticating against the deleted portal's frozen scope until the access
-		// token expired (KTD12, R20). Scoped to this portal, so sessions belonging
+		// token expired. Scoped to this portal, so sessions belonging
 		// to another portal in the same workspace are untouched, and it does not
 		// cascade to the app or keyspace the portal served.
 		revoked, err := db.Query.RevokePortalSessionsByPortal(ctx, tx, db.RevokePortalSessionsByPortalParams{
