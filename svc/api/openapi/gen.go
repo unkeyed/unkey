@@ -16,6 +16,12 @@ const (
 	PortalSessionScopes = "portalSession.Scopes"
 )
 
+// Defines values for AppSourceType.
+const (
+	Docker AppSourceType = "docker"
+	Git    AppSourceType = "git"
+)
+
 // Defines values for DeploymentAction.
 const (
 	DeploymentActionPromote  DeploymentAction = "promote"
@@ -190,6 +196,9 @@ type App struct {
 	// When true, the app cannot be deleted until protection is disabled.
 	DeleteProtection bool `json:"deleteProtection"`
 
+	// Docker The configured Docker image source. Omitted when the app is not Docker-sourced.
+	Docker *AppDocker `json:"docker,omitempty"`
+
 	// Git The connected GitHub repository and the branch its deployments track.
 	// Omitted when the app has no repository connected (for example a
 	// Docker-based app).
@@ -208,9 +217,29 @@ type App struct {
 	// Chosen at creation time.
 	Slug string `json:"slug"`
 
+	// SourceType The configured source used to create deployments. Omitted for historical
+	// apps whose source could not be classified.
+	SourceType AppSourceType `json:"sourceType,omitempty"`
+
 	// UpdatedAt Unix timestamp in milliseconds when the app was last updated.
 	// Omitted if the app has never been updated.
 	UpdatedAt int64 `json:"updatedAt,omitempty"`
+}
+
+// AppSourceType The configured source used to create deployments. Omitted for historical
+// apps whose source could not be classified.
+type AppSourceType string
+
+// AppDocker defines model for AppDocker.
+type AppDocker struct {
+	// Image The configured default image reference for new deployments.
+	Image string `json:"image"`
+}
+
+// AppDockerInput Configure Docker as the app source.
+type AppDockerInput struct {
+	// Image The default image reference for new deployments. It must include an explicit tag or digest.
+	Image string `json:"image"`
 }
 
 // AppGit defines model for AppGit.
@@ -1744,15 +1773,15 @@ type V2ApisListKeysResponseBody struct {
 // V2ApisListKeysResponseData Array of API keys with complete configuration and metadata.
 type V2ApisListKeysResponseData = []KeyResponseData
 
-// V2AppsCreateAppRequestBody defines model for V2AppsCreateAppRequestBody.
+// V2AppsCreateAppRequestBody Create an app with exactly one source: `git` or `docker`.
 type V2AppsCreateAppRequestBody struct {
+	// Docker Configure Docker as the app source.
+	Docker *AppDockerInput `json:"docker,omitempty"`
+
 	// Git Connect a GitHub repository to the app on creation. Omit to create the app
 	// without a repository and connect one later with apps.updateApp.
-	Git *AppGitCreateInput `json:"git,omitempty"`
-
-	// Name Human-readable name for this app.
-	// Use a descriptive name like 'Payments API' to identify its purpose.
-	Name string `json:"name"`
+	Git  *AppGitCreateInput `json:"git,omitempty"`
+	Name string             `json:"name"`
 
 	// Project Identifies a resource by either its unique ID or its slug.
 	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
@@ -1760,8 +1789,15 @@ type V2AppsCreateAppRequestBody struct {
 
 	// Slug Identifies a resource by either its unique ID or its slug.
 	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
-	Slug ResourceIdentifier `json:"slug"`
+	Slug  ResourceIdentifier `json:"slug"`
+	union json.RawMessage
 }
+
+// V2AppsCreateAppRequestBody0 defines model for .
+type V2AppsCreateAppRequestBody0 = interface{}
+
+// V2AppsCreateAppRequestBody1 defines model for .
+type V2AppsCreateAppRequestBody1 = interface{}
 
 // V2AppsCreateAppResponseBody defines model for V2AppsCreateAppResponseBody.
 type V2AppsCreateAppResponseBody struct {
@@ -4795,6 +4831,153 @@ type RatelimitMultiLimitJSONRequestBody = V2RatelimitMultiLimitRequestBody
 
 // RatelimitSetOverrideJSONRequestBody defines body for RatelimitSetOverride for application/json ContentType.
 type RatelimitSetOverrideJSONRequestBody = V2RatelimitSetOverrideRequestBody
+
+// AsV2AppsCreateAppRequestBody0 returns the union data inside the V2AppsCreateAppRequestBody as a V2AppsCreateAppRequestBody0
+func (t V2AppsCreateAppRequestBody) AsV2AppsCreateAppRequestBody0() (V2AppsCreateAppRequestBody0, error) {
+	var body V2AppsCreateAppRequestBody0
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromV2AppsCreateAppRequestBody0 overwrites any union data inside the V2AppsCreateAppRequestBody as the provided V2AppsCreateAppRequestBody0
+func (t *V2AppsCreateAppRequestBody) FromV2AppsCreateAppRequestBody0(v V2AppsCreateAppRequestBody0) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeV2AppsCreateAppRequestBody0 performs a merge with any union data inside the V2AppsCreateAppRequestBody, using the provided V2AppsCreateAppRequestBody0
+func (t *V2AppsCreateAppRequestBody) MergeV2AppsCreateAppRequestBody0(v V2AppsCreateAppRequestBody0) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsV2AppsCreateAppRequestBody1 returns the union data inside the V2AppsCreateAppRequestBody as a V2AppsCreateAppRequestBody1
+func (t V2AppsCreateAppRequestBody) AsV2AppsCreateAppRequestBody1() (V2AppsCreateAppRequestBody1, error) {
+	var body V2AppsCreateAppRequestBody1
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromV2AppsCreateAppRequestBody1 overwrites any union data inside the V2AppsCreateAppRequestBody as the provided V2AppsCreateAppRequestBody1
+func (t *V2AppsCreateAppRequestBody) FromV2AppsCreateAppRequestBody1(v V2AppsCreateAppRequestBody1) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeV2AppsCreateAppRequestBody1 performs a merge with any union data inside the V2AppsCreateAppRequestBody, using the provided V2AppsCreateAppRequestBody1
+func (t *V2AppsCreateAppRequestBody) MergeV2AppsCreateAppRequestBody1(v V2AppsCreateAppRequestBody1) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t V2AppsCreateAppRequestBody) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	if err != nil {
+		return nil, err
+	}
+	object := make(map[string]json.RawMessage)
+	if t.union != nil {
+		err = json.Unmarshal(b, &object)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if t.Docker != nil {
+		object["docker"], err = json.Marshal(t.Docker)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'docker': %w", err)
+		}
+	}
+
+	if t.Git != nil {
+		object["git"], err = json.Marshal(t.Git)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'git': %w", err)
+		}
+	}
+
+	object["name"], err = json.Marshal(t.Name)
+	if err != nil {
+		return nil, fmt.Errorf("error marshaling 'name': %w", err)
+	}
+
+	object["project"], err = json.Marshal(t.Project)
+	if err != nil {
+		return nil, fmt.Errorf("error marshaling 'project': %w", err)
+	}
+
+	object["slug"], err = json.Marshal(t.Slug)
+	if err != nil {
+		return nil, fmt.Errorf("error marshaling 'slug': %w", err)
+	}
+
+	b, err = json.Marshal(object)
+	return b, err
+}
+
+func (t *V2AppsCreateAppRequestBody) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	if err != nil {
+		return err
+	}
+	object := make(map[string]json.RawMessage)
+	err = json.Unmarshal(b, &object)
+	if err != nil {
+		return err
+	}
+
+	if raw, found := object["docker"]; found {
+		err = json.Unmarshal(raw, &t.Docker)
+		if err != nil {
+			return fmt.Errorf("error reading 'docker': %w", err)
+		}
+	}
+
+	if raw, found := object["git"]; found {
+		err = json.Unmarshal(raw, &t.Git)
+		if err != nil {
+			return fmt.Errorf("error reading 'git': %w", err)
+		}
+	}
+
+	if raw, found := object["name"]; found {
+		err = json.Unmarshal(raw, &t.Name)
+		if err != nil {
+			return fmt.Errorf("error reading 'name': %w", err)
+		}
+	}
+
+	if raw, found := object["project"]; found {
+		err = json.Unmarshal(raw, &t.Project)
+		if err != nil {
+			return fmt.Errorf("error reading 'project': %w", err)
+		}
+	}
+
+	if raw, found := object["slug"]; found {
+		err = json.Unmarshal(raw, &t.Slug)
+		if err != nil {
+			return fmt.Errorf("error reading 'slug': %w", err)
+		}
+	}
+
+	return err
+}
 
 // AsV2DeploymentsCreateDeploymentRequestBody0 returns the union data inside the V2DeploymentsCreateDeploymentRequestBody as a V2DeploymentsCreateDeploymentRequestBody0
 func (t V2DeploymentsCreateDeploymentRequestBody) AsV2DeploymentsCreateDeploymentRequestBody0() (V2DeploymentsCreateDeploymentRequestBody0, error) {

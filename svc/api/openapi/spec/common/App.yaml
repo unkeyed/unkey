@@ -23,6 +23,17 @@ properties:
       URL-safe handle for this app, unique within its project.
       Chosen at creation time.
     example: payments-api
+  sourceType:
+    type: string
+    enum:
+      - git
+      - docker
+    description: |
+      The configured source used to create deployments. Omitted for historical
+      apps whose source could not be classified.
+    example: docker
+    x-go-type-skip-optional-pointer: true
+    x-go-type-skip-optional-pointer-with-omitzero: true
   git:
     description: |
       The connected GitHub repository and the branch its deployments track.
@@ -30,6 +41,11 @@ properties:
       Docker-based app).
     allOf:
       - "$ref": "./AppGit.yaml"
+  docker:
+    description: |
+      The configured Docker image source. Omitted when the app is not Docker-sourced.
+    allOf:
+      - "$ref": "./AppDocker.yaml"
   currentDeploymentId:
     type: string
     description: |

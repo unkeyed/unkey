@@ -1,24 +1,40 @@
-type: object
-required:
-  - project
-  - name
-  - slug
-properties:
-  project:
-    "$ref": "../../../../common/ResourceIdentifier.yaml"
-  name:
-    type: string
-    minLength: 1
-    maxLength: 256
-    description: |
-      Human-readable name for this app.
-      Use a descriptive name like 'Payments API' to identify its purpose.
-    example: Payments API
-  slug:
-    "$ref": "../../../../common/ResourceIdentifier.yaml"
-  git:
-    "$ref": "../../../../common/AppGitCreateInput.yaml"
-additionalProperties: false
+oneOf:
+  - type: object
+    required: [project, name, slug, git]
+    properties:
+      project:
+        "$ref": "../../../../common/ResourceIdentifier.yaml"
+      name:
+        type: string
+        minLength: 1
+        maxLength: 256
+        description: Human-readable name for this app.
+        example: Payments API
+      slug:
+        "$ref": "../../../../common/ResourceIdentifier.yaml"
+      git:
+        "$ref": "../../../../common/AppGitCreateInput.yaml"
+      docker: false
+    additionalProperties: false
+  - type: object
+    required: [project, name, slug, docker]
+    properties:
+      project:
+        "$ref": "../../../../common/ResourceIdentifier.yaml"
+      name:
+        type: string
+        minLength: 1
+        maxLength: 256
+        description: Human-readable name for this app.
+        example: Payments API
+      slug:
+        "$ref": "../../../../common/ResourceIdentifier.yaml"
+      docker:
+        "$ref": "../../../../common/AppDockerInput.yaml"
+      git: false
+    additionalProperties: false
+description: |
+  Create an app with exactly one source: `git` or `docker`.
 examples:
   byProjectSlug:
     summary: Create within a project by slug
@@ -27,6 +43,8 @@ examples:
       project: payments
       name: Payments API
       slug: payments-api
+      docker:
+        image: ghcr.io/acme/payments:v1.2.3
   byProjectId:
     summary: Create within a project by ID
     description: Create an app, locating the parent project by its ID
@@ -34,6 +52,8 @@ examples:
       project: proj_1234abcd
       name: Payments API
       slug: payments-api
+      docker:
+        image: ghcr.io/acme/payments:v1.2.3
   connectRepo:
     summary: Create and connect a GitHub repository
     description: Create an app and connect it to a GitHub repository in one request. The workspace must have the Unkey GitHub App installed with access to the repository.
@@ -43,3 +63,12 @@ examples:
       slug: payments-api
       git:
         repository: unkeyed/unkey
+  dockerImage:
+    summary: Create from a Docker image
+    description: Create a Docker-sourced app with a default image reference.
+    value:
+      project: payments
+      name: Payments API
+      slug: payments-api
+      docker:
+        image: ghcr.io/acme/payments:v1.2.3
