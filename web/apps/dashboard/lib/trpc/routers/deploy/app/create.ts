@@ -1,0 +1,70 @@
+import { ActorType } from "@/gen/proto/ctrl/v1/actor_pb";
+import { createAppRequestSchema } from "@/lib/collections/deploy/apps";
+import { db } from "@/lib/db";
+import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
+import { Code, ConnectError } from "@connectrpc/connect";
+import { TRPCError } from "@trpc/server";
+import { getCtrlClients } from "../../ctrl";
+
+export const createApp = workspaceProcedure
+  .input(createAppRequestSchema)
+  .use(withRatelimit(ratelimit.create))
+  .mutation(async ({ ctx, input }) => {
+    const workspaceId = ctx.workspace.id;
+
+    const project = await db.query.projects.findFirst({
+      where: (table, { and, eq }) =>
+        and(eq(table.id, input.projectId), eq(table.workspaceId, workspaceId)),
+      columns: { id: true },
+    });
+
+    if (!project) {
+      throw new TRPCError({ code: "NOT_FOUND", message: "Project not found" });
+    }
+
+    const existingApp = await db.query.apps.findFirst({
+      where: (table, { and, eq }) =>
+        and(eq(table.projectId, input.projectId), eq(table.slug, input.slug)),
+      columns: { id: true },
+    });
+
+    if (existingApp) {
+      throw new TRPCError({
+        code: "CONFLICT",
+        message: `An app with slug "${input.slug}" already exists in this project`,
+      });
+    }
+
+    try {
+      const response = await getCtrlClients().app.createApp({
+        workspaceId,
+        projectId: input.projectId,
+        name: input.name,
+        slug: input.slug,
+        actor: {
+          id: ctx.user.id,
+          type: ActorType.USER,
+          remoteIp: ctx.audit.location,
+          userAgent: ctx.audit.userAgent ?? "",
+        },
+        source:
+          input.source.kind === "git"
+            ? { case: "git", value: {} }
+            : {
+                case: "oci",
+                value: { imageReference: input.source.imageReference },
+              },
+      });
+
+      return { id: response.id };
+    } catch (error) {
+      if (error instanceof ConnectError && error.code === Code.InvalidArgument) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: error.rawMessage });
+      }
+      console.error("Failed to create app:", error);
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: "Failed to create app. Our team has been notified of this issue.",
+      });
+    }
+  });

@@ -11,6 +11,8 @@ const schema = z.object({
   projectId: z.string(),
   name: z.string(),
   slug: z.string(),
+  sourceType: z.enum(["unknown", "git", "oci"]),
+  imageReference: z.string().nullable(),
   defaultBranch: z.string(),
   currentDeploymentId: z.string().nullable(),
   isRolledBack: z.boolean(),
@@ -28,6 +30,20 @@ const schema = z.object({
   domain: z.string().nullable(),
 });
 
+export const ociImageReferenceSchema = z
+  .string()
+  .trim()
+  .min(1, "Image reference is required")
+  .max(512, "Image reference too long");
+
+export const appCreationSourceSchema = z.discriminatedUnion("kind", [
+  z.object({ kind: z.literal("git") }),
+  z.object({
+    kind: z.literal("oci"),
+    imageReference: ociImageReferenceSchema,
+  }),
+]);
+
 export const createAppRequestSchema = z.object({
   projectId: z.string().min(1, "Project is required"),
   name: z.string().trim().min(1, "App name is required").max(256, "App name too long"),
@@ -37,6 +53,7 @@ export const createAppRequestSchema = z.object({
     .min(1, "App slug is required")
     .max(256, "App slug too long")
     .regex(/^[a-z0-9-]+$/, "App slug must contain only lowercase letters, numbers, and hyphens"),
+  source: appCreationSourceSchema,
 });
 
 export type App = z.infer<typeof schema>;
@@ -88,34 +105,6 @@ export const apps = createCollection<App, string>(
       });
 
       await deleteMutation;
-    },
-    onInsert: async ({ transaction }) => {
-      const { changes } = transaction.mutations[0];
-
-      const createInput = createAppRequestSchema.parse({
-        projectId: changes.projectId,
-        name: changes.name,
-        slug: changes.slug,
-      });
-      const mutation = getUnkeyClient().apps.createApp({
-        project: createInput.projectId,
-        name: createInput.name,
-        slug: createInput.slug,
-      });
-
-      toast.promise(mutation, {
-        loading: "Creating app...",
-        success: "App created successfully",
-        error: (err) => {
-          console.error("Failed to create app", err);
-          return getErrorToast(err, "Failed to Create App");
-        },
-      });
-
-      const result = await mutation;
-      transaction.metadata = {
-        appId: result.data.appId,
-      };
     },
   }),
 );

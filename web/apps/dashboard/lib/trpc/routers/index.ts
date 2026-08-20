@@ -38,7 +38,9 @@ import { queryComputeAllocation } from "./billing/query-compute-allocation";
 import { queryDeployUsage } from "./billing/query-deploy-usage";
 import { queryDeployUsageBreakdown } from "./billing/query-deploy-usage-breakdown";
 import { queryUsage } from "./billing/query-usage";
+import { createApp } from "./deploy/app/create";
 import { listApps } from "./deploy/app/list";
+import { updateOciSource } from "./deploy/app/update-oci-image-source";
 import { countCustomDomains } from "./deploy/custom-domains/count";
 import { listDomainConnectHints } from "./deploy/custom-domains/hints";
 import { authorizeDeployment } from "./deploy/deployment/authorize";
@@ -404,6 +406,8 @@ export const router = t.router({
     }),
     app: t.router({
       list: listApps,
+      create: createApp,
+      updateOciSource,
     }),
     environmentSettings: t.router({
       getAvailableRegions,

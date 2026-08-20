@@ -5,7 +5,8 @@ import { shortenId } from "@/lib/shorten-id";
 import { getErrorMessage, getUnkeyClient } from "@/lib/unkey-client";
 import { cn } from "@/lib/utils";
 import { useMutation } from "@tanstack/react-query";
-import { CodeBranch } from "@unkey/icons";
+import { CodeBranch, Cube } from "@unkey/icons";
+import { match } from "@unkey/match";
 import { Badge, Button, DialogContainer, TimestampInfo, toast } from "@unkey/ui";
 import { useEffect, useState } from "react";
 import { Avatar } from "../../../components/git-avatar";
@@ -106,6 +107,24 @@ type DeploymentOptionProps = {
 };
 
 function DeploymentOption({ deployment, isCurrent, selected, onSelect }: DeploymentOptionProps) {
+  const description = match(deployment.source)
+    .with("git", () => (
+      <>
+        <span className="font-mono text-xs font-semibold text-accent-12 shrink-0">
+          {deployment.gitCommitSha ? shortenId(deployment.gitCommitSha) : deployment.id}
+        </span>
+        {deployment.gitCommitMessage && (
+          <span className="text-xs text-grayA-9 truncate">{deployment.gitCommitMessage}</span>
+        )}
+      </>
+    ))
+    .with("oci", "unknown", () => (
+      <span className="font-mono text-xs font-semibold text-accent-12 shrink-0">
+        {deployment.id}
+      </span>
+    ))
+    .exhaustive();
+
   return (
     <button
       type="button"
@@ -126,35 +145,15 @@ function DeploymentOption({ deployment, isCurrent, selected, onSelect }: Deploym
         </span>
         <div className="min-w-0 flex-1">
           <div className="flex items-center justify-between gap-2">
-            <div className="min-w-0 flex items-baseline gap-2">
-              <span className="font-mono text-xs font-semibold text-accent-12 shrink-0">
-                {deployment.gitCommitSha ? shortenId(deployment.gitCommitSha) : deployment.id}
-              </span>
-              {deployment.gitCommitMessage && (
-                <span className="text-xs text-grayA-9 truncate">{deployment.gitCommitMessage}</span>
-              )}
-            </div>
+            <div className="min-w-0 flex items-baseline gap-2">{description}</div>
             {isCurrent && (
               <Badge variant="success" size="sm" className="shrink-0">
                 Current
               </Badge>
             )}
           </div>
-          <div className="mt-1.5 flex items-center gap-3 text-xs text-grayA-9">
-            <span className="flex items-center gap-1.5 min-w-0">
-              <CodeBranch iconSize="sm-regular" className="shrink-0 text-gray-12" />
-              <span className="truncate">{deployment.gitBranch}</span>
-            </span>
-            <span className="flex items-center gap-1.5 min-w-0">
-              <Avatar
-                src={deployment.gitCommitAuthorAvatarUrl}
-                alt={deployment.gitCommitAuthorHandle ?? "author"}
-                className="size-4"
-              />
-              {deployment.gitCommitAuthorHandle && (
-                <span className="truncate">{deployment.gitCommitAuthorHandle}</span>
-              )}
-            </span>
+          <div className="mt-1.5 flex items-center gap-3 text-xs text-grayA-9 min-w-0">
+            <DeploymentSource deployment={deployment} />
             <TimestampInfo
               value={deployment.createdAt}
               displayType="relative"
@@ -165,4 +164,46 @@ function DeploymentOption({ deployment, isCurrent, selected, onSelect }: Deploym
       </div>
     </button>
   );
+}
+
+function DeploymentSource({ deployment }: { deployment: Deployment }) {
+  return match(deployment.source)
+    .with("oci", () => (
+      <span className="flex items-center gap-1.5 min-w-0">
+        <Cube iconSize="sm-regular" className="shrink-0 text-gray-12" />
+        <span
+          className="truncate"
+          title={deployment.requestedImage ?? deployment.resolvedImage ?? undefined}
+        >
+          {deployment.requestedImage ?? deployment.resolvedImage ?? "OCI image deployment"}
+        </span>
+      </span>
+    ))
+    .with("git", () => (
+      <>
+        {deployment.gitBranch && (
+          <span className="flex items-center gap-1.5 min-w-0">
+            <CodeBranch iconSize="sm-regular" className="shrink-0 text-gray-12" />
+            <span className="truncate">{deployment.gitBranch}</span>
+          </span>
+        )}
+        <span className="flex items-center gap-1.5 min-w-0">
+          <Avatar
+            src={deployment.gitCommitAuthorAvatarUrl}
+            alt={deployment.gitCommitAuthorHandle ?? "author"}
+            className="size-4"
+          />
+          {deployment.gitCommitAuthorHandle && (
+            <span className="truncate">{deployment.gitCommitAuthorHandle}</span>
+          )}
+        </span>
+      </>
+    ))
+    .with("unknown", () => (
+      <span className="flex items-center gap-1.5 min-w-0">
+        <Cube iconSize="sm-regular" className="shrink-0 text-gray-12" />
+        <span>Deployment artifact</span>
+      </span>
+    ))
+    .exhaustive();
 }
