@@ -3,18 +3,34 @@
 import { cn } from "@/lib/utils";
 import { Input } from "@unkey/ui";
 
-// Mirrors the shape of the portals row's `branding` JSON column so this can be
-// wired up later. The column is never queried by value, so its shape is
-// validated at this form boundary rather than by the database.
+// Mirrors the two nullable branding columns on the `portals` row. Both are
+// spelled as strings rather than `string | null` so form inputs can bind to
+// them directly; `buildPortalUpdate` maps empty back to the API's `null`.
 // For MVP the customer hosts their own logo image and provides its URL; when
-// empty the portal falls back to a plain-text logo using `name`.
+// empty the portal falls back to a plain-text header using the slug.
 export type PortalBrandingValue = {
-  name: string;
   logoUrl: string;
   primaryColor: string;
 };
 
 const SWATCHES = ["#18181B", "#7C3AED", "#0D9488", "#D97706", "#DC2626"];
+
+const HEX_RE = /^#[0-9a-fA-F]{6}$/;
+
+/** Shown by the swatch and the native picker while the field is empty or mid-edit. */
+const PLACEHOLDER_COLOR = "#18181B";
+
+/**
+ * Emptying the field has to reach the form as "", which is what
+ * `buildPortalUpdate` turns into the `null` that clears the column. Re-adding
+ * the `#` to an empty value would make the color unclearable.
+ */
+function normalizeTypedColor(raw: string): string {
+  if (raw === "" || raw === "#") {
+    return "";
+  }
+  return raw.startsWith("#") ? raw : `#${raw}`;
+}
 
 export function BrandColorField({
   color,
@@ -23,6 +39,10 @@ export function BrandColorField({
   color: string;
   onChange: (color: string) => void;
 }) {
+  // An empty or half-typed value is legal in the text field, but `input[type=color]`
+  // only accepts a full hex, so the picker falls back rather than going uncontrolled.
+  const pickerColor = HEX_RE.test(color) ? color : PLACEHOLDER_COLOR;
+
   return (
     <div className="flex items-center gap-2">
       <div className="flex items-center gap-1.5 pr-1">
@@ -43,24 +63,23 @@ export function BrandColorField({
       </div>
       <label
         className="relative size-9 shrink-0 cursor-pointer overflow-hidden rounded-lg border border-gray-5"
-        style={{ backgroundColor: color }}
+        style={{ backgroundColor: pickerColor }}
       >
         <span className="sr-only">Pick brand color</span>
         <input
           type="color"
-          value={color}
+          value={pickerColor}
           onChange={(e) => onChange(e.target.value.toUpperCase())}
           className="absolute inset-0 cursor-pointer opacity-0"
         />
       </label>
       <Input
+        aria-label="Primary color"
         className="w-[96px] font-mono uppercase"
         value={color}
+        placeholder={PLACEHOLDER_COLOR}
         maxLength={7}
-        onChange={(e) => {
-          const raw = e.target.value.trim();
-          onChange(raw.startsWith("#") ? raw : `#${raw}`);
-        }}
+        onChange={(e) => onChange(normalizeTypedColor(e.target.value.trim()))}
       />
     </div>
   );

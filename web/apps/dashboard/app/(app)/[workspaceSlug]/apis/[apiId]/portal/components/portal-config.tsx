@@ -1,114 +1,114 @@
 "use client";
 
+import { buildPortalUpdate, portalFormValues } from "@/lib/portal/build-update";
+import { useDeletePortal, useUpdatePortal } from "@/lib/portal/use-portal";
+import { logoUrlSchema, portalSlugSchema, primaryColorSchema } from "@/lib/portal/validation";
+import { getErrorMessage } from "@/lib/unkey-client";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ArrowUpRight } from "@unkey/icons";
-import { Button, CopyButton, DialogContainer, FormInput, toast } from "@unkey/ui";
+import type { Portal } from "@unkey/api/models/components";
+import { TriangleWarning2 } from "@unkey/icons";
+import {
+  Button,
+  CopyButton,
+  DialogContainer,
+  FormInput,
+  Input,
+  SettingsDangerZone,
+  SettingsZoneRow,
+  toast,
+} from "@unkey/ui";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { BrandColorField, type PortalBrandingValue } from "./portal-branding";
+import { BrandColorField } from "./portal-branding";
 import { PortalPreview } from "./portal-preview";
 
-const SAVE_DELAY_MS = 500;
+/**
+ * `updatePortal` reports both of these as 409s under the same
+ * `Data.Portal.Duplicate` code, so the public detail is the only thing that
+ * separates them. Verbatim from `svc/api/routes/v2_portal_update_portal/handler.go`.
+ */
+const SLUG_CONFLICT_DETAIL = "That slug is already in use. Choose a different slug.";
+const MAPPING_CONFLICT_DETAIL = "That app or keyspace already has a portal.";
 
-const IMAGE_EXTENSION_RE = /\.(png|jpe?g|svg)$/i;
+/**
+ * The mapping check spans every workspace, so the portal holding this keyspace
+ * may be one this operator cannot see. Telling them to pick another slug would
+ * send them round a loop no slug can win.
+ */
+const MAPPING_CONFLICT_MESSAGE =
+  "This API's keyspace already has a customer portal. It may belong to another workspace. " +
+  "Contact support@unkey.com if you think that's wrong.";
 
-const brandingSchema = z.object({
-  name: z.string().trim().min(1, "Name is required").max(50, "Name must be 50 characters or less"),
-  logoUrl: z
-    .string()
-    .trim()
-    .refine((value) => {
-      if (value === "") {
-        return true;
-      }
-      try {
-        const parsed = new URL(value);
-        return parsed.protocol === "https:" && IMAGE_EXTENSION_RE.test(parsed.pathname);
-      } catch {
-        return false;
-      }
-    }, "Enter a direct image URL ending in .png, .jpg, or .svg."),
-  primaryColor: z.string().regex(/^#[0-9a-fA-F]{6}$/, "Use a 6-digit hex color like #18181B."),
+const formSchema = z.object({
+  slug: portalSlugSchema,
+  logoUrl: logoUrlSchema,
+  primaryColor: primaryColorSchema,
 });
 
-// Prototype-only persistence, next to the enablement key in use-portal-lifecycle.
-function brandingStorageKey(resourceId: string) {
-  return `unkey:portal-branding:${resourceId}`;
+type FormValues = z.infer<typeof formSchema>;
+
+function isConflict(error: unknown): boolean {
+  const detail = getErrorMessage(error);
+  return detail === SLUG_CONFLICT_DETAIL || detail === MAPPING_CONFLICT_DETAIL;
 }
 
-function loadBranding(resourceId: string, fallbackName: string): PortalBrandingValue {
-  const defaults: PortalBrandingValue = {
-    name: fallbackName,
-    logoUrl: "",
-    primaryColor: "#18181B",
-  };
-  const raw = localStorage.getItem(brandingStorageKey(resourceId));
-  if (!raw) {
-    return defaults;
-  }
-  try {
-    const parsed: unknown = JSON.parse(raw);
-    if (typeof parsed !== "object" || parsed === null) {
-      return defaults;
-    }
-    const record = parsed as Record<string, unknown>;
-    const str = (key: keyof PortalBrandingValue) => {
-      const value = record[key];
-      return typeof value === "string" ? value : defaults[key];
-    };
-    return { name: str("name"), logoUrl: str("logoUrl"), primaryColor: str("primaryColor") };
-  } catch {
-    return defaults;
-  }
-}
-
-// Mock save; the real implementation writes the portals row's `branding` JSON
-// column, which is one write against the portal rather than a side table.
-async function saveBranding(resourceId: string, values: PortalBrandingValue): Promise<void> {
-  await new Promise((resolve) => setTimeout(resolve, SAVE_DELAY_MS));
-  localStorage.setItem(brandingStorageKey(resourceId), JSON.stringify(values));
-}
-
-export function PortalConfig({
-  resourceId,
-  resourceName,
-  url,
-  onDisable,
-}: {
-  resourceId: string;
+type Props = {
+  portal: Portal;
+  keyAuthId: string;
+  /** The mapped API's name. Read-only: a portal carries no name of its own. */
   resourceName: string;
-  url: string;
-  onDisable: () => void;
-}) {
+};
+
+export function PortalConfig({ portal, keyAuthId, resourceName }: Props) {
   const [disableOpen, setDisableOpen] = useState(false);
-  // Only rendered after the lifecycle hook hydrates, so localStorage is available.
-  const [initialBranding] = useState<PortalBrandingValue>(() =>
-    loadBranding(resourceId, resourceName),
-  );
-  const [saving, setSaving] = useState(false);
+  const [pageError, setPageError] = useState<string | null>(null);
+
+  // Conflicts are claimed so they land on the field or the page instead of in a
+  // toast; every other failure keeps the hook's default toast.
+  const updatePortal = useUpdatePortal(keyAuthId, { onError: isConflict });
+  const disablePortal = useUpdatePortal(keyAuthId);
 
   const {
     register,
     handleSubmit,
     watch,
     setValue,
+    setError,
+    clearErrors,
     reset,
-    formState: { errors, isValid, isDirty },
-  } = useForm<z.infer<typeof brandingSchema>>({
-    resolver: zodResolver(brandingSchema),
+    formState: { errors, isValid, isDirty, isSubmitting, dirtyFields },
+  } = useForm<FormValues>({
+    resolver: zodResolver(formSchema),
     mode: "onChange",
-    defaultValues: initialBranding,
+    defaultValues: portalFormValues(portal),
   });
 
-  const branding = watch();
+  const values = watch();
 
-  const save = async (values: PortalBrandingValue) => {
-    setSaving(true);
-    await saveBranding(resourceId, values);
-    reset(values);
-    setSaving(false);
-    toast.success("Changes saved");
+  const save = async (submitted: FormValues) => {
+    setPageError(null);
+    clearErrors("slug");
+    // `enabled` is not on this form; disabling is its own action below.
+    const body = buildPortalUpdate(portal, { ...submitted, enabled: portal.enabled });
+    if (!body) {
+      return;
+    }
+    try {
+      await updatePortal.mutateAsync(body);
+      reset(submitted);
+      toast.success("Changes saved");
+    } catch (error) {
+      const detail = getErrorMessage(error);
+      if (detail === SLUG_CONFLICT_DETAIL) {
+        setError("slug", { type: "server", message: detail });
+        return;
+      }
+      if (detail === MAPPING_CONFLICT_DETAIL) {
+        setPageError(MAPPING_CONFLICT_MESSAGE);
+      }
+      // Anything else already reached the operator as a toast.
+    }
   };
 
   return (
@@ -116,21 +116,18 @@ export function PortalConfig({
       <div className="w-full divide-y divide-grayA-4 overflow-hidden rounded-lg border border-grayA-4">
         <div className="flex flex-col gap-4 p-6 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <h2 className="text-sm font-medium text-accent-12">Portal URL</h2>
+            <h2 className="text-sm font-medium text-accent-12">Portal slug</h2>
+            <p className="mt-1 text-[13px] leading-5 text-gray-11">
+              Pass this as <span className="font-mono text-gray-12">portal</span> when you call{" "}
+              <span className="font-mono text-gray-12">createSession</span>. Serves keys for{" "}
+              <span className="font-medium text-gray-12">{resourceName}</span>.
+            </p>
           </div>
           <div className="flex min-w-0 items-center gap-1">
-            <span className="truncate text-[13px] text-gray-11">{url}</span>
-            <CopyButton value={url} variant="ghost" />
-            <a
-              href={`https://${url}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              title="Open portal"
-              aria-label="Open portal"
-              className="flex size-6 shrink-0 items-center justify-center rounded-md text-gray-11 hover:bg-grayA-4 hover:text-gray-12"
-            >
-              <ArrowUpRight iconSize="sm-regular" />
-            </a>
+            {/* The saved slug, never the form draft: an unsaved slug is a value
+                `createSession` rejects. */}
+            <span className="truncate font-mono text-[13px] text-gray-11">{portal.slug}</span>
+            <CopyButton value={portal.slug} variant="ghost" />
           </div>
         </div>
         <div className="grid gap-x-8 px-6 pt-6 lg:grid-cols-2">
@@ -140,15 +137,25 @@ export function PortalConfig({
               Customize how the portal looks to your users.
             </p>
             <form onSubmit={handleSubmit(save)} className="mt-6 flex flex-col gap-6">
-              <FormInput
-                label="Name"
-                placeholder="Acme Inc."
-                error={errors.name?.message}
-                {...register("name")}
-              />
+              <div className="flex flex-col gap-1.5">
+                <FormInput
+                  label="Slug"
+                  description="Lowercase letters, numbers, and hyphens. 3-64 characters."
+                  descriptionPosition="label"
+                  placeholder="acme"
+                  error={errors.slug?.message}
+                  {...register("slug")}
+                />
+                {dirtyFields.slug ? (
+                  <p className="text-[13px] leading-5 text-warning-11">
+                    Changing the slug breaks every <span className="font-mono">createSession</span>{" "}
+                    call that still passes the old one. Live sessions keep working.
+                  </p>
+                ) : null}
+              </div>
               <FormInput
                 label="Logo URL"
-                description="Use a direct link to an image file ending in .png, .jpg, or .svg."
+                description="A direct https:// link to your logo image. Leave empty for none."
                 descriptionPosition="label"
                 placeholder="https://example.com/logo.png"
                 error={errors.logoUrl?.message}
@@ -157,7 +164,7 @@ export function PortalConfig({
               <div className="flex flex-col gap-1.5">
                 <span className="text-[13px] text-gray-11">Primary color</span>
                 <BrandColorField
-                  color={branding.primaryColor}
+                  color={values.primaryColor}
                   onChange={(primaryColor) =>
                     setValue("primaryColor", primaryColor, {
                       shouldValidate: true,
@@ -171,13 +178,18 @@ export function PortalConfig({
                   </span>
                 )}
               </div>
+              {pageError ? (
+                <p className="rounded-lg border border-error-6 bg-error-2 p-3 text-[13px] leading-5 text-error-11">
+                  {pageError}
+                </p>
+              ) : null}
               <Button
                 type="submit"
                 variant="primary"
                 size="md"
                 className="self-start"
-                disabled={!isDirty || !isValid || saving}
-                loading={saving}
+                disabled={!isDirty || !isValid || isSubmitting}
+                loading={isSubmitting}
               >
                 Save
               </Button>
@@ -185,26 +197,31 @@ export function PortalConfig({
           </div>
           <div className="flex flex-col justify-end">
             <PortalPreview
-              name={branding.name || resourceName}
-              url={url}
-              branding={branding}
+              slug={values.slug || portal.slug}
+              branding={{ logoUrl: values.logoUrl, primaryColor: values.primaryColor }}
               className="flex-1 rounded-b-none border-b-0 shadow-none"
             />
           </div>
         </div>
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-grayA-4 p-4">
-        <div className="space-y-1">
-          <p className="text-sm font-medium text-gray-12">Disable portal</p>
-          <p className="text-[13px] text-gray-11">
-            Your users lose access to the portal immediately. Their keys keep working.
-          </p>
+      {portal.enabled ? (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-grayA-4 p-4">
+          <div className="space-y-1">
+            <p className="text-sm font-medium text-gray-12">Disable portal</p>
+            <p className="text-[13px] text-gray-11">
+              Your users lose access to the portal immediately. Their keys keep working.
+            </p>
+          </div>
+          <Button variant="outline" color="danger" onClick={() => setDisableOpen(true)}>
+            Disable portal
+          </Button>
         </div>
-        <Button variant="outline" color="danger" onClick={() => setDisableOpen(true)}>
-          Disable portal
-        </Button>
-      </div>
+      ) : null}
+
+      <SettingsDangerZone>
+        <DeletePortalRow portal={portal} keyAuthId={keyAuthId} />
+      </SettingsDangerZone>
 
       <DialogContainer
         isOpen={disableOpen}
@@ -218,9 +235,11 @@ export function PortalConfig({
               color="danger"
               size="xlg"
               className="w-full"
+              loading={disablePortal.isLoading}
+              loadingLabel="Disabling customer portal"
               onClick={() => {
                 setDisableOpen(false);
-                onDisable();
+                disablePortal.mutate({ portal: portal.id, enabled: false });
               }}
             >
               Disable portal
@@ -230,10 +249,114 @@ export function PortalConfig({
         }
       >
         <p className="text-[13px] text-gray-11">
-          The portal at <span className="font-medium text-gray-12">{url}</span> stops working
+          The portal <span className="font-medium text-gray-12">{portal.slug}</span> stops working
           immediately and existing sessions end. Your users' API keys keep working.
         </p>
       </DialogContainer>
     </div>
+  );
+}
+
+/**
+ * Deleting is not disabling: the row is gone, every live session is revoked by
+ * `RevokePortalSessionsByPortal`, and the slug returns to the pool. The
+ * type-to-confirm string is the slug because a portal carries no name.
+ */
+function DeletePortalRow({ portal, keyAuthId }: { portal: Portal; keyAuthId: string }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const deletePortal = useDeletePortal(keyAuthId);
+
+  const deleteSchema = z.object({
+    confirmation: z.string().refine((v) => v === portal.slug, "Please confirm the portal slug"),
+  });
+
+  type DeleteFormValues = z.infer<typeof deleteSchema>;
+
+  const {
+    register,
+    watch,
+    handleSubmit,
+    formState: { isSubmitting },
+  } = useForm<DeleteFormValues>({
+    resolver: zodResolver(deleteSchema),
+    mode: "onChange",
+    defaultValues: { confirmation: "" },
+  });
+
+  const confirmed = watch("confirmation") === portal.slug;
+
+  const onSubmit = async () => {
+    try {
+      await deletePortal.mutateAsync({ portal: portal.id });
+      setIsOpen(false);
+      toast.success("Customer portal deleted");
+    } catch {
+      // The hook already surfaced the failure; the dialog stays open so the
+      // operator can retry without retyping the slug.
+    }
+  };
+
+  return (
+    <>
+      <SettingsZoneRow
+        title="Delete this portal"
+        description="Permanently remove the portal, end every live end-user session, and free the slug for reuse."
+        action={{
+          label: "Delete portal",
+          onClick: () => setIsOpen(true),
+        }}
+      />
+
+      <DialogContainer
+        isOpen={isOpen}
+        onOpenChange={setIsOpen}
+        title="Delete customer portal"
+        subTitle="Permanently remove this portal and end every live session"
+        footer={
+          <div className="flex w-full flex-col items-center justify-center gap-2">
+            <Button
+              type="submit"
+              form="delete-portal-form"
+              variant="primary"
+              color="danger"
+              size="xlg"
+              className="w-full rounded-lg"
+              disabled={!confirmed || isSubmitting}
+              loading={isSubmitting}
+              loadingLabel="Deleting customer portal"
+            >
+              Delete portal
+            </Button>
+            <div className="text-xs text-gray-9">
+              This action cannot be undone – proceed with caution
+            </div>
+          </div>
+        }
+      >
+        <div className="flex items-center gap-4 rounded-xl border border-errorA-3 bg-errorA-2 px-[22px] py-6 dark:bg-black">
+          <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-error-9">
+            <TriangleWarning2 iconSize="sm-regular" className="text-white" />
+          </div>
+          <div className="text-[13px] leading-6 text-error-12">
+            <span className="font-medium">Warning:</span> deleting{" "}
+            <span className="font-medium">{portal.slug}</span> is permanent. Every live end-user
+            session ends immediately, and the slug becomes available for reuse. Your users' API keys
+            keep working.
+          </div>
+        </div>
+        <form id="delete-portal-form" onSubmit={handleSubmit(onSubmit)}>
+          <div className="mt-4 flex flex-col gap-1">
+            <p className="text-[13px] text-gray-11">
+              Type <span className="font-medium text-gray-12">{portal.slug}</span> to confirm
+            </p>
+            <Input
+              aria-label="Portal slug confirmation"
+              placeholder={`Enter "${portal.slug}" to confirm`}
+              {...register("confirmation")}
+            />
+          </div>
+        </form>
+      </DialogContainer>
+    </>
   );
 }
