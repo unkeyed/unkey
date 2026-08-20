@@ -1,12 +1,17 @@
 package handler_test
 
 import (
+	"context"
 	"net/http"
 	"testing"
+	"time"
 
 	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
 
 	"github.com/stretchr/testify/require"
+	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
+	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/hash"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
@@ -17,8 +22,8 @@ import (
 // the app's current live deployment.
 func TestRollbackDeploymentDerivesSource(t *testing.T) {
 	h := testutil.NewHarness(t)
-	mock := &testutil.MockDeploymentClient{}
-	route := newRoute(h, mock)
+	restateClient, rollbacks := newRecordingRestate(t)
+	route := newRoute(h, restateClient)
 	h.Register(route)
 
 	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
@@ -48,7 +53,14 @@ func TestRollbackDeploymentDerivesSource(t *testing.T) {
 	})
 	require.Equal(t, http.StatusAccepted, res.Status, "expected 202, received: %s", res.RawBody)
 
-	require.Len(t, mock.RollbackCalls, 1)
-	require.Equal(t, live.ID, mock.RollbackCalls[0].GetSourceDeploymentId(), "source must be derived from the app's live deployment")
-	require.Equal(t, previous.ID, mock.RollbackCalls[0].GetTargetDeploymentId())
+	rootKeyID, err := db.Query.FindKeyIDByHash(context.Background(), h.DB.RO(), hash.Sha256(setup.RootKey))
+	require.NoError(t, err)
+
+	observed := testutil.Receive(t, rollbacks, 10*time.Second)
+	require.Equal(t, live.ID, observed.virtualObjectKey)
+	require.Equal(t, live.ID, observed.request.GetSourceDeploymentId(), "source must be derived from the app's live deployment")
+	require.Equal(t, previous.ID, observed.request.GetTargetDeploymentId())
+	require.Equal(t, ctrlv1.ActorType_ACTOR_TYPE_ROOT_KEY, observed.request.GetActor().GetType())
+	require.Equal(t, rootKeyID, observed.request.GetActor().GetId())
+	require.NotEmpty(t, observed.request.GetCorrelationId())
 }

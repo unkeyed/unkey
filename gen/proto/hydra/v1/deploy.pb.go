@@ -672,7 +672,9 @@ type RollbackRequest struct {
 	// The current live deployment to roll back from.
 	SourceDeploymentId string `protobuf:"bytes,1,opt,name=source_deployment_id,json=sourceDeploymentId,proto3" json:"source_deployment_id,omitempty"`
 	// A previous deployment to restore traffic to.
-	TargetDeploymentId string `protobuf:"bytes,2,opt,name=target_deployment_id,json=targetDeploymentId,proto3" json:"target_deployment_id,omitempty"`
+	TargetDeploymentId string        `protobuf:"bytes,2,opt,name=target_deployment_id,json=targetDeploymentId,proto3" json:"target_deployment_id,omitempty"`
+	Actor              *v1.ActorInfo `protobuf:"bytes,3,opt,name=actor,proto3" json:"actor,omitempty"`
+	CorrelationId      string        `protobuf:"bytes,4,opt,name=correlation_id,json=correlationId,proto3" json:"correlation_id,omitempty"`
 	unknownFields      protoimpl.UnknownFields
 	sizeCache          protoimpl.SizeCache
 }
@@ -717,6 +719,20 @@ func (x *RollbackRequest) GetSourceDeploymentId() string {
 func (x *RollbackRequest) GetTargetDeploymentId() string {
 	if x != nil {
 		return x.TargetDeploymentId
+	}
+	return ""
+}
+
+func (x *RollbackRequest) GetActor() *v1.ActorInfo {
+	if x != nil {
+		return x.Actor
+	}
+	return nil
+}
+
+func (x *RollbackRequest) GetCorrelationId() string {
+	if x != nil {
+		return x.CorrelationId
 	}
 	return ""
 }
@@ -1077,10 +1093,12 @@ const file_hydra_v1_deploy_proto_rawDesc = "" +
 	"\fdocker_image\x18\x04 \x01(\v2\x15.hydra.v1.DockerImageH\x00R\vdockerImage\x12\x18\n" +
 	"\acommand\x18\x05 \x03(\tR\acommandB\b\n" +
 	"\x06sourceJ\x04\b\x02\x10\x03R\vkey_auth_id\"\x10\n" +
-	"\x0eDeployResponse\"u\n" +
+	"\x0eDeployResponse\"\xc6\x01\n" +
 	"\x0fRollbackRequest\x120\n" +
 	"\x14source_deployment_id\x18\x01 \x01(\tR\x12sourceDeploymentId\x120\n" +
-	"\x14target_deployment_id\x18\x02 \x01(\tR\x12targetDeploymentId\"\x12\n" +
+	"\x14target_deployment_id\x18\x02 \x01(\tR\x12targetDeploymentId\x12(\n" +
+	"\x05actor\x18\x03 \x01(\v2\x12.ctrl.v1.ActorInfoR\x05actor\x12%\n" +
+	"\x0ecorrelation_id\x18\x04 \x01(\tR\rcorrelationId\"\x12\n" +
 	"\x10RollbackResponse\"\x93\x01\n" +
 	"\x0ePromoteRequest\x120\n" +
 	"\x14target_deployment_id\x18\x01 \x01(\tR\x12targetDeploymentId\x12(\n" +
@@ -1152,29 +1170,30 @@ var file_hydra_v1_deploy_proto_depIdxs = []int32{
 	19, // 1: hydra.v1.WakeDeploymentRequest.actor:type_name -> ctrl.v1.ActorInfo
 	8,  // 2: hydra.v1.DeployRequest.git:type_name -> hydra.v1.GitSource
 	7,  // 3: hydra.v1.DeployRequest.docker_image:type_name -> hydra.v1.DockerImage
-	19, // 4: hydra.v1.PromoteRequest.actor:type_name -> ctrl.v1.ActorInfo
-	0,  // 5: hydra.v1.TeardownRequest.mode:type_name -> hydra.v1.TeardownMode
-	9,  // 6: hydra.v1.DeployService.Deploy:input_type -> hydra.v1.DeployRequest
-	11, // 7: hydra.v1.DeployService.Rollback:input_type -> hydra.v1.RollbackRequest
-	13, // 8: hydra.v1.DeployService.Promote:input_type -> hydra.v1.PromoteRequest
-	1,  // 9: hydra.v1.DeployService.StopDeployment:input_type -> hydra.v1.StopDeploymentRequest
-	3,  // 10: hydra.v1.DeployService.WakeDeployment:input_type -> hydra.v1.WakeDeploymentRequest
-	5,  // 11: hydra.v1.DeployService.NotifyInstancesReady:input_type -> hydra.v1.NotifyInstancesReadyRequest
-	15, // 12: hydra.v1.DeployTeardownService.Teardown:input_type -> hydra.v1.TeardownRequest
-	17, // 13: hydra.v1.DeployTeardownService.Resume:input_type -> hydra.v1.ResumeRequest
-	10, // 14: hydra.v1.DeployService.Deploy:output_type -> hydra.v1.DeployResponse
-	12, // 15: hydra.v1.DeployService.Rollback:output_type -> hydra.v1.RollbackResponse
-	14, // 16: hydra.v1.DeployService.Promote:output_type -> hydra.v1.PromoteResponse
-	2,  // 17: hydra.v1.DeployService.StopDeployment:output_type -> hydra.v1.StopDeploymentResponse
-	4,  // 18: hydra.v1.DeployService.WakeDeployment:output_type -> hydra.v1.WakeDeploymentResponse
-	6,  // 19: hydra.v1.DeployService.NotifyInstancesReady:output_type -> hydra.v1.NotifyInstancesReadyResponse
-	16, // 20: hydra.v1.DeployTeardownService.Teardown:output_type -> hydra.v1.TeardownResponse
-	18, // 21: hydra.v1.DeployTeardownService.Resume:output_type -> hydra.v1.ResumeResponse
-	14, // [14:22] is the sub-list for method output_type
-	6,  // [6:14] is the sub-list for method input_type
-	6,  // [6:6] is the sub-list for extension type_name
-	6,  // [6:6] is the sub-list for extension extendee
-	0,  // [0:6] is the sub-list for field type_name
+	19, // 4: hydra.v1.RollbackRequest.actor:type_name -> ctrl.v1.ActorInfo
+	19, // 5: hydra.v1.PromoteRequest.actor:type_name -> ctrl.v1.ActorInfo
+	0,  // 6: hydra.v1.TeardownRequest.mode:type_name -> hydra.v1.TeardownMode
+	9,  // 7: hydra.v1.DeployService.Deploy:input_type -> hydra.v1.DeployRequest
+	11, // 8: hydra.v1.DeployService.Rollback:input_type -> hydra.v1.RollbackRequest
+	13, // 9: hydra.v1.DeployService.Promote:input_type -> hydra.v1.PromoteRequest
+	1,  // 10: hydra.v1.DeployService.StopDeployment:input_type -> hydra.v1.StopDeploymentRequest
+	3,  // 11: hydra.v1.DeployService.WakeDeployment:input_type -> hydra.v1.WakeDeploymentRequest
+	5,  // 12: hydra.v1.DeployService.NotifyInstancesReady:input_type -> hydra.v1.NotifyInstancesReadyRequest
+	15, // 13: hydra.v1.DeployTeardownService.Teardown:input_type -> hydra.v1.TeardownRequest
+	17, // 14: hydra.v1.DeployTeardownService.Resume:input_type -> hydra.v1.ResumeRequest
+	10, // 15: hydra.v1.DeployService.Deploy:output_type -> hydra.v1.DeployResponse
+	12, // 16: hydra.v1.DeployService.Rollback:output_type -> hydra.v1.RollbackResponse
+	14, // 17: hydra.v1.DeployService.Promote:output_type -> hydra.v1.PromoteResponse
+	2,  // 18: hydra.v1.DeployService.StopDeployment:output_type -> hydra.v1.StopDeploymentResponse
+	4,  // 19: hydra.v1.DeployService.WakeDeployment:output_type -> hydra.v1.WakeDeploymentResponse
+	6,  // 20: hydra.v1.DeployService.NotifyInstancesReady:output_type -> hydra.v1.NotifyInstancesReadyResponse
+	16, // 21: hydra.v1.DeployTeardownService.Teardown:output_type -> hydra.v1.TeardownResponse
+	18, // 22: hydra.v1.DeployTeardownService.Resume:output_type -> hydra.v1.ResumeResponse
+	15, // [15:23] is the sub-list for method output_type
+	7,  // [7:15] is the sub-list for method input_type
+	7,  // [7:7] is the sub-list for extension type_name
+	7,  // [7:7] is the sub-list for extension extendee
+	0,  // [0:7] is the sub-list for field type_name
 }
 
 func init() { file_hydra_v1_deploy_proto_init() }

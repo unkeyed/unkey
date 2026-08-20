@@ -149,6 +149,9 @@ message RollbackRequest {
 
   // A previous deployment to restore traffic to.
   string target_deployment_id = 2;
+
+  ctrl.v1.ActorInfo actor = 3;
+  string correlation_id = 4;
 }
 
 message RollbackResponse {}
