@@ -79,7 +79,7 @@ func (FrontlineRequest) Table() string {
 
 // InsertColumns implements [Row]; derived from FrontlineRequest's ch tags.
 func (FrontlineRequest) InsertColumns() string {
-	return "`request_id`, `time`, `workspace_id`, `project_id`, `app_id`, `environment_id`, `frontline_id`, `deployment_id`, `instance_id`, `instance_address`, `region`, `platform`, `method`, `host`, `path`, `query_string`, `query_params`, `request_headers`, `request_body`, `response_status`, `response_headers`, `response_body`, `user_agent`, `ip_address`, `total_latency`, `instance_latency`, `frontline_latency`"
+	return "`request_id`, `time`, `workspace_id`, `project_id`, `app_id`, `environment_id`, `frontline_id`, `deployment_id`, `instance_id`, `instance_address`, `region`, `platform`, `method`, `host`, `path`, `query_string`, `query_params`, `request_headers`, `request_body`, `response_status`, `response_headers`, `response_body`, `user_agent`, `ip_address`, `total_latency`, `instance_latency`, `gateway_latency`"
 }
 
 // Table implements [Row].
