@@ -264,22 +264,25 @@ These examples show how broad and narrow permissions use the same grammar.
   <Accordion title="Portal session grammar (not yet honored)">
 
     ```plaintext
-    unkey:v1:ws_123:portals/pc_123#create_portal_session
-    unkey:v1:ws_123:portals/*#create_portal_session
+    unkey:v1:ws_123:projects/proj_123/portals/pc_123#create_portal_session
+    unkey:v1:ws_123:projects/proj_123/portals/*#create_portal_session
     ```
 
-    These show the grammar only. `portal.createSession` evaluates legacy tuples
-    today, so neither form authorizes it yet. Grant
-    `portal.pc_123.create_portal_session` instead until the URN migration lands.
+    These show the intended grammar only, and neither the path nor the
+    evaluation is live yet: `portal.createSession` matches legacy tuples today,
+    and `pkg/urn` still builds portal paths directly under the workspace. Grant
+    `portal.pc_123.create_portal_session` until the URN migration lands.
 
   </Accordion>
 </AccordionGroup>
 
 ### Portal resource
 
-Portals sit directly under the workspace, not under a project or app. A
-`projects/*/apps/*` grant therefore does not imply portal access, even when the
-portal is bound to that app.
+Portals are moving under projects, so a portal path is expected to read
+`projects/{projectID}/portals/{portalID}`. `pkg/urn` still builds them directly
+under the workspace today, so treat the project segment as the target shape
+rather than what the builder currently emits. Either way, a `projects/*/apps/*`
+grant does not imply portal access, even when the portal is bound to that app.
 
 | Action | Authorizes |
 | --- | --- |
