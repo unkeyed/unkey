@@ -394,7 +394,7 @@ type DeploymentAction string
 
 // DeploymentDocker defines model for DeploymentDocker.
 type DeploymentDocker struct {
-	// Image The Docker image this deployment runs.
+	// Image The Docker image reference requested for this deployment.
 	Image string `json:"image"`
 }
 
