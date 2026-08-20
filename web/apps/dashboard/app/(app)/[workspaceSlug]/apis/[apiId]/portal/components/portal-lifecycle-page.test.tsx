@@ -82,12 +82,20 @@ const portal: Portal = {
   createdAt: 0,
 };
 
-function renderPage(overrides?: { keyAuthId?: string | undefined; keyAuthIdLoading?: boolean }) {
+const onRetryKeyAuthId = vi.fn();
+
+function renderPage(overrides?: {
+  keyAuthId?: string | undefined;
+  keyAuthIdLoading?: boolean;
+  keyAuthIdError?: boolean;
+}) {
   return render(
     <PortalLifecyclePage
       resourceName="Acme"
       keyAuthId={"keyAuthId" in (overrides ?? {}) ? overrides?.keyAuthId : "ks_123"}
       keyAuthIdLoading={overrides?.keyAuthIdLoading ?? false}
+      keyAuthIdError={overrides?.keyAuthIdError ?? false}
+      onRetryKeyAuthId={onRetryKeyAuthId}
     />,
   );
 }
@@ -100,6 +108,7 @@ describe("PortalLifecyclePage", () => {
     mocks.updateMutation.isLoading = false;
     mocks.updateMutation.mutate.mockClear();
     mocks.invalidateQueries.mockClear();
+    onRetryKeyAuthId.mockClear();
   });
 
   it("renders a retry panel rather than the setup hero when the read fails", () => {
@@ -123,6 +132,21 @@ describe("PortalLifecyclePage", () => {
     expect(screen.queryByTestId("setup-hero")).toBeNull();
     // Retrying cannot help without a keyspace, so no retry action is offered.
     expect(screen.queryByRole("button", { name: "Retry" })).toBeNull();
+  });
+
+  it("offers a retry rather than the dead-end message when the keyspace lookup fails", () => {
+    mocks.portalState = { status: "notConfigured" };
+
+    renderPage({ keyAuthId: undefined, keyAuthIdLoading: false, keyAuthIdError: true });
+
+    // A failed lookup must never read as "this API has no keyspace": the API
+    // may well have one we simply could not read.
+    expect(screen.queryByText(/no keyspace/i)).toBeNull();
+    expect(screen.queryByTestId("setup-hero")).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: "Retry" }));
+    expect(onRetryKeyAuthId).toHaveBeenCalledTimes(1);
+    expect(mocks.invalidateQueries).not.toHaveBeenCalled();
   });
 
   it("renders the setup hero only when no portal exists", () => {

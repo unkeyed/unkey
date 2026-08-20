@@ -1,6 +1,6 @@
 "use client";
 
-import { isHexColor } from "@/lib/portal/validation";
+import { isHexColor, logoUrlSchema } from "@/lib/portal/validation";
 import { cn } from "@/lib/utils";
 import { onPrimaryColor } from "@unkey/ui/src/lib/branding";
 import { useState } from "react";
@@ -36,7 +36,11 @@ export function PortalPreview({
   // The same helper the portal itself uses, so the preview cannot disagree with
   // what an end user sees.
   const onColor = onPrimaryColor(color);
-  const showLogo = branding.logoUrl.trim().length > 0 && erroredUrl !== branding.logoUrl;
+  // Validated here rather than trusting the caller: this is the sink that turns
+  // the value into a request, so the scheme check travels with it.
+  const logoUrl = branding.logoUrl.trim();
+  const showLogo =
+    logoUrl.length > 0 && logoUrlSchema.safeParse(logoUrl).success && erroredUrl !== logoUrl;
 
   return (
     <div
@@ -63,9 +67,9 @@ export function PortalPreview({
         <div className="flex min-w-0 items-center gap-2.5">
           {showLogo && (
             <img
-              src={branding.logoUrl}
+              src={logoUrl}
               alt=""
-              onError={() => setErroredUrl(branding.logoUrl)}
+              onError={() => setErroredUrl(logoUrl)}
               className="size-6 shrink-0 rounded-md object-contain"
             />
           )}

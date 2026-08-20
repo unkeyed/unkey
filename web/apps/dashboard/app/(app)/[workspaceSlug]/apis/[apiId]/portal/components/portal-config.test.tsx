@@ -85,11 +85,13 @@ vi.mock("@unkey/ui", () => {
     // Honouring `isOpen` keeps the disable and delete dialogs from colliding.
     DialogContainer: ({
       isOpen,
+      onOpenChange,
       title,
       children,
       footer,
     }: {
       isOpen: boolean;
+      onOpenChange?: (open: boolean) => void;
       title?: string;
       children?: ReactNode;
       footer?: ReactNode;
@@ -97,6 +99,12 @@ vi.mock("@unkey/ui", () => {
       isOpen ? (
         <div>
           <span>{title}</span>
+          {/* Stands in for the real dialog's dismiss affordances. */}
+          <button
+            type="button"
+            aria-label={`Close ${title}`}
+            onClick={() => onOpenChange?.(false)}
+          />
           {children}
           {footer}
         </div>
@@ -164,6 +172,22 @@ function input(label: string): HTMLInputElement {
   return element;
 }
 
+function form(within: HTMLElement): HTMLFormElement {
+  const element = within.closest("form");
+  if (!element) {
+    throw new Error("no enclosing form");
+  }
+  return element;
+}
+
+function button(name: string, index = 0): HTMLButtonElement {
+  const element = screen.getAllByRole("button", { name })[index];
+  if (!(element instanceof HTMLButtonElement)) {
+    throw new Error(`${name} is not a button`);
+  }
+  return element;
+}
+
 function saveButton(): HTMLButtonElement {
   const element = screen.getByRole("button", { name: "Save" });
   if (!(element instanceof HTMLButtonElement)) {
@@ -225,6 +249,30 @@ describe("PortalConfig", () => {
     });
   });
 
+  it("does not clear untouched branding when the portal prop refreshes mid-edit", async () => {
+    // A teammate sets a logo while this page is open; the query refetch swaps in
+    // a fresh portal object, but the form keeps the snapshot it mounted with.
+    const { rerender } = renderConfig({ branding: undefined });
+
+    rerender(
+      <PortalConfig
+        portal={{ ...portal, branding: { logoUrl: "https://cdn.example.com/theirs.png" } }}
+        keyAuthId="ks_123"
+        resourceName="Acme API"
+      />,
+    );
+
+    fireEvent.change(input("Slug"), { target: { value: "acme-two" } });
+    await waitFor(() => expect(saveButton().disabled).toBe(false));
+    fireEvent.click(saveButton());
+
+    await waitFor(() => expect(mocks.updateMutation.mutateAsync).toHaveBeenCalledTimes(1));
+    expect(mocks.updateMutation.mutateAsync).toHaveBeenCalledWith({
+      portal: "portal_123",
+      slug: "acme-two",
+    });
+  });
+
   it("warns before saving once the slug is edited", async () => {
     renderConfig();
 
@@ -251,14 +299,16 @@ describe("PortalConfig", () => {
     renderConfig();
 
     fireEvent.click(screen.getByRole("button", { name: "Disable portal" }));
-    fireEvent.click(screen.getAllByRole("button", { name: "Disable portal" })[1]);
+    fireEvent.click(button("Disable portal", 1));
 
+    // Awaited, not fire-and-forget, so the dialog can paint its loading state.
     await waitFor(() =>
-      expect(mocks.updateMutation.mutate).toHaveBeenCalledWith({
+      expect(mocks.updateMutation.mutateAsync).toHaveBeenCalledWith({
         portal: "portal_123",
         enabled: false,
       }),
     );
+    await waitFor(() => expect(screen.queryByText("Disable customer portal?")).toBeNull());
     expect(mocks.deleteMutation.mutate).not.toHaveBeenCalled();
     expect(mocks.deleteMutation.mutateAsync).not.toHaveBeenCalled();
   });
@@ -283,5 +333,43 @@ describe("PortalConfig", () => {
     await waitFor(() =>
       expect(mocks.deleteMutation.mutateAsync).toHaveBeenCalledWith({ portal: "portal_123" }),
     );
+  });
+  it("issues no request when a save touches nothing", async () => {
+    renderConfig();
+
+    // Edited and reverted: react-hook-form drops the field from `dirtyFields`.
+    fireEvent.change(input("Slug"), { target: { value: "acme-two" } });
+    await waitFor(() => expect(saveButton().disabled).toBe(false));
+    fireEvent.change(input("Slug"), { target: { value: "acme" } });
+    await waitFor(() => expect(saveButton().disabled).toBe(true));
+
+    fireEvent.submit(form(input("Slug")));
+
+    await waitFor(() => expect(mocks.updateMutation.mutateAsync).not.toHaveBeenCalled());
+  });
+
+  it("ignores a delete submit whose confirmation does not match", async () => {
+    renderConfig();
+
+    fireEvent.click(screen.getByRole("button", { name: "Delete portal" }));
+    fireEvent.change(input("Portal slug confirmation"), { target: { value: "acm" } });
+
+    fireEvent.submit(form(input("Portal slug confirmation")));
+
+    await waitFor(() => expect(mocks.deleteMutation.mutateAsync).not.toHaveBeenCalled());
+  });
+
+  it("clears the delete confirmation when the dialog is closed and reopened", async () => {
+    renderConfig();
+
+    fireEvent.click(screen.getByRole("button", { name: "Delete portal" }));
+    fireEvent.change(input("Portal slug confirmation"), { target: { value: "acme" } });
+    await waitFor(() => expect(button("Delete portal", 1).disabled).toBe(false));
+
+    fireEvent.click(screen.getByRole("button", { name: "Close Delete customer portal" }));
+    fireEvent.click(screen.getByRole("button", { name: "Delete portal" }));
+
+    expect(input("Portal slug confirmation").value).toBe("");
+    expect(button("Delete portal", 1).disabled).toBe(true);
   });
 });

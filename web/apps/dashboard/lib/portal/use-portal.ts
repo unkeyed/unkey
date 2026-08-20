@@ -58,11 +58,14 @@ export function usePortal(keyAuthId: string | undefined): PortalState {
     },
   });
 
-  if (query.error) {
-    return { status: "error", message: getErrorMessage(query.error) };
-  }
-
+  // Only surface the error when there is nothing to render. The provider
+  // refetches on window focus with `retry: 1`, so a single failed background
+  // refetch over a perfectly good cached row must not unmount the configuration
+  // view and throw away in-progress branding or slug edits.
   if (!query.data) {
+    if (query.error) {
+      return { status: "error", message: getErrorMessage(query.error) };
+    }
     return { status: "loading" };
   }
 

@@ -48,6 +48,14 @@ describe("logoUrlSchema", () => {
     // new URL() normalizes it to host "logo.png". Without the guard the form
     // would accept a value the API refuses.
     ["a collapsed empty authority", "https:///logo.png"],
+    // The logo URL is rendered as an <img src> in the portal, so a scheme that
+    // can carry executable or inline content must stay rejected. Pinned here so
+    // a future relaxation of the https-only rule cannot pass silently.
+    ["a javascript: url", "javascript:alert(1)"],
+    [
+      "a data: url",
+      "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciLz4=",
+    ],
   ])("rejects %s", (_label, raw) => {
     const result = logoUrlSchema.safeParse(raw);
     expect(result.success).toBe(false);

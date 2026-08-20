@@ -30,22 +30,43 @@ import { SetupHero } from "./setup-hero";
 const NO_KEYSPACE_MESSAGE =
   "This API has no keyspace, so it cannot host a customer portal. Create a key for this API first.";
 
+// A failed lookup is not the same dead end: the API may well have a keyspace we
+// simply could not read, so this state keeps a retry action.
+const KEYSPACE_LOOKUP_FAILED_MESSAGE =
+  "We couldn't look up this API's keyspace. This is usually temporary — try again.";
+
 type Props = {
   resourceName: string;
-  /** Undefined once `keyAuthIdLoading` is false means this API has no keyspace. */
+  /**
+   * Undefined while `keyAuthIdLoading` or `keyAuthIdError` is set means
+   * "unknown"; undefined with neither set means this API has no keyspace.
+   */
   keyAuthId: string | undefined;
   keyAuthIdLoading: boolean;
+  /** The keyspace lookup itself failed, which is retryable, not a dead end. */
+  keyAuthIdError: boolean;
+  onRetryKeyAuthId: () => void;
 };
 
 /**
  * Collapses the two independent resolutions the surface depends on — the
  * keyspace id and the portal itself — into the single state the page renders.
  */
-function useSurfaceState(keyAuthId: string | undefined, keyAuthIdLoading: boolean): PortalState {
+function useSurfaceState(
+  keyAuthId: string | undefined,
+  keyAuthIdLoading: boolean,
+  keyAuthIdError: boolean,
+): PortalState {
   const portalState = usePortal(keyAuthId);
 
   if (keyAuthIdLoading) {
     return { status: "loading" };
+  }
+  // Ordered before the undefined check: a failed lookup also leaves the id
+  // undefined, and reporting it as "no keyspace" would strand the operator on a
+  // permanent message with no way back.
+  if (keyAuthIdError) {
+    return { status: "error", message: KEYSPACE_LOOKUP_FAILED_MESSAGE };
   }
   if (keyAuthId === undefined) {
     return { status: "error", message: NO_KEYSPACE_MESSAGE };
@@ -115,8 +136,14 @@ function assertNever(value: never): never {
  * the setup hero, so its slug, branding, docs, and delete action stay reachable
  * without relaunching it first.
  */
-export function PortalLifecyclePage({ resourceName, keyAuthId, keyAuthIdLoading }: Props) {
-  const state = useSurfaceState(keyAuthId, keyAuthIdLoading);
+export function PortalLifecyclePage({
+  resourceName,
+  keyAuthId,
+  keyAuthIdLoading,
+  keyAuthIdError,
+  onRetryKeyAuthId,
+}: Props) {
+  const state = useSurfaceState(keyAuthId, keyAuthIdLoading, keyAuthIdError);
   const queryClient = useQueryClient();
   const updatePortal = useUpdatePortal(keyAuthId ?? "");
   const [integrateOpen, setIntegrateOpen] = useState(false);
@@ -125,11 +152,15 @@ export function PortalLifecyclePage({ resourceName, keyAuthId, keyAuthIdLoading 
   const configuredPortal =
     state.status === "enabled" || state.status === "disabled" ? state.portal : undefined;
 
-  const retry = keyAuthId
-    ? () => {
-        void queryClient.invalidateQueries({ queryKey: portalQueryKey(keyAuthId) });
-      }
-    : undefined;
+  // A failed keyspace lookup retries the lookup; anything else retries the
+  // portal read. Only a genuinely absent keyspace has nothing to retry.
+  const retry = keyAuthIdError
+    ? onRetryKeyAuthId
+    : keyAuthId
+      ? () => {
+          void queryClient.invalidateQueries({ queryKey: portalQueryKey(keyAuthId) });
+        }
+      : undefined;
 
   const setEnabled = (portal: Portal, enabled: boolean) => {
     updatePortal.mutate({ portal: portal.id, enabled });
