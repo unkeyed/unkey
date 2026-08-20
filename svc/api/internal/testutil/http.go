@@ -130,14 +130,11 @@ func NewHarness(t *testing.T, configs ...HarnessConfig) *Harness {
 
 	mysqlDSN := mysqlCfg.DSN
 
-	newDatabase := db.New
-	if cfg.MultiStatementBatches {
-		newDatabase = db.NewWithMultiStatementBatches
-	}
-	database, err := newDatabase(db.Config{
-		PrimaryDSN:  mysqlDSN,
-		ReadOnlyDSN: "",
-		Tags:        sqlcomment.Disabled(),
+	database, err := db.New(db.Config{
+		PrimaryDSN:            mysqlDSN,
+		ReadOnlyDSN:           "",
+		MultiStatementBatches: cfg.MultiStatementBatches,
+		Tags:                  sqlcomment.Disabled(),
 	})
 	require.NoError(t, err)
 
