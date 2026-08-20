@@ -14,7 +14,7 @@ export function ActiveDeploymentCardEmpty({
   onCreateDeployment,
   className,
   title = "No active deployments",
-  description = "Your deployments will appear here once you push code to your connected repository or trigger a manual deployment.",
+  description = "Create a deployment to see it here.",
 }: ActiveDeploymentCardEmptyProps) {
   return (
     <EmptySection

@@ -1,4 +1,6 @@
-import { CodeBranch, Cube } from "@unkey/icons";
+import type { App } from "@/lib/collections/deploy/apps";
+import { CodeBranch, Cube, Docker, Terminal } from "@unkey/icons";
+import { match } from "@unkey/match";
 import { InfoTooltip, Loading, TimestampInfo } from "@unkey/ui";
 import type { Route } from "next";
 import Link from "next/link";
@@ -9,6 +11,9 @@ import { Avatar } from "../../[projectId]/apps/[appId]/components/git-avatar";
 type ResourceCardProps = {
   name: string;
   domain: string | null;
+  sourceType: App["sourceType"];
+  imageReference: string | null;
+  repositoryFullName: string | null;
   commitTitle: string | null;
   /** GitHub PR or commit link. Null for non-git deployments. */
   sourceUrl?: string | null;
@@ -26,6 +31,9 @@ type ResourceCardProps = {
 export const ResourceCard = ({
   name,
   domain,
+  sourceType,
+  imageReference,
+  repositoryFullName,
   commitTitle,
   sourceUrl,
   commitTimestamp,
@@ -91,65 +99,134 @@ export const ResourceCard = ({
         {/*Top Section > Project actions*/}
         <div className="relative">{actions}</div>
       </div>
-      {/*Middle Section > Last commit title*/}
-      <div className="flex flex-col gap-2">
-        {commitTitle ? (
-          <InfoTooltip content={commitTitle} asChild position={{ align: "start", side: "top" }}>
-            {sourceUrl ? (
-              <a
-                href={sourceUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-[13px] font-medium text-accent-12 leading-5 min-w-0 truncate cursor-pointer hover:underline"
-              >
-                {commitTitle}
-              </a>
-            ) : (
-              <span className="text-[13px] font-medium text-accent-12 leading-5 min-w-0 truncate">
-                {commitTitle}
-              </span>
-            )}
-          </InfoTooltip>
-        ) : (
-          <div className="h-5">
-            <span className="sr-only">No commit info</span>
-          </div>
-        )}
-
-        <div className="flex gap-2 items-center min-w-0 justify-between min-h-5">
-          <div className="flex items-center gap-3">
-            {commitTimestamp ? (
-              <TimestampInfo value={commitTimestamp} className="hover:underline whitespace-pre" />
-            ) : (
-              <span className="sr-only">No deployments</span>
-            )}
-            <div className="flex items-center gap-1">
-              <CodeBranch className="text-gray-12 shrink-0" iconSize="sm-regular" />
-              <InfoTooltip content={branch} asChild position={{ align: "start", side: "top" }}>
-                <span className="text-xs text-gray-12 truncate max-w-[70px]">{branch}</span>
-              </InfoTooltip>
-            </div>
-          </div>
-          {authorAvatar && author ? (
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-gray-10">by</span>
-              <Avatar alt="Author avatar" src={authorAvatar} />
-              <InfoTooltip content={author} asChild position={{ align: "start", side: "top" }}>
-                <span className="text-xs text-gray-12 font-medium truncate max-w-[90px]">
-                  {author}
-                </span>
-              </InfoTooltip>
-            </div>
+      {match(sourceType)
+        .with("git", () => (
+          <GitSourceMetadata
+            commitTitle={commitTitle}
+            sourceUrl={sourceUrl}
+            commitTimestamp={commitTimestamp}
+            branch={branch}
+            author={author}
+            authorAvatar={authorAvatar}
+          />
+        ))
+        .with("docker", () => <DockerSourceMetadata imageReference={imageReference} />)
+        .with("unknown", () =>
+          repositoryFullName ? (
+            <GitSourceMetadata
+              commitTitle={commitTitle}
+              sourceUrl={sourceUrl}
+              commitTimestamp={commitTimestamp}
+              branch={branch}
+              author={author}
+              authorAvatar={authorAvatar}
+            />
           ) : (
-            <>
-              <span className="sr-only">No author</span>
-              <div aria-hidden="true" className="flex items-center gap-2 invisible">
-                <Avatar src={null} alt="" />
-              </div>
-            </>
-          )}
-        </div>
-      </div>
+            <LegacySourceMetadata />
+          ),
+        )
+        .exhaustive()}
     </div>
   );
 };
+
+type GitSourceMetadataProps = Pick<
+  ResourceCardProps,
+  "commitTitle" | "sourceUrl" | "commitTimestamp" | "branch" | "author" | "authorAvatar"
+>;
+
+const GitSourceMetadata = ({
+  commitTitle,
+  sourceUrl,
+  commitTimestamp,
+  branch,
+  author,
+  authorAvatar,
+}: GitSourceMetadataProps) => (
+  <div className="flex flex-col gap-2">
+    {commitTitle ? (
+      <InfoTooltip content={commitTitle} asChild position={{ align: "start", side: "top" }}>
+        {sourceUrl ? (
+          <a
+            href={sourceUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-[13px] font-medium text-accent-12 leading-5 min-w-0 truncate cursor-pointer hover:underline"
+          >
+            {commitTitle}
+          </a>
+        ) : (
+          <span className="text-[13px] font-medium text-accent-12 leading-5 min-w-0 truncate">
+            {commitTitle}
+          </span>
+        )}
+      </InfoTooltip>
+    ) : (
+      <div className="h-5">
+        <span className="sr-only">No commit info</span>
+      </div>
+    )}
+
+    <div className="flex gap-2 items-center min-w-0 justify-between min-h-5">
+      <div className="flex items-center gap-3">
+        {commitTimestamp ? (
+          <TimestampInfo value={commitTimestamp} className="hover:underline whitespace-pre" />
+        ) : (
+          <span className="sr-only">No deployments</span>
+        )}
+        <div className="flex items-center gap-1">
+          <CodeBranch className="text-gray-12 shrink-0" iconSize="sm-regular" />
+          <InfoTooltip content={branch} asChild position={{ align: "start", side: "top" }}>
+            <span className="text-xs text-gray-12 truncate max-w-[70px]">{branch}</span>
+          </InfoTooltip>
+        </div>
+      </div>
+      {authorAvatar && author ? (
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-gray-10">by</span>
+          <Avatar alt="Author avatar" src={authorAvatar} />
+          <InfoTooltip content={author} asChild position={{ align: "start", side: "top" }}>
+            <span className="text-xs text-gray-12 font-medium truncate max-w-[90px]">{author}</span>
+          </InfoTooltip>
+        </div>
+      ) : (
+        <>
+          <span className="sr-only">No author</span>
+          <div aria-hidden="true" className="flex items-center gap-2 invisible">
+            <Avatar src={null} alt="" />
+          </div>
+        </>
+      )}
+    </div>
+  </div>
+);
+
+const DockerSourceMetadata = ({ imageReference }: { imageReference: string | null }) => (
+  <div className="flex flex-col gap-2">
+    <InfoTooltip
+      content={imageReference ?? "No image configured"}
+      asChild
+      position={{ align: "start", side: "top" }}
+    >
+      <span className="h-5 font-mono text-[13px] font-medium text-accent-12 leading-5 min-w-0 truncate">
+        {imageReference ?? "No image configured"}
+      </span>
+    </InfoTooltip>
+    <div className="flex items-center gap-1 min-h-5">
+      <Docker className="text-gray-12 shrink-0" iconSize="sm-regular" />
+      <span className="text-xs text-gray-12">Docker image</span>
+    </div>
+  </div>
+);
+
+const LegacySourceMetadata = () => (
+  <div className="flex flex-col gap-2">
+    <div className="h-5">
+      <span className="sr-only">No source details</span>
+    </div>
+    <div className="flex items-center gap-1 min-h-5">
+      <Terminal className="text-gray-12 shrink-0" iconSize="sm-regular" />
+      <span className="text-xs text-gray-12">Legacy app</span>
+    </div>
+  </div>
+);

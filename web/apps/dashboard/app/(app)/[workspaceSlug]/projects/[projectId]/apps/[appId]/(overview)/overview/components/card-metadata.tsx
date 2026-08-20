@@ -1,8 +1,9 @@
 "use client";
 
 import { githubUrl } from "@/lib/github-url";
-import { CodeBranch, CodeCommit } from "@unkey/icons";
-import { Badge, TimestampInfo } from "@unkey/ui";
+import { CodeBranch, CodeCommit, Docker, Layers2 } from "@unkey/icons";
+import { match } from "@unkey/match";
+import { Badge, CopyButton, InfoTooltip, TimestampInfo } from "@unkey/ui";
 import type { ReactNode } from "react";
 import { MetadataCell } from "../../../components/active-deployment-card/components/metadata-cell";
 import { DeploymentStatusBadge } from "../../../components/deployment-status-badge";
@@ -51,50 +52,99 @@ function SourceCell() {
   const { deployment, sourceRepo, isRolledBack, rolledBackFrom } = useProductionCard();
   return (
     <div className="flex flex-col gap-1 min-w-0">
-      {deployment.gitBranch && (
-        <GitHubLink href={githubUrl.branch(sourceRepo, deployment.gitBranch)}>
-          <span className="flex items-center gap-1.5">
-            <CodeBranch iconSize="sm-regular" className="text-accent-12 shrink-0" />
-            <span className="font-mono text-[13px] text-accent-12 truncate max-w-40">
-              {deployment.gitBranch}
+      {match(deployment.source)
+        .with("git", () => (
+          <>
+            {deployment.gitBranch && (
+              <GitHubLink href={githubUrl.branch(sourceRepo, deployment.gitBranch)}>
+                <span className="flex items-center gap-1.5">
+                  <CodeBranch iconSize="sm-regular" className="text-accent-12 shrink-0" />
+                  <span className="font-mono text-[13px] text-accent-12 truncate max-w-40">
+                    {deployment.gitBranch}
+                  </span>
+                </span>
+              </GitHubLink>
+            )}
+            {deployment.gitCommitSha && (
+              <div className="flex items-center gap-1.5 min-w-0">
+                <GitHubLink href={githubUrl.commit(sourceRepo, deployment.gitCommitSha)}>
+                  <span className="flex items-center gap-1.5">
+                    <CodeCommit iconSize="sm-regular" className="text-accent-12 shrink-0" />
+                    <span className="font-mono text-[13px] text-accent-12">
+                      {deployment.gitCommitSha.slice(0, 7)}
+                    </span>
+                  </span>
+                </GitHubLink>
+                {deployment.gitCommitMessage && (
+                  <span className="text-[13px] text-accent-12 truncate min-w-0">
+                    {deployment.gitCommitMessage}
+                  </span>
+                )}
+              </div>
+            )}
+          </>
+        ))
+        .with("docker", () => (
+          <span className="flex items-center gap-1.5 min-w-0">
+            <Docker iconSize="sm-regular" className="text-accent-12 shrink-0" />
+            <span
+              className="font-mono text-[13px] text-accent-12 truncate"
+              title={deployment.requestedImage ?? deployment.resolvedImage ?? undefined}
+            >
+              {deployment.requestedImage ?? deployment.resolvedImage ?? "No image available"}
             </span>
+            {deployment.resolvedImage && (
+              <InfoTooltip content="Copy resolved image" asChild>
+                <CopyButton
+                  value={deployment.resolvedImage}
+                  variant="ghost"
+                  className="size-5 shrink-0"
+                  toastMessage={deployment.resolvedImage}
+                  src="production-deployment-source"
+                />
+              </InfoTooltip>
+            )}
           </span>
-        </GitHubLink>
-      )}
-      {deployment.gitCommitSha && (
-        <div className="flex items-center gap-1.5 min-w-0">
-          <GitHubLink href={githubUrl.commit(sourceRepo, deployment.gitCommitSha)}>
-            <span className="flex items-center gap-1.5">
-              <CodeCommit iconSize="sm-regular" className="text-accent-12 shrink-0" />
-              <span className="font-mono text-[13px] text-accent-12">
-                {deployment.gitCommitSha.slice(0, 7)}
-              </span>
-            </span>
-          </GitHubLink>
-          {deployment.gitCommitMessage && (
-            <span className="text-[13px] text-accent-12 truncate min-w-0">
-              {deployment.gitCommitMessage}
-            </span>
-          )}
-        </div>
-      )}
+        ))
+        .with("unknown", () => (
+          <span className="flex items-center gap-1.5 min-w-0 text-gray-9">
+            <Layers2 iconSize="sm-regular" className="shrink-0" />
+            <span className="text-[13px]">Unknown source</span>
+          </span>
+        ))
+        .exhaustive()}
       {isRolledBack && rolledBackFrom && (
-        <div className="flex items-center gap-1.5 min-w-0 text-gray-9">
-          <CodeCommit iconSize="sm-regular" className="text-gray-9 shrink-0" />
-          <span className="font-mono text-[13px] line-through shrink-0">
-            {rolledBackFrom.commitSha ? rolledBackFrom.commitSha.slice(0, 7) : "—"}
-          </span>
-          {rolledBackFrom.commitMessage && (
-            <span className="text-[13px] line-through truncate min-w-0">
-              {rolledBackFrom.commitMessage}
-            </span>
-          )}
+        <div className="flex items-center gap-1.5 min-w-0 text-gray-9 line-through">
+          {match(rolledBackFrom.source)
+            .with("git", () => (
+              <>
+                <CodeCommit iconSize="sm-regular" className="shrink-0" />
+                <span className="font-mono text-[13px] shrink-0">
+                  {rolledBackFrom.gitCommitSha?.slice(0, 7) ?? "—"}
+                </span>
+                {rolledBackFrom.gitCommitMessage && (
+                  <span className="text-[13px] truncate min-w-0">
+                    {rolledBackFrom.gitCommitMessage}
+                  </span>
+                )}
+              </>
+            ))
+            .with("docker", () => (
+              <>
+                <Docker iconSize="sm-regular" className="shrink-0" />
+                <span className="font-mono text-[13px] truncate min-w-0">
+                  {rolledBackFrom.requestedImage ?? rolledBackFrom.resolvedImage ?? "Unknown image"}
+                </span>
+              </>
+            ))
+            .with("unknown", () => (
+              <>
+                <Layers2 iconSize="sm-regular" className="shrink-0" />
+                <span className="text-[13px]">Unknown source</span>
+              </>
+            ))
+            .exhaustive()}
         </div>
-      )}
-      {!deployment.gitBranch && !deployment.gitCommitSha && (
-        <span className="font-mono text-[13px] text-accent-12 truncate">
-          {deployment.image ?? "—"}
-        </span>
       )}
     </div>
   );
@@ -158,19 +208,30 @@ export function ProductionCardMetadata() {
       </MetadataCell>
 
       <MetadataCell label="Created">
-        <div className="flex items-center gap-2">
-          <Avatar src={deployment.gitCommitAuthorAvatarUrl} alt="Author" />
-          {deployment.gitCommitAuthorHandle && (
-            <span className="font-medium text-accent-12 text-[13px] truncate">
-              {deployment.gitCommitAuthorHandle}
-            </span>
-          )}
-          <TimestampInfo
-            value={deployment.createdAt}
-            displayType="relative"
-            className="text-gray-9 text-[13px] shrink-0"
-          />
-        </div>
+        {match(deployment.source)
+          .with("git", () => (
+            <div className="flex items-center gap-2">
+              <Avatar src={deployment.gitCommitAuthorAvatarUrl} alt="Author" />
+              {deployment.gitCommitAuthorHandle && (
+                <span className="font-medium text-accent-12 text-[13px] truncate">
+                  {deployment.gitCommitAuthorHandle}
+                </span>
+              )}
+              <TimestampInfo
+                value={deployment.createdAt}
+                displayType="relative"
+                className="text-gray-9 text-[13px] shrink-0"
+              />
+            </div>
+          ))
+          .with("docker", "unknown", () => (
+            <TimestampInfo
+              value={deployment.createdAt}
+              displayType="relative"
+              className="text-gray-9 text-[13px] shrink-0"
+            />
+          ))
+          .exhaustive()}
       </MetadataCell>
     </div>
   );
