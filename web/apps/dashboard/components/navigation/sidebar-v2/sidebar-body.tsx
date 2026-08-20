@@ -22,7 +22,7 @@ export function SidebarBody() {
     .slice(1)
     .filter((segment) => !segment.startsWith("("));
   const { slug } = useWorkspaceNavigation();
-  const keyAuthId = useApiKeyAuthId(context.type === "api" ? context.apiId : undefined);
+  const { keyAuthId } = useApiKeyAuthId(context.type === "api" ? context.apiId : undefined);
   const portalManagement = useFlag("portalManagement");
 
   const links = (() => {

@@ -1,37 +1,44 @@
 "use client";
 
 import { cn } from "@/lib/utils";
+import { onPrimaryColor } from "@unkey/ui/src/lib/branding";
 import { useState } from "react";
 import type { PortalBrandingValue } from "./portal-branding";
 
 const HEX_RE = /^#[0-9a-fA-F]{6}$/;
 
-function contrastText(hex: string) {
-  const n = Number.parseInt(hex.slice(1), 16);
-  const luminance = 0.2126 * ((n >> 16) & 255) + 0.7152 * ((n >> 8) & 255) + 0.0722 * (n & 255);
-  return luminance > 160 ? "#18181B" : "#FFFFFF";
-}
+const DEFAULT_COLOR = "#18181B";
+
+/**
+ * Where end users land. A keyspace portal is always served from the configured
+ * base host — only an app mapping can resolve a custom domain — so this is the
+ * same address for every customer.
+ */
+const PORTAL_BASE_HOST = "portal.unkey.com";
 
 /**
  * Static, deliberately-lo-fi mock of the end-user portal page so operators can
  * see their logo + brand color in context before going live. Mirrors the real
  * portal layout (web/apps/portal): brand-colored header bar with the logo on
  * it, then the keys heading with "Create key" at the top of the list.
+ *
+ * The brand bar shows the slug because that is what the live portal renders:
+ * `web/apps/portal/src/routes/_portal.tsx` passes `appName={portal?.slug}`.
  */
 export function PortalPreview({
-  name,
-  url,
+  slug,
   branding,
   className,
 }: {
-  name: string;
-  url: string;
+  slug: string;
   branding: PortalBrandingValue;
   className?: string;
 }) {
   const [erroredUrl, setErroredUrl] = useState<string | null>(null);
-  const color = HEX_RE.test(branding.primaryColor) ? branding.primaryColor : "#18181B";
-  const onColor = contrastText(color);
+  const color = HEX_RE.test(branding.primaryColor) ? branding.primaryColor : DEFAULT_COLOR;
+  // The same helper the portal itself uses, so the preview cannot disagree with
+  // what an end user sees.
+  const onColor = onPrimaryColor(color);
   const showLogo = branding.logoUrl.trim().length > 0 && erroredUrl !== branding.logoUrl;
 
   return (
@@ -48,7 +55,7 @@ export function PortalPreview({
           <span className="size-2 rounded-full bg-grayA-5" />
         </div>
         <div className="flex-1 truncate rounded-md border border-grayA-3 bg-gray-1 px-2 py-0.5 text-center text-[10px] text-gray-9">
-          {url}
+          {PORTAL_BASE_HOST}
         </div>
       </div>
 
@@ -66,7 +73,7 @@ export function PortalPreview({
             />
           )}
           <span className="truncate text-[13px] font-semibold" style={{ color: onColor }}>
-            {name}
+            {slug}
           </span>
         </div>
         <span className="h-2 w-14 shrink-0 rounded" style={{ backgroundColor: `${onColor}66` }} />
