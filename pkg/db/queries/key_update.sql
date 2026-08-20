@@ -1,4 +1,5 @@
 -- name: UpdateKey :exec
+-- transactional-batch-statement
 UPDATE `keys` k SET
     name = CASE 
         WHEN CAST(sqlc.arg('name_specified') AS UNSIGNED) = 1 THEN sqlc.narg('name') 
