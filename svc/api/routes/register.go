@@ -69,6 +69,7 @@ import (
 	v2AnalyticsGetRuntimeLogs "github.com/unkeyed/unkey/svc/api/routes/v2_analytics_get_runtime_logs"
 	v2AnalyticsGetVerifications "github.com/unkeyed/unkey/svc/api/routes/v2_analytics_get_verifications"
 
+	v2PortalCreatePortal "github.com/unkeyed/unkey/svc/api/routes/v2_portal_create_portal"
 	v2PortalCreateSession "github.com/unkeyed/unkey/svc/api/routes/v2_portal_create_session"
 	v2PortalExchangeCode "github.com/unkeyed/unkey/svc/api/routes/v2_portal_exchange_code"
 	v2PortalGetVerifications "github.com/unkeyed/unkey/svc/api/routes/v2_portal_get_verifications"
@@ -731,6 +732,15 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 
 	// ---------------------------------------------------------------------------
 	// v2/portal
+
+	// v2/portal.createPortal
+	srv.RegisterRoute(
+		protectedMiddlewares,
+		&v2PortalCreatePortal.Handler{
+			DB:        svc.Database,
+			Auditlogs: svc.Auditlogs,
+		},
+	)
 
 	// v2/portal.createSession
 	srv.RegisterRoute(

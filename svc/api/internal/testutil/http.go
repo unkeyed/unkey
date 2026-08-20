@@ -521,6 +521,12 @@ func (h *Harness) CreateApp(req seed.CreateAppRequest) db.App {
 	return h.seeder.CreateApp(context.Background(), req)
 }
 
+// CreatePortal creates a portal. See [seed.CreatePortalRequest] for why it does
+// not enforce the one-mapping invariant.
+func (h *Harness) CreatePortal(req seed.CreatePortalRequest) db.Portal {
+	return h.seeder.CreatePortal(context.Background(), req)
+}
+
 // CreateEnvironment creates an environment within a project.
 func (h *Harness) CreateEnvironment(req seed.CreateEnvironmentRequest) db.Environment {
 	return h.seeder.CreateEnvironment(h.t.Context(), req)
