@@ -1,4 +1,5 @@
 -- name: InsertKey :exec
+-- transactional-batch-statement
 INSERT INTO `keys` (
     id,
     key_auth_id,

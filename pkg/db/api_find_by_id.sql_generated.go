@@ -7,7 +7,64 @@ package db
 
 import (
 	"context"
+	"database/sql"
 )
+
+const findApiAndKeySpaceByID = `-- name: FindApiAndKeySpaceByID :one
+SELECT
+    a.id AS api_id,
+    a.workspace_id,
+    a.key_auth_id,
+    a.name AS api_name,
+    COALESCE(ka.id, '') AS key_space_id,
+    COALESCE(ka.store_encrypted_keys, false) AS store_encrypted_keys,
+    ka.default_prefix,
+    ka.default_bytes
+FROM apis a
+LEFT JOIN key_auth ka ON ka.id = a.key_auth_id
+WHERE a.id = ?
+`
+
+type FindApiAndKeySpaceByIDRow struct {
+	ApiID              string         `db:"api_id"`
+	WorkspaceID        string         `db:"workspace_id"`
+	KeyAuthID          sql.NullString `db:"key_auth_id"`
+	ApiName            string         `db:"api_name"`
+	KeySpaceID         string         `db:"key_space_id"`
+	StoreEncryptedKeys bool           `db:"store_encrypted_keys"`
+	DefaultPrefix      sql.NullString `db:"default_prefix"`
+	DefaultBytes       sql.NullInt32  `db:"default_bytes"`
+}
+
+// FindApiAndKeySpaceByID
+//
+//	SELECT
+//	    a.id AS api_id,
+//	    a.workspace_id,
+//	    a.key_auth_id,
+//	    a.name AS api_name,
+//	    COALESCE(ka.id, '') AS key_space_id,
+//	    COALESCE(ka.store_encrypted_keys, false) AS store_encrypted_keys,
+//	    ka.default_prefix,
+//	    ka.default_bytes
+//	FROM apis a
+//	LEFT JOIN key_auth ka ON ka.id = a.key_auth_id
+//	WHERE a.id = ?
+func (q *Queries) FindApiAndKeySpaceByID(ctx context.Context, db DBTX, id string) (FindApiAndKeySpaceByIDRow, error) {
+	row := db.QueryRowContext(ctx, findApiAndKeySpaceByID, id)
+	var i FindApiAndKeySpaceByIDRow
+	err := row.Scan(
+		&i.ApiID,
+		&i.WorkspaceID,
+		&i.KeyAuthID,
+		&i.ApiName,
+		&i.KeySpaceID,
+		&i.StoreEncryptedKeys,
+		&i.DefaultPrefix,
+		&i.DefaultBytes,
+	)
+	return i, err
+}
 
 const findApiByID = `-- name: FindApiByID :one
 SELECT pk, id, name, workspace_id, project_id, ip_whitelist, auth_type, key_auth_id, created_at_m, updated_at_m, deleted_at_m, delete_protection FROM apis WHERE id = ?
