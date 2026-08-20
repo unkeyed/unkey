@@ -59,7 +59,7 @@ export type V2AppsUpdateAppRequestBody5 = {
    * Omit this field to leave the current setting unchanged.
    */
   deleteProtection: boolean;
-  docker?: never | undefined;
+  docker?: any | undefined;
 };
 
 export type V2AppsUpdateAppRequestBody4 = {
@@ -107,7 +107,7 @@ export type V2AppsUpdateAppRequestBody4 = {
    * Omit this field to leave the current setting unchanged.
    */
   deleteProtection?: boolean | undefined;
-  docker?: never | undefined;
+  docker?: any | undefined;
 };
 
 export type V2AppsUpdateAppRequestBody3 = {
@@ -155,7 +155,7 @@ export type V2AppsUpdateAppRequestBody3 = {
    * Omit this field to leave the current setting unchanged.
    */
   deleteProtection?: boolean | undefined;
-  docker?: never | undefined;
+  docker?: any | undefined;
 };
 
 export type V2AppsUpdateAppRequestBody2 = {
@@ -203,7 +203,7 @@ export type V2AppsUpdateAppRequestBody2 = {
    * Omit this field to leave the current setting unchanged.
    */
   deleteProtection?: boolean | undefined;
-  docker?: never | undefined;
+  docker?: any | undefined;
 };
 
 export type V2AppsUpdateAppRequestBodyUnion1 =
@@ -235,10 +235,10 @@ export type V2AppsUpdateAppRequestBody1 = {
    * and source switching is not supported.
    */
   docker: AppDockerInput;
-  name?: never | undefined;
-  slug?: never | undefined;
-  git?: never | undefined;
-  deleteProtection?: never | undefined;
+  name?: any | undefined;
+  slug?: any | undefined;
+  git?: any | undefined;
+  deleteProtection?: any | undefined;
 };
 
 export type V2AppsUpdateAppRequestBodyUnion =
@@ -256,7 +256,7 @@ export type V2AppsUpdateAppRequestBody5$Outbound = {
   slug?: string | undefined;
   git?: AppGitUpdateInput$Outbound | null | undefined;
   deleteProtection: boolean;
-  docker?: never | undefined;
+  docker?: any | undefined;
 };
 
 /** @internal */
@@ -271,7 +271,7 @@ export const V2AppsUpdateAppRequestBody5$outboundSchema: z.ZodType<
   slug: z.string().optional(),
   git: z.nullable(AppGitUpdateInput$outboundSchema).optional(),
   deleteProtection: z.boolean(),
-  docker: z.never().optional(),
+  docker: z.any().optional(),
 });
 
 export function v2AppsUpdateAppRequestBody5ToJSON(
@@ -292,7 +292,7 @@ export type V2AppsUpdateAppRequestBody4$Outbound = {
   slug?: string | undefined;
   git: AppGitUpdateInput$Outbound | null;
   deleteProtection?: boolean | undefined;
-  docker?: never | undefined;
+  docker?: any | undefined;
 };
 
 /** @internal */
@@ -307,7 +307,7 @@ export const V2AppsUpdateAppRequestBody4$outboundSchema: z.ZodType<
   slug: z.string().optional(),
   git: z.nullable(AppGitUpdateInput$outboundSchema),
   deleteProtection: z.boolean().optional(),
-  docker: z.never().optional(),
+  docker: z.any().optional(),
 });
 
 export function v2AppsUpdateAppRequestBody4ToJSON(
@@ -328,7 +328,7 @@ export type V2AppsUpdateAppRequestBody3$Outbound = {
   slug: string;
   git?: AppGitUpdateInput$Outbound | null | undefined;
   deleteProtection?: boolean | undefined;
-  docker?: never | undefined;
+  docker?: any | undefined;
 };
 
 /** @internal */
@@ -343,7 +343,7 @@ export const V2AppsUpdateAppRequestBody3$outboundSchema: z.ZodType<
   slug: z.string(),
   git: z.nullable(AppGitUpdateInput$outboundSchema).optional(),
   deleteProtection: z.boolean().optional(),
-  docker: z.never().optional(),
+  docker: z.any().optional(),
 });
 
 export function v2AppsUpdateAppRequestBody3ToJSON(
@@ -364,7 +364,7 @@ export type V2AppsUpdateAppRequestBody2$Outbound = {
   slug?: string | undefined;
   git?: AppGitUpdateInput$Outbound | null | undefined;
   deleteProtection?: boolean | undefined;
-  docker?: never | undefined;
+  docker?: any | undefined;
 };
 
 /** @internal */
@@ -379,7 +379,7 @@ export const V2AppsUpdateAppRequestBody2$outboundSchema: z.ZodType<
   slug: z.string().optional(),
   git: z.nullable(AppGitUpdateInput$outboundSchema).optional(),
   deleteProtection: z.boolean().optional(),
-  docker: z.never().optional(),
+  docker: z.any().optional(),
 });
 
 export function v2AppsUpdateAppRequestBody2ToJSON(
@@ -426,10 +426,10 @@ export type V2AppsUpdateAppRequestBody1$Outbound = {
   project: string;
   app: string;
   docker: AppDockerInput$Outbound;
-  name?: never | undefined;
-  slug?: never | undefined;
-  git?: never | undefined;
-  deleteProtection?: never | undefined;
+  name?: any | undefined;
+  slug?: any | undefined;
+  git?: any | undefined;
+  deleteProtection?: any | undefined;
 };
 
 /** @internal */
@@ -441,10 +441,10 @@ export const V2AppsUpdateAppRequestBody1$outboundSchema: z.ZodType<
   project: z.string(),
   app: z.string(),
   docker: AppDockerInput$outboundSchema,
-  name: z.never().optional(),
-  slug: z.never().optional(),
-  git: z.never().optional(),
-  deleteProtection: z.never().optional(),
+  name: z.any().optional(),
+  slug: z.any().optional(),
+  git: z.any().optional(),
+  deleteProtection: z.any().optional(),
 });
 
 export function v2AppsUpdateAppRequestBody1ToJSON(

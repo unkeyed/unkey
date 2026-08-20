@@ -42,5 +42,4 @@ mkdir -p "${target}/src"
 rsync -a --delete --exclude hooks/registration.ts "${stage}/src/" "${target}/src/"
 rm -rf "${target}/esm"
 rm -rf "${stage}"
-node "${target}/scripts/patch-exclusive-app-source-types.mjs"
 pnpm --dir="${root}/web" --filter @unkey/api build

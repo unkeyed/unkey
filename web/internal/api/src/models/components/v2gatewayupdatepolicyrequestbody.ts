@@ -14,6 +14,11 @@ import {
   KeyauthPolicy$outboundSchema,
 } from "./keyauthpolicy.js";
 import {
+  LoggingPolicy,
+  LoggingPolicy$Outbound,
+  LoggingPolicy$outboundSchema,
+} from "./loggingpolicy.js";
+import {
   MatchExpr,
   MatchExpr$Outbound,
   MatchExpr$outboundSchema,
@@ -34,8 +39,9 @@ import {
  *
  * @remarks
  * values; at least one updatable field must be provided. Providing one of
- * `keyauth`, `ratelimit`, `firewall` or `openapi` replaces the policy's
- * rule entirely, including switching its type; at most one may be set.
+ * `keyauth`, `ratelimit`, `firewall`, `openapi` or `logging` replaces the
+ * policy's rule entirely, including switching its type; at most one may be
+ * set.
  */
 export type V2GatewayUpdatePolicyRequestBody = {
   /**
@@ -90,7 +96,11 @@ export type V2GatewayUpdatePolicyRequestBody = {
    */
   keyauth?: KeyauthPolicy | undefined;
   /**
-   * Rate limits matching requests.
+   * Rate limits matching requests. Set `identifiers` with 1 to 5 sources.
+   *
+   * @remarks
+   * The deprecated `identifier` field is accepted in place of a one-entry
+   * `identifiers` list; set exactly one of the two.
    */
   ratelimit?: RatelimitPolicy | undefined;
   /**
@@ -105,6 +115,20 @@ export type V2GatewayUpdatePolicyRequestBody = {
    * the policy is a no-op and requests pass through unvalidated.
    */
   openapi?: OpenapiPolicy | undefined;
+  /**
+   * Adds request data to the log entries of matching requests. The gateway
+   *
+   * @remarks
+   * always records a basic log entry for every request: method, host, path,
+   * status, and latency. Each capture setting is a separate opt-in: request
+   * headers, response headers, request body, response body, and query data.
+   * The policy's `match` expressions select the requests. A policy without
+   * `match` expressions matches every request. If more than one enabled
+   * logging policy matches a request, the gateway combines their settings.
+   * The gateway always redacts the `Authorization` header and configured key
+   * locations before it stores headers or query data.
+   */
+  logging?: LoggingPolicy | undefined;
 };
 
 /** @internal */
@@ -120,6 +144,7 @@ export type V2GatewayUpdatePolicyRequestBody$Outbound = {
   ratelimit?: RatelimitPolicy$Outbound | undefined;
   firewall?: FirewallPolicy$Outbound | undefined;
   openapi?: OpenapiPolicy$Outbound | undefined;
+  logging?: LoggingPolicy$Outbound | undefined;
 };
 
 /** @internal */
@@ -139,6 +164,7 @@ export const V2GatewayUpdatePolicyRequestBody$outboundSchema: z.ZodType<
   ratelimit: RatelimitPolicy$outboundSchema.optional(),
   firewall: FirewallPolicy$outboundSchema.optional(),
   openapi: OpenapiPolicy$outboundSchema.optional(),
+  logging: LoggingPolicy$outboundSchema.optional(),
 });
 
 export function v2GatewayUpdatePolicyRequestBodyToJSON(

@@ -39,7 +39,7 @@ export type V2AppsCreateAppRequestBody2 = {
    * @remarks
    */
   docker: AppDockerInput;
-  git?: never | undefined;
+  git?: any | undefined;
 };
 
 export type V2AppsCreateAppRequestBody1 = {
@@ -68,7 +68,7 @@ export type V2AppsCreateAppRequestBody1 = {
    * without a repository and connect one later with apps.updateApp.
    */
   git: AppGitCreateInput;
-  docker?: never | undefined;
+  docker?: any | undefined;
 };
 
 /**
@@ -86,7 +86,7 @@ export type V2AppsCreateAppRequestBody2$Outbound = {
   name: string;
   slug: string;
   docker: AppDockerInput$Outbound;
-  git?: never | undefined;
+  git?: any | undefined;
 };
 
 /** @internal */
@@ -99,7 +99,7 @@ export const V2AppsCreateAppRequestBody2$outboundSchema: z.ZodType<
   name: z.string(),
   slug: z.string(),
   docker: AppDockerInput$outboundSchema,
-  git: z.never().optional(),
+  git: z.any().optional(),
 });
 
 export function v2AppsCreateAppRequestBody2ToJSON(
@@ -118,7 +118,7 @@ export type V2AppsCreateAppRequestBody1$Outbound = {
   name: string;
   slug: string;
   git: AppGitCreateInput$Outbound;
-  docker?: never | undefined;
+  docker?: any | undefined;
 };
 
 /** @internal */
@@ -131,7 +131,7 @@ export const V2AppsCreateAppRequestBody1$outboundSchema: z.ZodType<
   name: z.string(),
   slug: z.string(),
   git: AppGitCreateInput$outboundSchema,
-  docker: z.never().optional(),
+  docker: z.any().optional(),
 });
 
 export function v2AppsCreateAppRequestBody1ToJSON(
