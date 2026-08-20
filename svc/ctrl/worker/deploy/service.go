@@ -98,6 +98,7 @@ type Workflow struct {
 	clickhouse                      clickhouse.ClickHouse
 	buildSteps                      *batch.BatchProcessor[schema.BuildStepV1]
 	buildStepLogs                   *batch.BatchProcessor[schema.BuildStepLogV1]
+	imageResolver                   ImageResolver
 	allowUnauthenticatedDeployments bool
 	dashboardURL                    string
 }
@@ -143,6 +144,9 @@ type Config struct {
 	// BuildStepLogs buffers build step log events for ClickHouse.
 	BuildStepLogs *batch.BatchProcessor[schema.BuildStepLogV1]
 
+	// ImageResolver resolves OCI image tags to immutable digests.
+	ImageResolver ImageResolver
+
 	// AllowUnauthenticatedDeployments controls whether builds can skip GitHub authentication.
 	// Set to true only for local development with public repositories.
 	AllowUnauthenticatedDeployments bool
@@ -182,6 +186,7 @@ func New(cfg Config) (*Workflow, error) {
 		clickhouse:                      cfg.Clickhouse,
 		buildSteps:                      cfg.BuildSteps,
 		buildStepLogs:                   cfg.BuildStepLogs,
+		imageResolver:                   cfg.ImageResolver,
 		allowUnauthenticatedDeployments: cfg.AllowUnauthenticatedDeployments,
 		dashboardURL:                    cfg.DashboardURL,
 	}, nil

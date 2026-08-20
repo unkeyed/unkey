@@ -7,6 +7,7 @@ import (
 	"connectrpc.com/connect"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/pkg/auditlog"
+	"github.com/unkeyed/unkey/pkg/deploy/imageref"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
@@ -23,13 +24,9 @@ const (
 )
 
 // Rebuild creates a new deployment cloning the source's project, app, and
-// environment, then kicks off the deploy workflow. Source resolution is:
-//
-//  1. If the source has a git_commit_sha AND the app has a github repo
-//     connection, rebuild from the pinned SHA.
-//  2. Otherwise reuse the source deployment's docker image verbatim.
-//  3. If the source has neither a SHA-with-connection nor an image,
-//     error — there's nothing to build.
+// environment, then kicks off the deploy workflow. Explicit provenance decides
+// whether to rebuild the pinned Git commit or reuse the resolved Docker digest;
+// historical unknown rows retain the legacy Git-SHA inference.
 //
 // The new deployment inherits the app's *current* runtime settings and env
 // vars — config drift since the source applies. That's the desired behavior
@@ -74,11 +71,12 @@ func (s *Service) Rebuild(ctx context.Context, sourceDeploymentID, reason string
 		}
 	}
 
-	// Decide source: rebuild from git if we have both a SHA and a repo
-	// connection, otherwise reuse the source deployment's image.
 	hasSha := src.GitCommitSha.Valid && src.GitCommitSha.String != ""
 	hasRepoConn := false
-	if hasSha {
+	requiresGit := src.Source == db.DeploymentsSourceGit
+	historicalSource := src.Source == db.DeploymentsSourceUnknown || src.Source == ""
+	tryGit := requiresGit || (historicalSource && hasSha)
+	if tryGit && hasSha {
 		if _, repoErr := s.db.FindGithubRepoConnectionByAppId(ctx, src.AppID); repoErr == nil {
 			hasRepoConn = true
 		} else if !db.IsNotFound(repoErr) {
@@ -86,12 +84,17 @@ func (s *Service) Rebuild(ctx context.Context, sourceDeploymentID, reason string
 				fmt.Errorf("failed to lookup github repo connection: %w", repoErr))
 		}
 	}
-	useGit := hasSha && hasRepoConn
-	hasImage := src.Image.Valid && src.Image.String != ""
+	useGit := tryGit && hasSha && hasRepoConn
+	resolvedImage := resolvedDeploymentImage(src)
+	hasImage := resolvedImage.Valid && resolvedImage.String != ""
 
-	if !useGit && !hasImage {
+	if requiresGit && !useGit {
 		return "", connect.NewError(connect.CodeFailedPrecondition,
-			fmt.Errorf("source deployment %q has neither a git_commit_sha+repo connection nor an image; nothing to rebuild from", sourceDeploymentID))
+			fmt.Errorf("source deployment %q is a Git build but has no usable commit and repository connection", sourceDeploymentID))
+	}
+	if !requiresGit && !hasImage {
+		return "", connect.NewError(connect.CodeFailedPrecondition,
+			fmt.Errorf("source deployment %q has no resolved Docker image; nothing to rebuild from", sourceDeploymentID))
 	}
 
 	env, err := s.db.FindEnvironmentById(ctx, src.EnvironmentID)
@@ -132,16 +135,21 @@ func (s *Service) Rebuild(ctx context.Context, sourceDeploymentID, reason string
 			"reason", reason,
 		)
 	} else {
-		// No git path available: reuse the source deployment's image.
+		// Reuse the source deployment's immutable image digest.
 		// Passing dockerImage explicitly short-circuits createAndDeploy's
 		// auto-detect, so we don't accidentally pick up the app's current
 		// deployment image (which may be a different one).
-		params.dockerImage = src.Image.String
+		imageReference, imageErr := imageref.NormalizeHistorical(resolvedImage.String)
+		if imageErr != nil {
+			return "", connect.NewError(connect.CodeFailedPrecondition,
+				fmt.Errorf("source deployment %q has an invalid Docker image: %w", sourceDeploymentID, imageErr))
+		}
+		params.dockerImage = imageReference
 		logger.Info("rebuilding deployment by reusing source image",
 			"source_deployment_id", sourceDeploymentID,
 			"app_id", src.AppID,
 			"env_slug", env.Slug,
-			"image", src.Image.String,
+			"image", resolvedImage.String,
 			"reason", reason,
 		)
 	}
