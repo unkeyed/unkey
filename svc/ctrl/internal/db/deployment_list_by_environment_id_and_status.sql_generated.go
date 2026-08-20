@@ -13,7 +13,7 @@ import (
 )
 
 const listDeploymentsByEnvironmentIdAndStatus = `-- name: ListDeploymentsByEnvironmentIdAndStatus :many
-SELECT deployments.pk, deployments.id, deployments.k8s_name, deployments.workspace_id, deployments.project_id, deployments.environment_id, deployments.app_id, deployments.image, deployments.build_id, deployments.git_commit_sha, deployments.git_branch, deployments.git_commit_message, deployments.git_commit_author_handle, deployments.git_commit_author_avatar_url, deployments.git_commit_timestamp, deployments.sentinel_config, deployments.cpu_millicores, deployments.memory_mib, deployments.storage_mib, deployments.desired_state, deployments.encrypted_environment_variables, deployments.command, deployments.port, deployments.shutdown_signal, deployments.upstream_protocol, deployments.healthcheck, deployments.pr_number, deployments.fork_repository_full_name, deployments.github_deployment_id, deployments.invocation_id, deployments.status, deployments.` + "`" + `trigger` + "`" + `, deployments.triggered_by, deployments.trigger_reason, deployments.created_at, deployments.updated_at FROM ` + "`" + `deployments` + "`" + `
+SELECT deployments.pk, deployments.id, deployments.k8s_name, deployments.workspace_id, deployments.project_id, deployments.environment_id, deployments.app_id, deployments.source, deployments.image_requested, deployments.image, deployments.image_resolved, deployments.build_id, deployments.git_commit_sha, deployments.git_branch, deployments.git_commit_message, deployments.git_commit_author_handle, deployments.git_commit_author_avatar_url, deployments.git_commit_timestamp, deployments.sentinel_config, deployments.cpu_millicores, deployments.memory_mib, deployments.storage_mib, deployments.desired_state, deployments.encrypted_environment_variables, deployments.command, deployments.port, deployments.shutdown_signal, deployments.upstream_protocol, deployments.healthcheck, deployments.pr_number, deployments.fork_repository_full_name, deployments.github_deployment_id, deployments.invocation_id, deployments.status, deployments.` + "`" + `trigger` + "`" + `, deployments.triggered_by, deployments.trigger_reason, deployments.created_at, deployments.updated_at FROM ` + "`" + `deployments` + "`" + `
 WHERE environment_id = ?
   AND status = ?
   AND created_at < ?
@@ -29,7 +29,7 @@ type ListDeploymentsByEnvironmentIdAndStatusParams struct {
 
 // ListDeploymentsByEnvironmentIdAndStatus
 //
-//	SELECT deployments.pk, deployments.id, deployments.k8s_name, deployments.workspace_id, deployments.project_id, deployments.environment_id, deployments.app_id, deployments.image, deployments.build_id, deployments.git_commit_sha, deployments.git_branch, deployments.git_commit_message, deployments.git_commit_author_handle, deployments.git_commit_author_avatar_url, deployments.git_commit_timestamp, deployments.sentinel_config, deployments.cpu_millicores, deployments.memory_mib, deployments.storage_mib, deployments.desired_state, deployments.encrypted_environment_variables, deployments.command, deployments.port, deployments.shutdown_signal, deployments.upstream_protocol, deployments.healthcheck, deployments.pr_number, deployments.fork_repository_full_name, deployments.github_deployment_id, deployments.invocation_id, deployments.status, deployments.`trigger`, deployments.triggered_by, deployments.trigger_reason, deployments.created_at, deployments.updated_at FROM `deployments`
+//	SELECT deployments.pk, deployments.id, deployments.k8s_name, deployments.workspace_id, deployments.project_id, deployments.environment_id, deployments.app_id, deployments.source, deployments.image_requested, deployments.image, deployments.image_resolved, deployments.build_id, deployments.git_commit_sha, deployments.git_branch, deployments.git_commit_message, deployments.git_commit_author_handle, deployments.git_commit_author_avatar_url, deployments.git_commit_timestamp, deployments.sentinel_config, deployments.cpu_millicores, deployments.memory_mib, deployments.storage_mib, deployments.desired_state, deployments.encrypted_environment_variables, deployments.command, deployments.port, deployments.shutdown_signal, deployments.upstream_protocol, deployments.healthcheck, deployments.pr_number, deployments.fork_repository_full_name, deployments.github_deployment_id, deployments.invocation_id, deployments.status, deployments.`trigger`, deployments.triggered_by, deployments.trigger_reason, deployments.created_at, deployments.updated_at FROM `deployments`
 //	WHERE environment_id = ?
 //	  AND status = ?
 //	  AND created_at < ?
@@ -56,7 +56,10 @@ func (q *Queries) ListDeploymentsByEnvironmentIdAndStatus(ctx context.Context, a
 			&i.ProjectID,
 			&i.EnvironmentID,
 			&i.AppID,
+			&i.Source,
+			&i.ImageRequested,
 			&i.Image,
+			&i.ImageResolved,
 			&i.BuildID,
 			&i.GitCommitSha,
 			&i.GitBranch,
