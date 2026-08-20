@@ -14,10 +14,50 @@ import (
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/ctrl/integration/seed"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/auditlogs"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
 
 var errInjectedAuditInsert = errors.New("injected audit insert failure")
+
+func TestParseCreateAppSource(t *testing.T) {
+	t.Run("omitted source remains legacy", func(t *testing.T) {
+		source, err := parseCreateAppSource(&ctrlv1.CreateAppRequest{})
+		require.NoError(t, err)
+		require.Equal(t, db.AppsSourceTypeUnknown, source.sourceType)
+		require.True(t, source.createBuildSettings)
+	})
+
+	t.Run("GitHub source creates build settings", func(t *testing.T) {
+		source, err := parseCreateAppSource(&ctrlv1.CreateAppRequest{
+			Source: &ctrlv1.CreateAppRequest_Git{Git: &ctrlv1.GitSource{}},
+		})
+		require.NoError(t, err)
+		require.Equal(t, db.AppsSourceTypeGit, source.sourceType)
+		require.True(t, source.createBuildSettings)
+	})
+
+	t.Run("Docker source normalizes image and omits build settings", func(t *testing.T) {
+		source, err := parseCreateAppSource(&ctrlv1.CreateAppRequest{
+			Source: &ctrlv1.CreateAppRequest_Oci{
+				Oci: &ctrlv1.OciSource{ImageReference: "nginx:1.27"},
+			},
+		})
+		require.NoError(t, err)
+		require.Equal(t, db.AppsSourceTypeOci, source.sourceType)
+		require.Equal(t, "index.docker.io/library/nginx:1.27", source.imageReference)
+		require.False(t, source.createBuildSettings)
+	})
+
+	t.Run("Docker source requires explicit tag or digest", func(t *testing.T) {
+		_, err := parseCreateAppSource(&ctrlv1.CreateAppRequest{
+			Source: &ctrlv1.CreateAppRequest_Oci{
+				Oci: &ctrlv1.OciSource{ImageReference: "nginx"},
+			},
+		})
+		require.Error(t, err)
+	})
+}
 
 // TestCreateAppRollsBackWhenAuditInsertFails verifies the production
 // guarantee that app creation is all-or-nothing: the app, default environments,
@@ -111,6 +151,82 @@ func TestCreateAppRollsBackWhenAuditInsertFails(t *testing.T) {
 	outboxRows, err := database.ListClickhouseOutboxByWorkspace(ctx, workspaceID)
 	require.NoError(t, err)
 	require.Empty(t, outboxRows)
+}
+
+func TestCreateAndUpdateDockerAppSource(t *testing.T) {
+	ctx := context.Background()
+	mysqlCfg := containers.MySQL(t)
+	database, err := db.New(mysqlCfg.DSN, sqlcomment.Disabled())
+	require.NoError(t, err)
+	t.Cleanup(func() {
+		require.NoError(t, database.Close())
+	})
+
+	seeder := seed.New(t, database, nil)
+	seeder.Seed(ctx)
+	workspaceID := seeder.Resources.UserWorkspace.ID
+	project := seeder.CreateProject(ctx, seed.CreateProjectRequest{
+		ID:          uid.New(uid.ProjectPrefix),
+		WorkspaceID: workspaceID,
+		Name:        "Docker App",
+		Slug:        strings.ToLower(strings.ReplaceAll(uid.New("project"), "_", "-")),
+	})
+	auditlogsService, err := auditlogs.New(auditlogs.Config{DB: database})
+	require.NoError(t, err)
+
+	const bearer = "test-token"
+	svc := New(Config{
+		Database:  database,
+		Restate:   nil,
+		Auditlogs: auditlogsService,
+		Bearer:    bearer,
+	})
+	actor := &ctrlv1.ActorInfo{
+		Id:        "user_test",
+		Name:      "Test User",
+		Type:      ctrlv1.ActorType_ACTOR_TYPE_USER,
+		RemoteIp:  "127.0.0.1",
+		UserAgent: "test-agent",
+	}
+	createReq := connect.NewRequest(&ctrlv1.CreateAppRequest{
+		WorkspaceId: workspaceID,
+		ProjectId:   project.ID,
+		Name:        "Docker App",
+		Slug:        strings.ToLower(strings.ReplaceAll(uid.New("app"), "_", "-")),
+		Actor:       actor,
+		Source: &ctrlv1.CreateAppRequest_Oci{
+			Oci: &ctrlv1.OciSource{ImageReference: "nginx:1.27"},
+		},
+	})
+	createReq.Header().Set("Authorization", "Bearer "+bearer)
+
+	createRes, err := svc.CreateApp(ctx, createReq)
+	require.NoError(t, err)
+	appID := createRes.Msg.GetId()
+	createdApp, err := database.FindAppById(ctx, appID)
+	require.NoError(t, err)
+	require.Equal(t, db.AppsSourceTypeOci, createdApp.SourceType)
+	createdSource, err := database.FindAppSourceOciByAppId(ctx, appID)
+	require.NoError(t, err)
+	require.Equal(t, "index.docker.io/library/nginx:1.27", createdSource.ImageReference)
+	require.Equal(t, 2, countRows(t, ctx, database.RO(), "SELECT COUNT(*) FROM environments WHERE app_id = ?", appID))
+	require.Equal(t, 2, countRows(t, ctx, database.RO(), "SELECT COUNT(*) FROM app_runtime_settings WHERE app_id = ?", appID))
+	require.Equal(t, 0, countRows(t, ctx, database.RO(), "SELECT COUNT(*) FROM app_build_settings WHERE app_id = ?", appID))
+
+	updateReq := connect.NewRequest(&ctrlv1.UpdateOciImageSourceRequest{
+		WorkspaceId:    workspaceID,
+		AppId:          appID,
+		ImageReference: "nginx:1.28",
+		Actor:          actor,
+	})
+	updateReq.Header().Set("Authorization", "Bearer "+bearer)
+	updateRes, err := svc.UpdateOciImageSource(ctx, updateReq)
+	require.NoError(t, err)
+	require.Equal(t, "index.docker.io/library/nginx:1.28", updateRes.Msg.GetImageReference())
+
+	updatedSource, err := database.FindAppSourceOciByAppId(ctx, appID)
+	require.NoError(t, err)
+	require.Equal(t, "index.docker.io/library/nginx:1.28", updatedSource.ImageReference)
 }
 
 func TestPickDefaultRegion(t *testing.T) {
