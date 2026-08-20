@@ -78,18 +78,38 @@ func ToResponse(in Input) openapi.Deployment {
 		Domains: nil,
 	}
 
-	// A deployment is sourced from either git or a prebuilt image. git_commit_sha
-	// is the discriminator: git builds set it (and also fill image with the built
-	// output), image deploys leave it null.
-	switch {
-	case d.GitCommitSha.Valid && d.GitCommitSha.String != "":
+	setGitSource := func() {
 		git := openapi.DeploymentGit{CommitSha: d.GitCommitSha.String, Branch: nil}
 		if d.GitBranch.Valid && d.GitBranch.String != "" {
 			git.Branch = ptr.P(d.GitBranch.String)
 		}
 		dep.Git = &git
-	case d.Image.Valid && d.Image.String != "":
-		dep.Docker = &openapi.DeploymentDocker{Image: d.Image.String}
+	}
+	setOCISource := func() {
+		image := d.ImageRequested
+		if !image.Valid || image.String == "" {
+			image = d.ImageResolved
+		}
+		if !image.Valid || image.String == "" {
+			image = d.Image
+		}
+		if image.Valid && image.String != "" {
+			dep.Docker = &openapi.DeploymentDocker{Image: image.String}
+		}
+	}
+
+	switch d.Source {
+	case db.DeploymentsSourceGit:
+		if d.GitCommitSha.Valid && d.GitCommitSha.String != "" {
+			setGitSource()
+		}
+	case db.DeploymentsSourceOci:
+		setOCISource()
+	case db.DeploymentsSourceUnknown:
+		// Historical provenance is ambiguous. Do not infer it from optional
+		// Git or image metadata.
+	default:
+		// Future source variants remain neutral until mapped explicitly.
 	}
 
 	if failure := deriveError(d.Status, in.Steps); failure != nil {

@@ -4690,7 +4690,7 @@ components:
                 docker:
                     "$ref": "#/components/schemas/DeploymentDocker"
                     description: |
-                        Present for image-sourced deployments. Mutually exclusive with `git`.
+                        Compatibility field present for OCI image-sourced deployments. Mutually exclusive with `git`.
                 availableActions:
                     type: array
                     items:
@@ -4796,7 +4796,7 @@ components:
             properties:
                 image:
                     type: string
-                    description: The Docker image this deployment runs.
+                    description: The OCI image reference requested for this deployment.
                     example: ghcr.io/acme/api:v1.2.3
             additionalProperties: false
         DeploymentAction:
