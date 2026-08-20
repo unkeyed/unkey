@@ -4153,7 +4153,14 @@ type V2PortalGetPortalRequestBody struct {
 	// Portal Identifies a resource by either its unique ID or its slug.
 	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
 	Portal *ResourceIdentifier `json:"portal,omitempty"`
+	union  json.RawMessage
 }
+
+// V2PortalGetPortalRequestBody0 defines model for .
+type V2PortalGetPortalRequestBody0 = interface{}
+
+// V2PortalGetPortalRequestBody1 defines model for .
+type V2PortalGetPortalRequestBody1 = interface{}
 
 // V2PortalGetPortalResponseBody defines model for V2PortalGetPortalResponseBody.
 type V2PortalGetPortalResponseBody struct {
@@ -5198,6 +5205,116 @@ func (t *V2DeploymentsCreateDeploymentRequestBody) UnmarshalJSON(b []byte) error
 		err = json.Unmarshal(raw, &t.Project)
 		if err != nil {
 			return fmt.Errorf("error reading 'project': %w", err)
+		}
+	}
+
+	return err
+}
+
+// AsV2PortalGetPortalRequestBody0 returns the union data inside the V2PortalGetPortalRequestBody as a V2PortalGetPortalRequestBody0
+func (t V2PortalGetPortalRequestBody) AsV2PortalGetPortalRequestBody0() (V2PortalGetPortalRequestBody0, error) {
+	var body V2PortalGetPortalRequestBody0
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromV2PortalGetPortalRequestBody0 overwrites any union data inside the V2PortalGetPortalRequestBody as the provided V2PortalGetPortalRequestBody0
+func (t *V2PortalGetPortalRequestBody) FromV2PortalGetPortalRequestBody0(v V2PortalGetPortalRequestBody0) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeV2PortalGetPortalRequestBody0 performs a merge with any union data inside the V2PortalGetPortalRequestBody, using the provided V2PortalGetPortalRequestBody0
+func (t *V2PortalGetPortalRequestBody) MergeV2PortalGetPortalRequestBody0(v V2PortalGetPortalRequestBody0) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsV2PortalGetPortalRequestBody1 returns the union data inside the V2PortalGetPortalRequestBody as a V2PortalGetPortalRequestBody1
+func (t V2PortalGetPortalRequestBody) AsV2PortalGetPortalRequestBody1() (V2PortalGetPortalRequestBody1, error) {
+	var body V2PortalGetPortalRequestBody1
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromV2PortalGetPortalRequestBody1 overwrites any union data inside the V2PortalGetPortalRequestBody as the provided V2PortalGetPortalRequestBody1
+func (t *V2PortalGetPortalRequestBody) FromV2PortalGetPortalRequestBody1(v V2PortalGetPortalRequestBody1) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeV2PortalGetPortalRequestBody1 performs a merge with any union data inside the V2PortalGetPortalRequestBody, using the provided V2PortalGetPortalRequestBody1
+func (t *V2PortalGetPortalRequestBody) MergeV2PortalGetPortalRequestBody1(v V2PortalGetPortalRequestBody1) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t V2PortalGetPortalRequestBody) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	if err != nil {
+		return nil, err
+	}
+	object := make(map[string]json.RawMessage)
+	if t.union != nil {
+		err = json.Unmarshal(b, &object)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if t.Mapping != nil {
+		object["mapping"], err = json.Marshal(t.Mapping)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'mapping': %w", err)
+		}
+	}
+
+	if t.Portal != nil {
+		object["portal"], err = json.Marshal(t.Portal)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'portal': %w", err)
+		}
+	}
+	b, err = json.Marshal(object)
+	return b, err
+}
+
+func (t *V2PortalGetPortalRequestBody) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	if err != nil {
+		return err
+	}
+	object := make(map[string]json.RawMessage)
+	err = json.Unmarshal(b, &object)
+	if err != nil {
+		return err
+	}
+
+	if raw, found := object["mapping"]; found {
+		err = json.Unmarshal(raw, &t.Mapping)
+		if err != nil {
+			return fmt.Errorf("error reading 'mapping': %w", err)
+		}
+	}
+
+	if raw, found := object["portal"]; found {
+		err = json.Unmarshal(raw, &t.Portal)
+		if err != nil {
+			return fmt.Errorf("error reading 'portal': %w", err)
 		}
 	}
 

@@ -8,6 +8,13 @@ properties:
   mapping:
     "$ref": "../../../../common/PortalMapping.yaml"
 additionalProperties: false
+# Encoded in the schema, not left to prose: a caller generating from this spec
+# gets the invariant, and tightening it later would be a breaking change to the
+# published SDK. The handler still checks, because oneOf cannot express that a
+# whitespace-only target is not a target.
+oneOf:
+  - required: [portal]
+  - required: [mapping]
 examples:
   byId:
     summary: Look up by portal id

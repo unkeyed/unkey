@@ -280,6 +280,34 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	err = db.Tx(ctx, h.DB.RW(), func(txCtx context.Context, tx db.DBTX) error {
+		// Re-read on the primary inside the write transaction. The resolve above
+		// runs on the read-only connection, so a portal deleted moments earlier can
+		// still appear live there.
+		//
+		// This matters because deleting a portal revokes its sessions: revocation
+		// only touches rows that exist when it runs, so a session minted in the
+		// replica-lag window would survive the delete, and once the portal row is
+		// gone nothing can revoke it afterwards. Losing the race here costs the
+		// caller a retry; losing it silently costs an end user access that was
+		// supposed to be cut.
+		if _, txErr := db.Query.FindPortalByIdOrSlug(txCtx, tx, db.FindPortalByIdOrSlugParams{
+			WorkspaceID: workspaceID,
+			Portal:      portal.ID,
+		}); txErr != nil {
+			if db.IsNotFound(txErr) {
+				return fault.New("portal not found",
+					fault.Code(codes.Data.Portal.NotFound.URN()),
+					fault.Internal(fmt.Sprintf("portal %s was deleted between the replica read and the session insert", portal.ID)),
+					fault.Public("Portal not found."),
+				)
+			}
+			return fault.Wrap(txErr,
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Internal("database error re-reading portal before minting a session"),
+				fault.Public("Failed to create session."),
+			)
+		}
+
 		if txErr := db.Query.InsertPortalSession(txCtx, tx, db.InsertPortalSessionParams{
 			ID:                    sessionID,
 			WorkspaceID:           workspaceID,

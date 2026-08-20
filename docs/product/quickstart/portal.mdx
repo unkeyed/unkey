@@ -275,6 +275,8 @@ Managing portals is a separate set of permissions from minting sessions, so a ke
 
 Creation accepts only the wildcard form, because the portal's ID does not exist yet when the request is authorized.
 
+Naming a `mapping` costs one more grant: read access to the resource you are pointing at. Creating a portal for a keyspace, or re-pointing an existing one, additionally requires `api.*.read_api` (or `api.<api_id>.read_api` for the keyspace's owning API); the app equivalent is `app.*.read_app`. Deciding which resource a portal serves is what decides which keys its end users see, so a key that cannot read the resource cannot expose it either. Updates that leave the mapping alone need only the portal permission.
+
 Read, update, and delete answer a missing permission with a **404** for the same reason session minting does. Creation answers with a **403**: there is no portal yet whose existence could leak, and a plain permission error is more useful than a not-found.
 
 You can grant these on the root key in the Unkey dashboard under Settings, Root Keys.

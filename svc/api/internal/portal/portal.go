@@ -20,9 +20,11 @@ import (
 	"regexp"
 	"strings"
 
+	authprincipal "github.com/unkeyed/unkey/pkg/auth/principal"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
+	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
@@ -240,6 +242,87 @@ func VerifyMappingOwned(ctx context.Context, tx db.DBTX, workspaceID string, m o
 		}
 		if len(rows) == 0 {
 			return notFound(fmt.Sprintf("keyspace %s is not in workspace %s", m.Id, workspaceID))
+		}
+		return nil
+
+	default:
+		return ErrUnknownMappingType(m.Type)
+	}
+}
+
+// AuthorizeMappingTarget requires the caller to hold read permission on the
+// resource a portal is being pointed at.
+//
+// [VerifyMappingOwned] asks only whether the resource is in the caller's
+// workspace, which is not the same question. Without this, a key holding nothing
+// but `update_portal` could re-point a portal at any keyspace in the workspace,
+// including ones it has no rights over: the customer's own backend then re-mints
+// sessions against the new resource, and that portal's end users see keys the
+// remapping key could never have read itself.
+//
+// The mint path enforces its own ceiling — `authorizeScopes` in
+// portal.createSession requires the minting principal to hold the equivalent
+// permission on every keyspace the portal resolves to — so this is defence in
+// depth rather than the only control. It is deliberately the weakest meaningful
+// check, read on the target, because deciding which resource a portal serves is
+// not the same authority as granting access to it.
+func AuthorizeMappingTarget(
+	ctx context.Context,
+	tx db.DBTX,
+	principal *authprincipal.Principal,
+	workspaceID string,
+	m openapi.PortalMapping,
+) error {
+	denied := func(detail string) error {
+		// Fresh chain, not a wrap: the rendered query names the api or app id
+		// behind the target, which is more than the caller needs in order to learn
+		// it is short a grant.
+		return fault.New("insufficient permissions for portal mapping target",
+			fault.Code(codes.Auth.Authorization.InsufficientPermissions.URN()),
+			fault.Internal(detail),
+			fault.Public("You do not have permission to point a portal at that resource."),
+		)
+	}
+
+	switch m.Type {
+	case openapi.PortalMappingTypeApp:
+		err := principal.Authorize(rbac.Or(
+			rbac.T(rbac.Tuple{ResourceType: rbac.App, ResourceID: "*", Action: rbac.ReadApp}),
+			rbac.T(rbac.Tuple{ResourceType: rbac.App, ResourceID: m.Id, Action: rbac.ReadApp}),
+		))
+		if err != nil {
+			return denied(fmt.Sprintf("caller may not read app %s: %s", m.Id, fault.InternalMessage(err)))
+		}
+		return nil
+
+	case openapi.PortalMappingTypeKeyspace:
+		// Keyspace permissions are expressed against the owning api, the same
+		// indirection the mint path uses.
+		rows, err := db.Query.FindApisByKeyAuthIds(ctx, tx, db.FindApisByKeyAuthIdsParams{
+			WorkspaceID: workspaceID,
+			KeyAuthIds:  []string{m.Id},
+		})
+		if err != nil {
+			return fault.Wrap(err,
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Internal("database error resolving api for portal keyspace"),
+				fault.Public("Failed to look up the keyspace."),
+			)
+		}
+		if len(rows) == 0 || rows[0].ApiID == "" {
+			// No owning api, so there is no permission to check against. Refused
+			// rather than allowed: an unauthorizable target must not become an
+			// unchecked one.
+			return denied(fmt.Sprintf("keyspace %s has no owning api in workspace %s", m.Id, workspaceID))
+		}
+
+		apiID := rows[0].ApiID
+		err = principal.Authorize(rbac.Or(
+			rbac.T(rbac.Tuple{ResourceType: rbac.Api, ResourceID: "*", Action: rbac.ReadAPI}),
+			rbac.T(rbac.Tuple{ResourceType: rbac.Api, ResourceID: apiID, Action: rbac.ReadAPI}),
+		))
+		if err != nil {
+			return denied(fmt.Sprintf("caller may not read api %s owning keyspace %s: %s", apiID, m.Id, fault.InternalMessage(err)))
 		}
 		return nil
 

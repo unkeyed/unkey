@@ -130,6 +130,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			return err
 		}
 
+		if err := portal.AuthorizeMappingTarget(ctx, tx, principal, principal.WorkspaceID, req.Mapping); err != nil {
+			return err
+		}
+
 		if err := h.assertAvailable(ctx, tx, principal.WorkspaceID, req.Slug, req.Mapping); err != nil {
 			return err
 		}

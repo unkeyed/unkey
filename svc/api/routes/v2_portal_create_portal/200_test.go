@@ -18,6 +18,12 @@ import (
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_portal_create_portal"
 )
 
+// targetReadGrants is what pointing a portal at a resource costs beyond the
+// portal action itself: the caller must be able to read what it is exposing.
+// Carried by every test whose request names a mapping, so the cases below
+// exercise their own subject rather than this check.
+var targetReadGrants = []string{"api.*.read_api", "app.*.read_app"}
+
 // newRoute registers the handler and returns it with the caller's headers.
 func newRoute(t *testing.T, h *testutil.Harness, permissions ...string) (*handler.Handler, http.Header) {
 	t.Helper()
@@ -25,7 +31,8 @@ func newRoute(t *testing.T, h *testutil.Harness, permissions ...string) (*handle
 	route := &handler.Handler{DB: h.DB, Auditlogs: h.Auditlogs}
 	h.Register(route)
 
-	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, permissions...)
+	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID,
+		append(append([]string{}, permissions...), targetReadGrants...)...)
 	return route, http.Header{
 		"Content-Type":  {"application/json"},
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},

@@ -92,7 +92,8 @@ func TestCreatePortalRejectsMappingsItDoesNotOwn(t *testing.T) {
 	// squat had been allowed.
 	// The same registered route, called with the other workspace's key: the
 	// principal comes from the key, so one registration serves both callers.
-	victimKey := h.CreateRootKey(other.ID, "portal.*.create_portal")
+	victimKey := h.CreateRootKey(other.ID,
+		append([]string{"portal.*.create_portal"}, targetReadGrants...)...)
 	victimHeaders := http.Header{
 		"Content-Type":  {"application/json"},
 		"Authorization": {"Bearer " + victimKey},

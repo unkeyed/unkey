@@ -75,3 +75,67 @@ func TestUpdatePortalAuthorizationMatrix(t *testing.T) {
 		})
 	}
 }
+
+// Re-pointing a portal decides which keyspace its end users reach, so it takes
+// more than `update_portal`: the caller must also be able to read the target.
+// Without this a narrow ops key could redirect a portal at a keyspace it has no
+// rights over, and the customer's own backend would then mint sessions against
+// it.
+func TestUpdatePortalRequiresPermissionOnTheRemapTarget(t *testing.T) {
+	h := testutil.NewHarness(t)
+	route := &handler.Handler{DB: h.DB, Auditlogs: h.Auditlogs}
+	h.Register(route)
+
+	workspace := h.Resources().UserWorkspace
+	from := keyspaceMapping(t, h, workspace.ID)
+	to := keyspaceMapping(t, h, workspace.ID)
+	stored := seedPortal(t, h, workspace.ID, "remap-authz", from, nullStringAbsent(), nullStringAbsent())
+
+	t.Run("update_portal alone cannot remap", func(t *testing.T) {
+		rootKey := h.CreateRootKey(workspace.ID, "portal.*.update_portal")
+		headers := http.Header{
+			"Content-Type":  {"application/json"},
+			"Authorization": {"Bearer " + rootKey},
+		}
+
+		req := baseRequest(stored.ID)
+		req.Mapping = &to
+		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
+		require.Equal(t, http.StatusForbidden, res.Status,
+			"expected 403, received: %s", res.RawBody)
+
+		after := fetchPortal(t, h, workspace.ID, stored.ID)
+		require.Equal(t, from.Id, after.KeyAuthID.String, "the mapping must be unchanged")
+	})
+
+	t.Run("update_portal plus read on the target succeeds", func(t *testing.T) {
+		rootKey := h.CreateRootKey(workspace.ID, "portal.*.update_portal", "api.*.read_api")
+		headers := http.Header{
+			"Content-Type":  {"application/json"},
+			"Authorization": {"Bearer " + rootKey},
+		}
+
+		req := baseRequest(stored.ID)
+		req.Mapping = &to
+		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
+		require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
+
+		after := fetchPortal(t, h, workspace.ID, stored.ID)
+		require.Equal(t, to.Id, after.KeyAuthID.String)
+	})
+
+	// An update that does not name a mapping is unaffected: this gates the remap,
+	// not every write.
+	t.Run("a non-remap update needs no target permission", func(t *testing.T) {
+		rootKey := h.CreateRootKey(workspace.ID, "portal.*.update_portal")
+		headers := http.Header{
+			"Content-Type":  {"application/json"},
+			"Authorization": {"Bearer " + rootKey},
+		}
+
+		req := baseRequest(stored.ID)
+		req.Enabled = ptr(false)
+		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
+		require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
+	})
+}
