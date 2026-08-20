@@ -265,17 +265,27 @@ type Querier interface {
 	//  WHERE app_id = ?
 	//    AND environment_id = ?
 	FindAppRuntimeSettingsByAppAndEnv(ctx context.Context, arg FindAppRuntimeSettingsByAppAndEnvParams) (FindAppRuntimeSettingsByAppAndEnvRow, error)
-	//FindAppWithSettings
+	//FindAppSourceOciByAppId
+	//
+	//  SELECT
+	//      pk,
+	//      workspace_id,
+	//      app_id,
+	//      image_reference,
+	//      created_at,
+	//      updated_at
+	//  FROM app_source_oci
+	//  WHERE app_id = ?
+	FindAppSourceOciByAppId(ctx context.Context, appID string) (AppSourceOci, error)
+	//FindAppWithRuntimeSettings
 	//
 	//  SELECT
 	//      a.pk, a.id, a.workspace_id, a.project_id, a.name, a.slug, a.source_type, a.default_branch, a.current_deployment_id, a.is_rolled_back, a.delete_protection, a.created_at, a.updated_at,
-	//      abs.pk, abs.workspace_id, abs.app_id, abs.environment_id, abs.dockerfile, abs.docker_context, abs.build_command, abs.watch_paths, abs.auto_deploy, abs.created_at, abs.updated_at,
 	//      ars.pk, ars.workspace_id, ars.app_id, ars.environment_id, ars.port, ars.cpu_millicores, ars.memory_mib, ars.storage_mib, ars.command, ars.healthcheck, ars.shutdown_signal, ars.upstream_protocol, ars.sentinel_config, ars.openapi_spec_path, ars.created_at, ars.updated_at
 	//  FROM apps a
-	//  INNER JOIN app_build_settings abs ON abs.app_id = a.id AND abs.environment_id = ?
 	//  INNER JOIN app_runtime_settings ars ON ars.app_id = a.id AND ars.environment_id = ?
 	//  WHERE a.id = ?
-	FindAppWithSettings(ctx context.Context, arg FindAppWithSettingsParams) (FindAppWithSettingsRow, error)
+	FindAppWithRuntimeSettings(ctx context.Context, arg FindAppWithRuntimeSettingsParams) (FindAppWithRuntimeSettingsRow, error)
 	//FindCertificateByHostname
 	//
 	//  SELECT pk, id, workspace_id, hostname, certificate, encrypted_private_key, created_at, updated_at FROM certificates WHERE hostname = ?
@@ -918,6 +928,8 @@ type Querier interface {
 	//      project_id,
 	//      app_id,
 	//      environment_id,
+	//      source,
+	//      image_requested,
 	//      git_commit_sha,
 	//      git_branch,
 	//      sentinel_config,
@@ -944,6 +956,8 @@ type Querier interface {
 	//      updated_at
 	//  )
 	//  VALUES (
+	//      ?,
+	//      ?,
 	//      ?,
 	//      ?,
 	//      ?,
@@ -1488,7 +1502,7 @@ type Querier interface {
 	//    AND gc.repository_id = ?
 	//    AND CASE
 	//      WHEN CAST(? AS SIGNED) = 1 THEN e.kind = 'preview'
-	//      WHEN ? = COALESCE(NULLIF(a.default_branch, ''), 'main')
+	//      WHEN ? = COALESCE(NULLIF(gc.default_branch, ''), 'main')
 	//      THEN e.kind = 'production'
 	//      ELSE e.kind = 'preview'
 	//    END
@@ -1588,7 +1602,7 @@ type Querier interface {
 	//  INNER JOIN environments e ON e.app_id = a.id
 	//    AND CASE
 	//      WHEN CAST(? AS SIGNED) = 1 THEN e.kind = 'preview'
-	//      WHEN ? = COALESCE(NULLIF(a.default_branch, ''), 'main')
+	//      WHEN ? = COALESCE(NULLIF(gc.default_branch, ''), 'main')
 	//      THEN e.kind = 'production'
 	//      ELSE e.kind = 'preview'
 	//    END
@@ -1945,7 +1959,9 @@ type Querier interface {
 	//UpdateDeploymentImage
 	//
 	//  UPDATE deployments
-	//  SET image = ?, updated_at = ?
+	//  SET image = ?,
+	//      image_resolved = ?,
+	//      updated_at = ?
 	//  WHERE id = ?
 	UpdateDeploymentImage(ctx context.Context, arg UpdateDeploymentImageParams) error
 	//UpdateDeploymentInvocationID

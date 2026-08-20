@@ -122,6 +122,8 @@ func (h *Harness) CreateDeployment(ctx context.Context, req CreateDeploymentRequ
 		ProjectID:                     project.ID,
 		AppID:                         app.ID,
 		EnvironmentID:                 env.ID,
+		Source:                        db.DeploymentsSourceUnknown,
+		ImageRequested:                sql.NullString{Valid: false},
 		GitCommitSha:                  sql.NullString{Valid: false},
 		GitBranch:                     sql.NullString{Valid: false},
 		SentinelConfig:                []byte("{}"),
