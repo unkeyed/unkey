@@ -51,3 +51,20 @@ type RemoveEnvironmentVariables struct{}
 
 func (RemoveEnvironmentVariables) ActionFor(urn.Environment) {}
 func (RemoveEnvironmentVariables) String() string            { return "remove_environment_variables" }
+
+// ReadPolicies authorizes reading a specific environment's gateway policies.
+//
+// Valid resource: urn.Environment.
+type ReadPolicies struct{}
+
+func (ReadPolicies) ActionFor(urn.Environment) {}
+func (ReadPolicies) String() string            { return "read_policies" }
+
+// WritePolicies authorizes replacing a specific environment's entire gateway
+// policy list or updating a single policy in place.
+//
+// Valid resource: urn.Environment.
+type WritePolicies struct{}
+
+func (WritePolicies) ActionFor(urn.Environment) {}
+func (WritePolicies) String() string            { return "write_policies" }

@@ -33,6 +33,10 @@ func TestSetPoliciesForbidden(t *testing.T) {
 		{name: "other environment id does not match", permissions: []string{fmt.Sprintf("environment.%s.set_policies", uid.New(uid.EnvironmentPrefix))}, shouldPass: false},
 		{name: "unrelated permission", permissions: []string{"api.*.read_api"}, shouldPass: false},
 		{name: "no permissions", permissions: []string{}, shouldPass: false},
+		{name: "urn style wildcard environment permission", permissions: []string{"unkey:v1:" + env.workspaceID + ":projects/*/apps/*/environments/*#write_policies"}, shouldPass: true},
+		{name: "urn style specific environment permission", permissions: []string{"unkey:v1:" + env.workspaceID + ":projects/" + env.projectID + "/apps/" + env.appID + "/environments/" + env.environmentID + "#write_policies"}, shouldPass: true},
+		{name: "urn style wrong action", permissions: []string{"unkey:v1:" + env.workspaceID + ":projects/*/apps/*/environments/*#read_policies"}, shouldPass: false},
+		{name: "urn style other environment", permissions: []string{"unkey:v1:" + env.workspaceID + ":projects/" + env.projectID + "/apps/" + env.appID + "/environments/" + uid.New(uid.EnvironmentPrefix) + "#write_policies"}, shouldPass: false},
 	}
 
 	for _, tc := range testCases {
