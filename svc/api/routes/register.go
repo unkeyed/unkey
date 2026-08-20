@@ -31,6 +31,7 @@ import (
 	v2DeploymentsRollbackDeployment "github.com/unkeyed/unkey/svc/api/routes/v2_deployments_rollback_deployment"
 	v2DeploymentsStartDeployment "github.com/unkeyed/unkey/svc/api/routes/v2_deployments_start_deployment"
 	v2DeploymentsStopDeployment "github.com/unkeyed/unkey/svc/api/routes/v2_deployments_stop_deployment"
+	v3DeploymentsCreateDeployment "github.com/unkeyed/unkey/svc/api/routes/v3_deployments_create_deployment"
 
 	v2IdentitiesCreateIdentity "github.com/unkeyed/unkey/svc/api/routes/v2_identities_create_identity"
 	v2IdentitiesDeleteIdentity "github.com/unkeyed/unkey/svc/api/routes/v2_identities_delete_identity"
@@ -369,6 +370,15 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 	srv.RegisterRoute(
 		protectedMiddlewares,
 		&v2DeploymentsCreateDeployment.Handler{
+			DB:         svc.Database,
+			CtrlClient: svc.CtrlDeploymentClient,
+		},
+	)
+
+	// v3/deployments.createDeployment
+	srv.RegisterRoute(
+		protectedMiddlewares,
+		&v3DeploymentsCreateDeployment.Handler{
 			DB:         svc.Database,
 			CtrlClient: svc.CtrlDeploymentClient,
 		},
@@ -916,6 +926,7 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 		&v2AppsUpdateApp.Handler{
 			DB:            svc.Database,
 			Auditlogs:     svc.Auditlogs,
+			CtrlClient:    svc.CtrlAppClient,
 			GitHubClient:  svc.GitHubClient,
 			GitHubAppName: svc.GitHubAppName,
 		},
