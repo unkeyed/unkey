@@ -50,6 +50,28 @@ func (s *service) Insert(ctx context.Context, tx db.DBTX, logs []auditlog.AuditL
 }
 
 func (s *service) insertLogs(ctx context.Context, tx db.DBTX, logs []auditlog.AuditLog) error {
+	outboxRows, err := PrepareOutboxRows(ctx, logs)
+	if err != nil {
+		return err
+	}
+
+	if err := db.BulkQuery.InsertClickhouseOutboxes(ctx, tx, outboxRows); err != nil {
+		return fault.Wrap(err,
+			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+			fault.Internal("database failed to insert clickhouse outbox rows"), fault.Public("Failed to insert audit logs"),
+		)
+	}
+
+	return nil
+}
+
+func (s *service) PrepareOutboxRows(ctx context.Context, logs []auditlog.AuditLog) ([]db.InsertClickhouseOutboxParams, error) {
+	return PrepareOutboxRows(ctx, logs)
+}
+
+// PrepareOutboxRows serializes audit events for callers that include the
+// outbox insert in a route-owned transactional batch.
+func PrepareOutboxRows(ctx context.Context, logs []auditlog.AuditLog) ([]db.InsertClickhouseOutboxParams, error) {
 	outboxRows := make([]db.InsertClickhouseOutboxParams, 0, len(logs))
 
 	// Resolve a shared correlation ID for the batch. Precedence:
@@ -105,7 +127,7 @@ func (s *service) insertLogs(ctx context.Context, tx db.DBTX, logs []auditlog.Au
 		}
 		payload, err := json.Marshal(envelope)
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		outboxRows = append(outboxRows, db.InsertClickhouseOutboxParams{
@@ -117,12 +139,5 @@ func (s *service) insertLogs(ctx context.Context, tx db.DBTX, logs []auditlog.Au
 		})
 	}
 
-	if err := db.BulkQuery.InsertClickhouseOutboxes(ctx, tx, outboxRows); err != nil {
-		return fault.Wrap(err,
-			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-			fault.Internal("database failed to insert clickhouse outbox rows"), fault.Public("Failed to insert audit logs"),
-		)
-	}
-
-	return nil
+	return outboxRows, nil
 }

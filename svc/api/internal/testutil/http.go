@@ -88,8 +88,9 @@ type Harness struct {
 // Zero value starts MySQL only, uses an in-memory counter, and no-op analytics
 // buffers.
 type HarnessConfig struct {
-	Redis      bool
-	ClickHouse bool
+	Redis                 bool
+	ClickHouse            bool
+	MultiStatementBatches bool
 }
 
 // NewHarness creates a fully initialized test harness wired against shared
@@ -97,12 +98,14 @@ type HarnessConfig struct {
 func NewHarness(t *testing.T, configs ...HarnessConfig) *Harness {
 	clk := clock.NewTestClock()
 	cfg := HarnessConfig{
-		Redis:      false,
-		ClickHouse: false,
+		Redis:                 false,
+		ClickHouse:            false,
+		MultiStatementBatches: false,
 	}
 	for _, c := range configs {
 		cfg.Redis = cfg.Redis || c.Redis
 		cfg.ClickHouse = cfg.ClickHouse || c.ClickHouse
+		cfg.MultiStatementBatches = cfg.MultiStatementBatches || c.MultiStatementBatches
 	}
 
 	var wg sync.WaitGroup
@@ -127,7 +130,11 @@ func NewHarness(t *testing.T, configs ...HarnessConfig) *Harness {
 
 	mysqlDSN := mysqlCfg.DSN
 
-	database, err := db.New(db.Config{
+	newDatabase := db.New
+	if cfg.MultiStatementBatches {
+		newDatabase = db.NewWithMultiStatementBatches
+	}
+	database, err := newDatabase(db.Config{
 		PrimaryDSN:  mysqlDSN,
 		ReadOnlyDSN: "",
 		Tags:        sqlcomment.Disabled(),
