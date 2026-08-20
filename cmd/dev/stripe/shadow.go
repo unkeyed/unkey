@@ -110,9 +110,10 @@ func resolveCustomer(ctx context.Context, cmd *cli.Command, workspace string) (s
 	}
 
 	database, err := db.New(db.Config{
-		PrimaryDSN:  cmd.RequireString("database-primary"),
-		ReadOnlyDSN: "",
-		Tags:        sqlcomment.Disabled(),
+		PrimaryDSN:            cmd.RequireString("database-primary"),
+		ReadOnlyDSN:           "",
+		MultiStatementBatches: false,
+		Tags:                  sqlcomment.Disabled(),
 	})
 	if err != nil {
 		return "", fmt.Errorf("connect database: %w", err)

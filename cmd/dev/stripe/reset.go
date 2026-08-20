@@ -37,9 +37,10 @@ func reset(ctx context.Context, cmd *cli.Command) error {
 	out := tui.New(os.Stdout)
 
 	database, err := db.New(db.Config{
-		PrimaryDSN:  cmd.RequireString("database-primary"),
-		ReadOnlyDSN: "",
-		Tags:        sqlcomment.Disabled(),
+		PrimaryDSN:            cmd.RequireString("database-primary"),
+		ReadOnlyDSN:           "",
+		MultiStatementBatches: false,
+		Tags:                  sqlcomment.Disabled(),
 	})
 	if err != nil {
 		return fmt.Errorf("connect to MySQL: %w", err)

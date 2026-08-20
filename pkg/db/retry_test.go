@@ -9,6 +9,7 @@ import (
 	"github.com/go-sql-driver/mysql"
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/hash"
+	"github.com/unkeyed/unkey/pkg/mysql/sqlcomment"
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/pkg/uid"
 )
@@ -207,7 +208,10 @@ func TestWithRetryContext_Integration(t *testing.T) {
 
 	// Create database instance
 	dbInstance, err := New(Config{
-		PrimaryDSN: mysqlCfg.DSN,
+		PrimaryDSN:            mysqlCfg.DSN,
+		ReadOnlyDSN:           "",
+		MultiStatementBatches: false,
+		Tags:                  sqlcomment.Disabled(),
 	})
 	require.NoError(t, err)
 	defer func() { require.NoError(t, dbInstance.Close()) }()
