@@ -301,6 +301,16 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("failed to create deploy workflow: %w", err)
 	}
 
+	// Garbage collection has no compensation and is retried by the next daily
+	// sweep. Override DeployService's pause policy for this cron-owned handler so
+	// one exhausted deletion cannot wedge that deployment's lifecycle queue.
+	deploymentGCRetry := restate.WithInvocationRetryPolicy(
+		restate.WithInitialInterval(1*time.Second),
+		restate.WithExponentiationFactor(2.0),
+		restate.WithMaxInterval(30*time.Second),
+		restate.WithMaxAttempts(5),
+		restate.KillOnMaxAttempts(),
+	)
 	restateSrv.Bind(hydrav1.NewDeployServiceServer(deployWorkflow,
 		// Retry with exponential backoff: 2s → 4s → 8s → 16s → 30s (capped),
 		// 15 attempts (~5 min total). Short backoffs keep the worst-case
@@ -323,7 +333,7 @@ func Run(ctx context.Context, cfg Config) error {
 			restate.WithMaxAttempts(15),
 			restate.PauseOnMaxAttempts(),
 		),
-	))
+	).ConfigureHandler("GarbageCollect", deploymentGCRetry))
 	restateSrv.Bind(hydrav1.NewDeploymentServiceServer(deployment.New(deployment.Config{
 		DB: database,
 	}), restate.WithIngressPrivate(true)))
