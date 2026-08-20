@@ -30,6 +30,7 @@ INSERT INTO ` + "`" + `ratelimits` + "`" + ` (
     ?,
     ?
 ) ON DUPLICATE KEY UPDATE
+name = VALUES(name),
 ` + "`" + `limit` + "`" + ` = VALUES(` + "`" + `limit` + "`" + `),
 duration = VALUES(duration),
 auto_apply = VALUES(auto_apply),
@@ -69,6 +70,7 @@ type InsertKeyRatelimitParams struct {
 //	    ?,
 //	    ?
 //	) ON DUPLICATE KEY UPDATE
+//	name = VALUES(name),
 //	`limit` = VALUES(`limit`),
 //	duration = VALUES(duration),
 //	auto_apply = VALUES(auto_apply),

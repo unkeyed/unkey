@@ -7,8 +7,23 @@ package db
 
 import (
 	"context"
+	"database/sql"
 	"strings"
 )
+
+const deleteAllRatelimitsByKeyID = `-- name: DeleteAllRatelimitsByKeyID :exec
+DELETE FROM ratelimits
+WHERE key_id = ?
+`
+
+// DeleteAllRatelimitsByKeyID
+//
+//	DELETE FROM ratelimits
+//	WHERE key_id = ?
+func (q *Queries) DeleteAllRatelimitsByKeyID(ctx context.Context, db DBTX, keyID sql.NullString) error {
+	_, err := db.ExecContext(ctx, deleteAllRatelimitsByKeyID, keyID)
+	return err
+}
 
 const deleteManyRatelimitsByIDs = `-- name: DeleteManyRatelimitsByIDs :exec
 DELETE FROM ratelimits WHERE id IN (/*SLICE:ids*/?)
@@ -27,6 +42,38 @@ func (q *Queries) DeleteManyRatelimitsByIDs(ctx context.Context, db DBTX, ids []
 		query = strings.Replace(query, "/*SLICE:ids*/?", strings.Repeat(",?", len(ids))[1:], 1)
 	} else {
 		query = strings.Replace(query, "/*SLICE:ids*/?", "NULL", 1)
+	}
+	_, err := db.ExecContext(ctx, query, queryParams...)
+	return err
+}
+
+const deleteRatelimitsByKeyIDExceptNames = `-- name: DeleteRatelimitsByKeyIDExceptNames :exec
+DELETE FROM ratelimits
+WHERE key_id = ?
+  AND name NOT IN (/*SLICE:ratelimit_names*/?)
+`
+
+type DeleteRatelimitsByKeyIDExceptNamesParams struct {
+	KeyID          sql.NullString `db:"key_id"`
+	RatelimitNames []string       `db:"ratelimit_names"`
+}
+
+// DeleteRatelimitsByKeyIDExceptNames
+//
+//	DELETE FROM ratelimits
+//	WHERE key_id = ?
+//	  AND name NOT IN (/*SLICE:ratelimit_names*/?)
+func (q *Queries) DeleteRatelimitsByKeyIDExceptNames(ctx context.Context, db DBTX, arg DeleteRatelimitsByKeyIDExceptNamesParams) error {
+	query := deleteRatelimitsByKeyIDExceptNames
+	var queryParams []interface{}
+	queryParams = append(queryParams, arg.KeyID)
+	if len(arg.RatelimitNames) > 0 {
+		for _, v := range arg.RatelimitNames {
+			queryParams = append(queryParams, v)
+		}
+		query = strings.Replace(query, "/*SLICE:ratelimit_names*/?", strings.Repeat(",?", len(arg.RatelimitNames))[1:], 1)
+	} else {
+		query = strings.Replace(query, "/*SLICE:ratelimit_names*/?", "NULL", 1)
 	}
 	_, err := db.ExecContext(ctx, query, queryParams...)
 	return err
