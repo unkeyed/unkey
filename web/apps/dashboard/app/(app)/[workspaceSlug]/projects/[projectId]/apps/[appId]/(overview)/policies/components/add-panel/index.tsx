@@ -33,6 +33,7 @@ type CommonProps = {
   isOpen: boolean;
   topOffset: number;
   onClose: () => void;
+  existingNames: string[];
 };
 
 type AddProps = CommonProps & {
@@ -50,7 +51,7 @@ type EditProps = CommonProps & {
 export type PolicyPanelProps = AddProps | EditProps;
 
 export function PolicyPanel(props: PolicyPanelProps) {
-  const { envASlug, envBSlug, isOpen, topOffset, onClose } = props;
+  const { envASlug, envBSlug, isOpen, topOffset, onClose, existingNames } = props;
   const isEdit = props.mode === "edit";
 
   const envOptions = [
@@ -69,6 +70,15 @@ export function PolicyPanel(props: PolicyPanelProps) {
   const policyType = useWatch({ control, name: "type" });
 
   const onSubmit = (values: PolicyFormValues) => {
+    const currentName = isEdit ? props.initialPolicy.name : null;
+    if (values.name !== currentName && existingNames.includes(values.name)) {
+      form.setError("name", {
+        type: "manual",
+        message: `A policy named "${values.name}" already exists.`,
+      });
+      return;
+    }
+
     const id = props.mode === "edit" ? props.initialPolicy.id : undefined;
     const policy = toPolicy(values, id);
     const prodPolicy =

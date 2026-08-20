@@ -1,5 +1,6 @@
 "use client";
 
+import type { PolicyRow as PolicyRowData } from "@/lib/collections/deploy/policies";
 import type { Policy } from "@/lib/collections/deploy/policies.schema";
 import { useCallback, useState } from "react";
 import type { MergedPolicy } from "./merge";
@@ -9,10 +10,10 @@ type PoliciesListProps = {
   envASlug: string;
   envBSlug: string;
   merged: MergedPolicy[];
-  onToggleEnv: (id: string, env: "envA" | "envB") => void;
-  onAddToEnv: (id: string, env: "envA" | "envB") => void;
-  onReorder: (envs: ("envA" | "envB")[], orderedIds: string[]) => void;
-  onDelete: (id: string) => void;
+  onToggleEnv: (key: string, env: "envA" | "envB") => void;
+  onAddToEnv: (key: string, env: "envA" | "envB") => void;
+  onReorder: (envs: ("envA" | "envB")[], rowsByEnv: Record<string, PolicyRowData[]>) => void;
+  onDelete: (key: string) => void;
   onEdit: (policy: Policy) => void;
 };
 
@@ -29,10 +30,10 @@ export function PoliciesList({
   const [dragSrcIndex, setDragSrcIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
 
-  const handleToggleEnvA = useCallback((id: string) => onToggleEnv(id, "envA"), [onToggleEnv]);
-  const handleToggleEnvB = useCallback((id: string) => onToggleEnv(id, "envB"), [onToggleEnv]);
-  const handleAddToEnvA = useCallback((id: string) => onAddToEnv(id, "envA"), [onAddToEnv]);
-  const handleAddToEnvB = useCallback((id: string) => onAddToEnv(id, "envB"), [onAddToEnv]);
+  const handleToggleEnvA = useCallback((key: string) => onToggleEnv(key, "envA"), [onToggleEnv]);
+  const handleToggleEnvB = useCallback((key: string) => onToggleEnv(key, "envB"), [onToggleEnv]);
+  const handleAddToEnvA = useCallback((key: string) => onAddToEnv(key, "envA"), [onAddToEnv]);
+  const handleAddToEnvB = useCallback((key: string) => onAddToEnv(key, "envB"), [onAddToEnv]);
 
   const handleDragStart = useCallback((index: number) => {
     setDragSrcIndex(index);
@@ -52,10 +53,6 @@ export function PoliciesList({
       const next = [...merged];
       const [item] = next.splice(dragSrcIndex, 1);
       next.splice(targetIndex, 0, item);
-      // Emit a reorder for whichever envs the dragged row exists in. The
-      // server is tolerant — extra/missing ids are reconciled — so we send
-      // the full merged-id sequence to each env independently.
-      const orderedIds = next.map((m) => m.id);
       const envs: ("envA" | "envB")[] = [];
       if (item.envA !== null) {
         envs.push("envA");
@@ -64,7 +61,15 @@ export function PoliciesList({
         envs.push("envB");
       }
       if (envs.length > 0) {
-        onReorder(envs, orderedIds);
+        // `next` is already in the wanted order. Send the rows, so no later
+        // code must match a policy by name or id.
+        const rowsByEnv: Record<string, PolicyRowData[]> = {};
+        for (const env of envs) {
+          rowsByEnv[env] = next
+            .map((m) => m[env])
+            .filter((row): row is PolicyRowData => row !== null);
+        }
+        onReorder(envs, rowsByEnv);
       }
       setDragSrcIndex(null);
       setDragOverIndex(null);
@@ -81,7 +86,7 @@ export function PoliciesList({
     <div className="border border-grayA-4 rounded-lg overflow-hidden">
       {merged.map((policy, i) => (
         <PolicyRow
-          key={policy.id}
+          key={policy.key}
           policy={policy}
           index={i}
           isLast={i === merged.length - 1}

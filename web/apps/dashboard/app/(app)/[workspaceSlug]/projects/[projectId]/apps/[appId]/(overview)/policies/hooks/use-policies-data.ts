@@ -1,10 +1,9 @@
 "use client";
 
 import { collection } from "@/lib/collections";
-import type { Policy } from "@/lib/collections/deploy/policies.schema";
-import { eq, useLiveQuery } from "@tanstack/react-db";
+import { and, eq, useLiveQuery } from "@tanstack/react-db";
 import { useMemo } from "react";
-import { useProjectData } from "../../data-provider";
+import { useAppId, useProjectData } from "../../data-provider";
 import { type MergedPolicy, mergePolicies } from "../components/list/merge";
 
 type PoliciesData = {
@@ -17,12 +16,10 @@ type PoliciesData = {
   isError: boolean;
 };
 
-/**
- * Loads the two environment-scoped policy lists, strips row-only fields,
- * and merges them into the row shape consumed by `PoliciesList`.
- */
+/** Loads both environments' policies in parallel and merges them into rows. */
 export function usePoliciesData(): PoliciesData {
-  const { environments } = useProjectData();
+  const { environments, projectId } = useProjectData();
+  const appId = useAppId();
 
   const envA = environments.find((e) => e.kind === "production") ?? environments.at(0);
   const envB = environments.find((e) => e.id !== envA?.id) ?? environments.at(1);
@@ -40,9 +37,11 @@ export function usePoliciesData(): PoliciesData {
     (q) =>
       q
         .from({ p: collection.policies })
-        .where(({ p }) => eq(p.environmentId, envAId))
+        .where(({ p }) =>
+          and(eq(p.projectId, projectId), eq(p.appId, appId), eq(p.environmentId, envAId)),
+        )
         .orderBy(({ p }) => p._order),
-    [envAId],
+    [projectId, appId, envAId],
   );
 
   const {
@@ -53,16 +52,14 @@ export function usePoliciesData(): PoliciesData {
     (q) =>
       q
         .from({ p: collection.policies })
-        .where(({ p }) => eq(p.environmentId, envBId))
+        .where(({ p }) =>
+          and(eq(p.projectId, projectId), eq(p.appId, appId), eq(p.environmentId, envBId)),
+        )
         .orderBy(({ p }) => p._order),
-    [envBId],
+    [projectId, appId, envBId],
   );
 
-  const merged = useMemo(() => {
-    const policiesA: Policy[] = rowsA.map(({ environmentId: _e, _order: _o, ...p }) => p as Policy);
-    const policiesB: Policy[] = rowsB.map(({ environmentId: _e, _order: _o, ...p }) => p as Policy);
-    return mergePolicies(policiesA, policiesB);
-  }, [rowsA, rowsB]);
+  const merged = useMemo(() => mergePolicies(rowsA, rowsB), [rowsA, rowsB]);
 
   return {
     envAId,
