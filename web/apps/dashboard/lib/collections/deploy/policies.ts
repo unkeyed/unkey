@@ -1,58 +1,21 @@
 "use client";
 
-import { queryCollectionOptions } from "@tanstack/query-db-collection";
+import { getErrorToast, getUnkeyClient } from "@/lib/unkey-client";
+import { parseLoadSubsetOptions, queryCollectionOptions } from "@tanstack/query-db-collection";
 import { createCollection } from "@tanstack/react-db";
-import { match } from "@unkey/match";
 import { toast } from "@unkey/ui";
-import { queryClient, trpcClient } from "../client";
+import { queryClient } from "../client";
 import { trackSave } from "./environment-settings";
-import { type Policy, policySchema } from "./policies.schema";
-import { parseEnvironmentIdFromWhere, validateEnvironmentIdInQuery } from "./utils";
+import { type Policy, fromWirePolicy } from "./policies.schema";
+import { extractStringFilter } from "./utils";
 
-/**
- * Whole-list reorder. Accepts a batch of (environmentId, policyIds) so a
- * single drag-drop that affects both envs (production + preview) emits ONE
- * toast and one trackSave, not one per env. Each entry is sent as its own
- * tRPC call but they're awaited together.
- */
-export async function reorderPolicies(
-  reorders: { environmentId: string; policyIds: string[] }[],
-): Promise<void> {
-  if (reorders.length === 0) {
-    return;
-  }
-  const promise = Promise.all(
-    reorders.map((r) =>
-      trpcClient.deploy.environmentSettings.policies.reorder.mutate({
-        environmentId: r.environmentId,
-        policyIds: r.policyIds,
-      }),
-    ),
-  );
-  toast.promise(promise, {
-    loading: "Reordering policies...",
-    success: "Policies reordered",
-    error: (err) => ({
-      message: "Failed to reorder policies",
-      description: err instanceof Error ? err.message : "Unknown error",
-    }),
-  });
-  await trackSave(promise);
-  for (const r of reorders) {
-    queryClient.invalidateQueries({ queryKey: ["policies", r.environmentId] });
-  }
-}
-/**
- * A row in the policies collection: a Policy plus the
- * environmentId it belongs to. Same policy id may exist in two envs
- * (production + preview), so the row key combines both.
- */
+/** A Policy plus the identifiers every gateway call is scoped by. */
 export type PolicyRow = Policy & {
   environmentId: string;
-  // Preserves DB blob order. The collection stores rows in a Map keyed by
-  // `${env}::${uuid}`, so iteration order is lexicographic by key — not blob
-  // order. Stamp the blob index here and orderBy it in live queries so the
-  // list reflects the actual order from the server.
+  projectId: string;
+  appId: string;
+  // Collection keys sort lexicographically, not by evaluation order, so
+  // carry the server's list index and orderBy it in live queries.
   _order?: number;
 };
 
@@ -61,101 +24,91 @@ export const rowKey = (environmentId: string, policyId: string) => `${environmen
 /**
  * Gateway policies collection — one row per (environment, policy).
  *
- * IMPORTANT: All queries MUST filter by environmentId:
- * .where(({ p }) => eq(p.environmentId, environmentId))
+ * IMPORTANT: All queries MUST filter by projectId, appId, and environmentId.
+ * `listPolicies` is per-environment, so one subset per environment maps to
+ * one request; the two environments of a page load in parallel.
  *
- * Mutations route by `policy.type` to the matching tRPC endpoint
- * (policies.keyauth.{create,update,delete} and policies.firewall.{create,
- * update,delete} today). To add a new policy type, extend
- * `policySchema` and add a branch in each dispatch* helper below.
+ * Edits go through `gateway.updatePolicy`; insert, delete, and reorder have
+ * no endpoint of their own and must full-replace via `gateway.setPolicies`.
  */
 export const policies = createCollection<PolicyRow, string>(
   queryCollectionOptions({
     queryClient,
     queryKey: (opts) => {
-      const environmentId = parseEnvironmentIdFromWhere(opts.where);
+      const { filters } = parseLoadSubsetOptions(opts);
+      const environmentId = extractStringFilter(filters, "environmentId");
       return environmentId ? ["policies", environmentId] : ["policies"];
     },
     retry: 3,
     syncMode: "on-demand",
     queryFn: async (ctx) => {
-      const options = ctx.meta?.loadSubsetOptions;
-      validateEnvironmentIdInQuery(options?.where);
-      const environmentId = parseEnvironmentIdFromWhere(options?.where);
-      if (!environmentId) {
+      const { filters } = parseLoadSubsetOptions(ctx.meta?.loadSubsetOptions);
+      const projectId = extractStringFilter(filters, "projectId");
+      const appId = extractStringFilter(filters, "appId");
+      const environmentId = extractStringFilter(filters, "environmentId");
+
+      if (!projectId || !appId || !environmentId) {
         throw new Error(
-          "Query must include eq(collection.environmentId, environmentId) constraint",
+          "Query must include eq(collection.projectId, ...), eq(collection.appId, ...) and eq(collection.environmentId, ...) constraints",
         );
       }
 
-      const result = await trpcClient.deploy.environmentSettings.policies.list.query({
-        environmentId,
+      const result = await getUnkeyClient().gateway.listPolicies({
+        project: projectId,
+        app: appId,
+        environment: environmentId,
       });
 
-      const rows: PolicyRow[] = result.policies.map((p, index) => ({
-        ...p,
-        environmentId,
-        _order: index,
-      }));
-      return rows;
+      return result.data.map(
+        (p, index): PolicyRow => ({
+          ...fromWirePolicy(p),
+          environmentId,
+          projectId,
+          appId,
+          _order: index,
+        }),
+      );
     },
     getKey: (row) => rowKey(row.environmentId, row.id),
     id: "policies",
 
-    onInsert: async ({ transaction }) => {
-      const mutations = transaction.mutations.map(async (m) => {
-        const row = m.modified;
-        // Re-validate before sending — collection.insert() accepts the row type,
-        // but we want a hard guarantee the wire payload matches the canonical schema.
-        const policy = policySchema.parse(stripEnv(row));
-        return dispatchCreate(row.environmentId, policy);
-      });
-      const all = Promise.all(mutations);
-      const plural = mutations.length > 1;
-      toast.promise(all, {
-        loading: plural ? "Adding policies..." : "Adding policy...",
-        success: plural ? "Policies added" : "Policy added",
-        error: (err) => ({
-          message: plural ? "Failed to add policies" : "Failed to add policy",
-          description: err instanceof Error ? err.message : "Unknown error",
-        }),
-      });
-      await trackSave(all);
-    },
-
     onUpdate: async ({ transaction }) => {
-      const mutations = transaction.mutations.map(async (m) => {
-        const row = m.modified;
-        const policy = policySchema.parse(stripEnv(row));
-        return dispatchUpdate(row.environmentId, policy);
-      });
+      const mutations = transaction.mutations.map((m) => dispatchUpdate(m.modified));
       const all = Promise.all(mutations);
       const plural = mutations.length > 1;
       toast.promise(all, {
         loading: plural ? "Updating policies..." : "Updating policy...",
         success: plural ? "Policies updated" : "Policy updated",
-        error: (err) => ({
-          message: plural ? "Failed to update policies" : "Failed to update policy",
-          description: err instanceof Error ? err.message : "Unknown error",
-        }),
+        error: (err) =>
+          getErrorToast(err, plural ? "Failed to update policies" : "Failed to update policy"),
+      });
+      await trackSave(all);
+    },
+
+    onInsert: async ({ transaction }) => {
+      const all = dispatchSetForChanges(
+        transaction.mutations.map((m) => ({ key: m.key, row: m.modified, removed: false })),
+      );
+      const plural = transaction.mutations.length > 1;
+      toast.promise(all, {
+        loading: plural ? "Adding policies..." : "Adding policy...",
+        success: plural ? "Policies added" : "Policy added",
+        error: (err) =>
+          getErrorToast(err, plural ? "Failed to add policies" : "Failed to add policy"),
       });
       await trackSave(all);
     },
 
     onDelete: async ({ transaction }) => {
-      const mutations = transaction.mutations.map((m) => {
-        const row = m.original;
-        return dispatchDelete(row.environmentId, row);
-      });
-      const all = Promise.all(mutations);
-      const plural = mutations.length > 1;
+      const all = dispatchSetForChanges(
+        transaction.mutations.map((m) => ({ key: m.key, row: m.original, removed: true })),
+      );
+      const plural = transaction.mutations.length > 1;
       toast.promise(all, {
         loading: plural ? "Deleting policies..." : "Deleting policy...",
         success: plural ? "Policies deleted" : "Policy deleted",
-        error: (err) => ({
-          message: plural ? "Failed to delete policies" : "Failed to delete policy",
-          description: err instanceof Error ? err.message : "Unknown error",
-        }),
+        error: (err) =>
+          getErrorToast(err, plural ? "Failed to delete policies" : "Failed to delete policy"),
       });
       await trackSave(all);
     },
@@ -163,135 +116,160 @@ export const policies = createCollection<PolicyRow, string>(
 );
 
 /**
- * Returns the next `_order` value for a new policy in the given environment.
- * Scans the current collection state so optimistic inserts land at the end
- * without a flash of wrong ordering.
+ * Whole-list reorder. Batched so one drag across both environments emits a
+ * single toast. `policyIds` are merge keys (names, see `merge.ts`).
  */
+export async function reorderPolicies(
+  reorders: { environmentId: string; projectId: string; appId: string; policyIds: string[] }[],
+): Promise<void> {
+  if (reorders.length === 0) {
+    return;
+  }
+  const promise = Promise.all(
+    reorders.map(async (r) => {
+      await getUnkeyClient().gateway.setPolicies({
+        project: r.projectId,
+        app: r.appId,
+        environment: r.environmentId,
+        policies: reconcileOrder(policiesForEnvironment(r.environmentId), r.policyIds),
+      });
+    }),
+  );
+  toast.promise(promise, {
+    loading: "Reordering policies...",
+    success: "Policies reordered",
+    error: (err) => getErrorToast(err, "Failed to reorder policies"),
+  });
+  await trackSave(promise);
+  for (const r of reorders) {
+    queryClient.invalidateQueries({ queryKey: ["policies", r.environmentId] });
+  }
+}
+
+/** Next `_order` in an environment, so an optimistic insert lands at the end. */
 export function nextPolicyOrder(environmentId: string): number {
-  let max = -1;
-  for (const [key, row] of policies.state) {
+  const orders = rowsForEnvironment(policies.state, environmentId).map((r) => r._order ?? -1);
+  return Math.max(-1, ...orders) + 1;
+}
+
+export function findPolicyByName(environmentId: string, name: string): PolicyRow | undefined {
+  return rowsForEnvironment(policies.state, environmentId).find((r) => r.name === name);
+}
+
+function policiesForEnvironment(environmentId: string): PolicyRow[] {
+  return orderedPolicies(rowsForEnvironment(policies.state, environmentId));
+}
+
+/**
+ * Rows in evaluation order. Row-only fields ride along: the SDK's outbound
+ * schema drops every key the API does not declare.
+ */
+export function orderedPolicies(rows: PolicyRow[]): PolicyRow[] {
+  return [...rows].sort((a, b) => (a._order ?? 0) - (b._order ?? 0));
+}
+
+export function environmentsInMutations(
+  rows: PolicyRow[],
+): { environmentId: string; projectId: string; appId: string }[] {
+  const byEnvironment = new Map<
+    string,
+    { environmentId: string; projectId: string; appId: string }
+  >();
+  for (const row of rows) {
+    byEnvironment.set(row.environmentId, {
+      environmentId: row.environmentId,
+      projectId: row.projectId,
+      appId: row.appId,
+    });
+  }
+  return Array.from(byEnvironment.values());
+}
+
+function rowsForEnvironment(
+  state: ReadonlyMap<string, PolicyRow>,
+  environmentId: string,
+): PolicyRow[] {
+  const rows: PolicyRow[] = [];
+  for (const [key, row] of state) {
     if (key.startsWith(`${environmentId}::`)) {
-      max = Math.max(max, row._order ?? -1);
+      rows.push(row);
     }
   }
-  return max + 1;
+  return rows;
 }
 
-// Returns `unknown` on purpose: every caller re-runs `policySchema.parse`
-// which is the one source of truth for the Policy shape. This avoids
-// fighting TS over discriminated-union narrowing across destructure-and-spread.
-function stripEnv(row: PolicyRow): unknown {
-  const { environmentId: _envId, _order: _o, ...policy } = row;
-  return policy;
+// Callers resolve `row` themselves: only they know whether the mutation
+// carries it as `modified` or `original`.
+export type PolicyChange = { key: string; row: PolicyRow; removed: boolean };
+
+/**
+ * The environment's full policy list with `changes` folded in.
+ *
+ * A mutation handler runs before TanStack DB recomputes optimistic state, so
+ * `policies.state` still holds pre-mutation rows. Since a full replace sends
+ * the whole list, reading state alone would wipe an environment on first
+ * insert and undo a delete.
+ */
+export function policiesAfterMutations(
+  state: ReadonlyMap<string, PolicyRow>,
+  environmentId: string,
+  changes: PolicyChange[],
+): PolicyRow[] {
+  const byKey = new Map<string, PolicyRow>();
+  for (const row of rowsForEnvironment(state, environmentId)) {
+    byKey.set(rowKey(row.environmentId, row.id), row);
+  }
+
+  for (const change of changes) {
+    if (change.row.environmentId !== environmentId) {
+      continue;
+    }
+    if (change.removed) {
+      byKey.delete(change.key);
+    } else {
+      byKey.set(change.key, change.row);
+    }
+  }
+
+  return orderedPolicies(Array.from(byKey.values()));
 }
 
-// ── Per-type dispatch ───────────────────────────────────────────────────
-//
-// Each branch maps a policy variant to its dedicated tRPC endpoint. `match`
-// is exhaustive on `policy.type` — TS will complain when a new variant is
-// added to `policySchema` without wiring it here.
-
-function dispatchCreate(environmentId: string, policy: Policy): Promise<unknown> {
-  return match(policy)
-    .with({ type: "keyauth" }, (p) =>
-      trpcClient.deploy.environmentSettings.policies.keyauth.create.mutate({
-        environmentId,
-        policy: p,
+function dispatchSetForChanges(changes: PolicyChange[]): Promise<unknown[]> {
+  return Promise.all(
+    environmentsInMutations(changes.map((c) => c.row)).map(({ environmentId, projectId, appId }) =>
+      getUnkeyClient().gateway.setPolicies({
+        project: projectId,
+        app: appId,
+        environment: environmentId,
+        policies: policiesAfterMutations(policies.state, environmentId, changes),
       }),
-    )
-    .with({ type: "ratelimit" }, (p) =>
-      trpcClient.deploy.environmentSettings.policies.ratelimit.create.mutate({
-        environmentId,
-        policy: p,
-      }),
-    )
-    .with({ type: "firewall" }, (p) =>
-      trpcClient.deploy.environmentSettings.policies.firewall.create.mutate({
-        environmentId,
-        policy: p,
-      }),
-    )
-    .with({ type: "openapi" }, (p) =>
-      trpcClient.deploy.environmentSettings.policies.openapi.create.mutate({
-        environmentId,
-        policy: p,
-      }),
-    )
-    .with({ type: "logging" }, (p) =>
-      trpcClient.deploy.environmentSettings.policies.logging.create.mutate({
-        environmentId,
-        policy: p,
-      }),
-    )
-    .exhaustive();
+    ),
+  );
 }
 
-function dispatchUpdate(environmentId: string, policy: Policy): Promise<unknown> {
-  return match(policy)
-    .with({ type: "keyauth" }, (p) =>
-      trpcClient.deploy.environmentSettings.policies.keyauth.update.mutate({
-        environmentId,
-        policy: p,
-      }),
-    )
-    .with({ type: "ratelimit" }, (p) =>
-      trpcClient.deploy.environmentSettings.policies.ratelimit.update.mutate({
-        environmentId,
-        policy: p,
-      }),
-    )
-    .with({ type: "firewall" }, (p) =>
-      trpcClient.deploy.environmentSettings.policies.firewall.update.mutate({
-        environmentId,
-        policy: p,
-      }),
-    )
-    .with({ type: "openapi" }, (p) =>
-      trpcClient.deploy.environmentSettings.policies.openapi.update.mutate({
-        environmentId,
-        policy: p,
-      }),
-    )
-    .with({ type: "logging" }, (p) =>
-      trpcClient.deploy.environmentSettings.policies.logging.update.mutate({
-        environmentId,
-        policy: p,
-      }),
-    )
-    .exhaustive();
+export function dispatchUpdate(row: PolicyRow): Promise<unknown> {
+  return getUnkeyClient().gateway.updatePolicy({
+    ...row,
+    project: row.projectId,
+    app: row.appId,
+    environment: row.environmentId,
+    policyId: row.id,
+  });
 }
 
-function dispatchDelete(environmentId: string, policy: Policy): Promise<unknown> {
-  return match(policy)
-    .with({ type: "keyauth" }, (p) =>
-      trpcClient.deploy.environmentSettings.policies.keyauth.delete.mutate({
-        environmentId,
-        policyId: p.id,
-      }),
-    )
-    .with({ type: "ratelimit" }, (p) =>
-      trpcClient.deploy.environmentSettings.policies.ratelimit.delete.mutate({
-        environmentId,
-        policyId: p.id,
-      }),
-    )
-    .with({ type: "firewall" }, (p) =>
-      trpcClient.deploy.environmentSettings.policies.firewall.delete.mutate({
-        environmentId,
-        policyId: p.id,
-      }),
-    )
-    .with({ type: "openapi" }, (p) =>
-      trpcClient.deploy.environmentSettings.policies.openapi.delete.mutate({
-        environmentId,
-        policyId: p.id,
-      }),
-    )
-    .with({ type: "logging" }, (p) =>
-      trpcClient.deploy.environmentSettings.policies.logging.delete.mutate({
-        environmentId,
-        policyId: p.id,
-      }),
-    )
-    .exhaustive();
+/**
+ * Drops names that no longer exist and appends policies the client did not
+ * mention, so a concurrently-added policy survives someone else's reorder.
+ */
+export function reconcileOrder(current: PolicyRow[], requestedNames: string[]): PolicyRow[] {
+  const byName = new Map(current.map((p) => [p.name, p]));
+
+  const fromClient = Array.from(new Set(requestedNames))
+    .map((name) => byName.get(name))
+    .filter((p): p is PolicyRow => p !== undefined);
+
+  const placed = new Set(fromClient.map((p) => p.name));
+  const remaining = current.filter((p) => !placed.has(p.name));
+
+  return [...fromClient, ...remaining];
 }
