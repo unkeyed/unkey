@@ -20,13 +20,8 @@ import (
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_keys_update_credits"
 )
 
-func newUpdateCreditsHarness(t *testing.T) *testutil.Harness {
-	t.Helper()
-	return testutil.NewHarness(t, testutil.HarnessConfig{MultiStatementBatches: true})
-}
-
 func TestKeyUpdateCreditsSuccess(t *testing.T) {
-	h := newUpdateCreditsHarness(t)
+	h := testutil.NewHarness(t)
 	ctx := context.Background()
 
 	route := &handler.Handler{
@@ -252,7 +247,7 @@ func TestKeyUpdateCreditsSuccess(t *testing.T) {
 }
 
 func TestKeyUpdateCreditsWithURNPermission(t *testing.T) {
-	h := newUpdateCreditsHarness(t)
+	h := testutil.NewHarness(t)
 	ctx := context.Background()
 
 	route := &handler.Handler{
