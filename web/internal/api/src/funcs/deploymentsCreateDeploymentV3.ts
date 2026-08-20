@@ -27,35 +27,36 @@ import { APICall, APIPromise } from "../types/async.js";
 import { Result } from "../types/fp.js";
 
 /**
- * Update app
+ * Create deployment
  *
  * @remarks
- * Update an existing app, identified by its id.
+ * Create a deployment for an app in a project.
  *
- * The app name, slug, default branch, and delete protection setting can be changed. Omitted fields are left unchanged. Changing the slug affects the deployment domains generated for this app.
+ * Omit the source to use the app's configured default. A Git app builds its default branch. An OCI app deploys its default image.
  *
- * **Important**: The slug cannot collide with an existing app in the same project. A duplicate slug returns a 409 conflict.
+ * Optionally provide one source override:
+ * - `oci`: deploy a prebuilt OCI image without a build. Mutable tags are resolved to immutable digests before rollout.
+ * - `git`: build and deploy from the app's connected GitHub repository, a branch, a specific commit, or a fork commit. Requires the app to have a repository connected.
+ * - `deployment`: re-run an existing deployment by its id. Git deployments rebuild from the recorded commit; OCI deployments reuse the recorded resolved image.
  *
- * **Required Permissions**
+ * Returns immediately with a `deploymentId`. The build and rollout run asynchronously. Poll `deployments.getDeployment` to watch status until it is ready.
  *
- * Your root key must have one of the following permissions:
- * - `app.*.update_app` (to update any app)
- * - `app.<app_id>.update_app` (to update a specific app)
+ * **Authentication**: requires a root key with permission to create deployments.
  *
  * If set, this operation will use {@link Security.rootKey} from the global security.
  */
-export function appsUpdateApp(
+export function deploymentsCreateDeploymentV3(
   client: UnkeyCore,
-  request: components.V2AppsUpdateAppRequestBodyUnion,
+  request: components.V3DeploymentsCreateDeploymentRequestBody,
   options?: RequestOptions,
 ): APIPromise<
   Result<
-    components.V2AppsUpdateAppResponseBody,
+    components.V3DeploymentsCreateDeploymentResponseBody,
     | errors.BadRequestErrorResponse
     | errors.UnauthorizedErrorResponse
     | errors.ForbiddenErrorResponse
     | errors.NotFoundErrorResponse
-    | errors.ConflictErrorResponse
+    | errors.PreconditionFailedErrorResponse
     | errors.TooManyRequestsErrorResponse
     | errors.InternalServerErrorResponse
     | UnkeyError
@@ -77,17 +78,17 @@ export function appsUpdateApp(
 
 async function $do(
   client: UnkeyCore,
-  request: components.V2AppsUpdateAppRequestBodyUnion,
+  request: components.V3DeploymentsCreateDeploymentRequestBody,
   options?: RequestOptions,
 ): Promise<
   [
     Result<
-      components.V2AppsUpdateAppResponseBody,
+      components.V3DeploymentsCreateDeploymentResponseBody,
       | errors.BadRequestErrorResponse
       | errors.UnauthorizedErrorResponse
       | errors.ForbiddenErrorResponse
       | errors.NotFoundErrorResponse
-      | errors.ConflictErrorResponse
+      | errors.PreconditionFailedErrorResponse
       | errors.TooManyRequestsErrorResponse
       | errors.InternalServerErrorResponse
       | UnkeyError
@@ -105,7 +106,9 @@ async function $do(
   const parsed = safeParse(
     request,
     (value) =>
-      components.V2AppsUpdateAppRequestBodyUnion$outboundSchema.parse(value),
+      components.V3DeploymentsCreateDeploymentRequestBody$outboundSchema.parse(
+        value,
+      ),
     "Input validation failed",
   );
   if (!parsed.ok) {
@@ -114,7 +117,7 @@ async function $do(
   const payload = parsed.value;
   const body = encodeJSON("body", payload, { explode: true });
 
-  const path = pathToFunc("/v2/apps.updateApp")();
+  const path = pathToFunc("/v3/deployments.createDeployment")();
 
   const headers = new Headers(compactMap({
     "Content-Type": "application/json",
@@ -128,7 +131,7 @@ async function $do(
   const context = {
     options: client._options,
     baseURL: options?.serverURL ?? client._baseURL ?? "",
-    operationID: "apps.updateApp",
+    operationID: "deployments.createDeploymentV3",
     oAuth2Scopes: null,
 
     resolvedSecurity: requestSecurity,
@@ -182,12 +185,12 @@ async function $do(
   };
 
   const [result] = await M.match<
-    components.V2AppsUpdateAppResponseBody,
+    components.V3DeploymentsCreateDeploymentResponseBody,
     | errors.BadRequestErrorResponse
     | errors.UnauthorizedErrorResponse
     | errors.ForbiddenErrorResponse
     | errors.NotFoundErrorResponse
-    | errors.ConflictErrorResponse
+    | errors.PreconditionFailedErrorResponse
     | errors.TooManyRequestsErrorResponse
     | errors.InternalServerErrorResponse
     | UnkeyError
@@ -199,12 +202,15 @@ async function $do(
     | UnexpectedClientError
     | SDKValidationError
   >(
-    M.json(200, components.V2AppsUpdateAppResponseBody$inboundSchema),
+    M.json(
+      201,
+      components.V3DeploymentsCreateDeploymentResponseBody$inboundSchema,
+    ),
     M.jsonErr(400, errors.BadRequestErrorResponse$inboundSchema),
     M.jsonErr(401, errors.UnauthorizedErrorResponse$inboundSchema),
     M.jsonErr(403, errors.ForbiddenErrorResponse$inboundSchema),
     M.jsonErr(404, errors.NotFoundErrorResponse$inboundSchema),
-    M.jsonErr(409, errors.ConflictErrorResponse$inboundSchema),
+    M.jsonErr(412, errors.PreconditionFailedErrorResponse$inboundSchema),
     M.jsonErr(429, errors.TooManyRequestsErrorResponse$inboundSchema, {
       ctype: "application/problem+json",
     }),

@@ -5,11 +5,13 @@
 import * as z from "zod/v3";
 
 /**
- * Deploy a prebuilt Docker image as-is.
+ * Deploy a prebuilt OCI image without a build.
  */
 export type DeploymentSourceImage = {
   /**
-   * Docker image to deploy as-is. Accepts a tag or a digest.
+   * Deprecated compatibility field. Use the v3 `oci.image` source instead. Full OCI image reference to deploy as-is. Qualify the version with a tag (ghcr.io/acme/api:v1.2.3) or with a digest (ghcr.io/acme/api@sha256:...). Without either, the registry serves the latest tag.
+   *
+   * @deprecated field: This will be removed in a future release, please migrate away from it as soon as possible.
    */
   dockerImage: string;
 };

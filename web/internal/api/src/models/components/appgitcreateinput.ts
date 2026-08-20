@@ -5,10 +5,9 @@
 import * as z from "zod/v3";
 
 /**
- * Connect a GitHub repository to the app on creation. Omit to create the app
+ * Connect a GitHub repository as the app source on creation.
  *
  * @remarks
- * without a repository and connect one later with apps.updateApp.
  */
 export type AppGitCreateInput = {
   /**
