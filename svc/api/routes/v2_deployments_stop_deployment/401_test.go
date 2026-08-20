@@ -13,8 +13,7 @@ import (
 
 func TestStopDeploymentUnauthorized(t *testing.T) {
 	h := testutil.NewHarness(t)
-	mock := &testutil.MockDeploymentClient{}
-	route := newRoute(h, mock)
+	route := newRoute(h, newUncalledRestate(t))
 	h.Register(route)
 
 	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
@@ -36,5 +35,4 @@ func TestStopDeploymentUnauthorized(t *testing.T) {
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{DeploymentId: dep.ID})
 	require.Equal(t, http.StatusUnauthorized, res.Status, "expected 401, received: %s", res.RawBody)
-	require.Empty(t, mock.StopDeploymentCalls, "ctrl must not be called without authentication")
 }

@@ -4,8 +4,9 @@ import (
 	"context"
 	"net/http"
 
-	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
-	"github.com/unkeyed/unkey/gen/rpc/ctrl"
+	restateingress "github.com/restatedev/sdk-go/ingress"
+	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
+	"github.com/unkeyed/unkey/pkg/auditlog"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/deploy/deploygate"
@@ -25,8 +26,8 @@ type (
 )
 
 type Handler struct {
-	DB         db.Database
-	CtrlClient ctrl.DeployServiceClient
+	DB      db.Database
+	Restate *restateingress.Client
 }
 
 func (h *Handler) Method() string {
@@ -82,7 +83,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	// trusted from input. The ctrl workflow re-validates, so a concurrent promotion
 	// that moves the pointer fails the rollback rather than swapping traffic onto a
 	// stale source.
-	app, err := db.Query.FindAppById(ctx, h.DB.RO(), dep.AppID)
+	app, err := db.Query.FindAppById(ctx, h.DB.RW(), dep.AppID)
 	if err != nil {
 		return fault.Wrap(
 			err,
@@ -102,19 +103,54 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
+	source, err := deployment.FindDeployment(ctx, h.DB, principal.WorkspaceID, app.CurrentDeploymentID.String)
+	if err != nil {
+		return err
+	}
+	if source.ProjectID != dep.ProjectID || source.AppID != dep.AppID || source.EnvironmentID != dep.EnvironmentID {
+		return fault.New(
+			"rollback source and target do not share project, app, and environment",
+			fault.Code(codes.App.Precondition.PreconditionFailed.URN()),
+			fault.Public("The rollback could not be performed. The target must be a ready production deployment in the same app and environment as the current live deployment."),
+		)
+	}
+
+	billing, err := db.Query.FindWorkspaceBillingByWorkspaceID(ctx, h.DB.RW(), principal.WorkspaceID)
+	if err != nil && !db.IsNotFound(err) {
+		return fault.Wrap(
+			err,
+			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+			fault.Internal("database error loading workspace billing"),
+			fault.Public("Failed to retrieve workspace billing state."),
+		)
+	}
+	if err := deploygate.CheckWorkspacePlan(billing.Plan, billing.PlanOverride); err != nil {
+		return err
+	}
+	if err := deploygate.CheckWorkspaceSpend(billing.SpendSuspended); err != nil {
+		return err
+	}
+
 	actor, err := ctrlclient.Actor(s)
 	if err != nil {
 		return err
 	}
 
-	_, err = h.CtrlClient.Rollback(ctx, &ctrlv1.RollbackRequest{
-		SourceDeploymentId: app.CurrentDeploymentID.String,
-		TargetDeploymentId: dep.ID,
-		Actor:              actor,
-	})
+	_, err = hydrav1.NewDeployServiceIngressClient(h.Restate, source.ID).
+		Rollback().
+		Send(ctx, &hydrav1.RollbackRequest{
+			SourceDeploymentId: source.ID,
+			TargetDeploymentId: dep.ID,
+			Actor:              actor,
+			CorrelationId:      auditlog.NewCorrelationID(),
+		})
 	if err != nil {
-		return deployment.MapCtrlError(err, "rollback deployment",
-			"The rollback could not be performed. The target must be a ready production deployment in the same app and environment as the current live deployment.")
+		return fault.Wrap(
+			err,
+			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+			fault.Internal("failed to submit deployment rollback to Restate"),
+			fault.Public("Failed to roll back deployment."),
+		)
 	}
 
 	return s.JSON(http.StatusAccepted, Response{

@@ -94,6 +94,7 @@
                       "platform/analytics/query-examples",
                       "platform/analytics/get-ratelimits",
                       "platform/analytics/get-gateway-requests",
+                      "platform/analytics/get-runtime-logs",
                       "platform/analytics/schema-reference",
                       "platform/analytics/query-restrictions",
                       "platform/analytics/troubleshooting"

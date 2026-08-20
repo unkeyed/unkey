@@ -3014,6 +3014,20 @@ type Querier interface {
 	//  ON DUPLICATE KEY UPDATE
 	//      plan_override = VALUES(plan_override)
 	UpsertWorkspaceBillingPlanOverride(ctx context.Context, db DBTX, arg UpsertWorkspaceBillingPlanOverrideParams) error
+	//UpsertWorkspaceBillingSpendSuspended
+	//
+	//  INSERT INTO `workspace_billing` (
+	//      workspace_id,
+	//      spend_suspended,
+	//      created_at_m
+	//  ) VALUES (
+	//      ?,
+	//      ?,
+	//      ?
+	//  )
+	//  ON DUPLICATE KEY UPDATE
+	//      spend_suspended = VALUES(spend_suspended)
+	UpsertWorkspaceBillingSpendSuspended(ctx context.Context, db DBTX, arg UpsertWorkspaceBillingSpendSuspendedParams) error
 }
 
 var _ Querier = (*Queries)(nil)

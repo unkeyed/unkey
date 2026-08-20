@@ -3,6 +3,7 @@ package handler_test
 import (
 	"net/http"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
@@ -11,10 +12,11 @@ import (
 
 func TestDeleteProjectUnauthorized(t *testing.T) {
 	h := testutil.NewHarness(t)
+	restate, deletes := newRecordingRestate(t)
 
 	route := &handler.Handler{
-		DB:         h.DB,
-		CtrlClient: &testutil.MockProjectClient{},
+		DB:      h.DB,
+		Restate: restate,
 	}
 	h.Register(route)
 
@@ -27,4 +29,6 @@ func TestDeleteProjectUnauthorized(t *testing.T) {
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{Project: "proj_1234abcd"})
 		require.Equal(t, http.StatusUnauthorized, res.Status, "expected 401, received: %s", res.RawBody)
 	})
+
+	testutil.RequireNoReceive(t, deletes, time.Second)
 }

@@ -225,6 +225,10 @@ const (
 	// ReadGatewayRequests permits reading the gateway request data of a project
 	// with SQL
 	ReadGatewayRequests ActionType = "read_gateway_requests"
+
+	// ReadRuntimeLogs permits reading the runtime logs of a project's
+	// deployments with SQL
+	ReadRuntimeLogs ActionType = "read_runtime_logs"
 )
 
 // Predefined app actions. These constants define operations that can be
