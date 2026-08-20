@@ -218,7 +218,7 @@ func TestGetPortalOmitsAbsentBranding(t *testing.T) {
 		"an omitempty branding object must not appear in the wire body")
 }
 
-// R25 and R16: the operator resolves the display name from the mapped app or
+// The operator resolves the display name from the mapped app or
 // keyspace, and a return URL belongs to a session rather than to a portal.
 func TestGetPortalCarriesNoDisplayNameOrReturnURL(t *testing.T) {
 	h := testutil.NewHarness(t)

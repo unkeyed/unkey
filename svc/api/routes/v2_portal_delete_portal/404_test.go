@@ -12,7 +12,7 @@ import (
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_portal_delete_portal"
 )
 
-// R8: every way a delete can fail to reach a portal returns the same bytes. If
+// Every way a delete can fail to reach a portal returns the same bytes. If
 // any of these diverged the response would answer whether an id exists in a
 // workspace the caller cannot see.
 func TestDeletePortalMasksEveryMiss(t *testing.T) {
@@ -68,7 +68,7 @@ func TestDeletePortalMasksEveryMiss(t *testing.T) {
 	require.Equal(t, 1, countPortals(t, h, other.ID))
 }
 
-// R7 parity across callers: a caller lacking the grant and a caller naming a
+// Parity across callers: a caller lacking the grant and a caller naming a
 // portal that does not exist must receive the same bytes.
 func TestDeletePortalDenialMatchesAbsence(t *testing.T) {
 	h := testutil.NewHarness(t)

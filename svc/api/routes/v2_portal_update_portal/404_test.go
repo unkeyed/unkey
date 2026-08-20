@@ -13,7 +13,7 @@ import (
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_portal_update_portal"
 )
 
-// R8: every way an update can fail to reach a portal returns the same bytes. If
+// Every way an update can fail to reach a portal returns the same bytes. If
 // any of these diverged the response would answer whether an id exists in a
 // workspace the caller cannot see.
 func TestUpdatePortalMasksEveryMiss(t *testing.T) {
@@ -71,7 +71,7 @@ func TestUpdatePortalMasksEveryMiss(t *testing.T) {
 	require.True(t, fetchPortal(t, h, other.ID, otherPortal.ID).Enabled)
 }
 
-// R7 parity across callers: a caller lacking the grant and a caller naming a
+// Parity across callers: a caller lacking the grant and a caller naming a
 // portal that does not exist must receive the same bytes.
 func TestUpdatePortalDenialMatchesAbsence(t *testing.T) {
 	h := testutil.NewHarness(t)
@@ -105,7 +105,7 @@ func TestUpdatePortalDenialMatchesAbsence(t *testing.T) {
 		"a denied update and an absent portal must be indistinguishable")
 }
 
-// R12: a mapping the caller does not own is a not-found identical to one that
+// A mapping the caller does not own is a not-found identical to one that
 // exists nowhere, and the row it tried to re-point is untouched. Those unique
 // keys span the whole table, so allowing this would be a permanent global claim
 // on another tenant's app or keyspace.

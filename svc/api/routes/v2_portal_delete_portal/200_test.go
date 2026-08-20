@@ -217,7 +217,7 @@ func request(target string) handler.Request {
 	return handler.Request{Portal: target}
 }
 
-// R3: the row goes away and the payload is empty. The empty data object is the
+// The row goes away and the payload is empty. The empty data object is the
 // contract, so an accidental entity body would be a breaking change the moment
 // callers relied on it.
 func TestDeletePortalByID(t *testing.T) {
@@ -235,7 +235,7 @@ func TestDeletePortalByID(t *testing.T) {
 	require.Equal(t, 0, countPortals(t, h, workspace.ID))
 }
 
-// AE8 and R4: the target is an id or a slug, and a slug must reach its own row
+// The target is an id or a slug, and a slug must reach its own row
 // rather than the only row.
 func TestDeletePortalBySlug(t *testing.T) {
 	h := testutil.NewHarness(t)
@@ -252,7 +252,7 @@ func TestDeletePortalBySlug(t *testing.T) {
 	require.True(t, portalExists(t, h, workspace.ID, sibling.ID), "the sibling must survive")
 }
 
-// R20 and KTD12: unlike update, revocation here is unconditional. A deleted
+// Unlike update, revocation here is unconditional. A deleted
 // portal has no state left for a live session to be consistent with, and the
 // session resolver never reads `portals`, so without this every end user would
 // keep their access until the token expired.
@@ -360,7 +360,7 @@ func TestDeletePortalThenRecreateSameSlug(t *testing.T) {
 	require.Equal(t, 0, liveSessions(t, h, replacement.ID))
 }
 
-// AE9: the durable revocation has to actually stop an end user. The portal route
+// The durable revocation has to actually stop an end user. The portal route
 // is registered alongside the delete route so the same session token can be seen
 // working, then failing. The clock is advanced past the session cache's stale
 // window because revocation is bounded by that cache, not instant: within the
@@ -399,7 +399,7 @@ func TestDeletePortalStopsTheEndUserOnceTheCacheTurnsOver(t *testing.T) {
 		"the rejection must not name the deleted portal")
 }
 
-// R18: one entry, carrying the whole deleted state. The row is gone, so nothing
+// One entry, carrying the whole deleted state. The row is gone, so nothing
 // else can answer which resource the portal served or how many end users lost
 // access.
 func TestDeletePortalWritesOneAuditEntry(t *testing.T) {
