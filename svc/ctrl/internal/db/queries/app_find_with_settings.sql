@@ -2,6 +2,7 @@
 SELECT
     a.id AS app_id,
     a.project_id AS app_project_id,
+    a.source_type AS app_source_type,
     a.default_branch AS app_default_branch,
     a.current_deployment_id AS app_current_deployment_id,
     abs.dockerfile AS build_settings_dockerfile,
