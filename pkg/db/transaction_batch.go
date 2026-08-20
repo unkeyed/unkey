@@ -1,6 +1,6 @@
 package db
 
-type transactionBatchStatement struct { //nolint:unused // Referenced by generated statement adapters.
+type transactionBatchStatement struct {
 	query string
 	args  []any
 }
