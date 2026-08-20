@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"github.com/unkeyed/unkey/svc/api/internal/keyperms"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_portal_create_session"
 )
@@ -18,32 +17,28 @@ import (
 // This file carries no HTTP status in its name on purpose -- the route's other
 // test files are named for the status they exercise, and this one exercises none.
 func TestScopeQueriesDeniesUnmappedScope(t *testing.T) {
-	scope := keyperms.Scope{
-		WorkspaceID: "ws_test",
-		KeyspaceID:  "ks_test",
-		APIID:       "api_test",
-	}
+	const apiID = "api_test"
 
 	t.Run("known scopes map to a non-empty requirement", func(t *testing.T) {
 		for _, s := range []openapi.V2PortalCreateSessionRequestBodyScopes{
 			openapi.KeysRead, openapi.KeysCreate, openapi.KeysReroll, openapi.AnalyticsRead,
 		} {
-			queries, ok := handler.ScopeQueries(s, scope, false)
+			queries, ok := handler.ScopeQueries(s, apiID, false)
 			require.True(t, ok, "scope %q must map", s)
 			require.NotEmpty(t, queries, "scope %q must produce at least one check", s)
 		}
 	})
 
 	t.Run("unknown scope denies", func(t *testing.T) {
-		queries, ok := handler.ScopeQueries("keys:destroy", scope, false)
+		queries, ok := handler.ScopeQueries("keys:destroy", apiID, false)
 		require.False(t, ok, "an unmapped scope must deny, not be skipped")
 		require.Empty(t, queries)
 	})
 
 	t.Run("encryption adds a conjunct for key minting scopes", func(t *testing.T) {
-		plain, ok := handler.ScopeQueries(openapi.KeysReroll, scope, false)
+		plain, ok := handler.ScopeQueries(openapi.KeysReroll, apiID, false)
 		require.True(t, ok)
-		encrypted, ok := handler.ScopeQueries(openapi.KeysReroll, scope, true)
+		encrypted, ok := handler.ScopeQueries(openapi.KeysReroll, apiID, true)
 		require.True(t, ok)
 		require.Len(t, plain, 1)
 		require.Len(t, encrypted, 2)

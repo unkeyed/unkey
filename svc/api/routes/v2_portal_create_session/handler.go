@@ -21,9 +21,12 @@ import (
 	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/pkg/zen"
-	"github.com/unkeyed/unkey/svc/api/internal/keyperms"
 	"github.com/unkeyed/unkey/svc/api/internal/policyconfig"
 	"github.com/unkeyed/unkey/svc/api/openapi"
+	// The key requirements below are owned by the operator routes that
+	// enforce them, so this route borrows them rather than restating them.
+	listkeys "github.com/unkeyed/unkey/svc/api/routes/v2_apis_list_keys"
+	rerollkey "github.com/unkeyed/unkey/svc/api/routes/v2_keys_reroll_key"
 )
 
 type (
@@ -363,12 +366,12 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 // way to reach the default arm through the route itself.
 func ScopeQueries(
 	scope openapi.V2PortalCreateSessionRequestBodyScopes,
-	keyspace keyperms.Scope,
+	apiID string,
 	storeEncryptedKeys bool,
 ) ([]rbac.PermissionQuery, bool) {
 	switch scope {
 	case openapi.KeysRead:
-		return []rbac.PermissionQuery{keyperms.ReadKeys(keyspace)}, true
+		return []rbac.PermissionQuery{listkeys.ReadKeysPermissions(apiID)}, true
 
 	case openapi.KeysCreate, openapi.KeysReroll:
 		// Rerolling is a create, matching what the operator reroll route
@@ -392,14 +395,14 @@ func ScopeQueries(
 		// sessions on a keyspace when it turns encryption on. Do not close them
 		// here by requiring encrypt_key unconditionally: that would make this
 		// ceiling stricter than the operator route it exists to mirror.
-		queries := []rbac.PermissionQuery{keyperms.CreateKey(keyspace)}
+		queries := []rbac.PermissionQuery{rerollkey.CreateKeyPermissions(apiID)}
 		if storeEncryptedKeys {
-			queries = append(queries, keyperms.EncryptKey(keyspace))
+			queries = append(queries, rerollkey.EncryptKeyPermissions(apiID))
 		}
 		return queries, true
 
 	case openapi.AnalyticsRead:
-		return []rbac.PermissionQuery{keyperms.ReadAnalytics(keyspace)}, true
+		return []rbac.PermissionQuery{readAnalyticsPermissions(apiID)}, true
 
 	default:
 		return nil, false
@@ -443,11 +446,7 @@ func (h *Handler) authorizeScopes(
 		var checks []rbac.PermissionQuery
 
 		for _, keyspaceID := range keyspaceIDs {
-			queries, ok := ScopeQueries(scope, keyperms.Scope{
-				WorkspaceID: workspaceID,
-				KeyspaceID:  keyspaceID,
-				APIID:       apiIDs[keyspaceID],
-			}, encrypted[keyspaceID])
+			queries, ok := ScopeQueries(scope, apiIDs[keyspaceID], encrypted[keyspaceID])
 			if !ok {
 				// Reaching this means the request enum and the mapping below have
 				// diverged, which is a server bug rather than a caller problem.

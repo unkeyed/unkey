@@ -203,8 +203,8 @@ func TestCreateSessionScopeEscalation(t *testing.T) {
 			shouldPass:  true,
 		},
 		{
-			// keyperms.ReadKeys is a conjunction: read_key alone is strictly
-			// weaker than the operator route.
+			// The read-keys requirement is a conjunction: read_key alone is
+			// strictly weaker than the operator route.
 			name:        "read with read_key but not read_api",
 			portal:      "escalation-portal",
 			scopes:      []openapi.V2PortalCreateSessionRequestBodyScopes{"keys:read"},

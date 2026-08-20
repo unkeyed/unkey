@@ -22,7 +22,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/pkg/zen"
 	apierrors "github.com/unkeyed/unkey/svc/api/internal/errors"
-	"github.com/unkeyed/unkey/svc/api/internal/keyperms"
 	"github.com/unkeyed/unkey/svc/api/internal/pagination"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
@@ -122,11 +121,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				permissions.ReadKeyspace{},
 			),
 		),
-		keyperms.ReadKeys(keyperms.Scope{
-			WorkspaceID: principal.WorkspaceID,
-			KeyspaceID:  api.KeyAuthID.String,
-			APIID:       req.ApiId,
-		}),
+		ReadKeysPermissions(req.ApiId),
 	))
 	if err != nil {
 		// Mask a read-authorization failure as 404 so that callers who lack read
