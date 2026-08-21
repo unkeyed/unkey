@@ -8,7 +8,7 @@ import {
   useSettingsBannerVisible,
 } from "@/lib/collections/deploy/environment-settings";
 import { routes } from "@/lib/navigation/routes";
-import { getErrorMessage, getUnkeyClient } from "@/lib/unkey-client";
+import { getErrorMessage, getUnkeyClient, noRetry } from "@/lib/unkey-client";
 import { cn } from "@/lib/utils";
 import { useMutation } from "@tanstack/react-query";
 import { Hammer2, XMark } from "@unkey/icons";
@@ -39,12 +39,15 @@ export function PendingRedeployBanner() {
       appId: string;
       environmentId: string;
     }) => {
-      const res = await getUnkeyClient().deployments.createDeployment({
-        project: deployment.projectId,
-        app: deployment.appId,
-        environment: deployment.environmentId,
-        deployment: { deploymentId: deployment.id },
-      });
+      const res = await getUnkeyClient().deployments.createDeployment(
+        {
+          project: deployment.projectId,
+          app: deployment.appId,
+          environment: deployment.environmentId,
+          deployment: { deploymentId: deployment.id },
+        },
+        noRetry,
+      );
       return { deploymentId: res.data.deploymentId };
     },
     onSuccess: async (data) => {

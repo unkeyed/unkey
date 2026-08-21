@@ -3,7 +3,7 @@
 import { type Deployment, collection } from "@/lib/collections";
 import { shortenId } from "@/lib/shorten-id";
 import { trpc } from "@/lib/trpc/client";
-import { getErrorMessage, getUnkeyClient } from "@/lib/unkey-client";
+import { getErrorMessage, getUnkeyClient, noRetry } from "@/lib/unkey-client";
 import { eq, inArray, useLiveQuery } from "@tanstack/react-db";
 import { useMutation } from "@tanstack/react-query";
 import { Button, DialogContainer, toast } from "@unkey/ui";
@@ -35,7 +35,7 @@ export const PromotionDialog = ({
   );
   const promote = useMutation({
     mutationFn: (deploymentId: string) =>
-      getUnkeyClient().deployments.promoteDeployment({ deploymentId }),
+      getUnkeyClient().deployments.promoteDeployment({ deploymentId }, noRetry),
     onSuccess: () => {
       utils.invalidate();
       toast.success("Promotion completed", {

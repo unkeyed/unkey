@@ -19,6 +19,15 @@ export function getUnkeyClient(): Unkey {
 }
 
 /**
+ * Per-call options for operations that start real work in the control plane:
+ * deployment create, promote, rollback, start, and stop. The SDK otherwise
+ * retries every 5XX with backoff, and a 5XX does not prove the operation did
+ * not run, so a retry can start a second deployment. The user retries from the
+ * UI instead. Reads keep the SDK default.
+ */
+export const noRetry = { retries: { strategy: "none" } } as const;
+
+/**
  * Maps an SDK error to a toast title and description. `fallbackMessage` names
  * the failed operation, e.g. "Failed to Delete App", and `fallbackDescription`
  * replaces the generic description. Both apply only to errors we don't classify.

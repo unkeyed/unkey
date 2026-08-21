@@ -6,7 +6,7 @@ import {
 } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/data-provider";
 import { type Deployment, collection } from "@/lib/collections";
 import { trpc } from "@/lib/trpc/client";
-import { getErrorMessage, getUnkeyClient } from "@/lib/unkey-client";
+import { getErrorMessage, getUnkeyClient, noRetry } from "@/lib/unkey-client";
 import { and, eq, inArray, useLiveQuery } from "@tanstack/react-db";
 import { useMutation } from "@tanstack/react-query";
 import { Button, DialogContainer, toast } from "@unkey/ui";
@@ -41,7 +41,7 @@ export const RollbackDialog = ({
 
   const rollback = useMutation({
     mutationFn: (deploymentId: string) =>
-      getUnkeyClient().deployments.rollbackDeployment({ deploymentId }),
+      getUnkeyClient().deployments.rollbackDeployment({ deploymentId }, noRetry),
     onSuccess: () => {
       utils.invalidate();
       toast.success("Rollback completed", {

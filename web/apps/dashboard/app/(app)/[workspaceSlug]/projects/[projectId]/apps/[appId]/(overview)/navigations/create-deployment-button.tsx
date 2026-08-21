@@ -9,7 +9,7 @@ import { UnsupportedDeployRefError, parseDeployRef } from "@/lib/deploy-ref";
 import { githubUrl } from "@/lib/github-url";
 import { routes } from "@/lib/navigation/routes";
 import { trpc } from "@/lib/trpc/client";
-import { getErrorMessage, getUnkeyClient } from "@/lib/unkey-client";
+import { getErrorMessage, getUnkeyClient, noRetry } from "@/lib/unkey-client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { and, eq, useLiveQuery } from "@tanstack/react-db";
 import { useMutation } from "@tanstack/react-query";
@@ -194,12 +194,15 @@ export const CreateDeploymentButton = ({
       git?: ReturnType<typeof parseDeployRef>;
       image?: string;
     }) => {
-      const res = await getUnkeyClient().deployments.createDeployment({
-        project: projectId,
-        app: appId,
-        environment: source.environment,
-        ...(source.image ? { image: { dockerImage: source.image } } : { git: source.git ?? {} }),
-      });
+      const res = await getUnkeyClient().deployments.createDeployment(
+        {
+          project: projectId,
+          app: appId,
+          environment: source.environment,
+          ...(source.image ? { image: { dockerImage: source.image } } : { git: source.git ?? {} }),
+        },
+        noRetry,
+      );
       return { deploymentId: res.data.deploymentId };
     },
     async onSuccess(data) {
