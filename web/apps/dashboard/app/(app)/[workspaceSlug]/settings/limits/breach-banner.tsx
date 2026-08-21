@@ -16,6 +16,16 @@ export function BreachBanner({
 }) {
   const compute = breached.includes("compute");
   const api = breached.includes("api");
+  const domains = breached.includes("domains");
+
+  if (domains && !compute && !api) {
+    return (
+      <Banner>
+        Your workspace is at its custom domain limit. Remove a domain that you do not need, or{" "}
+        <BannerLink href={billingHref}>upgrade your plan</BannerLink>.
+      </Banner>
+    );
+  }
 
   if (compute && api) {
     return (

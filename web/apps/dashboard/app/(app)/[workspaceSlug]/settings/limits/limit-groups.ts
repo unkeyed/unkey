@@ -2,7 +2,7 @@ import type { Limits } from "@unkey/db";
 
 export type LimitStatus = "ok" | "at-limit" | "over";
 
-export type GroupKey = "api" | "logs" | "compute";
+export type GroupKey = "api" | "logs" | "compute" | "domains";
 
 export type RowUsage =
   | { state: "loading" }
@@ -140,6 +140,22 @@ function logsGroup(limits: Limits): LimitGroup {
   };
 }
 
+function domainsGroup(limits: Limits, domains: Measured<number>): LimitGroup {
+  return {
+    key: "domains",
+    title: "Domains",
+    description: "Custom domain allowance for your apps.",
+    rows: [
+      metered({
+        name: "Custom domains",
+        description: "Domains you can attach across all apps in this workspace.",
+        limit: count(limits.customDomainsMax),
+        usage: usageOf(domains, (value) => value, limits.customDomainsMax, count),
+      }),
+    ],
+  };
+}
+
 function computeGroup(limits: Limits, allocation: Measured<Allocation>): LimitGroup {
   return {
     key: "compute",
@@ -199,16 +215,19 @@ export function buildLimitGroups({
   hasComputePlan,
   apiOperations,
   allocation,
+  customDomains,
 }: {
   limits: Limits;
   hasComputePlan: boolean;
   apiOperations: Measured<number>;
   allocation: Measured<Allocation>;
+  customDomains: Measured<number>;
 }): LimitGroup[] {
   const groups = [apiGroup(limits, apiOperations), logsGroup(limits)];
   if (hasComputePlan) {
     groups.push(computeGroup(limits, allocation));
   }
+  groups.push(domainsGroup(limits, customDomains));
   return groups;
 }
 
