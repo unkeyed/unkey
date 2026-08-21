@@ -2,6 +2,22 @@
  * Database error helpers for the dashboard's drizzle + mysql2 stack.
  */
 
+import { DrizzleQueryError } from "@unkey/db";
+
+/**
+ * Returns the driver error a DrizzleQueryError wraps, or undefined when it
+ * carries none. Kept next to [isDuplicateKeyError] so drizzle's wrapper
+ * shape is encoded in this file only; the walk is bounded in case a future
+ * drizzle nests its wrapper.
+ */
+export function unwrapDrizzleQueryError(err: DrizzleQueryError): unknown {
+  let cause: unknown = err.cause;
+  for (let depth = 0; cause instanceof DrizzleQueryError && depth < 10; depth++) {
+    cause = cause.cause;
+  }
+  return cause;
+}
+
 /**
  * Detects MySQL duplicate-key violations (ER_DUP_ENTRY / errno 1062).
  *
