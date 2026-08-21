@@ -3,12 +3,15 @@
 import { collection } from "@/lib/collections";
 import {
   type PolicyRow,
-  findPolicyByName,
+  clearOtherVariants,
+  findPolicyByIdentity,
   nextPolicyOrder,
+  policyCount,
   reorderPolicies,
   rowKey,
 } from "@/lib/collections/deploy/policies";
-import type { Policy } from "@/lib/collections/deploy/policies.schema";
+import { POLICY_LIMITS, type Policy } from "@/lib/collections/deploy/policies.schema";
+import { toast } from "@unkey/ui";
 import { useCallback } from "react";
 import { type MergedPolicy, policyInEnv } from "../components/list/merge";
 
@@ -44,12 +47,16 @@ export function usePolicyActions({
 
   const toggleEnv = useCallback(
     (key: string, env: Env) => {
-      const environmentId = envIdFor(env);
       const policy = policyInEnv(merged, key, env);
       if (!policy) {
         return;
       }
-      collection.policies.update(rowKey(environmentId, policy.id), (draft) => {
+      // `merged` is a render snapshot, and updating a dropped key throws.
+      const rowId = rowKey(envIdFor(env), policy.id);
+      if (!collection.policies.get(rowId)) {
+        return;
+      }
+      collection.policies.update(rowId, (draft) => {
         draft.enabled = !draft.enabled;
       });
     },
@@ -64,6 +71,10 @@ export function usePolicyActions({
       }
       const source = policyInEnv(merged, key, env === "envA" ? "envB" : "envA");
       if (!source) {
+        return;
+      }
+      if (policyCount(targetEnvId) >= POLICY_LIMITS.maxPolicies) {
+        toast.error(`An environment holds at most ${POLICY_LIMITS.maxPolicies} policies.`);
         return;
       }
       collection.policies.insert({
@@ -104,8 +115,8 @@ export function usePolicyActions({
    */
   const save = useCallback(
     (prodPolicy: Policy | null, previewPolicy: Policy | null, editing?: MergedPolicy) => {
-      const name = (prodPolicy ?? previewPolicy)?.name;
-      if (!name) {
+      const submitted = prodPolicy ?? previewPolicy;
+      if (!submitted) {
         return;
       }
       const targets = [
@@ -113,16 +124,17 @@ export function usePolicyActions({
         { envId: envBId, policy: previewPolicy, existing: editing?.envB },
       ].filter((t) => t.envId);
 
-      const updates: { key: string; envId: string; policy: Policy | null }[] = [];
+      const updates: { key: string; enabled: boolean }[] = [];
       const insertRows: PolicyRow[] = [];
 
       for (const target of targets) {
-        const existingRow = editing ? target.existing : findPolicyByName(target.envId, name);
+        const existingRow = editing
+          ? target.existing
+          : findPolicyByIdentity(target.envId, submitted.type, submitted.name);
         if (existingRow) {
           updates.push({
             key: rowKey(target.envId, existingRow.id),
-            envId: target.envId,
-            policy: target.policy,
+            enabled: target.policy !== null,
           });
         } else if (target.policy) {
           insertRows.push({
@@ -136,24 +148,18 @@ export function usePolicyActions({
       }
 
       if (updates.length > 0) {
+        // The form id can belong to the copy in the other environment. Each row
+        // keeps the server id it has.
+        const { id: _formId, ...fields } = submitted;
         collection.policies.update(
           updates.map((u) => u.key),
           (drafts) => {
             for (let i = 0; i < drafts.length; i++) {
-              const { envId, policy } = updates[i];
-              if (policy) {
-                // The form id can belong to the copy in the other
-                // environment. Each row keeps the server id it has.
-                const { id: _formId, ...fields } = policy;
-                Object.assign(drafts[i], fields, {
-                  environmentId: envId,
-                  projectId,
-                  appId,
-                  enabled: true,
-                });
-              } else {
-                drafts[i].enabled = false;
-              }
+              // A merged row is one policy: the rule and the name reach every
+              // environment it exists in, and only `enabled` follows the panel's
+              // choice. Renaming the selected copy alone would unpair the row.
+              clearOtherVariants(drafts[i], submitted.type);
+              Object.assign(drafts[i], fields, { enabled: updates[i].enabled });
             }
           },
         );
@@ -174,7 +180,8 @@ export function usePolicyActions({
           const envId = envIdFor(env);
           return policy && envId ? rowKey(envId, policy.id) : undefined;
         })
-        .filter((k): k is string => k !== undefined);
+        .filter((k): k is string => k !== undefined)
+        .filter((k) => collection.policies.get(k) !== undefined);
       if (keys.length > 0) {
         collection.policies.delete(keys);
       }

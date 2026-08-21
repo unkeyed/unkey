@@ -1,7 +1,9 @@
+import { withArrayChangeTracking } from "@tanstack/react-db";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   type PolicyChange,
   type PolicyRow,
+  clearOtherVariants,
   dispatchUpdate,
   environmentsInMutations,
   orderedPolicies,
@@ -9,7 +11,12 @@ import {
   reorderPolicies,
   rowKey,
 } from "./policies";
-import type { Policy } from "./policies.schema";
+import {
+  POLICY_VARIANT_KEYS,
+  type Policy,
+  type PolicyType,
+  policyIdentity,
+} from "./policies.schema";
 
 function firewallPolicy(id: string, name: string, match?: Policy["match"]): Policy {
   return {
@@ -146,7 +153,7 @@ describe("dispatchUpdate", () => {
     vi.unstubAllGlobals();
   });
 
-  it("sends policyId as a sibling field, not part of the policy body", async () => {
+  function captureRequests(): { url: string; body: unknown }[] {
     const requests: { url: string; body: unknown }[] = [];
     vi.stubGlobal(
       "fetch",
@@ -159,8 +166,14 @@ describe("dispatchUpdate", () => {
         });
       }),
     );
+    return requests;
+  }
 
-    await dispatchUpdate(firewallRow("pol_1", "KEBAP", "env_1", 0));
+  it("sends policyId as a sibling field, not part of the policy body", async () => {
+    const requests = captureRequests();
+    const row = firewallRow("pol_1", "KEBAP", "env_1", 0);
+
+    await dispatchUpdate(row, row);
 
     expect(requests).toHaveLength(1);
     expect(requests[0].url).toBe("http://localhost:3000/proxy/v2/gateway.updatePolicy");
@@ -177,23 +190,27 @@ describe("dispatchUpdate", () => {
   });
 
   it("sends an empty match array rather than omitting it, so save clears prior conditions", async () => {
-    const requests: { body: unknown }[] = [];
-    vi.stubGlobal(
-      "fetch",
-      vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
-        const request = input instanceof Request ? input : new Request(input, init);
-        requests.push({ body: await request.clone().json() });
-        return new Response(JSON.stringify({ meta: { requestId: "req_1" }, data: {} }), {
-          status: 200,
-          headers: { "Content-Type": "application/json" },
-        });
-      }),
-    );
-
+    const requests = captureRequests();
     const row = { ...firewallRow("pol_1", "KEBAP", "env_1", 0), match: [] };
-    await dispatchUpdate(row);
+
+    await dispatchUpdate(row, row);
 
     expect(requests[0].body).toHaveProperty("match", []);
+  });
+
+  it("sends only the fields the mutation touched", async () => {
+    const requests = captureRequests();
+    const row = firewallRow("pol_1", "KEBAP", "env_1", 0);
+
+    await dispatchUpdate(row, { enabled: false });
+
+    expect(requests[0].body).toEqual({
+      project: "proj_KEBAP",
+      app: "app_KEBAP",
+      environment: "env_1",
+      policyId: "pol_1",
+      enabled: false,
+    });
   });
 });
 
@@ -256,5 +273,79 @@ describe("reorderPolicies", () => {
     ]);
 
     expect(bodies).toHaveLength(2);
+  });
+});
+
+describe("POLICY_VARIANT_KEYS", () => {
+  it("names every policy variant", () => {
+    expect([...POLICY_VARIANT_KEYS].sort()).toEqual([
+      "firewall",
+      "keyauth",
+      "logging",
+      "openapi",
+      "ratelimit",
+    ]);
+  });
+});
+
+describe("policyIdentity", () => {
+  it("separates two types that share a name", () => {
+    expect(policyIdentity("firewall", "Guard")).not.toBe(policyIdentity("ratelimit", "Guard"));
+  });
+
+  it("folds case and surrounding space", () => {
+    expect(policyIdentity("firewall", "  Guard ")).toBe(policyIdentity("firewall", "guard"));
+  });
+});
+
+// Drives the real change proxy: a `delete` is dropped from the recorded changes,
+// so only the round trip proves the replaced variant does not come back.
+describe("clearOtherVariants", () => {
+  function applyUpdate(original: PolicyRow, edit: (draft: PolicyRow) => void): PolicyRow {
+    const changes = withArrayChangeTracking([original], (drafts) => edit(drafts[0]));
+    return Object.assign({}, original, changes[0]);
+  }
+
+  const ratelimitRow: PolicyRow = {
+    id: "pol_KEBAP",
+    name: "KEBAP",
+    enabled: true,
+    type: "ratelimit",
+    ratelimit: { limit: 100, windowMs: 60000, identifiers: [{ remoteIp: {} }] },
+    environmentId: "env_1",
+    projectId: "proj_KEBAP",
+    appId: "app_KEBAP",
+    _order: 0,
+  };
+
+  it("leaves one rule on the row after a type change", () => {
+    const modified = applyUpdate(ratelimitRow, (draft) => {
+      clearOtherVariants(draft, "firewall");
+      Object.assign(draft, { type: "firewall", firewall: { action: "ACTION_DENY" } });
+    });
+
+    expect(JSON.parse(JSON.stringify(modified))).not.toHaveProperty("ratelimit");
+    expect(modified).toMatchObject({ type: "firewall", firewall: { action: "ACTION_DENY" } });
+  });
+
+  it("keeps the rule of the type it is told to keep", () => {
+    const modified = applyUpdate(ratelimitRow, (draft) => {
+      clearOtherVariants(draft, "ratelimit");
+    });
+
+    expect(modified.type).toBe("ratelimit");
+    expect(JSON.parse(JSON.stringify(modified)).ratelimit).toEqual(ratelimitRow.ratelimit);
+  });
+
+  it("covers every variant, so no rule can outlive its type", () => {
+    const cleared: Partial<Record<PolicyType, unknown>> = applyUpdate(ratelimitRow, (draft) =>
+      clearOtherVariants(draft, "openapi"),
+    );
+
+    for (const variant of POLICY_VARIANT_KEYS) {
+      if (variant !== "openapi") {
+        expect(cleared[variant]).toBeUndefined();
+      }
+    }
   });
 });

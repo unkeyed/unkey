@@ -1,6 +1,10 @@
 "use client";
 
-import type { Policy } from "@/lib/collections/deploy/policies.schema";
+import {
+  POLICY_LIMITS,
+  type Policy,
+  normalizePolicyName,
+} from "@/lib/collections/deploy/policies.schema";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { match } from "@unkey/match";
 import { Button, FormInput, FormSelect } from "@unkey/ui";
@@ -34,6 +38,8 @@ type CommonProps = {
   topOffset: number;
   onClose: () => void;
   existingNames: string[];
+  /** Environments that cannot take another policy, keyed as envA / envB. */
+  atCapacity: { a: boolean; b: boolean };
 };
 
 type AddProps = CommonProps & {
@@ -51,7 +57,7 @@ type EditProps = CommonProps & {
 export type PolicyPanelProps = AddProps | EditProps;
 
 export function PolicyPanel(props: PolicyPanelProps) {
-  const { envASlug, envBSlug, isOpen, topOffset, onClose, existingNames } = props;
+  const { envASlug, envBSlug, isOpen, topOffset, onClose, existingNames, atCapacity } = props;
   const isEdit = props.mode === "edit";
 
   const envOptions = [
@@ -70,11 +76,29 @@ export function PolicyPanel(props: PolicyPanelProps) {
   const policyType = useWatch({ control, name: "type" });
 
   const onSubmit = (values: PolicyFormValues) => {
-    const currentName = isEdit ? props.initialPolicy.name : null;
-    if (values.name !== currentName && existingNames.includes(values.name)) {
+    // Fold, so the gate rejects what the merged list treats as one policy.
+    const nextName = normalizePolicyName(values.name);
+    const currentName = isEdit ? normalizePolicyName(props.initialPolicy.name) : null;
+    if (
+      nextName !== currentName &&
+      existingNames.some((n) => normalizePolicyName(n) === nextName)
+    ) {
       form.setError("name", {
         type: "manual",
         message: `A policy named "${values.name}" already exists.`,
+      });
+      return;
+    }
+
+    const scope = values.environmentId;
+    const fullEnvs = [
+      (scope === "__all__" || scope === envASlug) && atCapacity.a ? envASlug : null,
+      (scope === "__all__" || scope === envBSlug) && atCapacity.b ? envBSlug : null,
+    ].filter((slug): slug is string => slug !== null);
+    if (fullEnvs.length > 0) {
+      form.setError("environmentId", {
+        type: "manual",
+        message: `${fullEnvs.join(" and ")} already holds ${POLICY_LIMITS.maxPolicies} policies. Delete one first.`,
       });
       return;
     }

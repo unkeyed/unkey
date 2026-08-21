@@ -6,7 +6,13 @@ import { createCollection } from "@tanstack/react-db";
 import { toast } from "@unkey/ui";
 import { queryClient } from "../client";
 import { trackSave } from "./environment-settings";
-import { type Policy, fromWirePolicy } from "./policies.schema";
+import {
+  POLICY_VARIANT_KEYS,
+  type Policy,
+  type PolicyType,
+  fromWirePolicy,
+  policyIdentity,
+} from "./policies.schema";
 import { extractStringFilter } from "./utils";
 
 /** A Policy plus the identifiers every gateway call is scoped by. */
@@ -73,7 +79,7 @@ export const policies = createCollection<PolicyRow, string>(
     id: "policies",
 
     onUpdate: async ({ transaction }) => {
-      const mutations = transaction.mutations.map((m) => dispatchUpdate(m.modified));
+      const mutations = transaction.mutations.map((m) => dispatchUpdate(m.modified, m.changes));
       const all = Promise.all(mutations);
       const plural = mutations.length > 1;
       toast.promise(all, {
@@ -126,6 +132,18 @@ export async function reorderPolicies(
   if (reorders.length === 0) {
     return;
   }
+  // Live queries order by `_order`, so the drag only sticks once the new indexes
+  // reach the collection. It has to be a direct write: `_order` is local, so an
+  // ordinary update would send a body with no field the API accepts. Direct
+  // writes throw before the collection is ready, which a drag cannot reach.
+  if (policies.isReady()) {
+    policies.utils.writeBatch(() => {
+      for (const r of reorders) {
+        policies.utils.writeUpdate(r.policies.map((p, index) => ({ ...p, _order: index })));
+      }
+    });
+  }
+
   const promise = Promise.all(
     reorders.map(async (r) => {
       await getUnkeyClient().gateway.setPolicies({
@@ -141,9 +159,13 @@ export async function reorderPolicies(
     success: "Policies reordered",
     error: (err) => getErrorToast(err, "Failed to reorder policies"),
   });
-  await trackSave(promise);
-  for (const r of reorders) {
-    queryClient.invalidateQueries({ queryKey: ["policies", r.environmentId] });
+  try {
+    await trackSave(promise);
+  } finally {
+    // Also on failure, or the list keeps showing a reorder the server refused.
+    for (const r of reorders) {
+      queryClient.invalidateQueries({ queryKey: ["policies", r.environmentId] });
+    }
   }
 }
 
@@ -153,8 +175,20 @@ export function nextPolicyOrder(environmentId: string): number {
   return Math.max(-1, ...orders) + 1;
 }
 
-export function findPolicyByName(environmentId: string, name: string): PolicyRow | undefined {
-  return rowsForEnvironment(policies.state, environmentId).find((r) => r.name === name);
+export function policyCount(environmentId: string): number {
+  return rowsForEnvironment(policies.state, environmentId).length;
+}
+
+/** Name alone would resolve a policy of another type and overwrite it. */
+export function findPolicyByIdentity(
+  environmentId: string,
+  type: PolicyType,
+  name: string,
+): PolicyRow | undefined {
+  const identity = policyIdentity(type, name);
+  return rowsForEnvironment(policies.state, environmentId).find(
+    (r) => policyIdentity(r.type, r.name) === identity,
+  );
 }
 
 /**
@@ -244,9 +278,33 @@ function dispatchSetForChanges(changes: PolicyChange[]): Promise<unknown[]> {
   );
 }
 
-export function dispatchUpdate(row: PolicyRow): Promise<unknown> {
+/**
+ * Clears every rule but `keep`, so a type change replaces the policy's rule
+ * instead of sending two, which the API rejects.
+ *
+ * `delete` does not work here. The update callback writes to a proxy that
+ * records assigned keys, and the collection rebuilds the row as `original` plus
+ * those keys; a delete is not one, so the rule returns. An undefined survives
+ * the rebuild and JSON.stringify drops it from the body.
+ */
+export function clearOtherVariants(
+  draft: Partial<Record<PolicyType, unknown>>,
+  keep: PolicyType,
+): void {
+  for (const variant of POLICY_VARIANT_KEYS) {
+    if (variant !== keep) {
+      draft[variant] = undefined;
+    }
+  }
+}
+
+/**
+ * `updatePolicy` is a partial update, so sending only `changes` keeps a toggle
+ * from revalidating a rule the user was not editing.
+ */
+export function dispatchUpdate(row: PolicyRow, changes: Partial<PolicyRow>): Promise<unknown> {
   return getUnkeyClient().gateway.updatePolicy({
-    ...row,
+    ...changes,
     project: row.projectId,
     app: row.appId,
     environment: row.environmentId,

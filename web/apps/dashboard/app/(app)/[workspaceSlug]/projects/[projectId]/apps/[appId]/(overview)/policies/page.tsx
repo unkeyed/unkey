@@ -1,5 +1,6 @@
 "use client";
 import { TOP_NAV_HEIGHT } from "@/components/navigation/top-nav";
+import { POLICY_LIMITS } from "@/lib/collections/deploy/policies.schema";
 import { Plus } from "@unkey/icons";
 import {
   Button,
@@ -50,6 +51,29 @@ export default function PoliciesPage() {
           ? envBSlug
           : "__all__";
 
+  // An API write can leave the two copies apart, and the body on screen has to
+  // be the body that gets written.
+  const editingPolicy =
+    editingInitialEnvId === envBSlug
+      ? (editingRow?.envB ?? panels.editing)
+      : (editingRow?.envA ?? panels.editing);
+
+  // An environment the row already exists in takes an update, not an insert.
+  const atCapacity = {
+    add: {
+      a: merged.filter((m) => m.envA !== null).length >= POLICY_LIMITS.maxPolicies,
+      b: merged.filter((m) => m.envB !== null).length >= POLICY_LIMITS.maxPolicies,
+    },
+    edit: {
+      a:
+        editingRow?.envA == null &&
+        merged.filter((m) => m.envA !== null).length >= POLICY_LIMITS.maxPolicies,
+      b:
+        editingRow?.envB == null &&
+        merged.filter((m) => m.envB !== null).length >= POLICY_LIMITS.maxPolicies,
+    },
+  };
+
   return (
     <PageContainer>
       <PageHeader>
@@ -94,11 +118,12 @@ export default function PoliciesPage() {
           topOffset={TOP_NAV_HEIGHT}
           onClose={panels.closeAdd}
           existingNames={existingNames}
+          atCapacity={atCapacity.add}
           onSave={actions.save}
         />
-        {panels.editing !== null && (
+        {editingPolicy !== null && (
           <PolicyPanel
-            key={panels.editing.id}
+            key={editingPolicy.id}
             mode="edit"
             envASlug={envASlug}
             envBSlug={envBSlug}
@@ -106,7 +131,8 @@ export default function PoliciesPage() {
             topOffset={TOP_NAV_HEIGHT}
             onClose={panels.closeEdit}
             existingNames={existingNames}
-            initialPolicy={panels.editing}
+            atCapacity={atCapacity.edit}
+            initialPolicy={editingPolicy}
             initialEnvironmentId={editingInitialEnvId}
             onSave={(prodPolicy, previewPolicy) => {
               actions.save(prodPolicy, previewPolicy, editingRow);

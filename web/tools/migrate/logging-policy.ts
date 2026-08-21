@@ -34,7 +34,7 @@ import { newUid } from "@unkey/id";
  */
 const READ_BATCH_SIZE = 1_000;
 
-// Must stay <= SENTINEL_LIMITS.maxPolicies in the dashboard schema, or the
+// Must stay <= POLICY_LIMITS.maxPolicies in the dashboard schema, or the
 // dashboard can no longer read back and edit the patched config.
 const MAX_POLICIES = 50;
 

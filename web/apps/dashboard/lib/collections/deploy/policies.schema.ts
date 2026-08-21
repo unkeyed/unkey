@@ -14,12 +14,14 @@ import { z } from "zod";
 
 // ── Limits ──────────────────────────────────────────────────────────────
 
-// Pre-flight only: these give inline form errors and "N / max" counters
-// instead of a server 400, because the generated SDK carries none of the
-// spec's size bounds. Keep each >= its counterpart in
-// svc/api/openapi/spec/common, or a policy the API accepts fails to open
-// for editing here.
+// Pre-flight only: the generated SDK carries none of the spec's size bounds, so
+// these drive inline form errors and "N / max" counters instead of a server 400.
+// Keep each in step with its counterpart under svc/api/openapi/spec. Too tight
+// and a stored policy the API accepts fails to open for editing; too loose and
+// the save 400s anyway.
 export const POLICY_LIMITS = {
+  maxPolicies: 50,
+  maxNameLength: 256,
   maxKeyspacesPerPolicy: 5,
   maxMatchExprsPerPolicy: 10,
   permissionQueryMaxLength: 1000,
@@ -276,6 +278,26 @@ export const policySchema = z.discriminatedUnion("type", [
 ]);
 export type Policy = z.infer<typeof policySchema>;
 export type PolicyType = Policy["type"];
+
+/** Derived from the union so a new variant cannot be missed. */
+export const POLICY_VARIANT_KEYS: readonly PolicyType[] = policySchema.options.map(
+  (option) => option.shape.type.value,
+);
+
+/** `"Auth "` and `"auth"` render alike, so they must not be two policies. */
+export function normalizePolicyName(name: string): string {
+  return name.trim().toLowerCase();
+}
+
+/**
+ * Matches a policy across environments. Each environment holds its own copy
+ * under its own server id, so ids never line up and the name carries identity
+ * instead. Type joins it because a name can repeat across types: a firewall and
+ * a ratelimit policy both called "Guard" are two policies, not one.
+ */
+export function policyIdentity(type: PolicyType, name: string): string {
+  return `${type}:${normalizePolicyName(name)}`;
+}
 
 /** Attaches the `type` discriminator the API leaves implicit. */
 export function fromWirePolicy(raw: unknown): Policy {
