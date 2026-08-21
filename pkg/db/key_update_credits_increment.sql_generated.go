@@ -30,3 +30,44 @@ func (q *Queries) UpdateKeyCreditsIncrement(ctx context.Context, db DBTX, arg Up
 	_, err := db.ExecContext(ctx, updateKeyCreditsIncrement, arg.Credits, arg.ID)
 	return err
 }
+
+const updateKeyCreditsIncrementReturning = `-- name: UpdateKeyCreditsIncrementReturning :execresult
+UPDATE ` + "`" + `keys` + "`" + `
+SET
+    remaining_requests = CASE
+        WHEN deleted_at_m IS NOT NULL THEN
+            IF(LAST_INSERT_ID(18446744073709551615) > 0, remaining_requests, remaining_requests)
+        WHEN remaining_requests IS NULL THEN
+            IF(LAST_INSERT_ID(18446744073709551614) > 0, remaining_requests, remaining_requests)
+        WHEN remaining_requests > 9223372036854775807 - ? THEN
+            IF(LAST_INSERT_ID(18446744073709551613) > 0, remaining_requests, remaining_requests)
+        ELSE LAST_INSERT_ID(remaining_requests + ?)
+    END
+WHERE id = ?
+`
+
+type UpdateKeyCreditsIncrementReturningParams struct {
+	Credits sql.NullInt64 `db:"credits"`
+	ID      string        `db:"id"`
+}
+
+// LAST_INSERT_ID(expr) returns expr in this UPDATE's OK packet, so
+// sql.Result.LastInsertId reads the new balance without another query.
+// https://dev.mysql.com/doc/refman/8.4/en/information-functions.html#function_last-insert-id
+// transactional-batch-statement
+//
+//	UPDATE `keys`
+//	SET
+//	    remaining_requests = CASE
+//	        WHEN deleted_at_m IS NOT NULL THEN
+//	            IF(LAST_INSERT_ID(18446744073709551615) > 0, remaining_requests, remaining_requests)
+//	        WHEN remaining_requests IS NULL THEN
+//	            IF(LAST_INSERT_ID(18446744073709551614) > 0, remaining_requests, remaining_requests)
+//	        WHEN remaining_requests > 9223372036854775807 - ? THEN
+//	            IF(LAST_INSERT_ID(18446744073709551613) > 0, remaining_requests, remaining_requests)
+//	        ELSE LAST_INSERT_ID(remaining_requests + ?)
+//	    END
+//	WHERE id = ?
+func (q *Queries) UpdateKeyCreditsIncrementReturning(ctx context.Context, db DBTX, arg UpdateKeyCreditsIncrementReturningParams) (sql.Result, error) {
+	return db.ExecContext(ctx, updateKeyCreditsIncrementReturning, arg.Credits, arg.Credits, arg.ID)
+}

@@ -57,7 +57,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	key, err := db.Query.FindLiveKeyByID(ctx, h.DB.RO(), req.KeyId)
+	key, err := db.Query.FindLiveKeyForCreditsByID(ctx, h.DB.RO(), req.KeyId)
 	if err != nil {
 		if db.IsNotFound(err) {
 			return fault.Wrap(
@@ -93,7 +93,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}),
 		rbac.T(rbac.Tuple{
 			ResourceType: rbac.Api,
-			ResourceID:   key.Api.ID,
+			ResourceID:   key.ApiID,
 			Action:       rbac.UpdateKey,
 		}),
 		rbac.U(
@@ -129,114 +129,121 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	if !req.Value.IsNull() && req.Value.IsSpecified() {
 		credits = sql.NullInt64{Int64: reqVal, Valid: true}
 	}
+	clearRefill := int64(0)
+	if !credits.Valid {
+		clearRefill = 1
+	}
 
-	key, err = db.TxWithResultRetry(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) (db.FindLiveKeyByIDRow, error) {
-		switch req.Operation {
-		case openapi.Set:
-			err = db.Query.UpdateKeyCreditsSet(ctx, tx, db.UpdateKeyCreditsSetParams{
-				ID:      key.ID,
-				Credits: credits,
-			})
-		case openapi.Increment:
-			err = db.Query.UpdateKeyCreditsIncrement(ctx, tx, db.UpdateKeyCreditsIncrementParams{
-				ID:      key.ID,
-				Credits: credits,
-			})
-		case openapi.Decrement:
-			err = db.Query.UpdateKeyCreditsDecrement(ctx, tx, db.UpdateKeyCreditsDecrementParams{
-				ID:      key.ID,
-				Credits: credits,
-			})
-		default:
-			return db.FindLiveKeyByIDRow{}, fault.New("invalid operation",
-				fault.Code(codes.App.Validation.InvalidInput.URN()),
-				fault.Internal(fmt.Sprintf("invalid operation: %s", req.Operation)),
-				fault.Public("Invalid operation specified."),
-			)
-		}
-		if err != nil {
-			return db.FindLiveKeyByIDRow{}, fault.Wrap(err,
-				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-				fault.Internal("database error"),
-				fault.Public("Failed to update key credits."),
-			)
-		}
-
-		// Reset the Refill data since it's not needed anymore
-		if req.Value.IsNull() {
-			err = db.Query.UpdateKeyCreditsRefill(ctx, tx, db.UpdateKeyCreditsRefillParams{
-				ID:           key.ID,
-				RefillAmount: sql.NullInt64{Int64: 0, Valid: false},
-				RefillDay:    sql.NullInt16{Int16: 0, Valid: false},
-			})
-			if err != nil {
-				return db.FindLiveKeyByIDRow{}, fault.Wrap(err,
-					fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-					fault.Internal("database error"),
-					fault.Public("Failed to reset key refill data."),
-				)
-			}
-		}
-
-		keyAfterUpdate, keyErr := db.Query.FindLiveKeyByID(ctx, tx, req.KeyId)
-		if keyErr != nil {
-			if db.IsNotFound(keyErr) {
-				return db.FindLiveKeyByIDRow{}, fault.Wrap(
-					keyErr,
-					fault.Code(codes.Data.Key.NotFound.URN()),
-					fault.Internal("key got deleted after update"),
-					fault.Public("We could not find the requested key."),
-				)
-			}
-
-			return db.FindLiveKeyByIDRow{}, fault.Wrap(keyErr,
-				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-				fault.Internal("database error"),
-				fault.Public("Failed to retrieve key information."),
-			)
-		}
-
-		remaining := "unlimited"
-		if keyAfterUpdate.RemainingRequests.Valid {
-			remaining = fmt.Sprintf("%d", keyAfterUpdate.RemainingRequests.Int64)
-		}
-
-		err = h.Auditlogs.Insert(ctx, tx, []auditlog.AuditLog{
+	auditPreparer, ok := h.Auditlogs.(auditlogs.OutboxPreparer)
+	if !ok {
+		return fault.New("audit service cannot prepare outbox rows", fault.Internal("update credits requires an outbox preparer"))
+	}
+	outboxRows, err := auditPreparer.PrepareOutboxRows(ctx, []auditlog.AuditLog{{
+		WorkspaceID:   principal.WorkspaceID,
+		Event:         auditlog.KeyUpdateEvent,
+		Display:       fmt.Sprintf("Updated Key %s, set remaining to pending.", key.ID),
+		ActorID:       principal.Subject.ID,
+		ActorName:     principal.Subject.Name,
+		ActorMeta:     map[string]any{},
+		ActorType:     auditlog.AuditLogActor(principal.Subject.Type),
+		RemoteIP:      s.Location(),
+		UserAgent:     s.UserAgent(),
+		CorrelationID: "",
+		Resources: []auditlog.AuditLogResource{
 			{
-				WorkspaceID:   principal.WorkspaceID,
-				Event:         auditlog.KeyUpdateEvent,
-				Display:       fmt.Sprintf("Updated Key %s, set remaining to %s.", key.ID, remaining),
-				ActorID:       principal.Subject.ID,
-				ActorName:     principal.Subject.Name,
-				ActorMeta:     map[string]any{},
-				ActorType:     auditlog.AuditLogActor(principal.Subject.Type),
-				RemoteIP:      s.Location(),
-				UserAgent:     s.UserAgent(),
-				CorrelationID: "",
-				Resources: []auditlog.AuditLogResource{
-					{
-						ID:          key.KeyAuthID,
-						Type:        auditlog.KeySpaceResourceType,
-						Name:        "",
-						DisplayName: "",
-						Meta:        nil,
-					},
-					{
-						ID:          key.ID,
-						Type:        auditlog.KeyResourceType,
-						Name:        key.Name.String,
-						DisplayName: key.Name.String,
-						Meta:        nil,
-					},
-				},
+				ID:          key.KeyAuthID,
+				Type:        auditlog.KeySpaceResourceType,
+				Name:        "",
+				DisplayName: "",
+				Meta:        nil,
 			},
-		})
-
-		return keyAfterUpdate, err
-	})
-
+			{
+				ID:          key.ID,
+				Type:        auditlog.KeyResourceType,
+				Name:        key.Name.String,
+				DisplayName: key.Name.String,
+				Meta:        nil,
+			},
+		},
+	}})
 	if err != nil {
 		return err
+	}
+	if len(outboxRows) != 1 {
+		return fault.New("invalid audit outbox batch size", fault.Internal("update credits batch requires exactly one audit outbox row"))
+	}
+	outbox := db.InsertClickhouseOutboxForCreditUpdateParams{
+		Version:     outboxRows[0].Version,
+		WorkspaceID: outboxRows[0].WorkspaceID,
+		EventID:     outboxRows[0].EventID,
+		Payload:     outboxRows[0].Payload,
+		KeyID:       key.ID,
+		CreatedAt:   outboxRows[0].CreatedAt,
+	}
+
+	var batchResult db.KeyCreditsBatchResult
+	switch req.Operation {
+	case openapi.Set:
+		batchResult, err = h.DB.BatchRW().UpdateKeyCreditsSetWithAuditBatch(ctx, db.UpdateKeyCreditsSetParams{
+			ID:                key.ID,
+			Credits:           credits,
+			ClearRefillAmount: clearRefill,
+			ClearRefillDay:    clearRefill,
+		}, outbox)
+	case openapi.Increment:
+		batchResult, err = h.DB.BatchRW().UpdateKeyCreditsIncrementWithAuditBatch(ctx, db.UpdateKeyCreditsIncrementReturningParams{
+			ID: key.ID, Credits: credits,
+		}, outbox)
+	case openapi.Decrement:
+		batchResult, err = h.DB.BatchRW().UpdateKeyCreditsDecrementWithAuditBatch(ctx, db.UpdateKeyCreditsDecrementReturningParams{
+			ID: key.ID, Credits: credits,
+		}, outbox)
+	default:
+		return fault.New("invalid operation",
+			fault.Code(codes.App.Validation.InvalidInput.URN()),
+			fault.Internal(fmt.Sprintf("invalid operation: %s", req.Operation)),
+			fault.Public("Invalid operation specified."),
+		)
+	}
+	if err != nil {
+		// A missing marker is an ambiguous commit. Invalidate both caches even
+		// when the endpoint cannot confirm the mutation outcome.
+		h.invalidate(ctx, key.Hash, key.ID)
+		return fault.Wrap(err,
+			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+			fault.Internal("database error"),
+			fault.Public("Failed to update key credits."),
+		)
+	}
+	if !batchResult.Applied {
+		switch {
+		case batchResult.Missing || batchResult.Deleted:
+			return fault.New("key got deleted before credits update",
+				fault.Code(codes.Data.Key.NotFound.URN()),
+				fault.Internal("key got deleted before update"),
+				fault.Public("We could not find the requested key."),
+			)
+		case batchResult.Unlimited:
+			return fault.New("key credits became unlimited before update",
+				fault.Code(codes.App.Validation.InvalidInput.URN()),
+				fault.Public("You cannot increment or decrement a key with unlimited credits."),
+			)
+		case batchResult.Overflow:
+			return fault.New("credits increment exceeds maximum",
+				fault.Code(codes.App.Validation.InvalidInput.URN()),
+				fault.Internal("credits increment would exceed max int64"),
+				fault.Public("The resulting credit balance exceeds the maximum supported value."),
+			)
+		default:
+			return fault.New("credit update did not apply", fault.Internal("guarded credit update matched no row"))
+		}
+	}
+
+	keyAfterUpdate := key
+	keyAfterUpdate.RemainingRequests = batchResult.RemainingRequests
+	if !batchResult.RemainingRequests.Valid {
+		keyAfterUpdate.RefillAmount = sql.NullInt64{}
+		keyAfterUpdate.RefillDay.Valid = false
 	}
 
 	null := nullable.Nullable[int64]{}
@@ -247,33 +254,27 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		Remaining: null,
 	}
 
-	if key.RemainingRequests.Valid {
-		responseData.Remaining = nullable.NewNullableWithValue(int64(key.RemainingRequests.Int64))
+	if keyAfterUpdate.RemainingRequests.Valid {
+		responseData.Remaining = nullable.NewNullableWithValue(keyAfterUpdate.RemainingRequests.Int64)
 	}
 
-	if key.RefillAmount.Valid {
+	if keyAfterUpdate.RefillAmount.Valid {
 		var day int
 		interval := openapi.KeyCreditsRefillIntervalDaily
 
-		if key.RefillDay.Valid {
+		if keyAfterUpdate.RefillDay.Valid {
 			interval = openapi.KeyCreditsRefillIntervalMonthly
-			day = int(key.RefillDay.Int16)
+			day = int(keyAfterUpdate.RefillDay.Int16)
 		}
 
 		responseData.Refill = &openapi.KeyCreditsRefill{
-			Amount:    int64(key.RefillAmount.Int64),
+			Amount:    keyAfterUpdate.RefillAmount.Int64,
 			Interval:  interval,
 			RefillDay: day,
 		}
 	}
 
-	h.KeyCache.Remove(ctx, key.Hash)
-	if err := h.UsageLimiter.Invalidate(ctx, key.ID); err != nil {
-		logger.Error("Failed to invalidate usage limit",
-			"error", err.Error(),
-			"key_id", key.ID,
-		)
-	}
+	h.invalidate(ctx, key.Hash, key.ID)
 
 	return s.JSON(http.StatusOK, Response{
 		Meta: openapi.Meta{
@@ -281,4 +282,14 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		},
 		Data: responseData,
 	})
+}
+
+func (h *Handler) invalidate(ctx context.Context, keyHash, keyID string) {
+	h.KeyCache.Remove(ctx, keyHash)
+	if err := h.UsageLimiter.Invalidate(ctx, keyID); err != nil {
+		logger.Error("Failed to invalidate usage limit",
+			"error", err.Error(),
+			"key_id", keyID,
+		)
+	}
 }

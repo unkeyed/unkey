@@ -49,6 +49,9 @@ func open(dsn string, enableMultiStatementBatches bool) (db *sql.DB, err error) 
 	if enableMultiStatementBatches {
 		dsnConfig.MultiStatements = true
 		dsnConfig.InterpolateParams = true
+		// Batch result classification needs matched rows so valid no-op updates
+		// remain distinguishable from guarded updates that matched no key.
+		dsnConfig.ClientFoundRows = true
 	}
 
 	// sql.Open only validates the DSN, it doesn't actually connect.

@@ -67,3 +67,83 @@ func (q *Queries) InsertClickhouseOutbox(ctx context.Context, db DBTX, arg Inser
 	)
 	return err
 }
+
+const insertClickhouseOutboxForCreditUpdate = `-- name: InsertClickhouseOutboxForCreditUpdate :exec
+INSERT INTO ` + "`" + `clickhouse_outbox` + "`" + ` (
+    version,
+    workspace_id,
+    event_id,
+    payload,
+    created_at
+)
+SELECT
+    ?,
+    ?,
+    ?,
+    JSON_SET(
+        CAST(? AS JSON),
+        '$.description',
+        CONCAT(
+            'Updated Key ', ?, ', set remaining to ',
+            IF(k.remaining_requests IS NULL, 'unlimited', CAST(k.remaining_requests AS CHAR)),
+            '.'
+        )
+    ),
+    ?
+FROM ` + "`" + `keys` + "`" + ` k
+WHERE k.id = ?
+  AND ROW_COUNT() = 1
+  AND LAST_INSERT_ID() <= 9223372036854775807
+`
+
+type InsertClickhouseOutboxForCreditUpdateParams struct {
+	Version     string          `db:"version"`
+	WorkspaceID string          `db:"workspace_id"`
+	EventID     string          `db:"event_id"`
+	Payload     json.RawMessage `db:"payload"`
+	KeyID       string          `db:"key_id"`
+	CreatedAt   int64           `db:"created_at"`
+}
+
+// transactional-batch-statement
+// This statement must immediately follow the guarded credit UPDATE. With
+// clientFoundRows enabled on the batch pool, ROW_COUNT() distinguishes a
+// missing key while LAST_INSERT_ID() distinguishes valid and rejected states.
+//
+//	INSERT INTO `clickhouse_outbox` (
+//	    version,
+//	    workspace_id,
+//	    event_id,
+//	    payload,
+//	    created_at
+//	)
+//	SELECT
+//	    ?,
+//	    ?,
+//	    ?,
+//	    JSON_SET(
+//	        CAST(? AS JSON),
+//	        '$.description',
+//	        CONCAT(
+//	            'Updated Key ', ?, ', set remaining to ',
+//	            IF(k.remaining_requests IS NULL, 'unlimited', CAST(k.remaining_requests AS CHAR)),
+//	            '.'
+//	        )
+//	    ),
+//	    ?
+//	FROM `keys` k
+//	WHERE k.id = ?
+//	  AND ROW_COUNT() = 1
+//	  AND LAST_INSERT_ID() <= 9223372036854775807
+func (q *Queries) InsertClickhouseOutboxForCreditUpdate(ctx context.Context, db DBTX, arg InsertClickhouseOutboxForCreditUpdateParams) error {
+	_, err := db.ExecContext(ctx, insertClickhouseOutboxForCreditUpdate,
+		arg.Version,
+		arg.WorkspaceID,
+		arg.EventID,
+		arg.Payload,
+		arg.KeyID,
+		arg.CreatedAt,
+		arg.KeyID,
+	)
+	return err
+}

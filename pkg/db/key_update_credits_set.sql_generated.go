@@ -10,23 +10,64 @@ import (
 	"database/sql"
 )
 
-const updateKeyCreditsSet = `-- name: UpdateKeyCreditsSet :exec
+const updateKeyCreditsSet = `-- name: UpdateKeyCreditsSet :execresult
 UPDATE ` + "`" + `keys` + "`" + `
-SET remaining_requests = ?
+SET
+    remaining_requests = CASE
+        WHEN deleted_at_m IS NOT NULL THEN
+            IF(LAST_INSERT_ID(18446744073709551615) > 0, remaining_requests, remaining_requests)
+        WHEN ? IS NULL THEN
+            IF(LAST_INSERT_ID(0) = 0, NULL, NULL)
+        ELSE LAST_INSERT_ID(?)
+    END,
+    refill_amount = CASE
+        WHEN deleted_at_m IS NULL
+          AND CAST(? AS UNSIGNED) = 1 THEN NULL
+        ELSE refill_amount
+    END,
+    refill_day = CASE
+        WHEN deleted_at_m IS NULL
+          AND CAST(? AS UNSIGNED) = 1 THEN NULL
+        ELSE refill_day
+    END
 WHERE id = ?
 `
 
 type UpdateKeyCreditsSetParams struct {
-	Credits sql.NullInt64 `db:"credits"`
-	ID      string        `db:"id"`
+	Credits           sql.NullInt64 `db:"credits"`
+	ClearRefillAmount int64         `db:"clear_refill_amount"`
+	ClearRefillDay    int64         `db:"clear_refill_day"`
+	ID                string        `db:"id"`
 }
 
-// UpdateKeyCreditsSet
+// transactional-batch-statement
 //
 //	UPDATE `keys`
-//	SET remaining_requests = ?
+//	SET
+//	    remaining_requests = CASE
+//	        WHEN deleted_at_m IS NOT NULL THEN
+//	            IF(LAST_INSERT_ID(18446744073709551615) > 0, remaining_requests, remaining_requests)
+//	        WHEN ? IS NULL THEN
+//	            IF(LAST_INSERT_ID(0) = 0, NULL, NULL)
+//	        ELSE LAST_INSERT_ID(?)
+//	    END,
+//	    refill_amount = CASE
+//	        WHEN deleted_at_m IS NULL
+//	          AND CAST(? AS UNSIGNED) = 1 THEN NULL
+//	        ELSE refill_amount
+//	    END,
+//	    refill_day = CASE
+//	        WHEN deleted_at_m IS NULL
+//	          AND CAST(? AS UNSIGNED) = 1 THEN NULL
+//	        ELSE refill_day
+//	    END
 //	WHERE id = ?
-func (q *Queries) UpdateKeyCreditsSet(ctx context.Context, db DBTX, arg UpdateKeyCreditsSetParams) error {
-	_, err := db.ExecContext(ctx, updateKeyCreditsSet, arg.Credits, arg.ID)
-	return err
+func (q *Queries) UpdateKeyCreditsSet(ctx context.Context, db DBTX, arg UpdateKeyCreditsSetParams) (sql.Result, error) {
+	return db.ExecContext(ctx, updateKeyCreditsSet,
+		arg.Credits,
+		arg.Credits,
+		arg.ClearRefillAmount,
+		arg.ClearRefillDay,
+		arg.ID,
+	)
 }
