@@ -16,6 +16,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/repeat"
+	"github.com/unkeyed/unkey/pkg/singleflight"
 	"github.com/unkeyed/unkey/pkg/timing"
 )
 
@@ -25,6 +26,9 @@ type cache[K comparable, V any] struct {
 	stale    time.Duration
 	resource string
 	clock    clock.Clock
+
+	// originLoads makes concurrent callers for one key use the same load.
+	originLoads *singleflight.Group[K, swrResult[V]]
 
 	revalidateC chan func()
 
@@ -47,6 +51,13 @@ type Config[K comparable, V any] struct {
 	Resource string
 
 	Clock clock.Clock
+}
+
+// swrResult stores the three values returned by SWR.
+type swrResult[V any] struct {
+	value   V
+	hit     CacheHit
+	loadErr error
 }
 
 var _ Cache[any, any] = (*cache[any, any])(nil)
@@ -83,6 +94,7 @@ func New[K comparable, V any](config Config[K, V]) (Cache[K, V], error) {
 		stale:             config.Stale,
 		resource:          config.Resource,
 		clock:             config.Clock,
+		originLoads:       singleflight.New[K, swrResult[V]](),
 		revalidateC:       make(chan func(), 1000),
 		inflightMu:        sync.Mutex{},
 		inflightRefreshes: make(map[K]bool),
@@ -143,31 +155,6 @@ func (c *cache[K, V]) Get(ctx context.Context, key K) (value V, hit CacheHit) {
 	return value, Miss
 }
 
-func (c *cache[K, V]) GetMany(ctx context.Context, keys []K) (values map[K]V, hits map[K]CacheHit) {
-	values = make(map[K]V, len(keys))
-	hits = make(map[K]CacheHit, len(keys))
-	now := c.clock.Now()
-
-	for _, key := range keys {
-		e, ok := c.get(ctx, key)
-		if !ok {
-			hits[key] = Miss
-			continue
-		}
-
-		if now.Before(e.Stale) {
-			values[key] = e.Value
-			hits[key] = e.Hit
-			continue
-		}
-
-		c.otter.Delete(key)
-		hits[key] = Miss
-	}
-
-	return values, hits
-}
-
 func (c *cache[K, V]) SetNull(_ context.Context, key K) {
 	now := c.clock.Now()
 
@@ -180,20 +167,6 @@ func (c *cache[K, V]) SetNull(_ context.Context, key K) {
 	})
 }
 
-func (c *cache[K, V]) SetNullMany(ctx context.Context, keys []K) {
-	now := c.clock.Now()
-	var v V
-
-	for _, key := range keys {
-		c.otter.Set(key, swrEntry[V]{
-			Value: v,
-			Fresh: now.Add(c.fresh),
-			Stale: now.Add(c.stale),
-			Hit:   Null,
-		})
-	}
-}
-
 func (c *cache[K, V]) Set(_ context.Context, key K, value V) {
 	now := c.clock.Now()
 
@@ -203,19 +176,6 @@ func (c *cache[K, V]) Set(_ context.Context, key K, value V) {
 		Stale: now.Add(c.stale),
 		Hit:   Hit,
 	})
-}
-
-func (c *cache[K, V]) SetMany(ctx context.Context, values map[K]V) {
-	now := c.clock.Now()
-
-	for key, value := range values {
-		c.otter.Set(key, swrEntry[V]{
-			Value: value,
-			Fresh: now.Add(c.fresh),
-			Stale: now.Add(c.stale),
-			Hit:   Hit,
-		})
-	}
 }
 
 func (c *cache[K, V]) get(_ context.Context, key K) (swrEntry[V], bool) {
@@ -343,132 +303,38 @@ func (c *cache[K, V]) SWR(
 		c.otter.Delete(key)
 	}
 
-	// Cache Miss - measure total time including all overhead
-	v, err := refreshFromOrigin(ctx)
-	c.recordTiming(ctx, "cache_swr", "miss", start)
-
-	switch op(err) {
-	case WriteValue:
-		c.Set(ctx, key, v)
-	case WriteNull:
-		c.SetNull(ctx, key)
-	case Noop:
-		break
-	}
-
-	if err != nil {
-		// Error occurred, return Miss as the cache hit status
-		return v, Miss, err
-	}
-
-	// Determine cache hit status based on the operation
-	var hit CacheHit
-	switch op(err) {
-	case Noop:
-		// Skip
-	case WriteValue:
-		hit = Hit
-	case WriteNull:
-		hit = Null
-	default:
-		hit = Miss
-	}
-
-	return v, hit, err
-}
-
-func (c *cache[K, V]) SWRMany(
-	ctx context.Context,
-	keys []K,
-	refreshFromOrigin func(context.Context, []K) (map[K]V, error),
-	op func(error) Op,
-) (map[K]V, map[K]CacheHit, error) {
-	// Use GetMany to handle deduplication and basic cache lookups
-	values, hits := c.GetMany(ctx, keys)
-
-	now := c.clock.Now()
-	var staleKeys []K
-	var missingKeys []K
-
-	// Check each unique key for freshness/staleness
-	seen := make(map[K]bool)
-	for _, key := range keys {
-		if seen[key] {
-			continue
+	// A cache miss includes time spent waiting for an existing origin load.
+	result, waitErr := c.originLoads.Do(ctx, key, func(ctx context.Context) (swrResult[V], error) {
+		// Another caller may have filled the cache after this caller observed the
+		// miss but before it entered the singleflight group.
+		if entry, ok := c.get(ctx, key); ok && c.clock.Now().Before(entry.Stale) {
+			return swrResult[V]{value: entry.Value, hit: entry.Hit, loadErr: nil}, nil
 		}
 
-		seen[key] = true
-
-		hit := hits[key]
-		if hit == Miss {
-			missingKeys = append(missingKeys, key)
-			continue
-		}
-
-		if hit == Null {
-			// Null values are cached, no need to refresh
-			continue
-		}
-
-		// For hits, check if they're fresh or stale
-		e, ok := c.get(ctx, key)
-		if ok && now.After(e.Fresh) && now.Before(e.Stale) {
-			// Stale but valid - queue for background refresh
-			staleKeys = append(staleKeys, key)
-		}
-	}
-
-	// Queue stale keys for background refresh
-	if len(staleKeys) > 0 {
-		c.revalidateC <- func() {
-			c.revalidateMany(context.WithoutCancel(ctx), staleKeys, refreshFromOrigin, op)
-		}
-	}
-
-	// Fetch missing keys synchronously
-	if len(missingKeys) > 0 {
-		fetchedValues, err := refreshFromOrigin(ctx, missingKeys)
-
-		switch op(err) {
+		value, loadErr := refreshFromOrigin(ctx)
+		hit := Miss
+		switch op(loadErr) {
 		case WriteValue:
-			if fetchedValues != nil {
-				// Write the values we got
-				c.SetMany(ctx, fetchedValues)
-				for key, value := range fetchedValues {
-					values[key] = value
-					hits[key] = Hit
-				}
-
-				// Automatically write NULL for keys that weren't returned
-				var notFoundKeys []K
-				for _, key := range missingKeys {
-					if _, found := fetchedValues[key]; !found {
-						notFoundKeys = append(notFoundKeys, key)
-					}
-				}
-
-				if len(notFoundKeys) > 0 {
-					c.SetNullMany(ctx, notFoundKeys)
-					for _, key := range notFoundKeys {
-						hits[key] = Null
-					}
-				}
-			}
+			c.Set(ctx, key, value)
+			hit = Hit
 		case WriteNull:
-			c.SetNullMany(ctx, missingKeys)
-			for _, key := range missingKeys {
-				hits[key] = Null
-			}
+			c.SetNull(ctx, key)
+			hit = Null
 		case Noop:
-			// Don't cache anything
+			break
 		}
-
-		if err != nil {
-			return values, hits, err
+		if loadErr != nil {
+			hit = Miss
 		}
+		return swrResult[V]{value: value, hit: hit, loadErr: loadErr}, nil
+	})
+	c.recordTiming(ctx, "cache_swr", "miss", start)
+	if waitErr != nil {
+		var zero V
+		return zero, Miss, waitErr
 	}
 
-	return values, hits, nil
+	return result.value, result.hit, result.loadErr
 }
 
 func (c *cache[K, V]) SWRWithFallback(
@@ -566,65 +432,5 @@ func (c *cache[K, V]) revalidateWithCanonicalKey(
 		c.SetNull(ctx, canonicalKey)
 	case Noop:
 		break
-	}
-}
-
-func (c *cache[K, V]) revalidateMany(
-	ctx context.Context,
-	keys []K,
-	refreshFromOrigin func(context.Context, []K) (map[K]V, error),
-	op func(error) Op,
-) {
-	// Lock to prevent duplicate revalidations
-	c.inflightMu.Lock()
-	var keysToRefresh []K
-	for _, key := range keys {
-		if !c.inflightRefreshes[key] {
-			c.inflightRefreshes[key] = true
-			keysToRefresh = append(keysToRefresh, key)
-		}
-	}
-	c.inflightMu.Unlock()
-
-	if len(keysToRefresh) == 0 {
-		return
-	}
-
-	defer func() {
-		c.inflightMu.Lock()
-		for _, key := range keysToRefresh {
-			delete(c.inflightRefreshes, key)
-		}
-		c.inflightMu.Unlock()
-	}()
-
-	metrics.CacheRevalidations.WithLabelValues(c.resource).Add(float64(len(keysToRefresh)))
-	values, err := refreshFromOrigin(ctx, keysToRefresh)
-
-	if err != nil && !db.IsNotFound(err) {
-		logger.Warn("failed to revalidate many", "error", err.Error(), "keys", keysToRefresh)
-	}
-
-	switch op(err) {
-	case WriteValue:
-		if values != nil {
-			// Write the values we got
-			c.SetMany(ctx, values)
-
-			// Automatically write NULL for keys that weren't returned
-			var notFoundKeys []K
-			for _, key := range keysToRefresh {
-				if _, found := values[key]; !found {
-					notFoundKeys = append(notFoundKeys, key)
-				}
-			}
-			if len(notFoundKeys) > 0 {
-				c.SetNullMany(ctx, notFoundKeys)
-			}
-		}
-	case WriteNull:
-		c.SetNullMany(ctx, keysToRefresh)
-	case Noop:
-		// Don't cache anything
 	}
 }
