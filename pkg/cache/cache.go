@@ -53,7 +53,7 @@ type Config[K comparable, V any] struct {
 	Clock clock.Clock
 }
 
-// swrResult stores a value, cache status, and load error.
+// swrResult stores the three values returned by SWR.
 type swrResult[V any] struct {
 	value   V
 	hit     CacheHit
@@ -310,7 +310,23 @@ func (c *cache[K, V]) SWR(
 		if entry, ok := c.get(ctx, key); ok && c.clock.Now().Before(entry.Stale) {
 			return swrResult[V]{value: entry.Value, hit: entry.Hit, loadErr: nil}, nil
 		}
-		return c.loadFromOrigin(ctx, key, refreshFromOrigin, op), nil
+
+		value, loadErr := refreshFromOrigin(ctx)
+		hit := Miss
+		switch op(loadErr) {
+		case WriteValue:
+			c.Set(ctx, key, value)
+			hit = Hit
+		case WriteNull:
+			c.SetNull(ctx, key)
+			hit = Null
+		case Noop:
+			break
+		}
+		if loadErr != nil {
+			hit = Miss
+		}
+		return swrResult[V]{value: value, hit: hit, loadErr: loadErr}, nil
 	})
 	c.recordTiming(ctx, "cache_swr", "miss", start)
 	if waitErr != nil {
@@ -319,34 +335,6 @@ func (c *cache[K, V]) SWR(
 	}
 
 	return result.value, result.hit, result.loadErr
-}
-
-// loadFromOrigin calls refreshFromOrigin and updates the cache based on its error.
-func (c *cache[K, V]) loadFromOrigin(
-	ctx context.Context,
-	key K,
-	refreshFromOrigin func(context.Context) (V, error),
-	operationForError func(error) Op,
-) swrResult[V] {
-	v, err := refreshFromOrigin(ctx)
-	operation := operationForError(err)
-	hit := Miss
-
-	switch operation {
-	case WriteValue:
-		c.Set(ctx, key, v)
-		hit = Hit
-	case WriteNull:
-		c.SetNull(ctx, key)
-		hit = Null
-	case Noop:
-		break
-	}
-
-	if err != nil {
-		hit = Miss
-	}
-	return swrResult[V]{value: v, hit: hit, loadErr: err}
 }
 
 func (c *cache[K, V]) SWRWithFallback(
