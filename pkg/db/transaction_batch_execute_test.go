@@ -20,7 +20,7 @@ func TestExecuteTransactionBatch(t *testing.T) {
 
 	err = database.BatchRW().executeTransactionBatch(t.Context(), "TestExecuteTransactionBatch", []transactionBatchStatement{{
 		query: "SET @unkey_transaction_batch_test = ?",
-		args:  []any{42},
+		args:  []transactionBatchArgument{{name: "value", value: 42}},
 	}, {
 		query: "SELECT @unkey_transaction_batch_test",
 		args:  nil,

@@ -14,6 +14,7 @@ type BulkQuerier interface {
 	UpsertAppRuntimeSettings(ctx context.Context, db DBTX, args []UpsertAppRuntimeSettingsParams) error
 	UpsertAppRuntimeSettingsPolicyConfig(ctx context.Context, db DBTX, args []UpsertAppRuntimeSettingsPolicyConfigParams) error
 	InsertClickhouseOutboxes(ctx context.Context, db DBTX, args []InsertClickhouseOutboxParams) error
+	InsertClickhouseOutboxWithResultTargets(ctx context.Context, db DBTX, args []InsertClickhouseOutboxWithResultTargetParams) error
 	InsertClickhouseWorkspaceSettingses(ctx context.Context, db DBTX, args []InsertClickhouseWorkspaceSettingsParams) error
 	UpsertRegion(ctx context.Context, db DBTX, args []UpsertRegionParams) error
 	InsertCustomDomains(ctx context.Context, db DBTX, args []InsertCustomDomainParams) error
@@ -42,6 +43,7 @@ type BulkQuerier interface {
 	InsertPortals(ctx context.Context, db DBTX, args []InsertPortalParams) error
 	InsertPortalSessions(ctx context.Context, db DBTX, args []InsertPortalSessionParams) error
 	InsertProjects(ctx context.Context, db DBTX, args []InsertProjectParams) error
+	UpsertDefaultProject(ctx context.Context, db DBTX, args []UpsertDefaultProjectParams) error
 	InsertRatelimitNamespaces(ctx context.Context, db DBTX, args []InsertRatelimitNamespaceParams) error
 	InsertRatelimitOverrides(ctx context.Context, db DBTX, args []InsertRatelimitOverrideParams) error
 	InsertRoles(ctx context.Context, db DBTX, args []InsertRoleParams) error

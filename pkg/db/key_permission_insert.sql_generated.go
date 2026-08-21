@@ -32,7 +32,7 @@ type InsertKeyPermissionParams struct {
 	UpdatedAt    sql.NullInt64 `db:"updated_at"`
 }
 
-// InsertKeyPermission
+// transactional-batch-statement
 //
 //	INSERT INTO `keys_permissions` (
 //	    key_id,
