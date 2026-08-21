@@ -235,6 +235,82 @@ func TestSWR_DeduplicatesConcurrentMisses(t *testing.T) {
 	require.Equal(t, int32(1), loadCount.Load())
 }
 
+// TestSWR_DeduplicatesMissWithActiveRevalidation guarantees that a cold miss
+// joins an active stale refresh instead of starting a second origin load.
+func TestSWR_DeduplicatesMissWithActiveRevalidation(t *testing.T) {
+	ctx := context.Background()
+	mockClock := clock.NewTestClock()
+	c, err := cache.New(cache.Config[string, string]{
+		Fresh:    time.Minute,
+		Stale:    5 * time.Minute,
+		MaxSize:  100,
+		Resource: "test",
+		Clock:    mockClock,
+	})
+	require.NoError(t, err)
+
+	c.Set(ctx, "key", "stale")
+	mockClock.Tick(2 * time.Minute)
+
+	var loadCount atomic.Int32
+	loadStarted := make(chan struct{})
+	releaseLoad := make(chan struct{})
+	var releaseOnce sync.Once
+	release := func() { releaseOnce.Do(func() { close(releaseLoad) }) }
+	t.Cleanup(release)
+
+	load := func(context.Context) (string, error) {
+		if loadCount.Add(1) == 1 {
+			close(loadStarted)
+		}
+		<-releaseLoad
+		return "fresh", nil
+	}
+
+	value, hit, err := c.SWR(ctx, "key", load, func(error) cache.Op {
+		return cache.WriteValue
+	})
+	require.NoError(t, err)
+	require.Equal(t, cache.Hit, hit)
+	require.Equal(t, "stale", value)
+	require.Eventually(t, func() bool {
+		select {
+		case <-loadStarted:
+			return true
+		default:
+			return false
+		}
+	}, time.Second, time.Millisecond)
+
+	c.Remove(ctx, "key")
+	type swrResult struct {
+		value string
+		hit   cache.CacheHit
+		err   error
+	}
+	coldStarted := make(chan struct{})
+	coldDone := make(chan swrResult, 1)
+	go func() {
+		close(coldStarted)
+		coldValue, coldHit, coldErr := c.SWR(ctx, "key", load, func(error) cache.Op {
+			return cache.WriteValue
+		})
+		coldDone <- swrResult{value: coldValue, hit: coldHit, err: coldErr}
+	}()
+	<-coldStarted
+
+	require.Never(t, func() bool {
+		return loadCount.Load() > 1
+	}, 100*time.Millisecond, time.Millisecond)
+
+	release()
+	cold := <-coldDone
+	require.NoError(t, cold.err)
+	require.Equal(t, cache.Hit, cold.hit)
+	require.Equal(t, "fresh", cold.value)
+	require.Equal(t, int32(1), loadCount.Load())
+}
+
 // TestSWR_CanceledMissDoesNotStartAnotherLoad guarantees that an already
 // canceled miss returns without duplicating an active origin load.
 func TestSWR_CanceledMissDoesNotStartAnotherLoad(t *testing.T) {

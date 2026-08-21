@@ -27,8 +27,8 @@ type cache[K comparable, V any] struct {
 	resource string
 	clock    clock.Clock
 
-	// origin deduplicates concurrent cache misses for the same key.
-	origin *singleflight.Group[K, missResult[V]]
+	// originLoads deduplicates active origin loads for the same key.
+	originLoads *singleflight.Group[K, missResult[V]]
 
 	// revalidateC carries background refreshes to the fixed worker pool.
 	revalidateC chan func()
@@ -100,7 +100,7 @@ func New[K comparable, V any](config Config[K, V]) (Cache[K, V], error) {
 		stale:             config.Stale,
 		resource:          config.Resource,
 		clock:             config.Clock,
-		origin:            singleflight.New[K, missResult[V]](),
+		originLoads:       singleflight.New[K, missResult[V]](),
 		revalidateC:       make(chan func(), 1000),
 		revalidationMutex: sync.Mutex{},
 		revalidating:      make(map[K]struct{}),
@@ -260,11 +260,17 @@ func (c *cache[K, V]) SWR(
 		if now.Before(e.Stale) {
 			c.queueRevalidation(key, func() {
 				revalidationCtx := context.WithoutCancel(ctx)
-				if entry, found := c.get(revalidationCtx, key); found && c.clock.Now().Before(entry.Fresh) {
+				result, waitErr := c.originLoads.Do(revalidationCtx, key, func(ctx context.Context) (missResult[V], error) {
+					if entry, found := c.get(ctx, key); found && c.clock.Now().Before(entry.Fresh) {
+						return missResult[V]{value: entry.Value, hit: entry.Hit, err: nil}, nil
+					}
+					metrics.CacheRevalidations.WithLabelValues(c.resource).Inc()
+					return c.loadFromOrigin(ctx, key, refreshFromOrigin, op), nil
+				})
+				if waitErr != nil {
+					logger.Warn("failed to wait for origin load", "error", waitErr.Error(), "key", key)
 					return
 				}
-				metrics.CacheRevalidations.WithLabelValues(c.resource).Inc()
-				result := c.loadFromOrigin(revalidationCtx, key, refreshFromOrigin, op)
 				if result.err != nil && !db.IsNotFound(result.err) {
 					logger.Warn("failed to revalidate", "error", result.err.Error(), "key", key)
 				}
@@ -278,7 +284,7 @@ func (c *cache[K, V]) SWR(
 	}
 
 	// A cache miss includes time spent waiting for an existing origin load.
-	result, waitErr := c.origin.Do(ctx, key, func(ctx context.Context) (missResult[V], error) {
+	result, waitErr := c.originLoads.Do(ctx, key, func(ctx context.Context) (missResult[V], error) {
 		// Another caller may have filled the cache after this caller observed the
 		// miss but before it entered the singleflight group.
 		if entry, ok := c.get(ctx, key); ok && c.clock.Now().Before(entry.Stale) {
