@@ -4,6 +4,14 @@ import type { DeployPlan } from "./stripe/deployPlan";
 export type PlanLimits = Omit<Limits, "workspaceId" | "pk">;
 export type LimitsPlan = "free" | DeployPlan;
 
+/**
+ * The cap the plans below use when custom domains are effectively uncapped. It
+ * exists to stop abuse, not to price the feature, so the pricing page and the
+ * dashboard both call this "Unlimited". A real number keeps the gate in ctrl
+ * simple: it compares a count against one column.
+ */
+export const CUSTOM_DOMAINS_UNLIMITED = 1_000_000;
+
 export const limitsByPlan = {
   free: {
     apiBillableOperationsCountMaxPerMonth: 150_000,
@@ -50,7 +58,7 @@ export const limitsByPlan = {
     storageMibMax: 491_520,
     storageMibMaxPerInstance: 10_240,
     buildsConcurrentMax: 1,
-    customDomainsMax: 1_000_000,
+    customDomainsMax: CUSTOM_DOMAINS_UNLIMITED,
     autoscalingReplicasMax: 8,
   },
   business: {
@@ -66,7 +74,7 @@ export const limitsByPlan = {
     storageMibMax: 983_040,
     storageMibMaxPerInstance: 10_240,
     buildsConcurrentMax: 1,
-    customDomainsMax: 1_000_000,
+    customDomainsMax: CUSTOM_DOMAINS_UNLIMITED,
     autoscalingReplicasMax: 16,
   },
 } satisfies Record<LimitsPlan, PlanLimits>;
