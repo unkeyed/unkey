@@ -114,7 +114,17 @@ export type KeyLocationFormValues = z.infer<typeof keyLocationFormSchema>;
 // `keyauth` and `firewall` are wired through today.
 
 const basePolicyFields = {
-  name: z.string().min(1, "Name is required"),
+  // The name is the policy's identity, so trim before the length checks: a
+  // spaces-only name can never pair, and a trailing space makes a second row
+  // that renders the same as an existing one.
+  name: z
+    .string()
+    .trim()
+    .min(1, "Name is required")
+    .max(
+      POLICY_LIMITS.maxNameLength,
+      `Name must be at most ${POLICY_LIMITS.maxNameLength} characters`,
+    ),
   environmentId: z.string(),
   matchConditions: z.array(matchConditionSchema),
 };
@@ -177,7 +187,7 @@ export type KeyauthRatelimitFormValues = z.infer<typeof keyauthRatelimitFormSche
 const keyauthFormSchema = z.object({
   ...basePolicyFields,
   type: z.literal("keyauth"),
-  keySpaceIds: z
+  keyspaces: z
     .array(z.string())
     .min(1, "Select at least one keyspace")
     .max(POLICY_LIMITS.maxKeyspacesPerPolicy),
@@ -303,7 +313,7 @@ export function getDefaultValues(type: PolicyType): PolicyFormValues {
     .with("keyauth", () => ({
       ...base,
       type: "keyauth" as const,
-      keySpaceIds: [],
+      keyspaces: [],
       locations: [],
       permissionQuery: "",
       ratelimits: [],
@@ -439,7 +449,7 @@ export function toPolicy(
         enabled: true,
         type: "keyauth" as const,
         keyauth: {
-          keySpaceIds: v.keySpaceIds,
+          keyspaces: v.keyspaces,
           locations,
           permissionQuery: v.permissionQuery,
           ...(ratelimits.length > 0 ? { ratelimits } : {}),
@@ -607,7 +617,7 @@ export function fromPolicy(policy: Policy, environmentId: string): PolicyFormVal
         name: p.name,
         environmentId,
         matchConditions,
-        keySpaceIds: p.keyauth.keySpaceIds,
+        keyspaces: p.keyauth.keyspaces,
         locations,
         permissionQuery: p.keyauth.permissionQuery ?? "",
         ratelimits,

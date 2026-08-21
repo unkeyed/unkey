@@ -1,76 +1,88 @@
 "use client";
 
 import { collection } from "@/lib/collections";
-import type { Policy } from "@/lib/collections/deploy/policies.schema";
-import { eq, useLiveQuery } from "@tanstack/react-db";
+import type { PolicyRow } from "@/lib/collections/deploy/policies";
+import { and, eq, useLiveQuery } from "@tanstack/react-db";
 import { useMemo } from "react";
-import { useProjectData } from "../../data-provider";
-import { type MergedPolicy, mergePolicies } from "../components/list/merge";
+import { useAppId, useProjectData } from "../../data-provider";
+import { type Env, type MergedPolicy, mergePolicies } from "../components/list/merge";
 
 type PoliciesData = {
-  envAId: string;
-  envBId: string;
-  envASlug: string;
-  envBSlug: string;
+  productionId: string;
+  previewId: string;
+  productionSlug: string;
+  previewSlug: string;
   merged: MergedPolicy[];
+  /**
+   * Each environment's rows in its own evaluation order. Writes need this, not
+   * `merged`: `merged` follows production, so building preview's list from it
+   * would reorder preview.
+   */
+  rowsByEnv: Record<Env, PolicyRow[]>;
   isLoading: boolean;
   isError: boolean;
 };
 
-/**
- * Loads the two environment-scoped policy lists, strips row-only fields,
- * and merges them into the row shape consumed by `PoliciesList`.
- */
 export function usePoliciesData(): PoliciesData {
-  const { environments } = useProjectData();
+  const { environments, projectId } = useProjectData();
+  const appId = useAppId();
 
-  const envA = environments.find((e) => e.kind === "production") ?? environments.at(0);
-  const envB = environments.find((e) => e.id !== envA?.id) ?? environments.at(1);
+  // create_app.go gives every app one of each, so there is no fallback to make.
+  const production = environments.find((e) => e.kind === "production");
+  const preview = environments.find((e) => e.kind === "preview");
 
-  const envAId = envA?.id ?? "";
-  const envBId = envB?.id ?? "";
-  const envASlug = envA?.slug ?? "production";
-  const envBSlug = envB?.slug ?? "preview";
+  const productionId = production?.id ?? "";
+  const previewId = preview?.id ?? "";
+  const productionSlug = production?.slug ?? "production";
+  const previewSlug = preview?.slug ?? "preview";
 
   const {
-    data: rowsA,
-    isLoading: isLoadingA,
-    isError: isErrorA,
+    data: productionRows,
+    isLoading: isLoadingProduction,
+    isError: isErrorProduction,
   } = useLiveQuery(
     (q) =>
       q
         .from({ p: collection.policies })
-        .where(({ p }) => eq(p.environmentId, envAId))
+        .where(({ p }) =>
+          and(eq(p.projectId, projectId), eq(p.appId, appId), eq(p.environmentId, productionId)),
+        )
         .orderBy(({ p }) => p._order),
-    [envAId],
+    [projectId, appId, productionId],
   );
 
   const {
-    data: rowsB,
-    isLoading: isLoadingB,
-    isError: isErrorB,
+    data: previewRows,
+    isLoading: isLoadingPreview,
+    isError: isErrorPreview,
   } = useLiveQuery(
     (q) =>
       q
         .from({ p: collection.policies })
-        .where(({ p }) => eq(p.environmentId, envBId))
+        .where(({ p }) =>
+          and(eq(p.projectId, projectId), eq(p.appId, appId), eq(p.environmentId, previewId)),
+        )
         .orderBy(({ p }) => p._order),
-    [envBId],
+    [projectId, appId, previewId],
   );
 
-  const merged = useMemo(() => {
-    const policiesA: Policy[] = rowsA.map(({ environmentId: _e, _order: _o, ...p }) => p as Policy);
-    const policiesB: Policy[] = rowsB.map(({ environmentId: _e, _order: _o, ...p }) => p as Policy);
-    return mergePolicies(policiesA, policiesB);
-  }, [rowsA, rowsB]);
+  const merged = useMemo(
+    () => mergePolicies(productionRows, previewRows),
+    [productionRows, previewRows],
+  );
+  const rowsByEnv = useMemo(
+    () => ({ production: productionRows, preview: previewRows }),
+    [productionRows, previewRows],
+  );
 
   return {
-    envAId,
-    envBId,
-    envASlug,
-    envBSlug,
+    productionId,
+    previewId,
+    productionSlug,
+    previewSlug,
     merged,
-    isLoading: isLoadingA || isLoadingB,
-    isError: isErrorA || isErrorB,
+    rowsByEnv,
+    isLoading: isLoadingProduction || isLoadingPreview,
+    isError: isErrorProduction || isErrorPreview,
   };
 }
