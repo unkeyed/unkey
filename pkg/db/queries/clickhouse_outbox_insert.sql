@@ -25,8 +25,8 @@ INSERT INTO `clickhouse_outbox` (
 -- name: InsertClickhouseOutboxForCreditUpdate :exec
 -- transactional-batch-statement
 -- This statement must immediately follow the guarded credit UPDATE. With
--- clientFoundRows enabled on the batch pool, ROW_COUNT() is one for every
--- valid update, including no-ops, and zero for deletion/unlimited/overflow.
+-- clientFoundRows enabled on the batch pool, ROW_COUNT() distinguishes a
+-- missing key while LAST_INSERT_ID() distinguishes valid and rejected states.
 INSERT INTO `clickhouse_outbox` (
     version,
     workspace_id,
@@ -50,4 +50,5 @@ SELECT
     sqlc.arg(created_at)
 FROM `keys` k
 WHERE k.id = sqlc.arg(key_id)
-  AND ROW_COUNT() = 1;
+  AND ROW_COUNT() = 1
+  AND LAST_INSERT_ID() <= 9223372036854775807;

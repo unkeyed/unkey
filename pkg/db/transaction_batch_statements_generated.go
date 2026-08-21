@@ -194,8 +194,8 @@ func updateKeyCreditsIncrementReturningTransactionBatchStatement(params UpdateKe
 		query: updateKeyCreditsIncrementReturning,
 		args: []transactionBatchArgument{
 			{name: "credits", value: params.Credits},
-			{name: "id", value: params.ID},
 			{name: "credits", value: params.Credits},
+			{name: "id", value: params.ID},
 		},
 	}
 }
@@ -204,6 +204,7 @@ func updateKeyCreditsSetTransactionBatchStatement(params UpdateKeyCreditsSetPara
 	return transactionBatchStatement{
 		query: updateKeyCreditsSet,
 		args: []transactionBatchArgument{
+			{name: "credits", value: params.Credits},
 			{name: "credits", value: params.Credits},
 			{name: "clear_refill_amount", value: params.ClearRefillAmount},
 			{name: "clear_refill_day", value: params.ClearRefillDay},

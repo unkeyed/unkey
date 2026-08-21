@@ -564,21 +564,6 @@ type Querier interface {
 	//
 	//  SELECT remaining_requests FROM `keys` k WHERE k.id = ?
 	FindKeyCredits(ctx context.Context, db DBTX, id string) (sql.NullInt64, error)
-	// This current locking read runs before COMMIT in the same multi-statement
-	// command. outbox_rows mirrors whether the immediately preceding conditional
-	// audit insert ran, and the key fields classify a guarded update miss.
-	//
-	//  SELECT
-	//      ROW_COUNT() AS outbox_rows,
-	//      k.id AS key_id,
-	//      k.deleted_at_m,
-	//      k.remaining_requests,
-	//      k.refill_amount,
-	//      k.refill_day
-	//  FROM (SELECT 1) singleton
-	//  LEFT JOIN `keys` k ON k.id = ?
-	//  FOR UPDATE
-	FindKeyCreditsBatchResult(ctx context.Context, db DBTX, id string) (FindKeyCreditsBatchResultRow, error)
 	//FindKeyEncryptionByKeyID
 	//
 	//  SELECT pk, workspace_id, key_id, created_at, updated_at, encrypted, encryption_key_id FROM encrypted_keys WHERE key_id = ?
@@ -1356,8 +1341,8 @@ type Querier interface {
 	InsertClickhouseOutbox(ctx context.Context, db DBTX, arg InsertClickhouseOutboxParams) error
 	// transactional-batch-statement
 	// This statement must immediately follow the guarded credit UPDATE. With
-	// clientFoundRows enabled on the batch pool, ROW_COUNT() is one for every
-	// valid update, including no-ops, and zero for deletion/unlimited/overflow.
+	// clientFoundRows enabled on the batch pool, ROW_COUNT() distinguishes a
+	// missing key while LAST_INSERT_ID() distinguishes valid and rejected states.
 	//
 	//  INSERT INTO `clickhouse_outbox` (
 	//      version,
@@ -1383,6 +1368,7 @@ type Querier interface {
 	//  FROM `keys` k
 	//  WHERE k.id = ?
 	//    AND ROW_COUNT() = 1
+	//    AND LAST_INSERT_ID() <= 9223372036854775807
 	InsertClickhouseOutboxForCreditUpdate(ctx context.Context, db DBTX, arg InsertClickhouseOutboxForCreditUpdateParams) error
 	// transactional-batch-statement
 	// no-bulk-insert
@@ -3079,13 +3065,17 @@ type Querier interface {
 	//
 	//  UPDATE `keys`
 	//  SET
-	//      remaining_requests = LAST_INSERT_ID(CASE
-	//          WHEN remaining_requests >= ? THEN remaining_requests - ?
-	//          ELSE 0
-	//      END)
+	//      remaining_requests = CASE
+	//          WHEN deleted_at_m IS NOT NULL THEN
+	//              IF(LAST_INSERT_ID(18446744073709551615) > 0, remaining_requests, remaining_requests)
+	//          WHEN remaining_requests IS NULL THEN
+	//              IF(LAST_INSERT_ID(18446744073709551614) > 0, remaining_requests, remaining_requests)
+	//          ELSE LAST_INSERT_ID(CASE
+	//              WHEN remaining_requests >= ? THEN remaining_requests - ?
+	//              ELSE 0
+	//          END)
+	//      END
 	//  WHERE id = ?
-	//    AND deleted_at_m IS NULL
-	//    AND remaining_requests IS NOT NULL
 	UpdateKeyCreditsDecrementReturning(ctx context.Context, db DBTX, arg UpdateKeyCreditsDecrementReturningParams) (sql.Result, error)
 	//UpdateKeyCreditsIncrement
 	//
@@ -3100,11 +3090,16 @@ type Querier interface {
 	//
 	//  UPDATE `keys`
 	//  SET
-	//      remaining_requests = LAST_INSERT_ID(remaining_requests + ?)
+	//      remaining_requests = CASE
+	//          WHEN deleted_at_m IS NOT NULL THEN
+	//              IF(LAST_INSERT_ID(18446744073709551615) > 0, remaining_requests, remaining_requests)
+	//          WHEN remaining_requests IS NULL THEN
+	//              IF(LAST_INSERT_ID(18446744073709551614) > 0, remaining_requests, remaining_requests)
+	//          WHEN remaining_requests > 9223372036854775807 - ? THEN
+	//              IF(LAST_INSERT_ID(18446744073709551613) > 0, remaining_requests, remaining_requests)
+	//          ELSE LAST_INSERT_ID(remaining_requests + ?)
+	//      END
 	//  WHERE id = ?
-	//    AND deleted_at_m IS NULL
-	//    AND remaining_requests IS NOT NULL
-	//    AND remaining_requests <= 9223372036854775807 - ?
 	UpdateKeyCreditsIncrementReturning(ctx context.Context, db DBTX, arg UpdateKeyCreditsIncrementReturningParams) (sql.Result, error)
 	//UpdateKeyCreditsRefill
 	//
@@ -3114,17 +3109,24 @@ type Querier interface {
 	//
 	//  UPDATE `keys`
 	//  SET
-	//      remaining_requests = ?,
+	//      remaining_requests = CASE
+	//          WHEN deleted_at_m IS NOT NULL THEN
+	//              IF(LAST_INSERT_ID(18446744073709551615) > 0, remaining_requests, remaining_requests)
+	//          WHEN ? IS NULL THEN
+	//              IF(LAST_INSERT_ID(0) = 0, NULL, NULL)
+	//          ELSE LAST_INSERT_ID(?)
+	//      END,
 	//      refill_amount = CASE
-	//          WHEN CAST(? AS UNSIGNED) = 1 THEN NULL
+	//          WHEN deleted_at_m IS NULL
+	//            AND CAST(? AS UNSIGNED) = 1 THEN NULL
 	//          ELSE refill_amount
 	//      END,
 	//      refill_day = CASE
-	//          WHEN CAST(? AS UNSIGNED) = 1 THEN NULL
+	//          WHEN deleted_at_m IS NULL
+	//            AND CAST(? AS UNSIGNED) = 1 THEN NULL
 	//          ELSE refill_day
 	//      END
 	//  WHERE id = ?
-	//    AND deleted_at_m IS NULL
 	UpdateKeyCreditsSet(ctx context.Context, db DBTX, arg UpdateKeyCreditsSetParams) (sql.Result, error)
 	//UpdateKeySpaceKeyEncryption
 	//

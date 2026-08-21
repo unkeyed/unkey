@@ -34,11 +34,16 @@ func (q *Queries) UpdateKeyCreditsIncrement(ctx context.Context, db DBTX, arg Up
 const updateKeyCreditsIncrementReturning = `-- name: UpdateKeyCreditsIncrementReturning :execresult
 UPDATE ` + "`" + `keys` + "`" + `
 SET
-    remaining_requests = LAST_INSERT_ID(remaining_requests + ?)
+    remaining_requests = CASE
+        WHEN deleted_at_m IS NOT NULL THEN
+            IF(LAST_INSERT_ID(18446744073709551615) > 0, remaining_requests, remaining_requests)
+        WHEN remaining_requests IS NULL THEN
+            IF(LAST_INSERT_ID(18446744073709551614) > 0, remaining_requests, remaining_requests)
+        WHEN remaining_requests > 9223372036854775807 - ? THEN
+            IF(LAST_INSERT_ID(18446744073709551613) > 0, remaining_requests, remaining_requests)
+        ELSE LAST_INSERT_ID(remaining_requests + ?)
+    END
 WHERE id = ?
-  AND deleted_at_m IS NULL
-  AND remaining_requests IS NOT NULL
-  AND remaining_requests <= 9223372036854775807 - ?
 `
 
 type UpdateKeyCreditsIncrementReturningParams struct {
@@ -53,11 +58,16 @@ type UpdateKeyCreditsIncrementReturningParams struct {
 //
 //	UPDATE `keys`
 //	SET
-//	    remaining_requests = LAST_INSERT_ID(remaining_requests + ?)
+//	    remaining_requests = CASE
+//	        WHEN deleted_at_m IS NOT NULL THEN
+//	            IF(LAST_INSERT_ID(18446744073709551615) > 0, remaining_requests, remaining_requests)
+//	        WHEN remaining_requests IS NULL THEN
+//	            IF(LAST_INSERT_ID(18446744073709551614) > 0, remaining_requests, remaining_requests)
+//	        WHEN remaining_requests > 9223372036854775807 - ? THEN
+//	            IF(LAST_INSERT_ID(18446744073709551613) > 0, remaining_requests, remaining_requests)
+//	        ELSE LAST_INSERT_ID(remaining_requests + ?)
+//	    END
 //	WHERE id = ?
-//	  AND deleted_at_m IS NULL
-//	  AND remaining_requests IS NOT NULL
-//	  AND remaining_requests <= 9223372036854775807 - ?
 func (q *Queries) UpdateKeyCreditsIncrementReturning(ctx context.Context, db DBTX, arg UpdateKeyCreditsIncrementReturningParams) (sql.Result, error) {
-	return db.ExecContext(ctx, updateKeyCreditsIncrementReturning, arg.Credits, arg.ID, arg.Credits)
+	return db.ExecContext(ctx, updateKeyCreditsIncrementReturning, arg.Credits, arg.Credits, arg.ID)
 }

@@ -40,13 +40,17 @@ func (q *Queries) UpdateKeyCreditsDecrement(ctx context.Context, db DBTX, arg Up
 const updateKeyCreditsDecrementReturning = `-- name: UpdateKeyCreditsDecrementReturning :execresult
 UPDATE ` + "`" + `keys` + "`" + `
 SET
-    remaining_requests = LAST_INSERT_ID(CASE
-        WHEN remaining_requests >= ? THEN remaining_requests - ?
-        ELSE 0
-    END)
+    remaining_requests = CASE
+        WHEN deleted_at_m IS NOT NULL THEN
+            IF(LAST_INSERT_ID(18446744073709551615) > 0, remaining_requests, remaining_requests)
+        WHEN remaining_requests IS NULL THEN
+            IF(LAST_INSERT_ID(18446744073709551614) > 0, remaining_requests, remaining_requests)
+        ELSE LAST_INSERT_ID(CASE
+            WHEN remaining_requests >= ? THEN remaining_requests - ?
+            ELSE 0
+        END)
+    END
 WHERE id = ?
-  AND deleted_at_m IS NULL
-  AND remaining_requests IS NOT NULL
 `
 
 type UpdateKeyCreditsDecrementReturningParams struct {
@@ -61,13 +65,17 @@ type UpdateKeyCreditsDecrementReturningParams struct {
 //
 //	UPDATE `keys`
 //	SET
-//	    remaining_requests = LAST_INSERT_ID(CASE
-//	        WHEN remaining_requests >= ? THEN remaining_requests - ?
-//	        ELSE 0
-//	    END)
+//	    remaining_requests = CASE
+//	        WHEN deleted_at_m IS NOT NULL THEN
+//	            IF(LAST_INSERT_ID(18446744073709551615) > 0, remaining_requests, remaining_requests)
+//	        WHEN remaining_requests IS NULL THEN
+//	            IF(LAST_INSERT_ID(18446744073709551614) > 0, remaining_requests, remaining_requests)
+//	        ELSE LAST_INSERT_ID(CASE
+//	            WHEN remaining_requests >= ? THEN remaining_requests - ?
+//	            ELSE 0
+//	        END)
+//	    END
 //	WHERE id = ?
-//	  AND deleted_at_m IS NULL
-//	  AND remaining_requests IS NOT NULL
 func (q *Queries) UpdateKeyCreditsDecrementReturning(ctx context.Context, db DBTX, arg UpdateKeyCreditsDecrementReturningParams) (sql.Result, error) {
 	return db.ExecContext(ctx, updateKeyCreditsDecrementReturning, arg.Credits, arg.Credits, arg.ID)
 }
