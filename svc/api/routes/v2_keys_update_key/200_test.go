@@ -82,7 +82,7 @@ func TestUpdateKeySuccess(t *testing.T) {
 
 		req := handler.Request{
 			KeyId:      keyResponse.KeyID,
-			Ratelimits: ptr.P([]openapi.RatelimitRequest{ratelimit}),
+			Ratelimits: nullable.NewNullableWithValue([]openapi.RatelimitRequest{ratelimit}),
 		}
 
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
@@ -108,7 +108,7 @@ func TestUpdateKeySuccess(t *testing.T) {
 
 		req = handler.Request{
 			KeyId:      keyResponse.KeyID,
-			Ratelimits: ptr.P([]openapi.RatelimitRequest{ratelimit}),
+			Ratelimits: nullable.NewNullableWithValue([]openapi.RatelimitRequest{ratelimit}),
 		}
 
 		res = testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
@@ -129,7 +129,7 @@ func TestUpdateKeySuccess(t *testing.T) {
 		replacement.Name = "replacement"
 		res = testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
 			KeyId:      keyResponse.KeyID,
-			Ratelimits: ptr.P([]openapi.RatelimitRequest{replacement}),
+			Ratelimits: nullable.NewNullableWithValue([]openapi.RatelimitRequest{replacement}),
 		})
 		require.Equal(t, http.StatusOK, res.Status)
 
@@ -140,7 +140,7 @@ func TestUpdateKeySuccess(t *testing.T) {
 
 		res = testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
 			KeyId:      keyResponse.KeyID,
-			Ratelimits: ptr.P([]openapi.RatelimitRequest{}),
+			Ratelimits: nullable.NewNullNullable[[]openapi.RatelimitRequest](),
 		})
 		require.Equal(t, http.StatusOK, res.Status)
 
@@ -648,7 +648,7 @@ func TestUpdateKeyConcurrentRatelimits(t *testing.T) {
 			}
 			req := handler.Request{
 				KeyId:      keyResponse.KeyID,
-				Ratelimits: ptr.P(ratelimits),
+				Ratelimits: nullable.NewNullableWithValue(ratelimits),
 			}
 			res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 			if res.Status != 200 {

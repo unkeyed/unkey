@@ -71,7 +71,7 @@ func TestUpdateKeyBatchRollsBackWhenAuditInsertFails(t *testing.T) {
 		Credits: nullable.NewNullableWithValue(openapi.UpdateKeyCreditsData{
 			Remaining: nullable.NewNullableWithValue(int64(99)),
 		}),
-		Ratelimits: ptr.P([]openapi.RatelimitRequest{{
+		Ratelimits: nullable.NewNullableWithValue([]openapi.RatelimitRequest{{
 			Name: "batch-limit", Limit: 10, Duration: 1_000, AutoApply: true,
 		}}),
 		Permissions: ptr.P([]string{"batch.permission"}),

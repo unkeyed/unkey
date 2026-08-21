@@ -220,9 +220,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	permissionSlugs := uniqueSortedStrings(req.Permissions)
 	roleNames := uniqueSortedStrings(req.Roles)
 	requestedRatelimits := make(map[string]openapi.RatelimitRequest)
-	if req.Ratelimits != nil {
-		requestedRatelimits = make(map[string]openapi.RatelimitRequest, len(*req.Ratelimits))
-		for _, ratelimit := range *req.Ratelimits {
+	if req.Ratelimits.IsSpecified() && !req.Ratelimits.IsNull() {
+		ratelimits := req.Ratelimits.MustGet()
+		requestedRatelimits = make(map[string]openapi.RatelimitRequest, len(ratelimits))
+		for _, ratelimit := range ratelimits {
 			requestedRatelimits[ratelimit.Name] = ratelimit
 		}
 	}
@@ -390,7 +391,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		})
 	}
 
-	if req.Ratelimits != nil {
+	if req.Ratelimits.IsSpecified() {
 		batch.RatelimitDelete = &db.DeleteKeyRatelimitsForUpdateKeyParams{
 			KeyID:       sql.NullString{String: key.ID, Valid: true},
 			WorkspaceID: principal.WorkspaceID,
