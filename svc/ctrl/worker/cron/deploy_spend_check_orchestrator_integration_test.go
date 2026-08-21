@@ -1,6 +1,7 @@
 package cron_test
 
 import (
+	"errors"
 	"testing"
 	"time"
 
@@ -52,11 +53,13 @@ func TestRunDeploySpendCheck_OrchestratorIntegration(t *testing.T) {
 	reader := &fakeUsageReader{} //nolint:exhaustruct // set per subtest
 	h := harness.New(t, harness.WithDeployBilling(reader, newFakePusher(), newFakeCloser()))
 
-	// The harness database persists across test runs, and earlier runs (or
-	// other tests) can leave budgeted workspaces behind. The orchestrator
-	// counts below are asserted exactly, so start from an empty opt-in set.
+	// The harness database persists across test runs, and earlier runs can leave
+	// budgeted or spend-suspended workspaces behind. Both are in the
+	// orchestrator's dispatch set, so clear both before exact count assertions.
 	_, err := h.DB.RW().ExecContext(h.Ctx,
-		`UPDATE workspace_billing SET spend_budget_cents = NULL WHERE spend_budget_cents IS NOT NULL`)
+		`UPDATE workspace_billing
+		SET spend_budget_cents = NULL, spend_suspended = FALSE
+		WHERE spend_budget_cents IS NOT NULL OR spend_suspended = TRUE`)
 	require.NoError(t, err)
 
 	period := time.Now().UTC().Format("2006-01")
@@ -105,5 +108,23 @@ func TestRunDeploySpendCheck_OrchestratorIntegration(t *testing.T) {
 		instanceReads, _ := reader.reads()
 		require.Equal(t, 8, instanceReads)
 		require.Equal(t, 2, reader.maxInstanceConcurrency())
+	})
+
+	t.Run("failed usage read does not wedge the period object", func(t *testing.T) {
+		reader.set(nil)
+		seedBudgetedWorkspace(t, h, uid.New("cus"), 1_000_000)
+		reader.failInstanceReads(errors.New("forced usage read failure"))
+
+		started := time.Now()
+		_, err := run()
+		require.ErrorContains(t, err, "forced usage read failure")
+		require.Less(t, time.Since(started), 10*time.Second)
+		instanceReads, _ := reader.reads()
+		require.Equal(t, 5, instanceReads)
+
+		reader.set(nil)
+		resp, err := run()
+		require.NoError(t, err)
+		require.Equal(t, int32(0), resp.GetWorkspacesDispatched())
 	})
 }
