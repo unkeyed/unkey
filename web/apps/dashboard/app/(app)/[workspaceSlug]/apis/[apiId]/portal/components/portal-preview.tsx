@@ -6,18 +6,17 @@ import { onPrimaryColor } from "@unkey/ui/src/lib/branding";
 import { useState } from "react";
 import { DEFAULT_BRAND_COLOR, type PortalBrandingValue } from "./portal-branding";
 
-/**
- * The real address is derived from the deployment's `portal_base_url`, which the
- * dashboard is not told, so the mock address bar stays generic rather than
- * asserting a host that would be wrong on staging or a self-hosted install.
- */
+// Generic rather than a real host: the dashboard is not told the deployment's
+// `portal_base_url`.
 const MOCK_ADDRESS = "Your customer portal";
 
 /**
- * Literal hex rather than palette classes. The dashboard's Tailwind config sets
- * `theme.colors` instead of `theme.extend.colors`, which replaces the default
- * palette outright — `neutral-*` and even `white` do not resolve here, so those
- * classes would silently render nothing.
+ * Neutrals are literal hex, not palette classes: the dashboard's Tailwind config
+ * sets `theme.colors` instead of `theme.extend.colors`, so it replaces the
+ * default palette and `neutral-*`/`white` resolve to nothing here. They are also
+ * fixed light values rather than the dashboard's `gray-*` tokens because the
+ * portal ships light-only, and a theme-reactive mock would preview a portal the
+ * operator's users never see.
  */
 const LIGHT = {
   surface: "#ffffff",
@@ -29,20 +28,9 @@ const LIGHT = {
 } as const;
 
 /**
- * Static, deliberately-lo-fi mock of the end-user portal page so operators can
- * see their logo + brand color in context before going live. Mirrors the real
- * portal layout (web/apps/portal): brand-colored header bar with the logo on
- * it, then the keys heading with "Create key" at the top of the list.
- *
- * The brand bar shows the slug because that is what the live portal renders:
- * `web/apps/portal/src/routes/_portal.tsx` passes `appName={portal?.slug}`.
- *
- * Every neutral here is a fixed light value rather than a `gray-*` token. The
- * portal ships light-only — its root sets no `dark` class and its source has no
- * `dark:` variants — so a preview built from dashboard tokens would turn dark
- * with the operator's own theme and show them a portal their users never see.
- * The brand color and its computed foreground are the only theme-varying parts,
- * because those are the parts the operator actually controls.
+ * Static mock of the end-user portal so operators can see their logo and brand
+ * color in context. The brand bar shows the slug because the live portal passes
+ * `appName={portal?.slug}` (web/apps/portal/src/routes/_portal.tsx).
  */
 export function PortalPreview({
   slug,
@@ -55,24 +43,28 @@ export function PortalPreview({
 }) {
   const [erroredUrl, setErroredUrl] = useState<string | null>(null);
   const color = isHexColor(branding.primaryColor) ? branding.primaryColor : DEFAULT_BRAND_COLOR;
-  // The same helper the portal itself uses, so the preview cannot disagree with
-  // what an end user sees.
+  // The same helper the portal itself uses, so the two cannot disagree.
   const onColor = onPrimaryColor(color);
-  // Validated here rather than trusting the caller: this is the sink that turns
-  // the value into a request, so the scheme check travels with it.
+  // Validated at the sink, so a caller that forgets cannot make this fetch
+  // an arbitrary URL.
   const logoUrl = branding.logoUrl.trim();
   const showLogo =
     logoUrl.length > 0 && logoUrlSchema.safeParse(logoUrl).success && erroredUrl !== logoUrl;
 
   return (
     <div
-      className={cn("flex w-full flex-col overflow-hidden rounded-lg shadow-sm", className)}
-      // Keeps any UA-styled descendant light too, so the mock cannot pick up the
-      // dashboard's dark scheme.
+      // Border width comes from classes, ahead of `className`, so a caller can
+      // still drop an edge with `border-b-0`; only the color has to be inline.
+      className={cn(
+        "flex w-full flex-col overflow-hidden rounded-lg border border-solid shadow-sm",
+        className,
+      )}
+      // `colorScheme` keeps UA-styled descendants light too, so the mock cannot
+      // pick up the dashboard's dark scheme.
       style={{
         colorScheme: "light",
         backgroundColor: LIGHT.surface,
-        border: `1px solid ${LIGHT.border}`,
+        borderColor: LIGHT.border,
       }}
     >
       <div
@@ -133,8 +125,7 @@ export function PortalPreview({
             className="shrink-0 rounded-md px-3 py-1.5 text-[11px] font-medium"
             style={{ backgroundColor: color }}
           >
-            {/* Sits on the brand color, so its tint comes from the computed
-                foreground rather than a theme token. */}
+            {/* Sits on the brand color, so it tints with the computed foreground. */}
             <div className="h-2 w-8 rounded-sm" style={{ backgroundColor: `${onColor}33` }} />
           </div>
         </div>
