@@ -155,13 +155,7 @@ const portal: Portal = {
 };
 
 function renderConfig(overrides?: Partial<Portal>) {
-  return render(
-    <PortalConfig
-      portal={{ ...portal, ...overrides }}
-      keyAuthId="ks_123"
-      resourceName="Acme API"
-    />,
-  );
+  return render(<PortalConfig portal={{ ...portal, ...overrides }} keyAuthId="ks_123" />);
 }
 
 function input(label: string): HTMLInputElement {
@@ -258,7 +252,6 @@ describe("PortalConfig", () => {
       <PortalConfig
         portal={{ ...portal, branding: { logoUrl: "https://cdn.example.com/theirs.png" } }}
         keyAuthId="ks_123"
-        resourceName="Acme API"
       />,
     );
 

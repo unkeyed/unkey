@@ -196,7 +196,7 @@ export function PortalLifecyclePage({
             )}
             {/* The prop, not `state.portal.mapping.id`: a mapping id is only a
                 keyspace id for keyspace mappings. */}
-            <PortalConfig portal={state.portal} keyAuthId={keyAuthId} resourceName={resourceName} />
+            <PortalConfig portal={state.portal} keyAuthId={keyAuthId} />
           </div>
         ) : (
           <PortalErrorPanel message={NO_KEYSPACE_MESSAGE} />

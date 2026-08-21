@@ -64,11 +64,9 @@ function useDebouncedLogoUrl(value: string, initial: string): string {
 type Props = {
   portal: Portal;
   keyAuthId: string;
-  /** The mapped API's name. Read-only: a portal carries no name of its own. */
-  resourceName: string;
 };
 
-export function PortalConfig({ portal, keyAuthId, resourceName }: Props) {
+export function PortalConfig({ portal, keyAuthId }: Props) {
   const [disableOpen, setDisableOpen] = useState(false);
 
   // The slug conflict is claimed so it lands on the field instead of in a
@@ -126,11 +124,6 @@ export function PortalConfig({ portal, keyAuthId, resourceName }: Props) {
         <div className="flex flex-col gap-4 p-6 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <h2 className="text-sm font-medium text-accent-12">Portal slug</h2>
-            <p className="mt-1 text-[13px] leading-5 text-gray-11">
-              Pass this as <span className="font-mono text-gray-12">portal</span> when you call{" "}
-              <span className="font-mono text-gray-12">createSession</span>. Serves keys for{" "}
-              <span className="font-medium text-gray-12">{resourceName}</span>.
-            </p>
           </div>
           <div className="flex min-w-0 items-center gap-1">
             {/* The saved slug, never the form draft: an unsaved slug is a value
@@ -214,7 +207,8 @@ export function PortalConfig({ portal, keyAuthId, resourceName }: Props) {
           <div className="space-y-1">
             <p className="text-sm font-medium text-gray-12">Disable portal</p>
             <p className="text-[13px] text-gray-11">
-              Your users lose access to the portal immediately. Their keys keep working.
+              By disabling this users will lose access to the portal immediately. Their keys will
+              keep working.
             </p>
           </div>
           <Button variant="outline" color="danger" onClick={() => setDisableOpen(true)}>

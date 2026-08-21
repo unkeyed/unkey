@@ -61,7 +61,7 @@ export function DeletePortalRow({ portal, keyAuthId }: { portal: Portal; keyAuth
     <>
       <SettingsZoneRow
         title="Delete this portal"
-        description="Permanently remove the portal, end every live end-user session, and free the slug for reuse."
+        description="Permanently remove the portal, end every live user session, and free the slug for reuse."
         action={{
           label: "Delete portal",
           onClick: () => setOpen(true),
