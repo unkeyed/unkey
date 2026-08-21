@@ -279,21 +279,15 @@ export const policySchema = z.discriminatedUnion("type", [
 export type Policy = z.infer<typeof policySchema>;
 export type PolicyType = Policy["type"];
 
-/** Derived from the union so a new variant cannot be missed. */
-export const POLICY_VARIANT_KEYS: readonly PolicyType[] = policySchema.options.map(
-  (option) => option.shape.type.value,
-);
-
 /** `"Auth "` and `"auth"` render alike, so they must not be two policies. */
 export function normalizePolicyName(name: string): string {
   return name.trim().toLowerCase();
 }
 
 /**
- * Matches a policy across environments. Each environment holds its own copy
- * under its own server id, so ids never line up and the name carries identity
- * instead. Type joins it because a name can repeat across types: a firewall and
- * a ratelimit policy both called "Guard" are two policies, not one.
+ * A policy's identity. Type belongs in it because a name can repeat across
+ * types: a firewall and a ratelimit policy both called "Guard" are two
+ * policies, not one.
  */
 export function policyIdentity(type: PolicyType, name: string): string {
   return `${type}:${normalizePolicyName(name)}`;

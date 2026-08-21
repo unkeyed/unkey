@@ -36,8 +36,8 @@ describe("mergePolicies", () => {
     expect(merged).toHaveLength(1);
     expect(merged[0]).toMatchObject({
       key: policyIdentity("firewall", "KEBAP"),
-      envA: { id: "pol_a1" },
-      envB: { id: "pol_a2" },
+      production: { id: "pol_a1" },
+      preview: { id: "pol_a2" },
     });
   });
 
@@ -52,13 +52,13 @@ describe("mergePolicies", () => {
     expect(merged).toHaveLength(2);
     expect(merged.find((m) => m.name === "Prod only")).toMatchObject({
       key: policyIdentity("firewall", "Prod only"),
-      envA: { id: "pol_a1" },
-      envB: null,
+      production: { id: "pol_a1" },
+      preview: null,
     });
     expect(merged.find((m) => m.name === "Preview only")).toMatchObject({
       key: policyIdentity("firewall", "Preview only"),
-      envA: null,
-      envB: { id: "pol_b1" },
+      production: null,
+      preview: { id: "pol_b1" },
     });
   });
 
@@ -68,19 +68,19 @@ describe("mergePolicies", () => {
       [firewall("pol_b1", "Dup")],
     );
 
-    // All three stay unpaired. The name occurs two times in list A, so it
-    // cannot resolve to the single entry in list B.
+    // All three stay unpaired. The name occurs two times in production, so it
+    // cannot resolve to the single entry in preview.
     expect(merged).toHaveLength(3);
-    expect(merged.every((m) => m.envA === null || m.envB === null)).toBe(true);
+    expect(merged.every((m) => m.production === null || m.preview === null)).toBe(true);
   });
 
   it("falls back to an id-based key for a true in-environment duplicate", () => {
     const merged = mergePolicies([firewall("pol_a1", "Dup"), firewall("pol_a2", "Dup")], []);
 
-    expect(merged.map((m) => m.key).sort()).toEqual(["envA:pol_a1", "envA:pol_a2"]);
+    expect(merged.map((m) => m.key).sort()).toEqual(["production:pol_a1", "production:pol_a2"]);
   });
 
-  it("appends envB-only policies after all envA rows", () => {
+  it("appends preview-only policies after all production rows", () => {
     const merged = mergePolicies(
       [firewall("pol_a1", "A"), firewall("pol_a2", "B")],
       [firewall("pol_b1", "B"), firewall("pol_b2", "Only in B")],
@@ -97,13 +97,13 @@ describe("policy type", () => {
     expect(merged).toHaveLength(2);
     expect(merged.find((m) => m.type === "firewall")).toMatchObject({
       key: policyIdentity("firewall", "Guard"),
-      envA: { id: "pol_a1" },
-      envB: null,
+      production: { id: "pol_a1" },
+      preview: null,
     });
     expect(merged.find((m) => m.type === "ratelimit")).toMatchObject({
       key: policyIdentity("ratelimit", "Guard"),
-      envA: null,
-      envB: { id: "pol_b1" },
+      production: null,
+      preview: { id: "pol_b1" },
     });
   });
 
@@ -111,8 +111,12 @@ describe("policy type", () => {
     const merged = mergePolicies([firewall("pol_a1", "Guard"), ratelimit("pol_a2", "Guard")], []);
 
     expect(new Set(merged.map((m) => m.key)).size).toBe(2);
-    expect(policyInEnv(merged, policyIdentity("firewall", "Guard"), "envA")?.id).toBe("pol_a1");
-    expect(policyInEnv(merged, policyIdentity("ratelimit", "Guard"), "envA")?.id).toBe("pol_a2");
+    expect(policyInEnv(merged, policyIdentity("firewall", "Guard"), "production")?.id).toBe(
+      "pol_a1",
+    );
+    expect(policyInEnv(merged, policyIdentity("ratelimit", "Guard"), "production")?.id).toBe(
+      "pol_a2",
+    );
   });
 });
 
@@ -123,15 +127,15 @@ describe("name folding", () => {
     expect(merged).toHaveLength(1);
     expect(merged[0]).toMatchObject({
       name: "Auth ",
-      envA: { id: "pol_a1" },
-      envB: { id: "pol_b1" },
+      production: { id: "pol_a1" },
+      preview: { id: "pol_b1" },
     });
   });
 
   it("does not pair two names that fold the same within one environment", () => {
     const merged = mergePolicies([firewall("pol_a1", "Auth"), firewall("pol_a2", "auth")], []);
 
-    expect(merged.map((m) => m.key).sort()).toEqual(["envA:pol_a1", "envA:pol_a2"]);
+    expect(merged.map((m) => m.key).sort()).toEqual(["production:pol_a1", "production:pol_a2"]);
   });
 });
 
@@ -142,25 +146,25 @@ describe("policyInEnv", () => {
     const merged = mergePolicies([firewall("pol_a1", "KEBAP")], [firewall("pol_b1", "KEBAP")]);
     const key = policyIdentity("firewall", "KEBAP");
 
-    expect(policyInEnv(merged, key, "envA")?.id).toBe("pol_a1");
-    expect(policyInEnv(merged, key, "envB")?.id).toBe("pol_b1");
+    expect(policyInEnv(merged, key, "production")?.id).toBe("pol_a1");
+    expect(policyInEnv(merged, key, "preview")?.id).toBe("pol_b1");
   });
 
   it("resolves an id-keyed duplicate-name row that a name lookup would miss", () => {
     const merged = mergePolicies([firewall("pol_a1", "Dup"), firewall("pol_a2", "Dup")], []);
 
-    expect(policyInEnv(merged, "envA:pol_a2", "envA")?.id).toBe("pol_a2");
-    expect(policyInEnv(merged, "envA:pol_a2", "envB")).toBeNull();
+    expect(policyInEnv(merged, "production:pol_a2", "production")?.id).toBe("pol_a2");
+    expect(policyInEnv(merged, "production:pol_a2", "preview")).toBeNull();
   });
 
   it("returns null for an environment the row does not exist in", () => {
     const merged = mergePolicies([firewall("pol_a1", "Prod only")], []);
 
-    expect(policyInEnv(merged, policyIdentity("firewall", "Prod only"), "envB")).toBeNull();
+    expect(policyInEnv(merged, policyIdentity("firewall", "Prod only"), "preview")).toBeNull();
   });
 
   it("returns null for an unknown key", () => {
-    expect(policyInEnv(mergePolicies([], []), "nope", "envA")).toBeNull();
+    expect(policyInEnv(mergePolicies([], []), "nope", "production")).toBeNull();
   });
 });
 
@@ -168,12 +172,12 @@ describe("policyInEnv", () => {
 describe("blank names", () => {
   it("never yields an empty key, which React cannot use", () => {
     const merged = mergePolicies([firewall("pol_a1", "   ")], [firewall("pol_b1", "   ")]);
-    expect(merged.map((m) => m.key)).toEqual(["envA:pol_a1", "envB:pol_b1"]);
+    expect(merged.map((m) => m.key)).toEqual(["production:pol_a1", "preview:pol_b1"]);
   });
 
   it("does not pair two unrelated unnamed policies across environments", () => {
     const merged = mergePolicies([firewall("pol_a1", "   ")], [firewall("pol_b1", "\t")]);
     expect(merged).toHaveLength(2);
-    expect(merged.every((m) => m.envA === null || m.envB === null)).toBe(true);
+    expect(merged.every((m) => m.production === null || m.preview === null)).toBe(true);
   });
 });

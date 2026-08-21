@@ -1,73 +1,88 @@
 "use client";
 
 import { collection } from "@/lib/collections";
+import type { PolicyRow } from "@/lib/collections/deploy/policies";
 import { and, eq, useLiveQuery } from "@tanstack/react-db";
 import { useMemo } from "react";
 import { useAppId, useProjectData } from "../../data-provider";
-import { type MergedPolicy, mergePolicies } from "../components/list/merge";
+import { type Env, type MergedPolicy, mergePolicies } from "../components/list/merge";
 
 type PoliciesData = {
-  envAId: string;
-  envBId: string;
-  envASlug: string;
-  envBSlug: string;
+  productionId: string;
+  previewId: string;
+  productionSlug: string;
+  previewSlug: string;
   merged: MergedPolicy[];
+  /**
+   * Each environment's rows in its own evaluation order. Writes need this, not
+   * `merged`: `merged` follows production, so building preview's list from it
+   * would reorder preview.
+   */
+  rowsByEnv: Record<Env, PolicyRow[]>;
   isLoading: boolean;
   isError: boolean;
 };
 
-/** Loads both environments' policies in parallel and merges them into rows. */
 export function usePoliciesData(): PoliciesData {
   const { environments, projectId } = useProjectData();
   const appId = useAppId();
 
-  const envA = environments.find((e) => e.kind === "production") ?? environments.at(0);
-  const envB = environments.find((e) => e.id !== envA?.id) ?? environments.at(1);
+  // create_app.go gives every app one of each, so there is no fallback to make.
+  const production = environments.find((e) => e.kind === "production");
+  const preview = environments.find((e) => e.kind === "preview");
 
-  const envAId = envA?.id ?? "";
-  const envBId = envB?.id ?? "";
-  const envASlug = envA?.slug ?? "production";
-  const envBSlug = envB?.slug ?? "preview";
+  const productionId = production?.id ?? "";
+  const previewId = preview?.id ?? "";
+  const productionSlug = production?.slug ?? "production";
+  const previewSlug = preview?.slug ?? "preview";
 
   const {
-    data: rowsA,
-    isLoading: isLoadingA,
-    isError: isErrorA,
+    data: productionRows,
+    isLoading: isLoadingProduction,
+    isError: isErrorProduction,
   } = useLiveQuery(
     (q) =>
       q
         .from({ p: collection.policies })
         .where(({ p }) =>
-          and(eq(p.projectId, projectId), eq(p.appId, appId), eq(p.environmentId, envAId)),
+          and(eq(p.projectId, projectId), eq(p.appId, appId), eq(p.environmentId, productionId)),
         )
         .orderBy(({ p }) => p._order),
-    [projectId, appId, envAId],
+    [projectId, appId, productionId],
   );
 
   const {
-    data: rowsB,
-    isLoading: isLoadingB,
-    isError: isErrorB,
+    data: previewRows,
+    isLoading: isLoadingPreview,
+    isError: isErrorPreview,
   } = useLiveQuery(
     (q) =>
       q
         .from({ p: collection.policies })
         .where(({ p }) =>
-          and(eq(p.projectId, projectId), eq(p.appId, appId), eq(p.environmentId, envBId)),
+          and(eq(p.projectId, projectId), eq(p.appId, appId), eq(p.environmentId, previewId)),
         )
         .orderBy(({ p }) => p._order),
-    [projectId, appId, envBId],
+    [projectId, appId, previewId],
   );
 
-  const merged = useMemo(() => mergePolicies(rowsA, rowsB), [rowsA, rowsB]);
+  const merged = useMemo(
+    () => mergePolicies(productionRows, previewRows),
+    [productionRows, previewRows],
+  );
+  const rowsByEnv = useMemo(
+    () => ({ production: productionRows, preview: previewRows }),
+    [productionRows, previewRows],
+  );
 
   return {
-    envAId,
-    envBId,
-    envASlug,
-    envBSlug,
+    productionId,
+    previewId,
+    productionSlug,
+    previewSlug,
     merged,
-    isLoading: isLoadingA || isLoadingB,
-    isError: isErrorA || isErrorB,
+    rowsByEnv,
+    isLoading: isLoadingProduction || isLoadingPreview,
+    isError: isErrorProduction || isErrorPreview,
   };
 }

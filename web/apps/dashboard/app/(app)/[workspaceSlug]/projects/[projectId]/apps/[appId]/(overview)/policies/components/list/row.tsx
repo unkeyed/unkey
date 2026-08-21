@@ -12,8 +12,8 @@ type MergedPolicyRow = {
   key: string;
   name: string;
   type: Policy["type"];
-  envA: Policy | null;
-  envB: Policy | null;
+  production: Policy | null;
+  preview: Policy | null;
 };
 
 type PolicyRowProps = {
@@ -21,12 +21,12 @@ type PolicyRowProps = {
   index: number;
   isLast: boolean;
   isDragOver: boolean;
-  envASlug: string;
-  envBSlug: string;
-  onToggleEnvA: (key: string) => void;
-  onToggleEnvB: (key: string) => void;
-  onAddToEnvA: (key: string) => void;
-  onAddToEnvB: (key: string) => void;
+  productionSlug: string;
+  previewSlug: string;
+  onToggleProduction: (key: string) => void;
+  onTogglePreview: (key: string) => void;
+  onAddToProduction: (key: string) => void;
+  onAddToPreview: (key: string) => void;
   onDelete: (key: string) => void;
   onEdit: (policy: Policy) => void;
   onDragStart: (index: number) => void;
@@ -48,12 +48,12 @@ export function PolicyRow({
   index,
   isLast,
   isDragOver,
-  envASlug,
-  envBSlug,
-  onToggleEnvA,
-  onToggleEnvB,
-  onAddToEnvA,
-  onAddToEnvB,
+  productionSlug,
+  previewSlug,
+  onToggleProduction,
+  onTogglePreview,
+  onAddToProduction,
+  onAddToPreview,
   onDelete,
   onEdit,
   onDragStart,
@@ -73,7 +73,7 @@ export function PolicyRow({
       divider: true,
       onClick: (e) => {
         e.stopPropagation();
-        const target = policy.envA ?? policy.envB;
+        const target = policy.production ?? policy.preview;
         if (target) {
           onEdit(target);
         }
@@ -90,7 +90,8 @@ export function PolicyRow({
     },
   ];
 
-  const isActiveAnywhere = (policy.envA?.enabled ?? false) || (policy.envB?.enabled ?? false);
+  const isActiveAnywhere =
+    (policy.production?.enabled ?? false) || (policy.preview?.enabled ?? false);
 
   return (
     <div
@@ -132,7 +133,7 @@ export function PolicyRow({
           tabIndex={0}
           className="group flex items-center hover:bg-grayA-2 transition-colors cursor-pointer w-full text-left"
           onClick={() => {
-            const target = policy.envA ?? policy.envB;
+            const target = policy.production ?? policy.preview;
             if (target) {
               onEdit(target);
             }
@@ -140,7 +141,7 @@ export function PolicyRow({
           onKeyDown={(e) => {
             if (e.key === "Enter" || e.key === " ") {
               e.preventDefault();
-              const target = policy.envA ?? policy.envB;
+              const target = policy.production ?? policy.preview;
               if (target) {
                 onEdit(target);
               }
@@ -196,17 +197,17 @@ export function PolicyRow({
           <div className="flex-3 min-w-0 py-5 flex items-center gap-3 pr-3">
             <EnvSwitch
               policyKey={policy.key}
-              slug={envASlug}
-              envPolicy={policy.envA}
-              onToggle={onToggleEnvA}
-              onAdd={onAddToEnvA}
+              slug={productionSlug}
+              envPolicy={policy.production}
+              onToggle={onToggleProduction}
+              onAdd={onAddToProduction}
             />
             <EnvSwitch
               policyKey={policy.key}
-              slug={envBSlug}
-              envPolicy={policy.envB}
-              onToggle={onToggleEnvB}
-              onAdd={onAddToEnvB}
+              slug={previewSlug}
+              envPolicy={policy.preview}
+              onToggle={onTogglePreview}
+              onAdd={onAddToPreview}
             />
           </div>
 

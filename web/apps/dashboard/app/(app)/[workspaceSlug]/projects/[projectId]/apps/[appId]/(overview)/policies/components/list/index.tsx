@@ -3,23 +3,23 @@
 import type { PolicyRow as PolicyRowData } from "@/lib/collections/deploy/policies";
 import type { Policy } from "@/lib/collections/deploy/policies.schema";
 import { useCallback, useState } from "react";
-import type { MergedPolicy } from "./merge";
+import type { Env, MergedPolicy } from "./merge";
 import { PolicyRow } from "./row";
 
 type PoliciesListProps = {
-  envASlug: string;
-  envBSlug: string;
+  productionSlug: string;
+  previewSlug: string;
   merged: MergedPolicy[];
-  onToggleEnv: (key: string, env: "envA" | "envB") => void;
-  onAddToEnv: (key: string, env: "envA" | "envB") => void;
-  onReorder: (envs: ("envA" | "envB")[], rowsByEnv: Record<string, PolicyRowData[]>) => void;
+  onToggleEnv: (key: string, env: Env) => void;
+  onAddToEnv: (key: string, env: Env) => void;
+  onReorder: (envs: Env[], rowsByEnv: Partial<Record<Env, PolicyRowData[]>>) => void;
   onDelete: (key: string) => void;
   onEdit: (policy: Policy) => void;
 };
 
 export function PoliciesList({
-  envASlug,
-  envBSlug,
+  productionSlug,
+  previewSlug,
   merged,
   onToggleEnv,
   onAddToEnv,
@@ -30,10 +30,19 @@ export function PoliciesList({
   const [dragSrcIndex, setDragSrcIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
 
-  const handleToggleEnvA = useCallback((key: string) => onToggleEnv(key, "envA"), [onToggleEnv]);
-  const handleToggleEnvB = useCallback((key: string) => onToggleEnv(key, "envB"), [onToggleEnv]);
-  const handleAddToEnvA = useCallback((key: string) => onAddToEnv(key, "envA"), [onAddToEnv]);
-  const handleAddToEnvB = useCallback((key: string) => onAddToEnv(key, "envB"), [onAddToEnv]);
+  const handleToggleProduction = useCallback(
+    (key: string) => onToggleEnv(key, "production"),
+    [onToggleEnv],
+  );
+  const handleTogglePreview = useCallback(
+    (key: string) => onToggleEnv(key, "preview"),
+    [onToggleEnv],
+  );
+  const handleAddToProduction = useCallback(
+    (key: string) => onAddToEnv(key, "production"),
+    [onAddToEnv],
+  );
+  const handleAddToPreview = useCallback((key: string) => onAddToEnv(key, "preview"), [onAddToEnv]);
 
   const handleDragStart = useCallback((index: number) => {
     setDragSrcIndex(index);
@@ -53,17 +62,17 @@ export function PoliciesList({
       const next = [...merged];
       const [item] = next.splice(dragSrcIndex, 1);
       next.splice(targetIndex, 0, item);
-      const envs: ("envA" | "envB")[] = [];
-      if (item.envA !== null) {
-        envs.push("envA");
+      const envs: Env[] = [];
+      if (item.production !== null) {
+        envs.push("production");
       }
-      if (item.envB !== null) {
-        envs.push("envB");
+      if (item.preview !== null) {
+        envs.push("preview");
       }
       if (envs.length > 0) {
         // `next` is already in the wanted order. Send the rows, so no later
         // code must match a policy by name or id.
-        const rowsByEnv: Record<string, PolicyRowData[]> = {};
+        const rowsByEnv: Partial<Record<Env, PolicyRowData[]>> = {};
         for (const env of envs) {
           rowsByEnv[env] = next
             .map((m) => m[env])
@@ -91,12 +100,12 @@ export function PoliciesList({
           index={i}
           isLast={i === merged.length - 1}
           isDragOver={dragOverIndex === i}
-          envASlug={envASlug}
-          envBSlug={envBSlug}
-          onToggleEnvA={handleToggleEnvA}
-          onToggleEnvB={handleToggleEnvB}
-          onAddToEnvA={handleAddToEnvA}
-          onAddToEnvB={handleAddToEnvB}
+          productionSlug={productionSlug}
+          previewSlug={previewSlug}
+          onToggleProduction={handleToggleProduction}
+          onTogglePreview={handleTogglePreview}
+          onAddToProduction={handleAddToProduction}
+          onAddToPreview={handleAddToPreview}
           onDelete={onDelete}
           onEdit={onEdit}
           onDragStart={handleDragStart}
