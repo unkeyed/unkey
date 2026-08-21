@@ -2,6 +2,7 @@
 
 import { trpc } from "@/lib/trpc/client";
 import type { ResourceScope } from "../lib/catalogue.types";
+import { environmentLabel } from "../lib/policy";
 
 export type ScopeInstance = {
   id: string;
@@ -14,7 +15,15 @@ export type ScopeInstances = {
   isLoading: boolean;
 };
 
+const DEPLOY_SCOPES: ResourceScope[] = ["projects", "apps", "environments"];
+
 export function useScopeInstances(scope: ResourceScope): ScopeInstances {
+  const projects = trpc.deploy.project.list.useQuery(undefined, {
+    enabled: DEPLOY_SCOPES.includes(scope),
+  });
+  const environments = trpc.deploy.environment.listAll.useQuery(undefined, {
+    enabled: scope === "environments",
+  });
   const keyspaces = trpc.deploy.environmentSettings.getAvailableKeyspaces.useQuery(undefined, {
     enabled: scope === "keyspaces",
   });
@@ -25,6 +34,37 @@ export function useScopeInstances(scope: ResourceScope): ScopeInstances {
   switch (scope) {
     case "workspace":
       return { instances: [], isLoading: false };
+    case "projects":
+      return {
+        instances: (projects.data ?? []).map((project) => ({
+          id: project.id,
+          label: project.name,
+          hint: project.id,
+        })),
+        isLoading: projects.isLoading,
+      };
+    case "apps":
+      return {
+        instances: (projects.data ?? []).flatMap((project) =>
+          project.apps.map((app) => ({ id: app.id, label: app.name, hint: app.id })),
+        ),
+        isLoading: projects.isLoading,
+      };
+    case "environments": {
+      const appNames = new Map(
+        (projects.data ?? []).flatMap((project) =>
+          project.apps.map((app) => [app.id, app.name] as const),
+        ),
+      );
+      return {
+        instances: (environments.data ?? []).map((environment) => ({
+          id: environment.id,
+          label: environmentLabel(appNames.get(environment.appId), environment.name),
+          hint: environment.id,
+        })),
+        isLoading: environments.isLoading || projects.isLoading,
+      };
+    }
     case "keyspaces":
       return {
         instances: Object.values(keyspaces.data ?? {}).map((keyspace) => ({

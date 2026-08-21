@@ -5,7 +5,14 @@ export const ACTIONS = ["read", "write", "delete"] as const;
 
 export type Action = (typeof ACTIONS)[number];
 
-export const RESOURCE_SCOPES = ["workspace", "keyspaces", "ratelimit-namespaces"] as const;
+export const RESOURCE_SCOPES = [
+  "workspace",
+  "projects",
+  "apps",
+  "environments",
+  "keyspaces",
+  "ratelimit-namespaces",
+] as const;
 
 export type ResourceScope = (typeof RESOURCE_SCOPES)[number];
 

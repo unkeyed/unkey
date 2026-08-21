@@ -1,13 +1,18 @@
 import { describe, expect, it } from "vitest";
-import { catalogueRows } from "./catalogue";
+import { CATALOGUES, catalogueRows } from "./catalogue";
+import { appsCatalogue } from "./catalogue.apps";
+import { environmentsCatalogue } from "./catalogue.environments";
 import { keyspacesCatalogue } from "./catalogue.keyspaces";
+import { projectsCatalogue } from "./catalogue.projects";
 import { ratelimitNamespacesCatalogue } from "./catalogue.ratelimit-namespaces";
+import { RESOURCE_SCOPES } from "./catalogue.types";
 import { workspaceCatalogue } from "./catalogue.workspace";
 import {
   ALL_INSTANCES,
   actionLabel,
   countSelectedActions,
   countSelectedRows,
+  environmentLabel,
   grantsPreview,
   isPolicyComplete,
   isRowActionSelected,
@@ -255,5 +260,114 @@ describe("grantsPreview", () => {
 
   it("counts nothing extra when the list fits", () => {
     expect(grantsPreview(["a", "b"])).toEqual({ shown: ["a", "b"], more: 0 });
+  });
+});
+
+describe("the six resource scopes", () => {
+  it("lists plain nouns in container order", () => {
+    expect(RESOURCE_SCOPES.map((scope) => CATALOGUES[scope].label)).toEqual([
+      "Workspace",
+      "Projects",
+      "Apps",
+      "Environments",
+      "Keyspaces",
+      "Ratelimit namespaces",
+    ]);
+  });
+
+  it("gives every instance scope an all row and a noun for the picker", () => {
+    expect(CATALOGUES.projects.allLabel).toBe("All projects");
+    expect(CATALOGUES.apps.allLabel).toBe("All apps");
+    expect(CATALOGUES.environments.allLabel).toBe("All environments");
+    expect(CATALOGUES.projects.instanceNoun).toBe("projects");
+    expect(CATALOGUES.apps.instanceNoun).toBe("apps");
+    expect(CATALOGUES.environments.instanceNoun).toBe("environments");
+  });
+
+  it("counts the rows of every deploy catalogue", () => {
+    expect(catalogueRows(projectsCatalogue).map((row) => row.id)).toEqual([
+      "project",
+      "app",
+      "environment",
+      "deployment",
+      "domain",
+      "variable",
+    ]);
+    expect(catalogueRows(appsCatalogue).map((row) => row.id)).toEqual([
+      "app",
+      "environment",
+      "deployment",
+      "domain",
+      "variable",
+    ]);
+    expect(catalogueRows(environmentsCatalogue).map((row) => row.id)).toEqual([
+      "environment",
+      "deployment",
+      "domain",
+      "variable",
+    ]);
+  });
+});
+
+describe("environmentLabel", () => {
+  it("joins the app name and the environment name with a space", () => {
+    expect(environmentLabel("app_site", "preview")).toBe("app_site preview");
+  });
+
+  it("never adds a slash", () => {
+    expect(environmentLabel("site", "production")).not.toContain("/");
+  });
+
+  it("falls back to the environment name alone when the app is unknown", () => {
+    expect(environmentLabel(undefined, "production")).toBe("production");
+  });
+});
+
+describe("policySummary on the deploy scopes", () => {
+  it("names all instances of each level", () => {
+    expect(policySummary(newPolicy("projects")).scopeLine).toBe("All projects");
+    expect(policySummary(newPolicy("apps")).scopeLine).toBe("All apps");
+    expect(policySummary(newPolicy("environments")).scopeLine).toBe("All environments");
+  });
+
+  it("comma-joins the environment labels it was given", () => {
+    const policy = { ...newPolicy("environments"), instances: ["env_1", "env_2"] };
+    expect(
+      policySummary(policy, {
+        env_1: environmentLabel("app_site", "production"),
+        env_2: environmentLabel("app_api", "preview"),
+      }).scopeLine,
+    ).toBe("app_site production, app_api preview");
+  });
+
+  it("composes grants from the rows of its own level", () => {
+    const policy = {
+      ...newPolicy("apps"),
+      selection: setRowActions(setRowActions({}, "app", ["read"]), "deployment", [
+        "read",
+        "write",
+        "delete",
+      ]),
+    };
+    expect(policySummary(policy).grants).toEqual(["App Read", "Deployments Read, write & delete"]);
+  });
+
+  it("asks for an instance by the noun of its level", () => {
+    expect(policyError({ ...newPolicy("projects"), instances: [] })).toBe(
+      "Select one or more projects",
+    );
+    expect(policyError({ ...newPolicy("apps"), instances: [] })).toBe("Select one or more apps");
+    expect(policyError({ ...newPolicy("environments"), instances: [] })).toBe(
+      "Select one or more environments",
+    );
+  });
+
+  it("drops a selection carried over from a neighbouring level", () => {
+    const policy = {
+      ...newPolicy("environments"),
+      selection: setRowActions({}, "project", ["read"]),
+    };
+    expect(policySummary(policy).grants).toEqual([]);
+    expect(isPolicyComplete(policy)).toBe(false);
   });
 });

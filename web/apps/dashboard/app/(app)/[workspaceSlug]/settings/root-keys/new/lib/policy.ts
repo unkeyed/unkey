@@ -148,6 +148,10 @@ export function policySummary(
   return { scopeLine, grants };
 }
 
+export function environmentLabel(appName: string | undefined, environmentName: string): string {
+  return appName === undefined ? environmentName : `${appName} ${environmentName}`;
+}
+
 export function grantsPreview(
   grants: readonly string[],
   limit: number = GRANT_PREVIEW_LIMIT,

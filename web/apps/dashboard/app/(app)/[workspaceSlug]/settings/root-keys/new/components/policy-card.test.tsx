@@ -67,6 +67,28 @@ vi.mock("@unkey/ui", () => ({
 vi.mock("@/lib/trpc/client", () => ({
   trpc: {
     deploy: {
+      project: {
+        list: {
+          useQuery: () => ({
+            data: [
+              {
+                id: "proj_1",
+                name: "web platform",
+                apps: [{ id: "app_1", name: "site" }],
+              },
+            ],
+            isLoading: false,
+          }),
+        },
+      },
+      environment: {
+        listAll: {
+          useQuery: () => ({
+            data: [{ id: "env_1", name: "production", projectId: "proj_1", appId: "app_1" }],
+            isLoading: false,
+          }),
+        },
+      },
       environmentSettings: {
         getAvailableKeyspaces: {
           useQuery: () => ({
@@ -166,6 +188,35 @@ describe("PolicyCard expanded", () => {
       instances: [ALL_INSTANCES],
       selection: {},
     });
+  });
+
+  it("offers the six resource scopes as plain nouns", () => {
+    render(<PolicyCard policy={newPolicy()} collapsed={false} showError={false} {...handlers()} />);
+    const options = Array.from(screen.getByLabelText("Resource type").children).map(
+      (option) => option.textContent,
+    );
+
+    expect(options).toEqual([
+      "Workspace",
+      "Projects",
+      "Apps",
+      "Environments",
+      "Keyspaces",
+      "Ratelimit namespaces",
+    ]);
+  });
+
+  it("names the picked environment by its app and its own name", () => {
+    render(
+      <PolicyCard
+        policy={{ ...newPolicy("environments"), instances: ["env_1"] }}
+        collapsed={false}
+        showError={false}
+        {...handlers()}
+      />,
+    );
+
+    expect(screen.getByLabelText("Select environments").textContent).toContain("site production");
   });
 
   it("hides the instance picker on the workspace scope", () => {
