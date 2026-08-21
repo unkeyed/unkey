@@ -22,7 +22,7 @@ import (
 // //nolint:exhaustive and a missing case would fall through to a 500.
 func TestDeletePortalAuthorizationMatrix(t *testing.T) {
 	h := testutil.NewHarness(t)
-	route := &handler.Handler{DB: h.DB, Auditlogs: h.Auditlogs}
+	route := &handler.Handler{DB: h.DB, Auditlogs: h.Auditlogs, Clock: h.Clock}
 	h.Register(route)
 
 	workspace := h.Resources().UserWorkspace
@@ -88,7 +88,7 @@ func TestDeletePortalAuthorizationMatrix(t *testing.T) {
 // matrix above.
 func TestDeletePortalAllowsGrantScopedToThisPortal(t *testing.T) {
 	h := testutil.NewHarness(t)
-	route := &handler.Handler{DB: h.DB, Auditlogs: h.Auditlogs}
+	route := &handler.Handler{DB: h.DB, Auditlogs: h.Auditlogs, Clock: h.Clock}
 	h.Register(route)
 
 	workspace := h.Resources().UserWorkspace

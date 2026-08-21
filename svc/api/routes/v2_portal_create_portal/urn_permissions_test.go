@@ -19,7 +19,7 @@ import (
 // only would deny the single operator surface that exists.
 func TestCreatePortalAuthorizesURNGrants(t *testing.T) {
 	h := testutil.NewHarness(t)
-	route := &handler.Handler{DB: h.DB, Auditlogs: h.Auditlogs}
+	route := &handler.Handler{DB: h.DB, Auditlogs: h.Auditlogs, Clock: h.Clock}
 	h.Register(route)
 
 	workspace := h.Resources().UserWorkspace
@@ -58,7 +58,7 @@ func TestCreatePortalAuthorizesURNGrants(t *testing.T) {
 			res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
 				Slug:    fmt.Sprintf("urn-portal-%d", i),
 				Mapping: keyspaceMapping(t, h, workspace.ID),
-				Enabled: true,
+				Enabled: ptr(true),
 			})
 			require.Equal(t, http.StatusOK, res.Status,
 				"a URN grant must authorize portal creation, got: %s", res.RawBody)

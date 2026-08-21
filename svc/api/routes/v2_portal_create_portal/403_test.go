@@ -18,7 +18,7 @@ import (
 // would only leave an operator unable to tell a missing grant from a bad request.
 func TestCreatePortalAuthorizationMatrix(t *testing.T) {
 	h := testutil.NewHarness(t)
-	route := &handler.Handler{DB: h.DB, Auditlogs: h.Auditlogs}
+	route := &handler.Handler{DB: h.DB, Auditlogs: h.Auditlogs, Clock: h.Clock}
 	h.Register(route)
 
 	workspace := h.Resources().UserWorkspace
@@ -66,7 +66,7 @@ func TestCreatePortalAuthorizationMatrix(t *testing.T) {
 			res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
 				Slug:    fmt.Sprintf("matrix-%d", i),
 				Mapping: mapping,
-				Enabled: true,
+				Enabled: ptr(true),
 			})
 
 			if tc.shouldPass {

@@ -5,11 +5,10 @@ import (
 	"database/sql"
 	"fmt"
 	"net/http"
-	"strings"
-	"time"
 
 	"github.com/unkeyed/unkey/internal/services/auditlogs"
 	"github.com/unkeyed/unkey/pkg/auditlog"
+	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
@@ -36,6 +35,7 @@ const notFoundMessage = "Portal not found."
 type Handler struct {
 	DB        db.Database
 	Auditlogs auditlogs.AuditLogService
+	Clock     clock.Clock
 }
 
 func (h *Handler) Method() string {
@@ -57,28 +57,14 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	target := strings.TrimSpace(req.Portal)
-	if target == "" {
-		return fault.New("missing portal target",
-			fault.Code(codes.App.Validation.InvalidInput.URN()),
-			fault.Internal("portal target was empty or whitespace"),
-			fault.Public("Provide the portal id or slug to delete."),
-		)
-	}
-
-	// Minted outside the closure so a caller-side retry replays the same write
-	// rather than correlating a second audit entry to a different attempt.
-	now := time.Now().UnixMilli()
+	now := h.Clock.Now().UnixMilli()
 	ctx = auditlog.WithCorrelation(ctx, auditlog.NewCorrelationID())
 
-	// Non-retrying: the resolve, the delete, the revocation, and the audit entry
-	// have to be one atomic unit, and a replay after a lost commit
-	// acknowledgement would find the row already gone and report a false
-	// not-found while writing a second audit entry. A transient failure surfaces
-	// to the caller instead.
+	// The resolve, the delete, the session revocation, and the audit entry have to
+	// be one atomic unit, so the closure is never replayed.
 	err = db.Tx(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
 		found, err := db.Query.FindPortalByIdOrSlug(ctx, tx, db.FindPortalByIdOrSlugParams{
-			Portal:      target,
+			Portal:      req.Portal,
 			WorkspaceID: principal.WorkspaceID,
 		})
 		if err != nil {

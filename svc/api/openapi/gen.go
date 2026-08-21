@@ -3986,9 +3986,9 @@ type V2PermissionsSetRolePermissionsResponseData = []Permission
 
 // V2PortalCreatePortalRequestBody defines model for V2PortalCreatePortalRequestBody.
 type V2PortalCreatePortalRequestBody struct {
-	// Enabled Whether sessions can be minted for this portal immediately. Set false to
-	// create it dormant and enable it later.
-	Enabled bool `json:"enabled"`
+	// Enabled Whether sessions can be minted for this portal immediately. Defaults to
+	// true; send false to create it dormant and enable it later.
+	Enabled *bool `json:"enabled,omitempty"`
 
 	// LogoUrl Absolute `https://` URL of the logo shown in the portal header.
 	//

@@ -21,7 +21,7 @@ import (
 // //nolint:exhaustive and a missing case would fall through to a 500.
 func TestUpdatePortalAuthorizationMatrix(t *testing.T) {
 	h := testutil.NewHarness(t)
-	route := &handler.Handler{DB: h.DB, Auditlogs: h.Auditlogs}
+	route := &handler.Handler{DB: h.DB, Auditlogs: h.Auditlogs, Clock: h.Clock}
 	h.Register(route)
 
 	workspace := h.Resources().UserWorkspace
@@ -83,7 +83,7 @@ func TestUpdatePortalAuthorizationMatrix(t *testing.T) {
 // it.
 func TestUpdatePortalRequiresPermissionOnTheRemapTarget(t *testing.T) {
 	h := testutil.NewHarness(t)
-	route := &handler.Handler{DB: h.DB, Auditlogs: h.Auditlogs}
+	route := &handler.Handler{DB: h.DB, Auditlogs: h.Auditlogs, Clock: h.Clock}
 	h.Register(route)
 
 	workspace := h.Resources().UserWorkspace

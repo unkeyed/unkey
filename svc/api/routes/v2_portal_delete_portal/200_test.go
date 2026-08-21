@@ -26,7 +26,7 @@ import (
 func newRoute(t *testing.T, h *testutil.Harness, permissions ...string) (*handler.Handler, http.Header) {
 	t.Helper()
 
-	route := &handler.Handler{DB: h.DB, Auditlogs: h.Auditlogs}
+	route := &handler.Handler{DB: h.DB, Auditlogs: h.Auditlogs, Clock: h.Clock}
 	h.Register(route)
 
 	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, permissions...)

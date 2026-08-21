@@ -65,7 +65,7 @@ func TestCreatePortalRejectsMappingsItDoesNotOwn(t *testing.T) {
 			res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
 				Slug:    "not-mine",
 				Mapping: mapping,
-				Enabled: true,
+				Enabled: ptr(true),
 			})
 			require.Equal(t, http.StatusNotFound, res.Status,
 				"expected 404, received: %s", res.RawBody)
@@ -101,7 +101,7 @@ func TestCreatePortalRejectsMappingsItDoesNotOwn(t *testing.T) {
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, victimHeaders, handler.Request{
 		Slug:    "mine-after-all",
 		Mapping: openapi.PortalMapping{Id: otherApi.KeyAuthID.String, Type: openapi.PortalMappingTypeKeyspace},
-		Enabled: true,
+		Enabled: ptr(true),
 	})
 	require.Equal(t, http.StatusOK, res.Status,
 		"the owning workspace must still be able to claim its own keyspace: %s", res.RawBody)

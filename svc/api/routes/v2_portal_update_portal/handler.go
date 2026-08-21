@@ -5,11 +5,10 @@ import (
 	"database/sql"
 	"fmt"
 	"net/http"
-	"strings"
-	"time"
 
 	"github.com/unkeyed/unkey/internal/services/auditlogs"
 	"github.com/unkeyed/unkey/pkg/auditlog"
+	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
@@ -36,6 +35,7 @@ const notFoundMessage = "Portal not found."
 type Handler struct {
 	DB        db.Database
 	Auditlogs auditlogs.AuditLogService
+	Clock     clock.Clock
 }
 
 func (h *Handler) Method() string {
@@ -55,15 +55,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	req, err := zen.BindBody[Request](s)
 	if err != nil {
 		return err
-	}
-
-	target := strings.TrimSpace(req.Portal)
-	if target == "" {
-		return fault.New("missing portal target",
-			fault.Code(codes.App.Validation.InvalidInput.URN()),
-			fault.Internal("portal target was empty or whitespace"),
-			fault.Public("Provide the portal id or slug to update."),
-		)
 	}
 
 	// Everything the request names is validated before the transaction opens.
@@ -125,20 +116,17 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 	}
 
-	// Minted outside the closure so a caller-side retry replays the same write and
-	// the same correlated audit entry rather than a second one.
-	now := time.Now().UnixMilli()
+	now := h.Clock.Now().UnixMilli()
 	ctx = auditlog.WithCorrelation(ctx, auditlog.NewCorrelationID())
 
-	// Non-retrying: the resolve, the availability pre-check, the write, the
-	// revocation, and the audit entry have to be one atomic unit, and a replay
-	// after a lost commit acknowledgement would write a second audit entry. A
-	// transient failure surfaces to the caller instead.
+	// The resolve, the availability pre-check, the write, the session revocation,
+	// and the audit entry have to be one atomic unit, so the closure is never
+	// replayed.
 	data, err := db.TxWithResult(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) (openapi.Portal, error) {
 		var empty openapi.Portal
 
 		found, err := db.Query.FindPortalByIdOrSlug(ctx, tx, db.FindPortalByIdOrSlugParams{
-			Portal:      target,
+			Portal:      req.Portal,
 			WorkspaceID: principal.WorkspaceID,
 		})
 		if err != nil {
@@ -214,7 +202,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			return empty, err
 		}
 
-		update := db.UpdatePortalParams{
+		params := db.UpdatePortalParams{
 			WorkspaceID:           principal.WorkspaceID,
 			ID:                    found.ID,
 			UpdatedAt:             sql.NullInt64{Valid: true, Int64: now},
@@ -232,23 +220,22 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			PrimaryColor:          sql.NullString{String: "", Valid: false},
 		}
 
-		// `updated` is both the row the response is composed from and the record of
-		// what the audit entry reports as the after state. It starts as the resolved
-		// row so an omitted field keeps its stored value here exactly as the CASE
-		// expressions keep it in MySQL.
-		updated := found
-		updated.UpdatedAt = sql.NullInt64{Valid: true, Int64: now}
+		// `after` is the row the response and the audit entry's after-state are both
+		// composed from. It starts as the resolved row so an omitted field keeps its
+		// stored value here exactly as the CASE expressions keep it in MySQL.
+		after := found
+		after.UpdatedAt = sql.NullInt64{Valid: true, Int64: now}
 
 		if req.Slug != nil {
-			update.Slug = *req.Slug
-			update.SlugSpecified = 1
-			updated.Slug = *req.Slug
+			params.Slug = *req.Slug
+			params.SlugSpecified = 1
+			after.Slug = *req.Slug
 		}
 
 		if req.Enabled != nil {
-			update.Enabled = *req.Enabled
-			update.EnabledSpecified = 1
-			updated.Enabled = *req.Enabled
+			params.Enabled = *req.Enabled
+			params.EnabledSpecified = 1
+			after.Enabled = *req.Enabled
 		}
 
 		// Both flags are set together or neither is. Setting one alone is the write
@@ -256,12 +243,12 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		// solely responsible for preventing.
 		mappingChanged := false
 		if req.Mapping != nil {
-			update.AppID = mappingAppID
-			update.AppIDSpecified = 1
-			update.KeyAuthID = mappingKeyAuthID
-			update.KeyAuthIDSpecified = 1
-			updated.AppID = mappingAppID
-			updated.KeyAuthID = mappingKeyAuthID
+			params.AppID = mappingAppID
+			params.AppIDSpecified = 1
+			params.KeyAuthID = mappingKeyAuthID
+			params.KeyAuthIDSpecified = 1
+			after.AppID = mappingAppID
+			after.KeyAuthID = mappingKeyAuthID
 			// Compared through the same absent-semantics the rest of the package
 			// uses, not raw NullString equality: a legacy row can hold a Valid but
 			// empty column, and treating that as different from NULL would report a
@@ -271,18 +258,18 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 
 		if req.LogoUrl.IsSpecified() {
-			update.LogoUrl = logoUrl
-			update.LogoUrlSpecified = 1
-			updated.LogoUrl = logoUrl
+			params.LogoUrl = logoUrl
+			params.LogoUrlSpecified = 1
+			after.LogoUrl = logoUrl
 		}
 
 		if req.PrimaryColor.IsSpecified() {
-			update.PrimaryColor = primaryColor
-			update.PrimaryColorSpecified = 1
-			updated.PrimaryColor = primaryColor
+			params.PrimaryColor = primaryColor
+			params.PrimaryColorSpecified = 1
+			after.PrimaryColor = primaryColor
 		}
 
-		affected, err := db.Query.UpdatePortal(ctx, tx, update)
+		affected, err := db.Query.UpdatePortal(ctx, tx, params)
 		if err != nil {
 			// The pre-check above narrows the message for the collisions it can see,
 			// but it is not a lock: `FindPortalByIdOrSlug` takes no row lock, so a
@@ -304,17 +291,21 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			)
 		}
 
-		// Nothing matched, so the row went away between the resolve and here -- the
-		// resolve takes no row lock, so a concurrent delete can win that window.
-		// Reported as not-found rather than as a 200 describing a portal that no
-		// longer exists, and rather than writing an audit entry for a write that
-		// changed nothing.
+		// MySQL reports zero affected rows both when the row is gone and when the
+		// statement changed nothing, so re-read before calling it a delete: the
+		// resolve takes no row lock, and a caller re-sending the values it already
+		// stored writes an identical row.
 		if affected == 0 {
-			return empty, fault.New("portal not found",
-				fault.Code(codes.Data.Portal.NotFound.URN()),
-				fault.Internal(fmt.Sprintf("update matched no rows for portal %s; concurrently deleted", found.ID)),
-				fault.Public(notFoundMessage),
-			)
+			if _, err := db.Query.FindPortalByIdOrSlug(ctx, tx, db.FindPortalByIdOrSlugParams{
+				Portal:      found.ID,
+				WorkspaceID: principal.WorkspaceID,
+			}); err != nil {
+				return empty, fault.New("portal not found",
+					fault.Code(codes.Data.Portal.NotFound.URN()),
+					fault.Internal(fmt.Sprintf("update matched no rows for portal %s; concurrently deleted", found.ID)),
+					fault.Public(notFoundMessage),
+				)
+			}
 		}
 
 		// A session freezes its keyspace scope at mint time and the session
@@ -340,7 +331,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 
 		beforeType, beforeID := portal.DescribeMapping(found)
-		afterType, afterID := portal.DescribeMapping(updated)
+		afterType, afterID := portal.DescribeMapping(after)
 
 		err = h.Auditlogs.Insert(ctx, tx, []auditlog.AuditLog{
 			{
@@ -364,17 +355,17 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 						// row once it is overwritten.
 						Meta: map[string]any{
 							"slugBefore":        found.Slug,
-							"slugAfter":         updated.Slug,
+							"slugAfter":         after.Slug,
 							"mappingTypeBefore": beforeType,
 							"mappingIdBefore":   beforeID,
 							"mappingTypeAfter":  afterType,
 							"mappingIdAfter":    afterID,
 							"enabledBefore":     found.Enabled,
-							"enabledAfter":      updated.Enabled,
+							"enabledAfter":      after.Enabled,
 							"sessionsRevoked":   revoked,
 						},
-						Name:        updated.Slug,
-						DisplayName: updated.Slug,
+						Name:        after.Slug,
+						DisplayName: after.Slug,
 					},
 				},
 			},
@@ -393,7 +384,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		// false` on a misconfigured portal would fail, leaving the operator no way
 		// to switch it off. A request that names a mapping repairs the row on its
 		// way through.
-		return portal.ToResponseTolerant(updated), nil
+		return portal.ToResponseTolerant(after), nil
 	})
 	if err != nil {
 		return err

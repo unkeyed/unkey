@@ -5,10 +5,10 @@ import (
 	"database/sql"
 	"fmt"
 	"net/http"
-	"time"
 
 	"github.com/unkeyed/unkey/internal/services/auditlogs"
 	"github.com/unkeyed/unkey/pkg/auditlog"
+	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
@@ -30,6 +30,7 @@ type (
 type Handler struct {
 	DB        db.Database
 	Auditlogs auditlogs.AuditLogService
+	Clock     clock.Clock
 }
 
 func (h *Handler) Method() string {
@@ -75,25 +76,21 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		primaryColor = sql.NullString{String: *req.PrimaryColor, Valid: true}
 	}
 
+	// Defaults to enabled: a portal nobody can mint a session for is the unusual
+	// case, so it has to be asked for.
+	enabled := true
+	if req.Enabled != nil {
+		enabled = *req.Enabled
+	}
+
 	appID, keyAuthID, err := portal.ColumnsFor(req.Mapping)
 	if err != nil {
 		return err
 	}
 
-	// Authorized before the transaction opens, unlike update and delete. The
-	// grant does not depend on a row -- the portal does not exist yet -- so there
-	// is no reason to let an unauthorized caller open a write transaction on the
-	// primary.
-	//
-	// A wildcard is the only form that can authorize this. A grant naming a
-	// specific portal id cannot, because the id is minted below.
-	//
-	// Both a legacy tuple and a canonical URN authorize here. The URN arm is what
-	// lets the dashboard reach this route at all: its proxy mints a token whose
-	// admin grant is a URN, so omitting the arm would deny the only operator
-	// surface there is. Portal *session* minting deliberately omits it and stays
-	// legacy-only, because managing a portal as a resource is not the same
-	// authority as acting as one.
+	// Only a wildcard grant can authorize a create: the portal id is minted below,
+	// so no grant can name it yet. The URN arm is what lets the dashboard reach
+	// this route, because its proxy mints a token whose admin grant is a URN.
 	err = principal.Authorize(rbac.Or(
 		rbac.T(rbac.Tuple{
 			ResourceType: rbac.Portal,
@@ -106,25 +103,15 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		),
 	))
 	if err != nil {
-		// Returned as-is, so the caller learns it lacks the permission. Nothing is
-		// masked here: there is no portal whose existence a denial could disclose,
-		// which is why this differs from update, delete, and get.
+		// Returned as-is rather than masked as a 404: there is no portal yet whose
+		// existence a denial could disclose.
 		return err
 	}
 
-	// Minted outside the transaction body so one request writes one id, whatever
-	// happens inside it. Note what this does not buy: the transaction below never
-	// retries its closure, and a fresh *caller* retry mints a new id, so a retry
-	// after a lost commit acknowledgement collides on the slug and reports a
-	// conflict for a create that in fact succeeded. Making that idempotent needs a
-	// caller-supplied key, which this endpoint does not take.
 	portalID := uid.New(uid.PortalPrefix)
-	now := time.Now().UnixMilli()
+	now := h.Clock.Now().UnixMilli()
 	ctx = auditlog.WithCorrelation(ctx, auditlog.NewCorrelationID())
 
-	// Non-retrying on purpose: the insert is not idempotent, so replaying the
-	// closure could double-write. A transient failure surfaces to the caller
-	// instead of being retried underneath it.
 	err = db.Tx(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
 		if err := portal.VerifyMappingOwned(ctx, tx, principal.WorkspaceID, req.Mapping); err != nil {
 			return err
@@ -144,7 +131,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			Slug:         req.Slug,
 			AppID:        appID,
 			KeyAuthID:    keyAuthID,
-			Enabled:      req.Enabled,
+			Enabled:      enabled,
 			LogoUrl:      logoUrl,
 			PrimaryColor: primaryColor,
 			CreatedAt:    now,
@@ -193,7 +180,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 							"slug":        req.Slug,
 							"mappingType": string(req.Mapping.Type),
 							"mappingId":   req.Mapping.Id,
-							"enabled":     req.Enabled,
+							"enabled":     enabled,
 						},
 						Name:        req.Slug,
 						DisplayName: req.Slug,
