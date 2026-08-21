@@ -31,7 +31,7 @@ type InsertKeyRoleParams struct {
 	CreatedAtM  int64  `db:"created_at_m"`
 }
 
-// InsertKeyRole
+// transactional-batch-statement
 //
 //	INSERT INTO keys_roles (
 //	  key_id,

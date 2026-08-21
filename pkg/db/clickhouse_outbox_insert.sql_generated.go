@@ -34,6 +34,7 @@ type InsertClickhouseOutboxParams struct {
 	CreatedAt   int64           `db:"created_at"`
 }
 
+// transactional-batch-statement
 // InsertClickhouseOutbox enqueues one event for ClickHouse export. Called
 // from the same MySQL transaction as the underlying mutation, so durability
 // is exactly the durability of the mutation: if the mutation commits, the
