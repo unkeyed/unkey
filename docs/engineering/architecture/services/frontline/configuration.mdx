@@ -21,6 +21,7 @@ region = "${UNKEY_REGION}.aws"
 instance_id = "${POD_NAME}"
 apex_domain = "${UNKEY_APEX_DOMAIN}"
 max_hops = 10
+frontline_meta_signing_key = "${UNKEY_FRONTLINE_META_SIGNING_KEY}"
 prometheus_port = 9090
 
 [control]
@@ -61,7 +62,12 @@ token = "${UNKEY_VAULT_TOKEN}"
 </ResponseField>
 
 <ResponseField name="max_hops" type="int" default="10">
-  Maximum number of routing hops.
+  Maximum number of cross-region routing hops.
+</ResponseField>
+
+<ResponseField name="frontline_meta_signing_key" type="string" required>
+  Shared key that signs metadata between Frontline regions. Set the same key in
+  every region in one environment.
 </ResponseField>
 
 <ResponseField name="control" type="object" required>
@@ -200,6 +206,10 @@ The Helm chart provides these variables for the default config template:
   Preshared bearer token for authenticated Control API requests.
 </ResponseField>
 
+<ResponseField name="UNKEY_FRONTLINE_META_SIGNING_KEY" type="env" required>
+  Shared key that signs metadata between Frontline regions.
+</ResponseField>
+
 <ResponseField name="UNKEY_VAULT_URL" type="env">
   Vault URL.
 </ResponseField>
@@ -234,6 +244,7 @@ region = "${UNKEY_REGION}.aws"
 instance_id = "${POD_NAME}"
 apex_domain = "${UNKEY_APEX_DOMAIN}"
 max_hops = 10
+frontline_meta_signing_key = "${UNKEY_FRONTLINE_META_SIGNING_KEY}"
 prometheus_port = 9090
 request_timeout = "15m"
 

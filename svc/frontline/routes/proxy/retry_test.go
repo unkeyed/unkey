@@ -19,6 +19,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/frontline/internal/db"
 	"github.com/unkeyed/unkey/svc/frontline/internal/errorpage"
+	"github.com/unkeyed/unkey/svc/frontline/internal/meta"
 	"github.com/unkeyed/unkey/svc/frontline/internal/proxy"
 	"github.com/unkeyed/unkey/svc/frontline/internal/router"
 	"github.com/unkeyed/unkey/svc/frontline/middleware"
@@ -253,7 +254,7 @@ func startMidStreamCloseBackend(t *testing.T) (string, func()) {
 
 // localDecision builds a RouteDecision pointing at the given addresses,
 // in order, as local instances. The deployment metadata is fixed —
-// individual tests override the RemoteRegionAddress field as needed.
+// individual tests override RemoteRegionAddress as needed.
 func localDecision(addrs ...string) router.RouteDecision {
 	instances := make([]db.FindInstancesByDeploymentIDRow, len(addrs))
 	for i, addr := range addrs {
@@ -286,6 +287,9 @@ func startFrontlineWith(t *testing.T, decision router.RouteDecision, proxySvc pr
 
 func startFrontlineWithH2CIngress(t *testing.T, decision router.RouteDecision, proxySvc proxy.Service, enableH2CIngress bool) (string, func()) {
 	t.Helper()
+	clk := clock.New()
+	metadata, err := meta.New("test-frontline-meta-signing-key")
+	require.NoError(t, err)
 
 	if proxySvc == nil {
 		//nolint:exhaustruct
@@ -294,8 +298,9 @@ func startFrontlineWithH2CIngress(t *testing.T, decision router.RouteDecision, p
 			Platform:           "test",
 			Region:             "test",
 			ApexDomain:         "test.local",
-			Clock:              clock.New(),
+			Clock:              clk,
 			MaxHops:            3,
+			Metadata:           metadata,
 			UpstreamTransports: proxy.NewTransportRegistry(),
 		})
 		require.NoError(t, err)
@@ -306,7 +311,8 @@ func startFrontlineWithH2CIngress(t *testing.T, decision router.RouteDecision, p
 		RouterService: &stubRouter{decision: decision},
 		ProxyService:  proxySvc,
 		Engine:        nil,
-		Clock:         clock.New(),
+		Clock:         clk,
+		Metadata:      metadata,
 	}
 
 	//nolint:exhaustruct
@@ -399,7 +405,7 @@ func (r *recordingProxy) ForwardToInstance(_ context.Context, _ *zen.Session, _ 
 	return r.instanceErr
 }
 
-func (r *recordingProxy) ForwardToRegion(_ context.Context, sess *zen.Session, target string) error {
+func (r *recordingProxy) ForwardToRegion(_ context.Context, sess *zen.Session, target string, _ []meta.Hop) error {
 	r.mu.Lock()
 	r.regionTo = target
 	r.mu.Unlock()

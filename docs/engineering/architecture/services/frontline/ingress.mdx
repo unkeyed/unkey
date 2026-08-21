@@ -50,7 +50,8 @@ sequenceDiagram
     Engine-->>Frontline: Principal or rejection
     Frontline->>Instance: Proxy request (HTTP)
   else no local instance
-    Frontline->>RemoteFrontline: Forward to frontline.<region>.<apexDomain> (HTTPS)
+    Frontline->>RemoteFrontline: Forward with signed metadata (HTTPS)
+    RemoteFrontline->>RemoteFrontline: Verify metadata and read hop history
   end
 ```
 
@@ -76,15 +77,25 @@ uses to identify the deployment and to track the forwarding chain.
 
 Key headers:
 
-- `X-Unkey-Frontline-Id`, `X-Unkey-Region`, `X-Unkey-Request-Id`
+- `X-Unkey-Frontline-Id`, `X-Unkey-Region`, and `X-Unkey-Request-Id`
+- `X-Unkey-Frontline-Meta` on peer requests only
 - `X-Deployment-Id`
-- `X-Unkey-Parent-Frontline-Id`, `X-Unkey-Parent-Request-Id`
-- `X-Unkey-Frontline-Hops`
 - `X-Forwarded-Proto`
 - `X-Unkey-Timing`
 
-Frontline increments `X-Unkey-Frontline-Hops` on every cross-region forward and
-rejects requests that exceed the configured hop limit.
+Frontline uses an HS256 JWT in `X-Unkey-Frontline-Meta`. The claims contain an
+expiry time and an ordered hop history. Each hop contains the region, request
+ID, Frontline ID, and forward time as Unix milliseconds. HTTPS protects the
+request in transit. The JWT lets a peer authenticate the metadata and detect
+changes.
+
+Each Frontline verifies and removes incoming metadata before routing. A request
+without metadata starts with an empty hop history. Before a cross-region
+forward, Frontline appends the current hop and sets the expiry to 1 minute in
+the future. It uses the history length as the hop count. It rejects empty,
+duplicate, invalid, expired, or oversized metadata. It also rejects a forward
+that reaches the configured hop limit. Frontline removes the metadata before
+it forwards the request to a deployment instance.
 
 ## TLS and certificate selection
 
