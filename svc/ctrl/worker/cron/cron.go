@@ -86,6 +86,7 @@ type Heartbeats struct {
 	KeyLastUsedSync    healthcheck.Heartbeat
 	AuditLogExport     healthcheck.Heartbeat
 	AuditLogCleanup    healthcheck.Heartbeat
+	RatelimitCleanup   healthcheck.Heartbeat
 	DeployBillingPush  healthcheck.Heartbeat
 	DeployBillingClose healthcheck.Heartbeat
 	DeploySpendCheck   healthcheck.Heartbeat
@@ -152,6 +153,7 @@ func New(cfg Config) (*Service, error) {
 		assert.NotNil(cfg.Heartbeats.KeyLastUsedSync, "Heartbeats.KeyLastUsedSync must not be nil; use healthcheck.NewNoop()"),
 		assert.NotNil(cfg.Heartbeats.AuditLogExport, "Heartbeats.AuditLogExport must not be nil; use healthcheck.NewNoop()"),
 		assert.NotNil(cfg.Heartbeats.AuditLogCleanup, "Heartbeats.AuditLogCleanup must not be nil; use healthcheck.NewNoop()"),
+		assert.NotNil(cfg.Heartbeats.RatelimitCleanup, "Heartbeats.RatelimitCleanup must not be nil; use healthcheck.NewNoop()"),
 		assert.NotNil(cfg.Heartbeats.DeployBillingPush, "Heartbeats.DeployBillingPush must not be nil; use healthcheck.NewNoop()"),
 		assert.NotNil(cfg.Heartbeats.DeployBillingClose, "Heartbeats.DeployBillingClose must not be nil; use healthcheck.NewNoop()"),
 		assert.NotNil(cfg.Heartbeats.DeploySpendCheck, "Heartbeats.DeploySpendCheck must not be nil; use healthcheck.NewNoop()"),
@@ -193,8 +195,9 @@ func New(cfg Config) (*Service, error) {
 		return nil, err
 	}
 	ratelimitCleanupH, err := ratelimitcleanup.New(ratelimitcleanup.Config{
-		DB:    cfg.RatelimitDB,
-		Clock: cfg.Clock,
+		DB:        cfg.RatelimitDB,
+		Clock:     cfg.Clock,
+		Heartbeat: cfg.Heartbeats.RatelimitCleanup,
 	})
 	if err != nil {
 		return nil, err

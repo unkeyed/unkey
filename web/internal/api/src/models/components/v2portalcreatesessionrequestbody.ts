@@ -50,6 +50,17 @@ export type V2PortalCreateSessionRequestBody = {
    * @remarks
    */
   preview?: boolean | undefined;
+  /**
+   * Absolute URL the end user is sent back to when they leave the portal, or
+   *
+   * @remarks
+   * when their session expires mid-visit. Set per session rather than per
+   * portal, so one portal can serve several entry points and return each user
+   * to the page they came from.
+   *
+   * When omitted, the portal shows no return link.
+   */
+  returnUrl?: string | undefined;
 };
 
 /** @internal */
@@ -63,6 +74,7 @@ export type V2PortalCreateSessionRequestBody$Outbound = {
   externalId: string;
   scopes: Array<string>;
   preview: boolean;
+  returnUrl?: string | undefined;
 };
 
 /** @internal */
@@ -75,6 +87,7 @@ export const V2PortalCreateSessionRequestBody$outboundSchema: z.ZodType<
   externalId: z.string(),
   scopes: z.array(Scope$outboundSchema),
   preview: z.boolean().default(false),
+  returnUrl: z.string().optional(),
 });
 
 export function v2PortalCreateSessionRequestBodyToJSON(
