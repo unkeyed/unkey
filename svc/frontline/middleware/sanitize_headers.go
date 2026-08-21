@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/unkeyed/unkey/pkg/zen"
+	"github.com/unkeyed/unkey/svc/frontline/internal/proxy"
 )
 
 // reservedHeaderPrefix matches headers frontline produces internally and must
@@ -13,9 +14,12 @@ import (
 // matching against map keys is correct.
 const reservedHeaderPrefix = "X-Unkey-"
 
-// WithReservedHeaderStrip drops every X-Unkey-* request header at the edge.
+// WithReservedHeaderStrip drops internal X-Unkey-* request headers at the
+// edge. It preserves signed peer metadata so the proxy handler can verify and
+// remove it.
+//
 // This is the single guaranteed sanitization point: the policy engine and the
-// upstream both rely on these headers (X-Unkey-Principal especially) being
+// upstream rely on internal headers (X-Unkey-Principal especially) being
 // trustworthy. Running here, before any routing or policy logic, makes it
 // impossible for a code path to forget the strip.
 func WithReservedHeaderStrip() zen.Middleware {
@@ -23,7 +27,8 @@ func WithReservedHeaderStrip() zen.Middleware {
 		return func(ctx context.Context, s *zen.Session) error {
 			h := s.Request().Header
 			for name := range h {
-				if strings.HasPrefix(name, reservedHeaderPrefix) {
+				if strings.HasPrefix(name, reservedHeaderPrefix) &&
+					name != proxy.HeaderFrontlineMeta {
 					delete(h, name)
 				}
 			}

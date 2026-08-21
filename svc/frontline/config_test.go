@@ -15,6 +15,7 @@ func TestConfig_LoadBytesParsesControlConfig(t *testing.T) {
 	cfg, err := sharedconfig.LoadBytes[Config]([]byte(`
 platform = "dev"
 region = "local"
+frontline_meta_signing_key = "frontline-meta-signing-key"
 
 [control]
 url = "http://control:7091"
@@ -27,4 +28,5 @@ primary = "unkey:password@tcp(mysql:3306)/unkey"
 	require.NoError(t, err)
 	require.Equal(t, "http://control:7091", cfg.Control.URL)
 	require.Equal(t, "control-token", cfg.Control.Token)
+	require.Equal(t, "frontline-meta-signing-key", cfg.FrontlineMetaSigningKey)
 }

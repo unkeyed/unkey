@@ -8,6 +8,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/zen"
+	"github.com/unkeyed/unkey/svc/frontline/internal/proxy"
 )
 
 func TestWithReservedHeaderStrip(t *testing.T) {
@@ -19,24 +20,24 @@ func TestWithReservedHeaderStrip(t *testing.T) {
 		stripped bool
 	}{
 		{name: "principal stripped", header: "X-Unkey-Principal", stripped: true},
-		{name: "request id stripped", header: "X-Unkey-Request-Id", stripped: true},
+		{name: "request ID stripped", header: "X-Unkey-Request-Id", stripped: true},
+		{name: "old hop header stripped", header: "X-Unkey-Frontline-Hops", stripped: true},
+		{name: "old force header stripped", header: "X-Unkey-Force-Region", stripped: true},
+		{name: "region stripped", header: proxy.HeaderRegion, stripped: true},
 		{name: "lowercase canonicalized then stripped", header: "x-unkey-principal", stripped: true},
+		{name: "peer metadata kept for handler", header: proxy.HeaderFrontlineMeta, stripped: false},
 		{name: "unrelated header kept", header: "Authorization", stripped: false},
 		{name: "X-Forwarded-For kept", header: "X-Forwarded-For", stripped: false},
 		{name: "user-defined X-Unkey-Foo stripped", header: "X-Unkey-Foo", stripped: true},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
 
 			req := httptest.NewRequest(http.MethodGet, "/", nil)
-			req.Header.Set(tt.header, "spoofed")
-
-			w := httptest.NewRecorder()
-			//nolint:exhaustruct
-			sess := &zen.Session{}
-			require.NoError(t, sess.Init(w, req, 0))
+			req.Header.Set(test.header, "spoofed")
+			sess := newMiddlewareSession(t, req)
 
 			var seen http.Header
 			next := func(_ context.Context, s *zen.Session) error {
@@ -46,13 +47,21 @@ func TestWithReservedHeaderStrip(t *testing.T) {
 
 			err := WithReservedHeaderStrip()(next)(context.Background(), sess)
 			require.NoError(t, err)
-
-			canonical := http.CanonicalHeaderKey(tt.header)
-			if tt.stripped {
-				require.Empty(t, seen.Get(canonical), "%q should be stripped", canonical)
+			canonical := http.CanonicalHeaderKey(test.header)
+			if test.stripped {
+				require.Empty(t, seen.Get(canonical))
 			} else {
-				require.Equal(t, "spoofed", seen.Get(canonical), "%q should be preserved", canonical)
+				require.Equal(t, "spoofed", seen.Get(canonical))
 			}
 		})
 	}
+}
+
+func newMiddlewareSession(t *testing.T, req *http.Request) *zen.Session {
+	t.Helper()
+	w := httptest.NewRecorder()
+	//nolint:exhaustruct
+	sess := &zen.Session{}
+	require.NoError(t, sess.Init(w, req, 0))
+	return sess
 }
