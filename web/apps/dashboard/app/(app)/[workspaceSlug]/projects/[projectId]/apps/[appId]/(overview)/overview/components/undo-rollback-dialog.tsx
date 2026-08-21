@@ -2,7 +2,7 @@
 
 import { type Deployment, collection } from "@/lib/collections";
 import { shortenId } from "@/lib/shorten-id";
-import { getErrorMessage, getUnkeyClient } from "@/lib/unkey-client";
+import { getErrorMessage, getUnkeyClient, noRetry } from "@/lib/unkey-client";
 import { cn } from "@/lib/utils";
 import { useMutation } from "@tanstack/react-query";
 import { CodeBranch } from "@unkey/icons";
@@ -36,7 +36,7 @@ export function UndoRollbackDialog({
 
   const promote = useMutation({
     mutationFn: (deploymentId: string) =>
-      getUnkeyClient().deployments.promoteDeployment({ deploymentId }),
+      getUnkeyClient().deployments.promoteDeployment({ deploymentId }, noRetry),
     onSuccess: () => {
       toast.success("Rollback undone", {
         description: "Automatic production deploys have resumed.",

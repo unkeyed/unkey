@@ -5,7 +5,7 @@ import {
   PreconditionFailedErrorResponse,
 } from "@unkey/api/models/errors";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { getErrorMessage, getErrorToast, getUnkeyClient } from "./unkey-client";
+import { getErrorMessage, getErrorToast, getUnkeyClient, noRetry } from "./unkey-client";
 
 function makeErrorResponse<T>(
   Ctor: new (
@@ -56,6 +56,48 @@ describe("getUnkeyClient", () => {
     expect(request.method).toBe("POST");
     expect(request.headers.has("Authorization")).toBe(false);
     await expect(request.clone().json()).resolves.toEqual({ keyId: "key_1234abcd" });
+  });
+
+  it("sends a deployment create once when the API returns 500", async () => {
+    const requests = stubServerError();
+
+    await expect(
+      getUnkeyClient().deployments.createDeployment(
+        {
+          project: "proj_kebap",
+          app: "app_kebap",
+          environment: "production",
+          image: { dockerImage: "kebap:latest" },
+        },
+        noRetry,
+      ),
+    ).rejects.toThrow();
+
+    expect(requests).toHaveLength(1);
+  });
+
+  it("retries a 500 when a backoff strategy is configured", async () => {
+    const requests = stubServerError();
+
+    await expect(
+      getUnkeyClient().deployments.createDeployment(
+        {
+          project: "proj_kebap",
+          app: "app_kebap",
+          environment: "production",
+          image: { dockerImage: "kebap:latest" },
+        },
+        {
+          retries: {
+            strategy: "backoff",
+            backoff: { initialInterval: 1, maxInterval: 2, exponent: 1, maxElapsedTime: 20 },
+            retryConnectionErrors: true,
+          },
+        },
+      ),
+    ).rejects.toThrow();
+
+    expect(requests.length).toBeGreaterThan(1);
   });
 });
 
@@ -134,3 +176,28 @@ describe("getErrorToast", () => {
     });
   });
 });
+
+// Counts the requests the SDK actually put on the wire while every attempt
+// fails, so a test can tell one attempt from a retry storm.
+function stubServerError(): Request[] {
+  const requests: Request[] = [];
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      requests.push(input instanceof Request ? input : new Request(input, init));
+      return new Response(
+        JSON.stringify({
+          meta: { requestId: "req_123" },
+          error: {
+            detail: "Something went wrong.",
+            status: 500,
+            title: "Internal Server Error",
+            type: "https://unkey.com/docs/errors/unkey/application/internal_server_error",
+          },
+        }),
+        { status: 500, headers: { "Content-Type": "application/json" } },
+      );
+    }),
+  );
+  return requests;
+}

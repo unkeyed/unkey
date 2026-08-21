@@ -2,7 +2,7 @@
 
 import { useDeployActionGate } from "@/app/(app)/[workspaceSlug]/projects/_components/hooks/use-deploy-action-gate";
 import { queryClient } from "@/lib/collections/client";
-import { getErrorMessage, getUnkeyClient } from "@/lib/unkey-client";
+import { getErrorMessage, getUnkeyClient, noRetry } from "@/lib/unkey-client";
 import { useMutation } from "@tanstack/react-query";
 import { Button, toast, useStepWizard } from "@unkey/ui";
 import { useProjectData } from "../../[appId]/(overview)/data-provider";
@@ -29,13 +29,16 @@ export const DeployAction = ({
 
   const deploy = useMutation({
     mutationFn: async (environment: string) => {
-      const res = await getUnkeyClient().deployments.createDeployment({
-        project: projectId,
-        app: appId,
-        environment,
-        // No branch or commitSha: the API builds the app's default branch.
-        git: {},
-      });
+      const res = await getUnkeyClient().deployments.createDeployment(
+        {
+          project: projectId,
+          app: appId,
+          environment,
+          // No branch or commitSha: the API builds the app's default branch.
+          git: {},
+        },
+        noRetry,
+      );
       return { deploymentId: res.data.deploymentId };
     },
     onSuccess: async (data) => {

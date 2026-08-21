@@ -1,7 +1,7 @@
 "use client";
 
 import { type Deployment, collection } from "@/lib/collections";
-import { getErrorMessage, getUnkeyClient } from "@/lib/unkey-client";
+import { getErrorMessage, getUnkeyClient, noRetry } from "@/lib/unkey-client";
 import { useMutation } from "@tanstack/react-query";
 import { Button, DialogContainer, toast } from "@unkey/ui";
 import { DeploymentCard } from "./components/deployment-card";
@@ -15,7 +15,7 @@ type WakeDialogProps = {
 export const WakeDialog = ({ isOpen, onClose, deployment }: WakeDialogProps) => {
   const wake = useMutation({
     mutationFn: (deploymentId: string) =>
-      getUnkeyClient().deployments.startDeployment({ deploymentId }),
+      getUnkeyClient().deployments.startDeployment({ deploymentId }, noRetry),
     onSuccess: () => {
       collection.deployments.utils.refetch();
       onClose();

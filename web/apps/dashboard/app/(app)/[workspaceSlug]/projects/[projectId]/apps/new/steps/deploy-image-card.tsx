@@ -5,7 +5,7 @@ import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { queryClient } from "@/lib/collections/client";
 import { routes } from "@/lib/navigation/routes";
 import { trpc } from "@/lib/trpc/client";
-import { getErrorMessage, getUnkeyClient } from "@/lib/unkey-client";
+import { getErrorMessage, getUnkeyClient, noRetry } from "@/lib/unkey-client";
 import { useMutation } from "@tanstack/react-query";
 import { ChevronLeft, Docker } from "@unkey/icons";
 import { Button, Input, toast } from "@unkey/ui";
@@ -40,12 +40,15 @@ export const DeployImageCard = ({
 
   const createDeployment = useMutation({
     mutationFn: async (source: { environment: string; image: string }) => {
-      const res = await getUnkeyClient().deployments.createDeployment({
-        project: projectId,
-        app: appId,
-        environment: source.environment,
-        image: { dockerImage: source.image },
-      });
+      const res = await getUnkeyClient().deployments.createDeployment(
+        {
+          project: projectId,
+          app: appId,
+          environment: source.environment,
+          image: { dockerImage: source.image },
+        },
+        noRetry,
+      );
       return { deploymentId: res.data.deploymentId };
     },
     async onSuccess(data) {

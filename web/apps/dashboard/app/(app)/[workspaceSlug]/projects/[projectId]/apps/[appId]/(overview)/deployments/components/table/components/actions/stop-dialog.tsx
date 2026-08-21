@@ -1,7 +1,7 @@
 "use client";
 
 import { type Deployment, collection } from "@/lib/collections";
-import { getErrorMessage, getUnkeyClient } from "@/lib/unkey-client";
+import { getErrorMessage, getUnkeyClient, noRetry } from "@/lib/unkey-client";
 import { useMutation } from "@tanstack/react-query";
 import { Button, DialogContainer, toast } from "@unkey/ui";
 import { DeploymentCard } from "./components/deployment-card";
@@ -15,7 +15,7 @@ type StopDialogProps = {
 export const StopDialog = ({ isOpen, onClose, deployment }: StopDialogProps) => {
   const stop = useMutation({
     mutationFn: (deploymentId: string) =>
-      getUnkeyClient().deployments.stopDeployment({ deploymentId }),
+      getUnkeyClient().deployments.stopDeployment({ deploymentId }, noRetry),
     onSuccess: () => {
       collection.deployments.utils.refetch();
       onClose();
