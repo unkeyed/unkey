@@ -1,6 +1,6 @@
 "use client";
 import { TOP_NAV_HEIGHT } from "@/components/navigation/top-nav";
-import { POLICY_LIMITS, policyIdentity } from "@/lib/collections/deploy/policies.schema";
+import { policyIdentity } from "@/lib/collections/deploy/policies.schema";
 import { Plus } from "@unkey/icons";
 import {
   Button,
@@ -75,19 +75,6 @@ export default function PoliciesPage() {
       ? (editingRow?.preview ?? panels.editing)
       : (editingRow?.production ?? panels.editing);
 
-  // An environment the row already exists in takes an update, not an insert.
-  const isFull = {
-    production: rowsByEnv.production.length >= POLICY_LIMITS.maxPolicies,
-    preview: rowsByEnv.preview.length >= POLICY_LIMITS.maxPolicies,
-  };
-  const atCapacity = {
-    add: isFull,
-    edit: {
-      production: editingRow?.production == null && isFull.production,
-      preview: editingRow?.preview == null && isFull.preview,
-    },
-  };
-
   return (
     <PageContainer>
       <PageHeader>
@@ -132,7 +119,6 @@ export default function PoliciesPage() {
           topOffset={TOP_NAV_HEIGHT}
           onClose={panels.closeAdd}
           existingIdentities={existingIdentities}
-          atCapacity={atCapacity.add}
           onSave={actions.save}
         />
         {editingPolicy !== null && (
@@ -145,7 +131,6 @@ export default function PoliciesPage() {
             topOffset={TOP_NAV_HEIGHT}
             onClose={panels.closeEdit}
             existingIdentities={existingIdentities}
-            atCapacity={atCapacity.edit}
             initialPolicy={editingPolicy}
             initialEnvironmentId={editingInitialEnvId}
             onSave={(prodPolicy, previewPolicy) => {

@@ -1,15 +1,10 @@
 "use client";
 
-import {
-  POLICY_LIMITS,
-  type Policy,
-  policyIdentity,
-} from "@/lib/collections/deploy/policies.schema";
+import { type Policy, policyIdentity } from "@/lib/collections/deploy/policies.schema";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { match } from "@unkey/match";
 import { Button, FormInput, FormSelect } from "@unkey/ui";
 import { Controller, useForm, useWatch } from "react-hook-form";
-import type { Env } from "../list/merge";
 import { FirewallFields, FirewallPolicySummary } from "./forms/firewall-fields";
 import { KeyAuthFields, KeyauthPolicySummary } from "./forms/keyauth-fields";
 import { LoggingFields, LoggingPolicySummary } from "./forms/logging-fields";
@@ -38,10 +33,12 @@ type CommonProps = {
   isOpen: boolean;
   topOffset: number;
   onClose: () => void;
-  /** `policyIdentity` of every policy on the page, to reject a second one. */
+  /**
+   * `policyIdentity` of every policy on the page. `mergePolicies` pairs the two
+   * environment copies of a policy on that identity, so a second policy
+   * carrying one is indistinguishable from the first and is rejected here.
+   */
   existingIdentities: string[];
-  /** Environments that cannot take another policy. */
-  atCapacity: Record<Env, boolean>;
 };
 
 type AddProps = CommonProps & {
@@ -59,15 +56,7 @@ type EditProps = CommonProps & {
 export type PolicyPanelProps = AddProps | EditProps;
 
 export function PolicyPanel(props: PolicyPanelProps) {
-  const {
-    productionSlug,
-    previewSlug,
-    isOpen,
-    topOffset,
-    onClose,
-    existingIdentities,
-    atCapacity,
-  } = props;
+  const { productionSlug, previewSlug, isOpen, topOffset, onClose, existingIdentities } = props;
   const isEdit = props.mode === "edit";
 
   const envOptions = [
@@ -96,21 +85,6 @@ export function PolicyPanel(props: PolicyPanelProps) {
       form.setError("name", {
         type: "manual",
         message: `A ${label} policy named "${values.name}" already exists. Use the + on its row to add it to another environment.`,
-      });
-      return;
-    }
-
-    const scope = values.environmentId;
-    const fullEnvs = [
-      (scope === "__all__" || scope === productionSlug) && atCapacity.production
-        ? productionSlug
-        : null,
-      (scope === "__all__" || scope === previewSlug) && atCapacity.preview ? previewSlug : null,
-    ].filter((slug): slug is string => slug !== null);
-    if (fullEnvs.length > 0) {
-      form.setError("environmentId", {
-        type: "manual",
-        message: `${fullEnvs.join(" and ")} already holds ${POLICY_LIMITS.maxPolicies} policies. Delete one first.`,
       });
       return;
     }
