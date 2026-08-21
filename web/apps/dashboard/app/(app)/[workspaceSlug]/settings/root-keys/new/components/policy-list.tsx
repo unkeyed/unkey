@@ -4,9 +4,10 @@ import { Plus } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import { useState } from "react";
 import { useFieldArray, useFormContext, useWatch } from "react-hook-form";
-import { newPolicy } from "../lib/policy";
+import { type Policy, isPolicyComplete } from "../lib/policy";
 import type { RootKeyFormValues } from "../schema";
 import { PolicyCard } from "./policy-card";
+import { TemplateGallery } from "./template-gallery";
 
 type PolicyListProps = {
   showErrors: boolean;
@@ -17,6 +18,13 @@ export function PolicyList({ showErrors }: PolicyListProps) {
   const { fields, append, remove } = useFieldArray({ control, name: "policies" });
   const policies = useWatch({ control, name: "policies" }) ?? [];
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
+  const [adding, setAdding] = useState(false);
+  const showGallery = adding || fields.length === 0;
+
+  const pick = (picked: Policy[]) => {
+    append(picked, { shouldFocus: false });
+    setAdding(false);
+  };
 
   return (
     <div className="flex flex-col gap-3">
@@ -29,7 +37,7 @@ export function PolicyList({ showErrors }: PolicyListProps) {
           <PolicyCard
             key={field.id}
             policy={policy}
-            collapsed={collapsed[field.id] === true}
+            collapsed={collapsed[field.id] ?? isPolicyComplete(policy)}
             showError={showErrors}
             onChange={(next) =>
               setValue(`policies.${index}`, next, { shouldDirty: true, shouldValidate: true })
@@ -46,18 +54,25 @@ export function PolicyList({ showErrors }: PolicyListProps) {
         <span className="text-xs text-error-11">Grant at least one permission.</span>
       ) : null}
 
-      <div>
-        <Button
-          type="button"
-          variant="ghost"
-          size="md"
-          className="font-medium"
-          onClick={() => append(newPolicy())}
-        >
-          <Plus iconSize="sm-regular" />
-          Add policy
-        </Button>
-      </div>
+      {showGallery ? (
+        <TemplateGallery
+          onPick={pick}
+          onCancel={fields.length > 0 ? () => setAdding(false) : undefined}
+        />
+      ) : (
+        <div>
+          <Button
+            type="button"
+            variant="ghost"
+            size="md"
+            className="font-medium"
+            onClick={() => setAdding(true)}
+          >
+            <Plus iconSize="sm-regular" />
+            Add policy
+          </Button>
+        </div>
+      )}
     </div>
   );
 }
