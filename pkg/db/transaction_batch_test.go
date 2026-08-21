@@ -73,7 +73,7 @@ func (c *ambiguousBatchConn) ExecContext(_ context.Context, query string, _ []dr
 	return driver.RowsAffected(0), nil
 }
 
-func TestUpdateKeyBatchAnnotatesEveryStatement(t *testing.T) {
+func TestTransactionBatchAnnotatesEveryStatement(t *testing.T) {
 	t.Parallel()
 
 	replica := &Replica{
@@ -82,7 +82,7 @@ func TestUpdateKeyBatchAnnotatesEveryStatement(t *testing.T) {
 		debugLogs: false,
 		tags:      sqlcomment.ForService("api", "us-east-1"),
 	}
-	query, _ := replica.transactionBatchQuery(t.Context(), "UpdateKeyWithAuditBatch", []transactionBatchStatement{
+	query, _ := replica.transactionBatchQuery(t.Context(), "UpdateKeyBatch", []transactionBatchStatement{
 		{query: updateKey},
 		{query: insertClickhouseOutbox},
 	})
@@ -90,11 +90,11 @@ func TestUpdateKeyBatchAnnotatesEveryStatement(t *testing.T) {
 	require.Len(t, statements, 5)
 
 	operations := []string{
-		"UpdateKeyWithAuditBatchStart",
+		"UpdateKeyBatchStart",
 		"UpdateKey",
 		"InsertClickhouseOutbox",
-		"UpdateKeyWithAuditBatchCommit",
-		"UpdateKeyWithAuditBatchMarker",
+		"UpdateKeyBatchCommit",
+		"UpdateKeyBatchMarker",
 	}
 	for i, statement := range statements {
 		require.NotContains(t, statement, "-- name:")
@@ -114,18 +114,18 @@ func TestUpdateKeyBatchDoesNotReplayAmbiguousCommit(t *testing.T) {
 	t.Cleanup(func() { require.NoError(t, sqlDB.Close()) })
 	replica := &Replica{mode: "rw", db: sqlDB, tags: sqlcomment.Disabled()}
 
-	err = replica.UpdateKeyWithAuditBatch(t.Context(), UpdateKeyParams{
+	err = replica.UpdateKeyBatch(t.Context(), UpdateKeyBatchParams{Update: UpdateKeyParams{
 		ID:            "key_test",
 		NameSpecified: 1,
 		Name:          sql.NullString{String: "after", Valid: true},
 		Now:           sql.NullInt64{Int64: 1, Valid: true},
-	}, InsertClickhouseOutboxParams{
+	}, Outboxes: []InsertClickhouseOutboxParams{{
 		Version:     "audit_log.v1",
 		WorkspaceID: "ws_test",
 		EventID:     "evt_test",
 		Payload:     []byte(`{"event":"key.update"}`),
 		CreatedAt:   1,
-	})
+	}}})
 	require.ErrorContains(t, err, "connection lost before commit marker")
 	require.Equal(t, 1, conn.queryCalls, "an ambiguous mutation must not be replayed")
 	require.Equal(t, 1, conn.rollbackCalls)
@@ -142,16 +142,16 @@ func TestUpdateKeyBatchReturnsSuccessAfterMarker(t *testing.T) {
 	t.Cleanup(func() { require.NoError(t, sqlDB.Close()) })
 	replica := &Replica{mode: "rw", db: sqlDB, tags: sqlcomment.Disabled()}
 
-	err = replica.UpdateKeyWithAuditBatch(t.Context(), UpdateKeyParams{
+	err = replica.UpdateKeyBatch(t.Context(), UpdateKeyBatchParams{Update: UpdateKeyParams{
 		ID:  "key_test",
 		Now: sql.NullInt64{Int64: 1, Valid: true},
-	}, InsertClickhouseOutboxParams{
+	}, Outboxes: []InsertClickhouseOutboxParams{{
 		Version:     "audit_log.v1",
 		WorkspaceID: "ws_test",
 		EventID:     "evt_test",
 		Payload:     []byte(`{"event":"key.update"}`),
 		CreatedAt:   1,
-	})
+	}}})
 	require.NoError(t, err, "the marker proves that the mutation committed")
 	require.Equal(t, 1, conn.queryCalls)
 	require.Equal(t, 0, conn.rollbackCalls)

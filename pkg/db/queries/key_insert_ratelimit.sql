@@ -1,4 +1,5 @@
 -- name: InsertKeyRatelimit :exec
+-- transactional-batch-statement
 INSERT INTO `ratelimits` (
     id,
     workspace_id,

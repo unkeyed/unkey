@@ -1,4 +1,5 @@
 -- name: InsertKeyRole :exec
+-- transactional-batch-statement
 INSERT INTO keys_roles (
   key_id,
   role_id,

@@ -49,7 +49,7 @@ type InsertKeyRatelimitParams struct {
 	UpdatedAt   sql.NullInt64  `db:"updated_at"`
 }
 
-// InsertKeyRatelimit
+// transactional-batch-statement
 //
 //	INSERT INTO `ratelimits` (
 //	    id,

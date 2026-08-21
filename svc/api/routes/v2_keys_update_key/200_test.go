@@ -11,6 +11,7 @@ import (
 	"github.com/oapi-codegen/nullable"
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/internal/services/keys"
+	"github.com/unkeyed/unkey/pkg/auditlog"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/hash"
 	"github.com/unkeyed/unkey/pkg/ptr"
@@ -581,6 +582,15 @@ func TestUpdateKeyConcurrentWithSameNewPermission(t *testing.T) {
 	})
 	require.NoError(t, err)
 	require.Len(t, permissionRows, 1, "only the winning permission row should exist")
+	var permissionCreateAuditRows int
+	err = h.DB.RO().QueryRowContext(ctx, `
+		SELECT COUNT(*)
+		FROM clickhouse_outbox
+		WHERE JSON_UNQUOTE(JSON_EXTRACT(payload, '$.event')) = ?
+		  AND JSON_CONTAINS(payload, JSON_OBJECT('id', ?), '$.targets')
+	`, string(auditlog.PermissionCreateEvent), permissionRows[0].ID).Scan(&permissionCreateAuditRows)
+	require.NoError(t, err)
+	require.Equal(t, 1, permissionCreateAuditRows, "only the request that created the permission should emit its create event")
 
 	for _, keyID := range keyIDs {
 		keyPermissions, listErr := db.Query.ListDirectPermissionsByKeyID(ctx, h.DB.RO(), keyID)

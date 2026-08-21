@@ -17,7 +17,17 @@ UPDATE ` + "`" + `keys` + "`" + ` k SET
         ELSE k.name 
     END,
     identity_id = CASE 
-        WHEN CAST(? AS UNSIGNED) = 1 THEN ? 
+        WHEN CAST(? AS UNSIGNED) = 1 THEN
+            CASE
+                WHEN CAST(? AS UNSIGNED) = 1 THEN (
+                    SELECT i.id
+                    FROM identities i
+                    WHERE i.workspace_id = ?
+                        AND i.external_id = ?
+                        AND i.deleted = false
+                )
+                ELSE ?
+            END
         ELSE k.identity_id 
     END,
     enabled = CASE 
@@ -45,28 +55,31 @@ UPDATE ` + "`" + `keys` + "`" + ` k SET
         ELSE k.refill_day 
     END,
     updated_at_m = ?
-WHERE id = ?
+WHERE k.id = ?
 `
 
 type UpdateKeyParams struct {
-	NameSpecified              int64          `db:"name_specified"`
-	Name                       sql.NullString `db:"name"`
-	IdentityIDSpecified        int64          `db:"identity_id_specified"`
-	IdentityID                 sql.NullString `db:"identity_id"`
-	EnabledSpecified           int64          `db:"enabled_specified"`
-	Enabled                    sql.NullBool   `db:"enabled"`
-	MetaSpecified              int64          `db:"meta_specified"`
-	Meta                       sql.NullString `db:"meta"`
-	ExpiresSpecified           int64          `db:"expires_specified"`
-	Expires                    sql.NullTime   `db:"expires"`
-	RemainingRequestsSpecified int64          `db:"remaining_requests_specified"`
-	RemainingRequests          sql.NullInt64  `db:"remaining_requests"`
-	RefillAmountSpecified      int64          `db:"refill_amount_specified"`
-	RefillAmount               sql.NullInt64  `db:"refill_amount"`
-	RefillDaySpecified         int64          `db:"refill_day_specified"`
-	RefillDay                  sql.NullInt16  `db:"refill_day"`
-	Now                        sql.NullInt64  `db:"now"`
-	ID                         string         `db:"id"`
+	NameSpecified               int64          `db:"name_specified"`
+	Name                        sql.NullString `db:"name"`
+	IdentityIDSpecified         int64          `db:"identity_id_specified"`
+	IdentityExternalIDSpecified int64          `db:"identity_external_id_specified"`
+	IdentityWorkspaceID         string         `db:"identity_workspace_id"`
+	IdentityExternalID          string         `db:"identity_external_id"`
+	IdentityID                  sql.NullString `db:"identity_id"`
+	EnabledSpecified            int64          `db:"enabled_specified"`
+	Enabled                     sql.NullBool   `db:"enabled"`
+	MetaSpecified               int64          `db:"meta_specified"`
+	Meta                        sql.NullString `db:"meta"`
+	ExpiresSpecified            int64          `db:"expires_specified"`
+	Expires                     sql.NullTime   `db:"expires"`
+	RemainingRequestsSpecified  int64          `db:"remaining_requests_specified"`
+	RemainingRequests           sql.NullInt64  `db:"remaining_requests"`
+	RefillAmountSpecified       int64          `db:"refill_amount_specified"`
+	RefillAmount                sql.NullInt64  `db:"refill_amount"`
+	RefillDaySpecified          int64          `db:"refill_day_specified"`
+	RefillDay                   sql.NullInt16  `db:"refill_day"`
+	Now                         sql.NullInt64  `db:"now"`
+	ID                          string         `db:"id"`
 }
 
 // transactional-batch-statement
@@ -77,7 +90,17 @@ type UpdateKeyParams struct {
 //	        ELSE k.name
 //	    END,
 //	    identity_id = CASE
-//	        WHEN CAST(? AS UNSIGNED) = 1 THEN ?
+//	        WHEN CAST(? AS UNSIGNED) = 1 THEN
+//	            CASE
+//	                WHEN CAST(? AS UNSIGNED) = 1 THEN (
+//	                    SELECT i.id
+//	                    FROM identities i
+//	                    WHERE i.workspace_id = ?
+//	                        AND i.external_id = ?
+//	                        AND i.deleted = false
+//	                )
+//	                ELSE ?
+//	            END
 //	        ELSE k.identity_id
 //	    END,
 //	    enabled = CASE
@@ -105,12 +128,15 @@ type UpdateKeyParams struct {
 //	        ELSE k.refill_day
 //	    END,
 //	    updated_at_m = ?
-//	WHERE id = ?
+//	WHERE k.id = ?
 func (q *Queries) UpdateKey(ctx context.Context, db DBTX, arg UpdateKeyParams) error {
 	_, err := db.ExecContext(ctx, updateKey,
 		arg.NameSpecified,
 		arg.Name,
 		arg.IdentityIDSpecified,
+		arg.IdentityExternalIDSpecified,
+		arg.IdentityWorkspaceID,
+		arg.IdentityExternalID,
 		arg.IdentityID,
 		arg.EnabledSpecified,
 		arg.Enabled,
