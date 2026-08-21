@@ -162,8 +162,9 @@ func ToResponseTolerant(p db.Portal) openapi.Portal {
 			Id:   mappingID,
 			Type: openapi.PortalMappingType(mappingType),
 		},
-		Slug:      p.Slug,
-		UpdatedAt: p.UpdatedAt.Int64,
+		DisplayName: p.DisplayName,
+		Slug:        p.Slug,
+		UpdatedAt:   p.UpdatedAt.Int64,
 	}
 }
 
@@ -436,13 +437,14 @@ func ToResponse(p db.Portal) (openapi.Portal, error) {
 	mapping, err := MappingOf(p)
 	if err != nil {
 		return openapi.Portal{
-			Branding:  nil,
-			CreatedAt: 0,
-			Enabled:   false,
-			Id:        "",
-			Mapping:   openapi.PortalMapping{Id: "", Type: ""},
-			Slug:      "",
-			UpdatedAt: 0,
+			Branding:    nil,
+			CreatedAt:   0,
+			Enabled:     false,
+			Id:          "",
+			Mapping:     openapi.PortalMapping{Id: "", Type: ""},
+			DisplayName: "",
+			Slug:        "",
+			UpdatedAt:   0,
 		}, err
 	}
 
@@ -455,12 +457,13 @@ func ToResponse(p db.Portal) (openapi.Portal, error) {
 	}
 
 	return openapi.Portal{
-		Branding:  branding,
-		CreatedAt: p.CreatedAt,
-		Enabled:   p.Enabled,
-		Id:        p.ID,
-		Mapping:   mapping,
-		Slug:      p.Slug,
-		UpdatedAt: p.UpdatedAt.Int64,
+		Branding:    branding,
+		CreatedAt:   p.CreatedAt,
+		Enabled:     p.Enabled,
+		Id:          p.ID,
+		Mapping:     mapping,
+		DisplayName: p.DisplayName,
+		Slug:        p.Slug,
+		UpdatedAt:   p.UpdatedAt.Int64,
 	}, nil
 }

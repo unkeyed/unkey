@@ -205,6 +205,7 @@ func baseRequest(target string) handler.Request {
 	return handler.Request{
 		Portal:       target,
 		Slug:         nil,
+		DisplayName:  nil,
 		Enabled:      nil,
 		Mapping:      nil,
 		LogoUrl:      unspecified(),
@@ -271,6 +272,30 @@ func TestUpdatePortalOnlySlug(t *testing.T) {
 
 // The two branding columns carry their own flag, so naming one must not disturb
 // the other.
+// The display name is the only field an end user reads, and it is independent of
+// the slug: renaming the portal must not move its URL, and vice versa.
+func TestUpdatePortalOnlyDisplayName(t *testing.T) {
+	h := testutil.NewHarness(t)
+	route, headers := newRoute(t, h, "portal.*.update_portal")
+	workspace := h.Resources().UserWorkspace
+
+	mapping := keyspaceMapping(t, h, workspace.ID)
+	stored := seedPortal(t, h, workspace.ID, "acme-portal", mapping,
+		nullStringAbsent(), nullStringAbsent())
+
+	req := baseRequest(stored.ID)
+	req.DisplayName = ptr("Acme Payments")
+
+	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
+	require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
+	require.Equal(t, "Acme Payments", res.Body.Data.DisplayName)
+	require.Equal(t, "acme-portal", res.Body.Data.Slug, "the slug is not the display name")
+
+	row := fetchPortal(t, h, workspace.ID, stored.ID)
+	require.Equal(t, "Acme Payments", row.DisplayName)
+	require.Equal(t, "acme-portal", row.Slug)
+}
+
 func TestUpdatePortalOneBrandingFieldLeavesTheOther(t *testing.T) {
 	h := testutil.NewHarness(t)
 	route, headers := newRoute(t, h, "portal.*.update_portal")

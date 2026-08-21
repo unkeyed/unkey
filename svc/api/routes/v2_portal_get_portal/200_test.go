@@ -218,9 +218,9 @@ func TestGetPortalOmitsAbsentBranding(t *testing.T) {
 		"an omitempty branding object must not appear in the wire body")
 }
 
-// The operator resolves the display name from the mapped app or
-// keyspace, and a return URL belongs to a session rather than to a portal.
-func TestGetPortalCarriesNoDisplayNameOrReturnURL(t *testing.T) {
+// The portal carries its own display name, while a return URL belongs to a
+// session rather than to a portal.
+func TestGetPortalCarriesDisplayNameButNoReturnURL(t *testing.T) {
 	h := testutil.NewHarness(t)
 	route, headers := newRoute(t, h, "portal.*.read_portal")
 	workspace := h.Resources().UserWorkspace
@@ -234,7 +234,9 @@ func TestGetPortalCarriesNoDisplayNameOrReturnURL(t *testing.T) {
 	})
 	require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
 
-	for _, forbidden := range []string{"displayName", "display_name", "returnUrl", "return_url", "name"} {
+	require.Equal(t, stored.DisplayName, res.Body.Data.DisplayName)
+
+	for _, forbidden := range []string{"returnUrl", "return_url"} {
 		require.NotContains(t, res.RawBody, forbidden,
 			"the portal response must not carry %q", forbidden)
 	}

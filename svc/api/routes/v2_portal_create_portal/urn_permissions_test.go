@@ -56,9 +56,10 @@ func TestCreatePortalAuthorizesURNGrants(t *testing.T) {
 			}
 
 			res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
-				Slug:    fmt.Sprintf("urn-portal-%d", i),
-				Mapping: keyspaceMapping(t, h, workspace.ID),
-				Enabled: ptr(true),
+				Slug:        fmt.Sprintf("urn-portal-%d", i),
+				DisplayName: "Acme",
+				Mapping:     keyspaceMapping(t, h, workspace.ID),
+				Enabled:     ptr(true),
 			})
 			require.Equal(t, http.StatusOK, res.Status,
 				"a URN grant must authorize portal creation, got: %s", res.RawBody)

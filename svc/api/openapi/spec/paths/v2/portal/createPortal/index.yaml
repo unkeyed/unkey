@@ -12,9 +12,8 @@ post:
     resource must belong to your workspace, and it can back only one portal, so
     creating a second portal for the same app or keyspace is a conflict.
 
-    The portal's display name is not stored. Read it from the mapped app or
-    keyspace instead, so renaming that resource cannot leave the portal showing a
-    stale name.
+    `displayName` is what your end users see. It is stored on the portal, so it
+    is yours to set and change independently of the resource the portal serves.
 
     **Required Permissions**
 

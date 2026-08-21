@@ -208,6 +208,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			UpdatedAt:             sql.NullInt64{Valid: true, Int64: now},
 			SlugSpecified:         0,
 			Slug:                  "",
+			DisplayNameSpecified:  0,
+			DisplayName:           "",
 			AppIDSpecified:        0,
 			AppID:                 sql.NullString{String: "", Valid: false},
 			KeyAuthIDSpecified:    0,
@@ -230,6 +232,12 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			params.Slug = *req.Slug
 			params.SlugSpecified = 1
 			after.Slug = *req.Slug
+		}
+
+		if req.DisplayName != nil {
+			params.DisplayName = *req.DisplayName
+			params.DisplayNameSpecified = 1
+			after.DisplayName = *req.DisplayName
 		}
 
 		if req.Enabled != nil {

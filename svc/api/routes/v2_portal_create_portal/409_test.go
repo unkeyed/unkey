@@ -33,9 +33,10 @@ func TestCreatePortalConflicts(t *testing.T) {
 
 	t.Run("duplicate slug", func(t *testing.T) {
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
-			Slug:    "taken-slug",
-			Mapping: keyspaceMapping(t, h, workspace.ID),
-			Enabled: ptr(true),
+			Slug:        "taken-slug",
+			DisplayName: "Acme",
+			Mapping:     keyspaceMapping(t, h, workspace.ID),
+			Enabled:     ptr(true),
 		})
 		require.Equal(t, http.StatusConflict, res.Status, "expected 409, received: %s", res.RawBody)
 		require.Contains(t, res.RawBody, "portal_already_exists")
@@ -46,9 +47,10 @@ func TestCreatePortalConflicts(t *testing.T) {
 
 	t.Run("mapping already backs a portal", func(t *testing.T) {
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
-			Slug:    "fresh-slug",
-			Mapping: taken,
-			Enabled: ptr(true),
+			Slug:        "fresh-slug",
+			DisplayName: "Acme",
+			Mapping:     taken,
+			Enabled:     ptr(true),
 		})
 		require.Equal(t, http.StatusConflict, res.Status, "expected 409, received: %s", res.RawBody)
 		require.Contains(t, res.RawBody, "portal_already_exists")
@@ -82,9 +84,10 @@ func TestCreatePortalConflicts(t *testing.T) {
 		// constructed here -- ownership and the global unique key disagree only in
 		// data written outside these routes.
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
-			Slug:    "another-slug",
-			Mapping: openapi.PortalMapping{Id: sharedApi.KeyAuthID.String, Type: openapi.PortalMappingTypeKeyspace},
-			Enabled: ptr(true),
+			Slug:        "another-slug",
+			DisplayName: "Acme",
+			Mapping:     openapi.PortalMapping{Id: sharedApi.KeyAuthID.String, Type: openapi.PortalMappingTypeKeyspace},
+			Enabled:     ptr(true),
 		})
 		require.Equal(t, http.StatusNotFound, res.Status,
 			"ownership is checked before availability, so this is a 404: %s", res.RawBody)

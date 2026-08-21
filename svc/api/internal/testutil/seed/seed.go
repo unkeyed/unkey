@@ -894,6 +894,7 @@ type CreatePortalRequest struct {
 	ID           string
 	WorkspaceID  string
 	Slug         string
+	DisplayName  string
 	AppID        sql.NullString
 	KeyAuthID    sql.NullString
 	Enabled      bool
@@ -910,10 +911,16 @@ func (s *Seeder) CreatePortal(ctx context.Context, req CreatePortalRequest) db.P
 	}
 	now := time.Now().UnixMilli()
 
+	displayName := req.DisplayName
+	if displayName == "" {
+		displayName = req.Slug
+	}
+
 	err := db.Query.InsertPortal(ctx, s.DB.RW(), db.InsertPortalParams{
 		ID:           portalID,
 		WorkspaceID:  req.WorkspaceID,
 		Slug:         req.Slug,
+		DisplayName:  displayName,
 		AppID:        req.AppID,
 		KeyAuthID:    req.KeyAuthID,
 		Enabled:      req.Enabled,

@@ -560,6 +560,7 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 				ID:           portalID,
 				WorkspaceID:  workspaceID,
 				Slug:         "awesome",
+				DisplayName:  "Awesome",
 				AppID:        sql.NullString{Valid: false},
 				KeyAuthID:    sql.NullString{Valid: true, String: userKeySpaceID},
 				Enabled:      true,

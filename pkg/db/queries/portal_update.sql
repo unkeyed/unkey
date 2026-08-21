@@ -13,7 +13,7 @@
 -- remove the row between resolving it and this statement.
 --
 -- Each field carries a `_specified` flag so an omitted field keeps its stored
--- value. `slug` and `enabled` are NOT NULL and take sqlc.arg; the two
+-- value. `slug`, `display_name` and `enabled` are NOT NULL and take sqlc.arg; the two
 -- associations and the two branding columns are nullable and take sqlc.narg, so
 -- an explicit null clears them.
 UPDATE portals p
@@ -21,6 +21,10 @@ SET
     slug = CASE
         WHEN CAST(sqlc.arg('slug_specified') AS UNSIGNED) = 1 THEN sqlc.arg('slug')
         ELSE p.slug
+    END,
+    display_name = CASE
+        WHEN CAST(sqlc.arg('display_name_specified') AS UNSIGNED) = 1 THEN sqlc.arg('display_name')
+        ELSE p.display_name
     END,
     app_id = CASE
         WHEN CAST(sqlc.arg('app_id_specified') AS UNSIGNED) = 1 THEN sqlc.narg('app_id')
