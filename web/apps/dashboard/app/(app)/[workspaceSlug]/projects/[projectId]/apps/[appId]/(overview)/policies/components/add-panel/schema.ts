@@ -114,7 +114,17 @@ export type KeyLocationFormValues = z.infer<typeof keyLocationFormSchema>;
 // `keyauth` and `firewall` are wired through today.
 
 const basePolicyFields = {
-  name: z.string().min(1, "Name is required"),
+  // The name is the policy's identity, so trim before the length checks: a
+  // spaces-only name can never pair, and a trailing space makes a second row
+  // that renders the same as an existing one.
+  name: z
+    .string()
+    .trim()
+    .min(1, "Name is required")
+    .max(
+      POLICY_LIMITS.maxNameLength,
+      `Name must be at most ${POLICY_LIMITS.maxNameLength} characters`,
+    ),
   environmentId: z.string(),
   matchConditions: z.array(matchConditionSchema),
 };
