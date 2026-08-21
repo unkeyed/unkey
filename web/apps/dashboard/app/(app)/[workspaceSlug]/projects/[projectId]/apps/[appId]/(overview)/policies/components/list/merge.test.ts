@@ -121,8 +121,8 @@ describe("policy type", () => {
 });
 
 describe("name folding", () => {
-  it("pairs names that differ only in case or surrounding space", () => {
-    const merged = mergePolicies([firewall("pol_a1", "Auth ")], [firewall("pol_b1", "auth")]);
+  it("pairs names that differ only in surrounding space", () => {
+    const merged = mergePolicies([firewall("pol_a1", "Auth ")], [firewall("pol_b1", "Auth")]);
 
     expect(merged).toHaveLength(1);
     expect(merged[0]).toMatchObject({
@@ -132,10 +132,11 @@ describe("name folding", () => {
     });
   });
 
-  it("does not pair two names that fold the same within one environment", () => {
-    const merged = mergePolicies([firewall("pol_a1", "Auth"), firewall("pol_a2", "auth")], []);
+  // Case is left alone: the API accepts both, and they are visibly different.
+  it("keeps names that differ only in case apart", () => {
+    const merged = mergePolicies([firewall("pol_a1", "Auth")], [firewall("pol_b1", "auth")]);
 
-    expect(merged.map((m) => m.key).sort()).toEqual(["production:pol_a1", "production:pol_a2"]);
+    expect(merged).toHaveLength(2);
   });
 });
 
@@ -170,7 +171,7 @@ describe("policyInEnv", () => {
 
 // The form rejects a spaces-only name, the API accepts one.
 describe("blank names", () => {
-  it("never yields an empty key, which React cannot use", () => {
+  it("keys a blank name by id", () => {
     const merged = mergePolicies([firewall("pol_a1", "   ")], [firewall("pol_b1", "   ")]);
     expect(merged.map((m) => m.key)).toEqual(["production:pol_a1", "preview:pol_b1"]);
   });

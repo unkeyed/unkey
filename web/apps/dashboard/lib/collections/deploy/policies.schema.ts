@@ -279,9 +279,9 @@ export const policySchema = z.discriminatedUnion("type", [
 export type Policy = z.infer<typeof policySchema>;
 export type PolicyType = Policy["type"];
 
-/** `"Auth "` and `"auth"` render alike, so they must not be two policies. */
+/** A trailing space is invisible once rendered, so it cannot make a second policy. */
 export function normalizePolicyName(name: string): string {
-  return name.trim().toLowerCase();
+  return name.trim();
 }
 
 /**

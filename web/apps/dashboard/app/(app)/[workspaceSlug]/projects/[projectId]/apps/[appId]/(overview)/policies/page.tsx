@@ -45,8 +45,6 @@ export default function PoliciesPage() {
   });
   const panels = usePolicyPanels();
 
-  // By id, not by merge key: a duplicate name keys its row from one
-  // environment's id, so a click on the other copy would not match.
   const editingRow = panels.editing
     ? merged.find(
         (m) => m.production?.id === panels.editing?.id || m.preview?.id === panels.editing?.id,
@@ -68,8 +66,6 @@ export default function PoliciesPage() {
           ? previewSlug
           : "__all__";
 
-  // An API write can leave the two copies apart, and the body on screen has to
-  // be the body that gets written.
   const editingPolicy =
     editingInitialEnvId === previewSlug
       ? (editingRow?.preview ?? panels.editing)
