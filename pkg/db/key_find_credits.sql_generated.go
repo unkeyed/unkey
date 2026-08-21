@@ -24,56 +24,6 @@ func (q *Queries) FindKeyCredits(ctx context.Context, db DBTX, id string) (sql.N
 	return remaining_requests, err
 }
 
-const findKeyCreditsBatchResult = `-- name: FindKeyCreditsBatchResult :one
-SELECT
-    ROW_COUNT() AS outbox_rows,
-    k.id AS key_id,
-    k.deleted_at_m,
-    k.remaining_requests,
-    k.refill_amount,
-    k.refill_day
-FROM (SELECT 1) singleton
-LEFT JOIN ` + "`" + `keys` + "`" + ` k ON k.id = ?
-FOR UPDATE
-`
-
-type FindKeyCreditsBatchResultRow struct {
-	OutboxRows        int64          `db:"outbox_rows"`
-	KeyID             sql.NullString `db:"key_id"`
-	DeletedAtM        sql.NullInt64  `db:"deleted_at_m"`
-	RemainingRequests sql.NullInt64  `db:"remaining_requests"`
-	RefillAmount      sql.NullInt64  `db:"refill_amount"`
-	RefillDay         sql.NullInt16  `db:"refill_day"`
-}
-
-// This current locking read runs before COMMIT in the same multi-statement
-// command. outbox_rows mirrors whether the immediately preceding conditional
-// audit insert ran, and the key fields classify a guarded update miss.
-//
-//	SELECT
-//	    ROW_COUNT() AS outbox_rows,
-//	    k.id AS key_id,
-//	    k.deleted_at_m,
-//	    k.remaining_requests,
-//	    k.refill_amount,
-//	    k.refill_day
-//	FROM (SELECT 1) singleton
-//	LEFT JOIN `keys` k ON k.id = ?
-//	FOR UPDATE
-func (q *Queries) FindKeyCreditsBatchResult(ctx context.Context, db DBTX, id string) (FindKeyCreditsBatchResultRow, error) {
-	row := db.QueryRowContext(ctx, findKeyCreditsBatchResult, id)
-	var i FindKeyCreditsBatchResultRow
-	err := row.Scan(
-		&i.OutboxRows,
-		&i.KeyID,
-		&i.DeletedAtM,
-		&i.RemainingRequests,
-		&i.RefillAmount,
-		&i.RefillDay,
-	)
-	return i, err
-}
-
 const findLiveKeyCredits = `-- name: FindLiveKeyCredits :one
 SELECT remaining_requests
 FROM ` + "`" + `keys` + "`" + `

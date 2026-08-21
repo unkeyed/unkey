@@ -10,8 +10,13 @@ WHERE id = ?;
 -- transactional-batch-statement
 UPDATE `keys`
 SET
-    remaining_requests = LAST_INSERT_ID(remaining_requests + sqlc.arg('credits'))
-WHERE id = ?
-  AND deleted_at_m IS NULL
-  AND remaining_requests IS NOT NULL
-  AND remaining_requests <= 9223372036854775807 - sqlc.arg('credits');
+    remaining_requests = CASE
+        WHEN deleted_at_m IS NOT NULL THEN
+            IF(LAST_INSERT_ID(18446744073709551615) > 0, remaining_requests, remaining_requests)
+        WHEN remaining_requests IS NULL THEN
+            IF(LAST_INSERT_ID(18446744073709551614) > 0, remaining_requests, remaining_requests)
+        WHEN remaining_requests > 9223372036854775807 - sqlc.arg('credits') THEN
+            IF(LAST_INSERT_ID(18446744073709551613) > 0, remaining_requests, remaining_requests)
+        ELSE LAST_INSERT_ID(remaining_requests + sqlc.arg('credits'))
+    END
+WHERE id = ?;

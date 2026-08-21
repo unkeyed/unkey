@@ -93,6 +93,7 @@ SELECT
 FROM ` + "`" + `keys` + "`" + ` k
 WHERE k.id = ?
   AND ROW_COUNT() = 1
+  AND LAST_INSERT_ID() <= 9223372036854775807
 `
 
 type InsertClickhouseOutboxForCreditUpdateParams struct {
@@ -106,8 +107,8 @@ type InsertClickhouseOutboxForCreditUpdateParams struct {
 
 // transactional-batch-statement
 // This statement must immediately follow the guarded credit UPDATE. With
-// clientFoundRows enabled on the batch pool, ROW_COUNT() is one for every
-// valid update, including no-ops, and zero for deletion/unlimited/overflow.
+// clientFoundRows enabled on the batch pool, ROW_COUNT() distinguishes a
+// missing key while LAST_INSERT_ID() distinguishes valid and rejected states.
 //
 //	INSERT INTO `clickhouse_outbox` (
 //	    version,
@@ -133,6 +134,7 @@ type InsertClickhouseOutboxForCreditUpdateParams struct {
 //	FROM `keys` k
 //	WHERE k.id = ?
 //	  AND ROW_COUNT() = 1
+//	  AND LAST_INSERT_ID() <= 9223372036854775807
 func (q *Queries) InsertClickhouseOutboxForCreditUpdate(ctx context.Context, db DBTX, arg InsertClickhouseOutboxForCreditUpdateParams) error {
 	_, err := db.ExecContext(ctx, insertClickhouseOutboxForCreditUpdate,
 		arg.Version,

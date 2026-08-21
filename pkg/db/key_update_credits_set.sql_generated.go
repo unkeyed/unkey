@@ -13,17 +13,24 @@ import (
 const updateKeyCreditsSet = `-- name: UpdateKeyCreditsSet :execresult
 UPDATE ` + "`" + `keys` + "`" + `
 SET
-    remaining_requests = ?,
+    remaining_requests = CASE
+        WHEN deleted_at_m IS NOT NULL THEN
+            IF(LAST_INSERT_ID(18446744073709551615) > 0, remaining_requests, remaining_requests)
+        WHEN ? IS NULL THEN
+            IF(LAST_INSERT_ID(0) = 0, NULL, NULL)
+        ELSE LAST_INSERT_ID(?)
+    END,
     refill_amount = CASE
-        WHEN CAST(? AS UNSIGNED) = 1 THEN NULL
+        WHEN deleted_at_m IS NULL
+          AND CAST(? AS UNSIGNED) = 1 THEN NULL
         ELSE refill_amount
     END,
     refill_day = CASE
-        WHEN CAST(? AS UNSIGNED) = 1 THEN NULL
+        WHEN deleted_at_m IS NULL
+          AND CAST(? AS UNSIGNED) = 1 THEN NULL
         ELSE refill_day
     END
 WHERE id = ?
-  AND deleted_at_m IS NULL
 `
 
 type UpdateKeyCreditsSetParams struct {
@@ -37,19 +44,27 @@ type UpdateKeyCreditsSetParams struct {
 //
 //	UPDATE `keys`
 //	SET
-//	    remaining_requests = ?,
+//	    remaining_requests = CASE
+//	        WHEN deleted_at_m IS NOT NULL THEN
+//	            IF(LAST_INSERT_ID(18446744073709551615) > 0, remaining_requests, remaining_requests)
+//	        WHEN ? IS NULL THEN
+//	            IF(LAST_INSERT_ID(0) = 0, NULL, NULL)
+//	        ELSE LAST_INSERT_ID(?)
+//	    END,
 //	    refill_amount = CASE
-//	        WHEN CAST(? AS UNSIGNED) = 1 THEN NULL
+//	        WHEN deleted_at_m IS NULL
+//	          AND CAST(? AS UNSIGNED) = 1 THEN NULL
 //	        ELSE refill_amount
 //	    END,
 //	    refill_day = CASE
-//	        WHEN CAST(? AS UNSIGNED) = 1 THEN NULL
+//	        WHEN deleted_at_m IS NULL
+//	          AND CAST(? AS UNSIGNED) = 1 THEN NULL
 //	        ELSE refill_day
 //	    END
 //	WHERE id = ?
-//	  AND deleted_at_m IS NULL
 func (q *Queries) UpdateKeyCreditsSet(ctx context.Context, db DBTX, arg UpdateKeyCreditsSetParams) (sql.Result, error) {
 	return db.ExecContext(ctx, updateKeyCreditsSet,
+		arg.Credits,
 		arg.Credits,
 		arg.ClearRefillAmount,
 		arg.ClearRefillDay,

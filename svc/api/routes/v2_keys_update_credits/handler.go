@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"math"
 	"net/http"
 
 	"github.com/oapi-codegen/nullable"
@@ -218,18 +217,18 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 	if !batchResult.Applied {
 		switch {
-		case !batchResult.KeyID.Valid || batchResult.DeletedAtM.Valid:
+		case batchResult.Missing || batchResult.Deleted:
 			return fault.New("key got deleted before credits update",
 				fault.Code(codes.Data.Key.NotFound.URN()),
 				fault.Internal("key got deleted before update"),
 				fault.Public("We could not find the requested key."),
 			)
-		case req.Operation != openapi.Set && !batchResult.RemainingRequests.Valid:
+		case batchResult.Unlimited:
 			return fault.New("key credits became unlimited before update",
 				fault.Code(codes.App.Validation.InvalidInput.URN()),
 				fault.Public("You cannot increment or decrement a key with unlimited credits."),
 			)
-		case req.Operation == openapi.Increment && credits.Int64 > math.MaxInt64-batchResult.RemainingRequests.Int64:
+		case batchResult.Overflow:
 			return fault.New("credits increment exceeds maximum",
 				fault.Code(codes.App.Validation.InvalidInput.URN()),
 				fault.Internal("credits increment would exceed max int64"),
@@ -242,8 +241,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	keyAfterUpdate := key
 	keyAfterUpdate.RemainingRequests = batchResult.RemainingRequests
-	keyAfterUpdate.RefillAmount = batchResult.RefillAmount
-	keyAfterUpdate.RefillDay = batchResult.RefillDay
+	if !batchResult.RemainingRequests.Valid {
+		keyAfterUpdate.RefillAmount = sql.NullInt64{}
+		keyAfterUpdate.RefillDay.Valid = false
+	}
 
 	null := nullable.Nullable[int64]{}
 	null.SetNull()
