@@ -74,6 +74,23 @@ func (e *integrationTestEnv) hasRow(workspaceID, namespace, identifier, region s
 	return ok
 }
 
+func (e *integrationTestEnv) requireNoRowFor(workspaceID, namespace, identifier, region string, durationMs int64, waitFor, tick time.Duration, message string) {
+	e.t.Helper()
+	timer := time.NewTimer(waitFor)
+	defer timer.Stop()
+	ticker := time.NewTicker(tick)
+	defer ticker.Stop()
+
+	for {
+		require.False(e.t, e.hasRow(workspaceID, namespace, identifier, region, durationMs), message)
+		select {
+		case <-timer.C:
+			return
+		case <-ticker.C:
+		}
+	}
+}
+
 // TestGlobal_PropagatesCountAcrossRegions is the headline scenario:
 // region A consumes part of the limit and flushes its count; region B
 // reads the row and folds it into its sliding-window math. A request to
@@ -88,12 +105,12 @@ func TestGlobal_PropagatesCountAcrossRegions(t *testing.T) {
 	clk := clock.NewTestClock()
 	regionA := env.newRegionAs(clk, "region-a")
 	regionB := env.newRegionAs(clk, "region-b")
+	workspaceID := uid.New(uid.WorkspacePrefix)
 
 	const (
-		workspaceID = "ws_test"
-		namespace   = "ns"
-		identifier  = "user-shared"
-		limit       = int64(10)
+		namespace  = "ns"
+		identifier = "user-shared"
+		limit      = int64(10)
 	)
 	duration := time.Minute
 	ctx := context.Background()
@@ -540,12 +557,12 @@ func TestGlobal_RealWorldTwoRegionsWithTwoNodesEach(t *testing.T) {
 	regionA2 := env.newRegionWithCounter(clk, "region-a", regionAOrigin)
 	regionB1 := env.newRegionWithCounter(clk, "region-b", regionBOrigin)
 	regionB2 := env.newRegionWithCounter(clk, "region-b", regionBOrigin)
+	workspaceID := uid.New(uid.WorkspacePrefix)
 
 	const (
-		workspaceID = "ws_test"
-		namespace   = "ns"
-		identifier  = "user-real-world"
-		limit       = int64(10)
+		namespace  = "ns"
+		identifier = "user-real-world"
+		limit      = int64(10)
 	)
 	duration := time.Minute
 	ctx := context.Background()
@@ -652,12 +669,12 @@ func TestGlobal_BelowUtilizationFloorDoesNotPush(t *testing.T) {
 	env := newIntegrationTestEnv(t)
 	clk := clock.NewTestClock()
 	region := env.newRegionAs(clk, "region-a")
+	workspaceID := uid.New(uid.WorkspacePrefix)
 
 	const (
-		workspaceID = "ws_test"
-		namespace   = "ns"
-		identifier  = "user-low-util"
-		limit       = int64(10)
+		namespace  = "ns"
+		identifier = "user-low-util"
+		limit      = int64(10)
 	)
 	duration := time.Minute
 	ctx := context.Background()
@@ -672,12 +689,9 @@ func TestGlobal_BelowUtilizationFloorDoesNotPush(t *testing.T) {
 
 	region.runGlobalPushOnce()
 
-	// The flush filter must have skipped this entry. require.Never polls
-	// to guard against a periodic flush from the background goroutine
+	// Poll to guard against a periodic flush from the background goroutine
 	// firing concurrently.
-	require.Never(t, func() bool {
-		return env.hasRow(workspaceID, namespace, identifier, "region-a", duration.Milliseconds())
-	}, 2*time.Second, 100*time.Millisecond,
+	env.requireNoRowFor(workspaceID, namespace, identifier, "region-a", duration.Milliseconds(), 2*time.Second, 100*time.Millisecond,
 		"sub-floor utilization must not write a global-counters row")
 }
 
@@ -708,12 +722,12 @@ func TestGlobal_PushUsesConvergedLocalCount(t *testing.T) {
 	})
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = regionA2.Close() })
+	workspaceID := uid.New(uid.WorkspacePrefix)
 
 	const (
-		workspaceID = "ws_test"
-		namespace   = "ns"
-		identifier  = "user-converged"
-		limit       = int64(10)
+		namespace  = "ns"
+		identifier = "user-converged"
+		limit      = int64(10)
 	)
 	duration := time.Minute
 	ctx := context.Background()
@@ -780,12 +794,12 @@ func TestGlobal_PushIgnoresSpeculativeBatchIncrements(t *testing.T) {
 	env := newIntegrationTestEnv(t)
 	clk := clock.NewTestClock()
 	region := env.newRegionAs(clk, "region-a")
+	workspaceID := uid.New(uid.WorkspacePrefix)
 
 	const (
-		workspaceID = "ws_test"
-		namespace   = "ns"
-		identifier  = "user-speculative"
-		limit       = int64(10)
+		namespace  = "ns"
+		identifier = "user-speculative"
+		limit      = int64(10)
 	)
 	duration := time.Minute
 
@@ -832,12 +846,12 @@ func TestGlobal_AtFloorPushes(t *testing.T) {
 	env := newIntegrationTestEnv(t)
 	clk := clock.NewTestClock()
 	region := env.newRegionAs(clk, "region-a")
+	workspaceID := uid.New(uid.WorkspacePrefix)
 
 	const (
-		workspaceID = "ws_test"
-		namespace   = "ns"
-		identifier  = "user-at-floor"
-		limit       = int64(10)
+		namespace  = "ns"
+		identifier = "user-at-floor"
+		limit      = int64(10)
 	)
 	duration := time.Minute
 	ctx := context.Background()
@@ -869,12 +883,12 @@ func TestGlobal_RemoteEmitForcesLocalSubFloorPush(t *testing.T) {
 	clk := clock.NewTestClock()
 	regionA := env.newRegionAs(clk, "region-a")
 	regionB := env.newRegionAs(clk, "region-b")
+	workspaceID := uid.New(uid.WorkspacePrefix)
 
 	const (
-		workspaceID = "ws_test"
-		namespace   = "ns"
-		identifier  = "user-skewed"
-		limit       = int64(10)
+		namespace  = "ns"
+		identifier = "user-skewed"
+		limit      = int64(10)
 	)
 	duration := time.Minute
 	ctx := context.Background()
@@ -926,12 +940,12 @@ func TestGlobal_SyncKeepsOwnRegionOutOfGlobalCount(t *testing.T) {
 	env := newIntegrationTestEnv(t)
 	clk := clock.NewTestClock()
 	region := env.newRegionAs(clk, "region-a")
+	workspaceID := uid.New(uid.WorkspacePrefix)
 
 	const (
-		workspaceID = "ws_test"
-		namespace   = "ns"
-		identifier  = "user-self-only"
-		limit       = int64(10)
+		namespace  = "ns"
+		identifier = "user-self-only"
+		limit      = int64(10)
 	)
 	duration := time.Minute
 	ctx := context.Background()
@@ -978,12 +992,12 @@ func TestGlobal_OwnRegionImportIsRegionalSafetyNet(t *testing.T) {
 	clk := clock.NewTestClock()
 	regionA1 := env.newRegionAs(clk, "region-a")
 	regionA2 := env.newRegionAs(clk, "region-a")
+	workspaceID := uid.New(uid.WorkspacePrefix)
 
 	const (
-		workspaceID = "ws_test"
-		namespace   = "ns"
-		identifier  = "user-own-region-import"
-		limit       = int64(10)
+		namespace  = "ns"
+		identifier = "user-own-region-import"
+		limit      = int64(10)
 	)
 	duration := time.Minute
 	ctx := context.Background()
@@ -1045,12 +1059,12 @@ func TestGlobal_SumsAcrossMultipleRegions(t *testing.T) {
 	regionA := env.newRegionAs(clk, "region-a")
 	regionB := env.newRegionAs(clk, "region-b")
 	regionC := env.newRegionAs(clk, "region-c")
+	workspaceID := uid.New(uid.WorkspacePrefix)
 
 	const (
-		workspaceID = "ws_test"
-		namespace   = "ns"
-		identifier  = "user-multi"
-		limit       = int64(20)
+		namespace  = "ns"
+		identifier = "user-multi"
+		limit      = int64(20)
 	)
 	duration := time.Minute
 	ctx := context.Background()
@@ -1112,12 +1126,12 @@ func TestGlobal_ChangeFilterAvoidsRedundantWrites(t *testing.T) {
 	env := newIntegrationTestEnv(t)
 	clk := clock.NewTestClock()
 	region := env.newRegionAs(clk, "region-a")
+	workspaceID := uid.New(uid.WorkspacePrefix)
 
 	const (
-		workspaceID = "ws_test"
-		namespace   = "ns"
-		identifier  = "user-quiet"
-		limit       = int64(10)
+		namespace  = "ns"
+		identifier = "user-quiet"
+		limit      = int64(10)
 	)
 	duration := time.Minute
 	ctx := context.Background()
@@ -1165,12 +1179,12 @@ func TestGlobal_DoesNotPropagateColdOversizedRequest(t *testing.T) {
 	env := newIntegrationTestEnv(t)
 	clk := clock.NewTestClock()
 	region := env.newRegionAs(clk, "region-a")
+	workspaceID := uid.New(uid.WorkspacePrefix)
 
 	const (
-		workspaceID = "ws_test"
-		namespace   = "ns"
-		identifier  = "user-oversized"
-		limit       = int64(10)
+		namespace  = "ns"
+		identifier = "user-oversized"
+		limit      = int64(10)
 	)
 	duration := time.Minute
 	ctx := context.Background()
@@ -1186,9 +1200,7 @@ func TestGlobal_DoesNotPropagateColdOversizedRequest(t *testing.T) {
 
 	// The cold-window denial increments nothing (deny path doesn't bump
 	// val), so val stays 0 and the utilization filter skips the flush.
-	require.Never(t, func() bool {
-		return env.hasRow(workspaceID, namespace, identifier, "region-a", duration.Milliseconds())
-	}, 2*time.Second, 100*time.Millisecond,
+	env.requireNoRowFor(workspaceID, namespace, identifier, "region-a", duration.Milliseconds(), 2*time.Second, 100*time.Millisecond,
 		"cold oversized denial must not write a global-counters row")
 }
 
@@ -1204,12 +1216,12 @@ func TestGlobal_EntriesCreatedOnSync(t *testing.T) {
 	clk := clock.NewTestClock()
 	regionA := env.newRegionAs(clk, "region-a")
 	regionB := env.newRegionAs(clk, "region-b")
+	workspaceID := uid.New(uid.WorkspacePrefix)
 
 	const (
-		workspaceID = "ws_test"
-		namespace   = "ns"
-		identifier  = "user-cold-import"
-		limit       = int64(10)
+		namespace  = "ns"
+		identifier = "user-cold-import"
+		limit      = int64(10)
 	)
 	duration := time.Minute
 	ctx := context.Background()
