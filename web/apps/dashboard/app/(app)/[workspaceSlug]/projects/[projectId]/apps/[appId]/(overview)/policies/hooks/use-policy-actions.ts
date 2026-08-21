@@ -57,7 +57,6 @@ export function usePolicyActions({
       if (!policy) {
         return;
       }
-      // `merged` is a render snapshot, and updating a dropped key throws.
       const rowId = rowKey(envIdFor(env), policy.id);
       if (!collection.policies.get(rowId)) {
         return;

@@ -14,8 +14,6 @@ export type PolicyRow = Policy & {
   environmentId: string;
   projectId: string;
   appId: string;
-  // Collection keys sort lexicographically, not by evaluation order, so
-  // carry the server's list index and orderBy it in live queries.
   _order?: number;
 };
 

@@ -28,8 +28,7 @@ export type MergedPolicy = {
 export function mergePolicies(production: PolicyRow[], preview: PolicyRow[]): MergedPolicy[] {
   const inProduction = countByIdentity(production);
   const inPreview = countByIdentity(preview);
-  // A blank name is not an identity. It must not pair two different policies.
-  // It also cannot be a React key.
+
   const pairable = (p: PolicyRow, counts: Map<string, number>) =>
     normalizePolicyName(p.name).length > 0 && counts.get(policyIdentity(p.type, p.name)) === 1;
 

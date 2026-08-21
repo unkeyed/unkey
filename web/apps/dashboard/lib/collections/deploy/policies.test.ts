@@ -131,7 +131,8 @@ describe("policyIdentity", () => {
     expect(policyIdentity("firewall", "Guard")).not.toBe(policyIdentity("ratelimit", "Guard"));
   });
 
-  it("folds case and surrounding space", () => {
-    expect(policyIdentity("firewall", "  Guard ")).toBe(policyIdentity("firewall", "guard"));
+  it("folds surrounding space but not case", () => {
+    expect(policyIdentity("firewall", "  Guard ")).toBe(policyIdentity("firewall", "Guard"));
+    expect(policyIdentity("firewall", "Guard")).not.toBe(policyIdentity("firewall", "guard"));
   });
 });
