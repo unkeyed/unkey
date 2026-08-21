@@ -33,7 +33,7 @@ func (r *Replica) UpdateKeyBatch(ctx context.Context, params UpdateKeyBatchParam
 		4+len(params.Permissions)*2+len(params.Ratelimits)+len(params.KeyPermissions)+len(params.KeyRoles)+len(params.Outboxes),
 	)
 	if params.WorkspaceLock != nil {
-		statements = append(statements, lockWorkspaceForUpdateKeyTransactionBatchStatement(*params.WorkspaceLock))
+		statements = append(statements, lockWorkspaceForUpdateKeyTransactionBatchStatement(transactionBatchResult{index: 0}, *params.WorkspaceLock))
 	}
 	if params.Project != nil {
 		statements = append(statements, insertDefaultProjectForUpdateKeyTransactionBatchStatement(*params.Project))
