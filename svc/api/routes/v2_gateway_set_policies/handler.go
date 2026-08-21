@@ -112,7 +112,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			)
 		}
 		for _, id := range keyspaceIDs {
-			if !slices.Contains(found, id) {
+			if !slices.ContainsFunc(found, func(row db.FindKeyAuthsByIdsAndWorkspaceRow) bool {
+				return row.ID == id
+			}) {
 				return fault.New(
 					"keyspace not found",
 					fault.Code(codes.Data.KeySpace.NotFound.URN()),

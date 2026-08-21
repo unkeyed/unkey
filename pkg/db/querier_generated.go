@@ -167,6 +167,17 @@ type Querier interface {
 	//
 	//  SELECT pk, id, name, workspace_id, project_id, ip_whitelist, auth_type, key_auth_id, created_at_m, updated_at_m, deleted_at_m, delete_protection FROM apis WHERE id = ?
 	FindApiByID(ctx context.Context, db DBTX, id string) (Api, error)
+	// Maps keyspace ids back to the api that owns them, scoped to a workspace.
+	// apis.key_auth_id is unique, so each keyspace resolves to at most one api.
+	//
+	//  SELECT ka.id as key_auth_id, a.id as api_id
+	//  FROM apis a
+	//  JOIN key_auth as ka ON ka.id = a.key_auth_id
+	//  WHERE a.workspace_id = ?
+	//      AND ka.id IN (/*SLICE:key_auth_ids*/?)
+	//      AND ka.deleted_at_m IS NULL
+	//      AND a.deleted_at_m IS NULL
+	FindApisByKeyAuthIds(ctx context.Context, db DBTX, arg FindApisByKeyAuthIdsParams) ([]FindApisByKeyAuthIdsRow, error)
 	//FindAppBuildSettingByAppEnv
 	//
 	//  SELECT pk, workspace_id, app_id, environment_id, dockerfile, docker_context, build_command, watch_paths, auto_deploy, created_at, updated_at
@@ -459,13 +470,13 @@ type Querier interface {
 	//      AND a.deleted_at_m IS NULL
 	FindKeyAuthsByIds(ctx context.Context, db DBTX, arg FindKeyAuthsByIdsParams) ([]FindKeyAuthsByIdsRow, error)
 	// Returns the subset of the given keyspace ids that exist in this workspace
-	// and are not soft-deleted.
+	// and are not soft-deleted, along with each keyspace's encryption setting.
 	//
-	//  SELECT id FROM key_auth
+	//  SELECT id, store_encrypted_keys FROM key_auth
 	//  WHERE workspace_id = ?
 	//    AND id IN (/*SLICE:key_auth_ids*/?)
 	//    AND deleted_at_m IS NULL
-	FindKeyAuthsByIdsAndWorkspace(ctx context.Context, db DBTX, arg FindKeyAuthsByIdsAndWorkspaceParams) ([]string, error)
+	FindKeyAuthsByIdsAndWorkspace(ctx context.Context, db DBTX, arg FindKeyAuthsByIdsAndWorkspaceParams) ([]FindKeyAuthsByIdsAndWorkspaceRow, error)
 	//FindKeyByID
 	//
 	//  SELECT

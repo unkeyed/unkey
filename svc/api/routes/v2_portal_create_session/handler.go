@@ -13,14 +13,21 @@ import (
 	// resolves, which would otherwise shadow the package.
 	portalservice "github.com/unkeyed/unkey/internal/services/portal"
 	"github.com/unkeyed/unkey/pkg/auditlog"
+	authprincipal "github.com/unkeyed/unkey/pkg/auth/principal"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/hash"
+	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/pkg/zen"
+	apierrors "github.com/unkeyed/unkey/svc/api/internal/errors"
 	"github.com/unkeyed/unkey/svc/api/internal/policyconfig"
 	"github.com/unkeyed/unkey/svc/api/openapi"
+	// The key requirements below are owned by the operator routes that
+	// enforce them, so this route borrows them rather than restating them.
+	listkeys "github.com/unkeyed/unkey/svc/api/routes/v2_apis_list_keys"
+	rerollkey "github.com/unkeyed/unkey/svc/api/routes/v2_keys_reroll_key"
 )
 
 type (
@@ -160,6 +167,41 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
+	// Stage 1: may this caller mint a session for *this* portal at all?
+	//
+	// It runs before the enabled check so the tuple can name a concrete portal,
+	// and it is built from portal.ID rather than req.Portal: req.Portal accepts
+	// an id or a slug, legacy tuples match literally, and a slug-shaped tuple
+	// could never match a dashboard-granted portal.pc_*.create_portal_session.
+	// The wildcard branch is spelled out for the same reason: `*` in a stored
+	// grant is matched literally, it does not expand.
+	if err = principal.Authorize(rbac.Or(
+		rbac.T(rbac.Tuple{
+			ResourceType: rbac.Portal,
+			ResourceID:   "*",
+			Action:       rbac.CreatePortalSession,
+		}),
+		rbac.T(rbac.Tuple{
+			ResourceType: rbac.Portal,
+			ResourceID:   portal.ID,
+			Action:       rbac.CreatePortalSession,
+		}),
+	)); err != nil {
+		// Masked as 404 so a caller short of the minting permission cannot tell an
+		// existing portal from an absent one, or learn the resolved portal id --
+		// req.Portal accepts a slug, so that id is otherwise unobtainable. The
+		// helper builds a fresh chain rather than wrapping, which matters here:
+		// UserFacingMessage concatenates every public message, so a wrap would
+		// append the rendered query naming that id. Principal.Authorize already
+		// logs the denied query and the granted set. Anything that is not an
+		// authorization denial passes through unmasked.
+		return apierrors.MaskInsufficientPermissionsAsNotFound(
+			err,
+			codes.Data.Portal.NotFound.URN(),
+			"Portal not found.",
+		)
+	}
+
 	if !portal.Enabled {
 		return fault.New("portal is disabled",
 			fault.Code(codes.Auth.Authorization.Forbidden.URN()),
@@ -173,6 +215,13 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	// capabilities can never reach another workspace's keyspaces.
 	keyspaceIDs, err := h.resolveKeyspaceIDs(ctx, workspaceID, portal)
 	if err != nil {
+		return err
+	}
+
+	// Stage 2: a minted session may never carry a capability the calling root
+	// key does not itself hold. This precedes the exchange code, the session
+	// insert and the audit log, so a rejection writes nothing.
+	if err = h.authorizeScopes(ctx, principal, workspaceID, keyspaceIDs, req.Scopes); err != nil {
 		return err
 	}
 
@@ -267,8 +316,13 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 						ID:          sessionID,
 						DisplayName: req.ExternalId,
 						Name:        req.ExternalId,
-						Meta:        map[string]any{"portalId": portal.ID, "slug": portal.Slug},
-						Type:        auditlog.PortalSessionResourceType,
+						Meta: map[string]any{
+							"portalId":    portal.ID,
+							"slug":        portal.Slug,
+							"scopes":      verbs,
+							"keyspaceIds": keyspaceIDs,
+						},
+						Type: auditlog.PortalSessionResourceType,
 					},
 				},
 			},
@@ -300,4 +354,214 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			Url: portalURL,
 		},
 	})
+}
+
+// ScopeQueries returns the authorization requirements the *calling* root key
+// must satisfy for one requested portal scope on one keyspace.
+//
+// The mapping is a total function over the scope enum, and the ok result is what
+// makes that checkable: rbac.And over zero children evaluates to valid, so a
+// scope that were silently skipped would mint a session with no check at all.
+// An unrecognized scope therefore reports ok=false and the caller denies.
+//
+// It is exported so the deny-by-default behaviour can be tested directly. The
+// OpenAPI enum rejects unknown values at the request boundary, so there is no
+// way to reach the default arm through the route itself.
+func ScopeQueries(
+	scope openapi.V2PortalCreateSessionRequestBodyScopes,
+	apiID string,
+	storeEncryptedKeys bool,
+) ([]rbac.PermissionQuery, bool) {
+	switch scope {
+	case openapi.KeysRead:
+		return []rbac.PermissionQuery{listkeys.ReadKeysPermissions(apiID)}, true
+
+	case openapi.KeysCreate, openapi.KeysReroll:
+		// Rerolling is a create, matching what the operator reroll route
+		// requires. The encryption conjunct is keyspace-conditional: a portal
+		// session that can mint a key in a keyspace storing recoverable key
+		// material also hands out that material.
+		//
+		// The conjunct keys off the keyspace flag rather than an individual
+		// key's encryption row because mint time cannot know which key a
+		// session will later reroll. That makes it a conservative proxy
+		// that can go stale, which is safe today: the reroll core gates both
+		// the encryption write and its own encrypt_key conjunct on the key
+		// itself (v2_keys_reroll_key/handler.go:161 and :418), so turning a
+		// keyspace's encryption on does not make already-existing keys
+		// recoverable and grants a live session nothing new.
+		//
+		// Two paths would escalate once UpdateKeySpaceKeyEncryption gains a
+		// production caller: a keyspace toggled on, off, then on again around a
+		// mint, and a future portal create-key route where a single flip is
+		// enough. Both belong to the toggle, which must invalidate live portal
+		// sessions on a keyspace when it turns encryption on. Do not close them
+		// here by requiring encrypt_key unconditionally: that would make this
+		// ceiling stricter than the operator route it exists to mirror.
+		queries := []rbac.PermissionQuery{rerollkey.CreateKeyPermissions(apiID)}
+		if storeEncryptedKeys {
+			queries = append(queries, rerollkey.EncryptKeyPermissions(apiID))
+		}
+		return queries, true
+
+	case openapi.AnalyticsRead:
+		return []rbac.PermissionQuery{readAnalyticsPermissions(apiID)}, true
+
+	default:
+		return nil, false
+	}
+}
+
+// authorizeScopes enforces the mint-time ceiling: for every requested scope, the
+// caller must hold the equivalent operator permission on every keyspace the
+// session will be scoped to. A caller short of any one of them is refused
+// outright rather than handed the intersection, so a missing grant surfaces as a
+// 403 instead of a silently degraded portal.
+func (h *Handler) authorizeScopes(
+	ctx context.Context,
+	principal *authprincipal.Principal,
+	workspaceID string,
+	keyspaceIDs []string,
+	scopes []openapi.V2PortalCreateSessionRequestBodyScopes,
+) error {
+	// Fail closed. Every check below is a conjunction, and rbac.And over an
+	// empty child list is valid, so an empty keyspace or scope list would mint
+	// an unchecked session.
+	if len(keyspaceIDs) == 0 || len(scopes) == 0 {
+		return fault.New("nothing to authorize the portal session against",
+			fault.Code(codes.App.Internal.UnexpectedError.URN()),
+			fault.Internal("portal session must resolve at least one keyspace and one scope"),
+			fault.Public("Portal configuration is invalid."),
+		)
+	}
+
+	apiIDs, err := h.apiIDsByKeyspace(ctx, workspaceID, keyspaceIDs)
+	if err != nil {
+		return err
+	}
+
+	encrypted, err := h.encryptionByKeyspace(ctx, workspaceID, keyspaceIDs)
+	if err != nil {
+		return err
+	}
+
+	for _, scope := range scopes {
+		var checks []rbac.PermissionQuery
+
+		for _, keyspaceID := range keyspaceIDs {
+			queries, ok := ScopeQueries(scope, apiIDs[keyspaceID], encrypted[keyspaceID])
+			if !ok {
+				// Reaching this means the request enum and the mapping below have
+				// diverged, which is a server bug rather than a caller problem.
+				// Same defect class as the empty-checks guard below, so same code.
+				return fault.New("unmapped portal scope",
+					fault.Code(codes.App.Internal.UnexpectedError.URN()),
+					fault.Internal(fmt.Sprintf("scope %q has no authorization mapping", scope)),
+					fault.Public("Portal configuration is invalid."),
+				)
+			}
+			checks = append(checks, queries...)
+		}
+
+		if len(checks) == 0 {
+			return fault.New("no authorization checks for portal scope",
+				fault.Code(codes.App.Internal.UnexpectedError.URN()),
+				fault.Internal(fmt.Sprintf("scope %q produced no authorization checks", scope)),
+				fault.Public("Portal configuration is invalid."),
+			)
+		}
+
+		if err = principal.Authorize(rbac.And(checks...)); err != nil {
+			// Fresh chain for the same reason as stage 1: the rendered query names
+			// the api ids behind this portal's keyspaces, which is more than the
+			// caller needs to know they are short a grant.
+			return fault.New("insufficient permissions for requested scope",
+				fault.Code(codes.Auth.Authorization.InsufficientPermissions.URN()),
+				fault.Internal(fmt.Sprintf("stage 2 denied for scope %q: %s", scope, fault.InternalMessage(err))),
+				fault.Public(fmt.Sprintf("You do not have permission to grant the %q scope to a portal session.", scope)),
+			)
+		}
+	}
+
+	return nil
+}
+
+// apiIDsByKeyspace maps each resolved keyspace to the api that owns it.
+//
+// Every stage-2 requirement is api-scoped, so a keyspace with no api admits no
+// expressible check. That is a misconfiguration rather than a caller error:
+// skipping such a keyspace would leave it unchecked, so it fails loudly and
+// names the keyspace.
+func (h *Handler) apiIDsByKeyspace(ctx context.Context, workspaceID string, keyspaceIDs []string) (map[string]string, error) {
+	rows, err := db.Query.FindApisByKeyAuthIds(ctx, h.DB.RO(), db.FindApisByKeyAuthIdsParams{
+		WorkspaceID: workspaceID,
+		KeyAuthIds:  keyspaceIDs,
+	})
+	if err != nil {
+		return nil, fault.Wrap(err,
+			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+			fault.Internal("database error resolving apis for portal keyspaces"),
+			fault.Public("Failed to look up portal configuration."),
+		)
+	}
+
+	apiIDs := make(map[string]string, len(rows))
+	for _, row := range rows {
+		apiIDs[row.KeyAuthID] = row.ApiID
+	}
+
+	for _, keyspaceID := range keyspaceIDs {
+		if apiIDs[keyspaceID] == "" {
+			// Reachable without any misconfiguration on our side: apis.deleteApi
+			// soft-deletes the api row and leaves key_auth live, so a customer
+			// deleting their own api orphans the keyspace this portal resolves to.
+			// Every stage-2 requirement is api-scoped, so the mint cannot be
+			// authorized -- but that is the portal being unavailable, not an
+			// internal fault, so it mirrors the no-active-deployment branch above.
+			return nil, fault.New("portal keyspace has no api",
+				fault.Code(codes.Auth.Authorization.Forbidden.URN()),
+				fault.Internal(fmt.Sprintf("keyspace %s has no live associated api, portal session cannot be authorized", keyspaceID)),
+				fault.Public("Portal is not available: the API it uses no longer exists."),
+			)
+		}
+	}
+
+	return apiIDs, nil
+}
+
+// encryptionByKeyspace reports, per resolved keyspace, whether it stores
+// recoverable key material. A keyspace missing from the result is the same
+// misconfiguration apiIDsByKeyspace rejects, so it fails rather than defaulting
+// to the weaker no-encryption requirement.
+func (h *Handler) encryptionByKeyspace(ctx context.Context, workspaceID string, keyspaceIDs []string) (map[string]bool, error) {
+	rows, err := db.Query.FindKeyAuthsByIdsAndWorkspace(ctx, h.DB.RO(), db.FindKeyAuthsByIdsAndWorkspaceParams{
+		WorkspaceID: workspaceID,
+		KeyAuthIds:  keyspaceIDs,
+	})
+	if err != nil {
+		return nil, fault.Wrap(err,
+			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+			fault.Internal("database error resolving portal keyspaces"),
+			fault.Public("Failed to look up portal configuration."),
+		)
+	}
+
+	encrypted := make(map[string]bool, len(rows))
+	found := make(map[string]struct{}, len(rows))
+	for _, row := range rows {
+		encrypted[row.ID] = row.StoreEncryptedKeys
+		found[row.ID] = struct{}{}
+	}
+
+	for _, keyspaceID := range keyspaceIDs {
+		if _, ok := found[keyspaceID]; !ok {
+			return nil, fault.New("portal keyspace not found",
+				fault.Code(codes.App.Internal.UnexpectedError.URN()),
+				fault.Internal(fmt.Sprintf("keyspace %s does not exist in this workspace", keyspaceID)),
+				fault.Public("Portal configuration is invalid."),
+			)
+		}
+	}
+
+	return encrypted, nil
 }

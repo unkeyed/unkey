@@ -502,6 +502,14 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 			"project.*.generate_upload_url",
 			"project.*.create_deployment",
 			"project.*.read_deployment",
+			// Portal management plus session minting. The seeded root key needs
+			// these so a locally seeded portal keeps working now that
+			// portal.createSession is gated.
+			"portal.*.create_portal",
+			"portal.*.read_portal",
+			"portal.*.update_portal",
+			"portal.*.delete_portal",
+			"portal.*.create_portal_session",
 		}
 
 		permissionParams := make([]db.InsertPermissionParams, len(allPermissions))

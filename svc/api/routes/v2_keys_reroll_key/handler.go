@@ -400,17 +400,9 @@ func (h *Handler) RerollKey(
 // routes pass their product capability directly instead.
 func rerollPermissionQuery(key db.FindLiveKeyByIDRow) rbac.PermissionQuery {
 	keyData := db.ToKeyData(key)
+
 	checks := rbac.Or(
-		rbac.T(rbac.Tuple{
-			ResourceType: rbac.Api,
-			ResourceID:   key.Api.ID,
-			Action:       rbac.CreateKey,
-		}),
-		rbac.T(rbac.Tuple{
-			ResourceType: rbac.Api,
-			ResourceID:   "*",
-			Action:       rbac.CreateKey,
-		}),
+		CreateKeyPermissions(key.Api.ID),
 		rbac.U(
 			urn.New().Workspace(key.WorkspaceID).Keyspace(key.KeyAuthID),
 			permissions.CreateKey{},
@@ -421,16 +413,7 @@ func rerollPermissionQuery(key db.FindLiveKeyByIDRow) rbac.PermissionQuery {
 		checks = rbac.And(
 			checks,
 			rbac.Or(
-				rbac.T(rbac.Tuple{
-					ResourceType: rbac.Api,
-					ResourceID:   key.Api.ID,
-					Action:       rbac.EncryptKey,
-				}),
-				rbac.T(rbac.Tuple{
-					ResourceType: rbac.Api,
-					ResourceID:   "*",
-					Action:       rbac.EncryptKey,
-				}),
+				EncryptKeyPermissions(key.Api.ID),
 				rbac.U(
 					urn.New().Workspace(key.WorkspaceID).Keyspace(key.KeyAuthID).Key("*"),
 					permissions.EncryptKey{},
