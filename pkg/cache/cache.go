@@ -16,6 +16,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/repeat"
+	"github.com/unkeyed/unkey/pkg/singleflight"
 	"github.com/unkeyed/unkey/pkg/timing"
 )
 
@@ -26,10 +27,15 @@ type cache[K comparable, V any] struct {
 	resource string
 	clock    clock.Clock
 
-	revalidateC chan func()
+	// origin deduplicates concurrent cache misses for the same key.
+	origin *singleflight.Group[K, missResult[V]]
 
-	inflightMu        sync.Mutex
-	inflightRefreshes map[K]bool
+	// revalidateC carries background refreshes to the fixed worker pool.
+	revalidateC chan func()
+	// revalidationMutex protects revalidating.
+	revalidationMutex sync.Mutex
+	// revalidating contains keys with a queued or running background refresh.
+	revalidating map[K]struct{}
 }
 
 type Config[K comparable, V any] struct {
@@ -47,6 +53,17 @@ type Config[K comparable, V any] struct {
 	Resource string
 
 	Clock clock.Clock
+}
+
+// missResult carries the outcome returned to callers sharing cache-miss work.
+type missResult[V any] struct {
+	// Value is returned to every caller sharing the cache miss.
+	value V
+	// Hit is the cache status returned with value. Origin errors always report a
+	// miss, even when the selected operation writes a cache entry.
+	hit CacheHit
+	// Err is returned to every caller sharing the cache miss.
+	err error
 }
 
 var _ Cache[any, any] = (*cache[any, any])(nil)
@@ -83,9 +100,10 @@ func New[K comparable, V any](config Config[K, V]) (Cache[K, V], error) {
 		stale:             config.Stale,
 		resource:          config.Resource,
 		clock:             config.Clock,
+		origin:            singleflight.New[K, missResult[V]](),
 		revalidateC:       make(chan func(), 1000),
-		inflightMu:        sync.Mutex{},
-		inflightRefreshes: make(map[K]bool),
+		revalidationMutex: sync.Mutex{},
+		revalidating:      make(map[K]struct{}),
 	}
 
 	for range 10 {
@@ -222,44 +240,6 @@ func (c *cache[K, V]) Name() string {
 	return c.resource
 }
 
-func (c *cache[K, V]) revalidate(
-	ctx context.Context,
-	key K, refreshFromOrigin func(context.Context) (V, error),
-	op func(error) Op,
-) {
-	c.inflightMu.Lock()
-	_, ok := c.inflightRefreshes[key]
-	if ok {
-		c.inflightMu.Unlock()
-		return
-	}
-
-	c.inflightRefreshes[key] = true
-	c.inflightMu.Unlock()
-
-	defer func() {
-		c.inflightMu.Lock()
-		delete(c.inflightRefreshes, key)
-		c.inflightMu.Unlock()
-	}()
-
-	metrics.CacheRevalidations.WithLabelValues(c.resource).Inc()
-	v, err := refreshFromOrigin(ctx)
-
-	if err != nil && !db.IsNotFound(err) {
-		logger.Warn("failed to revalidate", "error", err.Error(), "key", key)
-	}
-
-	switch op(err) {
-	case WriteValue:
-		c.Set(ctx, key, v)
-	case WriteNull:
-		c.SetNull(ctx, key)
-	case Noop:
-		break
-	}
-}
-
 func (c *cache[K, V]) SWR(
 	ctx context.Context,
 	key K,
@@ -278,11 +258,17 @@ func (c *cache[K, V]) SWR(
 		}
 
 		if now.Before(e.Stale) {
-			c.revalidateC <- func() {
-				// If we don't uncancel the context, the revalidation will get canceled when
-				// the api response is returned
-				c.revalidate(context.WithoutCancel(ctx), key, refreshFromOrigin, op)
-			}
+			c.queueRevalidation(key, func() {
+				revalidationCtx := context.WithoutCancel(ctx)
+				if entry, found := c.get(revalidationCtx, key); found && c.clock.Now().Before(entry.Fresh) {
+					return
+				}
+				metrics.CacheRevalidations.WithLabelValues(c.resource).Inc()
+				result := c.loadFromOrigin(revalidationCtx, key, refreshFromOrigin, op)
+				if result.err != nil && !db.IsNotFound(result.err) {
+					logger.Warn("failed to revalidate", "error", result.err.Error(), "key", key)
+				}
+			})
 			c.recordTiming(ctx, "cache_swr", "stale", start)
 			return e.Value, e.Hit, nil
 		}
@@ -291,38 +277,52 @@ func (c *cache[K, V]) SWR(
 		c.otter.Delete(key)
 	}
 
-	// Cache Miss - measure total time including all overhead
-	v, err := refreshFromOrigin(ctx)
+	// A cache miss includes time spent waiting for an existing origin load.
+	result, waitErr := c.origin.Do(ctx, key, func(ctx context.Context) (missResult[V], error) {
+		// Another caller may have filled the cache after this caller observed the
+		// miss but before it entered the singleflight group.
+		if entry, ok := c.get(ctx, key); ok && c.clock.Now().Before(entry.Stale) {
+			return missResult[V]{value: entry.Value, hit: entry.Hit, err: nil}, nil
+		}
+		return c.loadFromOrigin(ctx, key, refreshFromOrigin, op), nil
+	})
 	c.recordTiming(ctx, "cache_swr", "miss", start)
+	if waitErr != nil {
+		var zero V
+		return zero, Miss, waitErr
+	}
 
-	switch op(err) {
+	return result.value, result.hit, result.err
+}
+
+// loadFromOrigin loads one value and applies the requested cache operation.
+// The returned result preserves the origin error while describing any cache
+// entry written by operationForError.
+func (c *cache[K, V]) loadFromOrigin(
+	ctx context.Context,
+	key K,
+	refreshFromOrigin func(context.Context) (V, error),
+	operationForError func(error) Op,
+) missResult[V] {
+	v, err := refreshFromOrigin(ctx)
+	operation := operationForError(err)
+	hit := Miss
+
+	switch operation {
 	case WriteValue:
 		c.Set(ctx, key, v)
+		hit = Hit
 	case WriteNull:
 		c.SetNull(ctx, key)
+		hit = Null
 	case Noop:
 		break
 	}
 
 	if err != nil {
-		// Error occurred, return Miss as the cache hit status
-		return v, Miss, err
-	}
-
-	// Determine cache hit status based on the operation
-	var hit CacheHit
-	switch op(err) {
-	case Noop:
-		// Skip
-	case WriteValue:
-		hit = Hit
-	case WriteNull:
-		hit = Null
-	default:
 		hit = Miss
 	}
-
-	return v, hit, err
+	return missResult[V]{value: v, hit: hit, err: err}
 }
 
 func (c *cache[K, V]) SWRWithFallback(
@@ -350,15 +350,13 @@ func (c *cache[K, V]) SWRWithFallback(
 
 		if now.Before(e.Stale) {
 			// Stale - return but queue background revalidation with deduplication
-			c.inflightMu.Lock()
-			if !c.inflightRefreshes[key] {
-				c.inflightRefreshes[key] = true
-				dedupeKey := key // capture for closure
-				c.revalidateC <- func() {
-					c.revalidateWithCanonicalKey(context.WithoutCancel(ctx), dedupeKey, refreshFromOrigin, op)
+			c.queueRevalidation(key, func() {
+				revalidationCtx := context.WithoutCancel(ctx)
+				if entry, found := c.get(revalidationCtx, key); found && c.clock.Now().Before(entry.Fresh) {
+					return
 				}
-			}
-			c.inflightMu.Unlock()
+				c.revalidateWithCanonicalKey(revalidationCtx, refreshFromOrigin, op)
+			})
 			c.recordTiming(ctx, "cache_swr_fallback", "stale", start)
 			return e.Value, e.Hit, nil
 		}
@@ -395,16 +393,9 @@ func (c *cache[K, V]) SWRWithFallback(
 
 func (c *cache[K, V]) revalidateWithCanonicalKey(
 	ctx context.Context,
-	dedupeKey K,
 	refreshFromOrigin func(context.Context) (V, K, error),
 	op func(error) Op,
 ) {
-	defer func() {
-		c.inflightMu.Lock()
-		delete(c.inflightRefreshes, dedupeKey)
-		c.inflightMu.Unlock()
-	}()
-
 	metrics.CacheRevalidations.WithLabelValues(c.resource).Inc()
 	v, canonicalKey, err := refreshFromOrigin(ctx)
 
@@ -420,5 +411,24 @@ func (c *cache[K, V]) revalidateWithCanonicalKey(
 		c.SetNull(ctx, canonicalKey)
 	case Noop:
 		break
+	}
+}
+
+// queueRevalidation reserves key before adding work to the bounded worker
+// queue, preventing duplicate jobs from accumulating while workers are busy.
+func (c *cache[K, V]) queueRevalidation(key K, revalidate func()) {
+	c.revalidationMutex.Lock()
+	if _, ok := c.revalidating[key]; ok {
+		c.revalidationMutex.Unlock()
+		return
+	}
+	c.revalidating[key] = struct{}{}
+	c.revalidationMutex.Unlock()
+
+	c.revalidateC <- func() {
+		revalidate()
+		c.revalidationMutex.Lock()
+		delete(c.revalidating, key)
+		c.revalidationMutex.Unlock()
 	}
 }
