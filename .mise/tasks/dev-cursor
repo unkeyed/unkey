@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+#MISE description="Start the reduced Kubernetes development environment for Cursor Cloud"
+#MISE depends=["install-web"]
+#MISE raw=true
+set -euo pipefail
+
+# shellcheck source=../../.cursor/lib.sh
+. .cursor/lib.sh
+
+mise="${MISE_BIN:-$HOME/.local/bin/mise}"
+apply_cluster "$mise"
+minikube addons enable metrics-server
+"$mise" exec -- minikube cp dev/k8s/topolvm/setup-vg.sh /tmp/topolvm-setup-vg.sh
+"$mise" exec -- minikube ssh -- sudo bash /tmp/topolvm-setup-vg.sh 20G
+tilt up \
+  --file ./dev/Tiltfile \
+  --host 0.0.0.0 \
+  --port "${PORT:-10350}" \
+  --stream \
+  -- \
+  --orb=true

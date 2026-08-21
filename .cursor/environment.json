@@ -1,0 +1,27 @@
+{
+  "name": "unkey",
+  "install": "bash .cursor/setup",
+  "start": "bash .cursor/resume",
+  "terminals": [
+    {
+      "name": "tilt",
+      "command": "$HOME/.local/bin/mise run dev-cursor",
+      "description": "Minikube + Tilt orb stack (gvisor, no Cilium). UI at http://localhost:10350. Dashboard, API, Vault, and Control API on 3000, 7070, 8060, and 7091."
+    },
+    {
+      "name": "apps",
+      "command": "$HOME/.local/bin/mise run cursor-apps",
+      "description": "Index of ready Deploy apps at http://localhost:19081. Each app is bridged through Frontline on a dynamic localhost port in 20000-29999."
+    }
+  ],
+  "ports": [
+    { "name": "Tilt", "port": 10350 },
+    { "name": "Dashboard", "port": 3000 },
+    { "name": "Unkey API", "port": 7070 },
+    { "name": "Vault RPC", "port": 8060 },
+    { "name": "Control API", "port": 7091 },
+    { "name": "Frontline HTTP", "port": 9080 },
+    { "name": "Frontline HTTPS", "port": 9443 },
+    { "name": "Deployed apps", "port": 19081 }
+  ]
+}

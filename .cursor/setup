@@ -1,0 +1,50 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+cd "$(dirname "$0")/.."
+# shellcheck source=lib.sh
+. "$(dirname "$0")/lib.sh"
+
+if ! command -v setfacl >/dev/null 2>&1; then
+  export DEBIAN_FRONTEND=noninteractive
+  sudo apt-get update
+  sudo apt-get install -y -o Dpkg::Options::=--force-confold acl
+fi
+
+echo "Installing Docker Engine and Compose..."
+install_docker_if_needed
+
+echo "Starting Docker..."
+start_docker
+ensure_docker_storage
+grant_docker_sock
+raise_inotify_quota
+
+echo "Installing the pinned mise binary and toolchain..."
+./dev/install-mise
+mise="$HOME/.local/bin/mise"
+"$mise" trust .mise/config.toml
+"$mise" install --locked --yes
+
+echo "Installing web dependencies..."
+"$mise" run install-web
+
+echo "Creating local web environment files when missing..."
+if [ ! -f web/apps/dashboard/.env ]; then
+  cp -- web/apps/dashboard/dev/.env.example web/apps/dashboard/.env
+fi
+if [ ! -f web/apps/portal/.env ]; then
+  cp -- web/apps/portal/.env.example web/apps/portal/.env
+fi
+
+if [ ! -f dev/.env.depot ] && [ -n "${UNKEY_DEPOT_TOKEN:-}" ]; then
+  echo "Creating Depot credentials from the sandbox secret..."
+  (
+    umask 077
+    printf 'UNKEY_DEPOT_TOKEN=%s\nUNKEY_REGISTRY_PASSWORD=%s\n' \
+      "$UNKEY_DEPOT_TOKEN" \
+      "$UNKEY_DEPOT_TOKEN" >dev/.env.depot
+  )
+fi
+
+echo "Cursor Cloud setup complete."
