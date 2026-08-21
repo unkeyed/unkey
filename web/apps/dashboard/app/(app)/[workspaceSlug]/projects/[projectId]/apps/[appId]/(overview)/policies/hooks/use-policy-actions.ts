@@ -11,6 +11,8 @@ import { toast } from "@unkey/ui";
 import { useCallback } from "react";
 import { type Env, type MergedPolicy, policyInEnv } from "../components/list/merge";
 
+const AT_CAPACITY = `An environment holds at most ${POLICY_LIMITS.maxPolicies} policies.`;
+
 type Args = {
   productionId: string;
   previewId: string;
@@ -79,7 +81,7 @@ export function usePolicyActions({
       }
       const current = rowsByEnv[env];
       if (current.length >= POLICY_LIMITS.maxPolicies) {
-        toast.error(`An environment holds at most ${POLICY_LIMITS.maxPolicies} policies.`);
+        toast.error(AT_CAPACITY);
         return;
       }
       replacePolicyLists(
@@ -175,6 +177,11 @@ export function usePolicyActions({
             ],
           });
         }
+      }
+
+      if (appends.some((a) => a.policies.length > POLICY_LIMITS.maxPolicies)) {
+        toast.error(AT_CAPACITY);
+        return;
       }
 
       if (updates.length > 0) {
