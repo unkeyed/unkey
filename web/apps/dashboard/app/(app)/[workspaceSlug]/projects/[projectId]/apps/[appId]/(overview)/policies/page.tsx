@@ -1,6 +1,6 @@
 "use client";
 import { TOP_NAV_HEIGHT } from "@/components/navigation/top-nav";
-import { POLICY_LIMITS } from "@/lib/collections/deploy/policies.schema";
+import { POLICY_LIMITS, policyIdentity } from "@/lib/collections/deploy/policies.schema";
 import { Plus } from "@unkey/icons";
 import {
   Button,
@@ -25,52 +25,66 @@ import { usePolicyPanels } from "./hooks/use-policy-panels";
 export default function PoliciesPage() {
   const { projectId } = useProjectData();
   const appId = useAppId();
-  const { envAId, envBId, envASlug, envBSlug, merged, isLoading, isError } = usePoliciesData();
-  const actions = usePolicyActions({ envAId, envBId, projectId, appId, merged });
+  const {
+    productionId,
+    previewId,
+    productionSlug,
+    previewSlug,
+    merged,
+    rowsByEnv,
+    isLoading,
+    isError,
+  } = usePoliciesData();
+  const actions = usePolicyActions({
+    productionId,
+    previewId,
+    projectId,
+    appId,
+    merged,
+    rowsByEnv,
+  });
   const panels = usePolicyPanels();
 
-  // `panels.editing` is the copy the user clicked, from one environment. Find
-  // the row holding it by id, not by merge key: a duplicate name keys its row
-  // from one environment's id, so a click on the other copy would not match.
+  // By id, not by merge key: a duplicate name keys its row from one
+  // environment's id, so a click on the other copy would not match.
   const editingRow = panels.editing
-    ? merged.find((m) => m.envA?.id === panels.editing?.id || m.envB?.id === panels.editing?.id)
+    ? merged.find(
+        (m) => m.production?.id === panels.editing?.id || m.preview?.id === panels.editing?.id,
+      )
     : undefined;
   const editingEnabled = {
-    a: editingRow?.envA?.enabled ?? false,
-    b: editingRow?.envB?.enabled ?? false,
+    a: editingRow?.production?.enabled ?? false,
+    b: editingRow?.preview?.enabled ?? false,
   };
 
-  const existingNames = merged.map((m) => m.name);
+  const existingIdentities = merged.map((m) => policyIdentity(m.type, m.name));
 
   const editingInitialEnvId =
     editingEnabled.a && editingEnabled.b
       ? "__all__"
       : editingEnabled.a
-        ? envASlug
+        ? productionSlug
         : editingEnabled.b
-          ? envBSlug
+          ? previewSlug
           : "__all__";
 
   // An API write can leave the two copies apart, and the body on screen has to
   // be the body that gets written.
   const editingPolicy =
-    editingInitialEnvId === envBSlug
-      ? (editingRow?.envB ?? panels.editing)
-      : (editingRow?.envA ?? panels.editing);
+    editingInitialEnvId === previewSlug
+      ? (editingRow?.preview ?? panels.editing)
+      : (editingRow?.production ?? panels.editing);
 
   // An environment the row already exists in takes an update, not an insert.
+  const isFull = {
+    production: rowsByEnv.production.length >= POLICY_LIMITS.maxPolicies,
+    preview: rowsByEnv.preview.length >= POLICY_LIMITS.maxPolicies,
+  };
   const atCapacity = {
-    add: {
-      a: merged.filter((m) => m.envA !== null).length >= POLICY_LIMITS.maxPolicies,
-      b: merged.filter((m) => m.envB !== null).length >= POLICY_LIMITS.maxPolicies,
-    },
+    add: isFull,
     edit: {
-      a:
-        editingRow?.envA == null &&
-        merged.filter((m) => m.envA !== null).length >= POLICY_LIMITS.maxPolicies,
-      b:
-        editingRow?.envB == null &&
-        merged.filter((m) => m.envB !== null).length >= POLICY_LIMITS.maxPolicies,
+      production: editingRow?.production == null && isFull.production,
+      preview: editingRow?.preview == null && isFull.preview,
     },
   };
 
@@ -100,8 +114,8 @@ export default function PoliciesPage() {
           <PoliciesEmpty />
         ) : (
           <PoliciesList
-            envASlug={envASlug}
-            envBSlug={envBSlug}
+            productionSlug={productionSlug}
+            previewSlug={previewSlug}
             merged={merged}
             onToggleEnv={actions.toggleEnv}
             onAddToEnv={actions.addToEnv}
@@ -112,12 +126,12 @@ export default function PoliciesPage() {
         )}
         <PolicyPanel
           mode="add"
-          envASlug={envASlug}
-          envBSlug={envBSlug}
+          productionSlug={productionSlug}
+          previewSlug={previewSlug}
           isOpen={panels.isAddPanelOpen}
           topOffset={TOP_NAV_HEIGHT}
           onClose={panels.closeAdd}
-          existingNames={existingNames}
+          existingIdentities={existingIdentities}
           atCapacity={atCapacity.add}
           onSave={actions.save}
         />
@@ -125,12 +139,12 @@ export default function PoliciesPage() {
           <PolicyPanel
             key={editingPolicy.id}
             mode="edit"
-            envASlug={envASlug}
-            envBSlug={envBSlug}
+            productionSlug={productionSlug}
+            previewSlug={previewSlug}
             isOpen={panels.isEditPanelOpen}
             topOffset={TOP_NAV_HEIGHT}
             onClose={panels.closeEdit}
-            existingNames={existingNames}
+            existingIdentities={existingIdentities}
             atCapacity={atCapacity.edit}
             initialPolicy={editingPolicy}
             initialEnvironmentId={editingInitialEnvId}

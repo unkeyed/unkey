@@ -3,12 +3,13 @@
 import {
   POLICY_LIMITS,
   type Policy,
-  normalizePolicyName,
+  policyIdentity,
 } from "@/lib/collections/deploy/policies.schema";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { match } from "@unkey/match";
 import { Button, FormInput, FormSelect } from "@unkey/ui";
 import { Controller, useForm, useWatch } from "react-hook-form";
+import type { Env } from "../list/merge";
 import { FirewallFields, FirewallPolicySummary } from "./forms/firewall-fields";
 import { KeyAuthFields, KeyauthPolicySummary } from "./forms/keyauth-fields";
 import { LoggingFields, LoggingPolicySummary } from "./forms/logging-fields";
@@ -32,14 +33,15 @@ import {
 } from "./schema";
 
 type CommonProps = {
-  envASlug: string;
-  envBSlug: string;
+  productionSlug: string;
+  previewSlug: string;
   isOpen: boolean;
   topOffset: number;
   onClose: () => void;
-  existingNames: string[];
-  /** Environments that cannot take another policy, keyed as envA / envB. */
-  atCapacity: { a: boolean; b: boolean };
+  /** `policyIdentity` of every policy on the page, to reject a second one. */
+  existingIdentities: string[];
+  /** Environments that cannot take another policy. */
+  atCapacity: Record<Env, boolean>;
 };
 
 type AddProps = CommonProps & {
@@ -57,13 +59,21 @@ type EditProps = CommonProps & {
 export type PolicyPanelProps = AddProps | EditProps;
 
 export function PolicyPanel(props: PolicyPanelProps) {
-  const { envASlug, envBSlug, isOpen, topOffset, onClose, existingNames, atCapacity } = props;
+  const {
+    productionSlug,
+    previewSlug,
+    isOpen,
+    topOffset,
+    onClose,
+    existingIdentities,
+    atCapacity,
+  } = props;
   const isEdit = props.mode === "edit";
 
   const envOptions = [
     { value: "__all__", label: "All Environments" },
-    { value: envASlug, label: envASlug },
-    { value: envBSlug, label: envBSlug },
+    { value: productionSlug, label: productionSlug },
+    { value: previewSlug, label: previewSlug },
   ];
 
   const form = useForm<PolicyFormValues>({
@@ -76,24 +86,26 @@ export function PolicyPanel(props: PolicyPanelProps) {
   const policyType = useWatch({ control, name: "type" });
 
   const onSubmit = (values: PolicyFormValues) => {
-    // Fold, so the gate rejects what the merged list treats as one policy.
-    const nextName = normalizePolicyName(values.name);
-    const currentName = isEdit ? normalizePolicyName(props.initialPolicy.name) : null;
-    if (
-      nextName !== currentName &&
-      existingNames.some((n) => normalizePolicyName(n) === nextName)
-    ) {
+    const nextIdentity = policyIdentity(values.type, values.name);
+    const currentIdentity = isEdit
+      ? policyIdentity(props.initialPolicy.type, props.initialPolicy.name)
+      : null;
+    if (nextIdentity !== currentIdentity && existingIdentities.includes(nextIdentity)) {
+      const label =
+        POLICY_TYPE_OPTIONS.find((option) => option.value === values.type)?.label ?? values.type;
       form.setError("name", {
         type: "manual",
-        message: `A policy named "${values.name}" already exists.`,
+        message: `A ${label} policy named "${values.name}" already exists. Use the + on its row to add it to another environment.`,
       });
       return;
     }
 
     const scope = values.environmentId;
     const fullEnvs = [
-      (scope === "__all__" || scope === envASlug) && atCapacity.a ? envASlug : null,
-      (scope === "__all__" || scope === envBSlug) && atCapacity.b ? envBSlug : null,
+      (scope === "__all__" || scope === productionSlug) && atCapacity.production
+        ? productionSlug
+        : null,
+      (scope === "__all__" || scope === previewSlug) && atCapacity.preview ? previewSlug : null,
     ].filter((slug): slug is string => slug !== null);
     if (fullEnvs.length > 0) {
       form.setError("environmentId", {
@@ -106,11 +118,11 @@ export function PolicyPanel(props: PolicyPanelProps) {
     const id = props.mode === "edit" ? props.initialPolicy.id : undefined;
     const policy = toPolicy(values, id);
     const prodPolicy =
-      values.environmentId === "__all__" || values.environmentId === envASlug
+      values.environmentId === "__all__" || values.environmentId === productionSlug
         ? { ...policy, enabled: true }
         : null;
     const previewPolicy =
-      values.environmentId === "__all__" || values.environmentId === envBSlug
+      values.environmentId === "__all__" || values.environmentId === previewSlug
         ? { ...policy, enabled: true }
         : null;
 
@@ -243,6 +255,7 @@ export function PolicyPanel(props: PolicyPanelProps) {
                   description="Which environments this policy will be added to."
                   descriptionPosition="label"
                   triggerClassName="capitalize"
+                  contentClassName="capitalize"
                 />
               )}
             />

@@ -5,9 +5,11 @@ import {
   policyIdentity,
 } from "@/lib/collections/deploy/policies.schema";
 
+export type Env = "production" | "preview";
+
 /**
  * One row of the merged list. It holds up to two environment copies of one
- * policy. envA is production and envB is preview.
+ * policy.
  *
  * `key` identifies the row. It is the policy identity for most rows, because
  * each copy has its own server id and the identity is the only value they
@@ -19,59 +21,50 @@ export type MergedPolicy = {
   key: string;
   name: string;
   type: Policy["type"];
-  envA: PolicyRow | null;
-  envB: PolicyRow | null;
+  production: PolicyRow | null;
+  preview: PolicyRow | null;
 };
 
-/**
- * Merges the two environment lists into one row for each policy identity. The
- * order follows envA. Rows that exist only in envB come last.
- *
- * An identity pairs the two environments only if it occurs one time in each
- * list. An identity that occurs more than one time in an environment gets an
- * id key. The add panel refuses such a name, but the API accepts it. The id
- * key keeps one edit from changing two different policies.
- */
-export function mergePolicies(a: PolicyRow[], b: PolicyRow[]): MergedPolicy[] {
-  const countA = countByIdentity(a);
-  const countB = countByIdentity(b);
+export function mergePolicies(production: PolicyRow[], preview: PolicyRow[]): MergedPolicy[] {
+  const inProduction = countByIdentity(production);
+  const inPreview = countByIdentity(preview);
   // A blank name is not an identity. It must not pair two different policies.
   // It also cannot be a React key.
   const pairable = (p: PolicyRow, counts: Map<string, number>) =>
     normalizePolicyName(p.name).length > 0 && counts.get(policyIdentity(p.type, p.name)) === 1;
 
-  const pairableB = new Map(
-    b.filter((p) => pairable(p, countB)).map((p) => [policyIdentity(p.type, p.name), p]),
+  const pairablePreview = new Map(
+    preview.filter((p) => pairable(p, inPreview)).map((p) => [policyIdentity(p.type, p.name), p]),
   );
   const pairedIdentities = new Set<string>();
 
-  const result: MergedPolicy[] = a.map((p) => {
+  const result: MergedPolicy[] = production.map((p) => {
     const identity = policyIdentity(p.type, p.name);
-    const uniqueInA = pairable(p, countA);
-    const partner = uniqueInA ? pairableB.get(identity) : undefined;
+    const unique = pairable(p, inProduction);
+    const partner = unique ? pairablePreview.get(identity) : undefined;
     if (partner) {
       pairedIdentities.add(identity);
     }
     return {
-      key: uniqueInA ? identity : `envA:${p.id}`,
+      key: unique ? identity : `production:${p.id}`,
       name: p.name,
       type: p.type,
-      envA: p,
-      envB: partner ?? null,
+      production: p,
+      preview: partner ?? null,
     };
   });
 
-  for (const p of b) {
+  for (const p of preview) {
     const identity = policyIdentity(p.type, p.name);
     if (pairedIdentities.has(identity)) {
       continue;
     }
     result.push({
-      key: pairable(p, countB) ? identity : `envB:${p.id}`,
+      key: pairable(p, inPreview) ? identity : `preview:${p.id}`,
       name: p.name,
       type: p.type,
-      envA: null,
-      envB: p,
+      production: null,
+      preview: p,
     });
   }
 
@@ -87,17 +80,6 @@ function countByIdentity(policies: PolicyRow[]): Map<string, number> {
   return counts;
 }
 
-/**
- * Returns the copy of a merged row in one environment, or null.
- *
- * Use this function to read a policy from a `MergedPolicy.key`. A key is an
- * identity for most rows and an id for a duplicate one. A lookup by name alone
- * finds no duplicate row.
- */
-export function policyInEnv(
-  merged: MergedPolicy[],
-  key: string,
-  env: "envA" | "envB",
-): PolicyRow | null {
+export function policyInEnv(merged: MergedPolicy[], key: string, env: Env): PolicyRow | null {
   return merged.find((m) => m.key === key)?.[env] ?? null;
 }

@@ -6,13 +6,7 @@ import { createCollection } from "@tanstack/react-db";
 import { toast } from "@unkey/ui";
 import { queryClient } from "../client";
 import { trackSave } from "./environment-settings";
-import {
-  POLICY_VARIANT_KEYS,
-  type Policy,
-  type PolicyType,
-  fromWirePolicy,
-  policyIdentity,
-} from "./policies.schema";
+import { type Policy, fromWirePolicy } from "./policies.schema";
 import { extractStringFilter } from "./utils";
 
 /** A Policy plus the identifiers every gateway call is scoped by. */
@@ -34,8 +28,8 @@ export const rowKey = (environmentId: string, policyId: string) => `${environmen
  * `listPolicies` reads one environment, so each environment is its own subset
  * and its own request. The two environments of a page load in parallel.
  *
- * An edit uses `gateway.updatePolicy`. Insert, delete, and reorder have no
- * endpoint, so they send the whole list to `gateway.setPolicies`.
+ * Only edits run through it. Insert, delete and reorder go through
+ * `replacePolicyLists` instead.
  */
 export const policies = createCollection<PolicyRow, string>(
   queryCollectionOptions({
@@ -77,9 +71,16 @@ export const policies = createCollection<PolicyRow, string>(
     },
     getKey: (row) => rowKey(row.environmentId, row.id),
     id: "policies",
-
     onUpdate: async ({ transaction }) => {
-      const mutations = transaction.mutations.map((m) => dispatchUpdate(m.modified, m.changes));
+      const mutations = transaction.mutations.map((m) =>
+        getUnkeyClient().gateway.updatePolicy({
+          ...m.changes,
+          project: m.modified.projectId,
+          app: m.modified.appId,
+          environment: m.modified.environmentId,
+          policyId: m.modified.id,
+        }),
+      );
       const all = Promise.all(mutations);
       const plural = mutations.length > 1;
       toast.promise(all, {
@@ -90,224 +91,54 @@ export const policies = createCollection<PolicyRow, string>(
       });
       await trackSave(all);
     },
-
-    onInsert: async ({ transaction }) => {
-      const all = dispatchSetForChanges(
-        transaction.mutations.map((m) => ({ key: m.key, row: m.modified, removed: false })),
-      );
-      const plural = transaction.mutations.length > 1;
-      toast.promise(all, {
-        loading: plural ? "Adding policies..." : "Adding policy...",
-        success: plural ? "Policies added" : "Policy added",
-        error: (err) =>
-          getErrorToast(err, plural ? "Failed to add policies" : "Failed to add policy"),
-      });
-      await trackSave(all);
-    },
-
-    onDelete: async ({ transaction }) => {
-      const all = dispatchSetForChanges(
-        transaction.mutations.map((m) => ({ key: m.key, row: m.original, removed: true })),
-      );
-      const plural = transaction.mutations.length > 1;
-      toast.promise(all, {
-        loading: plural ? "Deleting policies..." : "Deleting policy...",
-        success: plural ? "Policies deleted" : "Policy deleted",
-        error: (err) =>
-          getErrorToast(err, plural ? "Failed to delete policies" : "Failed to delete policy"),
-      });
-      await trackSave(all);
-    },
   }),
 );
 
+export type PolicyListReplacement = {
+  environmentId: string;
+  projectId: string;
+  appId: string;
+  /** The environment's complete list, in evaluation order. */
+  policies: PolicyRow[];
+};
+
 /**
- * Whole-list reorder. Batched so one drag across both environments emits a
- * single toast. Each entry carries that environment's rows already in the
- * desired order, so no policy has to be matched by name or id.
+ * Replaces whole policy lists. Insert, delete and reorder have no endpoint of
+ * their own, so each sends an environment's full list, which the caller already
+ * renders. Batched, so one action across both environments emits a single toast.
+ *
+ * The new list shows when the refetch lands. Do not write `_order` into the
+ * collection to show it sooner: live queries order by `_order`, and rewriting it
+ * on every row at once duplicated all of them.
  */
-export async function reorderPolicies(
-  reorders: { environmentId: string; projectId: string; appId: string; policies: PolicyRow[] }[],
+export async function replacePolicyLists(
+  replacements: PolicyListReplacement[],
+  labels: { loading: string; success: string; error: string },
 ): Promise<void> {
-  if (reorders.length === 0) {
+  if (replacements.length === 0) {
     return;
   }
-  // Live queries order by `_order`, so the drag only sticks once the new indexes
-  // reach the collection. It has to be a direct write: `_order` is local, so an
-  // ordinary update would send a body with no field the API accepts. Direct
-  // writes throw before the collection is ready, which a drag cannot reach.
-  if (policies.isReady()) {
-    policies.utils.writeBatch(() => {
-      for (const r of reorders) {
-        policies.utils.writeUpdate(r.policies.map((p, index) => ({ ...p, _order: index })));
-      }
-    });
-  }
-
   const promise = Promise.all(
-    reorders.map(async (r) => {
-      await getUnkeyClient().gateway.setPolicies({
+    replacements.map((r) =>
+      getUnkeyClient().gateway.setPolicies({
         project: r.projectId,
         app: r.appId,
         environment: r.environmentId,
         policies: r.policies,
-      });
-    }),
+      }),
+    ),
   );
   toast.promise(promise, {
-    loading: "Reordering policies...",
-    success: "Policies reordered",
-    error: (err) => getErrorToast(err, "Failed to reorder policies"),
+    loading: labels.loading,
+    success: labels.success,
+    error: (err) => getErrorToast(err, labels.error),
   });
   try {
     await trackSave(promise);
   } finally {
-    // Also on failure, or the list keeps showing a reorder the server refused.
-    for (const r of reorders) {
+    // Also on failure: one environment can be written while the other is not.
+    for (const r of replacements) {
       queryClient.invalidateQueries({ queryKey: ["policies", r.environmentId] });
     }
   }
-}
-
-/** Next `_order` in an environment, so an optimistic insert lands at the end. */
-export function nextPolicyOrder(environmentId: string): number {
-  const orders = rowsForEnvironment(policies.state, environmentId).map((r) => r._order ?? -1);
-  return Math.max(-1, ...orders) + 1;
-}
-
-export function policyCount(environmentId: string): number {
-  return rowsForEnvironment(policies.state, environmentId).length;
-}
-
-/** Name alone would resolve a policy of another type and overwrite it. */
-export function findPolicyByIdentity(
-  environmentId: string,
-  type: PolicyType,
-  name: string,
-): PolicyRow | undefined {
-  const identity = policyIdentity(type, name);
-  return rowsForEnvironment(policies.state, environmentId).find(
-    (r) => policyIdentity(r.type, r.name) === identity,
-  );
-}
-
-/**
- * Rows in evaluation order. Row-only fields ride along: the SDK's outbound
- * schema drops every key the API does not declare.
- */
-export function orderedPolicies(rows: PolicyRow[]): PolicyRow[] {
-  return [...rows].sort((a, b) => (a._order ?? 0) - (b._order ?? 0));
-}
-
-export function environmentsInMutations(
-  rows: PolicyRow[],
-): { environmentId: string; projectId: string; appId: string }[] {
-  const byEnvironment = new Map<
-    string,
-    { environmentId: string; projectId: string; appId: string }
-  >();
-  for (const row of rows) {
-    byEnvironment.set(row.environmentId, {
-      environmentId: row.environmentId,
-      projectId: row.projectId,
-      appId: row.appId,
-    });
-  }
-  return Array.from(byEnvironment.values());
-}
-
-function rowsForEnvironment(
-  state: ReadonlyMap<string, PolicyRow>,
-  environmentId: string,
-): PolicyRow[] {
-  const rows: PolicyRow[] = [];
-  for (const [key, row] of state) {
-    if (key.startsWith(`${environmentId}::`)) {
-      rows.push(row);
-    }
-  }
-  return rows;
-}
-
-// Callers resolve `row` themselves: only they know whether the mutation
-// carries it as `modified` or `original`.
-export type PolicyChange = { key: string; row: PolicyRow; removed: boolean };
-
-/**
- * The environment's full policy list with `changes` folded in.
- *
- * A mutation handler runs before TanStack DB recomputes optimistic state, so
- * `policies.state` still holds pre-mutation rows. Since a full replace sends
- * the whole list, reading state alone would wipe an environment on first
- * insert and undo a delete.
- */
-export function policiesAfterMutations(
-  state: ReadonlyMap<string, PolicyRow>,
-  environmentId: string,
-  changes: PolicyChange[],
-): PolicyRow[] {
-  const byKey = new Map<string, PolicyRow>();
-  for (const row of rowsForEnvironment(state, environmentId)) {
-    byKey.set(rowKey(row.environmentId, row.id), row);
-  }
-
-  for (const change of changes) {
-    if (change.row.environmentId !== environmentId) {
-      continue;
-    }
-    if (change.removed) {
-      byKey.delete(change.key);
-    } else {
-      byKey.set(change.key, change.row);
-    }
-  }
-
-  return orderedPolicies(Array.from(byKey.values()));
-}
-
-function dispatchSetForChanges(changes: PolicyChange[]): Promise<unknown[]> {
-  return Promise.all(
-    environmentsInMutations(changes.map((c) => c.row)).map(({ environmentId, projectId, appId }) =>
-      getUnkeyClient().gateway.setPolicies({
-        project: projectId,
-        app: appId,
-        environment: environmentId,
-        policies: policiesAfterMutations(policies.state, environmentId, changes),
-      }),
-    ),
-  );
-}
-
-/**
- * Clears every rule but `keep`, so a type change replaces the policy's rule
- * instead of sending two, which the API rejects.
- *
- * `delete` does not work here. The update callback writes to a proxy that
- * records assigned keys, and the collection rebuilds the row as `original` plus
- * those keys; a delete is not one, so the rule returns. An undefined survives
- * the rebuild and JSON.stringify drops it from the body.
- */
-export function clearOtherVariants(
-  draft: Partial<Record<PolicyType, unknown>>,
-  keep: PolicyType,
-): void {
-  for (const variant of POLICY_VARIANT_KEYS) {
-    if (variant !== keep) {
-      draft[variant] = undefined;
-    }
-  }
-}
-
-/**
- * `updatePolicy` is a partial update, so sending only `changes` keeps a toggle
- * from revalidating a rule the user was not editing.
- */
-export function dispatchUpdate(row: PolicyRow, changes: Partial<PolicyRow>): Promise<unknown> {
-  return getUnkeyClient().gateway.updatePolicy({
-    ...changes,
-    project: row.projectId,
-    app: row.appId,
-    environment: row.environmentId,
-    policyId: row.id,
-  });
 }
