@@ -5,41 +5,52 @@ package db
 func insertClickhouseOutboxTransactionBatchStatement(params InsertClickhouseOutboxParams) transactionBatchStatement {
 	return transactionBatchStatement{
 		query: insertClickhouseOutbox,
-		args: []any{
-			params.Version,
-			params.WorkspaceID,
-			params.EventID,
-			params.Payload,
-			params.CreatedAt,
+		args: []transactionBatchArgument{
+			{name: "version", value: params.Version},
+			{name: "workspace_id", value: params.WorkspaceID},
+			{name: "event_id", value: params.EventID},
+			{name: "payload", value: params.Payload},
+			{name: "created_at", value: params.CreatedAt},
 		},
 	}
 }
 
-func insertKeyRatelimitTransactionBatchStatement(params InsertKeyRatelimitParams) transactionBatchStatement {
+func insertClickhouseOutboxWithResultTargetTransactionBatchStatement(params InsertClickhouseOutboxWithResultTargetParams) transactionBatchStatement {
 	return transactionBatchStatement{
-		query: insertKeyRatelimit,
-		args: []any{
-			params.ID,
-			params.WorkspaceID,
-			params.KeyID,
-			params.Name,
-			params.Limit,
-			params.Duration,
-			params.AutoApply,
-			params.CreatedAt,
-			params.UpdatedAt,
+		query: insertClickhouseOutboxWithResultTarget,
+		args: []transactionBatchArgument{
+			{name: "version", value: params.Version},
+			{name: "workspace_id", value: params.WorkspaceID},
+			{name: "event_id", value: params.EventID},
+			{name: "payload", value: params.Payload},
+			{name: "result_target_id", value: params.ResultTargetID},
+			{name: "created_at", value: params.CreatedAt},
 		},
 	}
 }
 
-func insertKeyRoleTransactionBatchStatement(params InsertKeyRoleParams) transactionBatchStatement {
+func findIdentityForBatchTransactionBatchStatement(result transactionBatchResult, params FindIdentityForBatchParams) transactionBatchStatement {
 	return transactionBatchStatement{
-		query: insertKeyRole,
-		args: []any{
-			params.KeyID,
-			params.RoleID,
-			params.WorkspaceID,
-			params.CreatedAtM,
+		query: findIdentityForBatch,
+		args: []transactionBatchArgument{
+			{name: "workspace_id", value: params.WorkspaceID},
+			{name: "external_id", value: params.ExternalID},
+		},
+		result: &result,
+	}
+}
+
+func upsertIdentityTransactionBatchStatement(params UpsertIdentityParams) transactionBatchStatement {
+	return transactionBatchStatement{
+		query: upsertIdentity,
+		args: []transactionBatchArgument{
+			{name: "id", value: params.ID},
+			{name: "external_id", value: params.ExternalID},
+			{name: "workspace_id", value: params.WorkspaceID},
+			{name: "project_id", value: params.ProjectID},
+			{name: "environment", value: params.Environment},
+			{name: "created_at", value: params.CreatedAt},
+			{name: "meta", value: params.Meta},
 		},
 	}
 }
@@ -47,12 +58,12 @@ func insertKeyRoleTransactionBatchStatement(params InsertKeyRoleParams) transact
 func insertKeyEncryptionTransactionBatchStatement(params InsertKeyEncryptionParams) transactionBatchStatement {
 	return transactionBatchStatement{
 		query: insertKeyEncryption,
-		args: []any{
-			params.WorkspaceID,
-			params.KeyID,
-			params.Encrypted,
-			params.EncryptionKeyID,
-			params.CreatedAt,
+		args: []transactionBatchArgument{
+			{name: "workspace_id", value: params.WorkspaceID},
+			{name: "key_id", value: params.KeyID},
+			{name: "encrypted", value: params.Encrypted},
+			{name: "encryption_key_id", value: params.EncryptionKeyID},
+			{name: "created_at", value: params.CreatedAt},
 		},
 	}
 }
@@ -60,23 +71,65 @@ func insertKeyEncryptionTransactionBatchStatement(params InsertKeyEncryptionPara
 func insertKeyTransactionBatchStatement(params InsertKeyParams) transactionBatchStatement {
 	return transactionBatchStatement{
 		query: insertKey,
-		args: []any{
-			params.ID,
-			params.KeySpaceID,
-			params.Hash,
-			params.Start,
-			params.WorkspaceID,
-			params.ForWorkspaceID,
-			params.Name,
-			params.IdentityID,
-			params.Meta,
-			params.Expires,
-			params.CreatedAtM,
-			params.Enabled,
-			params.RemainingRequests,
-			params.RefillDay,
-			params.RefillAmount,
-			params.PendingMigrationID,
+		args: []transactionBatchArgument{
+			{name: "id", value: params.ID},
+			{name: "key_space_id", value: params.KeySpaceID},
+			{name: "hash", value: params.Hash},
+			{name: "start", value: params.Start},
+			{name: "workspace_id", value: params.WorkspaceID},
+			{name: "for_workspace_id", value: params.ForWorkspaceID},
+			{name: "name", value: params.Name},
+			{name: "identity_id", value: params.IdentityID},
+			{name: "meta", value: params.Meta},
+			{name: "expires", value: params.Expires},
+			{name: "created_at_m", value: params.CreatedAtM},
+			{name: "enabled", value: params.Enabled},
+			{name: "remaining_requests", value: params.RemainingRequests},
+			{name: "refill_day", value: params.RefillDay},
+			{name: "refill_amount", value: params.RefillAmount},
+			{name: "pending_migration_id", value: params.PendingMigrationID},
+		},
+	}
+}
+
+func insertKeyRatelimitTransactionBatchStatement(params InsertKeyRatelimitParams) transactionBatchStatement {
+	return transactionBatchStatement{
+		query: insertKeyRatelimit,
+		args: []transactionBatchArgument{
+			{name: "id", value: params.ID},
+			{name: "workspace_id", value: params.WorkspaceID},
+			{name: "key_id", value: params.KeyID},
+			{name: "name", value: params.Name},
+			{name: "limit", value: params.Limit},
+			{name: "duration", value: params.Duration},
+			{name: "auto_apply", value: params.AutoApply},
+			{name: "created_at", value: params.CreatedAt},
+			{name: "updated_at", value: params.UpdatedAt},
+		},
+	}
+}
+
+func insertKeyPermissionTransactionBatchStatement(params InsertKeyPermissionParams) transactionBatchStatement {
+	return transactionBatchStatement{
+		query: insertKeyPermission,
+		args: []transactionBatchArgument{
+			{name: "key_id", value: params.KeyID},
+			{name: "permission_id", value: params.PermissionID},
+			{name: "workspace_id", value: params.WorkspaceID},
+			{name: "created_at", value: params.CreatedAt},
+			{name: "updated_at", value: params.UpdatedAt},
+		},
+	}
+}
+
+func insertKeyRoleTransactionBatchStatement(params InsertKeyRoleParams) transactionBatchStatement {
+	return transactionBatchStatement{
+		query: insertKeyRole,
+		args: []transactionBatchArgument{
+			{name: "key_id", value: params.KeyID},
+			{name: "role_id", value: params.RoleID},
+			{name: "workspace_id", value: params.WorkspaceID},
+			{name: "created_at_m", value: params.CreatedAtM},
 		},
 	}
 }
@@ -84,49 +137,98 @@ func insertKeyTransactionBatchStatement(params InsertKeyParams) transactionBatch
 func updateKeyTransactionBatchStatement(params UpdateKeyParams) transactionBatchStatement {
 	return transactionBatchStatement{
 		query: updateKey,
-		args: []any{
-			params.NameSpecified,
-			params.Name,
-			params.IdentityIDSpecified,
-			params.IdentityExternalIDSpecified,
-			params.IdentityWorkspaceID,
-			params.IdentityExternalID,
-			params.IdentityID,
-			params.EnabledSpecified,
-			params.Enabled,
-			params.MetaSpecified,
-			params.Meta,
-			params.ExpiresSpecified,
-			params.Expires,
-			params.RemainingRequestsSpecified,
-			params.RemainingRequests,
-			params.RefillAmountSpecified,
-			params.RefillAmount,
-			params.RefillDaySpecified,
-			params.RefillDay,
-			params.Now,
-			params.ID,
+		args: []transactionBatchArgument{
+			{name: "name_specified", value: params.NameSpecified},
+			{name: "name", value: params.Name},
+			{name: "identity_id_specified", value: params.IdentityIDSpecified},
+			{name: "identity_external_id_specified", value: params.IdentityExternalIDSpecified},
+			{name: "identity_workspace_id", value: params.IdentityWorkspaceID},
+			{name: "identity_external_id", value: params.IdentityExternalID},
+			{name: "identity_id", value: params.IdentityID},
+			{name: "enabled_specified", value: params.EnabledSpecified},
+			{name: "enabled", value: params.Enabled},
+			{name: "meta_specified", value: params.MetaSpecified},
+			{name: "meta", value: params.Meta},
+			{name: "expires_specified", value: params.ExpiresSpecified},
+			{name: "expires", value: params.Expires},
+			{name: "remaining_requests_specified", value: params.RemainingRequestsSpecified},
+			{name: "remaining_requests", value: params.RemainingRequests},
+			{name: "refill_amount_specified", value: params.RefillAmountSpecified},
+			{name: "refill_amount", value: params.RefillAmount},
+			{name: "refill_day_specified", value: params.RefillDaySpecified},
+			{name: "refill_day", value: params.RefillDay},
+			{name: "now", value: params.Now},
+			{name: "id", value: params.ID},
 		},
 	}
 }
 
-func lockWorkspaceForUpdateKeyTransactionBatchStatement(params LockWorkspaceForUpdateKeyParams) transactionBatchStatement {
+func findPermissionForBatchTransactionBatchStatement(result transactionBatchResult, params FindPermissionForBatchParams) transactionBatchStatement {
+	return transactionBatchStatement{
+		query: findPermissionForBatch,
+		args: []transactionBatchArgument{
+			{name: "workspace_id", value: params.WorkspaceID},
+			{name: "slug", value: params.Slug},
+		},
+		result: &result,
+	}
+}
+
+func upsertPermissionTransactionBatchStatement(params UpsertPermissionParams) transactionBatchStatement {
+	return transactionBatchStatement{
+		query: upsertPermission,
+		args: []transactionBatchArgument{
+			{name: "permission_id", value: params.PermissionID},
+			{name: "workspace_id", value: params.WorkspaceID},
+			{name: "project_id", value: params.ProjectID},
+			{name: "name", value: params.Name},
+			{name: "slug", value: params.Slug},
+			{name: "description", value: params.Description},
+			{name: "created_at_m", value: params.CreatedAtM},
+		},
+	}
+}
+
+func upsertDefaultProjectTransactionBatchStatement(params UpsertDefaultProjectParams) transactionBatchStatement {
+	return transactionBatchStatement{
+		query: upsertDefaultProject,
+		args: []transactionBatchArgument{
+			{name: "id", value: params.ID},
+			{name: "workspace_id", value: params.WorkspaceID},
+			{name: "created_at", value: params.CreatedAt},
+		},
+	}
+}
+
+func findDefaultProjectForBatchTransactionBatchStatement(result transactionBatchResult, params FindDefaultProjectForBatchParams) transactionBatchStatement {
+	return transactionBatchStatement{
+		query: findDefaultProjectForBatch,
+		args: []transactionBatchArgument{
+			{name: "workspace_id", value: params.WorkspaceID},
+			{name: "slug", value: params.Slug},
+		},
+		result: &result,
+	}
+}
+
+func lockWorkspaceForUpdateKeyTransactionBatchStatement(result transactionBatchResult, params LockWorkspaceForUpdateKeyParams) transactionBatchStatement {
 	return transactionBatchStatement{
 		query: lockWorkspaceForUpdateKey,
-		args: []any{
-			params.WorkspaceID,
-			params.WorkspaceIDCheck,
+		args: []transactionBatchArgument{
+			{name: "workspace_id", value: params.WorkspaceID},
+			{name: "workspace_id_check", value: params.WorkspaceIDCheck},
 		},
+		result: &result,
 	}
 }
 
 func insertDefaultProjectForUpdateKeyTransactionBatchStatement(params InsertDefaultProjectForUpdateKeyParams) transactionBatchStatement {
 	return transactionBatchStatement{
 		query: insertDefaultProjectForUpdateKey,
-		args: []any{
-			params.ID,
-			params.WorkspaceID,
-			params.CreatedAt,
+		args: []transactionBatchArgument{
+			{name: "id", value: params.ID},
+			{name: "workspace_id", value: params.WorkspaceID},
+			{name: "created_at", value: params.CreatedAt},
 		},
 	}
 }
@@ -134,12 +236,12 @@ func insertDefaultProjectForUpdateKeyTransactionBatchStatement(params InsertDefa
 func insertIdentityForUpdateKeyTransactionBatchStatement(params InsertIdentityForUpdateKeyParams) transactionBatchStatement {
 	return transactionBatchStatement{
 		query: insertIdentityForUpdateKey,
-		args: []any{
-			params.ID,
-			params.ExternalID,
-			params.WorkspaceID,
-			params.CreatedAt,
-			params.WorkspaceID,
+		args: []transactionBatchArgument{
+			{name: "id", value: params.ID},
+			{name: "external_id", value: params.ExternalID},
+			{name: "workspace_id", value: params.WorkspaceID},
+			{name: "created_at", value: params.CreatedAt},
+			{name: "workspace_id", value: params.WorkspaceID},
 		},
 	}
 }
@@ -147,14 +249,14 @@ func insertIdentityForUpdateKeyTransactionBatchStatement(params InsertIdentityFo
 func insertPermissionForUpdateKeyTransactionBatchStatement(params InsertPermissionForUpdateKeyParams) transactionBatchStatement {
 	return transactionBatchStatement{
 		query: insertPermissionForUpdateKey,
-		args: []any{
-			params.PermissionID,
-			params.WorkspaceID,
-			params.Name,
-			params.Slug,
-			params.Description,
-			params.CreatedAtM,
-			params.WorkspaceID,
+		args: []transactionBatchArgument{
+			{name: "permission_id", value: params.PermissionID},
+			{name: "workspace_id", value: params.WorkspaceID},
+			{name: "name", value: params.Name},
+			{name: "slug", value: params.Slug},
+			{name: "description", value: params.Description},
+			{name: "created_at_m", value: params.CreatedAtM},
+			{name: "workspace_id", value: params.WorkspaceID},
 		},
 	}
 }
@@ -162,9 +264,9 @@ func insertPermissionForUpdateKeyTransactionBatchStatement(params InsertPermissi
 func deleteKeyPermissionsForUpdateKeyTransactionBatchStatement(params DeleteKeyPermissionsForUpdateKeyParams) transactionBatchStatement {
 	return transactionBatchStatement{
 		query: deleteKeyPermissionsForUpdateKey,
-		args: []any{
-			params.KeyID,
-			params.WorkspaceID,
+		args: []transactionBatchArgument{
+			{name: "key_id", value: params.KeyID},
+			{name: "workspace_id", value: params.WorkspaceID},
 		},
 	}
 }
@@ -172,9 +274,9 @@ func deleteKeyPermissionsForUpdateKeyTransactionBatchStatement(params DeleteKeyP
 func deleteKeyRolesForUpdateKeyTransactionBatchStatement(params DeleteKeyRolesForUpdateKeyParams) transactionBatchStatement {
 	return transactionBatchStatement{
 		query: deleteKeyRolesForUpdateKey,
-		args: []any{
-			params.KeyID,
-			params.WorkspaceID,
+		args: []transactionBatchArgument{
+			{name: "key_id", value: params.KeyID},
+			{name: "workspace_id", value: params.WorkspaceID},
 		},
 	}
 }
@@ -182,9 +284,9 @@ func deleteKeyRolesForUpdateKeyTransactionBatchStatement(params DeleteKeyRolesFo
 func deleteKeyPermissionsAndRolesForUpdateKeyTransactionBatchStatement(params DeleteKeyPermissionsAndRolesForUpdateKeyParams) transactionBatchStatement {
 	return transactionBatchStatement{
 		query: deleteKeyPermissionsAndRolesForUpdateKey,
-		args: []any{
-			params.KeyID,
-			params.WorkspaceID,
+		args: []transactionBatchArgument{
+			{name: "key_id", value: params.KeyID},
+			{name: "workspace_id", value: params.WorkspaceID},
 		},
 	}
 }
@@ -192,13 +294,13 @@ func deleteKeyPermissionsAndRolesForUpdateKeyTransactionBatchStatement(params De
 func insertKeyPermissionBySlugForUpdateKeyTransactionBatchStatement(params InsertKeyPermissionBySlugForUpdateKeyParams) transactionBatchStatement {
 	return transactionBatchStatement{
 		query: insertKeyPermissionBySlugForUpdateKey,
-		args: []any{
-			params.KeyID,
-			params.WorkspaceID,
-			params.CreatedAtM,
-			params.UpdatedAtM,
-			params.WorkspaceID,
-			params.PermissionSlug,
+		args: []transactionBatchArgument{
+			{name: "key_id", value: params.KeyID},
+			{name: "workspace_id", value: params.WorkspaceID},
+			{name: "created_at_m", value: params.CreatedAtM},
+			{name: "updated_at_m", value: params.UpdatedAtM},
+			{name: "workspace_id", value: params.WorkspaceID},
+			{name: "permission_slug", value: params.PermissionSlug},
 		},
 	}
 }
@@ -206,9 +308,9 @@ func insertKeyPermissionBySlugForUpdateKeyTransactionBatchStatement(params Inser
 func deleteKeyRatelimitsForUpdateKeyTransactionBatchStatement(params DeleteKeyRatelimitsForUpdateKeyParams) transactionBatchStatement {
 	return transactionBatchStatement{
 		query: deleteKeyRatelimitsForUpdateKey,
-		args: []any{
-			params.KeyID,
-			params.WorkspaceID,
+		args: []transactionBatchArgument{
+			{name: "key_id", value: params.KeyID},
+			{name: "workspace_id", value: params.WorkspaceID},
 		},
 	}
 }
@@ -216,13 +318,13 @@ func deleteKeyRatelimitsForUpdateKeyTransactionBatchStatement(params DeleteKeyRa
 func insertClickhouseOutboxForPermissionUpdateKeyTransactionBatchStatement(params InsertClickhouseOutboxForPermissionUpdateKeyParams) transactionBatchStatement {
 	return transactionBatchStatement{
 		query: insertClickhouseOutboxForPermissionUpdateKey,
-		args: []any{
-			params.Version,
-			params.WorkspaceID,
-			params.EventID,
-			params.Payload,
-			params.CreatedAt,
-			params.PermissionID,
+		args: []transactionBatchArgument{
+			{name: "version", value: params.Version},
+			{name: "workspace_id", value: params.WorkspaceID},
+			{name: "event_id", value: params.EventID},
+			{name: "payload", value: params.Payload},
+			{name: "created_at", value: params.CreatedAt},
+			{name: "permission_id", value: params.PermissionID},
 		},
 	}
 }

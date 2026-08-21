@@ -40,12 +40,12 @@ func TestGenerate(t *testing.T) {
 	content := string(file.GetContents())
 	require.Contains(t, content, "func updateUserTransactionBatchStatement(params UpdateUserParams) transactionBatchStatement")
 	require.Contains(t, content, "query: updateUser")
-	require.Contains(t, content, "params.Name")
-	require.Contains(t, content, "params.ID")
+	require.Contains(t, content, `{name: "name", value: params.Name}`)
+	require.Contains(t, content, `{name: "id", value: params.ID}`)
 	require.Contains(t, content, "func insertAuditTransactionBatchStatement(params InsertAuditParams) transactionBatchStatement")
 	require.Contains(t, content, "query: insertAudit")
-	require.Contains(t, content, "params.EventID")
-	require.Contains(t, content, "params.Payload")
+	require.Contains(t, content, `{name: "event_id", value: params.EventID}`)
+	require.Contains(t, content, `{name: "payload", value: params.Payload}`)
 }
 
 func TestGenerateRejectsDuplicateDirective(t *testing.T) {
@@ -61,7 +61,7 @@ func TestGenerateRejectsDuplicateDirective(t *testing.T) {
 	require.ErrorContains(t, err, "duplicate transactional-batch-statement directives")
 }
 
-func TestGenerateAcceptsSingleRowQuery(t *testing.T) {
+func TestGenerateResultQuery(t *testing.T) {
 	t.Parallel()
 
 	generator := NewGenerator()
@@ -72,9 +72,12 @@ func TestGenerateAcceptsSingleRowQuery(t *testing.T) {
 		Comments: []string{batchStatementDirective},
 		Params: []*plugin.Parameter{
 			{Column: &plugin.Column{Name: "workspace_id"}},
-			{Column: &plugin.Column{Name: "workspace_id_check"}},
+			{Column: &plugin.Column{Name: "external_id"}},
 		},
+		Columns: []*plugin.Column{{Name: "id"}},
 	}}})
 	require.NoError(t, err)
-	require.Contains(t, string(response.GetFiles()[0].GetContents()), "findUserTransactionBatchStatement")
+	content := string(response.GetFiles()[0].GetContents())
+	require.Contains(t, content, "func findUserTransactionBatchStatement(result transactionBatchResult, params FindUserParams)")
+	require.Contains(t, content, "result: &result")
 }
