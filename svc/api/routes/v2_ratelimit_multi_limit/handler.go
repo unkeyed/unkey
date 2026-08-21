@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/unkeyed/unkey/internal/services/auditlogs"
-	"github.com/unkeyed/unkey/internal/services/caches"
 	"github.com/unkeyed/unkey/internal/services/ratelimit"
 	"github.com/unkeyed/unkey/internal/services/ratelimit/namespace"
 	"github.com/unkeyed/unkey/pkg/auditlog"
@@ -253,59 +252,52 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 }
 
 func (h *Handler) getNamespaces(ctx context.Context, workspaceID string, names []string) (map[string]db.FindRatelimitNamespace, []string, error) {
-	cacheKeys := make([]cache.ScopedKey, len(names))
-	for i, name := range names {
-		cacheKeys[i] = cache.ScopedKey{WorkspaceID: workspaceID, Key: name}
+	found := make(map[string]db.FindRatelimitNamespace, len(names))
+	missing := make([]string, 0, len(names))
+	uncached := make([]string, 0, len(names))
+	for _, name := range names {
+		key := cache.ScopedKey{WorkspaceID: workspaceID, Key: name}
+		ns, hit := h.NamespaceCache.Get(ctx, key)
+		switch hit {
+		case cache.Hit:
+			found[name] = ns
+		case cache.Null:
+			missing = append(missing, name)
+		case cache.Miss:
+			uncached = append(uncached, name)
+		}
 	}
 
-	loader := func(ctx context.Context, keys []cache.ScopedKey) (map[cache.ScopedKey]db.FindRatelimitNamespace, error) {
-		if len(keys) == 0 {
-			return map[cache.ScopedKey]db.FindRatelimitNamespace{}, nil
-		}
+	if len(uncached) == 0 {
+		return found, missing, nil
+	}
 
-		namespaceNames := make([]string, len(keys))
-		for i, key := range keys {
-			namespaceNames[i] = key.Key
-		}
-
-		rows, dbErr := db.WithRetryContext(ctx, func() ([]db.FindManyRatelimitNamespacesRow, error) {
-			return db.Query.FindManyRatelimitNamespaces(ctx, h.DB.RO(), db.FindManyRatelimitNamespacesParams{
-				WorkspaceID: workspaceID,
-				Namespaces:  namespaceNames,
-			})
+	rows, err := db.WithRetryContext(ctx, func() ([]db.FindManyRatelimitNamespacesRow, error) {
+		return db.Query.FindManyRatelimitNamespaces(ctx, h.DB.RO(), db.FindManyRatelimitNamespacesParams{
+			WorkspaceID: workspaceID,
+			Namespaces:  uncached,
 		})
-		if dbErr != nil {
-			return nil, dbErr
-		}
-
-		results := make(map[cache.ScopedKey]db.FindRatelimitNamespace, len(rows)*2)
-		for _, row := range rows {
-			ns := namespace.RowToNamespace(row)
-
-			// Cache by name
-			nameKey := cache.ScopedKey{WorkspaceID: workspaceID, Key: row.Name}
-			results[nameKey] = ns
-
-			// Also cache by ID for ID-based lookups
-			idKey := cache.ScopedKey{WorkspaceID: workspaceID, Key: row.ID}
-			results[idKey] = ns
-		}
-		return results, nil
-	}
-
-	nsMap, hits, err := h.NamespaceCache.SWRMany(ctx, cacheKeys, loader, caches.DefaultFindFirstOp)
+	})
 	if err != nil {
 		return nil, nil, err
 	}
 
-	found := make(map[string]db.FindRatelimitNamespace, len(names))
-	var missing []string
-	for _, key := range cacheKeys {
-		if hits[key] == cache.Null {
-			missing = append(missing, key.Key)
+	loaded := make(map[string]db.FindRatelimitNamespace, len(rows)*2)
+	for _, row := range rows {
+		ns := namespace.RowToNamespace(row)
+		loaded[row.Name] = ns
+		loaded[row.ID] = ns
+		h.NamespaceCache.Set(ctx, cache.ScopedKey{WorkspaceID: workspaceID, Key: row.Name}, ns)
+		h.NamespaceCache.Set(ctx, cache.ScopedKey{WorkspaceID: workspaceID, Key: row.ID}, ns)
+	}
+
+	for _, nameOrID := range uncached {
+		if ns, ok := loaded[nameOrID]; ok {
+			found[nameOrID] = ns
 			continue
 		}
-		found[key.Key] = nsMap[key]
+		missing = append(missing, nameOrID)
+		h.NamespaceCache.SetNull(ctx, cache.ScopedKey{WorkspaceID: workspaceID, Key: nameOrID})
 	}
 
 	return found, missing, nil
