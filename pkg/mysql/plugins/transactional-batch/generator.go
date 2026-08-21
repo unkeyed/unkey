@@ -92,6 +92,9 @@ func validateBatchStatement(query *plugin.Query) error {
 	if len(query.GetParams()) <= 1 {
 		return fmt.Errorf("transactional batch statement %q must use a parameter struct", query.GetName())
 	}
+	if query.GetCmd() == ":one" && len(query.GetColumns()) != 1 {
+		return fmt.Errorf("transactional batch result %q must select one column", query.GetName())
+	}
 	for _, param := range query.GetParams() {
 		if param.GetColumn() == nil {
 			return fmt.Errorf("transactional batch statement %q has a parameter without column metadata", query.GetName())
@@ -102,14 +105,22 @@ func validateBatchStatement(query *plugin.Query) error {
 
 func writeStatementAdapter(content *strings.Builder, query *plugin.Query) {
 	functionName := lowerFirst(query.GetName()) + "TransactionBatchStatement"
-	content.WriteString(fmt.Sprintf("func %s(params %sParams) transactionBatchStatement {\n", functionName, query.GetName()))
+	if query.GetCmd() == ":one" {
+		content.WriteString(fmt.Sprintf("func %s(result transactionBatchResult, params %sParams) transactionBatchStatement {\n", functionName, query.GetName()))
+	} else {
+		content.WriteString(fmt.Sprintf("func %s(params %sParams) transactionBatchStatement {\n", functionName, query.GetName()))
+	}
 	content.WriteString("\treturn transactionBatchStatement{\n")
 	content.WriteString(fmt.Sprintf("\t\tquery: %s,\n", lowerFirst(query.GetName())))
-	content.WriteString("\t\targs: []any{\n")
+	content.WriteString("\t\targs: []transactionBatchArgument{\n")
 	for _, param := range query.GetParams() {
-		content.WriteString(fmt.Sprintf("\t\t\tparams.%s,\n", toCamelCase(param.GetColumn().GetName())))
+		name := param.GetColumn().GetName()
+		content.WriteString(fmt.Sprintf("\t\t\t{name: %q, value: params.%s},\n", name, toCamelCase(name)))
 	}
 	content.WriteString("\t\t},\n")
+	if query.GetCmd() == ":one" {
+		content.WriteString("\t\tresult: &result,\n")
+	}
 	content.WriteString("\t}\n")
 	content.WriteString("}\n\n")
 }

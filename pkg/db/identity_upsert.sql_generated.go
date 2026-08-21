@@ -41,6 +41,7 @@ type UpsertIdentityParams struct {
 	Meta        json.RawMessage `db:"meta"`
 }
 
+// transactional-batch-statement
 // Inserts a new identity or does nothing if one already exists for this workspace/external_id.
 // Use FindIdentityByExternalID after this to get the actual ID.
 //

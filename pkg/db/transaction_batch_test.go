@@ -83,8 +83,8 @@ func TestTransactionBatchAnnotatesEveryStatement(t *testing.T) {
 		tags:      sqlcomment.ForService("api", "us-east-1"),
 	}
 	query, _ := replica.transactionBatchQuery(t.Context(), "UpdateKeyBatch", []transactionBatchStatement{
-		{query: updateKey},
-		{query: insertClickhouseOutbox},
+		updateKeyTransactionBatchStatement(UpdateKeyParams{}),
+		insertClickhouseOutboxTransactionBatchStatement(InsertClickhouseOutboxParams{}),
 	})
 	statements := strings.Split(strings.TrimSuffix(query, ";"), ";\n")
 	require.Len(t, statements, 5)
@@ -102,6 +102,23 @@ func TestTransactionBatchAnnotatesEveryStatement(t *testing.T) {
 		require.Contains(t, statement, "mode='rw'")
 		require.Contains(t, statement, "operation='"+operations[i]+"'")
 	}
+}
+
+func TestRenderTransactionBatchResult(t *testing.T) {
+	t.Parallel()
+
+	captured := transactionBatchResult{index: 0}
+	reference := transactionBatchResult{index: 1}
+	query, args := renderTransactionBatchStatement(transactionBatchStatement{
+		query: "-- name: FindValue :one\nSELECT '?' FROM values WHERE id = ? -- ? is not a placeholder",
+		args: []transactionBatchArgument{
+			{name: "id", result: &reference},
+		},
+		result: &captured,
+	})
+
+	require.Empty(t, args)
+	require.Equal(t, "-- name: FindValue :one\nSET @unkey_transaction_batch_result_0 = (\nSELECT '?' FROM values WHERE id = @unkey_transaction_batch_result_1 -- ? is not a placeholder\n)", query)
 }
 
 func TestUpdateKeyBatchDoesNotReplayAmbiguousCommit(t *testing.T) {

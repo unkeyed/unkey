@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"database/sql/driver"
 	"errors"
+	"fmt"
 	"strings"
 	"time"
 
@@ -112,8 +113,9 @@ func (r *Replica) transactionBatchQuery(
 	queries = append(queries, "-- name: "+operation+"Start :exec\nSTART TRANSACTION")
 	args := make([]any, 0)
 	for _, statement := range statements {
-		queries = append(queries, statement.query)
-		args = append(args, statement.args...)
+		query, statementArgs := renderTransactionBatchStatement(statement)
+		queries = append(queries, query)
+		args = append(args, statementArgs...)
 	}
 	queries = append(queries,
 		"-- name: "+operation+"Commit :exec\nCOMMIT",
@@ -123,6 +125,95 @@ func (r *Replica) transactionBatchQuery(
 		queries[i] = r.annotate(ctx, queries[i])
 	}
 	return strings.Join(queries, ";\n") + ";", args
+}
+
+func renderTransactionBatchStatement(statement transactionBatchStatement) (string, []any) {
+	var query strings.Builder
+	args := make([]any, 0, len(statement.args))
+	argument := 0
+	quote := byte(0)
+	lineComment := false
+	blockComment := false
+	for i := 0; i < len(statement.query); i++ {
+		char := statement.query[i]
+		next := byte(0)
+		if i+1 < len(statement.query) {
+			next = statement.query[i+1]
+		}
+
+		switch {
+		case lineComment:
+			query.WriteByte(char)
+			if char == '\n' {
+				lineComment = false
+			}
+		case blockComment:
+			query.WriteByte(char)
+			if char == '*' && next == '/' {
+				query.WriteByte(next)
+				i++
+				blockComment = false
+			}
+		case quote != 0:
+			query.WriteByte(char)
+			if char == '\\' && next != 0 {
+				query.WriteByte(next)
+				i++
+				continue
+			}
+			if char == quote {
+				if next == quote {
+					query.WriteByte(next)
+					i++
+				} else {
+					quote = 0
+				}
+			}
+		case char == '-' && next == '-':
+			query.WriteByte(char)
+			query.WriteByte(next)
+			i++
+			lineComment = true
+		case char == '#':
+			query.WriteByte(char)
+			lineComment = true
+		case char == '/' && next == '*':
+			query.WriteByte(char)
+			query.WriteByte(next)
+			i++
+			blockComment = true
+		case char == '\'' || char == '"' || char == '`':
+			query.WriteByte(char)
+			quote = char
+		case char == '?':
+			if argument >= len(statement.args) {
+				panic("transaction batch statement has more placeholders than arguments")
+			}
+			arg := statement.args[argument]
+			argument++
+			if arg.result != nil {
+				query.WriteString(arg.result.reference())
+			} else {
+				query.WriteByte('?')
+				args = append(args, arg.value)
+			}
+		default:
+			query.WriteByte(char)
+		}
+	}
+	if argument != len(statement.args) {
+		panic(fmt.Sprintf("transaction batch statement has %d placeholders and %d arguments", argument, len(statement.args)))
+	}
+
+	rendered := query.String()
+	if statement.result != nil {
+		headerEnd := strings.IndexByte(rendered, '\n')
+		if headerEnd < 0 || !strings.HasPrefix(rendered, "-- name:") {
+			panic("transaction batch result statement is missing its sqlc header")
+		}
+		rendered = rendered[:headerEnd+1] + "SET " + statement.result.reference() + " = (\n" + rendered[headerEnd+1:] + "\n)"
+	}
+	return rendered, args
 }
 
 func cleanupTransactionBatchConnection(conn *sql.Conn) {

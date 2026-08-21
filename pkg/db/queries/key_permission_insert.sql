@@ -1,4 +1,5 @@
 -- name: InsertKeyPermission :exec
+-- transactional-batch-statement
 INSERT INTO `keys_permissions` (
     key_id,
     permission_id,

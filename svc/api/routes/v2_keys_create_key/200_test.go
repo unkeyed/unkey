@@ -2,14 +2,17 @@ package handler_test
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"net/http"
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/oapi-codegen/nullable"
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/pkg/auditlog"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
@@ -67,6 +70,30 @@ func TestCreateKeySuccess(t *testing.T) {
 	require.NotEmpty(t, key.Hash)
 	require.NotEmpty(t, key.Start)
 	require.True(t, key.Enabled)
+
+	auditLogs := h.FindAuditLogsByTargetID(ctx, t, res.Body.Data.KeyId)
+	require.Len(t, auditLogs, 1)
+	require.Equal(t, string(auditlog.KeyCreateEvent), auditLogs[0].Event)
+}
+
+func TestCreateKeyWithExplicitRecoverableFalse(t *testing.T) {
+	t.Parallel()
+
+	h := testutil.NewHarness(t)
+	route := &handler.Handler{DB: h.DB, Keys: h.Keys, Auditlogs: h.Auditlogs, Vault: h.Vault}
+	h.Register(route)
+	api := h.CreateApi(seed.CreateApiRequest{WorkspaceID: h.Resources().UserWorkspace.ID})
+	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "api.*.create_key")
+	headers := http.Header{
+		"Content-Type":  {"application/json"},
+		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+	}
+
+	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
+		ApiId:       api.ID,
+		Recoverable: ptr.P(false),
+	})
+	require.Equal(t, http.StatusOK, res.Status)
 }
 
 // TestCreateKeyWithURNPermission guarantees WorkOS-translated `keys:create`
@@ -251,15 +278,22 @@ func TestCreateKeyWithEncryption(t *testing.T) {
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
 	}
 
-	// Test key creation with optional fields
 	name := "Test Key"
+	expires := time.Now().Add(time.Hour).Truncate(time.Millisecond)
 
 	req := handler.Request{
 		ApiId:       api.ID,
 		Name:        &name,
-		ExternalId:  ptr.P("user_123"),
+		Meta:        ptr.P(map[string]any{"source": "batch"}),
+		Expires:     ptr.P(expires.UnixMilli()),
 		Enabled:     ptr.P(true),
 		Recoverable: ptr.P(true),
+		Ratelimits: ptr.P([]openapi.RatelimitRequest{{
+			Name:      "requests",
+			Limit:     10,
+			Duration:  60_000,
+			AutoApply: true,
+		}}),
 	}
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
@@ -276,12 +310,21 @@ func TestCreateKeyWithEncryption(t *testing.T) {
 	require.True(t, key.Name.Valid)
 	require.Equal(t, name, key.Name.String)
 	require.True(t, key.Enabled)
+	require.JSONEq(t, `{"source":"batch"}`, key.Meta.String)
+	require.True(t, key.Expires.Time.Equal(expires))
 
-	// Verify key fields in database
 	keyEncryption, err := db.Query.FindKeyEncryptionByKeyID(ctx, h.DB.RO(), res.Body.Data.KeyId)
 	require.NoError(t, err)
 	require.Equal(t, keyEncryption.KeyID, res.Body.Data.KeyId)
 	require.Equal(t, keyEncryption.WorkspaceID, h.Resources().UserWorkspace.ID)
+
+	ratelimits, err := db.Query.ListRatelimitsByKeyID(ctx, h.DB.RO(), sql.NullString{String: res.Body.Data.KeyId, Valid: true})
+	require.NoError(t, err)
+	require.Len(t, ratelimits, 1)
+	require.Equal(t, "requests", ratelimits[0].Name)
+	require.EqualValues(t, 10, ratelimits[0].Limit)
+	require.EqualValues(t, 60_000, ratelimits[0].Duration)
+	require.True(t, ratelimits[0].AutoApply)
 }
 
 // TestCreateRecoverableKeyWithURNPermissions guarantees WorkOS-translated
@@ -331,9 +374,7 @@ func TestCreateRecoverableKeyWithURNPermissions(t *testing.T) {
 }
 
 // TestCreateKeyConcurrentWithSameExternalId tests that concurrent key creation
-// with the same externalId doesn't deadlock. This was previously possible due to
-// gap locks when inserting identities. The fix uses INSERT ... ON DUPLICATE KEY
-// UPDATE (upsert) to avoid gap lock deadlocks.
+// with the same externalId recovers from the identity unique-key race.
 func TestCreateKeyConcurrentWithSameExternalId(t *testing.T) {
 	t.Parallel()
 
@@ -352,6 +393,8 @@ func TestCreateKeyConcurrentWithSameExternalId(t *testing.T) {
 	api := h.CreateApi(seed.CreateApiRequest{
 		WorkspaceID: h.Resources().UserWorkspace.ID,
 	})
+	_, err := h.DB.RW().ExecContext(ctx, "DELETE FROM projects WHERE workspace_id = ? AND BINARY slug = 'default'", h.Resources().UserWorkspace.ID)
+	require.NoError(t, err)
 
 	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "api.*.create_key")
 
@@ -362,6 +405,11 @@ func TestCreateKeyConcurrentWithSameExternalId(t *testing.T) {
 
 	numConcurrent := 20
 	externalID := "user_concurrent_test"
+
+	// Warm the validator's schema cache without creating the shared identity so
+	// the burst below isolates the database race this test covers.
+	warmup := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{ApiId: api.ID})
+	require.Equal(t, http.StatusOK, warmup.Status, warmup.RawBody)
 
 	var mu sync.Mutex
 	keyIDs := make([]string, 0, numConcurrent)
@@ -375,7 +423,7 @@ func TestCreateKeyConcurrentWithSameExternalId(t *testing.T) {
 			}
 			res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 			if res.Status != 200 {
-				return fmt.Errorf("unexpected status code: %d", res.Status)
+				return fmt.Errorf("unexpected status code %d: %s", res.Status, res.RawBody)
 			}
 			mu.Lock()
 			keyIDs = append(keyIDs, res.Body.Data.KeyId)
@@ -384,7 +432,7 @@ func TestCreateKeyConcurrentWithSameExternalId(t *testing.T) {
 		})
 	}
 
-	err := g.Wait()
+	err = g.Wait()
 	require.NoError(t, err, "All concurrent creates should succeed without deadlock")
 
 	require.Len(t, keyIDs, numConcurrent)
@@ -412,6 +460,14 @@ func TestCreateKeyConcurrentWithSameExternalId(t *testing.T) {
 	})
 	require.NoError(t, err)
 	require.Equal(t, sharedIdentityID, identity.ID)
+
+	var defaultProjectCount int
+	err = h.DB.RO().QueryRowContext(ctx, "SELECT COUNT(*) FROM projects WHERE workspace_id = ? AND BINARY slug = 'default'", h.Resources().UserWorkspace.ID).Scan(&defaultProjectCount)
+	require.NoError(t, err)
+	require.Equal(t, 1, defaultProjectCount)
+	defaultProjectID, err := db.Query.FindDefaultProjectByWorkspaceID(ctx, h.DB.RO(), h.Resources().UserWorkspace.ID)
+	require.NoError(t, err)
+	require.Equal(t, defaultProjectID, identity.ProjectID)
 }
 
 func TestCreateKeyWithCreditsRemainingNull(t *testing.T) {
@@ -673,6 +729,97 @@ func TestCreateKeyWithRolesAndPermissions(t *testing.T) {
 		gotPerms = append(gotPerms, perm.Slug)
 	}
 	require.ElementsMatch(t, permissionSlugs, gotPerms)
+}
+
+func TestCreateKeyMaximalBatch(t *testing.T) {
+	t.Parallel()
+
+	h := testutil.NewHarness(t)
+	ctx := t.Context()
+	workspaceID := h.Resources().UserWorkspace.ID
+	route := &handler.Handler{DB: h.DB, Keys: h.Keys, Auditlogs: h.Auditlogs, Vault: h.Vault}
+	h.Register(route)
+	api := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspaceID, EncryptedKeys: true})
+	identity := h.CreateIdentity(seed.CreateIdentityRequest{WorkspaceID: workspaceID, ExternalID: "existing-user"})
+	existingPermission := h.CreatePermission(seed.CreatePermissionRequest{
+		WorkspaceID: workspaceID,
+		Name:        "existing.read",
+		Slug:        "existing.read",
+	})
+	role := h.CreateRole(seed.CreateRoleRequest{WorkspaceID: workspaceID, Name: "Maximal Role"})
+	rootKey := h.CreateRootKey(workspaceID, "api.*.create_key", "api.*.encrypt_key")
+	headers := http.Header{
+		"Content-Type":  {"application/json"},
+		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+	}
+
+	name := "Maximal key"
+	prefix := "max"
+	byteLength := 32
+	expires := time.Now().Add(time.Hour).Truncate(time.Millisecond)
+	newPermission := "new.write"
+	response := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
+		ApiId:       api.ID,
+		Name:        &name,
+		Prefix:      &prefix,
+		ByteLength:  &byteLength,
+		ExternalId:  &identity.ExternalID,
+		Meta:        ptr.P(map[string]any{"family": "maximal"}),
+		Expires:     ptr.P(expires.UnixMilli()),
+		Enabled:     ptr.P(false),
+		Recoverable: ptr.P(true),
+		Credits: &openapi.KeyCreditsData{
+			Remaining: nullable.NewNullableWithValue[int64](321),
+			Refill: &openapi.KeyCreditsRefill{
+				Amount:    100,
+				Interval:  openapi.KeyCreditsRefillIntervalMonthly,
+				RefillDay: 12,
+			},
+		},
+		Ratelimits: ptr.P([]openapi.RatelimitRequest{
+			{Name: "requests", Limit: 10, Duration: 1_000, AutoApply: true},
+			{Name: "tokens", Limit: 20, Duration: 60_000, AutoApply: false},
+		}),
+		Permissions: ptr.P([]string{existingPermission.Slug, newPermission}),
+		Roles:       ptr.P([]string{role.Name}),
+	})
+	require.Equal(t, http.StatusOK, response.Status, response.RawBody)
+	require.True(t, strings.HasPrefix(response.Body.Data.Key, prefix+"_"))
+
+	key, err := db.Query.FindKeyByID(ctx, h.DB.RO(), response.Body.Data.KeyId)
+	require.NoError(t, err)
+	require.Equal(t, name, key.Name.String)
+	require.Equal(t, identity.ID, key.IdentityID.String)
+	require.JSONEq(t, `{"family":"maximal"}`, key.Meta.String)
+	require.True(t, key.Expires.Time.Equal(expires))
+	require.False(t, key.Enabled)
+	require.EqualValues(t, 321, key.RemainingRequests.Int64)
+	require.EqualValues(t, 100, key.RefillAmount.Int64)
+	require.EqualValues(t, 12, key.RefillDay.Int16)
+
+	_, err = db.Query.FindKeyEncryptionByKeyID(ctx, h.DB.RO(), response.Body.Data.KeyId)
+	require.NoError(t, err)
+	ratelimits, err := db.Query.ListRatelimitsByKeyID(ctx, h.DB.RO(), sql.NullString{String: response.Body.Data.KeyId, Valid: true})
+	require.NoError(t, err)
+	require.Len(t, ratelimits, 2)
+	permissions, err := db.Query.ListDirectPermissionsByKeyID(ctx, h.DB.RO(), response.Body.Data.KeyId)
+	require.NoError(t, err)
+	require.Len(t, permissions, 2)
+	roles, err := db.Query.ListRolesByKeyID(ctx, h.DB.RO(), response.Body.Data.KeyId)
+	require.NoError(t, err)
+	require.Len(t, roles, 1)
+	require.Equal(t, role.ID, roles[0].ID)
+
+	auditLogs := h.FindAuditLogsByTargetID(ctx, t, response.Body.Data.KeyId)
+	require.Len(t, auditLogs, 4)
+	newPermissionRow, err := db.Query.FindPermissionBySlugAndWorkspaceID(ctx, h.DB.RO(), db.FindPermissionBySlugAndWorkspaceIDParams{
+		WorkspaceID: workspaceID,
+		Slug:        newPermission,
+	})
+	require.NoError(t, err)
+	newPermissionAuditLogs := h.FindAuditLogsByTargetID(ctx, t, newPermissionRow.ID)
+	require.Len(t, newPermissionAuditLogs, 1)
+	require.Equal(t, string(auditlog.AuthConnectPermissionKeyEvent), newPermissionAuditLogs[0].Event)
 }
 
 func createKeyPermission(workspaceID string, keyspaceID string) string {

@@ -215,6 +215,21 @@ type Querier interface {
 	//    AND access_token_hash IS NULL
 	//    AND exchange_code_expires_at > ?
 	ExchangePortalSessionCode(ctx context.Context, db DBTX, arg ExchangePortalSessionCodeParams) (sql.Result, error)
+	//FindApiAndKeySpaceByID
+	//
+	//  SELECT
+	//      a.id AS api_id,
+	//      a.workspace_id,
+	//      a.key_auth_id,
+	//      a.name AS api_name,
+	//      COALESCE(ka.id, '') AS key_space_id,
+	//      COALESCE(ka.store_encrypted_keys, false) AS store_encrypted_keys,
+	//      ka.default_prefix,
+	//      ka.default_bytes
+	//  FROM apis a
+	//  LEFT JOIN key_auth ka ON ka.id = a.key_auth_id
+	//  WHERE a.id = ?
+	FindApiAndKeySpaceByID(ctx context.Context, db DBTX, id string) (FindApiAndKeySpaceByIDRow, error)
 	//FindApiByID
 	//
 	//  SELECT pk, id, name, workspace_id, project_id, ip_whitelist, auth_type, key_auth_id, created_at_m, updated_at_m, deleted_at_m, delete_protection FROM apis WHERE id = ?
@@ -384,6 +399,14 @@ type Querier interface {
 	//    AND BINARY slug = 'default'
 	//  LIMIT 1
 	FindDefaultProjectByWorkspaceID(ctx context.Context, db DBTX, workspaceID string) (string, error)
+	// transactional-batch-statement
+	//
+	//  SELECT id
+	//  FROM projects
+	//  WHERE workspace_id = ?
+	//    AND BINARY slug = ?
+	//  LIMIT 1
+	FindDefaultProjectForBatch(ctx context.Context, db DBTX, arg FindDefaultProjectForBatchParams) (string, error)
 	//FindDeploymentById
 	//
 	//  SELECT pk, id, k8s_name, workspace_id, project_id, environment_id, app_id, image, build_id, git_commit_sha, git_branch, git_commit_message, git_commit_author_handle, git_commit_author_avatar_url, git_commit_timestamp, sentinel_config, cpu_millicores, memory_mib, storage_mib, desired_state, encrypted_environment_variables, command, port, shutdown_signal, upstream_protocol, healthcheck, pr_number, fork_repository_full_name, github_deployment_id, invocation_id, status, `trigger`, triggered_by, trigger_reason, created_at, updated_at FROM `deployments` WHERE id = ?
@@ -500,6 +523,15 @@ type Querier interface {
 	//    AND id = ?
 	//    AND deleted = ?
 	FindIdentityByID(ctx context.Context, db DBTX, arg FindIdentityByIDParams) (Identity, error)
+	// transactional-batch-statement
+	//
+	//  SELECT id
+	//  FROM identities
+	//  WHERE workspace_id = ?
+	//    AND external_id = ?
+	//    AND deleted = false
+	//  LIMIT 1
+	FindIdentityForBatch(ctx context.Context, db DBTX, arg FindIdentityForBatchParams) (string, error)
 	//FindKeyAuthsByIds
 	//
 	//  SELECT ka.id as key_auth_id, a.id as api_id
@@ -950,6 +982,14 @@ type Querier interface {
 	//  AND workspace_id = ?
 	//  LIMIT 1
 	FindPermissionBySlugAndWorkspaceID(ctx context.Context, db DBTX, arg FindPermissionBySlugAndWorkspaceIDParams) (Permission, error)
+	// transactional-batch-statement
+	//
+	//  SELECT id
+	//  FROM permissions
+	//  WHERE workspace_id = ?
+	//    AND slug = ?
+	//  LIMIT 1
+	FindPermissionForBatch(ctx context.Context, db DBTX, arg FindPermissionForBatchParams) (string, error)
 	//FindPermissionsBySlugs
 	//
 	//  SELECT pk, id, workspace_id, project_id, name, slug, description, created_at_m, updated_at_m FROM permissions WHERE workspace_id = ? AND slug IN (/*SLICE:slugs*/?)
@@ -1292,6 +1332,22 @@ type Querier interface {
 	//      WHERE p.id = ?
 	//  )
 	InsertClickhouseOutboxForPermissionUpdateKey(ctx context.Context, db DBTX, arg InsertClickhouseOutboxForPermissionUpdateKeyParams) error
+	// transactional-batch-statement
+	//
+	//  INSERT INTO `clickhouse_outbox` (
+	//      version,
+	//      workspace_id,
+	//      event_id,
+	//      payload,
+	//      created_at
+	//  ) VALUES (
+	//      ?,
+	//      ?,
+	//      ?,
+	//      JSON_SET(CAST(? AS JSON), '$.targets[1].id', ?),
+	//      ?
+	//  )
+	InsertClickhouseOutboxWithResultTarget(ctx context.Context, db DBTX, arg InsertClickhouseOutboxWithResultTargetParams) error
 	//InsertClickhouseWorkspaceSettings
 	//
 	//  INSERT INTO `clickhouse_workspace_settings` (
@@ -1648,7 +1704,7 @@ type Querier interface {
 	//      auto_apply = VALUES(auto_apply),
 	//      updated_at = VALUES(created_at)
 	InsertIdentityRatelimit(ctx context.Context, db DBTX, arg InsertIdentityRatelimitParams) error
-	//InsertKey
+	// transactional-batch-statement
 	//
 	//  INSERT INTO `keys` (
 	//      id,
@@ -1686,7 +1742,7 @@ type Querier interface {
 	//      ?
 	//  )
 	InsertKey(ctx context.Context, db DBTX, arg InsertKeyParams) error
-	//InsertKeyEncryption
+	// transactional-batch-statement
 	//
 	//  INSERT INTO encrypted_keys
 	//  (workspace_id, key_id, encrypted, encryption_key_id, created_at)
@@ -1704,7 +1760,7 @@ type Querier interface {
 	//      ?
 	//  )
 	InsertKeyMigration(ctx context.Context, db DBTX, arg InsertKeyMigrationParams) error
-	//InsertKeyPermission
+	// transactional-batch-statement
 	//
 	//  INSERT INTO `keys_permissions` (
 	//      key_id,
@@ -3141,6 +3197,27 @@ type Querier interface {
 	//      sentinel_config = VALUES(sentinel_config),
 	//      updated_at = VALUES(updated_at)
 	UpsertAppRuntimeSettingsPolicyConfig(ctx context.Context, db DBTX, arg UpsertAppRuntimeSettingsPolicyConfigParams) error
+	// transactional-batch-statement
+	//
+	//  INSERT INTO projects (
+	//      id,
+	//      workspace_id,
+	//      name,
+	//      slug,
+	//      delete_protection,
+	//      created_at,
+	//      updated_at
+	//  ) VALUES (
+	//      ?,
+	//      ?,
+	//      'Default',
+	//      'default',
+	//      true,
+	//      ?,
+	//      NULL
+	//  )
+	//  ON DUPLICATE KEY UPDATE slug = slug
+	UpsertDefaultProject(ctx context.Context, db DBTX, arg UpsertDefaultProjectParams) error
 	//UpsertGithubRepoConnection
 	//
 	//  INSERT INTO github_repo_connections (
@@ -3170,6 +3247,7 @@ type Querier interface {
 	//      repository_full_name = VALUES(repository_full_name),
 	//      updated_at = VALUES(updated_at)
 	UpsertGithubRepoConnection(ctx context.Context, db DBTX, arg UpsertGithubRepoConnectionParams) error
+	// transactional-batch-statement
 	// Inserts a new identity or does nothing if one already exists for this workspace/external_id.
 	// Use FindIdentityByExternalID after this to get the actual ID.
 	//
@@ -3242,6 +3320,7 @@ type Querier interface {
 	//      custom_domains_max = VALUES(custom_domains_max),
 	//      autoscaling_replicas_max = VALUES(autoscaling_replicas_max)
 	UpsertLimit(ctx context.Context, db DBTX, arg UpsertLimitParams) error
+	// transactional-batch-statement
 	// Inserts a permission or leaves the existing workspace/slug row unchanged.
 	// Use FindPermissionsBySlugsForUpdate after this to get the canonical row.
 	//

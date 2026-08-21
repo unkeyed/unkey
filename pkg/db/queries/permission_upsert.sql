@@ -1,4 +1,5 @@
 -- name: UpsertPermission :exec
+-- transactional-batch-statement
 -- Inserts a permission or leaves the existing workspace/slug row unchanged.
 -- Use FindPermissionsBySlugsForUpdate after this to get the canonical row.
 INSERT INTO permissions (
