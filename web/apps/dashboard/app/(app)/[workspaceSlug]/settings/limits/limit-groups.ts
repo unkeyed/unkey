@@ -1,8 +1,9 @@
+import { CUSTOM_DOMAINS_UNLIMITED } from "@/lib/limits";
 import type { Limits } from "@unkey/db";
 
 export type LimitStatus = "ok" | "at-limit" | "over";
 
-export type GroupKey = "api" | "logs" | "compute" | "domains";
+export type GroupKey = "api" | "logs" | "compute";
 
 export type RowUsage =
   | { state: "loading" }
@@ -11,6 +12,8 @@ export type RowUsage =
 
 export type LimitRow = {
   name: string;
+  /** Set when the row needs its own banner copy instead of its group's. */
+  breachKey?: BreachKey;
   description?: string;
   limit: string;
   usage?: RowUsage;
@@ -140,23 +143,35 @@ function logsGroup(limits: Limits): LimitGroup {
   };
 }
 
-function domainsGroup(limits: Limits, domains: Measured<number>): LimitGroup {
-  return {
-    key: "domains",
-    title: "Domains",
-    description: "Custom domain allowance for your apps.",
-    rows: [
-      metered({
-        name: "Custom domains",
-        description: "Domains you can attach across all apps in this workspace.",
-        limit: count(limits.customDomainsMax),
-        usage: usageOf(domains, (value) => value, limits.customDomainsMax, count),
-      }),
-    ],
-  };
+function customDomainsRow(limits: Limits, domains: Measured<number>): LimitRow {
+  const row = {
+    name: "Custom domains",
+    description: "Domains you can attach across all apps in this workspace.",
+    breachKey: "domains",
+  } as const;
+
+  // A meter of 0 against 0 tells the reader nothing. The plan simply does not
+  // include the feature, which is how the docs say it too.
+  if (limits.customDomainsMax === 0) {
+    return ceiling({ ...row, limit: "Not included" });
+  }
+
+  if (limits.customDomainsMax >= CUSTOM_DOMAINS_UNLIMITED) {
+    return ceiling({ ...row, limit: "Unlimited" });
+  }
+
+  return metered({
+    ...row,
+    limit: count(limits.customDomainsMax),
+    usage: usageOf(domains, (value) => value, limits.customDomainsMax, count),
+  });
 }
 
-function computeGroup(limits: Limits, allocation: Measured<Allocation>): LimitGroup {
+function computeGroup(
+  limits: Limits,
+  allocation: Measured<Allocation>,
+  customDomains: Measured<number>,
+): LimitGroup {
   return {
     key: "compute",
     title: "Compute",
@@ -206,6 +221,7 @@ function computeGroup(limits: Limits, allocation: Measured<Allocation>): LimitGr
         description: "Instances autoscaling can run for one app in a region.",
         limit: count(limits.autoscalingReplicasMax),
       }),
+      customDomainsRow(limits, customDomains),
     ],
   };
 }
@@ -225,14 +241,20 @@ export function buildLimitGroups({
 }): LimitGroup[] {
   const groups = [apiGroup(limits, apiOperations), logsGroup(limits)];
   if (hasComputePlan) {
-    groups.push(computeGroup(limits, allocation));
+    groups.push(computeGroup(limits, allocation, customDomains));
   }
-  groups.push(domainsGroup(limits, customDomains));
   return groups;
 }
 
-export function breachedGroups(groups: LimitGroup[]): GroupKey[] {
-  return groups
-    .filter((group) => group.rows.some((row) => row.status !== "ok"))
-    .map((group) => group.key);
+/**
+ * The key that BreachBanner uses to select its message. A row can report under
+ * its own key when the message of its group does not fit, as custom domains do.
+ */
+export type BreachKey = GroupKey | "domains";
+
+export function breachedKeys(groups: LimitGroup[]): BreachKey[] {
+  const keys = groups.flatMap((group) =>
+    group.rows.filter((row) => row.status !== "ok").map((row) => row.breachKey ?? group.key),
+  );
+  return [...new Set(keys)];
 }

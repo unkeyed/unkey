@@ -219,8 +219,8 @@ const LimitBanner = () => {
     <AlertBanner variant="error" className="mb-2">
       <AlertBannerTitle>Custom domain limit reached</AlertBannerTitle>
       <AlertBannerDescription>
-        This workspace is at its custom domain allowance. Remove a domain that you do not need, then
-        try again.
+        This workspace is at its custom domain limit. Remove a domain that you do not need, then try
+        again.
       </AlertBannerDescription>
       <AlertBannerActions>
         {billingUpgrades && (

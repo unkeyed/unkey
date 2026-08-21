@@ -6,7 +6,7 @@ import { routes } from "@/lib/navigation/routes";
 import { SUPPORT_MAILTO } from "@/lib/support";
 import { trpc } from "@/lib/trpc/client";
 import { useWorkspace } from "@/providers/workspace-provider";
-import { Cube, Layers3, Link4, Nodes } from "@unkey/icons";
+import { Cube, Layers3, Nodes } from "@unkey/icons";
 import {
   Button,
   Empty,
@@ -32,7 +32,7 @@ import {
   type GroupKey,
   type LimitGroup,
   type Measured,
-  breachedGroups,
+  breachedKeys,
   buildLimitGroups,
 } from "./limit-groups";
 import { LimitItem } from "./limit-item";
@@ -41,7 +41,6 @@ const CHIPS: Record<GroupKey, { icon: ReactNode; className: string }> = {
   api: { icon: <Nodes />, className: "bg-infoA-3 text-info-11" },
   logs: { icon: <Layers3 />, className: "bg-grayA-3 text-gray-11" },
   compute: { icon: <Cube />, className: "bg-orangeA-3 text-orange-11" },
-  domains: { icon: <Link4 />, className: "bg-grayA-3 text-gray-11" },
 };
 
 function measured<T>(query: { data: T | undefined; isError: boolean }): Measured<T> {
@@ -67,7 +66,7 @@ export default function LimitsPage() {
     retry: 1,
   });
   const customDomains = trpc.deploy.customDomain.count.useQuery(undefined, {
-    enabled: Boolean(workspace) && billingUpgrades,
+    enabled: Boolean(workspace) && billingUpgrades && hasComputePlan,
     trpc: { context: { skipBatch: true } },
     retry: 1,
   });
@@ -104,7 +103,7 @@ export default function LimitsPage() {
     allocation: measured(allocation),
     customDomains: measured(customDomains),
   });
-  const breached = breachedGroups(groups);
+  const breached = breachedKeys(groups);
 
   return (
     <Shell>
