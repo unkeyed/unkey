@@ -31,14 +31,10 @@ vi.mock("./portal-config", () => ({
   PortalConfig: ({
     portal: configPortal,
     keyAuthId,
-    resourceName,
   }: {
     portal: Portal;
     keyAuthId: string;
-    resourceName: string;
-  }) => (
-    <div data-testid="portal-config">{`${configPortal.slug}|${keyAuthId}|${resourceName}`}</div>
-  ),
+  }) => <div data-testid="portal-config">{`${configPortal.slug}|${keyAuthId}`}</div>,
 }));
 
 vi.mock("./integrate-dialog", () => ({
@@ -190,6 +186,6 @@ describe("PortalLifecyclePage", () => {
     expect(screen.queryByText("Portal disabled")).toBeNull();
     // Disabling now lives inside the configuration view, which needs the row
     // itself rather than a callback.
-    expect(screen.getByTestId("portal-config").textContent).toBe("acme|ks_123|Acme");
+    expect(screen.getByTestId("portal-config").textContent).toBe("acme|ks_123");
   });
 });
