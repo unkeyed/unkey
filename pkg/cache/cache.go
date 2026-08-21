@@ -16,6 +16,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/repeat"
+	"github.com/unkeyed/unkey/pkg/singleflight"
 	"github.com/unkeyed/unkey/pkg/timing"
 )
 
@@ -25,6 +26,9 @@ type cache[K comparable, V any] struct {
 	stale    time.Duration
 	resource string
 	clock    clock.Clock
+
+	// originLoads deduplicates active origin loads for the same key.
+	originLoads *singleflight.Group[K, missResult[V]]
 
 	revalidateC chan func()
 
@@ -47,6 +51,17 @@ type Config[K comparable, V any] struct {
 	Resource string
 
 	Clock clock.Clock
+}
+
+// missResult carries the outcome returned to callers sharing cache-miss work.
+type missResult[V any] struct {
+	// Value is returned to every caller sharing the cache miss.
+	value V
+	// Hit is the cache status returned with value. Origin errors always report a
+	// miss, even when the selected operation writes a cache entry.
+	hit CacheHit
+	// Err is returned to every caller sharing the cache miss.
+	err error
 }
 
 var _ Cache[any, any] = (*cache[any, any])(nil)
@@ -83,6 +98,7 @@ func New[K comparable, V any](config Config[K, V]) (Cache[K, V], error) {
 		stale:             config.Stale,
 		resource:          config.Resource,
 		clock:             config.Clock,
+		originLoads:       singleflight.New[K, missResult[V]](),
 		revalidateC:       make(chan func(), 1000),
 		inflightMu:        sync.Mutex{},
 		inflightRefreshes: make(map[K]bool),
@@ -291,38 +307,52 @@ func (c *cache[K, V]) SWR(
 		c.otter.Delete(key)
 	}
 
-	// Cache Miss - measure total time including all overhead
-	v, err := refreshFromOrigin(ctx)
+	// A cache miss includes time spent waiting for an existing origin load.
+	result, waitErr := c.originLoads.Do(ctx, key, func(ctx context.Context) (missResult[V], error) {
+		// Another caller may have filled the cache after this caller observed the
+		// miss but before it entered the singleflight group.
+		if entry, ok := c.get(ctx, key); ok && c.clock.Now().Before(entry.Stale) {
+			return missResult[V]{value: entry.Value, hit: entry.Hit, err: nil}, nil
+		}
+		return c.loadFromOrigin(ctx, key, refreshFromOrigin, op), nil
+	})
 	c.recordTiming(ctx, "cache_swr", "miss", start)
+	if waitErr != nil {
+		var zero V
+		return zero, Miss, waitErr
+	}
 
-	switch op(err) {
+	return result.value, result.hit, result.err
+}
+
+// loadFromOrigin loads one value and applies the requested cache operation.
+// The returned result preserves the origin error while describing any cache
+// entry written by operationForError.
+func (c *cache[K, V]) loadFromOrigin(
+	ctx context.Context,
+	key K,
+	refreshFromOrigin func(context.Context) (V, error),
+	operationForError func(error) Op,
+) missResult[V] {
+	v, err := refreshFromOrigin(ctx)
+	operation := operationForError(err)
+	hit := Miss
+
+	switch operation {
 	case WriteValue:
 		c.Set(ctx, key, v)
+		hit = Hit
 	case WriteNull:
 		c.SetNull(ctx, key)
+		hit = Null
 	case Noop:
 		break
 	}
 
 	if err != nil {
-		// Error occurred, return Miss as the cache hit status
-		return v, Miss, err
-	}
-
-	// Determine cache hit status based on the operation
-	var hit CacheHit
-	switch op(err) {
-	case Noop:
-		// Skip
-	case WriteValue:
-		hit = Hit
-	case WriteNull:
-		hit = Null
-	default:
 		hit = Miss
 	}
-
-	return v, hit, err
+	return missResult[V]{value: v, hit: hit, err: err}
 }
 
 func (c *cache[K, V]) SWRWithFallback(

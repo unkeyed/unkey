@@ -4,6 +4,8 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -151,4 +153,137 @@ func TestSWR_CacheHit(t *testing.T) {
 		require.Equal(t, "", value)
 		require.Equal(t, cache.Miss, hit)
 	})
+}
+
+// TestSWR_DeduplicatesConcurrentMisses guarantees that concurrent misses for
+// one key produce one origin load and share its result.
+func TestSWR_DeduplicatesConcurrentMisses(t *testing.T) {
+	ctx := context.Background()
+	c, err := cache.New(cache.Config[string, string]{
+		Fresh:    time.Minute,
+		Stale:    5 * time.Minute,
+		MaxSize:  100,
+		Resource: "test",
+		Clock:    clock.NewTestClock(),
+	})
+	require.NoError(t, err)
+
+	var loadCount atomic.Int32
+	loadStarted := make(chan struct{})
+	releaseLoad := make(chan struct{})
+	var loadStartedOnce sync.Once
+
+	load := func(context.Context) (string, error) {
+		loadCount.Add(1)
+		loadStartedOnce.Do(func() { close(loadStarted) })
+		<-releaseLoad
+		return "value", nil
+	}
+
+	type swrResult struct {
+		value string
+		hit   cache.CacheHit
+		err   error
+	}
+	firstDone := make(chan swrResult, 1)
+	go func() {
+		value, hit, loadErr := c.SWR(ctx, "key", load, func(error) cache.Op {
+			return cache.WriteValue
+		})
+		firstDone <- swrResult{value: value, hit: hit, err: loadErr}
+	}()
+
+	require.Eventually(t, func() bool {
+		select {
+		case <-loadStarted:
+			return true
+		default:
+			return false
+		}
+	}, time.Second, time.Millisecond)
+
+	const waiterCount = 16
+	var waitGroup sync.WaitGroup
+	waitGroup.Add(waiterCount)
+	callErrors := make(chan error, waiterCount)
+	for range waiterCount {
+		go func() {
+			defer waitGroup.Done()
+			value, hit, loadErr := c.SWR(ctx, "key", load, func(error) cache.Op {
+				return cache.WriteValue
+			})
+			if loadErr != nil {
+				callErrors <- loadErr
+				return
+			}
+			if hit != cache.Hit || value != "value" {
+				callErrors <- errors.New("unexpected cache result")
+			}
+		}()
+	}
+
+	require.Equal(t, int32(1), loadCount.Load())
+	close(releaseLoad)
+
+	first := <-firstDone
+	require.NoError(t, first.err)
+	require.Equal(t, cache.Hit, first.hit)
+	require.Equal(t, "value", first.value)
+	waitGroup.Wait()
+	close(callErrors)
+	require.Empty(t, callErrors)
+	require.Equal(t, int32(1), loadCount.Load())
+}
+
+// TestSWR_CanceledMissDoesNotStartAnotherLoad guarantees that an already
+// canceled miss returns without duplicating an active origin load.
+func TestSWR_CanceledMissDoesNotStartAnotherLoad(t *testing.T) {
+	ctx := context.Background()
+	c, err := cache.New(cache.Config[string, string]{
+		Fresh:    time.Minute,
+		Stale:    5 * time.Minute,
+		MaxSize:  100,
+		Resource: "test",
+		Clock:    clock.NewTestClock(),
+	})
+	require.NoError(t, err)
+
+	var loadCount atomic.Int32
+	loadStarted := make(chan struct{})
+	releaseLoad := make(chan struct{})
+	var loadStartedOnce sync.Once
+	load := func(context.Context) (string, error) {
+		loadCount.Add(1)
+		loadStartedOnce.Do(func() { close(loadStarted) })
+		<-releaseLoad
+		return "value", nil
+	}
+
+	executingDone := make(chan error, 1)
+	go func() {
+		_, _, loadErr := c.SWR(ctx, "key", load, func(error) cache.Op {
+			return cache.WriteValue
+		})
+		executingDone <- loadErr
+	}()
+	require.Eventually(t, func() bool {
+		select {
+		case <-loadStarted:
+			return true
+		default:
+			return false
+		}
+	}, time.Second, time.Millisecond)
+
+	canceledCtx, cancel := context.WithCancel(ctx)
+	cancel()
+	_, hit, err := c.SWR(canceledCtx, "key", load, func(error) cache.Op {
+		return cache.WriteValue
+	})
+	require.ErrorIs(t, err, context.Canceled)
+	require.Equal(t, cache.Miss, hit)
+	require.Equal(t, int32(1), loadCount.Load())
+
+	close(releaseLoad)
+	require.NoError(t, <-executingDone)
 }
