@@ -53,15 +53,11 @@ type Config[K comparable, V any] struct {
 	Clock clock.Clock
 }
 
-// missResult carries the outcome returned to callers sharing cache-miss work.
+// missResult stores the values SWR returns when its first cache lookup misses.
 type missResult[V any] struct {
-	// Value is returned to every caller sharing the cache miss.
 	value V
-	// Hit is the cache status returned with value. Origin errors always report a
-	// miss, even when the selected operation writes a cache entry.
-	hit CacheHit
-	// Err is returned to every caller sharing the cache miss.
-	err error
+	hit   CacheHit
+	err   error
 }
 
 var _ Cache[any, any] = (*cache[any, any])(nil)
