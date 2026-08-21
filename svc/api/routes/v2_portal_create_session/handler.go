@@ -21,6 +21,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/pkg/zen"
+	apierrors "github.com/unkeyed/unkey/svc/api/internal/errors"
 	"github.com/unkeyed/unkey/svc/api/internal/policyconfig"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	// The key requirements below are owned by the operator routes that
@@ -186,16 +187,18 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			Action:       rbac.CreatePortalSession,
 		}),
 	)); err != nil {
-		// Masked as 404, and deliberately a fresh fault chain rather than a wrap:
-		// UserFacingMessage concatenates every public message in the chain, so
-		// wrapping would append the rendered query -- which names the resolved
-		// portal id -- to whatever we set here. req.Portal accepts a slug, so that
-		// id is something the caller may not otherwise know. The internal message
-		// is carried across by hand so logs still say which permission was missing.
-		return fault.New("portal not found",
-			fault.Code(codes.Data.Portal.NotFound.URN()),
-			fault.Internal(fmt.Sprintf("stage 1 denied for portal %s: %s", portal.ID, fault.InternalMessage(err))),
-			fault.Public("Portal not found."),
+		// Masked as 404 so a caller short of the minting permission cannot tell an
+		// existing portal from an absent one, or learn the resolved portal id --
+		// req.Portal accepts a slug, so that id is otherwise unobtainable. The
+		// helper builds a fresh chain rather than wrapping, which matters here:
+		// UserFacingMessage concatenates every public message, so a wrap would
+		// append the rendered query naming that id. Principal.Authorize already
+		// logs the denied query and the granted set. Anything that is not an
+		// authorization denial passes through unmasked.
+		return apierrors.MaskInsufficientPermissionsAsNotFound(
+			err,
+			codes.Data.Portal.NotFound.URN(),
+			"Portal not found.",
 		)
 	}
 
