@@ -152,6 +152,7 @@ func TestGenerator_isInsertQuery(t *testing.T) {
 			query: &plugin.Query{
 				InsertIntoTable: &plugin.Identifier{Name: "users"},
 				Params:          []*plugin.Parameter{{Column: &plugin.Column{Name: "id"}}},
+				Text:            "INSERT INTO users (id) VALUES (?)",
 			},
 			expected: true,
 		},
@@ -160,6 +161,7 @@ func TestGenerator_isInsertQuery(t *testing.T) {
 			query: &plugin.Query{
 				InsertIntoTable: &plugin.Identifier{Name: "users"},
 				Params:          []*plugin.Parameter{},
+				Text:            "INSERT INTO users (id) VALUES (1)",
 			},
 			expected: false,
 		},
@@ -168,6 +170,25 @@ func TestGenerator_isInsertQuery(t *testing.T) {
 			query: &plugin.Query{
 				InsertIntoTable: nil,
 				Params:          []*plugin.Parameter{{Column: &plugin.Column{Name: "id"}}},
+			},
+			expected: false,
+		},
+		{
+			name: "query excluded by directive",
+			query: &plugin.Query{
+				Comments:        []string{"no-bulk-insert"},
+				InsertIntoTable: &plugin.Identifier{Name: "users"},
+				Params:          []*plugin.Parameter{{Column: &plugin.Column{Name: "id"}}},
+				Text:            "INSERT INTO users (id) VALUES (?)",
+			},
+			expected: false,
+		},
+		{
+			name: "query text excluded by directive",
+			query: &plugin.Query{
+				InsertIntoTable: &plugin.Identifier{Name: "users"},
+				Params:          []*plugin.Parameter{{Column: &plugin.Column{Name: "id"}}},
+				Text:            "-- no-bulk-insert\nINSERT INTO users (id) SELECT id FROM pending_users",
 			},
 			expected: false,
 		},
