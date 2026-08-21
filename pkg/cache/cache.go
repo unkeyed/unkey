@@ -27,8 +27,8 @@ type cache[K comparable, V any] struct {
 	resource string
 	clock    clock.Clock
 
-	// originLoads deduplicates active origin loads for the same key.
-	originLoads *singleflight.Group[K, missResult[V]]
+	// originLoads makes concurrent callers for one key use the same load.
+	originLoads *singleflight.Group[K, swrResult[V]]
 
 	revalidateC chan func()
 
@@ -53,11 +53,11 @@ type Config[K comparable, V any] struct {
 	Clock clock.Clock
 }
 
-// missResult stores the values SWR returns when its first cache lookup misses.
-type missResult[V any] struct {
-	value V
-	hit   CacheHit
-	err   error
+// swrResult stores a value, cache status, and load error.
+type swrResult[V any] struct {
+	value   V
+	hit     CacheHit
+	loadErr error
 }
 
 var _ Cache[any, any] = (*cache[any, any])(nil)
@@ -94,7 +94,7 @@ func New[K comparable, V any](config Config[K, V]) (Cache[K, V], error) {
 		stale:             config.Stale,
 		resource:          config.Resource,
 		clock:             config.Clock,
-		originLoads:       singleflight.New[K, missResult[V]](),
+		originLoads:       singleflight.New[K, swrResult[V]](),
 		revalidateC:       make(chan func(), 1000),
 		inflightMu:        sync.Mutex{},
 		inflightRefreshes: make(map[K]bool),
@@ -304,11 +304,11 @@ func (c *cache[K, V]) SWR(
 	}
 
 	// A cache miss includes time spent waiting for an existing origin load.
-	result, waitErr := c.originLoads.Do(ctx, key, func(ctx context.Context) (missResult[V], error) {
+	result, waitErr := c.originLoads.Do(ctx, key, func(ctx context.Context) (swrResult[V], error) {
 		// Another caller may have filled the cache after this caller observed the
 		// miss but before it entered the singleflight group.
 		if entry, ok := c.get(ctx, key); ok && c.clock.Now().Before(entry.Stale) {
-			return missResult[V]{value: entry.Value, hit: entry.Hit, err: nil}, nil
+			return swrResult[V]{value: entry.Value, hit: entry.Hit, loadErr: nil}, nil
 		}
 		return c.loadFromOrigin(ctx, key, refreshFromOrigin, op), nil
 	})
@@ -318,18 +318,16 @@ func (c *cache[K, V]) SWR(
 		return zero, Miss, waitErr
 	}
 
-	return result.value, result.hit, result.err
+	return result.value, result.hit, result.loadErr
 }
 
-// loadFromOrigin loads one value and applies the requested cache operation.
-// The returned result preserves the origin error while describing any cache
-// entry written by operationForError.
+// loadFromOrigin calls refreshFromOrigin and updates the cache based on its error.
 func (c *cache[K, V]) loadFromOrigin(
 	ctx context.Context,
 	key K,
 	refreshFromOrigin func(context.Context) (V, error),
 	operationForError func(error) Op,
-) missResult[V] {
+) swrResult[V] {
 	v, err := refreshFromOrigin(ctx)
 	operation := operationForError(err)
 	hit := Miss
@@ -348,7 +346,7 @@ func (c *cache[K, V]) loadFromOrigin(
 	if err != nil {
 		hit = Miss
 	}
-	return missResult[V]{value: v, hit: hit, err: err}
+	return swrResult[V]{value: v, hit: hit, loadErr: err}
 }
 
 func (c *cache[K, V]) SWRWithFallback(
