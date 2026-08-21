@@ -30,12 +30,10 @@ type cache[K comparable, V any] struct {
 	// originLoads deduplicates active origin loads for the same key.
 	originLoads *singleflight.Group[K, missResult[V]]
 
-	// revalidateC carries background refreshes to the fixed worker pool.
 	revalidateC chan func()
-	// revalidationMutex protects revalidating.
-	revalidationMutex sync.Mutex
-	// revalidating contains keys with a queued or running background refresh.
-	revalidating map[K]struct{}
+
+	inflightMu        sync.Mutex
+	inflightRefreshes map[K]bool
 }
 
 type Config[K comparable, V any] struct {
@@ -102,8 +100,8 @@ func New[K comparable, V any](config Config[K, V]) (Cache[K, V], error) {
 		clock:             config.Clock,
 		originLoads:       singleflight.New[K, missResult[V]](),
 		revalidateC:       make(chan func(), 1000),
-		revalidationMutex: sync.Mutex{},
-		revalidating:      make(map[K]struct{}),
+		inflightMu:        sync.Mutex{},
+		inflightRefreshes: make(map[K]bool),
 	}
 
 	for range 10 {
@@ -240,6 +238,44 @@ func (c *cache[K, V]) Name() string {
 	return c.resource
 }
 
+func (c *cache[K, V]) revalidate(
+	ctx context.Context,
+	key K, refreshFromOrigin func(context.Context) (V, error),
+	op func(error) Op,
+) {
+	c.inflightMu.Lock()
+	_, ok := c.inflightRefreshes[key]
+	if ok {
+		c.inflightMu.Unlock()
+		return
+	}
+
+	c.inflightRefreshes[key] = true
+	c.inflightMu.Unlock()
+
+	defer func() {
+		c.inflightMu.Lock()
+		delete(c.inflightRefreshes, key)
+		c.inflightMu.Unlock()
+	}()
+
+	metrics.CacheRevalidations.WithLabelValues(c.resource).Inc()
+	v, err := refreshFromOrigin(ctx)
+
+	if err != nil && !db.IsNotFound(err) {
+		logger.Warn("failed to revalidate", "error", err.Error(), "key", key)
+	}
+
+	switch op(err) {
+	case WriteValue:
+		c.Set(ctx, key, v)
+	case WriteNull:
+		c.SetNull(ctx, key)
+	case Noop:
+		break
+	}
+}
+
 func (c *cache[K, V]) SWR(
 	ctx context.Context,
 	key K,
@@ -258,23 +294,11 @@ func (c *cache[K, V]) SWR(
 		}
 
 		if now.Before(e.Stale) {
-			c.queueRevalidation(key, func() {
-				revalidationCtx := context.WithoutCancel(ctx)
-				result, waitErr := c.originLoads.Do(revalidationCtx, key, func(ctx context.Context) (missResult[V], error) {
-					if entry, found := c.get(ctx, key); found && c.clock.Now().Before(entry.Fresh) {
-						return missResult[V]{value: entry.Value, hit: entry.Hit, err: nil}, nil
-					}
-					metrics.CacheRevalidations.WithLabelValues(c.resource).Inc()
-					return c.loadFromOrigin(ctx, key, refreshFromOrigin, op), nil
-				})
-				if waitErr != nil {
-					logger.Warn("failed to wait for origin load", "error", waitErr.Error(), "key", key)
-					return
-				}
-				if result.err != nil && !db.IsNotFound(result.err) {
-					logger.Warn("failed to revalidate", "error", result.err.Error(), "key", key)
-				}
-			})
+			c.revalidateC <- func() {
+				// If we don't uncancel the context, the revalidation will get canceled when
+				// the api response is returned
+				c.revalidate(context.WithoutCancel(ctx), key, refreshFromOrigin, op)
+			}
 			c.recordTiming(ctx, "cache_swr", "stale", start)
 			return e.Value, e.Hit, nil
 		}
@@ -356,13 +380,15 @@ func (c *cache[K, V]) SWRWithFallback(
 
 		if now.Before(e.Stale) {
 			// Stale - return but queue background revalidation with deduplication
-			c.queueRevalidation(key, func() {
-				revalidationCtx := context.WithoutCancel(ctx)
-				if entry, found := c.get(revalidationCtx, key); found && c.clock.Now().Before(entry.Fresh) {
-					return
+			c.inflightMu.Lock()
+			if !c.inflightRefreshes[key] {
+				c.inflightRefreshes[key] = true
+				dedupeKey := key // capture for closure
+				c.revalidateC <- func() {
+					c.revalidateWithCanonicalKey(context.WithoutCancel(ctx), dedupeKey, refreshFromOrigin, op)
 				}
-				c.revalidateWithCanonicalKey(revalidationCtx, refreshFromOrigin, op)
-			})
+			}
+			c.inflightMu.Unlock()
 			c.recordTiming(ctx, "cache_swr_fallback", "stale", start)
 			return e.Value, e.Hit, nil
 		}
@@ -399,9 +425,16 @@ func (c *cache[K, V]) SWRWithFallback(
 
 func (c *cache[K, V]) revalidateWithCanonicalKey(
 	ctx context.Context,
+	dedupeKey K,
 	refreshFromOrigin func(context.Context) (V, K, error),
 	op func(error) Op,
 ) {
+	defer func() {
+		c.inflightMu.Lock()
+		delete(c.inflightRefreshes, dedupeKey)
+		c.inflightMu.Unlock()
+	}()
+
 	metrics.CacheRevalidations.WithLabelValues(c.resource).Inc()
 	v, canonicalKey, err := refreshFromOrigin(ctx)
 
@@ -417,24 +450,5 @@ func (c *cache[K, V]) revalidateWithCanonicalKey(
 		c.SetNull(ctx, canonicalKey)
 	case Noop:
 		break
-	}
-}
-
-// queueRevalidation reserves key before adding work to the bounded worker
-// queue, preventing duplicate jobs from accumulating while workers are busy.
-func (c *cache[K, V]) queueRevalidation(key K, revalidate func()) {
-	c.revalidationMutex.Lock()
-	if _, ok := c.revalidating[key]; ok {
-		c.revalidationMutex.Unlock()
-		return
-	}
-	c.revalidating[key] = struct{}{}
-	c.revalidationMutex.Unlock()
-
-	c.revalidateC <- func() {
-		revalidate()
-		c.revalidationMutex.Lock()
-		delete(c.revalidating, key)
-		c.revalidationMutex.Unlock()
 	}
 }
