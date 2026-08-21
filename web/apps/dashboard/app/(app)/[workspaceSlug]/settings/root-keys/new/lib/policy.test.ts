@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { catalogueRows } from "./catalogue";
+import { keyspacesCatalogue } from "./catalogue.keyspaces";
+import { ratelimitNamespacesCatalogue } from "./catalogue.ratelimit-namespaces";
 import { workspaceCatalogue } from "./catalogue.workspace";
 import {
   ALL_INSTANCES,
@@ -10,8 +12,10 @@ import {
   isPolicyComplete,
   isRowActionSelected,
   newPolicy,
+  policyError,
   policySummary,
   rowActions,
+  selectInstances,
   setRowActions,
   setRowsActions,
   toggleRowAction,
@@ -65,6 +69,58 @@ describe("selection helpers", () => {
     const selection = setRowsActions(setRowsActions({}, rows, ["read"]), rows, []);
     expect(selection).toEqual({});
     expect(countSelectedRows(selection, rows)).toBe(0);
+  });
+});
+
+describe("newPolicy on an instance scope", () => {
+  it("starts on all instances so it is valid at once", () => {
+    expect(newPolicy("keyspaces")).toEqual({
+      scope: "keyspaces",
+      instances: [ALL_INSTANCES],
+      selection: {},
+    });
+  });
+});
+
+describe("selectInstances", () => {
+  it("clears named picks when all is chosen", () => {
+    expect(selectInstances(["ks_1", "ks_2"], ["ks_1", "ks_2", ALL_INSTANCES])).toEqual([
+      ALL_INSTANCES,
+    ]);
+  });
+
+  it("clears all when a named instance is chosen", () => {
+    expect(selectInstances([ALL_INSTANCES], [ALL_INSTANCES, "ks_1"])).toEqual(["ks_1"]);
+  });
+
+  it("keeps a second named pick", () => {
+    expect(selectInstances(["ks_1"], ["ks_1", "ks_2"])).toEqual(["ks_1", "ks_2"]);
+  });
+
+  it("lets the last pick go", () => {
+    expect(selectInstances([ALL_INSTANCES], [])).toEqual([]);
+    expect(selectInstances(["ks_1"], [])).toEqual([]);
+  });
+});
+
+describe("policyError", () => {
+  it("asks for a permission on an empty workspace policy", () => {
+    expect(policyError(newPolicy())).toBe("At least one permission required");
+  });
+
+  it("asks for an instance before a permission", () => {
+    expect(policyError({ ...newPolicy("keyspaces"), instances: [] })).toBe(
+      "Select one or more keyspaces",
+    );
+    expect(policyError({ ...newPolicy("ratelimit-namespaces"), instances: [] })).toBe(
+      "Select one or more namespaces",
+    );
+  });
+
+  it("is silent once a grant is ticked", () => {
+    expect(
+      policyError({ ...newPolicy("keyspaces"), selection: setRowActions({}, "key", ["read"]) }),
+    ).toBeNull();
   });
 });
 
@@ -141,6 +197,51 @@ describe("policySummary", () => {
 
   it("has no grants when nothing is ticked", () => {
     expect(policySummary(newPolicy()).grants).toEqual([]);
+  });
+});
+
+describe("policySummary on instance scopes", () => {
+  it("names all instances when nothing is narrowed", () => {
+    expect(policySummary(newPolicy("keyspaces")).scopeLine).toBe("All keyspaces");
+    expect(policySummary(newPolicy("ratelimit-namespaces")).scopeLine).toBe("All namespaces");
+  });
+
+  it("resolves picked instances to their labels", () => {
+    const policy = { ...newPolicy("keyspaces"), instances: ["ks_1", "ks_2"] };
+    expect(policySummary(policy, { ks_1: "payments" }).scopeLine).toBe("payments, ks_2");
+  });
+
+  it("composes grants from the catalogue of its own scope", () => {
+    const keyspace = {
+      ...newPolicy("keyspaces"),
+      selection: setRowActions(setRowActions({}, "keyspace", ["read"]), "key", ["read", "write"]),
+    };
+    expect(policySummary(keyspace).grants).toEqual(["Keyspace Read", "Keys Read & write"]);
+
+    const namespace = {
+      ...newPolicy("ratelimit-namespaces"),
+      selection: setRowActions({}, "override", ["read", "write", "delete"]),
+    };
+    expect(policySummary(namespace).grants).toEqual(["Overrides Read, write & delete"]);
+  });
+
+  it("ignores a selection carried over from another scope", () => {
+    const policy = {
+      ...newPolicy("ratelimit-namespaces"),
+      selection: setRowActions({}, "key", ["read"]),
+    };
+    expect(policySummary(policy).grants).toEqual([]);
+    expect(policyError(policy)).toBe("At least one permission required");
+  });
+});
+
+describe("catalogue coverage", () => {
+  it("counts every row of every scope catalogue", () => {
+    expect(catalogueRows(keyspacesCatalogue).map((row) => row.id)).toEqual(["keyspace", "key"]);
+    expect(catalogueRows(ratelimitNamespacesCatalogue).map((row) => row.id)).toEqual([
+      "namespace",
+      "override",
+    ]);
   });
 });
 

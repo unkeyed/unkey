@@ -5,9 +5,16 @@ export const ACTIONS = ["read", "write", "delete"] as const;
 
 export type Action = (typeof ACTIONS)[number];
 
-export const RESOURCE_SCOPES = ["workspace"] as const;
+export const RESOURCE_SCOPES = ["workspace", "keyspaces", "ratelimit-namespaces"] as const;
 
 export type ResourceScope = (typeof RESOURCE_SCOPES)[number];
+
+export const INSTANCE_TOKEN = "{instance}";
+
+export type ActionGrant = {
+  name: string;
+  path?: string;
+};
 
 export type PermissionRow = {
   id: string;
@@ -15,6 +22,7 @@ export type PermissionRow = {
   description: string;
   path: string;
   resource: string;
+  actions?: Partial<Record<Action, readonly ActionGrant[]>>;
 };
 
 export type CatalogueGroup = {
@@ -27,7 +35,8 @@ export type ScopeCatalogue = {
   scope: ResourceScope;
   label: string;
   allLabel: string;
+  instanceNoun: string | null;
   groups: CatalogueGroup[];
 };
 
-export type PermissionSelection = Record<string, readonly Action[]>;
+export type PermissionSelection = Record<string, Action[]>;

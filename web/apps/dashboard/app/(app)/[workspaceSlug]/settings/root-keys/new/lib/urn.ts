@@ -1,16 +1,29 @@
 import { catalogueFor, catalogueRows } from "./catalogue";
-import type { Action } from "./catalogue.types";
-import { type Policy, rowActions } from "./policy";
+import {
+  type Action,
+  type ActionGrant,
+  INSTANCE_TOKEN,
+  type PermissionRow,
+} from "./catalogue.types";
+import { ALL_INSTANCES, type Policy, rowActions } from "./policy";
 
-export function urnActions(resource: string, action: Action): string[] {
+export function urnActions(row: PermissionRow, action: Action): ActionGrant[] {
+  const declared = row.actions?.[action];
+  if (declared) {
+    return [...declared];
+  }
   switch (action) {
     case "read":
-      return [`read_${resource}`];
+      return [{ name: `read_${row.resource}` }];
     case "write":
-      return [`create_${resource}`, `update_${resource}`];
+      return [{ name: `create_${row.resource}` }, { name: `update_${row.resource}` }];
     case "delete":
-      return [`delete_${resource}`];
+      return [{ name: `delete_${row.resource}` }];
   }
+}
+
+export function instancePath(path: string, instance: string): string {
+  return path.split(INSTANCE_TOKEN).join(instance === ALL_INSTANCES ? "*" : instance);
 }
 
 export function isValidResourcePath(path: string): boolean {
@@ -38,8 +51,12 @@ export function buildUrns(workspaceId: string, policies: readonly Policy[]): str
   for (const policy of policies) {
     for (const row of catalogueRows(catalogueFor(policy.scope))) {
       for (const action of rowActions(policy.selection, row.id)) {
-        for (const name of urnActions(row.resource, action)) {
-          urns.add(buildUrn(workspaceId, row.path, name));
+        for (const grant of urnActions(row, action)) {
+          for (const instance of policy.instances) {
+            urns.add(
+              buildUrn(workspaceId, instancePath(grant.path ?? row.path, instance), grant.name),
+            );
+          }
         }
       }
     }

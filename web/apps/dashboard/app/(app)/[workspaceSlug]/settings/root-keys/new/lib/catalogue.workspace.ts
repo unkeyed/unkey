@@ -4,6 +4,7 @@ export const workspaceCatalogue: ScopeCatalogue = {
   scope: "workspace",
   label: "Workspace",
   allLabel: "Everything in this workspace",
+  instanceNoun: null,
   groups: [
     {
       id: "identities",

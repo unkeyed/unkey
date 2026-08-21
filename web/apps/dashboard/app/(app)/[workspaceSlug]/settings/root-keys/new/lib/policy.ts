@@ -93,11 +93,29 @@ export function countSelectedRows(
   return rows.filter((row) => rowActions(selection, row.id).length > 0).length;
 }
 
-export function isPolicyComplete(policy: Policy): boolean {
-  if (policy.instances.length === 0) {
-    return false;
+export function selectInstances(current: readonly string[], next: readonly string[]): string[] {
+  if (next.includes(ALL_INSTANCES) && !current.includes(ALL_INSTANCES)) {
+    return [ALL_INSTANCES];
   }
-  return countSelectedActions(policy.selection, catalogueRows(catalogueFor(policy.scope))) > 0;
+  return next.filter((instance) => instance !== ALL_INSTANCES);
+}
+
+export function policyError(policy: Policy): string | null {
+  const catalogue = catalogueFor(policy.scope);
+  if (catalogue.instanceNoun !== null && policy.instances.length === 0) {
+    return `Select one or more ${catalogue.instanceNoun}`;
+  }
+  if (
+    policy.instances.length === 0 ||
+    countSelectedActions(policy.selection, catalogueRows(catalogue)) === 0
+  ) {
+    return "At least one permission required";
+  }
+  return null;
+}
+
+export function isPolicyComplete(policy: Policy): boolean {
+  return policyError(policy) === null;
 }
 
 export function actionLabel(actions: readonly Action[]): string {
