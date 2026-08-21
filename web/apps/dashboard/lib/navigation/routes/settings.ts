@@ -28,6 +28,10 @@ export const settingsRoutes = {
     return buildRoute("/[workspaceSlug]/settings/root-keys", { workspaceSlug });
   },
 
+  rootKeyNew({ workspaceSlug }: WorkspaceScope): Route {
+    return buildRoute("/[workspaceSlug]/settings/root-keys/new", { workspaceSlug });
+  },
+
   billing({ workspaceSlug, intent }: WorkspaceScope & { intent?: "compute" | "api" }): Route {
     return buildRoute(
       "/[workspaceSlug]/settings/billing",
