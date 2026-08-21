@@ -103,7 +103,9 @@ SELECT
     '' AS role_id,
     '' AS role_name,
     '' AS project_id,
-    '' AS project_slug
+    '' AS project_slug,
+    '' AS ratelimit_id,
+    '' AS ratelimit_name
 FROM identities i
 WHERE CAST(sqlc.arg(find_identity) AS UNSIGNED) = 1
     AND i.workspace_id = sqlc.arg(workspace_id)
@@ -119,7 +121,9 @@ SELECT
     '' AS role_id,
     '' AS role_name,
     '' AS project_id,
-    '' AS project_slug
+    '' AS project_slug,
+    '' AS ratelimit_id,
+    '' AS ratelimit_name
 FROM permissions p
 WHERE p.workspace_id = sqlc.arg(workspace_id)
     AND p.slug IN (sqlc.slice('permission_slugs'))
@@ -133,7 +137,9 @@ SELECT
     r.id AS role_id,
     r.name AS role_name,
     '' AS project_id,
-    '' AS project_slug
+    '' AS project_slug,
+    '' AS ratelimit_id,
+    '' AS ratelimit_name
 FROM roles r
 WHERE r.workspace_id = sqlc.arg(workspace_id)
     AND r.name IN (sqlc.slice('role_names'))
@@ -147,10 +153,28 @@ SELECT
     '' AS role_id,
     '' AS role_name,
     p.id AS project_id,
-    p.slug AS project_slug
+    p.slug AS project_slug,
+    '' AS ratelimit_id,
+    '' AS ratelimit_name
 FROM projects p
 WHERE p.workspace_id = sqlc.arg(workspace_id)
-    AND BINARY p.slug = 'default';
+    AND BINARY p.slug = 'default'
+UNION ALL
+SELECT
+    'ratelimit' AS resource_type,
+    '' AS identity_id,
+    '' AS identity_external_id,
+    '' AS permission_id,
+    '' AS permission_slug,
+    '' AS role_id,
+    '' AS role_name,
+    '' AS project_id,
+    '' AS project_slug,
+    rl.id AS ratelimit_id,
+    rl.name AS ratelimit_name
+FROM ratelimits rl
+WHERE rl.key_id = sqlc.arg(key_id)
+    AND rl.name IN (sqlc.slice('ratelimit_names'));
 
 -- name: FindLiveKeyForUpdateByID :one
 -- Keep this projection small: key updates do not need the RBAC and ratelimit

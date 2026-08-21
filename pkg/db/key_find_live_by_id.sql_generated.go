@@ -21,7 +21,9 @@ SELECT
     '' AS role_id,
     '' AS role_name,
     '' AS project_id,
-    '' AS project_slug
+    '' AS project_slug,
+    '' AS ratelimit_id,
+    '' AS ratelimit_name
 FROM identities i
 WHERE CAST(? AS UNSIGNED) = 1
     AND i.workspace_id = ?
@@ -37,7 +39,9 @@ SELECT
     '' AS role_id,
     '' AS role_name,
     '' AS project_id,
-    '' AS project_slug
+    '' AS project_slug,
+    '' AS ratelimit_id,
+    '' AS ratelimit_name
 FROM permissions p
 WHERE p.workspace_id = ?
     AND p.slug IN (/*SLICE:permission_slugs*/?)
@@ -51,7 +55,9 @@ SELECT
     r.id AS role_id,
     r.name AS role_name,
     '' AS project_id,
-    '' AS project_slug
+    '' AS project_slug,
+    '' AS ratelimit_id,
+    '' AS ratelimit_name
 FROM roles r
 WHERE r.workspace_id = ?
     AND r.name IN (/*SLICE:role_names*/?)
@@ -65,18 +71,38 @@ SELECT
     '' AS role_id,
     '' AS role_name,
     p.id AS project_id,
-    p.slug AS project_slug
+    p.slug AS project_slug,
+    '' AS ratelimit_id,
+    '' AS ratelimit_name
 FROM projects p
 WHERE p.workspace_id = ?
     AND BINARY p.slug = 'default'
+UNION ALL
+SELECT
+    'ratelimit' AS resource_type,
+    '' AS identity_id,
+    '' AS identity_external_id,
+    '' AS permission_id,
+    '' AS permission_slug,
+    '' AS role_id,
+    '' AS role_name,
+    '' AS project_id,
+    '' AS project_slug,
+    rl.id AS ratelimit_id,
+    rl.name AS ratelimit_name
+FROM ratelimits rl
+WHERE rl.key_id = ?
+    AND rl.name IN (/*SLICE:ratelimit_names*/?)
 `
 
 type FindKeyMutationResourcesParams struct {
-	FindIdentity    int64    `db:"find_identity"`
-	WorkspaceID     string   `db:"workspace_id"`
-	ExternalID      string   `db:"external_id"`
-	PermissionSlugs []string `db:"permission_slugs"`
-	RoleNames       []string `db:"role_names"`
+	FindIdentity    int64          `db:"find_identity"`
+	WorkspaceID     string         `db:"workspace_id"`
+	ExternalID      string         `db:"external_id"`
+	PermissionSlugs []string       `db:"permission_slugs"`
+	RoleNames       []string       `db:"role_names"`
+	KeyID           sql.NullString `db:"key_id"`
+	RatelimitNames  []string       `db:"ratelimit_names"`
 }
 
 type FindKeyMutationResourcesRow struct {
@@ -89,6 +115,8 @@ type FindKeyMutationResourcesRow struct {
 	RoleName           string `db:"role_name"`
 	ProjectID          string `db:"project_id"`
 	ProjectSlug        string `db:"project_slug"`
+	RatelimitID        string `db:"ratelimit_id"`
+	RatelimitName      string `db:"ratelimit_name"`
 }
 
 // Resolve optional identity, permission, role, and project references in one round trip.
@@ -102,7 +130,9 @@ type FindKeyMutationResourcesRow struct {
 //	    '' AS role_id,
 //	    '' AS role_name,
 //	    '' AS project_id,
-//	    '' AS project_slug
+//	    '' AS project_slug,
+//	    '' AS ratelimit_id,
+//	    '' AS ratelimit_name
 //	FROM identities i
 //	WHERE CAST(? AS UNSIGNED) = 1
 //	    AND i.workspace_id = ?
@@ -118,7 +148,9 @@ type FindKeyMutationResourcesRow struct {
 //	    '' AS role_id,
 //	    '' AS role_name,
 //	    '' AS project_id,
-//	    '' AS project_slug
+//	    '' AS project_slug,
+//	    '' AS ratelimit_id,
+//	    '' AS ratelimit_name
 //	FROM permissions p
 //	WHERE p.workspace_id = ?
 //	    AND p.slug IN (/*SLICE:permission_slugs*/?)
@@ -132,7 +164,9 @@ type FindKeyMutationResourcesRow struct {
 //	    r.id AS role_id,
 //	    r.name AS role_name,
 //	    '' AS project_id,
-//	    '' AS project_slug
+//	    '' AS project_slug,
+//	    '' AS ratelimit_id,
+//	    '' AS ratelimit_name
 //	FROM roles r
 //	WHERE r.workspace_id = ?
 //	    AND r.name IN (/*SLICE:role_names*/?)
@@ -146,10 +180,28 @@ type FindKeyMutationResourcesRow struct {
 //	    '' AS role_id,
 //	    '' AS role_name,
 //	    p.id AS project_id,
-//	    p.slug AS project_slug
+//	    p.slug AS project_slug,
+//	    '' AS ratelimit_id,
+//	    '' AS ratelimit_name
 //	FROM projects p
 //	WHERE p.workspace_id = ?
 //	    AND BINARY p.slug = 'default'
+//	UNION ALL
+//	SELECT
+//	    'ratelimit' AS resource_type,
+//	    '' AS identity_id,
+//	    '' AS identity_external_id,
+//	    '' AS permission_id,
+//	    '' AS permission_slug,
+//	    '' AS role_id,
+//	    '' AS role_name,
+//	    '' AS project_id,
+//	    '' AS project_slug,
+//	    rl.id AS ratelimit_id,
+//	    rl.name AS ratelimit_name
+//	FROM ratelimits rl
+//	WHERE rl.key_id = ?
+//	    AND rl.name IN (/*SLICE:ratelimit_names*/?)
 func (q *Queries) FindKeyMutationResources(ctx context.Context, db DBTX, arg FindKeyMutationResourcesParams) ([]FindKeyMutationResourcesRow, error) {
 	query := findKeyMutationResources
 	var queryParams []interface{}
@@ -175,6 +227,15 @@ func (q *Queries) FindKeyMutationResources(ctx context.Context, db DBTX, arg Fin
 		query = strings.Replace(query, "/*SLICE:role_names*/?", "NULL", 1)
 	}
 	queryParams = append(queryParams, arg.WorkspaceID)
+	queryParams = append(queryParams, arg.KeyID)
+	if len(arg.RatelimitNames) > 0 {
+		for _, v := range arg.RatelimitNames {
+			queryParams = append(queryParams, v)
+		}
+		query = strings.Replace(query, "/*SLICE:ratelimit_names*/?", strings.Repeat(",?", len(arg.RatelimitNames))[1:], 1)
+	} else {
+		query = strings.Replace(query, "/*SLICE:ratelimit_names*/?", "NULL", 1)
+	}
 	rows, err := db.QueryContext(ctx, query, queryParams...)
 	if err != nil {
 		return nil, err
@@ -193,6 +254,8 @@ func (q *Queries) FindKeyMutationResources(ctx context.Context, db DBTX, arg Fin
 			&i.RoleName,
 			&i.ProjectID,
 			&i.ProjectSlug,
+			&i.RatelimitID,
+			&i.RatelimitName,
 		); err != nil {
 			return nil, err
 		}

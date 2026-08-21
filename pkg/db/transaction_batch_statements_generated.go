@@ -15,6 +15,35 @@ func insertClickhouseOutboxTransactionBatchStatement(params InsertClickhouseOutb
 	}
 }
 
+func insertKeyRatelimitTransactionBatchStatement(params InsertKeyRatelimitParams) transactionBatchStatement {
+	return transactionBatchStatement{
+		query: insertKeyRatelimit,
+		args: []any{
+			params.ID,
+			params.WorkspaceID,
+			params.KeyID,
+			params.Name,
+			params.Limit,
+			params.Duration,
+			params.AutoApply,
+			params.CreatedAt,
+			params.UpdatedAt,
+		},
+	}
+}
+
+func insertKeyRoleTransactionBatchStatement(params InsertKeyRoleParams) transactionBatchStatement {
+	return transactionBatchStatement{
+		query: insertKeyRole,
+		args: []any{
+			params.KeyID,
+			params.RoleID,
+			params.WorkspaceID,
+			params.CreatedAtM,
+		},
+	}
+}
+
 func updateKeyTransactionBatchStatement(params UpdateKeyParams) transactionBatchStatement {
 	return transactionBatchStatement{
 		query: updateKey,
@@ -22,6 +51,9 @@ func updateKeyTransactionBatchStatement(params UpdateKeyParams) transactionBatch
 			params.NameSpecified,
 			params.Name,
 			params.IdentityIDSpecified,
+			params.IdentityExternalIDSpecified,
+			params.IdentityWorkspaceID,
+			params.IdentityExternalID,
 			params.IdentityID,
 			params.EnabledSpecified,
 			params.Enabled,
@@ -37,6 +69,123 @@ func updateKeyTransactionBatchStatement(params UpdateKeyParams) transactionBatch
 			params.RefillDay,
 			params.Now,
 			params.ID,
+		},
+	}
+}
+
+func lockWorkspaceForUpdateKeyTransactionBatchStatement(params LockWorkspaceForUpdateKeyParams) transactionBatchStatement {
+	return transactionBatchStatement{
+		query: lockWorkspaceForUpdateKey,
+		args: []any{
+			params.WorkspaceID,
+			params.WorkspaceIDCheck,
+		},
+	}
+}
+
+func insertDefaultProjectForUpdateKeyTransactionBatchStatement(params InsertDefaultProjectForUpdateKeyParams) transactionBatchStatement {
+	return transactionBatchStatement{
+		query: insertDefaultProjectForUpdateKey,
+		args: []any{
+			params.ID,
+			params.WorkspaceID,
+			params.CreatedAt,
+		},
+	}
+}
+
+func insertIdentityForUpdateKeyTransactionBatchStatement(params InsertIdentityForUpdateKeyParams) transactionBatchStatement {
+	return transactionBatchStatement{
+		query: insertIdentityForUpdateKey,
+		args: []any{
+			params.ID,
+			params.ExternalID,
+			params.WorkspaceID,
+			params.CreatedAt,
+			params.WorkspaceID,
+		},
+	}
+}
+
+func insertPermissionForUpdateKeyTransactionBatchStatement(params InsertPermissionForUpdateKeyParams) transactionBatchStatement {
+	return transactionBatchStatement{
+		query: insertPermissionForUpdateKey,
+		args: []any{
+			params.PermissionID,
+			params.WorkspaceID,
+			params.Name,
+			params.Slug,
+			params.Description,
+			params.CreatedAtM,
+			params.WorkspaceID,
+		},
+	}
+}
+
+func deleteKeyPermissionsForUpdateKeyTransactionBatchStatement(params DeleteKeyPermissionsForUpdateKeyParams) transactionBatchStatement {
+	return transactionBatchStatement{
+		query: deleteKeyPermissionsForUpdateKey,
+		args: []any{
+			params.KeyID,
+			params.WorkspaceID,
+		},
+	}
+}
+
+func deleteKeyRolesForUpdateKeyTransactionBatchStatement(params DeleteKeyRolesForUpdateKeyParams) transactionBatchStatement {
+	return transactionBatchStatement{
+		query: deleteKeyRolesForUpdateKey,
+		args: []any{
+			params.KeyID,
+			params.WorkspaceID,
+		},
+	}
+}
+
+func deleteKeyPermissionsAndRolesForUpdateKeyTransactionBatchStatement(params DeleteKeyPermissionsAndRolesForUpdateKeyParams) transactionBatchStatement {
+	return transactionBatchStatement{
+		query: deleteKeyPermissionsAndRolesForUpdateKey,
+		args: []any{
+			params.KeyID,
+			params.WorkspaceID,
+		},
+	}
+}
+
+func insertKeyPermissionBySlugForUpdateKeyTransactionBatchStatement(params InsertKeyPermissionBySlugForUpdateKeyParams) transactionBatchStatement {
+	return transactionBatchStatement{
+		query: insertKeyPermissionBySlugForUpdateKey,
+		args: []any{
+			params.KeyID,
+			params.WorkspaceID,
+			params.CreatedAtM,
+			params.UpdatedAtM,
+			params.WorkspaceID,
+			params.PermissionSlug,
+		},
+	}
+}
+
+func deleteKeyRatelimitsForUpdateKeyTransactionBatchStatement(params DeleteKeyRatelimitsForUpdateKeyParams) transactionBatchStatement {
+	return transactionBatchStatement{
+		query: deleteKeyRatelimitsForUpdateKey,
+		args: []any{
+			params.KeyID,
+			params.WorkspaceID,
+		},
+	}
+}
+
+func insertClickhouseOutboxForPermissionUpdateKeyTransactionBatchStatement(params InsertClickhouseOutboxForPermissionUpdateKeyParams) transactionBatchStatement {
+	return transactionBatchStatement{
+		query: insertClickhouseOutboxForPermissionUpdateKey,
+		args: []any{
+			params.Version,
+			params.WorkspaceID,
+			params.EventID,
+			params.Payload,
+			params.CreatedAt,
+			params.PermissionID,
 		},
 	}
 }
