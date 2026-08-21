@@ -208,10 +208,9 @@ func TestWithRetryContext_Integration(t *testing.T) {
 
 	// Create database instance
 	dbInstance, err := New(Config{
-		PrimaryDSN:            mysqlCfg.DSN,
-		ReadOnlyDSN:           "",
-		MultiStatementBatches: false,
-		Tags:                  sqlcomment.Disabled(),
+		PrimaryDSN:  mysqlCfg.DSN,
+		ReadOnlyDSN: "",
+		Tags:        sqlcomment.Disabled(),
 	})
 	require.NoError(t, err)
 	defer func() { require.NoError(t, dbInstance.Close()) }()

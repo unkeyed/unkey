@@ -134,10 +134,9 @@ func Run(ctx context.Context, cfg Config) error {
 	r.DeferCtx(shutdownGrafana)
 
 	database, err := db.New(db.Config{
-		PrimaryDSN:            cfg.Database.Primary,
-		ReadOnlyDSN:           cfg.Database.ReadonlyReplica,
-		MultiStatementBatches: true,
-		Tags:                  sqlcomment.ForService("api", cfg.Region),
+		PrimaryDSN:  cfg.Database.Primary,
+		ReadOnlyDSN: cfg.Database.ReadonlyReplica,
+		Tags:        sqlcomment.ForService("api", cfg.Region),
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create db: %w", err)

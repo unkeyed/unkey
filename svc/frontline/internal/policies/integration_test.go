@@ -70,10 +70,9 @@ func newTestHarness(t *testing.T) *testHarness {
 	clk := clock.New()
 
 	database, err := db.New(db.Config{
-		PrimaryDSN:            mysqlCfg.DSN,
-		ReadOnlyDSN:           "",
-		MultiStatementBatches: false,
-		Tags:                  sqlcomment.Disabled(),
+		PrimaryDSN:  mysqlCfg.DSN,
+		ReadOnlyDSN: "",
+		Tags:        sqlcomment.Disabled(),
 	})
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = database.Close() })

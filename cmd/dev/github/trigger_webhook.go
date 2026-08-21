@@ -109,10 +109,9 @@ func triggerWebhook(ctx context.Context, cmd *cli.Command) error {
 	defer r.Recover()
 
 	database, err := db.New(db.Config{
-		PrimaryDSN:            databaseURL,
-		ReadOnlyDSN:           "",
-		MultiStatementBatches: false,
-		Tags:                  sqlcomment.Disabled(),
+		PrimaryDSN:  databaseURL,
+		ReadOnlyDSN: "",
+		Tags:        sqlcomment.Disabled(),
 	})
 	if err != nil {
 		return fmt.Errorf("failed to connect to database: %w", err)
