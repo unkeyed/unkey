@@ -46,6 +46,7 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/worker/clickhouseuser"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/deploybilling"
+	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/deployspendcheck"
 	workercustomdomain "github.com/unkeyed/unkey/svc/ctrl/worker/customdomain"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/deploy"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/deployment"
@@ -677,20 +678,6 @@ func Run(ctx context.Context, cfg Config) error {
 		restate.WithMaxAttempts(5),
 		restate.KillOnMaxAttempts(),
 	)
-	// DeploySpendCheck is the spend-cap orchestrator, keyed by the current
-	// billing period (YYYY-MM) so every tick shares one VO. Its own reads (list
-	// budgeted workspaces, the ClickHouse scan, the heartbeat) can fail
-	// non-terminally, and without a cap that invocation retries forever on the
-	// period VO while later ticks queue behind it. Each tick re-prices from
-	// scratch and the per-workspace children own alert dedup, so kill on
-	// exhaustion and let the next tick retry from a clean slate.
-	cronDeploySpendCheckRetry := restate.WithInvocationRetryPolicy(
-		restate.WithInitialInterval(100*time.Millisecond),
-		restate.WithExponentiationFactor(2.0),
-		restate.WithMaxInterval(5*time.Second),
-		restate.WithMaxAttempts(5),
-		restate.KillOnMaxAttempts(),
-	)
 	// Without a cap the SDK default retries a failing quota check forever,
 	// parking its VO for the month. Kill on exhaustion and let the next daily
 	// tick retry; mirrors the billing-push and spend-check policies.
@@ -713,7 +700,7 @@ func Run(ctx context.Context, cfg Config) error {
 		ConfigureHandler("RunDeployBillingClose", cronDeployBillingFleetCloseRetry).
 		ConfigureHandler("CloseDeployBillingWorkspace", cronDeployBillingWorkspaceCloseRetry).
 		ConfigureHandler("RunDeployBillingPush", cronDeployBillingPushRetry).
-		ConfigureHandler("RunDeploySpendCheck", cronDeploySpendCheckRetry))
+		ConfigureHandler("RunDeploySpendCheck", deployspendcheck.RetryPolicy()))
 	logger.Info("CronService enabled")
 
 	// KeyLastUsedPartitionService is the per-partition VO fanned out from
@@ -760,15 +747,8 @@ func Run(ctx context.Context, cfg Config) error {
 	// owned by the period-scoped high-water mark and the email idempotency
 	// key, so kill on exhaustion and let the next tick retry from a clean
 	// slate.
-	deploySpendCheckWorkspaceRetry := restate.WithInvocationRetryPolicy(
-		restate.WithInitialInterval(100*time.Millisecond),
-		restate.WithExponentiationFactor(2.0),
-		restate.WithMaxInterval(5*time.Second),
-		restate.WithMaxAttempts(5),
-		restate.KillOnMaxAttempts(),
-	)
 	restateSrv.Bind(hydrav1.NewDeploySpendCheckServiceServer(cronSvc.DeploySpendCheckServer()).
-		ConfigureHandler("CheckWorkspaceSpend", deploySpendCheckWorkspaceRetry))
+		ConfigureHandler("CheckWorkspaceSpend", deployspendcheck.RetryPolicy()))
 	logger.Info("DeploySpendCheckService enabled")
 
 	// Get the Restate handler and mount it on a mux with health endpoint
