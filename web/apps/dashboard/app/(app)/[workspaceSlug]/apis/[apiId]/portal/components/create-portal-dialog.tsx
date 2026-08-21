@@ -158,7 +158,7 @@ export function CreatePortalDialog({ keyAuthId, resourceName, isOpen, onOpenChan
         }
       }}
       title="Enable customer portal"
-      subTitle="Choose the slug your createSession calls will use."
+      subTitle="Pick a short, url-safe name for the portal you give your customers."
       footer={
         <div className="flex w-full flex-col items-center justify-center gap-2">
           <Button

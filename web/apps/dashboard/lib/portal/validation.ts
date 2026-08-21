@@ -4,9 +4,9 @@ import { z } from "zod";
  * Client-side mirrors of the server's portal validators. They exist because the
  * generated OpenAPI schema is not a faithful copy of the Go rules: the slug
  * `pattern` cannot express the consecutive-hyphen rejection that
- * `pkg/validation/slug.go` applies on top of it. Keeping the messages verbatim
- * from the server means an operator sees the same wording whether the form or
- * the API catches the mistake.
+ * `pkg/validation/slug.go` applies on top of it. Messages match the server
+ * verbatim except for the slug, where the form uses friendlier wording; the
+ * server's wording is still what the API returns if a request skips the form.
  *
  * Sources: `pkg/validation/slug.go`, `svc/api/internal/portal/portal.go`.
  */
@@ -15,10 +15,12 @@ export const SLUG_MIN_LENGTH = 3;
 export const SLUG_MAX_LENGTH = 64;
 const LOGO_URL_MAX_LENGTH = 500;
 
-/** Verbatim from `validation.ErrMsgInvalidSlug`. */
+/**
+ * Covers the same rules as `validation.ErrMsgInvalidSlug` but reworded to fit on
+ * one line under the input.
+ */
 export const INVALID_SLUG_MESSAGE =
-  "slug must be 3-64 characters, lowercase alphanumeric and hyphens, " +
-  "must not start or end with a hyphen, and must not contain consecutive hyphens";
+  "Use 3-64 lowercase letters, numbers, and hyphens (not at the start, end, or doubled).";
 
 /** Verbatim from `portal.ErrMsgInvalidLogoURL`. */
 export const INVALID_LOGO_URL_MESSAGE =

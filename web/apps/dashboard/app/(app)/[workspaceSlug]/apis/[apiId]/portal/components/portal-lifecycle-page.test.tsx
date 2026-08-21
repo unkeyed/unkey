@@ -51,6 +51,8 @@ vi.mock("./setup-hero", () => ({
 
 vi.mock("@unkey/icons", () => ({
   BookBookmark: () => null,
+  CircleWarning: () => null,
+  TriangleWarning2: () => null,
 }));
 
 vi.mock("@unkey/ui", () => {
@@ -65,6 +67,11 @@ vi.mock("@unkey/ui", () => {
       loading?: boolean;
       loadingLabel?: string;
     }) => <button {...props}>{children}</button>,
+    AlertBanner: passthrough,
+    AlertBannerActions: passthrough,
+    AlertBannerDescription: passthrough,
+    AlertBannerTitle: passthrough,
+    Skeleton: () => <div />,
     PageBody: passthrough,
     PageContainer: passthrough,
     PageHeader: passthrough,
