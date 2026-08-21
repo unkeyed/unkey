@@ -18,6 +18,11 @@ before:
   hooks:
     # You may remove this if you don't use go modules.
     - go mod tidy
+    # Never publish a binary with an empty WorkOS client ID: the default
+    # `unkey auth login` OAuth flow would fail on every released build. A missing
+    # GitHub secret renders to an empty string (set but blank), which .Env alone
+    # would not catch, so guard against unset-or-empty here.
+    - sh -c 'test -n "${UNKEY_WORKOS_CLIENT_ID:-}" || { echo "UNKEY_WORKOS_CLIENT_ID must be set for release builds"; exit 1; }'
 
 builds:
   - id: unkey
@@ -36,6 +41,12 @@ builds:
       - -X 'github.com/unkeyed/unkey/pkg/buildinfo.Version={{.Version}}'
       - -X 'github.com/unkeyed/unkey/pkg/buildinfo.Revision={{.FullCommit}}'
       - -X 'github.com/unkeyed/unkey/pkg/buildinfo.BuildTime={{.Date}}'
+      # WorkOS OAuth public client ID, baked in per environment at link time so
+      # `unkey auth login` works without runtime configuration. Referencing
+      # .Env.UNKEY_WORKOS_CLIENT_ID (not envOrDefault) makes GoReleaser fail the
+      # build when the variable is unset, so we never publish a binary with an
+      # empty client ID.
+      - -X 'github.com/unkeyed/unkey/cmd/api/util.defaultWorkOSClientID={{ .Env.UNKEY_WORKOS_CLIENT_ID }}'
 
 upx:
   - enabled: true

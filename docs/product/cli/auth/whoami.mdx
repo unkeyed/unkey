@@ -1,0 +1,44 @@
+---
+title: "whoami"
+description: "Show the current Unkey CLI identity: your user, organization, and token validity."
+---
+
+Report who the CLI is authenticated as, your organization, and whether your token is still valid.
+
+## Usage
+
+```bash
+unkey auth whoami
+```
+
+For an OAuth session:
+
+```text
+Authenticated as james@unkey.com
+Organization: org_1234
+Token: valid (expires 2026-07-22T12:34:56Z)
+```
+
+When only a root key is stored, it reports `Authenticated with a root key.`; when nothing is stored, it prints guidance to run `unkey auth login`.
+
+## JSON output
+
+Use `--output json` for scripting:
+
+```bash
+unkey auth whoami --output json
+```
+
+```json
+{
+  "method": "oauth",
+  "email": "james@unkey.com",
+  "orgId": "org_1234",
+  "expiresAt": "2026-07-22T12:34:56Z",
+  "valid": true
+}
+```
+
+<Note>
+`whoami` never prints your access or refresh token in any format. It reports only derived identity claims.
+</Note>

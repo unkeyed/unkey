@@ -1,53 +1,70 @@
 ---
 title: "login"
-description: "Authenticate the Unkey CLI by storing your root key in a local configuration file. Run this command once to enable all CLI operations."
+description: "Sign in to the Unkey CLI with WorkOS OAuth (device flow), or store a root key. Run this once to authenticate all CLI operations."
 ---
 
-Authenticate the CLI by storing your root key locally.
+Authenticate the CLI. By default `unkey auth login` signs you in with WorkOS OAuth using the device authorization flow, so you act as yourself with your organization and permissions. You can still store a root key with `--root-key`.
 
-Use this before running other commands so you don't need to pass `--root-key` every time. The command prompts for your root key interactively (input is hidden) and saves it to `~/.unkey/config.toml` with restricted file permissions.
-
-You can create a root key from the [Unkey dashboard](/platform/root-keys/overview).
-
-<Note>
-Your root key is stored in plaintext at `~/.unkey/config.toml`. Make sure only your user account can read this file. The CLI creates it with `0600` permissions by default.
-</Note>
-
-## Usage
+## OAuth login (default)
 
 ```bash
 unkey auth login
 ```
 
-The command prompts you to enter your root key. Input is hidden for security:
+The CLI prints a code and a URL and opens your browser. Confirm the code, sign in, and select your organization if prompted:
 
 ```text
-Enter your root key: ••••••••••••
-Authentication successful. Key stored in /home/you/.unkey/config.toml
+To sign in, visit:
+
+  https://auth.workos.com/device?code=WDJB-MJHT
+
+and confirm this code: WDJB-MJHT
+
+Only continue if you started this login yourself; never enter a code someone sent you.
+
+Waiting for confirmation...
+
+Logged in as james@unkey.com (org: Unkey)
 ```
 
-Once stored, all subsequent commands use this key automatically:
+Your access and refresh tokens are stored in `~/.unkey/config.toml` with `0600` permissions. Subsequent commands use the access token automatically and refresh it when it expires:
 
 ```bash
-# No --root-key needed
 unkey api keys create-key --api-id=api_1234abcd --name="My Key"
 ```
 
-## Overriding the stored key
+<Note>
+The access token carries your organization and permissions. If your account has no active organization membership, login fails with guidance rather than storing an unusable token.
+</Note>
 
-You can override the stored key on a per-command basis using the `--root-key` flag or the `UNKEY_ROOT_KEY` environment variable:
+### Configuring the WorkOS client
+
+The CLI ships with its public WorkOS client ID. To point at a different WorkOS environment (for example, a self-hosted setup), use `--workos-client-id` or the `UNKEY_WORKOS_CLIENT_ID` environment variable.
+
+## Root key login (legacy)
+
+To store a root key instead of an OAuth session:
 
 ```bash
-# Flag takes highest priority
-unkey api apis get-api --api-id=api_1234abcd --root-key=unkey_xxx
-
-# Environment variable
-export UNKEY_ROOT_KEY=unkey_xxx
-unkey api apis get-api --api-id=api_1234abcd
+unkey auth login --root-key
 ```
 
-The priority order is: `--root-key` flag > `UNKEY_ROOT_KEY` env var > `~/.unkey/config.toml`.
+The command prompts for your root key (input is hidden) and saves it to `~/.unkey/config.toml`. Create a root key from the [Unkey dashboard](/platform/root-keys/overview).
 
-## Updating your key
+## Credential precedence
 
-Run `unkey auth login` again to replace the stored key. The new key overwrites the previous one.
+When a command authenticates, credentials are resolved in this order:
+
+1. `--root-key` flag or `UNKEY_ROOT_KEY` environment variable
+2. A valid stored OAuth access token (refreshed automatically when expired)
+3. A stored root key
+
+```bash
+# Flag always wins, even when an OAuth session exists
+unkey api apis get-api --api-id=api_1234abcd --root-key=unkey_xxx
+```
+
+## Related commands
+
+- [`unkey auth whoami`](/cli/auth/whoami) shows who you are signed in as.
+- [`unkey auth logout`](/cli/auth/logout) clears stored credentials.
