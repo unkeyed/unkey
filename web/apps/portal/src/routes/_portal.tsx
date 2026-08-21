@@ -1,8 +1,10 @@
 import { Outlet, createFileRoute, redirect } from "@tanstack/react-router";
+// Deep import on purpose: the `@unkey/ui` barrel side-effect-imports the full
+// stylesheet, which this app does not want in its bundle for one pure helper.
+import { onPrimaryColor } from "@unkey/ui/src/lib/branding";
 import { PortalFooter } from "~/components/portal-footer";
 import { PortalHeader } from "~/components/portal-header";
 import { PreviewBanner } from "~/components/preview-banner";
-import { onPrimaryColor } from "~/lib/branding";
 import { getSessionWithConfig } from "~/lib/session";
 
 export const Route = createFileRoute("/_portal")({
