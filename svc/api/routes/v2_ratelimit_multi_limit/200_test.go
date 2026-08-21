@@ -157,6 +157,30 @@ func TestLimitSuccessfully(t *testing.T) {
 		require.Empty(t, res.Body.Data.Limits[1].OverrideId)
 	})
 
+	t.Run("namespace ID lookup with cold cache", func(t *testing.T) {
+		namespaceID, _ := createNamespace(t, h)
+		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, fmt.Sprintf("ratelimit.%s.limit", namespaceID))
+
+		headers := http.Header{
+			"Content-Type":  {"application/json"},
+			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+		}
+		req := handler.Request{
+			{
+				Namespace:  namespaceID,
+				Identifier: "user_123",
+				Limit:      100,
+				Duration:   60000,
+			},
+		}
+
+		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
+		require.Equal(t, http.StatusOK, res.Status, "expected 200, status: %d, body: %s", res.Status, res.RawBody)
+		require.Len(t, res.Body.Data.Limits, 1)
+		require.Equal(t, namespaceID, res.Body.Data.Limits[0].Namespace)
+		require.Equal(t, int64(99), res.Body.Data.Limits[0].Remaining)
+	})
+
 	// Test multi events are flushed to clickhouse
 	t.Run("multiple events are flushed to clickhouse", func(t *testing.T) {
 		ns1ID, ns1Name := createNamespace(t, h)
