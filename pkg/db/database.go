@@ -25,10 +25,6 @@ type Config struct {
 	// If omitted, the primary is used.
 	ReadOnlyDSN string
 
-	// MultiStatementBatches enables an isolated primary pool for generated
-	// transactional batches.
-	MultiStatementBatches bool
-
 	// Tags are appended to every SQL statement as SQLCommenter metadata for
 	// PlanetScale Query Insights. Leave Service empty to disable annotation.
 	Tags sqlcomment.Static
@@ -117,19 +113,16 @@ func New(config Config) (*database, error) {
 		debugLogs: false,
 		tags:      config.Tags,
 	}
-	batchReplica := writeReplica
-	if config.MultiStatementBatches {
-		batch, batchErr := open(config.PrimaryDSN, true)
-		if batchErr != nil {
-			_ = write.Close()
-			return nil, fault.Wrap(batchErr, fault.Internal("cannot open batch primary replica"))
-		}
-		batchReplica = &Replica{
-			db:        batch,
-			mode:      "rw",
-			debugLogs: false,
-			tags:      config.Tags,
-		}
+	batch, err := open(config.PrimaryDSN, true)
+	if err != nil {
+		_ = write.Close()
+		return nil, fault.Wrap(err, fault.Internal("cannot open batch primary replica"))
+	}
+	batchReplica := &Replica{
+		db:        batch,
+		mode:      "rw",
+		debugLogs: false,
+		tags:      config.Tags,
 	}
 
 	// Initialize read replica with primary by default
@@ -145,9 +138,7 @@ func New(config Config) (*database, error) {
 		read, err := open(config.ReadOnlyDSN, false)
 		if err != nil {
 			_ = write.Close()
-			if batchReplica.db != write {
-				_ = batchReplica.db.Close()
-			}
+			_ = batchReplica.db.Close()
 			return nil, fault.Wrap(err, fault.Internal("cannot open read replica"))
 		}
 

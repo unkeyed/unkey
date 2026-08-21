@@ -11,10 +11,9 @@ import (
 func TestExecuteTransactionBatch(t *testing.T) {
 	mysqlConfig := containers.MySQL(t)
 	database, err := New(Config{
-		PrimaryDSN:            mysqlConfig.DSN,
-		ReadOnlyDSN:           "",
-		MultiStatementBatches: true,
-		Tags:                  sqlcomment.Disabled(),
+		PrimaryDSN:  mysqlConfig.DSN,
+		ReadOnlyDSN: "",
+		Tags:        sqlcomment.Disabled(),
 	})
 	require.NoError(t, err)
 	t.Cleanup(func() { require.NoError(t, database.Close()) })
