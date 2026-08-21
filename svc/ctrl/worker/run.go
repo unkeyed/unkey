@@ -563,6 +563,7 @@ func Run(ctx context.Context, cfg Config) error {
 			KeyLastUsedSync:    cronHeartbeat(cfg.Heartbeat.KeyLastUsedSyncURL),
 			AuditLogExport:     cronHeartbeat(cfg.Heartbeat.AuditLogExportURL),
 			AuditLogCleanup:    cronHeartbeat(cfg.Heartbeat.AuditLogOutboxCleanupURL),
+			RatelimitCleanup:   cronHeartbeat(cfg.Heartbeat.RatelimitGlobalCountersCleanupURL),
 			DeployBillingPush:  cronHeartbeat(cfg.Heartbeat.DeployBillingPushURL),
 			DeployBillingClose: cronHeartbeat(cfg.Heartbeat.DeployBillingCloseURL),
 			DeploySpendCheck:   cronHeartbeat(cfg.Heartbeat.DeploySpendCheckURL),
