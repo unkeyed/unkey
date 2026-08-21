@@ -1226,6 +1226,11 @@ type Portal struct {
 	// CreatedAt Unix timestamp in milliseconds when the portal was created.
 	CreatedAt int64 `json:"createdAt"`
 
+	// DisplayName Human-readable name your end users see in the portal header and page
+	// titles. Unlike `slug` it is not part of any URL, so it can be changed
+	// freely.
+	DisplayName string `json:"displayName"`
+
 	// Enabled Whether new sessions can be minted for this portal.
 	//
 	// Disabling a portal stops `portal.createSession` from minting new sessions.
@@ -3991,6 +3996,11 @@ type V2PermissionsSetRolePermissionsResponseData = []Permission
 
 // V2PortalCreatePortalRequestBody defines model for V2PortalCreatePortalRequestBody.
 type V2PortalCreatePortalRequestBody struct {
+	// DisplayName Human-readable name your end users see in the portal header and page
+	// titles. Unlike `slug` it is not part of any URL, so it can be changed
+	// freely.
+	DisplayName string `json:"displayName"`
+
 	// Enabled Whether sessions can be minted for this portal immediately. Defaults to
 	// true; send false to create it dormant and enable it later.
 	Enabled *bool `json:"enabled,omitempty"`
@@ -4256,6 +4266,9 @@ type V2PortalListKeysResponseData = []KeyResponseData
 
 // V2PortalUpdatePortalRequestBody defines model for V2PortalUpdatePortalRequestBody.
 type V2PortalUpdatePortalRequestBody struct {
+	// DisplayName New human-readable name shown to your end users. Omit to leave unchanged.
+	DisplayName *string `json:"displayName,omitempty"`
+
 	// Enabled Whether new sessions can be minted. Omit to leave unchanged.
 	//
 	// Disabling does not end sessions that are already live.

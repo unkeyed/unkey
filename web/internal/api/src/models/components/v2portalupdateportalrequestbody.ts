@@ -24,6 +24,12 @@ export type V2PortalUpdatePortalRequestBody = {
    */
   slug?: string | undefined;
   /**
+   * New human-readable name shown to your end users. Omit to leave unchanged.
+   *
+   * @remarks
+   */
+  displayName?: string | undefined;
+  /**
    * Re-point the portal at a different app or keyspace. Omit to leave the
    *
    * @remarks
@@ -62,6 +68,7 @@ export type V2PortalUpdatePortalRequestBody = {
 export type V2PortalUpdatePortalRequestBody$Outbound = {
   portal: string;
   slug?: string | undefined;
+  displayName?: string | undefined;
   mapping?: PortalMapping$Outbound | undefined;
   enabled?: boolean | undefined;
   logoUrl?: string | null | undefined;
@@ -76,6 +83,7 @@ export const V2PortalUpdatePortalRequestBody$outboundSchema: z.ZodType<
 > = z.object({
   portal: z.string(),
   slug: z.string().optional(),
+  displayName: z.string().optional(),
   mapping: PortalMapping$outboundSchema.optional(),
   enabled: z.boolean().optional(),
   logoUrl: z.nullable(z.string()).optional(),

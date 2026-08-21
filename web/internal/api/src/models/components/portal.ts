@@ -31,6 +31,14 @@ export type Portal = {
    */
   slug: string;
   /**
+   * Human-readable name your end users see in the portal header and page
+   *
+   * @remarks
+   * titles. Unlike `slug` it is not part of any URL, so it can be changed
+   * freely.
+   */
+  displayName: string;
+  /**
    * Whether new sessions can be minted for this portal.
    *
    * @remarks
@@ -76,6 +84,7 @@ export const Portal$inboundSchema: z.ZodType<Portal, z.ZodTypeDef, unknown> = z
   .object({
     id: z.string(),
     slug: z.string(),
+    displayName: z.string(),
     enabled: z.boolean(),
     mapping: PortalMapping$inboundSchema,
     branding: PortalBranding$inboundSchema.optional(),

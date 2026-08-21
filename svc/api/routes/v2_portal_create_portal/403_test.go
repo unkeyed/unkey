@@ -64,9 +64,10 @@ func TestCreatePortalAuthorizationMatrix(t *testing.T) {
 			// an earlier one and report a conflict instead of success.
 			mapping := keyspaceMapping(t, h, workspace.ID)
 			res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
-				Slug:    fmt.Sprintf("matrix-%d", i),
-				Mapping: mapping,
-				Enabled: ptr(true),
+				Slug:        fmt.Sprintf("matrix-%d", i),
+				DisplayName: "Acme",
+				Mapping:     mapping,
+				Enabled:     ptr(true),
 			})
 
 			if tc.shouldPass {

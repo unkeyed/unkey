@@ -845,7 +845,7 @@ type Querier interface {
 	// Workspace-scoped on purpose: `idx_app_id` is unique across the whole table, so
 	// an unscoped lookup would return another workspace's portal.
 	//
-	//  SELECT pk, id, workspace_id, slug, app_id, key_auth_id, enabled, logo_url, primary_color, created_at, updated_at FROM portals
+	//  SELECT pk, id, workspace_id, slug, display_name, app_id, key_auth_id, enabled, logo_url, primary_color, created_at, updated_at FROM portals
 	//  WHERE app_id = ?
 	//    AND workspace_id = ?
 	//  LIMIT 1
@@ -856,7 +856,7 @@ type Querier interface {
 	// UNION ALL of two index seeks instead of `id = ? OR slug = ?`, which would
 	// force a scan: `portals_id_unique` and `idx_workspace_slug` each serve one arm.
 	//
-	//  SELECT p.pk, p.id, p.workspace_id, p.slug, p.app_id, p.key_auth_id, p.enabled, p.logo_url, p.primary_color, p.created_at, p.updated_at
+	//  SELECT p.pk, p.id, p.workspace_id, p.slug, p.display_name, p.app_id, p.key_auth_id, p.enabled, p.logo_url, p.primary_color, p.created_at, p.updated_at
 	//  FROM portals p
 	//  JOIN (
 	//      SELECT p1.id
@@ -872,7 +872,7 @@ type Querier interface {
 	// Resolves the portal mapped to a keyspace within a workspace. See
 	// portal_find_by_app.sql for why this is workspace-scoped.
 	//
-	//  SELECT pk, id, workspace_id, slug, app_id, key_auth_id, enabled, logo_url, primary_color, created_at, updated_at FROM portals
+	//  SELECT pk, id, workspace_id, slug, display_name, app_id, key_auth_id, enabled, logo_url, primary_color, created_at, updated_at FROM portals
 	//  WHERE key_auth_id = ?
 	//    AND workspace_id = ?
 	//  LIMIT 1
@@ -1659,6 +1659,7 @@ type Querier interface {
 	//      id,
 	//      workspace_id,
 	//      slug,
+	//      display_name,
 	//      app_id,
 	//      key_auth_id,
 	//      enabled,
@@ -1667,6 +1668,7 @@ type Querier interface {
 	//      created_at,
 	//      updated_at
 	//  ) VALUES (
+	//      ?,
 	//      ?,
 	//      ?,
 	//      ?,
@@ -2776,7 +2778,7 @@ type Querier interface {
 	// remove the row between resolving it and this statement.
 	//
 	// Each field carries a `_specified` flag so an omitted field keeps its stored
-	// value. `slug` and `enabled` are NOT NULL and take sqlc.arg; the two
+	// value. `slug`, `display_name` and `enabled` are NOT NULL and take sqlc.arg; the two
 	// associations and the two branding columns are nullable and take sqlc.narg, so
 	// an explicit null clears them.
 	//
@@ -2785,6 +2787,10 @@ type Querier interface {
 	//      slug = CASE
 	//          WHEN CAST(? AS UNSIGNED) = 1 THEN ?
 	//          ELSE p.slug
+	//      END,
+	//      display_name = CASE
+	//          WHEN CAST(? AS UNSIGNED) = 1 THEN ?
+	//          ELSE p.display_name
 	//      END,
 	//      app_id = CASE
 	//          WHEN CAST(? AS UNSIGNED) = 1 THEN ?

@@ -28,59 +28,85 @@ func TestCreatePortalRejectsInvalidInput(t *testing.T) {
 	}{
 		{
 			name: "slug too short",
-			req:  handler.Request{Slug: "ab", Mapping: mapping, Enabled: ptr(true)},
+			req:  handler.Request{Slug: "ab", DisplayName: "Acme", Mapping: mapping, Enabled: ptr(true)},
 		},
 		{
 			name: "slug uppercase",
-			req:  handler.Request{Slug: "Acme-Portal", Mapping: mapping, Enabled: ptr(true)},
+			req:  handler.Request{Slug: "Acme-Portal", DisplayName: "Acme", Mapping: mapping, Enabled: ptr(true)},
 		},
 		{
 			name: "slug with consecutive hyphens",
-			req:  handler.Request{Slug: "acme--portal", Mapping: mapping, Enabled: ptr(true)},
+			req:  handler.Request{Slug: "acme--portal", DisplayName: "Acme", Mapping: mapping, Enabled: ptr(true)},
 		},
 		{
 			name: "slug leading hyphen",
-			req:  handler.Request{Slug: "-acme", Mapping: mapping, Enabled: ptr(true)},
+			req:  handler.Request{Slug: "-acme", DisplayName: "Acme", Mapping: mapping, Enabled: ptr(true)},
 		},
 		{
 			name: "slug too long",
-			req:  handler.Request{Slug: strings.Repeat("a", 65), Mapping: mapping, Enabled: ptr(true)},
+			req: handler.Request{
+				Slug:        strings.Repeat("a", 65),
+				DisplayName: "Acme",
+				Mapping:     mapping,
+				Enabled:     ptr(true),
+			},
+		},
+		{
+			name: "display name omitted",
+			req:  handler.Request{Slug: "valid-slug", Mapping: mapping, Enabled: ptr(true)},
+		},
+		{
+			name: "display name is whitespace only",
+			req:  handler.Request{Slug: "valid-slug", DisplayName: "   ", Mapping: mapping, Enabled: ptr(true)},
+		},
+		{
+			name: "display name too long",
+			req: handler.Request{
+				Slug:        "valid-slug",
+				DisplayName: strings.Repeat("a", 65),
+				Mapping:     mapping,
+				Enabled:     ptr(true),
+			},
 		},
 		{
 			// The id-or-slug resolver treats one argument as either form, so a
 			// slug that could pass for an id would make resolution ambiguous. The
 			// slug charset forbids underscores, which is what keeps them apart.
 			name: "id-shaped slug",
-			req:  handler.Request{Slug: "pc_1234abcd", Mapping: mapping, Enabled: ptr(true)},
+			req:  handler.Request{Slug: "pc_1234abcd", DisplayName: "Acme", Mapping: mapping, Enabled: ptr(true)},
 		},
 		{
 			name: "empty mapping id",
 			req: handler.Request{
-				Slug:    "valid-slug",
-				Mapping: openapi.PortalMapping{Id: "", Type: openapi.PortalMappingTypeKeyspace},
-				Enabled: ptr(true),
+				Slug:        "valid-slug",
+				DisplayName: "Acme",
+				Mapping:     openapi.PortalMapping{Id: "", Type: openapi.PortalMappingTypeKeyspace},
+				Enabled:     ptr(true),
 			},
 		},
 		{
 			name: "unknown mapping type",
 			req: handler.Request{
-				Slug:    "valid-slug",
-				Mapping: openapi.PortalMapping{Id: mapping.Id, Type: openapi.PortalMappingType("project")},
-				Enabled: ptr(true),
+				Slug:        "valid-slug",
+				DisplayName: "Acme",
+				Mapping:     openapi.PortalMapping{Id: mapping.Id, Type: openapi.PortalMappingType("project")},
+				Enabled:     ptr(true),
 			},
 		},
 		{
 			name: "logo url with http scheme",
 			req: handler.Request{
 				Slug: "valid-slug", Mapping: mapping, Enabled: ptr(true),
-				LogoUrl: ptr("http://cdn.example.com/logo.svg"),
+				DisplayName: "Acme",
+				LogoUrl:     ptr("http://cdn.example.com/logo.svg"),
 			},
 		},
 		{
 			name: "logo url not a url",
 			req: handler.Request{
 				Slug: "valid-slug", Mapping: mapping, Enabled: ptr(true),
-				LogoUrl: ptr("not a url at all"),
+				DisplayName: "Acme",
+				LogoUrl:     ptr("not a url at all"),
 			},
 		},
 		{
@@ -90,13 +116,15 @@ func TestCreatePortalRejectsInvalidInput(t *testing.T) {
 			name: "logo url over the column width",
 			req: handler.Request{
 				Slug: "valid-slug", Mapping: mapping, Enabled: ptr(true),
-				LogoUrl: ptr("https://example.com/" + strings.Repeat("a", 500)),
+				DisplayName: "Acme",
+				LogoUrl:     ptr("https://example.com/" + strings.Repeat("a", 500)),
 			},
 		},
 		{
 			name: "primary color without hash",
 			req: handler.Request{
 				Slug: "valid-slug", Mapping: mapping, Enabled: ptr(true),
+				DisplayName:  "Acme",
 				PrimaryColor: ptr("6366f1"),
 			},
 		},
@@ -104,6 +132,7 @@ func TestCreatePortalRejectsInvalidInput(t *testing.T) {
 			name: "primary color shorthand",
 			req: handler.Request{
 				Slug: "valid-slug", Mapping: mapping, Enabled: ptr(true),
+				DisplayName:  "Acme",
 				PrimaryColor: ptr("#fff"),
 			},
 		},

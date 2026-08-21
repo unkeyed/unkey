@@ -19,6 +19,14 @@ export type V2PortalCreatePortalRequestBody = {
    */
   slug: string;
   /**
+   * Human-readable name your end users see in the portal header and page
+   *
+   * @remarks
+   * titles. Unlike `slug` it is not part of any URL, so it can be changed
+   * freely.
+   */
+  displayName: string;
+  /**
    * The single resource a portal serves keys for.
    *
    * @remarks
@@ -30,12 +38,12 @@ export type V2PortalCreatePortalRequestBody = {
    */
   mapping: PortalMapping;
   /**
-   * Whether sessions can be minted for this portal immediately. Set false to
+   * Whether sessions can be minted for this portal immediately. Defaults to
    *
    * @remarks
-   * create it dormant and enable it later.
+   * true; send false to create it dormant and enable it later.
    */
-  enabled: boolean;
+  enabled?: boolean | undefined;
   /**
    * Absolute `https://` URL of the logo shown in the portal header.
    *
@@ -56,6 +64,7 @@ export type V2PortalCreatePortalRequestBody = {
 /** @internal */
 export type V2PortalCreatePortalRequestBody$Outbound = {
   slug: string;
+  displayName: string;
   mapping: PortalMapping$Outbound;
   enabled: boolean;
   logoUrl?: string | undefined;
@@ -69,8 +78,9 @@ export const V2PortalCreatePortalRequestBody$outboundSchema: z.ZodType<
   V2PortalCreatePortalRequestBody
 > = z.object({
   slug: z.string(),
+  displayName: z.string(),
   mapping: PortalMapping$outboundSchema,
-  enabled: z.boolean(),
+  enabled: z.boolean().default(true),
   logoUrl: z.string().optional(),
   primaryColor: z.string().optional(),
 });

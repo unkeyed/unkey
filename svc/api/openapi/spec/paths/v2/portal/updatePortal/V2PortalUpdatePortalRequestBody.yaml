@@ -12,6 +12,14 @@ properties:
     description: |
       New handle for this portal. Omit to leave unchanged.
     example: acme-portal
+  displayName:
+    type: string
+    minLength: 1
+    maxLength: 64
+    pattern: "^\\S(.*\\S)?$"
+    description: |
+      New human-readable name shown to your end users. Omit to leave unchanged.
+    example: Acme
   mapping:
     description: |
       Re-point the portal at a different app or keyspace. Omit to leave the

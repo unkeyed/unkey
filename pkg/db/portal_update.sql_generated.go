@@ -17,6 +17,10 @@ SET
         WHEN CAST(? AS UNSIGNED) = 1 THEN ?
         ELSE p.slug
     END,
+    display_name = CASE
+        WHEN CAST(? AS UNSIGNED) = 1 THEN ?
+        ELSE p.display_name
+    END,
     app_id = CASE
         WHEN CAST(? AS UNSIGNED) = 1 THEN ?
         ELSE p.app_id
@@ -45,6 +49,8 @@ WHERE workspace_id = ?
 type UpdatePortalParams struct {
 	SlugSpecified         int64          `db:"slug_specified"`
 	Slug                  string         `db:"slug"`
+	DisplayNameSpecified  int64          `db:"display_name_specified"`
+	DisplayName           string         `db:"display_name"`
 	AppIDSpecified        int64          `db:"app_id_specified"`
 	AppID                 sql.NullString `db:"app_id"`
 	KeyAuthIDSpecified    int64          `db:"key_auth_id_specified"`
@@ -74,7 +80,7 @@ type UpdatePortalParams struct {
 // remove the row between resolving it and this statement.
 //
 // Each field carries a `_specified` flag so an omitted field keeps its stored
-// value. `slug` and `enabled` are NOT NULL and take sqlc.arg; the two
+// value. `slug`, `display_name` and `enabled` are NOT NULL and take sqlc.arg; the two
 // associations and the two branding columns are nullable and take sqlc.narg, so
 // an explicit null clears them.
 //
@@ -83,6 +89,10 @@ type UpdatePortalParams struct {
 //	    slug = CASE
 //	        WHEN CAST(? AS UNSIGNED) = 1 THEN ?
 //	        ELSE p.slug
+//	    END,
+//	    display_name = CASE
+//	        WHEN CAST(? AS UNSIGNED) = 1 THEN ?
+//	        ELSE p.display_name
 //	    END,
 //	    app_id = CASE
 //	        WHEN CAST(? AS UNSIGNED) = 1 THEN ?
@@ -111,6 +121,8 @@ func (q *Queries) UpdatePortal(ctx context.Context, db DBTX, arg UpdatePortalPar
 	result, err := db.ExecContext(ctx, updatePortal,
 		arg.SlugSpecified,
 		arg.Slug,
+		arg.DisplayNameSpecified,
+		arg.DisplayName,
 		arg.AppIDSpecified,
 		arg.AppID,
 		arg.KeyAuthIDSpecified,

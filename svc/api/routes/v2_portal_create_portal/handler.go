@@ -129,6 +129,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			ID:           portalID,
 			WorkspaceID:  principal.WorkspaceID,
 			Slug:         req.Slug,
+			DisplayName:  req.DisplayName,
 			AppID:        appID,
 			KeyAuthID:    keyAuthID,
 			Enabled:      enabled,
@@ -178,6 +179,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 						// recorded rather than inferred from the row's later state.
 						Meta: map[string]any{
 							"slug":        req.Slug,
+							"displayName": req.DisplayName,
 							"mappingType": string(req.Mapping.Type),
 							"mappingId":   req.Mapping.Id,
 							"enabled":     enabled,

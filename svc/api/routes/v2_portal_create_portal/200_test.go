@@ -90,9 +90,10 @@ func TestCreatePortalWithKeyspaceMapping(t *testing.T) {
 	mapping := keyspaceMapping(t, h, workspace.ID)
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
-		Slug:    "acme-portal",
-		Mapping: mapping,
-		Enabled: ptr(true),
+		Slug:        "acme-portal",
+		DisplayName: "Acme",
+		Mapping:     mapping,
+		Enabled:     ptr(true),
 	})
 	require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
 	require.NotNil(t, res.Body)
@@ -103,6 +104,7 @@ func TestCreatePortalWithKeyspaceMapping(t *testing.T) {
 		db.FindPortalByIdOrSlugParams{Portal: res.Body.Data.PortalId, WorkspaceID: workspace.ID})
 	require.NoError(t, err)
 	require.Equal(t, "acme-portal", stored.Slug)
+	require.Equal(t, "Acme", stored.DisplayName)
 	require.True(t, stored.Enabled)
 	require.Equal(t, mapping.Id, stored.KeyAuthID.String)
 	require.False(t, stored.AppID.Valid, "the app column stays null for a keyspace mapping")
@@ -117,8 +119,9 @@ func TestCreatePortalDefaultsToEnabled(t *testing.T) {
 	mapping := keyspaceMapping(t, h, workspace.ID)
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
-		Slug:    "acme-portal",
-		Mapping: mapping,
+		Slug:        "acme-portal",
+		DisplayName: "Acme",
+		Mapping:     mapping,
 	})
 	require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
 
@@ -152,6 +155,7 @@ func TestCreatePortalWithAppMappingAndBranding(t *testing.T) {
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
 		Slug:         "branded",
+		DisplayName:  "Acme",
 		Mapping:      openapi.PortalMapping{Id: app.ID, Type: openapi.PortalMappingTypeApp},
 		Enabled:      ptr(false),
 		LogoUrl:      ptr("https://cdn.example.com/logo.svg"),
@@ -195,9 +199,10 @@ func TestCreatePortalAllowsSameSlugInAnotherWorkspace(t *testing.T) {
 	})
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
-		Slug:    "shared-slug",
-		Mapping: keyspaceMapping(t, h, workspace.ID),
-		Enabled: ptr(true),
+		Slug:        "shared-slug",
+		DisplayName: "Acme",
+		Mapping:     keyspaceMapping(t, h, workspace.ID),
+		Enabled:     ptr(true),
 	})
 	require.Equal(t, http.StatusOK, res.Status,
 		"a slug held by another workspace must not block this one: %s", res.RawBody)
@@ -210,9 +215,10 @@ func TestCreatePortalWritesOneAuditEntry(t *testing.T) {
 	mapping := keyspaceMapping(t, h, workspace.ID)
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
-		Slug:    "audited",
-		Mapping: mapping,
-		Enabled: ptr(true),
+		Slug:        "audited",
+		DisplayName: "Acme",
+		Mapping:     mapping,
+		Enabled:     ptr(true),
 	})
 	require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
 
