@@ -15,12 +15,12 @@ import (
 // reported as malformed, so those cases live with the other 400s.
 func TestCreatePortalRequiresAuthentication(t *testing.T) {
 	h := testutil.NewHarness(t)
-	route := &handler.Handler{DB: h.DB, Auditlogs: h.Auditlogs}
+	route := &handler.Handler{DB: h.DB, Auditlogs: h.Auditlogs, Clock: h.Clock}
 	h.Register(route)
 
 	workspace := h.Resources().UserWorkspace
 	mapping := keyspaceMapping(t, h, workspace.ID)
-	req := handler.Request{Slug: "unauthenticated", Mapping: mapping, Enabled: true}
+	req := handler.Request{Slug: "unauthenticated", Mapping: mapping, Enabled: ptr(true)}
 
 	testCases := map[string]string{
 		"unknown key":   "Bearer unkey_thiskeydoesnotexist",
@@ -47,14 +47,14 @@ func TestCreatePortalRequiresAuthentication(t *testing.T) {
 // enough to be a credential.
 func TestCreatePortalRejectsMalformedAuthorization(t *testing.T) {
 	h := testutil.NewHarness(t)
-	route := &handler.Handler{DB: h.DB, Auditlogs: h.Auditlogs}
+	route := &handler.Handler{DB: h.DB, Auditlogs: h.Auditlogs, Clock: h.Clock}
 	h.Register(route)
 
 	workspace := h.Resources().UserWorkspace
 	req := handler.Request{
 		Slug:    "malformed",
 		Mapping: keyspaceMapping(t, h, workspace.ID),
-		Enabled: true,
+		Enabled: ptr(true),
 	}
 
 	testCases := map[string]http.Header{

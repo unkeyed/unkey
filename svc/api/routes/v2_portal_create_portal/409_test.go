@@ -35,7 +35,7 @@ func TestCreatePortalConflicts(t *testing.T) {
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
 			Slug:    "taken-slug",
 			Mapping: keyspaceMapping(t, h, workspace.ID),
-			Enabled: true,
+			Enabled: ptr(true),
 		})
 		require.Equal(t, http.StatusConflict, res.Status, "expected 409, received: %s", res.RawBody)
 		require.Contains(t, res.RawBody, "portal_already_exists")
@@ -48,7 +48,7 @@ func TestCreatePortalConflicts(t *testing.T) {
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
 			Slug:    "fresh-slug",
 			Mapping: taken,
-			Enabled: true,
+			Enabled: ptr(true),
 		})
 		require.Equal(t, http.StatusConflict, res.Status, "expected 409, received: %s", res.RawBody)
 		require.Contains(t, res.RawBody, "portal_already_exists")
@@ -84,7 +84,7 @@ func TestCreatePortalConflicts(t *testing.T) {
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
 			Slug:    "another-slug",
 			Mapping: openapi.PortalMapping{Id: sharedApi.KeyAuthID.String, Type: openapi.PortalMappingTypeKeyspace},
-			Enabled: true,
+			Enabled: ptr(true),
 		})
 		require.Equal(t, http.StatusNotFound, res.Status,
 			"ownership is checked before availability, so this is a 404: %s", res.RawBody)

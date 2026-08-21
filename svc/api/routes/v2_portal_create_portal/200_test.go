@@ -28,7 +28,7 @@ var targetReadGrants = []string{"api.*.read_api", "app.*.read_app"}
 func newRoute(t *testing.T, h *testutil.Harness, permissions ...string) (*handler.Handler, http.Header) {
 	t.Helper()
 
-	route := &handler.Handler{DB: h.DB, Auditlogs: h.Auditlogs}
+	route := &handler.Handler{DB: h.DB, Auditlogs: h.Auditlogs, Clock: h.Clock}
 	h.Register(route)
 
 	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID,
@@ -92,7 +92,7 @@ func TestCreatePortalWithKeyspaceMapping(t *testing.T) {
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
 		Slug:    "acme-portal",
 		Mapping: mapping,
-		Enabled: true,
+		Enabled: ptr(true),
 	})
 	require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
 	require.NotNil(t, res.Body)
@@ -108,6 +108,24 @@ func TestCreatePortalWithKeyspaceMapping(t *testing.T) {
 	require.False(t, stored.AppID.Valid, "the app column stays null for a keyspace mapping")
 	require.False(t, stored.LogoUrl.Valid, "branding is absent when not supplied")
 	require.False(t, stored.PrimaryColor.Valid)
+}
+
+func TestCreatePortalDefaultsToEnabled(t *testing.T) {
+	h := testutil.NewHarness(t)
+	route, headers := newRoute(t, h, "portal.*.create_portal")
+	workspace := h.Resources().UserWorkspace
+	mapping := keyspaceMapping(t, h, workspace.ID)
+
+	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
+		Slug:    "acme-portal",
+		Mapping: mapping,
+	})
+	require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
+
+	stored, err := db.Query.FindPortalByIdOrSlug(context.Background(), h.DB.RO(),
+		db.FindPortalByIdOrSlugParams{Portal: res.Body.Data.PortalId, WorkspaceID: workspace.ID})
+	require.NoError(t, err)
+	require.True(t, stored.Enabled, "an omitted enabled creates the portal live")
 }
 
 func TestCreatePortalWithAppMappingAndBranding(t *testing.T) {
@@ -135,7 +153,7 @@ func TestCreatePortalWithAppMappingAndBranding(t *testing.T) {
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
 		Slug:         "branded",
 		Mapping:      openapi.PortalMapping{Id: app.ID, Type: openapi.PortalMappingTypeApp},
-		Enabled:      false,
+		Enabled:      ptr(false),
 		LogoUrl:      ptr("https://cdn.example.com/logo.svg"),
 		PrimaryColor: ptr("#6366f1"),
 	})
@@ -179,7 +197,7 @@ func TestCreatePortalAllowsSameSlugInAnotherWorkspace(t *testing.T) {
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
 		Slug:    "shared-slug",
 		Mapping: keyspaceMapping(t, h, workspace.ID),
-		Enabled: true,
+		Enabled: ptr(true),
 	})
 	require.Equal(t, http.StatusOK, res.Status,
 		"a slug held by another workspace must not block this one: %s", res.RawBody)
@@ -194,7 +212,7 @@ func TestCreatePortalWritesOneAuditEntry(t *testing.T) {
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
 		Slug:    "audited",
 		Mapping: mapping,
-		Enabled: true,
+		Enabled: ptr(true),
 	})
 	require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
 
@@ -210,7 +228,7 @@ func TestCreatePortalWritesOneAuditEntry(t *testing.T) {
 		"the audit entry records the mapped resource")
 }
 
-func ptr(s string) *string { return &s }
+func ptr[T any](v T) *T { return &v }
 
 // normalizeRequestID strips the per-request id so two error bodies can be
 // compared for the parity the masking depends on.

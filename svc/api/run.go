@@ -509,6 +509,7 @@ func Run(ctx context.Context, cfg Config) error {
 		ApiRequests:          apiRequests,
 		RatelimitEvents:      ratelimits,
 		KeyVerifications:     keyVerifications,
+		Clock:                clk,
 		Keys:                 keySvc,
 		Auth:                 authSvc,
 		PortalAuth:           portalAuthSvc,

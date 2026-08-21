@@ -19,7 +19,7 @@ import (
 // only would deny the single operator surface that exists.
 func TestUpdatePortalAuthorizesURNGrants(t *testing.T) {
 	h := testutil.NewHarness(t)
-	route := &handler.Handler{DB: h.DB, Auditlogs: h.Auditlogs}
+	route := &handler.Handler{DB: h.DB, Auditlogs: h.Auditlogs, Clock: h.Clock}
 	h.Register(route)
 
 	workspace := h.Resources().UserWorkspace
@@ -67,7 +67,7 @@ func TestUpdatePortalAuthorizesURNGrants(t *testing.T) {
 // only caller this route has.
 func TestUpdatePortalAuthorizesURNGrantOnRemap(t *testing.T) {
 	h := testutil.NewHarness(t)
-	route := &handler.Handler{DB: h.DB, Auditlogs: h.Auditlogs}
+	route := &handler.Handler{DB: h.DB, Auditlogs: h.Auditlogs, Clock: h.Clock}
 	h.Register(route)
 
 	workspace := h.Resources().UserWorkspace

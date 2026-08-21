@@ -742,6 +742,7 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 		&v2PortalCreatePortal.Handler{
 			DB:        svc.Database,
 			Auditlogs: svc.Auditlogs,
+			Clock:     svc.Clock,
 		},
 	)
 
@@ -759,6 +760,7 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 		&v2PortalUpdatePortal.Handler{
 			DB:        svc.Database,
 			Auditlogs: svc.Auditlogs,
+			Clock:     svc.Clock,
 		},
 	)
 
@@ -768,6 +770,7 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 		&v2PortalDeletePortal.Handler{
 			DB:        svc.Database,
 			Auditlogs: svc.Auditlogs,
+			Clock:     svc.Clock,
 		},
 	)
 
@@ -778,6 +781,7 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 			DB:            svc.Database,
 			Auditlogs:     svc.Auditlogs,
 			PortalBaseURL: svc.PortalBaseURL,
+			Clock:         svc.Clock,
 		},
 	)
 

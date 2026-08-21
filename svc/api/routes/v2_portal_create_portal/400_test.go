@@ -28,37 +28,37 @@ func TestCreatePortalRejectsInvalidInput(t *testing.T) {
 	}{
 		{
 			name: "slug too short",
-			req:  handler.Request{Slug: "ab", Mapping: mapping, Enabled: true},
+			req:  handler.Request{Slug: "ab", Mapping: mapping, Enabled: ptr(true)},
 		},
 		{
 			name: "slug uppercase",
-			req:  handler.Request{Slug: "Acme-Portal", Mapping: mapping, Enabled: true},
+			req:  handler.Request{Slug: "Acme-Portal", Mapping: mapping, Enabled: ptr(true)},
 		},
 		{
 			name: "slug with consecutive hyphens",
-			req:  handler.Request{Slug: "acme--portal", Mapping: mapping, Enabled: true},
+			req:  handler.Request{Slug: "acme--portal", Mapping: mapping, Enabled: ptr(true)},
 		},
 		{
 			name: "slug leading hyphen",
-			req:  handler.Request{Slug: "-acme", Mapping: mapping, Enabled: true},
+			req:  handler.Request{Slug: "-acme", Mapping: mapping, Enabled: ptr(true)},
 		},
 		{
 			name: "slug too long",
-			req:  handler.Request{Slug: strings.Repeat("a", 65), Mapping: mapping, Enabled: true},
+			req:  handler.Request{Slug: strings.Repeat("a", 65), Mapping: mapping, Enabled: ptr(true)},
 		},
 		{
 			// The id-or-slug resolver treats one argument as either form, so a
 			// slug that could pass for an id would make resolution ambiguous. The
 			// slug charset forbids underscores, which is what keeps them apart.
 			name: "id-shaped slug",
-			req:  handler.Request{Slug: "pc_1234abcd", Mapping: mapping, Enabled: true},
+			req:  handler.Request{Slug: "pc_1234abcd", Mapping: mapping, Enabled: ptr(true)},
 		},
 		{
 			name: "empty mapping id",
 			req: handler.Request{
 				Slug:    "valid-slug",
 				Mapping: openapi.PortalMapping{Id: "", Type: openapi.PortalMappingTypeKeyspace},
-				Enabled: true,
+				Enabled: ptr(true),
 			},
 		},
 		{
@@ -66,20 +66,20 @@ func TestCreatePortalRejectsInvalidInput(t *testing.T) {
 			req: handler.Request{
 				Slug:    "valid-slug",
 				Mapping: openapi.PortalMapping{Id: mapping.Id, Type: openapi.PortalMappingType("project")},
-				Enabled: true,
+				Enabled: ptr(true),
 			},
 		},
 		{
 			name: "logo url with http scheme",
 			req: handler.Request{
-				Slug: "valid-slug", Mapping: mapping, Enabled: true,
+				Slug: "valid-slug", Mapping: mapping, Enabled: ptr(true),
 				LogoUrl: ptr("http://cdn.example.com/logo.svg"),
 			},
 		},
 		{
 			name: "logo url not a url",
 			req: handler.Request{
-				Slug: "valid-slug", Mapping: mapping, Enabled: true,
+				Slug: "valid-slug", Mapping: mapping, Enabled: ptr(true),
 				LogoUrl: ptr("not a url at all"),
 			},
 		},
@@ -89,21 +89,21 @@ func TestCreatePortalRejectsInvalidInput(t *testing.T) {
 			// contacted, or a driver error surfacing as a 500.
 			name: "logo url over the column width",
 			req: handler.Request{
-				Slug: "valid-slug", Mapping: mapping, Enabled: true,
+				Slug: "valid-slug", Mapping: mapping, Enabled: ptr(true),
 				LogoUrl: ptr("https://example.com/" + strings.Repeat("a", 500)),
 			},
 		},
 		{
 			name: "primary color without hash",
 			req: handler.Request{
-				Slug: "valid-slug", Mapping: mapping, Enabled: true,
+				Slug: "valid-slug", Mapping: mapping, Enabled: ptr(true),
 				PrimaryColor: ptr("6366f1"),
 			},
 		},
 		{
 			name: "primary color shorthand",
 			req: handler.Request{
-				Slug: "valid-slug", Mapping: mapping, Enabled: true,
+				Slug: "valid-slug", Mapping: mapping, Enabled: ptr(true),
 				PrimaryColor: ptr("#fff"),
 			},
 		},

@@ -45,14 +45,15 @@ curl -X POST https://api.unkey.com/v2/portal.createPortal \
   -H "Content-Type: application/json" \
   -d '{
     "slug": "my-portal",
-    "mapping": { "type": "keyspace", "id": "ks_1234abcd" },
-    "enabled": true
+    "mapping": { "type": "keyspace", "id": "ks_1234abcd" }
   }'
 ```
 
 The response carries the new portal's ID. The app or keyspace you name must belong to your workspace, and it can back only one portal, so a second portal for the same resource is rejected as a conflict.
 
 The slug is a short, human-readable identifier like `my-portal` or `billing-dashboard`. You can pass either the slug or the portal's ID wherever a portal is named. Slugs must be 3–64 characters, lowercase alphanumeric and hyphens only, cannot start or end with a hyphen, and cannot contain consecutive hyphens. A `portal` value that matches neither a slug nor an ID in your workspace returns a 404, so a typo and a portal that was never provisioned look the same.
+
+A portal is enabled on creation. Send `"enabled": false` to create it dormant and turn it on later.
 
 Optionally, customize branding with `logoUrl` and `primaryColor`. The logo must be an absolute `https://` URL, and the colour a six-digit hex value like `#6366f1`.
 

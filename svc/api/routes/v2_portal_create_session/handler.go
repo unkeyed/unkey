@@ -14,6 +14,7 @@ import (
 	portalservice "github.com/unkeyed/unkey/internal/services/portal"
 	"github.com/unkeyed/unkey/pkg/auditlog"
 	authprincipal "github.com/unkeyed/unkey/pkg/auth/principal"
+	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
@@ -41,6 +42,7 @@ type Handler struct {
 	DB            db.Database
 	Auditlogs     auditlogs.AuditLogService
 	PortalBaseURL string
+	Clock         clock.Clock
 }
 
 func (h *Handler) Method() string { return "POST" }
@@ -243,7 +245,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 	}
 
-	now := time.Now()
+	now := h.Clock.Now()
 	sessionID := uid.New(uid.PortalSessionPrefix)
 
 	// The exchange code is a bearer credential: it is returned to the caller

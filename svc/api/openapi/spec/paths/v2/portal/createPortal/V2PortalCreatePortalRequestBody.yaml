@@ -2,7 +2,6 @@ type: object
 required:
   - slug
   - mapping
-  - enabled
 properties:
   slug:
     type: string
@@ -18,9 +17,10 @@ properties:
     "$ref": "../../../../common/PortalMapping.yaml"
   enabled:
     type: boolean
+    default: true
     description: |
-      Whether sessions can be minted for this portal immediately. Set false to
-      create it dormant and enable it later.
+      Whether sessions can be minted for this portal immediately. Defaults to
+      true; send false to create it dormant and enable it later.
     example: true
   logoUrl:
     type: string

@@ -2991,7 +2991,6 @@ components:
             required:
                 - slug
                 - mapping
-                - enabled
             properties:
                 slug:
                     type: string
@@ -3007,9 +3006,10 @@ components:
                     "$ref": "#/components/schemas/PortalMapping"
                 enabled:
                     type: boolean
+                    default: true
                     description: |
-                        Whether sessions can be minted for this portal immediately. Set false to
-                        create it dormant and enable it later.
+                        Whether sessions can be minted for this portal immediately. Defaults to
+                        true; send false to create it dormant and enable it later.
                     example: true
                 logoUrl:
                     type: string
