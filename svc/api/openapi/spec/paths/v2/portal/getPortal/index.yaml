@@ -1,0 +1,75 @@
+post:
+  x-excluded: true
+  tags:
+    - portal
+  summary: Get portal
+  description: |
+    Read one portal, by its id or slug, or by the app or keyspace it serves.
+
+    Unreleased and subject to change without notice.
+
+    The mapping lookup exists for callers that reach a portal through the
+    resource it serves rather than through an identifier they stored. Exactly one
+    of `portal` or `mapping` is required.
+
+    The response carries the portal's own `displayName`, which is what your end
+    users see.
+
+    **Required Permissions**
+
+    Your root key must have one of:
+    - `portal.*.read_portal` (to read any portal in the workspace)
+    - `portal.<portal_id>.read_portal` (to read a specific portal)
+
+    Missing the permission returns **404**, not 403: a caller who cannot read a
+    portal is not told whether it exists.
+  operationId: portal.getPortal
+  x-speakeasy-name-override: getPortal
+  security:
+    - bearer: []
+  requestBody:
+    content:
+      application/json:
+        schema:
+          "$ref": "./V2PortalGetPortalRequestBody.yaml"
+    required: true
+  responses:
+    "200":
+      description: |
+        The portal.
+      content:
+        application/json:
+          schema:
+            "$ref": "./V2PortalGetPortalResponseBody.yaml"
+    "400":
+      description: |
+        Neither `portal` nor `mapping` was given, or both were.
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/BadRequestErrorResponse.yaml"
+    "401":
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/UnauthorizedErrorResponse.yaml"
+    "404":
+      description: |
+        No portal matches, or your root key may not read it.
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/NotFoundErrorResponse.yaml"
+    "429":
+      description: Too Many Requests
+      content:
+        application/problem+json:
+          schema:
+            "$ref": "../../../../error/TooManyRequestsErrorResponse.yaml"
+    "500":
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/InternalServerErrorResponse.yaml"

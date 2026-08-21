@@ -1,0 +1,92 @@
+type: object
+required:
+  - portal
+properties:
+  portal:
+    "$ref": "../../../../common/ResourceIdentifier.yaml"
+  slug:
+    type: string
+    minLength: 3
+    maxLength: 64
+    pattern: "^[a-z0-9]([a-z0-9-]*[a-z0-9])?$"
+    description: |
+      New handle for this portal. Omit to leave unchanged.
+    example: acme-portal
+  displayName:
+    type: string
+    minLength: 1
+    maxLength: 64
+    pattern: "^\\S(.*\\S)?$"
+    description: |
+      New human-readable name shown to your end users. Omit to leave unchanged.
+    example: Acme
+  mapping:
+    description: |
+      Re-point the portal at a different app or keyspace. Omit to leave the
+      current mapping alone.
+
+      Changing the mapping revokes the portal's live sessions, because a session
+      carries the keyspace scope it was minted with and would otherwise keep
+      reaching the resource the portal no longer serves.
+    allOf:
+      - "$ref": "../../../../common/PortalMapping.yaml"
+  enabled:
+    type: boolean
+    description: |
+      Whether new sessions can be minted. Omit to leave unchanged.
+
+      Disabling does not end sessions that are already live.
+    example: false
+  logoUrl:
+    type:
+      - string
+      - "null"
+    minLength: 1
+    maxLength: 500
+    description: |
+      Absolute `https://` URL of the portal logo. Omit to leave unchanged, or set
+      null to remove the logo.
+    example: https://cdn.example.com/logo.svg
+  primaryColor:
+    type:
+      - string
+      - "null"
+    pattern: "^#[0-9a-fA-F]{6}$"
+    description: |
+      Six-digit hex colour for primary actions. Omit to leave unchanged, or set
+      null to fall back to default styling.
+    example: "#6366f1"
+additionalProperties: false
+examples:
+  disable:
+    summary: Disable a portal
+    description: Stop minting new sessions without touching anything else
+    value:
+      portal: pc_1234abcd
+      enabled: false
+  rename:
+    summary: Change the slug by slug
+    description: Locate the portal by its current slug and assign a new one
+    value:
+      portal: acme-portal
+      slug: acme-developers
+  rebrand:
+    summary: Change one branding field
+    description: Set the colour and leave the logo as it is
+    value:
+      portal: pc_1234abcd
+      primaryColor: "#0ea5e9"
+  removeLogo:
+    summary: Clear the logo
+    description: Null clears a single branding field
+    value:
+      portal: pc_1234abcd
+      logoUrl: null
+  remap:
+    summary: Re-point at another keyspace
+    description: Revokes the portal's live sessions
+    value:
+      portal: pc_1234abcd
+      mapping:
+        type: keyspace
+        id: ks_5678efgh

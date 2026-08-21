@@ -1,0 +1,33 @@
+type: object
+description: |
+  Name the portal directly with `portal`, or name the resource it serves with
+  `mapping`. Exactly one of the two is required; sending both is a bad request.
+properties:
+  portal:
+    "$ref": "../../../../common/ResourceIdentifier.yaml"
+  mapping:
+    "$ref": "../../../../common/PortalMapping.yaml"
+additionalProperties: false
+# Encoded in the schema, not left to prose: a caller generating from this spec
+# gets the invariant, and tightening it later would be a breaking change to the
+# published SDK. The handler still checks, because oneOf cannot express that a
+# whitespace-only target is not a target.
+oneOf:
+  - required: [portal]
+  - required: [mapping]
+examples:
+  byId:
+    summary: Look up by portal id
+    value:
+      portal: pc_1234abcd
+  bySlug:
+    summary: Look up by portal slug
+    value:
+      portal: acme-portal
+  byKeyspace:
+    summary: Look up by the keyspace it serves
+    description: For callers that hold the keyspace but not the portal id
+    value:
+      mapping:
+        type: keyspace
+        id: ks_1234abcd

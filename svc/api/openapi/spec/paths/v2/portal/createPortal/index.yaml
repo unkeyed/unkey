@@ -1,0 +1,85 @@
+post:
+  x-excluded: true
+  tags:
+    - portal
+  summary: Create portal
+  description: |
+    Create a portal for one app or keyspace in your workspace.
+
+    Unreleased and subject to change without notice.
+
+    A portal serves exactly one app or one keyspace, named by `mapping`. That
+    resource must belong to your workspace, and it can back only one portal, so
+    creating a second portal for the same app or keyspace is a conflict.
+
+    `displayName` is what your end users see. It is stored on the portal, so it
+    is yours to set and change independently of the resource the portal serves.
+
+    **Required Permissions**
+
+    Your root key must have `portal.*.create_portal`. A grant scoped to a
+    specific portal id does not authorize creation, because the id does not exist
+    when the request is authorized.
+  operationId: portal.createPortal
+  x-speakeasy-name-override: createPortal
+  security:
+    - bearer: []
+  requestBody:
+    content:
+      application/json:
+        schema:
+          "$ref": "./V2PortalCreatePortalRequestBody.yaml"
+    required: true
+  responses:
+    "200":
+      description: |
+        Portal created successfully.
+      content:
+        application/json:
+          schema:
+            "$ref": "./V2PortalCreatePortalResponseBody.yaml"
+    "400":
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/BadRequestErrorResponse.yaml"
+    "401":
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/UnauthorizedErrorResponse.yaml"
+    "403":
+      description: Forbidden
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/ForbiddenErrorResponse.yaml"
+    "404":
+      description: |
+        The named app or keyspace does not exist in your workspace.
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/NotFoundErrorResponse.yaml"
+    "409":
+      description: |
+        The slug is taken in your workspace, or the named app or keyspace already
+        backs a portal.
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/ConflictErrorResponse.yaml"
+    "429":
+      description: Too Many Requests
+      content:
+        application/problem+json:
+          schema:
+            "$ref": "../../../../error/TooManyRequestsErrorResponse.yaml"
+    "500":
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/InternalServerErrorResponse.yaml"

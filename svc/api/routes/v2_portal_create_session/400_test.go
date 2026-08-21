@@ -3,6 +3,7 @@ package handler_test
 import (
 	"fmt"
 	"net/http"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -19,6 +20,7 @@ func TestCreateSessionBadRequest(t *testing.T) {
 		DB:            h.DB,
 		Auditlogs:     h.Auditlogs,
 		PortalBaseURL: "https://portal.unkey.com",
+		Clock:         h.Clock,
 	}
 	h.Register(route)
 
@@ -184,3 +186,78 @@ func TestCreateSessionBadRequest(t *testing.T) {
 		require.NotNil(t, res.Body)
 	})
 }
+
+// returnUrl ends up as an anchor href in the end-user portal, so an unchecked
+// scheme executes in that user's browser with the portal's origin. The field's
+// `format: uri` does not help: `javascript:alert(1)` is a valid URI, and the
+// request validator does not assert formats.
+func TestCreateSessionRejectsUnsafeReturnUrl(t *testing.T) {
+	h := testutil.NewHarness(t)
+
+	route := &handler.Handler{
+		DB:            h.DB,
+		Auditlogs:     h.Auditlogs,
+		PortalBaseURL: "https://portal.unkey.com",
+		Clock:         h.Clock,
+	}
+	h.Register(route)
+
+	workspaceID := h.Resources().UserWorkspace.ID
+	api := h.CreateApi(seed.CreateApiRequest{
+		WorkspaceID:   workspaceID,
+		IpWhitelist:   "",
+		EncryptedKeys: false,
+		Name:          nil,
+		CreatedAt:     nil,
+		DefaultPrefix: nil,
+		DefaultBytes:  nil,
+	})
+	insertKeyspacePortal(t, h, workspaceID, "return-url-portal", api.KeyAuthID.String)
+
+	rootKey := h.CreateRootKey(workspaceID,
+		"portal.*.create_portal_session",
+		"api.*.read_key",
+		"api.*.read_api",
+	)
+	headers := http.Header{
+		"Content-Type":  {"application/json"},
+		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+	}
+	scopes := []openapi.V2PortalCreateSessionRequestBodyScopes{"keys:read"}
+
+	rejected := map[string]string{
+		// The one that executes.
+		"javascript scheme":     "javascript:fetch('https://evil.example.com')",
+		"data scheme":           "data:text/html,<script>alert(1)</script>",
+		"http scheme":           "http://app.example.com/keys",
+		"scheme relative":       "//evil.example.com/keys",
+		"path only":             "/settings/api-keys",
+		"no host":               "https://",
+		"not a url":             "this is not a url",
+		"over the column width": "https://example.com/" + strings.Repeat("a", 500),
+	}
+
+	for name, returnURL := range rejected {
+		t.Run(name, func(t *testing.T) {
+			res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, handler.Request{
+				Portal:     "return-url-portal",
+				ExternalId: "user_return_url",
+				Scopes:     scopes,
+				ReturnUrl:  ptr(returnURL),
+			})
+			require.Equal(t, 400, res.Status, "expected 400 for %s, received: %s", name, res.RawBody)
+		})
+	}
+
+	t.Run("absolute https is accepted", func(t *testing.T) {
+		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
+			Portal:     "return-url-portal",
+			ExternalId: "user_return_url_ok",
+			Scopes:     scopes,
+			ReturnUrl:  ptr("https://app.example.com/settings/api-keys"),
+		})
+		require.Equal(t, 200, res.Status, "expected 200, received: %s", res.RawBody)
+	})
+}
+
+func ptr[T any](v T) *T { return &v }
