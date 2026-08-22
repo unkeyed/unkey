@@ -62,7 +62,7 @@ export function LoadMoreFooter({
         >
           <div className="flex items-center gap-2">
             <div className="flex items-center gap-2">
-              <span className="text-[11px] text-gray-9 font-medium">{countInfoText}</span>
+              <span className="text-[11px] text-content-subtle font-medium">{countInfoText}</span>
             </div>
             <div className="w-px h-3 bg-gray-6" />
             <span className="text-[12px] font-medium text-gray-11 group-hover:text-gray-12 transition-colors">

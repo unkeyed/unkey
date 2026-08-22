@@ -120,7 +120,7 @@ export const TableActionPopover = ({
           }
         />
         <PopoverContent
-          className="min-w-60 max-w-full bg-background-overlay drop-shadow-2xl transform-gpu border-gray-6 rounded-lg p-0"
+          className="min-w-60 max-w-full bg-background-overlay shadow-popover transform-gpu border-gray-6 rounded-lg p-0"
           align={align}
           initialFocus={() => {
             const firstEnabledIndex = items.findIndex((item) => !isItemDisabled(item));

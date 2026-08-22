@@ -66,11 +66,11 @@ export function createRoleOptions({
             side="right"
             align="start"
             sideOffset={30}
-            className="drop-shadow-2xl transform-gpu border border-grayA-4 overflow-hidden rounded-[10px] p-0 bg-background-overlay w-80 z-100"
+            className="shadow-popover transform-gpu border border-grayA-4 overflow-hidden rounded-[10px] p-0 bg-background-overlay w-80 z-100"
           >
             <div className="flex flex-col h-full">
               {/* Header */}
-              <div className="px-4 py-2 border-b border-grayA-4 text-gray-10 text-xs font-medium bg-grayA-2">
+              <div className="px-4 py-2 border-b border-grayA-4 text-content-subtle text-xs font-medium bg-grayA-2">
                 Role Details
               </div>
               {/* Content */}

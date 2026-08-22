@@ -126,7 +126,7 @@ export function DrainShell({
                 <ItemDescription>Unkey uses this ID to track delivery progress.</ItemDescription>
               </ItemContent>
               <ItemActions className="w-full justify-end lg:w-[420px]">
-                <div className="flex min-w-0 w-full items-center justify-between rounded-lg border border-grayA-5 bg-gray-2 px-2 py-2 dark:bg-black">
+                <div className="flex min-w-0 w-full items-center justify-between rounded-lg border border-grayA-5 bg-gray-2 px-2 py-2">
                   <code className="truncate text-sm text-gray-11" translate="no">
                     {drain.id}
                   </code>

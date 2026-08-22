@@ -107,7 +107,7 @@ function ComboboxInput({ className, icon, wrapperClassName, ref, ...props }: Com
       </InputGroupAddon>
       <ComboboxPrimitive.Input
         ref={ref}
-        className={cn("h-8 text-[13px] placeholder:text-grayA-8", className)}
+        className={cn("h-8 text-[13px] placeholder:text-content-subtle", className)}
         render={<InputGroupInput />}
         {...props}
       />
@@ -144,7 +144,7 @@ function ComboboxContent({
           ref={ref}
           data-combobox-popup=""
           className={cn(
-            "isolate relative z-50 flex flex-col overflow-hidden rounded-lg border border-gray-5 bg-background-overlay text-gray-12 shadow-md min-w-(--anchor-width) origin-(--transform-origin)",
+            "isolate relative z-50 flex flex-col overflow-hidden rounded-lg border border-gray-5 bg-background-overlay text-gray-12 shadow-popover min-w-(--anchor-width) origin-(--transform-origin)",
             "transition-[opacity,scale,translate] data-starting-style:opacity-0 data-starting-style:scale-95 data-ending-style:opacity-0 data-ending-style:scale-95",
             "data-[side=bottom]:data-starting-style:-translate-y-1 data-[side=top]:data-starting-style:translate-y-1",
             className,
@@ -182,7 +182,7 @@ function ComboboxEmpty({
   return (
     <ComboboxPrimitive.Empty
       ref={ref}
-      className={cn("py-6 text-center text-[13px] text-grayA-9 empty:hidden", className)}
+      className={cn("py-6 text-center text-[13px] text-content-subtle empty:hidden", className)}
       {...props}
     />
   );
@@ -198,7 +198,7 @@ function ComboboxGroupLabel({
   return (
     <ComboboxPrimitive.GroupLabel
       ref={ref}
-      className={cn("px-2 py-1.5 text-xs font-medium text-grayA-9", className)}
+      className={cn("px-2 py-1.5 text-xs font-medium text-content-subtle", className)}
       {...props}
     />
   );
@@ -323,7 +323,7 @@ function Combobox({
       return undefined;
     }
     return {
-      label: <span className="truncate text-gray-9 text-xs">Use "{trimmedQuery}"</span>,
+      label: <span className="truncate text-content-subtle text-xs">Use "{trimmedQuery}"</span>,
       value: trimmedQuery,
       searchValue: trimmedQuery,
     };

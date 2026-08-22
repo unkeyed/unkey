@@ -102,14 +102,14 @@ export function OutcomeExplainer({ children, timeseries }: OutcomeExplainerProps
   return (
     <InfoTooltip
       asChild
-      className="bg-background-overlay shadow-2xl p-0 border border-grayA-2 rounded-lg overflow-hidden px-4 pt-2 pb-1"
+      className="bg-background-overlay shadow-popover p-0 border border-grayA-2 rounded-lg overflow-hidden px-4 pt-2 pb-1"
       delayDuration={300}
       variant="inverted"
       position={{ side: "bottom" }}
       content={
         <div className="flex flex-col gap-1 min-w-64 justify-start ">
           <div className="text-gray-12 font-medium text-[13px] pr-2">API Key Activity</div>
-          <div className="text-xs text-grayA-9 pr-2 font-normal">Last 36 hours</div>
+          <div className="text-xs text-content-subtle pr-2 font-normal">Last 36 hours</div>
 
           {/* Valid count */}
           <div className="flex justify-between w-full items-center mt-3">
@@ -117,7 +117,7 @@ export function OutcomeExplainer({ children, timeseries }: OutcomeExplainerProps
               <div className="bg-gray-7 h-6 w-0.5 rounded-t rounded-b" />
               <div className="text-gray-12 font-medium text-[13px]">Valid</div>
             </div>
-            <div className="text-gray-9 font-medium text-[13px]">
+            <div className="text-content-subtle font-medium text-[13px]">
               {formatNumber(aggregatedData.valid)}
             </div>
           </div>
@@ -136,12 +136,12 @@ export function OutcomeExplainer({ children, timeseries }: OutcomeExplainerProps
                   <div className={`${error.color} h-6 w-0.5 rounded-t rounded-b`} />
                   <div className="text-gray-12 font-medium text-[13px]">{error.type}</div>
                 </div>
-                <div className="text-gray-9 font-medium text-[13px]">{error.value}</div>
+                <div className="text-content-subtle font-medium text-[13px]">{error.value}</div>
               </div>
             ))}
 
             {errorTypes.length === 0 && aggregatedData.valid === 0 && (
-              <div className="text-gray-9 text-[13px] py-1">No verification activity</div>
+              <div className="text-content-subtle text-[13px] py-1">No verification activity</div>
             )}
           </div>
         </div>

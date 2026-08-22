@@ -104,7 +104,7 @@ export function ListGroup({
             {/* Top Row for each */}
             <div className="flex flex-row items-center justify-start h-6">
               <div className="inline-flex w-full gap-2">
-                <span className="font-mono text-xs font-normal text-gray-9">from</span>
+                <span className="font-mono text-xs font-normal text-content-subtle">from</span>
                 <Layers2 className="size-3 mt-px" />
                 <span className="font-mono text-xs font-medium">Logs</span>
               </div>
@@ -165,7 +165,7 @@ export function ListGroup({
       </div>
       <div
         className={cn(
-          "flex flex-row bg-white dark:bg-gray-2 h-px mt-[7px] mb-[8px] w-full",
+          "flex flex-row bg-white dark:bg-transparent h-px mt-[7px] mb-[8px] w-full",
           index < total - 1 && "border-b border-b-gray-3",
         )}
       />

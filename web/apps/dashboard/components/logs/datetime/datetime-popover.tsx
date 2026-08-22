@@ -234,7 +234,7 @@ export const DatetimePopover = ({
                 onClick={() => setTimeRangeOpen(!timeRangeOpen)}
                 className="text-gray-11 h-9 border-border border px-2 text-sm w-full rounded-lg bg-gray-3 flex items-center justify-between"
               >
-                <span className="text-gray-9 text-[13px]">
+                <span className="text-content-subtle text-[13px]">
                   {singleDateMode ? "Select a date" : "Filter by time range"}
                 </span>
                 <ChevronDown
@@ -280,13 +280,13 @@ export const DatetimePopover = ({
         <Popover open={open} onOpenChange={setOpen}>
           <PopoverTrigger nativeButton={triggerNativeButton} render={children as ReactElement} />
           <PopoverContent
-            className="flex w-full bg-background-overlay shadow-2xl p-0 m-0 border-gray-6 rounded-lg"
+            className="flex w-full bg-background-overlay shadow-popover p-0 m-0 border-gray-6 rounded-lg"
             align={align}
           >
             <div className="flex flex-col w-60 px-1.5 py-3 m-0 border-r border-gray-4">
               {customHeader || (
                 <div className="flex w-full h-8 justify-between px-2">
-                  <span className="text-gray-9 text-[13px] w-full">
+                  <span className="text-content-subtle text-[13px] w-full">
                     {singleDateMode ? "Select a date" : "Filter by time range"}
                   </span>
                   <KeyboardButton shortcut="T" className="p-0 m-0 min-w-5 w-5 h-5" />

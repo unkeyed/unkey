@@ -115,14 +115,14 @@ export function OutcomePopoverCell({
           }
         />
         <PopoverContent
-          className="min-w-64 bg-background-overlay shadow-2xl p-0 border border-gray-6 rounded-lg overflow-hidden"
+          className="min-w-64 bg-background-overlay shadow-popover p-0 border border-gray-6 rounded-lg overflow-hidden"
           align="start"
           sideOffset={5}
         >
           <div className="px-3 pt-3">
             <div className="flex items-center justify-between">
-              <div className="text-xs font-medium text-gray-9">Outcomes</div>
-              <div className="text-xs text-gray-9">
+              <div className="text-xs font-medium text-content-subtle">Outcomes</div>
+              <div className="text-xs text-content-subtle">
                 {nonValidOutcomes.length} {nonValidOutcomes.length === 1 ? "type" : "types"}
               </div>
             </div>

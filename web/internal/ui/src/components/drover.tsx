@@ -120,7 +120,7 @@ function Content(props: ContentProps & { ref?: React.Ref<ContentElement> }) {
     <Component
       ref={ref}
       className={cn(
-        !isMobile && "min-w-60 bg-background-overlay shadow-2xl p-2 border-gray-6 rounded-lg",
+        !isMobile && "min-w-60 bg-background-overlay shadow-popover p-2 border-gray-6 rounded-lg",
         className,
       )}
       align="start"

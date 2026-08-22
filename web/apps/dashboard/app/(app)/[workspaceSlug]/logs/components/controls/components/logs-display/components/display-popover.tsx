@@ -56,7 +56,7 @@ const DisplayPropertyItem = ({
   <div
     data-item-index={index}
     className={`font-medium text-xs p-1.5 rounded-md hover:bg-gray-4 cursor-pointer whitespace-nowrap
-      ${selected ? "bg-gray-4 text-gray-12" : "text-gray-9"}
+      ${selected ? "bg-gray-4 text-gray-12" : "text-content-subtle"}
       ${isFocused ? "ring-2 ring-accent-7" : ""}`}
     onClick={onClick}
     tabIndex={isFocused ? 0 : -1}
@@ -75,7 +75,7 @@ const DisplayPropertyItem = ({
 
 const PopoverHeader = () => (
   <div className="flex w-full justify-between items-center px-1 py-1">
-    <span className="text-gray-9 text-[13px]">Display Properties...</span>
+    <span className="text-content-subtle text-[13px]">Display Properties...</span>
     <KeyboardButton shortcut="D" />
   </div>
 );
@@ -156,7 +156,7 @@ export const DisplayPopover = ({ children }: PropsWithChildren) => {
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger render={children as React.ReactElement} />
       <PopoverContent
-        className="bg-background-overlay drop-shadow-2xl transform-gpu p-2 border-gray-6 rounded-lg w-96"
+        className="bg-background-overlay shadow-popover transform-gpu p-2 border-gray-6 rounded-lg w-96"
         align="start"
         onKeyDown={handleKeyNavigation}
       >

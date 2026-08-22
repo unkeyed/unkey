@@ -13,7 +13,7 @@ export const QueriesMadeBy = ({ userName, userImageSrc, createdString }: Queries
       {/* User Avatar */}
       {userName && (
         <>
-          <span className="font-mono text-xs font-normal text-gray-9">by</span>
+          <span className="font-mono text-xs font-normal text-content-subtle">by</span>
           <Avatar className="h-[21px] w-[21px]">
             <AvatarImage
               src={userImageSrc}
@@ -25,7 +25,9 @@ export const QueriesMadeBy = ({ userName, userImageSrc, createdString }: Queries
         </>
       )}
       <CircleHalfDottedClock className="size-3.5 text-gray-12 mb-[2px] ml-[2px]" />
-      <span className="font-mono text-xs font-normal leading-4 text-gray-9">{createdString}</span>
+      <span className="font-mono text-xs font-normal leading-4 text-content-subtle">
+        {createdString}
+      </span>
     </div>
   );
 };

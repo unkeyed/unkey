@@ -357,7 +357,10 @@ export const DeployProductCard: React.FC<DeployProductCardProps> = ({
             {meterStats ? (
               <div className="grid grid-cols-2 gap-px overflow-hidden rounded-lg bg-grayA-3 sm:grid-cols-5">
                 {meterStats.map((stat) => (
-                  <div key={stat.label} className="bg-white px-3 py-2 first:pl-0 dark:bg-gray-2">
+                  <div
+                    key={stat.label}
+                    className="bg-white px-3 py-2 first:pl-0 dark:bg-background"
+                  >
                     <InfoTooltip content={stat.hint} asChild>
                       <p className="w-fit cursor-help text-[11px] text-gray-10 uppercase tracking-wide underline decoration-dotted decoration-grayA-6 underline-offset-2">
                         {stat.label}

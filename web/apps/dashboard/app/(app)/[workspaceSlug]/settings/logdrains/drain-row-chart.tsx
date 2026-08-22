@@ -49,12 +49,12 @@ export function DrainRowChart({ drainId }: { drainId: string }) {
       delayDuration={300}
       variant="inverted"
       position={{ side: "bottom" }}
-      className="rounded-lg border border-grayA-2 bg-gray-1 p-0 shadow-2xl dark:bg-black"
+      className="rounded-lg border border-grayA-2 bg-background-overlay p-0 shadow-popover"
       content={
         <div className="flex min-w-56 flex-col gap-3 px-4 py-3">
           <div>
             <div className="text-[13px] font-medium text-gray-12">Delivery activity</div>
-            <div className="text-xs font-normal text-grayA-9">Past 7 days</div>
+            <div className="text-xs font-normal text-content-subtle">Past 7 days</div>
           </div>
           <div className="flex flex-col gap-2">
             <ChartTotal

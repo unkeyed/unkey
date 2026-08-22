@@ -44,7 +44,7 @@ function PopoverContent({
         <PopoverPrimitive.Popup
           ref={ref}
           className={cn(
-            "z-200 w-72 rounded-lg border border-grayA-4 bg-gray-2 p-4 text-gray-12 shadow-md outline-none",
+            "z-200 w-72 rounded-lg border border-grayA-4 bg-background-overlay p-4 text-gray-12 shadow-popover outline-none",
             "transition-[opacity,scale,translate] data-starting-style:opacity-0 data-starting-style:scale-95 data-ending-style:opacity-0 data-ending-style:scale-95",
             "data-[side=bottom]:data-starting-style:-translate-y-2 data-[side=left]:data-starting-style:translate-x-2 data-[side=right]:data-starting-style:-translate-x-2 data-[side=top]:data-starting-style:translate-y-2",
             className,

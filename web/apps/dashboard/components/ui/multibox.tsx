@@ -77,7 +77,7 @@ export function MultiboxInput({ className, ...props }: ComboboxPrimitive.Input.P
   return (
     <ComboboxPrimitive.Input
       className={cn(
-        "h-6 min-w-12 flex-1 bg-transparent outline-hidden placeholder:text-grayA-8",
+        "h-6 min-w-12 flex-1 bg-transparent outline-hidden placeholder:text-content-subtle",
         className,
       )}
       {...props}
@@ -115,7 +115,7 @@ export function MultiboxContent({
       <ComboboxPrimitive.Positioner className="isolate z-200" sideOffset={sideOffset} {...props}>
         <ComboboxPrimitive.Popup
           className={cn(
-            "max-h-[min(var(--available-height),300px)] w-(--anchor-width) overflow-y-auto overflow-x-hidden rounded-lg border border-grayA-4 bg-background-overlay p-1 shadow-md scrollbar-thin",
+            "max-h-[min(var(--available-height),300px)] w-(--anchor-width) overflow-y-auto overflow-x-hidden rounded-lg border border-grayA-4 bg-background-overlay p-1 shadow-popover scrollbar-thin",
             className,
           )}
         >
@@ -129,7 +129,7 @@ export function MultiboxContent({
 export function MultiboxEmpty({ className, ...props }: ComboboxPrimitive.Empty.Props) {
   return (
     <ComboboxPrimitive.Empty
-      className={cn("py-6 text-center text-[13px] text-grayA-9 empty:p-0", className)}
+      className={cn("py-6 text-center text-[13px] text-content-subtle empty:p-0", className)}
       {...props}
     />
   );
