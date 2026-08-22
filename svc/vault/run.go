@@ -130,9 +130,9 @@ func Run(ctx context.Context, cfg Config) error {
 		return nil
 	})
 
+	// r.Wait already logs shutdown failures; just add context and propagate.
 	if err := r.Wait(ctx); err != nil {
-		logger.Error("Shutdown failed", "error", err)
-		return err
+		return fmt.Errorf("shutdown failed: %w", err)
 	}
 
 	return nil
