@@ -34,6 +34,7 @@ func TestGetDeployment(t *testing.T) {
 		ProjectID:             setup.Project.ID,
 		AppID:                 setup.App.ID,
 		EnvironmentID:         setup.Environment.ID,
+		Source:                db.DeploymentsSourceGit,
 		GitBranch:             "main",
 		GitCommitSha:          "9f2c1a7",
 		GitCommitMessage:      "add KEBAP endpoint",
