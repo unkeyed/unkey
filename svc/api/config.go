@@ -351,6 +351,11 @@ type Config struct {
 	// Set to 0 or negative to disable the limit. Defaults to 10 MiB.
 	MaxRequestBodySize int64 `toml:"max_request_body_size" config:"default=10485760"`
 
+	// TrustedProxyCIDRs lists the networks used by the API's ingress proxies.
+	// X-Forwarded-For is ignored unless the direct connection is from one of
+	// these networks.
+	TrustedProxyCIDRs []string `toml:"trusted_proxy_cidrs"`
+
 	// Database configures MySQL connections. See [config.DatabaseConfig].
 	Database config.DatabaseConfig `toml:"database"`
 

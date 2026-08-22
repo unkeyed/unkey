@@ -67,6 +67,7 @@ import (
 func New() (*zen.Server, error) {
 	z, err := zen.New(zen.Config{
 		MaxRequestBodySize: 0,
+		TrustedProxyCIDRs:  nil,
 		Flags:              nil,
 		TLS:                nil,
 		EnableH2C:          false,
@@ -98,6 +99,7 @@ func NewWithRegistry(reg *prometheus.Registry) (*zen.Server, error) {
 
 	z, err := zen.New(zen.Config{
 		MaxRequestBodySize: 0,
+		TrustedProxyCIDRs:  nil,
 		Flags:              nil,
 		TLS:                nil,
 		EnableH2C:          false,
