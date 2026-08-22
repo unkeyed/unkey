@@ -1415,6 +1415,12 @@ type Querier interface {
 	//  WHERE workspace_id = ?
 	//  ORDER BY pk
 	ListClickhouseOutboxByWorkspace(ctx context.Context, workspaceID string) ([]ListClickhouseOutboxByWorkspaceRow, error)
+	//ListClickhouseWorkspaceIDs
+	//
+	//  SELECT workspace_id
+	//  FROM clickhouse_workspace_settings
+	//  ORDER BY workspace_id
+	ListClickhouseWorkspaceIDs(ctx context.Context) ([]string, error)
 	//ListCustomDomainsByEnvironmentID
 	//
 	//  SELECT pk, id, workspace_id, project_id, app_id, environment_id, domain, challenge_type, verification_status, verification_token, ownership_verified, cname_verified, target_cname, last_checked_at, check_attempts, verification_error, domain_connect_provider, domain_connect_url, invocation_id, created_at, updated_at
