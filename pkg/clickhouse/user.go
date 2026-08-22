@@ -2,6 +2,7 @@ package clickhouse
 
 import (
 	"context"
+	"crypto/sha256"
 	"fmt"
 	"regexp"
 	"strings"
@@ -353,4 +354,21 @@ func DefaultAllowedTables() []AllowedTable {
 		// Runtime logs
 		{Name: "default.runtime_logs_raw_v1", Columns: runtimeLogColumns},
 	}
+}
+
+// DefaultAllowedTablesFingerprint identifies the grants that a workspace
+// ClickHouse user should have. The reconciler persists this value in Restate
+// state, so adding, removing, or narrowing a table grant automatically causes
+// existing users to be configured again.
+func DefaultAllowedTablesFingerprint() string {
+	tables := DefaultAllowedTables()
+	parts := make([]string, 0, len(tables))
+	for _, table := range tables {
+		// Identifiers cannot contain either separator, so different table and
+		// column lists cannot produce the same input.
+		parts = append(parts, table.Name+"\x00"+strings.Join(table.Columns, "\x1f"))
+	}
+
+	sum := sha256.Sum256([]byte(strings.Join(parts, "\x1e")))
+	return fmt.Sprintf("%x", sum)
 }
