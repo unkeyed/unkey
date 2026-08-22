@@ -350,6 +350,7 @@ func Run(ctx context.Context, cfg Config) error {
 			EnableH2C:          false,
 			MaxRequestBodySize: 0,
 			StreamRequestBody:  true,
+			TrustedProxyCIDRs:  nil,
 		})
 		if httpsErr != nil {
 			return fmt.Errorf("unable to create HTTPS server: %w", httpsErr)
@@ -389,6 +390,7 @@ func Run(ctx context.Context, cfg Config) error {
 			EnableH2C:          false,
 			MaxRequestBodySize: 0,
 			StreamRequestBody:  false,
+			TrustedProxyCIDRs:  nil,
 			ReadTimeout:        -1,
 			WriteTimeout:       -1,
 		})

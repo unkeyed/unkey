@@ -111,16 +111,21 @@ func (s *service) forward(ctx context.Context, sess *zen.Session, cfg forwardCon
 	proxy := &httputil.ReverseProxy{
 		Transport:     cfg.transport,
 		FlushInterval: -1, // flush immediately for streaming
-		Director: func(req *http.Request) {
+		Rewrite: func(proxyReq *httputil.ProxyRequest) {
 			proxyStartTime = s.clock.Now()
 			backendStart = proxyStartTime
 			if hasTracking {
 				tracking.InstanceStart = proxyStartTime
 			}
 
+			req := proxyReq.Out
 			req.URL.Scheme = cfg.targetURL.Scheme
 			req.URL.Host = cfg.targetURL.Host
 
+			// Replace client-supplied forwarding headers with the direct peer before
+			// destination-specific rewriting. Instance forwarding then sets the same
+			// authoritative address from the session without ReverseProxy appending it.
+			proxyReq.SetXForwarded()
 			cfg.directorFunc(req)
 
 			*req = *req.WithContext(httptrace.WithClientTrace(req.Context(), clientTrace))

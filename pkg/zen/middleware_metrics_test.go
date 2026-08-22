@@ -33,40 +33,71 @@ func (m *mockEventBuffer) getRequests() []schema.ApiRequest {
 	return append([]schema.ApiRequest{}, m.requests...)
 }
 
+func TestNewRejectsInvalidTrustedProxyCIDR(t *testing.T) {
+	_, err := New(Config{TrustedProxyCIDRs: []string{"not-a-cidr"}})
+	require.ErrorContains(t, err, `invalid trusted proxy CIDR "not-a-cidr"`)
+}
+
 func TestWithMetrics_IPAddressExtraction(t *testing.T) {
 
 	tests := []struct {
-		name          string
-		xForwardedFor string
-		remoteAddr    string
-		expectedIP    string
+		name              string
+		xForwardedFor     string
+		remoteAddr        string
+		trustedProxyCIDRs []string
+		expectedIP        string
 	}{
 		{
-			name:          "X-Forwarded-For with single IP (no port)",
-			xForwardedFor: "192.168.1.1",
-			remoteAddr:    "10.0.0.1:12345",
-			expectedIP:    "192.168.1.1",
+			name:              "trusted proxy with single IP",
+			xForwardedFor:     "192.168.1.1",
+			remoteAddr:        "10.0.0.1:12345",
+			trustedProxyCIDRs: []string{"10.0.0.0/8"},
+			expectedIP:        "192.168.1.1",
 		},
 		{
-			name:          "X-Forwarded-For with IP:port format strips port",
-			xForwardedFor: "192.168.1.1:8080",
-			remoteAddr:    "10.0.0.1:12345",
-			expectedIP:    "192.168.1.1",
+			name:              "trusted proxy with client port",
+			xForwardedFor:     "192.168.1.1:8080",
+			remoteAddr:        "10.0.0.1:12345",
+			trustedProxyCIDRs: []string{"10.0.0.0/8"},
+			expectedIP:        "192.168.1.1",
 		},
 		{
-			name:          "X-Forwarded-For with multiple IPs (comma-separated)",
-			xForwardedFor: "192.168.1.1, 10.0.0.2, 172.16.0.3",
-			remoteAddr:    "10.0.0.1:12345",
-			expectedIP:    "192.168.1.1",
+			name:              "trusted proxy uses rightmost IP after spoofed values",
+			xForwardedFor:     "192.168.1.1, 10.0.0.2, 172.16.0.3",
+			remoteAddr:        "10.0.0.1:12345",
+			trustedProxyCIDRs: []string{"10.0.0.0/8"},
+			expectedIP:        "172.16.0.3",
 		},
 		{
-			name:          "X-Forwarded-For with whitespace around IPs",
-			xForwardedFor: "  192.168.1.1  ,  10.0.0.2  ",
-			remoteAddr:    "10.0.0.1:12345",
-			expectedIP:    "192.168.1.1",
+			name:              "trusted proxy trims whitespace",
+			xForwardedFor:     "  192.168.1.1  ,  10.0.0.2  ",
+			remoteAddr:        "10.0.0.1:12345",
+			trustedProxyCIDRs: []string{"10.0.0.0/8"},
+			expectedIP:        "10.0.0.2",
 		},
 		{
-			name:          "Fallback to RemoteAddr when X-Forwarded-For is empty",
+			name:              "untrusted peer cannot spoof client IP",
+			xForwardedFor:     "192.168.1.1",
+			remoteAddr:        "198.51.100.10:12345",
+			trustedProxyCIDRs: []string{"10.0.0.0/8"},
+			expectedIP:        "198.51.100.10",
+		},
+		{
+			name:              "malformed proxy value falls back to peer",
+			xForwardedFor:     "192.168.1.1, spoofed",
+			remoteAddr:        "10.0.0.1:12345",
+			trustedProxyCIDRs: []string{"10.0.0.0/8"},
+			expectedIP:        "10.0.0.1",
+		},
+		{
+			name:              "empty rightmost proxy value falls back to peer",
+			xForwardedFor:     "192.168.1.1, ",
+			remoteAddr:        "10.0.0.1:12345",
+			trustedProxyCIDRs: []string{"10.0.0.0/8"},
+			expectedIP:        "10.0.0.1",
+		},
+		{
+			name:          "empty X-Forwarded-For falls back to peer",
 			xForwardedFor: "",
 			remoteAddr:    "192.168.1.100:54321",
 			expectedIP:    "192.168.1.100",
@@ -78,10 +109,18 @@ func TestWithMetrics_IPAddressExtraction(t *testing.T) {
 			expectedIP:    "10.20.30.40",
 		},
 		{
-			name:          "IPv6 address in X-Forwarded-For",
-			xForwardedFor: "2001:db8::1",
-			remoteAddr:    "10.0.0.1:12345",
-			expectedIP:    "2001:db8::1",
+			name:              "trusted proxy with IPv6 client",
+			xForwardedFor:     "2001:db8::1",
+			remoteAddr:        "10.0.0.1:12345",
+			trustedProxyCIDRs: []string{"10.0.0.0/8"},
+			expectedIP:        "2001:db8::1",
+		},
+		{
+			name:              "trusted IPv6 proxy with bracketed IPv6 client port",
+			xForwardedFor:     "[2001:db8::1]:8080",
+			remoteAddr:        "[fd00::1]:12345",
+			trustedProxyCIDRs: []string{"fd00::/8"},
+			expectedIP:        "2001:db8::1",
 		},
 		{
 			name:          "IPv6 with brackets and port in RemoteAddr",
@@ -101,7 +140,7 @@ func TestWithMetrics_IPAddressExtraction(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			eventBuffer := &mockEventBuffer{}
 
-			server, err := New(Config{})
+			server, err := New(Config{TrustedProxyCIDRs: tt.trustedProxyCIDRs})
 			require.NoError(t, err)
 
 			server.RegisterRoute(
@@ -136,7 +175,7 @@ func TestWithMetrics_HeaderFiltering(t *testing.T) {
 	t.Run("filters out infrastructure headers", func(t *testing.T) {
 		eventBuffer := &mockEventBuffer{}
 
-		server, err := New(Config{})
+		server, err := New(Config{TrustedProxyCIDRs: []string{"192.0.2.0/24"}})
 		require.NoError(t, err)
 
 		server.RegisterRoute(
