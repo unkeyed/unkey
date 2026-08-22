@@ -49,6 +49,11 @@ type Querier interface {
 	//
 	//  DELETE FROM app_runtime_settings WHERE environment_id = ?
 	DeleteAppRuntimeSettingsByEnvironmentId(ctx context.Context, db DBTX, environmentID string) error
+	//DeleteAppSourceOciByAppId
+	//
+	//  DELETE FROM app_source_oci
+	//  WHERE app_id = ?
+	DeleteAppSourceOciByAppId(ctx context.Context, db DBTX, appID string) error
 	//DeleteEnvVarsByEnvironmentId
 	//
 	//  DELETE FROM app_environment_variables
@@ -1089,11 +1094,13 @@ type Querier interface {
 	//      project_id,
 	//      name,
 	//      slug,
+	//      source_type,
 	//      default_branch,
 	//      delete_protection,
 	//      created_at,
 	//      updated_at
 	//  ) VALUES (
+	//      ?,
 	//      ?,
 	//      ?,
 	//      ?,
@@ -1110,6 +1117,22 @@ type Querier interface {
 	//  INSERT INTO app_environment_variables (id, workspace_id, app_id, environment_id, `key`, value, `type`, description, created_at)
 	//  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
 	InsertAppEnvironmentVariable(ctx context.Context, db DBTX, arg InsertAppEnvironmentVariableParams) error
+	//InsertAppSourceOci
+	//
+	//  INSERT INTO app_source_oci (
+	//      workspace_id,
+	//      app_id,
+	//      image_reference,
+	//      created_at,
+	//      updated_at
+	//  ) VALUES (
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?
+	//  )
+	InsertAppSourceOci(ctx context.Context, db DBTX, arg InsertAppSourceOciParams) error
 	// InsertClickhouseOutbox enqueues one event for ClickHouse export. Called
 	// from the same MySQL transaction as the underlying mutation, so durability
 	// is exactly the durability of the mutation: if the mutation commits, the
@@ -1367,10 +1390,12 @@ type Querier interface {
 	//      installation_id,
 	//      repository_id,
 	//      repository_full_name,
+	//      default_branch,
 	//      created_at,
 	//      updated_at
 	//  )
 	//  VALUES (
+	//      ?,
 	//      ?,
 	//      ?,
 	//      ?,
@@ -2591,6 +2616,14 @@ type Querier interface {
 	//    AND app_id = ?
 	//    AND environment_id = ?
 	UpdateAppRuntimeSettings(ctx context.Context, db DBTX, arg UpdateAppRuntimeSettingsParams) error
+	//UpdateAppSourceOciImageReference
+	//
+	//  UPDATE app_source_oci
+	//  SET image_reference = ?,
+	//      updated_at = ?
+	//  WHERE app_id = ?
+	//    AND workspace_id = ?
+	UpdateAppSourceOciImageReference(ctx context.Context, db DBTX, arg UpdateAppSourceOciImageReferenceParams) error
 	//UpdateCustomDomainsMax
 	//
 	//  UPDATE `limits`
@@ -2611,6 +2644,15 @@ type Querier interface {
 	//      updated_at = ?
 	//  WHERE id = ?
 	UpdateDeploymentImage(ctx context.Context, db DBTX, arg UpdateDeploymentImageParams) error
+	//UpdateGithubRepoConnectionDefaultBranch
+	//
+	//  UPDATE github_repo_connections
+	//  SET
+	//    default_branch = ?,
+	//    updated_at = ?
+	//  WHERE workspace_id = ?
+	//    AND app_id = ?
+	UpdateGithubRepoConnectionDefaultBranch(ctx context.Context, db DBTX, arg UpdateGithubRepoConnectionDefaultBranchParams) (int64, error)
 	//UpdateHorizontalAutoscalingPolicy
 	//
 	//  UPDATE horizontal_autoscaling_policies
@@ -2885,10 +2927,12 @@ type Querier interface {
 	//      installation_id,
 	//      repository_id,
 	//      repository_full_name,
+	//      default_branch,
 	//      created_at,
 	//      updated_at
 	//  )
 	//  VALUES (
+	//      ?,
 	//      ?,
 	//      ?,
 	//      ?,
@@ -2903,6 +2947,7 @@ type Querier interface {
 	//      installation_id = VALUES(installation_id),
 	//      repository_id = VALUES(repository_id),
 	//      repository_full_name = VALUES(repository_full_name),
+	//      default_branch = VALUES(default_branch),
 	//      updated_at = VALUES(updated_at)
 	UpsertGithubRepoConnection(ctx context.Context, db DBTX, arg UpsertGithubRepoConnectionParams) error
 	// Inserts a new identity or does nothing if one already exists for this workspace/external_id.

@@ -82,6 +82,11 @@ type Querier interface {
 	//
 	//  DELETE FROM app_runtime_settings WHERE environment_id = ?
 	DeleteAppRuntimeSettingsByEnvironmentId(ctx context.Context, environmentID string) error
+	//DeleteAppSourceOciByAppId
+	//
+	//  DELETE FROM app_source_oci
+	//  WHERE app_id = ?
+	DeleteAppSourceOciByAppId(ctx context.Context, appID string) error
 	//DeleteCiliumNetworkPoliciesByEnvironmentId
 	//
 	//  DELETE FROM cilium_network_policies WHERE environment_id = ?
@@ -800,11 +805,13 @@ type Querier interface {
 	//      project_id,
 	//      name,
 	//      slug,
+	//      source_type,
 	//      default_branch,
 	//      delete_protection,
 	//      created_at,
 	//      updated_at
 	//  ) VALUES (
+	//      ?,
 	//      ?,
 	//      ?,
 	//      ?,
@@ -821,6 +828,22 @@ type Querier interface {
 	//  INSERT INTO app_environment_variables (id, workspace_id, app_id, environment_id, `key`, value, created_at)
 	//  VALUES (?, ?, ?, ?, ?, ?, ?)
 	InsertAppEnvironmentVariable(ctx context.Context, arg InsertAppEnvironmentVariableParams) error
+	//InsertAppSourceOci
+	//
+	//  INSERT INTO app_source_oci (
+	//      workspace_id,
+	//      app_id,
+	//      image_reference,
+	//      created_at,
+	//      updated_at
+	//  ) VALUES (
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?
+	//  )
+	InsertAppSourceOci(ctx context.Context, arg InsertAppSourceOciParams) error
 	//InsertCertificate
 	//
 	//  INSERT INTO certificates (id, workspace_id, hostname, certificate, encrypted_private_key, created_at)
@@ -1102,10 +1125,12 @@ type Querier interface {
 	//      installation_id,
 	//      repository_id,
 	//      repository_full_name,
+	//      default_branch,
 	//      created_at,
 	//      updated_at
 	//  )
 	//  VALUES (
+	//      ?,
 	//      ?,
 	//      ?,
 	//      ?,
@@ -1889,6 +1914,14 @@ type Querier interface {
 	//    updated_at = ?
 	//  WHERE id = ?
 	UpdateAppDeployments(ctx context.Context, arg UpdateAppDeploymentsParams) error
+	//UpdateAppSourceOciImageReference
+	//
+	//  UPDATE app_source_oci
+	//  SET image_reference = ?,
+	//      updated_at = ?
+	//  WHERE app_id = ?
+	//    AND workspace_id = ?
+	UpdateAppSourceOciImageReference(ctx context.Context, arg UpdateAppSourceOciImageReferenceParams) error
 	//UpdateClickhouseWorkspaceSettingsLimits
 	//
 	//  UPDATE `clickhouse_workspace_settings`
