@@ -223,6 +223,7 @@ func Run(ctx context.Context, cfg Config) error {
 		EnableH2C:          false,
 		StreamRequestBody:  false,
 		MaxRequestBodySize: cfg.MaxRequestBodySize,
+		TrustedProxyCIDRs:  cfg.TrustedProxyCIDRs,
 		ReadTimeout:        0,
 		WriteTimeout:       0,
 	})

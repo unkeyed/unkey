@@ -26,7 +26,7 @@ func newSession(t *testing.T, method, path string) (*zen.Session, *httptest.Resp
 	req := httptest.NewRequest(method, path, nil)
 	req.Header.Set("User-Agent", "test-agent/1.0")
 	req.Header.Set("Referer", "https://example.com/from")
-	req.Header.Set("X-Forwarded-For", "203.0.113.7")
+	req.RemoteAddr = "203.0.113.7:1234"
 	req.Host = "api.test.local"
 
 	w := httptest.NewRecorder()
