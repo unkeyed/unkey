@@ -133,7 +133,7 @@ export function CancelApiDialog({
         </div>
       }
     >
-      <div className="flex items-center gap-4 rounded-xl border border-errorA-3 bg-errorA-2 px-[22px] py-6 dark:bg-gray-2">
+      <div className="flex items-center gap-4 rounded-xl border border-errorA-3 bg-errorA-2 px-[22px] py-6">
         <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-error-9">
           <TriangleWarning2 iconSize="sm-regular" className="text-white" />
         </div>

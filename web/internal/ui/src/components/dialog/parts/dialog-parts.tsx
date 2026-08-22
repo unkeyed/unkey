@@ -18,15 +18,14 @@ type DefaultDialogHeaderProps = {
 export const DefaultDialogHeader = ({ title, subTitle, className }: DefaultDialogHeaderProps) => {
   return (
     <ShadcnDialogHeader
-      className={cn(
-        "border-b border-gray-4 dark:border-gray-900 bg-background-overlay",
-        className,
-      )}
+      className={cn("border-b border-gray-4 dark:border-gray-900 bg-background-overlay", className)}
     >
       <ShadcnDialogTitle className="px-6 py-4 text-gray-12 font-medium text-base flex flex-col">
         <span className="leading-[32px] text-black dark:text-gray-200">{title}</span>
         {subTitle && ( // Conditionally render subtitle span only if it exists
-          <span className="text-gray-9 leading-[20px] text-[13px] font-normal">{subTitle}</span>
+          <span className="text-content-subtle leading-[20px] text-[13px] font-normal">
+            {subTitle}
+          </span>
         )}
       </ShadcnDialogTitle>
     </ShadcnDialogHeader>
@@ -61,7 +60,7 @@ export const DefaultDialogFooter = ({ children, className }: DefaultDialogFooter
   return (
     <ShadcnDialogFooter
       className={cn(
-        "p-6 border-t border-gray-4 dark:border-gray-900 bg-background-overlay text-gray-9",
+        "p-6 border-t border-gray-4 dark:border-gray-900 bg-background-overlay text-content-subtle",
         className,
       )}
     >

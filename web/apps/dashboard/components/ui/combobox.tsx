@@ -197,7 +197,7 @@ export function Combobox({
       </div>
       <PopoverContent
         className={cn(
-          "p-0 w-full min-w-(--anchor-width) rounded-lg border border-grayA-4 bg-background-overlay shadow-md z-200 overflow-visible",
+          "p-0 w-full min-w-(--anchor-width) rounded-lg border border-grayA-4 bg-background-overlay shadow-popover z-200 overflow-visible",
           popoverClassName,
         )}
       >
@@ -242,7 +242,7 @@ export function Combobox({
               }
             }}
             placeholder={searchPlaceholder}
-            className="text-xs placeholder:text-xs placeholder:text-accent-8"
+            className="text-xs placeholder:text-xs placeholder:text-content-subtle"
           />
           <CommandList className="max-h-[300px] overflow-y-auto overflow-x-hidden scrollbar-thin">
             {!showCreatableOption && <CommandEmpty>{emptyMessage}</CommandEmpty>}
@@ -257,7 +257,7 @@ export function Combobox({
                       setOpen(false);
                     }
                   }}
-                  className="flex items-center py-1 mt-0 text-gray-9 text-xs overflow-hidden"
+                  className="flex items-center py-1 mt-0 text-content-subtle text-xs overflow-hidden"
                 >
                   <span className="truncate">Use "{search.trim()}"</span>
                 </CommandItem>

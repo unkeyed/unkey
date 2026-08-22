@@ -175,7 +175,7 @@ const TimestampInfo: React.FC<{
         align={alignProp ?? align}
         side={sideProp ?? "right"}
         anchor={externalAnchor}
-        className="font-mono p-0 bg-background-overlay shadow-2xl text-xs border rounded-lg w-auto min-w-[280px] z-50 overflow-hidden border-grayA-4"
+        className="font-mono p-0 bg-background-overlay shadow-popover text-xs border rounded-lg w-auto min-w-[280px] z-50 overflow-hidden border-grayA-4"
       >
         <div className="py-3">
           <TooltipRow label="UTC" value={utc} />

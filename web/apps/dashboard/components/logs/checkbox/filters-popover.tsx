@@ -292,7 +292,7 @@ export const FiltersPopover = ({
 
       <Drover.Content
         className={cn(
-          "min-w-60 bg-background-overlay shadow-2xl border-gray-6 rounded-lg",
+          "min-w-60 bg-background-overlay shadow-popover border-gray-6 rounded-lg",
           searchItems ? "w-80 p-0" : "p-2",
         )}
         align="start"
@@ -392,14 +392,14 @@ export const FiltersPopover = ({
                       <span className="flex min-w-0 items-center gap-1 text-xs">
                         {item.path.map((segment) => (
                           <React.Fragment key={`${item.id}-${segment}`}>
-                            <span className="max-w-28 truncate text-gray-9">{segment}</span>
+                            <span className="max-w-28 truncate text-content-subtle">{segment}</span>
                             <CaretRight className="size-2 shrink-0 text-gray-7" />
                           </React.Fragment>
                         ))}
                         <span className="truncate font-medium text-accent-12">{item.label}</span>
                       </span>
                       {item.description ? (
-                        <span className="ml-auto max-w-28 shrink-0 truncate font-mono text-[10px] text-gray-8">
+                        <span className="ml-auto max-w-28 shrink-0 truncate font-mono text-[10px] text-content-subtle">
                           {item.description}
                         </span>
                       ) : null}
@@ -410,7 +410,9 @@ export const FiltersPopover = ({
                   ))}
                 </div>
               ) : (
-                <div className="px-2 py-8 text-center text-xs text-gray-9">No filters found</div>
+                <div className="px-2 py-8 text-center text-xs text-content-subtle">
+                  No filters found
+                </div>
               )
             ) : (
               <div className="flex flex-col gap-2 w-full" role="menu">
@@ -435,7 +437,7 @@ export const FiltersPopover = ({
 
 const PopoverHeader = () => (
   <div className="flex w-full justify-between items-center px-2 py-1">
-    <span className="text-gray-9 text-[13px]">Filters...</span>
+    <span className="text-content-subtle text-[13px]">Filters...</span>
     <KeyboardButton shortcut="F" />
   </div>
 );

@@ -49,11 +49,11 @@ export function createIdentityOptions({
             side="right"
             align="start"
             sideOffset={30}
-            className="drop-shadow-2xl transform-gpu border border-grayA-4 overflow-hidden rounded-[10px] p-0 bg-background-overlay w-[320px] z-100"
+            className="shadow-popover transform-gpu border border-grayA-4 overflow-hidden rounded-[10px] p-0 bg-background-overlay w-[320px] z-100"
           >
             <div className="flex flex-col h-full">
               {/* Header - Always shown */}
-              <div className="px-4 py-2 border-b border-grayA-4 text-gray-10 text-xs font-medium bg-grayA-2">
+              <div className="px-4 py-2 border-b border-grayA-4 text-content-subtle text-xs font-medium bg-grayA-2">
                 Metadata
               </div>
               {/* Content - Different based on metadata presence */}
@@ -62,7 +62,7 @@ export function createIdentityOptions({
                   <div className="w-full bg-grayA-1 dark:bg-grayA-2 border rounded-lg border-grayA-5 overflow-hidden">
                     <div className="flex items-start justify-between w-full gap-2">
                       <div className="overflow-x-auto w-full min-w-0 p-3">
-                        <pre className="whitespace-pre-wrap break-all text-[11px] leading-5 text-gray-8 font-mono">
+                        <pre className="whitespace-pre-wrap break-all text-[11px] leading-5 text-content-subtle font-mono">
                           No metadata available
                         </pre>
                       </div>

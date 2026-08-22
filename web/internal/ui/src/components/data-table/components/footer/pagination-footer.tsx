@@ -48,7 +48,7 @@ export const PaginationFooter = memo(function PaginationFooter({
         <button
           type="button"
           onClick={() => setIsOpen(true)}
-          className="cursor-pointer text-grayA-9 hover:text-grayA-11 bg-background-overlay border border-gray-6 rounded-lg shadow-lg p-3 duration-200 hover:shadow-xl hover:scale-105 group"
+          className="cursor-pointer text-content-subtle hover:text-grayA-11 bg-background-overlay border border-gray-6 rounded-lg shadow-lg p-3 duration-200 hover:shadow-xl hover:scale-105 group"
           title={`Page ${page} of ${totalPages} • ${start}-${end} of ${totalCount} ${itemLabel}`}
         >
           <div className="flex items-center gap-2">
@@ -84,7 +84,7 @@ export const PaginationFooter = memo(function PaginationFooter({
           <div className="flex flex-col w-full">
             {/* Header content */}
             {headerContent && <div className="flex items-center w-full">{headerContent}</div>}
-            <div className="flex w-full justify-between items-center text-[13px] text-grayA-9 p-[18px] min-h-[60px]">
+            <div className="flex w-full justify-between items-center text-[13px] text-content-subtle p-[18px] min-h-[60px]">
               {/* Item count */}
               <div className="flex gap-2">
                 <span>Viewing</span>
@@ -150,7 +150,7 @@ export const PaginationFooter = memo(function PaginationFooter({
                             "w-7 h-7 flex items-center justify-center rounded-md text-xs font-medium cursor-pointer",
                             isCurrentPage
                               ? "text-gray-12 pointer-events-none ring-0 border border-grayA-4 bg-grayA-4 text-sm transition-all duration-300"
-                              : "text-grayA-9 hover:text-gray-12 hover:bg-grayA-3",
+                              : "text-content-subtle hover:text-gray-12 hover:bg-grayA-3",
                             disabled && !isCurrentPage && "opacity-80 pointer-events-none",
                           )}
                         >

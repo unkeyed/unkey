@@ -7,6 +7,7 @@
 
   --color-background: hsl(var(--background));
   --color-background-subtle: hsl(var(--background-subtle));
+  --color-background-overlay: hsl(var(--background-overlay));
   --color-content: hsl(var(--content));
   --color-content-subtle: hsl(var(--content-subtle));
   --color-border: hsl(var(--border));
@@ -70,6 +71,8 @@
   --color-errorA-3: hsla(var(--errorA-3));
   --color-errorA-4: hsla(var(--errorA-4));
   --color-errorA-11: hsla(var(--errorA-11));
+
+  --shadow-popover: var(--popover-shadow);
 }
 
 @layer base {
@@ -86,6 +89,7 @@
   :root {
     --background: 0 0% 100%;
     --background-subtle: 60 9% 94%;
+    --background-overlay: 0 0% 100%;
     --primary: 24 10% 10%;
     --primary-foreground: 24 10% 90%;
     --secondary: 20 6% 94%;
@@ -94,6 +98,10 @@
     --content-subtle: 240 3.8% 46.1%;
     --border: 24, 6%, 83%;
     --ring: 24, 6%, 83%;
+
+    --popover-shadow:
+      0px 0px 0px 1px oklch(0.238 0 0 / 0.09), 0px 8px 16px oklch(0.238 0 0 / 0.04),
+      0px 4px 8px oklch(0.238 0 0 / 0.04), 0px 2px 4px oklch(0.238 0 0 / 0.04);
 
     /* Radix gray (Sand) */
     --gray-1: 0, 0%, 99%;

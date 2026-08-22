@@ -118,7 +118,7 @@ export const ConfirmPopover = ({
           </Button>
           <PopoverClose
             render={
-              <Button variant="ghost" className="text-gray-9 px-4">
+              <Button variant="ghost" className="text-content-subtle px-4">
                 {cancelButtonText}
               </Button>
             }
