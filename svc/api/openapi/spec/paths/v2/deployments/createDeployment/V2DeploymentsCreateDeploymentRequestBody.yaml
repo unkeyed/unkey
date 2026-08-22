@@ -12,13 +12,13 @@ properties:
     "$ref": "../../../../common/ResourceIdentifier.yaml"
   git:
     "$ref": "./DeploymentSourceGit.yaml"
-  image:
-    "$ref": "./DeploymentSourceImage.yaml"
+  docker:
+    "$ref": "./DeploymentSourceDocker.yaml"
   deployment:
     "$ref": "./DeploymentSourceDeployment.yaml"
 additionalProperties: false
 oneOf:
-  - required: [image]
+  - required: [docker]
   - required: [git]
   - required: [deployment]
-description: Create a deployment. Provide exactly one of git, image, or deployment.
+description: Create a deployment. Provide exactly one of git, docker, or deployment.

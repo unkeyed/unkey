@@ -2,10 +2,18 @@ package handler_test
 
 import (
 	"net/http"
+	"net/http/httptest"
 	"testing"
 
+	"github.com/google/go-containerregistry/pkg/name"
+	"github.com/google/go-containerregistry/pkg/registry"
+	"github.com/google/go-containerregistry/pkg/v1"
+	"github.com/google/go-containerregistry/pkg/v1/empty"
+	"github.com/google/go-containerregistry/pkg/v1/mutate"
+	"github.com/google/go-containerregistry/pkg/v1/remote"
 	"github.com/stretchr/testify/require"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
+	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
@@ -166,6 +174,7 @@ func TestRedeployImageReuse(t *testing.T) {
 		AppID:         setup.App.ID,
 		EnvironmentID: setup.Environment.ID,
 	})
+	setDeploymentImage(t, h, dep.ID, "registry.example.com/app@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
 
 	req := deploymentRequest(t, setup.Project.Slug, setup.App.Slug, setup.Environment.Slug, dep.ID)
 
@@ -173,6 +182,54 @@ func TestRedeployImageReuse(t *testing.T) {
 	require.Equal(t, http.StatusCreated, res.Status, "expected 201, received: %s", res.RawBody)
 	require.True(t, capture.called)
 	require.Nil(t, capture.req.GitCommit, "an app without a repo connection reuses the image instead of rebuilding")
+	require.Equal(t, "registry.example.com/app@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", capture.req.DockerImage)
+}
+
+func TestRedeployImageUsesPersistedDigestAfterTagMoves(t *testing.T) {
+	registryServer := httptest.NewTLSServer(registry.New())
+	t.Cleanup(registryServer.Close)
+	registryOptions := []remote.Option{remote.WithTransport(registryServer.Client().Transport)}
+	tag, err := name.NewTag(registryServer.Listener.Addr().String() + "/acme/api:stable")
+	require.NoError(t, err)
+
+	firstImage, err := mutate.Config(empty.Image, v1.Config{Env: []string{"VERSION=one"}})
+	require.NoError(t, err)
+	require.NoError(t, remote.Write(tag, firstImage, registryOptions...))
+	firstDescriptor, err := remote.Get(tag, registryOptions...)
+	require.NoError(t, err)
+	persistedDigest := tag.Context().Digest(firstDescriptor.Digest.String()).Name()
+
+	h := testutil.NewHarness(t)
+	capture := &ctrlCapture{}
+	route := newRoute(h, capture)
+	h.Register(route)
+	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
+		Permissions: []string{"environment.*.create_deployment"},
+	})
+	seedDeployableRegion(t, h, setup)
+	dep := h.CreateDeployment(seed.CreateDeploymentRequest{
+		ID:            uid.New(uid.DeploymentPrefix),
+		WorkspaceID:   setup.Workspace.ID,
+		ProjectID:     setup.Project.ID,
+		AppID:         setup.App.ID,
+		EnvironmentID: setup.Environment.ID,
+	})
+	setDeploymentSource(t, h, dep.ID, db.DeploymentsSourceOci, tag.Name())
+	setDeploymentImage(t, h, dep.ID, persistedDigest)
+
+	secondImage, err := mutate.Config(empty.Image, v1.Config{Env: []string{"VERSION=two"}})
+	require.NoError(t, err)
+	require.NoError(t, remote.Write(tag, secondImage, registryOptions...))
+	secondDescriptor, err := remote.Get(tag, registryOptions...)
+	require.NoError(t, err)
+	require.NotEqual(t, firstDescriptor.Digest, secondDescriptor.Digest, "test registry tag must move")
+
+	req := deploymentRequest(t, setup.Project.Slug, setup.App.Slug, setup.Environment.Slug, dep.ID)
+	res := testutil.CallRoute[handler.Request, handler.Response](h, route, authHeaders(setup.RootKey), req)
+	require.Equal(t, http.StatusCreated, res.Status, "expected 201, received: %s", res.RawBody)
+	require.True(t, capture.called)
+	require.Nil(t, capture.req.GitCommit)
+	require.Equal(t, persistedDigest, capture.req.DockerImage, "redeploy must ignore the moved tag")
 }
 
 // TestRedeployForkDeployment covers redeploying a deployment that was built from
@@ -283,6 +340,63 @@ func TestRedeployDeploymentWithoutBuiltImage(t *testing.T) {
 	res := testutil.CallRoute[handler.Request, openapi.PreconditionFailedErrorResponse](h, route, authHeaders(setup.RootKey), req)
 	require.Equal(t, http.StatusPreconditionFailed, res.Status, "expected 412, received: %s", res.RawBody)
 	require.False(t, capture.called, "ctrl must not be called for an unreproducible deployment")
+}
+
+func TestRedeployDockerDeploymentRequiresResolvedImage(t *testing.T) {
+	h := testutil.NewHarness(t)
+	capture := &ctrlCapture{}
+	route := newRoute(h, capture)
+	h.Register(route)
+
+	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
+		Permissions: []string{"environment.*.create_deployment"},
+	})
+	seedDeployableRegion(t, h, setup)
+
+	dep := h.CreateDeployment(seed.CreateDeploymentRequest{
+		ID:            uid.New(uid.DeploymentPrefix),
+		WorkspaceID:   setup.Workspace.ID,
+		ProjectID:     setup.Project.ID,
+		AppID:         setup.App.ID,
+		EnvironmentID: setup.Environment.ID,
+	})
+	setDeploymentSource(t, h, dep.ID, db.DeploymentsSourceOci, "nginx:stable")
+
+	req := deploymentRequest(t, setup.Project.Slug, setup.App.Slug, setup.Environment.Slug, dep.ID)
+	res := testutil.CallRoute[handler.Request, openapi.PreconditionFailedErrorResponse](h, route, authHeaders(setup.RootKey), req)
+
+	require.Equal(t, http.StatusPreconditionFailed, res.Status, "expected 412, received: %s", res.RawBody)
+	require.False(t, capture.called, "the mutable requested image must not be redeployed")
+}
+
+func TestRedeployGitDeploymentRequiresRepositoryConnection(t *testing.T) {
+	h := testutil.NewHarness(t)
+	capture := &ctrlCapture{}
+	route := newRoute(h, capture)
+	h.Register(route)
+
+	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
+		Permissions: []string{"environment.*.create_deployment"},
+	})
+	seedDeployableRegion(t, h, setup)
+
+	dep := h.CreateDeployment(seed.CreateDeploymentRequest{
+		ID:            uid.New(uid.DeploymentPrefix),
+		WorkspaceID:   setup.Workspace.ID,
+		ProjectID:     setup.Project.ID,
+		AppID:         setup.App.ID,
+		EnvironmentID: setup.Environment.ID,
+		GitCommitSha:  "9f2c1a7",
+		GitBranch:     "main",
+	})
+	setDeploymentSource(t, h, dep.ID, db.DeploymentsSourceGit, "")
+	setDeploymentImage(t, h, dep.ID, "registry.example.com/app@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
+
+	req := deploymentRequest(t, setup.Project.Slug, setup.App.Slug, setup.Environment.Slug, dep.ID)
+	res := testutil.CallRoute[handler.Request, openapi.PreconditionFailedErrorResponse](h, route, authHeaders(setup.RootKey), req)
+
+	require.Equal(t, http.StatusPreconditionFailed, res.Status, "expected 412, received: %s", res.RawBody)
+	require.False(t, capture.called, "a Git deployment must not fall back to its built image")
 }
 
 func TestSpecificEnvironmentPermission(t *testing.T) {

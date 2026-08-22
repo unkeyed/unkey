@@ -119,8 +119,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	switch {
-	case req.Image != nil:
-		ctrlReq.DockerImage = req.Image.DockerImage
+	case req.Docker != nil:
+		ctrlReq.DockerImage = req.Docker.Image
 
 	case req.Git != nil:
 		git := req.Git
@@ -141,7 +141,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 					"no repo connection",
 					fault.Code(codes.App.Precondition.PreconditionFailed.URN()),
 					fault.Internal("app has no github repo connection for git source"),
-					fault.Public("This app has no connected GitHub repository. Deploy a prebuilt image with the image source, or connect a repository first."),
+					fault.Public("This app has no connected GitHub repository. Deploy a prebuilt image with the Docker source, or connect a repository first."),
 				)
 			}
 			return fault.Wrap(err, fault.Internal("failed to check repo connection"))
@@ -166,7 +166,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			"exactly one source required",
 			fault.Code(codes.App.Validation.InvalidInput.URN()),
 			fault.Internal("no source set after validation"),
-			fault.Public("Provide exactly one of image, git, or deployment."),
+			fault.Public("Provide exactly one of docker, git, or deployment."),
 		)
 	}
 
@@ -225,19 +225,41 @@ func (h *Handler) resolveRedeploy(ctx context.Context, workspaceID, appID, envir
 		)
 	}
 
-	_, err = db.Query.FindGithubRepoConnectionByAppId(ctx, h.DB.RO(), appID)
-	switch {
-	case err == nil:
-		if deployment.GitBranch.String == "" && deployment.GitCommitSha.String == "" {
-			if deployment.Image.String == "" {
-				return nil, "", fault.New(
-					"deployment not redeployable",
-					fault.Code(codes.App.Precondition.PreconditionFailed.URN()),
-					fault.Internal("redeploy target has neither git metadata nor image"),
-					fault.Public("This deployment cannot be redeployed because it never produced an image."),
-				)
-			}
-			return nil, deployment.Image.String, nil
+	resolvedImage := func() (*ctrlv1.GitCommitInfo, string, error) {
+		image := deployment.ImageResolved
+		if !image.Valid || image.String == "" {
+			image = deployment.Image
+		}
+		if image.String == "" {
+			return nil, "", fault.New(
+				"deployment not redeployable",
+				fault.Code(codes.App.Precondition.PreconditionFailed.URN()),
+				fault.Internal("redeploy target has no resolved image"),
+				fault.Public("This deployment cannot be redeployed because it never produced an image."),
+			)
+		}
+		return nil, image.String, nil
+	}
+	gitCommit := func(requireSHA bool) (*ctrlv1.GitCommitInfo, string, error) {
+		if requireSHA && deployment.GitCommitSha.String == "" {
+			return nil, "", fault.New(
+				"deployment not redeployable",
+				fault.Code(codes.App.Precondition.PreconditionFailed.URN()),
+				fault.Internal("git redeploy target has no commit SHA"),
+				fault.Public("This deployment cannot be redeployed because its Git commit is unavailable."),
+			)
+		}
+		_, connectionErr := db.Query.FindGithubRepoConnectionByAppId(ctx, h.DB.RO(), appID)
+		if db.IsNotFound(connectionErr) {
+			return nil, "", fault.New(
+				"deployment not redeployable",
+				fault.Code(codes.App.Precondition.PreconditionFailed.URN()),
+				fault.Internal("git redeploy target has no repository connection"),
+				fault.Public("This deployment cannot be redeployed because its repository is not connected."),
+			)
+		}
+		if connectionErr != nil {
+			return nil, "", fault.Wrap(connectionErr, fault.Internal("failed to check repo connection"))
 		}
 		return &ctrlv1.GitCommitInfo{
 			CommitSha:       deployment.GitCommitSha.String,
@@ -248,10 +270,31 @@ func (h *Handler) resolveRedeploy(ctx context.Context, workspaceID, appID, envir
 			Timestamp:       deployment.GitCommitTimestamp.Int64,
 			ForkRepository:  deployment.ForkRepositoryFullName.String,
 		}, "", nil
-	case db.IsNotFound(err):
-		return nil, deployment.Image.String, nil
+	}
+
+	switch deployment.Source {
+	case db.DeploymentsSourceGit:
+		return gitCommit(true)
+	case db.DeploymentsSourceOci:
+		return resolvedImage()
+	case db.DeploymentsSourceUnknown, "":
+		// Historical rows predate explicit provenance. Preserve the old
+		// repository/metadata inference only inside this compatibility arm.
+		_, connectionErr := db.Query.FindGithubRepoConnectionByAppId(ctx, h.DB.RO(), appID)
+		if connectionErr == nil && (deployment.GitBranch.String != "" || deployment.GitCommitSha.String != "") {
+			return gitCommit(false)
+		}
+		if connectionErr != nil && !db.IsNotFound(connectionErr) {
+			return nil, "", fault.Wrap(connectionErr, fault.Internal("failed to check repo connection"))
+		}
+		return resolvedImage()
 	default:
-		return nil, "", fault.Wrap(err, fault.Internal("failed to check repo connection"))
+		return nil, "", fault.New(
+			"deployment not redeployable",
+			fault.Code(codes.App.Precondition.PreconditionFailed.URN()),
+			fault.Internal(fmt.Sprintf("unsupported deployment source %q", deployment.Source)),
+			fault.Public("This deployment has an unsupported source and cannot be redeployed."),
+		)
 	}
 }
 
