@@ -7,28 +7,28 @@ import { safeParse } from "../../lib/schemas.js";
 import { Result as SafeParseResult } from "../../types/fp.js";
 import { SDKValidationError } from "../errors/sdkvalidationerror.js";
 
-export type DeploymentDocker = {
+export type AppDocker = {
   /**
-   * The Docker image reference requested for this deployment.
+   * The configured default image reference for new deployments.
    */
   image: string;
 };
 
 /** @internal */
-export const DeploymentDocker$inboundSchema: z.ZodType<
-  DeploymentDocker,
+export const AppDocker$inboundSchema: z.ZodType<
+  AppDocker,
   z.ZodTypeDef,
   unknown
 > = z.object({
   image: z.string(),
 });
 
-export function deploymentDockerFromJSON(
+export function appDockerFromJSON(
   jsonString: string,
-): SafeParseResult<DeploymentDocker, SDKValidationError> {
+): SafeParseResult<AppDocker, SDKValidationError> {
   return safeParse(
     jsonString,
-    (x) => DeploymentDocker$inboundSchema.parse(JSON.parse(x)),
-    `Failed to parse 'DeploymentDocker' from JSON`,
+    (x) => AppDocker$inboundSchema.parse(JSON.parse(x)),
+    `Failed to parse 'AppDocker' from JSON`,
   );
 }

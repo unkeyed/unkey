@@ -3,6 +3,8 @@
  */
 
 export * from "./app.js";
+export * from "./appdocker.js";
+export * from "./appdockerinput.js";
 export * from "./appgit.js";
 export * from "./appgitcreateinput.js";
 export * from "./appgitupdateinput.js";
@@ -18,8 +20,8 @@ export * from "./deploymenterrorcode.js";
 export * from "./deploymentgit.js";
 export * from "./deploymentruntime.js";
 export * from "./deploymentsourcedeployment.js";
+export * from "./deploymentsourcedocker.js";
 export * from "./deploymentsourcegit.js";
-export * from "./deploymentsourceimage.js";
 export * from "./deploymentstatus.js";
 export * from "./dnsrecord.js";
 export * from "./domain.js";
@@ -93,7 +95,7 @@ export * from "./v2apisgetapiresponsebody.js";
 export * from "./v2apisgetapiresponsedata.js";
 export * from "./v2apislistkeysrequestbody.js";
 export * from "./v2apislistkeysresponsebody.js";
-export * from "./v2appscreateapprequestbody.js";
+export * from "./v2appscreateapprequestbodyunion.js";
 export * from "./v2appscreateappresponsebody.js";
 export * from "./v2appscreateappresponsedata.js";
 export * from "./v2appsdeleteapprequestbody.js";
@@ -102,7 +104,7 @@ export * from "./v2appsgetapprequestbody.js";
 export * from "./v2appsgetappresponsebody.js";
 export * from "./v2appslistappsrequestbody.js";
 export * from "./v2appslistappsresponsebody.js";
-export * from "./v2appsupdateapprequestbody.js";
+export * from "./v2appsupdateapprequestbodyunion.js";
 export * from "./v2appsupdateappresponsebody.js";
 export * from "./v2deploycreatedeploymentrequestbody.js";
 export * from "./v2deploycreatedeploymentresponsebody.js";

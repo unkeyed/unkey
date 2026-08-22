@@ -20,6 +20,8 @@ export class Apps extends ClientSDK {
    * @remarks
    * Create an app within a project. The app is created with default `production` and `preview` environments.
    *
+   * Set exactly one source. Use `git` to create a GitHub-sourced app and connect its repository. Use `docker` to create a Docker-sourced app.
+   *
    * The slug you provide is the stable, caller-defined handle used to reference this app. It must be unique within the project.
    *
    * **Important**: The slug cannot collide with an existing app in the same project. A duplicate slug returns a 409 conflict.
@@ -31,7 +33,7 @@ export class Apps extends ClientSDK {
    * - `project.<project_id>.create_app` (to create apps in a specific project)
    */
   async createApp(
-    request: components.V2AppsCreateAppRequestBody,
+    request: components.V2AppsCreateAppRequestBodyUnion,
     options?: RequestOptions,
   ): Promise<components.V2AppsCreateAppResponseBody> {
     return unwrapAsync(appsCreateApp(
@@ -136,7 +138,7 @@ export class Apps extends ClientSDK {
    * - `app.<app_id>.update_app` (to update a specific app)
    */
   async updateApp(
-    request: components.V2AppsUpdateAppRequestBody,
+    request: components.V2AppsUpdateAppRequestBodyUnion,
     options?: RequestOptions,
   ): Promise<components.V2AppsUpdateAppResponseBody> {
     return unwrapAsync(appsUpdateApp(
