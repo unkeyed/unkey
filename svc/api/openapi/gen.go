@@ -1887,21 +1887,13 @@ type V2AppsListAppsResponseBody struct {
 type V2AppsUpdateAppRequestBody struct {
 	// App Identifies a resource by either its unique ID or its slug.
 	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
-	App ResourceIdentifier `json:"app"`
+	App              ResourceIdentifier `json:"app"`
+	DeleteProtection *bool              `json:"deleteProtection,omitempty"`
 
-	// DeleteProtection Enable or disable delete protection for the app.
-	// Omit this field to leave the current setting unchanged.
-	DeleteProtection *bool `json:"deleteProtection,omitempty"`
-
-	// Git Connect, reconfigure, or disconnect this app's GitHub repository.
-	// Omit to leave unchanged, set null to disconnect, or set an object with a
-	// "repository" to connect or replace it and/or a "defaultBranch" to set which
-	// branch it tracks. Fields are independent, so send only the one you change.
-	Git nullable.Nullable[AppGitUpdateInput] `json:"git,omitempty"`
-
-	// Name New human-readable name for the app.
-	// Omit this field to leave the current name unchanged.
-	Name *string `json:"name,omitempty"`
+	// Docker Configure Docker as the app source.
+	Docker *AppDockerInput                      `json:"docker,omitempty"`
+	Git    nullable.Nullable[AppGitUpdateInput] `json:"git,omitempty"`
+	Name   *string                              `json:"name,omitempty"`
 
 	// Project Identifies a resource by either its unique ID or its slug.
 	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
@@ -1909,8 +1901,29 @@ type V2AppsUpdateAppRequestBody struct {
 
 	// Slug Identifies a resource by either its unique ID or its slug.
 	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
-	Slug *ResourceIdentifier `json:"slug,omitempty"`
+	Slug  *ResourceIdentifier `json:"slug,omitempty"`
+	union json.RawMessage
 }
+
+// V2AppsUpdateAppRequestBody0 defines model for .
+type V2AppsUpdateAppRequestBody0 = interface{}
+
+// V2AppsUpdateAppRequestBody1 defines model for .
+type V2AppsUpdateAppRequestBody1 struct {
+	union json.RawMessage
+}
+
+// V2AppsUpdateAppRequestBody10 defines model for .
+type V2AppsUpdateAppRequestBody10 = interface{}
+
+// V2AppsUpdateAppRequestBody11 defines model for .
+type V2AppsUpdateAppRequestBody11 = interface{}
+
+// V2AppsUpdateAppRequestBody12 defines model for .
+type V2AppsUpdateAppRequestBody12 = interface{}
+
+// V2AppsUpdateAppRequestBody13 defines model for .
+type V2AppsUpdateAppRequestBody13 = interface{}
 
 // V2AppsUpdateAppResponseBody defines model for V2AppsUpdateAppResponseBody.
 type V2AppsUpdateAppResponseBody struct {
@@ -4985,6 +4998,296 @@ func (t *V2AppsCreateAppRequestBody) UnmarshalJSON(b []byte) error {
 		}
 	}
 
+	return err
+}
+
+// AsV2AppsUpdateAppRequestBody0 returns the union data inside the V2AppsUpdateAppRequestBody as a V2AppsUpdateAppRequestBody0
+func (t V2AppsUpdateAppRequestBody) AsV2AppsUpdateAppRequestBody0() (V2AppsUpdateAppRequestBody0, error) {
+	var body V2AppsUpdateAppRequestBody0
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromV2AppsUpdateAppRequestBody0 overwrites any union data inside the V2AppsUpdateAppRequestBody as the provided V2AppsUpdateAppRequestBody0
+func (t *V2AppsUpdateAppRequestBody) FromV2AppsUpdateAppRequestBody0(v V2AppsUpdateAppRequestBody0) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeV2AppsUpdateAppRequestBody0 performs a merge with any union data inside the V2AppsUpdateAppRequestBody, using the provided V2AppsUpdateAppRequestBody0
+func (t *V2AppsUpdateAppRequestBody) MergeV2AppsUpdateAppRequestBody0(v V2AppsUpdateAppRequestBody0) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsV2AppsUpdateAppRequestBody1 returns the union data inside the V2AppsUpdateAppRequestBody as a V2AppsUpdateAppRequestBody1
+func (t V2AppsUpdateAppRequestBody) AsV2AppsUpdateAppRequestBody1() (V2AppsUpdateAppRequestBody1, error) {
+	var body V2AppsUpdateAppRequestBody1
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromV2AppsUpdateAppRequestBody1 overwrites any union data inside the V2AppsUpdateAppRequestBody as the provided V2AppsUpdateAppRequestBody1
+func (t *V2AppsUpdateAppRequestBody) FromV2AppsUpdateAppRequestBody1(v V2AppsUpdateAppRequestBody1) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeV2AppsUpdateAppRequestBody1 performs a merge with any union data inside the V2AppsUpdateAppRequestBody, using the provided V2AppsUpdateAppRequestBody1
+func (t *V2AppsUpdateAppRequestBody) MergeV2AppsUpdateAppRequestBody1(v V2AppsUpdateAppRequestBody1) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t V2AppsUpdateAppRequestBody) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	if err != nil {
+		return nil, err
+	}
+	object := make(map[string]json.RawMessage)
+	if t.union != nil {
+		err = json.Unmarshal(b, &object)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	object["app"], err = json.Marshal(t.App)
+	if err != nil {
+		return nil, fmt.Errorf("error marshaling 'app': %w", err)
+	}
+
+	if t.DeleteProtection != nil {
+		object["deleteProtection"], err = json.Marshal(t.DeleteProtection)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'deleteProtection': %w", err)
+		}
+	}
+
+	if t.Docker != nil {
+		object["docker"], err = json.Marshal(t.Docker)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'docker': %w", err)
+		}
+	}
+
+	if t.Git != nil {
+		object["git"], err = json.Marshal(t.Git)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'git': %w", err)
+		}
+	}
+
+	if t.Name != nil {
+		object["name"], err = json.Marshal(t.Name)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'name': %w", err)
+		}
+	}
+
+	object["project"], err = json.Marshal(t.Project)
+	if err != nil {
+		return nil, fmt.Errorf("error marshaling 'project': %w", err)
+	}
+
+	if t.Slug != nil {
+		object["slug"], err = json.Marshal(t.Slug)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'slug': %w", err)
+		}
+	}
+	b, err = json.Marshal(object)
+	return b, err
+}
+
+func (t *V2AppsUpdateAppRequestBody) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	if err != nil {
+		return err
+	}
+	object := make(map[string]json.RawMessage)
+	err = json.Unmarshal(b, &object)
+	if err != nil {
+		return err
+	}
+
+	if raw, found := object["app"]; found {
+		err = json.Unmarshal(raw, &t.App)
+		if err != nil {
+			return fmt.Errorf("error reading 'app': %w", err)
+		}
+	}
+
+	if raw, found := object["deleteProtection"]; found {
+		err = json.Unmarshal(raw, &t.DeleteProtection)
+		if err != nil {
+			return fmt.Errorf("error reading 'deleteProtection': %w", err)
+		}
+	}
+
+	if raw, found := object["docker"]; found {
+		err = json.Unmarshal(raw, &t.Docker)
+		if err != nil {
+			return fmt.Errorf("error reading 'docker': %w", err)
+		}
+	}
+
+	if raw, found := object["git"]; found {
+		err = json.Unmarshal(raw, &t.Git)
+		if err != nil {
+			return fmt.Errorf("error reading 'git': %w", err)
+		}
+	}
+
+	if raw, found := object["name"]; found {
+		err = json.Unmarshal(raw, &t.Name)
+		if err != nil {
+			return fmt.Errorf("error reading 'name': %w", err)
+		}
+	}
+
+	if raw, found := object["project"]; found {
+		err = json.Unmarshal(raw, &t.Project)
+		if err != nil {
+			return fmt.Errorf("error reading 'project': %w", err)
+		}
+	}
+
+	if raw, found := object["slug"]; found {
+		err = json.Unmarshal(raw, &t.Slug)
+		if err != nil {
+			return fmt.Errorf("error reading 'slug': %w", err)
+		}
+	}
+
+	return err
+}
+
+// AsV2AppsUpdateAppRequestBody10 returns the union data inside the V2AppsUpdateAppRequestBody1 as a V2AppsUpdateAppRequestBody10
+func (t V2AppsUpdateAppRequestBody1) AsV2AppsUpdateAppRequestBody10() (V2AppsUpdateAppRequestBody10, error) {
+	var body V2AppsUpdateAppRequestBody10
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromV2AppsUpdateAppRequestBody10 overwrites any union data inside the V2AppsUpdateAppRequestBody1 as the provided V2AppsUpdateAppRequestBody10
+func (t *V2AppsUpdateAppRequestBody1) FromV2AppsUpdateAppRequestBody10(v V2AppsUpdateAppRequestBody10) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeV2AppsUpdateAppRequestBody10 performs a merge with any union data inside the V2AppsUpdateAppRequestBody1, using the provided V2AppsUpdateAppRequestBody10
+func (t *V2AppsUpdateAppRequestBody1) MergeV2AppsUpdateAppRequestBody10(v V2AppsUpdateAppRequestBody10) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsV2AppsUpdateAppRequestBody11 returns the union data inside the V2AppsUpdateAppRequestBody1 as a V2AppsUpdateAppRequestBody11
+func (t V2AppsUpdateAppRequestBody1) AsV2AppsUpdateAppRequestBody11() (V2AppsUpdateAppRequestBody11, error) {
+	var body V2AppsUpdateAppRequestBody11
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromV2AppsUpdateAppRequestBody11 overwrites any union data inside the V2AppsUpdateAppRequestBody1 as the provided V2AppsUpdateAppRequestBody11
+func (t *V2AppsUpdateAppRequestBody1) FromV2AppsUpdateAppRequestBody11(v V2AppsUpdateAppRequestBody11) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeV2AppsUpdateAppRequestBody11 performs a merge with any union data inside the V2AppsUpdateAppRequestBody1, using the provided V2AppsUpdateAppRequestBody11
+func (t *V2AppsUpdateAppRequestBody1) MergeV2AppsUpdateAppRequestBody11(v V2AppsUpdateAppRequestBody11) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsV2AppsUpdateAppRequestBody12 returns the union data inside the V2AppsUpdateAppRequestBody1 as a V2AppsUpdateAppRequestBody12
+func (t V2AppsUpdateAppRequestBody1) AsV2AppsUpdateAppRequestBody12() (V2AppsUpdateAppRequestBody12, error) {
+	var body V2AppsUpdateAppRequestBody12
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromV2AppsUpdateAppRequestBody12 overwrites any union data inside the V2AppsUpdateAppRequestBody1 as the provided V2AppsUpdateAppRequestBody12
+func (t *V2AppsUpdateAppRequestBody1) FromV2AppsUpdateAppRequestBody12(v V2AppsUpdateAppRequestBody12) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeV2AppsUpdateAppRequestBody12 performs a merge with any union data inside the V2AppsUpdateAppRequestBody1, using the provided V2AppsUpdateAppRequestBody12
+func (t *V2AppsUpdateAppRequestBody1) MergeV2AppsUpdateAppRequestBody12(v V2AppsUpdateAppRequestBody12) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsV2AppsUpdateAppRequestBody13 returns the union data inside the V2AppsUpdateAppRequestBody1 as a V2AppsUpdateAppRequestBody13
+func (t V2AppsUpdateAppRequestBody1) AsV2AppsUpdateAppRequestBody13() (V2AppsUpdateAppRequestBody13, error) {
+	var body V2AppsUpdateAppRequestBody13
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromV2AppsUpdateAppRequestBody13 overwrites any union data inside the V2AppsUpdateAppRequestBody1 as the provided V2AppsUpdateAppRequestBody13
+func (t *V2AppsUpdateAppRequestBody1) FromV2AppsUpdateAppRequestBody13(v V2AppsUpdateAppRequestBody13) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeV2AppsUpdateAppRequestBody13 performs a merge with any union data inside the V2AppsUpdateAppRequestBody1, using the provided V2AppsUpdateAppRequestBody13
+func (t *V2AppsUpdateAppRequestBody1) MergeV2AppsUpdateAppRequestBody13(v V2AppsUpdateAppRequestBody13) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t V2AppsUpdateAppRequestBody1) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *V2AppsUpdateAppRequestBody1) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
 	return err
 }
 
