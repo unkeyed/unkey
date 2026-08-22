@@ -464,6 +464,7 @@ func Run(ctx context.Context, cfg Config) error {
 	if domainCacheErr != nil {
 		return fmt.Errorf("failed to create domain cache: %w", domainCacheErr)
 	}
+	r.Defer(func() error { domainCache.Close(); return nil })
 
 	// Setup ACME challenge providers
 	var dnsProvider challenge.Provider

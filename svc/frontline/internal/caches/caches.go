@@ -30,8 +30,13 @@ type Caches struct {
 	TLSCertificates cache.Cache[string, tls.Certificate]
 }
 
-// Close shuts down the caches and cleans up resources.
+// Close stops the background revalidation workers and metrics reporters of
+// every cache in the set. The caches must not be used after Close.
 func (c *Caches) Close() error {
+	c.FrontlineRoutes.Close()
+	c.InstancesByDeployment.Close()
+	c.Policies.Close()
+	c.TLSCertificates.Close()
 	return nil
 }
 

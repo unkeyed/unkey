@@ -142,6 +142,7 @@ func Run(ctx context.Context, cfg Config) error {
 	if err != nil {
 		return fmt.Errorf("failed to create topology cache: %w", err)
 	}
+	r.Defer(func() error { topologyCache.Close(); return nil })
 
 	// Set up the ClickHouse buffer that absorbs container lifecycle events
 	// reported by krane. Falls back to a noop when no URL is configured so
@@ -197,6 +198,7 @@ func Run(ctx context.Context, cfg Config) error {
 	if err != nil {
 		return fmt.Errorf("failed to create domain cache: %w", err)
 	}
+	r.Defer(func() error { domainCache.Close(); return nil })
 
 	challengeCache, err := cache.New(cache.Config[string, db.AcmeChallenge]{
 		Fresh:    10 * time.Second,
@@ -208,6 +210,7 @@ func Run(ctx context.Context, cfg Config) error {
 	if err != nil {
 		return fmt.Errorf("failed to create challenge cache: %w", err)
 	}
+	r.Defer(func() error { challengeCache.Close(); return nil })
 
 	// Create GitHub client for deployment authorization (optional)
 	var ghClient githubclient.GitHubClient = githubclient.NewNoop()

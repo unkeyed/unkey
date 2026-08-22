@@ -493,6 +493,7 @@ func buildEngine(
 	if err != nil {
 		return nil, fmt.Errorf("failed to create key cache: %w", err)
 	}
+	r.Defer(func() error { keyCache.Close(); return nil })
 
 	keyService, err := keys.New(keys.Config{
 		DB:           pkgdb.ToMySQL(database),
