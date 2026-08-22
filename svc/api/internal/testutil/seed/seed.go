@@ -782,6 +782,7 @@ type CreateDeploymentRequest struct {
 	EnvironmentID          string
 	Status                 mysqltype.DeploymentsStatus
 	DesiredState           mysqltype.DeploymentsDesiredState
+	Source                 db.DeploymentsSource
 	GitBranch              string
 	GitCommitSha           string
 	GitCommitMessage       string
@@ -802,6 +803,10 @@ func (s *Seeder) CreateDeployment(ctx context.Context, req CreateDeploymentReque
 	if status == "" {
 		status = mysqltype.DeploymentsStatusPending
 	}
+	source := req.Source
+	if source == "" {
+		source = db.DeploymentsSourceUnknown
+	}
 
 	createdAt := time.Now().UnixMilli()
 	err := db.Query.InsertDeployment(ctx, s.DB.RW(), db.InsertDeploymentParams{
@@ -811,6 +816,8 @@ func (s *Seeder) CreateDeployment(ctx context.Context, req CreateDeploymentReque
 		ProjectID:                     req.ProjectID,
 		AppID:                         req.AppID,
 		EnvironmentID:                 req.EnvironmentID,
+		Source:                        source,
+		ImageRequested:                sql.NullString{Valid: false},
 		GitCommitSha:                  sql.NullString{String: req.GitCommitSha, Valid: req.GitCommitSha != ""},
 		GitBranch:                     sql.NullString{String: req.GitBranch, Valid: req.GitBranch != ""},
 		SentinelConfig:                []byte("{}"),
