@@ -78,6 +78,32 @@ actions:
   - target: $["components"]["schemas"]["V2EnvironmentsUpdateSettingsRequestBody"]["properties"]["buildCommand"]
     update:
       nullable: true
+  # oapi-codegen maps complete oneOf branches to a union wrapper. Flatten this
+  # request schema for Go while the public schema remains a strict union.
+  - target: $["components"]["schemas"]["V2AppsCreateAppRequestBody"]["oneOf"][*]["type"]
+    remove: true
+  - target: $["components"]["schemas"]["V2AppsCreateAppRequestBody"]["oneOf"][*]["properties"]
+    remove: true
+  - target: $["components"]["schemas"]["V2AppsCreateAppRequestBody"]["oneOf"][*]["additionalProperties"]
+    remove: true
+  - target: $["components"]["schemas"]["V2AppsCreateAppRequestBody"]
+    update:
+      type: object
+      required: [project, name, slug]
+      properties:
+        project:
+          "$ref": "#/components/schemas/ResourceIdentifier"
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+        slug:
+          "$ref": "#/components/schemas/ResourceIdentifier"
+        git:
+          "$ref": "#/components/schemas/AppGitCreateInput"
+        docker:
+          "$ref": "#/components/schemas/AppDockerInput"
+      additionalProperties: false
   - target: $["components"]["schemas"]["V2AppsUpdateAppRequestBody"]["properties"]["git"]["anyOf"]
     remove: true
   - target: $["components"]["schemas"]["V2AppsUpdateAppRequestBody"]["properties"]["git"]

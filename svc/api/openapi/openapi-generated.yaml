@@ -422,27 +422,51 @@ components:
                     "$ref": "#/components/schemas/Pagination"
             additionalProperties: false
         V2AppsCreateAppRequestBody:
-            type: object
-            required:
-                - project
-                - name
-                - slug
-            properties:
-                project:
-                    "$ref": "#/components/schemas/ResourceIdentifier"
-                name:
-                    type: string
-                    minLength: 1
-                    maxLength: 256
-                    description: |
-                        Human-readable name for this app.
-                        Use a descriptive name like 'Payments API' to identify its purpose.
-                    example: Payments API
-                slug:
-                    "$ref": "#/components/schemas/ResourceIdentifier"
-                git:
-                    "$ref": "#/components/schemas/AppGitCreateInput"
-            additionalProperties: false
+            oneOf:
+                - type: object
+                  required:
+                    - project
+                    - name
+                    - slug
+                    - git
+                  properties:
+                    project:
+                        "$ref": "#/components/schemas/ResourceIdentifier"
+                    name:
+                        type: string
+                        minLength: 1
+                        maxLength: 256
+                        description: Human-readable name for this app.
+                        example: Payments API
+                    slug:
+                        "$ref": "#/components/schemas/ResourceIdentifier"
+                    git:
+                        "$ref": "#/components/schemas/AppGitCreateInput"
+                    docker: {}
+                  additionalProperties: false
+                - type: object
+                  required:
+                    - project
+                    - name
+                    - slug
+                    - docker
+                  properties:
+                    project:
+                        "$ref": "#/components/schemas/ResourceIdentifier"
+                    name:
+                        type: string
+                        minLength: 1
+                        maxLength: 256
+                        description: Human-readable name for this app.
+                        example: Payments API
+                    slug:
+                        "$ref": "#/components/schemas/ResourceIdentifier"
+                    docker:
+                        "$ref": "#/components/schemas/AppDockerInput"
+                    git: {}
+                  additionalProperties: false
+            description: |
+                Create an app with exactly one source: `git` or `docker`.
         V2AppsCreateAppResponseBody:
             type: object
             required:
@@ -4089,6 +4113,21 @@ components:
                         default branch on GitHub.
                     example: main
             additionalProperties: false
+        AppDockerInput:
+            type: object
+            description: |
+                Configure Docker as the app source.
+            required:
+                - image
+            properties:
+                image:
+                    type: string
+                    minLength: 1
+                    maxLength: 512
+                    pattern: "\\S"
+                    description: The default image reference for new deployments. It must include an explicit tag or digest.
+                    example: ghcr.io/acme/api:v1.2.3
+            additionalProperties: false
         V2AppsCreateAppResponseData:
             type: object
             required:
@@ -4130,6 +4169,17 @@ components:
                         URL-safe handle for this app, unique within its project.
                         Chosen at creation time.
                     example: payments-api
+                sourceType:
+                    type: string
+                    enum:
+                        - git
+                        - docker
+                    description: |
+                        The configured source used to create deployments. Omitted for historical
+                        apps whose source could not be classified.
+                    example: docker
+                    x-go-type-skip-optional-pointer: true
+                    x-go-type-skip-optional-pointer-with-omitzero: true
                 git:
                     description: |
                         The connected GitHub repository and the branch its deployments track.
@@ -4137,6 +4187,11 @@ components:
                         Docker-based app).
                     allOf:
                         - "$ref": "#/components/schemas/AppGit"
+                docker:
+                    description: |
+                        The configured Docker image source. Omitted when the app is not Docker-sourced.
+                    allOf:
+                        - "$ref": "#/components/schemas/AppDocker"
                 currentDeploymentId:
                     type: string
                     description: |
@@ -4193,6 +4248,16 @@ components:
                     maxLength: 256
                     description: The branch this app's deployments track.
                     example: main
+            additionalProperties: false
+        AppDocker:
+            type: object
+            required:
+                - image
+            properties:
+                image:
+                    type: string
+                    description: The configured default image reference for new deployments.
+                    example: ghcr.io/acme/api:v1.2.3
             additionalProperties: false
         AppGitUpdateInput:
             type: object
@@ -7583,6 +7648,8 @@ paths:
             description: |
                 Create an app within a project. The app is created with default `production` and `preview` environments.
 
+                Set exactly one source. Use `git` to create a GitHub-sourced app and connect its repository. Use `docker` to create a Docker-sourced app.
+
                 The slug you provide is the stable, caller-defined handle used to reference this app. It must be unique within the project.
 
                 **Important**: The slug cannot collide with an existing app in the same project. A duplicate slug returns a 409 conflict.
@@ -7597,10 +7664,21 @@ paths:
                 content:
                     application/json:
                         examples:
-                            basic:
-                                description: Create an app within a project
-                                summary: Basic app creation
+                            dockerImage:
+                                description: Create an app from a Docker image
+                                summary: Docker image app
                                 value:
+                                    docker:
+                                        image: ghcr.io/acme/payments:v1.2.3
+                                    name: Payments API
+                                    project: payments
+                                    slug: payments-api
+                            git:
+                                description: Create an app connected to a GitHub repository
+                                summary: GitHub app
+                                value:
+                                    git:
+                                        repository: unkeyed/unkey
                                     name: Payments API
                                     project: payments
                                     slug: payments-api
