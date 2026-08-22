@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
@@ -75,12 +76,14 @@ func TestListAppsSuccessfully(t *testing.T) {
 		require.NotEmpty(t, res.Body.Meta.RequestId)
 		require.Len(t, res.Body.Data, len(seeded))
 		require.False(t, res.Body.Pagination.HasMore)
+		require.NotContains(t, res.RawBody, `"sourceType"`)
 
 		for _, a := range res.Body.Data {
 			slug, ok := seeded[a.Id]
 			require.True(t, ok, "unexpected app %s in response", a.Id)
 			require.True(t, strings.HasPrefix(a.Id, "app_"), "id should have app_ prefix: %s", a.Id)
 			require.Equal(t, slug, a.Slug)
+			require.Empty(t, a.SourceType)
 			require.Nil(t, a.Git, "seeded app has no repo connection")
 			require.NotEmpty(t, a.Name)
 			require.Empty(t, a.CurrentDeploymentId, "freshly seeded app has no active deployment")
@@ -157,6 +160,47 @@ func TestListAppsSuccessfully(t *testing.T) {
 		}
 		require.NotContains(t, res.RawBody, foreignProject.ID, "response must not leak the foreign project ID")
 	})
+}
+
+func TestListAppsReturnsConfiguredDockerSource(t *testing.T) {
+	h := testutil.NewHarness(t)
+	route := &handler.Handler{DB: h.DB}
+	h.Register(route)
+
+	workspace := h.Resources().UserWorkspace
+	project := h.CreateProject(seed.CreateProjectRequest{
+		ID:          uid.New(uid.ProjectPrefix),
+		WorkspaceID: workspace.ID,
+		Name:        "Docker Project",
+		Slug:        strings.ToLower(strings.ReplaceAll(uid.New("test"), "_", "-")),
+	})
+	app := h.CreateApp(seed.CreateAppRequest{
+		ID:             uid.New(uid.AppPrefix),
+		WorkspaceID:    workspace.ID,
+		ProjectID:      project.ID,
+		Name:           "Docker API",
+		Slug:           strings.ToLower(strings.ReplaceAll(uid.New("test"), "_", "-")),
+		SourceType:     db.AppsSourceTypeOci,
+		ImageReference: "ghcr.io/acme/api:v1.2.3",
+	})
+	rootKey := h.CreateRootKey(workspace.ID, "app.*.read_app")
+	headers := http.Header{
+		"Content-Type":  {"application/json"},
+		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+	}
+
+	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{Project: project.ID})
+	require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
+	require.Len(t, res.Body.Data, 1)
+	require.Equal(t, app.ID, res.Body.Data[0].Id)
+	require.Equal(t, "docker", string(res.Body.Data[0].SourceType))
+	require.Nil(t, res.Body.Data[0].Git)
+	require.NotNil(t, res.Body.Data[0].Docker)
+	require.Equal(t, "ghcr.io/acme/api:v1.2.3", res.Body.Data[0].Docker.Image)
+
+	require.NoError(t, db.Query.DeleteAppSourceOciByAppId(t.Context(), h.DB.RW(), app.ID))
+	res = testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{Project: project.ID})
+	require.Equal(t, http.StatusInternalServerError, res.Status, "missing Docker source must not produce an empty image")
 }
 
 func TestListAppsPagination(t *testing.T) {

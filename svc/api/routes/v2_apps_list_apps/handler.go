@@ -100,15 +100,37 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	rows, pg := pagination.Paginate(rows, p, func(r db.ListAppsByProjectRow) string { return r.ID })
+	for _, row := range rows {
+		if row.SourceType == db.AppsSourceTypeOci && !row.OciImageReference.Valid {
+			return fault.New(
+				"Docker app source is missing",
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Internal("Docker app has no configured image source"),
+				fault.Public("Failed to retrieve apps."),
+			)
+		}
+	}
 
 	data := array.Map(rows, func(row db.ListAppsByProjectRow) openapi.App {
+		var docker *openapi.AppDocker
+		if row.SourceType == db.AppsSourceTypeOci {
+			docker = &openapi.AppDocker{Image: row.OciImageReference.String}
+		}
+		sourceType := openapi.AppSourceType("")
+		switch row.SourceType {
+		case db.AppsSourceTypeGit:
+			sourceType = openapi.Git
+		case db.AppsSourceTypeOci:
+			sourceType = openapi.Docker
+		case db.AppsSourceTypeUnknown:
+		}
 		return openapi.App{
 			Id:                  row.ID,
 			Name:                row.Name,
 			Slug:                row.Slug,
-			SourceType:          "",
-			Git:                 githubapp.GitResponse(row.RepositoryFullName.String, row.DefaultBranch),
-			Docker:              nil,
+			SourceType:          sourceType,
+			Git:                 githubapp.GitResponse(row.RepositoryFullName.String, row.GithubDefaultBranch.String),
+			Docker:              docker,
 			CurrentDeploymentId: row.CurrentDeploymentID.String,
 			IsRolledBack:        row.IsRolledBack,
 			DeleteProtection:    row.DeleteProtection.Bool,
