@@ -2,6 +2,7 @@
 
 import type { Deployment } from "@/lib/collections/deploy/deployments";
 import { Ban, CloudUp, Earth, Hammer2, LayerFront, Pulse, Sparkle3 } from "@unkey/icons";
+import { match } from "@unkey/match";
 import { Button, SettingCardGroup } from "@unkey/ui";
 import { useState } from "react";
 import { RedeployDialog } from "../../components/table/components/actions/redeploy-dialog";
@@ -53,22 +54,24 @@ type DeploymentCancelledProps = {
   reason: StopReason;
 };
 
-const COPY: Record<StopReason, { step: string; title: string; description: string }> = {
-  cancelled: {
-    step: "Cancelled",
-    title: "Deployment cancelled",
-    description: "You aborted this deployment. Redeploy to try again.",
-  },
-  superseded: {
-    step: "Superseded",
-    title: "Deployment superseded",
-    description: "A newer commit on this branch replaced this deployment.",
-  },
-};
-
 export function DeploymentCancelled({ deployment, stepsData, reason }: DeploymentCancelledProps) {
   const [redeployOpen, setRedeployOpen] = useState(false);
-  const copy = COPY[reason];
+  const copy = match(reason)
+    .with("cancelled", () => ({
+      step: "Cancelled",
+      title: "Deployment cancelled",
+      description: "You aborted this deployment. Redeploy to try again.",
+    }))
+    .with("superseded", () => ({
+      step: "Superseded",
+      title: "Deployment superseded",
+      description: match(deployment.source)
+        .with("git", () => "A newer commit on this branch replaced this deployment.")
+        .with("docker", () => "A newer deployment replaced this image deployment.")
+        .with("unknown", () => "A newer deployment replaced this deployment.")
+        .exhaustive(),
+    }))
+    .exhaustive();
 
   // Find the first step that has an error and isn't completed -- that's
   // the step that was actively running when the deployment was stopped.
