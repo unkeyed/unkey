@@ -121,7 +121,7 @@ export async function linkApiSubscription(
     columns: { id: true },
     with: {
       billing: {
-        columns: { tier: true },
+        columns: { tier: true, plan: true, planOverride: true },
       },
       billingSubscriptions: {
         columns: { product: true, stripeSubscriptionId: true },

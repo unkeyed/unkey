@@ -500,10 +500,10 @@ type Querier interface {
 	FindEnvironmentByAppIdAndSlug(ctx context.Context, arg FindEnvironmentByAppIdAndSlugParams) (FindEnvironmentByAppIdAndSlugRow, error)
 	//FindEnvironmentById
 	//
-	//  SELECT environments.pk, environments.id, environments.workspace_id, environments.project_id, environments.app_id, environments.slug, environments.description, environments.delete_protection, environments.created_at, environments.updated_at
+	//  SELECT environments.pk, environments.id, environments.workspace_id, environments.project_id, environments.app_id, environments.slug, environments.description, environments.kind, environments.delete_protection, environments.created_at, environments.updated_at
 	//  FROM environments
 	//  WHERE id = ?
-	FindEnvironmentById(ctx context.Context, id string) (FindEnvironmentByIdRow, error)
+	FindEnvironmentById(ctx context.Context, id string) (Environment, error)
 	//FindFrontlineRouteByDeploymentIDAndSticky
 	//
 	//  SELECT frontline_routes.pk, frontline_routes.id, frontline_routes.project_id, frontline_routes.app_id, frontline_routes.deployment_id, frontline_routes.environment_id, frontline_routes.fully_qualified_domain_name, frontline_routes.sticky, frontline_routes.created_at, frontline_routes.updated_at FROM frontline_routes WHERE deployment_id = ? AND sticky = ?
@@ -1603,13 +1603,13 @@ type Querier interface {
 	ListOlderActiveDeploymentsForDedup(ctx context.Context, arg ListOlderActiveDeploymentsForDedupParams) ([]ListOlderActiveDeploymentsForDedupRow, error)
 	//ListPreviewEnvironments
 	//
-	//  SELECT environments.pk, environments.id, environments.workspace_id, environments.project_id, environments.app_id, environments.slug, environments.description, environments.delete_protection, environments.created_at, environments.updated_at
+	//  SELECT environments.pk, environments.id, environments.workspace_id, environments.project_id, environments.app_id, environments.slug, environments.description, environments.kind, environments.delete_protection, environments.created_at, environments.updated_at
 	//  FROM environments
 	//  WHERE kind = 'preview'
 	//  AND pk > ?
 	//  ORDER BY pk ASC
 	//  LIMIT ?
-	ListPreviewEnvironments(ctx context.Context, arg ListPreviewEnvironmentsParams) ([]ListPreviewEnvironmentsRow, error)
+	ListPreviewEnvironments(ctx context.Context, arg ListPreviewEnvironmentsParams) ([]Environment, error)
 	// Returns deployments in a non-terminal (progressing) status for an
 	// environment. The environment delete workflow uses this to cancel
 	// in-flight Restate invocations before the cascade drops deployment

@@ -416,7 +416,7 @@ export const POST = async (req: Request): Promise<Response> => {
               columns: { id: true, orgId: true, name: true, deletedAtM: true },
               with: {
                 billing: {
-                  columns: { workspaceId: true, plan: true, tier: true },
+                  columns: { workspaceId: true, plan: true, planOverride: true, tier: true },
                 },
               },
             },

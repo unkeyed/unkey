@@ -18,6 +18,7 @@ CREATE VIEW instance_checkpoints AS
 SELECT
     workspace_id,
     project_id,
+    app_id,
     environment_id,
     resource_type,
     resource_id,

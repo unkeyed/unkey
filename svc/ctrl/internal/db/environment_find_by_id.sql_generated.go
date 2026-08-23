@@ -7,36 +7,22 @@ package db
 
 import (
 	"context"
-	"database/sql"
 )
 
 const findEnvironmentById = `-- name: FindEnvironmentById :one
-SELECT environments.pk, environments.id, environments.workspace_id, environments.project_id, environments.app_id, environments.slug, environments.description, environments.delete_protection, environments.created_at, environments.updated_at
+SELECT environments.pk, environments.id, environments.workspace_id, environments.project_id, environments.app_id, environments.slug, environments.description, environments.kind, environments.delete_protection, environments.created_at, environments.updated_at
 FROM environments
 WHERE id = ?
 `
 
-type FindEnvironmentByIdRow struct {
-	Pk               uint64        `db:"pk"`
-	ID               string        `db:"id"`
-	WorkspaceID      string        `db:"workspace_id"`
-	ProjectID        string        `db:"project_id"`
-	AppID            string        `db:"app_id"`
-	Slug             string        `db:"slug"`
-	Description      string        `db:"description"`
-	DeleteProtection sql.NullBool  `db:"delete_protection"`
-	CreatedAt        int64         `db:"created_at"`
-	UpdatedAt        sql.NullInt64 `db:"updated_at"`
-}
-
 // FindEnvironmentById
 //
-//	SELECT environments.pk, environments.id, environments.workspace_id, environments.project_id, environments.app_id, environments.slug, environments.description, environments.delete_protection, environments.created_at, environments.updated_at
+//	SELECT environments.pk, environments.id, environments.workspace_id, environments.project_id, environments.app_id, environments.slug, environments.description, environments.kind, environments.delete_protection, environments.created_at, environments.updated_at
 //	FROM environments
 //	WHERE id = ?
-func (q *Queries) FindEnvironmentById(ctx context.Context, id string) (FindEnvironmentByIdRow, error) {
+func (q *Queries) FindEnvironmentById(ctx context.Context, id string) (Environment, error) {
 	row := q.db.QueryRowContext(ctx, findEnvironmentById, id)
-	var i FindEnvironmentByIdRow
+	var i Environment
 	err := row.Scan(
 		&i.Pk,
 		&i.ID,
@@ -45,6 +31,7 @@ func (q *Queries) FindEnvironmentById(ctx context.Context, id string) (FindEnvir
 		&i.AppID,
 		&i.Slug,
 		&i.Description,
+		&i.Kind,
 		&i.DeleteProtection,
 		&i.CreatedAt,
 		&i.UpdatedAt,

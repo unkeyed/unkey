@@ -292,6 +292,9 @@ for my $path (@files) {
     if ($path eq "pkg/clickhouse/migrations/20260419000000.sql") {
       $source =~ s{SELECT \* FROM default\.instance_checkpoints_v1 FINAL}{blank($&)}gise;
     }
+    if ($path eq "pkg/clickhouse/migrations/20260804000000.sql") {
+      $source =~ s{SELECT \*\s+FROM default\.instance_checkpoints_v1\s+FINAL}{blank($&)}gise;
+    }
 
     while ($source =~ /\bsqlc\s*\.\s*embed\s*\(/ig) {
       report_match($path, $original, $-[0], "sqlc.embed all-column selection");

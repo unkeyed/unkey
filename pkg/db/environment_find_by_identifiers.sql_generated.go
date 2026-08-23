@@ -7,18 +7,17 @@ package db
 
 import (
 	"context"
-	"database/sql"
 )
 
 const findEnvironmentByIdentifiers = `-- name: FindEnvironmentByIdentifiers :one
-SELECT e.pk, e.id, e.workspace_id, e.project_id, e.app_id, e.slug, e.description, e.delete_protection, e.created_at, e.updated_at
-FROM environments e
-JOIN apps a ON e.app_id = a.id AND e.workspace_id = a.workspace_id
+SELECT environments.pk, environments.id, environments.workspace_id, environments.project_id, environments.app_id, environments.slug, environments.description, environments.kind, environments.delete_protection, environments.created_at, environments.updated_at
+FROM environments
+JOIN apps a ON environments.app_id = a.id AND environments.workspace_id = a.workspace_id
 JOIN projects p ON a.project_id = p.id AND a.workspace_id = p.workspace_id
-WHERE e.workspace_id = ?
+WHERE environments.workspace_id = ?
   AND (p.id = ? OR p.slug = ?)
   AND (a.id = ? OR a.slug = ?)
-  AND (e.id = ? OR e.slug = ?)
+  AND (environments.id = ? OR environments.slug = ?)
 LIMIT 1
 `
 
@@ -29,31 +28,18 @@ type FindEnvironmentByIdentifiersParams struct {
 	Environment string `db:"environment"`
 }
 
-type FindEnvironmentByIdentifiersRow struct {
-	Pk               uint64        `db:"pk"`
-	ID               string        `db:"id"`
-	WorkspaceID      string        `db:"workspace_id"`
-	ProjectID        string        `db:"project_id"`
-	AppID            string        `db:"app_id"`
-	Slug             string        `db:"slug"`
-	Description      string        `db:"description"`
-	DeleteProtection sql.NullBool  `db:"delete_protection"`
-	CreatedAt        int64         `db:"created_at"`
-	UpdatedAt        sql.NullInt64 `db:"updated_at"`
-}
-
 // FindEnvironmentByIdentifiers
 //
-//	SELECT e.pk, e.id, e.workspace_id, e.project_id, e.app_id, e.slug, e.description, e.delete_protection, e.created_at, e.updated_at
-//	FROM environments e
-//	JOIN apps a ON e.app_id = a.id AND e.workspace_id = a.workspace_id
+//	SELECT environments.pk, environments.id, environments.workspace_id, environments.project_id, environments.app_id, environments.slug, environments.description, environments.kind, environments.delete_protection, environments.created_at, environments.updated_at
+//	FROM environments
+//	JOIN apps a ON environments.app_id = a.id AND environments.workspace_id = a.workspace_id
 //	JOIN projects p ON a.project_id = p.id AND a.workspace_id = p.workspace_id
-//	WHERE e.workspace_id = ?
+//	WHERE environments.workspace_id = ?
 //	  AND (p.id = ? OR p.slug = ?)
 //	  AND (a.id = ? OR a.slug = ?)
-//	  AND (e.id = ? OR e.slug = ?)
+//	  AND (environments.id = ? OR environments.slug = ?)
 //	LIMIT 1
-func (q *Queries) FindEnvironmentByIdentifiers(ctx context.Context, db DBTX, arg FindEnvironmentByIdentifiersParams) (FindEnvironmentByIdentifiersRow, error) {
+func (q *Queries) FindEnvironmentByIdentifiers(ctx context.Context, db DBTX, arg FindEnvironmentByIdentifiersParams) (Environment, error) {
 	row := db.QueryRowContext(ctx, findEnvironmentByIdentifiers,
 		arg.WorkspaceID,
 		arg.Project,
@@ -63,7 +49,7 @@ func (q *Queries) FindEnvironmentByIdentifiers(ctx context.Context, db DBTX, arg
 		arg.Environment,
 		arg.Environment,
 	)
-	var i FindEnvironmentByIdentifiersRow
+	var i Environment
 	err := row.Scan(
 		&i.Pk,
 		&i.ID,
@@ -72,6 +58,7 @@ func (q *Queries) FindEnvironmentByIdentifiers(ctx context.Context, db DBTX, arg
 		&i.AppID,
 		&i.Slug,
 		&i.Description,
+		&i.Kind,
 		&i.DeleteProtection,
 		&i.CreatedAt,
 		&i.UpdatedAt,

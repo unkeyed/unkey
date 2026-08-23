@@ -65,12 +65,10 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 	entitlements := make(map[string]db.FindWorkspaceDeployEntitlementRow)
 	eligibleContexts := make([]db.ListRepoConnectionDeployContextsRow, 0, len(contexts))
 	for _, row := range contexts {
-		project := row.Project
-		app := row.App
-		entitlement, ok := entitlements[project.WorkspaceID]
+		entitlement, ok := entitlements[row.ProjectWorkspaceID]
 		if !ok {
 			entitlement, err = restate.Run(ctx, func(runCtx restate.RunContext) (db.FindWorkspaceDeployEntitlementRow, error) {
-				loaded, loadErr := s.db.FindWorkspaceDeployEntitlement(runCtx, project.WorkspaceID)
+				loaded, loadErr := s.db.FindWorkspaceDeployEntitlement(runCtx, row.ProjectWorkspaceID)
 				if db.IsNotFound(loadErr) {
 					return db.FindWorkspaceDeployEntitlementRow{
 						Plan:           sql.NullString{},
@@ -79,11 +77,11 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 					}, nil
 				}
 				return loaded, loadErr
-			}, restate.WithName("load workspace deploy entitlement "+project.WorkspaceID))
+			}, restate.WithName("load workspace deploy entitlement "+row.ProjectWorkspaceID))
 			if err != nil {
 				return nil, err
 			}
-			entitlements[project.WorkspaceID] = entitlement
+			entitlements[row.ProjectWorkspaceID] = entitlement
 		}
 
 		if !deploygate.Entitled(entitlement.Plan, entitlement.PlanOverride) {
@@ -91,27 +89,27 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 				logger.Info("skipping deployment: workspace has no Compute plan",
 					"event", "deploy_gate.blocked",
 					"reason", "no_plan",
-					"workspace_id", project.WorkspaceID,
-					"project_id", project.ID,
-					"app_id", app.ID,
+					"workspace_id", row.ProjectWorkspaceID,
+					"project_id", row.ProjectID,
+					"app_id", row.AppID,
 					"delivery_id", req.GetDeliveryId(),
 				)
 				continue
 			}
 			logger.Warn("deploy gate would block GitHub deployment",
 				"event", "deploy_gate.would_block",
-				"workspaceId", project.WorkspaceID,
-				"projectId", project.ID,
-				"appId", app.ID,
+				"workspaceId", row.ProjectWorkspaceID,
+				"projectId", row.ProjectID,
+				"appId", row.AppID,
 			)
 		}
 		if entitlement.SpendSuspended.Bool {
 			logger.Info("skipping deployment: workspace is spend suspended",
 				"event", "deploy_gate.blocked",
 				"reason", "spend_suspended",
-				"workspace_id", project.WorkspaceID,
-				"project_id", project.ID,
-				"app_id", app.ID,
+				"workspace_id", row.ProjectWorkspaceID,
+				"project_id", row.ProjectID,
+				"app_id", row.AppID,
 				"delivery_id", req.GetDeliveryId(),
 			)
 			continue

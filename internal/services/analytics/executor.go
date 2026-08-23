@@ -37,7 +37,7 @@ func Execute(ctx context.Context, manager ConnectionManager, req ExecuteRequest)
 		AllowedTables:     req.AllowedTables,
 		SecurityFilters:   append([]queryparser.SecurityFilter(nil), req.SecurityFilters...),
 		Limit:             int(settings.ClickhouseMaxQueryResultRows),
-		QueryRangeDaysMax: settings.QuotaLogsRetentionDays,
+		QueryRangeDaysMax: int32(settings.QuotaLogsRetentionDays),
 	})
 
 	parsedQuery, err := parser.Parse(ctx, req.Query)

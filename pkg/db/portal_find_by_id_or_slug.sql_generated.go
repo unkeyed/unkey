@@ -7,10 +7,11 @@ package db
 
 import (
 	"context"
+	"database/sql"
 )
 
 const findPortalByIdOrSlug = `-- name: FindPortalByIdOrSlug :one
-SELECT p.pk, p.id, p.workspace_id, p.slug, p.display_name, p.app_id, p.key_auth_id, p.enabled, p.logo_url, p.primary_color, p.created_at, p.updated_at
+SELECT p.pk, p.id, p.workspace_id, p.slug, p.app_id, p.key_auth_id, p.enabled, p.logo_url, p.primary_color, p.created_at, p.updated_at
 FROM portals p
 JOIN (
     SELECT p1.id
@@ -29,13 +30,27 @@ type FindPortalByIdOrSlugParams struct {
 	WorkspaceID string `db:"workspace_id"`
 }
 
+type FindPortalByIdOrSlugRow struct {
+	Pk           uint64         `db:"pk"`
+	ID           string         `db:"id"`
+	WorkspaceID  string         `db:"workspace_id"`
+	Slug         string         `db:"slug"`
+	AppID        sql.NullString `db:"app_id"`
+	KeyAuthID    sql.NullString `db:"key_auth_id"`
+	Enabled      bool           `db:"enabled"`
+	LogoUrl      sql.NullString `db:"logo_url"`
+	PrimaryColor sql.NullString `db:"primary_color"`
+	CreatedAt    int64          `db:"created_at"`
+	UpdatedAt    sql.NullInt64  `db:"updated_at"`
+}
+
 // Resolves a portal within a workspace by either its id or its slug, matching
 // how projects/apps/environments accept a ResourceIdentifier.
 //
 // UNION ALL of two index seeks instead of `id = ? OR slug = ?`, which would
 // force a scan: `portals_id_unique` and `idx_workspace_slug` each serve one arm.
 //
-//	SELECT p.pk, p.id, p.workspace_id, p.slug, p.display_name, p.app_id, p.key_auth_id, p.enabled, p.logo_url, p.primary_color, p.created_at, p.updated_at
+//	SELECT p.pk, p.id, p.workspace_id, p.slug, p.app_id, p.key_auth_id, p.enabled, p.logo_url, p.primary_color, p.created_at, p.updated_at
 //	FROM portals p
 //	JOIN (
 //	    SELECT p1.id
@@ -47,20 +62,19 @@ type FindPortalByIdOrSlugParams struct {
 //	    WHERE p2.slug = ? AND p2.workspace_id = ?
 //	) AS portal_lookup ON portal_lookup.id = p.id
 //	LIMIT 1
-func (q *Queries) FindPortalByIdOrSlug(ctx context.Context, db DBTX, arg FindPortalByIdOrSlugParams) (Portal, error) {
+func (q *Queries) FindPortalByIdOrSlug(ctx context.Context, db DBTX, arg FindPortalByIdOrSlugParams) (FindPortalByIdOrSlugRow, error) {
 	row := db.QueryRowContext(ctx, findPortalByIdOrSlug,
 		arg.Portal,
 		arg.WorkspaceID,
 		arg.Portal,
 		arg.WorkspaceID,
 	)
-	var i Portal
+	var i FindPortalByIdOrSlugRow
 	err := row.Scan(
 		&i.Pk,
 		&i.ID,
 		&i.WorkspaceID,
 		&i.Slug,
-		&i.DisplayName,
 		&i.AppID,
 		&i.KeyAuthID,
 		&i.Enabled,

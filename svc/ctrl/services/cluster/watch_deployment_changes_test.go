@@ -72,9 +72,7 @@ func TestFetchDeploymentChangeEvents_UnrecoverableRowSkipsAndAdvances(t *testing
 	svc := &Service{db: &stubDatabase{
 		changes: []db.DeploymentChange{topologyChange(42)},
 		findRow: db.FindDeploymentTopologyByDeploymentAndRegionRow{
-			DeploymentTopology: db.DeploymentTopology{
-				DesiredStatus: db.DeploymentTopologyDesiredStatus("bogus"),
-			},
+			TopologyDesiredStatus: db.DeploymentTopologyDesiredStatus("bogus"),
 		},
 	}}
 
@@ -90,13 +88,9 @@ func TestFetchDeploymentChangeEvents_Success(t *testing.T) {
 	svc := &Service{db: &stubDatabase{
 		changes: []db.DeploymentChange{topologyChange(42)},
 		findRow: db.FindDeploymentTopologyByDeploymentAndRegionRow{
-			DeploymentTopology: db.DeploymentTopology{
-				DesiredStatus: db.DeploymentTopologyDesiredStatusRunning,
-			},
-			Deployment: db.Deployment{
-				ID:      "deploy_test",
-				K8sName: "k8s-test",
-			},
+			TopologyDesiredStatus: db.DeploymentTopologyDesiredStatusRunning,
+			DeploymentID:          "deploy_test",
+			DeploymentK8sName:     "k8s-test",
 		},
 	}}
 

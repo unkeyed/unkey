@@ -409,22 +409,22 @@ type Querier interface {
 	FindEnvironmentByAppIdAndSlug(ctx context.Context, db DBTX, arg FindEnvironmentByAppIdAndSlugParams) (FindEnvironmentByAppIdAndSlugRow, error)
 	//FindEnvironmentById
 	//
-	//  SELECT environments.pk, environments.id, environments.workspace_id, environments.project_id, environments.app_id, environments.slug, environments.description, environments.delete_protection, environments.created_at, environments.updated_at
+	//  SELECT environments.pk, environments.id, environments.workspace_id, environments.project_id, environments.app_id, environments.slug, environments.description, environments.kind, environments.delete_protection, environments.created_at, environments.updated_at
 	//  FROM environments
 	//  WHERE id = ?
-	FindEnvironmentById(ctx context.Context, db DBTX, id string) (FindEnvironmentByIdRow, error)
+	FindEnvironmentById(ctx context.Context, db DBTX, id string) (Environment, error)
 	//FindEnvironmentByIdentifiers
 	//
-	//  SELECT e.pk, e.id, e.workspace_id, e.project_id, e.app_id, e.slug, e.description, e.delete_protection, e.created_at, e.updated_at
-	//  FROM environments e
-	//  JOIN apps a ON e.app_id = a.id AND e.workspace_id = a.workspace_id
+	//  SELECT environments.pk, environments.id, environments.workspace_id, environments.project_id, environments.app_id, environments.slug, environments.description, environments.kind, environments.delete_protection, environments.created_at, environments.updated_at
+	//  FROM environments
+	//  JOIN apps a ON environments.app_id = a.id AND environments.workspace_id = a.workspace_id
 	//  JOIN projects p ON a.project_id = p.id AND a.workspace_id = p.workspace_id
-	//  WHERE e.workspace_id = ?
+	//  WHERE environments.workspace_id = ?
 	//    AND (p.id = ? OR p.slug = ?)
 	//    AND (a.id = ? OR a.slug = ?)
-	//    AND (e.id = ? OR e.slug = ?)
+	//    AND (environments.id = ? OR environments.slug = ?)
 	//  LIMIT 1
-	FindEnvironmentByIdentifiers(ctx context.Context, db DBTX, arg FindEnvironmentByIdentifiersParams) (FindEnvironmentByIdentifiersRow, error)
+	FindEnvironmentByIdentifiers(ctx context.Context, db DBTX, arg FindEnvironmentByIdentifiersParams) (Environment, error)
 	//FindFrontlineRoutesByDeploymentID
 	//
 	//  SELECT frontline_routes.pk, frontline_routes.id, frontline_routes.project_id, frontline_routes.app_id, frontline_routes.deployment_id, frontline_routes.environment_id, frontline_routes.fully_qualified_domain_name, frontline_routes.sticky, frontline_routes.created_at, frontline_routes.updated_at FROM frontline_routes WHERE deployment_id = ?
@@ -910,7 +910,7 @@ type Querier interface {
 	// UNION ALL of two index seeks instead of `id = ? OR slug = ?`, which would
 	// force a scan: `portals_id_unique` and `idx_workspace_slug` each serve one arm.
 	//
-	//  SELECT p.pk, p.id, p.workspace_id, p.slug, p.display_name, p.app_id, p.key_auth_id, p.enabled, p.logo_url, p.primary_color, p.created_at, p.updated_at
+	//  SELECT p.pk, p.id, p.workspace_id, p.slug, p.app_id, p.key_auth_id, p.enabled, p.logo_url, p.primary_color, p.created_at, p.updated_at
 	//  FROM portals p
 	//  JOIN (
 	//      SELECT p1.id
@@ -922,7 +922,7 @@ type Querier interface {
 	//      WHERE p2.slug = ? AND p2.workspace_id = ?
 	//  ) AS portal_lookup ON portal_lookup.id = p.id
 	//  LIMIT 1
-	FindPortalByIdOrSlug(ctx context.Context, db DBTX, arg FindPortalByIdOrSlugParams) (Portal, error)
+	FindPortalByIdOrSlug(ctx context.Context, db DBTX, arg FindPortalByIdOrSlugParams) (FindPortalByIdOrSlugRow, error)
 	// Resolves the portal mapped to a keyspace within a workspace. See
 	// portal_find_by_app.sql for why this is workspace-scoped.
 	//
@@ -2093,11 +2093,11 @@ type Querier interface {
 	// An app has only a handful of environments, so this returns all of them
 	// without pagination.
 	//
-	//  SELECT environments.pk, environments.id, environments.workspace_id, environments.project_id, environments.app_id, environments.slug, environments.description, environments.delete_protection, environments.created_at, environments.updated_at
+	//  SELECT environments.pk, environments.id, environments.workspace_id, environments.project_id, environments.app_id, environments.slug, environments.description, environments.kind, environments.delete_protection, environments.created_at, environments.updated_at
 	//  FROM environments
 	//  WHERE app_id = ?
 	//  ORDER BY id ASC
-	ListEnvironmentsByApp(ctx context.Context, db DBTX, appID string) ([]ListEnvironmentsByAppRow, error)
+	ListEnvironmentsByApp(ctx context.Context, db DBTX, appID string) ([]Environment, error)
 	//ListFailedDeploymentStepsByIds
 	//
 	//  SELECT deployment_steps.pk, deployment_steps.workspace_id, deployment_steps.project_id, deployment_steps.environment_id, deployment_steps.deployment_id, deployment_steps.app_id, deployment_steps.step, deployment_steps.started_at, deployment_steps.ended_at, deployment_steps.error FROM deployment_steps

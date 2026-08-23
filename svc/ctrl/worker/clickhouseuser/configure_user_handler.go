@@ -167,7 +167,7 @@ func (s *Service) ConfigureUser(
 
 	} else {
 		logger.Info("updating existing user", "workspace_id", workspaceID)
-		retentionDays = result.Row.QuotaLogsRetentionDays
+		retentionDays = int32(result.Row.QuotaLogsRetentionDays)
 		encryptedPassword = result.Row.ClickhousePasswordEncrypted
 
 		now := time.Now().UnixMilli()
