@@ -299,6 +299,8 @@ type Querier interface {
 	//      cd_by_id.cname_verified,
 	//      cd_by_id.target_cname,
 	//      cd_by_id.verification_error,
+	//      cd_by_id.domain_connect_provider,
+	//      cd_by_id.domain_connect_url,
 	//      cd_by_id.last_checked_at,
 	//      cd_by_id.created_at,
 	//      cd_by_id.updated_at
@@ -318,6 +320,8 @@ type Querier interface {
 	//      cd_by_name.cname_verified,
 	//      cd_by_name.target_cname,
 	//      cd_by_name.verification_error,
+	//      cd_by_name.domain_connect_provider,
+	//      cd_by_name.domain_connect_url,
 	//      cd_by_name.last_checked_at,
 	//      cd_by_name.created_at,
 	//      cd_by_name.updated_at
@@ -1165,9 +1169,13 @@ type Querier interface {
 	//      cname_verified,
 	//      target_cname,
 	//      verification_error,
+	//      domain_connect_provider,
+	//      domain_connect_url,
 	//      last_checked_at,
 	//      created_at
 	//  ) VALUES (
+	//      ?,
+	//      ?,
 	//      ?,
 	//      ?,
 	//      ?,
@@ -1849,6 +1857,8 @@ type Querier interface {
 	//      cname_verified,
 	//      target_cname,
 	//      verification_error,
+	//      domain_connect_provider,
+	//      domain_connect_url,
 	//      last_checked_at,
 	//      created_at,
 	//      updated_at

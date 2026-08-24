@@ -332,19 +332,21 @@ func (s *Seeder) CreateEnvironment(ctx context.Context, req CreateEnvironmentReq
 }
 
 type CreateCustomDomainRequest struct {
-	ID                 string
-	WorkspaceID        string
-	ProjectID          string
-	AppID              string
-	EnvironmentID      string
-	Domain             string
-	VerificationStatus db.CustomDomainsVerificationStatus
-	VerificationToken  string
-	TargetCname        string
-	OwnershipVerified  bool
-	CnameVerified      bool
-	VerificationError  string
-	LastCheckedAt      int64
+	ID                    string
+	WorkspaceID           string
+	ProjectID             string
+	AppID                 string
+	EnvironmentID         string
+	Domain                string
+	VerificationStatus    db.CustomDomainsVerificationStatus
+	VerificationToken     string
+	TargetCname           string
+	OwnershipVerified     bool
+	CnameVerified         bool
+	VerificationError     string
+	LastCheckedAt         int64
+	DomainConnectProvider string
+	DomainConnectURL      string
 }
 
 // CreateCustomDomain attaches a custom domain to an environment. Production writes go
@@ -371,21 +373,23 @@ func (s *Seeder) CreateCustomDomain(ctx context.Context, req CreateCustomDomainR
 
 	now := time.Now().UnixMilli()
 	err := db.Query.InsertCustomDomain(ctx, s.DB.RW(), db.InsertCustomDomainParams{
-		ID:                 req.ID,
-		WorkspaceID:        req.WorkspaceID,
-		ProjectID:          req.ProjectID,
-		AppID:              req.AppID,
-		EnvironmentID:      req.EnvironmentID,
-		Domain:             req.Domain,
-		ChallengeType:      db.CustomDomainsChallengeTypeHTTP01,
-		VerificationStatus: status,
-		VerificationToken:  verificationToken,
-		OwnershipVerified:  req.OwnershipVerified,
-		CnameVerified:      req.CnameVerified,
-		TargetCname:        targetCname,
-		VerificationError:  sql.NullString{String: req.VerificationError, Valid: req.VerificationError != ""},
-		LastCheckedAt:      sql.NullInt64{Int64: req.LastCheckedAt, Valid: req.LastCheckedAt != 0},
-		CreatedAt:          now,
+		ID:                    req.ID,
+		WorkspaceID:           req.WorkspaceID,
+		ProjectID:             req.ProjectID,
+		AppID:                 req.AppID,
+		EnvironmentID:         req.EnvironmentID,
+		Domain:                req.Domain,
+		ChallengeType:         db.CustomDomainsChallengeTypeHTTP01,
+		VerificationStatus:    status,
+		VerificationToken:     verificationToken,
+		OwnershipVerified:     req.OwnershipVerified,
+		CnameVerified:         req.CnameVerified,
+		TargetCname:           targetCname,
+		VerificationError:     sql.NullString{String: req.VerificationError, Valid: req.VerificationError != ""},
+		DomainConnectProvider: sql.NullString{String: req.DomainConnectProvider, Valid: req.DomainConnectProvider != ""},
+		DomainConnectUrl:      sql.NullString{String: req.DomainConnectURL, Valid: req.DomainConnectURL != ""},
+		LastCheckedAt:         sql.NullInt64{Int64: req.LastCheckedAt, Valid: req.LastCheckedAt != 0},
+		CreatedAt:             now,
 	})
 	require.NoError(s.t, err)
 

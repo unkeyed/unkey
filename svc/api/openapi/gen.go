@@ -513,6 +513,11 @@ type Domain struct {
 	// Domain Fully qualified domain name attached to the environment.
 	Domain string `json:"domain"`
 
+	// DomainConnect One-click setup at the domain's DNS provider. Omitted entirely when the provider does not support
+	// Domain Connect or discovery failed, so the object's presence is the signal that the shortcut is
+	// available and both of its fields are filled.
+	DomainConnect *DomainConnect `json:"domainConnect,omitempty"`
+
 	// EnvironmentId The environment this domain serves. Traffic to the domain reaches whatever is currently
 	// deployed to this environment.
 	EnvironmentId string `json:"environmentId"`
