@@ -120,22 +120,22 @@ func TestTranslatePermissionsKnownMappings(t *testing.T) {
 		{
 			name: "domain create",
 			in:   "domains:create",
-			want: "unkey:v1:ws_123:projects/*/apps/*/environments/*#create_domain",
+			want: "unkey:v1:ws_123:projects/*/apps/*/environments/*/domains/*#create_domain",
 		},
 		{
 			name: "domain read",
 			in:   "domains:read",
-			want: "unkey:v1:ws_123:projects/*/apps/*/environments/*#read_domain",
+			want: "unkey:v1:ws_123:projects/*/apps/*/environments/*/domains/*#read_domain",
 		},
 		{
 			name: "domain delete",
 			in:   "domains:delete",
-			want: "unkey:v1:ws_123:projects/*/apps/*/environments/*#delete_domain",
+			want: "unkey:v1:ws_123:projects/*/apps/*/environments/*/domains/*#delete_domain",
 		},
 		{
 			name: "domain verify",
 			in:   "domains:verify",
-			want: "unkey:v1:ws_123:projects/*/apps/*/environments/*#verify_domain",
+			want: "unkey:v1:ws_123:projects/*/apps/*/environments/*/domains/*#verify_domain",
 		},
 		{
 			name: "admin",

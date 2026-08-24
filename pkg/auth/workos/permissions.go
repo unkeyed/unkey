@@ -155,28 +155,28 @@ var permissionMappings = map[string]permissionMapping{
 		name:        "Create domains",
 		description: "Allows attaching a custom domain to an environment.",
 		permissions: []permissionGrant{
-			{resource: "projects/*/apps/*/environments/*", action: action(rbacpermissions.CreateDomain{})},
+			{resource: "projects/*/apps/*/environments/*/domains/*", action: action(rbacpermissions.CreateDomain{})},
 		},
 	},
 	"domains:read": {
 		name:        "Read domains",
 		description: "Allows reading an environment's custom domains.",
 		permissions: []permissionGrant{
-			{resource: "projects/*/apps/*/environments/*", action: action(rbacpermissions.ReadDomain{})},
+			{resource: "projects/*/apps/*/environments/*/domains/*", action: action(rbacpermissions.ReadDomain{})},
 		},
 	},
 	"domains:delete": {
 		name:        "Delete domains",
 		description: "Allows removing a custom domain from an environment.",
 		permissions: []permissionGrant{
-			{resource: "projects/*/apps/*/environments/*", action: action(rbacpermissions.DeleteDomain{})},
+			{resource: "projects/*/apps/*/environments/*/domains/*", action: action(rbacpermissions.DeleteDomain{})},
 		},
 	},
 	"domains:verify": {
 		name:        "Verify domains",
 		description: "Allows restarting verification for a custom domain.",
 		permissions: []permissionGrant{
-			{resource: "projects/*/apps/*/environments/*", action: action(rbacpermissions.VerifyDomain{})},
+			{resource: "projects/*/apps/*/environments/*/domains/*", action: action(rbacpermissions.VerifyDomain{})},
 		},
 	},
 	"identities:create": {

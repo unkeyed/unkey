@@ -86,7 +86,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			Action:       rbac.VerifyDomain,
 		}),
 		rbac.U(
-			urn.New().Workspace(principal.WorkspaceID).Project(domain.ProjectID).App(domain.AppID).Environment(domain.EnvironmentID),
+			urn.New().Workspace(principal.WorkspaceID).Project(domain.ProjectID).App(domain.AppID).Environment(domain.EnvironmentID).Domain(domain.ID),
 			permissions.VerifyDomain{},
 		),
 	)); err != nil {

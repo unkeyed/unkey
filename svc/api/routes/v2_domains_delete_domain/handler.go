@@ -85,7 +85,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			Action:       rbac.DeleteDomain,
 		}),
 		rbac.U(
-			urn.New().Workspace(principal.WorkspaceID).Project(row.ProjectID).App(row.AppID).Environment(row.EnvironmentID),
+			urn.New().Workspace(principal.WorkspaceID).Project(row.ProjectID).App(row.AppID).Environment(row.EnvironmentID).Domain(row.ID),
 			permissions.DeleteDomain{},
 		),
 	)); err != nil {

@@ -45,7 +45,7 @@ func TestCreateDomainPermissions(t *testing.T) {
 	}{
 		{name: "wildcard permission", permissions: []string{"environment.*.create_domain"}, shouldPass: true},
 		{name: "specific environment permission", permissions: []string{fmt.Sprintf("environment.%s.create_domain", env.environmentID)}, shouldPass: true},
-		{name: "canonical urn grant", permissions: []string{fmt.Sprintf("unkey:v1:%s:projects/%s/apps/%s/environments/%s#create_domain", env.workspaceID, env.projectID, env.appID, env.environmentID)}, shouldPass: true},
+		{name: "canonical urn grant", permissions: []string{fmt.Sprintf("unkey:v1:%s:projects/%s/apps/%s/environments/%s/domains/*#create_domain", env.workspaceID, env.projectID, env.appID, env.environmentID)}, shouldPass: true},
 		{name: "permission alongside unrelated grants", permissions: []string{"api.*.read_api", "environment.*.create_domain"}, shouldPass: true},
 		{name: "read action is not enough", permissions: []string{"environment.*.read_environment"}, shouldPass: false},
 		{name: "update action is not enough", permissions: []string{"environment.*.update_environment"}, shouldPass: false},
