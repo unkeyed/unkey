@@ -40,6 +40,7 @@ import { queryDeployUsageBreakdown } from "./billing/query-deploy-usage-breakdow
 import { queryUsage } from "./billing/query-usage";
 import { listApps } from "./deploy/app/list";
 import { addCustomDomain } from "./deploy/custom-domains/add";
+import { countCustomDomains } from "./deploy/custom-domains/count";
 import { deleteCustomDomain } from "./deploy/custom-domains/delete";
 import { listCustomDomains } from "./deploy/custom-domains/list";
 import { retryVerification } from "./deploy/custom-domains/retry";
@@ -469,6 +470,7 @@ export const router = t.router({
     }),
     customDomain: t.router({
       add: addCustomDomain,
+      count: countCustomDomains,
       list: listCustomDomains,
       delete: deleteCustomDomain,
       retry: retryVerification,

@@ -32,7 +32,7 @@ import {
   type GroupKey,
   type LimitGroup,
   type Measured,
-  breachedGroups,
+  breachedKeys,
   buildLimitGroups,
 } from "./limit-groups";
 import { LimitItem } from "./limit-item";
@@ -61,6 +61,11 @@ export default function LimitsPage() {
     retry: 1,
   });
   const allocation = trpc.billing.queryComputeAllocation.useQuery(undefined, {
+    enabled: Boolean(workspace) && billingUpgrades && hasComputePlan,
+    trpc: { context: { skipBatch: true } },
+    retry: 1,
+  });
+  const customDomains = trpc.deploy.customDomain.count.useQuery(undefined, {
     enabled: Boolean(workspace) && billingUpgrades && hasComputePlan,
     trpc: { context: { skipBatch: true } },
     retry: 1,
@@ -96,8 +101,9 @@ export default function LimitsPage() {
     hasComputePlan,
     apiOperations: measured({ data: usage.data?.billableTotal, isError: usage.isError }),
     allocation: measured(allocation),
+    customDomains: measured(customDomains),
   });
-  const breached = breachedGroups(groups);
+  const breached = breachedKeys(groups);
 
   return (
     <Shell>
