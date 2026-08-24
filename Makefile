@@ -152,7 +152,7 @@ fuzz: ## Run fuzz tests
 	done
 .PHONY: unkey
 unkey: ## Run unkey CLI (usage: make unkey dev seed local)
-	@set -a; [ -f .env ] && . ./.env; set +a; go run . $(filter-out unkey,$(MAKECMDGOALS)) $(ARGS)
+	@set -a; [ -f .env ] && . ./.env; set +a; go run ./build/cli $(filter-out unkey,$(MAKECMDGOALS)) $(ARGS)
 
 # Catch-all to swallow extra args passed to unkey target (only when unkey is called)
 ifneq ($(filter unkey,$(MAKECMDGOALS)),)
