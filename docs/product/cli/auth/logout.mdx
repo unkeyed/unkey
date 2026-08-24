@@ -1,0 +1,30 @@
+---
+title: "logout"
+description: "Sign out of the Unkey CLI and remove stored credentials from your local configuration file."
+---
+
+Sign out and clear stored credentials from `~/.unkey/config.toml`.
+
+## Usage
+
+```bash
+unkey auth logout
+```
+
+```text
+Logged out.
+```
+
+By default this clears both the OAuth session and any stored root key. To keep a stored root key while clearing only the OAuth session:
+
+```bash
+unkey auth logout --keep-root-key
+```
+
+## Server-side revocation
+
+Logout attempts to revoke your WorkOS session server-side so a leaked refresh token cannot keep minting access tokens. Revocation is best effort: if it cannot be confirmed, local logout still completes and the CLI notes that the access token will expire on its own.
+
+<Note>
+If nothing is stored, `unkey auth logout` reports `Not logged in.` and makes no changes.
+</Note>
