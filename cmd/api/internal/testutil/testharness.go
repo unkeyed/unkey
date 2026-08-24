@@ -1,4 +1,5 @@
-package util
+// Package testutil provides shared test helpers for CLI API commands.
+package testutil
 
 import (
 	"bytes"
@@ -30,8 +31,7 @@ type responseEnvelope struct {
 //
 // Example:
 //
-//	req, err := util.CaptureRequest[handler.Request](t, Cmd(), "keys create-key --api-id=api_123")
-//	require.NoError(t, err)
+//	req := testutil.CaptureRequest[handler.Request](t, Cmd(), "keys create-key --api-id=api_123")
 //	require.Equal(t, handler.Request{ApiId: "api_123"}, req)
 func CaptureRequest[T any](t *testing.T, cmd *cli.Command, args string) T {
 	t.Helper()
