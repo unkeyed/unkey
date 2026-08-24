@@ -2463,7 +2463,9 @@ components:
                         Cannot configure refill settings when credits is null, and refillDay requires monthly interval.
                         Essential for implementing usage-based pricing and subscription quotas.
                 ratelimits:
-                    type: array
+                    type:
+                        - array
+                        - "null"
                     maxItems: 50
                     items:
                         "$ref": "#/components/schemas/RatelimitRequest"
