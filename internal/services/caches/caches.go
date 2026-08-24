@@ -1,8 +1,6 @@
 package caches
 
 import (
-	"fmt"
-	"os"
 	"time"
 
 	keysdb "github.com/unkeyed/unkey/internal/services/keys/db"
@@ -10,7 +8,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/cache/middleware"
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/db"
-	"github.com/unkeyed/unkey/pkg/uid"
 )
 
 // Caches holds all cache instances used throughout the application.
@@ -63,9 +60,6 @@ func (c *Caches) Close() error {
 type Config struct {
 	// Clock provides time functionality, allowing easier testing.
 	Clock clock.Clock
-
-	// NodeID identifies this node (defaults to hostname-uniqueid to ensure uniqueness).
-	NodeID string
 }
 
 // New creates and initializes all cache instances with appropriate settings.
@@ -73,14 +67,6 @@ type Config struct {
 // It configures each cache with specific freshness/staleness windows, size limits,
 // and resource names for tracing.
 func New(config Config) (Caches, error) {
-	if config.NodeID == "" {
-		hostname, err := os.Hostname()
-		if err != nil {
-			hostname = "unknown"
-		}
-		config.NodeID = fmt.Sprintf("%s-%s", hostname, uid.New("node"))
-	}
-
 	ratelimitNamespace, err := cache.New(cache.Config[cache.ScopedKey, db.FindRatelimitNamespace]{
 		Fresh:    time.Minute,
 		Stale:    24 * time.Hour,
