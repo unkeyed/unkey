@@ -80,23 +80,30 @@ export const addCustomDomain = workspaceProcedure
     } catch (error) {
       console.error("Add custom domain failed:", error);
 
-      if (error instanceof ConnectError && error.code === Code.AlreadyExists) {
-        const existing = await db.query.customDomains.findFirst({
-          where: (table, { eq, and }) =>
-            and(eq(table.workspaceId, ctx.workspace.id), eq(table.domain, input.domain)),
-          columns: { projectId: true, appId: true },
-        });
+      if (error instanceof ConnectError) {
+        if (error.code === Code.AlreadyExists) {
+          const existing = await db.query.customDomains.findFirst({
+            where: (table, { eq, and }) =>
+              and(eq(table.workspaceId, ctx.workspace.id), eq(table.domain, input.domain)),
+            columns: { projectId: true, appId: true },
+          });
 
-        throw new TRPCError({
-          code: "CONFLICT",
-          message: existing
-            ? routes.projects.apps.settings({
-                workspaceSlug: ctx.workspace.slug,
-                projectId: existing.projectId,
-                appId: existing.appId,
-              })
-            : "Domain already registered",
-        });
+          throw new TRPCError({
+            code: "CONFLICT",
+            message: existing
+              ? routes.projects.apps.settings({
+                  workspaceSlug: ctx.workspace.slug,
+                  projectId: existing.projectId,
+                  appId: existing.appId,
+                })
+              : "Domain already registered",
+          });
+        }
+
+        const code = CTRL_ERROR_CODES[error.code];
+        if (code) {
+          throw new TRPCError({ code, message: error.rawMessage });
+        }
       }
 
       throw new TRPCError({
@@ -105,3 +112,16 @@ export const addCustomDomain = workspaceProcedure
       });
     }
   });
+
+// ctrl sends these codes only through gatefault. gatefault puts the public
+// message of the fault into the error. Thus this route can show the message to
+// the user. connect-es adds the code in front of `message`, so read
+// `rawMessage`.
+//
+// FORBIDDEN gives status 403. The public API answers the same gate with 403.
+// See svc/api/routes/v2_domains_create_domain/403_test.go.
+const CTRL_ERROR_CODES: Partial<Record<Code, TRPCError["code"]>> = {
+  [Code.ResourceExhausted]: "FORBIDDEN",
+  [Code.FailedPrecondition]: "PRECONDITION_FAILED",
+  [Code.InvalidArgument]: "BAD_REQUEST",
+};
