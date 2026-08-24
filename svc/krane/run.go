@@ -30,7 +30,6 @@ import (
 	"github.com/unkeyed/unkey/svc/krane/internal/watcher"
 	"github.com/unkeyed/unkey/svc/krane/pkg/controlplane"
 	"k8s.io/client-go/dynamic"
-	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 )
 
@@ -120,7 +119,7 @@ func Run(ctx context.Context, cfg Config) error {
 		"burst", inClusterConfig.Burst,
 	)
 
-	clientset, err := kubernetes.NewForConfig(inClusterConfig)
+	clientset, err := deployment.NewClientSet(inClusterConfig)
 	if err != nil {
 		return fmt.Errorf("failed to create k8s clientset: %w", err)
 	}

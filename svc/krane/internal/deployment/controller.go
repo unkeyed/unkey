@@ -19,7 +19,6 @@ import (
 	"github.com/unkeyed/unkey/svc/krane/pkg/metrics"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/dynamic"
-	"k8s.io/client-go/kubernetes"
 )
 
 // Controller manages deployment ReplicaSets in a Kubernetes cluster by maintaining
@@ -31,7 +30,7 @@ import (
 // Create a Controller with [New] and start it with [Controller.Start]. The controller
 // runs until the context is cancelled or [Controller.Stop] is called.
 type Controller struct {
-	clientSet        kubernetes.Interface
+	clientSet        ClientSet
 	dynamicClient    dynamic.Interface
 	cluster          ctrl.ClusterServiceClient
 	vault            vault.VaultServiceClient
@@ -75,7 +74,7 @@ type Controller struct {
 // synchronization. Region determines which deployments this controller manages.
 type Config struct {
 	// ClientSet provides typed Kubernetes API access for ReplicaSet and Pod operations.
-	ClientSet kubernetes.Interface
+	ClientSet ClientSet
 
 	// DynamicClient provides unstructured Kubernetes API access for CiliumNetworkPolicy
 	// resources that don't have generated Go types.
