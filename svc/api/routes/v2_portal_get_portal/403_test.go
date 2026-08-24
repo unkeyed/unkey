@@ -48,8 +48,9 @@ func TestGetPortalAuthorizationMatrix(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			rootKey := h.CreateRootKey(workspace.ID, tc.permissions...)
 			res := testutil.CallRoute[handler.Request, handler.Response](h, route, headersFor(rootKey), handler.Request{
-				Portal:  ptr(stored.Slug),
-				Mapping: nil,
+				Portal:     ptr(stored.Slug),
+				KeyspaceId: nil,
+				AppId:      nil,
 			})
 
 			if tc.shouldPass {

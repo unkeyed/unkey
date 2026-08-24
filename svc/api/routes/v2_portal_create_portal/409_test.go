@@ -7,9 +7,9 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/unkeyed/unkey/svc/api/internal/portal"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
-	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_portal_create_portal"
 )
 
@@ -27,7 +27,7 @@ func TestCreatePortalConflicts(t *testing.T) {
 	h.CreatePortal(seed.CreatePortalRequest{
 		WorkspaceID: workspace.ID,
 		Slug:        "taken-slug",
-		KeyAuthID:   sql.NullString{String: taken.Id, Valid: true},
+		KeyAuthID:   sql.NullString{String: taken.ID, Valid: true},
 		Enabled:     true,
 	})
 
@@ -35,7 +35,8 @@ func TestCreatePortalConflicts(t *testing.T) {
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
 			Slug:        "taken-slug",
 			DisplayName: "Acme",
-			Mapping:     keyspaceMapping(t, h, workspace.ID),
+			KeyspaceId:  ksOf(keyspaceMapping(t, h, workspace.ID)),
+			AppId:       appOf(keyspaceMapping(t, h, workspace.ID)),
 			Enabled:     ptr(true),
 		})
 		require.Equal(t, http.StatusConflict, res.Status, "expected 409, received: %s", res.RawBody)
@@ -49,7 +50,8 @@ func TestCreatePortalConflicts(t *testing.T) {
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
 			Slug:        "fresh-slug",
 			DisplayName: "Acme",
-			Mapping:     taken,
+			KeyspaceId:  ksOf(taken),
+			AppId:       appOf(taken),
 			Enabled:     ptr(true),
 		})
 		require.Equal(t, http.StatusConflict, res.Status, "expected 409, received: %s", res.RawBody)
@@ -86,7 +88,8 @@ func TestCreatePortalConflicts(t *testing.T) {
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
 			Slug:        "another-slug",
 			DisplayName: "Acme",
-			Mapping:     openapi.PortalMapping{Id: sharedApi.KeyAuthID.String, Type: openapi.PortalMappingTypeKeyspace},
+			KeyspaceId:  ksOf(portal.Mapping{Type: portal.MappingTypeKeyspace, ID: sharedApi.KeyAuthID.String}),
+			AppId:       appOf(portal.Mapping{Type: portal.MappingTypeKeyspace, ID: sharedApi.KeyAuthID.String}),
 			Enabled:     ptr(true),
 		})
 		require.Equal(t, http.StatusNotFound, res.Status,

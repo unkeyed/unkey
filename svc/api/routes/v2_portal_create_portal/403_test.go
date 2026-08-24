@@ -66,7 +66,8 @@ func TestCreatePortalAuthorizationMatrix(t *testing.T) {
 			res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
 				Slug:        fmt.Sprintf("matrix-%d", i),
 				DisplayName: "Acme",
-				Mapping:     mapping,
+				KeyspaceId:  ksOf(mapping),
+				AppId:       appOf(mapping),
 				Enabled:     ptr(true),
 			})
 

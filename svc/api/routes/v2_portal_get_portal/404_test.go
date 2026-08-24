@@ -6,9 +6,9 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/unkeyed/unkey/svc/api/internal/portal"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
-	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_portal_get_portal"
 )
 
@@ -26,8 +26,9 @@ func TestGetPortalMasksEveryMiss(t *testing.T) {
 	visible := seedPortal(t, h, workspace.ID, "visible", keyspaceMapping(t, h, workspace.ID),
 		nullStringAbsent(), nullStringAbsent())
 	ok := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
-		Portal:  ptr(visible.ID),
-		Mapping: nil,
+		Portal:     ptr(visible.ID),
+		KeyspaceId: nil,
+		AppId:      nil,
 	})
 	require.Equal(t, http.StatusOK, ok.Status, "the control case must succeed: %s", ok.RawBody)
 
@@ -44,25 +45,25 @@ func TestGetPortalMasksEveryMiss(t *testing.T) {
 		WorkspaceID:  other.ID,
 		Slug:         "theirs",
 		AppID:        nullStringAbsent(),
-		KeyAuthID:    nullString(otherKeyspace.Id),
+		KeyAuthID:    nullString(otherKeyspace.ID),
 		Enabled:      true,
 		LogoUrl:      nullStringAbsent(),
 		PrimaryColor: nullStringAbsent(),
 	})
 
-	unknownKeyspace := openapi.PortalMapping{Id: "ks_doesnotexist", Type: openapi.PortalMappingTypeKeyspace}
-	unknownApp := openapi.PortalMapping{Id: "app_doesnotexist", Type: openapi.PortalMappingTypeApp}
+	unknownKeyspace := portal.Mapping{Type: portal.MappingTypeKeyspace, ID: "ks_doesnotexist"}
+	unknownApp := portal.Mapping{Type: portal.MappingTypeApp, ID: "app_doesnotexist"}
 
 	testCases := map[string]handler.Request{
-		"unknown id":                    {Portal: ptr("pc_doesnotexist"), Mapping: nil},
-		"unknown slug":                  {Portal: ptr("no-such-portal"), Mapping: nil},
-		"portal in another workspace":   {Portal: ptr(otherPortal.ID), Mapping: nil},
-		"slug in another workspace":     {Portal: ptr(otherPortal.Slug), Mapping: nil},
-		"keyspace with no portal":       {Portal: nil, Mapping: &unmappedKeyspace},
-		"app with no portal":            {Portal: nil, Mapping: &unmappedApp},
-		"keyspace in another workspace": {Portal: nil, Mapping: &otherKeyspace},
-		"keyspace that exists nowhere":  {Portal: nil, Mapping: &unknownKeyspace},
-		"app that exists nowhere":       {Portal: nil, Mapping: &unknownApp},
+		"unknown id":                    {Portal: ptr("pc_doesnotexist"), KeyspaceId: nil, AppId: nil},
+		"unknown slug":                  {Portal: ptr("no-such-portal"), KeyspaceId: nil, AppId: nil},
+		"portal in another workspace":   {Portal: ptr(otherPortal.ID), KeyspaceId: nil, AppId: nil},
+		"slug in another workspace":     {Portal: ptr(otherPortal.Slug), KeyspaceId: nil, AppId: nil},
+		"keyspace with no portal":       {Portal: nil, KeyspaceId: ksOf(unmappedKeyspace), AppId: appOf(unmappedKeyspace)},
+		"app with no portal":            {Portal: nil, KeyspaceId: ksOf(unmappedApp), AppId: appOf(unmappedApp)},
+		"keyspace in another workspace": {Portal: nil, KeyspaceId: ksOf(otherKeyspace), AppId: appOf(otherKeyspace)},
+		"keyspace that exists nowhere":  {Portal: nil, KeyspaceId: ksOf(unknownKeyspace), AppId: appOf(unknownKeyspace)},
+		"app that exists nowhere":       {Portal: nil, KeyspaceId: ksOf(unknownApp), AppId: appOf(unknownApp)},
 	}
 
 	bodies := map[string]string{}
@@ -97,16 +98,18 @@ func TestGetPortalDenialMatchesAbsence(t *testing.T) {
 
 	deniedKey := h.CreateRootKey(workspace.ID, "portal.*.create_portal")
 	denied := testutil.CallRoute[handler.Request, handler.Response](h, route, headersFor(deniedKey), handler.Request{
-		Portal:  ptr(stored.ID),
-		Mapping: nil,
+		Portal:     ptr(stored.ID),
+		KeyspaceId: nil,
+		AppId:      nil,
 	})
 	require.Equal(t, http.StatusNotFound, denied.Status,
 		"a denial must be masked, received: %s", denied.RawBody)
 
 	allowedKey := h.CreateRootKey(workspace.ID, "portal.*.read_portal")
 	absent := testutil.CallRoute[handler.Request, handler.Response](h, route, headersFor(allowedKey), handler.Request{
-		Portal:  ptr("pc_doesnotexist"),
-		Mapping: nil,
+		Portal:     ptr("pc_doesnotexist"),
+		KeyspaceId: nil,
+		AppId:      nil,
 	})
 	require.Equal(t, http.StatusNotFound, absent.Status,
 		"an absent portal must be 404, received: %s", absent.RawBody)

@@ -99,13 +99,14 @@ func TestUpdatePortalRequiresPermissionOnTheRemapTarget(t *testing.T) {
 		}
 
 		req := baseRequest(stored.ID)
-		req.Mapping = &to
+		req.KeyspaceId = ksOf(to)
+		req.AppId = appOf(to)
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 		require.Equal(t, http.StatusForbidden, res.Status,
 			"expected 403, received: %s", res.RawBody)
 
 		after := fetchPortal(t, h, workspace.ID, stored.ID)
-		require.Equal(t, from.Id, after.KeyAuthID.String, "the mapping must be unchanged")
+		require.Equal(t, from.ID, after.KeyAuthID.String, "the mapping must be unchanged")
 	})
 
 	t.Run("update_portal plus read on the target succeeds", func(t *testing.T) {
@@ -116,12 +117,13 @@ func TestUpdatePortalRequiresPermissionOnTheRemapTarget(t *testing.T) {
 		}
 
 		req := baseRequest(stored.ID)
-		req.Mapping = &to
+		req.KeyspaceId = ksOf(to)
+		req.AppId = appOf(to)
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 		require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
 
 		after := fetchPortal(t, h, workspace.ID, stored.ID)
-		require.Equal(t, to.Id, after.KeyAuthID.String)
+		require.Equal(t, to.ID, after.KeyAuthID.String)
 	})
 
 	// An update that does not name a mapping is unaffected: this gates the remap,

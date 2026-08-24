@@ -2,7 +2,6 @@ type: object
 required:
   - slug
   - displayName
-  - mapping
 properties:
   slug:
     type: string
@@ -24,8 +23,10 @@ properties:
       titles. Unlike `slug` it is not part of any URL, so it can be changed
       freely.
     example: Acme
-  mapping:
-    "$ref": "../../../../common/PortalMapping.yaml"
+  keyspaceId:
+    "$ref": "../../../../common/PortalKeyspaceId.yaml"
+  appId:
+    "$ref": "../../../../common/PortalAppId.yaml"
   enabled:
     type: boolean
     default: true
@@ -50,26 +51,27 @@ properties:
       Six-digit hex colour used for primary actions and accents in the portal.
     example: "#6366f1"
 additionalProperties: false
+# A portal serves exactly one resource. Encoded here so the validation
+# middleware rejects both-or-neither before the handler runs.
+oneOf:
+  - required: [keyspaceId]
+  - required: [appId]
 examples:
   keyspacePortal:
     summary: Create a portal for a keyspace
-    description: The common case, mapping a portal to one keyspace
+    description: The common case, a portal serving one keyspace
     value:
       slug: acme-portal
       displayName: Acme
-      mapping:
-        type: keyspace
-        id: ks_1234abcd
+      keyspaceId: ks_1234abcd
       enabled: true
   brandedAppPortal:
     summary: Create a branded portal for an app
-    description: Map to an app and set branding in the same call
+    description: Point it at an app and set branding in the same call
     value:
       slug: acme-portal
       displayName: Acme
-      mapping:
-        type: app
-        id: app_1234abcd
+      appId: app_1234abcd
       enabled: true
       logoUrl: https://cdn.example.com/logo.svg
       primaryColor: "#6366f1"

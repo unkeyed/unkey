@@ -20,16 +20,25 @@ properties:
     description: |
       New human-readable name shown to your end users. Omit to leave unchanged.
     example: Acme
-  mapping:
+  keyspaceId:
     description: |
-      Re-point the portal at a different app or keyspace. Omit to leave the
-      current mapping alone.
+      Re-point the portal at a different keyspace. Omit to leave the resource it
+      serves alone.
 
-      Changing the mapping revokes the portal's live sessions, because a session
-      carries the keyspace scope it was minted with and would otherwise keep
-      reaching the resource the portal no longer serves.
+      Re-pointing revokes the portal's live sessions, because a session carries
+      the keyspace scope it was minted with and would otherwise keep reaching the
+      resource the portal no longer serves.
     allOf:
-      - "$ref": "../../../../common/PortalMapping.yaml"
+      - "$ref": "../../../../common/PortalKeyspaceId.yaml"
+  appId:
+    description: |
+      Re-point the portal at a different app. Omit to leave the resource it
+      serves alone.
+
+      Re-pointing revokes the portal's live sessions, for the same reason as
+      `keyspaceId`.
+    allOf:
+      - "$ref": "../../../../common/PortalAppId.yaml"
   enabled:
     type: boolean
     description: |
@@ -57,6 +66,9 @@ properties:
       null to fall back to default styling.
     example: "#6366f1"
 additionalProperties: false
+# Naming both ids is refused by the handler rather than the schema: every field
+# here is optional, so "at most one of two" needs a `not`, and speakeasy drops
+# operations whose schema uses one.
 examples:
   disable:
     summary: Disable a portal
@@ -87,6 +99,4 @@ examples:
     description: Revokes the portal's live sessions
     value:
       portal: pc_1234abcd
-      mapping:
-        type: keyspace
-        id: ks_5678efgh
+      keyspaceId: ks_5678efgh

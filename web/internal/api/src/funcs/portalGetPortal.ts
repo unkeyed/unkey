@@ -38,8 +38,8 @@ import { Result } from "../types/fp.js";
  * resource it serves rather than through an identifier they stored. Exactly one
  * of `portal` or `mapping` is required.
  *
- * The portal's display name is not stored. Read it from the mapped app or
- * keyspace named in `mapping`.
+ * The response carries the portal's own `displayName`, which is what your end
+ * users see.
  *
  * **Required Permissions**
  *

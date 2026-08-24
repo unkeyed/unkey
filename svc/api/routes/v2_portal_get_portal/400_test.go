@@ -22,14 +22,21 @@ func TestGetPortalRejectsInvalidInput(t *testing.T) {
 	mapping := keyspaceMapping(t, h, workspace.ID)
 	stored := seedPortal(t, h, workspace.ID, "both-and-neither", mapping,
 		nullStringAbsent(), nullStringAbsent())
-	unknownType := openapi.PortalMapping{Id: mapping.Id, Type: openapi.PortalMappingType("project")}
+	someAppID := openapi.PortalAppId("app_1234abcd")
+	blankKeyspaceID := openapi.PortalKeyspaceId("   ")
 
+	// Exactly one of the three addresses is required. The flat shape makes more
+	// combinations expressible than the nested one did, so each is refused here.
 	testCases := map[string]handler.Request{
-		"both portal and mapping": {Portal: ptr(stored.ID), Mapping: &mapping},
-		"neither":                 {Portal: nil, Mapping: nil},
-		"empty portal":            {Portal: ptr(""), Mapping: nil},
-		"whitespace portal":       {Portal: ptr("   "), Mapping: nil},
-		"unknown mapping type":    {Portal: nil, Mapping: &unknownType},
+		"portal and keyspace id":    {Portal: ptr(stored.ID), KeyspaceId: ksOf(mapping), AppId: nil},
+		"portal and app id":         {Portal: ptr(stored.ID), KeyspaceId: nil, AppId: &someAppID},
+		"keyspace id and app id":    {Portal: nil, KeyspaceId: ksOf(mapping), AppId: &someAppID},
+		"all three":                 {Portal: ptr(stored.ID), KeyspaceId: ksOf(mapping), AppId: &someAppID},
+		"neither":                   {Portal: nil, KeyspaceId: nil, AppId: nil},
+		"empty portal":              {Portal: ptr(""), KeyspaceId: nil, AppId: nil},
+		"whitespace portal":         {Portal: ptr("   "), KeyspaceId: nil, AppId: nil},
+		"whitespace keyspace id":    {Portal: nil, KeyspaceId: &blankKeyspaceID, AppId: nil},
+		"whitespace id with portal": {Portal: ptr(stored.ID), KeyspaceId: &blankKeyspaceID, AppId: nil},
 	}
 
 	for name, req := range testCases {

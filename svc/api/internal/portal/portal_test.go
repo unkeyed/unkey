@@ -9,7 +9,6 @@ import (
 
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/svc/api/internal/portal"
-	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
 func TestColumnsForSetsExactlyOneColumn(t *testing.T) {
@@ -18,9 +17,9 @@ func TestColumnsForSetsExactlyOneColumn(t *testing.T) {
 	t.Run("app mapping sets only app_id", func(t *testing.T) {
 		t.Parallel()
 
-		appID, keyAuthID, err := portal.ColumnsFor(openapi.PortalMapping{
-			Id:   "app_123",
-			Type: openapi.PortalMappingTypeApp,
+		appID, keyAuthID, err := portal.ColumnsFor(portal.Mapping{
+			Type: portal.MappingTypeApp,
+			ID:   "app_123",
 		})
 		require.NoError(t, err)
 		require.Equal(t, sql.NullString{String: "app_123", Valid: true}, appID)
@@ -30,39 +29,93 @@ func TestColumnsForSetsExactlyOneColumn(t *testing.T) {
 	t.Run("keyspace mapping sets only key_auth_id", func(t *testing.T) {
 		t.Parallel()
 
-		appID, keyAuthID, err := portal.ColumnsFor(openapi.PortalMapping{
-			Id:   "ks_123",
-			Type: openapi.PortalMappingTypeKeyspace,
+		appID, keyAuthID, err := portal.ColumnsFor(portal.Mapping{
+			Type: portal.MappingTypeKeyspace,
+			ID:   "ks_123",
 		})
 		require.NoError(t, err)
 		require.Equal(t, sql.NullString{String: "ks_123", Valid: true}, keyAuthID)
 		require.False(t, appID.Valid, "app column must stay null")
 	})
 
-	// An empty or whitespace id would otherwise be written as a valid column
-	// holding "", which claims the association without naming anything.
-	for name, id := range map[string]string{"empty": "", "whitespace": "   "} {
-		t.Run("rejects "+name+" id", func(t *testing.T) {
-			t.Parallel()
-
-			_, _, err := portal.ColumnsFor(openapi.PortalMapping{
-				Id:   id,
-				Type: openapi.PortalMappingTypeApp,
-			})
-			require.Error(t, err)
-		})
-	}
-
 	// The generated enum makes this unreachable through a well-formed request,
 	// but the switch must stay total rather than silently defaulting to one arm.
 	t.Run("rejects unknown type", func(t *testing.T) {
 		t.Parallel()
 
-		_, _, err := portal.ColumnsFor(openapi.PortalMapping{
-			Id:   "app_123",
-			Type: openapi.PortalMappingType("project"),
+		_, _, err := portal.ColumnsFor(portal.Mapping{
+			Type: portal.MappingType("project"),
+			ID:   "app_123",
 		})
 		require.Error(t, err)
+	})
+}
+
+func TestMappingFrom(t *testing.T) {
+	t.Parallel()
+
+	ptr := func(v string) *string { return &v }
+
+	t.Run("keyspace id alone", func(t *testing.T) {
+		t.Parallel()
+
+		mapping, err := portal.MappingFrom(ptr("ks_123"), nil)
+		require.NoError(t, err)
+		require.Equal(t, portal.Mapping{Type: portal.MappingTypeKeyspace, ID: "ks_123"}, mapping)
+	})
+
+	t.Run("app id alone", func(t *testing.T) {
+		t.Parallel()
+
+		mapping, err := portal.MappingFrom(nil, ptr("app_123"))
+		require.NoError(t, err)
+		require.Equal(t, portal.Mapping{Type: portal.MappingTypeApp, ID: "app_123"}, mapping)
+	})
+
+	// The flat wire pair can express both and neither, which the nested object
+	// could not. These two cases are what the type buys back.
+	t.Run("rejects both ids", func(t *testing.T) {
+		t.Parallel()
+
+		_, err := portal.MappingFrom(ptr("ks_123"), ptr("app_123"))
+		require.Error(t, err)
+	})
+
+	t.Run("rejects neither id", func(t *testing.T) {
+		t.Parallel()
+
+		_, err := portal.MappingFrom(nil, nil)
+		require.Error(t, err)
+	})
+
+	// A blank id would otherwise be written as a valid column holding "", which
+	// claims the association without naming anything. Whitespace-only is the case
+	// `oneOf` and minLength cannot catch, which is why this check is not left to
+	// the schema.
+	for name, id := range map[string]string{"empty": "", "whitespace": "   "} {
+		t.Run("rejects "+name+" keyspace id", func(t *testing.T) {
+			t.Parallel()
+
+			_, err := portal.MappingFrom(ptr(id), nil)
+			require.Error(t, err)
+		})
+
+		t.Run("rejects "+name+" app id", func(t *testing.T) {
+			t.Parallel()
+
+			_, err := portal.MappingFrom(nil, ptr(id))
+			require.Error(t, err)
+		})
+	}
+
+	// One blank and one real id is not ambiguous: the blank is not a value, so
+	// the real one wins rather than the pair being refused.
+	t.Run("blank id alongside a real one", func(t *testing.T) {
+		t.Parallel()
+
+		mapping, err := portal.MappingFrom(ptr("  "), ptr("app_123"))
+		require.NoError(t, err)
+		require.Equal(t, portal.Mapping{Type: portal.MappingTypeApp, ID: "app_123"}, mapping)
 	})
 }
 
@@ -77,8 +130,8 @@ func TestMappingOfRejectsAmbiguousRows(t *testing.T) {
 			AppID: sql.NullString{String: "app_123", Valid: true},
 		})
 		require.NoError(t, err)
-		require.Equal(t, openapi.PortalMappingTypeApp, mapping.Type)
-		require.Equal(t, "app_123", mapping.Id)
+		require.Equal(t, portal.MappingTypeApp, mapping.Type)
+		require.Equal(t, "app_123", mapping.ID)
 	})
 
 	t.Run("keyspace row", func(t *testing.T) {
@@ -89,8 +142,8 @@ func TestMappingOfRejectsAmbiguousRows(t *testing.T) {
 			KeyAuthID: sql.NullString{String: "ks_123", Valid: true},
 		})
 		require.NoError(t, err)
-		require.Equal(t, openapi.PortalMappingTypeKeyspace, mapping.Type)
-		require.Equal(t, "ks_123", mapping.Id)
+		require.Equal(t, portal.MappingTypeKeyspace, mapping.Type)
+		require.Equal(t, "ks_123", mapping.ID)
 	})
 
 	// Rows written before these routes existed were never checked against the
@@ -199,7 +252,9 @@ func TestToResponseOmitsAbsentBranding(t *testing.T) {
 		require.NoError(t, err)
 		require.Nil(t, got.Branding, "branding must be absent rather than two empty strings")
 		require.Equal(t, "acme", got.Slug)
-		require.Equal(t, openapi.PortalMappingTypeKeyspace, got.Mapping.Type)
+		require.NotNil(t, got.KeyspaceId)
+		require.Equal(t, "ks_1", string(*got.KeyspaceId))
+		require.Nil(t, got.AppId)
 		require.Zero(t, got.UpdatedAt, "a never-updated portal reports no update time")
 	})
 
@@ -235,7 +290,9 @@ func TestToResponseOmitsAbsentBranding(t *testing.T) {
 			CreatedAt: 1,
 		})
 		require.NoError(t, err)
-		require.Equal(t, "app_1", got.Mapping.Id)
+		require.NotNil(t, got.AppId)
+		require.Equal(t, "app_1", string(*got.AppId))
+		require.Nil(t, got.KeyspaceId)
 	})
 
 	t.Run("ambiguous row surfaces the error", func(t *testing.T) {
@@ -340,13 +397,34 @@ func TestToResponseTolerantNeverFails(t *testing.T) {
 	_, err := portal.ToResponse(ambiguous)
 	require.Error(t, err)
 
+	// The flat response carries at most one id, so it has no way to say "this row
+	// claims two resources". It omits both rather than picking one or inventing a
+	// type, and the audit entry keeps the real state through DescribeMapping.
 	got := portal.ToResponseTolerant(ambiguous)
 	require.Equal(t, "pc_1", got.Id)
 	require.Equal(t, "broken", got.Slug)
-	require.Equal(t, "invalid", string(got.Mapping.Type),
-		"the response names the row's real state rather than guessing a mapping")
-	require.Equal(t, "app_1,ks_1", got.Mapping.Id)
+	require.Nil(t, got.KeyspaceId, "an ambiguous row must not name a keyspace")
+	require.Nil(t, got.AppId, "an ambiguous row must not name an app")
 
 	unmapped := portal.ToResponseTolerant(db.Portal{ID: "pc_2", Slug: "none", CreatedAt: 1})
-	require.Equal(t, "none", string(unmapped.Mapping.Type))
+	require.Nil(t, unmapped.KeyspaceId)
+	require.Nil(t, unmapped.AppId)
+}
+
+// The audit trail is where a corrupt row still has to be legible, since the
+// response can no longer describe one.
+func TestDescribeMappingStillNamesBrokenRows(t *testing.T) {
+	t.Parallel()
+
+	mappingType, mappingID := portal.DescribeMapping(db.Portal{
+		ID:        "pc_1",
+		AppID:     sql.NullString{String: "app_1", Valid: true},
+		KeyAuthID: sql.NullString{String: "ks_1", Valid: true},
+	})
+	require.Equal(t, "invalid", mappingType)
+	require.Equal(t, "app_1,ks_1", mappingID, "both ids survive so an incident reviewer sees the claim")
+
+	mappingType, mappingID = portal.DescribeMapping(db.Portal{ID: "pc_2"})
+	require.Equal(t, "none", mappingType)
+	require.Empty(t, mappingID)
 }

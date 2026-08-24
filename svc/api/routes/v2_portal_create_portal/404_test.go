@@ -8,9 +8,9 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/svc/api/internal/portal"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
-	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_portal_create_portal"
 )
 
@@ -52,11 +52,11 @@ func TestCreatePortalRejectsMappingsItDoesNotOwn(t *testing.T) {
 		DeleteProtection: false,
 	})
 
-	testCases := map[string]openapi.PortalMapping{
-		"keyspace owned by another workspace": {Id: otherApi.KeyAuthID.String, Type: openapi.PortalMappingTypeKeyspace},
-		"app owned by another workspace":      {Id: otherApp.ID, Type: openapi.PortalMappingTypeApp},
-		"keyspace that exists nowhere":        {Id: "ks_doesnotexist", Type: openapi.PortalMappingTypeKeyspace},
-		"app that exists nowhere":             {Id: "app_doesnotexist", Type: openapi.PortalMappingTypeApp},
+	testCases := map[string]portal.Mapping{
+		"keyspace owned by another workspace": {ID: otherApi.KeyAuthID.String, Type: portal.MappingTypeKeyspace},
+		"app owned by another workspace":      {ID: otherApp.ID, Type: portal.MappingTypeApp},
+		"keyspace that exists nowhere":        {ID: "ks_doesnotexist", Type: portal.MappingTypeKeyspace},
+		"app that exists nowhere":             {ID: "app_doesnotexist", Type: portal.MappingTypeApp},
 	}
 
 	bodies := map[string]string{}
@@ -65,7 +65,8 @@ func TestCreatePortalRejectsMappingsItDoesNotOwn(t *testing.T) {
 			res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
 				Slug:        "not-mine",
 				DisplayName: "Acme",
-				Mapping:     mapping,
+				KeyspaceId:  ksOf(mapping),
+				AppId:       appOf(mapping),
 				Enabled:     ptr(true),
 			})
 			require.Equal(t, http.StatusNotFound, res.Status,
@@ -102,7 +103,8 @@ func TestCreatePortalRejectsMappingsItDoesNotOwn(t *testing.T) {
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, victimHeaders, handler.Request{
 		Slug:        "mine-after-all",
 		DisplayName: "Acme",
-		Mapping:     openapi.PortalMapping{Id: otherApi.KeyAuthID.String, Type: openapi.PortalMappingTypeKeyspace},
+		KeyspaceId:  ksOf(portal.Mapping{Type: portal.MappingTypeKeyspace, ID: otherApi.KeyAuthID.String}),
+		AppId:       appOf(portal.Mapping{Type: portal.MappingTypeKeyspace, ID: otherApi.KeyAuthID.String}),
 		Enabled:     ptr(true),
 	})
 	require.Equal(t, http.StatusOK, res.Status,

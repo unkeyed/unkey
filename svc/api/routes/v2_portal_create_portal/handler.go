@@ -83,7 +83,12 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		enabled = *req.Enabled
 	}
 
-	appID, keyAuthID, err := portal.ColumnsFor(req.Mapping)
+	mapping, err := portal.MappingFrom(req.KeyspaceId, req.AppId)
+	if err != nil {
+		return err
+	}
+
+	appID, keyAuthID, err := portal.ColumnsFor(mapping)
 	if err != nil {
 		return err
 	}
@@ -113,15 +118,15 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	ctx = auditlog.WithCorrelation(ctx, auditlog.NewCorrelationID())
 
 	err = db.Tx(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
-		if err := portal.VerifyMappingOwned(ctx, tx, principal.WorkspaceID, req.Mapping); err != nil {
+		if err := portal.VerifyMappingOwned(ctx, tx, principal.WorkspaceID, mapping); err != nil {
 			return err
 		}
 
-		if err := portal.AuthorizeMappingTarget(ctx, tx, principal, principal.WorkspaceID, req.Mapping); err != nil {
+		if err := portal.AuthorizeMappingTarget(ctx, tx, principal, principal.WorkspaceID, mapping); err != nil {
 			return err
 		}
 
-		if err := h.assertAvailable(ctx, tx, principal.WorkspaceID, req.Slug, req.Mapping); err != nil {
+		if err := h.assertAvailable(ctx, tx, principal.WorkspaceID, req.Slug, mapping); err != nil {
 			return err
 		}
 
@@ -180,8 +185,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 						Meta: map[string]any{
 							"slug":        req.Slug,
 							"displayName": req.DisplayName,
-							"mappingType": string(req.Mapping.Type),
-							"mappingId":   req.Mapping.Id,
+							"mappingType": string(mapping.Type),
+							"mappingId":   mapping.ID,
 							"enabled":     enabled,
 						},
 						Name:        req.Slug,
@@ -218,7 +223,7 @@ func (h *Handler) assertAvailable(
 	tx db.DBTX,
 	workspaceID string,
 	slug string,
-	mapping openapi.PortalMapping,
+	mapping portal.Mapping,
 ) error {
 	_, err := db.Query.FindPortalByIdOrSlug(ctx, tx, db.FindPortalByIdOrSlugParams{
 		Portal:      slug,
@@ -242,12 +247,12 @@ func (h *Handler) assertAvailable(
 
 	var claimErr error
 	switch mapping.Type {
-	case openapi.PortalMappingTypeApp:
+	case portal.MappingTypeApp:
 		_, claimErr = db.Query.FindPortalIdByAppAnyWorkspace(ctx, tx,
-			sql.NullString{String: mapping.Id, Valid: true})
-	case openapi.PortalMappingTypeKeyspace:
+			sql.NullString{String: mapping.ID, Valid: true})
+	case portal.MappingTypeKeyspace:
 		_, claimErr = db.Query.FindPortalIdByKeyspaceAnyWorkspace(ctx, tx,
-			sql.NullString{String: mapping.Id, Valid: true})
+			sql.NullString{String: mapping.ID, Valid: true})
 	default:
 		return portal.ErrUnknownMappingType(mapping.Type)
 	}
@@ -259,7 +264,7 @@ func (h *Handler) assertAvailable(
 		// tenant for which apps it has wired up.
 		return fault.New("portal mapping taken",
 			fault.Code(codes.Data.Portal.Duplicate.URN()),
-			fault.Internal(fmt.Sprintf("mapping %s/%s already backs a portal", mapping.Type, mapping.Id)),
+			fault.Internal(fmt.Sprintf("mapping %s/%s already backs a portal", mapping.Type, mapping.ID)),
 			fault.Public("That app or keyspace already has a portal."),
 		)
 	case db.IsNotFound(claimErr):

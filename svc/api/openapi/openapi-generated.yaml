@@ -2991,7 +2991,6 @@ components:
             required:
                 - slug
                 - displayName
-                - mapping
             properties:
                 slug:
                     type: string
@@ -3013,8 +3012,10 @@ components:
                         titles. Unlike `slug` it is not part of any URL, so it can be changed
                         freely.
                     example: Acme
-                mapping:
-                    "$ref": "#/components/schemas/PortalMapping"
+                keyspaceId:
+                    "$ref": "#/components/schemas/PortalKeyspaceId"
+                appId:
+                    "$ref": "#/components/schemas/PortalAppId"
                 enabled:
                     type: boolean
                     default: true
@@ -3039,6 +3040,11 @@ components:
                         Six-digit hex colour used for primary actions and accents in the portal.
                     example: "#6366f1"
             additionalProperties: false
+            oneOf:
+                - required:
+                    - keyspaceId
+                - required:
+                    - appId
         V2PortalCreatePortalResponseBody:
             type: object
             required:
@@ -3176,18 +3182,23 @@ components:
             type: object
             description: |
                 Name the portal directly with `portal`, or name the resource it serves with
-                `mapping`. Exactly one of the two is required; sending both is a bad request.
+                `keyspaceId` or `appId`. Exactly one of the three is required; sending more
+                than one is a bad request.
             properties:
                 portal:
                     "$ref": "#/components/schemas/ResourceIdentifier"
-                mapping:
-                    "$ref": "#/components/schemas/PortalMapping"
+                keyspaceId:
+                    "$ref": "#/components/schemas/PortalKeyspaceId"
+                appId:
+                    "$ref": "#/components/schemas/PortalAppId"
             additionalProperties: false
             oneOf:
                 - required:
                     - portal
                 - required:
-                    - mapping
+                    - keyspaceId
+                - required:
+                    - appId
         V2PortalGetPortalResponseBody:
             type: object
             required:
@@ -3299,16 +3310,25 @@ components:
                     description: |
                         New human-readable name shown to your end users. Omit to leave unchanged.
                     example: Acme
-                mapping:
+                keyspaceId:
                     description: |
-                        Re-point the portal at a different app or keyspace. Omit to leave the
-                        current mapping alone.
+                        Re-point the portal at a different keyspace. Omit to leave the resource it
+                        serves alone.
 
-                        Changing the mapping revokes the portal's live sessions, because a session
-                        carries the keyspace scope it was minted with and would otherwise keep
-                        reaching the resource the portal no longer serves.
+                        Re-pointing revokes the portal's live sessions, because a session carries
+                        the keyspace scope it was minted with and would otherwise keep reaching the
+                        resource the portal no longer serves.
                     allOf:
-                        - "$ref": "#/components/schemas/PortalMapping"
+                        - "$ref": "#/components/schemas/PortalKeyspaceId"
+                appId:
+                    description: |
+                        Re-point the portal at a different app. Omit to leave the resource it
+                        serves alone.
+
+                        Re-pointing revokes the portal's live sessions, for the same reason as
+                        `keyspaceId`.
+                    allOf:
+                        - "$ref": "#/components/schemas/PortalAppId"
                 enabled:
                     type: boolean
                     description: |
@@ -6716,37 +6736,29 @@ components:
             description: Complete list of permissions now directly assigned to the role.
             items:
                 "$ref": "#/components/schemas/Permission"
-        PortalMapping:
-            type: object
-            required:
-                - type
-                - id
+        PortalKeyspaceId:
+            type: string
+            minLength: 1
+            maxLength: 255
+            pattern: "^[a-zA-Z0-9_-]+$"
             description: |
-                The single resource a portal serves keys for.
+                The id of the keyspace this portal serves keys for. Must belong to your
+                workspace.
 
-                A portal maps to exactly one app or one keyspace, never several and never
-                neither. Naming the kind and the id together makes that invariant part of the
-                request shape: there is no way to express a portal with two mappings, and no
-                way to express one with none.
-            properties:
-                type:
-                    type: string
-                    enum:
-                        - app
-                        - keyspace
-                    description: |
-                        Whether `id` names an app or a keyspace.
-                    example: keyspace
-                id:
-                    type: string
-                    minLength: 1
-                    maxLength: 255
-                    pattern: "^[a-zA-Z0-9_-]+$"
-                    description: |
-                        The id of the app or keyspace this portal serves. Must belong to your
-                        workspace.
-                    example: ks_1234abcd
-            additionalProperties: false
+                A portal serves exactly one resource, so `keyspaceId` and `appId` are
+                mutually exclusive.
+            example: ks_1234abcd
+        PortalAppId:
+            type: string
+            minLength: 1
+            maxLength: 255
+            pattern: "^[a-zA-Z0-9_-]+$"
+            description: |
+                The id of the app this portal serves keys for. Must belong to your workspace.
+
+                A portal serves exactly one resource, so `appId` and `keyspaceId` are mutually
+                exclusive.
+            example: app_1234abcd
         V2PortalCreatePortalResponseData:
             type: object
             required:
@@ -6806,10 +6818,13 @@ components:
                 - slug
                 - displayName
                 - enabled
-                - mapping
                 - createdAt
             description: |
                 A portal you expose to your end users so they can manage their own keys.
+
+                Exactly one of `keyspaceId` or `appId` is present, naming the single resource
+                the portal serves. Neither is in the required list because which one appears
+                depends on the portal, so a reader checks for the one it cares about.
             properties:
                 id:
                     type: string
@@ -6840,8 +6855,10 @@ components:
                         Disabling a portal stops `portal.createSession` from minting new sessions.
                         It does not end sessions that are already live.
                     example: true
-                mapping:
-                    "$ref": "#/components/schemas/PortalMapping"
+                keyspaceId:
+                    "$ref": "#/components/schemas/PortalKeyspaceId"
+                appId:
+                    "$ref": "#/components/schemas/PortalAppId"
                 branding:
                     description: |
                         How the portal looks to your end users. Omitted when no branding is set.

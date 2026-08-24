@@ -50,7 +50,7 @@ func TestDeletePortalAuthorizationMatrix(t *testing.T) {
 			mapping := keyspaceMapping(t, h, workspace.ID)
 			stored := seedPortal(t, h, workspace.ID, fmt.Sprintf("gated-%d", i), mapping)
 			h.CreatePortalSessionForPortal(stored.ID, workspace.ID,
-				fmt.Sprintf("user_%d", i), []string{mapping.Id}, []string{"keys:read"})
+				fmt.Sprintf("user_%d", i), []string{mapping.ID}, []string{"keys:read"})
 
 			rootKey := h.CreateRootKey(workspace.ID, tc.permissions...)
 

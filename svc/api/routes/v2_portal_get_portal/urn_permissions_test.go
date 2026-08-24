@@ -40,8 +40,9 @@ func TestGetPortalAuthorizesURNGrants(t *testing.T) {
 			rootKey := h.CreateRootKey(workspace.ID, grant)
 
 			res := testutil.CallRoute[handler.Request, handler.Response](h, route, headersFor(rootKey), handler.Request{
-				Portal:  ptr(stored.Slug),
-				Mapping: nil,
+				Portal:     ptr(stored.Slug),
+				KeyspaceId: nil,
+				AppId:      nil,
 			})
 			require.Equal(t, http.StatusOK, res.Status,
 				"a URN grant must authorize reading a portal, got: %s", res.RawBody)

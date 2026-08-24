@@ -41,7 +41,8 @@ func TestUpdatePortalConflicts(t *testing.T) {
 
 	t.Run("mapping held by a sibling", func(t *testing.T) {
 		req := baseRequest(mine.ID)
-		req.Mapping = &siblingMapping
+		req.KeyspaceId = ksOf(siblingMapping)
+		req.AppId = appOf(siblingMapping)
 
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 		require.Equal(t, http.StatusConflict, res.Status, "expected 409, received: %s", res.RawBody)
@@ -49,7 +50,7 @@ func TestUpdatePortalConflicts(t *testing.T) {
 		require.Contains(t, res.RawBody, "keyspace", "the message names the mapping, not the slug")
 
 		row := fetchPortal(t, h, workspace.ID, mine.ID)
-		require.NotEqual(t, siblingMapping.Id, row.KeyAuthID.String, "a conflicting update must not write")
+		require.NotEqual(t, siblingMapping.ID, row.KeyAuthID.String, "a conflicting update must not write")
 	})
 }
 
@@ -66,14 +67,16 @@ func TestUpdatePortalAcceptsItsOwnCurrentValues(t *testing.T) {
 
 	req := baseRequest(stored.ID)
 	req.Slug = ptr(stored.Slug)
-	req.Mapping = &mapping
+	req.KeyspaceId = ksOf(mapping)
+	req.AppId = appOf(mapping)
 	req.Enabled = ptr(true)
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 	require.Equal(t, http.StatusOK, res.Status,
 		"a portal's own slug and mapping must not collide with itself: %s", res.RawBody)
 	require.Equal(t, "idempotent", res.Body.Data.Slug)
-	require.Equal(t, mapping, res.Body.Data.Mapping)
+	require.NotNil(t, res.Body.Data.KeyspaceId)
+	require.Equal(t, mapping.ID, string(*res.Body.Data.KeyspaceId))
 }
 
 // The slug unique key is (workspace_id, slug), so a slug another workspace holds

@@ -3,11 +3,35 @@
  */
 
 import * as z from "zod/v3";
-import {
-  PortalMapping,
-  PortalMapping$Outbound,
-  PortalMapping$outboundSchema,
-} from "./portalmapping.js";
+
+export type V2PortalGetPortalRequestBody3 = {
+  /**
+   * Identifies a resource by either its unique ID or its slug.
+   *
+   * @remarks
+   * Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+   */
+  portal?: string | undefined;
+  /**
+   * The id of the keyspace this portal serves keys for. Must belong to your
+   *
+   * @remarks
+   * workspace.
+   *
+   * A portal serves exactly one resource, so `keyspaceId` and `appId` are
+   * mutually exclusive.
+   */
+  keyspaceId?: string | undefined;
+  /**
+   * The id of the app this portal serves keys for. Must belong to your workspace.
+   *
+   * @remarks
+   *
+   * A portal serves exactly one resource, so `appId` and `keyspaceId` are mutually
+   * exclusive.
+   */
+  appId: string;
+};
 
 export type V2PortalGetPortalRequestBody2 = {
   /**
@@ -18,16 +42,24 @@ export type V2PortalGetPortalRequestBody2 = {
    */
   portal?: string | undefined;
   /**
-   * The single resource a portal serves keys for.
+   * The id of the keyspace this portal serves keys for. Must belong to your
+   *
+   * @remarks
+   * workspace.
+   *
+   * A portal serves exactly one resource, so `keyspaceId` and `appId` are
+   * mutually exclusive.
+   */
+  keyspaceId: string;
+  /**
+   * The id of the app this portal serves keys for. Must belong to your workspace.
    *
    * @remarks
    *
-   * A portal maps to exactly one app or one keyspace, never several and never
-   * neither. Naming the kind and the id together makes that invariant part of the
-   * request shape: there is no way to express a portal with two mappings, and no
-   * way to express one with none.
+   * A portal serves exactly one resource, so `appId` and `keyspaceId` are mutually
+   * exclusive.
    */
-  mapping: PortalMapping;
+  appId?: string | undefined;
 };
 
 export type V2PortalGetPortalRequestBody1 = {
@@ -39,32 +71,71 @@ export type V2PortalGetPortalRequestBody1 = {
    */
   portal: string;
   /**
-   * The single resource a portal serves keys for.
+   * The id of the keyspace this portal serves keys for. Must belong to your
+   *
+   * @remarks
+   * workspace.
+   *
+   * A portal serves exactly one resource, so `keyspaceId` and `appId` are
+   * mutually exclusive.
+   */
+  keyspaceId?: string | undefined;
+  /**
+   * The id of the app this portal serves keys for. Must belong to your workspace.
    *
    * @remarks
    *
-   * A portal maps to exactly one app or one keyspace, never several and never
-   * neither. Naming the kind and the id together makes that invariant part of the
-   * request shape: there is no way to express a portal with two mappings, and no
-   * way to express one with none.
+   * A portal serves exactly one resource, so `appId` and `keyspaceId` are mutually
+   * exclusive.
    */
-  mapping?: PortalMapping | undefined;
+  appId?: string | undefined;
 };
 
 /**
  * Name the portal directly with `portal`, or name the resource it serves with
  *
  * @remarks
- * `mapping`. Exactly one of the two is required; sending both is a bad request.
+ * `keyspaceId` or `appId`. Exactly one of the three is required; sending more
+ * than one is a bad request.
  */
 export type V2PortalGetPortalRequestBodyUnion =
   | V2PortalGetPortalRequestBody1
-  | V2PortalGetPortalRequestBody2;
+  | V2PortalGetPortalRequestBody2
+  | V2PortalGetPortalRequestBody3;
+
+/** @internal */
+export type V2PortalGetPortalRequestBody3$Outbound = {
+  portal?: string | undefined;
+  keyspaceId?: string | undefined;
+  appId: string;
+};
+
+/** @internal */
+export const V2PortalGetPortalRequestBody3$outboundSchema: z.ZodType<
+  V2PortalGetPortalRequestBody3$Outbound,
+  z.ZodTypeDef,
+  V2PortalGetPortalRequestBody3
+> = z.object({
+  portal: z.string().optional(),
+  keyspaceId: z.string().optional(),
+  appId: z.string(),
+});
+
+export function v2PortalGetPortalRequestBody3ToJSON(
+  v2PortalGetPortalRequestBody3: V2PortalGetPortalRequestBody3,
+): string {
+  return JSON.stringify(
+    V2PortalGetPortalRequestBody3$outboundSchema.parse(
+      v2PortalGetPortalRequestBody3,
+    ),
+  );
+}
 
 /** @internal */
 export type V2PortalGetPortalRequestBody2$Outbound = {
   portal?: string | undefined;
-  mapping: PortalMapping$Outbound;
+  keyspaceId: string;
+  appId?: string | undefined;
 };
 
 /** @internal */
@@ -74,7 +145,8 @@ export const V2PortalGetPortalRequestBody2$outboundSchema: z.ZodType<
   V2PortalGetPortalRequestBody2
 > = z.object({
   portal: z.string().optional(),
-  mapping: PortalMapping$outboundSchema,
+  keyspaceId: z.string(),
+  appId: z.string().optional(),
 });
 
 export function v2PortalGetPortalRequestBody2ToJSON(
@@ -90,7 +162,8 @@ export function v2PortalGetPortalRequestBody2ToJSON(
 /** @internal */
 export type V2PortalGetPortalRequestBody1$Outbound = {
   portal: string;
-  mapping?: PortalMapping$Outbound | undefined;
+  keyspaceId?: string | undefined;
+  appId?: string | undefined;
 };
 
 /** @internal */
@@ -100,7 +173,8 @@ export const V2PortalGetPortalRequestBody1$outboundSchema: z.ZodType<
   V2PortalGetPortalRequestBody1
 > = z.object({
   portal: z.string(),
-  mapping: PortalMapping$outboundSchema.optional(),
+  keyspaceId: z.string().optional(),
+  appId: z.string().optional(),
 });
 
 export function v2PortalGetPortalRequestBody1ToJSON(
@@ -116,7 +190,8 @@ export function v2PortalGetPortalRequestBody1ToJSON(
 /** @internal */
 export type V2PortalGetPortalRequestBodyUnion$Outbound =
   | V2PortalGetPortalRequestBody1$Outbound
-  | V2PortalGetPortalRequestBody2$Outbound;
+  | V2PortalGetPortalRequestBody2$Outbound
+  | V2PortalGetPortalRequestBody3$Outbound;
 
 /** @internal */
 export const V2PortalGetPortalRequestBodyUnion$outboundSchema: z.ZodType<
@@ -126,6 +201,7 @@ export const V2PortalGetPortalRequestBodyUnion$outboundSchema: z.ZodType<
 > = z.union([
   z.lazy(() => V2PortalGetPortalRequestBody1$outboundSchema),
   z.lazy(() => V2PortalGetPortalRequestBody2$outboundSchema),
+  z.lazy(() => V2PortalGetPortalRequestBody3$outboundSchema),
 ]);
 
 export function v2PortalGetPortalRequestBodyUnionToJSON(

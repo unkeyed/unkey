@@ -15,6 +15,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/auditlog"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/svc/api/internal/portal"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	"github.com/unkeyed/unkey/svc/api/openapi"
@@ -23,6 +24,25 @@ import (
 )
 
 // newRoute registers the handler and returns it with the caller's headers.
+// ksOf and appOf render a mapping as the flat request pair. Each returns nil
+// unless the mapping names its kind, so a call site can set both fields
+// unconditionally and still send exactly one id.
+func ksOf(m portal.Mapping) *openapi.PortalKeyspaceId {
+	if m.Type != portal.MappingTypeKeyspace {
+		return nil
+	}
+	id := openapi.PortalKeyspaceId(m.ID)
+	return &id
+}
+
+func appOf(m portal.Mapping) *openapi.PortalAppId {
+	if m.Type != portal.MappingTypeApp {
+		return nil
+	}
+	id := openapi.PortalAppId(m.ID)
+	return &id
+}
+
 func newRoute(t *testing.T, h *testutil.Harness, permissions ...string) (*handler.Handler, http.Header) {
 	t.Helper()
 
@@ -41,7 +61,7 @@ func headersFor(rootKey string) http.Header {
 }
 
 // keyspaceMapping seeds an api in the workspace and maps to its keyspace.
-func keyspaceMapping(t *testing.T, h *testutil.Harness, workspaceID string) openapi.PortalMapping {
+func keyspaceMapping(t *testing.T, h *testutil.Harness, workspaceID string) portal.Mapping {
 	t.Helper()
 
 	api := h.CreateApi(seed.CreateApiRequest{
@@ -53,7 +73,7 @@ func keyspaceMapping(t *testing.T, h *testutil.Harness, workspaceID string) open
 		DefaultPrefix: nil,
 		DefaultBytes:  nil,
 	})
-	return openapi.PortalMapping{Id: api.KeyAuthID.String, Type: openapi.PortalMappingTypeKeyspace}
+	return portal.Mapping{Type: portal.MappingTypeKeyspace, ID: api.KeyAuthID.String}
 }
 
 // seedPortal writes a portal carrying the given mapping.
@@ -61,17 +81,17 @@ func seedPortal(
 	t *testing.T,
 	h *testutil.Harness,
 	workspaceID, slug string,
-	mapping openapi.PortalMapping,
+	mapping portal.Mapping,
 ) db.Portal {
 	t.Helper()
 
 	appID := nullStringAbsent()
 	keyAuthID := nullStringAbsent()
 	switch mapping.Type {
-	case openapi.PortalMappingTypeApp:
-		appID = nullString(mapping.Id)
-	case openapi.PortalMappingTypeKeyspace:
-		keyAuthID = nullString(mapping.Id)
+	case portal.MappingTypeApp:
+		appID = nullString(mapping.ID)
+	case portal.MappingTypeKeyspace:
+		keyAuthID = nullString(mapping.ID)
 	default:
 		t.Fatalf("unsupported mapping type %q", mapping.Type)
 	}
@@ -264,8 +284,8 @@ func TestDeletePortalRevokesItsSessions(t *testing.T) {
 	mapping := keyspaceMapping(t, h, workspace.ID)
 	stored := seedPortal(t, h, workspace.ID, "revoked", mapping)
 
-	h.CreatePortalSessionForPortal(stored.ID, workspace.ID, "user_1", []string{mapping.Id}, []string{"keys:read"})
-	h.CreatePortalSessionForPortal(stored.ID, workspace.ID, "user_2", []string{mapping.Id}, []string{"keys:read"})
+	h.CreatePortalSessionForPortal(stored.ID, workspace.ID, "user_1", []string{mapping.ID}, []string{"keys:read"})
+	h.CreatePortalSessionForPortal(stored.ID, workspace.ID, "user_2", []string{mapping.ID}, []string{"keys:read"})
 	// Guards the fixture: without a live session to lose, the assertion below
 	// would pass against a handler that revokes nothing.
 	require.Equal(t, 2, liveSessions(t, h, stored.ID), "the fixture must have live sessions to lose")
@@ -295,8 +315,8 @@ func TestDeletePortalLeavesOtherPortalsSessionsAlone(t *testing.T) {
 	doomed := seedPortal(t, h, workspace.ID, "doomed", mapping)
 	bystander := seedPortal(t, h, workspace.ID, "bystander", keyspaceMapping(t, h, workspace.ID))
 
-	h.CreatePortalSessionForPortal(doomed.ID, workspace.ID, "user_1", []string{mapping.Id}, []string{"keys:read"})
-	h.CreatePortalSessionForPortal(bystander.ID, workspace.ID, "user_2", []string{mapping.Id}, []string{"keys:read"})
+	h.CreatePortalSessionForPortal(doomed.ID, workspace.ID, "user_1", []string{mapping.ID}, []string{"keys:read"})
+	h.CreatePortalSessionForPortal(bystander.ID, workspace.ID, "user_2", []string{mapping.ID}, []string{"keys:read"})
 	require.Equal(t, 1, liveSessions(t, h, doomed.ID))
 	require.Equal(t, 1, liveSessions(t, h, bystander.ID))
 
@@ -324,7 +344,7 @@ func TestDeletePortalDoesNotCascadeToItsMapping(t *testing.T) {
 	require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
 
 	rows, err := db.Query.FindKeyAuthsByIdsAndWorkspace(context.Background(), h.DB.RO(),
-		db.FindKeyAuthsByIdsAndWorkspaceParams{WorkspaceID: workspace.ID, KeyAuthIds: []string{mapping.Id}})
+		db.FindKeyAuthsByIdsAndWorkspaceParams{WorkspaceID: workspace.ID, KeyAuthIds: []string{mapping.ID}})
 	require.NoError(t, err)
 	require.Len(t, rows, 1, "the keyspace the portal served must survive")
 }
@@ -339,7 +359,7 @@ func TestDeletePortalThenRecreateSameSlug(t *testing.T) {
 
 	mapping := keyspaceMapping(t, h, workspace.ID)
 	original := seedPortal(t, h, workspace.ID, "recycled", mapping)
-	h.CreatePortalSessionForPortal(original.ID, workspace.ID, "user_1", []string{mapping.Id}, []string{"keys:read"})
+	h.CreatePortalSessionForPortal(original.ID, workspace.ID, "user_1", []string{mapping.ID}, []string{"keys:read"})
 	require.Equal(t, 1, liveSessions(t, h, original.ID))
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, request(original.ID))
@@ -377,7 +397,7 @@ func TestDeletePortalStopsTheEndUserOnceTheCacheTurnsOver(t *testing.T) {
 	mapping := keyspaceMapping(t, h, workspace.ID)
 	stored := seedPortal(t, h, workspace.ID, "live", mapping)
 	sessionHeaders := h.CreatePortalSessionForPortal(
-		stored.ID, workspace.ID, "portal_user_A", []string{mapping.Id}, []string{"keys:read"})
+		stored.ID, workspace.ID, "portal_user_A", []string{mapping.ID}, []string{"keys:read"})
 
 	warm := testutil.CallRoute[listKeys.Request, listKeys.Response](h, endUserRoute, sessionHeaders, listKeys.Request{})
 	require.Equal(t, http.StatusOK, warm.Status,
@@ -409,7 +429,7 @@ func TestDeletePortalWritesOneAuditEntry(t *testing.T) {
 
 	mapping := keyspaceMapping(t, h, workspace.ID)
 	stored := seedPortal(t, h, workspace.ID, "audited-portal", mapping)
-	h.CreatePortalSessionForPortal(stored.ID, workspace.ID, "user_1", []string{mapping.Id}, []string{"keys:read"})
+	h.CreatePortalSessionForPortal(stored.ID, workspace.ID, "user_1", []string{mapping.ID}, []string{"keys:read"})
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, request(stored.ID))
 	require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
@@ -419,8 +439,8 @@ func TestDeletePortalWritesOneAuditEntry(t *testing.T) {
 
 	meta := deleteAuditMeta(t, h, workspace.ID)
 	require.Equal(t, "audited-portal", meta["slug"])
-	require.Equal(t, string(openapi.PortalMappingTypeKeyspace), meta["mappingType"])
-	require.Equal(t, mapping.Id, meta["mappingId"],
+	require.Equal(t, string(portal.MappingTypeKeyspace), meta["mappingType"])
+	require.Equal(t, mapping.ID, meta["mappingId"],
 		"the mapping is recorded, because the row that held it is gone")
 	require.Equal(t, true, meta["enabled"])
 	require.Equal(t, float64(1), meta["sessionsRevoked"],
@@ -457,7 +477,7 @@ func TestDeletePortalWithInvalidMapping(t *testing.T) {
 		WorkspaceID:  workspace.ID,
 		Slug:         "broken",
 		AppID:        nullString(app.ID),
-		KeyAuthID:    nullString(keyspace.Id),
+		KeyAuthID:    nullString(keyspace.ID),
 		Enabled:      true,
 		LogoUrl:      nullStringAbsent(),
 		PrimaryColor: nullStringAbsent(),

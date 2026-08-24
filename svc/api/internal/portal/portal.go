@@ -52,27 +52,72 @@ const ReturnURLMaxLength = 500
 
 var hexColor = regexp.MustCompile(`^#[0-9a-fA-F]{6}$`)
 
-// ColumnsFor turns a request's mapping into the two nullable columns that carry
-// it. Exactly one is set.
+// MappingType names the kind of resource a portal serves.
+type MappingType string
+
+const (
+	MappingTypeApp      MappingType = "app"
+	MappingTypeKeyspace MappingType = "keyspace"
+)
+
+// Mapping is the single resource a portal serves keys for.
 //
-// The request shape names the kind and the id together, so "both" and "neither"
-// are unrepresentable rather than merely rejected. What remains reachable is an
-// unknown kind, which a client could send past the generated enum.
-func ColumnsFor(m openapi.PortalMapping) (appID sql.NullString, keyAuthID sql.NullString, err error) {
-	id := strings.TrimSpace(m.Id)
-	if id == "" {
-		return sql.NullString{}, sql.NullString{}, fault.New("empty portal mapping id",
+// The wire format carries two mutually exclusive optional ids (`keyspaceId` and
+// `appId`), which can express both and neither. This type cannot: every value
+// that exists has been through [MappingFrom], so once a handler holds one the
+// invariant is already established and no downstream code re-checks it.
+type Mapping struct {
+	Type MappingType
+	ID   string
+}
+
+// MappingFrom parses the flat wire pair into the domain type.
+//
+// This is the boundary. `oneOf` in the spec rejects both-or-neither for a
+// well-formed request, but it cannot express that a whitespace-only id is not an
+// id, and a client can always send past a generated enum, so the check is here
+// too rather than trusted from the schema.
+func MappingFrom(keyspaceID *string, appID *string) (Mapping, error) {
+	ks := ""
+	if keyspaceID != nil {
+		ks = strings.TrimSpace(*keyspaceID)
+	}
+	app := ""
+	if appID != nil {
+		app = strings.TrimSpace(*appID)
+	}
+
+	switch {
+	case ks != "" && app != "":
+		return Mapping{Type: "", ID: ""}, fault.New("portal names two resources",
 			fault.Code(codes.App.Validation.InvalidInput.URN()),
-			fault.Internal("mapping id was empty or whitespace"),
+			fault.Internal("both keyspaceId and appId were provided"),
+			fault.Public(ErrMsgInvalidMapping),
+		)
+	case ks != "":
+		return Mapping{Type: MappingTypeKeyspace, ID: ks}, nil
+	case app != "":
+		return Mapping{Type: MappingTypeApp, ID: app}, nil
+	default:
+		return Mapping{Type: "", ID: ""}, fault.New("portal names no resource",
+			fault.Code(codes.App.Validation.InvalidInput.URN()),
+			fault.Internal("neither keyspaceId nor appId was provided"),
 			fault.Public(ErrMsgInvalidMapping),
 		)
 	}
+}
 
+// ColumnsFor turns a mapping into the two nullable columns that carry it.
+// Exactly one is set.
+//
+// [MappingFrom] already established that the id is non-empty and the kind is
+// known, so the only remaining case is a zero value a caller built by hand.
+func ColumnsFor(m Mapping) (appID sql.NullString, keyAuthID sql.NullString, err error) {
 	switch m.Type {
-	case openapi.PortalMappingTypeApp:
-		return sql.NullString{String: id, Valid: true}, sql.NullString{}, nil
-	case openapi.PortalMappingTypeKeyspace:
-		return sql.NullString{}, sql.NullString{String: id, Valid: true}, nil
+	case MappingTypeApp:
+		return sql.NullString{String: m.ID, Valid: true}, sql.NullString{}, nil
+	case MappingTypeKeyspace:
+		return sql.NullString{}, sql.NullString{String: m.ID, Valid: true}, nil
 	default:
 		return sql.NullString{}, sql.NullString{}, ErrUnknownMappingType(m.Type)
 	}
@@ -84,12 +129,12 @@ func ColumnsFor(m openapi.PortalMapping) (appID sql.NullString, keyAuthID sql.Nu
 // application is solely responsible for. Rows written before these routes
 // existed were never checked, so this refuses to guess which half to believe
 // rather than serving an ambiguous portal.
-func MappingOf(p db.Portal) (openapi.PortalMapping, error) {
+func MappingOf(p db.Portal) (Mapping, error) {
 	hasApp := p.AppID.Valid && p.AppID.String != ""
 	hasKeyspace := p.KeyAuthID.Valid && p.KeyAuthID.String != ""
 
 	if hasApp == hasKeyspace {
-		return openapi.PortalMapping{Id: "", Type: ""}, fault.New("portal mapping invariant violated",
+		return Mapping{Type: "", ID: ""}, fault.New("portal mapping invariant violated",
 			fault.Code(codes.App.Internal.UnexpectedError.URN()),
 			fault.Internal(fmt.Sprintf("portal %s has hasApp=%t hasKeyspace=%t", p.ID, hasApp, hasKeyspace)),
 			fault.Public("Portal is misconfigured."),
@@ -97,9 +142,9 @@ func MappingOf(p db.Portal) (openapi.PortalMapping, error) {
 	}
 
 	if hasApp {
-		return openapi.PortalMapping{Id: p.AppID.String, Type: openapi.PortalMappingTypeApp}, nil
+		return Mapping{Type: MappingTypeApp, ID: p.AppID.String}, nil
 	}
-	return openapi.PortalMapping{Id: p.KeyAuthID.String, Type: openapi.PortalMappingTypeKeyspace}, nil
+	return Mapping{Type: MappingTypeKeyspace, ID: p.KeyAuthID.String}, nil
 }
 
 // SameAssociation reports whether two association columns name the same
@@ -127,12 +172,27 @@ func associationValue(c sql.NullString) string {
 // The generated enum makes this unreachable through a well-formed request, but
 // every switch over the kind needs a total default, and five copies of the same
 // fault chain is five places for the public message to drift.
-func ErrUnknownMappingType(mappingType openapi.PortalMappingType) error {
+func ErrUnknownMappingType(mappingType MappingType) error {
 	return fault.New("unknown portal mapping type",
 		fault.Code(codes.App.Validation.InvalidInput.URN()),
 		fault.Internal(fmt.Sprintf("unknown mapping type %q", mappingType)),
 		fault.Public(ErrMsgInvalidMapping),
 	)
+}
+
+// responseIDs renders a mapping as the flat wire pair. Exactly one is non-nil,
+// which is what lets a reader treat the present one as the resource served.
+func responseIDs(m Mapping) (keyspaceID *openapi.PortalKeyspaceId, appID *openapi.PortalAppId) {
+	switch m.Type {
+	case MappingTypeApp:
+		id := openapi.PortalAppId(m.ID)
+		return nil, &id
+	case MappingTypeKeyspace:
+		id := openapi.PortalKeyspaceId(m.ID)
+		return &id, nil
+	default:
+		return nil, nil
+	}
 }
 
 // ToResponseTolerant maps a stored row for a response that must not fail.
@@ -153,16 +213,16 @@ func ToResponseTolerant(p db.Portal) openapi.Portal {
 		}
 	}
 
+	keyspaceID, appID := responseIDs(Mapping{Type: MappingType(mappingType), ID: mappingID})
+
 	return openapi.Portal{
-		Branding:  branding,
-		CreatedAt: p.CreatedAt,
-		Enabled:   p.Enabled,
-		Id:        p.ID,
-		Mapping: openapi.PortalMapping{
-			Id:   mappingID,
-			Type: openapi.PortalMappingType(mappingType),
-		},
+		AppId:       appID,
+		Branding:    branding,
+		CreatedAt:   p.CreatedAt,
 		DisplayName: p.DisplayName,
+		Enabled:     p.Enabled,
+		Id:          p.ID,
+		KeyspaceId:  keyspaceID,
 		Slug:        p.Slug,
 		UpdatedAt:   p.UpdatedAt.Int64,
 	}
@@ -188,9 +248,9 @@ func DescribeMapping(p db.Portal) (mappingType string, mappingID string) {
 	case hasApp && hasKeyspace:
 		return "invalid", p.AppID.String + "," + p.KeyAuthID.String
 	case hasApp:
-		return string(openapi.PortalMappingTypeApp), p.AppID.String
+		return string(MappingTypeApp), p.AppID.String
 	case hasKeyspace:
-		return string(openapi.PortalMappingTypeKeyspace), p.KeyAuthID.String
+		return string(MappingTypeKeyspace), p.KeyAuthID.String
 	default:
 		return "none", ""
 	}
@@ -208,7 +268,7 @@ func DescribeMapping(p db.Portal) (mappingType string, mappingID string) {
 //
 // Runs inside the caller's transaction so the row cannot disappear between this
 // check and the write.
-func VerifyMappingOwned(ctx context.Context, tx db.DBTX, workspaceID string, m openapi.PortalMapping) error {
+func VerifyMappingOwned(ctx context.Context, tx db.DBTX, workspaceID string, m Mapping) error {
 	notFound := func(detail string) error {
 		return fault.New("portal mapping not found",
 			fault.Code(codes.Data.Portal.NotFound.URN()),
@@ -218,14 +278,14 @@ func VerifyMappingOwned(ctx context.Context, tx db.DBTX, workspaceID string, m o
 	}
 
 	switch m.Type {
-	case openapi.PortalMappingTypeApp:
+	case MappingTypeApp:
 		_, err := db.Query.FindAppByIdAndWorkspace(ctx, tx, db.FindAppByIdAndWorkspaceParams{
-			ID:          m.Id,
+			ID:          m.ID,
 			WorkspaceID: workspaceID,
 		})
 		if err != nil {
 			if db.IsNotFound(err) {
-				return notFound(fmt.Sprintf("app %s is not in workspace %s", m.Id, workspaceID))
+				return notFound(fmt.Sprintf("app %s is not in workspace %s", m.ID, workspaceID))
 			}
 			return fault.Wrap(err,
 				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
@@ -235,10 +295,10 @@ func VerifyMappingOwned(ctx context.Context, tx db.DBTX, workspaceID string, m o
 		}
 		return nil
 
-	case openapi.PortalMappingTypeKeyspace:
+	case MappingTypeKeyspace:
 		rows, err := db.Query.FindKeyAuthsByIdsAndWorkspace(ctx, tx, db.FindKeyAuthsByIdsAndWorkspaceParams{
 			WorkspaceID: workspaceID,
-			KeyAuthIds:  []string{m.Id},
+			KeyAuthIds:  []string{m.ID},
 		})
 		if err != nil {
 			return fault.Wrap(err,
@@ -248,7 +308,7 @@ func VerifyMappingOwned(ctx context.Context, tx db.DBTX, workspaceID string, m o
 			)
 		}
 		if len(rows) == 0 {
-			return notFound(fmt.Sprintf("keyspace %s is not in workspace %s", m.Id, workspaceID))
+			return notFound(fmt.Sprintf("keyspace %s is not in workspace %s", m.ID, workspaceID))
 		}
 		return nil
 
@@ -278,7 +338,7 @@ func AuthorizeMappingTarget(
 	tx db.DBTX,
 	principal *authprincipal.Principal,
 	workspaceID string,
-	m openapi.PortalMapping,
+	m Mapping,
 ) error {
 	denied := func(detail string) error {
 		// Fresh chain, not a wrap: the rendered query names the api or app id
@@ -292,7 +352,7 @@ func AuthorizeMappingTarget(
 	}
 
 	switch m.Type {
-	case openapi.PortalMappingTypeApp:
+	case MappingTypeApp:
 		// Legacy tuples only, unlike the keyspace arm below. An app URN is
 		// addressed as projects/{project_id}/apps/{app_id} and this function is
 		// handed an app id alone, and there is no ReadApp action in
@@ -302,19 +362,19 @@ func AuthorizeMappingTarget(
 		// no worse than reading the app itself.
 		err := principal.Authorize(rbac.Or(
 			rbac.T(rbac.Tuple{ResourceType: rbac.App, ResourceID: "*", Action: rbac.ReadApp}),
-			rbac.T(rbac.Tuple{ResourceType: rbac.App, ResourceID: m.Id, Action: rbac.ReadApp}),
+			rbac.T(rbac.Tuple{ResourceType: rbac.App, ResourceID: m.ID, Action: rbac.ReadApp}),
 		))
 		if err != nil {
-			return denied(fmt.Sprintf("caller may not read app %s: %s", m.Id, fault.InternalMessage(err)))
+			return denied(fmt.Sprintf("caller may not read app %s: %s", m.ID, fault.InternalMessage(err)))
 		}
 		return nil
 
-	case openapi.PortalMappingTypeKeyspace:
+	case MappingTypeKeyspace:
 		// Keyspace permissions are expressed against the owning api, the same
 		// indirection the mint path uses.
 		rows, err := db.Query.FindApisByKeyAuthIds(ctx, tx, db.FindApisByKeyAuthIdsParams{
 			WorkspaceID: workspaceID,
-			KeyAuthIds:  []string{m.Id},
+			KeyAuthIds:  []string{m.ID},
 		})
 		if err != nil {
 			return fault.Wrap(err,
@@ -327,7 +387,7 @@ func AuthorizeMappingTarget(
 			// No owning api, so there is no permission to check against. Refused
 			// rather than allowed: an unauthorizable target must not become an
 			// unchecked one.
-			return denied(fmt.Sprintf("keyspace %s has no owning api in workspace %s", m.Id, workspaceID))
+			return denied(fmt.Sprintf("keyspace %s has no owning api in workspace %s", m.ID, workspaceID))
 		}
 
 		apiID := rows[0].ApiID
@@ -342,12 +402,12 @@ func AuthorizeMappingTarget(
 			rbac.T(rbac.Tuple{ResourceType: rbac.Api, ResourceID: "*", Action: rbac.ReadAPI}),
 			rbac.T(rbac.Tuple{ResourceType: rbac.Api, ResourceID: apiID, Action: rbac.ReadAPI}),
 			rbac.U(
-				urn.New().Workspace(workspaceID).Keyspace(m.Id),
+				urn.New().Workspace(workspaceID).Keyspace(m.ID),
 				permissions.ReadKeyspace{},
 			),
 		))
 		if err != nil {
-			return denied(fmt.Sprintf("caller may not read api %s owning keyspace %s: %s", apiID, m.Id, fault.InternalMessage(err)))
+			return denied(fmt.Sprintf("caller may not read api %s owning keyspace %s: %s", apiID, m.ID, fault.InternalMessage(err)))
 		}
 		return nil
 
@@ -431,18 +491,17 @@ func ValidatePrimaryColor(raw string) error {
 //
 // Branding is present only when at least one branding column is set, so a portal
 // with no branding omits the object rather than returning two empty strings.
-// There is no name field: the name an operator sees comes from the mapped app or
-// keyspace, so that renaming that resource cannot leave a stale copy behind.
 func ToResponse(p db.Portal) (openapi.Portal, error) {
 	mapping, err := MappingOf(p)
 	if err != nil {
 		return openapi.Portal{
+			AppId:       nil,
 			Branding:    nil,
 			CreatedAt:   0,
+			DisplayName: "",
 			Enabled:     false,
 			Id:          "",
-			Mapping:     openapi.PortalMapping{Id: "", Type: ""},
-			DisplayName: "",
+			KeyspaceId:  nil,
 			Slug:        "",
 			UpdatedAt:   0,
 		}, err
@@ -456,13 +515,16 @@ func ToResponse(p db.Portal) (openapi.Portal, error) {
 		}
 	}
 
+	keyspaceID, appID := responseIDs(mapping)
+
 	return openapi.Portal{
+		AppId:       appID,
 		Branding:    branding,
 		CreatedAt:   p.CreatedAt,
+		DisplayName: p.DisplayName,
 		Enabled:     p.Enabled,
 		Id:          p.ID,
-		Mapping:     mapping,
-		DisplayName: p.DisplayName,
+		KeyspaceId:  keyspaceID,
 		Slug:        p.Slug,
 		UpdatedAt:   p.UpdatedAt.Int64,
 	}, nil

@@ -7,9 +7,9 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/svc/api/internal/portal"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
-	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_portal_update_portal"
 )
 
@@ -36,7 +36,7 @@ func TestUpdatePortalMasksEveryMiss(t *testing.T) {
 		WorkspaceID:  other.ID,
 		Slug:         "theirs",
 		AppID:        nullStringAbsent(),
-		KeyAuthID:    nullString(otherKeyspace.Id),
+		KeyAuthID:    nullString(otherKeyspace.ID),
 		Enabled:      true,
 		LogoUrl:      nullStringAbsent(),
 		PrimaryColor: nullStringAbsent(),
@@ -116,24 +116,25 @@ func TestUpdatePortalRejectsMappingsItDoesNotOwn(t *testing.T) {
 
 	mapping := keyspaceMapping(t, h, workspace.ID)
 	stored := seedPortal(t, h, workspace.ID, "mine", mapping, nullStringAbsent(), nullStringAbsent())
-	h.CreatePortalSessionForPortal(stored.ID, workspace.ID, "user_1", []string{mapping.Id}, []string{"keys.read"})
+	h.CreatePortalSessionForPortal(stored.ID, workspace.ID, "user_1", []string{mapping.ID}, []string{"keys.read"})
 
 	other := h.CreateWorkspace()
 	foreignKeyspace := keyspaceMapping(t, h, other.ID)
 	foreignApp := appMapping(t, h, other.ID, "theirs")
 
-	testCases := map[string]openapi.PortalMapping{
+	testCases := map[string]portal.Mapping{
 		"keyspace owned by another workspace": foreignKeyspace,
 		"app owned by another workspace":      foreignApp,
-		"keyspace that exists nowhere":        {Id: "ks_doesnotexist", Type: openapi.PortalMappingTypeKeyspace},
-		"app that exists nowhere":             {Id: "app_doesnotexist", Type: openapi.PortalMappingTypeApp},
+		"keyspace that exists nowhere":        {ID: "ks_doesnotexist", Type: portal.MappingTypeKeyspace},
+		"app that exists nowhere":             {ID: "app_doesnotexist", Type: portal.MappingTypeApp},
 	}
 
 	bodies := map[string]string{}
 	for name, requested := range testCases {
 		t.Run(name, func(t *testing.T) {
 			req := baseRequest(stored.ID)
-			req.Mapping = &requested
+			req.KeyspaceId = ksOf(requested)
+			req.AppId = appOf(requested)
 
 			res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 			require.Equal(t, http.StatusNotFound, res.Status, "expected 404, received: %s", res.RawBody)
@@ -141,7 +142,7 @@ func TestUpdatePortalRejectsMappingsItDoesNotOwn(t *testing.T) {
 				"the response must not name the owning workspace")
 
 			row := fetchPortal(t, h, workspace.ID, stored.ID)
-			require.Equal(t, mapping.Id, row.KeyAuthID.String, "the association must not change")
+			require.Equal(t, mapping.ID, row.KeyAuthID.String, "the association must not change")
 			require.False(t, row.AppID.Valid)
 			require.Equal(t, 1, liveSessions(t, h, stored.ID),
 				"a rejected re-point must not revoke sessions")

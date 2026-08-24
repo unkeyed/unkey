@@ -10,12 +10,15 @@ import {
   PortalBranding,
   PortalBranding$inboundSchema,
 } from "./portalbranding.js";
-import { PortalMapping, PortalMapping$inboundSchema } from "./portalmapping.js";
 
 /**
  * A portal you expose to your end users so they can manage their own keys.
  *
  * @remarks
+ *
+ * Exactly one of `keyspaceId` or `appId` is present, naming the single resource
+ * the portal serves. Neither is in the required list because which one appears
+ * depends on the portal, so a reader checks for the one it cares about.
  */
 export type Portal = {
   /**
@@ -48,16 +51,24 @@ export type Portal = {
    */
   enabled: boolean;
   /**
-   * The single resource a portal serves keys for.
+   * The id of the keyspace this portal serves keys for. Must belong to your
+   *
+   * @remarks
+   * workspace.
+   *
+   * A portal serves exactly one resource, so `keyspaceId` and `appId` are
+   * mutually exclusive.
+   */
+  keyspaceId?: string | undefined;
+  /**
+   * The id of the app this portal serves keys for. Must belong to your workspace.
    *
    * @remarks
    *
-   * A portal maps to exactly one app or one keyspace, never several and never
-   * neither. Naming the kind and the id together makes that invariant part of the
-   * request shape: there is no way to express a portal with two mappings, and no
-   * way to express one with none.
+   * A portal serves exactly one resource, so `appId` and `keyspaceId` are mutually
+   * exclusive.
    */
-  mapping: PortalMapping;
+  appId?: string | undefined;
   /**
    * How the portal looks to your end users. Omitted when no branding is set.
    *
@@ -86,7 +97,8 @@ export const Portal$inboundSchema: z.ZodType<Portal, z.ZodTypeDef, unknown> = z
     slug: z.string(),
     displayName: z.string(),
     enabled: z.boolean(),
-    mapping: PortalMapping$inboundSchema,
+    keyspaceId: z.string().optional(),
+    appId: z.string().optional(),
     branding: PortalBranding$inboundSchema.optional(),
     createdAt: z.number().int(),
     updatedAt: z.number().int().optional(),

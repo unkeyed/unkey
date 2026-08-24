@@ -21,7 +21,7 @@ func TestGetPortalRequiresAuthentication(t *testing.T) {
 	workspace := h.Resources().UserWorkspace
 	stored := seedPortal(t, h, workspace.ID, "unauthenticated",
 		keyspaceMapping(t, h, workspace.ID), nullStringAbsent(), nullStringAbsent())
-	req := handler.Request{Portal: ptr(stored.ID), Mapping: nil}
+	req := handler.Request{Portal: ptr(stored.ID), KeyspaceId: nil, AppId: nil}
 
 	testCases := map[string]string{
 		"unknown key":   "Bearer unkey_thiskeydoesnotexist",
@@ -54,7 +54,7 @@ func TestGetPortalRejectsMalformedAuthorization(t *testing.T) {
 	workspace := h.Resources().UserWorkspace
 	stored := seedPortal(t, h, workspace.ID, "malformed",
 		keyspaceMapping(t, h, workspace.ID), nullStringAbsent(), nullStringAbsent())
-	req := handler.Request{Portal: ptr(stored.ID), Mapping: nil}
+	req := handler.Request{Portal: ptr(stored.ID), KeyspaceId: nil, AppId: nil}
 
 	testCases := map[string]http.Header{
 		"no authorization header": {"Content-Type": {"application/json"}},

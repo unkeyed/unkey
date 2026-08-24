@@ -103,14 +103,24 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		primaryColor = sql.NullString{String: value, Valid: true}
 	}
 
-	// Both association columns are derived from the one requested mapping and are
+	// Naming neither id leaves the resource alone, which is why this is not
+	// [portal.MappingFrom]: absent is a valid patch here, unlike on create.
+	// Naming both is contradictory rather than a merge, so it is refused.
+	repoint := req.KeyspaceId != nil || req.AppId != nil
+
+	// Both association columns are derived from the one requested resource and are
 	// written as a pair, so "set the keyspace" on an app-mapped portal cannot
 	// leave the app id behind. A row with both set, or neither, is unrepresentable
 	// through this route.
+	mapping := portal.Mapping{Type: "", ID: ""}
 	mappingAppID := sql.NullString{String: "", Valid: false}
 	mappingKeyAuthID := sql.NullString{String: "", Valid: false}
-	if req.Mapping != nil {
-		mappingAppID, mappingKeyAuthID, err = portal.ColumnsFor(*req.Mapping)
+	if repoint {
+		mapping, err = portal.MappingFrom((*string)(req.KeyspaceId), (*string)(req.AppId))
+		if err != nil {
+			return err
+		}
+		mappingAppID, mappingKeyAuthID, err = portal.ColumnsFor(mapping)
 		if err != nil {
 			return err
 		}
@@ -188,17 +198,17 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			)
 		}
 
-		if req.Mapping != nil {
-			if err = portal.VerifyMappingOwned(ctx, tx, principal.WorkspaceID, *req.Mapping); err != nil {
+		if repoint {
+			if err = portal.VerifyMappingOwned(ctx, tx, principal.WorkspaceID, mapping); err != nil {
 				return empty, err
 			}
 
-			if err = portal.AuthorizeMappingTarget(ctx, tx, principal, principal.WorkspaceID, *req.Mapping); err != nil {
+			if err = portal.AuthorizeMappingTarget(ctx, tx, principal, principal.WorkspaceID, mapping); err != nil {
 				return empty, err
 			}
 		}
 
-		if err = h.assertAvailable(ctx, tx, principal.WorkspaceID, found, req); err != nil {
+		if err = h.assertAvailable(ctx, tx, principal.WorkspaceID, found, req, repoint, mapping); err != nil {
 			return empty, err
 		}
 
@@ -250,7 +260,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		// that could produce a row with both associations, which the application is
 		// solely responsible for preventing.
 		mappingChanged := false
-		if req.Mapping != nil {
+		if repoint {
 			params.AppID = mappingAppID
 			params.AppIDSpecified = 1
 			params.KeyAuthID = mappingKeyAuthID
@@ -421,6 +431,8 @@ func (h *Handler) assertAvailable(
 	workspaceID string,
 	found db.Portal,
 	req Request,
+	repoint bool,
+	mapping portal.Mapping,
 ) error {
 	if req.Slug != nil && *req.Slug != found.Slug {
 		sibling, err := db.Query.FindPortalByIdOrSlug(ctx, tx, db.FindPortalByIdOrSlugParams{
@@ -444,24 +456,23 @@ func (h *Handler) assertAvailable(
 		}
 	}
 
-	if req.Mapping == nil {
+	if !repoint {
 		return nil
 	}
 
 	var (
-		claimant  string
-		claimErr  error
-		mappingID = req.Mapping.Id
+		claimant string
+		claimErr error
 	)
-	switch req.Mapping.Type {
-	case openapi.PortalMappingTypeApp:
+	switch mapping.Type {
+	case portal.MappingTypeApp:
 		claimant, claimErr = db.Query.FindPortalIdByAppAnyWorkspace(ctx, tx,
-			sql.NullString{String: mappingID, Valid: true})
-	case openapi.PortalMappingTypeKeyspace:
+			sql.NullString{String: mapping.ID, Valid: true})
+	case portal.MappingTypeKeyspace:
 		claimant, claimErr = db.Query.FindPortalIdByKeyspaceAnyWorkspace(ctx, tx,
-			sql.NullString{String: mappingID, Valid: true})
+			sql.NullString{String: mapping.ID, Valid: true})
 	default:
-		return portal.ErrUnknownMappingType(req.Mapping.Type)
+		return portal.ErrUnknownMappingType(mapping.Type)
 	}
 
 	switch {
@@ -471,7 +482,7 @@ func (h *Handler) assertAvailable(
 		// tenant for which apps it has wired up.
 		return fault.New("portal mapping taken",
 			fault.Code(codes.Data.Portal.Duplicate.URN()),
-			fault.Internal(fmt.Sprintf("mapping %s/%s already backs a portal", req.Mapping.Type, mappingID)),
+			fault.Internal(fmt.Sprintf("mapping %s/%s already backs a portal", mapping.Type, mapping.ID)),
 			fault.Public("That app or keyspace already has a portal."),
 		)
 	case claimErr == nil, db.IsNotFound(claimErr):

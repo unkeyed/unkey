@@ -7,8 +7,8 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/unkeyed/unkey/svc/api/internal/portal"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
-	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_portal_create_portal"
 )
 
@@ -28,43 +28,51 @@ func TestCreatePortalRejectsInvalidInput(t *testing.T) {
 	}{
 		{
 			name: "slug too short",
-			req:  handler.Request{Slug: "ab", DisplayName: "Acme", Mapping: mapping, Enabled: ptr(true)},
+			req: handler.Request{Slug: "ab", DisplayName: "Acme", KeyspaceId: ksOf(mapping),
+				AppId: appOf(mapping), Enabled: ptr(true)},
 		},
 		{
 			name: "slug uppercase",
-			req:  handler.Request{Slug: "Acme-Portal", DisplayName: "Acme", Mapping: mapping, Enabled: ptr(true)},
+			req: handler.Request{Slug: "Acme-Portal", DisplayName: "Acme", KeyspaceId: ksOf(mapping),
+				AppId: appOf(mapping), Enabled: ptr(true)},
 		},
 		{
 			name: "slug with consecutive hyphens",
-			req:  handler.Request{Slug: "acme--portal", DisplayName: "Acme", Mapping: mapping, Enabled: ptr(true)},
+			req: handler.Request{Slug: "acme--portal", DisplayName: "Acme", KeyspaceId: ksOf(mapping),
+				AppId: appOf(mapping), Enabled: ptr(true)},
 		},
 		{
 			name: "slug leading hyphen",
-			req:  handler.Request{Slug: "-acme", DisplayName: "Acme", Mapping: mapping, Enabled: ptr(true)},
+			req: handler.Request{Slug: "-acme", DisplayName: "Acme", KeyspaceId: ksOf(mapping),
+				AppId: appOf(mapping), Enabled: ptr(true)},
 		},
 		{
 			name: "slug too long",
 			req: handler.Request{
 				Slug:        strings.Repeat("a", 65),
 				DisplayName: "Acme",
-				Mapping:     mapping,
+				KeyspaceId:  ksOf(mapping),
+				AppId:       appOf(mapping),
 				Enabled:     ptr(true),
 			},
 		},
 		{
 			name: "display name omitted",
-			req:  handler.Request{Slug: "valid-slug", Mapping: mapping, Enabled: ptr(true)},
+			req: handler.Request{Slug: "valid-slug", KeyspaceId: ksOf(mapping),
+				AppId: appOf(mapping), Enabled: ptr(true)},
 		},
 		{
 			name: "display name is whitespace only",
-			req:  handler.Request{Slug: "valid-slug", DisplayName: "   ", Mapping: mapping, Enabled: ptr(true)},
+			req: handler.Request{Slug: "valid-slug", DisplayName: "   ", KeyspaceId: ksOf(mapping),
+				AppId: appOf(mapping), Enabled: ptr(true)},
 		},
 		{
 			name: "display name too long",
 			req: handler.Request{
 				Slug:        "valid-slug",
 				DisplayName: strings.Repeat("a", 65),
-				Mapping:     mapping,
+				KeyspaceId:  ksOf(mapping),
+				AppId:       appOf(mapping),
 				Enabled:     ptr(true),
 			},
 		},
@@ -73,14 +81,16 @@ func TestCreatePortalRejectsInvalidInput(t *testing.T) {
 			// slug that could pass for an id would make resolution ambiguous. The
 			// slug charset forbids underscores, which is what keeps them apart.
 			name: "id-shaped slug",
-			req:  handler.Request{Slug: "pc_1234abcd", DisplayName: "Acme", Mapping: mapping, Enabled: ptr(true)},
+			req: handler.Request{Slug: "pc_1234abcd", DisplayName: "Acme", KeyspaceId: ksOf(mapping),
+				AppId: appOf(mapping), Enabled: ptr(true)},
 		},
 		{
 			name: "empty mapping id",
 			req: handler.Request{
 				Slug:        "valid-slug",
 				DisplayName: "Acme",
-				Mapping:     openapi.PortalMapping{Id: "", Type: openapi.PortalMappingTypeKeyspace},
+				KeyspaceId:  ksOf(portal.Mapping{Type: portal.MappingTypeKeyspace, ID: ""}),
+				AppId:       appOf(portal.Mapping{Type: portal.MappingTypeKeyspace, ID: ""}),
 				Enabled:     ptr(true),
 			},
 		},
@@ -89,14 +99,16 @@ func TestCreatePortalRejectsInvalidInput(t *testing.T) {
 			req: handler.Request{
 				Slug:        "valid-slug",
 				DisplayName: "Acme",
-				Mapping:     openapi.PortalMapping{Id: mapping.Id, Type: openapi.PortalMappingType("project")},
+				KeyspaceId:  ksOf(portal.Mapping{Type: portal.MappingType("project"), ID: mapping.ID}),
+				AppId:       appOf(portal.Mapping{Type: portal.MappingType("project"), ID: mapping.ID}),
 				Enabled:     ptr(true),
 			},
 		},
 		{
 			name: "logo url with http scheme",
 			req: handler.Request{
-				Slug: "valid-slug", Mapping: mapping, Enabled: ptr(true),
+				Slug: "valid-slug", KeyspaceId: ksOf(mapping),
+				AppId: appOf(mapping), Enabled: ptr(true),
 				DisplayName: "Acme",
 				LogoUrl:     ptr("http://cdn.example.com/logo.svg"),
 			},
@@ -104,7 +116,8 @@ func TestCreatePortalRejectsInvalidInput(t *testing.T) {
 		{
 			name: "logo url not a url",
 			req: handler.Request{
-				Slug: "valid-slug", Mapping: mapping, Enabled: ptr(true),
+				Slug: "valid-slug", KeyspaceId: ksOf(mapping),
+				AppId: appOf(mapping), Enabled: ptr(true),
 				DisplayName: "Acme",
 				LogoUrl:     ptr("not a url at all"),
 			},
@@ -115,7 +128,8 @@ func TestCreatePortalRejectsInvalidInput(t *testing.T) {
 			// contacted, or a driver error surfacing as a 500.
 			name: "logo url over the column width",
 			req: handler.Request{
-				Slug: "valid-slug", Mapping: mapping, Enabled: ptr(true),
+				Slug: "valid-slug", KeyspaceId: ksOf(mapping),
+				AppId: appOf(mapping), Enabled: ptr(true),
 				DisplayName: "Acme",
 				LogoUrl:     ptr("https://example.com/" + strings.Repeat("a", 500)),
 			},
@@ -123,7 +137,8 @@ func TestCreatePortalRejectsInvalidInput(t *testing.T) {
 		{
 			name: "primary color without hash",
 			req: handler.Request{
-				Slug: "valid-slug", Mapping: mapping, Enabled: ptr(true),
+				Slug: "valid-slug", KeyspaceId: ksOf(mapping),
+				AppId: appOf(mapping), Enabled: ptr(true),
 				DisplayName:  "Acme",
 				PrimaryColor: ptr("6366f1"),
 			},
@@ -131,7 +146,8 @@ func TestCreatePortalRejectsInvalidInput(t *testing.T) {
 		{
 			name: "primary color shorthand",
 			req: handler.Request{
-				Slug: "valid-slug", Mapping: mapping, Enabled: ptr(true),
+				Slug: "valid-slug", KeyspaceId: ksOf(mapping),
+				AppId: appOf(mapping), Enabled: ptr(true),
 				DisplayName:  "Acme",
 				PrimaryColor: ptr("#fff"),
 			},

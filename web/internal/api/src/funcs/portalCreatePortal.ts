@@ -38,9 +38,8 @@ import { Result } from "../types/fp.js";
  * resource must belong to your workspace, and it can back only one portal, so
  * creating a second portal for the same app or keyspace is a conflict.
  *
- * The portal's display name is not stored. Read it from the mapped app or
- * keyspace instead, so renaming that resource cannot leave the portal showing a
- * stale name.
+ * `displayName` is what your end users see. It is stored on the portal, so it
+ * is yours to set and change independently of the resource the portal serves.
  *
  * **Required Permissions**
  *
@@ -52,7 +51,7 @@ import { Result } from "../types/fp.js";
  */
 export function portalCreatePortal(
   client: UnkeyCore,
-  request: components.V2PortalCreatePortalRequestBody,
+  request: components.V2PortalCreatePortalRequestBodyUnion,
   options?: RequestOptions,
 ): APIPromise<
   Result<
@@ -83,7 +82,7 @@ export function portalCreatePortal(
 
 async function $do(
   client: UnkeyCore,
-  request: components.V2PortalCreatePortalRequestBody,
+  request: components.V2PortalCreatePortalRequestBodyUnion,
   options?: RequestOptions,
 ): Promise<
   [
@@ -111,7 +110,9 @@ async function $do(
   const parsed = safeParse(
     request,
     (value) =>
-      components.V2PortalCreatePortalRequestBody$outboundSchema.parse(value),
+      components.V2PortalCreatePortalRequestBodyUnion$outboundSchema.parse(
+        value,
+      ),
     "Input validation failed",
   );
   if (!parsed.ok) {

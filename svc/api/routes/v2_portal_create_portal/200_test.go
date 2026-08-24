@@ -12,6 +12,7 @@ import (
 
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/svc/api/internal/portal"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	"github.com/unkeyed/unkey/svc/api/openapi"
@@ -25,6 +26,25 @@ import (
 var targetReadGrants = []string{"api.*.read_api", "app.*.read_app"}
 
 // newRoute registers the handler and returns it with the caller's headers.
+// ksOf and appOf render a mapping as the flat request pair. Each returns nil
+// unless the mapping names its kind, so a call site can set both fields
+// unconditionally and still send exactly one id.
+func ksOf(m portal.Mapping) *openapi.PortalKeyspaceId {
+	if m.Type != portal.MappingTypeKeyspace {
+		return nil
+	}
+	id := openapi.PortalKeyspaceId(m.ID)
+	return &id
+}
+
+func appOf(m portal.Mapping) *openapi.PortalAppId {
+	if m.Type != portal.MappingTypeApp {
+		return nil
+	}
+	id := openapi.PortalAppId(m.ID)
+	return &id
+}
+
 func newRoute(t *testing.T, h *testutil.Harness, permissions ...string) (*handler.Handler, http.Header) {
 	t.Helper()
 
@@ -40,7 +60,7 @@ func newRoute(t *testing.T, h *testutil.Harness, permissions ...string) (*handle
 }
 
 // keyspaceMapping seeds an api in the workspace and maps to its keyspace.
-func keyspaceMapping(t *testing.T, h *testutil.Harness, workspaceID string) openapi.PortalMapping {
+func keyspaceMapping(t *testing.T, h *testutil.Harness, workspaceID string) portal.Mapping {
 	t.Helper()
 
 	api := h.CreateApi(seed.CreateApiRequest{
@@ -52,7 +72,7 @@ func keyspaceMapping(t *testing.T, h *testutil.Harness, workspaceID string) open
 		DefaultPrefix: nil,
 		DefaultBytes:  nil,
 	})
-	return openapi.PortalMapping{Id: api.KeyAuthID.String, Type: openapi.PortalMappingTypeKeyspace}
+	return portal.Mapping{Type: portal.MappingTypeKeyspace, ID: api.KeyAuthID.String}
 }
 
 // countPortals counts portals in a workspace. A rejected call returns no id, so
@@ -92,7 +112,8 @@ func TestCreatePortalWithKeyspaceMapping(t *testing.T) {
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
 		Slug:        "acme-portal",
 		DisplayName: "Acme",
-		Mapping:     mapping,
+		KeyspaceId:  ksOf(mapping),
+		AppId:       appOf(mapping),
 		Enabled:     ptr(true),
 	})
 	require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
@@ -106,7 +127,7 @@ func TestCreatePortalWithKeyspaceMapping(t *testing.T) {
 	require.Equal(t, "acme-portal", stored.Slug)
 	require.Equal(t, "Acme", stored.DisplayName)
 	require.True(t, stored.Enabled)
-	require.Equal(t, mapping.Id, stored.KeyAuthID.String)
+	require.Equal(t, mapping.ID, stored.KeyAuthID.String)
 	require.False(t, stored.AppID.Valid, "the app column stays null for a keyspace mapping")
 	require.False(t, stored.LogoUrl.Valid, "branding is absent when not supplied")
 	require.False(t, stored.PrimaryColor.Valid)
@@ -121,7 +142,8 @@ func TestCreatePortalDefaultsToEnabled(t *testing.T) {
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
 		Slug:        "acme-portal",
 		DisplayName: "Acme",
-		Mapping:     mapping,
+		KeyspaceId:  ksOf(mapping),
+		AppId:       appOf(mapping),
 	})
 	require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
 
@@ -156,7 +178,8 @@ func TestCreatePortalWithAppMappingAndBranding(t *testing.T) {
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
 		Slug:         "branded",
 		DisplayName:  "Acme",
-		Mapping:      openapi.PortalMapping{Id: app.ID, Type: openapi.PortalMappingTypeApp},
+		KeyspaceId:   ksOf(portal.Mapping{Type: portal.MappingTypeApp, ID: app.ID}),
+		AppId:        appOf(portal.Mapping{Type: portal.MappingTypeApp, ID: app.ID}),
 		Enabled:      ptr(false),
 		LogoUrl:      ptr("https://cdn.example.com/logo.svg"),
 		PrimaryColor: ptr("#6366f1"),
@@ -201,7 +224,8 @@ func TestCreatePortalAllowsSameSlugInAnotherWorkspace(t *testing.T) {
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
 		Slug:        "shared-slug",
 		DisplayName: "Acme",
-		Mapping:     keyspaceMapping(t, h, workspace.ID),
+		KeyspaceId:  ksOf(keyspaceMapping(t, h, workspace.ID)),
+		AppId:       appOf(keyspaceMapping(t, h, workspace.ID)),
 		Enabled:     ptr(true),
 	})
 	require.Equal(t, http.StatusOK, res.Status,
@@ -217,7 +241,8 @@ func TestCreatePortalWritesOneAuditEntry(t *testing.T) {
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
 		Slug:        "audited",
 		DisplayName: "Acme",
-		Mapping:     mapping,
+		KeyspaceId:  ksOf(mapping),
+		AppId:       appOf(mapping),
 		Enabled:     ptr(true),
 	})
 	require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
@@ -230,7 +255,7 @@ func TestCreatePortalWritesOneAuditEntry(t *testing.T) {
 	// The mapping decides which keyspaces every session from this portal can
 	// reach, so an incident reviewer must be able to read it off the entry rather
 	// than infer it from the row's later state.
-	require.Equal(t, 1, countAuditEntriesMentioning(t, h, workspace.ID, mapping.Id),
+	require.Equal(t, 1, countAuditEntriesMentioning(t, h, workspace.ID, mapping.ID),
 		"the audit entry records the mapped resource")
 }
 

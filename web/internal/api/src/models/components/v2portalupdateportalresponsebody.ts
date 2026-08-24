@@ -18,6 +18,10 @@ export type V2PortalUpdatePortalResponseBody = {
    * A portal you expose to your end users so they can manage their own keys.
    *
    * @remarks
+   *
+   * Exactly one of `keyspaceId` or `appId` is present, naming the single resource
+   * the portal serves. Neither is in the required list because which one appears
+   * depends on the portal, so a reader checks for the one it cares about.
    */
   data: Portal;
 };

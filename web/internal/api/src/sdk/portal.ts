@@ -30,9 +30,8 @@ export class Portal extends ClientSDK {
    * resource must belong to your workspace, and it can back only one portal, so
    * creating a second portal for the same app or keyspace is a conflict.
    *
-   * The portal's display name is not stored. Read it from the mapped app or
-   * keyspace instead, so renaming that resource cannot leave the portal showing a
-   * stale name.
+   * `displayName` is what your end users see. It is stored on the portal, so it
+   * is yours to set and change independently of the resource the portal serves.
    *
    * **Required Permissions**
    *
@@ -41,7 +40,7 @@ export class Portal extends ClientSDK {
    * when the request is authorized.
    */
   async createPortal(
-    request: components.V2PortalCreatePortalRequestBody,
+    request: components.V2PortalCreatePortalRequestBodyUnion,
     options?: RequestOptions,
   ): Promise<components.V2PortalCreatePortalResponseBody> {
     return unwrapAsync(portalCreatePortal(
@@ -167,8 +166,8 @@ export class Portal extends ClientSDK {
    * resource it serves rather than through an identifier they stored. Exactly one
    * of `portal` or `mapping` is required.
    *
-   * The portal's display name is not stored. Read it from the mapped app or
-   * keyspace named in `mapping`.
+   * The response carries the portal's own `displayName`, which is what your end
+   * users see.
    *
    * **Required Permissions**
    *

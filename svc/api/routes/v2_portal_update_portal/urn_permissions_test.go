@@ -78,10 +78,12 @@ func TestUpdatePortalAuthorizesURNGrantOnRemap(t *testing.T) {
 
 	target := keyspaceMapping(t, h, workspace.ID)
 	req := baseRequest(stored.Slug)
-	req.Mapping = &target
+	req.KeyspaceId = ksOf(target)
+	req.AppId = appOf(target)
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headersFor(rootKey), req)
 	require.Equal(t, http.StatusOK, res.Status,
 		"an admin URN must authorize re-pointing a portal, got: %s", res.RawBody)
-	require.Equal(t, target.Id, res.Body.Data.Mapping.Id)
+	require.NotNil(t, res.Body.Data.KeyspaceId)
+	require.Equal(t, target.ID, string(*res.Body.Data.KeyspaceId))
 }

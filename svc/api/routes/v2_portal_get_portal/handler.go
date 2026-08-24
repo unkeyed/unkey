@@ -52,20 +52,12 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	// The dashboard holds an app or keyspace id and no portal id, so both address
-	// forms have to exist. Accepting both at once would need a precedence rule,
-	// and either choice would silently ignore half of what the caller asked for.
-	hasPortal := req.Portal != nil && strings.TrimSpace(*req.Portal) != ""
-	hasMapping := req.Mapping != nil
-	if hasPortal == hasMapping {
-		return fault.New("ambiguous portal target",
-			fault.Code(codes.App.Validation.InvalidInput.URN()),
-			fault.Internal(fmt.Sprintf("hasPortal=%t hasMapping=%t", hasPortal, hasMapping)),
-			fault.Public("Provide exactly one of `portal` or `mapping`."),
-		)
+	target, err := parseTarget(req)
+	if err != nil {
+		return err
 	}
 
-	found, err := h.resolve(ctx, principal.WorkspaceID, req)
+	found, err := h.resolve(ctx, principal.WorkspaceID, target)
 	if err != nil {
 		return err
 	}
@@ -127,39 +119,96 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	})
 }
 
-// resolve finds the one portal the request addresses, scoped to the workspace.
+// target is the one address a request carries: either the portal itself, or the
+// single resource it serves.
+//
+// The wire shape has three optional fields, so "two of them" and "none of them"
+// are both representable. This type is not: parseTarget is the only way to build
+// one, so resolve cannot be handed an ambiguous request.
+type target struct {
+	portal  string
+	mapping portal.Mapping
+}
+
+// parseTarget enforces exactly one of `portal`, `keyspaceId`, or `appId`.
+//
+// The dashboard holds an app or keyspace id and no portal id, so all three
+// address forms have to exist. Accepting two at once would need a precedence
+// rule, and either choice would silently ignore half of what the caller asked
+// for. The `oneOf` in the spec rejects the same combinations, but it cannot
+// express that a whitespace-only value is not a value.
+func parseTarget(req Request) (target, error) {
+	ambiguous := func(detail string) (target, error) {
+		return target{portal: "", mapping: portal.Mapping{Type: "", ID: ""}},
+			fault.New("ambiguous portal target",
+				fault.Code(codes.App.Validation.InvalidInput.URN()),
+				fault.Internal(detail),
+				fault.Public("Provide exactly one of `portal`, `keyspaceId`, or `appId`."),
+			)
+	}
+
+	ref := ""
+	if req.Portal != nil {
+		ref = strings.TrimSpace(*req.Portal)
+	}
+	hasKeyspace := req.KeyspaceId != nil && strings.TrimSpace(string(*req.KeyspaceId)) != ""
+	hasApp := req.AppId != nil && strings.TrimSpace(string(*req.AppId)) != ""
+
+	named := 0
+	for _, present := range []bool{ref != "", hasKeyspace, hasApp} {
+		if present {
+			named++
+		}
+	}
+	if named != 1 {
+		return ambiguous(fmt.Sprintf("portal=%t keyspaceId=%t appId=%t", ref != "", hasKeyspace, hasApp))
+	}
+
+	if ref != "" {
+		return target{portal: ref, mapping: portal.Mapping{Type: "", ID: ""}}, nil
+	}
+
+	// Exactly one of the two ids is set, so this cannot report both-or-neither.
+	mapping, err := portal.MappingFrom(
+		(*string)(req.KeyspaceId),
+		(*string)(req.AppId),
+	)
+	if err != nil {
+		return target{portal: "", mapping: portal.Mapping{Type: "", ID: ""}}, err
+	}
+	return target{portal: "", mapping: mapping}, nil
+}
+
+// resolve finds the one portal the target addresses, scoped to the workspace.
 //
 // Read on the RO connection: this is the only statement, so there is no
 // read-after-write to keep on the primary.
-func (h *Handler) resolve(ctx context.Context, workspaceID string, req Request) (db.Portal, error) {
+func (h *Handler) resolve(ctx context.Context, workspaceID string, t target) (db.Portal, error) {
 	var (
 		found db.Portal
 		err   error
 	)
 
-	// Mirrors the exactly-one check in Handle, including the trim: a
-	// whitespace-only target is not a target, and taking this arm for one would
-	// query for the empty string instead of using the mapping.
 	switch {
-	case req.Portal != nil && strings.TrimSpace(*req.Portal) != "":
+	case t.portal != "":
 		found, err = db.Query.FindPortalByIdOrSlug(ctx, h.DB.RO(), db.FindPortalByIdOrSlugParams{
-			Portal:      strings.TrimSpace(*req.Portal),
+			Portal:      t.portal,
 			WorkspaceID: workspaceID,
 		})
 	default:
-		switch req.Mapping.Type {
-		case openapi.PortalMappingTypeApp:
+		switch t.mapping.Type {
+		case portal.MappingTypeApp:
 			found, err = db.Query.FindPortalByApp(ctx, h.DB.RO(), db.FindPortalByAppParams{
-				AppID:       sql.NullString{String: req.Mapping.Id, Valid: true},
+				AppID:       sql.NullString{String: t.mapping.ID, Valid: true},
 				WorkspaceID: workspaceID,
 			})
-		case openapi.PortalMappingTypeKeyspace:
+		case portal.MappingTypeKeyspace:
 			found, err = db.Query.FindPortalByKeyspace(ctx, h.DB.RO(), db.FindPortalByKeyspaceParams{
-				KeyAuthID:   sql.NullString{String: req.Mapping.Id, Valid: true},
+				KeyAuthID:   sql.NullString{String: t.mapping.ID, Valid: true},
 				WorkspaceID: workspaceID,
 			})
 		default:
-			return found, portal.ErrUnknownMappingType(req.Mapping.Type)
+			return found, portal.ErrUnknownMappingType(t.mapping.Type)
 		}
 	}
 

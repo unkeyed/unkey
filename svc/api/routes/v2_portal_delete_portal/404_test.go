@@ -33,7 +33,7 @@ func TestDeletePortalMasksEveryMiss(t *testing.T) {
 		WorkspaceID:  other.ID,
 		Slug:         "theirs",
 		AppID:        nullStringAbsent(),
-		KeyAuthID:    nullString(otherKeyspace.Id),
+		KeyAuthID:    nullString(otherKeyspace.ID),
 		Enabled:      true,
 		LogoUrl:      nullStringAbsent(),
 		PrimaryColor: nullStringAbsent(),
@@ -78,7 +78,7 @@ func TestDeletePortalDenialMatchesAbsence(t *testing.T) {
 	workspace := h.Resources().UserWorkspace
 	mapping := keyspaceMapping(t, h, workspace.ID)
 	stored := seedPortal(t, h, workspace.ID, "parity", mapping)
-	h.CreatePortalSessionForPortal(stored.ID, workspace.ID, "user_1", []string{mapping.Id}, []string{"keys:read"})
+	h.CreatePortalSessionForPortal(stored.ID, workspace.ID, "user_1", []string{mapping.ID}, []string{"keys:read"})
 	require.Equal(t, 1, liveSessions(t, h, stored.ID))
 
 	deniedKey := h.CreateRootKey(workspace.ID, "portal.*.read_portal")

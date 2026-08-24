@@ -3,11 +3,6 @@
  */
 
 import * as z from "zod/v3";
-import {
-  PortalMapping,
-  PortalMapping$Outbound,
-  PortalMapping$outboundSchema,
-} from "./portalmapping.js";
 
 export type V2PortalUpdatePortalRequestBody = {
   /**
@@ -30,16 +25,26 @@ export type V2PortalUpdatePortalRequestBody = {
    */
   displayName?: string | undefined;
   /**
-   * Re-point the portal at a different app or keyspace. Omit to leave the
+   * Re-point the portal at a different keyspace. Omit to leave the resource it
    *
    * @remarks
-   * current mapping alone.
+   * serves alone.
    *
-   * Changing the mapping revokes the portal's live sessions, because a session
-   * carries the keyspace scope it was minted with and would otherwise keep
-   * reaching the resource the portal no longer serves.
+   * Re-pointing revokes the portal's live sessions, because a session carries
+   * the keyspace scope it was minted with and would otherwise keep reaching the
+   * resource the portal no longer serves.
    */
-  mapping?: PortalMapping | undefined;
+  keyspaceId?: string | undefined;
+  /**
+   * Re-point the portal at a different app. Omit to leave the resource it
+   *
+   * @remarks
+   * serves alone.
+   *
+   * Re-pointing revokes the portal's live sessions, for the same reason as
+   * `keyspaceId`.
+   */
+  appId?: string | undefined;
   /**
    * Whether new sessions can be minted. Omit to leave unchanged.
    *
@@ -69,7 +74,8 @@ export type V2PortalUpdatePortalRequestBody$Outbound = {
   portal: string;
   slug?: string | undefined;
   displayName?: string | undefined;
-  mapping?: PortalMapping$Outbound | undefined;
+  keyspaceId?: string | undefined;
+  appId?: string | undefined;
   enabled?: boolean | undefined;
   logoUrl?: string | null | undefined;
   primaryColor?: string | null | undefined;
@@ -84,7 +90,8 @@ export const V2PortalUpdatePortalRequestBody$outboundSchema: z.ZodType<
   portal: z.string(),
   slug: z.string().optional(),
   displayName: z.string().optional(),
-  mapping: PortalMapping$outboundSchema.optional(),
+  keyspaceId: z.string().optional(),
+  appId: z.string().optional(),
   enabled: z.boolean().optional(),
   logoUrl: z.nullable(z.string()).optional(),
   primaryColor: z.nullable(z.string()).optional(),

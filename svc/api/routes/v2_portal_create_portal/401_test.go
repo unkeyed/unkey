@@ -20,7 +20,8 @@ func TestCreatePortalRequiresAuthentication(t *testing.T) {
 
 	workspace := h.Resources().UserWorkspace
 	mapping := keyspaceMapping(t, h, workspace.ID)
-	req := handler.Request{Slug: "unauthenticated", DisplayName: "Acme", Mapping: mapping, Enabled: ptr(true)}
+	req := handler.Request{Slug: "unauthenticated", DisplayName: "Acme", KeyspaceId: ksOf(mapping),
+		AppId: appOf(mapping), Enabled: ptr(true)}
 
 	testCases := map[string]string{
 		"unknown key":   "Bearer unkey_thiskeydoesnotexist",
@@ -54,7 +55,8 @@ func TestCreatePortalRejectsMalformedAuthorization(t *testing.T) {
 	req := handler.Request{
 		Slug:        "malformed",
 		DisplayName: "Acme",
-		Mapping:     keyspaceMapping(t, h, workspace.ID),
+		KeyspaceId:  ksOf(keyspaceMapping(t, h, workspace.ID)),
+		AppId:       appOf(keyspaceMapping(t, h, workspace.ID)),
 		Enabled:     ptr(true),
 	}
 

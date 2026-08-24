@@ -13,6 +13,7 @@ import (
 
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/svc/api/internal/portal"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	"github.com/unkeyed/unkey/svc/api/openapi"
@@ -26,6 +27,25 @@ import (
 var targetReadGrants = []string{"api.*.read_api", "app.*.read_app"}
 
 // newRoute registers the handler and returns it with the caller's headers.
+// ksOf and appOf render a mapping as the flat request pair. Each returns nil
+// unless the mapping names its kind, so a call site can set both fields
+// unconditionally and still send exactly one id.
+func ksOf(m portal.Mapping) *openapi.PortalKeyspaceId {
+	if m.Type != portal.MappingTypeKeyspace {
+		return nil
+	}
+	id := openapi.PortalKeyspaceId(m.ID)
+	return &id
+}
+
+func appOf(m portal.Mapping) *openapi.PortalAppId {
+	if m.Type != portal.MappingTypeApp {
+		return nil
+	}
+	id := openapi.PortalAppId(m.ID)
+	return &id
+}
+
 func newRoute(t *testing.T, h *testutil.Harness, permissions ...string) (*handler.Handler, http.Header) {
 	t.Helper()
 
@@ -45,7 +65,26 @@ func headersFor(rootKey string) http.Header {
 }
 
 // keyspaceMapping seeds an api in the workspace and maps to its keyspace.
-func keyspaceMapping(t *testing.T, h *testutil.Harness, workspaceID string) openapi.PortalMapping {
+// requireServes asserts the response names exactly the given resource, and that
+// the other id is absent rather than empty.
+func requireServes(t *testing.T, want portal.Mapping, got openapi.Portal) {
+	t.Helper()
+
+	switch want.Type {
+	case portal.MappingTypeKeyspace:
+		require.NotNil(t, got.KeyspaceId, "the keyspace id must be present")
+		require.Equal(t, want.ID, string(*got.KeyspaceId))
+		require.Nil(t, got.AppId, "the app id must be absent for a keyspace portal")
+	case portal.MappingTypeApp:
+		require.NotNil(t, got.AppId, "the app id must be present")
+		require.Equal(t, want.ID, string(*got.AppId))
+		require.Nil(t, got.KeyspaceId, "the keyspace id must be absent for an app portal")
+	default:
+		t.Fatalf("unsupported mapping type %q", want.Type)
+	}
+}
+
+func keyspaceMapping(t *testing.T, h *testutil.Harness, workspaceID string) portal.Mapping {
 	t.Helper()
 
 	api := h.CreateApi(seed.CreateApiRequest{
@@ -57,11 +96,11 @@ func keyspaceMapping(t *testing.T, h *testutil.Harness, workspaceID string) open
 		DefaultPrefix: nil,
 		DefaultBytes:  nil,
 	})
-	return openapi.PortalMapping{Id: api.KeyAuthID.String, Type: openapi.PortalMappingTypeKeyspace}
+	return portal.Mapping{Type: portal.MappingTypeKeyspace, ID: api.KeyAuthID.String}
 }
 
 // appMapping seeds a project and app in the workspace and maps to the app.
-func appMapping(t *testing.T, h *testutil.Harness, workspaceID, slug string) openapi.PortalMapping {
+func appMapping(t *testing.T, h *testutil.Harness, workspaceID, slug string) portal.Mapping {
 	t.Helper()
 
 	project := h.CreateProject(seed.CreateProjectRequest{
@@ -80,7 +119,7 @@ func appMapping(t *testing.T, h *testutil.Harness, workspaceID, slug string) ope
 		DefaultBranch:    "main",
 		DeleteProtection: false,
 	})
-	return openapi.PortalMapping{Id: app.ID, Type: openapi.PortalMappingTypeApp}
+	return portal.Mapping{Type: portal.MappingTypeApp, ID: app.ID}
 }
 
 // seedPortal writes a portal carrying the given mapping and branding.
@@ -88,7 +127,7 @@ func seedPortal(
 	t *testing.T,
 	h *testutil.Harness,
 	workspaceID, slug string,
-	mapping openapi.PortalMapping,
+	mapping portal.Mapping,
 	logoURL, primaryColor sql.NullString,
 ) db.Portal {
 	t.Helper()
@@ -96,10 +135,10 @@ func seedPortal(
 	appID := nullStringAbsent()
 	keyAuthID := nullStringAbsent()
 	switch mapping.Type {
-	case openapi.PortalMappingTypeApp:
-		appID = nullString(mapping.Id)
-	case openapi.PortalMappingTypeKeyspace:
-		keyAuthID = nullString(mapping.Id)
+	case portal.MappingTypeApp:
+		appID = nullString(mapping.ID)
+	case portal.MappingTypeKeyspace:
+		keyAuthID = nullString(mapping.ID)
 	default:
 		t.Fatalf("unsupported mapping type %q", mapping.Type)
 	}
@@ -207,7 +246,8 @@ func baseRequest(target string) handler.Request {
 		Slug:         nil,
 		DisplayName:  nil,
 		Enabled:      nil,
-		Mapping:      nil,
+		KeyspaceId:   nil,
+		AppId:        nil,
 		LogoUrl:      unspecified(),
 		PrimaryColor: unspecified(),
 	}
@@ -232,7 +272,7 @@ func TestUpdatePortalOnlyEnabled(t *testing.T) {
 	require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
 	require.False(t, res.Body.Data.Enabled)
 	require.Equal(t, "acme-portal", res.Body.Data.Slug)
-	require.Equal(t, mapping, res.Body.Data.Mapping)
+	requireServes(t, mapping, res.Body.Data)
 	require.NotNil(t, res.Body.Data.Branding)
 	require.Equal(t, "https://cdn.example.com/logo.svg", res.Body.Data.Branding.LogoUrl)
 	require.Equal(t, "#6366f1", res.Body.Data.Branding.PrimaryColor)
@@ -240,7 +280,7 @@ func TestUpdatePortalOnlyEnabled(t *testing.T) {
 	row := fetchPortal(t, h, workspace.ID, stored.ID)
 	require.False(t, row.Enabled)
 	require.Equal(t, "acme-portal", row.Slug)
-	require.Equal(t, mapping.Id, row.KeyAuthID.String)
+	require.Equal(t, mapping.ID, row.KeyAuthID.String)
 	require.False(t, row.AppID.Valid)
 	require.Equal(t, "https://cdn.example.com/logo.svg", row.LogoUrl.String)
 	require.Equal(t, "#6366f1", row.PrimaryColor.String)
@@ -267,7 +307,7 @@ func TestUpdatePortalOnlySlug(t *testing.T) {
 	require.Equal(t, "new-slug", row.Slug)
 	require.True(t, row.Enabled)
 	require.Equal(t, "https://cdn.example.com/logo.svg", row.LogoUrl.String)
-	require.Equal(t, mapping.Id, row.KeyAuthID.String)
+	require.Equal(t, mapping.ID, row.KeyAuthID.String)
 }
 
 // The two branding columns carry their own flag, so naming one must not disturb
@@ -386,24 +426,25 @@ func TestUpdatePortalRepointsMappingAndRevokesSessions(t *testing.T) {
 	stored := seedPortal(t, h, workspace.ID, "repointed", app, nullStringAbsent(), nullStringAbsent())
 	keyspace := keyspaceMapping(t, h, workspace.ID)
 
-	h.CreatePortalSessionForPortal(stored.ID, workspace.ID, "user_1", []string{keyspace.Id}, []string{"keys.read"})
-	h.CreatePortalSessionForPortal(stored.ID, workspace.ID, "user_2", []string{keyspace.Id}, []string{"keys.read"})
+	h.CreatePortalSessionForPortal(stored.ID, workspace.ID, "user_1", []string{keyspace.ID}, []string{"keys.read"})
+	h.CreatePortalSessionForPortal(stored.ID, workspace.ID, "user_2", []string{keyspace.ID}, []string{"keys.read"})
 	require.Equal(t, 2, liveSessions(t, h, stored.ID))
 
 	// A different portal in the same workspace, whose sessions must survive.
 	bystander := seedPortal(t, h, workspace.ID, "bystander", keyspaceMapping(t, h, workspace.ID),
 		nullStringAbsent(), nullStringAbsent())
-	h.CreatePortalSessionForPortal(bystander.ID, workspace.ID, "user_3", []string{keyspace.Id}, []string{"keys.read"})
+	h.CreatePortalSessionForPortal(bystander.ID, workspace.ID, "user_3", []string{keyspace.ID}, []string{"keys.read"})
 
 	req := baseRequest(stored.ID)
-	req.Mapping = &keyspace
+	req.KeyspaceId = ksOf(keyspace)
+	req.AppId = appOf(keyspace)
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 	require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
-	require.Equal(t, keyspace, res.Body.Data.Mapping)
+	requireServes(t, keyspace, res.Body.Data)
 
 	row := fetchPortal(t, h, workspace.ID, stored.ID)
-	require.Equal(t, keyspace.Id, row.KeyAuthID.String)
+	require.Equal(t, keyspace.ID, row.KeyAuthID.String)
 	require.False(t, row.AppID.Valid, "the app column must be cleared in the same write")
 
 	require.Equal(t, 0, liveSessions(t, h, stored.ID),
@@ -434,14 +475,15 @@ func TestUpdatePortalWithoutMappingChangeKeepsSessions(t *testing.T) {
 		// Re-sending the mapping it already has is not a change, so it must not
 		// revoke either.
 		"same mapping resent": func(r handler.Request) handler.Request {
-			r.Mapping = &mapping
+			r.KeyspaceId = ksOf(mapping)
+			r.AppId = appOf(mapping)
 			return r
 		},
 	}
 
 	for name, mutate := range testCases {
 		t.Run(name, func(t *testing.T) {
-			h.CreatePortalSessionForPortal(stored.ID, workspace.ID, "user_"+name, []string{mapping.Id}, []string{"keys.read"})
+			h.CreatePortalSessionForPortal(stored.ID, workspace.ID, "user_"+name, []string{mapping.ID}, []string{"keys.read"})
 			before := liveSessions(t, h, stored.ID)
 			require.Positive(t, before, "the fixture must have a live session to lose")
 
@@ -489,10 +531,11 @@ func TestUpdatePortalWritesOneAuditEntry(t *testing.T) {
 	app := appMapping(t, h, workspace.ID, "audited")
 	stored := seedPortal(t, h, workspace.ID, "audited-portal", app, nullStringAbsent(), nullStringAbsent())
 	keyspace := keyspaceMapping(t, h, workspace.ID)
-	h.CreatePortalSessionForPortal(stored.ID, workspace.ID, "user_1", []string{keyspace.Id}, []string{"keys.read"})
+	h.CreatePortalSessionForPortal(stored.ID, workspace.ID, "user_1", []string{keyspace.ID}, []string{"keys.read"})
 
 	req := baseRequest(stored.ID)
-	req.Mapping = &keyspace
+	req.KeyspaceId = ksOf(keyspace)
+	req.AppId = appOf(keyspace)
 	req.Slug = ptr("audited-renamed")
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
@@ -500,9 +543,9 @@ func TestUpdatePortalWritesOneAuditEntry(t *testing.T) {
 
 	require.Equal(t, 1, countAuditEntriesMentioning(t, h, workspace.ID, "portal.update"))
 	require.Equal(t, 1, countAuditEntriesMentioning(t, h, workspace.ID, stored.ID))
-	require.Equal(t, 1, countAuditEntriesMentioning(t, h, workspace.ID, app.Id),
+	require.Equal(t, 1, countAuditEntriesMentioning(t, h, workspace.ID, app.ID),
 		"the previous mapping is recorded, not just the new one")
-	require.Equal(t, 1, countAuditEntriesMentioning(t, h, workspace.ID, keyspace.Id))
+	require.Equal(t, 1, countAuditEntriesMentioning(t, h, workspace.ID, keyspace.ID))
 	require.Equal(t, 1, countAuditEntriesMentioning(t, h, workspace.ID, "audited-portal"))
 	require.Equal(t, 1, countAuditEntriesMentioning(t, h, workspace.ID, "sessionsRevoked"),
 		"the revoked-session count is part of the record")

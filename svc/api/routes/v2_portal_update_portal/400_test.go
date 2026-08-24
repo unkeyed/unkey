@@ -28,8 +28,8 @@ func TestUpdatePortalRejectsInvalidInput(t *testing.T) {
 	stored := seedPortal(t, h, workspace.ID, "valid-portal", mapping,
 		nullString("https://cdn.example.com/logo.svg"), nullString("#6366f1"))
 
-	badMappingType := openapi.PortalMapping{Id: mapping.Id, Type: openapi.PortalMappingType("project")}
-	emptyMappingID := openapi.PortalMapping{Id: "", Type: openapi.PortalMappingTypeKeyspace}
+	blankKeyspaceID := openapi.PortalKeyspaceId("")
+	someAppID := openapi.PortalAppId("app_1234abcd")
 
 	testCases := []struct {
 		name   string
@@ -47,12 +47,22 @@ func TestUpdatePortalRejectsInvalidInput(t *testing.T) {
 			mutate: func(r handler.Request) handler.Request { r.Slug = ptr("pc_1234abcd"); return r },
 		},
 		{
-			name:   "empty mapping id",
-			mutate: func(r handler.Request) handler.Request { r.Mapping = &emptyMappingID; return r },
+			name: "blank keyspace id",
+			mutate: func(r handler.Request) handler.Request {
+				r.KeyspaceId = &blankKeyspaceID
+				return r
+			},
 		},
 		{
-			name:   "unknown mapping type",
-			mutate: func(r handler.Request) handler.Request { r.Mapping = &badMappingType; return r },
+			// The flat pair can name two resources, which the nested object could
+			// not. A portal serves one, so this is a contradiction rather than a
+			// merge.
+			name: "both keyspace and app id",
+			mutate: func(r handler.Request) handler.Request {
+				r.KeyspaceId = ksOf(mapping)
+				r.AppId = &someAppID
+				return r
+			},
 		},
 		{
 			name: "logo url with http scheme",
@@ -114,7 +124,7 @@ func TestUpdatePortalRejectsInvalidInput(t *testing.T) {
 			row := fetchPortal(t, h, workspace.ID, stored.ID)
 			require.Equal(t, "valid-portal", row.Slug, "a rejected request must not write")
 			require.True(t, row.Enabled)
-			require.Equal(t, mapping.Id, row.KeyAuthID.String)
+			require.Equal(t, mapping.ID, row.KeyAuthID.String)
 			require.Equal(t, "https://cdn.example.com/logo.svg", row.LogoUrl.String)
 			require.Equal(t, "#6366f1", row.PrimaryColor.String)
 		})

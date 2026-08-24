@@ -4,10 +4,13 @@ required:
   - slug
   - displayName
   - enabled
-  - mapping
   - createdAt
 description: |
   A portal you expose to your end users so they can manage their own keys.
+
+  Exactly one of `keyspaceId` or `appId` is present, naming the single resource
+  the portal serves. Neither is in the required list because which one appears
+  depends on the portal, so a reader checks for the one it cares about.
 properties:
   id:
     type: string
@@ -38,8 +41,10 @@ properties:
       Disabling a portal stops `portal.createSession` from minting new sessions.
       It does not end sessions that are already live.
     example: true
-  mapping:
-    "$ref": "./PortalMapping.yaml"
+  keyspaceId:
+    "$ref": "./PortalKeyspaceId.yaml"
+  appId:
+    "$ref": "./PortalAppId.yaml"
   branding:
     description: |
       How the portal looks to your end users. Omitted when no branding is set.
