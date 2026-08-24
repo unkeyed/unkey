@@ -13,6 +13,7 @@ import { z } from "zod";
 
 export const SLUG_MIN_LENGTH = 3;
 export const SLUG_MAX_LENGTH = 64;
+const DISPLAY_NAME_MAX_LENGTH = 64;
 const LOGO_URL_MAX_LENGTH = 500;
 
 /**
@@ -21,6 +22,11 @@ const LOGO_URL_MAX_LENGTH = 500;
  */
 export const INVALID_SLUG_MESSAGE =
   "Use 3-64 lowercase letters, numbers, and hyphens (not at the start, end, or doubled).";
+
+// The server enforces this one through OpenAPI validation rather than a named
+// message, so the wording here is ours.
+export const INVALID_DISPLAY_NAME_MESSAGE =
+  "Enter a name of up to 64 characters, with no leading or trailing spaces.";
 
 /** Verbatim from `portal.ErrMsgInvalidLogoURL`. */
 export const INVALID_LOGO_URL_MESSAGE =
@@ -41,6 +47,15 @@ export const portalSlugSchema = z
   // The regex above matches `a--b`; the server rejects it separately, so this
   // rule has to be separate here too.
   .refine((slug) => !slug.includes("--"), INVALID_SLUG_MESSAGE);
+
+// Mirrors the spec's `^\S(.*\S)?$`: at least one character, and no leading or
+// trailing whitespace.
+const displayNamePattern = /^\S(.*\S)?$/;
+
+export const portalDisplayNameSchema = z
+  .string()
+  .max(DISPLAY_NAME_MAX_LENGTH, INVALID_DISPLAY_NAME_MESSAGE)
+  .regex(displayNamePattern, INVALID_DISPLAY_NAME_MESSAGE);
 
 // `new URL("https:///logo.png")` normalizes the empty authority away and reports
 // host "logo.png", where Go's url.Parse leaves the host empty and the server

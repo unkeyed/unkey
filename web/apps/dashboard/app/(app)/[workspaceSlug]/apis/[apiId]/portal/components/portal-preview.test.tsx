@@ -4,10 +4,14 @@ import { PortalPreview } from "./portal-preview";
 
 afterEach(cleanup);
 
-function renderPreview(overrides?: { logoUrl?: string; primaryColor?: string; slug?: string }) {
+function renderPreview(overrides?: {
+  logoUrl?: string;
+  primaryColor?: string;
+  displayName?: string;
+}) {
   const { container } = render(
     <PortalPreview
-      slug={overrides?.slug ?? "acme-portal"}
+      displayName={overrides?.displayName ?? "Acme Inc"}
       branding={{
         logoUrl: overrides?.logoUrl ?? "",
         primaryColor: overrides?.primaryColor ?? "#18181B",
@@ -18,9 +22,9 @@ function renderPreview(overrides?: { logoUrl?: string; primaryColor?: string; sl
 }
 
 describe("PortalPreview", () => {
-  it("shows the slug in the brand bar, matching what the live portal renders", () => {
-    renderPreview({ slug: "acme-portal" });
-    expect(screen.getByText("acme-portal")).toBeTruthy();
+  it("shows the display name in the brand bar, matching what the live portal renders", () => {
+    renderPreview({ displayName: "Acme Inc" });
+    expect(screen.getByText("Acme Inc")).toBeTruthy();
   });
 
   // The portal ships light-only. If the chrome is built from `gray-*`/`grayA-*`
@@ -59,13 +63,13 @@ describe("PortalPreview", () => {
   });
 
   it("uses dark foreground on a light brand color", () => {
-    renderPreview({ primaryColor: "#FFFF00", slug: "bright" });
+    renderPreview({ primaryColor: "#FFFF00", displayName: "bright" });
     const label = screen.getByText("bright");
     expect(label instanceof HTMLElement && label.style.color).toBe("rgb(10, 10, 10)");
   });
 
   it("uses light foreground on a dark brand color", () => {
-    renderPreview({ primaryColor: "#18181B", slug: "dim" });
+    renderPreview({ primaryColor: "#18181B", displayName: "dim" });
     const label = screen.getByText("dim");
     expect(label instanceof HTMLElement && label.style.color).toBe("rgb(255, 255, 255)");
   });

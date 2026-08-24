@@ -10,14 +10,9 @@ import { DEFAULT_BRAND_COLOR, type PortalBrandingValue } from "./portal-branding
 // `portal_base_url`.
 const MOCK_ADDRESS = "Your customer portal";
 
-/**
- * Neutrals are literal hex, not palette classes: the dashboard's Tailwind config
- * sets `theme.colors` instead of `theme.extend.colors`, so it replaces the
- * default palette and `neutral-*`/`white` resolve to nothing here. They are also
- * fixed light values rather than the dashboard's `gray-*` tokens because the
- * portal ships light-only, and a theme-reactive mock would preview a portal the
- * operator's users never see.
- */
+// Literal hex, fixed light: the dashboard's Tailwind sets `theme.colors` rather
+// than `theme.extend.colors`, so palette classes do not resolve here, and the
+// portal ships light-only.
 const LIGHT = {
   surface: "#ffffff",
   chrome: "#f5f5f5",
@@ -29,15 +24,15 @@ const LIGHT = {
 
 /**
  * Static mock of the end-user portal so operators can see their logo and brand
- * color in context. The brand bar shows the slug because the live portal passes
- * `appName={portal?.slug}` (web/apps/portal/src/routes/_portal.tsx).
+ * color in context. The brand bar shows the display name because that is what
+ * the live portal renders (web/apps/portal/src/routes/_portal.tsx).
  */
 export function PortalPreview({
-  slug,
+  displayName,
   branding,
   className,
 }: {
-  slug: string;
+  displayName: string;
   branding: PortalBrandingValue;
   className?: string;
 }) {
@@ -106,7 +101,7 @@ export function PortalPreview({
             />
           )}
           <span className="truncate text-[13px] font-semibold" style={{ color: onColor }}>
-            {slug}
+            {displayName}
           </span>
         </div>
         <span className="h-2 w-14 shrink-0 rounded" style={{ backgroundColor: `${onColor}66` }} />

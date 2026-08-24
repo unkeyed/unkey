@@ -3,7 +3,12 @@
 import { buildPortalUpdate, portalFormValues } from "@/lib/portal/build-update";
 import { SLUG_CONFLICT_DETAIL, portalConflict } from "@/lib/portal/conflicts";
 import { useUpdatePortal } from "@/lib/portal/use-portal";
-import { logoUrlSchema, portalSlugSchema, primaryColorSchema } from "@/lib/portal/validation";
+import {
+  logoUrlSchema,
+  portalDisplayNameSchema,
+  portalSlugSchema,
+  primaryColorSchema,
+} from "@/lib/portal/validation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { Portal } from "@unkey/api/models/components";
 import {
@@ -30,6 +35,7 @@ const LOGO_PREVIEW_DEBOUNCE_MS = 300;
 
 const formSchema = z.object({
   slug: portalSlugSchema,
+  displayName: portalDisplayNameSchema,
   logoUrl: logoUrlSchema,
   primaryColor: primaryColorSchema,
 });
@@ -139,6 +145,14 @@ export function PortalConfig({ portal, keyAuthId }: Props) {
               Customize how the portal looks to your users.
             </p>
             <form onSubmit={handleSubmit(save)} className="mt-6 flex flex-col gap-6">
+              <FormInput
+                label="Display name"
+                description="Shown to your users in the portal header."
+                descriptionPosition="label"
+                placeholder="Acme"
+                error={errors.displayName?.message}
+                {...register("displayName")}
+              />
               <div className="flex flex-col gap-1.5">
                 <FormInput
                   label="Slug"
@@ -194,7 +208,7 @@ export function PortalConfig({ portal, keyAuthId }: Props) {
           </div>
           <div className="flex flex-col justify-end">
             <PortalPreview
-              slug={values.slug || portal.slug}
+              displayName={values.displayName || portal.displayName}
               branding={{ logoUrl: previewLogoUrl, primaryColor: values.primaryColor }}
               className="flex-1 rounded-b-none border-b-0 shadow-none"
             />

@@ -7,6 +7,7 @@ import type { Portal, V2PortalUpdatePortalRequestBody } from "@unkey/api/models/
  */
 export type PortalFormValues = {
   slug: string;
+  displayName: string;
   enabled: boolean;
   logoUrl: string;
   primaryColor: string;
@@ -21,6 +22,7 @@ export type PortalDirtyFields = Partial<Record<keyof PortalFormValues, boolean>>
 export function portalFormValues(portal: Portal): PortalFormValues {
   return {
     slug: portal.slug,
+    displayName: portal.displayName,
     enabled: portal.enabled,
     logoUrl: portal.branding?.logoUrl ?? "",
     primaryColor: portal.branding?.primaryColor ?? "",
@@ -52,6 +54,11 @@ export function buildPortalUpdate(
 
   if (dirtyFields.slug) {
     body.slug = values.slug;
+    dirty = true;
+  }
+
+  if (dirtyFields.displayName) {
+    body.displayName = values.displayName;
     dirty = true;
   }
 

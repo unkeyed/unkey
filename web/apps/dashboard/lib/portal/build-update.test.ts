@@ -10,6 +10,7 @@ import {
 const portal = (overrides: Partial<Portal> = {}): Portal => ({
   id: "pc_1234",
   slug: "acme",
+  displayName: "Acme",
   enabled: true,
   mapping: { type: "keyspace", id: "ks_1234" },
   createdAt: 1_700_000_000_000,
@@ -33,6 +34,7 @@ describe("portalFormValues", () => {
   it("normalizes absent branding to empty strings", () => {
     expect(portalFormValues(portal())).toEqual({
       slug: "acme",
+      displayName: "Acme",
       enabled: true,
       logoUrl: "",
       primaryColor: "",

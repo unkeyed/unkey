@@ -108,13 +108,18 @@ vi.mock("@unkey/ui", () => ({
   FormInput: forwardRef<
     HTMLInputElement,
     InputHTMLAttributes<HTMLInputElement> & { label?: string; error?: string; description?: string }
-  >(({ label, error, description: _description, ...props }, ref) => (
-    <span>
-      <label htmlFor="slug">{label}</label>
-      <input id="slug" ref={ref} {...props} />
-      {error ? <span data-testid="slug-error">{error}</span> : null}
-    </span>
-  )),
+  >(({ label, error, description: _description, ...props }, ref) => {
+    // The form has more than one field, so the id has to be per-label or every
+    // `getByLabelText` would resolve to the first input.
+    const id = (label ?? "field").toLowerCase().replace(/\s+/g, "-");
+    return (
+      <span>
+        <label htmlFor={id}>{label}</label>
+        <input id={id} ref={ref} {...props} />
+        {error ? <span data-testid={`${id}-error`}>{error}</span> : null}
+      </span>
+    );
+  }),
 }));
 
 const onOpenChange = vi.fn();
@@ -130,12 +135,20 @@ function renderDialog(resourceName = "Payments API") {
   );
 }
 
-function slugInput(): HTMLInputElement {
-  const input = screen.getByLabelText("Portal slug");
+function inputFor(label: string): HTMLInputElement {
+  const input = screen.getByLabelText(label);
   if (!(input instanceof HTMLInputElement)) {
-    throw new Error("slug field is not an input");
+    throw new Error(`${label} field is not an input`);
   }
   return input;
+}
+
+function slugInput(): HTMLInputElement {
+  return inputFor("Portal slug");
+}
+
+function displayNameInput(): HTMLInputElement {
+  return inputFor("Display name");
 }
 
 function submitForm() {
@@ -150,9 +163,28 @@ describe("CreatePortalDialog", () => {
     mocks.getPortalByMapping.mockRejectedValue(notFound());
   });
 
-  it("prefills the slug from the API name", () => {
+  it("prefills both name fields from the API name", () => {
     renderDialog();
+    expect(displayNameInput().value).toBe("Payments API");
     expect(slugInput().value).toBe("payments-api");
+  });
+
+  it("re-slugifies the slug while the operator edits the display name", async () => {
+    renderDialog();
+
+    fireEvent.change(displayNameInput(), { target: { value: "Acme Inc" } });
+
+    await waitFor(() => expect(slugInput().value).toBe("acme-inc"));
+  });
+
+  it("stops following the display name once the slug is edited by hand", async () => {
+    renderDialog();
+
+    fireEvent.change(slugInput(), { target: { value: "chosen-slug" } });
+    fireEvent.change(displayNameInput(), { target: { value: "Acme Inc" } });
+
+    await waitFor(() => expect(displayNameInput().value).toBe("Acme Inc"));
+    expect(slugInput().value).toBe("chosen-slug");
   });
 
   it("creates the portal and closes on success", async () => {
@@ -161,7 +193,11 @@ describe("CreatePortalDialog", () => {
     submitForm();
 
     await waitFor(() => expect(mocks.mutateAsync).toHaveBeenCalled());
-    expect(mocks.mutateAsync).toHaveBeenCalledWith({ slug: "payments-api", enabled: true });
+    expect(mocks.mutateAsync).toHaveBeenCalledWith({
+      slug: "payments-api",
+      displayName: "Payments API",
+      enabled: true,
+    });
     await waitFor(() => expect(onOpenChange).toHaveBeenCalledWith(false));
     // The re-read is `useCreatePortal`'s invalidate, not a second one here.
     expect(mocks.invalidateQueries).not.toHaveBeenCalled();
@@ -173,7 +209,7 @@ describe("CreatePortalDialog", () => {
     fireEvent.change(slugInput(), { target: { value: "my--portal" } });
     submitForm();
 
-    expect(await screen.findByTestId("slug-error")).toBeDefined();
+    expect(await screen.findByTestId("portal-slug-error")).toBeDefined();
     expect(mocks.mutateAsync).not.toHaveBeenCalled();
   });
 
@@ -183,7 +219,7 @@ describe("CreatePortalDialog", () => {
 
     submitForm();
 
-    expect((await screen.findByTestId("slug-error")).textContent).toBe(SLUG_CONFLICT_DETAIL);
+    expect((await screen.findByTestId("portal-slug-error")).textContent).toBe(SLUG_CONFLICT_DETAIL);
     // A 409 can also mean the create landed and the ack was lost, so the field
     // error is only reported once a re-read has failed to find a portal.
     expect(mocks.getPortalByMapping).toHaveBeenCalledWith({ type: "keyspace", id: "ks_123" });
@@ -204,7 +240,7 @@ describe("CreatePortalDialog", () => {
       found: true,
       portal: { id: "portal_123", slug: "payments-api" },
     });
-    expect(screen.queryByTestId("slug-error")).toBeNull();
+    expect(screen.queryByTestId("portal-slug-error")).toBeNull();
   });
 
   it("reports an unreadable mapping conflict at dialog level, not on the slug field", async () => {
@@ -216,7 +252,7 @@ describe("CreatePortalDialog", () => {
     expect(await screen.findByText(/already has a customer portal/i)).toBeDefined();
     // No slug can win a mapping conflict held by a portal this workspace cannot
     // read, so the field carries no error.
-    expect(screen.queryByTestId("slug-error")).toBeNull();
+    expect(screen.queryByTestId("portal-slug-error")).toBeNull();
     expect(onOpenChange).not.toHaveBeenCalled();
   });
 
@@ -249,7 +285,7 @@ describe("CreatePortalDialog", () => {
       found: true,
       portal: { id: "portal_123", slug: "payments-api" },
     });
-    expect(screen.queryByTestId("slug-error")).toBeNull();
+    expect(screen.queryByTestId("portal-slug-error")).toBeNull();
   });
 
   it("reports the unique-index conflict on the field when no portal exists", async () => {
@@ -258,7 +294,9 @@ describe("CreatePortalDialog", () => {
 
     submitForm();
 
-    expect((await screen.findByTestId("slug-error")).textContent).toBe(AMBIGUOUS_CONFLICT_DETAIL);
+    expect((await screen.findByTestId("portal-slug-error")).textContent).toBe(
+      AMBIGUOUS_CONFLICT_DETAIL,
+    );
     expect(onOpenChange).not.toHaveBeenCalled();
   });
 
@@ -274,7 +312,7 @@ describe("CreatePortalDialog", () => {
     expect(
       await screen.findByText(/couldn't confirm whether the portal was created/i),
     ).toBeDefined();
-    expect(screen.queryByTestId("slug-error")).toBeNull();
+    expect(screen.queryByTestId("portal-slug-error")).toBeNull();
     expect(onOpenChange).not.toHaveBeenCalled();
   });
 
@@ -287,7 +325,7 @@ describe("CreatePortalDialog", () => {
 
     submitForm();
 
-    expect((await screen.findByTestId("slug-error")).textContent).toBe(SLUG_CONFLICT_DETAIL);
+    expect((await screen.findByTestId("portal-slug-error")).textContent).toBe(SLUG_CONFLICT_DETAIL);
     expect(mocks.setQueryData).not.toHaveBeenCalled();
     expect(onOpenChange).not.toHaveBeenCalled();
   });

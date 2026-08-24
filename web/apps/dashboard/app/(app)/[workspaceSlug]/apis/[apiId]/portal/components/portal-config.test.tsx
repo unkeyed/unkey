@@ -149,6 +149,7 @@ vi.mock("@unkey/ui", () => {
 const portal: Portal = {
   id: "portal_123",
   slug: "acme",
+  displayName: "Acme",
   enabled: true,
   mapping: { type: "keyspace", id: "ks_123" },
   createdAt: 0,

@@ -10,24 +10,24 @@ import {
 } from "@/lib/portal/conflicts";
 import { slugifyPortalName } from "@/lib/portal/slugify";
 import { type PortalQueryResult, portalQueryKey, useCreatePortal } from "@/lib/portal/use-portal";
-import { portalSlugSchema } from "@/lib/portal/validation";
+import { portalDisplayNameSchema, portalSlugSchema } from "@/lib/portal/validation";
 import { getErrorMessage } from "@/lib/unkey-client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQueryClient } from "@tanstack/react-query";
 import type { Portal } from "@unkey/api/models/components";
 import { NotFoundErrorResponse } from "@unkey/api/models/errors";
 import { Button, DialogContainer, FormInput } from "@unkey/ui";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
-const formSchema = z.object({ slug: portalSlugSchema });
+const formSchema = z.object({ displayName: portalDisplayNameSchema, slug: portalSlugSchema });
 
 type FormValues = z.infer<typeof formSchema>;
 
 type Props = {
   keyAuthId: string;
-  /** Prefills the slug; the operator can overwrite it before submitting. */
+  /** Prefills both name fields; the operator can overwrite either before submitting. */
   resourceName: string;
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
@@ -47,12 +47,24 @@ export function CreatePortalDialog({ keyAuthId, resourceName, isOpen, onOpenChan
     handleSubmit,
     setError,
     clearErrors,
-    formState: { errors },
+    setValue,
+    watch,
+    formState: { errors, dirtyFields },
   } = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     mode: "onChange",
-    defaultValues: { slug: slugifyPortalName(resourceName) },
+    defaultValues: { displayName: resourceName, slug: slugifyPortalName(resourceName) },
   });
+
+  const displayName = watch("displayName");
+  // The slug follows the display name until the operator edits the slug itself.
+  // After that it is theirs, so typing in the name must not overwrite it.
+  const slugFollowsDisplayName = !dirtyFields.slug;
+  useEffect(() => {
+    if (slugFollowsDisplayName) {
+      setValue("slug", slugifyPortalName(displayName), { shouldValidate: true });
+    }
+  }, [displayName, slugFollowsDisplayName, setValue]);
 
   /**
    * A 409 can also mean the create landed and the acknowledgement was lost, so
@@ -89,7 +101,7 @@ export function CreatePortalDialog({ keyAuthId, resourceName, isOpen, onOpenChan
     onOpenChange(false);
   };
 
-  const submit = async ({ slug }: FormValues) => {
+  const submit = async ({ slug, displayName: submittedName }: FormValues) => {
     setDialogError(null);
     clearErrors("slug");
     setSubmitting(true);
@@ -98,7 +110,7 @@ export function CreatePortalDialog({ keyAuthId, resourceName, isOpen, onOpenChan
       // full row rather than rendering a synthesized one. `useCreatePortal`
       // invalidates on success, and react-query awaits `onSuccess` before
       // `mutateAsync` resolves, so that refetch is already under way here.
-      await createPortal.mutateAsync({ slug, enabled: true });
+      await createPortal.mutateAsync({ slug, displayName: submittedName, enabled: true });
       onOpenChange(false);
       return;
     } catch (error) {
@@ -158,7 +170,7 @@ export function CreatePortalDialog({ keyAuthId, resourceName, isOpen, onOpenChan
         }
       }}
       title="Enable customer portal"
-      subTitle="Pick a short, url-safe name for the portal you give your customers."
+      subTitle="Name the portal your customers will use."
       footer={
         <div className="flex w-full flex-col items-center justify-center gap-2">
           <Button
@@ -176,14 +188,22 @@ export function CreatePortalDialog({ keyAuthId, resourceName, isOpen, onOpenChan
           >
             Enable portal
           </Button>
-          <div className="text-xs text-gray-9">You can change the slug later</div>
+          <div className="text-xs text-gray-9">You can change both later</div>
         </div>
       }
     >
       <form id="create-portal-form" onSubmit={handleSubmit(submit)} className="flex flex-col gap-4">
         <FormInput
+          label="Display name"
+          description="Shown to your users in the portal header."
+          placeholder="Acme"
+          readOnly={submitting}
+          error={errors.displayName?.message}
+          {...register("displayName")}
+        />
+        <FormInput
           label="Portal slug"
-          description="Lowercase letters, numbers, and hyphens. 3-64 characters."
+          description="Used in API calls, never shown to your users. Lowercase letters, numbers, and hyphens."
           placeholder="acme"
           readOnly={submitting}
           error={errors.slug?.message}
