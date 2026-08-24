@@ -101,8 +101,15 @@ func applyOptions(opts []Option) config {
 
 // dialContext returns the transport dial function that enforces the SSRF
 // guard. It resolves the host itself and dials resolved IPs directly, so the
-// address that passed the check is the address that is dialed; checking
-// before a separate dial would leave a DNS-rebinding window.
+// address that passed the check is exactly the address that is dialed.
+//
+// This closes the DNS-rebinding hole: the attacker controls the DNS server
+// for their own hostname, so they can answer the first lookup with a harmless
+// public IP and the next lookup with a private one (a TTL of zero forces the
+// re-lookup). If we checked the first answer and then handed the hostname to
+// a separate dial step, that step would resolve again and could connect to
+// the private address that was never checked. Resolving once and dialing the
+// checked IP leaves no second lookup to exploit.
 func dialContext(dialer *net.Dialer, cfg config) func(context.Context, string, string) (net.Conn, error) {
 	return func(ctx context.Context, network, address string) (net.Conn, error) {
 		host, port, err := net.SplitHostPort(address)
