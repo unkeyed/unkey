@@ -21,6 +21,6 @@
 //   - This package: HTTP server that exposes metrics at GET /metrics
 //   - [metrics] subpackage: All metric collectors organized by subsystem
 //
-// This separation allows services to import only the metrics they need without
-// pulling in HTTP server dependencies.
+// The server uses net/http directly so metrics-only services do not link an
+// application HTTP framework and its validation dependencies.
 package prometheus

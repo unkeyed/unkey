@@ -2,7 +2,6 @@ package timing
 
 import (
 	"context"
-	"net/http"
 	"net/http/httptest"
 	"strconv"
 	"strings"
@@ -10,7 +9,6 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
-	"github.com/unkeyed/unkey/pkg/zen"
 )
 
 func TestParseEntry(t *testing.T) {
@@ -163,14 +161,9 @@ func TestParseEntries(t *testing.T) {
 }
 
 func TestRecord(t *testing.T) {
-	t.Run("writes header when session exists", func(t *testing.T) {
-		req := httptest.NewRequest(http.MethodGet, "/", nil)
+	t.Run("writes header when response writer exists", func(t *testing.T) {
 		recorder := httptest.NewRecorder()
-		session := &zen.Session{}
-		err := session.Init(recorder, req, 0)
-		require.NoError(t, err)
-
-		ctx := zen.WithSession(context.Background(), session)
+		ctx := WithResponseWriter(context.Background(), recorder)
 		Record(ctx, Entry{Name: "cache_get", Duration: time.Millisecond})
 
 		values := recorder.Header().Values(HeaderName)
@@ -178,18 +171,13 @@ func TestRecord(t *testing.T) {
 		require.Equal(t, "cache_get=1ms", values[0])
 	})
 
-	t.Run("no session is a no-op", func(t *testing.T) {
+	t.Run("no response writer is a no-op", func(t *testing.T) {
 		Record(context.Background(), Entry{Name: "cache_get", Duration: time.Millisecond})
 	})
 
 	t.Run("rejects invalid entry", func(t *testing.T) {
-		req := httptest.NewRequest(http.MethodGet, "/", nil)
 		recorder := httptest.NewRecorder()
-		session := &zen.Session{}
-		err := session.Init(recorder, req, 0)
-		require.NoError(t, err)
-
-		ctx := zen.WithSession(context.Background(), session)
+		ctx := WithResponseWriter(context.Background(), recorder)
 		Record(ctx, Entry{Name: "1bad", Duration: time.Millisecond})
 		values := recorder.Header().Values(HeaderName)
 		require.Empty(t, values)

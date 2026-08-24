@@ -8,9 +8,9 @@ import (
 	"strconv"
 	"strings"
 	"time"
-
-	"github.com/unkeyed/unkey/pkg/zen"
 )
+
+type responseWriterKey struct{}
 
 // HeaderName is the HTTP header name used for timing entries. This custom header
 // was chosen over the standard Server-Timing header because it supports a stricter
@@ -143,31 +143,31 @@ func formatDurationUnit(duration time.Duration, unit time.Duration, suffix strin
 	return strconv.FormatFloat(value, 'f', -1, 64) + suffix
 }
 
-// Record writes a timing entry to the response headers via the [zen.Session]
-// associated with the context. If no session is present or the entry fails
-// validation, the call is silently ignored. This allows instrumentation code
-// to be added unconditionally without error handling.
+// WithResponseWriter stores the response writer used by [Record].
+func WithResponseWriter(ctx context.Context, w http.ResponseWriter) context.Context {
+	return context.WithValue(ctx, responseWriterKey{}, w)
+}
+
+// Record writes a timing entry to the response writer associated with the
+// context. If no writer is present or the entry fails validation, the call is
+// silently ignored. This allows instrumentation code to be added
+// unconditionally without error handling.
 //
 // Use [Write] when you have direct access to an [http.ResponseWriter] instead
-// of a context with a session.
+// of a context carrying one.
 func Record(ctx context.Context, entry Entry) {
-	if err := entry.Validate(); err != nil {
-		return
-	}
-
-	session, ok := zen.SessionFromContext(ctx)
+	w, ok := ctx.Value(responseWriterKey{}).(http.ResponseWriter)
 	if !ok {
 		return
 	}
 
-	session.AddHeader(HeaderName, entry.String())
+	Write(w, entry)
 }
 
 // Write adds a timing entry directly to the response headers. If the entry
 // fails validation, the call is silently ignored.
 //
-// Use [Record] when working with a context that contains a [zen.Session],
-// which is the common case in request handlers.
+// Use [Record] when working with a context configured by [WithResponseWriter].
 func Write(w http.ResponseWriter, entry Entry) {
 	if err := entry.Validate(); err != nil {
 		return

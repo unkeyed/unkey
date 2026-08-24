@@ -1,6 +1,10 @@
 package zen
 
-import "context"
+import (
+	"context"
+
+	"github.com/unkeyed/unkey/pkg/timing"
+)
 
 // ContextKey provides type-safe context storage using generics.
 // It eliminates the need for type assertions and provides compile-time
@@ -65,7 +69,8 @@ var sessionKey = NewContextKey[*Session]("session")
 // debug headers, where cache operations need to write response headers without
 // requiring explicit session passing through all function calls.
 func WithSession(ctx context.Context, session *Session) context.Context {
-	return sessionKey.WithValue(ctx, session)
+	ctx = sessionKey.WithValue(ctx, session)
+	return timing.WithResponseWriter(ctx, session.ResponseWriter())
 }
 
 // SessionFromContext retrieves the session pointer stored by WithSession.

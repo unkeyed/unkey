@@ -1,5 +1,5 @@
 // Package timing defines a small, strict header format for server-side timing
-// data and provides helpers to record it through zen sessions.
+// data and provides helpers to record it on HTTP responses.
 //
 // The package exists because Server-Timing is standardized but too limited for
 // Unkey's debugging needs. We want a header that remains readable in raw HTTP
@@ -44,10 +44,10 @@
 //
 // # Usage
 //
-// Callers record entries directly on the current request context. If a zen
-// session is present, the entry is serialized and added to the response headers.
-// This keeps observability wiring close to the request without exposing sessions
-// to application code.
+// Callers record entries directly on the current request context. If a response
+// writer is present, the entry is serialized and added to the response headers.
+// This keeps observability wiring close to the request without exposing HTTP
+// internals to application code.
 //
 //	 timing.Record(ctx, timing.Entry{
 //		Name:     "cache_get",

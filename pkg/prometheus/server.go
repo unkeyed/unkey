@@ -1,129 +1,90 @@
-/*
-Package prometheus provides utilities for exposing Prometheus metrics over HTTP.
-
-This package makes it easy to integrate Prometheus metrics collection and exposure
-into applications built with the zen framework. It handles the setup of a metrics
-endpoint that Prometheus can scrape to collect runtime metrics from your application.
-
-Common use cases include:
-  - Creating a dedicated metrics server separate from your application server
-  - Adding metrics endpoints to existing zen-based applications
-  - Setting up consistent metrics across multiple microservices
-
-This package is designed to work seamlessly with the zen framework while providing
-all the functionality of the standard Prometheus client library.
-*/
 package prometheus
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"net"
 	"net/http"
+	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"github.com/unkeyed/unkey/pkg/zen"
 )
 
-// New creates a zen server that exposes Prometheus metrics at the /metrics endpoint.
-// The server is configured to handle GET requests to the /metrics path using the
-// standard Prometheus HTTP handler, which serves metrics in a format that Prometheus
-// can scrape.
-//
-// New is used to create a standalone metrics server that can be started separately
-// from your main application server, which is a common pattern for microservices
-// architectures where concerns are separated.
-//
-// Parameters:
-//   - config: Configuration for the server, including required dependencies.
-//
-// Returns:
-//   - A configured zen.Server ready to be started.
-//   - An error if server creation fails, typically due to invalid configuration.
-//
-// Example usage:
-//
-//	// Create a dedicated metrics server
-//	server, err := prometheus.New(prometheus.Config{
-//	   ,
-//	})
-//	if err != nil {
-//	    log.Fatalf("Failed to create metrics server: %v", err)
-//	}
-//
-//	// Start the metrics server on port 9090
-//	go func() {
-//	    if err := server.Listen(":9090"); err != nil {
-//	        log.Fatalf("Metrics server failed: %v", err)
-//	    }
-//	}()
-//
-// When used with CLI commands, the server can be started with a command like:
-//
-//	myapp metrics --port=9090
-//
-// See [zen.New] for details on the underlying server creation.
-// See [promhttp.Handler] for details on the Prometheus metrics handler.
-func New() (*zen.Server, error) {
-	z, err := zen.New(zen.Config{
-		MaxRequestBodySize: 0,
-		Flags:              nil,
-		TLS:                nil,
-		EnableH2C:          false,
-		StreamRequestBody:  false,
-		ReadTimeout:        0,
-		WriteTimeout:       0,
-	})
-	if err != nil {
-		return nil, err
-	}
+const (
+	readTimeout     = 10 * time.Second
+	writeTimeout    = 20 * time.Second
+	shutdownTimeout = 30 * time.Second
+)
 
-	h := promhttp.Handler()
-
-	// Register the metrics endpoint with the zen server
-	z.RegisterRoute([]zen.Middleware{}, zen.NewRoute("GET", "/metrics", func(ctx context.Context, s *zen.Session) error {
-		h.ServeHTTP(s.ResponseWriter(), s.Request())
-		return nil
-	}))
-
-	return z, nil
+// Server exposes Prometheus metrics over HTTP.
+type Server struct {
+	http *http.Server
 }
 
-// NewWithRegistry creates a zen server that exposes metrics from a custom
+// New creates a server that exposes the default Prometheus registry.
+func New() (*Server, error) {
+	return newServer(promhttp.Handler()), nil
+}
+
+// NewWithRegistry creates a server that exposes metrics from a custom
 // prometheus.Registry at the /metrics endpoint.
-func NewWithRegistry(reg *prometheus.Registry) (*zen.Server, error) {
+func NewWithRegistry(reg *prometheus.Registry) (*Server, error) {
 	if reg == nil {
 		return nil, fmt.Errorf("prometheus: nil registry")
 	}
 
-	z, err := zen.New(zen.Config{
-		MaxRequestBodySize: 0,
-		Flags:              nil,
-		TLS:                nil,
-		EnableH2C:          false,
-		StreamRequestBody:  false,
-		ReadTimeout:        0,
-		WriteTimeout:       0,
-	})
-	if err != nil {
-		return nil, err
+	return newServer(promhttp.HandlerFor(reg, promhttp.HandlerOpts{})), nil
+}
+
+func newServer(metricsHandler http.Handler) *Server {
+	mux := http.NewServeMux()
+	mux.Handle("GET /metrics", metricsHandler)
+
+	return &Server{
+		http: &http.Server{
+			Handler:      mux,
+			ReadTimeout:  readTimeout,
+			WriteTimeout: writeTimeout,
+		},
+	}
+}
+
+// Serve exposes metrics on ln until ctx is canceled or the server stops.
+func (s *Server) Serve(ctx context.Context, ln net.Listener) error {
+	serveDone := make(chan struct{})
+	shutdownErr := make(chan error, 1)
+	go func() {
+		select {
+		case <-ctx.Done():
+			shutdownCtx, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
+			defer cancel()
+			shutdownErr <- s.Shutdown(shutdownCtx)
+		case <-serveDone:
+			shutdownErr <- nil
+		}
+	}()
+
+	err := s.http.Serve(ln)
+	close(serveDone)
+	if errors.Is(err, http.ErrServerClosed) {
+		err = nil
 	}
 
-	h := promhttp.HandlerFor(reg, promhttp.HandlerOpts{})
+	return errors.Join(err, <-shutdownErr)
+}
 
-	z.RegisterRoute([]zen.Middleware{}, zen.NewRoute("GET", "/metrics", func(ctx context.Context, s *zen.Session) error {
-		h.ServeHTTP(s.ResponseWriter(), s.Request())
-		return nil
-	}))
-
-	return z, nil
+// Shutdown gracefully stops the metrics server.
+func (s *Server) Shutdown(ctx context.Context) error {
+	return s.http.Shutdown(ctx)
 }
 
 // Serve starts a simple HTTP server that exposes Prometheus metrics at GET /metrics.
 // The server listens on the provided address (e.g., ":9090" or "127.0.0.1:9090").
 //
-// This is a simpler alternative to New() that doesn't require the zen framework.
-// It blocks until the server stops or an error occurs.
+// This is a package-level alternative to New(). It blocks until the server
+// stops or an error occurs.
 //
 // Example usage:
 //
