@@ -34,7 +34,7 @@ export function SidebarBody() {
       // settings/authorization layouts).
       case "settings":
       case "authorization":
-        return buildWorkspaceSections(slug, segments, portalManagement);
+        return buildWorkspaceSections(slug, segments);
       case "project":
         return context.appId
           ? buildAppLinks(slug, context.projectId, context.appId, segments)
