@@ -1,0 +1,63 @@
+#!/usr/bin/env bash
+#MISE description="Benchmark release CLI binary size and warm startup"
+set -euo pipefail
+
+binary="$(mktemp "${TMPDIR:-/tmp}/unkey-cli-benchmark.XXXXXX")"
+trap 'rm -f "${binary}"' EXIT
+
+CGO_ENABLED=0 go build \
+  -tags=cli_release \
+  -trimpath \
+  -ldflags='-s -w' \
+  -o "${binary}" \
+  ./build/cli
+
+node --input-type=module - "${binary}" "${RUNS:-200}" <<'JS'
+import { statSync } from "node:fs";
+import { spawnSync } from "node:child_process";
+
+const binary = process.argv[2];
+const runs = Number.parseInt(process.argv[3], 10);
+if (!Number.isSafeInteger(runs) || runs < 1) {
+  throw new Error("RUNS must be a positive integer");
+}
+
+const env = Object.fromEntries(
+  Object.entries(process.env).filter(([name]) => !name.startsWith("UNKEY_")),
+);
+
+function run() {
+  const started = process.hrtime.bigint();
+  const result = spawnSync(binary, ["--version"], {
+    env,
+    stdio: "ignore",
+  });
+  const elapsedNs = process.hrtime.bigint() - started;
+
+  if (result.status !== 0) {
+    throw new Error(`CLI exited with status ${result.status}`);
+  }
+
+  return Number(elapsedNs) / 1_000_000;
+}
+
+for (let i = 0; i < 10; i++) {
+  run();
+}
+
+const samplesMs = Array.from({ length: runs }, run).sort((a, b) => a - b);
+const middle = Math.floor(samplesMs.length / 2);
+const medianMs =
+  samplesMs.length % 2 === 0
+    ? (samplesMs[middle - 1] + samplesMs[middle]) / 2
+    : samplesMs[middle];
+const p95Ms = samplesMs[Math.ceil(samplesMs.length * 0.95) - 1];
+const sizeBytes = statSync(binary).size;
+
+console.log("binary_packing=none");
+console.log(`binary_size_bytes=${sizeBytes}`);
+console.log(`binary_size_mib=${(sizeBytes / 1024 / 1024).toFixed(2)}`);
+console.log(`startup_runs=${runs}`);
+console.log(`startup_median_ms=${medianMs.toFixed(2)}`);
+console.log(`startup_p95_ms=${p95Ms.toFixed(2)}`);
+JS
