@@ -318,8 +318,7 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 
 	caches, err := cachesvc.New(cachesvc.Config{
-		Clock:  clk,
-		NodeID: cfg.InstanceID,
+		Clock: clk,
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create caches: %w", err)
