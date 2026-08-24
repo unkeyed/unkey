@@ -283,13 +283,18 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 		if invocationID == "" {
 			return nil, fmt.Errorf("restate returned empty invocation id for deployment %s", deploymentID)
 		}
-		_ = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
+		if persistErr := restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
 			return s.db.UpdateDeploymentInvocationID(runCtx, db.UpdateDeploymentInvocationIDParams{
 				ID:           deploymentID,
 				InvocationID: sql.NullString{Valid: true, String: invocationID},
 				UpdatedAt:    sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
 			})
-		}, restate.WithName("persist invocation id"))
+		}, restate.WithName("persist invocation id")); persistErr != nil {
+			// Without the invocation ID the deployment can never be
+			// cancelled, so fail the handler and let Restate retry from
+			// the journal (the Send above is journaled and not repeated).
+			return nil, persistErr
+		}
 
 		logger.Info("deployment workflow started",
 			"deployment_id", deploymentID,
@@ -301,7 +306,11 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 			"invocation_id", invocationID,
 		)
 
-		_ = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
+		// Cancelling superseded siblings is best-effort: the closure logs
+		// and returns nil on failure. The RunVoid error itself must still
+		// be propagated because it can carry Restate protocol signals
+		// (suspension, cancellation), not just closure failures.
+		if runErr := restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
 			if cancelErr := s.dedup.CancelOlderSiblings(runCtx, dedup.Newer{
 				ID:            deploymentID,
 				AppID:         app.ID,
@@ -315,7 +324,9 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 				)
 			}
 			return nil
-		}, restate.WithName("cancel superseded siblings"))
+		}, restate.WithName("cancel superseded siblings")); runErr != nil {
+			return nil, runErr
+		}
 	}
 
 	return &hydrav1.HandlePushResponse{}, nil
