@@ -6,7 +6,7 @@ import type { Unkey } from "@unkey/api";
 import type { Portal } from "@unkey/api/models/components";
 import { NotFoundErrorResponse } from "@unkey/api/models/errors";
 import { toast } from "@unkey/ui";
-import { getPortalByMapping, keyspaceMapping } from "./client";
+import { getPortalByKeyspace } from "./client";
 
 type CreatePortalInput = Parameters<Unkey["portal"]["createPortal"]>[0];
 type CreatePortalResult = Awaited<ReturnType<Unkey["portal"]["createPortal"]>>["data"];
@@ -47,7 +47,7 @@ export function usePortal(keyAuthId: string | undefined): PortalState {
         throw new Error("portal query ran without a keyspace id");
       }
       try {
-        const portal = await getPortalByMapping(keyspaceMapping(keyAuthId));
+        const portal = await getPortalByKeyspace(keyAuthId);
         return { found: true, portal };
       } catch (error) {
         if (error instanceof NotFoundErrorResponse) {
@@ -101,17 +101,20 @@ function toastUnless(options: PortalMutationOptions | undefined, fallback: strin
 }
 
 /**
- * Creates the portal for this keyspace. The mapping is supplied here rather than
- * by the caller, so this surface can only ever create a keyspace portal.
+ * Creates the portal for this keyspace. The keyspace id is supplied here rather
+ * than by the caller, so this surface can only ever create a keyspace portal.
  */
 export function useCreatePortal(keyAuthId: string, options?: PortalMutationOptions) {
   const invalidate = useInvalidatePortal(keyAuthId);
 
-  return useMutation<CreatePortalResult, unknown, Omit<CreatePortalInput, "mapping">>({
+  // `keyspaceId` is supplied here, not by the caller, and the request union
+  // leaves `appId` optional on this arm, so excluding both keeps a caller from
+  // sending a shape only the server would reject.
+  return useMutation<CreatePortalResult, unknown, Omit<CreatePortalInput, "keyspaceId" | "appId">>({
     mutationFn: async (input) => {
       const response = await getUnkeyClient().portal.createPortal({
         ...input,
-        mapping: keyspaceMapping(keyAuthId),
+        keyspaceId: keyAuthId,
       });
       return response.data;
     },

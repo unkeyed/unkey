@@ -1,6 +1,6 @@
 "use client";
 
-import { getPortalByMapping, keyspaceMapping } from "@/lib/portal/client";
+import { getPortalByKeyspace } from "@/lib/portal/client";
 import {
   AMBIGUOUS_CONFLICT_DETAIL,
   CONFLICT_UNRESOLVED_MESSAGE,
@@ -82,7 +82,7 @@ export function CreatePortalDialog({ keyAuthId, resourceName, isOpen, onOpenChan
 
   const readKeyspacePortal = async (): Promise<KeyspaceRead> => {
     try {
-      return { status: "found", portal: await getPortalByMapping(keyspaceMapping(keyAuthId)) };
+      return { status: "found", portal: await getPortalByKeyspace(keyAuthId) };
     } catch (error) {
       if (error instanceof NotFoundErrorResponse) {
         return { status: "absent" };

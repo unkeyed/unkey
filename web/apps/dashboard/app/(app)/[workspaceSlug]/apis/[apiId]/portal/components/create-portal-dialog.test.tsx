@@ -55,7 +55,7 @@ function notFound(): NotFoundErrorResponse {
 
 const mocks = vi.hoisted(() => ({
   mutateAsync: vi.fn(),
-  getPortalByMapping: vi.fn(),
+  getPortalByKeyspace: vi.fn(),
   invalidateQueries: vi.fn(),
   setQueryData: vi.fn(),
 }));
@@ -66,8 +66,7 @@ vi.mock("@/lib/portal/use-portal", () => ({
 }));
 
 vi.mock("@/lib/portal/client", () => ({
-  getPortalByMapping: mocks.getPortalByMapping,
-  keyspaceMapping: (id: string) => ({ type: "keyspace", id }),
+  getPortalByKeyspace: mocks.getPortalByKeyspace,
 }));
 
 vi.mock("@/lib/unkey-client", async () => {
@@ -160,7 +159,7 @@ describe("CreatePortalDialog", () => {
     cleanup();
     vi.clearAllMocks();
     mocks.mutateAsync.mockResolvedValue({ portalId: "portal_123" });
-    mocks.getPortalByMapping.mockRejectedValue(notFound());
+    mocks.getPortalByKeyspace.mockRejectedValue(notFound());
   });
 
   it("prefills both name fields from the API name", () => {
@@ -222,13 +221,13 @@ describe("CreatePortalDialog", () => {
     expect((await screen.findByTestId("portal-slug-error")).textContent).toBe(SLUG_CONFLICT_DETAIL);
     // A 409 can also mean the create landed and the ack was lost, so the field
     // error is only reported once a re-read has failed to find a portal.
-    expect(mocks.getPortalByMapping).toHaveBeenCalledWith({ type: "keyspace", id: "ks_123" });
+    expect(mocks.getPortalByKeyspace).toHaveBeenCalledWith("ks_123");
     expect(onOpenChange).not.toHaveBeenCalled();
   });
 
   it("treats a slug conflict as success when the re-read finds a portal", async () => {
     mocks.mutateAsync.mockRejectedValue(conflict(SLUG_CONFLICT_DETAIL));
-    mocks.getPortalByMapping.mockResolvedValue({ id: "portal_123", slug: "payments-api" });
+    mocks.getPortalByKeyspace.mockResolvedValue({ id: "portal_123", slug: "payments-api" });
     renderDialog();
 
     submitForm();
@@ -260,7 +259,7 @@ describe("CreatePortalDialog", () => {
     // The server checks the slug before the mapping, so an operator who renamed
     // after a slug conflict lands here holding a portal they already own.
     mocks.mutateAsync.mockRejectedValue(conflict(MAPPING_CONFLICT_DETAIL));
-    mocks.getPortalByMapping.mockResolvedValue({ id: "portal_123", slug: "some-other-slug" });
+    mocks.getPortalByKeyspace.mockResolvedValue({ id: "portal_123", slug: "some-other-slug" });
     renderDialog();
 
     submitForm();
@@ -275,7 +274,7 @@ describe("CreatePortalDialog", () => {
 
   it("recovers from the unique-index conflict when the re-read finds this portal", async () => {
     mocks.mutateAsync.mockRejectedValue(conflict(AMBIGUOUS_CONFLICT_DETAIL));
-    mocks.getPortalByMapping.mockResolvedValue({ id: "portal_123", slug: "payments-api" });
+    mocks.getPortalByKeyspace.mockResolvedValue({ id: "portal_123", slug: "payments-api" });
     renderDialog();
 
     submitForm();
@@ -302,7 +301,7 @@ describe("CreatePortalDialog", () => {
 
   it("does not send the operator to rename when the re-read itself fails", async () => {
     mocks.mutateAsync.mockRejectedValue(conflict(SLUG_CONFLICT_DETAIL));
-    mocks.getPortalByMapping.mockRejectedValue(new Error("network down"));
+    mocks.getPortalByKeyspace.mockRejectedValue(new Error("network down"));
     renderDialog();
 
     submitForm();
@@ -320,7 +319,7 @@ describe("CreatePortalDialog", () => {
     mocks.mutateAsync.mockRejectedValue(conflict(SLUG_CONFLICT_DETAIL));
     // A pre-existing keyspace portal plus an unrelated portal holding the slug:
     // adopting this row would close the dialog on a slug that is not live.
-    mocks.getPortalByMapping.mockResolvedValue({ id: "portal_999", slug: "something-else" });
+    mocks.getPortalByKeyspace.mockResolvedValue({ id: "portal_999", slug: "something-else" });
     renderDialog();
 
     submitForm();

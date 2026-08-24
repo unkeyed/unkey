@@ -194,8 +194,8 @@ export function PortalLifecyclePage({
                 onEnable={() => setEnabled(state.portal, true)}
               />
             )}
-            {/* The prop, not `state.portal.mapping.id`: a mapping id is only a
-                keyspace id for keyspace mappings. */}
+            {/* The prop, not `state.portal.keyspaceId`: that field is optional
+                because an app-mapped portal carries `appId` instead. */}
             <PortalConfig portal={state.portal} keyAuthId={keyAuthId} />
           </div>
         ) : (

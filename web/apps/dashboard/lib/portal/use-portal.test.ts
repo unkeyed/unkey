@@ -5,11 +5,10 @@ import { createElement } from "react";
 import type { ReactNode } from "react";
 import { describe, expect, it, vi } from "vitest";
 
-const getPortalByMapping = vi.fn();
+const getPortalByKeyspace = vi.fn();
 
 vi.mock("./client", () => ({
-  getPortalByMapping: (...args: unknown[]) => getPortalByMapping(...args),
-  keyspaceMapping: (id: string) => ({ type: "keyspace", id }),
+  getPortalByKeyspace: (...args: unknown[]) => getPortalByKeyspace(...args),
 }));
 
 vi.mock("@/lib/unkey-client", () => ({
@@ -29,7 +28,7 @@ const portal: Portal = {
   slug: "acme",
   displayName: "Acme",
   enabled: true,
-  mapping: { type: "keyspace", id: "ks_123" },
+  keyspaceId: "ks_123",
   createdAt: 0,
 };
 
@@ -42,7 +41,7 @@ describe("usePortal", () => {
   it("keeps rendering the cached portal when a background refetch fails", async () => {
     const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     client.setQueryData(portalQueryKey("ks_123"), { found: true, portal });
-    getPortalByMapping.mockRejectedValue(new Error("upstream exploded"));
+    getPortalByKeyspace.mockRejectedValue(new Error("upstream exploded"));
 
     const { result } = renderHook(() => usePortal("ks_123"), { wrapper: wrapperFor(client) });
 
@@ -58,7 +57,7 @@ describe("usePortal", () => {
 
   it("surfaces the error when there is no cached row to fall back on", async () => {
     const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-    getPortalByMapping.mockRejectedValue(new Error("upstream exploded"));
+    getPortalByKeyspace.mockRejectedValue(new Error("upstream exploded"));
 
     const { result } = renderHook(() => usePortal("ks_456"), { wrapper: wrapperFor(client) });
 

@@ -151,7 +151,7 @@ const portal: Portal = {
   slug: "acme",
   displayName: "Acme",
   enabled: true,
-  mapping: { type: "keyspace", id: "ks_123" },
+  keyspaceId: "ks_123",
   createdAt: 0,
 };
 

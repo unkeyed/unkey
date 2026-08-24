@@ -12,7 +12,7 @@ const portal = (overrides: Partial<Portal> = {}): Portal => ({
   slug: "acme",
   displayName: "Acme",
   enabled: true,
-  mapping: { type: "keyspace", id: "ks_1234" },
+  keyspaceId: "ks_1234",
   createdAt: 1_700_000_000_000,
   ...overrides,
 });
