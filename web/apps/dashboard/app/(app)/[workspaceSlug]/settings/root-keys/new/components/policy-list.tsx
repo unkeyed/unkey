@@ -2,7 +2,7 @@
 
 import { Plus } from "@unkey/icons";
 import { Button } from "@unkey/ui";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useFieldArray, useFormContext, useWatch } from "react-hook-form";
 import { type Policy, isPolicyComplete } from "../lib/policy";
 import type { RootKeyFormValues } from "../schema";
@@ -21,6 +21,20 @@ export function PolicyList({ showErrors }: PolicyListProps) {
   const [adding, setAdding] = useState(false);
   const showGallery = adding || fields.length === 0;
 
+  const seeded = useRef<Record<string, boolean>>({});
+
+  const isCollapsed = (id: string, policy: Policy) => {
+    seeded.current[id] ??= isPolicyComplete(policy);
+    return collapsed[id] ?? seeded.current[id];
+  };
+
+  const openGallery = () => {
+    setCollapsed((current) =>
+      fields.reduce((next, field) => ({ ...next, [field.id]: true }), current),
+    );
+    setAdding(true);
+  };
+
   const pick = (picked: Policy[]) => {
     append(picked, { shouldFocus: false });
     setAdding(false);
@@ -37,7 +51,7 @@ export function PolicyList({ showErrors }: PolicyListProps) {
           <PolicyCard
             key={field.id}
             policy={policy}
-            collapsed={collapsed[field.id] ?? isPolicyComplete(policy)}
+            collapsed={isCollapsed(field.id, policy)}
             showError={showErrors}
             onChange={(next) =>
               setValue(`policies.${index}`, next, { shouldDirty: true, shouldValidate: true })
@@ -66,7 +80,7 @@ export function PolicyList({ showErrors }: PolicyListProps) {
             variant="ghost"
             size="md"
             className="font-medium"
-            onClick={() => setAdding(true)}
+            onClick={openGallery}
           >
             <Plus />
             Add policy

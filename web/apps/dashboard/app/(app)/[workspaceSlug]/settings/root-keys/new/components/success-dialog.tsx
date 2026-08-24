@@ -4,12 +4,11 @@ import { SecretKey } from "@/components/secret-key";
 import { Button, Dialog, DialogContent, DialogTitle } from "@unkey/ui";
 
 type SuccessDialogProps = {
-  keyId: string;
   secret: string;
   onDone: () => void;
 };
 
-export function SuccessDialog({ keyId, secret, onDone }: SuccessDialogProps) {
+export function SuccessDialog({ secret, onDone }: SuccessDialogProps) {
   return (
     <Dialog
       open
@@ -34,8 +33,7 @@ export function SuccessDialog({ keyId, secret, onDone }: SuccessDialogProps) {
           later, but not read it again.
         </p>
         <SecretKey value={secret} title="Root key" />
-        <div className="flex items-center justify-between gap-3 border-t border-grayA-4 pt-4">
-          <span className="truncate font-mono text-xs text-gray-9">{keyId}</span>
+        <div className="flex items-center justify-end pt-1">
           <Button type="button" variant="primary" size="md" onClick={onDone}>
             Done
           </Button>

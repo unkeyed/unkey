@@ -143,7 +143,6 @@ export function BuilderShell() {
       </PageContainer>
       {created ? (
         <SuccessDialog
-          keyId={created.keyId}
           secret={created.secret}
           onDone={() => router.push(routes.settings.rootKeys({ workspaceSlug: workspace.slug }))}
         />
