@@ -9,7 +9,6 @@ import (
 
 	"github.com/unkeyed/unkey/internal/services/analytics"
 	"github.com/unkeyed/unkey/internal/services/caches"
-	"github.com/unkeyed/unkey/pkg/array"
 	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	chquery "github.com/unkeyed/unkey/pkg/clickhouse/query-parser"
@@ -123,38 +122,50 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 // fetchKeyAuthsByAPIIDs fetches key auth rows for the given API IDs using the cache.
 func (h *Handler) fetchKeyAuthsByAPIIDs(ctx context.Context, workspaceID string, apiIDs []string) (map[cache.ScopedKey]db.FindKeyAuthsByIdsRow, error) {
-	cacheKeys := array.Map(apiIDs, func(apiID string) cache.ScopedKey {
-		return cache.ScopedKey{
-			WorkspaceID: workspaceID,
-			Key:         apiID,
+	result := make(map[cache.ScopedKey]db.FindKeyAuthsByIdsRow, len(apiIDs))
+	uncached := make([]string, 0, len(apiIDs))
+	seen := make(map[string]struct{}, len(apiIDs))
+	for _, apiID := range apiIDs {
+		if _, ok := seen[apiID]; ok {
+			continue
 		}
+		seen[apiID] = struct{}{}
+
+		key := cache.ScopedKey{WorkspaceID: workspaceID, Key: apiID}
+		api, hit := h.Caches.ApiToKeyAuthRow.Get(ctx, key)
+		if hit == cache.Hit {
+			result[key] = api
+		} else if hit == cache.Miss {
+			uncached = append(uncached, apiID)
+		}
+	}
+
+	if len(uncached) == 0 {
+		return result, nil
+	}
+
+	apis, err := db.Query.FindKeyAuthsByIds(ctx, h.DB.RO(), db.FindKeyAuthsByIdsParams{
+		WorkspaceID: workspaceID,
+		ApiIds:      uncached,
 	})
+	if err != nil {
+		return nil, err
+	}
 
-	apis, _, err := h.Caches.ApiToKeyAuthRow.SWRMany(
-		ctx,
-		cacheKeys,
-		func(ctx context.Context, keys []cache.ScopedKey) (map[cache.ScopedKey]db.FindKeyAuthsByIdsRow, error) {
-			apis, err := db.Query.FindKeyAuthsByIds(ctx, h.DB.RO(), db.FindKeyAuthsByIdsParams{
-				WorkspaceID: workspaceID,
-				ApiIds:      apiIDs,
-			})
-			if err != nil {
-				return nil, err
-			}
+	for _, api := range apis {
+		key := cache.ScopedKey{WorkspaceID: workspaceID, Key: api.ApiID}
+		result[key] = api
+		h.Caches.ApiToKeyAuthRow.Set(ctx, key, api)
+	}
 
-			return array.Reduce(
-				apis,
-				func(acc map[cache.ScopedKey]db.FindKeyAuthsByIdsRow, api db.FindKeyAuthsByIdsRow) map[cache.ScopedKey]db.FindKeyAuthsByIdsRow {
-					acc[cache.ScopedKey{WorkspaceID: workspaceID, Key: api.ApiID}] = api
-					return acc
-				},
-				map[cache.ScopedKey]db.FindKeyAuthsByIdsRow{},
-			), nil
-		},
-		caches.DefaultFindFirstOp,
-	)
+	for _, apiID := range uncached {
+		key := cache.ScopedKey{WorkspaceID: workspaceID, Key: apiID}
+		if _, ok := result[key]; !ok {
+			h.Caches.ApiToKeyAuthRow.SetNull(ctx, key)
+		}
+	}
 
-	return apis, err
+	return result, nil
 }
 
 // extractAllowedAPIIDs extracts API IDs from analytics permissions.
