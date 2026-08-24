@@ -22,8 +22,11 @@ import (
 	"github.com/unkeyed/unkey/svc/heimdall/internal/metrics"
 	"github.com/unkeyed/unkey/svc/heimdall/internal/network"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/client-go/informers"
-	"k8s.io/client-go/kubernetes"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/watch"
+	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
+	corev1listers "k8s.io/client-go/listers/core/v1"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 )
@@ -93,14 +96,27 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("getting in-cluster config: %w", err)
 	}
 
-	clientset, err := kubernetes.NewForConfig(k8sCfg)
+	coreClient, err := corev1client.NewForConfig(k8sCfg)
 	if err != nil {
 		return fmt.Errorf("creating kubernetes client: %w", err)
 	}
 
-	factory := informers.NewSharedInformerFactory(clientset, 0)
-	podInformer := factory.Core().V1().Pods().Informer()
-	podLister := factory.Core().V1().Pods().Lister()
+	pods := coreClient.Pods(metav1.NamespaceAll)
+	podInformer := cache.NewSharedIndexInformer(
+		//nolint:exhaustruct
+		cache.ToListWatcherWithWatchListSemantics(&cache.ListWatch{
+			ListWithContextFunc: func(ctx context.Context, options metav1.ListOptions) (runtime.Object, error) {
+				return pods.List(ctx, options)
+			},
+			WatchFuncWithContext: func(ctx context.Context, options metav1.ListOptions) (watch.Interface, error) {
+				return pods.Watch(ctx, options)
+			},
+		}, coreClient),
+		&corev1.Pod{},
+		0,
+		cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc},
+	)
+	podLister := corev1listers.NewPodLister(podInformer.GetIndexer())
 
 	collectors := collector.CollectorSetFrom(cfg.Collectors)
 
@@ -146,7 +162,7 @@ func Run(ctx context.Context, cfg Config) error {
 	// drops an event (containerd#3177) or CRI is unavailable. Duplicates
 	// across both paths are absorbed by max-min billing math.
 	//
-	// Register *before* factory.Start so transitions during startup churn
+	// Register *before* the informer starts so transitions during startup churn
 	// are delivered to the handler. Registering after Start opens a race
 	// window where the initial List + first UpdateFuncs land before the
 	// handler is hooked in, silently dropping those events.
@@ -165,17 +181,14 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("registering pod event handler: %w", err)
 	}
 
-	factory.Start(ctx.Done())
+	go podInformer.Run(ctx.Done())
 
 	// Refuse to start the collector with an unsynced cache. Without the
 	// check, a sync failure (ctx cancel before initial List completes, API
 	// server unreachable) would leave the lister returning empty results,
 	// every pod on the node would be silently unbilled.
-	synced := factory.WaitForCacheSync(ctx.Done())
-	for resource, ok := range synced {
-		if !ok {
-			return fmt.Errorf("informer cache sync failed for %v", resource)
-		}
+	if !cache.WaitForCacheSync(ctx.Done(), podInformer.HasSynced) {
+		return errors.New("pod informer cache sync failed")
 	}
 
 	metrics.InformerCacheSynced.Set(1)
