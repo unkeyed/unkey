@@ -28,6 +28,7 @@ func TestDeleteDomainPermissions(t *testing.T) {
 	}{
 		{name: "wildcard permission", permissions: []string{"environment.*.delete_domain"}, shouldPass: true},
 		{name: "specific environment permission", permissions: []string{"environment.<env>.delete_domain"}, shouldPass: true},
+		{name: "canonical urn grant", permissions: []string{"<urn>.delete_domain"}, shouldPass: true},
 		{name: "permission alongside unrelated grants", permissions: []string{"api.*.read_api", "environment.*.delete_domain"}, shouldPass: true},
 		{name: "create action is not enough", permissions: []string{"environment.*.create_domain"}, shouldPass: false},
 		{name: "read action is not enough", permissions: []string{"environment.*.read_domain"}, shouldPass: false},
@@ -44,8 +45,11 @@ func TestDeleteDomainPermissions(t *testing.T) {
 			seeded := seedDomain(t, h, nil)
 			permissions := make([]string, len(tc.permissions))
 			for i, p := range tc.permissions {
-				if p == "environment.<env>.delete_domain" {
+				switch p {
+				case "environment.<env>.delete_domain":
 					p = fmt.Sprintf("environment.%s.delete_domain", seeded.environmentID)
+				case "<urn>.delete_domain":
+					p = fmt.Sprintf("unkey:v1:%s:projects/%s/apps/%s/environments/%s#delete_domain", seeded.workspaceID, seeded.projectID, seeded.appID, seeded.environmentID)
 				}
 				permissions[i] = p
 			}

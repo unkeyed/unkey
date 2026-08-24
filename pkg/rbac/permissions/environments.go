@@ -26,6 +26,30 @@ type CreateDomain struct{}
 func (CreateDomain) ActionFor(urn.Environment) {}
 func (CreateDomain) String() string            { return "create_domain" }
 
+// ReadDomain authorizes reading an environment's domains.
+//
+// Valid resource: urn.Environment.
+type ReadDomain struct{}
+
+func (ReadDomain) ActionFor(urn.Environment) {}
+func (ReadDomain) String() string            { return "read_domain" }
+
+// DeleteDomain authorizes removing a domain from an environment.
+//
+// Valid resource: urn.Environment.
+type DeleteDomain struct{}
+
+func (DeleteDomain) ActionFor(urn.Environment) {}
+func (DeleteDomain) String() string            { return "delete_domain" }
+
+// VerifyDomain authorizes restarting verification for an environment's domains.
+//
+// Valid resource: urn.Environment.
+type VerifyDomain struct{}
+
+func (VerifyDomain) ActionFor(urn.Environment) {}
+func (VerifyDomain) String() string            { return "verify_domain" }
+
 // CreateVariable authorizes creating variables in an environment.
 //
 // Valid resource: urn.Environment.
