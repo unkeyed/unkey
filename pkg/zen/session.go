@@ -6,8 +6,8 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"net"
 	"net/http"
+	"net/netip"
 	"reflect"
 	"strconv"
 	"strings"
@@ -54,7 +54,8 @@ type Session struct {
 	// to an HTTP response, allowing the metrics middleware to log the full error.
 	internalError string
 
-	principal *principal.Principal
+	principal         *principal.Principal
+	trustedProxyCIDRs []netip.Prefix
 }
 
 func (s *Session) Init(w http.ResponseWriter, r *http.Request, maxBodySize int64) error {
@@ -173,33 +174,56 @@ func (s *Session) UserAgent() string {
 	return s.r.UserAgent()
 }
 
-// Location returns the client's IP address, checking X-Forwarded-For header first,
-// then falling back to RemoteAddr. Ports are stripped from the returned IP.
+// Location returns the client IP reported by a trusted direct proxy, or the
+// connection peer's IP when the peer is not trusted. The trusted proxy's
+// rightmost X-Forwarded-For entry is authoritative because proxies append it
+// after any client-supplied values.
 func (s *Session) Location() string {
-	xff := s.r.Header.Get("X-Forwarded-For")
-	if xff != "" {
-		ips := strings.Split(xff, ",")
-		for _, ip := range ips {
-			ip = strings.TrimSpace(ip)
-			if ip != "" {
-				return stripPort(ip)
-			}
-		}
+	peerIP, ok := parseIP(s.r.RemoteAddr)
+	if !ok {
+		return ""
 	}
 
-	// Fall back to RemoteAddr
-	return stripPort(s.r.RemoteAddr)
+	if !containsIP(s.trustedProxyCIDRs, peerIP) {
+		return peerIP.String()
+	}
+
+	values := s.r.Header.Values("X-Forwarded-For")
+	if len(values) == 0 {
+		return peerIP.String()
+	}
+
+	candidate := values[len(values)-1]
+	if comma := strings.LastIndexByte(candidate, ','); comma >= 0 {
+		candidate = candidate[comma+1:]
+	}
+	clientIP, valid := parseIP(candidate)
+	if !valid {
+		return peerIP.String()
+	}
+
+	return clientIP.String()
 }
 
-// stripPort removes the port from an address string.
-// Handles IPv4 (192.168.1.1:8080), IPv6 with brackets ([::1]:8080), and plain addresses.
-func stripPort(addr string) string {
-	host, _, err := net.SplitHostPort(addr)
-	if err == nil {
-		return host
+func parseIP(value string) (netip.Addr, bool) {
+	value = strings.TrimSpace(value)
+	if addrPort, err := netip.ParseAddrPort(value); err == nil {
+		return addrPort.Addr(), true
 	}
-	// No port present or invalid format, return as-is
-	return addr
+	if strings.HasPrefix(value, "[") && strings.HasSuffix(value, "]") {
+		value = strings.TrimSuffix(strings.TrimPrefix(value, "["), "]")
+	}
+	addr, err := netip.ParseAddr(value)
+	return addr, err == nil
+}
+
+func containsIP(prefixes []netip.Prefix, addr netip.Addr) bool {
+	for _, prefix := range prefixes {
+		if prefix.Contains(addr.Unmap()) {
+			return true
+		}
+	}
+	return false
 }
 
 // Request returns the underlying http.Request.

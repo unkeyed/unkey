@@ -3,8 +3,10 @@ package zen
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net"
 	"net/http"
+	"net/netip"
 	"sync"
 	"time"
 
@@ -63,6 +65,10 @@ type Config struct {
 	// the body.
 	StreamRequestBody bool
 
+	// TrustedProxyCIDRs lists networks whose direct connections may supply
+	// X-Forwarded-For. Forwarding headers from all other peers are ignored.
+	TrustedProxyCIDRs []string
+
 	// ReadTimeout is the maximum duration for reading the entire request, including the body.
 	// If 0, defaults to 10 seconds.
 	ReadTimeout time.Duration
@@ -91,6 +97,15 @@ type Config struct {
 //	}
 func New(config Config) (*Server, error) {
 	mux := http.NewServeMux()
+
+	trustedProxyCIDRs := make([]netip.Prefix, 0, len(config.TrustedProxyCIDRs))
+	for _, raw := range config.TrustedProxyCIDRs {
+		prefix, err := netip.ParsePrefix(raw)
+		if err != nil {
+			return nil, fmt.Errorf("invalid trusted proxy CIDR %q: %w", raw, err)
+		}
+		trustedProxyCIDRs = append(trustedProxyCIDRs, prefix.Masked())
+	}
 
 	// Set default timeouts if not provided.
 	// Services that use middleware-level timeouts (WithTimeout) and need
@@ -155,6 +170,7 @@ func New(config Config) (*Server, error) {
 				return &Session{
 					logRequestToClickHouse: true,
 					streamRequestBody:      config.StreamRequestBody,
+					trustedProxyCIDRs:      trustedProxyCIDRs,
 					principal:              nil,
 					requestID:              "",
 					internalError:          "",

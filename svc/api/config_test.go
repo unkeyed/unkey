@@ -310,6 +310,7 @@ func TestConfig_LoadBytesParsesAuthConfig(t *testing.T) {
 
 	cfg, err := sharedconfig.LoadBytes[Config]([]byte(`
 redis_url = "redis://redis:6379"
+trusted_proxy_cidrs = ["10.12.0.0/18"]
 
 [[auth]]
 type = "jwt"
@@ -338,6 +339,7 @@ api_key = "restate-test-key"
 `))
 
 	require.NoError(t, err)
+	require.Equal(t, []string{"10.12.0.0/18"}, cfg.TrustedProxyCIDRs)
 	require.Len(t, cfg.Auth, 3)
 	jwtAuth, ok := cfg.Auth[0].(JWTAuthConfig)
 	require.True(t, ok)
