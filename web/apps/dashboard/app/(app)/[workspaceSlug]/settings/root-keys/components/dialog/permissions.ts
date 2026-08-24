@@ -213,6 +213,28 @@ export const workspacePermissions = {
       permission: "project.*.read_runtime_logs",
     },
   },
+  Portals: {
+    create_portal: {
+      description: "Create new portals in this workspace",
+      permission: "portal.*.create_portal",
+    },
+    read_portal: {
+      description: "Read and list portals in this workspace",
+      permission: "portal.*.read_portal",
+    },
+    update_portal: {
+      description: "Update portals in this workspace",
+      permission: "portal.*.update_portal",
+    },
+    delete_portal: {
+      description: "Delete portals in this workspace",
+      permission: "portal.*.delete_portal",
+    },
+    create_portal_session: {
+      description: "Mint portal sessions for end users of any portal in this workspace",
+      permission: "portal.*.create_portal_session",
+    },
+  },
   Apps: {
     create_app: {
       description: "Create new apps in any project in this workspace",

@@ -11,7 +11,7 @@ import (
 )
 
 const findKeyAuthsByIdsAndWorkspace = `-- name: FindKeyAuthsByIdsAndWorkspace :many
-SELECT id FROM key_auth
+SELECT id, store_encrypted_keys FROM key_auth
 WHERE workspace_id = ?
   AND id IN (/*SLICE:key_auth_ids*/?)
   AND deleted_at_m IS NULL
@@ -22,14 +22,19 @@ type FindKeyAuthsByIdsAndWorkspaceParams struct {
 	KeyAuthIds  []string `db:"key_auth_ids"`
 }
 
+type FindKeyAuthsByIdsAndWorkspaceRow struct {
+	ID                 string `db:"id"`
+	StoreEncryptedKeys bool   `db:"store_encrypted_keys"`
+}
+
 // Returns the subset of the given keyspace ids that exist in this workspace
-// and are not soft-deleted.
+// and are not soft-deleted, along with each keyspace's encryption setting.
 //
-//	SELECT id FROM key_auth
+//	SELECT id, store_encrypted_keys FROM key_auth
 //	WHERE workspace_id = ?
 //	  AND id IN (/*SLICE:key_auth_ids*/?)
 //	  AND deleted_at_m IS NULL
-func (q *Queries) FindKeyAuthsByIdsAndWorkspace(ctx context.Context, db DBTX, arg FindKeyAuthsByIdsAndWorkspaceParams) ([]string, error) {
+func (q *Queries) FindKeyAuthsByIdsAndWorkspace(ctx context.Context, db DBTX, arg FindKeyAuthsByIdsAndWorkspaceParams) ([]FindKeyAuthsByIdsAndWorkspaceRow, error) {
 	query := findKeyAuthsByIdsAndWorkspace
 	var queryParams []interface{}
 	queryParams = append(queryParams, arg.WorkspaceID)
@@ -46,13 +51,13 @@ func (q *Queries) FindKeyAuthsByIdsAndWorkspace(ctx context.Context, db DBTX, ar
 		return nil, err
 	}
 	defer rows.Close()
-	var items []string
+	var items []FindKeyAuthsByIdsAndWorkspaceRow
 	for rows.Next() {
-		var id string
-		if err := rows.Scan(&id); err != nil {
+		var i FindKeyAuthsByIdsAndWorkspaceRow
+		if err := rows.Scan(&i.ID, &i.StoreEncryptedKeys); err != nil {
 			return nil, err
 		}
-		items = append(items, id)
+		items = append(items, i)
 	}
 	if err := rows.Close(); err != nil {
 		return nil, err

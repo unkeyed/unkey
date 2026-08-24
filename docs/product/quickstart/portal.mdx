@@ -32,7 +32,7 @@ Your Backend                    Unkey API                     Portal
 ```
 
 1. Your backend authenticates the user in your own system
-2. Your backend calls `POST /v2/portal.createSession` with a root key
+2. Your backend calls `POST /v2/portal.createSession` with a root key that holds the required permissions (see [Required permissions](#required-permissions))
 3. You redirect the user to the returned portal URL, which carries the code
 4. The portal exchanges the code for a 24-hour access token
 5. The browser calls the Unkey API with that token in an httpOnly cookie
@@ -210,6 +210,33 @@ The portal supports basic white-labeling:
 
 Logo URLs must be HTTPS.
 
+## Required permissions
+
+Creating a portal session needs two things from your root key, and both are checked.
+
+First, permission to mint sessions for the portal:
+
+```plaintext
+portal.*.create_portal_session
+```
+
+Use `portal.<portal_id>.create_portal_session` to restrict a key to one portal.
+
+Second, a session can never carry a capability your root key does not itself hold. Each scope you request also requires the equivalent permission on the keyspace behind the portal:
+
+| Requested scope | Also requires |
+|-----------------|---------------|
+| `keys:read` | `api.*.read_key` and `api.*.read_api` |
+| `keys:reroll` | `api.*.create_key`, plus `api.*.encrypt_key` if the keyspace stores encrypted keys |
+| `keys:create` | `api.*.create_key`, plus `api.*.encrypt_key` if the keyspace stores encrypted keys |
+| `analytics:read` | `api.*.read_analytics` |
+
+Requesting a scope you do not hold returns 403 for the whole request rather than a session with fewer capabilities, so a missing grant shows up immediately instead of as a portal that silently misses a tab.
+
+A root key without the portal session permission gets a **404**, not a 403. That is deliberate: a caller who cannot mint for a portal is not told whether it exists, so a guessed slug reveals nothing.
+
+You can grant these on the root key in the Unkey dashboard under Settings, Root Keys.
+
 ## Error responses
 
 | Scenario | Status | Message |
@@ -217,7 +244,9 @@ Logo URLs must be HTTPS.
 | Missing or invalid JSON body | 400 | `Bad Request` |
 | Invalid root key | 401 | `Unauthorized` |
 | Portal disabled | 403 | `Portal is disabled.` |
-| Portal not found | 404 | `Portal not found.` |
+| Root key lacks a permission for a requested scope | 403 | `You do not have permission to grant the "<scope>" scope to a portal session.` |
+| Portal's API no longer exists | 403 | `Portal is not available: the API it uses no longer exists.` |
+| Portal not found, or root key lacks portal session permission | 404 | `Portal not found.` |
 | Invalid, expired, or already redeemed code | 401 | `Session is invalid, expired, or has already been used.` |
 
 The exchange deliberately does not distinguish between an unknown code, an expired one, and one that was already redeemed.
