@@ -3,9 +3,6 @@ import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
-// The API returns domainConnect only from domains.createDomain, so a reload
-// would otherwise lose the one-click setup shortcut. This serves the persisted
-// values so the row can offer it again.
 export const listDomainConnectHints = workspaceProcedure
   .use(withRatelimit(ratelimit.read))
   .input(z.object({ projectId: z.string().min(1) }))

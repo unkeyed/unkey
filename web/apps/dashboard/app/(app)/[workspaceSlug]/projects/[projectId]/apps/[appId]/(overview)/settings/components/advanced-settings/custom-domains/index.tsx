@@ -63,6 +63,7 @@ const CustomDomainSettings: React.FC<CustomDomainSettingsProps> = ({
   projectId,
   defaultEnvironmentId,
 }) => {
+  const workspace = useWorkspaceNavigation();
   const [expanded, setExpanded] = useState(false);
   const [limitMessage, setLimitMessage] = useState<string | null>(null);
   useEffect(() => {
@@ -96,31 +97,33 @@ const CustomDomainSettings: React.FC<CustomDomainSettingsProps> = ({
     const appId = environments.find((e) => e.id === values.environmentId)?.appId ?? "";
 
     setLimitMessage(null);
-    const tx = collection.customDomains.insert({
-      id: crypto.randomUUID(),
-      domain: trimmedDomain,
-      projectId,
-      appId,
-      environmentId: values.environmentId,
-      verificationStatus: "pending",
-      // The API resolves the records, so the row shows a skeleton until the
-      // refetch that follows the create replaces it.
-      dnsRecords: [],
-      verificationError: null,
-      domainConnectProvider: null,
-      domainConnectUrl: null,
-      createdAt: Date.now(),
-      updatedAt: null,
-    });
+    const tx = collection.customDomains.insert(
+      {
+        id: crypto.randomUUID(),
+        domain: trimmedDomain,
+        projectId,
+        appId,
+        environmentId: values.environmentId,
+        verificationStatus: "pending",
+        dnsRecords: [],
+        verificationError: null,
+        domainConnectProvider: null,
+        domainConnectUrl: null,
+        createdAt: Date.now(),
+        updatedAt: null,
+      },
+      { metadata: { workspaceSlug: workspace.slug } },
+    );
 
     try {
       await tx.isPersisted.promise;
       reset({ environmentId: values.environmentId, domain: "" });
     } catch (err) {
-      // The toast of the collection reports all other failures.
       if (isCustomDomainLimitError(err)) {
         setLimitMessage(getErrorMessage(err));
+        return;
       }
+      console.error("Failed to add custom domain", err);
     }
   };
 

@@ -1,4 +1,5 @@
 "use client";
+import { routes } from "@/lib/navigation/routes";
 import { getErrorMessage, getErrorToast, getUnkeyClient } from "@/lib/unkey-client";
 import { queryCollectionOptions } from "@tanstack/query-db-collection";
 import { createCollection } from "@tanstack/react-db";
@@ -28,8 +29,6 @@ const schema = z.object({
   appId: z.string(),
   environmentId: z.string(),
   verificationStatus: verificationStatusSchema,
-  // The records to publish, already resolved by the API: apex domains get ALIAS
-  // where subdomains get CNAME, and each carries its own verified flag.
   dnsRecords: z.array(dnsRecordSchema),
   verificationError: z.string().nullable(),
   domainConnectProvider: z.string().nullable(),
@@ -37,6 +36,9 @@ const schema = z.object({
   createdAt: z.number(),
   updatedAt: z.number().nullable(),
 });
+
+// insert() puts InsertConfig.metadata on the mutation, not on the transaction.
+const insertMetaSchema = z.object({ workspaceSlug: z.string().min(1) });
 
 export type CustomDomain = z.infer<typeof schema>;
 export type CustomDomainDnsRecord = z.infer<typeof dnsRecordSchema>;
@@ -72,8 +74,8 @@ export const customDomains = createCollection<CustomDomain, string>(
     getKey: (item) => item.id,
     id: "customDomains",
     onInsert: async ({ transaction }) => {
-      const { changes } = transaction.mutations[0];
-
+      const { changes, metadata } = transaction.mutations[0];
+      const insertMeta = insertMetaSchema.safeParse(metadata);
       const createInput = z
         .object({
           project: z.string().min(1),
@@ -98,7 +100,7 @@ export const customDomains = createCollection<CustomDomain, string>(
           duration: 10_000,
         }),
         error: (err) => {
-          // The banner in the card carries the details and the actions.
+          // The banner in the card shows the details and the actions.
           if (isCustomDomainLimitError(err)) {
             return { message: "Custom domain limit reached" };
           }
@@ -106,25 +108,27 @@ export const customDomains = createCollection<CustomDomain, string>(
             return {
               message: "Domain already in use",
               description: getErrorMessage(err),
-              action: {
-                label: "View",
-                // Resolved on click: the owning app is only worth a request once
-                // the user asks to see it.
-                onClick: async () => {
-                  const route = await openOwningApp(createInput.domain);
-                  if (route) {
-                    window.open(route, "_blank", "noopener,noreferrer");
-                  }
+              ...(insertMeta.success && {
+                action: {
+                  label: "View",
+                  onClick: async () => {
+                    const route = await openOwningApp(
+                      createInput.domain,
+                      insertMeta.data.workspaceSlug,
+                    );
+                    if (route) {
+                      window.open(route, "_blank", "noopener,noreferrer");
+                    }
+                  },
                 },
-              },
+              }),
             };
           }
           return getErrorToast(err, "Failed to add domain");
         },
       });
 
-      const result = await mutation;
-      transaction.metadata = { domainId: result.data.domainId };
+      await mutation;
       await customDomains.utils.refetch();
     },
     onDelete: async ({ transaction }) => {
@@ -139,17 +143,11 @@ export const customDomains = createCollection<CustomDomain, string>(
       });
 
       await deleteMutation;
-      // A verified custom domain also serves traffic, so its removal changes the
-      // platform domain set.
       await domains.utils.refetch();
     },
   }),
 );
 
-/**
- * The plan allowance gate answers 403, which the generic mapping would report as
- * a permission problem. The type URN separates it from an RBAC denial.
- */
 export function isCustomDomainLimitError(error: unknown): boolean {
   return (
     error instanceof ForbiddenErrorResponse &&
@@ -176,8 +174,22 @@ function isDomainConflictError(error: unknown): boolean {
   );
 }
 
-function openOwningApp(domain: string): Promise<string | null> {
-  return trpcClient.deploy.customDomain.ownerRoute.query({ domain }).catch(() => null);
+// getDomain resolves any domain in the workspace and 404s for the rest, so a
+// rejection is the "not ours to link to" case.
+async function openOwningApp(domain: string, workspaceSlug: string): Promise<string | null> {
+  const owner = await getUnkeyClient()
+    .domains.getDomain({ domain })
+    .catch(() => null);
+
+  if (!owner) {
+    return null;
+  }
+
+  return routes.projects.apps.settings({
+    workspaceSlug,
+    projectId: owner.data.projectId,
+    appId: owner.data.appId,
+  });
 }
 
 function dnsSetupHint(records: DnsRecord[]): string {
@@ -187,10 +199,6 @@ function dnsSetupHint(records: DnsRecord[]): string {
     : "Add the DNS records shown below";
 }
 
-/**
- * The API lists the domains of one environment, so this walks every environment
- * of the project. Callers filter by app in their live query.
- */
 async function listProjectDomains(projectId: string): Promise<CustomDomain[]> {
   const environments = await trpcClient.deploy.environment.list.query({ projectId });
 
@@ -201,11 +209,7 @@ async function listProjectDomains(projectId: string): Promise<CustomDomain[]> {
         return domains.map((domain) => toCustomDomain(domain));
       }),
     ),
-    // Absent from the Domain object, so the row would lose its one-click setup
-    // shortcut on a reload without this.
-    trpcClient.deploy.customDomain.hints
-      .query({ projectId })
-      .catch(() => []),
+    trpcClient.deploy.customDomain.hints.query({ projectId }).catch(() => []),
   ]);
 
   const byDomain = new Map(hints.map((hint) => [hint.domain, hint]));
