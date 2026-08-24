@@ -37,7 +37,6 @@ const schema = z.object({
   updatedAt: z.number().nullable(),
 });
 
-// insert() puts InsertConfig.metadata on the mutation, not on the transaction.
 const insertMetaSchema = z.object({ workspaceSlug: z.string().min(1) });
 
 export type CustomDomain = z.infer<typeof schema>;
