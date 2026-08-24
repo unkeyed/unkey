@@ -45,6 +45,16 @@ func (e Environment) Domain(domainID string) Domain {
 	return Domain{workspaceID: e.workspaceID, path: fmt.Sprintf("%s/domains/%s", e.path, domainID)}
 }
 
+// Gateway returns builders for gateway resource paths.
+//
+// Subresource:
+//
+//	environments/{environment_id}
+//	└── gateway
+func (e Environment) Gateway() Gateway {
+	return Gateway{workspaceID: e.workspaceID, path: e.path + "/gateway"}
+}
+
 // Variable returns a variable resource path.
 //
 // Subresource:
