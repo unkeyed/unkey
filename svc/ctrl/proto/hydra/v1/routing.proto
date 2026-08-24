@@ -44,6 +44,10 @@ message SwapLiveDeploymentRequest {
   // If true, sets apps.is_rolled_back = true (rollback semantics).
   // If false, clears apps.is_rolled_back to false (deploy / promote semantics).
   bool set_rollback_flag = 3;
+  // Automatic deployments set this to prevent stale builds from replacing a
+  // newer deployment or undoing a rollback. Manual rollback and promote
+  // operations leave it false.
+  bool automatic_promotion = 4;
 }
 
 message SwapLiveDeploymentResponse {
@@ -51,4 +55,11 @@ message SwapLiveDeploymentResponse {
   // there was no previous live deployment. Useful for the caller to schedule
   // the previous deployment to stop.
   string previous_deployment_id = 1;
+  AutomaticPromotionSkipReason automatic_promotion_skip_reason = 2;
+}
+
+enum AutomaticPromotionSkipReason {
+  AUTOMATIC_PROMOTION_SKIP_REASON_UNSPECIFIED = 0;
+  AUTOMATIC_PROMOTION_SKIP_REASON_NEWER_DEPLOYMENT = 1;
+  AUTOMATIC_PROMOTION_SKIP_REASON_ROLLED_BACK = 2;
 }
