@@ -1,7 +1,8 @@
 package deploy
 
 import (
-	"k8s.io/client-go/kubernetes"
+	batchv1client "k8s.io/client-go/kubernetes/typed/batch/v1"
+	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
 
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/gen/rpc/vault"
@@ -43,6 +44,12 @@ type KubernetesBuildConfig struct {
 
 	// Image is the BuildKit daemon image each build Job runs.
 	Image string
+}
+
+// KubernetesClient provides the Kubernetes APIs used by the build backend.
+type KubernetesClient interface {
+	Pods(namespace string) corev1client.PodInterface
+	Jobs(namespace string) batchv1client.JobInterface
 }
 
 // BuildPlatform specifies the target platform for container builds.
@@ -92,7 +99,7 @@ type Workflow struct {
 
 	// Build dependencies
 	buildConfig                     BuildConfig
-	k8s                             kubernetes.Interface
+	k8s                             KubernetesClient
 	registryConfig                  RegistryConfig
 	buildPlatform                   BuildPlatform
 	clickhouse                      clickhouse.ClickHouse
@@ -126,7 +133,7 @@ type Config struct {
 	// K8s is the cluster client used by the kubernetes build backend to run
 	// build Jobs. Required when Build.Backend is [BuildBackendKubernetes],
 	// unused otherwise.
-	K8s kubernetes.Interface
+	K8s KubernetesClient
 
 	// RegistryConfig provides credentials for the container registry.
 	RegistryConfig RegistryConfig

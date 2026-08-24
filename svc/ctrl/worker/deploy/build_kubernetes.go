@@ -13,6 +13,9 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
+	batchv1client "k8s.io/client-go/kubernetes/typed/batch/v1"
+	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
+	"k8s.io/client-go/rest"
 
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/ptr"
@@ -42,6 +45,37 @@ const (
 // name. Deployment IDs contain underscores, which must become hyphens.
 var k8sNameInvalidChars = regexp.MustCompile(`[^a-z0-9-]+`)
 
+type kubernetesClient struct {
+	core  *corev1client.CoreV1Client
+	batch *batchv1client.BatchV1Client
+}
+
+// NewKubernetesClient creates the Kubernetes clients used by the build backend.
+func NewKubernetesClient(cfg *rest.Config) (KubernetesClient, error) {
+	httpClient, err := rest.HTTPClientFor(cfg)
+	if err != nil {
+		return nil, err
+	}
+
+	core, err := corev1client.NewForConfigAndClient(cfg, httpClient)
+	if err != nil {
+		return nil, err
+	}
+	batch, err := batchv1client.NewForConfigAndClient(cfg, httpClient)
+	if err != nil {
+		return nil, err
+	}
+	return &kubernetesClient{core: core, batch: batch}, nil
+}
+
+func (c *kubernetesClient) Pods(namespace string) corev1client.PodInterface {
+	return c.core.Pods(namespace)
+}
+
+func (c *kubernetesClient) Jobs(namespace string) batchv1client.JobInterface {
+	return c.batch.Jobs(namespace)
+}
+
 // sanitizeK8sName converts an arbitrary identifier into a valid RFC 1123
 // name fragment.
 func sanitizeK8sName(s string) string {
@@ -62,7 +96,7 @@ func (w *Workflow) withKubernetesBuildkit(
 	params gitBuildParams,
 	fn func(buildClient *client.Client) error,
 ) (string, error) {
-	jobs := w.k8s.BatchV1().Jobs(w.buildConfig.Kubernetes.Namespace)
+	jobs := w.k8s.Jobs(w.buildConfig.Kubernetes.Namespace)
 
 	//nolint: exhaustruct
 	job := &batchv1.Job{
@@ -176,7 +210,7 @@ func (w *Workflow) withKubernetesBuildkit(
 // IP. Terminal pod states (image pull failures, config errors) fail fast
 // instead of burning the full timeout.
 func (w *Workflow) waitForBuildkitPod(runCtx context.Context, jobName string) (string, error) {
-	pods := w.k8s.CoreV1().Pods(w.buildConfig.Kubernetes.Namespace)
+	pods := w.k8s.Pods(w.buildConfig.Kubernetes.Namespace)
 
 	var podIP string
 	err := wait.PollUntilContextTimeout(runCtx, 2*time.Second, buildkitPodTimeout, true, func(ctx context.Context) (bool, error) {

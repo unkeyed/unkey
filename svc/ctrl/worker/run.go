@@ -63,7 +63,6 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/worker/routing"
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
-	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 )
 
@@ -261,13 +260,13 @@ func Run(ctx context.Context, cfg Config) error {
 
 	// The kubernetes build backend runs build Jobs in the worker's own
 	// cluster, so it only works when the worker itself runs in-cluster.
-	var k8sClient kubernetes.Interface
+	var k8sClient deploy.KubernetesClient
 	if buildConfig.Backend == deploy.BuildBackendKubernetes {
 		restCfg, restErr := rest.InClusterConfig()
 		if restErr != nil {
 			return fmt.Errorf("kubernetes build backend requires in-cluster credentials: %w", restErr)
 		}
-		k8sClient, err = kubernetes.NewForConfig(restCfg)
+		k8sClient, err = deploy.NewKubernetesClient(restCfg)
 		if err != nil {
 			return fmt.Errorf("failed to create kubernetes client: %w", err)
 		}
