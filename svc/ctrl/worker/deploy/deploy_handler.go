@@ -302,9 +302,16 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 		Description: "Configuring routing...",
 	})
 
+	var (
+		liveRouteIDs        []string
+		shouldAutoPromote   bool
+		promotionSkipReason hydrav1.AutomaticPromotionSkipReason
+	)
+
 	// --- Network ---
 	err = w.DeploymentStep(ctx, db.DeploymentStepsStepNetwork, deployment, func(stepCtx restate.ObjectContext) error {
-		return w.configureRouting(stepCtx, workspace, project, app, environment, deployment)
+		liveRouteIDs, shouldAutoPromote, err = w.configureRouting(stepCtx, workspace, project, app, environment, deployment)
+		return err
 	})
 	if err != nil {
 		ghStatus.ReportStatus(&hydrav1.GitHubStatusReportRequest{
@@ -327,9 +334,28 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 			return fault.Wrap(err, fault.Public("Deployment completed but final status could not be saved."))
 		}
 
-		if environment.Kind.IsProduction() {
-			if err = w.swapLiveDeployment(ctx, deployment, app, environment); err != nil {
+		if shouldAutoPromote {
+			promotionSkipReason, err = w.swapLiveDeployment(ctx, deployment, environment, liveRouteIDs)
+			if err != nil {
 				return fault.Wrap(err, fault.Public("Deployment is ready but could not be promoted to live."))
+			}
+			if promotionSkipReason != hydrav1.AutomaticPromotionSkipReason_AUTOMATIC_PROMOTION_SKIP_REASON_UNSPECIFIED {
+				logger.Info("deployment completed without changing live traffic",
+					"deployment_id", deployment.ID,
+					"environment_id", environment.ID,
+					"reason", promotionSkipReason.String(),
+				)
+			}
+			if promotionSkipReason == hydrav1.AutomaticPromotionSkipReason_AUTOMATIC_PROMOTION_SKIP_REASON_NEWER_DEPLOYMENT {
+				if err = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
+					return w.db.UpdateDeploymentStatus(runCtx, db.UpdateDeploymentStatusParams{
+						ID:        deployment.ID,
+						Status:    mysqltype.DeploymentsStatusSuperseded,
+						UpdatedAt: sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+					})
+				}, restate.WithName("marking skipped automatic promotion as superseded"), restate.WithMaxRetryAttempts(runMaxAttempts)); err != nil {
+					return fault.Wrap(err, fault.Public("Deployment completed but superseded status could not be saved."))
+				}
 			}
 		} else if environment.Kind.IsPreview() {
 			if err = w.spinDownPreviousDeployments(ctx, deployment); err != nil {
@@ -347,9 +373,15 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 		return nil, err
 	}
 
+	githubStatusDescription := "Deployment is live"
+	githubStatusState := hydrav1.GitHubDeploymentState_GITHUB_DEPLOYMENT_STATE_SUCCESS
+	if promotionSkipReason != hydrav1.AutomaticPromotionSkipReason_AUTOMATIC_PROMOTION_SKIP_REASON_UNSPECIFIED {
+		githubStatusDescription = "Deployment completed without changing live traffic"
+		githubStatusState = hydrav1.GitHubDeploymentState_GITHUB_DEPLOYMENT_STATE_INACTIVE
+	}
 	ghStatus.ReportStatus(&hydrav1.GitHubStatusReportRequest{
-		State:       hydrav1.GitHubDeploymentState_GITHUB_DEPLOYMENT_STATE_SUCCESS,
-		Description: "Deployment is live",
+		State:       githubStatusState,
+		Description: githubStatusDescription,
 	})
 
 	logger.Info(
@@ -699,9 +731,9 @@ func (w *Workflow) createTopologies(
 // any existing sticky routes (environment-level, and live-level for non-rolled-back
 // production) so they point to the new deployment.
 //
-// All collected route IDs are passed to the RoutingService in a single
-// [hydrav1.AssignFrontlineRoutesRequest] so that the routing layer atomically
-// switches traffic to this deployment's topologies.
+// Preview and rolled-back production routes are assigned immediately. Normal
+// production routes are returned to the caller so RoutingService can assign
+// them atomically with the guarded live-deployment swap.
 func (w *Workflow) configureRouting(
 	ctx restate.ObjectContext,
 	workspace db.Workspace,
@@ -709,7 +741,7 @@ func (w *Workflow) configureRouting(
 	app db.App,
 	environment db.Environment,
 	deployment db.Deployment,
-) error {
+) ([]string, bool, error) {
 	// Extract the fork owner from "owner/repo" for domain naming.
 	forkOwner := ""
 	if deployment.ForkRepositoryFullName.Valid {
@@ -767,7 +799,7 @@ func (w *Workflow) configureRouting(
 			})
 		}, restate.WithName(fmt.Sprintf("inserting frontline route %s", domain.domain)), restate.WithMaxRetryAttempts(runMaxAttempts))
 		if getFrontlineRouteErr != nil {
-			return fault.Wrap(getFrontlineRouteErr, fault.Public("Route records could not be created."))
+			return nil, false, fault.Wrap(getFrontlineRouteErr, fault.Public("Route records could not be created."))
 		}
 		if frontlineRouteID != "" {
 			existingRouteIDs = append(existingRouteIDs, frontlineRouteID)
@@ -779,7 +811,7 @@ func (w *Workflow) configureRouting(
 		return w.db.FindAppById(runCtx, app.ID)
 	}, restate.WithName("refresh app before promotion"), restate.WithMaxRetryAttempts(runMaxAttempts))
 	if err != nil {
-		return fault.Wrap(err, fault.Public("Failed to read from database. Please try again."))
+		return nil, false, fault.Wrap(err, fault.Public("Failed to read from database. Please try again."))
 	}
 
 	routeIDs, err := restate.Run(ctx, func(runCtx restate.RunContext) ([]string, error) {
@@ -817,10 +849,15 @@ func (w *Workflow) configureRouting(
 		})
 	}, restate.WithName("finding sticky routes"), restate.WithMaxRetryAttempts(runMaxAttempts))
 	if err != nil {
-		return fault.Wrap(
+		return nil, false, fault.Wrap(
 			fmt.Errorf("failed to find sticky routes: %w", err),
 			fault.Public("Failed to read from database. Please try again."),
 		)
+	}
+
+	frontlineRouteIDs := append(routeIDs, existingRouteIDs...)
+	if environment.Kind.IsProduction() && !app.IsRolledBack {
+		return frontlineRouteIDs, true, nil
 	}
 
 	// Routing VO is keyed by env_id — per-env serialization for both route
@@ -828,16 +865,16 @@ func (w *Workflow) configureRouting(
 	_, err = hydrav1.NewRoutingServiceClient(ctx, environment.ID).
 		AssignFrontlineRoutes().Request(&hydrav1.AssignFrontlineRoutesRequest{
 		DeploymentId:      deployment.ID,
-		FrontlineRouteIds: append(routeIDs, existingRouteIDs...),
+		FrontlineRouteIds: frontlineRouteIDs,
 	})
 	if err != nil {
-		return fault.Wrap(
+		return nil, false, fault.Wrap(
 			fmt.Errorf("failed to assign domains: %w", err),
 			fault.Public("Domain routing could not be updated."),
 		)
 	}
 
-	return nil
+	return nil, false, nil
 }
 
 func (w *Workflow) spinDownPreviousDeployments(
@@ -875,30 +912,48 @@ func (w *Workflow) spinDownPreviousDeployments(
 	return nil
 }
 
-// swapLiveDeployment delegates the live-deployment swap to RoutingService,
-// which performs it atomically inside the env-keyed VO. The route reassignment
-// happened earlier in [Workflow.assignFrontlineRoutes], so we pass an empty
-// route list — this call only touches apps.current_deployment_id.
-//
-// This only applies to production environments that are not in a rolled-back
-// state; for all other cases the method is a no-op and returns nil.
+// swapLiveDeployment delegates route reassignment and the live-deployment swap
+// to RoutingService. The environment-keyed handler rejects automatic promotion
+// when a newer deployment is live or the app is rolled back.
 func (w *Workflow) swapLiveDeployment(
 	ctx restate.ObjectContext,
 	deployment db.Deployment,
-	app db.App,
 	environment db.Environment,
-) error {
-	if app.IsRolledBack || !environment.Kind.IsProduction() {
-		return nil
-	}
+	frontlineRouteIDs []string,
+) (hydrav1.AutomaticPromotionSkipReason, error) {
 
 	swapResp, err := hydrav1.NewRoutingServiceClient(ctx, environment.ID).
 		SwapLiveDeployment().Request(&hydrav1.SwapLiveDeploymentRequest{
-		DeploymentId:    deployment.ID,
-		SetRollbackFlag: false,
+		DeploymentId:       deployment.ID,
+		FrontlineRouteIds:  frontlineRouteIDs,
+		SetRollbackFlag:    false,
+		AutomaticPromotion: true,
 	})
 	if err != nil {
-		return fault.Wrap(err, fault.Public("App live deployment could not be updated."))
+		return hydrav1.AutomaticPromotionSkipReason_AUTOMATIC_PROMOTION_SKIP_REASON_UNSPECIFIED, fault.Wrap(err, fault.Public("App live deployment could not be updated."))
+	}
+
+	skipReason := swapResp.GetAutomaticPromotionSkipReason()
+	switch skipReason {
+	case hydrav1.AutomaticPromotionSkipReason_AUTOMATIC_PROMOTION_SKIP_REASON_NEWER_DEPLOYMENT:
+		_, err = hydrav1.NewDeploymentServiceClient(ctx, deployment.ID).
+			ScheduleDesiredStateChange().Request(
+			&hydrav1.ScheduleDesiredStateChangeRequest{
+				State:     hydrav1.DeploymentDesiredState_DEPLOYMENT_DESIRED_STATE_STOPPED,
+				Overwrite: true,
+			},
+			restate.WithIdempotencyKey("automatic-promotion-skipped:"+deployment.ID),
+		)
+		if err != nil {
+			return skipReason, fault.Wrap(err, fault.Public("Superseded deployment could not be scheduled for standby."))
+		}
+		return skipReason, nil
+	case hydrav1.AutomaticPromotionSkipReason_AUTOMATIC_PROMOTION_SKIP_REASON_ROLLED_BACK:
+		return skipReason, nil
+	case hydrav1.AutomaticPromotionSkipReason_AUTOMATIC_PROMOTION_SKIP_REASON_UNSPECIFIED:
+		// Continue with successful-promotion cleanup.
+	default:
+		return skipReason, fmt.Errorf("unknown automatic promotion skip reason: %s", skipReason)
 	}
 
 	if swapResp.GetPreviousDeploymentId() != "" {
@@ -912,11 +967,11 @@ func (w *Workflow) swapLiveDeployment(
 			restate.WithIdempotencyKey(swapResp.GetPreviousDeploymentId()),
 		)
 		if err != nil {
-			return fault.Wrap(err, fault.Public("Previous live deployment could not be scheduled for standby."))
+			return skipReason, fault.Wrap(err, fault.Public("Previous live deployment could not be scheduled for standby."))
 		}
 	}
 
-	return nil
+	return skipReason, nil
 }
 
 // ghStatusReporter wraps a GitHubStatusServiceClient and silently skips all
