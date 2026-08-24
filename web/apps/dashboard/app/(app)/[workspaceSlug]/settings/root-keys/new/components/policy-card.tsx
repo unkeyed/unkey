@@ -40,17 +40,17 @@ export function PolicyCard({
     const { shown, more } = grantsPreview(summary.grants);
 
     return (
-      <section className="flex items-start gap-2 rounded-lg border border-grayA-4 bg-white p-4 dark:bg-black">
+      <section className="flex items-center gap-2 rounded-lg border border-grayA-4 bg-white p-4 dark:bg-black">
         <button
           type="button"
           onClick={() => onCollapsedChange(false)}
-          className="flex min-w-0 flex-1 flex-col items-start gap-1 text-left"
+          className="flex min-w-0 flex-1 cursor-pointer flex-col items-start gap-1 text-left"
         >
-          <span className="text-[13px] text-accent-12">{summary.scopeLine}</span>
+          <span className="w-full truncate text-[13px] text-accent-12">{summary.scopeLine}</span>
           {error ? (
             <span className="text-xs text-error-11">{error}</span>
           ) : (
-            <span className="truncate text-xs text-gray-10">
+            <span className="w-full truncate text-xs text-gray-10">
               {shown.join(", ")}
               {more > 0 ? ` +${more} more…` : ""}
             </span>
@@ -75,7 +75,7 @@ export function PolicyCard({
             className="size-8 shrink-0 justify-center rounded-lg px-0 text-gray-11 hover:bg-grayA-3 hover:text-gray-12"
             onClick={() => onCollapsedChange(true)}
           >
-            <XMark iconSize="sm-regular" />
+            <XMark />
           </Button>
         </div>
       </div>
@@ -137,7 +137,7 @@ function RemovePolicyButton({ onRemove }: { onRemove: () => void }) {
       className="size-8 shrink-0 justify-center rounded-lg px-0 text-gray-11 hover:bg-error-3 hover:text-error-11"
       onClick={onRemove}
     >
-      <Trash iconSize="sm-regular" />
+      <Trash />
     </Button>
   );
 }

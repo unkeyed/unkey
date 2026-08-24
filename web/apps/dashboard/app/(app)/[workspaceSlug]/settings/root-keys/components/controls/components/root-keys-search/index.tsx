@@ -1,67 +1,52 @@
-import { transformStructuredOutputToFilters } from "@/components/logs/validation/utils/transform-structured-output-filter-format";
-import { trpc } from "@/lib/trpc/client";
-import { LLMSearch, toast } from "@unkey/ui";
+"use client";
+
+import { Magnifier, XMark } from "@unkey/icons";
+import { Button, Input } from "@unkey/ui";
 import { useFilters } from "../../../../hooks/use-filters";
 
 export const RootKeysSearch = () => {
   const { filters, updateFilters } = useFilters();
+  const search = filters.find((filter) => filter.field === "name")?.value ?? "";
 
-  const queryLLMForStructuredOutput = trpc.settings.rootKeys.llmSearch.useMutation({
-    onSuccess(data) {
-      if (!data?.filters?.length) {
-        toast.error(
-          "Please provide more specific search criteria. Your query requires additional details for accurate results.",
-          {
-            duration: 8000,
-            position: "top-right",
-            style: {
-              whiteSpace: "pre-line",
-            },
-          },
-        );
-        return;
-      }
-      const transformedFilters = transformStructuredOutputToFilters(
-        data as {
-          filters: Array<{
-            field: string;
-            filters: Array<{ operator: string; value: string | number }>;
-          }>;
-        },
-        filters,
-      ) as typeof filters;
-      updateFilters(transformedFilters);
-    },
-    onError(error) {
-      const errorMessage = `Unable to process your search request${
-        error.message ? `: ${error.message}` : "."
-      } Please try again or refine your search criteria.`;
-      toast.error(errorMessage, {
-        duration: 8000,
-        position: "top-right",
-        style: {
-          whiteSpace: "pre-line",
-        },
-        className: "font-medium",
-      });
-    },
-  });
+  const setSearch = (value: string) => {
+    const others = filters.filter((filter) => filter.field !== "name");
+    updateFilters(
+      value
+        ? [...others, { id: "name:contains", field: "name", operator: "contains", value }]
+        : others,
+    );
+  };
 
   return (
-    <LLMSearch
-      exampleQueries={[
-        "Show keys with api.read permissions",
-        "Show keys containing database permissions",
-        "Find keys named exactly 'super_admin'",
-        "Show keys with write permissions and user keys",
-      ]}
-      isLoading={queryLLMForStructuredOutput.isLoading}
-      searchMode="manual"
-      onSearch={(query) =>
-        queryLLMForStructuredOutput.mutateAsync({
-          query,
-        })
-      }
-    />
+    <div className="flex h-8 w-full items-center md:w-80">
+      <Input
+        aria-label="Search root keys"
+        type="text"
+        value={String(search)}
+        maxLength={256}
+        placeholder="Search root keys by name..."
+        leftIcon={<Magnifier className="text-accent-9 size-4" />}
+        rightIcon={
+          search ? (
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              aria-label="Clear search"
+              onClick={() => setSearch("")}
+            >
+              <XMark className="size-4" />
+            </Button>
+          ) : null
+        }
+        className="h-8 text-[13px] font-medium"
+        onChange={(event) => setSearch(event.target.value)}
+        onKeyDown={(event) => {
+          if (event.key === "Escape") {
+            setSearch("");
+          }
+        }}
+      />
+    </div>
   );
 };

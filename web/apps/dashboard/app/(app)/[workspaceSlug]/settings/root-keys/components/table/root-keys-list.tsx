@@ -19,6 +19,7 @@ const isUnkeyPermission = (permissionName: string): permissionName is UnkeyPermi
 };
 
 const TABLE_CONFIG = {
+  loadingRows: 5,
   rowHeight: 40,
   layout: "grid" as const,
   rowBorders: true,
@@ -102,6 +103,7 @@ export const RootKeysList = () => {
         onSortingChange={onSortingChange}
       />
       <PaginationFooter
+        hide={totalPages <= 1}
         page={page}
         pageSize={pageSize}
         totalPages={totalPages}

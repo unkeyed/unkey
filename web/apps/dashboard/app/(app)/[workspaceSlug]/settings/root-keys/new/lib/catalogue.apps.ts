@@ -15,8 +15,7 @@ export const appsCatalogue: ScopeCatalogue = {
       rows: [
         {
           id: "app",
-          label: "App",
-          description: "App settings and repository connection.",
+          label: "App settings",
           path: APP_PATH,
           resource: "app",
           actions: {
@@ -26,7 +25,6 @@ export const appsCatalogue: ScopeCatalogue = {
         {
           id: "environment",
           label: "Environments",
-          description: "Environment settings.",
           path: ENVIRONMENT_PATH,
           resource: "environment",
           actions: {
@@ -36,7 +34,6 @@ export const appsCatalogue: ScopeCatalogue = {
         {
           id: "deployment",
           label: "Deployments",
-          description: "Deploy, stop, promote and roll back.",
           path: `${ENVIRONMENT_PATH}/deployments/*`,
           resource: "deployment",
           actions: {
@@ -51,8 +48,7 @@ export const appsCatalogue: ScopeCatalogue = {
         },
         {
           id: "domain",
-          label: "Domains",
-          description: "Custom domains on these environments.",
+          label: "Custom domains",
           path: `${ENVIRONMENT_PATH}/domains/*`,
           resource: "domain",
           actions: {
@@ -64,8 +60,7 @@ export const appsCatalogue: ScopeCatalogue = {
         },
         {
           id: "variable",
-          label: "Variables",
-          description: "Environment variables.",
+          label: "Environment variables",
           path: ENVIRONMENT_PATH,
           resource: "variable",
           actions: {

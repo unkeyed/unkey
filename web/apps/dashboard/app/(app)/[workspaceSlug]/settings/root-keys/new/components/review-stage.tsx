@@ -38,7 +38,7 @@ function PolicyRow({ label, policy }: PolicyRowProps) {
       <div className="flex flex-col gap-1">
         <span>{summary.scopeLine}</span>
         {summary.grants.map((grant) => (
-          <span key={grant} className="text-gray-11">
+          <span key={grant} className="font-normal text-gray-11">
             {grant}
           </span>
         ))}

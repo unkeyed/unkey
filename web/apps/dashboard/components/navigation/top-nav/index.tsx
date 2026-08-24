@@ -10,7 +10,7 @@ import Link from "next/link";
 import { Fragment } from "react";
 import { ApiCrumb } from "./api-crumb";
 import { AppCrumb } from "./app-crumb";
-import { CrumbSeparator } from "./crumb";
+import { CrumbSeparator, StaticCrumb } from "./crumb";
 import { TopNavFeedbackButton } from "./feedback-button";
 import { HelpButton } from "./help-button";
 import { IdentityCrumb } from "./identity-crumb";
@@ -78,6 +78,8 @@ function CrumbForDescriptor({ descriptor }: { descriptor: BreadcrumbDescriptor }
       return <NamespaceCrumb namespaceId={descriptor.namespaceId} />;
     case "identity":
       return <IdentityCrumb identityId={descriptor.identityId} />;
+    case "static":
+      return <StaticCrumb label={descriptor.label} href={descriptor.href} icon={descriptor.icon} />;
   }
 }
 
@@ -95,5 +97,7 @@ function crumbKey(descriptor: BreadcrumbDescriptor): string {
       return `namespace:${descriptor.namespaceId}`;
     case "identity":
       return `identity:${descriptor.identityId}`;
+    case "static":
+      return `static:${descriptor.label}`;
   }
 }

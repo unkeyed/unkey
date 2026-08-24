@@ -6,7 +6,7 @@ import { workspaceCatalogue } from "../lib/catalogue.workspace";
 import { setRowActions } from "../lib/policy";
 import { PermissionCatalogue } from "./permission-catalogue";
 
-vi.mock("@unkey/icons", () => ({ CaretRight: () => null, ChevronDown: () => null }));
+vi.mock("@unkey/icons", () => ({ ChevronRight: () => null, ChevronDown: () => null }));
 
 vi.mock("@unkey/ui", () => ({
   Button: ({ children, ...props }: ButtonHTMLAttributes<HTMLButtonElement>) => (
@@ -59,20 +59,34 @@ describe("PermissionCatalogue", () => {
     expect(screen.getAllByText("0/3")).toHaveLength(2);
   });
 
+  it("starts with every group expanded", () => {
+    renderCatalogue();
+
+    expect(screen.getByText("Role definitions")).toBeDefined();
+    expect(screen.getByText("Encryption keys")).toBeDefined();
+  });
+
+  it("collapses a group on its trigger", () => {
+    renderCatalogue();
+    fireEvent.click(screen.getByText("RBAC"));
+
+    expect(screen.queryByText("Role definitions")).toBeNull();
+  });
+
   it("reports selected rows the filter hides", () => {
     renderCatalogue(setRowActions({}, "role", ["read"]));
     search("vault");
 
     expect(screen.getByText("1 selected row hidden by this filter")).toBeDefined();
-    expect(screen.queryByText("Roles")).toBeNull();
+    expect(screen.queryByText("Role definitions")).toBeNull();
   });
 
   it("stays quiet when the filter hides nothing that is selected", () => {
     renderCatalogue(setRowActions({}, "vault_key", ["read"]));
-    search("vault");
+    search("encryption");
 
     expect(screen.queryByText(/hidden by this filter/)).toBeNull();
-    expect(screen.getByText("Vault keys")).toBeDefined();
+    expect(screen.getByText("Encryption keys")).toBeDefined();
   });
 
   it("says so when nothing matches the filter", () => {
@@ -84,7 +98,7 @@ describe("PermissionCatalogue", () => {
 
   it("reports one row toggle as a selection change", () => {
     const onChange = renderCatalogue();
-    search("roles");
+    search("role");
     fireEvent.click(screen.getByLabelText("Read"));
 
     expect(onChange).toHaveBeenCalledWith({ role: ["read"] });

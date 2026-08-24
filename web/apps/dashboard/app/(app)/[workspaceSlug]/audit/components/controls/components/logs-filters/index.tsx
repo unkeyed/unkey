@@ -28,7 +28,7 @@ export const LogsFilters = (props: WorkspaceProps) => {
         },
         {
           id: "rootKeys",
-          label: "Root Keys",
+          label: "Root keys",
           shortcut: "p",
           component: <RootKeysFilter rootKeys={props.rootKeys} />,
         },

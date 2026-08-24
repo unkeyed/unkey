@@ -1,9 +1,10 @@
 "use client";
 
 import { ChevronExpandY } from "@unkey/icons";
+import type { IconProps } from "@unkey/icons";
 import type { Route } from "next";
 import Link from "next/link";
-import type { ReactNode } from "react";
+import type { ComponentType, ReactNode } from "react";
 import { CrumbPopover, type CrumbPopoverFooter, type CrumbPopoverItem } from "./crumb-popover";
 
 type CrumbProps = {
@@ -59,6 +60,27 @@ export function Crumb({
         </button>
       </CrumbPopover>
     </div>
+  );
+}
+
+export function StaticCrumb({
+  label,
+  href,
+  icon: Icon,
+}: {
+  label: string;
+  href: string;
+  icon?: ComponentType<IconProps>;
+}) {
+  return (
+    <Link
+      href={href as Route}
+      aria-label={label}
+      className="flex min-w-0 items-center gap-1.5 px-1 py-1 text-[13px] font-medium text-accent-12"
+    >
+      {Icon ? <Icon className="size-3.5 text-accent-11" iconSize="sm-regular" /> : null}
+      <span className="truncate max-w-[120px] md:max-w-[180px]">{label}</span>
+    </Link>
   );
 }
 

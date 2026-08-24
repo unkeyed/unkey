@@ -12,8 +12,7 @@ export const workspaceCatalogue: ScopeCatalogue = {
       rows: [
         {
           id: "identity",
-          label: "Identities",
-          description: "End-user identities and their metadata.",
+          label: "End-user identities",
           path: "identities/*",
           resource: "identity",
         },
@@ -25,15 +24,13 @@ export const workspaceCatalogue: ScopeCatalogue = {
       rows: [
         {
           id: "role",
-          label: "Roles",
-          description: "Role definitions in this workspace.",
+          label: "Role definitions",
           path: "rbac/roles/*",
           resource: "role",
         },
         {
           id: "permission",
-          label: "Permissions",
-          description: "Permission definitions in this workspace.",
+          label: "Permission definitions",
           path: "rbac/permissions/*",
           resource: "permission",
         },
@@ -45,8 +42,7 @@ export const workspaceCatalogue: ScopeCatalogue = {
       rows: [
         {
           id: "vault_key",
-          label: "Vault keys",
-          description: "Encryption keys held by vault.",
+          label: "Encryption keys",
           path: "vault/keys/*",
           resource: "vault_key",
         },

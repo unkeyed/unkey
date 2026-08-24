@@ -1,7 +1,7 @@
 "use client";
 
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { CaretRight } from "@unkey/icons";
+import { ChevronRight } from "@unkey/icons";
 import { Input } from "@unkey/ui";
 import { useState } from "react";
 import { catalogueRows } from "../lib/catalogue";
@@ -23,16 +23,11 @@ type PermissionCatalogueProps = {
 };
 
 const matches = (group: CatalogueGroup, query: string) =>
-  group.rows.filter(
-    (row) =>
-      query.length === 0 ||
-      row.label.toLowerCase().includes(query) ||
-      row.description.toLowerCase().includes(query),
-  );
+  group.rows.filter((row) => query.length === 0 || row.label.toLowerCase().includes(query));
 
 export function PermissionCatalogue({ catalogue, value, onChange }: PermissionCatalogueProps) {
   const [search, setSearch] = useState("");
-  const [openGroups, setOpenGroups] = useState<string[]>([]);
+  const [closedGroups, setClosedGroups] = useState<string[]>([]);
   const query = search.trim().toLowerCase();
 
   const visible = new Set(
@@ -47,8 +42,8 @@ export function PermissionCatalogue({ catalogue, value, onChange }: PermissionCa
   };
 
   const toggleGroup = (groupId: string, open: boolean) => {
-    setOpenGroups((current) =>
-      open ? [...current, groupId] : current.filter((entry) => entry !== groupId),
+    setClosedGroups((current) =>
+      open ? current.filter((entry) => entry !== groupId) : [...current, groupId],
     );
   };
 
@@ -84,12 +79,12 @@ export function PermissionCatalogue({ catalogue, value, onChange }: PermissionCa
           return (
             <Collapsible
               key={group.id}
-              open={query.length > 0 || openGroups.includes(group.id)}
+              open={query.length > 0 || !closedGroups.includes(group.id)}
               onOpenChange={(open) => toggleGroup(group.id, open)}
             >
               <CollapsibleTrigger className="flex items-center gap-3 w-full py-2.5 [&[data-panel-open]>svg]:rotate-90">
-                <CaretRight
-                  className="w-4 h-4 transition-transform duration-200 text-grayA-7"
+                <ChevronRight
+                  className="size-3 transition-transform duration-200 text-gray-11"
                   aria-hidden="true"
                 />
                 <span className="text-[13px] text-accent-12">{group.label}</span>

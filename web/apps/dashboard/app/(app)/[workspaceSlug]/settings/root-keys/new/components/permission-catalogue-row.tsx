@@ -1,6 +1,6 @@
 "use client";
 
-import { Checkbox, InfoTooltip } from "@unkey/ui";
+import { Checkbox } from "@unkey/ui";
 import { useId } from "react";
 import { ACTIONS, type Action, type PermissionRow } from "../lib/catalogue.types";
 
@@ -21,12 +21,7 @@ export function PermissionCatalogueRow({ row, actions, onToggle }: PermissionCat
 
   return (
     <div className="flex items-center justify-between gap-4 py-2">
-      <div className="flex flex-col gap-1 min-w-0">
-        <span className="text-[13px] text-accent-12">{row.label}</span>
-        <InfoTooltip content={row.description} className="max-w-xs">
-          <p className="text-xs text-gray-10 truncate text-left">{row.description}</p>
-        </InfoTooltip>
-      </div>
+      <span className="min-w-0 truncate text-[13px] text-accent-12">{row.label}</span>
       <div className="flex items-center gap-4 shrink-0">
         {ACTIONS.map((action) => (
           <div key={action} className="flex items-center gap-2">
@@ -38,7 +33,7 @@ export function PermissionCatalogueRow({ row, actions, onToggle }: PermissionCat
             />
             <label
               htmlFor={`${id}-${action}`}
-              className="text-xs text-gray-11 cursor-pointer select-none"
+              className="text-xs text-accent-12 cursor-pointer select-none"
             >
               {ACTION_LABELS[action]}
             </label>

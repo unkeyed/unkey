@@ -5,7 +5,7 @@ import { ALL_INSTANCES, newPolicy, setRowActions } from "../lib/policy";
 import { PolicyCard } from "./policy-card";
 
 vi.mock("@unkey/icons", () => ({
-  CaretRight: () => null,
+  ChevronRight: () => null,
   Check: () => null,
   ChevronDown: () => null,
   ChevronExpandY: () => null,
@@ -127,7 +127,9 @@ describe("PolicyCard collapsed", () => {
 
     expect(screen.getByText("Everything in this workspace")).toBeDefined();
     expect(
-      screen.getByText(/Identities Read, Roles Read, Permissions Read \+1 more…/),
+      screen.getByText(
+        /End-user identities Read, Role definitions Read, Permission definitions Read \+1 more…/,
+      ),
     ).toBeDefined();
   });
 
@@ -152,7 +154,7 @@ describe("PolicyCard collapsed", () => {
     );
 
     expect(screen.getByText("payments")).toBeDefined();
-    expect(screen.getByText("Keys Read")).toBeDefined();
+    expect(screen.getByText("API keys Read")).toBeDefined();
   });
 
   it("expands on click", () => {

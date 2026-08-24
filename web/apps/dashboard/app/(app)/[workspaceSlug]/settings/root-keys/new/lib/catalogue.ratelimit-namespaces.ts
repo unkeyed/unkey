@@ -14,8 +14,7 @@ export const ratelimitNamespacesCatalogue: ScopeCatalogue = {
       rows: [
         {
           id: "namespace",
-          label: "Namespace",
-          description: "Namespace settings. Taking a ratelimit counts as read.",
+          label: "Namespace settings",
           path: NAMESPACE_PATH,
           resource: "namespace",
           actions: {
@@ -26,8 +25,7 @@ export const ratelimitNamespacesCatalogue: ScopeCatalogue = {
         },
         {
           id: "override",
-          label: "Overrides",
-          description: "Per-identifier limit overrides.",
+          label: "Limit overrides",
           path: `${NAMESPACE_PATH}/overrides/*`,
           resource: "override",
           actions: {

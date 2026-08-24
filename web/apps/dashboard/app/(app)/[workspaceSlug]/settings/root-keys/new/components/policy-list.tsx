@@ -51,7 +51,7 @@ export function PolicyList({ showErrors }: PolicyListProps) {
       })}
 
       {showErrors && fields.length === 0 ? (
-        <span className="text-xs text-error-11">Grant at least one permission.</span>
+        <span className="text-[13px] leading-5 text-error-11">Grant at least one permission.</span>
       ) : null}
 
       {showGallery ? (
@@ -68,7 +68,7 @@ export function PolicyList({ showErrors }: PolicyListProps) {
             className="font-medium"
             onClick={() => setAdding(true)}
           >
-            <Plus iconSize="sm-regular" />
+            <Plus />
             Add policy
           </Button>
         </div>

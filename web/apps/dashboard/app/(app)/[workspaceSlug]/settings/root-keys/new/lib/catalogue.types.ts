@@ -26,7 +26,6 @@ export type ActionGrant = {
 export type PermissionRow = {
   id: string;
   label: string;
-  description: string;
   path: string;
   resource: string;
   actions?: Partial<Record<Action, readonly ActionGrant[]>>;

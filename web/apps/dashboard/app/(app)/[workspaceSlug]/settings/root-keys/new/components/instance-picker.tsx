@@ -66,7 +66,7 @@ export function InstancePicker({
               +{more}
             </span>
           ) : null}
-          <ChevronExpandY iconSize="sm-regular" className="ml-auto shrink-0 text-grayA-9" />
+          <ChevronExpandY iconSize="md-medium" className="ml-auto shrink-0 text-grayA-9" />
         </MultiboxTrigger>
       </div>
       <MultiboxContent anchor={anchor} className="p-0">

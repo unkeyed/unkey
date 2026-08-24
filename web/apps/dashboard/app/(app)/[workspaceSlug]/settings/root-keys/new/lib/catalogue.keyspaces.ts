@@ -14,8 +14,7 @@ export const keyspacesCatalogue: ScopeCatalogue = {
       rows: [
         {
           id: "keyspace",
-          label: "Keyspace",
-          description: "Keyspace settings and metadata.",
+          label: "Keyspace settings",
           path: KEYSPACE_PATH,
           resource: "keyspace",
           actions: {
@@ -26,8 +25,7 @@ export const keyspacesCatalogue: ScopeCatalogue = {
         },
         {
           id: "key",
-          label: "Keys",
-          description: "Keys in this keyspace. Verifying a key counts as read.",
+          label: "API keys",
           path: `${KEYSPACE_PATH}/keys/*`,
           resource: "key",
           actions: {

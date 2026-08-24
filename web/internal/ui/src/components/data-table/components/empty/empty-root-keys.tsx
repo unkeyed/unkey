@@ -7,21 +7,21 @@ export function EmptyRootKeys() {
     <div className="w-full flex justify-center items-center h-full">
       <Empty className="w-[400px] flex items-start">
         <Empty.Icon className="w-auto" />
-        <Empty.Title>No Root Keys Found</Empty.Title>
+        <Empty.Title>No root keys found</Empty.Title>
         <Empty.Description className="text-left">
           There are no root keys configured yet. Create your first root key to start managing
           permissions and access control.
         </Empty.Description>
         <Empty.Actions className="mt-4 justify-start">
           <a
-            href="https://www.unkey.com/docs/security/root-keys"
+            href="https://www.unkey.com/docs/security/overview#root-keys"
             target="_blank"
             rel="noopener noreferrer"
             className={buttonVariants({ variant: "outline" })}
           >
             <span className="flex items-center gap-2">
               <BookBookmark />
-              Learn about Root Keys
+              Learn about root keys
             </span>
           </a>
         </Empty.Actions>

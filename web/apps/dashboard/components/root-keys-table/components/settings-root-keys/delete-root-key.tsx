@@ -85,7 +85,7 @@ export const DeleteRootKey = ({ rootKeyDetails, isOpen, onClose }: DeleteRootKey
             isOpen={isOpen}
             subTitle="Delete the key permanently"
             onOpenChange={handleDialogOpenChange}
-            title="Revoke Root Key"
+            title="Revoke root key"
             footer={
               <div className="w-full flex flex-col gap-2 items-center justify-center">
                 <Button

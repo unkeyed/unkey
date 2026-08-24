@@ -16,7 +16,7 @@ export const queryParamsPayload = Object.fromEntries(
 
 export const useFilters = () => {
   const [searchParams, setSearchParams] = useQueryStates(queryParamsPayload, {
-    history: "push",
+    history: "replace",
   });
 
   const filters = useMemo(() => {

@@ -4,7 +4,7 @@ import { usePreventLeave } from "@/hooks/use-prevent-leave";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { routes } from "@/lib/navigation/routes";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ChevronLeft } from "@unkey/icons";
+import { ChevronLeft, ChevronRight } from "@unkey/icons";
 import {
   Button,
   FormInput,
@@ -13,10 +13,10 @@ import {
   PageHeader,
   PageHeaderContent,
   PageHeaderTitle,
+  RequiredTag,
 } from "@unkey/ui";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Controller, FormProvider, useForm } from "react-hook-form";
 import { isPolicyComplete } from "../lib/policy";
 import { type RootKeyFormValues, rootKeyDefaultValues, rootKeySchema } from "../schema";
@@ -45,8 +45,17 @@ export function BuilderShell() {
     defaultValues: rootKeyDefaultValues,
   });
   const { control, formState } = form;
+  const topRef = useRef<HTMLDivElement>(null);
 
   usePreventLeave(formState.isDirty && created === null);
+
+  const showStage = (review: boolean) => {
+    setReviewing(review);
+    topRef.current?.scrollIntoView({
+      behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth",
+      block: "start",
+    });
+  };
 
   const submit = form.handleSubmit(
     (values) => {
@@ -54,7 +63,7 @@ export function BuilderShell() {
         setValidated(true);
         return;
       }
-      setReviewing(true);
+      showStage(true);
     },
     () => setValidated(true),
   );
@@ -68,18 +77,18 @@ export function BuilderShell() {
 
   return (
     <FormProvider {...form}>
-      <PageContainer>
-        <PageHeader>
+      <PageContainer ref={topRef}>
+        <PageHeader className="max-w-3xl">
           <PageHeaderContent>
-            <PageHeaderTitle>{reviewing ? "Review key" : "New Root Key"}</PageHeaderTitle>
+            <PageHeaderTitle>{reviewing ? "Review key" : "New root key"}</PageHeaderTitle>
           </PageHeaderContent>
         </PageHeader>
-        <PageBody>
-          <form onSubmit={submit} className="flex flex-col gap-6">
+        <PageBody className="max-w-3xl pt-5">
+          <form onSubmit={submit} className="flex flex-col gap-5">
             {reviewing ? (
               <ReviewStage name={values.name.trim()} policies={values.policies} />
             ) : (
-              <>
+              <div className="flex flex-col gap-6 rounded-lg border border-grayA-4 bg-white p-5 dark:bg-black shadow-xs">
                 <Controller
                   control={control}
                   name="name"
@@ -96,22 +105,20 @@ export function BuilderShell() {
                 />
 
                 <div className="flex flex-col gap-2">
-                  <span className="text-[13px] text-gray-11">Permissions</span>
+                  <span className="flex items-center text-[13px] text-gray-11">
+                    Permissions
+                    <RequiredTag hasError={validated && values.policies.length === 0} />
+                  </span>
                   <PolicyList showErrors={validated} />
                 </div>
-              </>
+              </div>
             )}
 
-            <div className="flex items-center gap-3 border-t border-grayA-4 pt-5">
+            <div className="flex items-center gap-3">
               {reviewing ? (
                 <>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="md"
-                    onClick={() => setReviewing(false)}
-                  >
-                    <ChevronLeft iconSize="sm-regular" />
+                  <Button type="button" variant="ghost" size="md" onClick={() => showStage(false)}>
+                    <ChevronLeft />
                     Back to edit
                   </Button>
                   <Button
@@ -125,21 +132,10 @@ export function BuilderShell() {
                   </Button>
                 </>
               ) : (
-                <>
-                  <Button
-                    variant="ghost"
-                    size="md"
-                    className="ml-auto"
-                    render={
-                      <Link href={routes.settings.rootKeys({ workspaceSlug: workspace.slug })} />
-                    }
-                  >
-                    Cancel
-                  </Button>
-                  <Button type="submit" variant="primary" size="md">
-                    Review key
-                  </Button>
-                </>
+                <Button type="submit" variant="primary" size="md" className="ml-auto">
+                  Review key
+                  <ChevronRight />
+                </Button>
               )}
             </div>
           </form>

@@ -195,8 +195,8 @@ describe("policySummary", () => {
       ["read"],
     );
     expect(policySummary({ ...newPolicy(), selection }).grants).toEqual([
-      "Identities Read",
-      "Roles Read, write & delete",
+      "End-user identities Read",
+      "Role definitions Read, write & delete",
     ]);
   });
 
@@ -221,13 +221,16 @@ describe("policySummary on instance scopes", () => {
       ...newPolicy("keyspaces"),
       selection: setRowActions(setRowActions({}, "keyspace", ["read"]), "key", ["read", "write"]),
     };
-    expect(policySummary(keyspace).grants).toEqual(["Keyspace Read", "Keys Read & write"]);
+    expect(policySummary(keyspace).grants).toEqual([
+      "Keyspace settings Read",
+      "API keys Read & write",
+    ]);
 
     const namespace = {
       ...newPolicy("ratelimit-namespaces"),
       selection: setRowActions({}, "override", ["read", "write", "delete"]),
     };
-    expect(policySummary(namespace).grants).toEqual(["Overrides Read, write & delete"]);
+    expect(policySummary(namespace).grants).toEqual(["Limit overrides Read, write & delete"]);
   });
 
   it("ignores a selection carried over from another scope", () => {
@@ -349,7 +352,10 @@ describe("policySummary on the deploy scopes", () => {
         "delete",
       ]),
     };
-    expect(policySummary(policy).grants).toEqual(["App Read", "Deployments Read, write & delete"]);
+    expect(policySummary(policy).grants).toEqual([
+      "App settings Read",
+      "Deployments Read, write & delete",
+    ]);
   });
 
   it("asks for an instance by the noun of its level", () => {

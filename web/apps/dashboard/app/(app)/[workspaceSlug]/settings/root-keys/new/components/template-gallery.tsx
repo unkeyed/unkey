@@ -7,11 +7,11 @@ import type { Policy } from "../lib/policy";
 import { TEMPLATES, type TemplateId } from "../lib/templates";
 
 const TEMPLATE_ICONS: Record<TemplateId, ReactNode> = {
-  read: <Eye iconSize="sm-regular" />,
-  write: <PenWriting3 iconSize="sm-regular" />,
-  verify: <ShieldCheck iconSize="sm-regular" />,
-  ratelimit: <Gauge iconSize="sm-regular" />,
-  custom: <Sliders iconSize="sm-regular" />,
+  read: <Eye />,
+  write: <PenWriting3 />,
+  verify: <ShieldCheck />,
+  ratelimit: <Gauge />,
+  custom: <Sliders />,
 };
 
 type TemplateGalleryProps = {
@@ -32,7 +32,7 @@ export function TemplateGallery({ onPick, onCancel }: TemplateGalleryProps) {
             className="size-8 shrink-0 justify-center rounded-lg px-0 text-gray-11 hover:bg-grayA-3 hover:text-gray-12"
             onClick={onCancel}
           >
-            <XMark iconSize="sm-regular" />
+            <XMark />
           </Button>
         </div>
       ) : null}

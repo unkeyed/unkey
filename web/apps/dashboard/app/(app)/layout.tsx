@@ -68,8 +68,9 @@ export default function Layout({ children }: LayoutProps) {
   const router = useRouter();
   const pathname = usePathname();
   const { user, workspace, isLoading, error, workspaceMissing } = useWorkspace();
-  // The app onboarding flow is a focused full-screen experience without the sidebar.
-  const isAppOnboarding = /\/projects\/[^/]+\/apps\/new$/.test(pathname);
+  // Creation flows are focused full-screen experiences without the sidebar.
+  const isFullScreenFlow =
+    /\/projects\/[^/]+\/apps\/new$/.test(pathname) || /\/settings\/root-keys\/new$/.test(pathname);
 
   useEffect(() => {
     // Don't navigate while loading
@@ -115,7 +116,7 @@ export default function Layout({ children }: LayoutProps) {
         <TopNav />
         <MobileNavDrawer />
         <div className="relative flex flex-1 overflow-hidden">
-          {!isAppOnboarding && <SidebarV2 className="bg-gray-1 border-grayA-4" />}
+          {!isFullScreenFlow && <SidebarV2 className="bg-gray-1 border-grayA-4" />}
           {/* Reserve the scrollbar gutter so content doesn't shift horizontally
               when the scrollbar appears/disappears (e.g. a dialog locking scroll
               or content height changing). Without this the centered layout

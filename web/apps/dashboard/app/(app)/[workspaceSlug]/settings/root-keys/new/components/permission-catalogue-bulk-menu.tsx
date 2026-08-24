@@ -31,7 +31,7 @@ export function PermissionCatalogueBulkMenu({ onSelect }: PermissionCatalogueBul
         render={
           <Button variant="outline" size="md" className="shrink-0">
             Select all…
-            <ChevronDown iconSize="sm-regular" className="text-gray-9" />
+            <ChevronDown className="text-gray-9" />
           </Button>
         }
       />
