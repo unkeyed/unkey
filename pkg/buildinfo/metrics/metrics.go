@@ -1,9 +1,11 @@
-package buildinfo
+// Package buildinfometrics exposes build metadata as a Prometheus metric.
+package buildinfometrics
 
 import (
 	"runtime"
 
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/unkeyed/unkey/pkg/buildinfo"
 	"github.com/unkeyed/unkey/pkg/prometheus/lazy"
 )
 
@@ -18,12 +20,14 @@ var buildInfo = lazy.NewGaugeVec(prometheus.GaugeOpts{
 	Help:      "Build metadata for the running service. Always 1; identity is in the labels.",
 }, []string{"service", "version", "revision", "goversion", "build_time"})
 
-// RegisterBuildInfoMetrics emits the unkey_build_info gauge for the given
-// service name, tagged with the link-time build identity (Version, Revision,
-// Go runtime version, BuildTime).
-//
-// Call once during service startup, after lazy.SetRegistry has installed the
-// prometheus registry that should receive the metric.
-func RegisterBuildInfoMetrics(service string) {
-	buildInfo.WithLabelValues(service, Version, Revision, runtime.Version(), BuildTime).Set(1)
+// Register emits the unkey_build_info gauge for the given service name. Call
+// it after lazy.SetRegistry installs the service's Prometheus registry.
+func Register(service string) {
+	buildInfo.WithLabelValues(
+		service,
+		buildinfo.Version,
+		buildinfo.Revision,
+		runtime.Version(),
+		buildinfo.BuildTime,
+	).Set(1)
 }

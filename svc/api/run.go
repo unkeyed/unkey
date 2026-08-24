@@ -35,6 +35,7 @@ import (
 
 	"github.com/unkeyed/unkey/pkg/batch"
 	"github.com/unkeyed/unkey/pkg/buildinfo"
+	"github.com/unkeyed/unkey/pkg/buildinfo/metrics"
 	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
@@ -108,7 +109,7 @@ func Run(ctx context.Context, cfg Config) error {
 	reg.MustRegister(collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}))
 	reg.MustRegister(prometheus.NewSystemMetricsCollector())
 	lazy.SetRegistry(reg)
-	buildinfo.RegisterBuildInfoMetrics("api")
+	buildinfometrics.Register("api")
 
 	// This is a little ugly, but the best we can do to resolve the circular dependency until we rework the logger.
 	var shutdownGrafana func(context.Context) error

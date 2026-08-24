@@ -16,6 +16,7 @@ import (
 	"github.com/unkeyed/unkey/gen/proto/vault/v1/vaultv1connect"
 	"github.com/unkeyed/unkey/gen/rpc/vault"
 	"github.com/unkeyed/unkey/pkg/buildinfo"
+	"github.com/unkeyed/unkey/pkg/buildinfo/metrics"
 	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/logger"
@@ -92,7 +93,7 @@ func Run(ctx context.Context, cfg Config) error {
 	reg.MustRegister(collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}))
 	reg.MustRegister(prometheus.NewSystemMetricsCollector())
 	lazy.SetRegistry(reg)
-	buildinfo.RegisterBuildInfoMetrics("krane")
+	buildinfometrics.Register("krane")
 
 	cluster := controlplane.NewClient(controlplane.ClientConfig{
 		URL:         cfg.Control.URL,

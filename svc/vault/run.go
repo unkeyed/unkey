@@ -11,7 +11,7 @@ import (
 	promclient "github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/collectors"
 	"github.com/unkeyed/unkey/gen/proto/vault/v1/vaultv1connect"
-	"github.com/unkeyed/unkey/pkg/buildinfo"
+	"github.com/unkeyed/unkey/pkg/buildinfo/metrics"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/otel"
 	"github.com/unkeyed/unkey/pkg/prometheus"
@@ -64,7 +64,7 @@ func Run(ctx context.Context, cfg Config) error {
 	reg.MustRegister(collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}))
 	reg.MustRegister(prometheus.NewSystemMetricsCollector())
 	lazy.SetRegistry(reg)
-	buildinfo.RegisterBuildInfoMetrics("vault")
+	buildinfometrics.Register("vault")
 
 	if cfg.Observability.Metrics != nil && cfg.Observability.Metrics.PrometheusPort > 0 {
 		prom, promErr := prometheus.NewWithRegistry(reg)
