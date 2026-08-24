@@ -16,42 +16,76 @@ import (
 // in from the database row.
 func fullDeploymentRow() deploymentRow {
 	return deploymentRow{
-		dt: db.DeploymentTopology{
-			DesiredStatus:              db.DeploymentTopologyDesiredStatusRunning,
-			AutoscalingReplicasMin:     2,
-			AutoscalingReplicasMax:     5,
-			AutoscalingThresholdCpu:    sql.NullInt16{Valid: true, Int16: 80},
-			AutoscalingThresholdMemory: sql.NullInt16{Valid: true, Int16: 75},
-		},
-		d: db.Deployment{
-			ID:                            "deploy_sentinel",
-			K8sName:                       "k8s-name-sentinel",
-			WorkspaceID:                   "ws_sentinel",
-			ProjectID:                     "prj_sentinel",
-			EnvironmentID:                 "env_sentinel",
-			AppID:                         "app_sentinel",
-			Image:                         sql.NullString{Valid: true, String: "registry.io/sentinel:v1"},
-			CpuMillicores:                 250,
-			MemoryMib:                     256,
-			StorageMib:                    2048,
-			EncryptedEnvironmentVariables: []byte("ciphertext-sentinel"),
-			BuildID:                       sql.NullString{Valid: true, String: "build_sentinel"},
-			Command:                       dbtype.StringSlice{"/sentinel-app", "serve"},
-			Port:                          8080,
-			ShutdownSignal:                db.DeploymentsShutdownSignalSIGTERM,
-			GitCommitSha:                  sql.NullString{Valid: true, String: "abc123sha"},
-			GitBranch:                     sql.NullString{Valid: true, String: "main-sentinel"},
-			GitCommitMessage:              sql.NullString{Valid: true, String: "sentinel commit"},
-			Healthcheck: dbtype.NullHealthcheck{
-				Valid:       true,
-				Healthcheck: &dbtype.Healthcheck{Method: "GET", Path: "/sentinel-healthz"},
-			},
+		desiredStatus:                 db.DeploymentTopologyDesiredStatusRunning,
+		autoscalingReplicasMin:        2,
+		autoscalingReplicasMax:        5,
+		autoscalingThresholdCPU:       sql.NullInt16{Valid: true, Int16: 80},
+		autoscalingThresholdMemory:    sql.NullInt16{Valid: true, Int16: 75},
+		deploymentID:                  "deploy_sentinel",
+		k8sName:                       "k8s-name-sentinel",
+		workspaceID:                   "ws_sentinel",
+		projectID:                     "prj_sentinel",
+		environmentID:                 "env_sentinel",
+		appID:                         "app_sentinel",
+		image:                         sql.NullString{Valid: true, String: "registry.io/sentinel:v1"},
+		cpuMillicores:                 250,
+		memoryMiB:                     256,
+		storageMiB:                    2048,
+		encryptedEnvironmentVariables: []byte("ciphertext-sentinel"),
+		buildID:                       sql.NullString{Valid: true, String: "build_sentinel"},
+		command:                       dbtype.StringSlice{"/sentinel-app", "serve"},
+		port:                          8080,
+		shutdownSignal:                db.DeploymentsShutdownSignalSIGTERM,
+		gitCommitSHA:                  sql.NullString{Valid: true, String: "abc123sha"},
+		gitBranch:                     sql.NullString{Valid: true, String: "main-sentinel"},
+		gitCommitMessage:              sql.NullString{Valid: true, String: "sentinel commit"},
+		healthcheck: dbtype.NullHealthcheck{
+			Valid:       true,
+			Healthcheck: &dbtype.Healthcheck{Method: "GET", Path: "/sentinel-healthz"},
 		},
 		k8sNamespace:    sql.NullString{Valid: true, String: "ns-sentinel"},
 		environmentSlug: "production",
 		regionName:      "us-east-1",
 		gitRepo:         sql.NullString{Valid: true, String: "github.com/test/sentinel"},
 	}
+}
+
+func fullPointLookupRow() db.FindDeploymentTopologyByDeploymentAndRegionRow {
+	row := fullDeploymentRow()
+	return db.FindDeploymentTopologyByDeploymentAndRegionRow{
+		DesiredStatus:                 row.desiredStatus,
+		AutoscalingReplicasMin:        row.autoscalingReplicasMin,
+		AutoscalingReplicasMax:        row.autoscalingReplicasMax,
+		AutoscalingThresholdCpu:       row.autoscalingThresholdCPU,
+		AutoscalingThresholdMemory:    row.autoscalingThresholdMemory,
+		ID:                            row.deploymentID,
+		K8sName:                       row.k8sName,
+		WorkspaceID:                   row.workspaceID,
+		ProjectID:                     row.projectID,
+		EnvironmentID:                 row.environmentID,
+		AppID:                         row.appID,
+		Image:                         row.image,
+		BuildID:                       row.buildID,
+		GitCommitSha:                  row.gitCommitSHA,
+		GitBranch:                     row.gitBranch,
+		GitCommitMessage:              row.gitCommitMessage,
+		CpuMillicores:                 row.cpuMillicores,
+		MemoryMib:                     row.memoryMiB,
+		StorageMib:                    row.storageMiB,
+		EncryptedEnvironmentVariables: row.encryptedEnvironmentVariables,
+		Command:                       row.command,
+		Port:                          row.port,
+		ShutdownSignal:                row.shutdownSignal,
+		Healthcheck:                   row.healthcheck,
+		K8sNamespace:                  row.k8sNamespace,
+		EnvironmentSlug:               row.environmentSlug,
+		RegionName:                    row.regionName,
+		GitRepo:                       row.gitRepo,
+	}
+}
+
+func TestDeploymentRowFromPointLookup(t *testing.T) {
+	require.Equal(t, fullDeploymentRow(), deploymentRowFromPointLookup(fullPointLookupRow()))
 }
 
 // producerFieldAssertions maps each ApplyDeployment proto field (by proto name)

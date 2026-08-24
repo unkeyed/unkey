@@ -62,14 +62,7 @@ func (s *Service) syncDeployments(
 		}
 		for _, row := range rows {
 			afterPk = row.DeploymentTopology.Pk
-			state, err := deploymentRowToState(deploymentRow{
-				dt:              row.DeploymentTopology,
-				d:               row.Deployment,
-				k8sNamespace:    row.K8sNamespace,
-				environmentSlug: row.EnvironmentSlug,
-				regionName:      row.RegionName,
-				gitRepo:         row.GitRepo,
-			}, 0)
+			state, err := deploymentRowToState(deploymentRowFromFullSync(row), 0)
 			if err != nil {
 				logger.Error("full sync: failed to convert deployment row", "error", err)
 				continue
