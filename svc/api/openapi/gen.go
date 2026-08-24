@@ -3492,8 +3492,8 @@ type V2KeysUpdateKeyRequestBody struct {
 	// Omitting this field preserves existing rate limits, while setting null removes all rate limits.
 	// Unlike credits which track total usage, rate limits reset automatically after each window expires.
 	// Multiple rate limits can control different operation types with separate thresholds and windows.
-	Ratelimits *[]RatelimitRequest `json:"ratelimits,omitempty"`
-	Roles      *[]string           `json:"roles,omitempty"`
+	Ratelimits nullable.Nullable[[]RatelimitRequest] `json:"ratelimits,omitempty"`
+	Roles      *[]string                             `json:"roles,omitempty"`
 }
 
 // V2KeysUpdateKeyResponseBody defines model for V2KeysUpdateKeyResponseBody.
