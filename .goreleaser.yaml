@@ -21,6 +21,7 @@ before:
 
 builds:
   - id: unkey
+    main: ./build/cli
     env:
       - CGO_ENABLED=0
     goos:
