@@ -12,7 +12,7 @@ function keyauthWithRatelimit(rl: Record<string, unknown>) {
     name: "p",
     environmentId: "__all__",
     matchConditions: [],
-    keyspaces: ["ks_1"],
+    keyspaceIds: ["ks_1"],
     locations: [],
     permissionQuery: "",
     ratelimits: [{ id: "1", name: "expensive", ...rl }],
