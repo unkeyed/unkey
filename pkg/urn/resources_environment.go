@@ -51,8 +51,8 @@ func (e Environment) Domain(domainID string) Domain {
 //
 //	environments/{environment_id}
 //	└── gateway
-func (e Environment) Gateway() Gateway {
-	return Gateway{workspaceID: e.workspaceID, path: e.path + "/gateway"}
+func (e Environment) Gateway() gateway {
+	return gateway{workspaceID: e.workspaceID, path: e.path + "/gateway"}
 }
 
 // Variable returns a variable resource path.

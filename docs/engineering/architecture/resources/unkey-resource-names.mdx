@@ -253,10 +253,9 @@ environment, which belongs to one app, which belongs to one project.
 | Deployment instance | `projects/{project_id}/apps/{app_id}/environments/{environment_id}/deployments/{deployment_id}/instances/{instance_id}` |
 | Domain | `projects/{project_id}/apps/{app_id}/environments/{environment_id}/domains/{domain_id}` |
 | Variable | `projects/{project_id}/apps/{app_id}/environments/{environment_id}/variables/{variable_id}` |
-| Gateway | `projects/{project_id}/apps/{app_id}/environments/{environment_id}/gateway` |
 | Gateway policy | `projects/{project_id}/apps/{app_id}/environments/{environment_id}/gateway/policies/{policy_id}` |
 
-The gateway path has no id. It is a namespace that groups the gateway resources of an environment, such as policies and routes, so a grant can cover the gateway alone.
+Gateway resources are rooted under `gateway`. The gateway segment carries no id and is never granted on its own.
 
 Examples:
 
