@@ -3,9 +3,8 @@ package apis
 import (
 	"context"
 	"fmt"
-	"time"
 
-	"github.com/unkeyed/sdks/api/go/v2/models/components"
+	"github.com/unkeyed/sdks/api/go/v3/models/components"
 	"github.com/unkeyed/unkey/cmd/api/util"
 	"github.com/unkeyed/unkey/pkg/cli"
 )
@@ -27,11 +26,12 @@ For full documentation, see https://www.unkey.com/docs/api-reference/v2/apis/get
 			"unkey api apis get-api --api-id=api_1234abcd",
 		},
 		Flags: []cli.Flag{
+			cli.String("body", "Decode this JSON as the endpoint request body. Request-building flags are mutually exclusive."),
 			util.RootKeyFlag(),
 			util.APIURLFlag(),
 			util.ConfigFlag(),
 			util.OutputFlag(),
-			cli.String("api-id", "The API ID to retrieve.", cli.Required()),
+			cli.String("api-id", "The API ID to retrieve.", cli.Required(), cli.MutuallyExclusive("body")),
 		},
 		Action: func(ctx context.Context, cmd *cli.Command) error {
 			client, err := util.CreateClient(cmd)
@@ -39,7 +39,15 @@ For full documentation, see https://www.unkey.com/docs/api-reference/v2/apis/get
 				return err
 			}
 
-			start := time.Now()
+			if cmd.FlagIsSet("body") {
+				body := cmd.String("body")
+				res, err := util.SendBody(ctx, client.Apis.GetAPI, body)
+				if err != nil {
+					return err
+				}
+				return util.Output(cmd, res.V2ApisGetAPIResponseBody)
+			}
+
 			res, err := client.Apis.GetAPI(ctx, components.V2ApisGetAPIRequestBody{
 				APIID: cmd.String("api-id"),
 			})
@@ -47,7 +55,7 @@ For full documentation, see https://www.unkey.com/docs/api-reference/v2/apis/get
 				return fmt.Errorf("%s", util.FormatError(err))
 			}
 
-			return util.Output(cmd, res.V2ApisGetAPIResponseBody, time.Since(start))
+			return util.Output(cmd, res.V2ApisGetAPIResponseBody)
 		},
 	}
 }

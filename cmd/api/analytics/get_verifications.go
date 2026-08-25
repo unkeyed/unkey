@@ -3,9 +3,8 @@ package analytics
 import (
 	"context"
 	"fmt"
-	"time"
 
-	"github.com/unkeyed/sdks/api/go/v2/models/components"
+	"github.com/unkeyed/sdks/api/go/v3/models/components"
 	"github.com/unkeyed/unkey/cmd/api/util"
 	"github.com/unkeyed/unkey/pkg/cli"
 )
@@ -23,11 +22,12 @@ For full documentation, see https://www.unkey.com/docs/api-reference/v2/analytic
 			`unkey api analytics get-verifications --query="SELECT key_id, outcome, COUNT(*) as cnt FROM key_verifications_v1 GROUP BY key_id, outcome"`,
 		},
 		Flags: []cli.Flag{
+			cli.String("body", "Decode this JSON as the endpoint request body. Request-building flags are mutually exclusive."),
 			util.RootKeyFlag(),
 			util.APIURLFlag(),
 			util.ConfigFlag(),
 			util.OutputFlag(),
-			cli.String("query", "SQL SELECT query to run against analytics data.", cli.Required()),
+			cli.String("query", "SQL SELECT query to run against analytics data.", cli.Required(), cli.MutuallyExclusive("body")),
 		},
 		Action: func(ctx context.Context, cmd *cli.Command) error {
 			client, err := util.CreateClient(cmd)
@@ -35,14 +35,22 @@ For full documentation, see https://www.unkey.com/docs/api-reference/v2/analytic
 				return err
 			}
 
-			start := time.Now()
+			if cmd.FlagIsSet("body") {
+				body := cmd.String("body")
+				res, err := util.SendBody(ctx, client.Analytics.GetVerifications, body)
+				if err != nil {
+					return err
+				}
+				return util.Output(cmd, res.V2AnalyticsGetVerificationsResponseBody)
+			}
+
 			res, err := client.Analytics.GetVerifications(ctx, components.V2AnalyticsGetVerificationsRequestBody{
 				Query: cmd.String("query"),
 			})
 			if err != nil {
 				return fmt.Errorf("%s", util.FormatError(err))
 			}
-			return util.Output(cmd, res.V2AnalyticsGetVerificationsResponseBody, time.Since(start))
+			return util.Output(cmd, res.V2AnalyticsGetVerificationsResponseBody)
 		},
 	}
 }

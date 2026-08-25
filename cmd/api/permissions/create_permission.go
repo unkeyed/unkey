@@ -3,9 +3,8 @@ package permissions
 import (
 	"context"
 	"fmt"
-	"time"
 
-	"github.com/unkeyed/sdks/api/go/v2/models/components"
+	"github.com/unkeyed/sdks/api/go/v3/models/components"
 	"github.com/unkeyed/unkey/cmd/api/util"
 	"github.com/unkeyed/unkey/pkg/cli"
 )
@@ -29,18 +28,28 @@ For full documentation, see https://www.unkey.com/docs/api-reference/v2/permissi
 			`unkey api permissions create-permission --name=billing.write --slug=billing-write --description="Grants write access to billing resources"`,
 		},
 		Flags: []cli.Flag{
+			cli.String("body", "Decode this JSON as the endpoint request body. Request-building flags are mutually exclusive."),
 			util.RootKeyFlag(),
 			util.APIURLFlag(),
 			util.ConfigFlag(),
 			util.OutputFlag(),
-			cli.String("name", "Human-readable name describing the permission's purpose.", cli.Required()),
-			cli.String("slug", "URL-safe identifier for use in APIs and integrations.", cli.Required()),
-			cli.String("description", "Detailed documentation of what this permission grants access to."),
+			cli.String("name", "Human-readable name describing the permission's purpose.", cli.Required(), cli.MutuallyExclusive("body")),
+			cli.String("slug", "URL-safe identifier for use in APIs and integrations.", cli.Required(), cli.MutuallyExclusive("body")),
+			cli.String("description", "Detailed documentation of what this permission grants access to.", cli.MutuallyExclusive("body")),
 		},
 		Action: func(ctx context.Context, cmd *cli.Command) error {
 			client, err := util.CreateClient(cmd)
 			if err != nil {
 				return err
+			}
+
+			if cmd.FlagIsSet("body") {
+				body := cmd.String("body")
+				res, err := util.SendBody(ctx, client.Permissions.CreatePermission, body)
+				if err != nil {
+					return err
+				}
+				return util.Output(cmd, res.V2PermissionsCreatePermissionResponseBody)
 			}
 
 			req := components.V2PermissionsCreatePermissionRequestBody{
@@ -53,12 +62,11 @@ For full documentation, see https://www.unkey.com/docs/api-reference/v2/permissi
 				req.Description = &v
 			}
 
-			start := time.Now()
 			res, err := client.Permissions.CreatePermission(ctx, req)
 			if err != nil {
 				return fmt.Errorf("%s", util.FormatError(err))
 			}
-			return util.Output(cmd, res.V2PermissionsCreatePermissionResponseBody, time.Since(start))
+			return util.Output(cmd, res.V2PermissionsCreatePermissionResponseBody)
 		},
 	}
 }

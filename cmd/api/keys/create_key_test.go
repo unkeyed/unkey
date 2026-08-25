@@ -104,7 +104,7 @@ func TestCreateKey(t *testing.T) {
 		},
 		{
 			name: "with metadata json",
-			args: `keys create-key --api-id=api_123 --meta-json={"plan":"pro","org":"acme"}`,
+			args: `keys create-key --api-id=api_123 --meta='{"plan":"pro","org":"acme"}'`,
 			want: openapi.V2KeysCreateKeyRequestBody{
 				ApiId:       "api_123",
 				Meta:        ptr.P(map[string]any{"plan": "pro", "org": "acme"}),
@@ -115,7 +115,7 @@ func TestCreateKey(t *testing.T) {
 		},
 		{
 			name: "with credits json",
-			args: `keys create-key --api-id=api_123 --credits-json={"remaining":1000}`,
+			args: `keys create-key --api-id=api_123 --credits='{"remaining":1000}'`,
 			want: openapi.V2KeysCreateKeyRequestBody{
 				ApiId: "api_123",
 				Credits: &openapi.KeyCreditsData{
@@ -128,7 +128,7 @@ func TestCreateKey(t *testing.T) {
 		},
 		{
 			name: "with ratelimits json",
-			args: `keys create-key --api-id=api_123 --ratelimits-json=[{"name":"req","limit":100,"duration":60000,"autoApply":true}]`,
+			args: `keys create-key --api-id=api_123 --ratelimits='[{"name":"req","limit":100,"duration":60000,"autoApply":true}]'`,
 			want: openapi.V2KeysCreateKeyRequestBody{
 				ApiId: "api_123",
 				Ratelimits: ptr.P([]openapi.RatelimitRequest{
@@ -141,7 +141,7 @@ func TestCreateKey(t *testing.T) {
 		},
 		{
 			name: "all flags",
-			args: `keys create-key --api-id=api_123 --prefix=sk --name=test --byte-length=32 --external-id=user_456 --expires=1700000000000 --enabled=false --recoverable --roles=admin,reader --permissions=docs.read,docs.write --meta-json={"plan":"pro"} --credits-json={"remaining":1000} --ratelimits-json=[{"name":"req","limit":100,"duration":60000,"autoApply":false}]`,
+			args: `keys create-key --api-id=api_123 --prefix=sk --name=test --byte-length=32 --external-id=user_456 --expires=1700000000000 --enabled=false --recoverable --roles=admin,reader --permissions=docs.read,docs.write --meta='{"plan":"pro"}' --credits='{"remaining":1000}' --ratelimits='[{"name":"req","limit":100,"duration":60000,"autoApply":false}]'`,
 			want: openapi.V2KeysCreateKeyRequestBody{
 				ApiId:       "api_123",
 				Prefix:      ptr.P("sk"),

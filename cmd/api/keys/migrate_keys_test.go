@@ -16,8 +16,8 @@ func TestMigrateKeys(t *testing.T) {
 		want openapi.V2KeysMigrateKeysRequestBody
 	}{
 		{
-			name: "with migration-id, api-id, and keys-json",
-			args: `keys migrate-keys --migration-id=acme_migration --api-id=api_123456789 --keys-json=[{"hash":"abc123","enabled":true}]`,
+			name: "with migration-id, api-id, and keys",
+			args: `keys migrate-keys --migration-id=acme_migration --api-id=api_123456789 --keys='[{"hash":"abc123","enabled":true}]'`,
 			want: openapi.V2KeysMigrateKeysRequestBody{
 				MigrationId: "acme_migration",
 				ApiId:       "api_123456789",

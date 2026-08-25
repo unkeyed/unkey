@@ -386,6 +386,79 @@
                 ]
               },
               {
+                "group": "projects",
+                "pages": [
+                  "cli/projects/create-project",
+                  "cli/projects/delete-project",
+                  "cli/projects/get-project",
+                  "cli/projects/list-projects",
+                  "cli/projects/update-project"
+                ]
+              },
+              {
+                "group": "apps",
+                "pages": [
+                  "cli/apps/create-app",
+                  "cli/apps/delete-app",
+                  "cli/apps/get-app",
+                  "cli/apps/list-apps",
+                  "cli/apps/update-app"
+                ]
+              },
+              {
+                "group": "environments",
+                "pages": [
+                  "cli/environments/get-environment",
+                  "cli/environments/list-environment-variables",
+                  "cli/environments/list-environments",
+                  "cli/environments/remove-environment-variables",
+                  "cli/environments/set-environment-variables",
+                  "cli/environments/update-settings"
+                ]
+              },
+              {
+                "group": "deployments",
+                "pages": [
+                  "cli/deployments/create-deployment",
+                  "cli/deployments/get-deployment",
+                  "cli/deployments/list-deployments",
+                  "cli/deployments/promote-deployment",
+                  "cli/deployments/rollback-deployment",
+                  "cli/deployments/start-deployment",
+                  "cli/deployments/stop-deployment"
+                ]
+              },
+              {
+                "group": "domains",
+                "pages": [
+                  "cli/domains/create-domain",
+                  "cli/domains/delete-domain",
+                  "cli/domains/get-domain",
+                  "cli/domains/list-domains",
+                  "cli/domains/verify-domain"
+                ]
+              },
+              {
+                "group": "gateway",
+                "pages": [
+                  "cli/gateway/list-policies",
+                  "cli/gateway/set-policies",
+                  "cli/gateway/update-policy"
+                ]
+              },
+              {
+                "group": "github",
+                "pages": [
+                  "cli/github/install-app"
+                ]
+              },
+              {
+                "group": "portal",
+                "pages": [
+                  "cli/portal/create-session"
+                ]
+              },
+              {
                 "group": "keys",
                 "pages": [
                   "cli/keys/create-key",
@@ -425,7 +498,8 @@
                   "cli/permissions/create-role",
                   "cli/permissions/delete-role",
                   "cli/permissions/get-role",
-                  "cli/permissions/list-roles"
+                  "cli/permissions/list-roles",
+                  "cli/permissions/set-role-permissions"
                 ]
               },
               {
@@ -442,6 +516,9 @@
               {
                 "group": "analytics",
                 "pages": [
+                  "cli/analytics/get-gateway-requests",
+                  "cli/analytics/get-ratelimits",
+                  "cli/analytics/get-runtime-logs",
                   "cli/analytics/get-verifications"
                 ]
               }

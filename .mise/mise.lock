@@ -556,36 +556,36 @@ url = "https://github.com/tilt-dev/tilt/releases/download/v0.37.3/tilt.0.37.3.wi
 url_api = "https://api.github.com/repos/tilt-dev/tilt/releases/assets/409071129"
 
 [[tools.go]]
-version = "1.25.1"
+version = "1.25.10"
 backend = "core:go"
 
 [tools.go."platforms.linux-arm64"]
-checksum = "sha256:65a3e34fb2126f55b34e1edfc709121660e1be2dee6bdf405fc399a63a95a87d"
-url = "https://dl.google.com/go/go1.25.1.linux-arm64.tar.gz"
+checksum = "sha256:654da1f9b50a5d1c2a85ccf8ed405aa89c06e94d18384628bf186f7712677b08"
+url = "https://dl.google.com/go/go1.25.10.linux-arm64.tar.gz"
 
 [tools.go."platforms.linux-arm64-musl"]
-checksum = "sha256:65a3e34fb2126f55b34e1edfc709121660e1be2dee6bdf405fc399a63a95a87d"
-url = "https://dl.google.com/go/go1.25.1.linux-arm64.tar.gz"
+checksum = "sha256:654da1f9b50a5d1c2a85ccf8ed405aa89c06e94d18384628bf186f7712677b08"
+url = "https://dl.google.com/go/go1.25.10.linux-arm64.tar.gz"
 
 [tools.go."platforms.linux-x64"]
-checksum = "sha256:7716a0d940a0f6ae8e1f3b3f4f36299dc53e31b16840dbd171254312c41ca12e"
-url = "https://dl.google.com/go/go1.25.1.linux-amd64.tar.gz"
+checksum = "sha256:42d4f7a32316aa66591eca7e89867256057a4264451aca10570a715b3637ba70"
+url = "https://dl.google.com/go/go1.25.10.linux-amd64.tar.gz"
 
 [tools.go."platforms.linux-x64-musl"]
-checksum = "sha256:7716a0d940a0f6ae8e1f3b3f4f36299dc53e31b16840dbd171254312c41ca12e"
-url = "https://dl.google.com/go/go1.25.1.linux-amd64.tar.gz"
+checksum = "sha256:42d4f7a32316aa66591eca7e89867256057a4264451aca10570a715b3637ba70"
+url = "https://dl.google.com/go/go1.25.10.linux-amd64.tar.gz"
 
 [tools.go."platforms.macos-arm64"]
-checksum = "sha256:68deebb214f39d542e518ebb0598a406ab1b5a22bba8ec9ade9f55fb4dd94a6c"
-url = "https://dl.google.com/go/go1.25.1.darwin-arm64.tar.gz"
+checksum = "sha256:795691a425de7e7cdba3544f354dcd2cebcf52e87dc6898193878f34eb6d634f"
+url = "https://dl.google.com/go/go1.25.10.darwin-arm64.tar.gz"
 
 [tools.go."platforms.macos-x64"]
-checksum = "sha256:1d622468f767a1b9fe1e1e67bd6ce6744d04e0c68712adc689748bbeccb126bb"
-url = "https://dl.google.com/go/go1.25.1.darwin-amd64.tar.gz"
+checksum = "sha256:52321165a3146cd91865ef98371506a846ed4dc4f9f1c9323e5ad90d2a411e06"
+url = "https://dl.google.com/go/go1.25.10.darwin-amd64.tar.gz"
 
 [tools.go."platforms.windows-x64"]
-checksum = "sha256:4a974de310e7ee1d523d2fcedb114ba5fa75408c98eb3652023e55ccf3fa7cab"
-url = "https://dl.google.com/go/go1.25.1.windows-amd64.zip"
+checksum = "sha256:ca37af2dadd8544464f1a9ca7c3886499d1cdfcb263855d0a1d71f194b2bd222"
+url = "https://dl.google.com/go/go1.25.10.windows-amd64.zip"
 
 [[tools."http:helm"]]
 version = "3.21.0"
