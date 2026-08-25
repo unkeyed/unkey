@@ -1,4 +1,4 @@
--- name: FindFrontlineRoutesForRollback :many
+-- name: FindFrontlineRoutesByEnvironmentAndSticky :many
 SELECT
     id,
     project_id,
