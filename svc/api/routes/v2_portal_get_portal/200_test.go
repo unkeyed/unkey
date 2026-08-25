@@ -1,7 +1,6 @@
 package handler_test
 
 import (
-	"database/sql"
 	"fmt"
 	"net/http"
 	"strings"
@@ -9,7 +8,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/portal"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
@@ -113,49 +112,6 @@ func appMapping(t *testing.T, h *testutil.Harness, workspaceID, slug string) por
 	return portal.Mapping{Type: portal.MappingTypeApp, ID: app.ID}
 }
 
-// seedPortal writes a portal carrying the given mapping and branding.
-func seedPortal(
-	t *testing.T,
-	h *testutil.Harness,
-	workspaceID, slug string,
-	mapping portal.Mapping,
-	logoURL, primaryColor sql.NullString,
-) db.Portal {
-	t.Helper()
-
-	appID := sql.NullString{String: "", Valid: false}
-	keyAuthID := sql.NullString{String: "", Valid: false}
-	switch mapping.Type {
-	case portal.MappingTypeApp:
-		appID = sql.NullString{String: mapping.ID, Valid: true}
-	case portal.MappingTypeKeyspace:
-		keyAuthID = sql.NullString{String: mapping.ID, Valid: true}
-	default:
-		t.Fatalf("unsupported mapping type %q", mapping.Type)
-	}
-
-	return h.CreatePortal(seed.CreatePortalRequest{
-		ID:           "",
-		WorkspaceID:  workspaceID,
-		Slug:         slug,
-		AppID:        appID,
-		KeyAuthID:    keyAuthID,
-		Enabled:      true,
-		LogoUrl:      logoURL,
-		PrimaryColor: primaryColor,
-	})
-}
-
-func nullString(s string) sql.NullString {
-	return sql.NullString{String: s, Valid: true}
-}
-
-func nullStringAbsent() sql.NullString {
-	return sql.NullString{String: "", Valid: false}
-}
-
-func ptr(s string) *string { return &s }
-
 // normalizeRequestID strips the per-request id so two error bodies can be
 // compared for the parity the masking depends on.
 func normalizeRequestID(body string) string {
@@ -178,8 +134,8 @@ func TestGetPortalByIdAndSlug(t *testing.T) {
 	workspace := h.Resources().UserWorkspace
 
 	mapping := keyspaceMapping(t, h, workspace.ID)
-	stored := seedPortal(t, h, workspace.ID, "acme-portal", mapping,
-		nullString("https://cdn.example.com/logo.svg"), nullString("#6366f1"))
+	stored := h.SeedPortal(t, workspace.ID, "acme-portal", "acme-portal", mapping,
+		ptr.P("https://cdn.example.com/logo.svg"), ptr.P("#6366f1"))
 
 	for name, target := range map[string]string{
 		"by id":   stored.ID,
@@ -187,7 +143,7 @@ func TestGetPortalByIdAndSlug(t *testing.T) {
 	} {
 		t.Run(name, func(t *testing.T) {
 			res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
-				Portal:     ptr(target),
+				Portal:     ptr.P(target),
 				KeyspaceId: nil,
 				AppId:      nil,
 			})
@@ -212,12 +168,12 @@ func TestGetPortalByMapping(t *testing.T) {
 	workspace := h.Resources().UserWorkspace
 
 	keyspace := keyspaceMapping(t, h, workspace.ID)
-	keyspacePortal := seedPortal(t, h, workspace.ID, "keyspace-portal", keyspace,
-		nullStringAbsent(), nullStringAbsent())
+	keyspacePortal := h.SeedPortal(t, workspace.ID, "keyspace-portal", "keyspace-portal", keyspace,
+		nil, nil)
 
 	app := appMapping(t, h, workspace.ID, "payments")
-	appPortal := seedPortal(t, h, workspace.ID, "app-portal", app,
-		nullStringAbsent(), nullStringAbsent())
+	appPortal := h.SeedPortal(t, workspace.ID, "app-portal", "app-portal", app,
+		nil, nil)
 
 	for name, tc := range map[string]struct {
 		mapping  portal.Mapping
@@ -246,11 +202,11 @@ func TestGetPortalOmitsAbsentBranding(t *testing.T) {
 	route, headers := newRoute(t, h, "portal.*.read_portal")
 	workspace := h.Resources().UserWorkspace
 
-	stored := seedPortal(t, h, workspace.ID, "plain", keyspaceMapping(t, h, workspace.ID),
-		nullStringAbsent(), nullStringAbsent())
+	stored := h.SeedPortal(t, workspace.ID, "plain", "plain", keyspaceMapping(t, h, workspace.ID),
+		nil, nil)
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
-		Portal:     ptr(stored.ID),
+		Portal:     ptr.P(stored.ID),
 		KeyspaceId: nil,
 		AppId:      nil,
 	})
@@ -267,11 +223,11 @@ func TestGetPortalCarriesDisplayNameButNoReturnURL(t *testing.T) {
 	route, headers := newRoute(t, h, "portal.*.read_portal")
 	workspace := h.Resources().UserWorkspace
 
-	stored := seedPortal(t, h, workspace.ID, "no-extras", keyspaceMapping(t, h, workspace.ID),
-		nullString("https://cdn.example.com/logo.svg"), nullStringAbsent())
+	stored := h.SeedPortal(t, workspace.ID, "no-extras", "no-extras", keyspaceMapping(t, h, workspace.ID),
+		ptr.P("https://cdn.example.com/logo.svg"), nil)
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
-		Portal:     ptr(stored.ID),
+		Portal:     ptr.P(stored.ID),
 		KeyspaceId: nil,
 		AppId:      nil,
 	})

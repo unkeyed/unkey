@@ -8,6 +8,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/portal"
 )
 
@@ -125,25 +126,27 @@ func TestMappingOfRejectsAmbiguousRows(t *testing.T) {
 	t.Run("app row", func(t *testing.T) {
 		t.Parallel()
 
+		appID := uid.New(uid.AppPrefix)
 		mapping, err := portal.MappingOf(db.Portal{
-			ID:    "pc_1",
-			AppID: sql.NullString{String: "app_123", Valid: true},
+			ID:    uid.New(uid.PortalPrefix),
+			AppID: sql.NullString{String: appID, Valid: true},
 		})
 		require.NoError(t, err)
 		require.Equal(t, portal.MappingTypeApp, mapping.Type)
-		require.Equal(t, "app_123", mapping.ID)
+		require.Equal(t, appID, mapping.ID)
 	})
 
 	t.Run("keyspace row", func(t *testing.T) {
 		t.Parallel()
 
+		keyspaceID := uid.New(uid.KeySpacePrefix)
 		mapping, err := portal.MappingOf(db.Portal{
-			ID:        "pc_1",
-			KeyAuthID: sql.NullString{String: "ks_123", Valid: true},
+			ID:        uid.New(uid.PortalPrefix),
+			KeyAuthID: sql.NullString{String: keyspaceID, Valid: true},
 		})
 		require.NoError(t, err)
 		require.Equal(t, portal.MappingTypeKeyspace, mapping.Type)
-		require.Equal(t, "ks_123", mapping.ID)
+		require.Equal(t, keyspaceID, mapping.ID)
 	})
 
 	// Rows written before these routes existed were never checked against the
@@ -152,9 +155,9 @@ func TestMappingOfRejectsAmbiguousRows(t *testing.T) {
 		t.Parallel()
 
 		_, err := portal.MappingOf(db.Portal{
-			ID:        "pc_1",
-			AppID:     sql.NullString{String: "app_123", Valid: true},
-			KeyAuthID: sql.NullString{String: "ks_123", Valid: true},
+			ID:        uid.New(uid.PortalPrefix),
+			AppID:     sql.NullString{String: uid.New(uid.AppPrefix), Valid: true},
+			KeyAuthID: sql.NullString{String: uid.New(uid.KeySpacePrefix), Valid: true},
 		})
 		require.Error(t, err)
 	})
@@ -162,7 +165,7 @@ func TestMappingOfRejectsAmbiguousRows(t *testing.T) {
 	t.Run("neither column set is refused", func(t *testing.T) {
 		t.Parallel()
 
-		_, err := portal.MappingOf(db.Portal{ID: "pc_1"})
+		_, err := portal.MappingOf(db.Portal{ID: uid.New(uid.PortalPrefix)})
 		require.Error(t, err)
 	})
 
@@ -172,7 +175,7 @@ func TestMappingOfRejectsAmbiguousRows(t *testing.T) {
 		t.Parallel()
 
 		_, err := portal.MappingOf(db.Portal{
-			ID:    "pc_1",
+			ID:    uid.New(uid.PortalPrefix),
 			AppID: sql.NullString{String: "", Valid: true},
 		})
 		require.Error(t, err)
@@ -215,45 +218,25 @@ func TestValidateLogoURL(t *testing.T) {
 		"a url exactly at the limit is accepted")
 }
 
-func TestValidatePrimaryColor(t *testing.T) {
-	t.Parallel()
-
-	for _, raw := range []string{"#6366f1", "#FFFFFF", "#000000", "#AbCdEf"} {
-		require.NoError(t, portal.ValidatePrimaryColor(raw), "expected %q to be accepted", raw)
-	}
-
-	invalid := map[string]string{
-		"three-digit shorthand": "#fff",
-		"missing hash":          "6366f1",
-		"named colour":          "rebeccapurple",
-		"eight digits":          "#6366f1ff",
-		"non-hex character":     "#6366fg",
-		"empty":                 "",
-		"css function":          "rgb(99,102,241)",
-	}
-	for name, raw := range invalid {
-		require.Error(t, portal.ValidatePrimaryColor(raw), "expected %s to be rejected", name)
-	}
-}
-
 func TestToResponseOmitsAbsentBranding(t *testing.T) {
 	t.Parallel()
 
 	t.Run("no branding columns omits the object", func(t *testing.T) {
 		t.Parallel()
 
+		keyspaceID := uid.New(uid.KeySpacePrefix)
 		got, err := portal.ToResponse(db.Portal{
-			ID:        "pc_1",
+			ID:        uid.New(uid.PortalPrefix),
 			Slug:      "acme",
 			Enabled:   true,
-			KeyAuthID: sql.NullString{String: "ks_1", Valid: true},
+			KeyAuthID: sql.NullString{String: keyspaceID, Valid: true},
 			CreatedAt: 1719849600000,
 		})
 		require.NoError(t, err)
 		require.Nil(t, got.Branding, "branding must be absent rather than two empty strings")
 		require.Equal(t, "acme", got.Slug)
 		require.NotNil(t, got.KeyspaceId)
-		require.Equal(t, "ks_1", string(*got.KeyspaceId))
+		require.Equal(t, keyspaceID, string(*got.KeyspaceId))
 		require.Nil(t, got.AppId)
 		require.Zero(t, got.UpdatedAt, "a never-updated portal reports no update time")
 	})
@@ -262,10 +245,10 @@ func TestToResponseOmitsAbsentBranding(t *testing.T) {
 		t.Parallel()
 
 		got, err := portal.ToResponse(db.Portal{
-			ID:        "pc_1",
+			ID:        uid.New(uid.PortalPrefix),
 			Slug:      "acme",
 			Enabled:   true,
-			AppID:     sql.NullString{String: "app_1", Valid: true},
+			AppID:     sql.NullString{String: uid.New(uid.AppPrefix), Valid: true},
 			LogoUrl:   sql.NullString{String: "https://cdn.example.com/l.svg", Valid: true},
 			CreatedAt: 1719849600000,
 			UpdatedAt: sql.NullInt64{Int64: 1719936000000, Valid: true},
@@ -283,22 +266,23 @@ func TestToResponseOmitsAbsentBranding(t *testing.T) {
 	t.Run("response carries the mapping ids, not a name", func(t *testing.T) {
 		t.Parallel()
 
+		appID := uid.New(uid.AppPrefix)
 		got, err := portal.ToResponse(db.Portal{
-			ID:        "pc_1",
+			ID:        uid.New(uid.PortalPrefix),
 			Slug:      "acme",
-			AppID:     sql.NullString{String: "app_1", Valid: true},
+			AppID:     sql.NullString{String: appID, Valid: true},
 			CreatedAt: 1,
 		})
 		require.NoError(t, err)
 		require.NotNil(t, got.AppId)
-		require.Equal(t, "app_1", string(*got.AppId))
+		require.Equal(t, appID, string(*got.AppId))
 		require.Nil(t, got.KeyspaceId)
 	})
 
 	t.Run("ambiguous row surfaces the error", func(t *testing.T) {
 		t.Parallel()
 
-		_, err := portal.ToResponse(db.Portal{ID: "pc_1", Slug: "acme"})
+		_, err := portal.ToResponse(db.Portal{ID: uid.New(uid.PortalPrefix), Slug: "acme"})
 		require.Error(t, err)
 	})
 }
@@ -309,30 +293,33 @@ func TestToResponseOmitsAbsentBranding(t *testing.T) {
 func TestDescribeMappingNeverFails(t *testing.T) {
 	t.Parallel()
 
+	appID := uid.New(uid.AppPrefix)
+	keyspaceID := uid.New(uid.KeySpacePrefix)
+
 	testCases := map[string]struct {
 		row      db.Portal
 		wantType string
 		wantID   string
 	}{
 		"app mapped": {
-			row:      db.Portal{AppID: sql.NullString{String: "app_1", Valid: true}},
+			row:      db.Portal{AppID: sql.NullString{String: appID, Valid: true}},
 			wantType: "app",
-			wantID:   "app_1",
+			wantID:   appID,
 		},
 		"keyspace mapped": {
-			row:      db.Portal{KeyAuthID: sql.NullString{String: "ks_1", Valid: true}},
+			row:      db.Portal{KeyAuthID: sql.NullString{String: keyspaceID, Valid: true}},
 			wantType: "keyspace",
-			wantID:   "ks_1",
+			wantID:   keyspaceID,
 		},
 		// Both ids survive: an incident reviewer needs to know which resources the
 		// row was claiming, which is exactly what a single "invalid" would hide.
 		"both set is invalid and keeps both ids": {
 			row: db.Portal{
-				AppID:     sql.NullString{String: "app_1", Valid: true},
-				KeyAuthID: sql.NullString{String: "ks_1", Valid: true},
+				AppID:     sql.NullString{String: appID, Valid: true},
+				KeyAuthID: sql.NullString{String: keyspaceID, Valid: true},
 			},
 			wantType: "invalid",
-			wantID:   "app_1,ks_1",
+			wantID:   appID + "," + keyspaceID,
 		},
 		// Distinct from "invalid": no mapping at all is a different problem from
 		// two conflicting ones, and collapsing them loses that.
@@ -384,12 +371,13 @@ func TestSameAssociationTreatsEmptyAsAbsent(t *testing.T) {
 func TestToResponseTolerantNeverFails(t *testing.T) {
 	t.Parallel()
 
+	portalID := uid.New(uid.PortalPrefix)
 	ambiguous := db.Portal{
-		ID:        "pc_1",
+		ID:        portalID,
 		Slug:      "broken",
 		Enabled:   true,
-		AppID:     sql.NullString{String: "app_1", Valid: true},
-		KeyAuthID: sql.NullString{String: "ks_1", Valid: true},
+		AppID:     sql.NullString{String: uid.New(uid.AppPrefix), Valid: true},
+		KeyAuthID: sql.NullString{String: uid.New(uid.KeySpacePrefix), Valid: true},
 		CreatedAt: 1,
 	}
 
@@ -401,12 +389,12 @@ func TestToResponseTolerantNeverFails(t *testing.T) {
 	// claims two resources". It omits both rather than picking one or inventing a
 	// type, and the audit entry keeps the real state through DescribeMapping.
 	got := portal.ToResponseTolerant(ambiguous)
-	require.Equal(t, "pc_1", got.Id)
+	require.Equal(t, portalID, got.Id)
 	require.Equal(t, "broken", got.Slug)
 	require.Nil(t, got.KeyspaceId, "an ambiguous row must not name a keyspace")
 	require.Nil(t, got.AppId, "an ambiguous row must not name an app")
 
-	unmapped := portal.ToResponseTolerant(db.Portal{ID: "pc_2", Slug: "none", CreatedAt: 1})
+	unmapped := portal.ToResponseTolerant(db.Portal{ID: uid.New(uid.PortalPrefix), Slug: "none", CreatedAt: 1})
 	require.Nil(t, unmapped.KeyspaceId)
 	require.Nil(t, unmapped.AppId)
 }
@@ -416,15 +404,17 @@ func TestToResponseTolerantNeverFails(t *testing.T) {
 func TestDescribeMappingStillNamesBrokenRows(t *testing.T) {
 	t.Parallel()
 
+	appID := uid.New(uid.AppPrefix)
+	keyspaceID := uid.New(uid.KeySpacePrefix)
 	mappingType, mappingID := portal.DescribeMapping(db.Portal{
-		ID:        "pc_1",
-		AppID:     sql.NullString{String: "app_1", Valid: true},
-		KeyAuthID: sql.NullString{String: "ks_1", Valid: true},
+		ID:        uid.New(uid.PortalPrefix),
+		AppID:     sql.NullString{String: appID, Valid: true},
+		KeyAuthID: sql.NullString{String: keyspaceID, Valid: true},
 	})
 	require.Equal(t, "invalid", mappingType)
-	require.Equal(t, "app_1,ks_1", mappingID, "both ids survive so an incident reviewer sees the claim")
+	require.Equal(t, appID+","+keyspaceID, mappingID, "both ids survive so an incident reviewer sees the claim")
 
-	mappingType, mappingID = portal.DescribeMapping(db.Portal{ID: "pc_2"})
+	mappingType, mappingID = portal.DescribeMapping(db.Portal{ID: uid.New(uid.PortalPrefix)})
 	require.Equal(t, "none", mappingType)
 	require.Empty(t, mappingID)
 }

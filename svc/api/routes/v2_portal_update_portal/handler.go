@@ -97,9 +97,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				fault.Public(portal.ErrMsgInvalidColor),
 			)
 		}
-		if err = portal.ValidatePrimaryColor(value); err != nil {
-			return err
-		}
 		primaryColor = sql.NullString{String: value, Valid: true}
 	}
 
@@ -208,7 +205,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			}
 		}
 
-		if err = h.assertAvailable(ctx, tx, principal.WorkspaceID, found, req, repoint, mapping); err != nil {
+		if err = h.checkPortalConflicts(ctx, tx, principal.WorkspaceID, found, req, repoint, mapping); err != nil {
 			return empty, err
 		}
 
@@ -318,6 +315,13 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				Portal:      found.ID,
 				WorkspaceID: principal.WorkspaceID,
 			}); err != nil {
+				if !db.IsNotFound(err) {
+					return empty, fault.Wrap(err,
+						fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+						fault.Internal("database error re-reading portal after a no-op update"),
+						fault.Public("We're unable to update the portal."),
+					)
+				}
 				return empty, fault.New("portal not found",
 					fault.Code(codes.Data.Portal.NotFound.URN()),
 					fault.Internal(fmt.Sprintf("update matched no rows for portal %s; concurrently deleted", found.ID)),
@@ -416,16 +420,16 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	})
 }
 
-// assertAvailable reports a conflict naming the input the caller should change.
+// checkPortalConflicts reports a conflict naming the input the caller should
+// change, which a duplicate-key error cannot.
 //
-// Without it every collision would surface through the driver's duplicate-key
-// error, which cannot say whether the slug or the mapping was taken. Both checks
-// exclude the portal being updated, so re-sending a portal's own slug or its own
-// mapping is not a conflict. The mapping check is otherwise unscoped, because the
+// Both checks exclude the portal being updated, so re-sending a portal's own slug
+// or its own resource is not a conflict. The resource check is otherwise
+// unscoped, because the
 // app and keyspace unique keys span the whole table: a caller can collide with a
 // portal in a workspace it cannot see, and being told to "pick another slug"
 // would send it round a loop it can never win.
-func (h *Handler) assertAvailable(
+func (h *Handler) checkPortalConflicts(
 	ctx context.Context,
 	tx db.DBTX,
 	workspaceID string,

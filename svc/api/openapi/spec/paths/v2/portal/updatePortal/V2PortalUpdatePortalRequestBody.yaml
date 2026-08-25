@@ -50,6 +50,8 @@ properties:
     type:
       - string
       - "null"
+    format: uri
+    pattern: "^https://"
     minLength: 1
     maxLength: 500
     description: |

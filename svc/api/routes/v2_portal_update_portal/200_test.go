@@ -2,7 +2,6 @@ package handler_test
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"net/http"
 	"strings"
@@ -12,6 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/portal"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
@@ -122,39 +122,6 @@ func appMapping(t *testing.T, h *testutil.Harness, workspaceID, slug string) por
 	return portal.Mapping{Type: portal.MappingTypeApp, ID: app.ID}
 }
 
-// seedPortal writes a portal carrying the given mapping and branding.
-func seedPortal(
-	t *testing.T,
-	h *testutil.Harness,
-	workspaceID, slug string,
-	mapping portal.Mapping,
-	logoURL, primaryColor sql.NullString,
-) db.Portal {
-	t.Helper()
-
-	appID := nullStringAbsent()
-	keyAuthID := nullStringAbsent()
-	switch mapping.Type {
-	case portal.MappingTypeApp:
-		appID = nullString(mapping.ID)
-	case portal.MappingTypeKeyspace:
-		keyAuthID = nullString(mapping.ID)
-	default:
-		t.Fatalf("unsupported mapping type %q", mapping.Type)
-	}
-
-	return h.CreatePortal(seed.CreatePortalRequest{
-		ID:           "",
-		WorkspaceID:  workspaceID,
-		Slug:         slug,
-		AppID:        appID,
-		KeyAuthID:    keyAuthID,
-		Enabled:      true,
-		LogoUrl:      logoURL,
-		PrimaryColor: primaryColor,
-	})
-}
-
 // fetchPortal reads a row back so a response can be checked against what was
 // actually stored.
 func fetchPortal(t *testing.T, h *testutil.Harness, workspaceID, portalID string) db.Portal {
@@ -207,16 +174,6 @@ func countAuditEntriesMentioning(t *testing.T, h *testutil.Harness, workspaceID,
 	return count
 }
 
-func nullString(s string) sql.NullString {
-	return sql.NullString{String: s, Valid: true}
-}
-
-func nullStringAbsent() sql.NullString {
-	return sql.NullString{String: "", Valid: false}
-}
-
-func ptr[T any](v T) *T { return &v }
-
 // unspecified is the tri-state zero: the field was not named at all.
 func unspecified() nullable.Nullable[string] {
 	return nullable.Nullable[string]{}
@@ -262,11 +219,11 @@ func TestUpdatePortalOnlyEnabled(t *testing.T) {
 	workspace := h.Resources().UserWorkspace
 
 	mapping := keyspaceMapping(t, h, workspace.ID)
-	stored := seedPortal(t, h, workspace.ID, "acme-portal", mapping,
-		nullString("https://cdn.example.com/logo.svg"), nullString("#6366f1"))
+	stored := h.SeedPortal(t, workspace.ID, "acme-portal", "acme-portal", mapping,
+		ptr.P("https://cdn.example.com/logo.svg"), ptr.P("#6366f1"))
 
 	req := baseRequest(stored.ID)
-	req.Enabled = ptr(false)
+	req.Enabled = ptr.P(false)
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 	require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
@@ -292,11 +249,11 @@ func TestUpdatePortalOnlySlug(t *testing.T) {
 	workspace := h.Resources().UserWorkspace
 
 	mapping := keyspaceMapping(t, h, workspace.ID)
-	stored := seedPortal(t, h, workspace.ID, "old-slug", mapping,
-		nullString("https://cdn.example.com/logo.svg"), nullStringAbsent())
+	stored := h.SeedPortal(t, workspace.ID, "old-slug", "old-slug", mapping,
+		ptr.P("https://cdn.example.com/logo.svg"), nil)
 
 	req := baseRequest(stored.ID)
-	req.Slug = ptr("new-slug")
+	req.Slug = ptr.P("new-slug")
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 	require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
@@ -320,11 +277,11 @@ func TestUpdatePortalOnlyDisplayName(t *testing.T) {
 	workspace := h.Resources().UserWorkspace
 
 	mapping := keyspaceMapping(t, h, workspace.ID)
-	stored := seedPortal(t, h, workspace.ID, "acme-portal", mapping,
-		nullStringAbsent(), nullStringAbsent())
+	stored := h.SeedPortal(t, workspace.ID, "acme-portal", "acme-portal", mapping,
+		nil, nil)
 
 	req := baseRequest(stored.ID)
-	req.DisplayName = ptr("Acme Payments")
+	req.DisplayName = ptr.P("Acme Payments")
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 	require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
@@ -341,8 +298,8 @@ func TestUpdatePortalOneBrandingFieldLeavesTheOther(t *testing.T) {
 	route, headers := newRoute(t, h, "portal.*.update_portal")
 	workspace := h.Resources().UserWorkspace
 
-	stored := seedPortal(t, h, workspace.ID, "branded", keyspaceMapping(t, h, workspace.ID),
-		nullString("https://cdn.example.com/logo.svg"), nullString("#6366f1"))
+	stored := h.SeedPortal(t, workspace.ID, "branded", "branded", keyspaceMapping(t, h, workspace.ID),
+		ptr.P("https://cdn.example.com/logo.svg"), ptr.P("#6366f1"))
 
 	req := baseRequest(stored.ID)
 	req.PrimaryColor = nullable.NewNullableWithValue("#000000")
@@ -365,10 +322,10 @@ func TestUpdatePortalDistinguishesNullFromOmitted(t *testing.T) {
 	route, headers := newRoute(t, h, "portal.*.update_portal")
 	workspace := h.Resources().UserWorkspace
 
-	cleared := seedPortal(t, h, workspace.ID, "cleared", keyspaceMapping(t, h, workspace.ID),
-		nullString("https://cdn.example.com/logo.svg"), nullString("#6366f1"))
-	kept := seedPortal(t, h, workspace.ID, "kept", keyspaceMapping(t, h, workspace.ID),
-		nullString("https://cdn.example.com/logo.svg"), nullString("#6366f1"))
+	cleared := h.SeedPortal(t, workspace.ID, "cleared", "cleared", keyspaceMapping(t, h, workspace.ID),
+		ptr.P("https://cdn.example.com/logo.svg"), ptr.P("#6366f1"))
+	kept := h.SeedPortal(t, workspace.ID, "kept", "kept", keyspaceMapping(t, h, workspace.ID),
+		ptr.P("https://cdn.example.com/logo.svg"), ptr.P("#6366f1"))
 
 	nullReq := baseRequest(cleared.ID)
 	nullReq.LogoUrl = nullable.NewNullNullable[string]()
@@ -398,8 +355,8 @@ func TestUpdatePortalClearingAllBrandingOmitsTheObject(t *testing.T) {
 	route, headers := newRoute(t, h, "portal.*.update_portal")
 	workspace := h.Resources().UserWorkspace
 
-	stored := seedPortal(t, h, workspace.ID, "unbranded", keyspaceMapping(t, h, workspace.ID),
-		nullString("https://cdn.example.com/logo.svg"), nullString("#6366f1"))
+	stored := h.SeedPortal(t, workspace.ID, "unbranded", "unbranded", keyspaceMapping(t, h, workspace.ID),
+		ptr.P("https://cdn.example.com/logo.svg"), ptr.P("#6366f1"))
 
 	req := baseRequest(stored.ID)
 	req.LogoUrl = nullable.NewNullNullable[string]()
@@ -423,7 +380,7 @@ func TestUpdatePortalRepointsMappingAndRevokesSessions(t *testing.T) {
 	workspace := h.Resources().UserWorkspace
 
 	app := appMapping(t, h, workspace.ID, "payments")
-	stored := seedPortal(t, h, workspace.ID, "repointed", app, nullStringAbsent(), nullStringAbsent())
+	stored := h.SeedPortal(t, workspace.ID, "repointed", "repointed", app, nil, nil)
 	keyspace := keyspaceMapping(t, h, workspace.ID)
 
 	h.CreatePortalSessionForPortal(stored.ID, workspace.ID, "user_1", []string{keyspace.ID}, []string{"keys.read"})
@@ -431,8 +388,8 @@ func TestUpdatePortalRepointsMappingAndRevokesSessions(t *testing.T) {
 	require.Equal(t, 2, liveSessions(t, h, stored.ID))
 
 	// A different portal in the same workspace, whose sessions must survive.
-	bystander := seedPortal(t, h, workspace.ID, "bystander", keyspaceMapping(t, h, workspace.ID),
-		nullStringAbsent(), nullStringAbsent())
+	bystander := h.SeedPortal(t, workspace.ID, "bystander", "bystander", keyspaceMapping(t, h, workspace.ID),
+		nil, nil)
 	h.CreatePortalSessionForPortal(bystander.ID, workspace.ID, "user_3", []string{keyspace.ID}, []string{"keys.read"})
 
 	req := baseRequest(stored.ID)
@@ -461,15 +418,15 @@ func TestUpdatePortalWithoutMappingChangeKeepsSessions(t *testing.T) {
 	workspace := h.Resources().UserWorkspace
 
 	mapping := keyspaceMapping(t, h, workspace.ID)
-	stored := seedPortal(t, h, workspace.ID, "steady", mapping, nullStringAbsent(), nullStringAbsent())
+	stored := h.SeedPortal(t, workspace.ID, "steady", "steady", mapping, nil, nil)
 
 	testCases := map[string]func(handler.Request) handler.Request{
 		"disable only": func(r handler.Request) handler.Request {
-			r.Enabled = ptr(false)
+			r.Enabled = ptr.P(false)
 			return r
 		},
 		"slug only": func(r handler.Request) handler.Request {
-			r.Slug = ptr("steady-renamed")
+			r.Slug = ptr.P("steady-renamed")
 			return r
 		},
 		// Re-sending the mapping it already has is not a change, so it must not
@@ -501,15 +458,15 @@ func TestUpdatePortalAddressedBySlug(t *testing.T) {
 	route, headers := newRoute(t, h, "portal.*.update_portal")
 	workspace := h.Resources().UserWorkspace
 
-	stored := seedPortal(t, h, workspace.ID, "by-slug", keyspaceMapping(t, h, workspace.ID),
-		nullStringAbsent(), nullStringAbsent())
+	stored := h.SeedPortal(t, workspace.ID, "by-slug", "by-slug", keyspaceMapping(t, h, workspace.ID),
+		nil, nil)
 	// A sibling, so addressing by slug can be shown to pick the right row rather
 	// than the only row.
-	sibling := seedPortal(t, h, workspace.ID, "sibling", keyspaceMapping(t, h, workspace.ID),
-		nullStringAbsent(), nullStringAbsent())
+	sibling := h.SeedPortal(t, workspace.ID, "sibling", "sibling", keyspaceMapping(t, h, workspace.ID),
+		nil, nil)
 
 	req := baseRequest(stored.Slug)
-	req.Enabled = ptr(false)
+	req.Enabled = ptr.P(false)
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 	require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
@@ -529,14 +486,14 @@ func TestUpdatePortalWritesOneAuditEntry(t *testing.T) {
 	workspace := h.Resources().UserWorkspace
 
 	app := appMapping(t, h, workspace.ID, "audited")
-	stored := seedPortal(t, h, workspace.ID, "audited-portal", app, nullStringAbsent(), nullStringAbsent())
+	stored := h.SeedPortal(t, workspace.ID, "audited-portal", "audited-portal", app, nil, nil)
 	keyspace := keyspaceMapping(t, h, workspace.ID)
 	h.CreatePortalSessionForPortal(stored.ID, workspace.ID, "user_1", []string{keyspace.ID}, []string{"keys.read"})
 
 	req := baseRequest(stored.ID)
 	req.KeyspaceId = ksOf(keyspace)
 	req.AppId = appOf(keyspace)
-	req.Slug = ptr("audited-renamed")
+	req.Slug = ptr.P("audited-renamed")
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 	require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)

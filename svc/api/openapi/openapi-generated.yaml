@@ -3025,6 +3025,8 @@ components:
                     example: true
                 logoUrl:
                     type: string
+                    format: uri
+                    pattern: "^https://"
                     minLength: 1
                     maxLength: 500
                     description: |
@@ -3340,6 +3342,8 @@ components:
                     type:
                         - string
                         - "null"
+                    format: uri
+                    pattern: "^https://"
                     minLength: 1
                     maxLength: 500
                     description: |
@@ -14121,18 +14125,17 @@ paths:
 
                 Unreleased and subject to change without notice.
 
-                A portal serves exactly one app or one keyspace, named by `mapping`. That
-                resource must belong to your workspace, and it can back only one portal, so
-                creating a second portal for the same app or keyspace is a conflict.
+                Send exactly one of `keyspaceId` or `appId`. That resource must belong to your
+                workspace, and it can back only one portal, so a second portal for the same
+                resource is a **409**.
 
-                `displayName` is what your end users see. It is stored on the portal, so it
-                is yours to set and change independently of the resource the portal serves.
+                `displayName` is what your end users see. It is yours to set and change
+                independently of the resource the portal serves.
 
                 **Required Permissions**
 
-                Your root key must have `portal.*.create_portal`. A grant scoped to a
-                specific portal id does not authorize creation, because the id does not exist
-                when the request is authorized.
+                Your root key must have `portal.*.create_portal`. A grant scoped to a specific
+                portal id does not authorize creation, because the id does not exist yet.
             operationId: portal.createPortal
             requestBody:
                 content:
@@ -14310,13 +14313,12 @@ paths:
 
                 Unreleased and subject to change without notice.
 
-                Deleting a portal revokes its live sessions, so its end users lose access
-                rather than keeping it until their tokens expire. Revocation is not
-                instantaneous: session lookups are cached briefly, so a request already in
-                flight may still succeed.
+                Its end users lose access rather than keeping it until their tokens expire.
+                Revocation is not instantaneous: session lookups are cached briefly, so a
+                request already in flight may still succeed.
 
-                The app or keyspace the portal served is untouched, and its handle becomes
-                available for a new portal.
+                The app or keyspace it served is untouched, and its slug becomes free for a
+                new portal.
 
                 **Required Permissions**
 
@@ -14324,8 +14326,7 @@ paths:
                 - `portal.*.delete_portal` (to delete any portal in the workspace)
                 - `portal.<portal_id>.delete_portal` (to delete a specific portal)
 
-                Missing the permission returns **404**, not 403: a caller who cannot delete a
-                portal is not told whether it exists.
+                Without the permission this returns **404**, not 403.
             operationId: portal.deletePortal
             requestBody:
                 content:
@@ -14450,16 +14451,12 @@ paths:
     /v2/portal.getPortal:
         post:
             description: |
-                Read one portal, by its id or slug, or by the app or keyspace it serves.
+                Read one portal, by its id or slug, or by the resource it serves.
 
                 Unreleased and subject to change without notice.
 
-                The mapping lookup exists for callers that reach a portal through the
-                resource it serves rather than through an identifier they stored. Exactly one
-                of `portal` or `mapping` is required.
-
-                The response carries the portal's own `displayName`, which is what your end
-                users see.
+                Send exactly one of `portal`, `keyspaceId`, or `appId`. Sending more than one
+                is a **400**.
 
                 **Required Permissions**
 
@@ -14467,8 +14464,7 @@ paths:
                 - `portal.*.read_portal` (to read any portal in the workspace)
                 - `portal.<portal_id>.read_portal` (to read a specific portal)
 
-                Missing the permission returns **404**, not 403: a caller who cannot read a
-                portal is not told whether it exists.
+                Without the permission this returns **404**, not 403.
             operationId: portal.getPortal
             requestBody:
                 content:
@@ -14739,16 +14735,17 @@ paths:
     /v2/portal.updatePortal:
         post:
             description: |
-                Change a portal's handle, mapping, enabled state, or branding.
+                Change a portal's slug, display name, the resource it serves, its enabled
+                state, or its branding.
 
                 Unreleased and subject to change without notice.
 
                 Only the fields you send change. Omitting a field leaves it as it is, and for
-                branding, sending null clears it.
+                branding, sending null clears it. Send at most one of `keyspaceId` or `appId`.
 
                 Two changes affect your end users immediately:
-                - Re-pointing `mapping` revokes the portal's live sessions, because a session
-                  carries the scope it was minted with.
+                - Re-pointing at a different resource revokes the portal's live sessions,
+                  because a session carries the scope it was minted with.
                 - Disabling stops new sessions but leaves live ones running until they expire.
 
                 **Required Permissions**
@@ -14757,8 +14754,7 @@ paths:
                 - `portal.*.update_portal` (to update any portal in the workspace)
                 - `portal.<portal_id>.update_portal` (to update a specific portal)
 
-                Missing the permission returns **404**, not 403: a caller who cannot update a
-                portal is not told whether it exists.
+                Without the permission this returns **404**, not 403.
             operationId: portal.updatePortal
             requestBody:
                 content:

@@ -36,6 +36,8 @@ properties:
     example: true
   logoUrl:
     type: string
+    format: uri
+    pattern: "^https://"
     minLength: 1
     maxLength: 500
     description: |

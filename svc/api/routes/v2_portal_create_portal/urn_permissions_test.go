@@ -7,6 +7,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_portal_create_portal"
 )
@@ -60,7 +61,7 @@ func TestCreatePortalAuthorizesURNGrants(t *testing.T) {
 				DisplayName: "Acme",
 				KeyspaceId:  ksOf(keyspaceMapping(t, h, workspace.ID)),
 				AppId:       appOf(keyspaceMapping(t, h, workspace.ID)),
-				Enabled:     ptr(true),
+				Enabled:     ptr.P(true),
 			})
 			require.Equal(t, http.StatusOK, res.Status,
 				"a URN grant must authorize portal creation, got: %s", res.RawBody)

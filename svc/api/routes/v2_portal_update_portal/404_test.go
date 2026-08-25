@@ -1,11 +1,13 @@
 package handler_test
 
 import (
+	"database/sql"
 	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/portal"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
@@ -22,10 +24,10 @@ func TestUpdatePortalMasksEveryMiss(t *testing.T) {
 	workspace := h.Resources().UserWorkspace
 
 	// A control case, so the misses below cannot be masking a broken handler.
-	visible := seedPortal(t, h, workspace.ID, "visible", keyspaceMapping(t, h, workspace.ID),
-		nullStringAbsent(), nullStringAbsent())
+	visible := h.SeedPortal(t, workspace.ID, "visible", "visible", keyspaceMapping(t, h, workspace.ID),
+		nil, nil)
 	control := baseRequest(visible.ID)
-	control.Enabled = ptr(false)
+	control.Enabled = ptr.P(false)
 	ok := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, control)
 	require.Equal(t, http.StatusOK, ok.Status, "the control case must succeed: %s", ok.RawBody)
 
@@ -35,11 +37,11 @@ func TestUpdatePortalMasksEveryMiss(t *testing.T) {
 		ID:           "",
 		WorkspaceID:  other.ID,
 		Slug:         "theirs",
-		AppID:        nullStringAbsent(),
-		KeyAuthID:    nullString(otherKeyspace.ID),
+		AppID:        sql.NullString{String: "", Valid: false},
+		KeyAuthID:    sql.NullString{String: otherKeyspace.ID, Valid: true},
 		Enabled:      true,
-		LogoUrl:      nullStringAbsent(),
-		PrimaryColor: nullStringAbsent(),
+		LogoUrl:      sql.NullString{String: "", Valid: false},
+		PrimaryColor: sql.NullString{String: "", Valid: false},
 	})
 
 	testCases := map[string]string{
@@ -53,7 +55,7 @@ func TestUpdatePortalMasksEveryMiss(t *testing.T) {
 	for name, target := range testCases {
 		t.Run(name, func(t *testing.T) {
 			req := baseRequest(target)
-			req.Enabled = ptr(false)
+			req.Enabled = ptr.P(false)
 
 			res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 			require.Equal(t, http.StatusNotFound, res.Status, "expected 404, received: %s", res.RawBody)
@@ -79,11 +81,11 @@ func TestUpdatePortalDenialMatchesAbsence(t *testing.T) {
 	h.Register(route)
 
 	workspace := h.Resources().UserWorkspace
-	stored := seedPortal(t, h, workspace.ID, "parity", keyspaceMapping(t, h, workspace.ID),
-		nullStringAbsent(), nullStringAbsent())
+	stored := h.SeedPortal(t, workspace.ID, "parity", "parity", keyspaceMapping(t, h, workspace.ID),
+		nil, nil)
 
 	req := baseRequest(stored.ID)
-	req.Enabled = ptr(false)
+	req.Enabled = ptr.P(false)
 
 	deniedKey := h.CreateRootKey(workspace.ID, "portal.*.read_portal")
 	denied := testutil.CallRoute[handler.Request, handler.Response](h, route, headersFor(deniedKey), req)
@@ -95,7 +97,7 @@ func TestUpdatePortalDenialMatchesAbsence(t *testing.T) {
 		"a denied update must not write an audit entry")
 
 	absentReq := baseRequest(uid.New(uid.PortalPrefix))
-	absentReq.Enabled = ptr(false)
+	absentReq.Enabled = ptr.P(false)
 	allowedKey := h.CreateRootKey(workspace.ID, "portal.*.update_portal")
 	absent := testutil.CallRoute[handler.Request, handler.Response](h, route, headersFor(allowedKey), absentReq)
 	require.Equal(t, http.StatusNotFound, absent.Status,
@@ -115,7 +117,7 @@ func TestUpdatePortalRejectsMappingsItDoesNotOwn(t *testing.T) {
 	workspace := h.Resources().UserWorkspace
 
 	mapping := keyspaceMapping(t, h, workspace.ID)
-	stored := seedPortal(t, h, workspace.ID, "mine", mapping, nullStringAbsent(), nullStringAbsent())
+	stored := h.SeedPortal(t, workspace.ID, "mine", "mine", mapping, nil, nil)
 	h.CreatePortalSessionForPortal(stored.ID, workspace.ID, "user_1", []string{mapping.ID}, []string{"keys.read"})
 
 	other := h.CreateWorkspace()

@@ -8,18 +8,17 @@ post:
 
     Unreleased and subject to change without notice.
 
-    A portal serves exactly one app or one keyspace, named by `mapping`. That
-    resource must belong to your workspace, and it can back only one portal, so
-    creating a second portal for the same app or keyspace is a conflict.
+    Send exactly one of `keyspaceId` or `appId`. That resource must belong to your
+    workspace, and it can back only one portal, so a second portal for the same
+    resource is a **409**.
 
-    `displayName` is what your end users see. It is stored on the portal, so it
-    is yours to set and change independently of the resource the portal serves.
+    `displayName` is what your end users see. It is yours to set and change
+    independently of the resource the portal serves.
 
     **Required Permissions**
 
-    Your root key must have `portal.*.create_portal`. A grant scoped to a
-    specific portal id does not authorize creation, because the id does not exist
-    when the request is authorized.
+    Your root key must have `portal.*.create_portal`. A grant scoped to a specific
+    portal id does not authorize creation, because the id does not exist yet.
   operationId: portal.createPortal
   x-speakeasy-name-override: createPortal
   security:

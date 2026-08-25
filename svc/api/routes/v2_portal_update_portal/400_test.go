@@ -10,6 +10,7 @@ import (
 	"github.com/oapi-codegen/nullable"
 	"github.com/stretchr/testify/require"
 
+	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_portal_update_portal"
@@ -25,8 +26,8 @@ func TestUpdatePortalRejectsInvalidInput(t *testing.T) {
 	workspace := h.Resources().UserWorkspace
 
 	mapping := keyspaceMapping(t, h, workspace.ID)
-	stored := seedPortal(t, h, workspace.ID, "valid-portal", mapping,
-		nullString("https://cdn.example.com/logo.svg"), nullString("#6366f1"))
+	stored := h.SeedPortal(t, workspace.ID, "valid-portal", "valid-portal", mapping,
+		ptr.P("https://cdn.example.com/logo.svg"), ptr.P("#6366f1"))
 
 	blankKeyspaceID := openapi.PortalKeyspaceId("")
 	someAppID := openapi.PortalAppId("app_1234abcd")
@@ -35,16 +36,16 @@ func TestUpdatePortalRejectsInvalidInput(t *testing.T) {
 		name   string
 		mutate func(handler.Request) handler.Request
 	}{
-		{name: "slug too short", mutate: func(r handler.Request) handler.Request { r.Slug = ptr("ab"); return r }},
-		{name: "slug uppercase", mutate: func(r handler.Request) handler.Request { r.Slug = ptr("Acme-Portal"); return r }},
-		{name: "slug consecutive hyphens", mutate: func(r handler.Request) handler.Request { r.Slug = ptr("acme--portal"); return r }},
-		{name: "slug leading hyphen", mutate: func(r handler.Request) handler.Request { r.Slug = ptr("-acme"); return r }},
-		{name: "slug too long", mutate: func(r handler.Request) handler.Request { r.Slug = ptr(strings.Repeat("a", 65)); return r }},
+		{name: "slug too short", mutate: func(r handler.Request) handler.Request { r.Slug = ptr.P("ab"); return r }},
+		{name: "slug uppercase", mutate: func(r handler.Request) handler.Request { r.Slug = ptr.P("Acme-Portal"); return r }},
+		{name: "slug consecutive hyphens", mutate: func(r handler.Request) handler.Request { r.Slug = ptr.P("acme--portal"); return r }},
+		{name: "slug leading hyphen", mutate: func(r handler.Request) handler.Request { r.Slug = ptr.P("-acme"); return r }},
+		{name: "slug too long", mutate: func(r handler.Request) handler.Request { r.Slug = ptr.P(strings.Repeat("a", 65)); return r }},
 		{
 			// The id-or-slug resolver reads one argument as either form, so an
 			// id-shaped slug would make resolution ambiguous.
 			name:   "id-shaped slug",
-			mutate: func(r handler.Request) handler.Request { r.Slug = ptr("pc_1234abcd"); return r },
+			mutate: func(r handler.Request) handler.Request { r.Slug = ptr.P("pc_1234abcd"); return r },
 		},
 		{
 			name: "blank keyspace id",
@@ -142,8 +143,8 @@ func TestUpdatePortalRejectsNullForNotNullFields(t *testing.T) {
 	route, headers := newRoute(t, h, "portal.*.update_portal")
 	workspace := h.Resources().UserWorkspace
 
-	stored := seedPortal(t, h, workspace.ID, "not-null", keyspaceMapping(t, h, workspace.ID),
-		nullStringAbsent(), nullStringAbsent())
+	stored := h.SeedPortal(t, workspace.ID, "not-null", "not-null", keyspaceMapping(t, h, workspace.ID),
+		nil, nil)
 
 	testCases := map[string]string{
 		"null slug":    fmt.Sprintf(`{"portal":%q,"slug":null}`, stored.ID),

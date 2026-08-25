@@ -7,6 +7,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_portal_get_portal"
 )
@@ -23,8 +24,8 @@ func TestGetPortalAuthorizesURNGrants(t *testing.T) {
 	h.Register(route)
 
 	workspace := h.Resources().UserWorkspace
-	stored := seedPortal(t, h, workspace.ID, "urn-portal", keyspaceMapping(t, h, workspace.ID),
-		nullStringAbsent(), nullStringAbsent())
+	stored := h.SeedPortal(t, workspace.ID, "urn-portal", "urn-portal", keyspaceMapping(t, h, workspace.ID),
+		nil, nil)
 
 	testCases := map[string]string{
 		"portal-scoped wildcard URN": fmt.Sprintf("unkey:v1:%s:portals/*#read_portal", workspace.ID),
@@ -40,7 +41,7 @@ func TestGetPortalAuthorizesURNGrants(t *testing.T) {
 			rootKey := h.CreateRootKey(workspace.ID, grant)
 
 			res := testutil.CallRoute[handler.Request, handler.Response](h, route, headersFor(rootKey), handler.Request{
-				Portal:     ptr(stored.Slug),
+				Portal:     ptr.P(stored.Slug),
 				KeyspaceId: nil,
 				AppId:      nil,
 			})

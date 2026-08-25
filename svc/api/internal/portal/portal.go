@@ -17,7 +17,6 @@ import (
 	"database/sql"
 	"fmt"
 	"net/url"
-	"regexp"
 	"strings"
 
 	authprincipal "github.com/unkeyed/unkey/pkg/auth/principal"
@@ -49,8 +48,6 @@ const LogoURLMaxLength = 500
 
 // ReturnURLMaxLength matches the portal_sessions.return_url column width.
 const ReturnURLMaxLength = 500
-
-var hexColor = regexp.MustCompile(`^#[0-9a-fA-F]{6}$`)
 
 // MappingType names the kind of resource a portal serves.
 type MappingType string
@@ -471,20 +468,6 @@ func validateHTTPSURL(raw string, maxLength int, label string, publicMessage str
 		return invalid(fmt.Sprintf("%s has no host", label))
 	}
 	return nil
-}
-
-// ValidatePrimaryColor requires the six-digit hex form. Three-digit shorthand
-// and named colours are rejected so the stored value is always directly usable
-// by the renderer.
-func ValidatePrimaryColor(raw string) error {
-	if hexColor.MatchString(raw) {
-		return nil
-	}
-	return fault.New("invalid primary color",
-		fault.Code(codes.App.Validation.InvalidInput.URN()),
-		fault.Internal(fmt.Sprintf("primary color %q is not a six-digit hex colour", raw)),
-		fault.Public(ErrMsgInvalidColor),
-	)
 }
 
 // ToResponse maps a stored row into the public shape.

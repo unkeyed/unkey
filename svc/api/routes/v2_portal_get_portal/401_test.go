@@ -6,6 +6,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_portal_get_portal"
 )
@@ -19,9 +20,9 @@ func TestGetPortalRequiresAuthentication(t *testing.T) {
 	h.Register(route)
 
 	workspace := h.Resources().UserWorkspace
-	stored := seedPortal(t, h, workspace.ID, "unauthenticated",
-		keyspaceMapping(t, h, workspace.ID), nullStringAbsent(), nullStringAbsent())
-	req := handler.Request{Portal: ptr(stored.ID), KeyspaceId: nil, AppId: nil}
+	stored := h.SeedPortal(t, workspace.ID, "unauthenticated", "unauthenticated",
+		keyspaceMapping(t, h, workspace.ID), nil, nil)
+	req := handler.Request{Portal: ptr.P(stored.ID), KeyspaceId: nil, AppId: nil}
 
 	testCases := map[string]string{
 		"unknown key":   "Bearer unkey_thiskeydoesnotexist",
@@ -52,9 +53,9 @@ func TestGetPortalRejectsMalformedAuthorization(t *testing.T) {
 	h.Register(route)
 
 	workspace := h.Resources().UserWorkspace
-	stored := seedPortal(t, h, workspace.ID, "malformed",
-		keyspaceMapping(t, h, workspace.ID), nullStringAbsent(), nullStringAbsent())
-	req := handler.Request{Portal: ptr(stored.ID), KeyspaceId: nil, AppId: nil}
+	stored := h.SeedPortal(t, workspace.ID, "malformed", "malformed",
+		keyspaceMapping(t, h, workspace.ID), nil, nil)
+	req := handler.Request{Portal: ptr.P(stored.ID), KeyspaceId: nil, AppId: nil}
 
 	testCases := map[string]http.Header{
 		"no authorization header": {"Content-Type": {"application/json"}},

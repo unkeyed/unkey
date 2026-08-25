@@ -7,6 +7,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/svc/api/internal/portal"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_portal_create_portal"
@@ -29,22 +30,22 @@ func TestCreatePortalRejectsInvalidInput(t *testing.T) {
 		{
 			name: "slug too short",
 			req: handler.Request{Slug: "ab", DisplayName: "Acme", KeyspaceId: ksOf(mapping),
-				AppId: appOf(mapping), Enabled: ptr(true)},
+				AppId: appOf(mapping), Enabled: ptr.P(true)},
 		},
 		{
 			name: "slug uppercase",
 			req: handler.Request{Slug: "Acme-Portal", DisplayName: "Acme", KeyspaceId: ksOf(mapping),
-				AppId: appOf(mapping), Enabled: ptr(true)},
+				AppId: appOf(mapping), Enabled: ptr.P(true)},
 		},
 		{
 			name: "slug with consecutive hyphens",
 			req: handler.Request{Slug: "acme--portal", DisplayName: "Acme", KeyspaceId: ksOf(mapping),
-				AppId: appOf(mapping), Enabled: ptr(true)},
+				AppId: appOf(mapping), Enabled: ptr.P(true)},
 		},
 		{
 			name: "slug leading hyphen",
 			req: handler.Request{Slug: "-acme", DisplayName: "Acme", KeyspaceId: ksOf(mapping),
-				AppId: appOf(mapping), Enabled: ptr(true)},
+				AppId: appOf(mapping), Enabled: ptr.P(true)},
 		},
 		{
 			name: "slug too long",
@@ -53,18 +54,18 @@ func TestCreatePortalRejectsInvalidInput(t *testing.T) {
 				DisplayName: "Acme",
 				KeyspaceId:  ksOf(mapping),
 				AppId:       appOf(mapping),
-				Enabled:     ptr(true),
+				Enabled:     ptr.P(true),
 			},
 		},
 		{
 			name: "display name omitted",
 			req: handler.Request{Slug: "valid-slug", KeyspaceId: ksOf(mapping),
-				AppId: appOf(mapping), Enabled: ptr(true)},
+				AppId: appOf(mapping), Enabled: ptr.P(true)},
 		},
 		{
 			name: "display name is whitespace only",
 			req: handler.Request{Slug: "valid-slug", DisplayName: "   ", KeyspaceId: ksOf(mapping),
-				AppId: appOf(mapping), Enabled: ptr(true)},
+				AppId: appOf(mapping), Enabled: ptr.P(true)},
 		},
 		{
 			name: "display name too long",
@@ -73,7 +74,7 @@ func TestCreatePortalRejectsInvalidInput(t *testing.T) {
 				DisplayName: strings.Repeat("a", 65),
 				KeyspaceId:  ksOf(mapping),
 				AppId:       appOf(mapping),
-				Enabled:     ptr(true),
+				Enabled:     ptr.P(true),
 			},
 		},
 		{
@@ -82,7 +83,7 @@ func TestCreatePortalRejectsInvalidInput(t *testing.T) {
 			// slug charset forbids underscores, which is what keeps them apart.
 			name: "id-shaped slug",
 			req: handler.Request{Slug: "pc_1234abcd", DisplayName: "Acme", KeyspaceId: ksOf(mapping),
-				AppId: appOf(mapping), Enabled: ptr(true)},
+				AppId: appOf(mapping), Enabled: ptr.P(true)},
 		},
 		{
 			name: "empty mapping id",
@@ -91,7 +92,7 @@ func TestCreatePortalRejectsInvalidInput(t *testing.T) {
 				DisplayName: "Acme",
 				KeyspaceId:  ksOf(portal.Mapping{Type: portal.MappingTypeKeyspace, ID: ""}),
 				AppId:       appOf(portal.Mapping{Type: portal.MappingTypeKeyspace, ID: ""}),
-				Enabled:     ptr(true),
+				Enabled:     ptr.P(true),
 			},
 		},
 		{
@@ -101,25 +102,25 @@ func TestCreatePortalRejectsInvalidInput(t *testing.T) {
 				DisplayName: "Acme",
 				KeyspaceId:  ksOf(portal.Mapping{Type: portal.MappingType("project"), ID: mapping.ID}),
 				AppId:       appOf(portal.Mapping{Type: portal.MappingType("project"), ID: mapping.ID}),
-				Enabled:     ptr(true),
+				Enabled:     ptr.P(true),
 			},
 		},
 		{
 			name: "logo url with http scheme",
 			req: handler.Request{
 				Slug: "valid-slug", KeyspaceId: ksOf(mapping),
-				AppId: appOf(mapping), Enabled: ptr(true),
+				AppId: appOf(mapping), Enabled: ptr.P(true),
 				DisplayName: "Acme",
-				LogoUrl:     ptr("http://cdn.example.com/logo.svg"),
+				LogoUrl:     ptr.P("http://cdn.example.com/logo.svg"),
 			},
 		},
 		{
 			name: "logo url not a url",
 			req: handler.Request{
 				Slug: "valid-slug", KeyspaceId: ksOf(mapping),
-				AppId: appOf(mapping), Enabled: ptr(true),
+				AppId: appOf(mapping), Enabled: ptr.P(true),
 				DisplayName: "Acme",
-				LogoUrl:     ptr("not a url at all"),
+				LogoUrl:     ptr.P("not a url at all"),
 			},
 		},
 		{
@@ -129,27 +130,27 @@ func TestCreatePortalRejectsInvalidInput(t *testing.T) {
 			name: "logo url over the column width",
 			req: handler.Request{
 				Slug: "valid-slug", KeyspaceId: ksOf(mapping),
-				AppId: appOf(mapping), Enabled: ptr(true),
+				AppId: appOf(mapping), Enabled: ptr.P(true),
 				DisplayName: "Acme",
-				LogoUrl:     ptr("https://example.com/" + strings.Repeat("a", 500)),
+				LogoUrl:     ptr.P("https://example.com/" + strings.Repeat("a", 500)),
 			},
 		},
 		{
 			name: "primary color without hash",
 			req: handler.Request{
 				Slug: "valid-slug", KeyspaceId: ksOf(mapping),
-				AppId: appOf(mapping), Enabled: ptr(true),
+				AppId: appOf(mapping), Enabled: ptr.P(true),
 				DisplayName:  "Acme",
-				PrimaryColor: ptr("6366f1"),
+				PrimaryColor: ptr.P("6366f1"),
 			},
 		},
 		{
 			name: "primary color shorthand",
 			req: handler.Request{
 				Slug: "valid-slug", KeyspaceId: ksOf(mapping),
-				AppId: appOf(mapping), Enabled: ptr(true),
+				AppId: appOf(mapping), Enabled: ptr.P(true),
 				DisplayName:  "Acme",
-				PrimaryColor: ptr("#fff"),
+				PrimaryColor: ptr.P("#fff"),
 			},
 		},
 	}

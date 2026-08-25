@@ -7,6 +7,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_portal_update_portal"
 )
@@ -23,8 +24,8 @@ func TestUpdatePortalAuthorizesURNGrants(t *testing.T) {
 	h.Register(route)
 
 	workspace := h.Resources().UserWorkspace
-	stored := seedPortal(t, h, workspace.ID, "urn-portal", keyspaceMapping(t, h, workspace.ID),
-		nullStringAbsent(), nullStringAbsent())
+	stored := h.SeedPortal(t, workspace.ID, "urn-portal", "urn-portal", keyspaceMapping(t, h, workspace.ID),
+		nil, nil)
 
 	testCases := map[string]string{
 		"portal-scoped wildcard URN": fmt.Sprintf("unkey:v1:%s:portals/*#update_portal", workspace.ID),
@@ -42,7 +43,7 @@ func TestUpdatePortalAuthorizesURNGrants(t *testing.T) {
 			rootKey := h.CreateRootKey(workspace.ID, grant)
 
 			req := baseRequest(stored.Slug)
-			req.Slug = ptr(fmt.Sprintf("urn-portal-%d", i))
+			req.Slug = ptr.P(fmt.Sprintf("urn-portal-%d", i))
 
 			res := testutil.CallRoute[handler.Request, handler.Response](h, route, headersFor(rootKey), req)
 			require.Equal(t, http.StatusOK, res.Status,
@@ -71,8 +72,8 @@ func TestUpdatePortalAuthorizesURNGrantOnRemap(t *testing.T) {
 	h.Register(route)
 
 	workspace := h.Resources().UserWorkspace
-	stored := seedPortal(t, h, workspace.ID, "urn-remap", keyspaceMapping(t, h, workspace.ID),
-		nullStringAbsent(), nullStringAbsent())
+	stored := h.SeedPortal(t, workspace.ID, "urn-remap", "urn-remap", keyspaceMapping(t, h, workspace.ID),
+		nil, nil)
 
 	rootKey := h.CreateRootKey(workspace.ID, fmt.Sprintf("unkey:v1:%s:**#*", workspace.ID))
 

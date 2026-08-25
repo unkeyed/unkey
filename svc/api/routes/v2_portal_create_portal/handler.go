@@ -70,9 +70,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	primaryColor := sql.NullString{String: "", Valid: false}
 	if req.PrimaryColor != nil {
-		if err = portal.ValidatePrimaryColor(*req.PrimaryColor); err != nil {
-			return err
-		}
 		primaryColor = sql.NullString{String: *req.PrimaryColor, Valid: true}
 	}
 
@@ -126,7 +123,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			return err
 		}
 
-		if err := h.assertAvailable(ctx, tx, principal.WorkspaceID, req.Slug, mapping); err != nil {
+		if err := h.checkSlugAndResourceFree(ctx, tx, principal.WorkspaceID, req.Slug, mapping); err != nil {
 			return err
 		}
 
@@ -210,15 +207,14 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	})
 }
 
-// assertAvailable reports a conflict naming the input the caller should change.
+// checkSlugAndResourceFree reports a conflict naming the input the caller should
+// change, which a duplicate-key error cannot.
 //
-// Without it every collision would surface through the driver's duplicate-key
-// error, which cannot say whether the slug or the mapping was taken. The mapping
-// check is deliberately unscoped, because the app and keyspace unique keys span
-// the whole table: a caller can collide with a portal in a workspace it cannot
-// see, and being told to "pick another slug" would send it round a loop it can
-// never win.
-func (h *Handler) assertAvailable(
+// The resource check is deliberately unscoped: the app and keyspace unique keys
+// span the whole table, so a caller can collide with a portal in a workspace it
+// cannot see, and being told to "pick another slug" would send it round a loop it
+// can never win.
+func (h *Handler) checkSlugAndResourceFree(
 	ctx context.Context,
 	tx db.DBTX,
 	workspaceID string,

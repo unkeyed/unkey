@@ -48,7 +48,7 @@ func TestDeletePortalAuthorizationMatrix(t *testing.T) {
 			// A portal per case: a delete is not idempotent, so the cases cannot share
 			// a fixture the way an update matrix can.
 			mapping := keyspaceMapping(t, h, workspace.ID)
-			stored := seedPortal(t, h, workspace.ID, fmt.Sprintf("gated-%d", i), mapping)
+			stored := h.SeedPortal(t, workspace.ID, fmt.Sprintf("gated-%d", i), fmt.Sprintf("gated-%d", i), mapping, nil, nil)
 			h.CreatePortalSessionForPortal(stored.ID, workspace.ID,
 				fmt.Sprintf("user_%d", i), []string{mapping.ID}, []string{"keys:read"})
 
@@ -92,7 +92,7 @@ func TestDeletePortalAllowsGrantScopedToThisPortal(t *testing.T) {
 	h.Register(route)
 
 	workspace := h.Resources().UserWorkspace
-	stored := seedPortal(t, h, workspace.ID, "scoped", keyspaceMapping(t, h, workspace.ID))
+	stored := h.SeedPortal(t, workspace.ID, "scoped", "scoped", keyspaceMapping(t, h, workspace.ID), nil, nil)
 
 	rootKey := h.CreateRootKey(workspace.ID, fmt.Sprintf("portal.%s.delete_portal", stored.ID))
 

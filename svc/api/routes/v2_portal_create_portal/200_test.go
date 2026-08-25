@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/portal"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
@@ -114,7 +115,7 @@ func TestCreatePortalWithKeyspaceMapping(t *testing.T) {
 		DisplayName: "Acme",
 		KeyspaceId:  ksOf(mapping),
 		AppId:       appOf(mapping),
-		Enabled:     ptr(true),
+		Enabled:     ptr.P(true),
 	})
 	require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
 	require.NotNil(t, res.Body)
@@ -180,9 +181,9 @@ func TestCreatePortalWithAppMappingAndBranding(t *testing.T) {
 		DisplayName:  "Acme",
 		KeyspaceId:   ksOf(portal.Mapping{Type: portal.MappingTypeApp, ID: app.ID}),
 		AppId:        appOf(portal.Mapping{Type: portal.MappingTypeApp, ID: app.ID}),
-		Enabled:      ptr(false),
-		LogoUrl:      ptr("https://cdn.example.com/logo.svg"),
-		PrimaryColor: ptr("#6366f1"),
+		Enabled:      ptr.P(false),
+		LogoUrl:      ptr.P("https://cdn.example.com/logo.svg"),
+		PrimaryColor: ptr.P("#6366f1"),
 	})
 	require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
 
@@ -226,7 +227,7 @@ func TestCreatePortalAllowsSameSlugInAnotherWorkspace(t *testing.T) {
 		DisplayName: "Acme",
 		KeyspaceId:  ksOf(keyspaceMapping(t, h, workspace.ID)),
 		AppId:       appOf(keyspaceMapping(t, h, workspace.ID)),
-		Enabled:     ptr(true),
+		Enabled:     ptr.P(true),
 	})
 	require.Equal(t, http.StatusOK, res.Status,
 		"a slug held by another workspace must not block this one: %s", res.RawBody)
@@ -243,7 +244,7 @@ func TestCreatePortalWritesOneAuditEntry(t *testing.T) {
 		DisplayName: "Acme",
 		KeyspaceId:  ksOf(mapping),
 		AppId:       appOf(mapping),
-		Enabled:     ptr(true),
+		Enabled:     ptr.P(true),
 	})
 	require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
 
@@ -258,8 +259,6 @@ func TestCreatePortalWritesOneAuditEntry(t *testing.T) {
 	require.Equal(t, 1, countAuditEntriesMentioning(t, h, workspace.ID, mapping.ID),
 		"the audit entry records the mapped resource")
 }
-
-func ptr[T any](v T) *T { return &v }
 
 // normalizeRequestID strips the per-request id so two error bodies can be
 // compared for the parity the masking depends on.

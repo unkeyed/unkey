@@ -7,6 +7,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_portal_create_portal"
@@ -68,7 +69,7 @@ func TestCreatePortalAuthorizationMatrix(t *testing.T) {
 				DisplayName: "Acme",
 				KeyspaceId:  ksOf(mapping),
 				AppId:       appOf(mapping),
-				Enabled:     ptr(true),
+				Enabled:     ptr.P(true),
 			})
 
 			if tc.shouldPass {

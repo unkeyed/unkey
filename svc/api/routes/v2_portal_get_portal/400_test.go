@@ -6,6 +6,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_portal_get_portal"
@@ -20,23 +21,23 @@ func TestGetPortalRejectsInvalidInput(t *testing.T) {
 	workspace := h.Resources().UserWorkspace
 
 	mapping := keyspaceMapping(t, h, workspace.ID)
-	stored := seedPortal(t, h, workspace.ID, "both-and-neither", mapping,
-		nullStringAbsent(), nullStringAbsent())
+	stored := h.SeedPortal(t, workspace.ID, "both-and-neither", "both-and-neither", mapping,
+		nil, nil)
 	someAppID := openapi.PortalAppId("app_1234abcd")
 	blankKeyspaceID := openapi.PortalKeyspaceId("   ")
 
 	// Exactly one of the three addresses is required. The flat shape makes more
 	// combinations expressible than the nested one did, so each is refused here.
 	testCases := map[string]handler.Request{
-		"portal and keyspace id":    {Portal: ptr(stored.ID), KeyspaceId: ksOf(mapping), AppId: nil},
-		"portal and app id":         {Portal: ptr(stored.ID), KeyspaceId: nil, AppId: &someAppID},
+		"portal and keyspace id":    {Portal: ptr.P(stored.ID), KeyspaceId: ksOf(mapping), AppId: nil},
+		"portal and app id":         {Portal: ptr.P(stored.ID), KeyspaceId: nil, AppId: &someAppID},
 		"keyspace id and app id":    {Portal: nil, KeyspaceId: ksOf(mapping), AppId: &someAppID},
-		"all three":                 {Portal: ptr(stored.ID), KeyspaceId: ksOf(mapping), AppId: &someAppID},
+		"all three":                 {Portal: ptr.P(stored.ID), KeyspaceId: ksOf(mapping), AppId: &someAppID},
 		"neither":                   {Portal: nil, KeyspaceId: nil, AppId: nil},
-		"empty portal":              {Portal: ptr(""), KeyspaceId: nil, AppId: nil},
-		"whitespace portal":         {Portal: ptr("   "), KeyspaceId: nil, AppId: nil},
+		"empty portal":              {Portal: ptr.P(""), KeyspaceId: nil, AppId: nil},
+		"whitespace portal":         {Portal: ptr.P("   "), KeyspaceId: nil, AppId: nil},
 		"whitespace keyspace id":    {Portal: nil, KeyspaceId: &blankKeyspaceID, AppId: nil},
-		"whitespace id with portal": {Portal: ptr(stored.ID), KeyspaceId: &blankKeyspaceID, AppId: nil},
+		"whitespace id with portal": {Portal: ptr.P(stored.ID), KeyspaceId: &blankKeyspaceID, AppId: nil},
 	}
 
 	for name, req := range testCases {

@@ -6,6 +6,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_portal_create_portal"
 )
@@ -21,7 +22,7 @@ func TestCreatePortalRequiresAuthentication(t *testing.T) {
 	workspace := h.Resources().UserWorkspace
 	mapping := keyspaceMapping(t, h, workspace.ID)
 	req := handler.Request{Slug: "unauthenticated", DisplayName: "Acme", KeyspaceId: ksOf(mapping),
-		AppId: appOf(mapping), Enabled: ptr(true)}
+		AppId: appOf(mapping), Enabled: ptr.P(true)}
 
 	testCases := map[string]string{
 		"unknown key":   "Bearer unkey_thiskeydoesnotexist",
@@ -57,7 +58,7 @@ func TestCreatePortalRejectsMalformedAuthorization(t *testing.T) {
 		DisplayName: "Acme",
 		KeyspaceId:  ksOf(keyspaceMapping(t, h, workspace.ID)),
 		AppId:       appOf(keyspaceMapping(t, h, workspace.ID)),
-		Enabled:     ptr(true),
+		Enabled:     ptr.P(true),
 	}
 
 	testCases := map[string]http.Header{

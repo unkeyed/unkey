@@ -7,6 +7,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/portal"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
@@ -67,7 +68,7 @@ func TestCreatePortalRejectsMappingsItDoesNotOwn(t *testing.T) {
 				DisplayName: "Acme",
 				KeyspaceId:  ksOf(mapping),
 				AppId:       appOf(mapping),
-				Enabled:     ptr(true),
+				Enabled:     ptr.P(true),
 			})
 			require.Equal(t, http.StatusNotFound, res.Status,
 				"expected 404, received: %s", res.RawBody)
@@ -105,7 +106,7 @@ func TestCreatePortalRejectsMappingsItDoesNotOwn(t *testing.T) {
 		DisplayName: "Acme",
 		KeyspaceId:  ksOf(portal.Mapping{Type: portal.MappingTypeKeyspace, ID: otherApi.KeyAuthID.String}),
 		AppId:       appOf(portal.Mapping{Type: portal.MappingTypeKeyspace, ID: otherApi.KeyAuthID.String}),
-		Enabled:     ptr(true),
+		Enabled:     ptr.P(true),
 	})
 	require.Equal(t, http.StatusOK, res.Status,
 		"the owning workspace must still be able to claim its own keyspace: %s", res.RawBody)

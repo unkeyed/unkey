@@ -19,7 +19,7 @@ func TestDeletePortalRequiresAuthentication(t *testing.T) {
 	h.Register(route)
 
 	workspace := h.Resources().UserWorkspace
-	stored := seedPortal(t, h, workspace.ID, "guarded", keyspaceMapping(t, h, workspace.ID))
+	stored := h.SeedPortal(t, workspace.ID, "guarded", "guarded", keyspaceMapping(t, h, workspace.ID), nil, nil)
 
 	testCases := map[string]string{
 		"unknown key":   "Bearer unkey_thiskeydoesnotexist",
@@ -48,7 +48,7 @@ func TestDeletePortalRejectsMalformedAuthorization(t *testing.T) {
 	h.Register(route)
 
 	workspace := h.Resources().UserWorkspace
-	stored := seedPortal(t, h, workspace.ID, "malformed", keyspaceMapping(t, h, workspace.ID))
+	stored := h.SeedPortal(t, workspace.ID, "malformed", "malformed", keyspaceMapping(t, h, workspace.ID), nil, nil)
 
 	testCases := map[string]http.Header{
 		"no authorization header": {"Content-Type": {"application/json"}},

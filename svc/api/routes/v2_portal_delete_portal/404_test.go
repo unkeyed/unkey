@@ -1,6 +1,7 @@
 package handler_test
 
 import (
+	"database/sql"
 	"net/http"
 	"testing"
 
@@ -22,7 +23,7 @@ func TestDeletePortalMasksEveryMiss(t *testing.T) {
 
 	// A control case, so the misses below cannot be masking a broken handler. Its
 	// id is reused afterwards as the already-deleted case.
-	visible := seedPortal(t, h, workspace.ID, "visible", keyspaceMapping(t, h, workspace.ID))
+	visible := h.SeedPortal(t, workspace.ID, "visible", "visible", keyspaceMapping(t, h, workspace.ID), nil, nil)
 	ok := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, request(visible.ID))
 	require.Equal(t, http.StatusOK, ok.Status, "the control case must succeed: %s", ok.RawBody)
 
@@ -32,11 +33,11 @@ func TestDeletePortalMasksEveryMiss(t *testing.T) {
 		ID:           "",
 		WorkspaceID:  other.ID,
 		Slug:         "theirs",
-		AppID:        nullStringAbsent(),
-		KeyAuthID:    nullString(otherKeyspace.ID),
+		AppID:        sql.NullString{String: "", Valid: false},
+		KeyAuthID:    sql.NullString{String: otherKeyspace.ID, Valid: true},
 		Enabled:      true,
-		LogoUrl:      nullStringAbsent(),
-		PrimaryColor: nullStringAbsent(),
+		LogoUrl:      sql.NullString{String: "", Valid: false},
+		PrimaryColor: sql.NullString{String: "", Valid: false},
 	})
 
 	testCases := map[string]string{
@@ -77,7 +78,7 @@ func TestDeletePortalDenialMatchesAbsence(t *testing.T) {
 
 	workspace := h.Resources().UserWorkspace
 	mapping := keyspaceMapping(t, h, workspace.ID)
-	stored := seedPortal(t, h, workspace.ID, "parity", mapping)
+	stored := h.SeedPortal(t, workspace.ID, "parity", "parity", mapping, nil, nil)
 	h.CreatePortalSessionForPortal(stored.ID, workspace.ID, "user_1", []string{mapping.ID}, []string{"keys:read"})
 	require.Equal(t, 1, liveSessions(t, h, stored.ID))
 

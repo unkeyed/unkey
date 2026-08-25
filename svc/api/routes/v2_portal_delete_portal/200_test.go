@@ -76,38 +76,6 @@ func keyspaceMapping(t *testing.T, h *testutil.Harness, workspaceID string) port
 	return portal.Mapping{Type: portal.MappingTypeKeyspace, ID: api.KeyAuthID.String}
 }
 
-// seedPortal writes a portal carrying the given mapping.
-func seedPortal(
-	t *testing.T,
-	h *testutil.Harness,
-	workspaceID, slug string,
-	mapping portal.Mapping,
-) db.Portal {
-	t.Helper()
-
-	appID := nullStringAbsent()
-	keyAuthID := nullStringAbsent()
-	switch mapping.Type {
-	case portal.MappingTypeApp:
-		appID = nullString(mapping.ID)
-	case portal.MappingTypeKeyspace:
-		keyAuthID = nullString(mapping.ID)
-	default:
-		t.Fatalf("unsupported mapping type %q", mapping.Type)
-	}
-
-	return h.CreatePortal(seed.CreatePortalRequest{
-		ID:           "",
-		WorkspaceID:  workspaceID,
-		Slug:         slug,
-		AppID:        appID,
-		KeyAuthID:    keyAuthID,
-		Enabled:      true,
-		LogoUrl:      nullStringAbsent(),
-		PrimaryColor: nullStringAbsent(),
-	})
-}
-
 // portalExists reports whether a row is still there, which is the only thing a
 // delete can be judged on.
 func portalExists(t *testing.T, h *testutil.Harness, workspaceID, target string) bool {
@@ -209,14 +177,6 @@ func deleteAuditMeta(t *testing.T, h *testutil.Harness, workspaceID string) map[
 	return metas[0]
 }
 
-func nullString(s string) sql.NullString {
-	return sql.NullString{String: s, Valid: true}
-}
-
-func nullStringAbsent() sql.NullString {
-	return sql.NullString{String: "", Valid: false}
-}
-
 // normalizeRequestID strips the per-request id so two error bodies can be
 // compared for the parity the masking depends on.
 func normalizeRequestID(body string) string {
@@ -245,7 +205,7 @@ func TestDeletePortalByID(t *testing.T) {
 	route, headers := newRoute(t, h, "portal.*.delete_portal")
 	workspace := h.Resources().UserWorkspace
 
-	stored := seedPortal(t, h, workspace.ID, "acme-portal", keyspaceMapping(t, h, workspace.ID))
+	stored := h.SeedPortal(t, workspace.ID, "acme-portal", "acme-portal", keyspaceMapping(t, h, workspace.ID), nil, nil)
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, request(stored.ID))
 	require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
@@ -262,8 +222,8 @@ func TestDeletePortalBySlug(t *testing.T) {
 	route, headers := newRoute(t, h, "portal.*.delete_portal")
 	workspace := h.Resources().UserWorkspace
 
-	stored := seedPortal(t, h, workspace.ID, "by-slug", keyspaceMapping(t, h, workspace.ID))
-	sibling := seedPortal(t, h, workspace.ID, "sibling", keyspaceMapping(t, h, workspace.ID))
+	stored := h.SeedPortal(t, workspace.ID, "by-slug", "by-slug", keyspaceMapping(t, h, workspace.ID), nil, nil)
+	sibling := h.SeedPortal(t, workspace.ID, "sibling", "sibling", keyspaceMapping(t, h, workspace.ID), nil, nil)
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, request(stored.Slug))
 	require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
@@ -282,7 +242,7 @@ func TestDeletePortalRevokesItsSessions(t *testing.T) {
 	workspace := h.Resources().UserWorkspace
 
 	mapping := keyspaceMapping(t, h, workspace.ID)
-	stored := seedPortal(t, h, workspace.ID, "revoked", mapping)
+	stored := h.SeedPortal(t, workspace.ID, "revoked", "revoked", mapping, nil, nil)
 
 	h.CreatePortalSessionForPortal(stored.ID, workspace.ID, "user_1", []string{mapping.ID}, []string{"keys:read"})
 	h.CreatePortalSessionForPortal(stored.ID, workspace.ID, "user_2", []string{mapping.ID}, []string{"keys:read"})
@@ -312,8 +272,8 @@ func TestDeletePortalLeavesOtherPortalsSessionsAlone(t *testing.T) {
 	workspace := h.Resources().UserWorkspace
 
 	mapping := keyspaceMapping(t, h, workspace.ID)
-	doomed := seedPortal(t, h, workspace.ID, "doomed", mapping)
-	bystander := seedPortal(t, h, workspace.ID, "bystander", keyspaceMapping(t, h, workspace.ID))
+	doomed := h.SeedPortal(t, workspace.ID, "doomed", "doomed", mapping, nil, nil)
+	bystander := h.SeedPortal(t, workspace.ID, "bystander", "bystander", keyspaceMapping(t, h, workspace.ID), nil, nil)
 
 	h.CreatePortalSessionForPortal(doomed.ID, workspace.ID, "user_1", []string{mapping.ID}, []string{"keys:read"})
 	h.CreatePortalSessionForPortal(bystander.ID, workspace.ID, "user_2", []string{mapping.ID}, []string{"keys:read"})
@@ -338,7 +298,7 @@ func TestDeletePortalDoesNotCascadeToItsMapping(t *testing.T) {
 	workspace := h.Resources().UserWorkspace
 
 	mapping := keyspaceMapping(t, h, workspace.ID)
-	stored := seedPortal(t, h, workspace.ID, "mapped", mapping)
+	stored := h.SeedPortal(t, workspace.ID, "mapped", "mapped", mapping, nil, nil)
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, request(stored.ID))
 	require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
@@ -358,7 +318,7 @@ func TestDeletePortalThenRecreateSameSlug(t *testing.T) {
 	workspace := h.Resources().UserWorkspace
 
 	mapping := keyspaceMapping(t, h, workspace.ID)
-	original := seedPortal(t, h, workspace.ID, "recycled", mapping)
+	original := h.SeedPortal(t, workspace.ID, "recycled", "recycled", mapping, nil, nil)
 	h.CreatePortalSessionForPortal(original.ID, workspace.ID, "user_1", []string{mapping.ID}, []string{"keys:read"})
 	require.Equal(t, 1, liveSessions(t, h, original.ID))
 
@@ -368,7 +328,7 @@ func TestDeletePortalThenRecreateSameSlug(t *testing.T) {
 	// Seeded rather than created through the API: this test is about what happens
 	// to the old session, and the seeder keeps the replacement independent of the
 	// create route's own behaviour.
-	replacement := seedPortal(t, h, workspace.ID, "recycled", mapping)
+	replacement := h.SeedPortal(t, workspace.ID, "recycled", "recycled", mapping, nil, nil)
 	require.NotEqual(t, original.ID, replacement.ID, "the id is not reused")
 
 	// Queried by portal id, not by external id: the test database is shared, so an
@@ -395,7 +355,7 @@ func TestDeletePortalStopsTheEndUserOnceTheCacheTurnsOver(t *testing.T) {
 	h.Register(endUserRoute, h.PortalMiddleware()...)
 
 	mapping := keyspaceMapping(t, h, workspace.ID)
-	stored := seedPortal(t, h, workspace.ID, "live", mapping)
+	stored := h.SeedPortal(t, workspace.ID, "live", "live", mapping, nil, nil)
 	sessionHeaders := h.CreatePortalSessionForPortal(
 		stored.ID, workspace.ID, "portal_user_A", []string{mapping.ID}, []string{"keys:read"})
 
@@ -428,7 +388,7 @@ func TestDeletePortalWritesOneAuditEntry(t *testing.T) {
 	workspace := h.Resources().UserWorkspace
 
 	mapping := keyspaceMapping(t, h, workspace.ID)
-	stored := seedPortal(t, h, workspace.ID, "audited-portal", mapping)
+	stored := h.SeedPortal(t, workspace.ID, "audited-portal", "audited-portal", mapping, nil, nil)
 	h.CreatePortalSessionForPortal(stored.ID, workspace.ID, "user_1", []string{mapping.ID}, []string{"keys:read"})
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, request(stored.ID))
@@ -476,11 +436,11 @@ func TestDeletePortalWithInvalidMapping(t *testing.T) {
 		ID:           "",
 		WorkspaceID:  workspace.ID,
 		Slug:         "broken",
-		AppID:        nullString(app.ID),
-		KeyAuthID:    nullString(keyspace.ID),
+		AppID:        sql.NullString{String: app.ID, Valid: true},
+		KeyAuthID:    sql.NullString{String: keyspace.ID, Valid: true},
 		Enabled:      true,
-		LogoUrl:      nullStringAbsent(),
-		PrimaryColor: nullStringAbsent(),
+		LogoUrl:      sql.NullString{String: "", Valid: false},
+		PrimaryColor: sql.NullString{String: "", Valid: false},
 	})
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, request(stored.ID))

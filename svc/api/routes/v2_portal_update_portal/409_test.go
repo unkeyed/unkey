@@ -6,6 +6,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_portal_update_portal"
 )
@@ -20,15 +21,15 @@ func TestUpdatePortalConflicts(t *testing.T) {
 	route, headers := newRoute(t, h, "portal.*.update_portal")
 	workspace := h.Resources().UserWorkspace
 
-	mine := seedPortal(t, h, workspace.ID, "mine", keyspaceMapping(t, h, workspace.ID),
-		nullStringAbsent(), nullStringAbsent())
+	mine := h.SeedPortal(t, workspace.ID, "mine", "mine", keyspaceMapping(t, h, workspace.ID),
+		nil, nil)
 	siblingMapping := keyspaceMapping(t, h, workspace.ID)
-	sibling := seedPortal(t, h, workspace.ID, "sibling", siblingMapping,
-		nullStringAbsent(), nullStringAbsent())
+	sibling := h.SeedPortal(t, workspace.ID, "sibling", "sibling", siblingMapping,
+		nil, nil)
 
 	t.Run("slug held by a sibling", func(t *testing.T) {
 		req := baseRequest(mine.ID)
-		req.Slug = ptr(sibling.Slug)
+		req.Slug = ptr.P(sibling.Slug)
 
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 		require.Equal(t, http.StatusConflict, res.Status, "expected 409, received: %s", res.RawBody)
@@ -63,13 +64,13 @@ func TestUpdatePortalAcceptsItsOwnCurrentValues(t *testing.T) {
 	workspace := h.Resources().UserWorkspace
 
 	mapping := keyspaceMapping(t, h, workspace.ID)
-	stored := seedPortal(t, h, workspace.ID, "idempotent", mapping, nullStringAbsent(), nullStringAbsent())
+	stored := h.SeedPortal(t, workspace.ID, "idempotent", "idempotent", mapping, nil, nil)
 
 	req := baseRequest(stored.ID)
-	req.Slug = ptr(stored.Slug)
+	req.Slug = ptr.P(stored.Slug)
 	req.KeyspaceId = ksOf(mapping)
 	req.AppId = appOf(mapping)
-	req.Enabled = ptr(true)
+	req.Enabled = ptr.P(true)
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 	require.Equal(t, http.StatusOK, res.Status,
@@ -86,15 +87,15 @@ func TestUpdatePortalAllowsSlugHeldByAnotherWorkspace(t *testing.T) {
 	route, headers := newRoute(t, h, "portal.*.update_portal")
 	workspace := h.Resources().UserWorkspace
 
-	stored := seedPortal(t, h, workspace.ID, "local", keyspaceMapping(t, h, workspace.ID),
-		nullStringAbsent(), nullStringAbsent())
+	stored := h.SeedPortal(t, workspace.ID, "local", "local", keyspaceMapping(t, h, workspace.ID),
+		nil, nil)
 
 	other := h.CreateWorkspace()
-	seedPortal(t, h, other.ID, "shared-slug", keyspaceMapping(t, h, other.ID),
-		nullStringAbsent(), nullStringAbsent())
+	h.SeedPortal(t, other.ID, "shared-slug", "shared-slug", keyspaceMapping(t, h, other.ID),
+		nil, nil)
 
 	req := baseRequest(stored.ID)
-	req.Slug = ptr("shared-slug")
+	req.Slug = ptr.P("shared-slug")
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 	require.Equal(t, http.StatusOK, res.Status,

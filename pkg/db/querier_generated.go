@@ -208,10 +208,13 @@ type Querier interface {
 	// Anything validating that a caller owns the app it named must scope the lookup,
 	// so this exists as the scoped single-app read.
 	//
-	//  SELECT pk, id, workspace_id, project_id, name, slug, default_branch, current_deployment_id, is_rolled_back, delete_protection, created_at, updated_at FROM apps
+	// Selects the id alone: every caller discards the row and keeps only whether it
+	// exists, so there is no reason to carry the rest of the columns.
+	//
+	//  SELECT id FROM apps
 	//  WHERE id = ?
 	//    AND workspace_id = ?
-	FindAppByIdAndWorkspace(ctx context.Context, db DBTX, arg FindAppByIdAndWorkspaceParams) (App, error)
+	FindAppByIdAndWorkspace(ctx context.Context, db DBTX, arg FindAppByIdAndWorkspaceParams) (string, error)
 	//FindAppByProjectAndIdOrSlug
 	//
 	//  SELECT a.pk, a.id, a.workspace_id, a.project_id, a.name, a.slug, a.default_branch, a.current_deployment_id, a.is_rolled_back, a.delete_protection, a.created_at, a.updated_at

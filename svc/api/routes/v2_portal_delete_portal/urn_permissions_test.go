@@ -45,8 +45,8 @@ func TestDeletePortalAuthorizesURNGrants(t *testing.T) {
 	for name, grantFor := range testCases {
 		i++
 		t.Run(name, func(t *testing.T) {
-			stored := seedPortal(t, h, workspace.ID, fmt.Sprintf("urn-portal-%d", i),
-				keyspaceMapping(t, h, workspace.ID))
+			stored := h.SeedPortal(t, workspace.ID, fmt.Sprintf("urn-portal-%d", i), fmt.Sprintf("urn-portal-%d", i),
+				keyspaceMapping(t, h, workspace.ID), nil, nil)
 			rootKey := h.CreateRootKey(workspace.ID, grantFor(stored.ID))
 
 			res := testutil.CallRoute[handler.Request, handler.Response](h, route, headersFor(rootKey), request(stored.Slug))

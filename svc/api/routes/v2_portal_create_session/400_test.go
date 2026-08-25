@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	"github.com/unkeyed/unkey/svc/api/openapi"
@@ -243,7 +244,7 @@ func TestCreateSessionRejectsUnsafeReturnUrl(t *testing.T) {
 				Portal:     "return-url-portal",
 				ExternalId: "user_return_url",
 				Scopes:     scopes,
-				ReturnUrl:  ptr(returnURL),
+				ReturnUrl:  ptr.P(returnURL),
 			})
 			require.Equal(t, 400, res.Status, "expected 400 for %s, received: %s", name, res.RawBody)
 		})
@@ -254,10 +255,8 @@ func TestCreateSessionRejectsUnsafeReturnUrl(t *testing.T) {
 			Portal:     "return-url-portal",
 			ExternalId: "user_return_url_ok",
 			Scopes:     scopes,
-			ReturnUrl:  ptr("https://app.example.com/settings/api-keys"),
+			ReturnUrl:  ptr.P("https://app.example.com/settings/api-keys"),
 		})
 		require.Equal(t, 200, res.Status, "expected 200, received: %s", res.RawBody)
 	})
 }
-
-func ptr[T any](v T) *T { return &v }

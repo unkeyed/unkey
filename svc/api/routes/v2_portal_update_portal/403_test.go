@@ -7,6 +7,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_portal_update_portal"
@@ -25,8 +26,8 @@ func TestUpdatePortalAuthorizationMatrix(t *testing.T) {
 	h.Register(route)
 
 	workspace := h.Resources().UserWorkspace
-	stored := seedPortal(t, h, workspace.ID, "gated", keyspaceMapping(t, h, workspace.ID),
-		nullStringAbsent(), nullStringAbsent())
+	stored := h.SeedPortal(t, workspace.ID, "gated", "gated", keyspaceMapping(t, h, workspace.ID),
+		nil, nil)
 	otherPortalID := uid.New(uid.PortalPrefix)
 
 	testCases := []struct {
@@ -54,7 +55,7 @@ func TestUpdatePortalAuthorizationMatrix(t *testing.T) {
 			auditBefore := countAuditEntriesMentioning(t, h, workspace.ID, "portal.update")
 
 			req := baseRequest(stored.ID)
-			req.Slug = ptr(fmt.Sprintf("gated-%d", i))
+			req.Slug = ptr.P(fmt.Sprintf("gated-%d", i))
 
 			res := testutil.CallRoute[handler.Request, handler.Response](h, route, headersFor(rootKey), req)
 
@@ -89,7 +90,7 @@ func TestUpdatePortalRequiresPermissionOnTheRemapTarget(t *testing.T) {
 	workspace := h.Resources().UserWorkspace
 	from := keyspaceMapping(t, h, workspace.ID)
 	to := keyspaceMapping(t, h, workspace.ID)
-	stored := seedPortal(t, h, workspace.ID, "remap-authz", from, nullStringAbsent(), nullStringAbsent())
+	stored := h.SeedPortal(t, workspace.ID, "remap-authz", "remap-authz", from, nil, nil)
 
 	t.Run("update_portal alone cannot remap", func(t *testing.T) {
 		rootKey := h.CreateRootKey(workspace.ID, "portal.*.update_portal")
@@ -136,7 +137,7 @@ func TestUpdatePortalRequiresPermissionOnTheRemapTarget(t *testing.T) {
 		}
 
 		req := baseRequest(stored.ID)
-		req.Enabled = ptr(false)
+		req.Enabled = ptr.P(false)
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 		require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
 	})

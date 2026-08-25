@@ -10,7 +10,7 @@ import (
 )
 
 const findAppByIdAndWorkspace = `-- name: FindAppByIdAndWorkspace :one
-SELECT pk, id, workspace_id, project_id, name, slug, default_branch, current_deployment_id, is_rolled_back, delete_protection, created_at, updated_at FROM apps
+SELECT id FROM apps
 WHERE id = ?
   AND workspace_id = ?
 `
@@ -27,25 +27,15 @@ type FindAppByIdAndWorkspaceParams struct {
 // Anything validating that a caller owns the app it named must scope the lookup,
 // so this exists as the scoped single-app read.
 //
-//	SELECT pk, id, workspace_id, project_id, name, slug, default_branch, current_deployment_id, is_rolled_back, delete_protection, created_at, updated_at FROM apps
+// Selects the id alone: every caller discards the row and keeps only whether it
+// exists, so there is no reason to carry the rest of the columns.
+//
+//	SELECT id FROM apps
 //	WHERE id = ?
 //	  AND workspace_id = ?
-func (q *Queries) FindAppByIdAndWorkspace(ctx context.Context, db DBTX, arg FindAppByIdAndWorkspaceParams) (App, error) {
+func (q *Queries) FindAppByIdAndWorkspace(ctx context.Context, db DBTX, arg FindAppByIdAndWorkspaceParams) (string, error) {
 	row := db.QueryRowContext(ctx, findAppByIdAndWorkspace, arg.ID, arg.WorkspaceID)
-	var i App
-	err := row.Scan(
-		&i.Pk,
-		&i.ID,
-		&i.WorkspaceID,
-		&i.ProjectID,
-		&i.Name,
-		&i.Slug,
-		&i.DefaultBranch,
-		&i.CurrentDeploymentID,
-		&i.IsRolledBack,
-		&i.DeleteProtection,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-	)
-	return i, err
+	var id string
+	err := row.Scan(&id)
+	return id, err
 }
