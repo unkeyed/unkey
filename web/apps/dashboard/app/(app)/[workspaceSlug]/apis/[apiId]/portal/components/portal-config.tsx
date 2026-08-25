@@ -11,7 +11,14 @@ import {
 } from "@/lib/portal/validation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { Portal } from "@unkey/api/models/components";
-import { Button, DialogContainer, FormInput, SettingsDangerZone, toast } from "@unkey/ui";
+import {
+  Button,
+  CopyButton,
+  DialogContainer,
+  FormInput,
+  SettingsDangerZone,
+  toast,
+} from "@unkey/ui";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -129,6 +136,9 @@ export function PortalConfig({ portal, keyAuthId }: Props) {
                   descriptionPosition="label"
                   placeholder="acme"
                   error={errors.slug?.message}
+                  // The saved slug, not the draft: an unsaved slug is a value
+                  // `createSession` rejects.
+                  rightIcon={<CopyButton value={portal.slug} variant="ghost" />}
                   {...register("slug")}
                 />
                 {dirtyFields.slug ? (
