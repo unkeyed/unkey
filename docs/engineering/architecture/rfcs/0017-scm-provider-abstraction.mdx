@@ -135,6 +135,7 @@ repo_connections
   provider              varchar    -- 'github' | 'gitlab' | 'bitbucket' | 'gitea'
   provider_host         varchar    -- set for self-hosted, null for cloud providers
   provider_repo_id      varchar    -- some providers use string compared to GH's int
+  provider_hook_id      varchar    -- the hook id the provider gave us, to delete it on disconnect. empty for GH
   installation_id       bigint     -- GH needs it
   repository_id         bigint     -- GH needs it -> We can migrate this later
   repository_full_name  varchar
@@ -165,6 +166,12 @@ If something is provider specific it goes into `Descriptor`, like which connect 
 type Provider interface {
     Descriptor() Descriptor // what the provider needs, connect style and webhook scope
 
+    // connect flow, every provider does these
+    ListRepos(ctx context.Context, sess Session) ([]Repo, error)
+    // CreateHook returns the provider's hook id, we store it so we can delete it on disconnect
+    CreateHook(ctx context.Context, sess Session, repo RepoID, hookURL, secret string) (hookID string, err error)
+    DeleteHook(ctx context.Context, sess Session, repo RepoID, hookID string) error
+
     // today: pkg/webhook/verifiers/github
     VerifyWebhook(r *http.Request, secret string) (Event, error)
     // today: the parsing half of svc/ctrl/api/webhooks/github
@@ -176,7 +183,25 @@ type Provider interface {
     // today: the GitHubClient interface in pkg/github
     Client(creds Credential) Client
 }
+
+// oauth providers (gitlab, bitbucket) also implement this
+type OAuthConnector interface {
+    AuthorizeURL(state string) string
+    ExchangeCode(ctx context.Context, code string) (token string, err error)
+}
+
+// token+url providers (gitea) implement this instead
+type TokenConnector interface {
+    Validate(ctx context.Context, instanceURL, token string) error
+}
 ```
+
+The connect ops live on the provider too, so `ScmConnectService` stays generic and just delegates.
+Not every provider does every step though, so the oauth-only and token+url-only parts go on their
+own interfaces, and the service picks which one from `Descriptor().ConnectStyle`.
+
+`CreateHook` returns the provider's hook id (gitlab `hook_id`, bitbucket `uid`, gitea `id`) and we
+store it on the connection, so a disconnect can delete the hook again.
 
 ```go
 type Descriptor struct {
@@ -336,7 +361,7 @@ The OAuth exchange and the repo listing are implemented on ctrl, so the dashboar
 no provider logic in it. Today the Github connect completion is a dashboard tRPC that writes to
 the DB directly, with this refactor that write moves to ctrl too.
 
-The whole service is six RPCs.
+The whole service is seven RPCs.
 
 ```proto
 service ScmConnectService {
@@ -346,6 +371,7 @@ service ScmConnectService {
   rpc Validate(...)      returns (...);  // token+url: creds -> session
   rpc ListRepos(...)     returns (...);  // session -> picker data
   rpc Complete(...)      returns (...);  // session + repo + app -> hook + connection row
+  rpc Disconnect(...)    returns (...);  // connectionId -> delete hook, then drop the row
 }
 ```
 
@@ -360,7 +386,8 @@ I believe we can understand these better if we map them to the Github flow we al
 - `ListRepos` is the "select repositories" screen of the Github install. Github renders that
   picker for us, here we render it ourselves using the session's token.
 - `Complete` is the `connectRepo` write we already do today, plus creating the webhook on the
-  repo. Github never needed the hook part, its App webhook already exists.
+  repo.
+- `Disconnect` is the delete we already do today, plus removing the webhook from the repo first.
 - `Validate` and `ListProviders` have no Github example. `Validate` replaces the whole redirect dance
   for token+url providers, `ListProviders` just tells the wizard what to render.
 
