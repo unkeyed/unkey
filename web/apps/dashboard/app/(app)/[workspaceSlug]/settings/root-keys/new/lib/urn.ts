@@ -1,5 +1,6 @@
 import { catalogueFor, catalogueRows } from "./catalogue";
 import {
+  ACTIONS,
   type Action,
   type ActionGrant,
   INSTANCE_TOKEN,
@@ -62,4 +63,20 @@ export function buildUrns(workspaceId: string, policies: readonly Policy[]): str
     }
   }
   return [...urns];
+}
+
+export function rowGrants(row: PermissionRow, instances: readonly string[]): string[] {
+  const grants = new Set<string>();
+  for (const action of ACTIONS) {
+    for (const grant of urnActions(row, action)) {
+      for (const instance of instances) {
+        grants.add(`${instancePath(grant.path ?? row.path, instance)}#${grant.name}`);
+      }
+    }
+  }
+  return [...grants];
+}
+
+export function grantPaths(grants: readonly string[]): string[] {
+  return [...new Set(grants.map((grant) => grant.split("#")[0]))];
 }

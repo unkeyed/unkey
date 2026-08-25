@@ -21,6 +21,7 @@ import { useRef, useState } from "react";
 import { Controller, FormProvider, useForm } from "react-hook-form";
 import { isPolicyComplete } from "../lib/policy";
 import { type RootKeyFormValues, rootKeyDefaultValues, rootKeySchema } from "../schema";
+import { DebugPanel } from "./debug-panel";
 import { PolicyList } from "./policy-list";
 import { ReviewStage } from "./review-stage";
 import { SuccessDialog } from "./success-dialog";
@@ -41,6 +42,7 @@ export function BuilderShell() {
   const [reviewing, setReviewing] = useState(false);
   const [validated, setValidated] = useState(false);
   const [created, setCreated] = useState<CreatedKey | null>(null);
+  const [debug, setDebug] = useState(false);
   const form = useForm<RootKeyFormValues>({
     resolver: zodResolver(rootKeySchema),
     defaultValues: rootKeyDefaultValues,
@@ -122,7 +124,7 @@ export function BuilderShell() {
                     </InfoTooltip>
                     <RequiredTag hasError={validated && values.policies.length === 0} />
                   </span>
-                  <PolicyList showErrors={validated} />
+                  <PolicyList showErrors={validated} debug={debug} />
                 </div>
               </div>
             )}
@@ -152,13 +154,7 @@ export function BuilderShell() {
                   </Button>
                 </>
               ) : (
-                <Button
-                  key="review-key"
-                  type="submit"
-                  variant="primary"
-                  size="md"
-                  className="ml-auto"
-                >
+                <Button type="submit" variant="primary" size="md" className="ml-auto">
                   Review key
                   <ChevronRight />
                 </Button>
@@ -167,6 +163,7 @@ export function BuilderShell() {
           </form>
         </PageBody>
       </PageContainer>
+      <DebugPanel debug={debug} onDebugChange={setDebug} />
       {created ? (
         <SuccessDialog
           secret={created.secret}

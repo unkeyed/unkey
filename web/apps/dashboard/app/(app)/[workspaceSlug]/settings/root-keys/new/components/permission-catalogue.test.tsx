@@ -3,7 +3,7 @@ import type { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode } from "react
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { PermissionSelection } from "../lib/catalogue.types";
 import { workspaceCatalogue } from "../lib/catalogue.workspace";
-import { setRowActions } from "../lib/policy";
+import { ALL_INSTANCES, setRowActions } from "../lib/policy";
 import { PermissionCatalogue } from "./permission-catalogue";
 
 vi.mock("@unkey/icons", () => ({ ChevronRight: () => null, ChevronDown: () => null }));
@@ -36,10 +36,16 @@ vi.mock("@unkey/ui", () => ({
 
 afterEach(cleanup);
 
-const renderCatalogue = (selection: PermissionSelection = {}) => {
+const renderCatalogue = (selection: PermissionSelection = {}, debug = false) => {
   const onChange = vi.fn();
   render(
-    <PermissionCatalogue catalogue={workspaceCatalogue} value={selection} onChange={onChange} />,
+    <PermissionCatalogue
+      catalogue={workspaceCatalogue}
+      instances={[ALL_INSTANCES]}
+      debug={debug}
+      value={selection}
+      onChange={onChange}
+    />,
   );
   return onChange;
 };
@@ -49,14 +55,33 @@ const search = (value: string) => {
 };
 
 describe("PermissionCatalogue", () => {
-  it("lists every group with a selected-of-total counter", () => {
+  it("gives every scope family its own group", () => {
+    renderCatalogue();
+
+    expect(
+      screen
+        .getAllByRole("button")
+        .map((trigger) => trigger.textContent ?? "")
+        .filter((label) => /\d+\/\d+$/.test(label))
+        .map((label) => label.replace(/\d+\/\d+$/, "")),
+    ).toEqual([
+      "Projects",
+      "Apps",
+      "Environments",
+      "Keyspaces",
+      "Ratelimit namespaces",
+      "Identities",
+      "RBAC",
+      "Vault",
+    ]);
+  });
+
+  it("counts the selected actions of a group against its total", () => {
     renderCatalogue(setRowActions({}, "role", ["read", "write"]));
 
-    expect(screen.getByText("Identities")).toBeDefined();
-    expect(screen.getByText("RBAC")).toBeDefined();
-    expect(screen.getByText("Vault")).toBeDefined();
     expect(screen.getByText("2/6")).toBeDefined();
-    expect(screen.getAllByText("0/3")).toHaveLength(2);
+    expect(screen.getByText("0/12")).toBeDefined();
+    expect(screen.getAllByText("0/3")).toHaveLength(4);
   });
 
   it("starts with every group expanded", () => {
@@ -94,6 +119,16 @@ describe("PermissionCatalogue", () => {
     search("nothing here");
 
     expect(screen.getByText("No permissions match “nothing here”.")).toBeDefined();
+  });
+
+  it("keeps the grant mapping out of the way until debug is on", () => {
+    renderCatalogue();
+    expect(screen.queryByText(/rbac\/roles/)).toBeNull();
+
+    cleanup();
+    renderCatalogue({}, true);
+    expect(screen.getByText("rbac/roles/*")).toBeDefined();
+    expect(screen.getByText("keyspaces/*/keys/* keyspaces/*")).toBeDefined();
   });
 
   it("reports one row toggle as a selection change", () => {

@@ -26,6 +26,7 @@ type PolicyCardProps = {
   policy: Policy;
   collapsed: boolean;
   showError: boolean;
+  debug: boolean;
   onChange: (policy: Policy) => void;
   onRemove: () => void;
   onCollapsedChange: (collapsed: boolean) => void;
@@ -35,6 +36,7 @@ export function PolicyCard({
   policy,
   collapsed,
   showError,
+  debug,
   onChange,
   onRemove,
   onCollapsedChange,
@@ -139,6 +141,8 @@ export function PolicyCard({
 
       <PermissionCatalogue
         catalogue={catalogue}
+        instances={policy.instances}
+        debug={debug}
         value={policy.selection}
         onChange={(selection) => onChange({ ...policy, selection })}
       />

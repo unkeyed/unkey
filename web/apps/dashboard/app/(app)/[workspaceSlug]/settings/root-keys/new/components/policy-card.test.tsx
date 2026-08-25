@@ -107,7 +107,8 @@ vi.mock("@/lib/trpc/client", () => ({
 
 afterEach(cleanup);
 
-const handlers = () => ({
+const defaults = () => ({
+  debug: false,
   onChange: vi.fn(),
   onRemove: vi.fn(),
   onCollapsedChange: vi.fn(),
@@ -122,7 +123,7 @@ describe("PolicyCard collapsed", () => {
         policy={{ ...newPolicy(), selection }}
         collapsed
         showError={false}
-        {...handlers()}
+        {...defaults()}
       />,
     );
 
@@ -135,7 +136,7 @@ describe("PolicyCard collapsed", () => {
   });
 
   it("says a policy without grants is incomplete", () => {
-    render(<PolicyCard policy={newPolicy()} collapsed showError={false} {...handlers()} />);
+    render(<PolicyCard policy={newPolicy()} collapsed showError={false} {...defaults()} />);
 
     expect(screen.getByText("At least one permission required")).toBeDefined();
   });
@@ -150,7 +151,7 @@ describe("PolicyCard collapsed", () => {
         }}
         collapsed
         showError={false}
-        {...handlers()}
+        {...defaults()}
       />,
     );
 
@@ -159,7 +160,7 @@ describe("PolicyCard collapsed", () => {
   });
 
   it("expands on click", () => {
-    const props = handlers();
+    const props = defaults();
     render(<PolicyCard policy={newPolicy()} collapsed showError={false} {...props} />);
     fireEvent.click(screen.getByText("All resources"));
 
@@ -169,7 +170,7 @@ describe("PolicyCard collapsed", () => {
 
 describe("PolicyCard expanded", () => {
   it("resets the selection and the instances when the scope changes", () => {
-    const props = handlers();
+    const props = defaults();
     render(
       <PolicyCard
         policy={{
@@ -194,7 +195,7 @@ describe("PolicyCard expanded", () => {
   });
 
   it("offers the nine resource scopes as plain nouns", () => {
-    render(<PolicyCard policy={newPolicy()} collapsed={false} showError={false} {...handlers()} />);
+    render(<PolicyCard policy={newPolicy()} collapsed={false} showError={false} {...defaults()} />);
     const options = Array.from(screen.getByLabelText("Resource type").children).map(
       (option) => option.textContent,
     );
@@ -218,7 +219,7 @@ describe("PolicyCard expanded", () => {
         policy={{ ...newPolicy("environments"), instances: ["env_1"] }}
         collapsed={false}
         showError={false}
-        {...handlers()}
+        {...defaults()}
       />,
     );
 
@@ -226,7 +227,7 @@ describe("PolicyCard expanded", () => {
   });
 
   it("hides the instance picker on the workspace scope", () => {
-    render(<PolicyCard policy={newPolicy()} collapsed={false} showError={false} {...handlers()} />);
+    render(<PolicyCard policy={newPolicy()} collapsed={false} showError={false} {...defaults()} />);
 
     expect(screen.queryByLabelText(/^Select /)).toBeNull();
   });
@@ -239,7 +240,7 @@ describe("PolicyCard expanded", () => {
           policy={newPolicy(scope)}
           collapsed={false}
           showError={false}
-          {...handlers()}
+          {...defaults()}
         />,
       );
       expect(screen.queryByLabelText(/^Select /)).toBeNull();
@@ -247,7 +248,7 @@ describe("PolicyCard expanded", () => {
   });
 
   it("labels the scope row", () => {
-    render(<PolicyCard policy={newPolicy()} collapsed={false} showError={false} {...handlers()} />);
+    render(<PolicyCard policy={newPolicy()} collapsed={false} showError={false} {...defaults()} />);
 
     expect(screen.getByText("Scope")).toBeDefined();
   });
@@ -258,7 +259,7 @@ describe("PolicyCard expanded", () => {
         policy={newPolicy("keyspaces")}
         collapsed={false}
         showError={false}
-        {...handlers()}
+        {...defaults()}
       />,
     );
 
@@ -266,7 +267,7 @@ describe("PolicyCard expanded", () => {
   });
 
   it("only shows the error once the form was submitted", () => {
-    const props = handlers();
+    const props = defaults();
     const { rerender } = render(
       <PolicyCard policy={newPolicy()} collapsed={false} showError={false} {...props} />,
     );
@@ -277,7 +278,7 @@ describe("PolicyCard expanded", () => {
   });
 
   it("removes and collapses through its own controls", () => {
-    const props = handlers();
+    const props = defaults();
     render(<PolicyCard policy={newPolicy()} collapsed={false} showError={false} {...props} />);
 
     fireEvent.click(screen.getByLabelText("Delete policy"));

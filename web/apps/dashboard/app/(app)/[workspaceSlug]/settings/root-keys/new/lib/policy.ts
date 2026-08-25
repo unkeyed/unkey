@@ -123,7 +123,9 @@ export function actionLabel(actions: readonly Action[]): string {
   if (ordered.length === 0) {
     return "";
   }
-  const capitalised = ordered.map((action) => `${action.charAt(0).toUpperCase()}${action.slice(1)}`);
+  const capitalised = ordered.map(
+    (action) => `${action.charAt(0).toUpperCase()}${action.slice(1)}`,
+  );
   if (capitalised.length === 1) {
     return capitalised[0];
   }

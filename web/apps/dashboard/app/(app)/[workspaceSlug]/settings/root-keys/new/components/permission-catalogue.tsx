@@ -13,11 +13,14 @@ import {
   type ScopeCatalogue,
 } from "../lib/catalogue.types";
 import { countSelectedActions, rowActions, setRowsActions, toggleRowAction } from "../lib/policy";
+import { rowGrants } from "../lib/urn";
 import { PermissionCatalogueBulkMenu } from "./permission-catalogue-bulk-menu";
 import { PermissionCatalogueRow } from "./permission-catalogue-row";
 
 type PermissionCatalogueProps = {
   catalogue: ScopeCatalogue;
+  instances: readonly string[];
+  debug: boolean;
   value: PermissionSelection;
   onChange: (selection: PermissionSelection) => void;
 };
@@ -25,7 +28,13 @@ type PermissionCatalogueProps = {
 const matches = (group: CatalogueGroup, query: string) =>
   group.rows.filter((row) => query.length === 0 || row.label.toLowerCase().includes(query));
 
-export function PermissionCatalogue({ catalogue, value, onChange }: PermissionCatalogueProps) {
+export function PermissionCatalogue({
+  catalogue,
+  instances,
+  debug,
+  value,
+  onChange,
+}: PermissionCatalogueProps) {
   const [search, setSearch] = useState("");
   const [closedGroups, setClosedGroups] = useState<string[]>([]);
   const query = search.trim().toLowerCase();
@@ -98,6 +107,7 @@ export function PermissionCatalogue({ catalogue, value, onChange }: PermissionCa
                     <PermissionCatalogueRow
                       key={row.id}
                       row={row}
+                      grants={debug ? rowGrants(row, instances) : []}
                       actions={rowActions(value, row.id)}
                       onToggle={(action, next) =>
                         onChange(toggleRowAction(value, row.id, action, next))

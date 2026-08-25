@@ -18,7 +18,15 @@ import {
 import { vaultCatalogue } from "./catalogue.vault";
 import { workspaceCatalogue } from "./catalogue.workspace";
 import { ALL_INSTANCES, newPolicy, setRowActions } from "./policy";
-import { buildUrn, buildUrns, instancePath, isValidResourcePath, urnActions } from "./urn";
+import {
+  buildUrn,
+  buildUrns,
+  grantPaths,
+  instancePath,
+  isValidResourcePath,
+  rowGrants,
+  urnActions,
+} from "./urn";
 
 const ws = "ws_123";
 
@@ -537,6 +545,48 @@ describe("buildUrns on the environments scope", () => {
       "unkey:v1:ws_123:projects/proj_1/apps/*/environments/*/deployments/*#read_deployment",
       "unkey:v1:ws_123:projects/*/apps/app_1/environments/*/deployments/*#read_deployment",
       "unkey:v1:ws_123:projects/*/apps/*/environments/env_1/deployments/*#read_deployment",
+    ]);
+  });
+});
+
+describe("rowGrants", () => {
+  it("lists every path and action a row emits for the instance picked", () => {
+    expect(rowGrants(rowOf("keyspaces", "key"), ["ks_1"])).toEqual([
+      "keyspaces/ks_1/keys/*#read_key",
+      "keyspaces/ks_1/keys/*#verify_key",
+      "keyspaces/ks_1#create_key",
+      "keyspaces/ks_1/keys/*#update_key",
+      "keyspaces/ks_1/keys/*#delete_key",
+    ]);
+  });
+
+  it("repeats them for every instance picked", () => {
+    expect(rowGrants(rowOf("keyspaces", "keyspace"), ["ks_1", "ks_2"])).toEqual([
+      "keyspaces/ks_1#read_keyspace",
+      "keyspaces/ks_2#read_keyspace",
+      "keyspaces/ks_1#update_keyspace",
+      "keyspaces/ks_2#update_keyspace",
+      "keyspaces/ks_1#delete_keyspace",
+      "keyspaces/ks_2#delete_keyspace",
+    ]);
+  });
+
+  it("wildcards the instance segment for all instances", () => {
+    expect(rowGrants(rowOf("projects", "app"), [ALL_INSTANCES])).toEqual([
+      "projects/*/apps/*#read_app",
+      "projects/*#create_app",
+      "projects/*/apps/*#update_app",
+      "projects/*/apps/*#connect_repository",
+      "projects/*/apps/*#delete_app",
+    ]);
+  });
+});
+
+describe("grantPaths", () => {
+  it("keeps each distinct path once, without its actions", () => {
+    expect(grantPaths(rowGrants(rowOf("keyspaces", "key"), ["ks_1"]))).toEqual([
+      "keyspaces/ks_1/keys/*",
+      "keyspaces/ks_1",
     ]);
   });
 });

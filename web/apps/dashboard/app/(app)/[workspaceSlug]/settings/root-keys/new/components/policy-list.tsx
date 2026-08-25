@@ -11,9 +11,10 @@ import { TemplateGallery } from "./template-gallery";
 
 type PolicyListProps = {
   showErrors: boolean;
+  debug: boolean;
 };
 
-export function PolicyList({ showErrors }: PolicyListProps) {
+export function PolicyList({ showErrors, debug }: PolicyListProps) {
   const { control, setValue } = useFormContext<RootKeyFormValues>();
   const { fields, append, remove } = useFieldArray({ control, name: "policies" });
   const policies = useWatch({ control, name: "policies" }) ?? [];
@@ -57,6 +58,7 @@ export function PolicyList({ showErrors }: PolicyListProps) {
             policy={policy}
             collapsed={isCollapsed(field.id, policy)}
             showError={showErrors}
+            debug={debug}
             onChange={(next) =>
               setValue(`policies.${index}`, next, { shouldDirty: true, shouldValidate: true })
             }
