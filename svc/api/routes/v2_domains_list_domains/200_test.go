@@ -328,6 +328,36 @@ func TestListDomainsDnsRecordsPerEntry(t *testing.T) {
 	require.Equal(t, "unkey-domain-verify="+apex.VerificationToken, ap.DnsRecords[1].Value)
 }
 
+func TestListDomainsDomainConnectPerEntry(t *testing.T) {
+	h := testutil.NewHarness(t)
+	route := &handler.Handler{DB: h.DB}
+	h.Register(route)
+
+	env := seedEnvironment(t, h)
+	withConnect := attachDomain(t, h, env, func(req *seed.CreateCustomDomainRequest) {
+		req.DomainConnectProvider = "Cloudflare"
+		req.DomainConnectURL = "https://dash.cloudflare.com/domainconnect?domain=acme.com"
+	})
+	withoutConnect := attachDomain(t, h, env, nil)
+	rootKey := h.CreateRootKey(env.workspaceID, "environment.*.read_domain")
+
+	res := testutil.CallRoute[handler.Request, handler.Response](h, route, authHeaders(rootKey), makeRequest(env))
+	require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
+	require.Len(t, res.Body.Data, 2, "received: %s", res.RawBody)
+
+	byID := map[string]openapi.Domain{}
+	for _, d := range res.Body.Data {
+		byID[d.Id] = d
+	}
+
+	connected := byID[withConnect.ID]
+	require.NotNil(t, connected.DomainConnect, "received: %s", res.RawBody)
+	require.Equal(t, "Cloudflare", connected.DomainConnect.Provider)
+	require.Equal(t, withConnect.DomainConnectURL, connected.DomainConnect.Url)
+
+	require.Nil(t, byID[withoutConnect.ID].DomainConnect, "received: %s", res.RawBody)
+}
+
 // A list mixes domains that verified through their routing record with ones that verified
 // through TXT because the record could not be read back, so the flag has to be per entry
 // and cannot be folded into status.
