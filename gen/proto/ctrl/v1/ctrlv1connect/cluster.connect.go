@@ -78,7 +78,8 @@ type ClusterServiceClient interface {
 	// Used by the resync loop to verify consistency for existing resources.
 	GetDesiredDeploymentState(context.Context, *connect.Request[v1.GetDesiredDeploymentStateRequest]) (*connect.Response[v1.DeploymentState], error)
 	// ReportDeploymentStatus reports actual deployment state from the agent to the control plane.
-	// Called when K8s watch events indicate ReplicaSet changes.
+	// Called when K8s watch events indicate ReplicaSet changes and after each
+	// successful full ReplicaSet inventory.
 	ReportDeploymentStatus(context.Context, *connect.Request[v1.ReportDeploymentStatusRequest]) (*connect.Response[v1.ReportDeploymentStatusResponse], error)
 	// ReportInstanceEvents reports container lifecycle events (starts, exits,
 	// CrashLoopBackOff transitions) from the agent. Krane batches one or more
@@ -198,7 +199,8 @@ type ClusterServiceHandler interface {
 	// Used by the resync loop to verify consistency for existing resources.
 	GetDesiredDeploymentState(context.Context, *connect.Request[v1.GetDesiredDeploymentStateRequest]) (*connect.Response[v1.DeploymentState], error)
 	// ReportDeploymentStatus reports actual deployment state from the agent to the control plane.
-	// Called when K8s watch events indicate ReplicaSet changes.
+	// Called when K8s watch events indicate ReplicaSet changes and after each
+	// successful full ReplicaSet inventory.
 	ReportDeploymentStatus(context.Context, *connect.Request[v1.ReportDeploymentStatusRequest]) (*connect.Response[v1.ReportDeploymentStatusResponse], error)
 	// ReportInstanceEvents reports container lifecycle events (starts, exits,
 	// CrashLoopBackOff transitions) from the agent. Krane batches one or more
