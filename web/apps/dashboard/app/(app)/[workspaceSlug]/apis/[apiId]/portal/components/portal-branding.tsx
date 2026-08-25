@@ -5,23 +5,15 @@ import { isHexColor } from "@/lib/portal/validation";
 import { cn } from "@/lib/utils";
 import { Input } from "@unkey/ui";
 
-// For MVP the customer hosts their own logo image and provides its URL; when
-// empty the portal falls back to a plain-text header using the slug.
 export type PortalBrandingValue = Pick<PortalFormValues, "logoUrl" | "primaryColor">;
 
-/**
- * Stands in wherever a usable brand colour is missing: the swatch and the native
- * picker while the field is empty or mid-edit, and the preview's brand bar.
- */
 export const DEFAULT_BRAND_COLOR = "#18181B";
 
 const SWATCHES = [DEFAULT_BRAND_COLOR, "#7C3AED", "#0D9488", "#D97706", "#DC2626"];
 
-/**
- * Emptying the field has to reach the form as "", which is what
- * `buildPortalUpdate` turns into the `null` that clears the column. Re-adding
- * the `#` to an empty value would make the color unclearable.
- */
+// Emptying the field must reach the form as "", which `buildPortalUpdate` turns
+// into the `null` that clears the column. Re-adding `#` here would make the
+// color unclearable.
 function normalizeTypedColor(raw: string): string {
   if (raw === "" || raw === "#") {
     return "";
@@ -36,8 +28,8 @@ export function BrandColorField({
   color: string;
   onChange: (color: string) => void;
 }) {
-  // An empty or half-typed value is legal in the text field, but `input[type=color]`
-  // only accepts a full hex, so the picker falls back rather than going uncontrolled.
+  // `input[type=color]` only accepts a full hex, so it falls back rather than
+  // going uncontrolled while the text field is empty or mid-edit.
   const pickerColor = isHexColor(color) ? color : DEFAULT_BRAND_COLOR;
 
   return (

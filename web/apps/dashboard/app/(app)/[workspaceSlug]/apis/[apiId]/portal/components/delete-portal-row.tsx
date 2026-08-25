@@ -9,17 +9,12 @@ import { useForm } from "react-hook-form";
 
 type ConfirmationForm = { confirmation: string };
 
-/**
- * Deleting is not disabling: the row is gone, every live session is revoked by
- * `RevokePortalSessionsByPortal`, and the slug returns to the pool. The
- * type-to-confirm string is the slug because a portal carries no name.
- */
+// Unlike disabling, deleting revokes every live session and returns the slug to
+// the pool.
 export function DeletePortalRow({ portal, keyAuthId }: { portal: Portal; keyAuthId: string }) {
   const [isOpen, setIsOpen] = useState(false);
   const deletePortal = useDeletePortal(keyAuthId);
 
-  // No resolver: the only gate is the exact-match comparison below, so
-  // validating the field as well would run a schema nothing reads.
   const {
     register,
     watch,
@@ -32,8 +27,8 @@ export function DeletePortalRow({ portal, keyAuthId }: { portal: Portal; keyAuth
 
   const confirmed = watch("confirmation") === portal.slug;
 
-  // The form outlives the dialog, so without this a reopen would arrive with
-  // the destructive button already armed from the last time it was typed.
+  // The form outlives the dialog, so a reopen would otherwise arrive with the
+  // destructive button already armed.
   const setOpen = (open: boolean) => {
     if (!open) {
       reset({ confirmation: "" });
@@ -42,8 +37,7 @@ export function DeletePortalRow({ portal, keyAuthId }: { portal: Portal; keyAuth
   };
 
   const onSubmit = async (values: ConfirmationForm) => {
-    // Re-checked here rather than trusting the button's `disabled` attribute:
-    // a form can be submitted by other means than clicking it.
+    // A form can be submitted without clicking the disabled button.
     if (values.confirmation !== portal.slug) {
       return;
     }
@@ -52,8 +46,7 @@ export function DeletePortalRow({ portal, keyAuthId }: { portal: Portal; keyAuth
       setOpen(false);
       toast.success("Customer portal deleted");
     } catch {
-      // The hook already surfaced the failure; the dialog stays open so the
-      // operator can retry without retyping the slug.
+      // The hook surfaced the failure; keep the dialog open to retry.
     }
   };
 

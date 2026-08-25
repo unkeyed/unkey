@@ -15,12 +15,8 @@ type UpdatePortalResult = Awaited<ReturnType<Unkey["portal"]["updatePortal"]>>["
 type DeletePortalInput = Parameters<Unkey["portal"]["deletePortal"]>[0];
 type DeletePortalResult = Awaited<ReturnType<Unkey["portal"]["deletePortal"]>>["data"];
 
-/**
- * The five states a keyspace's portal can be in. `notConfigured` and `disabled`
- * are distinct: the API keeps the row when a portal is disabled, and the surface
- * has to offer re-enable rather than create. `error` exists so a transient
- * failure is never mistaken for "no portal yet".
- */
+// `notConfigured` and `disabled` are distinct because the API keeps the row when
+// a portal is disabled, so the surface offers re-enable rather than create.
 export type PortalState =
   | { status: "loading" }
   | { status: "notConfigured" }
@@ -28,22 +24,24 @@ export type PortalState =
   | { status: "enabled"; portal: Portal }
   | { status: "error"; message: string };
 
-/** A 404 means "no portal for this keyspace", which is a state, not a failure. */
+// A 404 means "no portal for this keyspace", which is a state, not a failure.
 export type PortalQueryResult = { found: true; portal: Portal } | { found: false };
 
+// Shared by the read and every mutation's invalidation, so they cannot drift.
 export function portalQueryKey(keyAuthId: string): readonly [string, string] {
   return ["portal", keyAuthId];
 }
 
+// Collapses the read into the states the surface renders. Undefined keyspace id
+// means the query never runs.
 export function usePortal(keyAuthId: string | undefined): PortalState {
   const query = useQuery<PortalQueryResult>({
     queryKey: portalQueryKey(keyAuthId ?? ""),
     enabled: Boolean(keyAuthId),
     queryFn: async () => {
       if (!keyAuthId) {
-        // `enabled` gates the query on a keyspace id, so this is unreachable.
-        // Reporting `found: false` here would spell "no portal" for what is
-        // really "no keyspace" — two states the surface treats differently.
+        // Unreachable via `enabled`. Throwing rather than `found: false`, which
+        // would spell "no portal" for what is really "no keyspace".
         throw new Error("portal query ran without a keyspace id");
       }
       try {
@@ -58,10 +56,9 @@ export function usePortal(keyAuthId: string | undefined): PortalState {
     },
   });
 
-  // Only surface the error when there is nothing to render. The provider
-  // refetches on window focus with `retry: 1`, so a single failed background
-  // refetch over a perfectly good cached row must not unmount the configuration
-  // view and throw away in-progress branding or slug edits.
+  // Only surface the error when there is no cached row: the provider refetches
+  // on window focus, and unmounting the config view on a failed background
+  // refetch would throw away in-progress edits.
   if (!query.data) {
     if (query.error) {
       return { status: "error", message: getErrorMessage(query.error) };
@@ -77,10 +74,8 @@ export function usePortal(keyAuthId: string | undefined): PortalState {
   return { status: portal.enabled ? "enabled" : "disabled", portal };
 }
 
-/**
- * Lets a caller claim an error — a slug conflict belongs on the form field, not
- * in a toast. Return true to suppress the default toast.
- */
+// `onError` returns true to claim an error, suppressing the default toast so
+// the caller can render it in place, such as on a form field.
 export type PortalMutationOptions = {
   onError?: (error: unknown) => boolean;
 };
@@ -100,16 +95,14 @@ function toastUnless(options: PortalMutationOptions | undefined, fallback: strin
   };
 }
 
-/**
- * Creates the portal for this keyspace. The keyspace id is supplied here rather
- * than by the caller, so this surface can only ever create a keyspace portal.
- */
+// Creates the portal for this keyspace. The keyspace id is supplied here rather
+// than by the caller, so this surface can only ever create a keyspace portal.
 export function useCreatePortal(keyAuthId: string, options?: PortalMutationOptions) {
   const invalidate = useInvalidatePortal(keyAuthId);
 
-  // `keyspaceId` is supplied here, not by the caller, and the request union
-  // leaves `appId` optional on this arm, so excluding both keeps a caller from
-  // sending a shape only the server would reject.
+  // `keyspaceId` is supplied here, and the request union leaves `appId` optional
+  // on this arm, so excluding both keeps a caller from sending a shape only the
+  // server would reject.
   return useMutation<CreatePortalResult, unknown, Omit<CreatePortalInput, "keyspaceId" | "appId">>({
     mutationFn: async (input) => {
       const response = await getUnkeyClient().portal.createPortal({
@@ -123,6 +116,7 @@ export function useCreatePortal(keyAuthId: string, options?: PortalMutationOptio
   });
 }
 
+// Patches the portal. Callers pass only the fields the operator edited.
 export function useUpdatePortal(keyAuthId: string, options?: PortalMutationOptions) {
   const invalidate = useInvalidatePortal(keyAuthId);
 
@@ -136,6 +130,7 @@ export function useUpdatePortal(keyAuthId: string, options?: PortalMutationOptio
   });
 }
 
+// Deletes the portal and revokes its live sessions.
 export function useDeletePortal(keyAuthId: string, options?: PortalMutationOptions) {
   const invalidate = useInvalidatePortal(keyAuthId);
 
