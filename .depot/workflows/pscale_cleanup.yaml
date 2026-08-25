@@ -1,10 +1,10 @@
 name: PlanetScale Cleanup
-# Tears down the per-PR PlanetScale branch when a PR returns to draft or closes WITHOUT merging.
+# Tears down the per-PR PlanetScale branch when a PR closes WITHOUT merging.
 # Merged PRs intentionally leave the branch + deploy request alive so the
 # schema change can still be promoted into staging from the PlanetScale UI.
 on:
   pull_request:
-    types: [closed, converted_to_draft]
+    types: [closed]
 permissions:
   contents: read
 concurrency:
@@ -21,7 +21,7 @@ jobs:
     timeout-minutes: 5
     if: >-
       github.event.pull_request.head.repo.full_name == github.repository &&
-      (github.event.action == 'converted_to_draft' || github.event.pull_request.merged == false)
+      github.event.pull_request.merged == false
     env:
       PLANETSCALE_SERVICE_TOKEN_ID: ${{ secrets.PLANETSCALE_SERVICE_TOKEN_ID }}
       PLANETSCALE_SERVICE_TOKEN: ${{ secrets.PLANETSCALE_SERVICE_TOKEN }}

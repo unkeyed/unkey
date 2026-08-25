@@ -32,7 +32,6 @@ jobs:
           DB_SCHEMA_CHANGED: ${{ inputs.db_schema_changed }}
           PR_BASE: ${{ github.event.pull_request.base.ref }}
           PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
-          PR_DRAFT: ${{ github.event.pull_request.draft }}
           PR_HEAD_REPOSITORY: ${{ github.event.pull_request.head.repo.full_name }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
           PR_TITLE: ${{ github.event.pull_request.title }}
@@ -44,10 +43,6 @@ jobs:
           fi
           if [ "$GITHUB_EVENT_NAME" != "pull_request" ]; then
             echo "Per-PR PlanetScale branches are not created for $GITHUB_EVENT_NAME events."
-            exit 0
-          fi
-          if [ "$PR_DRAFT" == "true" ]; then
-            echo "PlanetScale validation waits until the pull request is ready for review."
             exit 0
           fi
           if [ "$PR_HEAD_REPOSITORY" != "$GITHUB_REPOSITORY" ]; then
