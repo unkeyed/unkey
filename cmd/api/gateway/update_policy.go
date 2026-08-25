@@ -7,7 +7,8 @@ import (
 	"io"
 	"strings"
 
-	"github.com/unkeyed/sdks/api/go/v2/models/components"
+	"github.com/unkeyed/sdks/api/go/v3/models/components"
+	"github.com/unkeyed/sdks/api/go/v3/optionalnullable"
 	"github.com/unkeyed/unkey/cmd/api/util"
 	"github.com/unkeyed/unkey/pkg/cli"
 )
@@ -20,6 +21,7 @@ type policyUpdate struct {
 	Ratelimit json.RawMessage `json:"ratelimit"`
 	Firewall  json.RawMessage `json:"firewall"`
 	Openapi   json.RawMessage `json:"openapi"`
+	Logging   json.RawMessage `json:"logging"`
 }
 
 func updatePolicyCmd() *cli.Command {
@@ -43,12 +45,7 @@ For full documentation, see https://www.unkey.com/docs/api-reference/gateway/upd
 			}
 
 			if cmd.FlagIsSet("body") {
-				body := cmd.String("body")
-				body, err = normalizeUpdatePolicyBody(body)
-				if err != nil {
-					return err
-				}
-				res, err := util.SendBody(ctx, client.Gateway.UpdatePolicy, body)
+				res, err := util.SendBody(ctx, client.Gateway.UpdatePolicy, cmd.String("body"))
 				if err != nil {
 					return err
 				}
@@ -104,12 +101,13 @@ For full documentation, see https://www.unkey.com/docs/api-reference/gateway/upd
 				value  json.RawMessage
 				target any
 			}
-			req := components.V2GatewayUpdatePolicyRequestBody{Project: cmd.String("project"), App: cmd.String("app"), Environment: cmd.String("environment"), PolicyID: cmd.String("policy-id"), Name: name, Enabled: enabled, Match: nil, Keyauth: nil, Ratelimit: nil, Firewall: nil, Openapi: nil}
+			req := components.V2GatewayUpdatePolicyRequestBody{Project: cmd.String("project"), App: cmd.String("app"), Environment: cmd.String("environment"), PolicyID: cmd.String("policy-id"), Name: name, Enabled: enabled, Match: nil, Keyauth: nil, Ratelimit: nil, Firewall: nil, Openapi: nil, Logging: nil}
 			ruleUpdates := []ruleUpdate{
 				{name: "keyauth", value: update.Keyauth, target: &req.Keyauth},
 				{name: "ratelimit", value: update.Ratelimit, target: &req.Ratelimit},
 				{name: "firewall", value: update.Firewall, target: &req.Firewall},
 				{name: "openapi", value: update.Openapi, target: &req.Openapi},
+				{name: "logging", value: update.Logging, target: &req.Logging},
 			}
 			rules := 0
 			for _, rule := range ruleUpdates {
@@ -122,13 +120,17 @@ For full documentation, see https://www.unkey.com/docs/api-reference/gateway/upd
 				return fmt.Errorf("--policy must contain at least one update field")
 			}
 			if rules > 1 {
-				return fmt.Errorf("--policy may contain at most one of keyauth, ratelimit, firewall, or openapi")
+				return fmt.Errorf("--policy may contain at most one of keyauth, ratelimit, firewall, openapi, or logging")
 			}
 			if update.Match != nil {
 				if strings.TrimSpace(string(update.Match)) == "null" {
-					req.Match = make([]components.MatchExpr, 0)
-				} else if err := json.Unmarshal(update.Match, &req.Match); err != nil {
-					return fmt.Errorf("invalid match in --policy: %w", err)
+					req.Match = optionalnullable.From[[]components.MatchExpr](nil)
+				} else {
+					var match []components.MatchExpr
+					if err := json.Unmarshal(update.Match, &match); err != nil {
+						return fmt.Errorf("invalid match in --policy: %w", err)
+					}
+					req.Match = optionalnullable.From(&match)
 				}
 			}
 			for _, rule := range ruleUpdates {
@@ -144,23 +146,4 @@ For full documentation, see https://www.unkey.com/docs/api-reference/gateway/upd
 			return send(req)
 		},
 	}
-}
-
-// normalizeUpdatePolicyBody preserves the API's explicit match:null clear
-// operation across the generated SDK's decode and re-encode cycle.
-func normalizeUpdatePolicyBody(body string) (string, error) {
-	var fields map[string]json.RawMessage
-	if err := json.Unmarshal([]byte(body), &fields); err != nil {
-		return body, nil
-	}
-	match, ok := fields["match"]
-	if !ok || strings.TrimSpace(string(match)) != "null" {
-		return body, nil
-	}
-	fields["match"] = json.RawMessage("[]")
-	normalized, err := json.Marshal(fields)
-	if err != nil {
-		return "", fmt.Errorf("normalize match in --body: %w", err)
-	}
-	return string(normalized), nil
 }

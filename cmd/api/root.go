@@ -5,8 +5,10 @@ import (
 	"github.com/unkeyed/unkey/cmd/api/apis"
 	"github.com/unkeyed/unkey/cmd/api/apps"
 	"github.com/unkeyed/unkey/cmd/api/deployments"
+	"github.com/unkeyed/unkey/cmd/api/domains"
 	"github.com/unkeyed/unkey/cmd/api/environments"
 	"github.com/unkeyed/unkey/cmd/api/gateway"
+	"github.com/unkeyed/unkey/cmd/api/github"
 	"github.com/unkeyed/unkey/cmd/api/identities"
 	"github.com/unkeyed/unkey/cmd/api/keys"
 	"github.com/unkeyed/unkey/cmd/api/permissions"
@@ -28,8 +30,10 @@ func Cmd() *cli.Command {
 			apis.Cmd(),
 			apps.Cmd(),
 			deployments.Cmd(),
+			domains.Cmd(),
 			environments.Cmd(),
 			gateway.Cmd(),
+			github.Cmd(),
 			identities.Cmd(),
 			keys.Cmd(),
 			permissions.Cmd(),

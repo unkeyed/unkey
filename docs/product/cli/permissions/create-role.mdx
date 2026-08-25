@@ -30,6 +30,10 @@ The unique name for this role. Must be unique within your workspace and clearly 
 Provides comprehensive documentation of what this role encompasses and what access it grants. Include information about the intended use case, what permissions should be assigned, and any important considerations. This internal documentation helps team members understand role boundaries and security implications. Not visible to end users. Maximum 512 characters.
 </ParamField>
 
+<ParamField body="--permissions" type="string[]">
+Comma-separated permission slugs to attach to the role. Missing permissions are created automatically when the root key has permission to create them.
+</ParamField>
+
 ## Global Flags
 
 | Flag | Type | Description |
@@ -44,7 +48,9 @@ Provides comprehensive documentation of what this role encompasses and what acce
 
 <CodeGroup>
 ```bash Basic
-unkey api permissions create-role --name=content.editor --description="Can read and write content"
+unkey api permissions create-role --name=content.editor \
+  --description="Can read and write content" \
+  --permissions=documents.read,documents.write
 ```
 ```bash Without description
 unkey api permissions create-role --name=api.reader

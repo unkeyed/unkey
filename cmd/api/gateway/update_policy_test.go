@@ -5,36 +5,39 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/oapi-codegen/nullable"
 	"github.com/stretchr/testify/require"
-	"github.com/unkeyed/unkey/cmd/api/util"
+	"github.com/unkeyed/sdks/api/go/v3/models/components"
+	"github.com/unkeyed/unkey/cmd/api/internal/testutil"
 	"github.com/unkeyed/unkey/pkg/cli"
-	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
 func TestUpdatePolicy(t *testing.T) {
 	base := "gateway update-policy --project=p --app=a --environment=e --policy-id=pol_1"
 	tests := []struct {
 		name, args string
-		check      func(*testing.T, openapi.V2GatewayUpdatePolicyRequestBody)
+		check      func(*testing.T, components.V2GatewayUpdatePolicyRequestBody)
 	}{
-		{"optional", base + ` --policy={"enabled":false}`, func(t *testing.T, got openapi.V2GatewayUpdatePolicyRequestBody) {
+		{"optional", base + ` --policy={"enabled":false}`, func(t *testing.T, got components.V2GatewayUpdatePolicyRequestBody) {
 			require.NotNil(t, got.Enabled)
 			require.False(t, *got.Enabled)
 		}},
-		{"name and keyauth", base + ` --policy={"name":"n","keyauth":{"keyspaces":["ks_1"]}}`, func(t *testing.T, got openapi.V2GatewayUpdatePolicyRequestBody) {
+		{"name and keyauth", base + ` --policy={"name":"n","keyauth":{"keyspaces":["ks_1"]}}`, func(t *testing.T, got components.V2GatewayUpdatePolicyRequestBody) {
 			require.NotNil(t, got.Name)
 			require.Equal(t, "n", *got.Name)
 			require.NotNil(t, got.Keyauth)
 		}},
-		{"clear match", base + ` --policy={"match":null}`, func(t *testing.T, got openapi.V2GatewayUpdatePolicyRequestBody) {
-			require.Equal(t, nullable.NewNullableWithValue([]openapi.MatchExpr{}), got.Match)
+		{"clear match", base + ` --policy={"match":null}`, func(t *testing.T, got components.V2GatewayUpdatePolicyRequestBody) {
+			require.True(t, got.Match.IsNull())
+		}},
+		{"logging", base + ` --policy={"logging":{"requestHeaders":true}}`, func(t *testing.T, got components.V2GatewayUpdatePolicyRequestBody) {
+			require.NotNil(t, got.Logging)
+			require.True(t, *got.Logging.RequestHeaders)
 		}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := util.CaptureRequest[openapi.V2GatewayUpdatePolicyRequestBody](t, Cmd(), tt.args)
-			require.Equal(t, "pol_1", got.PolicyId)
+			got := testutil.CaptureRequest[components.V2GatewayUpdatePolicyRequestBody](t, Cmd(), tt.args)
+			require.Equal(t, "pol_1", got.PolicyID)
 			tt.check(t, got)
 		})
 	}

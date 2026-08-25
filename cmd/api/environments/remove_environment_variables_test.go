@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"github.com/unkeyed/unkey/cmd/api/util"
+	"github.com/unkeyed/unkey/cmd/api/internal/testutil"
 	"github.com/unkeyed/unkey/pkg/cli"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
@@ -18,7 +18,7 @@ func TestRemoveEnvironmentVariables(t *testing.T) {
 	}{{"request", "environments remove-environment-variables --project=x --app=x --environment=x --variables=A,B", openapi.V2EnvironmentsRemoveEnvironmentVariablesRequestBody{Project: "x", App: "x", Environment: "x", Variables: []string{"A", "B"}}}}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := util.CaptureRequest[openapi.V2EnvironmentsRemoveEnvironmentVariablesRequestBody](t, Cmd(), tt.args)
+			got := testutil.CaptureRequest[openapi.V2EnvironmentsRemoveEnvironmentVariablesRequestBody](t, Cmd(), tt.args)
 			require.Equal(t, tt.want, got)
 		})
 	}

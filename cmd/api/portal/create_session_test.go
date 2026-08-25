@@ -3,9 +3,9 @@ package portal
 import (
 	"context"
 	"github.com/stretchr/testify/require"
-	"github.com/unkeyed/unkey/cmd/api/util"
+	"github.com/unkeyed/sdks/api/go/v3/models/components"
+	"github.com/unkeyed/unkey/cmd/api/internal/testutil"
 	"github.com/unkeyed/unkey/pkg/cli"
-	"github.com/unkeyed/unkey/svc/api/openapi"
 	"strings"
 	"testing"
 )
@@ -15,18 +15,20 @@ func TestCreateSession(t *testing.T) {
 		name, args string
 		preview    bool
 		count      int
-	}{{"minimal", "portal create-session --slug=my-portal --external-id=u --permissions=keys:read", false, 1}, {"all flags", "portal create-session --slug=my-portal --external-id=u --permissions=keys:read,analytics:read --preview=true", true, 2}}
+		returnURL  *string
+	}{{"minimal", "portal create-session --portal=my-portal --external-id=u --scopes=keys:read", false, 1, nil}, {"all flags", "portal create-session --portal=my-portal --external-id=u --scopes=keys:read,analytics:read --preview=true --return-url=https://app.example.com/settings", true, 2, func() *string { v := "https://app.example.com/settings"; return &v }()}}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := util.CaptureRequest[openapi.V2PortalCreateSessionRequestBody](t, Cmd(), tt.args)
+			got := testutil.CaptureRequest[components.V2PortalCreateSessionRequestBody](t, Cmd(), tt.args)
 			require.Equal(t, tt.preview, *got.Preview)
-			require.Len(t, got.Permissions, tt.count)
+			require.Len(t, got.Scopes, tt.count)
+			require.Equal(t, tt.returnURL, got.ReturnURL)
 		})
 	}
 }
 
 func TestCreateSessionPermissionValidation(t *testing.T) {
 	root := &cli.Command{Name: "unkey", Commands: []*cli.Command{Cmd()}}
-	err := root.Run(context.Background(), strings.Fields("unkey portal create-session --slug=my-portal --external-id=u --permissions=keys:read,keys:delete --root-key=test"))
-	require.ErrorContains(t, err, `invalid permission "keys:delete"`)
+	err := root.Run(context.Background(), strings.Fields("unkey portal create-session --portal=my-portal --external-id=u --scopes=keys:read,keys:delete --root-key=test"))
+	require.ErrorContains(t, err, `invalid scope "keys:delete"`)
 }

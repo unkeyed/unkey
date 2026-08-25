@@ -429,11 +429,27 @@
                 ]
               },
               {
+                "group": "domains",
+                "pages": [
+                  "cli/domains/create-domain",
+                  "cli/domains/delete-domain",
+                  "cli/domains/get-domain",
+                  "cli/domains/list-domains",
+                  "cli/domains/verify-domain"
+                ]
+              },
+              {
                 "group": "gateway",
                 "pages": [
                   "cli/gateway/list-policies",
                   "cli/gateway/set-policies",
                   "cli/gateway/update-policy"
+                ]
+              },
+              {
+                "group": "github",
+                "pages": [
+                  "cli/github/install-app"
                 ]
               },
               {
@@ -482,7 +498,8 @@
                   "cli/permissions/create-role",
                   "cli/permissions/delete-role",
                   "cli/permissions/get-role",
-                  "cli/permissions/list-roles"
+                  "cli/permissions/list-roles",
+                  "cli/permissions/set-role-permissions"
                 ]
               },
               {
@@ -499,6 +516,9 @@
               {
                 "group": "analytics",
                 "pages": [
+                  "cli/analytics/get-gateway-requests",
+                  "cli/analytics/get-ratelimits",
+                  "cli/analytics/get-runtime-logs",
                   "cli/analytics/get-verifications"
                 ]
               }

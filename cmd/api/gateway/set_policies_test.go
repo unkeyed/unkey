@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"github.com/unkeyed/unkey/cmd/api/util"
+	"github.com/unkeyed/unkey/cmd/api/internal/testutil"
 	"github.com/unkeyed/unkey/pkg/cli"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
@@ -18,7 +18,7 @@ func TestSetPolicies(t *testing.T) {
 	}{{"minimal empty", "gateway set-policies --project=p --app=a --environment=e --policies=[]", 0}, {"all policy data", `gateway set-policies --project=p --app=a --environment=e --policies=[{"name":"deny","enabled":true,"firewall":{"action":"ACTION_DENY"}}]`, 1}}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := util.CaptureRequest[openapi.V2GatewaySetPoliciesRequestBody](t, Cmd(), tt.args)
+			got := testutil.CaptureRequest[openapi.V2GatewaySetPoliciesRequestBody](t, Cmd(), tt.args)
 			require.Equal(t, "p", got.Project)
 			require.Len(t, got.Policies, tt.count)
 		})

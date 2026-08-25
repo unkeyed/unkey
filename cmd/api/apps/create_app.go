@@ -2,9 +2,10 @@ package apps
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 
-	"github.com/unkeyed/sdks/api/go/v2/models/components"
+	"github.com/unkeyed/sdks/api/go/v3/models/components"
 	"github.com/unkeyed/unkey/cmd/api/util"
 	"github.com/unkeyed/unkey/pkg/cli"
 )
@@ -20,10 +21,11 @@ Required Permissions
 - project.*.create_app (to create apps in any project)
 - project.<project_id>.create_app (to create apps in a specific project)
 
-For full documentation, see https://www.unkey.com/docs/api-reference/v2/apps/create-app` + util.Disclaimer, Examples: []string{"unkey api apps create-app --project=payments --name='Payments API' --slug=payments-api"}, Flags: []cli.Flag{
+For full documentation, see https://www.unkey.com/docs/api-reference/v2/apps/create-app` + util.Disclaimer, Examples: []string{"unkey api apps create-app --project=payments --name='Payments API' --slug=payments-api", `unkey api apps create-app --project=payments --name='Payments API' --slug=payments-api --git='{"repository":"unkeyed/api","defaultBranch":"main"}'`}, Flags: []cli.Flag{
 		cli.String("body", "Decode this JSON as the endpoint request body. Request-building flags are mutually exclusive."),
 		util.RootKeyFlag(), util.APIURLFlag(), util.ConfigFlag(), util.OutputFlag(),
 		cli.String("project", "Project ID or slug.", cli.Required(), cli.MutuallyExclusive("body")), cli.String("name", "Human-readable name for this app.", cli.Required(), cli.MutuallyExclusive("body")), cli.String("slug", "Stable app slug.", cli.Required(), cli.MutuallyExclusive("body")),
+		cli.String("git", "GitHub repository connection as a JSON object.", cli.MutuallyExclusive("body")),
 	}, Action: func(ctx context.Context, cmd *cli.Command) error {
 		client, err := util.CreateClient(cmd)
 		if err != nil {
@@ -38,7 +40,12 @@ For full documentation, see https://www.unkey.com/docs/api-reference/v2/apps/cre
 			}
 			return util.Output(cmd, res.V2AppsCreateAppResponseBody)
 		}
-		req := components.V2AppsCreateAppRequestBody{Project: cmd.String("project"), Name: cmd.String("name"), Slug: cmd.String("slug")}
+		req := components.V2AppsCreateAppRequestBody{Project: cmd.String("project"), Name: cmd.String("name"), Slug: cmd.String("slug"), Git: nil}
+		if v := cmd.String("git"); v != "" {
+			if err := json.Unmarshal([]byte(v), &req.Git); err != nil {
+				return fmt.Errorf("invalid JSON for --git: %w", err)
+			}
+		}
 		res, err := client.Apps.CreateApp(ctx, req)
 		if err != nil {
 			return fmt.Errorf("%s", util.FormatError(err))

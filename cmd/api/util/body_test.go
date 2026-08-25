@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"github.com/unkeyed/sdks/api/go/v2/models/operations"
+	"github.com/unkeyed/sdks/api/go/v3/models/operations"
 )
 
 func TestSendBody(t *testing.T) {

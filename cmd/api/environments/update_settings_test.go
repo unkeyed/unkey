@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"github.com/unkeyed/unkey/cmd/api/util"
+	"github.com/unkeyed/unkey/cmd/api/internal/testutil"
 	"github.com/unkeyed/unkey/pkg/cli"
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/svc/api/openapi"
@@ -19,7 +19,7 @@ func TestUpdateSettings(t *testing.T) {
 	}{{"omits partial fields", `environments update-settings --project=p --app=a --environment=e`, openapi.V2EnvironmentsUpdateSettingsRequestBody{Project: "p", App: "a", Environment: "e"}}, {"scalar options", `environments update-settings --project=p --app=a --environment=e --auto-deploy=false --port=8080 --v-cpus=0.5 --memory-mib=512 --shutdown-signal=SIGTERM --upstream-protocol=h2c`, openapi.V2EnvironmentsUpdateSettingsRequestBody{Project: "p", App: "a", Environment: "e", AutoDeploy: ptr.P(false), Port: ptr.P(8080), VCpus: ptr.P(0.5), MemoryMib: ptr.P(512), ShutdownSignal: ptr.P(openapi.SIGTERM), UpstreamProtocol: ptr.P(openapi.H2c)}}, {"clear slices", `environments update-settings --project=p --app=a --environment=e --watch-paths= --command=`, openapi.V2EnvironmentsUpdateSettingsRequestBody{Project: "p", App: "a", Environment: "e", WatchPaths: ptr.P([]string{}), Command: ptr.P([]string{})}}}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := util.CaptureRequest[openapi.V2EnvironmentsUpdateSettingsRequestBody](t, Cmd(), tt.args)
+			got := testutil.CaptureRequest[openapi.V2EnvironmentsUpdateSettingsRequestBody](t, Cmd(), tt.args)
 			require.Equal(t, tt.want, got)
 		})
 	}

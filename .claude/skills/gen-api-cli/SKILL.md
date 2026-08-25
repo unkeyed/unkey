@@ -35,14 +35,14 @@ When the argument is `check`:
 Before generating anything, update the Go SDK to the latest version:
 
 ```
-go get github.com/unkeyed/sdks/api/go/v2@latest
+go get github.com/unkeyed/sdks/api/go/v3@latest
 go mod tidy
 ```
 
 ## Step 2: Read the inputs
 
 1. **OpenAPI spec**: Read `svc/api/openapi/openapi-generated.yaml` — the source of truth for all endpoints.
-2. **Go SDK source**: Find the exact version in `go.mod` under `github.com/unkeyed/sdks/api/go/v2`, then read the SDK source from the Go module cache at `~/go/pkg/mod/github.com/unkeyed/sdks/api/go/v2@<version>/`. You MUST read the actual SDK files to verify struct names, field names, and field types. Do not guess.
+2. **Go SDK source**: Find the exact version in `go.mod` under `github.com/unkeyed/sdks/api/go/v3`, then read the SDK source from the Go module cache at `~/go/pkg/mod/github.com/unkeyed/sdks/api/go/v3@<version>/`. You MUST read the actual SDK files to verify struct names, field names, and field types. Do not guess.
 3. **Existing code**: Read `cmd/api/util/` (shared helpers — do NOT modify), `cmd/api/root.go`, and any existing subpackages to understand the current state.
 
 ## Step 3: Group endpoints

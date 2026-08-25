@@ -15,7 +15,10 @@ unkey api gateway update-policy [flags]
 <ParamField body="--environment" type="string" required>Environment ID or slug.</ParamField>
 <ParamField body="--policy-id" type="string" required>Current policy ID from `gateway.listPolicies`.</ParamField>
 <ParamField body="--policy" type="JSON string" required>
-Policy fields to update. Supported fields are `name`, `enabled`, `match`, `keyauth`, `ratelimit`, `firewall`, and `openapi`. Omitted fields remain unchanged. Set `match` to `null` or an empty array to clear all match expressions. Include at most one of `keyauth`, `ratelimit`, `firewall`, or `openapi`.
+Policy fields to update. Supported fields are `name`, `enabled`, `match`,
+`keyauth`, `ratelimit`, `firewall`, `openapi`, and `logging`. Omitted fields
+remain unchanged. Set `match` to `null` or an empty array to clear all match
+expressions. Include at most one rule field.
 </ParamField>
 ## Global Flags
 | Flag | Type | Description |

@@ -5,7 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/unkeyed/sdks/api/go/v2/models/components"
+	"github.com/unkeyed/sdks/api/go/v3/models/components"
+	"github.com/unkeyed/sdks/api/go/v3/optionalnullable"
 	"github.com/unkeyed/unkey/cmd/api/util"
 	"github.com/unkeyed/unkey/pkg/cli"
 	"github.com/unkeyed/unkey/pkg/ptr"
@@ -93,11 +94,11 @@ For full documentation, see https://www.unkey.com/docs/api-reference/v2/keys/upd
 			}
 
 			if v := cmd.String("name"); v != "" {
-				req.Name = &v
+				req.Name = optionalnullable.From(&v)
 			}
 
 			if v := cmd.String("external-id"); v != "" {
-				req.ExternalID = &v
+				req.ExternalID = optionalnullable.From(&v)
 			}
 
 			if v := cmd.String("meta"); v != "" {
@@ -105,11 +106,11 @@ For full documentation, see https://www.unkey.com/docs/api-reference/v2/keys/upd
 				if err := json.Unmarshal([]byte(v), &meta); err != nil {
 					return fmt.Errorf("invalid JSON for --meta: %w", err)
 				}
-				req.Meta = meta
+				req.Meta = optionalnullable.From(&meta)
 			}
 
 			if v := cmd.Int64("expires"); v != 0 {
-				req.Expires = &v
+				req.Expires = optionalnullable.From(&v)
 			}
 
 			if v := cmd.String("credits"); v != "" {
@@ -117,7 +118,7 @@ For full documentation, see https://www.unkey.com/docs/api-reference/v2/keys/upd
 				if err := json.Unmarshal([]byte(v), &credits); err != nil {
 					return fmt.Errorf("invalid JSON for --credits: %w", err)
 				}
-				req.Credits = &credits
+				req.Credits = optionalnullable.From(&credits)
 			}
 
 			if v := cmd.String("ratelimits"); v != "" {
@@ -125,7 +126,7 @@ For full documentation, see https://www.unkey.com/docs/api-reference/v2/keys/upd
 				if err := json.Unmarshal([]byte(v), &ratelimits); err != nil {
 					return fmt.Errorf("invalid JSON for --ratelimits: %w", err)
 				}
-				req.Ratelimits = ratelimits
+				req.Ratelimits = optionalnullable.From(&ratelimits)
 			}
 
 			if cmd.FlagIsSet("enabled") {

@@ -7,7 +7,7 @@ import (
 	"io"
 	"strings"
 
-	"github.com/unkeyed/sdks/api/go/v2/models/operations"
+	"github.com/unkeyed/sdks/api/go/v3/models/operations"
 )
 
 // SendBody decodes a JSON body and sends it using the generated SDK method.

@@ -1,0 +1,33 @@
+---
+title: "install-app"
+description: "Start installing the Unkey GitHub App for your workspace"
+---
+
+Start installing the Unkey GitHub App for your workspace. The command returns a GitHub App install URL. Open the URL in a browser to install the app and grant repository access. After installation, GitHub returns to Unkey, which binds the installation to your workspace and opens the workspace settings.
+
+Installation applies to the workspace and takes no parameters. Once installed, link repositories to individual apps with the `git` field on `apps.createApp` and `apps.updateApp`.
+
+**Required permissions:**
+- `workspace.*.install_github`
+
+## Usage
+
+```bash
+unkey api github install-app [flags]
+```
+
+## Global Flags
+
+| Flag | Type | Description |
+|------|------|-------------|
+| `--root-key` | string | Override root key (`$UNKEY_ROOT_KEY`) |
+| `--api-url` | string | Override API base URL (default: `https://api.unkey.com`) |
+| `--config` | string | Path to config file (default: `~/.unkey/config.toml`) |
+| `--output` | string | Output format. Use `json` for raw JSON |
+| `--body` | string | Send an empty JSON object as the request body. This endpoint takes no parameters. |
+
+## Examples
+
+```bash
+unkey api github install-app
+```

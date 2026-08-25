@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"github.com/unkeyed/unkey/cmd/api/util"
+	"github.com/unkeyed/unkey/cmd/api/internal/testutil"
 	"github.com/unkeyed/unkey/pkg/cli"
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/svc/api/openapi"
@@ -22,7 +22,7 @@ func TestListDeployments(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := util.CaptureRequestWithResponse[openapi.V2DeploymentsListDeploymentsRequestBody](t, Cmd(), tt.args, `{"meta":{"requestId":"test"},"data":[],"pagination":{"hasMore":false}}`)
+			got := testutil.CaptureRequestWithData[openapi.V2DeploymentsListDeploymentsRequestBody](t, Cmd(), tt.args, []any{})
 			require.Equal(t, tt.want, got)
 		})
 	}

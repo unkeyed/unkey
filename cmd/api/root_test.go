@@ -82,7 +82,7 @@ func TestUpdatePolicyBodyPreservesMatchClear(t *testing.T) {
 
 	var request map[string]json.RawMessage
 	require.NoError(t, json.Unmarshal(got, &request))
-	require.JSONEq(t, `[]`, string(request["match"]))
+	require.JSONEq(t, `null`, string(request["match"]))
 }
 
 func TestBodyBypassesSpecialRequestConstruction(t *testing.T) {

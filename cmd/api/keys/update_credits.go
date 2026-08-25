@@ -4,7 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/unkeyed/sdks/api/go/v2/models/components"
+	"github.com/unkeyed/sdks/api/go/v3/models/components"
+	"github.com/unkeyed/sdks/api/go/v3/optionalnullable"
 	"github.com/unkeyed/unkey/cmd/api/util"
 	"github.com/unkeyed/unkey/pkg/cli"
 )
@@ -67,7 +68,7 @@ For full documentation, see https://www.unkey.com/docs/api-reference/v2/keys/upd
 			}
 
 			if v := cmd.Int64("value"); v != 0 {
-				req.Value = &v
+				req.Value = optionalnullable.From(&v)
 			}
 
 			res, err := client.Keys.UpdateCredits(ctx, req)

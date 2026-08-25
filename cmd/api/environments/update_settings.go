@@ -6,7 +6,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/unkeyed/sdks/api/go/v2/models/components"
+	"github.com/unkeyed/sdks/api/go/v3/models/components"
+	"github.com/unkeyed/sdks/api/go/v3/optionalnullable"
 	"github.com/unkeyed/unkey/cmd/api/util"
 	"github.com/unkeyed/unkey/pkg/cli"
 	"github.com/unkeyed/unkey/pkg/ptr"
@@ -38,13 +39,13 @@ func updateSettingsCmd() *cli.Command {
 		}
 		req := components.V2EnvironmentsUpdateSettingsRequestBody{Project: cmd.String("project"), App: cmd.String("app"), Environment: cmd.String("environment"), Dockerfile: nil, RootDirectory: nil, BuildCommand: nil, WatchPaths: nil, AutoDeploy: nil, Port: nil, VCpus: nil, MemoryMib: nil, StorageMib: nil, Command: nil, Healthcheck: nil, ShutdownSignal: nil, UpstreamProtocol: nil, OpenapiSpecPath: nil, Regions: nil}
 		if v := cmd.String("dockerfile"); v != "" {
-			req.Dockerfile = &v
+			req.Dockerfile = optionalnullable.From(&v)
 		}
 		if v := cmd.String("root-directory"); v != "" {
 			req.RootDirectory = &v
 		}
 		if v := cmd.String("build-command"); v != "" {
-			req.BuildCommand = &v
+			req.BuildCommand = optionalnullable.From(&v)
 		}
 		if cmd.FlagIsSet("watch-paths") {
 			req.WatchPaths = cmd.StringSlice("watch-paths")
@@ -75,7 +76,7 @@ func updateSettingsCmd() *cli.Command {
 			if err := json.Unmarshal([]byte(raw), &v); err != nil {
 				return fmt.Errorf("invalid JSON for --healthcheck: %w", err)
 			}
-			req.Healthcheck = &v
+			req.Healthcheck = optionalnullable.From(&v)
 		}
 		if v := cmd.Enum("shutdown-signal"); v != "" {
 			x := components.EnvironmentShutdownSignal(v)
@@ -86,7 +87,7 @@ func updateSettingsCmd() *cli.Command {
 			req.UpstreamProtocol = &x
 		}
 		if v := cmd.String("openapi-spec-path"); v != "" {
-			req.OpenapiSpecPath = &v
+			req.OpenapiSpecPath = optionalnullable.From(&v)
 		}
 		if raw := cmd.String("regions"); raw != "" {
 			if strings.TrimSpace(raw) == "null" {
