@@ -84,7 +84,13 @@ mise exec -- go test -fuzz=FuzzParseConfig -fuzztime=30s ./pkg/config/
 - Avoid new dependencies unless the local implementation would be worse.
 - Keep variable scope small. Use clear names with units or bounds where useful.
 - Handle every error. If a state is impossible, assert it rather than ignoring it.
-- Document why non-obvious code exists, not what each line does.
+- Document why non-obvious code exists, not what each line does. Code comments
+  follow `docs/engineering/contributing/quality/documentation.mdx`, which is the
+  standard for code comments as well as for the docs sites. In short: why not
+  what, depth matches complexity, prose over bullet lists, and a clearer name
+  beats a comment. Every sentence must carry non-obvious information; a sentence
+  restating the line below it is noise. A comment that no longer matches the code
+  it describes is a defect, not a nit.
 
 ## Go conventions
 
@@ -106,7 +112,8 @@ mise exec -- go test -fuzz=FuzzParseConfig -fuzztime=30s ./pkg/config/
 
 ## Documentation conventions
 
-- Follow `docs/engineering/contributing/quality/documentation.mdx`.
+- Follow `docs/engineering/contributing/quality/documentation.mdx`. It governs
+  code comments too, not only the pages under `docs/`; see **Code standards**.
 - Product docs live in `docs/product/` and need `docs/product/docs.json` nav
   entries when adding pages.
 - Engineering docs live in `docs/engineering/` and need
