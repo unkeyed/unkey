@@ -26,14 +26,6 @@ type UpdateEnvironment struct{}
 func (UpdateEnvironment) ActionFor(urn.Environment) {}
 func (UpdateEnvironment) String() string            { return "update_environment" }
 
-// CreateDomain authorizes creating a domain resource.
-//
-// Valid resource: urn.Domain.
-type CreateDomain struct{}
-
-func (CreateDomain) ActionFor(urn.Domain) {}
-func (CreateDomain) String() string       { return "create_domain" }
-
 // CreateVariable authorizes creating a variable resource.
 //
 // Valid resource: urn.Variable.
@@ -59,3 +51,29 @@ type ReadVariables struct{}
 
 func (ReadVariables) ActionFor(urn.Environment) {}
 func (ReadVariables) String() string            { return "read_variables" }
+
+// ReadEnvironmentVariables authorizes reading a specific environment's variables.
+//
+// Valid resource: urn.Environment.
+type ReadEnvironmentVariables struct{}
+
+func (ReadEnvironmentVariables) ActionFor(urn.Environment) {}
+func (ReadEnvironmentVariables) String() string            { return "read_environment_variables" }
+
+// SetEnvironmentVariables authorizes creating and overwriting a specific
+// environment's variables.
+//
+// Valid resource: urn.Environment.
+type SetEnvironmentVariables struct{}
+
+func (SetEnvironmentVariables) ActionFor(urn.Environment) {}
+func (SetEnvironmentVariables) String() string            { return "set_environment_variables" }
+
+// RemoveEnvironmentVariables authorizes removing variables from a specific
+// environment.
+//
+// Valid resource: urn.Environment.
+type RemoveEnvironmentVariables struct{}
+
+func (RemoveEnvironmentVariables) ActionFor(urn.Environment) {}
+func (RemoveEnvironmentVariables) String() string            { return "remove_environment_variables" }

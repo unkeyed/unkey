@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"math/rand/v2"
 	"time"
@@ -19,6 +20,13 @@ import (
 
 // changePageSize is the number of rows fetched per page when syncing deployment changes.
 const changePageSize = 10000
+
+// errUnrecoverable marks a deployment_changes row that can never be processed
+// successfully, no matter how often it is retried (for example a row whose
+// state cannot be converted because of an unknown desired_status enum).
+// Retrying would stall the stream on the same row forever, so callers skip
+// such rows and advance the cursor.
+var errUnrecoverable = errors.New("deployment change is unrecoverable")
 
 // WatchDeploymentChanges streams incremental resource changes from the
 // deployment_changes outbox table. When version_last_seen is 0, the server
@@ -83,6 +91,12 @@ func (s *Service) WatchDeploymentChanges(
 
 // fetchDeploymentChangeEvents polls deployment_changes for new entries and does a
 // point lookup for each row to load current state.
+//
+// Rows whose resource is gone (not found) or that can never be processed
+// (errUnrecoverable) are skipped with a bare version event so the cursor
+// advances past them. Any other error is transient and returned to the caller,
+// which aborts the stream without advancing the cursor; the client reconnects
+// and retries from its last seen version.
 func (s *Service) fetchDeploymentChangeEvents(ctx context.Context, regionID string, afterVersion uint64) ([]*ctrlv1.DeploymentChangeEvent, error) {
 	changes, err := s.db.ListDeploymentChangesByRegionAll(ctx, db.ListDeploymentChangesByRegionAllParams{
 		RegionID:     regionID,
@@ -98,15 +112,26 @@ func (s *Service) fetchDeploymentChangeEvents(ctx context.Context, regionID stri
 		resourceType := string(change.ResourceType)
 		event, err := s.loadChangeEvent(ctx, change)
 		if err != nil {
-			if db.IsNotFound(err) {
+			switch {
+			case db.IsNotFound(err):
+				// The resource is gone. The row is safe to skip.
 				metrics.DeploymentChangesProcessedTotal.WithLabelValues(resourceType, "not_found").Inc()
-			} else {
+			case errors.Is(err, errUnrecoverable):
+				// Terminal per-row failure. Retrying would block the stream
+				// on this row forever, so log loudly and skip it.
 				metrics.DeploymentChangesProcessedTotal.WithLabelValues(resourceType, "error").Inc()
-				logger.Error("failed to load state for deployment change",
+				logger.Error("skipping unrecoverable deployment change",
 					"error", err,
 					"resource_type", change.ResourceType,
 					"resource_id", change.ResourceID,
 				)
+			default:
+				// Transient failure (for example a DB error on the point
+				// lookup). Do not advance past this row: abort the stream so
+				// the client reconnects and retries from its last seen
+				// version.
+				return nil, fmt.Errorf("load state for deployment change pk=%d (%s %s): %w",
+					change.Pk, change.ResourceType, change.ResourceID, err)
 			}
 			// Skip this row but keep advancing the cursor
 			events = append(events, &ctrlv1.DeploymentChangeEvent{Version: change.Pk})
@@ -143,7 +168,7 @@ func (s *Service) loadChangeEvent(ctx context.Context, change db.DeploymentChang
 			gitRepo:         row.GitRepo,
 		}, change.Pk)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("%w: %w", errUnrecoverable, err)
 		}
 		if state == nil {
 			return &ctrlv1.DeploymentChangeEvent{Version: change.Pk}, nil
@@ -160,8 +185,8 @@ func (s *Service) loadChangeEvent(ctx context.Context, change db.DeploymentChang
 		return &ctrlv1.DeploymentChangeEvent{Version: change.Pk}, nil
 
 	case db.DeploymentChangesResourceTypeSentinel:
-		// Sentinel resources are no longer dispatched — frontline took
-		// over the request path. The outbox row exists during the
+		// This legacy resource type is no longer dispatched. Frontline owns
+		// the request path. The outbox row exists during the
 		// cutover so we just acknowledge it and advance the version.
 		return &ctrlv1.DeploymentChangeEvent{Version: change.Pk}, nil
 

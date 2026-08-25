@@ -26,6 +26,7 @@ type podInfo struct {
 	qosClass      corev1.PodQOSClass
 	workspaceID   string
 	projectID     string
+	appID         string
 	environmentID string
 	resourceType  string
 	resourceID    string
@@ -134,6 +135,7 @@ func (c *Collector) collect(_ context.Context) error {
 			NodeID:                     c.nodeName,
 			WorkspaceID:                info.workspaceID,
 			ProjectID:                  info.projectID,
+			AppID:                      info.appID,
 			EnvironmentID:              info.environmentID,
 			ResourceType:               info.resourceType,
 			ResourceID:                 info.resourceID,
@@ -216,9 +218,8 @@ func (c *Collector) buildKranePodLookup() (map[string]podInfo, bool) {
 //
 // managed-by=krane is required unconditionally. It used to be checked only for
 // component=deployment, which made any pod merely labelled component=sentinel
-// billable with a workspace id read straight off its labels — an implicit trust
-// boundary for whoever could create such a pod. Sentinels are gone, so the
-// branch is removed rather than guarded.
+// billable with a workspace id read straight off its labels. The legacy branch
+// is removed rather than guarded.
 //
 // The workspace label must be non-empty. Without it heimdall wrote rows with
 // workspace_id = "", which the billing push silently skips for want of a
@@ -246,6 +247,7 @@ func buildPodInfo(pod *corev1.Pod) podInfo {
 		qosClass:               pod.Status.QOSClass,
 		workspaceID:            pod.Labels[LabelWorkspace],
 		projectID:              pod.Labels[LabelProject],
+		appID:                  pod.Labels[LabelApp],
 		environmentID:          pod.Labels[LabelEnv],
 		resourceType:           component,
 		resourceID:             resourceID,
@@ -371,7 +373,7 @@ var zeroCounters = network.Counters{
 
 // attachAndReadNetwork lazily attaches the eBPF TCX counters on the pod's
 // host-side veth on first observation, then reads the current snapshot.
-// Host-network pods (heimdall itself, kube-proxy, sentinels) share the
+// Host-network pods (heimdall itself, kube-proxy) share the
 // host net namespace and have no per-pod-veth traffic worth attributing,
 // so they're skipped. Read failures fail open (return zero counters) so
 // a flaky eBPF map can never take down the rest of the checkpoint.

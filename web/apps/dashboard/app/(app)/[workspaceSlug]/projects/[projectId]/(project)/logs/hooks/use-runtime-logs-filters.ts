@@ -20,9 +20,23 @@ const parseAsFilterValArray = parseAsFilterValueArray<RuntimeLogsFilterOperator>
   "contains",
 ]);
 
+const arrayFields = [
+  "severity",
+  "message",
+  "attributes",
+  "appId",
+  "environmentId",
+  "deploymentId",
+  "region",
+  "instanceId",
+] as const;
+const timeFields = ["startTime", "endTime", "since"] as const;
+
 export const queryParamsPayload = {
   severity: parseAsFilterValArray,
   message: parseAsFilterValArray,
+  attributes: parseAsFilterValArray,
+  appId: parseAsFilterValArray,
   environmentId: parseAsFilterValArray,
   deploymentId: parseAsFilterValArray,
   region: parseAsFilterValArray,
@@ -40,67 +54,21 @@ export function useRuntimeLogsFilters() {
   const filters = useMemo(() => {
     const activeFilters: RuntimeLogsFilterValue[] = [];
 
-    searchParams.severity?.forEach((severity) => {
-      activeFilters.push({
-        id: crypto.randomUUID(),
-        field: "severity",
-        operator: severity.operator,
-        value: severity.value,
-        metadata: {
-          colorClass: runtimeLogsFilterFieldConfig.severity.getColorClass?.(
-            severity.value as string,
-          ),
-        },
+    arrayFields.forEach((field) => {
+      const getColorClass = runtimeLogsFilterFieldConfig[field].getColorClass;
+      searchParams[field]?.forEach((item) => {
+        activeFilters.push({
+          id: crypto.randomUUID(),
+          field,
+          operator: item.operator,
+          value: item.value,
+          metadata: getColorClass ? { colorClass: getColorClass(item.value as string) } : undefined,
+        });
       });
     });
 
-    searchParams.message?.forEach((msg) => {
-      activeFilters.push({
-        id: crypto.randomUUID(),
-        field: "message",
-        operator: msg.operator,
-        value: msg.value,
-      });
-    });
-
-    searchParams.environmentId?.forEach((env) => {
-      activeFilters.push({
-        id: crypto.randomUUID(),
-        field: "environmentId",
-        operator: env.operator,
-        value: env.value,
-      });
-    });
-
-    searchParams.deploymentId?.forEach((dep) => {
-      activeFilters.push({
-        id: crypto.randomUUID(),
-        field: "deploymentId",
-        operator: dep.operator,
-        value: dep.value,
-      });
-    });
-
-    searchParams.region?.forEach((r) => {
-      activeFilters.push({
-        id: crypto.randomUUID(),
-        field: "region",
-        operator: r.operator,
-        value: r.value,
-      });
-    });
-
-    searchParams.instanceId?.forEach((inst) => {
-      activeFilters.push({
-        id: crypto.randomUUID(),
-        field: "instanceId",
-        operator: inst.operator,
-        value: inst.value,
-      });
-    });
-
-    ["startTime", "endTime", "since"].forEach((field) => {
-      const value = searchParams[field as keyof RuntimeLogsQuerySearchParams];
+    timeFields.forEach((field) => {
+      const value = searchParams[field];
       if (value !== null && value !== undefined) {
         activeFilters.push({
           id: crypto.randomUUID(),
@@ -116,81 +84,35 @@ export function useRuntimeLogsFilters() {
 
   const updateFilters = useCallback(
     (newFilters: RuntimeLogsFilterValue[]) => {
-      const newParams: Partial<RuntimeLogsQuerySearchParams> = {
-        severity: null,
-        message: null,
-        environmentId: null,
-        deploymentId: null,
-        region: null,
-        instanceId: null,
-        startTime: null,
-        endTime: null,
-        since: null,
-      };
+      const newParams: Partial<RuntimeLogsQuerySearchParams> = Object.fromEntries([
+        ...arrayFields.map((field) => [field, null]),
+        ...timeFields.map((field) => [field, null]),
+      ]);
 
-      // Group filters by field
-      const severityFilters: RuntimeLogsFilterUrlValue[] = [];
-      const messageFilters: RuntimeLogsFilterUrlValue[] = [];
-      const environmentIdFilters: RuntimeLogsFilterUrlValue[] = [];
-      const deploymentIdFilters: RuntimeLogsFilterUrlValue[] = [];
-      const regionFilters: RuntimeLogsFilterUrlValue[] = [];
-      const instanceIdFilters: RuntimeLogsFilterUrlValue[] = [];
+      const filterGroups = arrayFields.reduce(
+        (acc, field) => {
+          acc[field] = [];
+          return acc;
+        },
+        {} as Record<(typeof arrayFields)[number], RuntimeLogsFilterUrlValue[]>,
+      );
 
       newFilters.forEach((filter) => {
-        switch (filter.field) {
-          case "severity":
-            severityFilters.push({
-              value: filter.value,
-              operator: filter.operator,
-            });
-            break;
-          case "message":
-            messageFilters.push({
-              value: filter.value,
-              operator: filter.operator,
-            });
-            break;
-          case "environmentId":
-            environmentIdFilters.push({
-              value: filter.value,
-              operator: filter.operator,
-            });
-            break;
-          case "deploymentId":
-            deploymentIdFilters.push({
-              value: filter.value,
-              operator: filter.operator,
-            });
-            break;
-          case "region":
-            regionFilters.push({
-              value: filter.value,
-              operator: filter.operator,
-            });
-            break;
-          case "instanceId":
-            instanceIdFilters.push({
-              value: filter.value,
-              operator: filter.operator,
-            });
-            break;
-          case "startTime":
-          case "endTime":
-            newParams[filter.field] = filter.value as number;
-            break;
-          case "since":
-            newParams.since = filter.value as string;
-            break;
+        if (arrayFields.includes(filter.field as (typeof arrayFields)[number])) {
+          filterGroups[filter.field as (typeof arrayFields)[number]].push({
+            value: filter.value,
+            operator: filter.operator,
+          });
+        } else if (filter.field === "startTime" || filter.field === "endTime") {
+          newParams[filter.field] = filter.value as number;
+        } else if (filter.field === "since") {
+          newParams.since = filter.value as string;
         }
       });
 
-      // Set arrays to null when empty, otherwise use the filtered values
-      newParams.severity = severityFilters.length > 0 ? severityFilters : null;
-      newParams.message = messageFilters.length > 0 ? messageFilters : null;
-      newParams.environmentId = environmentIdFilters.length > 0 ? environmentIdFilters : null;
-      newParams.deploymentId = deploymentIdFilters.length > 0 ? deploymentIdFilters : null;
-      newParams.region = regionFilters.length > 0 ? regionFilters : null;
-      newParams.instanceId = instanceIdFilters.length > 0 ? instanceIdFilters : null;
+      arrayFields.forEach((field) => {
+        newParams[field] = filterGroups[field].length > 0 ? filterGroups[field] : null;
+      });
 
       setSearchParams(newParams);
     },

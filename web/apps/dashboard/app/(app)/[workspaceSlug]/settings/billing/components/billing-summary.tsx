@@ -1,6 +1,6 @@
 "use client";
 
-import { formatDollars } from "@/lib/fmt";
+import { formatPrice } from "@/lib/fmt";
 import { routes } from "@/lib/navigation/routes";
 import { trpc } from "@/lib/trpc/client";
 import { Button, InfoTooltip, toast } from "@unkey/ui";
@@ -32,6 +32,7 @@ export const BillingSummary: React.FC<BillingSummaryProps> = ({
   const { data: invoice, isLoading } = trpc.stripe.getUpcomingInvoice.useQuery(undefined, {
     enabled: hasPaymentMethod,
     staleTime: 30_000,
+    trpc: { context: { skipBatch: true } },
   });
 
   // Dev-only: one-click seed a Stripe test customer + 4242 card so local runs
@@ -136,7 +137,7 @@ export const BillingSummary: React.FC<BillingSummaryProps> = ({
                 </span>
               </div>
               <p className="font-medium text-gray-12 text-sm leading-5 tabular-nums">
-                {formatDollars(row.half.total)}
+                {formatPrice(row.half.total)}
                 {row.showUsage ? (
                   <span className="ml-1.5 font-normal text-gray-9 text-xs">
                     + usage until the period ends

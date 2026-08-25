@@ -61,10 +61,8 @@ func TestChangeDesiredState_NoOpsWhenDeploymentDeleted(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	_, err = h.DB.RW().ExecContext(h.Ctx, "DELETE FROM deployment_topology WHERE deployment_id = ?", dep.ID)
-	require.NoError(t, err)
-	_, err = h.DB.RW().ExecContext(h.Ctx, "DELETE FROM deployments WHERE id = ?", dep.ID)
-	require.NoError(t, err)
+	require.NoError(t, h.DB.DeleteDeploymentTopologiesByEnvironmentId(h.Ctx, env.ID))
+	require.NoError(t, h.DB.DeleteDeploymentsByEnvironmentId(h.Ctx, env.ID))
 
 	time.Sleep(time.Second)
 

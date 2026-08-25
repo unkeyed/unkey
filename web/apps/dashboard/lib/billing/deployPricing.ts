@@ -50,6 +50,26 @@ export function microCentsToCents(microCents: number): number {
   return Math.floor(microCents / MICRO_CENTS_PER_CENT);
 }
 
+export type ComputeMeterQuantities = Omit<DeployUsageQuantities, "activeKeys">;
+
+// Not sumDeployMeterCents: that rounds per meter to mirror Stripe's per-invoice-line
+// rounding, which applies per workspace, not per slice. Round once at display.
+export function priceComputeMeterMicroCents(usage: ComputeMeterQuantities): number {
+  return priceDeployUsageMicroCents({ ...usage, activeKeys: 0 });
+}
+
+// The one meter with no project attribution, so it is priced on its own and
+// shown as its own row rather than folded into the per-project totals.
+export function priceActiveKeysMicroCents(activeKeys: number): number {
+  return priceDeployUsageMicroCents({
+    cpuSeconds: 0,
+    memoryGiBHours: 0,
+    diskGiBHours: 0,
+    egressGiB: 0,
+    activeKeys,
+  });
+}
+
 /**
  * Total usage in whole cents the way Stripe invoices it: each meter is priced
  * and rounded to a cent on its own line, then the lines are summed.

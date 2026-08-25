@@ -53,16 +53,26 @@ const AutoDeployInner = ({
   const currentPreview = useWatch({ control, name: "preview" });
 
   const onSubmit = async (values: DualFormValues) => {
+    // One transaction for both environments. The collection refetches every
+    // loaded environment after a transaction settles.
+    const targets: { id: string; autoDeploy: boolean }[] = [];
     if (values.production !== defaultProd) {
-      collection.environmentSettings.update(production.environmentId, (draft) => {
-        draft.autoDeploy = values.production;
-      });
+      targets.push({ id: production.environmentId, autoDeploy: values.production });
     }
     if (values.preview !== defaultPreview) {
-      collection.environmentSettings.update(preview.environmentId, (draft) => {
-        draft.autoDeploy = values.preview;
-      });
+      targets.push({ id: preview.environmentId, autoDeploy: values.preview });
     }
+    if (targets.length === 0) {
+      return;
+    }
+
+    collection.environmentSettings.update(
+      targets.map((t) => t.id),
+      (drafts) =>
+        drafts.forEach((draft, i) => {
+          draft.autoDeploy = targets[i].autoDeploy;
+        }),
+    );
   };
 
   const hasChanges = currentProd !== defaultProd || currentPreview !== defaultPreview;

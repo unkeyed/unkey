@@ -935,7 +935,6 @@ type Key struct {
 	WorkspaceID        string         `db:"workspace_id"`
 	ForWorkspaceID     sql.NullString `db:"for_workspace_id"`
 	Name               sql.NullString `db:"name"`
-	OwnerID            sql.NullString `db:"owner_id"`
 	IdentityID         sql.NullString `db:"identity_id"`
 	Meta               sql.NullString `db:"meta"`
 	Expires            sql.NullTime   `db:"expires"`
@@ -987,14 +986,14 @@ type Limit struct {
 }
 
 type OpenapiSpec struct {
-	Pk             uint64         `db:"pk"`
-	ID             string         `db:"id"`
-	WorkspaceID    string         `db:"workspace_id"`
-	DeploymentID   sql.NullString `db:"deployment_id"`
-	PortalConfigID sql.NullString `db:"portal_config_id"`
-	Content        []byte         `db:"content"`
-	CreatedAt      int64          `db:"created_at"`
-	UpdatedAt      sql.NullInt64  `db:"updated_at"`
+	Pk           uint64         `db:"pk"`
+	ID           string         `db:"id"`
+	WorkspaceID  string         `db:"workspace_id"`
+	DeploymentID sql.NullString `db:"deployment_id"`
+	PortalID     sql.NullString `db:"portal_id"`
+	Content      []byte         `db:"content"`
+	CreatedAt    int64          `db:"created_at"`
+	UpdatedAt    sql.NullInt64  `db:"updated_at"`
 }
 
 type Permission struct {

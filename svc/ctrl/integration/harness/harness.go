@@ -5,6 +5,7 @@ package harness
 
 import (
 	"context"
+	"errors"
 	"io"
 	"log/slog"
 	"sync"
@@ -23,8 +24,10 @@ import (
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/healthcheck"
 	"github.com/unkeyed/unkey/pkg/mysql/sqlcomment"
+	restateadmin "github.com/unkeyed/unkey/pkg/restate/admin"
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/svc/ctrl/integration/seed"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/auditlogs"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/billingmeter"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/invoicecloser"
@@ -34,6 +37,7 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/deploybilling"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/deploy"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/deployment"
+	"github.com/unkeyed/unkey/svc/ctrl/worker/deployteardown"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/keylastusedsync"
 	vaulttestutil "github.com/unkeyed/unkey/svc/vault/testutil"
 )
@@ -70,9 +74,6 @@ type Harness struct {
 
 	// Restate is the ingress client for calling Restate services.
 	Restate *ingress.Client
-
-	// RestateIngress is the URL for calling Restate handlers.
-	RestateIngress string
 
 	// RestateAdmin is the URL for Restate admin operations.
 	RestateAdmin string
@@ -147,9 +148,6 @@ func New(t *testing.T, opts ...Option) *Harness {
 	if o.clock == nil {
 		o.clock = clock.New()
 	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), o.timeout)
-	t.Cleanup(cancel)
 
 	start := time.Now()
 
@@ -238,6 +236,7 @@ func New(t *testing.T, opts ...Option) *Harness {
 			KeyLastUsedSync:    healthcheck.NewNoop(),
 			AuditLogExport:     healthcheck.NewNoop(),
 			AuditLogCleanup:    healthcheck.NewNoop(),
+			RatelimitCleanup:   healthcheck.NewNoop(),
 			DeployBillingPush:  healthcheck.NewNoop(),
 			DeployBillingClose: healthcheck.NewNoop(),
 			DeploySpendCheck:   healthcheck.NewNoop(),
@@ -251,21 +250,31 @@ func New(t *testing.T, opts ...Option) *Harness {
 		Clickhouse: chClient,
 	})
 
-	deploySvc := deploy.New(deploy.Config{
+	auditlogSvc, err := auditlogs.New(auditlogs.Config{DB: database})
+	require.NoError(t, err)
+
+	deploySvc, err := deploy.New(deploy.Config{
 		DB:            database,
+		Auditlogs:     auditlogSvc,
 		Clickhouse:    chClient,
 		DefaultDomain: "test.example.com",
 		DashboardURL:  "https://app.unkey.com",
 		Vault:         vaultClient,
 
-		GitHub:                          nil,
-		DepotConfig:                     deploy.DepotConfig{APIUrl: "", ProjectRegion: "", ProjectPrefix: "builds-test"},
+		GitHub: nil,
+		Build: deploy.BuildConfig{
+			Backend:    deploy.BuildBackendDepot,
+			Depot:      deploy.DepotConfig{APIUrl: "", ProjectRegion: "", ProjectPrefix: "builds-test"},
+			Kubernetes: deploy.KubernetesBuildConfig{Namespace: "", Image: ""},
+		},
+		K8s:                             nil,
 		BuildSteps:                      batch.NewNoop[schema.BuildStepV1](),
 		BuildStepLogs:                   batch.NewNoop[schema.BuildStepLogV1](),
-		RegistryConfig:                  deploy.RegistryConfig{Repository: "", Username: "", Password: ""},
+		RegistryConfig:                  deploy.RegistryConfig{Repository: "", Username: "", Password: "", Insecure: false},
 		BuildPlatform:                   deploy.BuildPlatform{Platform: "", Architecture: ""},
 		AllowUnauthenticatedDeployments: false,
 	})
+	require.NoError(t, err)
 
 	keyLastUsedPartitionSvc, err := keylastusedsync.NewPartitionService(keylastusedsync.PartitionConfig{
 		DB:         database,
@@ -277,8 +286,25 @@ func New(t *testing.T, opts ...Option) *Harness {
 		DB: database,
 	})
 
+	// CheckWorkspaceSpend sends Teardown/Resume to this service. Restate
+	// retries calls to unregistered services indefinitely, so it must be
+	// registered here or a dispatched check never completes.
+	teardownSvc, err := deployteardown.New(deployteardown.Config{
+		DB:                database,
+		DrainPollInterval: 200 * time.Millisecond,
+		DrainGraceTimeout: 2 * time.Second,
+	})
+	require.NoError(t, err)
+
+	// The build slot service audits slot occupancy against the Restate
+	// admin API, but the admin URL is only known after containers.Restate
+	// starts below, and that start needs the constructed services. The
+	// lazy adapter breaks the cycle: it is set directly after the
+	// container is up, and no handler runs before that.
+	buildSlotLiveness := &lazyInvocationLiveness{mu: sync.Mutex{}, client: nil}
 	buildSlotSvc := buildslot.New(buildslot.Config{
-		DB: database,
+		DB:           database,
+		RestateAdmin: buildSlotLiveness,
 	})
 
 	// Register every worker service as one deployment on this test's own
@@ -295,9 +321,20 @@ func New(t *testing.T, opts ...Option) *Harness {
 		hydrav1.NewKeyLastUsedPartitionServiceServer(keyLastUsedPartitionSvc),
 		hydrav1.NewDeployServiceServer(deploySvc),
 		hydrav1.NewDeploymentServiceServer(deploymentSvc),
+		hydrav1.NewDeployTeardownServiceServer(teardownSvc),
 		hydrav1.NewBuildSlotServiceServer(buildSlotSvc),
 	)
+	buildSlotLiveness.set(restateadmin.New(restateadmin.Config{
+		BaseURL: restateCfg.AdminURL,
+		APIKey:  "",
+	}))
 	t.Logf("Total harness setup in %s", time.Since(start))
+
+	// The timeout limits test operations, not container startup and service
+	// readiness. Starting it before setup can return an already-expired context
+	// to the first request when CI is under load.
+	ctx, cancel := context.WithTimeout(context.Background(), o.timeout)
+	t.Cleanup(cancel)
 
 	return &Harness{
 		Ctx:            ctx,
@@ -309,9 +346,33 @@ func New(t *testing.T, opts ...Option) *Harness {
 		ClickHouseDSN:  chDSN,
 		VaultClient:    vaultClient,
 		VaultToken:     testVault.Token,
-		Restate:        ingress.NewClient(restateCfg.IngressURL),
-		RestateIngress: restateCfg.IngressURL,
+		Restate:        restateCfg.IngressClient,
 		RestateAdmin:   restateCfg.AdminURL,
 		Clock:          o.clock,
 	}
+}
+
+// lazyInvocationLiveness defers the Restate admin client until the test
+// container is running. See the comment at the buildslot.New call site.
+type lazyInvocationLiveness struct {
+	mu     sync.Mutex
+	client *restateadmin.Client
+}
+
+var _ buildslot.InvocationLiveness = (*lazyInvocationLiveness)(nil)
+
+func (l *lazyInvocationLiveness) set(client *restateadmin.Client) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	l.client = client
+}
+
+func (l *lazyInvocationLiveness) FindLiveInvocations(ctx context.Context, invocationIDs []string) (map[string]bool, error) {
+	l.mu.Lock()
+	client := l.client
+	l.mu.Unlock()
+	if client == nil {
+		return nil, errors.New("restate admin client not initialized yet")
+	}
+	return client.FindLiveInvocations(ctx, invocationIDs)
 }

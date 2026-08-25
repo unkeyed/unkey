@@ -6,6 +6,7 @@ import (
 
 	restate "github.com/restatedev/sdk-go"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
+	"github.com/unkeyed/unkey/pkg/auditlog"
 	"github.com/unkeyed/unkey/pkg/deploy/deploygate"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/logger"
@@ -176,6 +177,17 @@ func (w *Workflow) Promote(ctx restate.ObjectContext, req *hydrav1.PromoteReques
 		"domains_promoted", len(routeIDs),
 		"confirm_rollback", isConfirmingRollback,
 	)
+
+	if err := w.insertLifecycleAudit(
+		ctx,
+		req.GetActor(),
+		req.GetCorrelationId(),
+		targetDeployment,
+		auditlog.DeploymentPromoteEvent,
+		fmt.Sprintf("Promoted deployment %s", targetDeployment.ID),
+	); err != nil {
+		return nil, fmt.Errorf("insert promote deployment audit log: %w", err)
+	}
 
 	return &hydrav1.PromoteResponse{}, nil
 }

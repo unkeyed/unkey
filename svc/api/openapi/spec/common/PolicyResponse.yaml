@@ -34,10 +34,12 @@ properties:
     "$ref": "./FirewallPolicy.yaml"
   openapi:
     "$ref": "./OpenapiPolicy.yaml"
+  logging:
+    "$ref": "./LoggingPolicy.yaml"
 additionalProperties: false
 description: |-
   A stored gateway policy as returned by list endpoints. Exactly one of
-  `keyauth`, `ratelimit`, `firewall` or `openapi` is set.
+  `keyauth`, `ratelimit`, `firewall`, `openapi` or `logging` is set.
 example:
   id: pol_2gJbXhAr4
   name: Block internal paths

@@ -52,11 +52,13 @@ func TestRunDeploySpendCheck_OrchestratorIntegration(t *testing.T) {
 	reader := &fakeUsageReader{} //nolint:exhaustruct // set per subtest
 	h := harness.New(t, harness.WithDeployBilling(reader, newFakePusher(), newFakeCloser()))
 
-	// The harness database persists across test runs, and earlier runs (or
-	// other tests) can leave budgeted workspaces behind. The orchestrator
-	// counts below are asserted exactly, so start from an empty opt-in set.
+	// The harness database is shared across test processes, and other tests
+	// leave budgeted or spend-suspended workspaces behind. Both are scanned by
+	// the orchestrator, and the counts below are asserted exactly, so start
+	// from an empty set.
 	_, err := h.DB.RW().ExecContext(h.Ctx,
-		`UPDATE workspace_billing SET spend_budget_cents = NULL WHERE spend_budget_cents IS NOT NULL`)
+		`UPDATE workspace_billing SET spend_budget_cents = NULL, spend_suspended = false
+		WHERE spend_budget_cents IS NOT NULL OR spend_suspended = true`)
 	require.NoError(t, err)
 
 	period := time.Now().UTC().Format("2006-01")
@@ -90,5 +92,48 @@ func TestRunDeploySpendCheck_OrchestratorIntegration(t *testing.T) {
 		resp, err := run()
 		require.NoError(t, err)
 		require.Equal(t, int32(0), resp.GetWorkspacesDispatched())
+	})
+
+	// Regression: a suspended workspace without a budget always dispatches,
+	// and its check sends Resume to DeployTeardownService. This hung forever
+	// while the harness did not register that service.
+	t.Run("resolves suspended workspace without budget", func(t *testing.T) {
+		reader.set(nil)
+		ws := h.Seed.CreateWorkspace(h.Ctx)
+		_, err := h.DB.RW().ExecContext(h.Ctx,
+			`UPDATE workspace_billing SET spend_suspended = true WHERE workspace_id = ?`, ws.ID)
+		require.NoError(t, err)
+		t.Cleanup(func() {
+			_, err := h.DB.RW().ExecContext(h.Ctx,
+				`UPDATE workspace_billing SET spend_suspended = false WHERE workspace_id = ?`, ws.ID)
+			require.NoError(t, err)
+		})
+
+		resp, err := run()
+		require.NoError(t, err)
+		require.Equal(t, int32(1), resp.GetWorkspacesDispatched())
+
+		// The check resumed the workspace: budget removed while suspended clears
+		// the flag, so the row cannot skew later subtests either.
+		var suspended bool
+		require.NoError(t, h.DB.RO().QueryRowContext(h.Ctx,
+			`SELECT spend_suspended FROM workspace_billing WHERE workspace_id = ?`, ws.ID).
+			Scan(&suspended))
+		require.False(t, suspended, "check must clear spend_suspended after the budget was removed")
+	})
+
+	t.Run("limits concurrent instance usage shards", func(t *testing.T) {
+		reader.set(nil)
+		for range 8 {
+			seedBudgetedWorkspace(t, h, uid.New("cus"), 1_000_000)
+		}
+		reader.trackInstanceConcurrency(50 * time.Millisecond)
+
+		resp, err := run()
+		require.NoError(t, err)
+		require.Equal(t, int32(0), resp.GetWorkspacesDispatched())
+		instanceReads, _ := reader.reads()
+		require.Equal(t, 8, instanceReads)
+		require.Equal(t, 2, reader.maxInstanceConcurrency())
 	})
 }

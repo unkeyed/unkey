@@ -4,6 +4,7 @@ import (
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/hex"
+	"encoding/json"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -11,6 +12,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/pkg/uid"
 )
 
 // sign produces an X-Hub-Signature-256 header for body: sha256=<hmac-sha256
@@ -23,13 +25,20 @@ func sign(secret, body string) string {
 
 func TestVerifier(t *testing.T) {
 	const secret = "gh_test_secret"
-	body := `{"ref":"refs/heads/main","after":"abc123"}`
+	deliveryID := uid.New(uid.TestPrefix)
+	type pushPayload struct {
+		Ref   string `json:"ref"`
+		After string `json:"after"`
+	}
+	bodyBytes, err := json.Marshal(pushPayload{Ref: "refs/heads/main", After: "abc123"})
+	require.NoError(t, err)
+	body := string(bodyBytes)
 
 	request := func(mutate func(*http.Request)) *http.Request {
 		r := httptest.NewRequest(http.MethodPost, "/webhooks/github", strings.NewReader(body))
 		r.Header.Set("X-Hub-Signature-256", sign(secret, body))
 		r.Header.Set("X-GitHub-Event", "push")
-		r.Header.Set("X-GitHub-Delivery", "delivery-123")
+		r.Header.Set("X-GitHub-Delivery", deliveryID)
 		if mutate != nil {
 			mutate(r)
 		}
@@ -39,7 +48,7 @@ func TestVerifier(t *testing.T) {
 	t.Run("valid signature yields event from headers", func(t *testing.T) {
 		event, err := New(secret).Verify(request(nil))
 		require.NoError(t, err)
-		require.Equal(t, "delivery-123", event.ID)
+		require.Equal(t, deliveryID, event.ID)
 		require.Equal(t, "push", event.Type)
 		require.Equal(t, body, string(event.Payload))
 	})
@@ -58,10 +67,12 @@ func TestVerifier(t *testing.T) {
 
 	t.Run("tampered body is rejected", func(t *testing.T) {
 		// Body differs from what the signature was computed over.
+		tampered, err := json.Marshal(pushPayload{Ref: "refs/heads/evil"})
+		require.NoError(t, err)
 		r := request(func(r *http.Request) {
-			r.Body = io.NopCloser(strings.NewReader(`{"ref":"refs/heads/evil"}`))
+			r.Body = io.NopCloser(strings.NewReader(string(tampered)))
 		})
-		_, err := New(secret).Verify(r)
+		_, err = New(secret).Verify(r)
 		require.Error(t, err)
 	})
 

@@ -3,10 +3,6 @@ title: Requests
 description: "Inspect every HTTP request passing through the gateway to your deployment. View headers, status codes, latency, and request body details."
 ---
 
-import DeployBeta from "/snippets/deploy-beta.mdx";
-
-<DeployBeta />
-
 The **Requests** tab in your project shows every HTTP request that [the gateway](/platform/gateway/overview) processes on behalf of your deployments. Use it to debug failed requests, trace slow responses, and understand traffic patterns.
 
 ## Request fields
@@ -55,6 +51,8 @@ Click any row to open the detail panel on the right side. The panel shows:
 - Deployment info: deployment ID, git branch, commit SHA, commit author, commit message, environment, and deployment status
 - Meta: request ID, timestamp, client IP, user agent, host, region, query string, and query parameters
 
+Headers, bodies, query data, the user agent, and the client IP appear only when a [logging policy](/platform/gateway/policies/logging) captures them. Without a logging policy, the panel shows the basic data only.
+
 ## Latency breakdown
 
 The detail panel splits total latency into two components. Instance latency is the time your app spent processing the request. Gateway latency is the time the gateway spent on routing, policy evaluation, and proxying.
@@ -63,4 +61,4 @@ If instance latency dominates, the bottleneck is in your application code. If ga
 
 ## Retention
 
-Request logs are retained for 30 days.
+Log retention depends on your plan. See [quotas](/platform/workspaces/quotas#log-retention).

@@ -16,8 +16,9 @@ import (
 func TestCreateProjectBadRequest(t *testing.T) {
 	h := testutil.NewHarness(t)
 
+	ctrlClient := &testutil.MockProjectClient{}
 	route := &handler.Handler{
-		CtrlClient: &testutil.MockProjectClient{},
+		CtrlClient: ctrlClient,
 	}
 
 	h.Register(route)
@@ -53,6 +54,18 @@ func TestCreateProjectBadRequest(t *testing.T) {
 			require.Greater(t, len(res.Body.Error.Errors), 0)
 		})
 	}
+
+	t.Run("reserved default slug", func(t *testing.T) {
+		for _, slug := range []string{"default", "Default"} {
+			res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, handler.Request{
+				Name: "Reserved",
+				Slug: slug,
+			})
+			require.Equal(t, http.StatusBadRequest, res.Status, "expected 400 for reserved slug %q, received: %s", slug, res.RawBody)
+			require.Equal(t, fmt.Sprintf("The project slug '%s' is reserved.", slug), res.Body.Error.Detail)
+		}
+		require.Empty(t, ctrlClient.CreateProjectCalls)
+	})
 
 	t.Run("invalid json", func(t *testing.T) {
 		invalidJSON := `{"name": "Payments", "slug": }`

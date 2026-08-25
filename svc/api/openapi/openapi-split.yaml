@@ -108,6 +108,8 @@ tags:
     description: Deployment operations
   - name: deployments
     description: Deployment operations
+  - name: domains
+    description: Custom domain operations
   - name: environments
     description: Environment management operations
   - name: identities
@@ -133,8 +135,12 @@ paths:
     $ref: "./spec/paths/v2/liveness/index.yaml"
 
   # Analytics Endpoints
+  /v2/analytics.getGatewayRequests:
+    $ref: "./spec/paths/v2/analytics/getGatewayRequests/index.yaml"
   /v2/analytics.getRatelimits:
     $ref: "./spec/paths/v2/analytics/getRatelimits/index.yaml"
+  /v2/analytics.getRuntimeLogs:
+    $ref: "./spec/paths/v2/analytics/getRuntimeLogs/index.yaml"
   /v2/analytics.getVerifications:
     $ref: "./spec/paths/v2/analytics/getVerifications/index.yaml"
 
@@ -230,8 +236,8 @@ paths:
   # Portal Endpoints
   /v2/portal.createSession:
     $ref: "./spec/paths/v2/portal/createSession/index.yaml"
-  /v2/portal.exchangeSession:
-    $ref: "./spec/paths/v2/portal/exchangeSession/index.yaml"
+  /v2/portal.exchangeCode:
+    $ref: "./spec/paths/v2/portal/exchangeCode/index.yaml"
   /v2/portal.listKeys:
     $ref: "./spec/paths/v2/portal/listKeys/index.yaml"
   /v2/portal.rerollKey:
@@ -281,6 +287,18 @@ paths:
   /v2/environments.listEnvironmentVariables:
     $ref: "./spec/paths/v2/environments/listEnvironmentVariables/index.yaml"
 
+  # Domain Endpoints
+  /v2/domains.createDomain:
+    $ref: "./spec/paths/v2/domains/createDomain/index.yaml"
+  /v2/domains.getDomain:
+    $ref: "./spec/paths/v2/domains/getDomain/index.yaml"
+  /v2/domains.listDomains:
+    $ref: "./spec/paths/v2/domains/listDomains/index.yaml"
+  /v2/domains.deleteDomain:
+    $ref: "./spec/paths/v2/domains/deleteDomain/index.yaml"
+  /v2/domains.verifyDomain:
+    $ref: "./spec/paths/v2/domains/verifyDomain/index.yaml"
+
   # Gateway Endpoints
   /v2/gateway.setPolicies:
     $ref: "./spec/paths/v2/gateway/setPolicies/index.yaml"
@@ -290,6 +308,8 @@ paths:
     $ref: "./spec/paths/v2/gateway/updatePolicy/index.yaml"
 
   # Permissions Endpoints
+  /v2/permissions.setRolePermissions:
+    $ref: "./spec/paths/v2/permissions/setRolePermissions/index.yaml"
   /v2/permissions.createRole:
     $ref: "./spec/paths/v2/permissions/createRole/index.yaml"
   /v2/permissions.getRole:
@@ -332,7 +352,7 @@ components:
       in: cookie
       name: portal_session
       description: |-
-        Browser session cookie for the Customer Portal. Set by `portal.exchangeSession`
+        Session cookie for the Customer Portal. Set by `portal.exchangeCode`
         and sent automatically by the browser on `portal.*` requests. Portal sessions
         are scoped to a single end user (external identity) and can only access the
         `portal.*` routes.

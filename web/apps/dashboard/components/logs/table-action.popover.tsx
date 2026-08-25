@@ -10,6 +10,8 @@ import {
   TooltipTrigger,
 } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
+import type { Route } from "next";
+import Link from "next/link";
 import { type FC, type PropsWithChildren, forwardRef, useEffect, useRef, useState } from "react";
 
 export type ActionComponentProps = {
@@ -30,6 +32,9 @@ export type MenuItem = {
   label: string;
   icon: React.ReactNode;
   onClick?: (e: React.MouseEvent<Element, MouseEvent> | React.KeyboardEvent<Element>) => void;
+  // Navigation items pass href so they render as links: new tab, middle click
+  // and prefetch keep working.
+  href?: Route;
   className?: string;
   // Pass a function when the disabled or tooltip state depends on a moving
   // value (e.g. wall-clock time) so it is re-evaluated each render instead
@@ -59,9 +64,8 @@ export const TableActionPopover = ({
 }: BaseTableActionPopoverProps) => {
   const [enabledItem, setEnabledItem] = useState<string>();
   const [open, setOpen] = useState(false);
-  const [focusIndex, setFocusIndex] = useState(0);
   const [prefetchedItems, setPrefetchedItems] = useState<Set<string>>(new Set());
-  const menuItems = useRef<HTMLDivElement[]>([]);
+  const menuItems = useRef<(HTMLElement | null)[]>([]);
 
   useEffect(() => {
     if (open) {
@@ -78,12 +82,17 @@ export const TableActionPopover = ({
         });
 
       const firstEnabledIndex = items.findIndex((item) => !isItemDisabled(item));
-      setFocusIndex(firstEnabledIndex >= 0 ? firstEnabledIndex : 0);
       if (firstEnabledIndex >= 0) {
         menuItems.current[firstEnabledIndex]?.focus();
       }
     }
   }, [open, items, prefetchedItems]);
+
+  useEffect(() => {
+    if (enabledItem && !items.some((item) => item.id === enabledItem)) {
+      setEnabledItem(undefined);
+    }
+  }, [items, enabledItem]);
 
   const handleActionSelection = (value: string) => {
     setEnabledItem(value);
@@ -124,75 +133,63 @@ export const TableActionPopover = ({
             {items.map((item, index) => {
               const disabled = isItemDisabled(item);
               const tooltip = itemTooltip(item);
+              const itemProps = {
+                role: "menuitem" as const,
+                "aria-disabled": disabled,
+                tabIndex: disabled ? -1 : 0,
+                className: cn(
+                  "flex w-full items-center px-2 py-1.5 gap-3 rounded-lg group",
+                  !disabled &&
+                    "cursor-pointer hover:bg-gray-3 data-popup-open:bg-gray-3 focus:outline-hidden focus:bg-gray-3",
+                  disabled && "cursor-not-allowed opacity-50",
+                  item.className,
+                ),
+                ref: (element: HTMLElement | null) => {
+                  menuItems.current[index] = element;
+                },
+                onMouseEnter: () => handleItemHover(item),
+                onClick: (e: React.MouseEvent<Element, MouseEvent>) => {
+                  if (disabled) {
+                    return;
+                  }
+                  item.onClick?.(e);
+                  setEnabledItem(item.id);
+                  setOpen(false);
+                },
+              };
+              const body = (
+                <>
+                  <div className="text-gray-9 group-hover:text-gray-12 group-focus:text-gray-12">
+                    {item.icon}
+                  </div>
+                  <span className="text-[13px] font-medium">{item.label}</span>
+                </>
+              );
+              const control =
+                item.href && !disabled ? (
+                  <Link href={item.href} {...itemProps}>
+                    {body}
+                  </Link>
+                ) : (
+                  <button type="button" {...itemProps}>
+                    {body}
+                  </button>
+                );
               return (
                 <div key={item.id}>
                   <div className="px-2">
                     {tooltip ? (
                       <TooltipProvider>
                         <Tooltip>
-                          <TooltipTrigger
-                            render={
-                              <button
-                                type="button"
-                                role="menuitem"
-                                aria-disabled={disabled}
-                                tabIndex={!disabled && focusIndex === index ? 0 : -1}
-                                className={cn(
-                                  "flex w-full items-center px-2 py-1.5 gap-3 rounded-lg group",
-                                  !disabled &&
-                                    "cursor-pointer hover:bg-gray-3 data-popup-open:bg-gray-3 focus:outline-hidden focus:bg-gray-3",
-                                  disabled && "cursor-not-allowed opacity-50",
-                                  item.className,
-                                )}
-                                onMouseEnter={() => handleItemHover(item)}
-                                onClick={(e) => {
-                                  if (!disabled) {
-                                    item.onClick?.(e);
-                                    setEnabledItem(item.id);
-                                    setOpen(false);
-                                  }
-                                }}
-                              >
-                                <div className="text-gray-9 group-hover:text-gray-12 group-focus:text-gray-12">
-                                  {item.icon}
-                                </div>
-                                <span className="text-[13px] font-medium">{item.label}</span>
-                              </button>
-                            }
-                          />
+                          <TooltipTrigger render={control} />
                           <TooltipContent className="z-[9998]">{tooltip}</TooltipContent>
                         </Tooltip>
                       </TooltipProvider>
                     ) : (
-                      <button
-                        type="button"
-                        role="menuitem"
-                        aria-disabled={disabled}
-                        tabIndex={!disabled && focusIndex === index ? 0 : -1}
-                        className={cn(
-                          "flex w-full items-center px-2 py-1.5 gap-3 rounded-lg group",
-                          !disabled &&
-                            "cursor-pointer hover:bg-gray-3 data-popup-open:bg-gray-3 focus:outline-hidden focus:bg-gray-3",
-                          disabled && "cursor-not-allowed opacity-50",
-                          item.className,
-                        )}
-                        onMouseEnter={() => handleItemHover(item)}
-                        onClick={(e) => {
-                          if (!disabled) {
-                            item.onClick?.(e);
-                            setEnabledItem(item.id);
-                            setOpen(false);
-                          }
-                        }}
-                      >
-                        <div className="text-gray-9 group-hover:text-gray-12 group-focus:text-gray-12">
-                          {item.icon}
-                        </div>
-                        <span className="text-[13px] font-medium">{item.label}</span>
-                      </button>
+                      control
                     )}
                   </div>
-                  {item.divider && <div className="h-px bg-grayA-3 w-full my-2" />}
+                  {item.divider && <div aria-hidden className="h-px bg-grayA-3 w-full my-2" />}
                 </div>
               );
             })}

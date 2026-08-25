@@ -2,7 +2,7 @@ import { insertAuditLogs } from "@/lib/audit";
 import { auth as authProvider } from "@/lib/auth/server";
 import { type InsertWorkspace, db, schema } from "@/lib/db";
 import { env } from "@/lib/env";
-import { freeTierLimits, freeTierQuotas } from "@/lib/quotas";
+import { freeTierLimits } from "@/lib/limits";
 import { TRPCError } from "@trpc/server";
 import { dns1035, newId } from "@unkey/id";
 import { z } from "zod";
@@ -76,10 +76,6 @@ export const createWorkspace = protectedProcedure
         };
 
         await tx.insert(schema.workspaces).values(workspace);
-        await tx.insert(schema.quotas).values({
-          workspaceId: workspace.id,
-          ...freeTierQuotas,
-        });
         await tx.insert(schema.limits).values({
           workspaceId: workspace.id,
           ...freeTierLimits,

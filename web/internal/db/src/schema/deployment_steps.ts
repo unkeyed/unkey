@@ -3,18 +3,19 @@ import { bigint, index, mysqlEnum, mysqlTable, uniqueIndex, varchar } from "driz
 import { deployments } from "./deployments";
 import { environments } from "./environments";
 import { projects } from "./projects";
-import { caseSensitiveVarchar } from "./util/case_sensitive_varchar";
+import { id } from "./util/id";
+import { primaryKey } from "./util/primary_key";
 import { workspaces } from "./workspaces";
 
 export const deploymentSteps = mysqlTable(
   "deployment_steps",
   {
-    pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
-    workspaceId: caseSensitiveVarchar("workspace_id", { length: 128 }).notNull(),
-    projectId: caseSensitiveVarchar("project_id", { length: 128 }).notNull(),
-    environmentId: caseSensitiveVarchar("environment_id", { length: 128 }).notNull(),
-    deploymentId: caseSensitiveVarchar("deployment_id", { length: 128 }).notNull(),
-    appId: caseSensitiveVarchar("app_id", { length: 64 }).notNull(),
+    pk: primaryKey(),
+    workspaceId: id("workspace_id").notNull(),
+    projectId: id("project_id").notNull(),
+    environmentId: id("environment_id").notNull(),
+    deploymentId: id("deployment_id").notNull(),
+    appId: id("app_id").notNull(),
 
     step: mysqlEnum("step", [
       "queued",

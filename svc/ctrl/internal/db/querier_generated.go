@@ -52,6 +52,12 @@ type Querier interface {
 	//  FROM instances i
 	//  WHERE i.deployment_id IN (/*SLICE:ids*/?)
 	CountActiveDeploymentsByIds(ctx context.Context, ids []string) (int64, error)
+	// Covered by unique_domain_workspace_idx, which leads on workspace_id.
+	//
+	//  SELECT COUNT(*)
+	//  FROM custom_domains
+	//  WHERE workspace_id = ?
+	CountCustomDomainsByWorkspace(ctx context.Context, workspaceID string) (int64, error)
 	//DeleteAcmeChallengeByDomainID
 	//
 	//  DELETE FROM acme_challenges WHERE domain_id = ?
@@ -343,9 +349,25 @@ type Querier interface {
 	FindCustomDomainById(ctx context.Context, id string) (CustomDomain, error)
 	//FindCustomDomainByWorkspaceAndDomain
 	//
-	//  SELECT pk, id, workspace_id, project_id, app_id, environment_id, domain, challenge_type, verification_status, verification_token, ownership_verified, cname_verified, target_cname, last_checked_at, check_attempts, verification_error, domain_connect_provider, domain_connect_url, invocation_id, created_at, updated_at FROM custom_domains
+	//  SELECT
+	//      id,
+	//      project_id,
+	//      app_id,
+	//      environment_id,
+	//      domain,
+	//      verification_status,
+	//      invocation_id
+	//  FROM custom_domains
 	//  WHERE workspace_id = ? AND domain = ?
-	FindCustomDomainByWorkspaceAndDomain(ctx context.Context, arg FindCustomDomainByWorkspaceAndDomainParams) (CustomDomain, error)
+	FindCustomDomainByWorkspaceAndDomain(ctx context.Context, arg FindCustomDomainByWorkspaceAndDomainParams) (FindCustomDomainByWorkspaceAndDomainRow, error)
+	// Covered by unique_domain_workspace_idx.
+	//
+	//  SELECT id
+	//  FROM custom_domains
+	//  WHERE workspace_id = ?
+	//    AND domain = ?
+	//  LIMIT 1
+	FindCustomDomainIDByWorkspaceAndDomain(ctx context.Context, arg FindCustomDomainIDByWorkspaceAndDomainParams) (string, error)
 	// FindDefaultProjectByWorkspaceID resolves only the exact lowercase default slug.
 	// BINARY prevents case-insensitive collations from accepting a different project.
 	//
@@ -524,7 +546,12 @@ type Querier interface {
 	FindInstancesByDeploymentIdAndRegionID(ctx context.Context, arg FindInstancesByDeploymentIdAndRegionIDParams) ([]Instance, error)
 	//FindKeyByID
 	//
-	//  SELECT pk, id, key_auth_id, hash, start, workspace_id, for_workspace_id, name, owner_id, identity_id, meta, expires, created_at_m, updated_at_m, deleted_at_m, refill_day, refill_amount, last_refill_at, enabled, remaining_requests, environment, last_used_at, pending_migration_id FROM `keys` k
+	//  SELECT
+	//      k.pk, k.id, k.key_auth_id, k.hash, k.start, k.workspace_id, k.for_workspace_id,
+	//      k.name, k.identity_id, k.meta, k.expires, k.created_at_m, k.updated_at_m,
+	//      k.deleted_at_m, k.refill_day, k.refill_amount, k.last_refill_at, k.enabled,
+	//      k.remaining_requests, k.environment, k.last_used_at, k.pending_migration_id
+	//  FROM `keys` k
 	//  WHERE k.id = ?
 	FindKeyByID(ctx context.Context, id string) (Key, error)
 	// FindKeyIDByHash returns just the key ID for a given hash. Use this when
@@ -556,7 +583,7 @@ type Querier interface {
 	FindLimitsByWorkspaceID(ctx context.Context, workspaceID string) (Limit, error)
 	//FindOpenApiSpecByDeploymentID
 	//
-	//  SELECT pk, id, workspace_id, deployment_id, portal_config_id, content, created_at, updated_at FROM openapi_specs WHERE deployment_id = ?
+	//  SELECT pk, id, workspace_id, deployment_id, portal_id, content, created_at, updated_at FROM openapi_specs WHERE deployment_id = ?
 	FindOpenApiSpecByDeploymentID(ctx context.Context, deploymentID sql.NullString) (OpenapiSpec, error)
 	//FindPermissionByNameAndWorkspaceID
 	//
@@ -1131,7 +1158,6 @@ type Querier interface {
 	//      workspace_id,
 	//      for_workspace_id,
 	//      name,
-	//      owner_id,
 	//      identity_id,
 	//      meta,
 	//      expires,
@@ -1149,7 +1175,6 @@ type Querier interface {
 	//      ?,
 	//      ?,
 	//      ?,
-	//      null,
 	//      ?,
 	//      ?,
 	//      ?,
@@ -1340,10 +1365,10 @@ type Querier interface {
 	//      ?
 	//  )
 	InsertWorkspace(ctx context.Context, arg InsertWorkspaceParams) error
-	// Creates the billing row for a workspace, mirroring how UpsertQuota creates the
-	// quota row. Idempotent: a second call for the same workspace is a no-op, so it
-	// is safe to call after InsertWorkspace without a prior check. New workspaces
-	// start on the Free tier with no Stripe linkage and no plan.
+	// Creates the billing row for a workspace. Idempotent: a second call for the
+	// same workspace is a no-op, so it is safe to call after InsertWorkspace without
+	// a prior check. New workspaces start on the Free tier with no Stripe linkage and
+	// no plan.
 	//
 	//  INSERT INTO `workspace_billing` (
 	//      workspace_id,
@@ -2189,31 +2214,13 @@ type Querier interface {
 	UpsertLimit(ctx context.Context, arg UpsertLimitParams) error
 	//UpsertOpenApiSpec
 	//
-	//  INSERT INTO openapi_specs (id,workspace_id, deployment_id, portal_config_id, content, created_at, updated_at)
+	//  INSERT INTO openapi_specs (id,workspace_id, deployment_id, portal_id, content, created_at, updated_at)
 	//  VALUES (?,?, ?, ?,
 	//          ?, ?, ?)
 	//  ON DUPLICATE KEY UPDATE
 	//      content = VALUES(content),
 	//      updated_at = VALUES(updated_at)
 	UpsertOpenApiSpec(ctx context.Context, arg UpsertOpenApiSpecParams) error
-	//UpsertQuota
-	//
-	//  INSERT INTO quota (
-	//      workspace_id,
-	//      requests_per_month,
-	//      audit_logs_retention_days,
-	//      logs_retention_days,
-	//      team,
-	//      ratelimit_api_limit,
-	//      ratelimit_api_duration
-	//  ) VALUES (?, ?, ?, ?, ?, ?, ?)
-	//  ON DUPLICATE KEY UPDATE
-	//      requests_per_month = VALUES(requests_per_month),
-	//      audit_logs_retention_days = VALUES(audit_logs_retention_days),
-	//      logs_retention_days = VALUES(logs_retention_days),
-	//      ratelimit_api_limit = VALUES(ratelimit_api_limit),
-	//      ratelimit_api_duration = VALUES(ratelimit_api_duration)
-	UpsertQuota(ctx context.Context, arg UpsertQuotaParams) error
 	// Inserts a region or does nothing if it already exists (keyed by the
 	// (name, platform) unique index).
 	//

@@ -3,9 +3,8 @@ package permissions
 import (
 	"context"
 	"fmt"
-	"time"
 
-	"github.com/unkeyed/sdks/api/go/v2/models/components"
+	"github.com/unkeyed/sdks/api/go/v3/models/components"
 	"github.com/unkeyed/unkey/cmd/api/util"
 	"github.com/unkeyed/unkey/pkg/cli"
 )
@@ -23,16 +22,18 @@ Required permissions:
 
 For full documentation, see https://www.unkey.com/docs/api-reference/v2/permissions/create-role` + util.Disclaimer,
 		Examples: []string{
-			`unkey api permissions create-role --name=content.editor --description="Can read and write content"`,
+			`unkey api permissions create-role --name=content.editor --description="Can read and write content" --permissions=documents.read,documents.write`,
 			"unkey api permissions create-role --name=api.reader",
 		},
 		Flags: []cli.Flag{
+			cli.String("body", "Decode this JSON as the endpoint request body. Request-building flags are mutually exclusive."),
 			util.RootKeyFlag(),
 			util.APIURLFlag(),
 			util.ConfigFlag(),
 			util.OutputFlag(),
-			cli.String("name", "Unique name for the role within your workspace.", cli.Required()),
-			cli.String("description", "Documentation of what this role encompasses and what access it grants."),
+			cli.String("name", "Unique name for the role within your workspace.", cli.Required(), cli.MutuallyExclusive("body")),
+			cli.String("description", "Documentation of what this role encompasses and what access it grants.", cli.MutuallyExclusive("body")),
+			cli.StringSlice("permissions", "Comma-separated permission slugs to attach to the role.", cli.MutuallyExclusive("body")),
 		},
 		Action: func(ctx context.Context, cmd *cli.Command) error {
 			client, err := util.CreateClient(cmd)
@@ -40,21 +41,33 @@ For full documentation, see https://www.unkey.com/docs/api-reference/v2/permissi
 				return err
 			}
 
+			if cmd.FlagIsSet("body") {
+				body := cmd.String("body")
+				res, err := util.SendBody(ctx, client.Permissions.CreateRole, body)
+				if err != nil {
+					return err
+				}
+				return util.Output(cmd, res.V2PermissionsCreateRoleResponseBody)
+			}
+
 			req := components.V2PermissionsCreateRoleRequestBody{
 				Name:        cmd.String("name"),
 				Description: nil,
+				Permissions: nil,
 			}
 
 			if v := cmd.String("description"); v != "" {
 				req.Description = &v
 			}
+			if v := cmd.StringSlice("permissions"); len(v) > 0 {
+				req.Permissions = v
+			}
 
-			start := time.Now()
 			res, err := client.Permissions.CreateRole(ctx, req)
 			if err != nil {
 				return fmt.Errorf("%s", util.FormatError(err))
 			}
-			return util.Output(cmd, res.V2PermissionsCreateRoleResponseBody, time.Since(start))
+			return util.Output(cmd, res.V2PermissionsCreateRoleResponseBody)
 		},
 	}
 }

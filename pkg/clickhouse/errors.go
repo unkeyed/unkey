@@ -107,6 +107,8 @@ func ExtractUserFriendlyError(err error) string {
 
 	errMsg := strings.ToLower(err.Error())
 	switch {
+	case strings.Contains(errMsg, "not enough privileges"):
+		return "The query reads a column that is not available. Select only the documented columns instead of *"
 	case strings.Contains(errMsg, "unknown function"),
 		strings.Contains(errMsg, "no matching signature"):
 		return "Unknown function in analytics query"
@@ -221,7 +223,8 @@ func WrapClickHouseError(err error) error {
 		return nil
 	}
 	if errors.Is(err, context.DeadlineExceeded) || errors.Is(err, context.Canceled) {
-		return fault.Wrap(err,
+		return fault.Wrap(
+			err,
 			fault.Code(codes.User.UnprocessableEntity.QueryExecutionTimeout.URN()),
 			fault.Public("Query execution was canceled or timed out."),
 		)
@@ -232,7 +235,8 @@ func WrapClickHouseError(err error) error {
 	// Check for resource limit violations via message patterns
 	for pattern, response := range resourceLimitPatterns {
 		if strings.Contains(errMsg, pattern) {
-			return fault.Wrap(err,
+			return fault.Wrap(
+				err,
 				fault.Code(response.code),
 				fault.Public(response.message),
 			)
@@ -243,13 +247,15 @@ func WrapClickHouseError(err error) error {
 	var chErr *ch.Exception
 	if errors.As(err, &chErr) {
 		if response, ok := resourceLimitCodes[chErr.Code]; ok {
-			return fault.Wrap(err,
+			return fault.Wrap(
+				err,
 				fault.Code(response.code),
 				fault.Public(response.message),
 			)
 		}
 		if response, ok := resourceLimitNames[chErr.Name]; ok {
-			return fault.Wrap(err,
+			return fault.Wrap(
+				err,
 				fault.Code(response.code),
 				fault.Public(response.message),
 			)
@@ -257,13 +263,15 @@ func WrapClickHouseError(err error) error {
 		// ClickHouse uses one exception for row and byte result overflow, so standard
 		// messages are classified above before these version-specific fallbacks.
 		if chErr.Code == 396 {
-			return fault.Wrap(err,
+			return fault.Wrap(
+				err,
 				fault.Code(codes.User.UnprocessableEntity.QueryMemoryLimitExceeded.URN()),
 				fault.Public("Query result exceeds the maximum response size."),
 			)
 		}
 		if chErr.Name == "TOO_MANY_ROWS_OR_BYTES" {
-			return fault.Wrap(err,
+			return fault.Wrap(
+				err,
 				fault.Code(codes.User.UnprocessableEntity.QueryRowsLimitExceeded.URN()),
 				fault.Public("Query result exceeds the maximum row count."),
 			)
@@ -272,7 +280,8 @@ func WrapClickHouseError(err error) error {
 
 	// All other ClickHouse errors are treated as user query errors (400)
 	// This ensures we never return 500 for query execution issues
-	return fault.Wrap(err,
+	return fault.Wrap(
+		err,
 		fault.Code(codes.User.BadRequest.InvalidAnalyticsQuery.URN()),
 		fault.Public(ExtractUserFriendlyError(err)),
 	)

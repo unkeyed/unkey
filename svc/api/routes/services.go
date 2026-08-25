@@ -1,6 +1,7 @@
 package routes
 
 import (
+	restateingress "github.com/restatedev/sdk-go/ingress"
 	"github.com/unkeyed/unkey/gen/rpc/ctrl"
 	"github.com/unkeyed/unkey/gen/rpc/vault"
 	"github.com/unkeyed/unkey/internal/services/analytics"
@@ -86,6 +87,13 @@ type Services struct {
 	// CtrlAppClient communicates with the control plane for app lifecycle
 	// operations (create seeds default environments and settings).
 	CtrlAppClient ctrl.AppServiceClient
+
+	// CtrlCustomDomainClient communicates with the control plane for custom
+	// domain operations (create starts a durable DNS verification workflow).
+	CtrlCustomDomainClient ctrl.CustomDomainServiceClient
+
+	// Restate submits durable workflows through the Restate ingress.
+	Restate *restateingress.Client
 
 	// PprofEnabled controls whether pprof profiling endpoints are registered.
 	PprofEnabled bool

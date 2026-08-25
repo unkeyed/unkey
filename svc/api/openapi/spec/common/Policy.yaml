@@ -27,11 +27,13 @@ properties:
     "$ref": "./FirewallPolicy.yaml"
   openapi:
     "$ref": "./OpenapiPolicy.yaml"
+  logging:
+    "$ref": "./LoggingPolicy.yaml"
 additionalProperties: false
 description: |-
-  A gateway policy. Exactly one of `keyauth`, `ratelimit`, `firewall` or
-  `openapi` must be set. The server generates an id for every policy it
-  stores.
+  A gateway policy. Exactly one of `keyauth`, `ratelimit`, `firewall`,
+  `openapi` or `logging` must be set. The server generates an id for every
+  policy it stores.
 example:
   name: Block internal paths
   enabled: true

@@ -152,7 +152,7 @@ WHERE ts > (toUnixTimestamp(now()) - 300) * 1000
 GROUP BY node_id;
 ```
 
-The number of instances seen per node should match `kubectl get pods --field-selector spec.nodeName=<node>` restricted to billable pods (`managed-by=krane`, `component in (deployment, sentinel)`). A gap means heimdall is either not running on that node, or can't reach that pod's cgroup.
+The number of instances seen per node should match `kubectl get pods --field-selector spec.nodeName=<node>` restricted to billable pods (`managed-by=krane`, `component=deployment`). A gap means heimdall is either not running on that node, or can't reach that pod's cgroup.
 
 ## 7. BPF map headroom
 

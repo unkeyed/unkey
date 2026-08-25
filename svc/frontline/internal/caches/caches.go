@@ -3,14 +3,12 @@ package caches
 import (
 	"crypto/tls"
 	"fmt"
-	"os"
 	"time"
 
 	frontlinev1 "github.com/unkeyed/unkey/gen/proto/frontline/v1"
 	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/cache/middleware"
 	"github.com/unkeyed/unkey/pkg/clock"
-	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/frontline/internal/db"
 )
 
@@ -22,36 +20,30 @@ type Caches struct {
 	// DeploymentID -> List of Instances
 	InstancesByDeployment cache.Cache[string, []db.FindInstancesByDeploymentIDRow]
 
-	// DeploymentID -> Parsed sentinel policies. Cached to avoid re-parsing
-	// the protojson SentinelConfig on every request.
+	// DeploymentID -> Parsed gateway policies. Cached to avoid re-parsing
+	// the persisted policy config on every request.
 	Policies cache.Cache[string, []*frontlinev1.Policy]
 
 	// HostName -> Certificate
 	TLSCertificates cache.Cache[string, tls.Certificate]
 }
 
-// Close shuts down the caches and cleans up resources.
+// Close stops the background revalidation workers and metrics reporters of
+// every cache in the set. The caches must not be used after Close.
 func (c *Caches) Close() error {
+	c.FrontlineRoutes.Close()
+	c.InstancesByDeployment.Close()
+	c.Policies.Close()
+	c.TLSCertificates.Close()
 	return nil
 }
 
 // Config defines the configuration options for initializing caches.
 type Config struct {
 	Clock clock.Clock
-
-	// NodeID identifies this node (defaults to hostname-uniqueid to ensure uniqueness).
-	NodeID string
 }
 
 func New(config Config) (*Caches, error) {
-	if config.NodeID == "" {
-		hostname, err := os.Hostname()
-		if err != nil {
-			hostname = "unknown"
-		}
-		config.NodeID = fmt.Sprintf("%s-%s", hostname, uid.New("node"))
-	}
-
 	frontlineRoute, err := cache.New(cache.Config[string, db.FindFrontlineRouteByFQDNRow]{
 		Fresh:    5 * time.Second,
 		Stale:    5 * time.Minute,

@@ -4,6 +4,7 @@ import (
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -12,6 +13,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/pkg/uid"
 )
 
 // sign produces a Stripe-Signature header for body: t=<ts>,v1=<hmac-sha256
@@ -24,9 +26,32 @@ func sign(secret, body string, ts time.Time) string {
 
 func TestVerifier(t *testing.T) {
 	const secret = "whsec_test"
+	eventID := uid.New("evt")
+	invoiceID := uid.New("in")
+	type invoice struct {
+		ID string `json:"id"`
+	}
+	type eventData struct {
+		Object invoice `json:"object"`
+	}
+	type stripeEvent struct {
+		ID     string    `json:"id"`
+		Object string    `json:"object"`
+		Type   string    `json:"type"`
+		Data   eventData `json:"data"`
+	}
 	// "object":"event" matters: stripe-go v21+ rejects payloads without it as
 	// thin event notifications, which need a different parser.
-	body := `{"id":"evt_123","object":"event","type":"invoice.created","data":{"object":{"id":"in_123"}}}`
+	bodyBytes, err := json.Marshal(stripeEvent{
+		ID:     eventID,
+		Object: "event",
+		Type:   "invoice.created",
+		Data:   eventData{Object: invoice{ID: invoiceID}},
+	})
+	require.NoError(t, err)
+	body := string(bodyBytes)
+	wantPayload, err := json.Marshal(invoice{ID: invoiceID})
+	require.NoError(t, err)
 
 	request := func(signature string) *http.Request {
 		r := httptest.NewRequest(http.MethodPost, "/webhooks/stripe", strings.NewReader(body))
@@ -37,9 +62,9 @@ func TestVerifier(t *testing.T) {
 	t.Run("valid signature yields the unwrapped event", func(t *testing.T) {
 		event, err := New(secret).Verify(request(sign(secret, body, time.Now())))
 		require.NoError(t, err)
-		require.Equal(t, "evt_123", event.ID)
+		require.Equal(t, eventID, event.ID)
 		require.Equal(t, "invoice.created", event.Type)
-		require.JSONEq(t, `{"id":"in_123"}`, string(event.Payload))
+		require.JSONEq(t, string(wantPayload), string(event.Payload))
 	})
 
 	t.Run("wrong secret is rejected", func(t *testing.T) {

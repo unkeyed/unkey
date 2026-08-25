@@ -302,7 +302,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			)
 		}
 
-		if req.Ratelimits != nil {
+		if req.Ratelimits.IsSpecified() {
 			var existingRatelimits []db.ListRatelimitsByKeyIDRow
 			existingRatelimits, err = db.Query.ListRatelimitsByKeyID(ctx, tx, sql.NullString{String: key.ID, Valid: true})
 			if err != nil && !db.IsNotFound(err) {
@@ -320,8 +320,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 			// Create map of new ratelimits
 			newRatelimitMap := make(map[string]openapi.RatelimitRequest)
-			for _, rl := range *req.Ratelimits {
-				newRatelimitMap[rl.Name] = rl
+			if !req.Ratelimits.IsNull() {
+				for _, rl := range req.Ratelimits.MustGet() {
+					newRatelimitMap[rl.Name] = rl
+				}
 			}
 
 			// Delete ratelimits that are not in the new list

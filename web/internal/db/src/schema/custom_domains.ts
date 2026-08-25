@@ -10,7 +10,9 @@ import {
 } from "drizzle-orm/mysql-core";
 import { challengeType } from "./acme_challenges";
 import { caseSensitiveVarchar } from "./util/case_sensitive_varchar";
+import { id } from "./util/id";
 import { lifecycleDates } from "./util/lifecycle_dates";
+import { primaryKey } from "./util/primary_key";
 
 export const verificationStatus = mysqlEnum("verification_status", [
   "pending",
@@ -22,12 +24,12 @@ export const verificationStatus = mysqlEnum("verification_status", [
 export const customDomains = mysqlTable(
   "custom_domains",
   {
-    pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
-    id: caseSensitiveVarchar("id", { length: 128 }).notNull().unique(),
-    workspaceId: caseSensitiveVarchar("workspace_id", { length: 256 }).notNull(),
-    projectId: caseSensitiveVarchar("project_id", { length: 256 }).notNull(),
-    appId: caseSensitiveVarchar("app_id", { length: 64 }).notNull(),
-    environmentId: caseSensitiveVarchar("environment_id", { length: 256 }).notNull(),
+    pk: primaryKey(),
+    id: id("id").notNull().unique(),
+    workspaceId: id("workspace_id").notNull(),
+    projectId: id("project_id").notNull(),
+    appId: id("app_id").notNull(),
+    environmentId: id("environment_id").notNull(),
 
     domain: varchar("domain", { length: 256 }).notNull(),
     challengeType: challengeType,
@@ -57,5 +59,6 @@ export const customDomains = mysqlTable(
     index("project_idx").on(table.projectId),
     index("verification_status_idx").on(table.verificationStatus),
     uniqueIndex("unique_domain_workspace_idx").on(table.workspaceId, table.domain),
+    index("environment_id_id_domain_idx").on(table.environmentId, table.id, table.domain),
   ],
 );

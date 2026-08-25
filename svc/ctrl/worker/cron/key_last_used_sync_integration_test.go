@@ -9,6 +9,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/ctrl/integration/harness"
 	"github.com/unkeyed/unkey/svc/ctrl/integration/seed"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
 
 func TestRunKeyLastUsedSync_Integration(t *testing.T) {
@@ -85,11 +86,10 @@ func TestRunKeyLastUsedSync_Integration(t *testing.T) {
 		require.NoError(t, err)
 
 		evenNewer := now + 60_000
-		_, err = h.DB.RW().ExecContext(h.Ctx,
-			"UPDATE `keys` SET last_used_at = ? WHERE id = ?",
-			evenNewer, resp.KeyID,
-		)
-		require.NoError(t, err)
+		require.NoError(t, h.DB.UpdateKeysLastUsed(h.Ctx, db.UpdateKeysLastUsedParams{
+			LastUsedAt: uint64(evenNewer),
+			KeyIds:     []string{resp.KeyID},
+		}))
 
 		_, err = callRunKeyLastUsedSync(h)
 		require.NoError(t, err)

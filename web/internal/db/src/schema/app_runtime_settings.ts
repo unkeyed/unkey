@@ -1,13 +1,5 @@
 import { relations, sql } from "drizzle-orm";
-import {
-  bigint,
-  int,
-  json,
-  mysqlEnum,
-  mysqlTable,
-  uniqueIndex,
-  varchar,
-} from "drizzle-orm/mysql-core";
+import { int, json, mysqlEnum, mysqlTable, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
 import { apps } from "./apps";
 import { environments } from "./environments";
 
@@ -19,19 +11,20 @@ export type Healthcheck = {
   failureThreshold: number;
   initialDelaySeconds: number;
 };
-import { caseSensitiveVarchar } from "./util/case_sensitive_varchar";
+import { id } from "./util/id";
 import { lifecycleDates } from "./util/lifecycle_dates";
 import { longblob } from "./util/longblob";
+import { primaryKey } from "./util/primary_key";
 import { workspaces } from "./workspaces";
 
 export const appRuntimeSettings = mysqlTable(
   "app_runtime_settings",
   {
-    pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
+    pk: primaryKey(),
 
-    workspaceId: caseSensitiveVarchar("workspace_id", { length: 256 }).notNull(),
-    appId: caseSensitiveVarchar("app_id", { length: 64 }).notNull(),
-    environmentId: caseSensitiveVarchar("environment_id", { length: 128 }).notNull(),
+    workspaceId: id("workspace_id").notNull(),
+    appId: id("app_id").notNull(),
+    environmentId: id("environment_id").notNull(),
 
     port: int("port").notNull().default(8080),
     // CPU allocation in millicores (1000 millicores = 1 CPU).
@@ -47,7 +40,7 @@ export const appRuntimeSettings = mysqlTable(
       .notNull()
       .default("SIGTERM"),
 
-    // Protocol sentinel uses to proxy to the instance (h2c enables gRPC/Connect)
+    // Protocol Frontline uses to proxy to the instance (h2c enables gRPC/Connect)
     upstreamProtocol: mysqlEnum("upstream_protocol", ["http1", "h2c"]).notNull().default("http1"),
 
     sentinelConfig: longblob("sentinel_config").notNull(),

@@ -14,10 +14,16 @@ import (
 // Connect converts a deploygate fault into a connect FailedPrecondition error,
 // or nil when err is nil. For ctrl RPC services.
 func Connect(err error) error {
+	return ConnectWith(connect.CodeFailedPrecondition, err)
+}
+
+// ConnectWith is [Connect] for gates whose outcomes are not all preconditions, so
+// the caller picks the matching connect code. Returns nil when err is nil.
+func ConnectWith(code connect.Code, err error) error {
 	if err == nil {
 		return nil
 	}
-	return connect.NewError(connect.CodeFailedPrecondition, errors.New(fault.UserFacingMessage(err)))
+	return connect.NewError(code, errors.New(fault.UserFacingMessage(err)))
 }
 
 // Terminal converts a deploygate fault into a restate terminal error (400), or

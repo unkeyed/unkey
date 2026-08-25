@@ -8,6 +8,7 @@ import (
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/assert"
+	"github.com/unkeyed/unkey/pkg/auditlog"
 	"github.com/unkeyed/unkey/pkg/deploy/deploygate"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/auth"
@@ -74,6 +75,9 @@ func (s *Service) Rollback(ctx context.Context, req *connect.Request[ctrlv1.Roll
 	if err != nil {
 		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
 	}
+	if err := s.ensureWorkspaceCanDeploy(ctx, sourceDeployment.WorkspaceID, "rollback"); err != nil {
+		return nil, err
+	}
 
 	logger.Info(
 		"initiating rollback via Restate",
@@ -102,6 +106,17 @@ func (s *Service) Rollback(ctx context.Context, req *connect.Request[ctrlv1.Roll
 		"source", req.Msg.GetSourceDeploymentId(),
 		"target", req.Msg.GetTargetDeploymentId(),
 	)
+
+	if auditErr := s.recordLifecycleAudit(ctx,
+		auditlog.DeploymentRollbackEvent,
+		fmt.Sprintf("Rolled back to deployment %s", targetID),
+		targetDeployment.WorkspaceID,
+		targetID,
+		lifecycleAuditMeta(targetDeployment.ProjectID, targetDeployment.AppID, targetDeployment.EnvironmentID),
+		req.Msg.GetActor(),
+	); auditErr != nil {
+		return nil, connect.NewError(connect.CodeInternal, auditFailure("rollback deployment", auditErr))
+	}
 
 	return connect.NewResponse(&ctrlv1.RollbackResponse{}), nil
 }

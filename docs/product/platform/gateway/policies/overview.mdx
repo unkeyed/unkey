@@ -3,10 +3,6 @@ title: Policies
 description: "Policies are configurable rules the gateway evaluates on every request. Combine authentication, rate limiting, IP rules, and more."
 ---
 
-import DeployBeta from "/snippets/deploy-beta.mdx";
-
-<DeployBeta />
-
 A policy is a rule that the gateway evaluates on incoming requests. Each policy combines a condition (which requests to match) with an action (what to do). Policies are the building blocks for all of the gateway's request processing, including [authentication](/platform/gateway/authentication), rate limiting, and access control.
 
 ## Policy structure
@@ -67,7 +63,7 @@ To create OR conditions, create separate policies with the same action but diffe
 | Type                                                                   | Status      | Description                                                |
 | ---------------------------------------------------------------------- | ----------- | ---------------------------------------------------------- |
 | [API key authentication](/platform/gateway/policies/api-key)          | Available   | Verify Unkey API keys and forward identity to your app  |
-| [Logging](/platform/gateway/policies/logging)                         | Available   | Record full HTTP requests and responses for debugging        |
+| [Logging](/platform/gateway/policies/logging)                         | Available   | Add headers and bodies to the request log for debugging      |
 | JWT authentication                                                     | Coming soon | Validate Bearer JWTs using JWKS, OIDC, or PEM public keys  |
 | [Rate limiting](/platform/gateway/policies/rate-limiting)             | Available   | Enforce rate limits         |
 | [Firewall](/platform/gateway/policies/firewall)                       | Available   | Deny requests based on path, method, header, or query |

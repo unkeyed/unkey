@@ -1,5 +1,5 @@
 // Package headers echoes the incoming request headers as JSON. Useful
-// for debugging header propagation through sentinel, load balancers, or
+// for debugging header propagation through Frontline, load balancers, or
 // any proxy in the path.
 package headers
 

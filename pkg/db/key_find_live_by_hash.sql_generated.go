@@ -12,7 +12,10 @@ import (
 
 const findLiveKeyByHash = `-- name: FindLiveKeyByHash :one
 SELECT
-    k.pk, k.id, k.key_auth_id, k.hash, k.start, k.workspace_id, k.for_workspace_id, k.name, k.owner_id, k.identity_id, k.meta, k.expires, k.created_at_m, k.updated_at_m, k.deleted_at_m, k.refill_day, k.refill_amount, k.last_refill_at, k.enabled, k.remaining_requests, k.environment, k.last_used_at, k.pending_migration_id,
+    k.pk, k.id, k.key_auth_id, k.hash, k.start, k.workspace_id, k.for_workspace_id,
+    k.name, k.identity_id, k.meta, k.expires, k.created_at_m, k.updated_at_m,
+    k.deleted_at_m, k.refill_day, k.refill_amount, k.last_refill_at, k.enabled,
+    k.remaining_requests, k.environment, k.last_used_at, k.pending_migration_id,
     a.pk, a.id, a.name, a.workspace_id, a.project_id, a.ip_whitelist, a.auth_type, a.key_auth_id, a.created_at_m, a.updated_at_m, a.deleted_at_m, a.delete_protection,
     ka.pk, ka.id, ka.workspace_id, ka.project_id, ka.created_at_m, ka.updated_at_m, ka.deleted_at_m, ka.store_encrypted_keys, ka.default_prefix, ka.default_bytes, ka.size_approx, ka.size_last_updated_at,
     ws.pk, ws.id, ws.org_id, ws.name, ws.slug, ws.k8s_namespace, ws.beta_features, ws.subscriptions, ws.enabled, ws.delete_protection, ws.created_at_m, ws.updated_at_m, ws.deleted_at_m,
@@ -117,7 +120,6 @@ type FindLiveKeyByHashRow struct {
 	WorkspaceID        string         `db:"workspace_id"`
 	ForWorkspaceID     sql.NullString `db:"for_workspace_id"`
 	Name               sql.NullString `db:"name"`
-	OwnerID            sql.NullString `db:"owner_id"`
 	IdentityID         sql.NullString `db:"identity_id"`
 	Meta               sql.NullString `db:"meta"`
 	Expires            sql.NullTime   `db:"expires"`
@@ -149,7 +151,10 @@ type FindLiveKeyByHashRow struct {
 // FindLiveKeyByHash
 //
 //	SELECT
-//	    k.pk, k.id, k.key_auth_id, k.hash, k.start, k.workspace_id, k.for_workspace_id, k.name, k.owner_id, k.identity_id, k.meta, k.expires, k.created_at_m, k.updated_at_m, k.deleted_at_m, k.refill_day, k.refill_amount, k.last_refill_at, k.enabled, k.remaining_requests, k.environment, k.last_used_at, k.pending_migration_id,
+//	    k.pk, k.id, k.key_auth_id, k.hash, k.start, k.workspace_id, k.for_workspace_id,
+//	    k.name, k.identity_id, k.meta, k.expires, k.created_at_m, k.updated_at_m,
+//	    k.deleted_at_m, k.refill_day, k.refill_amount, k.last_refill_at, k.enabled,
+//	    k.remaining_requests, k.environment, k.last_used_at, k.pending_migration_id,
 //	    a.pk, a.id, a.name, a.workspace_id, a.project_id, a.ip_whitelist, a.auth_type, a.key_auth_id, a.created_at_m, a.updated_at_m, a.deleted_at_m, a.delete_protection,
 //	    ka.pk, ka.id, ka.workspace_id, ka.project_id, ka.created_at_m, ka.updated_at_m, ka.deleted_at_m, ka.store_encrypted_keys, ka.default_prefix, ka.default_bytes, ka.size_approx, ka.size_last_updated_at,
 //	    ws.pk, ws.id, ws.org_id, ws.name, ws.slug, ws.k8s_namespace, ws.beta_features, ws.subscriptions, ws.enabled, ws.delete_protection, ws.created_at_m, ws.updated_at_m, ws.deleted_at_m,
@@ -255,7 +260,6 @@ func (q *Queries) FindLiveKeyByHash(ctx context.Context, db DBTX, hash string) (
 		&i.WorkspaceID,
 		&i.ForWorkspaceID,
 		&i.Name,
-		&i.OwnerID,
 		&i.IdentityID,
 		&i.Meta,
 		&i.Expires,

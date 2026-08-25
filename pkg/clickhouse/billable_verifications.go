@@ -2,6 +2,8 @@ package clickhouse
 
 import (
 	"context"
+	"database/sql"
+	"errors"
 
 	"github.com/unkeyed/unkey/pkg/fault"
 )
@@ -38,7 +40,7 @@ func (c *Client) GetBillableVerifications(ctx context.Context, workspaceID strin
 	).Scan(&count)
 
 	// If there are no results, return 0 without an error
-	if err != nil && err.Error() == "sql: no rows in result set" {
+	if errors.Is(err, sql.ErrNoRows) {
 		return 0, nil
 	}
 

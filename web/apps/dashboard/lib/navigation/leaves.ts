@@ -162,11 +162,11 @@ export function buildAppLinks(
       isActive: page === "env-vars",
     },
     {
-      key: "sentinel-policies",
-      label: "Sentinel Policies",
-      href: routes.projects.apps.sentinelPolicies(scope),
+      key: "policies",
+      label: "Policies",
+      href: routes.projects.apps.policies(scope),
       icon: ShieldKey,
-      isActive: page === "sentinel-policies",
+      isActive: page === "policies",
     },
     {
       key: "settings",
@@ -174,6 +174,21 @@ export function buildAppLinks(
       href: routes.projects.apps.settings(scope),
       icon: Gear,
       isActive: page === "settings",
+    },
+    {
+      key: "logs",
+      label: "Go to Logs",
+      href: routes.projects.logs(scope),
+      icon: Layers3,
+      isActive: page === "logs",
+      separatorAbove: true,
+    },
+    {
+      key: "requests",
+      label: "Go to Requests",
+      href: routes.projects.requests(scope),
+      icon: ArrowOppositeDirectionY,
+      isActive: page === "requests",
     },
     // Will be polished and added back in the future iterations
     // {

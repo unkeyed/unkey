@@ -34,13 +34,23 @@ export async function prepareDatabase(): Promise<{
       .onDuplicateKeyUpdate({ set: { createdAtM: Date.now() } });
 
     await db
-      .insert(schema.quotas)
+      .insert(schema.limits)
       .values({
         workspaceId: ROW_IDS.rootWorkspace,
-        requestsPerMonth: 150_000,
-        auditLogsRetentionDays: 30,
-        logsRetentionDays: 7,
-        team: false,
+        apiBillableOperationsCountMaxPerMonth: 150_000,
+        apiRequestsCountMaxPerMinute: null,
+        logsRetentionDaysMax: 7,
+        logsAuditRetentionDaysMax: 30,
+        teamEnabled: false,
+        cpuCoresMax: 10,
+        cpuCoresMaxPerInstance: 2,
+        memoryMibMax: 20_480,
+        memoryMibMaxPerInstance: 4_096,
+        storageMibMax: 51_200,
+        storageMibMaxPerInstance: 10_240,
+        buildsConcurrentMax: 1,
+        customDomainsMax: 0,
+        autoscalingReplicasMax: 0,
       })
       .onDuplicateKeyUpdate({ set: { workspaceId: ROW_IDS.rootWorkspace } });
 

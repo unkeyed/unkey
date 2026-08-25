@@ -6,7 +6,12 @@ import { changeSubscriptionPrice } from "@/lib/stripe/changeSubscriptionPrice";
 import { deployBillingConfig, findApiItem } from "@/lib/stripe/deployBilling";
 import { parseDeployPlan } from "@/lib/stripe/deployPlan";
 import { validateAndParseQuotas } from "@/lib/stripe/productUtils";
-import { setComputeQuotas } from "@/lib/stripe/setComputeQuotas";
+import {
+  SubscriptionScheduleConflictError,
+  releaseScheduledApiPlanDowngrade,
+  scheduleApiPlanDowngrade,
+} from "@/lib/stripe/scheduleApiPlanDowngrade";
+import { setWorkspaceLimits } from "@/lib/stripe/setWorkspaceLimits";
 import { TRPCError } from "@trpc/server";
 import Stripe from "stripe";
 import { z } from "zod";
@@ -117,10 +122,14 @@ export const updateSubscription = workspaceProcedure
       typeof newProduct.default_price === "string"
         ? await stripe.prices.retrieve(newPriceId)
         : newProduct.default_price;
-    const upgraded =
+    const isUpgrade =
       item.price.unit_amount !== null &&
       newPrice.unit_amount !== null &&
       newPrice.unit_amount > item.price.unit_amount;
+    const isDowngrade =
+      item.price.unit_amount !== null &&
+      newPrice.unit_amount !== null &&
+      newPrice.unit_amount < item.price.unit_amount;
 
     if (sub.cancel_at_period_end) {
       throw new TRPCError({
@@ -129,15 +138,38 @@ export const updateSubscription = workspaceProcedure
       });
     }
 
-    let result: Awaited<ReturnType<typeof changeSubscriptionPrice>>;
+    let result:
+      | Awaited<ReturnType<typeof changeSubscriptionPrice>>
+      | { kind: "scheduled"; effectiveAt: number };
     try {
-      result = await changeSubscriptionPrice(stripe, {
-        subscriptionId: sub.id,
-        subscriptionItemId: item.id,
-        newPriceId,
-        prorationBehavior: "always_invoice",
-      });
+      if (isDowngrade) {
+        const { effectiveAt } = await scheduleApiPlanDowngrade(stripe, {
+          subscriptionId: sub.id,
+          schedule: sub.schedule,
+          currentPriceId: item.price.id,
+          newPriceId,
+        });
+        result = { kind: "scheduled", effectiveAt };
+      } else {
+        // A new immediate change replaces an API downgrade that was scheduled
+        // through this route. Never release schedules owned by another flow.
+        if (sub.schedule) {
+          await releaseScheduledApiPlanDowngrade(stripe, sub.schedule);
+        }
+        result = await changeSubscriptionPrice(stripe, {
+          subscriptionId: sub.id,
+          subscriptionItemId: item.id,
+          newPriceId,
+          prorationBehavior: "always_invoice",
+        });
+      }
     } catch (err) {
+      if (err instanceof SubscriptionScheduleConflictError) {
+        throw new TRPCError({
+          code: "PRECONDITION_FAILED",
+          message: err.message,
+        });
+      }
       if (err instanceof Stripe.errors.StripeCardError) {
         throw new TRPCError({
           code: "BAD_REQUEST",
@@ -157,14 +189,34 @@ export const updateSubscription = workspaceProcedure
       throw err;
     }
 
+    if (result.kind === "scheduled") {
+      await insertAuditLogs(db, {
+        workspaceId: ctx.workspace.id,
+        actor: {
+          type: "user",
+          id: ctx.user.id,
+        },
+        event: "workspace.update",
+        description: `Scheduled switch to ${newProduct.name} plan for ${new Date(
+          result.effectiveAt,
+        ).toISOString()}.`,
+        resources: [],
+        context: {
+          location: ctx.audit.location,
+          userAgent: ctx.audit.userAgent,
+        },
+      });
+      return result;
+    }
+
     if (result.kind === "payment_required") {
       return result;
     }
 
     // Workspace API rate limits are manually applied safety limits, not plan
-    // quotas. Clear them when a customer pays for a higher tier, but preserve
+    // limits. Clear them when a customer pays for a higher tier, but preserve
     // deliberate limits on same-price changes and downgrades.
-    const rateLimitReset = upgraded ? { ratelimitApiLimit: null, ratelimitApiDuration: null } : {};
+    const rateLimitReset = isUpgrade ? { apiRequestsCountMaxPerMinute: null } : {};
 
     await db.transaction(async (tx) => {
       await tx
@@ -174,17 +226,17 @@ export const updateSubscription = workspaceProcedure
         })
         .where(eq(schema.workspaceBilling.workspaceId, ctx.workspace.id));
 
-      await setComputeQuotas(tx, {
+      await setWorkspaceLimits(tx, {
         workspaceId: ctx.workspace.id,
         plan:
           parseDeployPlan(ctx.workspace.deployPlanOverride) ??
           parseDeployPlan(ctx.workspace.deployPlan),
-        preserveApiQuotas: true,
-        quotaUpdate: {
-          requestsPerMonth: newQuotas.requestsPerMonth,
-          logsRetentionDays: newQuotas.logsRetentionDays,
-          auditLogsRetentionDays: newQuotas.auditLogsRetentionDays,
-          team: true,
+        preserveApiLimits: true,
+        limitUpdate: {
+          apiBillableOperationsCountMaxPerMonth: newQuotas.requestsPerMonth,
+          logsRetentionDaysMax: newQuotas.logsRetentionDays,
+          logsAuditRetentionDaysMax: newQuotas.auditLogsRetentionDays,
+          teamEnabled: true,
           ...rateLimitReset,
         },
       });

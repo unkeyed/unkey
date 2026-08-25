@@ -42,6 +42,9 @@ func (s *Service) AuthorizeDeployment(ctx context.Context, req *connect.Request[
 		return nil, connect.NewError(connect.CodeFailedPrecondition,
 			fmt.Errorf("deployment %s is not awaiting approval (current status: %s)", deploymentID, deployment.Status))
 	}
+	if err := s.ensureWorkspaceCanDeploy(ctx, deployment.WorkspaceID, "authorize"); err != nil {
+		return nil, err
+	}
 
 	// Look up build settings and repo connection before changing status,
 	// so a lookup failure doesn't leave the deployment stuck as pending.
@@ -104,7 +107,6 @@ func (s *Service) AuthorizeDeployment(ctx context.Context, req *connect.Request[
 
 	deployReq := &hydrav1.DeployRequest{
 		DeploymentId: deploymentID,
-		KeyAuthId:    nil,
 		Command:      deployment.Command,
 		Source: &hydrav1.DeployRequest_Git{
 			Git: &hydrav1.GitSource{

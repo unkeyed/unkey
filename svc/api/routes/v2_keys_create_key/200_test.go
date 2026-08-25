@@ -606,6 +606,78 @@ func TestCreateKeyAppliesKeySpaceDefaults(t *testing.T) {
 	})
 }
 
+// TestCreateKeyWithRolesAndPermissions covers the happy path for RBAC on key
+// creation, which previously had no 200-level coverage at all: every roles and
+// permissions case lived in 400_test.go.
+//
+// The role names deliberately contain spaces. The dashboard's role editor
+// accepts them (roleNameSchema allows any character up to 512, forbidding only
+// leading/trailing and repeated whitespace), but the createKey spec used to
+// constrain role names to ^[a-zA-Z0-9_:\-\.\*]+$ with maxLength 100. Any
+// workspace whose roles were named like this could not create a key at all:
+// the request was rejected by the OpenAPI validation middleware before the
+// handler ran, so the failure surfaced as a bare "Failed to Create Key" toast.
+func TestCreateKeyWithRolesAndPermissions(t *testing.T) {
+	t.Parallel()
+
+	h := testutil.NewHarness(t)
+	ctx := context.Background()
+
+	route := &handler.Handler{
+		DB:        h.DB,
+		Keys:      h.Keys,
+		Auditlogs: h.Auditlogs,
+		Vault:     h.Vault,
+	}
+	h.Register(route)
+
+	workspaceID := h.Resources().UserWorkspace.ID
+	api := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspaceID})
+	rootKey := h.CreateRootKey(workspaceID, "api.*.create_key")
+	headers := http.Header{
+		"Content-Type":  {"application/json"},
+		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+	}
+
+	roleNames := []string{"Billing Admin", "Support Team", "Read Only Access"}
+	for _, name := range roleNames {
+		h.CreateRole(seed.CreateRoleRequest{Name: name, WorkspaceID: workspaceID})
+	}
+
+	// Slug shapes the spec used to disagree on across endpoints: a plain dotted
+	// slug, a wildcard, a leading digit, and a colon. createKey accepted all of
+	// them only because its `pattern` was indented at the array level and so
+	// ignored entirely; the sibling permission endpoints rejected the last
+	// three outright.
+	permissionSlugs := []string{"documents.read", "documents.*", "2fa.read", "api:read"}
+
+	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
+		ApiId:       api.ID,
+		Roles:       ptr.P(roleNames),
+		Permissions: ptr.P(permissionSlugs),
+	})
+	require.Equal(t, 200, res.Status, "expected 200, received: %#v", res)
+	require.NotEmpty(t, res.Body.Data.KeyId)
+
+	keyID := res.Body.Data.KeyId
+
+	roles, err := db.Query.ListRolesByKeyID(ctx, h.DB.RO(), keyID)
+	require.NoError(t, err)
+	gotRoles := make([]string, 0, len(roles))
+	for _, role := range roles {
+		gotRoles = append(gotRoles, role.Name)
+	}
+	require.ElementsMatch(t, roleNames, gotRoles)
+
+	perms, err := db.Query.ListDirectPermissionsByKeyID(ctx, h.DB.RO(), keyID)
+	require.NoError(t, err)
+	gotPerms := make([]string, 0, len(perms))
+	for _, perm := range perms {
+		gotPerms = append(gotPerms, perm.Slug)
+	}
+	require.ElementsMatch(t, permissionSlugs, gotPerms)
+}
+
 func createKeyPermission(t *testing.T, workspaceID string, projectID string, keyspaceID string) string {
 	t.Helper()
 	return rbac.U(urn.New().Workspace(workspaceID).Project(projectID).Keyspace(keyspaceID).Key("*"), permissions.CreateKey{}).Value

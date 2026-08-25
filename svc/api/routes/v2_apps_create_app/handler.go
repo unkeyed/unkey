@@ -17,6 +17,8 @@ import (
 	"github.com/unkeyed/unkey/pkg/fault"
 	github "github.com/unkeyed/unkey/pkg/github"
 	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/internal/ctrlclient"
 	"github.com/unkeyed/unkey/svc/api/internal/githubapp"
@@ -96,6 +98,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			ResourceID:   project.ID,
 			Action:       rbac.CreateApp,
 		}),
+		rbac.U(
+			urn.New().Workspace(principal.WorkspaceID).Project(project.ID).App("*"),
+			permissions.CreateApp{},
+		),
 	))
 	if err != nil {
 		return err

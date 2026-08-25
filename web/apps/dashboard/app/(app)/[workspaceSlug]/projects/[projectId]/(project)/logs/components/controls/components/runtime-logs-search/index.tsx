@@ -32,7 +32,7 @@ export const RuntimeLogsSearch = () => {
       }
       const transformedFilters = transformStructuredOutputToFilters(
         typedData,
-        filters.filter((f) => f.field !== "message"),
+        filters.filter((f) => f.field !== "message" && f.field !== "attributes"),
       ) as typeof filters;
       updateFilters(transformedFilters);
     },
@@ -57,6 +57,7 @@ export const RuntimeLogsSearch = () => {
       exampleQueries={[
         "Show errors in the last hour",
         "Show warnings containing 'timeout'",
+        "Show logs with tenant_id in attributes",
         "Show all debug logs from yesterday",
         "Show errors from us-east-1 in the last hour",
       ]}

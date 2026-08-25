@@ -2,7 +2,10 @@ package permissions
 
 import "github.com/unkeyed/unkey/pkg/urn"
 
-// CreateApp authorizes creating an app resource.
+// CreateApp authorizes creating apps.
+//
+// Valid resource: urn.App. Grants use a wildcard app id because the app does
+// not exist when the request is authorized.
 type CreateApp struct{}
 
 func (CreateApp) ActionFor(urn.App) {}
@@ -20,7 +23,9 @@ type UpdateApp struct{}
 func (UpdateApp) ActionFor(urn.App) {}
 func (UpdateApp) String() string    { return "update_app" }
 
-// DeleteApp authorizes deleting an app resource.
+// DeleteApp authorizes deleting a specific app.
+//
+// Valid resource: urn.App.
 type DeleteApp struct{}
 
 func (DeleteApp) ActionFor(urn.App) {}

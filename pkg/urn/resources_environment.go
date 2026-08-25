@@ -27,28 +27,6 @@ func (e Environment) Deployment(deploymentID string) Deployment {
 	return Deployment{workspaceID: e.workspaceID, projectID: e.projectID, appID: e.appID, environmentID: e.environmentID, deploymentID: deploymentID}
 }
 
-// Domain is a domain resource path.
-//
-// Hierarchy:
-//
-//	workspace
-//	└── projects/{project_id}
-//	    └── apps/{app_id}
-//	        └── environments/{environment_id}
-//	            └── domains/{domain_id}
-type Domain struct {
-	workspaceID   string
-	projectID     string
-	appID         string
-	environmentID string
-	domainID      string
-}
-
-// String returns this domain resource path.
-func (d Domain) String() string {
-	return V1{WorkspaceID: d.workspaceID, Resource: fmt.Sprintf("projects/%s/apps/%s/environments/%s/domains/%s", d.projectID, d.appID, d.environmentID, d.domainID)}.String()
-}
-
 // Domain returns a domain resource path.
 func (e Environment) Domain(domainID string) Domain {
 	return Domain{workspaceID: e.workspaceID, projectID: e.projectID, appID: e.appID, environmentID: e.environmentID, domainID: domainID}

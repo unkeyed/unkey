@@ -10,11 +10,14 @@ import (
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/auditlog"
+	"github.com/unkeyed/unkey/pkg/deploy/deploygate"
+	"github.com/unkeyed/unkey/pkg/deploy/projectgate"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/actor"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/auth"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/gatefault"
 )
 
 // CreateProject creates an empty project. Apps and their environments are
@@ -35,6 +38,9 @@ func (s *Service) CreateProject(
 	); err != nil {
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
+	if err := projectgate.CheckSlug(req.Msg.GetSlug()); err != nil {
+		return nil, gatefault.ConnectWith(connect.CodeInvalidArgument, err)
+	}
 
 	workspaceID := req.Msg.GetWorkspaceId()
 
@@ -48,7 +54,7 @@ func (s *Service) CreateProject(
 		}
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to load workspace: %w", err))
 	}
-	if !deployEntitled(entitlement.Plan, entitlement.PlanOverride) {
+	if !deploygate.Entitled(entitlement.Plan, entitlement.PlanOverride) {
 		if s.enforceDeployGate {
 			return nil, connect.NewError(
 				connect.CodeFailedPrecondition,

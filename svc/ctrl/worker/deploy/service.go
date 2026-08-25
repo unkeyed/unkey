@@ -1,14 +1,49 @@
 package deploy
 
 import (
+	"k8s.io/client-go/kubernetes"
+
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/gen/rpc/vault"
+	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/batch"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	githubclient "github.com/unkeyed/unkey/pkg/github"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/auditlogs"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
+
+// BuildBackend identifies which system executes container image builds.
+type BuildBackend string
+
+const (
+	// BuildBackendDepot runs builds on Depot.dev remote BuildKit machines.
+	BuildBackendDepot BuildBackend = "depot"
+
+	// BuildBackendKubernetes runs each build as a one-off BuildKit Job in
+	// the cluster the worker itself runs in. Local development only: the
+	// build pod runs privileged and offers no isolation beyond the pod
+	// boundary, which is acceptable only for builds you already trust.
+	BuildBackendKubernetes BuildBackend = "kubernetes"
+)
+
+// BuildConfig selects and configures the backend that executes builds.
+type BuildConfig struct {
+	Backend    BuildBackend
+	Depot      DepotConfig
+	Kubernetes KubernetesBuildConfig
+}
+
+// KubernetesBuildConfig configures the Kubernetes Job build backend.
+type KubernetesBuildConfig struct {
+	// Namespace is where build Jobs are created. The worker's service
+	// account needs permission to manage Jobs and read Pods there.
+	Namespace string
+
+	// Image is the BuildKit daemon image each build Job runs.
+	Image string
+}
 
 // BuildPlatform specifies the target platform for container builds.
 type BuildPlatform struct {
@@ -28,6 +63,10 @@ type RegistryConfig struct {
 	Repository string
 	Username   string
 	Password   string
+
+	// Insecure allows plain-HTTP pushes. Only for local registries without
+	// TLS; never enable it against a production registry.
+	Insecure bool
 }
 
 // Workflow orchestrates deployment lifecycle operations.
@@ -43,7 +82,8 @@ type RegistryConfig struct {
 // across different apps within the same project.
 type Workflow struct {
 	hydrav1.UnimplementedDeployServiceServer
-	db db.Database
+	db        db.Database
+	auditlogs auditlogs.AuditLogService
 
 	defaultDomain string
 	vault         vault.VaultServiceClient
@@ -51,7 +91,8 @@ type Workflow struct {
 	github githubclient.GitHubClient
 
 	// Build dependencies
-	depotConfig                     DepotConfig
+	buildConfig                     BuildConfig
+	k8s                             kubernetes.Interface
 	registryConfig                  RegistryConfig
 	buildPlatform                   BuildPlatform
 	clickhouse                      clickhouse.ClickHouse
@@ -67,6 +108,8 @@ var _ hydrav1.DeployServiceServer = (*Workflow)(nil)
 type Config struct {
 	// DB is the main database connection for workspace, project, and deployment data.
 	DB db.Database
+	// Auditlogs writes lifecycle events as durable workflow steps.
+	Auditlogs auditlogs.AuditLogService
 
 	// DefaultDomain is the apex domain for generated deployment URLs (e.g., "unkey.app").
 	DefaultDomain string
@@ -77,8 +120,13 @@ type Config struct {
 	// GitHub provides access to GitHub API for downloading tarballs.
 	GitHub githubclient.GitHubClient
 
-	// DepotConfig configures the Depot API connection.
-	DepotConfig DepotConfig
+	// Build selects and configures the build backend. See [BuildConfig].
+	Build BuildConfig
+
+	// K8s is the cluster client used by the kubernetes build backend to run
+	// build Jobs. Required when Build.Backend is [BuildBackendKubernetes],
+	// unused otherwise.
+	K8s kubernetes.Interface
 
 	// RegistryConfig provides credentials for the container registry.
 	RegistryConfig RegistryConfig
@@ -105,7 +153,16 @@ type Config struct {
 }
 
 // New creates a new deployment workflow instance.
-func New(cfg Config) *Workflow {
+func New(cfg Config) (*Workflow, error) {
+	if err := assert.NotNil(cfg.Auditlogs, "Auditlogs must not be nil"); err != nil {
+		return nil, err
+	}
+	if cfg.Build.Backend == BuildBackendKubernetes {
+		if err := assert.NotNil(cfg.K8s, "kubernetes build backend requires a k8s client"); err != nil {
+			return nil, err
+		}
+	}
+
 	// Reclaim build workspaces orphaned by a previous crash. Runs before any
 	// handler is bound, so no live workspace can match.
 	cleanupStaleRailpackWorkspaces()
@@ -113,11 +170,13 @@ func New(cfg Config) *Workflow {
 	return &Workflow{
 		UnimplementedDeployServiceServer: hydrav1.UnimplementedDeployServiceServer{},
 		db:                               cfg.DB,
+		auditlogs:                        cfg.Auditlogs,
 		defaultDomain:                    cfg.DefaultDomain,
 		vault:                            cfg.Vault,
 
 		github:                          cfg.GitHub,
-		depotConfig:                     cfg.DepotConfig,
+		buildConfig:                     cfg.Build,
+		k8s:                             cfg.K8s,
 		registryConfig:                  cfg.RegistryConfig,
 		buildPlatform:                   cfg.BuildPlatform,
 		clickhouse:                      cfg.Clickhouse,
@@ -125,5 +184,5 @@ func New(cfg Config) *Workflow {
 		buildStepLogs:                   cfg.BuildStepLogs,
 		allowUnauthenticatedDeployments: cfg.AllowUnauthenticatedDeployments,
 		dashboardURL:                    cfg.DashboardURL,
-	}
+	}, nil
 }

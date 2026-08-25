@@ -15,6 +15,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/fault"
+	"github.com/unkeyed/unkey/pkg/redaction"
 	"github.com/unkeyed/unkey/pkg/zen"
 	firewallExec "github.com/unkeyed/unkey/svc/frontline/internal/policies/firewall"
 	keyauthExec "github.com/unkeyed/unkey/svc/frontline/internal/policies/keyauth"
@@ -38,7 +39,7 @@ type Config struct {
 
 // Evaluator evaluates policies against incoming requests.
 type Evaluator interface {
-	Evaluate(ctx context.Context, sess *zen.Session, req *http.Request, workspaceID string, mw []*frontlinev1.Policy) (Result, error)
+	Evaluate(ctx context.Context, sess *zen.Session, req *http.Request, workspaceID, appID string, mw []*frontlinev1.Policy) (Result, error)
 }
 
 // Engine implements Evaluator.
@@ -54,7 +55,18 @@ var _ Evaluator = (*Engine)(nil)
 
 // Result holds the outcome of policy evaluation.
 type Result struct {
-	Principal *principal.Principal
+	Principal     *principal.Principal
+	BodyRedactors []*redaction.Redactor
+
+	// Capture flags set by matching enabled logging policies. Each is a
+	// separate opt-in; the base ClickHouse row is always written regardless
+	// of logging policies. LogRequestHeaders also covers the user agent and
+	// client IP; LogQuery covers the query string and query parameters.
+	LogRequestHeaders  bool
+	LogResponseHeaders bool
+	LogRequestBody     bool
+	LogResponseBody    bool
+	LogQuery           bool
 }
 
 // New creates a new Engine with the given configuration.
@@ -119,6 +131,7 @@ func (e *Engine) Evaluate(
 	sess *zen.Session,
 	req *http.Request,
 	workspaceID string,
+	appID string,
 	policies []*frontlinev1.Policy,
 ) (Result, error) {
 	var result Result
@@ -145,7 +158,7 @@ func (e *Engine) Evaluate(
 			}
 
 			t := time.Now()
-			principal, execErr := e.keyAuth.Execute(ctx, sess, req, cfg.Keyauth)
+			principal, execErr := e.keyAuth.Execute(ctx, sess, req, appID, cfg.Keyauth)
 			engineEvaluationDuration.WithLabelValues("keyauth").Observe(time.Since(t).Seconds())
 
 			if execErr != nil {
@@ -185,15 +198,33 @@ func (e *Engine) Evaluate(
 
 		case *frontlinev1.Policy_Openapi:
 			t := time.Now()
-			execErr := e.openapi.Execute(ctx, sess, req, cfg.Openapi)
+			bodyRedactor, execErr := e.openapi.Execute(ctx, sess, req, cfg.Openapi)
 			engineEvaluationDuration.WithLabelValues("openapi").Observe(time.Since(t).Seconds())
 
 			if execErr != nil {
 				engineEvaluationsTotal.WithLabelValues("openapi", "rejected").Inc()
 				return result, execErr
 			}
+			if bodyRedactor != nil {
+				result.BodyRedactors = append(result.BodyRedactors, bodyRedactor)
+			}
 
 			engineEvaluationsTotal.WithLabelValues("openapi", "success").Inc()
+
+		case *frontlinev1.Policy_Logging:
+			// Logging is observational, not an enforcement action: a matching
+			// enabled policy opts the request into capturing headers and/or
+			// bodies in the ClickHouse request log. The base row is written
+			// unconditionally by the logging middleware. Multiple matching
+			// policies OR their capture flags. The actual capture and
+			// emission happen in the handler and the ClickHouse logging
+			// middleware.
+			result.LogRequestHeaders = result.LogRequestHeaders || cfg.Logging.GetRequestHeaders()
+			result.LogResponseHeaders = result.LogResponseHeaders || cfg.Logging.GetResponseHeaders()
+			result.LogRequestBody = result.LogRequestBody || cfg.Logging.GetRequestBody()
+			result.LogResponseBody = result.LogResponseBody || cfg.Logging.GetResponseBody()
+			result.LogQuery = result.LogQuery || cfg.Logging.GetQuery()
+			engineEvaluationsTotal.WithLabelValues("logging", "success").Inc()
 
 		default:
 			continue

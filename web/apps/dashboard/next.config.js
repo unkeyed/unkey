@@ -126,6 +126,7 @@ const nextConfig = {
   output: "standalone",
   reactStrictMode: true,
   typedRoutes: true,
+  allowedDevOrigins: process.env.AMP_ORB ? ["*.onamp.dev", "*.e2b.app"] : undefined,
   pageExtensions: ["tsx", "mdx", "ts", "js"],
   productionBrowserSourceMaps: true,
   // we're open-source anyways
@@ -138,6 +139,15 @@ const nextConfig = {
     return config;
   },
   transpilePackages: ["@unkey/db", "@unkey/resend", "@unkey/error", "@unkey/id"],
+  async redirects() {
+    return [
+      {
+        source: "/:workspaceSlug/projects/:projectId/apps/:appId/sentinel-policies",
+        destination: "/:workspaceSlug/projects/:projectId/apps/:appId/policies",
+        permanent: true,
+      },
+    ];
+  },
   async headers() {
     return [
       {

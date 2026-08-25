@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 export const dashboardRuntimeLog = z.object({
+  log_id: z.string(),
   time: z.int(),
   severity: z.string(),
   message: z.string(),
@@ -12,9 +13,28 @@ export const dashboardRuntimeLog = z.object({
 
 export type RuntimeLog = z.infer<typeof dashboardRuntimeLog>;
 
+const indexedText = z.string().trim().min(3);
+
+const attributesFilter = z.discriminatedUnion("operator", [
+  z.object({
+    operator: z.literal("contains"),
+    value: indexedText,
+  }),
+  z.object({
+    operator: z.literal("is"),
+    path: z
+      .string()
+      .trim()
+      .min(1)
+      .max(512)
+      .refine((path) => path.split(".").every((segment) => segment.length > 0)),
+    value: indexedText.max(2_048),
+  }),
+]);
+
 export const runtimeLogsRequestSchema = z.object({
   projectId: z.string(),
-  appId: z.string().nullable().optional(),
+  appId: z.array(z.string()).optional().default([]),
   deploymentId: z.array(z.string()).optional().default([]),
   environmentId: z
     .object({
@@ -50,7 +70,8 @@ export const runtimeLogsRequestSchema = z.object({
       ),
     })
     .nullable(),
-  message: z.string().nullable(),
+  message: indexedText.nullable(),
+  attributes: attributesFilter.nullable().optional().default(null),
   instanceId: z
     .object({
       filters: z.array(

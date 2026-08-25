@@ -11,11 +11,13 @@ import (
 	"github.com/stretchr/testify/require"
 	frontlinev1 "github.com/unkeyed/unkey/gen/proto/frontline/v1"
 	"github.com/unkeyed/unkey/pkg/ptr"
+	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_gateway_set_policies"
 	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/proto"
 )
 
 func TestSetPoliciesSuccessfully(t *testing.T) {
@@ -36,7 +38,7 @@ func TestSetPoliciesSuccessfully(t *testing.T) {
 		require.NotEmpty(t, res.Body.Meta.RequestId)
 	}
 
-	t.Run("batch of all four variants stores dashboard-compatible wire JSON", func(t *testing.T) {
+	t.Run("batch of all five variants stores dashboard-compatible wire JSON", func(t *testing.T) {
 		env := seedEnvironment(t, h)
 		api := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspace.ID})
 
@@ -50,9 +52,11 @@ func TestSetPoliciesSuccessfully(t *testing.T) {
 				Name:    "ratelimit",
 				Enabled: true,
 				Ratelimit: &openapi.RatelimitPolicy{
-					Limit:      100,
-					WindowMs:   60000,
-					Identifier: openapi.RatelimitIdentifier{RemoteIp: &openapi.RemoteIpKey{}},
+					Limit:    100,
+					WindowMs: 60000,
+					// Deprecated single-identifier input: must be accepted and
+					// normalized to the identifiers array in the stored blob.
+					Identifier: &openapi.RatelimitIdentifier{RemoteIp: &openapi.RemoteIpKey{}},
 				},
 			},
 			firewallPolicy("KEBAP", false),
@@ -61,10 +65,15 @@ func TestSetPoliciesSuccessfully(t *testing.T) {
 				Enabled: true,
 				Openapi: &openapi.OpenapiPolicy{},
 			},
+			{
+				Name:    "logging",
+				Enabled: true,
+				Logging: &openapi.LoggingPolicy{},
+			},
 		}))
 
 		stored := readStoredPolicies(t, h, env)
-		require.Len(t, stored, 4)
+		require.Len(t, stored, 5)
 
 		// The gateway must be able to parse the stored blob the way its
 		// ParseMiddleware does.
@@ -88,7 +97,7 @@ func TestSetPoliciesSuccessfully(t *testing.T) {
 			byName[name] = keys
 		}
 
-		require.Equal(t, []string{"keyauth", "ratelimit", "KEBAP", "openapi"}, names,
+		require.Equal(t, []string{"keyauth", "ratelimit", "KEBAP", "openapi", "logging"}, names,
 			"stored order must be the request order")
 		require.JSONEq(t, `false`, string(byName["KEBAP"]["enabled"]))
 		require.JSONEq(t, `{"action":"ACTION_DENY"}`, string(byName["KEBAP"]["firewall"]))
@@ -99,14 +108,15 @@ func TestSetPoliciesSuccessfully(t *testing.T) {
 		require.NotContains(t, readStoredBlob(t, h, env), `"keyspaces"`,
 			"the public field name must never leak into the stored blob")
 		require.JSONEq(t, `{}`, string(byName["openapi"]["openapi"]))
+		require.JSONEq(t, `{}`, string(byName["logging"]["logging"]))
 		require.JSONEq(
 			t,
-			`{"limit":"100","windowMs":"60000","identifier":{"remoteIp":{}}}`,
+			`{"limit":"100","windowMs":"60000","identifiers":[{"remoteIp":{}}]}`,
 			string(byName["ratelimit"]["ratelimit"]),
 		)
 
 		logs := h.FindAuditLogsByTargetID(ctx, t, env.environmentID)
-		require.Len(t, logs, 4)
+		require.Len(t, logs, 5)
 		for _, l := range logs {
 			require.Contains(t, l.Description, "Set policy")
 			require.NotEmpty(t, l.Targets)
@@ -131,15 +141,20 @@ func TestSetPoliciesSuccessfully(t *testing.T) {
 
 	t.Run("set replaces stored policies including variants this API cannot create", func(t *testing.T) {
 		env := seedEnvironment(t, h)
-		jwtauth := `{"id":"pol_jwt","name":"legacy jwt","enabled":true,"jwtauth":{}}`
-		seedSentinelConfig(t, h, env, fmt.Sprintf(`{"policies":[%s]}`, jwtauth))
+		legacyPolicyID := uid.New(uid.PolicyPrefix)
+		seedSentinelConfig(t, h, env, &frontlinev1.Config{Policies: []*frontlinev1.Policy{{
+			Id:      legacyPolicyID,
+			Name:    "legacy jwt",
+			Enabled: proto.Bool(true),
+			Config:  &frontlinev1.Policy_Jwtauth{Jwtauth: &frontlinev1.JWTAuth{}},
+		}}})
 
 		call(t, makeRequest(env, []openapi.Policy{firewallPolicy("deny", true)}))
 
 		stored := readStoredPolicies(t, h, env)
 		require.Len(t, stored, 1)
 		require.Contains(t, string(stored[0]), `"name":"deny"`)
-		require.NotContains(t, readStoredBlob(t, h, env), "pol_jwt")
+		require.NotContains(t, readStoredBlob(t, h, env), legacyPolicyID)
 	})
 
 	t.Run("second set replaces the first and regenerates ids", func(t *testing.T) {
@@ -224,9 +239,12 @@ func TestSetPoliciesSuccessfully(t *testing.T) {
 
 		ratelimitPolicy := func(name string, id openapi.RatelimitIdentifier) openapi.Policy {
 			return openapi.Policy{
-				Name:      name,
-				Enabled:   true,
-				Ratelimit: &openapi.RatelimitPolicy{Limit: 100, WindowMs: 60000, Identifier: id},
+				Name:    name,
+				Enabled: true,
+				Ratelimit: &openapi.RatelimitPolicy{
+					Limit: 100, WindowMs: 60000,
+					Identifiers: &[]openapi.RatelimitIdentifier{id},
+				},
 			}
 		}
 
@@ -308,13 +326,13 @@ func TestSetPoliciesSuccessfully(t *testing.T) {
 			]
 		}`, apiA.KeyAuthID.String, apiB.KeyAuthID.String), string(byName["kitchen-sink"]["keyauth"]))
 
-		require.JSONEq(t, `{"limit":"100","windowMs":"60000","identifier":{"header":{"name":"x-client-id"}}}`,
+		require.JSONEq(t, `{"limit":"100","windowMs":"60000","identifiers":[{"header":{"name":"x-client-id"}}]}`,
 			string(byName["by-header"]["ratelimit"]))
-		require.JSONEq(t, `{"limit":"100","windowMs":"60000","identifier":{"authenticatedSubject":{}}}`,
+		require.JSONEq(t, `{"limit":"100","windowMs":"60000","identifiers":[{"authenticatedSubject":{}}]}`,
 			string(byName["by-subject"]["ratelimit"]))
-		require.JSONEq(t, `{"limit":"100","windowMs":"60000","identifier":{"path":{}}}`,
+		require.JSONEq(t, `{"limit":"100","windowMs":"60000","identifiers":[{"path":{}}]}`,
 			string(byName["by-path"]["ratelimit"]))
-		require.JSONEq(t, `{"limit":"100","windowMs":"60000","identifier":{"principalField":{"path":"claims.org"}}}`,
+		require.JSONEq(t, `{"limit":"100","windowMs":"60000","identifiers":[{"principalField":{"path":"claims.org"}}]}`,
 			string(byName["by-principal"]["ratelimit"]))
 
 		// Explicit empty arrays in the request are proto defaults, so protojson

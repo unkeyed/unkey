@@ -24,16 +24,17 @@ func TestMapPoliciesToProtoValidation(t *testing.T) {
 				{Name: "kebap-keyauth", Enabled: true, Keyauth: &openapi.KeyauthPolicy{Keyspaces: []string{"ks_1"}}},
 				{Name: "ratelimit", Enabled: true, Ratelimit: &openapi.RatelimitPolicy{
 					Limit: 10, WindowMs: 1000,
-					Identifier: openapi.RatelimitIdentifier{RemoteIp: &openapi.RemoteIpKey{}},
+					Identifier: &openapi.RatelimitIdentifier{RemoteIp: &openapi.RemoteIpKey{}},
 				}},
 				{Name: "firewall", Enabled: false, Firewall: firewall},
 				{Name: "openapi", Enabled: true, Openapi: &openapi.OpenapiPolicy{}},
+				{Name: "logging", Enabled: true, Logging: &openapi.LoggingPolicy{}},
 			},
 		},
 		{
 			name:     "no variant set",
 			policies: []openapi.Policy{{Name: "empty", Enabled: true}},
-			wantErr:  "policies[0] must set exactly one of keyauth, ratelimit, firewall or openapi; none are set.",
+			wantErr:  "policies[0] must set exactly one of keyauth, ratelimit, firewall, openapi or logging; none are set.",
 		},
 		{
 			name: "two variants set",
@@ -41,7 +42,7 @@ func TestMapPoliciesToProtoValidation(t *testing.T) {
 				Name: "double", Enabled: true, Firewall: firewall,
 				Openapi: &openapi.OpenapiPolicy{},
 			}},
-			wantErr: "policies[0] must set exactly one of keyauth, ratelimit, firewall or openapi; 2 are set.",
+			wantErr: "policies[0] must set exactly one of keyauth, ratelimit, firewall, openapi or logging; 2 are set.",
 		},
 		{
 			name: "match expr with no variant",
@@ -123,6 +124,27 @@ func TestMapPoliciesToProtoValidation(t *testing.T) {
 			wantErr: "policies[0].keyauth.permissionQuery is not a valid permission query",
 		},
 		{
+			name: "keyauth with valid credits override",
+			policies: []openapi.Policy{{
+				Name: "k", Enabled: true,
+				Keyauth: &openapi.KeyauthPolicy{
+					Keyspaces: []string{"ks_1"},
+					Credits:   ptr.P(int64(0)),
+				},
+			}},
+		},
+		{
+			name: "keyauth with negative credits override",
+			policies: []openapi.Policy{{
+				Name: "k", Enabled: true,
+				Keyauth: &openapi.KeyauthPolicy{
+					Keyspaces: []string{"ks_1"},
+					Credits:   ptr.P(int64(-1)),
+				},
+			}},
+			wantErr: "policies[0].keyauth.credits must not be negative",
+		},
+		{
 			name: "keyauth ratelimit with limit but no duration",
 			policies: []openapi.Policy{{
 				Name: "k", Enabled: true,
@@ -139,13 +161,49 @@ func TestMapPoliciesToProtoValidation(t *testing.T) {
 				Name: "r", Enabled: true,
 				Ratelimit: &openapi.RatelimitPolicy{
 					Limit: 10, WindowMs: 1000,
-					Identifier: openapi.RatelimitIdentifier{
+					Identifier: &openapi.RatelimitIdentifier{
 						RemoteIp: &openapi.RemoteIpKey{},
 						Path:     &openapi.PathKey{},
 					},
 				},
 			}},
 			wantErr: "policies[0].ratelimit.identifier must set exactly one of",
+		},
+		{
+			name: "ratelimit with neither identifier nor identifiers",
+			policies: []openapi.Policy{{
+				Name: "r", Enabled: true,
+				Ratelimit: &openapi.RatelimitPolicy{Limit: 10, WindowMs: 1000},
+			}},
+			wantErr: "policies[0].ratelimit must set exactly one of identifier or identifiers",
+		},
+		{
+			name: "ratelimit with both identifier and identifiers",
+			policies: []openapi.Policy{{
+				Name: "r", Enabled: true,
+				Ratelimit: &openapi.RatelimitPolicy{
+					Limit: 10, WindowMs: 1000,
+					Identifier: &openapi.RatelimitIdentifier{RemoteIp: &openapi.RemoteIpKey{}},
+					Identifiers: &[]openapi.RatelimitIdentifier{
+						{Path: &openapi.PathKey{}},
+					},
+				},
+			}},
+			wantErr: "policies[0].ratelimit must set exactly one of identifier or identifiers",
+		},
+		{
+			name: "compound identifier entry with two variants",
+			policies: []openapi.Policy{{
+				Name: "r", Enabled: true,
+				Ratelimit: &openapi.RatelimitPolicy{
+					Limit: 10, WindowMs: 1000,
+					Identifiers: &[]openapi.RatelimitIdentifier{
+						{AuthenticatedSubject: &openapi.AuthenticatedSubjectKey{}},
+						{RemoteIp: &openapi.RemoteIpKey{}, Path: &openapi.PathKey{}},
+					},
+				},
+			}},
+			wantErr: "policies[0].ratelimit.identifiers[1] must set exactly one of",
 		},
 		{
 			name: "error names the failing index",
@@ -168,4 +226,25 @@ func TestMapPoliciesToProtoValidation(t *testing.T) {
 			require.Contains(t, fault.UserFacingMessage(err), tc.wantErr)
 		})
 	}
+}
+
+// The deprecated single identifier input must normalize to a one-entry
+// repeated identifiers proto field, so no write path populates the
+// deprecated proto field anymore.
+func TestLegacyIdentifierNormalizesToRepeated(t *testing.T) {
+	got, err := ToProto([]openapi.Policy{{
+		Name: "rl", Enabled: true,
+		Ratelimit: &openapi.RatelimitPolicy{
+			Limit: 10, WindowMs: 1000,
+			Identifier: &openapi.RatelimitIdentifier{RemoteIp: &openapi.RemoteIpKey{}},
+		},
+	}})
+	require.NoError(t, err)
+	require.Len(t, got, 1)
+
+	ratelimit := got[0].GetRatelimit()
+	require.NotNil(t, ratelimit)
+	require.Nil(t, ratelimit.GetIdentifier())
+	require.Len(t, ratelimit.GetIdentifiers(), 1)
+	require.NotNil(t, ratelimit.GetIdentifiers()[0].GetRemoteIp())
 }

@@ -11,6 +11,8 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
+	restate "github.com/restatedev/sdk-go"
+	restateingress "github.com/restatedev/sdk-go/ingress"
 	"github.com/unkeyed/unkey/gen/proto/ctrl/v1/ctrlv1connect"
 	"github.com/unkeyed/unkey/gen/proto/vault/v1/vaultv1connect"
 	"github.com/unkeyed/unkey/gen/rpc/ctrl"
@@ -33,6 +35,7 @@ import (
 
 	"github.com/unkeyed/unkey/pkg/batch"
 	"github.com/unkeyed/unkey/pkg/buildinfo"
+	"github.com/unkeyed/unkey/pkg/buildinfo/metrics"
 	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
@@ -106,7 +109,7 @@ func Run(ctx context.Context, cfg Config) error {
 	reg.MustRegister(collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}))
 	reg.MustRegister(prometheus.NewSystemMetricsCollector())
 	lazy.SetRegistry(reg)
-	buildinfo.RegisterBuildInfoMetrics("api")
+	buildinfometrics.Register("api")
 
 	// This is a little ugly, but the best we can do to resolve the circular dependency until we rework the logger.
 	var shutdownGrafana func(context.Context) error
@@ -219,6 +222,7 @@ func Run(ctx context.Context, cfg Config) error {
 		},
 		TLS:                cfg.TLSConfig,
 		EnableH2C:          false,
+		StreamRequestBody:  false,
 		MaxRequestBodySize: cfg.MaxRequestBodySize,
 		ReadTimeout:        0,
 		WriteTimeout:       0,
@@ -315,12 +319,12 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 
 	caches, err := cachesvc.New(cachesvc.Config{
-		Clock:  clk,
-		NodeID: cfg.InstanceID,
+		Clock: clk,
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create caches: %w", err)
 	}
+	r.Defer(caches.Close)
 
 	keySvc, err := keys.New(keys.Config{
 		DB:           db.ToMySQL(database),
@@ -456,6 +460,22 @@ func Run(ctx context.Context, cfg Config) error {
 		),
 	)
 
+	ctrlCustomDomainClient := ctrl.NewConnectCustomDomainServiceClient(
+		ctrlv1connect.NewCustomDomainServiceClient(
+			&http.Client{},
+			cfg.Control.URL,
+			connect.WithInterceptors(interceptor.NewHeaderInjector(map[string]string{
+				"Authorization": fmt.Sprintf("Bearer %s", cfg.Control.Token),
+			})),
+		),
+	)
+
+	restateClient := restateingress.NewClient(
+		cfg.Restate.URL,
+		restate.WithAuthKey(cfg.Restate.APIKey),
+		restate.WithHttpClient(&http.Client{Timeout: 30 * time.Second}),
+	)
+
 	logger.Info("Control plane clients initialized", "url", cfg.Control.URL)
 
 	pprofEnabled := cfg.Pprof != nil && cfg.Pprof.Username != "" && cfg.Pprof.Password != ""
@@ -501,9 +521,12 @@ func Run(ctx context.Context, cfg Config) error {
 		CtrlDeploymentClient: ctrlDeploymentClient,
 		CtrlProjectClient:    ctrlProjectClient,
 		CtrlAppClient:        ctrlAppClient,
-		PprofEnabled:         pprofEnabled,
-		PprofUsername:        pprofUsername,
-		PprofPassword:        pprofPassword,
+		Restate:              restateClient,
+
+		CtrlCustomDomainClient: ctrlCustomDomainClient,
+		PprofEnabled:           pprofEnabled,
+		PprofUsername:          pprofUsername,
+		PprofPassword:          pprofPassword,
 
 		UsageLimiter:               ulSvc,
 		AnalyticsConnectionManager: analyticsConnMgr,
@@ -536,8 +559,8 @@ func Run(ctx context.Context, cfg Config) error {
 	})
 
 	// Wait for either OS signals or context cancellation, then shutdown
+	// r.Wait already logs shutdown failures; just add context and propagate.
 	if err := r.Wait(ctx, runner.WithTimeout(time.Minute)); err != nil {
-		logger.Error("Shutdown failed", "error", err)
 		return fmt.Errorf("shutdown failed: %w", err)
 	}
 

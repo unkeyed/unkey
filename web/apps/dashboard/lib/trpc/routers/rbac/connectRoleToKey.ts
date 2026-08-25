@@ -22,6 +22,7 @@ export const connectRoleToKey = workspaceProcedure
           },
           keys: {
             where: (table, { eq }) => eq(table.id, input.keyId),
+            columns: { id: true, name: true },
           },
         },
       })

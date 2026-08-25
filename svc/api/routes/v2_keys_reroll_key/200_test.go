@@ -1,6 +1,7 @@
 package handler_test
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"testing"
@@ -46,10 +47,12 @@ func TestRerollKeySuccess(t *testing.T) {
 
 	workspace := h.Resources().UserWorkspace
 
+	identityMeta, err := json.Marshal(map[string]string{"name": "Test User"})
+	require.NoError(t, err)
 	identity := h.CreateIdentity(seed.CreateIdentityRequest{
 		WorkspaceID: workspace.ID,
 		ExternalID:  "test_123",
-		Meta:        []byte(`{"name": "Test User"}`),
+		Meta:        identityMeta,
 		Ratelimits: []seed.CreateRatelimitRequest{
 			{
 				Name:        "default-enterprise",
@@ -258,8 +261,8 @@ func TestRerollKeySuccess(t *testing.T) {
 	})
 }
 
-// TestRerollRecoverableKeyWithURNPermission guarantees a wildcard create_key
-// grant authorizes creating the replacement recoverable key.
+// TestRerollRecoverableKeyWithURNPermission guarantees wildcard create_key and
+// encrypt_key grants authorize creating the replacement recoverable key.
 func TestRerollRecoverableKeyWithURNPermission(t *testing.T) {
 	t.Parallel()
 
@@ -289,7 +292,11 @@ func TestRerollRecoverableKeyWithURNPermission(t *testing.T) {
 		urn.New().Workspace(workspace.ID).Project(api.ProjectID).Keyspace(api.KeyAuthID.String).Key("*"),
 		permissions.CreateKey{},
 	).Value
-	rootKey := h.CreateRootKey(workspace.ID, createKeyPermission)
+	encryptKeyPermission := rbac.U(
+		urn.New().Workspace(workspace.ID).Project(api.ProjectID).Keyspace(api.KeyAuthID.String).Key("*"),
+		permissions.EncryptKey{},
+	).Value
+	rootKey := h.CreateRootKey(workspace.ID, createKeyPermission, encryptKeyPermission)
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},

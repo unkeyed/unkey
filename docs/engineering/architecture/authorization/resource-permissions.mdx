@@ -237,7 +237,43 @@ These examples show how broad and narrow permissions use the same grammar.
     ```
 
   </Accordion>
+  <Accordion title="Portal session grammar (not yet honored)">
+
+    ```plaintext
+    unkey:v1:ws_123:projects/proj_123/portals/pc_123#create_portal_session
+    unkey:v1:ws_123:projects/proj_123/portals/*#create_portal_session
+    ```
+
+    These show the intended grammar only, and neither the path nor the
+    evaluation is live yet: `portal.createSession` matches legacy tuples today,
+    and `pkg/urn` still builds portal paths directly under the workspace. Grant
+    `portal.pc_123.create_portal_session` until the URN migration lands.
+
+  </Accordion>
 </AccordionGroup>
+
+### Portal resource
+
+Portals are moving under projects, so a portal path is expected to read
+`projects/{projectID}/portals/{portalID}`. `pkg/urn` still builds them directly
+under the workspace today, so treat the project segment as the target shape
+rather than what the builder currently emits. Either way, a `projects/*/apps/*`
+grant does not imply portal access, even when the portal is bound to that app.
+
+| Action | Authorizes |
+| --- | --- |
+| `create_portal` | Creating a portal. Granted with a wildcard id, since the portal does not exist when the request is authorized. |
+| `read_portal` | Reading portal configuration. |
+| `update_portal` | Updating portal configuration. |
+| `delete_portal` | Deleting a portal. |
+| `create_portal_session` | Minting a portal session for an end user. Deliberately separate from the management actions above: it is the sensitive capability and the one a production backend needs. |
+
+Session minting is additionally bounded at mint time by the caller's own key and
+analytics permissions, so a session can never carry a capability the calling root
+key does not hold. That second stage is enforced with legacy tuples today, so a
+URN grant does not currently satisfy it, including the `**#*` admin form.
+Revisit when the URN migration lands; the route ships a test pinning the current
+denial so the migration has a signal to flip.
 
 ## Audit logs
 

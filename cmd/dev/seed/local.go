@@ -96,7 +96,7 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 	previewEnvID := uid.New(uid.EnvironmentPrefix)
 	productionEnvID := uid.New(uid.EnvironmentPrefix)
 	regionID := uid.New(uid.RegionPrefix)
-	portalConfigID := fmt.Sprintf("portal_%s", slug)
+	portalID := fmt.Sprintf("portal_%s", slug)
 
 	err = db.TxRetry(ctx, database.RW(), func(ctx context.Context, tx db.DBTX) error {
 		err = db.BulkQuery.UpsertWorkspace(ctx, tx, []db.UpsertWorkspaceParams{
@@ -354,28 +354,44 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 			return fmt.Errorf("failed to create regional settings: %w", err)
 		}
 
-		err = db.BulkQuery.UpsertQuota(ctx, tx, []db.UpsertQuotaParams{
+		err = db.BulkQuery.UpsertLimit(ctx, tx, []db.UpsertLimitParams{
 			{
-				WorkspaceID:            workspaceID,
-				RequestsPerMonth:       150000,
-				AuditLogsRetentionDays: 30,
-				LogsRetentionDays:      7,
-				Team:                   false,
-				RatelimitApiLimit:      sql.NullInt32{}, //nolint:exhaustruct
-				RatelimitApiDuration:   sql.NullInt32{}, //nolint:exhaustruct
+				WorkspaceID:                           workspaceID,
+				ApiBillableOperationsCountMaxPerMonth: 150_000,
+				ApiRequestsCountMaxPerMinute:          sql.NullInt32{}, //nolint:exhaustruct
+				LogsRetentionDaysMax:                  7,
+				LogsAuditRetentionDaysMax:             30,
+				TeamEnabled:                           false,
+				CpuCoresMax:                           10,
+				CpuCoresMaxPerInstance:                2,
+				MemoryMibMax:                          20_480,
+				MemoryMibMaxPerInstance:               4_096,
+				StorageMibMax:                         51_200,
+				StorageMibMaxPerInstance:              10_240,
+				BuildsConcurrentMax:                   1,
+				CustomDomainsMax:                      0,
+				AutoscalingReplicasMax:                0,
 			},
 			{
-				WorkspaceID:            rootWorkspaceID,
-				RequestsPerMonth:       150000,
-				AuditLogsRetentionDays: 30,
-				LogsRetentionDays:      7,
-				Team:                   false,
-				RatelimitApiLimit:      sql.NullInt32{}, //nolint:exhaustruct
-				RatelimitApiDuration:   sql.NullInt32{}, //nolint:exhaustruct
+				WorkspaceID:                           rootWorkspaceID,
+				ApiBillableOperationsCountMaxPerMonth: 150_000,
+				ApiRequestsCountMaxPerMinute:          sql.NullInt32{}, //nolint:exhaustruct
+				LogsRetentionDaysMax:                  7,
+				LogsAuditRetentionDaysMax:             30,
+				TeamEnabled:                           false,
+				CpuCoresMax:                           10,
+				CpuCoresMaxPerInstance:                2,
+				MemoryMibMax:                          20_480,
+				MemoryMibMaxPerInstance:               4_096,
+				StorageMibMax:                         51_200,
+				StorageMibMaxPerInstance:              10_240,
+				BuildsConcurrentMax:                   1,
+				CustomDomainsMax:                      0,
+				AutoscalingReplicasMax:                0,
 			},
 		})
 		if err != nil {
-			return fmt.Errorf("failed to create quotas: %w", err)
+			return fmt.Errorf("failed to create limits: %w", err)
 		}
 
 		err = db.BulkQuery.UpsertKeySpace(ctx, tx, []db.UpsertKeySpaceParams{
@@ -486,6 +502,14 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 			"project.*.generate_upload_url",
 			"project.*.create_deployment",
 			"project.*.read_deployment",
+			// Portal management plus session minting. The seeded root key needs
+			// these so a locally seeded portal keeps working now that
+			// portal.createSession is gated.
+			"portal.*.create_portal",
+			"portal.*.read_portal",
+			"portal.*.update_portal",
+			"portal.*.delete_portal",
+			"portal.*.create_portal_session",
 		}
 
 		permissionParams := make([]db.InsertPermissionParams, len(allPermissions))
@@ -525,35 +549,30 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 			return fmt.Errorf("failed to insert key permissions: %w", err)
 		}
 
-		// Optionally seed portal configuration and branding.
+		// Optionally seed a portal, branding included.
 		if cmd.Bool("portal") {
-			err = db.Query.InsertPortalConfig(ctx, tx, db.InsertPortalConfigParams{
-				ID:          portalConfigID,
-				WorkspaceID: workspaceID,
-				Slug:        "awesome",
-				AppID:       sql.NullString{Valid: true, String: appID},
-				KeyAuthID:   sql.NullString{Valid: true, String: userKeySpaceID},
-				Enabled:     true,
-				ReturnUrl:   sql.NullString{Valid: true, String: "http://localhost:3000/portal-return"},
-				CreatedAt:   now,
-				UpdatedAt:   sql.NullInt64{},
+			// Keyspace-mapped, not app-mapped: a portal must reference exactly
+			// one of key_auth_id or app_id, and portal.createSession rejects a
+			// portal that sets both. App-mapping additionally resolves its
+			// keyspaces from the app's current deployment, which this seed does
+			// not create, so the keyspace is the only mapping that works here.
+			err = db.Query.InsertPortal(ctx, tx, db.InsertPortalParams{
+				ID:           portalID,
+				WorkspaceID:  workspaceID,
+				Slug:         "awesome",
+				AppID:        sql.NullString{Valid: false},
+				KeyAuthID:    sql.NullString{Valid: true, String: userKeySpaceID},
+				Enabled:      true,
+				LogoUrl:      sql.NullString{Valid: true, String: "https://avatars.githubusercontent.com/u/138932600"},
+				PrimaryColor: sql.NullString{Valid: true, String: "#2563eb"},
+				CreatedAt:    now,
+				UpdatedAt:    sql.NullInt64{},
 			})
 			if err != nil && !db.IsDuplicateKeyError(err) {
-				return fmt.Errorf("failed to create portal config: %w", err)
+				return fmt.Errorf("failed to create portal: %w", err)
 			}
 
-			err = db.Query.UpsertPortalBranding(ctx, tx, db.UpsertPortalBrandingParams{
-				PortalConfigID: portalConfigID,
-				LogoUrl:        sql.NullString{Valid: true, String: "https://avatars.githubusercontent.com/u/138932600"},
-				PrimaryColor:   sql.NullString{Valid: true, String: "#2563eb"},
-				CreatedAt:      now,
-				UpdatedAt:      sql.NullInt64{},
-			})
-			if err != nil {
-				return fmt.Errorf("failed to create portal branding: %w", err)
-			}
-
-			logger.Info("portal seeded", "portalConfigId", portalConfigID)
+			logger.Info("portal seeded", "portalId", portalID)
 		}
 
 		return nil
@@ -584,7 +603,7 @@ UNKEY_ROOT_KEY=%s
 		)
 
 		if cmd.Bool("portal") {
-			envContent += fmt.Sprintf("UNKEY_PORTAL_CONFIG_ID=%s\n", portalConfigID)
+			envContent += fmt.Sprintf("UNKEY_PORTAL_ID=%s\n", portalID)
 		}
 
 		// Ensure directory exists

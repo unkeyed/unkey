@@ -3,7 +3,7 @@
  */
 
 import { portalCreateSession } from "../funcs/portalCreateSession.js";
-import { portalExchangeSession } from "../funcs/portalExchangeSession.js";
+import { portalExchangeCode } from "../funcs/portalExchangeCode.js";
 import { portalGetVerifications } from "../funcs/portalGetVerifications.js";
 import { portalListKeys } from "../funcs/portalListKeys.js";
 import { portalRerollKey } from "../funcs/portalRerollKey.js";
@@ -18,15 +18,35 @@ export class Portal extends ClientSDK {
    * Create portal session
    *
    * @remarks
-   * Create a short-lived session token for an end user to access the Customer Portal.
+   * Create a portal session for an end user and get the URL to redirect them to.
    *
-   * The returned session ID is valid for 15 minutes and can be exchanged exactly once
-   * for a 24-hour browser session via `portal.exchangeSession`. Redirect the end user
-   * to the returned URL to start the portal experience.
+   * The URL carries a single-use exchange code valid for 15 minutes, which the portal
+   * redeems exactly once for a 24-hour access token via `portal.exchangeCode`.
    *
    * **Required Permissions**
    *
-   * Your root key must be associated with a workspace that has an enabled portal configuration.
+   * Authorization runs in two stages, and both must pass.
+   *
+   * First, your root key must have one of the following permissions:
+   * - `portal.*.create_portal_session` (to mint sessions for any portal in the workspace)
+   * - `portal.<portal_id>.create_portal_session` (to mint sessions for a specific portal)
+   *
+   * Second, a session can never carry a capability your root key does not itself
+   * hold. Each requested scope additionally requires the equivalent permission on
+   * every keyspace the portal resolves to:
+   * - `keys:read` requires `api.<api_id>.read_key` **and** `api.<api_id>.read_api`
+   * - `keys:reroll` and `keys:create` require `api.<api_id>.create_key`, plus
+   *   `api.<api_id>.encrypt_key` when the keyspace stores encrypted keys
+   * - `analytics:read` requires `api.<api_id>.read_analytics`
+   *
+   * The `*` form of each is also accepted. Requesting a scope you do not hold
+   * returns 403 for the whole request rather than minting a reduced session, so a
+   * missing grant is visible instead of surfacing later as a broken portal.
+   *
+   * Missing the portal permission itself returns **404**, not 403: a caller who
+   * cannot mint for a portal is not told whether it exists.
+   *
+   * Your root key must also be associated with a workspace that has an enabled portal.
    */
   async createSession(
     request: components.V2PortalCreateSessionRequestBody,
@@ -40,22 +60,22 @@ export class Portal extends ClientSDK {
   }
 
   /**
-   * Exchange session token
+   * Exchange portal code
    *
    * @remarks
-   * Exchange a short-lived session token for a long-lived browser session.
+   * Exchange a short-lived code for a long-lived portal access token.
    *
-   * This endpoint is unauthenticated. The session token itself serves as proof of authorization.
-   * Each token can only be exchanged once; subsequent attempts return 401.
+   * This endpoint is unauthenticated. The code itself serves as proof of authorization.
+   * Each code can only be redeemed once; subsequent attempts return 401.
    *
-   * The returned browser session token is valid for 24 hours and should be stored as an
+   * The returned access token is valid for 24 hours and should be stored as an
    * httpOnly cookie or used in the Authorization header for subsequent API calls.
    */
-  async exchangeSession(
-    request: components.V2PortalExchangeSessionRequestBody,
+  async exchangeCode(
+    request: components.V2PortalExchangeCodeRequestBody,
     options?: RequestOptions,
-  ): Promise<operations.PortalExchangeSessionResponse> {
-    return unwrapAsync(portalExchangeSession(
+  ): Promise<operations.PortalExchangeCodeResponse> {
+    return unwrapAsync(portalExchangeCode(
       this,
       request,
       options,

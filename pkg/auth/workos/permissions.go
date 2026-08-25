@@ -68,13 +68,13 @@ var permissionMappings = map[string]permissionMapping{
 	},
 	"deployments:create": {
 		name:        "Create Deployments",
-		description: "Allows creating deployments.",
+		description: "Allows creating and redeploying deployments.",
 		permissions: []permissionGrant{{resource: "projects/*/apps/*/environments/*/deployments/*", action: action(rbacpermissions.CreateDeployment{})}},
 	},
 	"deployments:promote": {
 		name:        "Promote Deployments",
-		description: "Allows promoting deployments.",
-		permissions: []permissionGrant{{resource: "projects/*/apps/*/environments/*", action: action(rbacpermissions.PromoteDeployment{})}},
+		description: "Allows promoting a deployment to live.",
+		permissions: []permissionGrant{{resource: "projects/*/apps/*/environments/*/deployments/*", action: action(rbacpermissions.PromoteDeployment{})}},
 	},
 	"deployments:read": {
 		name:        "Read Deployments",
@@ -83,8 +83,8 @@ var permissionMappings = map[string]permissionMapping{
 	},
 	"deployments:rollback": {
 		name:        "Rollback Deployments",
-		description: "Allows rolling back deployments.",
-		permissions: []permissionGrant{{resource: "projects/*/apps/*/environments/*", action: action(rbacpermissions.RollbackDeployment{})}},
+		description: "Allows rolling live traffic back to a previous deployment.",
+		permissions: []permissionGrant{{resource: "projects/*/apps/*/environments/*/deployments/*", action: action(rbacpermissions.RollbackDeployment{})}},
 	},
 	"deployments:start": {
 		name:        "Start Deployments",
@@ -95,6 +95,41 @@ var permissionMappings = map[string]permissionMapping{
 		name:        "Stop Deployments",
 		description: "Allows stopping deployments.",
 		permissions: []permissionGrant{{resource: "projects/*/apps/*/environments/*/deployments/*", action: action(rbacpermissions.StopDeployment{})}},
+	},
+	"domains:create": {
+		name:        "Create domains",
+		description: "Allows attaching a custom domain to an environment.",
+		permissions: []permissionGrant{{resource: "projects/*/apps/*/environments/*/domains/*", action: action(rbacpermissions.CreateDomain{})}},
+	},
+	"domains:delete": {
+		name:        "Delete domains",
+		description: "Allows removing a custom domain from an environment.",
+		permissions: []permissionGrant{{resource: "projects/*/apps/*/environments/*/domains/*", action: action(rbacpermissions.DeleteDomain{})}},
+	},
+	"domains:read": {
+		name:        "Read domains",
+		description: "Allows reading an environment's custom domains.",
+		permissions: []permissionGrant{{resource: "projects/*/apps/*/environments/*/domains/*", action: action(rbacpermissions.ReadDomain{})}},
+	},
+	"domains:verify": {
+		name:        "Verify domains",
+		description: "Allows restarting verification for a custom domain.",
+		permissions: []permissionGrant{{resource: "projects/*/apps/*/environments/*/domains/*", action: action(rbacpermissions.VerifyDomain{})}},
+	},
+	"environment_variables:read": {
+		name:        "Read environment variables",
+		description: "Allows reading environment variables, including recoverable values.",
+		permissions: []permissionGrant{{resource: "projects/*/apps/*/environments/*", action: action(rbacpermissions.ReadEnvironmentVariables{})}},
+	},
+	"environment_variables:remove": {
+		name:        "Remove environment variables",
+		description: "Allows removing environment variables.",
+		permissions: []permissionGrant{{resource: "projects/*/apps/*/environments/*", action: action(rbacpermissions.RemoveEnvironmentVariables{})}},
+	},
+	"environment_variables:set": {
+		name:        "Set environment variables",
+		description: "Allows creating and overwriting environment variables.",
+		permissions: []permissionGrant{{resource: "projects/*/apps/*/environments/*", action: action(rbacpermissions.SetEnvironmentVariables{})}},
 	},
 	"environments:create_variables": {
 		name:        "Create Environment Variables",
@@ -178,6 +213,11 @@ var permissionMappings = map[string]permissionMapping{
 		name:        "Delete keys",
 		description: "Allows deleting keys.",
 		permissions: []permissionGrant{{resource: "projects/*/keyspaces/**", action: action(rbacpermissions.DeleteKey{})}},
+	},
+	"keys:encrypt": {
+		name:        "Encrypt keys",
+		description: "Allows creating recoverable keys.",
+		permissions: []permissionGrant{{resource: "projects/*/keyspaces/**", action: action(rbacpermissions.EncryptKey{})}},
 	},
 	"keys:read": {
 		name:        "Read keys",

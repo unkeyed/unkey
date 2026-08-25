@@ -6,9 +6,6 @@ import { trpc } from "@/lib/trpc/client";
 import { Button, DialogContainer, FormInput, toast } from "@unkey/ui";
 import { useState } from "react";
 
-/** Alert thresholds as fractions of the budget. */
-export const ALERT_STEPS = [0.5, 0.75] as const;
-
 /** Mirrors MAX_BUDGET_CENTS in the deploy-budget router so an over-cap value
  *  fails client-side with a readable message. */
 const MAX_BUDGET_CENTS = 1_000_000_000;

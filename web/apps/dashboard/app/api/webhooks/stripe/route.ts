@@ -5,7 +5,6 @@ import { createCtrlClient } from "@/lib/ctrl-client";
 import { db, eq, schema } from "@/lib/db";
 import { stripeEnv } from "@/lib/env";
 import { formatPrice } from "@/lib/fmt";
-import { freeTierLimits, freeTierQuotas } from "@/lib/quotas";
 import { deleteBillingSubscription } from "@/lib/stripe/billingSubscriptions";
 import {
   type ComputeLifecycleAlert,
@@ -19,14 +18,16 @@ import { linkApiSubscription } from "@/lib/stripe/linkApiSubscription";
 import { linkDeploySubscription } from "@/lib/stripe/linkDeploySubscription";
 import { isPaymentRecovery, isPaymentRecoveryUpdate } from "@/lib/stripe/paymentUtils";
 import { validateAndParseQuotas } from "@/lib/stripe/productUtils";
-import { setComputeQuotas } from "@/lib/stripe/setComputeQuotas";
+import { setWorkspaceLimits } from "@/lib/stripe/setWorkspaceLimits";
 import {
   isAutomatedBillingRenewal,
   isCardUpdateOnly,
   isPaymentFailureRelatedUpdate,
+  isScheduleUpdateOnly,
 } from "@/lib/stripe/subscriptionUtils";
-import { keepsTeamAfterDelete } from "@/lib/stripe/webhookRouting";
+import { keepsTeamAfterDelete, stripeWebhookResponse } from "@/lib/stripe/webhookRouting";
 import {
+  type SlackPostStatus,
   alertCustomerLifecycle,
   alertInvalidProductQuotaMetadata,
   alertOrphanedDeploySubscription,
@@ -60,20 +61,20 @@ async function mirrorDeployPlan(
   const plan = cancelling ? null : detectDeployPlan(sub);
   const changed = plan !== billing.plan;
   if (changed) {
-    const preserveApiQuotas = (billing.tier ?? "Free") !== "Free";
+    const preserveApiLimits = (billing.tier ?? "Free") !== "Free";
     await db.transaction(async (tx) => {
       await tx
         .update(schema.workspaceBilling)
         .set({ plan })
         .where(eq(schema.workspaceBilling.workspaceId, billing.workspaceId));
-      await setComputeQuotas(tx, {
+      await setWorkspaceLimits(tx, {
         workspaceId: billing.workspaceId,
         plan,
-        preserveApiQuotas,
+        preserveApiLimits,
       });
     });
 
-    if (!preserveApiQuotas && deployPlanGrantsTeam(billing.plan) && !deployPlanGrantsTeam(plan)) {
+    if (!preserveApiLimits && deployPlanGrantsTeam(billing.plan) && !deployPlanGrantsTeam(plan)) {
       await deactivateNonCreatorMemberships(orgId);
     }
   }
@@ -92,9 +93,14 @@ async function sendComputeAlert(
   sub: Stripe.Subscription,
   alert: ComputeLifecycleAlert | null,
   ws: { id: string; name: string } | null,
-): Promise<void> {
-  if (!alert || !sub.customer) {
-    return;
+): Promise<
+  SlackPostStatus | "not_applicable" | "customer_lookup_failed" | "customer_contact_missing"
+> {
+  if (!alert) {
+    return "not_applicable";
+  }
+  if (!sub.customer) {
+    return "customer_contact_missing";
   }
 
   let customer: Stripe.Customer | Stripe.DeletedCustomer;
@@ -107,11 +113,11 @@ async function sendComputeAlert(
       subscriptionId: sub.id,
       error: err instanceof Error ? err.message : err,
     });
-    return;
+    return "customer_lookup_failed";
   }
 
   if (customer.deleted || !customer.email) {
-    return;
+    return "customer_contact_missing";
   }
 
   // Common customer/workspace facts every Compute lifecycle alert renders. ws is null when a
@@ -128,30 +134,27 @@ async function sendComputeAlert(
 
   switch (alert.type) {
     case "created":
-      await alertCustomerLifecycle({
+      return alertCustomerLifecycle({
         ...base,
         action: "signup",
         product: alert.product,
         price: alert.price,
       });
-      break;
     case "cancelling":
-      await alertCustomerLifecycle({
+      return alertCustomerLifecycle({
         ...base,
         action: "cancelling",
         product: alert.product,
         price: alert.price,
       });
-      break;
     case "updated":
-      await alertCustomerLifecycle({
+      return alertCustomerLifecycle({
         ...base,
         action: alert.changeType === "downgraded" ? "downgrade" : "upgrade",
         product: alert.product,
         previousProduct: alert.previousTier,
         price: alert.price,
       });
-      break;
   }
 }
 
@@ -222,14 +225,19 @@ async function deprovisionOnCancel(
 async function linkCheckoutSession(
   stripe: Stripe,
   session: Stripe.Checkout.Session,
-  eventId: string,
+  event: Stripe.Event,
 ): Promise<Response> {
   if (session.mode !== "subscription" || !session.subscription) {
-    return new Response("OK", { status: 200 });
+    return stripeWebhookResponse(event, "checkout_ignored", {
+      reason: "not_subscription_checkout",
+    });
   }
   const productTag = session.metadata?.unkey_product;
   if (productTag !== "api" && productTag !== "compute") {
-    return new Response("OK", { status: 200 });
+    return stripeWebhookResponse(event, "checkout_ignored", {
+      reason: "unknown_product",
+      product: productTag ?? null,
+    });
   }
   const subscriptionId =
     typeof session.subscription === "string" ? session.subscription : session.subscription.id;
@@ -239,16 +247,19 @@ async function linkCheckoutSession(
     // forever; no retry fixes it, so page a human.
     console.error(`${product} checkout link event missing client_reference_id`, {
       sessionId: session.id,
-      eventId,
+      eventId: event.id,
     });
     await alertOrphanedDeploySubscription({
       subscriptionId,
       sessionId: session.id,
-      eventId,
+      eventId: event.id,
       reason: "missing_client_reference_id",
       product,
     });
-    return new Response("OK", { status: 200 });
+    return stripeWebhookResponse(event, "checkout_link_failed", {
+      product,
+      reason: "missing_client_reference_id",
+    });
   }
 
   const linkInput = {
@@ -268,7 +279,7 @@ async function linkCheckoutSession(
   if (!result.ok) {
     console.error(`Failed to link ${product} checkout subscription`, {
       sessionId: session.id,
-      eventId,
+      eventId: event.id,
       reason: result.reason,
     });
     // Either way a paid subscription bills with no workspace attached and
@@ -284,13 +295,20 @@ async function linkCheckoutSession(
         workspaceId: session.client_reference_id,
         subscriptionId,
         sessionId: session.id,
-        eventId,
+        eventId: event.id,
         reason: result.reason,
         product,
       });
     }
+    return stripeWebhookResponse(event, "checkout_link_failed", {
+      product,
+      reason: result.reason,
+    });
   }
-  return new Response("OK", { status: 200 });
+  return stripeWebhookResponse(event, "checkout_linked", {
+    product,
+    alreadyLinked: result.alreadyLinked,
+  });
 }
 
 /**
@@ -444,8 +462,15 @@ export const POST = async (req: Request): Promise<Response> => {
         // uses it for its skip heuristics and up/downgrade copy.
         const previousAttributes = event.data.previous_attributes;
 
+        // Creating or releasing a schedule leaves the active price and limits
+        // unchanged. The later phase transition carries the item price change
+        // and is reconciled normally.
+        if (isScheduleUpdateOnly(previousAttributes)) {
+          return new Response("OK", { status: 200 });
+        }
+
         // Deploy-matched: mirror the plan, announce the change, and stop. The
-        // Deploy subscription never carries API tier/quota state, so there is
+        // Deploy subscription never carries API tier/limit state, so there is
         // nothing else to reconcile. mirrorDeployPlan only writes when the plan
         // changed, so a renewal event does no DB write; the alert is derived
         // from the Stripe event (a DB plan diff is unreliable because the
@@ -490,12 +515,12 @@ export const POST = async (req: Request): Promise<Response> => {
         }
 
         // Skip database updates and notifications for card/payment method updates only
-        // These don't affect subscription pricing, quotas, or other business logic
+        // These don't affect subscription pricing, limits, or other business logic
         if (isCardUpdateOnly(eventSub, previousAttributes)) {
           return new Response("OK", { status: 201 });
         }
 
-        // Reconcile tier/quotas from the API plan item. A missing item/price is
+        // Reconcile tier/limits from the API plan item. A missing item/price is
         // a degenerate API subscription with nothing to derive a tier from; ack
         // rather than guess.
         const apiContext = await resolveApiSubscriptionContext(stripe, sub);
@@ -510,7 +535,7 @@ export const POST = async (req: Request): Promise<Response> => {
          */
         if (sub.cancel_at) {
           // Alert only when an email exists, but return unconditionally: the tier
-          // and quota update below is for active plan changes, never a cancelling
+          // and limit update below is for active plan changes, never a cancelling
           // subscription.
           if (customer && !customer.deleted && customer.email) {
             await alertCustomerLifecycle({
@@ -528,7 +553,7 @@ export const POST = async (req: Request): Promise<Response> => {
           return new Response("OK");
         }
 
-        // Validate and parse quotas
+        // Validate and parse Stripe limit metadata.
         const quotas = validateAndParseQuotas(product);
         if (!quotas.valid) {
           // Without valid quota metadata the tier sync is skipped while Stripe
@@ -597,9 +622,9 @@ export const POST = async (req: Request): Promise<Response> => {
         // Stripe is the source of truth and subscriptions can also be changed
         // outside the dashboard.
         const rateLimitReset =
-          changeType === "upgraded" ? { ratelimitApiLimit: null, ratelimitApiDuration: null } : {};
+          changeType === "upgraded" ? { apiRequestsCountMaxPerMinute: null } : {};
 
-        // Update quotas and workspace tier
+        // Update limits and workspace tier
         await db.transaction(async (tx) => {
           await tx
             .update(schema.workspaceBilling)
@@ -608,15 +633,15 @@ export const POST = async (req: Request): Promise<Response> => {
             })
             .where(eq(schema.workspaceBilling.workspaceId, ws.id));
 
-          await setComputeQuotas(tx, {
+          await setWorkspaceLimits(tx, {
             workspaceId: ws.id,
             plan: parseDeployPlan(billing.planOverride) ?? parseDeployPlan(billing.plan),
-            preserveApiQuotas: true,
-            quotaUpdate: {
-              requestsPerMonth,
-              logsRetentionDays,
-              auditLogsRetentionDays,
-              team: true,
+            preserveApiLimits: true,
+            limitUpdate: {
+              apiBillableOperationsCountMaxPerMonth: requestsPerMonth,
+              logsRetentionDaysMax: logsRetentionDays,
+              logsAuditRetentionDaysMax: auditLogsRetentionDays,
+              teamEnabled: true,
               ...rateLimitReset,
             },
           });
@@ -750,28 +775,12 @@ export const POST = async (req: Request): Promise<Response> => {
             await deleteBillingSubscription(tx, { workspaceId: ws.id, product: "compute" });
 
             // Reset the Compute-owned ceilings even when a paid API plan remains;
-            // in that case the API-owned quota fields and team access stay intact.
-            if (keepsTeam) {
-              await setComputeQuotas(tx, {
-                workspaceId: ws.id,
-                plan: null,
-                preserveApiQuotas: true,
-              });
-            } else {
-              await tx
-                .insert(schema.quotas)
-                .values({ workspaceId: ws.id, ...freeTierQuotas })
-                .onDuplicateKeyUpdate({ set: freeTierQuotas });
-              await tx
-                .insert(schema.limits)
-                .values({
-                  workspaceId: ws.id,
-                  ...freeTierLimits,
-                })
-                .onDuplicateKeyUpdate({
-                  set: freeTierLimits,
-                });
-            }
+            // in that case the API-owned limit fields and team access stay intact.
+            await setWorkspaceLimits(tx, {
+              workspaceId: ws.id,
+              plan: null,
+              preserveApiLimits: keepsTeam,
+            });
 
             await insertAuditLogs(tx, {
               workspaceId: ws.id,
@@ -821,19 +830,10 @@ export const POST = async (req: Request): Promise<Response> => {
         const deployPlan = parseDeployPlan(billing.plan);
         const keepsTeam = keepsTeamAfterDelete("api", billing);
 
-        // When a Compute plan survives, reset the API-only fields and then
-        // reapply that plan's shared and resource entitlements. Without a
-        // Compute plan, restore the complete free quota record.
-        const apiFreeQuotas = {
-          requestsPerMonth: freeTierQuotas.requestsPerMonth,
-          ratelimitApiLimit: freeTierQuotas.ratelimitApiLimit,
-          ratelimitApiDuration: freeTierQuotas.ratelimitApiDuration,
-        };
-
         // One transaction. Deleting the billing_subscriptions row is what the
         // retry lookup keys on, so if it committed alone and a later write
         // failed, the redelivered event could no longer find the workspace and
-        // would strand paid quotas on Free forever. Atomic writes mean a partial
+        // would strand paid limits on Free forever. Atomic writes mean a partial
         // failure rolls back the row delete too, so the retry re-finds the
         // workspace and completes the downgrade. Same shape as workspace creation.
         await db.transaction(async (tx) => {
@@ -843,31 +843,11 @@ export const POST = async (req: Request): Promise<Response> => {
             .where(eq(schema.workspaceBilling.workspaceId, ws.id));
           await deleteBillingSubscription(tx, { workspaceId: ws.id, product: "api" });
 
-          if (deployPlan) {
-            await tx
-              .insert(schema.quotas)
-              .values({ workspaceId: ws.id, ...apiFreeQuotas })
-              .onDuplicateKeyUpdate({ set: apiFreeQuotas });
-            await setComputeQuotas(tx, {
-              workspaceId: ws.id,
-              plan: deployPlan,
-              preserveApiQuotas: false,
-            });
-          } else {
-            await tx
-              .insert(schema.quotas)
-              .values({ workspaceId: ws.id, ...freeTierQuotas })
-              .onDuplicateKeyUpdate({ set: freeTierQuotas });
-            await tx
-              .insert(schema.limits)
-              .values({
-                workspaceId: ws.id,
-                ...freeTierLimits,
-              })
-              .onDuplicateKeyUpdate({
-                set: freeTierLimits,
-              });
-          }
+          await setWorkspaceLimits(tx, {
+            workspaceId: ws.id,
+            plan: deployPlan,
+            preserveApiLimits: false,
+          });
 
           await insertAuditLogs(tx, {
             workspaceId: ws.id,
@@ -933,18 +913,18 @@ export const POST = async (req: Request): Promise<Response> => {
     }
     case "customer.subscription.created": {
       /**
-       * Subscription create + tier/quota writes happen inline in the createSubscription
+       * Subscription create + tier/limit writes happen inline in the createSubscription
        * tRPC mutation now. This webhook only sends the operational Slack alert so the
        * team is notified out-of-band; it deliberately does no DB writes.
        */
       try {
         const sub = event.data.object as Stripe.Subscription;
 
-        // One unique-index lookup, then branch by the row's product. A created
-        // event can race ahead of the tRPC/link write that inserts the
-        // billing_subscriptions row, so a no-match is a best-effort no-op:
-        // subscribeDeploy/linkDeploySubscription already write the plan inline,
-        // and a later subscription.updated resyncs.
+        // One unique-index lookup to enrich the alert with workspace details.
+        // This row is not required to classify API/Compute: Stripe creates the
+        // subscription before checkout.session.completed links it, so created
+        // commonly arrives first. The subscription's product metadata is the
+        // race-safe source for the API branch below.
         const subscription = await db.query.billingSubscriptions.findFirst({
           where: (table, { eq }) => eq(table.stripeSubscriptionId, sub.id),
           with: { workspace: { with: { billing: true } } },
@@ -967,35 +947,50 @@ export const POST = async (req: Request): Promise<Response> => {
           if (billing && ws) {
             await mirrorDeployPlan(billing, ws.orgId, sub);
           }
-          await sendComputeAlert(stripe, sub, computeCreatedAlert(sub), ws);
-          return new Response("OK");
+          const slackDelivery = await sendComputeAlert(stripe, sub, computeCreatedAlert(sub), ws);
+          return stripeWebhookResponse(event, "compute_signup_alert_processed", {
+            workspaceLinked: Boolean(ws),
+            slackDelivery,
+          });
         }
 
-        // Not matched to a column yet (the create event raced ahead of the
-        // tRPC/link write). No-op: the inline write set the plan and a later
-        // subscription.updated resyncs. Only an API-matched create alerts, so we
-        // never misfire a Compute create as an API subscription alert.
-        if (column !== "api" || !ws) {
-          return new Response("OK");
+        // The metadata is written into subscription_data by every API Checkout
+        // and exists before the link row. Keep the row check for legacy direct
+        // subscriptions that predate that metadata.
+        if (sub.metadata?.unkey_product !== "api" && column !== "api") {
+          return stripeWebhookResponse(event, "subscription_created_ignored", {
+            reason: "unknown_product",
+            product: sub.metadata?.unkey_product ?? null,
+            workspaceLinked: Boolean(ws),
+          });
         }
 
-        // API-matched: alert on the API plan item.
+        // API-matched: alert on the API plan item, even when the checkout linker
+        // has not written the workspace row yet. In that window the customer,
+        // plan, and price still come directly from Stripe; only workspace name is
+        // omitted.
         const apiContext = await resolveApiSubscriptionContext(stripe, sub);
         if (!apiContext) {
-          return new Response("OK");
+          return stripeWebhookResponse(event, "api_signup_alert_skipped", {
+            reason: "subscription_context_missing",
+            workspaceLinked: Boolean(ws),
+          });
         }
         const { unitAmount, customer, product } = apiContext;
 
         if (customer.deleted || !customer.email) {
-          return new Response("OK");
+          return stripeWebhookResponse(event, "api_signup_alert_skipped", {
+            reason: "customer_contact_missing",
+            workspaceLinked: Boolean(ws),
+          });
         }
 
-        await alertCustomerLifecycle({
+        const slackDelivery = await alertCustomerLifecycle({
           action: "signup",
           name: customer.name || "Unknown",
           email: customer.email,
-          workspaceId: ws.id,
-          workspaceName: ws.name,
+          workspaceId: ws?.id ?? sub.metadata?.workspace_id,
+          workspaceName: ws?.name,
           product: product.name,
           price: formatPrice(unitAmount),
           stripeCustomerId: customer.id,
@@ -1004,7 +999,10 @@ export const POST = async (req: Request): Promise<Response> => {
         // Return rather than break so this case can never fall through into
         // invoice.payment_failed below; every other terminus in this case
         // returns too.
-        return new Response("OK");
+        return stripeWebhookResponse(event, "api_signup_alert_processed", {
+          workspaceLinked: Boolean(ws),
+          slackDelivery,
+        });
       } catch (error) {
         console.error("Subscription creation webhook error:", {
           error:
@@ -1032,7 +1030,7 @@ export const POST = async (req: Request): Promise<Response> => {
     case "checkout.session.async_payment_succeeded": {
       try {
         const session = event.data.object as Stripe.Checkout.Session;
-        return await linkCheckoutSession(stripe, session, event.id);
+        return await linkCheckoutSession(stripe, session, event);
       } catch (error) {
         console.error("Checkout session link webhook error:", {
           error:

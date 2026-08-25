@@ -753,6 +753,48 @@ func (ns NullDeploymentsUpstreamProtocol) Value() (driver.Value, error) {
 	return string(ns.DeploymentsUpstreamProtocol), nil
 }
 
+type EnvironmentsKind string
+
+const (
+	EnvironmentsKindProduction EnvironmentsKind = "production"
+	EnvironmentsKindPreview    EnvironmentsKind = "preview"
+)
+
+func (e *EnvironmentsKind) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = EnvironmentsKind(s)
+	case string:
+		*e = EnvironmentsKind(s)
+	default:
+		return fmt.Errorf("unsupported scan type for EnvironmentsKind: %T", src)
+	}
+	return nil
+}
+
+type NullEnvironmentsKind struct {
+	EnvironmentsKind EnvironmentsKind
+	Valid            bool // Valid is true if EnvironmentsKind is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullEnvironmentsKind) Scan(value interface{}) error {
+	if value == nil {
+		ns.EnvironmentsKind, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.EnvironmentsKind.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullEnvironmentsKind) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.EnvironmentsKind), nil
+}
+
 type FrontlineRoutesSticky string
 
 const (
@@ -1175,16 +1217,17 @@ type EncryptedKey struct {
 }
 
 type Environment struct {
-	Pk               uint64        `db:"pk"`
-	ID               string        `db:"id"`
-	WorkspaceID      string        `db:"workspace_id"`
-	ProjectID        string        `db:"project_id"`
-	AppID            string        `db:"app_id"`
-	Slug             string        `db:"slug"`
-	Description      string        `db:"description"`
-	DeleteProtection sql.NullBool  `db:"delete_protection"`
-	CreatedAt        int64         `db:"created_at"`
-	UpdatedAt        sql.NullInt64 `db:"updated_at"`
+	Pk               uint64           `db:"pk"`
+	ID               string           `db:"id"`
+	WorkspaceID      string           `db:"workspace_id"`
+	ProjectID        string           `db:"project_id"`
+	AppID            string           `db:"app_id"`
+	Slug             string           `db:"slug"`
+	Description      string           `db:"description"`
+	Kind             EnvironmentsKind `db:"kind"`
+	DeleteProtection sql.NullBool     `db:"delete_protection"`
+	CreatedAt        int64            `db:"created_at"`
+	UpdatedAt        sql.NullInt64    `db:"updated_at"`
 }
 
 type FrontlineRoute struct {
@@ -1272,7 +1315,6 @@ type Key struct {
 	WorkspaceID        string         `db:"workspace_id"`
 	ForWorkspaceID     sql.NullString `db:"for_workspace_id"`
 	Name               sql.NullString `db:"name"`
-	OwnerID            sql.NullString `db:"owner_id"`
 	IdentityID         sql.NullString `db:"identity_id"`
 	Meta               sql.NullString `db:"meta"`
 	Expires            sql.NullTime   `db:"expires"`
@@ -1349,14 +1391,14 @@ type Limit struct {
 }
 
 type OpenapiSpec struct {
-	Pk             uint64         `db:"pk"`
-	ID             string         `db:"id"`
-	WorkspaceID    string         `db:"workspace_id"`
-	DeploymentID   sql.NullString `db:"deployment_id"`
-	PortalConfigID sql.NullString `db:"portal_config_id"`
-	Content        []byte         `db:"content"`
-	CreatedAt      int64          `db:"created_at"`
-	UpdatedAt      sql.NullInt64  `db:"updated_at"`
+	Pk           uint64         `db:"pk"`
+	ID           string         `db:"id"`
+	WorkspaceID  string         `db:"workspace_id"`
+	DeploymentID sql.NullString `db:"deployment_id"`
+	PortalID     sql.NullString `db:"portal_id"`
+	Content      []byte         `db:"content"`
+	CreatedAt    int64          `db:"created_at"`
+	UpdatedAt    sql.NullInt64  `db:"updated_at"`
 }
 
 type Permission struct {
@@ -1371,51 +1413,36 @@ type Permission struct {
 	UpdatedAtM  sql.NullInt64  `db:"updated_at_m"`
 }
 
-type PortalBranding struct {
-	Pk             uint64         `db:"pk"`
-	PortalConfigID string         `db:"portal_config_id"`
-	LogoUrl        sql.NullString `db:"logo_url"`
-	PrimaryColor   sql.NullString `db:"primary_color"`
-	CreatedAt      int64          `db:"created_at"`
-	UpdatedAt      sql.NullInt64  `db:"updated_at"`
-}
-
-type PortalConfiguration struct {
-	Pk          uint64         `db:"pk"`
-	ID          string         `db:"id"`
-	WorkspaceID string         `db:"workspace_id"`
-	Slug        string         `db:"slug"`
-	AppID       sql.NullString `db:"app_id"`
-	KeyAuthID   sql.NullString `db:"key_auth_id"`
-	Enabled     bool           `db:"enabled"`
-	ReturnUrl   sql.NullString `db:"return_url"`
-	CreatedAt   int64          `db:"created_at"`
-	UpdatedAt   sql.NullInt64  `db:"updated_at"`
+type Portal struct {
+	Pk           uint64         `db:"pk"`
+	ID           string         `db:"id"`
+	WorkspaceID  string         `db:"workspace_id"`
+	Slug         string         `db:"slug"`
+	AppID        sql.NullString `db:"app_id"`
+	KeyAuthID    sql.NullString `db:"key_auth_id"`
+	Enabled      bool           `db:"enabled"`
+	LogoUrl      sql.NullString `db:"logo_url"`
+	PrimaryColor sql.NullString `db:"primary_color"`
+	CreatedAt    int64          `db:"created_at"`
+	UpdatedAt    sql.NullInt64  `db:"updated_at"`
 }
 
 type PortalSession struct {
-	Pk             uint64          `db:"pk"`
-	ID             string          `db:"id"`
-	WorkspaceID    string          `db:"workspace_id"`
-	PortalConfigID string          `db:"portal_config_id"`
-	ExternalID     string          `db:"external_id"`
-	Permissions    json.RawMessage `db:"permissions"`
-	Preview        bool            `db:"preview"`
-	ExpiresAt      int64           `db:"expires_at"`
-	CreatedAt      int64           `db:"created_at"`
-}
-
-type PortalSessionToken struct {
-	Pk             uint64          `db:"pk"`
-	ID             string          `db:"id"`
-	WorkspaceID    string          `db:"workspace_id"`
-	PortalConfigID string          `db:"portal_config_id"`
-	ExternalID     string          `db:"external_id"`
-	Permissions    json.RawMessage `db:"permissions"`
-	Preview        bool            `db:"preview"`
-	ExchangedAt    sql.NullInt64   `db:"exchanged_at"`
-	ExpiresAt      int64           `db:"expires_at"`
-	CreatedAt      int64           `db:"created_at"`
+	Pk                    uint64          `db:"pk"`
+	ID                    string          `db:"id"`
+	WorkspaceID           string          `db:"workspace_id"`
+	PortalID              string          `db:"portal_id"`
+	ExternalID            string          `db:"external_id"`
+	Scopes                json.RawMessage `db:"scopes"`
+	Preview               bool            `db:"preview"`
+	ExchangeCodeHash      string          `db:"exchange_code_hash"`
+	ExchangeCodeExpiresAt int64           `db:"exchange_code_expires_at"`
+	AccessTokenHash       sql.NullString  `db:"access_token_hash"`
+	AccessTokenCreatedAt  sql.NullInt64   `db:"access_token_created_at"`
+	AccessTokenExpiresAt  sql.NullInt64   `db:"access_token_expires_at"`
+	RevokedAt             sql.NullInt64   `db:"revoked_at"`
+	ReturnUrl             sql.NullString  `db:"return_url"`
+	CreatedAt             int64           `db:"created_at"`
 }
 
 type Project struct {
@@ -1428,25 +1455,6 @@ type Project struct {
 	DeleteProtection sql.NullBool   `db:"delete_protection"`
 	CreatedAt        int64          `db:"created_at"`
 	UpdatedAt        sql.NullInt64  `db:"updated_at"`
-}
-
-type Quotum struct {
-	Pk                          uint64        `db:"pk"`
-	WorkspaceID                 string        `db:"workspace_id"`
-	RequestsPerMonth            int64         `db:"requests_per_month"`
-	LogsRetentionDays           int32         `db:"logs_retention_days"`
-	AuditLogsRetentionDays      int32         `db:"audit_logs_retention_days"`
-	Team                        bool          `db:"team"`
-	RatelimitApiLimit           sql.NullInt32 `db:"ratelimit_api_limit"`
-	RatelimitApiDuration        sql.NullInt32 `db:"ratelimit_api_duration"`
-	AllocatedCpuMillicoresTotal uint32        `db:"allocated_cpu_millicores_total"`
-	AllocatedMemoryMibTotal     uint32        `db:"allocated_memory_mib_total"`
-	AllocatedStorageMibTotal    uint32        `db:"allocated_storage_mib_total"`
-	MaxCpuMillicoresPerInstance uint32        `db:"max_cpu_millicores_per_instance"`
-	MaxMemoryMibPerInstance     uint32        `db:"max_memory_mib_per_instance"`
-	MaxStorageMibPerInstance    uint32        `db:"max_storage_mib_per_instance"`
-	MaxConcurrentBuilds         uint32        `db:"max_concurrent_builds"`
-	MaxReplicasPerRegion        uint32        `db:"max_replicas_per_region"`
 }
 
 type Ratelimit struct {

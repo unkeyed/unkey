@@ -15,7 +15,7 @@ export const OnboardingEnvironmentSettingsProvider = ({
   children,
   onSettingsReady,
 }: PropsWithChildren<{ onSettingsReady: () => void }>) => {
-  const { environments, isEnvironmentsLoading } = useProjectData();
+  const { environments, isEnvironmentsLoading, projectId, appId } = useProjectData();
 
   const prodEnvId = useMemo(
     () => (environments.find((e) => e.kind === "production") ?? environments.at(0))?.id,
@@ -23,12 +23,14 @@ export const OnboardingEnvironmentSettingsProvider = ({
   );
 
   // This is actually guarded by fallback component at where we call this provider
-  if (isEnvironmentsLoading || !prodEnvId) {
+  if (isEnvironmentsLoading || !prodEnvId || !appId) {
     return null;
   }
 
   return (
     <OnboardingEnvironmentSettingsInner
+      projectId={projectId}
+      appId={appId}
       prodEnvId={prodEnvId}
       environments={environments}
       onSettingsReady={onSettingsReady}

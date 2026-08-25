@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+echo "Restoring Docker access..."
 sudo systemctl start docker
 sudo setfacl -m "u:$(id -un):rw" /var/run/docker.sock
+printf '1024\n' | sudo tee /proc/sys/fs/inotify/max_user_instances >/dev/null
+
+echo "Orb resume complete."

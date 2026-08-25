@@ -26,6 +26,14 @@ type UpdateKey struct{}
 func (UpdateKey) ActionFor(urn.Key) {}
 func (UpdateKey) String() string    { return "update_key" }
 
+// EncryptKey authorizes creating recoverable encrypted keys.
+//
+// Valid resource: urn.Key.
+type EncryptKey struct{}
+
+func (EncryptKey) ActionFor(urn.Key) {}
+func (EncryptKey) String() string    { return "encrypt_key" }
+
 // DecryptKey authorizes decrypting recoverable key material.
 //
 // Valid resource: urn.Key.

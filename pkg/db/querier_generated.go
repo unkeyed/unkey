@@ -10,6 +10,12 @@ import (
 )
 
 type Querier interface {
+	// Covered by unique_domain_workspace_idx, which leads on workspace_id.
+	//
+	//  SELECT COUNT(*)
+	//  FROM custom_domains
+	//  WHERE workspace_id = ?
+	CountCustomDomainsByWorkspace(ctx context.Context, db DBTX, workspaceID string) (int64, error)
 	//DeleteAllKeyPermissionsByKeyID
 	//
 	//  DELETE FROM keys_permissions
@@ -99,6 +105,11 @@ type Querier interface {
 	//  DELETE FROM roles_permissions
 	//  WHERE permission_id = ?
 	DeleteManyRolePermissionsByPermissionID(ctx context.Context, db DBTX, permissionID string) error
+	//DeleteManyRolePermissionsByRoleAndPermissionIDs
+	//
+	//  DELETE FROM roles_permissions
+	//  WHERE role_id = ? AND permission_id IN (/*SLICE:permission_ids*/?)
+	DeleteManyRolePermissionsByRoleAndPermissionIDs(ctx context.Context, db DBTX, arg DeleteManyRolePermissionsByRoleAndPermissionIDsParams) error
 	//DeleteManyRolePermissionsByRoleID
 	//
 	//  DELETE FROM roles_permissions
@@ -135,18 +146,38 @@ type Querier interface {
 	//  SET ended_at = ?, error = ?
 	//  WHERE deployment_id = ? AND step = ? AND ended_at IS NULL
 	EndDeploymentStep(ctx context.Context, db DBTX, arg EndDeploymentStepParams) error
-	//ExchangePortalSessionToken
+	// Redeems an exchange code for an access token, in place, on the one row that
+	// owns the code.
 	//
-	//  UPDATE portal_session_tokens
-	//  SET exchanged_at = ?
-	//  WHERE id = ?
-	//    AND exchanged_at IS NULL
-	//    AND expires_at > ?
-	ExchangePortalSessionToken(ctx context.Context, db DBTX, arg ExchangePortalSessionTokenParams) (sql.Result, error)
+	// Single use is structural rather than a check the caller has to remember: the
+	// `access_token_hash IS NULL` predicate plus the UNIQUE index on
+	// `exchange_code_hash` mean concurrent redemptions race on a single row and
+	// exactly one wins. Callers decide via rowsAffected; zero means the code was
+	// unknown, already redeemed, or expired.
+	//
+	//  UPDATE portal_sessions
+	//  SET access_token_hash = ?,
+	//      access_token_created_at = ?,
+	//      access_token_expires_at = ?
+	//  WHERE exchange_code_hash = ?
+	//    AND access_token_hash IS NULL
+	//    AND exchange_code_expires_at > ?
+	ExchangePortalSessionCode(ctx context.Context, db DBTX, arg ExchangePortalSessionCodeParams) (sql.Result, error)
 	//FindApiByID
 	//
 	//  SELECT pk, id, name, workspace_id, project_id, ip_whitelist, auth_type, key_auth_id, created_at_m, updated_at_m, deleted_at_m, delete_protection FROM apis WHERE id = ?
 	FindApiByID(ctx context.Context, db DBTX, id string) (Api, error)
+	// Maps keyspace ids back to the api that owns them, scoped to a workspace.
+	// apis.key_auth_id is unique, so each keyspace resolves to at most one api.
+	//
+	//  SELECT ka.id as key_auth_id, a.id as api_id
+	//  FROM apis a
+	//  JOIN key_auth as ka ON ka.id = a.key_auth_id
+	//  WHERE a.workspace_id = ?
+	//      AND ka.id IN (/*SLICE:key_auth_ids*/?)
+	//      AND ka.deleted_at_m IS NULL
+	//      AND a.deleted_at_m IS NULL
+	FindApisByKeyAuthIds(ctx context.Context, db DBTX, arg FindApisByKeyAuthIdsParams) ([]FindApisByKeyAuthIdsRow, error)
 	//FindAppBuildSettingByAppEnv
 	//
 	//  SELECT pk, workspace_id, app_id, environment_id, dockerfile, docker_context, build_command, watch_paths, auto_deploy, created_at, updated_at
@@ -193,6 +224,17 @@ type Querier interface {
 	//  WHERE app_id = ?
 	//    AND environment_id = ?
 	FindAppEnvVarsByAppAndEnv(ctx context.Context, db DBTX, arg FindAppEnvVarsByAppAndEnvParams) ([]FindAppEnvVarsByAppAndEnvRow, error)
+	// Returns the sentinel_config of an app's current deployment, scoped to the
+	// workspace. Used by portal.createSession to resolve the keyspaces an
+	// app-mapped portal config grants access to (the keyauth policies carry the
+	// keySpaceIds verified at the gateway).
+	//
+	//  SELECT d.sentinel_config
+	//  FROM apps a
+	//  JOIN deployments d ON a.current_deployment_id = d.id
+	//  WHERE a.id = ?
+	//    AND a.workspace_id = ?
+	FindAppPolicyConfigByID(ctx context.Context, db DBTX, arg FindAppPolicyConfigByIDParams) ([]byte, error)
 	// FindAppRegionalSettingsByAppAndEnv returns per-region deployment settings
 	// including the autoscaling policy values (if attached) for snapshotting
 	// into deployment_topology at deploy time.
@@ -219,17 +261,6 @@ type Querier interface {
 	//  WHERE app_id = ?
 	//    AND environment_id = ?
 	FindAppRuntimeSettingsByAppAndEnv(ctx context.Context, db DBTX, arg FindAppRuntimeSettingsByAppAndEnvParams) (FindAppRuntimeSettingsByAppAndEnvRow, error)
-	// Returns the sentinel_config of an app's current deployment, scoped to the
-	// workspace. Used by portal.createSession to resolve the keyspaces an
-	// app-mapped portal config grants access to (the keyauth policies carry the
-	// keySpaceIds verified at the gateway).
-	//
-	//  SELECT d.sentinel_config
-	//  FROM apps a
-	//  JOIN deployments d ON a.current_deployment_id = d.id
-	//  WHERE a.id = ?
-	//    AND a.workspace_id = ?
-	FindAppSentinelConfigByID(ctx context.Context, db DBTX, arg FindAppSentinelConfigByIDParams) ([]byte, error)
 	//FindClickhouseWorkspaceSettingsByWorkspaceID
 	//
 	//  SELECT
@@ -239,6 +270,70 @@ type Querier interface {
 	//  JOIN `limits` l ON c.workspace_id = l.workspace_id
 	//  WHERE c.workspace_id = ?
 	FindClickhouseWorkspaceSettingsByWorkspaceID(ctx context.Context, db DBTX, workspaceID string) (FindClickhouseWorkspaceSettingsByWorkspaceIDRow, error)
+	//FindCustomDomainById
+	//
+	//  SELECT
+	//      id,
+	//      domain,
+	//      verification_token,
+	//      target_cname
+	//  FROM custom_domains
+	//  WHERE id = ?
+	//  LIMIT 1
+	FindCustomDomainById(ctx context.Context, db DBTX, id string) (FindCustomDomainByIdRow, error)
+	// Identifier is either a domain id or a domain name. Each UNION branch hits its own
+	// unique index (custom_domains_id_unique, unique_domain_workspace_idx) as a point
+	// lookup; a single OR predicate would scan every domain in the workspace instead.
+	// Names are stored lowercase, so the name half is lowered here rather than left to the
+	// column's collation. The id half is compared as given: ids are case-sensitive.
+	//
+	//  (SELECT
+	//      cd_by_id.id,
+	//      cd_by_id.project_id,
+	//      cd_by_id.app_id,
+	//      cd_by_id.environment_id,
+	//      cd_by_id.domain,
+	//      cd_by_id.verification_status,
+	//      cd_by_id.verification_token,
+	//      cd_by_id.ownership_verified,
+	//      cd_by_id.cname_verified,
+	//      cd_by_id.target_cname,
+	//      cd_by_id.verification_error,
+	//      cd_by_id.last_checked_at,
+	//      cd_by_id.created_at,
+	//      cd_by_id.updated_at
+	//  FROM custom_domains cd_by_id
+	//  WHERE cd_by_id.id = ? AND cd_by_id.workspace_id = ?
+	//  LIMIT 1)
+	//  UNION ALL
+	//  (SELECT
+	//      cd_by_name.id,
+	//      cd_by_name.project_id,
+	//      cd_by_name.app_id,
+	//      cd_by_name.environment_id,
+	//      cd_by_name.domain,
+	//      cd_by_name.verification_status,
+	//      cd_by_name.verification_token,
+	//      cd_by_name.ownership_verified,
+	//      cd_by_name.cname_verified,
+	//      cd_by_name.target_cname,
+	//      cd_by_name.verification_error,
+	//      cd_by_name.last_checked_at,
+	//      cd_by_name.created_at,
+	//      cd_by_name.updated_at
+	//  FROM custom_domains cd_by_name
+	//  WHERE cd_by_name.workspace_id = ? AND cd_by_name.domain = LOWER(?)
+	//  LIMIT 1)
+	//  LIMIT 1
+	FindCustomDomainByIdentifier(ctx context.Context, db DBTX, arg FindCustomDomainByIdentifierParams) (FindCustomDomainByIdentifierRow, error)
+	// Covered by unique_domain_workspace_idx.
+	//
+	//  SELECT id
+	//  FROM custom_domains
+	//  WHERE workspace_id = ?
+	//    AND domain = ?
+	//  LIMIT 1
+	FindCustomDomainIDByWorkspaceAndDomain(ctx context.Context, db DBTX, arg FindCustomDomainIDByWorkspaceAndDomainParams) (string, error)
 	// FindDefaultProjectByWorkspaceID resolves only the exact lowercase default slug.
 	// BINARY prevents case-insensitive collations from accepting a different project.
 	//
@@ -375,16 +470,21 @@ type Querier interface {
 	//      AND a.deleted_at_m IS NULL
 	FindKeyAuthsByIds(ctx context.Context, db DBTX, arg FindKeyAuthsByIdsParams) ([]FindKeyAuthsByIdsRow, error)
 	// Returns the subset of the given keyspace ids that exist in this workspace
-	// and are not soft-deleted.
+	// and are not soft-deleted, along with each keyspace's encryption setting.
 	//
-	//  SELECT id FROM key_auth
+	//  SELECT id, store_encrypted_keys FROM key_auth
 	//  WHERE workspace_id = ?
 	//    AND id IN (/*SLICE:key_auth_ids*/?)
 	//    AND deleted_at_m IS NULL
-	FindKeyAuthsByIdsAndWorkspace(ctx context.Context, db DBTX, arg FindKeyAuthsByIdsAndWorkspaceParams) ([]string, error)
+	FindKeyAuthsByIdsAndWorkspace(ctx context.Context, db DBTX, arg FindKeyAuthsByIdsAndWorkspaceParams) ([]FindKeyAuthsByIdsAndWorkspaceRow, error)
 	//FindKeyByID
 	//
-	//  SELECT pk, id, key_auth_id, hash, start, workspace_id, for_workspace_id, name, owner_id, identity_id, meta, expires, created_at_m, updated_at_m, deleted_at_m, refill_day, refill_amount, last_refill_at, enabled, remaining_requests, environment, last_used_at, pending_migration_id FROM `keys` k
+	//  SELECT
+	//      k.pk, k.id, k.key_auth_id, k.hash, k.start, k.workspace_id, k.for_workspace_id,
+	//      k.name, k.identity_id, k.meta, k.expires, k.created_at_m, k.updated_at_m,
+	//      k.deleted_at_m, k.refill_day, k.refill_amount, k.last_refill_at, k.enabled,
+	//      k.remaining_requests, k.environment, k.last_used_at, k.pending_migration_id
+	//  FROM `keys` k
 	//  WHERE k.id = ?
 	FindKeyByID(ctx context.Context, db DBTX, id string) (Key, error)
 	//FindKeyCredits
@@ -439,7 +539,10 @@ type Querier interface {
 	//FindLiveKeyByHash
 	//
 	//  SELECT
-	//      k.pk, k.id, k.key_auth_id, k.hash, k.start, k.workspace_id, k.for_workspace_id, k.name, k.owner_id, k.identity_id, k.meta, k.expires, k.created_at_m, k.updated_at_m, k.deleted_at_m, k.refill_day, k.refill_amount, k.last_refill_at, k.enabled, k.remaining_requests, k.environment, k.last_used_at, k.pending_migration_id,
+	//      k.pk, k.id, k.key_auth_id, k.hash, k.start, k.workspace_id, k.for_workspace_id,
+	//      k.name, k.identity_id, k.meta, k.expires, k.created_at_m, k.updated_at_m,
+	//      k.deleted_at_m, k.refill_day, k.refill_amount, k.last_refill_at, k.enabled,
+	//      k.remaining_requests, k.environment, k.last_used_at, k.pending_migration_id,
 	//      a.pk, a.id, a.name, a.workspace_id, a.project_id, a.ip_whitelist, a.auth_type, a.key_auth_id, a.created_at_m, a.updated_at_m, a.deleted_at_m, a.delete_protection,
 	//      ka.pk, ka.id, ka.workspace_id, ka.project_id, ka.created_at_m, ka.updated_at_m, ka.deleted_at_m, ka.store_encrypted_keys, ka.default_prefix, ka.default_bytes, ka.size_approx, ka.size_last_updated_at,
 	//      ws.pk, ws.id, ws.org_id, ws.name, ws.slug, ws.k8s_namespace, ws.beta_features, ws.subscriptions, ws.enabled, ws.delete_protection, ws.created_at_m, ws.updated_at_m, ws.deleted_at_m,
@@ -537,7 +640,10 @@ type Querier interface {
 	//FindLiveKeyByID
 	//
 	//  SELECT
-	//      k.pk, k.id, k.key_auth_id, k.hash, k.start, k.workspace_id, k.for_workspace_id, k.name, k.owner_id, k.identity_id, k.meta, k.expires, k.created_at_m, k.updated_at_m, k.deleted_at_m, k.refill_day, k.refill_amount, k.last_refill_at, k.enabled, k.remaining_requests, k.environment, k.last_used_at, k.pending_migration_id,
+	//      k.pk, k.id, k.key_auth_id, k.hash, k.start, k.workspace_id, k.for_workspace_id,
+	//      k.name, k.identity_id, k.meta, k.expires, k.created_at_m, k.updated_at_m,
+	//      k.deleted_at_m, k.refill_day, k.refill_amount, k.last_refill_at, k.enabled,
+	//      k.remaining_requests, k.environment, k.last_used_at, k.pending_migration_id,
 	//      a.pk, a.id, a.name, a.workspace_id, a.project_id, a.ip_whitelist, a.auth_type, a.key_auth_id, a.created_at_m, a.updated_at_m, a.deleted_at_m, a.delete_protection,
 	//      ka.pk, ka.id, ka.workspace_id, ka.project_id, ka.created_at_m, ka.updated_at_m, ka.deleted_at_m, ka.store_encrypted_keys, ka.default_prefix, ka.default_bytes, ka.size_approx, ka.size_last_updated_at,
 	//      ws.pk, ws.id, ws.org_id, ws.name, ws.slug, ws.k8s_namespace, ws.beta_features, ws.subscriptions, ws.enabled, ws.delete_protection, ws.created_at_m, ws.updated_at_m, ws.deleted_at_m,
@@ -704,11 +810,53 @@ type Querier interface {
 	//    AND project_id = ?
 	//    AND slug IN (/*SLICE:slugs*/?)
 	FindPermissionsBySlugs(ctx context.Context, db DBTX, arg FindPermissionsBySlugsParams) ([]Permission, error)
-	//FindPortalConfigByWorkspaceAndSlug
+	//FindPermissionsBySlugsForUpdate
 	//
-	//  SELECT pk, id, workspace_id, slug, app_id, key_auth_id, enabled, return_url, created_at, updated_at FROM portal_configurations
-	//  WHERE workspace_id = ? AND slug = ?
-	FindPortalConfigByWorkspaceAndSlug(ctx context.Context, db DBTX, arg FindPortalConfigByWorkspaceAndSlugParams) (PortalConfiguration, error)
+	//  SELECT id, name, slug, description
+	//  FROM permissions
+	//  WHERE workspace_id = ?
+	//    AND slug IN (/*SLICE:slugs*/?)
+	//  ORDER BY slug
+	//  FOR UPDATE
+	FindPermissionsBySlugsForUpdate(ctx context.Context, db DBTX, arg FindPermissionsBySlugsForUpdateParams) ([]FindPermissionsBySlugsForUpdateRow, error)
+	// Resolves a portal within a workspace by either its id or its slug, matching
+	// how projects/apps/environments accept a ResourceIdentifier.
+	//
+	// UNION ALL of two index seeks instead of `id = ? OR slug = ?`, which would
+	// force a scan: `portals_id_unique` and `idx_workspace_slug` each serve one arm.
+	//
+	//  SELECT p.pk, p.id, p.workspace_id, p.slug, p.app_id, p.key_auth_id, p.enabled, p.logo_url, p.primary_color, p.created_at, p.updated_at
+	//  FROM portals p
+	//  JOIN (
+	//      SELECT p1.id
+	//      FROM portals p1
+	//      WHERE p1.id = ? AND p1.workspace_id = ?
+	//      UNION ALL
+	//      SELECT p2.id
+	//      FROM portals p2
+	//      WHERE p2.slug = ? AND p2.workspace_id = ?
+	//  ) AS portal_lookup ON portal_lookup.id = p.id
+	//  LIMIT 1
+	FindPortalByIdOrSlug(ctx context.Context, db DBTX, arg FindPortalByIdOrSlugParams) (Portal, error)
+	// Resolves an access token to its session, one indexed read against the UNIQUE
+	// `idx_access_token_hash`.
+	//
+	// Deliberately unfiltered by expiry or revocation: the row is cached, and both
+	// of those are clock- or write-driven state the cache would pin to whatever was
+	// true at fill time. The caller derives session state from the row against the
+	// current clock instead.
+	//
+	//  SELECT pk, id, workspace_id, portal_id, external_id, scopes, preview, exchange_code_hash, exchange_code_expires_at, access_token_hash, access_token_created_at, access_token_expires_at, revoked_at, return_url, created_at FROM portal_sessions
+	//  WHERE access_token_hash = ?
+	FindPortalSessionByAccessTokenHash(ctx context.Context, db DBTX, accessTokenHash sql.NullString) (PortalSession, error)
+	// Reads back the row a redemption just claimed, to build the response and the
+	// audit log. Safe to run unconditionally after ExchangePortalSessionCode
+	// reported one affected row: the hash is UNIQUE, so this is the same row, and
+	// the caller already established it won the race.
+	//
+	//  SELECT pk, id, workspace_id, portal_id, external_id, scopes, preview, exchange_code_hash, exchange_code_expires_at, access_token_hash, access_token_created_at, access_token_expires_at, revoked_at, return_url, created_at FROM portal_sessions
+	//  WHERE exchange_code_hash = ?
+	FindPortalSessionByExchangeCodeHash(ctx context.Context, db DBTX, exchangeCodeHash string) (PortalSession, error)
 	//FindProjectById
 	//
 	//  SELECT pk, id, workspace_id, name, slug, depot_project_id, delete_protection, created_at, updated_at
@@ -845,19 +993,6 @@ type Querier interface {
 	//    AND project_id = ?
 	//    AND name IN (/*SLICE:names*/?)
 	FindRolesByNames(ctx context.Context, db DBTX, arg FindRolesByNamesParams) ([]FindRolesByNamesRow, error)
-	//FindValidPortalSession
-	//
-	//  SELECT pk, id, workspace_id, portal_config_id, external_id, permissions, preview, expires_at, created_at FROM portal_sessions
-	//  WHERE id = ?
-	//    AND expires_at > ?
-	FindValidPortalSession(ctx context.Context, db DBTX, arg FindValidPortalSessionParams) (PortalSession, error)
-	//FindValidPortalSessionToken
-	//
-	//  SELECT pk, id, workspace_id, portal_config_id, external_id, permissions, preview, exchanged_at, expires_at, created_at FROM portal_session_tokens
-	//  WHERE id = ?
-	//    AND exchanged_at IS NULL
-	//    AND expires_at > ?
-	FindValidPortalSessionToken(ctx context.Context, db DBTX, arg FindValidPortalSessionTokenParams) (PortalSessionToken, error)
 	//FindVerifiedCustomDomainByAppID
 	//
 	//  SELECT pk, id, workspace_id, project_id, app_id, environment_id, domain, challenge_type, verification_status, verification_token, ownership_verified, cname_verified, target_cname, last_checked_at, check_attempts, verification_error, domain_connect_provider, domain_connect_url, invocation_id, created_at, updated_at FROM custom_domains
@@ -1022,6 +1157,42 @@ type Querier interface {
 	//      ?
 	//  )
 	InsertClickhouseWorkspaceSettings(ctx context.Context, db DBTX, arg InsertClickhouseWorkspaceSettingsParams) error
+	//InsertCustomDomain
+	//
+	//  INSERT INTO custom_domains (
+	//      id,
+	//      workspace_id,
+	//      project_id,
+	//      app_id,
+	//      environment_id,
+	//      domain,
+	//      challenge_type,
+	//      verification_status,
+	//      verification_token,
+	//      ownership_verified,
+	//      cname_verified,
+	//      target_cname,
+	//      verification_error,
+	//      last_checked_at,
+	//      created_at
+	//  ) VALUES (
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?
+	//  )
+	InsertCustomDomain(ctx context.Context, db DBTX, arg InsertCustomDomainParams) error
 	//InsertDeployment
 	//
 	//  INSERT INTO `deployments` (
@@ -1276,7 +1447,6 @@ type Querier interface {
 	//      workspace_id,
 	//      for_workspace_id,
 	//      name,
-	//      owner_id,
 	//      identity_id,
 	//      meta,
 	//      expires,
@@ -1294,7 +1464,6 @@ type Querier interface {
 	//      ?,
 	//      ?,
 	//      ?,
-	//      null,
 	//      ?,
 	//      ?,
 	//      ?,
@@ -1424,16 +1593,17 @@ type Querier interface {
 	//    ?
 	//  )
 	InsertPermission(ctx context.Context, db DBTX, arg InsertPermissionParams) error
-	//InsertPortalConfig
+	//InsertPortal
 	//
-	//  INSERT INTO portal_configurations (
+	//  INSERT INTO portals (
 	//      id,
 	//      workspace_id,
 	//      slug,
 	//      app_id,
 	//      key_auth_id,
 	//      enabled,
-	//      return_url,
+	//      logo_url,
+	//      primary_color,
 	//      created_at,
 	//      updated_at
 	//  ) VALUES (
@@ -1445,21 +1615,28 @@ type Querier interface {
 	//      ?,
 	//      ?,
 	//      ?,
+	//      ?,
 	//      ?
 	//  )
-	InsertPortalConfig(ctx context.Context, db DBTX, arg InsertPortalConfigParams) error
-	//InsertPortalSession
+	InsertPortal(ctx context.Context, db DBTX, arg InsertPortalParams) error
+	// Creates a session in the `pending` state: an exchange code was minted, no
+	// access token has been issued yet. Only the code's hash is stored; the code
+	// itself is returned to the caller once and never persisted.
 	//
 	//  INSERT INTO portal_sessions (
 	//      id,
 	//      workspace_id,
-	//      portal_config_id,
+	//      portal_id,
 	//      external_id,
-	//      permissions,
+	//      scopes,
 	//      preview,
-	//      expires_at,
+	//      exchange_code_hash,
+	//      exchange_code_expires_at,
+	//      return_url,
 	//      created_at
 	//  ) VALUES (
+	//      ?,
+	//      ?,
 	//      ?,
 	//      ?,
 	//      ?,
@@ -1470,28 +1647,6 @@ type Querier interface {
 	//      ?
 	//  )
 	InsertPortalSession(ctx context.Context, db DBTX, arg InsertPortalSessionParams) error
-	//InsertPortalSessionToken
-	//
-	//  INSERT INTO portal_session_tokens (
-	//      id,
-	//      workspace_id,
-	//      portal_config_id,
-	//      external_id,
-	//      permissions,
-	//      preview,
-	//      expires_at,
-	//      created_at
-	//  ) VALUES (
-	//      ?,
-	//      ?,
-	//      ?,
-	//      ?,
-	//      ?,
-	//      ?,
-	//      ?,
-	//      ?
-	//  )
-	InsertPortalSessionToken(ctx context.Context, db DBTX, arg InsertPortalSessionTokenParams) error
 	//InsertProject
 	//
 	//  INSERT INTO projects (
@@ -1688,6 +1843,33 @@ type Querier interface {
 	//  WHERE workspace_id = ?
 	//  ORDER BY pk
 	ListClickhouseOutboxByWorkspace(ctx context.Context, db DBTX, workspaceID string) ([]ListClickhouseOutboxByWorkspaceRow, error)
+	//ListCustomDomainsByEnvironment
+	//
+	//  SELECT
+	//      id,
+	//      project_id,
+	//      app_id,
+	//      environment_id,
+	//      domain,
+	//      verification_status,
+	//      verification_token,
+	//      ownership_verified,
+	//      cname_verified,
+	//      target_cname,
+	//      verification_error,
+	//      last_checked_at,
+	//      created_at,
+	//      updated_at
+	//  FROM custom_domains
+	//  WHERE workspace_id = ?
+	//    AND project_id = ?
+	//    AND environment_id = ?
+	//    AND id >= ?
+	//    -- search is a pre-escaped LIKE pattern built by mysql.SearchContains; NULL disables the filter
+	//    AND (? IS NULL OR LOWER(id) LIKE LOWER(?) OR LOWER(domain) LIKE LOWER(?))
+	//  ORDER BY id ASC
+	//  LIMIT ?
+	ListCustomDomainsByEnvironment(ctx context.Context, db DBTX, arg ListCustomDomainsByEnvironmentParams) ([]ListCustomDomainsByEnvironmentRow, error)
 	//ListDeploymentDomains
 	//
 	//  SELECT r.fully_qualified_domain_name AS domain
@@ -1765,6 +1947,15 @@ type Querier interface {
 	//  WHERE kp.key_id = ?
 	//  ORDER BY p.slug
 	ListDirectPermissionsByKeyID(ctx context.Context, db DBTX, keyID string) ([]Permission, error)
+	//ListDirectPermissionsByRoleID
+	//
+	//  SELECT p.id, p.name, p.slug, p.description
+	//  FROM roles_permissions rp
+	//  JOIN permissions p ON rp.permission_id = p.id
+	//  WHERE rp.role_id = ?
+	//  ORDER BY p.slug
+	//  FOR UPDATE
+	ListDirectPermissionsByRoleID(ctx context.Context, db DBTX, roleID string) ([]ListDirectPermissionsByRoleIDRow, error)
 	// An app has only a handful of environments, so this returns all of them
 	// without pagination.
 	//
@@ -1832,7 +2023,10 @@ type Querier interface {
 	ListIdentityRatelimitsByID(ctx context.Context, db DBTX, identityID sql.NullString) ([]Ratelimit, error)
 	//ListLiveKeysByKeySpaceID
 	//
-	//  SELECT k.pk, k.id, k.key_auth_id, k.hash, k.start, k.workspace_id, k.for_workspace_id, k.name, k.owner_id, k.identity_id, k.meta, k.expires, k.created_at_m, k.updated_at_m, k.deleted_at_m, k.refill_day, k.refill_amount, k.last_refill_at, k.enabled, k.remaining_requests, k.environment, k.last_used_at, k.pending_migration_id,
+	//  SELECT k.pk, k.id, k.key_auth_id, k.hash, k.start, k.workspace_id, k.for_workspace_id,
+	//         k.name, k.identity_id, k.meta, k.expires, k.created_at_m, k.updated_at_m,
+	//         k.deleted_at_m, k.refill_day, k.refill_amount, k.last_refill_at, k.enabled,
+	//         k.remaining_requests, k.environment, k.last_used_at, k.pending_migration_id,
 	//         i.id                 as identity_table_id,
 	//         i.external_id        as identity_external_id,
 	//         i.meta               as identity_meta,
@@ -1924,7 +2118,10 @@ type Querier interface {
 	ListLiveKeysByKeySpaceID(ctx context.Context, db DBTX, arg ListLiveKeysByKeySpaceIDParams) ([]ListLiveKeysByKeySpaceIDRow, error)
 	//ListLiveKeysByKeySpaceIDs
 	//
-	//  SELECT k.pk, k.id, k.key_auth_id, k.hash, k.start, k.workspace_id, k.for_workspace_id, k.name, k.owner_id, k.identity_id, k.meta, k.expires, k.created_at_m, k.updated_at_m, k.deleted_at_m, k.refill_day, k.refill_amount, k.last_refill_at, k.enabled, k.remaining_requests, k.environment, k.last_used_at, k.pending_migration_id,
+	//  SELECT k.pk, k.id, k.key_auth_id, k.hash, k.start, k.workspace_id, k.for_workspace_id,
+	//         k.name, k.identity_id, k.meta, k.expires, k.created_at_m, k.updated_at_m,
+	//         k.deleted_at_m, k.refill_day, k.refill_amount, k.last_refill_at, k.enabled,
+	//         k.remaining_requests, k.environment, k.last_used_at, k.pending_migration_id,
 	//         i.id                 as identity_table_id,
 	//         i.external_id        as identity_external_id,
 	//         i.meta               as identity_meta,
@@ -2062,6 +2259,8 @@ type Querier interface {
 	//      updated_at
 	//  FROM projects
 	//  WHERE workspace_id = ?
+	//    -- The default project is an internal ownership container, not a user-visible project.
+	//    AND BINARY slug != 'default'
 	//    AND id >= ?
 	//    -- search is a pre-escaped LIKE pattern built by mysql.SearchContains; NULL disables the filter
 	//    AND (? IS NULL OR LOWER(id) LIKE LOWER(?) OR LOWER(name) LIKE LOWER(?) OR LOWER(slug) LIKE LOWER(?))
@@ -2186,12 +2385,19 @@ type Querier interface {
 	//  WHERE id = ?
 	//  FOR UPDATE
 	LockKeyForUpdate(ctx context.Context, db DBTX, id string) (string, error)
+	//LockRoleByIDAndWorkspaceID
+	//
+	//  SELECT id, name
+	//  FROM roles
+	//  WHERE id = ? AND workspace_id = ?
+	//  FOR UPDATE
+	LockRoleByIDAndWorkspaceID(ctx context.Context, db DBTX, arg LockRoleByIDAndWorkspaceIDParams) (LockRoleByIDAndWorkspaceIDRow, error)
 	// Clears the workspace_billing linkage on a workspace, returning it to the
 	// Free tier. Mirrors what the customer.subscription.deleted webhook writes,
 	// plus stripe_customer_id, which no webhook ever clears. Stripe subscription
 	// ids live on billing_subscriptions and are cleared separately by
 	// DeleteWorkspaceBillingSubscriptions. Used by the `unkey dev stripe reset`
-	// tooling; quota is reset separately via UpdateQuota.
+	// tooling.
 	//
 	//  UPDATE `workspace_billing`
 	//  SET stripe_customer_id = NULL,
@@ -2377,6 +2583,12 @@ type Querier interface {
 	//    AND app_id = ?
 	//    AND environment_id = ?
 	UpdateAppRuntimeSettings(ctx context.Context, db DBTX, arg UpdateAppRuntimeSettingsParams) error
+	//UpdateCustomDomainsMax
+	//
+	//  UPDATE `limits`
+	//  SET custom_domains_max = ?
+	//  WHERE workspace_id = ?
+	UpdateCustomDomainsMax(ctx context.Context, db DBTX, arg UpdateCustomDomainsMaxParams) error
 	//UpdateDeploymentDesiredState
 	//
 	//  UPDATE deployments
@@ -2475,6 +2687,18 @@ type Querier interface {
 	//
 	//  UPDATE `key_auth` SET store_encrypted_keys = ? WHERE id = ?
 	UpdateKeySpaceKeyEncryption(ctx context.Context, db DBTX, arg UpdateKeySpaceKeyEncryptionParams) error
+	// Branding lives on the portal row, so the dashboard's branding form is one
+	// write against an existing portal rather than an upsert into a side table.
+	// Discrete columns rather than a JSON blob, so each field is typed and length
+	// bounded by the database.
+	//
+	//  UPDATE portals
+	//  SET logo_url = ?,
+	//      primary_color = ?,
+	//      updated_at = ?
+	//  WHERE id = ?
+	//    AND workspace_id = ?
+	UpdatePortalBranding(ctx context.Context, db DBTX, arg UpdatePortalBrandingParams) error
 	//UpdateProject
 	//
 	//  UPDATE projects p
@@ -2495,29 +2719,6 @@ type Querier interface {
 	//  WHERE workspace_id = ?
 	//    AND id = ?
 	UpdateProject(ctx context.Context, db DBTX, arg UpdateProjectParams) error
-	// Overwrites every column of a workspace's quota row (team included, unlike
-	// UpsertQuota whose ON DUPLICATE KEY UPDATE leaves it untouched). Callers pass a
-	// full set of values, so it fits full resets like `unkey dev stripe reset`:
-	// resetting only the core quotas would leave a paid tier's elevated rate-limit
-	// and Deploy-resource allowances behind.
-	//
-	//  UPDATE quota
-	//  SET requests_per_month = ?,
-	//      audit_logs_retention_days = ?,
-	//      logs_retention_days = ?,
-	//      team = ?,
-	//      ratelimit_api_limit = ?,
-	//      ratelimit_api_duration = ?,
-	//      allocated_cpu_millicores_total = ?,
-	//      allocated_memory_mib_total = ?,
-	//      allocated_storage_mib_total = ?,
-	//      max_cpu_millicores_per_instance = ?,
-	//      max_memory_mib_per_instance = ?,
-	//      max_storage_mib_per_instance = ?,
-	//      max_concurrent_builds = ?,
-	//      max_replicas_per_region = ?
-	//  WHERE workspace_id = ?
-	UpdateQuota(ctx context.Context, db DBTX, arg UpdateQuotaParams) error
 	//UpdateRatelimit
 	//
 	//  UPDATE `ratelimits`
@@ -2664,7 +2865,7 @@ type Querier interface {
 	//  ON DUPLICATE KEY UPDATE
 	//      sentinel_config = VALUES(sentinel_config),
 	//      updated_at = VALUES(updated_at)
-	UpsertAppRuntimeSettingsSentinelConfig(ctx context.Context, db DBTX, arg UpsertAppRuntimeSettingsSentinelConfigParams) error
+	UpsertAppRuntimeSettingsPolicyConfig(ctx context.Context, db DBTX, arg UpsertAppRuntimeSettingsPolicyConfigParams) error
 	//UpsertGithubRepoConnection
 	//
 	//  INSERT INTO github_repo_connections (
@@ -2766,44 +2967,29 @@ type Querier interface {
 	//      custom_domains_max = VALUES(custom_domains_max),
 	//      autoscaling_replicas_max = VALUES(autoscaling_replicas_max)
 	UpsertLimit(ctx context.Context, db DBTX, arg UpsertLimitParams) error
-	//UpsertPortalBranding
+	// Inserts a permission or leaves the existing workspace/slug row unchanged.
+	// Use FindPermissionsBySlugsForUpdate after this to get the canonical row.
 	//
-	//  INSERT INTO portal_branding (
-	//      portal_config_id,
-	//      logo_url,
-	//      primary_color,
-	//      created_at,
-	//      updated_at
-	//  ) VALUES (
-	//      ?,
-	//      ?,
-	//      ?,
-	//      ?,
-	//      ?
+	//  INSERT INTO permissions (
+	//    id,
+	//    workspace_id,
+	//    project_id,
+	//    name,
+	//    slug,
+	//    description,
+	//    created_at_m
 	//  )
-	//  ON DUPLICATE KEY UPDATE
-	//      logo_url = VALUES(logo_url),
-	//      primary_color = VALUES(primary_color),
-	//      updated_at = VALUES(updated_at)
-	UpsertPortalBranding(ctx context.Context, db DBTX, arg UpsertPortalBrandingParams) error
-	//UpsertQuota
-	//
-	//  INSERT INTO quota (
-	//      workspace_id,
-	//      requests_per_month,
-	//      audit_logs_retention_days,
-	//      logs_retention_days,
-	//      team,
-	//      ratelimit_api_limit,
-	//      ratelimit_api_duration
-	//  ) VALUES (?, ?, ?, ?, ?, ?, ?)
-	//  ON DUPLICATE KEY UPDATE
-	//      requests_per_month = VALUES(requests_per_month),
-	//      audit_logs_retention_days = VALUES(audit_logs_retention_days),
-	//      logs_retention_days = VALUES(logs_retention_days),
-	//      ratelimit_api_limit = VALUES(ratelimit_api_limit),
-	//      ratelimit_api_duration = VALUES(ratelimit_api_duration)
-	UpsertQuota(ctx context.Context, db DBTX, arg UpsertQuotaParams) error
+	//  VALUES (
+	//    ?,
+	//    ?,
+	//    ?,
+	//    ?,
+	//    ?,
+	//    ?,
+	//    ?
+	//  )
+	//  ON DUPLICATE KEY UPDATE slug = slug
+	UpsertPermission(ctx context.Context, db DBTX, arg UpsertPermissionParams) error
 	// Inserts a region or does nothing if it already exists.
 	//
 	//  INSERT INTO regions (
@@ -2848,6 +3034,20 @@ type Querier interface {
 	//  ON DUPLICATE KEY UPDATE
 	//      plan_override = VALUES(plan_override)
 	UpsertWorkspaceBillingPlanOverride(ctx context.Context, db DBTX, arg UpsertWorkspaceBillingPlanOverrideParams) error
+	//UpsertWorkspaceBillingSpendSuspended
+	//
+	//  INSERT INTO `workspace_billing` (
+	//      workspace_id,
+	//      spend_suspended,
+	//      created_at_m
+	//  ) VALUES (
+	//      ?,
+	//      ?,
+	//      ?
+	//  )
+	//  ON DUPLICATE KEY UPDATE
+	//      spend_suspended = VALUES(spend_suspended)
+	UpsertWorkspaceBillingSpendSuspended(ctx context.Context, db DBTX, arg UpsertWorkspaceBillingSpendSuspendedParams) error
 }
 
 var _ Querier = (*Queries)(nil)

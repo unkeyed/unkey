@@ -201,6 +201,40 @@ These permissions control [identities](/platform/identities/overview), which let
   Delete an identity from the workspace.
 </ResponseField>
 
+## Portal permissions
+
+These permissions control the customer portal. All portal permissions use the `portal.*` scope, and portal ids carry the `pc_` prefix.
+
+Only `create_portal_session` is enforced today. The four management actions below are reserved for the portal management API, which has not shipped yet, so granting them currently has no effect.
+
+Session minting is a separate action from the four management actions, so a backend that mints sessions in production does not need the right to change portals.
+
+<ResponseField name="portal.*.create_portal_session">
+  Mint a portal session for an end user. This is the permission a production backend needs.
+
+  Minting is additionally bounded by your own permissions: a session can never carry a capability the calling root key does not itself hold. Each requested scope requires the equivalent permission on every keyspace the portal resolves to, so `keys:read` requires `read_key` and `read_api`, `keys:reroll` and `keys:create` require `create_key` (plus `encrypt_key` when the keyspace stores encrypted keys), and `analytics:read` requires `read_analytics`. Requesting a scope you do not hold returns 403 for the whole request.
+
+  Note the breadth of a wildcard grant: holding `api.*.read_key` and `api.*.read_api` lets this key mint a `keys:read` session for **any** portal in the workspace, because a wildcard satisfies every resolved keyspace. That is consistent with what the key can already read directly, but it is not visible when ticking the box.
+</ResponseField>
+
+<ResponseField name="portal.*.create_portal">
+  Create a new portal in the workspace.
+</ResponseField>
+
+<ResponseField name="portal.*.read_portal">
+  Read portal configuration.
+</ResponseField>
+
+<ResponseField name="portal.*.update_portal">
+  Update a portal's configuration, including branding.
+</ResponseField>
+
+<ResponseField name="portal.*.delete_portal">
+  Delete a portal from the workspace.
+</ResponseField>
+
+Revoking an individual portal session is not covered by these actions. When that route lands it gets its own `delete_portal_session` action rather than folding into `delete_portal`, so the ability to end one end user's session stays separable from the ability to remove a portal.
+
 ## Deployment permissions
 
 These permissions control deployment operations. All deployment permissions use the `project.*` scope.
@@ -215,6 +249,14 @@ These permissions control deployment operations. All deployment permissions use 
 
 <ResponseField name="project.*.generate_upload_url">
   Generate upload URLs for build contexts. Required during the deployment process to upload your application code.
+</ResponseField>
+
+<ResponseField name="project.*.read_gateway_requests">
+  Query the gateway request data of all projects in the workspace with SQL.
+</ResponseField>
+
+<ResponseField name="project.*.read_runtime_logs">
+  Query the runtime logs of all deployments in the workspace with SQL.
 </ResponseField>
 
 ## Common permission sets

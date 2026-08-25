@@ -4,14 +4,18 @@ import (
 	"context"
 	"net/http"
 
-	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
-	"github.com/unkeyed/unkey/gen/rpc/ctrl"
+	restateingress "github.com/restatedev/sdk-go/ingress"
+	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
+	"github.com/unkeyed/unkey/pkg/auditlog"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/deploy/deploygate"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/pkg/zen"
+	"github.com/unkeyed/unkey/svc/api/internal/ctrlclient"
 	"github.com/unkeyed/unkey/svc/api/internal/deployment"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
@@ -22,8 +26,8 @@ type (
 )
 
 type Handler struct {
-	DB         db.Database
-	CtrlClient ctrl.DeployServiceClient
+	DB      db.Database
+	Restate *restateingress.Client
 }
 
 func (h *Handler) Method() string {
@@ -61,6 +65,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			ResourceID:   dep.EnvironmentID,
 			Action:       rbac.PromoteDeployment,
 		}),
+		rbac.U(
+			urn.New().Workspace(principal.WorkspaceID).Project(dep.ProjectID).App(dep.AppID).Environment(dep.EnvironmentID).Deployment(dep.ID),
+			permissions.PromoteDeployment{},
+		),
 	))
 	if err != nil {
 		return fault.New(
@@ -74,7 +82,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	// The current live pointer decides promote eligibility. See
 	// deploygate.CheckPromoteTarget for the invariant the API, ctrl service, and
 	// worker all enforce.
-	app, err := db.Query.FindAppById(ctx, h.DB.RO(), dep.AppID)
+	app, err := db.Query.FindAppById(ctx, h.DB.RW(), dep.AppID)
 	if err != nil {
 		return fault.Wrap(
 			err,
@@ -95,12 +103,41 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	_, err = h.CtrlClient.Promote(ctx, &ctrlv1.PromoteRequest{
-		TargetDeploymentId: dep.ID,
-	})
+	billing, err := db.Query.FindWorkspaceBillingByWorkspaceID(ctx, h.DB.RW(), principal.WorkspaceID)
+	if err != nil && !db.IsNotFound(err) {
+		return fault.Wrap(
+			err,
+			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+			fault.Internal("database error loading workspace billing"),
+			fault.Public("Failed to retrieve workspace billing state."),
+		)
+	}
+	if err := deploygate.CheckWorkspacePlan(billing.Plan, billing.PlanOverride); err != nil {
+		return err
+	}
+	if err := deploygate.CheckWorkspaceSpend(billing.SpendSuspended); err != nil {
+		return err
+	}
+
+	actor, err := ctrlclient.Actor(s)
 	if err != nil {
-		return deployment.MapCtrlError(err, "promote deployment",
-			"The deployment could not be promoted. It must be ready, belong to the production environment, and not already be live.")
+		return err
+	}
+
+	_, err = hydrav1.NewDeployServiceIngressClient(h.Restate, dep.ID).
+		Promote().
+		Send(ctx, &hydrav1.PromoteRequest{
+			TargetDeploymentId: dep.ID,
+			Actor:              actor,
+			CorrelationId:      auditlog.NewCorrelationID(),
+		})
+	if err != nil {
+		return fault.Wrap(
+			err,
+			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+			fault.Internal("failed to submit deployment promotion to Restate"),
+			fault.Public("Failed to promote deployment."),
+		)
 	}
 
 	return s.JSON(http.StatusAccepted, Response{

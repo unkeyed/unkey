@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"math"
 	"net/http"
+	"regexp"
+	"strings"
 	"time"
 
 	"github.com/unkeyed/unkey/internal/services/auditlogs"
@@ -18,7 +20,9 @@ import (
 	dbtype "github.com/unkeyed/unkey/pkg/db/types"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
@@ -34,6 +38,9 @@ const platform = "aws"
 const cpuThreshold = 80
 
 const minReplicasPerRegion = 1
+
+// dockerContextSegmentRegex allows only portable repository path segment characters.
+var dockerContextSegmentRegex = regexp.MustCompile(`^[A-Za-z0-9._-]+$`)
 
 type Handler struct {
 	DB          db.Database
@@ -101,6 +108,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			ResourceID:   environment.ID,
 			Action:       rbac.UpdateEnvironment,
 		}),
+		rbac.U(
+			urn.New().Workspace(principal.WorkspaceID).Project(environment.ProjectID).App(environment.AppID).Environment(environment.ID),
+			permissions.UpdateEnvironment{},
+		),
 	))
 	if err != nil {
 		return err
@@ -259,6 +270,14 @@ func (h *Handler) applyBuildSettings(ctx context.Context, tx db.DBTX, workspaceI
 		}
 	}
 	if req.RootDirectory != nil {
+		if !isValidDockerContext(*req.RootDirectory) {
+			return fault.New(
+				"invalid root directory",
+				fault.Code(codes.App.Validation.InvalidInput.URN()),
+				fault.Internal("root directory is not a valid repository-relative path"),
+				fault.Public("Root directory must be a relative path like 'api' or 'services/api'."),
+			)
+		}
 		params.DockerContextSpecified = 1
 		params.DockerContext = *req.RootDirectory
 	}
@@ -286,6 +305,24 @@ func (h *Handler) applyBuildSettings(ctx context.Context, tx db.DBTX, workspaceI
 		)
 	}
 	return nil
+}
+
+func isValidDockerContext(path string) bool {
+	if path != strings.TrimSpace(path) {
+		return false
+	}
+	if path == "." {
+		return true
+	}
+	if path == "" || strings.HasPrefix(path, "/") || strings.Contains(path, `\`) {
+		return false
+	}
+	for _, segment := range strings.Split(path, "/") {
+		if segment == "." || segment == ".." || !dockerContextSegmentRegex.MatchString(segment) {
+			return false
+		}
+	}
+	return true
 }
 
 func (h *Handler) applyRuntimeSettings(ctx context.Context, tx db.DBTX, workspaceID, appID, environmentID string, req Request, now int64) error {

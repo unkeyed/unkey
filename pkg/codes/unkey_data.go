@@ -55,6 +55,14 @@ type dataEnvironment struct {
 	NotFound Code
 }
 
+// dataDomain defines errors related to custom domain operations.
+type dataDomain struct {
+	// Duplicate indicates the domain is already attached to this workspace.
+	Duplicate Code
+	// NotFound indicates the requested domain does not exist.
+	NotFound Code
+}
+
 // dataDeployment defines errors related to deployment operations.
 type dataDeployment struct {
 	// NotFound indicates the requested deployment does not exist.
@@ -120,9 +128,9 @@ type dataAuditLog struct {
 	NotFound Code
 }
 
-// dataPortalConfig defines errors related to portal configuration operations.
-type dataPortalConfig struct {
-	// NotFound indicates the requested portal configuration was not found.
+// dataPortal defines errors related to portal operations.
+type dataPortal struct {
+	// NotFound indicates the requested portal was not found.
 	NotFound Code
 }
 
@@ -145,6 +153,7 @@ type UnkeyDataErrors struct {
 	Project            dataProject
 	App                dataApp
 	Environment        dataEnvironment
+	Domain             dataDomain
 	Deployment         dataDeployment
 	Policy             dataPolicy
 	Migration          dataMigration
@@ -156,7 +165,7 @@ type UnkeyDataErrors struct {
 	RatelimitOverride  dataRatelimitOverride
 	Identity           dataIdentity
 	AuditLog           dataAuditLog
-	PortalConfig       dataPortalConfig
+	Portal             dataPortal
 	Analytics          dataAnalytics
 }
 
@@ -196,6 +205,11 @@ var Data = UnkeyDataErrors{
 
 	Environment: dataEnvironment{
 		NotFound: Code{SystemUnkey, CategoryUnkeyData, "environment_not_found"},
+	},
+
+	Domain: dataDomain{
+		Duplicate: Code{SystemUnkey, CategoryUnkeyData, "domain_already_exists"},
+		NotFound:  Code{SystemUnkey, CategoryUnkeyData, "domain_not_found"},
 	},
 
 	Deployment: dataDeployment{
@@ -238,8 +252,8 @@ var Data = UnkeyDataErrors{
 		NotFound: Code{SystemUnkey, CategoryUnkeyData, "audit_log_not_found"},
 	},
 
-	PortalConfig: dataPortalConfig{
-		NotFound: Code{SystemUnkey, CategoryUnkeyData, "portal_config_not_found"},
+	Portal: dataPortal{
+		NotFound: Code{SystemUnkey, CategoryUnkeyData, "portal_not_found"},
 	},
 
 	Analytics: dataAnalytics{

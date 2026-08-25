@@ -15,12 +15,9 @@ import (
 	deployment "github.com/unkeyed/unkey/svc/ctrl/services/deployment"
 )
 
-// TestDeploySpendGate_BlocksCreateAndRebuild proves the spend-cap gate rejects
-// both entry points that start compute. The gate lives in createAndDeploy (the
-// shared path), so this is the regression guard that the ops Rebuild path can't
-// resurrect compute the suspension tore down: gating only CreateDeployment would
-// let Rebuild slip past.
-func TestDeploySpendGate_BlocksCreateAndRebuild(t *testing.T) {
+// TestDeployWorkspaceGate_BlocksCreateAndRebuild proves both entry points that
+// start compute share the same plan and spend-cap gate.
+func TestDeployWorkspaceGate_BlocksCreateAndRebuild(t *testing.T) {
 	const bearer = "test-bearer"
 
 	h := New(t)
@@ -30,7 +27,23 @@ func TestDeploySpendGate_BlocksCreateAndRebuild(t *testing.T) {
 	dep := h.CreateDeployment(ctx, CreateDeploymentRequest{
 		Region:       "us-east-1",
 		DesiredState: mysqltype.DeploymentsDesiredStateRunning,
-	}).Deployment
+	})
+	region, err := h.DB.FindRegionByPlatformAndName(ctx, db.FindRegionByPlatformAndNameParams{
+		Platform: "test",
+		Name:     "us-east-1",
+	})
+	require.NoError(t, err)
+	require.NoError(t, h.DB.UpsertAppRegionalSettings(ctx, db.UpsertAppRegionalSettingsParams{
+		WorkspaceID:   dep.WorkspaceID,
+		AppID:         dep.AppID,
+		EnvironmentID: dep.EnvironmentID,
+		RegionID:      region.ID,
+		Replicas:      1,
+		CreatedAt:     h.Now(),
+		UpdatedAt:     sql.NullInt64{},
+	}))
+	_, err = h.DB.RW().ExecContext(ctx, "UPDATE regions SET can_schedule = true WHERE id = ?", region.ID)
+	require.NoError(t, err)
 
 	// Suspend the workspace as the spend check would when the budget is hit.
 	require.NoError(t, h.DB.SetWorkspaceDeploySpendSuspended(ctx, db.SetWorkspaceDeploySpendSuspendedParams{
@@ -63,5 +76,46 @@ func TestDeploySpendGate_BlocksCreateAndRebuild(t *testing.T) {
 		require.Error(t, err)
 		require.Equal(t, connect.CodeFailedPrecondition, connect.CodeOf(err))
 		require.ErrorContains(t, err, "spend cap")
+	})
+
+	// A cancelled workspace has no plan and is no longer spend-suspended. Both
+	// direct create and the ops rebuild path must still remain blocked when plan
+	// enforcement is enabled.
+	require.NoError(t, h.DB.ClearWorkspaceDeployPlan(ctx, db.ClearWorkspaceDeployPlanParams{
+		ID:        dep.WorkspaceID,
+		UpdatedAt: sql.NullInt64{Int64: h.Now(), Valid: true},
+	}))
+	require.NoError(t, h.DB.SetWorkspaceDeploySpendSuspended(ctx, db.SetWorkspaceDeploySpendSuspendedParams{
+		Suspended: false,
+		UpdatedAt: sql.NullInt64{Int64: h.Now(), Valid: true},
+		ID:        dep.WorkspaceID,
+	}))
+
+	enforced := deployment.New(deployment.Config{
+		Database:          h.DB,
+		Bearer:            bearer,
+		EnforceDeployGate: true,
+	})
+
+	t.Run("CreateDeployment without plan", func(t *testing.T) {
+		req := connect.NewRequest(&ctrlv1.CreateDeploymentRequest{
+			ProjectId:       dep.ProjectID,
+			AppId:           dep.AppID,
+			EnvironmentSlug: "production",
+			DockerImage:     "nginx:latest",
+		})
+		req.Header().Set("Authorization", "Bearer "+bearer)
+
+		_, err := enforced.CreateDeployment(ctx, req)
+		require.Error(t, err)
+		require.Equal(t, connect.CodeFailedPrecondition, connect.CodeOf(err))
+		require.ErrorContains(t, err, "no active Compute plan")
+	})
+
+	t.Run("Rebuild without plan", func(t *testing.T) {
+		_, err := enforced.Rebuild(ctx, dep.ID, "plan gate test", true)
+		require.Error(t, err)
+		require.Equal(t, connect.CodeFailedPrecondition, connect.CodeOf(err))
+		require.ErrorContains(t, err, "no active Compute plan")
 	})
 }

@@ -1,16 +1,18 @@
 import { relations } from "drizzle-orm";
 import { bigint, index, mysqlTable, unique, uniqueIndex } from "drizzle-orm/mysql-core";
 import { caseSensitiveVarchar } from "./util/case_sensitive_varchar";
+import { id } from "./util/id";
 import { lifecycleDatesMigration } from "./util/lifecycle_dates";
+import { primaryKey } from "./util/primary_key";
 import { workspaces } from "./workspaces";
 
 export const ratelimitNamespaces = mysqlTable(
   "ratelimit_namespaces",
   {
-    pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
-    id: caseSensitiveVarchar("id", { length: 256 }).notNull().unique(),
-    workspaceId: caseSensitiveVarchar("workspace_id", { length: 256 }).notNull(),
-    projectId: caseSensitiveVarchar("project_id", { length: 64 }).notNull().default(""),
+    pk: primaryKey(),
+    id: id("id").notNull().unique(),
+    workspaceId: id("workspace_id").notNull(),
+    projectId: id("project_id").notNull(),
     name: caseSensitiveVarchar("name", { length: 512 }).notNull(),
 
     ...lifecycleDatesMigration,
@@ -37,10 +39,10 @@ export const ratelimitNamespaceRelations = relations(ratelimitNamespaces, ({ one
 export const ratelimitOverrides = mysqlTable(
   "ratelimit_overrides",
   {
-    pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
-    id: caseSensitiveVarchar("id", { length: 256 }).notNull().unique(),
-    workspaceId: caseSensitiveVarchar("workspace_id", { length: 256 }).notNull(),
-    namespaceId: caseSensitiveVarchar("namespace_id", { length: 256 }).notNull(),
+    pk: primaryKey(),
+    id: id("id").notNull().unique(),
+    workspaceId: id("workspace_id").notNull(),
+    namespaceId: id("namespace_id").notNull(),
     identifier: caseSensitiveVarchar("identifier", { length: 512 }).notNull(),
 
     limit: bigint("limit", { mode: "number", unsigned: true }).notNull(),
@@ -91,11 +93,8 @@ export const ratelimitOverridesRelations = relations(ratelimitOverrides, ({ one 
 export const ratelimitGlobalCounters = mysqlTable(
   "ratelimit_global_counters",
   {
-    pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
-    // workspaceId is varchar(191) instead of the project-wide 256 because the
-    // unique index spans six columns (the four key fields plus sequence and
-    // region), and MySQL caps total index key size at 3072 bytes under utf8mb4.
-    workspaceId: caseSensitiveVarchar("workspace_id", { length: 191 }).notNull(),
+    pk: primaryKey(),
+    workspaceId: id("workspace_id").notNull(),
     namespace: caseSensitiveVarchar("namespace", { length: 255 }).notNull(),
     identifier: caseSensitiveVarchar("identifier", { length: 255 }).notNull(),
     durationMs: bigint("duration_ms", { mode: "number", unsigned: true }).notNull(),

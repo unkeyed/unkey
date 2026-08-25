@@ -121,32 +121,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				permissions.ReadKeyspace{},
 			),
 		),
-		rbac.And(
-			rbac.Or(
-				rbac.T(rbac.Tuple{
-					ResourceType: rbac.Api,
-					ResourceID:   "*",
-					Action:       rbac.ReadKey,
-				}),
-				rbac.T(rbac.Tuple{
-					ResourceType: rbac.Api,
-					ResourceID:   req.ApiId,
-					Action:       rbac.ReadKey,
-				}),
-			),
-			rbac.Or(
-				rbac.T(rbac.Tuple{
-					ResourceType: rbac.Api,
-					ResourceID:   "*",
-					Action:       rbac.ReadAPI,
-				}),
-				rbac.T(rbac.Tuple{
-					ResourceType: rbac.Api,
-					ResourceID:   req.ApiId,
-					Action:       rbac.ReadAPI,
-				}),
-			),
-		),
+		ReadKeysPermissions(req.ApiId),
 	))
 	if err != nil {
 		// Mask a read-authorization failure as 404 so that callers who lack read

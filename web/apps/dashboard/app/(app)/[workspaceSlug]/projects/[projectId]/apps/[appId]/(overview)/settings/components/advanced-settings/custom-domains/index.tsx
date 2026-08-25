@@ -1,10 +1,21 @@
 "use client";
 
+import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { collection } from "@/lib/collections";
-import type { CustomDomain } from "@/lib/collections/deploy/custom-domains";
+import {
+  type CustomDomain,
+  isCustomDomainLimitError,
+} from "@/lib/collections/deploy/custom-domains";
+import { useBillingUIUpgrades } from "@/lib/flags/use-billing-ui-upgrades";
+import { routes } from "@/lib/navigation/routes";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ChevronDown, Link4 } from "@unkey/icons";
 import {
+  AlertBanner,
+  AlertBannerActions,
+  AlertBannerDescription,
+  AlertBannerTitle,
+  Button,
   FormInput,
   Select,
   SelectContent,
@@ -12,6 +23,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@unkey/ui";
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { useProjectData } from "../../../../data-provider";
@@ -51,6 +63,7 @@ const CustomDomainSettings: React.FC<CustomDomainSettingsProps> = ({
   defaultEnvironmentId,
 }) => {
   const [expanded, setExpanded] = useState(false);
+  const [limitReached, setLimitReached] = useState(false);
   useEffect(() => {
     if (window.location.hash.slice(1) === "custom-domains") {
       setExpanded(true);
@@ -73,7 +86,7 @@ const CustomDomainSettings: React.FC<CustomDomainSettingsProps> = ({
     },
   });
 
-  const onSubmit = (values: CustomDomainFormValues) => {
+  const onSubmit = async (values: CustomDomainFormValues) => {
     const trimmedDomain = values.domain.trim();
     if (customDomains.some((d) => d.domain === trimmedDomain)) {
       setError("domain", { message: "Domain already registered" });
@@ -81,7 +94,8 @@ const CustomDomainSettings: React.FC<CustomDomainSettingsProps> = ({
     }
     const appId = environments.find((e) => e.id === values.environmentId)?.appId ?? "";
 
-    collection.customDomains.insert({
+    setLimitReached(false);
+    const tx = collection.customDomains.insert({
       id: crypto.randomUUID(),
       domain: trimmedDomain,
       workspaceId: "",
@@ -101,7 +115,16 @@ const CustomDomainSettings: React.FC<CustomDomainSettingsProps> = ({
       createdAt: Date.now(),
       updatedAt: null,
     });
-    reset({ environmentId: values.environmentId, domain: "" });
+
+    try {
+      await tx.isPersisted.promise;
+      reset({ environmentId: values.environmentId, domain: "" });
+    } catch (err) {
+      // The toast of the collection reports all other failures.
+      if (isCustomDomainLimitError(err)) {
+        setLimitReached(true);
+      }
+    }
   };
 
   const saveState = resolveSaveState([
@@ -129,6 +152,7 @@ const CustomDomainSettings: React.FC<CustomDomainSettingsProps> = ({
       saveState={saveState}
       expanded={expanded}
       onExpandedChange={setExpanded}
+      stickyHeader={limitReached ? <LimitBanner /> : undefined}
     >
       <SettingField>
         <div className="flex items-center gap-3">
@@ -182,5 +206,49 @@ const CustomDomainSettings: React.FC<CustomDomainSettingsProps> = ({
         )}
       </WideContent>
     </FormSettingCard>
+  );
+};
+
+// The description gives only the condition. The buttons give the actions.
+// Thus the description does not repeat the message from ctrl.
+const LimitBanner = () => {
+  const workspace = useWorkspaceNavigation();
+  const billingUpgrades = useBillingUIUpgrades();
+
+  return (
+    <AlertBanner variant="error" className="mb-2">
+      <AlertBannerTitle>Custom domain limit reached</AlertBannerTitle>
+      <AlertBannerDescription>
+        This workspace is at its custom domain limit. Remove a domain that you do not need, then try
+        again.
+      </AlertBannerDescription>
+      <AlertBannerActions>
+        {billingUpgrades && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="px-3"
+            render={<Link href={routes.settings.limits({ workspaceSlug: workspace.slug })} />}
+          >
+            View limits
+          </Button>
+        )}
+        <Button
+          variant="primary"
+          size="sm"
+          className="px-3"
+          render={
+            <Link
+              href={routes.settings.billing({
+                workspaceSlug: workspace.slug,
+                intent: "compute",
+              })}
+            />
+          }
+        >
+          Upgrade plan
+        </Button>
+      </AlertBannerActions>
+    </AlertBanner>
   );
 };

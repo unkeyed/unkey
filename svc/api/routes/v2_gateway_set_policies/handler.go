@@ -112,7 +112,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			)
 		}
 		for _, id := range keyspaceIDs {
-			if !slices.Contains(found, id) {
+			if !slices.ContainsFunc(found, func(row db.FindKeyAuthsByIdsAndWorkspaceRow) bool {
+				return row.ID == id
+			}) {
 				return fault.New(
 					"keyspace not found",
 					fault.Code(codes.Data.KeySpace.NotFound.URN()),
@@ -191,7 +193,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	now := time.Now().UnixMilli()
 	err = db.TxRetry(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
-		if upsertErr := db.Query.UpsertAppRuntimeSettingsSentinelConfig(ctx, tx, db.UpsertAppRuntimeSettingsSentinelConfigParams{
+		if upsertErr := db.Query.UpsertAppRuntimeSettingsPolicyConfig(ctx, tx, db.UpsertAppRuntimeSettingsPolicyConfigParams{
 			WorkspaceID:    env.WorkspaceID,
 			AppID:          env.AppID,
 			EnvironmentID:  env.ID,
@@ -202,7 +204,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			return fault.Wrap(
 				upsertErr,
 				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-				fault.Internal("unable to write sentinel config"),
+				fault.Internal("unable to write gateway policy config"),
 				fault.Public("We're unable to set the policies."),
 			)
 		}

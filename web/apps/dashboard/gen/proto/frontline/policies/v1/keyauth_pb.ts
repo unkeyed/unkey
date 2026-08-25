@@ -10,7 +10,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file frontline/policies/v1/keyauth.proto.
  */
 export const file_frontline_policies_v1_keyauth: GenFile = /*@__PURE__*/
-  fileDesc("CiNmcm9udGxpbmUvcG9saWNpZXMvdjEva2V5YXV0aC5wcm90bxIMZnJvbnRsaW5lLnYxIrIBCgdLZXlBdXRoEhUKDWtleV9zcGFjZV9pZHMYASADKAkSLAoJbG9jYXRpb25zGAIgAygLMhkuZnJvbnRsaW5lLnYxLktleUxvY2F0aW9uEh0KEHBlcm1pc3Npb25fcXVlcnkYBSABKAlIAIgBARIuCgpyYXRlbGltaXRzGAYgAygLMhouZnJvbnRsaW5lLnYxLktleVJhdGVsaW1pdEITChFfcGVybWlzc2lvbl9xdWVyeSJ6CgxLZXlSYXRlbGltaXQSDAoEbmFtZRgBIAEoCRISCgVsaW1pdBgCIAEoA0gAiAEBEhUKCGR1cmF0aW9uGAMgASgDSAGIAQESEQoEY29zdBgEIAEoA0gCiAEBQggKBl9saW1pdEILCglfZHVyYXRpb25CBwoFX2Nvc3QivQEKC0tleUxvY2F0aW9uEjMKBmJlYXJlchgBIAEoCzIhLmZyb250bGluZS52MS5CZWFyZXJUb2tlbkxvY2F0aW9uSAASMQoGaGVhZGVyGAIgASgLMh8uZnJvbnRsaW5lLnYxLkhlYWRlcktleUxvY2F0aW9uSAASOgoLcXVlcnlfcGFyYW0YAyABKAsyIy5mcm9udGxpbmUudjEuUXVlcnlQYXJhbUtleUxvY2F0aW9uSABCCgoIbG9jYXRpb24iFQoTQmVhcmVyVG9rZW5Mb2NhdGlvbiI3ChFIZWFkZXJLZXlMb2NhdGlvbhIMCgRuYW1lGAEgASgJEhQKDHN0cmlwX3ByZWZpeBgCIAEoCSIlChVRdWVyeVBhcmFtS2V5TG9jYXRpb24SDAoEbmFtZRgBIAEoCUKuAQoQY29tLmZyb250bGluZS52MUIMS2V5YXV0aFByb3RvUAFaO2dpdGh1Yi5jb20vdW5rZXllZC91bmtleS9nZW4vcHJvdG8vZnJvbnRsaW5lL3YxO2Zyb250bGluZXYxogIDRlhYqgIMRnJvbnRsaW5lLlYxygIMRnJvbnRsaW5lXFYx4gIYRnJvbnRsaW5lXFYxXEdQQk1ldGFkYXRh6gINRnJvbnRsaW5lOjpWMWIGcHJvdG8z");
+  fileDesc("CiNmcm9udGxpbmUvcG9saWNpZXMvdjEva2V5YXV0aC5wcm90bxIMZnJvbnRsaW5lLnYxItQBCgdLZXlBdXRoEhUKDWtleV9zcGFjZV9pZHMYASADKAkSLAoJbG9jYXRpb25zGAIgAygLMhkuZnJvbnRsaW5lLnYxLktleUxvY2F0aW9uEh0KEHBlcm1pc3Npb25fcXVlcnkYBSABKAlIAIgBARIuCgpyYXRlbGltaXRzGAYgAygLMhouZnJvbnRsaW5lLnYxLktleVJhdGVsaW1pdBIUCgdjcmVkaXRzGAcgASgDSAGIAQFCEwoRX3Blcm1pc3Npb25fcXVlcnlCCgoIX2NyZWRpdHMiegoMS2V5UmF0ZWxpbWl0EgwKBG5hbWUYASABKAkSEgoFbGltaXQYAiABKANIAIgBARIVCghkdXJhdGlvbhgDIAEoA0gBiAEBEhEKBGNvc3QYBCABKANIAogBAUIICgZfbGltaXRCCwoJX2R1cmF0aW9uQgcKBV9jb3N0Ir0BCgtLZXlMb2NhdGlvbhIzCgZiZWFyZXIYASABKAsyIS5mcm9udGxpbmUudjEuQmVhcmVyVG9rZW5Mb2NhdGlvbkgAEjEKBmhlYWRlchgCIAEoCzIfLmZyb250bGluZS52MS5IZWFkZXJLZXlMb2NhdGlvbkgAEjoKC3F1ZXJ5X3BhcmFtGAMgASgLMiMuZnJvbnRsaW5lLnYxLlF1ZXJ5UGFyYW1LZXlMb2NhdGlvbkgAQgoKCGxvY2F0aW9uIhUKE0JlYXJlclRva2VuTG9jYXRpb24iNwoRSGVhZGVyS2V5TG9jYXRpb24SDAoEbmFtZRgBIAEoCRIUCgxzdHJpcF9wcmVmaXgYAiABKAkiJQoVUXVlcnlQYXJhbUtleUxvY2F0aW9uEgwKBG5hbWUYASABKAlCrgEKEGNvbS5mcm9udGxpbmUudjFCDEtleWF1dGhQcm90b1ABWjtnaXRodWIuY29tL3Vua2V5ZWQvdW5rZXkvZ2VuL3Byb3RvL2Zyb250bGluZS92MTtmcm9udGxpbmV2MaICA0ZYWKoCDEZyb250bGluZS5WMcoCDEZyb250bGluZVxWMeICGEZyb250bGluZVxWMVxHUEJNZXRhZGF0YeoCDUZyb250bGluZTo6VjFiBnByb3RvMw");
 
 /**
  * KeyAuth authenticates requests using Unkey API keys. This is the primary
@@ -103,6 +103,25 @@ export type KeyAuth = Message<"frontline.v1.KeyAuth"> & {
    * @generated from field: repeated frontline.v1.KeyRatelimit ratelimits = 6;
    */
   ratelimits: KeyRatelimit[];
+
+  /**
+   * Optional override for how many usage credits a matching request deducts
+   * from the verified key, mirroring the `credits.cost` behaviour of Unkey's
+   * verifyKey API. Defaults to 1 when unset, matching the historical gateway
+   * behaviour of deducting a single credit per request.
+   *
+   * Set this per route to charge more or less than one credit. Set it to 0 to
+   * verify the key (and evaluate permissions and rate limits) without spending
+   * any credits, e.g. for read-only endpoints or when the gateway only needs
+   * to prove the key is valid before proxying to a backend that meters usage
+   * itself. Keys with unlimited remaining usage are unaffected regardless of
+   * this value.
+   *
+   * Must be non-negative.
+   *
+   * @generated from field: optional int64 credits = 7;
+   */
+  credits?: bigint;
 };
 
 /**

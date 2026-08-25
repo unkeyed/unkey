@@ -2,6 +2,7 @@ import { Err, Ok, type Result } from "@unkey/error";
 import { z } from "zod";
 import type { QueryError } from "./client/error";
 import type { Querier } from "./client/interface";
+import { escapeLikePattern } from "./util";
 
 const TABLE = "default.runtime_logs_raw_v1";
 
@@ -18,13 +19,25 @@ export const runtimeLogsRequestSchema = z.object({
   projectId: z.string(),
   deploymentId: z.array(z.string()),
   environmentId: z.array(z.string()),
-  appId: z.string().nullable(),
+  appId: z.array(z.string()),
   limit: z.int().min(1).max(MAX_PAGE_SIZE),
   startTime: z.int(),
   endTime: z.int(),
   severity: z.array(z.string()).nullable(),
   region: z.array(z.string()).nullable(),
-  message: z.string().nullable(),
+  message: z.string().trim().min(3).nullable(),
+  attributes: z.string().trim().min(3).nullable(),
+  attributeMatch: z
+    .object({
+      path: z
+        .string()
+        .trim()
+        .min(1)
+        .max(512)
+        .refine((path) => path.split(".").every((segment) => segment.length > 0)),
+      value: z.string().trim().min(3).max(2_048),
+    })
+    .nullable(),
   k8sPodNames: z.array(z.string()),
   // 1-based page for offset pagination. Defaults to 1 (offset 0).
   page: z.number().int().min(1).default(1),
@@ -32,16 +45,23 @@ export const runtimeLogsRequestSchema = z.object({
 
 export type RuntimeLogsRequest = z.infer<typeof runtimeLogsRequestSchema>;
 
-const runtimeLogsCountParamsSchema = runtimeLogsRequestSchema.extend({
-  partitionStartTime: z.int(),
-  partitionEndTime: z.int(),
-});
+const runtimeLogsCountParamsSchema = runtimeLogsRequestSchema
+  .omit({ attributeMatch: true })
+  .extend({
+    attributeMatchPath: z.string(),
+    attributeMatchPathSearch: z.string(),
+    attributeMatchSearch: z.string(),
+    attributeMatchValue: z.string(),
+    partitionStartTime: z.int(),
+    partitionEndTime: z.int(),
+  });
 
 const runtimeLogsQueryParamsSchema = runtimeLogsCountParamsSchema.extend({
   offset: z.int(),
 });
 
 export const runtimeLog = z.object({
+  log_id: z.string(),
   time: z.int(),
   severity: z.string(),
   message: z.string(),
@@ -57,6 +77,7 @@ export type RuntimeLog = z.infer<typeof runtimeLog>;
 // JSON column: JSON fans out into ~1k subcolumn files per part, so on CH
 // Cloud cold queries pay ~1k S3 GetObjects for the marks alone.
 const runtimeLogRow = z.object({
+  log_id: z.string(),
   time: z.int(),
   severity: z.string(),
   message: z.string(),
@@ -77,6 +98,10 @@ type RuntimeLogsOptions = {
 export function getRuntimeLogs(ch: Querier) {
   return async (args: RuntimeLogsRequest, options?: RuntimeLogsOptions) => {
     const includeTotal = options?.includeTotal ?? true;
+    const attributeMatchPathSearch = args.attributeMatch?.path
+      .split(".")
+      .filter((segment) => segment.length >= 3)
+      .sort((a, b) => b.length - a.length)[0];
     const wheres: string[] = [
       "workspace_id = {workspaceId: String}",
       "project_id = {projectId: String}",
@@ -86,9 +111,9 @@ export function getRuntimeLogs(ch: Querier) {
                 AND toDate(fromUnixTimestamp64Milli({partitionEndTime: Int64}))`,
     ];
 
-    // null appId = project-wide (every app); a value scopes to one app.
-    if (args.appId !== null) {
-      wheres.push("app_id = {appId: String}");
+    // An empty appId array matches all apps of the project.
+    if (args.appId.length > 0) {
+      wheres.push("app_id IN {appId: Array(String)}");
     }
     if (args.environmentId.length > 0) {
       wheres.push("environment_id IN {environmentId: Array(String)}");
@@ -104,7 +129,22 @@ export function getRuntimeLogs(ch: Querier) {
     }
     if (args.message !== null && args.message !== "") {
       // lower() on both sides keeps the ngrambf_v1 skip index eligible.
-      wheres.push("positionCaseInsensitive(lower(message), lower({message: String})) > 0");
+      wheres.push("lower(message) LIKE concat('%', lower({message: String}), '%')");
+    }
+    if (args.attributes !== null && args.attributes !== "") {
+      // Search the indexed materialized String, not the expensive dynamic JSON column.
+      wheres.push("lower(attributes_text) LIKE concat('%', lower({attributes: String}), '%')");
+    }
+    if (args.attributeMatch !== null) {
+      // The text predicate lets the trigram index prune granules before JSON_VALUE
+      // verifies the exact path and value on the remaining rows.
+      const pathPredicate = attributeMatchPathSearch
+        ? "lower(attributes_text) LIKE concat('%', lower({attributeMatchPathSearch: String}), '%')\n        AND "
+        : "";
+      wheres.push(`(
+        ${pathPredicate}lower(attributes_text) LIKE concat('%', lower({attributeMatchSearch: String}), '%')
+        AND JSON_VALUE(attributes_text, {attributeMatchPath: String}) = {attributeMatchValue: String}
+      )`);
     }
     if (args.k8sPodNames.length > 0) {
       wheres.push("k8s_pod_name IN {k8sPodNames: Array(String)}");
@@ -118,16 +158,31 @@ export function getRuntimeLogs(ch: Querier) {
 
     const partitionStartTime = args.startTime - INGESTION_LAG_GRACE_MS;
     const partitionEndTime = args.endTime + INGESTION_LAG_GRACE_MS;
+    const { attributeMatch, ...flatArgs } = args;
+    const escapedArgs = {
+      ...flatArgs,
+      message: args.message === null ? null : escapeLikePattern(args.message),
+      attributes: args.attributes === null ? null : escapeLikePattern(args.attributes),
+      attributeMatchPath: attributeMatch === null ? "" : toJSONPath(attributeMatch.path),
+      attributeMatchPathSearch: escapeLikePattern(
+        toJSONSearchFragment(attributeMatchPathSearch ?? ""),
+      ),
+      attributeMatchSearch:
+        attributeMatch === null
+          ? ""
+          : escapeLikePattern(toJSONSearchFragment(attributeMatch.value)),
+      attributeMatchValue: attributeMatch?.value ?? "",
+    };
 
     const logsQuery = ch.query({
       query: `
         SELECT
-          time, severity, message, deployment_id,
+          log_id, time, severity, message, deployment_id,
           region, k8s_pod_name, attributes_text
         FROM ${TABLE}
         WHERE ${filterConditions}
 
-        ORDER BY time DESC, deployment_id DESC, k8s_pod_name DESC, message DESC
+        ORDER BY time DESC, deployment_id DESC, k8s_pod_name DESC, message DESC, log_id DESC
         LIMIT {limit: Int}
         OFFSET {offset: Int}
         SETTINGS
@@ -139,7 +194,7 @@ export function getRuntimeLogs(ch: Querier) {
     });
 
     const rowsPromise = logsQuery({
-      ...args,
+      ...escapedArgs,
       limit: pageSize,
       offset,
       partitionStartTime,
@@ -164,8 +219,8 @@ export function getRuntimeLogs(ch: Querier) {
         params: runtimeLogsCountParamsSchema,
         schema: z.object({ total_count: z.int() }),
       });
-      totalResult = totalQuery({ ...args, partitionStartTime, partitionEndTime }).then((res) =>
-        res.err ? Err(res.err) : Ok(res.val[0]?.total_count ?? 0),
+      totalResult = totalQuery({ ...escapedArgs, partitionStartTime, partitionEndTime }).then(
+        (res) => (res.err ? Err(res.err) : Ok(res.val[0]?.total_count ?? 0)),
       );
     }
 
@@ -197,4 +252,15 @@ function parseAttributes(text: string | null): RuntimeLog["attributes"] {
     // Malformed JSON: drop attributes rather than fail the whole page.
   }
   return null;
+}
+
+function toJSONPath(path: string): string {
+  return `$${path
+    .split(".")
+    .map((segment) => `.${JSON.stringify(segment)}`)
+    .join("")}`;
+}
+
+function toJSONSearchFragment(value: string): string {
+  return JSON.stringify(value).slice(1, -1);
 }

@@ -1,13 +1,17 @@
 {
-  "extends": "astro/tsconfigs/strict",
-  "include": [".astro/types.d.ts", "**/*"],
-  "exclude": ["dist"],
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "extends": "@unkey/tsconfig/base.json",
+  "include": ["blume.config.ts", "docs/**/*", "examples/**/*"],
+  "exclude": ["dist", ".blume", "node_modules"],
   "compilerOptions": {
+    "declaration": false,
+    "declarationMap": false,
+    "lib": ["dom", "dom.iterable", "esnext"],
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "noEmit": true,
     "jsx": "react-jsx",
     "jsxImportSource": "react",
-    "baseUrl": ".",
-    "paths": {
-      "@/*": ["src/*"]
-    }
+    "target": "es2022"
   }
 }

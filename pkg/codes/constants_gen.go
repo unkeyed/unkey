@@ -114,6 +114,13 @@ const (
 	// NotFound indicates the requested environment does not exist.
 	UnkeyDataErrorsEnvironmentNotFound URN = "err:unkey:data:environment_not_found"
 
+	// Domain
+
+	// Duplicate indicates the domain is already attached to this workspace.
+	UnkeyDataErrorsDomainDuplicate URN = "err:unkey:data:domain_already_exists"
+	// NotFound indicates the requested domain does not exist.
+	UnkeyDataErrorsDomainNotFound URN = "err:unkey:data:domain_not_found"
+
 	// Deployment
 
 	// NotFound indicates the requested deployment does not exist.
@@ -177,10 +184,10 @@ const (
 	// NotFound indicates the requested audit log was not found.
 	UnkeyDataErrorsAuditLogNotFound URN = "err:unkey:data:audit_log_not_found"
 
-	// PortalConfig
+	// Portal
 
-	// NotFound indicates the requested portal configuration was not found.
-	UnkeyDataErrorsPortalConfigNotFound URN = "err:unkey:data:portal_config_not_found"
+	// NotFound indicates the requested portal was not found.
+	UnkeyDataErrorsPortalNotFound URN = "err:unkey:data:portal_not_found"
 
 	// Analytics
 
@@ -243,6 +250,15 @@ const (
 	UnkeyAppErrorsPreconditionDeploymentIsProduction URN = "err:unkey:application:deployment_is_production"
 
 	// ----------------
+	// UnkeyLimitsErrors
+	// ----------------
+
+	// CustomDomain
+
+	// Exceeded indicates the workspace has already attached as many custom domains as its plan allows.
+	UnkeyLimitsErrorsCustomDomainExceeded URN = "err:unkey:limits:custom_domain_limit_exceeded"
+
+	// ----------------
 	// UnkeyFrontlineErrors
 	// ----------------
 
@@ -294,8 +310,10 @@ const (
 	UnkeyFrontlineErrorsAuthInvalidKey URN = "err:frontline:client:invalid_key"
 	// InsufficientPermissions represents a 403 error - the credential lacks the permissions required by a permission_query.
 	UnkeyFrontlineErrorsAuthInsufficientPermissions URN = "err:frontline:client:insufficient_permissions"
-	// RateLimited represents a 429 error - the credential or its auto-applied rate limit was exceeded.
+	// RateLimited represents a 429 error - a configured request rate limit was exceeded.
 	UnkeyFrontlineErrorsAuthRateLimited URN = "err:frontline:client:rate_limited"
+	// UsageExceeded represents a 429 error - the credential has no remaining credits.
+	UnkeyFrontlineErrorsAuthUsageExceeded URN = "err:frontline:client:usage_exceeded"
 
 	// Firewall
 

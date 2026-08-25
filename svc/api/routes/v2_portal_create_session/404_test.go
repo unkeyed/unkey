@@ -1,15 +1,11 @@
 package handler_test
 
 import (
-	"context"
-	"database/sql"
 	"fmt"
 	"net/http"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/require"
-	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/openapi"
@@ -27,7 +23,15 @@ func TestCreateSessionNotFoundNonExistentPortalId(t *testing.T) {
 	h.Register(route)
 
 	workspaceID := h.Resources().UserWorkspace.ID
-	rootKey := h.CreateRootKey(workspaceID)
+
+	// Granted deliberately: the 404 must come from the portal lookup, not from a
+	// missing permission. A caller who could mint sessions still cannot learn
+	// whether an unknown portal exists.
+	rootKey := h.CreateRootKey(workspaceID,
+		"portal.*.create_portal_session",
+		"api.*.read_key",
+		"api.*.read_api",
+	)
 
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
@@ -35,21 +39,20 @@ func TestCreateSessionNotFoundNonExistentPortalId(t *testing.T) {
 	}
 
 	req := handler.Request{
-		Slug:        "nonexistent-portal",
-		ExternalId:  "user_123",
-		Permissions: []openapi.V2PortalCreateSessionRequestBodyPermissions{"keys:read"},
+		Portal:     "nonexistent-portal",
+		ExternalId: "user_123",
+		Scopes:     []openapi.V2PortalCreateSessionRequestBodyScopes{"keys:read"},
 	}
 
 	res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, req)
 	require.Equal(t, http.StatusNotFound, res.Status, "expected 404, received: %s", res.RawBody)
-	require.Equal(t, "Portal configuration not found.", res.Body.Error.Detail)
-	require.NotContains(t, res.RawBody, req.Slug)
+	require.Equal(t, "Portal not found.", res.Body.Error.Detail)
+	require.NotContains(t, res.RawBody, req.Portal)
 	require.NotContains(t, res.RawBody, req.ExternalId)
 }
 
 func TestCreateSessionNotFoundWrongWorkspace(t *testing.T) {
 	h := testutil.NewHarness(t)
-	ctx := context.Background()
 
 	route := &handler.Handler{
 		DB:            h.DB,
@@ -58,40 +61,36 @@ func TestCreateSessionNotFoundWrongWorkspace(t *testing.T) {
 	}
 	h.Register(route)
 
-	// Create a portal config in workspace A (the default user workspace).
+	// Create a portal in workspace A (the default user workspace).
 	workspaceA := h.Resources().UserWorkspace.ID
-	portalConfigID := uid.New(uid.PortalConfigPrefix)
-	now := time.Now().UnixMilli()
 
-	err := db.Query.InsertPortalConfig(ctx, h.DB.RW(), db.InsertPortalConfigParams{
-		ID:          portalConfigID,
-		WorkspaceID: workspaceA,
-		Slug:        "cross-workspace-portal",
-		KeyAuthID:   sql.NullString{Valid: true, String: uid.New(uid.KeySpacePrefix)},
-		Enabled:     true,
-		CreatedAt:   now,
-	})
-	require.NoError(t, err)
+	portalID := insertKeyspacePortal(t, h, workspaceA, "cross-workspace-portal", uid.New(uid.KeySpacePrefix))
 
-	// Authenticate as workspace B.
+	// Authenticate as workspace B, holding every permission the mint would need
+	// in its own workspace. Workspace A's portal must still be indistinguishable
+	// from one that does not exist.
 	workspaceB := h.CreateWorkspace()
-	rootKeyB := h.CreateRootKey(workspaceB.ID)
+	rootKeyB := h.CreateRootKey(workspaceB.ID,
+		"portal.*.create_portal_session",
+		"api.*.read_key",
+		"api.*.read_api",
+	)
 
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKeyB)},
 	}
 
-	// Use workspace A's portal config slug while authenticated as workspace B.
+	// Use workspace A's portal slug while authenticated as workspace B.
 	req := handler.Request{
-		Slug:        "cross-workspace-portal",
-		ExternalId:  "user_123",
-		Permissions: []openapi.V2PortalCreateSessionRequestBodyPermissions{"keys:read"},
+		Portal:     "cross-workspace-portal",
+		ExternalId: "user_123",
+		Scopes:     []openapi.V2PortalCreateSessionRequestBodyScopes{"keys:read"},
 	}
 
 	res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, req)
 	require.Equal(t, http.StatusNotFound, res.Status, "expected 404, received: %s", res.RawBody)
-	require.Equal(t, "Portal configuration not found.", res.Body.Error.Detail)
-	require.NotContains(t, res.RawBody, portalConfigID)
+	require.Equal(t, "Portal not found.", res.Body.Error.Detail)
+	require.NotContains(t, res.RawBody, portalID)
 	require.NotContains(t, res.RawBody, workspaceA)
 }
