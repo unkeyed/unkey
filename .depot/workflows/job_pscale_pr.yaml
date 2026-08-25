@@ -8,6 +8,9 @@ on:
         type: boolean
 permissions:
   contents: read
+concurrency:
+  group: planetscale-pr-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 env:
   PSCALE_ORG: unkey
   PSCALE_DB: unkey
@@ -18,7 +21,6 @@ jobs:
     name: Validate schema on PlanetScale branch
     runs-on: depot-ubuntu-24.04-4
     timeout-minutes: 15
-    if: inputs.db_schema_changed == false || (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository)
     env:
       PLANETSCALE_SERVICE_TOKEN_ID: ${{ secrets.PLANETSCALE_SERVICE_TOKEN_ID }}
       PLANETSCALE_SERVICE_TOKEN: ${{ secrets.PLANETSCALE_SERVICE_TOKEN }}
@@ -28,6 +30,10 @@ jobs:
       - name: validate schema
         env:
           DB_SCHEMA_CHANGED: ${{ inputs.db_schema_changed }}
+          PR_BASE: ${{ github.event.pull_request.base.ref }}
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PR_DRAFT: ${{ github.event.pull_request.draft }}
+          PR_HEAD_REPOSITORY: ${{ github.event.pull_request.head.repo.full_name }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
           PR_TITLE: ${{ github.event.pull_request.title }}
         run: |
@@ -36,21 +42,144 @@ jobs:
             echo "No database schema changes to validate."
             exit 0
           fi
+          if [ "$GITHUB_EVENT_NAME" != "pull_request" ]; then
+            echo "Per-PR PlanetScale branches are not created for $GITHUB_EVENT_NAME events."
+            exit 0
+          fi
+          if [ "$PR_DRAFT" == "true" ]; then
+            echo "PlanetScale validation waits until the pull request is ready for review."
+            exit 0
+          fi
+          if [ "$PR_HEAD_REPOSITORY" != "$GITHUB_REPOSITORY" ]; then
+            echo "PlanetScale validation is not available to fork pull requests."
+            exit 0
+          fi
+          if [ "$PR_BASE" != "main" ]; then
+            echo "PlanetScale validation waits until this stacked pull request targets main."
+            exit 0
+          fi
 
           ./dev/install-mise
           export PATH="$HOME/.local/bin:$PATH"
           mise install --locked --yes node github:pnpm/pnpm github:planetscale/cli github:jqlang/jq
-          FROM="$PSCALE_PARENT" mise run pscale-branch
 
-          EXISTING=$(mise exec -- pscale deploy-request list "$PSCALE_DB" \
-            --org "$PSCALE_ORG" --format json \
-            | mise exec -- jq -r --arg b "$BRANCH" --arg p "$PSCALE_PARENT" \
-                '.[] | select(.branch==$b and .into_branch==$p and .state=="open") | .number' \
-            | head -n1)
-          if [ -z "$EXISTING" ]; then
+          if ! git cat-file -e "${PR_BASE_SHA}^{commit}"; then
+            git fetch --no-tags --depth=1 origin "$PR_BASE_SHA"
+          fi
+          DELTA_ROOT=$(mktemp -d web/internal/db/.pscale-delta.XXXXXX)
+          DELTA_REL=${DELTA_ROOT#web/internal/db/}
+          trap 'rm -rf "$DELTA_ROOT"' EXIT
+          mkdir -p "$DELTA_ROOT/base"
+          git archive "$PR_BASE_SHA" web/internal/db/src/schema \
+            | tar -x -C "$DELTA_ROOT/base"
+
+          mise exec -- pnpm --dir=web/internal/db drizzle-kit generate \
+            --schema="$DELTA_REL/base/web/internal/db/src/schema/index.ts" \
+            --dialect=mysql --out="$DELTA_REL/migrations" --name=base \
+            --prefix=index --breakpoints
+          BASE_MIGRATION_COUNT=$(find "$DELTA_ROOT/migrations" -maxdepth 1 \
+            -type f -name '*.sql' | wc -l)
+          if [ "$BASE_MIGRATION_COUNT" -ne 1 ]; then
+            echo "::error::Expected one generated base migration, found $BASE_MIGRATION_COUNT."
+            exit 1
+          fi
+
+          mise exec -- pnpm --dir=web/internal/db drizzle-kit generate \
+            --schema=src/schema/index.ts --dialect=mysql \
+            --out="$DELTA_REL/migrations" --name=pr --prefix=index --breakpoints
+          MIGRATION_COUNT=$(find "$DELTA_ROOT/migrations" -maxdepth 1 \
+            -type f -name '*.sql' | wc -l)
+          DELTA_COUNT=$((MIGRATION_COUNT - BASE_MIGRATION_COUNT))
+          if [ "$DELTA_COUNT" -lt 0 ] || [ "$DELTA_COUNT" -gt 1 ]; then
+            echo "::error::Expected at most one PR migration, found $DELTA_COUNT."
+            exit 1
+          fi
+
+          DEPLOY_REQUESTS=$(mise exec -- pscale deploy-request list "$PSCALE_DB" \
+            --org "$PSCALE_ORG" --format json)
+          if ! mise exec -- jq -e 'type == "array"' <<< "$DEPLOY_REQUESTS" >/dev/null; then
+            echo "::error::PlanetScale returned an invalid deploy request list."
+            exit 1
+          fi
+          mapfile -t OPEN_REQUESTS < <(
+            mise exec -- jq -r --arg b "$BRANCH" \
+              '.[] | select(.branch==$b and .state=="open") | .number' \
+              <<< "$DEPLOY_REQUESTS"
+          )
+          for request in "${OPEN_REQUESTS[@]}"; do
+            echo "Closing outdated deploy request #$request."
+            mise exec -- pscale deploy-request close "$PSCALE_DB" "$request" \
+              --org "$PSCALE_ORG"
+          done
+
+          BRANCHES=$(mise exec -- pscale branch list "$PSCALE_DB" \
+            --org "$PSCALE_ORG" --format json)
+          if ! mise exec -- jq -e 'type == "array"' <<< "$BRANCHES" >/dev/null; then
+            echo "::error::PlanetScale returned an invalid branch list."
+            exit 1
+          fi
+          if mise exec -- jq -e --arg b "$BRANCH" \
+              'any(.[]; .name == $b)' <<< "$BRANCHES" >/dev/null; then
+            echo "Deleting outdated PlanetScale branch $BRANCH."
+            mise exec -- pscale branch delete "$PSCALE_DB" "$BRANCH" \
+              --org "$PSCALE_ORG" --force
+            for attempt in $(seq 1 30); do
+              BRANCHES=$(mise exec -- pscale branch list "$PSCALE_DB" \
+                --org "$PSCALE_ORG" --format json)
+              if ! mise exec -- jq -e 'type == "array"' \
+                  <<< "$BRANCHES" >/dev/null; then
+                echo "::error::PlanetScale returned an invalid branch list."
+                exit 1
+              fi
+              if ! mise exec -- jq -e --arg b "$BRANCH" \
+                  'any(.[]; .name == $b)' <<< "$BRANCHES" >/dev/null; then
+                break
+              fi
+              if [ "$attempt" -eq 30 ]; then
+                echo "::error::Timed out waiting for $BRANCH to be deleted."
+                exit 1
+              fi
+              sleep 2
+            done
+          fi
+
+          if [ "$DELTA_COUNT" -eq 0 ]; then
+            echo "The pull request has no database schema delta."
+            exit 0
+          fi
+
+          DELTA_FILE=$(find "$DELTA_ROOT/migrations" -maxdepth 1 \
+            -type f -name '*.sql' | sort | tail -n1)
+          echo "Applying only the pull request migration from $PR_BASE_SHA."
+          MIGRATION_FILE="$DELTA_FILE" FROM="$PSCALE_PARENT" mise run pscale-branch
+
+          # PlanetScale can take a few seconds to expose a branch schema diff.
+          DIFF_COUNT=0
+          for attempt in $(seq 1 7); do
+            BRANCH_DIFF=$(mise exec -- pscale branch diff "$PSCALE_DB" "$BRANCH" \
+              --org "$PSCALE_ORG" --format json)
+            if ! DIFF_COUNT=$(mise exec -- jq -e \
+                'if type == "array" then length else error("expected an array") end' \
+                <<< "$BRANCH_DIFF"); then
+              echo "::error::PlanetScale returned an invalid branch diff."
+              exit 1
+            fi
+            echo "Diff check $attempt/7 found $DIFF_COUNT change(s)."
+            if [ "$DIFF_COUNT" -gt 0 ]; then
+              break
+            fi
+            if [ "$attempt" -lt 7 ]; then
+              sleep 5
+            fi
+          done
+
+          if [ "$DIFF_COUNT" -eq 0 ]; then
+            echo "The applied schema has no changes relative to $PSCALE_PARENT."
+            echo "Deleting empty PlanetScale branch $BRANCH."
+            mise exec -- pscale branch delete "$PSCALE_DB" "$BRANCH" \
+              --org "$PSCALE_ORG" --force
+          else
             mise exec -- pscale deploy-request create "$PSCALE_DB" "$BRANCH" \
               --org "$PSCALE_ORG" --into "$PSCALE_PARENT" \
               --notes "PR #${PR_NUMBER}: ${PR_TITLE}"
-          else
-            echo "Reusing existing deploy request #$EXISTING"
           fi
