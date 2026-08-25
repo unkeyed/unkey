@@ -1,6 +1,7 @@
 "use client";
 
 import { collection } from "@/lib/collections";
+import { ENVIRONMENT_KINDS } from "@/lib/collections/deploy/environments";
 import { type PolicyRow, replacePolicyLists, rowKey } from "@/lib/collections/deploy/policies";
 import {
   POLICY_LIMITS,
@@ -212,7 +213,7 @@ export function usePolicyActions({
   const remove = useCallback(
     (key: string) => {
       replacePolicyLists(
-        (["production", "preview"] as const).flatMap((env) => {
+        ENVIRONMENT_KINDS.flatMap((env) => {
           const policy = policyInEnv(merged, key, env);
           const envId = envIdFor(env);
           if (!policy || !envId) {

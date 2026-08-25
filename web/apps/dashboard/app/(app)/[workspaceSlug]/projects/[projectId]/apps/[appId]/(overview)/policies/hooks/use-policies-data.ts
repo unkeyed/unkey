@@ -1,6 +1,7 @@
 "use client";
 
 import { collection } from "@/lib/collections";
+import { ENVIRONMENT_KIND } from "@/lib/collections/deploy/environments";
 import type { PolicyRow } from "@/lib/collections/deploy/policies";
 import { and, eq, useLiveQuery } from "@tanstack/react-db";
 import { useMemo } from "react";
@@ -28,8 +29,8 @@ export function usePoliciesData(): PoliciesData {
   const appId = useAppId();
 
   // create_app.go gives every app one of each, so there is no fallback to make.
-  const production = environments.find((e) => e.kind === "production");
-  const preview = environments.find((e) => e.kind === "preview");
+  const production = environments.find((e) => e.kind === ENVIRONMENT_KIND.production);
+  const preview = environments.find((e) => e.kind === ENVIRONMENT_KIND.preview);
 
   const productionId = production?.id ?? "";
   const previewId = preview?.id ?? "";

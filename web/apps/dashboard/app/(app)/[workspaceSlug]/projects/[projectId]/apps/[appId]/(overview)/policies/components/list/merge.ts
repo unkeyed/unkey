@@ -1,3 +1,4 @@
+import type { EnvironmentKind } from "@/lib/collections/deploy/environments";
 import type { PolicyRow } from "@/lib/collections/deploy/policies";
 import {
   type Policy,
@@ -5,7 +6,7 @@ import {
   policyMatchKey,
 } from "@/lib/collections/deploy/policies.schema";
 
-export type Env = "production" | "preview";
+export type Env = EnvironmentKind;
 
 /**
  * One row of the merged list. It holds up to two environment copies of one
