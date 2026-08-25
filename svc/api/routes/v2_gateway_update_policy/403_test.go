@@ -37,7 +37,7 @@ func TestUpdatePolicyForbidden(t *testing.T) {
 		{name: "urn style wildcard gateway permission", permissions: []string{"unkey:v1:" + env.workspaceID + ":projects/*/apps/*/environments/*/gateway/policies/*#write_policy"}, shouldPass: true},
 		{name: "urn style specific gateway permission", permissions: []string{"unkey:v1:" + env.workspaceID + ":projects/" + env.projectID + "/apps/" + env.appID + "/environments/" + env.environmentID + "/gateway/policies/*#write_policy"}, shouldPass: true},
 		{name: "urn style exact policy permission", permissions: []string{"unkey:v1:" + env.workspaceID + ":projects/" + env.projectID + "/apps/" + env.appID + "/environments/" + env.environmentID + "/gateway/policies/" + ids[0] + "#write_policy"}, shouldPass: true},
-		{name: "urn style other policy id does not match", permissions: []string{"unkey:v1:" + env.workspaceID + ":projects/" + env.projectID + "/apps/" + env.appID + "/environments/" + env.environmentID + "/gateway/policies/" + uid.New("pol") + "#write_policy"}, shouldPass: false},
+		{name: "urn style other policy id does not match", permissions: []string{"unkey:v1:" + env.workspaceID + ":projects/" + env.projectID + "/apps/" + env.appID + "/environments/" + env.environmentID + "/gateway/policies/" + uid.New(uid.PolicyPrefix) + "#write_policy"}, shouldPass: false},
 		{name: "urn style wrong action", permissions: []string{"unkey:v1:" + env.workspaceID + ":projects/*/apps/*/environments/*/gateway/policies/*#read_policy"}, shouldPass: false},
 		{name: "urn style other environment gateway", permissions: []string{"unkey:v1:" + env.workspaceID + ":projects/" + env.projectID + "/apps/" + env.appID + "/environments/" + uid.New(uid.EnvironmentPrefix) + "/gateway/policies/*#write_policy"}, shouldPass: false},
 	}
