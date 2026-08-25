@@ -37,10 +37,6 @@ jobs:
           PR_TITLE: ${{ github.event.pull_request.title }}
         run: |
           set -euo pipefail
-          if [ "$DB_SCHEMA_CHANGED" != "true" ]; then
-            echo "No database schema changes to validate."
-            exit 0
-          fi
           if [ "$GITHUB_EVENT_NAME" != "pull_request" ]; then
             echo "Per-PR PlanetScale branches are not created for $GITHUB_EVENT_NAME events."
             exit 0
@@ -49,45 +45,71 @@ jobs:
             echo "PlanetScale validation is not available to fork pull requests."
             exit 0
           fi
-          if [ "$PR_BASE" != "main" ]; then
-            echo "PlanetScale validation waits until this stacked pull request targets main."
-            exit 0
-          fi
 
           ./dev/install-mise
           export PATH="$HOME/.local/bin:$PATH"
           mise install --locked --yes node github:pnpm/pnpm github:planetscale/cli github:jqlang/jq
 
-          if ! git cat-file -e "${PR_BASE_SHA}^{commit}"; then
-            git fetch --no-tags --depth=1 origin "$PR_BASE_SHA"
-          fi
-          DELTA_ROOT=$(mktemp -d web/internal/db/.pscale-delta.XXXXXX)
-          DELTA_REL=${DELTA_ROOT#web/internal/db/}
-          trap 'rm -rf "$DELTA_ROOT"' EXIT
-          mkdir -p "$DELTA_ROOT/base"
-          git archive "$PR_BASE_SHA" web/internal/db/src/schema \
-            | tar -x -C "$DELTA_ROOT/base"
+          if [ "$DB_SCHEMA_CHANGED" == "true" ] && [ "$PR_BASE" == "main" ]; then
+            if ! git cat-file -e "${PR_BASE_SHA}^{commit}"; then
+              git fetch --no-tags --depth=1 origin "$PR_BASE_SHA"
+            fi
+            DELTA_ROOT=$(mktemp -d web/internal/db/.pscale-delta.XXXXXX)
+            DELTA_REL=${DELTA_ROOT#web/internal/db/}
+            trap 'rm -rf "$DELTA_ROOT"' EXIT
+            mkdir -p "$DELTA_ROOT/base"
+            git archive "$PR_BASE_SHA" web/internal/db/src/schema \
+              | tar -x -C "$DELTA_ROOT/base"
 
-          mise exec -- pnpm --dir=web/internal/db drizzle-kit generate \
-            --schema="$DELTA_REL/base/web/internal/db/src/schema/index.ts" \
-            --dialect=mysql --out="$DELTA_REL/migrations" --name=base \
-            --prefix=index --breakpoints
-          BASE_MIGRATION_COUNT=$(find "$DELTA_ROOT/migrations" -maxdepth 1 \
-            -type f -name '*.sql' | wc -l)
-          if [ "$BASE_MIGRATION_COUNT" -ne 1 ]; then
-            echo "::error::Expected one generated base migration, found $BASE_MIGRATION_COUNT."
-            exit 1
-          fi
+            mise exec -- pnpm --dir=web/internal/db drizzle-kit generate \
+              --schema="$DELTA_REL/base/web/internal/db/src/schema/index.ts" \
+              --dialect=mysql --out="$DELTA_REL/migrations" --name=base \
+              --prefix=index --breakpoints
+            BASE_MIGRATION_COUNT=$(find "$DELTA_ROOT/migrations" -maxdepth 1 \
+              -type f -name '*.sql' | wc -l)
+            if [ "$BASE_MIGRATION_COUNT" -ne 1 ]; then
+              echo "::error::Expected one generated base migration, found $BASE_MIGRATION_COUNT."
+              exit 1
+            fi
 
-          mise exec -- pnpm --dir=web/internal/db drizzle-kit generate \
-            --schema=src/schema/index.ts --dialect=mysql \
-            --out="$DELTA_REL/migrations" --name=pr --prefix=index --breakpoints
-          MIGRATION_COUNT=$(find "$DELTA_ROOT/migrations" -maxdepth 1 \
-            -type f -name '*.sql' | wc -l)
-          DELTA_COUNT=$((MIGRATION_COUNT - BASE_MIGRATION_COUNT))
-          if [ "$DELTA_COUNT" -lt 0 ] || [ "$DELTA_COUNT" -gt 1 ]; then
-            echo "::error::Expected at most one PR migration, found $DELTA_COUNT."
-            exit 1
+            GENERATE_LOG="$DELTA_ROOT/generate-pr.log"
+            if ! timeout 120s mise exec -- pnpm --dir=web/internal/db drizzle-kit generate \
+                --schema=src/schema/index.ts --dialect=mysql \
+                --out="$DELTA_REL/migrations" --name=pr --prefix=index --breakpoints \
+                </dev/null >"$GENERATE_LOG" 2>&1; then
+              cat "$GENERATE_LOG"
+              echo "::error::Drizzle could not generate the pull request migration non-interactively."
+              echo "::error::If the change adds and removes columns on one table, split it into separate additive and drop pull requests."
+              exit 1
+            fi
+            cat "$GENERATE_LOG"
+
+            MIGRATION_COUNT=$(find "$DELTA_ROOT/migrations" -maxdepth 1 \
+              -type f -name '*.sql' | wc -l)
+            DELTA_COUNT=$((MIGRATION_COUNT - BASE_MIGRATION_COUNT))
+            if [ "$DELTA_COUNT" -lt 0 ] || [ "$DELTA_COUNT" -gt 1 ]; then
+              echo "::error::Expected at most one PR migration, found $DELTA_COUNT."
+              exit 1
+            fi
+            if [ "$DELTA_COUNT" -eq 0 ] \
+                && ! grep -Fq 'No schema changes, nothing to migrate' "$GENERATE_LOG"; then
+              echo "::error::Drizzle wrote no migration and did not report an empty schema diff."
+              echo "::error::If the change adds and removes columns on one table, split it into separate additive and drop pull requests."
+              exit 1
+            fi
+
+            if [ "$DELTA_COUNT" -eq 1 ]; then
+              mapfile -t SNAPSHOTS < <(
+                find "$DELTA_ROOT/migrations/meta" -maxdepth 1 \
+                  -type f -name '*_snapshot.json' | sort
+              )
+              if [ "${#SNAPSHOTS[@]}" -ne 2 ]; then
+                echo "::error::Expected two schema snapshots, found ${#SNAPSHOTS[@]}."
+                exit 1
+              fi
+              BASE_SNAPSHOT="${SNAPSHOTS[0]}"
+              HEAD_SNAPSHOT="${SNAPSHOTS[1]}"
+            fi
           fi
 
           DEPLOY_REQUESTS=$(mise exec -- pscale deploy-request list "$PSCALE_DB" \
@@ -138,15 +160,34 @@ jobs:
             done
           fi
 
+          if [ "$DB_SCHEMA_CHANGED" != "true" ]; then
+            echo "No database schema changes to validate."
+            exit 0
+          fi
+          if [ "$PR_BASE" != "main" ]; then
+            echo "PlanetScale validation waits until this stacked pull request targets main."
+            exit 0
+          fi
           if [ "$DELTA_COUNT" -eq 0 ]; then
             echo "The pull request has no database schema delta."
             exit 0
           fi
 
-          DELTA_FILE=$(find "$DELTA_ROOT/migrations" -maxdepth 1 \
-            -type f -name '*.sql' | sort | tail -n1)
-          echo "Applying only the pull request migration from $PR_BASE_SHA."
-          MIGRATION_FILE="$DELTA_FILE" FROM="$PSCALE_PARENT" mise run pscale-branch
+          RESULT_FILE="$DELTA_ROOT/effective-result"
+          echo "Applying only the effective pull request migration from $PR_BASE_SHA."
+          BASE_SNAPSHOT="$BASE_SNAPSHOT" HEAD_SNAPSHOT="$HEAD_SNAPSHOT" \
+            RESULT_FILE="$RESULT_FILE" FROM="$PSCALE_PARENT" mise run pscale-branch
+          if [ ! -f "$RESULT_FILE" ]; then
+            echo "::error::PlanetScale branch setup did not report its migration result."
+            exit 1
+          fi
+          if [ "$(cat "$RESULT_FILE")" != "true" ]; then
+            echo "The pull request schema is already present in $PSCALE_PARENT."
+            echo "Deleting empty PlanetScale branch $BRANCH."
+            mise exec -- pscale branch delete "$PSCALE_DB" "$BRANCH" \
+              --org "$PSCALE_ORG" --force
+            exit 0
+          fi
 
           # PlanetScale can take a few seconds to expose a branch schema diff.
           DIFF_COUNT=0
@@ -169,12 +210,9 @@ jobs:
           done
 
           if [ "$DIFF_COUNT" -eq 0 ]; then
-            echo "The applied schema has no changes relative to $PSCALE_PARENT."
-            echo "Deleting empty PlanetScale branch $BRANCH."
-            mise exec -- pscale branch delete "$PSCALE_DB" "$BRANCH" \
-              --org "$PSCALE_ORG" --force
-          else
-            mise exec -- pscale deploy-request create "$PSCALE_DB" "$BRANCH" \
-              --org "$PSCALE_ORG" --into "$PSCALE_PARENT" \
-              --notes "PR #${PR_NUMBER}: ${PR_TITLE}"
+            echo "::error::Applied a non-empty migration but $BRANCH shows no diff against $PSCALE_PARENT."
+            exit 1
           fi
+          mise exec -- pscale deploy-request create "$PSCALE_DB" "$BRANCH" \
+            --org "$PSCALE_ORG" --into "$PSCALE_PARENT" \
+            --notes "PR #${PR_NUMBER}: ${PR_TITLE}"

@@ -25,14 +25,16 @@ Review and commit all generated files. Push the branch, then open a non-draft Gi
 
 The <a href="https://github.com/unkeyed/unkey/blob/main/.depot/workflows/job_pscale_pr.yaml" target="_blank"><code>PlanetScale PR Branch</code></a>
 job runs automatically. It computes the migration from the pull request's Git
-base to its head, creates a PlanetScale branch from the latest `staging` schema,
-and applies only that migration. Unrelated changes in `staging` remain unchanged.
+base to its head and merges that change into the latest `staging` schema. The
+job creates a PlanetScale branch and applies only the effective migration.
+Unrelated changes in `staging` remain unchanged.
 
 For example, pull request 1234 creates `pr-1234` from `staging` and opens a
 deploy request from `pr-1234` into `staging`. CI doesn't create PlanetScale
 resources when the migration is empty. A stacked pull request waits until it
 targets `main`, which prevents inherited schema changes from entering its
-deploy request.
+deploy request. If the pull request change is already present in `staging`, CI
+deletes the empty branch and doesn't create another deploy request.
 
 <Note>
   The
@@ -51,9 +53,9 @@ Usually you want to merge the deploy request right away, because otherwise you c
 A bad migration here is recoverable, but due diligence can prevent canary disruption and cleanup work.
 
 If you update the GitHub pull request, CI closes its old deploy request,
-recreates `pr-<number>` from the latest `staging` schema, applies the updated
-pull request migration, and opens a new deploy request. Review the new diff
-before continuing.
+recreates `pr-<number>` from the latest `staging` schema, merges the updated
+pull request change, and opens a new deploy request for the effective diff.
+Review the new diff before continuing.
 
 ## 3. Merge the deploy request into staging
 
