@@ -39,11 +39,8 @@ import { queryDeployUsage } from "./billing/query-deploy-usage";
 import { queryDeployUsageBreakdown } from "./billing/query-deploy-usage-breakdown";
 import { queryUsage } from "./billing/query-usage";
 import { listApps } from "./deploy/app/list";
-import { addCustomDomain } from "./deploy/custom-domains/add";
 import { countCustomDomains } from "./deploy/custom-domains/count";
-import { deleteCustomDomain } from "./deploy/custom-domains/delete";
-import { listCustomDomains } from "./deploy/custom-domains/list";
-import { retryVerification } from "./deploy/custom-domains/retry";
+import { listDomainConnectHints } from "./deploy/custom-domains/hints";
 import { authorizeDeployment } from "./deploy/deployment/authorize";
 import { getDeploymentBuildSteps } from "./deploy/deployment/build-steps";
 import { cancelDeployment } from "./deploy/deployment/cancel";
@@ -469,11 +466,8 @@ export const router = t.router({
       list: listDomains,
     }),
     customDomain: t.router({
-      add: addCustomDomain,
       count: countCustomDomains,
-      list: listCustomDomains,
-      delete: deleteCustomDomain,
-      retry: retryVerification,
+      hints: listDomainConnectHints,
     }),
     deployment: t.router({
       list: listDeployments,
