@@ -2,19 +2,19 @@ package permissions
 
 import "github.com/unkeyed/unkey/pkg/urn"
 
-// ReadPolicies authorizes reading an environment gateway's policies.
+// ReadPolicy authorizes reading gateway policy resources.
 //
-// Valid resource: urn.Gateway.
-type ReadPolicies struct{}
+// Valid resource: urn.GatewayPolicy.
+type ReadPolicy struct{}
 
-func (ReadPolicies) ActionFor(urn.Gateway) {}
-func (ReadPolicies) String() string        { return "read_policies" }
+func (ReadPolicy) ActionFor(urn.GatewayPolicy) {}
+func (ReadPolicy) String() string              { return "read_policy" }
 
-// WritePolicies authorizes replacing an environment gateway's entire policy
-// list or updating a single policy in place.
+// WritePolicy authorizes creating, replacing, updating, or deleting gateway
+// policy resources.
 //
-// Valid resource: urn.Gateway.
-type WritePolicies struct{}
+// Valid resource: urn.GatewayPolicy.
+type WritePolicy struct{}
 
-func (WritePolicies) ActionFor(urn.Gateway) {}
-func (WritePolicies) String() string        { return "write_policies" }
+func (WritePolicy) ActionFor(urn.GatewayPolicy) {}
+func (WritePolicy) String() string              { return "write_policy" }

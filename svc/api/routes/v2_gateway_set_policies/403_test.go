@@ -33,10 +33,10 @@ func TestSetPoliciesForbidden(t *testing.T) {
 		{name: "other environment id does not match", permissions: []string{fmt.Sprintf("environment.%s.set_policies", uid.New(uid.EnvironmentPrefix))}, shouldPass: false},
 		{name: "unrelated permission", permissions: []string{"api.*.read_api"}, shouldPass: false},
 		{name: "no permissions", permissions: []string{}, shouldPass: false},
-		{name: "urn style wildcard gateway permission", permissions: []string{"unkey:v1:" + env.workspaceID + ":projects/*/apps/*/environments/*/gateway#write_policies"}, shouldPass: true},
-		{name: "urn style specific gateway permission", permissions: []string{"unkey:v1:" + env.workspaceID + ":projects/" + env.projectID + "/apps/" + env.appID + "/environments/" + env.environmentID + "/gateway#write_policies"}, shouldPass: true},
-		{name: "urn style wrong action", permissions: []string{"unkey:v1:" + env.workspaceID + ":projects/*/apps/*/environments/*/gateway#read_policies"}, shouldPass: false},
-		{name: "urn style other environment gateway", permissions: []string{"unkey:v1:" + env.workspaceID + ":projects/" + env.projectID + "/apps/" + env.appID + "/environments/" + uid.New(uid.EnvironmentPrefix) + "/gateway#write_policies"}, shouldPass: false},
+		{name: "urn style wildcard gateway permission", permissions: []string{"unkey:v1:" + env.workspaceID + ":projects/*/apps/*/environments/*/gateway/policies/*#write_policy"}, shouldPass: true},
+		{name: "urn style specific gateway permission", permissions: []string{"unkey:v1:" + env.workspaceID + ":projects/" + env.projectID + "/apps/" + env.appID + "/environments/" + env.environmentID + "/gateway/policies/*#write_policy"}, shouldPass: true},
+		{name: "urn style wrong action", permissions: []string{"unkey:v1:" + env.workspaceID + ":projects/*/apps/*/environments/*/gateway/policies/*#read_policy"}, shouldPass: false},
+		{name: "urn style other environment gateway", permissions: []string{"unkey:v1:" + env.workspaceID + ":projects/" + env.projectID + "/apps/" + env.appID + "/environments/" + uid.New(uid.EnvironmentPrefix) + "/gateway/policies/*#write_policy"}, shouldPass: false},
 	}
 
 	for _, tc := range testCases {
