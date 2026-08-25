@@ -8,7 +8,6 @@ import (
 	"github.com/unkeyed/unkey/cmd/api"
 	"github.com/unkeyed/unkey/cmd/auth"
 	"github.com/unkeyed/unkey/cmd/deploy"
-	dev "github.com/unkeyed/unkey/cmd/dev"
 	"github.com/unkeyed/unkey/cmd/healthcheck"
 	"github.com/unkeyed/unkey/cmd/version"
 	"github.com/unkeyed/unkey/pkg/buildinfo"
@@ -24,14 +23,13 @@ func main() {
 		Usage:       "Run unkey",
 		Description: `Unkey CLI – deploy, run and administer Unkey services.`,
 		Version:     buildinfo.Version,
-		Commands: []*cli.Command{
+		Commands: append([]*cli.Command{
 			api.Cmd(),
 			auth.Cmd,
 			version.Cmd,
 			deploy.Cmd,
 			healthcheck.Cmd,
-			dev.Cmd,
-		},
+		}, developmentCommands()...),
 	}
 
 	err := app.Run(context.Background(), os.Args)

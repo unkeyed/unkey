@@ -102,6 +102,10 @@ export const customDomains = createCollection<CustomDomain, string>(
               }),
             };
           }
+          // The banner in the card shows the details and the actions.
+          if (isCustomDomainLimitError(err)) {
+            return { message: "Custom domain limit reached" };
+          }
           return {
             message: "Failed to add domain",
             description: message,
@@ -134,6 +138,15 @@ export const customDomains = createCollection<CustomDomain, string>(
     },
   }),
 );
+
+/**
+ * ctrl answers the plan allowance gate with resource_exhausted. The add route
+ * changes that code to FORBIDDEN. No other failure of that route uses
+ * FORBIDDEN.
+ */
+export function isCustomDomainLimitError(error: unknown): boolean {
+  return (error as { data?: { code?: string } } | null)?.data?.code === "FORBIDDEN";
+}
 
 export async function retryDomainVerification({
   domain,

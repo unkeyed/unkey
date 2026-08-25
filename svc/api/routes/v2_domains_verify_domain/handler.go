@@ -13,6 +13,8 @@ import (
 	"github.com/unkeyed/unkey/pkg/domain/domaingate"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/internal/ctrlclient"
 	"github.com/unkeyed/unkey/svc/api/internal/customdomain"
@@ -83,6 +85,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			ResourceID:   domain.EnvironmentID,
 			Action:       rbac.VerifyDomain,
 		}),
+		rbac.U(
+			urn.New().Workspace(principal.WorkspaceID).Project(domain.ProjectID).App(domain.AppID).Environment(domain.EnvironmentID).Domain(domain.ID),
+			permissions.VerifyDomain{},
+		),
 	)); err != nil {
 		return apierrors.MaskInsufficientPermissionsAsNotFound(
 			err,

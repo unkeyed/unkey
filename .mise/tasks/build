@@ -6,4 +6,4 @@ set -euo pipefail
 
 go build ./...
 mkdir -p bin
-go build -o bin/unkey .
+go build -o bin/unkey ./build/cli

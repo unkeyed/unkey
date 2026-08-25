@@ -22,7 +22,7 @@
 //
 //	// Initialize a new server
 //	server, err := zen.New(zen.Config{
-//	    NodeID: "service-1",
+//	    MaxRequestBodySize: 1 << 20,
 //	})
 //	if err != nil {
 //	    log.Fatalf("failed to create server: %v", err)

@@ -54,6 +54,14 @@ How much memory your workspace can allocate across all running deployments at th
 
 If a new deployment would push the workspace's total memory usage beyond the limit, Unkey rejects the deployment. To free up capacity, scale down or remove existing deployments.
 
+## Custom domains
+
+How many custom domains your workspace can use. The limit applies to the workspace. It does not apply to one app or to one environment.
+
+The Free plan does not include custom domains. The paid plans include custom domains.
+
+Unkey refuses a new domain if the workspace is at the limit. To get free capacity, [remove a custom domain](/networking/domains) that you do not need. You can also upgrade your plan.
+
 ## Workspace API rate limit
 
 Some plans include a workspace-level API rate limit that caps the number of requests your workspace can make within a time window. This is separate from the monthly request limit and operates on a shorter window (for example, requests per second).

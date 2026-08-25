@@ -72,14 +72,8 @@ type CreateDeploymentRequest struct {
 	DesiredState dbtype.DeploymentsDesiredState
 }
 
-// CreateDeploymentResult contains the created deployment and topology.
-type CreateDeploymentResult struct {
-	Deployment db.Deployment
-	Topology   db.DeploymentTopology
-}
-
 // CreateDeployment creates a deployment with topology for testing.
-func (h *Harness) CreateDeployment(ctx context.Context, req CreateDeploymentRequest) CreateDeploymentResult {
+func (h *Harness) CreateDeployment(ctx context.Context, req CreateDeploymentRequest) db.Deployment {
 	workspaceID := h.Seed.Resources.UserWorkspace.ID
 
 	project := h.Seed.CreateProject(ctx, seed.CreateProjectRequest{
@@ -198,20 +192,5 @@ func (h *Harness) CreateDeployment(ctx context.Context, req CreateDeploymentRequ
 	deployment, err := h.DB.FindDeploymentById(ctx, deploymentID)
 	require.NoError(h.t, err)
 
-	return CreateDeploymentResult{
-		Deployment: deployment,
-		Topology: db.DeploymentTopology{
-			Pk:                         0,
-			WorkspaceID:                workspaceID,
-			DeploymentID:               deploymentID,
-			RegionID:                   regionID,
-			AutoscalingReplicasMin:     1,
-			AutoscalingReplicasMax:     1,
-			AutoscalingThresholdCpu:    sql.NullInt16{Valid: false},
-			AutoscalingThresholdMemory: sql.NullInt16{Valid: false},
-			DesiredStatus:              db.DeploymentTopologyDesiredStatusRunning,
-			CreatedAt:                  h.Now(),
-			UpdatedAt:                  sql.NullInt64{Valid: false},
-		},
-	}
+	return deployment
 }
