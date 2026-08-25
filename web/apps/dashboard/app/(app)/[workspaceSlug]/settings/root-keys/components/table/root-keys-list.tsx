@@ -11,6 +11,8 @@ import { unkeyPermissionValidation } from "@unkey/rbac";
 import { DataTable, EmptyRootKeys, PaginationFooter } from "@unkey/ui";
 import { useCallback, useMemo, useState } from "react";
 import { RootKeyDialog } from "../dialog/root-key-dialog";
+import { type ListVariant, ListVariantDebugBar } from "./list-variant-debug-bar";
+import { RootKeysResourceList } from "./root-keys-resource-list";
 
 // Type guard function to check if a string is a valid UnkeyPermission
 const isUnkeyPermission = (permissionName: string): permissionName is UnkeyPermission => {
@@ -39,6 +41,7 @@ export const RootKeysList = () => {
     sorting,
     onSortingChange,
   } = useRootKeysListPaginated();
+  const [variant, setVariant] = useState<ListVariant>("resource-list");
   const [selectedRootKey, setSelectedRootKey] = useState<RootKey | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editingKey, setEditingKey] = useState<RootKey | null>(null);
@@ -88,20 +91,30 @@ export const RootKeysList = () => {
 
   return (
     <>
-      <DataTable
-        data={rootKeys}
-        columns={columns}
-        getRowId={(rootKey) => rootKey.id}
-        isLoading={isInitialLoading}
-        onRowClick={handleRowClick}
-        selectedItem={selectedRootKey}
-        rowClassName={getRowClassNameMemoized}
-        emptyState={<EmptyRootKeys />}
-        config={TABLE_CONFIG}
-        renderSkeletonRow={renderRootKeySkeletonRow}
-        sorting={sorting}
-        onSortingChange={onSortingChange}
-      />
+      {variant === "resource-list" ? (
+        <RootKeysResourceList
+          rootKeys={rootKeys}
+          isLoading={isInitialLoading}
+          onSelect={handleRowClick}
+          onEditKey={handleEditKey}
+        />
+      ) : (
+        <DataTable
+          data={rootKeys}
+          columns={columns}
+          getRowId={(rootKey) => rootKey.id}
+          isLoading={isInitialLoading}
+          onRowClick={handleRowClick}
+          selectedItem={selectedRootKey}
+          rowClassName={getRowClassNameMemoized}
+          emptyState={<EmptyRootKeys />}
+          config={TABLE_CONFIG}
+          renderSkeletonRow={renderRootKeySkeletonRow}
+          sorting={sorting}
+          onSortingChange={onSortingChange}
+        />
+      )}
+      <ListVariantDebugBar variant={variant} onChange={setVariant} />
       <PaginationFooter
         hide={totalPages <= 1}
         page={page}

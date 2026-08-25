@@ -18,12 +18,7 @@ export type RootKeyTemplate = {
   materialise: () => Policy[];
 };
 
-const BREADTH_SCOPES: readonly ResourceScope[] = [
-  "workspace",
-  "projects",
-  "keyspaces",
-  "ratelimit-namespaces",
-];
+const BREADTH_SCOPES: readonly ResourceScope[] = ["workspace"];
 
 function everyRow(scope: ResourceScope, actions: readonly Action[]): Policy {
   const policy = newPolicy(scope);

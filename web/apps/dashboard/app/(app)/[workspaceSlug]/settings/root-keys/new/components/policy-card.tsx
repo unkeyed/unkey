@@ -1,7 +1,15 @@
 "use client";
 
-import { Trash, XMark } from "@unkey/icons";
-import { Button, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@unkey/ui";
+import { CircleInfo, Trash, XMark } from "@unkey/icons";
+import {
+  Button,
+  InfoTooltip,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@unkey/ui";
 import { instanceLabels, useScopeInstances } from "../hooks/use-scope-instances";
 import { CATALOGUES, catalogueFor } from "../lib/catalogue";
 import { RESOURCE_SCOPES, type ResourceScope } from "../lib/catalogue.types";
@@ -80,40 +88,51 @@ export function PolicyCard({
         </div>
       </div>
 
-      <div className="flex items-center gap-3">
-        <div className="flex-1">
-          <Select
-            value={policy.scope}
-            items={SCOPE_ITEMS}
-            onValueChange={(scope) => {
-              if (scope) {
-                onChange(newPolicy(scope));
-              }
-            }}
+      <div className="flex flex-col gap-2">
+        <div className="flex h-5 items-center gap-2">
+          <span className="text-[13px] text-gray-11">Scope</span>
+          <InfoTooltip
+            content="Choose which resources these privileges apply to."
+            position={{ side: "right" }}
           >
-            <SelectTrigger aria-label="Resource type">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {SCOPE_ITEMS.map((item) => (
-                <SelectItem key={item.value} value={item.value}>
-                  {item.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            <CircleInfo iconSize="sm-regular" className="shrink-0 text-gray-9" />
+          </InfoTooltip>
         </div>
-        {catalogue.instanceNoun === null ? null : (
+        <div className="flex items-center gap-3">
           <div className="flex-1">
-            <InstancePicker
-              noun={catalogue.instanceNoun}
-              instances={instances}
-              isLoading={isLoading}
-              value={policy.instances}
-              onChange={(next) => onChange({ ...policy, instances: next })}
-            />
+            <Select
+              value={policy.scope}
+              items={SCOPE_ITEMS}
+              onValueChange={(scope) => {
+                if (scope) {
+                  onChange(newPolicy(scope));
+                }
+              }}
+            >
+              <SelectTrigger aria-label="Resource type">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {SCOPE_ITEMS.map((item) => (
+                  <SelectItem key={item.value} value={item.value}>
+                    {item.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
-        )}
+          {catalogue.instanceNoun === null ? null : (
+            <div className="flex-1">
+              <InstancePicker
+                noun={catalogue.instanceNoun}
+                instances={instances}
+                isLoading={isLoading}
+                value={policy.instances}
+                onChange={(next) => onChange({ ...policy, instances: next })}
+              />
+            </div>
+          )}
+        </div>
       </div>
 
       {showError && error ? <span className="text-xs text-error-11">{error}</span> : null}

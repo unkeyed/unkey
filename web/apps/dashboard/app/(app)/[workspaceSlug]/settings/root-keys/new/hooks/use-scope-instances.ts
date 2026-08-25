@@ -33,6 +33,9 @@ export function useScopeInstances(scope: ResourceScope): ScopeInstances {
 
   switch (scope) {
     case "workspace":
+    case "identities":
+    case "rbac":
+    case "vault":
       return { instances: [], isLoading: false };
     case "projects":
       return {

@@ -9,8 +9,8 @@ vi.mock("@unkey/icons", () => ({
   Eye: () => null,
   Gauge: () => null,
   PenWriting3: () => null,
+  Plus: () => null,
   ShieldCheck: () => null,
-  Sliders: () => null,
   XMark: () => null,
 }));
 
@@ -48,12 +48,7 @@ describe("TemplateGallery", () => {
     const onPick = renderGallery();
     fireEvent.click(screen.getByText("All read permissions"));
     expect(onPick).toHaveBeenCalledTimes(1);
-    expect(onPick.mock.calls[0][0].map((policy) => policy.scope)).toEqual([
-      "workspace",
-      "projects",
-      "keyspaces",
-      "ratelimit-namespaces",
-    ]);
+    expect(onPick.mock.calls[0][0].map((policy) => policy.scope)).toEqual(["workspace"]);
   });
 
   it("starts a custom policy with no grants", () => {

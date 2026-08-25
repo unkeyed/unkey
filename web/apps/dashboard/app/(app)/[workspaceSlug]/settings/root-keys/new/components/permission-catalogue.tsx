@@ -93,7 +93,7 @@ export function PermissionCatalogue({ catalogue, value, onChange }: PermissionCa
                 </span>
               </CollapsibleTrigger>
               <CollapsibleContent>
-                <div className="flex flex-col pl-7 pb-2">
+                <div className="flex flex-col pl-6 pb-2">
                   {rows.map((row) => (
                     <PermissionCatalogueRow
                       key={row.id}

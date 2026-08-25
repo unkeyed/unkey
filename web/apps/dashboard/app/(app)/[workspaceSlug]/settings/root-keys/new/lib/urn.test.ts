@@ -2,15 +2,20 @@ import { describe, expect, it } from "vitest";
 import { CATALOGUES, catalogueRows } from "./catalogue";
 import { appsCatalogue } from "./catalogue.apps";
 import { environmentsCatalogue } from "./catalogue.environments";
+import { identitiesCatalogue } from "./catalogue.identities";
 import { keyspacesCatalogue } from "./catalogue.keyspaces";
 import { projectsCatalogue } from "./catalogue.projects";
 import { ratelimitNamespacesCatalogue } from "./catalogue.ratelimit-namespaces";
+import { rbacCatalogue } from "./catalogue.rbac";
 import {
   ACTIONS,
+  INSTANCE_TOKEN,
   type PermissionRow,
   type PermissionSelection,
   RESOURCE_SCOPES,
+  type ResourceScope,
 } from "./catalogue.types";
+import { vaultCatalogue } from "./catalogue.vault";
 import { workspaceCatalogue } from "./catalogue.workspace";
 import { ALL_INSTANCES, newPolicy, setRowActions } from "./policy";
 import { buildUrn, buildUrns, instancePath, isValidResourcePath, urnActions } from "./urn";
@@ -36,8 +41,13 @@ describe("urnActions", () => {
     expect(urnActions(row, "delete")).toEqual([{ name: "delete_identity" }]);
   });
 
-  it("keeps the resource noun for every row in the workspace catalogue", () => {
-    expect(catalogueRows(workspaceCatalogue).map((row) => urnActions(row, "read"))).toEqual([
+  it("keeps the resource noun for every container-less row", () => {
+    const rows = [
+      ...catalogueRows(identitiesCatalogue),
+      ...catalogueRows(rbacCatalogue),
+      ...catalogueRows(vaultCatalogue),
+    ];
+    expect(rows.map((row) => urnActions(row, "read"))).toEqual([
       [{ name: "read_identity" }],
       [{ name: "read_role" }],
       [{ name: "read_permission" }],
@@ -155,30 +165,32 @@ describe("buildUrns", () => {
     ]);
   });
 
-  it("covers the whole workspace catalogue", () => {
-    const rows = catalogueRows(workspaceCatalogue);
-    const selection = rows.reduce(
-      (acc, row) => setRowActions(acc, row.id, ["read", "write", "delete"]),
-      {},
+  it("covers every family with wildcards on the workspace scope", () => {
+    const all = (scope: ResourceScope) => ({
+      ...newPolicy(scope),
+      selection: everything(catalogueRows(CATALOGUES[scope])),
+    });
+    expect(buildUrns(ws, [all("workspace")])).toEqual(
+      buildUrns(ws, [
+        all("projects"),
+        all("keyspaces"),
+        all("ratelimit-namespaces"),
+        all("identities"),
+        all("rbac"),
+        all("vault"),
+      ]),
     );
-    expect(buildUrns(ws, [{ ...newPolicy(), selection }])).toEqual([
-      "unkey:v1:ws_123:identities/*#read_identity",
-      "unkey:v1:ws_123:identities/*#create_identity",
-      "unkey:v1:ws_123:identities/*#update_identity",
-      "unkey:v1:ws_123:identities/*#delete_identity",
-      "unkey:v1:ws_123:rbac/roles/*#read_role",
-      "unkey:v1:ws_123:rbac/roles/*#create_role",
-      "unkey:v1:ws_123:rbac/roles/*#update_role",
-      "unkey:v1:ws_123:rbac/roles/*#delete_role",
-      "unkey:v1:ws_123:rbac/permissions/*#read_permission",
-      "unkey:v1:ws_123:rbac/permissions/*#create_permission",
-      "unkey:v1:ws_123:rbac/permissions/*#update_permission",
-      "unkey:v1:ws_123:rbac/permissions/*#delete_permission",
-      "unkey:v1:ws_123:vault/keys/*#read_vault_key",
-      "unkey:v1:ws_123:vault/keys/*#create_vault_key",
-      "unkey:v1:ws_123:vault/keys/*#update_vault_key",
-      "unkey:v1:ws_123:vault/keys/*#delete_vault_key",
-    ]);
+  });
+
+  it("leaves no instance token in the workspace catalogue", () => {
+    for (const row of catalogueRows(workspaceCatalogue)) {
+      expect(row.path).not.toContain(INSTANCE_TOKEN);
+      for (const action of ACTIONS) {
+        for (const grant of urnActions(row, action)) {
+          expect(grant.path ?? row.path).not.toContain(INSTANCE_TOKEN);
+        }
+      }
+    }
   });
 
   it("deduplicates urns shared by two policies", () => {

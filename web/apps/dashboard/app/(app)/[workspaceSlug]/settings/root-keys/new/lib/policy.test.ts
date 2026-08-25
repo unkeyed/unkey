@@ -160,14 +160,14 @@ describe("isPolicyComplete", () => {
 describe("actionLabel", () => {
   it("composes the ticked actions", () => {
     expect(actionLabel(["read"])).toBe("Read");
-    expect(actionLabel(["read", "write"])).toBe("Read & write");
-    expect(actionLabel(["read", "write", "delete"])).toBe("Read, write & delete");
-    expect(actionLabel(["write", "delete"])).toBe("Write & delete");
+    expect(actionLabel(["read", "write"])).toBe("Read & Write");
+    expect(actionLabel(["read", "write", "delete"])).toBe("Read, Write & Delete");
+    expect(actionLabel(["write", "delete"])).toBe("Write & Delete");
     expect(actionLabel(["delete"])).toBe("Delete");
   });
 
   it("ignores the order it is given", () => {
-    expect(actionLabel(["delete", "read", "write"])).toBe("Read, write & delete");
+    expect(actionLabel(["delete", "read", "write"])).toBe("Read, Write & Delete");
   });
 
   it("is empty with nothing ticked", () => {
@@ -177,7 +177,7 @@ describe("actionLabel", () => {
 
 describe("policySummary", () => {
   it("names the whole workspace when every instance is covered", () => {
-    expect(policySummary(newPolicy()).scopeLine).toBe("Everything in this workspace");
+    expect(policySummary(newPolicy()).scopeLine).toBe("All resources");
   });
 
   it("lists named instances, resolving labels when given", () => {
@@ -196,7 +196,7 @@ describe("policySummary", () => {
     );
     expect(policySummary({ ...newPolicy(), selection }).grants).toEqual([
       "End-user identities Read",
-      "Role definitions Read, write & delete",
+      "Role definitions Read, Write & Delete",
     ]);
   });
 
@@ -223,14 +223,14 @@ describe("policySummary on instance scopes", () => {
     };
     expect(policySummary(keyspace).grants).toEqual([
       "Keyspace settings Read",
-      "API keys Read & write",
+      "API keys Read & Write",
     ]);
 
     const namespace = {
       ...newPolicy("ratelimit-namespaces"),
       selection: setRowActions({}, "override", ["read", "write", "delete"]),
     };
-    expect(policySummary(namespace).grants).toEqual(["Limit overrides Read, write & delete"]);
+    expect(policySummary(namespace).grants).toEqual(["Limit overrides Read, Write & Delete"]);
   });
 
   it("ignores a selection carried over from another scope", () => {
@@ -266,7 +266,7 @@ describe("grantsPreview", () => {
   });
 });
 
-describe("the six resource scopes", () => {
+describe("the nine resource scopes", () => {
   it("lists plain nouns in container order", () => {
     expect(RESOURCE_SCOPES.map((scope) => CATALOGUES[scope].label)).toEqual([
       "Workspace",
@@ -275,7 +275,17 @@ describe("the six resource scopes", () => {
       "Environments",
       "Keyspaces",
       "Ratelimit namespaces",
+      "Identities",
+      "RBAC",
+      "Vault",
     ]);
+  });
+
+  it("leaves the container-less scopes without a picker", () => {
+    expect(CATALOGUES.workspace.instanceNoun).toBeNull();
+    expect(CATALOGUES.identities.instanceNoun).toBeNull();
+    expect(CATALOGUES.rbac.instanceNoun).toBeNull();
+    expect(CATALOGUES.vault.instanceNoun).toBeNull();
   });
 
   it("gives every instance scope an all row and a noun for the picker", () => {
@@ -354,7 +364,7 @@ describe("policySummary on the deploy scopes", () => {
     };
     expect(policySummary(policy).grants).toEqual([
       "App settings Read",
-      "Deployments Read, write & delete",
+      "Deployments Read, Write & Delete",
     ]);
   });
 

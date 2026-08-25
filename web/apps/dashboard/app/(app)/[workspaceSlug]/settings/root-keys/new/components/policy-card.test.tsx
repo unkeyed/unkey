@@ -6,6 +6,7 @@ import { PolicyCard } from "./policy-card";
 
 vi.mock("@unkey/icons", () => ({
   ChevronRight: () => null,
+  CircleInfo: () => null,
   Check: () => null,
   ChevronDown: () => null,
   ChevronExpandY: () => null,
@@ -125,7 +126,7 @@ describe("PolicyCard collapsed", () => {
       />,
     );
 
-    expect(screen.getByText("Everything in this workspace")).toBeDefined();
+    expect(screen.getByText("All resources")).toBeDefined();
     expect(
       screen.getByText(
         /End-user identities Read, Role definitions Read, Permission definitions Read \+1 more…/,
@@ -160,7 +161,7 @@ describe("PolicyCard collapsed", () => {
   it("expands on click", () => {
     const props = handlers();
     render(<PolicyCard policy={newPolicy()} collapsed showError={false} {...props} />);
-    fireEvent.click(screen.getByText("Everything in this workspace"));
+    fireEvent.click(screen.getByText("All resources"));
 
     expect(props.onCollapsedChange).toHaveBeenCalledWith(false);
   });
@@ -192,7 +193,7 @@ describe("PolicyCard expanded", () => {
     });
   });
 
-  it("offers the six resource scopes as plain nouns", () => {
+  it("offers the nine resource scopes as plain nouns", () => {
     render(<PolicyCard policy={newPolicy()} collapsed={false} showError={false} {...handlers()} />);
     const options = Array.from(screen.getByLabelText("Resource type").children).map(
       (option) => option.textContent,
@@ -205,6 +206,9 @@ describe("PolicyCard expanded", () => {
       "Environments",
       "Keyspaces",
       "Ratelimit namespaces",
+      "Identities",
+      "RBAC",
+      "Vault",
     ]);
   });
 
@@ -225,6 +229,27 @@ describe("PolicyCard expanded", () => {
     render(<PolicyCard policy={newPolicy()} collapsed={false} showError={false} {...handlers()} />);
 
     expect(screen.queryByLabelText(/^Select /)).toBeNull();
+  });
+
+  it("hides the instance picker on the container-less scopes", () => {
+    for (const scope of ["identities", "rbac", "vault"] as const) {
+      cleanup();
+      render(
+        <PolicyCard
+          policy={newPolicy(scope)}
+          collapsed={false}
+          showError={false}
+          {...handlers()}
+        />,
+      );
+      expect(screen.queryByLabelText(/^Select /)).toBeNull();
+    }
+  });
+
+  it("labels the scope row", () => {
+    render(<PolicyCard policy={newPolicy()} collapsed={false} showError={false} {...handlers()} />);
+
+    expect(screen.getByText("Scope")).toBeDefined();
   });
 
   it("shows the instance picker on an instance scope", () => {

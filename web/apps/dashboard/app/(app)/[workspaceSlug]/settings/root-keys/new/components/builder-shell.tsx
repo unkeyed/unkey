@@ -4,10 +4,11 @@ import { usePreventLeave } from "@/hooks/use-prevent-leave";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { routes } from "@/lib/navigation/routes";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ChevronLeft, ChevronRight } from "@unkey/icons";
+import { ChevronLeft, ChevronRight, CircleInfo } from "@unkey/icons";
 import {
   Button,
   FormInput,
+  InfoTooltip,
   PageBody,
   PageContainer,
   PageHeader,
@@ -49,18 +50,23 @@ export function BuilderShell() {
 
   usePreventLeave(formState.isDirty && created === null);
 
-  const showStage = (review: boolean) => {
-    setReviewing(review);
+  const scrollToTop = () => {
     topRef.current?.scrollIntoView({
       behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth",
       block: "start",
     });
   };
 
+  const showStage = (review: boolean) => {
+    setReviewing(review);
+    scrollToTop();
+  };
+
   const submit = form.handleSubmit(
     (values) => {
       if (values.policies.length === 0 || !values.policies.every(isPolicyComplete)) {
         setValidated(true);
+        scrollToTop();
         return;
       }
       showStage(true);
@@ -97,6 +103,7 @@ export function BuilderShell() {
                       label="Name"
                       requirement="required"
                       placeholder="e.g. CI deploy key"
+                      ref={field.ref}
                       value={field.value}
                       onChange={field.onChange}
                       error={fieldState.error?.message}
@@ -105,8 +112,14 @@ export function BuilderShell() {
                 />
 
                 <div className="flex flex-col gap-2">
-                  <span className="flex items-center text-[13px] text-gray-11">
+                  <span className="flex h-5 items-center text-[13px] text-gray-11">
                     Permissions
+                    <InfoTooltip
+                      content="Select the privileges you'd like this root key to have."
+                      position={{ side: "right" }}
+                    >
+                      <CircleInfo iconSize="sm-regular" className="ml-1.5 shrink-0 text-gray-9" />
+                    </InfoTooltip>
                     <RequiredTag hasError={validated && values.policies.length === 0} />
                   </span>
                   <PolicyList showErrors={validated} />
@@ -117,11 +130,18 @@ export function BuilderShell() {
             <div className="flex items-center gap-3">
               {reviewing ? (
                 <>
-                  <Button type="button" variant="ghost" size="md" onClick={() => showStage(false)}>
+                  <Button
+                    key="back-to-edit"
+                    type="button"
+                    variant="ghost"
+                    size="md"
+                    onClick={() => showStage(false)}
+                  >
                     <ChevronLeft />
                     Back to edit
                   </Button>
                   <Button
+                    key="create-key"
                     type="button"
                     variant="primary"
                     size="md"
@@ -132,7 +152,13 @@ export function BuilderShell() {
                   </Button>
                 </>
               ) : (
-                <Button type="submit" variant="primary" size="md" className="ml-auto">
+                <Button
+                  key="review-key"
+                  type="submit"
+                  variant="primary"
+                  size="md"
+                  className="ml-auto"
+                >
                   Review key
                   <ChevronRight />
                 </Button>

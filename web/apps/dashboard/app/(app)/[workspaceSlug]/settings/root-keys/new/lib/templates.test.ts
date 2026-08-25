@@ -18,13 +18,9 @@ const materialise = (id: TemplateId): Policy[] => templateOf(id).materialise();
 const urnsOf = (id: TemplateId): string[] => buildUrns(ws, materialise(id));
 
 describe("TEMPLATES", () => {
-  it("materialises All read permissions into 4 policies", () => {
-    expect(materialise("read")).toHaveLength(4);
+  it("materialises All read permissions into one workspace policy", () => {
+    expect(materialise("read")).toHaveLength(1);
     expect(urnsOf("read")).toEqual([
-      "unkey:v1:ws_123:identities/*#read_identity",
-      "unkey:v1:ws_123:rbac/roles/*#read_role",
-      "unkey:v1:ws_123:rbac/permissions/*#read_permission",
-      "unkey:v1:ws_123:vault/keys/*#read_vault_key",
       "unkey:v1:ws_123:projects/*#read_project",
       "unkey:v1:ws_123:projects/*/apps/*#read_app",
       "unkey:v1:ws_123:projects/*/apps/*/environments/*#read_environment",
@@ -37,28 +33,16 @@ describe("TEMPLATES", () => {
       "unkey:v1:ws_123:ratelimits/namespaces/*#read_namespace",
       "unkey:v1:ws_123:ratelimits/namespaces/*#limit",
       "unkey:v1:ws_123:ratelimits/namespaces/*/overrides/*#read_override",
+      "unkey:v1:ws_123:identities/*#read_identity",
+      "unkey:v1:ws_123:rbac/roles/*#read_role",
+      "unkey:v1:ws_123:rbac/permissions/*#read_permission",
+      "unkey:v1:ws_123:vault/keys/*#read_vault_key",
     ]);
   });
 
-  it("materialises All write permissions into 4 policies", () => {
-    expect(materialise("write")).toHaveLength(4);
+  it("materialises All write permissions into one workspace policy", () => {
+    expect(materialise("write")).toHaveLength(1);
     expect(urnsOf("write")).toEqual([
-      "unkey:v1:ws_123:identities/*#read_identity",
-      "unkey:v1:ws_123:identities/*#create_identity",
-      "unkey:v1:ws_123:identities/*#update_identity",
-      "unkey:v1:ws_123:identities/*#delete_identity",
-      "unkey:v1:ws_123:rbac/roles/*#read_role",
-      "unkey:v1:ws_123:rbac/roles/*#create_role",
-      "unkey:v1:ws_123:rbac/roles/*#update_role",
-      "unkey:v1:ws_123:rbac/roles/*#delete_role",
-      "unkey:v1:ws_123:rbac/permissions/*#read_permission",
-      "unkey:v1:ws_123:rbac/permissions/*#create_permission",
-      "unkey:v1:ws_123:rbac/permissions/*#update_permission",
-      "unkey:v1:ws_123:rbac/permissions/*#delete_permission",
-      "unkey:v1:ws_123:vault/keys/*#read_vault_key",
-      "unkey:v1:ws_123:vault/keys/*#create_vault_key",
-      "unkey:v1:ws_123:vault/keys/*#update_vault_key",
-      "unkey:v1:ws_123:vault/keys/*#delete_vault_key",
       "unkey:v1:ws_123:projects/*#read_project",
       "unkey:v1:ws_123:projects/*#update_project",
       "unkey:v1:ws_123:projects/*#delete_project",
@@ -101,6 +85,22 @@ describe("TEMPLATES", () => {
       "unkey:v1:ws_123:ratelimits/namespaces/*/overrides/*#read_override",
       "unkey:v1:ws_123:ratelimits/namespaces/*/overrides/*#set_override",
       "unkey:v1:ws_123:ratelimits/namespaces/*/overrides/*#delete_override",
+      "unkey:v1:ws_123:identities/*#read_identity",
+      "unkey:v1:ws_123:identities/*#create_identity",
+      "unkey:v1:ws_123:identities/*#update_identity",
+      "unkey:v1:ws_123:identities/*#delete_identity",
+      "unkey:v1:ws_123:rbac/roles/*#read_role",
+      "unkey:v1:ws_123:rbac/roles/*#create_role",
+      "unkey:v1:ws_123:rbac/roles/*#update_role",
+      "unkey:v1:ws_123:rbac/roles/*#delete_role",
+      "unkey:v1:ws_123:rbac/permissions/*#read_permission",
+      "unkey:v1:ws_123:rbac/permissions/*#create_permission",
+      "unkey:v1:ws_123:rbac/permissions/*#update_permission",
+      "unkey:v1:ws_123:rbac/permissions/*#delete_permission",
+      "unkey:v1:ws_123:vault/keys/*#read_vault_key",
+      "unkey:v1:ws_123:vault/keys/*#create_vault_key",
+      "unkey:v1:ws_123:vault/keys/*#update_vault_key",
+      "unkey:v1:ws_123:vault/keys/*#delete_vault_key",
     ]);
   });
 

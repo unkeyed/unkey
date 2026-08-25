@@ -12,6 +12,9 @@ export const RESOURCE_SCOPES = [
   "environments",
   "keyspaces",
   "ratelimit-namespaces",
+  "identities",
+  "rbac",
+  "vault",
 ] as const;
 
 export type ResourceScope = (typeof RESOURCE_SCOPES)[number];

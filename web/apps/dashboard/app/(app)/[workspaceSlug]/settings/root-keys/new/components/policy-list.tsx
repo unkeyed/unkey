@@ -29,9 +29,13 @@ export function PolicyList({ showErrors }: PolicyListProps) {
   };
 
   const openGallery = () => {
-    setCollapsed((current) =>
-      fields.reduce((next, field) => ({ ...next, [field.id]: true }), current),
-    );
+    setCollapsed((current) => {
+      const next = { ...current };
+      for (const field of fields) {
+        next[field.id] = true;
+      }
+      return next;
+    });
     setAdding(true);
   };
 

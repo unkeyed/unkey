@@ -123,12 +123,12 @@ export function actionLabel(actions: readonly Action[]): string {
   if (ordered.length === 0) {
     return "";
   }
-  const capitalised = `${ordered[0].charAt(0).toUpperCase()}${ordered[0].slice(1)}`;
-  if (ordered.length === 1) {
-    return capitalised;
+  const capitalised = ordered.map((action) => `${action.charAt(0).toUpperCase()}${action.slice(1)}`);
+  if (capitalised.length === 1) {
+    return capitalised[0];
   }
-  const head = [capitalised, ...ordered.slice(1, -1)].join(", ");
-  return `${head} & ${ordered[ordered.length - 1]}`;
+  const head = capitalised.slice(0, -1).join(", ");
+  return `${head} & ${capitalised[capitalised.length - 1]}`;
 }
 
 export function policySummary(

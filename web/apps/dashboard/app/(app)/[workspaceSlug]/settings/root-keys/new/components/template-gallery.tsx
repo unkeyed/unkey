@@ -1,6 +1,6 @@
 "use client";
 
-import { Eye, Gauge, PenWriting3, ShieldCheck, Sliders, XMark } from "@unkey/icons";
+import { Eye, Gauge, PenWriting3, Plus, ShieldCheck, XMark } from "@unkey/icons";
 import { Button, Item, ItemContent, ItemDescription, ItemMedia, ItemTitle } from "@unkey/ui";
 import type { ReactNode } from "react";
 import type { Policy } from "../lib/policy";
@@ -11,7 +11,7 @@ const TEMPLATE_ICONS: Record<TemplateId, ReactNode> = {
   write: <PenWriting3 />,
   verify: <ShieldCheck />,
   ratelimit: <Gauge />,
-  custom: <Sliders />,
+  custom: <Plus />,
 };
 
 type TemplateGalleryProps = {
