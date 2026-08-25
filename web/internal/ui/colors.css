@@ -7,7 +7,15 @@ This file only provides color variable definitions.
 */
 
 @layer base {
-  :root {
+  /*
+  `.light` re-applies these on a subtree so it can opt out of an ancestor `.dark`.
+  `color-scheme` alone cannot: it only picks the UA widget theme and does not
+  re-resolve custom properties, so tokens would stay dark without this.
+  */
+  :root,
+  .light {
+    color-scheme: light;
+
     /* Gray */
     --gray-1: 0, 0%, 99%;
     --gray-2: 0, 0%, 98%;

@@ -610,6 +610,27 @@
     --toast-fg: 240 10% 3.9%;
   }
 
+  /*
+  Tailwind's `@theme` substitutes `--color-*` once on `:root`, so a subtree that
+  re-declares the raw scale still inherits the resolved root value. `.light`
+  re-maps the gray family from its own `--gray-*` so a light-pinned subtree can
+  use `bg-gray-*`. Extend this if a light subtree needs another family.
+  */
+  .light {
+    --color-gray-1: hsl(var(--gray-1));
+    --color-gray-2: hsl(var(--gray-2));
+    --color-gray-3: hsl(var(--gray-3));
+    --color-gray-4: hsl(var(--gray-4));
+    --color-gray-5: hsl(var(--gray-5));
+    --color-gray-6: hsl(var(--gray-6));
+    --color-gray-7: hsl(var(--gray-7));
+    --color-gray-8: hsl(var(--gray-8));
+    --color-gray-9: hsl(var(--gray-9));
+    --color-gray-10: hsl(var(--gray-10));
+    --color-gray-11: hsl(var(--gray-11));
+    --color-gray-12: hsl(var(--gray-12));
+  }
+
   .dark {
     color-scheme: dark;
     --chart-selection: var(--accent-9);
