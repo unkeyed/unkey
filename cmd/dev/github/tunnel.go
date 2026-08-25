@@ -146,7 +146,7 @@ func waitForNgrokURL() (string, error) {
 func readAppID(envFile string) (int64, error) {
 	val, err := readEnvFileValue(envFile, "UNKEY_GITHUB_APP_ID")
 	if err != nil {
-		return 0, fmt.Errorf("%w\n\nRun `go run . dev github setup` first", err)
+		return 0, fmt.Errorf("%w\n\nRun `go run ./build/cli dev github setup` first", err)
 	}
 	id, err := strconv.ParseInt(val, 10, 64)
 	if err != nil {

@@ -39,14 +39,14 @@ Seeding requires MySQL to be running. Start infra first, then seed.
 For Docker Compose:
 ```bash
 make up
-go run . dev seed local --slug awesome --portal
+go run ./build/cli dev seed local --slug awesome --portal
 ```
 
 For Tilt:
 ```bash
 make dev
 # wait for MySQL to be healthy in the Tilt UI
-go run . dev seed local --slug awesome --portal
+go run ./build/cli dev seed local --slug awesome --portal
 ```
 
 Save the root key printed at the end (e.g. `unkey_xxx`).
@@ -162,7 +162,7 @@ insert them manually or via the dashboard (once the config UI is built).
 
 For staging, you can run the seed tool against the staging DB:
 ```bash
-go run . dev seed local \
+go run ./build/cli dev seed local \
   --slug awesome \
   --portal \
   --database-primary "<STAGING_DSN>"
@@ -200,7 +200,7 @@ domain if configured). Open it in the browser.
 ## Troubleshooting
 
 - **Session creation fails with 400**: Make sure `slug` is included in the request body
-- **Session creation fails with 401**: Re-run `go run . dev seed local --slug awesome --portal`
+- **Session creation fails with 401**: Re-run `go run ./build/cli dev seed local --slug awesome --portal`
 - **Session creation fails with 403**: Check `portal_configurations.enabled = TRUE`
 - **Session creation fails with 404**: The `slug` doesn't exist in the authenticated workspace. Verify the portal config was seeded and the root key matches the same workspace.
 - **"Invalid access" with session param**: Session may be expired (15 min TTL) or already exchanged (single-use). Create a fresh one.
@@ -210,7 +210,7 @@ domain if configured). Open it in the browser.
 
 ## What the Seed Script Creates
 
-`go run . dev seed local --slug <slug> --portal` sets up a complete local
+`go run ./build/cli dev seed local --slug <slug> --portal` sets up a complete local
 environment in a single transaction. The `--slug` flag (default: `local`)
 drives all generated IDs.
 
