@@ -11,14 +11,7 @@ import {
 } from "@/lib/portal/validation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { Portal } from "@unkey/api/models/components";
-import {
-  Button,
-  CopyButton,
-  DialogContainer,
-  FormInput,
-  SettingsDangerZone,
-  toast,
-} from "@unkey/ui";
+import { Button, DialogContainer, FormInput, SettingsDangerZone, toast } from "@unkey/ui";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -26,11 +19,8 @@ import { DeletePortalRow } from "./delete-portal-row";
 import { BrandColorField } from "./portal-branding";
 import { PortalPreview } from "./portal-preview";
 
-/**
- * The preview renders the logo URL in an `<img>`, so an unvalidated live value
- * would issue one request per keystroke, most of them relative prefixes hitting
- * the dashboard's own origin.
- */
+// The preview renders the logo URL in an `<img>`, so a live value would issue
+// one request per keystroke against the dashboard's own origin.
 const LOGO_PREVIEW_DEBOUNCE_MS = 300;
 
 const formSchema = z.object({
@@ -42,19 +32,12 @@ const formSchema = z.object({
 
 type FormValues = z.infer<typeof formSchema>;
 
-/**
- * Only a slug conflict can reach this surface: `updatePortal` never changes a
- * portal's mapping, and its handler returns early from the mapping-availability
- * check when the request carries no mapping.
- */
+// Only a slug conflict can reach this surface: `updatePortal` never changes a
+// portal's mapping, so its mapping-availability check returns early.
 function isSlugConflict(error: unknown): boolean {
   return portalConflict(error) === "slug";
 }
 
-/**
- * Holds back the value the preview renders until it parses as a logo URL and
- * the operator has stopped typing.
- */
 function useDebouncedLogoUrl(value: string, initial: string): string {
   const [debounced, setDebounced] = useState(initial);
 
@@ -75,8 +58,7 @@ type Props = {
 export function PortalConfig({ portal, keyAuthId }: Props) {
   const [disableOpen, setDisableOpen] = useState(false);
 
-  // The slug conflict is claimed so it lands on the field instead of in a
-  // toast; every other failure keeps the hook's default toast.
+  // Claim the slug conflict so it lands on the field instead of in a toast.
   const updatePortal = useUpdatePortal(keyAuthId, { onError: isSlugConflict });
   const disablePortal = useUpdatePortal(keyAuthId);
 
@@ -100,9 +82,7 @@ export function PortalConfig({ portal, keyAuthId }: Props) {
 
   const save = async (submitted: FormValues) => {
     clearErrors("slug");
-    // `enabled` is not on this form; disabling is its own action below. The
-    // patch is built from the fields the operator edited, never from a diff
-    // against `portal`, which refetches out from under the mounted form.
+    // `enabled` is not on this form; disabling is its own action below.
     const body = buildPortalUpdate(
       portal.id,
       { ...submitted, enabled: portal.enabled },
@@ -127,17 +107,6 @@ export function PortalConfig({ portal, keyAuthId }: Props) {
   return (
     <div className="flex w-full flex-col gap-6">
       <div className="w-full divide-y divide-grayA-4 overflow-hidden rounded-lg border border-grayA-4">
-        <div className="flex flex-col gap-4 p-6 lg:flex-row lg:items-center lg:justify-between">
-          <div>
-            <h2 className="text-sm font-medium text-accent-12">Portal slug</h2>
-          </div>
-          <div className="flex min-w-0 items-center gap-1">
-            {/* The saved slug, never the form draft: an unsaved slug is a value
-                `createSession` rejects. */}
-            <span className="truncate font-mono text-[13px] text-gray-11">{portal.slug}</span>
-            <CopyButton value={portal.slug} variant="ghost" />
-          </div>
-        </div>
         <div className="grid gap-x-8 px-6 pt-6 lg:grid-cols-2">
           <div className="flex flex-col pb-6">
             <h2 className="text-sm font-medium text-accent-12">Branding</h2>
