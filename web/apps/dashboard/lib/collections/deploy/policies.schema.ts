@@ -285,11 +285,11 @@ export function normalizePolicyName(name: string): string {
 }
 
 /**
- * A policy's identity. Type belongs in it because a name can repeat across
- * types: a firewall and a ratelimit policy both called "Guard" are two
- * policies, not one.
+ * What makes two policies the same policy across environments. Type belongs in
+ * the match key because a name can repeat across types: a firewall and a
+ * ratelimit policy both called "Guard" are two policies, not one.
  */
-export function policyIdentity(type: PolicyType, name: string): string {
+export function policyMatchKey(type: PolicyType, name: string): string {
   return `${type}:${normalizePolicyName(name)}`;
 }
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { type Policy, policyIdentity } from "@/lib/collections/deploy/policies.schema";
+import { type Policy, policyMatchKey } from "@/lib/collections/deploy/policies.schema";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { match } from "@unkey/match";
 import { Button, FormInput, FormSelect } from "@unkey/ui";
@@ -34,11 +34,11 @@ type CommonProps = {
   topOffset: number;
   onClose: () => void;
   /**
-   * `policyIdentity` of every policy on the page. `mergePolicies` pairs the two
-   * environment copies of a policy on that identity, so a second policy
+   * `policyMatchKey` of every policy on the page. `mergePolicies` pairs the
+   * two environment copies of a policy on that match key, so a second policy
    * carrying one is indistinguishable from the first and is rejected here.
    */
-  existingIdentities: string[];
+  existingMatchKeys: string[];
 };
 
 type AddProps = CommonProps & {
@@ -56,7 +56,7 @@ type EditProps = CommonProps & {
 export type PolicyPanelProps = AddProps | EditProps;
 
 export function PolicyPanel(props: PolicyPanelProps) {
-  const { productionSlug, previewSlug, isOpen, topOffset, onClose, existingIdentities } = props;
+  const { productionSlug, previewSlug, isOpen, topOffset, onClose, existingMatchKeys } = props;
   const isEdit = props.mode === "edit";
 
   const envOptions = [
@@ -75,11 +75,11 @@ export function PolicyPanel(props: PolicyPanelProps) {
   const policyType = useWatch({ control, name: "type" });
 
   const onSubmit = (values: PolicyFormValues) => {
-    const nextIdentity = policyIdentity(values.type, values.name);
-    const currentIdentity = isEdit
-      ? policyIdentity(props.initialPolicy.type, props.initialPolicy.name)
+    const nextMatchKey = policyMatchKey(values.type, values.name);
+    const currentMatchKey = isEdit
+      ? policyMatchKey(props.initialPolicy.type, props.initialPolicy.name)
       : null;
-    if (nextIdentity !== currentIdentity && existingIdentities.includes(nextIdentity)) {
+    if (nextMatchKey !== currentMatchKey && existingMatchKeys.includes(nextMatchKey)) {
       const label =
         POLICY_TYPE_OPTIONS.find((option) => option.value === values.type)?.label ?? values.type;
       form.setError("name", {

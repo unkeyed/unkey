@@ -1,6 +1,6 @@
 "use client";
 import { TOP_NAV_HEIGHT } from "@/components/navigation/top-nav";
-import { policyIdentity } from "@/lib/collections/deploy/policies.schema";
+import { policyMatchKey } from "@/lib/collections/deploy/policies.schema";
 import { Plus } from "@unkey/icons";
 import {
   Button,
@@ -55,7 +55,7 @@ export default function PoliciesPage() {
     b: editingRow?.preview?.enabled ?? false,
   };
 
-  const existingIdentities = merged.map((m) => policyIdentity(m.type, m.name));
+  const existingMatchKeys = merged.map((m) => policyMatchKey(m.type, m.name));
 
   const editingInitialEnvId =
     editingEnabled.a && editingEnabled.b
@@ -114,7 +114,7 @@ export default function PoliciesPage() {
           isOpen={panels.isAddPanelOpen}
           topOffset={TOP_NAV_HEIGHT}
           onClose={panels.closeAdd}
-          existingIdentities={existingIdentities}
+          existingMatchKeys={existingMatchKeys}
           onSave={actions.save}
         />
         {editingPolicy !== null && (
@@ -126,7 +126,7 @@ export default function PoliciesPage() {
             isOpen={panels.isEditPanelOpen}
             topOffset={TOP_NAV_HEIGHT}
             onClose={panels.closeEdit}
-            existingIdentities={existingIdentities}
+            existingMatchKeys={existingMatchKeys}
             initialPolicy={editingPolicy}
             initialEnvironmentId={editingInitialEnvId}
             onSave={(prodPolicy, previewPolicy) => {

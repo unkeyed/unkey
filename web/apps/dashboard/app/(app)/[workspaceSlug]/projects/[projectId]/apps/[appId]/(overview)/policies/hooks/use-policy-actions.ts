@@ -5,7 +5,7 @@ import { type PolicyRow, replacePolicyLists, rowKey } from "@/lib/collections/de
 import {
   POLICY_LIMITS,
   type Policy,
-  policyIdentity,
+  policyMatchKey,
 } from "@/lib/collections/deploy/policies.schema";
 import { toast } from "@unkey/ui";
 import { useCallback } from "react";
@@ -137,7 +137,7 @@ export function usePolicyActions({
       if (!submitted) {
         return;
       }
-      const submittedIdentity = policyIdentity(submitted.type, submitted.name);
+      const submittedMatchKey = policyMatchKey(submitted.type, submitted.name);
       const targets = [
         {
           env: "production" as const,
@@ -159,7 +159,7 @@ export function usePolicyActions({
       for (const target of targets) {
         const existingRow = editing
           ? target.existing
-          : rowsByEnv[target.env].find((r) => policyIdentity(r.type, r.name) === submittedIdentity);
+          : rowsByEnv[target.env].find((r) => policyMatchKey(r.type, r.name) === submittedMatchKey);
         if (existingRow) {
           updates.push({
             key: rowKey(target.envId, existingRow.id),

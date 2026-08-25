@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { type PolicyRow, replacePolicyLists, rowKey } from "./policies";
-import { type Policy, policyIdentity } from "./policies.schema";
+import { type Policy, policyMatchKey } from "./policies.schema";
 
 const LABELS = { loading: "Saving...", success: "Saved", error: "Failed" };
 
@@ -126,13 +126,13 @@ describe("replacePolicyLists", () => {
   });
 });
 
-describe("policyIdentity", () => {
+describe("policyMatchKey", () => {
   it("separates two types that share a name", () => {
-    expect(policyIdentity("firewall", "Guard")).not.toBe(policyIdentity("ratelimit", "Guard"));
+    expect(policyMatchKey("firewall", "Guard")).not.toBe(policyMatchKey("ratelimit", "Guard"));
   });
 
   it("folds surrounding space but not case", () => {
-    expect(policyIdentity("firewall", "  Guard ")).toBe(policyIdentity("firewall", "Guard"));
-    expect(policyIdentity("firewall", "Guard")).not.toBe(policyIdentity("firewall", "guard"));
+    expect(policyMatchKey("firewall", "  Guard ")).toBe(policyMatchKey("firewall", "Guard"));
+    expect(policyMatchKey("firewall", "Guard")).not.toBe(policyMatchKey("firewall", "guard"));
   });
 });

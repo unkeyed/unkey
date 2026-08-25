@@ -1,5 +1,5 @@
 import type { PolicyRow } from "@/lib/collections/deploy/policies";
-import { policyIdentity } from "@/lib/collections/deploy/policies.schema";
+import { policyMatchKey } from "@/lib/collections/deploy/policies.schema";
 import { describe, expect, it } from "vitest";
 import { mergePolicies, policyInEnv } from "./merge";
 
@@ -35,15 +35,15 @@ describe("mergePolicies", () => {
 
     expect(merged).toHaveLength(1);
     expect(merged[0]).toMatchObject({
-      key: policyIdentity("firewall", "KEBAP"),
+      key: policyMatchKey("firewall", "KEBAP"),
       production: { id: "pol_a1" },
       preview: { id: "pol_a2" },
     });
   });
 
-  it("keys an unpaired policy by its identity, not its id, when the identity is unique in its own environment", () => {
-    // A row in one environment only is the common case. Its key must stay an
-    // identity, because the row actions read a policy from a key.
+  it("keys an unpaired policy by its match key, not its id, when the match key is unique in its own environment", () => {
+    // A row in one environment only is the common case. Its key must stay a
+    // match key, because the row actions read a policy from a key.
     const merged = mergePolicies(
       [firewall("pol_a1", "Prod only")],
       [firewall("pol_b1", "Preview only")],
@@ -51,12 +51,12 @@ describe("mergePolicies", () => {
 
     expect(merged).toHaveLength(2);
     expect(merged.find((m) => m.name === "Prod only")).toMatchObject({
-      key: policyIdentity("firewall", "Prod only"),
+      key: policyMatchKey("firewall", "Prod only"),
       production: { id: "pol_a1" },
       preview: null,
     });
     expect(merged.find((m) => m.name === "Preview only")).toMatchObject({
-      key: policyIdentity("firewall", "Preview only"),
+      key: policyMatchKey("firewall", "Preview only"),
       production: null,
       preview: { id: "pol_b1" },
     });
@@ -96,12 +96,12 @@ describe("policy type", () => {
 
     expect(merged).toHaveLength(2);
     expect(merged.find((m) => m.type === "firewall")).toMatchObject({
-      key: policyIdentity("firewall", "Guard"),
+      key: policyMatchKey("firewall", "Guard"),
       production: { id: "pol_a1" },
       preview: null,
     });
     expect(merged.find((m) => m.type === "ratelimit")).toMatchObject({
-      key: policyIdentity("ratelimit", "Guard"),
+      key: policyMatchKey("ratelimit", "Guard"),
       production: null,
       preview: { id: "pol_b1" },
     });
@@ -111,10 +111,10 @@ describe("policy type", () => {
     const merged = mergePolicies([firewall("pol_a1", "Guard"), ratelimit("pol_a2", "Guard")], []);
 
     expect(new Set(merged.map((m) => m.key)).size).toBe(2);
-    expect(policyInEnv(merged, policyIdentity("firewall", "Guard"), "production")?.id).toBe(
+    expect(policyInEnv(merged, policyMatchKey("firewall", "Guard"), "production")?.id).toBe(
       "pol_a1",
     );
-    expect(policyInEnv(merged, policyIdentity("ratelimit", "Guard"), "production")?.id).toBe(
+    expect(policyInEnv(merged, policyMatchKey("ratelimit", "Guard"), "production")?.id).toBe(
       "pol_a2",
     );
   });
@@ -140,12 +140,12 @@ describe("name folding", () => {
   });
 });
 
-// The row actions read a policy from a key. A duplicate identity gets an id
+// The row actions read a policy from a key. A duplicate match key gets an id
 // key, so the reader must accept both key shapes.
 describe("policyInEnv", () => {
-  it("resolves an identity-keyed row in each environment", () => {
+  it("resolves a row keyed by its match key in each environment", () => {
     const merged = mergePolicies([firewall("pol_a1", "KEBAP")], [firewall("pol_b1", "KEBAP")]);
-    const key = policyIdentity("firewall", "KEBAP");
+    const key = policyMatchKey("firewall", "KEBAP");
 
     expect(policyInEnv(merged, key, "production")?.id).toBe("pol_a1");
     expect(policyInEnv(merged, key, "preview")?.id).toBe("pol_b1");
@@ -161,7 +161,7 @@ describe("policyInEnv", () => {
   it("returns null for an environment the row does not exist in", () => {
     const merged = mergePolicies([firewall("pol_a1", "Prod only")], []);
 
-    expect(policyInEnv(merged, policyIdentity("firewall", "Prod only"), "preview")).toBeNull();
+    expect(policyInEnv(merged, policyMatchKey("firewall", "Prod only"), "preview")).toBeNull();
   });
 
   it("returns null for an unknown key", () => {
