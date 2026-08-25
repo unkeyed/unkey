@@ -12,10 +12,13 @@ typed, verified, and routed through `mise`.
 
 ## Source of truth
 
-- Tooling and task runner: `mise.toml`, `mise.lock`, and `.mise/tasks/*`.
-- Engineering docs: `docs/engineering/contributing/`.
+- Tooling and task runner: `.mise/config.toml`, `.mise/mise.lock`, and
+  `.mise/tasks/*`.
+- Engineering docs: `docs/engineering/contributing/`. These are normative
+  standards for writing code, not only reference material for the docs site.
 - Product docs: `docs/product/`.
-- Go tooling: `go.mod`, `go.sum`, `rask.toml`, and `.golangci.yaml`.
+- Go tooling: `go.mod`, `go.sum`, and `.golangci.yaml`. Rask is pinned as a
+  tool in `.mise/config.toml`; it has no config file of its own.
 - Web workspace: `web/package.json`, `web/pnpm-workspace.yaml`, and
   `web/pnpm-lock.yaml`.
 
@@ -24,10 +27,13 @@ typed, verified, and routed through `mise`.
 - `cmd/`: Unkey CLI commands and service entrypoints.
 - `svc/`: Go services (`api`, `ctrl`, `frontline`, `heimdall`, `krane`, `vault`).
 - `pkg/`: shared Go libraries.
-- `internal/`: shared internal Go services.
+- `internal/services/`: shared internal Go services.
 - `proto/` and `gen/`: protobuf definitions and generated code.
-- `web/`: TypeScript apps, packages, database schema, and tooling.
+- `web/`: TypeScript apps (`web/apps/`) and shared packages, database schema,
+  and tooling. Shared code lives in `web/internal/`; there is no
+  `web/packages/`.
 - `docs/`: Mintlify product and engineering documentation.
+  `docs/engineering/contributing/` holds the coding standards themselves.
 - `dev/`: local development, Tilt, Kubernetes, and formatting config.
 
 ## Tooling rules
@@ -145,6 +151,9 @@ Unkey runs on PlanetScale Vitess. Every production MySQL query should carry SQLC
 - Full guide: [`docs/engineering/infra/planetscale/query-insights-tags.mdx`](docs/engineering/infra/planetscale/query-insights-tags.mdx).
 
 ## High-signal references
+
+Read the page that covers the area before writing code in it. These pages define
+how Unkey code is written; this file only summarizes them.
 
 - Local development: `docs/engineering/contributing/local/development.mdx`.
 - Build workflow: `docs/engineering/contributing/tooling/builds.mdx`.
