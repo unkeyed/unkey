@@ -90,3 +90,13 @@ actions:
       nullable: true
       allOf:
         - "$ref": "#/components/schemas/AppGitUpdateInput"
+  - target: $["components"]["schemas"]["V2PortalUpdatePortalRequestBody"]["properties"]["logoUrl"]["type"]
+    update: string
+  - target: $["components"]["schemas"]["V2PortalUpdatePortalRequestBody"]["properties"]["logoUrl"]
+    update:
+      nullable: true
+  - target: $["components"]["schemas"]["V2PortalUpdatePortalRequestBody"]["properties"]["primaryColor"]["type"]
+    update: string
+  - target: $["components"]["schemas"]["V2PortalUpdatePortalRequestBody"]["properties"]["primaryColor"]
+    update:
+      nullable: true

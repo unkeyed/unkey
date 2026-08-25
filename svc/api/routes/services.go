@@ -15,6 +15,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/batch"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
+	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/db"
 	githubclient "github.com/unkeyed/unkey/pkg/github"
 	"github.com/unkeyed/unkey/pkg/redaction"
@@ -55,6 +56,10 @@ type Services struct {
 	// KeyVerifications buffers key verification outcomes for ClickHouse. Owned
 	// by the v2 keys.verifyKey handler.
 	KeyVerifications *batch.BatchProcessor[schema.KeyVerification]
+
+	// Clock is the time source handlers read the current time from, so tests can
+	// drive time deterministically instead of racing the system clock.
+	Clock clock.Clock
 
 	// Validator performs request payload validation using struct tags.
 	Validator *validation.Validator

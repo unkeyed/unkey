@@ -39,7 +39,7 @@ function PortalLayout() {
       <PortalHeader
         logoUrl={portal?.branding?.logoUrl ?? undefined}
         returnUrl={session.returnUrl ?? undefined}
-        appName={portal?.slug ?? undefined}
+        appName={portal?.displayName ?? undefined}
       />
       <div className="flex-1">
         <Outlet />
