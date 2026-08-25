@@ -16,16 +16,16 @@ func TestGetRatelimits(t *testing.T) {
 	}{
 		{
 			name: "raw data query",
-			args: `analytics get-ratelimits --query=SELECT+*+FROM+ratelimits_v1`,
+			args: `analytics get-ratelimits --query='SELECT * FROM ratelimits_v1'`,
 			want: openapi.V2AnalyticsGetRatelimitsRequestBody{
-				Query: "SELECT+*+FROM+ratelimits_v1",
+				Query: "SELECT * FROM ratelimits_v1",
 			},
 		},
 		{
 			name: "aggregate query",
-			args: `analytics get-ratelimits --query=SELECT+namespace_id,COUNT(*)+FROM+ratelimits_per_hour_v1+GROUP+BY+namespace_id`,
+			args: `analytics get-ratelimits --query='SELECT namespace_id, COUNT(*) FROM ratelimits_per_hour_v1 GROUP BY namespace_id'`,
 			want: openapi.V2AnalyticsGetRatelimitsRequestBody{
-				Query: "SELECT+namespace_id,COUNT(*)+FROM+ratelimits_per_hour_v1+GROUP+BY+namespace_id",
+				Query: "SELECT namespace_id, COUNT(*) FROM ratelimits_per_hour_v1 GROUP BY namespace_id",
 			},
 		},
 	}

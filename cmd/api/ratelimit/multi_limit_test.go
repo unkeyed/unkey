@@ -17,7 +17,7 @@ func TestMultiLimit(t *testing.T) {
 	}{
 		{
 			name: "single limit",
-			args: `ratelimit multi-limit --limits=[{"namespace":"api.requests","identifier":"user_abc123","limit":100,"duration":60000}]`,
+			args: `ratelimit multi-limit --limits='[{"namespace":"api.requests","identifier":"user_abc123","limit":100,"duration":60000}]'`,
 			want: []openapi.V2RatelimitLimitRequestBody{
 				{
 					Namespace:  "api.requests",
@@ -30,7 +30,7 @@ func TestMultiLimit(t *testing.T) {
 		},
 		{
 			name: "two limits with cost",
-			args: `ratelimit multi-limit --limits=[{"namespace":"api.light_operations","identifier":"user_xyz789","limit":100,"duration":60000,"cost":1},{"namespace":"api.heavy_operations","identifier":"user_xyz789","limit":50,"duration":3600000,"cost":5}]`,
+			args: `ratelimit multi-limit --limits='[{"namespace":"api.light_operations","identifier":"user_xyz789","limit":100,"duration":60000,"cost":1},{"namespace":"api.heavy_operations","identifier":"user_xyz789","limit":50,"duration":3600000,"cost":5}]'`,
 			want: []openapi.V2RatelimitLimitRequestBody{
 				{
 					Namespace:  "api.light_operations",

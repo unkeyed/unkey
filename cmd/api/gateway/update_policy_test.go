@@ -17,19 +17,19 @@ func TestUpdatePolicy(t *testing.T) {
 		name, args string
 		check      func(*testing.T, components.V2GatewayUpdatePolicyRequestBody)
 	}{
-		{"optional", base + ` --policy={"enabled":false}`, func(t *testing.T, got components.V2GatewayUpdatePolicyRequestBody) {
+		{"optional", base + ` --policy='{"enabled":false}'`, func(t *testing.T, got components.V2GatewayUpdatePolicyRequestBody) {
 			require.NotNil(t, got.Enabled)
 			require.False(t, *got.Enabled)
 		}},
-		{"name and keyauth", base + ` --policy={"name":"n","keyauth":{"keyspaces":["ks_1"]}}`, func(t *testing.T, got components.V2GatewayUpdatePolicyRequestBody) {
+		{"name and keyauth", base + ` --policy='{"name":"n","keyauth":{"keyspaces":["ks_1"]}}'`, func(t *testing.T, got components.V2GatewayUpdatePolicyRequestBody) {
 			require.NotNil(t, got.Name)
 			require.Equal(t, "n", *got.Name)
 			require.NotNil(t, got.Keyauth)
 		}},
-		{"clear match", base + ` --policy={"match":null}`, func(t *testing.T, got components.V2GatewayUpdatePolicyRequestBody) {
+		{"clear match", base + ` --policy='{"match":null}'`, func(t *testing.T, got components.V2GatewayUpdatePolicyRequestBody) {
 			require.True(t, got.Match.IsNull())
 		}},
-		{"logging", base + ` --policy={"logging":{"requestHeaders":true}}`, func(t *testing.T, got components.V2GatewayUpdatePolicyRequestBody) {
+		{"logging", base + ` --policy='{"logging":{"requestHeaders":true}}'`, func(t *testing.T, got components.V2GatewayUpdatePolicyRequestBody) {
 			require.NotNil(t, got.Logging)
 			require.True(t, *got.Logging.RequestHeaders)
 		}},

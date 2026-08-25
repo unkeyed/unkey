@@ -10,9 +10,9 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
-	"strings"
 	"testing"
 
+	"github.com/google/shlex"
 	"github.com/unkeyed/unkey/pkg/cli"
 )
 
@@ -81,7 +81,11 @@ func CaptureRequestWithData[T any](t *testing.T, cmd *cli.Command, args string, 
 		Commands: []*cli.Command{cmd},
 	}
 
-	runErr := root.Run(context.Background(), strings.Fields(fullArgs))
+	parsedArgs, err := shlex.Split(fullArgs)
+	if err != nil {
+		t.Fatalf("failed to parse command arguments: %v", err)
+	}
+	runErr := root.Run(context.Background(), parsedArgs)
 
 	if err := w.Close(); err != nil {
 		t.Fatalf("failed to close pipe writer: %v", err)

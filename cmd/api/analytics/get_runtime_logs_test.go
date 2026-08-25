@@ -9,9 +9,9 @@ import (
 )
 
 func TestGetRuntimeLogs(t *testing.T) {
-	args := `analytics get-runtime-logs --query=SELECT+*+FROM+runtime_logs_v1`
+	args := `analytics get-runtime-logs --query='SELECT * FROM runtime_logs_v1'`
 	want := components.V2AnalyticsGetRuntimeLogsRequestBody{
-		Query: "SELECT+*+FROM+runtime_logs_v1",
+		Query: "SELECT * FROM runtime_logs_v1",
 	}
 
 	got := testutil.CaptureRequestWithData[components.V2AnalyticsGetRuntimeLogsRequestBody](t, Cmd(), args, []any{})

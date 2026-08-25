@@ -15,7 +15,7 @@ func TestSetPolicies(t *testing.T) {
 	tests := []struct {
 		name, args string
 		count      int
-	}{{"minimal empty", "gateway set-policies --project=p --app=a --environment=e --policies=[]", 0}, {"all policy data", `gateway set-policies --project=p --app=a --environment=e --policies=[{"name":"deny","enabled":true,"firewall":{"action":"ACTION_DENY"}}]`, 1}}
+	}{{"minimal empty", "gateway set-policies --project=p --app=a --environment=e --policies='[]'", 0}, {"all policy data", `gateway set-policies --project=p --app=a --environment=e --policies='[{"name":"deny","enabled":true,"firewall":{"action":"ACTION_DENY"}}]'`, 1}}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got := testutil.CaptureRequest[openapi.V2GatewaySetPoliciesRequestBody](t, Cmd(), tt.args)
