@@ -28,14 +28,13 @@ export function usePoliciesData(): PoliciesData {
   const { environments, projectId } = useProjectData();
   const appId = useAppId();
 
-  // create_app.go gives every app one of each, so there is no fallback to make.
   const production = environments.find((e) => e.kind === ENVIRONMENT_KIND.production);
   const preview = environments.find((e) => e.kind === ENVIRONMENT_KIND.preview);
 
   const productionId = production?.id ?? "";
   const previewId = preview?.id ?? "";
-  const productionSlug = production?.slug ?? "production";
-  const previewSlug = preview?.slug ?? "preview";
+  const productionSlug = production?.slug ?? ENVIRONMENT_KIND.production;
+  const previewSlug = preview?.slug ?? ENVIRONMENT_KIND.preview;
 
   const {
     data: productionRows,
