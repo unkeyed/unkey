@@ -128,6 +128,57 @@ func TestRetry_AllLocalDeadFallsThroughToRegion(t *testing.T) {
 	require.Equal(t, "us-west-2.aws", stub.regionTarget(), "ForwardToRegion called with the standby address")
 }
 
+// TestMetadata_InvalidHeaderDoesNotBlockLocalRequest guarantees that a client
+// cannot make an otherwise valid local request fail by setting reserved peer
+// metadata. Frontline must remove the header before it reaches the instance.
+func TestMetadata_InvalidHeaderDoesNotBlockLocalRequest(t *testing.T) {
+	t.Parallel()
+
+	instanceMetadata := make(chan []string, 1)
+	instanceAddr, stopInstance := startBackend(t, func(w http.ResponseWriter, req *http.Request) {
+		instanceMetadata <- req.Header.Values(proxy.HeaderFrontlineMeta)
+		_, _ = io.WriteString(w, "served-locally")
+	})
+	t.Cleanup(stopInstance)
+
+	frontlineAddr, stopFrontline := startFrontlineWith(t, localDecision(instanceAddr), nil)
+	t.Cleanup(stopFrontline)
+
+	resp := mustGetWithMetadata(t, frontlineAddr, "client-controlled-value")
+	defer func() { _ = resp.Body.Close() }()
+
+	require.Equal(t, http.StatusOK, resp.StatusCode)
+	body, err := io.ReadAll(resp.Body)
+	require.NoError(t, err)
+	require.Equal(t, "served-locally", string(body))
+	require.Empty(t, <-instanceMetadata)
+}
+
+// TestMetadata_InvalidHeaderDoesNotBlockRegionalRequest guarantees that a
+// client cannot make an otherwise valid regional request fail by setting
+// reserved peer metadata.
+func TestMetadata_InvalidHeaderDoesNotBlockRegionalRequest(t *testing.T) {
+	t.Parallel()
+
+	stub := &recordingProxy{regionBody: "served-by-peer-region"}
+	//nolint:exhaustruct
+	decision := router.RouteDecision{
+		Destination:         router.DestinationRemoteRegion,
+		RemoteRegionAddress: "us-west-2.aws",
+	}
+	frontlineAddr, stop := startFrontlineWith(t, decision, stub)
+	t.Cleanup(stop)
+
+	resp := mustGetWithMetadata(t, frontlineAddr, "client-controlled-value")
+	defer func() { _ = resp.Body.Close() }()
+
+	require.Equal(t, http.StatusOK, resp.StatusCode)
+	body, err := io.ReadAll(resp.Body)
+	require.NoError(t, err)
+	require.Equal(t, "served-by-peer-region", string(body))
+	require.Equal(t, "us-west-2.aws", stub.regionTarget())
+}
+
 // TestRetry_AllLocalDeadNoStandbyReturnsError proves that exhausting
 // every local instance WITHOUT a configured standby region surfaces the
 // failure to the client instead of silently succeeding. Silent success
@@ -357,6 +408,17 @@ func mustGet(t *testing.T, addr string) *http.Response {
 	req, err := http.NewRequest(http.MethodGet, "http://"+addr+"/foo", nil)
 	require.NoError(t, err)
 	req.Host = "retry-test.example.com"
+	resp, err := http.DefaultClient.Do(req)
+	require.NoError(t, err)
+	return resp
+}
+
+func mustGetWithMetadata(t *testing.T, addr, metadata string) *http.Response {
+	t.Helper()
+	req, err := http.NewRequest(http.MethodGet, "http://"+addr+"/foo", nil)
+	require.NoError(t, err)
+	req.Host = "retry-test.example.com"
+	req.Header.Set(proxy.HeaderFrontlineMeta, metadata)
 	resp, err := http.DefaultClient.Do(req)
 	require.NoError(t, err)
 	return resp

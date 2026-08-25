@@ -37,19 +37,33 @@ func TestRequestHops_VerifiesAndRemovesMetadata(t *testing.T) {
 	require.Empty(t, req.Header.Values(proxy.HeaderFrontlineMeta))
 }
 
-func TestRequestHops_RejectsWrongSigningKey(t *testing.T) {
+func TestRequestHops_IgnoresMalformedMetadata(t *testing.T) {
+	t.Parallel()
+
+	codec := newMetadataCodec(t, "shared-signing-key")
+	req := httptest.NewRequest(http.MethodGet, "https://example.com", nil)
+	req.Header.Set(proxy.HeaderFrontlineMeta, "client-controlled-value")
+
+	hops, err := requestHops(req, codec)
+	require.NoError(t, err)
+	require.Empty(t, hops)
+	require.Empty(t, req.Header.Values(proxy.HeaderFrontlineMeta))
+}
+
+func TestRequestHops_IgnoresWrongSigningKey(t *testing.T) {
 	t.Parallel()
 
 	signer := newMetadataCodec(t, "signing-key-a")
 	verifier := newMetadataCodec(t, "signing-key-b")
 	req := requestWithMetadata(t, signer, validMetadataPayload())
 
-	_, err := requestHops(req, verifier)
-	requireFrontlineMetadataError(t, err)
+	hops, err := requestHops(req, verifier)
+	require.NoError(t, err)
+	require.Empty(t, hops)
 	require.Empty(t, req.Header.Values(proxy.HeaderFrontlineMeta))
 }
 
-func TestRequestHops_RejectsMissingExpiry(t *testing.T) {
+func TestRequestHops_IgnoresMissingExpiry(t *testing.T) {
 	t.Parallel()
 
 	codec := newMetadataCodec(t, "shared-signing-key")
@@ -57,12 +71,13 @@ func TestRequestHops_RejectsMissingExpiry(t *testing.T) {
 	payload.ExpiresAt = 0
 	req := requestWithMetadata(t, codec, payload)
 
-	_, err := requestHops(req, codec)
-	requireFrontlineMetadataError(t, err)
+	hops, err := requestHops(req, codec)
+	require.NoError(t, err)
+	require.Empty(t, hops)
 	require.Empty(t, req.Header.Values(proxy.HeaderFrontlineMeta))
 }
 
-func TestRequestHops_RejectsExpiredMetadata(t *testing.T) {
+func TestRequestHops_IgnoresExpiredMetadata(t *testing.T) {
 	t.Parallel()
 
 	codec := newMetadataCodec(t, "shared-signing-key")
@@ -70,43 +85,47 @@ func TestRequestHops_RejectsExpiredMetadata(t *testing.T) {
 	payload.ExpiresAt = time.Now().Add(-time.Minute).Unix()
 	req := requestWithMetadata(t, codec, payload)
 
-	_, err := requestHops(req, codec)
-	requireFrontlineMetadataError(t, err)
+	hops, err := requestHops(req, codec)
+	require.NoError(t, err)
+	require.Empty(t, hops)
 	require.Empty(t, req.Header.Values(proxy.HeaderFrontlineMeta))
 }
 
-func TestRequestHops_RejectsDuplicateHeaders(t *testing.T) {
+func TestRequestHops_IgnoresDuplicateHeaders(t *testing.T) {
 	t.Parallel()
 
 	codec := newMetadataCodec(t, "shared-signing-key")
 	req := requestWithMetadata(t, codec, validMetadataPayload())
 	req.Header.Add(proxy.HeaderFrontlineMeta, req.Header.Get(proxy.HeaderFrontlineMeta))
 
-	_, err := requestHops(req, codec)
-	requireFrontlineMetadataError(t, err)
+	hops, err := requestHops(req, codec)
+	require.NoError(t, err)
+	require.Empty(t, hops)
 	require.Empty(t, req.Header.Values(proxy.HeaderFrontlineMeta))
 }
 
-func TestRequestHops_RejectsEmptyHeader(t *testing.T) {
+func TestRequestHops_IgnoresEmptyHeader(t *testing.T) {
 	t.Parallel()
 
 	req := httptest.NewRequest(http.MethodGet, "https://example.com", nil)
 	req.Header.Set(proxy.HeaderFrontlineMeta, "")
 
-	_, err := requestHops(req, nil)
-	requireFrontlineMetadataError(t, err)
+	hops, err := requestHops(req, nil)
+	require.NoError(t, err)
+	require.Empty(t, hops)
 	require.Empty(t, req.Header.Values(proxy.HeaderFrontlineMeta))
 }
 
-func TestRequestHops_RejectsOversizedHeader(t *testing.T) {
+func TestRequestHops_IgnoresOversizedHeader(t *testing.T) {
 	t.Parallel()
 
 	codec := newMetadataCodec(t, "shared-signing-key")
 	req := httptest.NewRequest(http.MethodGet, "https://example.com", nil)
 	req.Header.Set(proxy.HeaderFrontlineMeta, strings.Repeat("a", 4097))
 
-	_, err := requestHops(req, codec)
-	requireFrontlineMetadataError(t, err)
+	hops, err := requestHops(req, codec)
+	require.NoError(t, err)
+	require.Empty(t, hops)
 	require.Empty(t, req.Header.Values(proxy.HeaderFrontlineMeta))
 }
 

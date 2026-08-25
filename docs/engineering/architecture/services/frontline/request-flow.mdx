@@ -65,9 +65,10 @@ After the middleware chain, the proxy handler runs. Its inputs are the router se
 ### 1. Verify peer metadata
 
 The handler checks for `X-Unkey-Frontline-Meta`. If the header is present, the
-handler removes it and verifies the HS256 JWT. The handler rejects an invalid or
-expired token. It also rejects empty or duplicate metadata headers. A request
-without metadata starts with an empty hop history.
+handler removes it and verifies the HS256 JWT. A request without valid metadata
+starts with an empty hop history. Frontline treats empty, duplicate, invalid,
+expired, or oversized metadata as absent. Invalid metadata never blocks a
+request.
 
 ### 2. Route the hostname
 
@@ -113,6 +114,9 @@ replaces the metadata, and sets `exp` to 1 minute in the future. Each hop record
 the region, request ID, Frontline ID, and forward time. Frontline removes the
 metadata before it forwards a request to a deployment instance. The complete
 header value cannot exceed 4,096 bytes.
+
+Frontline removes invalid metadata and treats it as absent for all requests.
+This behavior prevents a client-controlled header from blocking service.
 
 ### Forwarded to the instance
 

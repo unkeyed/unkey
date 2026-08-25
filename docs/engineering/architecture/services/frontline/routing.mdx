@@ -61,7 +61,7 @@ flowchart TD
   header -- No --> zero["Use empty hop history"]
   header -- Yes --> remove["Remove metadata header"]
   remove --> verify{"One value with valid signature, expiry, and size?"}
-  verify -- No --> invalid["Return Frontline error"]
+  verify -- No --> zero
   verify -- Yes --> read["Read signed hop history"]
   zero --> route["Route request"]
   read --> route
@@ -81,6 +81,9 @@ the hop count. Frontline rejects a cross-region forward when the length reaches
 `max_hops`. It preserves duplicate regions because they show routing loops.
 Frontline appends the current hop, replaces the token, and sets the expiry to 1
 minute in the future on each forward.
+
+Frontline removes invalid metadata and treats it as absent for all requests.
+This rule prevents a client-controlled header from blocking service.
 
 ## TLS certificate selection
 

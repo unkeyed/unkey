@@ -201,7 +201,7 @@ func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 
 // requestHops verifies and removes metadata sent by a peer Frontline. Requests
 // without peer metadata start with an empty hop history.
-func requestHops(req *http.Request, metadata *meta.Codec) ([]meta.Hop, error) {
+func requestHops(req *http.Request, codec *meta.Codec) ([]meta.Hop, error) {
 	values := req.Header.Values(proxy.HeaderFrontlineMeta)
 	if len(values) == 0 {
 		return nil, nil
@@ -209,28 +209,20 @@ func requestHops(req *http.Request, metadata *meta.Codec) ([]meta.Hop, error) {
 
 	req.Header.Del(proxy.HeaderFrontlineMeta)
 	if len(values) != 1 || values[0] == "" {
-		return nil, invalidFrontlineMetadata("cross-region request must have exactly one non-empty metadata header")
+		return nil, nil
 	}
-	if metadata == nil {
+	if codec == nil {
 		return nil, fault.New("Frontline metadata codec is not configured",
 			fault.Code(codes.Frontline.Internal.InternalServerError.URN()),
 			fault.Public("Service temporarily unavailable"),
 		)
 	}
-	payload, err := metadata.Unmarshal(values[0])
+	metadata, err := codec.Unmarshal(values[0])
 	if err != nil {
-		return nil, invalidFrontlineMetadata("cross-region request had invalid or expired metadata: " + err.Error())
+		return nil, nil
 	}
-	if payload.ExpiresAt <= 0 {
-		return nil, invalidFrontlineMetadata("cross-region request metadata has no expiry")
+	if metadata.ExpiresAt <= 0 {
+		return nil, nil
 	}
-	return payload.Hops, nil
-}
-
-func invalidFrontlineMetadata(internal string) error {
-	return fault.New("invalid Frontline metadata",
-		fault.Code(codes.Frontline.Internal.InternalServerError.URN()),
-		fault.Internal(internal),
-		fault.Public("Service temporarily unavailable"),
-	)
+	return metadata.Hops, nil
 }
