@@ -93,14 +93,21 @@ vi.mock("@/lib/trpc/client", () => ({
       environmentSettings: {
         getAvailableKeyspaces: {
           useQuery: () => ({
-            data: { ks_1: { id: "ks_1", api: { name: "payments" } } },
+            data: { ks_1: { id: "ks_1", projectId: "proj_1", api: { name: "payments" } } },
             isLoading: false,
           }),
         },
       },
     },
     ratelimit: {
-      namespace: { list: { useQuery: () => ({ data: [], isLoading: false }) } },
+      namespace: {
+        list: {
+          useQuery: () => ({
+            data: [{ id: "rlns_1", projectId: "proj_1", name: "api" }],
+            isLoading: false,
+          }),
+        },
+      },
     },
   },
 }));
@@ -116,8 +123,17 @@ const defaults = () => ({
 
 describe("PolicyCard collapsed", () => {
   it("summarises the scope and the first three grants", () => {
-    const rows = ["identity", "role", "permission", "vault_key"];
-    const selection = rows.reduce((acc, row) => setRowActions(acc, row, ["read"]), {});
+    const selection = setRowActions(
+      setRowActions(
+        setRowActions(setRowActions({}, "github_app", ["read_github_app"]), "identity", [
+          "read_identity",
+        ]),
+        "role",
+        ["read_role"],
+      ),
+      "permission",
+      ["read_permission"],
+    );
     render(
       <PolicyCard
         policy={{ ...newPolicy(), selection }}
@@ -129,9 +145,7 @@ describe("PolicyCard collapsed", () => {
 
     expect(screen.getByText("All resources")).toBeDefined();
     expect(
-      screen.getByText(
-        /End-user identities Read, Role definitions Read, Permission definitions Read \+1 more…/,
-      ),
+      screen.getByText(/Identities Read, Roles Read, Permissions Read \+1 more…/),
     ).toBeDefined();
   });
 
@@ -146,8 +160,8 @@ describe("PolicyCard collapsed", () => {
       <PolicyCard
         policy={{
           ...newPolicy("keyspaces"),
-          instances: ["ks_1"],
-          selection: setRowActions({}, "key", ["read"]),
+          instances: ["projects/proj_1/keyspaces/ks_1"],
+          selection: setRowActions({}, "key", ["read_key"]),
         }}
         collapsed
         showError={false}
@@ -156,7 +170,7 @@ describe("PolicyCard collapsed", () => {
     );
 
     expect(screen.getByText("payments")).toBeDefined();
-    expect(screen.getByText("API keys Read")).toBeDefined();
+    expect(screen.getByText("Keys Read")).toBeDefined();
   });
 
   it("expands on click", () => {
@@ -175,8 +189,8 @@ describe("PolicyCard expanded", () => {
       <PolicyCard
         policy={{
           ...newPolicy("keyspaces"),
-          instances: ["ks_1"],
-          selection: setRowActions({}, "key", ["read"]),
+          instances: ["projects/proj_1/keyspaces/ks_1"],
+          selection: setRowActions({}, "key", ["read_key"]),
         }}
         collapsed={false}
         showError={false}
@@ -194,29 +208,31 @@ describe("PolicyCard expanded", () => {
     });
   });
 
-  it("offers the nine resource scopes as plain nouns", () => {
+  it("offers the eight resource scopes as narrowing choices", () => {
     render(<PolicyCard policy={newPolicy()} collapsed={false} showError={false} {...defaults()} />);
     const options = Array.from(screen.getByLabelText("Resource type").children).map(
       (option) => option.textContent,
     );
 
     expect(options).toEqual([
-      "Workspace",
-      "Projects",
-      "Apps",
-      "Environments",
-      "Keyspaces",
-      "Ratelimit namespaces",
-      "Identities",
-      "RBAC",
-      "Vault",
+      "Entire workspace",
+      "Specific projects",
+      "Specific apps",
+      "Specific environments",
+      "Specific keyspaces",
+      "Specific rate limit namespaces",
+      "All identities",
+      "All roles and permissions",
     ]);
   });
 
   it("names the picked environment by its app and its own name", () => {
     render(
       <PolicyCard
-        policy={{ ...newPolicy("environments"), instances: ["env_1"] }}
+        policy={{
+          ...newPolicy("environments"),
+          instances: ["projects/proj_1/apps/app_1/environments/env_1"],
+        }}
         collapsed={false}
         showError={false}
         {...defaults()}
@@ -233,7 +249,7 @@ describe("PolicyCard expanded", () => {
   });
 
   it("hides the instance picker on the container-less scopes", () => {
-    for (const scope of ["identities", "rbac", "vault"] as const) {
+    for (const scope of ["identities", "rbac"] as const) {
       cleanup();
       render(
         <PolicyCard

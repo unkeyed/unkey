@@ -12,6 +12,7 @@ export const listRatelimitNamespaces = workspaceProcedure
           and(eq(table.workspaceId, ctx.workspace.id), isNull(table.deletedAtM)),
         columns: {
           id: true,
+          projectId: true,
           name: true,
         },
       });

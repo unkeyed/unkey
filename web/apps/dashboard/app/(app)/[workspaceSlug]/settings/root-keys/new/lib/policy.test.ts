@@ -5,7 +5,7 @@ import { environmentsCatalogue } from "./catalogue.environments";
 import { keyspacesCatalogue } from "./catalogue.keyspaces";
 import { projectsCatalogue } from "./catalogue.projects";
 import { ratelimitNamespacesCatalogue } from "./catalogue.ratelimit-namespaces";
-import { RESOURCE_SCOPES } from "./catalogue.types";
+import { type Action, RESOURCE_SCOPES } from "./catalogue.types";
 import { workspaceCatalogue } from "./catalogue.workspace";
 import {
   ALL_INSTANCES,
@@ -23,8 +23,50 @@ import {
   selectInstances,
   setRowActions,
   setRowsActions,
+  supportedRowActions,
   toggleRowAction,
 } from "./policy";
+
+const supportedActionCount = (rows: ReturnType<typeof catalogueRows>) =>
+  rows.reduce((total, row) => total + supportedRowActions(row).length, 0);
+
+const commonActions: readonly Action[] = [
+  "read_project",
+  "write_project",
+  "read_app",
+  "write_app",
+  "read_environment",
+  "write_environment",
+  "read_deployment",
+  "write_deployment",
+  "read_deployment_logs",
+  "read_domain",
+  "write_domain",
+  "read_environment_variable",
+  "write_environment_variable",
+  "read_gateway_logs",
+  "read_gateway_policy",
+  "write_gateway_policy",
+  "read_identity",
+  "write_identity",
+  "read_keyspace",
+  "write_keyspace",
+  "read_keyspace_logs",
+  "read_key",
+  "write_key",
+  "read_ratelimit_namespace",
+  "write_ratelimit_namespace",
+  "read_ratelimit_logs",
+  "read_ratelimit_override",
+  "write_ratelimit_override",
+  "read_role",
+  "write_role",
+  "read_permission",
+  "write_permission",
+  "read_github_app",
+  "write_github_app",
+];
+const commonActionSet: ReadonlySet<string> = new Set(commonActions);
 
 describe("newPolicy", () => {
   it("starts on the workspace scope with all instances and no grants", () => {
@@ -38,40 +80,53 @@ describe("newPolicy", () => {
 
 describe("selection helpers", () => {
   it("returns actions in the canonical order", () => {
-    const selection = setRowActions({}, "role", ["delete", "read"]);
-    expect(rowActions(selection, "role")).toEqual(["read", "delete"]);
+    const selection = setRowActions({}, "role", ["delete_role", "read_role"]);
+    expect(rowActions(selection, "role")).toEqual(["read_role", "delete_role"]);
   });
 
   it("returns nothing for an untouched row", () => {
     expect(rowActions({}, "role")).toEqual([]);
-    expect(isRowActionSelected({}, "role", "read")).toBe(false);
+    expect(isRowActionSelected({}, "role", "read_role")).toBe(false);
   });
 
   it("drops the row once its last action is cleared", () => {
-    const selection = setRowActions({}, "role", ["read"]);
-    expect(toggleRowAction(selection, "role", "read", false)).toEqual({});
+    const selection = setRowActions({}, "role", ["read_role"]);
+    expect(toggleRowAction(selection, "role", "read_role", false)).toEqual({});
   });
 
   it("never stores an action twice", () => {
-    const selection = toggleRowAction(setRowActions({}, "role", ["read"]), "role", "read", true);
-    expect(rowActions(selection, "role")).toEqual(["read"]);
+    const selection = toggleRowAction(
+      setRowActions({}, "role", ["read_role"]),
+      "role",
+      "read_role",
+      true,
+    );
+    expect(rowActions(selection, "role")).toEqual(["read_role"]);
   });
 
   it("leaves other rows untouched", () => {
-    const selection = setRowActions(setRowActions({}, "role", ["read"]), "identity", ["delete"]);
-    expect(selection).toEqual({ role: ["read"], identity: ["delete"] });
+    const selection = setRowActions(setRowActions({}, "role", ["read_role"]), "identity", [
+      "delete_identity",
+    ]);
+    expect(selection).toEqual({ role: ["read_role"], identity: ["delete_identity"] });
   });
 
   it("applies a bulk selection to every row given", () => {
     const rows = catalogueRows(workspaceCatalogue);
-    const selection = setRowsActions({}, rows, ["read", "write", "delete"]);
-    expect(countSelectedActions(selection, rows)).toBe(rows.length * 3);
+    const selection = setRowsActions({}, rows, commonActions);
+    expect(countSelectedActions(selection, rows)).toBe(
+      rows.reduce(
+        (total, row) =>
+          total + supportedRowActions(row).filter((action) => commonActionSet.has(action)).length,
+        0,
+      ),
+    );
     expect(countSelectedRows(selection, rows)).toBe(rows.length);
   });
 
   it("clears a bulk selection", () => {
     const rows = catalogueRows(workspaceCatalogue);
-    const selection = setRowsActions(setRowsActions({}, rows, ["read"]), rows, []);
+    const selection = setRowsActions(setRowsActions({}, rows, commonActions), rows, []);
     expect(selection).toEqual({});
     expect(countSelectedRows(selection, rows)).toBe(0);
   });
@@ -124,7 +179,10 @@ describe("policyError", () => {
 
   it("is silent once a grant is ticked", () => {
     expect(
-      policyError({ ...newPolicy("keyspaces"), selection: setRowActions({}, "key", ["read"]) }),
+      policyError({
+        ...newPolicy("keyspaces"),
+        selection: setRowActions({}, "key", ["read_key"]),
+      }),
     ).toBeNull();
   });
 });
@@ -136,7 +194,10 @@ describe("isPolicyComplete", () => {
 
   it("is true with one grant", () => {
     expect(
-      isPolicyComplete({ ...newPolicy(), selection: setRowActions({}, "identity", ["read"]) }),
+      isPolicyComplete({
+        ...newPolicy(),
+        selection: setRowActions({}, "identity", ["read_identity"]),
+      }),
     ).toBe(true);
   });
 
@@ -145,29 +206,32 @@ describe("isPolicyComplete", () => {
       isPolicyComplete({
         ...newPolicy(),
         instances: [],
-        selection: setRowActions({}, "identity", ["read"]),
+        selection: setRowActions({}, "identity", ["read_identity"]),
       }),
     ).toBe(false);
   });
 
   it("ignores grants on rows outside the catalogue", () => {
     expect(
-      isPolicyComplete({ ...newPolicy(), selection: setRowActions({}, "ghost_row", ["read"]) }),
+      isPolicyComplete({
+        ...newPolicy(),
+        selection: setRowActions({}, "ghost_row", ["read_identity"]),
+      }),
     ).toBe(false);
   });
 });
 
 describe("actionLabel", () => {
   it("composes the ticked actions", () => {
-    expect(actionLabel(["read"])).toBe("Read");
-    expect(actionLabel(["read", "write"])).toBe("Read & Write");
-    expect(actionLabel(["read", "write", "delete"])).toBe("Read, Write & Delete");
-    expect(actionLabel(["write", "delete"])).toBe("Write & Delete");
-    expect(actionLabel(["delete"])).toBe("Delete");
+    expect(actionLabel(["read_role"])).toBe("Read");
+    expect(actionLabel(["read_role", "write_role"])).toBe("Read & Write");
+    expect(actionLabel(["read_role", "write_role", "delete_role"])).toBe("Read, Write & Delete");
+    expect(actionLabel(["write_role", "delete_role"])).toBe("Write & Delete");
+    expect(actionLabel(["delete_role"])).toBe("Delete");
   });
 
   it("ignores the order it is given", () => {
-    expect(actionLabel(["delete", "read", "write"])).toBe("Read, Write & Delete");
+    expect(actionLabel(["delete_role", "read_role", "write_role"])).toBe("Read, Write & Delete");
   });
 
   it("is empty with nothing ticked", () => {
@@ -190,13 +254,13 @@ describe("policySummary", () => {
 
   it("composes one grant per ticked row, in catalogue order", () => {
     const selection = setRowActions(
-      setRowActions({}, "role", ["read", "write", "delete"]),
+      setRowActions({}, "role", ["read_role", "write_role", "delete_role"]),
       "identity",
-      ["read"],
+      ["read_identity"],
     );
     expect(policySummary({ ...newPolicy(), selection }).grants).toEqual([
-      "End-user identities Read",
-      "Role definitions Read, Write & Delete",
+      "Identities Read",
+      "Roles Read, Write & Delete",
     ]);
   });
 
@@ -212,31 +276,40 @@ describe("policySummary on instance scopes", () => {
   });
 
   it("resolves picked instances to their labels", () => {
-    const policy = { ...newPolicy("keyspaces"), instances: ["ks_1", "ks_2"] };
-    expect(policySummary(policy, { ks_1: "payments" }).scopeLine).toBe("payments, ks_2");
+    const policy = {
+      ...newPolicy("keyspaces"),
+      instances: ["projects/proj_1/keyspaces/ks_1", "projects/proj_2/keyspaces/ks_2"],
+    };
+    expect(policySummary(policy, { "projects/proj_1/keyspaces/ks_1": "payments" }).scopeLine).toBe(
+      "payments, projects/proj_2/keyspaces/ks_2",
+    );
   });
 
   it("composes grants from the catalogue of its own scope", () => {
     const keyspace = {
       ...newPolicy("keyspaces"),
-      selection: setRowActions(setRowActions({}, "keyspace", ["read"]), "key", ["read", "write"]),
+      selection: setRowActions(setRowActions({}, "keyspace", ["read_keyspace"]), "key", [
+        "read_key",
+        "write_key",
+      ]),
     };
-    expect(policySummary(keyspace).grants).toEqual([
-      "Keyspace settings Read",
-      "API keys Read & Write",
-    ]);
+    expect(policySummary(keyspace).grants).toEqual(["Keyspaces Read", "Keys Read & Write"]);
 
     const namespace = {
       ...newPolicy("ratelimit-namespaces"),
-      selection: setRowActions({}, "override", ["read", "write", "delete"]),
+      selection: setRowActions({}, "ratelimit_override", [
+        "read_ratelimit_override",
+        "write_ratelimit_override",
+        "delete_ratelimit_override",
+      ]),
     };
-    expect(policySummary(namespace).grants).toEqual(["Limit overrides Read, Write & Delete"]);
+    expect(policySummary(namespace).grants).toEqual(["Rate limit overrides Read, Write & Delete"]);
   });
 
   it("ignores a selection carried over from another scope", () => {
     const policy = {
       ...newPolicy("ratelimit-namespaces"),
-      selection: setRowActions({}, "key", ["read"]),
+      selection: setRowActions({}, "key", ["read_key"]),
     };
     expect(policySummary(policy).grants).toEqual([]);
     expect(policyError(policy)).toBe("At least one permission required");
@@ -245,10 +318,15 @@ describe("policySummary on instance scopes", () => {
 
 describe("catalogue coverage", () => {
   it("counts every row of every scope catalogue", () => {
-    expect(catalogueRows(keyspacesCatalogue).map((row) => row.id)).toEqual(["keyspace", "key"]);
+    expect(catalogueRows(keyspacesCatalogue).map((row) => row.id)).toEqual([
+      "keyspace",
+      "keyspace_log",
+      "key",
+    ]);
     expect(catalogueRows(ratelimitNamespacesCatalogue).map((row) => row.id)).toEqual([
-      "namespace",
-      "override",
+      "ratelimit_namespace",
+      "ratelimit_log",
+      "ratelimit_override",
     ]);
   });
 });
@@ -266,18 +344,17 @@ describe("grantsPreview", () => {
   });
 });
 
-describe("the nine resource scopes", () => {
-  it("lists plain nouns in container order", () => {
+describe("the eight resource scopes", () => {
+  it("lists narrowing choices in container order", () => {
     expect(RESOURCE_SCOPES.map((scope) => CATALOGUES[scope].label)).toEqual([
-      "Workspace",
-      "Projects",
-      "Apps",
-      "Environments",
-      "Keyspaces",
-      "Ratelimit namespaces",
-      "Identities",
-      "RBAC",
-      "Vault",
+      "Entire workspace",
+      "Specific projects",
+      "Specific apps",
+      "Specific environments",
+      "Specific keyspaces",
+      "Specific rate limit namespaces",
+      "All identities",
+      "All roles and permissions",
     ]);
   });
 
@@ -285,7 +362,6 @@ describe("the nine resource scopes", () => {
     expect(CATALOGUES.workspace.instanceNoun).toBeNull();
     expect(CATALOGUES.identities.instanceNoun).toBeNull();
     expect(CATALOGUES.rbac.instanceNoun).toBeNull();
-    expect(CATALOGUES.vault.instanceNoun).toBeNull();
   });
 
   it("gives every instance scope an all row and a noun for the picker", () => {
@@ -302,23 +378,47 @@ describe("the nine resource scopes", () => {
       "project",
       "app",
       "environment",
-      "deployment",
-      "domain",
       "variable",
+      "domain",
+      "deployment",
+      "deployment_log",
+      "gateway_log",
+      "gateway_policy",
+      "keyspace",
+      "keyspace_log",
+      "key",
+      "ratelimit_namespace",
+      "ratelimit_log",
+      "ratelimit_override",
+      "identity",
+      "role",
+      "permission",
     ]);
     expect(catalogueRows(appsCatalogue).map((row) => row.id)).toEqual([
       "app",
       "environment",
-      "deployment",
-      "domain",
       "variable",
+      "domain",
+      "deployment",
+      "deployment_log",
+      "gateway_log",
+      "gateway_policy",
     ]);
     expect(catalogueRows(environmentsCatalogue).map((row) => row.id)).toEqual([
       "environment",
-      "deployment",
-      "domain",
       "variable",
+      "domain",
+      "deployment",
+      "deployment_log",
+      "gateway_log",
+      "gateway_policy",
     ]);
+  });
+
+  it("counts supported actions instead of assuming every row has every action", () => {
+    expect(supportedActionCount(catalogueRows(projectsCatalogue))).toBe(51);
+    expect(supportedActionCount(catalogueRows(appsCatalogue))).toBe(22);
+    expect(supportedActionCount(catalogueRows(environmentsCatalogue))).toBe(19);
   });
 });
 
@@ -356,16 +456,13 @@ describe("policySummary on the deploy scopes", () => {
   it("composes grants from the rows of its own level", () => {
     const policy = {
       ...newPolicy("apps"),
-      selection: setRowActions(setRowActions({}, "app", ["read"]), "deployment", [
-        "read",
-        "write",
-        "delete",
+      selection: setRowActions(setRowActions({}, "app", ["read_app"]), "deployment", [
+        "read_deployment",
+        "write_deployment",
+        "delete_deployment",
       ]),
     };
-    expect(policySummary(policy).grants).toEqual([
-      "App settings Read",
-      "Deployments Read, Write & Delete",
-    ]);
+    expect(policySummary(policy).grants).toEqual(["Apps Read", "Deployments Read, Write & Delete"]);
   });
 
   it("asks for an instance by the noun of its level", () => {
@@ -381,7 +478,7 @@ describe("policySummary on the deploy scopes", () => {
   it("drops a selection carried over from a neighbouring level", () => {
     const policy = {
       ...newPolicy("environments"),
-      selection: setRowActions({}, "project", ["read"]),
+      selection: setRowActions({}, "project", ["read_project"]),
     };
     expect(policySummary(policy).grants).toEqual([]);
     expect(isPolicyComplete(policy)).toBe(false);

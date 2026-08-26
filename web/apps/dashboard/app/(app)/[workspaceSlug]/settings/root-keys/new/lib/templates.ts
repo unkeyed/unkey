@@ -37,7 +37,30 @@ export const TEMPLATES: readonly RootKeyTemplate[] = [
     id: "read",
     title: "All read permissions",
     description: "Every resource, read only",
-    materialise: () => BREADTH_SCOPES.map((scope) => everyRow(scope, ["read"])),
+    materialise: () =>
+      BREADTH_SCOPES.map((scope) =>
+        everyRow(scope, [
+          "read_project",
+          "read_app",
+          "read_environment",
+          "read_deployment",
+          "read_deployment_logs",
+          "read_domain",
+          "read_environment_variable",
+          "read_gateway_logs",
+          "read_gateway_policy",
+          "read_identity",
+          "read_keyspace",
+          "read_keyspace_logs",
+          "read_key",
+          "read_ratelimit_namespace",
+          "read_ratelimit_logs",
+          "read_ratelimit_override",
+          "read_role",
+          "read_permission",
+          "read_github_app",
+        ]),
+      ),
   },
   {
     id: "write",
@@ -49,14 +72,22 @@ export const TEMPLATES: readonly RootKeyTemplate[] = [
     id: "verify",
     title: "Verify keys",
     description: "Every keyspace, verify only",
-    materialise: () => [withSelection("keyspaces", { key: ["read"] })],
+    materialise: () => [withSelection("keyspaces", { key: ["verify_key"] })],
   },
   {
     id: "ratelimit",
     title: "Standalone ratelimiting",
-    description: "Namespaces and overrides",
+    description: "Namespaces, logs, and overrides",
     materialise: () => [
-      withSelection("ratelimit-namespaces", { namespace: ["read"], override: [...ACTIONS] }),
+      withSelection("ratelimit-namespaces", {
+        ratelimit_namespace: ["limit_ratelimit_namespace"],
+        ratelimit_log: ["read_ratelimit_logs"],
+        ratelimit_override: [
+          "read_ratelimit_override",
+          "write_ratelimit_override",
+          "delete_ratelimit_override",
+        ],
+      }),
     ],
   },
   {
