@@ -29,7 +29,7 @@ const SORT_FIELD_TO_COLUMN_ID: Record<RootKeysSortField, string> = {
   lastUpdatedAt: "last_updated",
 };
 
-type RootKeysFilterParams = Pick<RootKeysQueryPayload, "name" | "start" | "permission">;
+type RootKeysFilterParams = Pick<RootKeysQueryPayload, "name">;
 
 type RootKeysResponse = { keys: RootKey[]; total: number };
 

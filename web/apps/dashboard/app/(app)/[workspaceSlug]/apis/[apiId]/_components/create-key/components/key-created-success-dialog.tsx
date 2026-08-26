@@ -19,7 +19,7 @@ const getCopy = (variant: "created" | "rotated", resourceLabel: ResourceLabel) =
   if (variant === "created") {
     if (resourceLabel === "root key") {
       return {
-        title: "Root Key Created",
+        title: "Root key created",
         body: <>You've successfully generated a new root key.</>,
       };
     }
@@ -33,7 +33,7 @@ const getCopy = (variant: "created" | "rotated", resourceLabel: ResourceLabel) =
       ),
     };
   }
-  const titleNoun = resourceLabel === "root key" ? "Root Key" : "Key";
+  const titleNoun = resourceLabel === "root key" ? "Root key" : "Key";
   return {
     title: `${titleNoun} Rotated`,
     body: (

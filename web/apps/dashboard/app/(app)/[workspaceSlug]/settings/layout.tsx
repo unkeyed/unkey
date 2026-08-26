@@ -11,7 +11,7 @@ import type { ReactNode } from "react";
 const ITEMS = [
   { segment: "general", label: "General", getHref: routes.settings.general },
   { segment: "team", label: "Team", getHref: routes.settings.team },
-  { segment: "root-keys", label: "Root Keys", getHref: routes.settings.rootKeys },
+  { segment: "root-keys", label: "Root keys", getHref: routes.settings.rootKeys },
   { segment: "billing", label: "Billing", getHref: routes.settings.billing },
   { segment: "usage", label: "Usage", getHref: routes.settings.usage },
   { segment: "limits", label: "Limits", getHref: routes.settings.limits },

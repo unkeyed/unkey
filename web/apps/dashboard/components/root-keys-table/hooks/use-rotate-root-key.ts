@@ -5,7 +5,7 @@ export const useRotateRootKey = () => {
   return trpc.rootKey.reroll.useMutation({
     onError(err) {
       if (err.data?.code === "NOT_FOUND") {
-        toast.error("Root Key Not Found", {
+        toast.error("Root key not found", {
           description:
             "The root key you're trying to rotate no longer exists. Please refresh and try again.",
         });
@@ -23,7 +23,7 @@ export const useRotateRootKey = () => {
           description: "You don't have permission to rotate this root key.",
         });
       } else {
-        toast.error("Failed to Rotate Root Key", {
+        toast.error("Failed to rotate root key", {
           description: err.message || "An unexpected error occurred. Please try again later.",
           action: {
             label: "Contact Support",

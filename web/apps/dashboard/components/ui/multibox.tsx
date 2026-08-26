@@ -3,6 +3,7 @@
 import { cn } from "@/lib/utils";
 import { Combobox as ComboboxPrimitive } from "@base-ui/react/combobox";
 import { Check, ChevronExpandY, XMark } from "@unkey/icons";
+import { type VariantProps, cva } from "class-variance-authority";
 import * as React from "react";
 
 /**
@@ -85,17 +86,32 @@ export function MultiboxInput({ className, ...props }: ComboboxPrimitive.Input.P
   );
 }
 
+// `anchored` pins the chevron inside a MultiboxChips surface; `standalone` is
+// the whole control, so it borrows the Select trigger's field styling.
+const multiboxTriggerVariants = cva("flex items-center", {
+  variants: {
+    variant: {
+      anchored: "absolute right-2 top-1/2 -translate-y-1/2 text-grayA-9",
+      standalone: [
+        "h-9 w-full gap-2 rounded-lg border border-gray-5 bg-gray-2 px-3 text-[13px] leading-5 text-grayA-12 dark:bg-black",
+        "transition-colors duration-300 hover:border-gray-8",
+      ],
+    },
+  },
+  defaultVariants: {
+    variant: "anchored",
+  },
+});
+
 export function MultiboxTrigger({
   className,
   children,
+  variant,
   ...props
-}: ComboboxPrimitive.Trigger.Props) {
+}: ComboboxPrimitive.Trigger.Props & VariantProps<typeof multiboxTriggerVariants>) {
   return (
     <ComboboxPrimitive.Trigger
-      className={cn(
-        "absolute right-2 top-1/2 flex -translate-y-1/2 items-center text-grayA-9",
-        className,
-      )}
+      className={cn(multiboxTriggerVariants({ variant }), className)}
       aria-label="Open list"
       {...props}
     >

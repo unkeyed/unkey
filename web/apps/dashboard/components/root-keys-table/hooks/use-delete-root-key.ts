@@ -8,7 +8,7 @@ export const useDeleteRootKey = (
   const deleteRootKey = trpc.settings.rootKeys.delete.useMutation({
     onSuccess(_, variables) {
       trpcUtils.settings.rootKeys.query.invalidate();
-      toast.success("Root Key Deleted", {
+      toast.success("Root key deleted", {
         description:
           "The root key has been permanently deleted and can no longer create resources.",
       });
@@ -19,7 +19,7 @@ export const useDeleteRootKey = (
     },
     onError(err) {
       if (err.data?.code === "NOT_FOUND") {
-        toast.error("Root Key Not Found", {
+        toast.error("Root key not found", {
           description:
             "The root key you're trying to revoke no longer exists or you don't have access to it.",
         });
@@ -37,7 +37,7 @@ export const useDeleteRootKey = (
           },
         });
       } else {
-        toast.error("Failed to Revoke Root Key", {
+        toast.error("Failed to revoke root key", {
           description: err.message || "An unexpected error occurred. Please try again later.",
           action: {
             label: "Contact Support",

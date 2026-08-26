@@ -13,7 +13,7 @@ export const RootKeyInfo = ({
       </div>
       <div className="flex flex-col gap-1">
         <div className="text-accent-12 text-[13px] font-medium">
-          {rootKeyDetails.name ?? "Unnamed Root Key"}
+          {rootKeyDetails.name ?? "Unnamed root key"}
         </div>
         <div className="text-accent-9 text-xs max-w-[160px] truncate">
           {rootKeyDetails.start}...

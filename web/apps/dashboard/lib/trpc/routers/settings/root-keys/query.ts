@@ -1,5 +1,5 @@
 import { rootKeysQueryPayload } from "@/components/root-keys-table/schema/query-logs.schema";
-import { and, asc, count, db, desc, eq, exists, gt, isNull, or, schema, sql } from "@/lib/db";
+import { and, asc, count, db, desc, eq, gt, isNull, or, schema, sql } from "@/lib/db";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
@@ -71,61 +71,6 @@ export const queryRootKeys = workspaceProcedure
         filterConditions.push(nameConditions[0]);
       } else {
         filterConditions.push(or(...nameConditions));
-      }
-    }
-
-    // Start filter
-    if (input.start && input.start.length > 0) {
-      const startConditions = input.start.map((filter) => {
-        if (filter.operator === "is") {
-          return eq(schema.keys.start, filter.value);
-        }
-        if (filter.operator === "contains") {
-          return sql`LOWER(${schema.keys.start}) LIKE LOWER(${`%${filter.value}%`})`;
-        }
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: `Unsupported key operator: ${filter.operator}`,
-        });
-      });
-
-      if (startConditions.length === 1) {
-        filterConditions.push(startConditions[0]);
-      } else {
-        filterConditions.push(or(...startConditions));
-      }
-    }
-
-    // Permission filter
-    if (input.permission && input.permission.length > 0) {
-      const permissionConditions = input.permission.map((filter) => {
-        if (filter.operator === "contains") {
-          return exists(
-            db
-              .select()
-              .from(schema.keysPermissions)
-              .innerJoin(
-                schema.permissions,
-                eq(schema.keysPermissions.permissionId, schema.permissions.id),
-              )
-              .where(
-                and(
-                  eq(schema.keysPermissions.keyId, schema.keys.id),
-                  sql`LOWER(${schema.permissions.name}) LIKE LOWER(${`%${filter.value}%`})`,
-                ),
-              ),
-          );
-        }
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: `Unsupported permission operator: ${filter.operator}`,
-        });
-      });
-
-      if (permissionConditions.length === 1) {
-        filterConditions.push(permissionConditions[0]);
-      } else {
-        filterConditions.push(or(...permissionConditions));
       }
     }
 
