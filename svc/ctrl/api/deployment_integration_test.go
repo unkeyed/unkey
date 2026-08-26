@@ -138,12 +138,6 @@ func TestDeployment_Create_IdempotencyKey(t *testing.T) {
 		require.False(t, first.Msg.GetReplayed(), "the creating request must not report a replay")
 		require.True(t, second.Msg.GetReplayed(), "the retry must report a replay")
 
-		// The requested image is recorded at insert time so the row states
-		// which artifact this deployment runs.
-		row, err := harness.DB.FindDeploymentById(ctx, first.Msg.GetDeploymentId())
-		require.NoError(t, err)
-		require.Equal(t, "nginx:latest", row.Image.String, "a docker create must record its image at insert")
-
 		expectWorkflows(t, 1)
 	})
 

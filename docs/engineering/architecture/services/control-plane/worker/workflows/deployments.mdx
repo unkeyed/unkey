@@ -69,11 +69,11 @@ sequenceDiagram
 
 ## Idempotent create
 
-`CreateDeployment` accepts an optional caller-supplied idempotency key (the v2 API forwards the `Idempotency-Key` header). Restate owns the key: ctrl calls `DeploymentCreateService.Create` synchronously with an invocation idempotency key of `workspace_id/app_id/environment_id/trimmed key`, so a retry inside the retention window attaches to the original invocation and receives its journaled response instead of creating anything. There is no key table and no derived deployment id; ids are random again. The prefix scopes the key to its target: the same caller key in another workspace, app, or environment runs its own invocation, so one key can deploy the same commit to prod and staging, and a reused key can never answer with another target's deployment.
+`CreateDeployment` accepts an optional caller-supplied idempotency key (the v2 API forwards the `Idempotency-Key` header). Restate owns the key: ctrl calls `DeploymentCreateService.Create` synchronously with an invocation idempotency key of `workspace_id/app_id/environment_id/idempotency key`, so a retry inside the retention window attaches to the original invocation and receives its journaled response instead of creating anything. There is no key table; deployment ids are random. The prefix scopes the key to its target: the same caller key in another workspace, app, or environment runs its own invocation, so one key can deploy the same commit to prod and staging, and a reused key can never answer with another target's deployment.
 
 **Key lifetime.** The service registers with an idempotency retention of 12 hours, which is the caller-facing key lifetime: a retry inside the window replays, a retry after it creates a new deployment. This requires a Restate server version that accepts idempotency retention from service discovery; verify before deploying a worker with this handler against an older cluster.
 
-**Durable execution replaces heal and spent keys.** The handler journals every step: insert plus create audit in one transaction, the `Deploy` send, the invocation id write, and the sibling dedup. A worker crash resumes the invocation from the journal, so an accepted create always completes and the old stuck-row states cannot occur. `healDeployment`, the spent-key rejection (`key-spent`), and the keyed/unkeyed send-failure split are gone. The in-handler `Deploy` send is itself a journal entry, so it happens exactly once and needs no invocation-level idempotency key of its own.
+**Durable execution.** The handler journals every step: insert plus create audit in one transaction, the `Deploy` send, the invocation id write, and the sibling dedup. A worker crash resumes the invocation from the journal, so an accepted create always completes: a row can never end up inserted but never sent. The in-handler `Deploy` send is itself a journal entry, so it happens exactly once and needs no invocation-level idempotency key of its own.
 
 **Gates run before the key.** The plan gate, the deployability check, and build source resolution (including GitHub commit lookup) run in ctrl before the Restate call. A request they reject never reaches Restate, so it never consumes its key: the caller fixes the request and retries with the same key, which is why the dashboard can keep one key across a corrected resubmit. The flip side is that every retry passes the gates again before it can replay.
 
@@ -84,16 +84,6 @@ sequenceDiagram
 **Audit.** The `deployment.create` audit log commits in the same MySQL transaction as the deployment insert, inside the create worker, so a deployment row exists if and only if its create audit exists. Replays answer from the journal and write nothing.
 
 **Caller timeout.** Ctrl bounds the synchronous call at 30 seconds. On expiry the invocation keeps running to completion; the caller gets `Unavailable` and a keyed retry attaches to the still-running invocation. Persistent handler failures (for example a database outage) exhaust the service retry policy and pause the invocation for operator resolution; it still completes when resumed.
-
-**One-time cleanup after cutover.** Rows stuck before this design (status `pending` with no invocation id, created by a ctrl that died between insert and send) were previously repaired by heal on the next keyed retry. Heal no longer exists, so sweep them once after cutover:
-
-```sql
-UPDATE deployments
-SET status = 'failed', updated_at = (UNIX_TIMESTAMP() * 1000)
-WHERE status = 'pending'
-  AND invocation_id IS NULL
-  AND created_at < (UNIX_TIMESTAMP() - 3600) * 1000;
-```
 
 ## Flow: cancel deployment
 

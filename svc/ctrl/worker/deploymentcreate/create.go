@@ -131,7 +131,6 @@ func (s *Service) insertDeployment(
 
 	now := time.Now().UnixMilli()
 	commit := req.GetGitCommit()
-	image := req.GetDeployRequest().GetDockerImage().GetImage()
 
 	// Truncate to column widths so a long commit message doesn't bubble up
 	// as a 500 from MySQL strict mode.
@@ -170,7 +169,6 @@ func (s *Service) insertDeployment(
 			Healthcheck:                   target.AppRuntimeSettings.Healthcheck,
 			PrNumber:                      sql.NullInt64{Int64: 0, Valid: false},
 			ForkRepositoryFullName:        sql.NullString{String: commit.GetForkRepository(), Valid: commit.GetForkRepository() != ""},
-			Image:                         sql.NullString{String: image, Valid: image != ""},
 			DeploymentTrigger:             triggerFromProto(req.GetTrigger()),
 			TriggeredBy:                   sql.NullString{String: triggeredBy, Valid: triggeredBy != ""},
 			TriggerReason:                 sql.NullString{String: triggerReason, Valid: triggerReason != ""},

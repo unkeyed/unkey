@@ -936,7 +936,6 @@ type Querier interface {
 	//      healthcheck,
 	//      pr_number,
 	//      fork_repository_full_name,
-	//      image,
 	//      `trigger`,
 	//      triggered_by,
 	//      trigger_reason,
@@ -944,7 +943,6 @@ type Querier interface {
 	//      updated_at
 	//  )
 	//  VALUES (
-	//      ?,
 	//      ?,
 	//      ?,
 	//      ?,
