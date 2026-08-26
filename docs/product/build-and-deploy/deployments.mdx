@@ -99,7 +99,7 @@ This is the default behaviour. Rapid pushes don't burn build minutes on commits 
 
 ## Idempotent deployment creation
 
-When you create deployments through the API, send an `Idempotency-Key` header to deduplicate retries. Two requests with the same key in one workspace create one deployment. The second request returns the original `deploymentId`, carries the `Idempotent-Replayed: true` response header, and does not create a second deployment.
+When you create deployments through the API, send an `Idempotency-Key` header to deduplicate retries. Two requests with the same key for the same app and environment create one deployment. The second request returns the original `deploymentId`, carries the `Idempotent-Replayed: true` response header, and does not create a second deployment.
 
 ```bash
 IDEMPOTENCY_KEY=$(uuidgen)
@@ -111,23 +111,22 @@ curl -X POST https://api.unkey.com/v2/deployments.createDeployment \
   -d '{"project": "my-project", "app": "my-app", "environment": "production", "image": {"dockerImage": "nginx:latest"}}'
 ```
 
-Run the `curl` twice and both responses carry the same `deploymentId`. The second response also carries the `Idempotent-Replayed: true` header. Do not paste a literal key into a script: a key stays bound to its deployment, so a hardcoded key makes every later run replay the first deployment.
+Run the `curl` twice and both responses carry the same `deploymentId`. The second response also carries the `Idempotent-Replayed: true` header. Do not paste a literal key into a script: a key stays bound to its deployment for 12 hours, so a hardcoded key makes later runs replay the first deployment.
 
 The dashboard sends and rotates keys for you. The rest of this section is for callers that use the API directly.
 
 **Choose a key.** A key stands for one deployment attempt. Use a value that is unique per attempt and never repeats. A fresh UUID works. A CI run id also works: retries inside the run deduplicate, and the next run brings a new key. Do not derive the key from a value that repeats, such as a commit SHA, or you cannot deploy that commit a second time.
 
-A key is bound to one app and environment. If you reuse it for a different app or environment, the request fails with a 400. Other changes to the request body do not fail: the reused key answers with the deployment it first created and ignores the changes. Send a new key whenever you change the request.
+A key is scoped per app and environment. Reusing it for a different app or environment creates its own deployment there, so one key can deploy the same commit to production and staging. Other changes to the request body do not create anything: the reused key answers with the deployment it first created and ignores the changes. Send a new key whenever you change the request.
 
 **Retry a failed call.** The response can get lost after the deployment starts, so a failure does not tell you whether the deployment exists. Follow these rules:
 
-1. After a network failure or a 5xx, retry with the same key. Do not send a new key. Only the same key returns the deployment that the first call may have created, instead of building it twice. If the first call recorded the deployment but died before it started the build, the retry with the same key also starts the build.
-2. After a 400 that says the key is spent, send a new key. The deployment that holds the old key already ended, and no retry can restart it.
-3. After a 201, you have your deployment. The body is the same whether this call created it or returned an earlier one; the `Idempotent-Replayed: true` header marks the replay.
+1. After a network failure or a 5xx, retry with the same key. Do not send a new key. Only the same key returns the deployment that the first call may have created, instead of building it twice.
+2. After a 201, you have your deployment. The body is the same whether this call created it or returned an earlier one; the `Idempotent-Replayed: true` header marks the replay.
 
 Then poll `deployments.getDeployment`. A 201 means Unkey accepted the deployment, not that the build finished.
 
-**Know the limits.** A key stays bound to the deployment it created for as long as that deployment exists. A reused key returns that deployment, even months later. Deleting the app or environment deletes its deployments and releases their keys.
+**Know the limits.** A key expires 12 hours after its first use. Inside that window a reused key returns the deployment it created; after it, the same key creates a new deployment.
 
 ## Cancel a deployment
 

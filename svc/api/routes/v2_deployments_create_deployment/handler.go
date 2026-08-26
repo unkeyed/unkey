@@ -14,7 +14,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/deploy/deployfail"
-	"github.com/unkeyed/unkey/pkg/deploy/idempotency"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/rbac"
@@ -31,8 +30,6 @@ type (
 	Response = openapi.V2DeploymentsCreateDeploymentResponseBody
 )
 
-// maxIdempotencyKeyBytes bounds the Idempotency-Key header. The key only
-// feeds a hash, so the bound exists to reject abusive payloads, not storage.
 const maxIdempotencyKeyBytes = 255
 
 type Handler struct {
@@ -59,8 +56,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	// Trimmed because HTTP/2 passes padding through untouched: a blank key must
-	// read as "no key", not as one key every caller in the workspace shares.
+	// a blank key must read as "no key", not as one key every caller in the workspace shares.
 	idempotencyKey := strings.TrimSpace(s.Request().Header.Get("Idempotency-Key"))
 	if err := apierrors.MaxByteSize("The Idempotency-Key header", len(idempotencyKey), maxIdempotencyKeyBytes); err != nil {
 		return err
@@ -205,31 +201,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				fault.Internal("ctrl reported a precondition failure: "+connectErr.Message()),
 				fault.Public("The deployment could not be started because a precondition was not met. Verify the app's repository connection, branch, commit, and current deployment, then try again."),
 			)
-		}
-		// Idempotency-key conflicts arrive as AlreadyExists with a reason in
-		// the error metadata. Only a recognized reason maps to a 400; any
-		// other AlreadyExists is a conflict this handler does not understand
-		// and falls through to the generic mapping.
-		if errors.As(err, &connectErr) && connectErr.Code() == connect.CodeAlreadyExists {
-			switch connectErr.Meta().Get(idempotency.MetaKey) {
-			case idempotency.ReasonKeySpent:
-				// The key's deployment died before its build started. Nothing
-				// can revive it, so tell the caller to send a new key rather
-				// than retrying this one forever.
-				return fault.Wrap(
-					err,
-					fault.Code(codes.App.Validation.InvalidInput.URN()),
-					fault.Internal("ctrl reported a spent idempotency key: "+connectErr.Message()),
-					fault.Public("This Idempotency-Key belongs to a deployment that already ended and cannot rerun. Retry with a new key."),
-				)
-			case idempotency.ReasonScopeMismatch:
-				return fault.Wrap(
-					err,
-					fault.Code(codes.App.Validation.InvalidInput.URN()),
-					fault.Internal("ctrl reported an idempotency key scope mismatch: "+connectErr.Message()),
-					fault.Public("This Idempotency-Key is already used by a deployment in a different app or environment. Send a new key for each deployment target."),
-				)
-			}
 		}
 		return ctrlclient.HandleError(err, "create deployment")
 	}

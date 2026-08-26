@@ -34,26 +34,3 @@ func TestControlPlaneInternalError(t *testing.T) {
 	require.Equal(t, http.StatusInternalServerError, res.Status, "expected 500, received: %s", res.RawBody)
 	require.True(t, capture.called)
 }
-
-// An AlreadyExists without ctrl's idempotency reason is some future conflict
-// this handler does not understand. It must fall through to the generic
-// mapping instead of claiming the idempotency key is spent.
-func TestUnrecognizedAlreadyExistsIsNotAKeyError(t *testing.T) {
-	h := testutil.NewHarness(t)
-	capture := &ctrlCapture{
-		err: connect.NewError(connect.CodeAlreadyExists, fmt.Errorf("some future conflict")),
-	}
-	route := newRoute(h, capture)
-	h.Register(route)
-
-	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
-		Permissions: []string{"environment.*.create_deployment"},
-	})
-	seedDeployableRegion(t, h, setup)
-
-	req := imageRequest(t, setup.Project.Slug, setup.App.Slug, setup.Environment.Slug, "nginx:latest")
-
-	res := testutil.CallRoute[handler.Request, openapi.InternalServerErrorResponse](h, route, authHeaders(setup.RootKey), req)
-	require.Equal(t, http.StatusInternalServerError, res.Status, "expected 500, received: %s", res.RawBody)
-	require.NotContains(t, res.RawBody, "Idempotency-Key", "must not misreport an unrelated conflict as a key error")
-}
