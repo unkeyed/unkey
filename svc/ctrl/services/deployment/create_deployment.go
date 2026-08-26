@@ -356,9 +356,10 @@ func (s *Service) createAndDeploy(ctx context.Context, p createParams) (createRe
 	c := p.context
 
 	p.idempotencyKey = strings.TrimSpace(p.idempotencyKey)
+	idempotent := p.idempotencyKey != ""
 
 	deploymentID := uid.New(uid.DeploymentPrefix)
-	if p.idempotencyKey != "" {
+	if idempotent {
 		deploymentID = uid.Derived(uid.DeploymentPrefix, c.workspaceID, p.idempotencyKey)
 		if res, deduped, err := s.dedupKeyedCreate(ctx, p, deploymentID); deduped {
 			return res, err
@@ -449,15 +450,15 @@ func (s *Service) createAndDeploy(ctx context.Context, p createParams) (createRe
 		}
 		return nil
 	})
-	if insertErr != nil && p.idempotencyKey != "" && db.IsDuplicateKeyError(insertErr) {
-		// The id is taken by a row that appeared after the pre-check; resolve
-		// it the same way. No row found means the duplicate has another cause,
-		// so keep the original error.
-		if res, deduped, err := s.dedupKeyedCreate(ctx, p, deploymentID); deduped {
-			return res, err
-		}
-	}
 	if insertErr != nil {
+		// Lost the insert race: a concurrent request with the same key got
+		// there first, so answer from its row. A duplicate with no matching
+		// row has another cause, and the original error stands.
+		if idempotent && db.IsDuplicateKeyError(insertErr) {
+			if res, deduped, err := s.dedupKeyedCreate(ctx, p, deploymentID); deduped {
+				return res, err
+			}
+		}
 		logger.Error("failed to insert deployment", "error", insertErr.Error())
 		return createResult{}, connect.NewError(connect.CodeInternal, insertErr)
 	}
@@ -473,13 +474,14 @@ func (s *Service) createAndDeploy(ctx context.Context, p createParams) (createRe
 	)
 
 	if err := s.sendWorkflow(ctx, deploymentID, deployReq); err != nil {
-		// A keyed row is left pending: the caller retries the same key, the
-		// heal re-sends, and the invocation-idempotent send attaches if
-		// Restate accepted this send despite the error. Marking it failed
-		// would spend the key and turn an ambiguous send into a duplicate
-		// deployment under a new key. An unkeyed row has no retry path, so
-		// it is marked failed rather than left pending forever.
-		if p.idempotencyKey == "" {
+		// A row created with an idempotency key is left pending: the caller
+		// retries the same key, the heal re-sends, and the invocation-idempotent
+		// send attaches if Restate accepted this send despite the error.
+		// Marking it failed would spend the key and turn an ambiguous send into
+		// a duplicate deployment under a new key. A row created without a key
+		// has no retry path, so it is marked failed rather than left pending
+		// forever.
+		if !idempotent {
 			if updateErr := s.db.UpdateDeploymentStatus(ctx, db.UpdateDeploymentStatusParams{
 				ID:        deploymentID,
 				Status:    mysqltype.DeploymentsStatusFailed,
@@ -547,7 +549,7 @@ func (s *Service) dedupKeyedCreate(
 	}
 
 	// An absorbed retry burst leaves no other trace.
-	logger.Info("replayed keyed deployment create",
+	logger.Info("replayed idempotent deployment create",
 		"deployment_id", deploymentID,
 		"workspace_id", p.context.workspaceID,
 		"status", string(existing.Status),
@@ -591,7 +593,8 @@ func resolveKeyedRetry(c deploymentContext, d db.Deployment) (keyedRetryAction, 
 	return actionReplay, nil
 }
 
-// healDeployment revives a stuck keyed row (pending, no invocation id): its
+// healDeployment revives a stuck row created with an idempotency key
+// (pending, no invocation id): its
 // create died between insert and send, so without this the deployment would
 // never build. It skips the insert, sends the workflow, and writes the
 // invocation id onto the row. Reports a replay.
@@ -670,7 +673,7 @@ func (s *Service) healDeployment(ctx context.Context, p createParams, row db.Dep
 					UpdatedAt: sql.NullInt64{Valid: true, Int64: spentAt},
 				})
 			}); spendErr != nil {
-				logger.Error("failed to spend unbuildable keyed deployment", "deployment_id", row.ID, "error", spendErr)
+				logger.Error("failed to spend unbuildable idempotent deployment", "deployment_id", row.ID, "error", spendErr)
 			}
 		}
 		return createResult{}, err
@@ -700,7 +703,7 @@ func (s *Service) healDeployment(ctx context.Context, p createParams, row db.Dep
 // failure apart from transient resolution errors, which stay healable.
 var errNoRepoConnection = errors.New("no GitHub repo connection; cannot deploy requested git commit")
 
-// unbuildableRowMessage is recorded on the queued step of a keyed row spent
+// unbuildableRowMessage is recorded on the queued step of a row spent
 // because the commit it pins can never build. It reaches the dashboard
 // timeline, so it says what a user can act on.
 const unbuildableRowMessage = "This app has no GitHub repo connection, so the commit this deployment was created for can never build."
@@ -824,9 +827,9 @@ func (s *Service) resolveSource(
 // building twice; the virtual object key alone only serializes. Attachment
 // only holds inside Restate's idempotency retention window (one day by
 // default): a re-send after that starts a second invocation for the same
-// deployment id. What to do
-// with the row on failure is the caller's call: an unkeyed create marks it
-// failed, keyed creates and heals leave it pending for the next retry.
+// deployment id. What to do with the row on failure is the caller's call: a
+// create without an idempotency key marks it failed, while idempotent creates
+// and heals leave it pending for the next retry.
 func (s *Service) sendWorkflow(ctx context.Context, deploymentID string, deployReq *hydrav1.DeployRequest) error {
 	invocation, err := s.deploymentClient(deploymentID).
 		Deploy().
@@ -843,7 +846,7 @@ func (s *Service) sendWorkflow(ctx context.Context, deploymentID string, deployR
 		UpdatedAt:    sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
 	}); updateErr != nil {
 		// A lost write here looks like a create that died before the Send;
-		// a keyed retry heals it and records the id.
+		// a retry with the same idempotency key heals it and records the id.
 		logger.Error(
 			"failed to persist invocation id",
 			"deployment_id", deploymentID,
