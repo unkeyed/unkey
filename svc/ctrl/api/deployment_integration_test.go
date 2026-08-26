@@ -553,6 +553,14 @@ func TestDeployment_Create_IdempotencyKey(t *testing.T) {
 			UpdatedAt:     sql.NullInt64{Valid: false},
 		})
 
+		// Every insert records a source, so give the stuck row the image its
+		// create resolved: the heal rebuilds what the id already means.
+		require.NoError(t, harness.DB.UpdateDeploymentImage(ctx, db.UpdateDeploymentImageParams{
+			ID:        deploymentID,
+			Image:     sql.NullString{Valid: true, String: "nginx:KEBAP"},
+			UpdatedAt: sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+		}))
+
 		resp, err := create(target, key)
 		require.NoError(t, err)
 		require.Equal(t, deploymentID, resp.Msg.GetDeploymentId())
@@ -745,7 +753,7 @@ func TestDeployment_Create_IdempotencyKey(t *testing.T) {
 	// current image under the row's commit metadata. And because no retry can
 	// ever build it, the refusal must also fail the row so the key spends:
 	// otherwise the caller loops on the same key forever with no exit.
-	t.Run("heal fails and spends a git row whose repo connection is gone", func(t *testing.T) {
+	t.Run("heal refuses a git row whose repo connection is gone", func(t *testing.T) {
 		goneTarget := seedDeployTarget(ctx, t, harness, workspaceID)
 
 		// Give the app a current deployment with an image, so the silent
@@ -795,27 +803,14 @@ func TestDeployment_Create_IdempotencyKey(t *testing.T) {
 
 		row, findErr := harness.DB.FindDeploymentById(ctx, derivedID(key))
 		require.NoError(t, findErr)
-		require.Equal(t, mysqltype.DeploymentsStatusFailed, row.Status,
-			"an unbuildable git row must fail so its key spends")
+		require.Equal(t, mysqltype.DeploymentsStatusPending, row.Status,
+			"the refusal leaves the row healable, so reconnecting the repo makes the same key work")
 
-		// A failed row with no step renders an empty dashboard timeline, so
-		// the spend records the queue the row never left and why.
-		var step string
-		var stepError sql.NullString
-		require.NoError(t, harness.DB.RO().QueryRowContext(ctx,
-			"SELECT step, error FROM deployment_steps WHERE deployment_id = ?", derivedID(key),
-		).Scan(&step, &stepError))
-		require.Equal(t, string(db.DeploymentStepsStepQueued), step)
-		require.True(t, stepError.Valid, "a spent row must record why it can never build")
-		require.NotEmpty(t, stepError.String)
-
+		// This reaches API callers as a 412, and clients drop the key on a 4xx,
+		// so the caller sends a new key instead of looping on this one.
 		_, retryErr := create(goneTarget, key)
 		require.Error(t, retryErr)
-		require.Equal(t, connect.CodeAlreadyExists, connect.CodeOf(retryErr))
-		var cErr *connect.Error
-		require.ErrorAs(t, retryErr, &cErr)
-		require.Equal(t, idempotency.ReasonKeySpent, cErr.Meta().Get(idempotency.MetaKey),
-			"the retry after the spend must tell the caller to send a new key")
+		require.Equal(t, connect.CodeFailedPrecondition, connect.CodeOf(retryErr))
 		expectWorkflows(t, 0)
 	})
 

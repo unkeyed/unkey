@@ -628,59 +628,23 @@ func (s *Service) healDeployment(ctx context.Context, p createParams, row db.Dep
 	}
 
 	// The row, not the retry body, defines what this id builds: a retry cannot
-	// change the commit, the artifact, or which siblings get superseded.
+	// change the commit, the artifact, or which siblings get superseded. A row
+	// recording no source at all is all the body is good for.
 	commit := commitFieldsFromDeployment(row)
-	rowPinsGit := !row.Image.Valid && row.GitCommitSha.Valid
-	dockerImage, explicitGit := "", false
+	dockerImage := p.dockerImage
+	explicitGit := p.gitCommit != nil
 	switch {
 	case row.Image.Valid:
 		// Docker row: redeploy the image it recorded.
 		dockerImage = row.Image.String
-	case rowPinsGit:
-		// Git row: demand git so a deleted repo connection refuses instead of
-		// falling back to the current deployment's image.
-		explicitGit = true
+	case row.GitCommitSha.Valid:
+		// Git row: drop the body's image and demand git, so a deleted repo
+		// connection refuses instead of falling back to the current image.
+		dockerImage, explicitGit = "", true
 	}
 
 	deployReq, commit, err := s.resolveSource(ctx, c, row.ID, row.Command, commit, dockerImage, explicitGit)
 	if err != nil {
-		// Git-pinned row whose repo connection is gone: no retry can ever build
-		// it, so fail it now and the next retry reads the key as spent.
-		// Transient resolution errors leave the row pending and healable.
-		if rowPinsGit && errors.Is(err, errNoRepoConnection) {
-			// One transaction: a failed row without its ended step leaves the
-			// dashboard with a blank timeline.
-			spentAt := time.Now().UnixMilli()
-			if spendErr := db.TxRetry(ctx, s.db.RW(), func(ctx context.Context, tx db.DBTX) error {
-				q := db.NewQueries(tx)
-				if stepErr := q.InsertDeploymentStep(ctx, db.InsertDeploymentStepParams{
-					WorkspaceID:   row.WorkspaceID,
-					ProjectID:     row.ProjectID,
-					AppID:         row.AppID,
-					EnvironmentID: row.EnvironmentID,
-					DeploymentID:  row.ID,
-					Step:          db.DeploymentStepsStepQueued,
-					StartedAt:     uint64(row.CreatedAt),
-				}); stepErr != nil {
-					return stepErr
-				}
-				if endErr := q.EndDeploymentStep(ctx, db.EndDeploymentStepParams{
-					DeploymentID: row.ID,
-					Step:         db.DeploymentStepsStepQueued,
-					EndedAt:      sql.NullInt64{Valid: true, Int64: spentAt},
-					Error:        sql.NullString{Valid: true, String: unbuildableRowMessage},
-				}); endErr != nil {
-					return endErr
-				}
-				return q.UpdateDeploymentStatus(ctx, db.UpdateDeploymentStatusParams{
-					ID:        row.ID,
-					Status:    mysqltype.DeploymentsStatusFailed,
-					UpdatedAt: sql.NullInt64{Valid: true, Int64: spentAt},
-				})
-			}); spendErr != nil {
-				logger.Error("failed to spend unbuildable idempotent deployment", "deployment_id", row.ID, "error", spendErr)
-			}
-		}
 		return createResult{}, err
 	}
 
@@ -704,14 +668,9 @@ func (s *Service) healDeployment(ctx context.Context, p createParams, row db.Dep
 }
 
 // errNoRepoConnection marks the refusal to build a git request for an app
-// without a repo connection. healDeployment matches it to tell this permanent
-// failure apart from transient resolution errors, which stay healable.
+// without a repo connection. It reaches callers as FailedPrecondition, which
+// the v2 API surfaces as a 412.
 var errNoRepoConnection = errors.New("no GitHub repo connection; cannot deploy requested git commit")
-
-// unbuildableRowMessage is recorded on the queued step of a row spent
-// because the commit it pins can never build. It reaches the dashboard
-// timeline, so it says what a user can act on.
-const unbuildableRowMessage = "This app has no GitHub repo connection, so the commit this deployment was created for can never build."
 
 // resolveSource picks the deployment's build source and completes its commit
 // metadata. An explicit docker image wins; an explicit git request without a
