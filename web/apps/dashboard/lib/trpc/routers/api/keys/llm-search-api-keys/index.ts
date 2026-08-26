@@ -30,6 +30,7 @@ export const apiKeysLlmSearch = workspaceProcedure
             eq(api.workspaceId, ctx.workspace.id),
             isNull(api.deletedAtM),
           ),
+        columns: { id: true },
       })
       .catch((_err) => {
         throw new TRPCError({
