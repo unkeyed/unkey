@@ -37,7 +37,9 @@ describe("PortalPreview", () => {
 
   it("renders the window dots and row skeletons with a fill", () => {
     const container = renderPreview();
-    const filled = container.querySelectorAll('[class*="bg-[hsl"]');
+    const filled = Array.from(container.querySelectorAll("[class]")).filter((element) =>
+      Array.from(element.classList).some((className) => className.startsWith("bg-[hsl(")),
+    );
     // 3 window dots + the address bar + heading/sub skeletons + 4 rows.
     expect(filled.length).toBeGreaterThanOrEqual(12);
   });
