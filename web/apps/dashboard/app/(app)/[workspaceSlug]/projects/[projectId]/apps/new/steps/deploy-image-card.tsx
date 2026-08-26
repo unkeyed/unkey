@@ -3,6 +3,7 @@
 import { useDeployActionGate } from "@/app/(app)/[workspaceSlug]/projects/_components/hooks/use-deploy-action-gate";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { queryClient } from "@/lib/collections/client";
+import { withIdempotencyKey } from "@/lib/idempotency";
 import { routes } from "@/lib/navigation/routes";
 import { trpc } from "@/lib/trpc/client";
 import { getErrorMessage, getUnkeyClient } from "@/lib/unkey-client";
@@ -40,13 +41,19 @@ export const DeployImageCard = ({
 
   const createDeployment = useMutation({
     mutationFn: async (source: { environment: string; image: string }) => {
-      const res = await getUnkeyClient().deployments.createDeployment({
+      const body = {
         project: projectId,
         app: appId,
         environment: source.environment,
         image: { dockerImage: source.image },
-      });
-      return { deploymentId: res.data.deploymentId };
+      };
+      const res = await withIdempotencyKey(body, (idempotencyKey) =>
+        getUnkeyClient().deployments.createDeployment({
+          idempotencyKey,
+          v2DeploymentsCreateDeploymentRequestBody: body,
+        }),
+      );
+      return { deploymentId: res.result.data.deploymentId };
     },
     async onSuccess(data) {
       await queryClient.invalidateQueries({ queryKey: ["deployments", projectId] });

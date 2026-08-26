@@ -178,6 +178,29 @@ describe("dashboard proxy POST", () => {
     expect(fetch).not.toHaveBeenCalled();
   });
 
+  it("forwards the Idempotency-Key header to the upstream API", async () => {
+    // Upstream headers are rebuilt from an allowlist; losing this forward
+    // would silently disable deployment dedup for every dashboard deploy
+    // while everything else stays green.
+    mockedGetAuth.mockResolvedValue({
+      userId: "user_1",
+      orgId: "org_1",
+      accessToken: "workos_access_token",
+      role: "owner",
+    });
+
+    const res = await POST(
+      makeRequest({ accept: "application/json", "idempotency-key": "KEBAP-key" }),
+      { params },
+    );
+
+    expect(res.status).toBe(200);
+    expect(fetch).toHaveBeenCalledOnce();
+    const [, init] = vi.mocked(fetch).mock.calls[0];
+    const headers = new Headers(init?.headers);
+    expect(headers.get("idempotency-key")).toBe("KEBAP-key");
+  });
+
   it("keeps the upstream request pinned to the configured origin", async () => {
     mockedGetAuth.mockResolvedValue({
       userId: "user_1",
