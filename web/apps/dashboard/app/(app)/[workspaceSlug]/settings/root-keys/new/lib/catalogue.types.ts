@@ -1,9 +1,127 @@
-// The three coarse actions below are a UI vocabulary. The Go action vocabulary
-// (`pkg/rbac/permissions/*.go`) is still partial, so some catalogue rows expand
-// into URNs the API cannot enforce yet.
-export const ACTIONS = ["read", "write", "delete"] as const;
+export const ACTIONS = [
+  "read_project",
+  "write_project",
+  "delete_project",
+  "read_app",
+  "write_app",
+  "delete_app",
+  "read_environment",
+  "write_environment",
+  "delete_environment",
+  "read_deployment",
+  "write_deployment",
+  "delete_deployment",
+  "start_deployment",
+  "stop_deployment",
+  "read_deployment_logs",
+  "read_domain",
+  "write_domain",
+  "delete_domain",
+  "read_environment_variable",
+  "write_environment_variable",
+  "delete_environment_variable",
+  "read_gateway_logs",
+  "read_gateway_policy",
+  "write_gateway_policy",
+  "delete_gateway_policy",
+  "read_identity",
+  "write_identity",
+  "delete_identity",
+  "read_keyspace",
+  "write_keyspace",
+  "delete_keyspace",
+  "read_keyspace_logs",
+  "read_key",
+  "write_key",
+  "delete_key",
+  "decrypt_key",
+  "verify_key",
+  "read_ratelimit_namespace",
+  "write_ratelimit_namespace",
+  "delete_ratelimit_namespace",
+  "limit_ratelimit_namespace",
+  "read_ratelimit_logs",
+  "read_ratelimit_override",
+  "write_ratelimit_override",
+  "delete_ratelimit_override",
+  "read_role",
+  "write_role",
+  "delete_role",
+  "read_permission",
+  "write_permission",
+  "delete_permission",
+  "read_github_app",
+  "write_github_app",
+  "delete_github_app",
+] as const;
 
 export type Action = (typeof ACTIONS)[number];
+
+export const READ_ACTIONS = ACTIONS.filter((action) => action.startsWith("read_"));
+export const READ_WRITE_ACTIONS = ACTIONS.filter(
+  (action) => action.startsWith("read_") || action.startsWith("write_"),
+);
+
+export const WORKOS_PERMISSION_SLUGS = [
+  "admin:*",
+  "apps:delete",
+  "apps:read",
+  "apps:write",
+  "deployment_logs:read",
+  "deployments:delete",
+  "deployments:read",
+  "deployments:start",
+  "deployments:stop",
+  "deployments:write",
+  "domains:delete",
+  "domains:read",
+  "domains:write",
+  "environment_variables:delete",
+  "environment_variables:read",
+  "environment_variables:write",
+  "environments:delete",
+  "environments:read",
+  "environments:write",
+  "gateway_logs:read",
+  "gateway_policies:delete",
+  "gateway_policies:read",
+  "gateway_policies:write",
+  "github_apps:delete",
+  "github_apps:read",
+  "github_apps:write",
+  "identities:delete",
+  "identities:read",
+  "identities:write",
+  "keys:decrypt",
+  "keys:delete",
+  "keys:read",
+  "keys:verify",
+  "keys:write",
+  "keyspace_logs:read",
+  "keyspaces:delete",
+  "keyspaces:read",
+  "keyspaces:write",
+  "permissions:delete",
+  "permissions:read",
+  "permissions:write",
+  "projects:delete",
+  "projects:read",
+  "projects:write",
+  "ratelimit_logs:read",
+  "ratelimit_namespaces:delete",
+  "ratelimit_namespaces:limit",
+  "ratelimit_namespaces:read",
+  "ratelimit_namespaces:write",
+  "ratelimit_overrides:delete",
+  "ratelimit_overrides:read",
+  "ratelimit_overrides:write",
+  "roles:delete",
+  "roles:read",
+  "roles:write",
+] as const;
+
+export type WorkOSPermissionSlug = (typeof WORKOS_PERMISSION_SLUGS)[number];
+export type GrantWorkOSPermissionSlug = Exclude<WorkOSPermissionSlug, "admin:*">;
 
 export const RESOURCE_SCOPES = [
   "workspace",
@@ -14,7 +132,6 @@ export const RESOURCE_SCOPES = [
   "ratelimit-namespaces",
   "identities",
   "rbac",
-  "vault",
 ] as const;
 
 export type ResourceScope = (typeof RESOURCE_SCOPES)[number];
@@ -22,14 +139,20 @@ export type ResourceScope = (typeof RESOURCE_SCOPES)[number];
 export const INSTANCE_TOKEN = "{instance}";
 
 export type ActionGrant = {
-  name: string;
+  name: Action;
+  slug: GrantWorkOSPermissionSlug;
   path?: string;
 };
+
+export function actionGrant(name: Action, slug: GrantWorkOSPermissionSlug): readonly ActionGrant[] {
+  return [{ name, slug }];
+}
 
 export type PermissionRow = {
   id: string;
   label: string;
   path: string;
+  allPath?: string;
   resource: string;
   actions?: Partial<Record<Action, readonly ActionGrant[]>>;
 };

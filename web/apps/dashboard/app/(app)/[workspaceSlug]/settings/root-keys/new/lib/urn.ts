@@ -13,17 +13,13 @@ export function urnActions(row: PermissionRow, action: Action): ActionGrant[] {
   if (declared) {
     return [...declared];
   }
-  switch (action) {
-    case "read":
-      return [{ name: `read_${row.resource}` }];
-    case "write":
-      return [{ name: `create_${row.resource}` }, { name: `update_${row.resource}` }];
-    case "delete":
-      return [{ name: `delete_${row.resource}` }];
-  }
+  return [];
 }
 
-export function instancePath(path: string, instance: string): string {
+export function instancePath(path: string, instance: string, allPath?: string): string {
+  if (instance === ALL_INSTANCES && allPath !== undefined) {
+    return allPath;
+  }
   return path.split(INSTANCE_TOKEN).join(instance === ALL_INSTANCES ? "*" : instance);
 }
 
@@ -51,11 +47,15 @@ export function buildUrns(workspaceId: string, policies: readonly Policy[]): str
   const urns = new Set<string>();
   for (const policy of policies) {
     for (const row of catalogueRows(catalogueFor(policy.scope))) {
-      for (const action of rowActions(policy.selection, row.id)) {
+      for (const action of rowActions(policy.selection, row.id, row)) {
         for (const grant of urnActions(row, action)) {
           for (const instance of policy.instances) {
             urns.add(
-              buildUrn(workspaceId, instancePath(grant.path ?? row.path, instance), grant.name),
+              buildUrn(
+                workspaceId,
+                instancePath(grant.path ?? row.path, instance, row.allPath),
+                grant.name,
+              ),
             );
           }
         }
@@ -70,7 +70,7 @@ export function rowGrants(row: PermissionRow, instances: readonly string[]): str
   for (const action of ACTIONS) {
     for (const grant of urnActions(row, action)) {
       for (const instance of instances) {
-        grants.add(`${instancePath(grant.path ?? row.path, instance)}#${grant.name}`);
+        grants.add(`${instancePath(grant.path ?? row.path, instance, row.allPath)}#${grant.name}`);
       }
     }
   }

@@ -3,13 +3,8 @@
 import { Checkbox } from "@unkey/ui";
 import { useId } from "react";
 import { ACTIONS, type Action, type PermissionRow } from "../lib/catalogue.types";
+import { actionVerb, supportedRowActions } from "../lib/policy";
 import { grantPaths } from "../lib/urn";
-
-const ACTION_LABELS: Record<Action, string> = {
-  read: "Read",
-  write: "Write",
-  delete: "Delete",
-};
 
 type PermissionCatalogueRowProps = {
   row: PermissionRow;
@@ -26,6 +21,7 @@ export function PermissionCatalogueRow({
 }: PermissionCatalogueRowProps) {
   const id = useId();
   const paths = grantPaths(grants);
+  const supportedActions = supportedRowActions(row);
 
   return (
     <div className="flex items-center justify-between gap-4 py-2">
@@ -38,7 +34,7 @@ export function PermissionCatalogueRow({
         )}
       </div>
       <div className="flex items-center gap-4 shrink-0">
-        {ACTIONS.map((action) => (
+        {ACTIONS.filter((action) => supportedActions.includes(action)).map((action) => (
           <div key={action} className="flex items-center gap-2">
             <Checkbox
               id={`${id}-${action}`}
@@ -50,7 +46,7 @@ export function PermissionCatalogueRow({
               htmlFor={`${id}-${action}`}
               className="text-xs text-accent-12 cursor-pointer select-none"
             >
-              {ACTION_LABELS[action]}
+              {actionVerb(action).replace(/^\w/, (first) => first.toUpperCase())}
             </label>
           </div>
         ))}
