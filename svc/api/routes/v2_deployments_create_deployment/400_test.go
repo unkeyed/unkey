@@ -1,14 +1,82 @@
 package handler_test
 
 import (
+	"fmt"
 	"net/http"
+	"strings"
 	"testing"
 
+	"connectrpc.com/connect"
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/pkg/deploy/idempotency"
+	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_deployments_create_deployment"
 )
+
+// A key whose deployment failed before its build started cannot be retried, so
+// ctrl reports AlreadyExists and the caller has to see a 400 telling them to
+// send a new key. Anything else (a 500, or a 201 with a dead deployment id)
+// leaves them retrying a key that can never succeed.
+func TestSpentIdempotencyKey(t *testing.T) {
+	h := testutil.NewHarness(t)
+	capture := &ctrlCapture{}
+	route := newRoute(h, capture)
+	h.Register(route)
+
+	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
+		Permissions: []string{"environment.*.create_deployment"},
+	})
+	seedDeployableRegion(t, h, setup)
+
+	spentErr := connect.NewError(connect.CodeAlreadyExists,
+		fmt.Errorf("idempotency key is bound to deployment d_KEBAP, which ended before its build started"))
+	spentErr.Meta().Set(idempotency.MetaKey, idempotency.ReasonKeySpent)
+	capture.err = spentErr
+
+	headers := authHeaders(setup.RootKey)
+	headers.Set("Idempotency-Key", uid.New(uid.TestPrefix))
+
+	req := imageRequest(t, setup.Project.Slug, setup.App.Slug, setup.Environment.Slug, "nginx:latest")
+
+	res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
+	require.Equal(t, http.StatusBadRequest, res.Status, "expected 400, received: %s", res.RawBody)
+	require.Equal(t, "https://unkey.com/docs/errors/unkey/application/invalid_input", res.Body.Error.Type)
+	require.Contains(t, res.Body.Error.Detail, "Retry with a new key")
+	require.NotContains(t, res.Body.Error.Detail, "d_KEBAP", "the internal deployment id must not leak")
+}
+
+// A key reused against a different app or environment is rejected. Silently
+// answering with the other target's deployment would hide a caller bug behind
+// a 201.
+func TestIdempotencyKeyScopeMismatch(t *testing.T) {
+	h := testutil.NewHarness(t)
+	capture := &ctrlCapture{}
+	route := newRoute(h, capture)
+	h.Register(route)
+
+	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
+		Permissions: []string{"environment.*.create_deployment"},
+	})
+	seedDeployableRegion(t, h, setup)
+
+	scopeErr := connect.NewError(connect.CodeAlreadyExists,
+		fmt.Errorf("idempotency key is already bound to deployment d_KEBAP in a different app or environment"))
+	scopeErr.Meta().Set(idempotency.MetaKey, idempotency.ReasonScopeMismatch)
+	capture.err = scopeErr
+
+	headers := authHeaders(setup.RootKey)
+	headers.Set("Idempotency-Key", uid.New(uid.TestPrefix))
+
+	req := imageRequest(t, setup.Project.Slug, setup.App.Slug, setup.Environment.Slug, "nginx:latest")
+
+	res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
+	require.Equal(t, http.StatusBadRequest, res.Status, "expected 400, received: %s", res.RawBody)
+	require.Equal(t, "https://unkey.com/docs/errors/unkey/application/invalid_input", res.Body.Error.Type)
+	require.Contains(t, res.Body.Error.Detail, "different app or environment")
+	require.NotContains(t, res.Body.Error.Detail, "d_KEBAP", "the internal deployment id must not leak")
+}
 
 func TestValidationErrors(t *testing.T) {
 	h := testutil.NewHarness(t)
@@ -68,6 +136,36 @@ func TestValidationErrors(t *testing.T) {
 			require.False(t, capture.called, "ctrl must not be called on a validation failure")
 		})
 	}
+
+	t.Run("idempotency key too long", func(t *testing.T) {
+		capture.called = false
+
+		longKeyHeaders := authHeaders(setup.RootKey)
+		longKeyHeaders.Set("Idempotency-Key", strings.Repeat("a", 256))
+
+		req := imageRequest(t, setup.Project.Slug, setup.App.Slug, setup.Environment.Slug, "nginx:latest")
+
+		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, longKeyHeaders, req)
+		require.Equal(t, http.StatusBadRequest, res.Status, "expected 400, received: %s", res.RawBody)
+		require.Equal(t, "https://unkey.com/docs/errors/unkey/application/invalid_input", res.Body.Error.Type)
+		require.False(t, capture.called, "ctrl must not be called on a validation failure")
+	})
+
+	// The bound is a byte budget, so the message must not promise characters:
+	// 64 emoji are 64 characters and 256 bytes.
+	t.Run("idempotency key bound is reported in bytes", func(t *testing.T) {
+		capture.called = false
+
+		multibyteHeaders := authHeaders(setup.RootKey)
+		multibyteHeaders.Set("Idempotency-Key", strings.Repeat("😀", 64))
+
+		req := imageRequest(t, setup.Project.Slug, setup.App.Slug, setup.Environment.Slug, "nginx:latest")
+
+		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, multibyteHeaders, req)
+		require.Equal(t, http.StatusBadRequest, res.Status, "expected 400, received: %s", res.RawBody)
+		require.NotContains(t, res.Body.Error.Detail, "characters")
+		require.False(t, capture.called, "ctrl must not be called on a validation failure")
+	})
 }
 
 // TestInvalidEnvironmentSettings covers the create-time pre-flight that rejects an

@@ -4816,6 +4816,12 @@ type VerifyKeyRatelimitData struct {
 	Reset int64 `json:"reset"`
 }
 
+// DeploymentsCreateDeploymentParams defines parameters for DeploymentsCreateDeployment.
+type DeploymentsCreateDeploymentParams struct {
+	// IdempotencyKey Deduplicates retries of one deployment create. See the Idempotency section of the endpoint description for the full contract. At most 255 bytes.
+	IdempotencyKey *string `json:"Idempotency-Key,omitempty"`
+}
+
 // AnalyticsGetGatewayRequestsJSONRequestBody defines body for AnalyticsGetGatewayRequests for application/json ContentType.
 type AnalyticsGetGatewayRequestsJSONRequestBody = V2AnalyticsGetGatewayRequestsRequestBody
 
