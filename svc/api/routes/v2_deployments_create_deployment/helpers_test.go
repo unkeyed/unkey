@@ -57,6 +57,7 @@ func deploymentRequest(t *testing.T, project, app, env, deploymentID string) han
 type ctrlCapture struct {
 	called bool
 	req    *ctrlv1.CreateDeploymentRequest
+	resp   *ctrlv1.CreateDeploymentResponse
 	err    error
 }
 
@@ -69,6 +70,9 @@ func newRoute(h *testutil.Harness, capture *ctrlCapture) *handler.Handler {
 				capture.req = req
 				if capture.err != nil {
 					return nil, capture.err
+				}
+				if capture.resp != nil {
+					return capture.resp, nil
 				}
 				return &ctrlv1.CreateDeploymentResponse{DeploymentId: "d_test_generated"}, nil
 			},

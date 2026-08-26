@@ -39,6 +39,88 @@ func TestImageSource(t *testing.T) {
 	require.Equal(t, setup.Environment.Slug, capture.req.EnvironmentSlug)
 	require.Nil(t, capture.req.GitCommit, "image source must not send git commit info")
 	require.Equal(t, ctrlv1.DeploymentTrigger_DEPLOYMENT_TRIGGER_API, capture.req.Trigger)
+	require.Nil(t, capture.req.IdempotencyKey, "key must be absent when omitted")
+}
+
+func TestIdempotencyKeyForwarded(t *testing.T) {
+	h := testutil.NewHarness(t)
+	capture := &ctrlCapture{}
+	route := newRoute(h, capture)
+	h.Register(route)
+
+	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
+		Permissions: []string{"environment.*.create_deployment"},
+	})
+	seedDeployableRegion(t, h, setup)
+
+	key := uid.New(uid.TestPrefix)
+	headers := authHeaders(setup.RootKey)
+	headers.Set("Idempotency-Key", key)
+
+	req := imageRequest(t, setup.Project.Slug, setup.App.Slug, setup.Environment.Slug, "nginx:latest")
+
+	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
+	require.Equal(t, http.StatusCreated, res.Status, "expected 201, received: %s", res.RawBody)
+
+	require.True(t, capture.called)
+	require.NotNil(t, capture.req.IdempotencyKey)
+	require.Equal(t, key, capture.req.GetIdempotencyKey())
+	require.Empty(t, res.Headers.Get("Idempotent-Replayed"), "a fresh create must not carry the replay header")
+}
+
+// A replayed create still answers 201 with the original deployment id, so the
+// header is the caller's only way to tell the deployment already existed.
+func TestIdempotentReplayHeader(t *testing.T) {
+	h := testutil.NewHarness(t)
+	capture := &ctrlCapture{
+		resp: &ctrlv1.CreateDeploymentResponse{
+			DeploymentId: "d_test_generated",
+			Replayed:     true,
+		},
+	}
+	route := newRoute(h, capture)
+	h.Register(route)
+
+	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
+		Permissions: []string{"environment.*.create_deployment"},
+	})
+	seedDeployableRegion(t, h, setup)
+
+	headers := authHeaders(setup.RootKey)
+	headers.Set("Idempotency-Key", uid.New(uid.TestPrefix))
+
+	req := imageRequest(t, setup.Project.Slug, setup.App.Slug, setup.Environment.Slug, "nginx:latest")
+
+	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
+	require.Equal(t, http.StatusCreated, res.Status, "expected 201, received: %s", res.RawBody)
+	require.Equal(t, "d_test_generated", res.Body.Data.DeploymentId)
+	require.Equal(t, "true", res.Headers.Get("Idempotent-Replayed"))
+}
+
+// A whitespace-only key must reach ctrl as no key at all. HTTP/2 hands the
+// spaces through untouched, and every caller who sent one would then share a
+// single deployment id across the workspace.
+func TestIdempotencyKeyBlankOptsOut(t *testing.T) {
+	h := testutil.NewHarness(t)
+	capture := &ctrlCapture{}
+	route := newRoute(h, capture)
+	h.Register(route)
+
+	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
+		Permissions: []string{"environment.*.create_deployment"},
+	})
+	seedDeployableRegion(t, h, setup)
+
+	headers := authHeaders(setup.RootKey)
+	headers.Set("Idempotency-Key", "   ")
+
+	req := imageRequest(t, setup.Project.Slug, setup.App.Slug, setup.Environment.Slug, "nginx:latest")
+
+	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
+	require.Equal(t, http.StatusCreated, res.Status, "expected 201, received: %s", res.RawBody)
+
+	require.True(t, capture.called)
+	require.Nil(t, capture.req.IdempotencyKey, "a blank key must not be forwarded")
 }
 
 func TestImageSourceCliTrigger(t *testing.T) {

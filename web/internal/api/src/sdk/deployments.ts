@@ -29,12 +29,21 @@ export class Deployments extends ClientSDK {
    *
    * Returns immediately with a `deploymentId`. The build and rollout run asynchronously — poll `deployments.getDeployment` to watch status until it is ready.
    *
+   * **Idempotency**: send an `Idempotency-Key` header to deduplicate retries. Two requests with the same key in one workspace create one deployment; the second returns the original `deploymentId` with the `Idempotent-Replayed: true` response header instead of creating a second deployment.
+   *
+   * - Use a random unique value, such as a UUID, and a fresh value for each new deployment intent. Do not construct keys by hand.
+   * - A key stays bound to the deployment it created for as long as that deployment exists. Deleting the app or environment deletes its deployments and releases their keys.
+   * - A key is bound to one app and environment. Reusing it for a different target returns a 400.
+   * - Reusing a key with other body changes answers with the original deployment and ignores the changes. Send a new key when you change the request.
+   * - If the bound deployment already ended and cannot rerun, the key is spent and reusing it returns a 400. Send a new key.
+   * - Omit the header to disable deduplication.
+   *
    * **Authentication**: requires a root key with permission to create deployments.
    */
   async createDeployment(
-    request: components.V2DeploymentsCreateDeploymentRequestBodyUnion,
+    request: operations.DeploymentsCreateDeploymentRequest,
     options?: RequestOptions,
-  ): Promise<components.V2DeploymentsCreateDeploymentResponseBody> {
+  ): Promise<operations.DeploymentsCreateDeploymentResponse> {
     return unwrapAsync(deploymentsCreateDeployment(
       this,
       request,
