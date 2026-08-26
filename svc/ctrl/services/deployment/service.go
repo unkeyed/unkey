@@ -6,7 +6,6 @@ import (
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	githubclient "github.com/unkeyed/unkey/pkg/github"
 	restateadmin "github.com/unkeyed/unkey/pkg/restate/admin"
-	"github.com/unkeyed/unkey/svc/ctrl/dedup"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/auditlogs"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
@@ -23,7 +22,6 @@ type Service struct {
 	auditlogs                       auditlogs.AuditLogService
 	allowUnauthenticatedDeployments bool
 	bearer                          string
-	dedup                           *dedup.Service
 	enforceDeployGate               bool
 }
 
@@ -75,7 +73,6 @@ func New(cfg Config) *Service {
 		auditlogs:                         cfg.Auditlogs,
 		allowUnauthenticatedDeployments:   cfg.AllowUnauthenticatedDeployments,
 		bearer:                            cfg.Bearer,
-		dedup:                             dedup.New(cfg.Database, cfg.RestateAdmin),
 		enforceDeployGate:                 cfg.EnforceDeployGate,
 	}
 }

@@ -120,7 +120,7 @@ func (s *Service) Rebuild(ctx context.Context, sourceDeploymentID, reason string
 			ForkRepository:  src.ForkRepositoryFullName.String,
 		},
 		command:        nil,
-		trigger:        db.DeploymentsTriggerUnkey,
+		trigger:        ctrlv1.DeploymentTrigger_DEPLOYMENT_TRIGGER_UNKEY,
 		triggeredBy:    "",
 		triggerReason:  reason,
 		idempotencyKey: "",

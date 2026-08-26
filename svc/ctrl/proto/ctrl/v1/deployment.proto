@@ -79,8 +79,9 @@ message CreateDeploymentRequest {
   ActorInfo actor = 11;
 
   // Caller-supplied key that collapses retries of one create into a single
-  // deployment. Scoped per workspace. Reusing a key for a different app or
-  // environment is rejected with ALREADY_EXISTS. Omit to disable.
+  // deployment. Scoped per (workspace, app, environment): the same key
+  // reused for a different target creates its own deployment. Omit to
+  // disable.
   optional string idempotency_key = 12;
 }
 
@@ -97,8 +98,8 @@ message GitCommitInfo {
 
 message CreateDeploymentResponse {
   string deployment_id = 1;
-  // Status at answer time: PENDING for a fresh create or a heal, the
-  // deployment's current status for a replay.
+  // Status at answer time: PENDING for a fresh create, the deployment's
+  // current status for a replay.
   DeploymentStatus status = 2;
 
   // True when the request did not create a new deployment: an idempotency-key

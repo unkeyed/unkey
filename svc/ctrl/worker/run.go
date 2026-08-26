@@ -50,6 +50,7 @@ import (
 	workercustomdomain "github.com/unkeyed/unkey/svc/ctrl/worker/customdomain"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/deploy"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/deployment"
+	workerdeploymentcreate "github.com/unkeyed/unkey/svc/ctrl/worker/deploymentcreate"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/deployteardown"
 	workerenvironment "github.com/unkeyed/unkey/svc/ctrl/worker/environment"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/githubstatus"
@@ -328,6 +329,27 @@ func Run(ctx context.Context, cfg Config) error {
 	restateSrv.Bind(hydrav1.NewDeploymentServiceServer(deployment.New(deployment.Config{
 		DB: database,
 	}), restate.WithIngressPrivate(true)))
+
+	// DeploymentCreateService is the durable half of a deployment create,
+	// called synchronously over the ingress by ctrl. The 12h idempotency
+	// retention is the caller-facing key lifetime; it requires a Restate
+	// server that accepts retention from service discovery. Retries stay
+	// short because a caller blocks on the call; pause (not kill) so a stuck
+	// create still completes when an operator resumes it.
+	restateSrv.Bind(hydrav1.NewDeploymentCreateServiceServer(workerdeploymentcreate.New(workerdeploymentcreate.Config{
+		DB:           database,
+		Auditlogs:    auditlogSvc,
+		RestateAdmin: restateAdminClient,
+	}),
+		restate.WithIdempotencyRetention(12*time.Hour),
+		restate.WithInvocationRetryPolicy(
+			restate.WithInitialInterval(500*time.Millisecond),
+			restate.WithExponentiationFactor(2.0),
+			restate.WithMaxInterval(10*time.Second),
+			restate.WithMaxAttempts(10),
+			restate.PauseOnMaxAttempts(),
+		),
+	))
 
 	// DeployTeardownService stops all of a workspace's running Deploy compute and
 	// confirms it drained. Invoked over Restate ingress by cancel (ARCHIVE) and,

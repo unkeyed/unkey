@@ -202,8 +202,9 @@ type CreateDeploymentRequest struct {
 	// actor. Preferred over triggered_by for attribution.
 	Actor *ActorInfo `protobuf:"bytes,11,opt,name=actor,proto3" json:"actor,omitempty"`
 	// Caller-supplied key that collapses retries of one create into a single
-	// deployment. Scoped per workspace. Reusing a key for a different app or
-	// environment is rejected with ALREADY_EXISTS. Omit to disable.
+	// deployment. Scoped per (workspace, app, environment): the same key
+	// reused for a different target creates its own deployment. Omit to
+	// disable.
 	IdempotencyKey *string `protobuf:"bytes,12,opt,name=idempotency_key,json=idempotencyKey,proto3,oneof" json:"idempotency_key,omitempty"`
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
@@ -419,8 +420,8 @@ func (x *GitCommitInfo) GetForkRepository() string {
 type CreateDeploymentResponse struct {
 	state        protoimpl.MessageState `protogen:"open.v1"`
 	DeploymentId string                 `protobuf:"bytes,1,opt,name=deployment_id,json=deploymentId,proto3" json:"deployment_id,omitempty"`
-	// Status at answer time: PENDING for a fresh create or a heal, the
-	// deployment's current status for a replay.
+	// Status at answer time: PENDING for a fresh create, the deployment's
+	// current status for a replay.
 	Status DeploymentStatus `protobuf:"varint,2,opt,name=status,proto3,enum=ctrl.v1.DeploymentStatus" json:"status,omitempty"`
 	// True when the request did not create a new deployment: an idempotency-key
 	// retry answered with the deployment the key already created.

@@ -19,6 +19,7 @@ Rollback and Promote are themselves workflows but they don't need their own env-
 Key components:
 
 - Control API deployment service — [`svc/ctrl/services/deployment`](https://github.com/unkeyed/unkey/blob/main/svc/ctrl/services/deployment)
+- `DeploymentCreateService` durable create handler — [`svc/ctrl/worker/deploymentcreate`](https://github.com/unkeyed/unkey/blob/main/svc/ctrl/worker/deploymentcreate)
 - `DeployService` Restate workflow — [`svc/ctrl/worker/deploy`](https://github.com/unkeyed/unkey/blob/main/svc/ctrl/worker/deploy)
 - `RoutingService` (route assignment + live swap) — [`svc/ctrl/worker/routing`](https://github.com/unkeyed/unkey/blob/main/svc/ctrl/worker/routing)
 - `DeploymentService` VO for delayed desired-state transitions — [`svc/ctrl/worker/deployment`](https://github.com/unkeyed/unkey/blob/main/svc/ctrl/worker/deployment)
@@ -37,21 +38,23 @@ sequenceDiagram
   participant Worker as DeployService<br/>(keyed by deployment_id)
   participant Dedup as dedup.CancelOlderSiblings
 
+  participant Create as DeploymentCreateService<br/>(plain service, journaled)
+
   Client->>CtrlAPI: CreateDeployment(project_id, source, env, idempotency_key?)
-  CtrlAPI->>DB: Find project + environment + app
-  opt idempotency_key set
-    CtrlAPI->>CtrlAPI: Derive deployment_id from (workspace, key)
-    CtrlAPI->>DB: Find deployment by derived id
-    Note over CtrlAPI: existing row: replay it, heal it,<br/>or reject the key (see Idempotent create)
-  end
-  CtrlAPI->>DB: Insert deployment (status=pending)
-  CtrlAPI->>Restate: DeployService.Deploy (key: deployment_id, async,<br/>invocation idempotency key: deployment_id)
-  Restate-->>CtrlAPI: invocation_id
-  CtrlAPI->>DB: UpdateDeploymentInvocationID
-  CtrlAPI->>Dedup: Cancel older queued siblings (status=pending|awaiting_approval)
+  CtrlAPI->>DB: Load target (project + environment + app + settings)
+  CtrlAPI->>CtrlAPI: Gates: plan, deployability
+  CtrlAPI->>CtrlAPI: Resolve build source (GitHub if git)
+  CtrlAPI->>Restate: DeploymentCreateService.Create (sync,<br/>invocation idempotency key: workspace/app/env/key)
+  Restate->>Create: Execute Create (a keyed retry attaches instead)
+  Create->>DB: Insert deployment (status=pending) + create audit (one tx)
+  Create->>Restate: DeployService.Deploy (key: deployment_id, async)
+  Create->>DB: UpdateDeploymentInvocationID
+  Create->>Dedup: Cancel older queued siblings (status=pending|awaiting_approval)
   Dedup->>DB: Batch stamp "Superseded by newer commit" on sibling steps
   Dedup->>DB: Batch UPDATE siblings to status=superseded
   Dedup->>Restate: CancelInvocation for each older sibling
+  Restate-->>CtrlAPI: journaled response (nonce echo, deployment_id)
+  CtrlAPI->>CtrlAPI: Post-check: nonce mismatch = replayed
   Restate->>Worker: Execute Deploy workflow for newest commit
   Worker->>Dedup: skipIfSuperseded (defensive self-skip check)
   Worker->>BuildSlot: AcquireOrWait(deployment_id, awakeable_id, is_production)
@@ -66,34 +69,31 @@ sequenceDiagram
 
 ## Idempotent create
 
-`CreateDeployment` accepts an optional caller-supplied idempotency key (the v2 API forwards the `Idempotency-Key` header). There is no key table: the deployment id itself is the dedup gate. A keyed create derives its id as `uid.Derived("d", workspace_id, key)` (sha256, base62, 22 characters, disjoint from random ids), so a retry re-derives the same id and the primary key rejects the duplicate insert. The workspace id in the hash keeps tenants isolated: the same key in two workspaces derives two ids.
+`CreateDeployment` accepts an optional caller-supplied idempotency key (the v2 API forwards the `Idempotency-Key` header). Restate owns the key: ctrl calls `DeploymentCreateService.Create` synchronously with an invocation idempotency key of `workspace_id/app_id/environment_id/trimmed key`, so a retry inside the retention window attaches to the original invocation and receives its journaled response instead of creating anything. There is no key table and no derived deployment id; ids are random again. The prefix scopes the key to its target: the same caller key in another workspace, app, or environment runs its own invocation, so one key can deploy the same commit to prod and staging, and a reused key can never answer with another target's deployment.
 
-Because the row is the only record a key exists, a key stays bound only while its row survives. Purging a row frees its derived id, so a reused key creates a new deployment instead of replaying. This already happens: `Delete` in the environment worker hard-deletes the environment's deployment rows, and project and app deletes cascade into it. Callers cannot observe the release today, because a deleted target has no deployment left to replay.
+**Key lifetime.** The service registers with an idempotency retention of 12 hours, which is the caller-facing key lifetime: a retry inside the window replays, a retry after it creates a new deployment. This requires a Restate server version that accepts idempotency retention from service discovery; verify before deploying a worker with this handler against an older cluster.
 
-A keyed retry that finds an existing row is dispatched by `dedupKeyedCreate` and classified by `resolveKeyedRetry` ([`svc/ctrl/services/deployment/create_deployment.go`](https://github.com/unkeyed/unkey/blob/main/svc/ctrl/services/deployment/create_deployment.go)):
+**Durable execution replaces heal and spent keys.** The handler journals every step: insert plus create audit in one transaction, the `Deploy` send, the invocation id write, and the sibling dedup. A worker crash resumes the invocation from the journal, so an accepted create always completes and the old stuck-row states cannot occur. `healDeployment`, the spent-key rejection (`key-spent`), and the keyed/unkeyed send-failure split are gone. The in-handler `Deploy` send is itself a journal entry, so it happens exactly once and needs no invocation-level idempotency key of its own.
 
-| Existing row                                            | Answer                                                                                                                     |
-| ------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| Different app or environment                            | Reject: `AlreadyExists` with reason `key-scope-mismatch`. Answering would silently ignore the requested target.            |
-| `pending`, no invocation id                             | Heal (below). The create died between insert and send, so no workflow will ever run it.                                    |
-| Dead status (terminal except `ready`), no invocation id | Reject: `AlreadyExists` with reason `key-spent`. Nothing bound to this key will ever progress; the caller needs a new key. |
-| Anything else                                           | Replay: return the original deployment id, no insert, no workflow, no audit.                                               |
+**Gates run before the key.** The plan gate, the deployability check, and build source resolution (including GitHub commit lookup) run in ctrl before the Restate call. A request they reject never reaches Restate, so it never consumes its key: the caller fixes the request and retries with the same key, which is why the dashboard can keep one key across a corrected resubmit. The flip side is that every retry passes the gates again before it can replay.
 
-The same classification runs twice: once as a pre-check before gates and source resolution (so replays cost one read), and again when the insert hits a duplicate-key error because a concurrent request won the race.
+**Replay detection.** Ctrl sends a per-request nonce and the handler echoes the nonce of the request whose execution produced the response. A retry that attached reads back a foreign nonce, reports `replayed=true` (surfaced to API callers as the `Idempotent-Replayed: true` response header), and answers with the row's current status instead of the journaled pending.
 
-**Heal** (`healDeployment`) revives a stuck row: skip the insert, send the workflow, and write the invocation id onto the row. The build is pinned to what the row records, not the retry body, because the row defines what the deployment id means and the branch or body may have changed since the original attempt. A recorded image pins a docker build, which is why docker-source creates record their image at insert. A recorded commit without an image pins a git build, so the retry body cannot repoint it at an image. Command always comes from the row.
+**Target reload.** The handler reloads the target (project, app, environment, settings, secrets) at execution time, both so the row records current settings and so the secrets blob never enters the Restate journal. A target that no longer resolves fails the invocation terminally: ctrl validated the same target before the call, so this only happens when the target was deleted mid-create, and the caller gets a 500 for that race instead of a retry loop.
 
-A repo connection deleted since the crash refuses the heal instead of silently falling back to the current deployment's image. The refusal leaves the row pending and healable, so reconnecting the repository makes the same key work. It reaches API callers as a 412, and clients drop a key on any 4xx, so a caller sends a new key rather than looping on this one.
+**Audit.** The `deployment.create` audit log commits in the same MySQL transaction as the deployment insert, inside the create worker, so a deployment row exists if and only if its create audit exists. Replays answer from the journal and write nothing.
 
-Heal is safe to repeat. Sibling dedup runs with the stuck row's own creation time, so a heal never supersedes deployments newer than the row it revives, and a send failure never marks a healed row failed, so the next retry can heal again.
+**Caller timeout.** Ctrl bounds the synchronous call at 30 seconds. On expiry the invocation keeps running to completion; the caller gets `Unavailable` and a keyed retry attaches to the still-running invocation. Persistent handler failures (for example a database outage) exhaust the service retry policy and pause the invocation for operator resolution; it still completes when resumed.
 
-**Send failure on a fresh create.** Only unkeyed creates mark the row failed when the Restate send errors. A keyed create leaves the row pending, because a send error is ambiguous (Restate may have accepted it): the caller retries the same key, the heal re-sends, and the invocation-idempotent send attaches instead of building twice. Marking it failed would spend the key and force a duplicate deployment under a new one.
+**One-time cleanup after cutover.** Rows stuck before this design (status `pending` with no invocation id, created by a ctrl that died between insert and send) were previously repaired by heal on the next keyed retry. Heal no longer exists, so sweep them once after cutover:
 
-**Restate send idempotency.** The `DeployService` VO key only serializes invocations; it does not deduplicate them. Every `Deploy` send therefore carries an invocation-level idempotency key equal to the deployment id, so a heal whose original send actually succeeded (only the invocation id write was lost) attaches to the running invocation instead of building twice, and gets the same invocation id back. This deduplication only holds inside Restate's idempotency retention window (one day by default): a heal that re-sends after retention starts a second invocation for the same deployment id.
-
-**Audit.** The `deployment.create` audit log commits in the same MySQL transaction as the deployment insert, so a deployment row exists if and only if its create audit exists: a crash cannot lose the audit, and a failed audit write rolls back the insert and fails the request. Replays and heals answer with a row whose insert already audited; they write nothing and report `replayed=true`, which also surfaces to API callers as the `Idempotent-Replayed: true` response header.
-
-**Error contract.** Both rejections are `connect.CodeAlreadyExists` with a reason in the error metadata under the key defined in [`pkg/deploy/idempotency`](https://github.com/unkeyed/unkey/blob/main/pkg/deploy/idempotency). The v2 API maps recognized reasons to a 400 and lets any other `AlreadyExists` fall through to the generic error path.
+```sql
+UPDATE deployments
+SET status = 'failed', updated_at = (UNIX_TIMESTAMP() * 1000)
+WHERE status = 'pending'
+  AND invocation_id IS NULL
+  AND created_at < (UNIX_TIMESTAMP() - 3600) * 1000;
+```
 
 ## Flow: cancel deployment
 

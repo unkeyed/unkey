@@ -106,8 +106,9 @@ export type CreateDeploymentRequest = Message<"ctrl.v1.CreateDeploymentRequest">
 
   /**
    * Caller-supplied key that collapses retries of one create into a single
-   * deployment. Scoped per workspace. Reusing a key for a different app or
-   * environment is rejected with ALREADY_EXISTS. Omit to disable.
+   * deployment. Scoped per (workspace, app, environment): the same key
+   * reused for a different target creates its own deployment. Omit to
+   * disable.
    *
    * @generated from field: optional string idempotency_key = 12;
    */
@@ -184,8 +185,8 @@ export type CreateDeploymentResponse = Message<"ctrl.v1.CreateDeploymentResponse
   deploymentId: string;
 
   /**
-   * Status at answer time: PENDING for a fresh create or a heal, the
-   * deployment's current status for a replay.
+   * Status at answer time: PENDING for a fresh create, the deployment's
+   * current status for a replay.
    *
    * @generated from field: ctrl.v1.DeploymentStatus status = 2;
    */
