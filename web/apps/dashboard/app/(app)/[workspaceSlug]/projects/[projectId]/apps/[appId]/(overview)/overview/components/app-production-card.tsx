@@ -83,14 +83,9 @@ export function AppProductionCard() {
       q
         .from({ domain: collection.domains })
         .where(({ domain }) =>
-          and(
-            eq(domain.projectId, projectId),
-            eq(domain.appId, appId),
-            eq(domain.deploymentId, deployment?.id ?? ""),
-            eq(domain.sticky, "live"),
-          ),
+          and(eq(domain.projectId, projectId), eq(domain.appId, appId), eq(domain.sticky, "live")),
         ),
-    [projectId, appId, deployment?.id],
+    [projectId, appId],
   );
 
   const metrics = trpc.deploy.metrics.getAppRpsMetrics.useQuery(
