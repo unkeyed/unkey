@@ -102,7 +102,7 @@ func (s *Service) CreateDeployment(
 
 	res, err := s.createAndDeploy(ctx, createParams{
 		context:        ctxLoad,
-		action:         "create",
+		action:         actionCreate,
 		actor:          req.Msg.GetActor(),
 		dockerImage:    req.Msg.GetDockerImage(),
 		gitCommit:      req.Msg.GetGitCommit(),
@@ -310,7 +310,7 @@ func (s *Service) loadDeploymentContext(
 // createParams carries everything createAndDeploy needs from a caller.
 type createParams struct {
 	context deploymentContext
-	action  string
+	action  createAction
 
 	// actor attributed on the deployment.create audit log. Nil falls back to
 	// the system actor. Unused outside the create action.
@@ -334,7 +334,17 @@ type createParams struct {
 	idempotencyKey string
 }
 
-// createResult is what createAndDeploy answered with.
+// createAction is why a deployment row is being created. Only a create writes
+// the deployment.create audit log; a rebuild records its own event.
+type createAction string
+
+const (
+	actionCreate  createAction = "create"
+	actionRebuild createAction = "rebuild"
+)
+
+// createResult is the answer to a create: which deployment the caller gets,
+// and how that answer was produced.
 type createResult struct {
 	deploymentID string
 
@@ -343,7 +353,8 @@ type createResult struct {
 	status mysqltype.DeploymentsStatus
 
 	// replayed: answered with a deployment that already existed instead of
-	// inserting one. Only the inserting request writes the audit log.
+	// inserting one. Only the inserting request writes the audit log. A heal
+	// is replayed too: it starts a workflow, but creates no second row.
 	replayed bool
 }
 
@@ -366,7 +377,7 @@ func (s *Service) createAndDeploy(ctx context.Context, p createParams) (createRe
 		}
 	}
 
-	if err := s.ensureWorkspaceCanDeploy(ctx, c.workspaceID, p.action); err != nil {
+	if err := s.ensureWorkspaceCanDeploy(ctx, c.workspaceID, string(p.action)); err != nil {
 		return createResult{}, err
 	}
 	if err := s.ensureEnvironmentDeployable(ctx, c); err != nil {
@@ -445,7 +456,7 @@ func (s *Service) createAndDeploy(ctx context.Context, p createParams) (createRe
 		if err := db.NewQueries(tx).InsertDeployment(ctx, insertParams); err != nil {
 			return err
 		}
-		if p.action == "create" {
+		if p.action == actionCreate {
 			return s.recordCreateAudit(ctx, tx, c, deploymentID, p.actor)
 		}
 		return nil
@@ -459,8 +470,8 @@ func (s *Service) createAndDeploy(ctx context.Context, p createParams) (createRe
 				return res, err
 			}
 		}
-		logger.Error("failed to insert deployment", "error", insertErr.Error())
-		return createResult{}, connect.NewError(connect.CodeInternal, insertErr)
+		return createResult{}, connect.NewError(connect.CodeInternal,
+			fmt.Errorf("failed to insert deployment %s: %w", deploymentID, insertErr))
 	}
 
 	logger.Info(
@@ -539,102 +550,96 @@ func (s *Service) dedupKeyedCreate(
 		return createResult{}, false, nil //nolint:exhaustruct // zero value unused when handled is false
 	}
 
-	action, resolveErr := resolveKeyedRetry(p.context, existing)
-	if resolveErr != nil {
-		return createResult{}, true, resolveErr
-	}
-	if action == actionHeal {
+	switch resolveKeyedRetry(p.context, existing) {
+	case outcomeScopeMismatch:
+		return createResult{}, true, idempotencyKeyScopeError(existing.ID)
+
+	case outcomeKeySpent:
+		return createResult{}, true, spentIdempotencyKeyError(existing.ID)
+
+	case outcomeHeal:
 		res, healErr := s.healDeployment(ctx, p, existing)
 		return res, true, healErr
-	}
 
-	// An absorbed retry burst leaves no other trace.
-	logger.Info("replayed idempotent deployment create",
-		"deployment_id", deploymentID,
-		"workspace_id", p.context.workspaceID,
-		"status", string(existing.Status),
-	)
-	return createResult{deploymentID: deploymentID, status: existing.Status, replayed: true}, true, nil
+	case outcomeReplay:
+		logger.Info(
+			"replayed idempotent deployment create",
+			"deployment_id", deploymentID,
+			"workspace_id", p.context.workspaceID,
+			"status", string(existing.Status),
+		)
+		return createResult{deploymentID: deploymentID, status: existing.Status, replayed: true}, true, nil
+
+	default:
+		return createResult{}, true, connect.NewError(connect.CodeInternal,
+			fmt.Errorf("unhandled keyed retry outcome for deployment %s", existing.ID))
+	}
 }
 
-// keyedRetryAction is what to do with the row a keyed retry's key already
-// created. Meaningful only when resolveKeyedRetry returns a nil error.
-type keyedRetryAction int
+// keyedRetryOutcome is how a keyed retry is answered for the row its key
+// already created.
+type keyedRetryOutcome int
 
 const (
-	actionReplay keyedRetryAction = iota
-	actionHeal
+	outcomeReplay keyedRetryOutcome = iota
+	outcomeHeal
+	outcomeScopeMismatch
+	outcomeKeySpent
 )
 
 // resolveKeyedRetry decides how a keyed retry answers for the row its key
 // already created: replay it, heal it, or reject the key with an error.
-func resolveKeyedRetry(c deploymentContext, d db.Deployment) (keyedRetryAction, error) {
+func resolveKeyedRetry(c deploymentContext, d db.Deployment) keyedRetryOutcome {
 	// Different target: the key is bound to one app and environment, so
 	// answering here would silently ignore what the caller asked to deploy.
 	if d.AppID != c.app.ID || d.EnvironmentID != c.env.Environment.ID {
-		return actionReplay, idempotencyKeyScopeError(d.ID)
+		return outcomeScopeMismatch
 	}
 
 	// Stuck row: ctrl died between the insert and the Restate send, so no
 	// workflow will ever run it.
 	if d.Status == mysqltype.DeploymentsStatusPending && !d.InvocationID.Valid {
-		return actionHeal, nil
+		return outcomeHeal
 	}
 
 	// Dead with no recorded workflow: nothing this key returns will ever
 	// progress, so the key is spent. Replaying would leave the caller polling
 	// a deployment that never moves.
 	if !d.InvocationID.Valid && deadStatus(d.Status) {
-		return actionReplay, spentIdempotencyKeyError(d.ID)
+		return outcomeKeySpent
 	}
 
 	// Everything else replays as-is, even a failure after the workflow ran:
 	// a retry gets the original outcome, not a second attempt.
-	return actionReplay, nil
+	return outcomeReplay
 }
 
-// healDeployment revives a stuck row created with an idempotency key
-// (pending, no invocation id): its
-// create died between insert and send, so without this the deployment would
-// never build. It skips the insert, sends the workflow, and writes the
-// invocation id onto the row. Reports a replay.
-//
-// The build is pinned to what the row records (commit, command, and image),
-// not the retry body: the row defines what this deployment id means, and the
-// branch or body may have changed since.
-//
-// A send failure never marks the row failed: the workflow may already be
-// running (the send attaches, not duplicates), and the next retry heals again.
+// healDeployment revives a stuck row (pending, no invocation id): its create
+// died between insert and send, so nothing will ever build it. Skips the
+// insert, sends the workflow, records the invocation id, reports a replay.
 func (s *Service) healDeployment(ctx context.Context, p createParams, row db.Deployment) (createResult, error) {
 	c := p.context
 
-	if err := s.ensureWorkspaceCanDeploy(ctx, c.workspaceID, p.action); err != nil {
+	if err := s.ensureWorkspaceCanDeploy(ctx, c.workspaceID, string(p.action)); err != nil {
 		return createResult{}, err
 	}
 	if err := s.ensureEnvironmentDeployable(ctx, c); err != nil {
 		return createResult{}, err
 	}
 
-	// Commit fields come from the row whenever it records a branch, even with
-	// no SHA (a docker create with git attribution): sibling dedup keys on the
-	// branch, so it has to be the row's, not the body's.
-	commit := commitFromRequest(p.gitCommit)
-	if row.GitCommitSha.Valid || row.GitBranch.Valid {
-		commit = commitFieldsFromDeployment(row)
-	}
-
-	// Source intent comes from the row, not the retry body: the row defines
-	// what its id builds. A recorded image pins docker; a recorded commit pins
-	// git, so the body cannot repoint the id at another artifact.
-	dockerImage := p.dockerImage
-	explicitGit := p.gitCommit != nil
-	gitPinned := false
-	if row.Image.Valid {
+	// The row, not the retry body, defines what this id builds: a retry cannot
+	// change the commit, the artifact, or which siblings get superseded.
+	commit := commitFieldsFromDeployment(row)
+	rowPinsGit := !row.Image.Valid && row.GitCommitSha.Valid
+	dockerImage, explicitGit := "", false
+	switch {
+	case row.Image.Valid:
+		// Docker row: redeploy the image it recorded.
 		dockerImage = row.Image.String
-	} else if row.GitCommitSha.Valid {
-		dockerImage = ""
+	case rowPinsGit:
+		// Git row: demand git so a deleted repo connection refuses instead of
+		// falling back to the current deployment's image.
 		explicitGit = true
-		gitPinned = true
 	}
 
 	deployReq, commit, err := s.resolveSource(ctx, c, row.ID, row.Command, commit, dockerImage, explicitGit)
@@ -642,7 +647,7 @@ func (s *Service) healDeployment(ctx context.Context, p createParams, row db.Dep
 		// Git-pinned row whose repo connection is gone: no retry can ever build
 		// it, so fail it now and the next retry reads the key as spent.
 		// Transient resolution errors leave the row pending and healable.
-		if gitPinned && errors.Is(err, errNoRepoConnection) {
+		if rowPinsGit && errors.Is(err, errNoRepoConnection) {
 			// One transaction: a failed row without its ended step leaves the
 			// dashboard with a blank timeline.
 			spentAt := time.Now().UnixMilli()
