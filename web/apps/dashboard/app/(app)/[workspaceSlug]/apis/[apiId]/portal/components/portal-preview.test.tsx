@@ -27,28 +27,17 @@ describe("PortalPreview", () => {
     expect(screen.getByText("Acme Inc")).toBeTruthy();
   });
 
-  // The portal ships light-only. `light` re-declares the palette on this
-  // subtree, so the chrome keeps its light values inside a dark dashboard.
-  // Without it the `gray-*` tokens below resolve to their `.dark` values.
-  it("pins itself to the light palette", () => {
+  it("paints its chrome from fixed values, not themed tokens", () => {
     const container = renderPreview();
-    const root = container.firstElementChild;
-    expect(root?.classList.contains("light")).toBe(true);
-  });
-
-  // The dashboard's Tailwind config replaces the default palette, so classes
-  // from it compile to nothing and render invisible.
-  it("styles its chrome from the workspace palette, not Tailwind defaults", () => {
-    const container = renderPreview();
-    const unresolvable = container.querySelectorAll(
-      '[class*="white"], [class*="neutral-"], [class*="slate-"], [class*="zinc-"], [class*="stone-"]',
+    const themed = container.querySelectorAll(
+      '[class*="bg-gray-"], [class*="border-gray-"], [class*="text-gray-"], [class*="white"], [class*="neutral-"]',
     );
-    expect(unresolvable.length).toBe(0);
+    expect(themed.length).toBe(0);
   });
 
   it("renders the window dots and row skeletons with a fill", () => {
     const container = renderPreview();
-    const filled = container.querySelectorAll('[class*="bg-gray-"]');
+    const filled = container.querySelectorAll('[class*="bg-[hsl"]');
     // 3 window dots + the address bar + heading/sub skeletons + 4 rows.
     expect(filled.length).toBeGreaterThanOrEqual(12);
   });

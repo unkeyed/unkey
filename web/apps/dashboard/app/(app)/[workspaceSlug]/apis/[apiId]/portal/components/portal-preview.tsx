@@ -32,22 +32,20 @@ export function PortalPreview({
     logoUrl.length > 0 && logoUrlSchema.safeParse(logoUrl).success && erroredUrl !== logoUrl;
 
   return (
-    // `light` pins the subtree to the light palette. The portal ships
-    // light-only, so a preview that followed the dashboard theme would show a
-    // portal the end user never sees.
     <div
       className={cn(
-        "light flex w-full flex-col overflow-hidden rounded-lg border border-solid border-gray-4 bg-gray-1 shadow-sm",
+        "flex w-full flex-col overflow-hidden rounded-lg border border-solid border-[hsl(0_0%_91%)] bg-[hsl(0_0%_99%)] shadow-sm",
         className,
       )}
+      style={{ colorScheme: "light" }}
     >
-      <div className="flex items-center gap-2 border-b border-gray-4 bg-gray-3 px-3 py-2">
+      <div className="flex items-center gap-2 border-b border-[hsl(0_0%_91%)] bg-[hsl(0_0%_94%)] px-3 py-2">
         <div className="flex gap-1.5">
           {[0, 1, 2].map((dot) => (
-            <span key={dot} className="size-2 rounded-full bg-gray-6" />
+            <span key={dot} className="size-2 rounded-full bg-[hsl(0_0%_85%)]" />
           ))}
         </div>
-        <div className="flex-1 truncate rounded-md border border-gray-4 bg-gray-1 px-2 py-0.5 text-center text-[10px] text-gray-9">
+        <div className="flex-1 truncate rounded-md border border-[hsl(0_0%_91%)] bg-[hsl(0_0%_99%)] px-2 py-0.5 text-center text-[10px] text-[hsl(0_0%_55%)]">
           {MOCK_ADDRESS}
         </div>
       </div>
@@ -75,8 +73,8 @@ export function PortalPreview({
       <div className="flex flex-1 flex-col gap-3 px-4 py-4">
         <div className="flex items-start justify-between gap-3">
           <div className="flex flex-col gap-2">
-            <div className="h-3 w-24 rounded bg-gray-6" />
-            <div className="h-2 w-44 max-w-full rounded bg-gray-4" />
+            <div className="h-3 w-24 rounded bg-[hsl(0_0%_85%)]" />
+            <div className="h-2 w-44 max-w-full rounded bg-[hsl(0_0%_91%)]" />
           </div>
           <div
             className="shrink-0 rounded-md px-3 py-1.5 text-[11px] font-medium"
@@ -85,26 +83,26 @@ export function PortalPreview({
             <div className="h-2 w-8 rounded-sm" style={{ backgroundColor: `${onColor}33` }} />
           </div>
         </div>
-        <div className="rounded-lg border border-gray-4">
+        <div className="rounded-lg border border-[hsl(0_0%_91%)]">
           {[0, 1, 2, 3].map((row) => (
             <div
               key={row}
               className={cn(
                 "flex items-center justify-between px-3 py-3",
-                row > 0 && "border-t border-gray-4",
+                row > 0 && "border-t border-[hsl(0_0%_91%)]",
               )}
             >
               <div className="flex flex-col gap-1.5">
-                <div className="h-2 w-20 rounded bg-gray-6" />
-                <div className="h-1.5 w-32 rounded bg-gray-4" />
+                <div className="h-2 w-20 rounded bg-[hsl(0_0%_85%)]" />
+                <div className="h-1.5 w-32 rounded bg-[hsl(0_0%_91%)]" />
               </div>
-              <div className="h-2 w-10 rounded bg-gray-4" />
+              <div className="h-2 w-10 rounded bg-[hsl(0_0%_91%)]" />
             </div>
           ))}
         </div>
       </div>
 
-      <div className="border-t border-gray-4 px-4 py-2 text-center text-[10px] text-gray-9">
+      <div className="border-t border-[hsl(0_0%_91%)] px-4 py-2 text-center text-[10px] text-[hsl(0_0%_55%)]">
         Powered by Unkey
       </div>
     </div>
