@@ -43,10 +43,14 @@ const baseCtx = {
   currentDeploymentId: "dep-current" as string | null,
 };
 
-test("getAppOverviewDomains includes app aliases and the displayed deployment's immutable URLs", () => {
+test("getAppOverviewDomains includes only live routes attached to the displayed deployment", () => {
   const domains = [
+    makeDomain({ id: "current-live-1", deploymentId: "dep-current", sticky: "live" }),
+    makeDomain({ id: "current-live-2", deploymentId: "dep-current", sticky: "live" }),
     makeDomain({ id: "current-commit", deploymentId: "dep-current", sticky: "none" }),
     makeDomain({ id: "current-deployment", deploymentId: "dep-current", sticky: "deployment" }),
+    makeDomain({ id: "current-branch", deploymentId: "dep-current", sticky: "branch" }),
+    makeDomain({ id: "current-environment", deploymentId: "dep-current", sticky: "environment" }),
     makeDomain({ id: "other-branch", deploymentId: "dep-other", sticky: "branch" }),
     makeDomain({ id: "other-environment", deploymentId: "dep-other", sticky: "environment" }),
     makeDomain({ id: "other-live", deploymentId: "dep-other", sticky: "live" }),
@@ -55,11 +59,8 @@ test("getAppOverviewDomains includes app aliases and the displayed deployment's 
   ];
 
   expect(getAppOverviewDomains(domains, "dep-current").map((domain) => domain.id)).toEqual([
-    "current-commit",
-    "current-deployment",
-    "other-branch",
-    "other-environment",
-    "other-live",
+    "current-live-1",
+    "current-live-2",
   ]);
 });
 

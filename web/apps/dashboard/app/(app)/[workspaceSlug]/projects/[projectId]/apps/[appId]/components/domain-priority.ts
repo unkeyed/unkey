@@ -33,18 +33,15 @@ export type DomainPriorityResult = {
 };
 
 /**
- * Returns the app-level aliases shown on the overview together with immutable
- * URLs for the displayed deployment. The `deployment` sticky value identifies
- * an immutable URL, so routes of that type from older deployments are excluded.
+ * Returns the live routes attached to the production deployment shown on the
+ * app overview. Other route types can belong to stopped preview deployments.
  */
 export function getAppOverviewDomains(
   domains: ReadonlyArray<Domain>,
   deploymentId: string,
 ): ReadonlyArray<Domain> {
   return domains.filter(
-    (domain) =>
-      domain.deploymentId === deploymentId ||
-      (domain.sticky !== "none" && domain.sticky !== "deployment"),
+    (domain) => domain.deploymentId === deploymentId && domain.sticky === "live",
   );
 }
 
