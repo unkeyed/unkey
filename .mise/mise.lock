@@ -714,3 +714,31 @@ url = "https://nodejs.org/dist/v24.19.0/node-v24.19.0-darwin-x64.tar.gz"
 [tools.node."platforms.windows-x64"]
 checksum = "sha256:57f71ab3652e797d84acddc79c81cc9ff1c6ddb2a1974cdb83f00fee9bff4c73"
 url = "https://nodejs.org/dist/v24.19.0/node-v24.19.0-win-x64.zip"
+
+[[tools.perl]]
+version = "5.44.0.0"
+backend = "aqua:skaji/relocatable-perl"
+
+[tools.perl."platforms.linux-arm64"]
+checksum = "sha256:b1a3aa7be1ea0239a29e503b63a52a694371670d4dc535c716d9a16ea2aaa453"
+url = "https://github.com/skaji/relocatable-perl/releases/download/5.44.0.0/perl-linux-arm64.tar.gz"
+
+[tools.perl."platforms.linux-arm64-musl"]
+checksum = "sha256:b1a3aa7be1ea0239a29e503b63a52a694371670d4dc535c716d9a16ea2aaa453"
+url = "https://github.com/skaji/relocatable-perl/releases/download/5.44.0.0/perl-linux-arm64.tar.gz"
+
+[tools.perl."platforms.linux-x64"]
+checksum = "sha256:99fa984bab4eb536dae9630d5d47f3f5bd23a71c361d94dc6ef3a68a7186dcb0"
+url = "https://github.com/skaji/relocatable-perl/releases/download/5.44.0.0/perl-linux-amd64.tar.gz"
+
+[tools.perl."platforms.linux-x64-musl"]
+checksum = "sha256:99fa984bab4eb536dae9630d5d47f3f5bd23a71c361d94dc6ef3a68a7186dcb0"
+url = "https://github.com/skaji/relocatable-perl/releases/download/5.44.0.0/perl-linux-amd64.tar.gz"
+
+[tools.perl."platforms.macos-arm64"]
+checksum = "sha256:213733e18662720a3d25fd6e1adeddd05f56ce50b5e1f8bc6bd194e3f43e44d2"
+url = "https://github.com/skaji/relocatable-perl/releases/download/5.44.0.0/perl-darwin-arm64.tar.gz"
+
+[tools.perl."platforms.macos-x64"]
+checksum = "sha256:1898662f3526d87e666fc9000a6ce8ef6d8a81fcc072c998eafae8004389619b"
+url = "https://github.com/skaji/relocatable-perl/releases/download/5.44.0.0/perl-darwin-amd64.tar.gz"
