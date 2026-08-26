@@ -15,9 +15,10 @@ export const createNamespace = workspaceProcedure
   )
   .mutation(async ({ input, ctx }) => {
     const namespaceId = newId("ratelimitNamespace");
+    let projectId: string | null = null;
     await db
       .transaction(async (tx) => {
-        const projectId = await ensureDefaultProjectId(tx, ctx.workspace.id);
+        projectId = await ensureDefaultProjectId(tx, ctx.workspace.id);
         await tx.insert(schema.ratelimitNamespaces).values({
           id: namespaceId,
           name: input.name,
@@ -62,7 +63,15 @@ export const createNamespace = workspaceProcedure
         });
       });
 
+    if (projectId === null) {
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: "We are unable to create namespace. Please try again or contact support@unkey.com",
+      });
+    }
+
     return {
       id: namespaceId,
+      projectId,
     };
   });

@@ -9,6 +9,7 @@ export const getAvailableKeyspaces = workspaceProcedure.query(async ({ ctx }) =>
         and(eq(table.workspaceId, ctx.workspace.id), isNull(table.deletedAtM)),
       columns: {
         id: true,
+        projectId: true,
       },
       with: {
         api: {
@@ -30,10 +31,10 @@ export const getAvailableKeyspaces = workspaceProcedure.query(async ({ ctx }) =>
   return keyspaces.reduce(
     (acc, ks) => {
       if (ks.api && ks.api.deletedAtM === null) {
-        acc[ks.id] = { id: ks.id, api: { name: ks.api.name } };
+        acc[ks.id] = { id: ks.id, projectId: ks.projectId, api: { name: ks.api.name } };
       }
       return acc;
     },
-    {} as Record<string, { id: string; api: { name: string } }>,
+    {} as Record<string, { id: string; projectId: string; api: { name: string } }>,
   );
 });
