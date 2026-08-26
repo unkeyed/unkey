@@ -97,8 +97,6 @@ describe("withIdempotencyKey", () => {
   });
 
   // A rejected request created nothing, so the key is free to discard. It
-  // also covers a key the API considers spent, which is the one error
-  // retrying with the same key can never clear.
   it("rotates when the API rejected the request", async () => {
     const first = await keyOf(deployBody, badRequest());
     const second = await keyOf(deployBody, new Error("network down"));

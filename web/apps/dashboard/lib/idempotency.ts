@@ -9,8 +9,7 @@ import { UnkeyError } from "@unkey/api/models/errors";
  * return a deployment the failed attempt may still have created. A changed
  * body is a new deployment intent and gets its own key. A key is discarded
  * after a settled success, and after any 4xx: a rejected request created
- * nothing, and a spent key is the one error retrying the same key can never
- * clear.
+ * nothing, so a fresh key on the corrected resubmit is always safe.
  */
 export async function withIdempotencyKey<T>(
   body: unknown,
