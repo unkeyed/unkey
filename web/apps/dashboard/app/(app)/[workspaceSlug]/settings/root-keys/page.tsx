@@ -15,7 +15,8 @@ import { useState } from "react";
 import { BuilderAside } from "./components/builder/builder-aside";
 import { RootKeysListControls } from "./components/controls";
 import { CreateRootKeyButton } from "./components/dialog/create-rootkey-button";
-import { RootKeysList } from "./components/table/root-keys-list";
+import { RootKeysListBuilder } from "./components/table/root-keys-list-builder";
+import { RootKeysListLegacy } from "./components/table/root-keys-list-legacy";
 
 export default function RootKeysPage() {
   const rootKeyBuilder = useFlag("rootKeyBuilder");
@@ -25,7 +26,7 @@ export default function RootKeysPage() {
     <PageContainer>
       <PageHeader>
         <PageHeaderContent>
-          <PageHeaderTitle>Root keys</PageHeaderTitle>
+          <PageHeaderTitle>Root Keys</PageHeaderTitle>
         </PageHeaderContent>
         <PageHeaderActions>
           <a
@@ -45,7 +46,7 @@ export default function RootKeysPage() {
               onClick={() => setAsideOpen(true)}
             >
               <Plus />
-              New root key
+              New Root Key
             </Button>
           ) : (
             <CreateRootKeyButton />
@@ -54,7 +55,7 @@ export default function RootKeysPage() {
       </PageHeader>
       <PageBody className="pt-3 gap-3">
         <RootKeysListControls />
-        <RootKeysList />
+        {rootKeyBuilder ? <RootKeysListBuilder /> : <RootKeysListLegacy />}
       </PageBody>
       {rootKeyBuilder ? (
         <BuilderAside isOpen={asideOpen} onClose={() => setAsideOpen(false)} />

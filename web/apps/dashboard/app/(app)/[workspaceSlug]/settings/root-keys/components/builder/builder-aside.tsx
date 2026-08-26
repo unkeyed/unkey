@@ -2,14 +2,14 @@
 
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { trpc } from "@/lib/trpc/client";
-import { zodResolver } from "@hookform/resolvers/zod";
 import { Button, SlidePanel, toast } from "@unkey/ui";
-import { useRef, useState } from "react";
-import { FormProvider, useForm } from "react-hook-form";
+import { useState } from "react";
+import { FormProvider } from "react-hook-form";
+import { useRootKeyPolicyForm } from "./hooks/use-root-key-policy-form";
 import { KeyFields } from "./key-fields";
 import { buildUrns } from "./lib/urn";
 import { PolicyList } from "./policy-list";
-import { type RootKeyFormValues, rootKeyDefaultValues, rootKeySchema } from "./schema";
+import { rootKeyDefaultValues } from "./schema";
 import { SuccessDialog } from "./success-dialog";
 
 type BuilderAsideProps = {
@@ -22,11 +22,6 @@ export function BuilderAside({ isOpen, onClose }: BuilderAsideProps) {
   const trpcUtils = trpc.useUtils();
   const [secret, setSecret] = useState<string | null>(null);
   const [secretRevealed, setSecretRevealed] = useState(false);
-  const form = useForm<RootKeyFormValues>({
-    resolver: zodResolver(rootKeySchema),
-    defaultValues: rootKeyDefaultValues,
-  });
-  const bodyRef = useRef<HTMLDivElement>(null);
 
   const createKey = trpc.rootKey.create.useMutation({
     onSuccess(data) {
@@ -42,19 +37,12 @@ export function BuilderAside({ isOpen, onClose }: BuilderAsideProps) {
     },
   });
 
-  const scrollToTop = () => {
-    bodyRef.current?.scrollTo({
-      top: 0,
-      behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth",
-    });
-  };
-
-  const submit = form.handleSubmit((values) => {
+  const { form, bodyRef, submit } = useRootKeyPolicyForm(rootKeyDefaultValues, (values) => {
     createKey.mutate({
       name: values.name,
       permissions: buildUrns(workspace.id, values.policies),
     });
-  }, scrollToTop);
+  });
 
   const finish = () => {
     setSecret(null);
@@ -75,12 +63,9 @@ export function BuilderAside({ isOpen, onClose }: BuilderAsideProps) {
         }}
         widthClassName="w-192"
       >
-        <SlidePanel.Header>
-          <div className="flex flex-col gap-0.5">
-            <SlidePanel.Title>New root key</SlidePanel.Title>
-            <SlidePanel.Description>Name the key and grant it permissions.</SlidePanel.Description>
-          </div>
-          <SlidePanel.CloseButton className="mt-0.5" />
+        <SlidePanel.Header className="items-center">
+          <SlidePanel.Title>New Root Key</SlidePanel.Title>
+          <SlidePanel.CloseButton />
         </SlidePanel.Header>
 
         <SlidePanel.Content>

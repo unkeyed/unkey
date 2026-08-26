@@ -36,7 +36,3 @@ export function describePermission(name: string): string {
 
   return humaniseAction(action);
 }
-
-export function describePermissions(names: readonly string[]): string[] {
-  return [...new Set(names.map(describePermission))];
-}

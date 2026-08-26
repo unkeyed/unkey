@@ -7,9 +7,9 @@ export function EmptyRootKeys() {
     <div className="w-full flex justify-center items-center h-full">
       <Empty className="w-[400px] flex items-start">
         <Empty.Icon className="w-auto" />
-        <Empty.Title>No root keys found</Empty.Title>
+        <Empty.Title>No Root Keys found</Empty.Title>
         <Empty.Description className="text-left">
-          There are no root keys configured yet. Create your first root key to start managing
+          There are no Root Keys configured yet. Create your first Root Key to start managing
           permissions and access control.
         </Empty.Description>
         <Empty.Actions className="mt-4 justify-start">
@@ -21,7 +21,7 @@ export function EmptyRootKeys() {
           >
             <span className="flex items-center gap-2">
               <BookBookmark />
-              Learn about root keys
+              Learn about Root Keys
             </span>
           </a>
         </Empty.Actions>

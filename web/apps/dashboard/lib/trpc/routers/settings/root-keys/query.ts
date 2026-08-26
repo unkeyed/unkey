@@ -1,8 +1,9 @@
 import { rootKeysQueryPayload } from "@/components/root-keys-table/schema/query-logs.schema";
-import { and, asc, count, db, desc, eq, gt, isNull, or, schema, sql } from "@/lib/db";
+import { and, asc, count, db, desc, eq, or, schema, sql } from "@/lib/db";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
+import { rootKeyBaseConditions, rootKeyPermissions } from "./shared";
 
 const PermissionResponse = z.object({
   id: z.string(),
@@ -43,11 +44,7 @@ export const queryRootKeys = workspaceProcedure
   .output(RootKeysResponse)
   .query(async ({ ctx, input }) => {
     // Build base conditions (used for both count and fetch)
-    const baseConditions = [
-      eq(schema.keys.forWorkspaceId, ctx.workspace.id),
-      isNull(schema.keys.deletedAtM),
-      or(isNull(schema.keys.expires), gt(schema.keys.expires, new Date())),
-    ];
+    const baseConditions = rootKeyBaseConditions(ctx.workspace.id);
 
     // Build filter conditions
     const filterConditions = [];
@@ -133,13 +130,7 @@ export const queryRootKeys = workspaceProcedure
 
       // Transform the data to flatten permissions and add summary
       const keys = keysResult.map((key) => {
-        const permissions = key.permissions
-          .map((p) => p.permission)
-          .filter(Boolean)
-          .map((permission) => ({
-            id: permission.id,
-            name: permission.name,
-          }));
+        const permissions = rootKeyPermissions(key.permissions);
 
         const permissionSummary = categorizePermissions(permissions);
 
@@ -168,7 +159,7 @@ export const queryRootKeys = workspaceProcedure
       throw new TRPCError({
         code: "INTERNAL_SERVER_ERROR",
         message:
-          "Failed to retrieve root keys due to an error. If this issue persists, please contact support@unkey.com with the time this occurred.",
+          "Failed to retrieve Root Keys due to an error. If this issue persists, please contact support@unkey.com with the time this occurred.",
       });
     }
   });

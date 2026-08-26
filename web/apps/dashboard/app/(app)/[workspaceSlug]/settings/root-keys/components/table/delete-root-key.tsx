@@ -6,12 +6,12 @@ import { Button, ConfirmPopover, DialogContainer, FormCheckbox } from "@unkey/ui
 import { useRef, useState } from "react";
 import { Controller, FormProvider, useForm } from "react-hook-form";
 import { z } from "zod";
-import { useDeleteRootKey } from "../../hooks/use-delete-root-key";
+import { useDeleteRootKey } from "./hooks/use-delete-root-key";
 import { RootKeyInfo } from "./root-key-info";
 
 const deleteRootKeyFormSchema = z.object({
   confirmDeletion: z.boolean().refine((val) => val === true, {
-    error: "Please confirm that you want to permanently revoke this root key",
+    error: "Please confirm that you want to permanently revoke this Root Key",
   }),
 });
 
@@ -85,7 +85,7 @@ export const DeleteRootKey = ({ rootKeyDetails, isOpen, onClose }: DeleteRootKey
             isOpen={isOpen}
             subTitle="Delete the key permanently"
             onOpenChange={handleDialogOpenChange}
-            title="Revoke root key"
+            title="Revoke Root Key"
             footer={
               <div className="w-full flex flex-col gap-2 items-center justify-center">
                 <Button
@@ -118,7 +118,7 @@ export const DeleteRootKey = ({ rootKeyDetails, isOpen, onClose }: DeleteRootKey
               </div>
               <div className="text-error-12 text-[13px] leading-6">
                 <span className="font-medium">Warning:</span> This action can not be undone. Your
-                root key will no longer be able to create resources.
+                Root Key will no longer be able to create resources.
               </div>
             </div>
             <Controller
@@ -132,7 +132,7 @@ export const DeleteRootKey = ({ rootKeyDetails, isOpen, onClose }: DeleteRootKey
                   size="md"
                   checked={field.value}
                   onCheckedChange={field.onChange}
-                  label="I understand this will permanently delete the root key."
+                  label="I understand this will permanently delete the Root Key."
                   error={errors.confirmDeletion?.message}
                 />
               )}
@@ -145,8 +145,8 @@ export const DeleteRootKey = ({ rootKeyDetails, isOpen, onClose }: DeleteRootKey
         onOpenChange={setIsConfirmPopoverOpen}
         onConfirm={performRootKeyDeletion}
         triggerRef={deleteButtonRef}
-        title="Confirm root key deletion"
-        description="This action is irreversible. The root key will be permanently removed and will no longer be able to create resources."
+        title="Confirm Root Key deletion"
+        description="This action is irreversible. The Root Key will be permanently removed and will no longer be able to create resources."
         confirmButtonText="Delete permanently"
         cancelButtonText="Cancel"
         variant="danger"

@@ -12,7 +12,7 @@ const formatFieldName = (field: string): string => {
     case "users":
       return "User";
     case "rootKeys":
-      return "Root key";
+      return "Root Key";
     case "bucket":
       return "Bucket";
     case "since":

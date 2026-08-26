@@ -17,17 +17,12 @@ import type { RootKeysQueryPayload, RootKeysSortField } from "../schema/query-lo
 const DEFAULT_PAGE_SIZE = 50;
 const MAX_PAGE_SIZE = 200;
 
-// Maps TanStack column IDs → server sort field names (and reverse)
-const COLUMN_ID_TO_SORT_FIELD: Record<string, RootKeysSortField> = {
-  root_key: "name",
-  created_at: "createdAt",
-  last_updated: "lastUpdatedAt",
-};
-const SORT_FIELD_TO_COLUMN_ID: Record<RootKeysSortField, string> = {
-  name: "root_key",
-  createdAt: "created_at",
-  lastUpdatedAt: "last_updated",
-};
+// The list renders rows, not sortable columns, so the sort field is its own id.
+const SORT_FIELDS = {
+  name: "name",
+  createdAt: "createdAt",
+  lastUpdatedAt: "lastUpdatedAt",
+} as const satisfies Record<RootKeysSortField, RootKeysSortField>;
 
 type RootKeysFilterParams = Pick<RootKeysQueryPayload, "name">;
 
@@ -46,8 +41,8 @@ export function useRootKeysListPaginated(pageSize = DEFAULT_PAGE_SIZE) {
     defaultPageSize: DEFAULT_PAGE_SIZE,
     maxPageSize: MAX_PAGE_SIZE,
     defaultSortField: "createdAt",
-    columnIdToSortField: COLUMN_ID_TO_SORT_FIELD,
-    sortFieldToColumnId: SORT_FIELD_TO_COLUMN_ID,
+    columnIdToSortField: SORT_FIELDS,
+    sortFieldToColumnId: SORT_FIELDS,
     useFilters,
     filterFieldNames: rootKeysListFilterFieldNames,
     filterFieldConfig: rootKeysFilterFieldConfig,
@@ -71,7 +66,5 @@ export function useRootKeysListPaginated(pageSize = DEFAULT_PAGE_SIZE) {
     totalPages: result.totalPages,
     totalCount: result.totalCount,
     onPageChange: result.onPageChange,
-    sorting: result.sorting,
-    onSortingChange: result.onSortingChange,
   };
 }

@@ -33,7 +33,7 @@ export interface NavbarActionButtonProps
 export const NavbarActionButton = React.forwardRef<HTMLButtonElement, NavbarActionButtonProps>(
   (
     {
-      title = "Create new root key",
+      title = "Create new Root Key",
       variant = "primary",
       size = "sm",
       className = "px-3",

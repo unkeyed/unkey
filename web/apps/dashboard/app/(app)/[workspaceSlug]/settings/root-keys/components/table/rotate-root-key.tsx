@@ -1,11 +1,10 @@
 import { RotateKeyDialog } from "@/components/api-keys-table/components/actions/components/rotate-key/rotate-key-dialog";
 import type { ActionComponentProps } from "@/components/logs/table-action.popover";
 import { trpc } from "@/lib/trpc/client";
-import type { RootKey } from "@/lib/trpc/routers/settings/root-keys/query";
-import { useRotateRootKey } from "../../hooks/use-rotate-root-key";
-import { RootKeyInfo } from "./root-key-info";
+import { useRotateRootKey } from "./hooks/use-rotate-root-key";
+import { RootKeyInfo, type RootKeySummary } from "./root-key-info";
 
-type RotateRootKeyProps = { rootKeyDetails: RootKey } & ActionComponentProps;
+type RotateRootKeyProps = { rootKeyDetails: RootKeySummary } & ActionComponentProps;
 
 export const RotateRootKey = ({ rootKeyDetails, isOpen, onClose }: RotateRootKeyProps) => {
   const trpcUtils = trpc.useUtils();
@@ -22,6 +21,7 @@ export const RotateRootKey = ({ rootKeyDetails, isOpen, onClose }: RotateRootKey
       onClose={onClose}
       onRotated={() => {
         trpcUtils.settings.rootKeys.query.invalidate();
+        trpcUtils.settings.rootKeys.get.invalidate({ keyId: rootKeyDetails.id });
       }}
     />
   );

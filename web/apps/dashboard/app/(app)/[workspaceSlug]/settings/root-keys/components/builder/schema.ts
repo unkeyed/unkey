@@ -41,7 +41,12 @@ export const rootKeySchema = z.object({
   policies: z.array(completePolicySchema).min(1, "Grant at least one permission."),
 });
 
+export const legacyRootKeySchema = z.object({
+  name: nameSchema,
+});
+
 export type RootKeyFormValues = z.infer<typeof rootKeySchema>;
+export type LegacyRootKeyFormValues = z.infer<typeof legacyRootKeySchema>;
 
 export const rootKeyDefaultValues: RootKeyFormValues = {
   name: "",

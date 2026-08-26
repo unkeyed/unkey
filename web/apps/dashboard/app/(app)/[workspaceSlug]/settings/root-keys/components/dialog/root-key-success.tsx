@@ -66,7 +66,7 @@ export const RootKeySuccess = ({ keyValue, onClose }: RootKeySuccessProps) => {
           <div className="p-1 w-full my-8">
             <div className="h-px bg-grayA-3 w-full" />
           </div>
-          <KeySecretSection keyValue={keyValue} title="Root key" className="w-full" />
+          <KeySecretSection keyValue={keyValue} title="Root Key" className="w-full" />
         </div>
         <ConfirmPopover
           isOpen={isConfirmOpen}

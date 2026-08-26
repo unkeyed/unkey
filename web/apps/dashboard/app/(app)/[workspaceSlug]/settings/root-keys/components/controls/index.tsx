@@ -5,8 +5,8 @@ export function RootKeysListControls() {
     <div className="flex w-full items-center">
       <ResourceSearchInput
         queryKey="name"
-        label="Search root keys"
-        placeholder="Search root keys by name..."
+        label="Search Root Keys"
+        placeholder="Search Root Keys by name..."
       />
     </div>
   );

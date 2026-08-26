@@ -38,14 +38,14 @@ export const updateRootKeyPermissions = workspaceProcedure
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
-            "We were unable to update the root key permissions. Please try again or contact support@unkey.com.",
+            "We were unable to update the Root Key permissions. Please try again or contact support@unkey.com.",
         });
       });
 
     if (!key) {
       throw new TRPCError({
         code: "NOT_FOUND",
-        message: "Root key not found",
+        message: "Root Key not found",
       });
     }
 
@@ -184,7 +184,7 @@ export const updateRootKeyPermissions = workspaceProcedure
       throw new TRPCError({
         code: "INTERNAL_SERVER_ERROR",
         message:
-          "We are unable to update the root key permissions. Please try again or contact support@unkey.com",
+          "We are unable to update the Root Key permissions. Please try again or contact support@unkey.com",
       });
     }
 

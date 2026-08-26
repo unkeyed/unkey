@@ -45,7 +45,9 @@ export function PolicySummaryRow({ policy, onExpand, onRemove }: PolicySummaryRo
         onClick={onExpand}
         className="flex min-w-0 flex-1 cursor-pointer flex-col items-start gap-1 text-left"
       >
-        <span className="w-full truncate text-[13px] text-accent-12">{summary.scopeLine}</span>
+        <span className="w-full truncate text-[13px] font-medium text-accent-12">
+          {summary.scopeLine}
+        </span>
         {error ? (
           <span className="text-xs text-error-11">{error}</span>
         ) : (
@@ -75,7 +77,7 @@ export function PolicyEditor({ policy, error, onChange, onCollapse, onRemove }: 
   return (
     <section className="flex flex-col gap-4 rounded-lg border border-grayA-4 dark:border-grayA-5 bg-white p-4 dark:bg-black">
       <div className="flex items-center gap-2">
-        <span className="text-[13px] text-accent-12">Edit policy</span>
+        <span className="text-[13px] font-medium text-accent-12">Edit policy</span>
         <div className="ml-auto flex items-center gap-1">
           <RemovePolicyButton onRemove={onRemove} />
           <Button
