@@ -1,6 +1,6 @@
 import type { CustomDomain, Domain } from "@/lib/collections";
 import { describe, expect, test } from "vitest";
-import { getAppOverviewDomains, getDomainPriority } from "./domain-priority";
+import { getDomainPriority } from "./domain-priority";
 
 function makeDomain(overrides: Partial<Domain> = {}): Domain {
   return {
@@ -42,27 +42,6 @@ const baseCtx = {
   deploymentId: "dep-current",
   currentDeploymentId: "dep-current" as string | null,
 };
-
-test("getAppOverviewDomains includes only live routes attached to the displayed deployment", () => {
-  const domains = [
-    makeDomain({ id: "current-live-1", deploymentId: "dep-current", sticky: "live" }),
-    makeDomain({ id: "current-live-2", deploymentId: "dep-current", sticky: "live" }),
-    makeDomain({ id: "current-commit", deploymentId: "dep-current", sticky: "none" }),
-    makeDomain({ id: "current-deployment", deploymentId: "dep-current", sticky: "deployment" }),
-    makeDomain({ id: "current-branch", deploymentId: "dep-current", sticky: "branch" }),
-    makeDomain({ id: "current-environment", deploymentId: "dep-current", sticky: "environment" }),
-    makeDomain({ id: "other-branch", deploymentId: "dep-other", sticky: "branch" }),
-    makeDomain({ id: "other-environment", deploymentId: "dep-other", sticky: "environment" }),
-    makeDomain({ id: "other-live", deploymentId: "dep-other", sticky: "live" }),
-    makeDomain({ id: "other-commit", deploymentId: "dep-other", sticky: "none" }),
-    makeDomain({ id: "other-deployment", deploymentId: "dep-other", sticky: "deployment" }),
-  ];
-
-  expect(getAppOverviewDomains(domains, "dep-current").map((domain) => domain.id)).toEqual([
-    "current-live-1",
-    "current-live-2",
-  ]);
-});
 
 describe("getDomainPriority", () => {
   const cases = [

@@ -32,19 +32,6 @@ export type DomainPriorityResult = {
   all: ReadonlyArray<DisplayDomain>;
 };
 
-/**
- * Returns the live routes attached to the production deployment shown on the
- * app overview. Other route types can belong to stopped preview deployments.
- */
-export function getAppOverviewDomains(
-  domains: ReadonlyArray<Domain>,
-  deploymentId: string,
-): ReadonlyArray<Domain> {
-  return domains.filter(
-    (domain) => domain.deploymentId === deploymentId && domain.sticky === "live",
-  );
-}
-
 export function getDomainPriority(ctx: DomainPriorityContext): DomainPriorityResult {
   const isCurrentDeployment = ctx.deploymentId === ctx.currentDeploymentId;
 
