@@ -1,6 +1,7 @@
 type: object
 properties:
   project:
+    # oapi-codegen ignores description siblings on $ref; allOf preserves the field-specific docs.
     allOf:
       - "$ref": "../../../../common/ResourceIdentifier.yaml"
     description: |
