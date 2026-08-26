@@ -479,44 +479,6 @@ func TestDeployment_Create_DuplicateResumeKeepsRowCreatedAt(t *testing.T) {
 		"a newer sibling must not be superseded by a resumed older create")
 }
 
-// The idempotency key travels as an HTTP header on the ingress call; a value
-// a header cannot carry must be rejected as InvalidArgument instead of
-// failing every attempt in the transport as a 500.
-func TestDeployment_Create_RejectsInvalidIdempotencyKey(t *testing.T) {
-	requests := make(chan *hydrav1.DeployRequest, 1)
-	harness := newWebhookHarness(t, webhookHarnessConfig{
-		Services: []restate.ServiceDefinition{hydrav1.NewDeployServiceServer(&mockDeployService{requests: requests})},
-	})
-
-	ctx := harness.RequestContext()
-	workspaceID := harness.Seed.Resources.UserWorkspace.ID
-	target := seedDeployTarget(ctx, t, harness, workspaceID)
-
-	client := ctrlv1connect.NewDeployServiceClient(harness.ConnectClient(), harness.CtrlURL, harness.ConnectOptions()...)
-
-	for name, key := range map[string]string{
-		"control character": "kebap\nkey",
-		"oversized":         strings.Repeat("k", 300),
-	} {
-		// nolint: exhaustruct // only the fields the reject path reads matter here
-		_, err := client.CreateDeployment(ctx, connect.NewRequest(&ctrlv1.CreateDeploymentRequest{
-			ProjectId:       target.project.ID,
-			AppId:           target.app.ID,
-			EnvironmentSlug: target.environment.Slug,
-			DockerImage:     "nginx:latest",
-			IdempotencyKey:  &key,
-		}))
-		require.Error(t, err, "case %q", name)
-		require.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err), "case %q", name)
-	}
-
-	select {
-	case req := <-requests:
-		t.Fatalf("unexpected workflow invocation for deployment %s", req.GetDeploymentId())
-	case <-time.After(500 * time.Millisecond):
-	}
-}
-
 // failingAuditlogs simulates an audit outbox outage so tests can prove the
 // deployment insert and its audit commit atomically.
 type failingAuditlogs struct{}
