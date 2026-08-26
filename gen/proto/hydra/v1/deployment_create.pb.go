@@ -77,14 +77,11 @@ func (DeploymentCreateAction) EnumDescriptor() ([]byte, []int) {
 
 type DeploymentCreateRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Nonce distinguishes the request whose execution produced the response
-	// from a retry that attached to it: the handler echoes the executing
-	// request's nonce, so a caller that reads back a different nonce knows its
-	// request was answered by replay.
+	// Replay detection: the handler echoes this back, so a caller that reads
+	// a different nonce knows its request attached to an existing invocation.
 	Nonce string `protobuf:"bytes,1,opt,name=nonce,proto3" json:"nonce,omitempty"`
 	// Target identifiers. The handler reloads project, app, environment, and
-	// settings itself instead of trusting a snapshot: the secrets blob must
-	// not pass through the Restate journal, and the row should record the
+	// settings itself instead of trusting a snapshot, so the row records the
 	// settings current at execution time.
 	ProjectId       string `protobuf:"bytes,2,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
 	AppId           string `protobuf:"bytes,3,opt,name=app_id,json=appId,proto3" json:"app_id,omitempty"`

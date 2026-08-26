@@ -23,12 +23,11 @@ import (
 //
 // A plain service, not a virtual object: creates for different deployments
 // have nothing to serialize on. Deduplication of caller retries happens at
-// the invocation layer instead — ctrl calls Create with an idempotency key
-// derived from (workspace id, app id, environment id, caller key), so a retry attaches to the
-// original invocation and receives its journaled response. Durable execution
-// completes every accepted create, which is what removes ctrl's old
-// stuck-row heal machinery: a create that got past the ingress cannot die
-// between the insert and the send.
+// the invocation layer instead: ctrl calls Create with an idempotency key
+// derived from (workspace id, app id, environment id, caller key), so a
+// retry attaches to the original invocation and receives its journaled
+// response. Durable execution completes every accepted create: it cannot
+// die between the insert and the send.
 type DeploymentCreateServiceClient interface {
 	// Create inserts the deployment row (with its create audit in the same
 	// transaction), starts the Deploy workflow, records the invocation id, and
@@ -97,12 +96,11 @@ func (c *deploymentCreateServiceIngressClient) Create() ingress.Requester[*Deplo
 //
 // A plain service, not a virtual object: creates for different deployments
 // have nothing to serialize on. Deduplication of caller retries happens at
-// the invocation layer instead — ctrl calls Create with an idempotency key
-// derived from (workspace id, app id, environment id, caller key), so a retry attaches to the
-// original invocation and receives its journaled response. Durable execution
-// completes every accepted create, which is what removes ctrl's old
-// stuck-row heal machinery: a create that got past the ingress cannot die
-// between the insert and the send.
+// the invocation layer instead: ctrl calls Create with an idempotency key
+// derived from (workspace id, app id, environment id, caller key), so a
+// retry attaches to the original invocation and receives its journaled
+// response. Durable execution completes every accepted create: it cannot
+// die between the insert and the send.
 type DeploymentCreateServiceServer interface {
 	// Create inserts the deployment row (with its create audit in the same
 	// transaction), starts the Deploy workflow, records the invocation id, and

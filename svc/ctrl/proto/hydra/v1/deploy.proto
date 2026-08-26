@@ -10,13 +10,12 @@ option go_package = "github.com/unkeyed/unkey/gen/proto/hydra/v1;hydrav1";
 // durable Restate workflows. Each RPC is idempotent and can safely resume from
 // any step after a crash.
 //
-// Deploy, Rollback, and Promote are keyed by {app_id}:{environment_id} so
-// that lifecycle operations within a single environment are serialized
-// (preventing e.g. a rollback from racing with an in-flight deploy) while
-// different environments of the same app — e.g. production vs preview — can
-// deploy in parallel. This means a production push never waits behind a
-// preview build. Workspace-wide concurrency is separately enforced by
-// BuildSlotService.
+// Deploy, Rollback, and Promote are keyed by deployment_id, so each
+// deployment runs as its own isolated workflow and deployments in the same
+// environment can build in parallel. The contended resource
+// (apps.current_deployment_id) is serialized inside RoutingService, keyed by
+// environment_id, via SwapLiveDeployment. Workspace-wide concurrency is
+// separately enforced by BuildSlotService.
 //
 // Deploy handles the full pipeline from building Docker images through
 // provisioning containers and configuring domain routing. Rollback and Promote

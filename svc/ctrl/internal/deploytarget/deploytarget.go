@@ -1,8 +1,8 @@
 // Package deploytarget resolves the project, app, environment, settings, and
 // secrets a deployment create targets. Ctrl loads a target to run its gates
 // and resolve the build source; the DeploymentCreateService worker loads it
-// again at execution time so the row records current settings and the secrets
-// blob never travels through the Restate journal.
+// again at execution time so the row records the settings current when the
+// create runs, not a snapshot from when it was requested.
 package deploytarget
 
 import (
