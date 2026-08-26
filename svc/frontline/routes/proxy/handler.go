@@ -5,6 +5,7 @@ import (
 	"context"
 	"io"
 	"net/http"
+	"time"
 
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/codes"
@@ -38,7 +39,7 @@ func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 	ctx = proxy.WithRequestStartTime(ctx, startTime)
 
 	req := sess.Request()
-	hops, err := requestHops(req, h.Metadata)
+	hops, err := requestHops(req, h.Metadata, startTime)
 	if err != nil {
 		return err
 	}
@@ -201,7 +202,7 @@ func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 
 // requestHops verifies and removes metadata sent by a peer Frontline. Requests
 // without peer metadata start with an empty hop history.
-func requestHops(req *http.Request, codec *meta.Codec) ([]meta.Hop, error) {
+func requestHops(req *http.Request, codec *meta.Codec, now time.Time) ([]meta.Hop, error) {
 	values := req.Header.Values(proxy.HeaderFrontlineMeta)
 	if len(values) == 0 {
 		return nil, nil
@@ -221,7 +222,7 @@ func requestHops(req *http.Request, codec *meta.Codec) ([]meta.Hop, error) {
 	if err != nil {
 		return nil, nil
 	}
-	if metadata.ExpiresAt <= 0 {
+	if metadata.ExpiresAt.IsZero() || !now.Before(metadata.ExpiresAt) {
 		return nil, nil
 	}
 	return metadata.Hops, nil

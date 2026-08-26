@@ -75,8 +75,8 @@ type Config struct {
 	// the request. Prevents infinite routing loops.
 	MaxHops int `toml:"max_hops" config:"default=10"`
 
-	// FrontlineMetaSigningKey signs metadata between Frontline regions. Every
-	// Frontline region in one environment must use the same key.
+	// FrontlineMetaSigningKey is a hex-encoded Ed25519 seed that signs PASETO
+	// metadata between Frontline regions. Every region must use the same key.
 	FrontlineMetaSigningKey string `toml:"frontline_meta_signing_key" config:"required,nonempty"`
 
 	// Control configures the upstream control plane. See [config.ControlConfig].

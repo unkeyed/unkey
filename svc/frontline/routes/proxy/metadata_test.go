@@ -10,16 +10,21 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/fault"
-	"github.com/unkeyed/unkey/pkg/jwt"
+	"github.com/unkeyed/unkey/pkg/paseto"
 	"github.com/unkeyed/unkey/svc/frontline/internal/meta"
 	"github.com/unkeyed/unkey/svc/frontline/internal/proxy"
+)
+
+const (
+	metadataSigningKey          = "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
+	alternateMetadataSigningKey = "202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f"
 )
 
 func TestRequestHops_WithoutMetadataStartsWithEmptyHistory(t *testing.T) {
 	t.Parallel()
 
 	req := httptest.NewRequest(http.MethodGet, "https://example.com", nil)
-	hops, err := requestHops(req, nil)
+	hops, err := requestHops(req, nil, metadataRequestTime())
 	require.NoError(t, err)
 	require.Empty(t, hops)
 }
@@ -27,24 +32,24 @@ func TestRequestHops_WithoutMetadataStartsWithEmptyHistory(t *testing.T) {
 func TestRequestHops_VerifiesAndRemovesMetadata(t *testing.T) {
 	t.Parallel()
 
-	codec := newMetadataCodec(t, "shared-signing-key")
-	payload := validMetadataPayload()
-	req := requestWithMetadata(t, codec, payload)
+	codec := newMetadataCodec(t, metadataSigningKey)
+	metadata := validMetadata()
+	req := requestWithMetadata(t, codec, metadata)
 
-	hops, err := requestHops(req, codec)
+	hops, err := requestHops(req, codec, metadataRequestTime())
 	require.NoError(t, err)
-	require.Equal(t, payload.Hops, hops)
+	require.Equal(t, metadata.Hops, hops)
 	require.Empty(t, req.Header.Values(proxy.HeaderFrontlineMeta))
 }
 
 func TestRequestHops_IgnoresMalformedMetadata(t *testing.T) {
 	t.Parallel()
 
-	codec := newMetadataCodec(t, "shared-signing-key")
+	codec := newMetadataCodec(t, metadataSigningKey)
 	req := httptest.NewRequest(http.MethodGet, "https://example.com", nil)
 	req.Header.Set(proxy.HeaderFrontlineMeta, "client-controlled-value")
 
-	hops, err := requestHops(req, codec)
+	hops, err := requestHops(req, codec, metadataRequestTime())
 	require.NoError(t, err)
 	require.Empty(t, hops)
 	require.Empty(t, req.Header.Values(proxy.HeaderFrontlineMeta))
@@ -53,11 +58,11 @@ func TestRequestHops_IgnoresMalformedMetadata(t *testing.T) {
 func TestRequestHops_IgnoresWrongSigningKey(t *testing.T) {
 	t.Parallel()
 
-	signer := newMetadataCodec(t, "signing-key-a")
-	verifier := newMetadataCodec(t, "signing-key-b")
-	req := requestWithMetadata(t, signer, validMetadataPayload())
+	signer := newMetadataCodec(t, metadataSigningKey)
+	verifier := newMetadataCodec(t, alternateMetadataSigningKey)
+	req := requestWithMetadata(t, signer, validMetadata())
 
-	hops, err := requestHops(req, verifier)
+	hops, err := requestHops(req, verifier, metadataRequestTime())
 	require.NoError(t, err)
 	require.Empty(t, hops)
 	require.Empty(t, req.Header.Values(proxy.HeaderFrontlineMeta))
@@ -66,12 +71,12 @@ func TestRequestHops_IgnoresWrongSigningKey(t *testing.T) {
 func TestRequestHops_IgnoresMissingExpiry(t *testing.T) {
 	t.Parallel()
 
-	codec := newMetadataCodec(t, "shared-signing-key")
-	payload := validMetadataPayload()
-	payload.ExpiresAt = 0
-	req := requestWithMetadata(t, codec, payload)
+	codec := newMetadataCodec(t, metadataSigningKey)
+	metadata := validMetadata()
+	metadata.ExpiresAt = time.Time{}
+	req := requestWithMetadata(t, codec, metadata)
 
-	hops, err := requestHops(req, codec)
+	hops, err := requestHops(req, codec, metadataRequestTime())
 	require.NoError(t, err)
 	require.Empty(t, hops)
 	require.Empty(t, req.Header.Values(proxy.HeaderFrontlineMeta))
@@ -80,12 +85,26 @@ func TestRequestHops_IgnoresMissingExpiry(t *testing.T) {
 func TestRequestHops_IgnoresExpiredMetadata(t *testing.T) {
 	t.Parallel()
 
-	codec := newMetadataCodec(t, "shared-signing-key")
-	payload := validMetadataPayload()
-	payload.ExpiresAt = time.Now().Add(-time.Minute).Unix()
-	req := requestWithMetadata(t, codec, payload)
+	codec := newMetadataCodec(t, metadataSigningKey)
+	metadata := validMetadata()
+	metadata.ExpiresAt = metadataRequestTime().Add(-time.Minute)
+	req := requestWithMetadata(t, codec, metadata)
 
-	hops, err := requestHops(req, codec)
+	hops, err := requestHops(req, codec, metadataRequestTime())
+	require.NoError(t, err)
+	require.Empty(t, hops)
+	require.Empty(t, req.Header.Values(proxy.HeaderFrontlineMeta))
+}
+
+func TestRequestHops_IgnoresMetadataAtExpiry(t *testing.T) {
+	t.Parallel()
+
+	codec := newMetadataCodec(t, metadataSigningKey)
+	metadata := validMetadata()
+	metadata.ExpiresAt = metadataRequestTime()
+	req := requestWithMetadata(t, codec, metadata)
+
+	hops, err := requestHops(req, codec, metadataRequestTime())
 	require.NoError(t, err)
 	require.Empty(t, hops)
 	require.Empty(t, req.Header.Values(proxy.HeaderFrontlineMeta))
@@ -94,11 +113,11 @@ func TestRequestHops_IgnoresExpiredMetadata(t *testing.T) {
 func TestRequestHops_IgnoresDuplicateHeaders(t *testing.T) {
 	t.Parallel()
 
-	codec := newMetadataCodec(t, "shared-signing-key")
-	req := requestWithMetadata(t, codec, validMetadataPayload())
+	codec := newMetadataCodec(t, metadataSigningKey)
+	req := requestWithMetadata(t, codec, validMetadata())
 	req.Header.Add(proxy.HeaderFrontlineMeta, req.Header.Get(proxy.HeaderFrontlineMeta))
 
-	hops, err := requestHops(req, codec)
+	hops, err := requestHops(req, codec, metadataRequestTime())
 	require.NoError(t, err)
 	require.Empty(t, hops)
 	require.Empty(t, req.Header.Values(proxy.HeaderFrontlineMeta))
@@ -110,7 +129,7 @@ func TestRequestHops_IgnoresEmptyHeader(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "https://example.com", nil)
 	req.Header.Set(proxy.HeaderFrontlineMeta, "")
 
-	hops, err := requestHops(req, nil)
+	hops, err := requestHops(req, nil, metadataRequestTime())
 	require.NoError(t, err)
 	require.Empty(t, hops)
 	require.Empty(t, req.Header.Values(proxy.HeaderFrontlineMeta))
@@ -119,11 +138,11 @@ func TestRequestHops_IgnoresEmptyHeader(t *testing.T) {
 func TestRequestHops_IgnoresOversizedHeader(t *testing.T) {
 	t.Parallel()
 
-	codec := newMetadataCodec(t, "shared-signing-key")
+	codec := newMetadataCodec(t, metadataSigningKey)
 	req := httptest.NewRequest(http.MethodGet, "https://example.com", nil)
 	req.Header.Set(proxy.HeaderFrontlineMeta, strings.Repeat("a", 4097))
 
-	hops, err := requestHops(req, codec)
+	hops, err := requestHops(req, codec, metadataRequestTime())
 	require.NoError(t, err)
 	require.Empty(t, hops)
 	require.Empty(t, req.Header.Values(proxy.HeaderFrontlineMeta))
@@ -132,10 +151,10 @@ func TestRequestHops_IgnoresOversizedHeader(t *testing.T) {
 func TestRequestHops_RejectsMetadataWithoutCodec(t *testing.T) {
 	t.Parallel()
 
-	codec := newMetadataCodec(t, "shared-signing-key")
-	req := requestWithMetadata(t, codec, validMetadataPayload())
+	codec := newMetadataCodec(t, metadataSigningKey)
+	req := requestWithMetadata(t, codec, validMetadata())
 
-	_, err := requestHops(req, nil)
+	_, err := requestHops(req, nil, metadataRequestTime())
 	requireFrontlineMetadataError(t, err)
 	require.Empty(t, req.Header.Values(proxy.HeaderFrontlineMeta))
 }
@@ -148,20 +167,20 @@ func newMetadataCodec(t *testing.T, signingKey string) *meta.Codec {
 	return codec
 }
 
-func requestWithMetadata(t *testing.T, codec *meta.Codec, payload *meta.Metadata) *http.Request {
+func requestWithMetadata(t *testing.T, codec *meta.Codec, metadata *meta.Metadata) *http.Request {
 	t.Helper()
 
-	token, err := codec.Marshal(payload)
+	token, err := codec.Marshal(metadata)
 	require.NoError(t, err)
 	req := httptest.NewRequest(http.MethodGet, "https://example.com", nil)
 	req.Header.Set(proxy.HeaderFrontlineMeta, token)
 	return req
 }
 
-func validMetadataPayload() *meta.Metadata {
+func validMetadata() *meta.Metadata {
 	return &meta.Metadata{
-		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: time.Now().Add(time.Hour).Unix(),
+		Claims: paseto.Claims{
+			ExpiresAt: metadataRequestTime().Add(time.Hour),
 		},
 		Hops: []meta.Hop{
 			{
@@ -172,6 +191,10 @@ func validMetadataPayload() *meta.Metadata {
 			},
 		},
 	}
+}
+
+func metadataRequestTime() time.Time {
+	return time.Date(2026, time.August, 26, 12, 0, 0, 0, time.UTC)
 }
 
 func requireFrontlineMetadataError(t *testing.T, err error) {

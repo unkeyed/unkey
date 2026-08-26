@@ -83,11 +83,11 @@ Key headers:
 - `X-Forwarded-Proto`
 - `X-Unkey-Timing`
 
-Frontline uses an HS256 JWT in `X-Unkey-Frontline-Meta`. The claims contain an
-expiry time and an ordered hop history. Each hop contains the region, request
-ID, Frontline ID, and forward time as Unix milliseconds. HTTPS protects the
-request in transit. The JWT lets a peer authenticate the metadata and detect
-changes.
+Frontline uses a PASETO v4.public token in `X-Unkey-Frontline-Meta`. The claims
+contain an expiry time and an ordered hop history. Each hop contains the region,
+request ID, Frontline ID, and forward time as Unix milliseconds. HTTPS protects
+the request in transit. The PASETO signature lets a peer authenticate the
+metadata and detect changes.
 
 Each Frontline removes incoming metadata before routing. It verifies metadata
 when the header contains one non-empty value. A request without valid metadata

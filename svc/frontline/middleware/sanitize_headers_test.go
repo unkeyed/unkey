@@ -57,6 +57,48 @@ func TestWithReservedHeaderStrip(t *testing.T) {
 	}
 }
 
+func TestWithReservedHeaderStrip_RemovesReservedTrailers(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name     string
+		trailer  string
+		stripped bool
+	}{
+		{name: "principal stripped", trailer: "X-Unkey-Principal", stripped: true},
+		{name: "metadata stripped", trailer: proxy.HeaderFrontlineMeta, stripped: true},
+		{name: "region stripped", trailer: proxy.HeaderRegion, stripped: true},
+		{name: "lowercase canonicalized then stripped", trailer: "x-unkey-custom", stripped: true},
+		{name: "unrelated trailer kept", trailer: "X-Customer-Trailer", stripped: false},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+
+			req := httptest.NewRequest(http.MethodPost, "/", nil)
+			req.Trailer = make(http.Header)
+			req.Trailer.Set(test.trailer, "spoofed")
+			sess := newMiddlewareSession(t, req)
+
+			var seen http.Header
+			next := func(_ context.Context, s *zen.Session) error {
+				seen = s.Request().Trailer.Clone()
+				return nil
+			}
+
+			err := WithReservedHeaderStrip()(next)(context.Background(), sess)
+			require.NoError(t, err)
+			canonical := http.CanonicalHeaderKey(test.trailer)
+			if test.stripped {
+				require.Empty(t, seen.Get(canonical))
+			} else {
+				require.Equal(t, "spoofed", seen.Get(canonical))
+			}
+		})
+	}
+}
+
 func newMiddlewareSession(t *testing.T, req *http.Request) *zen.Session {
 	t.Helper()
 	w := httptest.NewRecorder()

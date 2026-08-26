@@ -66,9 +66,16 @@ token = "${UNKEY_VAULT_TOKEN}"
 </ResponseField>
 
 <ResponseField name="frontline_meta_signing_key" type="string" required>
-  Shared key that signs metadata between Frontline regions. Set the same key in
-  every region in one environment.
+  A 64-character hexadecimal Ed25519 seed. Frontline uses the seed to sign
+  PASETO v4.public metadata. Set the same seed in every region in one
+  environment.
 </ResponseField>
+
+Generate the seed with OpenSSL:
+
+```bash
+openssl rand -hex 32
+```
 
 <ResponseField name="control" type="object" required>
   Control API connection settings.
@@ -207,7 +214,8 @@ The Helm chart provides these variables for the default config template:
 </ResponseField>
 
 <ResponseField name="UNKEY_FRONTLINE_META_SIGNING_KEY" type="env" required>
-  Shared key that signs metadata between Frontline regions.
+  A 64-character hexadecimal Ed25519 seed that signs PASETO v4.public metadata
+  between Frontline regions.
 </ResponseField>
 
 <ResponseField name="UNKEY_VAULT_URL" type="env">

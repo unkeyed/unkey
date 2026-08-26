@@ -3,17 +3,19 @@
 package meta
 
 import (
+	"crypto/ed25519"
+	"encoding/hex"
 	"fmt"
 
-	"github.com/unkeyed/unkey/pkg/jwt"
+	"github.com/unkeyed/unkey/pkg/paseto"
 )
 
 const maxTokenBytes = 4096
 
-// Codec marshals and unmarshals metadata as an HS256 JWT.
+// Codec marshals and unmarshals metadata as a PASETO v4.public token.
 type Codec struct {
-	signer   *jwt.HS256Signer[Metadata]
-	verifier *jwt.HS256Verifier[Metadata]
+	signer   *paseto.PublicSigner[Metadata]
+	verifier *paseto.PublicVerifier[Metadata]
 }
 
 // Hop records one cross-region forward.
@@ -26,17 +28,27 @@ type Hop struct {
 
 // Metadata is the trusted data sent between Frontline regions.
 type Metadata struct {
-	jwt.RegisteredClaims
+	paseto.Claims
 	Hops []Hop `json:"hops"`
 }
 
-// New creates a metadata codec.
+// New creates a metadata codec from a hex-encoded Ed25519 seed.
 func New(signingKey string) (*Codec, error) {
-	signer, err := jwt.NewHS256Signer[Metadata]([]byte(signingKey))
+	seed, err := hex.DecodeString(signingKey)
+	if err != nil {
+		return nil, fmt.Errorf("decode metadata signing key: %w", err)
+	}
+	if len(seed) != ed25519.SeedSize {
+		return nil, fmt.Errorf("metadata signing key must contain %d hexadecimal characters", ed25519.SeedSize*2)
+	}
+
+	privateKey := ed25519.NewKeyFromSeed(seed)
+	signer, err := paseto.NewSigner[Metadata](privateKey)
 	if err != nil {
 		return nil, fmt.Errorf("create metadata signer: %w", err)
 	}
-	verifier, err := jwt.NewHS256Verifier[Metadata]([]byte(signingKey))
+	publicKey := privateKey.Public().(ed25519.PublicKey)
+	verifier, err := paseto.NewVerifier[Metadata](publicKey)
 	if err != nil {
 		return nil, fmt.Errorf("create metadata verifier: %w", err)
 	}
@@ -44,12 +56,15 @@ func New(signingKey string) (*Codec, error) {
 }
 
 // Marshal returns signed metadata.
-func (c *Codec) Marshal(payload *Metadata) (string, error) {
-	if payload == nil {
-		return "", fmt.Errorf("metadata payload is required")
+func (c *Codec) Marshal(metadata *Metadata) (string, error) {
+	if metadata == nil {
+		return "", fmt.Errorf("metadata is required")
 	}
 
-	token, err := c.signer.Sign(*payload)
+	token, err := c.signer.Sign(paseto.Message[Metadata]{
+		Payload: *metadata,
+		Footer:  nil,
+	})
 	if err != nil {
 		return "", fmt.Errorf("sign metadata: %w", err)
 	}
@@ -69,10 +84,10 @@ func (c *Codec) Unmarshal(token string) (*Metadata, error) {
 		return nil, fmt.Errorf("encoded metadata exceeds %d bytes", maxTokenBytes)
 	}
 
-	payload, err := c.verifier.Verify(token)
+	message, err := c.verifier.Verify(token)
 	if err != nil {
 		return nil, fmt.Errorf("verify metadata: %w", err)
 	}
 
-	return &payload, nil
+	return &message.Payload, nil
 }

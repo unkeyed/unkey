@@ -97,7 +97,7 @@ func startFrontline(t *testing.T, backendAddr string) (string, func()) {
 
 	transports := proxy.NewTransportRegistry()
 	clk := clock.New()
-	metadata, err := meta.New("test-frontline-meta-signing-key")
+	metadata, err := meta.New(testMetadataSigningKey)
 	require.NoError(t, err)
 	proxySvc, err := proxy.New(proxy.Config{
 		InstanceID:          "test-instance",

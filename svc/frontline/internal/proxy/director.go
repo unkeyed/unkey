@@ -19,6 +19,7 @@ func (s *service) makeInstanceDirector(sess *zen.Session, startTime time.Time) f
 		// Keep this final egress guard even though the handler consumes incoming
 		// metadata before routing.
 		req.Header.Del(HeaderFrontlineMeta)
+		removeUnkeyTrailers(req)
 		req.Header.Set(HeaderFrontlineID, s.instanceID)
 		req.Header.Set(HeaderRegion, fmt.Sprintf("%s::%s", s.platform, s.region))
 		req.Header.Set(HeaderRequestID, sess.RequestID())
@@ -48,6 +49,7 @@ func (s *service) makeInstanceDirector(sess *zen.Session, startTime time.Time) f
 // makeRegionDirector creates a Director function for forwarding to a remote region
 func (s *service) makeRegionDirector(sess *zen.Session, startTime time.Time, signedMetadata string) func(*http.Request) {
 	return func(req *http.Request) {
+		removeUnkeyTrailers(req)
 		req.Header.Set(HeaderFrontlineMeta, signedMetadata)
 
 		frontlineRoutingTime := s.clock.Now().Sub(startTime)
@@ -63,5 +65,15 @@ func (s *service) makeRegionDirector(sess *zen.Session, startTime time.Time, sig
 		req.Host = sess.Request().Host
 		req.Header.Set("Host", sess.Request().Host)
 
+	}
+}
+
+// removeUnkeyTrailers prevents client-controlled Frontline fields from leaving
+// the proxy as request trailers.
+func removeUnkeyTrailers(req *http.Request) {
+	for name := range req.Trailer {
+		if IsUnkeyHeader(name) {
+			delete(req.Trailer, name)
+		}
 	}
 }

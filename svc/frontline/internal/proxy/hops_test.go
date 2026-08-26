@@ -17,6 +17,8 @@ import (
 	"github.com/unkeyed/unkey/svc/frontline/internal/meta"
 )
 
+const testMetadataSigningKey = "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
+
 func TestNew_RequiresMetadata(t *testing.T) {
 	t.Parallel()
 
@@ -29,7 +31,7 @@ func TestNew_RequiresMetadata(t *testing.T) {
 func TestNew_RejectsNegativeMaxHops(t *testing.T) {
 	t.Parallel()
 
-	metadata, err := meta.New("test-frontline-meta-signing-key")
+	metadata, err := meta.New(testMetadataSigningKey)
 	require.NoError(t, err)
 
 	//nolint:exhaustruct
@@ -45,7 +47,7 @@ func TestForwardToRegion_RejectsHopLimit(t *testing.T) {
 	t.Parallel()
 
 	clk := clock.New()
-	metadata, err := meta.New("test-frontline-meta-signing-key")
+	metadata, err := meta.New(testMetadataSigningKey)
 	require.NoError(t, err)
 	//nolint:exhaustruct
 	svc, err := New(Config{
@@ -77,7 +79,7 @@ func TestForwardToRegion_AllowsLastHop(t *testing.T) {
 
 	now := time.Now().UTC().Truncate(time.Millisecond)
 	clk := clock.NewTestClock(now)
-	metadata, err := meta.New("test-frontline-meta-signing-key")
+	metadata, err := meta.New(testMetadataSigningKey)
 	require.NoError(t, err)
 	transport, recorder := newMetadataTransport(t, metadata)
 	//nolint:exhaustruct
@@ -108,7 +110,7 @@ func TestForwardToRegion_AppendsMetadataAtEachHop(t *testing.T) {
 
 	now := time.Now().UTC().Truncate(time.Millisecond)
 	clk := clock.NewTestClock(now)
-	metadata, err := meta.New("test-frontline-meta-signing-key")
+	metadata, err := meta.New(testMetadataSigningKey)
 	require.NoError(t, err)
 	transport, recorder := newMetadataTransport(t, metadata)
 
@@ -128,7 +130,7 @@ func TestForwardToRegion_AppendsMetadataAtEachHop(t *testing.T) {
 	ctx := WithRequestStartTime(context.Background(), now)
 	require.NoError(t, first.ForwardToRegion(ctx, firstSession, "us-west-2.aws", nil))
 	require.Len(t, recorder.seen, 1)
-	require.Equal(t, now.Add(frontlineMetadataTTL).Unix(), recorder.seen[0].ExpiresAt)
+	require.Equal(t, now.Add(frontlineMetadataTTL), recorder.seen[0].ExpiresAt)
 	require.Equal(t, []meta.Hop{
 		{
 			Region:        "aws::us-east-1",
@@ -157,7 +159,7 @@ func TestForwardToRegion_AppendsMetadataAtEachHop(t *testing.T) {
 	ctx = WithRequestStartTime(context.Background(), secondNow)
 	require.NoError(t, second.ForwardToRegion(ctx, secondSession, "eu-west-1.aws", incomingHops))
 	require.Len(t, recorder.seen, 2)
-	require.Equal(t, secondNow.Add(frontlineMetadataTTL).Unix(), recorder.seen[1].ExpiresAt)
+	require.Equal(t, secondNow.Add(frontlineMetadataTTL), recorder.seen[1].ExpiresAt)
 	require.Equal(t, []meta.Hop{
 		{
 			Region:        "aws::us-east-1",
@@ -181,7 +183,7 @@ func TestForwardToRegion_PreservesDuplicateRegions(t *testing.T) {
 
 	now := time.Now().UTC().Truncate(time.Millisecond)
 	clk := clock.NewTestClock(now)
-	metadata, err := meta.New("test-frontline-meta-signing-key")
+	metadata, err := meta.New(testMetadataSigningKey)
 	require.NoError(t, err)
 	transport, recorder := newMetadataTransport(t, metadata)
 	//nolint:exhaustruct

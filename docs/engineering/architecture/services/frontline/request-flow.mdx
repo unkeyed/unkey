@@ -52,7 +52,7 @@ sequenceDiagram
 Every request passes through a middleware chain before reaching the proxy handler. The chain executes top-to-bottom on the request path and bottom-to-top on the response path. The order is set in [`svc/frontline/routes/register.go`](https://github.com/unkeyed/unkey/blob/main/svc/frontline/routes/register.go):
 
 1. **PanicRecovery.** Catches panics in downstream handlers so a single request cannot crash the process.
-2. **Reserved header strip.** Removes reserved headers, including `X-Unkey-Principal`, so a client cannot forge an identity. It preserves `X-Unkey-Frontline-Meta` for verification in the proxy handler.
+2. **Reserved header strip.** Removes reserved headers, including `X-Unkey-Principal`, so a client cannot forge an identity. It removes every `X-Unkey-*` trailer. It preserves the `X-Unkey-Frontline-Meta` request header for verification in the proxy handler.
 3. **Logging.** Structured request logging. Skips internal paths (`/_unkey/internal/`).
 4. **ClickHouseLogging.** Creates a tracking context with a start timestamp and, on completion, writes the full request and response to ClickHouse. It wraps observability so it reads the final status code after observability has written the response.
 5. **Observability.** Starts an OpenTelemetry span (`frontline.proxy`), records Prometheus metrics (`unkey_frontline_requests_total`), maps fault codes to HTTP status codes, and renders an HTML error page when the client prefers HTML.
@@ -65,10 +65,10 @@ After the middleware chain, the proxy handler runs. Its inputs are the router se
 ### 1. Verify peer metadata
 
 The handler checks for `X-Unkey-Frontline-Meta`. If the header is present, the
-handler removes it and verifies the HS256 JWT. A request without valid metadata
-starts with an empty hop history. Frontline treats empty, duplicate, invalid,
-expired, or oversized metadata as absent. Invalid metadata never blocks a
-request.
+handler removes it and verifies the PASETO v4.public token. A request without
+valid metadata starts with an empty hop history. Frontline treats empty,
+duplicate, invalid, expired, or oversized metadata as absent. Invalid metadata
+never blocks a request.
 
 ### 2. Route the hostname
 
@@ -107,9 +107,9 @@ The handler streams the instance response back to the client. The ClickHouse log
 | `X-Deployment-Id`        | Identifies the request deployment     |
 | `X-Unkey-Frontline-Meta` | Carries signed expiry and hop history |
 
-`X-Unkey-Frontline-Meta` contains an HS256 JWT. Frontline accepts the metadata
-only when the request has one non-empty header value, the signature is valid,
-and the token has not expired. Each forwarding Frontline appends one hop,
+`X-Unkey-Frontline-Meta` contains a PASETO v4.public token. Frontline accepts the
+metadata only when the request has one non-empty header value, the signature is
+valid, and the token has not expired. Each forwarding Frontline appends one hop,
 replaces the metadata, and sets `exp` to 1 minute in the future. Each hop records
 the region, request ID, Frontline ID, and forward time. Frontline removes the
 metadata before it forwards a request to a deployment instance. The complete

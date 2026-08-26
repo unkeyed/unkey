@@ -7,15 +7,20 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
-	"github.com/unkeyed/unkey/pkg/jwt"
+	"github.com/unkeyed/unkey/pkg/paseto"
+)
+
+const (
+	testSigningKey      = "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
+	alternateSigningKey = "202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f"
 )
 
 func TestCodec_RoundTrip(t *testing.T) {
 	t.Parallel()
 
 	codec := newTestCodec(t)
-	payload := &Metadata{
-		RegisteredClaims: jwt.RegisteredClaims{ExpiresAt: 2_000_000_000},
+	metadata := &Metadata{
+		Claims: paseto.Claims{ExpiresAt: time.Unix(2_000_000_000, 0).UTC()},
 		Hops: []Hop{
 			{
 				Region:        "aws::us-east-1",
@@ -26,22 +31,22 @@ func TestCodec_RoundTrip(t *testing.T) {
 		},
 	}
 
-	token, err := codec.Marshal(payload)
+	token, err := codec.Marshal(metadata)
 	require.NoError(t, err)
-	require.Regexp(t, `^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$`, token)
+	require.Regexp(t, `^v4\.public\.[A-Za-z0-9_-]+$`, token)
 
 	opened, err := codec.Unmarshal(token)
 	require.NoError(t, err)
-	require.Equal(t, payload, opened)
+	require.Equal(t, metadata, opened)
 }
 
 func TestCodec_DeterministicToken(t *testing.T) {
 	t.Parallel()
 
 	codec := newTestCodec(t)
-	first, err := codec.Marshal(validPayload())
+	first, err := codec.Marshal(validMetadata())
 	require.NoError(t, err)
-	second, err := codec.Marshal(validPayload())
+	second, err := codec.Marshal(validMetadata())
 	require.NoError(t, err)
 	require.Equal(t, first, second)
 }
@@ -49,34 +54,31 @@ func TestCodec_DeterministicToken(t *testing.T) {
 func TestCodec_RejectsWrongSigningKey(t *testing.T) {
 	t.Parallel()
 
-	signer := newTestCodecWithSigningKey(t, "signing-key-a")
-	verifier := newTestCodecWithSigningKey(t, "signing-key-b")
-	token, err := signer.Marshal(validPayload())
+	signer := newTestCodecWithSigningKey(t, testSigningKey)
+	verifier := newTestCodecWithSigningKey(t, alternateSigningKey)
+	token, err := signer.Marshal(validMetadata())
 	require.NoError(t, err)
 
 	_, err = verifier.Unmarshal(token)
-	require.ErrorContains(t, err, "invalid signature")
+	require.ErrorIs(t, err, paseto.ErrInvalidToken)
 }
 
 func TestCodec_RejectsMalformedToken(t *testing.T) {
 	t.Parallel()
 
 	codec := newTestCodec(t)
-	const header = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9"
-	const payload = "e30"
 	tests := []struct {
 		name  string
 		token string
 		err   string
 	}{
 		{name: "missing", token: "", err: "required"},
-		{name: "one part", token: "token", err: "3 parts"},
-		{name: "two parts", token: "header.payload", err: "3 parts"},
-		{name: "extra part", token: "header.payload.signature.extra", err: "3 parts"},
-		{name: "invalid header base64", token: "%%%." + payload + ".signature", err: "invalid header encoding"},
-		{name: "invalid header json", token: "bm90LWpzb24." + payload + ".signature", err: "invalid header JSON"},
-		{name: "invalid signature base64", token: header + "." + payload + ".%%%", err: "invalid signature encoding"},
-		{name: "short signature", token: header + "." + payload + ".YQ", err: "invalid signature"},
+		{name: "one segment", token: "token", err: "three or four segments"},
+		{name: "two segments", token: "v4.public", err: "three or four segments"},
+		{name: "extra segment", token: "v4.public.payload.footer.extra", err: "three or four segments"},
+		{name: "wrong purpose", token: "v4.local.YQ", err: "unexpected token header"},
+		{name: "invalid payload encoding", token: "v4.public.%%%", err: "not canonical"},
+		{name: "short payload", token: "v4.public.YQ", err: "too short"},
 		{name: "too large", token: strings.Repeat("a", maxTokenBytes+1), err: "exceeds"},
 	}
 	for _, test := range tests {
@@ -93,51 +95,50 @@ func TestCodec_RejectsTampering(t *testing.T) {
 	t.Parallel()
 
 	codec := newTestCodec(t)
-	token, err := codec.Marshal(validPayload())
+	token, err := codec.Marshal(validMetadata())
 	require.NoError(t, err)
 	parts := strings.Split(token, ".")
+	require.Len(t, parts, 3)
 
-	payloadTampered := strings.Join([]string{
-		parts[0],
-		base64.RawURLEncoding.EncodeToString([]byte(`{"hops":[{"region":"aws::eu-west-1"}]}`)),
-		parts[2],
-	}, ".")
+	body, err := base64.RawURLEncoding.DecodeString(parts[2])
+	require.NoError(t, err)
+	body[0] ^= 0xff
+	payloadTampered := strings.Join([]string{parts[0], parts[1], base64.RawURLEncoding.EncodeToString(body)}, ".")
 	_, err = codec.Unmarshal(payloadTampered)
-	require.ErrorContains(t, err, "invalid signature")
+	require.ErrorIs(t, err, paseto.ErrInvalidToken)
 
-	signature, err := base64.RawURLEncoding.DecodeString(parts[2])
+	body, err = base64.RawURLEncoding.DecodeString(parts[2])
 	require.NoError(t, err)
-	signature[0] ^= 0xff
-	signatureTampered := strings.Join([]string{
-		parts[0],
-		parts[1],
-		base64.RawURLEncoding.EncodeToString(signature),
-	}, ".")
+	body[len(body)-1] ^= 0xff
+	signatureTampered := strings.Join([]string{parts[0], parts[1], base64.RawURLEncoding.EncodeToString(body)}, ".")
 	_, err = codec.Unmarshal(signatureTampered)
-	require.ErrorContains(t, err, "invalid signature")
+	require.ErrorIs(t, err, paseto.ErrInvalidToken)
 }
 
-func TestCodec_RejectsExpiredToken(t *testing.T) {
+// TestCodec_DoesNotValidateExpiration keeps token policy at the request
+// boundary instead of the metadata codec.
+func TestCodec_DoesNotValidateExpiration(t *testing.T) {
 	t.Parallel()
 
 	codec := newTestCodec(t)
-	payload := validPayload()
-	payload.ExpiresAt = time.Now().Add(-time.Second).Unix()
-	token, err := codec.Marshal(payload)
+	metadata := validMetadata()
+	metadata.ExpiresAt = time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC)
+	token, err := codec.Marshal(metadata)
 	require.NoError(t, err)
 
-	_, err = codec.Unmarshal(token)
-	require.ErrorIs(t, err, jwt.ErrTokenExpired)
+	opened, err := codec.Unmarshal(token)
+	require.NoError(t, err)
+	require.Equal(t, metadata, opened)
 }
 
-func TestCodec_RejectsOversizedPayload(t *testing.T) {
+func TestCodec_RejectsOversizedMetadata(t *testing.T) {
 	t.Parallel()
 
 	codec := newTestCodec(t)
-	payload := validPayload()
-	payload.Subject = strings.Repeat("a", maxTokenBytes)
+	metadata := validMetadata()
+	metadata.Subject = strings.Repeat("a", maxTokenBytes)
 
-	token, err := codec.Marshal(payload)
+	token, err := codec.Marshal(metadata)
 	require.ErrorContains(t, err, "encoded metadata exceeds")
 	require.Empty(t, token)
 }
@@ -146,10 +147,11 @@ func TestCodec_RejectsOversizedSignedToken(t *testing.T) {
 	t.Parallel()
 
 	codec := newTestCodec(t)
-	signer, err := jwt.NewHS256Signer[map[string]string]([]byte("shared-signing-key"))
-	require.NoError(t, err)
-	token, err := signer.Sign(map[string]string{
-		"data": strings.Repeat("a", maxTokenBytes),
+	metadata := validMetadata()
+	metadata.Subject = strings.Repeat("a", maxTokenBytes)
+	token, err := codec.signer.Sign(paseto.Message[Metadata]{
+		Payload: *metadata,
+		Footer:  nil,
 	})
 	require.NoError(t, err)
 	require.Greater(t, len(token), maxTokenBytes)
@@ -162,21 +164,21 @@ func TestCodec_DoesNotValidateMetadataFields(t *testing.T) {
 	t.Parallel()
 
 	codec := newTestCodec(t)
-	payload := &Metadata{
+	metadata := &Metadata{
 		Hops: []Hop{{TimeUnixMilli: -1}},
 	}
-	token, err := codec.Marshal(payload)
+	token, err := codec.Marshal(metadata)
 	require.NoError(t, err)
 	opened, err := codec.Unmarshal(token)
 	require.NoError(t, err)
-	require.Equal(t, payload, opened)
+	require.Equal(t, metadata, opened)
 }
 
 func TestCodec_UnmarshalCanReadTokenMoreThanOnce(t *testing.T) {
 	t.Parallel()
 
 	codec := newTestCodec(t)
-	token, err := codec.Marshal(validPayload())
+	token, err := codec.Marshal(validMetadata())
 	require.NoError(t, err)
 
 	first, err := codec.Unmarshal(token)
@@ -186,43 +188,58 @@ func TestCodec_UnmarshalCanReadTokenMoreThanOnce(t *testing.T) {
 	require.Equal(t, first, second)
 }
 
-func TestCodec_MarshalReflectsPayload(t *testing.T) {
+func TestCodec_MarshalReflectsMetadata(t *testing.T) {
 	t.Parallel()
 
 	codec := newTestCodec(t)
-	first, err := codec.Marshal(validPayload())
+	first, err := codec.Marshal(validMetadata())
 	require.NoError(t, err)
 
-	payload := validPayload()
-	payload.Hops = append(payload.Hops, Hop{Region: "aws::eu-west-1"})
-	second, err := codec.Marshal(payload)
+	metadata := validMetadata()
+	metadata.Hops = append(metadata.Hops, Hop{Region: "aws::eu-west-1"})
+	second, err := codec.Marshal(metadata)
 	require.NoError(t, err)
 	require.NotEqual(t, first, second)
 	opened, err := codec.Unmarshal(second)
 	require.NoError(t, err)
-	require.Equal(t, payload.Hops, opened.Hops)
+	require.Equal(t, metadata.Hops, opened.Hops)
 }
 
-func TestCodec_MarshalRequiresPayload(t *testing.T) {
+func TestCodec_MarshalRequiresMetadata(t *testing.T) {
 	t.Parallel()
 
 	codec := newTestCodec(t)
 	token, err := codec.Marshal(nil)
-	require.ErrorContains(t, err, "payload is required")
+	require.ErrorContains(t, err, "metadata is required")
 	require.Empty(t, token)
 }
 
-func TestNew_RequiresSigningKey(t *testing.T) {
+func TestNew_RequiresHexEncodedEd25519Seed(t *testing.T) {
 	t.Parallel()
 
-	codec, err := New("")
-	require.ErrorContains(t, err, "secret must not be empty")
-	require.Nil(t, codec)
+	tests := []struct {
+		name       string
+		signingKey string
+		err        string
+	}{
+		{name: "empty", signingKey: "", err: "64 hexadecimal characters"},
+		{name: "short", signingKey: strings.Repeat("00", 31), err: "64 hexadecimal characters"},
+		{name: "invalid hexadecimal", signingKey: strings.Repeat("z", 64), err: "decode metadata signing key"},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+
+			codec, err := New(test.signingKey)
+			require.ErrorContains(t, err, test.err)
+			require.Nil(t, codec)
+		})
+	}
 }
 
 func newTestCodec(t *testing.T) *Codec {
 	t.Helper()
-	return newTestCodecWithSigningKey(t, "shared-signing-key")
+	return newTestCodecWithSigningKey(t, testSigningKey)
 }
 
 func newTestCodecWithSigningKey(t *testing.T, signingKey string) *Codec {
@@ -232,9 +249,9 @@ func newTestCodecWithSigningKey(t *testing.T, signingKey string) *Codec {
 	return codec
 }
 
-func validPayload() *Metadata {
+func validMetadata() *Metadata {
 	return &Metadata{
-		RegisteredClaims: jwt.RegisteredClaims{ExpiresAt: 2_000_000_000},
+		Claims: paseto.Claims{ExpiresAt: time.Unix(2_000_000_000, 0).UTC()},
 		Hops: []Hop{
 			{
 				Region:        "aws::us-east-1",

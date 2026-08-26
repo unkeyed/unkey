@@ -13,8 +13,8 @@ import (
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/fault"
-	"github.com/unkeyed/unkey/pkg/jwt"
 	"github.com/unkeyed/unkey/pkg/logger"
+	"github.com/unkeyed/unkey/pkg/paseto"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/frontline/internal/db"
 	"github.com/unkeyed/unkey/svc/frontline/internal/errorpage"
@@ -168,8 +168,8 @@ func (s *service) ForwardToRegion(ctx context.Context, sess *zen.Session, target
 
 	metadata := &meta.Metadata{
 		//nolint:exhaustruct // Frontline metadata only needs an expiry.
-		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: now.Add(frontlineMetadataTTL).Unix(),
+		Claims: paseto.Claims{
+			ExpiresAt: now.Add(frontlineMetadataTTL),
 		},
 		Hops: hops,
 	}

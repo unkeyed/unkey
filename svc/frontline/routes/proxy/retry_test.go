@@ -26,6 +26,8 @@ import (
 	handler "github.com/unkeyed/unkey/svc/frontline/routes/proxy"
 )
 
+const testMetadataSigningKey = "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
+
 // TestRetry_DialFailureAdvancesToNextInstance proves that a dial-phase
 // failure on the first candidate instance causes the handler to advance
 // to the next instance in LocalInstances and serve the response from
@@ -177,6 +179,45 @@ func TestMetadata_InvalidHeaderDoesNotBlockRegionalRequest(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, "served-by-peer-region", string(body))
 	require.Equal(t, "us-west-2.aws", stub.regionTarget())
+}
+
+// TestReservedTrailersDoNotReachLocalInstance guarantees client-controlled
+// Frontline trailers cannot cross the proxy boundary after the body is read.
+func TestReservedTrailersDoNotReachLocalInstance(t *testing.T) {
+	t.Parallel()
+
+	instanceTrailers := make(chan http.Header, 1)
+	instanceAddr, stopInstance := startBackend(t, func(w http.ResponseWriter, req *http.Request) {
+		_, readErr := io.Copy(io.Discard, req.Body)
+		instanceTrailers <- req.Trailer.Clone()
+		if readErr != nil {
+			http.Error(w, readErr.Error(), http.StatusBadRequest)
+			return
+		}
+		_, _ = io.WriteString(w, "served-locally")
+	})
+	t.Cleanup(stopInstance)
+
+	frontlineAddr, stopFrontline := startFrontlineWith(t, localDecision(instanceAddr), nil)
+	t.Cleanup(stopFrontline)
+
+	req, err := http.NewRequest(http.MethodPost, "http://"+frontlineAddr+"/foo", strings.NewReader("request-body"))
+	require.NoError(t, err)
+	req.Host = "retry-test.example.com"
+	req.Trailer = http.Header{
+		proxy.HeaderFrontlineMeta: []string{"spoofed"},
+		proxy.HeaderRegion:        []string{"spoofed"},
+		"X-Unkey-Custom":          []string{"spoofed"},
+	}
+	resp, err := http.DefaultClient.Do(req)
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = resp.Body.Close() })
+
+	require.Equal(t, http.StatusOK, resp.StatusCode)
+	trailers := <-instanceTrailers
+	require.Empty(t, trailers.Values(proxy.HeaderFrontlineMeta))
+	require.Empty(t, trailers.Values(proxy.HeaderRegion))
+	require.Empty(t, trailers.Values("X-Unkey-Custom"))
 }
 
 // TestRetry_AllLocalDeadNoStandbyReturnsError proves that exhausting
@@ -339,7 +380,7 @@ func startFrontlineWith(t *testing.T, decision router.RouteDecision, proxySvc pr
 func startFrontlineWithH2CIngress(t *testing.T, decision router.RouteDecision, proxySvc proxy.Service, enableH2CIngress bool) (string, func()) {
 	t.Helper()
 	clk := clock.New()
-	metadata, err := meta.New("test-frontline-meta-signing-key")
+	metadata, err := meta.New(testMetadataSigningKey)
 	require.NoError(t, err)
 
 	if proxySvc == nil {
