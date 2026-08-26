@@ -10244,7 +10244,6 @@ paths:
                     application/json:
                         examples:
                             byIds:
-                                description: Resource IDs are globally unique, so the environment ID can stand alone.
                                 summary: List an environment's domains by its ID
                                 value:
                                     environment: env_1234abcd
