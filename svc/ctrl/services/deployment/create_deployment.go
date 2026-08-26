@@ -546,8 +546,7 @@ func (s *Service) dedupKeyedCreate(
 		return res, true, healErr
 	}
 
-	// The only trace a dedup absorbed a duplicate: a retry burst that this
-	// feature swallows is invisible without it.
+	// An absorbed retry burst leaves no other trace.
 	logger.Info("replayed keyed deployment create",
 		"deployment_id", deploymentID,
 		"workspace_id", p.context.workspaceID,
@@ -613,8 +612,9 @@ func (s *Service) healDeployment(ctx context.Context, p createParams, row db.Dep
 		return createResult{}, err
 	}
 
-	// A branch without a SHA (a docker create with git attribution) still
-	// pins: sibling dedup must run with the row's branch, not the body's.
+	// Commit fields come from the row whenever it records a branch, even with
+	// no SHA (a docker create with git attribution): sibling dedup keys on the
+	// branch, so it has to be the row's, not the body's.
 	commit := commitFromRequest(p.gitCommit)
 	if row.GitCommitSha.Valid || row.GitBranch.Valid {
 		commit = commitFieldsFromDeployment(row)
@@ -640,8 +640,8 @@ func (s *Service) healDeployment(ctx context.Context, p createParams, row db.Dep
 		// it, so fail it now and the next retry reads the key as spent.
 		// Transient resolution errors leave the row pending and healable.
 		if gitPinned && errors.Is(err, errNoRepoConnection) {
-			// One transaction: a failed row without its ended step is exactly
-			// the blank dashboard timeline this exists to prevent.
+			// One transaction: a failed row without its ended step leaves the
+			// dashboard with a blank timeline.
 			spentAt := time.Now().UnixMilli()
 			if spendErr := db.TxRetry(ctx, s.db.RW(), func(ctx context.Context, tx db.DBTX) error {
 				q := db.NewQueries(tx)

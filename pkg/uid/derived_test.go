@@ -40,23 +40,22 @@ func TestDerived_DifferentPartsDifferentIds(t *testing.T) {
 	workspaceB := New(WorkspacePrefix)
 	key := New(TestPrefix)
 
-	require.NotEqual(t,
+	require.NotEqual(
+		t,
 		Derived(DeploymentPrefix, workspaceA, key),
 		Derived(DeploymentPrefix, workspaceB, key),
 	)
 
-	require.NotEqual(t,
+	require.NotEqual(
+		t,
 		Derived(DeploymentPrefix, workspaceA, key),
 		Derived(DeploymentPrefix, workspaceA, New(TestPrefix)),
 	)
 }
 
-// Derived and random default ids must occupy disjoint id spaces. The real
-// guarantee is the 131-bit hash space; the length difference is the cheap
-// structural backstop, so pin it before someone hands New an explicit length
-// that happens to match.
 func TestDerived_DisjointLengthFromDefaultRandomIds(t *testing.T) {
-	require.NotEqual(t,
+	require.NotEqual(
+		t,
 		len(New(DeploymentPrefix)),
 		len(Derived(DeploymentPrefix, New(WorkspacePrefix), "KEBAP")),
 	)
@@ -65,7 +64,8 @@ func TestDerived_DisjointLengthFromDefaultRandomIds(t *testing.T) {
 // Joining parts without a separator would make ("ab","c") and ("a","bc")
 // hash identically. The NUL separator must keep them apart.
 func TestDerived_PartBoundarySafety(t *testing.T) {
-	require.NotEqual(t,
+	require.NotEqual(
+		t,
 		Derived(DeploymentPrefix, "ab", "c"),
 		Derived(DeploymentPrefix, "a", "bc"),
 	)
