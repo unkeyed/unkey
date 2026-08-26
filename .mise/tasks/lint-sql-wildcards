@@ -383,6 +383,13 @@ s{SELECT \*\s+FROM default\.instance_checkpoints_v1\s+FINAL}{blank($&)}gise;
     local $/;
     my $original = <$fh>;
     close $fh;
+
+  # Most source files cannot contain a checked query. Avoid the character-level
+  # comment and string scan unless a relevant SQL or query-builder token exists.
+    next
+      unless $original =~
+/(?:\bselect\b|\bsqlc\s*\.|\.\s*query\s*\.|\.\s*select(?:All|Distinct)?\s*\()/i;
+
     my $source = mask_source_comments( $original, $path );
 
  # Raw SQL also lives in Go and TypeScript string literals. Keep strings while
