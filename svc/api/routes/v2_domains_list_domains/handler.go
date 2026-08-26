@@ -91,6 +91,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	p := pagination.Parse(req.Limit, req.Cursor, 100)
 	search := mysql.SearchContains(strings.TrimSpace(ptr.SafeDeref(req.Search)))
+	limit := p.FetchLimit()
 
 	rows, err := db.Query.ListCustomDomains(ctx, h.DB.RO(), db.ListCustomDomainsParams{
 		WorkspaceID:   principal.AuthorizedWorkspaceID,
@@ -99,7 +100,11 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		EnvironmentID: scope.environmentID,
 		IDCursor:      p.Cursor,
 		Search:        search,
-		Limit:         p.FetchLimit(),
+		Limit:         limit,
+		Limit_2:       limit,
+		Limit_3:       limit,
+		Limit_4:       limit,
+		Limit_5:       limit,
 	})
 	if err != nil {
 		return fault.Wrap(
