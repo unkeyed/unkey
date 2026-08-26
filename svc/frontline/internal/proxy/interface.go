@@ -9,6 +9,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/frontline/internal/db"
 	"github.com/unkeyed/unkey/svc/frontline/internal/errorpage"
+	"github.com/unkeyed/unkey/svc/frontline/internal/meta"
 )
 
 // Service forwards HTTP requests to either a local deployment instance or
@@ -22,10 +23,10 @@ type Service interface {
 	ForwardToInstance(ctx context.Context, sess *zen.Session, protocol db.DeploymentsUpstreamProtocol, instance db.FindInstancesByDeploymentIDRow) error
 
 	// ForwardToRegion proxies the request to the peer frontline serving
-	// targetRegionPlatform (e.g. "us-east-1.aws"). The peer redoes the full
-	// hostname → engine → instance chain and is responsible for its own
-	// retry and logging.
-	ForwardToRegion(ctx context.Context, sess *zen.Session, targetRegionPlatform string) error
+	// targetRegionPlatform (e.g. "us-east-1.aws"). The signed metadata carries
+	// the hop history. The peer redoes the full hostname → engine → instance
+	// chain and is responsible for its own retry and logging.
+	ForwardToRegion(ctx context.Context, sess *zen.Session, targetRegionPlatform string, hops []meta.Hop) error
 }
 
 // Config holds configuration for the proxy service.
@@ -47,6 +48,9 @@ type Config struct {
 	// MaxHops is the maximum number of frontline hops allowed before rejecting the request.
 	// If 0, defaults to 3.
 	MaxHops int
+
+	// Metadata signs and verifies cross-region forwarding metadata. Required.
+	Metadata *meta.Codec
 
 	// MaxIdleConns is the maximum number of idle connections to keep open.
 	MaxIdleConns int

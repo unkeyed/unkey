@@ -13,28 +13,36 @@ sequenceDiagram
     participant R as Router
     participant E as Policy Engine
     participant I as Instance
+    participant RF as Remote Frontline
 
     C->>MW: HTTPS request
     MW->>MW: Panic recovery, strip reserved headers, logging, ClickHouse, observability
     MW->>H: Request
 
+    H->>H: Verify and remove peer metadata
     H->>R: Route(hostname)
     R-->>H: RouteDecision (instances + parsed policies)
 
-    opt Deployment has policies and engine is configured
-        H->>E: Evaluate policies
-        alt Policy rejects
-            E-->>H: Error (401/403/429)
-            H-->>MW: Error response
-            MW-->>C: JSON error + X-Unkey-Error-Source
-        else Policy succeeds
-            E-->>H: Principal
-            H->>H: Set X-Unkey-Principal header
+    alt Remote Frontline selected
+        H->>RF: Forward with signed metadata (HTTPS)
+        RF->>RF: Verify metadata and read hop history
+        RF-->>H: Response
+    else Local instance selected
+        opt Deployment has policies and engine is configured
+            H->>E: Evaluate policies
+            alt Policy rejects
+                E-->>H: Error (401/403/429)
+                H-->>MW: Error response
+                MW-->>C: JSON error + X-Unkey-Error-Source
+            else Policy succeeds
+                E-->>H: Principal
+                H->>H: Set X-Unkey-Principal header
+            end
         end
-    end
 
-    H->>I: Forward request with X-Forwarded-* headers
-    I-->>H: Response
+        H->>I: Forward request with X-Forwarded-* headers
+        I-->>H: Response
+    end
     H-->>MW: Response + timing headers
     MW-->>C: Final response (metrics, tracing, ClickHouse write)
 ```
@@ -44,7 +52,7 @@ sequenceDiagram
 Every request passes through a middleware chain before reaching the proxy handler. The chain executes top-to-bottom on the request path and bottom-to-top on the response path. The order is set in [`svc/frontline/routes/register.go`](https://github.com/unkeyed/unkey/blob/main/svc/frontline/routes/register.go):
 
 1. **PanicRecovery.** Catches panics in downstream handlers so a single request cannot crash the process.
-2. **Reserved header strip.** Removes client-supplied reserved headers, including `X-Unkey-Principal`, so a client cannot forge an identity. Frontline sets the verified principal itself after authentication.
+2. **Reserved header strip.** Removes reserved headers, including `X-Unkey-Principal`, so a client cannot forge an identity. It removes every `X-Unkey-*` trailer. It preserves the `X-Unkey-Frontline-Meta` request header for verification in the proxy handler.
 3. **Logging.** Structured request logging. Skips internal paths (`/_unkey/internal/`).
 4. **ClickHouseLogging.** Creates a tracking context with a start timestamp and, on completion, writes the full request and response to ClickHouse. It wraps observability so it reads the final status code after observability has written the response.
 5. **Observability.** Starts an OpenTelemetry span (`frontline.proxy`), records Prometheus metrics (`unkey_frontline_requests_total`), maps fault codes to HTTP status codes, and renders an HTML error page when the client prefers HTML.
@@ -54,15 +62,23 @@ Every request passes through a middleware chain before reaching the proxy handle
 
 After the middleware chain, the proxy handler runs. Its inputs are the router service, the proxy service, and the policy engine.
 
-### 1. Route the hostname
+### 1. Verify peer metadata
+
+The handler checks for `X-Unkey-Frontline-Meta`. If the header is present, the
+handler removes it and verifies the PASETO v4.public token. A request without
+valid metadata starts with an empty hop history. Frontline treats empty,
+duplicate, invalid, expired, or oversized metadata as absent. Invalid metadata
+never blocks a request.
+
+### 2. Route the hostname
 
 The handler calls `Route(hostname)` on the router. The router resolves the hostname to a `frontline_route` (deployment ID, `sentinel_config`, upstream protocol), parses the `sentinel_config` bytes into a policy list, and selects a destination. For a local destination the decision carries the running instances in shuffled order plus the parsed policies. If the hostname has no configured route, or the deployment has no running instance in any reachable region, the router returns a `Frontline.Routing` error (for example `NoRunningInstances`, surfaced as 503).
 
-### 2. Evaluate policies
+### 3. Evaluate policies
 
 When the deployment has policies and the engine is configured, the engine evaluates each policy in order against the request. A policy that rejects the request (invalid key, rate limited, insufficient permissions) produces an error response before any byte is proxied. On success, the first authentication policy yields a `Principal`, which the handler serializes to the `X-Unkey-Principal` header. When the deployment has no policies, the request is forwarded without policy evaluation.
 
-### 3. Forward to the instance
+### 4. Forward the request
 
 The handler proxies to a running instance of the deployment in the same region, attempting the shuffled candidates in order and advancing on dial failures. When every local instance fails and a peer region has a healthy instance, the request falls through to a peer Frontline. The following headers are set on the proxied request:
 
@@ -73,20 +89,34 @@ The handler proxies to a running instance of the deployment in the same region, 
 | `X-Forwarded-Proto` | `http` (TLS is terminated at Frontline)       |
 | `X-Unkey-Principal` | JSON-serialized principal (if auth succeeded) |
 
-### 4. Stream and record the response
+Before a cross-region forward, Frontline sets `exp` to 1 minute in the future
+and appends a signed hop entry. The entry contains the region, request ID,
+Frontline ID, and forward time as Unix milliseconds. The hop history length is
+the hop count. Frontline rejects the forward when the length reaches `max_hops`.
+
+### 5. Stream and record the response
 
 The handler streams the instance response back to the client. The ClickHouse logging middleware records the request and response (status, headers, and a size-capped body) and the timing breakdown for analytics.
 
 ## Headers reference
 
-### Set by a peer Frontline on cross-region forwards
+### Set on cross-region forwards
 
-| Header                   | Purpose                                           |
-| ------------------------ | ------------------------------------------------- |
-| `X-Deployment-Id`        | Identifies which deployment owns this request     |
-| `X-Unkey-Frontline-Id`   | Identifies the forwarding Frontline instance      |
-| `X-Unkey-Region`         | Region of the forwarding Frontline instance       |
-| `X-Unkey-Frontline-Hops` | Cross-region hop counter (prevents routing loops) |
+| Header                   | Purpose                               |
+| ------------------------ | ------------------------------------- |
+| `X-Deployment-Id`        | Identifies the request deployment     |
+| `X-Unkey-Frontline-Meta` | Carries signed expiry and hop history |
+
+`X-Unkey-Frontline-Meta` contains a PASETO v4.public token. Frontline accepts the
+metadata only when the request has one non-empty header value, the signature is
+valid, and the token has not expired. Each forwarding Frontline appends one hop,
+replaces the metadata, and sets `exp` to 1 minute in the future. Each hop records
+the region, request ID, Frontline ID, and forward time. Frontline removes the
+metadata before it forwards a request to a deployment instance. The complete
+header value cannot exceed 4,096 bytes.
+
+Frontline removes invalid metadata and treats it as absent for all requests.
+This behavior prevents a client-controlled header from blocking service.
 
 ### Forwarded to the instance
 
@@ -96,6 +126,7 @@ The handler streams the instance response back to the client. The ClickHouse log
 | `X-Forwarded-Host`  | Original request hostname                         |
 | `X-Forwarded-Proto` | Always `http` (TLS terminated at Frontline)      |
 | `X-Unkey-Principal` | JSON principal from a successful auth policy      |
+| `X-Unkey-Region`    | Region of the serving Frontline instance           |
 
 ### Returned to the client
 
