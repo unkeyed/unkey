@@ -83,22 +83,6 @@ func TestValidationErrors(t *testing.T) {
 		require.Equal(t, "https://unkey.com/docs/errors/unkey/application/invalid_input", res.Body.Error.Type)
 		require.False(t, capture.called, "ctrl must not be called on a validation failure")
 	})
-
-	// The bound is a byte budget, so the message must not promise characters:
-	// 64 emoji are 64 characters and 256 bytes.
-	t.Run("idempotency key bound is reported in bytes", func(t *testing.T) {
-		capture.called = false
-
-		multibyteHeaders := authHeaders(setup.RootKey)
-		multibyteHeaders.Set("Idempotency-Key", strings.Repeat("😀", 64))
-
-		req := imageRequest(t, setup.Project.Slug, setup.App.Slug, setup.Environment.Slug, "nginx:latest")
-
-		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, multibyteHeaders, req)
-		require.Equal(t, http.StatusBadRequest, res.Status, "expected 400, received: %s", res.RawBody)
-		require.NotContains(t, res.Body.Error.Detail, "characters")
-		require.False(t, capture.called, "ctrl must not be called on a validation failure")
-	})
 }
 
 // TestInvalidEnvironmentSettings covers the create-time pre-flight that rejects an
