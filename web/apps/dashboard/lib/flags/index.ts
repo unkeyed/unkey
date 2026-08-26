@@ -83,3 +83,15 @@ export const portalManagement = flag<boolean, Entities>({
   identify,
   adapter: adapter(),
 });
+
+export const rootKeyBuilder = flag<boolean, Entities>({
+  key: "root-key-builder",
+  description: "Show the new root-key builder page. Off until the builder replaces the dialog.",
+  defaultValue: false,
+  options: [
+    { value: false, label: "Off" },
+    { value: true, label: "On" },
+  ],
+  identify,
+  adapter: adapter(),
+});

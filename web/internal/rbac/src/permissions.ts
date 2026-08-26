@@ -198,7 +198,7 @@ const globalResourcePath = "**";
 const segmentWildcard = "*";
 const actionWildcard = "*";
 
-type UrnPermissionParts = {
+export type UrnPermissionParts = {
   workspaceId: string;
   resourcePath: string;
   action: string;
@@ -317,9 +317,13 @@ export const unkeyUrnPermissionValidation = z
   .custom<UnkeyUrnPermission>()
   .refine((s) => typeof s === "string" && parseUrnPermission(s).ok);
 
-export function urnPermissionWorkspaceId(value: string): string | null {
+export function parseUrnPermissionParts(value: string): UrnPermissionParts | null {
   const result = parseUrnPermission(value);
-  return result.ok ? result.permission.workspaceId : null;
+  return result.ok ? result.permission : null;
+}
+
+export function urnPermissionWorkspaceId(value: string): string | null {
+  return parseUrnPermissionParts(value)?.workspaceId ?? null;
 }
 
 // Branching on the URN prefix rather than unioning two schemas keeps the error
