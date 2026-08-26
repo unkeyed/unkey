@@ -121,6 +121,12 @@ function upstreamRequestHeaders(req: NextRequest): Headers {
   if (contentType) {
     headers.set("content-type", contentType);
   }
+  // Deduplicates deployment creates; the API reads it, so it must survive
+  // the allowlist rebuild.
+  const idempotencyKey = req.headers.get("idempotency-key");
+  if (idempotencyKey) {
+    headers.set("idempotency-key", idempotencyKey);
+  }
   // Identifies the caller to the API so it can attribute deployments to the
   // dashboard rather than to a generic API client.
   headers.set("x-unkey-client", "unkey-dashboard");

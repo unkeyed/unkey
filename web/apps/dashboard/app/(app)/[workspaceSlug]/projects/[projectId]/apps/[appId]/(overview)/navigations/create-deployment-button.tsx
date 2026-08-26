@@ -7,6 +7,7 @@ import { collection } from "@/lib/collections";
 import { queryClient } from "@/lib/collections/client";
 import { UnsupportedDeployRefError, parseDeployRef } from "@/lib/deploy-ref";
 import { githubUrl } from "@/lib/github-url";
+import { withIdempotencyKey } from "@/lib/idempotency";
 import { routes } from "@/lib/navigation/routes";
 import { trpc } from "@/lib/trpc/client";
 import { getErrorMessage, getUnkeyClient } from "@/lib/unkey-client";
@@ -194,13 +195,19 @@ export const CreateDeploymentButton = ({
       git?: ReturnType<typeof parseDeployRef>;
       image?: string;
     }) => {
-      const res = await getUnkeyClient().deployments.createDeployment({
+      const body = {
         project: projectId,
         app: appId,
         environment: source.environment,
         ...(source.image ? { image: { dockerImage: source.image } } : { git: source.git ?? {} }),
-      });
-      return { deploymentId: res.data.deploymentId };
+      };
+      const res = await withIdempotencyKey(body, (idempotencyKey) =>
+        getUnkeyClient().deployments.createDeployment({
+          idempotencyKey,
+          v2DeploymentsCreateDeploymentRequestBody: body,
+        }),
+      );
+      return { deploymentId: res.result.data.deploymentId };
     },
     async onSuccess(data) {
       toast.success("Deployment has been created");

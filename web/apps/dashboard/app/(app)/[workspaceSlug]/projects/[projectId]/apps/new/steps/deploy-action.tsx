@@ -2,6 +2,7 @@
 
 import { useDeployActionGate } from "@/app/(app)/[workspaceSlug]/projects/_components/hooks/use-deploy-action-gate";
 import { queryClient } from "@/lib/collections/client";
+import { withIdempotencyKey } from "@/lib/idempotency";
 import { getErrorMessage, getUnkeyClient } from "@/lib/unkey-client";
 import { useMutation } from "@tanstack/react-query";
 import { Button, toast, useStepWizard } from "@unkey/ui";
@@ -29,14 +30,20 @@ export const DeployAction = ({
 
   const deploy = useMutation({
     mutationFn: async (environment: string) => {
-      const res = await getUnkeyClient().deployments.createDeployment({
+      const body = {
         project: projectId,
         app: appId,
         environment,
         // No branch or commitSha: the API builds the app's default branch.
         git: {},
-      });
-      return { deploymentId: res.data.deploymentId };
+      };
+      const res = await withIdempotencyKey(body, (idempotencyKey) =>
+        getUnkeyClient().deployments.createDeployment({
+          idempotencyKey,
+          v2DeploymentsCreateDeploymentRequestBody: body,
+        }),
+      );
+      return { deploymentId: res.result.data.deploymentId };
     },
     onSuccess: async (data) => {
       await queryClient.invalidateQueries({ queryKey: ["deployments", projectId] });
