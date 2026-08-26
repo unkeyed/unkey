@@ -10,6 +10,8 @@ use autodie qw(open close);
 # wildcard parsing. Current production SQL, including migrations and schema
 # definitions, is never exempt.
 # One immutable historical migration is masked by exact statement below.
+# TODO: Replace this scanner with sqlc vet once the dashboard uses only the API
+# and all remaining production SQL is managed by sqlc.
 open my $git, "-|", "git", "ls-files", "-z", "--cached", "--others",
   "--exclude-standard";
 local $/ = "\0";
