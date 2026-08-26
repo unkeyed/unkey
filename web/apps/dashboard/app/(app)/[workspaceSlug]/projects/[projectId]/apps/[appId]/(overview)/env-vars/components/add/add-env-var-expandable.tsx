@@ -9,7 +9,7 @@ import {
 } from "@/lib/collections/deploy/env-vars";
 import { getErrorMessage } from "@/lib/unkey-client";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ChevronDown, CircleInfo, CloudUp, DoubleChevronRight, Plus } from "@unkey/icons";
+import { ChevronDown, CircleInfo, CloudUp, Plus } from "@unkey/icons";
 import {
   Button,
   InfoTooltip,
@@ -34,7 +34,6 @@ import { trackSave } from "@/lib/collections/deploy/environment-settings";
 type AddEnvVarExpandableProps = {
   projectId: string;
   appId: string;
-  tableDistanceToTop: number;
   isOpen: boolean;
   onClose: () => void;
 };
@@ -42,7 +41,6 @@ type AddEnvVarExpandableProps = {
 export const AddEnvVarExpandable = ({
   projectId,
   appId,
-  tableDistanceToTop,
   isOpen,
   onClose,
 }: AddEnvVarExpandableProps) => {
@@ -224,25 +222,13 @@ export const AddEnvVarExpandable = ({
   };
 
   return (
-    <SlidePanel.Root isOpen={isOpen} onClose={onClose} topOffset={tableDistanceToTop}>
+    <SlidePanel.Root isOpen={isOpen} onClose={onClose}>
       <SlidePanel.Header>
-        <div className="flex flex-col">
-          <span className="text-gray-12 font-medium text-base leading-8">
-            Add Environment Variable
-          </span>
-          <span className="text-gray-11 text-[13px] leading-5">
-            Set a key-value pair for your app.
-          </span>
+        <div className="flex flex-col gap-0.5">
+          <SlidePanel.Title>Add Environment Variable</SlidePanel.Title>
+          <SlidePanel.Description>Set a key-value pair for your app.</SlidePanel.Description>
         </div>
-        <SlidePanel.Close
-          aria-label="Close panel"
-          className="mt-0.5 inline-flex items-center justify-center size-9 rounded-md hover:bg-grayA-3 transition-colors cursor-pointer"
-        >
-          <DoubleChevronRight
-            iconSize="lg-medium"
-            className="text-gray-10 transition-transform duration-300 ease-out group-hover:text-gray-12"
-          />
-        </SlidePanel.Close>
+        <SlidePanel.CloseButton className="mt-0.5" />
       </SlidePanel.Header>
 
       <SlidePanel.Content>
@@ -282,7 +268,7 @@ export const AddEnvVarExpandable = ({
             </div>
           </div>
 
-          <div className="flex-1 overflow-y-auto pt-6 bg-grayA-2">
+          <div className="flex-1 overflow-y-auto pt-6">
             <div className="flex flex-col gap-4 px-8">
               {fields.map((field, index) => (
                 <EnvVarRow

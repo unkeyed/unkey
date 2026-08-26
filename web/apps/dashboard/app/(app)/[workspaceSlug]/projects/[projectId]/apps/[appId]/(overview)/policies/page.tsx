@@ -1,5 +1,4 @@
 "use client";
-import { TOP_NAV_HEIGHT } from "@/components/navigation/top-nav";
 import { Plus } from "@unkey/icons";
 import {
   Button,
@@ -81,7 +80,6 @@ export default function PoliciesPage() {
           envASlug={envASlug}
           envBSlug={envBSlug}
           isOpen={panels.isAddPanelOpen}
-          topOffset={TOP_NAV_HEIGHT}
           onClose={panels.closeAdd}
           onSave={actions.save}
         />
@@ -92,7 +90,6 @@ export default function PoliciesPage() {
             envASlug={envASlug}
             envBSlug={envBSlug}
             isOpen={panels.isEditPanelOpen}
-            topOffset={TOP_NAV_HEIGHT}
             onClose={panels.closeEdit}
             initialPolicy={panels.editing}
             initialEnvironmentId={editingInitialEnvId}

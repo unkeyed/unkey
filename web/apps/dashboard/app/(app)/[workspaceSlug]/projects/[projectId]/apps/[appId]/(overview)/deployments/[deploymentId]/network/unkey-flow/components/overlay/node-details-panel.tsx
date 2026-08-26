@@ -97,11 +97,10 @@ export function NodeDetailsPanel({ node, deploymentId, onClose }: Props) {
       onClose={onClose}
       side="right"
       widthClassName="w-[600px]"
-      backdrop={false}
-      topOffset={140}
+      backdrop="none"
       fitContent
     >
-      <SlidePanel.Content className="overflow-y-auto pb-6" stagger={false}>
+      <SlidePanel.Content className="overflow-y-auto pb-6">
         {node && isInstanceNode(node) && (
           <InstanceNodeDetails node={node} deploymentId={deploymentId} onClose={onClose} />
         )}
