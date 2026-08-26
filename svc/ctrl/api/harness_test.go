@@ -30,12 +30,13 @@ type webhookHarnessConfig struct {
 }
 
 type webhookHarness struct {
-	ctx       context.Context
-	CtrlURL   string
-	DB        db.Database
-	Seed      *seed.Seeder
-	Secret    string
-	AuthToken string
+	ctx        context.Context
+	CtrlURL    string
+	DB         db.Database
+	Seed       *seed.Seeder
+	Secret     string
+	AuthToken  string
+	IngressURL string
 }
 
 func newWebhookHarness(t *testing.T, cfg webhookHarnessConfig) *webhookHarness {
@@ -107,12 +108,13 @@ func newWebhookHarness(t *testing.T, cfg webhookHarnessConfig) *webhookHarness {
 	}, 10*time.Second, 200*time.Millisecond)
 
 	return &webhookHarness{
-		ctx:       ctx,
-		CtrlURL:   ctrlURL,
-		DB:        database,
-		Seed:      seeder,
-		Secret:    secret,
-		AuthToken: authToken,
+		ctx:        ctx,
+		CtrlURL:    ctrlURL,
+		DB:         database,
+		Seed:       seeder,
+		Secret:     secret,
+		AuthToken:  authToken,
+		IngressURL: restateCfg.IngressURL,
 	}
 }
 

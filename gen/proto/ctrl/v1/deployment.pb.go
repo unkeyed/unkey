@@ -200,9 +200,13 @@ type CreateDeploymentRequest struct {
 	// Caller identity for the audit log ctrl writes. Carries actor type, name,
 	// and request origin. When unset, the deployment is attributed to the system
 	// actor. Preferred over triggered_by for attribution.
-	Actor         *ActorInfo `protobuf:"bytes,11,opt,name=actor,proto3" json:"actor,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	Actor *ActorInfo `protobuf:"bytes,11,opt,name=actor,proto3" json:"actor,omitempty"`
+	// Caller-supplied key that collapses retries of one create into a single
+	// deployment. Scoped per workspace. Reusing a key for a different app or
+	// environment is rejected with ALREADY_EXISTS. Omit to disable.
+	IdempotencyKey *string `protobuf:"bytes,12,opt,name=idempotency_key,json=idempotencyKey,proto3,oneof" json:"idempotency_key,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *CreateDeploymentRequest) Reset() {
@@ -312,6 +316,13 @@ func (x *CreateDeploymentRequest) GetActor() *ActorInfo {
 	return nil
 }
 
+func (x *CreateDeploymentRequest) GetIdempotencyKey() string {
+	if x != nil && x.IdempotencyKey != nil {
+		return *x.IdempotencyKey
+	}
+	return ""
+}
+
 type GitCommitInfo struct {
 	state           protoimpl.MessageState `protogen:"open.v1"`
 	CommitSha       string                 `protobuf:"bytes,1,opt,name=commit_sha,json=commitSha,proto3" json:"commit_sha,omitempty"`
@@ -406,9 +417,14 @@ func (x *GitCommitInfo) GetForkRepository() string {
 }
 
 type CreateDeploymentResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	DeploymentId  string                 `protobuf:"bytes,1,opt,name=deployment_id,json=deploymentId,proto3" json:"deployment_id,omitempty"`
-	Status        DeploymentStatus       `protobuf:"varint,2,opt,name=status,proto3,enum=ctrl.v1.DeploymentStatus" json:"status,omitempty"` // Will be PENDING or DEPLOYING
+	state        protoimpl.MessageState `protogen:"open.v1"`
+	DeploymentId string                 `protobuf:"bytes,1,opt,name=deployment_id,json=deploymentId,proto3" json:"deployment_id,omitempty"`
+	// Status at answer time: PENDING for a fresh create or a heal, the
+	// deployment's current status for a replay.
+	Status DeploymentStatus `protobuf:"varint,2,opt,name=status,proto3,enum=ctrl.v1.DeploymentStatus" json:"status,omitempty"`
+	// True when the request did not create a new deployment: an idempotency-key
+	// retry answered with the deployment the key already created.
+	Replayed      bool `protobuf:"varint,3,opt,name=replayed,proto3" json:"replayed,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -455,6 +471,13 @@ func (x *CreateDeploymentResponse) GetStatus() DeploymentStatus {
 		return x.Status
 	}
 	return DeploymentStatus_DEPLOYMENT_STATUS_UNSPECIFIED
+}
+
+func (x *CreateDeploymentResponse) GetReplayed() bool {
+	if x != nil {
+		return x.Replayed
+	}
+	return false
 }
 
 type GetDeploymentRequest struct {
@@ -1546,7 +1569,7 @@ var File_ctrl_v1_deployment_proto protoreflect.FileDescriptor
 
 const file_ctrl_v1_deployment_proto_rawDesc = "" +
 	"\n" +
-	"\x18ctrl/v1/deployment.proto\x12\actrl.v1\x1a\x13ctrl/v1/actor.proto\"\xe2\x03\n" +
+	"\x18ctrl/v1/deployment.proto\x12\actrl.v1\x1a\x13ctrl/v1/actor.proto\"\xa4\x04\n" +
 	"\x17CreateDeploymentRequest\x12\x1d\n" +
 	"\n" +
 	"project_id\x18\x01 \x01(\tR\tprojectId\x12)\n" +
@@ -1562,9 +1585,11 @@ const file_ctrl_v1_deployment_proto_rawDesc = "" +
 	"\ftriggered_by\x18\n" +
 	" \x01(\tR\vtriggeredBy\x12%\n" +
 	"\x0etrigger_reason\x18\t \x01(\tR\rtriggerReason\x12(\n" +
-	"\x05actor\x18\v \x01(\v2\x12.ctrl.v1.ActorInfoR\x05actorB\r\n" +
+	"\x05actor\x18\v \x01(\v2\x12.ctrl.v1.ActorInfoR\x05actor\x12,\n" +
+	"\x0fidempotency_key\x18\f \x01(\tH\x02R\x0eidempotencyKey\x88\x01\x01B\r\n" +
 	"\v_git_commitB\x0e\n" +
-	"\f_keyspace_id\"\x85\x02\n" +
+	"\f_keyspace_idB\x12\n" +
+	"\x10_idempotency_key\"\x85\x02\n" +
 	"\rGitCommitInfo\x12\x1d\n" +
 	"\n" +
 	"commit_sha\x18\x01 \x01(\tR\tcommitSha\x12%\n" +
@@ -1573,10 +1598,11 @@ const file_ctrl_v1_deployment_proto_rawDesc = "" +
 	"\x11author_avatar_url\x18\x04 \x01(\tR\x0fauthorAvatarUrl\x12\x1c\n" +
 	"\ttimestamp\x18\x05 \x01(\x03R\ttimestamp\x12\x16\n" +
 	"\x06branch\x18\x06 \x01(\tR\x06branch\x12'\n" +
-	"\x0ffork_repository\x18\a \x01(\tR\x0eforkRepository\"r\n" +
+	"\x0ffork_repository\x18\a \x01(\tR\x0eforkRepository\"\x8e\x01\n" +
 	"\x18CreateDeploymentResponse\x12#\n" +
 	"\rdeployment_id\x18\x01 \x01(\tR\fdeploymentId\x121\n" +
-	"\x06status\x18\x02 \x01(\x0e2\x19.ctrl.v1.DeploymentStatusR\x06status\";\n" +
+	"\x06status\x18\x02 \x01(\x0e2\x19.ctrl.v1.DeploymentStatusR\x06status\x12\x1a\n" +
+	"\breplayed\x18\x03 \x01(\bR\breplayed\";\n" +
 	"\x14GetDeploymentRequest\x12#\n" +
 	"\rdeployment_id\x18\x01 \x01(\tR\fdeploymentId\"L\n" +
 	"\x15GetDeploymentResponse\x123\n" +

@@ -108,6 +108,7 @@ func (s *Service) Rebuild(ctx context.Context, sourceDeploymentID, reason string
 	params := createParams{
 		context:     depCtx,
 		action:      "rebuild",
+		actor:       nil,
 		dockerImage: "",
 		gitCommit: &ctrlv1.GitCommitInfo{
 			CommitSha:       src.GitCommitSha.String,
@@ -118,10 +119,11 @@ func (s *Service) Rebuild(ctx context.Context, sourceDeploymentID, reason string
 			Timestamp:       src.GitCommitTimestamp.Int64,
 			ForkRepository:  src.ForkRepositoryFullName.String,
 		},
-		command:       nil,
-		trigger:       db.DeploymentsTriggerUnkey,
-		triggeredBy:   "",
-		triggerReason: reason,
+		command:        nil,
+		trigger:        db.DeploymentsTriggerUnkey,
+		triggeredBy:    "",
+		triggerReason:  reason,
+		idempotencyKey: "",
 	}
 
 	if useGit {
@@ -147,10 +149,11 @@ func (s *Service) Rebuild(ctx context.Context, sourceDeploymentID, reason string
 		)
 	}
 
-	newID, err := s.createAndDeploy(ctx, params)
+	res, err := s.createAndDeploy(ctx, params)
 	if err != nil {
 		return "", err
 	}
+	newID := res.deploymentID
 
 	// Persist an audit_log entry so customers can see in their audit feed
 	// who replaced their deployment and why. Failure to write the audit

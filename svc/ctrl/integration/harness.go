@@ -134,6 +134,7 @@ func (h *Harness) CreateDeployment(ctx context.Context, req CreateDeploymentRequ
 		Healthcheck:                   dbtype.NullHealthcheck{Healthcheck: nil, Valid: false},
 		PrNumber:                      sql.NullInt64{Int64: 0, Valid: false},
 		ForkRepositoryFullName:        sql.NullString{String: "", Valid: false},
+		Image:                         sql.NullString{String: "", Valid: false},
 		DeploymentTrigger:             db.DeploymentsTriggerUnknown,
 		TriggeredBy:                   sql.NullString{Valid: false},
 		TriggerReason:                 sql.NullString{Valid: false},
