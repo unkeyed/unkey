@@ -30,6 +30,12 @@ import (
 // the invocation keeps running, and a retry with the same key attaches to it.
 const createCallTimeout = 30 * time.Second
 
+// maxIdempotencyKeyBytes bounds the caller-supplied idempotency key. The key
+// travels as an HTTP header on the ingress call, so it must stay within what
+// a header value can carry. Matches the public API boundary's limit in
+// svc/api v2_deployments_create_deployment.
+const maxIdempotencyKeyBytes = 255
+
 // CreateDeployment creates a new deployment record and initiates an async Restate
 // workflow. When source is omitted, the handler auto-detects: git-connected
 // apps deploy HEAD of their default branch, non-git apps reuse the live
@@ -194,6 +200,11 @@ func (s *Service) createAndDeploy(ctx context.Context, p createParams) (createRe
 
 	p.idempotencyKey = strings.TrimSpace(p.idempotencyKey)
 
+	if len(p.idempotencyKey) > maxIdempotencyKeyBytes {
+		return createResult{}, connect.NewError(connect.CodeInvalidArgument,
+			fmt.Errorf("idempotency_key must be at most %d bytes", maxIdempotencyKeyBytes))
+	}
+
 	// Pre-key gates: a rejection here never consumes the idempotency key, so
 	// the dashboard can resubmit a corrected form with the same key.
 	if err := s.ensureWorkspaceCanDeploy(ctx, c.WorkspaceID, string(p.action)); err != nil {
@@ -279,8 +290,14 @@ func (s *Service) createAndDeploy(ctx context.Context, p createParams) (createRe
 		Request(callCtx, createReq, restate.WithIdempotencyKey(scopedIdempotencyKey))
 	if callErr != nil {
 		if errors.Is(callErr, context.DeadlineExceeded) {
+			if p.idempotencyKey != "" {
+				return createResult{}, connect.NewError(connect.CodeUnavailable,
+					fmt.Errorf("deployment create is still in progress; retry with the same idempotency key"))
+			}
+			// Without a key a retry cannot attach; it would create a second
+			// deployment while this one completes in the background.
 			return createResult{}, connect.NewError(connect.CodeUnavailable,
-				fmt.Errorf("deployment create is still in progress; retry with the same idempotency key"))
+				fmt.Errorf("deployment create is still in progress and will complete in the background; check deployment %s before retrying", deploymentID))
 		}
 		return createResult{}, connect.NewError(connect.CodeInternal,
 			fmt.Errorf("deployment create failed: %w", callErr))

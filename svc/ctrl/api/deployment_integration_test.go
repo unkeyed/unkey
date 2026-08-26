@@ -13,6 +13,7 @@ import (
 
 	"connectrpc.com/connect"
 	restate "github.com/restatedev/sdk-go"
+	restateingress "github.com/restatedev/sdk-go/ingress"
 	"github.com/stretchr/testify/require"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/gen/proto/ctrl/v1/ctrlv1connect"
@@ -382,6 +383,133 @@ func TestDeployment_Create_AuditFailureCreatesNothing(t *testing.T) {
 	for _, row := range rows {
 		require.NotContains(t, string(row.Payload), string(auditlog.DeploymentCreateEvent))
 	}
+	select {
+	case req := <-requests:
+		t.Fatalf("unexpected workflow invocation for deployment %s", req.GetDeploymentId())
+	case <-time.After(500 * time.Millisecond):
+	}
+}
+
+// A resumed create whose insert already committed must feed sibling dedup the
+// committed row's created_at. The retry's own clock would make a genuinely
+// newer sibling look older than the resumed create and cancel it.
+func TestDeployment_Create_DuplicateResumeKeepsRowCreatedAt(t *testing.T) {
+	requests := make(chan *hydrav1.DeployRequest, 2)
+	harness := newWebhookHarness(t, webhookHarnessConfig{
+		Services: []restate.ServiceDefinition{hydrav1.NewDeployServiceServer(&mockDeployService{requests: requests})},
+	})
+
+	ctx := harness.RequestContext()
+	workspaceID := harness.Seed.Resources.UserWorkspace.ID
+	target := seedDeployTarget(ctx, t, harness, workspaceID)
+
+	deploymentID := uid.New(uid.DeploymentPrefix)
+	// nolint: exhaustruct // only the fields the create path reads matter here
+	createReq := &hydrav1.DeploymentCreateRequest{
+		Nonce:           uid.New("nonce"),
+		ProjectId:       target.project.ID,
+		AppId:           target.app.ID,
+		EnvironmentSlug: target.environment.Slug,
+		DeployRequest: &hydrav1.DeployRequest{
+			DeploymentId: deploymentID,
+			Source:       &hydrav1.DeployRequest_DockerImage{DockerImage: &hydrav1.DockerImage{Image: "nginx:latest"}},
+		},
+		GitCommit: &ctrlv1.GitCommitInfo{
+			Branch:        "main",
+			CommitSha:     "0123456789abcdef0123456789abcdef01234567",
+			CommitMessage: "KEBAP",
+		},
+		Trigger: ctrlv1.DeploymentTrigger_DEPLOYMENT_TRIGGER_GITHUB,
+		Action:  hydrav1.DeploymentCreateAction_DEPLOYMENT_CREATE_ACTION_CREATE,
+	}
+
+	workerClient := hydrav1.NewDeploymentCreateServiceIngressClient(restateingress.NewClient(harness.IngressURL))
+
+	_, err := workerClient.Create().Request(ctx, createReq)
+	require.NoError(t, err)
+	row, err := harness.DB.FindDeploymentById(ctx, deploymentID)
+	require.NoError(t, err)
+
+	// A sibling on the same (app, environment, branch), created after the
+	// first attempt's insert committed.
+	siblingID := uid.New(uid.DeploymentPrefix)
+	require.NoError(t, harness.DB.InsertDeployment(ctx, db.InsertDeploymentParams{
+		ID:                            siblingID,
+		K8sName:                       uid.DNS1035(12),
+		WorkspaceID:                   workspaceID,
+		ProjectID:                     target.project.ID,
+		AppID:                         target.app.ID,
+		EnvironmentID:                 target.environment.ID,
+		GitCommitSha:                  sql.NullString{Valid: false, String: ""},
+		GitBranch:                     sql.NullString{Valid: true, String: "main"},
+		SentinelConfig:                []byte("{}"),
+		GitCommitMessage:              sql.NullString{Valid: true, String: "KEBAP"},
+		GitCommitAuthorHandle:         sql.NullString{Valid: false, String: ""},
+		GitCommitAuthorAvatarUrl:      sql.NullString{Valid: false, String: ""},
+		GitCommitTimestamp:            sql.NullInt64{Valid: false, Int64: 0},
+		EncryptedEnvironmentVariables: []byte{},
+		Command:                       nil,
+		Status:                        mysqltype.DeploymentsStatusPending,
+		CpuMillicores:                 250,
+		MemoryMib:                     256,
+		StorageMib:                    0,
+		Port:                          8080,
+		ShutdownSignal:                db.DeploymentsShutdownSignalSIGTERM,
+		UpstreamProtocol:              db.DeploymentsUpstreamProtocolHttp1,
+		Healthcheck:                   mysqltype.NullHealthcheck{Valid: false, Healthcheck: nil},
+		PrNumber:                      sql.NullInt64{Valid: false, Int64: 0},
+		ForkRepositoryFullName:        sql.NullString{Valid: false, String: ""},
+		DeploymentTrigger:             db.DeploymentsTriggerGithub,
+		TriggeredBy:                   sql.NullString{Valid: false, String: ""},
+		TriggerReason:                 sql.NullString{Valid: false, String: ""},
+		CreatedAt:                     row.CreatedAt + 100,
+		UpdatedAt:                     sql.NullInt64{Valid: false, Int64: 0},
+	}))
+
+	// Re-executing the same request simulates the resumed attempt: the
+	// insert hits the id duplicate and must swallow it as success. The pause
+	// keeps the retry's clock safely past the sibling's created_at.
+	time.Sleep(time.Second)
+	_, err = workerClient.Create().Request(ctx, createReq)
+	require.NoError(t, err)
+
+	sibling, err := harness.DB.FindDeploymentById(ctx, siblingID)
+	require.NoError(t, err)
+	require.Equal(t, mysqltype.DeploymentsStatusPending, sibling.Status,
+		"a newer sibling must not be superseded by a resumed older create")
+}
+
+// The idempotency key travels as an HTTP header on the ingress call; a value
+// a header cannot carry must be rejected as InvalidArgument instead of
+// failing every attempt in the transport as a 500.
+func TestDeployment_Create_RejectsInvalidIdempotencyKey(t *testing.T) {
+	requests := make(chan *hydrav1.DeployRequest, 1)
+	harness := newWebhookHarness(t, webhookHarnessConfig{
+		Services: []restate.ServiceDefinition{hydrav1.NewDeployServiceServer(&mockDeployService{requests: requests})},
+	})
+
+	ctx := harness.RequestContext()
+	workspaceID := harness.Seed.Resources.UserWorkspace.ID
+	target := seedDeployTarget(ctx, t, harness, workspaceID)
+
+	client := ctrlv1connect.NewDeployServiceClient(harness.ConnectClient(), harness.CtrlURL, harness.ConnectOptions()...)
+
+	for name, key := range map[string]string{
+		"control character": "kebap\nkey",
+		"oversized":         strings.Repeat("k", 300),
+	} {
+		// nolint: exhaustruct // only the fields the reject path reads matter here
+		_, err := client.CreateDeployment(ctx, connect.NewRequest(&ctrlv1.CreateDeploymentRequest{
+			ProjectId:       target.project.ID,
+			AppId:           target.app.ID,
+			EnvironmentSlug: target.environment.Slug,
+			DockerImage:     "nginx:latest",
+			IdempotencyKey:  &key,
+		}))
+		require.Error(t, err, "case %q", name)
+		require.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err), "case %q", name)
+	}
+
 	select {
 	case req := <-requests:
 		t.Fatalf("unexpected workflow invocation for deployment %s", req.GetDeploymentId())

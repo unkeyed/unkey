@@ -182,10 +182,21 @@ func (s *Service) insertDeployment(
 		}
 		return nil
 	})
-	// A duplicate key can only be an earlier attempt of this step that
-	// committed before the journal recorded it; treat it as success.
-	if insertErr != nil && !db.IsDuplicateKeyError(insertErr) {
-		return insertOutcome{}, insertErr //nolint:exhaustruct // zero value unused on error
+	if insertErr != nil {
+		if !db.IsDuplicateKeyError(insertErr) {
+			return insertOutcome{}, insertErr //nolint:exhaustruct // zero value unused on error
+		}
+		// duplicate key (not the idempotency key): an earlier attempt
+		// committed this row before the journal recorded it, so reuse its
+		// created_at instead of this attempt's later clock.
+		existing, findErr := s.db.FindDeploymentById(ctx, deploymentID)
+		if findErr != nil {
+			return insertOutcome{}, fmt.Errorf("duplicate key on insert but deployment %s not found: %w", deploymentID, findErr) //nolint:exhaustruct // zero value unused on error
+		}
+		return insertOutcome{ //nolint:exhaustruct // no refusal on success
+			EnvironmentID: target.Env.Environment.ID,
+			CreatedAt:     existing.CreatedAt,
+		}, nil
 	}
 
 	return insertOutcome{ //nolint:exhaustruct // no refusal on success
