@@ -6,6 +6,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
@@ -32,6 +33,7 @@ func TestListDomainsNotFound(t *testing.T) {
 		Slug:          randomSlug(),
 		DefaultBranch: "main",
 	})
+	sameWorkspaceOtherProject := seedEnvironment(t, h)
 
 	otherWorkspace := h.CreateWorkspace()
 	otherProject := h.CreateProject(seed.CreateProjectRequest{
@@ -76,32 +78,74 @@ func TestListDomainsNotFound(t *testing.T) {
 	})
 
 	testCases := []struct {
-		name string
-		req  handler.Request
+		name     string
+		req      handler.Request
+		wantType string
 	}{
 		{
-			name: "nonexistent environment",
-			req:  handler.Request{Project: env.projectID, App: env.appID, Environment: uid.New(uid.EnvironmentPrefix), Search: nil},
+			name:     "nonexistent environment",
+			req:      handler.Request{Project: ptr.P(env.projectID), App: ptr.P(env.appID), Environment: ptr.P(uid.New(uid.EnvironmentPrefix)), Search: nil},
+			wantType: "https://unkey.com/docs/errors/unkey/data/environment_not_found",
 		},
 		{
-			name: "nonexistent app",
-			req:  handler.Request{Project: env.projectID, App: uid.New(uid.AppPrefix), Environment: env.environmentID, Search: nil},
+			name:     "nonexistent app",
+			req:      handler.Request{Project: ptr.P(env.projectID), App: ptr.P(uid.New(uid.AppPrefix)), Environment: ptr.P(env.environmentID), Search: nil},
+			wantType: "https://unkey.com/docs/errors/unkey/data/app_not_found",
 		},
 		{
-			name: "nonexistent project",
-			req:  handler.Request{Project: uid.New(uid.ProjectPrefix), App: env.appID, Environment: env.environmentID, Search: nil},
+			name:     "nonexistent project",
+			req:      handler.Request{Project: ptr.P(uid.New(uid.ProjectPrefix)), App: ptr.P(env.appID), Environment: ptr.P(env.environmentID), Search: nil},
+			wantType: "https://unkey.com/docs/errors/unkey/data/project_not_found",
 		},
 		{
-			name: "environment under the wrong app",
-			req:  handler.Request{Project: env.projectID, App: otherApp.ID, Environment: env.environmentID, Search: nil},
+			name:     "app slug without project",
+			req:      handler.Request{App: ptr.P(env.appSlug)},
+			wantType: "https://unkey.com/docs/errors/unkey/data/app_not_found",
 		},
 		{
-			name: "app under the wrong project",
-			req:  handler.Request{Project: otherProject.ID, App: env.appID, Environment: env.environmentID, Search: nil},
+			name:     "environment slug without app",
+			req:      handler.Request{Project: ptr.P(env.projectID), Environment: ptr.P("production")},
+			wantType: "https://unkey.com/docs/errors/unkey/data/environment_not_found",
 		},
 		{
-			name: "environment in another workspace",
-			req:  handler.Request{Project: otherProject.ID, App: otherWorkspaceApp.ID, Environment: otherWorkspaceEnv.ID, Search: nil},
+			name:     "environment slug without parents",
+			req:      handler.Request{Environment: ptr.P("production")},
+			wantType: "https://unkey.com/docs/errors/unkey/data/environment_not_found",
+		},
+		{
+			name:     "environment under the wrong app",
+			req:      handler.Request{Project: ptr.P(env.projectID), App: ptr.P(otherApp.ID), Environment: ptr.P(env.environmentID), Search: nil},
+			wantType: "https://unkey.com/docs/errors/unkey/data/environment_not_found",
+		},
+		{
+			name:     "app under another project in the workspace",
+			req:      handler.Request{Project: ptr.P(sameWorkspaceOtherProject.projectID), App: ptr.P(env.appID)},
+			wantType: "https://unkey.com/docs/errors/unkey/data/app_not_found",
+		},
+		{
+			name:     "environment under another project in the workspace",
+			req:      handler.Request{Project: ptr.P(env.projectID), Environment: ptr.P(sameWorkspaceOtherProject.environmentID)},
+			wantType: "https://unkey.com/docs/errors/unkey/data/environment_not_found",
+		},
+		{
+			name:     "project in another workspace",
+			req:      handler.Request{Project: ptr.P(otherProject.ID), App: ptr.P(env.appID), Environment: ptr.P(env.environmentID), Search: nil},
+			wantType: "https://unkey.com/docs/errors/unkey/data/project_not_found",
+		},
+		{
+			name:     "environment in another workspace",
+			req:      handler.Request{Project: ptr.P(otherProject.ID), App: ptr.P(otherWorkspaceApp.ID), Environment: ptr.P(otherWorkspaceEnv.ID), Search: nil},
+			wantType: "https://unkey.com/docs/errors/unkey/data/project_not_found",
+		},
+		{
+			name:     "standalone app ID in another workspace",
+			req:      handler.Request{App: ptr.P(otherWorkspaceApp.ID)},
+			wantType: "https://unkey.com/docs/errors/unkey/data/app_not_found",
+		},
+		{
+			name:     "standalone environment ID in another workspace",
+			req:      handler.Request{Environment: ptr.P(otherWorkspaceEnv.ID)},
+			wantType: "https://unkey.com/docs/errors/unkey/data/environment_not_found",
 		},
 	}
 
@@ -109,7 +153,7 @@ func TestListDomainsNotFound(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, tc.req)
 			require.Equal(t, http.StatusNotFound, res.Status, "expected 404, received: %s", res.RawBody)
-			require.Equal(t, "https://unkey.com/docs/errors/unkey/data/environment_not_found", res.Body.Error.Type)
+			require.Equal(t, tc.wantType, res.Body.Error.Type)
 			require.NotContains(t, res.RawBody, otherWorkspaceDomain.ID, "cross-workspace lookup leaked a domain id: %s", res.RawBody)
 		})
 	}

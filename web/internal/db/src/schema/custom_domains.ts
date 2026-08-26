@@ -56,7 +56,9 @@ export const customDomains = mysqlTable(
     ...lifecycleDates,
   },
   (table) => [
-    index("project_idx").on(table.projectId),
+    index("workspace_id_id_domain_idx").on(table.workspaceId, table.id, table.domain),
+    index("project_id_id_domain_idx").on(table.projectId, table.id, table.domain),
+    index("app_id_id_domain_idx").on(table.appId, table.id, table.domain),
     index("verification_status_idx").on(table.verificationStatus),
     uniqueIndex("unique_domain_workspace_idx").on(table.workspaceId, table.domain),
     index("environment_id_id_domain_idx").on(table.environmentId, table.id, table.domain),

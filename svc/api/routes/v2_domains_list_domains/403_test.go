@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/openapi"
@@ -59,6 +60,34 @@ func TestListDomainsPermissions(t *testing.T) {
 	}
 }
 
+// TestListDomainsBroadScopesRequireWildcard guarantees that a key scoped to one
+// environment cannot list domains from a parent scope that it may not read.
+func TestListDomainsBroadScopesRequireWildcard(t *testing.T) {
+	h := testutil.NewHarness(t)
+	route := &handler.Handler{DB: h.DB}
+	h.Register(route)
+
+	env := seedEnvironment(t, h)
+	attachDomain(t, h, env, nil)
+	rootKey := h.CreateRootKey(env.workspaceID, "environment."+env.environmentID+".read_domain")
+
+	testCases := []struct {
+		name string
+		req  handler.Request
+	}{
+		{name: "workspace", req: handler.Request{}},
+		{name: "project", req: handler.Request{Project: ptr.P(env.projectID)}},
+		{name: "app", req: handler.Request{Project: ptr.P(env.projectID), App: ptr.P(env.appID)}},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, authHeaders(rootKey), tc.req)
+			require.Equal(t, http.StatusForbidden, res.Status, "expected 403, received: %s", res.RawBody)
+		})
+	}
+}
+
 // TestListDomainsExistenceNotLeaked asserts that a zero-permission root key targeting a
 // real environment and a nonexistent one receives responses that are indistinguishable
 // apart from the request id. Without this, permission rejections would act as an
@@ -76,9 +105,9 @@ func TestListDomainsExistenceNotLeaked(t *testing.T) {
 
 	realRes := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, makeRequest(env))
 	missingRes := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, handler.Request{
-		Project:     env.projectID,
-		App:         env.appID,
-		Environment: uid.New(uid.EnvironmentPrefix),
+		Project:     ptr.P(env.projectID),
+		App:         ptr.P(env.appID),
+		Environment: ptr.P(uid.New(uid.EnvironmentPrefix)),
 		Search:      nil,
 	})
 

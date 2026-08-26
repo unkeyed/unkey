@@ -2044,7 +2044,8 @@ type Querier interface {
 	//  WHERE workspace_id = ?
 	//  ORDER BY pk
 	ListClickhouseOutboxByWorkspace(ctx context.Context, db DBTX, workspaceID string) ([]ListClickhouseOutboxByWorkspaceRow, error)
-	//ListCustomDomainsByEnvironment
+	// ListCustomDomains applies optional hierarchy filters after the handler resolves
+	// identifiers to IDs. An empty filter includes every child scope in the workspace.
 	//
 	//  SELECT
 	//      id,
@@ -2065,14 +2066,15 @@ type Querier interface {
 	//      updated_at
 	//  FROM custom_domains
 	//  WHERE workspace_id = ?
-	//    AND project_id = ?
-	//    AND environment_id = ?
+	//    AND (? = '' OR project_id = ?)
+	//    AND (? = '' OR app_id = ?)
+	//    AND (? = '' OR environment_id = ?)
 	//    AND id >= ?
 	//    -- search is a pre-escaped LIKE pattern built by mysql.SearchContains; NULL disables the filter
 	//    AND (? IS NULL OR LOWER(id) LIKE LOWER(?) OR LOWER(domain) LIKE LOWER(?))
 	//  ORDER BY id ASC
 	//  LIMIT ?
-	ListCustomDomainsByEnvironment(ctx context.Context, db DBTX, arg ListCustomDomainsByEnvironmentParams) ([]ListCustomDomainsByEnvironmentRow, error)
+	ListCustomDomains(ctx context.Context, db DBTX, arg ListCustomDomainsParams) ([]ListCustomDomainsRow, error)
 	//ListDeploymentDomains
 	//
 	//  SELECT r.fully_qualified_domain_name AS domain

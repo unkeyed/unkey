@@ -6,26 +6,23 @@ import * as z from "zod/v3";
 
 export type V2DomainsListDomainsRequestBody = {
   /**
-   * Identifies a resource by either its unique ID or its slug.
-   *
-   * @remarks
-   * Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+   * Restrict results to one project, identified by its ID or slug.
+   * Set this when an `app` filter uses a slug.
    */
-  project: string;
+  project?: string | undefined;
   /**
-   * Identifies a resource by either its unique ID or its slug.
-   *
-   * @remarks
-   * Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+   * Restrict results to one app, identified by its ID or slug.
+   * If `project` is omitted, the endpoint treats this opaque value only as an app ID.
+   * Set `project` to use an app slug.
    */
-  app: string;
+  app?: string | undefined;
   /**
-   * Identifies a resource by either its unique ID or its slug.
-   *
-   * @remarks
-   * Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+   * Restrict results to one environment, identified by its ID or slug.
+   * If `app` is omitted, the endpoint treats this opaque value only as an environment ID.
+   * Set `app` to use an environment slug.
+   * If the app uses a slug, also set `project`.
    */
-  environment: string;
+  environment?: string | undefined;
   /**
    * The maximum number of domains one response contains.
    *
@@ -48,9 +45,9 @@ export type V2DomainsListDomainsRequestBody = {
 
 /** @internal */
 export type V2DomainsListDomainsRequestBody$Outbound = {
-  project: string;
-  app: string;
-  environment: string;
+  project?: string | undefined;
+  app?: string | undefined;
+  environment?: string | undefined;
   limit: number;
   cursor?: string | undefined;
   search?: string | undefined;
@@ -62,9 +59,9 @@ export const V2DomainsListDomainsRequestBody$outboundSchema: z.ZodType<
   z.ZodTypeDef,
   V2DomainsListDomainsRequestBody
 > = z.object({
-  project: z.string(),
-  app: z.string(),
-  environment: z.string(),
+  project: z.string().optional(),
+  app: z.string().optional(),
+  environment: z.string().optional(),
   limit: z.number().int().default(100),
   cursor: z.string().optional(),
   search: z.string().optional(),

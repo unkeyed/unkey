@@ -57,6 +57,71 @@ func TestListDomains(t *testing.T) {
 	require.Nil(t, pending.VerificationError)
 }
 
+// TestListDomainsOptionalScopes guarantees that omitted filters widen the list
+// only to child resources in the caller's workspace.
+func TestListDomainsOptionalScopes(t *testing.T) {
+	h := testutil.NewHarness(t)
+	route := &handler.Handler{DB: h.DB}
+	h.Register(route)
+
+	env := seedEnvironment(t, h)
+	first := attachDomain(t, h, env, nil)
+
+	siblingApp := h.CreateApp(seed.CreateAppRequest{
+		ID:            uid.New(uid.AppPrefix),
+		WorkspaceID:   env.workspaceID,
+		ProjectID:     env.projectID,
+		Name:          "Sibling API",
+		Slug:          randomSlug(),
+		DefaultBranch: "main",
+	})
+	siblingEnvironment := h.CreateEnvironment(seed.CreateEnvironmentRequest{
+		ID:          uid.New(uid.EnvironmentPrefix),
+		WorkspaceID: env.workspaceID,
+		ProjectID:   env.projectID,
+		AppID:       siblingApp.ID,
+		Slug:        "production",
+		Description: "Production environment",
+	})
+	sibling := attachDomain(t, h, seededEnv{
+		workspaceID:   env.workspaceID,
+		projectID:     env.projectID,
+		appID:         siblingApp.ID,
+		environmentID: siblingEnvironment.ID,
+	}, nil)
+
+	otherProject := seedEnvironment(t, h)
+	other := attachDomain(t, h, otherProject, nil)
+	rootKey := h.CreateRootKey(env.workspaceID, "environment.*.read_domain")
+
+	testCases := []struct {
+		name    string
+		req     handler.Request
+		wantIDs []string
+	}{
+		{name: "workspace", req: handler.Request{}, wantIDs: []string{first.ID, sibling.ID, other.ID}},
+		{name: "project", req: handler.Request{Project: ptr.P(env.projectID)}, wantIDs: []string{first.ID, sibling.ID}},
+		{name: "app ID without project", req: handler.Request{App: ptr.P(env.appID)}, wantIDs: []string{first.ID}},
+		{name: "app slug with project", req: handler.Request{Project: ptr.P(env.projectSlug), App: ptr.P(env.appSlug)}, wantIDs: []string{first.ID}},
+		{name: "environment ID without parents", req: handler.Request{Environment: ptr.P(env.environmentID)}, wantIDs: []string{first.ID}},
+		{name: "environment ID with project", req: handler.Request{Project: ptr.P(env.projectID), Environment: ptr.P(env.environmentID)}, wantIDs: []string{first.ID}},
+		{name: "environment slug with app ID", req: handler.Request{App: ptr.P(env.appID), Environment: ptr.P("production")}, wantIDs: []string{first.ID}},
+		{name: "environment with all parents", req: makeRequest(env), wantIDs: []string{first.ID}},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			res := testutil.CallRoute[handler.Request, handler.Response](h, route, authHeaders(rootKey), tc.req)
+			require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
+			gotIDs := make([]string, len(res.Body.Data))
+			for i, domain := range res.Body.Data {
+				gotIDs[i] = domain.Id
+			}
+			require.ElementsMatch(t, tc.wantIDs, gotIDs)
+		})
+	}
+}
+
 // TestListDomainsStableOrder pins that every seeded domain comes back, in the same
 // order every time. Asserting a specific order in Go would be the wrong oracle: ORDER BY
 // runs under the column's MySQL collation, which sorts alphabetically with case as a
@@ -234,9 +299,9 @@ func TestListDomainsBySlugs(t *testing.T) {
 	rootKey := h.CreateRootKey(env.workspaceID, "environment.*.read_domain")
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, authHeaders(rootKey), handler.Request{
-		Project:     env.projectSlug,
-		App:         env.appSlug,
-		Environment: "production",
+		Project:     ptr.P(env.projectSlug),
+		App:         ptr.P(env.appSlug),
+		Environment: ptr.P("production"),
 		Search:      nil,
 	})
 	require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)

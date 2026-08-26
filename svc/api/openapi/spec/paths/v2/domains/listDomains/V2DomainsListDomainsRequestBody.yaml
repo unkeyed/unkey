@@ -1,15 +1,26 @@
 type: object
-required:
-  - project
-  - app
-  - environment
 properties:
   project:
-    "$ref": "../../../../common/ResourceIdentifier.yaml"
+    allOf:
+      - "$ref": "../../../../common/ResourceIdentifier.yaml"
+    description: |
+      Restrict results to one project, identified by its ID or slug.
+      Set this when an `app` filter uses a slug.
   app:
-    "$ref": "../../../../common/ResourceIdentifier.yaml"
+    allOf:
+      - "$ref": "../../../../common/ResourceIdentifier.yaml"
+    description: |
+      Restrict results to one app, identified by its ID or slug.
+      If `project` is omitted, the endpoint treats this opaque value only as an app ID.
+      Set `project` to use an app slug.
   environment:
-    "$ref": "../../../../common/ResourceIdentifier.yaml"
+    allOf:
+      - "$ref": "../../../../common/ResourceIdentifier.yaml"
+    description: |
+      Restrict results to one environment, identified by its ID or slug.
+      If `app` is omitted, the endpoint treats this opaque value only as an environment ID.
+      Set `app` to use an environment slug.
+      If the app uses a slug, also set `project`.
   limit:
     type: integer
     description: |
@@ -31,7 +42,17 @@ properties:
       name contains the search string. Matching is case-insensitive.
     example: acme.com
 additionalProperties: false
+description: |
+  Filter domains within a workspace. All filters are optional. With no filters,
+  the endpoint returns every custom domain in the workspace.
 examples:
+  workspaceWide:
+    summary: List all domains in the workspace
+    value: {}
+  byProject:
+    summary: List a project's domains
+    value:
+      project: payments
   bySlugs:
     summary: List an environment's domains by slugs
     description: Uses the project, app, and environment slugs, which is the form a human or agent usually has on hand.
@@ -40,11 +61,9 @@ examples:
       app: payments-api
       environment: production
   byIds:
-    summary: List an environment's domains by ID
-    description: Uses the ids returned by the corresponding list endpoints.
+    summary: List an environment's domains by its ID
+    description: Resource IDs are globally unique, so the environment ID can stand alone.
     value:
-      project: proj_1234abcd
-      app: app_1234abcd
       environment: env_1234abcd
   search:
     summary: Filter by name
