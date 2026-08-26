@@ -4,7 +4,7 @@ import { env } from "@/lib/env";
 import { TRPCError } from "@trpc/server";
 import { newId } from "@unkey/id";
 import { newKey } from "@unkey/keys";
-import { unkeyPermissionValidation } from "@unkey/rbac";
+import { permissionValidation, urnPermissionWorkspaceId } from "@unkey/rbac";
 import { z } from "zod";
 import { workspaceProcedure } from "../../trpc";
 
@@ -15,12 +15,23 @@ export const createRootKey = workspaceProcedure
   .input(
     z.object({
       name: z.string().optional(),
-      permissions: z.array(unkeyPermissionValidation).min(1, {
+      permissions: z.array(permissionValidation).min(1, {
         error: "You need to add at least one permissions.",
       }),
     }),
   )
   .mutation(async ({ ctx, input }) => {
+    const foreignPermissions = input.permissions.filter((permission) => {
+      const permissionWorkspaceId = urnPermissionWorkspaceId(permission);
+      return permissionWorkspaceId !== null && permissionWorkspaceId !== ctx.workspace.id;
+    });
+    if (foreignPermissions.length > 0) {
+      throw new TRPCError({
+        code: "BAD_REQUEST",
+        message: `These permissions are scoped to another workspace than ${ctx.workspace.id}: ${foreignPermissions.join(", ")}`,
+      });
+    }
+
     const unkeyApi = await db.query.apis
       .findFirst({
         where: (table, { and, eq }) =>
@@ -96,6 +107,7 @@ export const createRootKey = workspaceProcedure
         });
 
         const { permissions, auditLogs: createPermissionLogs } = await upsertPermissions(
+          tx,
           ctx,
           env().UNKEY_WORKSPACE_ID,
           input.permissions,

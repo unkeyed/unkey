@@ -14,7 +14,7 @@ export async function upsertPermission(
     const existingPermission = await tx.query.permissions
       .findFirst({
         where: (table, { eq, and }) =>
-          and(eq(table.name, name), eq(table.workspaceId, workspaceId)),
+          and(eq(table.slug, name), eq(table.workspaceId, workspaceId)),
         with: {
           workspace: {
             columns: { id: true },

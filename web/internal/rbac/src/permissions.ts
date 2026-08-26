@@ -152,30 +152,188 @@ export type Resources = {
 };
 
 export type UnkeyPermission = Flatten<Resources> | "*";
+
+export type UnkeyUrnPermission = `unkey:v1:${string}:${string}#${string}`;
+
+export const PERMISSION_MAX_LENGTH = 512;
+
+const legacyWildcard = "*";
+
+function legacyPermissionError(value: string): string | null {
+  if (value === legacyWildcard) {
+    return null;
+  }
+  const parts = value.split(".");
+  if (parts.length !== 3) {
+    return 'Permission must be a "unkey:v1:<workspace_id>:<resource_path>#<action>" URN or a legacy "resource.id.action" tuple.';
+  }
+  const [resource, id, action] = parts;
+  const resourceConfig = scopedResources[resource as keyof typeof scopedResources];
+  if (!resourceConfig) {
+    return `Unknown resource "${resource}". Expected one of: ${Object.keys(scopedResources).join(", ")}.`;
+  }
+  if (!resourceConfig.idSchema.safeParse(id).success) {
+    return `Invalid id "${id}" for resource "${resource}". Expected "*" or an id of the resource.`;
+  }
+  if (!resourceConfig.actionsSchema.safeParse(action).success) {
+    return `Unknown action "${action}" for resource "${resource}". Expected one of: ${resourceConfig.actionsSchema.options.join(", ")}.`;
+  }
+  return null;
+}
+
 /**
  * Validation for roles used for our root keys
  */
-export const unkeyPermissionValidation = z.custom<UnkeyPermission>().refine((s) => {
-  z.string().parse(s);
-  if (s === "*") {
-    /**
-     * This is a legacy role granting access to everything
-     */
-    return true;
-  }
-  const split = s.split(".");
+export const unkeyPermissionValidation = z
+  .custom<UnkeyPermission>()
+  .refine((s) => typeof s === "string" && legacyPermissionError(s) === null);
 
-  // Handle scoped resource.id.action format (3 parts)
-  if (split.length !== 3) {
-    return false;
+const urnPrefix = "unkey";
+const urnVersion = "v1";
+const urnPermissionPrefix = `${urnPrefix}:${urnVersion}:`;
+const urnFieldSeparator = ":";
+const pathSeparator = "/";
+const actionSeparator = "#";
+const globalResourcePath = "**";
+const segmentWildcard = "*";
+const actionWildcard = "*";
+
+type UrnPermissionParts = {
+  workspaceId: string;
+  resourcePath: string;
+  action: string;
+};
+
+type UrnPermissionParseResult =
+  | { ok: true; permission: UrnPermissionParts }
+  | { ok: false; error: string };
+
+// validateWorkspaceId, validateResourcePath and validatePermissionAction mirror
+// the helpers of the same name in pkg/urn/urn.go and pkg/rbac/urn.go. The
+// reserved characters below cannot survive the field split, but the rule is
+// stated so both grammars read the same.
+function validateWorkspaceId(value: string): string | null {
+  if (value.length === 0) {
+    return "Workspace id must not be empty.";
   }
-  const [resource, id, action] = split;
-  const resourceConfig = scopedResources[resource as keyof typeof scopedResources];
-  if (resourceConfig) {
-    return (
-      resourceConfig.idSchema.safeParse(id).success &&
-      resourceConfig.actionsSchema.safeParse(action).success
-    );
+  if (/[:#/]/.test(value)) {
+    return 'Workspace id must not contain ":", "#" or "/".';
   }
-  return false;
-});
+  return null;
+}
+
+function validateResourcePath(resourcePath: string): string | null {
+  const segments = resourcePath.split(pathSeparator);
+  for (const [index, segment] of segments.entries()) {
+    if (segment.length === 0) {
+      return "Resource path must not contain empty segments.";
+    }
+    if (/[:#]/.test(segment)) {
+      return 'Resource path segments must not contain ":" or "#".';
+    }
+    if (segment === segmentWildcard) {
+      continue;
+    }
+    if (segment === globalResourcePath) {
+      if (index !== segments.length - 1) {
+        return '"**" must be the last resource path segment.';
+      }
+      continue;
+    }
+    if (segment.includes(segmentWildcard)) {
+      return '"*" must be a whole resource path segment.';
+    }
+  }
+  return null;
+}
+
+function validatePermissionAction(action: string): string | null {
+  if (action === actionWildcard) {
+    return null;
+  }
+  if (action.length === 0) {
+    return "Action must not be empty.";
+  }
+  if (/[:#/*]/.test(action)) {
+    return 'Action must not contain ":", "#", "/" or "*".';
+  }
+  if (action.startsWith("_") || action.endsWith("_")) {
+    return 'Action must not start or end with "_".';
+  }
+  return null;
+}
+
+function parseUrnPermission(value: string): UrnPermissionParseResult {
+  const [resource, action, ...extra] = value.split(actionSeparator);
+  if (action === undefined || extra.length > 0) {
+    return { ok: false, error: 'Permission must contain exactly one "#" action separator.' };
+  }
+
+  const fields = resource.split(urnFieldSeparator);
+  if (fields.length < 4) {
+    return {
+      ok: false,
+      error: 'Permission URN must read "unkey:v1:<workspace_id>:<resource_path>".',
+    };
+  }
+  const [prefix, version, urnWorkspaceId] = fields;
+  const resourcePath = fields.slice(3).join(urnFieldSeparator);
+
+  if (prefix !== urnPrefix) {
+    return { ok: false, error: `Permission URN prefix must be "${urnPrefix}".` };
+  }
+  if (version !== urnVersion) {
+    return { ok: false, error: `Permission URN version must be "${urnVersion}".` };
+  }
+
+  const workspaceError = validateWorkspaceId(urnWorkspaceId);
+  if (workspaceError) {
+    return { ok: false, error: workspaceError };
+  }
+  const resourcePathError = validateResourcePath(resourcePath);
+  if (resourcePathError) {
+    return { ok: false, error: resourcePathError };
+  }
+  const actionError = validatePermissionAction(action);
+  if (actionError) {
+    return { ok: false, error: actionError };
+  }
+  if (action === actionWildcard && resourcePath !== globalResourcePath) {
+    return {
+      ok: false,
+      error: `Action "*" requires the global resource path "${globalResourcePath}".`,
+    };
+  }
+
+  return { ok: true, permission: { workspaceId: urnWorkspaceId, resourcePath, action } };
+}
+
+function urnPermissionError(value: string): string | null {
+  const result = parseUrnPermission(value);
+  return result.ok ? null : result.error;
+}
+
+export const unkeyUrnPermissionValidation = z
+  .custom<UnkeyUrnPermission>()
+  .refine((s) => typeof s === "string" && parseUrnPermission(s).ok);
+
+export function urnPermissionWorkspaceId(value: string): string | null {
+  const result = parseUrnPermission(value);
+  return result.ok ? result.permission.workspaceId : null;
+}
+
+// Branching on the URN prefix rather than unioning two schemas keeps the error
+// specific to the grammar the caller was reaching for.
+export const permissionValidation = z
+  .string()
+  .max(PERMISSION_MAX_LENGTH, {
+    error: `Permission must be at most ${PERMISSION_MAX_LENGTH} characters.`,
+  })
+  .superRefine((value, ctx) => {
+    const error = value.startsWith(urnPermissionPrefix)
+      ? urnPermissionError(value)
+      : legacyPermissionError(value);
+    if (error) {
+      ctx.addIssue({ code: "custom", message: error });
+    }
+  });
