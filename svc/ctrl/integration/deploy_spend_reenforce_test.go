@@ -42,7 +42,7 @@ func TestDeploySpendCheck_ReEnforcesLeakedCompute(t *testing.T) {
 	dep := h.CreateDeployment(ctx, CreateDeploymentRequest{
 		Region:       "us-east-1",
 		DesiredState: mysqltype.DeploymentsDesiredStateRunning,
-	}).Deployment
+	})
 	setAppCurrent(t, h, dep.AppID, dep.ID)
 
 	// Torn state: the column says suspended but compute is still running.
@@ -101,7 +101,7 @@ func TestDeploySpendCheck_SkipsSuspendAfterCancel(t *testing.T) {
 	dep := h.CreateDeployment(ctx, CreateDeploymentRequest{
 		Region:       "us-east-1",
 		DesiredState: mysqltype.DeploymentsDesiredStateRunning,
-	}).Deployment
+	})
 	setAppCurrent(t, h, dep.AppID, dep.ID)
 
 	// Simulate the cancel that raced ahead of this check: deprovisionCompute
@@ -151,7 +151,7 @@ func TestDeploySpendCheck_ReEnforceMergesSuspensionRecord(t *testing.T) {
 	dep1 := h.CreateDeployment(ctx, CreateDeploymentRequest{
 		Region:       "us-east-1",
 		DesiredState: mysqltype.DeploymentsDesiredStateRunning,
-	}).Deployment
+	})
 	setAppCurrent(t, h, dep1.AppID, dep1.ID)
 
 	tEnv := startSpendCheck(t, h.DB)
@@ -189,7 +189,7 @@ func TestDeploySpendCheck_ReEnforceMergesSuspensionRecord(t *testing.T) {
 	dep2 := h.CreateDeployment(ctx, CreateDeploymentRequest{
 		Region:       "us-east-1",
 		DesiredState: mysqltype.DeploymentsDesiredStateRunning,
-	}).Deployment
+	})
 	require.NotEqual(t, dep1.AppID, dep2.AppID, "second deployment must be a distinct app")
 	setAppCurrent(t, h, dep2.AppID, dep2.ID)
 
@@ -244,7 +244,7 @@ func TestDeploySpendCheck_StalePeriodNoOp(t *testing.T) {
 	dep := h.CreateDeployment(ctx, CreateDeploymentRequest{
 		Region:       "us-east-1",
 		DesiredState: mysqltype.DeploymentsDesiredStateRunning,
-	}).Deployment
+	})
 	setAppCurrent(t, h, dep.AppID, dep.ID)
 
 	tEnv := startSpendCheck(t, h.DB)

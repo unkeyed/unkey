@@ -12,13 +12,22 @@ import (
 
 const findLiveKeyByHash = `-- name: FindLiveKeyByHash :one
 SELECT
-    k.pk, k.id, k.key_auth_id, k.hash, k.start, k.workspace_id, k.for_workspace_id,
-    k.name, k.identity_id, k.meta, k.expires, k.created_at_m, k.updated_at_m,
-    k.deleted_at_m, k.refill_day, k.refill_amount, k.last_refill_at, k.enabled,
-    k.remaining_requests, k.environment, k.last_used_at, k.pending_migration_id,
-    a.pk, a.id, a.name, a.workspace_id, a.project_id, a.ip_whitelist, a.auth_type, a.key_auth_id, a.created_at_m, a.updated_at_m, a.deleted_at_m, a.delete_protection,
-    ka.pk, ka.id, ka.workspace_id, ka.project_id, ka.created_at_m, ka.updated_at_m, ka.deleted_at_m, ka.store_encrypted_keys, ka.default_prefix, ka.default_bytes, ka.size_approx, ka.size_last_updated_at,
-    ws.pk, ws.id, ws.org_id, ws.name, ws.slug, ws.k8s_namespace, ws.beta_features, ws.subscriptions, ws.enabled, ws.delete_protection, ws.created_at_m, ws.updated_at_m, ws.deleted_at_m,
+    k.id AS key_id,
+    k.key_auth_id AS key_key_auth_id,
+    k.start AS key_start,
+    k.workspace_id AS key_workspace_id,
+    k.name AS key_name,
+    k.meta AS key_meta,
+    k.expires AS key_expires,
+    k.created_at_m AS key_created_at_m,
+    k.updated_at_m AS key_updated_at_m,
+    k.refill_day AS key_refill_day,
+    k.refill_amount AS key_refill_amount,
+    k.enabled AS key_enabled,
+    k.remaining_requests AS key_remaining_requests,
+    k.last_used_at AS key_last_used_at,
+    a.id AS api_id,
+    ka.store_encrypted_keys AS key_auth_store_encrypted_keys,
     i.id as identity_table_id,
     i.external_id as identity_external_id,
     i.meta as identity_meta,
@@ -112,52 +121,52 @@ WHERE k.hash = ?
 `
 
 type FindLiveKeyByHashRow struct {
-	Pk                 uint64         `db:"pk"`
-	ID                 string         `db:"id"`
-	KeyAuthID          string         `db:"key_auth_id"`
-	Hash               string         `db:"hash"`
-	Start              string         `db:"start"`
-	WorkspaceID        string         `db:"workspace_id"`
-	ForWorkspaceID     sql.NullString `db:"for_workspace_id"`
-	Name               sql.NullString `db:"name"`
-	IdentityID         sql.NullString `db:"identity_id"`
-	Meta               sql.NullString `db:"meta"`
-	Expires            sql.NullTime   `db:"expires"`
-	CreatedAtM         int64          `db:"created_at_m"`
-	UpdatedAtM         sql.NullInt64  `db:"updated_at_m"`
-	DeletedAtM         sql.NullInt64  `db:"deleted_at_m"`
-	RefillDay          sql.NullInt16  `db:"refill_day"`
-	RefillAmount       sql.NullInt64  `db:"refill_amount"`
-	LastRefillAt       sql.NullTime   `db:"last_refill_at"`
-	Enabled            bool           `db:"enabled"`
-	RemainingRequests  sql.NullInt64  `db:"remaining_requests"`
-	Environment        sql.NullString `db:"environment"`
-	LastUsedAt         uint64         `db:"last_used_at"`
-	PendingMigrationID sql.NullString `db:"pending_migration_id"`
-	Api                Api            `db:"api"`
-	KeyAuth            KeyAuth        `db:"key_auth"`
-	Workspace          Workspace      `db:"workspace"`
-	IdentityTableID    sql.NullString `db:"identity_table_id"`
-	IdentityExternalID sql.NullString `db:"identity_external_id"`
-	IdentityMeta       []byte         `db:"identity_meta"`
-	EncryptedKey       sql.NullString `db:"encrypted_key"`
-	EncryptionKeyID    sql.NullString `db:"encryption_key_id"`
-	Roles              interface{}    `db:"roles"`
-	Permissions        interface{}    `db:"permissions"`
-	RolePermissions    interface{}    `db:"role_permissions"`
-	Ratelimits         interface{}    `db:"ratelimits"`
+	KeyID                     string         `db:"key_id"`
+	KeyKeyAuthID              string         `db:"key_key_auth_id"`
+	KeyStart                  string         `db:"key_start"`
+	KeyWorkspaceID            string         `db:"key_workspace_id"`
+	KeyName                   sql.NullString `db:"key_name"`
+	KeyMeta                   sql.NullString `db:"key_meta"`
+	KeyExpires                sql.NullTime   `db:"key_expires"`
+	KeyCreatedAtM             int64          `db:"key_created_at_m"`
+	KeyUpdatedAtM             sql.NullInt64  `db:"key_updated_at_m"`
+	KeyRefillDay              sql.NullInt16  `db:"key_refill_day"`
+	KeyRefillAmount           sql.NullInt64  `db:"key_refill_amount"`
+	KeyEnabled                bool           `db:"key_enabled"`
+	KeyRemainingRequests      sql.NullInt64  `db:"key_remaining_requests"`
+	KeyLastUsedAt             uint64         `db:"key_last_used_at"`
+	ApiID                     string         `db:"api_id"`
+	KeyAuthStoreEncryptedKeys bool           `db:"key_auth_store_encrypted_keys"`
+	IdentityTableID           sql.NullString `db:"identity_table_id"`
+	IdentityExternalID        sql.NullString `db:"identity_external_id"`
+	IdentityMeta              []byte         `db:"identity_meta"`
+	EncryptedKey              sql.NullString `db:"encrypted_key"`
+	EncryptionKeyID           sql.NullString `db:"encryption_key_id"`
+	Roles                     interface{}    `db:"roles"`
+	Permissions               interface{}    `db:"permissions"`
+	RolePermissions           interface{}    `db:"role_permissions"`
+	Ratelimits                interface{}    `db:"ratelimits"`
 }
 
 // FindLiveKeyByHash
 //
 //	SELECT
-//	    k.pk, k.id, k.key_auth_id, k.hash, k.start, k.workspace_id, k.for_workspace_id,
-//	    k.name, k.identity_id, k.meta, k.expires, k.created_at_m, k.updated_at_m,
-//	    k.deleted_at_m, k.refill_day, k.refill_amount, k.last_refill_at, k.enabled,
-//	    k.remaining_requests, k.environment, k.last_used_at, k.pending_migration_id,
-//	    a.pk, a.id, a.name, a.workspace_id, a.project_id, a.ip_whitelist, a.auth_type, a.key_auth_id, a.created_at_m, a.updated_at_m, a.deleted_at_m, a.delete_protection,
-//	    ka.pk, ka.id, ka.workspace_id, ka.project_id, ka.created_at_m, ka.updated_at_m, ka.deleted_at_m, ka.store_encrypted_keys, ka.default_prefix, ka.default_bytes, ka.size_approx, ka.size_last_updated_at,
-//	    ws.pk, ws.id, ws.org_id, ws.name, ws.slug, ws.k8s_namespace, ws.beta_features, ws.subscriptions, ws.enabled, ws.delete_protection, ws.created_at_m, ws.updated_at_m, ws.deleted_at_m,
+//	    k.id AS key_id,
+//	    k.key_auth_id AS key_key_auth_id,
+//	    k.start AS key_start,
+//	    k.workspace_id AS key_workspace_id,
+//	    k.name AS key_name,
+//	    k.meta AS key_meta,
+//	    k.expires AS key_expires,
+//	    k.created_at_m AS key_created_at_m,
+//	    k.updated_at_m AS key_updated_at_m,
+//	    k.refill_day AS key_refill_day,
+//	    k.refill_amount AS key_refill_amount,
+//	    k.enabled AS key_enabled,
+//	    k.remaining_requests AS key_remaining_requests,
+//	    k.last_used_at AS key_last_used_at,
+//	    a.id AS api_id,
+//	    ka.store_encrypted_keys AS key_auth_store_encrypted_keys,
 //	    i.id as identity_table_id,
 //	    i.external_id as identity_external_id,
 //	    i.meta as identity_meta,
@@ -252,65 +261,22 @@ func (q *Queries) FindLiveKeyByHash(ctx context.Context, db DBTX, hash string) (
 	row := db.QueryRowContext(ctx, findLiveKeyByHash, hash)
 	var i FindLiveKeyByHashRow
 	err := row.Scan(
-		&i.Pk,
-		&i.ID,
-		&i.KeyAuthID,
-		&i.Hash,
-		&i.Start,
-		&i.WorkspaceID,
-		&i.ForWorkspaceID,
-		&i.Name,
-		&i.IdentityID,
-		&i.Meta,
-		&i.Expires,
-		&i.CreatedAtM,
-		&i.UpdatedAtM,
-		&i.DeletedAtM,
-		&i.RefillDay,
-		&i.RefillAmount,
-		&i.LastRefillAt,
-		&i.Enabled,
-		&i.RemainingRequests,
-		&i.Environment,
-		&i.LastUsedAt,
-		&i.PendingMigrationID,
-		&i.Api.Pk,
-		&i.Api.ID,
-		&i.Api.Name,
-		&i.Api.WorkspaceID,
-		&i.Api.ProjectID,
-		&i.Api.IpWhitelist,
-		&i.Api.AuthType,
-		&i.Api.KeyAuthID,
-		&i.Api.CreatedAtM,
-		&i.Api.UpdatedAtM,
-		&i.Api.DeletedAtM,
-		&i.Api.DeleteProtection,
-		&i.KeyAuth.Pk,
-		&i.KeyAuth.ID,
-		&i.KeyAuth.WorkspaceID,
-		&i.KeyAuth.ProjectID,
-		&i.KeyAuth.CreatedAtM,
-		&i.KeyAuth.UpdatedAtM,
-		&i.KeyAuth.DeletedAtM,
-		&i.KeyAuth.StoreEncryptedKeys,
-		&i.KeyAuth.DefaultPrefix,
-		&i.KeyAuth.DefaultBytes,
-		&i.KeyAuth.SizeApprox,
-		&i.KeyAuth.SizeLastUpdatedAt,
-		&i.Workspace.Pk,
-		&i.Workspace.ID,
-		&i.Workspace.OrgID,
-		&i.Workspace.Name,
-		&i.Workspace.Slug,
-		&i.Workspace.K8sNamespace,
-		&i.Workspace.BetaFeatures,
-		&i.Workspace.Subscriptions,
-		&i.Workspace.Enabled,
-		&i.Workspace.DeleteProtection,
-		&i.Workspace.CreatedAtM,
-		&i.Workspace.UpdatedAtM,
-		&i.Workspace.DeletedAtM,
+		&i.KeyID,
+		&i.KeyKeyAuthID,
+		&i.KeyStart,
+		&i.KeyWorkspaceID,
+		&i.KeyName,
+		&i.KeyMeta,
+		&i.KeyExpires,
+		&i.KeyCreatedAtM,
+		&i.KeyUpdatedAtM,
+		&i.KeyRefillDay,
+		&i.KeyRefillAmount,
+		&i.KeyEnabled,
+		&i.KeyRemainingRequests,
+		&i.KeyLastUsedAt,
+		&i.ApiID,
+		&i.KeyAuthStoreEncryptedKeys,
 		&i.IdentityTableID,
 		&i.IdentityExternalID,
 		&i.IdentityMeta,

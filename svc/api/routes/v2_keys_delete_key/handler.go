@@ -57,7 +57,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	key, err := db.Query.FindLiveKeyByID(ctx, h.DB.RO(), req.KeyId)
+	keyRow, err := db.Query.FindLiveKeyByID(ctx, h.DB.RO(), req.KeyId)
 	if err != nil {
 		if db.IsNotFound(err) {
 			return fault.Wrap(
@@ -76,7 +76,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	// Validate key belongs to authorized workspace
-	if key.WorkspaceID != principal.WorkspaceID {
+	key := db.ToKeyData(keyRow)
+
+	if key.Key.WorkspaceID != principal.WorkspaceID {
 		return fault.New("key not found",
 			fault.Code(codes.Data.Key.NotFound.URN()),
 			fault.Internal("key belongs to different workspace"),
@@ -107,7 +109,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				fault.Public("An internal error occurred."),
 			)
 		}
-		if !key.IdentityExternalID.Valid || key.IdentityExternalID.String != src.ExternalID {
+		if key.Identity == nil || key.Identity.ExternalID != src.ExternalID {
 			return fault.New("key not found",
 				fault.Code(codes.Data.Key.NotFound.URN()),
 				fault.Internal("key identity does not match portal session externalId"),
@@ -130,7 +132,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			Action:       rbac.DeleteKey,
 		}),
 		rbac.U(
-			urn.New().Workspace(principal.WorkspaceID).Keyspace(key.KeyAuthID).Key(req.KeyId),
+			urn.New().Workspace(principal.WorkspaceID).Keyspace(key.Key.KeyAuthID).Key(req.KeyId),
 			permissions.DeleteKey{},
 		),
 	))
@@ -166,15 +168,15 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				ActorID:       actor.ID,
 				ActorName:     actor.Name,
 				ActorMeta:     actor.Meta,
-				Display:       fmt.Sprintf("%s %s", description, key.ID),
+				Display:       fmt.Sprintf("%s %s", description, key.Key.ID),
 				RemoteIP:      s.Location(),
 				UserAgent:     s.UserAgent(),
 				CorrelationID: "",
 				Resources: []auditlog.AuditLogResource{
 					{
-						ID:          key.ID,
-						DisplayName: key.Name.String,
-						Name:        key.Name.String,
+						ID:          key.Key.ID,
+						DisplayName: key.Key.Name.String,
+						Name:        key.Key.Name.String,
 						Meta:        map[string]any{},
 						Type:        auditlog.KeyResourceType,
 					},
@@ -188,7 +190,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	h.KeyCache.Remove(ctx, key.Hash)
+	h.KeyCache.Remove(ctx, key.Key.Hash)
 
 	return s.JSON(http.StatusOK, Response{
 		Meta: openapi.Meta{
