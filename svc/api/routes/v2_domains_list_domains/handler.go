@@ -104,7 +104,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		Limit_2:       limit,
 		Limit_3:       limit,
 		Limit_4:       limit,
-		Limit_5:       limit,
 	})
 	if err != nil {
 		return fault.Wrap(
