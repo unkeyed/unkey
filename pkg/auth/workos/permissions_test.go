@@ -138,6 +138,16 @@ func TestTranslatePermissionsKnownMappings(t *testing.T) {
 			want: "unkey:v1:ws_123:projects/*/apps/*/environments/*/domains/*#verify_domain",
 		},
 		{
+			name: "gateway policies read",
+			in:   "gateway_policies:read",
+			want: "unkey:v1:ws_123:projects/*/apps/*/environments/*/gateway/policies/*#read_policy",
+		},
+		{
+			name: "gateway policies write",
+			in:   "gateway_policies:write",
+			want: "unkey:v1:ws_123:projects/*/apps/*/environments/*/gateway/policies/*#write_policy",
+		},
+		{
 			name: "admin",
 			in:   "admin:*",
 			want: "unkey:v1:ws_123:**#*",

@@ -40,7 +40,7 @@ func TestVerifyKey(t *testing.T) {
 		},
 		{
 			name: "with credits json",
-			args: `keys verify-key --key=sk_1234abcdef --credits-json={"cost":5}`,
+			args: `keys verify-key --key=sk_1234abcdef --credits='{"cost":5}'`,
 			want: openapi.V2KeysVerifyKeyRequestBody{
 				Key: "sk_1234abcdef",
 				Credits: &openapi.KeysVerifyKeyCredits{
@@ -50,7 +50,7 @@ func TestVerifyKey(t *testing.T) {
 		},
 		{
 			name: "with ratelimits json",
-			args: `keys verify-key --key=sk_1234abcdef --ratelimits-json=[{"name":"requests","limit":100,"duration":60000}]`,
+			args: `keys verify-key --key=sk_1234abcdef --ratelimits='[{"name":"requests","limit":100,"duration":60000}]'`,
 			want: openapi.V2KeysVerifyKeyRequestBody{
 				Key: "sk_1234abcdef",
 				Ratelimits: ptr.P([]openapi.KeysVerifyKeyRatelimit{

@@ -37,6 +37,7 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/deploybilling"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/deploy"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/deployment"
+	"github.com/unkeyed/unkey/svc/ctrl/worker/deployteardown"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/keylastusedsync"
 	vaulttestutil "github.com/unkeyed/unkey/svc/vault/testutil"
 )
@@ -285,6 +286,16 @@ func New(t *testing.T, opts ...Option) *Harness {
 		DB: database,
 	})
 
+	// CheckWorkspaceSpend sends Teardown/Resume to this service. Restate
+	// retries calls to unregistered services indefinitely, so it must be
+	// registered here or a dispatched check never completes.
+	teardownSvc, err := deployteardown.New(deployteardown.Config{
+		DB:                database,
+		DrainPollInterval: 200 * time.Millisecond,
+		DrainGraceTimeout: 2 * time.Second,
+	})
+	require.NoError(t, err)
+
 	// The build slot service audits slot occupancy against the Restate
 	// admin API, but the admin URL is only known after containers.Restate
 	// starts below, and that start needs the constructed services. The
@@ -310,6 +321,7 @@ func New(t *testing.T, opts ...Option) *Harness {
 		hydrav1.NewKeyLastUsedPartitionServiceServer(keyLastUsedPartitionSvc),
 		hydrav1.NewDeployServiceServer(deploySvc),
 		hydrav1.NewDeploymentServiceServer(deploymentSvc),
+		hydrav1.NewDeployTeardownServiceServer(teardownSvc),
 		hydrav1.NewBuildSlotServiceServer(buildSlotSvc),
 	)
 	buildSlotLiveness.set(restateadmin.New(restateadmin.Config{

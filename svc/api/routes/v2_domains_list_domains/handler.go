@@ -133,8 +133,15 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				RoutingVerified:   row.CnameVerified,
 				OwnershipVerified: row.OwnershipVerified,
 			}),
-			CreatedAt: row.CreatedAt,
-			UpdatedAt: nil,
+			DomainConnect: nil,
+			CreatedAt:     row.CreatedAt,
+			UpdatedAt:     nil,
+		}
+		if row.DomainConnectProvider.Valid && row.DomainConnectUrl.Valid {
+			d.DomainConnect = &openapi.DomainConnect{
+				Provider: row.DomainConnectProvider.String,
+				Url:      row.DomainConnectUrl.String,
+			}
 		}
 		if row.VerificationError.Valid && row.VerificationError.String != "" {
 			d.VerificationError = ptr.P(row.VerificationError.String)

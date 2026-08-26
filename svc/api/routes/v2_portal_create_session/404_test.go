@@ -19,6 +19,7 @@ func TestCreateSessionNotFoundNonExistentPortalId(t *testing.T) {
 		DB:            h.DB,
 		Auditlogs:     h.Auditlogs,
 		PortalBaseURL: "https://portal.unkey.com",
+		Clock:         h.Clock,
 	}
 	h.Register(route)
 
@@ -58,6 +59,7 @@ func TestCreateSessionNotFoundWrongWorkspace(t *testing.T) {
 		DB:            h.DB,
 		Auditlogs:     h.Auditlogs,
 		PortalBaseURL: "https://portal.unkey.com",
+		Clock:         h.Clock,
 	}
 	h.Register(route)
 

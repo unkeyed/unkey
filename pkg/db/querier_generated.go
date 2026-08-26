@@ -130,6 +130,15 @@ type Querier interface {
 	//  DELETE FROM permissions
 	//  WHERE id = ?
 	DeletePermission(ctx context.Context, db DBTX, permissionID string) error
+	// Deletes a portal, scoped to the workspace so one workspace can never delete
+	// another's. Returns the row count so a concurrent delete that already removed
+	// the row is reported as not-found rather than as a second success. Branding lives on the portal row, so there is no side table to
+	// clean up.
+	//
+	//  DELETE FROM portals
+	//  WHERE id = ?
+	//    AND workspace_id = ?
+	DeletePortal(ctx context.Context, db DBTX, arg DeletePortalParams) (int64, error)
 	//DeleteRoleByID
 	//
 	//  DELETE FROM roles
@@ -161,6 +170,7 @@ type Querier interface {
 	//      access_token_expires_at = ?
 	//  WHERE exchange_code_hash = ?
 	//    AND access_token_hash IS NULL
+	//    AND revoked_at IS NULL
 	//    AND exchange_code_expires_at > ?
 	ExchangePortalSessionCode(ctx context.Context, db DBTX, arg ExchangePortalSessionCodeParams) (sql.Result, error)
 	//FindApiByID
@@ -191,6 +201,20 @@ type Querier interface {
 	//  FROM apps
 	//  WHERE id = ?
 	FindAppById(ctx context.Context, db DBTX, id string) (App, error)
+	// Resolves an app by id within a workspace.
+	//
+	// app_find_by_id.sql has no workspace predicate, and the project-scoped finders
+	// need a project identifier that callers holding only an app id do not have.
+	// Anything validating that a caller owns the app it named must scope the lookup,
+	// so this exists as the scoped single-app read.
+	//
+	// Selects the id alone: every caller discards the row and keeps only whether it
+	// exists, so there is no reason to carry the rest of the columns.
+	//
+	//  SELECT id FROM apps
+	//  WHERE id = ?
+	//    AND workspace_id = ?
+	FindAppByIdAndWorkspace(ctx context.Context, db DBTX, arg FindAppByIdAndWorkspaceParams) (string, error)
 	//FindAppByProjectAndIdOrSlug
 	//
 	//  SELECT a.pk, a.id, a.workspace_id, a.project_id, a.name, a.slug, a.default_branch, a.current_deployment_id, a.is_rolled_back, a.delete_protection, a.created_at, a.updated_at
@@ -299,6 +323,8 @@ type Querier interface {
 	//      cd_by_id.cname_verified,
 	//      cd_by_id.target_cname,
 	//      cd_by_id.verification_error,
+	//      cd_by_id.domain_connect_provider,
+	//      cd_by_id.domain_connect_url,
 	//      cd_by_id.last_checked_at,
 	//      cd_by_id.created_at,
 	//      cd_by_id.updated_at
@@ -318,6 +344,8 @@ type Querier interface {
 	//      cd_by_name.cname_verified,
 	//      cd_by_name.target_cname,
 	//      cd_by_name.verification_error,
+	//      cd_by_name.domain_connect_provider,
+	//      cd_by_name.domain_connect_url,
 	//      cd_by_name.last_checked_at,
 	//      cd_by_name.created_at,
 	//      cd_by_name.updated_at
@@ -814,13 +842,24 @@ type Querier interface {
 	//  ORDER BY slug
 	//  FOR UPDATE
 	FindPermissionsBySlugsForUpdate(ctx context.Context, db DBTX, arg FindPermissionsBySlugsForUpdateParams) ([]FindPermissionsBySlugsForUpdateRow, error)
+	// Resolves the portal mapped to an app within a workspace. Callers that reach a
+	// portal through its app (rather than through an id or slug) use this.
+	//
+	// Workspace-scoped on purpose: `idx_app_id` is unique across the whole table, so
+	// an unscoped lookup would return another workspace's portal.
+	//
+	//  SELECT pk, id, workspace_id, slug, display_name, app_id, key_auth_id, enabled, logo_url, primary_color, created_at, updated_at FROM portals
+	//  WHERE app_id = ?
+	//    AND workspace_id = ?
+	//  LIMIT 1
+	FindPortalByApp(ctx context.Context, db DBTX, arg FindPortalByAppParams) (Portal, error)
 	// Resolves a portal within a workspace by either its id or its slug, matching
 	// how projects/apps/environments accept a ResourceIdentifier.
 	//
 	// UNION ALL of two index seeks instead of `id = ? OR slug = ?`, which would
 	// force a scan: `portals_id_unique` and `idx_workspace_slug` each serve one arm.
 	//
-	//  SELECT p.pk, p.id, p.workspace_id, p.slug, p.app_id, p.key_auth_id, p.enabled, p.logo_url, p.primary_color, p.created_at, p.updated_at
+	//  SELECT p.pk, p.id, p.workspace_id, p.slug, p.display_name, p.app_id, p.key_auth_id, p.enabled, p.logo_url, p.primary_color, p.created_at, p.updated_at
 	//  FROM portals p
 	//  JOIN (
 	//      SELECT p1.id
@@ -833,6 +872,34 @@ type Querier interface {
 	//  ) AS portal_lookup ON portal_lookup.id = p.id
 	//  LIMIT 1
 	FindPortalByIdOrSlug(ctx context.Context, db DBTX, arg FindPortalByIdOrSlugParams) (Portal, error)
+	// Resolves the portal mapped to a keyspace within a workspace. See
+	// portal_find_by_app.sql for why this is workspace-scoped.
+	//
+	//  SELECT pk, id, workspace_id, slug, display_name, app_id, key_auth_id, enabled, logo_url, primary_color, created_at, updated_at FROM portals
+	//  WHERE key_auth_id = ?
+	//    AND workspace_id = ?
+	//  LIMIT 1
+	FindPortalByKeyspace(ctx context.Context, db DBTX, arg FindPortalByKeyspaceParams) (Portal, error)
+	// Reports whether any portal already claims this app, across every workspace.
+	//
+	// Deliberately unscoped, unlike portal_find_by_app.sql: `idx_app_id` is unique
+	// table-wide, so a create or update can collide with a portal the caller cannot
+	// see. This answers "is the association free" for the conflict pre-check. It
+	// returns only the id -- never the owning workspace -- so the caller cannot use
+	// a conflict to probe another tenant.
+	//
+	//  SELECT id FROM portals
+	//  WHERE app_id = ?
+	//  LIMIT 1
+	FindPortalIdByAppAnyWorkspace(ctx context.Context, db DBTX, appID sql.NullString) (string, error)
+	// Reports whether any portal already claims this keyspace, across every
+	// workspace. See portal_find_id_by_app_any_workspace.sql for why this is
+	// unscoped and why it returns only the id.
+	//
+	//  SELECT id FROM portals
+	//  WHERE key_auth_id = ?
+	//  LIMIT 1
+	FindPortalIdByKeyspaceAnyWorkspace(ctx context.Context, db DBTX, keyAuthID sql.NullString) (string, error)
 	// Resolves an access token to its session, one indexed read against the UNIQUE
 	// `idx_access_token_hash`.
 	//
@@ -1165,9 +1232,13 @@ type Querier interface {
 	//      cname_verified,
 	//      target_cname,
 	//      verification_error,
+	//      domain_connect_provider,
+	//      domain_connect_url,
 	//      last_checked_at,
 	//      created_at
 	//  ) VALUES (
+	//      ?,
+	//      ?,
 	//      ?,
 	//      ?,
 	//      ?,
@@ -1591,6 +1662,7 @@ type Querier interface {
 	//      id,
 	//      workspace_id,
 	//      slug,
+	//      display_name,
 	//      app_id,
 	//      key_auth_id,
 	//      enabled,
@@ -1599,6 +1671,7 @@ type Querier interface {
 	//      created_at,
 	//      updated_at
 	//  ) VALUES (
+	//      ?,
 	//      ?,
 	//      ?,
 	//      ?,
@@ -1849,6 +1922,8 @@ type Querier interface {
 	//      cname_verified,
 	//      target_cname,
 	//      verification_error,
+	//      domain_connect_provider,
+	//      domain_connect_url,
 	//      last_checked_at,
 	//      created_at,
 	//      updated_at
@@ -2427,6 +2502,20 @@ type Querier interface {
 	//      AND (e.id = ? OR e.slug = ?)
 	//  LIMIT 1
 	ResolveDeploymentScope(ctx context.Context, db DBTX, arg ResolveDeploymentScopeParams) (ResolveDeploymentScopeRow, error)
+	// Revokes every live session belonging to a portal, scoped to the workspace.
+	//
+	// A session's keyspace scope is frozen in `scopes` at mint time and the session
+	// resolver never reads `portals`, so deleting a portal or re-pointing its
+	// association would otherwise leave end users authenticated against stale scope
+	// until their access token expired. Returns the row count so the caller can
+	// record how many sessions were revoked.
+	//
+	//  UPDATE portal_sessions
+	//  SET revoked_at = ?
+	//  WHERE portal_id = ?
+	//    AND workspace_id = ?
+	//    AND revoked_at IS NULL
+	RevokePortalSessionsByPortal(ctx context.Context, db DBTX, arg RevokePortalSessionsByPortalParams) (int64, error)
 	//SoftDeleteApi
 	//
 	//  UPDATE apis
@@ -2678,18 +2767,58 @@ type Querier interface {
 	//
 	//  UPDATE `key_auth` SET store_encrypted_keys = ? WHERE id = ?
 	UpdateKeySpaceKeyEncryption(ctx context.Context, db DBTX, arg UpdateKeySpaceKeyEncryptionParams) error
-	// Branding lives on the portal row, so the dashboard's branding form is one
-	// write against an existing portal rather than an upsert into a side table.
-	// Discrete columns rather than a JSON blob, so each field is typed and length
-	// bounded by the database.
+	// Updates a portal's mutable fields, scoped to the workspace so one workspace can
+	// never mutate another's portal.
 	//
-	//  UPDATE portals
-	//  SET logo_url = ?,
-	//      primary_color = ?,
+	// A scoped UPDATE rather than an upsert: `portals` carries four unique keys (id,
+	// workspace_id+slug, app_id, key_auth_id). ON DUPLICATE KEY UPDATE across several
+	// unique indexes has undefined row selection and could silently rewrite a
+	// different row, so a slug or association collision must surface as a
+	// unique-constraint error the handler maps to a conflict instead.
+	//
+	// Returns the row count so the caller can tell a real update from one that
+	// matched nothing: the resolve takes no row lock, so a concurrent delete can
+	// remove the row between resolving it and this statement.
+	//
+	// Each field carries a `_specified` flag so an omitted field keeps its stored
+	// value. `slug`, `display_name` and `enabled` are NOT NULL and take sqlc.arg; the two
+	// associations and the two branding columns are nullable and take sqlc.narg, so
+	// an explicit null clears them.
+	//
+	//  UPDATE portals p
+	//  SET
+	//      slug = CASE
+	//          WHEN CAST(? AS UNSIGNED) = 1 THEN ?
+	//          ELSE p.slug
+	//      END,
+	//      display_name = CASE
+	//          WHEN CAST(? AS UNSIGNED) = 1 THEN ?
+	//          ELSE p.display_name
+	//      END,
+	//      app_id = CASE
+	//          WHEN CAST(? AS UNSIGNED) = 1 THEN ?
+	//          ELSE p.app_id
+	//      END,
+	//      key_auth_id = CASE
+	//          WHEN CAST(? AS UNSIGNED) = 1 THEN ?
+	//          ELSE p.key_auth_id
+	//      END,
+	//      enabled = CASE
+	//          WHEN CAST(? AS UNSIGNED) = 1 THEN ?
+	//          ELSE p.enabled
+	//      END,
+	//      logo_url = CASE
+	//          WHEN CAST(? AS UNSIGNED) = 1 THEN ?
+	//          ELSE p.logo_url
+	//      END,
+	//      primary_color = CASE
+	//          WHEN CAST(? AS UNSIGNED) = 1 THEN ?
+	//          ELSE p.primary_color
+	//      END,
 	//      updated_at = ?
-	//  WHERE id = ?
-	//    AND workspace_id = ?
-	UpdatePortalBranding(ctx context.Context, db DBTX, arg UpdatePortalBrandingParams) error
+	//  WHERE workspace_id = ?
+	//    AND id = ?
+	UpdatePortal(ctx context.Context, db DBTX, arg UpdatePortalParams) (int64, error)
 	//UpdateProject
 	//
 	//  UPDATE projects p

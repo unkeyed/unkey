@@ -130,6 +130,20 @@ var permissionMappings = map[string]permissionMapping{
 			{resource: "projects/*/apps/*/environments/*", action: action(rbacpermissions.UpdateEnvironment{})},
 		},
 	},
+	"gateway_policies:read": {
+		name:        "Read gateway policies",
+		description: "Allows reading an environment's gateway policies.",
+		permissions: []permissionGrant{
+			{resource: "projects/*/apps/*/environments/*/gateway/policies/*", action: action(rbacpermissions.ReadPolicy{})},
+		},
+	},
+	"gateway_policies:write": {
+		name:        "Write gateway policies",
+		description: "Allows creating, updating, and deleting an environment's gateway policies.",
+		permissions: []permissionGrant{
+			{resource: "projects/*/apps/*/environments/*/gateway/policies/*", action: action(rbacpermissions.WritePolicy{})},
+		},
+	},
 	"environment_variables:read": {
 		name:        "Read environment variables",
 		description: "Allows reading environment variables, including recoverable values.",
