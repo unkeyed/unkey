@@ -1,0 +1,69 @@
+import { and, db, eq, schema } from "@/lib/db";
+import { TRPCError } from "@trpc/server";
+import { z } from "zod";
+import { workspaceProcedure } from "../../trpc";
+import { decodeLogdrainConfig, decryptHttpHeaders } from "./config";
+
+export const getLogdrain = workspaceProcedure
+  .input(z.object({ id: z.string().min(1) }))
+  .query(async ({ ctx, input }) => {
+    try {
+      const [row] = await db
+        .select({
+          id: schema.logdrains.id,
+          name: schema.logdrains.name,
+          config: schema.logdrains.config,
+          enabled: schema.logdrains.enabled,
+          stateStatus: schema.logdrainState.status,
+        })
+        .from(schema.logdrains)
+        .innerJoin(schema.logdrainState, eq(schema.logdrainState.logdrainId, schema.logdrains.id))
+        .where(
+          and(
+            eq(schema.logdrains.id, input.id),
+            eq(schema.logdrains.workspaceId, ctx.workspace.id),
+          ),
+        );
+      if (!row) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Log drain not found" });
+      }
+
+      const destination = decodeLogdrainConfig(row.config);
+      const status: "enabled" | "disabled" | "paused_by_failure" = row.enabled
+        ? row.stateStatus === "paused_by_failure"
+          ? "paused_by_failure"
+          : "enabled"
+        : "disabled";
+      switch (destination.kind) {
+        case "http":
+          return {
+            id: row.id,
+            name: row.name,
+            kind: destination.kind,
+            status,
+            config: {
+              url: destination.url,
+              format: destination.format,
+              headers: await decryptHttpHeaders(ctx.workspace.id, destination.headers),
+            },
+          };
+        case "axiom":
+          return {
+            id: row.id,
+            name: row.name,
+            kind: destination.kind,
+            status,
+            config: {
+              dataset: destination.dataset,
+              ...(destination.url ? { url: destination.url } : {}),
+            },
+          };
+      }
+    } catch (error) {
+      if (error instanceof TRPCError) {
+        throw error;
+      }
+      console.error("Failed to get log drain", error);
+      throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Failed to get log drain" });
+    }
+  });

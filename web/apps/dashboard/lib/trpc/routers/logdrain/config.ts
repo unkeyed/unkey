@@ -1,0 +1,134 @@
+import { ConfigSchema, HttpBodyFormat } from "@/gen/proto/logdrain/v1/config_pb";
+import { VaultService } from "@/gen/proto/vault/v1/service_pb";
+import { createVaultClient } from "@/lib/vault-client";
+import { create, fromBinary, toBinary } from "@bufbuild/protobuf";
+
+/** EncryptedHttpHeader stores one HTTP header name and its Vault ciphertext. */
+export type EncryptedHttpHeader = {
+  name: string;
+  encryptedValue: string;
+};
+
+/** LogdrainConfig is the typed dashboard representation of the stored provider config. */
+export type LogdrainConfig =
+  | {
+      kind: "http";
+      url: string;
+      format: "json" | "ndjson";
+      headers: EncryptedHttpHeader[];
+    }
+  | {
+      kind: "axiom";
+      dataset: string;
+      url: string;
+      encryptedToken: string;
+    };
+
+/** encodeLogdrainConfig encodes the complete provider configuration as protobuf. */
+export function encodeLogdrainConfig(config: LogdrainConfig): Buffer {
+  const destination =
+    config.kind === "http"
+      ? {
+          case: config.kind,
+          value: {
+            url: config.url,
+            format: config.format === "ndjson" ? HttpBodyFormat.NDJSON : HttpBodyFormat.JSON,
+            headers: config.headers,
+          },
+        }
+      : {
+          case: config.kind,
+          value: {
+            dataset: config.dataset,
+            url: config.url,
+            encryptedToken: config.encryptedToken,
+          },
+        };
+
+  return Buffer.from(toBinary(ConfigSchema, create(ConfigSchema, { destination })));
+}
+
+/** decodeLogdrainConfig decodes a stored provider configuration. */
+export function decodeLogdrainConfig(raw: Uint8Array): LogdrainConfig {
+  const { destination } = fromBinary(ConfigSchema, raw);
+  switch (destination.case) {
+    case "http":
+      return {
+        kind: destination.case,
+        url: destination.value.url,
+        format: decodeHttpFormat(destination.value.format),
+        headers: destination.value.headers.map(({ name, encryptedValue }) => ({
+          name,
+          encryptedValue,
+        })),
+      };
+    case "axiom":
+      return {
+        kind: destination.case,
+        dataset: destination.value.dataset,
+        url: destination.value.url,
+        encryptedToken: destination.value.encryptedToken,
+      };
+    case undefined:
+      throw new Error("Log drain provider is not set");
+  }
+}
+
+/** encryptHttpHeaders encrypts each value and sorts headers by name. */
+export async function encryptHttpHeaders(
+  workspaceId: string,
+  headers: Record<string, string>,
+): Promise<EncryptedHttpHeader[]> {
+  const entries = Object.entries(headers).sort(([left], [right]) =>
+    left < right ? -1 : left > right ? 1 : 0,
+  );
+  if (entries.length === 0) {
+    return [];
+  }
+  const response = await createVaultClient(VaultService).encryptBulk({
+    keyring: workspaceId,
+    items: Object.fromEntries(entries.map(([, value], index) => [index.toString(), value])),
+  });
+  return entries.map(([name], index) => {
+    const item = response.items[index.toString()];
+    if (!item?.encrypted) {
+      throw new Error(`Vault did not encrypt HTTP header ${name}`);
+    }
+    return { name, encryptedValue: item.encrypted };
+  });
+}
+
+/** decryptHttpHeaders decrypts values after the caller authorizes access to the log drain. */
+export async function decryptHttpHeaders(
+  workspaceId: string,
+  headers: EncryptedHttpHeader[],
+): Promise<Array<{ name: string; value: string }>> {
+  if (headers.length === 0) {
+    return [];
+  }
+  const response = await createVaultClient(VaultService).decryptBulk({
+    keyring: workspaceId,
+    items: Object.fromEntries(
+      headers.map((header, index) => [index.toString(), header.encryptedValue]),
+    ),
+  });
+  return headers.map((header, index) => {
+    const value = response.items[index.toString()];
+    if (value === undefined) {
+      throw new Error(`Vault did not decrypt HTTP header ${header.name}`);
+    }
+    return { name: header.name, value };
+  });
+}
+
+function decodeHttpFormat(format: HttpBodyFormat): "json" | "ndjson" {
+  switch (format) {
+    case HttpBodyFormat.UNSPECIFIED:
+    case HttpBodyFormat.JSON:
+      return "json";
+    case HttpBodyFormat.NDJSON:
+      return "ndjson";
+    default:
+      throw new Error(`Unknown HTTP body format ${format}`);
+  }
+}
