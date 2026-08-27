@@ -42,7 +42,7 @@ func (s *Service) GetDesiredDeploymentState(ctx context.Context, req *connect.Re
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 
-	state, err := deploymentRowToState(deploymentRowFromPointLookup(row), 0)
+	state, err := deploymentRowToState(row, 0)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}

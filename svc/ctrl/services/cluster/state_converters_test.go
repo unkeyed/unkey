@@ -9,24 +9,24 @@ import (
 )
 
 func TestDeploymentRowToState_Running(t *testing.T) {
-	row := deploymentRow{
-		desiredStatus:          db.DeploymentTopologyDesiredStatusRunning,
-		autoscalingReplicasMin: 1,
-		autoscalingReplicasMax: 3,
-		deploymentID:           "deploy_123",
-		k8sName:                "my-app",
-		workspaceID:            "ws_1",
-		projectID:              "prj_1",
-		environmentID:          "env_1",
-		appID:                  "app_1",
-		image:                  sql.NullString{Valid: true, String: "registry.io/app:v1"},
-		cpuMillicores:          250,
-		memoryMiB:              256,
-		port:                   8080,
-		shutdownSignal:         db.DeploymentsShutdownSignalSIGTERM,
-		k8sNamespace:           sql.NullString{Valid: true, String: "ws-namespace"},
-		environmentSlug:        "production",
-		regionName:             "us-east-1",
+	row := db.FindDeploymentTopologyByDeploymentAndRegionRow{
+		DesiredStatus:          db.DeploymentTopologyDesiredStatusRunning,
+		AutoscalingReplicasMin: 1,
+		AutoscalingReplicasMax: 3,
+		ID:                     "deploy_123",
+		K8sName:                "my-app",
+		WorkspaceID:            "ws_1",
+		ProjectID:              "prj_1",
+		EnvironmentID:          "env_1",
+		AppID:                  "app_1",
+		Image:                  sql.NullString{Valid: true, String: "registry.io/app:v1"},
+		CpuMillicores:          250,
+		MemoryMib:              256,
+		Port:                   8080,
+		ShutdownSignal:         db.DeploymentsShutdownSignalSIGTERM,
+		K8sNamespace:           sql.NullString{Valid: true, String: "ws-namespace"},
+		EnvironmentSlug:        "production",
+		RegionName:             "us-east-1",
 	}
 
 	state, err := deploymentRowToState(row, 42)
@@ -46,10 +46,10 @@ func TestDeploymentRowToState_Running(t *testing.T) {
 }
 
 func TestDeploymentRowToState_Stopped(t *testing.T) {
-	row := deploymentRow{
-		desiredStatus: db.DeploymentTopologyDesiredStatusStopped,
-		k8sName:       "my-app",
-		k8sNamespace:  sql.NullString{Valid: true, String: "ws-namespace"},
+	row := db.FindDeploymentTopologyByDeploymentAndRegionRow{
+		DesiredStatus: db.DeploymentTopologyDesiredStatusStopped,
+		K8sName:       "my-app",
+		K8sNamespace:  sql.NullString{Valid: true, String: "ws-namespace"},
 	}
 
 	state, err := deploymentRowToState(row, 7)
