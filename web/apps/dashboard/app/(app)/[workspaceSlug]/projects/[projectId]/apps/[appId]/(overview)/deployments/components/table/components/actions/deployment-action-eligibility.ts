@@ -1,10 +1,11 @@
 import type { DeploymentStatus } from "@/lib/collections/deploy/deployment-status";
+import type { EnvironmentKind } from "@/lib/collections/deploy/environments";
 
 type DeploymentActionContext = {
   selectedDeployment: { id: string; status: DeploymentStatus };
   currentDeploymentId: string | null;
   isRolledBack: boolean;
-  environmentKind: "production" | "preview" | null;
+  environmentKind: EnvironmentKind | null;
 };
 
 type DeploymentActionEligibility = {
