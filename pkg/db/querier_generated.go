@@ -178,9 +178,9 @@ type Querier interface {
 	//  SELECT pk, id, name, workspace_id, project_id, ip_whitelist, auth_type, key_auth_id, created_at_m, updated_at_m, deleted_at_m, delete_protection FROM apis WHERE id = ?
 	FindApiByID(ctx context.Context, db DBTX, id string) (Api, error)
 	// Maps keyspace ids back to the api that owns them, scoped to a workspace.
-	// apis.key_auth_id is unique, so each keyspace resolves to at most one api.
+	// apis.key_auth_id is unique, so each keyspace resolves to at most one api and project.
 	//
-	//  SELECT ka.id as key_auth_id, a.id as api_id
+	//  SELECT ka.id as key_auth_id, ka.project_id, a.id as api_id
 	//  FROM apis a
 	//  JOIN key_auth as ka ON ka.id = a.key_auth_id
 	//  WHERE a.workspace_id = ?
@@ -498,9 +498,9 @@ type Querier interface {
 	//      AND a.deleted_at_m IS NULL
 	FindKeyAuthsByIds(ctx context.Context, db DBTX, arg FindKeyAuthsByIdsParams) ([]FindKeyAuthsByIdsRow, error)
 	// Returns the subset of the given keyspace ids that exist in this workspace
-	// and are not soft-deleted, along with each keyspace's encryption setting.
+	// and are not soft-deleted, along with each keyspace's project and encryption setting.
 	//
-	//  SELECT id, store_encrypted_keys FROM key_auth
+	//  SELECT id, project_id, store_encrypted_keys FROM key_auth
 	//  WHERE workspace_id = ?
 	//    AND id IN (/*SLICE:key_auth_ids*/?)
 	//    AND deleted_at_m IS NULL
@@ -2049,6 +2049,7 @@ type Querier interface {
 	//      i.id,
 	//      i.external_id,
 	//      i.workspace_id,
+	//      i.project_id,
 	//      i.environment,
 	//      i.meta,
 	//      i.deleted,
@@ -2451,9 +2452,10 @@ type Querier interface {
 	//  WHERE id = ?
 	//  FOR UPDATE
 	LockKeyForUpdate(ctx context.Context, db DBTX, id string) (string, error)
-	//LockRoleByIDAndWorkspaceID
+	// LockRoleByIDAndWorkspaceID serializes role permission changes. It returns
+	// the project ID so authorization can use the role's project-scoped URN.
 	//
-	//  SELECT id, name
+	//  SELECT id, project_id, name
 	//  FROM roles
 	//  WHERE id = ? AND workspace_id = ?
 	//  FOR UPDATE

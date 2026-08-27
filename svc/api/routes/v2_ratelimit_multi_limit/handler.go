@@ -375,6 +375,7 @@ func (h *Handler) createNamespaces(ctx context.Context, s *zen.Session, principa
 				result[name] = db.FindRatelimitNamespace{
 					ID:                id,
 					WorkspaceID:       principal.WorkspaceID,
+					ProjectID:         projectID,
 					Name:              name,
 					CreatedAtM:        now,
 					UpdatedAtM:        sql.NullInt64{Valid: false, Int64: 0},
