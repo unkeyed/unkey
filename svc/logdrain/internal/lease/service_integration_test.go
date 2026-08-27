@@ -46,8 +46,8 @@ func TestService_LeaseOwnership(t *testing.T) {
 	`, drainID, workspaceID, config, nodeTimeMillis)
 	require.NoError(t, err)
 	_, err = database.Conn().ExecContext(ctx, `
-		INSERT INTO logdrain_state (logdrain_id, lease_expires_at)
-		VALUES (?, 0)
+		INSERT INTO logdrain_state (logdrain_id, lease_id, fencing_token, lease_expires_at)
+		VALUES (?, '', '', 0)
 	`, drainID)
 	require.NoError(t, err)
 	t.Cleanup(func() {

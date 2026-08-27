@@ -507,7 +507,7 @@ func seedDrainKind(t *testing.T, database *sql.DB, workspaceID, drainID, kind st
 	createdAt := time.Now().UnixMilli()
 	_, err = database.Exec("INSERT INTO logdrains (id, workspace_id, name, stream, config, enabled, created_at) VALUES (?, ?, ?, 'audit_logs', ?, true, ?)", drainID, workspaceID, "integration test", encoded, createdAt)
 	require.NoError(t, err)
-	_, err = database.Exec("INSERT INTO logdrain_state (logdrain_id, committed_offset_inserted_at, lease_expires_at) VALUES (?, ?, 0)", drainID, offset)
+	_, err = database.Exec("INSERT INTO logdrain_state (logdrain_id, committed_offset_inserted_at, lease_id, fencing_token, lease_expires_at) VALUES (?, ?, '', '', 0)", drainID, offset)
 	require.NoError(t, err)
 }
 

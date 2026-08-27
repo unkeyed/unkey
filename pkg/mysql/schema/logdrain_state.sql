@@ -6,8 +6,8 @@ CREATE TABLE `logdrain_state` (
 	`committed_offset_inserted_at` bigint NOT NULL DEFAULT 0,
 	`committed_offset_event_id` varchar(255) COLLATE utf8mb4_0900_bin NOT NULL DEFAULT '',
 	`next_attempt_at` bigint NOT NULL DEFAULT 0,
-	`lease_id` varchar(48) COLLATE utf8mb4_0900_as_cs NOT NULL DEFAULT '',
-	`fencing_token` varchar(64) COLLATE utf8mb4_0900_as_cs NOT NULL DEFAULT '',
+	`lease_id` varchar(48) COLLATE utf8mb4_0900_as_cs NOT NULL,
+	`fencing_token` varchar(64) COLLATE utf8mb4_0900_as_cs NOT NULL,
 	`lease_expires_at` bigint NOT NULL DEFAULT 0,
 	CONSTRAINT `logdrain_state_pk` PRIMARY KEY(`pk`),
 	CONSTRAINT `logdrain_state_logdrain_id_unique` UNIQUE(`logdrain_id`)
