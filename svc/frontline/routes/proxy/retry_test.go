@@ -19,11 +19,14 @@ import (
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/frontline/internal/db"
 	"github.com/unkeyed/unkey/svc/frontline/internal/errorpage"
+	"github.com/unkeyed/unkey/svc/frontline/internal/meta"
 	"github.com/unkeyed/unkey/svc/frontline/internal/proxy"
 	"github.com/unkeyed/unkey/svc/frontline/internal/router"
 	"github.com/unkeyed/unkey/svc/frontline/middleware"
 	handler "github.com/unkeyed/unkey/svc/frontline/routes/proxy"
 )
+
+const testMetadataSigningKey = "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
 
 // TestRetry_DialFailureAdvancesToNextInstance proves that a dial-phase
 // failure on the first candidate instance causes the handler to advance
@@ -125,6 +128,96 @@ func TestRetry_AllLocalDeadFallsThroughToRegion(t *testing.T) {
 
 	require.Equal(t, []string{"a", "b"}, stub.instanceCalls(), "handler must try every local instance before falling through")
 	require.Equal(t, "us-west-2.aws", stub.regionTarget(), "ForwardToRegion called with the standby address")
+}
+
+// TestMetadata_InvalidHeaderDoesNotBlockLocalRequest guarantees that a client
+// cannot make an otherwise valid local request fail by setting reserved peer
+// metadata. Frontline must remove the header before it reaches the instance.
+func TestMetadata_InvalidHeaderDoesNotBlockLocalRequest(t *testing.T) {
+	t.Parallel()
+
+	instanceMetadata := make(chan []string, 1)
+	instanceAddr, stopInstance := startBackend(t, func(w http.ResponseWriter, req *http.Request) {
+		instanceMetadata <- req.Header.Values(proxy.HeaderFrontlineMeta)
+		_, _ = io.WriteString(w, "served-locally")
+	})
+	t.Cleanup(stopInstance)
+
+	frontlineAddr, stopFrontline := startFrontlineWith(t, localDecision(instanceAddr), nil)
+	t.Cleanup(stopFrontline)
+
+	resp := mustGetWithMetadata(t, frontlineAddr, "client-controlled-value")
+	defer func() { _ = resp.Body.Close() }()
+
+	require.Equal(t, http.StatusOK, resp.StatusCode)
+	body, err := io.ReadAll(resp.Body)
+	require.NoError(t, err)
+	require.Equal(t, "served-locally", string(body))
+	require.Empty(t, <-instanceMetadata)
+}
+
+// TestMetadata_InvalidHeaderDoesNotBlockRegionalRequest guarantees that a
+// client cannot make an otherwise valid regional request fail by setting
+// reserved peer metadata.
+func TestMetadata_InvalidHeaderDoesNotBlockRegionalRequest(t *testing.T) {
+	t.Parallel()
+
+	stub := &recordingProxy{regionBody: "served-by-peer-region"}
+	//nolint:exhaustruct
+	decision := router.RouteDecision{
+		Destination:         router.DestinationRemoteRegion,
+		RemoteRegionAddress: "us-west-2.aws",
+	}
+	frontlineAddr, stop := startFrontlineWith(t, decision, stub)
+	t.Cleanup(stop)
+
+	resp := mustGetWithMetadata(t, frontlineAddr, "client-controlled-value")
+	defer func() { _ = resp.Body.Close() }()
+
+	require.Equal(t, http.StatusOK, resp.StatusCode)
+	body, err := io.ReadAll(resp.Body)
+	require.NoError(t, err)
+	require.Equal(t, "served-by-peer-region", string(body))
+	require.Equal(t, "us-west-2.aws", stub.regionTarget())
+}
+
+// TestReservedTrailersDoNotReachLocalInstance guarantees client-controlled
+// Frontline trailers cannot cross the proxy boundary after the body is read.
+func TestReservedTrailersDoNotReachLocalInstance(t *testing.T) {
+	t.Parallel()
+
+	instanceTrailers := make(chan http.Header, 1)
+	instanceAddr, stopInstance := startBackend(t, func(w http.ResponseWriter, req *http.Request) {
+		_, readErr := io.Copy(io.Discard, req.Body)
+		instanceTrailers <- req.Trailer.Clone()
+		if readErr != nil {
+			http.Error(w, readErr.Error(), http.StatusBadRequest)
+			return
+		}
+		_, _ = io.WriteString(w, "served-locally")
+	})
+	t.Cleanup(stopInstance)
+
+	frontlineAddr, stopFrontline := startFrontlineWith(t, localDecision(instanceAddr), nil)
+	t.Cleanup(stopFrontline)
+
+	req, err := http.NewRequest(http.MethodPost, "http://"+frontlineAddr+"/foo", strings.NewReader("request-body"))
+	require.NoError(t, err)
+	req.Host = "retry-test.example.com"
+	req.Trailer = http.Header{
+		proxy.HeaderFrontlineMeta: []string{"spoofed"},
+		proxy.HeaderRegion:        []string{"spoofed"},
+		"X-Unkey-Custom":          []string{"spoofed"},
+	}
+	resp, err := http.DefaultClient.Do(req)
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = resp.Body.Close() })
+
+	require.Equal(t, http.StatusOK, resp.StatusCode)
+	trailers := <-instanceTrailers
+	require.Empty(t, trailers.Values(proxy.HeaderFrontlineMeta))
+	require.Empty(t, trailers.Values(proxy.HeaderRegion))
+	require.Empty(t, trailers.Values("X-Unkey-Custom"))
 }
 
 // TestRetry_AllLocalDeadNoStandbyReturnsError proves that exhausting
@@ -253,7 +346,7 @@ func startMidStreamCloseBackend(t *testing.T) (string, func()) {
 
 // localDecision builds a RouteDecision pointing at the given addresses,
 // in order, as local instances. The deployment metadata is fixed —
-// individual tests override the RemoteRegionAddress field as needed.
+// individual tests override RemoteRegionAddress as needed.
 func localDecision(addrs ...string) router.RouteDecision {
 	instances := make([]db.FindInstancesByDeploymentIDRow, len(addrs))
 	for i, addr := range addrs {
@@ -286,6 +379,9 @@ func startFrontlineWith(t *testing.T, decision router.RouteDecision, proxySvc pr
 
 func startFrontlineWithH2CIngress(t *testing.T, decision router.RouteDecision, proxySvc proxy.Service, enableH2CIngress bool) (string, func()) {
 	t.Helper()
+	clk := clock.New()
+	metadata, err := meta.New(testMetadataSigningKey)
+	require.NoError(t, err)
 
 	if proxySvc == nil {
 		//nolint:exhaustruct
@@ -294,8 +390,9 @@ func startFrontlineWithH2CIngress(t *testing.T, decision router.RouteDecision, p
 			Platform:           "test",
 			Region:             "test",
 			ApexDomain:         "test.local",
-			Clock:              clock.New(),
+			Clock:              clk,
 			MaxHops:            3,
+			Metadata:           metadata,
 			UpstreamTransports: proxy.NewTransportRegistry(),
 		})
 		require.NoError(t, err)
@@ -306,7 +403,8 @@ func startFrontlineWithH2CIngress(t *testing.T, decision router.RouteDecision, p
 		RouterService: &stubRouter{decision: decision},
 		ProxyService:  proxySvc,
 		Engine:        nil,
-		Clock:         clock.New(),
+		Clock:         clk,
+		Metadata:      metadata,
 	}
 
 	//nolint:exhaustruct
@@ -356,6 +454,17 @@ func mustGet(t *testing.T, addr string) *http.Response {
 	return resp
 }
 
+func mustGetWithMetadata(t *testing.T, addr, metadata string) *http.Response {
+	t.Helper()
+	req, err := http.NewRequest(http.MethodGet, "http://"+addr+"/foo", nil)
+	require.NoError(t, err)
+	req.Host = "retry-test.example.com"
+	req.Header.Set(proxy.HeaderFrontlineMeta, metadata)
+	resp, err := http.DefaultClient.Do(req)
+	require.NoError(t, err)
+	return resp
+}
+
 // recordingProxy is a proxy.Service stub that records which instances
 // were attempted and which region target ForwardToRegion saw. Used by
 // the region-fallback test to avoid standing up TLS for the peer hop.
@@ -399,7 +508,7 @@ func (r *recordingProxy) ForwardToInstance(_ context.Context, _ *zen.Session, _ 
 	return r.instanceErr
 }
 
-func (r *recordingProxy) ForwardToRegion(_ context.Context, sess *zen.Session, target string) error {
+func (r *recordingProxy) ForwardToRegion(_ context.Context, sess *zen.Session, target string, _ []meta.Hop) error {
 	r.mu.Lock()
 	r.regionTo = target
 	r.mu.Unlock()

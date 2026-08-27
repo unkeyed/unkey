@@ -62,6 +62,9 @@ const (
 	AuditLogBucketCreateEvent AuditLogEvent = "auditLogBucket.create"
 
 	// Portal events
+	PortalCreateEvent          AuditLogEvent = "portal.create"
+	PortalUpdateEvent          AuditLogEvent = "portal.update"
+	PortalDeleteEvent          AuditLogEvent = "portal.delete"
 	PortalSessionCreateEvent   AuditLogEvent = "portal.session.create"
 	PortalSessionExchangeEvent AuditLogEvent = "portal.session.exchange"
 

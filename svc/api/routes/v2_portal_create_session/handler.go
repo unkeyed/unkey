@@ -14,6 +14,7 @@ import (
 	portalservice "github.com/unkeyed/unkey/internal/services/portal"
 	"github.com/unkeyed/unkey/pkg/auditlog"
 	authprincipal "github.com/unkeyed/unkey/pkg/auth/principal"
+	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
@@ -23,6 +24,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/zen"
 	apierrors "github.com/unkeyed/unkey/svc/api/internal/errors"
 	"github.com/unkeyed/unkey/svc/api/internal/policyconfig"
+	portalrules "github.com/unkeyed/unkey/svc/api/internal/portal"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	// The key requirements below are owned by the operator routes that
 	// enforce them, so this route borrows them rather than restating them.
@@ -40,6 +42,7 @@ type Handler struct {
 	DB            db.Database
 	Auditlogs     auditlogs.AuditLogService
 	PortalBaseURL string
+	Clock         clock.Clock
 }
 
 func (h *Handler) Method() string { return "POST" }
@@ -242,7 +245,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 	}
 
-	now := time.Now()
+	now := h.Clock.Now()
 	sessionID := uid.New(uid.PortalSessionPrefix)
 
 	// The exchange code is a bearer credential: it is returned to the caller
@@ -276,10 +279,46 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	// return URL simply shows no return link.
 	returnURL := sql.NullString{Valid: false, String: ""}
 	if req.ReturnUrl != nil && *req.ReturnUrl != "" {
+		// Validated here rather than trusted from the spec. The field carries
+		// `format: uri`, which accepts `javascript:...` and is not asserted by the
+		// request validator anyway, and the portal renders this value as an anchor
+		// href -- so an unchecked scheme executes in the end user's browser, with
+		// the portal's origin.
+		if err = portalrules.ValidateReturnURL(*req.ReturnUrl); err != nil {
+			return err
+		}
 		returnURL = sql.NullString{Valid: true, String: *req.ReturnUrl}
 	}
 
 	err = db.Tx(ctx, h.DB.RW(), func(txCtx context.Context, tx db.DBTX) error {
+		// Re-read on the primary inside the write transaction. The resolve above
+		// runs on the read-only connection, so a portal deleted moments earlier can
+		// still appear live there.
+		//
+		// This matters because deleting a portal revokes its sessions: revocation
+		// only touches rows that exist when it runs, so a session minted in the
+		// replica-lag window would survive the delete, and once the portal row is
+		// gone nothing can revoke it afterwards. Losing the race here costs the
+		// caller a retry; losing it silently costs an end user access that was
+		// supposed to be cut.
+		if _, txErr := db.Query.FindPortalByIdOrSlug(txCtx, tx, db.FindPortalByIdOrSlugParams{
+			WorkspaceID: workspaceID,
+			Portal:      portal.ID,
+		}); txErr != nil {
+			if db.IsNotFound(txErr) {
+				return fault.New("portal not found",
+					fault.Code(codes.Data.Portal.NotFound.URN()),
+					fault.Internal(fmt.Sprintf("portal %s was deleted between the replica read and the session insert", portal.ID)),
+					fault.Public("Portal not found."),
+				)
+			}
+			return fault.Wrap(txErr,
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Internal("database error re-reading portal before minting a session"),
+				fault.Public("Failed to create session."),
+			)
+		}
+
 		if txErr := db.Query.InsertPortalSession(txCtx, tx, db.InsertPortalSessionParams{
 			ID:                    sessionID,
 			WorkspaceID:           workspaceID,

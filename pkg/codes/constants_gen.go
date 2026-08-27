@@ -186,6 +186,10 @@ const (
 
 	// Portal
 
+	// Duplicate indicates a portal already claims the requested slug or association.
+	// The app and keyspace unique keys span every workspace, so this can be raised
+	// by a portal the caller cannot see.
+	UnkeyDataErrorsPortalDuplicate URN = "err:unkey:data:portal_already_exists"
 	// NotFound indicates the requested portal was not found.
 	UnkeyDataErrorsPortalNotFound URN = "err:unkey:data:portal_not_found"
 

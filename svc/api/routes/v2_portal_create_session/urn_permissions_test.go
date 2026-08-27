@@ -55,6 +55,7 @@ func TestCreateSessionDeniesURNGrants(t *testing.T) {
 		DB:            h.DB,
 		Auditlogs:     h.Auditlogs,
 		PortalBaseURL: "https://portal.unkey.com",
+		Clock:         h.Clock,
 	}
 	h.Register(route)
 
