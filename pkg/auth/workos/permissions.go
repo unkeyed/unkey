@@ -26,7 +26,7 @@ type permissionGrant struct {
 	action   rbac.ActionType
 }
 
-// action converts a typed action to the representation stored on a grant.
+// action converts a [fmt.Stringer] to an [rbac.ActionType].
 func action(value fmt.Stringer) rbac.ActionType {
 	return rbac.ActionType(value.String())
 }
@@ -452,22 +452,22 @@ func sortedPermissionSlugs() []string {
 func translatePermissions(workspaceID string, permissions []string) []string {
 	var out []string
 
-	for _, permission := range permissions {
-		mapping, ok := permissionMappings[permission]
+	for _, slug := range permissions {
+		mapping, ok := permissionMappings[slug]
 		if !ok {
 			logger.Warn("unable to translate permission from workos to unkey, skipping ...",
-				"permission", permission,
+				"permission", slug,
 			)
 			continue
 		}
 
-		for _, grant := range mapping.permissions {
+		for _, permission := range mapping.permissions {
 			out = append(out, rbac.UnkeyPermission{
 				Resource: urn.V1{
 					WorkspaceID: workspaceID,
-					Resource:    grant.resource,
+					Resource:    permission.resource,
 				},
-				Action: grant.action,
+				Action: permission.action,
 			}.String())
 		}
 	}

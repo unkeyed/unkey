@@ -178,9 +178,9 @@ type Querier interface {
 	//  SELECT pk, id, name, workspace_id, project_id, ip_whitelist, auth_type, key_auth_id, created_at_m, updated_at_m, deleted_at_m, delete_protection FROM apis WHERE id = ?
 	FindApiByID(ctx context.Context, db DBTX, id string) (Api, error)
 	// Maps keyspace ids back to the api that owns them, scoped to a workspace.
-	// apis.key_auth_id is unique, so each keyspace resolves to at most one api.
+	// apis.key_auth_id is unique, so each keyspace resolves to at most one api and project.
 	//
-	//  SELECT ka.id as key_auth_id, a.id as api_id
+	//  SELECT ka.id as key_auth_id, ka.project_id, a.id as api_id
 	//  FROM apis a
 	//  JOIN key_auth as ka ON ka.id = a.key_auth_id
 	//  WHERE a.workspace_id = ?

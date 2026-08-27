@@ -399,7 +399,7 @@ func AuthorizeMappingTarget(
 			rbac.T(rbac.Tuple{ResourceType: rbac.Api, ResourceID: "*", Action: rbac.ReadAPI}),
 			rbac.T(rbac.Tuple{ResourceType: rbac.Api, ResourceID: apiID, Action: rbac.ReadAPI}),
 			rbac.U(
-				urn.New().Workspace(workspaceID).Keyspace(m.ID),
+				urn.New().Workspace(workspaceID).Project(rows[0].ProjectID).Keyspace(m.ID),
 				permissions.ReadKeyspace{},
 			),
 		))
