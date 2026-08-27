@@ -20,6 +20,7 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/internal/auth"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/deploytarget"
+	"golang.org/x/sync/errgroup"
 )
 
 // createCallTimeout caps how long CreateDeployment blocks waiting for the
@@ -91,13 +92,14 @@ func (s *Service) CreateDeployment(
 	}), nil
 }
 
-// loadDeploymentContext resolves the deployment target, translating load
-// refusals into the connect codes this RPC's callers expect.
+// loadDeploymentContext resolves the deployment target. Terminal load
+// failures keep the connect code they carry (not found, mismatched ids);
+// transient ones become CodeInternal.
 func (s *Service) loadDeploymentContext(
 	ctx context.Context,
 	projectID, appID, envSlug string,
 ) (deploytarget.Target, error) {
-	target, err := deploytarget.Load(ctx, s.db, projectID, appID, envSlug)
+	target, err := deploytarget.Load(ctx, s.db, projectID, appID, envSlug, deploytarget.WithoutSecrets)
 	if err != nil {
 		var terminal *deploytarget.TerminalError
 		if errors.As(err, &terminal) {
@@ -205,15 +207,6 @@ func (s *Service) createAndDeploy(ctx context.Context, p createParams) (createRe
 			fmt.Errorf("idempotency_key must be at most %d bytes", maxIdempotencyKeyBytes))
 	}
 
-	// Pre-key gates: a rejection here never consumes the idempotency key, so
-	// the dashboard can resubmit a corrected form with the same key.
-	if err := s.ensureWorkspaceCanDeploy(ctx, c.WorkspaceID, string(p.action)); err != nil {
-		return createResult{}, err
-	}
-	if err := s.ensureEnvironmentDeployable(ctx, c); err != nil {
-		return createResult{}, err
-	}
-
 	// Per-request command override (e.g. `unkey deploy --command`) wins over
 	// the app's stored default, so the row records what actually runs.
 	command := c.AppRuntimeSettings.Command
@@ -222,10 +215,25 @@ func (s *Service) createAndDeploy(ctx context.Context, p createParams) (createRe
 	}
 
 	deploymentID := uid.New(uid.DeploymentPrefix)
-
 	commit := commitFromRequest(p.gitCommit)
-	deployReq, commit, err := s.resolveSource(ctx, c, deploymentID, command, commit, p.dockerImage, p.gitCommit != nil)
-	if err != nil {
+
+	// Pre-key checks: a failure here never consumes the idempotency key, so a
+	// corrected resubmit can reuse it. The legs are independent; when several
+	// fail, the caller sees whichever error finished first.
+	var deployReq *hydrav1.DeployRequest
+	g, gctx := errgroup.WithContext(ctx)
+	g.Go(func() error {
+		return s.ensureWorkspaceCanDeploy(gctx, c.WorkspaceID, string(p.action))
+	})
+	g.Go(func() error {
+		return s.ensureEnvironmentDeployable(gctx, c)
+	})
+	g.Go(func() error {
+		var err error
+		deployReq, commit, err = s.resolveSource(gctx, c, deploymentID, command, commit, p.dockerImage, p.gitCommit != nil)
+		return err
+	})
+	if err := g.Wait(); err != nil {
 		return createResult{}, err
 	}
 

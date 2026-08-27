@@ -44,7 +44,7 @@ sequenceDiagram
   CtrlAPI->>DB: Load target (project + environment + app + settings)
   CtrlAPI->>CtrlAPI: Gates: plan, deployability
   CtrlAPI->>CtrlAPI: Resolve build source (GitHub if git)
-  CtrlAPI->>Restate: DeploymentCreateService.Create (sync,<br/>invocation idempotency key: workspace/app/env/key)
+  CtrlAPI->>Restate: DeploymentCreateService.Create (sync,<br/>idempotency key: workspace/app/env/key)
   Restate->>Create: Execute Create (a keyed retry attaches instead)
   Create->>DB: Insert deployment (status=pending) + create audit (one tx)
   Create->>Restate: DeployService.Deploy (key: deployment_id, async)
@@ -69,19 +69,30 @@ sequenceDiagram
 
 ## Idempotent create
 
-`CreateDeployment` accepts an optional caller-supplied idempotency key. Restate owns the key: ctrl calls `DeploymentCreateService.Create` synchronously with an invocation idempotency key of `workspace_id/app_id/environment_id/idempotency key`, so a retry inside the retention window attaches to the original invocation and receives its journaled response instead of creating anything. There is no key table; deployment ids are random. The prefix scopes the key to its target: the same caller key in another workspace, app, or environment runs its own invocation, so one key can deploy the same commit to prod and staging, and a reused key can never answer with another target's deployment.
+`CreateDeployment` accepts an optional caller-supplied idempotency key. Restate owns deduplication: ctrl calls `DeploymentCreateService.Create` synchronously with an invocation idempotency key of `workspace_id/app_id/environment_id/caller key`. A retry inside the retention window attaches to the original invocation and receives its journaled response instead of creating anything.
+
+There is no idempotency key table in MySQL. Restate's journal is the key store: it maps the idempotency key to its response for the retention window, so caller keys never persist.
+
+The call is synchronous because deployment ids are random. With dedup, two requests can map to one row, and the retry's answer is the original request's deployment id. Only the journaled response can tell ctrl that id; a fire-and-forget send would answer with an id that no row will ever have. The alternatives are a key table or ids derived from the key, and both were rejected.
+
+Key structure follows one rule, trust boundary plus target identity:
+
+- `workspace_id` is the trust boundary. Callers send human-readable keys or client-generated UUIDs, and without the workspace two tenants sending the same key would share one invocation.
+- `app_id` and `environment_id` are the deployment's target identity. The same caller key in another app or environment runs its own invocation, so one key can deploy the same commit to prod and staging, and a reused key can never answer with another target's deployment.
 
 **Key lifetime.** The service registers with an idempotency retention of 12 hours, which is the caller-facing key lifetime: a retry inside the window replays, a retry after it creates a new deployment.
+
 **Durable execution.** The handler journals every step: insert plus create audit in one transaction, the `Deploy` send, the invocation id write, and the sibling dedup. A worker crash resumes the invocation from the journal, so an accepted create always completes: a row can never end up inserted but never sent. The in-handler `Deploy` send is itself a journal entry, so it happens exactly once and needs no invocation-level idempotency key of its own.
 
-**Gates run before the key.** The plan gate, the deployability check, and build source resolution (including GitHub commit lookup) run in ctrl before the Restate call. A request they reject never reaches Restate, so it never consumes its key: the caller fixes the request and retries with the same key, which is why the dashboard can keep one key across a corrected resubmit. The flip side is that every retry passes the gates again before it can replay.
+**Gates run before the key.** The plan gate, the deployability check, and build source resolution (including GitHub commit lookup) run in ctrl before the Restate call. A request they reject never reaches Restate, so it never consumes its key: the caller fixes the request and retries with the same key, which is why the dashboard can keep one key across a corrected resubmit. The flip side is that every retry passes the gates again before it can replay. The checks run concurrently, so when a request violates more than one, the caller sees whichever error finished first.
 
 **Replay detection.** Ctrl sends a per-request nonce and the handler echoes the nonce of the request whose execution produced the response. A retry that attached reads back a foreign nonce, reports `replayed=true`, and answers with the row's current status instead of the journaled pending.
 
-**Target reload.** The handler reloads the target (project, app, environment, settings, secrets) at execution time, both so the row records current settings and so the secrets blob never enters the Restate journal. A target that no longer resolves fails the invocation terminally: ctrl validated the same target before the call, so this only happens when the target was deleted mid-create, and the caller gets a 500 for that race instead of a retry loop.
+**Target reload.** The create request carries only ids; the worker resolves the target itself when it runs. A snapshot in the request would be journaled and could go stale. Reloading means the row always records the settings and secrets current at insert time, secret material never enters the create RPC or the journal, and a target deleted mid-create fails the invocation instead of leaving an orphan row.
 
 **Audit.** The `deployment.create` audit log commits in the same MySQL transaction as the deployment insert, inside the create worker, so a row created through this handler always has its create audit.
-**Caller timeout.** Ctrl bounds the synchronous call at 30 seconds. On expiry the invocation keeps running to completion; the caller gets `Unavailable` and a keyed retry attaches to the still-running invocation. A keyless retry cannot attach and creates a second deployment, so the error tells keyless callers to check the named deployment instead of retrying. Persistent handler failures (for example a database outage) exhaust the service retry policy and pause the invocation for operator resolution; it still completes when resumed. Resume a paused create, do not kill it: a killed create leaves its row pending with no invocation id for `CancelDeployment` to act on.
+
+**Caller timeout.** Ctrl limits the synchronous call to 30 seconds. When the timeout expires, the caller gets `Unavailable`, but the invocation continues to completion. A retry with the same idempotency key attaches to the running invocation and receives its response. A retry without an idempotency key cannot attach, so it creates a second deployment. For that reason, the error tells callers without a key to check the named deployment and not retry. A persistent handler failure, for example a database outage, uses up the service retry policy. Restate then pauses the invocation until an operator resolves the problem. A resumed invocation completes normally. Resume a paused create; do not kill it. A killed create leaves a pending deployment row without an invocation id, and `CancelDeployment` cannot act on that row.
 
 ## Flow: cancel deployment
 

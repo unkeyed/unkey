@@ -76,9 +76,9 @@ func (s *Service) Create(ctx restate.Context, req *hydrav1.DeploymentCreateReque
 		return nil, persistErr
 	}
 
-	// Best-effort: the closure logs and returns nil so a dedup failure never
-	// fails the create. The RunVoid error still propagates; it can carry
-	// Restate protocol signals (suspension, cancellation).
+	// Dedup is best-effort: the closure swallows its own error so a failed
+	// cancel never fails the create. The RunVoid error still propagates; it
+	// can carry Restate protocol signals (suspension, cancellation).
 	if runErr := restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
 		if cancelErr := s.dedup.CancelOlderSiblings(runCtx, dedup.Newer{
 			ID:            deploymentID,
@@ -109,15 +109,12 @@ func (s *Service) Create(ctx restate.Context, req *hydrav1.DeploymentCreateReque
 	return resp, nil
 }
 
-// insertDeployment loads the target at execution time and inserts the row
-// with its create audit in one transaction, so the row records the settings
-// current when the create ran and a crash can never separate the two.
 func (s *Service) insertDeployment(
 	ctx context.Context,
 	req *hydrav1.DeploymentCreateRequest,
 	deploymentID string,
 ) (insertOutcome, error) {
-	target, loadErr := deploytarget.Load(ctx, s.db, req.GetProjectId(), req.GetAppId(), req.GetEnvironmentSlug())
+	target, loadErr := deploytarget.Load(ctx, s.db, req.GetProjectId(), req.GetAppId(), req.GetEnvironmentSlug(), deploytarget.WithSecrets)
 	var terminal *deploytarget.TerminalError
 	if errors.As(loadErr, &terminal) {
 		// Ctrl validated this target before the call, so a terminal failure
@@ -175,10 +172,38 @@ func (s *Service) insertDeployment(
 		}); err != nil {
 			return err
 		}
-		// Only a create writes the deployment.create audit log; a rebuild's
-		// deployment.rebuild event is recorded by ctrl.
+
+		// A rebuild skips this: it records its own deployment.rebuild event in
+		// ctrl. A nil actor falls back to the system actor via actor.AuditType.
 		if req.GetAction() != hydrav1.DeploymentCreateAction_DEPLOYMENT_CREATE_ACTION_REBUILD {
-			return s.recordCreateAudit(txCtx, tx, target, deploymentID, req.GetActor())
+			a := req.GetActor()
+			return s.auditlogs.Insert(txCtx, tx, []auditlog.AuditLog{
+				{
+					Event:         auditlog.DeploymentCreateEvent,
+					WorkspaceID:   target.WorkspaceID,
+					Display:       fmt.Sprintf("Created deployment %s", deploymentID),
+					ActorID:       a.GetId(),
+					ActorType:     actor.AuditType(a.GetType()),
+					ActorName:     a.GetName(),
+					ActorMeta:     actor.Meta(a.GetMeta()),
+					RemoteIP:      a.GetRemoteIp(),
+					UserAgent:     a.GetUserAgent(),
+					CorrelationID: "",
+					Resources: []auditlog.AuditLogResource{
+						{
+							Type:        auditlog.DeploymentResourceType,
+							ID:          deploymentID,
+							Name:        "",
+							DisplayName: deploymentID,
+							Meta: map[string]any{
+								"projectId":   target.Project.ID,
+								"appId":       target.App.ID,
+								"environment": target.Env.Environment.Slug,
+							},
+						},
+					},
+				},
+			})
 		}
 		return nil
 	})
@@ -193,56 +218,16 @@ func (s *Service) insertDeployment(
 		if findErr != nil {
 			return insertOutcome{}, fmt.Errorf("duplicate key on insert but deployment %s not found: %w", deploymentID, findErr) //nolint:exhaustruct // zero value unused on error
 		}
-		return insertOutcome{ //nolint:exhaustruct // no refusal on success
+		return insertOutcome{
 			EnvironmentID: target.Env.Environment.ID,
 			CreatedAt:     existing.CreatedAt,
 		}, nil
 	}
 
-	return insertOutcome{ //nolint:exhaustruct // no refusal on success
+	return insertOutcome{
 		EnvironmentID: target.Env.Environment.ID,
 		CreatedAt:     now,
 	}, nil
-}
-
-// recordCreateAudit writes a deployment.create audit log attributed to the
-// actor supplied on the request, inside the transaction that inserts the
-// deployment row so the two commit or fail together. A nil actor (callers
-// not yet passing one) falls back to the system actor via actor.AuditType.
-func (s *Service) recordCreateAudit(
-	ctx context.Context,
-	tx db.DBTX,
-	target deploytarget.Target,
-	deploymentID string,
-	a *ctrlv1.ActorInfo,
-) error {
-	return s.auditlogs.Insert(ctx, tx, []auditlog.AuditLog{
-		{
-			Event:         auditlog.DeploymentCreateEvent,
-			WorkspaceID:   target.WorkspaceID,
-			Display:       fmt.Sprintf("Created deployment %s", deploymentID),
-			ActorID:       a.GetId(),
-			ActorType:     actor.AuditType(a.GetType()),
-			ActorName:     a.GetName(),
-			ActorMeta:     actor.Meta(a.GetMeta()),
-			RemoteIP:      a.GetRemoteIp(),
-			UserAgent:     a.GetUserAgent(),
-			CorrelationID: "",
-			Resources: []auditlog.AuditLogResource{
-				{
-					Type:        auditlog.DeploymentResourceType,
-					ID:          deploymentID,
-					Name:        "",
-					DisplayName: deploymentID,
-					Meta: map[string]any{
-						"projectId":   target.Project.ID,
-						"appId":       target.App.ID,
-						"environment": target.Env.Environment.Slug,
-					},
-				},
-			},
-		},
-	})
 }
 
 // triggerFromProto maps the proto enum to the db enum, defaulting to

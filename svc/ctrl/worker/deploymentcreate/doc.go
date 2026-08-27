@@ -3,5 +3,5 @@
 //
 // Ctrl authorizes the request and resolves its build source, then calls
 // Create synchronously through the ingress with an invocation idempotency
-// key derived from the caller's Idempotency-Key.
+// key of workspace/app/environment plus the caller's Idempotency-Key.
 package deploymentcreate
