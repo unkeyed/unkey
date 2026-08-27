@@ -14,7 +14,9 @@ import (
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/internal/projects"
 	"github.com/unkeyed/unkey/svc/api/openapi"
@@ -51,15 +53,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	err = principal.Authorize(rbac.T(rbac.Tuple{
-		ResourceType: rbac.Rbac,
-		ResourceID:   "*",
-		Action:       rbac.CreatePermission,
-	}))
-	if err != nil {
-		return err
-	}
-
 	permissionID := uid.New(uid.PermissionPrefix)
 
 	description := ptr.SafeDeref(req.Description)
@@ -69,6 +62,20 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		projectID, resolveErr := projects.EnsureDefaultProject(ctx, tx, principal.WorkspaceID)
 		if resolveErr != nil {
 			return resolveErr
+		}
+
+		if authorizeErr := principal.Authorize(rbac.Or(
+			rbac.U(
+				urn.New().Workspace(principal.WorkspaceID).Project(projectID).RBAC().Permission("*"),
+				permissions.WritePermission{},
+			),
+			rbac.T(rbac.Tuple{
+				ResourceType: rbac.Rbac,
+				ResourceID:   "*",
+				Action:       rbac.CreatePermission,
+			}),
+		)); authorizeErr != nil {
+			return authorizeErr
 		}
 
 		// Insert the permission
@@ -133,7 +140,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	// 5. Return success response
 	return s.JSON(http.StatusOK, Response{
 		Meta: openapi.Meta{
 			RequestId: s.RequestID(),

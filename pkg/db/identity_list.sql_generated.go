@@ -37,6 +37,7 @@ SELECT
     ) as ratelimits
 FROM identities i
 WHERE i.workspace_id = ?
+AND i.project_id = ?
 AND i.deleted = ?
 AND i.id >= ?
 AND (? IS NULL OR LOWER(i.id) LIKE LOWER(?) OR LOWER(i.external_id) LIKE LOWER(?))
@@ -46,6 +47,7 @@ LIMIT ?
 
 type ListIdentitiesParams struct {
 	WorkspaceID string         `db:"workspace_id"`
+	ProjectID   string         `db:"project_id"`
 	Deleted     bool           `db:"deleted"`
 	IDCursor    string         `db:"id_cursor"`
 	Search      sql.NullString `db:"search"`
@@ -65,7 +67,7 @@ type ListIdentitiesRow struct {
 	Ratelimits  interface{}   `db:"ratelimits"`
 }
 
-// ListIdentities returns one page of a workspace's identities with their
+// ListIdentities returns one page of a project's identities with their
 // ratelimits aggregated into a JSON array (empty array when none exist).
 // Pagination is cursor-based: ORDER BY i.id ASC with i.id >= id_cursor makes
 // pages deterministic, and the empty-string cursor starts from the first row.
@@ -97,6 +99,7 @@ type ListIdentitiesRow struct {
 //	    ) as ratelimits
 //	FROM identities i
 //	WHERE i.workspace_id = ?
+//	AND i.project_id = ?
 //	AND i.deleted = ?
 //	AND i.id >= ?
 //	AND (? IS NULL OR LOWER(i.id) LIKE LOWER(?) OR LOWER(i.external_id) LIKE LOWER(?))
@@ -105,6 +108,7 @@ type ListIdentitiesRow struct {
 func (q *Queries) ListIdentities(ctx context.Context, db DBTX, arg ListIdentitiesParams) ([]ListIdentitiesRow, error) {
 	rows, err := db.QueryContext(ctx, listIdentities,
 		arg.WorkspaceID,
+		arg.ProjectID,
 		arg.Deleted,
 		arg.IDCursor,
 		arg.Search,

@@ -12,6 +12,8 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/db"
+	dbtype "github.com/unkeyed/unkey/pkg/db/types"
+	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	"github.com/unkeyed/unkey/svc/api/openapi"
@@ -69,6 +71,37 @@ func TestSetRolePermissions(t *testing.T) {
 			res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, handler.Request{RoleId: roleID, Permissions: []string{}})
 			require.Equal(t, http.StatusNotFound, res.Status, res.RawBody)
 		}
+	})
+
+	t.Run("permission from another project is not attached", func(t *testing.T) {
+		role := h.CreateRole(seed.CreateRoleRequest{WorkspaceID: workspace.ID, Name: "project-role"})
+		otherProject := h.CreateProject(seed.CreateProjectRequest{
+			ID:          uid.New(uid.ProjectPrefix),
+			WorkspaceID: workspace.ID,
+			Name:        "Other Role Permission Project",
+			Slug:        "other-role-permission-project",
+		})
+		permissionSlug := "other.project.role.permission"
+		require.NoError(t, db.Query.InsertPermission(ctx, h.DB.RW(), db.InsertPermissionParams{
+			PermissionID: uid.New(uid.PermissionPrefix),
+			WorkspaceID:  workspace.ID,
+			ProjectID:    otherProject.ID,
+			Name:         permissionSlug,
+			Slug:         permissionSlug,
+			Description:  dbtype.NullString{Valid: false},
+			CreatedAtM:   time.Now().UnixMilli(),
+		}))
+
+		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, handler.Request{
+			RoleId:      role.ID,
+			Permissions: []string{permissionSlug},
+		})
+
+		require.Equal(t, http.StatusNotFound, res.Status, res.RawBody)
+		require.Equal(t, "https://unkey.com/docs/errors/unkey/data/permission_not_found", res.Body.Error.Type)
+		assigned, err := db.Query.ListDirectPermissionsByRoleID(ctx, h.DB.RO(), role.ID)
+		require.NoError(t, err)
+		require.Empty(t, assigned)
 	})
 
 	t.Run("requires add, remove, and create authorization", func(t *testing.T) {

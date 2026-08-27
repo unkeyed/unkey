@@ -14,6 +14,7 @@ const listPermissions = `-- name: ListPermissions :many
 SELECT p.pk, p.id, p.workspace_id, p.project_id, p.name, p.slug, p.description, p.created_at_m, p.updated_at_m
 FROM permissions p
 WHERE p.workspace_id = ?
+  AND p.project_id = ?
   AND p.id >= ?
   -- search and description_search carry the same pre-escaped LIKE pattern built
   -- by mysql.SearchContains; NULL disables the filter. They are separate params
@@ -26,6 +27,7 @@ LIMIT ?
 
 type ListPermissionsParams struct {
 	WorkspaceID       string         `db:"workspace_id"`
+	ProjectID         string         `db:"project_id"`
 	IDCursor          string         `db:"id_cursor"`
 	Search            sql.NullString `db:"search"`
 	DescriptionSearch sql.NullString `db:"description_search"`
@@ -37,6 +39,7 @@ type ListPermissionsParams struct {
 //	SELECT p.pk, p.id, p.workspace_id, p.project_id, p.name, p.slug, p.description, p.created_at_m, p.updated_at_m
 //	FROM permissions p
 //	WHERE p.workspace_id = ?
+//	  AND p.project_id = ?
 //	  AND p.id >= ?
 //	  -- search and description_search carry the same pre-escaped LIKE pattern built
 //	  -- by mysql.SearchContains; NULL disables the filter. They are separate params
@@ -48,6 +51,7 @@ type ListPermissionsParams struct {
 func (q *Queries) ListPermissions(ctx context.Context, db DBTX, arg ListPermissionsParams) ([]Permission, error) {
 	rows, err := db.QueryContext(ctx, listPermissions,
 		arg.WorkspaceID,
+		arg.ProjectID,
 		arg.IDCursor,
 		arg.Search,
 		arg.Search,

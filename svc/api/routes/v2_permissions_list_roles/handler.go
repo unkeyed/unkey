@@ -13,8 +13,11 @@ import (
 	"github.com/unkeyed/unkey/pkg/mysql"
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/internal/pagination"
+	"github.com/unkeyed/unkey/svc/api/internal/projects"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
@@ -42,7 +45,6 @@ func (h *Handler) Path() string {
 func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	logger.Debug("handling request", "requestId", s.RequestID(), "path", "/v2/permissions.listRoles")
 
-	// 1. Authentication
 	principal, err := s.GetPrincipal()
 	if err != nil {
 		return err
@@ -56,22 +58,17 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	p := pagination.Parse(req.Limit, req.Cursor, 100)
 	search := mysql.SearchContains(strings.TrimSpace(ptr.SafeDeref(req.Search)))
 
-	err = principal.Authorize(rbac.Or(
-		rbac.T(rbac.Tuple{
-			ResourceType: rbac.Rbac,
-			ResourceID:   "*",
-			Action:       rbac.ReadRole,
-		}),
-	))
+	projectID, err := projects.EnsureDefaultProject(ctx, h.DB.RW(), principal.WorkspaceID)
 	if err != nil {
 		return err
 	}
 
-	roles, err := db.Query.ListRoles(
+	rows, err := db.Query.ListRoles(
 		ctx,
 		h.DB.RO(),
 		db.ListRolesParams{
 			WorkspaceID: principal.WorkspaceID,
+			ProjectID:   projectID,
 			IDCursor:    p.Cursor,
 			Search:      search,
 			Limit:       p.FetchLimit(),
@@ -84,9 +81,25 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	roles, pg := pagination.Paginate(roles, p, func(r db.ListRolesRow) string { return r.ID })
+	readRoles := rbac.U(
+		urn.New().Workspace(principal.WorkspaceID).Project(projectID).RBAC().Role("*"),
+		permissions.ReadRole{},
+	)
+	err = principal.Authorize(rbac.Or(
+		readRoles,
+		rbac.T(rbac.Tuple{
+			ResourceType: rbac.Rbac,
+			ResourceID:   "*",
+			Action:       rbac.ReadRole,
+		}),
+	))
+	if err != nil {
+		return err
+	}
 
-	roleResponses := array.Map(roles, func(role db.ListRolesRow) openapi.Role {
+	rows, pg := pagination.Paginate(rows, p, func(r db.ListRolesRow) string { return r.ID })
+
+	roleResponses := array.Map(rows, func(role db.ListRolesRow) openapi.Role {
 		perms, err := db.UnmarshalNullableJSONTo[[]db.Permission](role.Permissions)
 		if err != nil {
 			logger.Error("Failed to unmarshal permissions", "error", err)

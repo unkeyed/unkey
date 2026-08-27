@@ -1,5 +1,5 @@
 -- name: ListIdentities :many
--- ListIdentities returns one page of a workspace's identities with their
+-- ListIdentities returns one page of a project's identities with their
 -- ratelimits aggregated into a JSON array (empty array when none exist).
 -- Pagination is cursor-based: ORDER BY i.id ASC with i.id >= id_cursor makes
 -- pages deterministic, and the empty-string cursor starts from the first row.
@@ -29,6 +29,7 @@ SELECT
     ) as ratelimits
 FROM identities i
 WHERE i.workspace_id = sqlc.arg(workspace_id)
+AND i.project_id = sqlc.arg(project_id)
 AND i.deleted = sqlc.arg(deleted)
 AND i.id >= sqlc.arg(id_cursor)
 -- search is a pre-escaped LIKE pattern built by mysql.SearchContains; NULL disables the filter

@@ -807,11 +807,13 @@ type Querier interface {
 	//  WHERE id = ?
 	//  LIMIT 1
 	FindPermissionByID(ctx context.Context, db DBTX, permissionID string) (Permission, error)
-	//FindPermissionByIdOrSlug
+	// FindPermissionByIdOrSlug resolves a permission within a workspace so the
+	// caller can authorize access against the permission's actual project.
 	//
 	//  SELECT pk, id, workspace_id, project_id, name, slug, description, created_at_m, updated_at_m
 	//  FROM permissions
-	//  WHERE workspace_id = ? AND (id = ? OR slug = ?)
+	//  WHERE workspace_id = ?
+	//    AND (id = ? OR slug = ?)
 	FindPermissionByIdOrSlug(ctx context.Context, db DBTX, arg FindPermissionByIdOrSlugParams) (Permission, error)
 	//FindPermissionByNameAndWorkspaceID
 	//
@@ -833,11 +835,13 @@ type Querier interface {
 	//
 	//  SELECT pk, id, workspace_id, project_id, name, slug, description, created_at_m, updated_at_m FROM permissions WHERE workspace_id = ? AND slug IN (/*SLICE:slugs*/?)
 	FindPermissionsBySlugs(ctx context.Context, db DBTX, arg FindPermissionsBySlugsParams) ([]Permission, error)
-	//FindPermissionsBySlugsForUpdate
+	// FindPermissionsBySlugsForUpdate locks matching permissions in one project so
+	// role assignment cannot attach permissions owned by another project.
 	//
 	//  SELECT id, name, slug, description
 	//  FROM permissions
 	//  WHERE workspace_id = ?
+	//    AND project_id = ?
 	//    AND slug IN (/*SLICE:slugs*/?)
 	//  ORDER BY slug
 	//  FOR UPDATE
@@ -1009,7 +1013,8 @@ type Querier interface {
 	//  WHERE id = ?
 	//  LIMIT 1
 	FindRoleByID(ctx context.Context, db DBTX, roleID string) (Role, error)
-	//FindRoleByIdOrNameWithPerms
+	// FindRoleByIdOrNameWithPerms resolves a role within a workspace so the caller
+	// can authorize access against the role's actual project.
 	//
 	//  SELECT pk, id, workspace_id, project_id, name, description, created_at_m, updated_at_m, COALESCE(
 	//          (SELECT JSON_ARRAYAGG(
@@ -1027,7 +1032,8 @@ type Querier interface {
 	//          JSON_ARRAY()
 	//  ) as permissions
 	//  FROM roles r
-	//  WHERE r.workspace_id = ? AND (
+	//  WHERE r.workspace_id = ?
+	//    AND (
 	//      r.id = ?
 	//      OR r.name = ?
 	//  )
@@ -2039,7 +2045,7 @@ type Querier interface {
 	//    AND error IS NOT NULL AND error != ''
 	//  ORDER BY deployment_id, started_at ASC
 	ListFailedDeploymentStepsByIds(ctx context.Context, db DBTX, arg ListFailedDeploymentStepsByIdsParams) ([]DeploymentStep, error)
-	// ListIdentities returns one page of a workspace's identities with their
+	// ListIdentities returns one page of a project's identities with their
 	// ratelimits aggregated into a JSON array (empty array when none exist).
 	// Pagination is cursor-based: ORDER BY i.id ASC with i.id >= id_cursor makes
 	// pages deterministic, and the empty-string cursor starts from the first row.
@@ -2071,6 +2077,7 @@ type Querier interface {
 	//      ) as ratelimits
 	//  FROM identities i
 	//  WHERE i.workspace_id = ?
+	//  AND i.project_id = ?
 	//  AND i.deleted = ?
 	//  AND i.id >= ?
 	//  AND (? IS NULL OR LOWER(i.id) LIKE LOWER(?) OR LOWER(i.external_id) LIKE LOWER(?))
@@ -2283,6 +2290,7 @@ type Querier interface {
 	//  SELECT p.pk, p.id, p.workspace_id, p.project_id, p.name, p.slug, p.description, p.created_at_m, p.updated_at_m
 	//  FROM permissions p
 	//  WHERE p.workspace_id = ?
+	//    AND p.project_id = ?
 	//    AND p.id >= ?
 	//    -- search and description_search carry the same pre-escaped LIKE pattern built
 	//    -- by mysql.SearchContains; NULL disables the filter. They are separate params
@@ -2379,6 +2387,7 @@ type Querier interface {
 	//  ) as permissions
 	//  FROM roles r
 	//  WHERE r.workspace_id = ?
+	//  AND r.project_id = ?
 	//  AND r.id >= ?
 	//  AND (? IS NULL OR LOWER(r.id) LIKE LOWER(?) OR LOWER(r.name) LIKE LOWER(?) OR LOWER(r.description) LIKE LOWER(?))
 	//  ORDER BY r.id
@@ -3089,8 +3098,10 @@ type Querier interface {
 	//      custom_domains_max = VALUES(custom_domains_max),
 	//      autoscaling_replicas_max = VALUES(autoscaling_replicas_max)
 	UpsertLimit(ctx context.Context, db DBTX, arg UpsertLimitParams) error
-	// Inserts a permission or leaves the existing workspace/slug row unchanged.
-	// Use FindPermissionsBySlugsForUpdate after this to get the canonical row.
+	// UpsertPermission inserts a permission or leaves the existing workspace/slug
+	// row unchanged.
+	// Use FindPermissionsBySlugsForUpdate after this to get the canonical row from
+	// the requested project.
 	//
 	//  INSERT INTO permissions (
 	//    id,
