@@ -10,46 +10,6 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
 
-// fullDeploymentRow returns a query row with every field that
-// deploymentRowToState reads populated with a non-zero value, so the producer
-// coverage guard can verify each ApplyDeployment proto field is actually filled
-// in from the database row.
-func fullDeploymentRow() db.FindDeploymentTopologyByDeploymentAndRegionRow {
-	return db.FindDeploymentTopologyByDeploymentAndRegionRow{
-		DesiredStatus:                 db.DeploymentTopologyDesiredStatusRunning,
-		AutoscalingReplicasMin:        2,
-		AutoscalingReplicasMax:        5,
-		AutoscalingThresholdCpu:       sql.NullInt16{Valid: true, Int16: 80},
-		AutoscalingThresholdMemory:    sql.NullInt16{Valid: true, Int16: 75},
-		ID:                            "deploy_sentinel",
-		K8sName:                       "k8s-name-sentinel",
-		WorkspaceID:                   "ws_sentinel",
-		ProjectID:                     "prj_sentinel",
-		EnvironmentID:                 "env_sentinel",
-		AppID:                         "app_sentinel",
-		Image:                         sql.NullString{Valid: true, String: "registry.io/sentinel:v1"},
-		CpuMillicores:                 250,
-		MemoryMib:                     256,
-		StorageMib:                    2048,
-		EncryptedEnvironmentVariables: []byte("ciphertext-sentinel"),
-		BuildID:                       sql.NullString{Valid: true, String: "build_sentinel"},
-		Command:                       dbtype.StringSlice{"/sentinel-app", "serve"},
-		Port:                          8080,
-		ShutdownSignal:                db.DeploymentsShutdownSignalSIGTERM,
-		GitCommitSha:                  sql.NullString{Valid: true, String: "abc123sha"},
-		GitBranch:                     sql.NullString{Valid: true, String: "main-sentinel"},
-		GitCommitMessage:              sql.NullString{Valid: true, String: "sentinel commit"},
-		Healthcheck: dbtype.NullHealthcheck{
-			Valid:       true,
-			Healthcheck: &dbtype.Healthcheck{Method: "GET", Path: "/sentinel-healthz"},
-		},
-		K8sNamespace:    sql.NullString{Valid: true, String: "ns-sentinel"},
-		EnvironmentSlug: "production",
-		RegionName:      "us-east-1",
-		GitRepo:         sql.NullString{Valid: true, String: "github.com/test/sentinel"},
-	}
-}
-
 // producerFieldAssertions maps each ApplyDeployment proto field (by proto name)
 // to an assertion that deploymentRowToState populated it from the database row.
 // Every proto field must have an entry; the coverage test fails otherwise, so a
@@ -137,7 +97,41 @@ var producerFieldAssertions = map[string]func(t *testing.T, a *ctrlv1.ApplyDeplo
 // TestDeploymentRowToState_PopulatesProtoFields converts a fully-populated row
 // and asserts each ApplyDeployment proto field was carried over from the DB.
 func TestDeploymentRowToState_PopulatesProtoFields(t *testing.T) {
-	state, err := deploymentRowToState(fullDeploymentRow(), 1)
+	row := db.FindDeploymentTopologyByDeploymentAndRegionRow{
+		DesiredStatus:                 db.DeploymentTopologyDesiredStatusRunning,
+		AutoscalingReplicasMin:        2,
+		AutoscalingReplicasMax:        5,
+		AutoscalingThresholdCpu:       sql.NullInt16{Valid: true, Int16: 80},
+		AutoscalingThresholdMemory:    sql.NullInt16{Valid: true, Int16: 75},
+		ID:                            "deploy_sentinel",
+		K8sName:                       "k8s-name-sentinel",
+		WorkspaceID:                   "ws_sentinel",
+		ProjectID:                     "prj_sentinel",
+		EnvironmentID:                 "env_sentinel",
+		AppID:                         "app_sentinel",
+		Image:                         sql.NullString{Valid: true, String: "registry.io/sentinel:v1"},
+		CpuMillicores:                 250,
+		MemoryMib:                     256,
+		StorageMib:                    2048,
+		EncryptedEnvironmentVariables: []byte("ciphertext-sentinel"),
+		BuildID:                       sql.NullString{Valid: true, String: "build_sentinel"},
+		Command:                       dbtype.StringSlice{"/sentinel-app", "serve"},
+		Port:                          8080,
+		ShutdownSignal:                db.DeploymentsShutdownSignalSIGTERM,
+		GitCommitSha:                  sql.NullString{Valid: true, String: "abc123sha"},
+		GitBranch:                     sql.NullString{Valid: true, String: "main-sentinel"},
+		GitCommitMessage:              sql.NullString{Valid: true, String: "sentinel commit"},
+		Healthcheck: dbtype.NullHealthcheck{
+			Valid:       true,
+			Healthcheck: &dbtype.Healthcheck{Method: "GET", Path: "/sentinel-healthz"},
+		},
+		K8sNamespace:    sql.NullString{Valid: true, String: "ns-sentinel"},
+		EnvironmentSlug: "production",
+		RegionName:      "us-east-1",
+		GitRepo:         sql.NullString{Valid: true, String: "github.com/test/sentinel"},
+	}
+
+	state, err := deploymentRowToState(row, 1)
 	require.NoError(t, err)
 
 	apply := state.GetApply()
