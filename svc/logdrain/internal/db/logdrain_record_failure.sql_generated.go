@@ -7,15 +7,13 @@ package db
 
 import (
 	"context"
-	"database/sql"
 )
 
 const recordLogdrainFailure = `-- name: RecordLogdrainFailure :execrows
 UPDATE logdrain_state
 SET consecutive_failures = consecutive_failures + 1,
   status = ?,
-  next_attempt_at = CAST(UNIX_TIMESTAMP(NOW(3)) * 1000 AS SIGNED) + CAST(? AS SIGNED),
-  last_error = ?
+  next_attempt_at = CAST(UNIX_TIMESTAMP(NOW(3)) * 1000 AS SIGNED) + CAST(? AS SIGNED)
 WHERE logdrain_id = ?
   AND fencing_token = ?
   AND lease_expires_at > CAST(UNIX_TIMESTAMP(NOW(3)) * 1000 AS SIGNED)
@@ -24,7 +22,6 @@ WHERE logdrain_id = ?
 type RecordLogdrainFailureParams struct {
 	Status           LogdrainStateStatus `db:"status"`
 	RetryAfterMillis int64               `db:"retry_after_millis"`
-	LastError        sql.NullString      `db:"last_error"`
 	LogdrainID       string              `db:"logdrain_id"`
 	FencingToken     string              `db:"fencing_token"`
 }
@@ -36,8 +33,7 @@ type RecordLogdrainFailureParams struct {
 //	UPDATE logdrain_state
 //	SET consecutive_failures = consecutive_failures + 1,
 //	  status = ?,
-//	  next_attempt_at = CAST(UNIX_TIMESTAMP(NOW(3)) * 1000 AS SIGNED) + CAST(? AS SIGNED),
-//	  last_error = ?
+//	  next_attempt_at = CAST(UNIX_TIMESTAMP(NOW(3)) * 1000 AS SIGNED) + CAST(? AS SIGNED)
 //	WHERE logdrain_id = ?
 //	  AND fencing_token = ?
 //	  AND lease_expires_at > CAST(UNIX_TIMESTAMP(NOW(3)) * 1000 AS SIGNED)
@@ -45,7 +41,6 @@ func (q *Queries) RecordLogdrainFailure(ctx context.Context, arg RecordLogdrainF
 	result, err := q.db.ExecContext(ctx, recordLogdrainFailure,
 		arg.Status,
 		arg.RetryAfterMillis,
-		arg.LastError,
 		arg.LogdrainID,
 		arg.FencingToken,
 	)

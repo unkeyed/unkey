@@ -1493,7 +1493,6 @@ type LogdrainState struct {
 	CommittedOffsetInsertedAt int64               `db:"committed_offset_inserted_at"`
 	CommittedOffsetEventID    string              `db:"committed_offset_event_id"`
 	NextAttemptAt             int64               `db:"next_attempt_at"`
-	LastError                 sql.NullString      `db:"last_error"`
 	LeaseID                   string              `db:"lease_id"`
 	FencingToken              string              `db:"fencing_token"`
 	LeaseExpiresAt            int64               `db:"lease_expires_at"`

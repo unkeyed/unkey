@@ -14,8 +14,7 @@ UPDATE logdrain_state
 SET committed_offset_inserted_at = ?,
   committed_offset_event_id = ?,
   consecutive_failures = 0,
-  next_attempt_at = 0,
-  last_error = NULL
+  next_attempt_at = 0
 WHERE logdrain_id = ?
   AND fencing_token = ?
   AND lease_expires_at > CAST(UNIX_TIMESTAMP(NOW(3)) * 1000 AS SIGNED)
@@ -43,8 +42,7 @@ type RecordLogdrainSuccessParams struct {
 //	SET committed_offset_inserted_at = ?,
 //	  committed_offset_event_id = ?,
 //	  consecutive_failures = 0,
-//	  next_attempt_at = 0,
-//	  last_error = NULL
+//	  next_attempt_at = 0
 //	WHERE logdrain_id = ?
 //	  AND fencing_token = ?
 //	  AND lease_expires_at > CAST(UNIX_TIMESTAMP(NOW(3)) * 1000 AS SIGNED)

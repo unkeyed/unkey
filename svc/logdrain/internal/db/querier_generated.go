@@ -112,8 +112,7 @@ type Querier interface {
 	//  UPDATE logdrain_state
 	//  SET consecutive_failures = consecutive_failures + 1,
 	//    status = ?,
-	//    next_attempt_at = CAST(UNIX_TIMESTAMP(NOW(3)) * 1000 AS SIGNED) + CAST(? AS SIGNED),
-	//    last_error = ?
+	//    next_attempt_at = CAST(UNIX_TIMESTAMP(NOW(3)) * 1000 AS SIGNED) + CAST(? AS SIGNED)
 	//  WHERE logdrain_id = ?
 	//    AND fencing_token = ?
 	//    AND lease_expires_at > CAST(UNIX_TIMESTAMP(NOW(3)) * 1000 AS SIGNED)
@@ -126,8 +125,7 @@ type Querier interface {
 	//  SET committed_offset_inserted_at = ?,
 	//    committed_offset_event_id = ?,
 	//    consecutive_failures = 0,
-	//    next_attempt_at = 0,
-	//    last_error = NULL
+	//    next_attempt_at = 0
 	//  WHERE logdrain_id = ?
 	//    AND fencing_token = ?
 	//    AND lease_expires_at > CAST(UNIX_TIMESTAMP(NOW(3)) * 1000 AS SIGNED)

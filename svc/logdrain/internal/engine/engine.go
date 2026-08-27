@@ -404,7 +404,6 @@ func (e *Engine) recordDelivery(drain db.GetLeasedLogdrainRow, stream db.Logdrai
 func (e *Engine) fail(ctx context.Context, drain db.GetLeasedLogdrainRow, cause error, retryHint time.Duration) error {
 	defer logger.Error("logdrain delivery failed", "error", cause, "drain_id", drain.ID)
 	metrics.DrainFailuresTotal.WithLabelValues(string(drain.Stream)).Inc()
-	message := truncateError(cause)
 	pause := int(drain.ConsecutiveFailures)+1 >= e.cfg.PauseThreshold
 	status := db.LogdrainStateStatusActive
 	if pause {
@@ -413,7 +412,6 @@ func (e *Engine) fail(ctx context.Context, drain db.GetLeasedLogdrainRow, cause 
 	rowsAffected, err := e.cfg.DB.RecordLogdrainFailure(ctx, db.RecordLogdrainFailureParams{
 		Status:           status,
 		RetryAfterMillis: retryDelay(int(drain.ConsecutiveFailures), retryHint).Milliseconds(),
-		LastError:        sql.NullString{String: message, Valid: true},
 		LogdrainID:       drain.ID,
 		FencingToken:     drain.FencingToken,
 	})
@@ -429,7 +427,7 @@ func (e *Engine) fail(ctx context.Context, drain db.GetLeasedLogdrainRow, cause 
 	return nil
 }
 
-// truncateError matches the last_error column size.
+// truncateError bounds ClickHouse delivery errors to 1024 bytes.
 func truncateError(cause error) string {
 	if cause == nil {
 		return ""
@@ -442,7 +440,7 @@ func truncateError(cause error) string {
 }
 
 // rejectedDeliveryError converts an expected destination rejection into the
-// text stored in MySQL and logs. The structured result stays separate.
+// text stored in delivery telemetry and logs. The structured result stays separate.
 func rejectedDeliveryError(result sink.Result) error {
 	if result.HTTPStatus == 0 {
 		return errors.New("destination did not acknowledge delivery")

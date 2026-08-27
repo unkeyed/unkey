@@ -153,7 +153,6 @@ type drainState struct {
 	status                    string
 	committedOffsetInsertedAt int64
 	consecutiveFailures       int
-	lastError                 sql.NullString
 }
 
 func TestEngine_Integration(t *testing.T) {
@@ -269,8 +268,6 @@ func TestEngine_Integration(t *testing.T) {
 			state := readDrainStateCollect(c, mysqlDB, drainID)
 			require.Equal(c, "paused_by_failure", state.status)
 			require.Equal(c, start-1, state.committedOffsetInsertedAt)
-			require.True(c, state.lastError.Valid)
-			require.NotEmpty(c, state.lastError.String)
 			found := false
 			for _, delivery := range deliveries.snapshot() {
 				if delivery.DrainID == drainID && delivery.Outcome == "error" && delivery.Events == 1 {
@@ -601,7 +598,7 @@ func readDrainState(t *testing.T, database *sql.DB, drainID string) drainState {
 
 func readDrainStateCollect(t require.TestingT, database *sql.DB, drainID string) drainState {
 	var state drainState
-	err := database.QueryRow("SELECT status, committed_offset_inserted_at, consecutive_failures, last_error FROM logdrain_state WHERE logdrain_id = ?", drainID).Scan(&state.status, &state.committedOffsetInsertedAt, &state.consecutiveFailures, &state.lastError)
+	err := database.QueryRow("SELECT status, committed_offset_inserted_at, consecutive_failures FROM logdrain_state WHERE logdrain_id = ?", drainID).Scan(&state.status, &state.committedOffsetInsertedAt, &state.consecutiveFailures)
 	require.NoError(t, err)
 	return state
 }

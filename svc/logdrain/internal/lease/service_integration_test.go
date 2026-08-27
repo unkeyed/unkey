@@ -125,7 +125,6 @@ func TestService_LeaseOwnership(t *testing.T) {
 	rowsAffected, err = database.RecordLogdrainFailure(ctx, db.RecordLogdrainFailureParams{
 		Status:           db.LogdrainStateStatusPausedByFailure,
 		RetryAfterMillis: time.Minute.Milliseconds(),
-		LastError:        sql.NullString{String: "stale failure", Valid: true},
 		LogdrainID:       drainID,
 		FencingToken:     staleToken,
 	})
@@ -137,7 +136,6 @@ func TestService_LeaseOwnership(t *testing.T) {
 	rowsAffected, err = database.RecordLogdrainFailure(ctx, db.RecordLogdrainFailureParams{
 		Status:           db.LogdrainStateStatusActive,
 		RetryAfterMillis: retryAfter.Milliseconds(),
-		LastError:        sql.NullString{String: "transient failure", Valid: true},
 		LogdrainID:       drainID,
 		FencingToken:     fencingToken,
 	})
@@ -147,7 +145,7 @@ func TestService_LeaseOwnership(t *testing.T) {
 	nextAttemptAt := readNextAttemptAt(t, ctx, database, drainID)
 	require.GreaterOrEqual(t, nextAttemptAt, failureStartedAt+retryAfter.Milliseconds())
 	require.LessOrEqual(t, nextAttemptAt, failureCompletedAt+retryAfter.Milliseconds())
-	_, err = database.Conn().ExecContext(ctx, "UPDATE logdrain_state SET consecutive_failures = 0, next_attempt_at = 0, last_error = NULL WHERE logdrain_id = ?", drainID)
+	_, err = database.Conn().ExecContext(ctx, "UPDATE logdrain_state SET consecutive_failures = 0, next_attempt_at = 0 WHERE logdrain_id = ?", drainID)
 	require.NoError(t, err)
 
 	require.NoError(t, loser.refresh(ctx))
@@ -175,7 +173,6 @@ func TestService_LeaseOwnership(t *testing.T) {
 	rowsAffected, err = database.RecordLogdrainFailure(ctx, db.RecordLogdrainFailureParams{
 		Status:           db.LogdrainStateStatusActive,
 		RetryAfterMillis: time.Minute.Milliseconds(),
-		LastError:        sql.NullString{String: "expired lease", Valid: true},
 		LogdrainID:       drainID,
 		FencingToken:     fencingToken,
 	})

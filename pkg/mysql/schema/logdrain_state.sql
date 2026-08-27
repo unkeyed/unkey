@@ -6,7 +6,6 @@ CREATE TABLE `logdrain_state` (
 	`committed_offset_inserted_at` bigint NOT NULL DEFAULT 0,
 	`committed_offset_event_id` varchar(255) COLLATE utf8mb4_0900_bin NOT NULL DEFAULT '',
 	`next_attempt_at` bigint NOT NULL DEFAULT 0,
-	`last_error` text,
 	`lease_id` varchar(48) COLLATE utf8mb4_0900_as_cs NOT NULL DEFAULT '',
 	`fencing_token` varchar(64) COLLATE utf8mb4_0900_as_cs NOT NULL DEFAULT '',
 	`lease_expires_at` bigint NOT NULL DEFAULT 0,
