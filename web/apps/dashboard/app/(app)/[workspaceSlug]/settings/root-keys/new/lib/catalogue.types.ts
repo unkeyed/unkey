@@ -115,65 +115,6 @@ export const READ_WRITE_ACTIONS = ACTIONS.filter(
   (action) => action.startsWith("read_") || action.startsWith("write_"),
 );
 
-export const WORKOS_PERMISSION_SLUGS = [
-  "admin:*",
-  "apps:delete",
-  "apps:read",
-  "apps:write",
-  "deployment_logs:read",
-  "deployments:delete",
-  "deployments:read",
-  "deployments:write",
-  "domains:delete",
-  "domains:read",
-  "domains:write",
-  "environment_variables:delete",
-  "environment_variables:read",
-  "environment_variables:write",
-  "environments:delete",
-  "environments:read",
-  "environments:write",
-  "gateway_logs:read",
-  "gateway_policies:delete",
-  "gateway_policies:read",
-  "gateway_policies:write",
-  "github_apps:delete",
-  "github_apps:read",
-  "github_apps:write",
-  "identities:delete",
-  "identities:read",
-  "identities:write",
-  "keys:decrypt",
-  "keys:delete",
-  "keys:read",
-  "keys:verify",
-  "keys:write",
-  "keyspace_logs:read",
-  "keyspaces:delete",
-  "keyspaces:read",
-  "keyspaces:write",
-  "permissions:delete",
-  "permissions:read",
-  "permissions:write",
-  "projects:delete",
-  "projects:read",
-  "projects:write",
-  "ratelimit_logs:read",
-  "ratelimit_namespaces:delete",
-  "ratelimit_namespaces:limit",
-  "ratelimit_namespaces:read",
-  "ratelimit_namespaces:write",
-  "ratelimit_overrides:delete",
-  "ratelimit_overrides:read",
-  "ratelimit_overrides:write",
-  "roles:delete",
-  "roles:read",
-  "roles:write",
-] as const;
-
-export type WorkOSPermissionSlug = (typeof WORKOS_PERMISSION_SLUGS)[number];
-export type GrantWorkOSPermissionSlug = Exclude<WorkOSPermissionSlug, "admin:*">;
-
 export const RESOURCE_SCOPES = [
   "workspace",
   "projects",
@@ -191,12 +132,11 @@ export const INSTANCE_TOKEN = "{instance}";
 
 export type ActionGrant = {
   name: Action;
-  slug: GrantWorkOSPermissionSlug;
   path?: string;
 };
 
-export function actionGrant(name: Action, slug: GrantWorkOSPermissionSlug): readonly ActionGrant[] {
-  return [{ name, slug }];
+export function actionGrant(name: Action): readonly ActionGrant[] {
+  return [{ name }];
 }
 
 export type PermissionRow = {

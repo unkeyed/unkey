@@ -20,9 +20,9 @@ export const keyspacesCatalogue: ScopeCatalogue = {
           allPath: KEYSPACE_ALL_PATH,
           resource: "keyspace",
           actions: {
-            read_keyspace: actionGrant("read_keyspace", "keyspaces:read"),
-            write_keyspace: actionGrant("write_keyspace", "keyspaces:write"),
-            delete_keyspace: actionGrant("delete_keyspace", "keyspaces:delete"),
+            read_keyspace: actionGrant("read_keyspace"),
+            write_keyspace: actionGrant("write_keyspace"),
+            delete_keyspace: actionGrant("delete_keyspace"),
           },
         },
         {
@@ -32,7 +32,7 @@ export const keyspacesCatalogue: ScopeCatalogue = {
           allPath: `${KEYSPACE_ALL_PATH}/logs`,
           resource: "keyspace_log",
           actions: {
-            read_keyspace_logs: actionGrant("read_keyspace_logs", "keyspace_logs:read"),
+            read_keyspace_logs: actionGrant("read_keyspace_logs"),
           },
         },
         {
@@ -42,11 +42,11 @@ export const keyspacesCatalogue: ScopeCatalogue = {
           allPath: `${KEYSPACE_ALL_PATH}/keys/*`,
           resource: "key",
           actions: {
-            read_key: actionGrant("read_key", "keys:read"),
-            write_key: actionGrant("write_key", "keys:write"),
-            delete_key: actionGrant("delete_key", "keys:delete"),
-            decrypt_key: actionGrant("decrypt_key", "keys:decrypt"),
-            verify_key: actionGrant("verify_key", "keys:verify"),
+            read_key: actionGrant("read_key"),
+            write_key: actionGrant("write_key"),
+            delete_key: actionGrant("delete_key"),
+            decrypt_key: actionGrant("decrypt_key"),
+            verify_key: actionGrant("verify_key"),
           },
         },
       ],

@@ -20,22 +20,10 @@ export const ratelimitNamespacesCatalogue: ScopeCatalogue = {
           allPath: NAMESPACE_ALL_PATH,
           resource: "ratelimit_namespace",
           actions: {
-            read_ratelimit_namespace: actionGrant(
-              "read_ratelimit_namespace",
-              "ratelimit_namespaces:read",
-            ),
-            write_ratelimit_namespace: actionGrant(
-              "write_ratelimit_namespace",
-              "ratelimit_namespaces:write",
-            ),
-            delete_ratelimit_namespace: actionGrant(
-              "delete_ratelimit_namespace",
-              "ratelimit_namespaces:delete",
-            ),
-            limit_ratelimit_namespace: actionGrant(
-              "limit_ratelimit_namespace",
-              "ratelimit_namespaces:limit",
-            ),
+            read_ratelimit_namespace: actionGrant("read_ratelimit_namespace"),
+            write_ratelimit_namespace: actionGrant("write_ratelimit_namespace"),
+            delete_ratelimit_namespace: actionGrant("delete_ratelimit_namespace"),
+            limit_ratelimit_namespace: actionGrant("limit_ratelimit_namespace"),
           },
         },
         {
@@ -45,7 +33,7 @@ export const ratelimitNamespacesCatalogue: ScopeCatalogue = {
           allPath: `${NAMESPACE_ALL_PATH}/logs`,
           resource: "ratelimit_log",
           actions: {
-            read_ratelimit_logs: actionGrant("read_ratelimit_logs", "ratelimit_logs:read"),
+            read_ratelimit_logs: actionGrant("read_ratelimit_logs"),
           },
         },
         {
@@ -55,18 +43,9 @@ export const ratelimitNamespacesCatalogue: ScopeCatalogue = {
           allPath: `${NAMESPACE_ALL_PATH}/overrides/*`,
           resource: "ratelimit_override",
           actions: {
-            read_ratelimit_override: actionGrant(
-              "read_ratelimit_override",
-              "ratelimit_overrides:read",
-            ),
-            write_ratelimit_override: actionGrant(
-              "write_ratelimit_override",
-              "ratelimit_overrides:write",
-            ),
-            delete_ratelimit_override: actionGrant(
-              "delete_ratelimit_override",
-              "ratelimit_overrides:delete",
-            ),
+            read_ratelimit_override: actionGrant("read_ratelimit_override"),
+            write_ratelimit_override: actionGrant("write_ratelimit_override"),
+            delete_ratelimit_override: actionGrant("delete_ratelimit_override"),
           },
         },
       ],

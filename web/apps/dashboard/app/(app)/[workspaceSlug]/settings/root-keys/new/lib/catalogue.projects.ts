@@ -23,9 +23,9 @@ export const projectsCatalogue: ScopeCatalogue = {
           path: PROJECT_PATH,
           resource: "project",
           actions: {
-            read_project: actionGrant("read_project", "projects:read"),
-            write_project: actionGrant("write_project", "projects:write"),
-            delete_project: actionGrant("delete_project", "projects:delete"),
+            read_project: actionGrant("read_project"),
+            write_project: actionGrant("write_project"),
+            delete_project: actionGrant("delete_project"),
           },
         },
       ],
@@ -40,9 +40,9 @@ export const projectsCatalogue: ScopeCatalogue = {
           path: APP_PATH,
           resource: "app",
           actions: {
-            read_app: actionGrant("read_app", "apps:read"),
-            write_app: actionGrant("write_app", "apps:write"),
-            delete_app: actionGrant("delete_app", "apps:delete"),
+            read_app: actionGrant("read_app"),
+            write_app: actionGrant("write_app"),
+            delete_app: actionGrant("delete_app"),
           },
         },
       ],
@@ -57,9 +57,9 @@ export const projectsCatalogue: ScopeCatalogue = {
           path: ENVIRONMENT_PATH,
           resource: "environment",
           actions: {
-            read_environment: actionGrant("read_environment", "environments:read"),
-            write_environment: actionGrant("write_environment", "environments:write"),
-            delete_environment: actionGrant("delete_environment", "environments:delete"),
+            read_environment: actionGrant("read_environment"),
+            write_environment: actionGrant("write_environment"),
+            delete_environment: actionGrant("delete_environment"),
           },
         },
         {
@@ -68,18 +68,9 @@ export const projectsCatalogue: ScopeCatalogue = {
           path: `${ENVIRONMENT_PATH}/variables/*`,
           resource: "variable",
           actions: {
-            read_environment_variable: actionGrant(
-              "read_environment_variable",
-              "environment_variables:read",
-            ),
-            write_environment_variable: actionGrant(
-              "write_environment_variable",
-              "environment_variables:write",
-            ),
-            delete_environment_variable: actionGrant(
-              "delete_environment_variable",
-              "environment_variables:delete",
-            ),
+            read_environment_variable: actionGrant("read_environment_variable"),
+            write_environment_variable: actionGrant("write_environment_variable"),
+            delete_environment_variable: actionGrant("delete_environment_variable"),
           },
         },
         {
@@ -88,9 +79,9 @@ export const projectsCatalogue: ScopeCatalogue = {
           path: `${ENVIRONMENT_PATH}/domains/*`,
           resource: "domain",
           actions: {
-            read_domain: actionGrant("read_domain", "domains:read"),
-            write_domain: actionGrant("write_domain", "domains:write"),
-            delete_domain: actionGrant("delete_domain", "domains:delete"),
+            read_domain: actionGrant("read_domain"),
+            write_domain: actionGrant("write_domain"),
+            delete_domain: actionGrant("delete_domain"),
           },
         },
       ],
@@ -105,9 +96,9 @@ export const projectsCatalogue: ScopeCatalogue = {
           path: DEPLOYMENT_PATH,
           resource: "deployment",
           actions: {
-            read_deployment: actionGrant("read_deployment", "deployments:read"),
-            write_deployment: actionGrant("write_deployment", "deployments:write"),
-            delete_deployment: actionGrant("delete_deployment", "deployments:delete"),
+            read_deployment: actionGrant("read_deployment"),
+            write_deployment: actionGrant("write_deployment"),
+            delete_deployment: actionGrant("delete_deployment"),
           },
         },
         {
@@ -116,7 +107,7 @@ export const projectsCatalogue: ScopeCatalogue = {
           path: `${DEPLOYMENT_PATH}/logs`,
           resource: "deployment_log",
           actions: {
-            read_deployment_logs: actionGrant("read_deployment_logs", "deployment_logs:read"),
+            read_deployment_logs: actionGrant("read_deployment_logs"),
           },
         },
       ],
@@ -131,7 +122,7 @@ export const projectsCatalogue: ScopeCatalogue = {
           path: `${ENVIRONMENT_PATH}/gateway/logs`,
           resource: "gateway_log",
           actions: {
-            read_gateway_logs: actionGrant("read_gateway_logs", "gateway_logs:read"),
+            read_gateway_logs: actionGrant("read_gateway_logs"),
           },
         },
         {
@@ -140,9 +131,9 @@ export const projectsCatalogue: ScopeCatalogue = {
           path: `${ENVIRONMENT_PATH}/gateway/policies/*`,
           resource: "gateway_policy",
           actions: {
-            read_gateway_policy: actionGrant("read_gateway_policy", "gateway_policies:read"),
-            write_gateway_policy: actionGrant("write_gateway_policy", "gateway_policies:write"),
-            delete_gateway_policy: actionGrant("delete_gateway_policy", "gateway_policies:delete"),
+            read_gateway_policy: actionGrant("read_gateway_policy"),
+            write_gateway_policy: actionGrant("write_gateway_policy"),
+            delete_gateway_policy: actionGrant("delete_gateway_policy"),
           },
         },
       ],
@@ -157,9 +148,9 @@ export const projectsCatalogue: ScopeCatalogue = {
           path: KEYSPACE_PATH,
           resource: "keyspace",
           actions: {
-            read_keyspace: actionGrant("read_keyspace", "keyspaces:read"),
-            write_keyspace: actionGrant("write_keyspace", "keyspaces:write"),
-            delete_keyspace: actionGrant("delete_keyspace", "keyspaces:delete"),
+            read_keyspace: actionGrant("read_keyspace"),
+            write_keyspace: actionGrant("write_keyspace"),
+            delete_keyspace: actionGrant("delete_keyspace"),
           },
         },
         {
@@ -168,7 +159,7 @@ export const projectsCatalogue: ScopeCatalogue = {
           path: `${KEYSPACE_PATH}/logs`,
           resource: "keyspace_log",
           actions: {
-            read_keyspace_logs: actionGrant("read_keyspace_logs", "keyspace_logs:read"),
+            read_keyspace_logs: actionGrant("read_keyspace_logs"),
           },
         },
         {
@@ -177,11 +168,11 @@ export const projectsCatalogue: ScopeCatalogue = {
           path: `${KEYSPACE_PATH}/keys/*`,
           resource: "key",
           actions: {
-            read_key: actionGrant("read_key", "keys:read"),
-            write_key: actionGrant("write_key", "keys:write"),
-            delete_key: actionGrant("delete_key", "keys:delete"),
-            decrypt_key: actionGrant("decrypt_key", "keys:decrypt"),
-            verify_key: actionGrant("verify_key", "keys:verify"),
+            read_key: actionGrant("read_key"),
+            write_key: actionGrant("write_key"),
+            delete_key: actionGrant("delete_key"),
+            decrypt_key: actionGrant("decrypt_key"),
+            verify_key: actionGrant("verify_key"),
           },
         },
       ],
@@ -196,22 +187,10 @@ export const projectsCatalogue: ScopeCatalogue = {
           path: NAMESPACE_PATH,
           resource: "ratelimit_namespace",
           actions: {
-            read_ratelimit_namespace: actionGrant(
-              "read_ratelimit_namespace",
-              "ratelimit_namespaces:read",
-            ),
-            write_ratelimit_namespace: actionGrant(
-              "write_ratelimit_namespace",
-              "ratelimit_namespaces:write",
-            ),
-            delete_ratelimit_namespace: actionGrant(
-              "delete_ratelimit_namespace",
-              "ratelimit_namespaces:delete",
-            ),
-            limit_ratelimit_namespace: actionGrant(
-              "limit_ratelimit_namespace",
-              "ratelimit_namespaces:limit",
-            ),
+            read_ratelimit_namespace: actionGrant("read_ratelimit_namespace"),
+            write_ratelimit_namespace: actionGrant("write_ratelimit_namespace"),
+            delete_ratelimit_namespace: actionGrant("delete_ratelimit_namespace"),
+            limit_ratelimit_namespace: actionGrant("limit_ratelimit_namespace"),
           },
         },
         {
@@ -220,7 +199,7 @@ export const projectsCatalogue: ScopeCatalogue = {
           path: `${NAMESPACE_PATH}/logs`,
           resource: "ratelimit_log",
           actions: {
-            read_ratelimit_logs: actionGrant("read_ratelimit_logs", "ratelimit_logs:read"),
+            read_ratelimit_logs: actionGrant("read_ratelimit_logs"),
           },
         },
         {
@@ -229,18 +208,9 @@ export const projectsCatalogue: ScopeCatalogue = {
           path: `${NAMESPACE_PATH}/overrides/*`,
           resource: "ratelimit_override",
           actions: {
-            read_ratelimit_override: actionGrant(
-              "read_ratelimit_override",
-              "ratelimit_overrides:read",
-            ),
-            write_ratelimit_override: actionGrant(
-              "write_ratelimit_override",
-              "ratelimit_overrides:write",
-            ),
-            delete_ratelimit_override: actionGrant(
-              "delete_ratelimit_override",
-              "ratelimit_overrides:delete",
-            ),
+            read_ratelimit_override: actionGrant("read_ratelimit_override"),
+            write_ratelimit_override: actionGrant("write_ratelimit_override"),
+            delete_ratelimit_override: actionGrant("delete_ratelimit_override"),
           },
         },
       ],
@@ -255,9 +225,9 @@ export const projectsCatalogue: ScopeCatalogue = {
           path: `${PROJECT_PATH}/identities/*`,
           resource: "identity",
           actions: {
-            read_identity: actionGrant("read_identity", "identities:read"),
-            write_identity: actionGrant("write_identity", "identities:write"),
-            delete_identity: actionGrant("delete_identity", "identities:delete"),
+            read_identity: actionGrant("read_identity"),
+            write_identity: actionGrant("write_identity"),
+            delete_identity: actionGrant("delete_identity"),
           },
         },
         {
@@ -266,9 +236,9 @@ export const projectsCatalogue: ScopeCatalogue = {
           path: `${PROJECT_PATH}/rbac/roles/*`,
           resource: "role",
           actions: {
-            read_role: actionGrant("read_role", "roles:read"),
-            write_role: actionGrant("write_role", "roles:write"),
-            delete_role: actionGrant("delete_role", "roles:delete"),
+            read_role: actionGrant("read_role"),
+            write_role: actionGrant("write_role"),
+            delete_role: actionGrant("delete_role"),
           },
         },
         {
@@ -277,9 +247,9 @@ export const projectsCatalogue: ScopeCatalogue = {
           path: `${PROJECT_PATH}/rbac/permissions/*`,
           resource: "permission",
           actions: {
-            read_permission: actionGrant("read_permission", "permissions:read"),
-            write_permission: actionGrant("write_permission", "permissions:write"),
-            delete_permission: actionGrant("delete_permission", "permissions:delete"),
+            read_permission: actionGrant("read_permission"),
+            write_permission: actionGrant("write_permission"),
+            delete_permission: actionGrant("delete_permission"),
           },
         },
       ],

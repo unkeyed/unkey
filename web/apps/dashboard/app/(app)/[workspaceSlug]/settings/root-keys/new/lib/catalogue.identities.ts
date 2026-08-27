@@ -16,9 +16,9 @@ export const identitiesCatalogue: ScopeCatalogue = {
           path: "projects/*/identities/*",
           resource: "identity",
           actions: {
-            read_identity: actionGrant("read_identity", "identities:read"),
-            write_identity: actionGrant("write_identity", "identities:write"),
-            delete_identity: actionGrant("delete_identity", "identities:delete"),
+            read_identity: actionGrant("read_identity"),
+            write_identity: actionGrant("write_identity"),
+            delete_identity: actionGrant("delete_identity"),
           },
         },
       ],

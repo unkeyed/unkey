@@ -57,9 +57,9 @@ export const workspaceCatalogue: ScopeCatalogue = {
           path: "github/apps/*",
           resource: "github_app",
           actions: {
-            read_github_app: actionGrant("read_github_app", "github_apps:read"),
-            write_github_app: actionGrant("write_github_app", "github_apps:write"),
-            delete_github_app: actionGrant("delete_github_app", "github_apps:delete"),
+            read_github_app: actionGrant("read_github_app"),
+            write_github_app: actionGrant("write_github_app"),
+            delete_github_app: actionGrant("delete_github_app"),
           },
         },
       ],

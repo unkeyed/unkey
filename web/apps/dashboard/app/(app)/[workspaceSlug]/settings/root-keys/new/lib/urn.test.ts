@@ -10,7 +10,6 @@ import {
   type PermissionRow,
   type PermissionSelection,
   RESOURCE_SCOPES,
-  WORKOS_PERMISSION_SLUGS,
 } from "./catalogue.types";
 import { workspaceCatalogue } from "./catalogue.workspace";
 import { ALL_INSTANCES, newPolicy, setRowActions, supportedRowActions } from "./policy";
@@ -45,8 +44,7 @@ const workspaceGrantMappings = (): string[] =>
     .flatMap((row) =>
       supportedRowActions(row).flatMap((action) =>
         urnActions(row, action).map(
-          (grant) =>
-            `${grant.slug} ${instancePath(grant.path ?? row.path, ALL_INSTANCES)}#${grant.name}`,
+          (grant) => `${instancePath(grant.path ?? row.path, ALL_INSTANCES)}#${grant.name}`,
         ),
       ),
     )
@@ -116,61 +114,60 @@ const projectCatalogUrns = (projectId: string): string[] => [
 ];
 
 describe("urnActions", () => {
-  it("maps every non-admin WorkOS slug to its canonical resource action", () => {
-    expect(WORKOS_PERMISSION_SLUGS).toHaveLength(53);
+  it("maps workspace catalogue actions to canonical resource actions", () => {
     expect(workspaceGrantMappings()).toEqual([
-      "apps:delete projects/*/apps/*#delete_app",
-      "apps:read projects/*/apps/*#read_app",
-      "apps:write projects/*/apps/*#write_app",
-      "deployment_logs:read projects/*/apps/*/environments/*/deployments/*/logs#read_deployment_logs",
-      "deployments:delete projects/*/apps/*/environments/*/deployments/*#delete_deployment",
-      "deployments:read projects/*/apps/*/environments/*/deployments/*#read_deployment",
-      "deployments:write projects/*/apps/*/environments/*/deployments/*#write_deployment",
-      "domains:delete projects/*/apps/*/environments/*/domains/*#delete_domain",
-      "domains:read projects/*/apps/*/environments/*/domains/*#read_domain",
-      "domains:write projects/*/apps/*/environments/*/domains/*#write_domain",
-      "environment_variables:delete projects/*/apps/*/environments/*/variables/*#delete_environment_variable",
-      "environment_variables:read projects/*/apps/*/environments/*/variables/*#read_environment_variable",
-      "environment_variables:write projects/*/apps/*/environments/*/variables/*#write_environment_variable",
-      "environments:delete projects/*/apps/*/environments/*#delete_environment",
-      "environments:read projects/*/apps/*/environments/*#read_environment",
-      "environments:write projects/*/apps/*/environments/*#write_environment",
-      "gateway_logs:read projects/*/apps/*/environments/*/gateway/logs#read_gateway_logs",
-      "gateway_policies:delete projects/*/apps/*/environments/*/gateway/policies/*#delete_gateway_policy",
-      "gateway_policies:read projects/*/apps/*/environments/*/gateway/policies/*#read_gateway_policy",
-      "gateway_policies:write projects/*/apps/*/environments/*/gateway/policies/*#write_gateway_policy",
-      "github_apps:delete github/apps/*#delete_github_app",
-      "github_apps:read github/apps/*#read_github_app",
-      "github_apps:write github/apps/*#write_github_app",
-      "identities:delete projects/*/identities/*#delete_identity",
-      "identities:read projects/*/identities/*#read_identity",
-      "identities:write projects/*/identities/*#write_identity",
-      "keys:decrypt projects/*/keyspaces/*/keys/*#decrypt_key",
-      "keys:delete projects/*/keyspaces/*/keys/*#delete_key",
-      "keys:read projects/*/keyspaces/*/keys/*#read_key",
-      "keys:verify projects/*/keyspaces/*/keys/*#verify_key",
-      "keys:write projects/*/keyspaces/*/keys/*#write_key",
-      "keyspace_logs:read projects/*/keyspaces/*/logs#read_keyspace_logs",
-      "keyspaces:delete projects/*/keyspaces/*#delete_keyspace",
-      "keyspaces:read projects/*/keyspaces/*#read_keyspace",
-      "keyspaces:write projects/*/keyspaces/*#write_keyspace",
-      "permissions:delete projects/*/rbac/permissions/*#delete_permission",
-      "permissions:read projects/*/rbac/permissions/*#read_permission",
-      "permissions:write projects/*/rbac/permissions/*#write_permission",
-      "projects:delete projects/*#delete_project",
-      "projects:read projects/*#read_project",
-      "projects:write projects/*#write_project",
-      "ratelimit_logs:read projects/*/ratelimits/namespaces/*/logs#read_ratelimit_logs",
-      "ratelimit_namespaces:delete projects/*/ratelimits/namespaces/*#delete_ratelimit_namespace",
-      "ratelimit_namespaces:limit projects/*/ratelimits/namespaces/*#limit_ratelimit_namespace",
-      "ratelimit_namespaces:read projects/*/ratelimits/namespaces/*#read_ratelimit_namespace",
-      "ratelimit_namespaces:write projects/*/ratelimits/namespaces/*#write_ratelimit_namespace",
-      "ratelimit_overrides:delete projects/*/ratelimits/namespaces/*/overrides/*#delete_ratelimit_override",
-      "ratelimit_overrides:read projects/*/ratelimits/namespaces/*/overrides/*#read_ratelimit_override",
-      "ratelimit_overrides:write projects/*/ratelimits/namespaces/*/overrides/*#write_ratelimit_override",
-      "roles:delete projects/*/rbac/roles/*#delete_role",
-      "roles:read projects/*/rbac/roles/*#read_role",
-      "roles:write projects/*/rbac/roles/*#write_role",
+      "github/apps/*#delete_github_app",
+      "github/apps/*#read_github_app",
+      "github/apps/*#write_github_app",
+      "projects/*#delete_project",
+      "projects/*#read_project",
+      "projects/*#write_project",
+      "projects/*/apps/*#delete_app",
+      "projects/*/apps/*#read_app",
+      "projects/*/apps/*#write_app",
+      "projects/*/apps/*/environments/*#delete_environment",
+      "projects/*/apps/*/environments/*#read_environment",
+      "projects/*/apps/*/environments/*#write_environment",
+      "projects/*/apps/*/environments/*/deployments/*#delete_deployment",
+      "projects/*/apps/*/environments/*/deployments/*#read_deployment",
+      "projects/*/apps/*/environments/*/deployments/*#write_deployment",
+      "projects/*/apps/*/environments/*/deployments/*/logs#read_deployment_logs",
+      "projects/*/apps/*/environments/*/domains/*#delete_domain",
+      "projects/*/apps/*/environments/*/domains/*#read_domain",
+      "projects/*/apps/*/environments/*/domains/*#write_domain",
+      "projects/*/apps/*/environments/*/gateway/logs#read_gateway_logs",
+      "projects/*/apps/*/environments/*/gateway/policies/*#delete_gateway_policy",
+      "projects/*/apps/*/environments/*/gateway/policies/*#read_gateway_policy",
+      "projects/*/apps/*/environments/*/gateway/policies/*#write_gateway_policy",
+      "projects/*/apps/*/environments/*/variables/*#delete_environment_variable",
+      "projects/*/apps/*/environments/*/variables/*#read_environment_variable",
+      "projects/*/apps/*/environments/*/variables/*#write_environment_variable",
+      "projects/*/identities/*#delete_identity",
+      "projects/*/identities/*#read_identity",
+      "projects/*/identities/*#write_identity",
+      "projects/*/keyspaces/*#delete_keyspace",
+      "projects/*/keyspaces/*#read_keyspace",
+      "projects/*/keyspaces/*#write_keyspace",
+      "projects/*/keyspaces/*/keys/*#decrypt_key",
+      "projects/*/keyspaces/*/keys/*#delete_key",
+      "projects/*/keyspaces/*/keys/*#read_key",
+      "projects/*/keyspaces/*/keys/*#verify_key",
+      "projects/*/keyspaces/*/keys/*#write_key",
+      "projects/*/keyspaces/*/logs#read_keyspace_logs",
+      "projects/*/ratelimits/namespaces/*#delete_ratelimit_namespace",
+      "projects/*/ratelimits/namespaces/*#limit_ratelimit_namespace",
+      "projects/*/ratelimits/namespaces/*#read_ratelimit_namespace",
+      "projects/*/ratelimits/namespaces/*#write_ratelimit_namespace",
+      "projects/*/ratelimits/namespaces/*/logs#read_ratelimit_logs",
+      "projects/*/ratelimits/namespaces/*/overrides/*#delete_ratelimit_override",
+      "projects/*/ratelimits/namespaces/*/overrides/*#read_ratelimit_override",
+      "projects/*/ratelimits/namespaces/*/overrides/*#write_ratelimit_override",
+      "projects/*/rbac/permissions/*#delete_permission",
+      "projects/*/rbac/permissions/*#read_permission",
+      "projects/*/rbac/permissions/*#write_permission",
+      "projects/*/rbac/roles/*#delete_role",
+      "projects/*/rbac/roles/*#read_role",
+      "projects/*/rbac/roles/*#write_role",
     ]);
   });
 
@@ -178,8 +175,8 @@ describe("urnActions", () => {
     const key = rowOf(keyspacesCatalogue, "key");
     const logs = rowOf(keyspacesCatalogue, "keyspace_log");
 
-    expect(urnActions(key, "read_key")).toEqual([{ name: "read_key", slug: "keys:read" }]);
-    expect(urnActions(key, "decrypt_key")).toEqual([{ name: "decrypt_key", slug: "keys:decrypt" }]);
+    expect(urnActions(key, "read_key")).toEqual([{ name: "read_key" }]);
+    expect(urnActions(key, "decrypt_key")).toEqual([{ name: "decrypt_key" }]);
     expect(urnActions(logs, "write_keyspace")).toEqual([]);
   });
 

@@ -16,9 +16,9 @@ export const rbacCatalogue: ScopeCatalogue = {
           path: "projects/*/rbac/roles/*",
           resource: "role",
           actions: {
-            read_role: actionGrant("read_role", "roles:read"),
-            write_role: actionGrant("write_role", "roles:write"),
-            delete_role: actionGrant("delete_role", "roles:delete"),
+            read_role: actionGrant("read_role"),
+            write_role: actionGrant("write_role"),
+            delete_role: actionGrant("delete_role"),
           },
         },
         {
@@ -27,9 +27,9 @@ export const rbacCatalogue: ScopeCatalogue = {
           path: "projects/*/rbac/permissions/*",
           resource: "permission",
           actions: {
-            read_permission: actionGrant("read_permission", "permissions:read"),
-            write_permission: actionGrant("write_permission", "permissions:write"),
-            delete_permission: actionGrant("delete_permission", "permissions:delete"),
+            read_permission: actionGrant("read_permission"),
+            write_permission: actionGrant("write_permission"),
+            delete_permission: actionGrant("delete_permission"),
           },
         },
       ],

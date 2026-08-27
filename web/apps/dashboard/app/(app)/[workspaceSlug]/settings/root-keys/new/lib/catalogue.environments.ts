@@ -21,9 +21,9 @@ export const environmentsCatalogue: ScopeCatalogue = {
           allPath: ENVIRONMENT_ALL_PATH,
           resource: "environment",
           actions: {
-            read_environment: actionGrant("read_environment", "environments:read"),
-            write_environment: actionGrant("write_environment", "environments:write"),
-            delete_environment: actionGrant("delete_environment", "environments:delete"),
+            read_environment: actionGrant("read_environment"),
+            write_environment: actionGrant("write_environment"),
+            delete_environment: actionGrant("delete_environment"),
           },
         },
         {
@@ -33,18 +33,9 @@ export const environmentsCatalogue: ScopeCatalogue = {
           allPath: `${ENVIRONMENT_ALL_PATH}/variables/*`,
           resource: "variable",
           actions: {
-            read_environment_variable: actionGrant(
-              "read_environment_variable",
-              "environment_variables:read",
-            ),
-            write_environment_variable: actionGrant(
-              "write_environment_variable",
-              "environment_variables:write",
-            ),
-            delete_environment_variable: actionGrant(
-              "delete_environment_variable",
-              "environment_variables:delete",
-            ),
+            read_environment_variable: actionGrant("read_environment_variable"),
+            write_environment_variable: actionGrant("write_environment_variable"),
+            delete_environment_variable: actionGrant("delete_environment_variable"),
           },
         },
         {
@@ -54,9 +45,9 @@ export const environmentsCatalogue: ScopeCatalogue = {
           allPath: `${ENVIRONMENT_ALL_PATH}/domains/*`,
           resource: "domain",
           actions: {
-            read_domain: actionGrant("read_domain", "domains:read"),
-            write_domain: actionGrant("write_domain", "domains:write"),
-            delete_domain: actionGrant("delete_domain", "domains:delete"),
+            read_domain: actionGrant("read_domain"),
+            write_domain: actionGrant("write_domain"),
+            delete_domain: actionGrant("delete_domain"),
           },
         },
       ],
@@ -72,9 +63,9 @@ export const environmentsCatalogue: ScopeCatalogue = {
           allPath: `${ENVIRONMENT_ALL_PATH}/deployments/*`,
           resource: "deployment",
           actions: {
-            read_deployment: actionGrant("read_deployment", "deployments:read"),
-            write_deployment: actionGrant("write_deployment", "deployments:write"),
-            delete_deployment: actionGrant("delete_deployment", "deployments:delete"),
+            read_deployment: actionGrant("read_deployment"),
+            write_deployment: actionGrant("write_deployment"),
+            delete_deployment: actionGrant("delete_deployment"),
           },
         },
         {
@@ -84,7 +75,7 @@ export const environmentsCatalogue: ScopeCatalogue = {
           allPath: `${ENVIRONMENT_ALL_PATH}/deployments/*/logs`,
           resource: "deployment_log",
           actions: {
-            read_deployment_logs: actionGrant("read_deployment_logs", "deployment_logs:read"),
+            read_deployment_logs: actionGrant("read_deployment_logs"),
           },
         },
       ],
@@ -100,7 +91,7 @@ export const environmentsCatalogue: ScopeCatalogue = {
           allPath: `${ENVIRONMENT_ALL_PATH}/gateway/logs`,
           resource: "gateway_log",
           actions: {
-            read_gateway_logs: actionGrant("read_gateway_logs", "gateway_logs:read"),
+            read_gateway_logs: actionGrant("read_gateway_logs"),
           },
         },
         {
@@ -110,9 +101,9 @@ export const environmentsCatalogue: ScopeCatalogue = {
           allPath: `${ENVIRONMENT_ALL_PATH}/gateway/policies/*`,
           resource: "gateway_policy",
           actions: {
-            read_gateway_policy: actionGrant("read_gateway_policy", "gateway_policies:read"),
-            write_gateway_policy: actionGrant("write_gateway_policy", "gateway_policies:write"),
-            delete_gateway_policy: actionGrant("delete_gateway_policy", "gateway_policies:delete"),
+            read_gateway_policy: actionGrant("read_gateway_policy"),
+            write_gateway_policy: actionGrant("write_gateway_policy"),
+            delete_gateway_policy: actionGrant("delete_gateway_policy"),
           },
         },
       ],
