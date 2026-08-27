@@ -92,6 +92,15 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
+	variableURN := urn.New().Workspace(principal.WorkspaceID).Project(env.ProjectID).App(env.AppID).Environment(env.ID).Variable("*")
+	variablePermission := rbac.U(variableURN, permissions.WriteEnvironmentVariable{})
+	if ptr.SafeDeref(req.Prune, false) {
+		variablePermission = rbac.And(
+			variablePermission,
+			rbac.U(variableURN, permissions.DeleteEnvironmentVariable{}),
+		)
+	}
+
 	err = principal.Authorize(rbac.Or(
 		rbac.T(rbac.Tuple{
 			ResourceType: rbac.Environment,
@@ -103,10 +112,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			ResourceID:   env.ID,
 			Action:       rbac.SetEnvironmentVariables,
 		}),
-		rbac.U(
-			urn.New().Workspace(principal.WorkspaceID).Project(env.ProjectID).App(env.AppID).Environment(env.ID),
-			permissions.SetEnvironmentVariables{},
-		),
+		variablePermission,
 	))
 	if err != nil {
 		return err
