@@ -39,11 +39,9 @@ import { Result } from "../types/fp.js";
  * **Required Permissions**
  *
  * Your credential must have one of the following permissions:
- * - `api.*.delete_key` (to delete keys in any API)
- * - `api.<api_id>.delete_key` (to delete keys in a specific API)
- * - `unkey:v1:<workspace_id>:keyspaces/* /keys/*#delete_key` (to delete keys in any keyspace)
- * - `unkey:v1:<workspace_id>:keyspaces/<keyspace_id>/keys/*#delete_key` (to delete keys in a specific keyspace)
- * - `unkey:v1:<workspace_id>:keyspaces/<keyspace_id>/keys/<key_id>#delete_key` (to delete a specific key)
+ * - `unkey:v1:<workspace_id>:projects/**#delete_key` (to delete keys in any project)
+ * - `unkey:v1:<workspace_id>:projects/<project_id>/keyspaces/<keyspace_id>/keys/*#delete_key` (to delete keys in a specific keyspace)
+ * - `unkey:v1:<workspace_id>:projects/<project_id>/keyspaces/<keyspace_id>/keys/<key_id>#delete_key` (to delete a specific key)
  */
 export function keysDeleteKey(
   client: UnkeyCore,

@@ -14,7 +14,8 @@ export const permissionNameSchema = z
 // Mirrors the shared permission slug rule in the OpenAPI spec, so a slug
 // created here can always be assigned to a key. Allows dotted slugs
 // (documents.read), wildcards (documents.*), colons (api:read) and leading
-// digits (2fa.read); rejects whitespace. 128 matches permissions.slug.
+// digits (2fa.read); rejects whitespace. The v2 API limits user-defined
+// permission slugs to 128 characters.
 export const permissionSlugPattern = /^[a-zA-Z0-9_:\-.*]+$/;
 
 export const permissionSlugSchema = z

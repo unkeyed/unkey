@@ -81,9 +81,7 @@ properties:
       # dashboard lets users create names with spaces, and unknown names are
       # already rejected by the handler.
       #
-      # 128 matches permissions.slug (varchar(128)) rather than the wider
-      # roles.name column (varchar(512)), so this field does not have to
-      # narrow later when roles start accepting slugs. Keep this value in step
+      # The v2 API limits role names to 128 characters. Keep this value in step
       # with the other role endpoints and the dashboard role editor.
       maxLength: 128
     description: |
@@ -100,7 +98,7 @@ properties:
     items:
       type: string
       minLength: 1
-      # Matches the permissions.slug column (varchar(128)).
+      # The v2 API limits user-defined permission slugs to 128 characters.
       maxLength: 128
       # Slugs are machine identifiers, so unlike role names they do carry a
       # pattern. The character set covers what customers actually create:

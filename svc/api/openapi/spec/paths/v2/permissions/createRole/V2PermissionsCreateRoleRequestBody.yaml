@@ -8,10 +8,8 @@ properties:
     # No character pattern: role names are human-readable labels today and the
     # dashboard lets users create names with spaces.
     #
-    # 128 matches permissions.slug (varchar(128)) rather than the wider
-    # roles.name column (varchar(512)), so this field does not have to narrow
-    # later when roles start accepting slugs. Keep this value in step with the
-    # other role endpoints and the dashboard role editor.
+    # The v2 API limits role names to 128 characters. Keep this value in step
+    # with the other role endpoints and the dashboard role editor.
     maxLength: 128
     description: |
       The unique name for this role. Must be unique within your workspace and clearly indicate the role's purpose. Use descriptive names like 'admin', 'editor', or 'Billing Manager'.

@@ -26,6 +26,8 @@ func TestRemoveEnvironmentVariablesForbidden(t *testing.T) {
 	}{
 		{name: "wildcard permission", permissions: []string{"environment.*.remove_environment_variables"}, shouldPass: true},
 		{name: "specific permission", permissions: []string{fmt.Sprintf("environment.%s.remove_environment_variables", env.environmentID)}, shouldPass: true},
+		{name: "canonical delete", permissions: []string{fmt.Sprintf("unkey:v1:%s:projects/%s/apps/%s/environments/%s/variables/*#delete_environment_variable", env.workspaceID, env.projectID, env.appID, env.environmentID)}, shouldPass: true},
+		{name: "canonical write is not enough", permissions: []string{fmt.Sprintf("unkey:v1:%s:projects/%s/apps/%s/environments/%s/variables/*#write_environment_variable", env.workspaceID, env.projectID, env.appID, env.environmentID)}, shouldPass: false},
 		{name: "permission and more", permissions: []string{"some.other.permission", "environment.*.remove_environment_variables"}, shouldPass: true},
 		{name: "update action is not enough", permissions: []string{"environment.*.update_environment"}, shouldPass: false},
 		{name: "read action is not enough", permissions: []string{"environment.*.read_environment"}, shouldPass: false},

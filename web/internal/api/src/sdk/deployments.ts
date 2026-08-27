@@ -191,9 +191,10 @@ export class Deployments extends ClientSDK {
    *
    * **Required Permissions**
    *
-   * Your root key must have one of the following permissions:
-   * - `environment.*.start_deployment` (to start deployments in any environment)
-   * - `environment.<environment_id>.start_deployment` (to start deployments in a specific environment)
+   * Your credential must have one of the following permissions:
+   * - `unkey:v1:<workspace_id>:projects/**#write_deployment` (to start deployments in any project)
+   * - `unkey:v1:<workspace_id>:projects/<project_id>/apps/<app_id>/environments/<environment_id>/deployments/*#write_deployment` (to start deployments in a specific environment)
+   * - `unkey:v1:<workspace_id>:projects/<project_id>/apps/<app_id>/environments/<environment_id>/deployments/<deployment_id>#write_deployment` (to start a specific deployment)
    */
   async startDeployment(
     request: components.V2DeploymentsStartDeploymentRequestBody,
@@ -223,9 +224,10 @@ export class Deployments extends ClientSDK {
    *
    * **Required Permissions**
    *
-   * Your root key must have one of the following permissions:
-   * - `environment.*.stop_deployment` (to stop deployments in any environment)
-   * - `environment.<environment_id>.stop_deployment` (to stop deployments in a specific environment)
+   * Your credential must have one of the following permissions:
+   * - `unkey:v1:<workspace_id>:projects/**#write_deployment` (to stop deployments in any project)
+   * - `unkey:v1:<workspace_id>:projects/<project_id>/apps/<app_id>/environments/<environment_id>/deployments/*#write_deployment` (to stop deployments in a specific environment)
+   * - `unkey:v1:<workspace_id>:projects/<project_id>/apps/<app_id>/environments/<environment_id>/deployments/<deployment_id>#write_deployment` (to stop a specific deployment)
    */
   async stopDeployment(
     request: components.V2DeploymentsStopDeploymentRequestBody,

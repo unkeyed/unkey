@@ -10,7 +10,6 @@ import (
 
 	"github.com/unkeyed/unkey/internal/services/auditlogs"
 	"github.com/unkeyed/unkey/internal/services/caches"
-	"github.com/unkeyed/unkey/svc/api/internal/projects"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 
 	"github.com/unkeyed/unkey/pkg/auditlog"
@@ -115,10 +114,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	projectID, err := projects.EnsureDefaultProject(ctx, h.DB.RW(), principal.WorkspaceID)
-	if err != nil {
-		return err
-	}
+	projectID := api.KeyAuth.ProjectID
 
 	migration, err := db.Query.FindKeyMigrationByID(ctx, h.DB.RO(), db.FindKeyMigrationByIDParams{ID: req.MigrationId, WorkspaceID: principal.WorkspaceID})
 	if err != nil {
@@ -304,6 +300,13 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			}
 
 			for _, identity := range identities {
+				if identity.ProjectID != projectID {
+					return fault.New("identity not found",
+						fault.Code(codes.Data.Identity.NotFound.URN()),
+						fault.Internal("identity belongs to a different project"),
+						fault.Public(fmt.Sprintf("Identity '%s' was not found.", identity.ExternalID)),
+					)
+				}
 				externalIdToIdentityId[identity.ExternalID] = &identity.ID
 			}
 		}
@@ -311,6 +314,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		if len(permissionsToFind) > 0 {
 			permissions, err := db.Query.FindPermissionsBySlugs(ctx, tx, db.FindPermissionsBySlugsParams{
 				WorkspaceID: principal.WorkspaceID,
+				ProjectID:   projectID,
 				Slugs:       permissionsToFind,
 			})
 			if err != nil && !db.IsNotFound(err) {
@@ -329,6 +333,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		if len(rolesToFind) > 0 {
 			roles, err := db.Query.FindRolesByNames(ctx, tx, db.FindRolesByNamesParams{
 				WorkspaceID: principal.WorkspaceID,
+				ProjectID:   projectID,
 				Names:       rolesToFind,
 			})
 			if err != nil && !db.IsNotFound(err) {

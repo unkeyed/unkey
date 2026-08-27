@@ -10,6 +10,7 @@ import (
 
 const (
 	permTestWorkspaceID = "ws_test"
+	permTestProjectID   = "proj_test"
 	permTestKeyspaceID  = "ks_test"
 	permTestAPIID       = "api_test"
 )
@@ -27,8 +28,8 @@ func permAllows(t *testing.T, query rbac.PermissionQuery, grants ...string) bool
 // TestReadAnalyticsPermissionsGrants pins the analytics requirement, which is
 // defined locally because v2_analytics_get_verifications has no query object to
 // borrow. The URN case is the important one: that endpoint never evaluates URNs,
-// so a keyspace-scoped URN grant must not let a caller mint a capability it could
-// not exercise itself.
+// so a keyspace log URN grant must not let a caller mint a capability it cannot
+// exercise itself.
 func TestReadAnalyticsPermissionsGrants(t *testing.T) {
 	query := readAnalyticsPermissions(permTestAPIID)
 
@@ -37,6 +38,11 @@ func TestReadAnalyticsPermissionsGrants(t *testing.T) {
 	require.False(t, permAllows(t, query, "api.api_other.read_analytics"))
 	require.False(t, permAllows(t, query))
 
-	keyspaceURNGrant := urn.New().Workspace(permTestWorkspaceID).Keyspace(permTestKeyspaceID).String() + "#read_analytics"
+	keyspaceURNGrant := urn.New().
+		Workspace(permTestWorkspaceID).
+		Project(permTestProjectID).
+		Keyspace(permTestKeyspaceID).
+		Logs().
+		String() + "#read_keyspace_logs"
 	require.False(t, permAllows(t, query, keyspaceURNGrant))
 }

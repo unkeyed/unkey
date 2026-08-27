@@ -8,6 +8,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
+	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_identities_delete_identity"
 )
@@ -21,6 +22,11 @@ func TestDeleteIdentityForbidden(t *testing.T) {
 	}
 
 	h.Register(route)
+	externalID := uid.New(uid.TestPrefix)
+	h.CreateIdentity(seed.CreateIdentityRequest{
+		WorkspaceID: h.Resources().UserWorkspace.ID,
+		ExternalID:  externalID,
+	})
 
 	t.Run("insufficient permissions - no permissions", func(t *testing.T) {
 		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID) // No permissions
@@ -29,7 +35,7 @@ func TestDeleteIdentityForbidden(t *testing.T) {
 			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
 		}
 
-		req := handler.Request{Identity: uid.New("test")}
+		req := handler.Request{Identity: externalID}
 		res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, headers, req)
 		require.Equal(t, http.StatusForbidden, res.Status, "expected 403, sent: %+v, received: %s", req, res.RawBody)
 		require.NotNil(t, res.Body)
@@ -48,7 +54,7 @@ func TestDeleteIdentityForbidden(t *testing.T) {
 			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
 		}
 
-		req := handler.Request{Identity: uid.New("test")}
+		req := handler.Request{Identity: externalID}
 		res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, headers, req)
 		require.Equal(t, http.StatusForbidden, res.Status, "expected 403, sent: %+v, received: %s", req, res.RawBody)
 		require.NotNil(t, res.Body)
@@ -67,7 +73,7 @@ func TestDeleteIdentityForbidden(t *testing.T) {
 			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
 		}
 
-		req := handler.Request{Identity: uid.New("test")}
+		req := handler.Request{Identity: externalID}
 		res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, headers, req)
 		require.Equal(t, http.StatusForbidden, res.Status, "expected 403, sent: %+v, received: %s", req, res.RawBody)
 		require.NotNil(t, res.Body)
@@ -86,7 +92,7 @@ func TestDeleteIdentityForbidden(t *testing.T) {
 			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
 		}
 
-		req := handler.Request{Identity: uid.New("test")}
+		req := handler.Request{Identity: externalID}
 		res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, headers, req)
 		require.Equal(t, http.StatusForbidden, res.Status, "expected 403, sent: %+v, received: %s", req, res.RawBody)
 		require.NotNil(t, res.Body)
@@ -105,7 +111,7 @@ func TestDeleteIdentityForbidden(t *testing.T) {
 			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
 		}
 
-		req := handler.Request{Identity: uid.New("test")}
+		req := handler.Request{Identity: externalID}
 		res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, headers, req)
 		require.Equal(t, http.StatusForbidden, res.Status, "expected 403, sent: %+v, received: %s", req, res.RawBody)
 		require.NotNil(t, res.Body)
@@ -128,7 +134,7 @@ func TestDeleteIdentityForbidden(t *testing.T) {
 		}
 
 		req := handler.Request{
-			Identity: uid.New("test"),
+			Identity: externalID,
 		}
 		res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, headers, req)
 		require.Equal(t, http.StatusForbidden, res.Status, "expected 403, sent: %+v, received: %s", req, res.RawBody)
@@ -148,7 +154,7 @@ func TestDeleteIdentityForbidden(t *testing.T) {
 			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
 		}
 
-		req := handler.Request{Identity: uid.New("test")}
+		req := handler.Request{Identity: externalID}
 		res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, headers, req)
 		require.Equal(t, http.StatusForbidden, res.Status, "expected 403, sent: %+v, received: %s", req, res.RawBody)
 		require.NotNil(t, res.Body)

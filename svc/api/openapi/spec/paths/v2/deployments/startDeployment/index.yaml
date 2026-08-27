@@ -16,9 +16,10 @@ post:
 
     **Required Permissions**
 
-    Your root key must have one of the following permissions:
-    - `environment.*.start_deployment` (to start deployments in any environment)
-    - `environment.<environment_id>.start_deployment` (to start deployments in a specific environment)
+    Your credential must have one of the following permissions:
+    - `unkey:v1:<workspace_id>:projects/**#write_deployment` (to start deployments in any project)
+    - `unkey:v1:<workspace_id>:projects/<project_id>/apps/<app_id>/environments/<environment_id>/deployments/*#write_deployment` (to start deployments in a specific environment)
+    - `unkey:v1:<workspace_id>:projects/<project_id>/apps/<app_id>/environments/<environment_id>/deployments/<deployment_id>#write_deployment` (to start a specific deployment)
   operationId: deployments.startDeployment
   x-speakeasy-name-override: startDeployment
   security:
@@ -66,7 +67,7 @@ post:
     "404":
       description: |
         Not Found - The deployment does not exist in your workspace, or your
-        root key lacks the `start_deployment` permission for it. Both cases
+        credential lacks the `write_deployment` permission for it. Both cases
         return the same response, so deployment existence is never revealed.
       content:
         application/json:

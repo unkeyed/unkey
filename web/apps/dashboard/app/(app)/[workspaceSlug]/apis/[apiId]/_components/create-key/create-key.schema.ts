@@ -259,9 +259,8 @@ export const expirationSchema = z.object({
 });
 
 // Mirrors keys.createKey in the OpenAPI spec. Role names carry no character
-// restriction, so names with spaces round-trip; 128 matches permissions.slug
-// so role names do not have to narrow later when roles start accepting slugs.
-// Keep in step with roleNameSchema on the role editor.
+// restriction, so names with spaces round-trip. The v2 API limits role names
+// to 128 characters. Keep in step with roleNameSchema on the role editor.
 //
 // Permission slugs are machine identifiers and do carry a pattern. Keep both
 // the pattern and the 128 cap in step with permissionSlugSchema on the

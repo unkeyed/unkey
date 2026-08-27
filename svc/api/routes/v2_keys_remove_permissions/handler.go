@@ -78,8 +78,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	err = principal.Authorize(
 		rbac.Or(
 			rbac.U(
-				urn.New().Workspace(principal.WorkspaceID).Keyspace(key.KeyAuthID).Key(key.ID),
-				permissions.UpdateKey{},
+				urn.New().Workspace(principal.WorkspaceID).Project(key.KeyAuth.ProjectID).Keyspace(key.KeyAuthID).Key(key.ID),
+				permissions.WriteKey{},
 			),
 			rbac.And(
 				rbac.Or(
@@ -122,6 +122,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	foundPermissions, err := db.Query.FindPermissionsBySlugs(ctx, h.DB.RO(), db.FindPermissionsBySlugsParams{
 		WorkspaceID: principal.WorkspaceID,
+		ProjectID:   key.KeyAuth.ProjectID,
 		Slugs:       req.Permissions,
 	})
 	if err != nil {

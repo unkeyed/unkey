@@ -1,0 +1,141 @@
+---
+title: "Resource permission catalog"
+description: "Canonical resource hierarchy, paths, and actions"
+---
+
+The resource permission catalog lists every public resource path and its
+supported actions. Every resource is project-scoped except the GitHub app. The
+project is the scope root inside a workspace.
+
+Read [Unkey Resource Names](/architecture/resources/unkey-resource-names) for
+URN format and pattern rules. Read
+[Resource permissions](/architecture/authorization/resource-permissions) for
+permission matching and action rules.
+
+## Canonical catalog
+
+Each resource shows its actions in brackets. The next line shows its canonical
+resource path. Add `unkey:v1:{workspace_id}:` before the path and `#{action}`
+after it to form a permission.
+
+```plaintext
+Workspace
+│
+├── GitHub app [read_github_app, write_github_app, delete_github_app]
+│   github/apps/{github_app_id}
+│
+└── Project [read_project, write_project, delete_project]
+    projects/{project_id}
+    │
+    ├── App [read_app, write_app, delete_app]
+    │   projects/{project_id}/apps/{app_id}
+    │   │
+    │   └── Environment [read_environment, write_environment, delete_environment]
+    │       projects/{project_id}/apps/{app_id}/environments/{environment_id}
+    │       │
+    │       ├── Deployment [read_deployment, write_deployment, delete_deployment]
+    │       │   projects/{project_id}/apps/{app_id}/environments/{environment_id}/deployments/{deployment_id}
+    │       │   │
+    │       │   └── Logs [read_deployment_logs]
+    │       │       projects/{project_id}/apps/{app_id}/environments/{environment_id}/deployments/{deployment_id}/logs
+    │       │
+    │       ├── Domain [read_domain, write_domain, delete_domain]
+    │       │   projects/{project_id}/apps/{app_id}/environments/{environment_id}/domains/{domain_id}
+    │       │
+    │       ├── Environment variable [read_environment_variable, write_environment_variable, delete_environment_variable]
+    │       │   projects/{project_id}/apps/{app_id}/environments/{environment_id}/variables/{variable_id}
+    │       │
+    │       └── Gateway
+    │           projects/{project_id}/apps/{app_id}/environments/{environment_id}/gateway
+    │           │
+    │           ├── Logs [read_gateway_logs]
+    │           │   projects/{project_id}/apps/{app_id}/environments/{environment_id}/gateway/logs
+    │           │
+    │           └── Policy [read_gateway_policy, write_gateway_policy, delete_gateway_policy]
+    │               projects/{project_id}/apps/{app_id}/environments/{environment_id}/gateway/policies/{policy_id}
+    │
+    ├── Identity [read_identity, write_identity, delete_identity]
+    │   projects/{project_id}/identities/{identity_id}
+    │
+    ├── Keyspace [read_keyspace, write_keyspace, delete_keyspace]
+    │   projects/{project_id}/keyspaces/{keyspace_id}
+    │   │
+    │   ├── Logs [read_keyspace_logs]
+    │   │   projects/{project_id}/keyspaces/{keyspace_id}/logs
+    │   │
+    │   └── Key [read_key, write_key, delete_key, decrypt_key, verify_key]
+    │       projects/{project_id}/keyspaces/{keyspace_id}/keys/{key_id}
+    │
+    ├── Rate limit namespace [read_ratelimit_namespace, write_ratelimit_namespace, delete_ratelimit_namespace, limit_ratelimit_namespace]
+    │   projects/{project_id}/ratelimits/namespaces/{namespace_id}
+    │   │
+    │   ├── Logs [read_ratelimit_logs]
+    │   │   projects/{project_id}/ratelimits/namespaces/{namespace_id}/logs
+    │   │
+    │   └── Override [read_ratelimit_override, write_ratelimit_override, delete_ratelimit_override]
+    │       projects/{project_id}/ratelimits/namespaces/{namespace_id}/overrides/{override_id}
+    │
+    └── RBAC
+        projects/{project_id}/rbac
+        │
+        ├── Role [read_role, write_role, delete_role]
+        │   projects/{project_id}/rbac/roles/{role_id}
+        │
+        └── Permission [read_permission, write_permission, delete_permission]
+            projects/{project_id}/rbac/permissions/{permission_id}
+```
+
+`gateway` and `rbac` are path containers. They organize child paths and do not
+have actions.
+
+## Examples
+
+These examples show how concrete IDs and wildcards use the same catalog.
+
+### Create a key
+
+Use `write_key` with a wildcard key ID because the key does not exist yet.
+
+```plaintext
+unkey:v1:ws_123:projects/proj_123/keyspaces/ks_123/keys/*#write_key
+```
+
+### Change an environment
+
+`write_environment` covers settings changes, deployment promotion, and
+deployment rollback.
+
+```plaintext
+unkey:v1:ws_123:projects/proj_123/apps/app_123/environments/env_123#write_environment
+```
+
+### Start or stop a deployment
+
+`write_deployment` covers deployment creation, updates, starts, and stops.
+
+```plaintext
+unkey:v1:ws_123:projects/proj_123/apps/app_123/environments/env_123/deployments/dep_123#write_deployment
+```
+
+### Read deployment logs
+
+Logs are first-class resources. `read_deployment` does not grant access to
+deployment logs. Use `read_deployment_logs`.
+
+```plaintext
+unkey:v1:ws_123:projects/proj_123/apps/app_123/environments/env_123/deployments/dep_123/logs#read_deployment_logs
+```
+
+### Verify a key
+
+Key verification uses `verify_key`, not `read_key`.
+
+```plaintext
+unkey:v1:ws_123:projects/proj_123/keyspaces/ks_123/keys/key_123#verify_key
+```
+
+## Related pages
+
+- [Unkey Resource Names](/architecture/resources/unkey-resource-names)
+- [Resource permissions](/architecture/authorization/resource-permissions)
+- [WorkOS permissions](/architecture/authorization/workos-permissions)

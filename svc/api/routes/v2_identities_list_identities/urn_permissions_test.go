@@ -20,8 +20,8 @@ func TestListIdentities_AuthorizesCanonicalURNPermission(t *testing.T) {
 	h.Register(route)
 
 	workspaceID := h.Resources().UserWorkspace.ID
-	h.CreateIdentity(seed.CreateIdentityRequest{WorkspaceID: workspaceID, ExternalID: uid.New(uid.TestPrefix)})
-	rootKey := h.CreateRootKey(workspaceID, fmt.Sprintf("unkey:v1:%s:projects/*/identities/*#read_identity", workspaceID))
+	identity := h.CreateIdentity(seed.CreateIdentityRequest{WorkspaceID: workspaceID, ExternalID: uid.New(uid.TestPrefix)})
+	rootKey := h.CreateRootKey(workspaceID, fmt.Sprintf("unkey:v1:%s:projects/%s/identities/*#read_identity", workspaceID, identity.ProjectID))
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},

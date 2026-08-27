@@ -43,9 +43,10 @@ import { Result } from "../types/fp.js";
  *
  * **Required Permissions**
  *
- * Your root key must have one of the following permissions:
- * - `environment.*.stop_deployment` (to stop deployments in any environment)
- * - `environment.<environment_id>.stop_deployment` (to stop deployments in a specific environment)
+ * Your credential must have one of the following permissions:
+ * - `unkey:v1:<workspace_id>:projects/**#write_deployment` (to stop deployments in any project)
+ * - `unkey:v1:<workspace_id>:projects/<project_id>/apps/<app_id>/environments/<environment_id>/deployments/*#write_deployment` (to stop deployments in a specific environment)
+ * - `unkey:v1:<workspace_id>:projects/<project_id>/apps/<app_id>/environments/<environment_id>/deployments/<deployment_id>#write_deployment` (to stop a specific deployment)
  *
  * If set, this operation will use {@link Security.rootKey} from the global security.
  */

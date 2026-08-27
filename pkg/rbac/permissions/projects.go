@@ -2,25 +2,19 @@ package permissions
 
 import "github.com/unkeyed/unkey/pkg/urn"
 
-// CreateProject authorizes creating projects in a workspace.
-//
-// Valid resource: urn.Project.
-type CreateProject struct{}
+// ReadProject authorizes reading a project.
+type ReadProject struct{}
 
-func (CreateProject) ActionFor(urn.Project) {}
-func (CreateProject) String() string        { return "create_project" }
+func (ReadProject) ActionFor(urn.Project) {}
+func (ReadProject) String() string        { return "read_project" }
 
-// UpdateProject authorizes updating a specific project.
-//
-// Valid resource: urn.Project.
-type UpdateProject struct{}
+// WriteProject authorizes creating or updating a project.
+type WriteProject struct{}
 
-func (UpdateProject) ActionFor(urn.Project) {}
-func (UpdateProject) String() string        { return "update_project" }
+func (WriteProject) ActionFor(urn.Project) {}
+func (WriteProject) String() string        { return "write_project" }
 
-// DeleteProject authorizes deleting a specific project.
-//
-// Valid resource: urn.Project.
+// DeleteProject authorizes deleting a project.
 type DeleteProject struct{}
 
 func (DeleteProject) ActionFor(urn.Project) {}
