@@ -831,9 +831,13 @@ type Querier interface {
 	//  AND workspace_id = ?
 	//  LIMIT 1
 	FindPermissionBySlugAndWorkspaceID(ctx context.Context, db DBTX, arg FindPermissionBySlugAndWorkspaceIDParams) (Permission, error)
-	//FindPermissionsBySlugs
+	// FindPermissionsBySlugs returns permissions with the requested slugs from one
+	// project. The project filter prevents cross-project key assignments.
 	//
-	//  SELECT pk, id, workspace_id, project_id, name, slug, description, created_at_m, updated_at_m FROM permissions WHERE workspace_id = ? AND slug IN (/*SLICE:slugs*/?)
+	//  SELECT pk, id, workspace_id, project_id, name, slug, description, created_at_m, updated_at_m FROM permissions
+	//  WHERE workspace_id = ?
+	//    AND project_id = ?
+	//    AND slug IN (/*SLICE:slugs*/?)
 	FindPermissionsBySlugs(ctx context.Context, db DBTX, arg FindPermissionsBySlugsParams) ([]Permission, error)
 	// FindPermissionsBySlugsForUpdate locks matching permissions in one project so
 	// role assignment cannot attach permissions owned by another project.
@@ -846,6 +850,14 @@ type Querier interface {
 	//  ORDER BY slug
 	//  FOR UPDATE
 	FindPermissionsBySlugsForUpdate(ctx context.Context, db DBTX, arg FindPermissionsBySlugsForUpdateParams) ([]FindPermissionsBySlugsForUpdateRow, error)
+	// FindPermissionsBySlugsInWorkspace returns permissions with the requested
+	// slugs from any project in one workspace. Use it to detect cross-project slug
+	// conflicts before creating project-scoped permissions.
+	//
+	//  SELECT pk, id, workspace_id, project_id, name, slug, description, created_at_m, updated_at_m FROM permissions
+	//  WHERE workspace_id = ?
+	//    AND slug IN (/*SLICE:slugs*/?)
+	FindPermissionsBySlugsInWorkspace(ctx context.Context, db DBTX, arg FindPermissionsBySlugsInWorkspaceParams) ([]Permission, error)
 	// Resolves the portal mapped to an app within a workspace. Callers that reach a
 	// portal through its app (rather than through an id or slug) use this.
 	//
@@ -1054,10 +1066,22 @@ type Querier interface {
 	//  WHERE role_id = ?
 	//    AND permission_id = ?
 	FindRolePermissionByRoleAndPermissionID(ctx context.Context, db DBTX, arg FindRolePermissionByRoleAndPermissionIDParams) ([]RolesPermission, error)
-	//FindRolesByNames
+	// FindRolesByNames returns roles with the requested names from one project. The
+	// project filter prevents cross-project key assignments.
 	//
-	//  SELECT id, name FROM roles WHERE workspace_id = ? AND name IN (/*SLICE:names*/?)
+	//  SELECT id, name FROM roles
+	//  WHERE workspace_id = ?
+	//    AND project_id = ?
+	//    AND name IN (/*SLICE:names*/?)
 	FindRolesByNames(ctx context.Context, db DBTX, arg FindRolesByNamesParams) ([]FindRolesByNamesRow, error)
+	// FindRolesByNamesInWorkspace returns roles with the requested names from any
+	// project in one workspace. Use it to detect cross-project name conflicts
+	// before creating project-scoped roles.
+	//
+	//  SELECT id, project_id, name FROM roles
+	//  WHERE workspace_id = ?
+	//    AND name IN (/*SLICE:names*/?)
+	FindRolesByNamesInWorkspace(ctx context.Context, db DBTX, arg FindRolesByNamesInWorkspaceParams) ([]FindRolesByNamesInWorkspaceRow, error)
 	//FindVerifiedCustomDomainByAppID
 	//
 	//  SELECT pk, id, workspace_id, project_id, app_id, environment_id, domain, challenge_type, verification_status, verification_token, ownership_verified, cname_verified, target_cname, last_checked_at, check_attempts, verification_error, domain_connect_provider, domain_connect_url, invocation_id, created_at, updated_at FROM custom_domains

@@ -20,7 +20,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/pkg/zen"
-	"github.com/unkeyed/unkey/svc/api/internal/projects"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
@@ -120,13 +119,11 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	projectID, err := projects.EnsureDefaultProject(ctx, h.DB.RW(), principal.WorkspaceID)
-	if err != nil {
-		return err
-	}
+	projectID := key.KeyAuth.ProjectID
 
 	foundPermissions, err := db.Query.FindPermissionsBySlugs(ctx, h.DB.RO(), db.FindPermissionsBySlugsParams{
 		WorkspaceID: principal.WorkspaceID,
+		ProjectID:   projectID,
 		Slugs:       req.Permissions,
 	})
 	if err != nil {

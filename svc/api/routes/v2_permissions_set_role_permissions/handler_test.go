@@ -176,6 +176,7 @@ func TestConcurrentMissingPermission(t *testing.T) {
 
 	permissions, err := db.Query.FindPermissionsBySlugs(t.Context(), h.DB.RO(), db.FindPermissionsBySlugsParams{
 		WorkspaceID: workspace.ID,
+		ProjectID:   roles[0].ProjectID,
 		Slugs:       []string{"concurrent.permission"},
 	})
 	require.NoError(t, err)
