@@ -10,11 +10,12 @@ CREATE TABLE IF NOT EXISTS default.logdrain_deliveries_raw_v1
     `drain_id`     String CODEC(ZSTD(1)),
     `stream`       LowCardinality(String),
 
-    -- Wall-clock completion time and duration of the customer endpoint call.
+    -- Wall-clock completion time of the customer endpoint call.
     `time`         Int64 CODEC(Delta, ZSTD(1)),
     -- 'success' | 'error'.
     `outcome`      LowCardinality(String),
     `events`       Int64,
+    -- Duration of the customer endpoint call in milliseconds.
     `webhook_duration_ms` Int64,
     -- The uncompressed request body size. Headers are not included.
     `request_body_bytes` Int64,
