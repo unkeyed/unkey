@@ -3,7 +3,6 @@
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import type { Deployment } from "@/lib/collections";
 import { queryClient } from "@/lib/collections/client";
-import { withIdempotencyKey } from "@/lib/idempotency";
 import { routes } from "@/lib/navigation/routes";
 import { getErrorMessage, getUnkeyClient } from "@/lib/unkey-client";
 import { useMutation } from "@tanstack/react-query";
@@ -31,12 +30,10 @@ export const RedeployDialog = ({ isOpen, onClose, selectedDeployment }: Redeploy
         environment: selectedDeployment.environmentId,
         deployment: { deploymentId: selectedDeployment.id },
       };
-      const res = await withIdempotencyKey(body, (idempotencyKey) =>
-        getUnkeyClient().deployments.createDeployment({
-          idempotencyKey,
-          v2DeploymentsCreateDeploymentRequestBody: body,
-        }),
-      );
+      const res = await getUnkeyClient().deployments.createDeployment({
+        idempotencyKey: crypto.randomUUID(),
+        v2DeploymentsCreateDeploymentRequestBody: body,
+      });
       return { deploymentId: res.result.data.deploymentId };
     },
     onSuccess: async (data) => {

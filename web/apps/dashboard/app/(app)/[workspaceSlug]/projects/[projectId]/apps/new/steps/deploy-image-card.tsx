@@ -3,7 +3,6 @@
 import { useDeployActionGate } from "@/app/(app)/[workspaceSlug]/projects/_components/hooks/use-deploy-action-gate";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { queryClient } from "@/lib/collections/client";
-import { withIdempotencyKey } from "@/lib/idempotency";
 import { routes } from "@/lib/navigation/routes";
 import { trpc } from "@/lib/trpc/client";
 import { getErrorMessage, getUnkeyClient } from "@/lib/unkey-client";
@@ -47,12 +46,10 @@ export const DeployImageCard = ({
         environment: source.environment,
         image: { dockerImage: source.image },
       };
-      const res = await withIdempotencyKey(body, (idempotencyKey) =>
-        getUnkeyClient().deployments.createDeployment({
-          idempotencyKey,
-          v2DeploymentsCreateDeploymentRequestBody: body,
-        }),
-      );
+      const res = await getUnkeyClient().deployments.createDeployment({
+        idempotencyKey: crypto.randomUUID(),
+        v2DeploymentsCreateDeploymentRequestBody: body,
+      });
       return { deploymentId: res.result.data.deploymentId };
     },
     async onSuccess(data) {

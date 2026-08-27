@@ -7,7 +7,6 @@ import { collection } from "@/lib/collections";
 import { queryClient } from "@/lib/collections/client";
 import { UnsupportedDeployRefError, parseDeployRef } from "@/lib/deploy-ref";
 import { githubUrl } from "@/lib/github-url";
-import { withIdempotencyKey } from "@/lib/idempotency";
 import { routes } from "@/lib/navigation/routes";
 import { trpc } from "@/lib/trpc/client";
 import { getErrorMessage, getUnkeyClient } from "@/lib/unkey-client";
@@ -201,12 +200,10 @@ export const CreateDeploymentButton = ({
         environment: source.environment,
         ...(source.image ? { image: { dockerImage: source.image } } : { git: source.git ?? {} }),
       };
-      const res = await withIdempotencyKey(body, (idempotencyKey) =>
-        getUnkeyClient().deployments.createDeployment({
-          idempotencyKey,
-          v2DeploymentsCreateDeploymentRequestBody: body,
-        }),
-      );
+      const res = await getUnkeyClient().deployments.createDeployment({
+        idempotencyKey: crypto.randomUUID(),
+        v2DeploymentsCreateDeploymentRequestBody: body,
+      });
       return { deploymentId: res.result.data.deploymentId };
     },
     async onSuccess(data) {

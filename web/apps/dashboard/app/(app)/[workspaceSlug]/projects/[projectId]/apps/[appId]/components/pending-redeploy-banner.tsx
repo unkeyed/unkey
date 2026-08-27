@@ -7,7 +7,6 @@ import {
   dismissSettingsBanner,
   useSettingsBannerVisible,
 } from "@/lib/collections/deploy/environment-settings";
-import { withIdempotencyKey } from "@/lib/idempotency";
 import { routes } from "@/lib/navigation/routes";
 import { getErrorMessage, getUnkeyClient } from "@/lib/unkey-client";
 import { cn } from "@/lib/utils";
@@ -46,12 +45,10 @@ export function PendingRedeployBanner() {
         environment: deployment.environmentId,
         deployment: { deploymentId: deployment.id },
       };
-      const res = await withIdempotencyKey(body, (idempotencyKey) =>
-        getUnkeyClient().deployments.createDeployment({
-          idempotencyKey,
-          v2DeploymentsCreateDeploymentRequestBody: body,
-        }),
-      );
+      const res = await getUnkeyClient().deployments.createDeployment({
+        idempotencyKey: crypto.randomUUID(),
+        v2DeploymentsCreateDeploymentRequestBody: body,
+      });
       return { deploymentId: res.result.data.deploymentId };
     },
     onSuccess: async (data) => {
