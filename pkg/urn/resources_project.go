@@ -9,9 +9,10 @@ import "fmt"
 //	workspace
 //	└── projects/{project_id}
 //	    ├── apps/{app_id}
-//	    └── identities/{identity_id}
-//
-// Projects are owned by a workspace.
+//	    ├── identities/{identity_id}
+//	    ├── keyspaces/{keyspace_id}
+//	    ├── ratelimits/namespaces/{namespace_id}
+//	    └── rbac
 type Project struct {
 	workspaceID string
 	path        string
@@ -45,6 +46,39 @@ func (p Project) App(appID string) App {
 //	└── identities/{identity_id}
 func (p Project) Identity(identityID string) Identity {
 	return Identity{workspaceID: p.workspaceID, path: fmt.Sprintf("%s/identities/%s", p.path, identityID)}
+}
+
+// Keyspace returns builders for keyspace resource paths.
+//
+// Subresource:
+//
+//	projects/{project_id}
+//	└── keyspaces/{keyspace_id}
+func (p Project) Keyspace(keyspaceID string) Keyspace {
+	return Keyspace{workspaceID: p.workspaceID, path: fmt.Sprintf("%s/keyspaces/%s", p.path, keyspaceID)}
+}
+
+// RatelimitNamespace returns builders for rate limit namespace resource paths.
+//
+// Subresource:
+//
+//	projects/{project_id}
+//	└── ratelimits/namespaces/{namespace_id}
+func (p Project) RatelimitNamespace(namespaceID string) RatelimitNamespace {
+	return RatelimitNamespace{
+		workspaceID: p.workspaceID,
+		path:        fmt.Sprintf("%s/ratelimits/namespaces/%s", p.path, namespaceID),
+	}
+}
+
+// RBAC returns builders for RBAC resource paths.
+//
+// Subresource:
+//
+//	projects/{project_id}
+//	└── rbac
+func (p Project) RBAC() projectRBAC {
+	return projectRBAC{workspaceID: p.workspaceID, path: p.path + "/rbac"}
 }
 
 // Any returns a descendant pattern below this project.

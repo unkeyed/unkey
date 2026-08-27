@@ -239,6 +239,31 @@ func TestResourceCatalogHelpers(t *testing.T) {
 	require.Equal(t, "unkey:v1:ws_123:portals/portal_123/**", workspace.Portal("portal_123").Any().String())
 }
 
+// TestProjectResourceCatalogHelpers guarantees the project-scoped builders
+// produce the canonical resource paths for the permission catalog.
+func TestProjectResourceCatalogHelpers(t *testing.T) {
+	t.Parallel()
+
+	workspace := New().Workspace("ws_123")
+	project := workspace.Project("proj_123")
+	environment := project.App("app_123").Environment("env_123")
+	keyspace := project.Keyspace("ks_123")
+	namespace := project.RatelimitNamespace("ns_123")
+
+	require.Equal(t, "unkey:v1:ws_123:github/apps/gh_123", workspace.GitHubApp("gh_123").String())
+	require.Equal(t, "unkey:v1:ws_123:projects/proj_123/keyspaces/ks_123", keyspace.String())
+	require.Equal(t, "unkey:v1:ws_123:projects/proj_123/keyspaces/ks_123/logs", keyspace.Logs().String())
+	require.Equal(t, "unkey:v1:ws_123:projects/proj_123/keyspaces/ks_123/keys/key_123", keyspace.Key("key_123").String())
+	require.Equal(t, "unkey:v1:ws_123:projects/proj_123/ratelimits/namespaces/ns_123", namespace.String())
+	require.Equal(t, "unkey:v1:ws_123:projects/proj_123/ratelimits/namespaces/ns_123/logs", namespace.Logs().String())
+	require.Equal(t, "unkey:v1:ws_123:projects/proj_123/ratelimits/namespaces/ns_123/overrides/ov_123", namespace.Override("ov_123").String())
+	require.Equal(t, "unkey:v1:ws_123:projects/proj_123/rbac/roles/role_123", project.RBAC().Role("role_123").String())
+	require.Equal(t, "unkey:v1:ws_123:projects/proj_123/rbac/permissions/perm_123", project.RBAC().Permission("perm_123").String())
+	require.Equal(t, "unkey:v1:ws_123:projects/proj_123/apps/app_123/environments/env_123/variables/var_123", environment.Variable("var_123").String())
+	require.Equal(t, "unkey:v1:ws_123:projects/proj_123/apps/app_123/environments/env_123/deployments/dep_123/logs", environment.Deployment("dep_123").Logs().String())
+	require.Equal(t, "unkey:v1:ws_123:projects/proj_123/apps/app_123/environments/env_123/gateway/logs", environment.Gateway().Logs().String())
+}
+
 // TestV1Covers_OnlySupportedWildcardsExpandScope guarantees "*" matches one
 // path segment, trailing "**" is the only descendant wildcard, and workspaces
 // must match exactly.

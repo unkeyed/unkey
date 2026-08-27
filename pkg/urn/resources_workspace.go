@@ -9,6 +9,7 @@ import "fmt"
 //	workspace
 //	├── team
 //	├── billing
+//	├── github/apps/{github_app_id}
 //	├── keyspaces/{keyspace_id}
 //	├── ratelimits/namespaces/{namespace_id}
 //	├── rbac
@@ -35,6 +36,16 @@ type workspace struct {
 //	└── billing
 func (w workspace) Billing() billing {
 	return billing{workspaceID: w.workspaceID, path: "billing"}
+}
+
+// GitHubApp returns a GitHub app resource path.
+//
+// Subresource:
+//
+//	workspace
+//	└── github/apps/{github_app_id}
+func (w workspace) GitHubApp(githubAppID string) GitHubApp {
+	return GitHubApp{workspaceID: w.workspaceID, path: fmt.Sprintf("github/apps/%s", githubAppID)}
 }
 
 // Keyspace returns builders for keyspace resource paths.

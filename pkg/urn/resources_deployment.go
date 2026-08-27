@@ -11,6 +11,7 @@ import "fmt"
 //	    └── apps/{app_id}
 //	        └── environments/{environment_id}
 //	            └── deployments/{deployment_id}
+//	                └── logs
 type Deployment struct {
 	workspaceID string
 	path        string
@@ -24,6 +25,16 @@ type Deployment struct {
 //	└── deployments/{deployment_id}
 func (d Deployment) String() string {
 	return V1{WorkspaceID: d.workspaceID, Resource: d.path}.String()
+}
+
+// Logs returns the deployment log resource path.
+//
+// Subresource:
+//
+//	deployments/{deployment_id}
+//	└── logs
+func (d Deployment) Logs() DeploymentLogs {
+	return DeploymentLogs{workspaceID: d.workspaceID, path: d.path + "/logs"}
 }
 
 // Instance returns a deployment instance resource path.
@@ -45,4 +56,24 @@ func (d Deployment) Any() V1 {
 		WorkspaceID: d.workspaceID,
 		Resource:    d.path + "/**",
 	}
+}
+
+// DeploymentLogs builds deployment log resource paths.
+//
+// Hierarchy:
+//
+//	workspace
+//	└── projects/{project_id}
+//	    └── apps/{app_id}
+//	        └── environments/{environment_id}
+//	            └── deployments/{deployment_id}
+//	                └── logs
+type DeploymentLogs struct {
+	workspaceID string
+	path        string
+}
+
+// String returns this deployment log resource path.
+func (d DeploymentLogs) String() string {
+	return V1{WorkspaceID: d.workspaceID, Resource: d.path}.String()
 }
