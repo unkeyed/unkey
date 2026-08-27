@@ -1,0 +1,218 @@
+---
+title: "Overview"
+description: "How the logdrain service streams audit logs to customer destinations"
+---
+
+The logdrain service (`svc/logdrain`) streams audit logs from ClickHouse to
+customer-owned destinations: generic HTTP endpoints and Axiom.
+Under one valid lease, it sends events in cursor order. It provides
+at-least-once delivery. MySQL stores configuration and delivery progress. The
+service does not use an external queue or workflow engine.
+
+## How the service works
+
+Each process runs a lease service and a delivery engine. The lease service
+assigns drains to the process and keeps those assignments valid. The delivery
+engine polls for assigned drains that are due, then gives them to a worker
+pool.
+
+A worker first confirms its assignment in MySQL. It then reads the drain's
+configuration and cursor, queries the next audit log batch from ClickHouse,
+and sends that batch to the customer destination. After the destination
+acknowledges the batch, the worker advances the cursor in MySQL. A failed
+delivery leaves the cursor unchanged.
+
+MySQL stores the destination configuration as a serialized
+`logdrain.v1.Config` protobuf. Its provider `oneof` keeps HTTP and Axiom fields
+separate. Secret fields contain Vault ciphertext, so MySQL does not store
+plaintext credentials. The Vault ciphertext includes the key ID that the
+service needs for decryption. HTTP header names stay in plaintext. Each HTTP
+header value has separate Vault ciphertext.
+
+The worker does not hold a MySQL transaction while it calls the customer
+destination. A fencing token protects each state read and write instead.
+
+```plaintext
+svc/logdrain process
+├── lease service
+│   └── acquires and refreshes leases in MySQL
+└── delivery engine
+    ├── polls due leases from MySQL
+    └── workers
+        ├── read config and cursor from MySQL
+        ├── read audit logs from ClickHouse
+        ├── send batches to the customer destination
+        └── write delivery state to MySQL and telemetry to ClickHouse
+```
+
+## Delivery cycle
+
+On each poll, the delivery engine finds enabled, active drains assigned to its
+lease ID that have reached `next_attempt_at`. It passes the drain ID and
+fencing token to a worker. The worker reads the drain only if that token still
+identifies a valid lease. If the lease expired or another process acquired it,
+the worker stops.
+
+For a valid lease, the worker reads events between the committed cursor and a
+safe upper time boundary. It sends the events as one batch. After a successful
+request, a fenced write advances the cursor only if the lease is still valid.
+A failed request records the error and retry time without advancing the
+cursor. If a full batch succeeds, the worker reads the next batch in the same
+delivery cycle. A short batch means the worker reached the safe upper time
+boundary. The worker commits that boundary, returns to the pool, and leaves
+new events for a later poll.
+
+```plaintext
+poll due leases
+      │
+      ▼
+enqueue drain ID and fencing token
+      │
+      ▼
+read drain with fencing token ── stale lease ──▶ stop
+      │
+      ▼
+read next ClickHouse batch ───── no events ───▶ advance safe boundary
+      │
+      ▼
+send batch to destination ────── error ───────▶ retry or pause
+      │
+      ▼
+advance cursor with fencing token
+      │
+      ├── full batch ──▶ read next batch
+      └── short batch ─▶ return worker to pool
+```
+
+## Cursor and watermark
+
+Each drain subscribes to one stream. The supported stream is `audit_logs`,
+backed by the ClickHouse table `audit_logs_raw_v1`. The cursor is the pair
+`(inserted_at, event_id)`. MySQL stores it as
+`committed_offset_inserted_at` and `committed_offset_event_id`.
+
+MySQL and ClickHouse must order `event_id` values the same way. ClickHouse
+compares `String` values byte by byte, so the MySQL
+`committed_offset_event_id` column uses the binary `utf8mb4_0900_bin`
+collation. If the two databases used different ordering, they could disagree
+about which event follows the committed cursor and skip or repeat events.
+
+The event ID is necessary because multiple events can have the same
+`inserted_at` value. For example, assume a batch size of two and these events:
+
+| `inserted_at` | `event_id` |
+| --- | --- |
+| 1,000 | `evt_a` |
+| 1,000 | `evt_b` |
+| 1,000 | `evt_c` |
+| 1,001 | `evt_d` |
+
+The first query returns `evt_a` and `evt_b`, then commits the cursor
+`(1000, evt_b)`. The next query starts after that pair, so it returns `evt_c`
+before `evt_d`. A cursor that stored only `1000` would start the next query
+after that millisecond and skip `evt_c`.
+
+A full batch advances the cursor to its last event. A short or empty batch
+advances the cursor to the safe upper time boundary with an empty event ID.
+The empty event ID keeps events at that exact boundary eligible for the next
+cycle.
+
+The upper boundary stays behind the process clock by `WatermarkLag`. This
+settling period gives late ClickHouse inserts time to arrive before the cursor
+passes their timestamp.
+
+## Leasing and fencing
+
+Leases divide drains between service processes. Each process creates one
+startup-unique `lease_id`. The lease service acquires expired leases for that
+ID and refreshes them before they expire. Database time controls acquisition,
+refresh, and expiry.
+
+Each acquisition also creates a new `fencing_token`. The token identifies one
+specific ownership period, even if the same process loses and later reacquires
+the drain. The poller includes this token with each work item. Every delivery
+state read and write requires the same token and a lease that is still valid.
+As a result, stale workers cannot change the cursor, retry time, or failure
+state.
+
+Fencing protects durable state. It cannot cancel a customer request that
+started before the lease expired.
+
+## Disablement, retries, and pauses
+
+The `logdrains.enabled` Boolean records whether the user enabled the drain.
+The separate `logdrain_state.status` field is `active` or
+`paused_by_failure`. The engine processes a drain only when it is enabled and
+active.
+
+A failed delivery leaves the cursor unchanged. This rule applies to destination
+responses, such as HTTP 400 and HTTP 500, and to operational errors, such as a
+timeout or DNS failure. The engine retries all failures.
+
+The engine calculates an exponential delay from `consecutive_failures`. The
+first retry waits 1 minute. Each later failure doubles the delay through 128
+minutes. Later retries wait 4 hours. With the default failure threshold of 50,
+the 49 retry waits span 7 days and 15 minutes.
+
+A destination can request a longer delay. The HTTP sink reads the standard
+`Retry-After` response header. The Axiom sink reads `Retry-After` first. If that
+header is not valid, it reads `X-RateLimit-Reset` as a UTC Unix timestamp in
+seconds. The engine uses the longer of the local delay and the destination
+delay. It limits a destination delay to 24 hours.
+
+The failure update query increments `consecutive_failures` and writes an
+absolute retry time to `next_attempt_at`. It calculates that timestamp from
+MySQL time, not process time. The due-drain queries return the drain only after
+`next_attempt_at` has passed. A successful cursor update resets both fields so
+the next poll can select the drain immediately.
+
+The engine pauses the drain only after it reaches the configured failure
+threshold. Re-enabling a drain or changing its destination makes it active. The
+change resets its failure count, retry time, and last error. It preserves the
+cursor. Delivery resumes from that cursor, subject to the 90-day ClickHouse
+retention period for audit logs.
+
+## Delivery guarantees
+
+The cursor, lease, and fencing token define the delivery semantics:
+
+- Deliver-then-commit gives at-least-once delivery. If the process crashes
+  after the destination acknowledges a batch but before the cursor update,
+  the next cycle sends that batch again.
+- A failure never advances the cursor. The drain retries the same events until
+  the destination accepts them or the drain pauses.
+- Fencing prevents stale workers from changing durable state after lease
+  expiry, configuration changes, deletion, or reacquisition. It cannot cancel
+  an external request after a worker completes its fenced read.
+
+Customers must handle duplicate events. They can use the audit log event `id`
+as a deduplication key.
+
+## Health telemetry
+
+Each destination attempt writes one row to the ClickHouse table
+`logdrain_deliveries_raw_v1`. The row contains the outcome (`success` or
+`error`), event count, `webhook_duration_ms`, `request_body_bytes`, and a
+truncated error message. `request_body_bytes` contains the uncompressed encoded
+body size. It does not include request headers. A failed HTTP response also
+includes the response status and up to 4 KiB of the response body. The duration
+measures only the destination request. The dashboard reads this table for the
+drain health charts and delivery errors.
+
+### Prometheus metrics
+
+The Prometheus endpoint reports scheduling, delivery, and failure health for
+the service.
+
+| Metric name | Type | Labels | Meaning |
+| --- | --- | --- | --- |
+| `unkey_logdrain_drains` | Gauge | `status`, `stream` | Configured drains by status and stream. |
+| `unkey_logdrain_work_queue_depth` | Gauge | None | Items waiting in the work queue. |
+| `unkey_logdrain_work_queue_capacity` | Gauge | None | Work queue capacity. |
+| `unkey_logdrain_inflight_drains` | Gauge | None | Drains queued or processing. |
+| `unkey_logdrain_polls_total` | Counter | `result` | Poll outcomes. |
+| `unkey_logdrain_deliveries_total` | Counter | `kind`, `stream`, `outcome` | Delivery attempt outcomes. |
+| `unkey_logdrain_events_delivered_total` | Counter | `kind`, `stream` | Events in committed deliveries. |
+| `unkey_logdrain_delivery_duration_seconds` | Histogram | `kind`, `stream`, `outcome` | Delivery attempt latency. |
+| `unkey_logdrain_drain_failures_total` | Counter | `stream` | Failures recorded by the engine. |
+| `unkey_logdrain_drains_paused_total` | Counter | `stream` | Drains paused after they reach the failure threshold. |

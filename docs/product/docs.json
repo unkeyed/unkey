@@ -361,6 +361,7 @@
             "icon": "scroll",
             "pages": [
               "audit-log/introduction",
+              "audit-log/log-drains",
               "audit-log/types"
             ]
           },
