@@ -99,9 +99,9 @@ func (s *Service) CreateDeployment(
 // transient ones become CodeInternal.
 func (s *Service) loadDeploymentContext(
 	ctx context.Context,
-	projectID, appID, envSlug string,
+	projectID, appID, env string,
 ) (deploytarget.Target, error) {
-	target, err := deploytarget.Load(ctx, s.db, projectID, appID, envSlug, deploytarget.WithoutSecrets)
+	target, err := deploytarget.Load(ctx, s.db, projectID, appID, env, deploytarget.WithoutSecrets)
 	if err != nil {
 		var terminal *deploytarget.TerminalError
 		if errors.As(err, &terminal) {
@@ -119,16 +119,16 @@ func (s *Service) loadDeploymentContext(
 func (s *Service) ensureEnvironmentDeployable(ctx context.Context, target deploytarget.Target) error {
 	messages := make([]string, 0)
 	for _, v := range deployfail.RuntimeViolations(
-		target.AppRuntimeSettings.Port,
-		target.AppRuntimeSettings.CpuMillicores,
-		target.AppRuntimeSettings.MemoryMib,
+		target.Port,
+		target.CpuMillicores,
+		target.MemoryMib,
 	) {
 		messages = append(messages, v.Message)
 	}
 
 	regional, err := s.db.FindAppRegionalSettingsByAppAndEnv(ctx, db.FindAppRegionalSettingsByAppAndEnvParams{
-		AppID:         target.App.ID,
-		EnvironmentID: target.Env.Environment.ID,
+		AppID:         target.AppID,
+		EnvironmentID: target.EnvironmentID,
 	})
 	if err != nil {
 		return connect.NewError(connect.CodeInternal, fmt.Errorf("failed to load regional settings: %w", err))
@@ -141,7 +141,7 @@ func (s *Service) ensureEnvironmentDeployable(ctx context.Context, target deploy
 		return nil
 	}
 	return connect.NewError(connect.CodeFailedPrecondition,
-		fmt.Errorf("environment %q is not deployable: %s", target.Env.Environment.Slug, strings.Join(messages, "; ")))
+		fmt.Errorf("environment %q is not deployable: %s", target.EnvironmentSlug, strings.Join(messages, "; ")))
 }
 
 // createParams carries everything createAndDeploy needs from a caller.
@@ -211,7 +211,7 @@ func (s *Service) createAndDeploy(ctx context.Context, p createParams) (createRe
 
 	// Per-request command override (e.g. `unkey deploy --command`) wins over
 	// the app's stored default, so the row records what actually runs.
-	command := c.AppRuntimeSettings.Command
+	command := c.Command
 	if len(p.command) > 0 {
 		command = p.command
 	}
@@ -252,9 +252,9 @@ func (s *Service) createAndDeploy(ctx context.Context, p createParams) (createRe
 
 	createReq := &hydrav1.DeploymentCreateRequest{
 		Nonce:           nonce,
-		ProjectId:       c.Project.ID,
-		AppId:           c.App.ID,
-		EnvironmentSlug: c.Env.Environment.Slug,
+		ProjectId:       c.ProjectID,
+		AppId:           c.AppID,
+		EnvironmentSlug: c.EnvironmentSlug,
 		DeployRequest:   deployReq,
 		GitCommit: &ctrlv1.GitCommitInfo{
 			CommitSha:       commit.SHA,
@@ -276,9 +276,9 @@ func (s *Service) createAndDeploy(ctx context.Context, p createParams) (createRe
 		"starting deployment create",
 		"deployment_id", deploymentID,
 		"workspace_id", c.WorkspaceID,
-		"project_id", c.Project.ID,
-		"app_id", c.App.ID,
-		"environment", c.Env.Environment.ID,
+		"project_id", c.ProjectID,
+		"app_id", c.AppID,
+		"environment", c.EnvironmentID,
 		"keyed", p.idempotencyKey != "",
 	)
 
@@ -293,7 +293,7 @@ func (s *Service) createAndDeploy(ctx context.Context, p createParams) (createRe
 	scopedIdempotencyKey := ""
 	if p.idempotencyKey != "" {
 		scopedIdempotencyKey = strings.Join(
-			[]string{c.WorkspaceID, c.App.ID, c.Env.Environment.ID, p.idempotencyKey}, "/",
+			[]string{c.WorkspaceID, c.AppID, c.EnvironmentID, p.idempotencyKey}, "/",
 		)
 	}
 	resp, callErr := hydrav1.NewDeploymentCreateServiceIngressClient(s.restate).

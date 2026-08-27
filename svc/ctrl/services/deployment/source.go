@@ -55,7 +55,7 @@ func (s *Service) resolveSource(
 ) (*hydrav1.DeployRequest, commitFields, error) {
 	// Look up the GitHub repo connection once. Used both to decide source type
 	// (git vs docker) and to resolve missing commit metadata synchronously.
-	repoConn, repoErr := s.db.FindGithubRepoConnectionByAppId(ctx, c.App.ID)
+	repoConn, repoErr := s.db.FindGithubRepoConnectionByAppId(ctx, c.AppID)
 	hasRepoConnection := repoErr == nil
 	if repoErr != nil && !db.IsNotFound(repoErr) {
 		return nil, commitFields{}, connect.NewError(connect.CodeInternal,
@@ -68,7 +68,7 @@ func (s *Service) resolveSource(
 		// Don't touch git metadata — the caller owns whatever they passed.
 		logger.Info("deployment will use prebuilt image",
 			"deployment_id", deploymentID,
-			"app_id", c.App.ID,
+			"app_id", c.AppID,
 			"image", dockerImage)
 
 		return &hydrav1.DeployRequest{
@@ -87,7 +87,7 @@ func (s *Service) resolveSource(
 		// image (a different artifact than what was requested). Reaches the
 		// v2 API as a 412.
 		return nil, commitFields{}, connect.NewError(connect.CodeFailedPrecondition,
-			fmt.Errorf("app %q has no GitHub repo connection; cannot deploy requested git commit", c.App.ID))
+			fmt.Errorf("app %q has no GitHub repo connection; cannot deploy requested git commit", c.AppID))
 
 	case hasRepoConnection:
 		// Git-connected app: fill missing commit metadata synchronously so
@@ -98,7 +98,7 @@ func (s *Service) resolveSource(
 		// may live on a non-default branch: defaulting would record a wrong
 		// branch alongside the right SHA.
 		if commit.SHA == "" && commit.Branch == "" {
-			commit.Branch = defaultBranch(c.App.DefaultBranch)
+			commit.Branch = defaultBranch(c.DefaultBranch)
 		}
 		if err := commit.fillFromGitHub(
 			s.github, repoConn.InstallationID, repoConn.RepositoryFullName,
@@ -107,7 +107,7 @@ func (s *Service) resolveSource(
 			// This error may carry the raw GitHub response body, which can reach
 			// API callers. Log the detail, return a generic reason.
 			logger.Error("failed to resolve git commit metadata",
-				"app_id", c.App.ID,
+				"app_id", c.AppID,
 				"repository", repoConn.RepositoryFullName,
 				"error", err.Error())
 			return nil, commitFields{}, connect.NewError(connect.CodeFailedPrecondition,
@@ -121,9 +121,9 @@ func (s *Service) resolveSource(
 					InstallationId: repoConn.InstallationID,
 					Repository:     repoConn.RepositoryFullName,
 					CommitSha:      commit.SHA,
-					ContextPath:    c.AppBuildSettings.DockerContext,
-					DockerfilePath: c.AppBuildSettings.Dockerfile.String,
-					BuildCommand:   c.AppBuildSettings.BuildCommand.String,
+					ContextPath:    c.DockerContext,
+					DockerfilePath: c.Dockerfile.String,
+					BuildCommand:   c.BuildCommand.String,
 					Branch:         commit.Branch,
 					ForkRepository: commit.ForkRepository,
 					PrNumber:       0,
@@ -134,7 +134,7 @@ func (s *Service) resolveSource(
 	default:
 		// No docker image, no git commit, no repo connection: reuse current
 		// deployment's image.
-		dockerInfo, dockerErr := buildDockerSource(ctx, s.db, c.App, deploymentID)
+		dockerInfo, dockerErr := buildDockerSource(ctx, s.db, c, deploymentID)
 		if dockerErr != nil {
 			return nil, commitFields{}, dockerErr
 		}
@@ -165,19 +165,19 @@ func defaultBranch(appDefault string) string {
 func buildDockerSource(
 	ctx context.Context,
 	database db.Database,
-	app db.App,
+	c deploytarget.Target,
 	deploymentID string,
 ) (dockerSourceInfo, error) {
-	if !app.CurrentDeploymentID.Valid || app.CurrentDeploymentID.String == "" {
+	if !c.CurrentDeploymentID.Valid || c.CurrentDeploymentID.String == "" {
 		return dockerSourceInfo{}, connect.NewError(connect.CodeFailedPrecondition,
-			fmt.Errorf("app %q has no current deployment and no git connection; cannot redeploy", app.ID))
+			fmt.Errorf("app %q has no current deployment and no git connection; cannot redeploy", c.AppID))
 	}
 
-	currentDeployment, err := database.FindDeploymentById(ctx, app.CurrentDeploymentID.String)
+	currentDeployment, err := database.FindDeploymentById(ctx, c.CurrentDeploymentID.String)
 	if err != nil {
 		if db.IsNotFound(err) {
 			return dockerSourceInfo{}, connect.NewError(connect.CodeNotFound,
-				fmt.Errorf("current deployment %q not found", app.CurrentDeploymentID.String))
+				fmt.Errorf("current deployment %q not found", c.CurrentDeploymentID.String))
 		}
 		return dockerSourceInfo{}, connect.NewError(connect.CodeInternal,
 			fmt.Errorf("failed to lookup current deployment: %w", err))
@@ -186,12 +186,12 @@ func buildDockerSource(
 	if !currentDeployment.Image.Valid || currentDeployment.Image.String == "" {
 		return dockerSourceInfo{}, connect.NewError(connect.CodeFailedPrecondition,
 			fmt.Errorf("current deployment %q has no Docker image; cannot redeploy without git connection",
-				app.CurrentDeploymentID.String))
+				c.CurrentDeploymentID.String))
 	}
 
 	logger.Info("deployment will reuse current deployment image",
 		"deployment_id", deploymentID,
-		"current_deployment_id", app.CurrentDeploymentID.String,
+		"current_deployment_id", c.CurrentDeploymentID.String,
 		"image", currentDeployment.Image.String)
 
 	return dockerSourceInfo{

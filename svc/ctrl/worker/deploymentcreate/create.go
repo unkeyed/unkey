@@ -142,10 +142,10 @@ func (s *Service) insertDeployment(
 			ID:                            deploymentID,
 			K8sName:                       uid.DNS1035(12),
 			WorkspaceID:                   target.WorkspaceID,
-			ProjectID:                     target.Project.ID,
-			AppID:                         target.App.ID,
-			EnvironmentID:                 target.Env.Environment.ID,
-			SentinelConfig:                target.AppRuntimeSettings.SentinelConfig,
+			ProjectID:                     target.ProjectID,
+			AppID:                         target.AppID,
+			EnvironmentID:                 target.EnvironmentID,
+			SentinelConfig:                target.SentinelConfig,
 			EncryptedEnvironmentVariables: target.SecretsBlob,
 			Command:                       req.GetDeployRequest().GetCommand(),
 			Status:                        mysqltype.DeploymentsStatusPending,
@@ -157,13 +157,13 @@ func (s *Service) insertDeployment(
 			GitCommitAuthorHandle:         sql.NullString{String: authorHandle, Valid: authorHandle != ""},
 			GitCommitAuthorAvatarUrl:      sql.NullString{String: authorAvatarURL, Valid: authorAvatarURL != ""},
 			GitCommitTimestamp:            sql.NullInt64{Int64: commit.GetTimestamp(), Valid: commit.GetTimestamp() != 0},
-			CpuMillicores:                 target.AppRuntimeSettings.CpuMillicores,
-			MemoryMib:                     target.AppRuntimeSettings.MemoryMib,
-			StorageMib:                    target.AppRuntimeSettings.StorageMib,
-			Port:                          target.AppRuntimeSettings.Port,
-			ShutdownSignal:                db.DeploymentsShutdownSignal(target.AppRuntimeSettings.ShutdownSignal),
-			UpstreamProtocol:              db.DeploymentsUpstreamProtocol(target.AppRuntimeSettings.UpstreamProtocol),
-			Healthcheck:                   target.AppRuntimeSettings.Healthcheck,
+			CpuMillicores:                 target.CpuMillicores,
+			MemoryMib:                     target.MemoryMib,
+			StorageMib:                    target.StorageMib,
+			Port:                          target.Port,
+			ShutdownSignal:                db.DeploymentsShutdownSignal(target.ShutdownSignal),
+			UpstreamProtocol:              db.DeploymentsUpstreamProtocol(target.UpstreamProtocol),
+			Healthcheck:                   target.Healthcheck,
 			PrNumber:                      sql.NullInt64{Int64: 0, Valid: false},
 			ForkRepositoryFullName:        sql.NullString{String: commit.GetForkRepository(), Valid: commit.GetForkRepository() != ""},
 			DeploymentTrigger:             triggerFromProto(req.GetTrigger()),
@@ -196,9 +196,9 @@ func (s *Service) insertDeployment(
 							Name:        "",
 							DisplayName: deploymentID,
 							Meta: map[string]any{
-								"projectId":   target.Project.ID,
-								"appId":       target.App.ID,
-								"environment": target.Env.Environment.Slug,
+								"projectId":   target.ProjectID,
+								"appId":       target.AppID,
+								"environment": target.EnvironmentSlug,
 							},
 						},
 					},
@@ -219,13 +219,13 @@ func (s *Service) insertDeployment(
 			return insertOutcome{}, fmt.Errorf("duplicate key on insert but deployment %s not found: %w", deploymentID, findErr) //nolint:exhaustruct // zero value unused on error
 		}
 		return insertOutcome{
-			EnvironmentID: target.Env.Environment.ID,
+			EnvironmentID: target.EnvironmentID,
 			CreatedAt:     existing.CreatedAt,
 		}, nil
 	}
 
 	return insertOutcome{
-		EnvironmentID: target.Env.Environment.ID,
+		EnvironmentID: target.EnvironmentID,
 		CreatedAt:     now,
 	}, nil
 }

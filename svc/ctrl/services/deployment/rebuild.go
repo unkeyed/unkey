@@ -94,13 +94,7 @@ func (s *Service) Rebuild(ctx context.Context, sourceDeploymentID, reason string
 			fmt.Errorf("source deployment %q has neither a git_commit_sha+repo connection nor an image; nothing to rebuild from", sourceDeploymentID))
 	}
 
-	env, err := s.db.FindEnvironmentById(ctx, src.EnvironmentID)
-	if err != nil {
-		return "", connect.NewError(connect.CodeInternal,
-			fmt.Errorf("failed to lookup environment: %w", err))
-	}
-
-	depCtx, err := s.loadDeploymentContext(ctx, src.ProjectID, src.AppID, env.Slug)
+	depCtx, err := s.loadDeploymentContext(ctx, src.ProjectID, src.AppID, src.EnvironmentID)
 	if err != nil {
 		return "", err
 	}
@@ -130,7 +124,7 @@ func (s *Service) Rebuild(ctx context.Context, sourceDeploymentID, reason string
 		logger.Info("rebuilding deployment from git",
 			"source_deployment_id", sourceDeploymentID,
 			"app_id", src.AppID,
-			"env_slug", env.Slug,
+			"env_slug", depCtx.EnvironmentSlug,
 			"git_commit_sha", src.GitCommitSha.String,
 			"reason", reason,
 		)
@@ -143,7 +137,7 @@ func (s *Service) Rebuild(ctx context.Context, sourceDeploymentID, reason string
 		logger.Info("rebuilding deployment by reusing source image",
 			"source_deployment_id", sourceDeploymentID,
 			"app_id", src.AppID,
-			"env_slug", env.Slug,
+			"env_slug", depCtx.EnvironmentSlug,
 			"image", src.Image.String,
 			"reason", reason,
 		)

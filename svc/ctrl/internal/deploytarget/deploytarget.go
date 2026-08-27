@@ -14,20 +14,18 @@ import (
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/pkg/validation"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
-	"golang.org/x/sync/errgroup"
 	"google.golang.org/protobuf/encoding/protojson"
 )
 
 // Target bundles everything a deployment create needs to know about where it
-// deploys to.
+// deploys to. The embedded row carries only the columns the create writes or
+// branches on, so a create needing another one adds it to the query.
 type Target struct {
-	Project            db.Project
-	WorkspaceID        string
-	Env                db.FindEnvironmentByAppIdAndSlugRow
-	App                db.App
-	AppBuildSettings   db.AppBuildSetting
-	AppRuntimeSettings db.AppRuntimeSetting
-	SecretsBlob        []byte
+	db.FindDeployTargetRow
+
+	// SecretsBlob holds the environment's variables marshaled as a
+	// SecretsConfig. Empty when loaded with WithoutSecrets.
+	SecretsBlob []byte
 }
 
 // TerminalError marks a load failure no retry can fix: the request names
@@ -59,85 +57,35 @@ const (
 	WithoutSecrets SecretsMode = false
 )
 
-// Load resolves the target for a (project, app, environment slug) triple.
-// SecretsBlob is empty when loaded with WithoutSecrets.
-func Load(ctx context.Context, database db.Database, projectID, appID, envSlug string, secrets SecretsMode) (Target, error) {
-	var project db.Project
-	var env db.FindEnvironmentByAppIdAndSlugRow
-	var appWithSettings db.FindAppWithSettingsRow
-
-	// The project lookup shares nothing with the environment and app lookups,
-	// so the two chains run concurrently. The app lookup needs the environment
-	// id, so those two stay sequential.
-	g, gctx := errgroup.WithContext(ctx)
-	g.Go(func() error {
-		var err error
-		project, err = database.FindProjectById(gctx, projectID)
-		if err != nil {
-			if db.IsNotFound(err) {
-				return terminal(connect.CodeNotFound, "project not found: %s", projectID)
-			}
-			return fmt.Errorf("failed to lookup project: %w", err)
-		}
-		return nil
+// Load resolves the target for a (project, app, environment) triple, where the
+// environment is named by id or slug. SecretsBlob is empty when loaded with
+// WithoutSecrets.
+//
+// The query requires the app and environment to sit under the given project,
+// so a Target never mixes records from different projects.
+func Load(ctx context.Context, database db.Database, projectID, appID, env string, secrets SecretsMode) (Target, error) {
+	row, err := database.FindDeployTarget(ctx, db.FindDeployTargetParams{
+		ProjectID:   projectID,
+		AppID:       appID,
+		Environment: env,
 	})
-	g.Go(func() error {
-		var err error
-		env, err = database.FindEnvironmentByAppIdAndSlug(gctx, db.FindEnvironmentByAppIdAndSlugParams{
-			AppID: appID,
-			Slug:  envSlug,
-		})
-		if err != nil {
-			if db.IsNotFound(err) {
-				return terminal(connect.CodeNotFound, "environment '%s' not found for app '%s'", envSlug, appID)
-			}
-			return fmt.Errorf("failed to lookup environment: %w", err)
+	if err != nil {
+		if db.IsNotFound(err) {
+			return Target{}, terminal(connect.CodeNotFound,
+				"no deploy target for project '%s', app '%s', environment '%s'", projectID, appID, env)
 		}
-
-		appWithSettings, err = database.FindAppWithSettings(gctx, db.FindAppWithSettingsParams{
-			ID:            appID,
-			EnvironmentID: env.Environment.ID,
-		})
-		if err != nil && db.IsNotFound(err) {
-			return terminal(connect.CodeNotFound, "app '%s' not found or missing settings", appID)
-		}
-		if err != nil {
-			return fmt.Errorf("failed to lookup app: %w", err)
-		}
-		return nil
-	})
-	if err := g.Wait(); err != nil {
-		return Target{}, err
-	}
-
-	// The three records are resolved independently, so verify they belong to
-	// one project: without this, an internal caller mixing ids would insert a
-	// deployment row with a mismatched (project, app, environment) triple.
-	if appWithSettings.App.ProjectID != project.ID {
-		return Target{}, terminal(connect.CodeInvalidArgument, "app %q does not belong to project %q", appID, project.ID)
-	}
-	if env.Environment.ProjectID != project.ID {
-		return Target{}, terminal(connect.CodeInvalidArgument, "environment %q does not belong to project %q", envSlug, project.ID)
+		return Target{}, fmt.Errorf("failed to lookup deploy target: %w", err)
 	}
 
 	secretsBlob := []byte{}
 	if secrets == WithSecrets {
-		var loadErr error
-		secretsBlob, loadErr = loadSecretsBlob(ctx, database, appWithSettings.App.ID, env.Environment.ID)
-		if loadErr != nil {
-			return Target{}, loadErr
+		secretsBlob, err = loadSecretsBlob(ctx, database, row.AppID, row.EnvironmentID)
+		if err != nil {
+			return Target{}, err
 		}
 	}
 
-	return Target{
-		Project:            project,
-		WorkspaceID:        project.WorkspaceID,
-		Env:                env,
-		App:                appWithSettings.App,
-		AppBuildSettings:   appWithSettings.AppBuildSetting,
-		AppRuntimeSettings: appWithSettings.AppRuntimeSetting,
-		SecretsBlob:        secretsBlob,
-	}, nil
+	return Target{FindDeployTargetRow: row, SecretsBlob: secretsBlob}, nil
 }
 
 // loadSecretsBlob fetches the environment's variables and marshals them into
