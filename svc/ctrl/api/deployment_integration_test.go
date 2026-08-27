@@ -142,23 +142,11 @@ func TestDeployment_Create_IdempotencyKey(t *testing.T) {
 		expectWorkflows(t, 1)
 	})
 
-	// The key is scoped per (workspace, app, environment), so reusing it for
-	// a different target dedupes nothing and creates its own deployment.
-	t.Run("the same key deploys independently per app", func(t *testing.T) {
-		key := uid.New(uid.TestPrefix)
-
-		first, err := create(target, key)
-		require.NoError(t, err)
-
-		otherTarget := seedDeployTarget(ctx, t, harness, workspaceID)
-		second, err := create(otherTarget, key)
-		require.NoError(t, err)
-
-		require.NotEqual(t, first.Msg.GetDeploymentId(), second.Msg.GetDeploymentId())
-		require.False(t, second.Msg.GetReplayed())
-		expectWorkflows(t, 2)
-	})
-
+	// The key is scoped per (workspace, app, environment). The environment is
+	// the narrowest component (an environment belongs to exactly one app in
+	// one workspace), so this is the only scoping test that can isolate a
+	// prefix component: switching app or workspace always switches the
+	// environment id too.
 	t.Run("the same key deploys independently per environment", func(t *testing.T) {
 		key := uid.New(uid.TestPrefix)
 
@@ -171,25 +159,6 @@ func TestDeployment_Create_IdempotencyKey(t *testing.T) {
 
 		require.NotEqual(t, first.Msg.GetDeploymentId(), second.Msg.GetDeploymentId())
 		require.False(t, second.Msg.GetReplayed())
-		expectWorkflows(t, 2)
-	})
-
-	t.Run("same key in another workspace creates its own deployment", func(t *testing.T) {
-		otherWorkspace := harness.Seed.CreateWorkspaceWithLimits(ctx, seed.CreateWorkspaceWithLimitsRequest{
-			RequestsPerMonth:       1_000_000,
-			LogsRetentionDays:      30,
-			AuditLogsRetentionDays: 30,
-			Team:                   false,
-		})
-		otherTarget := seedDeployTarget(ctx, t, harness, otherWorkspace.ID)
-
-		key := uid.New(uid.TestPrefix)
-		first, err := create(target, key)
-		require.NoError(t, err)
-		second, err := create(otherTarget, key)
-		require.NoError(t, err)
-
-		require.NotEqual(t, first.Msg.GetDeploymentId(), second.Msg.GetDeploymentId())
 		expectWorkflows(t, 2)
 	})
 
