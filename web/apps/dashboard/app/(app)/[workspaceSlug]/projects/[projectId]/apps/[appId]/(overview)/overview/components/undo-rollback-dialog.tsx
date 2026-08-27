@@ -2,8 +2,9 @@
 
 import { type Deployment, collection } from "@/lib/collections";
 import { shortenId } from "@/lib/shorten-id";
-import { trpc } from "@/lib/trpc/client";
+import { getErrorMessage, getUnkeyClient } from "@/lib/unkey-client";
 import { cn } from "@/lib/utils";
+import { useMutation } from "@tanstack/react-query";
 import { CodeBranch } from "@unkey/icons";
 import { Badge, Button, DialogContainer, TimestampInfo, toast } from "@unkey/ui";
 import { useEffect, useState } from "react";
@@ -33,7 +34,9 @@ export function UndoRollbackDialog({
     }
   }, [isOpen]);
 
-  const promote = trpc.deploy.deployment.promote.useMutation({
+  const promote = useMutation({
+    mutationFn: (deploymentId: string) =>
+      getUnkeyClient().deployments.promoteDeployment({ deploymentId }),
     onSuccess: () => {
       toast.success("Rollback undone", {
         description: "Automatic production deploys have resumed.",
@@ -50,7 +53,7 @@ export function UndoRollbackDialog({
     },
     onError: (error) => {
       toast.error("Failed to undo rollback", {
-        description: error.message,
+        description: getErrorMessage(error),
       });
     },
   });
@@ -68,7 +71,7 @@ export function UndoRollbackDialog({
           className="w-full rounded-lg"
           loading={promote.isLoading}
           disabled={promote.isLoading}
-          onClick={() => promote.mutate({ targetDeploymentId: selectedId })}
+          onClick={() => promote.mutate(selectedId)}
         >
           Undo rollback
         </Button>

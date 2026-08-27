@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/uid"
@@ -15,10 +16,11 @@ import (
 
 func TestDeleteAppNotFound(t *testing.T) {
 	h := testutil.NewHarness(t)
+	restate, deletes := newRecordingRestate(t)
 
 	route := &handler.Handler{
-		DB:         h.DB,
-		CtrlClient: &testutil.MockAppClient{},
+		DB:      h.DB,
+		Restate: restate,
 	}
 	h.Register(route)
 
@@ -56,4 +58,6 @@ func TestDeleteAppNotFound(t *testing.T) {
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{Project: otherProject.ID, App: otherApp.ID})
 		require.Equal(t, http.StatusNotFound, res.Status, "expected 404 for cross-workspace app, received: %s", res.RawBody)
 	})
+
+	testutil.RequireNoReceive(t, deletes, time.Second)
 }

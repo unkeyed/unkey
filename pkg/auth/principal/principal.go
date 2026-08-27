@@ -126,11 +126,13 @@ func (JWTSource) principalSource() {}
 // This shape is a WIP placeholder for portal auth. It keeps the permissions
 // granted by the portal session until the final portal principal contract lands.
 type PortalSessionSource struct {
-	// SessionID is the portal browser session token ID.
+	// SessionID is the session's non-secret row handle (`ps_`). The access token
+	// that authenticated the request is deliberately absent: it is a bearer
+	// credential, and a principal is logged and traced.
 	SessionID string
 
-	// PortalConfigID is the portal configuration that issued the session.
-	PortalConfigID string
+	// PortalID is the portal that issued the session.
+	PortalID string
 
 	// ExternalID is the caller-assigned end-user identifier for the portal session.
 	ExternalID string
@@ -140,8 +142,10 @@ type PortalSessionSource struct {
 	// these; the request never carries a keyspace or api id.
 	KeyspaceIDs []string
 
-	// Permissions are the capabilities attached to the portal session.
-	Permissions []string
+	// Scopes are the capabilities attached to the portal session, from the
+	// portal's fixed vocabulary. Distinct from Principal.Permissions, which is
+	// the RBAC expansion these produce.
+	Scopes []string
 }
 
 func (PortalSessionSource) principalSource() {}

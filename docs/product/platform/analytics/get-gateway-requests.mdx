@@ -1,0 +1,290 @@
+---
+title: Query gateway request analytics
+description: "Query the requests that Unkey routed to your deployments with the analytics.getGatewayRequests endpoint."
+---
+
+The `POST /v2/analytics.getGatewayRequests` endpoint runs SQL queries on the
+requests that Unkey routed to your deployments. Use it from a trusted backend
+with a root key. Never put a root key in browser code.
+
+For the request and response schemas, see the [API
+reference](/api-reference/analytics/query-gateway-request-data).
+
+## Authenticate the request
+
+Use a root key with the `project.*.read_gateway_requests` permission. This
+permission gives access to the gateway request data of all projects in the
+workspace.
+
+Unkey limits each query to the workspace of the root key. A query cannot read
+the data of a different workspace, and it cannot remove this filter.
+
+## Send a query
+
+Send a JSON object with a `query` string. The response contains
+`meta.requestId`, which identifies the API request, and `data`, which contains
+an array of result objects.
+
+<CodeGroup>
+```sql SQL
+SELECT path, response_status, total_latency
+FROM gateway_requests_v1
+ORDER BY time DESC
+LIMIT 10
+```
+
+```bash cURL
+curl --request POST \
+  --url https://api.unkey.com/v2/analytics.getGatewayRequests \
+  --header "Authorization: Bearer $UNKEY_ROOT_KEY" \
+  --header "Content-Type: application/json" \
+  --data '{"query":"SELECT path, response_status, total_latency FROM gateway_requests_v1 ORDER BY time DESC LIMIT 10"}'
+```
+
+</CodeGroup>
+
+```json Response
+{
+  "meta": {
+    "requestId": "req_1234"
+  },
+  "data": [
+    {
+      "path": "/v1/orders",
+      "response_status": 200,
+      "total_latency": 42
+    }
+  ]
+}
+```
+
+Queries follow the SQL limits and the resource limits in [Query
+restrictions](/platform/analytics/query-restrictions). Only SELECT queries are
+permitted. CTEs, subqueries, UNION, and EXCEPT are also permitted.
+
+## Select the data of one project, app, or environment
+
+Each row contains `project_id`, `app_id`, and `environment_id`. Add a filter on
+one of these columns to get the data of one deployment target.
+
+<CodeGroup>
+```sql SQL
+SELECT count() AS total
+FROM gateway_requests_v1
+WHERE app_id = 'app_1234'
+  AND time >= toUnixTimestamp64Milli(now64(3) - INTERVAL 24 HOUR)
+```
+
+```bash cURL
+curl --request POST \
+  --url https://api.unkey.com/v2/analytics.getGatewayRequests \
+  --header "Authorization: Bearer $UNKEY_ROOT_KEY" \
+  --header "Content-Type: application/json" \
+  --data '{"query":"SELECT count() AS total FROM gateway_requests_v1 WHERE app_id = '\''app_1234'\'' AND time >= toUnixTimestamp64Milli(now64(3) - INTERVAL 24 HOUR)"}'
+```
+
+</CodeGroup>
+
+Use `IN` to select more than one target.
+
+<CodeGroup>
+```sql SQL
+SELECT
+  environment_id,
+  count() AS total
+FROM gateway_requests_v1
+WHERE environment_id IN ('env_1234', 'env_5678')
+  AND time >= toUnixTimestamp64Milli(now64(3) - INTERVAL 24 HOUR)
+GROUP BY environment_id
+```
+
+```bash cURL
+curl --request POST \
+  --url https://api.unkey.com/v2/analytics.getGatewayRequests \
+  --header "Authorization: Bearer $UNKEY_ROOT_KEY" \
+  --header "Content-Type: application/json" \
+  --data '{"query":"SELECT environment_id, count() AS total FROM gateway_requests_v1 WHERE environment_id IN ('\''env_1234'\'', '\''env_5678'\'') AND time >= toUnixTimestamp64Milli(now64(3) - INTERVAL 24 HOUR) GROUP BY environment_id"}'
+```
+
+</CodeGroup>
+
+If you do not add one of these filters, the query reads all projects in the
+workspace.
+
+## Understand the time range
+
+Two limits control the time range of a query: the 7 day history of
+`gateway_requests_v1` and the retention setting of your workspace plan. A
+query gets only the rows that satisfy both limits. If you do not add a time
+filter, Unkey limits the results to your workspace retention range.
+
+## Reference available columns
+
+The table contains one row for each request. Unkey filters `workspace_id`
+automatically, thus you do not need to add it to a query.
+
+A query must name the columns that it needs. `SELECT *` fails, because the
+table also contains columns of the Unkey infrastructure that a workspace
+cannot read.
+
+| Column | Type | Description |
+| --- | --- | --- |
+| `request_id` | String | Unique request ID |
+| `time` | Int64 | Request time as a Unix timestamp in milliseconds |
+| `project_id` | String | Project ID |
+| `app_id` | String | App ID |
+| `environment_id` | String | Environment ID |
+| `deployment_id` | String | Deployment that received the request |
+| `instance_id` | String | Instance that processed the request |
+| `region` | String | Region that served the request |
+| `method` | String | HTTP method in upper case |
+| `host` | String | Host header of the request |
+| `path` | String | Request path |
+| `query_string` | String | Raw query string |
+| `query_params` | Map(String, Array(String)) | Parsed query parameters |
+| `request_headers` | Array(String) | Request headers as `Key: Value` pairs |
+| `request_body` | String | Request body |
+| `response_status` | Int32 | HTTP status code of the response |
+| `response_headers` | Array(String) | Response headers as `Key: Value` pairs |
+| `response_body` | String | Response body |
+| `user_agent` | String | User agent of the caller |
+| `ip_address` | String | IP address of the caller |
+| `total_latency` | Int64 | Full end to end time in milliseconds |
+| `instance_latency` | Int64 | Time your instance used, in milliseconds |
+| `gateway_latency` | Int64 | Time the Unkey gateway added, in milliseconds |
+
+## Read a latency percentile
+
+The table keeps `total_latency`, `instance_latency`, and `gateway_latency`
+as plain numbers. Use `quantile` on these columns.
+
+<CodeGroup>
+```sql SQL
+SELECT quantile(0.95)(total_latency) AS p95
+FROM gateway_requests_v1
+WHERE time >= toUnixTimestamp64Milli(now64(3) - INTERVAL 1 HOUR)
+```
+
+```bash cURL
+curl --request POST \
+  --url https://api.unkey.com/v2/analytics.getGatewayRequests \
+  --header "Authorization: Bearer $UNKEY_ROOT_KEY" \
+  --header "Content-Type: application/json" \
+  --data '{"query":"SELECT quantile(0.95)(total_latency) AS p95 FROM gateway_requests_v1 WHERE time >= toUnixTimestamp64Milli(now64(3) - INTERVAL 1 HOUR)"}'
+```
+
+</CodeGroup>
+
+## Find the paths with the most errors
+
+Group by `path` to find the endpoints that return the most server errors. The
+table keeps `time` as Unix milliseconds, thus the time filter uses
+`toUnixTimestamp64Milli`.
+
+<CodeGroup>
+```sql SQL
+SELECT
+  path,
+  count() AS total
+FROM gateway_requests_v1
+WHERE response_status >= 500
+  AND time >= toUnixTimestamp64Milli(now64(3) - INTERVAL 24 HOUR)
+GROUP BY path
+ORDER BY total DESC
+LIMIT 10
+```
+
+```bash cURL
+curl --request POST \
+  --url https://api.unkey.com/v2/analytics.getGatewayRequests \
+  --header "Authorization: Bearer $UNKEY_ROOT_KEY" \
+  --header "Content-Type: application/json" \
+  --data '{"query":"SELECT path, count() AS total FROM gateway_requests_v1 WHERE response_status >= 500 AND time >= toUnixTimestamp64Milli(now64(3) - INTERVAL 24 HOUR) GROUP BY path ORDER BY total DESC LIMIT 10"}'
+```
+
+</CodeGroup>
+
+## Calculate an error rate for each deployment
+
+Use `countIf` to count a subset of the rows in the same query. This example
+compares the failed requests with all requests of each deployment.
+
+<CodeGroup>
+```sql SQL
+SELECT
+  deployment_id,
+  count() AS total,
+  countIf(response_status >= 500) AS errors,
+  round(countIf(response_status >= 500) / count() * 100, 2) AS error_rate
+FROM gateway_requests_v1
+WHERE time >= toUnixTimestamp64Milli(now64(3) - INTERVAL 24 HOUR)
+GROUP BY deployment_id
+ORDER BY error_rate DESC
+```
+
+```bash cURL
+curl --request POST \
+  --url https://api.unkey.com/v2/analytics.getGatewayRequests \
+  --header "Authorization: Bearer $UNKEY_ROOT_KEY" \
+  --header "Content-Type: application/json" \
+  --data '{"query":"SELECT deployment_id, count() AS total, countIf(response_status >= 500) AS errors, round(countIf(response_status >= 500) / count() * 100, 2) AS error_rate FROM gateway_requests_v1 WHERE time >= toUnixTimestamp64Milli(now64(3) - INTERVAL 24 HOUR) GROUP BY deployment_id ORDER BY error_rate DESC"}'
+```
+
+</CodeGroup>
+
+## Build a zero-filled time series
+
+Use `WITH FILL` to get each minute, including the minutes with no requests.
+This query gives a dashboard chart the full range without gap filling in the
+client.
+
+<CodeGroup>
+```sql SQL
+SELECT
+  toStartOfMinute(fromUnixTimestamp64Milli(time)) AS minute,
+  count() AS requests
+FROM gateway_requests_v1
+WHERE app_id = 'app_1234'
+  AND time >= toUnixTimestamp64Milli(now64(3) - INTERVAL 6 HOUR)
+GROUP BY minute
+ORDER BY minute WITH FILL
+  FROM toStartOfMinute(now() - INTERVAL 6 HOUR)
+  TO toStartOfMinute(now())
+  STEP INTERVAL 1 MINUTE
+```
+
+```bash cURL
+curl --request POST \
+  --url https://api.unkey.com/v2/analytics.getGatewayRequests \
+  --header "Authorization: Bearer $UNKEY_ROOT_KEY" \
+  --header "Content-Type: application/json" \
+  --data '{"query":"SELECT toStartOfMinute(fromUnixTimestamp64Milli(time)) AS minute, count() AS requests FROM gateway_requests_v1 WHERE app_id = '\''app_1234'\'' AND time >= toUnixTimestamp64Milli(now64(3) - INTERVAL 6 HOUR) GROUP BY minute ORDER BY minute WITH FILL FROM toStartOfMinute(now() - INTERVAL 6 HOUR) TO toStartOfMinute(now()) STEP INTERVAL 1 MINUTE"}'
+```
+
+</CodeGroup>
+
+## Compare the status codes of each app
+
+Group by `app_id` and `response_status` to see the response mix of each app.
+
+<CodeGroup>
+```sql SQL
+SELECT
+  app_id,
+  response_status,
+  count() AS total
+FROM gateway_requests_v1
+WHERE time >= toUnixTimestamp64Milli(now64(3) - INTERVAL 7 DAY)
+GROUP BY app_id, response_status
+ORDER BY app_id, total DESC
+```
+
+```bash cURL
+curl --request POST \
+  --url https://api.unkey.com/v2/analytics.getGatewayRequests \
+  --header "Authorization: Bearer $UNKEY_ROOT_KEY" \
+  --header "Content-Type: application/json" \
+  --data '{"query":"SELECT app_id, response_status, count() AS total FROM gateway_requests_v1 WHERE time >= toUnixTimestamp64Milli(now64(3) - INTERVAL 7 DAY) GROUP BY app_id, response_status ORDER BY app_id, total DESC"}'
+```
+
+</CodeGroup>

@@ -89,9 +89,12 @@ func TestBuildDeploymentStatus_PodStatuses(t *testing.T) {
 	require.NoError(t, err)
 
 	byName := map[string]ctrlv1.ReportDeploymentStatusRequest_Update_Instance_Status{}
+	addressesByName := map[string]string{}
 	for _, inst := range status.GetUpdate().GetInstances() {
 		byName[inst.GetK8SName()] = inst.GetStatus()
+		addressesByName[inst.GetK8SName()] = inst.GetAddress()
 	}
+	require.Equal(t, "10.0.0.1:8080", addressesByName["pod-ready"])
 
 	require.Equal(t,
 		ctrlv1.ReportDeploymentStatusRequest_Update_Instance_STATUS_RUNNING,

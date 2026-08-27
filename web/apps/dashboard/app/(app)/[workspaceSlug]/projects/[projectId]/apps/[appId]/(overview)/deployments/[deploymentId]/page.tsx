@@ -14,6 +14,7 @@ import { DeploymentCancelled } from "./(deployment-progress)/deployment-cancelle
 import { DeploymentInfo } from "./(deployment-progress)/deployment-info";
 import { DeploymentProgress } from "./(deployment-progress)/deployment-progress";
 import { DeploymentSkipped } from "./(deployment-progress)/deployment-skipped";
+import { FailedDeploymentBanner } from "./(deployment-progress)/failed-deployment-banner";
 import { DeploymentNetworkSection } from "./(overview)/components/sections/deployment-network-section";
 import { DeploymentSuccessBanner } from "./deployment-success-banner";
 import { useDeployment } from "./layout-provider";
@@ -102,6 +103,18 @@ export default function DeploymentOverview() {
   return (
     <PageBody>
       <DeploymentSuccessBanner visible={showSuccessBanner} />
+      {deployment.status === "failed" && (
+        <FailedDeploymentBanner
+          stepsData={steps.data}
+          settingsUrl={routes.projects.apps.settings({
+            workspaceSlug: workspace.slug,
+            projectId: deployment.projectId,
+            appId: deployment.appId,
+          })}
+          limitsUrl={routes.settings.limits({ workspaceSlug: workspace.slug })}
+          deployment={deployment}
+        />
+      )}
       <DeploymentInfo statusOverride={derivedStatus} />
       {view}
       <DeploymentApproval

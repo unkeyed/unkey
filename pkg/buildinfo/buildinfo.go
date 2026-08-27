@@ -1,10 +1,6 @@
 // Package buildinfo exposes build metadata that is injected at link time
 // via -ldflags -X. Values are populated by the release pipeline (goreleaser).
 // Local builds see the defaults.
-//
-// To emit a Prometheus build_info gauge for a service, call
-// [RegisterBuildInfoMetrics] once during service startup, after the prometheus
-// registry has been installed via lazy.SetRegistry.
 package buildinfo
 
 var (

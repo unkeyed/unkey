@@ -11,8 +11,8 @@ provenance_api_failures_fatal = true
 task.run_auto_install = false
 
 [tools]
-node = "24.16.0"
-go = "1.25.1"
+node = "24.19.0"
+go = "1.25.10"
 "github:dprint/dprint" = "0.51.1"
 "github:bufbuild/buf" = "1.64.0"
 "github:jqlang/jq" = "jq-1.8.1"
@@ -24,7 +24,7 @@ go = "1.25.1"
 "github:chronark/rask" = "0.5.0"
 "github:golangci/golangci-lint" = "2.12.2"
 "github:pnpm/pnpm" = "11.5.0"
-"github:speakeasy-api/speakeasy" = "1.783.1"
+"github:speakeasy-api/speakeasy" = "1.790.1"
 # stripe CLI: only used by the local-dev billing-flow runbooks (stripe login /
 # stripe listen). The pricing tool itself is pure SDK and does not need it.
 "aqua:stripe/stripe-cli" = "1.42.13"

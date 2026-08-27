@@ -10,7 +10,7 @@ import { and, eq, useLiveQuery } from "@tanstack/react-db";
 import dynamic from "next/dynamic";
 import { useState } from "react";
 import { ActiveDeploymentCardEmpty } from "../../../components/active-deployment-card/components/active-deployment-card-empty";
-import { getAppOverviewDomains, getDomainPriority } from "../../../components/domain-priority";
+import { getDomainPriority } from "../../../components/domain-priority";
 import { Card } from "../../components/card";
 import { useAppId, useProjectData } from "../../data-provider";
 import { CreateDeploymentButton } from "../../navigations/create-deployment-button";
@@ -37,7 +37,7 @@ const UndoRollbackDialog = dynamic(
 );
 
 export function AppProductionCard() {
-  const { projectId, deployments, environments, customDomains, domains, isDeploymentsLoading } =
+  const { projectId, deployments, environments, customDomains, isDeploymentsLoading } =
     useProjectData();
   const appId = useAppId();
   const workspace = useWorkspaceNavigation();
@@ -78,6 +78,15 @@ export function AppProductionCard() {
 
   const deployment = currentDeployment ?? latestProductionDeployment;
   const isCurrent = Boolean(currentDeployment);
+  const liveDomainsQuery = useLiveQuery(
+    (q) =>
+      q
+        .from({ domain: collection.domains })
+        .where(({ domain }) =>
+          and(eq(domain.projectId, projectId), eq(domain.appId, appId), eq(domain.sticky, "live")),
+        ),
+    [projectId, appId],
+  );
 
   const metrics = trpc.deploy.metrics.getAppRpsMetrics.useQuery(
     { appId },
@@ -93,7 +102,12 @@ export function AppProductionCard() {
   const isResolvingCurrentDeployment =
     currentDeploymentId != null && currentDeploymentQuery.isLoading;
 
-  if (isDeploymentsLoading || appsQuery.isLoading || isResolvingCurrentDeployment) {
+  if (
+    isDeploymentsLoading ||
+    appsQuery.isLoading ||
+    liveDomainsQuery.isLoading ||
+    isResolvingCurrentDeployment
+  ) {
     return <AppProductionCardSkeleton />;
   }
 
@@ -116,7 +130,7 @@ export function AppProductionCard() {
   const sourceRepo = deployment.forkRepositoryFullName || repoFullName;
 
   const { primary, additional } = getDomainPriority({
-    domains: getAppOverviewDomains(domains, deployment.id),
+    domains: liveDomainsQuery.data ?? [],
     customDomains,
     environmentId: deployment.environmentId,
     deploymentId: deployment.id,

@@ -1,15 +1,9 @@
 "use client";
 
-import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
+import { TableActionPopover } from "@/components/logs/table-action.popover";
 import type { Deployment } from "@/lib/collections/deploy/deployments";
-import { routes } from "@/lib/navigation/routes";
 import { shortenId } from "@/lib/shorten-id";
-import {
-  ArrowDottedRotateAnticlockwise,
-  ArrowOppositeDirectionY,
-  Ban,
-  Layers3,
-} from "@unkey/icons";
+import { ArrowDottedRotateAnticlockwise, Ban, Dots } from "@unkey/icons";
 import {
   Button,
   PageHeader,
@@ -18,12 +12,13 @@ import {
   PageHeaderTitle,
 } from "@unkey/ui";
 import dynamic from "next/dynamic";
-import Link from "next/link";
 import { useState } from "react";
+import { useProjectData } from "../../data-provider";
 import {
   isCancellableDeploymentStatus,
   isRedeployableDeploymentStatus,
 } from "../components/table/components/actions/deployment-action-eligibility";
+import { useDeploymentHeaderActions } from "./deployment-header-actions";
 import { useDeployment } from "./layout-provider";
 import { useDeploymentStatus } from "./use-deployment-status";
 
@@ -46,7 +41,7 @@ export function DeploymentDetailHeader() {
 }
 
 function DeploymentDetailHeaderContent({ deployment }: { deployment: Deployment }) {
-  const workspace = useWorkspaceNavigation();
+  const { environments } = useProjectData();
 
   const { derivedStatus } = useDeploymentStatus(deployment);
   const [isRedeployOpen, setIsRedeployOpen] = useState(false);
@@ -56,12 +51,13 @@ function DeploymentDetailHeaderContent({ deployment }: { deployment: Deployment 
   const canRedeploy = isRedeployableDeploymentStatus(derivedStatus);
 
   const title = deployment.gitCommitMessage || shortenId(deployment.id);
+  const environment = environments.find((env) => env.id === deployment.environmentId);
 
-  const deploymentScope = {
-    workspaceSlug: workspace.slug,
-    projectId: deployment.projectId,
-    deploymentId: deployment.id,
-  };
+  const { items, planGate, gated, openPaywall } = useDeploymentHeaderActions({
+    deployment,
+    environment,
+    status: derivedStatus,
+  });
 
   return (
     <PageHeader>
@@ -71,20 +67,11 @@ function DeploymentDetailHeaderContent({ deployment }: { deployment: Deployment 
         </PageHeaderTitle>
       </PageHeaderContent>
       <PageHeaderActions>
-        <Button variant="outline" render={<Link href={routes.projects.logs(deploymentScope)} />}>
-          <Layers3 iconSize="sm-medium" />
-          Logs
-        </Button>
-        <Button
-          variant="outline"
-          render={<Link href={routes.projects.requests(deploymentScope)} />}
-        >
-          <ArrowOppositeDirectionY iconSize="sm-medium" />
-          Requests
-        </Button>
-        {(canCancel || canRedeploy) && (
-          <div aria-hidden className="w-px bg-border h-4 shrink-0 mx-1" />
-        )}
+        <TableActionPopover items={items}>
+          <Button variant="outline" className="w-7 p-0" aria-label="Open actions">
+            <Dots iconSize="sm-regular" />
+          </Button>
+        </TableActionPopover>
         {canCancel && (
           <Button variant="outline" onClick={() => setIsCancelOpen(true)}>
             <Ban iconSize="sm-medium" />
@@ -92,7 +79,10 @@ function DeploymentDetailHeaderContent({ deployment }: { deployment: Deployment 
           </Button>
         )}
         {canRedeploy && (
-          <Button variant="outline" onClick={() => setIsRedeployOpen(true)}>
+          <Button
+            variant="outline"
+            onClick={() => (gated ? openPaywall() : setIsRedeployOpen(true))}
+          >
             <ArrowDottedRotateAnticlockwise iconSize="sm-regular" />
             Redeploy
           </Button>
@@ -113,6 +103,7 @@ function DeploymentDetailHeaderContent({ deployment }: { deployment: Deployment 
           deployment={deployment}
         />
       )}
+      {planGate}
     </PageHeader>
   );
 }

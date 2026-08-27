@@ -54,7 +54,7 @@ export function useUsageSummary(): UsageSummary | null {
   const api = measureApi(apiUsage, limits?.apiBillableOperationsCountMaxPerMonth ?? null);
 
   return {
-    href: routes.settings.billing({ workspaceSlug: workspace.slug }),
+    href: routes.settings.usage({ workspaceSlug: workspace.slug }),
     compute,
     api,
     atRisk: overCeiling(compute, computeRatio) || overCeiling(api, apiRatio),

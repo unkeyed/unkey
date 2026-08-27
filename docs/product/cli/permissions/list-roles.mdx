@@ -30,6 +30,10 @@ Maximum number of roles to return in a single response (1-100, default 100). Use
 Pagination cursor from a previous response to fetch the next page of roles. Include this when you need to retrieve additional roles beyond the first page. Each response containing more results will include a cursor value that can be used here. Leave empty or omit this flag to start from the beginning of the role list.
 </ParamField>
 
+<ParamField body="--search" type="string">
+Free-form text to filter roles. Returns roles whose ID, name, or description contains the search string. Matching is case-insensitive.
+</ParamField>
+
 ## Global Flags
 
 | Flag | Type | Description |
@@ -38,6 +42,7 @@ Pagination cursor from a previous response to fetch the next page of roles. Incl
 | `--api-url` | string | Override API base URL (default: `https://api.unkey.com`) |
 | `--config` | string | Path to config file (default: `~/.unkey/config.toml`) |
 | `--output` | string | Output format. Use `json` for raw JSON |
+| `--body` | string | Send this JSON string as the request body. You cannot combine it with request-building flags. |
 
 ## Examples
 
@@ -51,6 +56,9 @@ unkey api permissions list-roles --limit=50
 ```bash Paginate through results
 unkey api permissions list-roles --limit=50 --cursor=eyJrZXkiOiJyb2xlXzEyMzQifQ==
 ```
+```bash Search roles
+unkey api permissions list-roles --search=admin
+```
 ```bash JSON output for scripting
 unkey api permissions list-roles --output=json
 ```
@@ -58,10 +66,10 @@ unkey api permissions list-roles --output=json
 
 ## Output
 
-Default output shows the request ID with latency, followed by the list of roles and their permissions:
+Default output shows the request ID, followed by the list of roles and their permissions:
 
 ```text
-req_2c9a0jf23l4k567 (took 32ms)
+req_2c9a0jf23l4k567
 
 [
   {

@@ -64,14 +64,20 @@ import (
 	v2KeysVerifyKey "github.com/unkeyed/unkey/svc/api/routes/v2_keys_verify_key"
 	v2KeysWhoami "github.com/unkeyed/unkey/svc/api/routes/v2_keys_whoami"
 
+	v2AnalyticsGetGatewayRequests "github.com/unkeyed/unkey/svc/api/routes/v2_analytics_get_gateway_requests"
 	v2AnalyticsGetRatelimits "github.com/unkeyed/unkey/svc/api/routes/v2_analytics_get_ratelimits"
+	v2AnalyticsGetRuntimeLogs "github.com/unkeyed/unkey/svc/api/routes/v2_analytics_get_runtime_logs"
 	v2AnalyticsGetVerifications "github.com/unkeyed/unkey/svc/api/routes/v2_analytics_get_verifications"
 
+	v2PortalCreatePortal "github.com/unkeyed/unkey/svc/api/routes/v2_portal_create_portal"
 	v2PortalCreateSession "github.com/unkeyed/unkey/svc/api/routes/v2_portal_create_session"
-	v2PortalExchangeSession "github.com/unkeyed/unkey/svc/api/routes/v2_portal_exchange_session"
+	v2PortalDeletePortal "github.com/unkeyed/unkey/svc/api/routes/v2_portal_delete_portal"
+	v2PortalExchangeCode "github.com/unkeyed/unkey/svc/api/routes/v2_portal_exchange_code"
+	v2PortalGetPortal "github.com/unkeyed/unkey/svc/api/routes/v2_portal_get_portal"
 	v2PortalGetVerifications "github.com/unkeyed/unkey/svc/api/routes/v2_portal_get_verifications"
 	v2PortalListKeys "github.com/unkeyed/unkey/svc/api/routes/v2_portal_list_keys"
 	v2PortalRerollKey "github.com/unkeyed/unkey/svc/api/routes/v2_portal_reroll_key"
+	v2PortalUpdatePortal "github.com/unkeyed/unkey/svc/api/routes/v2_portal_update_portal"
 
 	v2AppsCreateApp "github.com/unkeyed/unkey/svc/api/routes/v2_apps_create_app"
 	v2AppsDeleteApp "github.com/unkeyed/unkey/svc/api/routes/v2_apps_delete_app"
@@ -383,8 +389,8 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 	srv.RegisterRoute(
 		protectedMiddlewares,
 		&v2DeploymentsStopDeployment.Handler{
-			DB:         svc.Database,
-			CtrlClient: svc.CtrlDeploymentClient,
+			DB:      svc.Database,
+			Restate: svc.Restate,
 		},
 	)
 
@@ -392,8 +398,8 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 	srv.RegisterRoute(
 		protectedMiddlewares,
 		&v2DeploymentsStartDeployment.Handler{
-			DB:         svc.Database,
-			CtrlClient: svc.CtrlDeploymentClient,
+			DB:      svc.Database,
+			Restate: svc.Restate,
 		},
 	)
 
@@ -401,8 +407,8 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 	srv.RegisterRoute(
 		protectedMiddlewares,
 		&v2DeploymentsPromoteDeployment.Handler{
-			DB:         svc.Database,
-			CtrlClient: svc.CtrlDeploymentClient,
+			DB:      svc.Database,
+			Restate: svc.Restate,
 		},
 	)
 
@@ -410,8 +416,8 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 	srv.RegisterRoute(
 		protectedMiddlewares,
 		&v2DeploymentsRollbackDeployment.Handler{
-			DB:         svc.Database,
-			CtrlClient: svc.CtrlDeploymentClient,
+			DB:      svc.Database,
+			Restate: svc.Restate,
 		},
 	)
 
@@ -693,6 +699,22 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 	// ---------------------------------------------------------------------------
 	// v2/analytics
 
+	// v2/analytics.getGatewayRequests
+	srv.RegisterRoute(
+		protectedMiddlewares,
+		&v2AnalyticsGetGatewayRequests.Handler{
+			AnalyticsConnectionManager: svc.AnalyticsConnectionManager,
+		},
+	)
+
+	// v2/analytics.getRuntimeLogs
+	srv.RegisterRoute(
+		protectedMiddlewares,
+		&v2AnalyticsGetRuntimeLogs.Handler{
+			AnalyticsConnectionManager: svc.AnalyticsConnectionManager,
+		},
+	)
+
 	// v2/analytics.getVerifications
 	srv.RegisterRoute(
 		protectedMiddlewares,
@@ -714,6 +736,44 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 	// ---------------------------------------------------------------------------
 	// v2/portal
 
+	// v2/portal.createPortal
+	srv.RegisterRoute(
+		protectedMiddlewares,
+		&v2PortalCreatePortal.Handler{
+			DB:        svc.Database,
+			Auditlogs: svc.Auditlogs,
+			Clock:     svc.Clock,
+		},
+	)
+
+	// v2/portal.getPortal
+	srv.RegisterRoute(
+		protectedMiddlewares,
+		&v2PortalGetPortal.Handler{
+			DB: svc.Database,
+		},
+	)
+
+	// v2/portal.updatePortal
+	srv.RegisterRoute(
+		protectedMiddlewares,
+		&v2PortalUpdatePortal.Handler{
+			DB:        svc.Database,
+			Auditlogs: svc.Auditlogs,
+			Clock:     svc.Clock,
+		},
+	)
+
+	// v2/portal.deletePortal
+	srv.RegisterRoute(
+		protectedMiddlewares,
+		&v2PortalDeletePortal.Handler{
+			DB:        svc.Database,
+			Auditlogs: svc.Auditlogs,
+			Clock:     svc.Clock,
+		},
+	)
+
 	// v2/portal.createSession
 	srv.RegisterRoute(
 		protectedMiddlewares,
@@ -721,13 +781,14 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 			DB:            svc.Database,
 			Auditlogs:     svc.Auditlogs,
 			PortalBaseURL: svc.PortalBaseURL,
+			Clock:         svc.Clock,
 		},
 	)
 
-	// v2/portal.exchangeSession
+	// v2/portal.exchangeCode
 	srv.RegisterRoute(
 		publicMiddlewares,
-		&v2PortalExchangeSession.Handler{
+		&v2PortalExchangeCode.Handler{
 			DB:        svc.Database,
 			Auditlogs: svc.Auditlogs,
 		},
@@ -801,8 +862,8 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 	srv.RegisterRoute(
 		protectedMiddlewares,
 		&v2ProjectsDeleteProject.Handler{
-			DB:         svc.Database,
-			CtrlClient: svc.CtrlProjectClient,
+			DB:      svc.Database,
+			Restate: svc.Restate,
 		},
 	)
 
@@ -859,8 +920,8 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 	srv.RegisterRoute(
 		protectedMiddlewares,
 		&v2AppsDeleteApp.Handler{
-			DB:         svc.Database,
-			CtrlClient: svc.CtrlAppClient,
+			DB:      svc.Database,
+			Restate: svc.Restate,
 		},
 	)
 

@@ -38,44 +38,22 @@ import { queryComputeAllocation } from "./billing/query-compute-allocation";
 import { queryDeployUsage } from "./billing/query-deploy-usage";
 import { queryDeployUsageBreakdown } from "./billing/query-deploy-usage-breakdown";
 import { queryUsage } from "./billing/query-usage";
-import { createApp } from "./deploy/app/create";
-import { deleteApp } from "./deploy/app/delete";
 import { listApps } from "./deploy/app/list";
-import { addCustomDomain } from "./deploy/custom-domains/add";
-import { deleteCustomDomain } from "./deploy/custom-domains/delete";
-import { listCustomDomains } from "./deploy/custom-domains/list";
-import { retryVerification } from "./deploy/custom-domains/retry";
+import { countCustomDomains } from "./deploy/custom-domains/count";
+import { listDomainConnectHints } from "./deploy/custom-domains/hints";
 import { authorizeDeployment } from "./deploy/deployment/authorize";
 import { getDeploymentBuildSteps } from "./deploy/deployment/build-steps";
 import { cancelDeployment } from "./deploy/deployment/cancel";
-import { createDeploy } from "./deploy/deployment/create-deploy";
 import { getDeploymentSteps } from "./deploy/deployment/deployment-steps";
 import { getById as getDeploymentById } from "./deploy/deployment/getById";
 import { getOpenApiDiff } from "./deploy/deployment/getOpenApiDiff";
 import { getDeploymentInstanceEvents } from "./deploy/deployment/instance-events";
 import { listDeployments } from "./deploy/deployment/list";
 import { searchDeployments } from "./deploy/deployment/llm-search";
-import { promote } from "./deploy/deployment/promote";
-import { redeploy } from "./deploy/deployment/redeploy";
-import { rollback } from "./deploy/deployment/rollback";
 import { getDeploymentRuntimeLogs } from "./deploy/deployment/runtime-logs";
-import { stopDeployment } from "./deploy/deployment/stop";
-import { wakeDeployment } from "./deploy/deployment/wake";
 import { listDomains } from "./deploy/domains/list";
-import { createEnvVars } from "./deploy/env-vars/create";
-import { createBulkEnvVars } from "./deploy/env-vars/create-bulk";
-import { decryptEnvVar } from "./deploy/env-vars/decrypt";
-import { deleteEnvVar } from "./deploy/env-vars/delete";
-import { listEnvVars } from "./deploy/env-vars/list";
 import { makeSensitive } from "./deploy/env-vars/make-sensitive";
 import { renameEnvVars } from "./deploy/env-vars/rename";
-import { updateEnvVar } from "./deploy/env-vars/update";
-import { updateAutoDeploy } from "./deploy/environment-settings/build/update-auto-deploy";
-import { updateBuildCommand } from "./deploy/environment-settings/build/update-build-command";
-import { updateDockerContext } from "./deploy/environment-settings/build/update-docker-context";
-import { updateDockerfile } from "./deploy/environment-settings/build/update-dockerfile";
-import { updateWatchPaths } from "./deploy/environment-settings/build/update-watch-paths";
-import { getEnvironmentSettings } from "./deploy/environment-settings/get";
 import { getAvailableKeyspaces } from "./deploy/environment-settings/get-available-keyspaces";
 import { getAvailableRegions } from "./deploy/environment-settings/get-available-regions";
 import { create as createFirewallPolicy } from "./deploy/environment-settings/policies/firewall/create";
@@ -96,16 +74,6 @@ import { create as createRatelimitPolicy } from "./deploy/environment-settings/p
 import { remove as deleteRatelimitPolicy } from "./deploy/environment-settings/policies/ratelimit/delete";
 import { update as updateRatelimitPolicy } from "./deploy/environment-settings/policies/ratelimit/update";
 import { reorder as reorderPolicies } from "./deploy/environment-settings/policies/reorder";
-import { updateCommand } from "./deploy/environment-settings/runtime/update-command";
-import { updateCpu } from "./deploy/environment-settings/runtime/update-cpu";
-import { updateHealthcheck } from "./deploy/environment-settings/runtime/update-healthcheck";
-import { updateInstances } from "./deploy/environment-settings/runtime/update-instances";
-import { updateMemory } from "./deploy/environment-settings/runtime/update-memory";
-import { updateOpenapiSpecPath } from "./deploy/environment-settings/runtime/update-openapi-spec-path";
-import { updatePort } from "./deploy/environment-settings/runtime/update-port";
-import { updateRegions } from "./deploy/environment-settings/runtime/update-regions";
-import { updateStorage } from "./deploy/environment-settings/runtime/update-storage";
-import { updateUpstreamProtocol } from "./deploy/environment-settings/runtime/update-upstream-protocol";
 import { getAppRpsMetrics } from "./deploy/metrics/get-app-rps-metrics";
 import { getDeploymentCpuTimeseries } from "./deploy/metrics/get-deployment-cpu-timeseries";
 import { getDeploymentDiskTimeseries } from "./deploy/metrics/get-deployment-disk-timeseries";
@@ -120,11 +88,8 @@ import { generateDeploymentTree } from "./deploy/network/generate";
 import { getDeploymentTree } from "./deploy/network/get";
 import { getInstanceRps } from "./deploy/network/get-instance-rps";
 import { getRegionRps } from "./deploy/network/get-region-rps";
-import { createProject } from "./deploy/project/create";
 import { creationContext } from "./deploy/project/creation-context";
-import { deleteProject } from "./deploy/project/delete";
 import { listProjects } from "./deploy/project/list";
-import { updateProject } from "./deploy/project/update";
 import { createSharedSecret } from "./share/create";
 import { revealSharedSecret } from "./share/reveal";
 
@@ -450,18 +415,12 @@ export const router = t.router({
     }),
     project: t.router({
       list: listProjects,
-      create: createProject,
-      update: updateProject,
-      delete: deleteProject,
       creationContext,
     }),
     app: t.router({
       list: listApps,
-      create: createApp,
-      delete: deleteApp,
     }),
     environmentSettings: t.router({
-      get: getEnvironmentSettings,
       getAvailableRegions,
       getAvailableKeyspaces,
       policies: t.router({
@@ -494,48 +453,21 @@ export const router = t.router({
         }),
         generateRegex,
       }),
-      runtime: t.router({
-        updateCpu,
-        updateMemory,
-        updateStorage,
-        updatePort,
-        updateCommand,
-        updateHealthcheck,
-        updateRegions,
-        updateInstances,
-        updateOpenapiSpecPath,
-        updateUpstreamProtocol,
-      }),
-      build: t.router({
-        updateAutoDeploy,
-        updateDockerfile,
-        updateDockerContext,
-        updateBuildCommand,
-        updateWatchPaths,
-      }),
     }),
     environment: t.router({
       list: listEnvironments,
       listAll: listAllEnvironments,
     }),
     envVar: t.router({
-      list: listEnvVars,
-      create: createEnvVars,
-      createBulk: createBulkEnvVars,
-      update: updateEnvVar,
       rename: renameEnvVars,
-      decrypt: decryptEnvVar,
-      delete: deleteEnvVar,
       makeSensitive,
     }),
     domain: t.router({
       list: listDomains,
     }),
     customDomain: t.router({
-      add: addCustomDomain,
-      list: listCustomDomains,
-      delete: deleteCustomDomain,
-      retry: retryVerification,
+      count: countCustomDomains,
+      hints: listDomainConnectHints,
     }),
     deployment: t.router({
       list: listDeployments,
@@ -546,14 +478,8 @@ export const router = t.router({
       steps: getDeploymentSteps,
       search: searchDeployments,
       getOpenApiDiff: getOpenApiDiff,
-      rollback,
-      promote,
-      redeploy,
-      create: createDeploy,
       authorize: authorizeDeployment,
       cancel: cancelDeployment,
-      stop: stopDeployment,
-      wake: wakeDeployment,
     }),
     requestLogs: t.router({
       query: queryRequestLogs,

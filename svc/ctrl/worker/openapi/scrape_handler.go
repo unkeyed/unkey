@@ -168,13 +168,13 @@ func (s *Service) ScrapeSpec(ctx restate.Context, req *hydrav1.ScrapeSpecRequest
 
 	err = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
 		return s.db.UpsertOpenApiSpec(runCtx, db.UpsertOpenApiSpecParams{
-			ID:             uid.New(uid.OpenApiSpecPrefix),
-			PortalConfigID: sql.NullString{Valid: false},
-			WorkspaceID:    deployment.WorkspaceID,
-			DeploymentID:   sql.NullString{Valid: true, String: deploymentID},
-			Content:        specBody,
-			CreatedAt:      time.Now().UnixMilli(),
-			UpdatedAt:      sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+			ID:           uid.New(uid.OpenApiSpecPrefix),
+			PortalID:     sql.NullString{Valid: false},
+			WorkspaceID:  deployment.WorkspaceID,
+			DeploymentID: sql.NullString{Valid: true, String: deploymentID},
+			Content:      specBody,
+			CreatedAt:    time.Now().UnixMilli(),
+			UpdatedAt:    sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
 		})
 	}, restate.WithName("persist openapi spec"))
 	if err != nil {

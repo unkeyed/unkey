@@ -5,11 +5,14 @@ import { RepoDisplay } from "@/app/(app)/[workspaceSlug]/projects/_components/li
 import { NavbarActionButton } from "@/components/navigation/action-button";
 import { collection } from "@/lib/collections";
 import { queryClient } from "@/lib/collections/client";
+import { UnsupportedDeployRefError, parseDeployRef } from "@/lib/deploy-ref";
 import { githubUrl } from "@/lib/github-url";
 import { routes } from "@/lib/navigation/routes";
 import { trpc } from "@/lib/trpc/client";
+import { getErrorMessage, getUnkeyClient } from "@/lib/unkey-client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { and, eq, useLiveQuery } from "@tanstack/react-db";
+import { useMutation } from "@tanstack/react-query";
 import { ChevronDown, CodeBranch, Plus } from "@unkey/icons";
 import {
   Button,
@@ -185,7 +188,20 @@ export const CreateDeploymentButton = ({
     }
   }, [defaultEnvironmentSlug, setValue]);
 
-  const createDeployment = trpc.deploy.deployment.create.useMutation({
+  const createDeployment = useMutation({
+    mutationFn: async (source: {
+      environment: string;
+      git?: ReturnType<typeof parseDeployRef>;
+      image?: string;
+    }) => {
+      const res = await getUnkeyClient().deployments.createDeployment({
+        project: projectId,
+        app: appId,
+        environment: source.environment,
+        ...(source.image ? { image: { dockerImage: source.image } } : { git: source.git ?? {} }),
+      });
+      return { deploymentId: res.data.deploymentId };
+    },
     async onSuccess(data) {
       toast.success("Deployment has been created");
       reset();
@@ -202,19 +218,28 @@ export const CreateDeploymentButton = ({
     },
     onError(err) {
       console.error(err);
-      toast.error(err.message);
+      toast.error(getErrorMessage(err));
     },
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    createDeployment.mutate({
-      projectId,
-      appId,
-      environmentSlug: values.environment,
-      ...(isCliApp
-        ? { source: "image" as const, image: values.name }
-        : { source: "git" as const, gitRef: values.name }),
-    });
+    if (isCliApp) {
+      createDeployment.mutate({ environment: values.environment, image: values.name });
+      return;
+    }
+
+    try {
+      createDeployment.mutate({
+        environment: values.environment,
+        git: parseDeployRef(values.name),
+      });
+    } catch (err) {
+      if (err instanceof UnsupportedDeployRefError) {
+        toast.error(err.message);
+        return;
+      }
+      throw err;
+    }
   }
 
   // Past successfully deployed prebuilt images, deduped by image ref

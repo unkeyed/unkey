@@ -1,15 +1,18 @@
 ---
 title: 'Customer Portal'
 description: "Give your end users a white-labeled self-service portal for API key management, usage analytics, and docs, with a Stripe-style session auth flow."
+hidden: true
+noindex: true
 ---
 
-The Customer Portal is a white-labeled web app you can offer to your end users. They get key management, usage analytics, and API documentation — without you building any UI.
+<Warning>
+The Customer Portal has not launched. This page is unlisted, documents an
+unreleased API, and is subject to change without notice.
+</Warning>
 
-Authentication uses a Stripe-style session flow: your backend creates a session, redirects the user, and the portal handles the rest.
+The Customer Portal is a white-labeled web app you can offer to your end users. They get key management, usage analytics, and API documentation, without you building any UI.
 
-<Note>
-The portal is in development. Key management, analytics, and docs pages are placeholder UI for now.
-</Note>
+Authentication uses a Stripe-style flow: your backend creates a session, redirects the user to a URL carrying a single-use code, and the portal exchanges that code for an access token.
 
 ## How it works
 
@@ -17,34 +20,65 @@ The portal is in development. Key management, analytics, and docs pages are plac
 Your Backend                    Unkey API                     Portal
     │                              │                            │
     ├─ POST /v2/portal.createSession ─►│                        │
-    │◄── sessionId + portal URL ───┤                            │
+    │◄──── id + portal URL ────────┤                            │
     │                              │                            │
     ├─ Redirect user to portal URL ─────────────────────────────►│
-    │                              │◄─ POST /v2/portal.exchangeSession ─┤
-    │                              │──── browser session token ──►│
+    │                              │◄─ POST /v2/portal.exchangeCode ────┤
+    │                              │──────── access token ──────►│
     │                              │                            │
     │                              │◄── Direct API calls ───────┤
 ```
 
 1. Your backend authenticates the user in your own system
-2. Your backend calls `POST /v2/portal.createSession` with a root key
-3. You redirect the user to the returned portal URL
-4. The portal exchanges the session ID for a 24-hour browser session
-5. The browser calls Unkey API directly with the session token
+2. Your backend calls `POST /v2/portal.createSession` with a root key that holds the required permissions (see [Required permissions](#required-permissions))
+3. You redirect the user to the returned portal URL, which carries the code
+4. The portal exchanges the code for a 24-hour access token
+5. The browser calls the Unkey API with that token in an httpOnly cookie
 
-## 1. Configure a portal
+## 1. Create a portal
 
-Enable the Customer Portal for your workspace in the Unkey dashboard.
+A portal serves exactly one app or one keyspace. Create it with `portal.createPortal`, naming the resource it serves:
 
-<Note>
-Dashboard configuration UI is coming soon. During early access, reach out to the Unkey team to get your portal configured.
-</Note>
+```bash
+curl -X POST https://api.unkey.com/v2/portal.createPortal \
+  -H "Authorization: Bearer YOUR_ROOT_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "slug": "my-portal",
+    "displayName": "Acme",
+    "keyspaceId": "ks_1234abcd"
+  }'
+```
 
-When configuring your portal, you'll choose a slug — a short, human-readable identifier like `my-portal` or `billing-dashboard`. Use this slug when creating sessions.
+The response carries the new portal's ID. The app or keyspace you name must belong to your workspace, and it can back only one portal, so a second portal for the same resource is rejected as a conflict.
 
-Slugs must be 3–64 characters, lowercase alphanumeric and hyphens only, and cannot start or end with a hyphen.
+`displayName` is what your end users see in the portal header and page titles, so it is the name of your product as they know it. It is not part of any URL, so you can change it whenever you like.
 
-Optionally, you can customize branding with your logo and brand colors.
+The slug is a short, human-readable identifier like `my-portal` or `billing-dashboard`. You can pass either the slug or the portal's ID wherever a portal is named. Slugs must be 3–64 characters, lowercase alphanumeric and hyphens only, cannot start or end with a hyphen, and cannot contain consecutive hyphens. A `portal` value that matches neither a slug nor an ID in your workspace returns a 404, so a typo and a portal that was never provisioned look the same.
+
+A portal is enabled on creation. Send `"enabled": false` to create it dormant and turn it on later.
+
+Optionally, customize branding with `logoUrl` and `primaryColor`. The logo must be an absolute `https://` URL, and the colour a six-digit hex value like `#6366f1`.
+
+Read a portal back with `portal.getPortal`, by its ID or slug, or by the resource it serves:
+
+```bash
+curl -X POST https://api.unkey.com/v2/portal.getPortal \
+  -H "Authorization: Bearer YOUR_ROOT_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{ "keyspaceId": "ks_1234abcd" }'
+```
+
+Change it with `portal.updatePortal`, which touches only the fields you send. Omit a field to leave it alone; send `null` for a branding field to clear it.
+
+### Turning a portal off
+
+Two operations affect end users who are already signed in, and they differ:
+
+- **Disabling** a portal (`"enabled": false`) stops new sessions from being minted. Sessions already in progress keep working until they expire.
+- **Deleting** a portal, or re-pointing it at a different app or keyspace with `keyspaceId` or `appId`, revokes its sessions. Those end users lose access on their next request rather than at token expiry.
+
+Revocation is not instantaneous. Session lookups are cached for a few seconds and served from a slightly stale cache for a few minutes while they refresh, so a request already in flight can still succeed. If you need access cut off immediately, revoke the underlying keys as well.
 
 ## 2. Create a session
 
@@ -57,9 +91,10 @@ curl -X POST https://api.unkey.com/v2/portal.createSession \
   -H "Authorization: Bearer YOUR_ROOT_KEY" \
   -H "Content-Type: application/json" \
   -d '{
-    "slug": "my-portal",
+    "portal": "my-portal",
     "externalId": "user_123",
-    "permissions": ["api.*.read_key", "api.*.create_key", "api.*.read_analytics"]
+    "scopes": ["keys:read", "keys:reroll", "analytics:read"],
+    "returnUrl": "https://app.example.com/settings/api-keys"
   }'
 ```
 
@@ -71,24 +106,25 @@ const response = await fetch("https://api.unkey.com/v2/portal.createSession", {
     "Content-Type": "application/json",
   },
   body: JSON.stringify({
-    slug: "my-portal",
+    portal: "my-portal",
     externalId: "user_123",
-    permissions: ["api.*.read_key", "api.*.create_key", "api.*.read_analytics"],
+    scopes: ["keys:read", "keys:reroll", "analytics:read"],
+    // Optional, per session: where this user goes when they leave the portal.
+    returnUrl: "https://app.example.com/settings/api-keys",
   }),
 });
 
 const { data } = await response.json();
-// data.sessionId  — short-lived token (15 min)
-// data.url        — full portal URL with session param
-// data.expiresAt  — expiry timestamp (unix ms)
+// data.id   is the session's identifier (not a credential)
+// data.url  is the portal URL carrying a single-use code, valid 15 minutes
 ```
 
 ```go Go
 // Use your preferred HTTP client
 body := map[string]any{
-    "slug":        "my-portal",
-    "externalId":  "user_123",
-    "permissions": []string{"api.*.read_key", "api.*.create_key", "api.*.read_analytics"},
+    "portal":     "my-portal",
+    "externalId": "user_123",
+    "scopes":     []string{"keys:read", "keys:reroll", "analytics:read"},
 }
 ```
 
@@ -100,42 +136,47 @@ The response:
 {
   "meta": { "requestId": "req_..." },
   "data": {
-    "sessionId": "pst_xxx",
-    "url": "https://portal.unkey.com/?session=pst_xxx",
-    "expiresAt": 1742000000000
+    "id": "ps_xxx",
+    "url": "https://portal.unkey.com/?code=pst_xxx"
   }
 }
 ```
+
+<Warning>
+Treat `url` as a credential. The code it carries grants access to the end
+user's portal session, so do not log it or store it. `id` is safe to log and
+to keep against your own records of the visit.
+</Warning>
 
 ### Required parameters
 
 | Parameter | Type | Description |
 |-----------|------|-------------|
-| `slug` | `string` | Human-readable identifier for your portal configuration |
+| `portal` | `string` | The portal's slug or ID |
 | `externalId` | `string` | Your user's identifier in your system |
-| `permissions` | `string[]` | Controls which portal tabs are visible |
+| `scopes` | `string[]` | Capabilities granted to the end user |
 
 ### Optional parameters
 
 | Parameter | Type | Description |
 |-----------|------|-------------|
-| `preview` | `boolean` | Shows a "Preview mode" banner — useful for testing as a specific user |
+| `preview` | `boolean` | Shows a "Preview mode" banner, useful for testing as a specific user |
 
 ```bash
 curl -X POST https://api.unkey.com/v2/portal.createSession \
   -H "Authorization: Bearer YOUR_ROOT_KEY" \
   -H "Content-Type: application/json" \
   -d '{
-    "slug": "my-portal",
+    "portal": "my-portal",
     "externalId": "user_123",
-    "permissions": ["api.*.read_key", "api.*.read_analytics"],
+    "scopes": ["keys:read", "analytics:read"],
     "preview": true
   }'
 ```
 
 ## 3. Redirect your user
 
-Send the user to the portal URL. The session ID is valid for 15 minutes and can only be used once.
+Send the user to the portal URL. The code it carries is valid for 15 minutes and can only be redeemed once.
 
 ```typescript
 // In your backend route handler
@@ -143,40 +184,49 @@ return Response.redirect(data.url, 302);
 ```
 
 The portal will:
-1. Exchange the session ID for a 24-hour browser session
-2. Set an httpOnly cookie
-3. Redirect to the first visible tab based on permissions
+1. Exchange the code for a 24-hour access token
+2. Set it as an httpOnly cookie
+3. Redirect to the first visible tab based on the session's scopes
 
-## Permissions and tabs
+## Scopes and tabs
 
-Permissions use the RBAC tuple format `{resourceType}.{resourceId}.{action}`. Use `*` as the resourceId to grant access to all resources of that type.
+Scopes come from a fixed vocabulary. Every scope is bound to the end user in the session: `keys:*` applies only to keys that user owns within the portal's keyspace, and `analytics:read` returns only that user's own verification events. An end user can never see another identity's keys or analytics.
 
-Tab visibility is derived from the action segment (third part) of each permission:
+| Scope | Grants |
+|-------|--------|
+| `keys:read` | List their own keys |
+| `keys:create` | Create keys |
+| `keys:reroll` | Roll a key they own |
+| `analytics:read` | Their own verification analytics |
 
-| Action | Tab |
-|--------|-----|
-| `read_key`, `create_key`, `update_key`, `delete_key` | API Keys |
-| `read_analytics` | Analytics |
-| Any permission present | Documentation |
+Tab visibility is derived from the scopes:
 
-Examples:
-- `api.*.read_key` → shows the Keys tab
-- `api.api_123.create_key` → shows the Keys tab (specific resource)
-- `api.*.read_analytics` → shows the Analytics tab
-- Docs tab is visible whenever at least one permission is present
+| Tab | Shown when |
+|-----|-----------|
+| API Keys | any `keys:*` scope |
+| Analytics | `analytics:read` |
+| Documentation | any scope is present |
 
-The API requires at least one permission. An empty permissions array is rejected with HTTP 400.
+The API requires at least one scope. An empty `scopes` array is rejected with HTTP 400, as is any value outside the vocabulary above.
 
 ## Session lifecycle
 
-| Token | Lifetime | Usage |
-|-------|----------|-------|
-| Session ID (`pst_xxx`) | 15 minutes | Single-use, exchanged for browser session |
-| Browser session | 24 hours | Stored as httpOnly cookie, used for API calls |
+| Value | Prefix | Lifetime | Usage |
+|-------|--------|----------|-------|
+| Session id | `ps_` | n/a | Not a credential; identifies the session |
+| Exchange code | `pst_` | 15 minutes | Single-use, carried by the portal URL |
+| Access token | `pat_` | 24 hours | httpOnly cookie, sent on portal API calls |
 
-When the browser session expires:
-- If `return_url` is set on the portal config → redirects to `{return_url}?reason=session_expired`
+Both credentials are stored only as hashes, so they cannot be recovered from Unkey. The code exists only in the URL you were given, and the access token only in the user's cookie.
+
+Re-authenticating creates a new session with a fresh code rather than extending an existing one.
+
+When the access token expires:
+- If `returnUrl` was set on the session → redirects to `{returnUrl}?reason=session_expired`
 - Otherwise → shows a "Session expired" error page
+
+`returnUrl` is set per session on `portal.createSession`, not once on the portal,
+so one portal can return each user to whichever page they came from.
 
 ## Branding
 
@@ -189,6 +239,48 @@ The portal supports basic white-labeling:
 
 Logo URLs must be HTTPS.
 
+## Required permissions
+
+Creating a portal session needs two things from your root key, and both are checked.
+
+First, permission to mint sessions for the portal:
+
+```plaintext
+portal.*.create_portal_session
+```
+
+Use `portal.<portal_id>.create_portal_session` to restrict a key to one portal.
+
+Second, a session can never carry a capability your root key does not itself hold. Each scope you request also requires the equivalent permission on the keyspace behind the portal:
+
+| Requested scope | Also requires |
+|-----------------|---------------|
+| `keys:read` | `api.*.read_key` and `api.*.read_api` |
+| `keys:reroll` | `api.*.create_key`, plus `api.*.encrypt_key` if the keyspace stores encrypted keys |
+| `keys:create` | `api.*.create_key`, plus `api.*.encrypt_key` if the keyspace stores encrypted keys |
+| `analytics:read` | `api.*.read_analytics` |
+
+Requesting a scope you do not hold returns 403 for the whole request rather than a session with fewer capabilities, so a missing grant shows up immediately instead of as a portal that silently misses a tab.
+
+A root key without the portal session permission gets a **404**, not a 403. That is deliberate: a caller who cannot mint for a portal is not told whether it exists, so a guessed slug reveals nothing.
+
+Managing portals is a separate set of permissions from minting sessions, so a key that provisions portals need not be able to act as one:
+
+| Operation | Permission |
+|-----------|------------|
+| `portal.createPortal` | `portal.*.create_portal` |
+| `portal.getPortal` | `portal.*.read_portal` or `portal.<portal_id>.read_portal` |
+| `portal.updatePortal` | `portal.*.update_portal` or `portal.<portal_id>.update_portal` |
+| `portal.deletePortal` | `portal.*.delete_portal` or `portal.<portal_id>.delete_portal` |
+
+Creation accepts only the wildcard form, because the portal's ID does not exist yet when the request is authorized.
+
+Naming a `keyspaceId` or `appId` costs one more grant: read access to the resource you are pointing at. Creating a portal for a keyspace, or re-pointing an existing one, additionally requires `api.*.read_api` (or `api.<api_id>.read_api` for the keyspace's owning API); the app equivalent is `app.*.read_app`. Deciding which resource a portal serves is what decides which keys its end users see, so a key that cannot read the resource cannot expose it either. Updates that name neither id need only the portal permission.
+
+Read, update, and delete answer a missing permission with a **404** for the same reason session minting does. Creation answers with a **403**: there is no portal yet whose existence could leak, and a plain permission error is more useful than a not-found.
+
+You can grant these on the root key in the Unkey dashboard under Settings, Root Keys.
+
 ## Error responses
 
 | Scenario | Status | Message |
@@ -196,5 +288,9 @@ Logo URLs must be HTTPS.
 | Missing or invalid JSON body | 400 | `Bad Request` |
 | Invalid root key | 401 | `Unauthorized` |
 | Portal disabled | 403 | `Portal is disabled.` |
-| Portal config not found | 404 | `Portal configuration not found.` |
-| Invalid/expired/used session on exchange | 401 | `Session is invalid, expired, or has already been used.` |
+| Root key lacks a permission for a requested scope | 403 | `You do not have permission to grant the "<scope>" scope to a portal session.` |
+| Portal's API no longer exists | 403 | `Portal is not available: the API it uses no longer exists.` |
+| Portal not found, or root key lacks portal session permission | 404 | `Portal not found.` |
+| Invalid, expired, or already redeemed code | 401 | `Session is invalid, expired, or has already been used.` |
+
+The exchange deliberately does not distinguish between an unknown code, an expired one, and one that was already redeemed.

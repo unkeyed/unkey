@@ -46,7 +46,7 @@ func TestRestateIsolatesConcurrentRegistrations(t *testing.T) {
 			defer cancel()
 
 			response, err := ingress.Object[string, string](
-				ingress.NewClient(cfg.IngressURL), serviceName, "same-key", handlerName,
+				cfg.IngressClient, serviceName, "same-key", handlerName,
 			).Request(ctx, "")
 			require.NoError(t, err)
 			require.Equal(t, marker+":1", response)
@@ -75,7 +75,7 @@ func TestRestateCleansUpWithInvocationInFlight(t *testing.T) {
 	ctx, cancel := context.WithTimeout(t.Context(), 250*time.Millisecond)
 	defer cancel()
 	_, err := ingress.Object[string, string](
-		ingress.NewClient(cfg.IngressURL), serviceName, "key", "sleep",
+		cfg.IngressClient, serviceName, "key", "sleep",
 	).Request(ctx, "")
 	require.ErrorIs(t, err, context.DeadlineExceeded)
 }

@@ -42,7 +42,5 @@ export * from "./horizontal_autoscaling_policies";
 export * from "./deployment_changes";
 
 // Portal tables
-export * from "./portal_configurations";
-export * from "./portal_branding";
-export * from "./portal_session_tokens";
+export * from "./portals";
 export * from "./portal_sessions";

@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"time"
 
-	unkey "github.com/unkeyed/sdks/api/go/v2"
-	"github.com/unkeyed/sdks/api/go/v2/models/components"
+	unkey "github.com/unkeyed/sdks/api/go/v3"
+	"github.com/unkeyed/sdks/api/go/v3/models/components"
 	"github.com/unkeyed/unkey/pkg/buildinfo"
 	"github.com/unkeyed/unkey/pkg/git"
 	"github.com/unkeyed/unkey/pkg/logger"
@@ -33,8 +33,8 @@ func (h *headerInjector) Do(req *http.Request) (*http.Response, error) {
 // DeploymentStatusEvent represents a status change event
 type DeploymentStatusEvent struct {
 	DeploymentID   string
-	PreviousStatus components.Status
-	CurrentStatus  components.Status
+	PreviousStatus components.V2DeployGetDeploymentResponseDataStatus
+	CurrentStatus  components.V2DeployGetDeploymentResponseDataStatus
 	Deployment     *components.V2DeployGetDeploymentResponseData
 }
 
@@ -42,7 +42,7 @@ type DeploymentStatusEvent struct {
 type DeploymentStepEvent struct {
 	DeploymentID string
 	Step         *components.V2DeployDeploymentStep
-	Status       components.Status
+	Status       components.V2DeployGetDeploymentResponseDataStatus
 }
 
 // ControlPlaneClient handles API operations with the control plane
@@ -147,7 +147,7 @@ func (c *ControlPlaneClient) PollDeploymentStatus(
 	defer timeout.Stop()
 
 	// Track processed steps by creation time to avoid duplicates
-	lastStatus := components.StatusUnspecified
+	lastStatus := components.V2DeployGetDeploymentResponseDataStatusUnspecified
 
 	for {
 		select {
@@ -181,7 +181,7 @@ func (c *ControlPlaneClient) PollDeploymentStatus(
 			}
 
 			// Check for completion
-			if currentStatus == components.StatusReady {
+			if currentStatus == components.V2DeployGetDeploymentResponseDataStatusReady {
 				return nil
 			}
 		}
