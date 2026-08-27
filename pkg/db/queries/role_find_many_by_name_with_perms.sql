@@ -1,4 +1,7 @@
 -- name: FindManyRolesByNamesWithPerms :many
+-- FindManyRolesByNamesWithPerms returns the requested roles and their
+-- permissions from one project. The project filter prevents cross-project key
+-- assignments.
 SELECT *, COALESCE(
         (SELECT JSON_ARRAYAGG(
             json_object(
@@ -15,4 +18,6 @@ SELECT *, COALESCE(
         JSON_ARRAY()
 ) as permissions
 FROM roles r
-WHERE r.workspace_id = ? AND r.name IN (sqlc.slice('names'));
+WHERE r.workspace_id = sqlc.arg('workspace_id')
+  AND r.project_id = sqlc.arg('project_id')
+  AND r.name IN (sqlc.slice('names'));

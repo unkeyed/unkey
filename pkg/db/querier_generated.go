@@ -779,7 +779,9 @@ type Querier interface {
 	//  WHERE ns.workspace_id = ?
 	//    AND (ns.id IN (/*SLICE:namespaces*/?) OR ns.name IN (/*SLICE:namespaces*/?))
 	FindManyRatelimitNamespaces(ctx context.Context, db DBTX, arg FindManyRatelimitNamespacesParams) ([]FindManyRatelimitNamespacesRow, error)
-	//FindManyRolesByNamesWithPerms
+	// FindManyRolesByNamesWithPerms returns the requested roles and their
+	// permissions from one project. The project filter prevents cross-project key
+	// assignments.
 	//
 	//  SELECT pk, id, workspace_id, project_id, name, description, created_at_m, updated_at_m, COALESCE(
 	//          (SELECT JSON_ARRAYAGG(
@@ -797,7 +799,9 @@ type Querier interface {
 	//          JSON_ARRAY()
 	//  ) as permissions
 	//  FROM roles r
-	//  WHERE r.workspace_id = ? AND r.name IN (/*SLICE:names*/?)
+	//  WHERE r.workspace_id = ?
+	//    AND r.project_id = ?
+	//    AND r.name IN (/*SLICE:names*/?)
 	FindManyRolesByNamesWithPerms(ctx context.Context, db DBTX, arg FindManyRolesByNamesWithPermsParams) ([]FindManyRolesByNamesWithPermsRow, error)
 	// Finds a permission record by its ID
 	// Returns: The permission record if found

@@ -94,8 +94,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			Action:       rbac.UpdateKey,
 		}),
 		rbac.U(
-			urn.New().Workspace(principal.WorkspaceID).Keyspace(key.KeyAuthID).Key(key.ID),
-			permissions.UpdateKey{},
+			urn.New().Workspace(principal.WorkspaceID).Project(key.KeyAuth.ProjectID).Keyspace(key.KeyAuthID).Key(key.ID),
+			permissions.WriteKey{},
 		),
 	))
 	if err != nil {
@@ -124,6 +124,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		// to prevent TOCTOU races with concurrent requests.
 		foundRoles, err := db.Query.FindManyRolesByNamesWithPerms(ctx, tx, db.FindManyRolesByNamesWithPermsParams{
 			WorkspaceID: principal.WorkspaceID,
+			ProjectID:   key.KeyAuth.ProjectID,
 			Names:       req.Roles,
 		})
 		if err != nil {

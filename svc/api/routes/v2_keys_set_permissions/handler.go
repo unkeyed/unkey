@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/unkeyed/unkey/internal/services/auditlogs"
@@ -86,8 +87,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	err = principal.Authorize(
 		rbac.Or(
 			rbac.U(
-				urn.New().Workspace(principal.WorkspaceID).Keyspace(key.KeyAuthID).Key(key.ID),
-				permissions.UpdateKey{},
+				urn.New().Workspace(principal.WorkspaceID).Project(key.KeyAuth.ProjectID).Keyspace(key.KeyAuthID).Key(key.ID),
+				permissions.WriteKey{},
 			),
 			rbac.And(
 				rbac.Or(
@@ -119,11 +120,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	projectID := key.KeyAuth.ProjectID
-
 	foundPermissions, err := db.Query.FindPermissionsBySlugs(ctx, h.DB.RO(), db.FindPermissionsBySlugsParams{
 		WorkspaceID: principal.WorkspaceID,
-		ProjectID:   projectID,
+		ProjectID:   key.KeyAuth.ProjectID,
 		Slugs:       req.Permissions,
 	})
 	if err != nil {
@@ -135,7 +134,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	missingPermissions := make(map[string]struct{})
 	permissionsToSet := make([]db.Permission, 0)
-	permissionsToInsert := make([]db.InsertPermissionParams, 0)
+	permissionsToInsert := make([]db.UpsertPermissionParams, 0)
 
 	for _, permission := range req.Permissions {
 		missingPermissions[permission] = struct{}{}
@@ -146,13 +145,11 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		delete(missingPermissions, permission.Slug)
 	}
 
-	permissionsToSet = append(permissionsToSet, foundPermissions...)
-
 	if len(missingPermissions) > 0 {
 		err = principal.Authorize(rbac.Or(
 			rbac.U(
-				urn.New().Workspace(principal.WorkspaceID).RBAC.Permission("*"),
-				permissions.CreatePermission{},
+				urn.New().Workspace(principal.WorkspaceID).Project(key.KeyAuth.ProjectID).RBAC().Permission("*"),
+				permissions.WritePermission{},
 			),
 			rbac.T(rbac.Tuple{
 				ResourceType: rbac.Rbac,
@@ -168,34 +165,15 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	for perm := range missingPermissions {
 		permissionID := uid.New(uid.PermissionPrefix)
 		now := time.Now().UnixMilli()
-		permissionsToInsert = append(permissionsToInsert, db.InsertPermissionParams{
+		permissionsToInsert = append(permissionsToInsert, db.UpsertPermissionParams{
 			PermissionID: permissionID,
 			Name:         perm,
 			WorkspaceID:  principal.WorkspaceID,
-			ProjectID:    projectID,
+			ProjectID:    key.KeyAuth.ProjectID,
 			Slug:         perm,
 			Description:  dbtype.NullString{String: "", Valid: false},
 			CreatedAtM:   now,
 		})
-
-		permissionsToSet = append(permissionsToSet, db.Permission{
-			Pk:          0, // only here to make the linter happy
-			ID:          permissionID,
-			Name:        perm,
-			WorkspaceID: principal.WorkspaceID,
-			ProjectID:   projectID,
-			Slug:        perm,
-			Description: dbtype.NullString{String: "", Valid: false},
-			CreatedAtM:  now,
-			UpdatedAtM:  sql.NullInt64{Int64: now, Valid: true},
-		})
-	}
-
-	requestedPermissionIDs := make(map[string]bool)
-	requestedPermissionMap := make(map[string]db.Permission)
-	for _, permission := range permissionsToSet {
-		requestedPermissionIDs[permission.ID] = true
-		requestedPermissionMap[permission.ID] = permission
 	}
 
 	err = db.TxRetry(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
@@ -214,6 +192,83 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
 				fault.Internal("database error"), fault.Public("Failed to retrieve current permissions."),
 			)
+		}
+
+		var auditLogs []auditlog.AuditLog
+		createdPermissionIDs := make(map[string]db.UpsertPermissionParams, len(permissionsToInsert))
+		for _, candidate := range permissionsToInsert {
+			createdPermissionIDs[strings.ToLower(candidate.Slug)] = candidate
+			if err = db.Query.UpsertPermission(ctx, tx, candidate); err != nil {
+				return fault.Wrap(err,
+					fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+					fault.Internal("database error"),
+					fault.Public("Failed to insert permissions."),
+				)
+			}
+		}
+
+		foundPermissions, err = db.Query.FindPermissionsBySlugs(ctx, tx, db.FindPermissionsBySlugsParams{
+			WorkspaceID: principal.WorkspaceID,
+			ProjectID:   key.KeyAuth.ProjectID,
+			Slugs:       req.Permissions,
+		})
+		if err != nil {
+			return fault.Wrap(err,
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Internal("database error"),
+				fault.Public("Failed to lookup permissions to set."),
+			)
+		}
+
+		foundBySlug := make(map[string]db.Permission, len(foundPermissions))
+		for _, permission := range foundPermissions {
+			normalizedSlug := strings.ToLower(permission.Slug)
+			foundBySlug[normalizedSlug] = permission
+			candidate, exists := createdPermissionIDs[normalizedSlug]
+			if exists && candidate.PermissionID == permission.ID {
+				auditLogs = append(auditLogs, auditlog.AuditLog{
+					WorkspaceID:   principal.WorkspaceID,
+					Event:         auditlog.PermissionCreateEvent,
+					ActorType:     auditlog.AuditLogActor(principal.Subject.Type),
+					ActorID:       principal.Subject.ID,
+					ActorName:     principal.Subject.Name,
+					ActorMeta:     map[string]any{},
+					Display:       fmt.Sprintf("Created %s (%s)", candidate.Slug, candidate.PermissionID),
+					RemoteIP:      s.Location(),
+					UserAgent:     s.UserAgent(),
+					CorrelationID: "",
+					Resources: []auditlog.AuditLogResource{
+						{
+							Type:        auditlog.PermissionResourceType,
+							ID:          candidate.PermissionID,
+							Name:        candidate.Slug,
+							DisplayName: candidate.Name,
+							Meta: map[string]any{
+								"name": candidate.Name,
+								"slug": candidate.Slug,
+							},
+						},
+					},
+				})
+			}
+		}
+
+		permissionsToSet = permissionsToSet[:0]
+		for _, requestedSlug := range req.Permissions {
+			permission, exists := foundBySlug[strings.ToLower(requestedSlug)]
+			if !exists {
+				return fault.New("permission not found",
+					fault.Code(codes.Data.Permission.NotFound.URN()),
+					fault.Internal("permission belongs to a different project"),
+					fault.Public(fmt.Sprintf("Permission '%s' was not found.", requestedSlug)),
+				)
+			}
+			permissionsToSet = append(permissionsToSet, permission)
+		}
+
+		requestedPermissionIDs := make(map[string]bool, len(permissionsToSet))
+		for _, permission := range permissionsToSet {
+			requestedPermissionIDs[permission.ID] = true
 		}
 
 		currentPermissionMap := make(map[string]db.Permission)
@@ -235,8 +290,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				permissionsToAdd = append(permissionsToAdd, permission)
 			}
 		}
-
-		var auditLogs []auditlog.AuditLog
 
 		if len(permissionsToRemove) > 0 {
 			err = db.Query.DeleteManyKeyPermissionByKeyAndPermissionIDs(ctx, tx, db.DeleteManyKeyPermissionByKeyAndPermissionIDsParams{
@@ -281,44 +334,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 						},
 					},
 				})
-			}
-		}
-
-		if len(permissionsToInsert) > 0 {
-			for _, toCreate := range permissionsToInsert {
-				auditLogs = append(auditLogs, auditlog.AuditLog{
-					WorkspaceID:   principal.WorkspaceID,
-					Event:         auditlog.PermissionCreateEvent,
-					ActorType:     auditlog.AuditLogActor(principal.Subject.Type),
-					ActorID:       principal.Subject.ID,
-					ActorName:     principal.Subject.Name,
-					ActorMeta:     map[string]any{},
-					Display:       fmt.Sprintf("Created %s (%s)", toCreate.Slug, toCreate.PermissionID),
-					RemoteIP:      s.Location(),
-					UserAgent:     s.UserAgent(),
-					CorrelationID: "",
-					Resources: []auditlog.AuditLogResource{
-						{
-							Type:        auditlog.PermissionResourceType,
-							ID:          toCreate.PermissionID,
-							Name:        toCreate.Slug,
-							DisplayName: toCreate.Name,
-							Meta: map[string]any{
-								"name": toCreate.Name,
-								"slug": toCreate.Slug,
-							},
-						},
-					},
-				})
-			}
-
-			err = db.BulkQuery.InsertPermissions(ctx, tx, permissionsToInsert)
-			if err != nil {
-				return fault.Wrap(err,
-					fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-					fault.Internal("database error"),
-					fault.Public("Failed to insert permissions."),
-				)
 			}
 		}
 
