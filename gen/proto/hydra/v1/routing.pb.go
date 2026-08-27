@@ -22,6 +22,55 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+type AutomaticPromotionSkipReason int32
+
+const (
+	AutomaticPromotionSkipReason_AUTOMATIC_PROMOTION_SKIP_REASON_UNSPECIFIED      AutomaticPromotionSkipReason = 0
+	AutomaticPromotionSkipReason_AUTOMATIC_PROMOTION_SKIP_REASON_NEWER_DEPLOYMENT AutomaticPromotionSkipReason = 1
+	AutomaticPromotionSkipReason_AUTOMATIC_PROMOTION_SKIP_REASON_ROLLED_BACK      AutomaticPromotionSkipReason = 2
+)
+
+// Enum value maps for AutomaticPromotionSkipReason.
+var (
+	AutomaticPromotionSkipReason_name = map[int32]string{
+		0: "AUTOMATIC_PROMOTION_SKIP_REASON_UNSPECIFIED",
+		1: "AUTOMATIC_PROMOTION_SKIP_REASON_NEWER_DEPLOYMENT",
+		2: "AUTOMATIC_PROMOTION_SKIP_REASON_ROLLED_BACK",
+	}
+	AutomaticPromotionSkipReason_value = map[string]int32{
+		"AUTOMATIC_PROMOTION_SKIP_REASON_UNSPECIFIED":      0,
+		"AUTOMATIC_PROMOTION_SKIP_REASON_NEWER_DEPLOYMENT": 1,
+		"AUTOMATIC_PROMOTION_SKIP_REASON_ROLLED_BACK":      2,
+	}
+)
+
+func (x AutomaticPromotionSkipReason) Enum() *AutomaticPromotionSkipReason {
+	p := new(AutomaticPromotionSkipReason)
+	*p = x
+	return p
+}
+
+func (x AutomaticPromotionSkipReason) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (AutomaticPromotionSkipReason) Descriptor() protoreflect.EnumDescriptor {
+	return file_hydra_v1_routing_proto_enumTypes[0].Descriptor()
+}
+
+func (AutomaticPromotionSkipReason) Type() protoreflect.EnumType {
+	return &file_hydra_v1_routing_proto_enumTypes[0]
+}
+
+func (x AutomaticPromotionSkipReason) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use AutomaticPromotionSkipReason.Descriptor instead.
+func (AutomaticPromotionSkipReason) EnumDescriptor() ([]byte, []int) {
+	return file_hydra_v1_routing_proto_rawDescGZIP(), []int{0}
+}
+
 type AssignFrontlineRoutesRequest struct {
 	state             protoimpl.MessageState `protogen:"open.v1"`
 	DeploymentId      string                 `protobuf:"bytes,1,opt,name=deployment_id,json=deploymentId,proto3" json:"deployment_id,omitempty"`
@@ -177,8 +226,12 @@ type SwapLiveDeploymentRequest struct {
 	// If true, sets apps.is_rolled_back = true (rollback semantics).
 	// If false, clears apps.is_rolled_back to false (deploy / promote semantics).
 	SetRollbackFlag bool `protobuf:"varint,3,opt,name=set_rollback_flag,json=setRollbackFlag,proto3" json:"set_rollback_flag,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
+	// Automatic deployments set this to prevent stale builds from replacing a
+	// newer deployment or undoing a rollback. Manual rollback and promote
+	// operations leave it false.
+	AutomaticPromotion bool `protobuf:"varint,4,opt,name=automatic_promotion,json=automaticPromotion,proto3" json:"automatic_promotion,omitempty"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
 }
 
 func (x *SwapLiveDeploymentRequest) Reset() {
@@ -232,14 +285,22 @@ func (x *SwapLiveDeploymentRequest) GetSetRollbackFlag() bool {
 	return false
 }
 
+func (x *SwapLiveDeploymentRequest) GetAutomaticPromotion() bool {
+	if x != nil {
+		return x.AutomaticPromotion
+	}
+	return false
+}
+
 type SwapLiveDeploymentResponse struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// The deployment_id that was previously live for this app, or empty if
 	// there was no previous live deployment. Useful for the caller to schedule
 	// the previous deployment to stop.
-	PreviousDeploymentId string `protobuf:"bytes,1,opt,name=previous_deployment_id,json=previousDeploymentId,proto3" json:"previous_deployment_id,omitempty"`
-	unknownFields        protoimpl.UnknownFields
-	sizeCache            protoimpl.SizeCache
+	PreviousDeploymentId         string                       `protobuf:"bytes,1,opt,name=previous_deployment_id,json=previousDeploymentId,proto3" json:"previous_deployment_id,omitempty"`
+	AutomaticPromotionSkipReason AutomaticPromotionSkipReason `protobuf:"varint,2,opt,name=automatic_promotion_skip_reason,json=automaticPromotionSkipReason,proto3,enum=hydra.v1.AutomaticPromotionSkipReason" json:"automatic_promotion_skip_reason,omitempty"`
+	unknownFields                protoimpl.UnknownFields
+	sizeCache                    protoimpl.SizeCache
 }
 
 func (x *SwapLiveDeploymentResponse) Reset() {
@@ -279,6 +340,13 @@ func (x *SwapLiveDeploymentResponse) GetPreviousDeploymentId() string {
 	return ""
 }
 
+func (x *SwapLiveDeploymentResponse) GetAutomaticPromotionSkipReason() AutomaticPromotionSkipReason {
+	if x != nil {
+		return x.AutomaticPromotionSkipReason
+	}
+	return AutomaticPromotionSkipReason_AUTOMATIC_PROMOTION_SKIP_REASON_UNSPECIFIED
+}
+
 var File_hydra_v1_routing_proto protoreflect.FileDescriptor
 
 const file_hydra_v1_routing_proto_rawDesc = "" +
@@ -291,13 +359,19 @@ const file_hydra_v1_routing_proto_rawDesc = "" +
 	"\x11reassigned_routes\x18\x01 \x03(\v2\".hydra.v1.ReassignedFrontlineRouteR\x10reassignedRoutes\"~\n" +
 	"\x18ReassignedFrontlineRoute\x12,\n" +
 	"\x12frontline_route_id\x18\x01 \x01(\tR\x10frontlineRouteId\x124\n" +
-	"\x16previous_deployment_id\x18\x02 \x01(\tR\x14previousDeploymentId\"\x9c\x01\n" +
+	"\x16previous_deployment_id\x18\x02 \x01(\tR\x14previousDeploymentId\"\xcd\x01\n" +
 	"\x19SwapLiveDeploymentRequest\x12#\n" +
 	"\rdeployment_id\x18\x01 \x01(\tR\fdeploymentId\x12.\n" +
 	"\x13frontline_route_ids\x18\x02 \x03(\tR\x11frontlineRouteIds\x12*\n" +
-	"\x11set_rollback_flag\x18\x03 \x01(\bR\x0fsetRollbackFlag\"R\n" +
+	"\x11set_rollback_flag\x18\x03 \x01(\bR\x0fsetRollbackFlag\x12/\n" +
+	"\x13automatic_promotion\x18\x04 \x01(\bR\x12automaticPromotion\"\xc1\x01\n" +
 	"\x1aSwapLiveDeploymentResponse\x124\n" +
-	"\x16previous_deployment_id\x18\x01 \x01(\tR\x14previousDeploymentId2\xe5\x01\n" +
+	"\x16previous_deployment_id\x18\x01 \x01(\tR\x14previousDeploymentId\x12m\n" +
+	"\x1fautomatic_promotion_skip_reason\x18\x02 \x01(\x0e2&.hydra.v1.AutomaticPromotionSkipReasonR\x1cautomaticPromotionSkipReason*\xb6\x01\n" +
+	"\x1cAutomaticPromotionSkipReason\x12/\n" +
+	"+AUTOMATIC_PROMOTION_SKIP_REASON_UNSPECIFIED\x10\x00\x124\n" +
+	"0AUTOMATIC_PROMOTION_SKIP_REASON_NEWER_DEPLOYMENT\x10\x01\x12/\n" +
+	"+AUTOMATIC_PROMOTION_SKIP_REASON_ROLLED_BACK\x10\x022\xe5\x01\n" +
 	"\x0eRoutingService\x12j\n" +
 	"\x15AssignFrontlineRoutes\x12&.hydra.v1.AssignFrontlineRoutesRequest\x1a'.hydra.v1.AssignFrontlineRoutesResponse\"\x00\x12a\n" +
 	"\x12SwapLiveDeployment\x12#.hydra.v1.SwapLiveDeploymentRequest\x1a$.hydra.v1.SwapLiveDeploymentResponse\"\x00\x1a\x04\x98\x80\x01\x01B\x92\x01\n" +
@@ -315,25 +389,28 @@ func file_hydra_v1_routing_proto_rawDescGZIP() []byte {
 	return file_hydra_v1_routing_proto_rawDescData
 }
 
+var file_hydra_v1_routing_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
 var file_hydra_v1_routing_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
 var file_hydra_v1_routing_proto_goTypes = []any{
-	(*AssignFrontlineRoutesRequest)(nil),  // 0: hydra.v1.AssignFrontlineRoutesRequest
-	(*AssignFrontlineRoutesResponse)(nil), // 1: hydra.v1.AssignFrontlineRoutesResponse
-	(*ReassignedFrontlineRoute)(nil),      // 2: hydra.v1.ReassignedFrontlineRoute
-	(*SwapLiveDeploymentRequest)(nil),     // 3: hydra.v1.SwapLiveDeploymentRequest
-	(*SwapLiveDeploymentResponse)(nil),    // 4: hydra.v1.SwapLiveDeploymentResponse
+	(AutomaticPromotionSkipReason)(0),     // 0: hydra.v1.AutomaticPromotionSkipReason
+	(*AssignFrontlineRoutesRequest)(nil),  // 1: hydra.v1.AssignFrontlineRoutesRequest
+	(*AssignFrontlineRoutesResponse)(nil), // 2: hydra.v1.AssignFrontlineRoutesResponse
+	(*ReassignedFrontlineRoute)(nil),      // 3: hydra.v1.ReassignedFrontlineRoute
+	(*SwapLiveDeploymentRequest)(nil),     // 4: hydra.v1.SwapLiveDeploymentRequest
+	(*SwapLiveDeploymentResponse)(nil),    // 5: hydra.v1.SwapLiveDeploymentResponse
 }
 var file_hydra_v1_routing_proto_depIdxs = []int32{
-	2, // 0: hydra.v1.AssignFrontlineRoutesResponse.reassigned_routes:type_name -> hydra.v1.ReassignedFrontlineRoute
-	0, // 1: hydra.v1.RoutingService.AssignFrontlineRoutes:input_type -> hydra.v1.AssignFrontlineRoutesRequest
-	3, // 2: hydra.v1.RoutingService.SwapLiveDeployment:input_type -> hydra.v1.SwapLiveDeploymentRequest
-	1, // 3: hydra.v1.RoutingService.AssignFrontlineRoutes:output_type -> hydra.v1.AssignFrontlineRoutesResponse
-	4, // 4: hydra.v1.RoutingService.SwapLiveDeployment:output_type -> hydra.v1.SwapLiveDeploymentResponse
-	3, // [3:5] is the sub-list for method output_type
-	1, // [1:3] is the sub-list for method input_type
-	1, // [1:1] is the sub-list for extension type_name
-	1, // [1:1] is the sub-list for extension extendee
-	0, // [0:1] is the sub-list for field type_name
+	3, // 0: hydra.v1.AssignFrontlineRoutesResponse.reassigned_routes:type_name -> hydra.v1.ReassignedFrontlineRoute
+	0, // 1: hydra.v1.SwapLiveDeploymentResponse.automatic_promotion_skip_reason:type_name -> hydra.v1.AutomaticPromotionSkipReason
+	1, // 2: hydra.v1.RoutingService.AssignFrontlineRoutes:input_type -> hydra.v1.AssignFrontlineRoutesRequest
+	4, // 3: hydra.v1.RoutingService.SwapLiveDeployment:input_type -> hydra.v1.SwapLiveDeploymentRequest
+	2, // 4: hydra.v1.RoutingService.AssignFrontlineRoutes:output_type -> hydra.v1.AssignFrontlineRoutesResponse
+	5, // 5: hydra.v1.RoutingService.SwapLiveDeployment:output_type -> hydra.v1.SwapLiveDeploymentResponse
+	4, // [4:6] is the sub-list for method output_type
+	2, // [2:4] is the sub-list for method input_type
+	2, // [2:2] is the sub-list for extension type_name
+	2, // [2:2] is the sub-list for extension extendee
+	0, // [0:2] is the sub-list for field type_name
 }
 
 func init() { file_hydra_v1_routing_proto_init() }
@@ -346,13 +423,14 @@ func file_hydra_v1_routing_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_hydra_v1_routing_proto_rawDesc), len(file_hydra_v1_routing_proto_rawDesc)),
-			NumEnums:      0,
+			NumEnums:      1,
 			NumMessages:   5,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
 		GoTypes:           file_hydra_v1_routing_proto_goTypes,
 		DependencyIndexes: file_hydra_v1_routing_proto_depIdxs,
+		EnumInfos:         file_hydra_v1_routing_proto_enumTypes,
 		MessageInfos:      file_hydra_v1_routing_proto_msgTypes,
 	}.Build()
 	File_hydra_v1_routing_proto = out.File
