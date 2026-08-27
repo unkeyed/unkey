@@ -1,27 +1,27 @@
 /**
  * Canonical gateway policy schemas — single source of truth.
  *
- * Wire shape vs. Go service:
- *   The Go Frontline service parses these blobs as protojson with
- *   `DiscardUnknown: true`. Policy is a protobuf oneof keyed on `keyauth | firewall | ...`,
- *   with no `type` discriminator field. We keep a client-side `type` field to drive
- *   zod's discriminated union and the UI router; the Go side silently ignores it.
+ * These mirror `openapi.Policy` / `PolicyResponse` field for field, with one
+ * addition: `type`. The API discriminates variants by which of `keyauth`,
+ * `ratelimit`, ... is set, which zod cannot switch on, so `fromWirePolicy`
+ * attaches `type` on read. `type` and the server-owned `id` are dropped
+ * again by the SDK's own outbound schema, which ignores unknown keys.
  *
- *   `keyauth` and `firewall` are supported today. Add a new branch by extending the
- *   discriminated union below and wiring it through `fromWirePolicy` — the
- *   collection's per-type routing will pick it up.
+ * Add a policy type by extending the union below and wiring it through
+ * `fromWirePolicy`.
  */
 import { z } from "zod";
 
 // ── Limits ──────────────────────────────────────────────────────────────
 
-// Every limit must stay >= its counterpart in the API spec
-// (svc/api/openapi/spec: setPolicies policies maxItems, Policy.match
-// maxItems, KeyauthPolicy keyspaces/ratelimits maxItems, permissionQuery
-// maxLength). savePolicies re-validates whole configs, so a lower value
-// here breaks reading back or editing API-written blobs.
+// Pre-flight only: the generated SDK carries none of the spec's size bounds, so
+// these drive inline form errors and "N / max" counters instead of a server 400.
+// Keep each in step with its counterpart under svc/api/openapi/spec. Too tight
+// and a stored policy the API accepts fails to open for editing; too loose and
+// the save 400s anyway.
 export const POLICY_LIMITS = {
   maxPolicies: 50,
+  maxNameLength: 256,
   maxKeyspacesPerPolicy: 5,
   maxMatchExprsPerPolicy: 10,
   permissionQueryMaxLength: 1000,
@@ -146,7 +146,7 @@ export const keyauthPolicySchema = z
     type: z.literal("keyauth"),
     keyauth: z
       .object({
-        keySpaceIds: z.array(z.string().min(1)).min(1).max(POLICY_LIMITS.maxKeyspacesPerPolicy),
+        keyspaces: z.array(z.string().min(1)).min(1).max(POLICY_LIMITS.maxKeyspacesPerPolicy),
         locations: z.array(keyLocationSchema).optional(),
         permissionQuery: z.string().max(POLICY_LIMITS.permissionQueryMaxLength).optional(),
         ratelimits: z
@@ -279,30 +279,21 @@ export const policySchema = z.discriminatedUnion("type", [
 export type Policy = z.infer<typeof policySchema>;
 export type PolicyType = Policy["type"];
 
-// ── Top-level config blob (what's stored in appRuntimeSettings.sentinelConfig) ──
-
-export const policiesConfigSchema = z
-  .object({
-    policies: z.array(policySchema).max(POLICY_LIMITS.maxPolicies),
-  })
-  .strict();
-export type PoliciesConfig = z.infer<typeof policiesConfigSchema>;
-
-/**
- * Strip the client-side `type` discriminator before serializing to the wire.
- * Go's protojson parser uses `DiscardUnknown: true`, so it would tolerate the
- * extra field — but we keep the on-disk blob clean so it round-trips through
- * any future stricter parser.
- */
-export function toWirePolicy(p: Policy): Record<string, unknown> {
-  const { type: _type, ...rest } = p;
-  return rest;
+/** A trailing space is invisible once rendered, so it cannot make a second policy. */
+export function normalizePolicyName(name: string): string {
+  return name.trim();
 }
 
 /**
- * Re-attach the client-side `type` discriminator when reading a blob back.
- * Looks at which oneof key is present and infers `type`.
+ * What makes two policies the same policy across environments. Type belongs in
+ * the match key because a name can repeat across types: a firewall and a
+ * ratelimit policy both called "Guard" are two policies, not one.
  */
+export function policyMatchKey(type: PolicyType, name: string): string {
+  return `${type}:${normalizePolicyName(name)}`;
+}
+
+/** Attaches the `type` discriminator the API leaves implicit. */
 export function fromWirePolicy(raw: unknown): Policy {
   if (typeof raw !== "object" || raw === null) {
     throw new Error("policy must be an object");

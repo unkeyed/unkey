@@ -3,6 +3,7 @@
 import { useDeployActionGate } from "@/app/(app)/[workspaceSlug]/projects/_components/hooks/use-deploy-action-gate";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { collection } from "@/lib/collections";
+import { ENVIRONMENT_KIND } from "@/lib/collections/deploy/environments";
 import { useCollectionPolling } from "@/lib/collections/use-collection-polling";
 import { routes } from "@/lib/navigation/routes";
 import { trpc } from "@/lib/trpc/client";
@@ -71,7 +72,9 @@ export function AppProductionCard() {
   );
   const currentDeployment = currentDeploymentId ? currentDeploymentQuery.data?.[0] : undefined;
 
-  const productionEnvironmentId = environments.find((e) => e.kind === "production")?.id;
+  const productionEnvironmentId = environments.find(
+    (e) => e.kind === ENVIRONMENT_KIND.production,
+  )?.id;
   const latestProductionDeployment = productionEnvironmentId
     ? deployments.find((d) => d.environmentId === productionEnvironmentId)
     : undefined;

@@ -10,7 +10,7 @@ function keyauthWithCredits(credits: unknown) {
     name: "p",
     environmentId: "__all__",
     matchConditions: [],
-    keySpaceIds: ["ks_1"],
+    keyspaceIds: ["ks_1"],
     locations: [],
     permissionQuery: "",
     ratelimits: [],
