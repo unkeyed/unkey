@@ -388,3 +388,21 @@ type AuditLogV1 struct {
 	// multiple Insert calls.
 	CorrelationID string `ch:"correlation_id" json:"correlation_id"`
 }
+
+// LogdrainDeliveryV1 represents one customer endpoint delivery attempt.
+//
+//unkey:table default.logdrain_deliveries_raw_v1
+type LogdrainDeliveryV1 struct {
+	WorkspaceID       string `ch:"workspace_id" json:"workspace_id"`
+	DrainID           string `ch:"drain_id" json:"drain_id"`
+	Stream            string `ch:"stream" json:"stream"`
+	Time              int64  `ch:"time" json:"time"`
+	Outcome           string `ch:"outcome" json:"outcome"`
+	Events            int64  `ch:"events" json:"events"`
+	WebhookDurationMs int64  `ch:"webhook_duration_ms" json:"webhook_duration_ms"`
+	RequestBodyBytes  int64  `ch:"request_body_bytes" json:"request_body_bytes"`
+	ResponseStatus    int32  `ch:"response_status" json:"response_status"`
+	ResponseBody      string `ch:"response_body" json:"response_body"`
+	Error             string `ch:"error" json:"error"`
+	OffsetAfter       int64  `ch:"offset_after" json:"offset_after"`
+}

@@ -20,20 +20,6 @@ INSERT INTO workspaces (
   '{}'
 ) ON DUPLICATE KEY UPDATE created_at_m = UNIX_TIMESTAMP() * 1000;
 
-INSERT INTO quota (
-  workspace_id,
-  requests_per_month,
-  audit_logs_retention_days,
-  logs_retention_days,
-  team
-) VALUES (
-  'ws_local_root',
-  150000,
-  30,
-  7,
-  false
-) ON DUPLICATE KEY UPDATE workspace_id = 'ws_local_root';
-
 -- Insert root workspace billing row (billing state lives in workspace_billing)
 INSERT INTO workspace_billing (
   workspace_id,
