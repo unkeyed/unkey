@@ -22,7 +22,8 @@ People can still use other Git providers through the CLI, they add `unkey deploy
 When is this refactor actually done? When adding a new provider feels like adding a handler/endpoint
 to our API. Basically one package that implements `Provider` interface and one line in the registry,
 same process as a new endpoint in `svc/api/routes`. No need to jump between worker, webhook mux and
-connect service. Even the "Connect" UI works for the new provider without a dashboard PR.
+connect service. The "Connect" UI needs one line too, a descriptor in the dashboard's provider map,
+but no new components, because the wizard renders from the connect style. See [How the dashboard receives the descriptor](#how-the-dashboard-receives-the-descriptor).
 
 ## Background
 
@@ -132,12 +133,11 @@ github_repo_connections
 ```sql
 repo_connections
   id                    varchar    -- uid.New("conn"), the {connection_id} in the webhook path
-  provider              varchar    -- 'github' | 'gitlab' | 'bitbucket' | 'gitea'
+  provider              ENUM('github','gitlab','bitbucket','gitea') NOT NULL,
   provider_host         varchar    -- set for self-hosted, null for cloud providers
-  provider_repo_id      varchar    -- some providers use string compared to GH's int
-  provider_hook_id      varchar    -- the hook id the provider gave us, to delete it on disconnect. empty for GH
+  provider_repo_id      varchar    -- some providers use string compared to GH's int. GH can stringify and store it here
+  provider_hook_id      varchar    -- the hook id the provider gave us, to update or delete it later. empty for GH
   installation_id       bigint     -- GH needs it
-  repository_id         bigint     -- GH needs it -> We can migrate this later
   repository_full_name  varchar
   provider_token        text       -- vault-encrypted. empty for GH, long-lived token or Bitbucket rotating refresh token
   app_id (unique), project_id, workspace_id, timestamps
@@ -157,6 +157,10 @@ build a customer's deployment. The other providers give us a token once and we h
 For Github `CloneCredential` (will be explained below) generates a fresh token, for Gitlab and Gitea it reads the
 stored token, for Bitbucket it refreshes and persists.
 
+The webhook signing keys are not on this row. A connection can hold more than one key while a
+rotation is in flight, so they live in their own table, see
+[Signing keys and rotation](#signing-keys-and-rotation).
+
 After the connect and repository selection every provider behaves the same. We verify the webhook,
 parse the push, resolve a clone credential, and talk to the provider through a client.
 
@@ -170,10 +174,13 @@ type Provider interface {
     ListRepos(ctx context.Context, sess Session) ([]Repo, error)
     // CreateHook returns the provider's hook id, we store it so we can delete it on disconnect
     CreateHook(ctx context.Context, sess Session, repo RepoID, hookURL, secret string) (hookID string, err error)
-    DeleteHook(ctx context.Context, sess Session, repo RepoID, hookID string) error
+    // UpdateHook rewrites the URL and the secret of a hook we already created, for key rotation
+    UpdateHook(ctx context.Context, conn Connection, hookID, hookURL, secret string) error
+    DeleteHook(ctx context.Context, conn Connection, hookID string) error
 
     // today: pkg/webhook/verifiers/github
-    VerifyWebhook(r *http.Request, secret string) (Event, error)
+    // secrets holds the connection's signing keys, newest first
+    VerifyWebhook(r *http.Request, secrets []string) (Event, error)
     // today: the parsing half of svc/ctrl/api/webhooks/github
     ParsePush(event Event) (PushInfo, error)
 
@@ -201,7 +208,10 @@ Not every provider does every step though, so the oauth-only and token+url-only 
 own interfaces, and the service picks which one from `Descriptor().ConnectStyle`.
 
 `CreateHook` returns the provider's hook id (gitlab `hook_id`, bitbucket `uid`, gitea `id`) and we
-store it on the connection, so a disconnect can delete the hook again.
+store it on the connection, so a disconnect can delete the hook again. `UpdateHook` uses the same
+id when we rotate a signing key. `CreateHook` runs inside the connect flow, so it takes the
+session. `UpdateHook` and `DeleteHook` run days or months later, so they take the connection and
+use the token stored on it.
 
 ```go
 type Descriptor struct {
@@ -263,8 +273,8 @@ for name, p := range scm.Registered() {
     case scm.WebhookScopeAppGlobal: // GitHub only
         mux.Handle("POST /webhooks/"+name, appGlobalHandler(p))
     case scm.WebhookScopePerConnection:
-        // v1 is a secret key version, explained in "Webhook ingress" below
-        mux.Handle("POST /webhooks/"+name+"/v1/{connection_id}", perConnectionHandler(p))
+        // v1 leads the path, it is the route shape version, explained in "Webhook ingress" below
+        mux.Handle("POST /v1/webhooks/"+name+"/{connection_id}", perConnectionHandler(p))
     }
 }
 ```
@@ -346,9 +356,11 @@ const PROVIDERS: Record<string, ProviderDescriptor> = {
 };
 ```
 
-No RPC, and descriptors don't change often. But every new provider needs a dashboard PR too. The `ScmConnectService`
-has to exist for the connect flow anyway, so `ListProviders` is just another convenient method we
-can add. I'd go with the first way.
+We go with the map in the dashboard. There are four providers on the table and no reason to expect
+many more, a descriptor is a connect style plus two booleans, and the wizard already renders every
+connect style, so a new provider is one entry and no new UI.
+
+The cost is that turning on a provider needs a dashboard release next to the ctrl config.
 
 ### Connect flow
 
@@ -357,21 +369,20 @@ install page, the repository listing and the callback. The other providers don't
 build those steps ourselves, once, and every provider goes through them.
 
 The dashboard just calls the new ctrl `ScmConnectService` and renders the results.
-The OAuth exchange and the repo listing are implemented on ctrl, so the dashboard has
-no provider logic in it. Today the Github connect completion is a dashboard tRPC that writes to
+The OAuth exchange and the repo listing are implemented on ctrl, so the dashboard holds
+no provider logic, only the descriptor map. Today the Github connect completion is a dashboard tRPC that writes to
 the DB directly, with this refactor that write moves to ctrl too.
 
-The whole service is seven RPCs.
+The whole service is six RPCs.
 
 ```proto
 service ScmConnectService {
-  rpc ListProviders(...) returns (...);  // descriptors for the wizard
   rpc Start(...)         returns (...);  // oauth: authorize URL + signed state
   rpc Callback(...)      returns (...);  // oauth: code -> session
   rpc Validate(...)      returns (...);  // token+url: creds -> session
   rpc ListRepos(...)     returns (...);  // session -> picker data
   rpc Complete(...)      returns (...);  // session + repo + app -> hook + connection row
-  rpc Disconnect(...)    returns (...);  // connectionId -> delete hook, then drop the row
+  rpc Disconnect(...)    returns (...);  // connectionId -> delete hook, then drop the row and its keys
 }
 ```
 
@@ -388,8 +399,7 @@ I believe we can understand these better if we map them to the Github flow we al
 - `Complete` is the `connectRepo` write we already do today, plus creating the webhook on the
   repo.
 - `Disconnect` is the delete we already do today, plus removing the webhook from the repo first.
-- `Validate` and `ListProviders` have no Github example. `Validate` replaces the whole redirect dance
-  for token+url providers, `ListProviders` just tells the wizard what to render.
+- `Validate` has no Github example, it replaces the whole redirect dance for token+url providers.
 
 The oauth flow (Gitlab, Bitbucket):
 
@@ -411,8 +421,8 @@ sequenceDiagram
     C->>P: list repositories
     C-->>B: picker data
     B->>C: Complete {session, repoId, appId}
-    C->>P: create webhook on the repo
-    C->>C: insert repo_connections row,<br/>mark session consumed
+    C->>P: create webhook on the repo<br/>with a fresh signing key
+    C->>C: insert repo_connections and<br/>scm_webhook_keys rows,<br/>mark session consumed
 ```
 
 The token+url flow (Gitea, Gitlab self-managed and Forgejo) skips the redirect process
@@ -437,7 +447,7 @@ So sessions get their own table.
 scm_connect_sessions
   id             varchar     -- uid.New("scs"), the only thing the browser holds
   workspace_id   varchar
-  provider       varchar     -- 'gitlab' | 'bitbucket' | 'gitea'
+  provider       ENUM('github','gitlab','bitbucket','gitea') NOT NULL, -- github never creates a session
   provider_host  varchar     -- set for self-hosted, null for cloud providers
   token          text        -- vault-encrypted, never leaves ctrl
   consumed       boolean     -- complete is single-use
@@ -448,7 +458,7 @@ scm_connect_sessions
 ### Webhook ingress
 
 We go with one webhook per connection, not per repo. Each connection gets its own hook and its own
-secret. Github is unique because its webhook is configured on the App itself, not per repo.
+signing keys. Github is unique because its webhook is configured on the App itself, not per repo.
 
 ```mermaid
 flowchart TB
@@ -466,10 +476,10 @@ flowchart TB
 ```mermaid
 flowchart TB
     subgraph new ["Proposed: one hook per connection (Gitlab, Bitbucket, Gitea)"]
-        A2[Push to repo] --> H1["Hook for connection 1<br/>POST /webhooks/{provider}/v1/{conn_1}"]
-        A2 --> H2["Hook for connection 2<br/>POST /webhooks/{provider}/v1/{conn_2}"]
-        H1 --> V1["Re-derive secret<br/>hmac(masterKey, conn_1), verify<br/>no DB read"]
-        H2 --> V2["Re-derive secret<br/>hmac(masterKey, conn_2), verify<br/>no DB read"]
+        A2[Push to repo] --> H1["Hook for connection 1<br/>POST /v1/webhooks/{provider}/{conn_1}"]
+        A2 --> H2["Hook for connection 2<br/>POST /v1/webhooks/{provider}/{conn_2}"]
+        H1 --> V1["Load conn_1 signing keys<br/>(cached), verify newest first"]
+        H2 --> V2["Load conn_2 signing keys<br/>(cached), verify newest first"]
         V1 --> R1["Restate object<br/>key = conn_1"]
         V2 --> R2["Restate object<br/>key = conn_2"]
         R1 --> G1[Deploy app 1]
@@ -477,35 +487,84 @@ flowchart TB
     end
 ```
 
-We create one webhook per connection using the `/webhooks/{provider}/v1/{conn_2}` format. During
-the "Connect" step we create the secret and give it to the provider inside the hook config, so the
-provider holds it. The secret looks like this "da5455..." and it's not stored anywhere on
-our side, not even in the DB. We own the `masterKey`, so we can re-derive it any time with
-`hmac(masterKey, conn_2)`. On every delivery we re-derive it from the conn id in the path and
-verify, zero DB reads. We already use the same trick today, the Github install `state` is HMAC
-signed and never stored, we just verify it when Github sends it back, see
-[`v2_github_install_app/state.go`](https://github.com/unkeyed/unkey/blob/main/svc/api/routes/v2_github_install_app/state.go).
+We create one webhook per connection using the `/v1/webhooks/{provider}/{connection_id}` format. During
+the "Connect" step we generate a random secret, store it, and put it in the provider's hook config,
+so both sides hold it. On every delivery we take the conn id from the path, load that connection's
+signing keys, and verify the signature against them, newest first.
+
+All four verify the same way, with one shared secret the provider holds and uses on every
+delivery. For Github that secret is set once on the App, for the others we set it per connection.
+Only the header and the algorithm differ:
+
+| Provider  | Header                | Scheme                                   |
+| --------- | --------------------- | ---------------------------------------- |
+| Github    | `X-Hub-Signature-256` | HMAC-SHA256 over the raw body            |
+| Bitbucket | `X-Hub-Signature`     | HMAC-SHA256 over the raw body            |
+| Gitea     | `X-Gitea-Signature`   | HMAC-SHA256 over the raw body            |
+| Gitlab    | `X-Gitlab-Token`      | the secret itself, compared for equality |
+
+Gitlab is the weakest of the four, it puts the secret itself in a header on every delivery. So
+anything on the path to ctrl that logs request headers ends up holding a working secret. That is
+one more reason a leak has to be repairable for one connection on its own.
 
 Why not keep the flat `/webhooks/{provider}` routes? Because that means one shared secret per
 provider. Say customer A self-hosts Gitea. A is the admin, so the shared secret is sitting in A's
 own Gitea settings. Now A signs a fake push for customer B's repo, sends it to `/webhooks/gitea`,
 and we deploy B's app. A never touched B's Gitea or B's repo.
 
-With the conn id in the path every connection gets its own secret, and we still verify without a
-DB read. If a secret leaks, the attacker can only forge deliveries for that one connection, which
-they already control. Github stays flat because no customer can read its App secret.
+With the conn id in the path every connection gets its own secret. If a secret leaks, the attacker
+can only forge deliveries for that one connection, which they already control, and we can rotate
+that one connection without touching anybody else. Github stays flat because no customer can read
+its App secret.
 
-The `v1` in the path is the version of the `masterKey`. One day we might have to swap the key,
-maybe for a SOC2 rotation, maybe for a leak. The problem is the old secrets still sit in the
-provider's hook configs, and updating them is one API call per hook. If the path had no version,
-swapping the key would break every hook at once. The version lets both keys work at the same time,
-so rotation day looks like this:
+#### Signing keys and rotation
 
-- We add `masterKey_v2` next to v1, ctrl now accepts both `/v1/` and `/v2/` deliveries.
-- A background job walks all connections, for each one it calls the provider's update-hook API
-  with the new `/v2/{conn_id}` URL and the new secret `hmac(masterKey_v2, conn_id)`.
-- Deliveries move to `/v2/` as the hooks get updated and `/v1/` traffic drains to zero.
-- We delete `masterKey_v1` and the `/v1/` routes.
+A connection holds a list of signing keys.
+
+```sql
+scm_webhook_keys
+  id             varchar   -- uid.New("swk")
+  connection_id  varchar   -- the repo_connections row this key belongs to
+  secret         text      -- vault-encrypted, 32 random bytes
+  created_at     bigint
+  index on (connection_id)
+```
+
+The newest key is the one that sits in the provider's hook config. The older ones stay valid until
+we delete them. We need that list because rotation is not atomic on the provider side, there is
+always a window where deliveries are still signed with the old secret. Rotating one connection
+looks like this:
+
+- Insert a new key row. Both keys verify from now on.
+- Call the provider's update-hook API with the new secret.
+- Deliveries start arriving signed with the new key.
+- Delete the old key row.
+
+Nothing breaks if step two fails, the old key still verifies, so we retry. And rotating one
+connection touches one connection, so a leaked secret on customer A's self-hosted Gitea never
+forces a rotation for customer B. This is the same shape vault already uses for workspace keys,
+encrypt with the newest key, decrypt with any of them.
+
+Verification needs the keys, so ingress does one point lookup on `conn_id`, cached in memory with a
+short TTL so a flood of forged deliveries does not become DB load. We try the keys newest first and
+compare in constant time.
+
+Asymmetric keys would be better, we would store only public keys and a dump of our side would
+prove nothing. None of the four providers support it. Each one takes a shared secret string and
+signs with it, and Gitlab does not even sign.
+
+#### Why the version is the first segment
+
+The `v1` in the path is the version of the route shape, not of a key. Key rotation lives in
+`scm_webhook_keys` and needs no path change at all. The version is there because the hook URL sits
+in the customer's provider settings, so changing it is one API call per hook, and we can't do all
+of them at the same instant. If we later want a different shape, for example one hook per repo or
+an extra segment for the workspace, we mount `/v2/` next to `/v1/`, move hooks over in the
+background, and drop `/v1/` when its traffic reaches zero. The version comes first so everything
+after it is free to change. A version in the middle only covers the tail of the path.
+
+The Github app-global route keeps its current unversioned `/webhooks/github` path. Its secret comes
+from ctrl config and its URL is configured once on the App, not per connection.
 
 ### Github moves onto the interface too
 
@@ -521,8 +580,8 @@ its behavior, that means the interface design is not well thought, so we adjust 
 
 Each PR is shippable on its own. Shipping these PRs also doesn't mean launching Gitlab, Bitbucket
 and Gitea, the POCs already proved they fit the interface. A provider only turns on when we give
-ctrl its config and register it, so launching each one is up to us. We can add them whenever
-customers ask for it.
+ctrl its config, register it, and add its descriptor to the dashboard map, so launching each one is
+up to us. We can add them whenever customers ask for it.
 
 The refactor itself:
 
@@ -534,9 +593,11 @@ The refactor itself:
 
 When we decide to launch the first non-Github provider:
 
-- We build the per-connection webhook ingress with derived secrets.
+- We build the per-connection webhook ingress, the `scm_webhook_keys` table and the newest-first
+  verification. The rotation job can wait, until we need it a rotation is an insert, one
+  update-hook call and a delete.
 - We build `ScmConnectService`.
-- We build the connect wizard on the dashboard, it renders whatever the descriptors say.
+- We build the connect wizard on the dashboard, it renders whatever the descriptor map says.
 
 ## Alternatives Considered
 
@@ -548,20 +609,34 @@ Everything already works today if the customer uses `unkey deploy` in their own 
 
 This is what the POC did, the simplest possible ingress. A self-hosted Gitea admin can read the
 shared secret on their own instance and forge deliveries for every other customer. Full reasoning
-in Webhook ingress.
+in [Webhook ingress](#webhook-ingress).
 
-### Random webhook secret per connection, stored in a column
+### One `masterKey` with derived per-connection secrets
 
-This gives the same isolation as deriving, but now the DB holds thousands of secrets and the receiver has to read the DB before it can verify anything.
-Deriving from the `masterKey` gives us the same thing with nothing to store.
+Instead of storing a secret per connection we could derive it as `hmac(masterKey, conn_id)` and
+store nothing at all. Verification would need no DB read, which was the appeal, and the Github
+install `state` already uses that trick, see
+[`v2_github_install_app/state.go`](https://github.com/unkeyed/unkey/blob/main/svc/api/routes/v2_github_install_app/state.go).
 
-### Hardcoded descriptor map in the dashboard
+We dropped it because rotation granularity matters more than the saved read. The provider holds
+the derived secret, so swapping the `masterKey` still needs one update-hook call per connection.
+Derivation saves the DB writes, not the fan-out. Worse, a single leaked secret, and Gitlab sends
+its secret in a header on every delivery, can't be repaired for one connection without moving
+every other connection to a new key. The read we avoided is one cached point lookup, and the
+worker loads the connection row a moment later anyway to resolve the app.
 
-We covered this in the descriptor section, every new provider would need a dashboard PR.
-We don't want that, it complicates releases and the duplicated descriptors drift over time.
+### A `ListProviders` RPC for the descriptors
+
+Ctrl owns the providers, so it could serve their descriptors and the dashboard would need no
+provider knowledge at all, not even one line per provider. We skipped it because the payload is
+four static rows that change about never, and the proto, the ctrl handler and the tRPC hop cost
+more than the entry in the map they replace. Full reasoning in
+[How the dashboard receives the descriptor](#how-the-dashboard-receives-the-descriptor).
 
 ### A separate `scm_credentials` table
 
 This would move the tokens into their own table instead of a column on the connection. But every
 connection gets its own token from the provider and two connections can never share one,
 especially the rotating Bitbucket tokens, so the extra table and join don't give us anything.
+Webhook signing keys are the opposite case, one connection can hold several of them at once during
+a rotation, which is why those do get their own table.
