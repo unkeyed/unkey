@@ -5,14 +5,20 @@ import { ChevronRight } from "@unkey/icons";
 import { Input } from "@unkey/ui";
 import { useState } from "react";
 import { catalogueRows } from "../lib/catalogue";
-import {
-  ACTIONS,
-  type Action,
-  type CatalogueGroup,
-  type PermissionSelection,
-  type ScopeCatalogue,
+import type {
+  Action,
+  CatalogueGroup,
+  PermissionRow,
+  PermissionSelection,
+  ScopeCatalogue,
 } from "../lib/catalogue.types";
-import { countSelectedActions, rowActions, setRowsActions, toggleRowAction } from "../lib/policy";
+import {
+  countSelectedActions,
+  rowActions,
+  setRowsActions,
+  supportedRowActions,
+  toggleRowAction,
+} from "../lib/policy";
 import { rowGrants } from "../lib/urn";
 import { PermissionCatalogueBulkMenu } from "./permission-catalogue-bulk-menu";
 import { PermissionCatalogueRow } from "./permission-catalogue-row";
@@ -43,7 +49,7 @@ export function PermissionCatalogue({
     catalogue.groups.flatMap((group) => matches(group, query).map((row) => row.id)),
   );
   const hidden = catalogueRows(catalogue).filter(
-    (row) => !visible.has(row.id) && rowActions(value, row.id).length > 0,
+    (row) => !visible.has(row.id) && rowActions(value, row.id, row).length > 0,
   ).length;
 
   const setActions = (actions: readonly Action[]) => {
@@ -55,6 +61,20 @@ export function PermissionCatalogue({
       open ? current.filter((entry) => entry !== groupId) : [...current, groupId],
     );
   };
+
+  const renderRows = (rows: readonly PermissionRow[]) => (
+    <div className="flex flex-col pl-6 pb-2">
+      {rows.map((row) => (
+        <PermissionCatalogueRow
+          key={row.id}
+          row={row}
+          grants={debug ? rowGrants(row, instances) : []}
+          actions={rowActions(value, row.id, row)}
+          onToggle={(action, next) => onChange(toggleRowAction(value, row.id, action, next, row))}
+        />
+      ))}
+    </div>
+  );
 
   return (
     <div className="flex flex-col gap-3">
@@ -83,7 +103,7 @@ export function PermissionCatalogue({
             return null;
           }
           const selected = countSelectedActions(value, group.rows);
-          const total = group.rows.length * ACTIONS.length;
+          const total = group.rows.reduce((sum, row) => sum + supportedRowActions(row).length, 0);
 
           return (
             <Collapsible
@@ -101,21 +121,7 @@ export function PermissionCatalogue({
                   {selected}/{total}
                 </span>
               </CollapsibleTrigger>
-              <CollapsibleContent>
-                <div className="flex flex-col pl-6 pb-2">
-                  {rows.map((row) => (
-                    <PermissionCatalogueRow
-                      key={row.id}
-                      row={row}
-                      grants={debug ? rowGrants(row, instances) : []}
-                      actions={rowActions(value, row.id)}
-                      onToggle={(action, next) =>
-                        onChange(toggleRowAction(value, row.id, action, next))
-                      }
-                    />
-                  ))}
-                </div>
-              </CollapsibleContent>
+              <CollapsibleContent>{renderRows(rows)}</CollapsibleContent>
             </Collapsible>
           );
         })}

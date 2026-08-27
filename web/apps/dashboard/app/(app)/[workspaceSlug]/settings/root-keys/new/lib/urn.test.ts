@@ -2,22 +2,17 @@ import { describe, expect, it } from "vitest";
 import { CATALOGUES, catalogueRows } from "./catalogue";
 import { appsCatalogue } from "./catalogue.apps";
 import { environmentsCatalogue } from "./catalogue.environments";
-import { identitiesCatalogue } from "./catalogue.identities";
 import { keyspacesCatalogue } from "./catalogue.keyspaces";
 import { projectsCatalogue } from "./catalogue.projects";
 import { ratelimitNamespacesCatalogue } from "./catalogue.ratelimit-namespaces";
-import { rbacCatalogue } from "./catalogue.rbac";
 import {
   ACTIONS,
-  INSTANCE_TOKEN,
   type PermissionRow,
   type PermissionSelection,
   RESOURCE_SCOPES,
-  type ResourceScope,
 } from "./catalogue.types";
-import { vaultCatalogue } from "./catalogue.vault";
 import { workspaceCatalogue } from "./catalogue.workspace";
-import { ALL_INSTANCES, newPolicy, setRowActions } from "./policy";
+import { ALL_INSTANCES, newPolicy, setRowActions, supportedRowActions } from "./policy";
 import {
   buildUrn,
   buildUrns,
@@ -30,117 +25,228 @@ import {
 
 const ws = "ws_123";
 
-const rowOf = (scope: (typeof RESOURCE_SCOPES)[number], id: string): PermissionRow => {
-  const row = catalogueRows(CATALOGUES[scope]).find((entry) => entry.id === id);
+const rowOf = (catalogue: typeof workspaceCatalogue, id: string): PermissionRow => {
+  const row = catalogueRows(catalogue).find((entry) => entry.id === id);
   if (!row) {
-    throw new Error(`no row ${id} in ${scope}`);
+    throw new Error(`no row ${id} in ${catalogue.scope}`);
   }
   return row;
 };
 
+const everything = (rows: readonly PermissionRow[]) =>
+  rows.reduce<PermissionSelection>(
+    (acc, row) => setRowActions(acc, row.id, supportedRowActions(row)),
+    {},
+  );
+
+const workspaceGrantMappings = (): string[] =>
+  catalogueRows(workspaceCatalogue)
+    .flatMap((row) =>
+      supportedRowActions(row).flatMap((action) =>
+        urnActions(row, action).map(
+          (grant) => `${instancePath(grant.path ?? row.path, ALL_INSTANCES)}#${grant.name}`,
+        ),
+      ),
+    )
+    .sort();
+
+const sampleInstanceByScope: Record<(typeof RESOURCE_SCOPES)[number], string> = {
+  workspace: "ignored",
+  projects: "proj_1",
+  apps: "projects/proj_1/apps/app_1",
+  environments: "projects/proj_1/apps/app_1/environments/env_1",
+  keyspaces: "projects/proj_1/keyspaces/ks_1",
+  "ratelimit-namespaces": "projects/proj_1/ratelimits/namespaces/rlns_1",
+  identities: "ignored",
+  rbac: "ignored",
+};
+
+const projectCatalogUrns = (projectId: string): string[] => [
+  `unkey:v1:${ws}:projects/${projectId}#read_project`,
+  `unkey:v1:${ws}:projects/${projectId}#write_project`,
+  `unkey:v1:${ws}:projects/${projectId}#delete_project`,
+  `unkey:v1:${ws}:projects/${projectId}/apps/*#read_app`,
+  `unkey:v1:${ws}:projects/${projectId}/apps/*#write_app`,
+  `unkey:v1:${ws}:projects/${projectId}/apps/*#delete_app`,
+  `unkey:v1:${ws}:projects/${projectId}/apps/*/environments/*#read_environment`,
+  `unkey:v1:${ws}:projects/${projectId}/apps/*/environments/*#write_environment`,
+  `unkey:v1:${ws}:projects/${projectId}/apps/*/environments/*#delete_environment`,
+  `unkey:v1:${ws}:projects/${projectId}/apps/*/environments/*/variables/*#read_environment_variable`,
+  `unkey:v1:${ws}:projects/${projectId}/apps/*/environments/*/variables/*#write_environment_variable`,
+  `unkey:v1:${ws}:projects/${projectId}/apps/*/environments/*/variables/*#delete_environment_variable`,
+  `unkey:v1:${ws}:projects/${projectId}/apps/*/environments/*/domains/*#read_domain`,
+  `unkey:v1:${ws}:projects/${projectId}/apps/*/environments/*/domains/*#write_domain`,
+  `unkey:v1:${ws}:projects/${projectId}/apps/*/environments/*/domains/*#delete_domain`,
+  `unkey:v1:${ws}:projects/${projectId}/apps/*/environments/*/deployments/*#read_deployment`,
+  `unkey:v1:${ws}:projects/${projectId}/apps/*/environments/*/deployments/*#write_deployment`,
+  `unkey:v1:${ws}:projects/${projectId}/apps/*/environments/*/deployments/*#delete_deployment`,
+  `unkey:v1:${ws}:projects/${projectId}/apps/*/environments/*/deployments/*/logs#read_deployment_logs`,
+  `unkey:v1:${ws}:projects/${projectId}/apps/*/environments/*/gateway/logs#read_gateway_logs`,
+  `unkey:v1:${ws}:projects/${projectId}/apps/*/environments/*/gateway/policies/*#read_gateway_policy`,
+  `unkey:v1:${ws}:projects/${projectId}/apps/*/environments/*/gateway/policies/*#write_gateway_policy`,
+  `unkey:v1:${ws}:projects/${projectId}/apps/*/environments/*/gateway/policies/*#delete_gateway_policy`,
+  `unkey:v1:${ws}:projects/${projectId}/keyspaces/*#read_keyspace`,
+  `unkey:v1:${ws}:projects/${projectId}/keyspaces/*#write_keyspace`,
+  `unkey:v1:${ws}:projects/${projectId}/keyspaces/*#delete_keyspace`,
+  `unkey:v1:${ws}:projects/${projectId}/keyspaces/*/logs#read_keyspace_logs`,
+  `unkey:v1:${ws}:projects/${projectId}/keyspaces/*/keys/*#read_key`,
+  `unkey:v1:${ws}:projects/${projectId}/keyspaces/*/keys/*#write_key`,
+  `unkey:v1:${ws}:projects/${projectId}/keyspaces/*/keys/*#delete_key`,
+  `unkey:v1:${ws}:projects/${projectId}/keyspaces/*/keys/*#decrypt_key`,
+  `unkey:v1:${ws}:projects/${projectId}/keyspaces/*/keys/*#verify_key`,
+  `unkey:v1:${ws}:projects/${projectId}/ratelimits/namespaces/*#read_ratelimit_namespace`,
+  `unkey:v1:${ws}:projects/${projectId}/ratelimits/namespaces/*#write_ratelimit_namespace`,
+  `unkey:v1:${ws}:projects/${projectId}/ratelimits/namespaces/*#delete_ratelimit_namespace`,
+  `unkey:v1:${ws}:projects/${projectId}/ratelimits/namespaces/*#limit_ratelimit_namespace`,
+  `unkey:v1:${ws}:projects/${projectId}/ratelimits/namespaces/*/logs#read_ratelimit_logs`,
+  `unkey:v1:${ws}:projects/${projectId}/ratelimits/namespaces/*/overrides/*#read_ratelimit_override`,
+  `unkey:v1:${ws}:projects/${projectId}/ratelimits/namespaces/*/overrides/*#write_ratelimit_override`,
+  `unkey:v1:${ws}:projects/${projectId}/ratelimits/namespaces/*/overrides/*#delete_ratelimit_override`,
+  `unkey:v1:${ws}:projects/${projectId}/identities/*#read_identity`,
+  `unkey:v1:${ws}:projects/${projectId}/identities/*#write_identity`,
+  `unkey:v1:${ws}:projects/${projectId}/identities/*#delete_identity`,
+  `unkey:v1:${ws}:projects/${projectId}/rbac/roles/*#read_role`,
+  `unkey:v1:${ws}:projects/${projectId}/rbac/roles/*#write_role`,
+  `unkey:v1:${ws}:projects/${projectId}/rbac/roles/*#delete_role`,
+  `unkey:v1:${ws}:projects/${projectId}/rbac/permissions/*#read_permission`,
+  `unkey:v1:${ws}:projects/${projectId}/rbac/permissions/*#write_permission`,
+  `unkey:v1:${ws}:projects/${projectId}/rbac/permissions/*#delete_permission`,
+];
+
 describe("urnActions", () => {
-  it("derives the concrete names from the resource noun", () => {
-    const row = rowOf("workspace", "identity");
-    expect(urnActions(row, "read")).toEqual([{ name: "read_identity" }]);
-    expect(urnActions(row, "write")).toEqual([
-      { name: "create_identity" },
-      { name: "update_identity" },
+  it("maps workspace catalogue actions to canonical resource actions", () => {
+    expect(workspaceGrantMappings()).toEqual([
+      "github/apps/*#delete_github_app",
+      "github/apps/*#read_github_app",
+      "github/apps/*#write_github_app",
+      "projects/*#delete_project",
+      "projects/*#read_project",
+      "projects/*#write_project",
+      "projects/*/apps/*#delete_app",
+      "projects/*/apps/*#read_app",
+      "projects/*/apps/*#write_app",
+      "projects/*/apps/*/environments/*#delete_environment",
+      "projects/*/apps/*/environments/*#read_environment",
+      "projects/*/apps/*/environments/*#write_environment",
+      "projects/*/apps/*/environments/*/deployments/*#delete_deployment",
+      "projects/*/apps/*/environments/*/deployments/*#read_deployment",
+      "projects/*/apps/*/environments/*/deployments/*#write_deployment",
+      "projects/*/apps/*/environments/*/deployments/*/logs#read_deployment_logs",
+      "projects/*/apps/*/environments/*/domains/*#delete_domain",
+      "projects/*/apps/*/environments/*/domains/*#read_domain",
+      "projects/*/apps/*/environments/*/domains/*#write_domain",
+      "projects/*/apps/*/environments/*/gateway/logs#read_gateway_logs",
+      "projects/*/apps/*/environments/*/gateway/policies/*#delete_gateway_policy",
+      "projects/*/apps/*/environments/*/gateway/policies/*#read_gateway_policy",
+      "projects/*/apps/*/environments/*/gateway/policies/*#write_gateway_policy",
+      "projects/*/apps/*/environments/*/variables/*#delete_environment_variable",
+      "projects/*/apps/*/environments/*/variables/*#read_environment_variable",
+      "projects/*/apps/*/environments/*/variables/*#write_environment_variable",
+      "projects/*/identities/*#delete_identity",
+      "projects/*/identities/*#read_identity",
+      "projects/*/identities/*#write_identity",
+      "projects/*/keyspaces/*#delete_keyspace",
+      "projects/*/keyspaces/*#read_keyspace",
+      "projects/*/keyspaces/*#write_keyspace",
+      "projects/*/keyspaces/*/keys/*#decrypt_key",
+      "projects/*/keyspaces/*/keys/*#delete_key",
+      "projects/*/keyspaces/*/keys/*#read_key",
+      "projects/*/keyspaces/*/keys/*#verify_key",
+      "projects/*/keyspaces/*/keys/*#write_key",
+      "projects/*/keyspaces/*/logs#read_keyspace_logs",
+      "projects/*/ratelimits/namespaces/*#delete_ratelimit_namespace",
+      "projects/*/ratelimits/namespaces/*#limit_ratelimit_namespace",
+      "projects/*/ratelimits/namespaces/*#read_ratelimit_namespace",
+      "projects/*/ratelimits/namespaces/*#write_ratelimit_namespace",
+      "projects/*/ratelimits/namespaces/*/logs#read_ratelimit_logs",
+      "projects/*/ratelimits/namespaces/*/overrides/*#delete_ratelimit_override",
+      "projects/*/ratelimits/namespaces/*/overrides/*#read_ratelimit_override",
+      "projects/*/ratelimits/namespaces/*/overrides/*#write_ratelimit_override",
+      "projects/*/rbac/permissions/*#delete_permission",
+      "projects/*/rbac/permissions/*#read_permission",
+      "projects/*/rbac/permissions/*#write_permission",
+      "projects/*/rbac/roles/*#delete_role",
+      "projects/*/rbac/roles/*#read_role",
+      "projects/*/rbac/roles/*#write_role",
     ]);
-    expect(urnActions(row, "delete")).toEqual([{ name: "delete_identity" }]);
   });
 
-  it("keeps the resource noun for every container-less row", () => {
-    const rows = [
-      ...catalogueRows(identitiesCatalogue),
-      ...catalogueRows(rbacCatalogue),
-      ...catalogueRows(vaultCatalogue),
-    ];
-    expect(rows.map((row) => urnActions(row, "read"))).toEqual([
-      [{ name: "read_identity" }],
-      [{ name: "read_role" }],
-      [{ name: "read_permission" }],
-      [{ name: "read_vault_key" }],
-    ]);
+  it("uses resource-qualified action names and drops unsupported pairs", () => {
+    const key = rowOf(keyspacesCatalogue, "key");
+    const logs = rowOf(keyspacesCatalogue, "keyspace_log");
+
+    expect(urnActions(key, "read_key")).toEqual([{ name: "read_key" }]);
+    expect(urnActions(key, "decrypt_key")).toEqual([{ name: "decrypt_key" }]);
+    expect(urnActions(logs, "write_keyspace")).toEqual([]);
   });
 
-  it("prefers the names a row declares", () => {
-    expect(urnActions(rowOf("keyspaces", "key"), "read")).toEqual([
-      { name: "read_key" },
-      { name: "verify_key" },
+  it("offers only the actions each row supports", () => {
+    expect(supportedRowActions(rowOf(projectsCatalogue, "deployment"))).toEqual([
+      "read_deployment",
+      "write_deployment",
+      "delete_deployment",
     ]);
-    expect(urnActions(rowOf("keyspaces", "keyspace"), "write")).toEqual([
-      { name: "update_keyspace" },
+    expect(supportedRowActions(rowOf(projectsCatalogue, "key"))).toEqual([
+      "read_key",
+      "write_key",
+      "delete_key",
+      "decrypt_key",
+      "verify_key",
     ]);
-    expect(urnActions(rowOf("ratelimit-namespaces", "override"), "write")).toEqual([
-      { name: "set_override" },
+    expect(supportedRowActions(rowOf(projectsCatalogue, "ratelimit_namespace"))).toEqual([
+      "read_ratelimit_namespace",
+      "write_ratelimit_namespace",
+      "delete_ratelimit_namespace",
+      "limit_ratelimit_namespace",
     ]);
-  });
-
-  it("lets a create action move to its parent path", () => {
-    expect(urnActions(rowOf("keyspaces", "key"), "write")).toEqual([
-      { name: "create_key", path: "keyspaces/{instance}" },
-      { name: "update_key" },
+    expect(supportedRowActions(rowOf(projectsCatalogue, "gateway_log"))).toEqual([
+      "read_gateway_logs",
     ]);
-  });
-
-  it("names one action for every row and coarse action in every catalogue", () => {
-    for (const scope of RESOURCE_SCOPES) {
-      for (const row of catalogueRows(CATALOGUES[scope])) {
-        for (const action of ACTIONS) {
-          expect(urnActions(row, action).length).toBeGreaterThan(0);
-        }
-      }
-    }
   });
 });
 
 describe("instancePath", () => {
   it("substitutes a concrete instance id", () => {
-    expect(instancePath("keyspaces/{instance}/keys/*", "ks_1")).toBe("keyspaces/ks_1/keys/*");
-  });
-
-  it("substitutes a single-segment wildcard for all instances", () => {
-    expect(instancePath("ratelimits/namespaces/{instance}", ALL_INSTANCES)).toBe(
-      "ratelimits/namespaces/*",
+    expect(instancePath("{instance}/keys/*", "projects/proj_1/keyspaces/ks_1")).toBe(
+      "projects/proj_1/keyspaces/ks_1/keys/*",
     );
   });
 
-  it("leaves a path without the token alone", () => {
-    expect(instancePath("rbac/roles/*", "ks_1")).toBe("rbac/roles/*");
+  it("substitutes a single-segment wildcard for all instances", () => {
+    expect(instancePath("projects/*/ratelimits/namespaces/{instance}", ALL_INSTANCES)).toBe(
+      "projects/*/ratelimits/namespaces/*",
+    );
+  });
+
+  it("uses allPath when all instances need more than one path segment", () => {
+    expect(instancePath("{instance}/keys/*", ALL_INSTANCES, "projects/*/keyspaces/*/keys/*")).toBe(
+      "projects/*/keyspaces/*/keys/*",
+    );
   });
 });
 
 describe("buildUrn", () => {
   it("composes the versioned urn with the action suffix", () => {
-    expect(buildUrn(ws, "rbac/roles/*", "create_role")).toBe(
-      "unkey:v1:ws_123:rbac/roles/*#create_role",
-    );
-  });
-
-  it("passes a trailing descendant pattern through unchanged", () => {
-    expect(buildUrn(ws, "projects/proj_123/**", "delete_deployment")).toBe(
-      "unkey:v1:ws_123:projects/proj_123/**#delete_deployment",
+    expect(buildUrn(ws, "projects/*/rbac/roles/*", "write_role")).toBe(
+      "unkey:v1:ws_123:projects/*/rbac/roles/*#write_role",
     );
   });
 });
 
 describe("isValidResourcePath", () => {
   it("accepts single-segment wildcards anywhere", () => {
-    expect(isValidResourcePath("identities/*")).toBe(true);
-    expect(isValidResourcePath("keyspaces/*/keys/*")).toBe(true);
+    expect(isValidResourcePath("projects/*/keyspaces/*/keys/*")).toBe(true);
   });
 
   it("accepts a descendant wildcard only in trailing position", () => {
-    expect(isValidResourcePath("**")).toBe(true);
     expect(isValidResourcePath("projects/proj_123/**")).toBe(true);
-    expect(isValidResourcePath("**/deployments/*")).toBe(false);
     expect(isValidResourcePath("projects/proj_123/**/deployments/*")).toBe(false);
   });
 
   it("rejects empty and partial-segment wildcards", () => {
     expect(isValidResourcePath("")).toBe(false);
-    expect(isValidResourcePath("identities/")).toBe(false);
-    expect(isValidResourcePath("identities/id_*")).toBe(false);
+    expect(isValidResourcePath("projects/proj_123/")).toBe(false);
+    expect(isValidResourcePath("projects/proj_*")).toBe(false);
   });
 
   it("holds for every catalogue path, for one instance and for all", () => {
@@ -148,10 +254,14 @@ describe("isValidResourcePath", () => {
       for (const row of catalogueRows(CATALOGUES[scope])) {
         for (const action of ACTIONS) {
           for (const grant of urnActions(row, action)) {
-            expect(isValidResourcePath(instancePath(grant.path ?? row.path, "id_1"))).toBe(true);
-            expect(isValidResourcePath(instancePath(grant.path ?? row.path, ALL_INSTANCES))).toBe(
-              true,
-            );
+            expect(
+              isValidResourcePath(
+                instancePath(grant.path ?? row.path, sampleInstanceByScope[scope], row.allPath),
+              ),
+            ).toBe(true);
+            expect(
+              isValidResourcePath(instancePath(grant.path ?? row.path, ALL_INSTANCES, row.allPath)),
+            ).toBe(true);
           }
         }
       }
@@ -164,419 +274,149 @@ describe("buildUrns", () => {
     expect(buildUrns(ws, [newPolicy()])).toEqual([]);
   });
 
-  it("expands a container-less row into one urn per concrete action", () => {
-    const policy = { ...newPolicy(), selection: setRowActions({}, "role", ["read", "write"]) };
-    expect(buildUrns(ws, [policy])).toEqual([
-      "unkey:v1:ws_123:rbac/roles/*#read_role",
-      "unkey:v1:ws_123:rbac/roles/*#create_role",
-      "unkey:v1:ws_123:rbac/roles/*#update_role",
-    ]);
-  });
-
-  it("covers every family with wildcards on the workspace scope", () => {
-    const all = (scope: ResourceScope) => ({
-      ...newPolicy(scope),
-      selection: everything(catalogueRows(CATALOGUES[scope])),
-    });
-    expect(buildUrns(ws, [all("workspace")])).toEqual(
-      buildUrns(ws, [
-        all("projects"),
-        all("keyspaces"),
-        all("ratelimit-namespaces"),
-        all("identities"),
-        all("rbac"),
-        all("vault"),
-      ]),
-    );
-  });
-
-  it("leaves no instance token in the workspace catalogue", () => {
-    for (const row of catalogueRows(workspaceCatalogue)) {
-      expect(row.path).not.toContain(INSTANCE_TOKEN);
-      for (const action of ACTIONS) {
-        for (const grant of urnActions(row, action)) {
-          expect(grant.path ?? row.path).not.toContain(INSTANCE_TOKEN);
-        }
-      }
-    }
-  });
-
   it("deduplicates urns shared by two policies", () => {
-    const policy = { ...newPolicy(), selection: setRowActions({}, "identity", ["read"]) };
-    expect(buildUrns(ws, [policy, policy])).toEqual(["unkey:v1:ws_123:identities/*#read_identity"]);
-  });
-
-  it("carries the workspace id it was given", () => {
-    const policy = { ...newPolicy(), selection: setRowActions({}, "identity", ["delete"]) };
-    expect(buildUrns("ws_other", [policy])).toEqual([
-      "unkey:v1:ws_other:identities/*#delete_identity",
-    ]);
-  });
-
-  it("puts every keyspace grant on the keyspace it was picked for", () => {
     const policy = {
-      ...newPolicy("keyspaces"),
-      instances: ["ks_1"],
-      selection: setRowActions(setRowActions({}, "keyspace", ["read"]), "key", [
-        "read",
-        "write",
-        "delete",
-      ]),
+      ...newPolicy("identities"),
+      selection: setRowActions({}, "identity", ["read_identity"]),
     };
-    expect(buildUrns(ws, [policy])).toEqual([
-      "unkey:v1:ws_123:keyspaces/ks_1#read_keyspace",
-      "unkey:v1:ws_123:keyspaces/ks_1/keys/*#read_key",
-      "unkey:v1:ws_123:keyspaces/ks_1/keys/*#verify_key",
-      "unkey:v1:ws_123:keyspaces/ks_1#create_key",
-      "unkey:v1:ws_123:keyspaces/ks_1/keys/*#update_key",
-      "unkey:v1:ws_123:keyspaces/ks_1/keys/*#delete_key",
+    expect(buildUrns(ws, [policy, policy])).toEqual([
+      "unkey:v1:ws_123:projects/*/identities/*#read_identity",
     ]);
   });
 
-  it("repeats a keyspace grant for every instance picked", () => {
+  it("builds the complete workspace catalog with wildcards", () => {
     const policy = {
-      ...newPolicy("keyspaces"),
-      instances: ["ks_1", "ks_2"],
-      selection: setRowActions({}, "key", ["read"]),
+      ...newPolicy(),
+      selection: everything(catalogueRows(workspaceCatalogue)),
     };
     expect(buildUrns(ws, [policy])).toEqual([
-      "unkey:v1:ws_123:keyspaces/ks_1/keys/*#read_key",
-      "unkey:v1:ws_123:keyspaces/ks_2/keys/*#read_key",
-      "unkey:v1:ws_123:keyspaces/ks_1/keys/*#verify_key",
-      "unkey:v1:ws_123:keyspaces/ks_2/keys/*#verify_key",
+      ...projectCatalogUrns("*"),
+      "unkey:v1:ws_123:github/apps/*#read_github_app",
+      "unkey:v1:ws_123:github/apps/*#write_github_app",
+      "unkey:v1:ws_123:github/apps/*#delete_github_app",
     ]);
   });
 
-  it("wildcards the id segment for all keyspaces", () => {
-    const policy = { ...newPolicy("keyspaces"), selection: setRowActions({}, "key", ["read"]) };
-    expect(buildUrns(ws, [policy])).toEqual([
-      "unkey:v1:ws_123:keyspaces/*/keys/*#read_key",
-      "unkey:v1:ws_123:keyspaces/*/keys/*#verify_key",
-    ]);
-  });
-
-  it("covers the keyspace catalogue", () => {
-    const selection = catalogueRows(keyspacesCatalogue).reduce(
-      (acc, row) => setRowActions(acc, row.id, ["read", "write", "delete"]),
-      {},
-    );
-    expect(buildUrns(ws, [{ ...newPolicy("keyspaces"), instances: ["ks_1"], selection }])).toEqual([
-      "unkey:v1:ws_123:keyspaces/ks_1#read_keyspace",
-      "unkey:v1:ws_123:keyspaces/ks_1#update_keyspace",
-      "unkey:v1:ws_123:keyspaces/ks_1#delete_keyspace",
-      "unkey:v1:ws_123:keyspaces/ks_1/keys/*#read_key",
-      "unkey:v1:ws_123:keyspaces/ks_1/keys/*#verify_key",
-      "unkey:v1:ws_123:keyspaces/ks_1#create_key",
-      "unkey:v1:ws_123:keyspaces/ks_1/keys/*#update_key",
-      "unkey:v1:ws_123:keyspaces/ks_1/keys/*#delete_key",
-    ]);
-  });
-
-  it("covers the ratelimit namespace catalogue", () => {
-    const selection = catalogueRows(ratelimitNamespacesCatalogue).reduce(
-      (acc, row) => setRowActions(acc, row.id, ["read", "write", "delete"]),
-      {},
-    );
-    expect(
-      buildUrns(ws, [{ ...newPolicy("ratelimit-namespaces"), instances: ["rlns_1"], selection }]),
-    ).toEqual([
-      "unkey:v1:ws_123:ratelimits/namespaces/rlns_1#read_namespace",
-      "unkey:v1:ws_123:ratelimits/namespaces/rlns_1#limit",
-      "unkey:v1:ws_123:ratelimits/namespaces/rlns_1#update_namespace",
-      "unkey:v1:ws_123:ratelimits/namespaces/rlns_1#delete_namespace",
-      "unkey:v1:ws_123:ratelimits/namespaces/rlns_1/overrides/*#read_override",
-      "unkey:v1:ws_123:ratelimits/namespaces/rlns_1/overrides/*#set_override",
-      "unkey:v1:ws_123:ratelimits/namespaces/rlns_1/overrides/*#delete_override",
-    ]);
-  });
-
-  it("keeps two scopes in one key apart", () => {
-    const keyspace = {
-      ...newPolicy("keyspaces"),
-      selection: setRowActions({}, "key", ["read"]),
-    };
-    const namespace = {
-      ...newPolicy("ratelimit-namespaces"),
-      selection: setRowActions({}, "override", ["read"]),
-    };
-    expect(buildUrns(ws, [keyspace, namespace])).toEqual([
-      "unkey:v1:ws_123:keyspaces/*/keys/*#read_key",
-      "unkey:v1:ws_123:keyspaces/*/keys/*#verify_key",
-      "unkey:v1:ws_123:ratelimits/namespaces/*/overrides/*#read_override",
-    ]);
-  });
-});
-
-const everything = (rows: readonly PermissionRow[]) =>
-  rows.reduce<PermissionSelection>(
-    (acc, row) => setRowActions(acc, row.id, ["read", "write", "delete"]),
-    {},
-  );
-
-describe("deploy hierarchy paths", () => {
-  it("nests each scope one level deeper than the last", () => {
-    expect(rowOf("projects", "project").path).toBe("projects/{instance}");
-    expect(rowOf("apps", "app").path).toBe("projects/*/apps/{instance}");
-    expect(rowOf("environments", "environment").path).toBe(
-      "projects/*/apps/*/environments/{instance}",
-    );
-  });
-
-  it("wildcards every level below the picked one", () => {
-    expect(rowOf("projects", "deployment").path).toBe(
-      "projects/{instance}/apps/*/environments/*/deployments/*",
-    );
-    expect(rowOf("apps", "deployment").path).toBe(
-      "projects/*/apps/{instance}/environments/*/deployments/*",
-    );
-    expect(rowOf("environments", "deployment").path).toBe(
-      "projects/*/apps/*/environments/{instance}/deployments/*",
-    );
-  });
-
-  it("keeps the variables row on the environment itself", () => {
-    expect(rowOf("projects", "variable").path).toBe(rowOf("projects", "environment").path);
-    expect(rowOf("apps", "variable").path).toBe(rowOf("apps", "environment").path);
-    expect(rowOf("environments", "variable").path).toBe(rowOf("environments", "environment").path);
-  });
-
-  it("moves each create action to the parent that already exists", () => {
-    expect(urnActions(rowOf("projects", "app"), "write")).toEqual([
-      { name: "create_app", path: "projects/{instance}" },
-      { name: "update_app" },
-      { name: "connect_repository" },
-    ]);
-    expect(urnActions(rowOf("apps", "environment"), "write")).toEqual([
-      { name: "create_environment", path: "projects/*/apps/{instance}" },
-      { name: "update_environment" },
-    ]);
-    expect(urnActions(rowOf("environments", "domain"), "write")).toEqual([
-      { name: "create_domain", path: "projects/*/apps/*/environments/{instance}" },
-      { name: "verify_domain", path: "projects/*/apps/*/environments/{instance}" },
-    ]);
-  });
-
-  it("leaves create_deployment on the deployment collection", () => {
-    expect(urnActions(rowOf("environments", "deployment"), "write")[0]).toEqual({
-      name: "create_deployment",
-    });
-  });
-
-  it("never offers a create action whose only target is a wider scope", () => {
-    const names = (scope: (typeof RESOURCE_SCOPES)[number]) =>
-      catalogueRows(CATALOGUES[scope]).flatMap((row) =>
-        ACTIONS.flatMap((action) => urnActions(row, action).map((grant) => grant.name)),
-      );
-    expect(names("projects")).not.toContain("create_project");
-    expect(names("apps")).not.toContain("create_app");
-    expect(names("environments")).not.toContain("create_environment");
-  });
-});
-
-describe("buildUrns on the projects scope", () => {
-  it("hangs every descendant off the project it was picked for", () => {
+  it("builds the complete project-scoped catalog for a picked project", () => {
     const policy = {
       ...newPolicy("projects"),
       instances: ["proj_1"],
       selection: everything(catalogueRows(projectsCatalogue)),
     };
+    expect(buildUrns(ws, [policy])).toEqual(projectCatalogUrns("proj_1"));
+  });
+
+  it("repeats app grants for each app picked", () => {
+    const policy = {
+      ...newPolicy("apps"),
+      instances: ["projects/proj_1/apps/app_1", "projects/proj_2/apps/app_2"],
+      selection: setRowActions({}, "deployment", ["write_deployment"]),
+    };
     expect(buildUrns(ws, [policy])).toEqual([
-      "unkey:v1:ws_123:projects/proj_1#read_project",
-      "unkey:v1:ws_123:projects/proj_1#update_project",
-      "unkey:v1:ws_123:projects/proj_1#delete_project",
-      "unkey:v1:ws_123:projects/proj_1/apps/*#read_app",
-      "unkey:v1:ws_123:projects/proj_1#create_app",
-      "unkey:v1:ws_123:projects/proj_1/apps/*#update_app",
-      "unkey:v1:ws_123:projects/proj_1/apps/*#connect_repository",
-      "unkey:v1:ws_123:projects/proj_1/apps/*#delete_app",
-      "unkey:v1:ws_123:projects/proj_1/apps/*/environments/*#read_environment",
-      "unkey:v1:ws_123:projects/proj_1/apps/*#create_environment",
-      "unkey:v1:ws_123:projects/proj_1/apps/*/environments/*#update_environment",
-      "unkey:v1:ws_123:projects/proj_1/apps/*/environments/*#delete_environment",
-      "unkey:v1:ws_123:projects/proj_1/apps/*/environments/*/deployments/*#read_deployment",
-      "unkey:v1:ws_123:projects/proj_1/apps/*/environments/*/deployments/*#create_deployment",
-      "unkey:v1:ws_123:projects/proj_1/apps/*/environments/*/deployments/*#start_deployment",
-      "unkey:v1:ws_123:projects/proj_1/apps/*/environments/*/deployments/*#stop_deployment",
-      "unkey:v1:ws_123:projects/proj_1/apps/*/environments/*/deployments/*#promote_deployment",
-      "unkey:v1:ws_123:projects/proj_1/apps/*/environments/*/deployments/*#rollback_deployment",
-      "unkey:v1:ws_123:projects/proj_1/apps/*/environments/*/deployments/*#delete_deployment",
-      "unkey:v1:ws_123:projects/proj_1/apps/*/environments/*/domains/*#read_domain",
-      "unkey:v1:ws_123:projects/proj_1/apps/*/environments/*#create_domain",
-      "unkey:v1:ws_123:projects/proj_1/apps/*/environments/*#verify_domain",
-      "unkey:v1:ws_123:projects/proj_1/apps/*/environments/*/domains/*#delete_domain",
-      "unkey:v1:ws_123:projects/proj_1/apps/*/environments/*#read_environment_variables",
-      "unkey:v1:ws_123:projects/proj_1/apps/*/environments/*#create_variable",
-      "unkey:v1:ws_123:projects/proj_1/apps/*/environments/*#set_environment_variables",
-      "unkey:v1:ws_123:projects/proj_1/apps/*/environments/*#remove_environment_variables",
+      "unkey:v1:ws_123:projects/proj_1/apps/app_1/environments/*/deployments/*#write_deployment",
+      "unkey:v1:ws_123:projects/proj_2/apps/app_2/environments/*/deployments/*#write_deployment",
     ]);
   });
 
-  it("wildcards the project segment for all projects", () => {
+  it("wildcards only the selected environment segment when all environments are picked", () => {
     const policy = {
-      ...newPolicy("projects"),
-      selection: setRowActions(setRowActions({}, "project", ["read"]), "deployment", ["read"]),
+      ...newPolicy("environments"),
+      selection: setRowActions({}, "gateway_policy", ["write_gateway_policy"]),
     };
     expect(buildUrns(ws, [policy])).toEqual([
-      "unkey:v1:ws_123:projects/*#read_project",
-      "unkey:v1:ws_123:projects/*/apps/*/environments/*/deployments/*#read_deployment",
+      "unkey:v1:ws_123:projects/*/apps/*/environments/*/gateway/policies/*#write_gateway_policy",
     ]);
   });
 
-  it("repeats every grant for each project picked", () => {
-    const policy = {
-      ...newPolicy("projects"),
-      instances: ["proj_1", "proj_2"],
-      selection: setRowActions({}, "app", ["write"]),
-    };
-    expect(buildUrns(ws, [policy])).toEqual([
-      "unkey:v1:ws_123:projects/proj_1#create_app",
-      "unkey:v1:ws_123:projects/proj_2#create_app",
-      "unkey:v1:ws_123:projects/proj_1/apps/*#update_app",
-      "unkey:v1:ws_123:projects/proj_2/apps/*#update_app",
-      "unkey:v1:ws_123:projects/proj_1/apps/*#connect_repository",
-      "unkey:v1:ws_123:projects/proj_2/apps/*#connect_repository",
+  it("builds keyspace and ratelimit scoped catalogs under projects", () => {
+    expect(
+      buildUrns(ws, [
+        {
+          ...newPolicy("keyspaces"),
+          instances: ["projects/proj_1/keyspaces/ks_1"],
+          selection: everything(catalogueRows(keyspacesCatalogue)),
+        },
+      ]),
+    ).toEqual([
+      "unkey:v1:ws_123:projects/proj_1/keyspaces/ks_1#read_keyspace",
+      "unkey:v1:ws_123:projects/proj_1/keyspaces/ks_1#write_keyspace",
+      "unkey:v1:ws_123:projects/proj_1/keyspaces/ks_1#delete_keyspace",
+      "unkey:v1:ws_123:projects/proj_1/keyspaces/ks_1/logs#read_keyspace_logs",
+      "unkey:v1:ws_123:projects/proj_1/keyspaces/ks_1/keys/*#read_key",
+      "unkey:v1:ws_123:projects/proj_1/keyspaces/ks_1/keys/*#write_key",
+      "unkey:v1:ws_123:projects/proj_1/keyspaces/ks_1/keys/*#delete_key",
+      "unkey:v1:ws_123:projects/proj_1/keyspaces/ks_1/keys/*#decrypt_key",
+      "unkey:v1:ws_123:projects/proj_1/keyspaces/ks_1/keys/*#verify_key",
+    ]);
+
+    expect(
+      buildUrns(ws, [
+        {
+          ...newPolicy("ratelimit-namespaces"),
+          instances: ["projects/proj_1/ratelimits/namespaces/rlns_1"],
+          selection: everything(catalogueRows(ratelimitNamespacesCatalogue)),
+        },
+      ]),
+    ).toEqual([
+      "unkey:v1:ws_123:projects/proj_1/ratelimits/namespaces/rlns_1#read_ratelimit_namespace",
+      "unkey:v1:ws_123:projects/proj_1/ratelimits/namespaces/rlns_1#write_ratelimit_namespace",
+      "unkey:v1:ws_123:projects/proj_1/ratelimits/namespaces/rlns_1#delete_ratelimit_namespace",
+      "unkey:v1:ws_123:projects/proj_1/ratelimits/namespaces/rlns_1#limit_ratelimit_namespace",
+      "unkey:v1:ws_123:projects/proj_1/ratelimits/namespaces/rlns_1/logs#read_ratelimit_logs",
+      "unkey:v1:ws_123:projects/proj_1/ratelimits/namespaces/rlns_1/overrides/*#read_ratelimit_override",
+      "unkey:v1:ws_123:projects/proj_1/ratelimits/namespaces/rlns_1/overrides/*#write_ratelimit_override",
+      "unkey:v1:ws_123:projects/proj_1/ratelimits/namespaces/rlns_1/overrides/*#delete_ratelimit_override",
     ]);
   });
 });
 
-describe("buildUrns on the apps scope", () => {
-  it("hangs every descendant off the app it was picked for", () => {
-    const policy = {
-      ...newPolicy("apps"),
-      instances: ["app_1"],
-      selection: everything(catalogueRows(appsCatalogue)),
-    };
-    expect(buildUrns(ws, [policy])).toEqual([
-      "unkey:v1:ws_123:projects/*/apps/app_1#read_app",
-      "unkey:v1:ws_123:projects/*/apps/app_1#update_app",
-      "unkey:v1:ws_123:projects/*/apps/app_1#connect_repository",
-      "unkey:v1:ws_123:projects/*/apps/app_1#delete_app",
-      "unkey:v1:ws_123:projects/*/apps/app_1/environments/*#read_environment",
-      "unkey:v1:ws_123:projects/*/apps/app_1#create_environment",
-      "unkey:v1:ws_123:projects/*/apps/app_1/environments/*#update_environment",
-      "unkey:v1:ws_123:projects/*/apps/app_1/environments/*#delete_environment",
-      "unkey:v1:ws_123:projects/*/apps/app_1/environments/*/deployments/*#read_deployment",
-      "unkey:v1:ws_123:projects/*/apps/app_1/environments/*/deployments/*#create_deployment",
-      "unkey:v1:ws_123:projects/*/apps/app_1/environments/*/deployments/*#start_deployment",
-      "unkey:v1:ws_123:projects/*/apps/app_1/environments/*/deployments/*#stop_deployment",
-      "unkey:v1:ws_123:projects/*/apps/app_1/environments/*/deployments/*#promote_deployment",
-      "unkey:v1:ws_123:projects/*/apps/app_1/environments/*/deployments/*#rollback_deployment",
-      "unkey:v1:ws_123:projects/*/apps/app_1/environments/*/deployments/*#delete_deployment",
-      "unkey:v1:ws_123:projects/*/apps/app_1/environments/*/domains/*#read_domain",
-      "unkey:v1:ws_123:projects/*/apps/app_1/environments/*#create_domain",
-      "unkey:v1:ws_123:projects/*/apps/app_1/environments/*#verify_domain",
-      "unkey:v1:ws_123:projects/*/apps/app_1/environments/*/domains/*#delete_domain",
-      "unkey:v1:ws_123:projects/*/apps/app_1/environments/*#read_environment_variables",
-      "unkey:v1:ws_123:projects/*/apps/app_1/environments/*#create_variable",
-      "unkey:v1:ws_123:projects/*/apps/app_1/environments/*#set_environment_variables",
-      "unkey:v1:ws_123:projects/*/apps/app_1/environments/*#remove_environment_variables",
-    ]);
+describe("deploy hierarchy paths", () => {
+  it("nests each scope one level deeper than the last", () => {
+    expect(rowOf(projectsCatalogue, "project").path).toBe("projects/{instance}");
+    expect(rowOf(appsCatalogue, "app").path).toBe("{instance}");
+    expect(rowOf(appsCatalogue, "app").allPath).toBe("projects/*/apps/*");
+    expect(rowOf(environmentsCatalogue, "environment").path).toBe("{instance}");
+    expect(rowOf(environmentsCatalogue, "environment").allPath).toBe(
+      "projects/*/apps/*/environments/*",
+    );
   });
 
-  it("wildcards the app segment for all apps and leaves the project wildcard alone", () => {
-    const policy = {
-      ...newPolicy("apps"),
-      selection: setRowActions({}, "environment", ["read", "write"]),
-    };
-    expect(buildUrns(ws, [policy])).toEqual([
-      "unkey:v1:ws_123:projects/*/apps/*/environments/*#read_environment",
-      "unkey:v1:ws_123:projects/*/apps/*#create_environment",
-      "unkey:v1:ws_123:projects/*/apps/*/environments/*#update_environment",
-    ]);
-  });
-});
-
-describe("buildUrns on the environments scope", () => {
-  it("hangs every descendant off the environment it was picked for", () => {
-    const policy = {
-      ...newPolicy("environments"),
-      instances: ["env_1"],
-      selection: everything(catalogueRows(environmentsCatalogue)),
-    };
-    expect(buildUrns(ws, [policy])).toEqual([
-      "unkey:v1:ws_123:projects/*/apps/*/environments/env_1#read_environment",
-      "unkey:v1:ws_123:projects/*/apps/*/environments/env_1#update_environment",
-      "unkey:v1:ws_123:projects/*/apps/*/environments/env_1#delete_environment",
-      "unkey:v1:ws_123:projects/*/apps/*/environments/env_1/deployments/*#read_deployment",
-      "unkey:v1:ws_123:projects/*/apps/*/environments/env_1/deployments/*#create_deployment",
-      "unkey:v1:ws_123:projects/*/apps/*/environments/env_1/deployments/*#start_deployment",
-      "unkey:v1:ws_123:projects/*/apps/*/environments/env_1/deployments/*#stop_deployment",
-      "unkey:v1:ws_123:projects/*/apps/*/environments/env_1/deployments/*#promote_deployment",
-      "unkey:v1:ws_123:projects/*/apps/*/environments/env_1/deployments/*#rollback_deployment",
-      "unkey:v1:ws_123:projects/*/apps/*/environments/env_1/deployments/*#delete_deployment",
-      "unkey:v1:ws_123:projects/*/apps/*/environments/env_1/domains/*#read_domain",
-      "unkey:v1:ws_123:projects/*/apps/*/environments/env_1#create_domain",
-      "unkey:v1:ws_123:projects/*/apps/*/environments/env_1#verify_domain",
-      "unkey:v1:ws_123:projects/*/apps/*/environments/env_1/domains/*#delete_domain",
-      "unkey:v1:ws_123:projects/*/apps/*/environments/env_1#read_environment_variables",
-      "unkey:v1:ws_123:projects/*/apps/*/environments/env_1#create_variable",
-      "unkey:v1:ws_123:projects/*/apps/*/environments/env_1#set_environment_variables",
-      "unkey:v1:ws_123:projects/*/apps/*/environments/env_1#remove_environment_variables",
-    ]);
+  it("wildcards every level below the picked one", () => {
+    expect(rowOf(projectsCatalogue, "deployment").path).toBe(
+      "projects/{instance}/apps/*/environments/*/deployments/*",
+    );
+    expect(rowOf(appsCatalogue, "deployment").path).toBe("{instance}/environments/*/deployments/*");
+    expect(rowOf(environmentsCatalogue, "deployment").path).toBe("{instance}/deployments/*");
   });
 
-  it("wildcards only the environment segment for all environments", () => {
-    const policy = {
-      ...newPolicy("environments"),
-      selection: setRowActions({}, "variable", ["read"]),
-    };
-    expect(buildUrns(ws, [policy])).toEqual([
-      "unkey:v1:ws_123:projects/*/apps/*/environments/*#read_environment_variables",
-    ]);
-  });
-
-  it("keeps the three deploy scopes apart in one key", () => {
-    const project = {
-      ...newPolicy("projects"),
-      instances: ["proj_1"],
-      selection: setRowActions({}, "deployment", ["read"]),
-    };
-    const app = {
-      ...newPolicy("apps"),
-      instances: ["app_1"],
-      selection: setRowActions({}, "deployment", ["read"]),
-    };
-    const environment = {
-      ...newPolicy("environments"),
-      instances: ["env_1"],
-      selection: setRowActions({}, "deployment", ["read"]),
-    };
-    expect(buildUrns(ws, [project, app, environment])).toEqual([
-      "unkey:v1:ws_123:projects/proj_1/apps/*/environments/*/deployments/*#read_deployment",
-      "unkey:v1:ws_123:projects/*/apps/app_1/environments/*/deployments/*#read_deployment",
-      "unkey:v1:ws_123:projects/*/apps/*/environments/env_1/deployments/*#read_deployment",
-    ]);
+  it("treats logs as first-class resources", () => {
+    expect(rowOf(projectsCatalogue, "deployment_log").path).toBe(
+      "projects/{instance}/apps/*/environments/*/deployments/*/logs",
+    );
+    expect(rowOf(projectsCatalogue, "gateway_log").path).toBe(
+      "projects/{instance}/apps/*/environments/*/gateway/logs",
+    );
+    expect(urnActions(rowOf(projectsCatalogue, "deployment_log"), "write_deployment")).toEqual([]);
   });
 });
 
 describe("rowGrants", () => {
   it("lists every path and action a row emits for the instance picked", () => {
-    expect(rowGrants(rowOf("keyspaces", "key"), ["ks_1"])).toEqual([
-      "keyspaces/ks_1/keys/*#read_key",
-      "keyspaces/ks_1/keys/*#verify_key",
-      "keyspaces/ks_1#create_key",
-      "keyspaces/ks_1/keys/*#update_key",
-      "keyspaces/ks_1/keys/*#delete_key",
-    ]);
-  });
-
-  it("repeats them for every instance picked", () => {
-    expect(rowGrants(rowOf("keyspaces", "keyspace"), ["ks_1", "ks_2"])).toEqual([
-      "keyspaces/ks_1#read_keyspace",
-      "keyspaces/ks_2#read_keyspace",
-      "keyspaces/ks_1#update_keyspace",
-      "keyspaces/ks_2#update_keyspace",
-      "keyspaces/ks_1#delete_keyspace",
-      "keyspaces/ks_2#delete_keyspace",
-    ]);
+    expect(rowGrants(rowOf(keyspacesCatalogue, "key"), ["projects/proj_1/keyspaces/ks_1"])).toEqual(
+      [
+        "projects/proj_1/keyspaces/ks_1/keys/*#read_key",
+        "projects/proj_1/keyspaces/ks_1/keys/*#write_key",
+        "projects/proj_1/keyspaces/ks_1/keys/*#delete_key",
+        "projects/proj_1/keyspaces/ks_1/keys/*#decrypt_key",
+        "projects/proj_1/keyspaces/ks_1/keys/*#verify_key",
+      ],
+    );
   });
 
   it("wildcards the instance segment for all instances", () => {
-    expect(rowGrants(rowOf("projects", "app"), [ALL_INSTANCES])).toEqual([
+    expect(rowGrants(rowOf(projectsCatalogue, "app"), [ALL_INSTANCES])).toEqual([
       "projects/*/apps/*#read_app",
-      "projects/*#create_app",
-      "projects/*/apps/*#update_app",
-      "projects/*/apps/*#connect_repository",
+      "projects/*/apps/*#write_app",
       "projects/*/apps/*#delete_app",
     ]);
   });
@@ -584,9 +424,8 @@ describe("rowGrants", () => {
 
 describe("grantPaths", () => {
   it("keeps each distinct path once, without its actions", () => {
-    expect(grantPaths(rowGrants(rowOf("keyspaces", "key"), ["ks_1"]))).toEqual([
-      "keyspaces/ks_1/keys/*",
-      "keyspaces/ks_1",
-    ]);
+    expect(
+      grantPaths(rowGrants(rowOf(keyspacesCatalogue, "key"), ["projects/proj_1/keyspaces/ks_1"])),
+    ).toEqual(["projects/proj_1/keyspaces/ks_1/keys/*"]);
   });
 });

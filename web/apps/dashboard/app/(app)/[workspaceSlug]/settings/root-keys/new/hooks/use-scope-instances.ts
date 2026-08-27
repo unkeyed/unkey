@@ -35,7 +35,6 @@ export function useScopeInstances(scope: ResourceScope): ScopeInstances {
     case "workspace":
     case "identities":
     case "rbac":
-    case "vault":
       return { instances: [], isLoading: false };
     case "projects":
       return {
@@ -49,7 +48,11 @@ export function useScopeInstances(scope: ResourceScope): ScopeInstances {
     case "apps":
       return {
         instances: (projects.data ?? []).flatMap((project) =>
-          project.apps.map((app) => ({ id: app.id, label: app.name, hint: app.id })),
+          project.apps.map((app) => ({
+            id: `projects/${project.id}/apps/${app.id}`,
+            label: app.name,
+            hint: app.id,
+          })),
         ),
         isLoading: projects.isLoading,
       };
@@ -61,7 +64,7 @@ export function useScopeInstances(scope: ResourceScope): ScopeInstances {
       );
       return {
         instances: (environments.data ?? []).map((environment) => ({
-          id: environment.id,
+          id: `projects/${environment.projectId}/apps/${environment.appId}/environments/${environment.id}`,
           label: environmentLabel(appNames.get(environment.appId), environment.name),
           hint: environment.id,
         })),
@@ -71,7 +74,7 @@ export function useScopeInstances(scope: ResourceScope): ScopeInstances {
     case "keyspaces":
       return {
         instances: Object.values(keyspaces.data ?? {}).map((keyspace) => ({
-          id: keyspace.id,
+          id: `projects/${keyspace.projectId}/keyspaces/${keyspace.id}`,
           label: keyspace.api.name,
           hint: keyspace.id,
         })),
@@ -80,7 +83,7 @@ export function useScopeInstances(scope: ResourceScope): ScopeInstances {
     case "ratelimit-namespaces":
       return {
         instances: (namespaces.data ?? []).map((namespace) => ({
-          id: namespace.id,
+          id: `projects/${namespace.projectId}/ratelimits/namespaces/${namespace.id}`,
           label: namespace.name,
           hint: namespace.id,
         })),

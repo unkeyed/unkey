@@ -68,50 +68,53 @@ describe("PermissionCatalogue", () => {
       "Projects",
       "Apps",
       "Environments",
-      "Keyspaces",
-      "Ratelimit namespaces",
-      "Identities",
-      "RBAC",
-      "Vault",
+      "Deployments",
+      "Gateway",
+      "Key management",
+      "Rate limiting",
+      "Identity and RBAC",
+      "Connections",
     ]);
   });
 
   it("counts the selected actions of a group against its total", () => {
-    renderCatalogue(setRowActions({}, "role", ["read", "write"]));
+    renderCatalogue(setRowActions({}, "role", ["read_role", "write_role"]));
 
-    expect(screen.getByText("2/6")).toBeDefined();
-    expect(screen.getByText("0/12")).toBeDefined();
-    expect(screen.getAllByText("0/3")).toHaveLength(4);
+    expect(screen.getByText("2/9")).toBeDefined();
+    expect(screen.getAllByText("0/9")).toHaveLength(2);
+    expect(screen.getByText("0/8")).toBeDefined();
+    expect(screen.getAllByText("0/4")).toHaveLength(2);
+    expect(screen.getAllByText("0/3")).toHaveLength(3);
   });
 
   it("starts with every group expanded", () => {
     renderCatalogue();
 
-    expect(screen.getByText("Role definitions")).toBeDefined();
-    expect(screen.getByText("Encryption keys")).toBeDefined();
+    expect(screen.getByText("Roles")).toBeDefined();
+    expect(screen.getByText("GitHub apps")).toBeDefined();
   });
 
   it("collapses a group on its trigger", () => {
     renderCatalogue();
-    fireEvent.click(screen.getByText("RBAC"));
+    fireEvent.click(screen.getByText("Identity and RBAC"));
 
-    expect(screen.queryByText("Role definitions")).toBeNull();
+    expect(screen.queryByText("Roles")).toBeNull();
   });
 
   it("reports selected rows the filter hides", () => {
-    renderCatalogue(setRowActions({}, "role", ["read"]));
-    search("vault");
+    renderCatalogue(setRowActions({}, "role", ["read_role"]));
+    search("github");
 
     expect(screen.getByText("1 selected row hidden by this filter")).toBeDefined();
-    expect(screen.queryByText("Role definitions")).toBeNull();
+    expect(screen.queryByText("Roles")).toBeNull();
   });
 
   it("stays quiet when the filter hides nothing that is selected", () => {
-    renderCatalogue(setRowActions({}, "vault_key", ["read"]));
-    search("encryption");
+    renderCatalogue(setRowActions({}, "github_app", ["read_github_app"]));
+    search("github");
 
     expect(screen.queryByText(/hidden by this filter/)).toBeNull();
-    expect(screen.getByText("Encryption keys")).toBeDefined();
+    expect(screen.getByText("GitHub apps")).toBeDefined();
   });
 
   it("says so when nothing matches the filter", () => {
@@ -127,8 +130,8 @@ describe("PermissionCatalogue", () => {
 
     cleanup();
     renderCatalogue({}, true);
-    expect(screen.getByText("rbac/roles/*")).toBeDefined();
-    expect(screen.getByText("keyspaces/*/keys/* keyspaces/*")).toBeDefined();
+    expect(screen.getByText("projects/*/rbac/roles/*")).toBeDefined();
+    expect(screen.getByText("projects/*/keyspaces/*/keys/*")).toBeDefined();
   });
 
   it("reports one row toggle as a selection change", () => {
@@ -136,6 +139,6 @@ describe("PermissionCatalogue", () => {
     search("role");
     fireEvent.click(screen.getByLabelText("Read"));
 
-    expect(onChange).toHaveBeenCalledWith({ role: ["read"] });
+    expect(onChange).toHaveBeenCalledWith({ role: ["read_role"] });
   });
 });

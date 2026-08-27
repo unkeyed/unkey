@@ -1,8 +1,8 @@
 import { catalogueFor, catalogueRows } from "./catalogue";
 import {
   ACTIONS,
-  type Action,
   type PermissionSelection,
+  READ_ACTIONS,
   type ResourceScope,
 } from "./catalogue.types";
 import { type Policy, newPolicy, setRowsActions } from "./policy";
@@ -20,7 +20,7 @@ export type RootKeyTemplate = {
 
 const BREADTH_SCOPES: readonly ResourceScope[] = ["workspace"];
 
-function everyRow(scope: ResourceScope, actions: readonly Action[]): Policy {
+function everyRow(scope: ResourceScope, actions: readonly (typeof ACTIONS)[number][]): Policy {
   const policy = newPolicy(scope);
   return {
     ...policy,
@@ -37,7 +37,7 @@ export const TEMPLATES: readonly RootKeyTemplate[] = [
     id: "read",
     title: "All read permissions",
     description: "Every resource, read only",
-    materialise: () => BREADTH_SCOPES.map((scope) => everyRow(scope, ["read"])),
+    materialise: () => BREADTH_SCOPES.map((scope) => everyRow(scope, READ_ACTIONS)),
   },
   {
     id: "write",
@@ -49,14 +49,22 @@ export const TEMPLATES: readonly RootKeyTemplate[] = [
     id: "verify",
     title: "Verify keys",
     description: "Every keyspace, verify only",
-    materialise: () => [withSelection("keyspaces", { key: ["read"] })],
+    materialise: () => [withSelection("keyspaces", { key: ["verify_key"] })],
   },
   {
     id: "ratelimit",
     title: "Standalone ratelimiting",
-    description: "Namespaces and overrides",
+    description: "Namespaces, logs, and overrides",
     materialise: () => [
-      withSelection("ratelimit-namespaces", { namespace: ["read"], override: [...ACTIONS] }),
+      withSelection("ratelimit-namespaces", {
+        ratelimit_namespace: ["limit_ratelimit_namespace"],
+        ratelimit_log: ["read_ratelimit_logs"],
+        ratelimit_override: [
+          "read_ratelimit_override",
+          "write_ratelimit_override",
+          "delete_ratelimit_override",
+        ],
+      }),
     ],
   },
   {

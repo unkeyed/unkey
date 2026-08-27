@@ -1,6 +1,7 @@
 import { catalogueFor, catalogueRows } from "./catalogue";
 import {
   ACTIONS,
+  ACTION_LABELS,
   type Action,
   type PermissionRow,
   type PermissionSelection,
@@ -26,12 +27,27 @@ export function newPolicy(scope: ResourceScope = "workspace"): Policy {
   return { scope, instances: [ALL_INSTANCES], selection: {} };
 }
 
-export function rowActions(selection: PermissionSelection, rowId: string): Action[] {
+export function supportedRowActions(row: PermissionRow): Action[] {
+  return ACTIONS.filter((action) => row.actions?.[action] !== undefined);
+}
+
+export function rowActions(
+  selection: PermissionSelection,
+  rowId: string,
+  row: PermissionRow,
+): Action[];
+export function rowActions(selection: PermissionSelection, rowId: string): Action[];
+export function rowActions(
+  selection: PermissionSelection,
+  rowId: string,
+  row?: PermissionRow,
+): Action[] {
   const picked = selection[rowId];
   if (!picked) {
     return [];
   }
-  return ACTIONS.filter((action) => picked.includes(action));
+  const allowed = row === undefined ? ACTIONS : supportedRowActions(row);
+  return allowed.filter((action) => picked.includes(action));
 }
 
 export function isRowActionSelected(
@@ -62,8 +78,10 @@ export function toggleRowAction(
   rowId: string,
   action: Action,
   selected: boolean,
+  row?: PermissionRow,
 ): PermissionSelection {
-  const current = rowActions(selection, rowId);
+  const current =
+    row === undefined ? rowActions(selection, rowId) : rowActions(selection, rowId, row);
   const next = selected ? [...current, action] : current.filter((entry) => entry !== action);
   return setRowActions(selection, rowId, next);
 }
@@ -74,7 +92,12 @@ export function setRowsActions(
   actions: readonly Action[],
 ): PermissionSelection {
   return rows.reduce<PermissionSelection>(
-    (acc, row) => setRowActions(acc, row.id, actions),
+    (acc, row) =>
+      setRowActions(
+        acc,
+        row.id,
+        supportedRowActions(row).filter((action) => actions.includes(action)),
+      ),
     selection,
   );
 }
@@ -83,14 +106,14 @@ export function countSelectedActions(
   selection: PermissionSelection,
   rows: readonly PermissionRow[],
 ): number {
-  return rows.reduce((total, row) => total + rowActions(selection, row.id).length, 0);
+  return rows.reduce((total, row) => total + rowActions(selection, row.id, row).length, 0);
 }
 
 export function countSelectedRows(
   selection: PermissionSelection,
   rows: readonly PermissionRow[],
 ): number {
-  return rows.filter((row) => rowActions(selection, row.id).length > 0).length;
+  return rows.filter((row) => rowActions(selection, row.id, row).length > 0).length;
 }
 
 export function selectInstances(current: readonly string[], next: readonly string[]): string[] {
@@ -123,14 +146,12 @@ export function actionLabel(actions: readonly Action[]): string {
   if (ordered.length === 0) {
     return "";
   }
-  const capitalised = ordered.map(
-    (action) => `${action.charAt(0).toUpperCase()}${action.slice(1)}`,
-  );
-  if (capitalised.length === 1) {
-    return capitalised[0];
+  const labels = ordered.map((action) => ACTION_LABELS[action]);
+  if (labels.length === 1) {
+    return labels[0];
   }
-  const head = capitalised.slice(0, -1).join(", ");
-  return `${head} & ${capitalised[capitalised.length - 1]}`;
+  const head = labels.slice(0, -1).join(", ");
+  return `${head} & ${labels[labels.length - 1]}`;
 }
 
 export function policySummary(
@@ -144,7 +165,7 @@ export function policySummary(
       ? catalogue.allLabel
       : named.map((instance) => instanceLabels[instance] ?? instance).join(", ");
   const grants = catalogueRows(catalogue).flatMap((row) => {
-    const actions = rowActions(policy.selection, row.id);
+    const actions = rowActions(policy.selection, row.id, row);
     return actions.length === 0 ? [] : [`${row.label} ${actionLabel(actions)}`];
   });
   return { scopeLine, grants };

@@ -9,12 +9,12 @@ import {
 import { ChevronDown } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import { useState } from "react";
-import type { Action } from "../lib/catalogue.types";
+import { ACTIONS, type Action, READ_ACTIONS, READ_WRITE_ACTIONS } from "../lib/catalogue.types";
 
 const BULK_OPTIONS: { id: string; label: string; actions: readonly Action[] }[] = [
-  { id: "read", label: "Read only", actions: ["read"] },
-  { id: "read-write", label: "Read & write", actions: ["read", "write"] },
-  { id: "full", label: "Read, write & delete", actions: ["read", "write", "delete"] },
+  { id: "read", label: "Read only", actions: READ_ACTIONS },
+  { id: "read-write", label: "Read & write", actions: READ_WRITE_ACTIONS },
+  { id: "full", label: "Full control", actions: ACTIONS },
   { id: "clear", label: "Clear all", actions: [] },
 ];
 
