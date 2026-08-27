@@ -2,14 +2,6 @@ package permissions
 
 import "github.com/unkeyed/unkey/pkg/urn"
 
-// CreateIdentity authorizes creating identity resources.
-//
-// Valid resource: urn.Identity.
-type CreateIdentity struct{}
-
-func (CreateIdentity) ActionFor(urn.Identity) {}
-func (CreateIdentity) String() string         { return "create_identity" }
-
 // ReadIdentity authorizes reading identity resources.
 //
 // Valid resource: urn.Identity.
@@ -23,14 +15,6 @@ type WriteIdentity struct{}
 
 func (WriteIdentity) ActionFor(urn.Identity) {}
 func (WriteIdentity) String() string         { return "write_identity" }
-
-// UpdateIdentity authorizes updating identity resources.
-//
-// Valid resource: urn.Identity.
-type UpdateIdentity struct{}
-
-func (UpdateIdentity) ActionFor(urn.Identity) {}
-func (UpdateIdentity) String() string         { return "update_identity" }
 
 // DeleteIdentity authorizes deleting identity resources.
 //

@@ -19,11 +19,6 @@ type Project struct {
 }
 
 // String returns this project resource path.
-//
-// Subresource:
-//
-//	workspace
-//	└── projects/{project_id}
 func (p Project) String() string {
 	return V1{WorkspaceID: p.workspaceID, Resource: p.path}.String()
 }
@@ -77,8 +72,8 @@ func (p Project) RatelimitNamespace(namespaceID string) RatelimitNamespace {
 //
 //	projects/{project_id}
 //	└── rbac
-func (p Project) RBAC() projectRBAC {
-	return projectRBAC{workspaceID: p.workspaceID, path: p.path + "/rbac"}
+func (p Project) RBAC() rbac {
+	return rbac{workspaceID: p.workspaceID, path: p.path + "/rbac"}
 }
 
 // Any returns a descendant pattern below this project.

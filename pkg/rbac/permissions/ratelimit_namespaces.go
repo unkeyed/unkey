@@ -25,11 +25,3 @@ type LimitRatelimitNamespace struct{}
 
 func (LimitRatelimitNamespace) ActionFor(urn.RatelimitNamespace) {}
 func (LimitRatelimitNamespace) String() string                   { return "limit_ratelimit_namespace" }
-
-// SetOverride authorizes setting overrides in a rate limit namespace.
-//
-// Valid resource: urn.RatelimitNamespace.
-type SetOverride struct{}
-
-func (SetOverride) ActionFor(urn.RatelimitNamespace) {}
-func (SetOverride) String() string                   { return "set_override" }

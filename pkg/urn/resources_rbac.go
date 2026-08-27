@@ -4,10 +4,16 @@ import "fmt"
 
 // rbac builds RBAC resource paths.
 //
+// The rbac segment has no ID and is not a permission target. It groups project
+// roles and permission definitions.
+//
 // Hierarchy:
 //
 //	workspace
-//	└── rbac
+//	└── projects/{project_id}
+//	    └── rbac
+//	        ├── roles/{role_id}
+//	        └── permissions/{permission_id}
 type rbac struct {
 	workspaceID string
 	path        string
@@ -19,11 +25,8 @@ type rbac struct {
 //
 //	rbac
 //	└── roles/{role_id}
-func (r rbac) Role(roleID string) V1 {
-	return V1{
-		WorkspaceID: r.workspaceID,
-		Resource:    fmt.Sprintf("%s/roles/%s", r.path, roleID),
-	}
+func (r rbac) Role(roleID string) Role {
+	return Role{workspaceID: r.workspaceID, path: fmt.Sprintf("%s/roles/%s", r.path, roleID)}
 }
 
 // Permission returns an RBAC permission resource path.
@@ -32,37 +35,7 @@ func (r rbac) Role(roleID string) V1 {
 //
 //	rbac
 //	└── permissions/{permission_id}
-func (r rbac) Permission(permissionID string) V1 {
-	return V1{
-		WorkspaceID: r.workspaceID,
-		Resource:    fmt.Sprintf("%s/permissions/%s", r.path, permissionID),
-	}
-}
-
-// projectRBAC builds project-scoped RBAC resource paths.
-//
-// The rbac segment has no ID and is not a permission target. It groups project
-// roles and permission definitions.
-//
-// Hierarchy:
-//
-//	workspace
-//	└── projects/{project_id}
-//	    └── rbac
-//	        ├── roles/{role_id}
-//	        └── permissions/{permission_id}
-type projectRBAC struct {
-	workspaceID string
-	path        string
-}
-
-// Role returns a project-scoped RBAC role resource path.
-func (r projectRBAC) Role(roleID string) Role {
-	return Role{workspaceID: r.workspaceID, path: fmt.Sprintf("%s/roles/%s", r.path, roleID)}
-}
-
-// Permission returns a project-scoped RBAC permission resource path.
-func (r projectRBAC) Permission(permissionID string) Permission {
+func (r rbac) Permission(permissionID string) Permission {
 	return Permission{workspaceID: r.workspaceID, path: fmt.Sprintf("%s/permissions/%s", r.path, permissionID)}
 }
 

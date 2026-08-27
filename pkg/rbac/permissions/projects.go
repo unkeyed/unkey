@@ -14,22 +14,6 @@ type WriteProject struct{}
 func (WriteProject) ActionFor(urn.Project) {}
 func (WriteProject) String() string        { return "write_project" }
 
-// CreateProject authorizes creating projects in a workspace.
-//
-// Valid resource: urn.Project.
-type CreateProject struct{}
-
-func (CreateProject) ActionFor(urn.Project) {}
-func (CreateProject) String() string        { return "create_project" }
-
-// UpdateProject authorizes updating a specific project.
-//
-// Valid resource: urn.Project.
-type UpdateProject struct{}
-
-func (UpdateProject) ActionFor(urn.Project) {}
-func (UpdateProject) String() string        { return "update_project" }
-
 // DeleteProject authorizes deleting a specific project.
 //
 // Valid resource: urn.Project.
