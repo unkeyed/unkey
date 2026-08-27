@@ -3,7 +3,7 @@
  */
 
 import { UnkeyCore } from "../core.js";
-import { encodeJSON } from "../lib/encodings.js";
+import { encodeJSON, encodeSimple } from "../lib/encodings.js";
 import { matchStatusCode } from "../lib/http.js";
 import * as M from "../lib/matchers.js";
 import { compactMap } from "../lib/primitives.js";
@@ -11,7 +11,6 @@ import { safeParse } from "../lib/schemas.js";
 import { RequestOptions } from "../lib/sdks.js";
 import { extractSecurity, resolveGlobalSecurity } from "../lib/security.js";
 import { pathToFunc } from "../lib/url.js";
-import * as components from "../models/components/index.js";
 import {
   ConnectionError,
   InvalidRequestError,
@@ -23,6 +22,7 @@ import * as errors from "../models/errors/index.js";
 import { ResponseValidationError } from "../models/errors/responsevalidationerror.js";
 import { SDKValidationError } from "../models/errors/sdkvalidationerror.js";
 import { UnkeyError } from "../models/errors/unkeyerror.js";
+import * as operations from "../models/operations/index.js";
 import { APICall, APIPromise } from "../types/async.js";
 import { Result } from "../types/fp.js";
 
@@ -39,17 +39,25 @@ import { Result } from "../types/fp.js";
  *
  * Returns immediately with a `deploymentId`. The build and rollout run asynchronously — poll `deployments.getDeployment` to watch status until it is ready.
  *
+ * **Idempotency**: send an `Idempotency-Key` header to deduplicate retries. Two requests with the same key for the same app and environment create one deployment; the second returns the original `deploymentId` with the `Idempotent-Replayed: true` response header instead of creating a second deployment.
+ *
+ * - Use a random unique value, such as a UUID, and a fresh value for each new deployment intent. Do not construct keys by hand.
+ * - A key is scoped per workspace, app, and environment. The same key reused for a different target creates its own deployment there.
+ * - A key expires 12 hours after its first use. Reusing it later creates a new deployment.
+ * - Reusing a key with other body changes answers with the original deployment and ignores the changes. Send a new key when you change the request.
+ * - Omit the header to disable deduplication.
+ *
  * **Authentication**: requires a root key with permission to create deployments.
  *
  * If set, this operation will use {@link Security.rootKey} from the global security.
  */
 export function deploymentsCreateDeployment(
   client: UnkeyCore,
-  request: components.V2DeploymentsCreateDeploymentRequestBodyUnion,
+  request: operations.DeploymentsCreateDeploymentRequest,
   options?: RequestOptions,
 ): APIPromise<
   Result<
-    components.V2DeploymentsCreateDeploymentResponseBody,
+    operations.DeploymentsCreateDeploymentResponse,
     | errors.BadRequestErrorResponse
     | errors.UnauthorizedErrorResponse
     | errors.ForbiddenErrorResponse
@@ -76,12 +84,12 @@ export function deploymentsCreateDeployment(
 
 async function $do(
   client: UnkeyCore,
-  request: components.V2DeploymentsCreateDeploymentRequestBodyUnion,
+  request: operations.DeploymentsCreateDeploymentRequest,
   options?: RequestOptions,
 ): Promise<
   [
     Result<
-      components.V2DeploymentsCreateDeploymentResponseBody,
+      operations.DeploymentsCreateDeploymentResponse,
       | errors.BadRequestErrorResponse
       | errors.UnauthorizedErrorResponse
       | errors.ForbiddenErrorResponse
@@ -104,21 +112,29 @@ async function $do(
   const parsed = safeParse(
     request,
     (value) =>
-      components.V2DeploymentsCreateDeploymentRequestBodyUnion$outboundSchema
-        .parse(value),
+      operations.DeploymentsCreateDeploymentRequest$outboundSchema.parse(value),
     "Input validation failed",
   );
   if (!parsed.ok) {
     return [parsed, { status: "invalid" }];
   }
   const payload = parsed.value;
-  const body = encodeJSON("body", payload, { explode: true });
+  const body = encodeJSON(
+    "body",
+    payload.V2DeploymentsCreateDeploymentRequestBody,
+    { explode: true },
+  );
 
   const path = pathToFunc("/v2/deployments.createDeployment")();
 
   const headers = new Headers(compactMap({
     "Content-Type": "application/json",
     Accept: "application/json",
+    "Idempotency-Key": encodeSimple(
+      "Idempotency-Key",
+      payload["Idempotency-Key"],
+      { explode: false, charEncoding: "none" },
+    ),
   }));
 
   const secConfig = await extractSecurity(client._options.rootKey);
@@ -182,7 +198,7 @@ async function $do(
   };
 
   const [result] = await M.match<
-    components.V2DeploymentsCreateDeploymentResponseBody,
+    operations.DeploymentsCreateDeploymentResponse,
     | errors.BadRequestErrorResponse
     | errors.UnauthorizedErrorResponse
     | errors.ForbiddenErrorResponse
@@ -199,10 +215,10 @@ async function $do(
     | UnexpectedClientError
     | SDKValidationError
   >(
-    M.json(
-      201,
-      components.V2DeploymentsCreateDeploymentResponseBody$inboundSchema,
-    ),
+    M.json(201, operations.DeploymentsCreateDeploymentResponse$inboundSchema, {
+      hdrs: true,
+      key: "Result",
+    }),
     M.jsonErr(400, errors.BadRequestErrorResponse$inboundSchema),
     M.jsonErr(401, errors.UnauthorizedErrorResponse$inboundSchema),
     M.jsonErr(403, errors.ForbiddenErrorResponse$inboundSchema),
