@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/uid"
@@ -16,11 +17,11 @@ import (
 
 func TestDeleteProjectDeleteProtection(t *testing.T) {
 	h := testutil.NewHarness(t)
+	restate, deletes := newRecordingRestate(t)
 
-	ctrlClient := &testutil.MockProjectClient{}
 	route := &handler.Handler{
-		DB:         h.DB,
-		CtrlClient: ctrlClient,
+		DB:      h.DB,
+		Restate: restate,
 	}
 	h.Register(route)
 
@@ -46,7 +47,5 @@ func TestDeleteProjectDeleteProtection(t *testing.T) {
 	require.Equal(t, 412, res.Status, "expected 412, received: %s", res.RawBody)
 	require.NotNil(t, res.Body.Error)
 	require.Equal(t, "This project has delete protection enabled. Disable it before attempting to delete.", res.Body.Error.Detail)
-
-	// The control plane must not be invoked when delete protection blocks the request.
-	require.Empty(t, ctrlClient.DeleteProjectCalls)
+	testutil.RequireNoReceive(t, deletes, time.Second)
 }

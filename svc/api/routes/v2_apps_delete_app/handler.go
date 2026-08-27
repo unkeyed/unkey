@@ -4,12 +4,15 @@ import (
 	"context"
 	"net/http"
 
-	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
-	"github.com/unkeyed/unkey/gen/rpc/ctrl"
+	restateingress "github.com/restatedev/sdk-go/ingress"
+	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
+	"github.com/unkeyed/unkey/pkg/auditlog"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/internal/ctrlclient"
 	"github.com/unkeyed/unkey/svc/api/openapi"
@@ -21,8 +24,8 @@ type (
 )
 
 type Handler struct {
-	DB         db.Database
-	CtrlClient ctrl.AppServiceClient
+	DB      db.Database
+	Restate *restateingress.Client
 }
 
 func (h *Handler) Method() string {
@@ -44,7 +47,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	app, err := db.Query.FindAppByProjectAndIdOrSlug(ctx, h.DB.RO(), db.FindAppByProjectAndIdOrSlugParams{
+	app, err := db.Query.FindAppByProjectAndIdOrSlug(ctx, h.DB.RW(), db.FindAppByProjectAndIdOrSlugParams{
 		WorkspaceID: principal.WorkspaceID,
 		Project:     req.Project,
 		App:         req.App,
@@ -78,6 +81,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			ResourceID:   app.ID,
 			Action:       rbac.DeleteApp,
 		}),
+		rbac.U(
+			urn.New().Workspace(principal.WorkspaceID).Project(app.ProjectID).App(app.ID),
+			permissions.DeleteApp{},
+		),
 	))
 	if err != nil {
 		return err
@@ -97,15 +104,22 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	// Deletion cascades through the app's environments and deployments via a
-	// durable Restate workflow. The control plane enqueues the workflow and
-	// returns immediately; teardown is eventually consistent.
-	_, err = h.CtrlClient.DeleteApp(ctx, &ctrlv1.DeleteAppRequest{
-		AppId: app.ID,
-		Actor: actor,
-	})
+	// Deletion cascades through the app's environments and deployments. Send
+	// returns once Restate accepts the durable workflow; teardown remains
+	// eventually consistent.
+	_, err = hydrav1.NewAppServiceIngressClient(h.Restate, app.ID).
+		Delete().
+		Send(ctx, &hydrav1.DeleteAppRequest{
+			Actor:         actor,
+			CorrelationId: auditlog.NewCorrelationID(),
+		})
 	if err != nil {
-		return ctrlclient.HandleError(err, "delete app")
+		return fault.Wrap(
+			err,
+			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+			fault.Internal("failed to submit app deletion to Restate"),
+			fault.Public("Failed to delete app."),
+		)
 	}
 
 	return s.JSON(http.StatusAccepted, Response{

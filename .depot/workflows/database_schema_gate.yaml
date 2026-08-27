@@ -6,9 +6,12 @@ on:
     branches: [main]
   schedule:
     - cron: "17 3 * * *"
+# A native stack update synchronizes every PR at once. Scope concurrency to the
+# PR so one stack layer cannot cancel another; only an obsolete run for the
+# same PR is canceled.
 concurrency:
-  group: database-schema-gate
-  cancel-in-progress: false
+  group: database-schema-gate-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 permissions:
   contents: read
   pull-requests: read
@@ -102,8 +105,8 @@ jobs:
             echo "::warning::Could not delete $BRANCH. The daily cleanup job will retry."
           fi
 
-  # A runner can stop before the delete step runs. Clean up any temporary
-  # branches left behind so they do not build up in PlanetScale.
+  # A runner can stop before the delete step runs. Clean up old temporary
+  # branches without touching checks that are still running for another PR.
   cleanup:
     if: github.event_name == 'schedule'
     name: Delete stale schema check branches
@@ -132,14 +135,20 @@ jobs:
             echo "::error::PlanetScale returned an invalid branch list."
             exit 1
           fi
+          # A schema gate times out after 15 minutes. Keep newer branches so
+          # this cleanup cannot delete one owned by a gate that is still running.
           mapfile -t BRANCHES < <(
             mise exec -- jq -r '
                 .[]
                 | select(.name | startswith("schema-check-"))
+                | select(
+                    (try (.created_at | sub("\\.[0-9]+Z$"; "Z") | fromdateiso8601) catch now)
+                    < (now - 3600)
+                  )
                 | .name
               ' <<< "$BRANCH_LIST"
           )
-          echo "Found ${#BRANCHES[@]} leftover schema check branch(es)."
+          echo "Found ${#BRANCHES[@]} stale schema check branch(es)."
           for branch in "${BRANCHES[@]}"; do
             echo "Deleting $branch."
             mise exec -- pscale branch delete "$PSCALE_DB" "$branch" \

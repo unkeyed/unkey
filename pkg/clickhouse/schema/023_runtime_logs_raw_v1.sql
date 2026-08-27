@@ -45,7 +45,7 @@ CREATE TABLE IF NOT EXISTS default.runtime_logs_raw_v1
     -- Indexes for fast filtering (0.001 = low false positive rate)
     INDEX idx_workspace_id workspace_id TYPE bloom_filter(0.001) GRANULARITY 1,
     INDEX idx_deployment_id deployment_id TYPE bloom_filter(0.001) GRANULARITY 1,
-    -- ngram bloom filters on lower(...) so positionCaseInsensitive(lower(col), ...) can use them.
+    -- ngram bloom filters on lower(...) so lower(col) LIKE '%value%' can use them.
     -- tokenbf_v1 only matches whole tokens, so it never helped substring search.
     INDEX idx_message_text_search lower(message) TYPE ngrambf_v1(3, 32768, 2, 0) GRANULARITY 1,
     INDEX idx_attributes_text_search lower(attributes_text) TYPE ngrambf_v1(3, 32768, 2, 0) GRANULARITY 1

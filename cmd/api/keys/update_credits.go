@@ -3,9 +3,9 @@ package keys
 import (
 	"context"
 	"fmt"
-	"time"
 
-	"github.com/unkeyed/sdks/api/go/v2/models/components"
+	"github.com/unkeyed/sdks/api/go/v3/models/components"
+	"github.com/unkeyed/sdks/api/go/v3/optionalnullable"
 	"github.com/unkeyed/unkey/cmd/api/util"
 	"github.com/unkeyed/unkey/pkg/cli"
 )
@@ -37,13 +37,14 @@ For full documentation, see https://www.unkey.com/docs/api-reference/v2/keys/upd
 			"unkey api keys update-credits --key-id=key_1234abcd --operation=decrement --value=100",
 		},
 		Flags: []cli.Flag{
+			cli.String("body", "Decode this JSON as the endpoint request body. Request-building flags are mutually exclusive."),
 			util.RootKeyFlag(),
 			util.APIURLFlag(),
 			util.ConfigFlag(),
 			util.OutputFlag(),
-			cli.String("key-id", "The key ID to update credits for.", cli.Required()),
-			cli.String("operation", "How to modify credits: set, increment, or decrement.", cli.Required()),
-			cli.Int64("value", "The credit amount for the operation."),
+			cli.String("key-id", "The key ID to update credits for.", cli.Required(), cli.MutuallyExclusive("body")),
+			cli.String("operation", "How to modify credits: set, increment, or decrement.", cli.Required(), cli.MutuallyExclusive("body")),
+			cli.Int64("value", "The credit amount for the operation.", cli.MutuallyExclusive("body")),
 		},
 		Action: func(ctx context.Context, cmd *cli.Command) error {
 			client, err := util.CreateClient(cmd)
@@ -51,7 +52,15 @@ For full documentation, see https://www.unkey.com/docs/api-reference/v2/keys/upd
 				return err
 			}
 
-			start := time.Now()
+			if cmd.FlagIsSet("body") {
+				body := cmd.String("body")
+				res, err := util.SendBody(ctx, client.Keys.UpdateCredits, body)
+				if err != nil {
+					return err
+				}
+				return util.Output(cmd, res.V2KeysUpdateCreditsResponseBody)
+			}
+
 			req := components.V2KeysUpdateCreditsRequestBody{
 				KeyID:     cmd.String("key-id"),
 				Operation: components.Operation(cmd.String("operation")),
@@ -59,14 +68,14 @@ For full documentation, see https://www.unkey.com/docs/api-reference/v2/keys/upd
 			}
 
 			if v := cmd.Int64("value"); v != 0 {
-				req.Value = &v
+				req.Value = optionalnullable.From(&v)
 			}
 
 			res, err := client.Keys.UpdateCredits(ctx, req)
 			if err != nil {
 				return fmt.Errorf("%s", util.FormatError(err))
 			}
-			return util.Output(cmd, res.V2KeysUpdateCreditsResponseBody, time.Since(start))
+			return util.Output(cmd, res.V2KeysUpdateCreditsResponseBody)
 		},
 	}
 }

@@ -22,6 +22,7 @@ import (
 	"github.com/unkeyed/unkey/gen/rpc/vault"
 	"github.com/unkeyed/unkey/pkg/batch"
 	"github.com/unkeyed/unkey/pkg/buildinfo"
+	"github.com/unkeyed/unkey/pkg/buildinfo/metrics"
 	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
@@ -135,7 +136,7 @@ func Run(ctx context.Context, cfg Config) error {
 	reg.MustRegister(collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}))
 	reg.MustRegister(prometheus.NewSystemMetricsCollector())
 	lazy.SetRegistry(reg)
-	buildinfo.RegisterBuildInfoMetrics("worker")
+	buildinfometrics.Register("worker")
 
 	// Create vault client for remote vault service
 	var vaultClient vault.VaultServiceClient
@@ -273,8 +274,16 @@ func Run(ctx context.Context, cfg Config) error {
 		}
 	}
 
+	// Lifecycle and deletion workflows write audit records as durable steps so
+	// they are retried with the operation that owns them.
+	auditlogSvc, err := auditlogs.New(auditlogs.Config{DB: database})
+	if err != nil {
+		return fmt.Errorf("failed to create audit log service: %w", err)
+	}
+
 	deployWorkflow, err := deploy.New(deploy.Config{
 		DB:            database,
+		Auditlogs:     auditlogSvc,
 		DefaultDomain: cfg.DefaultDomain,
 		Vault:         vaultClient,
 
@@ -370,13 +379,6 @@ func Run(ctx context.Context, cfg Config) error {
 		EnforceDeployGate:               cfg.DeployGate.Enforce,
 	})))
 
-	// Deletion workflows write their audit logs as durable steps, so the audit
-	// record is tied to the retried deletion unit rather than the enqueueing RPC.
-	auditlogSvc, err := auditlogs.New(auditlogs.Config{DB: database})
-	if err != nil {
-		return fmt.Errorf("failed to create audit log service: %w", err)
-	}
-
 	projectSvc, err := workerproject.New(workerproject.Config{
 		DB:        database,
 		Auditlogs: auditlogSvc,
@@ -463,6 +465,7 @@ func Run(ctx context.Context, cfg Config) error {
 	if domainCacheErr != nil {
 		return fmt.Errorf("failed to create domain cache: %w", domainCacheErr)
 	}
+	r.Defer(func() error { domainCache.Close(); return nil })
 
 	// Setup ACME challenge providers
 	var dnsProvider challenge.Provider
@@ -562,6 +565,7 @@ func Run(ctx context.Context, cfg Config) error {
 			KeyLastUsedSync:    cronHeartbeat(cfg.Heartbeat.KeyLastUsedSyncURL),
 			AuditLogExport:     cronHeartbeat(cfg.Heartbeat.AuditLogExportURL),
 			AuditLogCleanup:    cronHeartbeat(cfg.Heartbeat.AuditLogOutboxCleanupURL),
+			RatelimitCleanup:   cronHeartbeat(cfg.Heartbeat.RatelimitGlobalCountersCleanupURL),
 			DeployBillingPush:  cronHeartbeat(cfg.Heartbeat.DeployBillingPushURL),
 			DeployBillingClose: cronHeartbeat(cfg.Heartbeat.DeployBillingCloseURL),
 			DeploySpendCheck:   cronHeartbeat(cfg.Heartbeat.DeploySpendCheckURL),
@@ -850,9 +854,9 @@ func Run(ctx context.Context, cfg Config) error {
 
 	// Wait for signal and handle shutdown
 	logger.Info("Worker started successfully")
+	// r.Wait already logs shutdown failures; just add context and propagate.
 	if err := r.Wait(ctx); err != nil {
-		logger.Error("Shutdown failed", "error", err)
-		return err
+		return fmt.Errorf("shutdown failed: %w", err)
 	}
 
 	logger.Info("Worker shut down successfully")

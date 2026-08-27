@@ -184,10 +184,14 @@ const (
 	// NotFound indicates the requested audit log was not found.
 	UnkeyDataErrorsAuditLogNotFound URN = "err:unkey:data:audit_log_not_found"
 
-	// PortalConfig
+	// Portal
 
-	// NotFound indicates the requested portal configuration was not found.
-	UnkeyDataErrorsPortalConfigNotFound URN = "err:unkey:data:portal_config_not_found"
+	// Duplicate indicates a portal already claims the requested slug or association.
+	// The app and keyspace unique keys span every workspace, so this can be raised
+	// by a portal the caller cannot see.
+	UnkeyDataErrorsPortalDuplicate URN = "err:unkey:data:portal_already_exists"
+	// NotFound indicates the requested portal was not found.
+	UnkeyDataErrorsPortalNotFound URN = "err:unkey:data:portal_not_found"
 
 	// Analytics
 

@@ -18,7 +18,7 @@ type EnvVarsBodyProps = {
 };
 
 export function EnvVarsBody({ isAddOpen, onCloseAdd, panelTopOffset }: EnvVarsBodyProps) {
-  const { appId, environments } = useProjectData();
+  const { projectId, appId, environments } = useProjectData();
   const [searchQuery, setSearchQuery] = useState("");
   const [environmentFilter, setEnvironmentFilter] = useState<EnvironmentFilter>("all");
   const [sortBy, setSortBy] = useState<SortOption>("last-updated");
@@ -30,6 +30,7 @@ export function EnvVarsBody({ isAddOpen, onCloseAdd, panelTopOffset }: EnvVarsBo
   return (
     <>
       <AddEnvVarExpandable
+        projectId={projectId}
         appId={appId}
         tableDistanceToTop={panelTopOffset}
         isOpen={isAddOpen}
@@ -45,6 +46,7 @@ export function EnvVarsBody({ isAddOpen, onCloseAdd, panelTopOffset }: EnvVarsBo
         onSortChange={setSortBy}
       />
       <EnvVarsList
+        projectId={projectId}
         appId={appId}
         environments={environments}
         searchQuery={searchQuery}

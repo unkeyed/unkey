@@ -12,25 +12,13 @@ import {
   Nodes,
   ShieldKey,
   SquareBulletList,
-  User,
   WindowLayout,
 } from "@unkey/icons";
 import { routes } from "./routes";
 import type { ResolvedNavLink } from "./types";
 
-export function buildWorkspaceSections(
-  slug: string,
-  segments: string[],
-  portalManagementEnabled: boolean,
-): ResolvedNavLink[] {
+export function buildWorkspaceSections(slug: string, segments: string[]): ResolvedNavLink[] {
   const top = segments[0];
-  const portalLink: ResolvedNavLink = {
-    key: "portal",
-    label: "Portal",
-    href: routes.portal.root({ workspaceSlug: slug }),
-    icon: User,
-    isActive: top === "portal",
-  };
   return [
     {
       key: "projects",
@@ -81,7 +69,6 @@ export function buildWorkspaceSections(
       icon: InputSearch,
       isActive: top === "audit",
     },
-    ...(portalManagementEnabled ? [portalLink] : []),
     {
       key: "settings",
       label: "Settings",

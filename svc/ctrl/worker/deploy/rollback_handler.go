@@ -6,6 +6,7 @@ import (
 	restate "github.com/restatedev/sdk-go"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/assert"
+	"github.com/unkeyed/unkey/pkg/auditlog"
 	"github.com/unkeyed/unkey/pkg/deploy/deploygate"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
@@ -159,6 +160,17 @@ func (w *Workflow) Rollback(ctx restate.ObjectContext, req *hydrav1.RollbackRequ
 		"source", req.GetSourceDeploymentId(),
 		"target", req.GetTargetDeploymentId(),
 		"frontlineRoutes_rolled_back", len(routeIDs))
+
+	if err := w.insertLifecycleAudit(
+		ctx,
+		req.GetActor(),
+		req.GetCorrelationId(),
+		targetDeployment,
+		auditlog.DeploymentRollbackEvent,
+		fmt.Sprintf("Rolled back to deployment %s", targetDeployment.ID),
+	); err != nil {
+		return nil, fmt.Errorf("insert rollback deployment audit log: %w", err)
+	}
 
 	return &hydrav1.RollbackResponse{}, nil
 }

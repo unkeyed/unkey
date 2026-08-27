@@ -1,31 +1,20 @@
-import { useRequestLogsFilters } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/(project)/requests/hooks/use-request-logs-filters";
-import { FilterOperatorInput } from "@/components/logs/filter-operator-input";
+import type { RequestLogsFilterOperator } from "@/lib/schemas/request-logs.filter.schema";
+import { RequestLogsTextFilter } from "./request-logs-text-filter";
+
+const OPTIONS = ["is", "startsWith", "contains"] as const;
+
+function validatePath(operator: RequestLogsFilterOperator, value: string): string | null {
+  if ((operator === "contains" || operator === "startsWith") && value.length < 3) {
+    return "Prefix and contains need at least 3 characters. Use is for shorter paths.";
+  }
+  if (value.length > 2_048) {
+    return "Path must be 2,048 characters or fewer.";
+  }
+  return null;
+}
 
 export const RequestPathsFilter = () => {
-  const { filters, updateFilters } = useRequestLogsFilters();
-
-  const options = [{ id: "contains" as const, label: "contains" }];
-
-  const activePathFilter = filters.find((f) => f.field === "paths");
-
   return (
-    <FilterOperatorInput
-      label="Path"
-      options={options}
-      defaultOption={activePathFilter?.operator}
-      defaultText={activePathFilter?.value as string}
-      onApply={(_, text) => {
-        const activeFiltersWithoutPaths = filters.filter((f) => f.field !== "paths");
-        updateFilters([
-          ...activeFiltersWithoutPaths,
-          {
-            field: "paths",
-            id: crypto.randomUUID(),
-            operator: "contains",
-            value: text,
-          },
-        ]);
-      }}
-    />
+    <RequestLogsTextFilter field="paths" label="Path" operators={OPTIONS} validate={validatePath} />
   );
 };

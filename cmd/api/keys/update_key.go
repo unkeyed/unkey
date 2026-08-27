@@ -4,9 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"time"
 
-	"github.com/unkeyed/sdks/api/go/v2/models/components"
+	"github.com/unkeyed/sdks/api/go/v3/models/components"
+	"github.com/unkeyed/sdks/api/go/v3/optionalnullable"
 	"github.com/unkeyed/unkey/cmd/api/util"
 	"github.com/unkeyed/unkey/pkg/cli"
 	"github.com/unkeyed/unkey/pkg/ptr"
@@ -37,25 +37,26 @@ For full documentation, see https://www.unkey.com/docs/api-reference/v2/keys/upd
 			"unkey api keys update-key --key-id=key_1234abcd --name='Updated Key Name'",
 			"unkey api keys update-key --key-id=key_1234abcd --enabled=false",
 			"unkey api keys update-key --key-id=key_1234abcd --external-id=user_5678 --roles=api_admin,billing_reader",
-			`unkey api keys update-key --key-id=key_1234abcd --meta-json='{"plan":"enterprise","team":"acme"}'`,
-			`unkey api keys update-key --key-id=key_1234abcd --credits-json='{"remaining":5000,"refill":{"interval":"monthly","amount":5000}}'`,
-			`unkey api keys update-key --key-id=key_1234abcd --ratelimits-json='[{"name":"requests","limit":500,"duration":60000,"autoApply":true}]'`,
+			`unkey api keys update-key --key-id=key_1234abcd --meta='{"plan":"enterprise","team":"acme"}'`,
+			`unkey api keys update-key --key-id=key_1234abcd --credits='{"remaining":5000,"refill":{"interval":"monthly","amount":5000}}'`,
+			`unkey api keys update-key --key-id=key_1234abcd --ratelimits='[{"name":"requests","limit":500,"duration":60000,"autoApply":true}]'`,
 		},
 		Flags: []cli.Flag{
+			cli.String("body", "Decode this JSON as the endpoint request body. Request-building flags are mutually exclusive."),
 			util.RootKeyFlag(),
 			util.APIURLFlag(),
 			util.ConfigFlag(),
 			util.OutputFlag(),
-			cli.String("key-id", "The key ID to update.", cli.Required()),
-			cli.String("name", "Human-readable name for the key."),
-			cli.String("external-id", "Your system's user or entity identifier."),
-			cli.String("meta-json", "JSON object of arbitrary metadata."),
-			cli.Int64("expires", "Unix timestamp in milliseconds when the key expires."),
-			cli.String("credits-json", "JSON object for credit and refill configuration."),
-			cli.String("ratelimits-json", "JSON array of rate limit configurations."),
-			cli.Bool("enabled", "Whether the key is active for verification."),
-			cli.StringSlice("roles", "Comma-separated list of role names to assign."),
-			cli.StringSlice("permissions", "Comma-separated list of permission names to grant."),
+			cli.String("key-id", "The key ID to update.", cli.Required(), cli.MutuallyExclusive("body")),
+			cli.String("name", "Human-readable name for the key.", cli.MutuallyExclusive("body")),
+			cli.String("external-id", "Your system's user or entity identifier.", cli.MutuallyExclusive("body")),
+			cli.String("meta", "JSON object of arbitrary metadata.", cli.MutuallyExclusive("body")),
+			cli.Int64("expires", "Unix timestamp in milliseconds when the key expires.", cli.MutuallyExclusive("body")),
+			cli.String("credits", "JSON object for credit and refill configuration.", cli.MutuallyExclusive("body")),
+			cli.String("ratelimits", "JSON array of rate limit configurations.", cli.MutuallyExclusive("body")),
+			cli.Bool("enabled", "Whether the key is active for verification.", cli.MutuallyExclusive("body")),
+			cli.StringSlice("roles", "Comma-separated list of role names to assign.", cli.MutuallyExclusive("body")),
+			cli.StringSlice("permissions", "Comma-separated list of permission names to grant.", cli.MutuallyExclusive("body")),
 		},
 		Action: func(ctx context.Context, cmd *cli.Command) error {
 			client, err := util.CreateClient(cmd)
@@ -63,7 +64,22 @@ For full documentation, see https://www.unkey.com/docs/api-reference/v2/keys/upd
 				return err
 			}
 
-			start := time.Now()
+			if cmd.FlagIsSet("body") {
+				body := cmd.String("body")
+				res, err := util.SendBody(ctx, client.Keys.UpdateKey, body)
+				if err != nil {
+					return err
+				}
+				return util.Output(cmd, res.V2KeysUpdateKeyResponseBody)
+			}
+
+			send := func(req components.V2KeysUpdateKeyRequestBody) error {
+				res, err := client.Keys.UpdateKey(ctx, req)
+				if err != nil {
+					return fmt.Errorf("%s", util.FormatError(err))
+				}
+				return util.Output(cmd, res.V2KeysUpdateKeyResponseBody)
+			}
 			req := components.V2KeysUpdateKeyRequestBody{
 				KeyID:       cmd.String("key-id"),
 				Name:        nil,
@@ -78,39 +94,39 @@ For full documentation, see https://www.unkey.com/docs/api-reference/v2/keys/upd
 			}
 
 			if v := cmd.String("name"); v != "" {
-				req.Name = &v
+				req.Name = optionalnullable.From(&v)
 			}
 
 			if v := cmd.String("external-id"); v != "" {
-				req.ExternalID = &v
+				req.ExternalID = optionalnullable.From(&v)
 			}
 
-			if v := cmd.String("meta-json"); v != "" {
+			if v := cmd.String("meta"); v != "" {
 				var meta map[string]any
 				if err := json.Unmarshal([]byte(v), &meta); err != nil {
-					return fmt.Errorf("invalid JSON for --meta-json: %w", err)
+					return fmt.Errorf("invalid JSON for --meta: %w", err)
 				}
-				req.Meta = meta
+				req.Meta = optionalnullable.From(&meta)
 			}
 
 			if v := cmd.Int64("expires"); v != 0 {
-				req.Expires = &v
+				req.Expires = optionalnullable.From(&v)
 			}
 
-			if v := cmd.String("credits-json"); v != "" {
+			if v := cmd.String("credits"); v != "" {
 				var credits components.UpdateKeyCreditsData
 				if err := json.Unmarshal([]byte(v), &credits); err != nil {
-					return fmt.Errorf("invalid JSON for --credits-json: %w", err)
+					return fmt.Errorf("invalid JSON for --credits: %w", err)
 				}
-				req.Credits = &credits
+				req.Credits = optionalnullable.From(&credits)
 			}
 
-			if v := cmd.String("ratelimits-json"); v != "" {
+			if v := cmd.String("ratelimits"); v != "" {
 				var ratelimits []components.RatelimitRequest
 				if err := json.Unmarshal([]byte(v), &ratelimits); err != nil {
-					return fmt.Errorf("invalid JSON for --ratelimits-json: %w", err)
+					return fmt.Errorf("invalid JSON for --ratelimits: %w", err)
 				}
-				req.Ratelimits = ratelimits
+				req.Ratelimits = optionalnullable.From(&ratelimits)
 			}
 
 			if cmd.FlagIsSet("enabled") {
@@ -124,12 +140,7 @@ For full documentation, see https://www.unkey.com/docs/api-reference/v2/keys/upd
 			if v := cmd.StringSlice("permissions"); len(v) > 0 {
 				req.Permissions = v
 			}
-
-			res, err := client.Keys.UpdateKey(ctx, req)
-			if err != nil {
-				return fmt.Errorf("%s", util.FormatError(err))
-			}
-			return util.Output(cmd, res.V2KeysUpdateKeyResponseBody, time.Since(start))
+			return send(req)
 		},
 	}
 }

@@ -14,6 +14,11 @@ import {
   KeyauthPolicy$outboundSchema,
 } from "./keyauthpolicy.js";
 import {
+  LoggingPolicy,
+  LoggingPolicy$Outbound,
+  LoggingPolicy$outboundSchema,
+} from "./loggingpolicy.js";
+import {
   MatchExpr,
   MatchExpr$Outbound,
   MatchExpr$outboundSchema,
@@ -30,11 +35,11 @@ import {
 } from "./ratelimitpolicy.js";
 
 /**
- * A gateway policy. Exactly one of `keyauth`, `ratelimit`, `firewall` or
+ * A gateway policy. Exactly one of `keyauth`, `ratelimit`, `firewall`,
  *
  * @remarks
- * `openapi` must be set. The server generates an id for every policy it
- * stores.
+ * `openapi` or `logging` must be set. The server generates an id for every
+ * policy it stores.
  */
 export type Policy = {
   /**
@@ -57,7 +62,11 @@ export type Policy = {
    */
   keyauth?: KeyauthPolicy | undefined;
   /**
-   * Rate limits matching requests.
+   * Rate limits matching requests. Set `identifiers` with 1 to 5 sources.
+   *
+   * @remarks
+   * The deprecated `identifier` field is accepted in place of a one-entry
+   * `identifiers` list; set exactly one of the two.
    */
   ratelimit?: RatelimitPolicy | undefined;
   /**
@@ -72,6 +81,20 @@ export type Policy = {
    * the policy is a no-op and requests pass through unvalidated.
    */
   openapi?: OpenapiPolicy | undefined;
+  /**
+   * Adds request data to the log entries of matching requests. The gateway
+   *
+   * @remarks
+   * always records a basic log entry for every request: method, host, path,
+   * status, and latency. Each capture setting is a separate opt-in: request
+   * headers, response headers, request body, response body, and query data.
+   * The policy's `match` expressions select the requests. A policy without
+   * `match` expressions matches every request. If more than one enabled
+   * logging policy matches a request, the gateway combines their settings.
+   * The gateway always redacts the `Authorization` header and configured key
+   * locations before it stores headers or query data.
+   */
+  logging?: LoggingPolicy | undefined;
 };
 
 /** @internal */
@@ -83,6 +106,7 @@ export type Policy$Outbound = {
   ratelimit?: RatelimitPolicy$Outbound | undefined;
   firewall?: FirewallPolicy$Outbound | undefined;
   openapi?: OpenapiPolicy$Outbound | undefined;
+  logging?: LoggingPolicy$Outbound | undefined;
 };
 
 /** @internal */
@@ -98,6 +122,7 @@ export const Policy$outboundSchema: z.ZodType<
   ratelimit: RatelimitPolicy$outboundSchema.optional(),
   firewall: FirewallPolicy$outboundSchema.optional(),
   openapi: OpenapiPolicy$outboundSchema.optional(),
+  logging: LoggingPolicy$outboundSchema.optional(),
 });
 
 export function policyToJSON(policy: Policy): string {

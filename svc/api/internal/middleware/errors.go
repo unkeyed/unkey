@@ -95,7 +95,7 @@ func WithErrorHandling() zen.Middleware {
 				codes.UnkeyDataErrorsRatelimitOverrideNotFound,
 				codes.UnkeyDataErrorsIdentityNotFound,
 				codes.UnkeyDataErrorsAuditLogNotFound,
-				codes.UnkeyDataErrorsPortalConfigNotFound:
+				codes.UnkeyDataErrorsPortalNotFound:
 				return s.ProblemJSON(http.StatusNotFound, openapi.NotFoundErrorResponse{
 					Meta: openapi.Meta{
 						RequestId: s.RequestID(),
@@ -303,7 +303,8 @@ func WithErrorHandling() zen.Middleware {
 				codes.UnkeyDataErrorsPermissionDuplicate,
 				codes.UnkeyDataErrorsProjectDuplicate,
 				codes.UnkeyDataErrorsAppDuplicate,
-				codes.UnkeyDataErrorsDomainDuplicate:
+				codes.UnkeyDataErrorsDomainDuplicate,
+				codes.UnkeyDataErrorsPortalDuplicate:
 				return s.ProblemJSON(http.StatusConflict, openapi.ConflictErrorResponse{
 					Meta: openapi.Meta{
 						RequestId: s.RequestID(),

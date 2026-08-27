@@ -100,7 +100,7 @@ func triggerWebhook(ctx context.Context, cmd *cli.Command) error {
 	if webhookSecret == "" {
 		secret, err := readEnvFileValue("dev/.env.github", "UNKEY_GITHUB_APP_WEBHOOK_SECRET")
 		if err != nil {
-			return fmt.Errorf("no --webhook-secret provided and failed to read dev/.env.github: %w\n\nRun `go run . dev github setup` first, or pass --webhook-secret", err)
+			return fmt.Errorf("no --webhook-secret provided and failed to read dev/.env.github: %w\n\nRun `go run ./build/cli dev github setup` first, or pass --webhook-secret", err)
 		}
 		webhookSecret = secret
 	}
@@ -127,7 +127,7 @@ func triggerWebhook(ctx context.Context, cmd *cli.Command) error {
 	fmt.Printf("Looking up project %q...\n", projectSlug)
 	project, err := db.Query.FindProjectBySlug(ctx, database.RO(), projectSlug)
 	if err != nil {
-		return fmt.Errorf("failed to find project with slug %q: %w\n\nMake sure you've run `go run . dev seed local`", projectSlug, err)
+		return fmt.Errorf("failed to find project with slug %q: %w\n\nMake sure you've run `go run ./build/cli dev seed local`", projectSlug, err)
 	}
 	workspace, err := db.Query.FindWorkspaceByID(ctx, database.RO(), project.WorkspaceID)
 	if err != nil {
@@ -249,7 +249,7 @@ func triggerWebhook(ctx context.Context, cmd *cli.Command) error {
 		return nil
 
 	case http.StatusUnauthorized:
-		return fmt.Errorf("✗ Webhook rejected: invalid signature\n\nThe webhook secret used to sign this request does not match the one ctrl-api is validating against. Make sure dev/.env.github (UNKEY_GITHUB_APP_WEBHOOK_SECRET) is the one written by `go run . dev github setup` and that the github-credentials k8s secret is up to date")
+		return fmt.Errorf("✗ Webhook rejected: invalid signature\n\nThe webhook secret used to sign this request does not match the one ctrl-api is validating against. Make sure dev/.env.github (UNKEY_GITHUB_APP_WEBHOOK_SECRET) is the one written by `go run ./build/cli dev github setup` and that the github-credentials k8s secret is up to date")
 
 	case http.StatusBadRequest:
 		return fmt.Errorf("✗ Webhook rejected: invalid payload\n\n%s", string(bodyBytes))

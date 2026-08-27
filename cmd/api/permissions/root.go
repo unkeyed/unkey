@@ -20,6 +20,7 @@ func Cmd() *cli.Command {
 			deleteRoleCmd(),
 			getRoleCmd(),
 			listRolesCmd(),
+			setRolePermissionsCmd(),
 		},
 	}
 }

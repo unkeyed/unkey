@@ -12,6 +12,8 @@ import (
 	"github.com/unkeyed/unkey/pkg/domain/domaingate"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/internal/ctrlclient"
 	"github.com/unkeyed/unkey/svc/api/internal/customdomain"
@@ -82,6 +84,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			ResourceID:   row.EnvironmentID,
 			Action:       rbac.DeleteDomain,
 		}),
+		rbac.U(
+			urn.New().Workspace(principal.WorkspaceID).Project(row.ProjectID).App(row.AppID).Environment(row.EnvironmentID).Domain(row.ID),
+			permissions.DeleteDomain{},
+		),
 	)); err != nil {
 		return apierrors.MaskInsufficientPermissionsAsNotFound(
 			err,
