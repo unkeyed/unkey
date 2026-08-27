@@ -110,6 +110,11 @@ export const ACTION_LABELS = {
   delete_github_app: "Delete",
 } satisfies Record<Action, string>;
 
+export const READ_ACTIONS = ACTIONS.filter((action) => action.startsWith("read_"));
+export const READ_WRITE_ACTIONS = ACTIONS.filter(
+  (action) => action.startsWith("read_") || action.startsWith("write_"),
+);
+
 export const WORKOS_PERMISSION_SLUGS = [
   "admin:*",
   "apps:delete",

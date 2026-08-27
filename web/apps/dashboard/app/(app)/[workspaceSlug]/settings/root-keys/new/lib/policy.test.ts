@@ -5,7 +5,7 @@ import { environmentsCatalogue } from "./catalogue.environments";
 import { keyspacesCatalogue } from "./catalogue.keyspaces";
 import { projectsCatalogue } from "./catalogue.projects";
 import { ratelimitNamespacesCatalogue } from "./catalogue.ratelimit-namespaces";
-import { type Action, RESOURCE_SCOPES } from "./catalogue.types";
+import { READ_WRITE_ACTIONS, RESOURCE_SCOPES } from "./catalogue.types";
 import { workspaceCatalogue } from "./catalogue.workspace";
 import {
   ALL_INSTANCES,
@@ -30,42 +30,7 @@ import {
 const supportedActionCount = (rows: ReturnType<typeof catalogueRows>) =>
   rows.reduce((total, row) => total + supportedRowActions(row).length, 0);
 
-const commonActions: readonly Action[] = [
-  "read_project",
-  "write_project",
-  "read_app",
-  "write_app",
-  "read_environment",
-  "write_environment",
-  "read_deployment",
-  "write_deployment",
-  "read_deployment_logs",
-  "read_domain",
-  "write_domain",
-  "read_environment_variable",
-  "write_environment_variable",
-  "read_gateway_logs",
-  "read_gateway_policy",
-  "write_gateway_policy",
-  "read_identity",
-  "write_identity",
-  "read_keyspace",
-  "write_keyspace",
-  "read_keyspace_logs",
-  "read_key",
-  "write_key",
-  "read_ratelimit_namespace",
-  "write_ratelimit_namespace",
-  "read_ratelimit_logs",
-  "read_ratelimit_override",
-  "write_ratelimit_override",
-  "read_role",
-  "write_role",
-  "read_permission",
-  "write_permission",
-  "read_github_app",
-  "write_github_app",
-];
+const commonActions = READ_WRITE_ACTIONS;
 const commonActionSet: ReadonlySet<string> = new Set(commonActions);
 
 describe("newPolicy", () => {

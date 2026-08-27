@@ -1,8 +1,8 @@
 import { catalogueFor, catalogueRows } from "./catalogue";
 import {
   ACTIONS,
-  type Action,
   type PermissionSelection,
+  READ_ACTIONS,
   type ResourceScope,
 } from "./catalogue.types";
 import { type Policy, newPolicy, setRowsActions } from "./policy";
@@ -20,7 +20,7 @@ export type RootKeyTemplate = {
 
 const BREADTH_SCOPES: readonly ResourceScope[] = ["workspace"];
 
-function everyRow(scope: ResourceScope, actions: readonly Action[]): Policy {
+function everyRow(scope: ResourceScope, actions: readonly (typeof ACTIONS)[number][]): Policy {
   const policy = newPolicy(scope);
   return {
     ...policy,
@@ -37,30 +37,7 @@ export const TEMPLATES: readonly RootKeyTemplate[] = [
     id: "read",
     title: "All read permissions",
     description: "Every resource, read only",
-    materialise: () =>
-      BREADTH_SCOPES.map((scope) =>
-        everyRow(scope, [
-          "read_project",
-          "read_app",
-          "read_environment",
-          "read_deployment",
-          "read_deployment_logs",
-          "read_domain",
-          "read_environment_variable",
-          "read_gateway_logs",
-          "read_gateway_policy",
-          "read_identity",
-          "read_keyspace",
-          "read_keyspace_logs",
-          "read_key",
-          "read_ratelimit_namespace",
-          "read_ratelimit_logs",
-          "read_ratelimit_override",
-          "read_role",
-          "read_permission",
-          "read_github_app",
-        ]),
-      ),
+    materialise: () => BREADTH_SCOPES.map((scope) => everyRow(scope, READ_ACTIONS)),
   },
   {
     id: "write",
