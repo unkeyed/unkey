@@ -1,7 +1,4 @@
-/**
- * MySQL error classification, the TypeScript counterpart of `pkg/db`.
- * See: https://dev.mysql.com/doc/mysql-errors/8.0/en/server-error-reference.html
- */
+/** See: https://dev.mysql.com/doc/mysql-errors/8.0/en/server-error-reference.html */
 
 const ERR_DEADLOCK = 1213;
 const ERR_LOCK_WAIT_TIMEOUT = 1205;
@@ -27,7 +24,6 @@ const CONNECTION_ERROR_CODES = new Set([
   "EAI_AGAIN",
 ]);
 
-/** Read off an arbitrary object in the cause chain, so nothing is assumed about the field types. */
 type DriverError = {
   code?: unknown;
   errno?: unknown;
@@ -36,10 +32,7 @@ type DriverError = {
 /** Bounded so a cyclic cause chain cannot hang the caller. */
 const MAX_CAUSE_DEPTH = 10;
 
-/**
- * Runs `match` against every error in the `cause` chain, because drizzle keeps
- * the mysql2 error nested inside a `DrizzleQueryError`. Analogue of `errors.As`.
- */
+/** Walks the `cause` chain: drizzle nests the mysql2 error inside a `DrizzleQueryError`. */
 function matchesDriverError(err: unknown, match: (driverError: DriverError) => boolean): boolean {
   let current: unknown = err;
 

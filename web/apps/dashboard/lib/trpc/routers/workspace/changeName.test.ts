@@ -15,6 +15,8 @@ const state = vi.hoisted(() => ({
   resolver: null as Resolver | null,
   /** Errors thrown by the workspace update, one per attempt. */
   updateErrors: [] as unknown[],
+  /** Thrown by `COMMIT`, after the callback has resolved. */
+  commitError: null as unknown,
   authError: null as unknown,
   /** Order of the side effects. */
   calls: [] as string[],
@@ -40,9 +42,14 @@ vi.mock("@/lib/db", async () => {
   return {
     ...actual,
     db: {
-      transaction: <T>(fn: (tx: unknown) => Promise<T>) => {
+      transaction: async <T>(fn: (tx: unknown) => Promise<T>) => {
         state.calls.push("begin");
-        return fn(tx);
+        const result = await fn(tx);
+        if (state.commitError) {
+          throw state.commitError;
+        }
+        state.calls.push("commit");
+        return result;
       },
     },
   };
@@ -107,6 +114,7 @@ function changeName(input = { name: "New name", workspaceId: "ws_1" }) {
 describe("changeWorkspaceName", () => {
   beforeEach(() => {
     state.updateErrors = [];
+    state.commitError = null;
     state.authError = null;
     state.calls = [];
   });
@@ -119,18 +127,29 @@ describe("changeWorkspaceName", () => {
     expect(state.calls).toEqual([]);
   });
 
-  it("writes the database before the auth provider", async () => {
+  it("calls the auth provider before it opens the transaction", async () => {
     await changeName();
 
-    expect(state.calls).toEqual(["begin", "update", "audit", "auth"]);
+    expect(state.calls).toEqual(["auth", "begin", "update", "audit", "commit"]);
   });
 
-  it("runs the whole transaction again after a deadlock", async () => {
+  it("writes nothing when the auth provider rejects the name", async () => {
+    const authError = new Error("workos rejected the organization name");
+    state.authError = authError;
+
+    await expect(changeName()).rejects.toMatchObject({
+      code: "INTERNAL_SERVER_ERROR",
+      cause: authError,
+    });
+    expect(state.calls).toEqual(["auth"]);
+  });
+
+  it("runs the whole transaction again after a deadlock without calling the auth provider again", async () => {
     state.updateErrors = [deadlock()];
 
     await changeName();
 
-    expect(state.calls).toEqual(["begin", "update", "begin", "update", "audit", "auth"]);
+    expect(state.calls).toEqual(["auth", "begin", "update", "begin", "update", "audit", "commit"]);
   });
 
   it("gives up after three attempts and reports a failure", async () => {
@@ -141,6 +160,7 @@ describe("changeWorkspaceName", () => {
     } satisfies Partial<TRPCError>);
 
     expect(state.calls.filter((call) => call === "update")).toHaveLength(3);
+    expect(state.calls.filter((call) => call === "auth")).toHaveLength(1);
   });
 
   it("does not retry an error that a retry cannot fix", async () => {
@@ -157,11 +177,11 @@ describe("changeWorkspaceName", () => {
     await expect(changeName()).rejects.toMatchObject({ cause: original });
   });
 
-  it("fails the transaction when the auth provider rejects the name", async () => {
-    state.authError = new Error("workos rejected the organization name");
+  it("reports a failed commit without a second auth provider call", async () => {
+    const commitError = new Error("Connection lost");
+    state.commitError = commitError;
 
-    await expect(changeName()).rejects.toMatchObject({
-      code: "INTERNAL_SERVER_ERROR",
-    } satisfies Partial<TRPCError>);
+    await expect(changeName()).rejects.toMatchObject({ cause: commitError });
+    expect(state.calls).toEqual(["auth", "begin", "update", "audit"]);
   });
 });

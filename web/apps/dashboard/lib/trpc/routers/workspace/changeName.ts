@@ -24,7 +24,15 @@ export const changeWorkspaceName = workspaceProcedure
       });
     }
 
+    // Auth first: it is the only step that can reject a name, and no
+    // transaction is open during the HTTP call. A later DB failure leaves the
+    // provider one name ahead, which the user's retry overwrites.
     try {
+      await authClient.updateOrg({
+        id: ctx.tenant.id,
+        name: input.name,
+      });
+
       await transactionWithRetry(db, async (tx) => {
         await tx
           .update(schema.workspaces)
@@ -50,17 +58,8 @@ export const changeWorkspaceName = workspaceProcedure
             userAgent: ctx.audit.userAgent,
           },
         });
-
-        await authClient.updateOrg({
-          id: ctx.tenant.id,
-          name: input.name,
-        });
       });
     } catch (err) {
-      if (err instanceof TRPCError) {
-        throw err;
-      }
-
       throw new TRPCError({
         code: "INTERNAL_SERVER_ERROR",
         message:

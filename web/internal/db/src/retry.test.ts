@@ -4,10 +4,9 @@ import {
   DEFAULT_ATTEMPTS,
   databaseBackoffMs,
   retry,
-  shouldRetryDatabaseError,
-  shouldRetryTransactionError,
+  shouldRetryAfterCommit,
+  shouldRetryBeforeCommit,
   transactionWithRetry,
-  withRetry,
 } from "./retry";
 
 /** The shape mysql2 throws. */
@@ -67,7 +66,7 @@ describe("retry", () => {
     const fn = vi.fn().mockRejectedValue(duplicateKey());
 
     await expect(
-      retry(fn, { shouldRetry: shouldRetryDatabaseError, sleep: async () => {} }),
+      retry(fn, { shouldRetry: shouldRetryBeforeCommit, sleep: async () => {} }),
     ).rejects.toThrow("mysql error");
     expect(fn).toHaveBeenCalledTimes(1);
   });
@@ -75,7 +74,16 @@ describe("retry", () => {
   it("rejects a configuration with less than one attempt", async () => {
     const fn = vi.fn();
 
-    await expect(retry(fn, { attempts: 0 })).rejects.toThrow("attempts must be greater than 0");
+    await expect(retry(fn, { attempts: 0 })).rejects.toThrow("attempts must be an integer");
+    expect(fn).not.toHaveBeenCalled();
+  });
+
+  it("rejects an attempt count that is not a number", async () => {
+    const fn = vi.fn();
+
+    await expect(retry(fn, { attempts: Number.NaN })).rejects.toThrow(
+      "attempts must be an integer",
+    );
     expect(fn).not.toHaveBeenCalled();
   });
 
@@ -108,53 +116,39 @@ describe("retry", () => {
 });
 
 describe("databaseBackoffMs", () => {
-  it("grows exponentially over the configured attempts", () => {
-    expect([1, 2, 3].map(databaseBackoffMs)).toEqual([50, 100, 200]);
-  });
+  /** Jitter keeps each value within half and one and a half times the base. */
+  function expectAround(value: number, base: number) {
+    expect(value).toBeGreaterThanOrEqual(base * 0.5);
+    expect(value).toBeLessThanOrEqual(base * 1.5);
+  }
 
-  it("keeps doubling past the default attempt count", () => {
-    expect(databaseBackoffMs(4)).toBe(400);
+  it("grows exponentially over the configured attempts", () => {
+    expectAround(databaseBackoffMs(1), 50);
+    expectAround(databaseBackoffMs(2), 100);
+    expectAround(databaseBackoffMs(3), 200);
   });
 
   it("falls back to the base duration for an invalid attempt", () => {
-    expect(databaseBackoffMs(0)).toBe(50);
+    expectAround(databaseBackoffMs(0), 50);
   });
 });
 
-describe("shouldRetryDatabaseError", () => {
-  it("retries transient errors only", () => {
-    expect(shouldRetryDatabaseError(deadlock())).toBe(true);
-    expect(shouldRetryDatabaseError(connectionLost())).toBe(true);
-    expect(shouldRetryDatabaseError(duplicateKey())).toBe(false);
-    expect(shouldRetryDatabaseError(new Error("application error"))).toBe(false);
+describe("shouldRetryBeforeCommit", () => {
+  it("retries transient errors except a lock wait timeout", () => {
+    expect(shouldRetryBeforeCommit(deadlock())).toBe(true);
+    expect(shouldRetryBeforeCommit(connectionLost())).toBe(true);
+    expect(shouldRetryBeforeCommit(lockWait())).toBe(false);
+    expect(shouldRetryBeforeCommit(duplicateKey())).toBe(false);
+    expect(shouldRetryBeforeCommit(new Error("application error"))).toBe(false);
   });
 });
 
-describe("shouldRetryTransactionError", () => {
-  it("retries only errors the server is known to have rolled back", () => {
-    expect(shouldRetryTransactionError(deadlock())).toBe(true);
-    expect(shouldRetryTransactionError(lockWait())).toBe(true);
-    expect(shouldRetryTransactionError(connectionLost())).toBe(false);
-    expect(shouldRetryTransactionError(duplicateKey())).toBe(false);
-  });
-});
-
-describe("withRetry", () => {
-  it("retries a deadlock with exponential backoff", async () => {
-    const { slept, sleep } = recordingSleep();
-    const fn = vi.fn().mockRejectedValueOnce(deadlock()).mockResolvedValue("ok");
-
-    await expect(withRetry(fn, { sleep })).resolves.toBe("ok");
-    expect(slept).toEqual([50]);
-  });
-
-  it("gives up after three attempts", async () => {
-    const { slept, sleep } = recordingSleep();
-    const fn = vi.fn().mockRejectedValue(deadlock());
-
-    await expect(withRetry(fn, { sleep })).rejects.toThrow("mysql error");
-    expect(fn).toHaveBeenCalledTimes(3);
-    expect(slept).toEqual([50, 100]);
+describe("shouldRetryAfterCommit", () => {
+  it("retries only a deadlock", () => {
+    expect(shouldRetryAfterCommit(deadlock())).toBe(true);
+    expect(shouldRetryAfterCommit(lockWait())).toBe(false);
+    expect(shouldRetryAfterCommit(connectionLost())).toBe(false);
+    expect(shouldRetryAfterCommit(duplicateKey())).toBe(false);
   });
 });
 
@@ -193,9 +187,53 @@ describe("transactionWithRetry", () => {
     expect(work).toHaveBeenCalledTimes(1);
   });
 
-  it("does not re-run the callback after a connection error, the commit may have landed", async () => {
+  it("retries a connection error raised by a statement inside the callback", async () => {
     const db = fakeDatabase();
-    const work = vi.fn().mockRejectedValue(connectionLost());
+    const work = vi.fn().mockRejectedValueOnce(connectionLost()).mockResolvedValue("ok");
+
+    await expect(transactionWithRetry(db, work, { sleep: async () => {} })).resolves.toBe("ok");
+    expect(work).toHaveBeenCalledTimes(2);
+  });
+
+  it("does not re-run the callback after a connection error at commit, it may have landed", async () => {
+    const work = vi.fn().mockResolvedValue("ok");
+    const db: Pick<Database, "transaction"> = {
+      transaction: async (fn) => {
+        await fn({} as Transaction);
+        throw connectionLost();
+      },
+    };
+
+    await expect(transactionWithRetry(db, work, { sleep: async () => {} })).rejects.toThrow(
+      "mysql error",
+    );
+    expect(work).toHaveBeenCalledTimes(1);
+  });
+
+  it("retries a deadlock at commit with exponential backoff", async () => {
+    const { slept, sleep } = recordingSleep();
+    const work = vi.fn().mockResolvedValue("ok");
+    let attempts = 0;
+    const db: Pick<Database, "transaction"> = {
+      transaction: async (fn) => {
+        attempts++;
+        const result = await fn({} as Transaction);
+        if (attempts < 3) {
+          throw deadlock();
+        }
+        return result;
+      },
+    };
+
+    await expect(transactionWithRetry(db, work, { sleep })).resolves.toBe("ok");
+    expect(attempts).toBe(3);
+    expect(slept).toHaveLength(2);
+    expect(slept[1]).toBeGreaterThan(slept[0]);
+  });
+
+  it("does not retry a lock wait timeout", async () => {
+    const db = fakeDatabase();
+    const work = vi.fn().mockRejectedValue(lockWait());
 
     await expect(transactionWithRetry(db, work, { sleep: async () => {} })).rejects.toThrow(
       "mysql error",

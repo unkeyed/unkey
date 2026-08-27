@@ -33,14 +33,4 @@ export {
   isTooManyConnectionsError,
   isTransientError,
 } from "./errors";
-export {
-  DEFAULT_ATTEMPTS,
-  DEFAULT_BACKOFF_MS,
-  databaseBackoffMs,
-  retry,
-  shouldRetryDatabaseError,
-  shouldRetryTransactionError,
-  transactionWithRetry,
-  withRetry,
-} from "./retry";
-export type { RetryOptions } from "./retry";
+export { transactionWithRetry } from "./retry";

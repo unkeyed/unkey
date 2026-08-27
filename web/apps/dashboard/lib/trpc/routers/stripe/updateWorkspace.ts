@@ -68,10 +68,6 @@ export const updateWorkspaceStripeCustomer = workspaceProcedure
         });
       });
     } catch (err) {
-      if (err instanceof TRPCError) {
-        throw err;
-      }
-
       throw new TRPCError({
         code: "INTERNAL_SERVER_ERROR",
         // No "contact support" line: /success appends one when it renders.
