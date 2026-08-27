@@ -5,7 +5,8 @@ properties:
   permission:
     type: string
     minLength: 1
-    # The v2 API limits permission IDs and user-defined slugs to 128 characters.
+    # Accepts a permission ID or slug. Matches the permissions.slug column
+    # (varchar(128)). See createKey for the shared permission slug rule.
     maxLength: 128
     pattern: ^[a-zA-Z0-9_:\-\.\*]+$
     description: |

@@ -44,8 +44,10 @@ import { Result } from "../types/fp.js";
  * **Required Permissions**
  *
  * Your credential needs one of:
- * - `unkey:v1:<workspace_id>:projects/**#write_key` (create keys in any project)
- * - `unkey:v1:<workspace_id>:projects/<project_id>/keyspaces/<keyspace_id>/keys/*#write_key` (create keys in a specific keyspace)
+ * - `api.*.create_key` (create keys in any API)
+ * - `api.<api_id>.create_key` (create keys in specific API)
+ * - `unkey:v1:<workspace_id>:keyspaces/*#create_key` (create keys in any keyspace)
+ * - `unkey:v1:<workspace_id>:keyspaces/<keyspace_id>#create_key` (create keys in a specific keyspace)
  */
 export function keysCreateKey(
   client: UnkeyCore,

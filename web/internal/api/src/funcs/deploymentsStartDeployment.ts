@@ -43,10 +43,9 @@ import { Result } from "../types/fp.js";
  *
  * **Required Permissions**
  *
- * Your credential must have one of the following permissions:
- * - `unkey:v1:<workspace_id>:projects/**#write_deployment` (to start deployments in any project)
- * - `unkey:v1:<workspace_id>:projects/<project_id>/apps/<app_id>/environments/<environment_id>/deployments/*#write_deployment` (to start deployments in a specific environment)
- * - `unkey:v1:<workspace_id>:projects/<project_id>/apps/<app_id>/environments/<environment_id>/deployments/<deployment_id>#write_deployment` (to start a specific deployment)
+ * Your root key must have one of the following permissions:
+ * - `environment.*.start_deployment` (to start deployments in any environment)
+ * - `environment.<environment_id>.start_deployment` (to start deployments in a specific environment)
  *
  * If set, this operation will use {@link Security.rootKey} from the global security.
  */

@@ -27,7 +27,8 @@ properties:
     items:
       type: string
       minLength: 1
-      # The v2 API limits role names to 128 characters. See createKey for why
+      # 128 matches permissions.slug (varchar(128)) so this field does not have
+      # to narrow later when roles start accepting slugs. See createKey for why
       # no character pattern is applied to role names.
       maxLength: 128
       description: Specify the role by name.

@@ -16,10 +16,9 @@ post:
 
     **Required Permissions**
 
-    Your credential must have one of the following permissions:
-    - `unkey:v1:<workspace_id>:projects/**#write_deployment` (to stop deployments in any project)
-    - `unkey:v1:<workspace_id>:projects/<project_id>/apps/<app_id>/environments/<environment_id>/deployments/*#write_deployment` (to stop deployments in a specific environment)
-    - `unkey:v1:<workspace_id>:projects/<project_id>/apps/<app_id>/environments/<environment_id>/deployments/<deployment_id>#write_deployment` (to stop a specific deployment)
+    Your root key must have one of the following permissions:
+    - `environment.*.stop_deployment` (to stop deployments in any environment)
+    - `environment.<environment_id>.stop_deployment` (to stop deployments in a specific environment)
   operationId: deployments.stopDeployment
   x-speakeasy-name-override: stopDeployment
   security:
@@ -67,7 +66,7 @@ post:
     "404":
       description: |
         Not Found - The deployment does not exist in your workspace, or your
-        credential lacks the `write_deployment` permission for it. Both cases
+        root key lacks the `stop_deployment` permission for it. Both cases
         return the same response, so deployment existence is never revealed.
       content:
         application/json:
