@@ -216,7 +216,7 @@ func (x *DeploymentCreateRequest) GetAction() DeploymentCreateAction {
 type DeploymentCreateResponse struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Nonce of the request whose execution produced this response. A caller
-	// that reads back a foreign nonce knows it was answered by replay, and
+	// that reads back a different nonce knows it was answered by replay, and
 	// checks the deployment row for the current status.
 	Nonce         string `protobuf:"bytes,1,opt,name=nonce,proto3" json:"nonce,omitempty"`
 	DeploymentId  string `protobuf:"bytes,2,opt,name=deployment_id,json=deploymentId,proto3" json:"deployment_id,omitempty"`

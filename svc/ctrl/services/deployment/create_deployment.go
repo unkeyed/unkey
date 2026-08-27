@@ -37,14 +37,16 @@ const createCallTimeout = 30 * time.Second
 // svc/api v2_deployments_create_deployment.
 const maxIdempotencyKeyBytes = 255
 
-// CreateDeployment creates a new deployment record and initiates an async Restate
+// CreateDeployment creates a new deployment record and starts its Deploy
 // workflow. When source is omitted, the handler auto-detects: git-connected
 // apps deploy HEAD of their default branch, non-git apps reuse the live
 // deployment's Docker image.
 //
-// The workflow runs asynchronously keyed by deployment id, so deployments
-// build in parallel. Workspace-wide build concurrency is enforced separately
-// via BuildSlotService. Returns the deployment ID and initial status.
+// The create call into Restate is synchronous (the response carries the
+// idempotency answer), but the Deploy workflow it starts runs asynchronously
+// keyed by deployment id, so deployments build in parallel. Workspace-wide
+// build concurrency is enforced separately via BuildSlotService. Returns the
+// deployment ID and initial status.
 func (s *Service) CreateDeployment(
 	ctx context.Context,
 	req *connect.Request[ctrlv1.CreateDeploymentRequest],
@@ -218,8 +220,9 @@ func (s *Service) createAndDeploy(ctx context.Context, p createParams) (createRe
 	commit := commitFromRequest(p.gitCommit)
 
 	// Pre-key checks: a failure here never consumes the idempotency key, so a
-	// corrected resubmit can reuse it. The legs are independent; when several
-	// fail, the caller sees whichever error finished first.
+	// corrected resubmit can reuse it. The checks are independent and run
+	// concurrently; when several fail, the caller sees whichever error
+	// finished first.
 	var deployReq *hydrav1.DeployRequest
 	g, gctx := errgroup.WithContext(ctx)
 	g.Go(func() error {
@@ -238,7 +241,7 @@ func (s *Service) createAndDeploy(ctx context.Context, p createParams) (createRe
 	}
 
 	// Replay detection: the handler echoes the executing request's nonce, so
-	// a foreign nonce means a journaled answer. Restate exposes no replay
+	// a different nonce means a journaled answer. Restate exposes no replay
 	// indicator of its own.
 	nonce := uid.New("nonce")
 
@@ -297,18 +300,19 @@ func (s *Service) createAndDeploy(ctx context.Context, p createParams) (createRe
 		Create().
 		Request(callCtx, createReq, restate.WithIdempotencyKey(scopedIdempotencyKey))
 	if callErr != nil {
-		if errors.Is(callErr, context.DeadlineExceeded) {
-			if p.idempotencyKey != "" {
-				return createResult{}, connect.NewError(connect.CodeUnavailable,
-					fmt.Errorf("deployment create is still in progress; retry with the same idempotency key"))
-			}
+		switch {
+		case !errors.Is(callErr, context.DeadlineExceeded):
+			return createResult{}, connect.NewError(connect.CodeInternal,
+				fmt.Errorf("deployment create failed: %w", callErr))
+		case p.idempotencyKey != "":
+			return createResult{}, connect.NewError(connect.CodeUnavailable,
+				fmt.Errorf("deployment create is still in progress; retry with the same idempotency key"))
+		default:
 			// Without a key a retry cannot attach; it would create a second
 			// deployment while this one completes in the background.
 			return createResult{}, connect.NewError(connect.CodeUnavailable,
 				fmt.Errorf("deployment create is still in progress and will complete in the background; check deployment %s before retrying", deploymentID))
 		}
-		return createResult{}, connect.NewError(connect.CodeInternal,
-			fmt.Errorf("deployment create failed: %w", callErr))
 	}
 
 	replayed := resp.GetNonce() != nonce

@@ -76,7 +76,7 @@ message DeploymentCreateRequest {
 
 message DeploymentCreateResponse {
   // Nonce of the request whose execution produced this response. A caller
-  // that reads back a foreign nonce knows it was answered by replay, and
+  // that reads back a different nonce knows it was answered by replay, and
   // checks the deployment row for the current status.
   string nonce = 1;
 

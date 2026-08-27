@@ -73,8 +73,6 @@ sequenceDiagram
 
 There is no idempotency key table in MySQL. Restate's journal is the key store: it maps the idempotency key to its response for the retention window, so caller keys never persist.
 
-The call is synchronous because deployment ids are random. With dedup, two requests can map to one row, and the retry's answer is the original request's deployment id. Only the journaled response can tell ctrl that id; a fire-and-forget send would answer with an id that no row will ever have. The alternatives are a key table or ids derived from the key, and both were rejected.
-
 Key structure follows one rule, trust boundary plus target identity:
 
 - `workspace_id` is the trust boundary. Callers send human-readable keys or client-generated UUIDs, and without the workspace two tenants sending the same key would share one invocation.
@@ -86,13 +84,13 @@ Key structure follows one rule, trust boundary plus target identity:
 
 **Gates run before the key.** The plan gate, the deployability check, and build source resolution (including GitHub commit lookup) run in ctrl before the Restate call. A request they reject never reaches Restate, so it never consumes its key: the caller fixes the request and retries with the same key, which is why the dashboard can keep one key across a corrected resubmit. The flip side is that every retry passes the gates again before it can replay. The checks run concurrently, so when a request violates more than one, the caller sees whichever error finished first.
 
-**Replay detection.** Ctrl sends a per-request nonce and the handler echoes the nonce of the request whose execution produced the response. A retry that attached reads back a foreign nonce, reports `replayed=true`, and answers with the row's current status instead of the journaled pending.
+**Replay detection.** Ctrl sends a per-request nonce and the handler returns the nonce of the request whose execution produced the response. A retry that attached reads back a different nonce, reports `replayed=true`, and answers with the row's current status instead of the journaled pending.
 
-**Target reload.** The create request carries only ids; the worker resolves the target itself when it runs. A snapshot in the request would be journaled and could go stale. Reloading means the row always records the settings and secrets current at insert time, secret material never enters the create RPC or the journal, and a target deleted mid-create fails the invocation instead of leaving an orphan row.
+**Target reload.** The create request carries only ids; the worker resolves the target itself when it runs. A snapshot in the request would be journaled and could go stale. Reloading means the row always records the settings and secrets current at insert time, and a target deleted mid-create fails the invocation instead of leaving an orphan row.
 
 **Audit.** The `deployment.create` audit log commits in the same MySQL transaction as the deployment insert, inside the create worker, so a row created through this handler always has its create audit.
 
-**Caller timeout.** Ctrl limits the synchronous call to 30 seconds. When the timeout expires, the caller gets `Unavailable`, but the invocation continues to completion. A retry with the same idempotency key attaches to the running invocation and receives its response. A retry without an idempotency key cannot attach, so it creates a second deployment. For that reason, the error tells callers without a key to check the named deployment and not retry. A persistent handler failure, for example a database outage, uses up the service retry policy. Restate then pauses the invocation until an operator resolves the problem. A resumed invocation completes normally. Resume a paused create; do not kill it. A killed create leaves a pending deployment row without an invocation id, and `CancelDeployment` cannot act on that row.
+**Caller timeout.** Ctrl limits the synchronous call to 30 seconds. When the timeout expires, the caller gets `Unavailable`, but the invocation continues to completion. A retry with the same idempotency key attaches to the running invocation and receives its response. A retry without an idempotency key cannot attach, so it creates a second deployment. For that reason, the error tells callers without a key to check the named deployment and not retry.
 
 ## Flow: cancel deployment
 
