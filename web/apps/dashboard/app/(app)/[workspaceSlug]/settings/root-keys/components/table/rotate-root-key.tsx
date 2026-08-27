@@ -1,28 +1,30 @@
 import { RotateKeyDialog } from "@/components/api-keys-table/components/actions/components/rotate-key/rotate-key-dialog";
 import type { ActionComponentProps } from "@/components/logs/table-action.popover";
 import { trpc } from "@/lib/trpc/client";
-import type { RootKey } from "@/lib/trpc/routers/settings/root-keys/query";
-import { useRotateRootKey } from "../../hooks/use-rotate-root-key";
-import { RootKeyInfo } from "./root-key-info";
+import { useRotateRootKey } from "./hooks/use-rotate-root-key";
 
-type RotateRootKeyProps = { rootKeyDetails: RootKey } & ActionComponentProps;
+type RotateRootKeyProps = {
+  rootKeyDetails: { id: string; name: string | null };
+  onRotated?: () => void;
+} & ActionComponentProps;
 
-export const RotateRootKey = ({ rootKeyDetails, isOpen, onClose }: RotateRootKeyProps) => {
+export function RotateRootKey({ rootKeyDetails, isOpen, onClose, onRotated }: RotateRootKeyProps) {
   const trpcUtils = trpc.useUtils();
   const mutation = useRotateRootKey();
 
   return (
     <RotateKeyDialog
       keyId={rootKeyDetails.id}
-      info={<RootKeyInfo rootKeyDetails={rootKeyDetails} />}
+      keyName={rootKeyDetails.name}
       mutation={mutation}
       resourceLabel="root key"
-      formId="rotate-root-key-form"
       isOpen={isOpen}
       onClose={onClose}
       onRotated={() => {
         trpcUtils.settings.rootKeys.query.invalidate();
+        trpcUtils.settings.rootKeys.get.invalidate({ keyId: rootKeyDetails.id });
+        onRotated?.();
       }}
     />
   );
-};
+}

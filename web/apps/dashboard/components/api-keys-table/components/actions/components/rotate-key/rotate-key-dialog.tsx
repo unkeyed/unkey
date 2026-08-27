@@ -1,129 +1,77 @@
-import { KeyCreatedSuccessDialog } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/_components/create-key/components/key-created-success-dialog";
+"use client";
+
 import type { ActionComponentProps } from "@/components/logs/table-action.popover";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { Button, ConfirmPopover, DialogContainer, FormCheckbox, FormSelect } from "@unkey/ui";
-import { type ReactNode, useMemo, useRef, useState } from "react";
-import { Controller, FormProvider, useForm } from "react-hook-form";
-import { z } from "zod";
+import { SecretKeyDialog } from "@/components/secret-key-dialog";
+import { Button, Dialog, DialogContent, DialogTitle, FormCheckbox, FormSelect } from "@unkey/ui";
+import { useState } from "react";
 import {
   DEFAULT_GRACE_PERIOD,
   GRACE_PERIOD_OPTIONS,
   type GracePeriodMs,
+  type GracePeriodValue,
   gracePeriodMsFromValue,
   isGracePeriodValue,
 } from "./rotate-key.constants";
 
-type RotatedKeyData = { id: string; key: string; name?: string };
+const COPY = {
+  key: {
+    noun: "Key",
+    description: "Generate a fresh key while preserving this key's permissions and limits",
+  },
+  "root key": {
+    noun: "Root Key",
+    description: "Generate a fresh root key while preserving this root key's permissions",
+  },
+} as const;
 
 type RotateInput = { keyId: string; expiration: GracePeriodMs };
 
 type RotateMutation = {
-  mutateAsync: (input: RotateInput) => Promise<{ keyId: string; key: string; name?: string }>;
+  mutateAsync: (input: RotateInput) => Promise<{ key: string }>;
 };
 
 export type RotateKeyDialogProps = {
   /** The id of the key being rotated. */
   keyId: string;
-  /** Rendered above the form to show which key is being rotated. */
-  info: ReactNode;
+  /** Names the key in the dialog title. */
+  keyName: string | null;
   /** Mutation that performs the rotation and surfaces its own error toasts. */
   mutation: RotateMutation;
   /**
-   * Called with the rotated key after the user closes the success dialog. Use
-   * this to invalidate any cached lists. Invalidating mid-flow remounts the
-   * triggering row and wipes the success dialog before the user can copy the
-   * secret.
+   * Runs once the user closes the success dialog. Use this to invalidate any
+   * cached lists. Invalidating mid-flow remounts the triggering row and wipes
+   * the success dialog before the user can copy the secret.
    */
-  onRotated?: (rotatedKey: RotatedKeyData) => void;
+  onRotated?: () => void;
   /** "key" or "root key". Drives all user-facing copy. */
   resourceLabel: "key" | "root key";
-  /** Unique form id; must not collide with other forms on the page. */
-  formId: string;
 } & ActionComponentProps;
 
-export const RotateKeyDialog = ({
+export function RotateKeyDialog({
   keyId,
-  info,
+  keyName,
   mutation,
   onRotated,
   resourceLabel,
-  formId,
   isOpen,
   onClose,
-}: RotateKeyDialogProps) => {
-  const [isConfirmPopoverOpen, setIsConfirmPopoverOpen] = useState(false);
+}: RotateKeyDialogProps) {
+  const [gracePeriod, setGracePeriod] = useState<GracePeriodValue>(DEFAULT_GRACE_PERIOD);
+  const [isConfirmed, setIsConfirmed] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [rotatedKeyData, setRotatedKeyData] = useState<RotatedKeyData | null>(null);
-  const rotateButtonRef = useRef<HTMLButtonElement>(null);
+  const [secret, setSecret] = useState<string | null>(null);
 
-  // Memoize on `resourceLabel` — only the confirmation message interpolates
-  // that prop. Rebuilding the zod schema on every render would hand the
-  // resolver a fresh identity for no benefit.
-  const schema = useMemo(
-    () =>
-      z.object({
-        gracePeriod: z.string().refine(isGracePeriodValue, {
-          error: "Please select a valid grace period.",
-        }),
-        confirmRotation: z.boolean().refine((val) => val === true, {
-          error: `Please confirm that you want to rotate this ${resourceLabel}`,
-        }),
-      }),
-    [resourceLabel],
-  );
+  const copy = COPY[resourceLabel];
+  const title = keyName ? `Rotate “${keyName}”?` : `Rotate this ${resourceLabel}?`;
 
-  // Split input/output types: the schema's `.refine()` calls narrow the
-  // form's parsed output (`z.output`) to a literal union, but the raw
-  // form values (`z.input`) are still `string`/`boolean`. React Hook Form
-  // requires both to be declared so the resolver, defaults, and parsed
-  // result line up.
-  const methods = useForm<z.input<typeof schema>, unknown, z.output<typeof schema>>({
-    resolver: zodResolver(schema),
-    mode: "onChange",
-    shouldFocusError: true,
-    shouldUnregister: true,
-    defaultValues: {
-      gracePeriod: DEFAULT_GRACE_PERIOD,
-      confirmRotation: false,
-    },
-  });
-
-  const {
-    formState: { errors },
-    control,
-    watch,
-  } = methods;
-
-  const confirmRotation = watch("confirmRotation");
-  const gracePeriod = watch("gracePeriod");
-
-  const handleDialogOpenChange = (open: boolean) => {
-    if (open) {
-      return;
-    }
-    // The confirm popover and success dialog each own their own close path;
-    // ignore the form-level onOpenChange while either is active.
-    if (isConfirmPopoverOpen || rotatedKeyData) {
-      return;
-    }
-    onClose();
-  };
-
-  const performRotation = async () => {
-    if (!isGracePeriodValue(gracePeriod)) {
-      // Defense-in-depth: the FormSelect is bound to GRACE_PERIOD_OPTIONS
-      // and the schema rejects anything else, so this branch is
-      // unreachable through the UI. Bail rather than coerce an unknown
-      // value into a request the server would reject anyway.
-      return;
-    }
+  const rotate = async () => {
     try {
       setIsLoading(true);
       const result = await mutation.mutateAsync({
         keyId,
         expiration: gracePeriodMsFromValue(gracePeriod),
       });
-      setRotatedKeyData({ id: result.keyId, key: result.key, name: result.name });
+      setSecret(result.key);
     } catch {
       // The mutation hook surfaces its own toast.
     } finally {
@@ -131,111 +79,70 @@ export const RotateKeyDialog = ({
     }
   };
 
-  const handleSuccessDialogClose = () => {
-    const data = rotatedKeyData;
-    setRotatedKeyData(null);
-    if (data) {
-      onRotated?.(data);
-    }
+  const finish = () => {
+    setSecret(null);
+    onRotated?.();
     onClose();
   };
 
-  if (rotatedKeyData) {
+  if (secret) {
     return (
-      <KeyCreatedSuccessDialog
-        isOpen
-        onClose={handleSuccessDialogClose}
-        keyData={{ key: rotatedKeyData.key }}
-        variant="rotated"
-        resourceLabel={resourceLabel}
+      <SecretKeyDialog
+        secret={secret}
+        title={`${copy.noun} rotated`}
+        resourceLabel={copy.noun}
+        onDone={finish}
       />
     );
   }
 
-  const titleCase = resourceLabel === "root key" ? "Rotate root key" : "Rotate key";
-  const confirmTitle = `Confirm ${resourceLabel} rotation`;
-  const confirmDescription = `A new ${resourceLabel} will be generated now. The current ${resourceLabel} will be revoked after the grace period you selected.`;
-  const subTitle =
-    resourceLabel === "root key"
-      ? "Generate a fresh root key while preserving this root key's permissions"
-      : "Generate a fresh key while preserving this key's permissions and limits";
-  const gracePeriodDescription = `How long the current ${resourceLabel} stays valid after rotation.`;
-
   return (
-    <>
-      <FormProvider {...methods}>
-        <form id={formId}>
-          <DialogContainer
-            isOpen={isOpen}
-            subTitle={subTitle}
-            onOpenChange={handleDialogOpenChange}
-            title={titleCase}
-            footer={
-              <div className="w-full flex flex-col gap-2 items-center justify-center">
-                <Button
-                  type="button"
-                  form={formId}
-                  variant="primary"
-                  color="danger"
-                  size="xlg"
-                  className="w-full rounded-lg"
-                  disabled={!confirmRotation || isLoading}
-                  loading={isLoading}
-                  onClick={() => setIsConfirmPopoverOpen(true)}
-                  ref={rotateButtonRef}
-                >
-                  {titleCase}
-                </Button>
-                <div className="text-gray-9 text-xs">You will see the new secret only once</div>
-              </div>
+    <Dialog
+      open={isOpen}
+      onOpenChange={(open) => {
+        if (!open && !isLoading) {
+          onClose();
+        }
+      }}
+    >
+      <DialogContent className="w-full max-w-[560px] gap-4 rounded-2xl! border-grayA-4 p-6">
+        <div className="flex flex-col gap-1">
+          <DialogTitle>{title}</DialogTitle>
+          <p className="text-[13px] leading-5 text-gray-11">{copy.description}</p>
+        </div>
+        <FormSelect
+          label="Grace period"
+          description={`How long the current ${resourceLabel} stays valid after rotation.`}
+          options={GRACE_PERIOD_OPTIONS}
+          value={gracePeriod}
+          onValueChange={(value) => {
+            if (isGracePeriodValue(value)) {
+              setGracePeriod(value);
             }
+          }}
+        />
+        <FormCheckbox
+          size="lg"
+          checked={isConfirmed}
+          onCheckedChange={(next) => setIsConfirmed(next === true)}
+          label={`I understand this will generate a new ${resourceLabel} and revoke the current one.`}
+        />
+        <div className="flex items-center justify-end gap-2 pt-1">
+          <Button type="button" variant="outline" size="md" onClick={onClose} disabled={isLoading}>
+            Cancel
+          </Button>
+          <Button
+            type="button"
+            variant="primary"
+            size="md"
+            onClick={rotate}
+            disabled={!isConfirmed || isLoading}
+            loading={isLoading}
           >
-            {info}
-            <Controller
-              name="gracePeriod"
-              control={control}
-              render={({ field }) => (
-                <FormSelect
-                  label="Grace period"
-                  description={gracePeriodDescription}
-                  options={GRACE_PERIOD_OPTIONS}
-                  value={field.value}
-                  onValueChange={field.onChange}
-                  error={errors.gracePeriod?.message}
-                />
-              )}
-            />
-            <Controller
-              name="confirmRotation"
-              control={control}
-              render={({ field }) => (
-                <FormCheckbox
-                  id={`${formId}-confirm`}
-                  color="danger"
-                  size="lg"
-                  ref={field.ref}
-                  checked={field.value}
-                  onCheckedChange={field.onChange}
-                  requirement="required"
-                  label={`I understand this will generate a new ${resourceLabel} and revoke the current one.`}
-                  error={errors.confirmRotation?.message}
-                />
-              )}
-            />
-          </DialogContainer>
-        </form>
-      </FormProvider>
-      <ConfirmPopover
-        isOpen={isConfirmPopoverOpen}
-        onOpenChange={setIsConfirmPopoverOpen}
-        onConfirm={performRotation}
-        triggerRef={rotateButtonRef}
-        title={confirmTitle}
-        description={confirmDescription}
-        confirmButtonText={titleCase}
-        cancelButtonText="Cancel"
-        variant="danger"
-      />
-    </>
+            Rotate key
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
-};
+}

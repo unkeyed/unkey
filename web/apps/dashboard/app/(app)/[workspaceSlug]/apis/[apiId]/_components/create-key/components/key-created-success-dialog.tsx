@@ -19,8 +19,8 @@ const getCopy = (variant: "created" | "rotated", resourceLabel: ResourceLabel) =
   if (variant === "created") {
     if (resourceLabel === "root key") {
       return {
-        title: "Root Key Created",
-        body: <>You've successfully generated a new root key.</>,
+        title: "Root Key created",
+        body: <>You've successfully generated a new Root Key.</>,
       };
     }
     return {
