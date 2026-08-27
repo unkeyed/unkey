@@ -83,8 +83,7 @@ describe("PermissionCatalogue", () => {
     expect(screen.getByText("2/9")).toBeDefined();
     expect(screen.getAllByText("0/9")).toHaveLength(2);
     expect(screen.getByText("0/8")).toBeDefined();
-    expect(screen.getByText("0/6")).toBeDefined();
-    expect(screen.getByText("0/4")).toBeDefined();
+    expect(screen.getAllByText("0/4")).toHaveLength(2);
     expect(screen.getAllByText("0/3")).toHaveLength(3);
   });
 

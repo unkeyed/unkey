@@ -108,8 +108,6 @@ export const projectsCatalogue: ScopeCatalogue = {
             read_deployment: actionGrant("read_deployment", "deployments:read"),
             write_deployment: actionGrant("write_deployment", "deployments:write"),
             delete_deployment: actionGrant("delete_deployment", "deployments:delete"),
-            start_deployment: actionGrant("start_deployment", "deployments:start"),
-            stop_deployment: actionGrant("stop_deployment", "deployments:stop"),
           },
         },
         {

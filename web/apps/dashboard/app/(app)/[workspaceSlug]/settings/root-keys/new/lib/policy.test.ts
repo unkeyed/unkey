@@ -416,9 +416,9 @@ describe("the eight resource scopes", () => {
   });
 
   it("counts supported actions instead of assuming every row has every action", () => {
-    expect(supportedActionCount(catalogueRows(projectsCatalogue))).toBe(51);
-    expect(supportedActionCount(catalogueRows(appsCatalogue))).toBe(22);
-    expect(supportedActionCount(catalogueRows(environmentsCatalogue))).toBe(19);
+    expect(supportedActionCount(catalogueRows(projectsCatalogue))).toBe(49);
+    expect(supportedActionCount(catalogueRows(appsCatalogue))).toBe(20);
+    expect(supportedActionCount(catalogueRows(environmentsCatalogue))).toBe(17);
   });
 });
 

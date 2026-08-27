@@ -57,7 +57,7 @@ describe("apiIdSchema", () => {
 
 describe("unkeyPermissionValidation", () => {
   test("contains the exact WorkOS permission slugs", () => {
-    expect(workosPermissionDefinitions).toHaveLength(55);
+    expect(workosPermissionDefinitions).toHaveLength(53);
     expect(workosPermissionDefinitions.map((definition) => definition.slug)).toEqual([
       "admin:*",
       "apps:delete",
@@ -66,8 +66,6 @@ describe("unkeyPermissionValidation", () => {
       "deployment_logs:read",
       "deployments:delete",
       "deployments:read",
-      "deployments:start",
-      "deployments:stop",
       "deployments:write",
       "domains:delete",
       "domains:read",
@@ -126,7 +124,7 @@ describe("unkeyPermissionValidation", () => {
   test("accepts single-segment wildcards in catalog resource ids", () => {
     expect(
       unkeyPermissionValidation.safeParse(
-        `unkey:v1:${ws}:projects/*/apps/*/environments/*/deployments/*#start_deployment`,
+        `unkey:v1:${ws}:projects/*/apps/*/environments/*/deployments/*#write_deployment`,
       ).success,
     ).toBe(true);
   });
@@ -149,6 +147,8 @@ describe("unkeyPermissionValidation", () => {
       `unkey:v1:${ws}:projects/proj_12345678/apps/app_12345678/environments/env_12345678/deployments/deploy_12345678#promote_deployment`,
       `unkey:v1:${ws}:projects/proj_12345678/apps/app_12345678/environments/env_12345678/deployments/deploy_12345678#rollback_deployment`,
       `unkey:v1:${ws}:projects/proj_12345678/apps/app_12345678/environments/env_12345678/deployments/deploy_12345678#release`,
+      `unkey:v1:${ws}:projects/proj_12345678/apps/app_12345678/environments/env_12345678/deployments/deploy_12345678#start_deployment`,
+      `unkey:v1:${ws}:projects/proj_12345678/apps/app_12345678/environments/env_12345678/deployments/deploy_12345678#stop_deployment`,
       `unkey:v1:${ws}:projects/proj_12345678/apps/app_12345678/environments/env_12345678#promote_deployment`,
       `unkey:v1:${ws}:projects/proj_12345678/keyspaces/ks_12345678/keys/key_12345678#encrypt_key`,
       `unkey:v1:${ws}:projects/proj_12345678/github/apps/123456#read_github_app`,

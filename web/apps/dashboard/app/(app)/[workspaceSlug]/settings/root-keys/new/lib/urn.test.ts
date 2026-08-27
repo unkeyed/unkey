@@ -82,8 +82,6 @@ const projectCatalogUrns = (projectId: string): string[] => [
   `unkey:v1:${ws}:projects/${projectId}/apps/*/environments/*/deployments/*#read_deployment`,
   `unkey:v1:${ws}:projects/${projectId}/apps/*/environments/*/deployments/*#write_deployment`,
   `unkey:v1:${ws}:projects/${projectId}/apps/*/environments/*/deployments/*#delete_deployment`,
-  `unkey:v1:${ws}:projects/${projectId}/apps/*/environments/*/deployments/*#start_deployment`,
-  `unkey:v1:${ws}:projects/${projectId}/apps/*/environments/*/deployments/*#stop_deployment`,
   `unkey:v1:${ws}:projects/${projectId}/apps/*/environments/*/deployments/*/logs#read_deployment_logs`,
   `unkey:v1:${ws}:projects/${projectId}/apps/*/environments/*/gateway/logs#read_gateway_logs`,
   `unkey:v1:${ws}:projects/${projectId}/apps/*/environments/*/gateway/policies/*#read_gateway_policy`,
@@ -119,7 +117,7 @@ const projectCatalogUrns = (projectId: string): string[] => [
 
 describe("urnActions", () => {
   it("maps every non-admin WorkOS slug to its canonical resource action", () => {
-    expect(WORKOS_PERMISSION_SLUGS).toHaveLength(55);
+    expect(WORKOS_PERMISSION_SLUGS).toHaveLength(53);
     expect(workspaceGrantMappings()).toEqual([
       "apps:delete projects/*/apps/*#delete_app",
       "apps:read projects/*/apps/*#read_app",
@@ -127,8 +125,6 @@ describe("urnActions", () => {
       "deployment_logs:read projects/*/apps/*/environments/*/deployments/*/logs#read_deployment_logs",
       "deployments:delete projects/*/apps/*/environments/*/deployments/*#delete_deployment",
       "deployments:read projects/*/apps/*/environments/*/deployments/*#read_deployment",
-      "deployments:start projects/*/apps/*/environments/*/deployments/*#start_deployment",
-      "deployments:stop projects/*/apps/*/environments/*/deployments/*#stop_deployment",
       "deployments:write projects/*/apps/*/environments/*/deployments/*#write_deployment",
       "domains:delete projects/*/apps/*/environments/*/domains/*#delete_domain",
       "domains:read projects/*/apps/*/environments/*/domains/*#read_domain",
@@ -192,8 +188,6 @@ describe("urnActions", () => {
       "read_deployment",
       "write_deployment",
       "delete_deployment",
-      "start_deployment",
-      "stop_deployment",
     ]);
     expect(supportedRowActions(rowOf(projectsCatalogue, "key"))).toEqual([
       "read_key",
@@ -319,11 +313,11 @@ describe("buildUrns", () => {
     const policy = {
       ...newPolicy("apps"),
       instances: ["projects/proj_1/apps/app_1", "projects/proj_2/apps/app_2"],
-      selection: setRowActions({}, "deployment", ["start_deployment"]),
+      selection: setRowActions({}, "deployment", ["write_deployment"]),
     };
     expect(buildUrns(ws, [policy])).toEqual([
-      "unkey:v1:ws_123:projects/proj_1/apps/app_1/environments/*/deployments/*#start_deployment",
-      "unkey:v1:ws_123:projects/proj_2/apps/app_2/environments/*/deployments/*#start_deployment",
+      "unkey:v1:ws_123:projects/proj_1/apps/app_1/environments/*/deployments/*#write_deployment",
+      "unkey:v1:ws_123:projects/proj_2/apps/app_2/environments/*/deployments/*#write_deployment",
     ]);
   });
 

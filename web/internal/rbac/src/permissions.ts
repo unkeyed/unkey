@@ -33,16 +33,6 @@ export const workosPermissionDefinitions = [
     action: "read_deployment",
   },
   {
-    slug: "deployments:start",
-    path: "projects/{project_id}/apps/{app_id}/environments/{environment_id}/deployments/{deployment_id}",
-    action: "start_deployment",
-  },
-  {
-    slug: "deployments:stop",
-    path: "projects/{project_id}/apps/{app_id}/environments/{environment_id}/deployments/{deployment_id}",
-    action: "stop_deployment",
-  },
-  {
     slug: "deployments:write",
     path: "projects/{project_id}/apps/{app_id}/environments/{environment_id}/deployments/{deployment_id}",
     action: "write_deployment",

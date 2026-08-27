@@ -33,7 +33,13 @@ describe("TEMPLATES", () => {
   it("materialises All write permissions into one full-control workspace policy", () => {
     expect(materialise("write")).toHaveLength(1);
     expect(urnsOf("write")).toContain(
+      "unkey:v1:ws_123:projects/*/apps/*/environments/*/deployments/*#write_deployment",
+    );
+    expect(urnsOf("write")).not.toContain(
       "unkey:v1:ws_123:projects/*/apps/*/environments/*/deployments/*#start_deployment",
+    );
+    expect(urnsOf("write")).not.toContain(
+      "unkey:v1:ws_123:projects/*/apps/*/environments/*/deployments/*#stop_deployment",
     );
     expect(urnsOf("write")).toContain("unkey:v1:ws_123:projects/*/keyspaces/*/keys/*#decrypt_key");
     expect(urnsOf("write")).toContain(
