@@ -1,81 +1,105 @@
-import { type InsertPermission, type Permission, db, schema } from "@/lib/db";
+import { type InsertPermission, type Permission, type Transaction, schema } from "@/lib/db";
 
 import type { UnkeyAuditLog } from "@/lib/audit";
 import { ensureDefaultProjectId } from "@/lib/projects/ensure-default-project-id";
 import { TRPCError } from "@trpc/server";
 import { newId } from "@unkey/id";
+import { urnPermissionWorkspaceId } from "@unkey/rbac";
 import type { Context } from "../context";
 
+export function assertPermissionsBelongToWorkspace(permissions: string[], workspaceId: string) {
+  const foreignPermissions = permissions.filter((permission) => {
+    const permissionWorkspaceId = urnPermissionWorkspaceId(permission);
+    return permissionWorkspaceId !== null && permissionWorkspaceId !== workspaceId;
+  });
+  if (foreignPermissions.length > 0) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: `These permissions are scoped to another workspace than ${workspaceId}: ${foreignPermissions.join(", ")}`,
+    });
+  }
+}
+
 export async function upsertPermissions(
+  tx: Transaction,
   ctx: Context,
   workspaceId: string,
-  slugs: string[],
+  permissionStrings: string[],
 ): Promise<{
   permissions: Omit<Permission, "pk">[];
   auditLogs: UnkeyAuditLog[];
 }> {
-  return await db.transaction(async (tx) => {
-    const projectId = await ensureDefaultProjectId(tx, workspaceId);
-    const existingPermissions = await tx.query.permissions.findMany({
-      where: (table, { inArray, and, eq }) =>
-        and(eq(table.workspaceId, workspaceId), inArray(table.slug, slugs)),
+  const userId = ctx.user?.id;
+  if (!userId) {
+    throw new TRPCError({
+      code: "NOT_FOUND",
+      message: "UserId not found",
     });
+  }
 
-    const newPermissions: InsertPermission[] = [];
-    const auditLogs: UnkeyAuditLog[] = [];
-
-    const userId = ctx.user?.id;
-    if (!userId) {
-      throw new TRPCError({
-        code: "NOT_FOUND",
-        message: "UserId not found",
-      });
+  // The unique index on (workspace_id, slug) is case insensitive, so "Api.x.read"
+  // and "api.x.read" in one request have to collapse to a single row.
+  const slugByLowercase = new Map<string, string>();
+  for (const permissionString of permissionStrings) {
+    const lowercase = permissionString.toLowerCase();
+    if (!slugByLowercase.has(lowercase)) {
+      slugByLowercase.set(lowercase, permissionString);
     }
+  }
+  const slugs = Array.from(slugByLowercase.values());
 
-    const permissions: Omit<Permission, "pk">[] = slugs.map((slug) => {
-      const existingPermission = existingPermissions.find((p) => p.slug === slug);
-
-      if (existingPermission) {
-        return existingPermission;
-      }
-
-      const permission = {
-        id: newId("permission"),
-        workspaceId,
-        projectId,
-        name: slug,
-        slug: slug,
-        description: null,
-        updatedAtM: null,
-        createdAtM: Date.now(),
-      };
-
-      newPermissions.push(permission);
-      auditLogs.push({
-        workspaceId,
-        actor: { type: "user", id: userId },
-        event: "permission.create",
-        description: `Created ${permission.id}`,
-        resources: [
-          {
-            type: "permission",
-            id: permission.id,
-            name: permission.slug,
-          },
-        ],
-        context: {
-          location: ctx.audit.location,
-          userAgent: ctx.audit.userAgent,
-        },
-      });
-
-      return permission;
-    });
-
-    if (newPermissions.length) {
-      await tx.insert(schema.permissions).values(newPermissions);
-    }
-
-    return { permissions, auditLogs };
+  const projectId = await ensureDefaultProjectId(tx, workspaceId);
+  const existingPermissions = await tx.query.permissions.findMany({
+    where: (table, { inArray, and, eq }) =>
+      and(eq(table.workspaceId, workspaceId), inArray(table.slug, slugs)),
   });
+  const existingBySlug = new Map(existingPermissions.map((p) => [p.slug.toLowerCase(), p]));
+
+  const newPermissions: InsertPermission[] = [];
+  const auditLogs: UnkeyAuditLog[] = [];
+
+  const permissions: Omit<Permission, "pk">[] = slugs.map((slug) => {
+    const existingPermission = existingBySlug.get(slug.toLowerCase());
+    if (existingPermission) {
+      return existingPermission;
+    }
+
+    const permission = {
+      id: newId("permission"),
+      workspaceId,
+      projectId,
+      name: slug,
+      slug,
+      description: null,
+      updatedAtM: null,
+      createdAtM: Date.now(),
+    };
+
+    newPermissions.push(permission);
+    auditLogs.push({
+      workspaceId,
+      actor: { type: "user", id: userId },
+      event: "permission.create",
+      description: `Created ${permission.id}`,
+      resources: [
+        {
+          type: "permission",
+          id: permission.id,
+          name: permission.slug,
+        },
+      ],
+      context: {
+        location: ctx.audit.location,
+        userAgent: ctx.audit.userAgent,
+      },
+    });
+
+    return permission;
+  });
+
+  if (newPermissions.length) {
+    await tx.insert(schema.permissions).values(newPermissions);
+  }
+
+  return { permissions, auditLogs };
 }

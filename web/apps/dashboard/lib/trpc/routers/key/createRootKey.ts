@@ -4,23 +4,25 @@ import { env } from "@/lib/env";
 import { TRPCError } from "@trpc/server";
 import { newId } from "@unkey/id";
 import { newKey } from "@unkey/keys";
-import { unkeyPermissionValidation } from "@unkey/rbac";
+import { permissionValidation } from "@unkey/rbac";
 import { z } from "zod";
 import { workspaceProcedure } from "../../trpc";
 
 import { insertAuditLogs } from "@/lib/audit";
-import { upsertPermissions } from "../rbac";
+import { assertPermissionsBelongToWorkspace, upsertPermissions } from "../rbac";
 
 export const createRootKey = workspaceProcedure
   .input(
     z.object({
       name: z.string().optional(),
-      permissions: z.array(unkeyPermissionValidation).min(1, {
+      permissions: z.array(permissionValidation).min(1, {
         error: "You need to add at least one permissions.",
       }),
     }),
   )
   .mutation(async ({ ctx, input }) => {
+    assertPermissionsBelongToWorkspace(input.permissions, ctx.workspace.id);
+
     const unkeyApi = await db.query.apis
       .findFirst({
         where: (table, { and, eq }) =>
@@ -96,6 +98,7 @@ export const createRootKey = workspaceProcedure
         });
 
         const { permissions, auditLogs: createPermissionLogs } = await upsertPermissions(
+          tx,
           ctx,
           env().UNKEY_WORKSPACE_ID,
           input.permissions,
