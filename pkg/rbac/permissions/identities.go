@@ -18,6 +18,12 @@ type ReadIdentity struct{}
 func (ReadIdentity) ActionFor(urn.Identity) {}
 func (ReadIdentity) String() string         { return "read_identity" }
 
+// WriteIdentity authorizes creating or updating an identity.
+type WriteIdentity struct{}
+
+func (WriteIdentity) ActionFor(urn.Identity) {}
+func (WriteIdentity) String() string         { return "write_identity" }
+
 // UpdateIdentity authorizes updating identity resources.
 //
 // Valid resource: urn.Identity.

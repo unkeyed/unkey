@@ -2,6 +2,18 @@ package permissions
 
 import "github.com/unkeyed/unkey/pkg/urn"
 
+// ReadApp authorizes reading an app.
+type ReadApp struct{}
+
+func (ReadApp) ActionFor(urn.App) {}
+func (ReadApp) String() string    { return "read_app" }
+
+// WriteApp authorizes creating or updating an app.
+type WriteApp struct{}
+
+func (WriteApp) ActionFor(urn.App) {}
+func (WriteApp) String() string    { return "write_app" }
+
 // CreateApp authorizes creating apps.
 //
 // Valid resource: urn.App. Grants use a wildcard app id because the app does

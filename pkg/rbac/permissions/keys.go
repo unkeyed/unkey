@@ -10,6 +10,12 @@ type ReadKey struct{}
 func (ReadKey) ActionFor(urn.Key) {}
 func (ReadKey) String() string    { return "read_key" }
 
+// WriteKey authorizes creating or updating a key and its role or permission assignments.
+type WriteKey struct{}
+
+func (WriteKey) ActionFor(urn.Key) {}
+func (WriteKey) String() string    { return "write_key" }
+
 // UpdateKey authorizes updating key resources.
 //
 // Valid resource: urn.Key.
