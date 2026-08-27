@@ -157,9 +157,12 @@ build a customer's deployment. The other providers give us a token once and we h
 For Github `CloneCredential` (will be explained below) generates a fresh token, for Gitlab and Gitea it reads the
 stored token, for Bitbucket it refreshes and persists.
 
-The webhook signing keys are not on this row. A connection can hold more than one key while a
-rotation is in flight, so they live in their own table, see
-[Signing keys and rotation](#signing-keys-and-rotation).
+The webhook signing keys are a different secret and they are not on this row. `provider_token` is
+what we send to the provider to clone the repo and manage the hook, a signing key is what the
+provider sends to us so we can tell a real delivery from a forged one. They also rotate the other
+way around, the provider rotates the token on us, we rotate the signing key on the provider. And a
+connection can hold more than one key while a rotation is in flight, so the keys live in their own
+table, see [Signing keys and rotation](#signing-keys-and-rotation).
 
 After the connect and repository selection every provider behaves the same. We verify the webhook,
 parse the push, resolve a clone credential, and talk to the provider through a client.
@@ -549,14 +552,9 @@ Verification needs the keys, so ingress does one point lookup on `conn_id`, cach
 short TTL so a flood of forged deliveries does not become DB load. We try the keys newest first and
 compare in constant time.
 
-Asymmetric keys would be better, we would store only public keys and a dump of our side would
-prove nothing. None of the four providers support it. Each one takes a shared secret string and
-signs with it, and Gitlab does not even sign.
-
 #### Why the version is the first segment
 
-The `v1` in the path is the version of the route shape, not of a key. Key rotation lives in
-`scm_webhook_keys` and needs no path change at all. The version is there because the hook URL sits
+Key rotation lives in `scm_webhook_keys` and needs no path change at all. The version is there because the hook URL sits
 in the customer's provider settings, so changing it is one API call per hook, and we can't do all
 of them at the same instant. If we later want a different shape, for example one hook per repo or
 an extra segment for the workspace, we mount `/v2/` next to `/v1/`, move hooks over in the
