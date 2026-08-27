@@ -46,11 +46,9 @@ func (f factory) build(ctx context.Context, drain db.GetLeasedLogdrainRow) (sink
 			return nil, err
 		}
 		built, err := axiom.New(axiom.Config{
-			BaseURL:                 destination.Axiom.GetUrl(),
-			Dataset:                 destination.Axiom.GetDataset(),
-			Token:                   token,
-			Timeout:                 deliveryTimeout,
-			UnsafeAllowTestEndpoint: f.unsafeAllowPrivateEndpoints,
+			Dataset: destination.Axiom.GetDataset(),
+			Token:   token,
+			Timeout: deliveryTimeout,
 		})
 		if err != nil {
 			return nil, fmt.Errorf("build axiom sink: %w", err)

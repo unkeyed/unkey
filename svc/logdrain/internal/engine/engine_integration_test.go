@@ -281,31 +281,6 @@ func TestEngine_Integration(t *testing.T) {
 		}, 30*time.Second, 250*time.Millisecond)
 	})
 
-	t.Run("axiom drain delivers audit logs", func(t *testing.T) {
-		workspaceID, drainID := uniqueIDs()
-		axiomSink := newSink(t, http.StatusOK)
-		axiomSink.responseBody = `{"ingested":2,"failed":0}`
-		start := time.Now().Add(-time.Second).UnixMilli()
-		events := []auditEvent{{id: drainID + "_event_1", insertedAt: start, actorMeta: `{}`}, {id: drainID + "_event_2", insertedAt: start + 1, actorMeta: `{}`}}
-		insertAuditEvents(t, chConn, workspaceID, events)
-		seedDrainKind(t, mysqlDB, workspaceID, drainID, "axiom", map[string]string{"dataset": "it-dataset", "url": axiomSink.server.URL}, start-1, "axiom-it-token")
-		cleanupDrain(t, mysqlDB, drainID)
-		startEngine(t, mysqlCfg.DSN, clickhouseCfg.HTTPDSN)
-
-		require.EventuallyWithT(t, func(c *assert.CollectT) {
-			requests := axiomSink.snapshot()
-			require.NotEmpty(c, requests)
-			require.Equal(c, http.MethodPost, requests[0].method)
-			require.Equal(c, "/v1/datasets/it-dataset/ingest", requests[0].path)
-			require.Equal(c, "Bearer axiom-it-token", requests[0].header.Get("Authorization"))
-			body := string(requests[0].body)
-			for _, event := range events {
-				require.Contains(c, body, event.id)
-			}
-			require.GreaterOrEqual(c, readDrainStateCollect(c, mysqlDB, drainID).committedOffsetInsertedAt, start+1)
-		}, 30*time.Second, 250*time.Millisecond)
-	})
-
 	t.Run("concurrent engines do not duplicate a batch while the lease is valid", func(t *testing.T) {
 		// One valid lease must prevent concurrent happy-path delivery. Delivery
 		// remains at-least-once if the lease expires during an external request.
@@ -469,39 +444,22 @@ func insertAuditEvents(t *testing.T, conn ch.Conn, workspaceID string, events []
 
 func seedDrain(t *testing.T, database *sql.DB, workspaceID, drainID, url string, offset int64, encrypted ...string) {
 	t.Helper()
-	seedDrainKind(t, database, workspaceID, drainID, "http", map[string]string{"url": url}, offset, encrypted...)
-}
-
-func seedDrainKind(t *testing.T, database *sql.DB, workspaceID, drainID, kind string, configValue map[string]string, offset int64, encrypted ...string) {
-	t.Helper()
 	var encryptedSecret string
 	if len(encrypted) > 0 {
 		encryptedSecret = encrypted[0]
 	}
-	config := &logdrainv1.Config{}
-	switch kind {
-	case "http":
-		var headers []*logdrainv1.HttpHeader
-		if encryptedSecret != "" {
-			headers = append(headers, &logdrainv1.HttpHeader{
-				Name:           "Authorization",
-				EncryptedValue: encryptedSecret,
-			})
-		}
-		config.Destination = &logdrainv1.Config_Http{Http: &logdrainv1.HttpConfig{
-			Url:     configValue["url"],
-			Format:  logdrainv1.HttpBodyFormat_HTTP_BODY_FORMAT_JSON,
-			Headers: headers,
-		}}
-	case "axiom":
-		config.Destination = &logdrainv1.Config_Axiom{Axiom: &logdrainv1.AxiomConfig{
-			Dataset:        configValue["dataset"],
-			Url:            configValue["url"],
-			EncryptedToken: encryptedSecret,
-		}}
-	default:
-		require.FailNow(t, "unknown log drain provider", kind)
+	var headers []*logdrainv1.HttpHeader
+	if encryptedSecret != "" {
+		headers = append(headers, &logdrainv1.HttpHeader{
+			Name:           "Authorization",
+			EncryptedValue: encryptedSecret,
+		})
 	}
+	config := &logdrainv1.Config{Destination: &logdrainv1.Config_Http{Http: &logdrainv1.HttpConfig{
+		Url:     url,
+		Format:  logdrainv1.HttpBodyFormat_HTTP_BODY_FORMAT_JSON,
+		Headers: headers,
+	}}}
 	encoded, err := proto.Marshal(config)
 	require.NoError(t, err)
 	createdAt := time.Now().UnixMilli()

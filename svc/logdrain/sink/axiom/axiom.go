@@ -17,18 +17,16 @@ import (
 	"github.com/unkeyed/unkey/svc/logdrain/sink"
 )
 
+const apiBaseURL = "https://api.axiom.co"
+
 // Config configures one Axiom dataset destination.
 type Config struct {
-	// BaseURL optionally overrides https://api.axiom.co for tests and self-hosted setups.
-	BaseURL string
 	// Dataset identifies the Axiom dataset that receives events.
 	Dataset string
 	// Token authenticates requests to Axiom.
 	Token string
 	// Timeout bounds each request to Axiom.
 	Timeout time.Duration
-	// UnsafeAllowTestEndpoint disables transport safety checks for test and local endpoints.
-	UnsafeAllowTestEndpoint bool
 }
 
 // Sink delivers event batches to one Axiom dataset.
@@ -49,17 +47,8 @@ func New(cfg Config) (*Sink, error) {
 	); err != nil {
 		return nil, err
 	}
-	baseURL := cfg.BaseURL
-	if baseURL == "" {
-		baseURL = "https://api.axiom.co"
-	}
-	// BaseURL is user-configurable and may carry a trailing slash; trim it so we
-	// do not build "//v1/..." paths.
-	endpoint := fmt.Sprintf("%s/v1/datasets/%s/ingest", strings.TrimRight(baseURL, "/"), url.PathEscape(cfg.Dataset))
+	endpoint := fmt.Sprintf("%s/v1/datasets/%s/ingest", apiBaseURL, url.PathEscape(cfg.Dataset))
 	opts := []ssrf.Option{ssrf.WithTimeout(cfg.Timeout)}
-	if cfg.UnsafeAllowTestEndpoint {
-		opts = append(opts, ssrf.UnsafeAllowAll())
-	}
 	if err := ssrf.ValidateEndpoint(endpoint, opts...); err != nil {
 		return nil, err
 	}

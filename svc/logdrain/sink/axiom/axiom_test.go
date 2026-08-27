@@ -37,8 +37,7 @@ func TestDeliverSuccess(t *testing.T) {
 		require.NoError(t, err)
 	}))
 	t.Cleanup(server.Close)
-	drain, err := New(Config{BaseURL: server.URL, Dataset: "a dataset", Token: "token", UnsafeAllowTestEndpoint: true})
-	require.NoError(t, err)
+	drain := newTestDrain(t, server.URL, "a dataset", "token")
 	batch := testBatch()
 	expectedBody, err := marshalEvents(batch.Events)
 	require.NoError(t, err)
@@ -70,8 +69,7 @@ func TestRejectedResponses(t *testing.T) {
 				require.NoError(t, err)
 			}))
 			t.Cleanup(server.Close)
-			drain, err := New(Config{BaseURL: server.URL, Dataset: "dataset", Token: "token", UnsafeAllowTestEndpoint: true})
-			require.NoError(t, err)
+			drain := newTestDrain(t, server.URL, "dataset", "token")
 			result, deliverErr := drain.Deliver(context.Background(), testBatch())
 			require.NoError(t, deliverErr)
 			require.False(t, result.Acknowledged)
@@ -124,14 +122,35 @@ func TestDeliverTransportFailureReportsBodySize(t *testing.T) {
 	require.Positive(t, result.RequestBodyBytes)
 }
 
-// TestNewRejectsInvalidConfig guarantees a missing dataset, missing token, or a
-// plain-http BaseURL are rejected at construction.
+// TestNewRejectsInvalidConfig guarantees a missing dataset or token is rejected.
 func TestNewRejectsInvalidConfig(t *testing.T) {
-	tests := []Config{{Token: "token"}, {Dataset: "dataset"}, {BaseURL: "http://example.com", Dataset: "dataset", Token: "token"}}
+	tests := []Config{{Token: "token"}, {Dataset: "dataset"}}
 	for _, cfg := range tests {
 		_, err := New(cfg)
 		require.Error(t, err)
 	}
+}
+
+func newTestDrain(t *testing.T, baseURL, dataset, token string) *Sink {
+	t.Helper()
+	drain, err := New(Config{Dataset: dataset, Token: token})
+	require.NoError(t, err)
+	drain.client.Transport = rewriteHost{baseURL: baseURL, next: http.DefaultTransport}
+	return drain
+}
+
+type rewriteHost struct {
+	baseURL string
+	next    http.RoundTripper
+}
+
+func (r rewriteHost) RoundTrip(req *http.Request) (*http.Response, error) {
+	stub, err := http.NewRequestWithContext(req.Context(), req.Method, r.baseURL+req.URL.RequestURI(), req.Body)
+	if err != nil {
+		return nil, err
+	}
+	stub.Header = req.Header.Clone()
+	return r.next.RoundTrip(stub)
 }
 
 // testBatch provides two distinct events so tests can detect dropped or merged NDJSON lines.

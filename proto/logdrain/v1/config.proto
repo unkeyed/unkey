@@ -36,7 +36,5 @@ enum HttpBodyFormat {
 // AxiomConfig configures an Axiom dataset destination.
 message AxiomConfig {
   string dataset = 1;
-  // url overrides the default Axiom API URL when it is not empty.
-  string url = 2;
   string encrypted_token = 3;
 }

@@ -271,11 +271,9 @@ func (x *HttpHeader) GetEncryptedValue() string {
 
 // AxiomConfig configures an Axiom dataset destination.
 type AxiomConfig struct {
-	state   protoimpl.MessageState `protogen:"open.v1"`
-	Dataset string                 `protobuf:"bytes,1,opt,name=dataset,proto3" json:"dataset,omitempty"`
-	// url overrides the default Axiom API URL when it is not empty.
-	Url            string `protobuf:"bytes,2,opt,name=url,proto3" json:"url,omitempty"`
-	EncryptedToken string `protobuf:"bytes,3,opt,name=encrypted_token,json=encryptedToken,proto3" json:"encrypted_token,omitempty"`
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	Dataset        string                 `protobuf:"bytes,1,opt,name=dataset,proto3" json:"dataset,omitempty"`
+	EncryptedToken string                 `protobuf:"bytes,3,opt,name=encrypted_token,json=encryptedToken,proto3" json:"encrypted_token,omitempty"`
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
 }
@@ -317,13 +315,6 @@ func (x *AxiomConfig) GetDataset() string {
 	return ""
 }
 
-func (x *AxiomConfig) GetUrl() string {
-	if x != nil {
-		return x.Url
-	}
-	return ""
-}
-
 func (x *AxiomConfig) GetEncryptedToken() string {
 	if x != nil {
 		return x.EncryptedToken
@@ -348,10 +339,9 @@ const file_logdrain_v1_config_proto_rawDesc = "" +
 	"\n" +
 	"HttpHeader\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12'\n" +
-	"\x0fencrypted_value\x18\x02 \x01(\tR\x0eencryptedValue\"b\n" +
+	"\x0fencrypted_value\x18\x02 \x01(\tR\x0eencryptedValue\"P\n" +
 	"\vAxiomConfig\x12\x18\n" +
-	"\adataset\x18\x01 \x01(\tR\adataset\x12\x10\n" +
-	"\x03url\x18\x02 \x01(\tR\x03url\x12'\n" +
+	"\adataset\x18\x01 \x01(\tR\adataset\x12'\n" +
 	"\x0fencrypted_token\x18\x03 \x01(\tR\x0eencryptedToken*j\n" +
 	"\x0eHttpBodyFormat\x12 \n" +
 	"\x1cHTTP_BODY_FORMAT_UNSPECIFIED\x10\x00\x12\x19\n" +
