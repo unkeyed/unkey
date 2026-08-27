@@ -80,10 +80,7 @@ type FindDeployTargetRow struct {
 	SentinelConfig      []byte                             `db:"sentinel_config"`
 }
 
-// The environment is named by id or slug. Both UNION branches are point
-// lookups: id is unique, (app_id, slug) is covered by
-// environments_app_slug_idx. Each branch carries app_id, so an identifier
-// naming an environment under another app matches nothing.
+// FindDeployTarget
 //
 //	SELECT
 //	    p.workspace_id AS workspace_id,

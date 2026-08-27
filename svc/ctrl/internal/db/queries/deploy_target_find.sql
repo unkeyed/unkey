@@ -1,8 +1,4 @@
 -- name: FindDeployTarget :one
--- The environment is named by id or slug. Both UNION branches are point
--- lookups: id is unique, (app_id, slug) is covered by
--- environments_app_slug_idx. Each branch carries app_id, so an identifier
--- naming an environment under another app matches nothing.
 SELECT
     p.workspace_id AS workspace_id,
     p.id AS project_id,

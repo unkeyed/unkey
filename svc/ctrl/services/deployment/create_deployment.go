@@ -31,10 +31,8 @@ import (
 // the invocation keeps running, and a retry with the same key attaches to it.
 const createCallTimeout = 30 * time.Second
 
-// maxIdempotencyKeyBytes bounds the caller-supplied idempotency key. The key
-// travels as an HTTP header on the ingress call, so it must stay within what
-// a header value can carry. Matches the public API boundary's limit in
-// svc/api v2_deployments_create_deployment.
+// maxIdempotencyKeyBytes mirrors the limit svc/api enforces on the public
+// endpoint, so the two have to move together.
 const maxIdempotencyKeyBytes = 255
 
 // CreateDeployment creates a new deployment record and starts its Deploy
