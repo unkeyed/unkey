@@ -14486,7 +14486,7 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/BadRequestErrorResponse'
                     description: |
-                        Neither `portal` nor `mapping` was given, or both were.
+                        None of `portal`, `keyspaceId`, or `appId` was given, or more than one was.
                 "401":
                     content:
                         application/json:
