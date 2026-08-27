@@ -99,5 +99,5 @@ func (LogdrainDeliveryV1) Table() string {
 
 // InsertColumns implements [Row]; derived from LogdrainDeliveryV1's ch tags.
 func (LogdrainDeliveryV1) InsertColumns() string {
-	return "`workspace_id`, `drain_id`, `stream`, `time`, `outcome`, `events`, `webhook_duration_ms`, `request_body_bytes`, `response_status`, `response_body`, `error`, `offset_after`"
+	return "`workspace_id`, `drain_id`, `stream`, `time`, `outcome`, `events`, `webhook_duration_ms`, `request_body_bytes`, `response_status`, `response_body`, `error`"
 }

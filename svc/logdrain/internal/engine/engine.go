@@ -289,7 +289,7 @@ func (e *Engine) process(ctx context.Context, id, fencingToken string, now time.
 		var deliveryResult sink.Result
 		if len(events) > 0 {
 			var ok bool
-			deliveryCompleted, deliveryDuration, deliveryResult, ok, err = e.deliverEvents(ctx, drain, events, current.Time)
+			deliveryCompleted, deliveryDuration, deliveryResult, ok, err = e.deliverEvents(ctx, drain, events)
 			if err != nil {
 				logger.Error("record logdrain failure state failed", "error", err, "drain_id", id)
 				return
@@ -306,7 +306,7 @@ func (e *Engine) process(ctx context.Context, id, fencingToken string, now time.
 		})
 		if err != nil {
 			if len(events) > 0 && !deliveryCompleted.IsZero() {
-				e.recordDelivery(drain, stream, deliveryCompleted, "error", len(events), deliveryDuration, deliveryResult, err, current.Time)
+				e.recordDelivery(drain, stream, deliveryCompleted, "error", len(events), deliveryDuration, deliveryResult, err)
 			}
 			logger.Error("record logdrain success failed", "error", err, "drain_id", id)
 			return
@@ -314,14 +314,14 @@ func (e *Engine) process(ctx context.Context, id, fencingToken string, now time.
 		if rowsAffected == 0 {
 			cause := fmt.Errorf("%w before cursor advance to (%d, %q)", errLeaseLost, advance.Time, advance.EventID)
 			if len(events) > 0 && !deliveryCompleted.IsZero() {
-				e.recordDelivery(drain, stream, deliveryCompleted, "error", len(events), deliveryDuration, deliveryResult, cause, current.Time)
+				e.recordDelivery(drain, stream, deliveryCompleted, "error", len(events), deliveryDuration, deliveryResult, cause)
 			}
 			logger.Error("record logdrain success rejected", "error", cause, "drain_id", id)
 			return
 		}
 		if len(events) > 0 && !deliveryCompleted.IsZero() {
 			// The delivery succeeded and its new offset is now committed.
-			e.recordDelivery(drain, stream, deliveryCompleted, "success", len(events), deliveryDuration, deliveryResult, nil, advance.Time)
+			e.recordDelivery(drain, stream, deliveryCompleted, "success", len(events), deliveryDuration, deliveryResult, nil)
 		}
 		delivered += len(events)
 		current = advance
@@ -335,7 +335,7 @@ func (e *Engine) process(ctx context.Context, id, fencingToken string, now time.
 // deliverEvents ships one batch and returns its completion time, duration, and
 // result. A false ok means the failure state was recorded or the parent context
 // was canceled. A non-nil error means the failure state could not be recorded.
-func (e *Engine) deliverEvents(ctx context.Context, drain db.GetLeasedLogdrainRow, events []sink.Event, offsetBefore int64) (completed time.Time, duration time.Duration, result sink.Result, ok bool, stateErr error) {
+func (e *Engine) deliverEvents(ctx context.Context, drain db.GetLeasedLogdrainRow, events []sink.Event) (completed time.Time, duration time.Duration, result sink.Result, ok bool, stateErr error) {
 	destination, err := e.factory.build(ctx, drain)
 	if err != nil {
 		if ctx.Err() != nil {
@@ -359,7 +359,7 @@ func (e *Engine) deliverEvents(ctx context.Context, drain db.GetLeasedLogdrainRo
 	if cause == nil {
 		cause = rejectedDeliveryError(result)
 	}
-	e.recordDelivery(drain, drain.Stream, completed, "error", len(events), duration, result, cause, offsetBefore)
+	e.recordDelivery(drain, drain.Stream, completed, "error", len(events), duration, result, cause)
 	if failErr := e.fail(ctx, drain, cause, result.RetryAfter); failErr != nil {
 		return completed, duration, result, false, failErr
 	}
@@ -368,7 +368,7 @@ func (e *Engine) deliverEvents(ctx context.Context, drain db.GetLeasedLogdrainRo
 
 // recordDelivery emits asynchronous telemetry when enabled. A nil Deliveries
 // buffer disables telemetry, and 1024-byte truncation matches the MySQL column.
-func (e *Engine) recordDelivery(drain db.GetLeasedLogdrainRow, stream db.LogdrainsStream, completed time.Time, outcome string, events int, duration time.Duration, result sink.Result, cause error, offsetAfter int64) {
+func (e *Engine) recordDelivery(drain db.GetLeasedLogdrainRow, stream db.LogdrainsStream, completed time.Time, outcome string, events int, duration time.Duration, result sink.Result, cause error) {
 	kind := configKind(drain.Config)
 	metrics.DeliveriesTotal.WithLabelValues(kind, string(stream), outcome).Inc()
 	metrics.DeliveryDurationSeconds.WithLabelValues(kind, string(stream), outcome).Observe(duration.Seconds())
@@ -397,7 +397,6 @@ func (e *Engine) recordDelivery(drain db.GetLeasedLogdrainRow, stream db.Logdrai
 		ResponseStatus:    responseStatus,
 		ResponseBody:      responseBody,
 		Error:             message,
-		OffsetAfter:       offsetAfter,
 	})
 }
 

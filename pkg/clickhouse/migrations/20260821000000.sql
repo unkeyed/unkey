@@ -1,8 +1,8 @@
 -- Log drain delivery attempts: one row for every customer endpoint call.
 --
 -- svc/logdrain writes one row per Deliver attempt so the dashboard can chart
--- drain health and show recent deliveries. Rows capture both endpoint health
--- and offset progress.
+-- drain health and show recent deliveries. Rows capture endpoint response
+-- details and delivery performance.
 --
 -- Time fields are Int64 unix milliseconds, matching the audit log source and
 -- the other raw event tables. 30 day TTL: this is operational telemetry, not
@@ -27,9 +27,7 @@ CREATE TABLE `default`.`logdrain_deliveries_raw_v1`
     `response_status` Int32,
     `response_body` String CODEC(ZSTD(1)),
     -- Empty on success. The writer truncates failures to 1024 bytes.
-    `error`        String CODEC(ZSTD(1)),
-    -- Newly committed offset on success; the previous offset on failure.
-    `offset_after` Int64 CODEC(Delta, ZSTD(1))
+    `error`        String CODEC(ZSTD(1))
 )
 ENGINE = MergeTree()
 PARTITION BY toYYYYMM(fromUnixTimestamp64Milli(time))

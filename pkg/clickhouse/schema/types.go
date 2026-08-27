@@ -404,5 +404,4 @@ type LogdrainDeliveryV1 struct {
 	ResponseStatus    int32  `ch:"response_status" json:"response_status"`
 	ResponseBody      string `ch:"response_body" json:"response_body"`
 	Error             string `ch:"error" json:"error"`
-	OffsetAfter       int64  `ch:"offset_after" json:"offset_after"`
 }
