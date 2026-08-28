@@ -25,6 +25,7 @@ type MetricChartProps = {
   value: string;
   unit?: string;
   data: AreaChartPoint[];
+  xDomain?: [number, number];
   dataKey: "eventsDelivered" | "errors" | "avgDurationMs";
   color: string;
   iconBg: string;
@@ -41,6 +42,7 @@ function MetricChart({
   value,
   unit,
   data,
+  xDomain,
   dataKey,
   color,
   iconBg,
@@ -85,7 +87,7 @@ function MetricChart({
           isError={error}
           showZeroLine={showZeroLine}
           formatTooltipValue={formatTooltipValue}
-          axis={null}
+          axis={xDomain ? { visible: false, x: { domain: xDomain }, y: { floor: 0 } } : null}
         />
         <span className="my-1 px-[14px] text-[10px] text-grayA-11">Last 24h</span>
       </div>
@@ -108,6 +110,12 @@ export function DeliveryOverview({
     errors: Number(point.transientErrorCount) + Number(point.permanentErrorCount),
     avgDurationMs: Number(point.avgDurationMs),
   }));
+  const firstPoint = areaData.at(0);
+  const lastPoint = areaData.at(-1);
+  const xDomain: [number, number] | undefined =
+    firstPoint && lastPoint
+      ? [firstPoint.originalTimestamp, lastPoint.originalTimestamp]
+      : undefined;
   const totals = (series ?? []).reduce(
     (total, point) => {
       const failures = Number(point.transientErrorCount) + Number(point.permanentErrorCount);
@@ -131,6 +139,7 @@ export function DeliveryOverview({
           label="Delivered events"
           value={formatNumber(totals.events)}
           data={areaData}
+          xDomain={xDomain}
           dataKey="eventsDelivered"
           color="hsl(var(--activity))"
           iconBg="bg-info-3"
@@ -145,6 +154,7 @@ export function DeliveryOverview({
           label="Errors"
           value={formatNumber(totals.errors)}
           data={areaData}
+          xDomain={xDomain}
           dataKey="errors"
           color="hsl(var(--error-9))"
           iconBg="bg-error-3"
@@ -160,6 +170,7 @@ export function DeliveryOverview({
           value={durationMs === null ? "—" : Math.round(durationMs).toLocaleString()}
           unit="ms"
           data={areaData}
+          xDomain={xDomain}
           dataKey="avgDurationMs"
           color="hsl(var(--bronze-8))"
           iconBg="bg-bronze-3"
