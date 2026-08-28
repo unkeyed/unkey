@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
+	logdrainv1 "github.com/unkeyed/unkey/gen/proto/logdrain/v1"
 	"github.com/unkeyed/unkey/svc/logdrain/sink"
 )
 
@@ -44,7 +45,7 @@ func TestDeliverSuccess(t *testing.T) {
 
 	drain := newTestSink(t, Config{Endpoint: server.URL, Headers: map[string]string{"X-Customer": "customer-value"}, Timeout: time.Second})
 	batch := testBatch()
-	expectedBody, err := marshalBatch(batch, FormatJSON)
+	expectedBody, err := marshalBatch(batch, logdrainv1.HttpBodyFormat_HTTP_BODY_FORMAT_JSON)
 	require.NoError(t, err)
 	result, err := drain.Deliver(context.Background(), batch)
 	require.NoError(t, err)
@@ -53,8 +54,8 @@ func TestDeliverSuccess(t *testing.T) {
 	require.Equal(t, int64(len(expectedBody)), result.RequestBodyBytes)
 }
 
-// TestDeliverNDJSONFormat guarantees FormatNDJSON delivers one WorkOS-shaped
-// JSON object per line with Content-Type application/x-ndjson.
+// TestDeliverNDJSONFormat guarantees the NDJSON format delivers one
+// WorkOS-shaped JSON object per line with Content-Type application/x-ndjson.
 func TestDeliverNDJSONFormat(t *testing.T) {
 	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		require.Equal(t, "application/x-ndjson", r.Header.Get("Content-Type"))
@@ -74,7 +75,7 @@ func TestDeliverNDJSONFormat(t *testing.T) {
 	}))
 	t.Cleanup(server.Close)
 
-	drain := newTestSink(t, Config{Endpoint: server.URL, Format: FormatNDJSON, Timeout: time.Second})
+	drain := newTestSink(t, Config{Endpoint: server.URL, Format: logdrainv1.HttpBodyFormat_HTTP_BODY_FORMAT_NDJSON, Timeout: time.Second})
 	result, err := drain.Deliver(context.Background(), testBatch())
 	require.NoError(t, err)
 	require.True(t, result.Acknowledged)
@@ -83,7 +84,7 @@ func TestDeliverNDJSONFormat(t *testing.T) {
 // TestNewRejectsUnknownFormat guarantees a typo in the stored format returns an
 // error instead of silently falling back to NDJSON.
 func TestNewRejectsUnknownFormat(t *testing.T) {
-	_, err := New(Config{Endpoint: "https://example.com/logs", Format: "xml"})
+	_, err := New(Config{Endpoint: "https://example.com/logs", Format: logdrainv1.HttpBodyFormat(99)})
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "unknown http drain format")
 }

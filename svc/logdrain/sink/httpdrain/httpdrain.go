@@ -17,27 +17,17 @@ import (
 	"strings"
 	"time"
 
+	logdrainv1 "github.com/unkeyed/unkey/gen/proto/logdrain/v1"
 	"github.com/unkeyed/unkey/pkg/ssrf"
 	"github.com/unkeyed/unkey/svc/logdrain/sink"
-)
-
-// Body formats for [Config.Format].
-const (
-	// FormatNDJSON delivers one JSON object per line with
-	// Content-Type application/x-ndjson.
-	FormatNDJSON = "ndjson"
-	// FormatJSON delivers one JSON array of event objects with
-	// Content-Type application/json. This is the default.
-	FormatJSON = "json"
 )
 
 // Config configures one generic HTTP drain.
 type Config struct {
 	// Endpoint is the customer-provided HTTPS URL that receives the body.
 	Endpoint string
-	// Format selects the body encoding: FormatJSON or FormatNDJSON.
-	// Empty defaults to FormatJSON.
-	Format string
+	// Format selects the body encoding. Unspecified defaults to JSON.
+	Format logdrainv1.HttpBodyFormat
 	// Headers are customer-provided request headers, typically for authentication, sent verbatim on every delivery.
 	Headers map[string]string
 	// Timeout is the per-request timeout.
@@ -62,9 +52,11 @@ var _ sink.Sink = (*Sink)(nil)
 // or non-https endpoint or an unknown format.
 func New(cfg Config) (*Sink, error) {
 	switch cfg.Format {
-	case "", FormatNDJSON, FormatJSON:
+	case logdrainv1.HttpBodyFormat_HTTP_BODY_FORMAT_UNSPECIFIED,
+		logdrainv1.HttpBodyFormat_HTTP_BODY_FORMAT_JSON,
+		logdrainv1.HttpBodyFormat_HTTP_BODY_FORMAT_NDJSON:
 	default:
-		return nil, fmt.Errorf("unknown http drain format %q", cfg.Format)
+		return nil, fmt.Errorf("unknown http drain format %d", cfg.Format)
 	}
 	opts := []ssrf.Option{ssrf.WithTimeout(cfg.Timeout)}
 	if cfg.UnsafeAllowTestEndpoint {
@@ -80,7 +72,7 @@ func New(cfg Config) (*Sink, error) {
 // response acknowledges the batch.
 func (a *Sink) Deliver(ctx context.Context, batch sink.Batch) (sink.Result, error) {
 	contentType := "application/json"
-	if a.cfg.Format == FormatNDJSON {
+	if a.cfg.Format == logdrainv1.HttpBodyFormat_HTTP_BODY_FORMAT_NDJSON {
 		contentType = "application/x-ndjson"
 	}
 	body, err := marshalBatch(batch, a.cfg.Format)
@@ -131,9 +123,9 @@ type batchLine struct {
 }
 
 // marshalBatch encodes the events as one JSON array of event objects, or as
-// one NDJSON line per event when format is FormatNDJSON.
-func marshalBatch(batch sink.Batch, format string) ([]byte, error) {
-	if format == FormatNDJSON {
+// one NDJSON line per event when the protobuf format selects NDJSON.
+func marshalBatch(batch sink.Batch, format logdrainv1.HttpBodyFormat) ([]byte, error) {
+	if format == logdrainv1.HttpBodyFormat_HTTP_BODY_FORMAT_NDJSON {
 		var body bytes.Buffer
 		encoder := json.NewEncoder(&body)
 		for _, event := range batch.Events {

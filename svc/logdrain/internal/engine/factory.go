@@ -82,13 +82,9 @@ func (f factory) buildHTTP(ctx context.Context, workspaceID string, cfg *logdrai
 		}
 		headers[name] = plaintext
 	}
-	format, err := httpFormat(cfg.GetFormat())
-	if err != nil {
-		return nil, err
-	}
 	built, err := httpdrain.New(httpdrain.Config{
 		Endpoint:                cfg.GetUrl(),
-		Format:                  format,
+		Format:                  cfg.GetFormat(),
 		Headers:                 headers,
 		Timeout:                 deliveryTimeout,
 		UnsafeAllowTestEndpoint: f.unsafeAllowPrivateEndpoints,
@@ -136,19 +132,6 @@ func configKind(raw []byte) string {
 		return "axiom"
 	default:
 		return "unknown"
-	}
-}
-
-// httpFormat converts the stored enum to the sink's body format.
-func httpFormat(format logdrainv1.HttpBodyFormat) (string, error) {
-	switch format {
-	case logdrainv1.HttpBodyFormat_HTTP_BODY_FORMAT_UNSPECIFIED,
-		logdrainv1.HttpBodyFormat_HTTP_BODY_FORMAT_JSON:
-		return httpdrain.FormatJSON, nil
-	case logdrainv1.HttpBodyFormat_HTTP_BODY_FORMAT_NDJSON:
-		return httpdrain.FormatNDJSON, nil
-	default:
-		return "", fmt.Errorf("unknown HTTP body format %d", format)
 	}
 }
 
