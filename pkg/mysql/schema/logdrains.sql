@@ -24,3 +24,4 @@ CREATE INDEX `workspace_id_idx` ON `logdrains` (`workspace_id`);
 CREATE INDEX `lease_expires_at_id_idx` ON `logdrains` (`lease_expires_at`,`id`);
 
 CREATE INDEX `lease_id_status_next_attempt_at_id_idx` ON `logdrains` (`lease_id`,`status`,`next_attempt_at`,`id`);
+
