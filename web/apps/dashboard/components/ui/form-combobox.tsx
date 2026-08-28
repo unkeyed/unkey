@@ -1,14 +1,13 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { CopyButton } from "@unkey/ui";
+import { Combobox, CopyButton } from "@unkey/ui";
 import {
   FormDescription,
   FormLabel,
   type Requirement,
 } from "@unkey/ui/src/components/form/form-helpers";
 import * as React from "react";
-import { Combobox } from "./combobox";
 
 // Documented props type for FormCombobox
 export type DocumentedFormComboboxProps = {
@@ -28,10 +27,6 @@ export type DocumentedFormComboboxProps = {
    * Whether the field is required or optional
    */
   requirement?: Requirement;
-  /**
-   * Whether to show indicator for loading
-   */
-  loading?: boolean;
   /**
    * Tooltip text displayed on hover
    */

@@ -1,6 +1,5 @@
-import { Combobox } from "@/components/ui/combobox";
 import { trpc } from "@/lib/trpc/client";
-import { toast } from "@unkey/ui";
+import { Combobox, toast } from "@unkey/ui";
 import { useMemo, useState } from "react";
 import { ComboboxSkeleton, GitHubSettingCard, ManageGitHubAppLink, RepoNameLabel } from "./shared";
 

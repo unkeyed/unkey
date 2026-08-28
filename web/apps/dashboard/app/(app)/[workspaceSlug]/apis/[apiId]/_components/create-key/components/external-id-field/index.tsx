@@ -147,7 +147,7 @@ export const ExternalIdField = ({
   });
 
   const createOption =
-    externalIdValidation.success && !exactMatch && hasPartialMatches && !isSearching
+    externalIdValidation.success && !exactMatch && hasPartialMatches
       ? {
           label: (
             <div className="flex items-center gap-2 w-full">
@@ -240,7 +240,7 @@ export const ExternalIdField = ({
               Retry
             </Button>
           </div>
-        ) : trimmedSearchValue && !exactMatch && !isComboboxLoading ? (
+        ) : trimmedSearchValue && !exactMatch && !isLoading ? (
           <div
             className={cn(
               "p-0 w-full transition-all duration-300 ease-in-out",
