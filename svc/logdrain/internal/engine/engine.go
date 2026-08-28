@@ -369,7 +369,7 @@ func (e *Engine) deliverEvents(ctx context.Context, drain db.GetLeasedAndDueLogd
 }
 
 // recordDelivery emits asynchronous telemetry when enabled. A nil Deliveries
-// buffer disables telemetry, and 1024-byte truncation matches the MySQL column.
+// buffer disables telemetry.
 func (e *Engine) recordDelivery(drain db.GetLeasedAndDueLogdrainRow, stream db.LogdrainsStream, completed time.Time, outcome string, events int, duration time.Duration, result sink.Result, cause error) {
 	kind := configKind(drain.Config)
 	metrics.DeliveriesTotal.WithLabelValues(kind, string(stream), outcome).Inc()
@@ -380,7 +380,10 @@ func (e *Engine) recordDelivery(drain db.GetLeasedAndDueLogdrainRow, stream db.L
 	if e.cfg.Deliveries == nil {
 		return
 	}
-	message := truncateError(cause)
+	message := ""
+	if cause != nil {
+		message = cause.Error()
+	}
 	responseStatus := int32(0)
 	responseBody := ""
 	if !result.Acknowledged {
@@ -426,18 +429,6 @@ func (e *Engine) recordFailure(ctx context.Context, drain db.GetLeasedAndDueLogd
 		metrics.DrainsPausedTotal.WithLabelValues(string(drain.Stream)).Inc()
 	}
 	return nil
-}
-
-// truncateError bounds ClickHouse delivery errors to 1024 bytes.
-func truncateError(cause error) string {
-	if cause == nil {
-		return ""
-	}
-	message := cause.Error()
-	if len(message) > 1024 {
-		return message[:1024]
-	}
-	return message
 }
 
 // backoff doubles from 1 minute through 128 minutes, then retries every 4 hours.

@@ -26,7 +26,7 @@ CREATE TABLE `default`.`logdrain_deliveries_raw_v1`
     -- Zero and empty when no HTTP response was received.
     `response_status` Int32,
     `response_body` String CODEC(ZSTD(1)),
-    -- Empty on success. The writer truncates failures to 1024 bytes.
+    -- Empty on success.
     `error`        String CODEC(ZSTD(1))
 )
 ENGINE = MergeTree()

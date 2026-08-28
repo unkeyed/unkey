@@ -33,15 +33,15 @@ type factory struct {
 
 // build creates the destination sink only after its stored configuration and credentials decode successfully.
 func (f factory) build(ctx context.Context, drain db.GetLeasedAndDueLogdrainRow) (sink.Sink, error) {
-	cfg, err := parseConfig(drain.Config)
-	if err != nil {
-		return nil, err
+	cfg := &logdrainv1.Config{}
+	if err := proto.Unmarshal(drain.Config, cfg); err != nil {
+		return nil, fmt.Errorf("decode logdrain config: %w", err)
 	}
 	switch destination := cfg.Destination.(type) {
 	case *logdrainv1.Config_Http:
 		return f.buildHTTP(ctx, drain.WorkspaceID, destination.Http)
 	case *logdrainv1.Config_Axiom:
-		token, err := f.token(ctx, drain.WorkspaceID, destination.Axiom.GetEncryptedToken(), "axiom")
+		token, err := f.decrypt(ctx, drain.WorkspaceID, destination.Axiom.GetEncryptedToken())
 		if err != nil {
 			return nil, err
 		}
@@ -82,34 +82,10 @@ func (f factory) buildHTTP(ctx context.Context, workspaceID string, cfg *logdrai
 	return built, nil
 }
 
-// token decrypts a required token for a token-based destination.
-func (f factory) token(ctx context.Context, workspaceID, encryptedCredentials, kind string) (string, error) {
-	if encryptedCredentials == "" {
-		return "", fmt.Errorf("%s credentials are required", kind)
-	}
-	plaintext, err := f.decrypt(ctx, workspaceID, encryptedCredentials)
-	if err != nil {
-		return "", err
-	}
-	if plaintext == "" {
-		return "", fmt.Errorf("%s token is required", kind)
-	}
-	return plaintext, nil
-}
-
-// parseConfig decodes the stored protobuf wire format.
-func parseConfig(raw []byte) (*logdrainv1.Config, error) {
-	cfg := &logdrainv1.Config{}
-	if err := proto.Unmarshal(raw, cfg); err != nil {
-		return nil, fmt.Errorf("decode logdrain config: %w", err)
-	}
-	return cfg, nil
-}
-
 // configKind returns a fixed metric label for the provider in stored config.
 func configKind(raw []byte) string {
-	cfg, err := parseConfig(raw)
-	if err != nil {
+	cfg := &logdrainv1.Config{}
+	if proto.Unmarshal(raw, cfg) != nil {
 		return "unknown"
 	}
 	switch cfg.Destination.(type) {
