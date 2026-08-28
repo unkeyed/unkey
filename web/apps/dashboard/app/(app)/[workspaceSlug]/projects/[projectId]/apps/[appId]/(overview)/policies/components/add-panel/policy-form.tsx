@@ -1,7 +1,15 @@
 "use client";
 
-import { ChevronDown, CircleInfo, DoubleChevronRight } from "@unkey/icons";
-import { InfoTooltip, SlidePanel } from "@unkey/ui";
+import { ChevronDown, CircleInfo } from "@unkey/icons";
+import {
+  InfoTooltip,
+  SlidePanel,
+  SlidePanelCloseButton,
+  SlidePanelContent,
+  SlidePanelDescription,
+  SlidePanelHeader,
+  SlidePanelTitle,
+} from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 import {
   Children,
@@ -25,7 +33,6 @@ type PolicyFormRootProps<T extends FieldValues> = {
   title: string;
   description: ReactNode;
   isOpen: boolean;
-  topOffset: number;
   onClose: () => void;
   form: UseFormReturn<T>;
   onSubmit: (values: T) => void;
@@ -45,7 +52,6 @@ function PolicyFormRoot<T extends FieldValues>({
   title,
   description,
   isOpen,
-  topOffset,
   onClose,
   form,
   onSubmit,
@@ -107,42 +113,34 @@ function PolicyFormRoot<T extends FieldValues>({
   );
 
   return (
-    <SlidePanel.Root isOpen={isOpen} onClose={onClose} topOffset={topOffset}>
-      <SlidePanel.Header>
-        <div className="flex flex-col">
-          <span className="text-gray-12 font-medium text-base leading-8">{title}</span>
-          <span className="text-gray-11 text-[13px] leading-5">{description}</span>
+    <SlidePanel isOpen={isOpen} onClose={onClose}>
+      <SlidePanelHeader>
+        <div className="flex flex-col gap-0.5">
+          <SlidePanelTitle>{title}</SlidePanelTitle>
+          <SlidePanelDescription>{description}</SlidePanelDescription>
         </div>
-        <SlidePanel.Close
-          aria-label="Close panel"
-          className="mt-0.5 inline-flex items-center justify-center size-9 rounded-md hover:bg-grayA-3 transition-colors cursor-pointer"
-        >
-          <DoubleChevronRight
-            iconSize="lg-medium"
-            className="text-gray-10 transition-transform duration-300 ease-out group-hover:text-gray-12"
-          />
-        </SlidePanel.Close>
-      </SlidePanel.Header>
+        <SlidePanelCloseButton className="mt-0.5" />
+      </SlidePanelHeader>
 
-      <SlidePanel.Content>
+      <SlidePanelContent>
         <PolicyFormContext.Provider value={ctxValue}>
           <FormProvider {...form}>
             <form
               onSubmit={form.handleSubmit(onSubmit, handleInvalid)}
               className="h-full flex flex-col"
             >
-              <div className="flex-1 overflow-y-auto pt-6 bg-grayA-2">{body}</div>
+              <div className="flex-1 overflow-y-auto pt-6">{body}</div>
               {footer}
             </form>
           </FormProvider>
         </PolicyFormContext.Provider>
-      </SlidePanel.Content>
-    </SlidePanel.Root>
+      </SlidePanelContent>
+    </SlidePanel>
   );
 }
 
 function Fields({ children }: { children: ReactNode }) {
-  return <div className="flex flex-col gap-5 px-8">{children}</div>;
+  return <div className="flex flex-col gap-5 px-6">{children}</div>;
 }
 
 function Accordion({
@@ -201,7 +199,7 @@ function Section({
         <button
           type="button"
           onClick={() => toggle(id)}
-          className="flex-1 min-w-0 px-8 py-3 flex items-center justify-between gap-4 cursor-pointer"
+          className="flex-1 min-w-0 px-6 py-3 flex items-center justify-between gap-4 cursor-pointer"
         >
           <span className="flex items-center gap-2 text-[13px] text-gray-11 font-medium">
             <ChevronDown
@@ -225,10 +223,10 @@ function Section({
           <span className="text-[12px] text-gray-11 truncate">{summary}</span>
         </button>
         {!isActive && collapsedAction && (
-          <div className="pr-8 shrink-0 flex items-center">{collapsedAction}</div>
+          <div className="pr-6 shrink-0 flex items-center">{collapsedAction}</div>
         )}
       </div>
-      {isActive && <div className="px-8 pb-6 pt-3">{children}</div>}
+      {isActive && <div className="px-6 pb-6 pt-3">{children}</div>}
     </div>
   );
 }

@@ -404,4 +404,23 @@ func TestSuccess(t *testing.T) {
 		require.Equal(t, http.StatusOK, res.Status)
 		require.Equal(t, "unkey_works", res.Body.Data.ExternalId)
 	})
+
+	t.Run("prefer internal ID over matching external ID", func(t *testing.T) {
+		internalIdentity := h.CreateIdentity(seed.CreateIdentityRequest{
+			WorkspaceID: h.Resources().UserWorkspace.ID,
+			ExternalID:  "internal_id_match",
+		})
+		h.CreateIdentity(seed.CreateIdentityRequest{
+			WorkspaceID: h.Resources().UserWorkspace.ID,
+			ExternalID:  internalIdentity.ID,
+		})
+
+		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
+			Identity: internalIdentity.ID,
+		})
+
+		require.Equal(t, http.StatusOK, res.Status)
+		require.Equal(t, internalIdentity.ID, res.Body.Data.Id)
+		require.Equal(t, internalIdentity.ExternalID, res.Body.Data.ExternalId)
+	})
 }

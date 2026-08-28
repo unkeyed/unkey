@@ -34,13 +34,12 @@ import { Result } from "../types/fp.js";
  *
  * Unreleased and subject to change without notice.
  *
- * Deleting a portal revokes its live sessions, so its end users lose access
- * rather than keeping it until their tokens expire. Revocation is not
- * instantaneous: session lookups are cached briefly, so a request already in
- * flight may still succeed.
+ * Its end users lose access rather than keeping it until their tokens expire.
+ * Revocation is not instantaneous: session lookups are cached briefly, so a
+ * request already in flight may still succeed.
  *
- * The app or keyspace the portal served is untouched, and its handle becomes
- * available for a new portal.
+ * The app or keyspace it served is untouched, and its slug becomes free for a
+ * new portal.
  *
  * **Required Permissions**
  *
@@ -48,8 +47,7 @@ import { Result } from "../types/fp.js";
  * - `portal.*.delete_portal` (to delete any portal in the workspace)
  * - `portal.<portal_id>.delete_portal` (to delete a specific portal)
  *
- * Missing the permission returns **404**, not 403: a caller who cannot delete a
- * portal is not told whether it exists.
+ * Without the permission this returns **404**, not 403.
  *
  * If set, this operation will use {@link Security.rootKey} from the global security.
  */

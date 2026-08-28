@@ -1418,6 +1418,7 @@ type Portal struct {
 	ID           string         `db:"id"`
 	WorkspaceID  string         `db:"workspace_id"`
 	Slug         string         `db:"slug"`
+	DisplayName  string         `db:"display_name"`
 	AppID        sql.NullString `db:"app_id"`
 	KeyAuthID    sql.NullString `db:"key_auth_id"`
 	Enabled      bool           `db:"enabled"`
