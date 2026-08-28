@@ -39,10 +39,8 @@ import { queryDeployUsage } from "./billing/query-deploy-usage";
 import { queryDeployUsageBreakdown } from "./billing/query-deploy-usage-breakdown";
 import { queryUsage } from "./billing/query-usage";
 import { listApps } from "./deploy/app/list";
-import { addCustomDomain } from "./deploy/custom-domains/add";
-import { deleteCustomDomain } from "./deploy/custom-domains/delete";
-import { listCustomDomains } from "./deploy/custom-domains/list";
-import { retryVerification } from "./deploy/custom-domains/retry";
+import { countCustomDomains } from "./deploy/custom-domains/count";
+import { listDomainConnectHints } from "./deploy/custom-domains/hints";
 import { authorizeDeployment } from "./deploy/deployment/authorize";
 import { getDeploymentBuildSteps } from "./deploy/deployment/build-steps";
 import { cancelDeployment } from "./deploy/deployment/cancel";
@@ -58,24 +56,7 @@ import { makeSensitive } from "./deploy/env-vars/make-sensitive";
 import { renameEnvVars } from "./deploy/env-vars/rename";
 import { getAvailableKeyspaces } from "./deploy/environment-settings/get-available-keyspaces";
 import { getAvailableRegions } from "./deploy/environment-settings/get-available-regions";
-import { create as createFirewallPolicy } from "./deploy/environment-settings/policies/firewall/create";
-import { remove as deleteFirewallPolicy } from "./deploy/environment-settings/policies/firewall/delete";
-import { update as updateFirewallPolicy } from "./deploy/environment-settings/policies/firewall/update";
 import { generateRegex } from "./deploy/environment-settings/policies/generate-regex";
-import { create as createKeyauthPolicy } from "./deploy/environment-settings/policies/keyauth/create";
-import { remove as deleteKeyauthPolicy } from "./deploy/environment-settings/policies/keyauth/delete";
-import { update as updateKeyauthPolicy } from "./deploy/environment-settings/policies/keyauth/update";
-import { list as listPolicies } from "./deploy/environment-settings/policies/list";
-import { create as createLoggingPolicy } from "./deploy/environment-settings/policies/logging/create";
-import { remove as deleteLoggingPolicy } from "./deploy/environment-settings/policies/logging/delete";
-import { update as updateLoggingPolicy } from "./deploy/environment-settings/policies/logging/update";
-import { create as createOpenapiPolicy } from "./deploy/environment-settings/policies/openapi/create";
-import { remove as deleteOpenapiPolicy } from "./deploy/environment-settings/policies/openapi/delete";
-import { update as updateOpenapiPolicy } from "./deploy/environment-settings/policies/openapi/update";
-import { create as createRatelimitPolicy } from "./deploy/environment-settings/policies/ratelimit/create";
-import { remove as deleteRatelimitPolicy } from "./deploy/environment-settings/policies/ratelimit/delete";
-import { update as updateRatelimitPolicy } from "./deploy/environment-settings/policies/ratelimit/update";
-import { reorder as reorderPolicies } from "./deploy/environment-settings/policies/reorder";
 import { getAppRpsMetrics } from "./deploy/metrics/get-app-rps-metrics";
 import { getDeploymentCpuTimeseries } from "./deploy/metrics/get-deployment-cpu-timeseries";
 import { getDeploymentDiskTimeseries } from "./deploy/metrics/get-deployment-disk-timeseries";
@@ -426,33 +407,6 @@ export const router = t.router({
       getAvailableRegions,
       getAvailableKeyspaces,
       policies: t.router({
-        list: listPolicies,
-        reorder: reorderPolicies,
-        keyauth: t.router({
-          create: createKeyauthPolicy,
-          update: updateKeyauthPolicy,
-          delete: deleteKeyauthPolicy,
-        }),
-        firewall: t.router({
-          create: createFirewallPolicy,
-          update: updateFirewallPolicy,
-          delete: deleteFirewallPolicy,
-        }),
-        ratelimit: t.router({
-          create: createRatelimitPolicy,
-          update: updateRatelimitPolicy,
-          delete: deleteRatelimitPolicy,
-        }),
-        openapi: t.router({
-          create: createOpenapiPolicy,
-          update: updateOpenapiPolicy,
-          delete: deleteOpenapiPolicy,
-        }),
-        logging: t.router({
-          create: createLoggingPolicy,
-          update: updateLoggingPolicy,
-          delete: deleteLoggingPolicy,
-        }),
         generateRegex,
       }),
     }),
@@ -468,10 +422,8 @@ export const router = t.router({
       list: listDomains,
     }),
     customDomain: t.router({
-      add: addCustomDomain,
-      list: listCustomDomains,
-      delete: deleteCustomDomain,
-      retry: retryVerification,
+      count: countCustomDomains,
+      hints: listDomainConnectHints,
     }),
     deployment: t.router({
       list: listDeployments,

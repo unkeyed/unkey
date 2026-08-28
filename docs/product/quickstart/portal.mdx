@@ -7,9 +7,7 @@ noindex: true
 
 <Warning>
 The Customer Portal has not launched. This page is unlisted, documents an
-unreleased API, and is subject to change without notice. It is not usable
-today: `portal.createSession` requires a portal on your workspace, and there is
-no way to create one yet.
+unreleased API, and is subject to change without notice.
 </Warning>
 
 The Customer Portal is a white-labeled web app you can offer to your end users. They get key management, usage analytics, and API documentation, without you building any UI.
@@ -37,19 +35,50 @@ Your Backend                    Unkey API                     Portal
 4. The portal exchanges the code for a 24-hour access token
 5. The browser calls the Unkey API with that token in an httpOnly cookie
 
-## 1. Configure a portal
+## 1. Create a portal
 
-Enable the Customer Portal for your workspace in the Unkey dashboard.
+A portal serves exactly one app or one keyspace. Create it with `portal.createPortal`, naming the resource it serves:
 
-<Note>
-Dashboard configuration UI is coming soon. During early access, reach out to the Unkey team to get your portal configured.
-</Note>
+```bash
+curl -X POST https://api.unkey.com/v2/portal.createPortal \
+  -H "Authorization: Bearer YOUR_ROOT_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "slug": "my-portal",
+    "displayName": "Acme",
+    "keyspaceId": "ks_1234abcd"
+  }'
+```
 
-When configuring your portal, you'll choose a slug: a short, human-readable identifier like `my-portal` or `billing-dashboard`. You can pass either that slug or the portal's ID when creating sessions.
+The response carries the new portal's ID. The app or keyspace you name must belong to your workspace, and it can back only one portal, so a second portal for the same resource is rejected as a conflict.
 
-Slugs must be 3–64 characters, lowercase alphanumeric and hyphens only, cannot start or end with a hyphen, and cannot contain consecutive hyphens. A `portal` value that matches neither a slug nor an ID in your workspace returns a 404, so a typo and a portal that was never provisioned look the same.
+`displayName` is what your end users see in the portal header and page titles, so it is the name of your product as they know it. It is not part of any URL, so you can change it whenever you like.
 
-Optionally, you can customize branding with your logo and brand colors.
+The slug is a short, human-readable identifier like `my-portal` or `billing-dashboard`. You can pass either the slug or the portal's ID wherever a portal is named. Slugs must be 3–64 characters, lowercase alphanumeric and hyphens only, cannot start or end with a hyphen, and cannot contain consecutive hyphens. A `portal` value that matches neither a slug nor an ID in your workspace returns a 404, so a typo and a portal that was never provisioned look the same.
+
+A portal is enabled on creation. Send `"enabled": false` to create it dormant and turn it on later.
+
+Optionally, customize branding with `logoUrl` and `primaryColor`. The logo must be an absolute `https://` URL, and the colour a six-digit hex value like `#6366f1`.
+
+Read a portal back with `portal.getPortal`, by its ID or slug, or by the resource it serves:
+
+```bash
+curl -X POST https://api.unkey.com/v2/portal.getPortal \
+  -H "Authorization: Bearer YOUR_ROOT_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{ "keyspaceId": "ks_1234abcd" }'
+```
+
+Change it with `portal.updatePortal`, which touches only the fields you send. Omit a field to leave it alone; send `null` for a branding field to clear it.
+
+### Turning a portal off
+
+Two operations affect end users who are already signed in, and they differ:
+
+- **Disabling** a portal (`"enabled": false`) stops new sessions from being minted. Sessions already in progress keep working until they expire.
+- **Deleting** a portal, or re-pointing it at a different app or keyspace with `keyspaceId` or `appId`, revokes its sessions. Those end users lose access on their next request rather than at token expiry.
+
+Revocation is not instantaneous. Session lookups are cached for a few seconds and served from a slightly stale cache for a few minutes while they refresh, so a request already in flight can still succeed. If you need access cut off immediately, revoke the underlying keys as well.
 
 ## 2. Create a session
 
@@ -234,6 +263,21 @@ Second, a session can never carry a capability your root key does not itself hol
 Requesting a scope you do not hold returns 403 for the whole request rather than a session with fewer capabilities, so a missing grant shows up immediately instead of as a portal that silently misses a tab.
 
 A root key without the portal session permission gets a **404**, not a 403. That is deliberate: a caller who cannot mint for a portal is not told whether it exists, so a guessed slug reveals nothing.
+
+Managing portals is a separate set of permissions from minting sessions, so a key that provisions portals need not be able to act as one:
+
+| Operation | Permission |
+|-----------|------------|
+| `portal.createPortal` | `portal.*.create_portal` |
+| `portal.getPortal` | `portal.*.read_portal` or `portal.<portal_id>.read_portal` |
+| `portal.updatePortal` | `portal.*.update_portal` or `portal.<portal_id>.update_portal` |
+| `portal.deletePortal` | `portal.*.delete_portal` or `portal.<portal_id>.delete_portal` |
+
+Creation accepts only the wildcard form, because the portal's ID does not exist yet when the request is authorized.
+
+Naming a `keyspaceId` or `appId` costs one more grant: read access to the resource you are pointing at. Creating a portal for a keyspace, or re-pointing an existing one, additionally requires `api.*.read_api` (or `api.<api_id>.read_api` for the keyspace's owning API); the app equivalent is `app.*.read_app`. Deciding which resource a portal serves is what decides which keys its end users see, so a key that cannot read the resource cannot expose it either. Updates that name neither id need only the portal permission.
+
+Read, update, and delete answer a missing permission with a **404** for the same reason session minting does. Creation answers with a **403**: there is no portal yet whose existence could leak, and a plain permission error is more useful than a not-found.
 
 You can grant these on the root key in the Unkey dashboard under Settings, Root Keys.
 

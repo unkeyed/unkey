@@ -73,6 +73,7 @@ func TestCreateSessionAuthorizationMatrix(t *testing.T) {
 		DB:            h.DB,
 		Auditlogs:     h.Auditlogs,
 		PortalBaseURL: "https://portal.unkey.com",
+		Clock:         h.Clock,
 	}
 	h.Register(route)
 
@@ -146,6 +147,7 @@ func TestCreateSessionScopeEscalation(t *testing.T) {
 		DB:            h.DB,
 		Auditlogs:     h.Auditlogs,
 		PortalBaseURL: "https://portal.unkey.com",
+		Clock:         h.Clock,
 	}
 	h.Register(route)
 
@@ -336,6 +338,7 @@ func TestCreateSessionRejectionWritesNothing(t *testing.T) {
 		DB:            h.DB,
 		Auditlogs:     h.Auditlogs,
 		PortalBaseURL: "https://portal.unkey.com",
+		Clock:         h.Clock,
 	}
 	h.Register(route)
 
@@ -372,6 +375,7 @@ func TestCreateSessionMultiKeyspacePartialGrant(t *testing.T) {
 		DB:            h.DB,
 		Auditlogs:     h.Auditlogs,
 		PortalBaseURL: "https://portal.unkey.com",
+		Clock:         h.Clock,
 	}
 	h.Register(route)
 
@@ -423,6 +427,7 @@ func TestCreateSessionForbiddenDisabledPortal(t *testing.T) {
 		DB:            h.DB,
 		Auditlogs:     h.Auditlogs,
 		PortalBaseURL: "https://portal.unkey.com",
+		Clock:         h.Clock,
 	}
 	h.Register(route)
 
@@ -472,6 +477,7 @@ func TestCreateSessionKeyspaceWithoutAPI(t *testing.T) {
 		DB:            h.DB,
 		Auditlogs:     h.Auditlogs,
 		PortalBaseURL: "https://portal.unkey.com",
+		Clock:         h.Clock,
 	}
 	h.Register(route)
 

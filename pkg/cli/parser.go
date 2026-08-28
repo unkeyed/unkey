@@ -199,29 +199,86 @@ func (c *Command) initFlagMap() {
 // validateRequiredFlags checks that all required flags have been set and that
 // every RequireOneOf group has exactly one of its flags set.
 func (c *Command) validateRequiredFlags() error {
+	// Validate command definitions before invocation requirements.
+	for _, group := range c.RequireOneOf {
+		if len(group) == 0 {
+			return fmt.Errorf("RequireOneOf group cannot be empty")
+		}
+		for _, name := range group {
+			if _, ok := c.flagMap[name]; !ok {
+				return fmt.Errorf("RequireOneOf references unknown flag: %s", name)
+			}
+		}
+	}
 	for _, flag := range c.Flags {
-		if flag.Required() && !flag.HasValue() {
+		base, ok := baseFlagOf(flag)
+		if !ok {
+			continue
+		}
+		for _, otherName := range base.mutuallyExclusive {
+			if otherName == flag.Name() {
+				return fmt.Errorf("flag --%s cannot be mutually exclusive with itself", flag.Name())
+			}
+			other, exists := c.flagMap[otherName]
+			if !exists {
+				return fmt.Errorf("flag --%s references unknown mutually exclusive flag: %s", flag.Name(), otherName)
+			}
+			if flag.IsSet() && other.IsSet() {
+				return fmt.Errorf("flags --%s and --%s are mutually exclusive", flag.Name(), otherName)
+			}
+		}
+	}
+
+	for _, flag := range c.Flags {
+		if flag.Required() && !flag.HasValue() && !c.requirementWaived(flag) {
 			return fmt.Errorf("required flag missing: %s", flag.Name())
 		}
 	}
 
 	for _, group := range c.RequireOneOf {
 		set := 0
+		allWaived := true
 		for _, name := range group {
-			flag, ok := c.flagMap[name]
-			if !ok {
-				// A group naming a flag the command does not define is a
-				// programming error in the command definition, not user input.
-				return fmt.Errorf("RequireOneOf references unknown flag: %s", name)
-			}
+			flag := c.flagMap[name]
 			if flag.HasValue() {
 				set++
 			}
+			if !c.requirementWaived(flag) {
+				allWaived = false
+			}
 		}
-		if set != 1 {
+		if set != 1 && !(set == 0 && allWaived) {
 			return fmt.Errorf("exactly one of --%s is required", strings.Join(group, " or --"))
 		}
 	}
 
 	return nil
+}
+
+func (c *Command) requirementWaived(flag Flag) bool {
+	for _, otherName := range c.mutuallyExclusiveNames(flag) {
+		if other := c.flagMap[otherName]; other != nil && other.IsSet() {
+			return true
+		}
+	}
+	return false
+}
+
+// mutuallyExclusiveNames returns both directly declared and reverse-declared
+// relationships because mutual exclusion is symmetric.
+func (c *Command) mutuallyExclusiveNames(flag Flag) []string {
+	var names []string
+	if base, ok := baseFlagOf(flag); ok {
+		names = append(names, base.mutuallyExclusive...)
+	}
+	for _, other := range c.Flags {
+		if other.Name() == flag.Name() || slices.Contains(names, other.Name()) {
+			continue
+		}
+		base, ok := baseFlagOf(other)
+		if ok && slices.Contains(base.mutuallyExclusive, flag.Name()) {
+			names = append(names, other.Name())
+		}
+	}
+	return names
 }

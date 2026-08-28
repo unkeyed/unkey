@@ -43,7 +43,7 @@ Sets a human-readable name for internal organization and identification. Omittin
 Links this key to a user or entity in your system for ownership tracking during verification. Omitting this flag preserves the current association. Essential for user-specific analytics, billing, and key management across multiple users.
 </ParamField>
 
-<ParamField body="--meta-json" type="string">
+<ParamField body="--meta" type="JSON string">
 JSON object of arbitrary metadata returned during key verification. Omitting this flag preserves existing metadata. Avoid storing sensitive data here as it's returned in verification responses. Large metadata objects increase verification latency and should stay under 10KB total size.
 
 <Expandable title="JSON properties">
@@ -57,7 +57,7 @@ JSON object of arbitrary metadata returned during key verification. Omitting thi
 Unix timestamp in milliseconds when the key automatically expires. Verification fails with `code=EXPIRED` immediately after this time passes. Avoid setting timestamps in the past as they immediately invalidate the key. Keys expire based on server time, not client time.
 </ParamField>
 
-<ParamField body="--credits-json" type="string">
+<ParamField body="--credits" type="JSON string">
 JSON object for credit and refill configuration. Controls usage-based limits for this key through credit consumption. Setting null enables unlimited usage. Essential for implementing usage-based pricing and subscription quotas.
 
 <Expandable title="JSON properties">
@@ -81,7 +81,7 @@ JSON object for credit and refill configuration. Controls usage-based limits for
 </Expandable>
 </ParamField>
 
-<ParamField body="--ratelimits-json" type="string">
+<ParamField body="--ratelimits" type="JSON string">
 JSON array of rate limit configurations. Defines time-based rate limits that protect against abuse by controlling request frequency. Unlike credits which track total usage, rate limits reset automatically after each window expires. Multiple rate limits can control different operation types with separate thresholds and windows.
 
 <Expandable title="JSON array item properties">
@@ -120,6 +120,7 @@ Comma-separated list of permission names to grant directly to this key. Wildcard
 | `--api-url` | string | Override API base URL (default: `https://api.unkey.com`) |
 | `--config` | string | Path to config file (default: `~/.unkey/config.toml`) |
 | `--output` | string | Output format -- use `json` for raw JSON |
+| `--body` | string | Send this JSON string as the request body. You cannot combine it with request-building flags. |
 
 ## Examples
 
@@ -134,13 +135,13 @@ unkey api keys update-key --key-id=key_1234abcd --enabled=false
 unkey api keys update-key --key-id=key_1234abcd --external-id=user_5678 --roles=api_admin,billing_reader
 ```
 ```bash Update metadata
-unkey api keys update-key --key-id=key_1234abcd --meta-json='{"plan":"enterprise","team":"acme"}'
+unkey api keys update-key --key-id=key_1234abcd --meta='{"plan":"enterprise","team":"acme"}'
 ```
 ```bash Configure credits with monthly refill
-unkey api keys update-key --key-id=key_1234abcd --credits-json='{"remaining":5000,"refill":{"interval":"monthly","amount":5000}}'
+unkey api keys update-key --key-id=key_1234abcd --credits='{"remaining":5000,"refill":{"interval":"monthly","amount":5000}}'
 ```
 ```bash Set rate limits
-unkey api keys update-key --key-id=key_1234abcd --ratelimits-json='[{"name":"requests","limit":500,"duration":60000,"autoApply":true}]'
+unkey api keys update-key --key-id=key_1234abcd --ratelimits='[{"name":"requests","limit":500,"duration":60000,"autoApply":true}]'
 ```
 ```bash JSON output for scripting
 unkey api keys update-key --key-id=key_1234abcd --name='Scripted Update' --output=json
@@ -149,10 +150,10 @@ unkey api keys update-key --key-id=key_1234abcd --name='Scripted Update' --outpu
 
 ## Output
 
-Default output shows the request ID with latency:
+Default output shows the request ID:
 
 ```text
-req_2c9a0jf23l4k567 (took 45ms)
+req_2c9a0jf23l4k567
 
 {}
 ```

@@ -15,3 +15,5 @@ CREATE TABLE `ratelimit_global_counters` (
 
 CREATE INDEX `expires_at_idx` ON `ratelimit_global_counters` (`expires_at`);
 
+CREATE INDEX `updated_at_expires_at_idx` ON `ratelimit_global_counters` (`updated_at`,`expires_at`);
+

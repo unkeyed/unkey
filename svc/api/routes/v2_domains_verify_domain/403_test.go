@@ -28,6 +28,7 @@ func TestVerifyDomainPermissions(t *testing.T) {
 	}{
 		{name: "wildcard permission", permissions: []string{"environment.*.verify_domain"}, shouldPass: true},
 		{name: "specific environment permission", permissions: []string{"environment.<env>.verify_domain"}, shouldPass: true},
+		{name: "canonical urn grant", permissions: []string{"<urn>.verify_domain"}, shouldPass: true},
 		{name: "permission alongside unrelated grants", permissions: []string{"api.*.read_api", "environment.*.verify_domain"}, shouldPass: true},
 		{name: "create action is not enough", permissions: []string{"environment.*.create_domain"}, shouldPass: false},
 		{name: "read action is not enough", permissions: []string{"environment.*.read_domain"}, shouldPass: false},
@@ -44,8 +45,11 @@ func TestVerifyDomainPermissions(t *testing.T) {
 			seeded := seedDomain(t, h, nil)
 			permissions := make([]string, len(tc.permissions))
 			for i, p := range tc.permissions {
-				if p == "environment.<env>.verify_domain" {
+				switch p {
+				case "environment.<env>.verify_domain":
 					p = fmt.Sprintf("environment.%s.verify_domain", seeded.environmentID)
+				case "<urn>.verify_domain":
+					p = fmt.Sprintf("unkey:v1:%s:projects/%s/apps/%s/environments/%s/domains/*#verify_domain", seeded.workspaceID, seeded.projectID, seeded.appID, seeded.environmentID)
 				}
 				permissions[i] = p
 			}

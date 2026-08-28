@@ -55,7 +55,7 @@ const PortalIconRow = () => (
   </div>
 );
 
-export function SetupHero({ enabling, onEnable }: { enabling: boolean; onEnable: () => void }) {
+export function SetupHero({ onEnable }: { onEnable: () => void }) {
   return (
     <div className="flex w-full justify-center rounded-lg border border-grayA-4 p-12">
       <div className="flex flex-col items-center text-center">
@@ -66,13 +66,7 @@ export function SetupHero({ enabling, onEnable }: { enabling: boolean; onEnable:
           An Unkey-hosted portal that allows your customers to manage their keys themselves.
         </p>
 
-        <Button
-          variant="primary"
-          size="md"
-          loading={enabling}
-          loadingLabel="Enabling customer portal"
-          onClick={onEnable}
-        >
+        <Button variant="primary" size="md" onClick={onEnable}>
           Enable Customer portal
         </Button>
       </div>

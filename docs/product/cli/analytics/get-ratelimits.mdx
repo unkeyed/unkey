@@ -1,0 +1,55 @@
+---
+title: "get-ratelimits"
+description: "Query rate limit requests and token usage with the Unkey CLI"
+---
+
+Run SQL queries against your rate limit analytics. Queries can use the raw
+`ratelimits_v1` table or the per-minute, per-hour, per-day, and per-month
+aggregate tables.
+
+Unkey restricts every query to the authenticated workspace. Workspace retention
+and query limits apply.
+
+## Usage
+
+```bash
+unkey api analytics get-ratelimits [flags]
+```
+
+## Flags
+
+<ParamField body="--query" type="string" required>
+SQL query to execute against your rate limit analytics data. The query can
+reference `ratelimits_v1`, `ratelimits_per_minute_v1`,
+`ratelimits_per_hour_v1`, `ratelimits_per_day_v1`, or
+`ratelimits_per_month_v1`.
+</ParamField>
+
+## Global flags
+
+| Flag | Type | Description |
+|------|------|-------------|
+| `--root-key` | string | Override root key (`$UNKEY_ROOT_KEY`) |
+| `--api-url` | string | Override API base URL (default: `https://api.unkey.com`) |
+| `--config` | string | Path to config file (default: `~/.unkey/config.toml`) |
+| `--output` | string | Output format. Use `json` for raw JSON |
+| `--body` | string | Send this JSON string as the request body. You cannot combine it with request-building flags. |
+
+## Examples
+
+<CodeGroup>
+
+```bash Count requests by namespace
+unkey api analytics get-ratelimits \
+  --query="SELECT namespace_id, COUNT(*) AS total FROM ratelimits_v1 WHERE namespace_id = 'rlns_123' GROUP BY namespace_id"
+```
+
+```bash Query hourly totals
+unkey api analytics get-ratelimits \
+  --query="SELECT time, sum(total) AS requests FROM ratelimits_per_hour_v1 WHERE namespace_id = 'rlns_123' GROUP BY time ORDER BY time"
+```
+
+</CodeGroup>
+
+See [Query rate limit analytics](/platform/analytics/get-ratelimits) for table
+schemas, query restrictions, and more examples.

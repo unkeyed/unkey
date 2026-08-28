@@ -6,11 +6,20 @@
 //
 // # Usage
 //
-// Start the metrics server on a dedicated port, typically in a goroutine since
-// [Serve] blocks until the server stops or encounters an error:
+// Build the server from the service's own registry so it exposes only that
+// service's metrics, then serve it on a dedicated listener. Serve blocks, so
+// run it in a goroutine and shut it down on context cancellation:
 //
+//	prom, err := prometheus.NewWithRegistry(reg)
+//	if err != nil {
+//	    return err
+//	}
+//	ln, err := net.Listen("tcp", ":9090")
+//	if err != nil {
+//	    return err
+//	}
 //	go func() {
-//	    if err := prometheus.Serve(":9090"); err != nil {
+//	    if err := prom.Serve(ctx, ln); err != nil && !errors.Is(err, context.Canceled) {
 //	        log.Printf("metrics server error: %v", err)
 //	    }
 //	}()

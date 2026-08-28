@@ -22,6 +22,7 @@ import (
 	"github.com/unkeyed/unkey/gen/rpc/vault"
 	"github.com/unkeyed/unkey/pkg/batch"
 	"github.com/unkeyed/unkey/pkg/buildinfo"
+	"github.com/unkeyed/unkey/pkg/buildinfo/metrics"
 	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
@@ -135,7 +136,7 @@ func Run(ctx context.Context, cfg Config) error {
 	reg.MustRegister(collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}))
 	reg.MustRegister(prometheus.NewSystemMetricsCollector())
 	lazy.SetRegistry(reg)
-	buildinfo.RegisterBuildInfoMetrics("worker")
+	buildinfometrics.Register("worker")
 
 	// Create vault client for remote vault service
 	var vaultClient vault.VaultServiceClient
@@ -464,6 +465,7 @@ func Run(ctx context.Context, cfg Config) error {
 	if domainCacheErr != nil {
 		return fmt.Errorf("failed to create domain cache: %w", domainCacheErr)
 	}
+	r.Defer(func() error { domainCache.Close(); return nil })
 
 	// Setup ACME challenge providers
 	var dnsProvider challenge.Provider
@@ -872,9 +874,9 @@ func Run(ctx context.Context, cfg Config) error {
 
 	// Wait for signal and handle shutdown
 	logger.Info("Worker started successfully")
+	// r.Wait already logs shutdown failures; just add context and propagate.
 	if err := r.Wait(ctx); err != nil {
-		logger.Error("Shutdown failed", "error", err)
-		return err
+		return fmt.Errorf("shutdown failed: %w", err)
 	}
 
 	logger.Info("Worker shut down successfully")

@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"github.com/unkeyed/unkey/cmd/api/util"
+	"github.com/unkeyed/unkey/cmd/api/internal/testutil"
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
@@ -23,16 +23,16 @@ func TestUpdateIdentity(t *testing.T) {
 			},
 		},
 		{
-			name: "with meta-json",
-			args: `identities update-identity --identity=user_123 --meta-json={"plan":"premium","name":"Alice"}`,
+			name: "with meta",
+			args: `identities update-identity --identity=user_123 --meta='{"plan":"premium","name":"Alice"}'`,
 			want: openapi.V2IdentitiesUpdateIdentityRequestBody{
 				Identity: "user_123",
 				Meta:     ptr.P(map[string]any{"plan": "premium", "name": "Alice"}),
 			},
 		},
 		{
-			name: "with ratelimits-json",
-			args: `identities update-identity --identity=user_123 --ratelimits-json=[{"name":"requests","limit":1000,"duration":3600000,"autoApply":true}]`,
+			name: "with ratelimits",
+			args: `identities update-identity --identity=user_123 --ratelimits='[{"name":"requests","limit":1000,"duration":3600000,"autoApply":true}]'`,
 			want: openapi.V2IdentitiesUpdateIdentityRequestBody{
 				Identity: "user_123",
 				Ratelimits: ptr.P([]openapi.RatelimitRequest{
@@ -47,7 +47,7 @@ func TestUpdateIdentity(t *testing.T) {
 		},
 		{
 			name: "all flags",
-			args: `identities update-identity --identity=user_123 --meta-json={"tier":"enterprise"} --ratelimits-json=[{"name":"api","limit":500,"duration":60000,"autoApply":false}]`,
+			args: `identities update-identity --identity=user_123 --meta='{"tier":"enterprise"}' --ratelimits='[{"name":"api","limit":500,"duration":60000,"autoApply":false}]'`,
 			want: openapi.V2IdentitiesUpdateIdentityRequestBody{
 				Identity: "user_123",
 				Meta:     ptr.P(map[string]any{"tier": "enterprise"}),
@@ -65,7 +65,7 @@ func TestUpdateIdentity(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			req := util.CaptureRequest[openapi.V2IdentitiesUpdateIdentityRequestBody](t, Cmd(), tt.args)
+			req := testutil.CaptureRequest[openapi.V2IdentitiesUpdateIdentityRequestBody](t, Cmd(), tt.args)
 			require.Equal(t, tt.want, req)
 		})
 	}

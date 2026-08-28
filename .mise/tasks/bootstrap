@@ -29,6 +29,6 @@ cp "$ENV_EXAMPLE_DASHBOARD" "$ENV_FILE_DASHBOARD"
 
 # Add a github app and configure it.
 echo "Configuring the local GitHub app..."
-go run . dev github setup
+go run ./build/cli dev github setup
 
 echo "Bootstrap complete."

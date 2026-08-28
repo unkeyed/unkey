@@ -26,10 +26,12 @@ func TestListPoliciesForbidden(t *testing.T) {
 	}{
 		{name: "wildcard permission", permissions: []string{"environment.*.read_policies"}, shouldPass: true},
 		{name: "specific permission", permissions: []string{fmt.Sprintf("environment.%s.read_policies", env.environmentID)}, shouldPass: true},
+		{name: "canonical urn grant", permissions: []string{fmt.Sprintf("unkey:v1:%s:projects/%s/apps/%s/environments/%s/gateway/policies/*#read_policy", env.workspaceID, env.projectID, env.appID, env.environmentID)}, shouldPass: true},
 		{name: "permission and more", permissions: []string{"some.other.permission", "environment.*.read_policies"}, shouldPass: true},
 		{name: "set action is not enough", permissions: []string{"environment.*.set_policies"}, shouldPass: false},
 		{name: "read environment action is not enough", permissions: []string{"environment.*.read_environment"}, shouldPass: false},
 		{name: "other environment id does not match", permissions: []string{fmt.Sprintf("environment.%s.read_policies", uid.New(uid.EnvironmentPrefix))}, shouldPass: false},
+		{name: "urn missing the project and app segments", permissions: []string{fmt.Sprintf("unkey:v1:%s:environments/*#read_policy", env.workspaceID)}, shouldPass: false},
 		{name: "unrelated permission", permissions: []string{"api.*.read_api"}, shouldPass: false},
 		{name: "no permissions", permissions: []string{}, shouldPass: false},
 	}

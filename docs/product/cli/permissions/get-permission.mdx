@@ -34,6 +34,7 @@ The unique identifier of the permission to retrieve. Must be a valid permission 
 | `--api-url` | string | Override API base URL (default: `https://api.unkey.com`) |
 | `--config` | string | Path to config file (default: `~/.unkey/config.toml`) |
 | `--output` | string | Output format. Use `json` for raw JSON |
+| `--body` | string | Send this JSON string as the request body. You cannot combine it with request-building flags. |
 
 ## Examples
 
@@ -52,10 +53,10 @@ echo "Permission name: $PERM_NAME"
 
 ## Output
 
-Default output shows the request ID with latency, followed by the permission details:
+Default output shows the request ID, followed by the permission details:
 
 ```text
-req_1234abcd (took 38ms)
+req_1234abcd
 
 {
   "id": "perm_1234567890abcdef",
