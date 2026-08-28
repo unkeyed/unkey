@@ -219,15 +219,9 @@ func (e *Engine) worker(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case item := <-e.work:
-			e.processItem(ctx, item)
+			e.process(ctx, item)
 		}
 	}
-}
-
-// processItem releases the local in-flight guard after processing finishes.
-func (e *Engine) processItem(ctx context.Context, item workItem) {
-	defer e.removeInflight(item.id)
-	e.process(ctx, item.id, item.fencingToken, item.now)
 }
 
 // removeInflight allows a later poll to enqueue the drain again.
@@ -239,28 +233,29 @@ func (e *Engine) removeInflight(id string) {
 
 // process reads and delivers batches without holding a MySQL transaction.
 // Every state write uses the work item's fencing token and valid lease.
-func (e *Engine) process(ctx context.Context, id, fencingToken string, now time.Time) {
+func (e *Engine) process(ctx context.Context, item workItem) {
+	defer e.removeInflight(item.id)
 	delivered := 0
 	current := source.Cursor{Time: 0, EventID: ""}
 	stream := db.LogdrainsStream("")
-	windowEnd := now.Add(-e.cfg.WatermarkLag).UnixMilli()
+	windowEnd := item.now.Add(-e.cfg.WatermarkLag).UnixMilli()
 	for {
 		drain, err := e.cfg.DB.GetLeasedAndDueLogdrain(ctx, db.GetLeasedAndDueLogdrainParams{
-			LogdrainID:   id,
-			FencingToken: fencingToken,
+			LogdrainID:   item.id,
+			FencingToken: item.fencingToken,
 		})
 		if errors.Is(err, sql.ErrNoRows) {
 			return
 		}
 		if err != nil {
-			logger.Error("read leased logdrain failed", "error", err, "drain_id", id)
+			logger.Error("read leased logdrain failed", "error", err, "drain_id", item.id)
 			return
 		}
 		stream = drain.Stream
 		if stream != db.LogdrainsStreamAuditLogs {
 			cause := fmt.Errorf("unsupported stream %q", stream)
 			if failErr := e.fail(ctx, drain, cause, 0); failErr != nil {
-				logger.Error("record logdrain failure state failed", "error", failErr, "drain_id", id)
+				logger.Error("record logdrain failure state failed", "error", failErr, "drain_id", item.id)
 			}
 			return
 		}
@@ -274,7 +269,7 @@ func (e *Engine) process(ctx context.Context, id, fencingToken string, now time.
 				return
 			}
 			if failErr := e.fail(ctx, drain, err, 0); failErr != nil {
-				logger.Error("record logdrain failure state failed", "error", failErr, "drain_id", id)
+				logger.Error("record logdrain failure state failed", "error", failErr, "drain_id", item.id)
 			}
 			return
 		}
@@ -292,7 +287,7 @@ func (e *Engine) process(ctx context.Context, id, fencingToken string, now time.
 			var ok bool
 			deliveryCompleted, deliveryDuration, deliveryResult, ok, err = e.deliverEvents(ctx, drain, events)
 			if err != nil {
-				logger.Error("record logdrain failure state failed", "error", err, "drain_id", id)
+				logger.Error("record logdrain failure state failed", "error", err, "drain_id", item.id)
 				return
 			}
 			if !ok {
@@ -310,7 +305,7 @@ func (e *Engine) process(ctx context.Context, id, fencingToken string, now time.
 			if len(events) > 0 && !deliveryCompleted.IsZero() {
 				e.recordDelivery(drain, stream, deliveryCompleted, "error", len(events), deliveryDuration, deliveryResult, err)
 			}
-			logger.Error("record logdrain success failed", "error", err, "drain_id", id)
+			logger.Error("record logdrain success failed", "error", err, "drain_id", item.id)
 			return
 		}
 		if rowsAffected == 0 {
@@ -318,7 +313,7 @@ func (e *Engine) process(ctx context.Context, id, fencingToken string, now time.
 			if len(events) > 0 && !deliveryCompleted.IsZero() {
 				e.recordDelivery(drain, stream, deliveryCompleted, "error", len(events), deliveryDuration, deliveryResult, cause)
 			}
-			logger.Error("record logdrain success rejected", "error", cause, "drain_id", id)
+			logger.Error("record logdrain success rejected", "error", cause, "drain_id", item.id)
 			return
 		}
 		if len(events) > 0 && !deliveryCompleted.IsZero() {
@@ -331,7 +326,7 @@ func (e *Engine) process(ctx context.Context, id, fencingToken string, now time.
 			break
 		}
 	}
-	logger.Info("logdrain cycle complete", "drain_id", id, "stream", stream, "events", delivered, "offset", current.Time)
+	logger.Info("logdrain cycle complete", "drain_id", item.id, "stream", stream, "events", delivered, "offset", current.Time)
 }
 
 // deliverEvents ships one batch and returns its completion time, duration, and
