@@ -23,12 +23,9 @@ const destinationSchema = z.discriminatedUnion("kind", [
   }),
   z.object({
     kind: z.literal("axiom"),
-    // url overrides the Axiom base domain for edge deployments; defaults to
-    // https://api.axiom.co in the delivery service when absent.
     config: z.object({
       dataset: z.string().min(1),
       token: z.string().min(1),
-      url: httpsUrl.optional(),
     }),
   }),
 ]);
@@ -58,7 +55,6 @@ export const createLogdrain = workspaceProcedure
           : encodeLogdrainConfig({
               kind: input.kind,
               dataset: input.config.dataset,
-              url: input.config.url ?? "",
               encryptedToken: (
                 await vault.encrypt({ keyring: ctx.workspace.id, data: input.config.token })
               ).encrypted,
@@ -73,12 +69,11 @@ export const createLogdrain = workspaceProcedure
           name: input.name,
           stream: input.stream,
           config,
+          committedOffsetInsertedAt: initialOffset,
+          leaseId: "",
+          fencingToken: "",
           createdAt: now,
           updatedAt: now,
-        });
-        await tx.insert(schema.logdrainState).values({
-          logdrainId: id,
-          committedOffsetInsertedAt: initialOffset,
         });
         await insertAuditLogs(tx, {
           workspaceId: ctx.workspace.id,

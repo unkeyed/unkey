@@ -24,7 +24,6 @@ describe("log drain protobuf config", () => {
     {
       kind: "axiom",
       dataset: "audit-logs",
-      url: "https://axiom.example.com",
       encryptedToken: "encrypted-axiom-token",
     },
   ];

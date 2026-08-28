@@ -20,12 +20,9 @@ const updateDestinationSchema = z.discriminatedUnion("kind", [
   }),
   z.object({
     kind: z.literal("axiom"),
-    // url overrides the Axiom base domain for edge deployments; defaults to
-    // https://api.axiom.co in the delivery service when absent.
     config: z.object({
       dataset: z.string().min(1),
       token: z.string().min(1).optional(),
-      url: httpsUrl.optional(),
     }),
   }),
 ]);
@@ -81,7 +78,7 @@ export const updateLogdrain = workspaceProcedure
             message: "Kind cannot be changed. Create a new log drain instead.",
           });
         }
-        let config: Buffer | undefined;
+        let config = drain.config;
         if (destination?.kind === "http" && existing.kind === "http") {
           config = encodeLogdrainConfig({
             kind: destination.kind,
@@ -93,19 +90,26 @@ export const updateLogdrain = workspaceProcedure
           config = encodeLogdrainConfig({
             kind: destination.kind,
             dataset: destination.config.dataset,
-            url: destination.config.url ?? existing.url,
             encryptedToken: encryptedToken ?? existing.encryptedToken,
           });
         }
 
+        const resetFailureState = input.status === "enabled" || destination !== undefined;
+        const expireLease = input.status !== undefined || destination !== undefined;
         await tx
           .update(schema.logdrains)
           .set({
             ...(input.name !== undefined ? { name: input.name } : {}),
             ...(input.status !== undefined ? { enabled: input.status === "enabled" } : {}),
-            ...(destination
+            ...(destination ? { config } : {}),
+            // Expire the current lease so in-flight state writes fail and a
+            // worker must acquire a new fencing token.
+            ...(expireLease ? { leaseExpiresAt: 0 } : {}),
+            ...(resetFailureState
               ? {
-                  config,
+                  status: "active" as const,
+                  consecutiveFailures: 0,
+                  nextAttemptAt: 0,
                 }
               : {}),
           })
@@ -115,25 +119,6 @@ export const updateLogdrain = workspaceProcedure
               eq(schema.logdrains.workspaceId, ctx.workspace.id),
             ),
           );
-        if (input.status !== undefined || destination !== undefined) {
-          const resetFailureState = input.status === "enabled" || destination !== undefined;
-          await tx
-            .update(schema.logdrainState)
-            .set({
-              // Expire the current lease so a status or destination change
-              // fences in-flight state writes and requires a new fencing token.
-              leaseExpiresAt: 0,
-              ...(resetFailureState
-                ? {
-                    status: "active" as const,
-                    consecutiveFailures: 0,
-                    nextAttemptAt: 0,
-                    lastError: null,
-                  }
-                : {}),
-            })
-            .where(eq(schema.logdrainState.logdrainId, input.id));
-        }
         await insertAuditLogs(tx, {
           workspaceId: ctx.workspace.id,
           actor: { type: "user", id: ctx.user.id },

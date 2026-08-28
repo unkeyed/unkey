@@ -15,20 +15,18 @@ export const listLogdrains = workspaceProcedure.query(async ({ ctx }) => {
         stream: schema.logdrains.stream,
         config: schema.logdrains.config,
         enabled: schema.logdrains.enabled,
-        stateStatus: schema.logdrainState.status,
-        committedOffsetInsertedAt: schema.logdrainState.committedOffsetInsertedAt,
-        consecutiveFailures: schema.logdrainState.consecutiveFailures,
-        lastError: schema.logdrainState.lastError,
+        runtimeStatus: schema.logdrains.status,
+        committedOffsetInsertedAt: schema.logdrains.committedOffsetInsertedAt,
+        consecutiveFailures: schema.logdrains.consecutiveFailures,
         createdAt: schema.logdrains.createdAt,
       })
       .from(schema.logdrains)
-      .innerJoin(schema.logdrainState, eq(schema.logdrainState.logdrainId, schema.logdrains.id))
       .where(eq(schema.logdrains.workspaceId, ctx.workspace.id));
-    const parsed = rows.map(({ config, enabled, stateStatus, ...row }) => {
+    const parsed = rows.map(({ config, enabled, runtimeStatus, ...row }) => {
       const stream = streamSchema.parse(row.stream);
       const destination = decodeLogdrainConfig(config);
       const status: "enabled" | "disabled" | "paused_by_failure" = enabled
-        ? stateStatus === "paused_by_failure"
+        ? runtimeStatus === "paused_by_failure"
           ? "paused_by_failure"
           : "enabled"
         : "disabled";
@@ -53,7 +51,6 @@ export const listLogdrains = workspaceProcedure.query(async ({ ctx }) => {
             status,
             config: {
               dataset: destination.dataset,
-              ...(destination.url ? { url: destination.url } : {}),
             },
           };
       }

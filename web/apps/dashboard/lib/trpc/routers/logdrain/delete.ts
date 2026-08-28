@@ -23,7 +23,6 @@ export const deleteLogdrain = workspaceProcedure
           throw new TRPCError({ code: "NOT_FOUND", message: "Log drain not found" });
         }
 
-        await tx.delete(schema.logdrainState).where(eq(schema.logdrainState.logdrainId, drain.id));
         await tx
           .delete(schema.logdrains)
           .where(

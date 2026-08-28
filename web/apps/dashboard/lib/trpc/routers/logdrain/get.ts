@@ -14,10 +14,9 @@ export const getLogdrain = workspaceProcedure
           name: schema.logdrains.name,
           config: schema.logdrains.config,
           enabled: schema.logdrains.enabled,
-          stateStatus: schema.logdrainState.status,
+          runtimeStatus: schema.logdrains.status,
         })
         .from(schema.logdrains)
-        .innerJoin(schema.logdrainState, eq(schema.logdrainState.logdrainId, schema.logdrains.id))
         .where(
           and(
             eq(schema.logdrains.id, input.id),
@@ -30,7 +29,7 @@ export const getLogdrain = workspaceProcedure
 
       const destination = decodeLogdrainConfig(row.config);
       const status: "enabled" | "disabled" | "paused_by_failure" = row.enabled
-        ? row.stateStatus === "paused_by_failure"
+        ? row.runtimeStatus === "paused_by_failure"
           ? "paused_by_failure"
           : "enabled"
         : "disabled";
@@ -55,7 +54,6 @@ export const getLogdrain = workspaceProcedure
             status,
             config: {
               dataset: destination.dataset,
-              ...(destination.url ? { url: destination.url } : {}),
             },
           };
       }

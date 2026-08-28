@@ -10,7 +10,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file logdrain/v1/config.proto.
  */
 export const file_logdrain_v1_config: GenFile = /*@__PURE__*/
-  fileDesc("Chhsb2dkcmFpbi92MS9jb25maWcucHJvdG8SC2xvZ2RyYWluLnYxImsKBkNvbmZpZxInCgRodHRwGAEgASgLMhcubG9nZHJhaW4udjEuSHR0cENvbmZpZ0gAEikKBWF4aW9tGAIgASgLMhgubG9nZHJhaW4udjEuQXhpb21Db25maWdIAEINCgtkZXN0aW5hdGlvbiJwCgpIdHRwQ29uZmlnEgsKA3VybBgBIAEoCRIrCgZmb3JtYXQYAiABKA4yGy5sb2dkcmFpbi52MS5IdHRwQm9keUZvcm1hdBIoCgdoZWFkZXJzGAMgAygLMhcubG9nZHJhaW4udjEuSHR0cEhlYWRlciIzCgpIdHRwSGVhZGVyEgwKBG5hbWUYASABKAkSFwoPZW5jcnlwdGVkX3ZhbHVlGAIgASgJIkQKC0F4aW9tQ29uZmlnEg8KB2RhdGFzZXQYASABKAkSCwoDdXJsGAIgASgJEhcKD2VuY3J5cHRlZF90b2tlbhgDIAEoCSpqCg5IdHRwQm9keUZvcm1hdBIgChxIVFRQX0JPRFlfRk9STUFUX1VOU1BFQ0lGSUVEEAASGQoVSFRUUF9CT0RZX0ZPUk1BVF9KU09OEAESGwoXSFRUUF9CT0RZX0ZPUk1BVF9OREpTT04QAkKmAQoPY29tLmxvZ2RyYWluLnYxQgtDb25maWdQcm90b1ABWjlnaXRodWIuY29tL3Vua2V5ZWQvdW5rZXkvZ2VuL3Byb3RvL2xvZ2RyYWluL3YxO2xvZ2RyYWludjGiAgNMWFiqAgtMb2dkcmFpbi5WMcoCC0xvZ2RyYWluXFYx4gIXTG9nZHJhaW5cVjFcR1BCTWV0YWRhdGHqAgxMb2dkcmFpbjo6VjFiBnByb3RvMw");
+  fileDesc("Chhsb2dkcmFpbi92MS9jb25maWcucHJvdG8SC2xvZ2RyYWluLnYxImsKBkNvbmZpZxInCgRodHRwGAEgASgLMhcubG9nZHJhaW4udjEuSHR0cENvbmZpZ0gAEikKBWF4aW9tGAIgASgLMhgubG9nZHJhaW4udjEuQXhpb21Db25maWdIAEINCgtkZXN0aW5hdGlvbiJwCgpIdHRwQ29uZmlnEgsKA3VybBgBIAEoCRIrCgZmb3JtYXQYAiABKA4yGy5sb2dkcmFpbi52MS5IdHRwQm9keUZvcm1hdBIoCgdoZWFkZXJzGAMgAygLMhcubG9nZHJhaW4udjEuSHR0cEhlYWRlciIzCgpIdHRwSGVhZGVyEgwKBG5hbWUYASABKAkSFwoPZW5jcnlwdGVkX3ZhbHVlGAIgASgJIjcKC0F4aW9tQ29uZmlnEg8KB2RhdGFzZXQYASABKAkSFwoPZW5jcnlwdGVkX3Rva2VuGAMgASgJKmoKDkh0dHBCb2R5Rm9ybWF0EiAKHEhUVFBfQk9EWV9GT1JNQVRfVU5TUEVDSUZJRUQQABIZChVIVFRQX0JPRFlfRk9STUFUX0pTT04QARIbChdIVFRQX0JPRFlfRk9STUFUX05ESlNPThACQqYBCg9jb20ubG9nZHJhaW4udjFCC0NvbmZpZ1Byb3RvUAFaOWdpdGh1Yi5jb20vdW5rZXllZC91bmtleS9nZW4vcHJvdG8vbG9nZHJhaW4vdjE7bG9nZHJhaW52MaICA0xYWKoCC0xvZ2RyYWluLlYxygILTG9nZHJhaW5cVjHiAhdMb2dkcmFpblxWMVxHUEJNZXRhZGF0YeoCDExvZ2RyYWluOjpWMWIGcHJvdG8z");
 
 /**
  * Config contains the complete destination configuration for one log drain.
@@ -107,13 +107,6 @@ export type AxiomConfig = Message<"logdrain.v1.AxiomConfig"> & {
    * @generated from field: string dataset = 1;
    */
   dataset: string;
-
-  /**
-   * url overrides the default Axiom API URL when it is not empty.
-   *
-   * @generated from field: string url = 2;
-   */
-  url: string;
 
   /**
    * @generated from field: string encrypted_token = 3;

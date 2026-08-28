@@ -20,7 +20,6 @@ export type LogdrainConfig =
   | {
       kind: "axiom";
       dataset: string;
-      url: string;
       encryptedToken: string;
     };
 
@@ -40,7 +39,6 @@ export function encodeLogdrainConfig(config: LogdrainConfig): Buffer {
           case: config.kind,
           value: {
             dataset: config.dataset,
-            url: config.url,
             encryptedToken: config.encryptedToken,
           },
         };
@@ -66,7 +64,6 @@ export function decodeLogdrainConfig(raw: Uint8Array): LogdrainConfig {
       return {
         kind: destination.case,
         dataset: destination.value.dataset,
-        url: destination.value.url,
         encryptedToken: destination.value.encryptedToken,
       };
     case undefined:

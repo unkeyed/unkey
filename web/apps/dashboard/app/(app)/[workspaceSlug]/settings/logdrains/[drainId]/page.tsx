@@ -48,7 +48,7 @@ type Drain = DrainBase &
         kind: "http";
         config: { url: string; format: "json" | "ndjson"; headers: HeaderField[] };
       }
-    | { kind: "axiom"; config: { dataset: string; url?: string } }
+    | { kind: "axiom"; config: { dataset: string } }
   );
 
 function getDestination(drain: Drain) {
