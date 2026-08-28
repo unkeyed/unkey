@@ -82,6 +82,10 @@ type Querier interface {
 	//
 	//  DELETE FROM app_runtime_settings WHERE environment_id = ?
 	DeleteAppRuntimeSettingsByEnvironmentId(ctx context.Context, environmentID string) error
+	//DeleteCiliumNetworkPoliciesByDeploymentID
+	//
+	//  DELETE FROM cilium_network_policies WHERE deployment_id = ?
+	DeleteCiliumNetworkPoliciesByDeploymentID(ctx context.Context, deploymentID string) error
 	//DeleteCiliumNetworkPoliciesByEnvironmentId
 	//
 	//  DELETE FROM cilium_network_policies WHERE environment_id = ?
@@ -94,17 +98,35 @@ type Querier interface {
 	//
 	//  DELETE FROM custom_domains WHERE environment_id = ?
 	DeleteCustomDomainsByEnvironmentId(ctx context.Context, environmentID string) error
+	//DeleteDeploymentByIDForGC
+	//
+	//  DELETE FROM deployments WHERE id = ?
+	DeleteDeploymentByIDForGC(ctx context.Context, deploymentID string) (int64, error)
+	//DeleteDeploymentChangesByDeploymentID
+	//
+	//  DELETE FROM deployment_changes
+	//  WHERE resource_type = 'deployment_topology'
+	//    AND resource_id = ?
+	DeleteDeploymentChangesByDeploymentID(ctx context.Context, deploymentID string) error
 	//DeleteDeploymentInstances
 	//
 	//  DELETE FROM instances
 	//  WHERE deployment_id = ? AND region_id = ?
 	DeleteDeploymentInstances(ctx context.Context, arg DeleteDeploymentInstancesParams) error
+	//DeleteDeploymentStepsByDeploymentID
+	//
+	//  DELETE FROM deployment_steps WHERE deployment_id = ?
+	DeleteDeploymentStepsByDeploymentID(ctx context.Context, deploymentID string) error
 	//DeleteDeploymentStepsByEnvironmentId
 	//
 	//  DELETE ds FROM deployment_steps ds
 	//  JOIN deployments d ON d.id = ds.deployment_id
 	//  WHERE d.environment_id = ?
 	DeleteDeploymentStepsByEnvironmentId(ctx context.Context, environmentID string) error
+	//DeleteDeploymentTopologiesByDeploymentID
+	//
+	//  DELETE FROM deployment_topology WHERE deployment_id = ?
+	DeleteDeploymentTopologiesByDeploymentID(ctx context.Context, deploymentID string) error
 	//DeleteDeploymentTopologiesByEnvironmentId
 	//
 	//  DELETE dt FROM deployment_topology dt
@@ -148,6 +170,10 @@ type Querier interface {
 	//  WHERE fully_qualified_domain_name = ?
 	//    AND project_id = ?
 	DeleteFrontlineRouteByFQDNAndProject(ctx context.Context, arg DeleteFrontlineRouteByFQDNAndProjectParams) error
+	//DeleteFrontlineRoutesByDeploymentID
+	//
+	//  DELETE FROM frontline_routes WHERE deployment_id = ?
+	DeleteFrontlineRoutesByDeploymentID(ctx context.Context, deploymentID string) error
 	//DeleteFrontlineRoutesByEnvironmentId
 	//
 	//  DELETE FROM frontline_routes WHERE environment_id = ?
@@ -160,6 +186,10 @@ type Querier interface {
 	//
 	//  DELETE FROM instances WHERE k8s_name = ? AND region_id = ?
 	DeleteInstance(ctx context.Context, arg DeleteInstanceParams) error
+	//DeleteOpenAPISpecsByDeploymentID
+	//
+	//  DELETE FROM openapi_specs WHERE deployment_id = ?
+	DeleteOpenAPISpecsByDeploymentID(ctx context.Context, deploymentID sql.NullString) error
 	//DeleteProjectById
 	//
 	//  DELETE FROM projects WHERE id = ?
@@ -401,6 +431,52 @@ type Querier interface {
 	//
 	//  SELECT pk, id, k8s_name, workspace_id, project_id, environment_id, app_id, image, build_id, git_commit_sha, git_branch, git_commit_message, git_commit_author_handle, git_commit_author_avatar_url, git_commit_timestamp, sentinel_config, cpu_millicores, memory_mib, storage_mib, desired_state, encrypted_environment_variables, command, port, shutdown_signal, upstream_protocol, healthcheck, pr_number, fork_repository_full_name, github_deployment_id, invocation_id, status, `trigger`, triggered_by, trigger_reason, created_at, updated_at FROM `deployments` WHERE k8s_name = ?
 	FindDeploymentByK8sName(ctx context.Context, k8sName string) (Deployment, error)
+	// Re-evaluates a deployment immediately before destructive cleanup. This must
+	// remain equivalent to ListDeploymentGCCandidates except for pagination.
+	//
+	//  SELECT d.id, d.image
+	//  FROM deployments d
+	//  JOIN environments e ON e.id = d.environment_id
+	//  JOIN apps a ON a.id = d.app_id
+	//  WHERE d.id = ?
+	//    AND d.status IN ('failed', 'skipped', 'stopped', 'superseded', 'cancelled')
+	//    AND (d.status != 'stopped' OR d.desired_state = 'stopped')
+	//    AND (a.current_deployment_id IS NULL OR a.current_deployment_id != d.id)
+	//    AND NOT EXISTS (
+	//      SELECT 1 FROM instances i WHERE i.deployment_id = d.id
+	//    )
+	//    AND NOT EXISTS (
+	//      SELECT 1
+	//      FROM frontline_routes fr
+	//      WHERE fr.deployment_id = d.id
+	//        AND fr.sticky IN ('branch', 'environment', 'live')
+	//    )
+	//    AND (
+	//      (
+	//        e.kind = 'preview'
+	//        AND COALESCE(d.updated_at, d.created_at) < CAST(? AS SIGNED)
+	//      )
+	//      OR
+	//      (
+	//        e.kind = 'production'
+	//        AND d.created_at < ?
+	//        AND (
+	//          d.status != 'stopped'
+	//          OR (
+	//            SELECT COUNT(*)
+	//            FROM deployments newer
+	//            WHERE newer.app_id = d.app_id
+	//              AND newer.environment_id = d.environment_id
+	//              AND newer.status IN ('ready', 'stopped')
+	//              AND (
+	//                newer.created_at > d.created_at
+	//                OR (newer.created_at = d.created_at AND newer.pk > d.pk)
+	//              )
+	//          ) >= CAST(? AS UNSIGNED)
+	//        )
+	//      )
+	//    )
+	FindDeploymentGCEligible(ctx context.Context, arg FindDeploymentGCEligibleParams) (FindDeploymentGCEligibleRow, error)
 	// Returns all regions where a deployment is configured.
 	// Used for fan-out: when a deployment changes, emit state_change to each region.
 	//
@@ -1468,6 +1544,55 @@ type Querier interface {
 	//  ORDER BY pk ASC
 	//  LIMIT ?
 	ListDeploymentChangesByRegionAll(ctx context.Context, arg ListDeploymentChangesByRegionAllParams) ([]DeploymentChange, error)
+	// Lists terminal deployments whose retention window has expired. Production
+	// keeps every deployment from the time window plus its ten newest successful
+	// revisions. Preview deployments age from their last lifecycle update.
+	//
+	//  SELECT d.pk, d.id
+	//  FROM deployments d
+	//  JOIN environments e ON e.id = d.environment_id
+	//  JOIN apps a ON a.id = d.app_id
+	//  WHERE d.pk > ?
+	//    AND d.status IN ('failed', 'skipped', 'stopped', 'superseded', 'cancelled')
+	//    AND (d.status != 'stopped' OR d.desired_state = 'stopped')
+	//    AND (a.current_deployment_id IS NULL OR a.current_deployment_id != d.id)
+	//    AND NOT EXISTS (
+	//      SELECT 1 FROM instances i WHERE i.deployment_id = d.id
+	//    )
+	//    AND NOT EXISTS (
+	//      SELECT 1
+	//      FROM frontline_routes fr
+	//      WHERE fr.deployment_id = d.id
+	//        AND fr.sticky IN ('branch', 'environment', 'live')
+	//    )
+	//    AND (
+	//      (
+	//        e.kind = 'preview'
+	//        AND COALESCE(d.updated_at, d.created_at) < CAST(? AS SIGNED)
+	//      )
+	//      OR
+	//      (
+	//        e.kind = 'production'
+	//        AND d.created_at < ?
+	//        AND (
+	//          d.status != 'stopped'
+	//          OR (
+	//            SELECT COUNT(*)
+	//            FROM deployments newer
+	//            WHERE newer.app_id = d.app_id
+	//              AND newer.environment_id = d.environment_id
+	//              AND newer.status IN ('ready', 'stopped')
+	//              AND (
+	//                newer.created_at > d.created_at
+	//                OR (newer.created_at = d.created_at AND newer.pk > d.pk)
+	//              )
+	//          ) >= CAST(? AS UNSIGNED)
+	//        )
+	//      )
+	//    )
+	//  ORDER BY d.pk
+	//  LIMIT ?
+	ListDeploymentGCCandidates(ctx context.Context, arg ListDeploymentGCCandidatesParams) ([]ListDeploymentGCCandidatesRow, error)
 	//ListDeploymentsByEnvironmentIdAndStatus
 	//
 	//  SELECT pk, id, k8s_name, workspace_id, project_id, environment_id, app_id, image, build_id, git_commit_sha, git_branch, git_commit_message, git_commit_author_handle, git_commit_author_avatar_url, git_commit_timestamp, sentinel_config, cpu_millicores, memory_mib, storage_mib, desired_state, encrypted_environment_variables, command, port, shutdown_signal, upstream_protocol, healthcheck, pr_number, fork_repository_full_name, github_deployment_id, invocation_id, status, `trigger`, triggered_by, trigger_reason, created_at, updated_at FROM `deployments`
