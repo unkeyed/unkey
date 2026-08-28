@@ -274,6 +274,7 @@ func TestEngine_Integration(t *testing.T) {
 					found = true
 					require.Equal(c, int32(http.StatusBadRequest), delivery.ResponseStatus)
 					require.Equal(c, httpSink.responseBody, delivery.ResponseBody)
+					require.Empty(c, delivery.Error)
 					require.Positive(c, delivery.RequestBodyBytes)
 				}
 			}

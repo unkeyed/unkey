@@ -93,7 +93,6 @@ type deliveryAttempt struct {
 	completed time.Time
 	duration  time.Duration
 	result    sink.Result
-	succeeded bool
 }
 
 // New wires an engine to its sink factory without starting background work.
@@ -261,7 +260,8 @@ func (e *Engine) process(ctx context.Context, item workItem) {
 		stream = drain.Stream
 		if stream != db.LogdrainsStreamAuditLogs {
 			cause := fmt.Errorf("unsupported stream %q", stream)
-			if failErr := e.fail(ctx, drain, cause, 0); failErr != nil {
+			logger.Error("unsupported logdrain stream", "error", cause, "drain_id", item.id)
+			if failErr := e.recordFailure(ctx, drain, 0); failErr != nil {
 				logger.Error("record logdrain failure state failed", "error", failErr, "drain_id", item.id)
 			}
 			return
@@ -275,7 +275,8 @@ func (e *Engine) process(ctx context.Context, item workItem) {
 			if ctx.Err() != nil {
 				return
 			}
-			if failErr := e.fail(ctx, drain, err, 0); failErr != nil {
+			logger.Error("read logdrain source failed", "error", err, "drain_id", item.id)
+			if failErr := e.recordFailure(ctx, drain, 0); failErr != nil {
 				logger.Error("record logdrain failure state failed", "error", failErr, "drain_id", item.id)
 			}
 			return
@@ -291,10 +292,10 @@ func (e *Engine) process(ctx context.Context, item workItem) {
 		if len(events) > 0 {
 			delivery, err = e.deliverEvents(ctx, drain, events)
 			if err != nil {
-				logger.Error("record logdrain failure state failed", "error", err, "drain_id", item.id)
+				logger.Error("deliver logdrain events failed", "error", err, "drain_id", item.id)
 				return
 			}
-			if !delivery.succeeded {
+			if !delivery.result.Acknowledged {
 				return
 			}
 		}
@@ -333,16 +334,15 @@ func (e *Engine) process(ctx context.Context, item workItem) {
 	logger.Info("logdrain cycle complete", "drain_id", item.id, "stream", stream, "events", delivered, "offset", current.Time)
 }
 
-// deliverEvents ships one batch. A false succeeded field means the failure state
-// was recorded or the parent context was canceled. An error means the failure
-// state could not be recorded.
+// deliverEvents ships one batch. An unacknowledged result means the destination
+// rejected the delivery. An error means an unexpected delivery or state failure.
 func (e *Engine) deliverEvents(ctx context.Context, drain db.GetLeasedAndDueLogdrainRow, events []sink.Event) (deliveryAttempt, error) {
 	destination, err := e.factory.build(ctx, drain)
 	if err != nil {
 		if ctx.Err() != nil {
 			return deliveryAttempt{}, nil
 		}
-		return deliveryAttempt{}, e.fail(ctx, drain, err, 0)
+		return deliveryAttempt{}, errors.Join(err, e.recordFailure(ctx, drain, 0))
 	}
 	deliveryCtx, cancel := context.WithTimeout(ctx, deliveryTimeout)
 	defer cancel()
@@ -357,18 +357,13 @@ func (e *Engine) deliverEvents(ctx context.Context, drain db.GetLeasedAndDueLogd
 		return attempt, nil
 	}
 	if err == nil && result.Acknowledged {
-		attempt.succeeded = true
 		return attempt, nil
 	}
-	cause := err
-	if cause == nil {
-		cause = rejectedDeliveryError(result)
+	e.recordDelivery(drain, drain.Stream, attempt.completed, "error", len(events), attempt.duration, result, err)
+	if failErr := e.recordFailure(ctx, drain, result.RetryAfter); failErr != nil {
+		return attempt, errors.Join(err, failErr)
 	}
-	e.recordDelivery(drain, drain.Stream, attempt.completed, "error", len(events), attempt.duration, result, cause)
-	if failErr := e.fail(ctx, drain, cause, result.RetryAfter); failErr != nil {
-		return attempt, failErr
-	}
-	return attempt, nil
+	return attempt, err
 }
 
 // recordDelivery emits asynchronous telemetry when enabled. A nil Deliveries
@@ -405,9 +400,8 @@ func (e *Engine) recordDelivery(drain db.GetLeasedAndDueLogdrainRow, stream db.L
 	})
 }
 
-// fail atomically persists retry or pause state for the current fencing token.
-func (e *Engine) fail(ctx context.Context, drain db.GetLeasedAndDueLogdrainRow, cause error, retryHint time.Duration) error {
-	defer logger.Error("logdrain delivery failed", "error", cause, "drain_id", drain.ID)
+// recordFailure atomically persists retry or pause state for the current fencing token.
+func (e *Engine) recordFailure(ctx context.Context, drain db.GetLeasedAndDueLogdrainRow, retryHint time.Duration) error {
 	metrics.DrainFailuresTotal.WithLabelValues(string(drain.Stream)).Inc()
 	pause := int(drain.ConsecutiveFailures)+1 >= e.cfg.PauseThreshold
 	status := db.LogdrainsStatusActive
@@ -442,24 +436,6 @@ func truncateError(cause error) string {
 		return message[:1024]
 	}
 	return message
-}
-
-// rejectedDeliveryError converts an expected destination rejection into the
-// text stored in delivery telemetry and logs. The structured result stays separate.
-func rejectedDeliveryError(result sink.Result) error {
-	if result.HTTPStatus == 0 {
-		return errors.New("destination did not acknowledge delivery")
-	}
-	if result.HTTPStatus >= 200 && result.HTTPStatus < 300 {
-		if result.ResponseBody == "" {
-			return fmt.Errorf("destination did not acknowledge complete delivery (HTTP %d)", result.HTTPStatus)
-		}
-		return fmt.Errorf("destination did not acknowledge complete delivery (HTTP %d): %s", result.HTTPStatus, result.ResponseBody)
-	}
-	if result.ResponseBody == "" {
-		return fmt.Errorf("destination returned HTTP %d", result.HTTPStatus)
-	}
-	return fmt.Errorf("destination returned HTTP %d: %s", result.HTTPStatus, result.ResponseBody)
 }
 
 // backoff doubles from 1 minute through 128 minutes, then retries every 4 hours.
