@@ -35,6 +35,7 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/worker/clickhouseuser"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/deploybilling"
+	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/deploymentgc"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/deploy"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/deployment"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/deployteardown"
@@ -94,6 +95,15 @@ type harnessOpts struct {
 	billingUsageReader deploybilling.UsageReader
 	billingPusher      billingmeter.Pusher
 	billingCloser      invoicecloser.Closer
+	deploymentGC       deploymentgc.Config
+}
+
+// WithDeploymentGC injects Depot reconciliation dependencies. The harness
+// always supplies the test database.
+func WithDeploymentGC(cfg deploymentgc.Config) Option {
+	return func(o *harnessOpts) {
+		o.deploymentGC = cfg
+	}
 }
 
 // WithTimeout overrides the default harness context timeout.
@@ -217,6 +227,7 @@ func New(t *testing.T, opts ...Option) *Harness {
 		DB:                        database,
 		Clickhouse:                chClient,
 		Clock:                     o.clock,
+		DeploymentGC:              o.deploymentGC,
 		RatelimitDB:               ratelimitdb.New(database.RW(), database.RO()),
 		SlackQuotaCheckWebhookURL: "",
 		// Deploy billing is a no-op by default (nil reader + empty Stripe key);

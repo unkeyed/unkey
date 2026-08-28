@@ -29,6 +29,7 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/auditlogcleanup"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/auditlogexport"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/deploybilling"
+	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/deploymentgc"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/deployspendcheck"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/idlepreview"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/keylastusedsync"
@@ -51,6 +52,7 @@ type Service struct {
 	auditLogExport       *auditlogexport.Handler
 	deployBilling        *deploybilling.Handler
 	deployBillingPush    *deploybilling.PushHandler
+	deploymentGC         *deploymentgc.Handler
 	deploySpendCheck     *deployspendcheck.Handler
 	deploySpendCheckWork *deployspendcheck.CheckHandler
 	idlePreview          *idlepreview.Handler
@@ -102,6 +104,9 @@ type Config struct {
 	Clickhouse clickhouse.ClickHouse
 	// Clock provides timestamps for cutoffs. Optional; defaults to a real clock.
 	Clock clock.Clock
+	// DeploymentGC configures Depot reconciliation. Its DB field is populated
+	// from DB by New. A nil Depot client disables only the Depot phases.
+	DeploymentGC deploymentgc.Config
 	// RatelimitDB wraps the ratelimit database. Must not be nil.
 	RatelimitDB *rldb.Database
 
@@ -257,6 +262,11 @@ func New(cfg Config) (*Service, error) {
 	if err != nil {
 		return nil, err
 	}
+	cfg.DeploymentGC.DB = cfg.DB
+	deploymentGCH, err := deploymentgc.New(cfg.DeploymentGC)
+	if err != nil {
+		return nil, err
+	}
 
 	deployBillingPushH, err := deploybilling.NewPushHandler(billingPusher)
 	if err != nil {
@@ -312,6 +322,7 @@ func New(cfg Config) (*Service, error) {
 		auditLogExport:                 auditLogExportH,
 		deployBilling:                  deployBillingH,
 		deployBillingPush:              deployBillingPushH,
+		deploymentGC:                   deploymentGCH,
 		deploySpendCheck:               deploySpendCheckH,
 		deploySpendCheckWork:           deploySpendCheckWorkH,
 		idlePreview:                    idlePreviewH,
@@ -376,6 +387,10 @@ func (s *Service) RunScaleDownIdlePreviewDeployments(
 	req *hydrav1.RunScaleDownIdlePreviewDeploymentsRequest,
 ) (*hydrav1.RunScaleDownIdlePreviewDeploymentsResponse, error) {
 	return s.idlePreview.Handle(ctx, req)
+}
+
+func (s *Service) RunDeploymentGarbageCollection(ctx restate.ObjectContext, req *hydrav1.RunDeploymentGarbageCollectionRequest) (*hydrav1.RunDeploymentGarbageCollectionResponse, error) {
+	return s.deploymentGC.Handle(ctx, req)
 }
 
 func (s *Service) RunDeployBillingClose(
