@@ -31,7 +31,6 @@ type CommonProps = {
   productionSlug: string;
   previewSlug: string;
   isOpen: boolean;
-  topOffset: number;
   onClose: () => void;
   /**
    * `policyMatchKey` of every policy on the page. `mergePolicies` pairs the
@@ -56,7 +55,7 @@ type EditProps = CommonProps & {
 export type PolicyPanelProps = AddProps | EditProps;
 
 export function PolicyPanel(props: PolicyPanelProps) {
-  const { productionSlug, previewSlug, isOpen, topOffset, onClose, existingMatchKeys } = props;
+  const { productionSlug, previewSlug, isOpen, onClose, existingMatchKeys } = props;
   const isEdit = props.mode === "edit";
 
   const envOptions = [
@@ -119,7 +118,6 @@ export function PolicyPanel(props: PolicyPanelProps) {
         </div>
       }
       isOpen={isOpen}
-      topOffset={topOffset}
       onClose={onClose}
       form={form}
       onSubmit={onSubmit}
@@ -216,7 +214,7 @@ export function PolicyPanel(props: PolicyPanelProps) {
       </PolicyForm.Accordion>
       <PolicyForm.Footer>
         <div className="border-t border-grayA-4">
-          <div className="px-8 py-6">
+          <div className="px-6 py-6">
             <Controller
               control={control}
               name="environmentId"
@@ -236,7 +234,7 @@ export function PolicyPanel(props: PolicyPanelProps) {
           </div>
         </div>
 
-        <div className="border-t border-gray-4 bg-white dark:bg-black px-8 py-5 flex items-center justify-end">
+        <div className="border-t border-gray-4 bg-white dark:bg-black px-6 py-5 flex items-center justify-end">
           <Button type="submit" variant="primary" size="md" className="px-3">
             {isEdit ? "Save Changes" : "Add Policy"}
           </Button>
