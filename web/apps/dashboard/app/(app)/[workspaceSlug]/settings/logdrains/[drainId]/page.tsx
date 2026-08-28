@@ -22,6 +22,7 @@ import {
   SettingCard,
   SettingCardGroup,
   SettingsDangerZone,
+  SettingsZoneRow,
   TimestampInfo,
   toast,
 } from "@unkey/ui";
@@ -431,15 +432,14 @@ function Detail({
           </SettingCardGroup>
         </section>
         <SettingsDangerZone>
-          <SettingCard
+          <SettingsZoneRow
             title="Delete log drain"
             description="Deletes this drain and stops delivery. The delivery offset is lost. This cannot be undone."
-            contentWidth="w-full lg:w-[420px] justify-end"
-          >
-            <Button variant="destructive" onClick={() => setConfirmDelete(true)}>
-              Delete log drain…
-            </Button>
-          </SettingCard>
+            action={{
+              label: "Delete log drain…",
+              onClick: () => setConfirmDelete(true),
+            }}
+          />
         </SettingsDangerZone>
         <DialogContainer
           isOpen={confirmDelete}
