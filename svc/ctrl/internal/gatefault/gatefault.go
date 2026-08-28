@@ -1,7 +1,5 @@
 // Package gatefault converts a fault raised by the shared precondition and
-// validation packages into ctrl's error surfaces. It surfaces only
-// fault.UserFacingMessage, never err.Error(), which carries internal detail, so
-// callers can't leak it by mistake.
+// validation packages into ctrl's error surfaces.
 package gatefault
 
 import (

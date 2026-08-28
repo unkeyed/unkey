@@ -7,8 +7,6 @@
 package imageref
 
 import (
-	// go-digest verifies a digest only for algorithms whose hash is linked in, so
-	// without these a valid sha256 reference fails as an unsupported algorithm.
 	_ "crypto/sha256"
 	_ "crypto/sha512"
 	"fmt"
@@ -49,9 +47,6 @@ func Validate(image string) error {
 	}
 
 	if _, err := reference.ParseDockerRef(image); err != nil {
-		// The parser answers most malformed input with a sentinel built at init, so
-		// its text names neither the input nor the rule that was broken. It is kept
-		// internal for debugging and the caller is told the shape expected instead.
 		return fault.Wrap(
 			err,
 			fault.Code(codes.App.Validation.InvalidInput.URN()),

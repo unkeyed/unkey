@@ -121,9 +121,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	switch {
 	case req.Image != nil:
-		// ctrl refuses an unpullable reference too, but its message is replaced by a
-		// generic one on the way back, so the reason only reaches the caller if the
-		// check runs here as well.
 		if err := imageref.Validate(req.Image.DockerImage); err != nil {
 			return err
 		}
