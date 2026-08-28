@@ -280,9 +280,12 @@ func (e *Engine) process(ctx context.Context, id, fencingToken string, now time.
 			}
 			return
 		}
-		if len(events) < e.cfg.BatchSize {
+		caughtUp := len(events) < e.cfg.BatchSize
+		nextAttemptDelay := time.Duration(0)
+		if caughtUp {
 			// An empty event ID leaves events exactly at the next window boundary unread.
 			advance = source.Cursor{Time: windowEnd, EventID: ""}
+			nextAttemptDelay = e.cfg.PollInterval
 		}
 		var deliveryCompleted time.Time
 		var deliveryDuration time.Duration
@@ -301,6 +304,7 @@ func (e *Engine) process(ctx context.Context, id, fencingToken string, now time.
 		rowsAffected, err := e.cfg.DB.RecordLogdrainSuccess(ctx, db.RecordLogdrainSuccessParams{
 			CommittedOffsetInsertedAt: advance.Time,
 			CommittedOffsetEventID:    advance.EventID,
+			NextAttemptDelayMillis:    nextAttemptDelay.Milliseconds(),
 			LogdrainID:                drain.ID,
 			FencingToken:              drain.FencingToken,
 		})
@@ -325,7 +329,7 @@ func (e *Engine) process(ctx context.Context, id, fencingToken string, now time.
 		}
 		delivered += len(events)
 		current = advance
-		if len(events) < e.cfg.BatchSize {
+		if caughtUp {
 			break
 		}
 	}

@@ -14,7 +14,7 @@ UPDATE logdrains
 SET committed_offset_inserted_at = ?,
   committed_offset_event_id = ?,
   consecutive_failures = 0,
-  next_attempt_at = 0
+  next_attempt_at = CAST(UNIX_TIMESTAMP(NOW(3)) * 1000 AS SIGNED) + CAST(? AS SIGNED)
 WHERE id = ?
   AND fencing_token = ?
   AND lease_expires_at > CAST(UNIX_TIMESTAMP(NOW(3)) * 1000 AS SIGNED)
@@ -30,19 +30,20 @@ WHERE id = ?
 type RecordLogdrainSuccessParams struct {
 	CommittedOffsetInsertedAt int64  `db:"committed_offset_inserted_at"`
 	CommittedOffsetEventID    string `db:"committed_offset_event_id"`
+	NextAttemptDelayMillis    int64  `db:"next_attempt_delay_millis"`
 	LogdrainID                string `db:"logdrain_id"`
 	FencingToken              string `db:"fencing_token"`
 }
 
-// RecordLogdrainSuccess advances the composite cursor only for the current
-// fencing token and a lease that is valid at database time. An expired lease
-// or a non-monotonic cursor changes no rows.
+// RecordLogdrainSuccess advances the composite cursor and schedules the next
+// attempt after the supplied delay. It changes no rows for an expired lease,
+// stale fencing token, or non-monotonic cursor.
 //
 //	UPDATE logdrains
 //	SET committed_offset_inserted_at = ?,
 //	  committed_offset_event_id = ?,
 //	  consecutive_failures = 0,
-//	  next_attempt_at = 0
+//	  next_attempt_at = CAST(UNIX_TIMESTAMP(NOW(3)) * 1000 AS SIGNED) + CAST(? AS SIGNED)
 //	WHERE id = ?
 //	  AND fencing_token = ?
 //	  AND lease_expires_at > CAST(UNIX_TIMESTAMP(NOW(3)) * 1000 AS SIGNED)
@@ -57,6 +58,7 @@ func (q *Queries) RecordLogdrainSuccess(ctx context.Context, arg RecordLogdrainS
 	result, err := q.db.ExecContext(ctx, recordLogdrainSuccess,
 		arg.CommittedOffsetInsertedAt,
 		arg.CommittedOffsetEventID,
+		arg.NextAttemptDelayMillis,
 		arg.LogdrainID,
 		arg.FencingToken,
 		arg.CommittedOffsetInsertedAt,

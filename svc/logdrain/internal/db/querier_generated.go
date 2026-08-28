@@ -97,15 +97,15 @@ type Querier interface {
 	//    AND fencing_token = ?
 	//    AND lease_expires_at > CAST(UNIX_TIMESTAMP(NOW(3)) * 1000 AS SIGNED)
 	RecordLogdrainFailure(ctx context.Context, arg RecordLogdrainFailureParams) (int64, error)
-	// RecordLogdrainSuccess advances the composite cursor only for the current
-	// fencing token and a lease that is valid at database time. An expired lease
-	// or a non-monotonic cursor changes no rows.
+	// RecordLogdrainSuccess advances the composite cursor and schedules the next
+	// attempt after the supplied delay. It changes no rows for an expired lease,
+	// stale fencing token, or non-monotonic cursor.
 	//
 	//  UPDATE logdrains
 	//  SET committed_offset_inserted_at = ?,
 	//    committed_offset_event_id = ?,
 	//    consecutive_failures = 0,
-	//    next_attempt_at = 0
+	//    next_attempt_at = CAST(UNIX_TIMESTAMP(NOW(3)) * 1000 AS SIGNED) + CAST(? AS SIGNED)
 	//  WHERE id = ?
 	//    AND fencing_token = ?
 	//    AND lease_expires_at > CAST(UNIX_TIMESTAMP(NOW(3)) * 1000 AS SIGNED)

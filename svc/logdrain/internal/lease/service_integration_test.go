@@ -113,11 +113,27 @@ func TestService_LeaseOwnership(t *testing.T) {
 	rowsAffected, err := database.RecordLogdrainSuccess(ctx, db.RecordLogdrainSuccessParams{
 		CommittedOffsetInsertedAt: 1,
 		CommittedOffsetEventID:    "event_1",
+		NextAttemptDelayMillis:    time.Minute.Milliseconds(),
 		LogdrainID:                drainID,
 		FencingToken:              staleToken,
 	})
 	require.NoError(t, err)
 	require.Zero(t, rowsAffected, "a stale token must not advance the cursor")
+	successDelay := time.Minute
+	successStartedAt := readDatabaseNowMillis(t, ctx, database)
+	rowsAffected, err = database.RecordLogdrainSuccess(ctx, db.RecordLogdrainSuccessParams{
+		CommittedOffsetInsertedAt: 1,
+		CommittedOffsetEventID:    "event_1",
+		NextAttemptDelayMillis:    successDelay.Milliseconds(),
+		LogdrainID:                drainID,
+		FencingToken:              fencingToken,
+	})
+	require.NoError(t, err)
+	require.Equal(t, int64(1), rowsAffected)
+	successCompletedAt := readDatabaseNowMillis(t, ctx, database)
+	nextAttemptAt := readNextAttemptAt(t, ctx, database, drainID)
+	require.GreaterOrEqual(t, nextAttemptAt, successStartedAt+successDelay.Milliseconds())
+	require.LessOrEqual(t, nextAttemptAt, successCompletedAt+successDelay.Milliseconds())
 	rowsAffected, err = database.RecordLogdrainFailure(ctx, db.RecordLogdrainFailureParams{
 		Status:           db.LogdrainsStatusPausedByFailure,
 		RetryAfterMillis: time.Minute.Milliseconds(),
@@ -138,7 +154,7 @@ func TestService_LeaseOwnership(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, int64(1), rowsAffected)
 	failureCompletedAt := readDatabaseNowMillis(t, ctx, database)
-	nextAttemptAt := readNextAttemptAt(t, ctx, database, drainID)
+	nextAttemptAt = readNextAttemptAt(t, ctx, database, drainID)
 	require.GreaterOrEqual(t, nextAttemptAt, failureStartedAt+retryAfter.Milliseconds())
 	require.LessOrEqual(t, nextAttemptAt, failureCompletedAt+retryAfter.Milliseconds())
 	_, err = database.Conn().ExecContext(ctx, "UPDATE logdrains SET consecutive_failures = 0, next_attempt_at = 0 WHERE id = ?", drainID)
