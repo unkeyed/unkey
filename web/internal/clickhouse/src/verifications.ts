@@ -646,8 +646,6 @@ function getVerificationTimeseriesWhereClause(
 
 function createVerificationTimeseriesQuerier(interval: TimeInterval) {
   return (ch: Querier) => async (args: VerificationTimeseriesParams) => {
-    assertOrderedTimeRange(args.startTime, args.endTime);
-
     const { whereClause, paramSchema } = getVerificationTimeseriesWhereClause(args, [
       "time >= fromUnixTimestamp64Milli({startTime: Int64})",
       "time <= fromUnixTimestamp64Milli({endTime: Int64})",
@@ -743,6 +741,8 @@ async function batchVerificationTimeseries(
   args: VerificationTimeseriesParams,
   maxBatchSize = 15,
 ) {
+  assertOrderedTimeRange(args.startTime, args.endTime);
+
   const alignedArgs = { ...args, ...alignWindowToInterval(interval, args.startTime, args.endTime) };
 
   if (

@@ -2,11 +2,14 @@ import { keysListQueryTimeseriesPayload } from "@/components/api-keys-table/comp
 import { clickhouse } from "@/lib/clickhouse";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
+import { assertValidTimeRange } from "../../../utils/time-range";
 
 export const keyUsageTimeseries = workspaceProcedure
   .use(withRatelimit(ratelimit.read))
   .input(keysListQueryTimeseriesPayload)
   .query(async ({ ctx, input }) => {
+    assertValidTimeRange(input.startTime, input.endTime);
+
     try {
       const result = await clickhouse.verifications.timeseries.perHour({
         workspaceId: ctx.workspace.id,
