@@ -43,7 +43,7 @@ func TestDeliverSuccess(t *testing.T) {
 	}))
 	t.Cleanup(server.Close)
 
-	drain := newTestSink(t, Config{Endpoint: server.URL, Headers: map[string]string{"X-Customer": "customer-value"}, Timeout: time.Second})
+	drain := newTestSink(t, Config{Endpoint: server.URL, Headers: http.Header{"X-Customer": {"customer-value"}}, Timeout: time.Second})
 	batch := testBatch()
 	expectedBody, err := marshalBatch(batch, logdrainv1.HttpBodyFormat_HTTP_BODY_FORMAT_JSON)
 	require.NoError(t, err)

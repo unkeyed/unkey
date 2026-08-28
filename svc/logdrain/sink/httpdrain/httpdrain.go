@@ -29,7 +29,7 @@ type Config struct {
 	// Format selects the body encoding. Unspecified defaults to JSON.
 	Format logdrainv1.HttpBodyFormat
 	// Headers are customer-provided request headers, typically for authentication, sent verbatim on every delivery.
-	Headers map[string]string
+	Headers http.Header
 	// Timeout is the per-request timeout.
 	Timeout time.Duration
 
@@ -90,8 +90,10 @@ func (a *Sink) Deliver(ctx context.Context, batch sink.Batch) (sink.Result, erro
 	if err != nil {
 		return result, fmt.Errorf("create request: %w", err)
 	}
-	for name, value := range a.cfg.Headers {
-		req.Header.Set(name, value)
+	for name, values := range a.cfg.Headers {
+		for _, value := range values {
+			req.Header.Add(name, value)
+		}
 	}
 	req.Header.Set("Content-Type", contentType)
 	req.Header.Set("User-Agent", "unkey-logdrain/1")

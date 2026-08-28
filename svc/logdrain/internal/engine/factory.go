@@ -3,7 +3,7 @@ package engine
 import (
 	"context"
 	"fmt"
-	"strings"
+	"net/http"
 
 	logdrainv1 "github.com/unkeyed/unkey/gen/proto/logdrain/v1"
 	vaultv1 "github.com/unkeyed/unkey/gen/proto/vault/v1"
@@ -61,26 +61,13 @@ func (f factory) build(ctx context.Context, drain db.GetLeasedAndDueLogdrainRow)
 
 // buildHTTP supports optional headers while keeping all credentials encrypted at rest.
 func (f factory) buildHTTP(ctx context.Context, workspaceID string, cfg *logdrainv1.HttpConfig) (sink.Sink, error) {
-	headers := map[string]string{}
-	seenHeaders := map[string]struct{}{}
+	headers := http.Header{}
 	for _, header := range cfg.GetHeaders() {
-		name := header.GetName()
-		if name == "" {
-			return nil, fmt.Errorf("http header name is required")
-		}
-		normalizedName := strings.ToLower(name)
-		if _, exists := seenHeaders[normalizedName]; exists {
-			return nil, fmt.Errorf("duplicate http header %q", name)
-		}
-		seenHeaders[normalizedName] = struct{}{}
-		if header.GetEncryptedValue() == "" {
-			return nil, fmt.Errorf("encrypted value for http header %q is required", name)
-		}
 		plaintext, err := f.decrypt(ctx, workspaceID, header.GetEncryptedValue())
 		if err != nil {
 			return nil, err
 		}
-		headers[name] = plaintext
+		headers.Add(header.GetName(), plaintext)
 	}
 	built, err := httpdrain.New(httpdrain.Config{
 		Endpoint:                cfg.GetUrl(),
