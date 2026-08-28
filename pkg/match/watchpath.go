@@ -4,40 +4,48 @@ import (
 	"github.com/bmatcuk/doublestar/v4"
 )
 
-// MatchWatchPaths returns true if any of the changedFiles match at least one of
-// the given watch path patterns. Patterns use doublestar syntax (e.g. "src/**",
-// "*.go", "services/api/**/*.ts").
+// MatchWatchPaths reports whether any of the changedFiles match at least one of
+// the given watch path patterns, and returns the patterns that are not valid
+// doublestar globs. Patterns use doublestar syntax (e.g. "src/**", "*.go",
+// "services/api/**/*.ts").
 //
-// If patterns is empty the function returns true (no filtering).
-// If changedFiles is empty the function returns false (nothing to match).
-func MatchWatchPaths(patterns []string, changedFiles []string) bool {
+// The two results are independent. An invalid pattern never matches, but it does
+// not stop a valid sibling from matching, so a caller can see a match alongside a
+// non-empty invalid list and should report both.
+//
+// If patterns is empty, matched is true (no filtering).
+// If changedFiles is empty, matched is false (nothing to match).
+func MatchWatchPaths(patterns []string, changedFiles []string) (matched bool, invalid []string) {
+	// Validating up front rather than inside the match loop keeps the invalid list
+	// complete. The loop returns on the first hit and both empty cases return
+	// early, so lazy validation would make the list depend on the pushed files.
+	invalid = InvalidWatchPaths(patterns)
+
 	if len(patterns) == 0 {
-		return true
+		return true, invalid
 	}
 	if len(changedFiles) == 0 {
-		return false
+		return false, invalid
 	}
 
 	for _, file := range changedFiles {
 		for _, pattern := range patterns {
-			matched, err := doublestar.Match(pattern, file)
+			ok, err := doublestar.Match(pattern, file)
 			if err != nil {
-				// Invalid patterns are treated as non-matching here; callers that must
-				// distinguish a broken config from a valid miss use InvalidWatchPaths.
 				continue
 			}
-			if matched {
-				return true
+			if ok {
+				return true, invalid
 			}
 		}
 	}
-	return false
+	return false, invalid
 }
 
-// InvalidWatchPaths returns the patterns that are not valid doublestar globs,
-// in input order. MatchWatchPaths silently skips such patterns, so callers
-// that must distinguish a valid config that didn't match from a broken config
-// check this first.
+// InvalidWatchPaths returns the patterns that are not valid doublestar globs, in
+// input order. Callers that only accept watch paths, such as the settings API,
+// have no files to match against and use this alone; MatchWatchPaths builds on it
+// for the push path.
 func InvalidWatchPaths(patterns []string) []string {
 	var invalid []string
 	for _, pattern := range patterns {

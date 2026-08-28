@@ -12,6 +12,7 @@ func TestMatchWatchPaths(t *testing.T) {
 		patterns     []string
 		changedFiles []string
 		want         bool
+		wantInvalid  []string
 	}{
 		{
 			name:         "empty patterns matches everything",
@@ -60,6 +61,7 @@ func TestMatchWatchPaths(t *testing.T) {
 			patterns:     []string{"[invalid", "src/**"},
 			changedFiles: []string{"src/main.go"},
 			want:         true,
+			wantInvalid:  []string{"[invalid"},
 		},
 		{
 			name:         "multiple files, one matches",
@@ -72,6 +74,14 @@ func TestMatchWatchPaths(t *testing.T) {
 			patterns:     []string{"[invalid"},
 			changedFiles: []string{"src/main.go"},
 			want:         false,
+			wantInvalid:  []string{"[invalid"},
+		},
+		{
+			name:         "bad pattern is reported when there are no changed files",
+			patterns:     []string{"[invalid"},
+			changedFiles: []string{},
+			want:         false,
+			wantInvalid:  []string{"[invalid"},
 		},
 		{
 			name:         "extension match",
@@ -89,8 +99,9 @@ func TestMatchWatchPaths(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := MatchWatchPaths(tt.patterns, tt.changedFiles)
+			got, gotInvalid := MatchWatchPaths(tt.patterns, tt.changedFiles)
 			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantInvalid, gotInvalid)
 		})
 	}
 }

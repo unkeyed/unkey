@@ -198,11 +198,10 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 		}
 
 		// Watch paths: skip if configured patterns don't match changed files.
-		// An invalid pattern is indistinguishable from a valid one that simply
-		// didn't match; InvalidWatchPaths tells the two cases apart so the
-		// stored reason and log line can point at the broken config.
-		invalidPatterns := match.InvalidWatchPaths(buildSettings.WatchPaths)
-		if !match.MatchWatchPaths(buildSettings.WatchPaths, changedFiles) {
+		// A skip caused by a broken pattern looks exactly like a valid miss, so the
+		// invalid list points the stored reason and the log line at the real cause.
+		matched, invalidPatterns := match.MatchWatchPaths(buildSettings.WatchPaths, changedFiles)
+		if !matched {
 			reason := "Watch paths did not match any changed files."
 			if len(invalidPatterns) > 0 {
 				reason = fmt.Sprintf("Watch path '%s' is not a valid glob pattern. Update it in your build settings.", invalidPatterns[0])
@@ -384,8 +383,9 @@ func (s *Service) requiresApproval(
 	return false
 }
 
-// maxTriggerReasonLength mirrors the deployments.trigger_reason column width.
-const maxTriggerReasonLength = 512
+// triggerReasonBytesMax mirrors the deployments.trigger_reason column width.
+// The column counts characters, so a byte budget always fits.
+const triggerReasonBytesMax = 512
 
 // insertDeploymentRecord creates a deployment and its initial queued step in a single transaction.
 func insertDeploymentRecord(
@@ -397,7 +397,7 @@ func insertDeploymentRecord(
 	status mysqltype.DeploymentsStatus,
 	triggerReason string,
 ) (string, error) {
-	triggerReason = trimLength(triggerReason, maxTriggerReasonLength)
+	triggerReason = trimLength(triggerReason, triggerReasonBytesMax)
 	deploymentID := uid.New(uid.DeploymentPrefix)
 	now := time.Now().UnixMilli()
 
