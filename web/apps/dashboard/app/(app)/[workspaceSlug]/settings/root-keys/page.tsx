@@ -1,35 +1,68 @@
 "use client";
+import { useFlag } from "@/lib/flags/provider";
+import { BookBookmark, Plus } from "@unkey/icons";
 import {
+  Button,
   PageBody,
   PageContainer,
   PageHeader,
   PageHeaderActions,
   PageHeaderContent,
   PageHeaderTitle,
+  buttonVariants,
 } from "@unkey/ui";
-import { RootKeysListControlCloud } from "./components/control-cloud";
+import { useState } from "react";
+import { BuilderAside } from "./components/builder/builder-aside";
 import { RootKeysListControls } from "./components/controls";
 import { CreateRootKeyButton } from "./components/dialog/create-rootkey-button";
-import { RootKeysList } from "./components/table/root-keys-list";
+import { RootKeysListBuilder } from "./components/table/root-keys-list-builder";
+import { RootKeysListLegacy } from "./components/table/root-keys-list-legacy";
 
 export default function RootKeysPage() {
+  const rootKeyBuilder = useFlag("rootKeyBuilder");
+  const [asideOpen, setAsideOpen] = useState(false);
+
   return (
-    <PageContainer width="full">
+    <PageContainer>
       <PageHeader>
         <PageHeaderContent>
           <PageHeaderTitle>Root Keys</PageHeaderTitle>
         </PageHeaderContent>
         <PageHeaderActions>
-          <CreateRootKeyButton />
+          <a
+            href="https://www.unkey.com/docs/security/overview#root-keys"
+            target="_blank"
+            rel="noopener noreferrer"
+            className={buttonVariants({ variant: "outline", size: "sm", className: "px-3" })}
+          >
+            <BookBookmark />
+            Documentation
+          </a>
+          {rootKeyBuilder ? (
+            <Button
+              variant="primary"
+              size="sm"
+              className="px-3 rounded-md"
+              onClick={() => setAsideOpen(true)}
+            >
+              <Plus />
+              New Root Key
+            </Button>
+          ) : (
+            <CreateRootKeyButton />
+          )}
         </PageHeaderActions>
       </PageHeader>
-      <PageBody>
-        <div className="flex flex-col">
-          <RootKeysListControls />
-          <RootKeysListControlCloud />
-          <RootKeysList />
-        </div>
+      {/* The table sizes itself to the viewport, so the body's default bottom
+          padding would push the page past the app shell and add a second
+          scrollbar. */}
+      <PageBody className="pt-3 gap-3 pb-0">
+        <RootKeysListControls />
+        {rootKeyBuilder ? <RootKeysListBuilder /> : <RootKeysListLegacy />}
       </PageBody>
+      {rootKeyBuilder ? (
+        <BuilderAside isOpen={asideOpen} onClose={() => setAsideOpen(false)} />
+      ) : null}
     </PageContainer>
   );
 }

@@ -1,8 +1,9 @@
 import { rootKeysQueryPayload } from "@/components/root-keys-table/schema/query-logs.schema";
-import { and, asc, count, db, desc, eq, exists, gt, isNull, or, schema, sql } from "@/lib/db";
+import { and, asc, count, db, desc, eq, or, schema, sql } from "@/lib/db";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
+import { rootKeyBaseConditions, rootKeyPermissions } from "./shared";
 
 const PermissionResponse = z.object({
   id: z.string(),
@@ -43,11 +44,7 @@ export const queryRootKeys = workspaceProcedure
   .output(RootKeysResponse)
   .query(async ({ ctx, input }) => {
     // Build base conditions (used for both count and fetch)
-    const baseConditions = [
-      eq(schema.keys.forWorkspaceId, ctx.workspace.id),
-      isNull(schema.keys.deletedAtM),
-      or(isNull(schema.keys.expires), gt(schema.keys.expires, new Date())),
-    ];
+    const baseConditions = rootKeyBaseConditions(ctx.workspace.id);
 
     // Build filter conditions
     const filterConditions = [];
@@ -71,61 +68,6 @@ export const queryRootKeys = workspaceProcedure
         filterConditions.push(nameConditions[0]);
       } else {
         filterConditions.push(or(...nameConditions));
-      }
-    }
-
-    // Start filter
-    if (input.start && input.start.length > 0) {
-      const startConditions = input.start.map((filter) => {
-        if (filter.operator === "is") {
-          return eq(schema.keys.start, filter.value);
-        }
-        if (filter.operator === "contains") {
-          return sql`LOWER(${schema.keys.start}) LIKE LOWER(${`%${filter.value}%`})`;
-        }
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: `Unsupported key operator: ${filter.operator}`,
-        });
-      });
-
-      if (startConditions.length === 1) {
-        filterConditions.push(startConditions[0]);
-      } else {
-        filterConditions.push(or(...startConditions));
-      }
-    }
-
-    // Permission filter
-    if (input.permission && input.permission.length > 0) {
-      const permissionConditions = input.permission.map((filter) => {
-        if (filter.operator === "contains") {
-          return exists(
-            db
-              .select()
-              .from(schema.keysPermissions)
-              .innerJoin(
-                schema.permissions,
-                eq(schema.keysPermissions.permissionId, schema.permissions.id),
-              )
-              .where(
-                and(
-                  eq(schema.keysPermissions.keyId, schema.keys.id),
-                  sql`LOWER(${schema.permissions.name}) LIKE LOWER(${`%${filter.value}%`})`,
-                ),
-              ),
-          );
-        }
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: `Unsupported permission operator: ${filter.operator}`,
-        });
-      });
-
-      if (permissionConditions.length === 1) {
-        filterConditions.push(permissionConditions[0]);
-      } else {
-        filterConditions.push(or(...permissionConditions));
       }
     }
 
@@ -188,13 +130,7 @@ export const queryRootKeys = workspaceProcedure
 
       // Transform the data to flatten permissions and add summary
       const keys = keysResult.map((key) => {
-        const permissions = key.permissions
-          .map((p) => p.permission)
-          .filter(Boolean)
-          .map((permission) => ({
-            id: permission.id,
-            name: permission.name,
-          }));
+        const permissions = rootKeyPermissions(key.permissions);
 
         const permissionSummary = categorizePermissions(permissions);
 
@@ -223,7 +159,7 @@ export const queryRootKeys = workspaceProcedure
       throw new TRPCError({
         code: "INTERNAL_SERVER_ERROR",
         message:
-          "Failed to retrieve root keys due to an error. If this issue persists, please contact support@unkey.com with the time this occurred.",
+          "Failed to retrieve Root Keys due to an error. If this issue persists, please contact support@unkey.com with the time this occurred.",
       });
     }
   });

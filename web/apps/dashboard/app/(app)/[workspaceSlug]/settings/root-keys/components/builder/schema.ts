@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { CATALOGUES, catalogueRows } from "./lib/catalogue";
 import { ACTIONS, ALL_INSTANCES, RESOURCE_SCOPES } from "./lib/catalogue.types";
-import type { Policy } from "./lib/policy";
+import { type Policy, policyError } from "./lib/policy";
 
 const instancesSchema = z.union([
   z.tuple([z.literal(ALL_INSTANCES)]),
@@ -27,9 +27,18 @@ export const policySchema = z
     }
   }) satisfies z.ZodType<Policy>;
 
+const completePolicySchema = policySchema.superRefine((policy, ctx) => {
+  const message = policyError(policy);
+  if (message !== null) {
+    ctx.addIssue({ code: "custom", message });
+  }
+});
+
+export const nameSchema = z.string().trim().min(1, "Give this key a name.");
+
 export const rootKeySchema = z.object({
-  name: z.string().trim().min(1, "Give this key a name."),
-  policies: z.array(policySchema),
+  name: nameSchema,
+  policies: z.array(completePolicySchema).min(1, "Grant at least one permission."),
 });
 
 export type RootKeyFormValues = z.infer<typeof rootKeySchema>;

@@ -7,11 +7,11 @@ export const ROOT_KEY_CONSTANTS = {
 
 export const ROOT_KEY_MESSAGES = {
   SUCCESS: {
-    ROOT_KEY_CREATED: "Root key created",
-    ROOT_KEY_UPDATED_NAME: "Root key name updated",
-    ROOT_KEY_GENERATED: "You've successfully generated a new root key.",
+    ROOT_KEY_CREATED: "Root Key created",
+    ROOT_KEY_UPDATED_NAME: "Root Key name updated",
+    ROOT_KEY_GENERATED: "You've successfully generated a new Root Key.",
     ROOT_KEY_UPDATED_PERMISSIONS:
-      "Root key permissions updated successfully, New permissions count: ",
+      "Root Key permissions updated successfully, New permissions count: ",
   },
   WARNING: {
     WONT_SEE_AGAIN: "You won't see this secret key again!",
@@ -29,10 +29,10 @@ export const ROOT_KEY_MESSAGES = {
     FROM_PROJECTS: "From Projects",
     FROM_APPS: "From Apps",
     FROM_ENVIRONMENTS: "From Environments",
-    CREATE_ROOT_KEY: "Create root key",
-    UPDATE_ROOT_KEY: "Update root key",
-    NEW_ROOT_KEY: "New root key",
-    NEW_ROOT_KEY_SUBTITLE: "Define a new root key and assign permissions",
+    CREATE_ROOT_KEY: "Create Root Key",
+    UPDATE_ROOT_KEY: "Update Root Key",
+    NEW_ROOT_KEY: "New Root Key",
+    NEW_ROOT_KEY_SUBTITLE: "Define a new Root Key and assign permissions",
     LOAD_MORE: "Load More",
     SEARCH_PERMISSIONS: "Search permissions",
   },
@@ -48,7 +48,7 @@ export const ROOT_KEY_MESSAGES = {
     PROJECT: "All permissions for project",
     APP: "All permissions for app",
     ENVIRONMENT: "All permissions for environment",
-    IMMEDIATE_CREATE: "This root key will be created immediately",
-    IMMEDIATE_UPDATE: "This root key will be updated immediately",
+    IMMEDIATE_CREATE: "This Root Key will be created immediately",
+    IMMEDIATE_UPDATE: "This Root Key will be updated immediately",
   },
 } as const;
