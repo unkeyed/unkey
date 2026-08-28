@@ -25,6 +25,7 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/internal/actor"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/auth"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/gatefault"
 	"google.golang.org/protobuf/encoding/protojson"
 )
 
@@ -382,7 +383,7 @@ func (s *Service) createAndDeploy(ctx context.Context, p createParams) (string, 
 	switch {
 	case p.dockerImage != "":
 		if err := imageref.Validate(p.dockerImage); err != nil {
-			return "", connect.NewError(connect.CodeInvalidArgument, err)
+			return "", gatefault.ConnectWith(connect.CodeInvalidArgument, err)
 		}
 
 		// Explicit docker image (CLI, REST API): skip rebuild, redeploy as-is.

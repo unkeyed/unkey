@@ -4,7 +4,10 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/distribution/reference"
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/pkg/codes"
+	"github.com/unkeyed/unkey/pkg/fault"
 )
 
 func TestValidate(t *testing.T) {
@@ -51,8 +54,42 @@ func TestValidate(t *testing.T) {
 func TestValidateLengthBoundary(t *testing.T) {
 	t.Parallel()
 
-	fits := "ghcr.io/acme/" + strings.Repeat("a", MaxLength-len("ghcr.io/acme/"))
-	require.Len(t, fits, MaxLength)
+	fits := "ghcr.io/acme/" + strings.Repeat("a", imageLengthMax-len("ghcr.io/acme/"))
+	require.Len(t, fits, imageLengthMax)
 	require.NoError(t, Validate(fits))
 	require.Error(t, Validate(fits+"a"))
+}
+
+// TestValidateMessages pins the caller-facing text, which handlers render
+// straight into an API response, and keeps the parser's own wording internal.
+func TestValidateMessages(t *testing.T) {
+	t.Parallel()
+
+	err := Validate("ghcr.io/acme/api:v1 KEBAP")
+	require.Equal(t,
+		`The docker image reference "ghcr.io/acme/api:v1 KEBAP" is not valid. Expected [registry/]repository[:tag][@digest], for example ghcr.io/acme/api:v1.2.3.`,
+		fault.UserFacingMessage(err))
+	require.NotContains(t, fault.UserFacingMessage(err), "invalid reference format")
+	require.ErrorIs(t, err, reference.ErrReferenceInvalidFormat)
+
+	code, ok := fault.GetCode(err)
+	require.True(t, ok)
+	require.Equal(t, codes.App.Validation.InvalidInput.URN(), code)
+
+	require.Equal(t, "The docker image reference is required.", fault.UserFacingMessage(Validate("")))
+	require.Equal(t,
+		"The docker image reference must not be more than 256 characters.",
+		fault.UserFacingMessage(Validate(strings.Repeat("a", imageLengthMax+1))))
+}
+
+// TestValidateAlwaysFaults keeps every rejection on the fault path, so a caller
+// rendering UserFacingMessage never falls back to an empty string.
+func TestValidateAlwaysFaults(t *testing.T) {
+	t.Parallel()
+
+	for _, image := range []string{"", "Acme/Api:v1", "my image:v1", strings.Repeat("a", imageLengthMax+1)} {
+		err := Validate(image)
+		require.Error(t, err, image)
+		require.NotEmpty(t, fault.UserFacingMessage(err), image)
+	}
 }

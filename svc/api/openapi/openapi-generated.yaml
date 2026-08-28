@@ -644,7 +644,8 @@ components:
                     type: string
                     minLength: 1
                     maxLength: 256
-                    description: Docker image reference to deploy. Accepts a tag or a digest.
+                    description: >-
+                        Full image reference to deploy. Qualify the version with a tag (ghcr.io/user/app:v1.0.0) or with a digest (ghcr.io/user/app@sha256:...). Without either, the registry serves the latest tag.
                     example: "ghcr.io/user/app:v1.0.0"
                 gitCommit:
                     $ref: "#/components/schemas/V2DeployGitCommit"
@@ -4555,7 +4556,8 @@ components:
                     minLength: 1
                     maxLength: 256
                     pattern: "\\S"
-                    description: Docker image to deploy as-is. Accepts a tag or a digest.
+                    description: >-
+                        Full image reference to deploy as-is. Qualify the version with a tag (ghcr.io/acme/api:v1.2.3) or with a digest (ghcr.io/acme/api@sha256:...). Without either, the registry serves the latest tag.
                     example: "ghcr.io/acme/api:v1.2.3"
             description: Deploy a prebuilt Docker image as-is.
         DeploymentSourceDeployment:
