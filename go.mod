@@ -61,7 +61,6 @@ require (
 	github.com/prometheus/client_golang v1.23.2
 	github.com/redis/go-redis/v9 v9.17.2
 	github.com/restatedev/sdk-go v0.24.0
-	github.com/shirou/gopsutil/v4 v4.25.6
 	github.com/sqlc-dev/plugin-sdk-go v1.23.0
 	github.com/stretchr/testify v1.12.1
 	github.com/stripe/stripe-go/v86 v86.1.1
@@ -295,6 +294,7 @@ require (
 	github.com/segmentio/encoding v0.5.3 // indirect
 	github.com/sergi/go-diff v1.3.1 // indirect
 	github.com/shibumi/go-pathspec v1.3.0 // indirect
+	github.com/shirou/gopsutil/v4 v4.25.6 // indirect
 	github.com/shopspring/decimal v1.4.0 // indirect
 	github.com/sirupsen/logrus v1.9.4 // indirect
 	github.com/speakeasy-api/jsonpath v0.6.0 // indirect
