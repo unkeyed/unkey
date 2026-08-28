@@ -337,22 +337,24 @@ func (e *Engine) process(ctx context.Context, item workItem) {
 // deliverEvents ships one batch. An unacknowledged result means the destination
 // rejected the delivery. An error means an unexpected delivery or state failure.
 func (e *Engine) deliverEvents(ctx context.Context, drain db.GetLeasedAndDueLogdrainRow, events []sink.Event) (deliveryAttempt, error) {
+	var attempt deliveryAttempt
 	destination, err := e.factory.build(ctx, drain)
 	if err != nil {
 		if ctx.Err() != nil {
-			return deliveryAttempt{}, nil
+			return attempt, nil
 		}
-		return deliveryAttempt{}, errors.Join(err, e.recordFailure(ctx, drain, 0))
+		return attempt, errors.Join(err, e.recordFailure(ctx, drain, 0))
 	}
 	deliveryCtx, cancel := context.WithTimeout(ctx, deliveryTimeout)
 	defer cancel()
 	started := e.cfg.Clock.Now()
 	result, err := destination.Deliver(deliveryCtx, sink.Batch{SchemaVersion: "v1", DrainID: drain.ID, WorkspaceID: drain.WorkspaceID, Events: events})
-	attempt := deliveryAttempt{
-		completed: e.cfg.Clock.Now(),
+	completed := e.cfg.Clock.Now()
+	attempt = deliveryAttempt{
+		completed: completed,
+		duration:  completed.Sub(started),
 		result:    result,
 	}
-	attempt.duration = attempt.completed.Sub(started)
 	if ctx.Err() != nil {
 		return attempt, nil
 	}
