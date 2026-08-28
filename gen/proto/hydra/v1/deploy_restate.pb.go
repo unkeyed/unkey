@@ -19,13 +19,10 @@ import (
 // durable Restate workflows. Each RPC is idempotent and can safely resume from
 // any step after a crash.
 //
-// Deploy, Rollback, and Promote are keyed by {app_id}:{environment_id} so
-// that lifecycle operations within a single environment are serialized
-// (preventing e.g. a rollback from racing with an in-flight deploy) while
-// different environments of the same app — e.g. production vs preview — can
-// deploy in parallel. This means a production push never waits behind a
-// preview build. Workspace-wide concurrency is separately enforced by
-// BuildSlotService.
+// Each object is keyed by deployment ID, so lifecycle operations for one
+// deployment are serialized while separate deployments can run in parallel.
+// Shared app routing state is serialized by RoutingService. Workspace-wide
+// build concurrency is enforced separately by BuildSlotService.
 //
 // Deploy handles the full pipeline from building Docker images through
 // provisioning containers and configuring domain routing. Rollback and Promote
@@ -52,6 +49,9 @@ type DeployServiceClient interface {
 	// WakeDeployment schedules desired_state=running for a stopped deployment
 	// and waits until enough instances are running again.
 	WakeDeployment(opts ...sdk_go.ClientOption) sdk_go.Client[*WakeDeploymentRequest, *WakeDeploymentResponse]
+	// GarbageCollect deletes a terminal deployment after rechecking its
+	// retention policy. The request ID must match the deployment-keyed object.
+	GarbageCollect(opts ...sdk_go.ClientOption) sdk_go.Client[*GarbageCollectDeploymentRequest, *GarbageCollectDeploymentResponse]
 	// NotifyInstancesReady is called by the control plane when enough instances
 	// have become healthy across the required regions. It resolves the awakeable
 	// stored by a suspended deploy or wake workflow so it can continue.
@@ -112,6 +112,14 @@ func (c *deployServiceClient) WakeDeployment(opts ...sdk_go.ClientOption) sdk_go
 	return sdk_go.WithRequestType[*WakeDeploymentRequest](sdk_go.Object[*WakeDeploymentResponse](c.ctx, "hydra.v1.DeployService", c.key, "WakeDeployment", cOpts...))
 }
 
+func (c *deployServiceClient) GarbageCollect(opts ...sdk_go.ClientOption) sdk_go.Client[*GarbageCollectDeploymentRequest, *GarbageCollectDeploymentResponse] {
+	cOpts := c.options
+	if len(opts) > 0 {
+		cOpts = append(append([]sdk_go.ClientOption{}, cOpts...), opts...)
+	}
+	return sdk_go.WithRequestType[*GarbageCollectDeploymentRequest](sdk_go.Object[*GarbageCollectDeploymentResponse](c.ctx, "hydra.v1.DeployService", c.key, "GarbageCollect", cOpts...))
+}
+
 func (c *deployServiceClient) NotifyInstancesReady(opts ...sdk_go.ClientOption) sdk_go.Client[*NotifyInstancesReadyRequest, *NotifyInstancesReadyResponse] {
 	cOpts := c.options
 	if len(opts) > 0 {
@@ -144,6 +152,9 @@ type DeployServiceIngressClient interface {
 	// WakeDeployment schedules desired_state=running for a stopped deployment
 	// and waits until enough instances are running again.
 	WakeDeployment() ingress.Requester[*WakeDeploymentRequest, *WakeDeploymentResponse]
+	// GarbageCollect deletes a terminal deployment after rechecking its
+	// retention policy. The request ID must match the deployment-keyed object.
+	GarbageCollect() ingress.Requester[*GarbageCollectDeploymentRequest, *GarbageCollectDeploymentResponse]
 	// NotifyInstancesReady is called by the control plane when enough instances
 	// have become healthy across the required regions. It resolves the awakeable
 	// stored by a suspended deploy or wake workflow so it can continue.
@@ -189,6 +200,11 @@ func (c *deployServiceIngressClient) WakeDeployment() ingress.Requester[*WakeDep
 	return ingress.NewRequester[*WakeDeploymentRequest, *WakeDeploymentResponse](c.client, c.serviceName, "WakeDeployment", &c.key, &codec)
 }
 
+func (c *deployServiceIngressClient) GarbageCollect() ingress.Requester[*GarbageCollectDeploymentRequest, *GarbageCollectDeploymentResponse] {
+	codec := encoding.ProtoJSONCodec
+	return ingress.NewRequester[*GarbageCollectDeploymentRequest, *GarbageCollectDeploymentResponse](c.client, c.serviceName, "GarbageCollect", &c.key, &codec)
+}
+
 func (c *deployServiceIngressClient) NotifyInstancesReady() ingress.Requester[*NotifyInstancesReadyRequest, *NotifyInstancesReadyResponse] {
 	codec := encoding.ProtoJSONCodec
 	return ingress.NewRequester[*NotifyInstancesReadyRequest, *NotifyInstancesReadyResponse](c.client, c.serviceName, "NotifyInstancesReady", &c.key, &codec)
@@ -202,13 +218,10 @@ func (c *deployServiceIngressClient) NotifyInstancesReady() ingress.Requester[*N
 // durable Restate workflows. Each RPC is idempotent and can safely resume from
 // any step after a crash.
 //
-// Deploy, Rollback, and Promote are keyed by {app_id}:{environment_id} so
-// that lifecycle operations within a single environment are serialized
-// (preventing e.g. a rollback from racing with an in-flight deploy) while
-// different environments of the same app — e.g. production vs preview — can
-// deploy in parallel. This means a production push never waits behind a
-// preview build. Workspace-wide concurrency is separately enforced by
-// BuildSlotService.
+// Each object is keyed by deployment ID, so lifecycle operations for one
+// deployment are serialized while separate deployments can run in parallel.
+// Shared app routing state is serialized by RoutingService. Workspace-wide
+// build concurrency is enforced separately by BuildSlotService.
 //
 // Deploy handles the full pipeline from building Docker images through
 // provisioning containers and configuring domain routing. Rollback and Promote
@@ -235,6 +248,9 @@ type DeployServiceServer interface {
 	// WakeDeployment schedules desired_state=running for a stopped deployment
 	// and waits until enough instances are running again.
 	WakeDeployment(ctx sdk_go.ObjectContext, req *WakeDeploymentRequest) (*WakeDeploymentResponse, error)
+	// GarbageCollect deletes a terminal deployment after rechecking its
+	// retention policy. The request ID must match the deployment-keyed object.
+	GarbageCollect(ctx sdk_go.ObjectContext, req *GarbageCollectDeploymentRequest) (*GarbageCollectDeploymentResponse, error)
 	// NotifyInstancesReady is called by the control plane when enough instances
 	// have become healthy across the required regions. It resolves the awakeable
 	// stored by a suspended deploy or wake workflow so it can continue.
@@ -263,6 +279,9 @@ func (UnimplementedDeployServiceServer) StopDeployment(ctx sdk_go.ObjectContext,
 func (UnimplementedDeployServiceServer) WakeDeployment(ctx sdk_go.ObjectContext, req *WakeDeploymentRequest) (*WakeDeploymentResponse, error) {
 	return nil, sdk_go.TerminalError(fmt.Errorf("method WakeDeployment not implemented"), 501)
 }
+func (UnimplementedDeployServiceServer) GarbageCollect(ctx sdk_go.ObjectContext, req *GarbageCollectDeploymentRequest) (*GarbageCollectDeploymentResponse, error) {
+	return nil, sdk_go.TerminalError(fmt.Errorf("method GarbageCollect not implemented"), 501)
+}
 func (UnimplementedDeployServiceServer) NotifyInstancesReady(ctx sdk_go.ObjectSharedContext, req *NotifyInstancesReadyRequest) (*NotifyInstancesReadyResponse, error) {
 	return nil, sdk_go.TerminalError(fmt.Errorf("method NotifyInstancesReady not implemented"), 501)
 }
@@ -290,6 +309,7 @@ func NewDeployServiceServer(srv DeployServiceServer, opts ...sdk_go.ServiceDefin
 	router = router.Handler("Promote", sdk_go.NewObjectHandler(srv.Promote))
 	router = router.Handler("StopDeployment", sdk_go.NewObjectHandler(srv.StopDeployment))
 	router = router.Handler("WakeDeployment", sdk_go.NewObjectHandler(srv.WakeDeployment))
+	router = router.Handler("GarbageCollect", sdk_go.NewObjectHandler(srv.GarbageCollect))
 	router = router.Handler("NotifyInstancesReady", sdk_go.NewObjectSharedHandler(srv.NotifyInstancesReady))
 	return router
 }
