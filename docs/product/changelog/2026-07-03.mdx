@@ -1,0 +1,71 @@
+---
+title: "July 3, 2026"
+description: "App CRUD in the HTTP API, per-key ratelimits, custom railpack build commands, portal audit logs, and a batch of security and reliability fixes."
+noindex: true
+---
+
+## New features
+
+### App CRUD in the HTTP API
+
+The [apps](/platform/apps/overview) HTTP API now covers the full lifecycle. New `apps.listApps`, `apps.updateApp`, and `apps.deleteApp` endpoints let you enumerate, rename, and remove apps by slug or ID from your own tooling.
+
+### Per-key ratelimits
+
+You can now attach ratelimits directly to a key, so limits are enforced at verification without a separate policy hookup. See [ratelimits](/platform/identities/ratelimits).
+
+### Custom build commands for Railpack
+
+Railpack [deployments](/build-and-deploy/deployments) now accept a custom build command per environment, so you can override the auto-detected build without leaving the dashboard.
+
+### Portal audit logging
+
+Key create, delete, and reroll actions performed through a [portal](/platform/identities/overview) session are now recorded in the [audit log](/audit-log/introduction) with a dedicated portal-user actor, so you can trace end-user activity end to end.
+
+### Bulk `.env` management
+
+The environment variable editor now supports bulk renaming and deleting variable groups, with clearer tooltips and a redeploy prompt after changes. See [environments](/environments/overview).
+
+## Updates
+
+### Tighter key API authorization
+
+Key management endpoints on the v2 API now enforce key-related RBAC permissions across list, addPermissions, addRoles, and related handlers. Requests that previously slipped through with broader scopes now require the specific key permission.
+
+### Portal sessions scoped end to end
+
+Portal sessions now scope `deleteKey`, `rerollKey`, and analytics queries to the session's external ID, so a portal user can only act on and see their own keys.
+
+### Dashboard key deletion goes through the public API
+
+Deleting a key from the dashboard now uses the same public API path as programmatic deletion, so audit logs and permissions stay consistent whether you delete from the UI or the API.
+
+### Runtime logs are scoped by project
+
+Runtime logs in the dashboard are now scoped and cached by project ID, and the live tail no longer runs a wasted count on every poll — the result is a snappier live-log view.
+
+### Deployments spread across nodes with disruption budgets
+
+Customer [deployments](/build-and-deploy/deployments) now spread more evenly across nodes and are protected by PodDisruptionBudgets, keeping instances available during node drains and upgrades.
+
+### WorkOS anti-fraud signals on OAuth
+
+Sign-in and sign-up flows now forward WorkOS Radar signals, improving bot and fraud detection on the [dashboard](/platform/workspaces/overview) entry points.
+
+### Circuit breakers trip on failure percentage
+
+The ratelimit origin circuit breaker now trips on a failure-percentage threshold instead of only raw counts, so degraded origins are isolated faster.
+
+## Bug fixes
+
+- Closed a GitHub App installation hijack path in the OAuth callback.
+- Closed a cross-tenant IDOR in organization membership and invitation mutations.
+- Query parser no longer lets `OR`/`NOT` clauses bypass tenant filters injected into ClickHouse queries.
+- API keys are now redacted from headers and query params before request logs are written.
+- Granted permissions are redacted from RBAC authorization error messages.
+- Deep-linked list pages (keys, requests, identities, ratelimits) no longer reset to page 1 before data finishes loading.
+- Deployment overview now shows the correct instances and domain when the current deployment is older than the newest 100.
+- Container command and entrypoint overrides are no longer silently dropped from customer deployments.
+- Ratelimit setup form validation re-runs after edits.
+- Dashboard no longer sends idle polling requests once a deployment reaches a terminal status; the deployments page long-polls for CI updates.
+- "Create keyspace" button now matches the docs link size in the empty state, and error log backgrounds render correctly in build step views.
