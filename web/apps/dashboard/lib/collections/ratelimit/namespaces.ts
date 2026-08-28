@@ -7,6 +7,7 @@ import { queryClient, trpcClient } from "../client";
 
 const schema = z.object({
   id: z.string(),
+  projectId: z.string(),
   name: z.string().min(1).max(50),
 });
 
@@ -47,6 +48,7 @@ export const ratelimitNamespaces = createCollection<RatelimitNamespace, string>(
 
       return {
         id: result.id,
+        projectId: result.projectId,
         name: newNamespace.name,
       };
     },
