@@ -2,10 +2,8 @@
  * Validates Docker/OCI image references against the grammar registries enforce, so
  * a bad reference fails in the form rather than as a failed pull mid-deploy.
  *
- * Constants cite their counterpart in github.com/distribution/reference@v0.6.0
- * (as reference/<file>) and github.com/opencontainers/go-digest@v1.0.0. One rule is
- * stricter than upstream: the reference is capped at MAX_REFERENCE_LENGTH, which
- * the API does not enforce. Whether a host actually serves images is not checked.
+ * Constants cite their counterpart in github.com/distribution/reference
+ * (as reference/<file>) and github.com/opencontainers/go-digest
  */
 
 /** reference/regexp.go domainNameComponent. */
