@@ -89,6 +89,13 @@ type workItem struct {
 	now          time.Time
 }
 
+type deliveryAttempt struct {
+	completed time.Time
+	duration  time.Duration
+	result    sink.Result
+	succeeded bool
+}
+
 // New wires an engine to its sink factory without starting background work.
 func New(cfg Config) (*Engine, error) {
 	if err := assert.NotEmpty(cfg.LeaseID, "lease ID must not be empty"); err != nil {
@@ -280,17 +287,14 @@ func (e *Engine) process(ctx context.Context, item workItem) {
 			advance = source.Cursor{Time: windowEnd, EventID: ""}
 			nextAttemptDelay = e.cfg.PollInterval
 		}
-		var deliveryCompleted time.Time
-		var deliveryDuration time.Duration
-		var deliveryResult sink.Result
+		var delivery deliveryAttempt
 		if len(events) > 0 {
-			var ok bool
-			deliveryCompleted, deliveryDuration, deliveryResult, ok, err = e.deliverEvents(ctx, drain, events)
+			delivery, err = e.deliverEvents(ctx, drain, events)
 			if err != nil {
 				logger.Error("record logdrain failure state failed", "error", err, "drain_id", item.id)
 				return
 			}
-			if !ok {
+			if !delivery.succeeded {
 				return
 			}
 		}
@@ -302,23 +306,23 @@ func (e *Engine) process(ctx context.Context, item workItem) {
 			FencingToken:              drain.FencingToken,
 		})
 		if err != nil {
-			if len(events) > 0 && !deliveryCompleted.IsZero() {
-				e.recordDelivery(drain, stream, deliveryCompleted, "error", len(events), deliveryDuration, deliveryResult, err)
+			if len(events) > 0 && !delivery.completed.IsZero() {
+				e.recordDelivery(drain, stream, delivery.completed, "error", len(events), delivery.duration, delivery.result, err)
 			}
 			logger.Error("record logdrain success failed", "error", err, "drain_id", item.id)
 			return
 		}
 		if rowsAffected == 0 {
 			cause := fmt.Errorf("%w before cursor advance to (%d, %q)", errLeaseLost, advance.Time, advance.EventID)
-			if len(events) > 0 && !deliveryCompleted.IsZero() {
-				e.recordDelivery(drain, stream, deliveryCompleted, "error", len(events), deliveryDuration, deliveryResult, cause)
+			if len(events) > 0 && !delivery.completed.IsZero() {
+				e.recordDelivery(drain, stream, delivery.completed, "error", len(events), delivery.duration, delivery.result, cause)
 			}
 			logger.Error("record logdrain success rejected", "error", cause, "drain_id", item.id)
 			return
 		}
-		if len(events) > 0 && !deliveryCompleted.IsZero() {
+		if len(events) > 0 && !delivery.completed.IsZero() {
 			// The delivery succeeded and its new offset is now committed.
-			e.recordDelivery(drain, stream, deliveryCompleted, "success", len(events), deliveryDuration, deliveryResult, nil)
+			e.recordDelivery(drain, stream, delivery.completed, "success", len(events), delivery.duration, delivery.result, nil)
 		}
 		delivered += len(events)
 		current = advance
@@ -329,38 +333,42 @@ func (e *Engine) process(ctx context.Context, item workItem) {
 	logger.Info("logdrain cycle complete", "drain_id", item.id, "stream", stream, "events", delivered, "offset", current.Time)
 }
 
-// deliverEvents ships one batch and returns its completion time, duration, and
-// result. A false ok means the failure state was recorded or the parent context
-// was canceled. A non-nil error means the failure state could not be recorded.
-func (e *Engine) deliverEvents(ctx context.Context, drain db.GetLeasedAndDueLogdrainRow, events []sink.Event) (completed time.Time, duration time.Duration, result sink.Result, ok bool, stateErr error) {
+// deliverEvents ships one batch. A false succeeded field means the failure state
+// was recorded or the parent context was canceled. An error means the failure
+// state could not be recorded.
+func (e *Engine) deliverEvents(ctx context.Context, drain db.GetLeasedAndDueLogdrainRow, events []sink.Event) (deliveryAttempt, error) {
 	destination, err := e.factory.build(ctx, drain)
 	if err != nil {
 		if ctx.Err() != nil {
-			return time.Time{}, 0, result, false, nil
+			return deliveryAttempt{}, nil
 		}
-		return time.Time{}, 0, result, false, e.fail(ctx, drain, err, 0)
+		return deliveryAttempt{}, e.fail(ctx, drain, err, 0)
 	}
 	deliveryCtx, cancel := context.WithTimeout(ctx, deliveryTimeout)
 	defer cancel()
 	started := e.cfg.Clock.Now()
-	result, err = destination.Deliver(deliveryCtx, sink.Batch{SchemaVersion: "v1", DrainID: drain.ID, WorkspaceID: drain.WorkspaceID, Events: events})
-	completed = e.cfg.Clock.Now()
-	duration = completed.Sub(started)
+	result, err := destination.Deliver(deliveryCtx, sink.Batch{SchemaVersion: "v1", DrainID: drain.ID, WorkspaceID: drain.WorkspaceID, Events: events})
+	attempt := deliveryAttempt{
+		completed: e.cfg.Clock.Now(),
+		result:    result,
+	}
+	attempt.duration = attempt.completed.Sub(started)
 	if ctx.Err() != nil {
-		return completed, duration, result, false, nil
+		return attempt, nil
 	}
 	if err == nil && result.Acknowledged {
-		return completed, duration, result, true, nil
+		attempt.succeeded = true
+		return attempt, nil
 	}
 	cause := err
 	if cause == nil {
 		cause = rejectedDeliveryError(result)
 	}
-	e.recordDelivery(drain, drain.Stream, completed, "error", len(events), duration, result, cause)
+	e.recordDelivery(drain, drain.Stream, attempt.completed, "error", len(events), attempt.duration, result, cause)
 	if failErr := e.fail(ctx, drain, cause, result.RetryAfter); failErr != nil {
-		return completed, duration, result, false, failErr
+		return attempt, failErr
 	}
-	return completed, duration, result, false, nil
+	return attempt, nil
 }
 
 // recordDelivery emits asynchronous telemetry when enabled. A nil Deliveries
