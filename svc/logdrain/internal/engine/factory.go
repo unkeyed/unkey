@@ -32,7 +32,7 @@ type factory struct {
 }
 
 // build creates the destination sink only after its stored configuration and credentials decode successfully.
-func (f factory) build(ctx context.Context, drain db.GetLeasedLogdrainRow) (sink.Sink, error) {
+func (f factory) build(ctx context.Context, drain db.GetLeasedAndDueLogdrainRow) (sink.Sink, error) {
 	cfg, err := parseConfig(drain.Config)
 	if err != nil {
 		return nil, err

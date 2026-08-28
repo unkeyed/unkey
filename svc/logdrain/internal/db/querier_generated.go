@@ -42,8 +42,8 @@ type Querier interface {
 	//    END,
 	//    d.stream
 	CountLogdrainsByStatus(ctx context.Context) ([]CountLogdrainsByStatusRow, error)
-	// GetLeasedLogdrain returns one due drain only while the caller still owns its
-	// database-time lease.
+	// GetLeasedAndDueLogdrain returns one due drain only while the caller still
+	// owns its database-time lease.
 	// The caller must use the same fencing token for every later state mutation.
 	//
 	//  SELECT
@@ -62,7 +62,7 @@ type Querier interface {
 	//    AND d.fencing_token = ?
 	//    AND d.lease_expires_at > CAST(UNIX_TIMESTAMP(NOW(3)) * 1000 AS SIGNED)
 	//    AND d.next_attempt_at <= CAST(UNIX_TIMESTAMP(NOW(3)) * 1000 AS SIGNED)
-	GetLeasedLogdrain(ctx context.Context, arg GetLeasedLogdrainParams) (GetLeasedLogdrainRow, error)
+	GetLeasedAndDueLogdrain(ctx context.Context, arg GetLeasedAndDueLogdrainParams) (GetLeasedAndDueLogdrainRow, error)
 	// ListDueLogdrains returns active, due leases assigned to one service process.
 	// Database time controls both lease validity and retry scheduling.
 	//

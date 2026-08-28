@@ -102,7 +102,7 @@ func TestService_LeaseOwnership(t *testing.T) {
 	otherLeaseDrains, err := database.ListDueLogdrains(ctx, uid.New(""))
 	require.NoError(t, err)
 	require.Empty(t, otherLeaseDrains)
-	leasedDrain, err := database.GetLeasedLogdrain(ctx, db.GetLeasedLogdrainParams{
+	leasedDrain, err := database.GetLeasedAndDueLogdrain(ctx, db.GetLeasedAndDueLogdrainParams{
 		LogdrainID:   drainID,
 		FencingToken: fencingToken,
 	})
@@ -161,7 +161,7 @@ func TestService_LeaseOwnership(t *testing.T) {
 	expiredAt := readDatabaseNowMillis(t, ctx, database) - 1
 	_, err = database.Conn().ExecContext(ctx, "UPDATE logdrains SET lease_expires_at = ? WHERE id = ?", expiredAt, drainID)
 	require.NoError(t, err)
-	_, err = database.GetLeasedLogdrain(ctx, db.GetLeasedLogdrainParams{
+	_, err = database.GetLeasedAndDueLogdrain(ctx, db.GetLeasedAndDueLogdrainParams{
 		LogdrainID:   drainID,
 		FencingToken: fencingToken,
 	})

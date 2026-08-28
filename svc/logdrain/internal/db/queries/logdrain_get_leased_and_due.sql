@@ -1,7 +1,7 @@
--- GetLeasedLogdrain returns one due drain only while the caller still owns its
--- database-time lease.
+-- GetLeasedAndDueLogdrain returns one due drain only while the caller still
+-- owns its database-time lease.
 -- The caller must use the same fencing token for every later state mutation.
--- name: GetLeasedLogdrain :one
+-- name: GetLeasedAndDueLogdrain :one
 SELECT
   d.id,
   d.workspace_id,
