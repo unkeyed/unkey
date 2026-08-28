@@ -56,11 +56,12 @@ the worker stops.
 For a valid lease, the worker reads events between the committed cursor and a
 safe upper time boundary. It sends the events as one batch. After a successful
 request, a fenced write advances the cursor only if the lease is still valid.
-A failed request records the error and retry time without advancing the
-cursor. If a full batch succeeds, the worker reads the next batch in the same
-delivery cycle. A short batch means the worker reached the safe upper time
-boundary. The worker commits that boundary, returns to the pool, and leaves
-new events for a later poll.
+An unacknowledged response records its status and body in delivery telemetry.
+An unexpected delivery failure records its error in delivery telemetry. Both
+cases schedule a retry without advancing the cursor. If a full batch succeeds,
+the worker reads the next batch immediately. A short or empty batch means the
+worker reached the safe upper time boundary. The worker commits that boundary,
+schedules the next attempt after `PollInterval`, and returns to the pool.
 
 ```plaintext
 poll due leases
@@ -75,13 +76,13 @@ read drain with fencing token ── stale lease ──▶ stop
 read next ClickHouse batch ───── no events ───▶ advance safe boundary
       │
       ▼
-send batch to destination ────── error ───────▶ retry or pause
+send batch to destination ── rejected or error ──▶ retry or pause
       │
       ▼
 advance cursor with fencing token
       │
       ├── full batch ──▶ read next batch
-      └── short batch ─▶ return worker to pool
+      └── short or empty batch ──▶ wait PollInterval
 ```
 
 ## Cursor and watermark
@@ -141,13 +142,12 @@ started before the lease expired.
 ## Disablement, retries, and pauses
 
 The `logdrains.enabled` Boolean records whether the user enabled the drain.
-The separate `logdrain_state.status` field is `active` or
-`paused_by_failure`. The engine processes a drain only when it is enabled and
-active.
+The `logdrains.status` field is `active` or `paused_by_failure`. The engine
+processes a drain only when it is enabled and active.
 
-A failed delivery leaves the cursor unchanged. This rule applies to destination
-responses, such as HTTP 400 and HTTP 500, and to operational errors, such as a
-timeout or DNS failure. The engine retries all failures.
+A destination rejection, such as HTTP 400 or HTTP 500, leaves the cursor
+unchanged. An unexpected delivery error, such as a timeout or DNS failure,
+also leaves the cursor unchanged. The engine retries both cases.
 
 The engine calculates an exponential delay from `consecutive_failures`. The
 first retry waits 1 minute. Each later failure doubles the delay through 128
@@ -163,14 +163,15 @@ delay. It limits a destination delay to 24 hours.
 The failure update query increments `consecutive_failures` and writes an
 absolute retry time to `next_attempt_at`. It calculates that timestamp from
 MySQL time, not process time. The due-drain queries return the drain only after
-`next_attempt_at` has passed. A successful cursor update resets both fields so
-the next poll can select the drain immediately.
+`next_attempt_at` has passed. A successful cursor update resets the failure
+count. A full batch remains due immediately. A short or empty batch becomes due
+after `PollInterval`.
 
 The engine pauses the drain only after it reaches the configured failure
 threshold. Re-enabling a drain or changing its destination makes it active. The
-change resets its failure count, retry time, and last error. It preserves the
-cursor. Delivery resumes from that cursor, subject to the 90-day ClickHouse
-retention period for audit logs.
+change resets its failure count and retry time. It preserves the cursor.
+Delivery resumes from that cursor, subject to the 90-day ClickHouse retention
+period for audit logs.
 
 ## Delivery guarantees
 
@@ -194,7 +195,7 @@ Each destination attempt writes one row to the ClickHouse table
 `logdrain_deliveries_raw_v1`. The row contains the outcome (`success` or
 `error`), event count, `webhook_duration_ms`, `request_body_bytes`, and a
 truncated error message. `request_body_bytes` contains the uncompressed encoded
-body size. It does not include request headers. A failed HTTP response also
+body size. It does not include request headers. A rejected HTTP response also
 includes the response status and up to 4 KiB of the response body. The duration
 measures only the destination request. The dashboard reads this table for the
 drain health charts and delivery errors.
