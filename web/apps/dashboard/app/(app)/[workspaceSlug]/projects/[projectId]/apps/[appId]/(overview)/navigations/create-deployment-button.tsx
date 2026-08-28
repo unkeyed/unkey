@@ -383,10 +383,10 @@ export const CreateDeploymentButton = ({
                 onPaste={
                   isCliApp
                     ? (e) => {
-                      const cleaned = sanitizeImageRef(e.clipboardData.getData("text"));
-                      e.preventDefault();
-                      setValue("name", cleaned, { shouldValidate: true });
-                    }
+                        const cleaned = sanitizeImageRef(e.clipboardData.getData("text"));
+                        e.preventDefault();
+                        setValue("name", cleaned, { shouldValidate: true });
+                      }
                     : undefined
                 }
                 placeholder={
@@ -454,7 +454,7 @@ export const CreateDeploymentButton = ({
                     key={`skeleton-${
                       // biome-ignore lint/suspicious/noArrayIndexKey: skeleton placeholders
                       i
-                      }`}
+                    }`}
                     className="flex items-center justify-between px-3 py-2 h-[36.5px]"
                   >
                     <span className="flex items-center gap-1.5">
