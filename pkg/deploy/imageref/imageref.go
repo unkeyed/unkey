@@ -33,7 +33,9 @@ func Validate(image string) error {
 		return fmt.Errorf("docker image reference must not be more than %d characters", MaxLength)
 	}
 	if _, err := reference.ParseDockerRef(image); err != nil {
-		return fmt.Errorf("invalid docker image reference %q: %w", image, err)
+		// The parser's message already opens with "invalid reference format", so
+		// prefixing it again reads as a stutter. Only the input is added.
+		return fmt.Errorf("%w (%q)", err, image)
 	}
 	return nil
 }
