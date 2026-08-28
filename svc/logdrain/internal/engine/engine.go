@@ -127,11 +127,9 @@ func (e *Engine) Run(ctx context.Context) error {
 	defer e.factory.decryptCache.Close()
 	var workers sync.WaitGroup
 	for range max(e.cfg.MaxConcurrentDrains, 1) {
-		workers.Add(1)
-		go func() {
-			defer workers.Done()
+		workers.Go(func() {
 			e.worker(ctx)
-		}()
+		})
 	}
 	defer workers.Wait()
 	if err := e.poll(ctx); err != nil {
