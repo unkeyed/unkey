@@ -2,6 +2,7 @@ import { keysOverviewQueryTimeseriesPayload } from "@/app/(app)/[workspaceSlug]/
 import { clickhouse } from "@/lib/clickhouse";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
+import { assertValidTimeRange } from "../../../utils/time-range";
 import { getApi, queryApiKeys } from "../api-query";
 import { transformVerificationFilters } from "../timeseries.utils";
 
@@ -9,6 +10,8 @@ export const activeKeysTimeseries = workspaceProcedure
   .use(withRatelimit(ratelimit.read))
   .input(keysOverviewQueryTimeseriesPayload)
   .query(async ({ ctx, input }) => {
+    assertValidTimeRange(input.startTime, input.endTime);
+
     const api = await getApi(input.apiId, ctx.workspace.id);
     if (!api || !api.keyAuth?.id) {
       throw new TRPCError({

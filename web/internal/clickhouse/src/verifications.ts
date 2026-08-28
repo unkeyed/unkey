@@ -1,6 +1,7 @@
 import { z } from "zod";
 import type { Querier } from "./client";
 import { KEY_VERIFICATION_OUTCOMES } from "./keys/keys";
+import { assertOrderedTimeRange } from "./util";
 
 // LOGS
 export const keyDetailsLogsParams = z.object({
@@ -645,6 +646,8 @@ function getVerificationTimeseriesWhereClause(
 
 function createVerificationTimeseriesQuerier(interval: TimeInterval) {
   return (ch: Querier) => async (args: VerificationTimeseriesParams) => {
+    assertOrderedTimeRange(args.startTime, args.endTime);
+
     const { whereClause, paramSchema } = getVerificationTimeseriesWhereClause(args, [
       "time >= fromUnixTimestamp64Milli({startTime: Int64})",
       "time <= fromUnixTimestamp64Milli({endTime: Int64})",
@@ -1023,6 +1026,8 @@ function getIdentityTimeseriesWhereClause(
 
 function createIdentityTimeseriesQuerier(interval: TimeInterval) {
   return (ch: Querier) => async (args: IdentityTimeseriesParams) => {
+    assertOrderedTimeRange(args.startTime, args.endTime);
+
     if (!args.keyIds || args.keyIds.length === 0) {
       return { val: [] };
     }
