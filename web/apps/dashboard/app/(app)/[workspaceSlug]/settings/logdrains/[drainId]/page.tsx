@@ -34,13 +34,13 @@ import {
   headerFieldsSchema,
   toHeaderRecord,
 } from "../header-fields";
-import { StatusBadge } from "../logdrain-ui";
+import { type DrainStatus, StatusBadge } from "../logdrain-ui";
 import { DeliveryOverview } from "./charts";
 
 type DrainBase = {
   id: string;
   name: string;
-  status: "enabled" | "disabled" | "paused_by_failure";
+  status: DrainStatus;
 };
 type Drain = DrainBase &
   (
@@ -408,7 +408,7 @@ function Detail({
             )}
             <SettingCard
               title="Status"
-              description="Disable to stop deliveries. Enable to resume; delivery continues from the tracked offset."
+              description="Pause to stop deliveries. Resume to continue from the tracked offset."
               contentWidth="w-full lg:w-[420px] justify-end"
             >
               <Button
@@ -417,15 +417,15 @@ function Detail({
                 onClick={() =>
                   update.mutate({
                     id: drain.id,
-                    status: drain.status === "enabled" ? "disabled" : "enabled",
+                    status: drain.status === "running" ? "paused_by_user" : "running",
                   })
                 }
               >
                 {drain.status === "paused_by_failure"
                   ? "Resume"
-                  : drain.status === "enabled"
-                    ? "Disable"
-                    : "Enable"}
+                  : drain.status === "running"
+                    ? "Pause"
+                    : "Resume"}
               </Button>
             </SettingCard>
           </SettingCardGroup>

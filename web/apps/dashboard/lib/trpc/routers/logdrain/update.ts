@@ -33,7 +33,7 @@ export const updateLogdrain = workspaceProcedure
       .object({
         id: z.string().min(1),
         name: z.string().trim().min(1).max(128).optional(),
-        status: z.enum(["enabled", "disabled"]).optional(),
+        status: z.enum(["running", "paused_by_user"]).optional(),
         destination: updateDestinationSchema.optional(),
       })
       .refine(
@@ -59,6 +59,7 @@ export const updateLogdrain = workspaceProcedure
           .select({
             id: schema.logdrains.id,
             config: schema.logdrains.config,
+            status: schema.logdrains.status,
           })
           .from(schema.logdrains)
           .where(
@@ -94,20 +95,24 @@ export const updateLogdrain = workspaceProcedure
           });
         }
 
-        const resetFailureState = input.status === "enabled" || destination !== undefined;
+        const resetFailureState = input.status === "running" || destination !== undefined;
         const expireLease = input.status !== undefined || destination !== undefined;
+        const status =
+          input.status ??
+          (destination !== undefined && drain.status === "paused_by_failure"
+            ? "running"
+            : undefined);
         await tx
           .update(schema.logdrains)
           .set({
             ...(input.name !== undefined ? { name: input.name } : {}),
-            ...(input.status !== undefined ? { enabled: input.status === "enabled" } : {}),
+            ...(status !== undefined ? { status } : {}),
             ...(destination ? { config } : {}),
             // Expire the current lease so in-flight state writes fail and a
             // worker must acquire a new fencing token.
             ...(expireLease ? { leaseExpiresAt: 0 } : {}),
             ...(resetFailureState
               ? {
-                  status: "active" as const,
                   consecutiveFailures: 0,
                   nextAttemptAt: 0,
                 }

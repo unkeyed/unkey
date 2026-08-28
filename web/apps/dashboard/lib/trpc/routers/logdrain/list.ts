@@ -14,29 +14,22 @@ export const listLogdrains = workspaceProcedure.query(async ({ ctx }) => {
         name: schema.logdrains.name,
         stream: schema.logdrains.stream,
         config: schema.logdrains.config,
-        enabled: schema.logdrains.enabled,
-        runtimeStatus: schema.logdrains.status,
+        status: schema.logdrains.status,
         committedOffsetInsertedAt: schema.logdrains.committedOffsetInsertedAt,
         consecutiveFailures: schema.logdrains.consecutiveFailures,
         createdAt: schema.logdrains.createdAt,
       })
       .from(schema.logdrains)
       .where(eq(schema.logdrains.workspaceId, ctx.workspace.id));
-    const parsed = rows.map(({ config, enabled, runtimeStatus, ...row }) => {
+    const parsed = rows.map(({ config, ...row }) => {
       const stream = streamSchema.parse(row.stream);
       const destination = decodeLogdrainConfig(config);
-      const status: "enabled" | "disabled" | "paused_by_failure" = enabled
-        ? runtimeStatus === "paused_by_failure"
-          ? "paused_by_failure"
-          : "enabled"
-        : "disabled";
       switch (destination.kind) {
         case "http":
           return {
             ...row,
             kind: destination.kind,
             stream,
-            status,
             config: {
               url: destination.url,
               format: destination.format,
@@ -48,7 +41,6 @@ export const listLogdrains = workspaceProcedure.query(async ({ ctx }) => {
             ...row,
             kind: destination.kind,
             stream,
-            status,
             config: {
               dataset: destination.dataset,
             },

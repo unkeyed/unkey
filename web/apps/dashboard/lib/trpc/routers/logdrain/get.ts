@@ -13,8 +13,7 @@ export const getLogdrain = workspaceProcedure
           id: schema.logdrains.id,
           name: schema.logdrains.name,
           config: schema.logdrains.config,
-          enabled: schema.logdrains.enabled,
-          runtimeStatus: schema.logdrains.status,
+          status: schema.logdrains.status,
         })
         .from(schema.logdrains)
         .where(
@@ -28,18 +27,13 @@ export const getLogdrain = workspaceProcedure
       }
 
       const destination = decodeLogdrainConfig(row.config);
-      const status: "enabled" | "disabled" | "paused_by_failure" = row.enabled
-        ? row.runtimeStatus === "paused_by_failure"
-          ? "paused_by_failure"
-          : "enabled"
-        : "disabled";
       switch (destination.kind) {
         case "http":
           return {
             id: row.id,
             name: row.name,
             kind: destination.kind,
-            status,
+            status: row.status,
             config: {
               url: destination.url,
               format: destination.format,
@@ -51,7 +45,7 @@ export const getLogdrain = workspaceProcedure
             id: row.id,
             name: row.name,
             kind: destination.kind,
-            status,
+            status: row.status,
             config: {
               dataset: destination.dataset,
             },

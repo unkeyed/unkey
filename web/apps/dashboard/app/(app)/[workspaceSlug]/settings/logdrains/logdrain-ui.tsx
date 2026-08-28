@@ -2,23 +2,30 @@
 
 import { type MenuItem, TableActionPopover } from "@/components/logs/table-action.popover";
 import { trpc } from "@/lib/trpc/client";
+import type { Router } from "@/lib/trpc/routers";
 import { cn } from "@/lib/utils";
+import type { inferRouterOutputs } from "@trpc/server";
 import { Bolt, BoltSlash, Trash } from "@unkey/icons";
 import { Button, DialogContainer, toast } from "@unkey/ui";
 import { useState } from "react";
 
-export type DrainStatus = "enabled" | "disabled" | "paused_by_failure";
+export type DrainStatus = inferRouterOutputs<Router>["logdrain"]["list"][number]["status"];
 
 export function StatusBadge({ status }: { status: DrainStatus }) {
-  const label = status === "paused_by_failure" ? "Paused by failure" : status;
+  const label =
+    status === "running"
+      ? "Running"
+      : status === "paused_by_user"
+        ? "Paused by user"
+        : "Paused by failure";
   return (
-    <span className="flex items-center gap-2 whitespace-nowrap text-[13px] capitalize text-accent-12">
+    <span className="flex items-center gap-2 whitespace-nowrap text-[13px] text-accent-12">
       <span
         className={cn(
           "size-2 shrink-0 rounded-full",
-          status === "enabled"
+          status === "running"
             ? "bg-success-9"
-            : status === "disabled"
+            : status === "paused_by_user"
               ? "bg-gray-9"
               : "bg-error-9",
         )}
@@ -54,18 +61,18 @@ export function DrainActions({
     },
     onError: (error) => toast.error(error.message),
   });
-  const nextStatus = drain.status === "enabled" ? "disabled" : "enabled";
+  const nextStatus = drain.status === "running" ? "paused_by_user" : "running";
   const menuItems: MenuItem[] = [
     {
       id: "toggle",
       label:
         drain.status === "paused_by_failure"
           ? "Resume log drain"
-          : drain.status === "enabled"
-            ? "Disable log drain"
-            : "Enable log drain",
+          : drain.status === "running"
+            ? "Pause log drain"
+            : "Resume log drain",
       icon:
-        drain.status === "enabled" ? (
+        drain.status === "running" ? (
           <BoltSlash iconSize="md-medium" />
         ) : (
           <Bolt iconSize="md-medium" />
