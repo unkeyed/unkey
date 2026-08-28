@@ -73,6 +73,13 @@ func (e *integrationTestEnv) hasRow(workspaceID, namespace, identifier, region s
 	return ok
 }
 
+func (e *integrationTestEnv) upsertGlobalCounterRows(rows ...rldb.UpsertRatelimitGlobalCountersParams) {
+	e.t.Helper()
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+	require.NoError(e.t, e.rldb.BulkUpsertGlobalCounters(ctx, rows))
+}
+
 // TestGlobal_PropagatesCountAcrossRegions is the headline scenario:
 // region A consumes part of the limit and flushes its count; region B
 // reads the row and folds it into its sliding-window math. A request to
@@ -139,6 +146,126 @@ func TestGlobal_PropagatesCountAcrossRegions(t *testing.T) {
 	resp, err = regionB.Ratelimit(ctx, denyReq)
 	require.NoError(t, err)
 	require.False(t, resp.Success, "B must deny when combined effective exceeds limit; without sharing this would have passed")
+}
+
+func TestGlobalPull_StartupFullSync(t *testing.T) {
+	t.Parallel()
+
+	env := newIntegrationTestEnv(t)
+	start := time.UnixMilli(2_000_000_000_000)
+	clk := clock.NewTestClock(start)
+	key := counterKey{
+		workspaceID: uid.New(uid.WorkspacePrefix),
+		namespace:   "ns",
+		identifier:  "user",
+		durationMs:  time.Hour.Milliseconds(),
+		sequence:    calculateSequence(start, time.Hour),
+	}
+	env.upsertGlobalCounterRows(globalCounterRowForKeyAt(key, "region-a", 6, start.Add(-time.Hour)))
+
+	regionB := env.newRegionAs(clk, "region-b")
+
+	require.Eventually(t, func() bool {
+		entry, ok := regionB.counters.Load(key)
+		return ok && entry.(*counterEntry).globalCount.Load() == 6
+	}, 3*time.Second, 25*time.Millisecond, "startup pull must fully hydrate old active rows")
+}
+
+func TestGlobalPull_IncrementalAggregatesUnchangedRegions(t *testing.T) {
+	t.Parallel()
+
+	env := newIntegrationTestEnv(t)
+	start := time.UnixMilli(2_000_000_000_000)
+	clk := clock.NewTestClock(start)
+	regionC := newGlobalPullOnlyService(env, clk, "region-c")
+	key := counterKey{
+		workspaceID: uid.New(uid.WorkspacePrefix),
+		namespace:   "ns",
+		identifier:  "user",
+		durationMs:  time.Hour.Milliseconds(),
+		sequence:    calculateSequence(start, time.Hour),
+	}
+
+	env.upsertGlobalCounterRows(
+		globalCounterRowForKeyAt(key, "region-a", 2, start),
+		globalCounterRowForKeyAt(key, "region-b", 3, start.Add(-time.Minute)),
+	)
+	regionC.runGlobalPullOnce()
+	entryValue, ok := regionC.counters.Load(key)
+	require.True(t, ok)
+	entry := entryValue.(*counterEntry)
+	require.Equal(t, int64(5), entry.globalCount.Load())
+
+	clk.Tick(time.Second)
+	env.upsertGlobalCounterRows(globalCounterRowForKeyAt(key, "region-a", 7, clk.Now()))
+	regionC.runGlobalPullOnce()
+
+	require.Equal(t, int64(10), entry.globalCount.Load(),
+		"incremental pull must aggregate changed region A with unchanged region B")
+}
+
+func TestGlobalPull_OverlapRecoversDelayedVisibilityWithoutDoubleCount(t *testing.T) {
+	t.Parallel()
+
+	env := newIntegrationTestEnv(t)
+	start := time.UnixMilli(2_000_000_000_000)
+	clk := clock.NewTestClock(start)
+	regionB := newGlobalPullOnlyService(env, clk, "region-b")
+	key := counterKey{
+		workspaceID: uid.New(uid.WorkspacePrefix),
+		namespace:   "ns",
+		identifier:  "user",
+		durationMs:  time.Hour.Milliseconds(),
+		sequence:    calculateSequence(start, time.Hour),
+	}
+
+	regionB.runGlobalPullOnce()
+	clk.Tick(globalPullInterval)
+	regionB.runGlobalPullOnce()
+
+	// Model a row that becomes visible only after the receiver advanced past its
+	// timestamp. The inclusive overlap must recover the boundary update.
+	env.upsertGlobalCounterRows(globalCounterRowForKeyAt(key, "region-a", 4, start))
+	regionB.runGlobalPullOnce()
+	entryValue, ok := regionB.counters.Load(key)
+	require.True(t, ok)
+	entry := entryValue.(*counterEntry)
+	require.Equal(t, int64(4), entry.globalCount.Load())
+
+	regionB.runGlobalPullOnce()
+	require.Equal(t, int64(4), entry.globalCount.Load(),
+		"overlap may return the same aggregate repeatedly but must not add it twice")
+}
+
+func TestGlobalPull_PeriodicReconciliationRepairsMissedUpdate(t *testing.T) {
+	t.Parallel()
+
+	env := newIntegrationTestEnv(t)
+	start := time.UnixMilli(2_000_000_000_000)
+	clk := clock.NewTestClock(start)
+	regionB := newGlobalPullOnlyService(env, clk, "region-b")
+	key := counterKey{
+		workspaceID: uid.New(uid.WorkspacePrefix),
+		namespace:   "ns",
+		identifier:  "user",
+		durationMs:  time.Hour.Milliseconds(),
+		sequence:    calculateSequence(start, time.Hour),
+	}
+
+	regionB.runGlobalPullOnce()
+	clk.Tick(globalPullInterval)
+	regionB.runGlobalPullOnce()
+
+	env.upsertGlobalCounterRows(globalCounterRowForKeyAt(key, "region-a", 9, start.Add(-time.Hour)))
+	regionB.runGlobalPullOnce()
+	_, ok := regionB.counters.Load(key)
+	require.False(t, ok, "incremental pull should miss an update older than its overlap")
+
+	clk.Tick(globalPullReconciliationInterval - globalPullInterval)
+	regionB.runGlobalPullOnce()
+	entryValue, ok := regionB.counters.Load(key)
+	require.True(t, ok, "periodic full reconciliation must recover the missed update")
+	require.Equal(t, int64(9), entryValue.(*counterEntry).globalCount.Load())
 }
 
 // TestGlobalPush_EmitsRowsInUniqueKeyOrder guarantees that a flush batch
@@ -252,6 +379,14 @@ func newGlobalPushOnlyService(db rldb.DBTX, region string) *service {
 	}
 }
 
+func newGlobalPullOnlyService(env *integrationTestEnv, clk clock.Clock, region string) *service {
+	return &service{ //nolint:exhaustruct // test only needs global pull dependencies
+		clock:  clk,
+		region: region,
+		db:     env.rldb,
+	}
+}
+
 func storePushableCounter(svc *service, key counterKey) {
 	entry := &counterEntry{} //nolint:exhaustruct // only push eligibility fields matter here
 	entry.val.Store(10)
@@ -260,6 +395,10 @@ func storePushableCounter(svc *service, key counterKey) {
 }
 
 func globalCounterRowForKey(key counterKey, region string, count uint64) rldb.UpsertRatelimitGlobalCountersParams {
+	return globalCounterRowForKeyAt(key, region, count, time.Now())
+}
+
+func globalCounterRowForKeyAt(key counterKey, region string, count uint64, updatedAt time.Time) rldb.UpsertRatelimitGlobalCountersParams {
 	return rldb.UpsertRatelimitGlobalCountersParams{
 		WorkspaceID: key.workspaceID,
 		Namespace:   key.namespace,
@@ -269,7 +408,7 @@ func globalCounterRowForKey(key counterKey, region string, count uint64) rldb.Up
 		Region:      region,
 		Count:       count,
 		ExpiresAt:   uint64((key.sequence + 2) * key.durationMs),
-		UpdatedAt:   uint64(time.Now().UnixMilli()),
+		UpdatedAt:   uint64(updatedAt.UnixMilli()),
 	}
 }
 

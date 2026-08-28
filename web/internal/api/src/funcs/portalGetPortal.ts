@@ -30,16 +30,12 @@ import { Result } from "../types/fp.js";
  * Get portal
  *
  * @remarks
- * Read one portal, by its id or slug, or by the app or keyspace it serves.
+ * Read one portal, by its id or slug, or by the resource it serves.
  *
  * Unreleased and subject to change without notice.
  *
- * The mapping lookup exists for callers that reach a portal through the
- * resource it serves rather than through an identifier they stored. Exactly one
- * of `portal` or `mapping` is required.
- *
- * The response carries the portal's own `displayName`, which is what your end
- * users see.
+ * Send exactly one of `portal`, `keyspaceId`, or `appId`. Sending more than one
+ * is a **400**.
  *
  * **Required Permissions**
  *
@@ -47,8 +43,7 @@ import { Result } from "../types/fp.js";
  * - `portal.*.read_portal` (to read any portal in the workspace)
  * - `portal.<portal_id>.read_portal` (to read a specific portal)
  *
- * Missing the permission returns **404**, not 403: a caller who cannot read a
- * portal is not told whether it exists.
+ * Without the permission this returns **404**, not 403.
  *
  * If set, this operation will use {@link Security.rootKey} from the global security.
  */

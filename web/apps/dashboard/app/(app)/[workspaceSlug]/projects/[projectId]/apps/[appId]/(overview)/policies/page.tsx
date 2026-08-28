@@ -1,5 +1,4 @@
 "use client";
-import { TOP_NAV_HEIGHT } from "@/components/navigation/top-nav";
 import { policyMatchKey } from "@/lib/collections/deploy/policies.schema";
 import { Plus } from "@unkey/icons";
 import {
@@ -112,7 +111,6 @@ export default function PoliciesPage() {
           productionSlug={productionSlug}
           previewSlug={previewSlug}
           isOpen={panels.isAddPanelOpen}
-          topOffset={TOP_NAV_HEIGHT}
           onClose={panels.closeAdd}
           existingMatchKeys={existingMatchKeys}
           onSave={actions.save}
@@ -124,7 +122,6 @@ export default function PoliciesPage() {
             productionSlug={productionSlug}
             previewSlug={previewSlug}
             isOpen={panels.isEditPanelOpen}
-            topOffset={TOP_NAV_HEIGHT}
             onClose={panels.closeEdit}
             existingMatchKeys={existingMatchKeys}
             initialPolicy={editingPolicy}

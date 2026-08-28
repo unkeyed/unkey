@@ -30,16 +30,17 @@ import { Result } from "../types/fp.js";
  * Update portal
  *
  * @remarks
- * Change a portal's handle, mapping, enabled state, or branding.
+ * Change a portal's slug, display name, the resource it serves, its enabled
+ * state, or its branding.
  *
  * Unreleased and subject to change without notice.
  *
  * Only the fields you send change. Omitting a field leaves it as it is, and for
- * branding, sending null clears it.
+ * branding, sending null clears it. Send at most one of `keyspaceId` or `appId`.
  *
  * Two changes affect your end users immediately:
- * - Re-pointing `mapping` revokes the portal's live sessions, because a session
- *   carries the scope it was minted with.
+ * - Re-pointing at a different resource revokes the portal's live sessions,
+ *   because a session carries the scope it was minted with.
  * - Disabling stops new sessions but leaves live ones running until they expire.
  *
  * **Required Permissions**
@@ -48,8 +49,7 @@ import { Result } from "../types/fp.js";
  * - `portal.*.update_portal` (to update any portal in the workspace)
  * - `portal.<portal_id>.update_portal` (to update a specific portal)
  *
- * Missing the permission returns **404**, not 403: a caller who cannot update a
- * portal is not told whether it exists.
+ * Without the permission this returns **404**, not 403.
  *
  * If set, this operation will use {@link Security.rootKey} from the global security.
  */
