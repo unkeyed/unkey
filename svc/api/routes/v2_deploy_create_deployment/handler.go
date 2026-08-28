@@ -9,6 +9,7 @@ import (
 	"github.com/unkeyed/unkey/gen/rpc/ctrl"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/deploy/imageref"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/zen"
@@ -83,6 +84,17 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	trigger := ctrlv1.DeploymentTrigger_DEPLOYMENT_TRIGGER_API
 	if strings.HasPrefix(s.Request().Header.Get("X-Unkey-Client"), "unkey-cli/") {
 		trigger = ctrlv1.DeploymentTrigger_DEPLOYMENT_TRIGGER_CLI
+	}
+
+	// ctrl rejects these too, but ctrlclient.HandleError replaces its message with a
+	// generic one, so the reason reaches the caller only if the check also runs here.
+	if err := imageref.Validate(req.DockerImage); err != nil {
+		return fault.New(
+			"invalid docker image reference",
+			fault.Code(codes.App.Validation.InvalidInput.URN()),
+			fault.Internal(err.Error()),
+			fault.Public(err.Error()),
+		)
 	}
 
 	// nolint: exhaustruct // optional proto fields, only setting whats provided

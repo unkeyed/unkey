@@ -643,7 +643,8 @@ components:
                 dockerImage:
                     type: string
                     minLength: 1
-                    description: Docker image reference to deploy
+                    maxLength: 256
+                    description: Docker image reference to deploy. Accepts a tag or a digest.
                     example: "ghcr.io/user/app:v1.0.0"
                 gitCommit:
                     $ref: "#/components/schemas/V2DeployGitCommit"
@@ -4552,8 +4553,9 @@ components:
                 dockerImage:
                     type: string
                     minLength: 1
+                    maxLength: 256
                     pattern: "\\S"
-                    description: Docker image to deploy as-is.
+                    description: Docker image to deploy as-is. Accepts a tag or a digest.
                     example: "ghcr.io/acme/api:v1.2.3"
             description: Deploy a prebuilt Docker image as-is.
         DeploymentSourceDeployment:

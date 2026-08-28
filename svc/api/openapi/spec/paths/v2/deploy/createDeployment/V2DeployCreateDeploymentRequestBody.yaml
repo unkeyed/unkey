@@ -33,7 +33,8 @@ properties:
   dockerImage:
     type: string
     minLength: 1
-    description: Docker image reference to deploy
+    maxLength: 256
+    description: Docker image reference to deploy. Accepts a tag or a digest.
     example: "ghcr.io/user/app:v1.0.0"
   gitCommit:
     $ref: "./V2DeployGitCommit.yaml"

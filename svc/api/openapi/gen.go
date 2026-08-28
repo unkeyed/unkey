@@ -442,7 +442,7 @@ type DeploymentSourceGit struct {
 
 // DeploymentSourceImage Deploy a prebuilt Docker image as-is.
 type DeploymentSourceImage struct {
-	// DockerImage Docker image to deploy as-is.
+	// DockerImage Docker image to deploy as-is. Accepts a tag or a digest.
 	DockerImage string `json:"dockerImage"`
 }
 
@@ -1970,7 +1970,7 @@ type V2DeployCreateDeploymentRequestBody struct {
 	// Branch Git branch name
 	Branch string `json:"branch"`
 
-	// DockerImage Docker image reference to deploy
+	// DockerImage Docker image reference to deploy. Accepts a tag or a digest.
 	DockerImage string `json:"dockerImage"`
 
 	// EnvironmentSlug Environment slug (e.g., "production", "staging")
