@@ -56,6 +56,12 @@ func TestMatchWatchPaths(t *testing.T) {
 			want:         true,
 		},
 		{
+			name:         "invalid sibling does not block a valid match",
+			patterns:     []string{"[invalid", "src/**"},
+			changedFiles: []string{"src/main.go"},
+			want:         true,
+		},
+		{
 			name:         "multiple files, one matches",
 			patterns:     []string{"src/**"},
 			changedFiles: []string{"docs/readme.md", "src/main.go"},
@@ -84,6 +90,62 @@ func TestMatchWatchPaths(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got := MatchWatchPaths(tt.patterns, tt.changedFiles)
+			require.Equal(t, tt.want, got)
+		})
+	}
+}
+
+func TestInvalidWatchPaths(t *testing.T) {
+	tests := []struct {
+		name     string
+		patterns []string
+		want     []string
+	}{
+		{
+			name:     "nil patterns",
+			patterns: nil,
+			want:     nil,
+		},
+		{
+			name:     "empty patterns",
+			patterns: []string{},
+			want:     nil,
+		},
+		{
+			name:     "all valid",
+			patterns: []string{"src/**", "**/*.go", "KEBAP"},
+			want:     nil,
+		},
+		{
+			name:     "unclosed bracket",
+			patterns: []string{"src/["},
+			want:     []string{"src/["},
+		},
+		{
+			name:     "unclosed bracket range",
+			patterns: []string{"src/[a-"},
+			want:     []string{"src/[a-"},
+		},
+		{
+			name:     "unclosed brace",
+			patterns: []string{"{src,lib"},
+			want:     []string{"{src,lib"},
+		},
+		{
+			name:     "trailing backslash",
+			patterns: []string{`src\`},
+			want:     []string{`src\`},
+		},
+		{
+			name:     "mixed valid and invalid preserves order",
+			patterns: []string{"src/[", "src/**", "{src,lib"},
+			want:     []string{"src/[", "{src,lib"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := InvalidWatchPaths(tt.patterns)
 			require.Equal(t, tt.want, got)
 		})
 	}

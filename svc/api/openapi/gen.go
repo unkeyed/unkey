@@ -2615,7 +2615,8 @@ type V2EnvironmentsUpdateSettingsRequestBody struct {
 	VCpus *float64 `json:"vCpus,omitempty"`
 
 	// WatchPaths Glob paths that trigger auto-deploys when changed.
-	// Omit to leave unchanged.
+	// Use doublestar glob syntax, e.g. "src/**" or "**/*.go".
+	// Omit to leave unchanged. Invalid glob patterns are rejected with a 400.
 	WatchPaths *[]string `json:"watchPaths,omitempty"`
 }
 

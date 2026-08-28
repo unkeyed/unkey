@@ -22,7 +22,8 @@ func MatchWatchPaths(patterns []string, changedFiles []string) bool {
 		for _, pattern := range patterns {
 			matched, err := doublestar.Match(pattern, file)
 			if err != nil {
-				// Treat bad patterns as non-matching rather than failing the deploy.
+				// Invalid patterns are treated as non-matching here; callers that must
+				// distinguish a broken config from a valid miss use InvalidWatchPaths.
 				continue
 			}
 			if matched {
@@ -31,4 +32,18 @@ func MatchWatchPaths(patterns []string, changedFiles []string) bool {
 		}
 	}
 	return false
+}
+
+// InvalidWatchPaths returns the patterns that are not valid doublestar globs,
+// in input order. MatchWatchPaths silently skips such patterns, so callers
+// that must distinguish a valid config that didn't match from a broken config
+// check this first.
+func InvalidWatchPaths(patterns []string) []string {
+	var invalid []string
+	for _, pattern := range patterns {
+		if !doublestar.ValidatePattern(pattern) {
+			invalid = append(invalid, pattern)
+		}
+	}
+	return invalid
 }
