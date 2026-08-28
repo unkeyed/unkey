@@ -11,14 +11,14 @@ import (
 type Querier interface {
 	// AcquireLogdrainLease assigns a new fencing token and computes an absolute
 	// expiry from database time and the supplied TTL. The update rechecks both
-	// expiry and enabled state so competing lease services need no transaction.
+	// expiry and running state so competing lease services need no transaction.
 	//
 	//  UPDATE logdrains
 	//  SET lease_id = ?,
 	//    fencing_token = ?,
 	//    lease_expires_at = CAST(UNIX_TIMESTAMP(NOW(3)) * 1000 AS SIGNED) + CAST(? AS SIGNED)
 	//  WHERE id = ?
-	//    AND enabled = true
+	//    AND status = 'running'
 	//    AND lease_expires_at <= CAST(UNIX_TIMESTAMP(NOW(3)) * 1000 AS SIGNED)
 	AcquireLogdrainLease(ctx context.Context, arg AcquireLogdrainLeaseParams) (int64, error)
 	// CountLogdrainsByStatus provides low-cardinality service health metrics.
@@ -26,21 +26,11 @@ type Querier interface {
 	// stale gauges.
 	//
 	//  SELECT
-	//    CASE
-	//      WHEN d.enabled = false THEN 'disabled'
-	//      WHEN d.status = 'paused_by_failure' THEN 'paused_by_failure'
-	//      ELSE 'enabled'
-	//    END AS status,
+	//    d.status,
 	//    d.stream,
 	//    COUNT(*) AS drains
 	//  FROM logdrains d
-	//  GROUP BY
-	//    CASE
-	//      WHEN d.enabled = false THEN 'disabled'
-	//      WHEN d.status = 'paused_by_failure' THEN 'paused_by_failure'
-	//      ELSE 'enabled'
-	//    END,
-	//    d.stream
+	//  GROUP BY d.status, d.stream
 	CountLogdrainsByStatus(ctx context.Context) ([]CountLogdrainsByStatusRow, error)
 	// GetLeasedAndDueLogdrain returns one due drain only while the caller still
 	// owns its database-time lease.
@@ -57,19 +47,17 @@ type Querier interface {
 	//    d.fencing_token
 	//  FROM logdrains d
 	//  WHERE d.id = ?
-	//    AND d.enabled = true
-	//    AND d.status = 'active'
+	//    AND d.status = 'running'
 	//    AND d.fencing_token = ?
 	//    AND d.lease_expires_at > CAST(UNIX_TIMESTAMP(NOW(3)) * 1000 AS SIGNED)
 	//    AND d.next_attempt_at <= CAST(UNIX_TIMESTAMP(NOW(3)) * 1000 AS SIGNED)
 	GetLeasedAndDueLogdrain(ctx context.Context, arg GetLeasedAndDueLogdrainParams) (GetLeasedAndDueLogdrainRow, error)
-	// ListDueLogdrains returns active, due leases assigned to one service process.
+	// ListDueLogdrains returns running, due leases assigned to one service process.
 	// Database time controls both lease validity and retry scheduling.
 	//
 	//  SELECT id AS logdrain_id, fencing_token
 	//  FROM logdrains
-	//  WHERE enabled = true
-	//    AND status = 'active'
+	//  WHERE status = 'running'
 	//    AND lease_id = ?
 	//    AND lease_expires_at > CAST(UNIX_TIMESTAMP(NOW(3)) * 1000 AS SIGNED)
 	//    AND next_attempt_at <= CAST(UNIX_TIMESTAMP(NOW(3)) * 1000 AS SIGNED)
@@ -80,20 +68,22 @@ type Querier interface {
 	//
 	//  SELECT id AS logdrain_id
 	//  FROM logdrains
-	//  WHERE enabled = true
+	//  WHERE status = 'running'
 	//    AND lease_expires_at <= CAST(UNIX_TIMESTAMP(NOW(3)) * 1000 AS SIGNED)
 	//  ORDER BY lease_expires_at, id
 	//  LIMIT ?
 	ListExpiredLogdrainCandidates(ctx context.Context, limit int32) ([]string, error)
 	// RecordLogdrainFailure atomically increments failures and optionally pauses
 	// the drain. Database time computes the absolute retry time. The update requires
-	// the exact fencing token and a lease that is valid at database time.
+	// the exact fencing token, a valid lease, and a running drain. The status guard
+	// prevents an in-flight failure from overriding a user pause.
 	//
 	//  UPDATE logdrains
 	//  SET consecutive_failures = consecutive_failures + 1,
 	//    status = ?,
 	//    next_attempt_at = CAST(UNIX_TIMESTAMP(NOW(3)) * 1000 AS SIGNED) + CAST(? AS SIGNED)
 	//  WHERE id = ?
+	//    AND status = 'running'
 	//    AND fencing_token = ?
 	//    AND lease_expires_at > CAST(UNIX_TIMESTAMP(NOW(3)) * 1000 AS SIGNED)
 	RecordLogdrainFailure(ctx context.Context, arg RecordLogdrainFailureParams) (int64, error)

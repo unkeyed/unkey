@@ -150,7 +150,7 @@ type auditEvent struct {
 }
 
 type drainState struct {
-	status                    string
+	status                    db.LogdrainsStatus
 	committedOffsetInsertedAt int64
 	consecutiveFailures       int
 }
@@ -266,7 +266,7 @@ func TestEngine_Integration(t *testing.T) {
 
 		require.EventuallyWithT(t, func(c *assert.CollectT) {
 			state := readDrainStateCollect(c, mysqlDB, drainID)
-			require.Equal(c, "paused_by_failure", state.status)
+			require.Equal(c, db.LogdrainsStatusPausedByFailure, state.status)
 			require.Equal(c, start-1, state.committedOffsetInsertedAt)
 			found := false
 			for _, delivery := range deliveries.snapshot() {
@@ -466,10 +466,10 @@ func seedDrain(t *testing.T, database *sql.DB, workspaceID, drainID, url string,
 	createdAt := time.Now().UnixMilli()
 	_, err = database.Exec(`
 		INSERT INTO logdrains (
-			id, workspace_id, name, stream, config, enabled,
+			id, workspace_id, name, stream, config,
 			committed_offset_inserted_at, lease_id, fencing_token, lease_expires_at, created_at
 		)
-		VALUES (?, ?, ?, 'audit_logs', ?, true, ?, '', '', 0, ?)
+		VALUES (?, ?, ?, 'audit_logs', ?, ?, '', '', 0, ?)
 	`, drainID, workspaceID, "integration test", encoded, offset, createdAt)
 	require.NoError(t, err)
 }

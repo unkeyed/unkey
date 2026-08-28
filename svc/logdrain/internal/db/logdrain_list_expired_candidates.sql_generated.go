@@ -12,7 +12,7 @@ import (
 const listExpiredLogdrainCandidates = `-- name: ListExpiredLogdrainCandidates :many
 SELECT id AS logdrain_id
 FROM logdrains
-WHERE enabled = true
+WHERE status = 'running'
   AND lease_expires_at <= CAST(UNIX_TIMESTAMP(NOW(3)) * 1000 AS SIGNED)
 ORDER BY lease_expires_at, id
 LIMIT ?
@@ -23,7 +23,7 @@ LIMIT ?
 //
 //	SELECT id AS logdrain_id
 //	FROM logdrains
-//	WHERE enabled = true
+//	WHERE status = 'running'
 //	  AND lease_expires_at <= CAST(UNIX_TIMESTAMP(NOW(3)) * 1000 AS SIGNED)
 //	ORDER BY lease_expires_at, id
 //	LIMIT ?

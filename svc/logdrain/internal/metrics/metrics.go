@@ -10,7 +10,7 @@ var (
 	// Drains tracks configured logdrains by status and stream.
 	//
 	// Labels:
-	//   - "status": "enabled", "disabled", or "paused_by_failure"
+	//   - "status": "running", "paused_by_user", or "paused_by_failure"
 	//   - "stream": "audit_logs"
 	Drains = lazy.NewGaugeVec(prometheus.GaugeOpts{
 		Namespace: "unkey",

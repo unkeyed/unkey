@@ -929,7 +929,8 @@ func (ns NullKeyMigrationsAlgorithm) Value() (driver.Value, error) {
 type LogdrainsStatus string
 
 const (
-	LogdrainsStatusActive          LogdrainsStatus = "active"
+	LogdrainsStatusRunning         LogdrainsStatus = "running"
+	LogdrainsStatusPausedByUser    LogdrainsStatus = "paused_by_user"
 	LogdrainsStatusPausedByFailure LogdrainsStatus = "paused_by_failure"
 )
 
@@ -1480,7 +1481,6 @@ type Logdrain struct {
 	Name                      string          `db:"name"`
 	Stream                    LogdrainsStream `db:"stream"`
 	Config                    []byte          `db:"config"`
-	Enabled                   bool            `db:"enabled"`
 	Status                    LogdrainsStatus `db:"status"`
 	ConsecutiveFailures       int32           `db:"consecutive_failures"`
 	CommittedOffsetInsertedAt int64           `db:"committed_offset_inserted_at"`

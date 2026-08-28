@@ -18,7 +18,8 @@ import (
 )
 
 // TestService_LeaseOwnership guarantees that lease IDs route polling, database
-// time controls expiry, and each acquisition has an independent fence.
+// time controls expiry, each acquisition has an independent fence, and a user
+// pause prevents acquisition without allowing in-flight failures to override it.
 func TestService_LeaseOwnership(t *testing.T) {
 	ctx := context.Background()
 	// Keep node time far from database time to prove that lease validity does
@@ -42,10 +43,10 @@ func TestService_LeaseOwnership(t *testing.T) {
 	require.NoError(t, err)
 	_, err = database.Conn().ExecContext(ctx, `
 		INSERT INTO logdrains (
-			id, workspace_id, name, stream, config, enabled,
+			id, workspace_id, name, stream, config,
 			lease_id, fencing_token, lease_expires_at, created_at
 		)
-		VALUES (?, ?, 'lease integration test', 'audit_logs', ?, true, '', '', 0, ?)
+		VALUES (?, ?, 'lease integration test', 'audit_logs', ?, '', '', 0, ?)
 	`, drainID, workspaceID, config, nodeTimeMillis)
 	require.NoError(t, err)
 	t.Cleanup(func() {
@@ -58,6 +59,13 @@ func TestService_LeaseOwnership(t *testing.T) {
 		services[i], err = New(Config{DB: database, LeaseID: leaseID, Clock: testClock})
 		require.NoError(t, err)
 	}
+	_, err = database.Conn().ExecContext(ctx, "UPDATE logdrains SET status = ? WHERE id = ?", db.LogdrainsStatusPausedByUser, drainID)
+	require.NoError(t, err)
+	pausedAcquired, err := services[0].acquire(ctx)
+	require.NoError(t, err)
+	require.Zero(t, pausedAcquired, "a user-paused drain must not be leased")
+	_, err = database.Conn().ExecContext(ctx, "UPDATE logdrains SET status = ? WHERE id = ?", db.LogdrainsStatusRunning, drainID)
+	require.NoError(t, err)
 
 	acquired := make([]int, len(services))
 	acquireErrors := make([]error, len(services))
@@ -108,9 +116,25 @@ func TestService_LeaseOwnership(t *testing.T) {
 	})
 	require.NoError(t, err)
 	require.Equal(t, drainID, leasedDrain.ID)
+	_, err = database.Conn().ExecContext(ctx, "UPDATE logdrains SET status = ? WHERE id = ?", db.LogdrainsStatusPausedByUser, drainID)
+	require.NoError(t, err)
+	rowsAffected, err := database.RecordLogdrainFailure(ctx, db.RecordLogdrainFailureParams{
+		Status:           db.LogdrainsStatusRunning,
+		RetryAfterMillis: time.Minute.Milliseconds(),
+		LogdrainID:       drainID,
+		FencingToken:     fencingToken,
+	})
+	require.NoError(t, err)
+	require.Zero(t, rowsAffected, "an in-flight failure must not override a user pause")
+	var status db.LogdrainsStatus
+	err = database.Conn().QueryRowContext(ctx, "SELECT status FROM logdrains WHERE id = ?", drainID).Scan(&status)
+	require.NoError(t, err)
+	require.Equal(t, db.LogdrainsStatusPausedByUser, status)
+	_, err = database.Conn().ExecContext(ctx, "UPDATE logdrains SET status = ? WHERE id = ?", db.LogdrainsStatusRunning, drainID)
+	require.NoError(t, err)
 
 	staleToken := "stale-fencing-token"
-	rowsAffected, err := database.RecordLogdrainSuccess(ctx, db.RecordLogdrainSuccessParams{
+	rowsAffected, err = database.RecordLogdrainSuccess(ctx, db.RecordLogdrainSuccessParams{
 		CommittedOffsetInsertedAt: 1,
 		CommittedOffsetEventID:    "event_1",
 		NextAttemptDelayMillis:    time.Minute.Milliseconds(),
@@ -146,7 +170,7 @@ func TestService_LeaseOwnership(t *testing.T) {
 	retryAfter := time.Minute
 	failureStartedAt := readDatabaseNowMillis(t, ctx, database)
 	rowsAffected, err = database.RecordLogdrainFailure(ctx, db.RecordLogdrainFailureParams{
-		Status:           db.LogdrainsStatusActive,
+		Status:           db.LogdrainsStatusRunning,
 		RetryAfterMillis: retryAfter.Milliseconds(),
 		LogdrainID:       drainID,
 		FencingToken:     fencingToken,
@@ -183,7 +207,7 @@ func TestService_LeaseOwnership(t *testing.T) {
 	})
 	require.ErrorIs(t, err, sql.ErrNoRows)
 	rowsAffected, err = database.RecordLogdrainFailure(ctx, db.RecordLogdrainFailureParams{
-		Status:           db.LogdrainsStatusActive,
+		Status:           db.LogdrainsStatusRunning,
 		RetryAfterMillis: time.Minute.Milliseconds(),
 		LogdrainID:       drainID,
 		FencingToken:     fencingToken,

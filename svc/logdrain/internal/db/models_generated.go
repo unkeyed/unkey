@@ -12,7 +12,8 @@ import (
 type LogdrainsStatus string
 
 const (
-	LogdrainsStatusActive          LogdrainsStatus = "active"
+	LogdrainsStatusRunning         LogdrainsStatus = "running"
+	LogdrainsStatusPausedByUser    LogdrainsStatus = "paused_by_user"
 	LogdrainsStatusPausedByFailure LogdrainsStatus = "paused_by_failure"
 )
 

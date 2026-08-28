@@ -21,8 +21,7 @@ SELECT
   d.fencing_token
 FROM logdrains d
 WHERE d.id = ?
-  AND d.enabled = true
-  AND d.status = 'active'
+  AND d.status = 'running'
   AND d.fencing_token = ?
   AND d.lease_expires_at > CAST(UNIX_TIMESTAMP(NOW(3)) * 1000 AS SIGNED)
   AND d.next_attempt_at <= CAST(UNIX_TIMESTAMP(NOW(3)) * 1000 AS SIGNED)
@@ -59,8 +58,7 @@ type GetLeasedAndDueLogdrainRow struct {
 //	  d.fencing_token
 //	FROM logdrains d
 //	WHERE d.id = ?
-//	  AND d.enabled = true
-//	  AND d.status = 'active'
+//	  AND d.status = 'running'
 //	  AND d.fencing_token = ?
 //	  AND d.lease_expires_at > CAST(UNIX_TIMESTAMP(NOW(3)) * 1000 AS SIGNED)
 //	  AND d.next_attempt_at <= CAST(UNIX_TIMESTAMP(NOW(3)) * 1000 AS SIGNED)

@@ -11,25 +11,15 @@ import (
 
 const countLogdrainsByStatus = `-- name: CountLogdrainsByStatus :many
 SELECT
-  CASE
-    WHEN d.enabled = false THEN 'disabled'
-    WHEN d.status = 'paused_by_failure' THEN 'paused_by_failure'
-    ELSE 'enabled'
-  END AS status,
+  d.status,
   d.stream,
   COUNT(*) AS drains
 FROM logdrains d
-GROUP BY
-  CASE
-    WHEN d.enabled = false THEN 'disabled'
-    WHEN d.status = 'paused_by_failure' THEN 'paused_by_failure'
-    ELSE 'enabled'
-  END,
-  d.stream
+GROUP BY d.status, d.stream
 `
 
 type CountLogdrainsByStatusRow struct {
-	Status string          `db:"status"`
+	Status LogdrainsStatus `db:"status"`
 	Stream LogdrainsStream `db:"stream"`
 	Drains int64           `db:"drains"`
 }
@@ -39,21 +29,11 @@ type CountLogdrainsByStatusRow struct {
 // stale gauges.
 //
 //	SELECT
-//	  CASE
-//	    WHEN d.enabled = false THEN 'disabled'
-//	    WHEN d.status = 'paused_by_failure' THEN 'paused_by_failure'
-//	    ELSE 'enabled'
-//	  END AS status,
+//	  d.status,
 //	  d.stream,
 //	  COUNT(*) AS drains
 //	FROM logdrains d
-//	GROUP BY
-//	  CASE
-//	    WHEN d.enabled = false THEN 'disabled'
-//	    WHEN d.status = 'paused_by_failure' THEN 'paused_by_failure'
-//	    ELSE 'enabled'
-//	  END,
-//	  d.stream
+//	GROUP BY d.status, d.stream
 func (q *Queries) CountLogdrainsByStatus(ctx context.Context) ([]CountLogdrainsByStatusRow, error) {
 	rows, err := q.db.QueryContext(ctx, countLogdrainsByStatus)
 	if err != nil {

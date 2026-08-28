@@ -15,7 +15,7 @@ SET lease_id = ?,
   fencing_token = ?,
   lease_expires_at = CAST(UNIX_TIMESTAMP(NOW(3)) * 1000 AS SIGNED) + CAST(? AS SIGNED)
 WHERE id = ?
-  AND enabled = true
+  AND status = 'running'
   AND lease_expires_at <= CAST(UNIX_TIMESTAMP(NOW(3)) * 1000 AS SIGNED)
 `
 
@@ -28,14 +28,14 @@ type AcquireLogdrainLeaseParams struct {
 
 // AcquireLogdrainLease assigns a new fencing token and computes an absolute
 // expiry from database time and the supplied TTL. The update rechecks both
-// expiry and enabled state so competing lease services need no transaction.
+// expiry and running state so competing lease services need no transaction.
 //
 //	UPDATE logdrains
 //	SET lease_id = ?,
 //	  fencing_token = ?,
 //	  lease_expires_at = CAST(UNIX_TIMESTAMP(NOW(3)) * 1000 AS SIGNED) + CAST(? AS SIGNED)
 //	WHERE id = ?
-//	  AND enabled = true
+//	  AND status = 'running'
 //	  AND lease_expires_at <= CAST(UNIX_TIMESTAMP(NOW(3)) * 1000 AS SIGNED)
 func (q *Queries) AcquireLogdrainLease(ctx context.Context, arg AcquireLogdrainLeaseParams) (int64, error) {
 	result, err := q.db.ExecContext(ctx, acquireLogdrainLease,

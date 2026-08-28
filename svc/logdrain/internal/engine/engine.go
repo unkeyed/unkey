@@ -171,11 +171,15 @@ func (e *Engine) poll(ctx context.Context) error {
 	}
 	metrics.PollsTotal.WithLabelValues("success").Inc()
 	type drainGroup struct {
-		status string
+		status db.LogdrainsStatus
 		stream db.LogdrainsStream
 	}
 	counts := map[drainGroup]int64{}
-	for _, status := range []string{"enabled", "disabled", "paused_by_failure"} {
+	for _, status := range []db.LogdrainsStatus{
+		db.LogdrainsStatusRunning,
+		db.LogdrainsStatusPausedByUser,
+		db.LogdrainsStatusPausedByFailure,
+	} {
 		for _, stream := range []db.LogdrainsStream{db.LogdrainsStreamAuditLogs} {
 			counts[drainGroup{status: status, stream: stream}] = 0
 		}
@@ -420,7 +424,7 @@ func (e *Engine) recordDelivery(drain db.GetLeasedAndDueLogdrainRow, stream db.L
 func (e *Engine) recordFailure(ctx context.Context, drain db.GetLeasedAndDueLogdrainRow, retryHint time.Duration) error {
 	metrics.DrainFailuresTotal.WithLabelValues(string(drain.Stream)).Inc()
 	pause := int(drain.ConsecutiveFailures)+1 >= e.cfg.PauseThreshold
-	status := db.LogdrainsStatusActive
+	status := db.LogdrainsStatusRunning
 	if pause {
 		status = db.LogdrainsStatusPausedByFailure
 	}

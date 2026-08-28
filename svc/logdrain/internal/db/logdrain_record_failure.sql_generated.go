@@ -15,6 +15,7 @@ SET consecutive_failures = consecutive_failures + 1,
   status = ?,
   next_attempt_at = CAST(UNIX_TIMESTAMP(NOW(3)) * 1000 AS SIGNED) + CAST(? AS SIGNED)
 WHERE id = ?
+  AND status = 'running'
   AND fencing_token = ?
   AND lease_expires_at > CAST(UNIX_TIMESTAMP(NOW(3)) * 1000 AS SIGNED)
 `
@@ -28,13 +29,15 @@ type RecordLogdrainFailureParams struct {
 
 // RecordLogdrainFailure atomically increments failures and optionally pauses
 // the drain. Database time computes the absolute retry time. The update requires
-// the exact fencing token and a lease that is valid at database time.
+// the exact fencing token, a valid lease, and a running drain. The status guard
+// prevents an in-flight failure from overriding a user pause.
 //
 //	UPDATE logdrains
 //	SET consecutive_failures = consecutive_failures + 1,
 //	  status = ?,
 //	  next_attempt_at = CAST(UNIX_TIMESTAMP(NOW(3)) * 1000 AS SIGNED) + CAST(? AS SIGNED)
 //	WHERE id = ?
+//	  AND status = 'running'
 //	  AND fencing_token = ?
 //	  AND lease_expires_at > CAST(UNIX_TIMESTAMP(NOW(3)) * 1000 AS SIGNED)
 func (q *Queries) RecordLogdrainFailure(ctx context.Context, arg RecordLogdrainFailureParams) (int64, error) {
