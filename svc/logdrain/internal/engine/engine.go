@@ -8,6 +8,7 @@ import (
 	"sync"
 	"time"
 
+	logdrainv1 "github.com/unkeyed/unkey/gen/proto/logdrain/v1"
 	"github.com/unkeyed/unkey/gen/rpc/vault"
 	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/cache"
@@ -18,6 +19,7 @@ import (
 	"github.com/unkeyed/unkey/svc/logdrain/internal/metrics"
 	"github.com/unkeyed/unkey/svc/logdrain/internal/source"
 	"github.com/unkeyed/unkey/svc/logdrain/sink"
+	"google.golang.org/protobuf/proto"
 )
 
 // deliveryTimeout bounds one delivery attempt to keep it within the lease refresh margin.
@@ -371,7 +373,16 @@ func (e *Engine) deliverEvents(ctx context.Context, drain db.GetLeasedAndDueLogd
 // recordDelivery emits asynchronous telemetry when enabled. A nil Deliveries
 // buffer disables telemetry.
 func (e *Engine) recordDelivery(drain db.GetLeasedAndDueLogdrainRow, stream db.LogdrainsStream, completed time.Time, outcome string, events int, duration time.Duration, result sink.Result, cause error) {
-	kind := configKind(drain.Config)
+	kind := "unknown"
+	cfg := &logdrainv1.Config{}
+	if proto.Unmarshal(drain.Config, cfg) == nil {
+		switch cfg.Destination.(type) {
+		case *logdrainv1.Config_Http:
+			kind = "http"
+		case *logdrainv1.Config_Axiom:
+			kind = "axiom"
+		}
+	}
 	metrics.DeliveriesTotal.WithLabelValues(kind, string(stream), outcome).Inc()
 	metrics.DeliveryDurationSeconds.WithLabelValues(kind, string(stream), outcome).Observe(duration.Seconds())
 	if outcome == "success" {

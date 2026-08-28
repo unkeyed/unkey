@@ -82,22 +82,6 @@ func (f factory) buildHTTP(ctx context.Context, workspaceID string, cfg *logdrai
 	return built, nil
 }
 
-// configKind returns a fixed metric label for the provider in stored config.
-func configKind(raw []byte) string {
-	cfg := &logdrainv1.Config{}
-	if proto.Unmarshal(raw, cfg) != nil {
-		return "unknown"
-	}
-	switch cfg.Destination.(type) {
-	case *logdrainv1.Config_Http:
-		return "http"
-	case *logdrainv1.Config_Axiom:
-		return "axiom"
-	default:
-		return "unknown"
-	}
-}
-
 // decrypt uses the workspace ID as the keyring so credentials remain isolated between workspaces.
 func (f factory) decrypt(ctx context.Context, keyring, encrypted string) (string, error) {
 	cacheKey := cache.ScopedKey{WorkspaceID: keyring, Key: encrypted}
