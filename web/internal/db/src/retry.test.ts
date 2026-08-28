@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import type { Database, Transaction } from "./index";
 import {
   DEFAULT_ATTEMPTS,
@@ -29,6 +29,10 @@ function recordingSleep() {
     },
   };
 }
+
+afterEach(() => {
+  vi.restoreAllMocks();
+});
 
 describe("retry", () => {
   it("returns the result without retrying when the call succeeds", async () => {
@@ -211,6 +215,8 @@ describe("transactionWithRetry", () => {
   });
 
   it("retries a deadlock at commit with exponential backoff", async () => {
+    // Pins the jitter factor to 1.0 so the exact schedule can be asserted.
+    vi.spyOn(Math, "random").mockReturnValue(0.5);
     const { slept, sleep } = recordingSleep();
     const work = vi.fn().mockResolvedValue("ok");
     let attempts = 0;
@@ -227,8 +233,7 @@ describe("transactionWithRetry", () => {
 
     await expect(transactionWithRetry(db, work, { sleep })).resolves.toBe("ok");
     expect(attempts).toBe(3);
-    expect(slept).toHaveLength(2);
-    expect(slept[1]).toBeGreaterThan(slept[0]);
+    expect(slept).toEqual([50, 100]);
   });
 
   it("does not retry a lock wait timeout", async () => {
