@@ -23,8 +23,6 @@ LIMIT ?
 
 // ListExpiredLogdrainCandidates returns a bounded set of leases that have
 // expired according to database time.
-// This consistent read does not lock state before config. The caller locks the
-// enabled config rows before it changes lease state.
 //
 //	SELECT s.logdrain_id
 //	FROM logdrain_state s

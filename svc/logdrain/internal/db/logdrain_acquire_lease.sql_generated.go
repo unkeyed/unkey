@@ -16,6 +16,10 @@ SET s.lease_id = ?,
   s.lease_expires_at = CAST(UNIX_TIMESTAMP(NOW(3)) * 1000 AS SIGNED) + CAST(? AS SIGNED)
 WHERE s.logdrain_id = ?
   AND s.lease_expires_at <= CAST(UNIX_TIMESTAMP(NOW(3)) * 1000 AS SIGNED)
+  AND EXISTS (
+    SELECT 1 FROM logdrains d
+    WHERE d.id = s.logdrain_id AND d.enabled = true
+  )
 `
 
 type AcquireLogdrainLeaseParams struct {
@@ -26,10 +30,8 @@ type AcquireLogdrainLeaseParams struct {
 }
 
 // AcquireLogdrainLease assigns a new fencing token and computes an absolute
-// expiry from database time and the supplied TTL.
-// Dashboard updates lock logdrains before logdrain_state. Lease acquisition
-// must use the same lock order or each transaction can wait for a row held by
-// the other. Call LockEnabledLogdrainsForUpdate in the same transaction first.
+// expiry from database time and the supplied TTL. The update rechecks both
+// expiry and enabled state so competing lease services need no transaction.
 //
 //	UPDATE logdrain_state s
 //	SET s.lease_id = ?,
@@ -37,6 +39,10 @@ type AcquireLogdrainLeaseParams struct {
 //	  s.lease_expires_at = CAST(UNIX_TIMESTAMP(NOW(3)) * 1000 AS SIGNED) + CAST(? AS SIGNED)
 //	WHERE s.logdrain_id = ?
 //	  AND s.lease_expires_at <= CAST(UNIX_TIMESTAMP(NOW(3)) * 1000 AS SIGNED)
+//	  AND EXISTS (
+//	    SELECT 1 FROM logdrains d
+//	    WHERE d.id = s.logdrain_id AND d.enabled = true
+//	  )
 func (q *Queries) AcquireLogdrainLease(ctx context.Context, arg AcquireLogdrainLeaseParams) (int64, error) {
 	result, err := q.db.ExecContext(ctx, acquireLogdrainLease,
 		arg.LeaseID,

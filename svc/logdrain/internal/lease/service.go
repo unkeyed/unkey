@@ -9,7 +9,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/logger"
-	"github.com/unkeyed/unkey/pkg/mysql"
 	"github.com/unkeyed/unkey/pkg/repeat"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/logdrain/internal/db"
@@ -40,12 +39,6 @@ type Service struct {
 	db      db.Database
 	leaseID string
 	clock   clock.Clock
-}
-
-// acquireBatchResult carries committed acquisitions and controls bounded scans.
-type acquireBatchResult struct {
-	candidates int
-	acquired   int
 }
 
 // New builds a lease service without starting its background loops.
@@ -92,51 +85,30 @@ func (s *Service) Run(ctx context.Context) error {
 	return nil
 }
 
-// acquire claims expired leases in short, bounded transactions until no full
-// candidate batch remains. Each acquisition gets a new fencing token.
+// acquire claims expired leases in bounded batches until no full candidate
+// batch remains. Each atomic update gets a new fencing token.
 func (s *Service) acquire(ctx context.Context) (int, error) {
 	total := 0
 	for {
-		batch, err := mysql.TxWithResultRetry(ctx, s.db.Conn(), func(txCtx context.Context, tx mysql.DBTX) (acquireBatchResult, error) {
-			queries := db.NewQueries(tx)
-			ids, listErr := queries.ListExpiredLogdrainCandidates(txCtx, acquireBatchSize)
-			if listErr != nil {
-				return acquireBatchResult{}, fmt.Errorf("list expired logdrain leases: %w", listErr)
-			}
-			if len(ids) == 0 {
-				return acquireBatchResult{candidates: 0, acquired: 0}, nil
-			}
-			lockedIDs, lockErr := queries.LockEnabledLogdrainsForUpdate(txCtx, ids)
-			if lockErr != nil {
-				return acquireBatchResult{}, fmt.Errorf("lock logdrain configs for lease acquisition: %w", lockErr)
-			}
-			result := acquireBatchResult{
-				candidates: len(lockedIDs),
-				acquired:   0,
-			}
-			for _, logdrainID := range lockedIDs {
-				fencingToken := uid.New("")
-				rows, acquireErr := queries.AcquireLogdrainLease(txCtx, db.AcquireLogdrainLeaseParams{
-					LeaseID:      s.leaseID,
-					FencingToken: fencingToken,
-					TtlMillis:    leaseTTL().Milliseconds(),
-					LogdrainID:   logdrainID,
-				})
-				if acquireErr != nil {
-					return acquireBatchResult{}, fmt.Errorf("acquire logdrain lease %s: %w", logdrainID, acquireErr)
-				}
-				// One affected row means this transaction acquired the lease.
-				if rows == 1 {
-					result.acquired++
-				}
-			}
-			return result, nil
-		})
+		ids, err := s.db.ListExpiredLogdrainCandidates(ctx, acquireBatchSize)
 		if err != nil {
-			return total, err
+			return total, fmt.Errorf("list expired logdrain leases: %w", err)
 		}
-		total += batch.acquired
-		if batch.candidates < acquireBatchSize {
+		for _, logdrainID := range ids {
+			rows, acquireErr := s.db.AcquireLogdrainLease(ctx, db.AcquireLogdrainLeaseParams{
+				LeaseID:      s.leaseID,
+				FencingToken: uid.New(""),
+				TtlMillis:    leaseTTL().Milliseconds(),
+				LogdrainID:   logdrainID,
+			})
+			if acquireErr != nil {
+				return total, fmt.Errorf("acquire logdrain lease %s: %w", logdrainID, acquireErr)
+			}
+			if rows == 1 {
+				total++
+			}
+		}
+		if len(ids) < acquireBatchSize {
 			// A partial batch reached the end of the leases that were eligible for this scan.
 			return total, nil
 		}

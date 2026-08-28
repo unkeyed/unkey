@@ -10,10 +10,8 @@ import (
 
 type Querier interface {
 	// AcquireLogdrainLease assigns a new fencing token and computes an absolute
-	// expiry from database time and the supplied TTL.
-	// Dashboard updates lock logdrains before logdrain_state. Lease acquisition
-	// must use the same lock order or each transaction can wait for a row held by
-	// the other. Call LockEnabledLogdrainsForUpdate in the same transaction first.
+	// expiry from database time and the supplied TTL. The update rechecks both
+	// expiry and enabled state so competing lease services need no transaction.
 	//
 	//  UPDATE logdrain_state s
 	//  SET s.lease_id = ?,
@@ -21,6 +19,10 @@ type Querier interface {
 	//    s.lease_expires_at = CAST(UNIX_TIMESTAMP(NOW(3)) * 1000 AS SIGNED) + CAST(? AS SIGNED)
 	//  WHERE s.logdrain_id = ?
 	//    AND s.lease_expires_at <= CAST(UNIX_TIMESTAMP(NOW(3)) * 1000 AS SIGNED)
+	//    AND EXISTS (
+	//      SELECT 1 FROM logdrains d
+	//      WHERE d.id = s.logdrain_id AND d.enabled = true
+	//    )
 	AcquireLogdrainLease(ctx context.Context, arg AcquireLogdrainLeaseParams) (int64, error)
 	// CountLogdrainsByStatus provides low-cardinality service health metrics.
 	// Callers explicitly zero absent (status, stream) pairs to avoid retaining
@@ -81,8 +83,6 @@ type Querier interface {
 	ListDueLogdrains(ctx context.Context, leaseID string) ([]ListDueLogdrainsRow, error)
 	// ListExpiredLogdrainCandidates returns a bounded set of leases that have
 	// expired according to database time.
-	// This consistent read does not lock state before config. The caller locks the
-	// enabled config rows before it changes lease state.
 	//
 	//  SELECT s.logdrain_id
 	//  FROM logdrain_state s
@@ -94,17 +94,6 @@ type Querier interface {
 	//  ORDER BY s.lease_expires_at, s.logdrain_id
 	//  LIMIT ?
 	ListExpiredLogdrainCandidates(ctx context.Context, limit int32) ([]string, error)
-	// LockEnabledLogdrainsForUpdate locks enabled config rows before lease state.
-	// SKIP LOCKED lets another lease manager or a dashboard transaction proceed
-	// without creating a config-to-state versus state-to-config deadlock.
-	//
-	//  SELECT id
-	//  FROM logdrains
-	//  WHERE id IN (/*SLICE:logdrain_ids*/?)
-	//    AND enabled = true
-	//  ORDER BY id
-	//  FOR UPDATE SKIP LOCKED
-	LockEnabledLogdrainsForUpdate(ctx context.Context, logdrainIds []string) ([]string, error)
 	// RecordLogdrainFailure atomically increments failures and optionally pauses
 	// the drain. Database time computes the absolute retry time. The update requires
 	// the exact fencing token and a lease that is valid at database time.
