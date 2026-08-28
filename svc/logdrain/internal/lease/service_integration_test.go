@@ -41,19 +41,15 @@ func TestService_LeaseOwnership(t *testing.T) {
 	})
 	require.NoError(t, err)
 	_, err = database.Conn().ExecContext(ctx, `
-		INSERT INTO logdrains (id, workspace_id, name, stream, config, enabled, created_at)
-		VALUES (?, ?, 'lease integration test', 'audit_logs', ?, true, ?)
+		INSERT INTO logdrains (
+			id, workspace_id, name, stream, config, enabled,
+			lease_id, fencing_token, lease_expires_at, created_at
+		)
+		VALUES (?, ?, 'lease integration test', 'audit_logs', ?, true, '', '', 0, ?)
 	`, drainID, workspaceID, config, nodeTimeMillis)
 	require.NoError(t, err)
-	_, err = database.Conn().ExecContext(ctx, `
-		INSERT INTO logdrain_state (logdrain_id, lease_id, fencing_token, lease_expires_at)
-		VALUES (?, '', '', 0)
-	`, drainID)
-	require.NoError(t, err)
 	t.Cleanup(func() {
-		_, cleanupErr := database.Conn().ExecContext(context.Background(), "DELETE FROM logdrain_state WHERE logdrain_id = ?", drainID)
-		require.NoError(t, cleanupErr)
-		_, cleanupErr = database.Conn().ExecContext(context.Background(), "DELETE FROM logdrains WHERE id = ?", drainID)
+		_, cleanupErr := database.Conn().ExecContext(context.Background(), "DELETE FROM logdrains WHERE id = ?", drainID)
 		require.NoError(t, cleanupErr)
 	})
 
@@ -85,7 +81,7 @@ func TestService_LeaseOwnership(t *testing.T) {
 	var leaseExpiresAt int64
 	err = database.Conn().QueryRowContext(ctx, `
 		SELECT lease_id, fencing_token, lease_expires_at
-		FROM logdrain_state WHERE logdrain_id = ?
+		FROM logdrains WHERE id = ?
 	`, drainID).Scan(&leaseID, &fencingToken, &leaseExpiresAt)
 	require.NoError(t, err)
 	require.NotEmpty(t, fencingToken)
@@ -123,7 +119,7 @@ func TestService_LeaseOwnership(t *testing.T) {
 	require.NoError(t, err)
 	require.Zero(t, rowsAffected, "a stale token must not advance the cursor")
 	rowsAffected, err = database.RecordLogdrainFailure(ctx, db.RecordLogdrainFailureParams{
-		Status:           db.LogdrainStateStatusPausedByFailure,
+		Status:           db.LogdrainsStatusPausedByFailure,
 		RetryAfterMillis: time.Minute.Milliseconds(),
 		LogdrainID:       drainID,
 		FencingToken:     staleToken,
@@ -134,7 +130,7 @@ func TestService_LeaseOwnership(t *testing.T) {
 	retryAfter := time.Minute
 	failureStartedAt := readDatabaseNowMillis(t, ctx, database)
 	rowsAffected, err = database.RecordLogdrainFailure(ctx, db.RecordLogdrainFailureParams{
-		Status:           db.LogdrainStateStatusActive,
+		Status:           db.LogdrainsStatusActive,
 		RetryAfterMillis: retryAfter.Milliseconds(),
 		LogdrainID:       drainID,
 		FencingToken:     fencingToken,
@@ -145,14 +141,14 @@ func TestService_LeaseOwnership(t *testing.T) {
 	nextAttemptAt := readNextAttemptAt(t, ctx, database, drainID)
 	require.GreaterOrEqual(t, nextAttemptAt, failureStartedAt+retryAfter.Milliseconds())
 	require.LessOrEqual(t, nextAttemptAt, failureCompletedAt+retryAfter.Milliseconds())
-	_, err = database.Conn().ExecContext(ctx, "UPDATE logdrain_state SET consecutive_failures = 0, next_attempt_at = 0 WHERE logdrain_id = ?", drainID)
+	_, err = database.Conn().ExecContext(ctx, "UPDATE logdrains SET consecutive_failures = 0, next_attempt_at = 0 WHERE id = ?", drainID)
 	require.NoError(t, err)
 
 	require.NoError(t, loser.refresh(ctx))
 	require.Equal(t, leaseExpiresAt, readLeaseExpiry(t, ctx, database, drainID))
 
 	existingExpiry := readDatabaseNowMillis(t, ctx, database) + time.Hour.Milliseconds()
-	_, err = database.Conn().ExecContext(ctx, "UPDATE logdrain_state SET lease_expires_at = ? WHERE logdrain_id = ?", existingExpiry, drainID)
+	_, err = database.Conn().ExecContext(ctx, "UPDATE logdrains SET lease_expires_at = ? WHERE id = ?", existingExpiry, drainID)
 	require.NoError(t, err)
 	refreshStartedAt := readDatabaseNowMillis(t, ctx, database)
 	require.NoError(t, winner.refresh(ctx))
@@ -163,7 +159,7 @@ func TestService_LeaseOwnership(t *testing.T) {
 	require.Less(t, refreshedExpiry, existingExpiry, "refresh must replace rather than extend the expiry")
 
 	expiredAt := readDatabaseNowMillis(t, ctx, database) - 1
-	_, err = database.Conn().ExecContext(ctx, "UPDATE logdrain_state SET lease_expires_at = ? WHERE logdrain_id = ?", expiredAt, drainID)
+	_, err = database.Conn().ExecContext(ctx, "UPDATE logdrains SET lease_expires_at = ? WHERE id = ?", expiredAt, drainID)
 	require.NoError(t, err)
 	_, err = database.GetLeasedLogdrain(ctx, db.GetLeasedLogdrainParams{
 		LogdrainID:   drainID,
@@ -171,7 +167,7 @@ func TestService_LeaseOwnership(t *testing.T) {
 	})
 	require.ErrorIs(t, err, sql.ErrNoRows)
 	rowsAffected, err = database.RecordLogdrainFailure(ctx, db.RecordLogdrainFailureParams{
-		Status:           db.LogdrainStateStatusActive,
+		Status:           db.LogdrainsStatusActive,
 		RetryAfterMillis: time.Minute.Milliseconds(),
 		LogdrainID:       drainID,
 		FencingToken:     fencingToken,
@@ -185,13 +181,13 @@ func TestService_LeaseOwnership(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, 1, reacquired)
 	var sameProcessToken string
-	err = database.Conn().QueryRowContext(ctx, "SELECT fencing_token FROM logdrain_state WHERE logdrain_id = ?", drainID).Scan(&sameProcessToken)
+	err = database.Conn().QueryRowContext(ctx, "SELECT fencing_token FROM logdrains WHERE id = ?", drainID).Scan(&sameProcessToken)
 	require.NoError(t, err)
 	require.NotEqual(t, fencingToken, sameProcessToken)
 	require.NoError(t, winner.refresh(ctx))
 
 	expiredAt = readDatabaseNowMillis(t, ctx, database) - 1
-	_, err = database.Conn().ExecContext(ctx, "UPDATE logdrain_state SET lease_expires_at = ? WHERE logdrain_id = ?", expiredAt, drainID)
+	_, err = database.Conn().ExecContext(ctx, "UPDATE logdrains SET lease_expires_at = ? WHERE id = ?", expiredAt, drainID)
 	require.NoError(t, err)
 	reacquirer, err := New(Config{DB: database, LeaseID: uid.New(""), Clock: testClock})
 	require.NoError(t, err)
@@ -199,7 +195,7 @@ func TestService_LeaseOwnership(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, 1, reacquired)
 	var reacquiredLeaseID, reacquiredToken string
-	err = database.Conn().QueryRowContext(ctx, "SELECT lease_id, fencing_token FROM logdrain_state WHERE logdrain_id = ?", drainID).Scan(&reacquiredLeaseID, &reacquiredToken)
+	err = database.Conn().QueryRowContext(ctx, "SELECT lease_id, fencing_token FROM logdrains WHERE id = ?", drainID).Scan(&reacquiredLeaseID, &reacquiredToken)
 	require.NoError(t, err)
 	require.Equal(t, reacquirer.leaseID, reacquiredLeaseID)
 	require.NotEqual(t, sameProcessToken, reacquiredToken)
@@ -222,7 +218,7 @@ func readDatabaseNowMillis(t *testing.T, ctx context.Context, database db.Databa
 func readLeaseExpiry(t *testing.T, ctx context.Context, database db.Database, drainID string) int64 {
 	t.Helper()
 	var expiryMillis int64
-	err := database.Conn().QueryRowContext(ctx, "SELECT lease_expires_at FROM logdrain_state WHERE logdrain_id = ?", drainID).Scan(&expiryMillis)
+	err := database.Conn().QueryRowContext(ctx, "SELECT lease_expires_at FROM logdrains WHERE id = ?", drainID).Scan(&expiryMillis)
 	require.NoError(t, err)
 	return expiryMillis
 }
@@ -231,7 +227,7 @@ func readLeaseExpiry(t *testing.T, ctx context.Context, database db.Database, dr
 func readNextAttemptAt(t *testing.T, ctx context.Context, database db.Database, drainID string) int64 {
 	t.Helper()
 	var nextAttemptAtMillis int64
-	err := database.Conn().QueryRowContext(ctx, "SELECT next_attempt_at FROM logdrain_state WHERE logdrain_id = ?", drainID).Scan(&nextAttemptAtMillis)
+	err := database.Conn().QueryRowContext(ctx, "SELECT next_attempt_at FROM logdrains WHERE id = ?", drainID).Scan(&nextAttemptAtMillis)
 	require.NoError(t, err)
 	return nextAttemptAtMillis
 }

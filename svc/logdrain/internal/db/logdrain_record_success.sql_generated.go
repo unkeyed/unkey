@@ -10,12 +10,12 @@ import (
 )
 
 const recordLogdrainSuccess = `-- name: RecordLogdrainSuccess :execrows
-UPDATE logdrain_state
+UPDATE logdrains
 SET committed_offset_inserted_at = ?,
   committed_offset_event_id = ?,
   consecutive_failures = 0,
   next_attempt_at = 0
-WHERE logdrain_id = ?
+WHERE id = ?
   AND fencing_token = ?
   AND lease_expires_at > CAST(UNIX_TIMESTAMP(NOW(3)) * 1000 AS SIGNED)
   AND (
@@ -38,12 +38,12 @@ type RecordLogdrainSuccessParams struct {
 // fencing token and a lease that is valid at database time. An expired lease
 // or a non-monotonic cursor changes no rows.
 //
-//	UPDATE logdrain_state
+//	UPDATE logdrains
 //	SET committed_offset_inserted_at = ?,
 //	  committed_offset_event_id = ?,
 //	  consecutive_failures = 0,
 //	  next_attempt_at = 0
-//	WHERE logdrain_id = ?
+//	WHERE id = ?
 //	  AND fencing_token = ?
 //	  AND lease_expires_at > CAST(UNIX_TIMESTAMP(NOW(3)) * 1000 AS SIGNED)
 //	  AND (

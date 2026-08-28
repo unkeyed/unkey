@@ -10,12 +10,12 @@ import (
 )
 
 const refreshLogdrainLeases = `-- name: RefreshLogdrainLeases :execrows
-UPDATE logdrain_state s
-SET s.lease_expires_at = CAST(UNIX_TIMESTAMP(NOW(3)) * 1000 AS SIGNED)
+UPDATE logdrains
+SET lease_expires_at = CAST(UNIX_TIMESTAMP(NOW(3)) * 1000 AS SIGNED)
   + CAST(? AS SIGNED)
   + FLOOR(RAND() * (CAST(? AS SIGNED) + 1))
-WHERE s.lease_id = ?
-  AND s.lease_expires_at > CAST(UNIX_TIMESTAMP(NOW(3)) * 1000 AS SIGNED)
+WHERE lease_id = ?
+  AND lease_expires_at > CAST(UNIX_TIMESTAMP(NOW(3)) * 1000 AS SIGNED)
 `
 
 type RefreshLogdrainLeasesParams struct {
@@ -29,12 +29,12 @@ type RefreshLogdrainLeasesParams struct {
 // from expiring together. The query cannot revive an expired lease. Per-drain
 // fencing tokens remain unchanged and continue to guard delivery state writes.
 //
-//	UPDATE logdrain_state s
-//	SET s.lease_expires_at = CAST(UNIX_TIMESTAMP(NOW(3)) * 1000 AS SIGNED)
+//	UPDATE logdrains
+//	SET lease_expires_at = CAST(UNIX_TIMESTAMP(NOW(3)) * 1000 AS SIGNED)
 //	  + CAST(? AS SIGNED)
 //	  + FLOOR(RAND() * (CAST(? AS SIGNED) + 1))
-//	WHERE s.lease_id = ?
-//	  AND s.lease_expires_at > CAST(UNIX_TIMESTAMP(NOW(3)) * 1000 AS SIGNED)
+//	WHERE lease_id = ?
+//	  AND lease_expires_at > CAST(UNIX_TIMESTAMP(NOW(3)) * 1000 AS SIGNED)
 func (q *Queries) RefreshLogdrainLeases(ctx context.Context, arg RefreshLogdrainLeasesParams) (int64, error) {
 	result, err := q.db.ExecContext(ctx, refreshLogdrainLeases, arg.MinimumTtlMillis, arg.TtlJitterMillis, arg.LeaseID)
 	if err != nil {

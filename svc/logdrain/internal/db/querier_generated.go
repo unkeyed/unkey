@@ -13,16 +13,13 @@ type Querier interface {
 	// expiry from database time and the supplied TTL. The update rechecks both
 	// expiry and enabled state so competing lease services need no transaction.
 	//
-	//  UPDATE logdrain_state s
-	//  SET s.lease_id = ?,
-	//    s.fencing_token = ?,
-	//    s.lease_expires_at = CAST(UNIX_TIMESTAMP(NOW(3)) * 1000 AS SIGNED) + CAST(? AS SIGNED)
-	//  WHERE s.logdrain_id = ?
-	//    AND s.lease_expires_at <= CAST(UNIX_TIMESTAMP(NOW(3)) * 1000 AS SIGNED)
-	//    AND EXISTS (
-	//      SELECT 1 FROM logdrains d
-	//      WHERE d.id = s.logdrain_id AND d.enabled = true
-	//    )
+	//  UPDATE logdrains
+	//  SET lease_id = ?,
+	//    fencing_token = ?,
+	//    lease_expires_at = CAST(UNIX_TIMESTAMP(NOW(3)) * 1000 AS SIGNED) + CAST(? AS SIGNED)
+	//  WHERE id = ?
+	//    AND enabled = true
+	//    AND lease_expires_at <= CAST(UNIX_TIMESTAMP(NOW(3)) * 1000 AS SIGNED)
 	AcquireLogdrainLease(ctx context.Context, arg AcquireLogdrainLeaseParams) (int64, error)
 	// CountLogdrainsByStatus provides low-cardinality service health metrics.
 	// Callers explicitly zero absent (status, stream) pairs to avoid retaining
@@ -31,17 +28,16 @@ type Querier interface {
 	//  SELECT
 	//    CASE
 	//      WHEN d.enabled = false THEN 'disabled'
-	//      WHEN s.status = 'paused_by_failure' THEN 'paused_by_failure'
+	//      WHEN d.status = 'paused_by_failure' THEN 'paused_by_failure'
 	//      ELSE 'enabled'
 	//    END AS status,
 	//    d.stream,
 	//    COUNT(*) AS drains
 	//  FROM logdrains d
-	//  JOIN logdrain_state s ON s.logdrain_id = d.id
 	//  GROUP BY
 	//    CASE
 	//      WHEN d.enabled = false THEN 'disabled'
-	//      WHEN s.status = 'paused_by_failure' THEN 'paused_by_failure'
+	//      WHEN d.status = 'paused_by_failure' THEN 'paused_by_failure'
 	//      ELSE 'enabled'
 	//    END,
 	//    d.stream
@@ -55,54 +51,49 @@ type Querier interface {
 	//    d.workspace_id,
 	//    d.stream,
 	//    d.config,
-	//    s.consecutive_failures,
-	//    s.committed_offset_inserted_at,
-	//    s.committed_offset_event_id,
-	//    s.fencing_token
+	//    d.consecutive_failures,
+	//    d.committed_offset_inserted_at,
+	//    d.committed_offset_event_id,
+	//    d.fencing_token
 	//  FROM logdrains d
-	//  JOIN logdrain_state s ON s.logdrain_id = d.id
 	//  WHERE d.id = ?
 	//    AND d.enabled = true
-	//    AND s.status = 'active'
-	//    AND s.fencing_token = ?
-	//    AND s.lease_expires_at > CAST(UNIX_TIMESTAMP(NOW(3)) * 1000 AS SIGNED)
-	//    AND s.next_attempt_at <= CAST(UNIX_TIMESTAMP(NOW(3)) * 1000 AS SIGNED)
+	//    AND d.status = 'active'
+	//    AND d.fencing_token = ?
+	//    AND d.lease_expires_at > CAST(UNIX_TIMESTAMP(NOW(3)) * 1000 AS SIGNED)
+	//    AND d.next_attempt_at <= CAST(UNIX_TIMESTAMP(NOW(3)) * 1000 AS SIGNED)
 	GetLeasedLogdrain(ctx context.Context, arg GetLeasedLogdrainParams) (GetLeasedLogdrainRow, error)
 	// ListDueLogdrains returns active, due leases assigned to one service process.
 	// Database time controls both lease validity and retry scheduling.
 	//
-	//  SELECT s.logdrain_id, s.fencing_token
-	//  FROM logdrain_state s
-	//  JOIN logdrains d ON d.id = s.logdrain_id
-	//  WHERE d.enabled = true
-	//    AND s.status = 'active'
-	//    AND s.lease_id = ?
-	//    AND s.lease_expires_at > CAST(UNIX_TIMESTAMP(NOW(3)) * 1000 AS SIGNED)
-	//    AND s.next_attempt_at <= CAST(UNIX_TIMESTAMP(NOW(3)) * 1000 AS SIGNED)
-	//  ORDER BY s.logdrain_id
+	//  SELECT id AS logdrain_id, fencing_token
+	//  FROM logdrains
+	//  WHERE enabled = true
+	//    AND status = 'active'
+	//    AND lease_id = ?
+	//    AND lease_expires_at > CAST(UNIX_TIMESTAMP(NOW(3)) * 1000 AS SIGNED)
+	//    AND next_attempt_at <= CAST(UNIX_TIMESTAMP(NOW(3)) * 1000 AS SIGNED)
+	//  ORDER BY id
 	ListDueLogdrains(ctx context.Context, leaseID string) ([]ListDueLogdrainsRow, error)
 	// ListExpiredLogdrainCandidates returns a bounded set of leases that have
 	// expired according to database time.
 	//
-	//  SELECT s.logdrain_id
-	//  FROM logdrain_state s
-	//  WHERE s.lease_expires_at <= CAST(UNIX_TIMESTAMP(NOW(3)) * 1000 AS SIGNED)
-	//    AND EXISTS (
-	//      SELECT 1 FROM logdrains d
-	//      WHERE d.id = s.logdrain_id AND d.enabled = true
-	//    )
-	//  ORDER BY s.lease_expires_at, s.logdrain_id
+	//  SELECT id AS logdrain_id
+	//  FROM logdrains
+	//  WHERE enabled = true
+	//    AND lease_expires_at <= CAST(UNIX_TIMESTAMP(NOW(3)) * 1000 AS SIGNED)
+	//  ORDER BY lease_expires_at, id
 	//  LIMIT ?
 	ListExpiredLogdrainCandidates(ctx context.Context, limit int32) ([]string, error)
 	// RecordLogdrainFailure atomically increments failures and optionally pauses
 	// the drain. Database time computes the absolute retry time. The update requires
 	// the exact fencing token and a lease that is valid at database time.
 	//
-	//  UPDATE logdrain_state
+	//  UPDATE logdrains
 	//  SET consecutive_failures = consecutive_failures + 1,
 	//    status = ?,
 	//    next_attempt_at = CAST(UNIX_TIMESTAMP(NOW(3)) * 1000 AS SIGNED) + CAST(? AS SIGNED)
-	//  WHERE logdrain_id = ?
+	//  WHERE id = ?
 	//    AND fencing_token = ?
 	//    AND lease_expires_at > CAST(UNIX_TIMESTAMP(NOW(3)) * 1000 AS SIGNED)
 	RecordLogdrainFailure(ctx context.Context, arg RecordLogdrainFailureParams) (int64, error)
@@ -110,12 +101,12 @@ type Querier interface {
 	// fencing token and a lease that is valid at database time. An expired lease
 	// or a non-monotonic cursor changes no rows.
 	//
-	//  UPDATE logdrain_state
+	//  UPDATE logdrains
 	//  SET committed_offset_inserted_at = ?,
 	//    committed_offset_event_id = ?,
 	//    consecutive_failures = 0,
 	//    next_attempt_at = 0
-	//  WHERE logdrain_id = ?
+	//  WHERE id = ?
 	//    AND fencing_token = ?
 	//    AND lease_expires_at > CAST(UNIX_TIMESTAMP(NOW(3)) * 1000 AS SIGNED)
 	//    AND (
@@ -131,12 +122,12 @@ type Querier interface {
 	// from expiring together. The query cannot revive an expired lease. Per-drain
 	// fencing tokens remain unchanged and continue to guard delivery state writes.
 	//
-	//  UPDATE logdrain_state s
-	//  SET s.lease_expires_at = CAST(UNIX_TIMESTAMP(NOW(3)) * 1000 AS SIGNED)
+	//  UPDATE logdrains
+	//  SET lease_expires_at = CAST(UNIX_TIMESTAMP(NOW(3)) * 1000 AS SIGNED)
 	//    + CAST(? AS SIGNED)
 	//    + FLOOR(RAND() * (CAST(? AS SIGNED) + 1))
-	//  WHERE s.lease_id = ?
-	//    AND s.lease_expires_at > CAST(UNIX_TIMESTAMP(NOW(3)) * 1000 AS SIGNED)
+	//  WHERE lease_id = ?
+	//    AND lease_expires_at > CAST(UNIX_TIMESTAMP(NOW(3)) * 1000 AS SIGNED)
 	RefreshLogdrainLeases(ctx context.Context, arg RefreshLogdrainLeasesParams) (int64, error)
 }
 

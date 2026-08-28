@@ -405,9 +405,9 @@ func (e *Engine) fail(ctx context.Context, drain db.GetLeasedLogdrainRow, cause 
 	defer logger.Error("logdrain delivery failed", "error", cause, "drain_id", drain.ID)
 	metrics.DrainFailuresTotal.WithLabelValues(string(drain.Stream)).Inc()
 	pause := int(drain.ConsecutiveFailures)+1 >= e.cfg.PauseThreshold
-	status := db.LogdrainStateStatusActive
+	status := db.LogdrainsStatusActive
 	if pause {
-		status = db.LogdrainStateStatusPausedByFailure
+		status = db.LogdrainsStatusPausedByFailure
 	}
 	rowsAffected, err := e.cfg.DB.RecordLogdrainFailure(ctx, db.RecordLogdrainFailureParams{
 		Status:           status,

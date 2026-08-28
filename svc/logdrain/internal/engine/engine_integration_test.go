@@ -236,7 +236,7 @@ func TestEngine_Integration(t *testing.T) {
 
 		httpSink.status.Store(http.StatusOK)
 		// Production retry backoff starts at 1 minute and is intentionally not configurable.
-		_, err = mysqlDB.Exec("UPDATE logdrain_state SET next_attempt_at = 0 WHERE logdrain_id = ?", drainID)
+		_, err = mysqlDB.Exec("UPDATE logdrains SET next_attempt_at = 0 WHERE id = ?", drainID)
 		require.NoError(t, err)
 		require.EventuallyWithT(t, func(c *assert.CollectT) {
 			state := readDrainStateCollect(c, mysqlDB, drainID)
@@ -260,7 +260,7 @@ func TestEngine_Integration(t *testing.T) {
 		insertAuditEvents(t, chConn, workspaceID, []auditEvent{{id: drainID + "_event_1", insertedAt: start, actorMeta: `{}`}})
 		seedDrain(t, mysqlDB, workspaceID, drainID, httpSink.server.URL+"/ingest", start-1)
 		cleanupDrain(t, mysqlDB, drainID)
-		_, err := mysqlDB.Exec("UPDATE logdrain_state SET consecutive_failures = 4 WHERE logdrain_id = ?", drainID)
+		_, err := mysqlDB.Exec("UPDATE logdrains SET consecutive_failures = 4 WHERE id = ?", drainID)
 		require.NoError(t, err)
 		deliveries := startEngine(t, mysqlCfg.DSN, clickhouseCfg.HTTPDSN)
 
@@ -463,18 +463,20 @@ func seedDrain(t *testing.T, database *sql.DB, workspaceID, drainID, url string,
 	encoded, err := proto.Marshal(config)
 	require.NoError(t, err)
 	createdAt := time.Now().UnixMilli()
-	_, err = database.Exec("INSERT INTO logdrains (id, workspace_id, name, stream, config, enabled, created_at) VALUES (?, ?, ?, 'audit_logs', ?, true, ?)", drainID, workspaceID, "integration test", encoded, createdAt)
-	require.NoError(t, err)
-	_, err = database.Exec("INSERT INTO logdrain_state (logdrain_id, committed_offset_inserted_at, lease_id, fencing_token, lease_expires_at) VALUES (?, ?, '', '', 0)", drainID, offset)
+	_, err = database.Exec(`
+		INSERT INTO logdrains (
+			id, workspace_id, name, stream, config, enabled,
+			committed_offset_inserted_at, lease_id, fencing_token, lease_expires_at, created_at
+		)
+		VALUES (?, ?, ?, 'audit_logs', ?, true, ?, '', '', 0, ?)
+	`, drainID, workspaceID, "integration test", encoded, offset, createdAt)
 	require.NoError(t, err)
 }
 
 func cleanupDrain(t *testing.T, database *sql.DB, drainID string) {
 	t.Helper()
 	t.Cleanup(func() {
-		_, err := database.Exec("DELETE FROM logdrain_state WHERE logdrain_id = ?", drainID)
-		require.NoError(t, err)
-		_, err = database.Exec("DELETE FROM logdrains WHERE id = ?", drainID)
+		_, err := database.Exec("DELETE FROM logdrains WHERE id = ?", drainID)
 		require.NoError(t, err)
 	})
 }
@@ -556,7 +558,7 @@ func readDrainState(t *testing.T, database *sql.DB, drainID string) drainState {
 
 func readDrainStateCollect(t require.TestingT, database *sql.DB, drainID string) drainState {
 	var state drainState
-	err := database.QueryRow("SELECT status, committed_offset_inserted_at, consecutive_failures FROM logdrain_state WHERE logdrain_id = ?", drainID).Scan(&state.status, &state.committedOffsetInsertedAt, &state.consecutiveFailures)
+	err := database.QueryRow("SELECT status, committed_offset_inserted_at, consecutive_failures FROM logdrains WHERE id = ?", drainID).Scan(&state.status, &state.committedOffsetInsertedAt, &state.consecutiveFailures)
 	require.NoError(t, err)
 	return state
 }

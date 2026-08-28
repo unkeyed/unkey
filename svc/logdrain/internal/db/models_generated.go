@@ -9,46 +9,46 @@ import (
 	"fmt"
 )
 
-type LogdrainStateStatus string
+type LogdrainsStatus string
 
 const (
-	LogdrainStateStatusActive          LogdrainStateStatus = "active"
-	LogdrainStateStatusPausedByFailure LogdrainStateStatus = "paused_by_failure"
+	LogdrainsStatusActive          LogdrainsStatus = "active"
+	LogdrainsStatusPausedByFailure LogdrainsStatus = "paused_by_failure"
 )
 
-func (e *LogdrainStateStatus) Scan(src interface{}) error {
+func (e *LogdrainsStatus) Scan(src interface{}) error {
 	switch s := src.(type) {
 	case []byte:
-		*e = LogdrainStateStatus(s)
+		*e = LogdrainsStatus(s)
 	case string:
-		*e = LogdrainStateStatus(s)
+		*e = LogdrainsStatus(s)
 	default:
-		return fmt.Errorf("unsupported scan type for LogdrainStateStatus: %T", src)
+		return fmt.Errorf("unsupported scan type for LogdrainsStatus: %T", src)
 	}
 	return nil
 }
 
-type NullLogdrainStateStatus struct {
-	LogdrainStateStatus LogdrainStateStatus
-	Valid               bool // Valid is true if LogdrainStateStatus is not NULL
+type NullLogdrainsStatus struct {
+	LogdrainsStatus LogdrainsStatus
+	Valid           bool // Valid is true if LogdrainsStatus is not NULL
 }
 
 // Scan implements the Scanner interface.
-func (ns *NullLogdrainStateStatus) Scan(value interface{}) error {
+func (ns *NullLogdrainsStatus) Scan(value interface{}) error {
 	if value == nil {
-		ns.LogdrainStateStatus, ns.Valid = "", false
+		ns.LogdrainsStatus, ns.Valid = "", false
 		return nil
 	}
 	ns.Valid = true
-	return ns.LogdrainStateStatus.Scan(value)
+	return ns.LogdrainsStatus.Scan(value)
 }
 
 // Value implements the driver Valuer interface.
-func (ns NullLogdrainStateStatus) Value() (driver.Value, error) {
+func (ns NullLogdrainsStatus) Value() (driver.Value, error) {
 	if !ns.Valid {
 		return nil, nil
 	}
-	return string(ns.LogdrainStateStatus), nil
+	return string(ns.LogdrainsStatus), nil
 }
 
 type LogdrainsStream string

@@ -926,46 +926,46 @@ func (ns NullKeyMigrationsAlgorithm) Value() (driver.Value, error) {
 	return string(ns.KeyMigrationsAlgorithm), nil
 }
 
-type LogdrainStateStatus string
+type LogdrainsStatus string
 
 const (
-	LogdrainStateStatusActive          LogdrainStateStatus = "active"
-	LogdrainStateStatusPausedByFailure LogdrainStateStatus = "paused_by_failure"
+	LogdrainsStatusActive          LogdrainsStatus = "active"
+	LogdrainsStatusPausedByFailure LogdrainsStatus = "paused_by_failure"
 )
 
-func (e *LogdrainStateStatus) Scan(src interface{}) error {
+func (e *LogdrainsStatus) Scan(src interface{}) error {
 	switch s := src.(type) {
 	case []byte:
-		*e = LogdrainStateStatus(s)
+		*e = LogdrainsStatus(s)
 	case string:
-		*e = LogdrainStateStatus(s)
+		*e = LogdrainsStatus(s)
 	default:
-		return fmt.Errorf("unsupported scan type for LogdrainStateStatus: %T", src)
+		return fmt.Errorf("unsupported scan type for LogdrainsStatus: %T", src)
 	}
 	return nil
 }
 
-type NullLogdrainStateStatus struct {
-	LogdrainStateStatus LogdrainStateStatus
-	Valid               bool // Valid is true if LogdrainStateStatus is not NULL
+type NullLogdrainsStatus struct {
+	LogdrainsStatus LogdrainsStatus
+	Valid           bool // Valid is true if LogdrainsStatus is not NULL
 }
 
 // Scan implements the Scanner interface.
-func (ns *NullLogdrainStateStatus) Scan(value interface{}) error {
+func (ns *NullLogdrainsStatus) Scan(value interface{}) error {
 	if value == nil {
-		ns.LogdrainStateStatus, ns.Valid = "", false
+		ns.LogdrainsStatus, ns.Valid = "", false
 		return nil
 	}
 	ns.Valid = true
-	return ns.LogdrainStateStatus.Scan(value)
+	return ns.LogdrainsStatus.Scan(value)
 }
 
 // Value implements the driver Valuer interface.
-func (ns NullLogdrainStateStatus) Value() (driver.Value, error) {
+func (ns NullLogdrainsStatus) Value() (driver.Value, error) {
 	if !ns.Valid {
 		return nil, nil
 	}
-	return string(ns.LogdrainStateStatus), nil
+	return string(ns.LogdrainsStatus), nil
 }
 
 type LogdrainsStream string
@@ -1474,28 +1474,23 @@ type Limit struct {
 }
 
 type Logdrain struct {
-	Pk          uint64          `db:"pk"`
-	ID          string          `db:"id"`
-	WorkspaceID string          `db:"workspace_id"`
-	Name        string          `db:"name"`
-	Stream      LogdrainsStream `db:"stream"`
-	Config      []byte          `db:"config"`
-	Enabled     bool            `db:"enabled"`
-	CreatedAt   int64           `db:"created_at"`
-	UpdatedAt   sql.NullInt64   `db:"updated_at"`
-}
-
-type LogdrainState struct {
-	Pk                        uint64              `db:"pk"`
-	LogdrainID                string              `db:"logdrain_id"`
-	Status                    LogdrainStateStatus `db:"status"`
-	ConsecutiveFailures       int32               `db:"consecutive_failures"`
-	CommittedOffsetInsertedAt int64               `db:"committed_offset_inserted_at"`
-	CommittedOffsetEventID    string              `db:"committed_offset_event_id"`
-	NextAttemptAt             int64               `db:"next_attempt_at"`
-	LeaseID                   string              `db:"lease_id"`
-	FencingToken              string              `db:"fencing_token"`
-	LeaseExpiresAt            int64               `db:"lease_expires_at"`
+	Pk                        uint64          `db:"pk"`
+	ID                        string          `db:"id"`
+	WorkspaceID               string          `db:"workspace_id"`
+	Name                      string          `db:"name"`
+	Stream                    LogdrainsStream `db:"stream"`
+	Config                    []byte          `db:"config"`
+	Enabled                   bool            `db:"enabled"`
+	Status                    LogdrainsStatus `db:"status"`
+	ConsecutiveFailures       int32           `db:"consecutive_failures"`
+	CommittedOffsetInsertedAt int64           `db:"committed_offset_inserted_at"`
+	CommittedOffsetEventID    string          `db:"committed_offset_event_id"`
+	NextAttemptAt             int64           `db:"next_attempt_at"`
+	LeaseID                   string          `db:"lease_id"`
+	FencingToken              string          `db:"fencing_token"`
+	LeaseExpiresAt            int64           `db:"lease_expires_at"`
+	CreatedAt                 int64           `db:"created_at"`
+	UpdatedAt                 sql.NullInt64   `db:"updated_at"`
 }
 
 type OpenapiSpec struct {

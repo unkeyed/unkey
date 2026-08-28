@@ -10,31 +10,31 @@ import (
 )
 
 const recordLogdrainFailure = `-- name: RecordLogdrainFailure :execrows
-UPDATE logdrain_state
+UPDATE logdrains
 SET consecutive_failures = consecutive_failures + 1,
   status = ?,
   next_attempt_at = CAST(UNIX_TIMESTAMP(NOW(3)) * 1000 AS SIGNED) + CAST(? AS SIGNED)
-WHERE logdrain_id = ?
+WHERE id = ?
   AND fencing_token = ?
   AND lease_expires_at > CAST(UNIX_TIMESTAMP(NOW(3)) * 1000 AS SIGNED)
 `
 
 type RecordLogdrainFailureParams struct {
-	Status           LogdrainStateStatus `db:"status"`
-	RetryAfterMillis int64               `db:"retry_after_millis"`
-	LogdrainID       string              `db:"logdrain_id"`
-	FencingToken     string              `db:"fencing_token"`
+	Status           LogdrainsStatus `db:"status"`
+	RetryAfterMillis int64           `db:"retry_after_millis"`
+	LogdrainID       string          `db:"logdrain_id"`
+	FencingToken     string          `db:"fencing_token"`
 }
 
 // RecordLogdrainFailure atomically increments failures and optionally pauses
 // the drain. Database time computes the absolute retry time. The update requires
 // the exact fencing token and a lease that is valid at database time.
 //
-//	UPDATE logdrain_state
+//	UPDATE logdrains
 //	SET consecutive_failures = consecutive_failures + 1,
 //	  status = ?,
 //	  next_attempt_at = CAST(UNIX_TIMESTAMP(NOW(3)) * 1000 AS SIGNED) + CAST(? AS SIGNED)
-//	WHERE logdrain_id = ?
+//	WHERE id = ?
 //	  AND fencing_token = ?
 //	  AND lease_expires_at > CAST(UNIX_TIMESTAMP(NOW(3)) * 1000 AS SIGNED)
 func (q *Queries) RecordLogdrainFailure(ctx context.Context, arg RecordLogdrainFailureParams) (int64, error) {

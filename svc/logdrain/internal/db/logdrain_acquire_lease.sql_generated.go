@@ -10,16 +10,13 @@ import (
 )
 
 const acquireLogdrainLease = `-- name: AcquireLogdrainLease :execrows
-UPDATE logdrain_state s
-SET s.lease_id = ?,
-  s.fencing_token = ?,
-  s.lease_expires_at = CAST(UNIX_TIMESTAMP(NOW(3)) * 1000 AS SIGNED) + CAST(? AS SIGNED)
-WHERE s.logdrain_id = ?
-  AND s.lease_expires_at <= CAST(UNIX_TIMESTAMP(NOW(3)) * 1000 AS SIGNED)
-  AND EXISTS (
-    SELECT 1 FROM logdrains d
-    WHERE d.id = s.logdrain_id AND d.enabled = true
-  )
+UPDATE logdrains
+SET lease_id = ?,
+  fencing_token = ?,
+  lease_expires_at = CAST(UNIX_TIMESTAMP(NOW(3)) * 1000 AS SIGNED) + CAST(? AS SIGNED)
+WHERE id = ?
+  AND enabled = true
+  AND lease_expires_at <= CAST(UNIX_TIMESTAMP(NOW(3)) * 1000 AS SIGNED)
 `
 
 type AcquireLogdrainLeaseParams struct {
@@ -33,16 +30,13 @@ type AcquireLogdrainLeaseParams struct {
 // expiry from database time and the supplied TTL. The update rechecks both
 // expiry and enabled state so competing lease services need no transaction.
 //
-//	UPDATE logdrain_state s
-//	SET s.lease_id = ?,
-//	  s.fencing_token = ?,
-//	  s.lease_expires_at = CAST(UNIX_TIMESTAMP(NOW(3)) * 1000 AS SIGNED) + CAST(? AS SIGNED)
-//	WHERE s.logdrain_id = ?
-//	  AND s.lease_expires_at <= CAST(UNIX_TIMESTAMP(NOW(3)) * 1000 AS SIGNED)
-//	  AND EXISTS (
-//	    SELECT 1 FROM logdrains d
-//	    WHERE d.id = s.logdrain_id AND d.enabled = true
-//	  )
+//	UPDATE logdrains
+//	SET lease_id = ?,
+//	  fencing_token = ?,
+//	  lease_expires_at = CAST(UNIX_TIMESTAMP(NOW(3)) * 1000 AS SIGNED) + CAST(? AS SIGNED)
+//	WHERE id = ?
+//	  AND enabled = true
+//	  AND lease_expires_at <= CAST(UNIX_TIMESTAMP(NOW(3)) * 1000 AS SIGNED)
 func (q *Queries) AcquireLogdrainLease(ctx context.Context, arg AcquireLogdrainLeaseParams) (int64, error) {
 	result, err := q.db.ExecContext(ctx, acquireLogdrainLease,
 		arg.LeaseID,

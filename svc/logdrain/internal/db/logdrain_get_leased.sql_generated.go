@@ -15,18 +15,17 @@ SELECT
   d.workspace_id,
   d.stream,
   d.config,
-  s.consecutive_failures,
-  s.committed_offset_inserted_at,
-  s.committed_offset_event_id,
-  s.fencing_token
+  d.consecutive_failures,
+  d.committed_offset_inserted_at,
+  d.committed_offset_event_id,
+  d.fencing_token
 FROM logdrains d
-JOIN logdrain_state s ON s.logdrain_id = d.id
 WHERE d.id = ?
   AND d.enabled = true
-  AND s.status = 'active'
-  AND s.fencing_token = ?
-  AND s.lease_expires_at > CAST(UNIX_TIMESTAMP(NOW(3)) * 1000 AS SIGNED)
-  AND s.next_attempt_at <= CAST(UNIX_TIMESTAMP(NOW(3)) * 1000 AS SIGNED)
+  AND d.status = 'active'
+  AND d.fencing_token = ?
+  AND d.lease_expires_at > CAST(UNIX_TIMESTAMP(NOW(3)) * 1000 AS SIGNED)
+  AND d.next_attempt_at <= CAST(UNIX_TIMESTAMP(NOW(3)) * 1000 AS SIGNED)
 `
 
 type GetLeasedLogdrainParams struct {
@@ -54,18 +53,17 @@ type GetLeasedLogdrainRow struct {
 //	  d.workspace_id,
 //	  d.stream,
 //	  d.config,
-//	  s.consecutive_failures,
-//	  s.committed_offset_inserted_at,
-//	  s.committed_offset_event_id,
-//	  s.fencing_token
+//	  d.consecutive_failures,
+//	  d.committed_offset_inserted_at,
+//	  d.committed_offset_event_id,
+//	  d.fencing_token
 //	FROM logdrains d
-//	JOIN logdrain_state s ON s.logdrain_id = d.id
 //	WHERE d.id = ?
 //	  AND d.enabled = true
-//	  AND s.status = 'active'
-//	  AND s.fencing_token = ?
-//	  AND s.lease_expires_at > CAST(UNIX_TIMESTAMP(NOW(3)) * 1000 AS SIGNED)
-//	  AND s.next_attempt_at <= CAST(UNIX_TIMESTAMP(NOW(3)) * 1000 AS SIGNED)
+//	  AND d.status = 'active'
+//	  AND d.fencing_token = ?
+//	  AND d.lease_expires_at > CAST(UNIX_TIMESTAMP(NOW(3)) * 1000 AS SIGNED)
+//	  AND d.next_attempt_at <= CAST(UNIX_TIMESTAMP(NOW(3)) * 1000 AS SIGNED)
 func (q *Queries) GetLeasedLogdrain(ctx context.Context, arg GetLeasedLogdrainParams) (GetLeasedLogdrainRow, error) {
 	row := q.db.QueryRowContext(ctx, getLeasedLogdrain, arg.LogdrainID, arg.FencingToken)
 	var i GetLeasedLogdrainRow
