@@ -1,0 +1,172 @@
+[
+  {
+    "input": "unkey:v1:ws_123:keyspaces/ks_123#read_keyspace",
+    "valid": true,
+    "reason": "concrete resource path and action"
+  },
+  {
+    "input": "unkey:v1:ws_123:keyspaces/ks_123/keys/key_456#delete_key",
+    "valid": true,
+    "reason": "nested resource path"
+  },
+  {
+    "input": "unkey:v1:ws_123:keyspaces/*/keys/*#read_key",
+    "valid": true,
+    "reason": "\"*\" as a whole segment, once per segment"
+  },
+  {
+    "input": "unkey:v1:ws_123:keyspaces/*#write_keyspace",
+    "valid": true,
+    "reason": "\"*\" as the final segment"
+  },
+  {
+    "input": "unkey:v1:ws_123:ratelimits/**#write_ratelimit_override",
+    "valid": true,
+    "reason": "\"**\" as the final segment"
+  },
+  {
+    "input": "unkey:v1:ws_123:projects/proj_123/apps/app_456/environments/env_789/deployments/**#read_deployment",
+    "valid": true,
+    "reason": "\"**\" below a deep concrete path"
+  },
+  {
+    "input": "unkey:v1:ws_123:**#read_key",
+    "valid": true,
+    "reason": "global resource path with a concrete action"
+  },
+  {
+    "input": "unkey:v1:ws_123:**#*",
+    "valid": true,
+    "reason": "action wildcard on the global resource path"
+  },
+  {
+    "input": "unkey:v1:ws_123:keyspaces/ks_123#read_remaining_key",
+    "valid": true,
+    "reason": "underscores inside an action"
+  },
+  {
+    "input": "api.api_123.read_api",
+    "valid": false,
+    "reason": "legacy tuple, not a URN"
+  },
+  {
+    "input": "unkey:v1:ws_123:keyspaces/ks_123",
+    "valid": false,
+    "reason": "missing the action separator"
+  },
+  {
+    "input": "unkey:v1:ws_123:keyspaces/ks_123#read#key",
+    "valid": false,
+    "reason": "two action separators"
+  },
+  {
+    "input": "unkey:v1:ws_123#read_key",
+    "valid": false,
+    "reason": "missing the resource path field"
+  },
+  {
+    "input": "aws:v1:ws_123:keyspaces/ks_123#read_keyspace",
+    "valid": false,
+    "reason": "wrong URN prefix"
+  },
+  {
+    "input": "unkey:v2:ws_123:keyspaces/ks_123#read_keyspace",
+    "valid": false,
+    "reason": "wrong URN version"
+  },
+  {
+    "input": "unkey:v1::keyspaces/ks_123#read_keyspace",
+    "valid": false,
+    "reason": "empty workspace id"
+  },
+  {
+    "input": "unkey:v1:ws/123:keyspaces/ks_123#read_keyspace",
+    "valid": false,
+    "reason": "\"/\" in the workspace id"
+  },
+  {
+    "input": "unkey:v1:ws:123:keyspaces/ks_123#read_keyspace",
+    "valid": false,
+    "reason": "\":\" in the workspace id"
+  },
+  {
+    "input": "unkey:v1:ws_123:#read_keyspace",
+    "valid": false,
+    "reason": "empty resource path"
+  },
+  {
+    "input": "unkey:v1:ws_123:keyspaces//ks_123#read_key",
+    "valid": false,
+    "reason": "empty resource path segment"
+  },
+  {
+    "input": "unkey:v1:ws_123:/keyspaces/ks_123#read_key",
+    "valid": false,
+    "reason": "leading \"/\" in the resource path"
+  },
+  {
+    "input": "unkey:v1:ws_123:keyspaces/ks_123/#read_key",
+    "valid": false,
+    "reason": "trailing \"/\" in the resource path"
+  },
+  {
+    "input": "unkey:v1:ws_123:keyspaces/ks:1#read_key",
+    "valid": false,
+    "reason": "\":\" in a resource path segment"
+  },
+  {
+    "input": "unkey:v1:ws_123:keyspaces/ks_*#read_key",
+    "valid": false,
+    "reason": "\"*\" inside a resource path segment"
+  },
+  {
+    "input": "unkey:v1:ws_123:keyspaces/ks_**#read_key",
+    "valid": false,
+    "reason": "\"**\" inside a resource path segment"
+  },
+  {
+    "input": "unkey:v1:ws_123:**/keys/key_1#read_key",
+    "valid": false,
+    "reason": "\"**\" is not the last resource path segment"
+  },
+  {
+    "input": "unkey:v1:ws_123:keyspaces/ks_123#",
+    "valid": false,
+    "reason": "empty action"
+  },
+  {
+    "input": "unkey:v1:ws_123:keyspaces/ks_123#read/key",
+    "valid": false,
+    "reason": "\"/\" in the action"
+  },
+  {
+    "input": "unkey:v1:ws_123:keyspaces/ks_123#read:key",
+    "valid": false,
+    "reason": "\":\" in the action"
+  },
+  {
+    "input": "unkey:v1:ws_123:keyspaces/ks_123#read*",
+    "valid": false,
+    "reason": "\"*\" inside the action"
+  },
+  {
+    "input": "unkey:v1:ws_123:keyspaces/ks_123#_read",
+    "valid": false,
+    "reason": "action starts with \"_\""
+  },
+  {
+    "input": "unkey:v1:ws_123:keyspaces/ks_123#read_",
+    "valid": false,
+    "reason": "action ends with \"_\""
+  },
+  {
+    "input": "unkey:v1:ws_123:keyspaces/ks_123#*",
+    "valid": false,
+    "reason": "action wildcard off the global resource path"
+  },
+  {
+    "input": "unkey:v1:ws_123:*#*",
+    "valid": false,
+    "reason": "action wildcard on a single-segment wildcard path"
+  }
+]

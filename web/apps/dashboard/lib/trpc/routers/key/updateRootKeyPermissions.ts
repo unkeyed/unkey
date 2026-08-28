@@ -1,13 +1,13 @@
 import type { UnkeyAuditLog } from "@/lib/audit";
 import { and, db, eq, inArray, schema } from "@/lib/db";
 import { TRPCError } from "@trpc/server";
-import { unkeyPermissionValidation } from "@unkey/rbac";
+import { permissionValidation } from "@unkey/rbac";
 import { z } from "zod";
 import { workspaceProcedure } from "../../trpc";
 
 import { insertAuditLogs } from "@/lib/audit";
 import { env } from "@/lib/env";
-import { upsertPermissions } from "../rbac";
+import { assertPermissionsBelongToWorkspace, upsertPermissions } from "../rbac";
 
 /**
  * Replaces the full permission set for the root key — clients must submit the complete,
@@ -17,12 +17,14 @@ export const updateRootKeyPermissions = workspaceProcedure
   .input(
     z.object({
       keyId: z.string(),
-      permissions: z.array(unkeyPermissionValidation).min(1, {
+      permissions: z.array(permissionValidation).min(1, {
         error: "You need to add at least one permission.",
       }),
     }),
   )
   .mutation(async ({ ctx, input }) => {
+    assertPermissionsBelongToWorkspace(input.permissions, ctx.workspace.id);
+
     // Verify the key exists and belongs to the workspace
     const key = await db.query.keys
       .findFirst({
@@ -70,7 +72,7 @@ export const updateRootKeyPermissions = workspaceProcedure
 
         // Upsert new permissions
         const { permissions: upsertedPermissions, auditLogs: createPermissionLogs } =
-          await upsertPermissions(ctx, env().UNKEY_WORKSPACE_ID, input.permissions);
+          await upsertPermissions(tx, ctx, env().UNKEY_WORKSPACE_ID, input.permissions);
 
         auditLogs.push(...createPermissionLogs);
 
