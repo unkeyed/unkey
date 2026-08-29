@@ -106,10 +106,10 @@ export const ApiListClient = ({ workspaceSlug }: { workspaceSlug: string }) => {
         </>
       ) : (
         <EmptyComponentSpacer>
-          <Empty className="m-0 p-0">
-            <Empty.Icon />
+          <Empty className="w-[400px] items-start p-0">
+            <Empty.Icon className="w-auto" />
             <Empty.Title>No keyspaces found</Empty.Title>
-            <Empty.Description>
+            <Empty.Description className="text-left">
               No keyspaces match your search criteria. Try a different search term.
             </Empty.Description>
           </Empty>

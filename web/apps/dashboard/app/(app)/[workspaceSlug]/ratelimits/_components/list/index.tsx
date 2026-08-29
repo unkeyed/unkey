@@ -52,14 +52,14 @@ export const NamespaceList = () => {
     return (
       <ResourceListContent>
         <div className="flex w-full items-center justify-center px-4 py-16">
-          <Empty className="w-[600px] flex items-start">
-            <Empty.Icon />
+          <Empty className="w-[600px] items-start p-0">
+            <Empty.Icon className="w-auto" />
             <Empty.Title>No Namespaces found</Empty.Title>
             <Empty.Description className="text-left">
               You haven't created any Namespaces yet. Create one by performing a limit request as
               shown below.
             </Empty.Description>
-            <div className="w-full mt-8 mb-8">
+            <div className="w-full mt-6">
               <div className="flex items-start gap-4 p-4 bg-gray-2 border border-gray-6 rounded-lg">
                 <pre className="flex-1 text-xs text-left overflow-x-auto">
                   <code>{EXAMPLE_SNIPPET}</code>
