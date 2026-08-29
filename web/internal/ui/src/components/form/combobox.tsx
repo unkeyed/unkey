@@ -314,7 +314,12 @@ function Combobox({
     if (!creatable || !trimmedQuery) {
       return undefined;
     }
-    if (effectiveOptions.some((option) => option.value === trimmedQuery)) {
+    const loweredQuery = trimmedQuery.toLowerCase();
+    if (
+      effectiveOptions.some(
+        (option) => (option.searchValue || option.value).toLowerCase() === loweredQuery,
+      )
+    ) {
       return undefined;
     }
     return {

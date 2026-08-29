@@ -5,29 +5,17 @@ import { Check, ChevronDown } from "@unkey/icons";
 import { type VariantProps, cva } from "class-variance-authority";
 import type * as React from "react";
 import { cn } from "../../lib/utils";
+import { fieldBaseClasses, fieldInvalidClasses, fieldSurfaceClasses } from "./input-group";
 
 const selectTriggerVariants = cva(
-  "flex h-9 w-full rounded-lg text-[13px] leading-5 transition-colors duration-300 disabled:cursor-not-allowed disabled:opacity-50 placeholder:text-grayA-8 text-grayA-12 items-center justify-between",
+  [
+    "flex h-9 w-full items-center justify-between disabled:cursor-not-allowed disabled:opacity-50 placeholder:text-grayA-8",
+    fieldBaseClasses,
+    fieldInvalidClasses,
+  ],
   {
     variants: {
-      variant: {
-        default: [
-          "border border-gray-5 hover:border-gray-8 bg-white dark:bg-black",
-          "focus:border focus:border-accent-12 focus:ring-3 focus:ring-gray-5 focus-visible:outline-hidden focus:ring-offset-0",
-        ],
-        success: [
-          "border border-success-9 hover:border-success-10 bg-white dark:bg-black",
-          "focus:border-success-8 focus:ring-3 focus:ring-success-4 focus-visible:outline-hidden",
-        ],
-        warning: [
-          "border border-warning-9 hover:border-warning-10 bg-white dark:bg-black",
-          "focus:border-warning-8 focus:ring-3 focus:ring-warning-4 focus-visible:outline-hidden",
-        ],
-        error: [
-          "border border-error-9 hover:border-error-10 bg-white dark:bg-black",
-          "focus:border-error-8 focus:ring-3 focus:ring-error-4 focus-visible:outline-hidden",
-        ],
-      },
+      variant: fieldSurfaceClasses,
     },
     defaultVariants: {
       variant: "default",
@@ -39,6 +27,7 @@ const selectWrapperVariants = cva("relative flex items-center w-full", {
   variants: {
     variant: {
       default: "text-grayA-12",
+      ghost: "text-grayA-12",
       success: "text-success-11",
       warning: "text-warning-11",
       error: "text-error-11",

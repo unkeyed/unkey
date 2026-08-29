@@ -119,6 +119,19 @@ describe("Combobox", () => {
     expect(onSelect).toHaveBeenCalledTimes(1);
   });
 
+  it("does not offer to create a value that an option already matches through searchValue", () => {
+    const onSelect = vi.fn();
+    render(<Harness creatable onSelect={onSelect} />);
+
+    fireEvent.click(getTrigger());
+    const input = screen.getByPlaceholderText("Search...");
+    fireEvent.change(input, { target: { value: "Automatic" } });
+
+    const shown = screen.getAllByRole("option");
+    expect(shown).toHaveLength(1);
+    expect(shown[0].textContent).not.toContain("Use");
+  });
+
   it("keeps the open popup's search input enabled when disabled flips mid-search", () => {
     function DisableHarness(props: { disabled: boolean }) {
       return (
