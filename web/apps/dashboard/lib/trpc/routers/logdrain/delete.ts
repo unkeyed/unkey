@@ -36,7 +36,7 @@ export const deleteLogdrain = workspaceProcedure
           actor: { type: "user", id: ctx.user.id },
           event: "logdrain.delete",
           description: `Deleted log drain ${input.id}`,
-          resources: [],
+          resources: [{ type: "logdrain", id: drain.id, name: drain.name }],
           context: { location: ctx.audit.location, userAgent: ctx.audit.userAgent },
         });
       });

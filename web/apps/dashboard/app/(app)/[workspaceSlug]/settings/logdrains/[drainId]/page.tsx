@@ -29,12 +29,7 @@ import {
 import { useRouter } from "next/navigation";
 import { use, useEffect, useRef, useState } from "react";
 import { AxiomLogo } from "../axiom-logo";
-import {
-  type HeaderField,
-  emptyHeader,
-  headerFieldsSchema,
-  toHeaderRecord,
-} from "../header-fields";
+import { type HeaderUpdateField, emptyHeader, headerUpdateFieldsSchema } from "../header-fields";
 import { type DrainStatus, StatusBadge } from "../logdrain-ui";
 import { DeliveryOverview } from "./charts";
 
@@ -47,7 +42,7 @@ type Drain = DrainBase &
   (
     | {
         kind: "http";
-        config: { url: string; format: "json" | "ndjson"; headers: HeaderField[] };
+        config: { url: string; format: "json" | "ndjson"; headers: string[] };
       }
     | { kind: "axiom"; config: { dataset: string } }
   );
@@ -56,11 +51,20 @@ function getDestination(drain: Drain) {
   return drain.kind === "axiom" ? drain.config.dataset : drain.config.url;
 }
 
-type EditableHeader = HeaderField & { id: number };
+type EditableHeader =
+  | { id: number; source: "stored"; name: string; value: string }
+  | { id: number; source: "new"; name: string; value: string };
 
-function editableHeaders(headers: HeaderField[], firstId: number): EditableHeader[] {
-  const fields = headers.length > 0 ? headers : [{ ...emptyHeader }];
-  return fields.map((field, index) => ({ id: firstId + index, ...field }));
+function editableHeaders(headers: string[], firstId: number): EditableHeader[] {
+  if (headers.length === 0) {
+    return [{ id: firstId, source: "new", ...emptyHeader }];
+  }
+  return headers.map((name, index) => ({
+    id: firstId + index,
+    source: "stored",
+    name,
+    value: "",
+  }));
 }
 
 type RecentError = {
@@ -148,7 +152,21 @@ function Detail({
   const router = useRouter();
   const workspace = useWorkspaceNavigation();
   const update = trpc.logdrain.update.useMutation({
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
+      if (variables.destination?.kind === "axiom" && variables.destination.config.token) {
+        setToken("");
+      }
+      if (
+        variables.destination?.kind === "http" &&
+        variables.destination.config.headers !== undefined
+      ) {
+        const fields = editableHeaders(
+          variables.destination.config.headers.map((header) => header.name),
+          nextHeaderId.current,
+        );
+        nextHeaderId.current += fields.length;
+        setHeaders(fields);
+      }
       utils.logdrain.list.invalidate();
       utils.logdrain.get.invalidate({ id: drain.id });
       toast.success("Log drain updated");
@@ -184,7 +202,19 @@ function Detail({
     }
   };
   const saveHeaders = () => {
-    const parsed = headerFieldsSchema.safeParse(headers);
+    const requested: HeaderUpdateField[] = [];
+    for (const header of headers) {
+      const name = header.name.trim();
+      if (header.source === "new" && name === "" && header.value === "") {
+        continue;
+      }
+      if (header.source === "stored" && header.value === "") {
+        requested.push({ mode: "preserve", name });
+      } else {
+        requested.push({ mode: "set", name, value: header.value });
+      }
+    }
+    const parsed = headerUpdateFieldsSchema.safeParse(requested);
     if (!parsed.success) {
       toast.error(parsed.error.issues[0]?.message ?? "Check the header fields");
       return;
@@ -194,7 +224,7 @@ function Detail({
         id: drain.id,
         destination: {
           kind: "http",
-          config: { url: currentDestination, headers: toHeaderRecord(parsed.data) },
+          config: { url: currentDestination, headers: parsed.data },
         },
       });
     }
@@ -210,6 +240,13 @@ function Detail({
       });
     }
   };
+  const headersChanged =
+    headers.filter((header) => header.source === "stored").length !== configuredHeaders.length ||
+    headers.some((header) =>
+      header.source === "stored"
+        ? header.value !== ""
+        : header.name.trim() !== "" || header.value !== "",
+    );
 
   return (
     <PageContainer>
@@ -288,7 +325,7 @@ function Detail({
             {drain.kind === "http" ? (
               <SettingCard
                 title="Headers"
-                description="Add optional headers for each delivery. Saving replaces the current headers."
+                description="Stored values stay hidden. Leave a stored value blank to keep it. Saving replaces the header set."
                 contentWidth="w-full lg:w-[520px] justify-end"
               >
                 <div className="flex w-full flex-col gap-3">
@@ -298,6 +335,7 @@ function Detail({
                         aria-label={`Header ${index + 1} name`}
                         placeholder="Header name"
                         value={header.name}
+                        disabled={header.source === "stored"}
                         onChange={(event) =>
                           setHeaders((current) =>
                             current.map((item, itemIndex) =>
@@ -307,8 +345,14 @@ function Detail({
                         }
                       />
                       <Input
+                        type="password"
+                        autoComplete="off"
                         aria-label={`Header ${index + 1} value`}
-                        placeholder="Header value"
+                        placeholder={
+                          header.source === "stored"
+                            ? "Stored value; leave blank to keep"
+                            : "Header value"
+                        }
                         value={header.value}
                         onChange={(event) =>
                           setHeaders((current) =>
@@ -318,7 +362,7 @@ function Detail({
                           )
                         }
                       />
-                      {headers.length > 1 ? (
+                      {header.source === "stored" || headers.length > 1 ? (
                         <Button
                           variant="ghost"
                           size="sm"
@@ -342,13 +386,21 @@ function Detail({
                       onClick={() => {
                         const id = nextHeaderId.current;
                         nextHeaderId.current += 1;
-                        setHeaders((current) => [...current, { id, ...emptyHeader }]);
+                        setHeaders((current) => [
+                          ...current,
+                          { id, source: "new", ...emptyHeader },
+                        ]);
                       }}
                     >
                       <Plus iconSize="sm-regular" />
                       Add header
                     </Button>
-                    <Button variant="primary" loading={update.isLoading} onClick={saveHeaders}>
+                    <Button
+                      variant="primary"
+                      loading={update.isLoading}
+                      disabled={!headersChanged}
+                      onClick={saveHeaders}
+                    >
                       Save
                     </Button>
                   </div>
@@ -508,7 +560,9 @@ function RecentDeliveryErrors({
             Some recent deliveries failed
           </span>
           <span className="block text-xs text-gray-10">
-            {entries.length} {entries.length === 1 ? "failure" : "failures"} in the past 24 hours.
+            {entries.length === 20
+              ? "Showing the 20 most recent failures from the past 24 hours."
+              : `${entries.length} ${entries.length === 1 ? "failure" : "failures"} in the past 24 hours.`}
           </span>
         </span>
         <ChevronDown

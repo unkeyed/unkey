@@ -5,8 +5,18 @@ import { createVaultClient } from "@/lib/vault-client";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { workspaceProcedure } from "../../trpc";
-import { decodeLogdrainConfig, encodeLogdrainConfig, encryptHttpHeaders } from "./config";
-import { httpFormatSchema, httpHeadersSchema, httpsUrl } from "./validation";
+import {
+  type EncryptedHttpHeader,
+  decodeLogdrainConfig,
+  encodeLogdrainConfig,
+  encryptHttpHeaders,
+} from "./config";
+import {
+  type HttpHeaderUpdate,
+  httpFormatSchema,
+  httpHeaderUpdatesSchema,
+  httpsUrl,
+} from "./validation";
 
 const vault = createVaultClient(VaultService);
 const updateDestinationSchema = z.discriminatedUnion("kind", [
@@ -15,7 +25,7 @@ const updateDestinationSchema = z.discriminatedUnion("kind", [
     config: z.object({
       url: httpsUrl,
       format: httpFormatSchema.optional(),
-      headers: httpHeadersSchema.optional(),
+      headers: httpHeaderUpdatesSchema.optional(),
     }),
   }),
   z.object({
@@ -45,10 +55,16 @@ export const updateLogdrain = workspaceProcedure
   .mutation(async ({ ctx, input }) => {
     try {
       const destination = input.destination;
-      const encryptedHeaders =
-        destination?.kind === "http" && destination.config.headers !== undefined
-          ? await encryptHttpHeaders(ctx.workspace.id, destination.config.headers)
-          : undefined;
+      let encryptedHeaders: EncryptedHttpHeader[] | undefined;
+      if (destination?.kind === "http" && destination.config.headers !== undefined) {
+        const plaintextHeaders: Record<string, string> = {};
+        for (const header of destination.config.headers) {
+          if (header.mode === "set") {
+            plaintextHeaders[header.name] = header.value;
+          }
+        }
+        encryptedHeaders = await encryptHttpHeaders(ctx.workspace.id, plaintextHeaders);
+      }
       const encryptedToken =
         destination?.kind === "axiom" && destination.config.token !== undefined
           ? (await vault.encrypt({ keyring: ctx.workspace.id, data: destination.config.token }))
@@ -58,6 +74,7 @@ export const updateLogdrain = workspaceProcedure
         const [drain] = await tx
           .select({
             id: schema.logdrains.id,
+            name: schema.logdrains.name,
             config: schema.logdrains.config,
             status: schema.logdrains.status,
           })
@@ -81,11 +98,22 @@ export const updateLogdrain = workspaceProcedure
         }
         let config = drain.config;
         if (destination?.kind === "http" && existing.kind === "http") {
+          let headers = existing.headers;
+          if (destination.config.headers !== undefined) {
+            if (encryptedHeaders === undefined) {
+              throw new Error("Encrypted HTTP headers are missing");
+            }
+            headers = applyHttpHeaderUpdates({
+              existing: existing.headers,
+              updates: destination.config.headers,
+              encrypted: encryptedHeaders,
+            });
+          }
           config = encodeLogdrainConfig({
             kind: destination.kind,
             url: destination.config.url,
             format: destination.config.format ?? existing.format,
-            headers: encryptedHeaders ?? existing.headers,
+            headers,
           });
         } else if (destination?.kind === "axiom" && existing.kind === "axiom") {
           config = encodeLogdrainConfig({
@@ -129,7 +157,7 @@ export const updateLogdrain = workspaceProcedure
           actor: { type: "user", id: ctx.user.id },
           event: "logdrain.update",
           description: `Updated log drain ${input.id}`,
-          resources: [],
+          resources: [{ type: "logdrain", id: drain.id, name: input.name ?? drain.name }],
           context: { location: ctx.audit.location, userAgent: ctx.audit.userAgent },
         });
       });
@@ -142,3 +170,39 @@ export const updateLogdrain = workspaceProcedure
       throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Failed to update log drain" });
     }
   });
+
+export function applyHttpHeaderUpdates({
+  existing,
+  updates,
+  encrypted,
+}: {
+  existing: EncryptedHttpHeader[];
+  updates: HttpHeaderUpdate[];
+  encrypted: EncryptedHttpHeader[];
+}): EncryptedHttpHeader[] {
+  const existingByName = new Map(existing.map((header) => [header.name.toLowerCase(), header]));
+  const encryptedByName = new Map(encrypted.map((header) => [header.name.toLowerCase(), header]));
+
+  return updates.map((update) => {
+    const normalizedName = update.name.toLowerCase();
+    switch (update.mode) {
+      case "preserve": {
+        const header = existingByName.get(normalizedName);
+        if (!header) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: `Cannot preserve unknown HTTP header ${update.name}`,
+          });
+        }
+        return header;
+      }
+      case "set": {
+        const header = encryptedByName.get(normalizedName);
+        if (!header) {
+          throw new Error(`Encrypted HTTP header ${update.name} is missing`);
+        }
+        return { ...header, name: existingByName.get(normalizedName)?.name ?? header.name };
+      }
+    }
+  });
+}

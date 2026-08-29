@@ -54,3 +54,52 @@ export const httpHeadersSchema = z
       names.add(normalizedName);
     }
   });
+
+const httpHeaderUpdateSchema = z.discriminatedUnion("mode", [
+  z.object({
+    mode: z.literal("preserve"),
+    name: z.string(),
+  }),
+  z.object({
+    mode: z.literal("set"),
+    name: z.string(),
+    value: z
+      .string()
+      .min(1, "Invalid header value")
+      .max(8192)
+      .refine(isValidHttpHeaderValue, "Invalid header value"),
+  }),
+]);
+
+/** httpHeaderUpdatesSchema describes the desired header set without exposing stored values. */
+export const httpHeaderUpdatesSchema = z
+  .array(httpHeaderUpdateSchema)
+  .max(32, "A maximum of 32 headers is supported")
+  .superRefine((headers, context) => {
+    const names = new Set<string>();
+    for (const [index, header] of headers.entries()) {
+      if (
+        header.name.length === 0 ||
+        header.name.length > 256 ||
+        !httpHeaderNamePattern.test(header.name)
+      ) {
+        context.addIssue({
+          code: "custom",
+          path: [index, "name"],
+          message: "Invalid header name",
+        });
+      }
+      const normalizedName = header.name.toLowerCase();
+      if (names.has(normalizedName)) {
+        context.addIssue({
+          code: "custom",
+          path: [index, "name"],
+          message: "Header name is duplicated",
+        });
+      }
+      names.add(normalizedName);
+    }
+  });
+
+/** One write-only HTTP header update. */
+export type HttpHeaderUpdate = z.infer<typeof httpHeaderUpdateSchema>;

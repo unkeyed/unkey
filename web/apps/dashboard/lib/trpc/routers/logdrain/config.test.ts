@@ -2,12 +2,11 @@ import { describe, expect, it, vi } from "vitest";
 import {
   type LogdrainConfig,
   decodeLogdrainConfig,
-  decryptHttpHeaders,
   encodeLogdrainConfig,
   encryptHttpHeaders,
 } from "./config";
 
-const vault = vi.hoisted(() => ({ decryptBulk: vi.fn(), encryptBulk: vi.fn() }));
+const vault = vi.hoisted(() => ({ encryptBulk: vi.fn() }));
 vi.mock("@/lib/vault-client", () => ({ createVaultClient: () => vault }));
 
 describe("log drain protobuf config", () => {
@@ -58,29 +57,6 @@ describe("log drain protobuf config", () => {
     expect(vault.encryptBulk).toHaveBeenCalledWith({
       keyring: "ws_123",
       items: { "0": "Bearer token", "1": "customer-value" },
-    });
-  });
-
-  it("decrypts each HTTP header value for the detail page", async () => {
-    vault.decryptBulk.mockResolvedValue({
-      items: {
-        "0": "Bearer token",
-        "1": "customer-value",
-      },
-    });
-
-    await expect(
-      decryptHttpHeaders("ws_123", [
-        { name: "Authorization", encryptedValue: "encrypted-authorization" },
-        { name: "X-Customer", encryptedValue: "encrypted-customer" },
-      ]),
-    ).resolves.toEqual([
-      { name: "Authorization", value: "Bearer token" },
-      { name: "X-Customer", value: "customer-value" },
-    ]);
-    expect(vault.decryptBulk).toHaveBeenCalledWith({
-      keyring: "ws_123",
-      items: { "0": "encrypted-authorization", "1": "encrypted-customer" },
     });
   });
 });

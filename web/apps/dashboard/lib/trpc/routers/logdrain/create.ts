@@ -80,7 +80,7 @@ export const createLogdrain = workspaceProcedure
           actor: { type: "user", id: ctx.user.id },
           event: "logdrain.create",
           description: `Created log drain ${id}`,
-          resources: [],
+          resources: [{ type: "logdrain", id, name: input.name }],
           context: { location: ctx.audit.location, userAgent: ctx.audit.userAgent },
         });
       });

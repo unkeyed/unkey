@@ -26,6 +26,19 @@ describe("DeliveryOverview", () => {
       expect(chart.getAttribute("data-domain")).toBe("[1000,3000]");
     }
   });
+
+  it("weights average duration by delivery attempts", () => {
+    const series = [
+      { ...metric(1_000, 1), successCount: 1, avgDurationMs: 50 },
+      { ...metric(2_000, 3), successCount: 3, avgDurationMs: 150 },
+    ] satisfies LogdrainSeries;
+
+    const { getByText } = render(
+      <DeliveryOverview series={series} loading={false} error={false} />,
+    );
+
+    expect(getByText("125")).toBeTruthy();
+  });
 });
 
 function metric(ts: number, eventsDelivered: number): LogdrainSeries[number] {

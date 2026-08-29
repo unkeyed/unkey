@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { headerFieldsSchema, toHeaderRecord } from "./header-fields";
+import { headerFieldsSchema, headerUpdateFieldsSchema, toHeaderRecord } from "./header-fields";
 
 describe("HTTP header fields", () => {
   it("accepts an empty row as no headers", () => {
@@ -43,6 +43,35 @@ describe("HTTP header fields", () => {
     expect(result.success).toBe(false);
     if (!result.success) {
       expect(result.error.issues.map((issue) => issue.message)).toContain(message);
+    }
+  });
+});
+
+describe("write-only HTTP header fields", () => {
+  it("accepts stored values without plaintext and new values with plaintext", () => {
+    expect(
+      headerUpdateFieldsSchema.safeParse([
+        { mode: "preserve", name: "Authorization" },
+        { mode: "set", name: "X-Source", value: "unkey" },
+      ]).success,
+    ).toBe(true);
+  });
+
+  it("accepts an empty final header set", () => {
+    expect(headerUpdateFieldsSchema.safeParse([]).success).toBe(true);
+  });
+
+  it("rejects case-insensitive duplicate names", () => {
+    const result = headerUpdateFieldsSchema.safeParse([
+      { mode: "preserve", name: "Authorization" },
+      { mode: "set", name: "authorization", value: "replacement" },
+    ]);
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues.map((issue) => issue.message)).toContain(
+        "Header name is duplicated",
+      );
     }
   });
 });

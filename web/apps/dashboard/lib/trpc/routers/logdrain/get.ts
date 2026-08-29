@@ -2,7 +2,7 @@ import { and, db, eq, schema } from "@/lib/db";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { workspaceProcedure } from "../../trpc";
-import { decodeLogdrainConfig, decryptHttpHeaders } from "./config";
+import { decodeLogdrainConfig } from "./config";
 
 export const getLogdrain = workspaceProcedure
   .input(z.object({ id: z.string().min(1) }))
@@ -37,7 +37,7 @@ export const getLogdrain = workspaceProcedure
             config: {
               url: destination.url,
               format: destination.format,
-              headers: await decryptHttpHeaders(ctx.workspace.id, destination.headers),
+              headers: destination.headers.map((header) => header.name),
             },
           };
         case "axiom":

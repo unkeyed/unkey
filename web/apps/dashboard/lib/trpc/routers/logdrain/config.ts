@@ -95,29 +95,6 @@ export async function encryptHttpHeaders(
   });
 }
 
-/** decryptHttpHeaders decrypts values after the caller authorizes access to the log drain. */
-export async function decryptHttpHeaders(
-  workspaceId: string,
-  headers: EncryptedHttpHeader[],
-): Promise<Array<{ name: string; value: string }>> {
-  if (headers.length === 0) {
-    return [];
-  }
-  const response = await createVaultClient(VaultService).decryptBulk({
-    keyring: workspaceId,
-    items: Object.fromEntries(
-      headers.map((header, index) => [index.toString(), header.encryptedValue]),
-    ),
-  });
-  return headers.map((header, index) => {
-    const value = response.items[index.toString()];
-    if (value === undefined) {
-      throw new Error(`Vault did not decrypt HTTP header ${header.name}`);
-    }
-    return { name: header.name, value };
-  });
-}
-
 function decodeHttpFormat(format: HttpBodyFormat): "json" | "ndjson" {
   switch (format) {
     case HttpBodyFormat.UNSPECIFIED:
