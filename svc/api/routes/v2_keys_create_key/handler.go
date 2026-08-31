@@ -260,7 +260,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				KeySpaceID:         api.KeyAuthID.String,
 				Hash:               keyResult.Hash,
 				Prefix:             prefix,
-				Start:              keyResult.Start,
+				Start:              keyResult.Start[len(keyResult.Start)-4:],
 				End:                keyResult.Key[len(keyResult.Key)-4:],
 				WorkspaceID:        principal.WorkspaceID,
 				ForWorkspaceID:     sql.NullString{String: "", Valid: false},
