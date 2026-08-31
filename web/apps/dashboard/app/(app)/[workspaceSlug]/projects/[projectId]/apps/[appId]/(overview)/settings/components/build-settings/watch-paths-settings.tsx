@@ -15,8 +15,6 @@ import { FormSettingCard, resolveSaveState } from "../shared/form-setting-card";
 import { RemoveButton } from "../shared/remove-button";
 import { useRepoTree } from "./use-repo-tree";
 
-
-
 const watchPathsSchema = z.object({
   paths: z.array(
     z.object({
@@ -231,7 +229,6 @@ export const WatchPaths = () => {
     </FormSettingCard>
   );
 };
-
 
 // Mirrors doublestar.ValidatePattern (github.com/bmatcuk/doublestar/v4,
 // validate.go): a pure syntax check for balanced [ ] / { } and a non-trailing

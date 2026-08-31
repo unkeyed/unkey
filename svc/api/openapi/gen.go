@@ -2614,9 +2614,11 @@ type V2EnvironmentsUpdateSettingsRequestBody struct {
 	// Omit to leave unchanged.
 	VCpus *float64 `json:"vCpus,omitempty"`
 
-	// WatchPaths Glob paths that trigger auto-deploys when changed.
-	// Use doublestar glob syntax, e.g. "src/**" or "**/*.go".
-	// Omit to leave unchanged. Invalid glob patterns are rejected with a 400.
+	// WatchPaths Glob patterns that trigger auto-deploys when matching files change.
+	// Do not start a pattern with "/" or "./".
+	// Use "src/**" for everything under a directory and "**/*.go" for a file type.
+	// A pattern with no wildcard matches only that exact file, so "src" is not "src/**".
+	// Omit to leave unchanged. Invalid patterns are rejected with a 400.
 	WatchPaths *[]string `json:"watchPaths,omitempty"`
 }
 
