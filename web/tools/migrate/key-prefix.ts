@@ -5,15 +5,16 @@ const READ_BATCH_SIZE = 1_000;
 const BASE58_ALPHABET = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
 
 /**
- * Separates a legacy key start into its prefix and four random characters.
+ * Parses the combined `prefix_abcd` value stored by the legacy key generator.
  */
-export function extractLegacyKeyMetadata(start: string): { prefix: string; start: string } | null {
+export function parseLegacyKeyStart(start: string): { prefix: string; start: string } | null {
   const separatorIndex = start.length - 5;
   if (separatorIndex < 1 || start[separatorIndex] !== "_") {
     return null;
   }
 
   const strippedStart = start.slice(-4);
+  // Reject unrelated values that do not use the legacy generator's Base58 alphabet.
   for (const character of strippedStart) {
     if (!BASE58_ALPHABET.includes(character)) {
       return null;
@@ -67,14 +68,14 @@ async function main(): Promise<void> {
       scanned += rows.length;
 
       for (const row of rows) {
-        const metadata = extractLegacyKeyMetadata(row.start);
-        if (metadata === null) {
+        const parsedStart = parseLegacyKeyStart(row.start);
+        if (parsedStart === null) {
           continue;
         }
 
         const result = await db
           .update(schema.keys)
-          .set(metadata)
+          .set(parsedStart)
           .where(and(eq(schema.keys.pk, row.pk), eq(schema.keys.prefix, "")));
         updated += result[0].affectedRows;
       }
