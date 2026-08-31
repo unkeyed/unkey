@@ -929,6 +929,35 @@ type Querier interface {
 	//      AND ka.deleted_at_m IS NULL
 	//      AND ws.deleted_at_m IS NULL
 	FindLiveKeyByID(ctx context.Context, db DBTX, id string) (FindLiveKeyByIDRow, error)
+	//FindLiveKeyCredits
+	//
+	//  SELECT remaining_requests
+	//  FROM `keys`
+	//  WHERE id = ?
+	//    AND deleted_at_m IS NULL
+	FindLiveKeyCredits(ctx context.Context, db DBTX, id string) (sql.NullInt64, error)
+	// Credit updates only need authorization, audit, cache, and credit state.
+	//
+	//  SELECT
+	//      k.id,
+	//      k.key_auth_id,
+	//      k.hash,
+	//      k.workspace_id,
+	//      k.name,
+	//      k.refill_day,
+	//      k.refill_amount,
+	//      k.remaining_requests,
+	//      a.id AS api_id
+	//  FROM `keys` k
+	//  JOIN apis a ON a.key_auth_id = k.key_auth_id
+	//  JOIN key_auth ka ON ka.id = k.key_auth_id
+	//  JOIN workspaces ws ON k.workspace_id = ws.id
+	//  WHERE k.id = ?
+	//      AND k.deleted_at_m IS NULL
+	//      AND a.deleted_at_m IS NULL
+	//      AND ka.deleted_at_m IS NULL
+	//      AND ws.deleted_at_m IS NULL
+	FindLiveKeyForCreditsByID(ctx context.Context, db DBTX, id string) (FindLiveKeyForCreditsByIDRow, error)
 	// Keep this projection small: key updates do not need the RBAC and ratelimit
 	// aggregates returned by FindLiveKeyByID.
 	//
@@ -1389,6 +1418,37 @@ type Querier interface {
 	//      ?
 	//  )
 	InsertClickhouseOutbox(ctx context.Context, db DBTX, arg InsertClickhouseOutboxParams) error
+	// transactional-batch-statement
+	// This statement must immediately follow the guarded credit UPDATE. With
+	// clientFoundRows enabled on the batch pool, ROW_COUNT() distinguishes a
+	// missing key while LAST_INSERT_ID() distinguishes valid and rejected states.
+	//
+	//  INSERT INTO `clickhouse_outbox` (
+	//      version,
+	//      workspace_id,
+	//      event_id,
+	//      payload,
+	//      created_at
+	//  )
+	//  SELECT
+	//      ?,
+	//      ?,
+	//      ?,
+	//      JSON_SET(
+	//          CAST(? AS JSON),
+	//          '$.description',
+	//          CONCAT(
+	//              'Updated Key ', ?, ', set remaining to ',
+	//              IF(k.remaining_requests IS NULL, 'unlimited', CAST(k.remaining_requests AS CHAR)),
+	//              '.'
+	//          )
+	//      ),
+	//      ?
+	//  FROM `keys` k
+	//  WHERE k.id = ?
+	//    AND ROW_COUNT() = 1
+	//    AND LAST_INSERT_ID() <= 9223372036854775807
+	InsertClickhouseOutboxForCreditUpdate(ctx context.Context, db DBTX, arg InsertClickhouseOutboxForCreditUpdateParams) error
 	// transactional-batch-statement
 	// no-bulk-insert
 	//
@@ -3099,22 +3159,76 @@ type Querier interface {
 	//  END
 	//  WHERE id = ?
 	UpdateKeyCreditsDecrement(ctx context.Context, db DBTX, arg UpdateKeyCreditsDecrementParams) error
+	// LAST_INSERT_ID(expr) returns expr in this UPDATE's OK packet, so
+	// sql.Result.LastInsertId reads the new balance without another query.
+	// https://dev.mysql.com/doc/refman/8.4/en/information-functions.html#function_last-insert-id
+	// transactional-batch-statement
+	//
+	//  UPDATE `keys`
+	//  SET
+	//      remaining_requests = CASE
+	//          WHEN deleted_at_m IS NOT NULL THEN
+	//              IF(LAST_INSERT_ID(18446744073709551615) > 0, remaining_requests, remaining_requests)
+	//          WHEN remaining_requests IS NULL THEN
+	//              IF(LAST_INSERT_ID(18446744073709551614) > 0, remaining_requests, remaining_requests)
+	//          ELSE LAST_INSERT_ID(CASE
+	//              WHEN remaining_requests >= ? THEN remaining_requests - ?
+	//              ELSE 0
+	//          END)
+	//      END
+	//  WHERE id = ?
+	UpdateKeyCreditsDecrementReturning(ctx context.Context, db DBTX, arg UpdateKeyCreditsDecrementReturningParams) (sql.Result, error)
 	//UpdateKeyCreditsIncrement
 	//
 	//  UPDATE `keys`
 	//  SET remaining_requests = remaining_requests + ?
 	//  WHERE id = ?
 	UpdateKeyCreditsIncrement(ctx context.Context, db DBTX, arg UpdateKeyCreditsIncrementParams) error
+	// LAST_INSERT_ID(expr) returns expr in this UPDATE's OK packet, so
+	// sql.Result.LastInsertId reads the new balance without another query.
+	// https://dev.mysql.com/doc/refman/8.4/en/information-functions.html#function_last-insert-id
+	// transactional-batch-statement
+	//
+	//  UPDATE `keys`
+	//  SET
+	//      remaining_requests = CASE
+	//          WHEN deleted_at_m IS NOT NULL THEN
+	//              IF(LAST_INSERT_ID(18446744073709551615) > 0, remaining_requests, remaining_requests)
+	//          WHEN remaining_requests IS NULL THEN
+	//              IF(LAST_INSERT_ID(18446744073709551614) > 0, remaining_requests, remaining_requests)
+	//          WHEN remaining_requests > 9223372036854775807 - ? THEN
+	//              IF(LAST_INSERT_ID(18446744073709551613) > 0, remaining_requests, remaining_requests)
+	//          ELSE LAST_INSERT_ID(remaining_requests + ?)
+	//      END
+	//  WHERE id = ?
+	UpdateKeyCreditsIncrementReturning(ctx context.Context, db DBTX, arg UpdateKeyCreditsIncrementReturningParams) (sql.Result, error)
 	//UpdateKeyCreditsRefill
 	//
 	//  UPDATE `keys` SET refill_amount = ?, refill_day = ? WHERE id = ?
 	UpdateKeyCreditsRefill(ctx context.Context, db DBTX, arg UpdateKeyCreditsRefillParams) error
-	//UpdateKeyCreditsSet
+	// transactional-batch-statement
 	//
 	//  UPDATE `keys`
-	//  SET remaining_requests = ?
+	//  SET
+	//      remaining_requests = CASE
+	//          WHEN deleted_at_m IS NOT NULL THEN
+	//              IF(LAST_INSERT_ID(18446744073709551615) > 0, remaining_requests, remaining_requests)
+	//          WHEN ? IS NULL THEN
+	//              IF(LAST_INSERT_ID(0) = 0, NULL, NULL)
+	//          ELSE LAST_INSERT_ID(?)
+	//      END,
+	//      refill_amount = CASE
+	//          WHEN deleted_at_m IS NULL
+	//            AND CAST(? AS UNSIGNED) = 1 THEN NULL
+	//          ELSE refill_amount
+	//      END,
+	//      refill_day = CASE
+	//          WHEN deleted_at_m IS NULL
+	//            AND CAST(? AS UNSIGNED) = 1 THEN NULL
+	//          ELSE refill_day
+	//      END
 	//  WHERE id = ?
-	UpdateKeyCreditsSet(ctx context.Context, db DBTX, arg UpdateKeyCreditsSetParams) error
+	UpdateKeyCreditsSet(ctx context.Context, db DBTX, arg UpdateKeyCreditsSetParams) (sql.Result, error)
 	//UpdateKeySpaceKeyEncryption
 	//
 	//  UPDATE `key_auth` SET store_encrypted_keys = ? WHERE id = ?

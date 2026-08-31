@@ -15,6 +15,21 @@ func insertClickhouseOutboxTransactionBatchStatement(params InsertClickhouseOutb
 	}
 }
 
+func insertClickhouseOutboxForCreditUpdateTransactionBatchStatement(params InsertClickhouseOutboxForCreditUpdateParams) transactionBatchStatement {
+	return transactionBatchStatement{
+		query: insertClickhouseOutboxForCreditUpdate,
+		args: []transactionBatchArgument{
+			{name: "version", value: params.Version},
+			{name: "workspace_id", value: params.WorkspaceID},
+			{name: "event_id", value: params.EventID},
+			{name: "payload", value: params.Payload},
+			{name: "key_id", value: params.KeyID},
+			{name: "created_at", value: params.CreatedAt},
+			{name: "key_id", value: params.KeyID},
+		},
+	}
+}
+
 func insertClickhouseOutboxWithResultTargetTransactionBatchStatement(params InsertClickhouseOutboxWithResultTargetParams) transactionBatchStatement {
 	return transactionBatchStatement{
 		query: insertClickhouseOutboxWithResultTarget,
@@ -158,6 +173,41 @@ func updateKeyTransactionBatchStatement(params UpdateKeyParams) transactionBatch
 			{name: "refill_day_specified", value: params.RefillDaySpecified},
 			{name: "refill_day", value: params.RefillDay},
 			{name: "now", value: params.Now},
+			{name: "id", value: params.ID},
+		},
+	}
+}
+
+func updateKeyCreditsDecrementReturningTransactionBatchStatement(params UpdateKeyCreditsDecrementReturningParams) transactionBatchStatement {
+	return transactionBatchStatement{
+		query: updateKeyCreditsDecrementReturning,
+		args: []transactionBatchArgument{
+			{name: "credits", value: params.Credits},
+			{name: "credits", value: params.Credits},
+			{name: "id", value: params.ID},
+		},
+	}
+}
+
+func updateKeyCreditsIncrementReturningTransactionBatchStatement(params UpdateKeyCreditsIncrementReturningParams) transactionBatchStatement {
+	return transactionBatchStatement{
+		query: updateKeyCreditsIncrementReturning,
+		args: []transactionBatchArgument{
+			{name: "credits", value: params.Credits},
+			{name: "credits", value: params.Credits},
+			{name: "id", value: params.ID},
+		},
+	}
+}
+
+func updateKeyCreditsSetTransactionBatchStatement(params UpdateKeyCreditsSetParams) transactionBatchStatement {
+	return transactionBatchStatement{
+		query: updateKeyCreditsSet,
+		args: []transactionBatchArgument{
+			{name: "credits", value: params.Credits},
+			{name: "credits", value: params.Credits},
+			{name: "clear_refill_amount", value: params.ClearRefillAmount},
+			{name: "clear_refill_day", value: params.ClearRefillDay},
 			{name: "id", value: params.ID},
 		},
 	}
