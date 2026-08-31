@@ -183,8 +183,8 @@ curl -s -X POST https://api.unkey.dev/v2/portal.createSession \
   -d '{"slug": "<YOUR_SLUG>", "externalId": "user_123", "permissions": ["api.*.read_key", "api.*.create_key", "api.*.read_analytics"]}'
 ```
 
-The response URL will point to the portal's deployment URL (or custom
-domain if configured). Open it in the browser.
+The response URL always points at the configured `portal_base_url`. Open it in
+the browser.
 
 ### Notes
 
@@ -238,7 +238,7 @@ drives all generated IDs.
 
 - **Portal config** (`portal_<slug>`) linked to:
   - The user workspace (`ws_<slug>`)
-  - The app created above (enables custom domain resolution)
+  - The app created above (keyspaces resolve from its deployment policy)
   - The user keyspace (`ks_<slug>`) for legacy compatibility
 - **Portal branding** (Unkey logo, blue color scheme)
 
