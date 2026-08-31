@@ -16,8 +16,8 @@ export function StatusBadge({ status }: { status: DrainStatus }) {
     status === "running"
       ? "Running"
       : status === "paused_by_user"
-        ? "Paused by user"
-        : "Paused by failure";
+        ? "Paused"
+        : "Paused after failures";
   return (
     <span className="flex items-center gap-2 whitespace-nowrap text-[13px] text-accent-12">
       <span
@@ -67,10 +67,10 @@ export function DrainActions({
       id: "toggle",
       label:
         drain.status === "paused_by_failure"
-          ? "Resume log drain"
+          ? "Resume delivery"
           : drain.status === "running"
-            ? "Pause log drain"
-            : "Resume log drain",
+            ? "Pause delivery"
+            : "Resume delivery",
       icon:
         drain.status === "running" ? (
           <BoltSlash iconSize="md-medium" />
@@ -100,15 +100,16 @@ export function DrainActions({
         isOpen={confirmDelete}
         onOpenChange={setConfirmDelete}
         title={`Delete ${drain.name}?`}
-        subTitle="This stops delivery immediately and cannot be undone."
+        subTitle="Unkey will stop all future deliveries and delete this log drain."
         footer={
           <div className="flex w-full gap-2">
             <Button className="flex-1" variant="outline" onClick={() => setConfirmDelete(false)}>
-              Cancel
+              Keep log drain
             </Button>
             <Button
               className="flex-1"
               variant="primary"
+              color="danger"
               loading={remove.isLoading}
               onClick={() => remove.mutate({ id: drain.id })}
             >
@@ -117,10 +118,7 @@ export function DrainActions({
           </div>
         }
       >
-        <p className="text-sm text-gray-10">
-          Existing delivery history is retained, but this destination will no longer receive audit
-          logs.
-        </p>
+        <p className="text-sm text-gray-10">You cannot undo this action.</p>
       </DialogContainer>
     </div>
   );

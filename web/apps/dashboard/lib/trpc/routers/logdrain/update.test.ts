@@ -2,14 +2,50 @@ import { TRPCError } from "@trpc/server";
 import { describe, expect, it, vi } from "vitest";
 import { applyHttpHeaderUpdates } from "./update";
 
+const procedure = vi.hoisted(() => ({
+  safeParse: (_input: unknown): { success: boolean } => {
+    throw new Error("Input schema was not registered");
+  },
+}));
+
 vi.mock("@/lib/audit", () => ({ insertAuditLogs: vi.fn() }));
 vi.mock("@/lib/db", () => ({ and: vi.fn(), db: {}, eq: vi.fn(), schema: {} }));
 vi.mock("@/lib/vault-client", () => ({ createVaultClient: vi.fn(() => ({})) }));
 vi.mock("../../trpc", () => ({
   workspaceProcedure: {
-    input: vi.fn(() => ({ mutation: vi.fn(() => ({})) })),
+    input: vi.fn((schema: { safeParse: (input: unknown) => { success: boolean } }) => {
+      procedure.safeParse = (input) => schema.safeParse(input);
+      return { mutation: vi.fn(() => ({})) };
+    }),
   },
 }));
+
+describe("updateLogdrain input", () => {
+  it.each([
+    {
+      field: "HTTP URL",
+      destination: { kind: "http", config: { url: "https://new.example.com" } },
+    },
+    { field: "HTTP format", destination: { kind: "http", config: { format: "ndjson" } } },
+    {
+      field: "HTTP headers",
+      destination: {
+        kind: "http",
+        config: { headers: [{ mode: "preserve", name: "Authorization" }] },
+      },
+    },
+    { field: "Axiom dataset", destination: { kind: "axiom", config: { dataset: "new-dataset" } } },
+    { field: "Axiom token", destination: { kind: "axiom", config: { token: "new-token" } } },
+  ])("accepts a partial $field update without stale sibling fields", ({ destination }) => {
+    expect(procedure.safeParse({ id: "ld_test", destination }).success).toBe(true);
+  });
+
+  it.each(["http", "axiom"])("rejects an empty %s destination update", (kind) => {
+    expect(procedure.safeParse({ id: "ld_test", destination: { kind, config: {} } }).success).toBe(
+      false,
+    );
+  });
+});
 
 describe("applyHttpHeaderUpdates", () => {
   const existing = [

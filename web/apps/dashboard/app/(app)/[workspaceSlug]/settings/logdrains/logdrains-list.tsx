@@ -4,7 +4,13 @@ import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { routes } from "@/lib/navigation/routes";
 import { trpc } from "@/lib/trpc/client";
 import { Earth } from "@unkey/icons";
-import { Empty, ResourceListBody, ResourceListContent, ResourceListItem } from "@unkey/ui";
+import {
+  Empty,
+  ResourceListBody,
+  ResourceListContent,
+  ResourceListItem,
+  Skeleton,
+} from "@unkey/ui";
 import Link from "next/link";
 import { AxiomLogo } from "./axiom-logo";
 import { CreateLogdrainButton } from "./create-logdrain-button";
@@ -13,10 +19,35 @@ import { DrainActions, StatusBadge } from "./logdrain-ui";
 
 const SKELETON_ROWS = 8;
 
+function SinkType({ kind }: { kind: "http" | "axiom" }) {
+  switch (kind) {
+    case "http":
+      return (
+        <>
+          <span className="flex size-5 shrink-0 items-center justify-center rounded-sm bg-grayA-3 text-gray-11">
+            <Earth iconSize="sm-regular" />
+          </span>
+          <span className="text-[13px] font-medium text-accent-12">HTTP</span>
+        </>
+      );
+    case "axiom":
+      return (
+        <>
+          <span className="flex size-5 shrink-0 items-center justify-center rounded-sm bg-grayA-3 text-gray-11">
+            <AxiomLogo className="size-3.5" />
+          </span>
+          <span className="text-[13px] font-medium text-accent-12">Axiom</span>
+        </>
+      );
+    default:
+      throw new Error(`Unsupported log drain sink: ${kind satisfies never}`);
+  }
+}
+
 function LogdrainsSkeleton() {
   return (
-    <ResourceListContent aria-busy="true">
-      <output className="sr-only">Loading log drains...</output>
+    <ResourceListContent aria-busy="true" aria-live="polite">
+      <output className="sr-only">Loading log drains…</output>
       <ResourceListBody aria-hidden="true">
         {Array.from({ length: SKELETON_ROWS }).map((_, index) => (
           <ResourceListItem
@@ -25,19 +56,19 @@ function LogdrainsSkeleton() {
             className="flex flex-col gap-3 px-4 py-3 md:flex-row md:items-center md:gap-0"
           >
             <div className="flex min-w-0 flex-col gap-1 md:w-[30%] md:shrink-0">
-              <div className="h-3.5 w-40 animate-pulse rounded-sm bg-grayA-3" />
-              <div className="h-3 w-24 animate-pulse rounded-sm bg-grayA-3" />
+              <Skeleton className="h-3.5 w-40" />
+              <Skeleton className="h-3 w-24" />
             </div>
             <div className="flex items-center gap-2 md:w-[20%] md:shrink-0">
-              <div className="size-5 animate-pulse rounded-sm bg-grayA-3" />
-              <div className="h-3 w-12 animate-pulse rounded-sm bg-grayA-3" />
+              <Skeleton className="size-5" />
+              <Skeleton className="h-3 w-12" />
             </div>
             <div className="md:w-[20%] md:shrink-0">
-              <div className="h-5 w-20 animate-pulse rounded-md bg-grayA-3" />
+              <Skeleton className="h-5 w-20 rounded-md" />
             </div>
             <div className="flex items-center gap-3 md:w-[30%] md:shrink-0 md:justify-end">
-              <div className="h-7 w-[158px] animate-pulse rounded-md bg-grayA-3" />
-              <div className="size-5 animate-pulse rounded-sm bg-grayA-3" />
+              <Skeleton className="h-7 w-[158px] rounded-md" />
+              <Skeleton className="size-5" />
             </div>
           </ResourceListItem>
         ))}
@@ -54,7 +85,7 @@ export function LogdrainsList() {
   }
   if (query.isError) {
     return (
-      <ResourceListContent>
+      <ResourceListContent aria-live="polite">
         <div className="flex w-full items-center justify-center px-4 py-16">
           <Empty>
             <Empty.Title>Unable to load log drains</Empty.Title>
@@ -66,12 +97,12 @@ export function LogdrainsList() {
   }
   if (!query.data?.length) {
     return (
-      <ResourceListContent>
+      <ResourceListContent aria-live="polite">
         <div className="p-3">
           <Empty className="min-h-[200px] rounded-lg border border-dashed border-gray-4 bg-gray-1/50">
-            <Empty.Title>No log drains</Empty.Title>
+            <Empty.Title>No log drains yet</Empty.Title>
             <Empty.Description className="max-w-sm">
-              Stream audit logs to HTTP or Axiom.
+              Create a log drain to send audit logs to an HTTPS endpoint or Axiom dataset.
             </Empty.Description>
             <Empty.Actions>
               <CreateLogdrainButton />
@@ -82,10 +113,9 @@ export function LogdrainsList() {
     );
   }
   return (
-    <ResourceListContent>
+    <ResourceListContent aria-live="polite">
       <ResourceListBody aria-label="Log drains">
         {query.data.map((drain) => {
-          const targetLabel = drain.kind === "http" ? "HTTP" : "Axiom";
           return (
             <ResourceListItem
               key={drain.id}
@@ -106,14 +136,7 @@ export function LogdrainsList() {
                 <span className="text-xs text-gray-9">Audit logs</span>
               </div>
               <div className="flex items-center gap-2 md:w-[20%] md:shrink-0">
-                <span className="flex size-5 shrink-0 items-center justify-center rounded-sm bg-grayA-3 text-gray-11">
-                  {drain.kind === "http" ? (
-                    <Earth iconSize="sm-regular" />
-                  ) : (
-                    <AxiomLogo className="size-3.5" />
-                  )}
-                </span>
-                <span className="text-[13px] font-medium text-accent-12">{targetLabel}</span>
+                <SinkType kind={drain.kind} />
               </div>
               <div className="md:w-[20%] md:shrink-0">
                 <StatusBadge status={drain.status} />

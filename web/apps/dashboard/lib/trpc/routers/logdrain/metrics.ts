@@ -4,7 +4,12 @@ import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { workspaceProcedure } from "../../trpc";
 
-const bucketMinutesByHours = {
+/**
+ * Maps each chart window in hours to its ClickHouse bucket width in minutes.
+ * For example, a 24-hour window uses one 30-minute bucket per point. These widths keep each
+ * response near 40 to 60 points while shorter windows retain more detail.
+ */
+const bucketMinutesByWindowHours = {
   1: 1,
   24: 30,
   168: 240,
@@ -35,7 +40,7 @@ export const getLogdrainMetrics = workspaceProcedure
       drainId: input.drainId,
       startMs: endMs - input.hours * 60 * 60 * 1000,
       endMs,
-      bucketMinutes: bucketMinutesByHours[input.hours],
+      bucketMinutes: bucketMinutesByWindowHours[input.hours],
     });
     if (!result.val) {
       throw new TRPCError({
@@ -44,5 +49,5 @@ export const getLogdrainMetrics = workspaceProcedure
       });
     }
 
-    return { series: result.val, bucketMinutes: bucketMinutesByHours[input.hours] };
+    return { series: result.val, bucketMinutes: bucketMinutesByWindowHours[input.hours] };
   });

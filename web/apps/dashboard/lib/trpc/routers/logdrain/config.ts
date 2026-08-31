@@ -25,25 +25,41 @@ export type LogdrainConfig =
 
 /** encodeLogdrainConfig encodes the complete provider configuration as protobuf. */
 export function encodeLogdrainConfig(config: LogdrainConfig): Buffer {
-  const destination =
-    config.kind === "http"
-      ? {
-          case: config.kind,
-          value: {
-            url: config.url,
-            format: config.format === "ndjson" ? HttpBodyFormat.NDJSON : HttpBodyFormat.JSON,
-            headers: config.headers,
-          },
-        }
-      : {
-          case: config.kind,
-          value: {
-            dataset: config.dataset,
-            encryptedToken: config.encryptedToken,
-          },
-        };
-
-  return Buffer.from(toBinary(ConfigSchema, create(ConfigSchema, { destination })));
+  switch (config.kind) {
+    case "http":
+      return Buffer.from(
+        toBinary(
+          ConfigSchema,
+          create(ConfigSchema, {
+            destination: {
+              case: config.kind,
+              value: {
+                url: config.url,
+                format: config.format === "ndjson" ? HttpBodyFormat.NDJSON : HttpBodyFormat.JSON,
+                headers: config.headers,
+              },
+            },
+          }),
+        ),
+      );
+    case "axiom":
+      return Buffer.from(
+        toBinary(
+          ConfigSchema,
+          create(ConfigSchema, {
+            destination: {
+              case: config.kind,
+              value: {
+                dataset: config.dataset,
+                encryptedToken: config.encryptedToken,
+              },
+            },
+          }),
+        ),
+      );
+    default:
+      throw new Error(`Unsupported log drain sink: ${config satisfies never}`);
+  }
 }
 
 /** decodeLogdrainConfig decodes a stored provider configuration. */
@@ -68,6 +84,8 @@ export function decodeLogdrainConfig(raw: Uint8Array): LogdrainConfig {
       };
     case undefined:
       throw new Error("Log drain provider is not set");
+    default:
+      throw new Error(`Unsupported log drain sink: ${destination satisfies never}`);
   }
 }
 

@@ -2,7 +2,7 @@
 
 import { formatNumber } from "@/lib/fmt";
 import { trpc } from "@/lib/trpc/client";
-import { InfoTooltip } from "@unkey/ui";
+import { InfoTooltip, Skeleton } from "@unkey/ui";
 import { useMemo } from "react";
 
 const HOURS = 168;
@@ -32,7 +32,7 @@ export function DrainRowChart({ drainId }: { drainId: string }) {
   const failureCount = bars.reduce((total, bar) => total + bar.failureCount, 0);
 
   if (metrics.isLoading) {
-    return <div className="h-7 w-[158px] animate-pulse rounded-md bg-grayA-3" />;
+    return <Skeleton className="h-7 w-[158px] rounded-md" />;
   }
 
   if (metrics.isError) {
@@ -40,7 +40,7 @@ export function DrainRowChart({ drainId }: { drainId: string }) {
   }
 
   if (successCount + failureCount === 0) {
-    return <ChartMessage className="text-grayA-9">No activity</ChartMessage>;
+    return <ChartMessage className="text-grayA-9">No delivery attempts</ChartMessage>;
   }
 
   return (
@@ -54,11 +54,15 @@ export function DrainRowChart({ drainId }: { drainId: string }) {
         <div className="flex min-w-56 flex-col gap-3 px-4 py-3">
           <div>
             <div className="text-[13px] font-medium text-gray-12">Delivery activity</div>
-            <div className="text-xs font-normal text-grayA-9">Last 7 days</div>
+            <div className="text-xs font-normal text-grayA-9">Past 7 days</div>
           </div>
           <div className="flex flex-col gap-2">
-            <ChartTotal colorClassName="bg-gray-7" label="Successful" value={successCount} />
-            <ChartTotal colorClassName="bg-error-9" label="Failed" value={failureCount} />
+            <ChartTotal
+              colorClassName="bg-gray-7"
+              label="Successful attempts"
+              value={successCount}
+            />
+            <ChartTotal colorClassName="bg-error-9" label="Failed attempts" value={failureCount} />
           </div>
         </div>
       }
@@ -66,7 +70,7 @@ export function DrainRowChart({ drainId }: { drainId: string }) {
       <div
         className="grid h-7 w-[158px] items-end gap-0.5 overflow-hidden rounded-md border border-transparent bg-grayA-2 px-1"
         style={{ gridTemplateColumns: `repeat(${MAX_BARS}, 3px)` }}
-        aria-label={`${formatNumber(successCount)} successful and ${formatNumber(failureCount)} failed delivery attempts in the last 7 days`}
+        aria-label={`${formatNumber(successCount)} successful and ${formatNumber(failureCount)} failed delivery attempts in the past 7 days`}
       >
         {bars.map((bar) => (
           <div key={bar.id} className="flex flex-col" aria-hidden="true">

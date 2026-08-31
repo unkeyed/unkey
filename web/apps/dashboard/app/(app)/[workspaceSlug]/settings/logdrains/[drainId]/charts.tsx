@@ -89,7 +89,7 @@ function MetricChart({
           formatTooltipValue={formatTooltipValue}
           axis={xDomain ? { visible: false, x: { domain: xDomain }, y: { floor: 0 } } : null}
         />
-        <span className="my-1 px-[14px] text-[10px] text-grayA-11">Last 24h</span>
+        <span className="my-1 px-[14px] text-[10px] text-grayA-11">Past 24 hours</span>
       </div>
     </div>
   );
@@ -132,11 +132,11 @@ export function DeliveryOverview({
   const durationMs = totals.attempts === 0 ? null : totals.durationMs / totals.attempts;
   return (
     <section className="flex flex-col gap-3">
-      <h2 className="text-sm font-medium text-accent-12">Delivery overview</h2>
+      <h2 className="text-sm font-medium text-accent-12">Delivery activity</h2>
       <div className="grid grid-cols-1 gap-2 md:grid-cols-3">
         <MetricChart
           icon={ChartActivity}
-          label="Delivered events"
+          label="Events delivered"
           value={formatNumber(totals.events)}
           data={areaData}
           xDomain={xDomain}
@@ -151,7 +151,7 @@ export function DeliveryOverview({
         />
         <MetricChart
           icon={TriangleWarning2}
-          label="Errors"
+          label="Failed attempts"
           value={formatNumber(totals.errors)}
           data={areaData}
           xDomain={xDomain}
@@ -166,7 +166,7 @@ export function DeliveryOverview({
         />
         <MetricChart
           icon={TimeClock}
-          label="Average duration"
+          label="Average attempt time"
           value={durationMs === null ? "—" : Math.round(durationMs).toLocaleString()}
           unit="ms"
           data={areaData}

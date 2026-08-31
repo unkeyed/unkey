@@ -3,7 +3,7 @@ import { insertAuditLogs } from "@/lib/audit";
 import { db, schema } from "@/lib/db";
 import { createVaultClient } from "@/lib/vault-client";
 import { TRPCError } from "@trpc/server";
-import { nanoid } from "nanoid";
+import { newId } from "@unkey/id";
 import { z } from "zod";
 import { workspaceProcedure } from "../../trpc";
 import { encodeLogdrainConfig, encryptHttpHeaders } from "./config";
@@ -41,24 +41,31 @@ export const createLogdrain = workspaceProcedure
       .and(destinationSchema),
   )
   .mutation(async ({ ctx, input }) => {
-    const id = `ld_${nanoid(12)}`;
+    const id = newId("logdrain");
 
     try {
-      const config =
-        input.kind === "http"
-          ? encodeLogdrainConfig({
-              kind: input.kind,
-              url: input.config.url,
-              format: input.config.format,
-              headers: await encryptHttpHeaders(ctx.workspace.id, input.config.headers ?? {}),
-            })
-          : encodeLogdrainConfig({
-              kind: input.kind,
-              dataset: input.config.dataset,
-              encryptedToken: (
-                await vault.encrypt({ keyring: ctx.workspace.id, data: input.config.token })
-              ).encrypted,
-            });
+      let config: Buffer;
+      switch (input.kind) {
+        case "http":
+          config = encodeLogdrainConfig({
+            kind: input.kind,
+            url: input.config.url,
+            format: input.config.format,
+            headers: await encryptHttpHeaders(ctx.workspace.id, input.config.headers ?? {}),
+          });
+          break;
+        case "axiom":
+          config = encodeLogdrainConfig({
+            kind: input.kind,
+            dataset: input.config.dataset,
+            encryptedToken: (
+              await vault.encrypt({ keyring: ctx.workspace.id, data: input.config.token })
+            ).encrypted,
+          });
+          break;
+        default:
+          throw new Error(`Unsupported log drain sink: ${input satisfies never}`);
+      }
       const now = Date.now();
       const initialOffset = input.startFrom === "beginning" ? 0 : now;
 

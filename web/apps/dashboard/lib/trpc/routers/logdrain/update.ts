@@ -22,18 +22,29 @@ const vault = createVaultClient(VaultService);
 const updateDestinationSchema = z.discriminatedUnion("kind", [
   z.object({
     kind: z.literal("http"),
-    config: z.object({
-      url: httpsUrl,
-      format: httpFormatSchema.optional(),
-      headers: httpHeaderUpdatesSchema.optional(),
-    }),
+    config: z
+      .object({
+        url: httpsUrl.optional(),
+        format: httpFormatSchema.optional(),
+        headers: httpHeaderUpdatesSchema.optional(),
+      })
+      .refine(
+        (config) =>
+          config.url !== undefined || config.format !== undefined || config.headers !== undefined,
+        "At least one HTTP destination update is required",
+      ),
   }),
   z.object({
     kind: z.literal("axiom"),
-    config: z.object({
-      dataset: z.string().min(1),
-      token: z.string().min(1).optional(),
-    }),
+    config: z
+      .object({
+        dataset: z.string().min(1).optional(),
+        token: z.string().min(1).optional(),
+      })
+      .refine(
+        (config) => config.dataset !== undefined || config.token !== undefined,
+        "At least one Axiom destination update is required",
+      ),
   }),
 ]);
 
@@ -56,20 +67,31 @@ export const updateLogdrain = workspaceProcedure
     try {
       const destination = input.destination;
       let encryptedHeaders: EncryptedHttpHeader[] | undefined;
-      if (destination?.kind === "http" && destination.config.headers !== undefined) {
-        const plaintextHeaders: Record<string, string> = {};
-        for (const header of destination.config.headers) {
-          if (header.mode === "set") {
-            plaintextHeaders[header.name] = header.value;
+      let encryptedToken: string | undefined;
+      switch (destination?.kind) {
+        case "http":
+          if (destination.config.headers !== undefined) {
+            const plaintextHeaders: Record<string, string> = {};
+            for (const header of destination.config.headers) {
+              if (header.mode === "set") {
+                plaintextHeaders[header.name] = header.value;
+              }
+            }
+            encryptedHeaders = await encryptHttpHeaders(ctx.workspace.id, plaintextHeaders);
           }
-        }
-        encryptedHeaders = await encryptHttpHeaders(ctx.workspace.id, plaintextHeaders);
+          break;
+        case "axiom":
+          if (destination.config.token !== undefined) {
+            encryptedToken = (
+              await vault.encrypt({ keyring: ctx.workspace.id, data: destination.config.token })
+            ).encrypted;
+          }
+          break;
+        case undefined:
+          break;
+        default:
+          throw new Error(`Unsupported log drain sink: ${destination satisfies never}`);
       }
-      const encryptedToken =
-        destination?.kind === "axiom" && destination.config.token !== undefined
-          ? (await vault.encrypt({ keyring: ctx.workspace.id, data: destination.config.token }))
-              .encrypted
-          : undefined;
       await db.transaction(async (tx) => {
         const [drain] = await tx
           .select({
@@ -90,37 +112,61 @@ export const updateLogdrain = workspaceProcedure
           throw new TRPCError({ code: "NOT_FOUND", message: "Log drain not found" });
         }
         const existing = decodeLogdrainConfig(drain.config);
-        if (destination && destination.kind !== existing.kind) {
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: "Kind cannot be changed. Create a new log drain instead.",
-          });
-        }
         let config = drain.config;
-        if (destination?.kind === "http" && existing.kind === "http") {
-          let headers = existing.headers;
-          if (destination.config.headers !== undefined) {
-            if (encryptedHeaders === undefined) {
-              throw new Error("Encrypted HTTP headers are missing");
+        switch (destination?.kind) {
+          case "http":
+            switch (existing.kind) {
+              case "http": {
+                let headers = existing.headers;
+                if (destination.config.headers !== undefined) {
+                  if (encryptedHeaders === undefined) {
+                    throw new Error("Encrypted HTTP headers are missing");
+                  }
+                  headers = applyHttpHeaderUpdates({
+                    existing: existing.headers,
+                    updates: destination.config.headers,
+                    encrypted: encryptedHeaders,
+                  });
+                }
+                config = encodeLogdrainConfig({
+                  kind: destination.kind,
+                  url: destination.config.url ?? existing.url,
+                  format: destination.config.format ?? existing.format,
+                  headers,
+                });
+                break;
+              }
+              case "axiom":
+                throw new TRPCError({
+                  code: "BAD_REQUEST",
+                  message: "Kind cannot be changed. Create a new log drain instead.",
+                });
+              default:
+                throw new Error(`Unsupported log drain sink: ${existing satisfies never}`);
             }
-            headers = applyHttpHeaderUpdates({
-              existing: existing.headers,
-              updates: destination.config.headers,
-              encrypted: encryptedHeaders,
-            });
-          }
-          config = encodeLogdrainConfig({
-            kind: destination.kind,
-            url: destination.config.url,
-            format: destination.config.format ?? existing.format,
-            headers,
-          });
-        } else if (destination?.kind === "axiom" && existing.kind === "axiom") {
-          config = encodeLogdrainConfig({
-            kind: destination.kind,
-            dataset: destination.config.dataset,
-            encryptedToken: encryptedToken ?? existing.encryptedToken,
-          });
+            break;
+          case "axiom":
+            switch (existing.kind) {
+              case "http":
+                throw new TRPCError({
+                  code: "BAD_REQUEST",
+                  message: "Kind cannot be changed. Create a new log drain instead.",
+                });
+              case "axiom":
+                config = encodeLogdrainConfig({
+                  kind: destination.kind,
+                  dataset: destination.config.dataset ?? existing.dataset,
+                  encryptedToken: encryptedToken ?? existing.encryptedToken,
+                });
+                break;
+              default:
+                throw new Error(`Unsupported log drain sink: ${existing satisfies never}`);
+            }
+            break;
+          case undefined:
+            break;
+          default:
+            throw new Error(`Unsupported log drain sink: ${destination satisfies never}`);
         }
 
         const resetFailureState = input.status === "running" || destination !== undefined;

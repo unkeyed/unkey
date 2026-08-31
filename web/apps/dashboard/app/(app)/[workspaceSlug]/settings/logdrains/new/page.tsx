@@ -7,7 +7,19 @@ import { routes } from "@/lib/navigation/routes";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Earth, Plus, Trash } from "@unkey/icons";
-import { Button, FormInput, StepWizard, toast, useStepWizard } from "@unkey/ui";
+import {
+  Button,
+  FormInput,
+  Item,
+  ItemActions,
+  ItemContent,
+  ItemDescription,
+  ItemMedia,
+  ItemTitle,
+  StepWizard,
+  toast,
+  useStepWizard,
+} from "@unkey/ui";
 import { useRouter } from "next/navigation";
 import { type ReactNode, useState } from "react";
 import {
@@ -52,22 +64,28 @@ const formSchema = z
     startFrom: z.enum(["now", "beginning"]),
   })
   .superRefine((values, context) => {
-    if (values.kind === "http") {
-      const url = httpsUrlSchema.safeParse(values.url);
-      if (!url.success) {
-        context.addIssue({
-          code: "custom",
-          path: ["url"],
-          message: url.error.issues[0]?.message ?? "Enter a valid HTTPS URL",
-        });
+    switch (values.kind) {
+      case "http": {
+        const url = httpsUrlSchema.safeParse(values.url);
+        if (!url.success) {
+          context.addIssue({
+            code: "custom",
+            path: ["url"],
+            message: url.error.issues[0]?.message ?? "Enter a valid HTTPS URL",
+          });
+        }
+        break;
       }
-      return;
-    }
-    if (values.dataset.trim() === "") {
-      context.addIssue({ code: "custom", path: ["dataset"], message: "Enter a dataset" });
-    }
-    if (values.token.trim() === "") {
-      context.addIssue({ code: "custom", path: ["token"], message: "Enter a token" });
+      case "axiom":
+        if (values.dataset.trim() === "") {
+          context.addIssue({ code: "custom", path: ["dataset"], message: "Enter a dataset" });
+        }
+        if (values.token.trim() === "") {
+          context.addIssue({ code: "custom", path: ["token"], message: "Enter a token" });
+        }
+        break;
+      default:
+        throw new Error(`Unsupported log drain sink: ${values.kind satisfies never}`);
     }
   });
 
@@ -93,6 +111,17 @@ const OPTIONS: Array<{
   },
 ];
 
+function sinkName(kind: Kind): string {
+  switch (kind) {
+    case "http":
+      return "HTTP";
+    case "axiom":
+      return "Axiom";
+    default:
+      throw new Error(`Unsupported log drain sink: ${kind satisfies never}`);
+  }
+}
+
 export default function NewLogdrainPage() {
   const [kind, setKind] = useState<Kind | null>(null);
 
@@ -101,9 +130,9 @@ export default function NewLogdrainPage() {
       <StepWizard.Step id="choose-destination" label="Choose destination">
         <OnboardingStepContainer>
           <OnboardingStepHeader
-            title="Create a log drain"
+            title="Create log drain"
             showIconRow
-            subtitle="Choose where Unkey sends your audit logs."
+            subtitle="Choose where to send audit logs."
           />
           <ChooseDestinationStep onSelect={setKind} />
         </OnboardingStepContainer>
@@ -112,8 +141,8 @@ export default function NewLogdrainPage() {
         {kind ? (
           <OnboardingStepContainer>
             <OnboardingStepHeader
-              title={`Configure ${kind === "http" ? "HTTP" : "Axiom"}`}
-              subtitle="Enter the connection details for this log drain."
+              title={`Configure ${sinkName(kind)} destination`}
+              subtitle="Enter the destination details."
               allowBack
             />
             <ConfigureDestinationStep key={kind} kind={kind} />
@@ -136,27 +165,24 @@ function ChooseDestinationStep({ onSelect }: { onSelect: (kind: Kind) => void })
     <div className="flex w-[600px] max-w-[calc(100vw-2rem)] flex-col gap-3">
       {OPTIONS.map((option) => {
         return (
-          <div
-            key={option.kind}
-            className="flex items-center justify-start gap-4 rounded-lg border border-grayA-5 px-4 py-[18px]"
-          >
-            <div className="grid size-8 shrink-0 place-items-center rounded-[10px] ring-1 ring-grayA-4 shadow-sm shadow-grayA-8/20 dark:shadow-none">
+          <Item key={option.kind} variant="outline" className="px-4 py-[18px]">
+            <ItemMedia className="size-8 rounded-[10px] ring-1 ring-grayA-4 shadow-sm shadow-grayA-8/20 dark:shadow-none">
               {option.icon}
-            </div>
-            <div className="flex flex-col gap-2">
-              <span className="text-[13px] font-medium leading-none text-gray-12">
-                {option.title}
-              </span>
-              <span className="text-[13px] leading-none text-gray-10">{option.description}</span>
-            </div>
-            <Button
-              variant="outline"
-              className="ml-auto rounded-lg border-grayA-4 shadow-sm transition-all hover:bg-grayA-2 hover:shadow-md"
-              onClick={() => select(option.kind)}
-            >
-              Use {option.title}
-            </Button>
-          </div>
+            </ItemMedia>
+            <ItemContent>
+              <ItemTitle>{option.title}</ItemTitle>
+              <ItemDescription>{option.description}</ItemDescription>
+            </ItemContent>
+            <ItemActions>
+              <Button
+                variant="outline"
+                className="rounded-lg border-grayA-4 shadow-sm transition-[background-color,box-shadow] hover:bg-grayA-2 hover:shadow-md"
+                onClick={() => select(option.kind)}
+              >
+                Use {option.title}
+              </Button>
+            </ItemActions>
+          </Item>
         );
       })}
     </div>
@@ -194,26 +220,31 @@ function ConfigureDestinationStep({ kind }: { kind: Kind }) {
 
   const submit = handleSubmit(async (values) => {
     try {
-      if (values.kind === "http") {
-        await create.mutateAsync({
-          name: values.name,
-          kind: values.kind,
-          stream: "audit_logs",
-          startFrom: values.startFrom,
-          config: {
-            url: values.url,
-            format: values.format,
-            headers: toHeaderRecord(values.headers),
-          },
-        });
-      } else {
-        await create.mutateAsync({
-          name: values.name,
-          kind: values.kind,
-          stream: "audit_logs",
-          startFrom: values.startFrom,
-          config: { dataset: values.dataset.trim(), token: values.token },
-        });
+      switch (values.kind) {
+        case "http":
+          await create.mutateAsync({
+            name: values.name,
+            kind: values.kind,
+            stream: "audit_logs",
+            startFrom: values.startFrom,
+            config: {
+              url: values.url,
+              format: values.format,
+              headers: toHeaderRecord(values.headers),
+            },
+          });
+          break;
+        case "axiom":
+          await create.mutateAsync({
+            name: values.name,
+            kind: values.kind,
+            stream: "audit_logs",
+            startFrom: values.startFrom,
+            config: { dataset: values.dataset.trim(), token: values.token },
+          });
+          break;
+        default:
+          throw new Error(`Unsupported log drain sink: ${values.kind satisfies never}`);
       }
       await utils.logdrain.list.invalidate();
       toast.success("Log drain created");
@@ -230,7 +261,7 @@ function ConfigureDestinationStep({ kind }: { kind: Kind }) {
           <FormInput
             requirement="required"
             label="Name"
-            description="A descriptive name for this log drain."
+            description="Shown in the log drain list."
             className="[&_input:first-of-type]:h-[36px]"
             autoFocus
             error={errors.name?.message}
@@ -239,14 +270,14 @@ function ConfigureDestinationStep({ kind }: { kind: Kind }) {
           />
 
           <fieldset className="flex flex-col gap-1.5">
-            <legend className="text-[13px] text-gray-11">Starting point</legend>
+            <legend className="text-[13px] text-gray-11">Start delivery from</legend>
             <span className="text-xs text-gray-9">
-              Choose which audit logs Unkey sends to this destination.
+              Choose how far back Unkey sends retained audit logs.
             </span>
             <div className="flex w-fit rounded-lg border border-grayA-4 p-1">
               {(
                 [
-                  { value: "now", label: "New audit logs only" },
+                  { value: "now", label: "New audit logs" },
                   { value: "beginning", label: "All retained audit logs" },
                 ] as const
               ).map((option) => (
@@ -264,17 +295,14 @@ function ConfigureDestinationStep({ kind }: { kind: Kind }) {
             </div>
           </fieldset>
 
-          {kind === "http" ? (
-            <HttpFields
-              format={format}
-              setFormat={(value) => setValue("format", value, { shouldValidate: true })}
-              register={register}
-              control={control}
-              errors={errors}
-            />
-          ) : (
-            <AxiomFields register={register} errors={errors} />
-          )}
+          <DestinationFields
+            kind={kind}
+            format={format}
+            setFormat={(value) => setValue("format", value, { shouldValidate: true })}
+            register={register}
+            control={control}
+            errors={errors}
+          />
 
           <Button
             type="submit"
@@ -296,6 +324,37 @@ type DestinationFieldsProps = {
   register: UseFormRegister<FormValues>;
   errors: FieldErrors<FormValues>;
 };
+
+function DestinationFields({
+  kind,
+  format,
+  setFormat,
+  register,
+  control,
+  errors,
+}: DestinationFieldsProps & {
+  kind: Kind;
+  control: Control<FormValues>;
+  format: HttpFormat;
+  setFormat: (format: HttpFormat) => void;
+}) {
+  switch (kind) {
+    case "http":
+      return (
+        <HttpFields
+          format={format}
+          setFormat={setFormat}
+          register={register}
+          control={control}
+          errors={errors}
+        />
+      );
+    case "axiom":
+      return <AxiomFields register={register} errors={errors} />;
+    default:
+      throw new Error(`Unsupported log drain sink: ${kind satisfies never}`);
+  }
+}
 
 function HttpFields({
   format,
@@ -324,7 +383,7 @@ function HttpFields({
       <fieldset className="flex flex-col gap-3">
         <legend className="text-[13px] text-gray-11">Headers</legend>
         <span className="-mt-2 text-xs text-gray-9">
-          Add optional headers for each delivery. Unkey encrypts each header value.
+          Optional. Unkey encrypts header values before storing them.
         </span>
         {fields.map((field, index) => (
           <div key={field.id} className="flex items-start gap-3">
@@ -384,7 +443,7 @@ function HttpFields({
           ))}
         </div>
         <span className="text-xs text-gray-9">
-          JSON sends one array. NDJSON sends one object per line.
+          JSON sends an array of events. NDJSON sends one event per line.
         </span>
       </fieldset>
     </>
@@ -406,7 +465,7 @@ function AxiomFields({ register, errors }: DestinationFieldsProps) {
       <FormInput
         requirement="required"
         label="Token"
-        description="Use an Axiom token with ingest permission for this dataset."
+        description="Use an Axiom API token that can ingest data into this dataset."
         className="[&_input:first-of-type]:h-[36px]"
         type="password"
         error={errors.token?.message}

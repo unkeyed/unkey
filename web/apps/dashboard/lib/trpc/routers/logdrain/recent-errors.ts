@@ -4,7 +4,10 @@ import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { workspaceProcedure } from "../../trpc";
 
+/** Matches the error list to the 24-hour window in the delivery overview. */
 const lookbackMs = 24 * 60 * 60 * 1000;
+
+/** Bounds the tRPC response because each failure can include a destination response body. */
 const recentErrorsLimit = 20;
 
 export const getRecentLogdrainErrors = workspaceProcedure

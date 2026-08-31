@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+/** Matches the RFC 9110 token characters that are valid in an HTTP field name. */
 const httpHeaderNamePattern = /^[!#$%&'*+.^_`|~0-9A-Za-z-]+$/;
 
 function isValidHttpHeaderValue(value: string): boolean {

@@ -7,12 +7,19 @@ import { trpc } from "@/lib/trpc/client";
 import { ChevronDown, Earth, Plus, Trash, TriangleWarning2 } from "@unkey/icons";
 import {
   AlertBanner,
+  AlertBannerActions,
+  AlertBannerDescription,
   AlertBannerTitle,
   Button,
   CopyButton,
   DialogContainer,
   Empty,
   Input,
+  Item,
+  ItemActions,
+  ItemContent,
+  ItemDescription,
+  ItemTitle,
   PageBody,
   PageContainer,
   PageHeader,
@@ -23,11 +30,12 @@ import {
   SettingCardGroup,
   SettingsDangerZone,
   SettingsZoneRow,
+  Skeleton,
   TimestampInfo,
   toast,
 } from "@unkey/ui";
 import { useRouter } from "next/navigation";
-import { use, useEffect, useRef, useState } from "react";
+import { type ReactNode, use, useEffect, useRef, useState } from "react";
 import { AxiomLogo } from "../axiom-logo";
 import { type HeaderUpdateField, emptyHeader, headerUpdateFieldsSchema } from "../header-fields";
 import { type DrainStatus, StatusBadge } from "../logdrain-ui";
@@ -48,7 +56,73 @@ type Drain = DrainBase &
   );
 
 function getDestination(drain: Drain) {
-  return drain.kind === "axiom" ? drain.config.dataset : drain.config.url;
+  switch (drain.kind) {
+    case "http":
+      return drain.config.url;
+    case "axiom":
+      return drain.config.dataset;
+    default:
+      throw new Error(`Unsupported log drain sink: ${drain satisfies never}`);
+  }
+}
+
+function getConfiguredHeaders(drain: Drain): string[] {
+  switch (drain.kind) {
+    case "http":
+      return drain.config.headers;
+    case "axiom":
+      return [];
+    default:
+      throw new Error(`Unsupported log drain sink: ${drain satisfies never}`);
+  }
+}
+
+function SinkType({ kind }: { kind: Drain["kind"] }) {
+  switch (kind) {
+    case "http":
+      return (
+        <>
+          <span className="flex size-5 shrink-0 items-center justify-center rounded-sm bg-grayA-3 text-gray-11">
+            <Earth iconSize="sm-regular" />
+          </span>
+          <span>HTTP</span>
+        </>
+      );
+    case "axiom":
+      return (
+        <>
+          <span className="flex size-5 shrink-0 items-center justify-center rounded-sm bg-grayA-3 text-gray-11">
+            <AxiomLogo className="size-3.5" />
+          </span>
+          <span>Axiom</span>
+        </>
+      );
+    default:
+      throw new Error(`Unsupported log drain sink: ${kind satisfies never}`);
+  }
+}
+
+function destinationCopy(kind: Drain["kind"]): {
+  title: string;
+  description: string;
+  saveLabel: string;
+} {
+  switch (kind) {
+    case "http":
+      return {
+        title: "HTTPS endpoint",
+        description: "Unkey sends each audit log batch to this URL.",
+        saveLabel: "Save endpoint",
+      };
+    case "axiom":
+      return {
+        title: "Dataset",
+        description: "Unkey sends audit logs to this Axiom dataset.",
+        saveLabel: "Save dataset",
+      };
+    default:
+      throw new Error(`Unsupported log drain sink: ${kind satisfies never}`);
+  }
 }
 
 type EditableHeader =
@@ -141,31 +215,39 @@ function Detail({
 }) {
   const [name, setName] = useState(drain.name);
   const [destination, setDestination] = useState(getDestination(drain));
-  const configuredHeaders = drain.kind === "http" ? drain.config.headers : [];
+  const configuredHeaders = getConfiguredHeaders(drain);
   const nextHeaderId = useRef(Math.max(configuredHeaders.length, 1));
   const [headers, setHeaders] = useState<EditableHeader[]>(() =>
     editableHeaders(configuredHeaders, 0),
   );
   const [token, setToken] = useState("");
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const destinationLabels = destinationCopy(drain.kind);
   const utils = trpc.useUtils();
   const router = useRouter();
   const workspace = useWorkspaceNavigation();
   const update = trpc.logdrain.update.useMutation({
     onSuccess: (_data, variables) => {
-      if (variables.destination?.kind === "axiom" && variables.destination.config.token) {
-        setToken("");
-      }
-      if (
-        variables.destination?.kind === "http" &&
-        variables.destination.config.headers !== undefined
-      ) {
-        const fields = editableHeaders(
-          variables.destination.config.headers.map((header) => header.name),
-          nextHeaderId.current,
-        );
-        nextHeaderId.current += fields.length;
-        setHeaders(fields);
+      switch (variables.destination?.kind) {
+        case "http":
+          if (variables.destination.config.headers !== undefined) {
+            const fields = editableHeaders(
+              variables.destination.config.headers.map((header) => header.name),
+              nextHeaderId.current,
+            );
+            nextHeaderId.current += fields.length;
+            setHeaders(fields);
+          }
+          break;
+        case "axiom":
+          if (variables.destination.config.token) {
+            setToken("");
+          }
+          break;
+        case undefined:
+          break;
+        default:
+          throw new Error(`Unsupported log drain sink: ${variables.destination satisfies never}`);
       }
       utils.logdrain.list.invalidate();
       utils.logdrain.get.invalidate({ id: drain.id });
@@ -185,20 +267,32 @@ function Detail({
   useEffect(() => setName(drain.name), [drain.name]);
   useEffect(() => setDestination(getDestination(drain)), [drain]);
   useEffect(() => {
-    if (drain.kind === "http") {
-      const fields = editableHeaders(drain.config.headers, nextHeaderId.current);
-      nextHeaderId.current += fields.length;
-      setHeaders(fields);
+    switch (drain.kind) {
+      case "http": {
+        const fields = editableHeaders(drain.config.headers, nextHeaderId.current);
+        nextHeaderId.current += fields.length;
+        setHeaders(fields);
+        break;
+      }
+      case "axiom":
+        break;
+      default:
+        throw new Error(`Unsupported log drain sink: ${drain satisfies never}`);
     }
   }, [drain]);
 
   const currentDestination = getDestination(drain);
   const saveDestination = () => {
     const value = destination.trim();
-    if (drain.kind === "http") {
-      update.mutate({ id: drain.id, destination: { kind: "http", config: { url: value } } });
-    } else if (drain.kind === "axiom") {
-      update.mutate({ id: drain.id, destination: { kind: "axiom", config: { dataset: value } } });
+    switch (drain.kind) {
+      case "http":
+        update.mutate({ id: drain.id, destination: { kind: "http", config: { url: value } } });
+        break;
+      case "axiom":
+        update.mutate({ id: drain.id, destination: { kind: "axiom", config: { dataset: value } } });
+        break;
+      default:
+        throw new Error(`Unsupported log drain sink: ${drain satisfies never}`);
     }
   };
   const saveHeaders = () => {
@@ -219,25 +313,37 @@ function Detail({
       toast.error(parsed.error.issues[0]?.message ?? "Check the header fields");
       return;
     }
-    if (drain.kind === "http") {
-      update.mutate({
-        id: drain.id,
-        destination: {
-          kind: "http",
-          config: { url: currentDestination, headers: parsed.data },
-        },
-      });
+    switch (drain.kind) {
+      case "http":
+        update.mutate({
+          id: drain.id,
+          destination: {
+            kind: "http",
+            config: { headers: parsed.data },
+          },
+        });
+        break;
+      case "axiom":
+        break;
+      default:
+        throw new Error(`Unsupported log drain sink: ${drain satisfies never}`);
     }
   };
   const saveToken = () => {
-    if (drain.kind === "axiom") {
-      update.mutate({
-        id: drain.id,
-        destination: {
-          kind: "axiom",
-          config: { dataset: currentDestination, token: token.trim() },
-        },
-      });
+    switch (drain.kind) {
+      case "http":
+        break;
+      case "axiom":
+        update.mutate({
+          id: drain.id,
+          destination: {
+            kind: "axiom",
+            config: { token: token.trim() },
+          },
+        });
+        break;
+      default:
+        throw new Error(`Unsupported log drain sink: ${drain satisfies never}`);
     }
   };
   const headersChanged =
@@ -247,6 +353,147 @@ function Detail({
         ? header.value !== ""
         : header.name.trim() !== "" || header.value !== "",
     );
+  let sinkSettings: ReactNode;
+  switch (drain.kind) {
+    case "http":
+      sinkSettings = (
+        <>
+          <SettingCard
+            title="Headers"
+            description="Header values stay hidden after you save them. Leave a value blank to keep its current value."
+            contentWidth="w-full lg:w-[520px] justify-end"
+          >
+            <div className="flex w-full flex-col gap-3">
+              {headers.map((header, index) => (
+                <div key={header.id} className="flex items-center gap-2">
+                  <Input
+                    aria-label={`Header ${index + 1} name`}
+                    placeholder="Header name"
+                    value={header.name}
+                    disabled={header.source === "stored"}
+                    onChange={(event) =>
+                      setHeaders((current) =>
+                        current.map((item, itemIndex) =>
+                          itemIndex === index ? { ...item, name: event.target.value } : item,
+                        ),
+                      )
+                    }
+                  />
+                  <Input
+                    type="password"
+                    autoComplete="off"
+                    aria-label={`Header ${index + 1} value`}
+                    placeholder={header.source === "stored" ? "Enter a new value" : "Header value"}
+                    value={header.value}
+                    onChange={(event) =>
+                      setHeaders((current) =>
+                        current.map((item, itemIndex) =>
+                          itemIndex === index ? { ...item, value: event.target.value } : item,
+                        ),
+                      )
+                    }
+                  />
+                  {header.source === "stored" || headers.length > 1 ? (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="size-9 shrink-0 justify-center px-0 text-gray-11"
+                      aria-label={`Remove header ${index + 1}`}
+                      onClick={() =>
+                        setHeaders((current) =>
+                          current.filter((_, itemIndex) => itemIndex !== index),
+                        )
+                      }
+                    >
+                      <Trash iconSize="sm-regular" />
+                    </Button>
+                  ) : null}
+                </div>
+              ))}
+              <div className="flex justify-between gap-2">
+                <Button
+                  variant="outline"
+                  disabled={headers.length >= 32}
+                  onClick={() => {
+                    const id = nextHeaderId.current;
+                    nextHeaderId.current += 1;
+                    setHeaders((current) => [...current, { id, source: "new", ...emptyHeader }]);
+                  }}
+                >
+                  <Plus iconSize="sm-regular" />
+                  Add header
+                </Button>
+                <Button
+                  variant="primary"
+                  loading={update.isLoading}
+                  disabled={!headersChanged}
+                  onClick={saveHeaders}
+                >
+                  Save headers
+                </Button>
+              </div>
+            </div>
+          </SettingCard>
+          <SettingCard
+            title="Body format"
+            description="JSON sends an array of events. NDJSON sends one event per line."
+            contentWidth="w-full lg:w-[420px] justify-end"
+          >
+            <div className="flex rounded-lg border border-grayA-4 p-1">
+              {(["json", "ndjson"] as const).map((value) => (
+                <Button
+                  key={value}
+                  size="sm"
+                  variant={drain.config.format === value ? "primary" : "ghost"}
+                  loading={update.isLoading}
+                  onClick={() => {
+                    if (drain.config.format !== value) {
+                      update.mutate({
+                        id: drain.id,
+                        destination: {
+                          kind: "http",
+                          config: { format: value },
+                        },
+                      });
+                    }
+                  }}
+                >
+                  {value === "json" ? "JSON array" : "NDJSON"}
+                </Button>
+              ))}
+            </div>
+          </SettingCard>
+        </>
+      );
+      break;
+    case "axiom":
+      sinkSettings = (
+        <SettingCard
+          title="Token"
+          description="Enter a new Axiom API token to replace the current token."
+          contentWidth="w-full lg:w-[420px] justify-end"
+        >
+          <Input
+            type="password"
+            aria-label="Axiom API token"
+            value={token}
+            placeholder="Enter a new token"
+            onChange={(event) => setToken(event.target.value)}
+          />
+          <Button
+            variant="primary"
+            loading={update.isLoading}
+            disabled={!token.trim()}
+            onClick={saveToken}
+          >
+            Save token
+          </Button>
+        </SettingCard>
+      );
+      break;
+    default:
+      throw new Error(`Unsupported log drain sink: ${drain satisfies never}`);
+  }
 
   return (
     <PageContainer>
@@ -259,18 +506,11 @@ function Detail({
         </PageHeaderContent>
         <PageHeaderActions>
           <span className="flex items-center gap-2 whitespace-nowrap text-[13px] font-medium text-accent-12">
-            <span className="flex size-5 shrink-0 items-center justify-center rounded-sm bg-grayA-3 text-gray-11">
-              {drain.kind === "axiom" ? (
-                <AxiomLogo className="size-3.5" />
-              ) : (
-                <Earth iconSize="sm-regular" />
-              )}
-            </span>
-            {drain.kind === "axiom" ? "Axiom" : "HTTP"}
+            <SinkType kind={drain.kind} />
           </span>
         </PageHeaderActions>
       </PageHeader>
-      <PageBody>
+      <PageBody aria-live="polite">
         <DeliveryOverview series={metricsSeries} loading={metricsLoading} error={metricsError} />
         <RecentDeliveryErrors
           entries={recentErrorEntries}
@@ -281,187 +521,61 @@ function Detail({
           <h2 className="text-sm font-medium text-accent-12">Settings</h2>
           <SettingCardGroup>
             <SettingCard
-              title="Drain name"
-              description="A human-readable name for this log drain."
+              title="Name"
+              description="Shown in the log drain list."
               contentWidth="w-full lg:w-[420px] justify-end"
             >
-              <Input value={name} onChange={(event) => setName(event.target.value)} />
+              <Input
+                aria-label="Name"
+                value={name}
+                onChange={(event) => setName(event.target.value)}
+              />
               <Button
                 variant="primary"
                 loading={update.isLoading}
                 disabled={!name.trim() || name.trim() === drain.name}
                 onClick={() => update.mutate({ id: drain.id, name: name.trim() })}
               >
-                Save
+                Save name
               </Button>
             </SettingCard>
-            <SettingCard
-              title="Drain ID"
-              description="The identifier for this log drain. The delivery offset is tracked against this ID."
-              contentWidth="w-full lg:w-[420px] justify-end"
-            >
-              <div className="flex flex-row justify-end items-center">
-                <div className="flex flex-row justify-between min-w-[327px] pl-2 pr-2 py-2 bg-gray-2 dark:bg-black border rounded-lg border-grayA-5">
-                  <div className="text-sm text-gray-11">{drain.id}</div>
+            <Item className="flex-col items-stretch gap-6 py-[18px] lg:flex-row lg:items-center">
+              <ItemContent>
+                <ItemTitle>Log drain ID</ItemTitle>
+                <ItemDescription>Unkey uses this ID to track delivery progress.</ItemDescription>
+              </ItemContent>
+              <ItemActions className="w-full justify-end lg:w-[420px]">
+                <div className="flex min-w-0 w-full items-center justify-between rounded-lg border border-grayA-5 bg-gray-2 px-2 py-2 dark:bg-black">
+                  <code className="truncate text-sm text-gray-11" translate="no">
+                    {drain.id}
+                  </code>
                   <CopyButton value={drain.id} variant="ghost" toastMessage={drain.id} />
                 </div>
-              </div>
-            </SettingCard>
+              </ItemActions>
+            </Item>
             <SettingCard
-              title={drain.kind === "axiom" ? "Dataset" : "HTTPS endpoint"}
-              description="Where deliveries are sent. Changing this keeps the drain ID and its delivery offset."
+              title={destinationLabels.title}
+              description={destinationLabels.description}
               contentWidth="w-full lg:w-[420px] justify-end"
             >
-              <Input value={destination} onChange={(event) => setDestination(event.target.value)} />
+              <Input
+                aria-label={destinationLabels.title}
+                value={destination}
+                onChange={(event) => setDestination(event.target.value)}
+              />
               <Button
                 variant="primary"
                 loading={update.isLoading}
                 disabled={!destination.trim() || destination.trim() === currentDestination}
                 onClick={saveDestination}
               >
-                Save
+                {destinationLabels.saveLabel}
               </Button>
             </SettingCard>
-            {drain.kind === "http" ? (
-              <SettingCard
-                title="Headers"
-                description="Stored values stay hidden. Leave a stored value blank to keep it. Saving replaces the header set."
-                contentWidth="w-full lg:w-[520px] justify-end"
-              >
-                <div className="flex w-full flex-col gap-3">
-                  {headers.map((header, index) => (
-                    <div key={header.id} className="flex items-center gap-2">
-                      <Input
-                        aria-label={`Header ${index + 1} name`}
-                        placeholder="Header name"
-                        value={header.name}
-                        disabled={header.source === "stored"}
-                        onChange={(event) =>
-                          setHeaders((current) =>
-                            current.map((item, itemIndex) =>
-                              itemIndex === index ? { ...item, name: event.target.value } : item,
-                            ),
-                          )
-                        }
-                      />
-                      <Input
-                        type="password"
-                        autoComplete="off"
-                        aria-label={`Header ${index + 1} value`}
-                        placeholder={
-                          header.source === "stored"
-                            ? "Stored value; leave blank to keep"
-                            : "Header value"
-                        }
-                        value={header.value}
-                        onChange={(event) =>
-                          setHeaders((current) =>
-                            current.map((item, itemIndex) =>
-                              itemIndex === index ? { ...item, value: event.target.value } : item,
-                            ),
-                          )
-                        }
-                      />
-                      {header.source === "stored" || headers.length > 1 ? (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="size-9 shrink-0 justify-center px-0 text-gray-11"
-                          aria-label={`Remove header ${index + 1}`}
-                          onClick={() =>
-                            setHeaders((current) =>
-                              current.filter((_, itemIndex) => itemIndex !== index),
-                            )
-                          }
-                        >
-                          <Trash iconSize="sm-regular" />
-                        </Button>
-                      ) : null}
-                    </div>
-                  ))}
-                  <div className="flex justify-between gap-2">
-                    <Button
-                      variant="outline"
-                      disabled={headers.length >= 32}
-                      onClick={() => {
-                        const id = nextHeaderId.current;
-                        nextHeaderId.current += 1;
-                        setHeaders((current) => [
-                          ...current,
-                          { id, source: "new", ...emptyHeader },
-                        ]);
-                      }}
-                    >
-                      <Plus iconSize="sm-regular" />
-                      Add header
-                    </Button>
-                    <Button
-                      variant="primary"
-                      loading={update.isLoading}
-                      disabled={!headersChanged}
-                      onClick={saveHeaders}
-                    >
-                      Save
-                    </Button>
-                  </div>
-                </div>
-              </SettingCard>
-            ) : (
-              <SettingCard
-                title="Token"
-                description="Rotate the token used to authenticate against the destination. The current token stays active until you save a new one."
-                contentWidth="w-full lg:w-[420px] justify-end"
-              >
-                <Input
-                  type="password"
-                  value={token}
-                  placeholder="Enter a new token"
-                  onChange={(event) => setToken(event.target.value)}
-                />
-                <Button
-                  variant="primary"
-                  loading={update.isLoading}
-                  disabled={!token.trim()}
-                  onClick={saveToken}
-                >
-                  Save
-                </Button>
-              </SettingCard>
-            )}
-            {drain.kind === "http" && (
-              <SettingCard
-                title="Body format"
-                description="JSON array sends one array of event objects. NDJSON sends one JSON object per line."
-                contentWidth="w-full lg:w-[420px] justify-end"
-              >
-                <div className="flex rounded-lg border border-grayA-4 p-1">
-                  {(["json", "ndjson"] as const).map((value) => (
-                    <Button
-                      key={value}
-                      size="sm"
-                      variant={drain.config.format === value ? "primary" : "ghost"}
-                      loading={update.isLoading}
-                      onClick={() => {
-                        if (drain.config.format !== value) {
-                          update.mutate({
-                            id: drain.id,
-                            destination: {
-                              kind: "http",
-                              config: { url: drain.config.url, format: value },
-                            },
-                          });
-                        }
-                      }}
-                    >
-                      {value === "json" ? "JSON array" : "NDJSON"}
-                    </Button>
-                  ))}
-                </div>
-              </SettingCard>
-            )}
+            {sinkSettings}
             <SettingCard
-              title="Status"
-              description="Pause to stop deliveries. Resume to continue from the tracked offset."
+              title="Delivery status"
+              description="Pause delivery without losing progress. Resume delivery when you are ready."
               contentWidth="w-full lg:w-[420px] justify-end"
             >
               <Button
@@ -475,10 +589,10 @@ function Detail({
                 }
               >
                 {drain.status === "paused_by_failure"
-                  ? "Resume"
+                  ? "Resume delivery"
                   : drain.status === "running"
-                    ? "Pause"
-                    : "Resume"}
+                    ? "Pause delivery"
+                    : "Resume delivery"}
               </Button>
             </SettingCard>
           </SettingCardGroup>
@@ -486,9 +600,9 @@ function Detail({
         <SettingsDangerZone>
           <SettingsZoneRow
             title="Delete log drain"
-            description="Deletes this drain and stops delivery. The delivery offset is lost. This cannot be undone."
+            description="Stop all future deliveries and delete this log drain."
             action={{
-              label: "Delete log drain…",
+              label: "Delete log drain",
               onClick: () => setConfirmDelete(true),
             }}
           />
@@ -497,15 +611,16 @@ function Detail({
           isOpen={confirmDelete}
           onOpenChange={setConfirmDelete}
           title={`Delete ${drain.name}?`}
-          subTitle="This stops delivery immediately and cannot be undone."
+          subTitle="Unkey will stop all future deliveries and delete this log drain."
           footer={
             <div className="flex w-full gap-2">
               <Button className="flex-1" variant="outline" onClick={() => setConfirmDelete(false)}>
-                Cancel
+                Keep log drain
               </Button>
               <Button
                 className="flex-1"
                 variant="primary"
+                color="danger"
                 loading={remove.isLoading}
                 onClick={() => remove.mutate({ id: drain.id })}
               >
@@ -514,10 +629,7 @@ function Detail({
             </div>
           }
         >
-          <p className="text-sm text-gray-10">
-            Existing delivery history is retained, but this destination will no longer receive audit
-            logs.
-          </p>
+          <p className="text-sm text-gray-10">You cannot undo this action.</p>
         </DialogContainer>
       </PageBody>
     </PageContainer>
@@ -533,6 +645,8 @@ function RecentDeliveryErrors({
   loading: boolean;
   error: boolean;
 }) {
+  const [detailsOpen, setDetailsOpen] = useState(false);
+
   if (loading) {
     return null;
   }
@@ -541,6 +655,7 @@ function RecentDeliveryErrors({
     return (
       <AlertBanner variant="error">
         <AlertBannerTitle>Could not load delivery error details</AlertBannerTitle>
+        <AlertBannerDescription>Refresh the page to try again.</AlertBannerDescription>
       </AlertBanner>
     );
   }
@@ -550,29 +665,34 @@ function RecentDeliveryErrors({
   }
 
   return (
-    <Collapsible className="overflow-hidden rounded-xl border border-grayA-4 bg-gray-1">
-      <CollapsibleTrigger className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-grayA-2 [&[data-panel-open]_.error-chevron]:rotate-180">
-        <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-errorA-3 text-error-11">
-          <TriangleWarning2 iconSize="sm-regular" aria-hidden="true" />
-        </span>
-        <span className="min-w-0 flex-1">
-          <span className="block text-sm font-medium text-gray-12">
-            Some recent deliveries failed
-          </span>
-          <span className="block text-xs text-gray-10">
-            {entries.length === 20
-              ? "Showing the 20 most recent failures from the past 24 hours."
-              : `${entries.length} ${entries.length === 1 ? "failure" : "failures"} in the past 24 hours.`}
-          </span>
-        </span>
-        <ChevronDown
-          iconSize="sm-regular"
-          className="error-chevron text-gray-9 transition-transform duration-200"
-          aria-hidden="true"
-        />
-      </CollapsibleTrigger>
+    <Collapsible open={detailsOpen} onOpenChange={setDetailsOpen} className="flex flex-col gap-2">
+      <AlertBanner variant="error">
+        <TriangleWarning2 iconSize="md-regular" aria-hidden="true" />
+        <AlertBannerTitle>
+          {entries.length === 20
+            ? "At least 20 delivery attempts failed"
+            : `${entries.length} delivery ${entries.length === 1 ? "attempt" : "attempts"} failed`}
+        </AlertBannerTitle>
+        <AlertBannerDescription>
+          Review failures from the past 24 hours to find the cause. Unkey pauses the log drain when
+          delivery attempts keep failing.
+        </AlertBannerDescription>
+        <AlertBannerActions>
+          <CollapsibleTrigger
+            render={<Button variant="outline" size="md" />}
+            className="[&[data-panel-open]_.error-chevron]:rotate-180"
+          >
+            {detailsOpen ? "Hide details" : "View details"}
+            <ChevronDown
+              iconSize="sm-regular"
+              className="error-chevron text-gray-9 transition-transform duration-200"
+              aria-hidden="true"
+            />
+          </CollapsibleTrigger>
+        </AlertBannerActions>
+      </AlertBanner>
       <CollapsibleContent>
-        <div className="overflow-x-auto border-t border-grayA-4 bg-background">
+        <div className="overflow-x-auto rounded-lg border border-grayA-4 bg-background">
           <table className="w-full min-w-[680px] table-fixed border-collapse text-left">
             <colgroup>
               <col className="w-44" />
@@ -582,14 +702,16 @@ function RecentDeliveryErrors({
             <thead className="bg-grayA-2">
               <tr className="border-b border-grayA-4">
                 <th className="px-4 py-2 text-xs font-medium text-gray-10">Time</th>
-                <th className="px-4 py-2 text-xs font-medium text-gray-10">Status</th>
-                <th className="px-4 py-2 text-xs font-medium text-gray-10">Response</th>
+                <th className="px-4 py-2 text-xs font-medium text-gray-10">Result</th>
+                <th className="px-4 py-2 text-xs font-medium text-gray-10">Details</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-grayA-4">
               {entries.map((entry) => {
                 const detail =
-                  entry.responseBody || entry.error || "The destination returned no details.";
+                  entry.responseBody ||
+                  entry.error ||
+                  "The destination did not return error details.";
                 const status =
                   entry.responseStatus > 0
                     ? entry.responseStatus
@@ -654,12 +776,13 @@ function DetailSkeleton() {
     <PageContainer>
       <PageHeader>
         <PageHeaderContent>
-          <div className="h-5 w-48 animate-pulse rounded-sm bg-grayA-3" />
+          <Skeleton className="h-5 w-48" />
         </PageHeaderContent>
       </PageHeader>
-      <PageBody aria-busy="true">
-        <div className="h-52 animate-pulse rounded-xl bg-grayA-3" />
-        <div className="h-96 animate-pulse rounded-xl bg-grayA-3" />
+      <PageBody aria-busy="true" aria-live="polite">
+        <output className="sr-only">Loading log drain…</output>
+        <Skeleton className="h-52 rounded-xl" />
+        <Skeleton className="h-96 rounded-xl" />
       </PageBody>
     </PageContainer>
   );
