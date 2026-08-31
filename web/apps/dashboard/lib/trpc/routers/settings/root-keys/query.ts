@@ -102,7 +102,7 @@ export const queryRootKeys = workspaceProcedure
         if (filter.operator === "contains") {
           return exists(
             db
-              .select()
+              .select({ keyId: schema.keysPermissions.keyId })
               .from(schema.keysPermissions)
               .innerJoin(
                 schema.permissions,

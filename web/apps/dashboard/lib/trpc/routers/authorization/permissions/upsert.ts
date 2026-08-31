@@ -37,6 +37,11 @@ export const upsertPermission = workspaceProcedure
         const existingPermission = await tx.query.permissions.findFirst({
           where: (table, { and, eq }) =>
             and(eq(table.id, updatePermissionId), eq(table.workspaceId, ctx.workspace.id)),
+          columns: {
+            id: true,
+            name: true,
+            slug: true,
+          },
         });
 
         if (!existingPermission) {
@@ -55,6 +60,7 @@ export const upsertPermission = workspaceProcedure
                 eq(table.name, input.name),
                 ne(table.id, updatePermissionId),
               ),
+            columns: { id: true },
           });
 
           if (nameConflict) {
@@ -74,6 +80,7 @@ export const upsertPermission = workspaceProcedure
                 eq(table.slug, input.slug),
                 ne(table.id, updatePermissionId),
               ),
+            columns: { id: true },
           });
 
           if (slugConflict) {
@@ -133,10 +140,12 @@ export const upsertPermission = workspaceProcedure
           await tx.query.permissions.findFirst({
             where: (table, { and, eq }) =>
               and(eq(table.workspaceId, ctx.workspace.id), eq(table.name, input.name)),
+            columns: { id: true },
           }),
           await tx.query.permissions.findFirst({
             where: (table, { and, eq }) =>
               and(eq(table.workspaceId, ctx.workspace.id), eq(table.slug, input.slug)),
+            columns: { id: true },
           }),
         ]);
 

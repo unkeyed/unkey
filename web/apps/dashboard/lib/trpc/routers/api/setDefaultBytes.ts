@@ -21,6 +21,7 @@ export const setDefaultApiBytes = workspaceProcedure
             eq(table.id, input.keyAuthId),
             isNull(table.deletedAtM),
           ),
+        columns: { id: true, defaultBytes: true },
       })
       .catch((_err) => {
         throw new TRPCError({
