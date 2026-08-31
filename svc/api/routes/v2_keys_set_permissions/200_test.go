@@ -59,7 +59,7 @@ func TestSuccess(t *testing.T) {
 			Slug:        "documents.write.urn.set",
 		})
 
-		updateKeyPermission := fmt.Sprintf("unkey:v1:%s:keyspaces/%s/keys/%s#update_key", workspace.ID, api.KeyAuthID.String, key.KeyID)
+		updateKeyPermission := fmt.Sprintf("unkey:v1:%s:projects/%s/keyspaces/%s/keys/%s#write_key", workspace.ID, api.ProjectID, api.KeyAuthID.String, key.KeyID)
 		urnRootKey := h.CreateRootKey(workspace.ID, updateKeyPermission)
 		urnHeaders := http.Header{
 			"Content-Type":  {"application/json"},
@@ -103,6 +103,7 @@ func TestSuccess(t *testing.T) {
 		err := db.Query.InsertPermission(ctx, h.DB.RW(), db.InsertPermissionParams{
 			PermissionID: permission1ID,
 			WorkspaceID:  workspace.ID,
+			ProjectID:    api.ProjectID,
 			Name:         permission1Slug,
 			Slug:         permission1Slug,
 			Description:  dbtype.NullString{Valid: true, String: "Initial permission"},
@@ -114,6 +115,7 @@ func TestSuccess(t *testing.T) {
 		err = db.Query.InsertPermission(ctx, h.DB.RW(), db.InsertPermissionParams{
 			PermissionID: permission2ID,
 			WorkspaceID:  workspace.ID,
+			ProjectID:    api.ProjectID,
 			Name:         permission2Slug,
 			Slug:         permission2Slug,
 			Description:  dbtype.NullString{Valid: true, String: "Write permission"},
@@ -125,6 +127,7 @@ func TestSuccess(t *testing.T) {
 		err = db.Query.InsertPermission(ctx, h.DB.RW(), db.InsertPermissionParams{
 			PermissionID: permission3ID,
 			WorkspaceID:  workspace.ID,
+			ProjectID:    api.ProjectID,
 			Name:         permission3Slug,
 			Slug:         permission3Slug,
 			Description:  dbtype.NullString{Valid: true, String: "Delete permission"},
@@ -213,6 +216,7 @@ func TestSuccess(t *testing.T) {
 		err := db.Query.InsertPermission(ctx, h.DB.RW(), db.InsertPermissionParams{
 			PermissionID: permission1ID,
 			WorkspaceID:  workspace.ID,
+			ProjectID:    api.ProjectID,
 			Name:         "documents.read.byname",
 			Slug:         "documents.read.byname",
 			Description:  dbtype.NullString{Valid: true, String: "Read permission"},
@@ -223,6 +227,7 @@ func TestSuccess(t *testing.T) {
 		err = db.Query.InsertPermission(ctx, h.DB.RW(), db.InsertPermissionParams{
 			PermissionID: permission2ID,
 			WorkspaceID:  workspace.ID,
+			ProjectID:    api.ProjectID,
 			Name:         "documents.write.byname",
 			Slug:         "documents.write.byname",
 			Description:  dbtype.NullString{Valid: true, String: "Write permission"},
@@ -287,6 +292,7 @@ func TestSuccess(t *testing.T) {
 		err := db.Query.InsertPermission(ctx, h.DB.RW(), db.InsertPermissionParams{
 			PermissionID: permission1ID,
 			WorkspaceID:  workspace.ID,
+			ProjectID:    api.ProjectID,
 			Name:         "documents.read.empty",
 			Slug:         "documents.read.empty",
 			Description:  dbtype.NullString{Valid: true, String: "Read permission"},
@@ -297,6 +303,7 @@ func TestSuccess(t *testing.T) {
 		err = db.Query.InsertPermission(ctx, h.DB.RW(), db.InsertPermissionParams{
 			PermissionID: permission2ID,
 			WorkspaceID:  workspace.ID,
+			ProjectID:    api.ProjectID,
 			Name:         "documents.write.empty",
 			Slug:         "documents.write.empty",
 			Description:  dbtype.NullString{Valid: true, String: "Write permission"},
@@ -371,6 +378,7 @@ func TestSuccess(t *testing.T) {
 		err := db.Query.InsertPermission(ctx, h.DB.RW(), db.InsertPermissionParams{
 			PermissionID: permissionID,
 			WorkspaceID:  workspace.ID,
+			ProjectID:    api.ProjectID,
 			Name:         permissionSlugAndName,
 			Slug:         permissionSlugAndName,
 			Description:  dbtype.NullString{Valid: true, String: "Read permission"},

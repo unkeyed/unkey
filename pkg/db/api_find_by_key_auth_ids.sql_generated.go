@@ -11,7 +11,7 @@ import (
 )
 
 const findApisByKeyAuthIds = `-- name: FindApisByKeyAuthIds :many
-SELECT ka.id as key_auth_id, a.id as api_id
+SELECT ka.id as key_auth_id, ka.project_id, a.id as api_id
 FROM apis a
 JOIN key_auth as ka ON ka.id = a.key_auth_id
 WHERE a.workspace_id = ?
@@ -27,13 +27,14 @@ type FindApisByKeyAuthIdsParams struct {
 
 type FindApisByKeyAuthIdsRow struct {
 	KeyAuthID string `db:"key_auth_id"`
+	ProjectID string `db:"project_id"`
 	ApiID     string `db:"api_id"`
 }
 
 // Maps keyspace ids back to the api that owns them, scoped to a workspace.
-// apis.key_auth_id is unique, so each keyspace resolves to at most one api.
+// apis.key_auth_id is unique, so each keyspace resolves to at most one api and project.
 //
-//	SELECT ka.id as key_auth_id, a.id as api_id
+//	SELECT ka.id as key_auth_id, ka.project_id, a.id as api_id
 //	FROM apis a
 //	JOIN key_auth as ka ON ka.id = a.key_auth_id
 //	WHERE a.workspace_id = ?
@@ -60,7 +61,7 @@ func (q *Queries) FindApisByKeyAuthIds(ctx context.Context, db DBTX, arg FindApi
 	var items []FindApisByKeyAuthIdsRow
 	for rows.Next() {
 		var i FindApisByKeyAuthIdsRow
-		if err := rows.Scan(&i.KeyAuthID, &i.ApiID); err != nil {
+		if err := rows.Scan(&i.KeyAuthID, &i.ProjectID, &i.ApiID); err != nil {
 			return nil, err
 		}
 		items = append(items, i)

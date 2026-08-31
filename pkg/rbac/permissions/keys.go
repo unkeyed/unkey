@@ -10,21 +10,11 @@ type ReadKey struct{}
 func (ReadKey) ActionFor(urn.Key) {}
 func (ReadKey) String() string    { return "read_key" }
 
-// UpdateKey authorizes updating key resources.
-//
-// Valid resource: urn.Key.
-type UpdateKey struct{}
+// WriteKey authorizes creating or updating a key and its role or permission assignments.
+type WriteKey struct{}
 
-func (UpdateKey) ActionFor(urn.Key) {}
-func (UpdateKey) String() string    { return "update_key" }
-
-// EncryptKey authorizes creating recoverable encrypted keys.
-//
-// Valid resource: urn.Key.
-type EncryptKey struct{}
-
-func (EncryptKey) ActionFor(urn.Key) {}
-func (EncryptKey) String() string    { return "encrypt_key" }
+func (WriteKey) ActionFor(urn.Key) {}
+func (WriteKey) String() string    { return "write_key" }
 
 // DecryptKey authorizes decrypting recoverable key material.
 //

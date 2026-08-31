@@ -11,6 +11,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/db"
 	dbtype "github.com/unkeyed/unkey/pkg/db/types"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/svc/api/internal/projects"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_permissions_get_permission"
@@ -28,14 +29,17 @@ func TestPermissionErrors(t *testing.T) {
 
 	// Create a workspace
 	workspace := h.Resources().UserWorkspace
+	projectID, err := projects.EnsureDefaultProject(ctx, h.DB.RW(), workspace.ID)
+	require.NoError(t, err)
 
 	// Create a test permission to try to retrieve
 	permissionID := uid.New(uid.PermissionPrefix)
 	permissionName := "test.permission.access"
 
-	err := db.Query.InsertPermission(ctx, h.DB.RW(), db.InsertPermissionParams{
+	err = db.Query.InsertPermission(ctx, h.DB.RW(), db.InsertPermissionParams{
 		PermissionID: permissionID,
 		WorkspaceID:  workspace.ID,
+		ProjectID:    projectID,
 		Name:         permissionName,
 		Slug:         "test-permission-access",
 		Description:  dbtype.NullString{Valid: true, String: "Test permission for authorization tests"},

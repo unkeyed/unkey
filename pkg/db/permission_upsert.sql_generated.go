@@ -43,8 +43,10 @@ type UpsertPermissionParams struct {
 	CreatedAtM   int64             `db:"created_at_m"`
 }
 
-// Inserts a permission or leaves the existing workspace/slug row unchanged.
-// Use FindPermissionsBySlugsForUpdate after this to get the canonical row.
+// UpsertPermission inserts a permission or leaves the existing workspace/slug
+// row unchanged.
+// Use FindPermissionsBySlugsForUpdate after this to get the canonical row from
+// the requested project.
 //
 //	INSERT INTO permissions (
 //	  id,

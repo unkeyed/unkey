@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/svc/api/internal/projects"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_permissions_delete_role"
@@ -28,6 +29,8 @@ func TestPermissionErrors(t *testing.T) {
 
 	// Create a workspace
 	workspace := h.Resources().UserWorkspace
+	projectID, err := projects.EnsureDefaultProject(ctx, h.DB.RW(), workspace.ID)
+	require.NoError(t, err)
 
 	// Create a role for testing
 	// Create a role to attempt to delete (in the same workspace)
@@ -35,9 +38,10 @@ func TestPermissionErrors(t *testing.T) {
 	roleName := "test.forbidden.role"
 	roleDesc := "Test role for forbidden access"
 
-	err := db.Query.InsertRole(ctx, h.DB.RW(), db.InsertRoleParams{
+	err = db.Query.InsertRole(ctx, h.DB.RW(), db.InsertRoleParams{
 		RoleID:      roleID,
 		WorkspaceID: workspace.ID,
+		ProjectID:   projectID,
 		Name:        roleName,
 		Description: sql.NullString{Valid: true, String: roleDesc},
 	})

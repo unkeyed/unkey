@@ -2,13 +2,16 @@ package handler
 
 import (
 	"context"
+	"net/http"
+
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/openapi"
-	"net/http"
 )
 
 type Request = openapi.V2PermissionsGetPermissionRequestBody
@@ -32,24 +35,12 @@ func (h *Handler) Path() string {
 // Handle processes the HTTP request
 func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
-	// 1. Authentication
 	principal, err := s.GetPrincipal()
 	if err != nil {
 		return err
 	}
 
 	req, err := zen.BindBody[Request](s)
-	if err != nil {
-		return err
-	}
-
-	err = principal.Authorize(rbac.Or(
-		rbac.T(rbac.Tuple{
-			ResourceType: rbac.Rbac,
-			ResourceID:   "*",
-			Action:       rbac.ReadPermission,
-		}),
-	))
 	if err != nil {
 		return err
 	}
@@ -69,6 +60,22 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
 			fault.Internal("database error"), fault.Public("Failed to retrieve permission information."),
 		)
+	}
+
+	readPermission := rbac.U(
+		urn.New().Workspace(principal.WorkspaceID).Project(permission.ProjectID).RBAC().Permission(permission.ID),
+		permissions.ReadPermission{},
+	)
+	err = principal.Authorize(rbac.Or(
+		readPermission,
+		rbac.T(rbac.Tuple{
+			ResourceType: rbac.Rbac,
+			ResourceID:   "*",
+			Action:       rbac.ReadPermission,
+		}),
+	))
+	if err != nil {
+		return err
 	}
 
 	permissionResponse := openapi.Permission{

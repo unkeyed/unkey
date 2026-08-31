@@ -178,9 +178,9 @@ type Querier interface {
 	//  SELECT pk, id, name, workspace_id, project_id, ip_whitelist, auth_type, key_auth_id, created_at_m, updated_at_m, deleted_at_m, delete_protection FROM apis WHERE id = ?
 	FindApiByID(ctx context.Context, db DBTX, id string) (Api, error)
 	// Maps keyspace ids back to the api that owns them, scoped to a workspace.
-	// apis.key_auth_id is unique, so each keyspace resolves to at most one api.
+	// apis.key_auth_id is unique, so each keyspace resolves to at most one api and project.
 	//
-	//  SELECT ka.id as key_auth_id, a.id as api_id
+	//  SELECT ka.id as key_auth_id, ka.project_id, a.id as api_id
 	//  FROM apis a
 	//  JOIN key_auth as ka ON ka.id = a.key_auth_id
 	//  WHERE a.workspace_id = ?
@@ -498,9 +498,9 @@ type Querier interface {
 	//      AND a.deleted_at_m IS NULL
 	FindKeyAuthsByIds(ctx context.Context, db DBTX, arg FindKeyAuthsByIdsParams) ([]FindKeyAuthsByIdsRow, error)
 	// Returns the subset of the given keyspace ids that exist in this workspace
-	// and are not soft-deleted, along with each keyspace's encryption setting.
+	// and are not soft-deleted, along with each keyspace's project and encryption setting.
 	//
-	//  SELECT id, store_encrypted_keys FROM key_auth
+	//  SELECT id, project_id, store_encrypted_keys FROM key_auth
 	//  WHERE workspace_id = ?
 	//    AND id IN (/*SLICE:key_auth_ids*/?)
 	//    AND deleted_at_m IS NULL
@@ -779,7 +779,9 @@ type Querier interface {
 	//  WHERE ns.workspace_id = ?
 	//    AND (ns.id IN (/*SLICE:namespaces*/?) OR ns.name IN (/*SLICE:namespaces*/?))
 	FindManyRatelimitNamespaces(ctx context.Context, db DBTX, arg FindManyRatelimitNamespacesParams) ([]FindManyRatelimitNamespacesRow, error)
-	//FindManyRolesByNamesWithPerms
+	// FindManyRolesByNamesWithPerms returns the requested roles and their
+	// permissions from one project. The project filter prevents cross-project key
+	// assignments.
 	//
 	//  SELECT pk, id, workspace_id, project_id, name, description, created_at_m, updated_at_m, COALESCE(
 	//          (SELECT JSON_ARRAYAGG(
@@ -797,7 +799,9 @@ type Querier interface {
 	//          JSON_ARRAY()
 	//  ) as permissions
 	//  FROM roles r
-	//  WHERE r.workspace_id = ? AND r.name IN (/*SLICE:names*/?)
+	//  WHERE r.workspace_id = ?
+	//    AND r.project_id = ?
+	//    AND r.name IN (/*SLICE:names*/?)
 	FindManyRolesByNamesWithPerms(ctx context.Context, db DBTX, arg FindManyRolesByNamesWithPermsParams) ([]FindManyRolesByNamesWithPermsRow, error)
 	// Finds a permission record by its ID
 	// Returns: The permission record if found
@@ -807,11 +811,13 @@ type Querier interface {
 	//  WHERE id = ?
 	//  LIMIT 1
 	FindPermissionByID(ctx context.Context, db DBTX, permissionID string) (Permission, error)
-	//FindPermissionByIdOrSlug
+	// FindPermissionByIdOrSlug resolves a permission within a workspace so the
+	// caller can authorize access against the permission's actual project.
 	//
 	//  SELECT pk, id, workspace_id, project_id, name, slug, description, created_at_m, updated_at_m
 	//  FROM permissions
-	//  WHERE workspace_id = ? AND (id = ? OR slug = ?)
+	//  WHERE workspace_id = ?
+	//    AND (id = ? OR slug = ?)
 	FindPermissionByIdOrSlug(ctx context.Context, db DBTX, arg FindPermissionByIdOrSlugParams) (Permission, error)
 	//FindPermissionByNameAndWorkspaceID
 	//
@@ -829,19 +835,33 @@ type Querier interface {
 	//  AND workspace_id = ?
 	//  LIMIT 1
 	FindPermissionBySlugAndWorkspaceID(ctx context.Context, db DBTX, arg FindPermissionBySlugAndWorkspaceIDParams) (Permission, error)
-	//FindPermissionsBySlugs
+	// FindPermissionsBySlugs returns permissions with the requested slugs from one
+	// project. The project filter prevents cross-project key assignments.
 	//
-	//  SELECT pk, id, workspace_id, project_id, name, slug, description, created_at_m, updated_at_m FROM permissions WHERE workspace_id = ? AND slug IN (/*SLICE:slugs*/?)
+	//  SELECT pk, id, workspace_id, project_id, name, slug, description, created_at_m, updated_at_m FROM permissions
+	//  WHERE workspace_id = ?
+	//    AND project_id = ?
+	//    AND slug IN (/*SLICE:slugs*/?)
 	FindPermissionsBySlugs(ctx context.Context, db DBTX, arg FindPermissionsBySlugsParams) ([]Permission, error)
-	//FindPermissionsBySlugsForUpdate
+	// FindPermissionsBySlugsForUpdate locks matching permissions in one project so
+	// role assignment cannot attach permissions owned by another project.
 	//
 	//  SELECT id, name, slug, description
 	//  FROM permissions
 	//  WHERE workspace_id = ?
+	//    AND project_id = ?
 	//    AND slug IN (/*SLICE:slugs*/?)
 	//  ORDER BY slug
 	//  FOR UPDATE
 	FindPermissionsBySlugsForUpdate(ctx context.Context, db DBTX, arg FindPermissionsBySlugsForUpdateParams) ([]FindPermissionsBySlugsForUpdateRow, error)
+	// FindPermissionsBySlugsInWorkspace returns permissions with the requested
+	// slugs from any project in one workspace. Use it to detect cross-project slug
+	// conflicts before creating project-scoped permissions.
+	//
+	//  SELECT pk, id, workspace_id, project_id, name, slug, description, created_at_m, updated_at_m FROM permissions
+	//  WHERE workspace_id = ?
+	//    AND slug IN (/*SLICE:slugs*/?)
+	FindPermissionsBySlugsInWorkspace(ctx context.Context, db DBTX, arg FindPermissionsBySlugsInWorkspaceParams) ([]Permission, error)
 	// Resolves the portal mapped to an app within a workspace. Callers that reach a
 	// portal through its app (rather than through an id or slug) use this.
 	//
@@ -1009,7 +1029,8 @@ type Querier interface {
 	//  WHERE id = ?
 	//  LIMIT 1
 	FindRoleByID(ctx context.Context, db DBTX, roleID string) (Role, error)
-	//FindRoleByIdOrNameWithPerms
+	// FindRoleByIdOrNameWithPerms resolves a role within a workspace so the caller
+	// can authorize access against the role's actual project.
 	//
 	//  SELECT pk, id, workspace_id, project_id, name, description, created_at_m, updated_at_m, COALESCE(
 	//          (SELECT JSON_ARRAYAGG(
@@ -1027,7 +1048,8 @@ type Querier interface {
 	//          JSON_ARRAY()
 	//  ) as permissions
 	//  FROM roles r
-	//  WHERE r.workspace_id = ? AND (
+	//  WHERE r.workspace_id = ?
+	//    AND (
 	//      r.id = ?
 	//      OR r.name = ?
 	//  )
@@ -1048,10 +1070,22 @@ type Querier interface {
 	//  WHERE role_id = ?
 	//    AND permission_id = ?
 	FindRolePermissionByRoleAndPermissionID(ctx context.Context, db DBTX, arg FindRolePermissionByRoleAndPermissionIDParams) ([]RolesPermission, error)
-	//FindRolesByNames
+	// FindRolesByNames returns roles with the requested names from one project. The
+	// project filter prevents cross-project key assignments.
 	//
-	//  SELECT id, name FROM roles WHERE workspace_id = ? AND name IN (/*SLICE:names*/?)
+	//  SELECT id, name FROM roles
+	//  WHERE workspace_id = ?
+	//    AND project_id = ?
+	//    AND name IN (/*SLICE:names*/?)
 	FindRolesByNames(ctx context.Context, db DBTX, arg FindRolesByNamesParams) ([]FindRolesByNamesRow, error)
+	// FindRolesByNamesInWorkspace returns roles with the requested names from any
+	// project in one workspace. Use it to detect cross-project name conflicts
+	// before creating project-scoped roles.
+	//
+	//  SELECT id, project_id, name FROM roles
+	//  WHERE workspace_id = ?
+	//    AND name IN (/*SLICE:names*/?)
+	FindRolesByNamesInWorkspace(ctx context.Context, db DBTX, arg FindRolesByNamesInWorkspaceParams) ([]FindRolesByNamesInWorkspaceRow, error)
 	//FindVerifiedCustomDomainByAppID
 	//
 	//  SELECT pk, id, workspace_id, project_id, app_id, environment_id, domain, challenge_type, verification_status, verification_token, ownership_verified, cname_verified, target_cname, last_checked_at, check_attempts, verification_error, domain_connect_provider, domain_connect_url, invocation_id, created_at, updated_at FROM custom_domains
@@ -2039,7 +2073,7 @@ type Querier interface {
 	//    AND error IS NOT NULL AND error != ''
 	//  ORDER BY deployment_id, started_at ASC
 	ListFailedDeploymentStepsByIds(ctx context.Context, db DBTX, arg ListFailedDeploymentStepsByIdsParams) ([]DeploymentStep, error)
-	// ListIdentities returns one page of a workspace's identities with their
+	// ListIdentities returns one page of a project's identities with their
 	// ratelimits aggregated into a JSON array (empty array when none exist).
 	// Pagination is cursor-based: ORDER BY i.id ASC with i.id >= id_cursor makes
 	// pages deterministic, and the empty-string cursor starts from the first row.
@@ -2049,6 +2083,7 @@ type Querier interface {
 	//      i.id,
 	//      i.external_id,
 	//      i.workspace_id,
+	//      i.project_id,
 	//      i.environment,
 	//      i.meta,
 	//      i.deleted,
@@ -2070,6 +2105,7 @@ type Querier interface {
 	//      ) as ratelimits
 	//  FROM identities i
 	//  WHERE i.workspace_id = ?
+	//  AND i.project_id = ?
 	//  AND i.deleted = ?
 	//  AND i.id >= ?
 	//  AND (? IS NULL OR LOWER(i.id) LIKE LOWER(?) OR LOWER(i.external_id) LIKE LOWER(?))
@@ -2282,6 +2318,7 @@ type Querier interface {
 	//  SELECT p.pk, p.id, p.workspace_id, p.project_id, p.name, p.slug, p.description, p.created_at_m, p.updated_at_m
 	//  FROM permissions p
 	//  WHERE p.workspace_id = ?
+	//    AND p.project_id = ?
 	//    AND p.id >= ?
 	//    -- search and description_search carry the same pre-escaped LIKE pattern built
 	//    -- by mysql.SearchContains; NULL disables the filter. They are separate params
@@ -2378,6 +2415,7 @@ type Querier interface {
 	//  ) as permissions
 	//  FROM roles r
 	//  WHERE r.workspace_id = ?
+	//  AND r.project_id = ?
 	//  AND r.id >= ?
 	//  AND (? IS NULL OR LOWER(r.id) LIKE LOWER(?) OR LOWER(r.name) LIKE LOWER(?) OR LOWER(r.description) LIKE LOWER(?))
 	//  ORDER BY r.id
@@ -2451,9 +2489,10 @@ type Querier interface {
 	//  WHERE id = ?
 	//  FOR UPDATE
 	LockKeyForUpdate(ctx context.Context, db DBTX, id string) (string, error)
-	//LockRoleByIDAndWorkspaceID
+	// LockRoleByIDAndWorkspaceID serializes role permission changes. It returns
+	// the project ID so authorization can use the role's project-scoped URN.
 	//
-	//  SELECT id, name
+	//  SELECT id, project_id, name
 	//  FROM roles
 	//  WHERE id = ? AND workspace_id = ?
 	//  FOR UPDATE
@@ -3087,8 +3126,10 @@ type Querier interface {
 	//      custom_domains_max = VALUES(custom_domains_max),
 	//      autoscaling_replicas_max = VALUES(autoscaling_replicas_max)
 	UpsertLimit(ctx context.Context, db DBTX, arg UpsertLimitParams) error
-	// Inserts a permission or leaves the existing workspace/slug row unchanged.
-	// Use FindPermissionsBySlugsForUpdate after this to get the canonical row.
+	// UpsertPermission inserts a permission or leaves the existing workspace/slug
+	// row unchanged.
+	// Use FindPermissionsBySlugsForUpdate after this to get the canonical row from
+	// the requested project.
 	//
 	//  INSERT INTO permissions (
 	//    id,

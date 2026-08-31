@@ -14,7 +14,9 @@ import (
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
@@ -83,22 +85,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			)
 		}
 
-		txErr = principal.Authorize(rbac.Or(
-			rbac.T(rbac.Tuple{
-				ResourceType: rbac.Ratelimit,
-				ResourceID:   nsRow.ID,
-				Action:       rbac.SetOverride,
-			}),
-			rbac.T(rbac.Tuple{
-				ResourceType: rbac.Ratelimit,
-				ResourceID:   "*",
-				Action:       rbac.SetOverride,
-			}),
-		))
-		if txErr != nil {
-			return zero, txErr
-		}
-
 		override, txErr := db.Query.FindRatelimitOverrideByIdentifier(ctx, tx, db.FindRatelimitOverrideByIdentifierParams{
 			WorkspaceID: principal.WorkspaceID,
 			NamespaceID: nsRow.ID,
@@ -116,6 +102,26 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		ovrID := uid.New(uid.RatelimitOverridePrefix)
 		if txErr == nil {
 			ovrID = override.ID
+		}
+
+		txErr = principal.Authorize(rbac.Or(
+			rbac.U(
+				urn.New().Workspace(principal.WorkspaceID).Project(nsRow.ProjectID).RatelimitNamespace(nsRow.ID).Override(ovrID),
+				permissions.WriteRatelimitOverride{},
+			),
+			rbac.T(rbac.Tuple{
+				ResourceType: rbac.Ratelimit,
+				ResourceID:   nsRow.ID,
+				Action:       rbac.SetOverride,
+			}),
+			rbac.T(rbac.Tuple{
+				ResourceType: rbac.Ratelimit,
+				ResourceID:   "*",
+				Action:       rbac.SetOverride,
+			}),
+		))
+		if txErr != nil {
+			return zero, txErr
 		}
 
 		now := time.Now().UnixMilli()

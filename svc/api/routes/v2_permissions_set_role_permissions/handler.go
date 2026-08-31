@@ -20,7 +20,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/pkg/zen"
-	"github.com/unkeyed/unkey/svc/api/internal/projects"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
@@ -54,14 +53,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	err = principal.Authorize(rbac.And(
-		rbac.T(rbac.Tuple{ResourceType: rbac.Rbac, ResourceID: "*", Action: rbac.AddPermissionToRole}),
-		rbac.T(rbac.Tuple{ResourceType: rbac.Rbac, ResourceID: "*", Action: rbac.RemovePermissionFromRole}),
-	))
-	if err != nil {
-		return err
-	}
-
 	requestedSlugs := make([]string, 0, len(req.Permissions))
 	seen := make(map[string]struct{}, len(req.Permissions))
 	for _, slug := range req.Permissions {
@@ -86,9 +77,27 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			return fault.Wrap(lockErr, fault.Code(codes.App.Internal.ServiceUnavailable.URN()), fault.Internal("unable to lock role"), fault.Public("Failed to retrieve role."))
 		}
 
+		authorizeErr := principal.Authorize(rbac.Or(
+			rbac.U(
+				urn.New().Workspace(principal.WorkspaceID).Project(role.ProjectID).RBAC().Role(role.ID),
+				permissions.WriteRole{},
+			),
+			rbac.And(
+				rbac.T(rbac.Tuple{ResourceType: rbac.Rbac, ResourceID: "*", Action: rbac.AddPermissionToRole}),
+				rbac.T(rbac.Tuple{ResourceType: rbac.Rbac, ResourceID: "*", Action: rbac.RemovePermissionFromRole}),
+			),
+		))
+		if authorizeErr != nil {
+			return authorizeErr
+		}
+
 		found := make([]db.FindPermissionsBySlugsForUpdateRow, 0)
 		if len(requestedSlugs) > 0 {
-			found, err = db.Query.FindPermissionsBySlugsForUpdate(ctx, tx, db.FindPermissionsBySlugsForUpdateParams{WorkspaceID: principal.WorkspaceID, Slugs: requestedSlugs})
+			found, err = db.Query.FindPermissionsBySlugsForUpdate(ctx, tx, db.FindPermissionsBySlugsForUpdateParams{
+				WorkspaceID: principal.WorkspaceID,
+				ProjectID:   role.ProjectID,
+				Slugs:       requestedSlugs,
+			})
 			if err != nil {
 				return fault.Wrap(err, fault.Code(codes.App.Internal.ServiceUnavailable.URN()), fault.Internal("database error"), fault.Public("Failed to lookup permissions to set."))
 			}
@@ -107,14 +116,13 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 		if len(missing) > 0 {
 			if authErr := principal.Authorize(rbac.Or(
-				rbac.U(urn.New().Workspace(principal.WorkspaceID).RBAC.Permission("*"), permissions.CreatePermission{}),
+				rbac.U(
+					urn.New().Workspace(principal.WorkspaceID).Project(role.ProjectID).RBAC().Permission("*"),
+					permissions.WritePermission{},
+				),
 				rbac.T(rbac.Tuple{ResourceType: rbac.Rbac, ResourceID: "*", Action: rbac.CreatePermission}),
 			)); authErr != nil {
 				return authErr
-			}
-			projectID, projectErr := projects.EnsureDefaultProject(ctx, tx, principal.WorkspaceID)
-			if projectErr != nil {
-				return projectErr
 			}
 			candidates := make(map[string]db.UpsertPermissionParams, len(missing))
 			for _, slug := range missing {
@@ -122,7 +130,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				candidate := db.UpsertPermissionParams{
 					PermissionID: uid.New(uid.PermissionPrefix),
 					WorkspaceID:  principal.WorkspaceID,
-					ProjectID:    projectID,
+					ProjectID:    role.ProjectID,
 					Name:         slug,
 					Slug:         slug,
 					Description:  dbtype.NullString{String: "", Valid: false},
@@ -134,7 +142,11 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				}
 			}
 
-			found, err = db.Query.FindPermissionsBySlugsForUpdate(ctx, tx, db.FindPermissionsBySlugsForUpdateParams{WorkspaceID: principal.WorkspaceID, Slugs: requestedSlugs})
+			found, err = db.Query.FindPermissionsBySlugsForUpdate(ctx, tx, db.FindPermissionsBySlugsForUpdateParams{
+				WorkspaceID: principal.WorkspaceID,
+				ProjectID:   role.ProjectID,
+				Slugs:       requestedSlugs,
+			})
 			if err != nil {
 				return fault.Wrap(err, fault.Code(codes.App.Internal.ServiceUnavailable.URN()), fault.Internal("database error"), fault.Public("Failed to lookup created permissions."))
 			}
@@ -153,6 +165,15 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			}
 			if err != nil {
 				return err
+			}
+		}
+		for _, slug := range requestedSlugs {
+			if _, ok := bySlug[strings.ToLower(slug)]; !ok {
+				return fault.New("permission not found",
+					fault.Code(codes.Data.Permission.NotFound.URN()),
+					fault.Internal("permission belongs to a different project"),
+					fault.Public(fmt.Sprintf("Permission '%s' was not found.", slug)),
+				)
 			}
 		}
 

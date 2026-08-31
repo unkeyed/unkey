@@ -10,7 +10,6 @@ import (
 
 	"github.com/unkeyed/unkey/internal/services/auditlogs"
 	"github.com/unkeyed/unkey/internal/services/caches"
-	"github.com/unkeyed/unkey/svc/api/internal/projects"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 
 	"github.com/unkeyed/unkey/pkg/auditlog"
@@ -21,7 +20,9 @@ import (
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/pkg/zen"
 )
 
@@ -58,22 +59,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	req, err := zen.BindBody[Request](s)
-	if err != nil {
-		return err
-	}
-
-	err = principal.Authorize(rbac.Or(
-		rbac.T(rbac.Tuple{
-			ResourceType: rbac.Api,
-			ResourceID:   req.ApiId,
-			Action:       rbac.CreateKey,
-		}),
-		rbac.T(rbac.Tuple{
-			ResourceType: rbac.Api,
-			ResourceID:   "*",
-			Action:       rbac.CreateKey,
-		}),
-	))
 	if err != nil {
 		return err
 	}
@@ -115,7 +100,23 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	projectID, err := projects.EnsureDefaultProject(ctx, h.DB.RW(), principal.WorkspaceID)
+	projectID := api.KeyAuth.ProjectID
+	err = principal.Authorize(rbac.Or(
+		rbac.T(rbac.Tuple{
+			ResourceType: rbac.Api,
+			ResourceID:   req.ApiId,
+			Action:       rbac.CreateKey,
+		}),
+		rbac.T(rbac.Tuple{
+			ResourceType: rbac.Api,
+			ResourceID:   "*",
+			Action:       rbac.CreateKey,
+		}),
+		rbac.U(
+			urn.New().Workspace(principal.WorkspaceID).Project(projectID).Keyspace(api.KeyAuth.ID).Key("*"),
+			permissions.WriteKey{},
+		),
+	))
 	if err != nil {
 		return err
 	}
@@ -304,12 +305,19 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			}
 
 			for _, identity := range identities {
+				if identity.ProjectID != projectID {
+					return fault.New("identity not found",
+						fault.Code(codes.Data.Identity.NotFound.URN()),
+						fault.Internal("identity belongs to a different project"),
+						fault.Public(fmt.Sprintf("Identity '%s' was not found.", identity.ExternalID)),
+					)
+				}
 				externalIdToIdentityId[identity.ExternalID] = &identity.ID
 			}
 		}
 
 		if len(permissionsToFind) > 0 {
-			permissions, err := db.Query.FindPermissionsBySlugs(ctx, tx, db.FindPermissionsBySlugsParams{
+			permissions, err := db.Query.FindPermissionsBySlugsInWorkspace(ctx, tx, db.FindPermissionsBySlugsInWorkspaceParams{
 				WorkspaceID: principal.WorkspaceID,
 				Slugs:       permissionsToFind,
 			})
@@ -322,12 +330,19 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			}
 
 			for _, permission := range permissions {
+				if permission.ProjectID != projectID {
+					return fault.New("permission not found",
+						fault.Code(codes.Data.Permission.NotFound.URN()),
+						fault.Internal("permission belongs to a different project"),
+						fault.Public(fmt.Sprintf("Permission '%s' was not found.", permission.Slug)),
+					)
+				}
 				permissionSlugToPermissionId[permission.Slug] = &permission.ID
 			}
 		}
 
 		if len(rolesToFind) > 0 {
-			roles, err := db.Query.FindRolesByNames(ctx, tx, db.FindRolesByNamesParams{
+			roles, err := db.Query.FindRolesByNamesInWorkspace(ctx, tx, db.FindRolesByNamesInWorkspaceParams{
 				WorkspaceID: principal.WorkspaceID,
 				Names:       rolesToFind,
 			})
@@ -340,6 +355,13 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			}
 
 			for _, role := range roles {
+				if role.ProjectID != projectID {
+					return fault.New("role not found",
+						fault.Code(codes.Data.Role.NotFound.URN()),
+						fault.Internal("role belongs to a different project"),
+						fault.Public(fmt.Sprintf("Role '%s' was not found.", role.Name)),
+					)
+				}
 				roleNameToRoleId[role.Name] = &role.ID
 			}
 		}

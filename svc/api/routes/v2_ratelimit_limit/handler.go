@@ -23,8 +23,10 @@ import (
 	"github.com/unkeyed/unkey/pkg/match"
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
 	sf "github.com/unkeyed/unkey/pkg/singleflight"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/internal/projects"
 	"github.com/unkeyed/unkey/svc/api/openapi"
@@ -81,18 +83,28 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	if !found {
-		err = principal.Authorize(
+		projectID, resolveErr := db.TxWithResultRetry(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) (string, error) {
+			return projects.EnsureDefaultProject(ctx, tx, principal.WorkspaceID)
+		})
+		if resolveErr != nil {
+			return resolveErr
+		}
+		err = principal.Authorize(rbac.Or(
+			rbac.U(
+				urn.New().Workspace(principal.WorkspaceID).Project(projectID).RatelimitNamespace("*"),
+				permissions.WriteRatelimitNamespace{},
+			),
 			rbac.T(rbac.Tuple{
 				ResourceType: rbac.Ratelimit,
 				ResourceID:   "*",
 				Action:       rbac.CreateNamespace,
 			}),
-		)
+		))
 		if err != nil {
 			return err
 		}
 
-		ns, err = h.createNamespace(ctx, s, principal, req.Namespace)
+		ns, err = h.createNamespace(ctx, s, principal, projectID, req.Namespace)
 		if err != nil {
 			return err
 		}
@@ -106,6 +118,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	err = principal.Authorize(rbac.Or(
+		rbac.U(
+			urn.New().Workspace(principal.WorkspaceID).Project(ns.ProjectID).RatelimitNamespace(ns.ID),
+			permissions.LimitRatelimitNamespace{},
+		),
 		rbac.T(rbac.Tuple{
 			ResourceType: rbac.Ratelimit,
 			ResourceID:   ns.ID,
@@ -231,15 +247,10 @@ func (h *Handler) getNamespace(ctx context.Context, workspaceID, nameOrID string
 	return ns, true, nil
 }
 
-func (h *Handler) createNamespace(ctx context.Context, s *zen.Session, principal *principal.Principal, name string) (db.FindRatelimitNamespace, error) {
+func (h *Handler) createNamespace(ctx context.Context, s *zen.Session, principal *principal.Principal, projectID, name string) (db.FindRatelimitNamespace, error) {
 	key := principal.WorkspaceID + ":" + name
 	return h.createFlight.Do(key, func() (db.FindRatelimitNamespace, error) {
 		ns, err := db.TxWithResultRetry(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) (db.FindRatelimitNamespace, error) {
-			projectID, resolveErr := projects.EnsureDefaultProject(ctx, tx, principal.WorkspaceID)
-			if resolveErr != nil {
-				return db.FindRatelimitNamespace{}, resolveErr //nolint:exhaustruct
-			}
-
 			now := time.Now().UnixMilli()
 			id := uid.New(uid.RatelimitNamespacePrefix)
 
@@ -266,6 +277,7 @@ func (h *Handler) createNamespace(ctx context.Context, s *zen.Session, principal
 			result := db.FindRatelimitNamespace{
 				ID:                id,
 				WorkspaceID:       principal.WorkspaceID,
+				ProjectID:         projectID,
 				Name:              name,
 				CreatedAtM:        now,
 				UpdatedAtM:        sql.NullInt64{Valid: false, Int64: 0},

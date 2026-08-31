@@ -1,6 +1,7 @@
 package workos
 
 import (
+	"fmt"
 	"slices"
 
 	"github.com/unkeyed/unkey/pkg/logger"
@@ -24,7 +25,8 @@ type permissionGrant struct {
 	action   rbac.ActionType
 }
 
-func action(value interface{ String() string }) rbac.ActionType {
+// action converts a [fmt.Stringer] to an [rbac.ActionType].
+func action(value fmt.Stringer) rbac.ActionType {
 	return rbac.ActionType(value.String())
 }
 
@@ -35,64 +37,77 @@ type PermissionDefinition struct {
 	Description string
 }
 
-// permissionMappings is a partial list that intentionally contains only slugs
-// the API is ready to authorize. Add new slugs with handler coverage for the
-// translated Unkey permissions before syncing them to WorkOS.
+// permissionMappings contains one WorkOS slug for every resource and action in
+// the public permission catalog.
 var permissionMappings = map[string]permissionMapping{
 	"admin:*": {
 		name:        "Admin",
 		description: "Grants full administrative access.",
 		permissions: []permissionGrant{
-			{resource: "**", action: "*"},
+			{resource: "**", action: rbac.ActionType(rbacpermissions.Wildcard)},
 		},
 	},
-	"deployments:stop": {
-		name:        "Stop deployments",
-		description: "Allows stopping a running deployment.",
+	"github_apps:read": {
+		name:        "Read GitHub apps",
+		description: "Allows reading GitHub app installations.",
 		permissions: []permissionGrant{
-			{resource: "projects/*/apps/*/environments/*/deployments/*", action: action(rbacpermissions.StopDeployment{})},
+			{resource: "github/apps/*", action: action(rbacpermissions.ReadGitHubApp{})},
 		},
 	},
-	"deployments:start": {
-		name:        "Start deployments",
-		description: "Allows starting a stopped deployment.",
+	"github_apps:write": {
+		name:        "Write GitHub apps",
+		description: "Allows creating and updating GitHub app installations.",
 		permissions: []permissionGrant{
-			{resource: "projects/*/apps/*/environments/*/deployments/*", action: action(rbacpermissions.StartDeployment{})},
+			{resource: "github/apps/*", action: action(rbacpermissions.WriteGitHubApp{})},
 		},
 	},
-	"deployments:rollback": {
-		name:        "Roll back deployments",
-		description: "Allows rolling live traffic back to a previous deployment.",
+	"github_apps:delete": {
+		name:        "Delete GitHub apps",
+		description: "Allows deleting GitHub app installations.",
 		permissions: []permissionGrant{
-			{resource: "projects/*/apps/*/environments/*/deployments/*", action: action(rbacpermissions.RollbackDeployment{})},
+			{resource: "github/apps/*", action: action(rbacpermissions.DeleteGitHubApp{})},
 		},
 	},
-	"deployments:create": {
-		name:        "Create deployments",
-		description: "Allows creating and redeploying deployments.",
+	"deployments:read": {
+		name:        "Read deployments",
+		description: "Allows reading deployments.",
 		permissions: []permissionGrant{
-			{resource: "projects/*/apps/*/environments/*/deployments/*", action: action(rbacpermissions.CreateDeployment{})},
+			{resource: "projects/*/apps/*/environments/*/deployments/*", action: action(rbacpermissions.ReadDeployment{})},
 		},
 	},
-	"deployments:promote": {
-		name:        "Promote deployments",
-		description: "Allows promoting a deployment to live.",
+	"deployments:write": {
+		name:        "Write deployments",
+		description: "Allows creating, updating, starting, and stopping deployments.",
 		permissions: []permissionGrant{
-			{resource: "projects/*/apps/*/environments/*/deployments/*", action: action(rbacpermissions.PromoteDeployment{})},
+			{resource: "projects/*/apps/*/environments/*/deployments/*", action: action(rbacpermissions.WriteDeployment{})},
 		},
 	},
-	"projects:create": {
-		name:        "Create projects",
-		description: "Allows creating projects.",
+	"deployments:delete": {
+		name:        "Delete deployments",
+		description: "Allows deleting deployments.",
 		permissions: []permissionGrant{
-			{resource: "projects/*", action: action(rbacpermissions.CreateProject{})},
+			{resource: "projects/*/apps/*/environments/*/deployments/*", action: action(rbacpermissions.DeleteDeployment{})},
 		},
 	},
-	"projects:update": {
-		name:        "Update projects",
-		description: "Allows updating projects.",
+	"deployment_logs:read": {
+		name:        "Read deployment logs",
+		description: "Allows reading deployment logs.",
 		permissions: []permissionGrant{
-			{resource: "projects/*", action: action(rbacpermissions.UpdateProject{})},
+			{resource: "projects/*/apps/*/environments/*/deployments/*/logs", action: action(rbacpermissions.ReadDeploymentLogs{})},
+		},
+	},
+	"projects:read": {
+		name:        "Read projects",
+		description: "Allows reading projects.",
+		permissions: []permissionGrant{
+			{resource: "projects/*", action: action(rbacpermissions.ReadProject{})},
+		},
+	},
+	"projects:write": {
+		name:        "Write projects",
+		description: "Allows creating and updating projects.",
+		permissions: []permissionGrant{
+			{resource: "projects/*", action: action(rbacpermissions.WriteProject{})},
 		},
 	},
 	"projects:delete": {
@@ -102,11 +117,18 @@ var permissionMappings = map[string]permissionMapping{
 			{resource: "projects/*", action: action(rbacpermissions.DeleteProject{})},
 		},
 	},
-	"apps:create": {
-		name:        "Create apps",
-		description: "Allows creating apps in a project.",
+	"apps:read": {
+		name:        "Read apps",
+		description: "Allows reading apps in a project.",
 		permissions: []permissionGrant{
-			{resource: "projects/*/apps/*", action: action(rbacpermissions.CreateApp{})},
+			{resource: "projects/*/apps/*", action: action(rbacpermissions.ReadApp{})},
+		},
+	},
+	"apps:write": {
+		name:        "Write apps",
+		description: "Allows creating and updating apps in a project.",
+		permissions: []permissionGrant{
+			{resource: "projects/*/apps/*", action: action(rbacpermissions.WriteApp{})},
 		},
 	},
 	"apps:delete": {
@@ -123,53 +145,74 @@ var permissionMappings = map[string]permissionMapping{
 			{resource: "projects/*/apps/*/environments/*", action: action(rbacpermissions.ReadEnvironment{})},
 		},
 	},
-	"environments:update": {
-		name:        "Update environments",
-		description: "Allows updating environment build and runtime settings.",
+	"environments:write": {
+		name:        "Write environments",
+		description: "Allows updating environment settings and promoting or rolling back deployments.",
 		permissions: []permissionGrant{
-			{resource: "projects/*/apps/*/environments/*", action: action(rbacpermissions.UpdateEnvironment{})},
+			{resource: "projects/*/apps/*/environments/*", action: action(rbacpermissions.WriteEnvironment{})},
+		},
+	},
+	"environments:delete": {
+		name:        "Delete environments",
+		description: "Allows deleting environments.",
+		permissions: []permissionGrant{
+			{resource: "projects/*/apps/*/environments/*", action: action(rbacpermissions.DeleteEnvironment{})},
+		},
+	},
+	"gateway_logs:read": {
+		name:        "Read gateway logs",
+		description: "Allows reading gateway logs.",
+		permissions: []permissionGrant{
+			{resource: "projects/*/apps/*/environments/*/gateway/logs", action: action(rbacpermissions.ReadGatewayLogs{})},
 		},
 	},
 	"gateway_policies:read": {
 		name:        "Read gateway policies",
 		description: "Allows reading an environment's gateway policies.",
 		permissions: []permissionGrant{
-			{resource: "projects/*/apps/*/environments/*/gateway/policies/*", action: action(rbacpermissions.ReadPolicy{})},
+			{resource: "projects/*/apps/*/environments/*/gateway/policies/*", action: action(rbacpermissions.ReadGatewayPolicy{})},
 		},
 	},
 	"gateway_policies:write": {
 		name:        "Write gateway policies",
-		description: "Allows creating, updating, and deleting an environment's gateway policies.",
+		description: "Allows creating and updating an environment's gateway policies.",
 		permissions: []permissionGrant{
-			{resource: "projects/*/apps/*/environments/*/gateway/policies/*", action: action(rbacpermissions.WritePolicy{})},
+			{resource: "projects/*/apps/*/environments/*/gateway/policies/*", action: action(rbacpermissions.WriteGatewayPolicy{})},
+		},
+	},
+	"gateway_policies:delete": {
+		name:        "Delete gateway policies",
+		description: "Allows deleting an environment's gateway policies.",
+		permissions: []permissionGrant{
+			{resource: "projects/*/apps/*/environments/*/gateway/policies/*", action: action(rbacpermissions.DeleteGatewayPolicy{})},
 		},
 	},
 	"environment_variables:read": {
 		name:        "Read environment variables",
 		description: "Allows reading environment variables, including recoverable values.",
 		permissions: []permissionGrant{
-			{resource: "projects/*/apps/*/environments/*", action: action(rbacpermissions.ReadEnvironmentVariables{})},
+			{resource: "projects/*/apps/*/environments/*/variables/*", action: action(rbacpermissions.ReadEnvironmentVariable{})},
 		},
 	},
-	"environment_variables:set": {
-		name:        "Set environment variables",
+	"environment_variables:write": {
+		name:        "Write environment variables",
 		description: "Allows creating and overwriting environment variables.",
 		permissions: []permissionGrant{
-			{resource: "projects/*/apps/*/environments/*", action: action(rbacpermissions.SetEnvironmentVariables{})},
+			{resource: "projects/*/apps/*/environments/*/variables/*", action: action(rbacpermissions.WriteEnvironmentVariable{})},
 		},
 	},
-	"environment_variables:remove": {
-		name:        "Remove environment variables",
+	"environment_variables:delete": {
+		name:        "Delete environment variables",
 		description: "Allows removing environment variables.",
 		permissions: []permissionGrant{
-			{resource: "projects/*/apps/*/environments/*", action: action(rbacpermissions.RemoveEnvironmentVariables{})},
+			{resource: "projects/*/apps/*/environments/*/variables/*", action: action(rbacpermissions.DeleteEnvironmentVariable{})},
 		},
 	},
-	"domains:create": {
-		name:        "Create domains",
-		description: "Allows attaching a custom domain to an environment.",
+	"domains:write": {
+		name:        "Write domains",
+		description: "Allows attaching, updating, and restarting verification for custom domains.",
 		permissions: []permissionGrant{
-			{resource: "projects/*/apps/*/environments/*/domains/*", action: action(rbacpermissions.CreateDomain{})},
+			{resource: "projects/*/apps/*/environments/*/domains/*", action: action(rbacpermissions.WriteDomain{})},
 		},
 	},
 	"domains:read": {
@@ -186,18 +229,11 @@ var permissionMappings = map[string]permissionMapping{
 			{resource: "projects/*/apps/*/environments/*/domains/*", action: action(rbacpermissions.DeleteDomain{})},
 		},
 	},
-	"domains:verify": {
-		name:        "Verify domains",
-		description: "Allows restarting verification for a custom domain.",
+	"identities:write": {
+		name:        "Write identities",
+		description: "Allows creating and updating identities.",
 		permissions: []permissionGrant{
-			{resource: "projects/*/apps/*/environments/*/domains/*", action: action(rbacpermissions.VerifyDomain{})},
-		},
-	},
-	"identities:create": {
-		name:        "Create identities",
-		description: "Allows creating identities.",
-		permissions: []permissionGrant{
-			{resource: "projects/*/identities/*", action: action(rbacpermissions.CreateIdentity{})},
+			{resource: "projects/*/identities/*", action: action(rbacpermissions.WriteIdentity{})},
 		},
 	},
 	"identities:read": {
@@ -207,13 +243,6 @@ var permissionMappings = map[string]permissionMapping{
 			{resource: "projects/*/identities/*", action: action(rbacpermissions.ReadIdentity{})},
 		},
 	},
-	"identities:update": {
-		name:        "Update identities",
-		description: "Allows updating identities.",
-		permissions: []permissionGrant{
-			{resource: "projects/*/identities/*", action: action(rbacpermissions.UpdateIdentity{})},
-		},
-	},
 	"identities:delete": {
 		name:        "Delete identities",
 		description: "Allows deleting identities.",
@@ -221,54 +250,165 @@ var permissionMappings = map[string]permissionMapping{
 			{resource: "projects/*/identities/*", action: action(rbacpermissions.DeleteIdentity{})},
 		},
 	},
-	"keys:create": {
-		name:        "Create keys",
-		description: "Allows creating keys.",
+	"keyspaces:read": {
+		name:        "Read keyspaces",
+		description: "Allows reading keyspaces.",
 		permissions: []permissionGrant{
-			{resource: "keyspaces/*", action: action(rbacpermissions.CreateKey{})},
+			{resource: "projects/*/keyspaces/*", action: action(rbacpermissions.ReadKeyspace{})},
+		},
+	},
+	"keyspaces:write": {
+		name:        "Write keyspaces",
+		description: "Allows creating and updating keyspaces.",
+		permissions: []permissionGrant{
+			{resource: "projects/*/keyspaces/*", action: action(rbacpermissions.WriteKeyspace{})},
+		},
+	},
+	"keyspaces:delete": {
+		name:        "Delete keyspaces",
+		description: "Allows deleting keyspaces.",
+		permissions: []permissionGrant{
+			{resource: "projects/*/keyspaces/*", action: action(rbacpermissions.DeleteKeyspace{})},
+		},
+	},
+	"keyspace_logs:read": {
+		name:        "Read keyspace logs",
+		description: "Allows reading keyspace logs.",
+		permissions: []permissionGrant{
+			{resource: "projects/*/keyspaces/*/logs", action: action(rbacpermissions.ReadKeyspaceLogs{})},
 		},
 	},
 	"keys:read": {
 		name:        "Read keys",
 		description: "Allows reading keys.",
 		permissions: []permissionGrant{
-			{resource: "keyspaces/*/keys/*", action: action(rbacpermissions.ReadKey{})},
-			{resource: "keyspaces/*", action: action(rbacpermissions.ReadKeyspace{})},
+			{resource: "projects/*/keyspaces/*/keys/*", action: action(rbacpermissions.ReadKey{})},
 		},
 	},
-	"keys:update": {
-		name:        "Update keys",
-		description: "Allows updating keys.",
+	"keys:write": {
+		name:        "Write keys",
+		description: "Allows creating, updating, and encrypting recoverable keys.",
 		permissions: []permissionGrant{
-			{resource: "keyspaces/*/keys/*", action: action(rbacpermissions.UpdateKey{})},
+			{resource: "projects/*/keyspaces/*/keys/*", action: action(rbacpermissions.WriteKey{})},
 		},
 	},
 	"keys:verify": {
 		name:        "Verify keys",
 		description: "Allows verifying keys.",
 		permissions: []permissionGrant{
-			{resource: "keyspaces/*/keys/*", action: action(rbacpermissions.VerifyKey{})},
-		},
-	},
-	"keys:encrypt": {
-		name:        "Encrypt keys",
-		description: "Allows creating recoverable keys.",
-		permissions: []permissionGrant{
-			{resource: "keyspaces/*/keys/*", action: action(rbacpermissions.EncryptKey{})},
+			{resource: "projects/*/keyspaces/*/keys/*", action: action(rbacpermissions.VerifyKey{})},
 		},
 	},
 	"keys:decrypt": {
 		name:        "Decrypt keys",
 		description: "Allows reading recoverable key material.",
 		permissions: []permissionGrant{
-			{resource: "keyspaces/*/keys/*", action: action(rbacpermissions.DecryptKey{})},
+			{resource: "projects/*/keyspaces/*/keys/*", action: action(rbacpermissions.DecryptKey{})},
 		},
 	},
 	"keys:delete": {
 		name:        "Delete keys",
 		description: "Allows deleting keys.",
 		permissions: []permissionGrant{
-			{resource: "keyspaces/*/keys/*", action: action(rbacpermissions.DeleteKey{})},
+			{resource: "projects/*/keyspaces/*/keys/*", action: action(rbacpermissions.DeleteKey{})},
+		},
+	},
+	"ratelimit_namespaces:read": {
+		name:        "Read rate limit namespaces",
+		description: "Allows reading rate limit namespaces.",
+		permissions: []permissionGrant{
+			{resource: "projects/*/ratelimits/namespaces/*", action: action(rbacpermissions.ReadRatelimitNamespace{})},
+		},
+	},
+	"ratelimit_namespaces:write": {
+		name:        "Write rate limit namespaces",
+		description: "Allows creating and updating rate limit namespaces.",
+		permissions: []permissionGrant{
+			{resource: "projects/*/ratelimits/namespaces/*", action: action(rbacpermissions.WriteRatelimitNamespace{})},
+		},
+	},
+	"ratelimit_namespaces:delete": {
+		name:        "Delete rate limit namespaces",
+		description: "Allows deleting rate limit namespaces.",
+		permissions: []permissionGrant{
+			{resource: "projects/*/ratelimits/namespaces/*", action: action(rbacpermissions.DeleteRatelimitNamespace{})},
+		},
+	},
+	"ratelimit_namespaces:limit": {
+		name:        "Use rate limit namespaces",
+		description: "Allows checking and using rate limit namespaces.",
+		permissions: []permissionGrant{
+			{resource: "projects/*/ratelimits/namespaces/*", action: action(rbacpermissions.LimitRatelimitNamespace{})},
+		},
+	},
+	"ratelimit_logs:read": {
+		name:        "Read rate limit logs",
+		description: "Allows reading rate limit logs.",
+		permissions: []permissionGrant{
+			{resource: "projects/*/ratelimits/namespaces/*/logs", action: action(rbacpermissions.ReadRatelimitLogs{})},
+		},
+	},
+	"ratelimit_overrides:read": {
+		name:        "Read rate limit overrides",
+		description: "Allows reading rate limit overrides.",
+		permissions: []permissionGrant{
+			{resource: "projects/*/ratelimits/namespaces/*/overrides/*", action: action(rbacpermissions.ReadRatelimitOverride{})},
+		},
+	},
+	"ratelimit_overrides:write": {
+		name:        "Write rate limit overrides",
+		description: "Allows creating and updating rate limit overrides.",
+		permissions: []permissionGrant{
+			{resource: "projects/*/ratelimits/namespaces/*/overrides/*", action: action(rbacpermissions.WriteRatelimitOverride{})},
+		},
+	},
+	"ratelimit_overrides:delete": {
+		name:        "Delete rate limit overrides",
+		description: "Allows deleting rate limit overrides.",
+		permissions: []permissionGrant{
+			{resource: "projects/*/ratelimits/namespaces/*/overrides/*", action: action(rbacpermissions.DeleteRatelimitOverride{})},
+		},
+	},
+	"roles:read": {
+		name:        "Read roles",
+		description: "Allows reading roles.",
+		permissions: []permissionGrant{
+			{resource: "projects/*/rbac/roles/*", action: action(rbacpermissions.ReadRole{})},
+		},
+	},
+	"roles:write": {
+		name:        "Write roles",
+		description: "Allows creating and updating roles and their permission assignments.",
+		permissions: []permissionGrant{
+			{resource: "projects/*/rbac/roles/*", action: action(rbacpermissions.WriteRole{})},
+		},
+	},
+	"roles:delete": {
+		name:        "Delete roles",
+		description: "Allows deleting roles.",
+		permissions: []permissionGrant{
+			{resource: "projects/*/rbac/roles/*", action: action(rbacpermissions.DeleteRole{})},
+		},
+	},
+	"permissions:read": {
+		name:        "Read permissions",
+		description: "Allows reading permission definitions.",
+		permissions: []permissionGrant{
+			{resource: "projects/*/rbac/permissions/*", action: action(rbacpermissions.ReadPermission{})},
+		},
+	},
+	"permissions:write": {
+		name:        "Write permissions",
+		description: "Allows creating and updating permission definitions.",
+		permissions: []permissionGrant{
+			{resource: "projects/*/rbac/permissions/*", action: action(rbacpermissions.WritePermission{})},
+		},
+	},
+	"permissions:delete": {
+		name:        "Delete permissions",
+		description: "Allows deleting permission definitions.",
+		permissions: []permissionGrant{
+			{resource: "projects/*/rbac/permissions/*", action: action(rbacpermissions.DeletePermission{})},
 		},
 	},
 }
@@ -303,20 +443,19 @@ func sortedPermissionSlugs() []string {
 //
 // For workspaceID "ws_1":
 //
-//	keys:create        => unkey:v1:ws_1:keyspaces/*#create_key
-//	keys:read          => unkey:v1:ws_1:keyspaces/*/keys/*#read_key
-//	keys:update        => unkey:v1:ws_1:keyspaces/*/keys/*#update_key
+//	keys:write         => unkey:v1:ws_1:projects/*/keyspaces/*/keys/*#write_key
+//	keys:read          => unkey:v1:ws_1:projects/*/keyspaces/*/keys/*#read_key
 //	identities:read    => unkey:v1:ws_1:projects/*/identities/*#read_identity
 //	admin:*            => unkey:v1:ws_1:**#*
 //	unknown:permission => dropped with a warning log
 func translatePermissions(workspaceID string, permissions []string) []string {
 	var out []string
 
-	for _, permission := range permissions {
-		mapping, ok := permissionMappings[permission]
+	for _, slug := range permissions {
+		mapping, ok := permissionMappings[slug]
 		if !ok {
 			logger.Warn("unable to translate permission from workos to unkey, skipping ...",
-				"permission", permission,
+				"permission", slug,
 			)
 			continue
 		}

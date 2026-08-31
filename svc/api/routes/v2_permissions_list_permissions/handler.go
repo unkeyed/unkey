@@ -12,8 +12,11 @@ import (
 	"github.com/unkeyed/unkey/pkg/mysql"
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/internal/pagination"
+	"github.com/unkeyed/unkey/svc/api/internal/projects"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
@@ -39,13 +42,11 @@ func (h *Handler) Path() string {
 
 // Handle processes the HTTP request
 func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
-	// 1. Authentication
 	principal, err := s.GetPrincipal()
 	if err != nil {
 		return err
 	}
 
-	// 2. Request validation
 	req, err := zen.BindBody[Request](s)
 	if err != nil {
 		return err
@@ -54,22 +55,17 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	p := pagination.Parse(req.Limit, req.Cursor, 100)
 	search := mysql.SearchContains(strings.TrimSpace(ptr.SafeDeref(req.Search)))
 
-	err = principal.Authorize(rbac.Or(
-		rbac.T(rbac.Tuple{
-			ResourceType: rbac.Rbac,
-			ResourceID:   "*",
-			Action:       rbac.ReadPermission,
-		}),
-	))
+	projectID, err := projects.EnsureDefaultProject(ctx, h.DB.RW(), principal.WorkspaceID)
 	if err != nil {
 		return err
 	}
 
-	permissions, err := db.Query.ListPermissions(
+	rows, err := db.Query.ListPermissions(
 		ctx,
 		h.DB.RO(),
 		db.ListPermissionsParams{
 			WorkspaceID:       principal.WorkspaceID,
+			ProjectID:         projectID,
 			IDCursor:          p.Cursor,
 			Search:            search,
 			DescriptionSearch: search,
@@ -83,9 +79,25 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	permissions, pg := pagination.Paginate(permissions, p, func(r db.Permission) string { return r.ID })
+	readPermissions := rbac.U(
+		urn.New().Workspace(principal.WorkspaceID).Project(projectID).RBAC().Permission("*"),
+		permissions.ReadPermission{},
+	)
+	err = principal.Authorize(rbac.Or(
+		readPermissions,
+		rbac.T(rbac.Tuple{
+			ResourceType: rbac.Rbac,
+			ResourceID:   "*",
+			Action:       rbac.ReadPermission,
+		}),
+	))
+	if err != nil {
+		return err
+	}
 
-	responsePermissions := array.Map(permissions, func(perm db.Permission) openapi.Permission {
+	rows, pg := pagination.Paginate(rows, p, func(r db.Permission) string { return r.ID })
+
+	responsePermissions := array.Map(rows, func(perm db.Permission) openapi.Permission {
 		return openapi.Permission{
 			Id:          perm.ID,
 			Name:        perm.Name,
@@ -94,7 +106,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 	})
 
-	// 7. Return success response
 	return s.JSON(http.StatusOK, Response{
 		Meta: openapi.Meta{
 			RequestId: s.RequestID(),

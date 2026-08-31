@@ -10,6 +10,8 @@ import (
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
@@ -35,24 +37,11 @@ func (h *Handler) Path() string {
 
 // Handle processes the HTTP request
 func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
-	// 1. Authentication
 	principal, err := s.GetPrincipal()
 	if err != nil {
 		return err
 	}
-	// 2. Request validation
 	req, err := zen.BindBody[Request](s)
-	if err != nil {
-		return err
-	}
-
-	err = principal.Authorize(rbac.Or(
-		rbac.T(rbac.Tuple{
-			ResourceType: rbac.Rbac,
-			ResourceID:   "*",
-			Action:       rbac.DeletePermission,
-		}),
-	))
 	if err != nil {
 		return err
 	}
@@ -74,6 +63,22 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			fault.Internal("database error"),
 			fault.Public("Failed to retrieve permission information."),
 		)
+	}
+
+	deletePermission := rbac.U(
+		urn.New().Workspace(principal.WorkspaceID).Project(permission.ProjectID).RBAC().Permission(permission.ID),
+		permissions.DeletePermission{},
+	)
+	err = principal.Authorize(rbac.Or(
+		deletePermission,
+		rbac.T(rbac.Tuple{
+			ResourceType: rbac.Rbac,
+			ResourceID:   "*",
+			Action:       rbac.DeletePermission,
+		}),
+	))
+	if err != nil {
+		return err
 	}
 
 	err = db.TxRetry(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {

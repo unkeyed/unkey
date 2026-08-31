@@ -16,6 +16,7 @@ SELECT r.*, COALESCE(
 ) as permissions
 FROM roles r
 WHERE r.workspace_id = sqlc.arg(workspace_id)
+AND r.project_id = sqlc.arg(project_id)
 AND r.id >= sqlc.arg(id_cursor)
 -- search is a pre-escaped LIKE pattern built by mysql.SearchContains; NULL disables the filter
 AND (sqlc.narg(search) IS NULL OR LOWER(r.id) LIKE LOWER(sqlc.narg(search)) OR LOWER(r.name) LIKE LOWER(sqlc.narg(search)) OR LOWER(r.description) LIKE LOWER(sqlc.narg(search)))

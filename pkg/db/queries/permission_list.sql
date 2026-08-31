@@ -2,6 +2,7 @@
 SELECT p.*
 FROM permissions p
 WHERE p.workspace_id = sqlc.arg(workspace_id)
+  AND p.project_id = sqlc.arg(project_id)
   AND p.id >= sqlc.arg(id_cursor)
   -- search and description_search carry the same pre-escaped LIKE pattern built
   -- by mysql.SearchContains; NULL disables the filter. They are separate params

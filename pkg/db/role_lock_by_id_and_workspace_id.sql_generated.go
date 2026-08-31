@@ -10,7 +10,7 @@ import (
 )
 
 const lockRoleByIDAndWorkspaceID = `-- name: LockRoleByIDAndWorkspaceID :one
-SELECT id, name
+SELECT id, project_id, name
 FROM roles
 WHERE id = ? AND workspace_id = ?
 FOR UPDATE
@@ -22,19 +22,21 @@ type LockRoleByIDAndWorkspaceIDParams struct {
 }
 
 type LockRoleByIDAndWorkspaceIDRow struct {
-	ID   string `db:"id"`
-	Name string `db:"name"`
+	ID        string `db:"id"`
+	ProjectID string `db:"project_id"`
+	Name      string `db:"name"`
 }
 
-// LockRoleByIDAndWorkspaceID
+// LockRoleByIDAndWorkspaceID serializes role permission changes. It returns
+// the project ID so authorization can use the role's project-scoped URN.
 //
-//	SELECT id, name
+//	SELECT id, project_id, name
 //	FROM roles
 //	WHERE id = ? AND workspace_id = ?
 //	FOR UPDATE
 func (q *Queries) LockRoleByIDAndWorkspaceID(ctx context.Context, db DBTX, arg LockRoleByIDAndWorkspaceIDParams) (LockRoleByIDAndWorkspaceIDRow, error) {
 	row := db.QueryRowContext(ctx, lockRoleByIDAndWorkspaceID, arg.RoleID, arg.WorkspaceID)
 	var i LockRoleByIDAndWorkspaceIDRow
-	err := row.Scan(&i.ID, &i.Name)
+	err := row.Scan(&i.ID, &i.ProjectID, &i.Name)
 	return i, err
 }

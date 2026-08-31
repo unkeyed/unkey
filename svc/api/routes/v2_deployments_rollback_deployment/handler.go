@@ -66,8 +66,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			Action:       rbac.RollbackDeployment,
 		}),
 		rbac.U(
-			urn.New().Workspace(principal.WorkspaceID).Project(dep.ProjectID).App(dep.AppID).Environment(dep.EnvironmentID).Deployment(dep.ID),
-			permissions.RollbackDeployment{},
+			urn.New().Workspace(principal.WorkspaceID).Project(dep.ProjectID).App(dep.AppID).Environment(dep.EnvironmentID),
+			permissions.WriteEnvironment{},
 		),
 	))
 	if err != nil {

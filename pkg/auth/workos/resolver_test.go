@@ -30,9 +30,9 @@ func TestResolverWithPermissionsTranslatesPermissionStrings(t *testing.T) {
 				Type:        principal.TypeJWT,
 				WorkspaceID: "ws_123",
 				Permissions: []string{
+					"keys:write",
+					"keys:write",
 					"keys:create",
-					"keys:create",
-					"keys:encrypt",
 					"malformed",
 					"",
 				},
@@ -43,9 +43,8 @@ func TestResolverWithPermissionsTranslatesPermissionStrings(t *testing.T) {
 	principal, err := resolver.Resolve(context.Background(), nil)
 	require.NoError(t, err)
 	require.Equal(t, []string{
-		"unkey:v1:ws_123:keyspaces/*#create_key",
-		"unkey:v1:ws_123:keyspaces/*#create_key",
-		"unkey:v1:ws_123:keyspaces/*/keys/*#encrypt_key",
+		"unkey:v1:ws_123:projects/*/keyspaces/*/keys/*#write_key",
+		"unkey:v1:ws_123:projects/*/keyspaces/*/keys/*#write_key",
 	}, principal.Permissions)
 }
 
