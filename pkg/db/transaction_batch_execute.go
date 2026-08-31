@@ -50,17 +50,30 @@ func (r *Replica) executeTransactionBatch(
 	}
 
 	committed := false
-	if rows.Next() {
-		var marker string
-		if scanErr := rows.Scan(&marker); scanErr == nil && marker == transactionBatchMarker {
-			committed = true
+	for {
+		resultSetHasMarker := false
+		columns, columnsErr := rows.Columns()
+		if columnsErr != nil {
+			break
 		}
-	}
-
-	for rows.Next() {
-	}
-	for rows.NextResultSet() {
 		for rows.Next() {
+			if len(columns) != 1 {
+				continue
+			}
+			var value any
+			if scanErr := rows.Scan(&value); scanErr != nil {
+				continue
+			}
+			switch marker := value.(type) {
+			case string:
+				resultSetHasMarker = marker == transactionBatchMarker
+			case []byte:
+				resultSetHasMarker = string(marker) == transactionBatchMarker
+			}
+		}
+		committed = resultSetHasMarker
+		if !rows.NextResultSet() {
+			break
 		}
 	}
 	rowsErr := rows.Err()

@@ -1,4 +1,5 @@
 -- name: InsertKeyRatelimit :exec
+-- transactional-batch-statement
 INSERT INTO `ratelimits` (
     id,
     workspace_id,
@@ -18,6 +19,7 @@ INSERT INTO `ratelimits` (
     sqlc.arg('auto_apply'),
     sqlc.arg('created_at')
 ) ON DUPLICATE KEY UPDATE
+name = VALUES(name),
 `limit` = VALUES(`limit`),
 duration = VALUES(duration),
 auto_apply = VALUES(auto_apply),

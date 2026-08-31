@@ -61,15 +61,20 @@ func TestGenerateRejectsDuplicateDirective(t *testing.T) {
 	require.ErrorContains(t, err, "duplicate transactional-batch-statement directives")
 }
 
-func TestGenerateRejectsRowQuery(t *testing.T) {
+func TestGenerateAcceptsSingleRowQuery(t *testing.T) {
 	t.Parallel()
 
 	generator := NewGenerator()
 
-	_, err := generator.Generate(&plugin.GenerateRequest{Queries: []*plugin.Query{{
+	response, err := generator.Generate(&plugin.GenerateRequest{Queries: []*plugin.Query{{
 		Name:     "FindUser",
 		Cmd:      ":one",
 		Comments: []string{batchStatementDirective},
+		Params: []*plugin.Parameter{
+			{Column: &plugin.Column{Name: "workspace_id"}},
+			{Column: &plugin.Column{Name: "workspace_id_check"}},
+		},
 	}}})
-	require.ErrorContains(t, err, "must use :exec")
+	require.NoError(t, err)
+	require.Contains(t, string(response.GetFiles()[0].GetContents()), "findUserTransactionBatchStatement")
 }

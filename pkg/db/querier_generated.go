@@ -16,6 +16,14 @@ type Querier interface {
 	//  FROM custom_domains
 	//  WHERE workspace_id = ?
 	CountCustomDomainsByWorkspace(ctx context.Context, db DBTX, workspaceID string) (int64, error)
+	//DeleteAllKeyPermissionsAndRolesByKeyID
+	//
+	//  DELETE kp, kr
+	//  FROM `keys` k
+	//  LEFT JOIN keys_permissions kp ON k.id = kp.key_id
+	//  LEFT JOIN keys_roles kr ON k.id = kr.key_id
+	//  WHERE k.id = ?
+	DeleteAllKeyPermissionsAndRolesByKeyID(ctx context.Context, db DBTX, keyID string) error
 	//DeleteAllKeyPermissionsByKeyID
 	//
 	//  DELETE FROM keys_permissions
@@ -26,6 +34,11 @@ type Querier interface {
 	//  DELETE FROM keys_roles
 	//  WHERE key_id = ?
 	DeleteAllKeyRolesByKeyID(ctx context.Context, db DBTX, keyID string) error
+	//DeleteAllRatelimitsByKeyID
+	//
+	//  DELETE FROM ratelimits
+	//  WHERE key_id = ?
+	DeleteAllRatelimitsByKeyID(ctx context.Context, db DBTX, keyID sql.NullString) error
 	//DeleteAppBuildSettingsByEnvironmentId
 	//
 	//  DELETE FROM app_build_settings WHERE environment_id = ?
@@ -76,6 +89,39 @@ type Querier interface {
 	//  LEFT JOIN encrypted_keys ek ON k.id = ek.key_id
 	//  WHERE k.id = ?
 	DeleteKeyByID(ctx context.Context, db DBTX, id string) error
+	// transactional-batch-statement
+	//
+	//  DELETE kp, kr
+	//  FROM `keys` k
+	//  LEFT JOIN keys_permissions kp ON k.id = kp.key_id
+	//  LEFT JOIN keys_roles kr ON k.id = kr.key_id
+	//  WHERE k.id = ?
+	//      AND k.workspace_id = ?
+	DeleteKeyPermissionsAndRolesForUpdateKey(ctx context.Context, db DBTX, arg DeleteKeyPermissionsAndRolesForUpdateKeyParams) error
+	// transactional-batch-statement
+	//
+	//  DELETE kp
+	//  FROM keys_permissions kp
+	//  JOIN `keys` k ON k.id = kp.key_id
+	//  WHERE k.id = ?
+	//      AND k.workspace_id = ?
+	DeleteKeyPermissionsForUpdateKey(ctx context.Context, db DBTX, arg DeleteKeyPermissionsForUpdateKeyParams) error
+	// transactional-batch-statement
+	//
+	//  DELETE rl
+	//  FROM ratelimits rl
+	//  JOIN `keys` k ON k.id = rl.key_id
+	//  WHERE rl.key_id = ?
+	//      AND k.workspace_id = ?
+	DeleteKeyRatelimitsForUpdateKey(ctx context.Context, db DBTX, arg DeleteKeyRatelimitsForUpdateKeyParams) error
+	// transactional-batch-statement
+	//
+	//  DELETE kr
+	//  FROM keys_roles kr
+	//  JOIN `keys` k ON k.id = kr.key_id
+	//  WHERE k.id = ?
+	//      AND k.workspace_id = ?
+	DeleteKeyRolesForUpdateKey(ctx context.Context, db DBTX, arg DeleteKeyRolesForUpdateKeyParams) error
 	//DeleteManyKeyPermissionByKeyAndPermissionIDs
 	//
 	//  DELETE FROM keys_permissions
@@ -139,6 +185,12 @@ type Querier interface {
 	//  WHERE id = ?
 	//    AND workspace_id = ?
 	DeletePortal(ctx context.Context, db DBTX, arg DeletePortalParams) (int64, error)
+	//DeleteRatelimitsByKeyIDExceptNames
+	//
+	//  DELETE FROM ratelimits
+	//  WHERE key_id = ?
+	//    AND name NOT IN (/*SLICE:ratelimit_names*/?)
+	DeleteRatelimitsByKeyIDExceptNames(ctx context.Context, db DBTX, arg DeleteRatelimitsByKeyIDExceptNamesParams) error
 	//DeleteRoleByID
 	//
 	//  DELETE FROM roles
@@ -540,6 +592,90 @@ type Querier interface {
 	//  WHERE id = ?
 	//  and workspace_id = ?
 	FindKeyMigrationByID(ctx context.Context, db DBTX, arg FindKeyMigrationByIDParams) (FindKeyMigrationByIDRow, error)
+	// Resolve optional identity, permission, role, and project references in one round trip.
+	//
+	//  SELECT
+	//      'identity' AS resource_type,
+	//      i.id AS identity_id,
+	//      i.external_id AS identity_external_id,
+	//      '' AS permission_id,
+	//      '' AS permission_slug,
+	//      '' AS role_id,
+	//      '' AS role_name,
+	//      '' AS project_id,
+	//      '' AS project_slug,
+	//      '' AS ratelimit_id,
+	//      '' AS ratelimit_name
+	//  FROM identities i
+	//  WHERE CAST(? AS UNSIGNED) = 1
+	//      AND i.workspace_id = ?
+	//      AND i.external_id = ?
+	//      AND i.deleted = false
+	//  UNION ALL
+	//  SELECT
+	//      'permission' AS resource_type,
+	//      '' AS identity_id,
+	//      '' AS identity_external_id,
+	//      p.id AS permission_id,
+	//      p.slug AS permission_slug,
+	//      '' AS role_id,
+	//      '' AS role_name,
+	//      '' AS project_id,
+	//      '' AS project_slug,
+	//      '' AS ratelimit_id,
+	//      '' AS ratelimit_name
+	//  FROM permissions p
+	//  WHERE p.workspace_id = ?
+	//      AND p.slug IN (/*SLICE:permission_slugs*/?)
+	//  UNION ALL
+	//  SELECT
+	//      'role' AS resource_type,
+	//      '' AS identity_id,
+	//      '' AS identity_external_id,
+	//      '' AS permission_id,
+	//      '' AS permission_slug,
+	//      r.id AS role_id,
+	//      r.name AS role_name,
+	//      '' AS project_id,
+	//      '' AS project_slug,
+	//      '' AS ratelimit_id,
+	//      '' AS ratelimit_name
+	//  FROM roles r
+	//  WHERE r.workspace_id = ?
+	//      AND r.name IN (/*SLICE:role_names*/?)
+	//  UNION ALL
+	//  SELECT
+	//      'project' AS resource_type,
+	//      '' AS identity_id,
+	//      '' AS identity_external_id,
+	//      '' AS permission_id,
+	//      '' AS permission_slug,
+	//      '' AS role_id,
+	//      '' AS role_name,
+	//      p.id AS project_id,
+	//      p.slug AS project_slug,
+	//      '' AS ratelimit_id,
+	//      '' AS ratelimit_name
+	//  FROM projects p
+	//  WHERE p.workspace_id = ?
+	//      AND BINARY p.slug = 'default'
+	//  UNION ALL
+	//  SELECT
+	//      'ratelimit' AS resource_type,
+	//      '' AS identity_id,
+	//      '' AS identity_external_id,
+	//      '' AS permission_id,
+	//      '' AS permission_slug,
+	//      '' AS role_id,
+	//      '' AS role_name,
+	//      '' AS project_id,
+	//      '' AS project_slug,
+	//      rl.id AS ratelimit_id,
+	//      rl.name AS ratelimit_name
+	//  FROM ratelimits rl
+	//  WHERE rl.key_id = ?
+	//      AND rl.name IN (/*SLICE:ratelimit_names*/?)
+	FindKeyMutationResources(ctx context.Context, db DBTX, arg FindKeyMutationResourcesParams) ([]FindKeyMutationResourcesRow, error)
 	//FindKeyRoleByKeyAndRoleID
 	//
 	//  SELECT pk, key_id, role_id, workspace_id, created_at_m, updated_at_m
@@ -761,6 +897,30 @@ type Querier interface {
 	//      AND ka.deleted_at_m IS NULL
 	//      AND ws.deleted_at_m IS NULL
 	FindLiveKeyByID(ctx context.Context, db DBTX, id string) (FindLiveKeyByIDRow, error)
+	// Keep this projection small: key updates do not need the RBAC and ratelimit
+	// aggregates returned by FindLiveKeyByID.
+	//
+	//  SELECT
+	//      k.id,
+	//      k.key_auth_id,
+	//      k.hash,
+	//      k.workspace_id,
+	//      k.name,
+	//      k.identity_id,
+	//      a.id AS api_id,
+	//      a.name AS api_name,
+	//      i.external_id AS identity_external_id
+	//  FROM `keys` k
+	//  JOIN apis a ON a.key_auth_id = k.key_auth_id
+	//  JOIN key_auth ka ON ka.id = k.key_auth_id
+	//  JOIN workspaces ws ON k.workspace_id = ws.id
+	//  LEFT JOIN identities i ON k.identity_id = i.id AND i.deleted = false
+	//  WHERE k.id = ?
+	//      AND k.deleted_at_m IS NULL
+	//      AND a.deleted_at_m IS NULL
+	//      AND ka.deleted_at_m IS NULL
+	//      AND ws.deleted_at_m IS NULL
+	FindLiveKeyForUpdateByID(ctx context.Context, db DBTX, id string) (FindLiveKeyForUpdateByIDRow, error)
 	//FindManyRatelimitNamespaces
 	//
 	//  SELECT pk, id, workspace_id, project_id, name, created_at_m, updated_at_m, deleted_at_m,
@@ -1165,6 +1325,7 @@ type Querier interface {
 	//  INSERT INTO app_environment_variables (id, workspace_id, app_id, environment_id, `key`, value, `type`, description, created_at)
 	//  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
 	InsertAppEnvironmentVariable(ctx context.Context, db DBTX, arg InsertAppEnvironmentVariableParams) error
+	// transactional-batch-statement
 	// InsertClickhouseOutbox enqueues one event for ClickHouse export. Called
 	// from the same MySQL transaction as the underlying mutation, so durability
 	// is exactly the durability of the mutation: if the mutation commits, the
@@ -1188,6 +1349,28 @@ type Querier interface {
 	//      ?
 	//  )
 	InsertClickhouseOutbox(ctx context.Context, db DBTX, arg InsertClickhouseOutboxParams) error
+	// transactional-batch-statement
+	// no-bulk-insert
+	//
+	//  INSERT INTO clickhouse_outbox (
+	//      version,
+	//      workspace_id,
+	//      event_id,
+	//      payload,
+	//      created_at
+	//  )
+	//  SELECT
+	//      ?,
+	//      ?,
+	//      ?,
+	//      CAST(? AS JSON),
+	//      ?
+	//  WHERE EXISTS (
+	//      SELECT 1
+	//      FROM permissions p
+	//      WHERE p.id = ?
+	//  )
+	InsertClickhouseOutboxForPermissionUpdateKey(ctx context.Context, db DBTX, arg InsertClickhouseOutboxForPermissionUpdateKeyParams) error
 	//InsertClickhouseWorkspaceSettings
 	//
 	//  INSERT INTO `clickhouse_workspace_settings` (
@@ -1257,6 +1440,28 @@ type Querier interface {
 	//      ?
 	//  )
 	InsertCustomDomain(ctx context.Context, db DBTX, arg InsertCustomDomainParams) error
+	// transactional-batch-statement
+	// no-bulk-insert
+	//
+	//  INSERT INTO projects (
+	//      id,
+	//      workspace_id,
+	//      name,
+	//      slug,
+	//      delete_protection,
+	//      created_at,
+	//      updated_at
+	//  ) VALUES (
+	//      ?,
+	//      ?,
+	//      'Default',
+	//      'default',
+	//      true,
+	//      ?,
+	//      NULL
+	//  )
+	//  ON DUPLICATE KEY UPDATE id = projects.id
+	InsertDefaultProjectForUpdateKey(ctx context.Context, db DBTX, arg InsertDefaultProjectForUpdateKeyParams) error
 	//InsertDeployment
 	//
 	//  INSERT INTO `deployments` (
@@ -1474,6 +1679,31 @@ type Querier interface {
 	//      CAST(? AS JSON)
 	//  )
 	InsertIdentity(ctx context.Context, db DBTX, arg InsertIdentityParams) error
+	// transactional-batch-statement
+	// no-bulk-insert
+	//
+	//  INSERT INTO identities (
+	//      id,
+	//      external_id,
+	//      workspace_id,
+	//      project_id,
+	//      environment,
+	//      created_at,
+	//      meta
+	//  )
+	//  SELECT
+	//      ?,
+	//      ?,
+	//      ?,
+	//      p.id,
+	//      'default',
+	//      ?,
+	//      JSON_OBJECT()
+	//  FROM projects p
+	//  WHERE p.workspace_id = ?
+	//      AND BINARY p.slug = 'default'
+	//  ON DUPLICATE KEY UPDATE id = identities.id
+	InsertIdentityForUpdateKey(ctx context.Context, db DBTX, arg InsertIdentityForUpdateKeyParams) error
 	//InsertIdentityRatelimit
 	//
 	//  INSERT INTO `ratelimits` (
@@ -1571,7 +1801,28 @@ type Querier interface {
 	//      ?
 	//  ) ON DUPLICATE KEY UPDATE updated_at_m = ?
 	InsertKeyPermission(ctx context.Context, db DBTX, arg InsertKeyPermissionParams) error
-	//InsertKeyRatelimit
+	// transactional-batch-statement
+	// no-bulk-insert
+	//
+	//  INSERT INTO keys_permissions (
+	//      key_id,
+	//      permission_id,
+	//      workspace_id,
+	//      created_at_m,
+	//      updated_at_m
+	//  )
+	//  SELECT
+	//      ?,
+	//      p.id,
+	//      ?,
+	//      ?,
+	//      ?
+	//  FROM permissions p
+	//  WHERE p.workspace_id = ?
+	//      AND p.slug = ?
+	//  ON DUPLICATE KEY UPDATE updated_at_m = VALUES(updated_at_m)
+	InsertKeyPermissionBySlugForUpdateKey(ctx context.Context, db DBTX, arg InsertKeyPermissionBySlugForUpdateKeyParams) error
+	// transactional-batch-statement
 	//
 	//  INSERT INTO `ratelimits` (
 	//      id,
@@ -1592,12 +1843,13 @@ type Querier interface {
 	//      ?,
 	//      ?
 	//  ) ON DUPLICATE KEY UPDATE
+	//  name = VALUES(name),
 	//  `limit` = VALUES(`limit`),
 	//  duration = VALUES(duration),
 	//  auto_apply = VALUES(auto_apply),
 	//  updated_at = ?
 	InsertKeyRatelimit(ctx context.Context, db DBTX, arg InsertKeyRatelimitParams) error
-	//InsertKeyRole
+	// transactional-batch-statement
 	//
 	//  INSERT INTO keys_roles (
 	//    key_id,
@@ -1657,6 +1909,31 @@ type Querier interface {
 	//    ?
 	//  )
 	InsertPermission(ctx context.Context, db DBTX, arg InsertPermissionParams) error
+	// transactional-batch-statement
+	// no-bulk-insert
+	//
+	//  INSERT INTO permissions (
+	//      id,
+	//      workspace_id,
+	//      project_id,
+	//      name,
+	//      slug,
+	//      description,
+	//      created_at_m
+	//  )
+	//  SELECT
+	//      ?,
+	//      ?,
+	//      p.id,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?
+	//  FROM projects p
+	//  WHERE p.workspace_id = ?
+	//      AND BINARY p.slug = 'default'
+	//  ON DUPLICATE KEY UPDATE id = permissions.id
+	InsertPermissionForUpdateKey(ctx context.Context, db DBTX, arg InsertPermissionForUpdateKeyParams) error
 	//InsertPortal
 	//
 	//  INSERT INTO portals (
@@ -2459,6 +2736,14 @@ type Querier interface {
 	//  WHERE id = ? AND workspace_id = ?
 	//  FOR UPDATE
 	LockRoleByIDAndWorkspaceID(ctx context.Context, db DBTX, arg LockRoleByIDAndWorkspaceIDParams) (LockRoleByIDAndWorkspaceIDRow, error)
+	// transactional-batch-statement
+	//
+	//  SELECT id
+	//  FROM workspaces
+	//  WHERE id = ?
+	//      AND id = ?
+	//  FOR UPDATE
+	LockWorkspaceForUpdateKey(ctx context.Context, db DBTX, arg LockWorkspaceForUpdateKeyParams) (string, error)
 	// Clears the workspace_billing linkage on a workspace, returning it to the
 	// Free tier. Mirrors what the customer.subscription.deleted webhook writes,
 	// plus stripe_customer_id, which no webhook ever clears. Stripe subscription
@@ -2701,7 +2986,7 @@ type Querier interface {
 	//  WHERE
 	//      id = ?
 	UpdateIdentity(ctx context.Context, db DBTX, arg UpdateIdentityParams) error
-	//UpdateKey
+	// transactional-batch-statement
 	//
 	//  UPDATE `keys` k SET
 	//      name = CASE
@@ -2709,7 +2994,17 @@ type Querier interface {
 	//          ELSE k.name
 	//      END,
 	//      identity_id = CASE
-	//          WHEN CAST(? AS UNSIGNED) = 1 THEN ?
+	//          WHEN CAST(? AS UNSIGNED) = 1 THEN
+	//              CASE
+	//                  WHEN CAST(? AS UNSIGNED) = 1 THEN (
+	//                      SELECT i.id
+	//                      FROM identities i
+	//                      WHERE i.workspace_id = ?
+	//                          AND i.external_id = ?
+	//                          AND i.deleted = false
+	//                  )
+	//                  ELSE ?
+	//              END
 	//          ELSE k.identity_id
 	//      END,
 	//      enabled = CASE
@@ -2737,7 +3032,7 @@ type Querier interface {
 	//          ELSE k.refill_day
 	//      END,
 	//      updated_at_m = ?
-	//  WHERE id = ?
+	//  WHERE k.id = ?
 	UpdateKey(ctx context.Context, db DBTX, arg UpdateKeyParams) error
 	//UpdateKeyCreditsDecrement
 	//
