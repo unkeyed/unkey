@@ -1,0 +1,232 @@
+---
+title: Log drains
+description: "Stream workspace audit logs to external destinations, configure delivery, and diagnose failed requests."
+---
+
+A log drain sends workspace audit logs to a destination that you control. Use
+log drains to archive security events, send events to a security information
+and event management (SIEM) service, or process events with your own tools.
+
+<Note>
+  Log drains are in private preview. Contact
+  [support@unkey.com](mailto:support@unkey.com) to request access.
+</Note>
+
+Unkey supports generic HTTPS endpoints and
+<a href="https://axiom.co" target="_blank">Axiom</a> datasets. See [Event
+types](/audit-log/types) for the events that Unkey can send.
+
+## Understand delivery
+
+Unkey sends audit logs asynchronously in batches. A destination must accept the
+complete batch before Unkey marks the delivery as successful.
+
+HTTP destinations must return a `2xx` status within 30 seconds. Return a
+non-`2xx` status if your endpoint cannot process the complete batch. Unkey then
+retries the same batch.
+
+Log drains provide at-least-once delivery. A destination can receive an event
+more than once after a retry. Use `event.id` as the deduplication key.
+
+When you create a log drain, choose whether to send new audit logs only or all
+retained audit logs. The available history depends on your workspace's [audit
+log retention](/audit-log/introduction#retention).
+
+| Destination | Use case | Configuration |
+| --- | --- | --- |
+| HTTP | Send audit logs to an HTTP collector | Public HTTPS endpoint, body format, and optional headers |
+| Axiom | Send audit logs directly to an Axiom dataset | Dataset name and an API token with ingest permission |
+
+## Configure a log drain
+
+Create a log drain from your workspace settings.
+
+1. Navigate to your workspace **Settings**.
+2. Select **Log Drains**.
+3. Click **Create log drain**.
+4. Select **HTTP** or **Axiom**.
+5. Enter a descriptive name.
+6. Select **New audit logs only** or **All retained audit logs**.
+7. Enter the destination settings.
+8. Click **Create log drain**.
+
+Delivery is asynchronous and can take several minutes.
+
+## Configure an HTTP destination
+
+An HTTP log drain sends a `POST` request to your endpoint for each batch. The
+endpoint must use HTTPS and resolve to a public IP address. Unkey rejects
+loopback, private, and link-local destinations. Do not include credentials in
+the endpoint URL. Add authentication as a custom header.
+
+Configure these fields in the dashboard:
+
+| Field | Description |
+| --- | --- |
+| **HTTPS endpoint** | The public URL that receives each batch |
+| **Headers** | Optional request headers, such as an `Authorization` header |
+| **Body format** | A JSON array (default) or NDJSON with one event per line |
+
+Unkey stores the endpoint URL in plaintext. It encrypts each custom header
+value at rest.
+
+### Handle HTTP requests
+
+Process the complete request before you acknowledge it.
+
+- Accept `POST` requests at the configured path.
+- Read the body according to the `Content-Type` header.
+- Process every event in the batch.
+- Return a `2xx` status only after you accept the complete batch.
+- Return a non-`2xx` status and a useful response body when processing fails.
+
+Unkey adds these headers to every request:
+
+| Header | Value |
+| --- | --- |
+| `Content-Type` | `application/json` or `application/x-ndjson` |
+| `User-Agent` | `unkey-logdrain/1` |
+| `X-Unkey-Schema-Version` | The payload schema version, such as `v1` |
+| `X-Unkey-Drain-Id` | The ID of the log drain |
+| `X-Unkey-Workspace-Id` | The ID of the workspace that owns the audit logs |
+
+To request a longer retry delay, return a standard `Retry-After` header. Set
+the value to a number of seconds or an HTTP date. Unkey applies the requested
+delay when it is longer than the standard retry delay. The maximum requested
+delay is 24 hours.
+
+### Read the HTTP payload
+
+Choose the format that matches your destination.
+
+<CodeGroup>
+
+```json JSON array
+[
+  {
+    "event": {
+      "id": "evt_01J6Z6X8KZQ1V9X4R7Y2W3ABCD",
+      "action": "key.create",
+      "occurred_at": "2026-08-27T12:34:56.789Z",
+      "actor": {
+        "id": "user_01J6Z6WZ4F8M5N2K7P3Q9RSTUV",
+        "type": "user",
+        "name": "Ada",
+        "metadata": null
+      },
+      "targets": [
+        {
+          "id": "api_01J6Z6VQ9K2T4M8N5P7R3STUVW",
+          "type": "api",
+          "name": "Production API",
+          "metadata": null
+        }
+      ],
+      "context": {
+        "location": "203.0.113.10",
+        "user_agent": "Mozilla/5.0"
+      },
+      "metadata": null,
+      "description": "Created a key for Production API",
+      "correlation_id": "req_01J6Z70J4V9R2K8M5N3P7QSTUW"
+    },
+    "timestamp": "2026-08-27T12:34:56.789Z"
+  }
+]
+```
+
+```json NDJSON
+{"event":{"id":"evt_01J6Z6X8KZQ1V9X4R7Y2W3ABCD","action":"key.create","occurred_at":"2026-08-27T12:34:56.789Z","actor":{"id":"user_01J6Z6WZ4F8M5N2K7P3Q9RSTUV","type":"user","name":"Ada","metadata":null},"targets":[{"id":"api_01J6Z6VQ9K2T4M8N5P7R3STUVW","type":"api","name":"Production API","metadata":null}],"context":{"location":"203.0.113.10","user_agent":"Mozilla/5.0"},"metadata":null,"description":"Created a key for Production API","correlation_id":"req_01J6Z70J4V9R2K8M5N3P7QSTUW"},"timestamp":"2026-08-27T12:34:56.789Z"}
+```
+
+</CodeGroup>
+
+Both `occurred_at` and `timestamp` use RFC 3339 UTC strings with millisecond
+precision.
+
+## Configure an Axiom destination
+
+An Axiom log drain sends Axiom-compatible NDJSON to one dataset.
+
+1. Create or select a dataset in Axiom.
+2. Create an Axiom API token with ingest permission for that dataset.
+3. In Unkey, select **Axiom** as the destination.
+4. Enter the dataset name and API token.
+5. Click **Create log drain**.
+
+Each Axiom row contains `_time`, `stream`, and `event`. Unkey encodes each row
+as one NDJSON line. This example is formatted across lines for readability:
+
+```json
+{
+  "_time": "2026-08-27T12:34:56.789Z",
+  "stream": "audit_logs",
+  "event": {
+    "id": "evt_01J6Z6X8KZQ1V9X4R7Y2W3ABCD",
+    "action": "key.create",
+    "occurred_at": "2026-08-27T12:34:56.789Z",
+    "actor": {
+      "id": "user_01J6Z6WZ4F8M5N2K7P3Q9RSTUV",
+      "type": "user",
+      "name": "Ada",
+      "metadata": null
+    },
+    "targets": [
+      {
+        "id": "api_01J6Z6VQ9K2T4M8N5P7R3STUVW",
+        "type": "api",
+        "name": "Production API",
+        "metadata": null
+      }
+    ],
+    "context": {
+      "location": "203.0.113.10",
+      "user_agent": "Mozilla/5.0"
+    },
+    "metadata": null,
+    "description": "Created a key for Production API",
+    "correlation_id": "req_01J6Z70J4V9R2K8M5N3P7QSTUW"
+  }
+}
+```
+
+Axiom can return `Retry-After` or `X-RateLimit-Reset` to request a longer retry
+delay. Set `Retry-After` to a number of seconds or an HTTP date. Set
+`X-RateLimit-Reset` to a Unix timestamp in seconds. Unkey applies the requested
+delay when it is longer than the standard retry delay. The maximum requested
+delay is 24 hours.
+
+Unkey encrypts the Axiom token before storing it.
+
+## Understand retry behavior
+
+Failed deliveries are retried. This includes `4xx` responses, `5xx` responses,
+timeouts, DNS failures, and connection failures. A failed delivery does not
+skip the affected events.
+
+The first retry waits 1 minute. The delay doubles after each failure, with a
+maximum wait of 4 hours between attempts. After 50 consecutive failures, Unkey
+pauses the log drain. The complete retry period spans approximately 7 days.
+
+A successful delivery resets the failure count. Changing the destination or
+resuming the drain also resets the failure count. Delivery continues from the
+last successful batch.
+
+## Debug a log drain
+
+Open a log drain from **Settings** > **Log Drains**. The detail page shows the
+delivery status and these metrics for the past 24 hours:
+
+- Delivered events.
+- Failed delivery attempts.
+- Average request duration.
+
+If a delivery fails, expand **Some recent deliveries failed**. The table shows
+the failure time, response status, and response body. Unkey stores up to 4 KiB
+of the response body. If the destination did not return an HTTP response, the
+table shows the connection or timeout error instead.
+
+Return a concise error response from your endpoint. Include information that
+helps you identify invalid credentials, invalid payloads, rate limits, and
+service failures. Keep full diagnostic logs in your destination because Unkey
+stores only the first 4 KiB of the response.
