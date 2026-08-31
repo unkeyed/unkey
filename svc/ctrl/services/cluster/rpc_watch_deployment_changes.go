@@ -2,7 +2,6 @@ package cluster
 
 import (
 	"context"
-	"database/sql"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -159,14 +158,7 @@ func (s *Service) loadChangeEvent(ctx context.Context, change db.DeploymentChang
 		if err != nil {
 			return nil, err
 		}
-		state, err := deploymentRowToState(deploymentRow{
-			dt:              row.DeploymentTopology,
-			d:               row.Deployment,
-			k8sNamespace:    row.K8sNamespace,
-			environmentSlug: row.EnvironmentSlug,
-			regionName:      row.RegionName,
-			gitRepo:         row.GitRepo,
-		}, change.Pk)
+		state, err := deploymentRowToState(row, change.Pk)
 		if err != nil {
 			return nil, fmt.Errorf("%w: %w", errUnrecoverable, err)
 		}
@@ -196,70 +188,104 @@ func (s *Service) loadChangeEvent(ctx context.Context, change db.DeploymentChang
 	}
 }
 
-// deploymentRow holds the common fields from both full sync and incremental query results.
-type deploymentRow struct {
-	dt              db.DeploymentTopology
-	d               db.Deployment
-	k8sNamespace    sql.NullString
-	environmentSlug string
-	regionName      string
-	gitRepo         sql.NullString
+// deploymentStateRow limits state conversion to the two deployment query results.
+type deploymentStateRow interface {
+	db.FindDeploymentTopologyByDeploymentAndRegionRow | db.ListAllDeploymentTopologiesByRegionRow
 }
 
-// deploymentRowToState converts a deployment row to a proto DeploymentState message.
-func deploymentRowToState(row deploymentRow, version uint64) (*ctrlv1.DeploymentState, error) {
-	switch row.dt.DesiredStatus {
+// deploymentRowToState converts either deployment query result to a proto DeploymentState message.
+func deploymentRowToState[T deploymentStateRow](row T, version uint64) (*ctrlv1.DeploymentState, error) {
+	var deployment db.FindDeploymentTopologyByDeploymentAndRegionRow
+	switch row := any(row).(type) {
+	case db.FindDeploymentTopologyByDeploymentAndRegionRow:
+		deployment = row
+	case db.ListAllDeploymentTopologiesByRegionRow:
+		deployment = db.FindDeploymentTopologyByDeploymentAndRegionRow{
+			DesiredStatus:                 row.DeploymentTopology.DesiredStatus,
+			AutoscalingReplicasMin:        row.DeploymentTopology.AutoscalingReplicasMin,
+			AutoscalingReplicasMax:        row.DeploymentTopology.AutoscalingReplicasMax,
+			AutoscalingThresholdCpu:       row.DeploymentTopology.AutoscalingThresholdCpu,
+			AutoscalingThresholdMemory:    row.DeploymentTopology.AutoscalingThresholdMemory,
+			ID:                            row.Deployment.ID,
+			K8sName:                       row.Deployment.K8sName,
+			WorkspaceID:                   row.Deployment.WorkspaceID,
+			ProjectID:                     row.Deployment.ProjectID,
+			EnvironmentID:                 row.Deployment.EnvironmentID,
+			AppID:                         row.Deployment.AppID,
+			Image:                         row.Deployment.Image,
+			BuildID:                       row.Deployment.BuildID,
+			GitCommitSha:                  row.Deployment.GitCommitSha,
+			GitBranch:                     row.Deployment.GitBranch,
+			GitCommitMessage:              row.Deployment.GitCommitMessage,
+			CpuMillicores:                 row.Deployment.CpuMillicores,
+			MemoryMib:                     row.Deployment.MemoryMib,
+			StorageMib:                    row.Deployment.StorageMib,
+			EncryptedEnvironmentVariables: row.Deployment.EncryptedEnvironmentVariables,
+			Command:                       row.Deployment.Command,
+			Port:                          row.Deployment.Port,
+			ShutdownSignal:                row.Deployment.ShutdownSignal,
+			Healthcheck:                   row.Deployment.Healthcheck,
+			K8sNamespace:                  row.K8sNamespace,
+			EnvironmentSlug:               row.EnvironmentSlug,
+			RegionName:                    row.RegionName,
+			GitRepo:                       row.GitRepo,
+		}
+	default:
+		return nil, fmt.Errorf("unsupported deployment row type %T", row)
+	}
+
+	switch deployment.DesiredStatus {
 	case db.DeploymentTopologyDesiredStatusStopped:
 		return &ctrlv1.DeploymentState{
 			Version: version,
 			State: &ctrlv1.DeploymentState_Delete{
 				Delete: &ctrlv1.DeleteDeployment{
-					K8SNamespace: row.k8sNamespace.String,
-					K8SName:      row.d.K8sName,
+					K8SNamespace: deployment.K8sNamespace.String,
+					K8SName:      deployment.K8sName,
 				},
 			},
 		}, nil
 	case db.DeploymentTopologyDesiredStatusRunning:
 		var buildID *string
-		if row.d.BuildID.Valid {
-			buildID = &row.d.BuildID.String
+		if deployment.BuildID.Valid {
+			buildID = &deployment.BuildID.String
 		}
 
 		apply := &ctrlv1.ApplyDeployment{
-			DeploymentId:                  row.d.ID,
-			K8SNamespace:                  row.k8sNamespace.String,
-			K8SName:                       row.d.K8sName,
-			WorkspaceId:                   row.d.WorkspaceID,
-			ProjectId:                     row.d.ProjectID,
-			EnvironmentId:                 row.d.EnvironmentID,
-			AppId:                         row.d.AppID,
-			Image:                         row.d.Image.String,
-			CpuMillicores:                 int64(row.d.CpuMillicores),
-			MemoryMib:                     int64(row.d.MemoryMib),
-			EncryptedEnvironmentVariables: row.d.EncryptedEnvironmentVariables,
+			DeploymentId:                  deployment.ID,
+			K8SNamespace:                  deployment.K8sNamespace.String,
+			K8SName:                       deployment.K8sName,
+			WorkspaceId:                   deployment.WorkspaceID,
+			ProjectId:                     deployment.ProjectID,
+			EnvironmentId:                 deployment.EnvironmentID,
+			AppId:                         deployment.AppID,
+			Image:                         deployment.Image.String,
+			CpuMillicores:                 int64(deployment.CpuMillicores),
+			MemoryMib:                     int64(deployment.MemoryMib),
+			EncryptedEnvironmentVariables: deployment.EncryptedEnvironmentVariables,
 			BuildId:                       buildID,
-			Command:                       row.d.Command,
-			Port:                          row.d.Port,
-			ShutdownSignal:                string(row.d.ShutdownSignal),
-			EnvironmentSlug:               &row.environmentSlug,
-			Region:                        &row.regionName,
+			Command:                       deployment.Command,
+			Port:                          deployment.Port,
+			ShutdownSignal:                string(deployment.ShutdownSignal),
+			EnvironmentSlug:               &deployment.EnvironmentSlug,
+			Region:                        &deployment.RegionName,
 		}
 
-		if row.d.GitCommitSha.Valid {
-			apply.GitCommitSha = &row.d.GitCommitSha.String
+		if deployment.GitCommitSha.Valid {
+			apply.GitCommitSha = &deployment.GitCommitSha.String
 		}
-		if row.d.GitBranch.Valid {
-			apply.GitBranch = &row.d.GitBranch.String
+		if deployment.GitBranch.Valid {
+			apply.GitBranch = &deployment.GitBranch.String
 		}
-		if row.d.GitCommitMessage.Valid {
-			apply.GitCommitMessage = &row.d.GitCommitMessage.String
+		if deployment.GitCommitMessage.Valid {
+			apply.GitCommitMessage = &deployment.GitCommitMessage.String
 		}
-		if row.gitRepo.Valid {
-			apply.GitRepo = &row.gitRepo.String
+		if deployment.GitRepo.Valid {
+			apply.GitRepo = &deployment.GitRepo.String
 		}
 
-		if row.d.Healthcheck.Valid {
-			hcBytes, err := json.Marshal(row.d.Healthcheck.Healthcheck)
+		if deployment.Healthcheck.Valid {
+			hcBytes, err := json.Marshal(deployment.Healthcheck.Healthcheck)
 			if err != nil {
 				return nil, fmt.Errorf("failed to marshal healthcheck: %w", err)
 			}
@@ -267,20 +293,20 @@ func deploymentRowToState(row deploymentRow, version uint64) (*ctrlv1.Deployment
 		}
 
 		policy := &ctrlv1.AutoscalingPolicy{
-			MinReplicas: row.dt.AutoscalingReplicasMin,
-			MaxReplicas: row.dt.AutoscalingReplicasMax,
+			MinReplicas: deployment.AutoscalingReplicasMin,
+			MaxReplicas: deployment.AutoscalingReplicasMax,
 		}
-		if row.dt.AutoscalingThresholdCpu.Valid {
-			policy.CpuThreshold = ptr.P(int32(row.dt.AutoscalingThresholdCpu.Int16))
+		if deployment.AutoscalingThresholdCpu.Valid {
+			policy.CpuThreshold = ptr.P(int32(deployment.AutoscalingThresholdCpu.Int16))
 		}
-		if row.dt.AutoscalingThresholdMemory.Valid {
-			policy.MemoryThreshold = ptr.P(int32(row.dt.AutoscalingThresholdMemory.Int16))
+		if deployment.AutoscalingThresholdMemory.Valid {
+			policy.MemoryThreshold = ptr.P(int32(deployment.AutoscalingThresholdMemory.Int16))
 		}
 		apply.Autoscaling = policy
 
-		if row.d.StorageMib > 0 {
+		if deployment.StorageMib > 0 {
 			apply.EphemeralStorage = &ctrlv1.EphemeralStorage{
-				SizeMib: int64(row.d.StorageMib),
+				SizeMib: int64(deployment.StorageMib),
 			}
 		}
 
@@ -291,6 +317,6 @@ func deploymentRowToState(row deploymentRow, version uint64) (*ctrlv1.Deployment
 			},
 		}, nil
 	default:
-		return nil, fmt.Errorf("unknown DeploymentTopologyDesiredStatus: %v", row.dt.DesiredStatus)
+		return nil, fmt.Errorf("unknown DeploymentTopologyDesiredStatus: %v", deployment.DesiredStatus)
 	}
 }
