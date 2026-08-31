@@ -297,7 +297,6 @@ func TestNotFoundErrors(t *testing.T) {
 		err := db.Query.InsertRole(ctx, h.DB.RW(), db.InsertRoleParams{
 			RoleID:      validRoleID,
 			WorkspaceID: workspace.ID,
-			ProjectID:   api.ProjectID,
 			Name:        validName,
 			Description: sql.NullString{Valid: true, String: "Admin role"},
 		})
@@ -425,40 +424,5 @@ func TestNotFoundErrors(t *testing.T) {
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
 		require.Contains(t, res.Body.Error.Detail, "was not found")
-	})
-
-	t.Run("role from another project", func(t *testing.T) {
-		api := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspace.ID})
-		key := h.CreateKey(seed.CreateKeyRequest{
-			WorkspaceID: workspace.ID,
-			KeySpaceID:  api.KeyAuthID.String,
-		})
-		otherProject := h.CreateProject(seed.CreateProjectRequest{
-			ID:          uid.New(uid.ProjectPrefix),
-			WorkspaceID: workspace.ID,
-			Name:        "Other RBAC Project",
-			Slug:        "other-rbac-project",
-		})
-		roleID := uid.New(uid.RolePrefix)
-		err := db.Query.InsertRole(ctx, h.DB.RW(), db.InsertRoleParams{
-			RoleID:      roleID,
-			WorkspaceID: workspace.ID,
-			ProjectID:   otherProject.ID,
-			Name:        "other_project_role",
-			Description: sql.NullString{Valid: true, String: "Other project role"},
-			CreatedAt:   time.Now().UnixMilli(),
-		})
-		require.NoError(t, err)
-
-		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, handler.Request{
-			KeyId: key.KeyID,
-			Roles: []string{"other_project_role"},
-		})
-
-		require.Equal(t, http.StatusNotFound, res.Status)
-		require.Equal(t, "https://unkey.com/docs/errors/unkey/data/role_not_found", res.Body.Error.Type)
-		roles, err := db.Query.ListRolesByKeyID(ctx, h.DB.RO(), key.KeyID)
-		require.NoError(t, err)
-		require.Empty(t, roles)
 	})
 }

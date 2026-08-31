@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"strings"
 	"time"
 
 	vaultv1 "github.com/unkeyed/unkey/gen/proto/vault/v1"
@@ -31,6 +30,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/internal/auditactor"
 	apierrors "github.com/unkeyed/unkey/svc/api/internal/errors"
+	"github.com/unkeyed/unkey/svc/api/internal/projects"
 )
 
 type (
@@ -97,19 +97,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	keySpace, keySpaceErr := db.Query.FindKeySpaceByID(ctx, h.DB.RO(), api.KeyAuthID.String)
-	if keySpaceErr != nil && !db.IsNotFound(keySpaceErr) {
-		return fault.Wrap(keySpaceErr,
-			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-			fault.Internal("database error"), fault.Public("Failed to retrieve API information."),
-		)
-	}
-
-	keySpaceProjectID := api.ProjectID
-	if keySpaceErr == nil {
-		keySpaceProjectID = keySpace.ProjectID
-	}
-
 	// 3. Permission check. Creating a key is authorized against the keyspace
 	// because the key does not exist until after the operation succeeds. The
 	// tuple legs accept legacy API-scoped grants until those are migrated.
@@ -125,8 +112,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			Action:       rbac.CreateKey,
 		}),
 		rbac.U(
-			urn.New().Workspace(principal.WorkspaceID).Project(keySpaceProjectID).Keyspace(api.KeyAuthID.String).Key("*"),
-			permissions.WriteKey{},
+			urn.New().Workspace(principal.WorkspaceID).Keyspace(api.KeyAuthID.String),
+			permissions.CreateKey{},
 		),
 	))
 	if err != nil {
@@ -156,10 +143,18 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 	actor := auditactor.FromPrincipal(principal)
 
-	if keySpaceErr != nil {
-		return fault.New("api not set up for keys",
-			fault.Code(codes.App.Precondition.PreconditionFailed.URN()),
-			fault.Internal("api not set up for keys, keyspace not found"), fault.Public("The requested API is not set up to handle keys."),
+	keySpace, err := db.Query.FindKeySpaceByID(ctx, h.DB.RO(), api.KeyAuthID.String)
+	if err != nil {
+		if db.IsNotFound(err) {
+			return fault.New("api not set up for keys",
+				fault.Code(codes.App.Precondition.PreconditionFailed.URN()),
+				fault.Internal("api not set up for keys, keyspace not found"), fault.Public("The requested API is not set up to handle keys."),
+			)
+		}
+
+		return fault.Wrap(err,
+			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+			fault.Internal("database error"), fault.Public("Failed to retrieve API information."),
 		)
 	}
 
@@ -216,10 +211,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				ResourceID:   api.ID,
 				Action:       rbac.EncryptKey,
 			}),
-			rbac.U(
-				urn.New().Workspace(principal.WorkspaceID).Project(keySpace.ProjectID).Keyspace(keySpace.ID).Key("*"),
-				permissions.WriteKey{},
-			),
+			rbac.U(urn.New().Workspace(principal.WorkspaceID).Keyspace(keySpace.ID).Key("*"), permissions.EncryptKey{}),
 		))
 		if err != nil {
 			return apierrors.MaskInsufficientPermissionsAsNotFound(
@@ -248,7 +240,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 	}
 
-	projectID := keySpace.ProjectID
+	projectID, err := projects.EnsureDefaultProject(ctx, h.DB.RW(), principal.WorkspaceID)
+	if err != nil {
+		return err
+	}
 
 	now := time.Now().UnixMilli()
 
@@ -442,7 +437,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				var existingPermissions []db.Permission
 				existingPermissions, err = db.Query.FindPermissionsBySlugs(ctx, tx, db.FindPermissionsBySlugsParams{
 					WorkspaceID: principal.WorkspaceID,
-					ProjectID:   projectID,
 					Slugs:       *req.Permissions,
 				})
 				if err != nil {
@@ -453,28 +447,47 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 					)
 				}
 
-				existingPermMap := make(map[string]db.Permission, len(existingPermissions))
+				existingPermMap := make(map[string]db.Permission)
 				for _, p := range existingPermissions {
-					existingPermMap[strings.ToLower(p.Slug)] = p
+					existingPermMap[p.Slug] = p
 				}
 
-				missingSlugs := make([]string, 0, len(*req.Permissions)-len(existingPermissions))
+				permissionsToCreate := []db.InsertPermissionParams{}
+				requestedPermissions := []db.Permission{}
+
 				for _, requestedSlug := range *req.Permissions {
-					if _, exists := existingPermMap[strings.ToLower(requestedSlug)]; !exists {
-						missingSlugs = append(missingSlugs, requestedSlug)
+					existingPerm, exists := existingPermMap[requestedSlug]
+					if exists {
+						requestedPermissions = append(requestedPermissions, existingPerm)
+						continue
 					}
-				}
 
-				for _, slug := range missingSlugs {
-					err = db.Query.UpsertPermission(ctx, tx, db.UpsertPermissionParams{
-						PermissionID: uid.New(uid.PermissionPrefix),
+					newPermID := uid.New(uid.PermissionPrefix)
+					permissionsToCreate = append(permissionsToCreate, db.InsertPermissionParams{
+						PermissionID: newPermID,
 						WorkspaceID:  principal.WorkspaceID,
 						ProjectID:    projectID,
-						Name:         slug,
-						Slug:         slug,
+						Name:         requestedSlug,
+						Slug:         requestedSlug,
 						Description:  dbtype.NullString{String: "", Valid: false},
 						CreatedAtM:   now,
 					})
+
+					requestedPermissions = append(requestedPermissions, db.Permission{
+						Pk:          0, // only here to make the linter happy
+						ID:          newPermID,
+						Name:        requestedSlug,
+						Slug:        requestedSlug,
+						CreatedAtM:  now,
+						WorkspaceID: principal.WorkspaceID,
+						ProjectID:   projectID,
+						Description: dbtype.NullString{String: "", Valid: false},
+						UpdatedAtM:  sql.NullInt64{Int64: 0, Valid: false},
+					})
+				}
+
+				if len(permissionsToCreate) > 0 {
+					err = db.BulkQuery.InsertPermissions(ctx, tx, permissionsToCreate)
 					if err != nil {
 						return fault.Wrap(err,
 							fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
@@ -482,37 +495,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 							fault.Public("Failed to create permissions."),
 						)
 					}
-				}
-
-				existingPermissions, err = db.Query.FindPermissionsBySlugs(ctx, tx, db.FindPermissionsBySlugsParams{
-					WorkspaceID: principal.WorkspaceID,
-					ProjectID:   projectID,
-					Slugs:       *req.Permissions,
-				})
-				if err != nil {
-					return fault.Wrap(err,
-						fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-						fault.Internal("database error"),
-						fault.Public("Failed to retrieve permissions."),
-					)
-				}
-
-				existingPermMap = make(map[string]db.Permission, len(existingPermissions))
-				for _, permission := range existingPermissions {
-					existingPermMap[strings.ToLower(permission.Slug)] = permission
-				}
-
-				requestedPermissions := make([]db.Permission, 0, len(*req.Permissions))
-				for _, requestedSlug := range *req.Permissions {
-					permission, exists := existingPermMap[strings.ToLower(requestedSlug)]
-					if !exists {
-						return fault.New("permission not found",
-							fault.Code(codes.Data.Permission.NotFound.URN()),
-							fault.Internal("permission belongs to a different project"),
-							fault.Public(fmt.Sprintf("Permission '%s' was not found.", requestedSlug)),
-						)
-					}
-					requestedPermissions = append(requestedPermissions, permission)
 				}
 
 				permissionsToInsert := []db.InsertKeyPermissionParams{}
@@ -571,7 +553,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				var existingRoles []db.FindRolesByNamesRow
 				existingRoles, err = db.Query.FindRolesByNames(ctx, tx, db.FindRolesByNamesParams{
 					WorkspaceID: principal.WorkspaceID,
-					ProjectID:   projectID,
 					Names:       *req.Roles,
 				})
 				if err != nil {

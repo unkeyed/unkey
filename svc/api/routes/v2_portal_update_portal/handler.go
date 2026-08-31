@@ -13,6 +13,8 @@ import (
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/pkg/validation"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/internal/portal"
@@ -149,16 +151,16 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			)
 		}
 
-		// Resolved first, then authorized, so the query can name the concrete ID a
+		// Resolved first, then authorized, so the query can name the concrete id a
 		// scoped grant would carry. Safe because the resolve is workspace-scoped --
 		// a foreign portal is already absent above -- Authorize is an in-memory
 		// check over already-loaded permissions, and nothing has been written yet.
 		// The wildcard arm is spelled out separately because a stored `*` matches
 		// literally and does not expand.
 		//
-		// Portals are not in the canonical URN catalog, so scoped access uses legacy
-		// tuples. The exact admin grant lets the dashboard use this route because
-		// its proxy translates admin:* to this URN.
+		// The URN arms are what let the dashboard reach this route: its proxy mints
+		// a token whose admin grant is a URN, so a legacy-only check would deny the
+		// only operator surface there is.
 		err = principal.Authorize(rbac.Or(
 			rbac.T(rbac.Tuple{
 				ResourceType: rbac.Portal,
@@ -170,7 +172,14 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				ResourceID:   found.ID,
 				Action:       rbac.UpdatePortal,
 			}),
-			rbac.S(fmt.Sprintf("unkey:v1:%s:**#*", principal.WorkspaceID)),
+			rbac.U(
+				urn.New().Workspace(principal.WorkspaceID).Portal("*"),
+				permissions.UpdatePortal{},
+			),
+			rbac.U(
+				urn.New().Workspace(principal.WorkspaceID).Portal(found.ID),
+				permissions.UpdatePortal{},
+			),
 		))
 		if err != nil {
 			// A fresh chain, not a wrap: UserFacingMessage concatenates every public

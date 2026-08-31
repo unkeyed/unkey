@@ -28,10 +28,9 @@ import (
 // they will fail, and each expectation flips from denied to allowed.
 
 // urnDenialFixture seeds a keyspace-mapped portal, under the given slug, whose
-// keyspace has an owning API. Stage 2 needs that API to express its API-scoped
-// checks, so a portal without one would fail for the wrong reason. It returns
-// the project and keyspace IDs for canonical URN grants.
-func urnDenialFixture(t *testing.T, h *testutil.Harness, slug string) (string, string) {
+// keyspace has an owning api. Stage 2 needs that api to express its api-scoped
+// checks, so a portal without one would fail for the wrong reason.
+func urnDenialFixture(t *testing.T, h *testutil.Harness, slug string) {
 	t.Helper()
 
 	workspaceID := h.Resources().UserWorkspace.ID
@@ -45,8 +44,6 @@ func urnDenialFixture(t *testing.T, h *testutil.Harness, slug string) (string, s
 		DefaultBytes:  nil,
 	})
 	insertKeyspacePortal(t, h, workspaceID, slug, api.KeyAuthID.String)
-
-	return api.ProjectID, api.KeyAuthID.String
 }
 
 func TestCreateSessionDeniesURNGrants(t *testing.T) {
@@ -81,15 +78,15 @@ func TestCreateSessionDeniesURNGrants(t *testing.T) {
 		require.Equal(t, http.StatusNotFound, res.Status, "a stage-1 denial is masked as 404, got: %s", res.RawBody)
 	})
 
-	t.Run("canonical URN grants cannot mint", func(t *testing.T) {
+	t.Run("portal URN grant cannot mint", func(t *testing.T) {
 		slug := "urn-portal-portal"
-		projectID, keyspaceID := urnDenialFixture(t, h, slug)
+		urnDenialFixture(t, h, slug)
 
-		// Valid project-scoped URN grants do not satisfy the legacy portal tuple.
-		// Stage 1 refuses them first.
+		// Both stages named in canonical URN form. Stage 1 refuses first.
 		rootKey := h.CreateRootKey(workspaceID,
-			fmt.Sprintf("unkey:v1:%s:projects/%s/keyspaces/%s/keys/*#read_key", workspaceID, projectID, keyspaceID),
-			fmt.Sprintf("unkey:v1:%s:projects/%s/keyspaces/%s#read_keyspace", workspaceID, projectID, keyspaceID),
+			fmt.Sprintf("unkey:v1:%s:portals/*#create_portal_session", workspaceID),
+			fmt.Sprintf("unkey:v1:%s:keyspaces/*/keys/*#read_key", workspaceID),
+			fmt.Sprintf("unkey:v1:%s:keyspaces/*#read_keyspace", workspaceID),
 		)
 		headers := http.Header{
 			"Content-Type":  {"application/json"},
@@ -106,14 +103,14 @@ func TestCreateSessionDeniesURNGrants(t *testing.T) {
 
 	t.Run("legacy portal tuple with URN-only scope grant is refused at stage 2", func(t *testing.T) {
 		slug := "urn-mixed-portal"
-		projectID, keyspaceID := urnDenialFixture(t, h, slug)
+		urnDenialFixture(t, h, slug)
 
 		// Stage 1 passes on the legacy tuple, so this isolates stage 2 and shows
 		// the two grant forms are not interchangeable there either.
 		rootKey := h.CreateRootKey(workspaceID,
 			"portal.*.create_portal_session",
-			fmt.Sprintf("unkey:v1:%s:projects/%s/keyspaces/%s/keys/*#read_key", workspaceID, projectID, keyspaceID),
-			fmt.Sprintf("unkey:v1:%s:projects/%s/keyspaces/%s#read_keyspace", workspaceID, projectID, keyspaceID),
+			fmt.Sprintf("unkey:v1:%s:keyspaces/*/keys/*#read_key", workspaceID),
+			fmt.Sprintf("unkey:v1:%s:keyspaces/*#read_keyspace", workspaceID),
 		)
 		headers := http.Header{
 			"Content-Type":  {"application/json"},

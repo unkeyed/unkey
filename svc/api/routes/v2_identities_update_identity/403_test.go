@@ -1,14 +1,18 @@
 package handler_test
 
 import (
+	"context"
+	"database/sql"
+	"errors"
 	"fmt"
 	"net/http"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
-	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_identities_update_identity"
 )
@@ -23,12 +27,6 @@ func TestForbidden(t *testing.T) {
 	h.Register(route)
 
 	t.Run("no permission to update identity", func(t *testing.T) {
-		externalID := uid.New(uid.TestPrefix)
-		h.CreateIdentity(seed.CreateIdentityRequest{
-			WorkspaceID: h.Resources().UserWorkspace.ID,
-			ExternalID:  externalID,
-		})
-
 		// Create root key without permissions
 		rootKeyID := h.CreateRootKey(h.Resources().UserWorkspace.ID)
 		headers := http.Header{
@@ -36,6 +34,7 @@ func TestForbidden(t *testing.T) {
 			"Authorization": {fmt.Sprintf("Bearer %s", rootKeyID)},
 		}
 
+		externalID := uid.New(uid.TestPrefix)
 		meta := map[string]interface{}{
 			"test": "value",
 		}
@@ -50,12 +49,6 @@ func TestForbidden(t *testing.T) {
 	})
 
 	t.Run("wrong permission type", func(t *testing.T) {
-		externalID := uid.New(uid.TestPrefix)
-		h.CreateIdentity(seed.CreateIdentityRequest{
-			WorkspaceID: h.Resources().UserWorkspace.ID,
-			ExternalID:  externalID,
-		})
-
 		// Create root key with wrong permission
 		rootKeyID := h.CreateRootKey(h.Resources().UserWorkspace.ID, "identity.*.create_identity")
 		headers := http.Header{
@@ -63,6 +56,7 @@ func TestForbidden(t *testing.T) {
 			"Authorization": {fmt.Sprintf("Bearer %s", rootKeyID)},
 		}
 
+		externalID := uid.New(uid.TestPrefix)
 		meta := map[string]interface{}{
 			"test": "value",
 		}
@@ -77,12 +71,31 @@ func TestForbidden(t *testing.T) {
 	})
 
 	t.Run("with permission to update identity", func(t *testing.T) {
+		// Create test identity first
+		ctx := context.Background()
+		tx, err := h.DB.RW().Begin(ctx)
+		require.NoError(t, err)
+		defer func() {
+			err := tx.Rollback()
+			require.True(t, err == nil || errors.Is(err, sql.ErrTxDone), "unexpected rollback error: %v", err)
+		}()
+
 		workspaceID := h.Resources().UserWorkspace.ID
+		identityID := uid.New(uid.IdentityPrefix)
 		externalID := "test_user_403"
-		h.CreateIdentity(seed.CreateIdentityRequest{
-			WorkspaceID: workspaceID,
+
+		// Insert test identity
+		err = db.Query.InsertIdentity(ctx, tx, db.InsertIdentityParams{
+			ID:          identityID,
 			ExternalID:  externalID,
+			WorkspaceID: workspaceID,
+			Environment: "default",
+			CreatedAt:   time.Now().UnixMilli(),
+			Meta:        []byte("{}"),
 		})
+		require.NoError(t, err)
+		err = tx.Commit()
+		require.NoError(t, err)
 
 		// Create root key with correct permission
 		rootKeyID := h.CreateRootKey(workspaceID, "identity.*.update_identity")

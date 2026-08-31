@@ -16,7 +16,6 @@ const findPermissionsBySlugsForUpdate = `-- name: FindPermissionsBySlugsForUpdat
 SELECT id, name, slug, description
 FROM permissions
 WHERE workspace_id = ?
-  AND project_id = ?
   AND slug IN (/*SLICE:slugs*/?)
 ORDER BY slug
 FOR UPDATE
@@ -24,7 +23,6 @@ FOR UPDATE
 
 type FindPermissionsBySlugsForUpdateParams struct {
 	WorkspaceID string   `db:"workspace_id"`
-	ProjectID   string   `db:"project_id"`
 	Slugs       []string `db:"slugs"`
 }
 
@@ -40,7 +38,6 @@ type FindPermissionsBySlugsForUpdateRow struct {
 //	SELECT id, name, slug, description
 //	FROM permissions
 //	WHERE workspace_id = ?
-//	  AND project_id = ?
 //	  AND slug IN (/*SLICE:slugs*/?)
 //	ORDER BY slug
 //	FOR UPDATE
@@ -48,7 +45,6 @@ func (q *Queries) FindPermissionsBySlugsForUpdate(ctx context.Context, db DBTX, 
 	query := findPermissionsBySlugsForUpdate
 	var queryParams []interface{}
 	queryParams = append(queryParams, arg.WorkspaceID)
-	queryParams = append(queryParams, arg.ProjectID)
 	if len(arg.Slugs) > 0 {
 		for _, v := range arg.Slugs {
 			queryParams = append(queryParams, v)

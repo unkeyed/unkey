@@ -1,5 +1,7 @@
 package urn
 
+import "fmt"
+
 // Deployment builds deployment resource paths.
 //
 // Hierarchy:
@@ -9,25 +11,32 @@ package urn
 //	    └── apps/{app_id}
 //	        └── environments/{environment_id}
 //	            └── deployments/{deployment_id}
-//	                └── logs
 type Deployment struct {
 	workspaceID string
 	path        string
 }
 
 // String returns this deployment resource path.
+//
+// Subresource:
+//
+//	environments/{environment_id}
+//	└── deployments/{deployment_id}
 func (d Deployment) String() string {
 	return V1{WorkspaceID: d.workspaceID, Resource: d.path}.String()
 }
 
-// Logs returns the deployment log resource path.
+// Instance returns a deployment instance resource path.
 //
 // Subresource:
 //
 //	deployments/{deployment_id}
-//	└── logs
-func (d Deployment) Logs() DeploymentLogs {
-	return DeploymentLogs{workspaceID: d.workspaceID, path: d.path + "/logs"}
+//	└── instances/{instance_id}
+func (d Deployment) Instance(instanceID string) V1 {
+	return V1{
+		WorkspaceID: d.workspaceID,
+		Resource:    fmt.Sprintf("%s/instances/%s", d.path, instanceID),
+	}
 }
 
 // Any returns a descendant pattern below this deployment.
@@ -36,24 +45,4 @@ func (d Deployment) Any() V1 {
 		WorkspaceID: d.workspaceID,
 		Resource:    d.path + "/**",
 	}
-}
-
-// DeploymentLogs builds deployment log resource paths.
-//
-// Hierarchy:
-//
-//	workspace
-//	└── projects/{project_id}
-//	    └── apps/{app_id}
-//	        └── environments/{environment_id}
-//	            └── deployments/{deployment_id}
-//	                └── logs
-type DeploymentLogs struct {
-	workspaceID string
-	path        string
-}
-
-// String returns this deployment log resource path.
-func (d DeploymentLogs) String() string {
-	return V1{WorkspaceID: d.workspaceID, Resource: d.path}.String()
 }

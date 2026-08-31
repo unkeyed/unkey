@@ -102,7 +102,6 @@ func TestAuthorizationErrors(t *testing.T) {
 		require.True(t, db.IsNotFound(err))
 		missing, err := db.Query.FindPermissionsBySlugs(context.Background(), h.DB.RO(), db.FindPermissionsBySlugsParams{
 			WorkspaceID: workspace.ID,
-			ProjectID:   existingPermission.ProjectID,
 			Slugs:       []string{"documents.write.missing.create.role"},
 		})
 		require.NoError(t, err)

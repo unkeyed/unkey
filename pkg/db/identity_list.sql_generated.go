@@ -15,7 +15,6 @@ SELECT
     i.id,
     i.external_id,
     i.workspace_id,
-    i.project_id,
     i.environment,
     i.meta,
     i.deleted,
@@ -56,7 +55,6 @@ type ListIdentitiesRow struct {
 	ID          string        `db:"id"`
 	ExternalID  string        `db:"external_id"`
 	WorkspaceID string        `db:"workspace_id"`
-	ProjectID   string        `db:"project_id"`
 	Environment string        `db:"environment"`
 	Meta        []byte        `db:"meta"`
 	Deleted     bool          `db:"deleted"`
@@ -75,7 +73,6 @@ type ListIdentitiesRow struct {
 //	    i.id,
 //	    i.external_id,
 //	    i.workspace_id,
-//	    i.project_id,
 //	    i.environment,
 //	    i.meta,
 //	    i.deleted,
@@ -123,7 +120,6 @@ func (q *Queries) ListIdentities(ctx context.Context, db DBTX, arg ListIdentitie
 			&i.ID,
 			&i.ExternalID,
 			&i.WorkspaceID,
-			&i.ProjectID,
 			&i.Environment,
 			&i.Meta,
 			&i.Deleted,

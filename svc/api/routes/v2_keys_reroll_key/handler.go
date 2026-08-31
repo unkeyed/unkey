@@ -404,8 +404,8 @@ func rerollPermissionQuery(key db.FindLiveKeyByIDRow) rbac.PermissionQuery {
 	checks := rbac.Or(
 		CreateKeyPermissions(key.Api.ID),
 		rbac.U(
-			urn.New().Workspace(key.WorkspaceID).Project(key.KeyAuth.ProjectID).Keyspace(key.KeyAuthID).Key(key.ID),
-			permissions.WriteKey{},
+			urn.New().Workspace(key.WorkspaceID).Keyspace(key.KeyAuthID),
+			permissions.CreateKey{},
 		),
 	)
 
@@ -415,8 +415,8 @@ func rerollPermissionQuery(key db.FindLiveKeyByIDRow) rbac.PermissionQuery {
 			rbac.Or(
 				EncryptKeyPermissions(key.Api.ID),
 				rbac.U(
-					urn.New().Workspace(key.WorkspaceID).Project(key.KeyAuth.ProjectID).Keyspace(key.KeyAuthID).Key(key.ID),
-					permissions.WriteKey{},
+					urn.New().Workspace(key.WorkspaceID).Keyspace(key.KeyAuthID).Key("*"),
+					permissions.EncryptKey{},
 				),
 			),
 		)

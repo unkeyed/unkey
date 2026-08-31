@@ -48,7 +48,6 @@ func TestFindApisByKeyAuthIds(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, rows, 1)
 	require.Equal(t, api.KeyAuthID.String, rows[0].KeyAuthID)
-	require.Equal(t, api.ProjectID, rows[0].ProjectID)
 	require.Equal(t, api.ID, rows[0].ApiID)
 
 	// Workspace-scoped: another workspace's keyspace resolves to nothing.

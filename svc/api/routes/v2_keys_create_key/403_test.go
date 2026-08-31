@@ -13,7 +13,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
-	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_keys_create_key"
 )
@@ -32,14 +31,11 @@ func TestCreateKeyMissingPermissionsDoNotLeakKeyspace(t *testing.T) {
 
 	h.Register(route)
 
-	projectID := h.CreateApi(seed.CreateApiRequest{WorkspaceID: h.Resources().UserWorkspace.ID}).ProjectID
-
 	// Create API for testing
 	keySpaceID := uid.New(uid.KeySpacePrefix)
 	err := db.Query.InsertKeySpace(ctx, h.DB.RW(), db.InsertKeySpaceParams{
 		ID:            keySpaceID,
 		WorkspaceID:   h.Resources().UserWorkspace.ID,
-		ProjectID:     projectID,
 		CreatedAtM:    time.Now().UnixMilli(),
 		DefaultPrefix: sql.NullString{Valid: false, String: ""},
 		DefaultBytes:  sql.NullInt32{Valid: false, Int32: 0},
@@ -57,7 +53,6 @@ func TestCreateKeyMissingPermissionsDoNotLeakKeyspace(t *testing.T) {
 		ID:          apiID,
 		Name:        "test-api",
 		WorkspaceID: h.Resources().UserWorkspace.ID,
-		ProjectID:   projectID,
 		AuthType:    db.NullApisAuthType{Valid: true, ApisAuthType: db.ApisAuthTypeKey},
 		KeyAuthID:   sql.NullString{Valid: true, String: keySpaceID},
 		CreatedAtM:  time.Now().UnixMilli(),
@@ -69,7 +64,6 @@ func TestCreateKeyMissingPermissionsDoNotLeakKeyspace(t *testing.T) {
 	err = db.Query.InsertKeySpace(ctx, h.DB.RW(), db.InsertKeySpaceParams{
 		ID:            otherKeySpaceID,
 		WorkspaceID:   h.Resources().UserWorkspace.ID,
-		ProjectID:     projectID,
 		CreatedAtM:    time.Now().UnixMilli(),
 		DefaultPrefix: sql.NullString{Valid: false, String: ""},
 		DefaultBytes:  sql.NullInt32{Valid: false, Int32: 0},
@@ -81,7 +75,6 @@ func TestCreateKeyMissingPermissionsDoNotLeakKeyspace(t *testing.T) {
 		ID:          otherApiID,
 		Name:        "other-api",
 		WorkspaceID: h.Resources().UserWorkspace.ID,
-		ProjectID:   projectID,
 		AuthType:    db.NullApisAuthType{Valid: true, ApisAuthType: db.ApisAuthTypeKey},
 		KeyAuthID:   sql.NullString{Valid: true, String: otherKeySpaceID},
 		CreatedAtM:  time.Now().UnixMilli(),
@@ -107,7 +100,7 @@ func TestCreateKeyMissingPermissionsDoNotLeakKeyspace(t *testing.T) {
 	})
 
 	t.Run("wrong action", func(t *testing.T) {
-		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, fmt.Sprintf("unkey:v1:%s:projects/%s/keyspaces/%s/keys/*#read_key", h.Resources().UserWorkspace.ID, projectID, keySpaceID))
+		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, fmt.Sprintf("unkey:v1:%s:keyspaces/%s#read_keyspace", h.Resources().UserWorkspace.ID, keySpaceID))
 
 		headers := http.Header{
 			"Content-Type":  {"application/json"},
@@ -122,7 +115,7 @@ func TestCreateKeyMissingPermissionsDoNotLeakKeyspace(t *testing.T) {
 
 	t.Run("create permission for different keyspace", func(t *testing.T) {
 		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID,
-			createKeyPermission(h.Resources().UserWorkspace.ID, projectID, otherKeySpaceID),
+			createKeyPermission(h.Resources().UserWorkspace.ID, otherKeySpaceID),
 		)
 
 		headers := http.Header{
@@ -136,8 +129,8 @@ func TestCreateKeyMissingPermissionsDoNotLeakKeyspace(t *testing.T) {
 		require.NotContains(t, res.RawBody, keySpaceID)
 	})
 
-	t.Run("write permission creates a recoverable key", func(t *testing.T) {
-		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, createKeyPermission(h.Resources().UserWorkspace.ID, projectID, keySpaceID))
+	t.Run("create recoverable key without perms", func(t *testing.T) {
+		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, createKeyPermission(h.Resources().UserWorkspace.ID, keySpaceID))
 
 		req := handler.Request{
 			ApiId:       apiID,
@@ -149,9 +142,9 @@ func TestCreateKeyMissingPermissionsDoNotLeakKeyspace(t *testing.T) {
 			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
 		}
 
-		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
-		require.Equal(t, http.StatusOK, res.Status)
+		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, req)
+		require.Equal(t, http.StatusNotFound, res.Status)
 		require.NotNil(t, res.Body)
-		require.NotEmpty(t, res.Body.Data.KeyId)
+		require.NotContains(t, res.RawBody, keySpaceID)
 	})
 }

@@ -57,6 +57,25 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
+	err = principal.Authorize(
+		rbac.Or(
+			rbac.T(
+				rbac.Tuple{
+					ResourceType: rbac.Identity,
+					ResourceID:   "*",
+					Action:       rbac.DeleteIdentity,
+				},
+			),
+			rbac.U(
+				urn.New().Workspace(principal.WorkspaceID).Project("*").Identity("*"),
+				permissions.DeleteIdentity{},
+			),
+		),
+	)
+	if err != nil {
+		return err
+	}
+
 	identity, err := db.Query.FindIdentity(ctx, h.DB.RO(), db.FindIdentityParams{
 		WorkspaceID: principal.WorkspaceID,
 		Identity:    req.Identity,
@@ -74,25 +93,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
 			fault.Internal("database failed to find the identity"), fault.Public("Error finding the identity."),
 		)
-	}
-
-	err = principal.Authorize(
-		rbac.Or(
-			rbac.T(
-				rbac.Tuple{
-					ResourceType: rbac.Identity,
-					ResourceID:   "*",
-					Action:       rbac.DeleteIdentity,
-				},
-			),
-			rbac.U(
-				urn.New().Workspace(principal.WorkspaceID).Project(identity.ProjectID).Identity(identity.ID),
-				permissions.DeleteIdentity{},
-			),
-		),
-	)
-	if err != nil {
-		return err
 	}
 
 	// Parse ratelimits JSON

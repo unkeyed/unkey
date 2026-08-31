@@ -11,7 +11,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
-	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_gateway_update_policy"
 	"google.golang.org/protobuf/proto"
@@ -87,16 +86,6 @@ func TestUpdatePolicyNotFound(t *testing.T) {
 	t.Run("unowned keyspace", func(t *testing.T) {
 		req := makeRequest(env, ids[0])
 		req.Keyauth = &openapi.KeyauthPolicy{Keyspaces: []string{uid.New(uid.KeySpacePrefix)}}
-		res := call(t, req)
-		require.Contains(t, res.Body.Error.Type, "key_space_not_found")
-	})
-
-	t.Run("keyspace from another project", func(t *testing.T) {
-		foreign := h.CreateApi(seed.CreateApiRequest{WorkspaceID: env.workspaceID})
-		require.NotEqual(t, env.projectID, foreign.ProjectID)
-
-		req := makeRequest(env, ids[0])
-		req.Keyauth = &openapi.KeyauthPolicy{Keyspaces: []string{foreign.KeyAuthID.String}}
 		res := call(t, req)
 		require.Contains(t, res.Body.Error.Type, "key_space_not_found")
 	})

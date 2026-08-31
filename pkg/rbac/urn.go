@@ -13,9 +13,9 @@ var errInvalidURNPermission = errors.New("invalid urn permission")
 
 // UnkeyPermission represents an RBAC permission requirement for a Unkey resource.
 //
-// The resource name itself belongs to [urn.V1]. The permissions package binds
-// valid resource and action pairs before RBAC evaluates whether a principal's
-// grants cover this concrete requirement.
+// The resource name itself belongs to [urn.V1]. RBAC only adds the action
+// suffix and evaluates whether a principal's granted permissions cover this
+// concrete requirement.
 type UnkeyPermission struct {
 	// Resource is the canonical v1 resource name being protected.
 	Resource urn.V1
@@ -32,7 +32,7 @@ func (u UnkeyPermission) String() string {
 // U creates a leaf query for a typed action on a canonical resource name.
 //
 // Handlers should pass the exact resource being accessed. Broader grants such
-// as "unkey:v1:ws_123:projects/proj_123/**#read_key" are matched during
+// as "unkey:v1:ws_123:ratelimits/**#read_override" are matched during
 // evaluation, not by writing wildcard-heavy queries at call sites.
 func U[R fmt.Stringer, A permissions.Action[R]](resource R, action A) PermissionQuery {
 	return PermissionQuery{
@@ -77,16 +77,16 @@ func evaluateUnkeyPermission(required UnkeyPermission, granted []string) bool {
 //
 // Accepted:
 //
-//	unkey:v1:ws_1:projects/proj_1/ratelimits/namespaces/ns_1/overrides/ov_1#read_ratelimit_override
-//	unkey:v1:ws_1:projects/*/keyspaces/*/keys/*#read_key wildcard grant
-//	unkey:v1:ws_1:**#*                                        admin grant (translated from admin:*)
+//	unkey:v1:ws_1:ratelimits/namespaces/ns_1/overrides/ov_1#read_override
+//	unkey:v1:ws_1:keyspaces/*/keys/*#read_key    wildcard grant
+//	unkey:v1:ws_1:**#*                           admin grant (translated from admin:*)
 //
 // Rejected with errInvalidURNPermission:
 //
-//	unkey:v1:ws_1:projects/proj_1/keyspaces/ks_1          missing "#action"
-//	unkey:v1:ws_1:projects/proj_1/keyspaces/ks_1#read#key more than one "#"
-//	unkey:v1:ws_1:projects/proj_1/keyspaces/ks_1#*        action wildcard off the global resource
-//	api.api_1.read_api                                    legacy tuple, not a URN permission
+//	unkey:v1:ws_1:keyspaces/ks_1                 missing "#action"
+//	unkey:v1:ws_1:keyspaces/ks_1#read#key        more than one "#"
+//	unkey:v1:ws_1:keyspaces/ks_1#*               action wildcard off the global resource
+//	api.api_1.read_api                           legacy tuple, not a URN permission
 func parseUrnPermission(value string) (UnkeyPermission, error) {
 	var zero UnkeyPermission
 

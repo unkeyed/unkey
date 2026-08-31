@@ -12,9 +12,7 @@ import (
 
 const (
 	permTestWorkspaceID = "ws_test"
-	permTestProjectID   = "proj_test"
 	permTestKeyspaceID  = "ks_test"
-	permTestKeyID       = "key_test"
 	permTestAPIID       = "api_test"
 )
 
@@ -28,15 +26,10 @@ func permAllows(t *testing.T, query rbac.PermissionQuery, grants ...string) bool
 	return result.Valid
 }
 
-// permKeyURNGrant is a canonical URN grant on the test key. Neither legacy
+// permKeyspaceURNGrant is a canonical URN grant on the test keyspace. Neither
 // requirement below emits a URN leaf, so this must never satisfy one on its own.
-func permKeyURNGrant(action string) string {
-	return urn.New().
-		Workspace(permTestWorkspaceID).
-		Project(permTestProjectID).
-		Keyspace(permTestKeyspaceID).
-		Key(permTestKeyID).
-		String() + "#" + action
+func permKeyspaceURNGrant(action string) string {
+	return urn.New().Workspace(permTestWorkspaceID).Keyspace(permTestKeyspaceID).String() + "#" + action
 }
 
 // TestCreateKeyPermissionsShape pins the exported tuple arm. This route Ors its
@@ -68,13 +61,13 @@ func TestCreateKeyPermissionsShape(t *testing.T) {
 // this route's Or/And keeps the full reroll requirement identical in evaluation
 // and in the string used for authorization error messages.
 func TestRerollQueryShapeParity(t *testing.T) {
-	urnWrite := rbac.U(
-		urn.New().
-			Workspace(permTestWorkspaceID).
-			Project(permTestProjectID).
-			Keyspace(permTestKeyspaceID).
-			Key(permTestKeyID),
-		permissions.WriteKey{},
+	urnCreate := rbac.U(
+		urn.New().Workspace(permTestWorkspaceID).Keyspace(permTestKeyspaceID),
+		permissions.CreateKey{},
+	)
+	urnEncrypt := rbac.U(
+		urn.New().Workspace(permTestWorkspaceID).Keyspace(permTestKeyspaceID).Key("*"),
+		permissions.EncryptKey{},
 	)
 
 	inlineCreate := rbac.Or(
@@ -88,7 +81,7 @@ func TestRerollQueryShapeParity(t *testing.T) {
 			ResourceID:   "*",
 			Action:       rbac.CreateKey,
 		}),
-		urnWrite,
+		urnCreate,
 	)
 	inlineEncrypted := rbac.And(
 		inlineCreate,
@@ -103,14 +96,14 @@ func TestRerollQueryShapeParity(t *testing.T) {
 				ResourceID:   "*",
 				Action:       rbac.EncryptKey,
 			}),
-			urnWrite,
+			urnEncrypt,
 		),
 	)
 
-	builtCreate := rbac.Or(handler.CreateKeyPermissions(permTestAPIID), urnWrite)
+	builtCreate := rbac.Or(handler.CreateKeyPermissions(permTestAPIID), urnCreate)
 	builtEncrypted := rbac.And(
 		builtCreate,
-		rbac.Or(handler.EncryptKeyPermissions(permTestAPIID), urnWrite),
+		rbac.Or(handler.EncryptKeyPermissions(permTestAPIID), urnEncrypt),
 	)
 
 	require.Equal(t,
@@ -126,7 +119,7 @@ func TestRerollQueryShapeParity(t *testing.T) {
 		{},
 		{"api." + permTestAPIID + ".create_key"},
 		{"api.*.create_key"},
-		{permKeyURNGrant("write")},
+		{permKeyspaceURNGrant("create_key")},
 		{"api." + permTestAPIID + ".create_key", "api." + permTestAPIID + ".encrypt_key"},
 		{"api.*.create_key", "api.*.encrypt_key"},
 		{"api." + permTestAPIID + ".encrypt_key"},
@@ -153,8 +146,8 @@ func TestCreateKeyPermissionsGrants(t *testing.T) {
 	require.False(t, permAllows(t, query, "api.api_other.create_key"))
 	require.False(t, permAllows(t, query, "api.*.update_key"))
 
-	// The tuple arm emits no URN leaf, so a key URN grant never satisfies it.
-	require.False(t, permAllows(t, query, permKeyURNGrant("write")))
+	// The tuple arm emits no URN leaf, so a keyspace URN grant never satisfies it.
+	require.False(t, permAllows(t, query, permKeyspaceURNGrant("create_key")))
 }
 
 // TestEncryptKeyPermissionsIsSeparateFromCreateKey pins the two as independent
@@ -172,5 +165,5 @@ func TestEncryptKeyPermissionsIsSeparateFromCreateKey(t *testing.T) {
 
 	require.True(t, permAllows(t, encrypt, "api.*.encrypt_key"))
 	require.True(t, permAllows(t, encrypt, "api."+permTestAPIID+".encrypt_key"))
-	require.False(t, permAllows(t, encrypt, permKeyURNGrant("write")))
+	require.False(t, permAllows(t, encrypt, permKeyspaceURNGrant("encrypt_key")))
 }

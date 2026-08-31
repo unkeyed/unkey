@@ -23,3 +23,11 @@ type Domain struct {
 func (d Domain) String() string {
 	return V1{WorkspaceID: d.workspaceID, Resource: d.path}.String()
 }
+
+// Any returns a descendant pattern below this domain.
+func (d Domain) Any() V1 {
+	return V1{
+		WorkspaceID: d.workspaceID,
+		Resource:    d.path + "/**",
+	}
+}

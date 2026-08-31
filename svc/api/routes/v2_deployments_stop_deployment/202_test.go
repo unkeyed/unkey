@@ -24,7 +24,9 @@ func TestStopDeployment(t *testing.T) {
 	route := newRoute(h, restateClient)
 	h.Register(route)
 
-	setup := h.CreateTestDeploymentSetup()
+	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
+		Permissions: []string{"environment.*.stop_deployment"},
+	})
 
 	preview := h.CreateEnvironment(seed.CreateEnvironmentRequest{
 		ID:          uid.New(uid.EnvironmentPrefix),
@@ -43,17 +45,13 @@ func TestStopDeployment(t *testing.T) {
 		EnvironmentID: preview.ID,
 		Status:        mysqltype.DeploymentsStatusReady,
 	})
-	rootKey := h.CreateRootKey(
-		setup.Workspace.ID,
-		"unkey:v1:"+setup.Workspace.ID+":projects/*/apps/*/environments/*/deployments/*#write_deployment",
-	)
 
-	res := testutil.CallRoute[handler.Request, handler.Response](h, route, authHeaders(rootKey), handler.Request{
+	res := testutil.CallRoute[handler.Request, handler.Response](h, route, authHeaders(setup.RootKey), handler.Request{
 		DeploymentId: dep.ID,
 	})
 	require.Equal(t, http.StatusAccepted, res.Status, "expected 202, received: %s", res.RawBody)
 
-	rootKeyID, err := db.Query.FindKeyIDByHash(context.Background(), h.DB.RO(), hash.Sha256(rootKey))
+	rootKeyID, err := db.Query.FindKeyIDByHash(context.Background(), h.DB.RO(), hash.Sha256(setup.RootKey))
 	require.NoError(t, err)
 
 	observed := testutil.Receive(t, stops, 10*time.Second)

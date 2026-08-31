@@ -186,7 +186,6 @@ func TestSuccess(t *testing.T) {
 
 		createdPermissions, err := db.Query.FindPermissionsBySlugs(ctx, h.DB.RO(), db.FindPermissionsBySlugsParams{
 			WorkspaceID: workspace.ID,
-			ProjectID:   existingPermission.ProjectID,
 			Slugs:       []string{"documents.write.create.role"},
 		})
 		require.NoError(t, err)
@@ -280,11 +279,8 @@ func TestSuccess(t *testing.T) {
 		requests.Wait()
 		close(results)
 
-		projectID, err := db.Query.FindDefaultProjectByWorkspaceID(ctx, h.DB.RO(), workspace.ID)
-		require.NoError(t, err)
 		permissions, err := db.Query.FindPermissionsBySlugs(ctx, h.DB.RO(), db.FindPermissionsBySlugsParams{
 			WorkspaceID: workspace.ID,
-			ProjectID:   projectID,
 			Slugs:       []string{"documents.concurrent.create.role"},
 		})
 		require.NoError(t, err)

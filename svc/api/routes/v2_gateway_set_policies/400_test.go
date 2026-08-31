@@ -23,7 +23,7 @@ func TestSetPoliciesBadRequest(t *testing.T) {
 
 	workspace := h.Resources().UserWorkspace
 	env := seedEnvironment(t, h)
-	api := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspace.ID, ProjectID: env.projectID})
+	api := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspace.ID})
 	rootKey := h.CreateRootKey(workspace.ID, "environment.*.set_policies")
 	headers := authHeaders(rootKey)
 

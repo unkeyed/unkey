@@ -69,7 +69,7 @@ func TestCreateKeySuccess(t *testing.T) {
 	require.True(t, key.Enabled)
 }
 
-// TestCreateKeyWithURNPermission guarantees WorkOS-translated `keys:write`
+// TestCreateKeyWithURNPermission guarantees WorkOS-translated `keys:create`
 // permissions authorize basic key creation without legacy API tuple grants.
 func TestCreateKeyWithURNPermission(t *testing.T) {
 	t.Parallel()
@@ -91,7 +91,7 @@ func TestCreateKeyWithURNPermission(t *testing.T) {
 	})
 	rootKey := h.CreateRootKey(
 		h.Resources().UserWorkspace.ID,
-		createKeyPermission(h.Resources().UserWorkspace.ID, api.ProjectID, api.KeyAuthID.String),
+		createKeyPermission(h.Resources().UserWorkspace.ID, api.KeyAuthID.String),
 	)
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
@@ -285,7 +285,7 @@ func TestCreateKeyWithEncryption(t *testing.T) {
 }
 
 // TestCreateRecoverableKeyWithURNPermissions guarantees WorkOS-translated
-// `keys:write` permissions authorize recoverable key
+// `keys:create` and `keys:encrypt` permissions authorize recoverable key
 // creation without legacy API tuple grants.
 func TestCreateRecoverableKeyWithURNPermissions(t *testing.T) {
 	t.Parallel()
@@ -308,7 +308,8 @@ func TestCreateRecoverableKeyWithURNPermissions(t *testing.T) {
 	})
 	rootKey := h.CreateRootKey(
 		h.Resources().UserWorkspace.ID,
-		createKeyPermission(h.Resources().UserWorkspace.ID, api.ProjectID, api.KeyAuthID.String),
+		createKeyPermission(h.Resources().UserWorkspace.ID, api.KeyAuthID.String),
+		encryptKeyPermission(h.Resources().UserWorkspace.ID, api.KeyAuthID.String),
 	)
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
@@ -674,10 +675,14 @@ func TestCreateKeyWithRolesAndPermissions(t *testing.T) {
 	require.ElementsMatch(t, permissionSlugs, gotPerms)
 }
 
-func createKeyPermission(workspaceID string, projectID string, keyspaceID string) string {
-	return fmt.Sprintf("unkey:v1:%s:projects/%s/keyspaces/%s/keys/*#write_key", workspaceID, projectID, keyspaceID)
+func createKeyPermission(workspaceID string, keyspaceID string) string {
+	return fmt.Sprintf("unkey:v1:%s:keyspaces/%s#create_key", workspaceID, keyspaceID)
 }
 
 func createAnyKeyPermission(workspaceID string) string {
-	return fmt.Sprintf("unkey:v1:%s:projects/*/keyspaces/*/keys/*#write_key", workspaceID)
+	return fmt.Sprintf("unkey:v1:%s:keyspaces/*#create_key", workspaceID)
+}
+
+func encryptKeyPermission(workspaceID string, keyspaceID string) string {
+	return fmt.Sprintf("unkey:v1:%s:keyspaces/%s/keys/*#encrypt_key", workspaceID, keyspaceID)
 }

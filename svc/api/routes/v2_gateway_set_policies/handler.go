@@ -75,7 +75,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	policyURN := urn.New().Workspace(principal.WorkspaceID).Project(env.ProjectID).App(env.AppID).Environment(env.ID).Gateway().Policy("*")
 	err = principal.Authorize(rbac.Or(
 		rbac.T(rbac.Tuple{
 			ResourceType: rbac.Environment,
@@ -87,9 +86,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			ResourceID:   env.ID,
 			Action:       rbac.SetPolicies,
 		}),
-		rbac.And(
-			rbac.U(policyURN, permissions.WriteGatewayPolicy{}),
-			rbac.U(policyURN, permissions.DeleteGatewayPolicy{}),
+		rbac.U(
+			urn.New().Workspace(principal.WorkspaceID).Project(env.ProjectID).App(env.AppID).Environment(env.ID).Gateway().Policy("*"),
+			permissions.WritePolicy{},
 		),
 	))
 	if err != nil {
@@ -120,12 +119,12 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 		for _, id := range keyspaceIDs {
 			if !slices.ContainsFunc(found, func(row db.FindKeyAuthsByIdsAndWorkspaceRow) bool {
-				return row.ID == id && row.ProjectID == env.ProjectID
+				return row.ID == id
 			}) {
 				return fault.New(
 					"keyspace not found",
 					fault.Code(codes.Data.KeySpace.NotFound.URN()),
-					fault.Internal("keyspace not found in project"),
+					fault.Internal("keyspace not found in workspace"),
 					fault.Public(fmt.Sprintf("Keyspace %q does not exist.", id)),
 				)
 			}

@@ -27,14 +27,12 @@ func TestSetPoliciesForbidden(t *testing.T) {
 	}{
 		{name: "wildcard permission", permissions: []string{"environment.*.set_policies"}, shouldPass: true},
 		{name: "specific permission", permissions: []string{fmt.Sprintf("environment.%s.set_policies", env.environmentID)}, shouldPass: true},
-		{name: "canonical write and delete", permissions: []string{fmt.Sprintf("unkey:v1:%s:projects/%s/apps/%s/environments/%s/gateway/policies/*#write_gateway_policy", env.workspaceID, env.projectID, env.appID, env.environmentID), fmt.Sprintf("unkey:v1:%s:projects/%s/apps/%s/environments/%s/gateway/policies/*#delete_gateway_policy", env.workspaceID, env.projectID, env.appID, env.environmentID)}, shouldPass: true},
-		{name: "canonical write without delete", permissions: []string{fmt.Sprintf("unkey:v1:%s:projects/%s/apps/%s/environments/%s/gateway/policies/*#write_gateway_policy", env.workspaceID, env.projectID, env.appID, env.environmentID)}, shouldPass: false},
-		{name: "canonical delete without write", permissions: []string{fmt.Sprintf("unkey:v1:%s:projects/%s/apps/%s/environments/%s/gateway/policies/*#delete_gateway_policy", env.workspaceID, env.projectID, env.appID, env.environmentID)}, shouldPass: false},
+		{name: "canonical urn grant", permissions: []string{fmt.Sprintf("unkey:v1:%s:projects/%s/apps/%s/environments/%s/gateway/policies/*#write_policy", env.workspaceID, env.projectID, env.appID, env.environmentID)}, shouldPass: true},
 		{name: "permission and more", permissions: []string{"some.other.permission", "environment.*.set_policies"}, shouldPass: true},
 		{name: "update action is not enough", permissions: []string{"environment.*.update_environment"}, shouldPass: false},
 		{name: "set variables action is not enough", permissions: []string{"environment.*.set_environment_variables"}, shouldPass: false},
 		{name: "other environment id does not match", permissions: []string{fmt.Sprintf("environment.%s.set_policies", uid.New(uid.EnvironmentPrefix))}, shouldPass: false},
-		{name: "urn missing the project and app segments", permissions: []string{fmt.Sprintf("unkey:v1:%s:environments/*#write_gateway_policy", env.workspaceID)}, shouldPass: false},
+		{name: "urn missing the project and app segments", permissions: []string{fmt.Sprintf("unkey:v1:%s:environments/*#write_policy", env.workspaceID)}, shouldPass: false},
 		{name: "unrelated permission", permissions: []string{"api.*.read_api"}, shouldPass: false},
 		{name: "no permissions", permissions: []string{}, shouldPass: false},
 	}

@@ -58,10 +58,10 @@ func TestRunUpsertsPermissions(t *testing.T) {
 			writeJSON(w, http.StatusOK, permissionResponse{Permission: permissionBody{Slug: "projects:read"}})
 		case r.Method == http.MethodPatch && r.URL.EscapedPath() == "/authorization/permissions/projects:read":
 			writeJSON(w, http.StatusOK, permissionResponse{Permission: permissionBody{Slug: "projects:read"}})
-		case r.Method == http.MethodGet && r.URL.EscapedPath() == "/authorization/permissions/projects:write":
+		case r.Method == http.MethodGet && r.URL.EscapedPath() == "/authorization/permissions/projects:create":
 			writeJSON(w, http.StatusNotFound, errorResponse{Message: "not found"})
 		case r.Method == http.MethodPost && r.URL.EscapedPath() == "/authorization/permissions":
-			writeJSON(w, http.StatusCreated, permissionResponse{Permission: permissionBody{Slug: "projects:write"}})
+			writeJSON(w, http.StatusCreated, permissionResponse{Permission: permissionBody{Slug: "projects:create"}})
 		default:
 			t.Fatalf("unexpected request: %s %s", r.Method, r.URL.EscapedPath())
 		}
@@ -84,16 +84,16 @@ func TestRunUpsertsPermissions(t *testing.T) {
 			Description: "Read project metadata.",
 		},
 		{
-			Slug:        "projects:write",
-			Name:        "Write projects",
-			Description: "Create and update project records.",
+			Slug:        "projects:create",
+			Name:        "Create projects",
+			Description: "Create project records.",
 		},
 	}
 
 	var out bytes.Buffer
 	err := run(t.Context(), config{apiKey: "test_key", dryRun: false}, definitions, &out)
 	require.NoError(t, err)
-	require.Equal(t, "updated projects:read\ncreated projects:write\nunmanaged legacy:stale\n", out.String())
+	require.Equal(t, "updated projects:read\ncreated projects:create\nunmanaged legacy:stale\n", out.String())
 
 	require.Len(t, requests, 6)
 	require.Equal(t, http.MethodGet, requests[0].Method)
@@ -111,9 +111,9 @@ func TestRunUpsertsPermissions(t *testing.T) {
 	require.Equal(t, http.MethodGet, requests[4].Method)
 	require.Equal(t, http.MethodPost, requests[5].Method)
 	require.Equal(t, permissionBody{
-		Slug:        "projects:write",
-		Name:        "Write projects",
-		Description: "Create and update project records.",
+		Slug:        "projects:create",
+		Name:        "Create projects",
+		Description: "Create project records.",
 	}, requests[5].Body)
 }
 

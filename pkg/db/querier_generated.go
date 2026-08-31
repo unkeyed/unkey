@@ -178,9 +178,9 @@ type Querier interface {
 	//  SELECT pk, id, name, workspace_id, project_id, ip_whitelist, auth_type, key_auth_id, created_at_m, updated_at_m, deleted_at_m, delete_protection FROM apis WHERE id = ?
 	FindApiByID(ctx context.Context, db DBTX, id string) (Api, error)
 	// Maps keyspace ids back to the api that owns them, scoped to a workspace.
-	// apis.key_auth_id is unique, so each keyspace resolves to at most one api and project.
+	// apis.key_auth_id is unique, so each keyspace resolves to at most one api.
 	//
-	//  SELECT ka.id as key_auth_id, ka.project_id, a.id as api_id
+	//  SELECT ka.id as key_auth_id, a.id as api_id
 	//  FROM apis a
 	//  JOIN key_auth as ka ON ka.id = a.key_auth_id
 	//  WHERE a.workspace_id = ?
@@ -498,9 +498,9 @@ type Querier interface {
 	//      AND a.deleted_at_m IS NULL
 	FindKeyAuthsByIds(ctx context.Context, db DBTX, arg FindKeyAuthsByIdsParams) ([]FindKeyAuthsByIdsRow, error)
 	// Returns the subset of the given keyspace ids that exist in this workspace
-	// and are not soft-deleted, along with each keyspace's project and encryption setting.
+	// and are not soft-deleted, along with each keyspace's encryption setting.
 	//
-	//  SELECT id, project_id, store_encrypted_keys FROM key_auth
+	//  SELECT id, store_encrypted_keys FROM key_auth
 	//  WHERE workspace_id = ?
 	//    AND id IN (/*SLICE:key_auth_ids*/?)
 	//    AND deleted_at_m IS NULL
@@ -797,9 +797,7 @@ type Querier interface {
 	//          JSON_ARRAY()
 	//  ) as permissions
 	//  FROM roles r
-	//  WHERE r.workspace_id = ?
-	//    AND r.project_id = ?
-	//    AND r.name IN (/*SLICE:names*/?)
+	//  WHERE r.workspace_id = ? AND r.name IN (/*SLICE:names*/?)
 	FindManyRolesByNamesWithPerms(ctx context.Context, db DBTX, arg FindManyRolesByNamesWithPermsParams) ([]FindManyRolesByNamesWithPermsRow, error)
 	// Finds a permission record by its ID
 	// Returns: The permission record if found
@@ -833,17 +831,13 @@ type Querier interface {
 	FindPermissionBySlugAndWorkspaceID(ctx context.Context, db DBTX, arg FindPermissionBySlugAndWorkspaceIDParams) (Permission, error)
 	//FindPermissionsBySlugs
 	//
-	//  SELECT pk, id, workspace_id, project_id, name, slug, description, created_at_m, updated_at_m FROM permissions
-	//  WHERE workspace_id = ?
-	//    AND project_id = ?
-	//    AND slug IN (/*SLICE:slugs*/?)
+	//  SELECT pk, id, workspace_id, project_id, name, slug, description, created_at_m, updated_at_m FROM permissions WHERE workspace_id = ? AND slug IN (/*SLICE:slugs*/?)
 	FindPermissionsBySlugs(ctx context.Context, db DBTX, arg FindPermissionsBySlugsParams) ([]Permission, error)
 	//FindPermissionsBySlugsForUpdate
 	//
 	//  SELECT id, name, slug, description
 	//  FROM permissions
 	//  WHERE workspace_id = ?
-	//    AND project_id = ?
 	//    AND slug IN (/*SLICE:slugs*/?)
 	//  ORDER BY slug
 	//  FOR UPDATE
@@ -1056,10 +1050,7 @@ type Querier interface {
 	FindRolePermissionByRoleAndPermissionID(ctx context.Context, db DBTX, arg FindRolePermissionByRoleAndPermissionIDParams) ([]RolesPermission, error)
 	//FindRolesByNames
 	//
-	//  SELECT id, name FROM roles
-	//  WHERE workspace_id = ?
-	//    AND project_id = ?
-	//    AND name IN (/*SLICE:names*/?)
+	//  SELECT id, name FROM roles WHERE workspace_id = ? AND name IN (/*SLICE:names*/?)
 	FindRolesByNames(ctx context.Context, db DBTX, arg FindRolesByNamesParams) ([]FindRolesByNamesRow, error)
 	//FindVerifiedCustomDomainByAppID
 	//
@@ -2058,7 +2049,6 @@ type Querier interface {
 	//      i.id,
 	//      i.external_id,
 	//      i.workspace_id,
-	//      i.project_id,
 	//      i.environment,
 	//      i.meta,
 	//      i.deleted,
@@ -2461,10 +2451,9 @@ type Querier interface {
 	//  WHERE id = ?
 	//  FOR UPDATE
 	LockKeyForUpdate(ctx context.Context, db DBTX, id string) (string, error)
-	// LockRoleByIDAndWorkspaceID serializes role permission changes. It returns
-	// the project ID so authorization can use the role's project-scoped URN.
+	//LockRoleByIDAndWorkspaceID
 	//
-	//  SELECT id, project_id, name
+	//  SELECT id, name
 	//  FROM roles
 	//  WHERE id = ? AND workspace_id = ?
 	//  FOR UPDATE

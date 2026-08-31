@@ -72,7 +72,6 @@ func TestSuccess(t *testing.T) {
 		err := db.Query.InsertRole(ctx, h.DB.RW(), db.InsertRoleParams{
 			RoleID:      roleID,
 			WorkspaceID: workspace.ID,
-			ProjectID:   api.ProjectID,
 			Name:        roleName,
 			Description: sql.NullString{Valid: true, String: "Editor role"},
 		})
@@ -127,7 +126,6 @@ func TestSuccess(t *testing.T) {
 		err := db.Query.InsertRole(ctx, h.DB.RW(), db.InsertRoleParams{
 			RoleID:      oldRoleID,
 			WorkspaceID: workspace.ID,
-			ProjectID:   api.ProjectID,
 			Name:        "admin_replace_old",
 			Description: sql.NullString{Valid: true, String: "Old admin role"},
 		})
@@ -138,7 +136,6 @@ func TestSuccess(t *testing.T) {
 		err = db.Query.InsertRole(ctx, h.DB.RW(), db.InsertRoleParams{
 			RoleID:      newRoleID,
 			WorkspaceID: workspace.ID,
-			ProjectID:   api.ProjectID,
 			Name:        roleName,
 			Description: sql.NullString{Valid: true, String: "New editor role"},
 		})
@@ -227,7 +224,6 @@ func TestSuccess(t *testing.T) {
 		err := db.Query.InsertRole(ctx, h.DB.RW(), db.InsertRoleParams{
 			RoleID:      roleID,
 			WorkspaceID: workspace.ID,
-			ProjectID:   api.ProjectID,
 			Name:        "admin_remove_all",
 			Description: sql.NullString{Valid: true, String: "Admin role to be removed"},
 		})
@@ -307,7 +303,6 @@ func TestSuccess(t *testing.T) {
 		err := db.Query.InsertRole(ctx, h.DB.RW(), db.InsertRoleParams{
 			RoleID:      roleID,
 			WorkspaceID: workspace.ID,
-			ProjectID:   api.ProjectID,
 			Name:        roleName,
 			Description: sql.NullString{Valid: true, String: "Admin role - no change"},
 		})

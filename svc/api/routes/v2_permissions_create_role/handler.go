@@ -109,11 +109,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	// 5. Create role and permissions in a transaction with audit logs
 	err = db.TxRetry(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
-		projectID, resolveErr := projects.EnsureDefaultProject(ctx, tx, principal.WorkspaceID)
-		if resolveErr != nil {
-			return resolveErr
-		}
-
 		permissions := make([]rolePermission, 0, len(permissionSlugs))
 		createdPermissions := make([]rolePermission, 0)
 		var missingSlugs []string
@@ -121,7 +116,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		if len(permissionSlugs) > 0 {
 			foundPermissions, findErr := db.Query.FindPermissionsBySlugsForUpdate(ctx, tx, db.FindPermissionsBySlugsForUpdateParams{
 				WorkspaceID: principal.WorkspaceID,
-				ProjectID:   projectID,
 				Slugs:       permissionSlugs,
 			})
 			if findErr != nil {
@@ -154,6 +148,11 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 					return authorizeErr
 				}
 
+				projectID, projectErr := projects.EnsureDefaultProject(ctx, tx, principal.WorkspaceID)
+				if projectErr != nil {
+					return projectErr
+				}
+
 				candidates := make(map[string]db.UpsertPermissionParams, len(missingSlugs))
 				for _, slug := range missingSlugs {
 					candidate := db.UpsertPermissionParams{
@@ -176,7 +175,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 				foundPermissions, findErr = db.Query.FindPermissionsBySlugsForUpdate(ctx, tx, db.FindPermissionsBySlugsForUpdateParams{
 					WorkspaceID: principal.WorkspaceID,
-					ProjectID:   projectID,
 					Slugs:       permissionSlugs,
 				})
 				if findErr != nil {
@@ -200,18 +198,14 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 			permissions = permissions[:0]
 			for _, slug := range permissionSlugs {
-				permission, ok := permissionsBySlug[strings.ToLower(slug)]
-				if !ok {
-					return fault.New("permission not found",
-						fault.Code(codes.Data.Permission.NotFound.URN()),
-						fault.Internal("permission belongs to a different project"),
-						fault.Public(fmt.Sprintf("Permission '%s' was not found.", slug)),
-					)
-				}
-				permissions = append(permissions, permission)
+				permissions = append(permissions, permissionsBySlug[strings.ToLower(slug)])
 			}
 		}
 
+		projectID, resolveErr := projects.EnsureDefaultProject(ctx, tx, principal.WorkspaceID)
+		if resolveErr != nil {
+			return resolveErr
+		}
 		now := time.Now().UnixMilli()
 
 		// Insert the role

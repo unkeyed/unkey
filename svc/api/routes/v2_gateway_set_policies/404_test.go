@@ -72,22 +72,8 @@ func TestSetPoliciesNotFound(t *testing.T) {
 		require.Contains(t, res.Body.Error.Type, "key_space_not_found")
 	})
 
-	t.Run("keyauth referencing another project's keyspace", func(t *testing.T) {
-		foreign := h.CreateApi(seed.CreateApiRequest{WorkspaceID: env.workspaceID})
-		require.NotEqual(t, env.projectID, foreign.ProjectID)
-
-		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers,
-			makeRequest(env, []openapi.Policy{{
-				Name:    "k",
-				Enabled: true,
-				Keyauth: &openapi.KeyauthPolicy{Keyspaces: []string{foreign.KeyAuthID.String}},
-			}}))
-		require.Equal(t, http.StatusNotFound, res.Status, "expected 404, received: %s", res.RawBody)
-		require.Contains(t, res.Body.Error.Type, "key_space_not_found")
-	})
-
 	t.Run("keyauth referencing a soft-deleted keyspace", func(t *testing.T) {
-		api := h.CreateApi(seed.CreateApiRequest{WorkspaceID: env.workspaceID, ProjectID: env.projectID})
+		api := h.CreateApi(seed.CreateApiRequest{WorkspaceID: env.workspaceID})
 		_, err := h.DB.RW().ExecContext(context.Background(),
 			"UPDATE key_auth SET deleted_at_m = ? WHERE id = ?",
 			time.Now().UnixMilli(), api.KeyAuthID.String)

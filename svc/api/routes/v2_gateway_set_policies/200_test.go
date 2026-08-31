@@ -40,7 +40,7 @@ func TestSetPoliciesSuccessfully(t *testing.T) {
 
 	t.Run("batch of all five variants stores dashboard-compatible wire JSON", func(t *testing.T) {
 		env := seedEnvironment(t, h)
-		api := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspace.ID, ProjectID: env.projectID})
+		api := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspace.ID})
 
 		call(t, makeRequest(env, []openapi.Policy{
 			{
@@ -202,8 +202,8 @@ func TestSetPoliciesSuccessfully(t *testing.T) {
 	// in the gateway or the dashboard.
 	t.Run("stores every identifier, matcher and keyauth sub-shape", func(t *testing.T) {
 		env := seedEnvironment(t, h)
-		apiA := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspace.ID, ProjectID: env.projectID})
-		apiB := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspace.ID, ProjectID: env.projectID})
+		apiA := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspace.ID})
+		apiB := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspace.ID})
 
 		present := openapi.FieldMatchPresent(true)
 		kitchenSink := openapi.Policy{

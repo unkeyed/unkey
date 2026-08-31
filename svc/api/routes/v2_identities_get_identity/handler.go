@@ -88,7 +88,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			Action:       rbac.ReadIdentity,
 		}),
 		rbac.U(
-			urn.New().Workspace(principal.WorkspaceID).Project(identity.ProjectID).Identity(identity.ID),
+			urn.New().Workspace(principal.WorkspaceID).Project("*").Identity("*"),
 			permissions.ReadIdentity{},
 		),
 	))

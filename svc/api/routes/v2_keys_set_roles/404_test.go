@@ -65,7 +65,6 @@ func TestNotFoundErrors(t *testing.T) {
 	err := db.Query.InsertRole(ctx, h.DB.RW(), db.InsertRoleParams{
 		RoleID:      validRoleID,
 		WorkspaceID: workspace.ID,
-		ProjectID:   api.ProjectID,
 		Name:        validRoleName,
 		Description: sql.NullString{Valid: true, String: "Valid test role"},
 	})

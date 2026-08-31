@@ -11,7 +11,6 @@ func ParseNamespaceRow(row db.FindRatelimitNamespaceRow) db.FindRatelimitNamespa
 	result := db.FindRatelimitNamespace{
 		ID:                row.ID,
 		WorkspaceID:       row.WorkspaceID,
-		ProjectID:         row.ProjectID,
 		Name:              row.Name,
 		CreatedAtM:        row.CreatedAtM,
 		UpdatedAtM:        row.UpdatedAtM,
@@ -40,7 +39,6 @@ func RowToNamespace(row db.FindManyRatelimitNamespacesRow) db.FindRatelimitNames
 	result := db.FindRatelimitNamespace{
 		ID:                row.ID,
 		WorkspaceID:       row.WorkspaceID,
-		ProjectID:         row.ProjectID,
 		Name:              row.Name,
 		CreatedAtM:        row.CreatedAtM,
 		UpdatedAtM:        row.UpdatedAtM,

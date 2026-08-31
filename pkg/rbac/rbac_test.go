@@ -205,17 +205,14 @@ func TestRBAC_PortalTuplePermissions(t *testing.T) {
 	}
 }
 
-// TestRBAC_ProjectUrnPermissions guarantees the canonical URN form scopes
-// permissions to one project, all projects in a workspace, and never across
-// workspaces.
-func TestRBAC_ProjectUrnPermissions(t *testing.T) {
+// TestRBAC_PortalUrnPermissions guarantees the canonical URN form scopes portal
+// permissions to a single portal, to every portal in the workspace, and never
+// across workspaces.
+func TestRBAC_PortalUrnPermissions(t *testing.T) {
 	t.Parallel()
 
-	query := U(
-		urn.New().Workspace("ws_1").Project("proj_abc"),
-		permissions.WriteProject{},
-	)
-	require.Equal(t, "unkey:v1:ws_1:projects/proj_abc#write_project", query.Value)
+	query := U(urn.New().Workspace("ws_1").Portal("pc_abc"), permissions.CreatePortalSession{})
+	require.Equal(t, "unkey:v1:ws_1:portals/pc_abc#create_portal_session", query.Value)
 
 	tests := []struct {
 		name        string
@@ -223,13 +220,13 @@ func TestRBAC_ProjectUrnPermissions(t *testing.T) {
 		wantValid   bool
 	}{
 		{
-			name:        "exact project grant",
-			permissions: []string{"unkey:v1:ws_1:projects/proj_abc#write_project"},
+			name:        "exact portal grant",
+			permissions: []string{"unkey:v1:ws_1:portals/pc_abc#create_portal_session"},
 			wantValid:   true,
 		},
 		{
-			name:        "workspace-wide project grant",
-			permissions: []string{"unkey:v1:ws_1:projects/*#write_project"},
+			name:        "workspace wide portal grant",
+			permissions: []string{"unkey:v1:ws_1:portals/*#create_portal_session"},
 			wantValid:   true,
 		},
 		{
@@ -238,18 +235,18 @@ func TestRBAC_ProjectUrnPermissions(t *testing.T) {
 			wantValid:   true,
 		},
 		{
-			name:        "other project grant",
-			permissions: []string{"unkey:v1:ws_1:projects/proj_xyz#write_project"},
+			name:        "other portal grant",
+			permissions: []string{"unkey:v1:ws_1:portals/pc_xyz#create_portal_session"},
 			wantValid:   false,
 		},
 		{
 			name:        "other workspace grant",
-			permissions: []string{"unkey:v1:ws_2:projects/proj_abc#write_project"},
+			permissions: []string{"unkey:v1:ws_2:portals/pc_abc#create_portal_session"},
 			wantValid:   false,
 		},
 		{
-			name:        "read grant does not satisfy write",
-			permissions: []string{"unkey:v1:ws_1:projects/*#read_project"},
+			name:        "management grant does not satisfy session minting",
+			permissions: []string{"unkey:v1:ws_1:portals/*#read_portal"},
 			wantValid:   false,
 		},
 	}
@@ -266,48 +263,28 @@ func TestRBAC_ProjectUrnPermissions(t *testing.T) {
 	}
 }
 
-// TestRBAC_ProjectUrnSubtreeGrantCoversKeys guarantees a project subtree grant
-// reaches key resources below the project.
-func TestRBAC_ProjectUrnSubtreeGrantCoversKeys(t *testing.T) {
+// TestRBAC_PortalUrnSubtreeGrantCoversSessions guarantees a portal subtree grant
+// reaches session subresources, which have no typed action of their own.
+func TestRBAC_PortalUrnSubtreeGrantCoversSessions(t *testing.T) {
 	t.Parallel()
 
 	required := UnkeyPermission{
-		Resource: urn.V1{WorkspaceID: "ws_1", Resource: "projects/proj_abc/keyspaces/ks_1/keys/key_1"},
-		Action:   ActionType(permissions.ReadKey{}.String()),
+		Resource: urn.New().Workspace("ws_1").Portal("pc_abc").Session("ps_1"),
+		Action:   ActionType(permissions.CreatePortalSession{}.String()),
 	}
 	granted := UnkeyPermission{
-		Resource: urn.V1{WorkspaceID: "ws_1", Resource: "projects/proj_abc/**"},
-		Action:   ActionType(permissions.ReadKey{}.String()),
+		Resource: urn.V1{WorkspaceID: "ws_1", Resource: "portals/**"},
+		Action:   CreatePortalSession,
 	}
 
 	require.True(t, permissionCovers(required, granted))
 }
 
-// TestRBAC_RecursiveGrantActionIdentifiesResourceType guarantees a recursive
-// resource pattern does not let one resource's write action modify a descendant
-// resource of another type.
-func TestRBAC_RecursiveGrantActionIdentifiesResourceType(t *testing.T) {
-	t.Parallel()
-
-	app := urn.New().Workspace("ws_1").Project("proj_abc").App("app_1")
-	environment := app.Environment("env_1")
-	grant := app.Any().String() + "#" + permissions.WriteApp{}.String()
-
-	rbac := New()
-	appResult, err := rbac.EvaluatePermissions(U(app, permissions.WriteApp{}), []string{grant})
-	require.NoError(t, err)
-	require.True(t, appResult.Valid)
-
-	environmentResult, err := rbac.EvaluatePermissions(U(environment, permissions.WriteEnvironment{}), []string{grant})
-	require.NoError(t, err)
-	require.False(t, environmentResult.Valid)
-}
-
-// TestRBAC_ProjectActionWildcardRejected guarantees a project-scoped action
+// TestRBAC_PortalActionWildcardRejected guarantees a portal-scoped action
 // wildcard cannot be granted; only the global "**" resource takes "*".
-func TestRBAC_ProjectActionWildcardRejected(t *testing.T) {
+func TestRBAC_PortalActionWildcardRejected(t *testing.T) {
 	t.Parallel()
 
-	_, err := parseUrnPermission("unkey:v1:ws_1:projects/*#*")
+	_, err := parseUrnPermission("unkey:v1:ws_1:portals/*#*")
 	require.ErrorIs(t, err, errInvalidURNPermission)
 }
