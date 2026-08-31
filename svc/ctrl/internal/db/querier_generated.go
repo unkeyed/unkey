@@ -1171,13 +1171,16 @@ type Querier interface {
 	//      auto_apply = VALUES(auto_apply),
 	//      updated_at = VALUES(created_at)
 	InsertIdentityRatelimit(ctx context.Context, arg InsertIdentityRatelimitParams) error
-	//InsertKey
+	// InsertKey writes the plaintext key parts and hash in one statement so they stay consistent.
+	// Callers that do not know these parts pass empty prefix and end values.
 	//
 	//  INSERT INTO `keys` (
 	//      id,
 	//      key_auth_id,
 	//      hash,
+	//      prefix,
 	//      start,
+	//      end,
 	//      workspace_id,
 	//      for_workspace_id,
 	//      name,
@@ -1191,6 +1194,8 @@ type Querier interface {
 	//      refill_amount,
 	//      pending_migration_id
 	//  ) VALUES (
+	//      ?,
+	//      ?,
 	//      ?,
 	//      ?,
 	//      ?,
