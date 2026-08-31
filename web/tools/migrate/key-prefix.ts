@@ -5,27 +5,30 @@ const READ_BATCH_SIZE = 1_000;
 const BASE58_ALPHABET = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
 
 /**
- * Extracts the prefix from a legacy key start. A prefixed legacy key start ends
- * with an underscore and four random Base58 characters.
+ * Separates a legacy key start into its prefix and four random characters.
  */
-export function extractLegacyKeyPrefix(start: string): string | null {
+export function extractLegacyKeyMetadata(start: string): { prefix: string; start: string } | null {
   const separatorIndex = start.length - 5;
   if (separatorIndex < 1 || start[separatorIndex] !== "_") {
     return null;
   }
 
-  for (const character of start.slice(-4)) {
+  const strippedStart = start.slice(-4);
+  for (const character of strippedStart) {
     if (!BASE58_ALPHABET.includes(character)) {
       return null;
     }
   }
 
-  return start.slice(0, separatorIndex);
+  return {
+    prefix: start.slice(0, separatorIndex),
+    start: strippedStart,
+  };
 }
 
 /**
- * Backfills keys.prefix from the legacy keys.start value. The migration skips
- * rows that already have a prefix and rows without a legacy prefix.
+ * Backfills keys.prefix and removes the prefix from keys.start. The migration
+ * skips rows that already have a prefix and rows without a legacy prefix.
  *
  * The migration is safe to run more than once. Run it again after all key
  * writers store the prefix directly.
@@ -64,14 +67,14 @@ async function main(): Promise<void> {
       scanned += rows.length;
 
       for (const row of rows) {
-        const prefix = extractLegacyKeyPrefix(row.start);
-        if (prefix === null) {
+        const metadata = extractLegacyKeyMetadata(row.start);
+        if (metadata === null) {
           continue;
         }
 
         const result = await db
           .update(schema.keys)
-          .set({ prefix })
+          .set(metadata)
           .where(and(eq(schema.keys.pk, row.pk), eq(schema.keys.prefix, "")));
         updated += result[0].affectedRows;
       }

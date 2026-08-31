@@ -15,7 +15,8 @@ export async function newKey(opts: {
     byteLength: opts.byteLength,
     prefix: opts.prefix,
   }).toString();
-  const start = key.slice(0, (opts.prefix?.length ?? 0) + 5);
+  const randomStart = opts.prefix ? opts.prefix.length + 1 : 0;
+  const start = key.slice(randomStart, randomStart + 4);
   const end = key.slice(-4);
   const hash = await sha256(key);
 
