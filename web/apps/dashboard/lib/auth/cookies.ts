@@ -4,10 +4,16 @@
 // setCookies helpers that accept arbitrary name, value, and option fields.
 // Client components must go through the narrow wrappers in ./cookies-actions.
 
+import * as Sentry from "@sentry/nextjs";
 import { cookies } from "next/headers";
 import type { NextRequest, NextResponse } from "next/server";
 import { getAuthCookieOptions, getDefaultCookieOptions } from "./cookie-security";
 import { UNKEY_LAST_ORG_COOKIE, UNKEY_SESSION_COOKIE } from "./types";
+
+// WorkOS seals permission and feature claims into the session. Keep each part
+// below the browser's 4096-byte cookie limit after names and attributes.
+const SESSION_COOKIE_CHUNK_SIZE = 3500;
+const MAX_SESSION_COOKIE_CHUNKS = 8;
 
 export interface CookieOptions {
   httpOnly: boolean;
@@ -25,12 +31,81 @@ export interface Cookie {
   options?: CookieOptions;
 }
 
+// sessionCookieChunkName keeps chunk naming identical across every cookie API.
+function sessionCookieChunkName(index: number): string {
+  return `${UNKEY_SESSION_COOKIE}.${index}`;
+}
+
+// getCookieUpdates converts one logical session into browser-safe cookie writes.
+// The final expired part stops readers before any stale parts from an older session.
+function getCookieUpdates(cookie: Cookie): Cookie[] {
+  if (cookie.name !== UNKEY_SESSION_COOKIE) {
+    return [cookie];
+  }
+
+  const options = cookie.options ?? getAuthCookieOptions();
+  const sessionCookie: Cookie = {
+    ...cookie,
+    options,
+  };
+  const expired: Cookie = {
+    ...sessionCookie,
+    value: "",
+    options: { ...options, maxAge: 0 },
+  };
+
+  if (sessionCookie.value.length <= SESSION_COOKIE_CHUNK_SIZE) {
+    return [sessionCookie, { ...expired, name: sessionCookieChunkName(0) }];
+  }
+
+  const chunks = [];
+  for (let offset = 0; offset < sessionCookie.value.length; offset += SESSION_COOKIE_CHUNK_SIZE) {
+    chunks.push(sessionCookie.value.slice(offset, offset + SESSION_COOKIE_CHUNK_SIZE));
+  }
+
+  Sentry.captureMessage("WorkOS session cookie exceeds browser size limit", {
+    level: "warning",
+    fingerprint: ["workos-session-cookie-oversized"],
+    tags: { component: "authentication" },
+    extra: {
+      sessionSizeBytes: sessionCookie.value.length,
+      chunkCount: chunks.length,
+    },
+  });
+  if (chunks.length > MAX_SESSION_COOKIE_CHUNKS) {
+    throw new Error("Session is too large to store in cookies");
+  }
+
+  return [
+    expired,
+    ...chunks.map((value, index) => ({
+      ...sessionCookie,
+      name: sessionCookieChunkName(index),
+      value,
+    })),
+    { ...expired, name: sessionCookieChunkName(chunks.length) },
+  ];
+}
+
 /**
  * Get a cookie value by name
  */
 export async function getCookie(name: string, request?: NextRequest): Promise<string | null> {
   const cookieStore = request?.cookies || (await cookies());
-  return cookieStore.get(name)?.value ?? null;
+  const value = cookieStore.get(name)?.value;
+  if (value || name !== UNKEY_SESSION_COOKIE) {
+    return value ?? null;
+  }
+
+  const chunks = [];
+  for (let index = 0; index < MAX_SESSION_COOKIE_CHUNKS; index++) {
+    const chunk = cookieStore.get(sessionCookieChunkName(index))?.value;
+    if (!chunk) {
+      break;
+    }
+    chunks.push(chunk);
+  }
+  return chunks.length > 0 ? chunks.join("") : null;
 }
 
 /**
@@ -38,7 +113,9 @@ export async function getCookie(name: string, request?: NextRequest): Promise<st
  */
 export async function setCookie(cookie: Cookie): Promise<void> {
   const cookieStore = await cookies();
-  cookieStore.set(cookie.name, cookie.value, cookie.options);
+  for (const update of getCookieUpdates(cookie)) {
+    cookieStore.set(update.name, update.value, update.options);
+  }
 }
 
 /**
@@ -47,7 +124,9 @@ export async function setCookie(cookie: Cookie): Promise<void> {
 export async function setCookies(cookieList: Cookie[]): Promise<void> {
   const cookieStore = await cookies();
   for (const cookie of cookieList) {
-    cookieStore.set(cookie.name, cookie.value, cookie.options);
+    for (const update of getCookieUpdates(cookie)) {
+      cookieStore.set(update.name, update.value, update.options);
+    }
   }
 }
 
@@ -57,6 +136,11 @@ export async function setCookies(cookieList: Cookie[]): Promise<void> {
 export async function deleteCookie(name: string): Promise<void> {
   const cookieStore = await cookies();
   cookieStore.delete(name);
+  if (name === UNKEY_SESSION_COOKIE) {
+    for (let index = 0; index <= MAX_SESSION_COOKIE_CHUNKS; index++) {
+      cookieStore.delete(sessionCookieChunkName(index));
+    }
+  }
 }
 
 /**
@@ -95,9 +179,21 @@ export async function setCookiesOnResponse(
   cookieList: Cookie[],
 ): Promise<NextResponse> {
   for (const cookie of cookieList) {
-    response.cookies.set(cookie.name, cookie.value, cookie.options);
+    for (const update of getCookieUpdates(cookie)) {
+      response.cookies.set(update.name, update.value, update.options);
+    }
   }
   return response;
+}
+
+/** Serializes all browser-safe writes for one logical cookie. */
+export async function getSetCookieHeaders(cookie: Cookie): Promise<string[]> {
+  return Promise.all(
+    getCookieUpdates(cookie).map(
+      async (update) =>
+        `${update.name}=${update.value}; ${await getCookieOptionsAsString(update.options)}`,
+    ),
+  );
 }
 
 /**
