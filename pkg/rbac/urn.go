@@ -29,12 +29,12 @@ func (u UnkeyPermission) String() string {
 	return fmt.Sprintf("%s#%s", u.Resource.String(), u.Action)
 }
 
-// U creates a leaf query for a typed action on a canonical resource name.
+// U creates a leaf query for an action on a canonical resource name.
 //
 // Handlers should pass the exact resource being accessed. Broader grants such
-// as "unkey:v1:ws_123:ratelimits/**#read_override" are matched during
+// as "unkey:v1:ws_123:ratelimits/**#read" are matched during
 // evaluation, not by writing wildcard-heavy queries at call sites.
-func U[R fmt.Stringer, A permissions.Action[R]](resource R, action A) PermissionQuery {
+func U(resource fmt.Stringer, action permissions.Action) PermissionQuery {
 	return PermissionQuery{
 		Operation:            OperatorNil,
 		Value:                fmt.Sprintf("%s#%s", resource.String(), action.String()),
@@ -77,8 +77,8 @@ func evaluateUnkeyPermission(required UnkeyPermission, granted []string) bool {
 //
 // Accepted:
 //
-//	unkey:v1:ws_1:ratelimits/namespaces/ns_1/overrides/ov_1#read_override
-//	unkey:v1:ws_1:keyspaces/*/keys/*#read_key    wildcard grant
+//	unkey:v1:ws_1:ratelimits/namespaces/ns_1/overrides/ov_1#read
+//	unkey:v1:ws_1:keyspaces/*/keys/*#read    wildcard grant
 //	unkey:v1:ws_1:**#*                           admin grant (translated from admin:*)
 //
 // Rejected with errInvalidURNPermission:

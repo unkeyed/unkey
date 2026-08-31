@@ -311,3 +311,26 @@ func TestRBAC_ProjectActionWildcardRejected(t *testing.T) {
 	_, err := parseUrnPermission("unkey:v1:ws_1:projects/*#*")
 	require.ErrorIs(t, err, errInvalidURNPermission)
 }
+
+// TestRBAC_RecursiveGrantAppliesActionToResourceAndDescendants guarantees a
+// recursive grant uses the same simple action for its base and descendants.
+func TestRBAC_RecursiveGrantAppliesActionToResourceAndDescendants(t *testing.T) {
+	t.Parallel()
+
+	app := urn.New().Workspace("ws_1").Project("proj_1").App("app_1")
+	environment := app.Environment("env_1")
+	grant := U(app.Any(), permissions.Write{}).Value
+
+	evaluator := New()
+	for _, query := range []PermissionQuery{
+		U(app, permissions.Write{}),
+		U(environment, permissions.Write{}),
+	} {
+		result, err := evaluator.EvaluatePermissions(
+			query,
+			[]string{grant},
+		)
+		require.NoError(t, err)
+		require.True(t, result.Valid)
+	}
+}
