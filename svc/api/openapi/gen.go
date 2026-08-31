@@ -4774,6 +4774,74 @@ type V2RatelimitSetOverrideResponseData struct {
 	OverrideId string `json:"overrideId"`
 }
 
+// V3KeysCreateKeyRequestBody defines model for V3KeysCreateKeyRequestBody.
+type V3KeysCreateKeyRequestBody struct {
+	// Credits Credit configuration and remaining balance for this key.
+	Credits *KeyCreditsData `json:"credits,omitempty"`
+
+	// Enabled Controls whether the key is active immediately upon creation.
+	// When set to `false`, the key exists but all verification attempts fail with `code=DISABLED`.
+	// Useful for pre-creating keys that will be activated later or for keys requiring manual approval.
+	// Most keys should be created with `enabled=true` for immediate use.
+	Enabled *bool `json:"enabled,omitempty"`
+
+	// Expires Sets when this key automatically expires as a Unix timestamp in milliseconds.
+	// Verification fails with code=EXPIRED immediately after this time passes.
+	// Omitting this field creates a permanent key that never expires.
+	//
+	// Avoid setting timestamps in the past as they immediately invalidate the key.
+	// Keys expire based on server time, not client time, which prevents timezone-related issues.
+	// Essential for trial periods, temporary access, and security compliance requiring key rotation.
+	Expires *int64 `json:"expires,omitempty"`
+
+	// ExternalId Links this key to a user or entity in your system using your own identifier.
+	// Returned during verification to identify the key owner without additional database lookups.
+	// Essential for user-specific analytics, billing, and multi-tenant key management.
+	// Use your primary user ID, organization ID, or tenant ID for best results.
+	// Accepts letters, numbers, underscores, dots, and hyphens for flexible identifier formats.
+	ExternalId *string `json:"externalId,omitempty"`
+
+	// Keyspace The ID of the keyspace that will contain this key.
+	// Keys in different keyspaces cannot access each other.
+	Keyspace string `json:"keyspace"`
+
+	// Meta Stores arbitrary JSON metadata returned during key verification for contextual information.
+	// Eliminates additional database lookups during verification, improving performance for stateless services.
+	// Avoid storing sensitive data here as it's returned in verification responses.
+	// Large metadata objects increase verification latency and should stay under 10KB total size.
+	Meta *map[string]interface{} `json:"meta,omitempty"`
+
+	// Name Sets a human-readable identifier for internal organization and dashboard display.
+	// Never exposed to end users, only visible in management interfaces and API responses.
+	// Avoid generic names like "API Key" when managing multiple keys for the same user or service.
+	Name *string `json:"name,omitempty"`
+
+	// Permissions Grants specific permissions directly to this key without requiring role membership.
+	// Wildcard permissions like `documents.*` grant access to all sub-permissions including `documents.read` and `documents.write`.
+	// Direct permissions supplement any permissions inherited from assigned roles.
+	Permissions *[]string `json:"permissions,omitempty"`
+
+	// Prefix Adds a visual identifier to the beginning of the generated key.
+	// Use 1 to 7 ASCII letters, numbers, or underscores.
+	// End the prefix with a letter or number.
+	Prefix *string `json:"prefix,omitempty"`
+
+	// Ratelimits Defines the time-based rate limits for this key.
+	Ratelimits *[]RatelimitRequest `json:"ratelimits,omitempty"`
+
+	// Recoverable Controls whether the plaintext key is stored in an encrypted vault for later retrieval.
+	// When true, allows recovering the actual key value using keys.getKey with decrypt=true.
+	// When false, the key value cannot be retrieved after creation for maximum security.
+	// Only enable for development keys or when key recovery is absolutely necessary.
+	Recoverable *bool `json:"recoverable,omitempty"`
+
+	// Roles Assigns existing roles to this key for permission management through role-based access control.
+	// Roles must already exist in your workspace before assignment.
+	// During verification, all permissions from assigned roles are checked against requested permissions.
+	// Roles provide a convenient way to group permissions and apply consistent access patterns across multiple keys.
+	Roles *[]string `json:"roles,omitempty"`
+}
+
 // ValidationError Individual validation error details. Each validation error provides precise information about what failed, where it failed, and how to fix it, enabling efficient error resolution.
 type ValidationError struct {
 	// Fix A human-readable suggestion describing how to fix the error. This provides practical guidance on what changes would satisfy the validation requirements. Not all validation errors include fix suggestions, but when present, they offer specific remediation advice.
@@ -5073,6 +5141,9 @@ type RatelimitMultiLimitJSONRequestBody = V2RatelimitMultiLimitRequestBody
 
 // RatelimitSetOverrideJSONRequestBody defines body for RatelimitSetOverride for application/json ContentType.
 type RatelimitSetOverrideJSONRequestBody = V2RatelimitSetOverrideRequestBody
+
+// KeysCreateKeyV3JSONRequestBody defines body for KeysCreateKeyV3 for application/json ContentType.
+type KeysCreateKeyV3JSONRequestBody = V3KeysCreateKeyRequestBody
 
 // AsV2DeploymentsCreateDeploymentRequestBody0 returns the union data inside the V2DeploymentsCreateDeploymentRequestBody as a V2DeploymentsCreateDeploymentRequestBody0
 func (t V2DeploymentsCreateDeploymentRequestBody) AsV2DeploymentsCreateDeploymentRequestBody0() (V2DeploymentsCreateDeploymentRequestBody0, error) {
