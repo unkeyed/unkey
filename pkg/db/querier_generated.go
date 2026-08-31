@@ -1502,8 +1502,8 @@ type Querier interface {
 	//      auto_apply = VALUES(auto_apply),
 	//      updated_at = VALUES(created_at)
 	InsertIdentityRatelimit(ctx context.Context, db DBTX, arg InsertIdentityRatelimitParams) error
-	// InsertKey writes display metadata with verification data so they cannot commit separately.
-	// Callers without plaintext metadata pass empty prefix and end values.
+	// InsertKey writes the plaintext key parts and hash in one statement so they stay consistent.
+	// Callers that do not know these parts pass empty prefix and end values.
 	//
 	//  INSERT INTO `keys` (
 	//      id,

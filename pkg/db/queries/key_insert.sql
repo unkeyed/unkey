@@ -1,6 +1,6 @@
 -- name: InsertKey :exec
--- InsertKey writes display metadata with verification data so they cannot commit separately.
--- Callers without plaintext metadata pass empty prefix and end values.
+-- InsertKey writes the plaintext key parts and hash in one statement so they stay consistent.
+-- Callers that do not know these parts pass empty prefix and end values.
 INSERT INTO `keys` (
     id,
     key_auth_id,
