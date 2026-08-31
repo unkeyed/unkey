@@ -25,7 +25,7 @@ This only works for root keys right now, as they have a constant `unkey_` prefix
 The general grammar is as follows. `[x]` indicates the number of characters.
 
 ```plaintext
-{prefix[1-8]}_{random[8]}unkeyv{version[1]}{depending on the version}
+{prefix[1-16]}_{random[8]}unkeyv{version[1]}{depending on the version}
 ```
 
 Version numbering starts at `1`. The version occupies one Base58 character and  
@@ -54,13 +54,13 @@ I chose to put it after 8 chars of randomness. This works, but also means that t
 Version 1 has this exact shape:
 
 ```plaintext
-{prefix[1-8]}_{random[8]}unkeyv1{random[36]}{checksum[6]}
+{prefix[1-16]}_{random[8]}unkeyv1{random[36]}{checksum[6]}
 ```
 
 
 | Field              | Length | Contents                       |
 | ------------------ | ------: | ------------------------------ |
-| Prefix             | 1–8    | User controlled prefix         |
+| Prefix             | 1–16   | User controlled prefix         |
 | Separator          | 1      | `_`                            |
 | Random head        | 8      | First part of the random value |
 | Marker and version | 7      | Literal `unkeyv1`              |
@@ -68,7 +68,7 @@ Version 1 has this exact shape:
 | Checksum           | 6      | Fixed-width Base58 CRC-32C     |
 
 
-The complete key is between 59 and 66 characters.
+The complete key is between 59 and 74 characters.
 
 The random field contains 44 independent, uniformly distributed Base58
 characters. It has about 257.75 bits of entropy.
@@ -82,12 +82,12 @@ The prefix, marker, version, and checksum add no entropy.
 Prefixes must match:
 
 ```plaintext
-^[A-Za-z0-9_]{0,7}[A-Za-z0-9]$
+^[A-Za-z0-9_]{0,15}[A-Za-z0-9]$
 ```
 
-They contain one through eight ASCII letters, numbers, or underscores, and must
+They contain one through 16 ASCII letters, numbers, or underscores, and must
 end in an alphanumeric character. `prod_sk`, `prod_key`, and `unkey` are valid.
-`prod_sk_` or nine-character prefixes are invalid.
+`prod_sk_` and prefixes longer than 16 characters are invalid.
 
 #### Checksum
 
@@ -106,7 +106,7 @@ key            = unsigned_key + checksum_text
 The version 1 regex for github is:
 
 ```plaintext
-[A-Za-z0-9_]{0,7}[A-Za-z0-9]_[1-9A-HJ-NP-Za-km-z]{8}unkeyv1[1-9A-HJ-NP-Za-km-z]{42}
+[A-Za-z0-9_]{0,15}[A-Za-z0-9]_[1-9A-HJ-NP-Za-km-z]{8}unkeyv1[1-9A-HJ-NP-Za-km-z]{42}
 ```
 
 Legacy root keys keep their existing GitHub pattern. Either we can provide 2 expressions, or we just merge them for one mega-cursed one.
