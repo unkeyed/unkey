@@ -205,7 +205,7 @@ func TestBuildSlot_ReclaimsSlotOfKilledInvocation(t *testing.T) {
 	depA := h.CreateDeployment(ctx, CreateDeploymentRequest{
 		Region:       "us-east-1",
 		DesiredState: mysqltype.DeploymentsDesiredStateRunning,
-	}).Deployment
+	})
 
 	// Deployment A takes the only slot and parks, like a live build.
 	holder, err := ingress.ServiceSend[slotGateRequest](tEnv.Ingress(), "SlotGate", "AcquireAndHold").
@@ -259,7 +259,7 @@ func TestBuildSlot_ReclaimsSlotOfKilledInvocation(t *testing.T) {
 	depB := h.CreateDeployment(ctx, CreateDeploymentRequest{
 		Region:       "us-east-1",
 		DesiredState: mysqltype.DeploymentsDesiredStateRunning,
-	}).Deployment
+	})
 
 	granted, err := ingress.Service[slotGateRequest, bool](tEnv.Ingress(), "SlotGate", "Acquire").
 		Request(ctx, slotGateRequest{

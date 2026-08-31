@@ -12,8 +12,16 @@ import (
 
 const findCluster = `-- name: FindCluster :one
 SELECT
-    c.pk, c.id, c.cell_id, c.region_id, c.last_heartbeat_at,
-    r.pk, r.id, r.name, r.platform, r.can_schedule
+    c.pk AS cluster_pk,
+    c.id AS cluster_id,
+    c.cell_id AS cluster_cell_id,
+    c.region_id AS cluster_region_id,
+    c.last_heartbeat_at AS cluster_last_heartbeat_at,
+    r.pk AS region_pk,
+    r.id AS region_id,
+    r.name AS region_name,
+    r.platform AS region_platform,
+    r.can_schedule AS region_can_schedule
 FROM clusters c
 INNER JOIN regions r ON r.id = c.region_id
 WHERE c.cell_id = ?
@@ -29,16 +37,32 @@ type FindClusterParams struct {
 }
 
 type FindClusterRow struct {
-	Cluster Cluster `db:"cluster"`
-	Region  Region  `db:"region"`
+	ClusterPk              uint64         `db:"cluster_pk"`
+	ClusterID              string         `db:"cluster_id"`
+	ClusterCellID          sql.NullString `db:"cluster_cell_id"`
+	ClusterRegionID        string         `db:"cluster_region_id"`
+	ClusterLastHeartbeatAt uint64         `db:"cluster_last_heartbeat_at"`
+	RegionPk               uint64         `db:"region_pk"`
+	RegionID               string         `db:"region_id"`
+	RegionName             string         `db:"region_name"`
+	RegionPlatform         string         `db:"region_platform"`
+	RegionCanSchedule      bool           `db:"region_can_schedule"`
 }
 
 // FindCluster resolves the cluster and region rows for the complete identity
 // supplied by Krane on cluster-scoped RPCs.
 //
 //	SELECT
-//	    c.pk, c.id, c.cell_id, c.region_id, c.last_heartbeat_at,
-//	    r.pk, r.id, r.name, r.platform, r.can_schedule
+//	    c.pk AS cluster_pk,
+//	    c.id AS cluster_id,
+//	    c.cell_id AS cluster_cell_id,
+//	    c.region_id AS cluster_region_id,
+//	    c.last_heartbeat_at AS cluster_last_heartbeat_at,
+//	    r.pk AS region_pk,
+//	    r.id AS region_id,
+//	    r.name AS region_name,
+//	    r.platform AS region_platform,
+//	    r.can_schedule AS region_can_schedule
 //	FROM clusters c
 //	INNER JOIN regions r ON r.id = c.region_id
 //	WHERE c.cell_id = ?
@@ -49,16 +73,16 @@ func (q *Queries) FindCluster(ctx context.Context, arg FindClusterParams) (FindC
 	row := q.db.QueryRowContext(ctx, findCluster, arg.CellID, arg.Platform, arg.Region)
 	var i FindClusterRow
 	err := row.Scan(
-		&i.Cluster.Pk,
-		&i.Cluster.ID,
-		&i.Cluster.CellID,
-		&i.Cluster.RegionID,
-		&i.Cluster.LastHeartbeatAt,
-		&i.Region.Pk,
-		&i.Region.ID,
-		&i.Region.Name,
-		&i.Region.Platform,
-		&i.Region.CanSchedule,
+		&i.ClusterPk,
+		&i.ClusterID,
+		&i.ClusterCellID,
+		&i.ClusterRegionID,
+		&i.ClusterLastHeartbeatAt,
+		&i.RegionPk,
+		&i.RegionID,
+		&i.RegionName,
+		&i.RegionPlatform,
+		&i.RegionCanSchedule,
 	)
 	return i, err
 }

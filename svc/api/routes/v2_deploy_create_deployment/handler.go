@@ -9,6 +9,7 @@ import (
 	"github.com/unkeyed/unkey/gen/rpc/ctrl"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/deploy/imageref"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/zen"
@@ -70,7 +71,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}),
 		rbac.T(rbac.Tuple{
 			ResourceType: rbac.Project,
-			ResourceID:   row.Project.ID,
+			ResourceID:   row.ProjectID,
 			Action:       rbac.CreateDeployment,
 		}),
 	))
@@ -85,10 +86,16 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		trigger = ctrlv1.DeploymentTrigger_DEPLOYMENT_TRIGGER_CLI
 	}
 
+	// ctrl rejects these too, but ctrlclient.HandleError replaces its message with a
+	// generic one, so the reason reaches the caller only if the check also runs here.
+	if err := imageref.Validate(req.DockerImage); err != nil {
+		return err
+	}
+
 	// nolint: exhaustruct // optional proto fields, only setting whats provided
 	ctrlReq := &ctrlv1.CreateDeploymentRequest{
-		ProjectId:       row.Project.ID,
-		AppId:           row.App.ID,
+		ProjectId:       row.ProjectID,
+		AppId:           row.AppID,
 		EnvironmentSlug: req.EnvironmentSlug,
 		DockerImage:     req.DockerImage,
 		GitCommit: &ctrlv1.GitCommitInfo{

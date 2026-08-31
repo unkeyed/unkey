@@ -57,8 +57,11 @@ export const updateRootKeyPermissions = workspaceProcedure
         const currentPermissions = await tx.query.keysPermissions
           .findMany({
             where: (table, { eq }) => eq(table.keyId, input.keyId),
+            columns: { permissionId: true },
             with: {
-              permission: true,
+              permission: {
+                columns: { name: true },
+              },
             },
           })
           .catch((_err) => {
