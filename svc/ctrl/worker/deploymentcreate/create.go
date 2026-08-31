@@ -173,6 +173,21 @@ func (s *Service) insertDeployment(
 			return err
 		}
 
+		// Deploy ends the queued step by (deployment, step) and never inserts
+		// it, so a row created without it shows no queue time and its first
+		// visible step is Starting.
+		if err := db.NewQueries(tx).InsertDeploymentStep(txCtx, db.InsertDeploymentStepParams{
+			WorkspaceID:   target.WorkspaceID,
+			ProjectID:     target.ProjectID,
+			AppID:         target.AppID,
+			EnvironmentID: target.EnvironmentID,
+			DeploymentID:  deploymentID,
+			Step:          db.DeploymentStepsStepQueued,
+			StartedAt:     uint64(now),
+		}); err != nil {
+			return err
+		}
+
 		// A rebuild skips this: it records its own deployment.rebuild event in
 		// ctrl. A nil actor falls back to the system actor via actor.AuditType.
 		if req.GetAction() != hydrav1.DeploymentCreateAction_DEPLOYMENT_CREATE_ACTION_REBUILD {

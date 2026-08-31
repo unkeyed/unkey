@@ -76,10 +76,10 @@ type RegistryConfig struct {
 // between container orchestration (Krane), database updates, and domain routing to ensure
 // consistent deployment state.
 //
-// The workflow uses Restate virtual objects keyed by app ID to ensure that only one
-// deployment operation runs per app at any time, preventing race conditions during
-// concurrent deploy/rollback/promote operations while allowing parallel deploys
-// across different apps within the same project.
+// The workflow is a Restate virtual object keyed by deployment id, so the
+// operations on one deployment serialize while deployments proceed in parallel.
+// Nothing here serializes per app: two deploys of the same app run concurrently,
+// and the ordering they need comes from the dedup and supersede checks instead.
 type Workflow struct {
 	hydrav1.UnimplementedDeployServiceServer
 	db        db.Database

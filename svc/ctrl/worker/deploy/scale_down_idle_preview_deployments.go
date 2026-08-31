@@ -23,6 +23,11 @@ var idleTime = 6 * time.Hour
 // branches that are no longer actively used, so this workflow paginates through
 // all preview environments and transitions idle deployments to archived by
 // checking request counts in ClickHouse.
+//
+// Superseded and unreachable: cron/idlepreview runs the live scan on a 1h idle
+// window, and DeployService's router binds no ScaleDownIdlePreviewDeployments
+// handler, so nothing can invoke this. It stays as the reference for the
+// paginate-environments-then-check-ClickHouse shape.
 func (w *Workflow) ScaleDownIdlePreviewDeployments(ctx restate.ObjectContext, req *hydrav1.RunScaleDownIdlePreviewDeploymentsRequest) (*hydrav1.RunScaleDownIdlePreviewDeploymentsResponse, error) {
 	now, err := restateutil.Now(ctx)
 	if err != nil {

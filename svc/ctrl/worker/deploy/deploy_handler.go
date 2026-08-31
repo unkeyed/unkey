@@ -126,9 +126,11 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 
 	// --- Deduplication: skip if a newer deployment is queued for the same app+env+branch ---
 	//
-	// Because the DeployService VO is keyed by app_id, by the time we run here any
-	// subsequent deploys for the same app are already queued in the VO inbox — so a
-	// newer-pending check here is race-free.
+	// The VO key is the deployment id, so same-app deploys do not serialize and
+	// this check races a concurrent newer create. Both directions are covered:
+	// the newer create cancels older siblings, and this reads the row state a
+	// moment later. A commit that loses both races still ends up superseded by
+	// the newer deployment's own swap.
 	if deployment.GitBranch.Valid {
 		skipped, skipErr := w.skipIfSuperseded(ctx, deployment)
 		if skipErr != nil {
