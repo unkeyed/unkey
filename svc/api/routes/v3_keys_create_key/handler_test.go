@@ -34,7 +34,7 @@ func TestCreateKeyStoresVersion1Format(t *testing.T) {
 		h.Resources().UserWorkspace.ID,
 		createKeyPermission(api.ID),
 	)
-	prefix := "prod_key"
+	prefix := "abcdefghijklmnop"
 
 	res := testutil.CallRoute[handler.Request, handler.Response](
 		h,
@@ -46,7 +46,7 @@ func TestCreateKeyStoresVersion1Format(t *testing.T) {
 	require.NotNil(t, res.Body)
 	require.Regexp(
 		t,
-		regexp.MustCompile(`^prod_key_[1-9A-HJ-NP-Za-km-z]{8}unkeyv1[1-9A-HJ-NP-Za-km-z]{42}$`),
+		regexp.MustCompile(`^abcdefghijklmnop_[1-9A-HJ-NP-Za-km-z]{8}unkeyv1[1-9A-HJ-NP-Za-km-z]{42}$`),
 		res.Body.Data.Key,
 	)
 
@@ -154,7 +154,7 @@ func TestCreateKeyRejectsInvalidFormatOptions(t *testing.T) {
 		{name: "keyspaceId", req: map[string]any{"keyspaceId": api.KeyAuthID.String, "prefix": "prod"}},
 		{name: "missing prefix", req: map[string]any{"keyspace": api.KeyAuthID.String}},
 		{name: "trailing underscore", req: map[string]any{"keyspace": api.KeyAuthID.String, "prefix": "prod_"}},
-		{name: "prefix too long", req: map[string]any{"keyspace": api.KeyAuthID.String, "prefix": "prod_keys"}},
+		{name: "prefix too long", req: map[string]any{"keyspace": api.KeyAuthID.String, "prefix": "abcdefghijklmnopq"}},
 		{name: "byte length", req: map[string]any{"keyspace": api.KeyAuthID.String, "prefix": "prod", "byteLength": 32}},
 	}
 
