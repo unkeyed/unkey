@@ -203,7 +203,14 @@
                 "pages": [
                   "platform/workspaces/overview",
                   "platform/workspaces/settings",
-                  "platform/workspaces/billing",
+                  {
+                    "group": "Billing",
+                    "pages": [
+                      "platform/workspaces/billing",
+                      "platform/workspaces/billing/manage",
+                      "platform/workspaces/billing/compute"
+                    ]
+                  },
                   "platform/workspaces/quotas",
                   "platform/workspaces/team-members"
                 ]

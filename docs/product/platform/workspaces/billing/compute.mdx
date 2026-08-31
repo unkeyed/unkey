@@ -1,0 +1,51 @@
+---
+title: Compute usage
+description: "What Unkey meters while your deployments run, and how to cap spend with a monthly budget."
+---
+
+Unkey meters Compute while your deployments run. Your plan grants [usage credits](/platform/workspaces/billing#your-plan-fee-is-usage-credit) equal to its fee each period, so only usage beyond the credits shows up on your invoice.
+
+## What Compute measures
+
+| Meter | Unit |
+| --- | --- |
+| CPU | vCPU-hours |
+| Memory | GiB-hours |
+| Egress | GiB of public outbound traffic |
+| Disk | GiB-hours of allocated disk |
+| Active keys | Distinct keys verified through the Compute gateway per period |
+
+Every meter bills what you consume, except disk: it bills the size you allocate, full or empty.
+
+**Settings > Usage** shows the period's spend and the per-meter quantities behind it.
+
+<Tip>
+  Visit [unkey.com/pricing](https://unkey.com/pricing) for per-unit prices.
+</Tip>
+
+## Why am I billed with no traffic?
+
+A running deployment holds memory and burns some CPU even when it serves no requests, like an idle server that is still switched on. Usage accrues whenever deployments run, not only when they handle traffic. Remove or scale down deployments you don't need.
+
+## Spend budget
+
+Set a monthly budget to cap what a period can cost: under **Settings > Billing**, in the **Cost control** section, click **Add** in the Compute row.
+
+| Setting | Behavior |
+| --- | --- |
+| **Monthly budget** | Whole dollars. Leave empty for no budget. |
+| **Email alerts** | Sent to workspace admins at 50%, 75%, and 100% of the budget. |
+| **Stop workloads at the budget** | Stops your running workloads once spend reaches the budget. |
+
+The budget caps total usage spend, credits included. A $100 budget stops you at $100 of usage, not $100 of overage.
+
+## While Compute is paused
+
+If **Stop workloads** is on and you hit the budget, Compute pauses. It resumes on its own, which takes up to five minutes, after you:
+
+- Raise the budget above your current spend
+- Remove the budget
+- Turn off **Stop workloads at the budget**
+- Reach the next billing period, when usage resets
+
+To stop Compute permanently, [cancel it](/platform/workspaces/billing/manage#cancel-compute) instead.

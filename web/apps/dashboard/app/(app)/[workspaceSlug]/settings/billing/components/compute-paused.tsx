@@ -4,7 +4,7 @@ import { ArrowUpRight } from "@unkey/icons";
 import Link from "next/link";
 
 export const PAUSED_DOCS_URL =
-  "https://unkey.com/docs/platform/workspaces/billing#while-compute-is-paused";
+  "https://unkey.com/docs/platform/workspaces/billing/compute#while-compute-is-paused";
 
 export function pausedBody(budgetLabel?: string): string {
   const cap = budgetLabel ? `your ${budgetLabel} spend budget` : "your spend budget";

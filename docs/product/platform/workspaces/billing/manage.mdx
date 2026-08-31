@@ -1,0 +1,64 @@
+---
+title: Manage billing
+description: "Add a payment method, change or cancel your Compute and API plans, and download invoices."
+---
+
+Everything here happens under **Settings > Billing** in the dashboard, and only workspace admins can do it. For how the charges work, see [Billing](/platform/workspaces/billing).
+
+## Add a payment method
+
+You need a payment method on file before subscribing to anything.
+
+1. Navigate to **Settings > Billing**.
+2. Click **Add payment method**.
+3. Complete the Stripe checkout form with your card details and billing address.
+
+<Frame>
+  <img className="block dark:hidden" src="/platform/workspaces/billing-free-light.png" alt="Billing page before subscribing, with the Add payment method button" />
+  <img className="hidden dark:block" src="/platform/workspaces/billing-free-dark.png" alt="Billing page before subscribing, with the Add payment method button" />
+</Frame>
+
+## Change your Compute plan
+
+The Compute plan sets your usage credits and workspace [limits](/platform/workspaces/quotas).
+
+1. In the Compute row, click **Change**, or **Choose a plan** if you don't have one yet.
+2. Select a plan and confirm.
+
+<Frame>
+  <img className="block dark:hidden" src="/platform/workspaces/billing-plans-light.png" alt="Compute plan chooser with Starter, Pro, and Business tiers" />
+  <img className="hidden dark:block" src="/platform/workspaces/billing-plans-dark.png" alt="Compute plan chooser with Starter, Pro, and Business tiers" />
+</Frame>
+
+Changes apply immediately:
+
+- Upgrades charge the prorated fee difference now and add the same amount to this period's credits.
+- Downgrades keep this period's credits. The lower fee starts next period, and Unkey doesn't refund the difference.
+
+## Cancel Compute
+
+1. In the Compute row, click **Change**.
+2. At the bottom of the dialog, click **Cancel Compute plan** and confirm.
+
+Your deployments stop immediately, metering stops with them, and workspace limits revert to Free plan defaults. Usage up to that point lands on your final invoice, and the fee you already paid isn't refunded. An active API plan is unaffected.
+
+<Warning>
+  Cancellation takes effect immediately, not at period end. To keep deployments running for less, downgrade instead.
+</Warning>
+
+## Manage the API plan
+
+The API plan raises your monthly request quota. It has its own row in the plans table and its own tiers.
+
+To subscribe or change tiers, click **Upgrade** (or **Change** once you have a plan) in the API management row, then pick a tier. Upgrades apply immediately and prorate. Downgrades start next period, with no refund for the current one.
+
+To cancel, click **Change** in the API management row, then **Cancel API plan** at the bottom of the dialog. The plan runs until the end of the period, then the quota drops to the free 150,000 requests per month. If you cancel by mistake, resume from the same dialog before the period ends.
+
+<Frame>
+  <img className="block dark:hidden" src="/platform/workspaces/billing-paid-light.png" alt="Billing page with active plans, View invoices button, and cost controls" />
+  <img className="hidden dark:block" src="/platform/workspaces/billing-paid-dark.png" alt="Billing page with active plans, View invoices button, and cost controls" />
+</Frame>
+
+## Invoices and payment methods
+
+Click **View invoices** on the billing page to open the Stripe portal, where you can download invoices, swap your payment method, and edit billing details.

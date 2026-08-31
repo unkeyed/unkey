@@ -5,7 +5,7 @@ description: "Review the default limits enforced on your Unkey workspace includi
 
 Every workspace has limits that define its operational boundaries. Limits control how many API requests you can make, how long Unkey retains your data, and how many resources your deployments can consume.
 
-When you [upgrade your plan](/platform/workspaces/billing#upgrade-your-plan), Unkey updates your workspace limits immediately. When you [downgrade or cancel](/platform/workspaces/billing#downgrade-or-cancel), limits revert to Free plan defaults at the end of the billing period.
+When you [upgrade your plan](/platform/workspaces/billing/manage#change-your-compute-plan), Unkey updates your workspace limits immediately. When you [downgrade or cancel](/platform/workspaces/billing/manage#cancel-compute), limits revert to Free plan defaults.
 
 
 <Tip>
@@ -20,7 +20,7 @@ When you [upgrade your plan](/platform/workspaces/billing#upgrade-your-plan), Un
 
 How many billable API operations your workspace can perform per billing month. This includes key verifications and rate limit checks.
 
-Requests are not blocked when you exceed this limit. Unkey sends email notifications as your workspace approaches and exceeds the threshold, prompting you to upgrade.
+Exceeding the limit never blocks requests and never costs extra per request. If your workspace exceeds it regularly, [upgrade the API plan](/platform/workspaces/billing/manage#manage-the-api-plan).
 
 The billing page and sidebar display your usage as a percentage of this limit, combining key verifications and rate limit operations for the current billing month.
 
