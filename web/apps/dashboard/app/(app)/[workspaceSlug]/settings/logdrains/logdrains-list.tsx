@@ -3,7 +3,6 @@
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { routes } from "@/lib/navigation/routes";
 import { trpc } from "@/lib/trpc/client";
-import { Earth } from "@unkey/icons";
 import {
   Empty,
   ResourceListBody,
@@ -12,37 +11,11 @@ import {
   Skeleton,
 } from "@unkey/ui";
 import Link from "next/link";
-import { AxiomLogo } from "./axiom-logo";
 import { CreateLogdrainButton } from "./create-logdrain-button";
 import { DrainRowChart } from "./drain-row-chart";
-import { DrainActions, StatusBadge } from "./logdrain-ui";
+import { DrainActions, SinkType, StatusBadge } from "./logdrain-ui";
 
 const SKELETON_ROWS = 8;
-
-function SinkType({ kind }: { kind: "http" | "axiom" }) {
-  switch (kind) {
-    case "http":
-      return (
-        <>
-          <span className="flex size-5 shrink-0 items-center justify-center rounded-sm bg-grayA-3 text-gray-11">
-            <Earth iconSize="sm-regular" />
-          </span>
-          <span className="text-[13px] font-medium text-accent-12">HTTP</span>
-        </>
-      );
-    case "axiom":
-      return (
-        <>
-          <span className="flex size-5 shrink-0 items-center justify-center rounded-sm bg-grayA-3 text-gray-11">
-            <AxiomLogo className="size-3.5" />
-          </span>
-          <span className="text-[13px] font-medium text-accent-12">Axiom</span>
-        </>
-      );
-    default:
-      throw new Error(`Unsupported log drain sink: ${kind satisfies never}`);
-  }
-}
 
 function LogdrainsSkeleton() {
   return (
@@ -135,7 +108,7 @@ export function LogdrainsList() {
                 </span>
                 <span className="text-xs text-gray-9">Audit logs</span>
               </div>
-              <div className="flex items-center gap-2 md:w-[20%] md:shrink-0">
+              <div className="flex items-center gap-2 text-[13px] font-medium text-accent-12 md:w-[20%] md:shrink-0">
                 <SinkType kind={drain.kind} />
               </div>
               <div className="md:w-[20%] md:shrink-0">

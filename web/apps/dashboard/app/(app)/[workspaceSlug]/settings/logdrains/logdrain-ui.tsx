@@ -5,11 +5,35 @@ import { trpc } from "@/lib/trpc/client";
 import type { Router } from "@/lib/trpc/routers";
 import { cn } from "@/lib/utils";
 import type { inferRouterOutputs } from "@trpc/server";
-import { Bolt, BoltSlash, Trash } from "@unkey/icons";
+import { Bolt, BoltSlash, Earth, Trash } from "@unkey/icons";
+import { match } from "@unkey/match";
 import { Button, DialogContainer, toast } from "@unkey/ui";
 import { useState } from "react";
+import { AxiomLogo } from "./axiom-logo";
 
+export type DrainKind = inferRouterOutputs<Router>["logdrain"]["list"][number]["kind"];
 export type DrainStatus = inferRouterOutputs<Router>["logdrain"]["list"][number]["status"];
+
+export function SinkType({ kind }: { kind: DrainKind }) {
+  return match(kind)
+    .with("http", () => (
+      <>
+        <span className="flex size-5 shrink-0 items-center justify-center rounded-sm bg-grayA-3 text-gray-11">
+          <Earth iconSize="sm-regular" />
+        </span>
+        <span>HTTP</span>
+      </>
+    ))
+    .with("axiom", () => (
+      <>
+        <span className="flex size-5 shrink-0 items-center justify-center rounded-sm bg-grayA-3 text-gray-11">
+          <AxiomLogo className="size-3.5" />
+        </span>
+        <span>Axiom</span>
+      </>
+    ))
+    .exhaustive();
+}
 
 export function StatusBadge({ status }: { status: DrainStatus }) {
   const label =
