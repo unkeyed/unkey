@@ -107,7 +107,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		if authorizeErr := principal.Authorize(rbac.Or(
 			rbac.U(
 				urn.New().Workspace(principal.WorkspaceID).Project(projectID).RBAC().Role("*"),
-				rbacpermissions.Write{},
+				rbacpermissions.Write,
 			),
 			legacyAuthorization,
 		)); authorizeErr != nil {
@@ -149,7 +149,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				if authorizeErr := principal.Authorize(rbac.Or(
 					rbac.U(
 						urn.New().Workspace(principal.WorkspaceID).Project(projectID).RBAC().Permission("*"),
-						rbacpermissions.Write{},
+						rbacpermissions.Write,
 					),
 					rbac.T(rbac.Tuple{
 						ResourceType: rbac.Rbac,

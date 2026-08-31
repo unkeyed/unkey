@@ -216,8 +216,8 @@ func TestTranslatePermissionsSupportsMultipleGrants(t *testing.T) {
 		name:        "Test multi grant",
 		description: "Used by tests to prove one WorkOS slug can grant multiple Unkey permissions.",
 		permissions: []permissionGrant{
-			{resource: "projects/*", action: action(rbacpermissions.Read{})},
-			{resource: "projects/*/apps/*", action: action(rbacpermissions.Read{})},
+			{resource: "projects/*", action: action(rbacpermissions.Read)},
+			{resource: "projects/*/apps/*", action: action(rbacpermissions.Read)},
 		},
 	}
 	t.Cleanup(func() {

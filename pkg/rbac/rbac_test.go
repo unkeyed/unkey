@@ -213,7 +213,7 @@ func TestRBAC_ProjectUrnPermissions(t *testing.T) {
 
 	query := U(
 		urn.New().Workspace("ws_1").Project("proj_abc"),
-		permissions.Write{},
+		permissions.Write,
 	)
 	require.Equal(t, "unkey:v1:ws_1:projects/proj_abc#write", query.Value)
 
@@ -273,11 +273,11 @@ func TestRBAC_ProjectUrnSubtreeGrantCoversKeys(t *testing.T) {
 
 	required := UnkeyPermission{
 		Resource: urn.V1{WorkspaceID: "ws_1", Resource: "projects/proj_abc/keyspaces/ks_1/keys/key_1"},
-		Action:   ActionType(permissions.Read{}.String()),
+		Action:   ActionType(permissions.Read.String()),
 	}
 	granted := UnkeyPermission{
 		Resource: urn.V1{WorkspaceID: "ws_1", Resource: "projects/proj_abc/**"},
-		Action:   ActionType(permissions.Read{}.String()),
+		Action:   ActionType(permissions.Read.String()),
 	}
 
 	require.True(t, permissionCovers(required, granted))
@@ -299,13 +299,13 @@ func TestRBAC_RecursiveGrantAppliesActionToResourceAndDescendants(t *testing.T) 
 
 	app := urn.New().Workspace("ws_1").Project("proj_1").App("app_1")
 	environment := app.Environment("env_1")
-	grant := U(app.Any(), permissions.Write{}).Value
+	grant := U(app.Any(), permissions.Write).Value
 	require.Equal(t, "unkey:v1:ws_1:projects/proj_1/apps/app_1/**#write", grant)
 
 	evaluator := New()
 	for _, query := range []PermissionQuery{
-		U(app, permissions.Write{}),
-		U(environment, permissions.Write{}),
+		U(app, permissions.Write),
+		U(environment, permissions.Write),
 	} {
 		result, err := evaluator.EvaluatePermissions(
 			query,

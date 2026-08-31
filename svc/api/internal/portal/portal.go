@@ -352,11 +352,10 @@ func AuthorizeMappingTarget(
 	case MappingTypeApp:
 		// Legacy tuples only, unlike the keyspace arm below. An app URN is
 		// addressed as projects/{project_id}/apps/{app_id} and this function is
-		// handed an app id alone, and there is no ReadApp action in
-		// pkg/rbac/permissions to pair with it. Both belong to migrating
-		// v2_apps_get_app, which authorizes the same way. Until then a portal can
-		// only be pointed at an app by a caller holding a legacy grant, which is
-		// no worse than reading the app itself.
+		// handed an app ID alone. Resolving the project ID and adding the URN
+		// check belong to migrating v2_apps_get_app, which authorizes the same
+		// way. Until then a portal can only be pointed at an app by a caller
+		// holding a legacy grant, which is no worse than reading the app itself.
 		err := principal.Authorize(rbac.Or(
 			rbac.T(rbac.Tuple{ResourceType: rbac.App, ResourceID: "*", Action: rbac.ReadApp}),
 			rbac.T(rbac.Tuple{ResourceType: rbac.App, ResourceID: m.ID, Action: rbac.ReadApp}),
@@ -400,7 +399,7 @@ func AuthorizeMappingTarget(
 			rbac.T(rbac.Tuple{ResourceType: rbac.Api, ResourceID: apiID, Action: rbac.ReadAPI}),
 			rbac.U(
 				urn.New().Workspace(workspaceID).Project(rows[0].ProjectID).Keyspace(m.ID),
-				permissions.Read{},
+				permissions.Read,
 			),
 		))
 		if err != nil {

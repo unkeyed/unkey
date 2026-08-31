@@ -1,43 +1,41 @@
 // Package permissions defines actions for canonical URN resources.
 package permissions
 
-import "fmt"
+// Action identifies an operation on a canonical resource name. The resource
+// path identifies the resource type.
+type Action string
 
-// Action is an operation that can be applied to a canonical resource name.
-// The resource path identifies the resource type.
-type Action interface {
-	fmt.Stringer
+// String returns the serialized permission action.
+func (a Action) String() string {
+	return string(a)
 }
 
-// Read authorizes reading a resource.
-type Read struct{}
+const (
+	// Read authorizes reading a resource. It applies to every concrete resource
+	// in the canonical permission catalog.
+	Read Action = "read"
 
-func (Read) String() string { return "read" }
+	// Write authorizes creating or updating a resource. It applies to every
+	// concrete resource except deployment logs, gateway logs, keyspace logs,
+	// and rate limit logs.
+	Write Action = "write"
 
-// Write authorizes creating or updating a resource.
-type Write struct{}
+	// Delete authorizes deleting a resource. It applies to every concrete
+	// resource except deployment logs, gateway logs, keyspace logs, and rate
+	// limit logs.
+	Delete Action = "delete"
 
-func (Write) String() string { return "write" }
+	// Decrypt authorizes decrypting protected resource data. It applies only to
+	// keys.
+	Decrypt Action = "decrypt"
 
-// Delete authorizes deleting a resource.
-type Delete struct{}
+	// Verify authorizes verifying a resource. It applies only to keys.
+	Verify Action = "verify"
 
-func (Delete) String() string { return "delete" }
-
-// Decrypt authorizes decrypting protected resource data.
-type Decrypt struct{}
-
-func (Decrypt) String() string { return "decrypt" }
-
-// Verify authorizes verifying a resource.
-type Verify struct{}
-
-func (Verify) String() string { return "verify" }
-
-// Limit authorizes using a rate limit namespace.
-type Limit struct{}
-
-func (Limit) String() string { return "limit" }
+	// Limit authorizes using a rate limit namespace. It applies only to rate
+	// limit namespaces.
+	Limit Action = "limit"
+)
 
 // Wildcard is the action used by the global admin permission.
 const Wildcard = "*"

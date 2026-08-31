@@ -76,7 +76,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	err = principal.Authorize(rbac.Or(
 		rbac.U(
 			urn.New().Workspace(principal.WorkspaceID).Project(namespace.ProjectID).RatelimitNamespace(namespace.ID).Override("*"),
-			permissions.Read{},
+			permissions.Read,
 		),
 		rbac.T(rbac.Tuple{
 			ResourceType: rbac.Ratelimit,

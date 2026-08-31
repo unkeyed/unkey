@@ -107,7 +107,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		txErr = principal.Authorize(rbac.Or(
 			rbac.U(
 				urn.New().Workspace(principal.WorkspaceID).Project(nsRow.ProjectID).RatelimitNamespace(nsRow.ID).Override(ovrID),
-				permissions.Write{},
+				permissions.Write,
 			),
 			rbac.T(rbac.Tuple{
 				ResourceType: rbac.Ratelimit,

@@ -69,7 +69,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	readRole := rbac.U(
 		urn.New().Workspace(principal.WorkspaceID).Project(role.ProjectID).RBAC().Role(role.ID),
-		permissions.Read{},
+		permissions.Read,
 	)
 	err = principal.Authorize(rbac.Or(
 		readRole,

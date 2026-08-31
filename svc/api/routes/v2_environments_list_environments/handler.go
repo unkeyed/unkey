@@ -73,7 +73,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}),
 		rbac.U(
 			urn.New().Workspace(principal.WorkspaceID).Project(app.ProjectID).App(app.ID).Environment("*"),
-			permissions.Read{},
+			permissions.Read,
 		),
 	))
 	if err != nil {

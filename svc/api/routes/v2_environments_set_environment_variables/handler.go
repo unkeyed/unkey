@@ -93,11 +93,11 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	variableURN := urn.New().Workspace(principal.WorkspaceID).Project(env.ProjectID).App(env.AppID).Environment(env.ID).Variable("*")
-	variablePermission := rbac.U(variableURN, permissions.Write{})
+	variablePermission := rbac.U(variableURN, permissions.Write)
 	if ptr.SafeDeref(req.Prune, false) {
 		variablePermission = rbac.And(
 			variablePermission,
-			rbac.U(variableURN, permissions.Delete{}),
+			rbac.U(variableURN, permissions.Delete),
 		)
 	}
 

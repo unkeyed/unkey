@@ -100,7 +100,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}),
 		rbac.U(
 			urn.New().Workspace(principal.WorkspaceID).Project(project.ID).App("*"),
-			permissions.Write{},
+			permissions.Write,
 		),
 	))
 	if err != nil {

@@ -67,7 +67,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	deletePermission := rbac.U(
 		urn.New().Workspace(principal.WorkspaceID).Project(permission.ProjectID).RBAC().Permission(permission.ID),
-		permissions.Delete{},
+		permissions.Delete,
 	)
 	err = principal.Authorize(rbac.Or(
 		deletePermission,

@@ -16,17 +16,17 @@ func TestUnkeyPermissionQuery_BuildsCanonicalPermission(t *testing.T) {
 	t.Parallel()
 
 	resource := urn.New().Workspace("ws_123").Project("proj_123").RatelimitNamespace("ns_123").Override("ov_123")
-	query := U(resource, permissions.Read{})
+	query := U(resource, permissions.Read)
 	stringQuery := S(UnkeyPermission{
 		Resource: urn.V1{
 			WorkspaceID: "ws_123",
 			Resource:    "projects/proj_123/ratelimits/namespaces/ns_123/overrides/ov_123",
 		},
-		Action: ActionType(permissions.Read{}.String()),
+		Action: ActionType(permissions.Read.String()),
 	}.String())
 	createQuery := U(
 		urn.New().Workspace("ws_123").Project("proj_123").Keyspace("ks_123").Key("*"),
-		permissions.Write{},
+		permissions.Write,
 	)
 
 	require.Equal(t, "unkey:v1:ws_123:projects/proj_123/ratelimits/namespaces/ns_123/overrides/ov_123#read", query.Value)
@@ -61,7 +61,7 @@ func TestStringQuery_DoesNotOptIntoUnkeyWildcardMatching(t *testing.T) {
 				Project("proj_123").
 				RatelimitNamespace("ns_123").
 				Override("ov_123"),
-			permissions.Read{},
+			permissions.Read,
 		),
 		grants,
 	)
@@ -85,7 +85,7 @@ func TestParseUrnPermission_AcceptsOnlySupportedGrammar(t *testing.T) {
 			value: "unkey:v1:ws_123:projects/proj_123/ratelimits/namespaces/ns_123/overrides/ov_123#read",
 			want: UnkeyPermission{
 				Resource: urn.V1{WorkspaceID: "ws_123", Resource: "projects/proj_123/ratelimits/namespaces/ns_123/overrides/ov_123"},
-				Action:   ActionType(permissions.Read{}.String()),
+				Action:   ActionType(permissions.Read.String()),
 			},
 		},
 		{
@@ -93,7 +93,7 @@ func TestParseUrnPermission_AcceptsOnlySupportedGrammar(t *testing.T) {
 			value: "unkey:v1:ws_123:projects/*/ratelimits/namespaces/*/overrides/*#read",
 			want: UnkeyPermission{
 				Resource: urn.V1{WorkspaceID: "ws_123", Resource: "projects/*/ratelimits/namespaces/*/overrides/*"},
-				Action:   ActionType(permissions.Read{}.String()),
+				Action:   ActionType(permissions.Read.String()),
 			},
 		},
 		{
@@ -101,7 +101,7 @@ func TestParseUrnPermission_AcceptsOnlySupportedGrammar(t *testing.T) {
 			value: "unkey:v1:ws_123:projects/proj_123/**#read",
 			want: UnkeyPermission{
 				Resource: urn.V1{WorkspaceID: "ws_123", Resource: "projects/proj_123/**"},
-				Action:   ActionType(permissions.Read{}.String()),
+				Action:   ActionType(permissions.Read.String()),
 			},
 		},
 		{
@@ -174,7 +174,7 @@ func TestPermissionCovers_GrantedWildcardCoversExactRequiredResource(t *testing.
 
 	required := UnkeyPermission{
 		Resource: urn.V1{WorkspaceID: "ws_123", Resource: "projects/proj_123/ratelimits/namespaces/ns_123/overrides/ov_123"},
-		Action:   ActionType(permissions.Read{}.String()),
+		Action:   ActionType(permissions.Read.String()),
 	}
 
 	tests := []struct {
@@ -191,7 +191,7 @@ func TestPermissionCovers_GrantedWildcardCoversExactRequiredResource(t *testing.
 			name: "segment wildcard permission",
 			granted: UnkeyPermission{
 				Resource: urn.V1{WorkspaceID: "ws_123", Resource: "projects/proj_123/ratelimits/namespaces/ns_123/overrides/*"},
-				Action:   ActionType(permissions.Read{}.String()),
+				Action:   ActionType(permissions.Read.String()),
 			},
 			want: true,
 		},
@@ -199,7 +199,7 @@ func TestPermissionCovers_GrantedWildcardCoversExactRequiredResource(t *testing.
 			name: "workos wildcard permission",
 			granted: UnkeyPermission{
 				Resource: urn.V1{WorkspaceID: "ws_123", Resource: "projects/*/ratelimits/namespaces/*/overrides/*"},
-				Action:   ActionType(permissions.Read{}.String()),
+				Action:   ActionType(permissions.Read.String()),
 			},
 			want: true,
 		},
@@ -207,7 +207,7 @@ func TestPermissionCovers_GrantedWildcardCoversExactRequiredResource(t *testing.
 			name: "descendant wildcard permission",
 			granted: UnkeyPermission{
 				Resource: urn.V1{WorkspaceID: "ws_123", Resource: "projects/proj_123/**"},
-				Action:   ActionType(permissions.Read{}.String()),
+				Action:   ActionType(permissions.Read.String()),
 			},
 			want: true,
 		},
@@ -223,7 +223,7 @@ func TestPermissionCovers_GrantedWildcardCoversExactRequiredResource(t *testing.
 			name: "wrong workspace",
 			granted: UnkeyPermission{
 				Resource: urn.V1{WorkspaceID: "ws_456", Resource: "projects/proj_123/ratelimits/namespaces/ns_123/overrides/ov_123"},
-				Action:   ActionType(permissions.Read{}.String()),
+				Action:   ActionType(permissions.Read.String()),
 			},
 			want: false,
 		},
@@ -231,7 +231,7 @@ func TestPermissionCovers_GrantedWildcardCoversExactRequiredResource(t *testing.
 			name: "wrong action",
 			granted: UnkeyPermission{
 				Resource: urn.V1{WorkspaceID: "ws_123", Resource: "projects/proj_123/ratelimits/namespaces/ns_123/overrides/ov_123"},
-				Action:   ActionType(permissions.Delete{}.String()),
+				Action:   ActionType(permissions.Delete.String()),
 			},
 			want: false,
 		},
@@ -239,7 +239,7 @@ func TestPermissionCovers_GrantedWildcardCoversExactRequiredResource(t *testing.
 			name: "sibling resource",
 			granted: UnkeyPermission{
 				Resource: urn.V1{WorkspaceID: "ws_123", Resource: "projects/proj_123/ratelimits/namespaces/ns_456/overrides/*"},
-				Action:   ActionType(permissions.Read{}.String()),
+				Action:   ActionType(permissions.Read.String()),
 			},
 			want: false,
 		},
@@ -247,7 +247,7 @@ func TestPermissionCovers_GrantedWildcardCoversExactRequiredResource(t *testing.
 			name: "shorter exact resource",
 			granted: UnkeyPermission{
 				Resource: urn.V1{WorkspaceID: "ws_123", Resource: "projects/proj_123/ratelimits/namespaces/ns_123"},
-				Action:   ActionType(permissions.Read{}.String()),
+				Action:   ActionType(permissions.Read.String()),
 			},
 			want: false,
 		},
@@ -273,7 +273,7 @@ func TestUrnPermissionEvaluation_MatchesThroughRBACEvaluator(t *testing.T) {
 			Project("proj_123").
 			RatelimitNamespace("ns_123").
 			Override("ov_123"),
-		permissions.Read{},
+		permissions.Read,
 	)
 
 	tests := []struct {

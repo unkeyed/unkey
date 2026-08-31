@@ -38,7 +38,7 @@
 //	query := rbac.And(
 //	    rbac.U(
 //	        urn.New().Workspace("ws_123").Project("proj_123").Keyspace("ks_123").Key("key_123"),
-//	        permissions.Read{},
+//	        permissions.Read,
 //	    ),
 //	    rbac.T(rbac.Tuple{
 //	        ResourceType: rbac.Api,

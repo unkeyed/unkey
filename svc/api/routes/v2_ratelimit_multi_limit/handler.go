@@ -98,7 +98,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		err = principal.Authorize(rbac.Or(
 			rbac.U(
 				urn.New().Workspace(principal.WorkspaceID).Project(projectID).RatelimitNamespace("*"),
-				permissions.Write{},
+				permissions.Write,
 			),
 			rbac.T(rbac.Tuple{
 				ResourceType: rbac.Ratelimit,
@@ -127,7 +127,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		requiredPerms = append(requiredPerms, rbac.Or(
 			rbac.U(
 				urn.New().Workspace(principal.WorkspaceID).Project(ns.ProjectID).RatelimitNamespace(ns.ID),
-				permissions.Limit{},
+				permissions.Limit,
 			),
 			rbac.T(rbac.Tuple{
 				ResourceType: rbac.Ratelimit,

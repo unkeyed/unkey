@@ -74,7 +74,7 @@ func TestRerollQueryShapeParity(t *testing.T) {
 			Project(permTestProjectID).
 			Keyspace(permTestKeyspaceID).
 			Key(permTestKeyID),
-		permissions.Write{},
+		permissions.Write,
 	)
 
 	inlineCreate := rbac.Or(

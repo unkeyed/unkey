@@ -88,7 +88,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	err = principal.Authorize(rbac.Or(
 		rbac.U(
 			urn.New().Workspace(principal.WorkspaceID).Project(ns.ProjectID).RatelimitNamespace(ns.ID).Override(override.ID),
-			permissions.Delete{},
+			permissions.Delete,
 		),
 		rbac.T(rbac.Tuple{
 			ResourceType: rbac.Ratelimit,
