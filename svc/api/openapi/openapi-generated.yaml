@@ -3843,11 +3843,11 @@ components:
                 prefix:
                     type: string
                     minLength: 1
-                    maxLength: 7
-                    pattern: "^[A-Za-z0-9_]{0,6}[A-Za-z0-9]$"
+                    maxLength: 8
+                    pattern: "^[A-Za-z0-9_]{0,7}[A-Za-z0-9]$"
                     description: |
                         Adds a visual identifier to the beginning of the generated key.
-                        Use 1 to 7 ASCII letters, numbers, or underscores.
+                        Use 1 to 8 ASCII letters, numbers, or underscores.
                         End the prefix with a letter or number.
                     example: prod_sk
                 name:
