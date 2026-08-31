@@ -1,0 +1,73 @@
+post:
+  tags:
+    - keys
+  summary: Create key
+  description: |
+    Create a new key in a keyspace. The key uses the version 1 plaintext format.
+
+    The generated key has about 257.75 bits of entropy. The key includes a fixed marker, version, and checksum. The endpoint does not accept a custom byte length.
+
+    Set `prefix` in the request or configure a valid default prefix for the keyspace. The request fails if neither prefix is valid.
+
+    Store the returned key immediately. You can retrieve it later only if `recoverable` is `true`.
+
+    **Required permissions**
+
+    Your credential needs one of:
+    - `api.*.create_key`
+    - `api.<api_id>.create_key`
+
+    If `recoverable` is `true`, your credential also needs one of:
+    - `api.*.encrypt_key`
+    - `api.<api_id>.encrypt_key`
+  operationId: keys.createKeyV3
+
+  requestBody:
+    content:
+      application/json:
+        schema:
+          "$ref": "./V3KeysCreateKeyRequestBody.yaml"
+    required: true
+  responses:
+    "200":
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../v2/keys/createKey/V2KeysCreateKeyResponseBody.yaml"
+      description: The API key was created. The response contains the complete key.
+    "400":
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/BadRequestErrorResponse.yaml"
+    "401":
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/UnauthorizedErrorResponse.yaml"
+    "403":
+      description: Forbidden
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/ForbiddenErrorResponse.yaml"
+    "404":
+      description: Not found
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/NotFoundErrorResponse.yaml"
+    "429":
+      description: Too Many Requests
+      content:
+        application/problem+json:
+          schema:
+            "$ref": "../../../../error/TooManyRequestsErrorResponse.yaml"
+    "500":
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/InternalServerErrorResponse.yaml"
+      description: Internal server error
