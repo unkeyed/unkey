@@ -207,6 +207,10 @@ type createResolution struct {
 	// disagree about what the container runs.
 	Command []string `json:"command"`
 
+	// PRNumber goes on the row for every decision, including a skip, which has
+	// no source to carry it.
+	PRNumber int64 `json:"pr_number"`
+
 	Source buildSource  `json:"source"`
 	Commit commitFields `json:"commit"`
 }
@@ -237,15 +241,31 @@ func (w *Workflow) resolveCreate(ctx context.Context, req *hydrav1.DeployCreateR
 		return createResolution{Block: block}, nil //nolint:exhaustruct // only the block is read
 	}
 
-	resolved, err := w.resolveSource(ctx, target, req, commitFromProto(req.GetGit().GetCommit()))
-	if err != nil {
-		return createResolution{}, err //nolint:exhaustruct // zero value unused on error
-	}
-	if resolved.Block != nil {
-		return createResolution{Block: resolved.Block}, nil //nolint:exhaustruct // only the block is read
-	}
-	if resolved.Source.Git == nil && resolved.Source.Image == "" {
-		return createResolution{}, restate.TerminalError(errors.New("no build source: set git, image, or existing_deployment")) //nolint:exhaustruct // zero value unused on error
+	commit := commitFromProto(req.GetGit().GetCommit())
+	prNumber := req.GetGit().GetPrNumber()
+	source := buildSource{Image: "", Git: nil}
+
+	// A skipped row never builds, so it has no source to resolve. Resolving one
+	// anyway would make recording the skip depend on the app's repository
+	// connection and on GitHub answering, and the whole point of the row is that
+	// it survives to say this commit was seen and deliberately not built.
+	if req.GetDecision() != hydrav1.CreateDecision_CREATE_DECISION_SKIP {
+		resolved, resolveErr := w.resolveSource(ctx, target, req, commit)
+		if resolveErr != nil {
+			return createResolution{}, resolveErr //nolint:exhaustruct // zero value unused on error
+		}
+		if resolved.Block != nil {
+			return createResolution{Block: resolved.Block}, nil //nolint:exhaustruct // only the block is read
+		}
+		if resolved.Source.Git == nil && resolved.Source.Image == "" {
+			return createResolution{}, restate.TerminalError(errors.New("no build source: set git, image, or existing_deployment")) //nolint:exhaustruct // zero value unused on error
+		}
+		source, commit = resolved.Source, resolved.Commit
+		if source.Git != nil {
+			// A rebuild takes the PR number off the deployment it reproduces,
+			// not off the request.
+			prNumber = source.Git.PRNumber
+		}
 	}
 
 	// A per-request override (e.g. `unkey deploy --command`) wins over the app's
@@ -260,8 +280,9 @@ func (w *Workflow) resolveCreate(ctx context.Context, req *hydrav1.DeployCreateR
 		WorkspaceSlug: target.WorkspaceSlug,
 		EnvironmentID: target.EnvironmentID,
 		Command:       command,
-		Source:        resolved.Source,
-		Commit:        resolved.Commit,
+		PRNumber:      prNumber,
+		Source:        source,
+		Commit:        commit,
 	}, nil
 }
 
@@ -341,11 +362,6 @@ func (w *Workflow) insertDeployment(
 	triggerReason := trimBytes(req.GetTriggerReason(), triggerReasonBytesMax)
 	triggeredBy := req.GetTriggeredBy()
 
-	var prNumber int64
-	if resolution.Source.Git != nil {
-		prNumber = resolution.Source.Git.PRNumber
-	}
-
 	insertErr := db.TxRetry(ctx, w.db.RW(), func(txCtx context.Context, tx db.DBTX) error {
 		if err := db.NewQueries(tx).InsertDeployment(txCtx, db.InsertDeploymentParams{
 			ID:                            deploymentID,
@@ -373,7 +389,7 @@ func (w *Workflow) insertDeployment(
 			ShutdownSignal:                db.DeploymentsShutdownSignal(target.ShutdownSignal),
 			UpstreamProtocol:              db.DeploymentsUpstreamProtocol(target.UpstreamProtocol),
 			Healthcheck:                   target.Healthcheck,
-			PrNumber:                      sql.NullInt64{Int64: prNumber, Valid: prNumber != 0},
+			PrNumber:                      sql.NullInt64{Int64: resolution.PRNumber, Valid: resolution.PRNumber != 0},
 			ForkRepositoryFullName:        sql.NullString{String: commit.ForkRepository, Valid: commit.ForkRepository != ""},
 			DeploymentTrigger:             triggerFromProto(req.GetTrigger()),
 			TriggeredBy:                   sql.NullString{String: triggeredBy, Valid: triggeredBy != ""},
