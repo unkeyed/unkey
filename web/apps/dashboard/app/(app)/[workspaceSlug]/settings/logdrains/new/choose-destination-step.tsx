@@ -13,6 +13,7 @@ import {
 } from "@unkey/ui";
 import type { ReactNode } from "react";
 import { AxiomLogo } from "../axiom-logo";
+import { DestinationStepContainer } from "./destination-step-container";
 import type { Kind } from "./form-schema";
 
 const OPTIONS: Array<{
@@ -44,7 +45,7 @@ export function ChooseDestinationStep({ onSelect }: { onSelect: (kind: Kind) => 
   };
 
   return (
-    <div className="flex w-[600px] max-w-[calc(100vw-2rem)] flex-col gap-3">
+    <DestinationStepContainer>
       {OPTIONS.map((option) => (
         <Item key={option.kind} variant="outline" className="px-4 py-[18px]">
           <ItemMedia className="size-8 rounded-[10px] ring-1 ring-grayA-4 shadow-sm shadow-grayA-8/20 dark:shadow-none">
@@ -65,6 +66,6 @@ export function ChooseDestinationStep({ onSelect }: { onSelect: (kind: Kind) => 
           </ItemActions>
         </Item>
       ))}
-    </div>
+    </DestinationStepContainer>
   );
 }

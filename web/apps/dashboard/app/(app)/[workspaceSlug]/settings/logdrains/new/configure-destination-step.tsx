@@ -9,6 +9,7 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { emptyHeader, toHeaderRecord } from "../header-fields";
 import { DestinationFields } from "./destination-fields";
+import { DestinationStepContainer } from "./destination-step-container";
 import { type FormValues, type Kind, formSchema } from "./form-schema";
 
 export function ConfigureDestinationStep({ kind }: { kind: Kind }) {
@@ -77,7 +78,7 @@ export function ConfigureDestinationStep({ kind }: { kind: Kind }) {
   });
 
   return (
-    <div className="flex w-[600px] max-w-[calc(100vw-2rem)] flex-col items-center">
+    <DestinationStepContainer>
       <div className="flex w-full flex-col items-center justify-center gap-4 rounded-lg border border-grayA-5 px-4 py-[18px]">
         <form onSubmit={submit} className="flex w-full flex-col gap-4">
           <FormInput
@@ -138,6 +139,6 @@ export function ConfigureDestinationStep({ kind }: { kind: Kind }) {
           </Button>
         </form>
       </div>
-    </div>
+    </DestinationStepContainer>
   );
 }
