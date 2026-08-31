@@ -7,13 +7,29 @@ package db
 
 import (
 	"context"
+	"database/sql"
+
+	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
 )
 
 const findAppWithSettings = `-- name: FindAppWithSettings :one
 SELECT
-    a.pk, a.id, a.workspace_id, a.project_id, a.name, a.slug, a.default_branch, a.current_deployment_id, a.is_rolled_back, a.delete_protection, a.created_at, a.updated_at,
-    abs.pk, abs.workspace_id, abs.app_id, abs.environment_id, abs.dockerfile, abs.docker_context, abs.build_command, abs.watch_paths, abs.auto_deploy, abs.created_at, abs.updated_at,
-    ars.pk, ars.workspace_id, ars.app_id, ars.environment_id, ars.port, ars.cpu_millicores, ars.memory_mib, ars.storage_mib, ars.command, ars.healthcheck, ars.shutdown_signal, ars.upstream_protocol, ars.sentinel_config, ars.openapi_spec_path, ars.created_at, ars.updated_at
+    a.id AS app_id,
+    a.project_id AS app_project_id,
+    a.default_branch AS app_default_branch,
+    a.current_deployment_id AS app_current_deployment_id,
+    abs.dockerfile AS build_settings_dockerfile,
+    abs.docker_context AS build_settings_docker_context,
+    abs.build_command AS build_settings_build_command,
+    ars.port AS runtime_settings_port,
+    ars.cpu_millicores AS runtime_settings_cpu_millicores,
+    ars.memory_mib AS runtime_settings_memory_mib,
+    ars.storage_mib AS runtime_settings_storage_mib,
+    ars.command AS runtime_settings_command,
+    ars.healthcheck AS runtime_settings_healthcheck,
+    ars.shutdown_signal AS runtime_settings_shutdown_signal,
+    ars.upstream_protocol AS runtime_settings_upstream_protocol,
+    ars.sentinel_config AS runtime_settings_sentinel_config
 FROM apps a
 INNER JOIN app_build_settings abs ON abs.app_id = a.id AND abs.environment_id = ?
 INNER JOIN app_runtime_settings ars ON ars.app_id = a.id AND ars.environment_id = ?
@@ -26,17 +42,43 @@ type FindAppWithSettingsParams struct {
 }
 
 type FindAppWithSettingsRow struct {
-	App               App               `db:"app"`
-	AppBuildSetting   AppBuildSetting   `db:"app_build_setting"`
-	AppRuntimeSetting AppRuntimeSetting `db:"app_runtime_setting"`
+	AppID                           string                             `db:"app_id"`
+	AppProjectID                    string                             `db:"app_project_id"`
+	AppDefaultBranch                string                             `db:"app_default_branch"`
+	AppCurrentDeploymentID          sql.NullString                     `db:"app_current_deployment_id"`
+	BuildSettingsDockerfile         sql.NullString                     `db:"build_settings_dockerfile"`
+	BuildSettingsDockerContext      string                             `db:"build_settings_docker_context"`
+	BuildSettingsBuildCommand       sql.NullString                     `db:"build_settings_build_command"`
+	RuntimeSettingsPort             int32                              `db:"runtime_settings_port"`
+	RuntimeSettingsCpuMillicores    int32                              `db:"runtime_settings_cpu_millicores"`
+	RuntimeSettingsMemoryMib        int32                              `db:"runtime_settings_memory_mib"`
+	RuntimeSettingsStorageMib       uint32                             `db:"runtime_settings_storage_mib"`
+	RuntimeSettingsCommand          mysqltype.StringSlice              `db:"runtime_settings_command"`
+	RuntimeSettingsHealthcheck      mysqltype.NullHealthcheck          `db:"runtime_settings_healthcheck"`
+	RuntimeSettingsShutdownSignal   AppRuntimeSettingsShutdownSignal   `db:"runtime_settings_shutdown_signal"`
+	RuntimeSettingsUpstreamProtocol AppRuntimeSettingsUpstreamProtocol `db:"runtime_settings_upstream_protocol"`
+	RuntimeSettingsSentinelConfig   []byte                             `db:"runtime_settings_sentinel_config"`
 }
 
 // FindAppWithSettings
 //
 //	SELECT
-//	    a.pk, a.id, a.workspace_id, a.project_id, a.name, a.slug, a.default_branch, a.current_deployment_id, a.is_rolled_back, a.delete_protection, a.created_at, a.updated_at,
-//	    abs.pk, abs.workspace_id, abs.app_id, abs.environment_id, abs.dockerfile, abs.docker_context, abs.build_command, abs.watch_paths, abs.auto_deploy, abs.created_at, abs.updated_at,
-//	    ars.pk, ars.workspace_id, ars.app_id, ars.environment_id, ars.port, ars.cpu_millicores, ars.memory_mib, ars.storage_mib, ars.command, ars.healthcheck, ars.shutdown_signal, ars.upstream_protocol, ars.sentinel_config, ars.openapi_spec_path, ars.created_at, ars.updated_at
+//	    a.id AS app_id,
+//	    a.project_id AS app_project_id,
+//	    a.default_branch AS app_default_branch,
+//	    a.current_deployment_id AS app_current_deployment_id,
+//	    abs.dockerfile AS build_settings_dockerfile,
+//	    abs.docker_context AS build_settings_docker_context,
+//	    abs.build_command AS build_settings_build_command,
+//	    ars.port AS runtime_settings_port,
+//	    ars.cpu_millicores AS runtime_settings_cpu_millicores,
+//	    ars.memory_mib AS runtime_settings_memory_mib,
+//	    ars.storage_mib AS runtime_settings_storage_mib,
+//	    ars.command AS runtime_settings_command,
+//	    ars.healthcheck AS runtime_settings_healthcheck,
+//	    ars.shutdown_signal AS runtime_settings_shutdown_signal,
+//	    ars.upstream_protocol AS runtime_settings_upstream_protocol,
+//	    ars.sentinel_config AS runtime_settings_sentinel_config
 //	FROM apps a
 //	INNER JOIN app_build_settings abs ON abs.app_id = a.id AND abs.environment_id = ?
 //	INNER JOIN app_runtime_settings ars ON ars.app_id = a.id AND ars.environment_id = ?
@@ -45,45 +87,22 @@ func (q *Queries) FindAppWithSettings(ctx context.Context, arg FindAppWithSettin
 	row := q.db.QueryRowContext(ctx, findAppWithSettings, arg.EnvironmentID, arg.EnvironmentID, arg.ID)
 	var i FindAppWithSettingsRow
 	err := row.Scan(
-		&i.App.Pk,
-		&i.App.ID,
-		&i.App.WorkspaceID,
-		&i.App.ProjectID,
-		&i.App.Name,
-		&i.App.Slug,
-		&i.App.DefaultBranch,
-		&i.App.CurrentDeploymentID,
-		&i.App.IsRolledBack,
-		&i.App.DeleteProtection,
-		&i.App.CreatedAt,
-		&i.App.UpdatedAt,
-		&i.AppBuildSetting.Pk,
-		&i.AppBuildSetting.WorkspaceID,
-		&i.AppBuildSetting.AppID,
-		&i.AppBuildSetting.EnvironmentID,
-		&i.AppBuildSetting.Dockerfile,
-		&i.AppBuildSetting.DockerContext,
-		&i.AppBuildSetting.BuildCommand,
-		&i.AppBuildSetting.WatchPaths,
-		&i.AppBuildSetting.AutoDeploy,
-		&i.AppBuildSetting.CreatedAt,
-		&i.AppBuildSetting.UpdatedAt,
-		&i.AppRuntimeSetting.Pk,
-		&i.AppRuntimeSetting.WorkspaceID,
-		&i.AppRuntimeSetting.AppID,
-		&i.AppRuntimeSetting.EnvironmentID,
-		&i.AppRuntimeSetting.Port,
-		&i.AppRuntimeSetting.CpuMillicores,
-		&i.AppRuntimeSetting.MemoryMib,
-		&i.AppRuntimeSetting.StorageMib,
-		&i.AppRuntimeSetting.Command,
-		&i.AppRuntimeSetting.Healthcheck,
-		&i.AppRuntimeSetting.ShutdownSignal,
-		&i.AppRuntimeSetting.UpstreamProtocol,
-		&i.AppRuntimeSetting.SentinelConfig,
-		&i.AppRuntimeSetting.OpenapiSpecPath,
-		&i.AppRuntimeSetting.CreatedAt,
-		&i.AppRuntimeSetting.UpdatedAt,
+		&i.AppID,
+		&i.AppProjectID,
+		&i.AppDefaultBranch,
+		&i.AppCurrentDeploymentID,
+		&i.BuildSettingsDockerfile,
+		&i.BuildSettingsDockerContext,
+		&i.BuildSettingsBuildCommand,
+		&i.RuntimeSettingsPort,
+		&i.RuntimeSettingsCpuMillicores,
+		&i.RuntimeSettingsMemoryMib,
+		&i.RuntimeSettingsStorageMib,
+		&i.RuntimeSettingsCommand,
+		&i.RuntimeSettingsHealthcheck,
+		&i.RuntimeSettingsShutdownSignal,
+		&i.RuntimeSettingsUpstreamProtocol,
+		&i.RuntimeSettingsSentinelConfig,
 	)
 	return i, err
 }
