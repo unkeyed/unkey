@@ -34,7 +34,7 @@ export type V2DeployCreateDeploymentRequestBody = {
    */
   environmentSlug: string;
   /**
-   * Docker image reference to deploy
+   * Docker image reference to deploy. Accepts a tag or a digest.
    */
   dockerImage: string;
   /**

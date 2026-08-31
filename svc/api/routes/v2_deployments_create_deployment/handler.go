@@ -14,6 +14,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/deploy/deployfail"
+	"github.com/unkeyed/unkey/pkg/deploy/imageref"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/rbac"
@@ -120,6 +121,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	switch {
 	case req.Image != nil:
+		if err := imageref.Validate(req.Image.DockerImage); err != nil {
+			return err
+		}
 		ctrlReq.DockerImage = req.Image.DockerImage
 
 	case req.Git != nil:

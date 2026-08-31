@@ -16,6 +16,7 @@ import (
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/auditlog"
 	"github.com/unkeyed/unkey/pkg/deploy/deployfail"
+	"github.com/unkeyed/unkey/pkg/deploy/imageref"
 	githubclient "github.com/unkeyed/unkey/pkg/github"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/uid"
@@ -24,6 +25,7 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/internal/actor"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/auth"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/gatefault"
 	"google.golang.org/protobuf/encoding/protojson"
 )
 
@@ -380,6 +382,10 @@ func (s *Service) createAndDeploy(ctx context.Context, p createParams) (string, 
 
 	switch {
 	case p.dockerImage != "":
+		if err := imageref.Validate(p.dockerImage); err != nil {
+			return "", gatefault.ConnectWith(connect.CodeInvalidArgument, err)
+		}
+
 		// Explicit docker image (CLI, REST API): skip rebuild, redeploy as-is.
 		// Don't touch git metadata — the caller owns whatever they passed.
 		logger.Info("deployment will use prebuilt image",
