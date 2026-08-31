@@ -10,7 +10,23 @@ import (
 )
 
 const findAppRuntimeSettingsByAppAndEnv = `-- name: FindAppRuntimeSettingsByAppAndEnv :one
-SELECT app_runtime_settings.pk, app_runtime_settings.workspace_id, app_runtime_settings.app_id, app_runtime_settings.environment_id, app_runtime_settings.port, app_runtime_settings.cpu_millicores, app_runtime_settings.memory_mib, app_runtime_settings.storage_mib, app_runtime_settings.command, app_runtime_settings.healthcheck, app_runtime_settings.shutdown_signal, app_runtime_settings.upstream_protocol, app_runtime_settings.sentinel_config, app_runtime_settings.openapi_spec_path, app_runtime_settings.created_at, app_runtime_settings.updated_at
+SELECT
+  app_runtime_settings.pk,
+  app_runtime_settings.workspace_id,
+  app_runtime_settings.app_id,
+  app_runtime_settings.environment_id,
+  app_runtime_settings.port,
+  app_runtime_settings.cpu_millicores,
+  app_runtime_settings.memory_mib,
+  app_runtime_settings.storage_mib,
+  app_runtime_settings.command,
+  app_runtime_settings.healthcheck,
+  app_runtime_settings.shutdown_signal,
+  app_runtime_settings.upstream_protocol,
+  app_runtime_settings.sentinel_config,
+  app_runtime_settings.openapi_spec_path,
+  app_runtime_settings.created_at,
+  app_runtime_settings.updated_at
 FROM app_runtime_settings
 WHERE app_id = ?
   AND environment_id = ?
@@ -21,36 +37,48 @@ type FindAppRuntimeSettingsByAppAndEnvParams struct {
 	EnvironmentID string `db:"environment_id"`
 }
 
-type FindAppRuntimeSettingsByAppAndEnvRow struct {
-	AppRuntimeSetting AppRuntimeSetting `db:"app_runtime_setting"`
-}
-
 // FindAppRuntimeSettingsByAppAndEnv
 //
-//	SELECT app_runtime_settings.pk, app_runtime_settings.workspace_id, app_runtime_settings.app_id, app_runtime_settings.environment_id, app_runtime_settings.port, app_runtime_settings.cpu_millicores, app_runtime_settings.memory_mib, app_runtime_settings.storage_mib, app_runtime_settings.command, app_runtime_settings.healthcheck, app_runtime_settings.shutdown_signal, app_runtime_settings.upstream_protocol, app_runtime_settings.sentinel_config, app_runtime_settings.openapi_spec_path, app_runtime_settings.created_at, app_runtime_settings.updated_at
+//	SELECT
+//	  app_runtime_settings.pk,
+//	  app_runtime_settings.workspace_id,
+//	  app_runtime_settings.app_id,
+//	  app_runtime_settings.environment_id,
+//	  app_runtime_settings.port,
+//	  app_runtime_settings.cpu_millicores,
+//	  app_runtime_settings.memory_mib,
+//	  app_runtime_settings.storage_mib,
+//	  app_runtime_settings.command,
+//	  app_runtime_settings.healthcheck,
+//	  app_runtime_settings.shutdown_signal,
+//	  app_runtime_settings.upstream_protocol,
+//	  app_runtime_settings.sentinel_config,
+//	  app_runtime_settings.openapi_spec_path,
+//	  app_runtime_settings.created_at,
+//	  app_runtime_settings.updated_at
 //	FROM app_runtime_settings
 //	WHERE app_id = ?
 //	  AND environment_id = ?
-func (q *Queries) FindAppRuntimeSettingsByAppAndEnv(ctx context.Context, db DBTX, arg FindAppRuntimeSettingsByAppAndEnvParams) (FindAppRuntimeSettingsByAppAndEnvRow, error) {
+func (q *Queries) FindAppRuntimeSettingsByAppAndEnv(ctx context.Context, db DBTX, arg FindAppRuntimeSettingsByAppAndEnvParams) (AppRuntimeSetting, error) {
 	row := db.QueryRowContext(ctx, findAppRuntimeSettingsByAppAndEnv, arg.AppID, arg.EnvironmentID)
-	var i FindAppRuntimeSettingsByAppAndEnvRow
+	var i AppRuntimeSetting
 	err := row.Scan(
-		&i.AppRuntimeSetting.Pk,
-		&i.AppRuntimeSetting.WorkspaceID,
-		&i.AppRuntimeSetting.AppID,
-		&i.AppRuntimeSetting.EnvironmentID,
-		&i.AppRuntimeSetting.Port,
-		&i.AppRuntimeSetting.CpuMillicores,
-		&i.AppRuntimeSetting.MemoryMib,
-		&i.AppRuntimeSetting.StorageMib,
-		&i.AppRuntimeSetting.Command,
-		&i.AppRuntimeSetting.Healthcheck,
-		&i.AppRuntimeSetting.ShutdownSignal,
-		&i.AppRuntimeSetting.UpstreamProtocol,
-		&i.AppRuntimeSetting.SentinelConfig,
-		&i.AppRuntimeSetting.OpenapiSpecPath,
-		&i.AppRuntimeSetting.CreatedAt,
-		&i.AppRuntimeSetting.UpdatedAt,
+		&i.Pk,
+		&i.WorkspaceID,
+		&i.AppID,
+		&i.EnvironmentID,
+		&i.Port,
+		&i.CpuMillicores,
+		&i.MemoryMib,
+		&i.StorageMib,
+		&i.Command,
+		&i.Healthcheck,
+		&i.ShutdownSignal,
+		&i.UpstreamProtocol,
+		&i.SentinelConfig,
+		&i.OpenapiSpecPath,
+		&i.CreatedAt,
+		&i.UpdatedAt,
 	)
 	return i, err
 }

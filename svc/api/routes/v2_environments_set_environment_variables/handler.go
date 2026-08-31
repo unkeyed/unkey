@@ -194,7 +194,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				)
 			}
 		case len(keys) > 0:
-			if err := db.Query.DeleteEnvVarsByKeys(ctx, tx, db.DeleteEnvVarsByKeysParams{
+			if err := db.Query.DeleteAppEnvVarsByKeys(ctx, tx, db.DeleteAppEnvVarsByKeysParams{
 				AppID:         env.AppID,
 				EnvironmentID: env.ID,
 				EnvKeys:       keys,

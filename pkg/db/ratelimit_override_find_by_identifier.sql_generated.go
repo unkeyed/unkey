@@ -10,7 +10,7 @@ import (
 )
 
 const findRatelimitOverrideByIdentifier = `-- name: FindRatelimitOverrideByIdentifier :one
-SELECT pk, id, workspace_id, namespace_id, identifier, ` + "`" + `limit` + "`" + `, duration, created_at_m, updated_at_m, deleted_at_m FROM ratelimit_overrides
+SELECT ratelimit_overrides.pk, ratelimit_overrides.id, ratelimit_overrides.workspace_id, ratelimit_overrides.namespace_id, ratelimit_overrides.identifier, ratelimit_overrides.` + "`" + `limit` + "`" + `, ratelimit_overrides.duration, ratelimit_overrides.created_at_m, ratelimit_overrides.updated_at_m, ratelimit_overrides.deleted_at_m FROM ratelimit_overrides
 WHERE
     workspace_id = ?
     AND namespace_id = ?
@@ -25,7 +25,7 @@ type FindRatelimitOverrideByIdentifierParams struct {
 
 // FindRatelimitOverrideByIdentifier
 //
-//	SELECT pk, id, workspace_id, namespace_id, identifier, `limit`, duration, created_at_m, updated_at_m, deleted_at_m FROM ratelimit_overrides
+//	SELECT ratelimit_overrides.pk, ratelimit_overrides.id, ratelimit_overrides.workspace_id, ratelimit_overrides.namespace_id, ratelimit_overrides.identifier, ratelimit_overrides.`limit`, ratelimit_overrides.duration, ratelimit_overrides.created_at_m, ratelimit_overrides.updated_at_m, ratelimit_overrides.deleted_at_m FROM ratelimit_overrides
 //	WHERE
 //	    workspace_id = ?
 //	    AND namespace_id = ?
