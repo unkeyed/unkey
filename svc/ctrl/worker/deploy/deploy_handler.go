@@ -117,11 +117,16 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 		})
 	})
 
-	// The create persists this id at send time, but that write races this
-	// invocation starting, so the row can still read NULL when a user cancels.
-	// Re-persisting closes the window: the id is this invocation either way, so
-	// whichever write lands last is the same value. Request().ID is stable
-	// across retries and suspensions.
+	// Whoever dispatched this Deploy persists the invocation id too, so this is
+	// a backstop rather than the only writer. It still earns its place:
+	// AuthorizeDeployment sends from outside the object and writes the id
+	// afterwards, so that write races this invocation starting and the row can
+	// read NULL when a user cancels in between. Create cannot race it, being
+	// another exclusive handler on this key, but it costs nothing to cover both.
+	//
+	// Safe to write unconditionally: the value is this invocation either way, so
+	// whichever write lands last is the same id. Request().ID is stable across
+	// retries and suspensions.
 	err = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
 		return w.db.UpdateDeploymentInvocationID(runCtx, db.UpdateDeploymentInvocationIDParams{
 			ID:           req.GetDeploymentId(),
