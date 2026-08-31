@@ -53,7 +53,7 @@ type CreateKeyResponse struct {
 
 // CreateKeyV1Request specifies the prefix for a version 1 plaintext key.
 type CreateKeyV1Request struct {
-	Prefix string // Prefix must match ^[A-Za-z0-9_]{0,6}[A-Za-z0-9]$.
+	Prefix string // Prefix must match ^[A-Za-z0-9_]{0,7}[A-Za-z0-9]$.
 }
 
 // CreateKeyV1Response contains a version 1 plaintext key and its storage metadata.
