@@ -2,28 +2,19 @@ import { pathToFileURL } from "node:url";
 import { and, createCommentedPool, drizzle, eq, gt, schema, staticTagsFromEnv } from "@unkey/db";
 
 const READ_BATCH_SIZE = 1_000;
-const BASE58_ALPHABET = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
 
 /**
- * Parses the combined `prefix_abcd` value stored by the legacy key generator.
+ * Splits the combined `prefix_abcd` value stored by the legacy key generator.
  */
-export function parseLegacyKeyStart(start: string): { prefix: string; start: string } | null {
+export function splitLegacyKeyStart(start: string): { prefix: string; start: string } | null {
   const separatorIndex = start.length - 5;
   if (separatorIndex < 1 || start[separatorIndex] !== "_") {
     return null;
   }
 
-  const strippedStart = start.slice(-4);
-  // Reject unrelated values that do not use the legacy generator's Base58 alphabet.
-  for (const character of strippedStart) {
-    if (!BASE58_ALPHABET.includes(character)) {
-      return null;
-    }
-  }
-
   return {
     prefix: start.slice(0, separatorIndex),
-    start: strippedStart,
+    start: start.slice(-4),
   };
 }
 
@@ -68,14 +59,14 @@ async function main(): Promise<void> {
       scanned += rows.length;
 
       for (const row of rows) {
-        const parsedStart = parseLegacyKeyStart(row.start);
-        if (parsedStart === null) {
+        const splitStart = splitLegacyKeyStart(row.start);
+        if (splitStart === null) {
           continue;
         }
 
         const result = await db
           .update(schema.keys)
-          .set(parsedStart)
+          .set(splitStart)
           .where(and(eq(schema.keys.pk, row.pk), eq(schema.keys.prefix, "")));
         updated += result[0].affectedRows;
       }
