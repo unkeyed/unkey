@@ -344,10 +344,12 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 	restateSrv.Bind(hydrav1.NewDeployTeardownServiceServer(teardownSvc))
 
-	restateSrv.Bind(hydrav1.NewGitHubStatusServiceServer(githubstatus.New(githubstatus.Config{
+	githubStatusService := githubstatus.New(githubstatus.Config{
 		GitHub: ghClient,
 		DB:     database,
-	}), restate.WithIngressPrivate(true)))
+	})
+	restateSrv.Bind(hydrav1.NewGitHubStatusServiceServer(githubStatusService, restate.WithIngressPrivate(true)))
+	restateSrv.Bind(hydrav1.NewGitHubPullRequestCommentServiceServer(githubStatusService, restate.WithIngressPrivate(true)))
 
 	restateSrv.Bind(hydrav1.NewRoutingServiceServer(routing.New(routing.Config{
 		DB:            database,

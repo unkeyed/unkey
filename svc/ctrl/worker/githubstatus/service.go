@@ -6,17 +6,16 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
 
-// Service is a Restate virtual object keyed by deployment ID that owns all
-// GitHub deployment status reporting. It persists the GitHub deployment ID and
-// PR comment ID in Restate K/V state so that any service can fire-and-forget
-// status updates without needing to carry GitHub context.
+// Service handles deployment-keyed GitHub statuses and PR-keyed comment updates.
 type Service struct {
 	hydrav1.UnimplementedGitHubStatusServiceServer
+	hydrav1.UnimplementedGitHubPullRequestCommentServiceServer
 	github githubclient.GitHubClient
 	db     db.Database
 }
 
 var _ hydrav1.GitHubStatusServiceServer = (*Service)(nil)
+var _ hydrav1.GitHubPullRequestCommentServiceServer = (*Service)(nil)
 
 // Config holds the dependencies required to create a Service.
 type Config struct {
@@ -24,11 +23,12 @@ type Config struct {
 	DB     db.Database
 }
 
-// New creates a new GitHubStatusService virtual object.
+// New creates the GitHub status and pull request comment services.
 func New(cfg Config) *Service {
 	return &Service{
-		UnimplementedGitHubStatusServiceServer: hydrav1.UnimplementedGitHubStatusServiceServer{},
-		github:                                 cfg.GitHub,
-		db:                                     cfg.DB,
+		UnimplementedGitHubStatusServiceServer:             hydrav1.UnimplementedGitHubStatusServiceServer{},
+		UnimplementedGitHubPullRequestCommentServiceServer: hydrav1.UnimplementedGitHubPullRequestCommentServiceServer{},
+		github: cfg.GitHub,
+		db:     cfg.DB,
 	}
 }
