@@ -41,8 +41,8 @@ func TestCreateKeyV1_PrefixValidation(t *testing.T) {
 		{name: "embedded underscores", prefix: "prod_sk", wantValid: true},
 		{name: "empty", prefix: "", wantValid: false},
 		{name: "ends with underscore", prefix: "prod_", wantValid: false},
-		{name: "eight characters", prefix: "prod_key", wantValid: true},
-		{name: "nine characters", prefix: "prod_keys", wantValid: false},
+		{name: "sixteen characters", prefix: "abcdefghijklmnop", wantValid: true},
+		{name: "seventeen characters", prefix: "abcdefghijklmnopq", wantValid: false},
 		{name: "hyphen", prefix: "prod-sk", wantValid: false},
 		{name: "non ASCII", prefix: "prød", wantValid: false},
 	}
