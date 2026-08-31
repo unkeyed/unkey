@@ -12,6 +12,7 @@ export * from "./clickhouse_outbox";
 export * from "./environments";
 export * from "./clickhouse_workspace_settings";
 export * from "./shared_secrets";
+export * from "./logdrains";
 
 // Deployment platform tables
 export * from "./projects";

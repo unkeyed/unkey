@@ -145,5 +145,6 @@ export const ratelimitGlobalCounters = mysqlTable(
       table.region,
     ),
     index("expires_at_idx").on(table.expiresAt),
+    index("updated_at_expires_at_idx").on(table.updatedAt, table.expiresAt),
   ],
 );

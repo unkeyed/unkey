@@ -177,7 +177,9 @@
                   {
                     "group": "Configuration",
                     "root": "architecture/services/vault/configuration",
-                    "pages": ["architecture/services/vault/configuration"]
+                    "pages": [
+                      "architecture/services/vault/configuration"
+                    ]
                   }
                 ]
               }
@@ -202,14 +204,19 @@
               "architecture/rfcs/0013-custom-domains",
               "architecture/rfcs/0014-frontline-middleware",
               "architecture/rfcs/0015-ratelimit-cross-region-counts",
-              "architecture/rfcs/0016-vault-s3-storage"
+              "architecture/rfcs/0016-vault-s3-storage",
+              "architecture/rfcs/0017-api-key-plaintext-format",
+              "architecture/rfcs/0018-scm-provider-abstraction"
             ]
           }
         ]
       },
       {
         "tab": "Company",
-        "pages": ["company/index", "company/meetings"]
+        "pages": [
+          "company/index",
+          "company/meetings"
+        ]
       },
       {
         "tab": "Infra",
@@ -290,5 +297,4 @@
       "destination": "/architecture/rfcs/0014-frontline-middleware"
     }
   ]
-
 }

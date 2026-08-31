@@ -19,12 +19,23 @@ import (
 // propagation latency at the cost of more writes.
 const globalPushInterval = 5 * time.Second
 
-// globalPullInterval is how often each region pulls the active set of counts
-// from ratelimit_global_counters. Own-region rows merge into val as an
+// globalPullInterval is how often each region pulls changed logical counter
+// cells from ratelimit_global_counters. Own-region rows merge into val as an
 // intra-region safety net; foreign-region rows merge into globalCount for
 // cross-region decisions. Lower values tighten propagation latency at the cost
 // of more reads; higher values let local state lag during bursts.
 const globalPullInterval = 5 * time.Second
+
+// globalPullWatermarkOverlap moves each incremental read one poll interval
+// behind the last successful watermark. Re-reading boundary updates tolerates
+// timestamp collisions and short replica-visibility delays; atomicMax makes the
+// duplicate aggregates idempotent.
+const globalPullWatermarkOverlap = globalPullInterval
+
+// globalPullReconciliationInterval bounds how long replica lag, clock skew, or
+// a delayed update outside the overlap can remain invisible. Reconciliation
+// uses the unfiltered active-set query, including after clock moves backward.
+const globalPullReconciliationInterval = time.Minute
 
 // globalUtilizationFloor is the fraction of the per-row limit that an
 // entry's local count must reach before its state is shared with other
@@ -197,24 +208,28 @@ func compareGlobalPushRows(a, b db.UpsertRatelimitGlobalCountersParams) int {
 	return cmp.Compare(a.Region, b.Region)
 }
 
-// startGlobalPull schedules runGlobalPullOnce on the package sync cadence. Each
-// tick pulls per-key sums from ratelimit_global_counters. Own-region rows merge
-// into counterEntry.val; foreign-region rows merge into counterEntry.globalCount.
-// Jitter desynchronizes reads across the fleet so the database is not hit by
-// every region's sync at the same instant.
+// startGlobalPull schedules runGlobalPullOnce on the package sync cadence. The
+// immediate first tick performs a full startup hydration; later ticks pull
+// changed logical cells, with periodic full reconciliation. Own-region rows
+// merge into counterEntry.val; foreign-region rows merge into
+// counterEntry.globalCount. Jitter desynchronizes reads across the fleet so the
+// database is not hit by every region's sync at the same instant.
 func (s *service) startGlobalPull() {
 	stop := repeat.Every(globalPullInterval, s.runGlobalPullOnce, globalJitter)
 	s.stopBackground = append(s.stopBackground, stop)
 }
 
 // runGlobalPullOnce fetches the per-key own-region count and foreign-region sum.
+// The first successful pull and periodic reconciliations read the complete
+// active set. Other pulls identify logical keys with a physical row changed in
+// the overlapped watermark, then aggregate every active region row for those
+// keys. Filtering physical rows directly would omit unchanged regions.
+//
 // Own-region count is an opportunistic intra-region safety net and merges into
 // val. Foreign-region count merges into globalCount and must stay separate from
-// val so it does not feed back into this region's next push. Aggregation runs in
-// MySQL via GROUP BY + SUM, so this loop is one pair of atomicMax operations per
-// active window cell rather than one per (region, cell) pair. Sums are
-// monotonic per cell (each region's contribution only grows within a sequence),
-// so atomicMax is sufficient and idempotent across overlapping ticks.
+// val so it does not feed back into this region's next push. Sums are monotonic
+// per cell (each region's contribution only grows within a sequence), so
+// atomicMax is sufficient and idempotent across overlapping ticks.
 //
 // When no local entry exists for a key seen in the result set, one is
 // created on demand via findOrCreateCounter. These entries are attributed
@@ -222,36 +237,78 @@ func (s *service) startGlobalPull() {
 // so the traffic-driven cardinality signal is not polluted by
 // cross-region propagation.
 func (s *service) runGlobalPullOnce() {
+	s.globalPullMu.Lock()
+	defer s.globalPullMu.Unlock()
+
 	ctx, cancel := context.WithTimeout(context.Background(), globalPullTimeout)
 	defer cancel()
 
 	nowMs := s.clock.Now().UnixMilli()
+	fullPull := !s.globalPullInitialized ||
+		nowMs < s.globalPullWatermarkMs ||
+		nowMs-s.globalPullLastReconciledMs >= globalPullReconciliationInterval.Milliseconds()
 
-	rows, err := s.db.RO().GlobalCountersImported(ctx, db.GlobalCountersImportedParams{
-		Now:        uint64(nowMs),
-		SelfRegion: s.region,
-	})
-	if err != nil {
+	rowsApplied := 0
+	var pullErr error
+	if fullPull {
+		rows, err := s.db.RO().GlobalCountersImported(ctx, db.GlobalCountersImportedParams{
+			Now:        uint64(nowMs),
+			SelfRegion: s.region,
+		})
+		pullErr = err
+		if err == nil {
+			rowsApplied = len(rows)
+			for _, r := range rows {
+				s.applyGlobalCounterImport(counterKey{
+					workspaceID: r.WorkspaceID,
+					namespace:   r.Namespace,
+					identifier:  r.Identifier,
+					durationMs:  int64(r.DurationMs),
+					sequence:    r.Sequence,
+				}, r.Regional, r.Imported)
+			}
+		}
+	} else {
+		updatedAfterMs := max(int64(0), s.globalPullWatermarkMs-globalPullWatermarkOverlap.Milliseconds())
+		rows, err := s.db.RO().GlobalCountersImportedSince(ctx, db.GlobalCountersImportedSinceParams{
+			Now:          uint64(nowMs),
+			SelfRegion:   s.region,
+			UpdatedAfter: uint64(updatedAfterMs),
+		})
+		pullErr = err
+		if err == nil {
+			rowsApplied = len(rows)
+			for _, r := range rows {
+				s.applyGlobalCounterImport(counterKey{
+					workspaceID: r.WorkspaceID,
+					namespace:   r.Namespace,
+					identifier:  r.Identifier,
+					durationMs:  int64(r.DurationMs),
+					sequence:    r.Sequence,
+				}, r.Regional, r.Imported)
+			}
+		}
+	}
+	if pullErr != nil {
 		metrics.RatelimitGlobalPullErrors.Inc()
-		logger.Error("ratelimit cross-region pull failed", "error", err.Error())
+		logger.Error("ratelimit cross-region pull failed", "error", pullErr.Error())
 		return
 	}
-	metrics.RatelimitGlobalPullRowsLastPoll.Set(float64(len(rows)))
 
-	for _, r := range rows {
-		key := counterKey{
-			workspaceID: r.WorkspaceID,
-			namespace:   r.Namespace,
-			identifier:  r.Identifier,
-			durationMs:  int64(r.DurationMs),
-			sequence:    r.Sequence,
-		}
-		entry, created := s.findOrCreateCounter(key)
-		atomicMax(&entry.val, r.Regional)
-		atomicMax(&entry.globalCount, r.Imported)
-		if created {
-			metrics.RatelimitGlobalEntriesCreated.Inc()
-		}
+	s.globalPullInitialized = true
+	s.globalPullWatermarkMs = nowMs
+	if fullPull {
+		s.globalPullLastReconciledMs = nowMs
 	}
-	metrics.RatelimitGlobalPullRowsApplied.Add(float64(len(rows)))
+	metrics.RatelimitGlobalPullRowsLastPoll.Set(float64(rowsApplied))
+	metrics.RatelimitGlobalPullRowsApplied.Add(float64(rowsApplied))
+}
+
+func (s *service) applyGlobalCounterImport(key counterKey, regional, imported int64) {
+	entry, created := s.findOrCreateCounter(key)
+	atomicMax(&entry.val, regional)
+	atomicMax(&entry.globalCount, imported)
+	if created {
+		metrics.RatelimitGlobalEntriesCreated.Inc()
+	}
 }
