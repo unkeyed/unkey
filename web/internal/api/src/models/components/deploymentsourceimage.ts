@@ -9,7 +9,7 @@ import * as z from "zod/v3";
  */
 export type DeploymentSourceImage = {
   /**
-   * Docker image to deploy as-is.
+   * Docker image to deploy as-is. Accepts a tag or a digest.
    */
   dockerImage: string;
 };
