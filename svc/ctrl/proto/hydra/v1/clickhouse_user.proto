@@ -29,6 +29,11 @@ service ClickhouseUserService {
   // - Updates quotas and settings as specified
   // - Reapplies ClickHouse permissions and row policies
   rpc ConfigureUser(ConfigureUserRequest) returns (ConfigureUserResponse) {}
+
+  // ReconcileUser reapplies the current permissions and row policies to an
+  // existing workspace user without changing its stored quota settings.
+  // Key: workspace_id.
+  rpc ReconcileUser(ReconcileUserRequest) returns (ReconcileUserResponse) {}
 }
 
 message ConfigureUserRequest {
@@ -46,3 +51,7 @@ message ConfigureUserRequest {
 message ConfigureUserResponse {
   // Empty on success. Errors are returned via the RPC error mechanism.
 }
+
+message ReconcileUserRequest {}
+
+message ReconcileUserResponse {}
