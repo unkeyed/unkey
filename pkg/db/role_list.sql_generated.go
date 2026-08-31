@@ -55,6 +55,7 @@ type ListRolesRow struct {
 	Permissions interface{}    `db:"permissions"`
 }
 
+// ListRoles returns one page of roles and their permissions from one project.
 // search is a pre-escaped LIKE pattern built by mysql.SearchContains; NULL disables the filter
 //
 //	SELECT r.pk, r.id, r.workspace_id, r.project_id, r.name, r.description, r.created_at_m, r.updated_at_m, COALESCE(

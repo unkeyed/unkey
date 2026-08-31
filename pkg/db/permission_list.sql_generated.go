@@ -34,7 +34,7 @@ type ListPermissionsParams struct {
 	Limit             int32          `db:"limit"`
 }
 
-// ListPermissions
+// ListPermissions returns one page of permission definitions from one project.
 //
 //	SELECT p.pk, p.id, p.workspace_id, p.project_id, p.name, p.slug, p.description, p.created_at_m, p.updated_at_m
 //	FROM permissions p

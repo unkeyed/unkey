@@ -20,15 +20,17 @@ import (
 	"os"
 	"slices"
 	"strings"
+	"time"
 
 	"github.com/unkeyed/unkey/pkg/auth/workos"
 )
 
 const defaultWorkOSAPIBaseURL = "https://api.workos.com"
+const workOSRequestTimeout = 30 * time.Second
 
 var (
 	workOSAPIBaseURL = defaultWorkOSAPIBaseURL
-	workOSHTTPClient = http.DefaultClient
+	workOSHTTPClient = &http.Client{Timeout: workOSRequestTimeout}
 )
 
 type config struct {

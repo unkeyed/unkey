@@ -1,4 +1,5 @@
 -- name: ListRoles :many
+-- ListRoles returns one page of roles and their permissions from one project.
 SELECT r.*, COALESCE(
         (SELECT JSON_ARRAYAGG(
             json_object(

@@ -13,7 +13,7 @@
 // [V1.Covers] decides whether a pattern covers a concrete name. Callers that
 // require one concrete resource, such as audit logs, must reject wildcard
 // paths themselves. Permission action types and authorization semantics live
-// outside this package. Typed resources only bind actions that they accept.
+// outside this package. Typed builders only construct resource paths.
 //
 // Resource paths follow the hierarchy in the resource permission catalog.
 // [New] exposes typed resource builders for this hierarchy. For example:

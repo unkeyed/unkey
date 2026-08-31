@@ -1,7 +1,5 @@
 package urn
 
-import "fmt"
-
 // Deployment builds deployment resource paths.
 //
 // Hierarchy:
@@ -35,19 +33,6 @@ func (d Deployment) String() string {
 //	└── logs
 func (d Deployment) Logs() DeploymentLogs {
 	return DeploymentLogs{workspaceID: d.workspaceID, path: d.path + "/logs"}
-}
-
-// Instance returns a deployment instance resource path.
-//
-// Subresource:
-//
-//	deployments/{deployment_id}
-//	└── instances/{instance_id}
-func (d Deployment) Instance(instanceID string) V1 {
-	return V1{
-		WorkspaceID: d.workspaceID,
-		Resource:    fmt.Sprintf("%s/instances/%s", d.path, instanceID),
-	}
 }
 
 // Any returns a descendant pattern below this deployment.
