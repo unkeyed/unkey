@@ -34,9 +34,10 @@ const cancelledByUserMessage = "Cancelled by user"
 // Idempotent:
 //   - Deployments already in a terminal status (ready/failed/skipped/stopped)
 //     return success without calling Restate.
-//   - Deployments without a stored invocation ID return success (nothing
-//     running to cancel; typical for records created before the workflow
-//     was kicked off, which shouldn't happen in practice).
+//   - Deployments without a stored invocation ID are still marked cancelled;
+//     the create persists the id just after sending Deploy, so a cancel can
+//     land while the column reads NULL. Deploy re-persists the id and checks
+//     for a terminal status before building, so the cancelled row stops it.
 //   - Restate returning 404 is treated as success — the workflow already
 //     finished in the gap between lookup and cancel.
 func (s *Service) CancelDeployment(
@@ -72,14 +73,8 @@ func (s *Service) CancelDeployment(
 		return connect.NewResponse(&ctrlv1.CancelDeploymentResponse{}), nil
 	}
 
-	if !deployment.InvocationID.Valid || deployment.InvocationID.String == "" {
-		logger.Info("cancel is a no-op: deployment has no invocation id",
-			"deployment_id", deploymentID,
-		)
-		return connect.NewResponse(&ctrlv1.CancelDeploymentResponse{}), nil
-	}
-
-	if s.restateAdmin == nil {
+	hasInvocation := deployment.InvocationID.Valid && deployment.InvocationID.String != ""
+	if hasInvocation && s.restateAdmin == nil {
 		return nil, connect.NewError(connect.CodeFailedPrecondition,
 			fmt.Errorf("restate admin client is not configured"))
 	}
@@ -105,11 +100,6 @@ func (s *Service) CancelDeployment(
 		)
 	}
 
-	logger.Info("cancelling deployment via restate admin",
-		"deployment_id", deploymentID,
-		"invocation_id", deployment.InvocationID.String,
-	)
-
 	// Set the status to cancelled before cancelling the invocation. The
 	// compensation stack will try UpdateDeploymentStatusIfActive(failed),
 	// but cancelled is in the NOT IN list so that update is a no-op.
@@ -124,6 +114,18 @@ func (s *Service) CancelDeployment(
 			"error", err,
 		)
 	}
+
+	if !hasInvocation {
+		logger.Info("cancelled a deployment with no invocation id yet",
+			"deployment_id", deploymentID,
+		)
+		return connect.NewResponse(&ctrlv1.CancelDeploymentResponse{}), nil
+	}
+
+	logger.Info("cancelling deployment via restate admin",
+		"deployment_id", deploymentID,
+		"invocation_id", deployment.InvocationID.String,
+	)
 
 	// CancelInvocation treats 404 as success (workflow already finished).
 	// Any other error propagates — the caller can retry.

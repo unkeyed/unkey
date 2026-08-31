@@ -117,11 +117,39 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 		})
 	})
 
+	// The create persists this id at send time, but that write races this
+	// invocation starting, so the row can still read NULL when a user cancels.
+	// Re-persisting closes the window: the id is this invocation either way, so
+	// whichever write lands last is the same value. Request().ID is stable
+	// across retries and suspensions.
+	err = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
+		return w.db.UpdateDeploymentInvocationID(runCtx, db.UpdateDeploymentInvocationIDParams{
+			ID:           req.GetDeploymentId(),
+			InvocationID: sql.NullString{Valid: true, String: ctx.Request().ID},
+			UpdatedAt:    sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+		})
+	}, restate.WithName("persist invocation id"), restate.WithMaxRetryAttempts(runMaxAttempts))
+	if err != nil {
+		return nil, fault.Wrap(err, fault.Public("Failed to write to database. Please try again."))
+	}
+
 	deployment, err := restate.Run(ctx, func(runCtx restate.RunContext) (db.Deployment, error) {
 		return w.db.FindDeploymentById(runCtx, req.GetDeploymentId())
 	}, restate.WithName("finding deployment"), restate.WithMaxRetryAttempts(runMaxAttempts))
 	if err != nil {
 		return nil, fault.Wrap(err, fault.Public("Failed to read from database. Please try again."))
+	}
+
+	// A cancel landing in the window above marks the row cancelled without an
+	// invocation to cancel, and it counts on this check to stop the build.
+	// Returning nil rather than an error keeps the compensation stack out of it:
+	// the terminal status is the intended one, not a failure to record.
+	if deployment.Status.IsTerminal() {
+		logger.Info("deployment is already terminal, not building",
+			"deployment_id", deployment.ID,
+			"status", deployment.Status,
+		)
+		return &hydrav1.DeployResponse{}, nil
 	}
 
 	// --- Deduplication: skip if a newer deployment is queued for the same app+env+branch ---

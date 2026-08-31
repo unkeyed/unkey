@@ -10,7 +10,7 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
 
-// validateTimestamp applies the same validation logic as the CreateDeployment service
+// validateTimestamp applies the same validation logic as the CreateDeployment service.
 func validateTimestamp(timestamp int64) bool {
 	if timestamp == 0 {
 		return true // Zero timestamps skip validation (optional field)
@@ -22,7 +22,7 @@ func validateTimestamp(timestamp int64) bool {
 	return isValidLowerBound && isValidUpperBound
 }
 
-// TestGitFieldValidation_SpecialCharacters tests handling of special characters
+// TestGitFieldValidation_SpecialCharacters tests handling of special characters.
 func TestGitFieldValidation_SpecialCharacters(t *testing.T) {
 	t.Parallel()
 
@@ -92,7 +92,7 @@ func TestGitFieldValidation_SpecialCharacters(t *testing.T) {
 	}
 }
 
-// TestGitFieldValidation_NullHandling tests NULL value handling
+// TestGitFieldValidation_NullHandling tests NULL value handling.
 func TestGitFieldValidation_NullHandling(t *testing.T) {
 	t.Parallel()
 
@@ -125,7 +125,7 @@ func TestGitFieldValidation_NullHandling(t *testing.T) {
 	require.False(t, deployment.GitCommitTimestamp.Valid)
 }
 
-// TestTimestampConversion tests timestamp handling between protobuf and database
+// TestTimestampConversion tests timestamp handling between protobuf and database.
 func TestTimestampConversion(t *testing.T) {
 	t.Parallel()
 
@@ -151,7 +151,7 @@ func TestTimestampConversion(t *testing.T) {
 	require.Equal(t, now.Unix(), retrievedTime.Unix()) // Compare at second precision
 }
 
-// TestCreateDeploymentTimestampValidation_InvalidSecondsFormat tests timestamp validation
+// TestCreateDeploymentTimestampValidation_InvalidSecondsFormat tests timestamp validation.
 func TestCreateDeploymentTimestampValidation_InvalidSecondsFormat(t *testing.T) {
 	t.Parallel()
 
@@ -172,7 +172,7 @@ func TestCreateDeploymentTimestampValidation_InvalidSecondsFormat(t *testing.T) 
 	require.False(t, isValid, "Seconds-based timestamp should be considered invalid")
 }
 
-// TestTimestampValidationBoundaries tests edge cases for timestamp validation
+// TestTimestampValidationBoundaries tests edge cases for timestamp validation.
 func TestTimestampValidationBoundaries(t *testing.T) {
 	t.Parallel()
 
@@ -230,7 +230,7 @@ func TestTimestampValidationBoundaries(t *testing.T) {
 	}
 }
 
-// TestCreateDeploymentFieldMapping tests the actual field mapping from protobuf to database params
+// TestCreateDeploymentFieldMapping tests the actual field mapping from protobuf to database params.
 func TestCreateDeploymentFieldMapping(t *testing.T) {
 	t.Parallel()
 

@@ -14,7 +14,7 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
 
-// how long a deployment must be idle for before we scale it down to 0
+// how long a deployment must be idle for before we scale it down to 0.
 var idleTime = 6 * time.Hour
 
 // ScaleDownIdlePreviewDeployments reclaims resources from preview deployments
