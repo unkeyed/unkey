@@ -289,13 +289,8 @@ func (h *Handler) applyBuildSettings(ctx context.Context, tx db.DBTX, workspaceI
 		}
 	}
 	if req.WatchPaths != nil {
-		if invalid := match.InvalidWatchPaths(*req.WatchPaths); len(invalid) > 0 {
-			return fault.New(
-				"invalid watch path",
-				fault.Code(codes.App.Validation.InvalidInput.URN()),
-				fault.Internal("watch path is not a valid doublestar pattern"),
-				fault.Public(fmt.Sprintf("Watch path '%s' is not a valid glob pattern. Use glob syntax like 'src/**' or '**/*.go'.", invalid[0])),
-			)
+		if err := match.ValidateWatchPaths(*req.WatchPaths); err != nil {
+			return err
 		}
 		params.WatchPathsSpecified = 1
 		params.WatchPaths = dbtype.StringSlice(*req.WatchPaths)

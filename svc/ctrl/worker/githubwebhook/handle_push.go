@@ -14,6 +14,7 @@ import (
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/deploy/deploygate"
+	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/match"
 	"github.com/unkeyed/unkey/pkg/uid"
@@ -183,53 +184,46 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 
 		buildSettings := row.AppBuildSetting
 
-		if !buildSettings.AutoDeploy {
-			logger.Info("skipping deployment: auto_deploy disabled",
-				"app_id", app.ID,
-				"environment", env.Slug,
-			)
-			if err := restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
-				_, err := insertDeploymentRecord(runCtx, s.db.RW(), row, req, []byte{}, mysqltype.DeploymentsStatusSkipped, "Auto deploy is disabled for this environment.")
-				return err
-			}, restate.WithName("insert skipped deployment")); err != nil {
-				logger.Error("failed to insert skipped deployment", "app_id", app.ID, "error", err)
-			}
-			continue
-		}
-
-		// Watch paths: skip if configured patterns don't match changed files.
-		// A skip caused by a broken pattern looks exactly like a valid miss, so the
-		// invalid list points the stored reason and the log line at the real cause.
-		matched, invalidPatterns := match.MatchWatchPaths(buildSettings.WatchPaths, changedFiles)
-		if !matched {
-			reason := "Watch paths did not match any changed files."
-			if len(invalidPatterns) > 0 {
-				reason = fmt.Sprintf("Watch path '%s' is not a valid glob pattern. Update it in your build settings.", invalidPatterns[0])
-				logger.Warn("skipping deployment: invalid watch path patterns",
-					"app_id", app.ID,
-					"invalid_patterns", invalidPatterns,
-					"watch_paths", buildSettings.WatchPaths,
-					"changed_files", changedFiles,
-				)
-			} else {
-				logger.Info("skipping deployment: watch paths don't match changed files",
-					"app_id", app.ID,
-					"watch_paths", buildSettings.WatchPaths,
-					"changed_files", changedFiles,
-				)
-			}
-
+		// The dashboard reads this reason off the skipped deployment, so every skip
+		// says why rather than leaving the push with no record at all.
+		skipDeployment := func(reason string) {
 			if err := restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
 				_, err := insertDeploymentRecord(runCtx, s.db.RW(), row, req, []byte{}, mysqltype.DeploymentsStatusSkipped, reason)
 				return err
 			}, restate.WithName("insert skipped deployment")); err != nil {
 				logger.Error("failed to insert skipped deployment", "app_id", app.ID, "error", err)
 			}
+		}
+
+		if !buildSettings.AutoDeploy {
+			logger.Info("skipping deployment: auto_deploy disabled",
+				"app_id", app.ID,
+				"environment", env.Slug,
+			)
+			skipDeployment("Auto deploy is disabled for this environment.")
 			continue
 		}
-		if len(invalidPatterns) > 0 {
-			logger.Warn("watch path config contains invalid glob patterns",
-				"app_id", app.ID, "invalid_patterns", invalidPatterns)
+
+		matched, matchErr := match.MatchWatchPaths(buildSettings.WatchPaths, changedFiles)
+		if matchErr != nil {
+			// A broken pattern looks exactly like a valid miss, so the reason names
+			// the pattern instead of blaming the changed files.
+			logger.Warn("skipping deployment: invalid watch path",
+				"app_id", app.ID,
+				"watch_paths", buildSettings.WatchPaths,
+				"error", matchErr,
+			)
+			skipDeployment(fault.UserFacingMessage(matchErr))
+			continue
+		}
+		if !matched {
+			logger.Info("skipping deployment: watch paths don't match changed files",
+				"app_id", app.ID,
+				"watch_paths", buildSettings.WatchPaths,
+				"changed_files", changedFiles,
+			)
+			skipDeployment("Watch paths did not match any changed files.")
+			continue
 		}
 
 		secretsBlob, marshalErr := buildSecretsBlob(envVarsByApp[app.ID])

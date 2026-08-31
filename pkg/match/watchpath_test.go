@@ -4,6 +4,8 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/pkg/codes"
+	"github.com/unkeyed/unkey/pkg/fault"
 )
 
 func TestMatchWatchPaths(t *testing.T) {
@@ -12,7 +14,7 @@ func TestMatchWatchPaths(t *testing.T) {
 		patterns     []string
 		changedFiles []string
 		want         bool
-		wantInvalid  []string
+		wantInvalid  string
 	}{
 		{
 			name:         "empty patterns matches everything",
@@ -57,11 +59,20 @@ func TestMatchWatchPaths(t *testing.T) {
 			want:         true,
 		},
 		{
-			name:         "invalid sibling does not block a valid match",
+			name:         "invalid sibling blocks a valid match",
 			patterns:     []string{"[invalid", "src/**"},
 			changedFiles: []string{"src/main.go"},
-			want:         true,
-			wantInvalid:  []string{"[invalid"},
+			want:         false,
+			wantInvalid:  "[invalid",
+		},
+		{
+			// Order must not decide the outcome: without up-front validation the
+			// loop returns on "src/**" and never parses the broken sibling.
+			name:         "invalid sibling blocks a match that comes first",
+			patterns:     []string{"src/**", "[invalid"},
+			changedFiles: []string{"src/main.go"},
+			want:         false,
+			wantInvalid:  "[invalid",
 		},
 		{
 			name:         "multiple files, one matches",
@@ -70,18 +81,25 @@ func TestMatchWatchPaths(t *testing.T) {
 			want:         true,
 		},
 		{
-			name:         "bad pattern is skipped",
+			name:         "bad pattern is reported",
 			patterns:     []string{"[invalid"},
 			changedFiles: []string{"src/main.go"},
 			want:         false,
-			wantInvalid:  []string{"[invalid"},
+			wantInvalid:  "[invalid",
 		},
 		{
 			name:         "bad pattern is reported when there are no changed files",
 			patterns:     []string{"[invalid"},
 			changedFiles: []string{},
 			want:         false,
-			wantInvalid:  []string{"[invalid"},
+			wantInvalid:  "[invalid",
+		},
+		{
+			name:         "first bad pattern wins",
+			patterns:     []string{"src/**", "{KEBAP", "[invalid"},
+			changedFiles: []string{"src/main.go"},
+			want:         false,
+			wantInvalid:  "{KEBAP",
 		},
 		{
 			name:         "extension match",
@@ -99,65 +117,86 @@ func TestMatchWatchPaths(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, gotInvalid := MatchWatchPaths(tt.patterns, tt.changedFiles)
+			got, err := MatchWatchPaths(tt.patterns, tt.changedFiles)
 			require.Equal(t, tt.want, got)
-			require.Equal(t, tt.wantInvalid, gotInvalid)
+
+			if tt.wantInvalid == "" {
+				require.NoError(t, err)
+				return
+			}
+			requireInvalidWatchPath(t, err, tt.wantInvalid)
 		})
 	}
 }
 
-func TestInvalidWatchPaths(t *testing.T) {
+func TestValidateWatchPaths(t *testing.T) {
 	tests := []struct {
-		name     string
-		patterns []string
-		want     []string
+		name        string
+		patterns    []string
+		wantInvalid string
 	}{
 		{
 			name:     "nil patterns",
 			patterns: nil,
-			want:     nil,
 		},
 		{
 			name:     "empty patterns",
 			patterns: []string{},
-			want:     nil,
 		},
 		{
 			name:     "all valid",
 			patterns: []string{"src/**", "**/*.go", "KEBAP"},
-			want:     nil,
 		},
 		{
-			name:     "unclosed bracket",
-			patterns: []string{"src/["},
-			want:     []string{"src/["},
+			name:        "unclosed bracket",
+			patterns:    []string{"src/["},
+			wantInvalid: "src/[",
 		},
 		{
-			name:     "unclosed bracket range",
-			patterns: []string{"src/[a-"},
-			want:     []string{"src/[a-"},
+			name:        "unclosed bracket range",
+			patterns:    []string{"src/[a-"},
+			wantInvalid: "src/[a-",
 		},
 		{
-			name:     "unclosed brace",
-			patterns: []string{"{src,lib"},
-			want:     []string{"{src,lib"},
+			name:        "unclosed brace",
+			patterns:    []string{"{src,lib"},
+			wantInvalid: "{src,lib",
 		},
 		{
-			name:     "trailing backslash",
-			patterns: []string{`src\`},
-			want:     []string{`src\`},
+			name:        "trailing backslash",
+			patterns:    []string{`src\`},
+			wantInvalid: `src\`,
 		},
 		{
-			name:     "mixed valid and invalid preserves order",
-			patterns: []string{"src/[", "src/**", "{src,lib"},
-			want:     []string{"src/[", "{src,lib"},
+			name:        "reports the first invalid pattern in input order",
+			patterns:    []string{"src/**", "src/[", "{src,lib"},
+			wantInvalid: "src/[",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := InvalidWatchPaths(tt.patterns)
-			require.Equal(t, tt.want, got)
+			err := ValidateWatchPaths(tt.patterns)
+
+			if tt.wantInvalid == "" {
+				require.NoError(t, err)
+				return
+			}
+			requireInvalidWatchPath(t, err, tt.wantInvalid)
 		})
 	}
+}
+
+// requireInvalidWatchPath asserts the fault carries the validation code and names
+// the pattern in the message callers surface to users.
+func requireInvalidWatchPath(t *testing.T, err error, pattern string) {
+	t.Helper()
+
+	require.Error(t, err)
+
+	code, ok := fault.GetCode(err)
+	require.True(t, ok, "fault carries no code")
+	require.Equal(t, codes.App.Validation.InvalidInput.URN(), code)
+
+	require.Contains(t, fault.UserFacingMessage(err), pattern)
 }
