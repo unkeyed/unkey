@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+#MISE description="Reject all-column SQL queries"
+set -euo pipefail
+
+go run ./tools/lintsqlwildcards "$@"

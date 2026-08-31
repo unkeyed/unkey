@@ -75,6 +75,7 @@ export const queryIdentityTimeseries = workspaceProcedure
       .findFirst({
         where: (table, { eq, and }) =>
           and(eq(table.id, input.identityId), eq(table.workspaceId, ctx.workspace.id)),
+        columns: { id: true },
         with: {
           keys: {
             where: (keysTable, { isNull }) => isNull(keysTable.deletedAtM),

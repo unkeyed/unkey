@@ -76,7 +76,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	// Validate key belongs to authorized workspace
-	if key.WorkspaceID != principal.WorkspaceID {
+	keyData := db.ToKeyData(key)
+
+	if keyData.Key.WorkspaceID != principal.WorkspaceID {
 		return fault.New("key not found",
 			fault.Code(codes.Data.Key.NotFound.URN()),
 			fault.Internal("key belongs to different workspace"),
@@ -93,11 +95,11 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}),
 		rbac.T(rbac.Tuple{
 			ResourceType: rbac.Api,
-			ResourceID:   key.Api.ID,
+			ResourceID:   keyData.Api.ID,
 			Action:       rbac.UpdateKey,
 		}),
 		rbac.U(
-			urn.New().Workspace(principal.WorkspaceID).Keyspace(key.KeyAuthID).Key(req.KeyId),
+			urn.New().Workspace(principal.WorkspaceID).Keyspace(keyData.Key.KeyAuthID).Key(req.KeyId),
 			permissions.UpdateKey{},
 		),
 	))
@@ -112,7 +114,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	if (req.Operation == openapi.Decrement || req.Operation == openapi.Increment) && !key.RemainingRequests.Valid {
+	if (req.Operation == openapi.Decrement || req.Operation == openapi.Increment) && !keyData.Key.RemainingRequests.Valid {
 		return fault.New("wrong operation usage",
 			fault.Code(codes.App.Validation.InvalidInput.URN()),
 			fault.Public("You cannot increment or decrement a key with unlimited credits."),
@@ -134,17 +136,17 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		switch req.Operation {
 		case openapi.Set:
 			err = db.Query.UpdateKeyCreditsSet(ctx, tx, db.UpdateKeyCreditsSetParams{
-				ID:      key.ID,
+				ID:      keyData.Key.ID,
 				Credits: credits,
 			})
 		case openapi.Increment:
 			err = db.Query.UpdateKeyCreditsIncrement(ctx, tx, db.UpdateKeyCreditsIncrementParams{
-				ID:      key.ID,
+				ID:      keyData.Key.ID,
 				Credits: credits,
 			})
 		case openapi.Decrement:
 			err = db.Query.UpdateKeyCreditsDecrement(ctx, tx, db.UpdateKeyCreditsDecrementParams{
-				ID:      key.ID,
+				ID:      keyData.Key.ID,
 				Credits: credits,
 			})
 		default:
@@ -165,7 +167,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		// Reset the Refill data since it's not needed anymore
 		if req.Value.IsNull() {
 			err = db.Query.UpdateKeyCreditsRefill(ctx, tx, db.UpdateKeyCreditsRefillParams{
-				ID:           key.ID,
+				ID:           keyData.Key.ID,
 				RefillAmount: sql.NullInt64{Int64: 0, Valid: false},
 				RefillDay:    sql.NullInt16{Int16: 0, Valid: false},
 			})
@@ -197,15 +199,15 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 
 		remaining := "unlimited"
-		if keyAfterUpdate.RemainingRequests.Valid {
-			remaining = fmt.Sprintf("%d", keyAfterUpdate.RemainingRequests.Int64)
+		if keyAfterUpdate.KeyRemainingRequests.Valid {
+			remaining = fmt.Sprintf("%d", keyAfterUpdate.KeyRemainingRequests.Int64)
 		}
 
 		err = h.Auditlogs.Insert(ctx, tx, []auditlog.AuditLog{
 			{
 				WorkspaceID:   principal.WorkspaceID,
 				Event:         auditlog.KeyUpdateEvent,
-				Display:       fmt.Sprintf("Updated Key %s, set remaining to %s.", key.ID, remaining),
+				Display:       fmt.Sprintf("Updated Key %s, set remaining to %s.", keyData.Key.ID, remaining),
 				ActorID:       principal.Subject.ID,
 				ActorName:     principal.Subject.Name,
 				ActorMeta:     map[string]any{},
@@ -215,17 +217,17 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				CorrelationID: "",
 				Resources: []auditlog.AuditLogResource{
 					{
-						ID:          key.KeyAuthID,
+						ID:          keyData.Key.KeyAuthID,
 						Type:        auditlog.KeySpaceResourceType,
 						Name:        "",
 						DisplayName: "",
 						Meta:        nil,
 					},
 					{
-						ID:          key.ID,
+						ID:          keyData.Key.ID,
 						Type:        auditlog.KeyResourceType,
-						Name:        key.Name.String,
-						DisplayName: key.Name.String,
+						Name:        keyData.Key.Name.String,
+						DisplayName: keyData.Key.Name.String,
 						Meta:        nil,
 					},
 				},
@@ -238,6 +240,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	if err != nil {
 		return err
 	}
+	keyData = db.ToKeyData(key)
 
 	null := nullable.Nullable[int64]{}
 	null.SetNull()
@@ -247,31 +250,31 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		Remaining: null,
 	}
 
-	if key.RemainingRequests.Valid {
-		responseData.Remaining = nullable.NewNullableWithValue(int64(key.RemainingRequests.Int64))
+	if keyData.Key.RemainingRequests.Valid {
+		responseData.Remaining = nullable.NewNullableWithValue(int64(keyData.Key.RemainingRequests.Int64))
 	}
 
-	if key.RefillAmount.Valid {
+	if keyData.Key.RefillAmount.Valid {
 		var day int
 		interval := openapi.KeyCreditsRefillIntervalDaily
 
-		if key.RefillDay.Valid {
+		if keyData.Key.RefillDay.Valid {
 			interval = openapi.KeyCreditsRefillIntervalMonthly
-			day = int(key.RefillDay.Int16)
+			day = int(keyData.Key.RefillDay.Int16)
 		}
 
 		responseData.Refill = &openapi.KeyCreditsRefill{
-			Amount:    int64(key.RefillAmount.Int64),
+			Amount:    int64(keyData.Key.RefillAmount.Int64),
 			Interval:  interval,
 			RefillDay: day,
 		}
 	}
 
-	h.KeyCache.Remove(ctx, key.Hash)
-	if err := h.UsageLimiter.Invalidate(ctx, key.ID); err != nil {
+	h.KeyCache.Remove(ctx, keyData.Key.Hash)
+	if err := h.UsageLimiter.Invalidate(ctx, keyData.Key.ID); err != nil {
 		logger.Error("Failed to invalidate usage limit",
 			"error", err.Error(),
-			"key_id", key.ID,
+			"key_id", keyData.Key.ID,
 		)
 	}
 

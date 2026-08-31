@@ -643,6 +643,17 @@ if not ORB:
     )
 
 
+# ─── Logdrain (streams audit logs to customer sinks) ───────────────────────
+go_service_image('unkey/logdrain:dev', 'logdrain')
+k8s_yaml('k8s/manifests/logdrain.yaml')
+k8s_resource(
+  'logdrain',
+  resource_deps=['mysql', 'clickhouse', 'vault', 'logdrain-compile'],
+  labels=['unkey'],
+  auto_init=True,
+  trigger_mode=TRIGGER_MODE_AUTO
+)
+
 
 # Portal - standalone K8s service for local development. Amp runs the Vite
 # server directly, so omit this manual resource in orb mode to avoid port 3100

@@ -23,6 +23,7 @@ export const updateRole = workspaceProcedure
     const role = await db.query.roles.findFirst({
       where: (table, { and, eq }) =>
         and(eq(table.workspaceId, ctx.workspace.id), eq(table.id, input.id)),
+      columns: { id: true },
     });
 
     if (!role) {
