@@ -90,6 +90,8 @@ type Props = {
   fillColors?: Record<string, string>;
   onActiveChange?: (point: AreaChartPoint | null) => void;
   hideTooltip?: boolean;
+  // Renders non-empty, all-zero data as a flat line instead of an empty state.
+  showZeroLine?: boolean;
 };
 
 export function AreaTimeseriesChart({
@@ -106,6 +108,7 @@ export function AreaTimeseriesChart({
   fillColors,
   onActiveChange,
   hideTooltip,
+  showZeroLine,
 }: Props) {
   const handleActive = onActiveChange
     ? (state: unknown) => onActiveChange(activePointFromState(state, data))
@@ -128,8 +131,11 @@ export function AreaTimeseriesChart({
   if (isLoading) {
     return <ChartWaveLoading height={height} color={sectionColor} />;
   }
-  const isEmpty = !data.length || data.every((p) => configKeys.every((k) => !(Number(p[k]) > 0)));
-  if (isEmpty) {
+  const hasPositiveValue = data.some((point) => configKeys.some((key) => Number(point[key]) > 0));
+  const isAllZero =
+    data.length > 0 && data.every((point) => configKeys.every((key) => Number(point[key]) === 0));
+  const renderZeroLine = Boolean(showZeroLine && isAllZero);
+  if (!data.length || (!hasPositiveValue && !renderZeroLine)) {
     return (
       <ChartEmpty variant="wave" color={sectionColor} height={height} message="No activity yet" />
     );
@@ -146,7 +152,11 @@ export function AreaTimeseriesChart({
   const yAxisFloor = axis === null ? 0 : (axis?.y?.floor ?? 1024);
   const formatYTick = axis?.y?.formatTick ?? formatYAxisCompactBytes;
   const yAxisMax = Math.max(dataMax, yAxisFloor);
-  const top = axis?.y?.getTop ? axis.y.getTop(yAxisMax) : yAxisMax * 1.1;
+  const top = renderZeroLine
+    ? Math.max(yAxisFloor, 1)
+    : axis?.y?.getTop
+      ? axis.y.getTop(yAxisMax)
+      : yAxisMax * 1.1;
   const yTicks = [0, top / 3, (2 * top) / 3, top];
   const yDomain: [number, number] = [0, top];
 
