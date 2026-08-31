@@ -48,15 +48,7 @@ describe("session cookies", () => {
       expect.stringContaining(`${UNKEY_SESSION_COOKIE}.3=;`),
     ]);
     expect(headers.every((header) => header.length < 4096)).toBe(true);
-    expect(Sentry.captureMessage).toHaveBeenCalledWith(
-      "WorkOS session cookie exceeds browser size limit",
-      {
-        level: "warning",
-        fingerprint: ["workos-session-cookie-oversized"],
-        tags: { component: "authentication" },
-        extra: { sessionSizeBytes: 9000, chunkCount: 3 },
-      },
-    );
+    expect(Sentry.captureMessage).not.toHaveBeenCalled();
 
     const request = requestWithResponseCookies(response);
     await expect(getCookie(UNKEY_SESSION_COOKIE, request)).resolves.toBe(session);
@@ -84,8 +76,17 @@ describe("session cookies", () => {
 
     await expect(
       setCookiesOnResponse(response, [
-        { name: UNKEY_SESSION_COOKIE, value: "s".repeat(28_001), options },
+        { name: UNKEY_SESSION_COOKIE, value: "s".repeat(14_001), options },
       ]),
     ).rejects.toThrow("Session is too large to store in cookies");
+    expect(Sentry.captureMessage).toHaveBeenCalledWith(
+      "WorkOS session exceeds Vercel cookie capacity",
+      {
+        level: "error",
+        fingerprint: ["workos-session-cookie-capacity-exceeded"],
+        tags: { component: "authentication" },
+        extra: { sessionSizeBytes: 14_001, chunkCount: 5, maxChunkCount: 4 },
+      },
+    );
   });
 });

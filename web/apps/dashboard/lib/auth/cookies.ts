@@ -10,10 +10,10 @@ import type { NextRequest, NextResponse } from "next/server";
 import { getAuthCookieOptions, getDefaultCookieOptions } from "./cookie-security";
 import { UNKEY_LAST_ORG_COOKIE, UNKEY_SESSION_COOKIE } from "./types";
 
-// WorkOS seals permission and feature claims into the session. Keep each part
-// below the browser's 4096-byte cookie limit after names and attributes.
+// Browsers cap one cookie at 4096 bytes, while Vercel caps the combined Cookie
+// request header at 16KB. Four parts leave space for names and other cookies.
 const SESSION_COOKIE_CHUNK_SIZE = 3500;
-const MAX_SESSION_COOKIE_CHUNKS = 8;
+const MAX_SESSION_COOKIE_CHUNKS = 4;
 
 export interface CookieOptions {
   httpOnly: boolean;
@@ -63,16 +63,17 @@ function getCookieUpdates(cookie: Cookie): Cookie[] {
     chunks.push(sessionCookie.value.slice(offset, offset + SESSION_COOKIE_CHUNK_SIZE));
   }
 
-  Sentry.captureMessage("WorkOS session cookie exceeds browser size limit", {
-    level: "warning",
-    fingerprint: ["workos-session-cookie-oversized"],
-    tags: { component: "authentication" },
-    extra: {
-      sessionSizeBytes: sessionCookie.value.length,
-      chunkCount: chunks.length,
-    },
-  });
   if (chunks.length > MAX_SESSION_COOKIE_CHUNKS) {
+    Sentry.captureMessage("WorkOS session exceeds Vercel cookie capacity", {
+      level: "error",
+      fingerprint: ["workos-session-cookie-capacity-exceeded"],
+      tags: { component: "authentication" },
+      extra: {
+        sessionSizeBytes: sessionCookie.value.length,
+        chunkCount: chunks.length,
+        maxChunkCount: MAX_SESSION_COOKIE_CHUNKS,
+      },
+    });
     throw new Error("Session is too large to store in cookies");
   }
 
