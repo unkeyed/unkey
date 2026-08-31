@@ -7,14 +7,14 @@ const READ_BATCH_SIZE = 1_000;
  * Splits the combined `prefix_abcd` value stored by the legacy key generator.
  */
 export function splitLegacyKeyStart(start: string): { prefix: string; start: string } | null {
-  const separatorIndex = start.length - 5;
-  if (separatorIndex < 1 || start[separatorIndex] !== "_") {
+  const separatorIndex = start.lastIndexOf("_");
+  if (separatorIndex === -1) {
     return null;
   }
 
   return {
     prefix: start.slice(0, separatorIndex),
-    start: start.slice(-4),
+    start: start.slice(separatorIndex + 1),
   };
 }
 
