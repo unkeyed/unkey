@@ -48,7 +48,7 @@ type CreateKeyRequest struct {
 type CreateKeyResponse struct {
 	Key   string // The complete plaintext key (prefix + encoded random bytes)
 	Hash  string // SHA-256 hash of the key for secure storage
-	Start string // The start of the key for indexing and display purposes
+	Start string // The first four encoded random characters.
 }
 
 // CreateKeyV1Request specifies the prefix for a version 1 plaintext key.

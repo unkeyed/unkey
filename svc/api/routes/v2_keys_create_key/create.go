@@ -173,7 +173,7 @@ func (h *Handler) create(
 				KeySpaceID:         keySpace.ID,
 				Hash:               keyResult.Hash,
 				Prefix:             prefix,
-				Start:              keyResult.Start[len(keyResult.Start)-4:],
+				Start:              keyResult.Start,
 				End:                keyValue[len(keyValue)-4:],
 				WorkspaceID:        principal.WorkspaceID,
 				ForWorkspaceID:     sql.NullString{String: "", Valid: false},

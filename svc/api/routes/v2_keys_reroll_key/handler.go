@@ -200,7 +200,7 @@ func (h *Handler) RerollKey(
 				KeySpaceID:         key.KeyAuthID,
 				Hash:               keyResult.Hash,
 				Prefix:             prefix,
-				Start:              keyResult.Start[len(keyResult.Start)-4:],
+				Start:              keyResult.Start,
 				End:                keyResult.Key[len(keyResult.Key)-4:],
 				WorkspaceID:        key.WorkspaceID,
 				ForWorkspaceID:     key.ForWorkspaceID,
