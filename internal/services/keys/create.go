@@ -40,7 +40,6 @@ func (s *service) CreateKey(ctx context.Context, req CreateKeyRequest) (CreateKe
 	// Add prefix if provided and not empty
 	if req.Prefix != "" {
 		fullKey = fmt.Sprintf("%s_%s", req.Prefix, encodedKey)
-		start = fmt.Sprintf("%s_%s", req.Prefix, encodedKey[:4])
 	}
 
 	return CreateKeyResponse{
