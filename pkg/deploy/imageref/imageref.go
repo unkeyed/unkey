@@ -1,17 +1,13 @@
-// Package imageref validates Docker image references before a deployment is
-// created, so a bad one is refused up front rather than failing a pull after a
-// build slot has been spent on it.
-//
-// Validate returns nil when the reference is well-formed, or a fault carrying
-// the validation code and a caller-facing message.
 package imageref
 
 import (
 	_ "crypto/sha256"
 	_ "crypto/sha512"
 	"fmt"
+	"strings"
 
-	"github.com/distribution/reference"
+	referencepkg "github.com/distribution/reference"
+	"github.com/google/go-containerregistry/pkg/name"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/fault"
 )
@@ -22,8 +18,39 @@ import (
 // insert with a build already paid for.
 const imageLengthMax = 256
 
-// Validate rejects a reference no registry could serve. Parsing goes through the
-// same library the pull path uses, so what passes here is what containerd accepts.
+// Parse validates and normalizes an image reference. References must include
+// an explicit tag or digest so app configuration never relies on latest.
+func Parse(raw string) (name.Reference, error) {
+	return parse(raw, false)
+}
+
+// Normalize validates a reference and returns its canonical name.
+func Normalize(raw string) (string, error) {
+	parsed, err := Parse(raw)
+	if err != nil {
+		return "", err
+	}
+	return parsed.Name(), nil
+}
+
+// NormalizeHistorical canonicalizes an image stored before explicit tags were
+// required. It makes an implicit latest tag explicit in the returned name.
+func NormalizeHistorical(raw string) (string, error) {
+	parsed, err := parse(raw, true)
+	if err != nil {
+		return "", err
+	}
+	return parsed.Name(), nil
+}
+
+// IsDigest reports whether a parsed reference is already immutable.
+func IsDigest(reference name.Reference) bool {
+	_, ok := reference.(name.Digest)
+	return ok
+}
+
+// Validate rejects a reference the OCI resolver cannot parse. It preserves the
+// legacy API's implicit-latest behavior while new app sources use [Parse].
 //
 // It does not check that the host serves images at all: github.com/acme/api is
 // well-formed and fails at pull time.
@@ -46,7 +73,7 @@ func Validate(image string) error {
 		)
 	}
 
-	if _, err := reference.ParseDockerRef(image); err != nil {
+	if _, err := parse(image, true); err != nil {
 		return fault.Wrap(
 			err,
 			fault.Code(codes.App.Validation.InvalidInput.URN()),
@@ -56,4 +83,27 @@ func Validate(image string) error {
 	}
 
 	return nil
+}
+
+func parse(raw string, allowImplicitTag bool) (name.Reference, error) {
+	reference := strings.TrimSpace(raw)
+	if reference == "" {
+		return nil, fmt.Errorf("image reference is required")
+	}
+
+	lastSlash := strings.LastIndex(reference, "/")
+	lastColon := strings.LastIndex(reference, ":")
+	if !allowImplicitTag && !strings.Contains(reference, "@") && lastColon <= lastSlash {
+		return nil, fmt.Errorf("image reference %q must include an explicit tag or digest", reference)
+	}
+
+	normalized, err := referencepkg.ParseDockerRef(reference)
+	if err != nil {
+		return nil, fmt.Errorf("invalid image reference %q: %w", reference, err)
+	}
+	parsed, err := name.ParseReference(normalized.String(), name.StrictValidation)
+	if err != nil {
+		return nil, fmt.Errorf("convert normalized image reference %q: %w", normalized.String(), err)
+	}
+	return parsed, nil
 }

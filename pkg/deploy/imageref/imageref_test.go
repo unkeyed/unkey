@@ -69,7 +69,7 @@ func TestValidateMessages(t *testing.T) {
 	require.Equal(t,
 		`The docker image reference "ghcr.io/acme/api:v1 KEBAP" is not valid. Expected [registry/]repository[:tag][@digest], for example ghcr.io/acme/api:v1.2.3.`,
 		fault.UserFacingMessage(err))
-	require.NotContains(t, fault.UserFacingMessage(err), "invalid reference format")
+	require.NotContains(t, fault.UserFacingMessage(err), "could not parse reference")
 	require.ErrorIs(t, err, reference.ErrReferenceInvalidFormat)
 
 	code, ok := fault.GetCode(err)
