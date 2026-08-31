@@ -30,16 +30,15 @@ export const DeployAction = ({
 
   const deploy = useMutation({
     mutationFn: async (environment: string) => {
-      const body = {
-        project: projectId,
-        app: appId,
-        environment,
-        // No branch or commitSha: the API builds the app's default branch.
-        git: {},
-      };
       const res = await getUnkeyClient().deployments.createDeployment({
         idempotencyKey: crypto.randomUUID(),
-        v2DeploymentsCreateDeploymentRequestBody: body,
+        v2DeploymentsCreateDeploymentRequestBody: {
+          project: projectId,
+          app: appId,
+          environment,
+          // No branch or commitSha: the API builds the app's default branch.
+          git: {},
+        },
       });
       return { deploymentId: res.result.data.deploymentId };
     },

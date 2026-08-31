@@ -194,15 +194,14 @@ export const CreateDeploymentButton = ({
       git?: ReturnType<typeof parseDeployRef>;
       image?: string;
     }) => {
-      const body = {
-        project: projectId,
-        app: appId,
-        environment: source.environment,
-        ...(source.image ? { image: { dockerImage: source.image } } : { git: source.git ?? {} }),
-      };
       const res = await getUnkeyClient().deployments.createDeployment({
         idempotencyKey: crypto.randomUUID(),
-        v2DeploymentsCreateDeploymentRequestBody: body,
+        v2DeploymentsCreateDeploymentRequestBody: {
+          project: projectId,
+          app: appId,
+          environment: source.environment,
+          ...(source.image ? { image: { dockerImage: source.image } } : { git: source.git ?? {} }),
+        },
       });
       return { deploymentId: res.result.data.deploymentId };
     },

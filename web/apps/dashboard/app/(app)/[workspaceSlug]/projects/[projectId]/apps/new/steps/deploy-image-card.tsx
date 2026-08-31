@@ -40,15 +40,14 @@ export const DeployImageCard = ({
 
   const createDeployment = useMutation({
     mutationFn: async (source: { environment: string; image: string }) => {
-      const body = {
-        project: projectId,
-        app: appId,
-        environment: source.environment,
-        image: { dockerImage: source.image },
-      };
       const res = await getUnkeyClient().deployments.createDeployment({
         idempotencyKey: crypto.randomUUID(),
-        v2DeploymentsCreateDeploymentRequestBody: body,
+        v2DeploymentsCreateDeploymentRequestBody: {
+          project: projectId,
+          app: appId,
+          environment: source.environment,
+          image: { dockerImage: source.image },
+        },
       });
       return { deploymentId: res.result.data.deploymentId };
     },

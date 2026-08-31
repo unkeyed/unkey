@@ -24,15 +24,14 @@ export const RedeployDialog = ({ isOpen, onClose, selectedDeployment }: Redeploy
 
   const redeploy = useMutation({
     mutationFn: async () => {
-      const body = {
-        project: selectedDeployment.projectId,
-        app: selectedDeployment.appId,
-        environment: selectedDeployment.environmentId,
-        deployment: { deploymentId: selectedDeployment.id },
-      };
       const res = await getUnkeyClient().deployments.createDeployment({
         idempotencyKey: crypto.randomUUID(),
-        v2DeploymentsCreateDeploymentRequestBody: body,
+        v2DeploymentsCreateDeploymentRequestBody: {
+          project: selectedDeployment.projectId,
+          app: selectedDeployment.appId,
+          environment: selectedDeployment.environmentId,
+          deployment: { deploymentId: selectedDeployment.id },
+        },
       });
       return { deploymentId: res.result.data.deploymentId };
     },

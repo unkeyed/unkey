@@ -39,15 +39,14 @@ export function PendingRedeployBanner() {
       appId: string;
       environmentId: string;
     }) => {
-      const body = {
-        project: deployment.projectId,
-        app: deployment.appId,
-        environment: deployment.environmentId,
-        deployment: { deploymentId: deployment.id },
-      };
       const res = await getUnkeyClient().deployments.createDeployment({
         idempotencyKey: crypto.randomUUID(),
-        v2DeploymentsCreateDeploymentRequestBody: body,
+        v2DeploymentsCreateDeploymentRequestBody: {
+          project: deployment.projectId,
+          app: deployment.appId,
+          environment: deployment.environmentId,
+          deployment: { deploymentId: deployment.id },
+        },
       });
       return { deploymentId: res.result.data.deploymentId };
     },
