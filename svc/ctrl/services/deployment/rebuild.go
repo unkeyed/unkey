@@ -12,6 +12,15 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
 
+const (
+	// rebuildActorID and rebuildActorName are the synthetic actor recorded on an
+	// operator rebuild. There is no human user id at this boundary: the bearer
+	// token is the auth boundary, so every rebuild is attributed to the same
+	// actor and the reason on the new row carries the incident detail.
+	rebuildActorID   = "unkey-ops"
+	rebuildActorName = "Unkey Ops"
+)
+
 // Rebuild creates a new deployment that re-runs what the source deployment ran:
 // its commit when the app still has a repository connection, otherwise its
 // image. The new deployment inherits the app's current runtime settings and
@@ -71,7 +80,14 @@ func (s *Service) Rebuild(ctx context.Context, sourceDeploymentID, reason string
 			Trigger:           ctrlv1.DeploymentTrigger_DEPLOYMENT_TRIGGER_UNKEY,
 			TriggeredBy:       "",
 			TriggerReason:     reason,
-			Actor:             nil,
+			Actor: &ctrlv1.ActorInfo{
+				Id:        rebuildActorID,
+				Name:      rebuildActorName,
+				Type:      ctrlv1.ActorType_ACTOR_TYPE_SYSTEM,
+				RemoteIp:  "",
+				UserAgent: "",
+				Meta:      map[string]string{"reason": reason},
+			},
 		})
 	if err != nil {
 		return "", connect.NewError(connect.CodeInternal,

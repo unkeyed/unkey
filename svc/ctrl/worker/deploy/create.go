@@ -467,7 +467,6 @@ func (w *Workflow) createAuditLogs(
 	entry.Display = fmt.Sprintf("Unkey rebuilt deployment %s as %s", sourceID, deploymentID)
 	if reason := req.GetTriggerReason(); reason != "" {
 		entry.Display = fmt.Sprintf("%s (reason: %s)", entry.Display, reason)
-		entry.ActorMeta = map[string]any{"reason": reason}
 	}
 	entry.Resources[0].Meta["role"] = "new"
 	entry.Resources = append([]auditlog.AuditLogResource{
