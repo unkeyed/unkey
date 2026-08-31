@@ -29,6 +29,10 @@ const (
 	ActorType_ACTOR_TYPE_USER        ActorType = 1
 	ActorType_ACTOR_TYPE_ROOT_KEY    ActorType = 2
 	ActorType_ACTOR_TYPE_SYSTEM      ActorType = 3
+	// GITHUB is a GitHub event, not a person using Unkey: the id is the pusher's
+	// GitHub login. Distinct from SYSTEM so a deployment a contributor caused is
+	// not attributed to Unkey itself.
+	ActorType_ACTOR_TYPE_GITHUB ActorType = 4
 )
 
 // Enum value maps for ActorType.
@@ -38,12 +42,14 @@ var (
 		1: "ACTOR_TYPE_USER",
 		2: "ACTOR_TYPE_ROOT_KEY",
 		3: "ACTOR_TYPE_SYSTEM",
+		4: "ACTOR_TYPE_GITHUB",
 	}
 	ActorType_value = map[string]int32{
 		"ACTOR_TYPE_UNSPECIFIED": 0,
 		"ACTOR_TYPE_USER":        1,
 		"ACTOR_TYPE_ROOT_KEY":    2,
 		"ACTOR_TYPE_SYSTEM":      3,
+		"ACTOR_TYPE_GITHUB":      4,
 	}
 )
 
@@ -175,12 +181,13 @@ const file_ctrl_v1_actor_proto_rawDesc = "" +
 	"\x04meta\x18\x06 \x03(\v2\x1c.ctrl.v1.ActorInfo.MetaEntryR\x04meta\x1a7\n" +
 	"\tMetaEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01*l\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01*\x83\x01\n" +
 	"\tActorType\x12\x1a\n" +
 	"\x16ACTOR_TYPE_UNSPECIFIED\x10\x00\x12\x13\n" +
 	"\x0fACTOR_TYPE_USER\x10\x01\x12\x17\n" +
 	"\x13ACTOR_TYPE_ROOT_KEY\x10\x02\x12\x15\n" +
-	"\x11ACTOR_TYPE_SYSTEM\x10\x03B\x89\x01\n" +
+	"\x11ACTOR_TYPE_SYSTEM\x10\x03\x12\x15\n" +
+	"\x11ACTOR_TYPE_GITHUB\x10\x04B\x89\x01\n" +
 	"\vcom.ctrl.v1B\n" +
 	"ActorProtoP\x01Z1github.com/unkeyed/unkey/gen/proto/ctrl/v1;ctrlv1\xa2\x02\x03CXX\xaa\x02\aCtrl.V1\xca\x02\aCtrl\\V1\xe2\x02\x13Ctrl\\V1\\GPBMetadata\xea\x02\bCtrl::V1b\x06proto3"
 

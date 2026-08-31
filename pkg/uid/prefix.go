@@ -41,7 +41,7 @@ const (
 	PortalSessionPrefix      Prefix = "ps"
 	PortalPrefix             Prefix = "pc"
 
-	// Control plane prefixes
+	// Control plane prefixes.
 	OpenApiSpecPrefix         Prefix = "oas"
 	ProjectPrefix             Prefix = "proj"
 	EnvironmentPrefix         Prefix = "env"

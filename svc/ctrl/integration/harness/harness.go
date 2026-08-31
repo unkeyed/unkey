@@ -273,6 +273,10 @@ func New(t *testing.T, opts ...Option) *Harness {
 		RegistryConfig:                  deploy.RegistryConfig{Repository: "", Username: "", Password: "", Insecure: false},
 		BuildPlatform:                   deploy.BuildPlatform{Platform: "", Architecture: ""},
 		AllowUnauthenticatedDeployments: false,
+		// Nil admin: a superseded sibling's row is still marked, its invocation
+		// just keeps running. Enforcement off matches production's rollout state.
+		RestateAdmin:      nil,
+		EnforceDeployGate: false,
 	})
 	require.NoError(t, err)
 

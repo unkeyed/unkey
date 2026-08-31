@@ -20,7 +20,47 @@ service GitHubStatusService {
   // ReportStatus updates both the GitHub deployment status and the PR comment.
   // Fire-and-forget — errors are logged, never propagated.
   rpc ReportStatus(GitHubStatusReportRequest) returns (GitHubStatusReportResponse) {}
+
+  // SetCommitStatus posts a commit status on the deployment's commit. This is
+  // the authorization channel and it is deliberately separate from the
+  // Deployments API reporting above: Create posts the failing status that tells
+  // a contributor their fork PR is waiting for a project member, and
+  // AuthorizeDeployment replaces it once someone approves. Both write the same
+  // status context so the second call replaces the first rather than stacking
+  // another check on the PR.
+  //
+  // Independent of Init: it reads no object state, so it works on a deployment
+  // that never reached a build.
+  rpc SetCommitStatus(GitHubStatusCommitStatusRequest) returns (GitHubStatusCommitStatusResponse) {}
 }
+
+// GitHubCommitStatusState maps to the four states the GitHub commit status API
+// accepts. See:
+// https://docs.github.com/en/rest/commits/statuses#create-a-commit-status
+enum GitHubCommitStatusState {
+  GITHUB_COMMIT_STATUS_STATE_UNSPECIFIED = 0;
+  GITHUB_COMMIT_STATUS_STATE_PENDING = 1;
+  GITHUB_COMMIT_STATUS_STATE_SUCCESS = 2;
+  GITHUB_COMMIT_STATUS_STATE_FAILURE = 3;
+  GITHUB_COMMIT_STATUS_STATE_ERROR = 4;
+}
+
+message GitHubStatusCommitStatusRequest {
+  int64 installation_id = 1;
+  string repo = 2;
+  string commit_sha = 3;
+
+  GitHubCommitStatusState state = 4;
+
+  // TargetUrl is where the PR's "Details" link goes, normally the deployment's
+  // dashboard page. The caller builds it because only the caller knows the
+  // workspace slug.
+  string target_url = 5;
+
+  string description = 6;
+}
+
+message GitHubStatusCommitStatusResponse {}
 
 // GitHubDeploymentState maps to the GitHub Deployments API status values.
 // See: https://docs.github.com/en/rest/deployments/statuses#create-a-deployment-status

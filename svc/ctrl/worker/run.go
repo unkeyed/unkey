@@ -50,7 +50,6 @@ import (
 	workercustomdomain "github.com/unkeyed/unkey/svc/ctrl/worker/customdomain"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/deploy"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/deployment"
-	workerdeploymentcreate "github.com/unkeyed/unkey/svc/ctrl/worker/deploymentcreate"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/deployteardown"
 	workerenvironment "github.com/unkeyed/unkey/svc/ctrl/worker/environment"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/githubstatus"
@@ -298,12 +297,24 @@ func Run(ctx context.Context, cfg Config) error {
 		BuildStepLogs:                   buildStepLogs,
 		AllowUnauthenticatedDeployments: ptr.SafeDeref(cfg.GitHub).AllowUnauthenticatedDeployments,
 		DashboardURL:                    cfg.DashboardURL,
+		RestateAdmin:                    restateAdminClient,
+		EnforceDeployGate:               cfg.DeployGate.Enforce,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to create deploy workflow: %w", err)
 	}
 
 	restateSrv.Bind(hydrav1.NewDeployServiceServer(deployWorkflow,
+		// Create is the one handler here callers submit with an idempotency
+		// key, and this retention is that key's caller-facing lifetime. It
+		// costs nothing on the other handlers: Restate only stores a result
+		// for an invocation that carried a key. Requires a Restate server
+		// that accepts retention from service discovery.
+		//
+		// Past this window the key stops replaying and the deployment row
+		// takes over as the dedup record, which is why Create checks for the
+		// row before doing anything else.
+		restate.WithIdempotencyRetention(12*time.Hour),
 		// Retry with exponential backoff: 2s → 4s → 8s → 16s → 30s (capped),
 		// 15 attempts (~5 min total). Short backoffs keep the worst-case
 		// cancel latency low — a user-initiated cancel only lands at the
@@ -318,6 +329,10 @@ func Run(ctx context.Context, cfg Config) error {
 		// WithMaxRetryDuration so they return TerminalError into Go on
 		// exhaustion — that's the normal path. This service-level policy
 		// is a safety net for failures that escape Run-level bounds.
+		//
+		// Create shares the policy. A paused Create parks its key, but there
+		// is nothing behind it to park: no row was written, so no Deploy can
+		// be waiting on it.
 		restate.WithInvocationRetryPolicy(
 			restate.WithInitialInterval(2*time.Second),
 			restate.WithExponentiationFactor(2.0),
@@ -329,27 +344,6 @@ func Run(ctx context.Context, cfg Config) error {
 	restateSrv.Bind(hydrav1.NewDeploymentServiceServer(deployment.New(deployment.Config{
 		DB: database,
 	}), restate.WithIngressPrivate(true)))
-
-	// DeploymentCreateService is the durable half of a deployment create,
-	// called synchronously over the ingress by ctrl. The 12h idempotency
-	// retention is the caller-facing key lifetime; it requires a Restate
-	// server that accepts retention from service discovery. Retries stay
-	// short because a caller blocks on the call; pause (not kill) so a stuck
-	// create still completes when an operator resumes it.
-	restateSrv.Bind(hydrav1.NewDeploymentCreateServiceServer(workerdeploymentcreate.New(workerdeploymentcreate.Config{
-		DB:           database,
-		Auditlogs:    auditlogSvc,
-		RestateAdmin: restateAdminClient,
-	}),
-		restate.WithIdempotencyRetention(12*time.Hour),
-		restate.WithInvocationRetryPolicy(
-			restate.WithInitialInterval(500*time.Millisecond),
-			restate.WithExponentiationFactor(2.0),
-			restate.WithMaxInterval(10*time.Second),
-			restate.WithMaxAttempts(10),
-			restate.PauseOnMaxAttempts(),
-		),
-	))
 
 	// DeployTeardownService stops all of a workspace's running Deploy compute and
 	// confirms it drained. Invoked over Restate ingress by cancel (ARCHIVE) and,
@@ -367,8 +361,9 @@ func Run(ctx context.Context, cfg Config) error {
 	restateSrv.Bind(hydrav1.NewDeployTeardownServiceServer(teardownSvc))
 
 	restateSrv.Bind(hydrav1.NewGitHubStatusServiceServer(githubstatus.New(githubstatus.Config{
-		GitHub: ghClient,
-		DB:     database,
+		GitHub:                          ghClient,
+		DB:                              database,
+		AllowUnauthenticatedDeployments: ptr.SafeDeref(cfg.GitHub).AllowUnauthenticatedDeployments,
 	}), restate.WithIngressPrivate(true)))
 
 	restateSrv.Bind(hydrav1.NewRoutingServiceServer(routing.New(routing.Config{
@@ -395,8 +390,6 @@ func Run(ctx context.Context, cfg Config) error {
 	restateSrv.Bind(hydrav1.NewGitHubWebhookServiceServer(githubwebhook.New(githubwebhook.Config{
 		DB:                              database,
 		GitHub:                          ghClient,
-		RestateAdmin:                    restateAdminClient,
-		DashboardURL:                    cfg.DashboardURL,
 		AllowUnauthenticatedDeployments: ptr.SafeDeref(cfg.GitHub).AllowUnauthenticatedDeployments,
 		EnforceDeployGate:               cfg.DeployGate.Enforce,
 	})))

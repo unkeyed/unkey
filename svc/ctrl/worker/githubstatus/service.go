@@ -12,8 +12,9 @@ import (
 // status updates without needing to carry GitHub context.
 type Service struct {
 	hydrav1.UnimplementedGitHubStatusServiceServer
-	github githubclient.GitHubClient
-	db     db.Database
+	github                          githubclient.GitHubClient
+	db                              db.Database
+	allowUnauthenticatedDeployments bool
 }
 
 var _ hydrav1.GitHubStatusServiceServer = (*Service)(nil)
@@ -22,6 +23,11 @@ var _ hydrav1.GitHubStatusServiceServer = (*Service)(nil)
 type Config struct {
 	GitHub githubclient.GitHubClient
 	DB     db.Database
+
+	// AllowUnauthenticatedDeployments suppresses commit statuses. Local
+	// development deploys public repositories with no GitHub App installed, so
+	// every status write would fail against the real repository.
+	AllowUnauthenticatedDeployments bool
 }
 
 // New creates a new GitHubStatusService virtual object.
@@ -30,5 +36,6 @@ func New(cfg Config) *Service {
 		UnimplementedGitHubStatusServiceServer: hydrav1.UnimplementedGitHubStatusServiceServer{},
 		github:                                 cfg.GitHub,
 		db:                                     cfg.DB,
+		allowUnauthenticatedDeployments:        cfg.AllowUnauthenticatedDeployments,
 	}
 }

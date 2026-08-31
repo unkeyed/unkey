@@ -34,57 +34,6 @@ enum DeploymentTrigger {
   DEPLOYMENT_TRIGGER_UNKEY = 5;
 }
 
-message CreateDeploymentRequest {
-  string project_id = 1;
-  string environment_slug = 2;
-
-  // When omitted: git-connected projects deploy HEAD of default branch;
-  // projects without a repo connection reuse the live deployment's Docker image.
-  string docker_image = 3;
-
-  // Git information
-  optional GitCommitInfo git_commit = 4;
-
-  // Authentication
-  optional string keyspace_id = 5;
-
-  // Container command override (e.g., ["./app", "serve"])
-  // If not specified, the container's default entrypoint/cmd is used
-  repeated string command = 6;
-
-  // App ID to deploy. Required.
-  string app_id = 7;
-
-  // Which surface triggered this deployment.
-  DeploymentTrigger trigger = 8;
-
-  // Polymorphic actor id, interpretation depends on `trigger`:
-  //   dashboard -> user_id
-  //   api / cli -> root_key_id
-  //   github    -> github sender_login (the user who pushed; not necessarily
-  //                the commit author — for that, see git_commit_author_handle
-  //                on the deployment row)
-  //   unkey     -> internal user_id
-  // Trusted by ctrl because the bearer token is the auth boundary — only
-  // trusted backends can reach this RPC.
-  string triggered_by = 10;
-
-  // Free-form reason. Stored alongside the deployment for audit purposes.
-  // Populated mostly by internal tooling (e.g. "rebuild after image loss").
-  string trigger_reason = 9;
-
-  // Caller identity for the audit log ctrl writes. Carries actor type, name,
-  // and request origin. When unset, the deployment is attributed to the system
-  // actor. Preferred over triggered_by for attribution.
-  ActorInfo actor = 11;
-
-  // Caller-supplied key that collapses retries of one create into a single
-  // deployment. Scoped per (workspace, app, environment): the same key
-  // reused for a different target creates its own deployment. Omit to
-  // disable.
-  optional string idempotency_key = 12;
-}
-
 message GitCommitInfo {
   string commit_sha = 1;
   string commit_message = 2;
@@ -94,17 +43,6 @@ message GitCommitInfo {
   string branch = 6; // branch metadata for docker_image deployments
   // Full fork repository identifier (e.g., "contributor/repo").
   string fork_repository = 7;
-}
-
-message CreateDeploymentResponse {
-  string deployment_id = 1;
-  // Status at answer time: PENDING for a fresh create, the deployment's
-  // current status for a replay.
-  DeploymentStatus status = 2;
-
-  // True when the request did not create a new deployment: an idempotency-key
-  // retry answered with the deployment the key already created.
-  bool replayed = 3;
 }
 
 message GetDeploymentRequest {
@@ -236,10 +174,6 @@ message DeprovisionComputeRequest {
 message DeprovisionComputeResponse {}
 
 service DeployService {
-  // Create a new deployment from a docker image or by auto-detecting
-  // the appropriate source for the project.
-  rpc CreateDeployment(CreateDeploymentRequest) returns (CreateDeploymentResponse) {}
-
   // Get deployment details
   rpc GetDeployment(GetDeploymentRequest) returns (GetDeploymentResponse) {}
 

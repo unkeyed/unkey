@@ -13,25 +13,18 @@ import (
 	"connectrpc.com/connect"
 	restate "github.com/restatedev/sdk-go"
 	"github.com/stretchr/testify/require"
-	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/config"
 	"github.com/unkeyed/unkey/pkg/mysql/sqlcomment"
 	"github.com/unkeyed/unkey/pkg/rpc/interceptor"
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/ctrl/integration/seed"
-	"github.com/unkeyed/unkey/svc/ctrl/internal/auditlogs"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
-	"github.com/unkeyed/unkey/svc/ctrl/worker/deploymentcreate"
 	"golang.org/x/net/http2"
 )
 
 type webhookHarnessConfig struct {
-	Services []restate.ServiceDefinition
-	// DBServices builds Restate services that need the harness database.
-	// Nil binds the real DeploymentCreateService; a test needing a variant
-	// (e.g. a failing audit sink) supplies its own and replaces the default.
-	DBServices        func(db.Database) []restate.ServiceDefinition
+	Services          []restate.ServiceDefinition
 	WebhookSecret     string
 	EnforceDeployGate bool
 }
@@ -57,23 +50,7 @@ func newWebhookHarness(t *testing.T, cfg webhookHarnessConfig) *webhookHarness {
 	require.NoError(t, err)
 	t.Cleanup(func() { require.NoError(t, database.Close()) })
 
-	services := cfg.Services
-	if cfg.DBServices != nil {
-		services = append(services, cfg.DBServices(database)...)
-	} else {
-		auditlogSvc, auditErr := auditlogs.New(auditlogs.Config{DB: database})
-		require.NoError(t, auditErr)
-		services = append(services, hydrav1.NewDeploymentCreateServiceServer(
-			deploymentcreate.New(deploymentcreate.Config{
-				DB:           database,
-				Auditlogs:    auditlogSvc,
-				RestateAdmin: nil,
-			}),
-			restate.WithIdempotencyRetention(12*time.Hour),
-		))
-	}
-
-	restateCfg := containers.Restate(t, services...)
+	restateCfg := containers.Restate(t, cfg.Services...)
 
 	seeder := seed.New(t, database, nil)
 	seeder.Seed(ctx)

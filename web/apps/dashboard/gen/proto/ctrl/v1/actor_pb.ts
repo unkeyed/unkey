@@ -10,7 +10,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ctrl/v1/actor.proto.
  */
 export const file_ctrl_v1_actor: GenFile = /*@__PURE__*/
-  fileDesc("ChNjdHJsL3YxL2FjdG9yLnByb3RvEgdjdHJsLnYxIscBCglBY3RvckluZm8SCgoCaWQYASABKAkSDAoEbmFtZRgCIAEoCRIgCgR0eXBlGAMgASgOMhIuY3RybC52MS5BY3RvclR5cGUSEQoJcmVtb3RlX2lwGAQgASgJEhIKCnVzZXJfYWdlbnQYBSABKAkSKgoEbWV0YRgGIAMoCzIcLmN0cmwudjEuQWN0b3JJbmZvLk1ldGFFbnRyeRorCglNZXRhRW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4ASpsCglBY3RvclR5cGUSGgoWQUNUT1JfVFlQRV9VTlNQRUNJRklFRBAAEhMKD0FDVE9SX1RZUEVfVVNFUhABEhcKE0FDVE9SX1RZUEVfUk9PVF9LRVkQAhIVChFBQ1RPUl9UWVBFX1NZU1RFTRADQokBCgtjb20uY3RybC52MUIKQWN0b3JQcm90b1ABWjFnaXRodWIuY29tL3Vua2V5ZWQvdW5rZXkvZ2VuL3Byb3RvL2N0cmwvdjE7Y3RybHYxogIDQ1hYqgIHQ3RybC5WMcoCB0N0cmxcVjHiAhNDdHJsXFYxXEdQQk1ldGFkYXRh6gIIQ3RybDo6VjFiBnByb3RvMw");
+  fileDesc("ChNjdHJsL3YxL2FjdG9yLnByb3RvEgdjdHJsLnYxIscBCglBY3RvckluZm8SCgoCaWQYASABKAkSDAoEbmFtZRgCIAEoCRIgCgR0eXBlGAMgASgOMhIuY3RybC52MS5BY3RvclR5cGUSEQoJcmVtb3RlX2lwGAQgASgJEhIKCnVzZXJfYWdlbnQYBSABKAkSKgoEbWV0YRgGIAMoCzIcLmN0cmwudjEuQWN0b3JJbmZvLk1ldGFFbnRyeRorCglNZXRhRW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4ASqDAQoJQWN0b3JUeXBlEhoKFkFDVE9SX1RZUEVfVU5TUEVDSUZJRUQQABITCg9BQ1RPUl9UWVBFX1VTRVIQARIXChNBQ1RPUl9UWVBFX1JPT1RfS0VZEAISFQoRQUNUT1JfVFlQRV9TWVNURU0QAxIVChFBQ1RPUl9UWVBFX0dJVEhVQhAEQokBCgtjb20uY3RybC52MUIKQWN0b3JQcm90b1ABWjFnaXRodWIuY29tL3Vua2V5ZWQvdW5rZXkvZ2VuL3Byb3RvL2N0cmwvdjE7Y3RybHYxogIDQ1hYqgIHQ3RybC5WMcoCB0N0cmxcVjHiAhNDdHJsXFYxXEdQQk1ldGFkYXRh6gIIQ3RybDo6VjFiBnByb3RvMw");
 
 /**
  * ActorInfo carries audit-relevant caller identity and request origin so ctrl
@@ -82,6 +82,15 @@ export enum ActorType {
    * @generated from enum value: ACTOR_TYPE_SYSTEM = 3;
    */
   SYSTEM = 3,
+
+  /**
+   * GITHUB is a GitHub event, not a person using Unkey: the id is the pusher's
+   * GitHub login. Distinct from SYSTEM so a deployment a contributor caused is
+   * not attributed to Unkey itself.
+   *
+   * @generated from enum value: ACTOR_TYPE_GITHUB = 4;
+   */
+  GITHUB = 4,
 }
 
 /**

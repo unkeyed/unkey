@@ -4,11 +4,10 @@ import (
 	"context"
 	"fmt"
 
-	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
-
 	"connectrpc.com/connect"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/pkg/logger"
+	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/auth"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
@@ -102,8 +101,8 @@ func (s *Service) GetDeployment(
 	return res, nil
 }
 
-// convertDbStatusToProto maps database deployment status to the proto enum.
-// Returns DEPLOYMENT_STATUS_UNSPECIFIED for unknown status values.
+// convertDbStatusToProto maps a stored deployment status onto the wire enum. An
+// unknown status maps to unspecified rather than guessing.
 func convertDbStatusToProto(status mysqltype.DeploymentsStatus) ctrlv1.DeploymentStatus {
 	switch status {
 	case mysqltype.DeploymentsStatusPending:

@@ -27,6 +27,17 @@ type GitHubStatusServiceClient interface {
 	// ReportStatus updates both the GitHub deployment status and the PR comment.
 	// Fire-and-forget — errors are logged, never propagated.
 	ReportStatus(opts ...sdk_go.ClientOption) sdk_go.Client[*GitHubStatusReportRequest, *GitHubStatusReportResponse]
+	// SetCommitStatus posts a commit status on the deployment's commit. This is
+	// the authorization channel and it is deliberately separate from the
+	// Deployments API reporting above: Create posts the failing status that tells
+	// a contributor their fork PR is waiting for a project member, and
+	// AuthorizeDeployment replaces it once someone approves. Both write the same
+	// status context so the second call replaces the first rather than stacking
+	// another check on the PR.
+	//
+	// Independent of Init: it reads no object state, so it works on a deployment
+	// that never reached a build.
+	SetCommitStatus(opts ...sdk_go.ClientOption) sdk_go.Client[*GitHubStatusCommitStatusRequest, *GitHubStatusCommitStatusResponse]
 }
 
 type gitHubStatusServiceClient struct {
@@ -59,6 +70,14 @@ func (c *gitHubStatusServiceClient) ReportStatus(opts ...sdk_go.ClientOption) sd
 	return sdk_go.WithRequestType[*GitHubStatusReportRequest](sdk_go.Object[*GitHubStatusReportResponse](c.ctx, "hydra.v1.GitHubStatusService", c.key, "ReportStatus", cOpts...))
 }
 
+func (c *gitHubStatusServiceClient) SetCommitStatus(opts ...sdk_go.ClientOption) sdk_go.Client[*GitHubStatusCommitStatusRequest, *GitHubStatusCommitStatusResponse] {
+	cOpts := c.options
+	if len(opts) > 0 {
+		cOpts = append(append([]sdk_go.ClientOption{}, cOpts...), opts...)
+	}
+	return sdk_go.WithRequestType[*GitHubStatusCommitStatusRequest](sdk_go.Object[*GitHubStatusCommitStatusResponse](c.ctx, "hydra.v1.GitHubStatusService", c.key, "SetCommitStatus", cOpts...))
+}
+
 // GitHubStatusServiceIngressClient is the ingress client API for hydra.v1.GitHubStatusService service.
 //
 // This client is used to call the service from outside of a Restate context.
@@ -70,6 +89,17 @@ type GitHubStatusServiceIngressClient interface {
 	// ReportStatus updates both the GitHub deployment status and the PR comment.
 	// Fire-and-forget — errors are logged, never propagated.
 	ReportStatus() ingress.Requester[*GitHubStatusReportRequest, *GitHubStatusReportResponse]
+	// SetCommitStatus posts a commit status on the deployment's commit. This is
+	// the authorization channel and it is deliberately separate from the
+	// Deployments API reporting above: Create posts the failing status that tells
+	// a contributor their fork PR is waiting for a project member, and
+	// AuthorizeDeployment replaces it once someone approves. Both write the same
+	// status context so the second call replaces the first rather than stacking
+	// another check on the PR.
+	//
+	// Independent of Init: it reads no object state, so it works on a deployment
+	// that never reached a build.
+	SetCommitStatus() ingress.Requester[*GitHubStatusCommitStatusRequest, *GitHubStatusCommitStatusResponse]
 }
 
 type gitHubStatusServiceIngressClient struct {
@@ -96,6 +126,11 @@ func (c *gitHubStatusServiceIngressClient) ReportStatus() ingress.Requester[*Git
 	return ingress.NewRequester[*GitHubStatusReportRequest, *GitHubStatusReportResponse](c.client, c.serviceName, "ReportStatus", &c.key, &codec)
 }
 
+func (c *gitHubStatusServiceIngressClient) SetCommitStatus() ingress.Requester[*GitHubStatusCommitStatusRequest, *GitHubStatusCommitStatusResponse] {
+	codec := encoding.ProtoJSONCodec
+	return ingress.NewRequester[*GitHubStatusCommitStatusRequest, *GitHubStatusCommitStatusResponse](c.client, c.serviceName, "SetCommitStatus", &c.key, &codec)
+}
+
 // GitHubStatusServiceServer is the server API for hydra.v1.GitHubStatusService service.
 // All implementations should embed UnimplementedGitHubStatusServiceServer
 // for forward compatibility.
@@ -112,6 +147,17 @@ type GitHubStatusServiceServer interface {
 	// ReportStatus updates both the GitHub deployment status and the PR comment.
 	// Fire-and-forget — errors are logged, never propagated.
 	ReportStatus(ctx sdk_go.ObjectContext, req *GitHubStatusReportRequest) (*GitHubStatusReportResponse, error)
+	// SetCommitStatus posts a commit status on the deployment's commit. This is
+	// the authorization channel and it is deliberately separate from the
+	// Deployments API reporting above: Create posts the failing status that tells
+	// a contributor their fork PR is waiting for a project member, and
+	// AuthorizeDeployment replaces it once someone approves. Both write the same
+	// status context so the second call replaces the first rather than stacking
+	// another check on the PR.
+	//
+	// Independent of Init: it reads no object state, so it works on a deployment
+	// that never reached a build.
+	SetCommitStatus(ctx sdk_go.ObjectContext, req *GitHubStatusCommitStatusRequest) (*GitHubStatusCommitStatusResponse, error)
 }
 
 // UnimplementedGitHubStatusServiceServer should be embedded to have
@@ -126,6 +172,9 @@ func (UnimplementedGitHubStatusServiceServer) Init(ctx sdk_go.ObjectContext, req
 }
 func (UnimplementedGitHubStatusServiceServer) ReportStatus(ctx sdk_go.ObjectContext, req *GitHubStatusReportRequest) (*GitHubStatusReportResponse, error) {
 	return nil, sdk_go.TerminalError(fmt.Errorf("method ReportStatus not implemented"), 501)
+}
+func (UnimplementedGitHubStatusServiceServer) SetCommitStatus(ctx sdk_go.ObjectContext, req *GitHubStatusCommitStatusRequest) (*GitHubStatusCommitStatusResponse, error) {
+	return nil, sdk_go.TerminalError(fmt.Errorf("method SetCommitStatus not implemented"), 501)
 }
 func (UnimplementedGitHubStatusServiceServer) testEmbeddedByValue() {}
 
@@ -148,5 +197,6 @@ func NewGitHubStatusServiceServer(srv GitHubStatusServiceServer, opts ...sdk_go.
 	router := sdk_go.NewObject("hydra.v1.GitHubStatusService", sOpts...)
 	router = router.Handler("Init", sdk_go.NewObjectHandler(srv.Init))
 	router = router.Handler("ReportStatus", sdk_go.NewObjectHandler(srv.ReportStatus))
+	router = router.Handler("SetCommitStatus", sdk_go.NewObjectHandler(srv.SetCommitStatus))
 	return router
 }

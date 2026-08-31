@@ -1,43 +1,43 @@
 // package auditlog contains types and validation logic for audit logs
 package auditlog
 
-// AuditLogEvent represents the possible events in the audit log system
+// AuditLogEvent represents the possible events in the audit log system.
 type AuditLogEvent string
 
 const (
-	// Workspace events
+	// Workspace events.
 	WorkspaceCreateEvent AuditLogEvent = "workspace.create"
 	WorkspaceUpdateEvent AuditLogEvent = "workspace.update"
 	WorkspaceDeleteEvent AuditLogEvent = "workspace.delete"
 	WorkspaceOptInEvent  AuditLogEvent = "workspace.opt_in"
 
-	// API events
+	// API events.
 	APICreateEvent AuditLogEvent = "api.create"
 	APIUpdateEvent AuditLogEvent = "api.update"
 	APIDeleteEvent AuditLogEvent = "api.delete"
 
-	// Key events
+	// Key events.
 	KeyCreateEvent AuditLogEvent = "key.create"
 	KeyRerollEvent AuditLogEvent = "key.reroll"
 	KeyUpdateEvent AuditLogEvent = "key.update"
 	KeyDeleteEvent AuditLogEvent = "key.delete"
 
-	// Ratelimit namespace events
+	// Ratelimit namespace events.
 	RatelimitNamespaceCreateEvent AuditLogEvent = "ratelimitNamespace.create"
 	RatelimitNamespaceUpdateEvent AuditLogEvent = "ratelimitNamespace.update"
 	RatelimitNamespaceDeleteEvent AuditLogEvent = "ratelimitNamespace.delete"
 
-	// Role events
+	// Role events.
 	RoleCreateEvent AuditLogEvent = "role.create"
 	RoleUpdateEvent AuditLogEvent = "role.update"
 	RoleDeleteEvent AuditLogEvent = "role.delete"
 
-	// Permission events
+	// Permission events.
 	PermissionCreateEvent AuditLogEvent = "permission.create"
 	PermissionUpdateEvent AuditLogEvent = "permission.update"
 	PermissionDeleteEvent AuditLogEvent = "permission.delete"
 
-	// Authorization events
+	// Authorization events.
 	AuthConnectRolePermissionEvent    AuditLogEvent = "authorization.connect_role_and_permission"
 	AuthDisconnectRolePermissionEvent AuditLogEvent = "authorization.disconnect_role_and_permissions"
 	AuthConnectRoleKeyEvent           AuditLogEvent = "authorization.connect_role_and_key"
@@ -45,12 +45,12 @@ const (
 	AuthConnectPermissionKeyEvent     AuditLogEvent = "authorization.connect_permission_and_key"
 	AuthDisconnectPermissionKeyEvent  AuditLogEvent = "authorization.disconnect_permission_and_key"
 
-	// Identity events
+	// Identity events.
 	IdentityCreateEvent AuditLogEvent = "identity.create"
 	IdentityUpdateEvent AuditLogEvent = "identity.update"
 	IdentityDeleteEvent AuditLogEvent = "identity.delete"
 
-	// Ratelimit events
+	// Ratelimit events.
 	RatelimitCreateEvent         AuditLogEvent = "ratelimit.create"
 	RatelimitUpdateEvent         AuditLogEvent = "ratelimit.update"
 	RatelimitDeleteEvent         AuditLogEvent = "ratelimit.delete"
@@ -58,17 +58,17 @@ const (
 	RatelimitReadOverrideEvent   AuditLogEvent = "ratelimit.read_override"
 	RatelimitDeleteOverrideEvent AuditLogEvent = "ratelimit.delete_override"
 
-	// Audit log bucket events
+	// Audit log bucket events.
 	AuditLogBucketCreateEvent AuditLogEvent = "auditLogBucket.create"
 
-	// Portal events
+	// Portal events.
 	PortalCreateEvent          AuditLogEvent = "portal.create"
 	PortalUpdateEvent          AuditLogEvent = "portal.update"
 	PortalDeleteEvent          AuditLogEvent = "portal.delete"
 	PortalSessionCreateEvent   AuditLogEvent = "portal.session.create"
 	PortalSessionExchangeEvent AuditLogEvent = "portal.session.exchange"
 
-	// Deployment events
+	// Deployment events.
 	DeploymentCreateEvent   AuditLogEvent = "deployment.create"
 	DeploymentRebuildEvent  AuditLogEvent = "deployment.rebuild"
 	DeploymentStopEvent     AuditLogEvent = "deployment.stop"
@@ -76,23 +76,23 @@ const (
 	DeploymentPromoteEvent  AuditLogEvent = "deployment.promote"
 	DeploymentRollbackEvent AuditLogEvent = "deployment.rollback"
 
-	// Project events
+	// Project events.
 	ProjectCreateEvent AuditLogEvent = "project.create"
 	ProjectUpdateEvent AuditLogEvent = "project.update"
 	ProjectDeleteEvent AuditLogEvent = "project.delete"
 
-	// App events
+	// App events.
 	AppCreateEvent               AuditLogEvent = "app.create"
 	AppUpdateEvent               AuditLogEvent = "app.update"
 	AppDeleteEvent               AuditLogEvent = "app.delete"
 	AppConnectRepositoryEvent    AuditLogEvent = "app.connect_repository"
 	AppDisconnectRepositoryEvent AuditLogEvent = "app.disconnect_repository"
 
-	// Environment events
+	// Environment events.
 	EnvironmentUpdateEvent AuditLogEvent = "environment.update"
 	EnvironmentDeleteEvent AuditLogEvent = "environment.delete"
 
-	// Custom domain events
+	// Custom domain events.
 	DomainCreateEvent AuditLogEvent = "domain.create"
 	DomainDeleteEvent AuditLogEvent = "domain.delete"
 	DomainVerifyEvent AuditLogEvent = "domain.verify"

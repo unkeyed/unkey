@@ -2,6 +2,7 @@ syntax = "proto3";
 package hydra.v1;
 
 import "ctrl/v1/actor.proto";
+import "ctrl/v1/deployment.proto";
 import "dev/restate/sdk/go.proto";
 
 option go_package = "github.com/unkeyed/unkey/gen/proto/hydra/v1;hydrav1";
@@ -23,6 +24,22 @@ option go_package = "github.com/unkeyed/unkey/gen/proto/hydra/v1;hydrav1";
 // routes atomically through the routing service.
 service DeployService {
   option (dev.restate.sdk.go.service_type) = VIRTUAL_OBJECT;
+
+  // Create is the only writer of deployment rows. Every caller goes through
+  // it: the public API, the GitHub webhook, and operator rebuilds. It resolves
+  // the build source, runs the entitlement gates, writes the row with its
+  // queued step and audit log in one transaction, and sends Deploy to itself.
+  //
+  // The object key is the deployment id, so a caller that derives the same id
+  // from an idempotency key lands on the same object. Two dedup layers back
+  // that: the invocation idempotency key replays the journaled response within
+  // its retention window, and a row that already exists returns its id and
+  // status forever after.
+  //
+  // Sending Deploy to itself has to be a Send, never a Request: both are
+  // exclusive handlers on this key, so a Request would wait on a handler that
+  // cannot start until this one returns.
+  rpc Create(DeployCreateRequest) returns (DeployCreateResponse) {}
 
   // Deploy executes the full deployment workflow: build (if git source), provision
   // containers across regions, wait for health, configure domain routing, and
@@ -121,6 +138,175 @@ message GitSource {
   // Railpack auto-detects the command. Lets monorepos scope the build to a
   // single app. Ignored when dockerfile_path is set.
   string build_command = 9;
+}
+
+// CreateDecision is what the caller decided should happen to this deployment.
+// Every value writes a row; they differ in what happens next.
+//
+// The GitHub webhook is the only caller that sends anything but DEPLOY: it skips
+// when auto-deploy is off or the watch paths do not match the push, and awaits
+// approval for a fork PR.
+enum CreateDecision {
+  CREATE_DECISION_UNSPECIFIED = 0;
+
+  // DEPLOY writes the row and builds it.
+  CREATE_DECISION_DEPLOY = 1;
+
+  // SKIP writes the row and stops there, recording that the commit was seen
+  // and deliberately not built.
+  CREATE_DECISION_SKIP = 2;
+
+  // AWAIT_APPROVAL writes the row and waits for a project member. Only
+  // AuthorizeDeployment can start it building.
+  CREATE_DECISION_AWAIT_APPROVAL = 3;
+}
+
+// CreateOutcome is what a create did.
+//
+// A refused create is one of these values rather than a terminal error, and that
+// is what keeps the GitHub webhook working: a workspace with no Compute plan
+// would otherwise fail every push and leave Restate retrying a repository that
+// will never be eligible.
+//
+// Callers send Create asynchronously and read none of this. It is what the
+// worker's own logs say, and what an operator RPC reports back.
+enum CreateOutcome {
+  CREATE_OUTCOME_UNSPECIFIED = 0;
+
+  // CREATED wrote a new row.
+  CREATE_OUTCOME_CREATED = 1;
+
+  // REPLAYED found the row already there and changed nothing.
+  CREATE_OUTCOME_REPLAYED = 2;
+
+  // BLOCKED wrote nothing. See blocked_reason.
+  CREATE_OUTCOME_BLOCKED = 3;
+}
+
+// CreateBlockedReason is why a create was refused, as a value a caller can
+// branch on rather than a message it would have to parse.
+enum CreateBlockedReason {
+  CREATE_BLOCKED_REASON_UNSPECIFIED = 0;
+
+  // NO_COMPUTE_PLAN: the workspace holds no Deploy entitlement and the gate is
+  // enforcing.
+  CREATE_BLOCKED_REASON_NO_COMPUTE_PLAN = 1;
+
+  // SPEND_SUSPENDED: the workspace is over its Compute spend cap.
+  CREATE_BLOCKED_REASON_SPEND_SUSPENDED = 2;
+
+  // TARGET_NOT_FOUND: the project, app, or environment does not exist, or they
+  // do not belong together. Reachable when a target is deleted between the
+  // caller's own lookup and this create.
+  CREATE_BLOCKED_REASON_TARGET_NOT_FOUND = 3;
+
+  // NO_REPO_CONNECTION: a git source was requested for an app with no
+  // connected repository. Refused rather than redeployed as the current image,
+  // which would build a different artifact than the one asked for.
+  CREATE_BLOCKED_REASON_NO_REPO_CONNECTION = 4;
+
+  // COMMIT_NOT_RESOLVED: GitHub could not resolve the requested branch or
+  // commit.
+  CREATE_BLOCKED_REASON_COMMIT_NOT_RESOLVED = 5;
+
+  // NO_SOURCE_IMAGE: the deployment being redeployed has neither a commit with
+  // a repository connection nor an image, so there is nothing to build from.
+  CREATE_BLOCKED_REASON_NO_SOURCE_IMAGE = 6;
+
+  // NEWER_DEPLOYMENT_EXISTS: a rebuild found a newer active deployment on the
+  // same app, environment, and branch. Send force to override.
+  CREATE_BLOCKED_REASON_NEWER_DEPLOYMENT_EXISTS = 7;
+}
+
+// CreateGitSource builds from a repository commit. The worker resolves the
+// repository connection from the app, so a caller only says which commit it
+// wants: the API sends a bare branch, the webhook sends everything it read off
+// the push.
+message CreateGitSource {
+  // Commit metadata as far as the caller knows it. Empty fields are filled
+  // from GitHub. Neither a commit sha nor a branch defaults to the app's
+  // default branch; a sha without a branch is left alone, because that sha may
+  // live on a non-default branch and recording the wrong branch beside the
+  // right sha is worse than recording no branch.
+  ctrl.v1.GitCommitInfo commit = 1;
+
+  // PR number for fork PRs. BuildKit fetches refs/pull/<number>/head from the
+  // base repository instead of cloning the commit directly.
+  int64 pr_number = 2;
+}
+
+// CreateImageSource deploys a pre-built container image as it is, with no
+// build step and no git metadata synthesized onto the row.
+message CreateImageSource {
+  string image = 1;
+}
+
+// CreateExistingDeploymentSource rebuilds what another deployment ran: its
+// commit when the app still has a repository connection, otherwise its image.
+// The new row inherits the app's current runtime settings and environment
+// variables, so configuration drift since the source applies. That is the
+// point for a hotfix or a settings rollout, and it is also what makes this the
+// recovery path when an image is lost.
+message CreateExistingDeploymentSource {
+  string deployment_id = 1;
+
+  // RequireNoNewer refuses the rebuild when a newer active deployment exists on
+  // the same app, environment, and branch. An operator rebuild sets it and
+  // clears it to force the rebuild through; a user redeploying through the API
+  // never sets it, because they asked for this deployment specifically.
+  bool require_no_newer = 2;
+}
+
+message DeployCreateRequest {
+  // Target. The worker loads the project, app, environment, and their settings
+  // itself rather than trusting a snapshot, so the row records the settings
+  // current when the create runs and not when it was requested.
+  string project_id = 1;
+  string app_id = 2;
+
+  // Environment named by id or slug. The webhook has the id from its fan-out
+  // query; the API has the slug it resolved.
+  string environment = 3;
+
+  oneof source {
+    CreateGitSource git = 4;
+    CreateImageSource image = 5;
+    CreateExistingDeploymentSource existing_deployment = 6;
+  }
+
+  // Container command override. Empty uses the app's stored default.
+  repeated string command = 7;
+
+  // Decision the caller already reached. See CreateDecision.
+  CreateDecision decision = 8;
+
+  // OrderingTimestamp is the row's created_at, in unix milliseconds. The
+  // webhook passes the time it received the push so sibling dedup and the
+  // supersede check keep push order even when its per-app sends land out of
+  // order. Zero uses the worker's clock.
+  int64 ordering_timestamp = 9;
+
+  // Attribution persisted on the deployment row.
+  ctrl.v1.DeploymentTrigger trigger = 10;
+  string triggered_by = 11;
+  string trigger_reason = 12;
+
+  // Actor attributed on the audit log. Unset falls back to the system actor.
+  ctrl.v1.ActorInfo actor = 13;
+}
+
+// DeployCreateResponse says what a create did. It carries no deployment id: the
+// id is the object key, so every caller already knows it before calling.
+//
+// Only an operator RPC reads this. The public API and the GitHub webhook send
+// Create one-way and never see a response at all.
+message DeployCreateResponse {
+  CreateOutcome outcome = 1;
+
+  // BlockedReason is set only when outcome is BLOCKED. The text explaining it
+  // stays in the worker's logs: it names repositories and deployments the
+  // caller may have no right to read.
+  CreateBlockedReason blocked_reason = 2;
 }
 
 message DeployRequest {

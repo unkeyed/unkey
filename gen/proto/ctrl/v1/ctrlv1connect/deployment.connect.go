@@ -33,9 +33,6 @@ const (
 // reflection-formatted method names, remove the leading slash and convert the remaining slash to a
 // period.
 const (
-	// DeployServiceCreateDeploymentProcedure is the fully-qualified name of the DeployService's
-	// CreateDeployment RPC.
-	DeployServiceCreateDeploymentProcedure = "/ctrl.v1.DeployService/CreateDeployment"
 	// DeployServiceGetDeploymentProcedure is the fully-qualified name of the DeployService's
 	// GetDeployment RPC.
 	DeployServiceGetDeploymentProcedure = "/ctrl.v1.DeployService/GetDeployment"
@@ -59,9 +56,6 @@ const (
 
 // DeployServiceClient is a client for the ctrl.v1.DeployService service.
 type DeployServiceClient interface {
-	// Create a new deployment from a docker image or by auto-detecting
-	// the appropriate source for the project.
-	CreateDeployment(context.Context, *connect.Request[v1.CreateDeploymentRequest]) (*connect.Response[v1.CreateDeploymentResponse], error)
 	// Get deployment details
 	GetDeployment(context.Context, *connect.Request[v1.GetDeploymentRequest]) (*connect.Response[v1.GetDeploymentResponse], error)
 	// Reassign the sticky domains of the projects live deployment to the target deployment
@@ -97,12 +91,6 @@ func NewDeployServiceClient(httpClient connect.HTTPClient, baseURL string, opts 
 	baseURL = strings.TrimRight(baseURL, "/")
 	deployServiceMethods := v1.File_ctrl_v1_deployment_proto.Services().ByName("DeployService").Methods()
 	return &deployServiceClient{
-		createDeployment: connect.NewClient[v1.CreateDeploymentRequest, v1.CreateDeploymentResponse](
-			httpClient,
-			baseURL+DeployServiceCreateDeploymentProcedure,
-			connect.WithSchema(deployServiceMethods.ByName("CreateDeployment")),
-			connect.WithClientOptions(opts...),
-		),
 		getDeployment: connect.NewClient[v1.GetDeploymentRequest, v1.GetDeploymentResponse](
 			httpClient,
 			baseURL+DeployServiceGetDeploymentProcedure,
@@ -150,7 +138,6 @@ func NewDeployServiceClient(httpClient connect.HTTPClient, baseURL string, opts 
 
 // deployServiceClient implements DeployServiceClient.
 type deployServiceClient struct {
-	createDeployment    *connect.Client[v1.CreateDeploymentRequest, v1.CreateDeploymentResponse]
 	getDeployment       *connect.Client[v1.GetDeploymentRequest, v1.GetDeploymentResponse]
 	rollback            *connect.Client[v1.RollbackRequest, v1.RollbackResponse]
 	promote             *connect.Client[v1.PromoteRequest, v1.PromoteResponse]
@@ -158,11 +145,6 @@ type deployServiceClient struct {
 	cancelDeployment    *connect.Client[v1.CancelDeploymentRequest, v1.CancelDeploymentResponse]
 	stopDeployment      *connect.Client[v1.StopDeploymentRequest, v1.StopDeploymentResponse]
 	deprovisionCompute  *connect.Client[v1.DeprovisionComputeRequest, v1.DeprovisionComputeResponse]
-}
-
-// CreateDeployment calls ctrl.v1.DeployService.CreateDeployment.
-func (c *deployServiceClient) CreateDeployment(ctx context.Context, req *connect.Request[v1.CreateDeploymentRequest]) (*connect.Response[v1.CreateDeploymentResponse], error) {
-	return c.createDeployment.CallUnary(ctx, req)
 }
 
 // GetDeployment calls ctrl.v1.DeployService.GetDeployment.
@@ -202,9 +184,6 @@ func (c *deployServiceClient) DeprovisionCompute(ctx context.Context, req *conne
 
 // DeployServiceHandler is an implementation of the ctrl.v1.DeployService service.
 type DeployServiceHandler interface {
-	// Create a new deployment from a docker image or by auto-detecting
-	// the appropriate source for the project.
-	CreateDeployment(context.Context, *connect.Request[v1.CreateDeploymentRequest]) (*connect.Response[v1.CreateDeploymentResponse], error)
 	// Get deployment details
 	GetDeployment(context.Context, *connect.Request[v1.GetDeploymentRequest]) (*connect.Response[v1.GetDeploymentResponse], error)
 	// Reassign the sticky domains of the projects live deployment to the target deployment
@@ -236,12 +215,6 @@ type DeployServiceHandler interface {
 // and JSON codecs. They also support gzip compression.
 func NewDeployServiceHandler(svc DeployServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
 	deployServiceMethods := v1.File_ctrl_v1_deployment_proto.Services().ByName("DeployService").Methods()
-	deployServiceCreateDeploymentHandler := connect.NewUnaryHandler(
-		DeployServiceCreateDeploymentProcedure,
-		svc.CreateDeployment,
-		connect.WithSchema(deployServiceMethods.ByName("CreateDeployment")),
-		connect.WithHandlerOptions(opts...),
-	)
 	deployServiceGetDeploymentHandler := connect.NewUnaryHandler(
 		DeployServiceGetDeploymentProcedure,
 		svc.GetDeployment,
@@ -286,8 +259,6 @@ func NewDeployServiceHandler(svc DeployServiceHandler, opts ...connect.HandlerOp
 	)
 	return "/ctrl.v1.DeployService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
-		case DeployServiceCreateDeploymentProcedure:
-			deployServiceCreateDeploymentHandler.ServeHTTP(w, r)
 		case DeployServiceGetDeploymentProcedure:
 			deployServiceGetDeploymentHandler.ServeHTTP(w, r)
 		case DeployServiceRollbackProcedure:
@@ -310,10 +281,6 @@ func NewDeployServiceHandler(svc DeployServiceHandler, opts ...connect.HandlerOp
 
 // UnimplementedDeployServiceHandler returns CodeUnimplemented from all methods.
 type UnimplementedDeployServiceHandler struct{}
-
-func (UnimplementedDeployServiceHandler) CreateDeployment(context.Context, *connect.Request[v1.CreateDeploymentRequest]) (*connect.Response[v1.CreateDeploymentResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ctrl.v1.DeployService.CreateDeployment is not implemented"))
-}
 
 func (UnimplementedDeployServiceHandler) GetDeployment(context.Context, *connect.Request[v1.GetDeploymentRequest]) (*connect.Response[v1.GetDeploymentResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ctrl.v1.DeployService.GetDeployment is not implemented"))

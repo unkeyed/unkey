@@ -1,6 +1,6 @@
 package auditlog
 
-// AuditLog represents an pretty struct of an audit log entry that we will write into the db
+// AuditLog represents an pretty struct of an audit log entry that we will write into the db.
 type AuditLog struct {
 	Event       AuditLogEvent
 	WorkspaceID string
@@ -27,7 +27,7 @@ type AuditLog struct {
 	CorrelationID string
 }
 
-// AuditLogResource represents a single resource that was affected by the action
+// AuditLogResource represents a single resource that was affected by the action.
 type AuditLogResource struct {
 	ID          string
 	DisplayName string

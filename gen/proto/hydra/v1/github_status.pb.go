@@ -22,6 +22,64 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+// GitHubCommitStatusState maps to the four states the GitHub commit status API
+// accepts. See:
+// https://docs.github.com/en/rest/commits/statuses#create-a-commit-status
+type GitHubCommitStatusState int32
+
+const (
+	GitHubCommitStatusState_GITHUB_COMMIT_STATUS_STATE_UNSPECIFIED GitHubCommitStatusState = 0
+	GitHubCommitStatusState_GITHUB_COMMIT_STATUS_STATE_PENDING     GitHubCommitStatusState = 1
+	GitHubCommitStatusState_GITHUB_COMMIT_STATUS_STATE_SUCCESS     GitHubCommitStatusState = 2
+	GitHubCommitStatusState_GITHUB_COMMIT_STATUS_STATE_FAILURE     GitHubCommitStatusState = 3
+	GitHubCommitStatusState_GITHUB_COMMIT_STATUS_STATE_ERROR       GitHubCommitStatusState = 4
+)
+
+// Enum value maps for GitHubCommitStatusState.
+var (
+	GitHubCommitStatusState_name = map[int32]string{
+		0: "GITHUB_COMMIT_STATUS_STATE_UNSPECIFIED",
+		1: "GITHUB_COMMIT_STATUS_STATE_PENDING",
+		2: "GITHUB_COMMIT_STATUS_STATE_SUCCESS",
+		3: "GITHUB_COMMIT_STATUS_STATE_FAILURE",
+		4: "GITHUB_COMMIT_STATUS_STATE_ERROR",
+	}
+	GitHubCommitStatusState_value = map[string]int32{
+		"GITHUB_COMMIT_STATUS_STATE_UNSPECIFIED": 0,
+		"GITHUB_COMMIT_STATUS_STATE_PENDING":     1,
+		"GITHUB_COMMIT_STATUS_STATE_SUCCESS":     2,
+		"GITHUB_COMMIT_STATUS_STATE_FAILURE":     3,
+		"GITHUB_COMMIT_STATUS_STATE_ERROR":       4,
+	}
+)
+
+func (x GitHubCommitStatusState) Enum() *GitHubCommitStatusState {
+	p := new(GitHubCommitStatusState)
+	*p = x
+	return p
+}
+
+func (x GitHubCommitStatusState) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (GitHubCommitStatusState) Descriptor() protoreflect.EnumDescriptor {
+	return file_hydra_v1_github_status_proto_enumTypes[0].Descriptor()
+}
+
+func (GitHubCommitStatusState) Type() protoreflect.EnumType {
+	return &file_hydra_v1_github_status_proto_enumTypes[0]
+}
+
+func (x GitHubCommitStatusState) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use GitHubCommitStatusState.Descriptor instead.
+func (GitHubCommitStatusState) EnumDescriptor() ([]byte, []int) {
+	return file_hydra_v1_github_status_proto_rawDescGZIP(), []int{0}
+}
+
 // GitHubDeploymentState maps to the GitHub Deployments API status values.
 // See: https://docs.github.com/en/rest/deployments/statuses#create-a-deployment-status
 type GitHubDeploymentState int32
@@ -72,11 +130,11 @@ func (x GitHubDeploymentState) String() string {
 }
 
 func (GitHubDeploymentState) Descriptor() protoreflect.EnumDescriptor {
-	return file_hydra_v1_github_status_proto_enumTypes[0].Descriptor()
+	return file_hydra_v1_github_status_proto_enumTypes[1].Descriptor()
 }
 
 func (GitHubDeploymentState) Type() protoreflect.EnumType {
-	return &file_hydra_v1_github_status_proto_enumTypes[0]
+	return &file_hydra_v1_github_status_proto_enumTypes[1]
 }
 
 func (x GitHubDeploymentState) Number() protoreflect.EnumNumber {
@@ -85,7 +143,130 @@ func (x GitHubDeploymentState) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use GitHubDeploymentState.Descriptor instead.
 func (GitHubDeploymentState) EnumDescriptor() ([]byte, []int) {
+	return file_hydra_v1_github_status_proto_rawDescGZIP(), []int{1}
+}
+
+type GitHubStatusCommitStatusRequest struct {
+	state          protoimpl.MessageState  `protogen:"open.v1"`
+	InstallationId int64                   `protobuf:"varint,1,opt,name=installation_id,json=installationId,proto3" json:"installation_id,omitempty"`
+	Repo           string                  `protobuf:"bytes,2,opt,name=repo,proto3" json:"repo,omitempty"`
+	CommitSha      string                  `protobuf:"bytes,3,opt,name=commit_sha,json=commitSha,proto3" json:"commit_sha,omitempty"`
+	State          GitHubCommitStatusState `protobuf:"varint,4,opt,name=state,proto3,enum=hydra.v1.GitHubCommitStatusState" json:"state,omitempty"`
+	// TargetUrl is where the PR's "Details" link goes, normally the deployment's
+	// dashboard page. The caller builds it because only the caller knows the
+	// workspace slug.
+	TargetUrl     string `protobuf:"bytes,5,opt,name=target_url,json=targetUrl,proto3" json:"target_url,omitempty"`
+	Description   string `protobuf:"bytes,6,opt,name=description,proto3" json:"description,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GitHubStatusCommitStatusRequest) Reset() {
+	*x = GitHubStatusCommitStatusRequest{}
+	mi := &file_hydra_v1_github_status_proto_msgTypes[0]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GitHubStatusCommitStatusRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GitHubStatusCommitStatusRequest) ProtoMessage() {}
+
+func (x *GitHubStatusCommitStatusRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_hydra_v1_github_status_proto_msgTypes[0]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GitHubStatusCommitStatusRequest.ProtoReflect.Descriptor instead.
+func (*GitHubStatusCommitStatusRequest) Descriptor() ([]byte, []int) {
 	return file_hydra_v1_github_status_proto_rawDescGZIP(), []int{0}
+}
+
+func (x *GitHubStatusCommitStatusRequest) GetInstallationId() int64 {
+	if x != nil {
+		return x.InstallationId
+	}
+	return 0
+}
+
+func (x *GitHubStatusCommitStatusRequest) GetRepo() string {
+	if x != nil {
+		return x.Repo
+	}
+	return ""
+}
+
+func (x *GitHubStatusCommitStatusRequest) GetCommitSha() string {
+	if x != nil {
+		return x.CommitSha
+	}
+	return ""
+}
+
+func (x *GitHubStatusCommitStatusRequest) GetState() GitHubCommitStatusState {
+	if x != nil {
+		return x.State
+	}
+	return GitHubCommitStatusState_GITHUB_COMMIT_STATUS_STATE_UNSPECIFIED
+}
+
+func (x *GitHubStatusCommitStatusRequest) GetTargetUrl() string {
+	if x != nil {
+		return x.TargetUrl
+	}
+	return ""
+}
+
+func (x *GitHubStatusCommitStatusRequest) GetDescription() string {
+	if x != nil {
+		return x.Description
+	}
+	return ""
+}
+
+type GitHubStatusCommitStatusResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GitHubStatusCommitStatusResponse) Reset() {
+	*x = GitHubStatusCommitStatusResponse{}
+	mi := &file_hydra_v1_github_status_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GitHubStatusCommitStatusResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GitHubStatusCommitStatusResponse) ProtoMessage() {}
+
+func (x *GitHubStatusCommitStatusResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_hydra_v1_github_status_proto_msgTypes[1]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GitHubStatusCommitStatusResponse.ProtoReflect.Descriptor instead.
+func (*GitHubStatusCommitStatusResponse) Descriptor() ([]byte, []int) {
+	return file_hydra_v1_github_status_proto_rawDescGZIP(), []int{1}
 }
 
 // GitHubStatusInitRequest carries all context the virtual object needs to
@@ -115,7 +296,7 @@ type GitHubStatusInitRequest struct {
 
 func (x *GitHubStatusInitRequest) Reset() {
 	*x = GitHubStatusInitRequest{}
-	mi := &file_hydra_v1_github_status_proto_msgTypes[0]
+	mi := &file_hydra_v1_github_status_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -127,7 +308,7 @@ func (x *GitHubStatusInitRequest) String() string {
 func (*GitHubStatusInitRequest) ProtoMessage() {}
 
 func (x *GitHubStatusInitRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_hydra_v1_github_status_proto_msgTypes[0]
+	mi := &file_hydra_v1_github_status_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -140,7 +321,7 @@ func (x *GitHubStatusInitRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GitHubStatusInitRequest.ProtoReflect.Descriptor instead.
 func (*GitHubStatusInitRequest) Descriptor() ([]byte, []int) {
-	return file_hydra_v1_github_status_proto_rawDescGZIP(), []int{0}
+	return file_hydra_v1_github_status_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *GitHubStatusInitRequest) GetInstallationId() int64 {
@@ -242,7 +423,7 @@ type GitHubStatusInitResponse struct {
 
 func (x *GitHubStatusInitResponse) Reset() {
 	*x = GitHubStatusInitResponse{}
-	mi := &file_hydra_v1_github_status_proto_msgTypes[1]
+	mi := &file_hydra_v1_github_status_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -254,7 +435,7 @@ func (x *GitHubStatusInitResponse) String() string {
 func (*GitHubStatusInitResponse) ProtoMessage() {}
 
 func (x *GitHubStatusInitResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_hydra_v1_github_status_proto_msgTypes[1]
+	mi := &file_hydra_v1_github_status_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -267,7 +448,7 @@ func (x *GitHubStatusInitResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GitHubStatusInitResponse.ProtoReflect.Descriptor instead.
 func (*GitHubStatusInitResponse) Descriptor() ([]byte, []int) {
-	return file_hydra_v1_github_status_proto_rawDescGZIP(), []int{1}
+	return file_hydra_v1_github_status_proto_rawDescGZIP(), []int{3}
 }
 
 type GitHubStatusReportRequest struct {
@@ -280,7 +461,7 @@ type GitHubStatusReportRequest struct {
 
 func (x *GitHubStatusReportRequest) Reset() {
 	*x = GitHubStatusReportRequest{}
-	mi := &file_hydra_v1_github_status_proto_msgTypes[2]
+	mi := &file_hydra_v1_github_status_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -292,7 +473,7 @@ func (x *GitHubStatusReportRequest) String() string {
 func (*GitHubStatusReportRequest) ProtoMessage() {}
 
 func (x *GitHubStatusReportRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_hydra_v1_github_status_proto_msgTypes[2]
+	mi := &file_hydra_v1_github_status_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -305,7 +486,7 @@ func (x *GitHubStatusReportRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GitHubStatusReportRequest.ProtoReflect.Descriptor instead.
 func (*GitHubStatusReportRequest) Descriptor() ([]byte, []int) {
-	return file_hydra_v1_github_status_proto_rawDescGZIP(), []int{2}
+	return file_hydra_v1_github_status_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *GitHubStatusReportRequest) GetState() GitHubDeploymentState {
@@ -330,7 +511,7 @@ type GitHubStatusReportResponse struct {
 
 func (x *GitHubStatusReportResponse) Reset() {
 	*x = GitHubStatusReportResponse{}
-	mi := &file_hydra_v1_github_status_proto_msgTypes[3]
+	mi := &file_hydra_v1_github_status_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -342,7 +523,7 @@ func (x *GitHubStatusReportResponse) String() string {
 func (*GitHubStatusReportResponse) ProtoMessage() {}
 
 func (x *GitHubStatusReportResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_hydra_v1_github_status_proto_msgTypes[3]
+	mi := &file_hydra_v1_github_status_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -355,14 +536,24 @@ func (x *GitHubStatusReportResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GitHubStatusReportResponse.ProtoReflect.Descriptor instead.
 func (*GitHubStatusReportResponse) Descriptor() ([]byte, []int) {
-	return file_hydra_v1_github_status_proto_rawDescGZIP(), []int{3}
+	return file_hydra_v1_github_status_proto_rawDescGZIP(), []int{5}
 }
 
 var File_hydra_v1_github_status_proto protoreflect.FileDescriptor
 
 const file_hydra_v1_github_status_proto_rawDesc = "" +
 	"\n" +
-	"\x1chydra/v1/github_status.proto\x12\bhydra.v1\x1a\x18dev/restate/sdk/go.proto\"\xda\x03\n" +
+	"\x1chydra/v1/github_status.proto\x12\bhydra.v1\x1a\x18dev/restate/sdk/go.proto\"\xf7\x01\n" +
+	"\x1fGitHubStatusCommitStatusRequest\x12'\n" +
+	"\x0finstallation_id\x18\x01 \x01(\x03R\x0einstallationId\x12\x12\n" +
+	"\x04repo\x18\x02 \x01(\tR\x04repo\x12\x1d\n" +
+	"\n" +
+	"commit_sha\x18\x03 \x01(\tR\tcommitSha\x127\n" +
+	"\x05state\x18\x04 \x01(\x0e2!.hydra.v1.GitHubCommitStatusStateR\x05state\x12\x1d\n" +
+	"\n" +
+	"target_url\x18\x05 \x01(\tR\ttargetUrl\x12 \n" +
+	"\vdescription\x18\x06 \x01(\tR\vdescription\"\"\n" +
+	" GitHubStatusCommitStatusResponse\"\xda\x03\n" +
 	"\x17GitHubStatusInitRequest\x12'\n" +
 	"\x0finstallation_id\x18\x01 \x01(\x03R\x0einstallationId\x12\x12\n" +
 	"\x04repo\x18\x02 \x01(\tR\x04repo\x12\x1d\n" +
@@ -383,7 +574,13 @@ const file_hydra_v1_github_status_proto_rawDesc = "" +
 	"\x19GitHubStatusReportRequest\x125\n" +
 	"\x05state\x18\x01 \x01(\x0e2\x1f.hydra.v1.GitHubDeploymentStateR\x05state\x12 \n" +
 	"\vdescription\x18\x02 \x01(\tR\vdescription\"\x1c\n" +
-	"\x1aGitHubStatusReportResponse*\xc5\x02\n" +
+	"\x1aGitHubStatusReportResponse*\xe3\x01\n" +
+	"\x17GitHubCommitStatusState\x12*\n" +
+	"&GITHUB_COMMIT_STATUS_STATE_UNSPECIFIED\x10\x00\x12&\n" +
+	"\"GITHUB_COMMIT_STATUS_STATE_PENDING\x10\x01\x12&\n" +
+	"\"GITHUB_COMMIT_STATUS_STATE_SUCCESS\x10\x02\x12&\n" +
+	"\"GITHUB_COMMIT_STATUS_STATE_FAILURE\x10\x03\x12$\n" +
+	" GITHUB_COMMIT_STATUS_STATE_ERROR\x10\x04*\xc5\x02\n" +
 	"\x15GitHubDeploymentState\x12'\n" +
 	"#GITHUB_DEPLOYMENT_STATE_UNSPECIFIED\x10\x00\x12#\n" +
 	"\x1fGITHUB_DEPLOYMENT_STATE_PENDING\x10\x01\x12'\n" +
@@ -392,10 +589,11 @@ const file_hydra_v1_github_status_proto_rawDesc = "" +
 	"\x1fGITHUB_DEPLOYMENT_STATE_FAILURE\x10\x04\x12!\n" +
 	"\x1dGITHUB_DEPLOYMENT_STATE_ERROR\x10\x05\x12$\n" +
 	" GITHUB_DEPLOYMENT_STATE_INACTIVE\x10\x06\x12\"\n" +
-	"\x1eGITHUB_DEPLOYMENT_STATE_QUEUED\x10\a2\xc9\x01\n" +
+	"\x1eGITHUB_DEPLOYMENT_STATE_QUEUED\x10\a2\xb5\x02\n" +
 	"\x13GitHubStatusService\x12O\n" +
 	"\x04Init\x12!.hydra.v1.GitHubStatusInitRequest\x1a\".hydra.v1.GitHubStatusInitResponse\"\x00\x12[\n" +
-	"\fReportStatus\x12#.hydra.v1.GitHubStatusReportRequest\x1a$.hydra.v1.GitHubStatusReportResponse\"\x00\x1a\x04\x98\x80\x01\x01B\x97\x01\n" +
+	"\fReportStatus\x12#.hydra.v1.GitHubStatusReportRequest\x1a$.hydra.v1.GitHubStatusReportResponse\"\x00\x12j\n" +
+	"\x0fSetCommitStatus\x12).hydra.v1.GitHubStatusCommitStatusRequest\x1a*.hydra.v1.GitHubStatusCommitStatusResponse\"\x00\x1a\x04\x98\x80\x01\x01B\x97\x01\n" +
 	"\fcom.hydra.v1B\x11GithubStatusProtoP\x01Z3github.com/unkeyed/unkey/gen/proto/hydra/v1;hydrav1\xa2\x02\x03HXX\xaa\x02\bHydra.V1\xca\x02\bHydra\\V1\xe2\x02\x14Hydra\\V1\\GPBMetadata\xea\x02\tHydra::V1b\x06proto3"
 
 var (
@@ -410,26 +608,32 @@ func file_hydra_v1_github_status_proto_rawDescGZIP() []byte {
 	return file_hydra_v1_github_status_proto_rawDescData
 }
 
-var file_hydra_v1_github_status_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_hydra_v1_github_status_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
+var file_hydra_v1_github_status_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
+var file_hydra_v1_github_status_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
 var file_hydra_v1_github_status_proto_goTypes = []any{
-	(GitHubDeploymentState)(0),         // 0: hydra.v1.GitHubDeploymentState
-	(*GitHubStatusInitRequest)(nil),    // 1: hydra.v1.GitHubStatusInitRequest
-	(*GitHubStatusInitResponse)(nil),   // 2: hydra.v1.GitHubStatusInitResponse
-	(*GitHubStatusReportRequest)(nil),  // 3: hydra.v1.GitHubStatusReportRequest
-	(*GitHubStatusReportResponse)(nil), // 4: hydra.v1.GitHubStatusReportResponse
+	(GitHubCommitStatusState)(0),             // 0: hydra.v1.GitHubCommitStatusState
+	(GitHubDeploymentState)(0),               // 1: hydra.v1.GitHubDeploymentState
+	(*GitHubStatusCommitStatusRequest)(nil),  // 2: hydra.v1.GitHubStatusCommitStatusRequest
+	(*GitHubStatusCommitStatusResponse)(nil), // 3: hydra.v1.GitHubStatusCommitStatusResponse
+	(*GitHubStatusInitRequest)(nil),          // 4: hydra.v1.GitHubStatusInitRequest
+	(*GitHubStatusInitResponse)(nil),         // 5: hydra.v1.GitHubStatusInitResponse
+	(*GitHubStatusReportRequest)(nil),        // 6: hydra.v1.GitHubStatusReportRequest
+	(*GitHubStatusReportResponse)(nil),       // 7: hydra.v1.GitHubStatusReportResponse
 }
 var file_hydra_v1_github_status_proto_depIdxs = []int32{
-	0, // 0: hydra.v1.GitHubStatusReportRequest.state:type_name -> hydra.v1.GitHubDeploymentState
-	1, // 1: hydra.v1.GitHubStatusService.Init:input_type -> hydra.v1.GitHubStatusInitRequest
-	3, // 2: hydra.v1.GitHubStatusService.ReportStatus:input_type -> hydra.v1.GitHubStatusReportRequest
-	2, // 3: hydra.v1.GitHubStatusService.Init:output_type -> hydra.v1.GitHubStatusInitResponse
-	4, // 4: hydra.v1.GitHubStatusService.ReportStatus:output_type -> hydra.v1.GitHubStatusReportResponse
-	3, // [3:5] is the sub-list for method output_type
-	1, // [1:3] is the sub-list for method input_type
-	1, // [1:1] is the sub-list for extension type_name
-	1, // [1:1] is the sub-list for extension extendee
-	0, // [0:1] is the sub-list for field type_name
+	0, // 0: hydra.v1.GitHubStatusCommitStatusRequest.state:type_name -> hydra.v1.GitHubCommitStatusState
+	1, // 1: hydra.v1.GitHubStatusReportRequest.state:type_name -> hydra.v1.GitHubDeploymentState
+	4, // 2: hydra.v1.GitHubStatusService.Init:input_type -> hydra.v1.GitHubStatusInitRequest
+	6, // 3: hydra.v1.GitHubStatusService.ReportStatus:input_type -> hydra.v1.GitHubStatusReportRequest
+	2, // 4: hydra.v1.GitHubStatusService.SetCommitStatus:input_type -> hydra.v1.GitHubStatusCommitStatusRequest
+	5, // 5: hydra.v1.GitHubStatusService.Init:output_type -> hydra.v1.GitHubStatusInitResponse
+	7, // 6: hydra.v1.GitHubStatusService.ReportStatus:output_type -> hydra.v1.GitHubStatusReportResponse
+	3, // 7: hydra.v1.GitHubStatusService.SetCommitStatus:output_type -> hydra.v1.GitHubStatusCommitStatusResponse
+	5, // [5:8] is the sub-list for method output_type
+	2, // [2:5] is the sub-list for method input_type
+	2, // [2:2] is the sub-list for extension type_name
+	2, // [2:2] is the sub-list for extension extendee
+	0, // [0:2] is the sub-list for field type_name
 }
 
 func init() { file_hydra_v1_github_status_proto_init() }
@@ -442,8 +646,8 @@ func file_hydra_v1_github_status_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_hydra_v1_github_status_proto_rawDesc), len(file_hydra_v1_github_status_proto_rawDesc)),
-			NumEnums:      1,
-			NumMessages:   4,
+			NumEnums:      2,
+			NumMessages:   6,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

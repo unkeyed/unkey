@@ -1,6 +1,7 @@
 -- name: FindDeployTarget :one
 SELECT
     p.workspace_id AS workspace_id,
+    w.slug AS workspace_slug,
     p.id AS project_id,
     a.id AS app_id,
     a.default_branch AS default_branch,
@@ -21,6 +22,7 @@ SELECT
     ars.sentinel_config AS sentinel_config
 FROM apps a
 INNER JOIN projects p ON p.id = a.project_id
+INNER JOIN workspaces w ON w.id = p.workspace_id
 INNER JOIN environments e ON e.app_id = a.id AND e.project_id = a.project_id
 INNER JOIN (
     SELECT e1.id
