@@ -20,8 +20,11 @@ test("returns null for a key start without a prefix", () => {
   assert.equal(splitLegacyKeyStart("abcd"), null);
 });
 
-test("returns null when the separator is in the wrong position", () => {
-  assert.equal(splitLegacyKeyStart("prod_ab_cde"), null);
+test("keeps all characters after the last separator", () => {
+  assert.deepEqual(splitLegacyKeyStart("prod_ab_cde"), {
+    prefix: "prod_ab",
+    start: "cde",
+  });
 });
 
 test("keeps the existing key start characters", () => {
