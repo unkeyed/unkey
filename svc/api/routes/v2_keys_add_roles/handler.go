@@ -80,7 +80,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		rbac.Or(
 			rbac.U(
 				urn.New().Workspace(principal.WorkspaceID).Project(key.KeyAuth.ProjectID).Keyspace(key.KeyAuthID).Key(key.ID),
-				permissions.WriteKey{},
+				permissions.Write{},
 			),
 			rbac.And(
 				rbac.Or(

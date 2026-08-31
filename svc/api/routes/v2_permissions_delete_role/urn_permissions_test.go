@@ -23,7 +23,7 @@ func TestDeleteRoleAuthorizesCanonicalDeleteRole(t *testing.T) {
 	role := h.CreateRole(seed.CreateRoleRequest{WorkspaceID: workspaceID, Name: "canonical-role"})
 	rootKey := h.CreateRootKey(
 		workspaceID,
-		fmt.Sprintf("unkey:v1:%s:projects/%s/rbac/roles/%s#delete_role", workspaceID, role.ProjectID, role.ID),
+		fmt.Sprintf("unkey:v1:%s:projects/%s/rbac/roles/%s#delete", workspaceID, role.ProjectID, role.ID),
 	)
 	headers := http.Header{
 		"Content-Type":  {"application/json"},

@@ -35,15 +35,15 @@ func TestTranslatePermissions(t *testing.T) {
 		"",
 	})
 	require.Equal(t, []string{
-		"unkey:v1:ws_123:projects/*/keyspaces/*/keys/*#write_key",
-		"unkey:v1:ws_123:projects/*/keyspaces/*/keys/*#write_key",
-		"unkey:v1:ws_123:projects/*/keyspaces/*/keys/*#read_key",
-		"unkey:v1:ws_123:projects/*/keyspaces/*#read_keyspace",
-		"unkey:v1:ws_123:projects/*/keyspaces/*/keys/*#verify_key",
-		"unkey:v1:ws_123:projects/*/keyspaces/*/keys/*#delete_key",
-		"unkey:v1:ws_123:projects/*/identities/*#write_identity",
-		"unkey:v1:ws_123:projects/*/identities/*#read_identity",
-		"unkey:v1:ws_123:projects/*/identities/*#delete_identity",
+		"unkey:v1:ws_123:projects/*/keyspaces/*/keys/*#write",
+		"unkey:v1:ws_123:projects/*/keyspaces/*/keys/*#write",
+		"unkey:v1:ws_123:projects/*/keyspaces/*/keys/*#read",
+		"unkey:v1:ws_123:projects/*/keyspaces/*#read",
+		"unkey:v1:ws_123:projects/*/keyspaces/*/keys/*#verify",
+		"unkey:v1:ws_123:projects/*/keyspaces/*/keys/*#delete",
+		"unkey:v1:ws_123:projects/*/identities/*#write",
+		"unkey:v1:ws_123:projects/*/identities/*#read",
+		"unkey:v1:ws_123:projects/*/identities/*#delete",
 		"unkey:v1:ws_123:**#*",
 	}, result)
 }
@@ -61,77 +61,77 @@ func TestTranslatePermissionsKnownMappings(t *testing.T) {
 		{
 			name: "key write",
 			in:   "keys:write",
-			want: "unkey:v1:ws_123:projects/*/keyspaces/*/keys/*#write_key",
+			want: "unkey:v1:ws_123:projects/*/keyspaces/*/keys/*#write",
 		},
 		{
 			name: "key read",
 			in:   "keys:read",
-			want: "unkey:v1:ws_123:projects/*/keyspaces/*/keys/*#read_key",
+			want: "unkey:v1:ws_123:projects/*/keyspaces/*/keys/*#read",
 		},
 		{
 			name: "key verify",
 			in:   "keys:verify",
-			want: "unkey:v1:ws_123:projects/*/keyspaces/*/keys/*#verify_key",
+			want: "unkey:v1:ws_123:projects/*/keyspaces/*/keys/*#verify",
 		},
 		{
 			name: "key decrypt",
 			in:   "keys:decrypt",
-			want: "unkey:v1:ws_123:projects/*/keyspaces/*/keys/*#decrypt_key",
+			want: "unkey:v1:ws_123:projects/*/keyspaces/*/keys/*#decrypt",
 		},
 		{
 			name: "key delete",
 			in:   "keys:delete",
-			want: "unkey:v1:ws_123:projects/*/keyspaces/*/keys/*#delete_key",
+			want: "unkey:v1:ws_123:projects/*/keyspaces/*/keys/*#delete",
 		},
 		{
 			name: "identity write",
 			in:   "identities:write",
-			want: "unkey:v1:ws_123:projects/*/identities/*#write_identity",
+			want: "unkey:v1:ws_123:projects/*/identities/*#write",
 		},
 		{
 			name: "identity read",
 			in:   "identities:read",
-			want: "unkey:v1:ws_123:projects/*/identities/*#read_identity",
+			want: "unkey:v1:ws_123:projects/*/identities/*#read",
 		},
 		{
 			name: "identity delete",
 			in:   "identities:delete",
-			want: "unkey:v1:ws_123:projects/*/identities/*#delete_identity",
+			want: "unkey:v1:ws_123:projects/*/identities/*#delete",
 		},
 		{
 			name: "domain write",
 			in:   "domains:write",
-			want: "unkey:v1:ws_123:projects/*/apps/*/environments/*/domains/*#write_domain",
+			want: "unkey:v1:ws_123:projects/*/apps/*/environments/*/domains/*#write",
 		},
 		{
 			name: "domain read",
 			in:   "domains:read",
-			want: "unkey:v1:ws_123:projects/*/apps/*/environments/*/domains/*#read_domain",
+			want: "unkey:v1:ws_123:projects/*/apps/*/environments/*/domains/*#read",
 		},
 		{
 			name: "domain delete",
 			in:   "domains:delete",
-			want: "unkey:v1:ws_123:projects/*/apps/*/environments/*/domains/*#delete_domain",
+			want: "unkey:v1:ws_123:projects/*/apps/*/environments/*/domains/*#delete",
 		},
 		{
 			name: "gateway policies read",
 			in:   "gateway_policies:read",
-			want: "unkey:v1:ws_123:projects/*/apps/*/environments/*/gateway/policies/*#read_gateway_policy",
+			want: "unkey:v1:ws_123:projects/*/apps/*/environments/*/gateway/policies/*#read",
 		},
 		{
 			name: "gateway policies write",
 			in:   "gateway_policies:write",
-			want: "unkey:v1:ws_123:projects/*/apps/*/environments/*/gateway/policies/*#write_gateway_policy",
+			want: "unkey:v1:ws_123:projects/*/apps/*/environments/*/gateway/policies/*#write",
 		},
 		{
 			name: "gateway policies delete",
 			in:   "gateway_policies:delete",
-			want: "unkey:v1:ws_123:projects/*/apps/*/environments/*/gateway/policies/*#delete_gateway_policy",
+			want: "unkey:v1:ws_123:projects/*/apps/*/environments/*/gateway/policies/*#delete",
 		},
 		{
 			name: "environment variables delete",
 			in:   "environment_variables:delete",
-			want: "unkey:v1:ws_123:projects/*/apps/*/environments/*/variables/*#delete_environment_variable",
+			want: "unkey:v1:ws_123:projects/*/apps/*/environments/*/variables/*#delete",
 		},
 		{
 			name: "admin",
@@ -156,38 +156,37 @@ func TestPermissionMappingsCoverCatalog(t *testing.T) {
 	t.Parallel()
 
 	type catalogResource struct {
-		slugPrefix   string
-		actionTarget string
-		resource     string
-		actions      []string
+		slugPrefix string
+		resource   string
+		actions    []string
 	}
 
 	catalog := []catalogResource{
-		{slugPrefix: "github_apps", actionTarget: "github_app", resource: "github/apps/*", actions: []string{"read", "write", "delete"}},
-		{slugPrefix: "projects", actionTarget: "project", resource: "projects/*", actions: []string{"read", "write", "delete"}},
-		{slugPrefix: "apps", actionTarget: "app", resource: "projects/*/apps/*", actions: []string{"read", "write", "delete"}},
-		{slugPrefix: "environments", actionTarget: "environment", resource: "projects/*/apps/*/environments/*", actions: []string{"read", "write", "delete"}},
-		{slugPrefix: "deployments", actionTarget: "deployment", resource: "projects/*/apps/*/environments/*/deployments/*", actions: []string{"read", "write", "delete"}},
-		{slugPrefix: "deployment_logs", actionTarget: "deployment_logs", resource: "projects/*/apps/*/environments/*/deployments/*/logs", actions: []string{"read"}},
-		{slugPrefix: "domains", actionTarget: "domain", resource: "projects/*/apps/*/environments/*/domains/*", actions: []string{"read", "write", "delete"}},
-		{slugPrefix: "environment_variables", actionTarget: "environment_variable", resource: "projects/*/apps/*/environments/*/variables/*", actions: []string{"read", "write", "delete"}},
-		{slugPrefix: "gateway_logs", actionTarget: "gateway_logs", resource: "projects/*/apps/*/environments/*/gateway/logs", actions: []string{"read"}},
-		{slugPrefix: "gateway_policies", actionTarget: "gateway_policy", resource: "projects/*/apps/*/environments/*/gateway/policies/*", actions: []string{"read", "write", "delete"}},
-		{slugPrefix: "identities", actionTarget: "identity", resource: "projects/*/identities/*", actions: []string{"read", "write", "delete"}},
-		{slugPrefix: "keyspaces", actionTarget: "keyspace", resource: "projects/*/keyspaces/*", actions: []string{"read", "write", "delete"}},
-		{slugPrefix: "keyspace_logs", actionTarget: "keyspace_logs", resource: "projects/*/keyspaces/*/logs", actions: []string{"read"}},
-		{slugPrefix: "keys", actionTarget: "key", resource: "projects/*/keyspaces/*/keys/*", actions: []string{"read", "write", "delete", "decrypt", "verify"}},
-		{slugPrefix: "ratelimit_namespaces", actionTarget: "ratelimit_namespace", resource: "projects/*/ratelimits/namespaces/*", actions: []string{"read", "write", "delete", "limit"}},
-		{slugPrefix: "ratelimit_logs", actionTarget: "ratelimit_logs", resource: "projects/*/ratelimits/namespaces/*/logs", actions: []string{"read"}},
-		{slugPrefix: "ratelimit_overrides", actionTarget: "ratelimit_override", resource: "projects/*/ratelimits/namespaces/*/overrides/*", actions: []string{"read", "write", "delete"}},
-		{slugPrefix: "roles", actionTarget: "role", resource: "projects/*/rbac/roles/*", actions: []string{"read", "write", "delete"}},
-		{slugPrefix: "permissions", actionTarget: "permission", resource: "projects/*/rbac/permissions/*", actions: []string{"read", "write", "delete"}},
+		{slugPrefix: "github_apps", resource: "github/apps/*", actions: []string{"read", "write", "delete"}},
+		{slugPrefix: "projects", resource: "projects/*", actions: []string{"read", "write", "delete"}},
+		{slugPrefix: "apps", resource: "projects/*/apps/*", actions: []string{"read", "write", "delete"}},
+		{slugPrefix: "environments", resource: "projects/*/apps/*/environments/*", actions: []string{"read", "write", "delete"}},
+		{slugPrefix: "deployments", resource: "projects/*/apps/*/environments/*/deployments/*", actions: []string{"read", "write", "delete"}},
+		{slugPrefix: "deployment_logs", resource: "projects/*/apps/*/environments/*/deployments/*/logs", actions: []string{"read"}},
+		{slugPrefix: "domains", resource: "projects/*/apps/*/environments/*/domains/*", actions: []string{"read", "write", "delete"}},
+		{slugPrefix: "environment_variables", resource: "projects/*/apps/*/environments/*/variables/*", actions: []string{"read", "write", "delete"}},
+		{slugPrefix: "gateway_logs", resource: "projects/*/apps/*/environments/*/gateway/logs", actions: []string{"read"}},
+		{slugPrefix: "gateway_policies", resource: "projects/*/apps/*/environments/*/gateway/policies/*", actions: []string{"read", "write", "delete"}},
+		{slugPrefix: "identities", resource: "projects/*/identities/*", actions: []string{"read", "write", "delete"}},
+		{slugPrefix: "keyspaces", resource: "projects/*/keyspaces/*", actions: []string{"read", "write", "delete"}},
+		{slugPrefix: "keyspace_logs", resource: "projects/*/keyspaces/*/logs", actions: []string{"read"}},
+		{slugPrefix: "keys", resource: "projects/*/keyspaces/*/keys/*", actions: []string{"read", "write", "delete", "decrypt", "verify"}},
+		{slugPrefix: "ratelimit_namespaces", resource: "projects/*/ratelimits/namespaces/*", actions: []string{"read", "write", "delete", "limit"}},
+		{slugPrefix: "ratelimit_logs", resource: "projects/*/ratelimits/namespaces/*/logs", actions: []string{"read"}},
+		{slugPrefix: "ratelimit_overrides", resource: "projects/*/ratelimits/namespaces/*/overrides/*", actions: []string{"read", "write", "delete"}},
+		{slugPrefix: "roles", resource: "projects/*/rbac/roles/*", actions: []string{"read", "write", "delete"}},
+		{slugPrefix: "permissions", resource: "projects/*/rbac/permissions/*", actions: []string{"read", "write", "delete"}},
 	}
 
 	expected := make(map[string]string)
 	for _, resource := range catalog {
 		for _, action := range resource.actions {
-			expected[resource.resource+"#"+action+"_"+resource.actionTarget] = resource.slugPrefix + ":" + action
+			expected[resource.resource+"#"+action] = resource.slugPrefix + ":" + action
 		}
 	}
 
@@ -217,8 +216,8 @@ func TestTranslatePermissionsSupportsMultipleGrants(t *testing.T) {
 		name:        "Test multi grant",
 		description: "Used by tests to prove one WorkOS slug can grant multiple Unkey permissions.",
 		permissions: []permissionGrant{
-			{resource: "projects/*", action: action(rbacpermissions.ReadProject{})},
-			{resource: "projects/*/apps/*", action: action(rbacpermissions.ReadApp{})},
+			{resource: "projects/*", action: action(rbacpermissions.Read{})},
+			{resource: "projects/*/apps/*", action: action(rbacpermissions.Read{})},
 		},
 	}
 	t.Cleanup(func() {
@@ -231,8 +230,8 @@ func TestTranslatePermissionsSupportsMultipleGrants(t *testing.T) {
 
 	result := translatePermissions("ws_123", []string{slug})
 	require.Equal(t, []string{
-		"unkey:v1:ws_123:projects/*#read_project",
-		"unkey:v1:ws_123:projects/*/apps/*#read_app",
+		"unkey:v1:ws_123:projects/*#read",
+		"unkey:v1:ws_123:projects/*/apps/*#read",
 	}, result)
 }
 

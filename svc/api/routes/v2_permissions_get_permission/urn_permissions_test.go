@@ -30,7 +30,7 @@ func TestGetPermissionAuthorizesCanonicalReadPermission(t *testing.T) {
 	})
 	rootKey := h.CreateRootKey(
 		workspaceID,
-		fmt.Sprintf("unkey:v1:%s:projects/%s/rbac/permissions/%s#read_permission", workspaceID, permission.ProjectID, permission.ID),
+		fmt.Sprintf("unkey:v1:%s:projects/%s/rbac/permissions/%s#read", workspaceID, permission.ProjectID, permission.ID),
 	)
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
@@ -70,7 +70,7 @@ func TestGetPermissionUsesActualProject(t *testing.T) {
 	}))
 	rootKey := h.CreateRootKey(
 		workspaceID,
-		fmt.Sprintf("unkey:v1:%s:projects/%s/rbac/permissions/%s#read_permission", workspaceID, projectID, permissionID),
+		fmt.Sprintf("unkey:v1:%s:projects/%s/rbac/permissions/%s#read", workspaceID, projectID, permissionID),
 	)
 	headers := http.Header{
 		"Content-Type":  {"application/json"},

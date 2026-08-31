@@ -43,8 +43,8 @@ func TestResolverWithPermissionsTranslatesPermissionStrings(t *testing.T) {
 	principal, err := resolver.Resolve(context.Background(), nil)
 	require.NoError(t, err)
 	require.Equal(t, []string{
-		"unkey:v1:ws_123:projects/*/keyspaces/*/keys/*#write_key",
-		"unkey:v1:ws_123:projects/*/keyspaces/*/keys/*#write_key",
+		"unkey:v1:ws_123:projects/*/keyspaces/*/keys/*#write",
+		"unkey:v1:ws_123:projects/*/keyspaces/*/keys/*#write",
 	}, principal.Permissions)
 }
 

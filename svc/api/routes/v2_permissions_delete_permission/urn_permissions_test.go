@@ -27,7 +27,7 @@ func TestDeletePermissionAuthorizesCanonicalDeletePermission(t *testing.T) {
 	})
 	rootKey := h.CreateRootKey(
 		workspaceID,
-		fmt.Sprintf("unkey:v1:%s:projects/%s/rbac/permissions/%s#delete_permission", workspaceID, permission.ProjectID, permission.ID),
+		fmt.Sprintf("unkey:v1:%s:projects/%s/rbac/permissions/%s#delete", workspaceID, permission.ProjectID, permission.ID),
 	)
 	headers := http.Header{
 		"Content-Type":  {"application/json"},

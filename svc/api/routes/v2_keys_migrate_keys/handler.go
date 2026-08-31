@@ -114,7 +114,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}),
 		rbac.U(
 			urn.New().Workspace(principal.WorkspaceID).Project(projectID).Keyspace(api.KeyAuth.ID).Key("*"),
-			permissions.WriteKey{},
+			permissions.Write{},
 		),
 	))
 	if err != nil {

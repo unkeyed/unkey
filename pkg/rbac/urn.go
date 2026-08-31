@@ -125,20 +125,13 @@ func permissionCovers(required UnkeyPermission, granted UnkeyPermission) bool {
 	return granted.Resource.Covers(required.Resource)
 }
 
-// validatePermissionAction enforces the action grammar after "#": either the
-// "*" wildcard or a word that cannot collide with URN separators.
+// validatePermissionAction accepts only canonical generic actions and the
+// global admin wildcard.
 func validatePermissionAction(action string) error {
-	if action == "*" {
+	switch action {
+	case "read", "write", "delete", "decrypt", "verify", "limit", permissions.Wildcard:
 		return nil
+	default:
+		return fmt.Errorf("unsupported action %q", action)
 	}
-	if action == "" {
-		return errors.New("must not be empty")
-	}
-	if strings.ContainsAny(action, ":#/*") {
-		return errors.New(`must not contain ":", "#", "/", or "*"`)
-	}
-	if strings.HasPrefix(action, "_") || strings.HasSuffix(action, "_") {
-		return errors.New(`must not start or end with "_"`)
-	}
-	return nil
 }

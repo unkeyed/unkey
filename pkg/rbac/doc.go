@@ -30,7 +30,7 @@
 //
 //	// Define permissions a user has
 //	userPermissions := []string{
-//	    "unkey:v1:ws_123:projects/proj_123/keyspaces/ks_123/keys/key_123#read_key",
+//	    "unkey:v1:ws_123:projects/proj_123/keyspaces/ks_123/keys/key_123#read",
 //	    "api.api1.update_api",
 //	}
 //
@@ -38,7 +38,7 @@
 //	query := rbac.And(
 //	    rbac.U(
 //	        urn.New().Workspace("ws_123").Project("proj_123").Keyspace("ks_123").Key("key_123"),
-//	        permissions.ReadKey{},
+//	        permissions.Read{},
 //	    ),
 //	    rbac.T(rbac.Tuple{
 //	        ResourceType: rbac.Api,

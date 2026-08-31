@@ -88,8 +88,8 @@ func TestCreateSessionDeniesURNGrants(t *testing.T) {
 		// Valid project-scoped URN grants do not satisfy the legacy portal tuple.
 		// Stage 1 refuses them first.
 		rootKey := h.CreateRootKey(workspaceID,
-			fmt.Sprintf("unkey:v1:%s:projects/%s/keyspaces/%s/keys/*#read_key", workspaceID, projectID, keyspaceID),
-			fmt.Sprintf("unkey:v1:%s:projects/%s/keyspaces/%s#read_keyspace", workspaceID, projectID, keyspaceID),
+			fmt.Sprintf("unkey:v1:%s:projects/%s/keyspaces/%s/keys/*#read", workspaceID, projectID, keyspaceID),
+			fmt.Sprintf("unkey:v1:%s:projects/%s/keyspaces/%s#read", workspaceID, projectID, keyspaceID),
 		)
 		headers := http.Header{
 			"Content-Type":  {"application/json"},
@@ -112,8 +112,8 @@ func TestCreateSessionDeniesURNGrants(t *testing.T) {
 		// the two grant forms are not interchangeable there either.
 		rootKey := h.CreateRootKey(workspaceID,
 			"portal.*.create_portal_session",
-			fmt.Sprintf("unkey:v1:%s:projects/%s/keyspaces/%s/keys/*#read_key", workspaceID, projectID, keyspaceID),
-			fmt.Sprintf("unkey:v1:%s:projects/%s/keyspaces/%s#read_keyspace", workspaceID, projectID, keyspaceID),
+			fmt.Sprintf("unkey:v1:%s:projects/%s/keyspaces/%s/keys/*#read", workspaceID, projectID, keyspaceID),
+			fmt.Sprintf("unkey:v1:%s:projects/%s/keyspaces/%s#read", workspaceID, projectID, keyspaceID),
 		)
 		headers := http.Header{
 			"Content-Type":  {"application/json"},

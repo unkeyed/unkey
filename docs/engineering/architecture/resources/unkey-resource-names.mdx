@@ -74,7 +74,7 @@ names. The difference is in the resource path.
 | Operator | Meaning |
 | --- | --- |
 | `*` | Matches exactly one complete path segment. |
-| `/**` | Matches the base path and every descendant below it. |
+| `/**` | Matches the base resource and every current or future descendant. |
 
 The `*` operator must be the whole path segment. A pattern such as `key_*` is
 invalid because it would make prefix matching ambiguous.
@@ -130,6 +130,13 @@ pattern:
 unkey:v1:ws_123:**
 ```
 
+Standard authorization grants use exact canonical resource paths with `*` only
+for IDs. Use trailing `/**` only when the grant must cover a resource and its
+entire subtree for the same action. For example,
+`projects/proj_123/apps/app_123/**#write` covers the app, its environments,
+deployments, and other descendants. It also covers descendant resource types
+added to the catalog later.
+
 `pkg/urn` parses concrete names and patterns. It also decides whether one URN
 covers another. The permission system adds the action suffix and decides what a
 covered resource authorizes. It doesn't define its own path matching.
@@ -165,7 +172,7 @@ These strings are invalid URNs or invalid concrete URNs.
 | --- | --- |
 | `urn:unkey:v1:ws_123:projects/proj_123/keyspaces/ks_123` | Uses the wrong prefix. |
 | `unkey:v1:ws_123` | Missing the resource path. |
-| `unkey:v1:ws_123:projects/proj_123/keyspaces/ks_123#read_keyspace` | Contains a permission action. |
+| `unkey:v1:ws_123:projects/proj_123/keyspaces/ks_123#read` | Contains a permission action. |
 | `unkey:v1:ws_123:projects/proj_123/keyspaces/ks_*` | Uses `*` inside a path segment. |
 | `unkey:v1:ws_123:projects/**/deployments/*` | Uses `**` before the end of the path. |
 | `unkey:v1:ws_123:projects/*/apps/app_123` | Selects a specific child under a wildcard parent. |

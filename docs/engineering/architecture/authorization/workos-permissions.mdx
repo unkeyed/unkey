@@ -54,9 +54,8 @@ strings with canonical permissions in this format:
 unkey:v1:{workspace_id}:{resource_path}#{action}
 ```
 
-The canonical action includes its target resource type. The WorkOS slug keeps
-the shorter operation name because its area already identifies the resource
-type.
+The WorkOS slug remains resource-specific. The canonical resource path
+identifies the resource type, and its suffix uses a generic action.
 
 A WorkOS permission string such as:
 
@@ -67,7 +66,16 @@ deployments:write
 becomes a resource permission for the principal's workspace:
 
 ```plaintext
-unkey:v1:{workspace_id}:projects/*/apps/*/environments/*/deployments/*#write_deployment
+unkey:v1:{workspace_id}:projects/*/apps/*/environments/*/deployments/*#write
+```
+
+Translations use exact catalog paths with `*` only in ID segments. They don't
+use `/**`. This keeps each WorkOS slug limited to its named resource type.
+
+The `admin:*` slug is the only exception. It translates to global admin:
+
+```plaintext
+unkey:v1:{workspace_id}:**#*
 ```
 
 The translated permission is the only value handlers see. Handler authorization

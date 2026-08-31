@@ -22,7 +22,7 @@ func TestCreatePermissionAuthorizesCanonicalWritePermission(t *testing.T) {
 	projectID := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspaceID}).ProjectID
 	rootKey := h.CreateRootKey(
 		workspaceID,
-		fmt.Sprintf("unkey:v1:%s:projects/%s/rbac/permissions/*#write_permission", workspaceID, projectID),
+		fmt.Sprintf("unkey:v1:%s:projects/%s/rbac/permissions/*#write", workspaceID, projectID),
 	)
 	headers := http.Header{
 		"Content-Type":  {"application/json"},

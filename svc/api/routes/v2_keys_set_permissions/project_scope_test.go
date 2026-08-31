@@ -55,8 +55,8 @@ func TestSetPermissionsRejectsPermissionFromAnotherProject(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	writeKey := fmt.Sprintf("unkey:v1:%s:projects/%s/keyspaces/%s/keys/%s#write_key", workspace.ID, keyProject.ID, keyProjectAPI.KeyAuthID.String, key.KeyID)
-	writePermission := fmt.Sprintf("unkey:v1:%s:projects/%s/rbac/permissions/*#write_permission", workspace.ID, keyProject.ID)
+	writeKey := fmt.Sprintf("unkey:v1:%s:projects/%s/keyspaces/%s/keys/%s#write", workspace.ID, keyProject.ID, keyProjectAPI.KeyAuthID.String, key.KeyID)
+	writePermission := fmt.Sprintf("unkey:v1:%s:projects/%s/rbac/permissions/*#write", workspace.ID, keyProject.ID)
 	rootKey := h.CreateRootKey(workspace.ID, writeKey, writePermission)
 	res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, http.Header{
 		"Content-Type":  {"application/json"},

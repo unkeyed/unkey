@@ -3,9 +3,9 @@ title: "Resource permission catalog"
 description: "Canonical resource hierarchy, paths, and actions"
 ---
 
-The resource permission catalog lists every public resource path and its
-supported actions. Every resource is project-scoped except the GitHub app. The
-project is the scope root inside a workspace.
+The resource permission catalog lists every canonical resource path and its
+supported actions. GitHub apps are workspace-scoped. Every other catalog
+resource is project-scoped. Portals remain outside the canonical catalog.
 
 Read [Unkey Resource Names](/architecture/resources/unkey-resource-names) for
 URN format and pattern rules. Read
@@ -21,67 +21,67 @@ after it to form a permission.
 ```plaintext
 Workspace
 │
-├── GitHub app [read_github_app, write_github_app, delete_github_app]
+├── GitHub app [read, write, delete]
 │   github/apps/{github_app_id}
 │
-└── Project [read_project, write_project, delete_project]
+└── Project [read, write, delete]
     projects/{project_id}
     │
-    ├── App [read_app, write_app, delete_app]
+    ├── App [read, write, delete]
     │   projects/{project_id}/apps/{app_id}
     │   │
-    │   └── Environment [read_environment, write_environment, delete_environment]
+    │   └── Environment [read, write, delete]
     │       projects/{project_id}/apps/{app_id}/environments/{environment_id}
     │       │
-    │       ├── Deployment [read_deployment, write_deployment, delete_deployment]
+    │       ├── Deployment [read, write, delete]
     │       │   projects/{project_id}/apps/{app_id}/environments/{environment_id}/deployments/{deployment_id}
     │       │   │
-    │       │   └── Logs [read_deployment_logs]
+    │       │   └── Logs [read]
     │       │       projects/{project_id}/apps/{app_id}/environments/{environment_id}/deployments/{deployment_id}/logs
     │       │
-    │       ├── Domain [read_domain, write_domain, delete_domain]
+    │       ├── Domain [read, write, delete]
     │       │   projects/{project_id}/apps/{app_id}/environments/{environment_id}/domains/{domain_id}
     │       │
-    │       ├── Environment variable [read_environment_variable, write_environment_variable, delete_environment_variable]
+    │       ├── Environment variable [read, write, delete]
     │       │   projects/{project_id}/apps/{app_id}/environments/{environment_id}/variables/{variable_id}
     │       │
     │       └── Gateway
     │           projects/{project_id}/apps/{app_id}/environments/{environment_id}/gateway
     │           │
-    │           ├── Logs [read_gateway_logs]
+    │           ├── Logs [read]
     │           │   projects/{project_id}/apps/{app_id}/environments/{environment_id}/gateway/logs
     │           │
-    │           └── Policy [read_gateway_policy, write_gateway_policy, delete_gateway_policy]
+    │           └── Policy [read, write, delete]
     │               projects/{project_id}/apps/{app_id}/environments/{environment_id}/gateway/policies/{policy_id}
     │
-    ├── Identity [read_identity, write_identity, delete_identity]
+    ├── Identity [read, write, delete]
     │   projects/{project_id}/identities/{identity_id}
     │
-    ├── Keyspace [read_keyspace, write_keyspace, delete_keyspace]
+    ├── Keyspace [read, write, delete]
     │   projects/{project_id}/keyspaces/{keyspace_id}
     │   │
-    │   ├── Logs [read_keyspace_logs]
+    │   ├── Logs [read]
     │   │   projects/{project_id}/keyspaces/{keyspace_id}/logs
     │   │
-    │   └── Key [read_key, write_key, delete_key, decrypt_key, verify_key]
+    │   └── Key [read, write, delete, decrypt, verify]
     │       projects/{project_id}/keyspaces/{keyspace_id}/keys/{key_id}
     │
-    ├── Rate limit namespace [read_ratelimit_namespace, write_ratelimit_namespace, delete_ratelimit_namespace, limit_ratelimit_namespace]
+    ├── Rate limit namespace [read, write, delete, limit]
     │   projects/{project_id}/ratelimits/namespaces/{namespace_id}
     │   │
-    │   ├── Logs [read_ratelimit_logs]
+    │   ├── Logs [read]
     │   │   projects/{project_id}/ratelimits/namespaces/{namespace_id}/logs
     │   │
-    │   └── Override [read_ratelimit_override, write_ratelimit_override, delete_ratelimit_override]
+    │   └── Override [read, write, delete]
     │       projects/{project_id}/ratelimits/namespaces/{namespace_id}/overrides/{override_id}
     │
     └── RBAC
         projects/{project_id}/rbac
         │
-        ├── Role [read_role, write_role, delete_role]
+        ├── Role [read, write, delete]
         │   projects/{project_id}/rbac/roles/{role_id}
         │
-        └── Permission [read_permission, write_permission, delete_permission]
+        └── Permission [read, write, delete]
             projects/{project_id}/rbac/permissions/{permission_id}
 ```
 
@@ -94,36 +94,35 @@ These examples show how concrete IDs and wildcards use the same catalog.
 
 ### Create a key
 
-Use `write_key` with a wildcard key ID because the key does not exist yet.
+Use `write` with a wildcard key ID because the key does not exist yet.
 
 ```plaintext
-unkey:v1:ws_123:projects/proj_123/keyspaces/ks_123/keys/*#write_key
+unkey:v1:ws_123:projects/proj_123/keyspaces/ks_123/keys/*#write
 ```
 
 ### Change an environment
 
-`write_environment` covers settings changes, deployment promotion, and
-deployment rollback.
+Environment `write` covers settings changes, promotion, and rollback.
 
 ```plaintext
-unkey:v1:ws_123:projects/proj_123/apps/app_123/environments/env_123#write_environment
+unkey:v1:ws_123:projects/proj_123/apps/app_123/environments/env_123#write
 ```
 
 ### Start or stop a deployment
 
-`write_deployment` covers deployment creation, updates, starts, and stops.
+Deployment `write` covers creation, updates, starts, and stops.
 
 ```plaintext
-unkey:v1:ws_123:projects/proj_123/apps/app_123/environments/env_123/deployments/dep_123#write_deployment
+unkey:v1:ws_123:projects/proj_123/apps/app_123/environments/env_123/deployments/dep_123#write
 ```
 
 ### Read deployment logs
 
-Logs are first-class resources. `read_deployment` does not grant access to
-deployment logs. Use `read_deployment_logs`.
+Logs are first-class resources. Deployment `read` does not grant access to
+deployment logs. Grant `read` on the log path.
 
 ```plaintext
-unkey:v1:ws_123:projects/proj_123/apps/app_123/environments/env_123/deployments/dep_123/logs#read_deployment_logs
+unkey:v1:ws_123:projects/proj_123/apps/app_123/environments/env_123/deployments/dep_123/logs#read
 ```
 
 ### Read gateway logs
@@ -131,15 +130,15 @@ unkey:v1:ws_123:projects/proj_123/apps/app_123/environments/env_123/deployments/
 Gateway logs belong to an environment's gateway.
 
 ```plaintext
-unkey:v1:ws_123:projects/proj_123/apps/app_123/environments/env_123/gateway/logs#read_gateway_logs
+unkey:v1:ws_123:projects/proj_123/apps/app_123/environments/env_123/gateway/logs#read
 ```
 
 ### Verify a key
 
-Key verification uses `verify_key`, not `read_key`.
+Key verification uses `verify`, not `read`.
 
 ```plaintext
-unkey:v1:ws_123:projects/proj_123/keyspaces/ks_123/keys/key_123#verify_key
+unkey:v1:ws_123:projects/proj_123/keyspaces/ks_123/keys/key_123#verify
 ```
 
 ## Related pages

@@ -34,8 +34,8 @@ func TestListKeysUsesKeyspaceProjectForURN(t *testing.T) {
 
 	permissionsFor := func(projectID string) []string {
 		return []string{
-			fmt.Sprintf("unkey:v1:%s:projects/%s/keyspaces/%s#read_keyspace", workspace.ID, projectID, api.KeyAuthID.String),
-			fmt.Sprintf("unkey:v1:%s:projects/%s/keyspaces/%s/keys/*#read_key", workspace.ID, projectID, api.KeyAuthID.String),
+			fmt.Sprintf("unkey:v1:%s:projects/%s/keyspaces/%s#read", workspace.ID, projectID, api.KeyAuthID.String),
+			fmt.Sprintf("unkey:v1:%s:projects/%s/keyspaces/%s/keys/*#read", workspace.ID, projectID, api.KeyAuthID.String),
 		}
 	}
 	headersFor := func(permissions ...string) http.Header {

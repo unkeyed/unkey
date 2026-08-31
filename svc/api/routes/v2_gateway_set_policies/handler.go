@@ -88,8 +88,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			Action:       rbac.SetPolicies,
 		}),
 		rbac.And(
-			rbac.U(policyURN, permissions.WriteGatewayPolicy{}),
-			rbac.U(policyURN, permissions.DeleteGatewayPolicy{}),
+			rbac.U(policyURN, permissions.Write{}),
+			rbac.U(policyURN, permissions.Delete{}),
 		),
 	))
 	if err != nil {

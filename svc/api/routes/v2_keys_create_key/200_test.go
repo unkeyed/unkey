@@ -675,9 +675,9 @@ func TestCreateKeyWithRolesAndPermissions(t *testing.T) {
 }
 
 func createKeyPermission(workspaceID string, projectID string, keyspaceID string) string {
-	return fmt.Sprintf("unkey:v1:%s:projects/%s/keyspaces/%s/keys/*#write_key", workspaceID, projectID, keyspaceID)
+	return fmt.Sprintf("unkey:v1:%s:projects/%s/keyspaces/%s/keys/*#write", workspaceID, projectID, keyspaceID)
 }
 
 func createAnyKeyPermission(workspaceID string) string {
-	return fmt.Sprintf("unkey:v1:%s:projects/*/keyspaces/*/keys/*#write_key", workspaceID)
+	return fmt.Sprintf("unkey:v1:%s:projects/*/keyspaces/*/keys/*#write", workspaceID)
 }

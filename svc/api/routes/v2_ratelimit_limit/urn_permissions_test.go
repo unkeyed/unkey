@@ -41,7 +41,7 @@ func TestLimitAuthorizesCanonicalRatelimitNamespacePermissions(t *testing.T) {
 		}))
 		rootKey := h.CreateRootKey(
 			workspaceID,
-			fmt.Sprintf("unkey:v1:%s:projects/%s/ratelimits/namespaces/%s#limit_ratelimit_namespace", workspaceID, projectID, namespaceID),
+			fmt.Sprintf("unkey:v1:%s:projects/%s/ratelimits/namespaces/%s#limit", workspaceID, projectID, namespaceID),
 		)
 		headers := http.Header{
 			"Content-Type":  {"application/json"},
@@ -63,8 +63,8 @@ func TestLimitAuthorizesCanonicalRatelimitNamespacePermissions(t *testing.T) {
 		namespaceName := uid.New("namespace")
 		rootKey := h.CreateRootKey(
 			workspaceID,
-			fmt.Sprintf("unkey:v1:%s:projects/%s/ratelimits/namespaces/*#write_ratelimit_namespace", workspaceID, projectID),
-			fmt.Sprintf("unkey:v1:%s:projects/%s/ratelimits/namespaces/*#limit_ratelimit_namespace", workspaceID, projectID),
+			fmt.Sprintf("unkey:v1:%s:projects/%s/ratelimits/namespaces/*#write", workspaceID, projectID),
+			fmt.Sprintf("unkey:v1:%s:projects/%s/ratelimits/namespaces/*#limit", workspaceID, projectID),
 		)
 		headers := http.Header{
 			"Content-Type":  {"application/json"},

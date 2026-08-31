@@ -34,7 +34,7 @@ func TestSetOverrideAuthorizesCanonicalWriteRatelimitOverride(t *testing.T) {
 	h.Register(route)
 	rootKey := h.CreateRootKey(
 		workspaceID,
-		fmt.Sprintf("unkey:v1:%s:projects/%s/ratelimits/namespaces/%s/overrides/*#write_ratelimit_override", workspaceID, projectID, namespaceID),
+		fmt.Sprintf("unkey:v1:%s:projects/%s/ratelimits/namespaces/%s/overrides/*#write", workspaceID, projectID, namespaceID),
 	)
 	headers := http.Header{
 		"Content-Type":  {"application/json"},

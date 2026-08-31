@@ -26,7 +26,7 @@ func TestGetRoleAuthorizesCanonicalReadRole(t *testing.T) {
 	role := h.CreateRole(seed.CreateRoleRequest{WorkspaceID: workspaceID, Name: "canonical-role"})
 	rootKey := h.CreateRootKey(
 		workspaceID,
-		fmt.Sprintf("unkey:v1:%s:projects/%s/rbac/roles/%s#read_role", workspaceID, role.ProjectID, role.ID),
+		fmt.Sprintf("unkey:v1:%s:projects/%s/rbac/roles/%s#read", workspaceID, role.ProjectID, role.ID),
 	)
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
@@ -65,7 +65,7 @@ func TestGetRoleUsesActualProject(t *testing.T) {
 	}))
 	rootKey := h.CreateRootKey(
 		workspaceID,
-		fmt.Sprintf("unkey:v1:%s:projects/%s/rbac/roles/%s#read_role", workspaceID, projectID, roleID),
+		fmt.Sprintf("unkey:v1:%s:projects/%s/rbac/roles/%s#read", workspaceID, projectID, roleID),
 	)
 	headers := http.Header{
 		"Content-Type":  {"application/json"},

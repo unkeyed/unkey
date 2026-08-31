@@ -50,7 +50,7 @@ func TestAuthorizationErrors(t *testing.T) {
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
 		require.Contains(t, res.Body.Error.Detail, "Missing one of these permissions")
-		require.Contains(t, res.Body.Error.Detail, "#write_permission")
+		require.Contains(t, res.Body.Error.Detail, "#write")
 	})
 
 	// Test case for wrong workspace

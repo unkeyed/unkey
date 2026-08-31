@@ -47,7 +47,7 @@ func TestStartDeployment(t *testing.T) {
 	})
 	rootKey := h.CreateRootKey(
 		setup.Workspace.ID,
-		"unkey:v1:"+setup.Workspace.ID+":projects/*/apps/*/environments/*/deployments/*#write_deployment",
+		"unkey:v1:"+setup.Workspace.ID+":projects/*/apps/*/environments/*/deployments/*#write",
 	)
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, authHeaders(rootKey), handler.Request{

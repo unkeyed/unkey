@@ -45,7 +45,7 @@ func TestDeleteOverrideAuthorizesCanonicalDeleteRatelimitOverride(t *testing.T) 
 	h.Register(route)
 	rootKey := h.CreateRootKey(
 		workspaceID,
-		fmt.Sprintf("unkey:v1:%s:projects/%s/ratelimits/namespaces/%s/overrides/%s#delete_ratelimit_override", workspaceID, projectID, namespaceID, overrideID),
+		fmt.Sprintf("unkey:v1:%s:projects/%s/ratelimits/namespaces/%s/overrides/%s#delete", workspaceID, projectID, namespaceID, overrideID),
 	)
 	headers := http.Header{
 		"Content-Type":  {"application/json"},

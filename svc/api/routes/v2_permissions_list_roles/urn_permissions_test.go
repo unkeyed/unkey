@@ -41,7 +41,7 @@ func TestListRolesAuthorizesCanonicalReadRole(t *testing.T) {
 	}))
 	rootKey := h.CreateRootKey(
 		workspaceID,
-		fmt.Sprintf("unkey:v1:%s:projects/%s/rbac/roles/*#read_role", workspaceID, role.ProjectID),
+		fmt.Sprintf("unkey:v1:%s:projects/%s/rbac/roles/*#read", workspaceID, role.ProjectID),
 	)
 	headers := http.Header{
 		"Content-Type":  {"application/json"},

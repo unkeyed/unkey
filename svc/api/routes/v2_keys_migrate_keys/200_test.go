@@ -56,7 +56,7 @@ func TestMigrateKeysSuccess(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	writeKeys := fmt.Sprintf("unkey:v1:%s:projects/%s/keyspaces/%s/keys/*#write_key", workspaceID, project.ID, api.KeyAuthID.String)
+	writeKeys := fmt.Sprintf("unkey:v1:%s:projects/%s/keyspaces/%s/keys/*#write", workspaceID, project.ID, api.KeyAuthID.String)
 	rootKey := h.CreateRootKey(workspaceID, writeKeys)
 
 	headers := http.Header{

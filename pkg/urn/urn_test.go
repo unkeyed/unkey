@@ -62,7 +62,7 @@ func TestParseV1RejectsInvalidValues(t *testing.T) {
 		"unkey:v1:ws_123",
 		"unkey:v2:ws_123:projects/proj_123",
 		"unkey:v1::projects/proj_123",
-		"unkey:v1:ws_123:projects/proj_123#read_project",
+		"unkey:v1:ws_123:projects/proj_123#read",
 		"unkey:v1:ws_123:/projects/proj_123",
 		"unkey:v1:ws_123:projects/proj_123/",
 		"unkey:v1:ws_123:projects//proj_123",

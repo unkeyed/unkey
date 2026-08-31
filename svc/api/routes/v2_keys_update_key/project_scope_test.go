@@ -55,7 +55,7 @@ func TestUpdateKeyRejectsPermissionFromAnotherProject(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	writeKey := fmt.Sprintf("unkey:v1:%s:projects/%s/keyspaces/%s/keys/%s#write_key", workspace.ID, keyProject.ID, keyProjectAPI.KeyAuthID.String, key.KeyID)
+	writeKey := fmt.Sprintf("unkey:v1:%s:projects/%s/keyspaces/%s/keys/%s#write", workspace.ID, keyProject.ID, keyProjectAPI.KeyAuthID.String, key.KeyID)
 	rootKey := h.CreateRootKey(workspace.ID, writeKey)
 	res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, http.Header{
 		"Content-Type":  {"application/json"},
@@ -105,7 +105,7 @@ func TestUpdateKeyRejectsIdentityFromAnotherProject(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	writeKey := fmt.Sprintf("unkey:v1:%s:projects/%s/keyspaces/%s/keys/%s#write_key", workspace.ID, keyProject.ID, keyProjectAPI.KeyAuthID.String, key.KeyID)
+	writeKey := fmt.Sprintf("unkey:v1:%s:projects/%s/keyspaces/%s/keys/%s#write", workspace.ID, keyProject.ID, keyProjectAPI.KeyAuthID.String, key.KeyID)
 	rootKey := h.CreateRootKey(workspace.ID, writeKey)
 	res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, http.Header{
 		"Content-Type":  {"application/json"},

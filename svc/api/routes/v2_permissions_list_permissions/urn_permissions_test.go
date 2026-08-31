@@ -46,7 +46,7 @@ func TestListPermissionsAuthorizesCanonicalReadPermission(t *testing.T) {
 	}))
 	rootKey := h.CreateRootKey(
 		workspaceID,
-		fmt.Sprintf("unkey:v1:%s:projects/%s/rbac/permissions/*#read_permission", workspaceID, permission.ProjectID),
+		fmt.Sprintf("unkey:v1:%s:projects/%s/rbac/permissions/*#read", workspaceID, permission.ProjectID),
 	)
 	headers := http.Header{
 		"Content-Type":  {"application/json"},

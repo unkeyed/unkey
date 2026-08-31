@@ -34,7 +34,7 @@ func TestVerifyKeyUsesKeyspaceProjectForURN(t *testing.T) {
 
 	call := func(t *testing.T, projectID string) openapi.V2KeysVerifyKeyResponseData {
 		t.Helper()
-		permission := fmt.Sprintf("unkey:v1:%s:projects/%s/keyspaces/%s/keys/%s#verify_key", workspace.ID, projectID, api.KeyAuthID.String, key.KeyID)
+		permission := fmt.Sprintf("unkey:v1:%s:projects/%s/keyspaces/%s/keys/%s#verify", workspace.ID, projectID, api.KeyAuthID.String, key.KeyID)
 		rootKey := h.CreateRootKey(workspace.ID, permission)
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, http.Header{
 			"Content-Type":  {"application/json"},

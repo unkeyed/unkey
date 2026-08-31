@@ -43,6 +43,6 @@ func TestReadAnalyticsPermissionsGrants(t *testing.T) {
 		Project(permTestProjectID).
 		Keyspace(permTestKeyspaceID).
 		Logs().
-		String() + "#read_keyspace_logs"
+		String() + "#read"
 	require.False(t, permAllows(t, query, keyspaceURNGrant))
 }

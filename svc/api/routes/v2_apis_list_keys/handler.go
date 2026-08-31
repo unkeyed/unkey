@@ -114,11 +114,11 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		rbac.And(
 			rbac.U(
 				urn.New().Workspace(principal.WorkspaceID).Project(api.KeyAuth.ProjectID).Keyspace(api.KeyAuthID.String).Key("*"),
-				permissions.ReadKey{},
+				permissions.Read{},
 			),
 			rbac.U(
 				urn.New().Workspace(principal.WorkspaceID).Project(api.KeyAuth.ProjectID).Keyspace(api.KeyAuthID.String),
-				permissions.ReadKeyspace{},
+				permissions.Read{},
 			),
 		),
 		ReadKeysPermissions(req.ApiId),
@@ -157,7 +157,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			}),
 			rbac.U(
 				urn.New().Workspace(principal.WorkspaceID).Project(api.KeyAuth.ProjectID).Keyspace(api.KeyAuthID.String).Key("*"),
-				permissions.DecryptKey{},
+				permissions.Decrypt{},
 			),
 		))
 		if err != nil {

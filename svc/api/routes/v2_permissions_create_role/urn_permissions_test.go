@@ -35,22 +35,22 @@ func TestCreateRoleAuthorizesCanonicalURNPermissions(t *testing.T) {
 			name:        "create role",
 			permissions: []string{},
 			grants: []string{
-				fmt.Sprintf("unkey:v1:%s:projects/%s/rbac/roles/*#write_role", workspaceID, projectID),
+				fmt.Sprintf("unkey:v1:%s:projects/%s/rbac/roles/*#write", workspaceID, projectID),
 			},
 		},
 		{
 			name:        "attach existing permission",
 			permissions: []string{existingPermission.Slug},
 			grants: []string{
-				fmt.Sprintf("unkey:v1:%s:projects/%s/rbac/roles/*#write_role", workspaceID, projectID),
+				fmt.Sprintf("unkey:v1:%s:projects/%s/rbac/roles/*#write", workspaceID, projectID),
 			},
 		},
 		{
 			name:        "create and attach permission",
 			permissions: []string{"missing.canonical.permission"},
 			grants: []string{
-				fmt.Sprintf("unkey:v1:%s:projects/%s/rbac/roles/*#write_role", workspaceID, projectID),
-				fmt.Sprintf("unkey:v1:%s:projects/%s/rbac/permissions/*#write_permission", workspaceID, projectID),
+				fmt.Sprintf("unkey:v1:%s:projects/%s/rbac/roles/*#write", workspaceID, projectID),
+				fmt.Sprintf("unkey:v1:%s:projects/%s/rbac/permissions/*#write", workspaceID, projectID),
 			},
 		},
 	}

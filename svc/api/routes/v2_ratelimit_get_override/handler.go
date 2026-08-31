@@ -105,7 +105,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 					Project(ns.ProjectID).
 					RatelimitNamespace(ns.ID).
 					Override(override.ID),
-				permissions.ReadRatelimitOverride{},
+				permissions.Read{},
 			),
 			rbac.T(rbac.Tuple{
 				ResourceType: rbac.Ratelimit,

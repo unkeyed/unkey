@@ -49,7 +49,7 @@ func TestVerifyDomainPermissions(t *testing.T) {
 				case "environment.<env>.verify_domain":
 					p = fmt.Sprintf("environment.%s.verify_domain", seeded.environmentID)
 				case "<urn>.write_domain":
-					p = fmt.Sprintf("unkey:v1:%s:projects/%s/apps/%s/environments/%s/domains/*#write_domain", seeded.workspaceID, seeded.projectID, seeded.appID, seeded.environmentID)
+					p = fmt.Sprintf("unkey:v1:%s:projects/%s/apps/%s/environments/%s/domains/*#write", seeded.workspaceID, seeded.projectID, seeded.appID, seeded.environmentID)
 				}
 				permissions[i] = p
 			}

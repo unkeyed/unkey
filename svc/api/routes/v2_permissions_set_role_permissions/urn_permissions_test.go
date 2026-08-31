@@ -26,7 +26,7 @@ func TestSetRolePermissionsAuthorizesCanonicalWriteRole(t *testing.T) {
 	})
 	rootKey := h.CreateRootKey(
 		workspaceID,
-		fmt.Sprintf("unkey:v1:%s:projects/%s/rbac/roles/%s#write_role", workspaceID, role.ProjectID, role.ID),
+		fmt.Sprintf("unkey:v1:%s:projects/%s/rbac/roles/%s#write", workspaceID, role.ProjectID, role.ID),
 	)
 	headers := http.Header{
 		"Content-Type":  {"application/json"},

@@ -281,7 +281,7 @@ func TestRerollKeyWithURNPermission(t *testing.T) {
 		KeySpaceID:  api.KeyAuthID.String,
 	})
 
-	writeKeyPermission := fmt.Sprintf("unkey:v1:%s:projects/%s/keyspaces/%s/keys/%s#write_key", workspace.ID, api.ProjectID, api.KeyAuthID.String, key.KeyID)
+	writeKeyPermission := fmt.Sprintf("unkey:v1:%s:projects/%s/keyspaces/%s/keys/%s#write", workspace.ID, api.ProjectID, api.KeyAuthID.String, key.KeyID)
 	rootKey := h.CreateRootKey(workspace.ID, writeKeyPermission)
 	headers := http.Header{
 		"Content-Type":  {"application/json"},

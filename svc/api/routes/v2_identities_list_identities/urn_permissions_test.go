@@ -42,7 +42,7 @@ func TestListIdentities_AuthorizesCanonicalURNPermission(t *testing.T) {
 		Meta:        []byte("{}"),
 	})
 	require.NoError(t, err)
-	rootKey := h.CreateRootKey(workspaceID, fmt.Sprintf("unkey:v1:%s:projects/%s/identities/*#read_identity", workspaceID, identity.ProjectID))
+	rootKey := h.CreateRootKey(workspaceID, fmt.Sprintf("unkey:v1:%s:projects/%s/identities/*#read", workspaceID, identity.ProjectID))
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},

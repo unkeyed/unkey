@@ -4,8 +4,8 @@ description: "Permission format, matching, and action rules"
 ---
 
 Resource permissions combine a URN pattern with an action. The resource
-pattern selects the scope. The action identifies the operation and target
-resource type.
+path identifies the resource type and scope. The action identifies the
+operation.
 
 Read [Unkey Resource Names](/architecture/resources/unkey-resource-names) for
 URN format and pattern rules. Use the
@@ -23,17 +23,18 @@ A permission has two parts separated by `#`.
 This permission grants read access to one key:
 
 ```plaintext
-unkey:v1:ws_123:projects/proj_123/keyspaces/ks_123/keys/key_456#read_key
+unkey:v1:ws_123:projects/proj_123/keyspaces/ks_123/keys/key_456#read
 ```
 
-This permission grants read access to every key below one project:
+Standard grants use an exact canonical resource path. Use `*` only in ID
+segments when a grant covers multiple resource instances:
 
 ```plaintext
-unkey:v1:ws_123:projects/proj_123/**#read_key
+unkey:v1:ws_123:projects/proj_123/keyspaces/*/keys/*#read
 ```
 
-The same resource pattern with `read_environment` grants read access to
-environments instead. It does not grant read access to keys.
+The path makes this a key permission. The same `read` action on an environment
+path grants environment access instead.
 
 ## Permission matching
 
@@ -47,57 +48,68 @@ only action wildcard is the global admin permission
 `unkey:v1:{workspace_id}:**#*`.
 
 ```plaintext
-Permission: unkey:v1:ws_123:projects/proj_123/**#read_key
-Request:    unkey:v1:ws_123:projects/proj_123/keyspaces/ks_123/keys/key_456#read_key
+Permission: unkey:v1:ws_123:projects/proj_123/keyspaces/*/keys/*#read
+Request:    unkey:v1:ws_123:projects/proj_123/keyspaces/ks_123/keys/key_456#read
 Result:     granted
 ```
 
-The same resource pattern does not grant access to a different resource type:
+An exact app path does not grant access to its descendants:
 
 ```plaintext
-Permission: unkey:v1:ws_123:projects/proj_123/**#write_app
-Request:    unkey:v1:ws_123:projects/proj_123/apps/app_123/environments/env_123#write_environment
+Permission: unkey:v1:ws_123:projects/proj_123/apps/app_123#write
+Request:    unkey:v1:ws_123:projects/proj_123/apps/app_123/environments/env_123#write
 Result:     denied
 ```
 
-This distinction keeps recursive patterns precise. A permission such as
-`projects/proj_123/apps/app_123/**#write_app` can write that app. It cannot
-write environments or deployments below the app.
+Use a trailing `/**` only for an intentional subtree grant. It covers the base
+resource and every current or future descendant for the same action:
+
+```plaintext
+unkey:v1:ws_123:projects/proj_123/apps/app_123/**#write
+```
+
+This permission authorizes `write` on the app, its environments, deployments,
+and other descendants.
+
+<Warning>
+  A `/**` grant also covers descendant resource types added to the catalog
+  later. Use an exact canonical path unless future descendants belong in the
+  grant.
+</Warning>
 
 ## Action rules
 
-Most resources use three operations. Each canonical action includes the target
-resource type.
+Canonical actions use generic operation names. The resource path identifies the
+target resource type.
 
-| Operation | Canonical action | Grants access to |
-| --- | --- | --- |
-| Read | `read_{resource}` | Get or list the resource |
-| Write | `write_{resource}` | Create or update the resource |
-| Delete | `delete_{resource}` | Delete the resource |
+| Action | Grants access to |
+| --- | --- |
+| `read` | Get or list the resource |
+| `write` | Create or update the resource |
+| `delete` | Delete the resource |
+| `decrypt` | Decrypt key data |
+| `verify` | Verify a key |
+| `limit` | Check or use a rate limit |
+| `*` | Perform any action as a global administrator |
 
-Use a special action only when the operation has a separate security effect.
-
-| Resource | Canonical action | Grants access to |
-| --- | --- | --- |
-| Key | `decrypt_key` | Decrypt key data |
-| Key | `verify_key` | Verify a key |
-| Rate limit namespace | `limit_ratelimit_namespace` | Check or use the limit |
+`decrypt`, `verify`, and `limit` are special actions. Use them only on catalog
+resources that support them.
 
 ## Create and update rules
 
-Use the resource's `write_{resource}` action for create and update operations.
-Do not define separate create or update actions.
+Use `write` for create and update operations. Do not define separate create or
+update actions.
 
 Use the concrete resource ID when the resource exists:
 
 ```plaintext
-unkey:v1:ws_123:projects/proj_123/keyspaces/ks_123/keys/key_456#write_key
+unkey:v1:ws_123:projects/proj_123/keyspaces/ks_123/keys/key_456#write
 ```
 
 Use `*` in the target resource ID position when the resource does not exist:
 
 ```plaintext
-unkey:v1:ws_123:projects/proj_123/keyspaces/ks_123/keys/*#write_key
+unkey:v1:ws_123:projects/proj_123/keyspaces/ks_123/keys/*#write
 ```
 
 The wildcard applies only to that path segment. It does not grant access to
@@ -110,24 +122,22 @@ Do not add an action for each API endpoint.
 
 | Operation | Resource | Action |
 | --- | --- | --- |
-| Connect or disconnect a GitHub repository | App | `write_app` |
-| Promote or roll back a deployment | Environment | `write_environment` |
-| Start or stop a deployment | Deployment | `write_deployment` |
-| Restart domain verification | Domain | `write_domain` |
-| Reroll a key or update its credits | Key | `write_key` |
-| Attach or detach a role or permission on a key | Key | `write_key` |
-| Attach or detach a permission on a role | Role | `write_role` |
-| Create or edit a permission definition | Permission | `write_permission` |
+| Connect or disconnect a GitHub repository | App | `write` |
+| Promote or roll back a deployment | Environment | `write` |
+| Start or stop a deployment | Deployment | `write` |
+| Restart domain verification | Domain | `write` |
+| Reroll a key or update its credits | Key | `write` |
+| Assign or remove a role or permission on a key | Key | `write` |
+| Assign or remove a permission on a role | Role | `write` |
+| Create or edit a permission definition | Permission | `write` |
 
 ## Log rules
 
-Logs are first-class resources. Each log resource supports one read action. The
-action identifies the log source, such as `read_deployment_logs` or
-`read_gateway_logs`.
+Logs are first-class resources. Each log resource supports `read`. Its path
+identifies the log source.
 
 Read access to a parent resource does not grant read access to its logs. Grant
-the log resource directly. You can also use a recursive pattern with the log
-action, such as `projects/proj_123/**#read_deployment_logs`.
+the exact log resource path or use an intentional subtree grant.
 
 Find all log resource paths in the
 [resource permission catalog](/architecture/authorization/resource-permission-catalog).
