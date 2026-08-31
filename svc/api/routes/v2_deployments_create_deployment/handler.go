@@ -277,7 +277,7 @@ func (h *Handler) ensureEnvironmentDeployable(ctx context.Context, environment d
 	if db.IsNotFound(err) {
 		problems = append(problems, "runtime settings are not configured")
 	} else {
-		s := runtime.AppRuntimeSetting
+		s := runtime
 		for _, v := range deployfail.RuntimeViolations(s.Port, s.CpuMillicores, s.MemoryMib) {
 			problems = append(problems, fmt.Sprintf("%s (is %d)", v.Message, v.Actual))
 		}

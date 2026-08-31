@@ -88,7 +88,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	// Check if API belongs to the authorized workspace
-	if api.WorkspaceID != principal.WorkspaceID {
+	if api.ApiWorkspaceID != principal.WorkspaceID {
 		return fault.New("wrong workspace",
 			fault.Code(codes.Data.Api.NotFound.URN()),
 			fault.Internal("wrong workspace, masking as 404"), fault.Public("The requested API does not exist or has been deleted."),
@@ -100,8 +100,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			RequestId: s.RequestID(),
 		},
 		Data: openapi.V2ApisGetApiResponseData{
-			Id:   api.ID,
-			Name: api.Name,
+			Id:   api.ApiID,
+			Name: api.ApiName,
 		},
 	})
 }
