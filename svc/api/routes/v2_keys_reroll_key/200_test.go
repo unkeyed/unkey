@@ -253,6 +253,7 @@ func TestRerollKeySuccess(t *testing.T) {
 				rolledKey, err := db.Query.FindLiveKeyByID(t.Context(), h.DB.RO(), res.Body.Data.KeyId)
 				require.NoError(t, err)
 				require.Equal(t, "prod_sk", rolledKey.Prefix)
+				require.Equal(t, strings.TrimPrefix(res.Body.Data.Key, "prod_sk_")[:4], rolledKey.Start)
 				require.Equal(t, res.Body.Data.Key[len(res.Body.Data.Key)-4:], rolledKey.End)
 			})
 		}

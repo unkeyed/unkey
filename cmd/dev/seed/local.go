@@ -449,7 +449,7 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 			KeySpaceID:         rootKeySpaceID,
 			Hash:               keyResult.Hash,
 			Prefix:             "unkey",
-			Start:              keyResult.Start,
+			Start:              keyResult.Start[len(keyResult.Start)-4:],
 			End:                keyResult.Key[len(keyResult.Key)-4:],
 			WorkspaceID:        rootWorkspaceID,
 			ForWorkspaceID:     sql.NullString{String: workspaceID, Valid: true},
