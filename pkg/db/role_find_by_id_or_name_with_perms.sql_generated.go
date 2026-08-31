@@ -11,7 +11,7 @@ import (
 )
 
 const findRoleByIdOrNameWithPerms = `-- name: FindRoleByIdOrNameWithPerms :one
-SELECT pk, id, workspace_id, project_id, name, description, created_at_m, updated_at_m, COALESCE(
+SELECT r.pk, r.id, r.workspace_id, r.project_id, r.name, r.description, r.created_at_m, r.updated_at_m, COALESCE(
         (SELECT JSON_ARRAYAGG(
             json_object(
                 'id', permission.id,
@@ -54,7 +54,7 @@ type FindRoleByIdOrNameWithPermsRow struct {
 // FindRoleByIdOrNameWithPerms resolves a role within a workspace so the caller
 // can authorize access against the role's actual project.
 //
-//	SELECT pk, id, workspace_id, project_id, name, description, created_at_m, updated_at_m, COALESCE(
+//	SELECT r.pk, r.id, r.workspace_id, r.project_id, r.name, r.description, r.created_at_m, r.updated_at_m, COALESCE(
 //	        (SELECT JSON_ARRAYAGG(
 //	            json_object(
 //	                'id', permission.id,

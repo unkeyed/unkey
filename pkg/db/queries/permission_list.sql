@@ -1,6 +1,6 @@
 -- name: ListPermissions :many
 -- ListPermissions returns one page of permission definitions from one project.
-SELECT p.*
+SELECT p.pk, p.id, p.workspace_id, p.project_id, p.name, p.slug, p.description, p.created_at_m, p.updated_at_m
 FROM permissions p
 WHERE p.workspace_id = sqlc.arg(workspace_id)
   AND p.project_id = sqlc.arg(project_id)

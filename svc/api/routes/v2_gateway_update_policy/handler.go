@@ -149,7 +149,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				fault.Public("We're unable to update the policy."),
 			)
 		}
-		cfg, parseErr := policyconfig.Parse(settings.AppRuntimeSetting.SentinelConfig)
+		cfg, parseErr := policyconfig.Parse(settings.SentinelConfig)
 		if parseErr != nil {
 			return fault.Wrap(
 				parseErr,

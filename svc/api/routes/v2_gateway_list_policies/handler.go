@@ -107,7 +107,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	// Frontline tolerates a broken blob by skipping it to stay up, but we
 	// must surface the failure rather than pass an unreadable
 	// config off as "no policies".
-	cfg, err := policyconfig.Parse(settings.AppRuntimeSetting.SentinelConfig)
+	cfg, err := policyconfig.Parse(settings.SentinelConfig)
 	if err != nil {
 		return fault.Wrap(
 			err,

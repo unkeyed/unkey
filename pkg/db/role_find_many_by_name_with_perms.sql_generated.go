@@ -12,7 +12,7 @@ import (
 )
 
 const findManyRolesByNamesWithPerms = `-- name: FindManyRolesByNamesWithPerms :many
-SELECT pk, id, workspace_id, project_id, name, description, created_at_m, updated_at_m, COALESCE(
+SELECT r.pk, r.id, r.workspace_id, r.project_id, r.name, r.description, r.created_at_m, r.updated_at_m, COALESCE(
         (SELECT JSON_ARRAYAGG(
             json_object(
                 'id', permission.id,
@@ -55,7 +55,7 @@ type FindManyRolesByNamesWithPermsRow struct {
 // permissions from one project. The project filter prevents cross-project key
 // assignments.
 //
-//	SELECT pk, id, workspace_id, project_id, name, description, created_at_m, updated_at_m, COALESCE(
+//	SELECT r.pk, r.id, r.workspace_id, r.project_id, r.name, r.description, r.created_at_m, r.updated_at_m, COALESCE(
 //	        (SELECT JSON_ARRAYAGG(
 //	            json_object(
 //	                'id', permission.id,

@@ -2,6 +2,7 @@
 -- FindPermissionsBySlugsInWorkspace returns permissions with the requested
 -- slugs from any project in one workspace. Use it to detect cross-project slug
 -- conflicts before creating project-scoped permissions.
-SELECT * FROM permissions
+SELECT permissions.pk, permissions.id, permissions.workspace_id, permissions.project_id, permissions.name, permissions.slug, permissions.description, permissions.created_at_m, permissions.updated_at_m
+FROM permissions
 WHERE workspace_id = sqlc.arg(workspace_id)
   AND slug IN (sqlc.slice('slugs'));

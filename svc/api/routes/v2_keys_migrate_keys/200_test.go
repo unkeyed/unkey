@@ -197,8 +197,8 @@ func TestMigrateKeysSuccess(t *testing.T) {
 
 		keydata := db.ToKeyData(key)
 
-		require.Equal(t, res.Body.Data.Migrated[0].KeyId, key.ID)
-		require.Equal(t, generatedKey.LongTokenHash, key.Hash)
+		require.Equal(t, res.Body.Data.Migrated[0].KeyId, key.KeyID)
+		require.Equal(t, generatedKey.LongTokenHash, db.ToKeyData(key).Key.Hash)
 		require.Empty(t, keydata.Key.Start)
 		require.False(t, keydata.Key.Enabled)
 		require.NotNil(t, keydata.Identity)

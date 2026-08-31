@@ -11,7 +11,8 @@ import (
 )
 
 const findPermissionsBySlugs = `-- name: FindPermissionsBySlugs :many
-SELECT pk, id, workspace_id, project_id, name, slug, description, created_at_m, updated_at_m FROM permissions
+SELECT permissions.pk, permissions.id, permissions.workspace_id, permissions.project_id, permissions.name, permissions.slug, permissions.description, permissions.created_at_m, permissions.updated_at_m
+FROM permissions
 WHERE workspace_id = ?
   AND project_id = ?
   AND slug IN (/*SLICE:slugs*/?)
@@ -26,7 +27,8 @@ type FindPermissionsBySlugsParams struct {
 // FindPermissionsBySlugs returns permissions with the requested slugs from one
 // project. The project filter prevents cross-project key assignments.
 //
-//	SELECT pk, id, workspace_id, project_id, name, slug, description, created_at_m, updated_at_m FROM permissions
+//	SELECT permissions.pk, permissions.id, permissions.workspace_id, permissions.project_id, permissions.name, permissions.slug, permissions.description, permissions.created_at_m, permissions.updated_at_m
+//	FROM permissions
 //	WHERE workspace_id = ?
 //	  AND project_id = ?
 //	  AND slug IN (/*SLICE:slugs*/?)

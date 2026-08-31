@@ -50,12 +50,12 @@ func (s *Service) WatchDeploymentChanges(
 	// When version is 0 and replay is not requested, jump to the current max pk
 	// so we only see new changes.
 	if versionCursor == 0 && !req.Msg.GetReplay() {
-		maxVersion, err := s.db.GetDeploymentChangesMaxVersion(ctx, cluster.Region.ID)
+		maxVersion, err := s.db.GetDeploymentChangesMaxVersion(ctx, cluster.RegionID)
 		if err != nil {
 			return connect.NewError(connect.CodeInternal, err)
 		}
 		versionCursor = uint64(maxVersion)
-		logger.Info("watch: starting from max version", "region_id", cluster.Region.ID, "cursor", versionCursor)
+		logger.Info("watch: starting from max version", "region_id", cluster.RegionID, "cursor", versionCursor)
 	}
 
 	// Poll deployment_changes for new entries.
@@ -66,7 +66,7 @@ func (s *Service) WatchDeploymentChanges(
 		default:
 		}
 
-		events, err := s.fetchDeploymentChangeEvents(ctx, cluster.Region.ID, versionCursor)
+		events, err := s.fetchDeploymentChangeEvents(ctx, cluster.RegionID, versionCursor)
 		if err != nil {
 			logger.Error("failed to fetch deployment change events", "error", err)
 			return connect.NewError(connect.CodeInternal, err)
@@ -201,30 +201,30 @@ func deploymentRowToState[T deploymentStateRow](row T, version uint64) (*ctrlv1.
 		deployment = row
 	case db.ListAllDeploymentTopologiesByRegionRow:
 		deployment = db.FindDeploymentTopologyByDeploymentAndRegionRow{
-			DesiredStatus:                 row.DeploymentTopology.DesiredStatus,
-			AutoscalingReplicasMin:        row.DeploymentTopology.AutoscalingReplicasMin,
-			AutoscalingReplicasMax:        row.DeploymentTopology.AutoscalingReplicasMax,
-			AutoscalingThresholdCpu:       row.DeploymentTopology.AutoscalingThresholdCpu,
-			AutoscalingThresholdMemory:    row.DeploymentTopology.AutoscalingThresholdMemory,
-			ID:                            row.Deployment.ID,
-			K8sName:                       row.Deployment.K8sName,
-			WorkspaceID:                   row.Deployment.WorkspaceID,
-			ProjectID:                     row.Deployment.ProjectID,
-			EnvironmentID:                 row.Deployment.EnvironmentID,
-			AppID:                         row.Deployment.AppID,
-			Image:                         row.Deployment.Image,
-			BuildID:                       row.Deployment.BuildID,
-			GitCommitSha:                  row.Deployment.GitCommitSha,
-			GitBranch:                     row.Deployment.GitBranch,
-			GitCommitMessage:              row.Deployment.GitCommitMessage,
-			CpuMillicores:                 row.Deployment.CpuMillicores,
-			MemoryMib:                     row.Deployment.MemoryMib,
-			StorageMib:                    row.Deployment.StorageMib,
-			EncryptedEnvironmentVariables: row.Deployment.EncryptedEnvironmentVariables,
-			Command:                       row.Deployment.Command,
-			Port:                          row.Deployment.Port,
-			ShutdownSignal:                row.Deployment.ShutdownSignal,
-			Healthcheck:                   row.Deployment.Healthcheck,
+			DesiredStatus:                 row.TopologyDesiredStatus,
+			AutoscalingReplicasMin:        row.TopologyAutoscalingReplicasMin,
+			AutoscalingReplicasMax:        row.TopologyAutoscalingReplicasMax,
+			AutoscalingThresholdCpu:       row.TopologyAutoscalingThresholdCpu,
+			AutoscalingThresholdMemory:    row.TopologyAutoscalingThresholdMemory,
+			ID:                            row.DeploymentID,
+			K8sName:                       row.DeploymentK8sName,
+			WorkspaceID:                   row.DeploymentWorkspaceID,
+			ProjectID:                     row.DeploymentProjectID,
+			EnvironmentID:                 row.DeploymentEnvironmentID,
+			AppID:                         row.DeploymentAppID,
+			Image:                         row.DeploymentImage,
+			BuildID:                       row.DeploymentBuildID,
+			GitCommitSha:                  row.DeploymentGitCommitSha,
+			GitBranch:                     row.DeploymentGitBranch,
+			GitCommitMessage:              row.DeploymentGitCommitMessage,
+			CpuMillicores:                 row.DeploymentCpuMillicores,
+			MemoryMib:                     row.DeploymentMemoryMib,
+			StorageMib:                    row.DeploymentStorageMib,
+			EncryptedEnvironmentVariables: row.DeploymentEncryptedEnvironmentVariables,
+			Command:                       row.DeploymentCommand,
+			Port:                          row.DeploymentPort,
+			ShutdownSignal:                row.DeploymentShutdownSignal,
+			Healthcheck:                   row.DeploymentHealthcheck,
 			K8sNamespace:                  row.K8sNamespace,
 			EnvironmentSlug:               row.EnvironmentSlug,
 			RegionName:                    row.RegionName,
