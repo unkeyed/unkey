@@ -15,7 +15,9 @@ INSERT INTO ` + "`" + `keys` + "`" + ` (
     id,
     key_auth_id,
     hash,
+    prefix,
     start,
+    end,
     workspace_id,
     for_workspace_id,
     name,
@@ -44,6 +46,8 @@ INSERT INTO ` + "`" + `keys` + "`" + ` (
     ?,
     ?,
     ?,
+    ?,
+    ?,
     ?
 )
 `
@@ -52,7 +56,9 @@ type InsertKeyParams struct {
 	ID                 string         `db:"id"`
 	KeySpaceID         string         `db:"key_space_id"`
 	Hash               string         `db:"hash"`
+	Prefix             string         `db:"prefix"`
 	Start              string         `db:"start"`
+	End                string         `db:"end"`
 	WorkspaceID        string         `db:"workspace_id"`
 	ForWorkspaceID     sql.NullString `db:"for_workspace_id"`
 	Name               sql.NullString `db:"name"`
@@ -67,13 +73,16 @@ type InsertKeyParams struct {
 	PendingMigrationID sql.NullString `db:"pending_migration_id"`
 }
 
-// InsertKey
+// InsertKey writes display metadata with verification data so they cannot commit separately.
+// Callers without plaintext metadata pass empty prefix and end values.
 //
 //	INSERT INTO `keys` (
 //	    id,
 //	    key_auth_id,
 //	    hash,
+//	    prefix,
 //	    start,
+//	    end,
 //	    workspace_id,
 //	    for_workspace_id,
 //	    name,
@@ -102,6 +111,8 @@ type InsertKeyParams struct {
 //	    ?,
 //	    ?,
 //	    ?,
+//	    ?,
+//	    ?,
 //	    ?
 //	)
 func (q *Queries) InsertKey(ctx context.Context, db DBTX, arg InsertKeyParams) error {
@@ -109,7 +120,9 @@ func (q *Queries) InsertKey(ctx context.Context, db DBTX, arg InsertKeyParams) e
 		arg.ID,
 		arg.KeySpaceID,
 		arg.Hash,
+		arg.Prefix,
 		arg.Start,
+		arg.End,
 		arg.WorkspaceID,
 		arg.ForWorkspaceID,
 		arg.Name,

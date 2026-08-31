@@ -1395,7 +1395,9 @@ type Key struct {
 	ID                 string         `db:"id"`
 	KeyAuthID          string         `db:"key_auth_id"`
 	Hash               string         `db:"hash"`
+	Prefix             string         `db:"prefix"`
 	Start              string         `db:"start"`
+	End                string         `db:"end"`
 	WorkspaceID        string         `db:"workspace_id"`
 	ForWorkspaceID     sql.NullString `db:"for_workspace_id"`
 	Name               sql.NullString `db:"name"`

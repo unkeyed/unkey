@@ -129,11 +129,12 @@ func (h *Handler) RerollKey(
 	keyData := db.ToKeyData(key)
 
 	length := 16
-	prefix := ""
-
-	split := strings.Split(key.Start, "_")
-	if len(split) > 1 {
-		prefix = split[0]
+	prefix := key.Prefix
+	if prefix == "" {
+		separator := strings.LastIndex(key.Start, "_")
+		if separator >= 0 {
+			prefix = key.Start[:separator]
+		}
 	}
 
 	if prefix == "" && key.KeyAuth.DefaultPrefix.Valid {
@@ -198,7 +199,9 @@ func (h *Handler) RerollKey(
 				ID:                 keyID,
 				KeySpaceID:         key.KeyAuthID,
 				Hash:               keyResult.Hash,
+				Prefix:             prefix,
 				Start:              keyResult.Start,
+				End:                keyResult.Key[len(keyResult.Key)-4:],
 				WorkspaceID:        key.WorkspaceID,
 				ForWorkspaceID:     key.ForWorkspaceID,
 				CreatedAtM:         now,

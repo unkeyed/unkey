@@ -1,0 +1,94 @@
+import { pathToFileURL } from "node:url";
+import { and, createCommentedPool, drizzle, eq, gt, schema, staticTagsFromEnv } from "@unkey/db";
+
+const READ_BATCH_SIZE = 1_000;
+const BASE58_ALPHABET = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
+
+/**
+ * Extracts the prefix from a legacy key start. A prefixed legacy key start ends
+ * with an underscore and four random Base58 characters.
+ */
+export function extractLegacyKeyPrefix(start: string): string | null {
+  const separatorIndex = start.length - 5;
+  if (separatorIndex < 1 || start[separatorIndex] !== "_") {
+    return null;
+  }
+
+  for (const character of start.slice(-4)) {
+    if (!BASE58_ALPHABET.includes(character)) {
+      return null;
+    }
+  }
+
+  return start.slice(0, separatorIndex);
+}
+
+/**
+ * Backfills keys.prefix from the legacy keys.start value. The migration skips
+ * rows that already have a prefix and rows without a legacy prefix.
+ *
+ * The migration is safe to run more than once. Run it again after all key
+ * writers store the prefix directly.
+ *
+ * Run from the repository root with DRIZZLE_DATABASE_URL set:
+ * `mise exec -- pnpm --dir=web/tools/migrate key-prefix`
+ */
+async function main(): Promise<void> {
+  const databaseUrl = process.env.DRIZZLE_DATABASE_URL;
+  if (!databaseUrl) {
+    throw new Error("DRIZZLE_DATABASE_URL is not set");
+  }
+
+  const pool = createCommentedPool({ uri: databaseUrl }, staticTagsFromEnv("key-prefix-migration"));
+  const db = drizzle(pool, { schema, mode: "default" });
+
+  try {
+    let cursor = 0;
+    let scanned = 0;
+    let updated = 0;
+
+    while (true) {
+      const rows = await db
+        .select({ pk: schema.keys.pk, start: schema.keys.start })
+        .from(schema.keys)
+        .where(and(gt(schema.keys.pk, cursor), eq(schema.keys.prefix, "")))
+        .orderBy(schema.keys.pk)
+        .limit(READ_BATCH_SIZE);
+
+      const lastRow = rows.at(-1);
+      if (!lastRow) {
+        break;
+      }
+
+      cursor = lastRow.pk;
+      scanned += rows.length;
+
+      for (const row of rows) {
+        const prefix = extractLegacyKeyPrefix(row.start);
+        if (prefix === null) {
+          continue;
+        }
+
+        const result = await db
+          .update(schema.keys)
+          .set({ prefix })
+          .where(and(eq(schema.keys.pk, row.pk), eq(schema.keys.prefix, "")));
+        updated += result[0].affectedRows;
+      }
+
+      console.info("progress", { scanned, updated });
+    }
+
+    console.info("Key prefix migration finished", { scanned, updated });
+  } finally {
+    await pool.end();
+  }
+}
+
+const scriptPath = process.argv[1];
+if (scriptPath && import.meta.url === pathToFileURL(scriptPath).href) {
+  main().catch((error: unknown) => {
+    console.error("Key prefix migration failed", error);
+    process.exitCode = 1;
+  });
+}

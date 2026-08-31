@@ -13,6 +13,9 @@ func TestToKeyData_ValidCases(t *testing.T) {
 		row := FindLiveKeyByIDRow{
 			ID:          "test-key-id",
 			Hash:        "test-hash",
+			Prefix:      "prod_sk",
+			Start:       "abcd",
+			End:         "wxyz",
 			WorkspaceID: "test-workspace",
 			Enabled:     true,
 		}
@@ -22,6 +25,9 @@ func TestToKeyData_ValidCases(t *testing.T) {
 		require.NotNil(t, result)
 		require.Equal(t, "test-key-id", result.Key.ID)
 		require.Equal(t, "test-hash", result.Key.Hash)
+		require.Equal(t, "prod_sk", result.Key.Prefix)
+		require.Equal(t, "abcd", result.Key.Start)
+		require.Equal(t, "wxyz", result.Key.End)
 		require.Equal(t, "test-workspace", result.Key.WorkspaceID)
 		require.True(t, result.Key.Enabled)
 	})

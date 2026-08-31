@@ -180,7 +180,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				ID:                 uid.New(uid.KeyPrefix),
 				Hash:               key.Hash,
 				KeySpaceID:         api.KeyAuth.ID,
+				Prefix:             "",
 				Start:              "", // Unknown at this point
+				End:                "",
 				WorkspaceID:        principal.WorkspaceID,
 				Name:               sql.NullString{Valid: name != "", String: name},
 				Meta:               sql.NullString{Valid: false, String: ""},
