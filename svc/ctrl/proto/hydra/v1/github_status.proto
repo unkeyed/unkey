@@ -5,21 +5,27 @@ import "dev/restate/sdk/go.proto";
 
 option go_package = "github.com/unkeyed/unkey/gen/proto/hydra/v1;hydrav1";
 
-// GitHubStatusService is a Restate virtual object keyed by deployment ID that
-// owns all GitHub deployment status reporting (Deployments API + PR comments).
-// Any service can fire-and-forget status updates to it without needing GitHub
-// credentials or state about the deployment.
+// GitHubStatusService tracks one deployment's GitHub deployment status and
+// dispatches its PR comment updates. Any service can send status updates
+// without carrying GitHub credentials or deployment state.
 service GitHubStatusService {
   option (dev.restate.sdk.go.service_type) = VIRTUAL_OBJECT;
 
-  // Init sets up the virtual object with deployment context and creates the
-  // GitHub deployment + PR comment. Called once by the deploy workflow after
-  // the build step completes.
+  // Init sets up the virtual object, GitHub deployment, and initial PR row.
+  // The deploy workflow calls it once after the build step completes.
   rpc Init(GitHubStatusInitRequest) returns (GitHubStatusInitResponse) {}
 
-  // ReportStatus updates both the GitHub deployment status and the PR comment.
-  // Fire-and-forget — errors are logged, never propagated.
+  // ReportStatus updates the GitHub deployment and queues its PR row update.
+  // Errors are logged and never propagated.
   rpc ReportStatus(GitHubStatusReportRequest) returns (GitHubStatusReportResponse) {}
+}
+
+// GitHubPullRequestCommentService serializes updates to the shared deployment
+// comment for one installation, repository, and pull request.
+service GitHubPullRequestCommentService {
+  option (dev.restate.sdk.go.service_type) = VIRTUAL_OBJECT;
+
+  rpc UpsertPullRequestComment(GitHubPullRequestCommentRequest) returns (GitHubPullRequestCommentResponse) {}
 }
 
 // GitHubDeploymentState maps to the GitHub Deployments API status values.
@@ -35,9 +41,9 @@ enum GitHubDeploymentState {
   GITHUB_DEPLOYMENT_STATE_QUEUED = 7;
 }
 
-// GitHubStatusInitRequest carries all context the virtual object needs to
-// create the GitHub deployment and PR comment. The deploy workflow populates
-// this after the build step so the commit SHA is resolved.
+// GitHubStatusInitRequest carries the context needed to create the GitHub
+// deployment and PR row. The deploy workflow populates it after the build step
+// so the commit SHA is resolved.
 message GitHubStatusInitRequest {
   int64 installation_id = 1;
   string repo = 2;
@@ -59,6 +65,14 @@ message GitHubStatusInitRequest {
   // Reuse an existing GitHub deployment (e.g. created during approval flow).
   // If > 0, Init skips CreateDeployment and uses this ID directly.
   int64 existing_github_deployment_id = 13;
+
+  // Stable workspace/project/app/environment identity for the shared PR
+  // comment row. Display slugs are not unique across workspaces.
+  string comment_row_key = 14;
+
+  // GitHub's stable repository ID keeps comment updates serialized across
+  // repository renames.
+  int64 repository_id = 15;
 }
 
 message GitHubStatusInitResponse {}
@@ -69,3 +83,11 @@ message GitHubStatusReportRequest {
 }
 
 message GitHubStatusReportResponse {}
+
+message GitHubPullRequestCommentRequest {
+  GitHubStatusInitRequest config = 1;
+  int32 pr_number = 2;
+  string status = 3;
+}
+
+message GitHubPullRequestCommentResponse {}

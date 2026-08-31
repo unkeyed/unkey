@@ -10,15 +10,19 @@ const (
 	// prCommentMainMarker identifies the shared deployment comment on a PR.
 	prCommentMainMarker = "<!-- unkey-deploy -->"
 
-	// prCommentRowMarkerFmt wraps each app/env's table row for find-and-replace.
-	prCommentRowMarkerFmt = "<!-- row:%s:%s -->"
+	// prCommentRowMarkerFmt wraps each deployment target's table row for find-and-replace.
+	prCommentRowMarkerFmt = "<!-- row:%s -->"
+
+	// legacyPRCommentRowMarkerFmt identifies rows written before targets included
+	// workspace and project identity.
+	legacyPRCommentRowMarkerFmt = "<!-- row:%s:%s -->"
 )
 
-func rowMarker(appSlug, envSlug string) string {
-	return fmt.Sprintf(prCommentRowMarkerFmt, appSlug, envSlug)
+func rowMarker(rowKey string) string {
+	return fmt.Sprintf(prCommentRowMarkerFmt, rowKey)
 }
 
-func buildRow(projectSlug, appSlug, envSlug, environmentURL, logURL, status string) string {
+func buildRow(rowKey, projectSlug, appSlug, envSlug, environmentURL, logURL, status string) string {
 	nameLabel := projectSlug
 	if appSlug != "default" {
 		nameLabel += " / " + appSlug
@@ -30,7 +34,7 @@ func buildRow(projectSlug, appSlug, envSlug, environmentURL, logURL, status stri
 	}
 
 	return fmt.Sprintf("| %s **%s** (%s) | %s | %s | [Inspect](%s) | %s |",
-		rowMarker(appSlug, envSlug), nameLabel, envSlug, status,
+		rowMarker(rowKey), nameLabel, envSlug, status,
 		preview, logURL,
 		time.Now().UTC().Format("Jan 2, 2006 3:04pm"))
 }
@@ -47,15 +51,20 @@ func buildFullComment(firstRow string) string {
 	return b.String()
 }
 
-// upsertRow replaces an existing row for this app/env or appends a new one.
-func upsertRow(appSlug, envSlug, body, newRow string) string {
-	marker := rowMarker(appSlug, envSlug)
+// upsertRow replaces an existing row for this deployment target or appends a new one.
+func upsertRow(rowKey, appSlug, envSlug, body, newRow string) string {
+	markers := []string{
+		rowMarker(rowKey),
+		fmt.Sprintf(legacyPRCommentRowMarkerFmt, appSlug, envSlug),
+	}
 	lines := strings.Split(body, "\n")
 
 	for i, line := range lines {
-		if strings.Contains(line, marker) {
-			lines[i] = newRow
-			return strings.Join(lines, "\n")
+		for _, marker := range markers {
+			if strings.Contains(line, marker) {
+				lines[i] = newRow
+				return strings.Join(lines, "\n")
+			}
 		}
 	}
 

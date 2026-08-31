@@ -1013,6 +1013,8 @@ func (w *Workflow) initGitHubStatus(
 		EnvSlug:                    environment.Slug,
 		PrNumber:                   prNumber,
 		ExistingGithubDeploymentId: existingGHDeploymentID,
+		CommentRowKey:              fmt.Sprintf("%s:%s:%s:%s", workspace.ID, project.ID, app.ID, environment.ID),
+		RepositoryId:               repoConn.RepositoryID,
 	})
 
 	return reporter
