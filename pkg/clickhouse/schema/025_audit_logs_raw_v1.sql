@@ -28,8 +28,8 @@ CREATE TABLE IF NOT EXISTS default.audit_logs_raw_v1
     `time`          Int64 CODEC(Delta, ZSTD(1)),
     -- Wall-clock millis of the CH insert. Drives partitioning so late
     -- events land in the current month's part instead of fragmenting old
-    -- ones. The writer always sets this; no DEFAULT.
-    `inserted_at`   Int64 CODEC(Delta, ZSTD(1)),
+    -- ones. ClickHouse sets this value when it inserts the row.
+    `inserted_at`   Int64 DEFAULT toUnixTimestamp64Milli(now64(3)) CODEC(Delta, ZSTD(1)),
 
     `workspace_id`  String CODEC(ZSTD(1)),
     `bucket`        LowCardinality(String),

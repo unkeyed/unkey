@@ -1,0 +1,91 @@
+package v2RatelimitLimit_test
+
+import (
+	"context"
+	"fmt"
+	"net/http"
+	"testing"
+	"time"
+
+	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/pkg/auditlog"
+	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/svc/api/internal/testutil"
+	handler "github.com/unkeyed/unkey/svc/api/routes/v2_ratelimit_limit"
+)
+
+// ratelimitAuditLogRow contains the persisted fields that the test guarantees.
+type ratelimitAuditLogRow struct {
+	Time        int64    `ch:"time"`
+	InsertedAt  int64    `ch:"inserted_at"`
+	Event       string   `ch:"event"`
+	Description string   `ch:"description"`
+	ActorType   string   `ch:"actor_type"`
+	ActorID     string   `ch:"actor_id"`
+	ActorName   string   `ch:"actor_name"`
+	UserAgent   string   `ch:"user_agent"`
+	TargetTypes []string `ch:"target_types"`
+	TargetIDs   []string `ch:"target_ids"`
+	TargetNames []string `ch:"target_names"`
+}
+
+// TestLimit_WritesRootKeyAuditLog guarantees that limit audit logs flush from
+// the API buffer directly to ClickHouse without creating a MySQL outbox row.
+func TestLimit_WritesRootKeyAuditLog(t *testing.T) {
+	h := testutil.NewHarness(t, testutil.HarnessConfig{ClickHouse: true})
+	route := &handler.Handler{
+		DB:              h.DB,
+		RatelimitEvents: h.RatelimitEvents,
+		DirectAuditLogs: h.DirectAuditLogs,
+		Ratelimit:       h.Ratelimit,
+		NamespaceCache:  h.Caches.RatelimitNamespace,
+		Auditlogs:       h.Auditlogs,
+	}
+	h.Register(route)
+
+	workspace := h.Resources().UserWorkspace
+	namespaceID, namespaceName := createNamespace(t, h)
+	rootKey := h.CreateRootKey(workspace.ID, fmt.Sprintf("ratelimit.%s.limit", namespaceID))
+	identifier := uid.New("sensitive")
+
+	res := testutil.CallRoute[handler.Request, handler.Response](h, route, http.Header{
+		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+		"Content-Type":  {"application/json"},
+		"User-Agent":    {"audit-log-test"},
+	}, handler.Request{
+		Namespace:  namespaceName,
+		Identifier: identifier,
+		Limit:      10,
+		Duration:   time.Minute.Milliseconds(),
+	})
+	require.Equal(t, http.StatusOK, res.Status)
+
+	ctx := context.Background()
+	require.Empty(t, h.FindAuditLogsByTargetID(ctx, t, namespaceID))
+
+	rows := make([]ratelimitAuditLogRow, 0)
+	query := "SELECT time, inserted_at, event, description, actor_type, actor_id, actor_name, user_agent, " +
+		"`targets.type` AS target_types, `targets.id` AS target_ids, `targets.name` AS target_names " +
+		"FROM default.audit_logs_raw_v1 WHERE workspace_id = ? AND event = ?"
+	require.Eventually(t, func() bool {
+		rows = rows[:0]
+		err := h.ClickHouse.Conn().Select(ctx, &rows, query,
+			workspace.ID,
+			string(auditlog.RatelimitLimitEvent),
+		)
+		return err == nil && len(rows) == 1
+	}, 15*time.Second, 100*time.Millisecond)
+
+	row := rows[0]
+	require.Positive(t, row.InsertedAt)
+	require.GreaterOrEqual(t, row.InsertedAt, row.Time)
+	require.Equal(t, string(auditlog.RatelimitLimitEvent), row.Event)
+	require.Equal(t, "Applied rate limit to namespace "+namespaceID, row.Description)
+	require.Equal(t, string(auditlog.RootKeyActor), row.ActorType)
+	require.NotEmpty(t, row.ActorID)
+	require.NotEmpty(t, row.ActorName)
+	require.Equal(t, "audit-log-test", row.UserAgent)
+	require.Equal(t, []string{string(auditlog.RatelimitNamespaceResourceType)}, row.TargetTypes)
+	require.Equal(t, []string{namespaceID}, row.TargetIDs)
+	require.Equal(t, []string{namespaceName}, row.TargetNames)
+}

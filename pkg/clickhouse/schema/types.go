@@ -350,16 +350,16 @@ type FrontlineRequest struct {
 // Source distinguishes platform-emitted events ("platform", default) from
 // customer-emitted events ("customer", once that surface ships).
 //
-// Time fields are unix-milli (Int64), matching the rest of Unkey's CH
-// tables. Meta fields are json.RawMessage so the writer can pass already-
-// encoded JSON bytes through without re-marshaling, and so the JSON column
-// type in CH stores them natively (not as escaped strings).
+// Time is unix-milli (Int64), matching the rest of Unkey's CH tables.
+// ClickHouse assigns inserted_at when it inserts the row. Meta fields are
+// json.RawMessage so the writer can pass already-encoded JSON bytes through
+// without re-marshaling, and so the JSON column type in CH stores them
+// natively (not as escaped strings).
 //
 //unkey:table default.audit_logs_raw_v1
 type AuditLogV1 struct {
 	EventID     string `ch:"event_id" json:"event_id"`
 	Time        int64  `ch:"time" json:"time"`
-	InsertedAt  int64  `ch:"inserted_at" json:"inserted_at"`
 	WorkspaceID string `ch:"workspace_id" json:"workspace_id"`
 	Bucket      string `ch:"bucket" json:"bucket"`
 	Source      string `ch:"source" json:"source"`

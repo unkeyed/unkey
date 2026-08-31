@@ -39,6 +39,7 @@ type (
 type Handler struct {
 	DB              db.Database
 	RatelimitEvents *batch.BatchProcessor[schema.Ratelimit]
+	DirectAuditLogs *batch.BatchProcessor[auditlog.Event]
 	Ratelimit       ratelimit.Service
 	NamespaceCache  cache.Cache[cache.ScopedKey, db.FindRatelimitNamespace]
 	Auditlogs       auditlogs.AuditLogService
@@ -166,8 +167,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 	latency := time.Since(t0).Milliseconds()
+	nowMillis := time.Now().UnixMilli()
 	if s.ShouldLogRequestToClickHouse() {
-		nowMillis := time.Now().UnixMilli()
 		h.RatelimitEvents.Buffer(schema.Ratelimit{
 			RequestID:   s.RequestID(),
 			WorkspaceID: principal.WorkspaceID,
@@ -183,6 +184,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			Tokens:      uint64(cost),
 		})
 	}
+	h.bufferAuditLog(s, principal, ns, nowMillis)
 
 	res := Response{
 		Meta: openapi.Meta{
@@ -199,6 +201,47 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	// Return success response
 	return s.JSON(http.StatusOK, res)
+}
+
+// bufferAuditLog keeps MySQL out of the high-volume rate limit path by sending
+// the action to the direct ClickHouse buffer.
+func (h *Handler) bufferAuditLog(
+	s *zen.Session,
+	p *principal.Principal,
+	namespace db.FindRatelimitNamespace,
+	timeMillis int64,
+) {
+	if p.Subject.Type != principal.SubjectTypeRootKey {
+		return
+	}
+
+	h.DirectAuditLogs.Buffer(auditlog.Event{
+		EventID:     uid.New(uid.AuditLogPrefix),
+		Time:        timeMillis,
+		WorkspaceID: p.WorkspaceID,
+		Bucket:      auditlogs.DefaultBucket,
+		Source:      auditlog.EventSourcePlatform,
+		Event:       string(auditlog.RatelimitLimitEvent),
+		Description: "Applied rate limit to namespace " + namespace.ID,
+		Actor: auditlog.EventActor{
+			Type: string(p.Subject.Type),
+			ID:   p.Subject.ID,
+			Name: p.Subject.Name,
+			Meta: nil,
+		},
+		RemoteIP:  s.Location(),
+		UserAgent: s.UserAgent(),
+		Meta:      nil,
+		Targets: []auditlog.EventTarget{
+			{
+				Type: string(auditlog.RatelimitNamespaceResourceType),
+				ID:   namespace.ID,
+				Name: namespace.Name,
+				Meta: nil,
+			},
+		},
+		CorrelationID: "",
+	})
 }
 
 func (h *Handler) getNamespace(ctx context.Context, workspaceID, nameOrID string) (db.FindRatelimitNamespace, bool, error) {
