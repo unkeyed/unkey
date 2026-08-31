@@ -16,7 +16,6 @@ const ITEMS = [
   { segment: "account", label: "Account", getHref: routes.settings.account },
   { segment: "usage", label: "Usage", getHref: routes.settings.usage },
   { segment: "limits", label: "Limits", getHref: routes.settings.limits },
-  { segment: "security", label: "Security", getHref: routes.settings.security },
 ] as const;
 
 const BILLING_UPGRADE_SEGMENTS: ReadonlySet<string> = new Set(["usage", "limits"]);
