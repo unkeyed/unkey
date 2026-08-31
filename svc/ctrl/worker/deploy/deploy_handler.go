@@ -801,7 +801,7 @@ func (w *Workflow) configureRouting(
 				stickyTypes = []db.FrontlineRoutesSticky{db.FrontlineRoutesStickyEnvironment}
 			}
 
-			routes, err := db.NewQueries(tx).FindFrontlineRouteForPromotion(txCtx, db.FindFrontlineRouteForPromotionParams{
+			routes, err := db.NewQueries(tx).FindFrontlineRoutesByEnvironmentAndSticky(txCtx, db.FindFrontlineRoutesByEnvironmentAndStickyParams{
 				EnvironmentID: deployment.EnvironmentID,
 				Sticky:        stickyTypes,
 			})

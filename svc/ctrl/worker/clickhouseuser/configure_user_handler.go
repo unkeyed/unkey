@@ -182,7 +182,7 @@ func (s *Service) configureUser(
 						return "", fmt.Errorf("update limits after duplicate: %w", updateErr)
 					}
 
-					return existing.ClickhouseWorkspaceSetting.PasswordEncrypted, nil
+					return existing.ClickhousePasswordEncrypted, nil
 				}
 
 				return "", fmt.Errorf("insert settings: %w", err)
@@ -196,11 +196,11 @@ func (s *Service) configureUser(
 
 	} else {
 		logger.Info("updating existing user", "workspace_id", workspaceID)
-		retentionDays = int32(result.Row.Limit.LogsRetentionDaysMax)
-		encryptedPassword = result.Row.ClickhouseWorkspaceSetting.PasswordEncrypted
+		retentionDays = int32(result.Row.QuotaLogsRetentionDays)
+		encryptedPassword = result.Row.ClickhousePasswordEncrypted
 
 		if reconcileExisting {
-			quotas = quotaSettingsFromExisting(result.Row.ClickhouseWorkspaceSetting)
+			quotas = quotaSettingsFromExisting(result.Row)
 		} else {
 			now := time.Now().UnixMilli()
 			_, err = restate.Run(ctx, func(rc restate.RunContext) (restate.Void, error) {
@@ -268,14 +268,14 @@ func resolveQuotaSettings(req *hydrav1.ConfigureUserRequest) quotaSettings {
 	}
 }
 
-func quotaSettingsFromExisting(settings db.ClickhouseWorkspaceSetting) quotaSettings {
+func quotaSettingsFromExisting(settings db.FindClickhouseWorkspaceSettingsByWorkspaceIDRow) quotaSettings {
 	return quotaSettings{
-		quotaDurationSeconds:      settings.QuotaDurationSeconds,
-		maxQueriesPerWindow:       settings.MaxQueriesPerWindow,
-		maxExecutionTimePerWindow: settings.MaxExecutionTimePerWindow,
-		maxQueryExecutionTime:     settings.MaxQueryExecutionTime,
-		maxQueryMemoryBytes:       settings.MaxQueryMemoryBytes,
-		maxQueryResultRows:        settings.MaxQueryResultRows,
+		quotaDurationSeconds:      settings.ClickhouseQuotaDurationSeconds,
+		maxQueriesPerWindow:       settings.ClickhouseMaxQueriesPerWindow,
+		maxExecutionTimePerWindow: settings.ClickhouseMaxExecutionTimePerWindow,
+		maxQueryExecutionTime:     settings.ClickhouseMaxQueryExecutionTime,
+		maxQueryMemoryBytes:       settings.ClickhouseMaxQueryMemoryBytes,
+		maxQueryResultRows:        settings.ClickhouseMaxQueryResultRows,
 	}
 }
 

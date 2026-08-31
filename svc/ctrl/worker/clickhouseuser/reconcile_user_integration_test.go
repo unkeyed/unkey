@@ -33,7 +33,7 @@ func TestReconcileUser_Integration(t *testing.T) {
 	require.NoError(t, err)
 	password, err := h.VaultClient.Decrypt(h.Ctx, &vaultv1.DecryptRequest{
 		Keyring:   workspace.ID,
-		Encrypted: settings.ClickhouseWorkspaceSetting.PasswordEncrypted,
+		Encrypted: settings.ClickhousePasswordEncrypted,
 	})
 	require.NoError(t, err)
 
@@ -74,6 +74,6 @@ func TestReconcileUser_Integration(t *testing.T) {
 
 	settings, err = h.DB.FindClickhouseWorkspaceSettingsByWorkspaceID(h.Ctx, workspace.ID)
 	require.NoError(t, err)
-	require.Equal(t, maxQueriesPerWindow, settings.ClickhouseWorkspaceSetting.MaxQueriesPerWindow,
+	require.Equal(t, maxQueriesPerWindow, settings.ClickhouseMaxQueriesPerWindow,
 		"reconciliation must preserve stored workspace limits")
 }
