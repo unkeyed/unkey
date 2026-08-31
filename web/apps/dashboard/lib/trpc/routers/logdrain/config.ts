@@ -94,18 +94,16 @@ export async function encryptHttpHeaders(
   workspaceId: string,
   headers: Record<string, string>,
 ): Promise<EncryptedHttpHeader[]> {
-  const entries = Object.entries(headers).sort(([left], [right]) =>
-    left < right ? -1 : left > right ? 1 : 0,
-  );
-  if (entries.length === 0) {
+  const names = Object.keys(headers).sort();
+  if (names.length === 0) {
     return [];
   }
   const response = await createVaultClient(VaultService).encryptBulk({
     keyring: workspaceId,
-    items: Object.fromEntries(entries.map(([, value], index) => [index.toString(), value])),
+    items: headers,
   });
-  return entries.map(([name], index) => {
-    const item = response.items[index.toString()];
+  return names.map((name) => {
+    const item = response.items[name];
     if (!item?.encrypted) {
       throw new Error(`Vault did not encrypt HTTP header ${name}`);
     }

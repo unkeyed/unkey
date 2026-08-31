@@ -40,8 +40,8 @@ describe("log drain protobuf config", () => {
   it("encrypts each HTTP header value and preserves its name", async () => {
     vault.encryptBulk.mockResolvedValue({
       items: {
-        "0": { encrypted: "encrypted-authorization" },
-        "1": { encrypted: "encrypted-customer" },
+        Authorization: { encrypted: "encrypted-authorization" },
+        "X-Customer": { encrypted: "encrypted-customer" },
       },
     });
 
@@ -56,7 +56,10 @@ describe("log drain protobuf config", () => {
     ]);
     expect(vault.encryptBulk).toHaveBeenCalledWith({
       keyring: "ws_123",
-      items: { "0": "Bearer token", "1": "customer-value" },
+      items: {
+        "X-Customer": "customer-value",
+        Authorization: "Bearer token",
+      },
     });
   });
 });
