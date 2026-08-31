@@ -31,6 +31,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/counter"
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/hash"
 	"github.com/unkeyed/unkey/pkg/mysql/sqlcomment"
 	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
 	"github.com/unkeyed/unkey/pkg/rbac"
@@ -76,6 +77,7 @@ type Harness struct {
 	ClickHouse                 clickhouse.ClickHouse
 	KeyVerifications           *batch.BatchProcessor[schema.KeyVerification]
 	RatelimitEvents            *batch.BatchProcessor[schema.Ratelimit]
+	FrontlineRequests          *batch.BatchProcessor[schema.FrontlineRequest]
 	Ratelimit                  ratelimit.Service
 	Vault                      vault.VaultServiceClient
 	AnalyticsConnectionManager analytics.ConnectionManager
@@ -133,8 +135,7 @@ func NewHarness(t *testing.T, configs ...HarnessConfig) *Harness {
 	require.NoError(t, err)
 
 	caches, err := caches.New(caches.Config{
-		NodeID: "",
-		Clock:  clk,
+		Clock: clk,
 	})
 	require.NoError(t, err)
 
@@ -143,16 +144,18 @@ func NewHarness(t *testing.T, configs ...HarnessConfig) *Harness {
 		Flags: &zen.Flags{
 			TestMode: true,
 		},
-		TLS:          nil,
-		EnableH2C:    false,
-		ReadTimeout:  0,
-		WriteTimeout: 0,
+		TLS:               nil,
+		EnableH2C:         false,
+		StreamRequestBody: false,
+		ReadTimeout:       0,
+		WriteTimeout:      0,
 	})
 	require.NoError(t, err)
 
 	var ch clickhouse.ClickHouse
 	var keyVerifications *batch.BatchProcessor[schema.KeyVerification]
 	var ratelimitsfer *batch.BatchProcessor[schema.Ratelimit]
+	var frontlineRequests *batch.BatchProcessor[schema.FrontlineRequest]
 	if cfg.ClickHouse {
 		var err error
 		chClient, err := clickhouse.New(clickhouse.Config{
@@ -183,11 +186,24 @@ func NewHarness(t *testing.T, configs ...HarnessConfig) *Harness {
 			OnFlushError:  nil,
 		})
 		t.Cleanup(ratelimitsfer.Close)
+
+		frontlineRequests = clickhouse.NewBuffer[schema.FrontlineRequest](chClient, clickhouse.BufferConfig{
+			Name:          "frontline_requests",
+			BatchSize:     10,
+			BufferSize:    100,
+			FlushInterval: 100 * time.Millisecond,
+			Consumers:     2,
+			Drop:          true,
+			OnFlushError:  nil,
+		})
+		t.Cleanup(frontlineRequests.Close)
 	} else {
 		keyVerifications = batch.NewNoop[schema.KeyVerification]()
 		t.Cleanup(keyVerifications.Close)
 		ratelimitsfer = batch.NewNoop[schema.Ratelimit]()
 		t.Cleanup(ratelimitsfer.Close)
+		frontlineRequests = batch.NewNoop[schema.FrontlineRequest]()
+		t.Cleanup(frontlineRequests.Close)
 	}
 
 	validator, err := validation.New()
@@ -291,6 +307,7 @@ func NewHarness(t *testing.T, configs ...HarnessConfig) *Harness {
 		ClickHouse:                 ch,
 		KeyVerifications:           keyVerifications,
 		RatelimitEvents:            ratelimitsfer,
+		FrontlineRequests:          frontlineRequests,
 		DB:                         database,
 		seeder:                     seeder,
 		Clock:                      clk,
@@ -363,40 +380,87 @@ func (h *Harness) PortalMiddleware() []zen.Middleware {
 	return h.portalMiddleware
 }
 
-// CreatePortalSession inserts a portal session row for the given workspace,
-// external identity, and permissions, and returns request headers (including the
-// portal_session cookie) suitable for [CallRoute]. Use it to exercise portal
-// routes as an authenticated end user.
-func (h *Harness) CreatePortalSession(workspaceID, externalID string, keyspaceIDs, permissions []string) http.Header {
+// CreatePortalSession inserts an already-exchanged portal session row for the
+// given workspace, external identity, and scopes, and returns request headers
+// (including the portal_session cookie) suitable for [CallRoute]. Use it to
+// exercise portal routes as an authenticated end user.
+//
+// The row is written in the `active` state — exchange code redeemed, access
+// token live — because callers want an authenticated session, not the
+// pre-exchange half of one. Only hashes are stored; the cookie carries the
+// plaintext access token, which is the only place it exists.
+func (h *Harness) CreatePortalSession(workspaceID, externalID string, keyspaceIDs, scopes []string) http.Header {
 	h.t.Helper()
 
-	sessionID := uid.New(uid.PortalSessionPrefix)
+	return h.CreatePortalSessionForPortal("", workspaceID, externalID, keyspaceIDs, scopes)
+}
 
-	permsJSON, err := json.Marshal(struct {
+// CreatePortalSessionForPortal is [Harness.CreatePortalSession] bound to a
+// specific portal.
+//
+// Session rows carry the portal they were minted from, and operations on a portal
+// can affect them — deleting a portal, or re-pointing which resource it serves,
+// revokes its sessions. Proving that requires a session that actually belongs to
+// the portal under test, which the unbound helper cannot give: it mints a
+// throwaway portal id, so a test using it would assert against a session no
+// operation could ever reach.
+//
+// An empty portalID mints a throwaway one, which is what the unbound helper
+// wants and what every caller that does not care about the portal gets.
+func (h *Harness) CreatePortalSessionForPortal(portalID, workspaceID, externalID string, keyspaceIDs, scopes []string) http.Header {
+	h.t.Helper()
+
+	if portalID == "" {
+		portalID = uid.New(uid.PortalPrefix)
+	}
+
+	sessionID := uid.New(uid.PortalSessionPrefix)
+	// Credentials are minted the way the handlers mint them (crypto/rand), so
+	// tests exercise realistic values rather than math/rand ids.
+	exchangeCode := string(uid.PortalExchangeCodePrefix) + "_" + uid.Secure()
+	accessToken := string(uid.PortalAccessTokenPrefix) + "_" + uid.Secure()
+
+	scopesJSON, err := json.Marshal(struct {
 		KeyspaceIDs []string `json:"keyspaceIds"`
-		Permissions []string `json:"permissions"`
+		Scopes      []string `json:"scopes"`
 	}{
 		KeyspaceIDs: keyspaceIDs,
-		Permissions: permissions,
+		Scopes:      scopes,
 	})
 	require.NoError(h.t, err)
 
 	now := h.Clock.Now()
-	err = db.Query.InsertPortalSession(context.Background(), h.DB.RW(), db.InsertPortalSessionParams{
-		ID:             sessionID,
-		WorkspaceID:    workspaceID,
-		PortalConfigID: uid.New(uid.PortalConfigPrefix),
-		ExternalID:     externalID,
-		Permissions:    permsJSON,
-		Preview:        false,
-		ExpiresAt:      now.Add(24 * time.Hour).UnixMilli(),
-		CreatedAt:      now.UnixMilli(),
+	ctx := context.Background()
+
+	err = db.Query.InsertPortalSession(ctx, h.DB.RW(), db.InsertPortalSessionParams{
+		ID:                    sessionID,
+		WorkspaceID:           workspaceID,
+		PortalID:              portalID,
+		ExternalID:            externalID,
+		Scopes:                scopesJSON,
+		Preview:               false,
+		ExchangeCodeHash:      hash.Sha256(exchangeCode),
+		ExchangeCodeExpiresAt: now.Add(15 * time.Minute).UnixMilli(),
+		ReturnUrl:             sql.NullString{Valid: false, String: ""},
+		CreatedAt:             now.UnixMilli(),
 	})
 	require.NoError(h.t, err)
 
+	res, err := db.Query.ExchangePortalSessionCode(ctx, h.DB.RW(), db.ExchangePortalSessionCodeParams{
+		AccessTokenHash:      sql.NullString{String: hash.Sha256(accessToken), Valid: true},
+		AccessTokenCreatedAt: sql.NullInt64{Int64: now.UnixMilli(), Valid: true},
+		AccessTokenExpiresAt: sql.NullInt64{Int64: now.Add(24 * time.Hour).UnixMilli(), Valid: true},
+		ExchangeCodeHash:     hash.Sha256(exchangeCode),
+		Now:                  now.UnixMilli(),
+	})
+	require.NoError(h.t, err)
+	rowsAffected, err := res.RowsAffected()
+	require.NoError(h.t, err)
+	require.Equal(h.t, int64(1), rowsAffected)
+
 	return http.Header{
 		"Content-Type": {"application/json"},
-		"Cookie":       {"portal_session=" + sessionID},
+		"Cookie":       {"portal_session=" + accessToken},
 	}
 }
 
@@ -456,6 +520,12 @@ func (h *Harness) CreateApp(req seed.CreateAppRequest) db.App {
 	return h.seeder.CreateApp(context.Background(), req)
 }
 
+// CreatePortal creates a portal. See [seed.CreatePortalRequest] for why it does
+// not enforce the one-mapping invariant.
+func (h *Harness) CreatePortal(req seed.CreatePortalRequest) db.Portal {
+	return h.seeder.CreatePortal(context.Background(), req)
+}
+
 // CreateEnvironment creates an environment within a project.
 func (h *Harness) CreateEnvironment(req seed.CreateEnvironmentRequest) db.Environment {
 	return h.seeder.CreateEnvironment(h.t.Context(), req)
@@ -495,7 +565,8 @@ type CreateTestDeploymentSetupOptions struct {
 // workspace, root key, project, and environment. This is a convenience method for
 // tests that need all these resources together. Pass [CreateTestDeploymentSetupOptions]
 // to customize names, slugs, or skip environment creation. Defaults to project name
-// "test-project", slugs "production", and full permissions unless specified.
+// "test-project", slugs "production", a starter Compute entitlement, and full
+// permissions unless specified.
 func (h *Harness) CreateTestDeploymentSetup(opts ...CreateTestDeploymentSetupOptions) DeploymentTestSetup {
 	h.t.Helper()
 
@@ -528,6 +599,12 @@ func (h *Harness) CreateTestDeploymentSetup(opts ...CreateTestDeploymentSetupOpt
 	}
 
 	workspace := h.CreateWorkspace()
+	err := db.Query.UpsertWorkspaceBillingPlanOverride(h.t.Context(), h.DB.RW(), db.UpsertWorkspaceBillingPlanOverrideParams{
+		WorkspaceID:  workspace.ID,
+		PlanOverride: sql.NullString{String: "starter", Valid: true},
+		CreatedAtM:   time.Now().UnixMilli(),
+	})
+	require.NoError(h.t, err)
 
 	var rootKey string
 	if config.Permissions != nil {
@@ -576,6 +653,18 @@ func (h *Harness) CreateTestDeploymentSetup(opts ...CreateTestDeploymentSetupOpt
 		App:         app,
 		Environment: environment,
 	}
+}
+
+// ClearComputePlanOverride removes the test entitlement created by
+// [Harness.CreateTestDeploymentSetup].
+func (h *Harness) ClearComputePlanOverride(workspaceID string) {
+	h.t.Helper()
+	err := db.Query.UpsertWorkspaceBillingPlanOverride(h.t.Context(), h.DB.RW(), db.UpsertWorkspaceBillingPlanOverrideParams{
+		WorkspaceID:  workspaceID,
+		PlanOverride: sql.NullString{},
+		CreatedAtM:   time.Now().UnixMilli(),
+	})
+	require.NoError(h.t, err)
 }
 
 // SetupAnalyticsOption configures analytics settings for [Harness.SetupAnalytics].

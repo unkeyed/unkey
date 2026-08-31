@@ -6,7 +6,7 @@ import { z } from "zod";
 import { queryClient, trpcClient } from "../client";
 import { DEPLOYMENT_STATUSES } from "./deployment-status";
 import { INSTANCE_STATUSES } from "./instance-status";
-import { validateProjectIdInQuery } from "./utils";
+import { type ParsedFilter, extractStringFilter, validateProjectIdInQuery } from "./utils";
 
 export const deploymentSchema = z.object({
   id: z.string(),
@@ -95,13 +95,6 @@ export type Deployment = z.infer<typeof deploymentSchema>;
 
 export const DEPLOYMENTS_DEFAULT_LIMIT = 100;
 
-type ParsedFilter = { field: Array<string | number>; operator: string; value?: unknown };
-
-function extractStringFilter(filters: ParsedFilter[], fieldName: string, operator: string) {
-  const value = filters.find((f) => f.field.at(-1) === fieldName && f.operator === operator)?.value;
-  return typeof value === "string" ? value : undefined;
-}
-
 function extractNumberFilter(filters: ParsedFilter[], fieldName: string, operator: string) {
   const value = filters.find((f) => f.field.at(-1) === fieldName && f.operator === operator)?.value;
   return typeof value === "number" ? value : undefined;
@@ -118,8 +111,8 @@ export const deployments = createCollection<Deployment, string>(
     queryClient,
     queryKey: (opts) => {
       const { filters } = parseLoadSubsetOptions(opts);
-      const projectId = extractStringFilter(filters, "projectId", "eq");
-      const appId = extractStringFilter(filters, "appId", "eq");
+      const projectId = extractStringFilter(filters, "projectId");
+      const appId = extractStringFilter(filters, "appId");
       const startTime = extractNumberFilter(filters, "createdAt", "gte");
       const endTime = extractNumberFilter(filters, "createdAt", "lte");
       return projectId
@@ -133,13 +126,13 @@ export const deployments = createCollection<Deployment, string>(
 
       validateProjectIdInQuery(options?.where);
       const { filters } = parseLoadSubsetOptions(options);
-      const projectId = extractStringFilter(filters, "projectId", "eq");
+      const projectId = extractStringFilter(filters, "projectId");
 
       if (!projectId) {
         throw new Error("Query must include eq(collection.projectId, projectId) constraint");
       }
 
-      const appId = extractStringFilter(filters, "appId", "eq");
+      const appId = extractStringFilter(filters, "appId");
       const startTime = extractNumberFilter(filters, "createdAt", "gte");
       const endTime = extractNumberFilter(filters, "createdAt", "lte");
 

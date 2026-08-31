@@ -16,6 +16,7 @@ import (
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/auditlog"
 	"github.com/unkeyed/unkey/pkg/deploy/deployfail"
+	"github.com/unkeyed/unkey/pkg/deploy/imageref"
 	githubclient "github.com/unkeyed/unkey/pkg/github"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/uid"
@@ -24,6 +25,7 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/internal/actor"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/auth"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/gatefault"
 	"google.golang.org/protobuf/encoding/protojson"
 )
 
@@ -97,50 +99,15 @@ func (s *Service) CreateDeployment(
 		return nil, err
 	}
 
-	if err := s.ensureEnvironmentDeployable(ctx, ctxLoad); err != nil {
-		return nil, err
-	}
-
-	// Entitlement gate, mirroring project creation: cancel clears deploy_plan
-	// but leaves the projects behind, so without this a cancelled (or never
-	// entitled) workspace could keep starting new compute through an existing
-	// project — teardown only stops what it snapshotted. Observe mode (the
-	// default) logs would-block instead of failing.
-	entitlement, err := s.db.FindWorkspaceDeployEntitlement(ctx, ctxLoad.workspaceID)
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal,
-			fmt.Errorf("failed to load workspace entitlement: %w", err))
-	}
-	if !deployEntitled(entitlement.Plan, entitlement.PlanOverride) {
-		if s.enforceDeployGate {
-			return nil, connect.NewError(
-				connect.CodeFailedPrecondition,
-				fmt.Errorf("workspace %q has no Compute plan", ctxLoad.workspaceID),
-			)
-		}
-		logger.Warn("deploy gate would block deployment creation",
-			"event", "deploy_gate.would_block",
-			"workspaceId", ctxLoad.workspaceID,
-			"projectId", req.Msg.GetProjectId(),
-		)
-	}
-
-	keyspaceID := req.Msg.GetKeyspaceId()
-	var keyAuthID *string
-	if keyspaceID != "" {
-		keyAuthID = &keyspaceID
-	}
-
 	deploymentID, err := s.createAndDeploy(ctx, createParams{
-		context:        ctxLoad,
-		dockerImage:    req.Msg.GetDockerImage(),
-		gitCommit:      req.Msg.GetGitCommit(),
-		keyAuthID:      keyAuthID,
-		command:        req.Msg.GetCommand(),
-		trigger:        triggerFromProto(req.Msg.GetTrigger()),
-		triggeredBy:    req.Msg.GetTriggeredBy(),
-		triggerReason:  req.Msg.GetTriggerReason(),
-		spendSuspended: entitlement.SpendSuspended.Bool,
+		context:       ctxLoad,
+		action:        "create",
+		dockerImage:   req.Msg.GetDockerImage(),
+		gitCommit:     req.Msg.GetGitCommit(),
+		command:       req.Msg.GetCommand(),
+		trigger:       triggerFromProto(req.Msg.GetTrigger()),
+		triggeredBy:   req.Msg.GetTriggeredBy(),
+		triggerReason: req.Msg.GetTriggerReason(),
 	})
 	if err != nil {
 		return nil, err
@@ -178,7 +145,7 @@ func (s *Service) ensureEnvironmentDeployable(ctx context.Context, dctx deployme
 
 	regional, err := s.db.FindAppRegionalSettingsByAppAndEnv(ctx, db.FindAppRegionalSettingsByAppAndEnvParams{
 		AppID:         dctx.app.ID,
-		EnvironmentID: dctx.env.Environment.ID,
+		EnvironmentID: dctx.env.ID,
 	})
 	if err != nil {
 		return connect.NewError(connect.CodeInternal, fmt.Errorf("failed to load regional settings: %w", err))
@@ -191,7 +158,7 @@ func (s *Service) ensureEnvironmentDeployable(ctx context.Context, dctx deployme
 		return nil
 	}
 	return connect.NewError(connect.CodeFailedPrecondition,
-		fmt.Errorf("environment %q is not deployable: %s", dctx.env.Environment.Slug, strings.Join(messages, "; ")))
+		fmt.Errorf("environment %q is not deployable: %s", dctx.env.Slug, strings.Join(messages, "; ")))
 }
 
 // recordCreateAudit writes a deployment.create audit log attributed to the
@@ -225,7 +192,7 @@ func (s *Service) recordCreateAudit(
 					Meta: map[string]any{
 						"projectId":   dctx.project.ID,
 						"appId":       dctx.app.ID,
-						"environment": dctx.env.Environment.Slug,
+						"environment": dctx.env.Slug,
 					},
 				},
 			},
@@ -239,11 +206,40 @@ func (s *Service) recordCreateAudit(
 type deploymentContext struct {
 	project            db.Project
 	workspaceID        string
-	env                db.FindEnvironmentByAppIdAndSlugRow
-	app                db.App
-	appBuildSettings   db.AppBuildSetting
-	appRuntimeSettings db.AppRuntimeSetting
+	env                deploymentEnvironment
+	app                deploymentApp
+	appBuildSettings   appBuildSettings
+	appRuntimeSettings appRuntimeSettings
 	secretsBlob        []byte
+}
+
+type deploymentEnvironment struct {
+	ID   string
+	Slug string
+}
+
+type deploymentApp struct {
+	ID                  string
+	DefaultBranch       string
+	CurrentDeploymentID sql.NullString
+}
+
+type appBuildSettings struct {
+	Dockerfile    sql.NullString
+	DockerContext string
+	BuildCommand  sql.NullString
+}
+
+type appRuntimeSettings struct {
+	Port             int32
+	CpuMillicores    int32
+	MemoryMib        int32
+	StorageMib       uint32
+	Command          mysqltype.StringSlice
+	Healthcheck      mysqltype.NullHealthcheck
+	ShutdownSignal   db.AppRuntimeSettingsShutdownSignal
+	UpstreamProtocol db.AppRuntimeSettingsUpstreamProtocol
+	SentinelConfig   []byte
 }
 
 // loadDeploymentContext resolves project, app, environment, settings, and
@@ -278,7 +274,7 @@ func (s *Service) loadDeploymentContext(
 
 	appWithSettings, err := s.db.FindAppWithSettings(ctx, db.FindAppWithSettingsParams{
 		ID:            appID,
-		EnvironmentID: env.Environment.ID,
+		EnvironmentID: env.ID,
 	})
 	if err != nil && db.IsNotFound(err) {
 		return deploymentContext{}, connect.NewError(connect.CodeNotFound,
@@ -289,23 +285,20 @@ func (s *Service) loadDeploymentContext(
 			fmt.Errorf("failed to lookup app: %w", err))
 	}
 
-	// All three records are resolved independently, so verify they belong to
-	// the same project before letting a deployment row inherit a mismatched
-	// (project_id, app_id, environment_id) triple. External entry points
-	// (v2 API, webhook, dashboard) already guarantee this via workspace-scoped
-	// joins; the guard catches future internal callers that pass IDs directly.
-	if appWithSettings.App.ProjectID != project.ID {
+	// These records are resolved independently, so verify their ownership
+	// before persisting a mismatched project/app/environment tuple.
+	if appWithSettings.AppProjectID != project.ID {
 		return deploymentContext{}, connect.NewError(connect.CodeInvalidArgument,
 			fmt.Errorf("app %q does not belong to project %q", appID, project.ID))
 	}
-	if env.Environment.ProjectID != project.ID {
+	if env.ProjectID != project.ID {
 		return deploymentContext{}, connect.NewError(connect.CodeInvalidArgument,
 			fmt.Errorf("environment %q does not belong to project %q", envSlug, project.ID))
 	}
 
 	appEnvVars, err := s.db.FindAppEnvVarsByAppAndEnv(ctx, db.FindAppEnvVarsByAppAndEnvParams{
-		AppID:         appWithSettings.App.ID,
-		EnvironmentID: env.Environment.ID,
+		AppID:         appWithSettings.AppID,
+		EnvironmentID: env.ID,
 	})
 	if err != nil {
 		return deploymentContext{}, connect.NewError(connect.CodeInternal,
@@ -333,60 +326,63 @@ func (s *Service) loadDeploymentContext(
 	}
 
 	return deploymentContext{
-		project:            project,
-		workspaceID:        project.WorkspaceID,
-		env:                env,
-		app:                appWithSettings.App,
-		appBuildSettings:   appWithSettings.AppBuildSetting,
-		appRuntimeSettings: appWithSettings.AppRuntimeSetting,
-		secretsBlob:        secretsBlob,
+		project:     project,
+		workspaceID: project.WorkspaceID,
+		env:         deploymentEnvironment{ID: env.ID, Slug: envSlug},
+		app: deploymentApp{
+			ID:                  appWithSettings.AppID,
+			DefaultBranch:       appWithSettings.AppDefaultBranch,
+			CurrentDeploymentID: appWithSettings.AppCurrentDeploymentID,
+		},
+		appBuildSettings: appBuildSettings{
+			Dockerfile: appWithSettings.BuildSettingsDockerfile, DockerContext: appWithSettings.BuildSettingsDockerContext,
+			BuildCommand: appWithSettings.BuildSettingsBuildCommand,
+		},
+		appRuntimeSettings: appRuntimeSettings{
+			Port: appWithSettings.RuntimeSettingsPort, CpuMillicores: appWithSettings.RuntimeSettingsCpuMillicores,
+			MemoryMib: appWithSettings.RuntimeSettingsMemoryMib, StorageMib: appWithSettings.RuntimeSettingsStorageMib,
+			Command: appWithSettings.RuntimeSettingsCommand, Healthcheck: appWithSettings.RuntimeSettingsHealthcheck,
+			ShutdownSignal: appWithSettings.RuntimeSettingsShutdownSignal, UpstreamProtocol: appWithSettings.RuntimeSettingsUpstreamProtocol,
+			SentinelConfig: appWithSettings.RuntimeSettingsSentinelConfig,
+		},
+		secretsBlob: secretsBlob,
 	}, nil
 }
 
 // createParams carries everything createAndDeploy needs from a caller.
 type createParams struct {
 	context deploymentContext
+	action  string
 
 	// Source overrides. dockerImage wins if set; otherwise we auto-detect
 	// from git repo connection (using gitCommit.commit_sha if provided) or
 	// fall back to the live deployment's image.
 	dockerImage string
 	gitCommit   *ctrlv1.GitCommitInfo
-	keyAuthID   *string
 	command     []string
 
 	// Attribution persisted on the deployment row.
 	trigger       db.DeploymentsTrigger
 	triggeredBy   string
 	triggerReason string
-
-	// spendSuspended blocks starting compute when the workspace hit its
-	// Compute spend cap. Gated here rather than at each RPC because both
-	// CreateDeployment and the ops Rebuild path start compute through
-	// createAndDeploy, and Rebuild must not resurrect suspended compute.
-	spendSuspended bool
 }
 
 // createAndDeploy is the shared path used by both CreateDeployment and
-// RebuildDeployment. It resolves the source (docker image / git / fallback),
-// inserts the deployment row, kicks off the Restate workflow, persists the
-// invocation id, and cancels superseded siblings.
+// RebuildDeployment. It checks workspace access and environment deployability,
+// resolves the source (docker image / git / fallback), inserts the deployment
+// row, kicks off the Restate workflow, persists the invocation id, and cancels
+// superseded siblings.
 func (s *Service) createAndDeploy(ctx context.Context, p createParams) (string, error) {
+	c := p.context
+	if err := s.ensureWorkspaceCanDeploy(ctx, c.workspaceID, p.action); err != nil {
+		return "", err
+	}
+	if err := s.ensureEnvironmentDeployable(ctx, c); err != nil {
+		return "", err
+	}
+
 	deploymentID := uid.New(uid.DeploymentPrefix)
 	now := time.Now().UnixMilli()
-
-	c := p.context
-
-	// Spend-cap gate, unconditional (no observe mode): the workspace opted
-	// into stopping at its budget and the spend check tore its compute down.
-	// Starting compute now would restart what the suspension deliberately
-	// stopped and keep accruing spend past the cap.
-	if p.spendSuspended {
-		return "", connect.NewError(
-			connect.CodeFailedPrecondition,
-			fmt.Errorf("workspace %q is suspended by its Compute spend cap; raise the budget to resume", c.workspaceID),
-		)
-	}
 
 	// Per-request command override (CLI/API) wins over the app's stored
 	// default. Persisting only the default would mean the row disagrees with
@@ -425,6 +421,10 @@ func (s *Service) createAndDeploy(ctx context.Context, p createParams) (string, 
 
 	switch {
 	case p.dockerImage != "":
+		if err := imageref.Validate(p.dockerImage); err != nil {
+			return "", gatefault.ConnectWith(connect.CodeInvalidArgument, err)
+		}
+
 		// Explicit docker image (CLI, REST API): skip rebuild, redeploy as-is.
 		// Don't touch git metadata — the caller owns whatever they passed.
 		logger.Info("deployment will use prebuilt image",
@@ -434,7 +434,6 @@ func (s *Service) createAndDeploy(ctx context.Context, p createParams) (string, 
 
 		deployReq = &hydrav1.DeployRequest{
 			DeploymentId: deploymentID,
-			KeyAuthId:    p.keyAuthID,
 			Command:      command,
 			Source: &hydrav1.DeployRequest_DockerImage{
 				DockerImage: &hydrav1.DockerImage{
@@ -476,7 +475,6 @@ func (s *Service) createAndDeploy(ctx context.Context, p createParams) (string, 
 		}
 		deployReq = &hydrav1.DeployRequest{
 			DeploymentId: deploymentID,
-			KeyAuthId:    p.keyAuthID,
 			Command:      command,
 			Source: &hydrav1.DeployRequest_Git{
 				Git: &hydrav1.GitSource{
@@ -496,7 +494,7 @@ func (s *Service) createAndDeploy(ctx context.Context, p createParams) (string, 
 	default:
 		// No docker image, no git commit, no repo connection: reuse current
 		// deployment's image.
-		dockerInfo, dockerErr := buildDockerSource(ctx, s.db, c.app, deploymentID)
+		dockerInfo, dockerErr := buildDockerSource(ctx, s.db, c.app.ID, c.app.CurrentDeploymentID, deploymentID)
 		if dockerErr != nil {
 			return "", dockerErr
 		}
@@ -504,7 +502,6 @@ func (s *Service) createAndDeploy(ctx context.Context, p createParams) (string, 
 
 		deployReq = &hydrav1.DeployRequest{
 			DeploymentId: deploymentID,
-			KeyAuthId:    p.keyAuthID,
 			Command:      command,
 			Source: &hydrav1.DeployRequest_DockerImage{
 				DockerImage: &hydrav1.DockerImage{
@@ -529,7 +526,7 @@ func (s *Service) createAndDeploy(ctx context.Context, p createParams) (string, 
 		WorkspaceID:                   c.workspaceID,
 		ProjectID:                     c.project.ID,
 		AppID:                         c.app.ID,
-		EnvironmentID:                 c.env.Environment.ID,
+		EnvironmentID:                 c.env.ID,
 		SentinelConfig:                c.appRuntimeSettings.SentinelConfig,
 		EncryptedEnvironmentVariables: c.secretsBlob,
 		Command:                       command,
@@ -566,7 +563,7 @@ func (s *Service) createAndDeploy(ctx context.Context, p createParams) (string, 
 		"workspace_id", c.workspaceID,
 		"project_id", c.project.ID,
 		"app_id", c.app.ID,
-		"environment", c.env.Environment.ID,
+		"environment", c.env.ID,
 		"trigger", string(trigger),
 	)
 
@@ -613,7 +610,7 @@ func (s *Service) createAndDeploy(ctx context.Context, p createParams) (string, 
 	if cancelErr := s.dedup.CancelOlderSiblings(ctx, dedup.Newer{
 		ID:            deploymentID,
 		AppID:         c.app.ID,
-		EnvironmentID: c.env.Environment.ID,
+		EnvironmentID: c.env.ID,
 		GitBranch:     commit.Branch,
 		CreatedAt:     now,
 	}); cancelErr != nil {
@@ -662,19 +659,20 @@ func defaultBranch(appDefault string) string {
 func buildDockerSource(
 	ctx context.Context,
 	database db.Database,
-	app db.App,
+	appID string,
+	currentDeploymentID sql.NullString,
 	deploymentID string,
 ) (dockerSourceInfo, error) {
-	if !app.CurrentDeploymentID.Valid || app.CurrentDeploymentID.String == "" {
+	if !currentDeploymentID.Valid || currentDeploymentID.String == "" {
 		return dockerSourceInfo{}, connect.NewError(connect.CodeFailedPrecondition,
-			fmt.Errorf("app %q has no current deployment and no git connection; cannot redeploy", app.ID))
+			fmt.Errorf("app %q has no current deployment and no git connection; cannot redeploy", appID))
 	}
 
-	currentDeployment, err := database.FindDeploymentById(ctx, app.CurrentDeploymentID.String)
+	currentDeployment, err := database.FindDeploymentById(ctx, currentDeploymentID.String)
 	if err != nil {
 		if db.IsNotFound(err) {
 			return dockerSourceInfo{}, connect.NewError(connect.CodeNotFound,
-				fmt.Errorf("current deployment %q not found", app.CurrentDeploymentID.String))
+				fmt.Errorf("current deployment %q not found", currentDeploymentID.String))
 		}
 		return dockerSourceInfo{}, connect.NewError(connect.CodeInternal,
 			fmt.Errorf("failed to lookup current deployment: %w", err))
@@ -683,12 +681,12 @@ func buildDockerSource(
 	if !currentDeployment.Image.Valid || currentDeployment.Image.String == "" {
 		return dockerSourceInfo{}, connect.NewError(connect.CodeFailedPrecondition,
 			fmt.Errorf("current deployment %q has no Docker image; cannot redeploy without git connection",
-				app.CurrentDeploymentID.String))
+				currentDeploymentID.String))
 	}
 
 	logger.Info("deployment will reuse current deployment image",
 		"deployment_id", deploymentID,
-		"current_deployment_id", app.CurrentDeploymentID.String,
+		"current_deployment_id", currentDeploymentID.String,
 		"image", currentDeployment.Image.String)
 
 	return dockerSourceInfo{

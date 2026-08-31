@@ -19,6 +19,7 @@ func TestMapPolicyFromProtoVariants(t *testing.T) {
 			Config: &frontlinev1.Policy_Keyauth{Keyauth: &frontlinev1.KeyAuth{
 				KeySpaceIds:     []string{"ks_1", "ks_2"},
 				PermissionQuery: proto.String("documents.read"),
+				Credits:         proto.Int64(0),
 				Locations: []*frontlinev1.KeyLocation{
 					{Location: &frontlinev1.KeyLocation_Bearer{Bearer: &frontlinev1.BearerTokenLocation{}}},
 					{Location: &frontlinev1.KeyLocation_Header{Header: &frontlinev1.HeaderKeyLocation{Name: "X-Api-Key", StripPrefix: "Key "}}},
@@ -38,6 +39,7 @@ func TestMapPolicyFromProtoVariants(t *testing.T) {
 		require.NotNil(t, got.Keyauth)
 		require.Equal(t, []string{"ks_1", "ks_2"}, got.Keyauth.Keyspaces)
 		require.Equal(t, ptr.P("documents.read"), got.Keyauth.PermissionQuery)
+		require.Equal(t, ptr.P(int64(0)), got.Keyauth.Credits)
 
 		locations := ptr.SafeDeref(got.Keyauth.Locations)
 		require.Len(t, locations, 3)
@@ -66,6 +68,7 @@ func TestMapPolicyFromProtoVariants(t *testing.T) {
 		require.Nil(t, got.Keyauth.Locations)
 		require.Nil(t, got.Keyauth.Ratelimits)
 		require.Nil(t, got.Keyauth.PermissionQuery)
+		require.Nil(t, got.Keyauth.Credits)
 	})
 
 	t.Run("unset enabled maps to false", func(t *testing.T) {
@@ -136,9 +139,52 @@ func TestMapPolicyFromProtoVariants(t *testing.T) {
 				require.NotNil(t, got.Ratelimit)
 				require.Equal(t, int64(100), got.Ratelimit.Limit)
 				require.Equal(t, int64(60000), got.Ratelimit.WindowMs)
-				tc.check(t, got.Ratelimit.Identifier)
+				// The deprecated stored single identifier renders as a
+				// one-entry identifiers array in responses.
+				require.Nil(t, got.Ratelimit.Identifier)
+				require.NotNil(t, got.Ratelimit.Identifiers)
+				identifiers := *got.Ratelimit.Identifiers
+				require.Len(t, identifiers, 1)
+				tc.check(t, identifiers[0])
 			})
 		}
+	})
+
+	t.Run("compound ratelimit identifiers render as a list", func(t *testing.T) {
+		got, err := PolicyFromProto(&frontlinev1.Policy{
+			Id:      "pol_1",
+			Name:    "rl",
+			Enabled: proto.Bool(true),
+			Config: &frontlinev1.Policy_Ratelimit{Ratelimit: &frontlinev1.RateLimit{
+				Limit:    100,
+				WindowMs: 60000,
+				Identifiers: []*frontlinev1.RateLimitIdentifier{
+					{Source: &frontlinev1.RateLimitIdentifier_AuthenticatedSubject{AuthenticatedSubject: &frontlinev1.AuthenticatedSubjectKey{}}},
+					{Source: &frontlinev1.RateLimitIdentifier_Path{Path: &frontlinev1.PathKey{}}},
+				},
+			}},
+		})
+		require.NoError(t, err)
+		require.NotNil(t, got.Ratelimit)
+		require.Nil(t, got.Ratelimit.Identifier)
+		require.NotNil(t, got.Ratelimit.Identifiers)
+		identifiers := *got.Ratelimit.Identifiers
+		require.Len(t, identifiers, 2)
+		require.NotNil(t, identifiers[0].AuthenticatedSubject)
+		require.NotNil(t, identifiers[1].Path)
+	})
+
+	t.Run("ratelimit without any identifier is unmappable", func(t *testing.T) {
+		_, err := PolicyFromProto(&frontlinev1.Policy{
+			Id:      "pol_1",
+			Name:    "rl",
+			Enabled: proto.Bool(true),
+			Config: &frontlinev1.Policy_Ratelimit{Ratelimit: &frontlinev1.RateLimit{
+				Limit:    100,
+				WindowMs: 60000,
+			}},
+		})
+		require.Error(t, err)
 	})
 
 	t.Run("firewall action renders by enum name", func(t *testing.T) {
@@ -150,6 +196,21 @@ func TestMapPolicyFromProtoVariants(t *testing.T) {
 		})
 		require.NoError(t, err)
 		require.Equal(t, openapi.FirewallPolicyAction("ACTION_DENY"), got.Firewall.Action)
+	})
+
+	t.Run("logging maps to empty object", func(t *testing.T) {
+		got, err := PolicyFromProto(&frontlinev1.Policy{
+			Id:      "pol_1",
+			Name:    "log-everything",
+			Enabled: proto.Bool(true),
+			Config:  &frontlinev1.Policy_Logging{Logging: &frontlinev1.Logging{}},
+		})
+		require.NoError(t, err)
+		require.NotNil(t, got.Logging)
+		require.Nil(t, got.Keyauth)
+		require.Nil(t, got.Ratelimit)
+		require.Nil(t, got.Firewall)
+		require.Nil(t, got.Openapi)
 	})
 
 	t.Run("jwtauth is unmappable", func(t *testing.T) {

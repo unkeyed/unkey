@@ -3,6 +3,7 @@ package handler_test
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"testing"
@@ -67,17 +68,21 @@ func TestSuccess(t *testing.T) {
 
 	// Create test identities
 	identity1ExternalID := "test_user_1"
+	identity1Meta, err := json.Marshal(map[string]string{"role": "admin"})
+	require.NoError(t, err)
 	identity1 := h.CreateIdentity(seed.CreateIdentityRequest{
 		WorkspaceID: workspace.ID,
 		ExternalID:  identity1ExternalID,
-		Meta:        []byte(`{"role": "admin"}`),
+		Meta:        identity1Meta,
 	})
 
 	identity2ExternalID := "test_user_2"
+	identity2Meta, err := json.Marshal(map[string]string{"role": "user"})
+	require.NoError(t, err)
 	identity2 := h.CreateIdentity(seed.CreateIdentityRequest{
 		WorkspaceID: workspace.ID,
 		ExternalID:  identity2ExternalID,
-		Meta:        []byte(`{"role": "user"}`),
+		Meta:        identity2Meta,
 	})
 
 	// Create test keys with various configurations
@@ -85,34 +90,40 @@ func TestSuccess(t *testing.T) {
 	encryptedKeys := make(map[string]string) // keyID -> plaintext
 
 	// Key 1: identity1, production metadata
+	key1Meta, err := json.Marshal(map[string]string{"env": "production", "team": "backend"})
+	require.NoError(t, err)
 	key1 := h.CreateKey(seed.CreateKeyRequest{
 		WorkspaceID: workspace.ID,
 		KeySpaceID:  keySpaceID,
 		Name:        ptr.P("Test Key 1"),
 		IdentityID:  ptr.P(identity1.ID),
-		Meta:        ptr.P(`{"env": "production", "team": "backend"}`),
+		Meta:        ptr.P(string(key1Meta)),
 		Recoverable: true,
 	})
 	encryptedKeys[key1.KeyID] = key1.Key
 
 	// Key 2: identity1, staging metadata
+	key2Meta, err := json.Marshal(map[string]string{"env": "staging"})
+	require.NoError(t, err)
 	key2 := h.CreateKey(seed.CreateKeyRequest{
 		WorkspaceID: workspace.ID,
 		KeySpaceID:  keySpaceID,
 		Name:        ptr.P("Test Key 2"),
 		IdentityID:  ptr.P(identity1.ID),
-		Meta:        ptr.P(`{"env": "staging"}`),
+		Meta:        ptr.P(string(key2Meta)),
 		Recoverable: true,
 	})
 	encryptedKeys[key2.KeyID] = key2.Key
 
 	// Key 3: identity2, development metadata
+	key3Meta, err := json.Marshal(map[string]string{"env": "development"})
+	require.NoError(t, err)
 	key3 := h.CreateKey(seed.CreateKeyRequest{
 		WorkspaceID: workspace.ID,
 		KeySpaceID:  keySpaceID,
 		Name:        ptr.P("Test Key 3"),
 		IdentityID:  ptr.P(identity2.ID),
-		Meta:        ptr.P(`{"env": "development"}`),
+		Meta:        ptr.P(string(key3Meta)),
 		Recoverable: true,
 	})
 	encryptedKeys[key3.KeyID] = key3.Key

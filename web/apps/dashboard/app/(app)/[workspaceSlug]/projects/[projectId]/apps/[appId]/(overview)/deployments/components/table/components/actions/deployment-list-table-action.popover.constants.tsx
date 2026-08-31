@@ -126,7 +126,7 @@ export const DeploymentListTableActions = ({
         ActionComponent: (props) => <CancelDialog {...props} deployment={selectedDeployment} />,
       },
       {
-        id: "sentinel-logs",
+        id: "request-logs",
         label: "Go to requests",
         icon: <ArrowOppositeDirectionY iconSize="md-regular" />,
         onClick: () => {

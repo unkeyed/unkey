@@ -2,7 +2,9 @@
 
 import { useDeployActionGate } from "@/app/(app)/[workspaceSlug]/projects/_components/hooks/use-deploy-action-gate";
 import { queryClient } from "@/lib/collections/client";
-import { trpc } from "@/lib/trpc/client";
+import { ENVIRONMENT_KIND } from "@/lib/collections/deploy/environments";
+import { getErrorMessage, getUnkeyClient } from "@/lib/unkey-client";
+import { useMutation } from "@tanstack/react-query";
 import { Button, toast, useStepWizard } from "@unkey/ui";
 import { useProjectData } from "../../[appId]/(overview)/data-provider";
 
@@ -23,10 +25,20 @@ export const DeployAction = ({
   const { gated, openPaywall, planGate } = useDeployActionGate();
   const { environments } = useProjectData();
   const productionEnvironment = environments.find(
-    (environment) => environment.kind === "production",
+    (environment) => environment.kind === ENVIRONMENT_KIND.production,
   );
 
-  const deploy = trpc.deploy.deployment.create.useMutation({
+  const deploy = useMutation({
+    mutationFn: async (environment: string) => {
+      const res = await getUnkeyClient().deployments.createDeployment({
+        project: projectId,
+        app: appId,
+        environment,
+        // No branch or commitSha: the API builds the app's default branch.
+        git: {},
+      });
+      return { deploymentId: res.data.deploymentId };
+    },
     onSuccess: async (data) => {
       await queryClient.invalidateQueries({ queryKey: ["deployments", projectId] });
       toast.success("Deployment triggered", {
@@ -36,7 +48,7 @@ export const DeployAction = ({
       goTo("deploying");
     },
     onError: (error) => {
-      toast.error("Deployment failed", { description: error.message });
+      toast.error("Deployment failed", { description: getErrorMessage(error) });
     },
   });
 
@@ -50,15 +62,7 @@ export const DeployAction = ({
         disabled={deploy.isLoading || disabled || !productionEnvironment}
         loading={deploy.isLoading}
         onClick={() =>
-          gated
-            ? openPaywall()
-            : productionEnvironment &&
-              deploy.mutate({
-                projectId,
-                appId,
-                environmentSlug: productionEnvironment.slug,
-                source: "default",
-              })
+          gated ? openPaywall() : productionEnvironment && deploy.mutate(productionEnvironment.slug)
         }
       >
         Deploy

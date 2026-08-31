@@ -42,7 +42,7 @@ export const projectRoutes = {
     ...scope
   }: ProjectScope & { appId?: string; deploymentId?: string }): Route {
     return buildRoute("/[workspaceSlug]/projects/[projectId]/logs", projectParams(scope), {
-      appId,
+      appId: appId ? isFilter(appId) : undefined,
       deploymentId: deploymentId ? isFilter(deploymentId) : undefined,
     });
   },
@@ -55,7 +55,7 @@ export const projectRoutes = {
   }: ProjectScope & { since?: string; appId?: string; deploymentId?: string }): Route {
     return buildRoute("/[workspaceSlug]/projects/[projectId]/requests", projectParams(scope), {
       since,
-      appId,
+      appId: appId ? isFilter(appId) : undefined,
       deploymentId: deploymentId ? isFilter(deploymentId) : undefined,
     });
   },
@@ -89,9 +89,9 @@ export const projectRoutes = {
       );
     },
 
-    sentinelPolicies(scope: AppScope): Route {
+    policies(scope: AppScope): Route {
       return buildRoute(
-        "/[workspaceSlug]/projects/[projectId]/apps/[appId]/sentinel-policies",
+        "/[workspaceSlug]/projects/[projectId]/apps/[appId]/policies",
         appParams(scope),
       );
     },
@@ -138,6 +138,6 @@ function appParams({ appId, ...scope }: AppScope) {
  * backends match the id exactly, and the deployment filter UI emits `is`,
  * so links use the same operator to keep filter chips consistent.
  */
-function isFilter(deploymentId: string): `is:${string}` {
-  return `is:${deploymentId}`;
+function isFilter(value: string): `is:${string}` {
+  return `is:${value}`;
 }

@@ -1,6 +1,7 @@
 package deploy
 
 import (
+	"encoding/json"
 	"errors"
 	"os"
 	"path/filepath"
@@ -131,7 +132,11 @@ func TestValidateRailpackPlan(t *testing.T) {
 	require.NoError(t, os.WriteFile(planPath, []byte("not json"), 0o644))
 	require.Error(t, validateRailpackPlan(planPath), "invalid JSON must fail")
 
-	require.NoError(t, os.WriteFile(planPath, []byte(`{"steps":{}}`), 0o644))
+	plan, err := json.Marshal(struct {
+		Steps map[string]any `json:"steps"`
+	}{Steps: map[string]any{}})
+	require.NoError(t, err)
+	require.NoError(t, os.WriteFile(planPath, plan, 0o644))
 	require.NoError(t, validateRailpackPlan(planPath))
 }
 

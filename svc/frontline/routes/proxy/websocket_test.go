@@ -20,6 +20,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/frontline/internal/db"
 	"github.com/unkeyed/unkey/svc/frontline/internal/errorpage"
+	"github.com/unkeyed/unkey/svc/frontline/internal/meta"
 	"github.com/unkeyed/unkey/svc/frontline/internal/proxy"
 	"github.com/unkeyed/unkey/svc/frontline/internal/router"
 	"github.com/unkeyed/unkey/svc/frontline/middleware"
@@ -95,13 +96,17 @@ func startFrontline(t *testing.T, backendAddr string) (string, func()) {
 	t.Helper()
 
 	transports := proxy.NewTransportRegistry()
+	clk := clock.New()
+	metadata, err := meta.New(testMetadataSigningKey)
+	require.NoError(t, err)
 	proxySvc, err := proxy.New(proxy.Config{
 		InstanceID:          "test-instance",
 		Platform:            "test",
 		Region:              "test",
 		ApexDomain:          "test.local",
-		Clock:               clock.New(),
+		Clock:               clk,
 		MaxHops:             3,
+		Metadata:            metadata,
 		MaxIdleConns:        0,
 		IdleConnTimeout:     0,
 		TLSHandshakeTimeout: 0,
@@ -130,13 +135,15 @@ func startFrontline(t *testing.T, backendAddr string) (string, func()) {
 		},
 		ProxyService: proxySvc,
 		Engine:       nil,
-		Clock:        clock.New(),
+		Clock:        clk,
+		Metadata:     metadata,
 	}
 
 	zenSrv, err := zen.New(zen.Config{
 		ReadTimeout:        -1,
 		WriteTimeout:       -1,
 		MaxRequestBodySize: 0,
+		StreamRequestBody:  true,
 	})
 	require.NoError(t, err)
 	// Mirror the production middleware chain in svc/frontline/routes/register.go.

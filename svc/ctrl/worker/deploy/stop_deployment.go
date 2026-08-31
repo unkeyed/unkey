@@ -5,6 +5,7 @@ import (
 
 	restate "github.com/restatedev/sdk-go"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
+	"github.com/unkeyed/unkey/pkg/auditlog"
 	"github.com/unkeyed/unkey/pkg/deploy/deploygate"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/gatefault"
@@ -56,6 +57,17 @@ func (w *Workflow) StopDeployment(ctx restate.ObjectContext, req *hydrav1.StopDe
 		})
 	if err != nil {
 		return nil, fmt.Errorf("stop deployment workflow failed: %w", err)
+	}
+
+	if err := w.insertLifecycleAudit(
+		ctx,
+		req.GetActor(),
+		req.GetCorrelationId(),
+		deployment,
+		auditlog.DeploymentStopEvent,
+		fmt.Sprintf("Stopped deployment %s", deploymentID),
+	); err != nil {
+		return nil, fmt.Errorf("insert stop deployment audit log: %w", err)
 	}
 
 	return &hydrav1.StopDeploymentResponse{}, nil

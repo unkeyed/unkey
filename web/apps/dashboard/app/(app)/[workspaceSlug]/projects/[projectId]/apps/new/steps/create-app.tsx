@@ -3,7 +3,7 @@ import { useDeployActionGate } from "@/app/(app)/[workspaceSlug]/projects/_compo
 import { collection } from "@/lib/collections";
 import { trpcClient } from "@/lib/collections/client";
 import { createAppRequestSchema } from "@/lib/collections/deploy/apps";
-import { buildDefaultSettingsMutations } from "@/lib/collections/deploy/environment-settings";
+import { applyDefaultSettings } from "@/lib/collections/deploy/environment-settings";
 import { SERVER_PLACEHOLDER } from "@/lib/collections/deploy/utils";
 import { slugify } from "@/lib/slugify";
 import { trpc } from "@/lib/trpc/client";
@@ -73,12 +73,14 @@ export const CreateAppStep = ({ projectId, onAppCreated }: CreateAppStepProps) =
       try {
         const envs = await trpcClient.deploy.environment.list.query({ projectId });
         const appEnvs = envs.filter((e) => e.appId === appId);
-        const mutations = appEnvs.flatMap((env) =>
-          buildDefaultSettingsMutations(env.id, availableRegions ?? []),
+        // The API rejects a region it cannot schedule to, which would fail the
+        // whole call and leave the new app without settings.
+        const regionNames = (availableRegions ?? [])
+          .filter((r) => r.canSchedule)
+          .map((r) => r.name);
+        await Promise.all(
+          appEnvs.map((env) => applyDefaultSettings(projectId, appId, env.id, regionNames)),
         );
-        if (mutations.length > 0) {
-          await Promise.all(mutations);
-        }
       } catch (err) {
         toast.error("Failed to initialize settings", {
           description: err instanceof Error ? err.message : "An unexpected error occurred",
@@ -111,6 +113,7 @@ export const CreateAppStep = ({ projectId, onAppCreated }: CreateAppStepProps) =
             requirement="required"
             label="App Name"
             className="[&_input:first-of-type]:h-[36px]"
+            autoFocus
             description="A descriptive name for your app."
             data-1p-ignore
             error={errors.name?.message}

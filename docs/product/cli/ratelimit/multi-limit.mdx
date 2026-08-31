@@ -25,7 +25,7 @@ unkey api ratelimit multi-limit [flags]
 
 ## Flags
 
-<ParamField body="--limits-json" type="string" required>
+<ParamField body="--limits" type="JSON string" required>
 JSON array of rate limit check objects. Each object defines an independent rate limit check to perform.
 
 <Expandable title="properties" defaultOpen>
@@ -59,31 +59,32 @@ JSON array of rate limit check objects. Each object defines an independent rate 
 | `--api-url` | string | Override API base URL (default: `https://api.unkey.com`) |
 | `--config` | string | Path to config file (default: `~/.unkey/config.toml`) |
 | `--output` | string | Output format -- use `json` for raw JSON |
+| `--body` | string | Send this JSON string as the request body. You cannot combine it with request-building flags. |
 
 ## Examples
 
 <CodeGroup>
 ```bash Multiple namespace checks
 unkey api ratelimit multi-limit \
-  --limits-json='[{"namespace":"api.requests","identifier":"user_abc123","limit":100,"duration":60000},{"namespace":"auth.login","identifier":"user_abc123","limit":5,"duration":60000}]'
+  --limits='[{"namespace":"api.requests","identifier":"user_abc123","limit":100,"duration":60000},{"namespace":"auth.login","identifier":"user_abc123","limit":5,"duration":60000}]'
 ```
 ```bash Weighted cost checks
 unkey api ratelimit multi-limit \
-  --limits-json='[{"namespace":"api.light_operations","identifier":"user_xyz789","limit":100,"duration":60000,"cost":1},{"namespace":"api.heavy_operations","identifier":"user_xyz789","limit":50,"duration":3600000,"cost":5}]'
+  --limits='[{"namespace":"api.light_operations","identifier":"user_xyz789","limit":100,"duration":60000,"cost":1},{"namespace":"api.heavy_operations","identifier":"user_xyz789","limit":50,"duration":3600000,"cost":5}]'
 ```
 ```bash JSON output for scripting
 unkey api ratelimit multi-limit \
-  --limits-json='[{"namespace":"api.requests","identifier":"user_abc123","limit":100,"duration":60000}]' \
+  --limits='[{"namespace":"api.requests","identifier":"user_abc123","limit":100,"duration":60000}]' \
   --output=json
 ```
 </CodeGroup>
 
 ## Output
 
-Default output shows the request ID with latency, followed by the multi-limit result:
+Default output shows the request ID, followed by the multi-limit result:
 
 ```text
-req_01H9TQPP77V5E48E9SH0BG0ZQX (took 38ms)
+req_01H9TQPP77V5E48E9SH0BG0ZQX
 
 {
   "passed": true,

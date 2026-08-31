@@ -41,6 +41,7 @@ function isPublicRouteHandler(path: string): boolean {
 export default async function proxy(req: NextRequest) {
   const url = req.nextUrl;
 
+  // Preserve the retired domain and route for inbound compatibility.
   if (url.host === "sentinel.new") {
     return NextResponse.redirect("https://app.unkey.com/sentinel-new");
   }

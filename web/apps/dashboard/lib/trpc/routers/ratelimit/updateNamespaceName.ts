@@ -8,7 +8,13 @@ import { workspaceProcedure } from "../../trpc";
 export const updateNamespaceName = workspaceProcedure
   .input(
     z.object({
-      name: z.string().min(3, "namespace names must contain at least 3 characters"),
+      // Bounded to match the ratelimit_namespaces.name column (varchar(512))
+      // and the API. This previously had no maximum at all, so a namespace
+      // could be renamed past what every namespace-taking API call accepts.
+      name: z
+        .string()
+        .min(1, "namespace names must not be empty")
+        .max(512, "namespace names cannot exceed 512 characters"),
       namespaceId: z.string(),
     }),
   )

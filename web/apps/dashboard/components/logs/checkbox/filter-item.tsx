@@ -2,7 +2,7 @@ import { CaretRight } from "@unkey/icons";
 import { Button, Drover, KeyboardButton } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 import type React from "react";
-import { type KeyboardEvent, useCallback, useEffect, useRef, useState } from "react";
+import { type KeyboardEvent, useCallback, useEffect, useRef } from "react";
 
 export type FilterItemConfig = {
   id: string;
@@ -28,8 +28,7 @@ export const FilterItem = ({
   filterCount,
   setActiveFilter,
 }: FilterItemProps) => {
-  // Internal open state, primarily controlled by 'isActive' prop effect
-  const [open, setOpen] = useState(isActive ?? false);
+  const open = isActive ?? false;
   const itemRef = useRef<HTMLDivElement>(null); // Ref for the trigger div
   const contentRef = useRef<HTMLDivElement>(null); // Ref for the DroverContent
 
@@ -79,17 +78,11 @@ export const FilterItem = ({
   // Handler for Drover's open state changes (e.g., clicking outside)
   const handleOpenChange = useCallback(
     (newOpenState: boolean) => {
-      // This function is called when the drover intends to close
-      // (e.g., click outside, Escape press handled internally if not stopped)
-      setOpen(newOpenState); // Keep internal state synced
-
       // If the drover closed AND the parent still thinks it's active,
       // we MUST inform the parent to update its state.
       if (!newOpenState && isActive) {
         setActiveFilter(null);
       }
-      // If it opened via interaction (shouldn't happen if controlled),
-      // or closed when parent already knew, do nothing extra.
     },
     [isActive, setActiveFilter],
   );

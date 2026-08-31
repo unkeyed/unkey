@@ -732,25 +732,6 @@ type AppBuildSetting struct {
 	UpdatedAt     sql.NullInt64         `db:"updated_at"`
 }
 
-type AppRuntimeSetting struct {
-	Pk               uint64                             `db:"pk"`
-	WorkspaceID      string                             `db:"workspace_id"`
-	AppID            string                             `db:"app_id"`
-	EnvironmentID    string                             `db:"environment_id"`
-	Port             int32                              `db:"port"`
-	CpuMillicores    int32                              `db:"cpu_millicores"`
-	MemoryMib        int32                              `db:"memory_mib"`
-	StorageMib       uint32                             `db:"storage_mib"`
-	Command          mysqltype.StringSlice              `db:"command"`
-	Healthcheck      mysqltype.NullHealthcheck          `db:"healthcheck"`
-	ShutdownSignal   AppRuntimeSettingsShutdownSignal   `db:"shutdown_signal"`
-	UpstreamProtocol AppRuntimeSettingsUpstreamProtocol `db:"upstream_protocol"`
-	SentinelConfig   []byte                             `db:"sentinel_config"`
-	OpenapiSpecPath  sql.NullString                     `db:"openapi_spec_path"`
-	CreatedAt        int64                              `db:"created_at"`
-	UpdatedAt        sql.NullInt64                      `db:"updated_at"`
-}
-
 type Certificate struct {
 	Pk                  uint64        `db:"pk"`
 	ID                  string        `db:"id"`
@@ -760,29 +741,6 @@ type Certificate struct {
 	EncryptedPrivateKey string        `db:"encrypted_private_key"`
 	CreatedAt           int64         `db:"created_at"`
 	UpdatedAt           sql.NullInt64 `db:"updated_at"`
-}
-
-type ClickhouseWorkspaceSetting struct {
-	Pk                        uint64        `db:"pk"`
-	WorkspaceID               string        `db:"workspace_id"`
-	Username                  string        `db:"username"`
-	PasswordEncrypted         string        `db:"password_encrypted"`
-	QuotaDurationSeconds      int32         `db:"quota_duration_seconds"`
-	MaxQueriesPerWindow       int32         `db:"max_queries_per_window"`
-	MaxExecutionTimePerWindow int32         `db:"max_execution_time_per_window"`
-	MaxQueryExecutionTime     int32         `db:"max_query_execution_time"`
-	MaxQueryMemoryBytes       int64         `db:"max_query_memory_bytes"`
-	MaxQueryResultRows        int32         `db:"max_query_result_rows"`
-	CreatedAt                 int64         `db:"created_at"`
-	UpdatedAt                 sql.NullInt64 `db:"updated_at"`
-}
-
-type Cluster struct {
-	Pk              uint64         `db:"pk"`
-	ID              string         `db:"id"`
-	CellID          sql.NullString `db:"cell_id"`
-	RegionID        string         `db:"region_id"`
-	LastHeartbeatAt uint64         `db:"last_heartbeat_at"`
 }
 
 type CustomDomain struct {
@@ -856,20 +814,6 @@ type DeploymentChange struct {
 	CreatedAt    int64                         `db:"created_at"`
 }
 
-type DeploymentTopology struct {
-	Pk                         uint64                          `db:"pk"`
-	WorkspaceID                string                          `db:"workspace_id"`
-	DeploymentID               string                          `db:"deployment_id"`
-	RegionID                   string                          `db:"region_id"`
-	AutoscalingReplicasMin     uint32                          `db:"autoscaling_replicas_min"`
-	AutoscalingReplicasMax     uint32                          `db:"autoscaling_replicas_max"`
-	AutoscalingThresholdCpu    sql.NullInt16                   `db:"autoscaling_threshold_cpu"`
-	AutoscalingThresholdMemory sql.NullInt16                   `db:"autoscaling_threshold_memory"`
-	DesiredStatus              DeploymentTopologyDesiredStatus `db:"desired_status"`
-	CreatedAt                  int64                           `db:"created_at"`
-	UpdatedAt                  sql.NullInt64                   `db:"updated_at"`
-}
-
 type Environment struct {
 	Pk               uint64                    `db:"pk"`
 	ID               string                    `db:"id"`
@@ -926,6 +870,31 @@ type Instance struct {
 	ContainerStatus mysqltype.ContainerStatus `db:"container_status"`
 }
 
+type Key struct {
+	Pk                 uint64         `db:"pk"`
+	ID                 string         `db:"id"`
+	KeyAuthID          string         `db:"key_auth_id"`
+	Hash               string         `db:"hash"`
+	Start              string         `db:"start"`
+	WorkspaceID        string         `db:"workspace_id"`
+	ForWorkspaceID     sql.NullString `db:"for_workspace_id"`
+	Name               sql.NullString `db:"name"`
+	IdentityID         sql.NullString `db:"identity_id"`
+	Meta               sql.NullString `db:"meta"`
+	Expires            sql.NullTime   `db:"expires"`
+	CreatedAtM         int64          `db:"created_at_m"`
+	UpdatedAtM         sql.NullInt64  `db:"updated_at_m"`
+	DeletedAtM         sql.NullInt64  `db:"deleted_at_m"`
+	RefillDay          sql.NullInt16  `db:"refill_day"`
+	RefillAmount       sql.NullInt64  `db:"refill_amount"`
+	LastRefillAt       sql.NullTime   `db:"last_refill_at"`
+	Enabled            bool           `db:"enabled"`
+	RemainingRequests  sql.NullInt64  `db:"remaining_requests"`
+	Environment        sql.NullString `db:"environment"`
+	LastUsedAt         uint64         `db:"last_used_at"`
+	PendingMigrationID sql.NullString `db:"pending_migration_id"`
+}
+
 type KeyAuth struct {
 	Pk                 uint64         `db:"pk"`
 	ID                 string         `db:"id"`
@@ -961,14 +930,14 @@ type Limit struct {
 }
 
 type OpenapiSpec struct {
-	Pk             uint64         `db:"pk"`
-	ID             string         `db:"id"`
-	WorkspaceID    string         `db:"workspace_id"`
-	DeploymentID   sql.NullString `db:"deployment_id"`
-	PortalConfigID sql.NullString `db:"portal_config_id"`
-	Content        []byte         `db:"content"`
-	CreatedAt      int64          `db:"created_at"`
-	UpdatedAt      sql.NullInt64  `db:"updated_at"`
+	Pk           uint64         `db:"pk"`
+	ID           string         `db:"id"`
+	WorkspaceID  string         `db:"workspace_id"`
+	DeploymentID sql.NullString `db:"deployment_id"`
+	PortalID     sql.NullString `db:"portal_id"`
+	Content      []byte         `db:"content"`
+	CreatedAt    int64          `db:"created_at"`
+	UpdatedAt    sql.NullInt64  `db:"updated_at"`
 }
 
 type Permission struct {

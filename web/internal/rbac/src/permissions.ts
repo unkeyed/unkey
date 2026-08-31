@@ -1,10 +1,8 @@
 /**
  * The database takes care of isolating roles between workspaces.
- * That's why we can assume the highest scope of a role is an `api` or later `sentinel`
  *
  * role identifiers can look like this:
  * - `api_id.xxx`
- * - `sentinel_id.xxx`
  *
  */
 import { z } from "zod";
@@ -26,6 +24,7 @@ const projectId = buildIdSchema("proj");
 const appId = buildIdSchema("app");
 const environmentId = buildIdSchema("env");
 const workspaceId = buildIdSchema("ws");
+const portalId = buildIdSchema("pc");
 export const apiActions = z.enum([
   "read_api",
   "create_api",
@@ -82,9 +81,18 @@ export const projectActions = z.enum([
   "create_deployment",
   "read_deployment",
   "generate_upload_url",
+  "read_gateway_requests",
+  "read_runtime_logs",
 ]);
 export const appActions = z.enum(["read_app", "update_app", "delete_app", "connect_repository"]);
 export const workspaceActions = z.enum(["install_github"]);
+export const portalActions = z.enum([
+  "create_portal",
+  "read_portal",
+  "update_portal",
+  "delete_portal",
+  "create_portal_session",
+]);
 export const environmentActions = z.enum([
   "read_environment",
   "update_environment",
@@ -102,6 +110,8 @@ export const environmentActions = z.enum([
   "read_policies",
   "create_domain",
   "read_domain",
+  "delete_domain",
+  "verify_domain",
 ]);
 
 // Resources that require an ID (resource.id.action format)
@@ -114,6 +124,7 @@ const scopedResources = {
   app: { idSchema: appId, actionsSchema: appActions },
   environment: { idSchema: environmentId, actionsSchema: environmentActions },
   workspace: { idSchema: workspaceId, actionsSchema: workspaceActions },
+  portal: { idSchema: portalId, actionsSchema: portalActions },
 } as const;
 
 export type Resources = {
@@ -136,6 +147,8 @@ export type Resources = {
   >;
 } & {
   [resourceId in `workspace.${z.infer<typeof workspaceId>}`]: z.infer<typeof workspaceActions>;
+} & {
+  [resourceId in `portal.${z.infer<typeof portalId>}`]: z.infer<typeof portalActions>;
 };
 
 export type UnkeyPermission = Flatten<Resources> | "*";

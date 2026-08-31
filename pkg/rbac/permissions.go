@@ -38,6 +38,10 @@ const (
 	// Environment represents environment resources within an app
 	Environment ResourceType = "environment"
 
+	// Portal represents portal resources, which sit directly under the
+	// workspace rather than under a project or app
+	Portal ResourceType = "portal"
+
 	// Workspace represents workspace-wide operations that are not scoped to any
 	// project, app, or api (e.g. installing the Unkey GitHub App). There is one
 	// workspace per root key, so permissions use the "*" id.
@@ -80,7 +84,7 @@ const (
 	// VerifyKey permits verifying API keys
 	VerifyKey ActionType = "verify_key"
 
-	// ReadAnalytics permits viewing API analytics
+	// ReadAnalytics permits reading the analytics data of a resource with SQL
 	ReadAnalytics ActionType = "read_analytics"
 )
 
@@ -221,6 +225,14 @@ const (
 
 	// DeleteProject permits deleting projects
 	DeleteProject ActionType = "delete_project"
+
+	// ReadGatewayRequests permits reading the gateway request data of a project
+	// with SQL
+	ReadGatewayRequests ActionType = "read_gateway_requests"
+
+	// ReadRuntimeLogs permits reading the runtime logs of a project's
+	// deployments with SQL
+	ReadRuntimeLogs ActionType = "read_runtime_logs"
 )
 
 // Predefined app actions. These constants define operations that can be
@@ -270,6 +282,33 @@ const (
 	CreateDomain ActionType = "create_domain"
 	// ReadDomain permits reading a specific environment's custom domains
 	ReadDomain ActionType = "read_domain"
+	// DeleteDomain permits removing a custom domain from a specific environment
+	DeleteDomain ActionType = "delete_domain"
+	// VerifyDomain permits a restart of verification for the custom domains of a
+	// specific environment
+	VerifyDomain ActionType = "verify_domain"
+)
+
+// Predefined portal actions. These constants define operations that can be
+// performed on portal resources. Session minting is a separate action from
+// portal management, so a key can be allowed to mint portal sessions without
+// gaining the right to change the portals themselves.
+const (
+	// CreatePortal permits creating new portals in the workspace
+	CreatePortal ActionType = "create_portal"
+
+	// ReadPortal permits reading and listing portals
+	ReadPortal ActionType = "read_portal"
+
+	// UpdatePortal permits modifying existing portals
+	UpdatePortal ActionType = "update_portal"
+
+	// DeletePortal permits deleting portals
+	DeletePortal ActionType = "delete_portal"
+
+	// CreatePortalSession permits minting a portal session for an end user of
+	// the portal. It is deliberately distinct from the management actions above.
+	CreatePortalSession ActionType = "create_portal_session"
 )
 
 // Tuple represents a specific permission as a combination of resource type,

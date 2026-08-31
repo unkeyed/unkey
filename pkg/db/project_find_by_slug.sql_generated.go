@@ -10,7 +10,7 @@ import (
 )
 
 const findProjectBySlug = `-- name: FindProjectBySlug :one
-SELECT pk, id, workspace_id, name, slug, depot_project_id, delete_protection, created_at, updated_at
+SELECT projects.pk, projects.id, projects.workspace_id, projects.name, projects.slug, projects.depot_project_id, projects.delete_protection, projects.created_at, projects.updated_at
 FROM projects
 WHERE slug = ?
 LIMIT 1
@@ -18,7 +18,7 @@ LIMIT 1
 
 // FindProjectBySlug
 //
-//	SELECT pk, id, workspace_id, name, slug, depot_project_id, delete_protection, created_at, updated_at
+//	SELECT projects.pk, projects.id, projects.workspace_id, projects.name, projects.slug, projects.depot_project_id, projects.delete_protection, projects.created_at, projects.updated_at
 //	FROM projects
 //	WHERE slug = ?
 //	LIMIT 1

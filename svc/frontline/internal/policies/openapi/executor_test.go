@@ -1,9 +1,11 @@
 package openapi
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
+	"io"
 	"net/http/httptest"
-	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -44,6 +46,13 @@ func newTestExecutor(t *testing.T) *Executor {
 	return e
 }
 
+func jsonBody(t *testing.T, value any) []byte {
+	t.Helper()
+	body, err := json.Marshal(value)
+	require.NoError(t, err)
+	return body
+}
+
 func TestExecute_EmptySpec(t *testing.T) {
 	t.Parallel()
 
@@ -60,22 +69,26 @@ func TestExecute_ValidRequest(t *testing.T) {
 	t.Parallel()
 
 	e := newTestExecutor(t)
-	body := `{"name":"alice"}`
-	req := httptest.NewRequest("POST", "/users", strings.NewReader(body))
+	body := jsonBody(t, map[string]string{"name": "alice"})
+	req := httptest.NewRequest("POST", "/users", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 
 	_, err := e.Execute(context.Background(), nil, req, &frontlinev1.OpenApiRequestValidation{
 		SpecYaml: minimalSpec,
 	})
 	require.NoError(t, err)
+
+	forwardedBody, err := io.ReadAll(req.Body)
+	require.NoError(t, err)
+	require.Equal(t, body, forwardedBody)
 }
 
 func TestExecute_InvalidRequest(t *testing.T) {
 	t.Parallel()
 
 	e := newTestExecutor(t)
-	body := `{"wrong":"field"}`
-	req := httptest.NewRequest("POST", "/users", strings.NewReader(body))
+	body := jsonBody(t, map[string]string{"wrong": "field"})
+	req := httptest.NewRequest("POST", "/users", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 
 	_, err := e.Execute(context.Background(), nil, req, &frontlinev1.OpenApiRequestValidation{
@@ -110,13 +123,13 @@ func TestExecute_CachesCompiledValidator(t *testing.T) {
 	e := newTestExecutor(t)
 	cfg := &frontlinev1.OpenApiRequestValidation{SpecYaml: minimalSpec}
 
-	body := `{"name":"alice"}`
-	req1 := httptest.NewRequest("POST", "/users", strings.NewReader(body))
+	body := jsonBody(t, map[string]string{"name": "alice"})
+	req1 := httptest.NewRequest("POST", "/users", bytes.NewReader(body))
 	req1.Header.Set("Content-Type", "application/json")
 	_, err := e.Execute(context.Background(), nil, req1, cfg)
 	require.NoError(t, err)
 
-	req2 := httptest.NewRequest("POST", "/users", strings.NewReader(body))
+	req2 := httptest.NewRequest("POST", "/users", bytes.NewReader(body))
 	req2.Header.Set("Content-Type", "application/json")
 	_, err = e.Execute(context.Background(), nil, req2, cfg)
 	require.NoError(t, err)
@@ -152,8 +165,8 @@ paths:
         "200":
           description: ok
 `)
-	body := `{"secret":"hide-me","visible":"keep-me"}`
-	req := httptest.NewRequest("POST", "/secrets", strings.NewReader(body))
+	body := jsonBody(t, map[string]string{"secret": "hide-me", "visible": "keep-me"})
+	req := httptest.NewRequest("POST", "/secrets", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 
 	redactor, err := newTestExecutor(t).Execute(context.Background(), nil, req, &frontlinev1.OpenApiRequestValidation{
@@ -161,5 +174,5 @@ paths:
 	})
 	require.NoError(t, err)
 	require.NotNil(t, redactor)
-	require.Equal(t, `{"secret":"[REDACTED]","visible":"keep-me"}`, string(redactor.Redact([]byte(body))))
+	require.Equal(t, `{"secret":"[REDACTED]","visible":"keep-me"}`, string(redactor.Redact(body)))
 }

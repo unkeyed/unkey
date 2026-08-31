@@ -54,8 +54,8 @@ func (s *Service) ReportInstanceEvents(ctx context.Context, req *connect.Request
 	if err != nil {
 		return nil, err
 	}
-	regionName := cluster.Region.Name
-	platform := cluster.Region.Platform
+	regionName := cluster.RegionName
+	platform := cluster.RegionPlatform
 
 	// firstDenormErr holds the first MySQL denorm error encountered. The
 	// loop keeps going past it so every reported event still lands in CH;
@@ -147,7 +147,7 @@ func (s *Service) ReportInstanceEvents(ctx context.Context, req *connect.Request
 			err := s.db.RecordInstanceExit(ctx, db.RecordInstanceExitParams{
 				ContainerStatus: newStatus,
 				K8sName:         event.GetPodName(),
-				RegionID:        cluster.Region.ID,
+				RegionID:        cluster.RegionID,
 				// restart_count appears twice in the WHERE clause — sqlc
 				// emits a separate field per positional placeholder. Same
 				// value passed to both.
@@ -179,7 +179,7 @@ func (s *Service) ReportInstanceEvents(ctx context.Context, req *connect.Request
 			if w.GetReason() == "CrashLoopBackOff" {
 				err := s.db.RecordInstanceCrashLoopBackOff(ctx, db.RecordInstanceCrashLoopBackOffParams{
 					K8sName:      event.GetPodName(),
-					RegionID:     cluster.Region.ID,
+					RegionID:     cluster.RegionID,
 					RestartCount: int64(event.GetRestartCount()),
 				})
 				if err != nil {

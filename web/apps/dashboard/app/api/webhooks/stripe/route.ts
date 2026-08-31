@@ -23,9 +23,11 @@ import {
   isAutomatedBillingRenewal,
   isCardUpdateOnly,
   isPaymentFailureRelatedUpdate,
+  isScheduleUpdateOnly,
 } from "@/lib/stripe/subscriptionUtils";
-import { keepsTeamAfterDelete } from "@/lib/stripe/webhookRouting";
+import { keepsTeamAfterDelete, stripeWebhookResponse } from "@/lib/stripe/webhookRouting";
 import {
+  type SlackPostStatus,
   alertCustomerLifecycle,
   alertInvalidProductQuotaMetadata,
   alertOrphanedDeploySubscription,
@@ -91,9 +93,14 @@ async function sendComputeAlert(
   sub: Stripe.Subscription,
   alert: ComputeLifecycleAlert | null,
   ws: { id: string; name: string } | null,
-): Promise<void> {
-  if (!alert || !sub.customer) {
-    return;
+): Promise<
+  SlackPostStatus | "not_applicable" | "customer_lookup_failed" | "customer_contact_missing"
+> {
+  if (!alert) {
+    return "not_applicable";
+  }
+  if (!sub.customer) {
+    return "customer_contact_missing";
   }
 
   let customer: Stripe.Customer | Stripe.DeletedCustomer;
@@ -106,11 +113,11 @@ async function sendComputeAlert(
       subscriptionId: sub.id,
       error: err instanceof Error ? err.message : err,
     });
-    return;
+    return "customer_lookup_failed";
   }
 
   if (customer.deleted || !customer.email) {
-    return;
+    return "customer_contact_missing";
   }
 
   // Common customer/workspace facts every Compute lifecycle alert renders. ws is null when a
@@ -127,30 +134,27 @@ async function sendComputeAlert(
 
   switch (alert.type) {
     case "created":
-      await alertCustomerLifecycle({
+      return alertCustomerLifecycle({
         ...base,
         action: "signup",
         product: alert.product,
         price: alert.price,
       });
-      break;
     case "cancelling":
-      await alertCustomerLifecycle({
+      return alertCustomerLifecycle({
         ...base,
         action: "cancelling",
         product: alert.product,
         price: alert.price,
       });
-      break;
     case "updated":
-      await alertCustomerLifecycle({
+      return alertCustomerLifecycle({
         ...base,
         action: alert.changeType === "downgraded" ? "downgrade" : "upgrade",
         product: alert.product,
         previousProduct: alert.previousTier,
         price: alert.price,
       });
-      break;
   }
 }
 
@@ -221,14 +225,19 @@ async function deprovisionOnCancel(
 async function linkCheckoutSession(
   stripe: Stripe,
   session: Stripe.Checkout.Session,
-  eventId: string,
+  event: Stripe.Event,
 ): Promise<Response> {
   if (session.mode !== "subscription" || !session.subscription) {
-    return new Response("OK", { status: 200 });
+    return stripeWebhookResponse(event, "checkout_ignored", {
+      reason: "not_subscription_checkout",
+    });
   }
   const productTag = session.metadata?.unkey_product;
   if (productTag !== "api" && productTag !== "compute") {
-    return new Response("OK", { status: 200 });
+    return stripeWebhookResponse(event, "checkout_ignored", {
+      reason: "unknown_product",
+      product: productTag ?? null,
+    });
   }
   const subscriptionId =
     typeof session.subscription === "string" ? session.subscription : session.subscription.id;
@@ -238,16 +247,19 @@ async function linkCheckoutSession(
     // forever; no retry fixes it, so page a human.
     console.error(`${product} checkout link event missing client_reference_id`, {
       sessionId: session.id,
-      eventId,
+      eventId: event.id,
     });
     await alertOrphanedDeploySubscription({
       subscriptionId,
       sessionId: session.id,
-      eventId,
+      eventId: event.id,
       reason: "missing_client_reference_id",
       product,
     });
-    return new Response("OK", { status: 200 });
+    return stripeWebhookResponse(event, "checkout_link_failed", {
+      product,
+      reason: "missing_client_reference_id",
+    });
   }
 
   const linkInput = {
@@ -267,7 +279,7 @@ async function linkCheckoutSession(
   if (!result.ok) {
     console.error(`Failed to link ${product} checkout subscription`, {
       sessionId: session.id,
-      eventId,
+      eventId: event.id,
       reason: result.reason,
     });
     // Either way a paid subscription bills with no workspace attached and
@@ -283,13 +295,20 @@ async function linkCheckoutSession(
         workspaceId: session.client_reference_id,
         subscriptionId,
         sessionId: session.id,
-        eventId,
+        eventId: event.id,
         reason: result.reason,
         product,
       });
     }
+    return stripeWebhookResponse(event, "checkout_link_failed", {
+      product,
+      reason: result.reason,
+    });
   }
-  return new Response("OK", { status: 200 });
+  return stripeWebhookResponse(event, "checkout_linked", {
+    product,
+    alreadyLinked: result.alreadyLinked,
+  });
 }
 
 /**
@@ -442,6 +461,13 @@ export const POST = async (req: Request): Promise<Response> => {
         // its upgrade/downgrade/cancel alert from it, and the API branch below
         // uses it for its skip heuristics and up/downgrade copy.
         const previousAttributes = event.data.previous_attributes;
+
+        // Creating or releasing a schedule leaves the active price and limits
+        // unchanged. The later phase transition carries the item price change
+        // and is reconciled normally.
+        if (isScheduleUpdateOnly(previousAttributes)) {
+          return new Response("OK", { status: 200 });
+        }
 
         // Deploy-matched: mirror the plan, announce the change, and stop. The
         // Deploy subscription never carries API tier/limit state, so there is
@@ -894,11 +920,11 @@ export const POST = async (req: Request): Promise<Response> => {
       try {
         const sub = event.data.object as Stripe.Subscription;
 
-        // One unique-index lookup, then branch by the row's product. A created
-        // event can race ahead of the tRPC/link write that inserts the
-        // billing_subscriptions row, so a no-match is a best-effort no-op:
-        // subscribeDeploy/linkDeploySubscription already write the plan inline,
-        // and a later subscription.updated resyncs.
+        // One unique-index lookup to enrich the alert with workspace details.
+        // This row is not required to classify API/Compute: Stripe creates the
+        // subscription before checkout.session.completed links it, so created
+        // commonly arrives first. The subscription's product metadata is the
+        // race-safe source for the API branch below.
         const subscription = await db.query.billingSubscriptions.findFirst({
           where: (table, { eq }) => eq(table.stripeSubscriptionId, sub.id),
           with: { workspace: { with: { billing: true } } },
@@ -921,35 +947,50 @@ export const POST = async (req: Request): Promise<Response> => {
           if (billing && ws) {
             await mirrorDeployPlan(billing, ws.orgId, sub);
           }
-          await sendComputeAlert(stripe, sub, computeCreatedAlert(sub), ws);
-          return new Response("OK");
+          const slackDelivery = await sendComputeAlert(stripe, sub, computeCreatedAlert(sub), ws);
+          return stripeWebhookResponse(event, "compute_signup_alert_processed", {
+            workspaceLinked: Boolean(ws),
+            slackDelivery,
+          });
         }
 
-        // Not matched to a column yet (the create event raced ahead of the
-        // tRPC/link write). No-op: the inline write set the plan and a later
-        // subscription.updated resyncs. Only an API-matched create alerts, so we
-        // never misfire a Compute create as an API subscription alert.
-        if (column !== "api" || !ws) {
-          return new Response("OK");
+        // The metadata is written into subscription_data by every API Checkout
+        // and exists before the link row. Keep the row check for legacy direct
+        // subscriptions that predate that metadata.
+        if (sub.metadata?.unkey_product !== "api" && column !== "api") {
+          return stripeWebhookResponse(event, "subscription_created_ignored", {
+            reason: "unknown_product",
+            product: sub.metadata?.unkey_product ?? null,
+            workspaceLinked: Boolean(ws),
+          });
         }
 
-        // API-matched: alert on the API plan item.
+        // API-matched: alert on the API plan item, even when the checkout linker
+        // has not written the workspace row yet. In that window the customer,
+        // plan, and price still come directly from Stripe; only workspace name is
+        // omitted.
         const apiContext = await resolveApiSubscriptionContext(stripe, sub);
         if (!apiContext) {
-          return new Response("OK");
+          return stripeWebhookResponse(event, "api_signup_alert_skipped", {
+            reason: "subscription_context_missing",
+            workspaceLinked: Boolean(ws),
+          });
         }
         const { unitAmount, customer, product } = apiContext;
 
         if (customer.deleted || !customer.email) {
-          return new Response("OK");
+          return stripeWebhookResponse(event, "api_signup_alert_skipped", {
+            reason: "customer_contact_missing",
+            workspaceLinked: Boolean(ws),
+          });
         }
 
-        await alertCustomerLifecycle({
+        const slackDelivery = await alertCustomerLifecycle({
           action: "signup",
           name: customer.name || "Unknown",
           email: customer.email,
-          workspaceId: ws.id,
-          workspaceName: ws.name,
+          workspaceId: ws?.id ?? sub.metadata?.workspace_id,
+          workspaceName: ws?.name,
           product: product.name,
           price: formatPrice(unitAmount),
           stripeCustomerId: customer.id,
@@ -958,7 +999,10 @@ export const POST = async (req: Request): Promise<Response> => {
         // Return rather than break so this case can never fall through into
         // invoice.payment_failed below; every other terminus in this case
         // returns too.
-        return new Response("OK");
+        return stripeWebhookResponse(event, "api_signup_alert_processed", {
+          workspaceLinked: Boolean(ws),
+          slackDelivery,
+        });
       } catch (error) {
         console.error("Subscription creation webhook error:", {
           error:
@@ -986,7 +1030,7 @@ export const POST = async (req: Request): Promise<Response> => {
     case "checkout.session.async_payment_succeeded": {
       try {
         const session = event.data.object as Stripe.Checkout.Session;
-        return await linkCheckoutSession(stripe, session, event.id);
+        return await linkCheckoutSession(stripe, session, event);
       } catch (error) {
         console.error("Checkout session link webhook error:", {
           error:

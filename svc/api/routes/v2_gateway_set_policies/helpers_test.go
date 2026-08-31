@@ -2,6 +2,7 @@ package handler_test
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -9,12 +10,15 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	frontlinev1 "github.com/unkeyed/unkey/gen/proto/frontline/v1"
+	"github.com/unkeyed/unkey/pkg/db"
 	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_gateway_set_policies"
+	"google.golang.org/protobuf/encoding/protojson"
 )
 
 func makeRequest(env seededEnv, policies []openapi.Policy) handler.Request {
@@ -80,31 +84,37 @@ func seedEnvironment(t *testing.T, h *testutil.Harness) seededEnv {
 	}
 }
 
-// seedSentinelConfig overwrites the seeded runtime settings row's blob
+// seedSentinelConfig overwrites the seeded runtime settings row's policy blob
 // directly, bypassing the handler, so tests can set up pre-existing state
 // including policy variants the API cannot create. The environment seeder
 // always creates the row (with the legacy "{}" blob).
-func seedSentinelConfig(t *testing.T, h *testutil.Harness, env seededEnv, blob string) {
+func seedSentinelConfig(t *testing.T, h *testutil.Harness, env seededEnv, config *frontlinev1.Config) {
 	t.Helper()
-	_, err := h.DB.RW().ExecContext(context.Background(),
-		"UPDATE app_runtime_settings SET sentinel_config = ? WHERE app_id = ? AND environment_id = ?",
-		blob, env.appID, env.environmentID)
+	blob, err := protojson.Marshal(config)
 	require.NoError(t, err)
+	ctx := context.Background()
+	now := h.Clock.Now().UnixMilli()
+	require.NoError(t, db.Query.UpsertAppRuntimeSettingsPolicyConfig(ctx, h.DB.RW(), db.UpsertAppRuntimeSettingsPolicyConfigParams{
+		WorkspaceID:    env.workspaceID,
+		AppID:          env.appID,
+		EnvironmentID:  env.environmentID,
+		SentinelConfig: blob,
+		CreatedAt:      now,
+		UpdatedAt:      sql.NullInt64{Int64: now, Valid: true},
+	}))
 
-	// MySQL reports 0 affected rows when the value is unchanged, so verify by
-	// reading back instead.
-	require.Equal(t, blob, readStoredBlob(t, h, env))
+	require.Equal(t, string(blob), readStoredBlob(t, h, env))
 }
 
 // readStoredBlob returns the environment's raw sentinel_config bytes.
 func readStoredBlob(t *testing.T, h *testutil.Harness, env seededEnv) string {
 	t.Helper()
-	var blob []byte
-	err := h.DB.RO().QueryRowContext(context.Background(),
-		"SELECT sentinel_config FROM app_runtime_settings WHERE app_id = ? AND environment_id = ?",
-		env.appID, env.environmentID).Scan(&blob)
+	stored, err := db.Query.FindAppRuntimeSettingsByAppAndEnv(context.Background(), h.DB.RO(), db.FindAppRuntimeSettingsByAppAndEnvParams{
+		AppID:         env.appID,
+		EnvironmentID: env.environmentID,
+	})
 	require.NoError(t, err)
-	return string(blob)
+	return string(stored.SentinelConfig)
 }
 
 // readStoredPolicies returns the raw policy documents currently stored for the

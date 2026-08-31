@@ -4,12 +4,15 @@ import (
 	"bytes"
 	"context"
 	"io"
+	"net/http"
+	"time"
 
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/zen"
+	"github.com/unkeyed/unkey/svc/frontline/internal/meta"
 	"github.com/unkeyed/unkey/svc/frontline/internal/policies"
 	"github.com/unkeyed/unkey/svc/frontline/internal/proxy"
 	"github.com/unkeyed/unkey/svc/frontline/internal/router"
@@ -20,6 +23,7 @@ type Handler struct {
 	ProxyService  proxy.Service
 	Engine        policies.Evaluator
 	Clock         clock.Clock
+	Metadata      *meta.Codec
 }
 
 func (h *Handler) Method() string {
@@ -34,18 +38,20 @@ func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 	startTime := h.Clock.Now()
 	ctx = proxy.WithRequestStartTime(ctx, startTime)
 
-	hostname := proxy.ExtractHostname(sess.Request().Host)
-
-	decision, err := h.RouterService.Route(ctx, hostname)
+	req := sess.Request()
+	hops, err := requestHops(req, h.Metadata, startTime)
 	if err != nil {
 		return err
 	}
 
-	if decision.Destination != router.DestinationLocalInstance {
-		return h.ProxyService.ForwardToRegion(ctx, sess, decision.RemoteRegionAddress)
+	hostname := proxy.ExtractHostname(req.Host)
+	decision, err := h.RouterService.Route(ctx, hostname)
+	if err != nil {
+		return err
 	}
-
-	req := sess.Request()
+	if decision.Destination != router.DestinationLocalInstance {
+		return h.ProxyService.ForwardToRegion(ctx, sess, decision.RemoteRegionAddress, hops)
+	}
 
 	// The ClickHouse logging middleware seeds an empty tracking record
 	// before this handler runs. Populate it now that the route resolved;
@@ -77,11 +83,22 @@ func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 	// Evaluate policies before forwarding. The edge middleware has already
 	// stripped any client-supplied X-Unkey-Principal header; if KeyAuth
 	// produces a principal, we set it here for the upstream.
+	//
+	// The base request log row is always written by the ClickHouse logging
+	// middleware. Capturing headers and bodies is opt-in: only an enabled
+	// logging policy that matches the request turns those on. Without one,
+	// body capture below is skipped entirely and the row carries no headers
+	// or bodies.
 	if len(decision.Policies) > 0 && h.Engine != nil {
-		result, evalErr := h.Engine.Evaluate(ctx, sess, req, decision.WorkspaceID, decision.Policies)
+		result, evalErr := h.Engine.Evaluate(ctx, sess, req, decision.WorkspaceID, decision.AppID, decision.Policies)
 		if evalErr != nil {
 			return evalErr
 		}
+		tracking.LogRequestHeaders = result.LogRequestHeaders
+		tracking.LogResponseHeaders = result.LogResponseHeaders
+		tracking.LogRequestBody = result.LogRequestBody
+		tracking.LogResponseBody = result.LogResponseBody
+		tracking.LogQuery = result.LogQuery
 		tracking.BodyRedactors = result.BodyRedactors
 		if result.Principal != nil {
 			principalJSON, serErr := result.Principal.Marshal()
@@ -103,7 +120,7 @@ func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 	// successful attempt drains it and the tee captures from that drain.
 	// The captured body therefore always reflects what the *serving*
 	// instance actually saw.
-	if req.Body != nil {
+	if tracking.LogRequestBody && req.Body != nil {
 		var buf bytes.Buffer
 		req.Body = io.NopCloser(io.TeeReader(req.Body, &zen.LimitedWriter{W: &buf, N: zen.MaxBodyCapture}))
 		defer func() {
@@ -111,6 +128,17 @@ func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 				tracking.RequestBody = buf.Bytes()
 			}
 		}()
+	}
+
+	// Shield the body from being closed between attempts. http.Transport
+	// closes the outgoing request body even when the dial fails, and the
+	// ReverseProxy clone shares this inbound body. With a streaming
+	// (unbuffered) body, that close would poison the retry attempt with
+	// "http: invalid Read on closed Body" even though no bytes were read.
+	// The server closes the real body after the handler returns, so
+	// nothing leaks.
+	if req.Body != nil {
+		req.Body = io.NopCloser(req.Body)
 	}
 
 	// Try each candidate instance in turn. We only move to the next
@@ -153,7 +181,7 @@ func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 	// routing and retry. Without a standby, surface the last dial error.
 	if decision.RemoteRegionAddress != "" {
 		regionFallbacksTotal.WithLabelValues(decision.RemoteRegionAddress).Inc()
-		return h.ProxyService.ForwardToRegion(ctx, sess, decision.RemoteRegionAddress)
+		return h.ProxyService.ForwardToRegion(ctx, sess, decision.RemoteRegionAddress, hops)
 	}
 
 	// forwardErr is nil only when the loop never ran, i.e. LocalInstances
@@ -170,4 +198,32 @@ func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 		)
 	}
 	return forwardErr
+}
+
+// requestHops verifies and removes metadata sent by a peer Frontline. Requests
+// without peer metadata start with an empty hop history.
+func requestHops(req *http.Request, codec *meta.Codec, now time.Time) ([]meta.Hop, error) {
+	values := req.Header.Values(proxy.HeaderFrontlineMeta)
+	if len(values) == 0 {
+		return nil, nil
+	}
+
+	req.Header.Del(proxy.HeaderFrontlineMeta)
+	if len(values) != 1 || values[0] == "" {
+		return nil, nil
+	}
+	if codec == nil {
+		return nil, fault.New("Frontline metadata codec is not configured",
+			fault.Code(codes.Frontline.Internal.InternalServerError.URN()),
+			fault.Public("Service temporarily unavailable"),
+		)
+	}
+	metadata, err := codec.Unmarshal(values[0])
+	if err != nil {
+		return nil, nil
+	}
+	if metadata.ExpiresAt.IsZero() || !now.Before(metadata.ExpiresAt) {
+		return nil, nil
+	}
+	return metadata.Hops, nil
 }

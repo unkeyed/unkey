@@ -3,6 +3,7 @@ package handler_test
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"testing"
@@ -250,10 +251,12 @@ func TestDeleteIdentitySuccess(t *testing.T) {
 		externalID := "stripe_user_12345"
 
 		// Step 1: Create initial identity with "Advanced" tier ratelimit (300k/month)
+		advancedMeta, err := json.Marshal(map[string]string{"tier": "advanced"})
+		require.NoError(t, err)
 		identity1 := h.CreateIdentity(seed.CreateIdentityRequest{
 			WorkspaceID: h.Resources().UserWorkspace.ID,
 			ExternalID:  externalID,
-			Meta:        []byte(`{"tier":"advanced"}`),
+			Meta:        advancedMeta,
 			Ratelimits: []seed.CreateRatelimitRequest{
 				{
 					Name:        "per_month",
@@ -270,10 +273,12 @@ func TestDeleteIdentitySuccess(t *testing.T) {
 		require.Equal(t, 200, res1.Status, "first deletion should succeed")
 
 		// Step 3: Create new identity with "Starter" tier ratelimit (20k/month)
+		starterMeta, err := json.Marshal(map[string]string{"tier": "starter"})
+		require.NoError(t, err)
 		identity2 := h.CreateIdentity(seed.CreateIdentityRequest{
 			WorkspaceID: h.Resources().UserWorkspace.ID,
 			ExternalID:  externalID, // Same externalId
-			Meta:        []byte(`{"tier":"starter"}`),
+			Meta:        starterMeta,
 			Ratelimits: []seed.CreateRatelimitRequest{
 				{
 					Name:        "per_month",

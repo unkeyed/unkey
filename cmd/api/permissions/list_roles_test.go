@@ -4,14 +4,12 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"github.com/unkeyed/unkey/cmd/api/util"
+	"github.com/unkeyed/unkey/cmd/api/internal/testutil"
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
 func TestListRoles(t *testing.T) {
-	listResponse := `{"meta":{"requestId":"test"},"data":[]}`
-
 	tests := []struct {
 		name string
 		args string
@@ -47,11 +45,28 @@ func TestListRoles(t *testing.T) {
 				Cursor: ptr.P("eyJrZXkiOiJyb2xlXzU2NzgifQ=="),
 			},
 		},
+		{
+			name: "with search",
+			args: "permissions list-roles --search=admin",
+			want: openapi.V2PermissionsListRolesRequestBody{
+				Limit:  ptr.P(100),
+				Search: ptr.P("admin"),
+			},
+		},
+		{
+			name: "with all flags",
+			args: "permissions list-roles --limit=25 --cursor=cursor_123 --search=admin",
+			want: openapi.V2PermissionsListRolesRequestBody{
+				Limit:  ptr.P(25),
+				Cursor: ptr.P("cursor_123"),
+				Search: ptr.P("admin"),
+			},
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			req := util.CaptureRequestWithResponse[openapi.V2PermissionsListRolesRequestBody](t, Cmd(), tt.args, listResponse)
+			req := testutil.CaptureRequestWithData[openapi.V2PermissionsListRolesRequestBody](t, Cmd(), tt.args, []any{})
 			require.Equal(t, tt.want, req)
 		})
 	}

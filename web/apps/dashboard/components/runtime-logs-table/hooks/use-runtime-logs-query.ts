@@ -5,10 +5,14 @@ import {
   PAGINATED_LIST_PREFETCH_OPTIONS,
   PAGINATED_LIST_QUERY_OPTIONS,
 } from "@/hooks/use-paginated-list-query";
+import {
+  type RuntimeLogsFilterValue,
+  parseRuntimeLogsAttributeMatch,
+} from "@/lib/schemas/runtime-logs.filter.schema";
 import type { RuntimeLog } from "@/lib/schemas/runtime-logs.schema";
 import { trpc } from "@/lib/trpc/client";
 import { DEFAULT_LOGS_SINCE, getTimestampFromRelative } from "@/lib/utils";
-import { useParams, useSearchParams } from "next/navigation";
+import { useParams } from "next/navigation";
 import { parseAsInteger, useQueryState } from "nuqs";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { attachRowKeys, getLogKey } from "../utils/get-row-class";
@@ -25,6 +29,23 @@ type UseRuntimeLogsQueryParams = {
 const REALTIME_DATA_LIMIT = 100;
 const PREFETCH_PAGES_AHEAD = 2;
 
+function toAttributesQuery(
+  filter: RuntimeLogsFilterValue | undefined,
+):
+  | { operator: "contains"; value: string }
+  | { operator: "is"; path: string; value: string }
+  | null {
+  if (!filter) {
+    return null;
+  }
+  if (filter.operator === "contains") {
+    return { operator: "contains", value: String(filter.value) };
+  }
+
+  const match = parseRuntimeLogsAttributeMatch(String(filter.value));
+  return match ? { operator: "is", ...match } : null;
+}
+
 export function useRuntimeLogsQuery({
   limit = 50,
   startPolling = false,
@@ -33,23 +54,17 @@ export function useRuntimeLogsQuery({
 }: UseRuntimeLogsQueryParams = {}) {
   const params = useParams<{ projectId: string }>();
   const { filters } = useRuntimeLogsFilters();
-  const searchParams = useSearchParams();
-  // Optional ?appId= narrows the project-wide view to a single app.
-  const appId = searchParams.get("appId");
   const queryClient = trpc.useUtils();
 
   const [page, setPage] = useQueryState("page", parseAsInteger.withDefault(1));
   const normalizedPage = Math.max(1, page);
 
-  // Re-anchor the window, reset to page 1, and drop the realtime buffer whenever
-  // the filters, active app, or refresh signal change. `appId` is included
-  // because it also feeds `queryInput`: omitting it would let an app switch fire a
-  // query against the stale page/window, flashing an empty page until the clamp
-  // effect catches up.
+  // A change of the filters or of the refresh signal resets the window anchor,
+  // sets the page to 1, and clears the realtime buffer.
   const resetKey = useMemo(
     () =>
-      `${filters.map((f) => `${f.field}:${f.operator}:${f.value}`).join("|")}|app:${appId ?? ""}|r:${refreshNonce}`,
-    [filters, appId, refreshNonce],
+      `${filters.map((f) => `${f.field}:${f.operator}:${f.value}`).join("|")}|r:${refreshNonce}`,
+    [filters, refreshNonce],
   );
 
   // A reset is pending when the key changed but the effect below hasn't committed
@@ -128,11 +143,16 @@ export function useRuntimeLogsQuery({
       .filter((f) => f.field === "deploymentId")
       .map((f) => String(f.value))
       .filter(Boolean);
+    const appIdFilters = filters
+      .filter((f) => f.field === "appId")
+      .map((f) => String(f.value))
+      .filter(Boolean);
     const messageFilter = filters.find((f) => f.field === "message");
+    const attributesFilter = filters.find((f) => f.field === "attributes");
 
     return {
       projectId: params.projectId,
-      appId: appId ?? null,
+      appId: appIdFilters,
       deploymentId: deploymentIdFilters,
       limit,
       page: effectivePage,
@@ -144,10 +164,11 @@ export function useRuntimeLogsQuery({
       severity: severityFilters.length > 0 ? { filters: severityFilters } : null,
       region: regionFilters.length > 0 ? { filters: regionFilters } : null,
       message: messageFilter ? String(messageFilter.value) : null,
+      attributes: toAttributesQuery(attributesFilter),
       instanceId: instanceIdFilters.length > 0 ? { filters: instanceIdFilters } : null,
       environmentId: environmentIdFilters.length > 0 ? { filters: environmentIdFilters } : null,
     };
-  }, [filters, limit, params.projectId, appId, effectivePage, timeWindow]);
+  }, [filters, limit, params.projectId, effectivePage, timeWindow]);
 
   const { data, isLoading, error, isFetching } = trpc.deploy.runtimeLogs.query.useQuery(
     queryInput,

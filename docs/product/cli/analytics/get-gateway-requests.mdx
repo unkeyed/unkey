@@ -1,0 +1,50 @@
+---
+title: "get-gateway-requests"
+description: "Query gateway request analytics with the Unkey CLI"
+---
+
+Run SQL queries against requests that Unkey routed to your deployments. Queries
+use the `gateway_requests_v1` table and are restricted to the authenticated
+workspace.
+
+## Usage
+
+```bash
+unkey api analytics get-gateway-requests [flags]
+```
+
+## Flags
+
+<ParamField body="--query" type="string" required>
+SQL query to execute against `gateway_requests_v1`. Add a filter on
+`project_id`, `app_id`, or `environment_id` to restrict the results.
+</ParamField>
+
+## Global flags
+
+| Flag | Type | Description |
+|------|------|-------------|
+| `--root-key` | string | Override root key (`$UNKEY_ROOT_KEY`) |
+| `--api-url` | string | Override API base URL (default: `https://api.unkey.com`) |
+| `--config` | string | Path to config file (default: `~/.unkey/config.toml`) |
+| `--output` | string | Output format. Use `json` for raw JSON |
+| `--body` | string | Send this JSON string as the request body. You cannot combine it with request-building flags. |
+
+## Examples
+
+<CodeGroup>
+
+```bash Count requests by project
+unkey api analytics get-gateway-requests \
+  --query="SELECT project_id, COUNT(*) AS total FROM gateway_requests_v1 GROUP BY project_id"
+```
+
+```bash Query recent requests
+unkey api analytics get-gateway-requests \
+  --query="SELECT time, status, latency FROM gateway_requests_v1 WHERE environment_id = 'env_123' ORDER BY time DESC LIMIT 100"
+```
+
+</CodeGroup>
+
+See [Query gateway request analytics](/platform/analytics/get-gateway-requests)
+for the table schema, query restrictions, and more examples.

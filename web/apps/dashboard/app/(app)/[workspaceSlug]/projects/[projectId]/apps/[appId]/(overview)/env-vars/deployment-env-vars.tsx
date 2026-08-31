@@ -14,11 +14,10 @@ import {
 type EnvVarsBodyProps = {
   isAddOpen: boolean;
   onCloseAdd: () => void;
-  panelTopOffset: number;
 };
 
-export function EnvVarsBody({ isAddOpen, onCloseAdd, panelTopOffset }: EnvVarsBodyProps) {
-  const { appId, environments } = useProjectData();
+export function EnvVarsBody({ isAddOpen, onCloseAdd }: EnvVarsBodyProps) {
+  const { projectId, appId, environments } = useProjectData();
   const [searchQuery, setSearchQuery] = useState("");
   const [environmentFilter, setEnvironmentFilter] = useState<EnvironmentFilter>("all");
   const [sortBy, setSortBy] = useState<SortOption>("last-updated");
@@ -30,8 +29,8 @@ export function EnvVarsBody({ isAddOpen, onCloseAdd, panelTopOffset }: EnvVarsBo
   return (
     <>
       <AddEnvVarExpandable
+        projectId={projectId}
         appId={appId}
-        tableDistanceToTop={panelTopOffset}
         isOpen={isAddOpen}
         onClose={onCloseAdd}
       />
@@ -45,6 +44,7 @@ export function EnvVarsBody({ isAddOpen, onCloseAdd, panelTopOffset }: EnvVarsBo
         onSortChange={setSortBy}
       />
       <EnvVarsList
+        projectId={projectId}
         appId={appId}
         environments={environments}
         searchQuery={searchQuery}
@@ -66,11 +66,7 @@ export function DeploymentEnvVars() {
   return (
     <div className="flex flex-col gap-5">
       <EnvVarsHeader isAddOpen={isAddOpen} onToggleAdd={() => setIsAddOpen((prev) => !prev)} />
-      <EnvVarsBody
-        isAddOpen={isAddOpen}
-        onCloseAdd={() => setIsAddOpen(false)}
-        panelTopOffset={0}
-      />
+      <EnvVarsBody isAddOpen={isAddOpen} onCloseAdd={() => setIsAddOpen(false)} />
     </div>
   );
 }

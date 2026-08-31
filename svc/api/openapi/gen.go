@@ -169,12 +169,12 @@ const (
 	VALID                   V2KeysVerifyKeyResponseDataCode = "VALID"
 )
 
-// Defines values for V2PortalCreateSessionRequestBodyPermissions.
+// Defines values for V2PortalCreateSessionRequestBodyScopes.
 const (
-	AnalyticsRead V2PortalCreateSessionRequestBodyPermissions = "analytics:read"
-	KeysCreate    V2PortalCreateSessionRequestBodyPermissions = "keys:create"
-	KeysRead      V2PortalCreateSessionRequestBodyPermissions = "keys:read"
-	KeysReroll    V2PortalCreateSessionRequestBodyPermissions = "keys:reroll"
+	AnalyticsRead V2PortalCreateSessionRequestBodyScopes = "analytics:read"
+	KeysCreate    V2PortalCreateSessionRequestBodyScopes = "keys:create"
+	KeysRead      V2PortalCreateSessionRequestBodyScopes = "keys:read"
+	KeysReroll    V2PortalCreateSessionRequestBodyScopes = "keys:reroll"
 )
 
 // App defines model for App.
@@ -442,7 +442,7 @@ type DeploymentSourceGit struct {
 
 // DeploymentSourceImage Deploy a prebuilt Docker image as-is.
 type DeploymentSourceImage struct {
-	// DockerImage Docker image to deploy as-is.
+	// DockerImage Full image reference to deploy as-is. Qualify the version with a tag (ghcr.io/acme/api:v1.2.3) or with a digest (ghcr.io/acme/api@sha256:...). Without either, the registry serves the latest tag.
 	DockerImage string `json:"dockerImage"`
 }
 
@@ -512,6 +512,11 @@ type Domain struct {
 
 	// Domain Fully qualified domain name attached to the environment.
 	Domain string `json:"domain"`
+
+	// DomainConnect One-click setup at the domain's DNS provider. Omitted entirely when the provider does not support
+	// Domain Connect or discovery failed, so the object's presence is the signal that the shortcut is
+	// available and both of its fields are filled.
+	DomainConnect *DomainConnect `json:"domainConnect,omitempty"`
 
 	// EnvironmentId The environment this domain serves. Traffic to the domain reaches whatever is currently
 	// deployed to this environment.
@@ -948,6 +953,12 @@ type KeyResponseData struct {
 
 // KeyauthPolicy Verifies Unkey API keys on matching requests.
 type KeyauthPolicy struct {
+	// Credits Usage credits a matching request deducts from the verified key. Defaults
+	// to 1. Set to 0 to verify the key without spending credits, or to a higher
+	// value to charge more per request. Keys with unlimited usage are
+	// unaffected.
+	Credits *int64 `json:"credits,omitempty"`
+
 	// Keyspaces Keyspaces to verify keys against, referenced by id. All keyspaces must
 	// belong to your workspace.
 	Keyspaces []string `json:"keyspaces"`
@@ -988,6 +999,35 @@ type KeysVerifyKeyRatelimit struct {
 
 	// Name References an existing ratelimit by its name. Key Ratelimits will take precedence over identifier-based limits.
 	Name string `json:"name"`
+}
+
+// LoggingPolicy Adds request data to the log entries of matching requests. The gateway
+// always records a basic log entry for every request: method, host, path,
+// status, and latency. Each capture setting is a separate opt-in: request
+// headers, response headers, request body, response body, and query data.
+// The policy's `match` expressions select the requests. A policy without
+// `match` expressions matches every request. If more than one enabled
+// logging policy matches a request, the gateway combines their settings.
+// The gateway always redacts the `Authorization` header and configured key
+// locations before it stores headers or query data.
+type LoggingPolicy struct {
+	// Query Capture the query string and query parameters. Query data is a
+	// separate opt-in because URLs can contain secrets, for example
+	// `?api_key=...`.
+	Query *bool `json:"query,omitempty"`
+
+	// RequestBody Capture the request body, up to the capture limit.
+	RequestBody *bool `json:"requestBody,omitempty"`
+
+	// RequestHeaders Capture request headers, the user agent, and the client IP. The user
+	// agent and client IP are included because they identify the client.
+	RequestHeaders *bool `json:"requestHeaders,omitempty"`
+
+	// ResponseBody Capture the response body, up to the capture limit.
+	ResponseBody *bool `json:"responseBody,omitempty"`
+
+	// ResponseHeaders Capture response headers.
+	ResponseHeaders *bool `json:"responseHeaders,omitempty"`
 }
 
 // MatchExpr A single request match expression. Exactly one of `path`, `method`,
@@ -1086,9 +1126,9 @@ type Permission struct {
 	Slug string `json:"slug"`
 }
 
-// Policy A gateway policy. Exactly one of `keyauth`, `ratelimit`, `firewall` or
-// `openapi` must be set. The server generates an id for every policy it
-// stores.
+// Policy A gateway policy. Exactly one of `keyauth`, `ratelimit`, `firewall`,
+// `openapi` or `logging` must be set. The server generates an id for every
+// policy it stores.
 type Policy struct {
 	// Enabled Disabled policies are stored but skipped during evaluation.
 	Enabled bool `json:"enabled"`
@@ -1098,6 +1138,17 @@ type Policy struct {
 
 	// Keyauth Verifies Unkey API keys on matching requests.
 	Keyauth *KeyauthPolicy `json:"keyauth,omitempty"`
+
+	// Logging Adds request data to the log entries of matching requests. The gateway
+	// always records a basic log entry for every request: method, host, path,
+	// status, and latency. Each capture setting is a separate opt-in: request
+	// headers, response headers, request body, response body, and query data.
+	// The policy's `match` expressions select the requests. A policy without
+	// `match` expressions matches every request. If more than one enabled
+	// logging policy matches a request, the gateway combines their settings.
+	// The gateway always redacts the `Authorization` header and configured key
+	// locations before it stores headers or query data.
+	Logging *LoggingPolicy `json:"logging,omitempty"`
 
 	// Match Optional request matchers. The policy applies only to requests matching
 	// all expressions; omit to apply to every request.
@@ -1111,12 +1162,14 @@ type Policy struct {
 	// the policy is a no-op and requests pass through unvalidated.
 	Openapi *OpenapiPolicy `json:"openapi,omitempty"`
 
-	// Ratelimit Rate limits matching requests.
+	// Ratelimit Rate limits matching requests. Set `identifiers` with 1 to 5 sources.
+	// The deprecated `identifier` field is accepted in place of a one-entry
+	// `identifiers` list; set exactly one of the two.
 	Ratelimit *RatelimitPolicy `json:"ratelimit,omitempty"`
 }
 
 // PolicyResponse A stored gateway policy as returned by list endpoints. Exactly one of
-// `keyauth`, `ratelimit`, `firewall` or `openapi` is set.
+// `keyauth`, `ratelimit`, `firewall`, `openapi` or `logging` is set.
 type PolicyResponse struct {
 	// Enabled Disabled policies are stored but skipped during evaluation.
 	Enabled bool `json:"enabled"`
@@ -1130,6 +1183,17 @@ type PolicyResponse struct {
 	// Keyauth Verifies Unkey API keys on matching requests.
 	Keyauth *KeyauthPolicy `json:"keyauth,omitempty"`
 
+	// Logging Adds request data to the log entries of matching requests. The gateway
+	// always records a basic log entry for every request: method, host, path,
+	// status, and latency. Each capture setting is a separate opt-in: request
+	// headers, response headers, request body, response body, and query data.
+	// The policy's `match` expressions select the requests. A policy without
+	// `match` expressions matches every request. If more than one enabled
+	// logging policy matches a request, the gateway combines their settings.
+	// The gateway always redacts the `Authorization` header and configured key
+	// locations before it stores headers or query data.
+	Logging *LoggingPolicy `json:"logging,omitempty"`
+
 	// Match Optional request matchers. The policy applies only to requests matching
 	// all expressions; omitted when the policy applies to every request.
 	Match *[]MatchExpr `json:"match,omitempty"`
@@ -1142,9 +1206,84 @@ type PolicyResponse struct {
 	// the policy is a no-op and requests pass through unvalidated.
 	Openapi *OpenapiPolicy `json:"openapi,omitempty"`
 
-	// Ratelimit Rate limits matching requests.
+	// Ratelimit Rate limits matching requests. Set `identifiers` with 1 to 5 sources.
+	// The deprecated `identifier` field is accepted in place of a one-entry
+	// `identifiers` list; set exactly one of the two.
 	Ratelimit *RatelimitPolicy `json:"ratelimit,omitempty"`
 }
+
+// Portal A portal you expose to your end users so they can manage their own keys.
+//
+// Exactly one of `keyspaceId` or `appId` is present, naming the single resource
+// the portal serves. Neither is in the required list because which one appears
+// depends on the portal, so a reader checks for the one it cares about.
+type Portal struct {
+	// AppId The id of the app this portal serves keys for. Must belong to your workspace.
+	//
+	// A portal serves exactly one resource, so `appId` and `keyspaceId` are mutually
+	// exclusive.
+	AppId *PortalAppId `json:"appId,omitempty"`
+
+	// Branding How the portal looks to your end users. Omitted when no branding is set.
+	Branding *PortalBranding `json:"branding,omitempty"`
+
+	// CreatedAt Unix timestamp in milliseconds when the portal was created.
+	CreatedAt int64 `json:"createdAt"`
+
+	// DisplayName Human-readable name your end users see in the portal header and page
+	// titles. Unlike `slug` it is not part of any URL, so it can be changed
+	// freely.
+	DisplayName string `json:"displayName"`
+
+	// Enabled Whether new sessions can be minted for this portal.
+	//
+	// Disabling a portal stops `portal.createSession` from minting new sessions.
+	// It does not end sessions that are already live.
+	Enabled bool `json:"enabled"`
+
+	// Id The unique identifier of the portal, generated by Unkey.
+	Id string `json:"id"`
+
+	// KeyspaceId The id of the keyspace this portal serves keys for. Must belong to your
+	// workspace.
+	//
+	// A portal serves exactly one resource, so `keyspaceId` and `appId` are
+	// mutually exclusive.
+	KeyspaceId *PortalKeyspaceId `json:"keyspaceId,omitempty"`
+
+	// Slug URL-safe handle for this portal, unique within your workspace.
+	Slug string `json:"slug"`
+
+	// UpdatedAt Unix timestamp in milliseconds when the portal was last changed. Omitted
+	// if it has never been changed since creation.
+	UpdatedAt int64 `json:"updatedAt,omitempty"`
+}
+
+// PortalAppId The id of the app this portal serves keys for. Must belong to your workspace.
+//
+// A portal serves exactly one resource, so `appId` and `keyspaceId` are mutually
+// exclusive.
+type PortalAppId = string
+
+// PortalBranding How the portal looks to your end users. Both fields are optional; a portal
+// with neither set renders with default styling.
+type PortalBranding struct {
+	// LogoUrl Absolute `https://` URL of the logo shown in the portal header.
+	//
+	// Loaded by your end users' browsers, so the host you name receives their IP
+	// and user agent on every page view.
+	LogoUrl string `json:"logoUrl,omitempty"`
+
+	// PrimaryColor Six-digit hex colour used for primary actions and accents in the portal.
+	PrimaryColor string `json:"primaryColor,omitempty"`
+}
+
+// PortalKeyspaceId The id of the keyspace this portal serves keys for. Must belong to your
+// workspace.
+//
+// A portal serves exactly one resource, so `keyspaceId` and `appId` are
+// mutually exclusive.
+type PortalKeyspaceId = string
 
 // PreconditionFailedErrorResponse Error response when one or more conditions specified in the request headers are not met. This typically occurs when:
 // - Using conditional requests with If-Match or If-None-Match headers
@@ -1245,11 +1384,21 @@ type RatelimitOverride struct {
 	OverrideId string `json:"overrideId"`
 }
 
-// RatelimitPolicy Rate limits matching requests.
+// RatelimitPolicy Rate limits matching requests. Set `identifiers` with 1 to 5 sources.
+// The deprecated `identifier` field is accepted in place of a one-entry
+// `identifiers` list; set exactly one of the two.
 type RatelimitPolicy struct {
-	// Identifier How requests are grouped for rate limiting. Exactly one of `remoteIp`,
-	// `header`, `authenticatedSubject`, `path` or `principalField` must be set.
-	Identifier RatelimitIdentifier `json:"identifier"`
+	// Identifier Deprecated. Accepted for compatibility with old clients. Use
+	// `identifiers` with one entry. Responses always return `identifiers`.
+	// Deprecated: this property has been marked as deprecated upstream, but no `x-deprecated-reason` was set
+	Identifier *RatelimitIdentifier `json:"identifier,omitempty"`
+
+	// Identifiers Ordered list of sources that form a compound rate limit key. The
+	// gateway resolves each source for each request. Each unique
+	// combination of resolved values has its own counter. All counters use
+	// the same limit and window. Example: `[authenticatedSubject, path]`
+	// limits each subject separately on each path.
+	Identifiers *[]RatelimitIdentifier `json:"identifiers,omitempty"`
 
 	// Limit Maximum number of requests per window.
 	Limit int64 `json:"limit"`
@@ -1459,6 +1608,28 @@ type UpdateKeyCreditsRefill struct {
 // UpdateKeyCreditsRefillInterval How often credits are automatically refilled.
 type UpdateKeyCreditsRefillInterval string
 
+// V2AnalyticsGetGatewayRequestsRequestBody defines model for V2AnalyticsGetGatewayRequestsRequestBody.
+type V2AnalyticsGetGatewayRequestsRequestBody struct {
+	// Query The SQL query to run on your gateway request data.
+	// A query can use only the public alias `gateway_requests_v1`. The physical `default.*` table names are not permitted.
+	// Only SELECT queries are permitted. CTEs, subqueries, UNION, and EXCEPT are also permitted.
+	// Unkey limits each query to the workspace of the root key. To get the data for one project, app, or environment, add a filter on `project_id`, `app_id`, or `environment_id`.
+	// The workspace retention period and the workspace query limits apply.
+	Query string `json:"query"`
+}
+
+// V2AnalyticsGetGatewayRequestsResponseBody defines model for V2AnalyticsGetGatewayRequestsResponseBody.
+type V2AnalyticsGetGatewayRequestsResponseBody struct {
+	// Data The gateway request rows that the query returned. The SELECT clause of the query controls the fields in each row.
+	Data V2AnalyticsGetGatewayRequestsResponseData `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
+// V2AnalyticsGetGatewayRequestsResponseData The gateway request rows that the query returned. The SELECT clause of the query controls the fields in each row.
+type V2AnalyticsGetGatewayRequestsResponseData = []map[string]interface{}
+
 // V2AnalyticsGetRatelimitsRequestBody defines model for V2AnalyticsGetRatelimitsRequestBody.
 type V2AnalyticsGetRatelimitsRequestBody struct {
 	// Query SQL query to execute against your rate limit analytics data.
@@ -1479,6 +1650,28 @@ type V2AnalyticsGetRatelimitsResponseBody struct {
 
 // V2AnalyticsGetRatelimitsResponseData Array of rate limit rows returned by the query. Fields vary based on the SQL SELECT clause.
 type V2AnalyticsGetRatelimitsResponseData = []map[string]interface{}
+
+// V2AnalyticsGetRuntimeLogsRequestBody defines model for V2AnalyticsGetRuntimeLogsRequestBody.
+type V2AnalyticsGetRuntimeLogsRequestBody struct {
+	// Query The SQL query for your runtime log data.
+	// A query can use only the public alias `runtime_logs_v1`. The physical `default.*` table name is not permitted. CTEs, subqueries, UNION, and EXCEPT are permitted.
+	// Only SELECT queries are permitted.
+	// Unkey limits each query to the workspace of the root key. To get the logs of one project, app, environment, or deployment, add a filter on `project_id`, `app_id`, `environment_id`, or `deployment_id`.
+	// The workspace retention period and the workspace query limits apply.
+	Query string `json:"query"`
+}
+
+// V2AnalyticsGetRuntimeLogsResponseBody defines model for V2AnalyticsGetRuntimeLogsResponseBody.
+type V2AnalyticsGetRuntimeLogsResponseBody struct {
+	// Data The runtime log rows that the query returned. The SELECT clause of the query sets the fields of each row.
+	Data V2AnalyticsGetRuntimeLogsResponseData `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
+// V2AnalyticsGetRuntimeLogsResponseData The runtime log rows that the query returned. The SELECT clause of the query sets the fields of each row.
+type V2AnalyticsGetRuntimeLogsResponseData = []map[string]interface{}
 
 // V2AnalyticsGetVerificationsRequestBody defines model for V2AnalyticsGetVerificationsRequestBody.
 type V2AnalyticsGetVerificationsRequestBody struct {
@@ -1502,8 +1695,8 @@ type V2AnalyticsGetVerificationsResponseData = []map[string]interface{}
 
 // V2ApisCreateApiRequestBody defines model for V2ApisCreateApiRequestBody.
 type V2ApisCreateApiRequestBody struct {
-	// Name Unique identifier for this API namespace within your workspace.
-	// Use descriptive names like 'payment-service-prod' or 'user-api-dev' to clearly identify purpose and environment.
+	// Name Human-readable name for this API within your workspace.
+	// Use descriptive names like 'Payment Service (prod)' or 'user-api-dev' to clearly identify purpose and environment.
 	Name string `json:"name"`
 }
 
@@ -1777,7 +1970,7 @@ type V2DeployCreateDeploymentRequestBody struct {
 	// Branch Git branch name
 	Branch string `json:"branch"`
 
-	// DockerImage Docker image reference to deploy
+	// DockerImage Full image reference to deploy. Qualify the version with a tag (ghcr.io/user/app:v1.0.0) or with a digest (ghcr.io/user/app@sha256:...). Without either, the registry serves the latest tag.
 	DockerImage string `json:"dockerImage"`
 
 	// EnvironmentSlug Environment slug (e.g., "production", "staging")
@@ -2096,6 +2289,26 @@ type V2DomainsCreateDomainResponseData struct {
 	DomainId ResourceIdentifier `json:"domainId"`
 }
 
+// V2DomainsDeleteDomainRequestBody defines model for V2DomainsDeleteDomainRequestBody.
+type V2DomainsDeleteDomainRequestBody struct {
+	// Domain Identifies a domain by its Unkey ID or by its name. Pass a 'dom_'-prefixed ID, or a fully
+	// qualified domain name such as 'api.acme.com' without a scheme, port, or path. You can give an
+	// internationalized name in Unicode or Punycode form. Both forms address the same domain.
+	//
+	// Domain names are unique per workspace, so the name alone addresses the domain. You do not
+	// need to supply a project, app, or environment.
+	Domain string `json:"domain"`
+}
+
+// V2DomainsDeleteDomainResponseBody defines model for V2DomainsDeleteDomainResponseBody.
+type V2DomainsDeleteDomainResponseBody struct {
+	// Data Empty response object by design. A successful response indicates this operation was successfully executed.
+	Data EmptyResponse `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
 // V2DomainsGetDomainRequestBody defines model for V2DomainsGetDomainRequestBody.
 type V2DomainsGetDomainRequestBody struct {
 	// Domain Identifies a domain by its Unkey ID or by its name. Pass a 'dom_'-prefixed ID, or a fully
@@ -2152,6 +2365,24 @@ type V2DomainsListDomainsResponseBody struct {
 
 	// Pagination Pagination metadata for list endpoints. Provides information necessary to traverse through large result sets efficiently using cursor-based pagination.
 	Pagination Pagination `json:"pagination"`
+}
+
+// V2DomainsVerifyDomainRequestBody defines model for V2DomainsVerifyDomainRequestBody.
+type V2DomainsVerifyDomainRequestBody struct {
+	// Domain Identifies a domain by its name or by its ID. Send the fully qualified domain name, such as
+	// 'api.acme.com', without a scheme, port, or path, or send the domain ID that
+	// domains.createDomain returns. You can send an internationalized name in Unicode or in
+	// Punycode form. Both forms address the same domain.
+	Domain string `json:"domain"`
+}
+
+// V2DomainsVerifyDomainResponseBody defines model for V2DomainsVerifyDomainResponseBody.
+type V2DomainsVerifyDomainResponseBody struct {
+	// Data Empty response object by design. A successful response indicates this operation was successfully executed.
+	Data EmptyResponse `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
 }
 
 // V2EnvironmentsGetEnvironmentRequestBody defines model for V2EnvironmentsGetEnvironmentRequestBody.
@@ -2457,8 +2688,9 @@ type V2GatewaySetPoliciesResponseBody struct {
 
 // V2GatewayUpdatePolicyRequestBody Partial update of a single policy. Omitted fields keep their stored
 // values; at least one updatable field must be provided. Providing one of
-// `keyauth`, `ratelimit`, `firewall` or `openapi` replaces the policy's
-// rule entirely, including switching its type; at most one may be set.
+// `keyauth`, `ratelimit`, `firewall`, `openapi` or `logging` replaces the
+// policy's rule entirely, including switching its type; at most one may be
+// set.
 type V2GatewayUpdatePolicyRequestBody struct {
 	// App Identifies a resource by either its unique ID or its slug.
 	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
@@ -2477,6 +2709,17 @@ type V2GatewayUpdatePolicyRequestBody struct {
 
 	// Keyauth Verifies Unkey API keys on matching requests.
 	Keyauth *KeyauthPolicy `json:"keyauth,omitempty"`
+
+	// Logging Adds request data to the log entries of matching requests. The gateway
+	// always records a basic log entry for every request: method, host, path,
+	// status, and latency. Each capture setting is a separate opt-in: request
+	// headers, response headers, request body, response body, and query data.
+	// The policy's `match` expressions select the requests. A policy without
+	// `match` expressions matches every request. If more than one enabled
+	// logging policy matches a request, the gateway combines their settings.
+	// The gateway always redacts the `Authorization` header and configured key
+	// locations before it stores headers or query data.
+	Logging *LoggingPolicy `json:"logging,omitempty"`
 
 	// Match Replaces all match expressions. Set null to remove them so the policy
 	// applies to every request. Omit to keep the current expressions.
@@ -2499,7 +2742,9 @@ type V2GatewayUpdatePolicyRequestBody struct {
 	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
 	Project ResourceIdentifier `json:"project"`
 
-	// Ratelimit Rate limits matching requests.
+	// Ratelimit Rate limits matching requests. Set `identifiers` with 1 to 5 sources.
+	// The deprecated `identifier` field is accepted in place of a one-entry
+	// `identifiers` list; set exactly one of the two.
 	Ratelimit *RatelimitPolicy `json:"ratelimit,omitempty"`
 }
 
@@ -3325,8 +3570,8 @@ type V2KeysUpdateKeyRequestBody struct {
 	// Omitting this field preserves existing rate limits, while setting null removes all rate limits.
 	// Unlike credits which track total usage, rate limits reset automatically after each window expires.
 	// Multiple rate limits can control different operation types with separate thresholds and windows.
-	Ratelimits *[]RatelimitRequest `json:"ratelimits,omitempty"`
-	Roles      *[]string           `json:"roles,omitempty"`
+	Ratelimits nullable.Nullable[[]RatelimitRequest] `json:"ratelimits,omitempty"`
+	Roles      *[]string                             `json:"roles,omitempty"`
 }
 
 // V2KeysUpdateKeyResponseBody defines model for V2KeysUpdateKeyResponseBody.
@@ -3545,10 +3790,15 @@ type V2PermissionsCreateRoleRequestBody struct {
 	// - Related roles that might be used together
 	Description *string `json:"description,omitempty"`
 
-	// Name The unique name for this role. Must be unique within your workspace and clearly indicate the role's purpose. Use descriptive names like 'admin', 'editor', or 'billing_manager'.
+	// Name The unique name for this role. Must be unique within your workspace and clearly indicate the role's purpose. Use descriptive names like 'admin', 'editor', or 'Billing Manager'.
 	//
-	// Examples: 'admin.billing', 'support.readonly', 'developer.api', 'manager.analytics'
+	// Examples: 'admin.billing', 'support.readonly', 'developer.api', 'Billing Manager'
 	Name string `json:"name"`
+
+	// Permissions Permission slugs to attach to the role. Existing permissions are reused. Missing permissions are created automatically when the root key has `rbac.*.create_permission`.
+	//
+	// Omit this field or provide an empty array to create the role without permissions.
+	Permissions *[]string `json:"permissions,omitempty"`
 }
 
 // V2PermissionsCreateRoleResponseBody defines model for V2PermissionsCreateRoleResponseBody.
@@ -3720,37 +3970,135 @@ type V2PermissionsListRolesResponseBody struct {
 // V2PermissionsListRolesResponseData Array of roles with their assigned permissions.
 type V2PermissionsListRolesResponseData = []Role
 
+// V2PermissionsSetRolePermissionsRequestBody defines model for V2PermissionsSetRolePermissionsRequestBody.
+type V2PermissionsSetRolePermissionsRequestBody struct {
+	// Permissions The complete set of permission slugs to assign directly to the role. Missing permissions are created when authorized. An empty array clears all direct permissions.
+	Permissions []string `json:"permissions"`
+
+	// RoleId Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	RoleId ResourceIdentifier `json:"roleId"`
+}
+
+// V2PermissionsSetRolePermissionsResponseBody defines model for V2PermissionsSetRolePermissionsResponseBody.
+type V2PermissionsSetRolePermissionsResponseBody struct {
+	// Data Complete list of permissions now directly assigned to the role.
+	Data V2PermissionsSetRolePermissionsResponseData `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
+// V2PermissionsSetRolePermissionsResponseData Complete list of permissions now directly assigned to the role.
+type V2PermissionsSetRolePermissionsResponseData = []Permission
+
+// V2PortalCreatePortalRequestBody defines model for V2PortalCreatePortalRequestBody.
+type V2PortalCreatePortalRequestBody struct {
+	// AppId The id of the app this portal serves keys for. Must belong to your workspace.
+	//
+	// A portal serves exactly one resource, so `appId` and `keyspaceId` are mutually
+	// exclusive.
+	AppId *PortalAppId `json:"appId,omitempty"`
+
+	// DisplayName Human-readable name your end users see in the portal header and page
+	// titles. Unlike `slug` it is not part of any URL, so it can be changed
+	// freely.
+	DisplayName string `json:"displayName"`
+
+	// Enabled Whether sessions can be minted for this portal immediately. Defaults to
+	// true; send false to create it dormant and enable it later.
+	Enabled *bool `json:"enabled,omitempty"`
+
+	// KeyspaceId The id of the keyspace this portal serves keys for. Must belong to your
+	// workspace.
+	//
+	// A portal serves exactly one resource, so `keyspaceId` and `appId` are
+	// mutually exclusive.
+	KeyspaceId *PortalKeyspaceId `json:"keyspaceId,omitempty"`
+
+	// LogoUrl Absolute `https://` URL of the logo shown in the portal header.
+	//
+	// Loaded by your end users' browsers, so the host you name receives their IP
+	// and user agent on every page view.
+	LogoUrl *string `json:"logoUrl,omitempty"`
+
+	// PrimaryColor Six-digit hex colour used for primary actions and accents in the portal.
+	PrimaryColor *string `json:"primaryColor,omitempty"`
+
+	// Slug URL-safe handle for this portal, unique within your workspace. Lowercase
+	// alphanumerics and single hyphens, 3-64 characters, not starting or ending
+	// with a hyphen.
+	Slug  string `json:"slug"`
+	union json.RawMessage
+}
+
+// V2PortalCreatePortalRequestBody0 defines model for .
+type V2PortalCreatePortalRequestBody0 = interface{}
+
+// V2PortalCreatePortalRequestBody1 defines model for .
+type V2PortalCreatePortalRequestBody1 = interface{}
+
+// V2PortalCreatePortalResponseBody defines model for V2PortalCreatePortalResponseBody.
+type V2PortalCreatePortalResponseBody struct {
+	Data V2PortalCreatePortalResponseData `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
+// V2PortalCreatePortalResponseData defines model for V2PortalCreatePortalResponseData.
+type V2PortalCreatePortalResponseData struct {
+	// PortalId The unique identifier of the newly created portal, generated by Unkey.
+	// Always begins with 'pc_' followed by a unique alphanumeric sequence.
+	PortalId string `json:"portalId"`
+}
+
 // V2PortalCreateSessionRequestBody defines model for V2PortalCreateSessionRequestBody.
 type V2PortalCreateSessionRequestBody struct {
 	// ExternalId The end user's identifier in the customer's system.
 	// Accepts arbitrary string values (user IDs, emails, UUIDs, etc.).
 	ExternalId string `json:"externalId"`
 
-	// Permissions The capabilities granted to the end user in the Portal, from a fixed
-	// vocabulary. All capabilities are scoped to this end user: key capabilities
-	// (`keys:*`) apply only to keys the end user owns within the keyspace
-	// configured on the portal configuration, and `analytics:read` returns only
-	// the end user's own verification events. An end user can never see another
-	// identity's keys or analytics.
-	//
-	// Tab visibility is derived from the capabilities:
-	// - Keys tab: any `keys:*` capability
-	// - Analytics tab: `analytics:read`
-	// - Docs tab: visible when any capability is present
-	Permissions []V2PortalCreateSessionRequestBodyPermissions `json:"permissions"`
+	// Portal Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	Portal ResourceIdentifier `json:"portal"`
 
 	// Preview When true, creates a preview session for testing the portal experience.
 	Preview *bool `json:"preview,omitempty"`
 
-	// Slug The human-readable slug of the portal configuration to create the session against.
-	// Identifies which app's portal the end user will access.
-	// Must be 3-64 characters, lowercase alphanumeric and hyphens only,
-	// must not start or end with a hyphen, and must not contain consecutive hyphens.
-	Slug string `json:"slug"`
+	// ReturnUrl Absolute URL the end user is sent back to when they leave the portal, or
+	// when their session expires mid-visit. Set per session rather than per
+	// portal, so one portal can serve several entry points and return each user
+	// to the page they came from.
+	//
+	// When omitted, the portal shows no return link.
+	ReturnUrl *string `json:"returnUrl,omitempty"`
+
+	// Scopes The capabilities granted to the end user in the Portal, from a fixed
+	// vocabulary. All capabilities are scoped to this end user: key capabilities
+	// (`keys:*`) apply only to keys the end user owns within the keyspace
+	// configured on the portal, and `analytics:read` returns only the end user's
+	// own verification events. An end user can never see another identity's keys
+	// or analytics.
+	//
+	// Tab visibility is derived from the scopes:
+	// - Keys tab: any `keys:*` scope
+	// - Analytics tab: `analytics:read`
+	// - Docs tab: visible when any scope is present
+	//
+	// `keys:create` is accepted but has no portal route behind it yet. It is
+	// still authorized like the others, so a session minted with it required
+	// `create_key` on the keyspace at mint time, and a future portal create-key
+	// route inherits an enforced ceiling rather than trusting sessions minted
+	// while the capability was inert.
+	//
+	// Each scope requires the equivalent permission on your own root key. See
+	// Required Permissions on this operation.
+	Scopes []V2PortalCreateSessionRequestBodyScopes `json:"scopes"`
 }
 
-// V2PortalCreateSessionRequestBodyPermissions defines model for V2PortalCreateSessionRequestBody.Permissions.
-type V2PortalCreateSessionRequestBodyPermissions string
+// V2PortalCreateSessionRequestBodyScopes defines model for V2PortalCreateSessionRequestBody.Scopes.
+type V2PortalCreateSessionRequestBodyScopes string
 
 // V2PortalCreateSessionResponseBody defines model for V2PortalCreateSessionResponseBody.
 type V2PortalCreateSessionResponseBody struct {
@@ -3762,35 +4110,98 @@ type V2PortalCreateSessionResponseBody struct {
 
 // V2PortalCreateSessionResponseData defines model for V2PortalCreateSessionResponseData.
 type V2PortalCreateSessionResponseData struct {
-	// SessionId The short-lived session token ID. Valid for 15 minutes and can be exchanged once for a browser session.
-	SessionId string `json:"sessionId"`
+	// Id The portal session's identifier. Not a credential: it is safe to log and
+	// to store against your own records of the end user's visit.
+	Id string `json:"id"`
 
-	// Url The full portal URL with the session parameter. Redirect the end user to this URL.
+	// Url The full portal URL to redirect the end user to. Carries a single-use
+	// exchange code that is valid for 15 minutes.
 	Url string `json:"url"`
 }
 
-// V2PortalExchangeSessionRequestBody defines model for V2PortalExchangeSessionRequestBody.
-type V2PortalExchangeSessionRequestBody struct {
-	// SessionId The session token ID received from `portal.createSession`.
-	// Must be valid, unexpired, and not previously exchanged.
-	SessionId string `json:"sessionId"`
+// V2PortalDeletePortalRequestBody defines model for V2PortalDeletePortalRequestBody.
+type V2PortalDeletePortalRequestBody struct {
+	// Portal Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	Portal ResourceIdentifier `json:"portal"`
 }
 
-// V2PortalExchangeSessionResponseBody defines model for V2PortalExchangeSessionResponseBody.
-type V2PortalExchangeSessionResponseBody struct {
-	Data V2PortalExchangeSessionResponseData `json:"data"`
+// V2PortalDeletePortalResponseBody defines model for V2PortalDeletePortalResponseBody.
+type V2PortalDeletePortalResponseBody struct {
+	// Data Empty response object by design. A successful response indicates this operation was successfully executed.
+	Data EmptyResponse `json:"data"`
 
 	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
 	Meta Meta `json:"meta"`
 }
 
-// V2PortalExchangeSessionResponseData defines model for V2PortalExchangeSessionResponseData.
-type V2PortalExchangeSessionResponseData struct {
-	// ExpiresAt Unix timestamp in milliseconds when the browser session expires (24 hours from creation).
-	ExpiresAt int64 `json:"expiresAt"`
+// V2PortalExchangeCodeRequestBody defines model for V2PortalExchangeCodeRequestBody.
+type V2PortalExchangeCodeRequestBody struct {
+	// Code The exchange code carried by the portal URL from `portal.createSession`.
+	// Must be valid, unexpired, and not previously redeemed.
+	Code string `json:"code"`
+}
 
-	// Token The browser session token. Store this as an httpOnly cookie for subsequent portal requests.
-	Token string `json:"token"`
+// V2PortalExchangeCodeResponseBody defines model for V2PortalExchangeCodeResponseBody.
+type V2PortalExchangeCodeResponseBody struct {
+	Data V2PortalExchangeCodeResponseData `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
+// V2PortalExchangeCodeResponseData defines model for V2PortalExchangeCodeResponseData.
+type V2PortalExchangeCodeResponseData struct {
+	// AccessToken The portal access token. Store this as an httpOnly cookie for subsequent portal requests.
+	AccessToken string `json:"accessToken"`
+
+	// ExpiresAt Unix timestamp in milliseconds when the access token expires (24 hours from creation).
+	ExpiresAt int64 `json:"expiresAt"`
+}
+
+// V2PortalGetPortalRequestBody Name the portal directly with `portal`, or name the resource it serves with
+// `keyspaceId` or `appId`. Exactly one of the three is required; sending more
+// than one is a bad request.
+type V2PortalGetPortalRequestBody struct {
+	// AppId The id of the app this portal serves keys for. Must belong to your workspace.
+	//
+	// A portal serves exactly one resource, so `appId` and `keyspaceId` are mutually
+	// exclusive.
+	AppId *PortalAppId `json:"appId,omitempty"`
+
+	// KeyspaceId The id of the keyspace this portal serves keys for. Must belong to your
+	// workspace.
+	//
+	// A portal serves exactly one resource, so `keyspaceId` and `appId` are
+	// mutually exclusive.
+	KeyspaceId *PortalKeyspaceId `json:"keyspaceId,omitempty"`
+
+	// Portal Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	Portal *ResourceIdentifier `json:"portal,omitempty"`
+	union  json.RawMessage
+}
+
+// V2PortalGetPortalRequestBody0 defines model for .
+type V2PortalGetPortalRequestBody0 = interface{}
+
+// V2PortalGetPortalRequestBody1 defines model for .
+type V2PortalGetPortalRequestBody1 = interface{}
+
+// V2PortalGetPortalRequestBody2 defines model for .
+type V2PortalGetPortalRequestBody2 = interface{}
+
+// V2PortalGetPortalResponseBody defines model for V2PortalGetPortalResponseBody.
+type V2PortalGetPortalResponseBody struct {
+	// Data A portal you expose to your end users so they can manage their own keys.
+	//
+	// Exactly one of `keyspaceId` or `appId` is present, naming the single resource
+	// the portal serves. Neither is in the required list because which one appears
+	// depends on the portal, so a reader checks for the one it cares about.
+	Data Portal `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
 }
 
 // V2PortalGetVerificationsDataPoint defines model for V2PortalGetVerificationsDataPoint.
@@ -3875,6 +4286,60 @@ type V2PortalListKeysResponseBody struct {
 
 // V2PortalListKeysResponseData Array of the portal end user's API keys.
 type V2PortalListKeysResponseData = []KeyResponseData
+
+// V2PortalUpdatePortalRequestBody defines model for V2PortalUpdatePortalRequestBody.
+type V2PortalUpdatePortalRequestBody struct {
+	// AppId Re-point the portal at a different app. Omit to leave the resource it
+	// serves alone.
+	//
+	// Re-pointing revokes the portal's live sessions, for the same reason as
+	// `keyspaceId`.
+	AppId *PortalAppId `json:"appId,omitempty"`
+
+	// DisplayName New human-readable name shown to your end users. Omit to leave unchanged.
+	DisplayName *string `json:"displayName,omitempty"`
+
+	// Enabled Whether new sessions can be minted. Omit to leave unchanged.
+	//
+	// Disabling does not end sessions that are already live.
+	Enabled *bool `json:"enabled,omitempty"`
+
+	// KeyspaceId Re-point the portal at a different keyspace. Omit to leave the resource it
+	// serves alone.
+	//
+	// Re-pointing revokes the portal's live sessions, because a session carries
+	// the keyspace scope it was minted with and would otherwise keep reaching the
+	// resource the portal no longer serves.
+	KeyspaceId *PortalKeyspaceId `json:"keyspaceId,omitempty"`
+
+	// LogoUrl Absolute `https://` URL of the portal logo. Omit to leave unchanged, or set
+	// null to remove the logo.
+	LogoUrl nullable.Nullable[string] `json:"logoUrl,omitempty"`
+
+	// Portal Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	Portal ResourceIdentifier `json:"portal"`
+
+	// PrimaryColor Six-digit hex colour for primary actions. Omit to leave unchanged, or set
+	// null to fall back to default styling.
+	PrimaryColor nullable.Nullable[string] `json:"primaryColor,omitempty"`
+
+	// Slug New handle for this portal. Omit to leave unchanged.
+	Slug *string `json:"slug,omitempty"`
+}
+
+// V2PortalUpdatePortalResponseBody defines model for V2PortalUpdatePortalResponseBody.
+type V2PortalUpdatePortalResponseBody struct {
+	// Data A portal you expose to your end users so they can manage their own keys.
+	//
+	// Exactly one of `keyspaceId` or `appId` is present, naming the single resource
+	// the portal serves. Neither is in the required list because which one appears
+	// depends on the portal, so a reader checks for the one it cares about.
+	Data Portal `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
 
 // V2ProjectsCreateProjectRequestBody defines model for V2ProjectsCreateProjectRequestBody.
 type V2ProjectsCreateProjectRequestBody struct {
@@ -4351,8 +4816,14 @@ type VerifyKeyRatelimitData struct {
 	Reset int64 `json:"reset"`
 }
 
+// AnalyticsGetGatewayRequestsJSONRequestBody defines body for AnalyticsGetGatewayRequests for application/json ContentType.
+type AnalyticsGetGatewayRequestsJSONRequestBody = V2AnalyticsGetGatewayRequestsRequestBody
+
 // AnalyticsGetRatelimitsJSONRequestBody defines body for AnalyticsGetRatelimits for application/json ContentType.
 type AnalyticsGetRatelimitsJSONRequestBody = V2AnalyticsGetRatelimitsRequestBody
+
+// AnalyticsGetRuntimeLogsJSONRequestBody defines body for AnalyticsGetRuntimeLogs for application/json ContentType.
+type AnalyticsGetRuntimeLogsJSONRequestBody = V2AnalyticsGetRuntimeLogsRequestBody
 
 // AnalyticsGetVerificationsJSONRequestBody defines body for AnalyticsGetVerifications for application/json ContentType.
 type AnalyticsGetVerificationsJSONRequestBody = V2AnalyticsGetVerificationsRequestBody
@@ -4414,11 +4885,17 @@ type DeploymentsStopDeploymentJSONRequestBody = V2DeploymentsStopDeploymentReque
 // DomainsCreateDomainJSONRequestBody defines body for DomainsCreateDomain for application/json ContentType.
 type DomainsCreateDomainJSONRequestBody = V2DomainsCreateDomainRequestBody
 
+// DomainsDeleteDomainJSONRequestBody defines body for DomainsDeleteDomain for application/json ContentType.
+type DomainsDeleteDomainJSONRequestBody = V2DomainsDeleteDomainRequestBody
+
 // DomainsGetDomainJSONRequestBody defines body for DomainsGetDomain for application/json ContentType.
 type DomainsGetDomainJSONRequestBody = V2DomainsGetDomainRequestBody
 
 // DomainsListDomainsJSONRequestBody defines body for DomainsListDomains for application/json ContentType.
 type DomainsListDomainsJSONRequestBody = V2DomainsListDomainsRequestBody
+
+// DomainsVerifyDomainJSONRequestBody defines body for DomainsVerifyDomain for application/json ContentType.
+type DomainsVerifyDomainJSONRequestBody = V2DomainsVerifyDomainRequestBody
 
 // EnvironmentsGetEnvironmentJSONRequestBody defines body for EnvironmentsGetEnvironment for application/json ContentType.
 type EnvironmentsGetEnvironmentJSONRequestBody = V2EnvironmentsGetEnvironmentRequestBody
@@ -4531,11 +5008,23 @@ type PermissionsListPermissionsJSONRequestBody = V2PermissionsListPermissionsReq
 // PermissionsListRolesJSONRequestBody defines body for PermissionsListRoles for application/json ContentType.
 type PermissionsListRolesJSONRequestBody = V2PermissionsListRolesRequestBody
 
+// PermissionsSetRolePermissionsJSONRequestBody defines body for PermissionsSetRolePermissions for application/json ContentType.
+type PermissionsSetRolePermissionsJSONRequestBody = V2PermissionsSetRolePermissionsRequestBody
+
+// PortalCreatePortalJSONRequestBody defines body for PortalCreatePortal for application/json ContentType.
+type PortalCreatePortalJSONRequestBody = V2PortalCreatePortalRequestBody
+
 // PortalCreateSessionJSONRequestBody defines body for PortalCreateSession for application/json ContentType.
 type PortalCreateSessionJSONRequestBody = V2PortalCreateSessionRequestBody
 
-// PortalExchangeSessionJSONRequestBody defines body for PortalExchangeSession for application/json ContentType.
-type PortalExchangeSessionJSONRequestBody = V2PortalExchangeSessionRequestBody
+// PortalDeletePortalJSONRequestBody defines body for PortalDeletePortal for application/json ContentType.
+type PortalDeletePortalJSONRequestBody = V2PortalDeletePortalRequestBody
+
+// PortalExchangeCodeJSONRequestBody defines body for PortalExchangeCode for application/json ContentType.
+type PortalExchangeCodeJSONRequestBody = V2PortalExchangeCodeRequestBody
+
+// PortalGetPortalJSONRequestBody defines body for PortalGetPortal for application/json ContentType.
+type PortalGetPortalJSONRequestBody = V2PortalGetPortalRequestBody
 
 // PortalGetVerificationsJSONRequestBody defines body for PortalGetVerifications for application/json ContentType.
 type PortalGetVerificationsJSONRequestBody = V2PortalGetVerificationsRequestBody
@@ -4545,6 +5034,9 @@ type PortalListKeysJSONRequestBody = V2PortalListKeysRequestBody
 
 // PortalRerollKeyJSONRequestBody defines body for PortalRerollKey for application/json ContentType.
 type PortalRerollKeyJSONRequestBody = V2KeysRerollKeyRequestBody
+
+// PortalUpdatePortalJSONRequestBody defines body for PortalUpdatePortal for application/json ContentType.
+type PortalUpdatePortalJSONRequestBody = V2PortalUpdatePortalRequestBody
 
 // ProjectsCreateProjectJSONRequestBody defines body for ProjectsCreateProject for application/json ContentType.
 type ProjectsCreateProjectJSONRequestBody = V2ProjectsCreateProjectRequestBody
@@ -4760,6 +5252,333 @@ func (t *V2DeploymentsCreateDeploymentRequestBody) UnmarshalJSON(b []byte) error
 		err = json.Unmarshal(raw, &t.Project)
 		if err != nil {
 			return fmt.Errorf("error reading 'project': %w", err)
+		}
+	}
+
+	return err
+}
+
+// AsV2PortalCreatePortalRequestBody0 returns the union data inside the V2PortalCreatePortalRequestBody as a V2PortalCreatePortalRequestBody0
+func (t V2PortalCreatePortalRequestBody) AsV2PortalCreatePortalRequestBody0() (V2PortalCreatePortalRequestBody0, error) {
+	var body V2PortalCreatePortalRequestBody0
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromV2PortalCreatePortalRequestBody0 overwrites any union data inside the V2PortalCreatePortalRequestBody as the provided V2PortalCreatePortalRequestBody0
+func (t *V2PortalCreatePortalRequestBody) FromV2PortalCreatePortalRequestBody0(v V2PortalCreatePortalRequestBody0) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeV2PortalCreatePortalRequestBody0 performs a merge with any union data inside the V2PortalCreatePortalRequestBody, using the provided V2PortalCreatePortalRequestBody0
+func (t *V2PortalCreatePortalRequestBody) MergeV2PortalCreatePortalRequestBody0(v V2PortalCreatePortalRequestBody0) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsV2PortalCreatePortalRequestBody1 returns the union data inside the V2PortalCreatePortalRequestBody as a V2PortalCreatePortalRequestBody1
+func (t V2PortalCreatePortalRequestBody) AsV2PortalCreatePortalRequestBody1() (V2PortalCreatePortalRequestBody1, error) {
+	var body V2PortalCreatePortalRequestBody1
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromV2PortalCreatePortalRequestBody1 overwrites any union data inside the V2PortalCreatePortalRequestBody as the provided V2PortalCreatePortalRequestBody1
+func (t *V2PortalCreatePortalRequestBody) FromV2PortalCreatePortalRequestBody1(v V2PortalCreatePortalRequestBody1) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeV2PortalCreatePortalRequestBody1 performs a merge with any union data inside the V2PortalCreatePortalRequestBody, using the provided V2PortalCreatePortalRequestBody1
+func (t *V2PortalCreatePortalRequestBody) MergeV2PortalCreatePortalRequestBody1(v V2PortalCreatePortalRequestBody1) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t V2PortalCreatePortalRequestBody) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	if err != nil {
+		return nil, err
+	}
+	object := make(map[string]json.RawMessage)
+	if t.union != nil {
+		err = json.Unmarshal(b, &object)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if t.AppId != nil {
+		object["appId"], err = json.Marshal(t.AppId)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'appId': %w", err)
+		}
+	}
+
+	object["displayName"], err = json.Marshal(t.DisplayName)
+	if err != nil {
+		return nil, fmt.Errorf("error marshaling 'displayName': %w", err)
+	}
+
+	if t.Enabled != nil {
+		object["enabled"], err = json.Marshal(t.Enabled)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'enabled': %w", err)
+		}
+	}
+
+	if t.KeyspaceId != nil {
+		object["keyspaceId"], err = json.Marshal(t.KeyspaceId)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'keyspaceId': %w", err)
+		}
+	}
+
+	if t.LogoUrl != nil {
+		object["logoUrl"], err = json.Marshal(t.LogoUrl)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'logoUrl': %w", err)
+		}
+	}
+
+	if t.PrimaryColor != nil {
+		object["primaryColor"], err = json.Marshal(t.PrimaryColor)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'primaryColor': %w", err)
+		}
+	}
+
+	object["slug"], err = json.Marshal(t.Slug)
+	if err != nil {
+		return nil, fmt.Errorf("error marshaling 'slug': %w", err)
+	}
+
+	b, err = json.Marshal(object)
+	return b, err
+}
+
+func (t *V2PortalCreatePortalRequestBody) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	if err != nil {
+		return err
+	}
+	object := make(map[string]json.RawMessage)
+	err = json.Unmarshal(b, &object)
+	if err != nil {
+		return err
+	}
+
+	if raw, found := object["appId"]; found {
+		err = json.Unmarshal(raw, &t.AppId)
+		if err != nil {
+			return fmt.Errorf("error reading 'appId': %w", err)
+		}
+	}
+
+	if raw, found := object["displayName"]; found {
+		err = json.Unmarshal(raw, &t.DisplayName)
+		if err != nil {
+			return fmt.Errorf("error reading 'displayName': %w", err)
+		}
+	}
+
+	if raw, found := object["enabled"]; found {
+		err = json.Unmarshal(raw, &t.Enabled)
+		if err != nil {
+			return fmt.Errorf("error reading 'enabled': %w", err)
+		}
+	}
+
+	if raw, found := object["keyspaceId"]; found {
+		err = json.Unmarshal(raw, &t.KeyspaceId)
+		if err != nil {
+			return fmt.Errorf("error reading 'keyspaceId': %w", err)
+		}
+	}
+
+	if raw, found := object["logoUrl"]; found {
+		err = json.Unmarshal(raw, &t.LogoUrl)
+		if err != nil {
+			return fmt.Errorf("error reading 'logoUrl': %w", err)
+		}
+	}
+
+	if raw, found := object["primaryColor"]; found {
+		err = json.Unmarshal(raw, &t.PrimaryColor)
+		if err != nil {
+			return fmt.Errorf("error reading 'primaryColor': %w", err)
+		}
+	}
+
+	if raw, found := object["slug"]; found {
+		err = json.Unmarshal(raw, &t.Slug)
+		if err != nil {
+			return fmt.Errorf("error reading 'slug': %w", err)
+		}
+	}
+
+	return err
+}
+
+// AsV2PortalGetPortalRequestBody0 returns the union data inside the V2PortalGetPortalRequestBody as a V2PortalGetPortalRequestBody0
+func (t V2PortalGetPortalRequestBody) AsV2PortalGetPortalRequestBody0() (V2PortalGetPortalRequestBody0, error) {
+	var body V2PortalGetPortalRequestBody0
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromV2PortalGetPortalRequestBody0 overwrites any union data inside the V2PortalGetPortalRequestBody as the provided V2PortalGetPortalRequestBody0
+func (t *V2PortalGetPortalRequestBody) FromV2PortalGetPortalRequestBody0(v V2PortalGetPortalRequestBody0) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeV2PortalGetPortalRequestBody0 performs a merge with any union data inside the V2PortalGetPortalRequestBody, using the provided V2PortalGetPortalRequestBody0
+func (t *V2PortalGetPortalRequestBody) MergeV2PortalGetPortalRequestBody0(v V2PortalGetPortalRequestBody0) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsV2PortalGetPortalRequestBody1 returns the union data inside the V2PortalGetPortalRequestBody as a V2PortalGetPortalRequestBody1
+func (t V2PortalGetPortalRequestBody) AsV2PortalGetPortalRequestBody1() (V2PortalGetPortalRequestBody1, error) {
+	var body V2PortalGetPortalRequestBody1
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromV2PortalGetPortalRequestBody1 overwrites any union data inside the V2PortalGetPortalRequestBody as the provided V2PortalGetPortalRequestBody1
+func (t *V2PortalGetPortalRequestBody) FromV2PortalGetPortalRequestBody1(v V2PortalGetPortalRequestBody1) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeV2PortalGetPortalRequestBody1 performs a merge with any union data inside the V2PortalGetPortalRequestBody, using the provided V2PortalGetPortalRequestBody1
+func (t *V2PortalGetPortalRequestBody) MergeV2PortalGetPortalRequestBody1(v V2PortalGetPortalRequestBody1) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsV2PortalGetPortalRequestBody2 returns the union data inside the V2PortalGetPortalRequestBody as a V2PortalGetPortalRequestBody2
+func (t V2PortalGetPortalRequestBody) AsV2PortalGetPortalRequestBody2() (V2PortalGetPortalRequestBody2, error) {
+	var body V2PortalGetPortalRequestBody2
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromV2PortalGetPortalRequestBody2 overwrites any union data inside the V2PortalGetPortalRequestBody as the provided V2PortalGetPortalRequestBody2
+func (t *V2PortalGetPortalRequestBody) FromV2PortalGetPortalRequestBody2(v V2PortalGetPortalRequestBody2) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeV2PortalGetPortalRequestBody2 performs a merge with any union data inside the V2PortalGetPortalRequestBody, using the provided V2PortalGetPortalRequestBody2
+func (t *V2PortalGetPortalRequestBody) MergeV2PortalGetPortalRequestBody2(v V2PortalGetPortalRequestBody2) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t V2PortalGetPortalRequestBody) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	if err != nil {
+		return nil, err
+	}
+	object := make(map[string]json.RawMessage)
+	if t.union != nil {
+		err = json.Unmarshal(b, &object)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if t.AppId != nil {
+		object["appId"], err = json.Marshal(t.AppId)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'appId': %w", err)
+		}
+	}
+
+	if t.KeyspaceId != nil {
+		object["keyspaceId"], err = json.Marshal(t.KeyspaceId)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'keyspaceId': %w", err)
+		}
+	}
+
+	if t.Portal != nil {
+		object["portal"], err = json.Marshal(t.Portal)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'portal': %w", err)
+		}
+	}
+	b, err = json.Marshal(object)
+	return b, err
+}
+
+func (t *V2PortalGetPortalRequestBody) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	if err != nil {
+		return err
+	}
+	object := make(map[string]json.RawMessage)
+	err = json.Unmarshal(b, &object)
+	if err != nil {
+		return err
+	}
+
+	if raw, found := object["appId"]; found {
+		err = json.Unmarshal(raw, &t.AppId)
+		if err != nil {
+			return fmt.Errorf("error reading 'appId': %w", err)
+		}
+	}
+
+	if raw, found := object["keyspaceId"]; found {
+		err = json.Unmarshal(raw, &t.KeyspaceId)
+		if err != nil {
+			return fmt.Errorf("error reading 'keyspaceId': %w", err)
+		}
+	}
+
+	if raw, found := object["portal"]; found {
+		err = json.Unmarshal(raw, &t.Portal)
+		if err != nil {
+			return fmt.Errorf("error reading 'portal': %w", err)
 		}
 	}
 

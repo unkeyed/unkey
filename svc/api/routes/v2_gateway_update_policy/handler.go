@@ -16,6 +16,8 @@ import (
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/internal/policyconfig"
 	"github.com/unkeyed/unkey/svc/api/openapi"
@@ -53,7 +55,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	// Multi-variant requests are rejected by the exactly-one check when the
 	// merged policy is validated below.
-	ruleProvided := req.Keyauth != nil || req.Ratelimit != nil || req.Firewall != nil || req.Openapi != nil
+	ruleProvided := req.Keyauth != nil || req.Ratelimit != nil || req.Firewall != nil || req.Openapi != nil || req.Logging != nil
 	if !ruleProvided && req.Name == nil && req.Enabled == nil && !req.Match.IsSpecified() {
 		return fault.New(
 			"empty update",
@@ -97,6 +99,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			ResourceID:   env.ID,
 			Action:       rbac.UpdatePolicy,
 		}),
+		rbac.U(
+			urn.New().Workspace(principal.WorkspaceID).Project(env.ProjectID).App(env.AppID).Environment(env.ID).Gateway().Policy(req.PolicyId),
+			permissions.WritePolicy{},
+		),
 	))
 	if err != nil {
 		return err
@@ -132,23 +138,23 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				return fault.New(
 					"policy not found",
 					fault.Code(codes.Data.Policy.NotFound.URN()),
-					fault.Internal("no sentinel config for environment"),
+					fault.Internal("no gateway policy config for environment"),
 					fault.Public("The requested policy does not exist. Note that policy ids change when the policy list is replaced."),
 				)
 			}
 			return fault.Wrap(
 				err,
 				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-				fault.Internal("unable to read sentinel config"),
+				fault.Internal("unable to read gateway policy config"),
 				fault.Public("We're unable to update the policy."),
 			)
 		}
-		cfg, parseErr := policyconfig.Parse(settings.AppRuntimeSetting.SentinelConfig)
+		cfg, parseErr := policyconfig.Parse(settings.SentinelConfig)
 		if parseErr != nil {
 			return fault.Wrap(
 				parseErr,
 				fault.Code(codes.App.Internal.UnexpectedError.URN()),
-				fault.Internal("stored sentinel config is not valid protojson"),
+				fault.Internal("stored gateway policy config is not valid protojson"),
 				fault.Public("We're unable to update the policy."),
 			)
 		}
@@ -179,6 +185,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			Ratelimit: existing.Ratelimit,
 			Firewall:  existing.Firewall,
 			Openapi:   existing.Openapi,
+			Logging:   existing.Logging,
 		}
 		if req.Name != nil {
 			patched.Name = *req.Name
@@ -199,6 +206,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			patched.Ratelimit = req.Ratelimit
 			patched.Firewall = req.Firewall
 			patched.Openapi = req.Openapi
+			patched.Logging = req.Logging
 		}
 
 		updated, convErr := policyconfig.PolicyToProto("policy", patched)
@@ -224,7 +232,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				)
 			}
 			for _, id := range req.Keyauth.Keyspaces {
-				if !slices.Contains(found, id) {
+				if !slices.ContainsFunc(found, func(row db.FindKeyAuthsByIdsAndWorkspaceRow) bool {
+					return row.ID == id
+				}) {
 					return fault.New(
 						"keyspace not found",
 						fault.Code(codes.Data.KeySpace.NotFound.URN()),
@@ -246,7 +256,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 
 		now := time.Now().UnixMilli()
-		if upsertErr := db.Query.UpsertAppRuntimeSettingsSentinelConfig(ctx, tx, db.UpsertAppRuntimeSettingsSentinelConfigParams{
+		if upsertErr := db.Query.UpsertAppRuntimeSettingsPolicyConfig(ctx, tx, db.UpsertAppRuntimeSettingsPolicyConfigParams{
 			WorkspaceID:    env.WorkspaceID,
 			AppID:          env.AppID,
 			EnvironmentID:  env.ID,
@@ -257,7 +267,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			return fault.Wrap(
 				upsertErr,
 				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-				fault.Internal("unable to write sentinel config"),
+				fault.Internal("unable to write gateway policy config"),
 				fault.Public("We're unable to update the policy."),
 			)
 		}

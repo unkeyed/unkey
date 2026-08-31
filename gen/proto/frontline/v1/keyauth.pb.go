@@ -89,7 +89,21 @@ type KeyAuth struct {
 	// Example: to enforce the "expensive" limit defined on keys in this key
 	// space for the route this policy matches, add a single entry with
 	// name "expensive".
-	Ratelimits    []*KeyRatelimit `protobuf:"bytes,6,rep,name=ratelimits,proto3" json:"ratelimits,omitempty"`
+	Ratelimits []*KeyRatelimit `protobuf:"bytes,6,rep,name=ratelimits,proto3" json:"ratelimits,omitempty"`
+	// Optional override for how many usage credits a matching request deducts
+	// from the verified key, mirroring the `credits.cost` behaviour of Unkey's
+	// verifyKey API. Defaults to 1 when unset, matching the historical gateway
+	// behaviour of deducting a single credit per request.
+	//
+	// Set this per route to charge more or less than one credit. Set it to 0 to
+	// verify the key (and evaluate permissions and rate limits) without spending
+	// any credits, e.g. for read-only endpoints or when the gateway only needs
+	// to prove the key is valid before proxying to a backend that meters usage
+	// itself. Keys with unlimited remaining usage are unaffected regardless of
+	// this value.
+	//
+	// Must be non-negative.
+	Credits       *int64 `protobuf:"varint,7,opt,name=credits,proto3,oneof" json:"credits,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -150,6 +164,13 @@ func (x *KeyAuth) GetRatelimits() []*KeyRatelimit {
 		return x.Ratelimits
 	}
 	return nil
+}
+
+func (x *KeyAuth) GetCredits() int64 {
+	if x != nil && x.Credits != nil {
+		return *x.Credits
+	}
+	return 0
 }
 
 // KeyRatelimit selects a rate limit to enforce on the verified key. It mirrors
@@ -498,15 +519,18 @@ var File_frontline_policies_v1_keyauth_proto protoreflect.FileDescriptor
 
 const file_frontline_policies_v1_keyauth_proto_rawDesc = "" +
 	"\n" +
-	"#frontline/policies/v1/keyauth.proto\x12\ffrontline.v1\"\xe7\x01\n" +
+	"#frontline/policies/v1/keyauth.proto\x12\ffrontline.v1\"\x92\x02\n" +
 	"\aKeyAuth\x12\"\n" +
 	"\rkey_space_ids\x18\x01 \x03(\tR\vkeySpaceIds\x127\n" +
 	"\tlocations\x18\x02 \x03(\v2\x19.frontline.v1.KeyLocationR\tlocations\x12.\n" +
 	"\x10permission_query\x18\x05 \x01(\tH\x00R\x0fpermissionQuery\x88\x01\x01\x12:\n" +
 	"\n" +
 	"ratelimits\x18\x06 \x03(\v2\x1a.frontline.v1.KeyRatelimitR\n" +
-	"ratelimitsB\x13\n" +
-	"\x11_permission_query\"\x97\x01\n" +
+	"ratelimits\x12\x1d\n" +
+	"\acredits\x18\a \x01(\x03H\x01R\acredits\x88\x01\x01B\x13\n" +
+	"\x11_permission_queryB\n" +
+	"\n" +
+	"\b_credits\"\x97\x01\n" +
 	"\fKeyRatelimit\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x19\n" +
 	"\x05limit\x18\x02 \x01(\x03H\x00R\x05limit\x88\x01\x01\x12\x1f\n" +

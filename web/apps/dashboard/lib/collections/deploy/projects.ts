@@ -1,3 +1,4 @@
+import { getErrorToast, getUnkeyClient } from "@/lib/unkey-client";
 import { queryCollectionOptions } from "@tanstack/query-db-collection";
 import { createCollection } from "@tanstack/react-db";
 import { toast } from "@unkey/ui";
@@ -64,39 +65,14 @@ export const projects = createCollection<Project, string>(
       const mutation = transaction.mutations[0];
       const projectId = mutation.original.id;
 
-      const deleteMutation = trpcClient.deploy.project.delete.mutate({
-        projectId,
-      });
+      const deleteMutation = getUnkeyClient().projects.deleteProject({ project: projectId });
 
       toast.promise(deleteMutation, {
         loading: "Deleting project...",
         success: "Project deleted successfully",
         error: (err) => {
           console.error("Failed to delete project", err);
-
-          switch (err.data?.code) {
-            case "NOT_FOUND":
-              return {
-                message: "Project Deletion Failed",
-                description: "Unable to find the project. Please refresh and try again.",
-              };
-            case "FORBIDDEN":
-              return {
-                message: "Permission Denied",
-                description: "You don't have permission to delete this project.",
-              };
-            case "INTERNAL_SERVER_ERROR":
-              return {
-                message: "Server Error",
-                description:
-                  "We encountered an issue while deleting your project. Please try again later or contact support at support@unkey.com",
-              };
-            default:
-              return {
-                message: "Failed to Delete Project",
-                description: err.message || "An unexpected error occurred. Please try again later.",
-              };
-          }
+          return getErrorToast(err, "Failed to Delete Project");
         },
       });
 
@@ -110,96 +86,38 @@ export const projects = createCollection<Project, string>(
         name: changes.name,
         slug: changes.slug,
       });
-      const mutation = trpcClient.deploy.project.create.mutate(createInput);
+      const mutation = getUnkeyClient().projects.createProject(createInput);
 
       toast.promise(mutation, {
         loading: "Creating project...",
         success: "Project created successfully",
         error: (err) => {
           console.error("Failed to create project", err);
-
-          switch (err.data?.code) {
-            case "CONFLICT":
-              return {
-                message: "Project Already Exists",
-                description:
-                  err.message || "A project with this slug already exists in your workspace.",
-              };
-            case "FORBIDDEN":
-              return {
-                message: "Permission Denied",
-                description:
-                  err.message || "You don't have permission to create projects in this workspace.",
-              };
-            case "BAD_REQUEST":
-              return {
-                message: "Invalid Configuration",
-                description: `Please check your project settings. ${err.message || ""}`,
-              };
-            case "INTERNAL_SERVER_ERROR":
-              return {
-                message: "Server Error",
-                description:
-                  "We encountered an issue while creating your project. Please try again later or contact support at support@unkey.com",
-              };
-            case "NOT_FOUND":
-              return {
-                message: "Project Creation Failed",
-                description: "Unable to find the workspace. Please refresh and try again.",
-              };
-            default:
-              return {
-                message: "Failed to Create Project",
-                description: err.message || "An unexpected error occurred. Please try again later.",
-              };
-          }
+          return getErrorToast(err, "Failed to Create Project");
         },
       });
       const result = await mutation;
       transaction.metadata = {
-        projectId: result.id,
+        projectId: result.data.id,
       };
     },
     onUpdate: async ({ transaction }) => {
       const { original, changes } = transaction.mutations[0];
 
       const updateInput = {
-        projectId: original.id,
+        project: original.id,
         ...createProjectRequestSchema.pick({ name: true }).parse({
           name: changes.name ?? original.name,
         }),
       };
-      const mutation = trpcClient.deploy.project.update.mutate(updateInput);
+      const mutation = getUnkeyClient().projects.updateProject(updateInput);
 
       toast.promise(mutation, {
         loading: "Updating project...",
         success: "Project updated successfully",
         error: (err) => {
           console.error("Failed to update project", err);
-
-          switch (err.data?.code) {
-            case "FORBIDDEN":
-              return {
-                message: "Permission Denied",
-                description: err.message || "You don't have permission to update this project.",
-              };
-            case "NOT_FOUND":
-              return {
-                message: "Project Update Failed",
-                description: "Unable to find the project. Please refresh and try again.",
-              };
-            case "INTERNAL_SERVER_ERROR":
-              return {
-                message: "Server Error",
-                description:
-                  "We encountered an issue while updating your project. Please try again later or contact support at support@unkey.com",
-              };
-            default:
-              return {
-                message: "Failed to Update Project",
-                description: err.message || "An unexpected error occurred. Please try again later.",
-              };
-          }
+          return getErrorToast(err, "Failed to Update Project");
         },
       });
 

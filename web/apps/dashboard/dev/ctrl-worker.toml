@@ -3,7 +3,6 @@ region = "local"
 default_domain = "unkey.local"
 cname_domain = "unkey.local"
 build_platform = "linux/amd64"
-sentinel_image = "unkey/sentinel:dev"
 database = "unkey:password@tcp(mysql:3306)/unkey?parseTime=true&interpolateParams=true"
 
 [vault]
@@ -20,7 +19,10 @@ repository = "registry.depot.dev/72dvmc7lv7"
 username = "x-token"
 password = "${UNKEY_REGISTRY_PASSWORD}"
 
-[depot]
+[build]
+backend = "depot"
+
+[build.depot]
 api_url = "https://api.depot.dev"
 project_region = "us-east-1"
 project_prefix = "builds-local"

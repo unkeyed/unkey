@@ -135,8 +135,12 @@ paths:
     $ref: "./spec/paths/v2/liveness/index.yaml"
 
   # Analytics Endpoints
+  /v2/analytics.getGatewayRequests:
+    $ref: "./spec/paths/v2/analytics/getGatewayRequests/index.yaml"
   /v2/analytics.getRatelimits:
     $ref: "./spec/paths/v2/analytics/getRatelimits/index.yaml"
+  /v2/analytics.getRuntimeLogs:
+    $ref: "./spec/paths/v2/analytics/getRuntimeLogs/index.yaml"
   /v2/analytics.getVerifications:
     $ref: "./spec/paths/v2/analytics/getVerifications/index.yaml"
 
@@ -230,10 +234,18 @@ paths:
     $ref: "./spec/paths/v2/ratelimit/deleteOverride/index.yaml"
 
   # Portal Endpoints
+  /v2/portal.createPortal:
+    $ref: "./spec/paths/v2/portal/createPortal/index.yaml"
+  /v2/portal.getPortal:
+    $ref: "./spec/paths/v2/portal/getPortal/index.yaml"
+  /v2/portal.updatePortal:
+    $ref: "./spec/paths/v2/portal/updatePortal/index.yaml"
+  /v2/portal.deletePortal:
+    $ref: "./spec/paths/v2/portal/deletePortal/index.yaml"
   /v2/portal.createSession:
     $ref: "./spec/paths/v2/portal/createSession/index.yaml"
-  /v2/portal.exchangeSession:
-    $ref: "./spec/paths/v2/portal/exchangeSession/index.yaml"
+  /v2/portal.exchangeCode:
+    $ref: "./spec/paths/v2/portal/exchangeCode/index.yaml"
   /v2/portal.listKeys:
     $ref: "./spec/paths/v2/portal/listKeys/index.yaml"
   /v2/portal.rerollKey:
@@ -290,6 +302,10 @@ paths:
     $ref: "./spec/paths/v2/domains/getDomain/index.yaml"
   /v2/domains.listDomains:
     $ref: "./spec/paths/v2/domains/listDomains/index.yaml"
+  /v2/domains.deleteDomain:
+    $ref: "./spec/paths/v2/domains/deleteDomain/index.yaml"
+  /v2/domains.verifyDomain:
+    $ref: "./spec/paths/v2/domains/verifyDomain/index.yaml"
 
   # Gateway Endpoints
   /v2/gateway.setPolicies:
@@ -300,6 +316,8 @@ paths:
     $ref: "./spec/paths/v2/gateway/updatePolicy/index.yaml"
 
   # Permissions Endpoints
+  /v2/permissions.setRolePermissions:
+    $ref: "./spec/paths/v2/permissions/setRolePermissions/index.yaml"
   /v2/permissions.createRole:
     $ref: "./spec/paths/v2/permissions/createRole/index.yaml"
   /v2/permissions.getRole:
@@ -342,7 +360,7 @@ components:
       in: cookie
       name: portal_session
       description: |-
-        Browser session cookie for the Customer Portal. Set by `portal.exchangeSession`
+        Session cookie for the Customer Portal. Set by `portal.exchangeCode`
         and sent automatically by the browser on `portal.*` requests. Portal sessions
         are scoped to a single end user (external identity) and can only access the
         `portal.*` routes.

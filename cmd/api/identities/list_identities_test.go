@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"github.com/unkeyed/unkey/cmd/api/util"
+	"github.com/unkeyed/unkey/cmd/api/internal/testutil"
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
@@ -37,11 +37,28 @@ func TestListIdentities(t *testing.T) {
 				Cursor: ptr.P("cursor_eyJrZXkiOiJrZXlfMTIzNCJ9"),
 			},
 		},
+		{
+			name: "with search",
+			args: "identities list-identities --search=user_123",
+			want: openapi.V2IdentitiesListIdentitiesRequestBody{
+				Limit:  ptr.P(100),
+				Search: ptr.P("user_123"),
+			},
+		},
+		{
+			name: "with all flags",
+			args: "identities list-identities --limit=25 --cursor=cursor_123 --search=user_123",
+			want: openapi.V2IdentitiesListIdentitiesRequestBody{
+				Limit:  ptr.P(25),
+				Cursor: ptr.P("cursor_123"),
+				Search: ptr.P("user_123"),
+			},
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			req := util.CaptureRequestWithResponse[openapi.V2IdentitiesListIdentitiesRequestBody](t, Cmd(), tt.args, `{"meta":{"requestId":"test"},"data":[]}`)
+			req := testutil.CaptureRequestWithData[openapi.V2IdentitiesListIdentitiesRequestBody](t, Cmd(), tt.args, []any{})
 			require.Equal(t, tt.want, req)
 		})
 	}

@@ -1,0 +1,190 @@
+post:
+  tags:
+    - domains
+  summary: Verify domain
+  description: |
+    Restart verification for a custom domain.
+
+    Address the domain by its ID or by its name. Names are unique per workspace, so
+    `api.acme.com` is enough.
+
+    Call this after you correct the DNS records of a domain that shows `failed`, or to give a
+    `pending` domain a new 24-hour verification period. The domain goes back to `pending` and
+    the 24-hour period starts again.
+
+    The endpoint returns when Unkey accepts the retry. Poll `domains.getDomain` for the result.
+
+    A domain that is already `verified` returns a 412.
+
+    **Required Permissions**
+
+    Your root key must have one of the following permissions:
+    - `environment.*.verify_domain` (to verify domains in any environment)
+    - `environment.<environment_id>.verify_domain` (to verify domains in a specific environment)
+  operationId: domains.verifyDomain
+  x-speakeasy-name-override: verifyDomain
+  x-unkey-idempotency: idempotent
+  security:
+    - bearer: []
+  requestBody:
+    content:
+      application/json:
+        schema:
+          "$ref": "./V2DomainsVerifyDomainRequestBody.yaml"
+        examples:
+          byName:
+            summary: Verify by domain name
+            description: The name is unique per workspace. It addresses the domain on its own.
+            value:
+              domain: api.acme.com
+          byId:
+            summary: Verify by domain ID
+            description: The domains.createDomain operation returns this ID.
+            value:
+              domain: dom_1234abcd
+    required: true
+  responses:
+    "202":
+      description: |
+        Verification retry accepted. The workflow runs in the background.
+      content:
+        application/json:
+          schema:
+            "$ref": "./V2DomainsVerifyDomainResponseBody.yaml"
+          examples:
+            accepted:
+              summary: Verification restarted
+              description: The domain went back to `pending`. Poll domains.getDomain to see the result.
+              value:
+                meta:
+                  requestId: req_1234abcd
+                data: {}
+    "400":
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/BadRequestErrorResponse.yaml"
+          examples:
+            invalidIdentifier:
+              summary: Identifier too short
+              description: The schema limits only the length of the identifier. An identifier that is neither a valid name nor a stored ID returns a 404.
+              value:
+                meta:
+                  requestId: req_1234abcd
+                error:
+                  title: Bad Request
+                  detail: The domain identifier must be between 4 and 253 characters.
+                  status: 400
+                  type: validation-error
+                  errors:
+                    - location: body.domain
+                      message: minLength must be at least 4 characters
+                      fix: Pass a domain name such as 'api.acme.com' or an id such as 'dom_1234abcd'
+    "401":
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/UnauthorizedErrorResponse.yaml"
+          examples:
+            invalidRootKey:
+              summary: Root key not found
+              value:
+                meta:
+                  requestId: req_1234abcd
+                error:
+                  title: Unauthorized
+                  detail: The provided root key is invalid.
+                  status: 401
+                  type: unauthorized
+    "403":
+      description: |
+        Forbidden - The root key or its workspace is disabled. A root key that only lacks
+        `environment.*.verify_domain` receives a 404 instead.
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/ForbiddenErrorResponse.yaml"
+          examples:
+            keyDisabled:
+              summary: Root key disabled
+              value:
+                meta:
+                  requestId: req_1234abcd
+                error:
+                  title: Forbidden
+                  detail: The provided root key is disabled.
+                  status: 403
+                  type: forbidden
+    "404":
+      description: |
+        Not Found - The domain does not exist in your workspace, or it was deleted, or your
+        root key is not permitted to verify it.
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/NotFoundErrorResponse.yaml"
+          examples:
+            domainNotFound:
+              summary: Domain not found
+              value:
+                meta:
+                  requestId: req_1234abcd
+                error:
+                  title: Not Found
+                  detail: The requested domain does not exist.
+                  status: 404
+                  type: not-found
+    "412":
+      description: |
+        Precondition Failed - The domain is already verified. There is nothing to retry.
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/PreconditionFailedErrorResponse.yaml"
+          examples:
+            alreadyVerified:
+              summary: Domain already verified
+              value:
+                meta:
+                  requestId: req_1234abcd
+                error:
+                  title: Precondition Failed
+                  detail: The domain 'api.acme.com' is already verified. No action is needed.
+                  status: 412
+                  type: precondition-failed
+    "429":
+      description: Too Many Requests
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/TooManyRequestsErrorResponse.yaml"
+          examples:
+            rateLimited:
+              summary: Workspace rate limit exceeded
+              value:
+                meta:
+                  requestId: req_1234abcd
+                error:
+                  title: Too Many Requests
+                  detail: You have exceeded the rate limit for this operation. Retry after the window resets.
+                  status: 429
+                  type: rate-limited
+    "500":
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/InternalServerErrorResponse.yaml"
+          examples:
+            internalError:
+              summary: Unexpected server error
+              value:
+                meta:
+                  requestId: req_1234abcd
+                error:
+                  title: Internal Server Error
+                  detail: An unexpected error occurred. Contact support@unkey.com with the requestId.
+                  status: 500
+                  type: internal-server-error

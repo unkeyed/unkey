@@ -67,7 +67,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	key, err := db.Query.FindLiveKeyByID(ctx, h.DB.RO(), req.KeyId)
+	keyRow, err := db.Query.FindLiveKeyByID(ctx, h.DB.RO(), req.KeyId)
 	if err != nil {
 		if db.IsNotFound(err) {
 			return fault.Wrap(
@@ -85,7 +85,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	if key.WorkspaceID != principal.WorkspaceID {
+	key := db.ToKeyData(keyRow)
+
+	if key.Key.WorkspaceID != principal.WorkspaceID {
 		return fault.New("key not found",
 			fault.Code(codes.Data.Key.NotFound.URN()),
 			fault.Internal("key belongs to different workspace"),
@@ -105,7 +107,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			Action:       rbac.UpdateKey,
 		}),
 		rbac.U(
-			urn.New().Workspace(principal.WorkspaceID).Keyspace(key.KeyAuthID).Key(req.KeyId),
+			urn.New().Workspace(principal.WorkspaceID).Keyspace(key.Key.KeyAuthID).Key(req.KeyId),
 			permissions.UpdateKey{},
 		),
 	))
@@ -122,7 +124,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		auditLogs := []auditlog.AuditLog{}
 
 		update := db.UpdateKeyParams{
-			ID:                         key.ID,
+			ID:                         key.Key.ID,
 			Now:                        sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
 			NameSpecified:              0,
 			Name:                       sql.NullString{Valid: false, String: ""},
@@ -308,9 +310,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			)
 		}
 
-		if req.Ratelimits != nil {
+		if req.Ratelimits.IsSpecified() {
 			var existingRatelimits []db.ListRatelimitsByKeyIDRow
-			existingRatelimits, err = db.Query.ListRatelimitsByKeyID(ctx, tx, sql.NullString{String: key.ID, Valid: true})
+			existingRatelimits, err = db.Query.ListRatelimitsByKeyID(ctx, tx, sql.NullString{String: key.Key.ID, Valid: true})
 			if err != nil && !db.IsNotFound(err) {
 				return fault.Wrap(err,
 					fault.Internal("unable to fetch ratelimits"),
@@ -326,8 +328,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 			// Create map of new ratelimits
 			newRatelimitMap := make(map[string]openapi.RatelimitRequest)
-			for _, rl := range *req.Ratelimits {
-				newRatelimitMap[rl.Name] = rl
+			if !req.Ratelimits.IsNull() {
+				for _, rl := range req.Ratelimits.MustGet() {
+					newRatelimitMap[rl.Name] = rl
+				}
 			}
 
 			// Delete ratelimits that are not in the new list
@@ -364,7 +368,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				ratelimitsToInsert = append(ratelimitsToInsert, db.InsertKeyRatelimitParams{
 					ID:          rlID,
 					WorkspaceID: principal.WorkspaceID,
-					KeyID:       sql.NullString{String: key.ID, Valid: true},
+					KeyID:       sql.NullString{String: key.Key.ID, Valid: true},
 					Name:        newRL.Name,
 					Limit:       uint64(newRL.Limit),
 					Duration:    uint64(newRL.Duration),
@@ -471,7 +475,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				}
 			}
 
-			err = db.Query.DeleteAllKeyPermissionsByKeyID(ctx, tx, key.ID)
+			err = db.Query.DeleteAllKeyPermissionsByKeyID(ctx, tx, key.Key.ID)
 			if err != nil {
 				return fault.Wrap(err,
 					fault.Internal("unable to clear permissions"),
@@ -483,7 +487,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			now := time.Now().UnixMilli()
 			for _, reqPerm := range requestedPermissions {
 				permissionsToInsert = append(permissionsToInsert, db.InsertKeyPermissionParams{
-					KeyID:        key.ID,
+					KeyID:        key.Key.ID,
 					PermissionID: reqPerm.ID,
 					WorkspaceID:  principal.WorkspaceID,
 					CreatedAt:    now,
@@ -538,7 +542,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				)
 			}
 
-			err = db.Query.DeleteAllKeyRolesByKeyID(ctx, tx, key.ID)
+			err = db.Query.DeleteAllKeyRolesByKeyID(ctx, tx, key.Key.ID)
 			if err != nil {
 				return fault.Wrap(err,
 					fault.Internal("unable to clear roles"),
@@ -550,7 +554,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			rolesToInsert := []db.InsertKeyRoleParams{}
 			for _, reqRole := range requestedRoles {
 				rolesToInsert = append(rolesToInsert, db.InsertKeyRoleParams{
-					KeyID:       key.ID,
+					KeyID:       key.Key.ID,
 					RoleID:      reqRole.ID,
 					WorkspaceID: principal.WorkspaceID,
 					CreatedAtM:  time.Now().UnixMilli(),
@@ -576,16 +580,16 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			ActorID:       principal.Subject.ID,
 			ActorName:     principal.Subject.Name,
 			ActorMeta:     map[string]any{},
-			Display:       fmt.Sprintf("Updated key %s", key.ID),
+			Display:       fmt.Sprintf("Updated key %s", key.Key.ID),
 			RemoteIP:      s.Location(),
 			UserAgent:     s.UserAgent(),
 			CorrelationID: "",
 			Resources: []auditlog.AuditLogResource{
 				{
 					Type:        auditlog.KeyResourceType,
-					ID:          key.ID,
-					DisplayName: key.Name.String,
-					Name:        key.Name.String,
+					ID:          key.Key.ID,
+					DisplayName: key.Key.Name.String,
+					Name:        key.Key.Name.String,
 					Meta:        map[string]any{},
 				},
 				{
@@ -610,12 +614,12 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return txErr
 	}
 
-	h.KeyCache.Remove(ctx, key.Hash)
+	h.KeyCache.Remove(ctx, key.Key.Hash)
 	if req.Credits.IsSpecified() {
-		if err := h.UsageLimiter.Invalidate(ctx, key.ID); err != nil {
+		if err := h.UsageLimiter.Invalidate(ctx, key.Key.ID); err != nil {
 			logger.Error("Failed to invalidate usage limit",
 				"error", err.Error(),
-				"key_id", key.ID,
+				"key_id", key.Key.ID,
 			)
 		}
 	}

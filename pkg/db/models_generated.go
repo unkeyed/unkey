@@ -640,21 +640,6 @@ type AppRuntimeSetting struct {
 	UpdatedAt        sql.NullInt64                      `db:"updated_at"`
 }
 
-type ClickhouseWorkspaceSetting struct {
-	Pk                        uint64        `db:"pk"`
-	WorkspaceID               string        `db:"workspace_id"`
-	Username                  string        `db:"username"`
-	PasswordEncrypted         string        `db:"password_encrypted"`
-	QuotaDurationSeconds      int32         `db:"quota_duration_seconds"`
-	MaxQueriesPerWindow       int32         `db:"max_queries_per_window"`
-	MaxExecutionTimePerWindow int32         `db:"max_execution_time_per_window"`
-	MaxQueryExecutionTime     int32         `db:"max_query_execution_time"`
-	MaxQueryMemoryBytes       int64         `db:"max_query_memory_bytes"`
-	MaxQueryResultRows        int32         `db:"max_query_result_rows"`
-	CreatedAt                 int64         `db:"created_at"`
-	UpdatedAt                 sql.NullInt64 `db:"updated_at"`
-}
-
 type CustomDomain struct {
 	Pk                    uint64                          `db:"pk"`
 	ID                    string                          `db:"id"`
@@ -793,6 +778,31 @@ type Identity struct {
 	UpdatedAt   sql.NullInt64 `db:"updated_at"`
 }
 
+type Key struct {
+	Pk                 uint64         `db:"pk"`
+	ID                 string         `db:"id"`
+	KeyAuthID          string         `db:"key_auth_id"`
+	Hash               string         `db:"hash"`
+	Start              string         `db:"start"`
+	WorkspaceID        string         `db:"workspace_id"`
+	ForWorkspaceID     sql.NullString `db:"for_workspace_id"`
+	Name               sql.NullString `db:"name"`
+	IdentityID         sql.NullString `db:"identity_id"`
+	Meta               sql.NullString `db:"meta"`
+	Expires            sql.NullTime   `db:"expires"`
+	CreatedAtM         int64          `db:"created_at_m"`
+	UpdatedAtM         sql.NullInt64  `db:"updated_at_m"`
+	DeletedAtM         sql.NullInt64  `db:"deleted_at_m"`
+	RefillDay          sql.NullInt16  `db:"refill_day"`
+	RefillAmount       sql.NullInt64  `db:"refill_amount"`
+	LastRefillAt       sql.NullTime   `db:"last_refill_at"`
+	Enabled            bool           `db:"enabled"`
+	RemainingRequests  sql.NullInt64  `db:"remaining_requests"`
+	Environment        sql.NullString `db:"environment"`
+	LastUsedAt         uint64         `db:"last_used_at"`
+	PendingMigrationID sql.NullString `db:"pending_migration_id"`
+}
+
 type KeyAuth struct {
 	Pk                 uint64         `db:"pk"`
 	ID                 string         `db:"id"`
@@ -817,25 +827,6 @@ type KeysRole struct {
 	UpdatedAtM  sql.NullInt64 `db:"updated_at_m"`
 }
 
-type Limit struct {
-	Pk                                    uint64        `db:"pk"`
-	WorkspaceID                           string        `db:"workspace_id"`
-	ApiBillableOperationsCountMaxPerMonth uint64        `db:"api_billable_operations_count_max_per_month"`
-	ApiRequestsCountMaxPerMinute          sql.NullInt32 `db:"api_requests_count_max_per_minute"`
-	LogsRetentionDaysMax                  uint16        `db:"logs_retention_days_max"`
-	LogsAuditRetentionDaysMax             uint16        `db:"logs_audit_retention_days_max"`
-	TeamEnabled                           bool          `db:"team_enabled"`
-	CpuCoresMax                           uint32        `db:"cpu_cores_max"`
-	CpuCoresMaxPerInstance                uint32        `db:"cpu_cores_max_per_instance"`
-	MemoryMibMax                          uint32        `db:"memory_mib_max"`
-	MemoryMibMaxPerInstance               uint32        `db:"memory_mib_max_per_instance"`
-	StorageMibMax                         uint32        `db:"storage_mib_max"`
-	StorageMibMaxPerInstance              uint32        `db:"storage_mib_max_per_instance"`
-	BuildsConcurrentMax                   uint16        `db:"builds_concurrent_max"`
-	CustomDomainsMax                      uint32        `db:"custom_domains_max"`
-	AutoscalingReplicasMax                uint16        `db:"autoscaling_replicas_max"`
-}
-
 type Permission struct {
 	Pk          uint64            `db:"pk"`
 	ID          string            `db:"id"`
@@ -848,42 +839,37 @@ type Permission struct {
 	UpdatedAtM  sql.NullInt64     `db:"updated_at_m"`
 }
 
-type PortalConfiguration struct {
-	Pk          uint64         `db:"pk"`
-	ID          string         `db:"id"`
-	WorkspaceID string         `db:"workspace_id"`
-	Slug        string         `db:"slug"`
-	AppID       sql.NullString `db:"app_id"`
-	KeyAuthID   sql.NullString `db:"key_auth_id"`
-	Enabled     bool           `db:"enabled"`
-	ReturnUrl   sql.NullString `db:"return_url"`
-	CreatedAt   int64          `db:"created_at"`
-	UpdatedAt   sql.NullInt64  `db:"updated_at"`
+type Portal struct {
+	Pk           uint64         `db:"pk"`
+	ID           string         `db:"id"`
+	WorkspaceID  string         `db:"workspace_id"`
+	Slug         string         `db:"slug"`
+	DisplayName  string         `db:"display_name"`
+	AppID        sql.NullString `db:"app_id"`
+	KeyAuthID    sql.NullString `db:"key_auth_id"`
+	Enabled      bool           `db:"enabled"`
+	LogoUrl      sql.NullString `db:"logo_url"`
+	PrimaryColor sql.NullString `db:"primary_color"`
+	CreatedAt    int64          `db:"created_at"`
+	UpdatedAt    sql.NullInt64  `db:"updated_at"`
 }
 
 type PortalSession struct {
-	Pk             uint64          `db:"pk"`
-	ID             string          `db:"id"`
-	WorkspaceID    string          `db:"workspace_id"`
-	PortalConfigID string          `db:"portal_config_id"`
-	ExternalID     string          `db:"external_id"`
-	Permissions    json.RawMessage `db:"permissions"`
-	Preview        bool            `db:"preview"`
-	ExpiresAt      int64           `db:"expires_at"`
-	CreatedAt      int64           `db:"created_at"`
-}
-
-type PortalSessionToken struct {
-	Pk             uint64          `db:"pk"`
-	ID             string          `db:"id"`
-	WorkspaceID    string          `db:"workspace_id"`
-	PortalConfigID string          `db:"portal_config_id"`
-	ExternalID     string          `db:"external_id"`
-	Permissions    json.RawMessage `db:"permissions"`
-	Preview        bool            `db:"preview"`
-	ExchangedAt    sql.NullInt64   `db:"exchanged_at"`
-	ExpiresAt      int64           `db:"expires_at"`
-	CreatedAt      int64           `db:"created_at"`
+	Pk                    uint64          `db:"pk"`
+	ID                    string          `db:"id"`
+	WorkspaceID           string          `db:"workspace_id"`
+	PortalID              string          `db:"portal_id"`
+	ExternalID            string          `db:"external_id"`
+	Scopes                json.RawMessage `db:"scopes"`
+	Preview               bool            `db:"preview"`
+	ExchangeCodeHash      string          `db:"exchange_code_hash"`
+	ExchangeCodeExpiresAt int64           `db:"exchange_code_expires_at"`
+	AccessTokenHash       sql.NullString  `db:"access_token_hash"`
+	AccessTokenCreatedAt  sql.NullInt64   `db:"access_token_created_at"`
+	AccessTokenExpiresAt  sql.NullInt64   `db:"access_token_expires_at"`
+	RevokedAt             sql.NullInt64   `db:"revoked_at"`
+	ReturnUrl             sql.NullString  `db:"return_url"`
+	CreatedAt             int64           `db:"created_at"`
 }
 
 type Project struct {

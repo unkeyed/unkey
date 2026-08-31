@@ -320,7 +320,7 @@ func (s *Service) DeleteCustomDomain(
 	}
 
 	// Delete in transaction: frontline route, ACME challenge, custom domain
-	err = db.Tx(ctx, s.db.RW(), func(txCtx context.Context, tx db.DBTX) error {
+	err = db.TxRetry(ctx, s.db.RW(), func(txCtx context.Context, tx db.DBTX) error {
 		// Delete the frontline route only if it belongs to this caller's project.
 		// frontline_routes enforces UNIQUE(fully_qualified_domain_name), so exactly
 		// one route exists per FQDN, owned by whichever project verified it. Scoping
@@ -344,6 +344,33 @@ func (s *Service) DeleteCustomDomain(
 			return fmt.Errorf("failed to delete custom domain: %w", deleteErr)
 		}
 
+		a := req.Msg.GetActor()
+		if txErr := s.auditlogs.Insert(txCtx, tx, []auditlog.AuditLog{
+			{
+				WorkspaceID:   req.Msg.GetWorkspaceId(),
+				Event:         auditlog.DomainDeleteEvent,
+				Display:       fmt.Sprintf("Deleted custom domain %s", domain.Domain),
+				ActorID:       a.GetId(),
+				ActorName:     a.GetName(),
+				ActorType:     actor.AuditType(a.GetType()),
+				ActorMeta:     actor.Meta(a.GetMeta()),
+				RemoteIP:      a.GetRemoteIp(),
+				UserAgent:     a.GetUserAgent(),
+				CorrelationID: "",
+				Resources: []auditlog.AuditLogResource{
+					{
+						ID:          domain.ID,
+						Type:        auditlog.DomainResourceType,
+						Meta:        map[string]any{"domain": domain.Domain, "projectId": domain.ProjectID, "appId": domain.AppID, "environmentId": domain.EnvironmentID},
+						Name:        domain.Domain,
+						DisplayName: domain.Domain,
+					},
+				},
+			},
+		}); txErr != nil {
+			return fmt.Errorf("failed to insert audit log: %w", txErr)
+		}
+
 		return nil
 	})
 	if err != nil {
@@ -353,7 +380,8 @@ func (s *Service) DeleteCustomDomain(
 	return connect.NewResponse(&ctrlv1.DeleteCustomDomainResponse{}), nil
 }
 
-// RetryVerification resets and restarts verification for a failed domain.
+// RetryVerification resets and restarts verification of a pending, verifying, or
+// failed domain. It rejects a verified domain with FailedPrecondition.
 func (s *Service) RetryVerification(
 	ctx context.Context,
 	req *connect.Request[ctrlv1.RetryVerificationRequest],
@@ -379,6 +407,10 @@ func (s *Service) RetryVerification(
 		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("domain not found: %s", req.Msg.GetDomain()))
 	}
 
+	if domain.VerificationStatus == db.CustomDomainsVerificationStatusVerified {
+		return nil, gatefault.ConnectWith(connect.CodeFailedPrecondition, domaingate.AlreadyVerified(domain.Domain))
+	}
+
 	// Cancel any existing verification workflow
 	if domain.InvocationID.Valid && s.restateAdmin != nil {
 		if cancelErr := s.restateAdmin.CancelInvocation(ctx, domain.InvocationID.String); cancelErr != nil {
@@ -392,21 +424,55 @@ func (s *Service) RetryVerification(
 		}
 	}
 
-	sendResp, sendErr := s.startVerification(ctx, domain.ID)
-	if sendErr != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to trigger verification: %w", sendErr))
-	}
+	now := time.Now().UnixMilli()
 
-	// Reset verification state with new invocation ID
-	err = s.db.ResetCustomDomainVerification(ctx, db.ResetCustomDomainVerificationParams{
-		ID:                 domain.ID,
-		VerificationStatus: db.CustomDomainsVerificationStatusPending,
-		CheckAttempts:      0,
-		InvocationID:       sql.NullString{Valid: true, String: sendResp.Id()},
-		UpdatedAt:          sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+	err = db.TxRetry(ctx, s.db.RW(), func(txCtx context.Context, tx db.DBTX) error {
+		a := req.Msg.GetActor()
+		if txErr := s.auditlogs.Insert(txCtx, tx, []auditlog.AuditLog{
+			{
+				WorkspaceID:   req.Msg.GetWorkspaceId(),
+				Event:         auditlog.DomainVerifyEvent,
+				Display:       fmt.Sprintf("Retried verification for custom domain %s", domain.Domain),
+				ActorID:       a.GetId(),
+				ActorName:     a.GetName(),
+				ActorType:     actor.AuditType(a.GetType()),
+				ActorMeta:     actor.Meta(a.GetMeta()),
+				RemoteIP:      a.GetRemoteIp(),
+				UserAgent:     a.GetUserAgent(),
+				CorrelationID: "",
+				Resources: []auditlog.AuditLogResource{
+					{
+						ID:          domain.ID,
+						Type:        auditlog.DomainResourceType,
+						Meta:        map[string]any{"domain": domain.Domain, "projectId": domain.ProjectID, "appId": domain.AppID, "environmentId": domain.EnvironmentID},
+						Name:        domain.Domain,
+						DisplayName: domain.Domain,
+					},
+				},
+			},
+		}); txErr != nil {
+			return fmt.Errorf("failed to insert audit log: %w", txErr)
+		}
+
+		sendResp, sendErr := s.startVerification(txCtx, domain.ID)
+		if sendErr != nil {
+			return fmt.Errorf("failed to trigger verification: %w", sendErr)
+		}
+
+		if txErr := db.NewQueries(tx).ResetCustomDomainVerification(txCtx, db.ResetCustomDomainVerificationParams{
+			ID:                 domain.ID,
+			VerificationStatus: db.CustomDomainsVerificationStatusPending,
+			CheckAttempts:      0,
+			InvocationID:       sql.NullString{Valid: true, String: sendResp.Id()},
+			UpdatedAt:          sql.NullInt64{Valid: true, Int64: now},
+		}); txErr != nil {
+			return fmt.Errorf("failed to reset verification: %w", txErr)
+		}
+
+		return nil
 	})
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to reset verification: %w", err))
+		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 
 	return connect.NewResponse(&ctrlv1.RetryVerificationResponse{

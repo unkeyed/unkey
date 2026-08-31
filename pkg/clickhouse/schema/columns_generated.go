@@ -9,7 +9,7 @@ func (KeyVerification) Table() string {
 
 // InsertColumns implements [Row]; derived from KeyVerification's ch tags.
 func (KeyVerification) InsertColumns() string {
-	return "`request_id`, `time`, `workspace_id`, `key_space_id`, `identity_id`, `external_id`, `key_id`, `region`, `source`, `outcome`, `tags`, `spent_credits`, `latency`"
+	return "`request_id`, `time`, `workspace_id`, `key_space_id`, `identity_id`, `external_id`, `key_id`, `region`, `source`, `app_id`, `outcome`, `tags`, `spent_credits`, `latency`"
 }
 
 // Table implements [Row].
@@ -79,7 +79,7 @@ func (FrontlineRequest) Table() string {
 
 // InsertColumns implements [Row]; derived from FrontlineRequest's ch tags.
 func (FrontlineRequest) InsertColumns() string {
-	return "`request_id`, `time`, `workspace_id`, `project_id`, `app_id`, `environment_id`, `frontline_id`, `deployment_id`, `instance_id`, `instance_address`, `region`, `platform`, `method`, `host`, `path`, `query_string`, `query_params`, `request_headers`, `request_body`, `response_status`, `response_headers`, `response_body`, `user_agent`, `ip_address`, `total_latency`, `instance_latency`, `frontline_latency`"
+	return "`request_id`, `time`, `workspace_id`, `project_id`, `app_id`, `environment_id`, `frontline_id`, `deployment_id`, `instance_id`, `instance_address`, `region`, `platform`, `method`, `host`, `path`, `query_string`, `query_params`, `request_headers`, `request_body`, `response_status`, `response_headers`, `response_body`, `user_agent`, `ip_address`, `total_latency`, `instance_latency`, `gateway_latency`"
 }
 
 // Table implements [Row].
@@ -90,4 +90,14 @@ func (AuditLogV1) Table() string {
 // InsertColumns implements [Row]; derived from AuditLogV1's ch tags.
 func (AuditLogV1) InsertColumns() string {
 	return "`event_id`, `time`, `inserted_at`, `workspace_id`, `bucket`, `source`, `event`, `description`, `actor_type`, `actor_id`, `actor_name`, `actor_meta`, `remote_ip`, `user_agent`, `meta`, `targets.type`, `targets.id`, `targets.name`, `targets.meta`, `correlation_id`"
+}
+
+// Table implements [Row].
+func (LogdrainDeliveryV1) Table() string {
+	return "default.logdrain_deliveries_raw_v1"
+}
+
+// InsertColumns implements [Row]; derived from LogdrainDeliveryV1's ch tags.
+func (LogdrainDeliveryV1) InsertColumns() string {
+	return "`workspace_id`, `drain_id`, `stream`, `time`, `outcome`, `events`, `webhook_duration_ms`, `request_body_bytes`, `response_status`, `response_body`, `error`"
 }

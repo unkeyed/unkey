@@ -59,6 +59,10 @@ type lifecycleFixture struct {
 }
 
 func newLifecycleFixture(t *testing.T) *lifecycleFixture {
+	return newLifecycleFixtureWithDeployGate(t, false)
+}
+
+func newLifecycleFixtureWithDeployGate(t *testing.T, enforceDeployGate bool) *lifecycleFixture {
 	t.Helper()
 
 	mock := &mockLifecycleService{
@@ -66,7 +70,8 @@ func newLifecycleFixture(t *testing.T) *lifecycleFixture {
 		rollbacks: make(chan *hydrav1.RollbackRequest, 8),
 	}
 	h := newWebhookHarness(t, webhookHarnessConfig{
-		Services: []restate.ServiceDefinition{hydrav1.NewDeployServiceServer(mock)},
+		Services:          []restate.ServiceDefinition{hydrav1.NewDeployServiceServer(mock)},
+		EnforceDeployGate: enforceDeployGate,
 	})
 
 	ctx := h.RequestContext()
@@ -167,6 +172,38 @@ func requireConnectError(t *testing.T, err error, code connect.Code, msgSubstr s
 	require.Error(t, err)
 	require.Equal(t, code, connect.CodeOf(err), "unexpected connect code, err: %v", err)
 	require.ErrorContains(t, err, msgSubstr)
+}
+
+func TestDeployment_ActivationRequiresComputePlan(t *testing.T) {
+	f := newLifecycleFixtureWithDeployGate(t, true)
+
+	live := f.deployment(f.prodEnv, mysqltype.DeploymentsStatusReady, mysqltype.DeploymentsDesiredStateRunning)
+	target := f.deployment(f.prodEnv, mysqltype.DeploymentsStatusReady, mysqltype.DeploymentsDesiredStateRunning)
+	f.setLive(live.ID, false)
+
+	authorize := f.deployment(f.previewEnv, mysqltype.DeploymentsStatusAwaitingApproval, mysqltype.DeploymentsDesiredStateRunning)
+
+	tests := []struct {
+		name string
+		call func() error
+	}{
+		{name: "promote", call: func() error { return f.promote(target.ID) }},
+		{name: "rollback", call: func() error { return f.rollback(live.ID, target.ID) }},
+		{name: "authorize", call: func() error {
+			_, err := f.client.AuthorizeDeployment(f.ctx, connect.NewRequest(&ctrlv1.AuthorizeDeploymentRequest{DeploymentId: authorize.ID}))
+			return err
+		}},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			requireConnectError(t, test.call(), connect.CodeFailedPrecondition, "no active Compute plan")
+		})
+	}
+
+	stored, err := f.db.FindDeploymentById(f.ctx, authorize.ID)
+	require.NoError(t, err)
+	require.Equal(t, mysqltype.DeploymentsStatusAwaitingApproval, stored.Status)
 }
 
 func TestDeployment_Promote_Validation(t *testing.T) {

@@ -184,10 +184,14 @@ const (
 	// NotFound indicates the requested audit log was not found.
 	UnkeyDataErrorsAuditLogNotFound URN = "err:unkey:data:audit_log_not_found"
 
-	// PortalConfig
+	// Portal
 
-	// NotFound indicates the requested portal configuration was not found.
-	UnkeyDataErrorsPortalConfigNotFound URN = "err:unkey:data:portal_config_not_found"
+	// Duplicate indicates a portal already claims the requested slug or association.
+	// The app and keyspace unique keys span every workspace, so this can be raised
+	// by a portal the caller cannot see.
+	UnkeyDataErrorsPortalDuplicate URN = "err:unkey:data:portal_already_exists"
+	// NotFound indicates the requested portal was not found.
+	UnkeyDataErrorsPortalNotFound URN = "err:unkey:data:portal_not_found"
 
 	// Analytics
 
@@ -310,8 +314,10 @@ const (
 	UnkeyFrontlineErrorsAuthInvalidKey URN = "err:frontline:client:invalid_key"
 	// InsufficientPermissions represents a 403 error - the credential lacks the permissions required by a permission_query.
 	UnkeyFrontlineErrorsAuthInsufficientPermissions URN = "err:frontline:client:insufficient_permissions"
-	// RateLimited represents a 429 error - the credential or its auto-applied rate limit was exceeded.
+	// RateLimited represents a 429 error - a configured request rate limit was exceeded.
 	UnkeyFrontlineErrorsAuthRateLimited URN = "err:frontline:client:rate_limited"
+	// UsageExceeded represents a 429 error - the credential has no remaining credits.
+	UnkeyFrontlineErrorsAuthUsageExceeded URN = "err:frontline:client:usage_exceeded"
 
 	// Firewall
 

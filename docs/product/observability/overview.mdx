@@ -3,10 +3,6 @@ title: Observability
 description: "Monitor your Unkey deployments with built-in observability tools including HTTP request logs, runtime application logs, and performance metrics."
 ---
 
-import DeployBeta from "/snippets/deploy-beta.mdx";
-
-<DeployBeta />
-
 Every project on Unkey includes built-in observability so you can inspect what your app is doing without adding extra tooling.
 
 ## What you get
@@ -14,7 +10,7 @@ Every project on Unkey includes built-in observability so you can inspect what y
 Each project provides three types of observability data:
 
 - [Logs](/observability/logs). Runtime output (stdout and stderr) from your app, with filtering by severity, deployment, environment, and message content
-- [Requests](/observability/requests). Every HTTP request that passes through [the gateway](/platform/gateway/overview) to your app, including method, path, status code, headers, bodies, and a full latency breakdown
+- [Requests](/observability/requests). Every HTTP request that passes through [the gateway](/platform/gateway/overview) to your app, including method, path, status code, and a full latency breakdown. A [logging policy](/platform/gateway/policies/logging) can add headers, bodies, and query data
 - [Metrics](/observability/metrics). RPS and latency charts on each deployment's overview page
 
 ## Where to find it
@@ -23,4 +19,4 @@ Navigate to your project in the dashboard. The **Logs** and **Requests** tabs ar
 
 ## Retention
 
-Runtime logs are retained for 90 days. Request logs are retained for 30 days. Metrics are available for the lifetime of the deployment.
+Runtime logs are retained for 90 days. Request log retention depends on your plan, see [quotas](/platform/workspaces/quotas#log-retention). Metrics are available for the lifetime of the deployment.

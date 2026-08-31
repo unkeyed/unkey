@@ -1,6 +1,7 @@
 package routes
 
 import (
+	restateingress "github.com/restatedev/sdk-go/ingress"
 	"github.com/unkeyed/unkey/gen/rpc/ctrl"
 	"github.com/unkeyed/unkey/gen/rpc/vault"
 	"github.com/unkeyed/unkey/internal/services/analytics"
@@ -14,6 +15,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/batch"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
+	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/db"
 	githubclient "github.com/unkeyed/unkey/pkg/github"
 	"github.com/unkeyed/unkey/pkg/redaction"
@@ -55,6 +57,10 @@ type Services struct {
 	// by the v2 keys.verifyKey handler.
 	KeyVerifications *batch.BatchProcessor[schema.KeyVerification]
 
+	// Clock is the time source handlers read the current time from, so tests can
+	// drive time deterministically instead of racing the system clock.
+	Clock clock.Clock
+
 	// Validator performs request payload validation using struct tags.
 	Validator *validation.Validator
 
@@ -90,6 +96,9 @@ type Services struct {
 	// CtrlCustomDomainClient communicates with the control plane for custom
 	// domain operations (create starts a durable DNS verification workflow).
 	CtrlCustomDomainClient ctrl.CustomDomainServiceClient
+
+	// Restate submits durable workflows through the Restate ingress.
+	Restate *restateingress.Client
 
 	// PprofEnabled controls whether pprof profiling endpoints are registered.
 	PprofEnabled bool

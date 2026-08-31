@@ -91,8 +91,7 @@ func (s *Service) VerifyDomain(
 		return nil, fault.Wrap(err, fault.Internal("failed to fetch domain record"))
 	}
 
-	// Check if we've exceeded the verification window
-	elapsed := time.Since(time.UnixMilli(dom.CreatedAt))
+	elapsed := time.Since(startedAt)
 	if elapsed > maxVerificationDuration {
 		return s.onVerificationFailed(ctx, dom, "domain verification timed out after 24 hours")
 	}
@@ -109,7 +108,7 @@ func (s *Service) VerifyDomain(
 
 	// Step 1: Try CNAME verification. This works for subdomains with a real CNAME record.
 	// Apex domains (CNAME flattening, ALIAS/ANAME, CF proxy) won't have a visible CNAME.
-	cnameVerified, cnameErr := s.checkCNAME(dom.Domain, dom.TargetCname)
+	cnameVerified, cnameErr := s.checkCNAME(ctx, dom.Domain, dom.TargetCname)
 	if cnameErr != nil {
 		logger.Warn("CNAME check error",
 			"domain", dom.Domain,
@@ -144,7 +143,7 @@ func (s *Service) VerifyDomain(
 	txtVerified := true // default: not required
 	if requiresTxt {
 		var txtErr error
-		txtVerified, txtErr = s.checkTXTRecord(dom.Domain, dom.VerificationToken)
+		txtVerified, txtErr = s.checkTXTRecord(ctx, dom.Domain, dom.VerificationToken)
 		if txtErr != nil {
 			logger.Warn("TXT check error",
 				"domain", dom.Domain,
@@ -163,7 +162,7 @@ func (s *Service) VerifyDomain(
 	apexHasRecords := true
 	if isApex {
 		var recordsErr error
-		apexHasRecords, recordsErr = s.hasAddressRecords(dom.Domain)
+		apexHasRecords, recordsErr = s.hasAddressRecords(ctx, dom.Domain)
 		if recordsErr != nil {
 			logger.Warn("apex DNS lookup error",
 				"domain", dom.Domain,
@@ -258,8 +257,8 @@ func (s *Service) RetryVerification(
 // checkTXTRecord verifies that the domain has a TXT record proving ownership.
 // The TXT record should be at _unkey.<domain> with value "unkey-domain-verify=<token>".
 // Returns (true, nil) if verified, (false, nil) if TXT doesn't exist or doesn't match.
-func (s *Service) checkTXTRecord(domain, expectedToken string) (bool, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), dns.DefaultTimeout)
+func (s *Service) checkTXTRecord(ctx context.Context, domain, expectedToken string) (bool, error) {
+	ctx, cancel := context.WithTimeout(ctx, dns.DefaultTimeout)
 	defer cancel()
 
 	txtRecords, err := dns.LookupTXT(ctx, dns.OwnershipTXTName(domain))
@@ -286,8 +285,8 @@ func (s *Service) checkTXTRecord(domain, expectedToken string) (bool, error) {
 // CNAME flattening, ALIAS/ANAME records, or Cloudflare proxy will not have a visible
 // CNAME — those domains fall back to TXT-based ownership verification combined with
 // hasAddressRecords to prove DNS is configured.
-func (s *Service) checkCNAME(domain, expectedCname string) (bool, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), dns.DefaultTimeout)
+func (s *Service) checkCNAME(ctx context.Context, domain, expectedCname string) (bool, error) {
+	ctx, cancel := context.WithTimeout(ctx, dns.DefaultTimeout)
 	defer cancel()
 
 	// LookupCNAME already normalizes, just need to normalize expected
@@ -315,8 +314,8 @@ func (s *Service) checkCNAME(domain, expectedCname string) (bool, error) {
 // but not that the user configured the actual ALIAS/ANAME/A record needed for
 // routing. We don't compare addresses to a target — proxies (Cloudflare) and
 // shared CDN IPs make that unreliable — we only confirm DNS is set up.
-func (s *Service) hasAddressRecords(domain string) (bool, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), dns.DefaultTimeout)
+func (s *Service) hasAddressRecords(ctx context.Context, domain string) (bool, error) {
+	ctx, cancel := context.WithTimeout(ctx, dns.DefaultTimeout)
 	defer cancel()
 
 	addrs, err := dns.LookupHost(ctx, domain)

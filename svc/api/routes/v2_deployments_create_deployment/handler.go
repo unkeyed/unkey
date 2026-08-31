@@ -14,9 +14,12 @@ import (
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/deploy/deployfail"
+	"github.com/unkeyed/unkey/pkg/deploy/imageref"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/internal/ctrlclient"
 	"github.com/unkeyed/unkey/svc/api/openapi"
@@ -80,16 +83,25 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			ResourceID:   environment.ID,
 			Action:       rbac.CreateDeployment,
 		}),
+		rbac.U(
+			urn.New().Workspace(principal.WorkspaceID).Project(environment.ProjectID).App(environment.AppID).Environment(environment.ID).Deployment("*"),
+			permissions.CreateDeployment{},
+		),
 	))
 	if err != nil {
 		return err
 	}
 
-	// CLI announces itself via X-Unkey-Client: unkey-cli/<version>.
-	// Anything else (or absent) is attributed to the API.
+	// Clients announce themselves via X-Unkey-Client: the CLI as
+	// unkey-cli/<version>, the dashboard proxy as unkey-dashboard. Anything else
+	// (or absent) is attributed to the API.
+	client := s.Request().Header.Get("X-Unkey-Client")
 	trigger := ctrlv1.DeploymentTrigger_DEPLOYMENT_TRIGGER_API
-	if strings.HasPrefix(s.Request().Header.Get("X-Unkey-Client"), "unkey-cli/") {
+	switch {
+	case strings.HasPrefix(client, "unkey-cli/"):
 		trigger = ctrlv1.DeploymentTrigger_DEPLOYMENT_TRIGGER_CLI
+	case strings.HasPrefix(client, "unkey-dashboard"):
+		trigger = ctrlv1.DeploymentTrigger_DEPLOYMENT_TRIGGER_DASHBOARD
 	}
 
 	actorInfo, err := ctrlclient.Actor(s)
@@ -109,6 +121,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	switch {
 	case req.Image != nil:
+		if err := imageref.Validate(req.Image.DockerImage); err != nil {
+			return err
+		}
 		ctrlReq.DockerImage = req.Image.DockerImage
 
 	case req.Git != nil:
@@ -262,7 +277,7 @@ func (h *Handler) ensureEnvironmentDeployable(ctx context.Context, environment d
 	if db.IsNotFound(err) {
 		problems = append(problems, "runtime settings are not configured")
 	} else {
-		s := runtime.AppRuntimeSetting
+		s := runtime
 		for _, v := range deployfail.RuntimeViolations(s.Port, s.CpuMillicores, s.MemoryMib) {
 			problems = append(problems, fmt.Sprintf("%s (is %d)", v.Message, v.Actual))
 		}

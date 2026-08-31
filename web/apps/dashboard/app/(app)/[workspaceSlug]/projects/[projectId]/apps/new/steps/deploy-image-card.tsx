@@ -3,8 +3,11 @@
 import { useDeployActionGate } from "@/app/(app)/[workspaceSlug]/projects/_components/hooks/use-deploy-action-gate";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { queryClient } from "@/lib/collections/client";
+import { sanitizeImageRef, validateImageRef } from "@/lib/docker-image-ref";
 import { routes } from "@/lib/navigation/routes";
 import { trpc } from "@/lib/trpc/client";
+import { getErrorMessage, getUnkeyClient } from "@/lib/unkey-client";
+import { useMutation } from "@tanstack/react-query";
 import { ChevronLeft, Docker } from "@unkey/icons";
 import { Button, Input, toast } from "@unkey/ui";
 import { useRouter } from "next/navigation";
@@ -36,7 +39,16 @@ export const DeployImageCard = ({
   const environmentSlug =
     appEnvironments.find((e) => e.kind === "preview")?.slug ?? appEnvironments[0]?.slug;
 
-  const createDeployment = trpc.deploy.deployment.create.useMutation({
+  const createDeployment = useMutation({
+    mutationFn: async (source: { environment: string; image: string }) => {
+      const res = await getUnkeyClient().deployments.createDeployment({
+        project: projectId,
+        app: appId,
+        environment: source.environment,
+        image: { dockerImage: source.image },
+      });
+      return { deploymentId: res.data.deploymentId };
+    },
     async onSuccess(data) {
       await queryClient.invalidateQueries({ queryKey: ["deployments", projectId] });
       onBeforeNavigate?.();
@@ -50,12 +62,15 @@ export const DeployImageCard = ({
       );
     },
     onError(error) {
-      toast.error(error.message);
+      toast.error(getErrorMessage(error));
     },
   });
 
-  const imageRef = image.trim();
-  const canDeploy = Boolean(imageRef) && Boolean(environmentSlug) && !createDeployment.isLoading;
+  const imageRef = sanitizeImageRef(image);
+  const validation = validateImageRef(imageRef);
+  const error = imageRef && !validation.ok ? validation.error : undefined;
+  const warning = validation.ok ? validation.warning : undefined;
+  const canDeploy = validation.ok && Boolean(environmentSlug) && !createDeployment.isLoading;
 
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
@@ -66,13 +81,7 @@ export const DeployImageCard = ({
       openPaywall();
       return;
     }
-    createDeployment.mutate({
-      projectId,
-      appId,
-      environmentSlug,
-      source: "image",
-      image: imageRef,
-    });
+    createDeployment.mutate({ environment: environmentSlug, image: imageRef });
   };
 
   return (
@@ -120,6 +129,15 @@ export const DeployImageCard = ({
             <Input
               value={image}
               onChange={(e) => setImage(e.target.value)}
+              onBlur={() => setImage(imageRef)}
+              onPaste={(e) => {
+                const cleaned = sanitizeImageRef(e.clipboardData.getData("text"));
+                e.preventDefault();
+                setImage(cleaned);
+              }}
+              spellCheck={false}
+              variant={error ? "error" : warning ? "warning" : "default"}
+              aria-invalid={Boolean(error)}
               placeholder="ghcr.io/acme/mcp-server:v1.4.2"
               aria-label="Image reference"
               aria-describedby={hintId}
@@ -141,6 +159,11 @@ export const DeployImageCard = ({
           <span id={hintId} className="text-gray-10 text-[13px]">
             Include a tag or digest, e.g. <span className="font-mono text-xs">:v1.4.2</span>
           </span>
+          {(error ?? warning) ? (
+            <output className={`text-[13px] ${error ? "text-error-11" : "text-warning-11"}`}>
+              {error ?? warning}
+            </output>
+          ) : null}
         </form>
       ) : null}
       {planGate}

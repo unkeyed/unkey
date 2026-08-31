@@ -24,13 +24,11 @@ type MockDeploymentClient struct {
 	RollbackFunc             func(context.Context, *ctrlv1.RollbackRequest) (*ctrlv1.RollbackResponse, error)
 	PromoteFunc              func(context.Context, *ctrlv1.PromoteRequest) (*ctrlv1.PromoteResponse, error)
 	StopDeploymentFunc       func(context.Context, *ctrlv1.StopDeploymentRequest) (*ctrlv1.StopDeploymentResponse, error)
-	WakeDeploymentFunc       func(context.Context, *ctrlv1.WakeDeploymentRequest) (*ctrlv1.WakeDeploymentResponse, error)
 	CreateDeploymentCalls    []*ctrlv1.CreateDeploymentRequest
 	GetDeploymentCalls       []*ctrlv1.GetDeploymentRequest
 	RollbackCalls            []*ctrlv1.RollbackRequest
 	PromoteCalls             []*ctrlv1.PromoteRequest
 	StopDeploymentCalls      []*ctrlv1.StopDeploymentRequest
-	WakeDeploymentCalls      []*ctrlv1.WakeDeploymentRequest
 	AuthorizeDeploymentFunc  func(context.Context, *ctrlv1.AuthorizeDeploymentRequest) (*ctrlv1.AuthorizeDeploymentResponse, error)
 	AuthorizeDeploymentCalls []*ctrlv1.AuthorizeDeploymentRequest
 	CancelDeploymentFunc     func(context.Context, *ctrlv1.CancelDeploymentRequest) (*ctrlv1.CancelDeploymentResponse, error)
@@ -87,16 +85,6 @@ func (m *MockDeploymentClient) StopDeployment(ctx context.Context, req *ctrlv1.S
 		return m.StopDeploymentFunc(ctx, req)
 	}
 	return &ctrlv1.StopDeploymentResponse{}, nil
-}
-
-func (m *MockDeploymentClient) WakeDeployment(ctx context.Context, req *ctrlv1.WakeDeploymentRequest) (*ctrlv1.WakeDeploymentResponse, error) {
-	m.mu.Lock()
-	m.WakeDeploymentCalls = append(m.WakeDeploymentCalls, req)
-	m.mu.Unlock()
-	if m.WakeDeploymentFunc != nil {
-		return m.WakeDeploymentFunc(ctx, req)
-	}
-	return &ctrlv1.WakeDeploymentResponse{}, nil
 }
 
 func (m *MockDeploymentClient) AuthorizeDeployment(ctx context.Context, req *ctrlv1.AuthorizeDeploymentRequest) (*ctrlv1.AuthorizeDeploymentResponse, error) {

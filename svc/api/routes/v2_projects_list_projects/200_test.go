@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/pkg/deploy/projectgate"
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
@@ -77,6 +78,79 @@ func TestListProjectsSuccessfully(t *testing.T) {
 		})
 		require.Equal(t, 200, res.Status, "expected 200, received: %s", res.RawBody)
 		require.NotNil(t, res.Body.Pagination)
+	})
+}
+
+func TestListProjectsHidesDefaultProject(t *testing.T) {
+	h := testutil.NewHarness(t)
+
+	route := &handler.Handler{DB: h.DB}
+	h.Register(route)
+
+	workspace := h.CreateWorkspace()
+	rootKey := h.CreateRootKey(workspace.ID, "project.*.read_project")
+	headers := http.Header{
+		"Content-Type":  {"application/json"},
+		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+	}
+
+	ids := []string{
+		uid.New(uid.ProjectPrefix),
+		uid.New(uid.ProjectPrefix),
+		uid.New(uid.ProjectPrefix),
+	}
+
+	h.CreateProject(seed.CreateProjectRequest{
+		ID:          ids[0],
+		WorkspaceID: workspace.ID,
+		Name:        "First",
+		Slug:        "first",
+	})
+	h.CreateProject(seed.CreateProjectRequest{
+		ID:               ids[1],
+		WorkspaceID:      workspace.ID,
+		Name:             "Default",
+		Slug:             projectgate.DefaultSlug,
+		DeleteProtection: true,
+	})
+	h.CreateProject(seed.CreateProjectRequest{
+		ID:          ids[2],
+		WorkspaceID: workspace.ID,
+		Name:        "Last",
+		Slug:        "last",
+	})
+
+	t.Run("omits default without breaking pagination", func(t *testing.T) {
+		firstPage := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
+			Limit: ptr.P(1),
+		})
+		require.Equal(t, http.StatusOK, firstPage.Status, "expected 200, received: %s", firstPage.RawBody)
+		require.Len(t, firstPage.Body.Data, 1)
+		require.True(t, firstPage.Body.Pagination.HasMore)
+		require.NotNil(t, firstPage.Body.Pagination.Cursor)
+
+		secondPage := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
+			Limit:  ptr.P(1),
+			Cursor: firstPage.Body.Pagination.Cursor,
+		})
+		require.Equal(t, http.StatusOK, secondPage.Status, "expected 200, received: %s", secondPage.RawBody)
+		require.Len(t, secondPage.Body.Data, 1)
+		require.False(t, secondPage.Body.Pagination.HasMore)
+
+		// MySQL orders IDs using the column collation, not Go's bytewise string order.
+		// Pagination must return both visible projects exactly once, regardless of which is first.
+		require.ElementsMatch(t, []string{ids[0], ids[2]}, []string{
+			firstPage.Body.Data[0].Id,
+			secondPage.Body.Data[0].Id,
+		})
+	})
+
+	t.Run("does not return default in search", func(t *testing.T) {
+		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
+			Search: ptr.P(projectgate.DefaultSlug),
+		})
+		require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
+		require.Empty(t, res.Body.Data)
 	})
 }
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { DEPLOY_METER_RATE_LABELS, priceDeployMetersCents } from "@/lib/billing/deployPricing";
-import { formatCompactQuantity, formatDollars } from "@/lib/fmt";
+import { formatCompactQuantity, formatDollars, formatPrice } from "@/lib/fmt";
 import { routes } from "@/lib/navigation/routes";
 import type { DeployPlan } from "@/lib/stripe/deployPlan";
 import { trpc } from "@/lib/trpc/client";
@@ -259,7 +259,7 @@ export const DeployProductCard: React.FC<DeployProductCardProps> = ({
 
   const warningFor = (option: (typeof plans)[number]): string | null =>
     option.amount !== null && usageAmount !== null && usageAmount > option.amount
-      ? `Your usage this period (${formatDollars(usageAmount)}) already exceeds the ${formatDollars(
+      ? `Your usage this period (${formatPrice(usageAmount)}) already exceeds the ${formatDollars(
           option.amount,
         )} of monthly credits ${option.name} includes. This period keeps your current credits; from next period, usage at this level is billed as overage.`
       : null;
@@ -367,7 +367,7 @@ export const DeployProductCard: React.FC<DeployProductCardProps> = ({
                       {stat.value}
                     </p>
                     <p className="text-[12px] text-gray-10 tabular-nums">
-                      {formatDollars(stat.cost)}
+                      {formatPrice(stat.cost)}
                     </p>
                   </div>
                 ))}
@@ -404,14 +404,14 @@ export const DeployProductCard: React.FC<DeployProductCardProps> = ({
                 <div className="flex items-baseline justify-between gap-4">
                   <span className="text-[13px] text-gray-10">Usage</span>
                   <span className="text-[13px] text-gray-9 tabular-nums">
-                    {formatDollars(usageAmount ?? 0)}
+                    {formatPrice(usageAmount ?? 0)}
                   </span>
                 </div>
                 {includedCreditCents > 0 && creditRemainingCents !== null ? (
                   <div className="flex items-baseline justify-between gap-4">
                     <span className="text-[13px] text-gray-10">Included credit</span>
                     <span className="text-[13px] text-gray-9 tabular-nums">
-                      {formatDollars(creditRemainingCents)} of {formatDollars(includedCreditCents)}{" "}
+                      {formatPrice(creditRemainingCents)} of {formatDollars(includedCreditCents)}{" "}
                       remaining
                     </span>
                   </div>
@@ -423,7 +423,7 @@ export const DeployProductCard: React.FC<DeployProductCardProps> = ({
                       <span className="ml-1.5 text-[12px] text-gray-9">usage past credit</span>
                     </span>
                     <span className="text-[13px] text-gray-11 tabular-nums">
-                      {formatDollars(overageCents)}
+                      {formatPrice(overageCents)}
                     </span>
                   </div>
                 ) : null}
@@ -454,8 +454,8 @@ export const DeployProductCard: React.FC<DeployProductCardProps> = ({
                               period's fee.
                             </p>
                             <p className="text-gray-11 tabular-nums">
-                              {formatDollars(overageCents)} + {formatDollars(planFee)} ={" "}
-                              {formatDollars(nextInvoiceCents ?? overageCents + planFee)}
+                              {formatPrice(overageCents)} + {formatDollars(planFee)} ={" "}
+                              {formatPrice(nextInvoiceCents ?? overageCents + planFee)}
                             </p>
                           </div>
                           <div className="flex flex-col gap-1 border-grayA-4 border-t pt-2">
@@ -488,18 +488,18 @@ export const DeployProductCard: React.FC<DeployProductCardProps> = ({
                     projectedOverageCents > overageCents ? (
                       <span className="ml-1.5 text-[12px] text-gray-9">
                         (~
-                        {formatDollars(nextInvoiceCents + (projectedOverageCents - overageCents))}{" "}
+                        {formatPrice(nextInvoiceCents + (projectedOverageCents - overageCents))}{" "}
                         projected)
                       </span>
                     ) : null}
                   </span>
                   <span className="font-medium text-[15px] text-gray-12 tabular-nums">
-                    {nextInvoiceCents !== null ? formatDollars(nextInvoiceCents) : "—"}
+                    {nextInvoiceCents !== null ? formatPrice(nextInvoiceCents) : "—"}
                   </span>
                 </div>
                 <p className="text-[12px] text-gray-9">
                   This period's {formatDollars(periodFeeCents)} fee is already paid. Total cost for
-                  this period is {formatDollars(currentBillCents)}.
+                  this period is {formatPrice(currentBillCents)}.
                 </p>
               </div>
             ) : null}

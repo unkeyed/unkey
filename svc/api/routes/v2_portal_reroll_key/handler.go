@@ -73,7 +73,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	// Ownership guard: a portal caller may only reroll a key that belongs to its
 	// own external identity within its own workspace. Fail closed with a 404 so
 	// the caller cannot probe for keys it does not own.
-	if key.WorkspaceID != principal.WorkspaceID ||
+	if key.KeyWorkspaceID != principal.WorkspaceID ||
 		!slices.Contains(keyspaceIDs, key.KeyAuthID) ||
 		!key.IdentityExternalID.Valid ||
 		key.IdentityExternalID.String != externalID {

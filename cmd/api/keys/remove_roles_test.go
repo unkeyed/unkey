@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"github.com/unkeyed/unkey/cmd/api/util"
+	"github.com/unkeyed/unkey/cmd/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
@@ -32,11 +32,9 @@ func TestRemoveRoles(t *testing.T) {
 		},
 	}
 
-	arrayResponse := `{"meta":{"requestId":"test"},"data":[]}`
-
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			req := util.CaptureRequestWithResponse[openapi.V2KeysRemoveRolesRequestBody](t, Cmd(), tt.args, arrayResponse)
+			req := testutil.CaptureRequestWithData[openapi.V2KeysRemoveRolesRequestBody](t, Cmd(), tt.args, []any{})
 			require.Equal(t, tt.want, req)
 		})
 	}

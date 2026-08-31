@@ -25,7 +25,7 @@ unkey api apis create-api [flags]
 ## Flags
 
 <ParamField body="--name" type="string" required>
-Unique identifier for this API namespace within your workspace. Use descriptive names like `payment-service-prod` or `user-api-dev` to clearly identify purpose and environment. Must be 3-255 characters, start with a letter, and contain only letters, numbers, dots, hyphens, and underscores.
+Human-readable name for this API namespace within your workspace. Use a descriptive name like `Payment Service (prod)` or `user-api-dev` to identify its purpose and environment. Must be 3-256 characters.
 </ParamField>
 
 ## Global Flags
@@ -36,6 +36,7 @@ Unique identifier for this API namespace within your workspace. Use descriptive 
 | `--api-url` | string | Override API base URL (default: `https://api.unkey.com`) |
 | `--config` | string | Path to config file (default: `~/.unkey/config.toml`) |
 | `--output` | string | Output format. Use `json` for raw JSON |
+| `--body` | string | Send this JSON string as the request body. You cannot combine it with request-building flags. |
 
 ## Examples
 
@@ -54,10 +55,10 @@ unkey api keys create-key --api-id=$API_ID
 
 ## Output
 
-Default output shows the request ID with latency, followed by the created API:
+Default output shows the request ID, followed by the created API:
 
 ```text
-req_2c9a0jf23l4k567 (took 45ms)
+req_2c9a0jf23l4k567
 
 {
   "id": "api_1234abcd",

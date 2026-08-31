@@ -23,7 +23,7 @@ components:
             x-speakeasy-name-override: rootKey
         portalSession:
             description: |-
-                Browser session cookie for the Customer Portal. Set by `portal.exchangeSession`
+                Session cookie for the Customer Portal. Set by `portal.exchangeCode`
                 and sent automatically by the browser on `portal.*` requests. Portal sessions
                 are scoped to a single end user (external identity) and can only access the
                 `portal.*` routes.
@@ -31,7 +31,7 @@ components:
             name: portal_session
             type: apiKey
     schemas:
-        V2AnalyticsGetRatelimitsRequestBody:
+        V2AnalyticsGetGatewayRequestsRequestBody:
             type: object
             required:
                 - query
@@ -39,12 +39,13 @@ components:
                 query:
                     type: string
                     description: |
-                        SQL query to execute against your rate limit analytics data.
-                        Queries may reference only the five public aliases: `ratelimits_v1`, `ratelimits_per_minute_v1`, `ratelimits_per_hour_v1`, `ratelimits_per_day_v1`, or `ratelimits_per_month_v1`. Physical `default.*` table names are unsupported. CTEs, subqueries, UNION, and EXCEPT are supported.
-                        Queries are always restricted to the authenticated workspace. Wildcard analytics permission can read every namespace in that workspace; namespace-scoped permissions automatically restrict results to the permitted namespace IDs.
-                        Workspace retention and query limits apply.
-                    example: "SELECT namespace_id, COUNT(*) AS total FROM ratelimits_v1 WHERE namespace_id = 'rlns_123' GROUP BY namespace_id"
-        V2AnalyticsGetRatelimitsResponseBody:
+                        The SQL query to run on your gateway request data.
+                        A query can use only the public alias `gateway_requests_v1`. The physical `default.*` table names are not permitted.
+                        Only SELECT queries are permitted. CTEs, subqueries, UNION, and EXCEPT are also permitted.
+                        Unkey limits each query to the workspace of the root key. To get the data for one project, app, or environment, add a filter on `project_id`, `app_id`, or `environment_id`.
+                        The workspace retention period and the workspace query limits apply.
+                    example: "SELECT path, count() AS total FROM gateway_requests_v1 WHERE response_status >= 500 AND time >= toUnixTimestamp64Milli(now64(3) - INTERVAL 24 HOUR) GROUP BY path ORDER BY total DESC LIMIT 10"
+        V2AnalyticsGetGatewayRequestsResponseBody:
             type: object
             required:
                 - meta
@@ -53,7 +54,7 @@ components:
                 meta:
                     $ref: "#/components/schemas/Meta"
                 data:
-                    $ref: "#/components/schemas/V2AnalyticsGetRatelimitsResponseData"
+                    $ref: "#/components/schemas/V2AnalyticsGetGatewayRequestsResponseData"
         BadRequestErrorResponse:
             type: object
             required:
@@ -187,6 +188,53 @@ components:
                 - Retrying the request after a short delay may succeed
                 - If the error persists, the service may be undergoing maintenance
                 - Contact Unkey support if the issue continues
+        V2AnalyticsGetRatelimitsRequestBody:
+            type: object
+            required:
+                - query
+            properties:
+                query:
+                    type: string
+                    description: |
+                        SQL query to execute against your rate limit analytics data.
+                        Queries may reference only the five public aliases: `ratelimits_v1`, `ratelimits_per_minute_v1`, `ratelimits_per_hour_v1`, `ratelimits_per_day_v1`, or `ratelimits_per_month_v1`. Physical `default.*` table names are unsupported. CTEs, subqueries, UNION, and EXCEPT are supported.
+                        Queries are always restricted to the authenticated workspace. Wildcard analytics permission can read every namespace in that workspace; namespace-scoped permissions automatically restrict results to the permitted namespace IDs.
+                        Workspace retention and query limits apply.
+                    example: "SELECT namespace_id, COUNT(*) AS total FROM ratelimits_v1 WHERE namespace_id = 'rlns_123' GROUP BY namespace_id"
+        V2AnalyticsGetRatelimitsResponseBody:
+            type: object
+            required:
+                - meta
+                - data
+            properties:
+                meta:
+                    $ref: "#/components/schemas/Meta"
+                data:
+                    $ref: "#/components/schemas/V2AnalyticsGetRatelimitsResponseData"
+        V2AnalyticsGetRuntimeLogsRequestBody:
+            type: object
+            required:
+                - query
+            properties:
+                query:
+                    type: string
+                    description: |
+                        The SQL query for your runtime log data.
+                        A query can use only the public alias `runtime_logs_v1`. The physical `default.*` table name is not permitted. CTEs, subqueries, UNION, and EXCEPT are permitted.
+                        Only SELECT queries are permitted.
+                        Unkey limits each query to the workspace of the root key. To get the logs of one project, app, environment, or deployment, add a filter on `project_id`, `app_id`, `environment_id`, or `deployment_id`.
+                        The workspace retention period and the workspace query limits apply.
+                    example: "SELECT time, severity, message FROM runtime_logs_v1 WHERE lower(message) LIKE '%timeout%' ORDER BY time DESC LIMIT 100"
+        V2AnalyticsGetRuntimeLogsResponseBody:
+            type: object
+            required:
+                - meta
+                - data
+            properties:
+                meta:
+                    $ref: "#/components/schemas/Meta"
+                data:
+                    $ref: "#/components/schemas/V2AnalyticsGetRuntimeLogsResponseData"
         V2AnalyticsGetVerificationsRequestBody:
             type: object
             required:
@@ -217,12 +265,11 @@ components:
                 name:
                     type: string
                     minLength: 3
-                    maxLength: 255
-                    pattern: "^[a-zA-Z][a-zA-Z0-9._-]*$"
+                    maxLength: 256
                     description: |
-                        Unique identifier for this API namespace within your workspace.
-                        Use descriptive names like 'payment-service-prod' or 'user-api-dev' to clearly identify purpose and environment.
-                    example: payment-service-production
+                        Human-readable name for this API within your workspace.
+                        Use descriptive names like 'Payment Service (prod)' or 'user-api-dev' to clearly identify purpose and environment.
+                    example: Payment Service (prod)
             additionalProperties: false
         V2ApisCreateApiResponseBody:
             type: object
@@ -596,7 +643,9 @@ components:
                 dockerImage:
                     type: string
                     minLength: 1
-                    description: Docker image reference to deploy
+                    maxLength: 256
+                    description: >-
+                        Full image reference to deploy. Qualify the version with a tag (ghcr.io/user/app:v1.0.0) or with a digest (ghcr.io/user/app@sha256:...). Without either, the registry serves the latest tag.
                     example: "ghcr.io/user/app:v1.0.0"
                 gitCommit:
                     $ref: "#/components/schemas/V2DeployGitCommit"
@@ -874,6 +923,35 @@ components:
                 data:
                     "$ref": "#/components/schemas/V2DomainsCreateDomainResponseData"
             additionalProperties: false
+        V2DomainsDeleteDomainRequestBody:
+            type: object
+            required:
+                - domain
+            properties:
+                domain:
+                    type: string
+                    minLength: 4
+                    maxLength: 253
+                    description: |
+                        Identifies a domain by its Unkey ID or by its name. Pass a 'dom_'-prefixed ID, or a fully
+                        qualified domain name such as 'api.acme.com' without a scheme, port, or path. You can give an
+                        internationalized name in Unicode or Punycode form. Both forms address the same domain.
+
+                        Domain names are unique per workspace, so the name alone addresses the domain. You do not
+                        need to supply a project, app, or environment.
+                    example: api.acme.com
+            additionalProperties: false
+        V2DomainsDeleteDomainResponseBody:
+            type: object
+            required:
+                - meta
+                - data
+            properties:
+                meta:
+                    "$ref": "#/components/schemas/Meta"
+                data:
+                    "$ref": "#/components/schemas/EmptyResponse"
+            additionalProperties: false
         V2DomainsGetDomainRequestBody:
             type: object
             required:
@@ -955,6 +1033,33 @@ components:
                         The array is empty when the environment has no domains. This is not an error.
                 pagination:
                     "$ref": "#/components/schemas/Pagination"
+            additionalProperties: false
+        V2DomainsVerifyDomainRequestBody:
+            type: object
+            required:
+                - domain
+            properties:
+                domain:
+                    type: string
+                    minLength: 4
+                    maxLength: 253
+                    description: |
+                        Identifies a domain by its name or by its ID. Send the fully qualified domain name, such as
+                        'api.acme.com', without a scheme, port, or path, or send the domain ID that
+                        domains.createDomain returns. You can send an internationalized name in Unicode or in
+                        Punycode form. Both forms address the same domain.
+                    example: api.acme.com
+            additionalProperties: false
+        V2DomainsVerifyDomainResponseBody:
+            type: object
+            required:
+                - meta
+                - data
+            properties:
+                meta:
+                    "$ref": "#/components/schemas/Meta"
+                data:
+                    "$ref": "#/components/schemas/EmptyResponse"
             additionalProperties: false
         V2EnvironmentsGetEnvironmentRequestBody:
             type: object
@@ -1417,12 +1522,15 @@ components:
                     "$ref": "#/components/schemas/FirewallPolicy"
                 openapi:
                     "$ref": "#/components/schemas/OpenapiPolicy"
+                logging:
+                    "$ref": "#/components/schemas/LoggingPolicy"
             additionalProperties: false
             description: |-
                 Partial update of a single policy. Omitted fields keep their stored
                 values; at least one updatable field must be provided. Providing one of
-                `keyauth`, `ratelimit`, `firewall` or `openapi` replaces the policy's
-                rule entirely, including switching its type; at most one may be set.
+                `keyauth`, `ratelimit`, `firewall`, `openapi` or `logging` replaces the
+                policy's rule entirely, including switching its type; at most one may be
+                set.
         V2GatewayUpdatePolicyResponseBody:
             type: object
             required:
@@ -1654,7 +1762,8 @@ components:
                         Any permissions that do not exist will be auto created if the root key has permissions, otherwise this operation will fail with a 403 error.
                     items:
                         type: string
-                        minLength: 3
+                        minLength: 1
+                        maxLength: 128
                         pattern: ^[a-zA-Z0-9_:\-\.\*]+$
                         description: Specify the permission by its slug.
             additionalProperties: false
@@ -1697,9 +1806,8 @@ components:
                         Invalid roles cause the entire operation to fail atomically, ensuring consistent state.
                     items:
                         type: string
-                        minLength: 3
-                        maxLength: 255
-                        pattern: "^[a-zA-Z][a-zA-Z0-9._-]*$"
+                        minLength: 1
+                        maxLength: 128
                         description: Specify the role by name.
             additionalProperties: false
         V2KeysAddRolesResponseBody:
@@ -1792,8 +1900,7 @@ components:
                     items:
                         type: string
                         minLength: 1
-                        maxLength: 100
-                        pattern: ^[a-zA-Z0-9_:\-\.\*]+$
+                        maxLength: 128
                     description: |
                         Assigns existing roles to this key for permission management through role-based access control.
                         Roles must already exist in your workspace before assignment.
@@ -1808,8 +1915,8 @@ components:
                     items:
                         type: string
                         minLength: 1
-                        maxLength: 100
-                    pattern: "^[a-zA-Z][a-zA-Z0-9._-]*$"
+                        maxLength: 128
+                        pattern: ^[a-zA-Z0-9_:\-\.\*]+$
                     description: |
                         Grants specific permissions directly to this key without requiring role membership.
                         Wildcard permissions like `documents.*` grant access to all sub-permissions including `documents.read` and `documents.write`.
@@ -2027,7 +2134,8 @@ components:
                         After removal, verification checks for these permissions will fail unless granted through roles.
                     items:
                         type: string
-                        minLength: 3
+                        minLength: 1
+                        maxLength: 128
                         pattern: ^[a-zA-Z0-9_:\-\.\*]+$
                         description: Specify the permission by its slug.
             additionalProperties: false
@@ -2070,9 +2178,8 @@ components:
                         Invalid role references cause the entire operation to fail atomically, ensuring consistent state.
                     items:
                         type: string
-                        pattern: ^[a-zA-Z0-9_:\-\.\*]+$
-                        minLength: 3
-                        maxLength: 255
+                        minLength: 1
+                        maxLength: 128
                         description: Specify the role by name.
             additionalProperties: false
         V2KeysRemoveRolesResponseBody:
@@ -2166,7 +2273,8 @@ components:
                         Any permissions that do not exist will be auto created if the root key has permissions, otherwise this operation will fail with a 403 error.
                     items:
                         type: string
-                        minLength: 3
+                        minLength: 1
+                        maxLength: 128
                         pattern: ^[a-zA-Z0-9_:\-\.\*]+$
                         description: Specify the permission by its slug.
             additionalProperties: false
@@ -2209,9 +2317,8 @@ components:
                         Invalid role references cause the entire operation to fail atomically, ensuring consistent state.
                     items:
                         type: string
-                        pattern: ^[a-zA-Z0-9_:\-\.\*]+$
-                        minLength: 3
-                        maxLength: 255
+                        minLength: 1
+                        maxLength: 128
                         description: Specify the role by name.
             additionalProperties: false
         V2KeysSetRolesResponseBody:
@@ -2358,7 +2465,9 @@ components:
                         Cannot configure refill settings when credits is null, and refillDay requires monthly interval.
                         Essential for implementing usage-based pricing and subscription quotas.
                 ratelimits:
-                    type: array
+                    type:
+                        - array
+                        - "null"
                     maxItems: 50
                     items:
                         "$ref": "#/components/schemas/RatelimitRequest"
@@ -2381,8 +2490,7 @@ components:
                     items:
                         type: string
                         minLength: 1
-                        maxLength: 100
-                        pattern: ^[a-zA-Z0-9_:\-\.\*]+$
+                        maxLength: 128
                         description: |
                             Assigns existing roles to this key for permission management through role-based access control.
                             Roles must already exist in your workspace before assignment.
@@ -2396,8 +2504,8 @@ components:
                     maxItems: 1000
                     items:
                         type: string
-                        minLength: 3
-                        maxLength: 100
+                        minLength: 1
+                        maxLength: 128
                         pattern: ^[a-zA-Z0-9_:\-\.\*]+$
                         description: |
                             Grants specific permissions directly to this key without requiring role membership.
@@ -2550,7 +2658,7 @@ components:
                     type: string
                     minLength: 1
                     maxLength: 128
-                    pattern: "^[a-zA-Z][a-zA-Z0-9._-]*$"
+                    pattern: ^[a-zA-Z0-9_:\-\.\*]+$
                     description: |
                         Creates a URL-safe identifier for this permission that can be used in APIs and integrations.
                         Must start with a letter and contain only letters, numbers, periods, underscores, and hyphens.
@@ -2595,12 +2703,11 @@ components:
                 name:
                     type: string
                     minLength: 1
-                    maxLength: 512
-                    pattern: "^[a-zA-Z][a-zA-Z0-9._-]*$"
+                    maxLength: 128
                     description: |
-                        The unique name for this role. Must be unique within your workspace and clearly indicate the role's purpose. Use descriptive names like 'admin', 'editor', or 'billing_manager'.
+                        The unique name for this role. Must be unique within your workspace and clearly indicate the role's purpose. Use descriptive names like 'admin', 'editor', or 'Billing Manager'.
 
-                        Examples: 'admin.billing', 'support.readonly', 'developer.api', 'manager.analytics'
+                        Examples: 'admin.billing', 'support.readonly', 'developer.api', 'Billing Manager'
                     example: "support.readonly"
                 description:
                     type: string
@@ -2618,6 +2725,18 @@ components:
                         - Any security considerations or limitations
                         - Related roles that might be used together
                     example: "Provides read-only access for customer support representatives. Includes permissions to view user accounts, support tickets, and basic analytics. Does not include access to billing, admin functions, or data modification capabilities."
+                permissions:
+                    type: array
+                    description: |
+                        Permission slugs to attach to the role. Existing permissions are reused. Missing permissions are created automatically when the root key has `rbac.*.create_permission`.
+
+                        Omit this field or provide an empty array to create the role without permissions.
+                    items:
+                        type: string
+                        minLength: 1
+                        maxLength: 128
+                        pattern: ^[a-zA-Z0-9_:\-\.\*]+$
+                        description: Specify the permission by its slug.
             additionalProperties: false
         V2PermissionsCreateRoleResponseBody:
             type: object
@@ -2637,9 +2756,9 @@ components:
             properties:
                 permission:
                     type: string
-                    minLength: 3
-                    maxLength: 255
-                    pattern: "^[a-zA-Z][a-zA-Z0-9._-]*$"
+                    minLength: 1
+                    maxLength: 128
+                    pattern: ^[a-zA-Z0-9_:\-\.\*]+$
                     description: |
                         Specifies which permission to permanently delete from your workspace.
 
@@ -2675,9 +2794,8 @@ components:
             properties:
                 role:
                     type: string
-                    pattern: ^[a-zA-Z0-9_:\-\.\*]+$
-                    minLength: 3
-                    maxLength: 255
+                    minLength: 1
+                    maxLength: 128
                     description: |
                         Unique identifier of the role to permanently delete from your workspace.
                         Must either be a valid role ID that begins with 'role_' or the given role name and exists within your workspace.
@@ -2712,9 +2830,9 @@ components:
             properties:
                 permission:
                     type: string
-                    minLength: 3
-                    maxLength: 255
-                    pattern: "^[a-zA-Z][a-zA-Z0-9._-]*$"
+                    minLength: 1
+                    maxLength: 128
+                    pattern: ^[a-zA-Z0-9_:\-\.\*]+$
                     description: |
                         The unique identifier of the permission to retrieve. Must be a valid permission ID that begins with 'perm_' and exists within your workspace.
                     example: perm_1234567890abcdef
@@ -2737,9 +2855,8 @@ components:
             properties:
                 role:
                     type: string
-                    minLength: 3
-                    maxLength: 255
-                    pattern: ^[a-zA-Z0-9_:\-\.\*]+$
+                    minLength: 1
+                    maxLength: 128
                     description: |
                         Unique identifier of the role to permanently delete from your workspace.
                         Must either be a valid role ID that begins with 'role_' or the given role name and exists within your workspace.
@@ -2843,24 +2960,115 @@ components:
                 pagination:
                     "$ref": "#/components/schemas/Pagination"
             additionalProperties: false
-        V2PortalCreateSessionRequestBody:
+        V2PermissionsSetRolePermissionsRequestBody:
+            type: object
+            required:
+                - roleId
+                - permissions
+            properties:
+                roleId:
+                    "$ref": "#/components/schemas/ResourceIdentifier"
+                    description: The ID of the role whose directly assigned permissions will be replaced.
+                permissions:
+                    type: array
+                    description: The complete set of permission slugs to assign directly to the role. Missing permissions are created when authorized. An empty array clears all direct permissions.
+                    items:
+                        type: string
+                        minLength: 1
+                        maxLength: 128
+                        pattern: ^[a-zA-Z0-9_:\-\.\*]+$
+            additionalProperties: false
+        V2PermissionsSetRolePermissionsResponseBody:
+            type: object
+            required:
+                - meta
+                - data
+            properties:
+                meta:
+                    "$ref": "#/components/schemas/Meta"
+                data:
+                    "$ref": "#/components/schemas/V2PermissionsSetRolePermissionsResponseData"
+        V2PortalCreatePortalRequestBody:
             type: object
             required:
                 - slug
-                - externalId
-                - permissions
+                - displayName
             properties:
                 slug:
                     type: string
                     minLength: 3
                     maxLength: 64
-                    pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$"
+                    pattern: "^[a-z0-9]([a-z0-9-]*[a-z0-9])?$"
                     description: |
-                        The human-readable slug of the portal configuration to create the session against.
-                        Identifies which app's portal the end user will access.
-                        Must be 3-64 characters, lowercase alphanumeric and hyphens only,
-                        must not start or end with a hyphen, and must not contain consecutive hyphens.
-                    example: my-portal
+                        URL-safe handle for this portal, unique within your workspace. Lowercase
+                        alphanumerics and single hyphens, 3-64 characters, not starting or ending
+                        with a hyphen.
+                    example: acme-portal
+                displayName:
+                    type: string
+                    minLength: 1
+                    maxLength: 64
+                    pattern: "^\\S(.*\\S)?$"
+                    description: |
+                        Human-readable name your end users see in the portal header and page
+                        titles. Unlike `slug` it is not part of any URL, so it can be changed
+                        freely.
+                    example: Acme
+                keyspaceId:
+                    "$ref": "#/components/schemas/PortalKeyspaceId"
+                appId:
+                    "$ref": "#/components/schemas/PortalAppId"
+                enabled:
+                    type: boolean
+                    default: true
+                    description: |
+                        Whether sessions can be minted for this portal immediately. Defaults to
+                        true; send false to create it dormant and enable it later.
+                    example: true
+                logoUrl:
+                    type: string
+                    format: uri
+                    pattern: "^https://"
+                    minLength: 1
+                    maxLength: 500
+                    description: |
+                        Absolute `https://` URL of the logo shown in the portal header.
+
+                        Loaded by your end users' browsers, so the host you name receives their IP
+                        and user agent on every page view.
+                    example: https://cdn.example.com/logo.svg
+                primaryColor:
+                    type: string
+                    pattern: "^#[0-9a-fA-F]{6}$"
+                    description: |
+                        Six-digit hex colour used for primary actions and accents in the portal.
+                    example: "#6366f1"
+            additionalProperties: false
+            oneOf:
+                - required:
+                    - keyspaceId
+                - required:
+                    - appId
+        V2PortalCreatePortalResponseBody:
+            type: object
+            required:
+                - meta
+                - data
+            properties:
+                meta:
+                    "$ref": "#/components/schemas/Meta"
+                data:
+                    "$ref": "#/components/schemas/V2PortalCreatePortalResponseData"
+            additionalProperties: false
+        V2PortalCreateSessionRequestBody:
+            type: object
+            required:
+                - portal
+                - externalId
+                - scopes
+            properties:
+                portal:
+                    "$ref": "#/components/schemas/ResourceIdentifier"
                 externalId:
                     type: string
                     minLength: 1
@@ -2869,7 +3077,7 @@ components:
                         The end user's identifier in the customer's system.
                         Accepts arbitrary string values (user IDs, emails, UUIDs, etc.).
                     example: user_123
-                permissions:
+                scopes:
                     type: array
                     items:
                         type: string
@@ -2883,20 +3091,41 @@ components:
                         The capabilities granted to the end user in the Portal, from a fixed
                         vocabulary. All capabilities are scoped to this end user: key capabilities
                         (`keys:*`) apply only to keys the end user owns within the keyspace
-                        configured on the portal configuration, and `analytics:read` returns only
-                        the end user's own verification events. An end user can never see another
-                        identity's keys or analytics.
+                        configured on the portal, and `analytics:read` returns only the end user's
+                        own verification events. An end user can never see another identity's keys
+                        or analytics.
 
-                        Tab visibility is derived from the capabilities:
-                        - Keys tab: any `keys:*` capability
+                        Tab visibility is derived from the scopes:
+                        - Keys tab: any `keys:*` scope
                         - Analytics tab: `analytics:read`
-                        - Docs tab: visible when any capability is present
+                        - Docs tab: visible when any scope is present
+
+                        `keys:create` is accepted but has no portal route behind it yet. It is
+                        still authorized like the others, so a session minted with it required
+                        `create_key` on the keyspace at mint time, and a future portal create-key
+                        route inherits an enforced ceiling rather than trusting sessions minted
+                        while the capability was inert.
+
+                        Each scope requires the equivalent permission on your own root key. See
+                        Required Permissions on this operation.
                     example: ["keys:read", "keys:reroll", "analytics:read"]
                 preview:
                     type: boolean
                     default: false
                     description: |
                         When true, creates a preview session for testing the portal experience.
+                returnUrl:
+                    type: string
+                    format: uri
+                    maxLength: 500
+                    description: |
+                        Absolute URL the end user is sent back to when they leave the portal, or
+                        when their session expires mid-visit. Set per session rather than per
+                        portal, so one portal can serve several entry points and return each user
+                        to the page they came from.
+
+                        When omitted, the portal shows no return link.
+                    example: https://app.example.com/settings/api-keys
             additionalProperties: false
         V2PortalCreateSessionResponseBody:
             type: object
@@ -2909,21 +3138,40 @@ components:
                 data:
                     $ref: "#/components/schemas/V2PortalCreateSessionResponseData"
             additionalProperties: false
-        V2PortalExchangeSessionRequestBody:
+        V2PortalDeletePortalRequestBody:
             type: object
             required:
-                - sessionId
+                - portal
             properties:
-                sessionId:
+                portal:
+                    "$ref": "#/components/schemas/ResourceIdentifier"
+            additionalProperties: false
+        V2PortalDeletePortalResponseBody:
+            type: object
+            required:
+                - meta
+                - data
+            properties:
+                meta:
+                    "$ref": "#/components/schemas/Meta"
+                data:
+                    "$ref": "#/components/schemas/EmptyResponse"
+            additionalProperties: false
+        V2PortalExchangeCodeRequestBody:
+            type: object
+            required:
+                - code
+            properties:
+                code:
                     type: string
                     minLength: 1
                     x-unkey-redact: true
                     description: |
-                        The session token ID received from `portal.createSession`.
-                        Must be valid, unexpired, and not previously exchanged.
+                        The exchange code carried by the portal URL from `portal.createSession`.
+                        Must be valid, unexpired, and not previously redeemed.
                     example: pst_abc123def456
             additionalProperties: false
-        V2PortalExchangeSessionResponseBody:
+        V2PortalExchangeCodeResponseBody:
             type: object
             required:
                 - meta
@@ -2932,7 +3180,39 @@ components:
                 meta:
                     $ref: "#/components/schemas/Meta"
                 data:
-                    $ref: "#/components/schemas/V2PortalExchangeSessionResponseData"
+                    $ref: "#/components/schemas/V2PortalExchangeCodeResponseData"
+            additionalProperties: false
+        V2PortalGetPortalRequestBody:
+            type: object
+            description: |
+                Name the portal directly with `portal`, or name the resource it serves with
+                `keyspaceId` or `appId`. Exactly one of the three is required; sending more
+                than one is a bad request.
+            properties:
+                portal:
+                    "$ref": "#/components/schemas/ResourceIdentifier"
+                keyspaceId:
+                    "$ref": "#/components/schemas/PortalKeyspaceId"
+                appId:
+                    "$ref": "#/components/schemas/PortalAppId"
+            additionalProperties: false
+            oneOf:
+                - required:
+                    - portal
+                - required:
+                    - keyspaceId
+                - required:
+                    - appId
+        V2PortalGetPortalResponseBody:
+            type: object
+            required:
+                - meta
+                - data
+            properties:
+                meta:
+                    "$ref": "#/components/schemas/Meta"
+                data:
+                    "$ref": "#/components/schemas/Portal"
             additionalProperties: false
         V2PortalGetVerificationsRequestBody:
             type: object
@@ -3010,6 +3290,88 @@ components:
                     "$ref": "#/components/schemas/V2PortalListKeysResponseData"
                 pagination:
                     "$ref": "#/components/schemas/Pagination"
+            additionalProperties: false
+        V2PortalUpdatePortalRequestBody:
+            type: object
+            required:
+                - portal
+            properties:
+                portal:
+                    "$ref": "#/components/schemas/ResourceIdentifier"
+                slug:
+                    type: string
+                    minLength: 3
+                    maxLength: 64
+                    pattern: "^[a-z0-9]([a-z0-9-]*[a-z0-9])?$"
+                    description: |
+                        New handle for this portal. Omit to leave unchanged.
+                    example: acme-portal
+                displayName:
+                    type: string
+                    minLength: 1
+                    maxLength: 64
+                    pattern: "^\\S(.*\\S)?$"
+                    description: |
+                        New human-readable name shown to your end users. Omit to leave unchanged.
+                    example: Acme
+                keyspaceId:
+                    description: |
+                        Re-point the portal at a different keyspace. Omit to leave the resource it
+                        serves alone.
+
+                        Re-pointing revokes the portal's live sessions, because a session carries
+                        the keyspace scope it was minted with and would otherwise keep reaching the
+                        resource the portal no longer serves.
+                    allOf:
+                        - "$ref": "#/components/schemas/PortalKeyspaceId"
+                appId:
+                    description: |
+                        Re-point the portal at a different app. Omit to leave the resource it
+                        serves alone.
+
+                        Re-pointing revokes the portal's live sessions, for the same reason as
+                        `keyspaceId`.
+                    allOf:
+                        - "$ref": "#/components/schemas/PortalAppId"
+                enabled:
+                    type: boolean
+                    description: |
+                        Whether new sessions can be minted. Omit to leave unchanged.
+
+                        Disabling does not end sessions that are already live.
+                    example: false
+                logoUrl:
+                    type:
+                        - string
+                        - "null"
+                    format: uri
+                    pattern: "^https://"
+                    minLength: 1
+                    maxLength: 500
+                    description: |
+                        Absolute `https://` URL of the portal logo. Omit to leave unchanged, or set
+                        null to remove the logo.
+                    example: https://cdn.example.com/logo.svg
+                primaryColor:
+                    type:
+                        - string
+                        - "null"
+                    pattern: "^#[0-9a-fA-F]{6}$"
+                    description: |
+                        Six-digit hex colour for primary actions. Omit to leave unchanged, or set
+                        null to fall back to default styling.
+                    example: "#6366f1"
+            additionalProperties: false
+        V2PortalUpdatePortalResponseBody:
+            type: object
+            required:
+                - meta
+                - data
+            properties:
+                meta:
+                    "$ref": "#/components/schemas/Meta"
+                data:
+                    "$ref": "#/components/schemas/Portal"
             additionalProperties: false
         V2ProjectsCreateProjectRequestBody:
             type: object
@@ -3171,7 +3533,7 @@ components:
                     description: The id or name of the namespace containing the override.
                     type: string
                     minLength: 1
-                    maxLength: 255
+                    maxLength: 512
                 identifier:
                     description: |-
                         The exact identifier pattern of the override to delete. This must match exactly as it was specified when creating the override.
@@ -3184,7 +3546,7 @@ components:
                         After deletion, any identifiers previously affected by this override will immediately revert to using the default rate limit for the namespace.
                     type: string
                     minLength: 1
-                    maxLength: 255
+                    maxLength: 512
             required:
                 - namespace
                 - identifier
@@ -3215,7 +3577,7 @@ components:
                     description: The id or name of the namespace containing the override.
                     type: string
                     minLength: 1
-                    maxLength: 255
+                    maxLength: 512
                 identifier:
                     description: |-
                         The exact identifier pattern for the override you want to retrieve. This must match exactly as it was specified when creating the override.
@@ -3228,7 +3590,7 @@ components:
                         This field is used to look up the specific override configuration for this pattern.
                     type: string
                     minLength: 1
-                    maxLength: 255
+                    maxLength: 512
             required:
                 - namespace
                 - identifier
@@ -3249,7 +3611,7 @@ components:
                 namespace:
                     type: string
                     minLength: 1
-                    maxLength: 255
+                    maxLength: 512
                     description: The id or name of the namespace.
                     example: sms.sign_up
                 cost:
@@ -3277,7 +3639,7 @@ components:
                 identifier:
                     type: string
                     minLength: 1
-                    maxLength: 255
+                    maxLength: 512
                     description: |
                         Defines the scope of rate limiting by identifying the entity being limited.
                         Use user IDs for per-user limits, IP addresses for anonymous limiting, or API key IDs for per-key limits.
@@ -3335,7 +3697,7 @@ components:
                     description: The id or name of the rate limit namespace to list overrides for.
                     type: string
                     minLength: 1
-                    maxLength: 255
+                    maxLength: 512
                 cursor:
                     description: Pagination cursor from a previous response. Include this when fetching subsequent pages of results. Each response containing more results than the requested limit will include a cursor value in the pagination object that can be used here.
                     type: string
@@ -3401,7 +3763,7 @@ components:
                     description: The ID or name of the rate limit namespace.
                     type: string
                     minLength: 1
-                    maxLength: 255
+                    maxLength: 512
                 duration:
                     description: |-
                         The duration in milliseconds for the rate limit window. This defines how long the rate limit counter accumulates before resetting to zero.
@@ -3431,7 +3793,7 @@ components:
                         More detailed information on wildcard pattern rules is available at https://www.unkey.com/docs/ratelimiting/overrides#wildcard-rules
                     type: string
                     minLength: 1
-                    maxLength: 255
+                    maxLength: 512
                 limit:
                     description: |-
                         The maximum number of requests allowed for this override. This defines the custom quota for the specified identifier(s).
@@ -3472,15 +3834,15 @@ components:
                     type: string
             additionalProperties: false
             description: Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
-        V2AnalyticsGetRatelimitsResponseData:
+        V2AnalyticsGetGatewayRequestsResponseData:
             type: array
-            description: Array of rate limit rows returned by the query. Fields vary based on the SQL SELECT clause.
+            description: The gateway request rows that the query returned. The SELECT clause of the query controls the fields in each row.
             items:
                 type: object
                 additionalProperties: true
-                description: Dynamic row with fields determined by the query.
+                description: One result row. The query controls its fields.
             example:
-                - namespace_id: "rlns_123"
+                - path: "/v1/orders"
                   total: 1234
         BadRequestErrorDetails:
             allOf:
@@ -3548,6 +3910,27 @@ components:
                 - message
             type: object
             description: Individual validation error details. Each validation error provides precise information about what failed, where it failed, and how to fix it, enabling efficient error resolution.
+        V2AnalyticsGetRatelimitsResponseData:
+            type: array
+            description: Array of rate limit rows returned by the query. Fields vary based on the SQL SELECT clause.
+            items:
+                type: object
+                additionalProperties: true
+                description: Dynamic row with fields determined by the query.
+            example:
+                - namespace_id: "rlns_123"
+                  total: 1234
+        V2AnalyticsGetRuntimeLogsResponseData:
+            type: array
+            description: The runtime log rows that the query returned. The SELECT clause of the query sets the fields of each row.
+            items:
+                type: object
+                additionalProperties: true
+                description: One result row. The query sets its fields.
+            example:
+                - time: 1755000000000
+                  severity: "error"
+                  message: "upstream timeout after 30s"
         V2AnalyticsGetVerificationsResponseData:
             type: array
             description: Array of verification rows returned by the query. Fields vary based on the SQL SELECT clause.
@@ -3607,7 +3990,7 @@ components:
                 name:
                     type: string
                     minLength: 3
-                    maxLength: 255
+                    maxLength: 256
                     description: |
                         The internal name of this API as specified during creation.
                         Used for organization and identification within your workspace.
@@ -4171,8 +4554,10 @@ components:
                 dockerImage:
                     type: string
                     minLength: 1
+                    maxLength: 256
                     pattern: "\\S"
-                    description: Docker image to deploy as-is.
+                    description: >-
+                        Full image reference to deploy as-is. Qualify the version with a tag (ghcr.io/acme/api:v1.2.3) or with a digest (ghcr.io/acme/api@sha256:...). Without either, the registry serves the latest tag.
                     example: "ghcr.io/acme/api:v1.2.3"
             description: Deploy a prebuilt Docker image as-is.
         DeploymentSourceDeployment:
@@ -4733,6 +5118,8 @@ components:
                         The DNS records this domain needs. Create each record at your DNS provider.
                         Each record has a `verified` flag. The flag shows whether Unkey has read that record back,
                         so it tells you which records are still missing.
+                domainConnect:
+                    "$ref": "#/components/schemas/DomainConnect"
                 createdAt:
                     type: integer
                     format: int64
@@ -5073,10 +5460,12 @@ components:
                     "$ref": "#/components/schemas/FirewallPolicy"
                 openapi:
                     "$ref": "#/components/schemas/OpenapiPolicy"
+                logging:
+                    "$ref": "#/components/schemas/LoggingPolicy"
             additionalProperties: false
             description: |-
                 A stored gateway policy as returned by list endpoints. Exactly one of
-                `keyauth`, `ratelimit`, `firewall` or `openapi` is set.
+                `keyauth`, `ratelimit`, `firewall`, `openapi` or `logging` is set.
             example:
                 id: pol_2gJbXhAr4
                 name: Block internal paths
@@ -5141,6 +5530,15 @@ components:
                     items:
                         "$ref": "#/components/schemas/KeyRatelimit"
                     description: Rate limits applied during key verification.
+                credits:
+                    type: integer
+                    format: int64
+                    minimum: 0
+                    description: |-
+                        Usage credits a matching request deducts from the verified key. Defaults
+                        to 1. Set to 0 to verify the key without spending credits, or to a higher
+                        value to charge more per request. Keys with unlimited usage are
+                        unaffected.
             additionalProperties: false
             description: Verifies Unkey API keys on matching requests.
             example:
@@ -5151,7 +5549,6 @@ components:
             required:
                 - limit
                 - windowMs
-                - identifier
             properties:
                 limit:
                     type: integer
@@ -5164,14 +5561,34 @@ components:
                     minimum: 1
                     description: Window duration in milliseconds.
                 identifier:
-                    "$ref": "#/components/schemas/RatelimitIdentifier"
+                    allOf:
+                        - "$ref": "#/components/schemas/RatelimitIdentifier"
+                    deprecated: true
+                    description: |-
+                        Deprecated. Accepted for compatibility with old clients. Use
+                        `identifiers` with one entry. Responses always return `identifiers`.
+                identifiers:
+                    type: array
+                    items:
+                        "$ref": "#/components/schemas/RatelimitIdentifier"
+                    minItems: 1
+                    maxItems: 5
+                    description: |-
+                        Ordered list of sources that form a compound rate limit key. The
+                        gateway resolves each source for each request. Each unique
+                        combination of resolved values has its own counter. All counters use
+                        the same limit and window. Example: `[authenticatedSubject, path]`
+                        limits each subject separately on each path.
             additionalProperties: false
-            description: Rate limits matching requests.
+            description: |-
+                Rate limits matching requests. Set `identifiers` with 1 to 5 sources.
+                The deprecated `identifier` field is accepted in place of a one-entry
+                `identifiers` list; set exactly one of the two.
             example:
                 limit: 100
                 windowMs: 60000
-                identifier:
-                    remoteIp: {}
+                identifiers:
+                    - remoteIp: {}
         FirewallPolicy:
             type: object
             required:
@@ -5194,6 +5611,51 @@ components:
                 configuration of its own. If no spec has been uploaded for the deployment,
                 the policy is a no-op and requests pass through unvalidated.
             example: {}
+        LoggingPolicy:
+            type: object
+            properties:
+                requestHeaders:
+                    type: boolean
+                    default: false
+                    description: |-
+                        Capture request headers, the user agent, and the client IP. The user
+                        agent and client IP are included because they identify the client.
+                responseHeaders:
+                    type: boolean
+                    default: false
+                    description: Capture response headers.
+                requestBody:
+                    type: boolean
+                    default: false
+                    description: Capture the request body, up to the capture limit.
+                responseBody:
+                    type: boolean
+                    default: false
+                    description: Capture the response body, up to the capture limit.
+                query:
+                    type: boolean
+                    default: false
+                    description: |-
+                        Capture the query string and query parameters. Query data is a
+                        separate opt-in because URLs can contain secrets, for example
+                        `?api_key=...`.
+            additionalProperties: false
+            description: |-
+                Adds request data to the log entries of matching requests. The gateway
+                always records a basic log entry for every request: method, host, path,
+                status, and latency. Each capture setting is a separate opt-in: request
+                headers, response headers, request body, response body, and query data.
+                The policy's `match` expressions select the requests. A policy without
+                `match` expressions matches every request. If more than one enabled
+                logging policy matches a request, the gateway combines their settings.
+                The gateway always redacts the `Authorization` header and configured key
+                locations before it stores headers or query data.
+            example:
+                requestHeaders: true
+                responseHeaders: true
+                requestBody: true
+                responseBody: true
+                query: true
         PathMatch:
             type: object
             required:
@@ -5439,11 +5901,13 @@ components:
                     "$ref": "#/components/schemas/FirewallPolicy"
                 openapi:
                     "$ref": "#/components/schemas/OpenapiPolicy"
+                logging:
+                    "$ref": "#/components/schemas/LoggingPolicy"
             additionalProperties: false
             description: |-
-                A gateway policy. Exactly one of `keyauth`, `ratelimit`, `firewall` or
-                `openapi` must be set. The server generates an id for every policy it
-                stores.
+                A gateway policy. Exactly one of `keyauth`, `ratelimit`, `firewall`,
+                `openapi` or `logging` must be set. The server generates an id for every
+                policy it stores.
             example:
                 name: Block internal paths
                 enabled: true
@@ -5731,7 +6195,7 @@ components:
                     items:
                         type: string
                         minLength: 1
-                        maxLength: 100
+                        maxLength: 128
                     description: |
                         Assigns existing roles to this key for permission management through role-based access control.
                         Roles must already exist in your workspace before assignment.
@@ -5746,7 +6210,8 @@ components:
                     items:
                         type: string
                         minLength: 1
-                        maxLength: 100
+                        maxLength: 128
+                        pattern: ^[a-zA-Z0-9_:\-\.\*]+$
                     description: |
                         Grants specific permissions directly to this key without requiring role membership.
                         Wildcard permissions like `documents.*` grant access to all sub-permissions including `documents.read` and `documents.write`.
@@ -6274,44 +6739,181 @@ components:
             description: Array of roles with their assigned permissions.
             items:
                 "$ref": "#/components/schemas/Role"
+        V2PermissionsSetRolePermissionsResponseData:
+            type: array
+            description: Complete list of permissions now directly assigned to the role.
+            items:
+                "$ref": "#/components/schemas/Permission"
+        PortalKeyspaceId:
+            type: string
+            minLength: 1
+            maxLength: 255
+            pattern: "^[a-zA-Z0-9_-]+$"
+            description: |
+                The id of the keyspace this portal serves keys for. Must belong to your
+                workspace.
+
+                A portal serves exactly one resource, so `keyspaceId` and `appId` are
+                mutually exclusive.
+            example: ks_1234abcd
+        PortalAppId:
+            type: string
+            minLength: 1
+            maxLength: 255
+            pattern: "^[a-zA-Z0-9_-]+$"
+            description: |
+                The id of the app this portal serves keys for. Must belong to your workspace.
+
+                A portal serves exactly one resource, so `appId` and `keyspaceId` are mutually
+                exclusive.
+            example: app_1234abcd
+        V2PortalCreatePortalResponseData:
+            type: object
+            required:
+                - portalId
+            properties:
+                portalId:
+                    type: string
+                    description: |
+                        The unique identifier of the newly created portal, generated by Unkey.
+                        Always begins with 'pc_' followed by a unique alphanumeric sequence.
+                    example: pc_1234abcd
+            additionalProperties: false
         V2PortalCreateSessionResponseData:
             type: object
             required:
-                - sessionId
+                - id
                 - url
             properties:
-                sessionId:
+                id:
                     type: string
-                    x-unkey-redact: true
                     description: |
-                        The short-lived session token ID. Valid for 15 minutes and can be exchanged once for a browser session.
-                    example: pst_abc123def456
+                        The portal session's identifier. Not a credential: it is safe to log and
+                        to store against your own records of the end user's visit.
+                    example: ps_abc123def456
                 url:
                     type: string
                     format: uri
                     x-unkey-redact: true
                     description: |
-                        The full portal URL with the session parameter. Redirect the end user to this URL.
-                    example: "https://portal.unkey.com/?session=pst_abc123def456"
+                        The full portal URL to redirect the end user to. Carries a single-use
+                        exchange code that is valid for 15 minutes.
+                    example: "https://portal.unkey.com/?code=pst_abc123def456"
             additionalProperties: false
-        V2PortalExchangeSessionResponseData:
+        V2PortalExchangeCodeResponseData:
             type: object
             required:
-                - token
+                - accessToken
                 - expiresAt
             properties:
-                token:
+                accessToken:
                     type: string
                     x-unkey-redact: true
                     description: |
-                        The browser session token. Store this as an httpOnly cookie for subsequent portal requests.
-                    example: ps_xyz789abc123
+                        The portal access token. Store this as an httpOnly cookie for subsequent portal requests.
+                    example: pat_xyz789abc123
                 expiresAt:
                     type: integer
                     format: int64
                     description: |
-                        Unix timestamp in milliseconds when the browser session expires (24 hours from creation).
+                        Unix timestamp in milliseconds when the access token expires (24 hours from creation).
                     example: 1711386400000
+            additionalProperties: false
+        Portal:
+            type: object
+            required:
+                - id
+                - slug
+                - displayName
+                - enabled
+                - createdAt
+            description: |
+                A portal you expose to your end users so they can manage their own keys.
+
+                Exactly one of `keyspaceId` or `appId` is present, naming the single resource
+                the portal serves. Neither is in the required list because which one appears
+                depends on the portal, so a reader checks for the one it cares about.
+            properties:
+                id:
+                    type: string
+                    description: |
+                        The unique identifier of the portal, generated by Unkey.
+                    example: pc_1234abcd
+                slug:
+                    type: string
+                    minLength: 3
+                    maxLength: 64
+                    description: |
+                        URL-safe handle for this portal, unique within your workspace.
+                    example: acme-portal
+                displayName:
+                    type: string
+                    minLength: 1
+                    maxLength: 64
+                    description: |
+                        Human-readable name your end users see in the portal header and page
+                        titles. Unlike `slug` it is not part of any URL, so it can be changed
+                        freely.
+                    example: Acme
+                enabled:
+                    type: boolean
+                    description: |
+                        Whether new sessions can be minted for this portal.
+
+                        Disabling a portal stops `portal.createSession` from minting new sessions.
+                        It does not end sessions that are already live.
+                    example: true
+                keyspaceId:
+                    "$ref": "#/components/schemas/PortalKeyspaceId"
+                appId:
+                    "$ref": "#/components/schemas/PortalAppId"
+                branding:
+                    description: |
+                        How the portal looks to your end users. Omitted when no branding is set.
+                    allOf:
+                        - "$ref": "#/components/schemas/PortalBranding"
+                createdAt:
+                    type: integer
+                    format: int64
+                    description: |
+                        Unix timestamp in milliseconds when the portal was created.
+                    example: 1719849600000
+                updatedAt:
+                    type: integer
+                    format: int64
+                    description: |
+                        Unix timestamp in milliseconds when the portal was last changed. Omitted
+                        if it has never been changed since creation.
+                    example: 1719936000000
+                    x-go-type-skip-optional-pointer: true
+                    x-go-type-skip-optional-pointer-with-omitzero: true
+            additionalProperties: false
+        PortalBranding:
+            type: object
+            description: |
+                How the portal looks to your end users. Both fields are optional; a portal
+                with neither set renders with default styling.
+            properties:
+                logoUrl:
+                    type: string
+                    format: uri
+                    maxLength: 500
+                    description: |
+                        Absolute `https://` URL of the logo shown in the portal header.
+
+                        Loaded by your end users' browsers, so the host you name receives their IP
+                        and user agent on every page view.
+                    example: https://cdn.example.com/logo.svg
+                    x-go-type-skip-optional-pointer: true
+                    x-go-type-skip-optional-pointer-with-omitzero: true
+                primaryColor:
+                    type: string
+                    pattern: "^#[0-9a-fA-F]{6}$"
+                    description: |
+                        Six-digit hex colour used for primary actions and accents in the portal.
+                    example: "#6366f1"
+                    x-go-type-skip-optional-pointer: true
+                    x-go-type-skip-optional-pointer-with-omitzero: true
             additionalProperties: false
         V2PortalGetVerificationsDataPoint:
             type: object
@@ -6732,6 +7334,82 @@ info:
     version: 2.0.0
 openapi: 3.1.0
 paths:
+    /v2/analytics.getGatewayRequests:
+        post:
+            description: |
+                A query can use only the public alias `gateway_requests_v1`. CTEs, subqueries, UNION, and EXCEPT are permitted.
+                The root key must have the `project.*.read_gateway_requests` permission.
+                Unkey limits each query to the workspace of the root key. To get the data for one project, app, or environment, add a filter on `project_id`, `app_id`, or `environment_id`.
+                The workspace retention period and the workspace query limits apply.
+                For the columns and more query examples, see the gateway request analytics documentation.
+            operationId: analytics.getGatewayRequests
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/V2AnalyticsGetGatewayRequestsRequestBody'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/V2AnalyticsGetGatewayRequestsResponseBody'
+                    description: Query executed successfully
+                "400":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/BadRequestErrorResponse'
+                    description: Invalid SQL query, blocked operation, or missing required authentication
+                "401":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
+                    description: Invalid authentication credentials
+                "403":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ForbiddenErrorResponse'
+                    description: Insufficient permissions
+                "412":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/PreconditionFailedErrorResponse'
+                    description: Analytics is not configured for the workspace
+                "422":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/UnprocessableEntityErrorResponse'
+                    description: Query exceeds workspace query limits
+                "429":
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/TooManyRequestsErrorResponse'
+                    description: Query quota exceeded
+                "500":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: Query execution failed
+                "503":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ServiceUnavailableErrorResponse'
+                    description: Connection to the database failed
+            security:
+                - bearer: []
+            summary: Query gateway request data
+            tags:
+                - analytics
+            x-speakeasy-name-override: getGatewayRequests
     /v2/analytics.getRatelimits:
         post:
             description: |
@@ -6806,6 +7484,82 @@ paths:
             tags:
                 - analytics
             x-speakeasy-name-override: getRatelimits
+    /v2/analytics.getRuntimeLogs:
+        post:
+            description: |
+                A query can use only the public alias `runtime_logs_v1`. CTEs, subqueries, UNION, and EXCEPT are permitted.
+                The root key must have the `project.*.read_runtime_logs` permission.
+                Unkey limits each query to the workspace of the root key. To get the logs of one project, app, environment, or deployment, add a filter on `project_id`, `app_id`, `environment_id`, or `deployment_id`.
+                The workspace retention period and the workspace query limits apply.
+                For the table, the columns, and more query examples, see [Query runtime logs](/platform/analytics/get-runtime-logs).
+            operationId: analytics.getRuntimeLogs
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/V2AnalyticsGetRuntimeLogsRequestBody'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/V2AnalyticsGetRuntimeLogsResponseBody'
+                    description: Query executed successfully
+                "400":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/BadRequestErrorResponse'
+                    description: Invalid SQL query, blocked operation, or missing required authentication
+                "401":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
+                    description: Invalid authentication credentials
+                "403":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ForbiddenErrorResponse'
+                    description: Insufficient permissions
+                "412":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/PreconditionFailedErrorResponse'
+                    description: Analytics is not configured for the workspace
+                "422":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/UnprocessableEntityErrorResponse'
+                    description: Query exceeds workspace query limits
+                "429":
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/TooManyRequestsErrorResponse'
+                    description: Query quota exceeded
+                "500":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: Query execution failed
+                "503":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ServiceUnavailableErrorResponse'
+                    description: Connection to the database failed
+            security:
+                - bearer: []
+            summary: Query runtime log data
+            tags:
+                - analytics
+            x-speakeasy-name-override: getRuntimeLogs
     /v2/analytics.getVerifications:
         post:
             description: |
@@ -8975,6 +9729,175 @@ paths:
                 - domains
             x-speakeasy-name-override: createDomain
             x-unkey-idempotency: conditionally-idempotent
+    /v2/domains.deleteDomain:
+        post:
+            description: |
+                Delete a custom domain from your workspace.
+
+                Address the domain by its id or by its name. Names are unique per workspace, so
+                `api.acme.com` is enough.
+
+                Unkey stops serving the domain. Later requests fail with a certificate error. The DNS
+                records at your provider stay in place.
+
+                **Required Permissions**
+
+                Your root key must have one of the following permissions:
+                - `environment.*.delete_domain` (to delete domains in any environment)
+                - `environment.<environment_id>.delete_domain` (to delete domains in a specific environment)
+            operationId: domains.deleteDomain
+            requestBody:
+                content:
+                    application/json:
+                        examples:
+                            byId:
+                                description: Uses the id that domains.createDomain returned.
+                                summary: Delete by domain ID
+                                value:
+                                    domain: dom_1234abcd
+                            byName:
+                                description: The name is unique per workspace. It addresses the domain on its own.
+                                summary: Delete by domain name
+                                value:
+                                    domain: api.acme.com
+                        schema:
+                            $ref: '#/components/schemas/V2DomainsDeleteDomainRequestBody'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            examples:
+                                success:
+                                    description: The domain and its routing were removed before the response returned.
+                                    summary: Domain deleted
+                                    value:
+                                        data: {}
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/V2DomainsDeleteDomainResponseBody'
+                    description: |
+                        Successfully deleted the domain.
+                "400":
+                    content:
+                        application/json:
+                            examples:
+                                invalidIdentifier:
+                                    description: The schema only bounds the identifier's length. An identifier that is neither a valid name nor a stored id returns a 404.
+                                    summary: Identifier too short
+                                    value:
+                                        error:
+                                            detail: The domain identifier must be between 4 and 253 characters.
+                                            errors:
+                                                - fix: Pass a domain name such as 'api.acme.com' or an id such as 'dom_1234abcd'
+                                                  location: body.domain
+                                                  message: minLength must be at least 4 characters
+                                            status: 400
+                                            title: Bad Request
+                                            type: validation-error
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/BadRequestErrorResponse'
+                    description: Bad request
+                "401":
+                    content:
+                        application/json:
+                            examples:
+                                invalidRootKey:
+                                    summary: Root key not found
+                                    value:
+                                        error:
+                                            detail: The provided root key is invalid.
+                                            status: 401
+                                            title: Unauthorized
+                                            type: unauthorized
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
+                    description: Unauthorized
+                "403":
+                    content:
+                        application/json:
+                            examples:
+                                keyDisabled:
+                                    summary: Root key disabled
+                                    value:
+                                        error:
+                                            detail: The provided root key is disabled.
+                                            status: 403
+                                            title: Forbidden
+                                            type: forbidden
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/ForbiddenErrorResponse'
+                    description: |
+                        Forbidden - The root key or its workspace is disabled. A root key that simply lacks
+                        `environment.*.delete_domain` receives a 404 instead, so permissions cannot be used to
+                        discover which domains exist.
+                "404":
+                    content:
+                        application/json:
+                            examples:
+                                domainNotFound:
+                                    summary: Domain not found
+                                    value:
+                                        error:
+                                            detail: The requested domain does not exist.
+                                            status: 404
+                                            title: Not Found
+                                            type: not-found
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/NotFoundErrorResponse'
+                    description: |
+                        Not Found - The domain does not exist in your workspace, it was already deleted, or your
+                        root key may not delete it.
+                "429":
+                    content:
+                        application/json:
+                            examples:
+                                rateLimited:
+                                    summary: Workspace rate limit exceeded
+                                    value:
+                                        error:
+                                            detail: You have exceeded the rate limit for this operation. Retry after the window resets.
+                                            status: 429
+                                            title: Too Many Requests
+                                            type: rate-limited
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/TooManyRequestsErrorResponse'
+                    description: Too Many Requests
+                "500":
+                    content:
+                        application/json:
+                            examples:
+                                internalError:
+                                    summary: Unexpected server error
+                                    value:
+                                        error:
+                                            detail: An unexpected error occurred. Contact support@unkey.com with the requestId.
+                                            status: 500
+                                            title: Internal Server Error
+                                            type: internal-server-error
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: Internal server error
+            security:
+                - bearer: []
+            summary: Delete domain
+            tags:
+                - domains
+            x-speakeasy-name-override: deleteDomain
+            x-unkey-idempotency: idempotent
     /v2/domains.getDomain:
         post:
             description: |
@@ -9506,6 +10429,197 @@ paths:
             tags:
                 - domains
             x-speakeasy-name-override: listDomains
+            x-unkey-idempotency: idempotent
+    /v2/domains.verifyDomain:
+        post:
+            description: |
+                Restart verification for a custom domain.
+
+                Address the domain by its ID or by its name. Names are unique per workspace, so
+                `api.acme.com` is enough.
+
+                Call this after you correct the DNS records of a domain that shows `failed`, or to give a
+                `pending` domain a new 24-hour verification period. The domain goes back to `pending` and
+                the 24-hour period starts again.
+
+                The endpoint returns when Unkey accepts the retry. Poll `domains.getDomain` for the result.
+
+                A domain that is already `verified` returns a 412.
+
+                **Required Permissions**
+
+                Your root key must have one of the following permissions:
+                - `environment.*.verify_domain` (to verify domains in any environment)
+                - `environment.<environment_id>.verify_domain` (to verify domains in a specific environment)
+            operationId: domains.verifyDomain
+            requestBody:
+                content:
+                    application/json:
+                        examples:
+                            byId:
+                                description: The domains.createDomain operation returns this ID.
+                                summary: Verify by domain ID
+                                value:
+                                    domain: dom_1234abcd
+                            byName:
+                                description: The name is unique per workspace. It addresses the domain on its own.
+                                summary: Verify by domain name
+                                value:
+                                    domain: api.acme.com
+                        schema:
+                            $ref: '#/components/schemas/V2DomainsVerifyDomainRequestBody'
+                required: true
+            responses:
+                "202":
+                    content:
+                        application/json:
+                            examples:
+                                accepted:
+                                    description: The domain went back to `pending`. Poll domains.getDomain to see the result.
+                                    summary: Verification restarted
+                                    value:
+                                        data: {}
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/V2DomainsVerifyDomainResponseBody'
+                    description: |
+                        Verification retry accepted. The workflow runs in the background.
+                "400":
+                    content:
+                        application/json:
+                            examples:
+                                invalidIdentifier:
+                                    description: The schema limits only the length of the identifier. An identifier that is neither a valid name nor a stored ID returns a 404.
+                                    summary: Identifier too short
+                                    value:
+                                        error:
+                                            detail: The domain identifier must be between 4 and 253 characters.
+                                            errors:
+                                                - fix: Pass a domain name such as 'api.acme.com' or an id such as 'dom_1234abcd'
+                                                  location: body.domain
+                                                  message: minLength must be at least 4 characters
+                                            status: 400
+                                            title: Bad Request
+                                            type: validation-error
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/BadRequestErrorResponse'
+                    description: Bad request
+                "401":
+                    content:
+                        application/json:
+                            examples:
+                                invalidRootKey:
+                                    summary: Root key not found
+                                    value:
+                                        error:
+                                            detail: The provided root key is invalid.
+                                            status: 401
+                                            title: Unauthorized
+                                            type: unauthorized
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
+                    description: Unauthorized
+                "403":
+                    content:
+                        application/json:
+                            examples:
+                                keyDisabled:
+                                    summary: Root key disabled
+                                    value:
+                                        error:
+                                            detail: The provided root key is disabled.
+                                            status: 403
+                                            title: Forbidden
+                                            type: forbidden
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/ForbiddenErrorResponse'
+                    description: |
+                        Forbidden - The root key or its workspace is disabled. A root key that only lacks
+                        `environment.*.verify_domain` receives a 404 instead.
+                "404":
+                    content:
+                        application/json:
+                            examples:
+                                domainNotFound:
+                                    summary: Domain not found
+                                    value:
+                                        error:
+                                            detail: The requested domain does not exist.
+                                            status: 404
+                                            title: Not Found
+                                            type: not-found
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/NotFoundErrorResponse'
+                    description: |
+                        Not Found - The domain does not exist in your workspace, or it was deleted, or your
+                        root key is not permitted to verify it.
+                "412":
+                    content:
+                        application/json:
+                            examples:
+                                alreadyVerified:
+                                    summary: Domain already verified
+                                    value:
+                                        error:
+                                            detail: The domain 'api.acme.com' is already verified. No action is needed.
+                                            status: 412
+                                            title: Precondition Failed
+                                            type: precondition-failed
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/PreconditionFailedErrorResponse'
+                    description: |
+                        Precondition Failed - The domain is already verified. There is nothing to retry.
+                "429":
+                    content:
+                        application/json:
+                            examples:
+                                rateLimited:
+                                    summary: Workspace rate limit exceeded
+                                    value:
+                                        error:
+                                            detail: You have exceeded the rate limit for this operation. Retry after the window resets.
+                                            status: 429
+                                            title: Too Many Requests
+                                            type: rate-limited
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/TooManyRequestsErrorResponse'
+                    description: Too Many Requests
+                "500":
+                    content:
+                        application/json:
+                            examples:
+                                internalError:
+                                    summary: Unexpected server error
+                                    value:
+                                        error:
+                                            detail: An unexpected error occurred. Contact support@unkey.com with the requestId.
+                                            status: 500
+                                            title: Internal Server Error
+                                            type: internal-server-error
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: Internal server error
+            security:
+                - bearer: []
+            summary: Verify domain
+            tags:
+                - domains
+            x-speakeasy-name-override: verifyDomain
             x-unkey-idempotency: idempotent
     /v2/environments.getEnvironment:
         post:
@@ -12453,14 +13567,20 @@ paths:
     /v2/permissions.createRole:
         post:
             description: |
-                Create a new role to group related permissions for easier management. Roles enable consistent permission assignment across multiple API keys.
+                Create a new role to group related permissions for easier management. Roles enable consistent permission assignment across multiple API keys. Permission slugs supplied in `permissions` are attached during creation. Missing permissions are created automatically.
 
                 **Important:** Role names must be unique within the workspace. Once created, roles are immediately available for assignment.
 
                 **Required Permissions**
 
-                Your root key must have the following permission:
+                Your root key must always have:
                 - `rbac.*.create_role`
+
+                When `permissions` is not empty, it must also have:
+                - `rbac.*.add_permission_to_role`
+
+                When any requested permission slug does not exist, it must also have:
+                - `rbac.*.create_permission`
             operationId: permissions.createRole
             requestBody:
                 content:
@@ -12471,6 +13591,9 @@ paths:
                                 value:
                                     description: Can read and write content
                                     name: content.editor
+                                    permissions:
+                                        - content.read
+                                        - content.write
                             withoutDescription:
                                 summary: Role without description
                                 value:
@@ -12932,18 +14055,190 @@ paths:
                 outputs:
                     nextCursor: $.pagination.cursor
                 type: cursor
-    /v2/portal.createSession:
+    /v2/permissions.setRolePermissions:
         post:
             description: |
-                Create a short-lived session token for an end user to access the Customer Portal.
-
-                The returned session ID is valid for 15 minutes and can be exchanged exactly once
-                for a 24-hour browser session via `portal.exchangeSession`. Redirect the end user
-                to the returned URL to start the portal experience.
+                Atomically replaces all permissions directly assigned to a role. An empty `permissions` array removes every permission from the role. Permissions that do not exist are created when the caller has permission to create them.
 
                 **Required Permissions**
 
-                Your root key must be associated with a workspace that has an enabled portal configuration.
+                Your root key must have:
+                - `rbac.*.add_permission_to_role`
+                - `rbac.*.remove_permission_from_role`
+
+                When any requested permission slug does not exist, it must also have:
+                - `rbac.*.create_permission`
+            operationId: permissions.setRolePermissions
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/V2PermissionsSetRolePermissionsRequestBody'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/V2PermissionsSetRolePermissionsResponseBody'
+                    description: Permissions set successfully.
+                "400":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/BadRequestErrorResponse'
+                    description: Bad request
+                "401":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
+                    description: Unauthorized
+                "403":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ForbiddenErrorResponse'
+                    description: Forbidden
+                "404":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/NotFoundErrorResponse'
+                    description: Role not found
+                "429":
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/TooManyRequestsErrorResponse'
+                    description: Too Many Requests
+                "500":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: Internal server error
+            summary: Set role permissions
+            tags:
+                - permissions
+            x-speakeasy-name-override: setRolePermissions
+    /v2/portal.createPortal:
+        post:
+            description: |
+                Create a portal for one app or keyspace in your workspace.
+
+                Unreleased and subject to change without notice.
+
+                Send exactly one of `keyspaceId` or `appId`. That resource must belong to your
+                workspace, and it can back only one portal, so a second portal for the same
+                resource is a **409**.
+
+                `displayName` is what your end users see. It is yours to set and change
+                independently of the resource the portal serves.
+
+                **Required Permissions**
+
+                Your root key must have `portal.*.create_portal`. A grant scoped to a specific
+                portal id does not authorize creation, because the id does not exist yet.
+            operationId: portal.createPortal
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/V2PortalCreatePortalRequestBody'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/V2PortalCreatePortalResponseBody'
+                    description: |
+                        Portal created successfully.
+                "400":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/BadRequestErrorResponse'
+                    description: Bad request
+                "401":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
+                    description: Unauthorized
+                "403":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ForbiddenErrorResponse'
+                    description: Forbidden
+                "404":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/NotFoundErrorResponse'
+                    description: |
+                        The named app or keyspace does not exist in your workspace.
+                "409":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ConflictErrorResponse'
+                    description: |
+                        The slug is taken in your workspace, or the named app or keyspace already
+                        backs a portal.
+                "429":
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/TooManyRequestsErrorResponse'
+                    description: Too Many Requests
+                "500":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: Internal server error
+            security:
+                - bearer: []
+            summary: Create portal
+            tags:
+                - portal
+            x-excluded: true
+            x-speakeasy-name-override: createPortal
+    /v2/portal.createSession:
+        post:
+            description: |
+                Create a portal session for an end user and get the URL to redirect them to.
+
+                The URL carries a single-use exchange code valid for 15 minutes, which the portal
+                redeems exactly once for a 24-hour access token via `portal.exchangeCode`.
+
+                **Required Permissions**
+
+                Authorization runs in two stages, and both must pass.
+
+                First, your root key must have one of the following permissions:
+                - `portal.*.create_portal_session` (to mint sessions for any portal in the workspace)
+                - `portal.<portal_id>.create_portal_session` (to mint sessions for a specific portal)
+
+                Second, a session can never carry a capability your root key does not itself
+                hold. Each requested scope additionally requires the equivalent permission on
+                every keyspace the portal resolves to:
+                - `keys:read` requires `api.<api_id>.read_key` **and** `api.<api_id>.read_api`
+                - `keys:reroll` and `keys:create` require `api.<api_id>.create_key`, plus
+                  `api.<api_id>.encrypt_key` when the keyspace stores encrypted keys
+                - `analytics:read` requires `api.<api_id>.read_analytics`
+
+                The `*` form of each is also accepted. Requesting a scope you do not hold
+                returns 403 for the whole request rather than minting a reduced session, so a
+                missing grant is visible instead of surfacing later as a broken portal.
+
+                Missing the portal permission itself returns **404**, not 403: a caller who
+                cannot mint for a portal is not told whether it exists.
+
+                Your root key must also be associated with a workspace that has an enabled portal.
             operationId: portal.createSession
             requestBody:
                 content:
@@ -12958,10 +14253,10 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/V2PortalCreateSessionResponseBody'
                     description: |
-                        Session token created successfully. Redirect the end user to the returned URL.
+                        Session created successfully. Redirect the end user to the returned URL.
                     headers:
                         Cache-Control:
-                            description: Prevents caching of the session token response.
+                            description: Prevents caching of the response, which carries an exchange code.
                             schema:
                                 example: no-store
                                 type: string
@@ -13015,34 +14310,108 @@ paths:
                 - portal
             x-excluded: true
             x-speakeasy-name-override: createSession
-    /v2/portal.exchangeSession:
+    /v2/portal.deletePortal:
         post:
             description: |
-                Exchange a short-lived session token for a long-lived browser session.
+                Delete a portal and revoke the sessions it minted.
 
-                This endpoint is unauthenticated. The session token itself serves as proof of authorization.
-                Each token can only be exchanged once; subsequent attempts return 401.
+                Unreleased and subject to change without notice.
 
-                The returned browser session token is valid for 24 hours and should be stored as an
-                httpOnly cookie or used in the Authorization header for subsequent API calls.
-            operationId: portal.exchangeSession
+                Its end users lose access rather than keeping it until their tokens expire.
+                Revocation is not instantaneous: session lookups are cached briefly, so a
+                request already in flight may still succeed.
+
+                The app or keyspace it served is untouched, and its slug becomes free for a
+                new portal.
+
+                **Required Permissions**
+
+                Your root key must have one of:
+                - `portal.*.delete_portal` (to delete any portal in the workspace)
+                - `portal.<portal_id>.delete_portal` (to delete a specific portal)
+
+                Without the permission this returns **404**, not 403.
+            operationId: portal.deletePortal
             requestBody:
                 content:
                     application/json:
                         schema:
-                            $ref: '#/components/schemas/V2PortalExchangeSessionRequestBody'
+                            $ref: '#/components/schemas/V2PortalDeletePortalRequestBody'
                 required: true
             responses:
                 "200":
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/V2PortalExchangeSessionResponseBody'
+                                $ref: '#/components/schemas/V2PortalDeletePortalResponseBody'
                     description: |
-                        Session exchanged successfully. Use the returned token for subsequent API calls.
+                        Portal deleted and its sessions revoked.
+                "400":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/BadRequestErrorResponse'
+                    description: Bad request
+                "401":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
+                    description: Unauthorized
+                "404":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/NotFoundErrorResponse'
+                    description: |
+                        No such portal, or your root key may not delete it.
+                "429":
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/TooManyRequestsErrorResponse'
+                    description: Too Many Requests
+                "500":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: Internal server error
+            security:
+                - bearer: []
+            summary: Delete portal
+            tags:
+                - portal
+            x-excluded: true
+            x-speakeasy-name-override: deletePortal
+    /v2/portal.exchangeCode:
+        post:
+            description: |
+                Exchange a short-lived code for a long-lived portal access token.
+
+                This endpoint is unauthenticated. The code itself serves as proof of authorization.
+                Each code can only be redeemed once; subsequent attempts return 401.
+
+                The returned access token is valid for 24 hours and should be stored as an
+                httpOnly cookie or used in the Authorization header for subsequent API calls.
+            operationId: portal.exchangeCode
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/V2PortalExchangeCodeRequestBody'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/V2PortalExchangeCodeResponseBody'
+                    description: |
+                        Code exchanged successfully. Use the returned access token for subsequent API calls.
                     headers:
                         Cache-Control:
-                            description: Prevents caching of the session token response.
+                            description: Prevents caching of the access token response.
                             schema:
                                 example: no-store
                                 type: string
@@ -13064,7 +14433,7 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/UnauthorizedErrorResponse'
-                    description: Unauthorized — session is invalid, expired, or already exchanged
+                    description: Unauthorized — code is invalid, expired, or already redeemed
                 "429":
                     content:
                         application/problem+json:
@@ -13078,11 +14447,82 @@ paths:
                                 $ref: '#/components/schemas/InternalServerErrorResponse'
                     description: Internal server error
             security: []
-            summary: Exchange session token
+            summary: Exchange portal code
             tags:
                 - portal
             x-excluded: true
-            x-speakeasy-name-override: exchangeSession
+            x-speakeasy-name-override: exchangeCode
+    /v2/portal.getPortal:
+        post:
+            description: |
+                Read one portal, by its id or slug, or by the resource it serves.
+
+                Unreleased and subject to change without notice.
+
+                Send exactly one of `portal`, `keyspaceId`, or `appId`. Sending more than one
+                is a **400**.
+
+                **Required Permissions**
+
+                Your root key must have one of:
+                - `portal.*.read_portal` (to read any portal in the workspace)
+                - `portal.<portal_id>.read_portal` (to read a specific portal)
+
+                Without the permission this returns **404**, not 403.
+            operationId: portal.getPortal
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/V2PortalGetPortalRequestBody'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/V2PortalGetPortalResponseBody'
+                    description: |
+                        The portal.
+                "400":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/BadRequestErrorResponse'
+                    description: |
+                        None of `portal`, `keyspaceId`, or `appId` was given, or more than one was.
+                "401":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
+                    description: Unauthorized
+                "404":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/NotFoundErrorResponse'
+                    description: |
+                        No portal matches, or your root key may not read it.
+                "429":
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/TooManyRequestsErrorResponse'
+                    description: Too Many Requests
+                "500":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: Internal server error
+            security:
+                - bearer: []
+            summary: Get portal
+            tags:
+                - portal
+            x-excluded: true
+            x-speakeasy-name-override: getPortal
     /v2/portal.getVerifications:
         post:
             description: |
@@ -13296,6 +14736,91 @@ paths:
                 - portal
             x-excluded: true
             x-speakeasy-name-override: rerollKey
+    /v2/portal.updatePortal:
+        post:
+            description: |
+                Change a portal's slug, display name, the resource it serves, its enabled
+                state, or its branding.
+
+                Unreleased and subject to change without notice.
+
+                Only the fields you send change. Omitting a field leaves it as it is, and for
+                branding, sending null clears it. Send at most one of `keyspaceId` or `appId`.
+
+                Two changes affect your end users immediately:
+                - Re-pointing at a different resource revokes the portal's live sessions,
+                  because a session carries the scope it was minted with.
+                - Disabling stops new sessions but leaves live ones running until they expire.
+
+                **Required Permissions**
+
+                Your root key must have one of:
+                - `portal.*.update_portal` (to update any portal in the workspace)
+                - `portal.<portal_id>.update_portal` (to update a specific portal)
+
+                Without the permission this returns **404**, not 403.
+            operationId: portal.updatePortal
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/V2PortalUpdatePortalRequestBody'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/V2PortalUpdatePortalResponseBody'
+                    description: |
+                        The portal as it now stands.
+                "400":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/BadRequestErrorResponse'
+                    description: Bad request
+                "401":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
+                    description: Unauthorized
+                "404":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/NotFoundErrorResponse'
+                    description: |
+                        No such portal, the named app or keyspace is not in your workspace, or
+                        your root key may not update it.
+                "409":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ConflictErrorResponse'
+                    description: |
+                        The new slug is taken in your workspace, or the named app or keyspace
+                        already backs another portal.
+                "429":
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/TooManyRequestsErrorResponse'
+                    description: Too Many Requests
+                "500":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: Internal server error
+            security:
+                - bearer: []
+            summary: Update portal
+            tags:
+                - portal
+            x-excluded: true
+            x-speakeasy-name-override: updatePortal
     /v2/projects.createProject:
         post:
             description: |

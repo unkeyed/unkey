@@ -26,11 +26,11 @@ unkey api ratelimit get-override [flags]
 ## Flags
 
 <ParamField body="--namespace" type="string" required>
-The id or name of the namespace containing the override. Must be 1-255 characters.
+The id or name of the namespace containing the override. Must be 1-512 characters.
 </ParamField>
 
 <ParamField body="--identifier" type="string" required>
-The exact identifier pattern of the override to retrieve. This must match exactly as it was specified when creating the override, including any wildcards (`*`) that were part of the original pattern. Must be 1-255 characters.
+The exact identifier pattern of the override to retrieve. This must match exactly as it was specified when creating the override, including any wildcards (`*`) that were part of the original pattern. Must be 1-512 characters.
 </ParamField>
 
 ## Global Flags
@@ -41,6 +41,7 @@ The exact identifier pattern of the override to retrieve. This must match exactl
 | `--api-url` | string | Override API base URL (default: `https://api.unkey.com`) |
 | `--config` | string | Path to config file (default: `~/.unkey/config.toml`) |
 | `--output` | string | Output format. Use `json` for raw JSON |
+| `--body` | string | Send this JSON string as the request body. You cannot combine it with request-building flags. |
 
 ## Examples
 
@@ -62,10 +63,10 @@ echo "Current limit: $LIMIT"
 
 ## Output
 
-Default output shows the request ID with latency, followed by the override configuration:
+Default output shows the request ID, followed by the override configuration:
 
 ```text
-req_2cGKbMxRyIzhCxo1Idjz8q (took 45ms)
+req_2cGKbMxRyIzhCxo1Idjz8q
 
 {
   "overrideId": "ovr_1234567890abcdef",

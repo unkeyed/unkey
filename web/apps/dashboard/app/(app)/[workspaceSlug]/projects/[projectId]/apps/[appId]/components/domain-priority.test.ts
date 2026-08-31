@@ -21,17 +21,11 @@ function makeCustomDomain(overrides: Partial<CustomDomain> = {}): CustomDomain {
   return {
     id: "cd-1",
     domain: "custom.example.com",
-    workspaceId: "ws-1",
     projectId: "proj-1",
     appId: "app-1",
     environmentId: "env-1",
     verificationStatus: "verified",
-    verificationToken: "tok",
-    ownershipVerified: true,
-    cnameVerified: true,
-    targetCname: "target.example.com",
-    checkAttempts: 0,
-    lastCheckedAt: null,
+    dnsRecords: [],
     verificationError: null,
     domainConnectProvider: null,
     domainConnectUrl: null,
@@ -218,6 +212,31 @@ describe("getDomainPriority", () => {
     expect(result.all).toHaveLength(2);
     expect(result.all.map((d) => d.id)).toEqual(["cd-1", "d-a"]);
     expect(result.primary?.id).toBe("cd-1");
+  });
+
+  test("verified custom domain route from another environment is not shown as a platform alias", () => {
+    const result = getDomainPriority({
+      ...baseCtx,
+      domains: [
+        makeDomain({
+          id: "d-custom-route",
+          fullyQualifiedDomainName: "custom.example.com",
+          environmentId: "env-other",
+          sticky: "live",
+        }),
+        makeDomain({ id: "d-a", fullyQualifiedDomainName: "a.example.com" }),
+      ],
+      customDomains: [
+        makeCustomDomain({
+          id: "cd-other-env",
+          domain: "custom.example.com",
+          environmentId: "env-other",
+        }),
+      ],
+    });
+
+    expect(result.all.map((domain) => domain.id)).toEqual(["d-a"]);
+    expect(result.primary?.id).toBe("d-a");
   });
 
   test("custom domains hidden when viewing non-current deployment", () => {

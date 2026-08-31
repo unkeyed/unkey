@@ -73,7 +73,7 @@ func TestDeployTeardown_ClearsCurrentAndStops(t *testing.T) {
 	dep := h.CreateDeployment(ctx, CreateDeploymentRequest{
 		Region:       "us-east-1",
 		DesiredState: mysqltype.DeploymentsDesiredStateRunning,
-	}).Deployment
+	})
 
 	// Make the deployment its app's current deployment so we exercise the
 	// guard-bypass-by-clearing path.
@@ -145,13 +145,14 @@ func TestDeployTeardown_NoInstancesDrainsImmediately(t *testing.T) {
 	dep := h.CreateDeployment(ctx, CreateDeploymentRequest{
 		Region:       "us-east-1",
 		DesiredState: mysqltype.DeploymentsDesiredStateRunning,
-	}).Deployment
+	})
 
 	// Model a deployment that never produced instances.
-	_, err := h.DB.RW().ExecContext(ctx,
-		"UPDATE deployments SET status = ? WHERE id = ?",
-		mysqltype.DeploymentsStatusAwaitingApproval, dep.ID)
-	require.NoError(t, err)
+	require.NoError(t, h.DB.UpdateDeploymentStatus(ctx, db.UpdateDeploymentStatusParams{
+		Status:    mysqltype.DeploymentsStatusAwaitingApproval,
+		UpdatedAt: sql.NullInt64{Int64: time.Now().UnixMilli(), Valid: true},
+		ID:        dep.ID,
+	}))
 
 	client := hydrav1.NewDeployTeardownServiceIngressClient(tEnv.Ingress(), dep.WorkspaceID)
 	resp, err := client.Teardown().Request(ctx, &hydrav1.TeardownRequest{})
@@ -178,7 +179,7 @@ func TestDeployTeardown_SuspendThenResume(t *testing.T) {
 	dep := h.CreateDeployment(ctx, CreateDeploymentRequest{
 		Region:       "us-east-1",
 		DesiredState: mysqltype.DeploymentsDesiredStateRunning,
-	}).Deployment
+	})
 
 	// Make the deployment its app's current deployment so SUSPEND records it.
 	err := h.DB.UpdateAppDeployments(ctx, db.UpdateAppDeploymentsParams{

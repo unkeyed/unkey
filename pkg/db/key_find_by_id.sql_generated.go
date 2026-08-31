@@ -7,7 +7,6 @@ package db
 
 import (
 	"context"
-	"database/sql"
 )
 
 const findKeyByID = `-- name: FindKeyByID :one
@@ -20,31 +19,6 @@ FROM ` + "`" + `keys` + "`" + ` k
 WHERE k.id = ?
 `
 
-type FindKeyByIDRow struct {
-	Pk                 uint64         `db:"pk"`
-	ID                 string         `db:"id"`
-	KeyAuthID          string         `db:"key_auth_id"`
-	Hash               string         `db:"hash"`
-	Start              string         `db:"start"`
-	WorkspaceID        string         `db:"workspace_id"`
-	ForWorkspaceID     sql.NullString `db:"for_workspace_id"`
-	Name               sql.NullString `db:"name"`
-	IdentityID         sql.NullString `db:"identity_id"`
-	Meta               sql.NullString `db:"meta"`
-	Expires            sql.NullTime   `db:"expires"`
-	CreatedAtM         int64          `db:"created_at_m"`
-	UpdatedAtM         sql.NullInt64  `db:"updated_at_m"`
-	DeletedAtM         sql.NullInt64  `db:"deleted_at_m"`
-	RefillDay          sql.NullInt16  `db:"refill_day"`
-	RefillAmount       sql.NullInt64  `db:"refill_amount"`
-	LastRefillAt       sql.NullTime   `db:"last_refill_at"`
-	Enabled            bool           `db:"enabled"`
-	RemainingRequests  sql.NullInt64  `db:"remaining_requests"`
-	Environment        sql.NullString `db:"environment"`
-	LastUsedAt         uint64         `db:"last_used_at"`
-	PendingMigrationID sql.NullString `db:"pending_migration_id"`
-}
-
 // FindKeyByID
 //
 //	SELECT
@@ -54,9 +28,9 @@ type FindKeyByIDRow struct {
 //	    k.remaining_requests, k.environment, k.last_used_at, k.pending_migration_id
 //	FROM `keys` k
 //	WHERE k.id = ?
-func (q *Queries) FindKeyByID(ctx context.Context, db DBTX, id string) (FindKeyByIDRow, error) {
+func (q *Queries) FindKeyByID(ctx context.Context, db DBTX, id string) (Key, error) {
 	row := db.QueryRowContext(ctx, findKeyByID, id)
-	var i FindKeyByIDRow
+	var i Key
 	err := row.Scan(
 		&i.Pk,
 		&i.ID,

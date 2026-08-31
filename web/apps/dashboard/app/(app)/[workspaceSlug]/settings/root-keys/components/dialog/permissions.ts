@@ -204,6 +204,36 @@ export const workspacePermissions = {
       description: "Delete projects in this workspace",
       permission: "project.*.delete_project",
     },
+    read_gateway_requests: {
+      description: "Query gateway request data for all projects in this workspace using SQL.",
+      permission: "project.*.read_gateway_requests",
+    },
+    read_runtime_logs: {
+      description: "Query deployment runtime logs for all projects in this workspace using SQL.",
+      permission: "project.*.read_runtime_logs",
+    },
+  },
+  Portals: {
+    create_portal: {
+      description: "Create new portals in this workspace",
+      permission: "portal.*.create_portal",
+    },
+    read_portal: {
+      description: "Read and list portals in this workspace",
+      permission: "portal.*.read_portal",
+    },
+    update_portal: {
+      description: "Update portals in this workspace",
+      permission: "portal.*.update_portal",
+    },
+    delete_portal: {
+      description: "Delete portals in this workspace",
+      permission: "portal.*.delete_portal",
+    },
+    create_portal_session: {
+      description: "Mint portal sessions for end users of any portal in this workspace",
+      permission: "portal.*.create_portal_session",
+    },
   },
   Apps: {
     create_app: {
@@ -273,6 +303,14 @@ export const workspacePermissions = {
     read_domain: {
       description: "Read custom domains for any environment in this workspace",
       permission: "environment.*.read_domain",
+    },
+    delete_domain: {
+      description: "Remove custom domains from any environment in this workspace",
+      permission: "environment.*.delete_domain",
+    },
+    verify_domain: {
+      description: "Restart verification for custom domains in any environment in this workspace",
+      permission: "environment.*.verify_domain",
     },
   },
   Deployments: {
@@ -438,6 +476,14 @@ export function environmentPermissions(environmentId: string): {
       read_domain: {
         description: "Read custom domains for this environment.",
         permission: `environment.${environmentId}.read_domain`,
+      },
+      delete_domain: {
+        description: "Remove custom domains from this environment.",
+        permission: `environment.${environmentId}.delete_domain`,
+      },
+      verify_domain: {
+        description: "Restart verification for custom domains in this environment.",
+        permission: `environment.${environmentId}.verify_domain`,
       },
     },
     Deployments: {

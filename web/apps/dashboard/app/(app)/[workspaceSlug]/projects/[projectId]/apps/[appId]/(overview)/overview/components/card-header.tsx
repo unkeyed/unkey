@@ -1,14 +1,7 @@
 "use client";
 
 import { githubUrl } from "@/lib/github-url";
-import {
-  ArrowDottedRotateAnticlockwise,
-  ArrowOppositeDirectionY,
-  ArrowUpRight,
-  Layers3,
-  Plus,
-  TriangleWarning2,
-} from "@unkey/icons";
+import { ArrowDottedRotateAnticlockwise, ArrowUpRight, Plus, TriangleWarning2 } from "@unkey/icons";
 import { Button, Popover, PopoverContent, PopoverTrigger } from "@unkey/ui";
 import Link from "next/link";
 import { ProductionCardActionsMenu } from "./production-card-actions-menu";
@@ -106,14 +99,6 @@ export function ProductionCardHeader() {
             {diagnostic.label}
           </Button>
         )}
-        <Button variant="outline" size="sm" render={<Link href={logsHref} />}>
-          <Layers3 iconSize="sm-regular" />
-          Logs
-        </Button>
-        <Button variant="outline" size="sm" render={<Link href={requestsHref} />}>
-          <ArrowOppositeDirectionY iconSize="sm-regular" />
-          Requests
-        </Button>
         {!isRolledBack && rollbackTarget && (
           <Button variant="outline" size="sm" onClick={openRollback}>
             <ArrowDottedRotateAnticlockwise iconSize="sm-regular" />
@@ -124,6 +109,8 @@ export function ProductionCardHeader() {
           deployment={deployment}
           status={status}
           commitUrl={githubUrl.commit(sourceRepo, deployment.gitCommitSha)}
+          logsHref={logsHref}
+          requestsHref={requestsHref}
         />
       </div>
     </div>

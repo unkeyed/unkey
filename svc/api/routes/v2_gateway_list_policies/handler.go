@@ -8,6 +8,8 @@ import (
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/internal/policyconfig"
 	"github.com/unkeyed/unkey/svc/api/openapi"
@@ -75,6 +77,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			ResourceID:   env.ID,
 			Action:       rbac.ReadPolicies,
 		}),
+		rbac.U(
+			urn.New().Workspace(principal.WorkspaceID).Project(env.ProjectID).App(env.AppID).Environment(env.ID).Gateway().Policy("*"),
+			permissions.ReadPolicy{},
+		),
 	))
 	if err != nil {
 		return err
@@ -94,19 +100,19 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return fault.Wrap(
 			err,
 			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-			fault.Internal("unable to read sentinel config"),
+			fault.Internal("unable to read gateway policy config"),
 			fault.Public("We're unable to list the policies."),
 		)
 	}
 	// Frontline tolerates a broken blob by skipping it to stay up, but we
 	// must surface the failure rather than pass an unreadable
 	// config off as "no policies".
-	cfg, err := policyconfig.Parse(settings.AppRuntimeSetting.SentinelConfig)
+	cfg, err := policyconfig.Parse(settings.SentinelConfig)
 	if err != nil {
 		return fault.Wrap(
 			err,
 			fault.Code(codes.App.Internal.UnexpectedError.URN()),
-			fault.Internal("stored sentinel config is not valid protojson"),
+			fault.Internal("stored gateway policy config is not valid protojson"),
 			fault.Public("We're unable to list the policies."),
 		)
 	}

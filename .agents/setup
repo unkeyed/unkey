@@ -1,15 +1,22 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-if ! command -v setfacl >/dev/null 2>&1; then
-  sudo apt-get update
-  sudo apt-get install -y acl
-fi
+export DEBIAN_FRONTEND=noninteractive
 
 echo "Installing Docker Engine and Compose..."
+docker_started_at=$SECONDS
 if ! command -v docker >/dev/null 2>&1 || ! docker compose version >/dev/null 2>&1; then
-  sudo apt-get update
-  sudo apt-get install -y ca-certificates curl
+  missing_prerequisites=()
+  for package in ca-certificates curl; do
+    if ! dpkg-query -W -f='${Status}' "$package" 2>/dev/null | grep -Fqx 'install ok installed'; then
+      missing_prerequisites+=("$package")
+    fi
+  done
+  if ((${#missing_prerequisites[@]} > 0)); then
+    sudo apt-get update
+    sudo apt-get install -y "${missing_prerequisites[@]}"
+  fi
+
   sudo install -m 0755 -d /etc/apt/keyrings
   sudo curl -fsSL https://download.docker.com/linux/debian/gpg -o /etc/apt/keyrings/docker.asc
   sudo chmod a+r /etc/apt/keyrings/docker.asc
@@ -24,8 +31,13 @@ if ! command -v docker >/dev/null 2>&1 || ! docker compose version >/dev/null 2>
     docker-buildx-plugin \
     docker-ce \
     docker-ce-cli \
-    docker-compose-plugin
+    docker-compose-plugin \
+    acl
+elif ! command -v setfacl >/dev/null 2>&1; then
+  sudo apt-get update
+  sudo apt-get install -y acl
 fi
+echo "Docker installation completed in $((SECONDS - docker_started_at))s."
 
 echo "Starting Docker..."
 sudo systemctl start docker
@@ -33,13 +45,39 @@ sudo usermod -aG docker "$(id -un)"
 # The setup shell predates the group membership change, so grant this user
 # access without requiring the orb to restart before tests can use Docker.
 sudo setfacl -m "u:$(id -un):rw" /var/run/docker.sock
+# Tilt's file watchers share the orb kernel's inotify quota with the minikube
+# containers. The Debian default is too small for the full development stack.
+printf '1024\n' | sudo tee /proc/sys/fs/inotify/max_user_instances >/dev/null
 
 echo "Installing the pinned mise binary and toolchain..."
+toolchain_started_at=$SECONDS
 ./dev/install-mise
-"$HOME/.local/bin/mise" trust .mise/config.toml
-"$HOME/.local/bin/mise" install
+mise="$HOME/.local/bin/mise"
+"$mise" trust .mise/config.toml
+"$mise" install --locked --yes
+echo "Toolchain installation completed in $((SECONDS - toolchain_started_at))s."
 
 echo "Installing web dependencies..."
-"$HOME/.local/bin/mise" run install-web
+web_started_at=$SECONDS
+"$mise" run install-web
+echo "Web dependency installation completed in $((SECONDS - web_started_at))s."
 
-echo "Orb setup complete. Run the Go suite with 'mise run test'."
+echo "Creating local web environment files when missing..."
+if [ ! -f web/apps/dashboard/.env ]; then
+  cp -- web/apps/dashboard/dev/.env.example web/apps/dashboard/.env
+fi
+if [ ! -f web/apps/portal/.env ]; then
+  cp -- web/apps/portal/.env.example web/apps/portal/.env
+fi
+
+if [ ! -f dev/.env.depot ] && [ -n "${UNKEY_DEPOT_TOKEN:-}" ]; then
+  echo "Creating Depot credentials from the orb secret..."
+  (
+    umask 077
+    printf 'UNKEY_DEPOT_TOKEN=%s\nUNKEY_REGISTRY_PASSWORD=%s\n' \
+      "$UNKEY_DEPOT_TOKEN" \
+      "$UNKEY_DEPOT_TOKEN" > dev/.env.depot
+  )
+fi
+
+echo "Orb setup complete. Start the development services with 'amp orb services ensure'."

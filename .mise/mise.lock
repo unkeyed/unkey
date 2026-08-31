@@ -439,43 +439,43 @@ url_api = "https://api.github.com/repos/pnpm/pnpm/releases/assets/433138830"
 provenance = "github-attestations"
 
 [[tools."github:speakeasy-api/speakeasy"]]
-version = "1.783.1"
+version = "1.790.1"
 backend = "github:speakeasy-api/speakeasy"
 
 [tools."github:speakeasy-api/speakeasy"."platforms.linux-arm64"]
-checksum = "sha256:545506c2167d29cdb4abe8af5647a403e1a6216bb2fdb01eb4980598be1e8285"
-url = "https://github.com/speakeasy-api/speakeasy/releases/download/v1.783.1/speakeasy_linux_arm64.zip"
-url_api = "https://api.github.com/repos/speakeasy-api/speakeasy/releases/assets/450931224"
+checksum = "sha256:f85f9d958e0518e5f5aeb94f7e7f040e237bc436e36c800f5a5e7c1dbebf58e6"
+url = "https://github.com/speakeasy-api/speakeasy/releases/download/v1.790.1/speakeasy_linux_arm64.zip"
+url_api = "https://api.github.com/repos/speakeasy-api/speakeasy/releases/assets/476546041"
 
 [tools."github:speakeasy-api/speakeasy"."platforms.linux-arm64-musl"]
-checksum = "sha256:545506c2167d29cdb4abe8af5647a403e1a6216bb2fdb01eb4980598be1e8285"
-url = "https://github.com/speakeasy-api/speakeasy/releases/download/v1.783.1/speakeasy_linux_arm64.zip"
-url_api = "https://api.github.com/repos/speakeasy-api/speakeasy/releases/assets/450931224"
+checksum = "sha256:f85f9d958e0518e5f5aeb94f7e7f040e237bc436e36c800f5a5e7c1dbebf58e6"
+url = "https://github.com/speakeasy-api/speakeasy/releases/download/v1.790.1/speakeasy_linux_arm64.zip"
+url_api = "https://api.github.com/repos/speakeasy-api/speakeasy/releases/assets/476546041"
 
 [tools."github:speakeasy-api/speakeasy"."platforms.linux-x64"]
-checksum = "sha256:701713432ad93cb3686ed6a614e049ba7ba431feabe773bb0d9346dad1b2a3a9"
-url = "https://github.com/speakeasy-api/speakeasy/releases/download/v1.783.1/speakeasy_linux_amd64.zip"
-url_api = "https://api.github.com/repos/speakeasy-api/speakeasy/releases/assets/450931227"
+checksum = "sha256:d7b6f66734040ed3195a4a0c1d34fb66192a95c0d8f97a4ea2ac09acd718f032"
+url = "https://github.com/speakeasy-api/speakeasy/releases/download/v1.790.1/speakeasy_linux_amd64.zip"
+url_api = "https://api.github.com/repos/speakeasy-api/speakeasy/releases/assets/476546033"
 
 [tools."github:speakeasy-api/speakeasy"."platforms.linux-x64-musl"]
-checksum = "sha256:701713432ad93cb3686ed6a614e049ba7ba431feabe773bb0d9346dad1b2a3a9"
-url = "https://github.com/speakeasy-api/speakeasy/releases/download/v1.783.1/speakeasy_linux_amd64.zip"
-url_api = "https://api.github.com/repos/speakeasy-api/speakeasy/releases/assets/450931227"
+checksum = "sha256:d7b6f66734040ed3195a4a0c1d34fb66192a95c0d8f97a4ea2ac09acd718f032"
+url = "https://github.com/speakeasy-api/speakeasy/releases/download/v1.790.1/speakeasy_linux_amd64.zip"
+url_api = "https://api.github.com/repos/speakeasy-api/speakeasy/releases/assets/476546033"
 
 [tools."github:speakeasy-api/speakeasy"."platforms.macos-arm64"]
-checksum = "sha256:ca84e65f2e59d283d63872fdd42daf25867de24a47ef44b421e1696543ef7c30"
-url = "https://github.com/speakeasy-api/speakeasy/releases/download/v1.783.1/speakeasy_darwin_arm64.zip"
-url_api = "https://api.github.com/repos/speakeasy-api/speakeasy/releases/assets/450931229"
+checksum = "sha256:440c9b48eeaa03739fa32bdd5e162193c663799744600a0b232e28569e55e1e0"
+url = "https://github.com/speakeasy-api/speakeasy/releases/download/v1.790.1/speakeasy_darwin_arm64.zip"
+url_api = "https://api.github.com/repos/speakeasy-api/speakeasy/releases/assets/476546040"
 
 [tools."github:speakeasy-api/speakeasy"."platforms.macos-x64"]
-checksum = "sha256:edc9679f5d7709d8ad829f69b349d551ac9c749426df3fc480f1dd2b6aa26528"
-url = "https://github.com/speakeasy-api/speakeasy/releases/download/v1.783.1/speakeasy_darwin_amd64.zip"
-url_api = "https://api.github.com/repos/speakeasy-api/speakeasy/releases/assets/450931222"
+checksum = "sha256:8d99435775d4d7e9765fbfb729584c6973ee5290921769f0e4f11b81b3dd5938"
+url = "https://github.com/speakeasy-api/speakeasy/releases/download/v1.790.1/speakeasy_darwin_amd64.zip"
+url_api = "https://api.github.com/repos/speakeasy-api/speakeasy/releases/assets/476546039"
 
 [tools."github:speakeasy-api/speakeasy"."platforms.windows-x64"]
-checksum = "sha256:24fafcc7e25fec4a75dbc9f2371157aaca7fe66a7fb199fcd84b7235168b80e0"
-url = "https://github.com/speakeasy-api/speakeasy/releases/download/v1.783.1/speakeasy_windows_amd64.zip"
-url_api = "https://api.github.com/repos/speakeasy-api/speakeasy/releases/assets/450931228"
+checksum = "sha256:736dcecda4ed05df6a6c1981b2a6c05ebf77d2a4671d02923af6f84459eef638"
+url = "https://github.com/speakeasy-api/speakeasy/releases/download/v1.790.1/speakeasy_windows_amd64.zip"
+url_api = "https://api.github.com/repos/speakeasy-api/speakeasy/releases/assets/476546038"
 
 [[tools."github:tilt-dev/ctlptl"]]
 version = "0.9.3"
@@ -556,36 +556,36 @@ url = "https://github.com/tilt-dev/tilt/releases/download/v0.37.3/tilt.0.37.3.wi
 url_api = "https://api.github.com/repos/tilt-dev/tilt/releases/assets/409071129"
 
 [[tools.go]]
-version = "1.25.1"
+version = "1.25.10"
 backend = "core:go"
 
 [tools.go."platforms.linux-arm64"]
-checksum = "sha256:65a3e34fb2126f55b34e1edfc709121660e1be2dee6bdf405fc399a63a95a87d"
-url = "https://dl.google.com/go/go1.25.1.linux-arm64.tar.gz"
+checksum = "sha256:654da1f9b50a5d1c2a85ccf8ed405aa89c06e94d18384628bf186f7712677b08"
+url = "https://dl.google.com/go/go1.25.10.linux-arm64.tar.gz"
 
 [tools.go."platforms.linux-arm64-musl"]
-checksum = "sha256:65a3e34fb2126f55b34e1edfc709121660e1be2dee6bdf405fc399a63a95a87d"
-url = "https://dl.google.com/go/go1.25.1.linux-arm64.tar.gz"
+checksum = "sha256:654da1f9b50a5d1c2a85ccf8ed405aa89c06e94d18384628bf186f7712677b08"
+url = "https://dl.google.com/go/go1.25.10.linux-arm64.tar.gz"
 
 [tools.go."platforms.linux-x64"]
-checksum = "sha256:7716a0d940a0f6ae8e1f3b3f4f36299dc53e31b16840dbd171254312c41ca12e"
-url = "https://dl.google.com/go/go1.25.1.linux-amd64.tar.gz"
+checksum = "sha256:42d4f7a32316aa66591eca7e89867256057a4264451aca10570a715b3637ba70"
+url = "https://dl.google.com/go/go1.25.10.linux-amd64.tar.gz"
 
 [tools.go."platforms.linux-x64-musl"]
-checksum = "sha256:7716a0d940a0f6ae8e1f3b3f4f36299dc53e31b16840dbd171254312c41ca12e"
-url = "https://dl.google.com/go/go1.25.1.linux-amd64.tar.gz"
+checksum = "sha256:42d4f7a32316aa66591eca7e89867256057a4264451aca10570a715b3637ba70"
+url = "https://dl.google.com/go/go1.25.10.linux-amd64.tar.gz"
 
 [tools.go."platforms.macos-arm64"]
-checksum = "sha256:68deebb214f39d542e518ebb0598a406ab1b5a22bba8ec9ade9f55fb4dd94a6c"
-url = "https://dl.google.com/go/go1.25.1.darwin-arm64.tar.gz"
+checksum = "sha256:795691a425de7e7cdba3544f354dcd2cebcf52e87dc6898193878f34eb6d634f"
+url = "https://dl.google.com/go/go1.25.10.darwin-arm64.tar.gz"
 
 [tools.go."platforms.macos-x64"]
-checksum = "sha256:1d622468f767a1b9fe1e1e67bd6ce6744d04e0c68712adc689748bbeccb126bb"
-url = "https://dl.google.com/go/go1.25.1.darwin-amd64.tar.gz"
+checksum = "sha256:52321165a3146cd91865ef98371506a846ed4dc4f9f1c9323e5ad90d2a411e06"
+url = "https://dl.google.com/go/go1.25.10.darwin-amd64.tar.gz"
 
 [tools.go."platforms.windows-x64"]
-checksum = "sha256:4a974de310e7ee1d523d2fcedb114ba5fa75408c98eb3652023e55ccf3fa7cab"
-url = "https://dl.google.com/go/go1.25.1.windows-amd64.zip"
+checksum = "sha256:ca37af2dadd8544464f1a9ca7c3886499d1cdfcb263855d0a1d71f194b2bd222"
+url = "https://dl.google.com/go/go1.25.10.windows-amd64.zip"
 
 [[tools."http:helm"]]
 version = "3.21.0"
@@ -684,33 +684,33 @@ checksum = "sha256:9028276a33809a94fcf46a35733a21f013a6cc3b4a155ee849563af65dc11
 url = "https://bin.equinox.io/a/gK2xcZtiEuC/ngrok-v3-3.39.4-windows-amd64.zip"
 
 [[tools.node]]
-version = "24.16.0"
+version = "24.19.0"
 backend = "core:node"
 
 [tools.node."platforms.linux-arm64"]
-checksum = "sha256:589f5b6dd4fcfee4dfda73013903c966abaa8abd93dbc9d436544e472b4f0e74"
-url = "https://nodejs.org/dist/v24.16.0/node-v24.16.0-linux-arm64.tar.gz"
+checksum = "sha256:d28c8a5bf0a808f0ed434a1dce8c54ae98f0371c0bd86ac58abc613f73e6643f"
+url = "https://nodejs.org/dist/v24.19.0/node-v24.19.0-linux-arm64.tar.gz"
 
 [tools.node."platforms.linux-arm64-musl"]
-checksum = "sha256:85dde27aa73503b03dadfa0410a800067b4e3f702fb7fcaa3beaf284dfcc69e9"
-url = "https://unofficial-builds.nodejs.org/download/release/v24.16.0/node-v24.16.0-linux-arm64-musl.tar.gz"
+checksum = "sha256:20824e4d35948fae5b337dccef47813b04d8995312f59df7386f2256d9f9ab7e"
+url = "https://unofficial-builds.nodejs.org/download/release/v24.19.0/node-v24.19.0-linux-arm64-musl.tar.gz"
 
 [tools.node."platforms.linux-x64"]
-checksum = "sha256:2faf6a387e9b62b888e21c54f01249fb27537ffecf1842f29f4c919d0a59a0ff"
-url = "https://nodejs.org/dist/v24.16.0/node-v24.16.0-linux-x64.tar.gz"
+checksum = "sha256:f625d97cd707df4ff96254916fbc5ff014f09c09effe5a1e0ca8f6d41a8789d4"
+url = "https://nodejs.org/dist/v24.19.0/node-v24.19.0-linux-x64.tar.gz"
 
 [tools.node."platforms.linux-x64-musl"]
-checksum = "sha256:50df5d8d474892d4f7b906167df36f77f5b93908f63dc532dc568219cab65841"
-url = "https://unofficial-builds.nodejs.org/download/release/v24.16.0/node-v24.16.0-linux-x64-musl.tar.gz"
+checksum = "sha256:c60223786df14a5d23e220ebb8e60318f5322640a62f90e6d9e54d3a18da532e"
+url = "https://unofficial-builds.nodejs.org/download/release/v24.19.0/node-v24.19.0-linux-x64-musl.tar.gz"
 
 [tools.node."platforms.macos-arm64"]
-checksum = "sha256:39189dab4eeb15706c424af0ac08a3044c9e48f7db12a7d77f6b7aafc7dd5df6"
-url = "https://nodejs.org/dist/v24.16.0/node-v24.16.0-darwin-arm64.tar.gz"
+checksum = "sha256:8294b7aa9b03997481c06babf1e8b270c859358f27da57a11509afe537ac381d"
+url = "https://nodejs.org/dist/v24.19.0/node-v24.19.0-darwin-arm64.tar.gz"
 
 [tools.node."platforms.macos-x64"]
-checksum = "sha256:298b4c7b3cb80765c8703e42b90324a4ece3b6634947b89e769c3c980ab55185"
-url = "https://nodejs.org/dist/v24.16.0/node-v24.16.0-darwin-x64.tar.gz"
+checksum = "sha256:d1b5e999db158c62fe8f7267a4476b035d8bd93b1a605bac24a3f0dd166e3316"
+url = "https://nodejs.org/dist/v24.19.0/node-v24.19.0-darwin-x64.tar.gz"
 
 [tools.node."platforms.windows-x64"]
-checksum = "sha256:edaca9bd58ec8e92037dac4e877d52f6b8f430b81c18b57e264b4e2fb111cd56"
-url = "https://nodejs.org/dist/v24.16.0/node-v24.16.0-win-x64.zip"
+checksum = "sha256:57f71ab3652e797d84acddc79c81cc9ff1c6ddb2a1974cdb83f00fee9bff4c73"
+url = "https://nodejs.org/dist/v24.19.0/node-v24.19.0-win-x64.zip"

@@ -496,6 +496,7 @@ func (s *Seeder) generateVerifications(_ context.Context, workspaceID string, ke
 			Latency:      latency,
 			SpentCredits: credit,
 			Source:       schema.SourceAPI,
+			AppID:        "",
 		})
 
 		// Log progress periodically

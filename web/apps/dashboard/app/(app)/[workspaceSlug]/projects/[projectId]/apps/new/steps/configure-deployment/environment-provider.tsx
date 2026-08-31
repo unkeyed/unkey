@@ -1,6 +1,7 @@
 "use client";
 
 import { useProjectData } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/data-provider";
+import { ENVIRONMENT_KIND } from "@/lib/collections/deploy/environments";
 import { type PropsWithChildren, useMemo } from "react";
 import { OnboardingEnvironmentSettingsInner } from "./environment-inner";
 
@@ -15,20 +16,23 @@ export const OnboardingEnvironmentSettingsProvider = ({
   children,
   onSettingsReady,
 }: PropsWithChildren<{ onSettingsReady: () => void }>) => {
-  const { environments, isEnvironmentsLoading } = useProjectData();
+  const { environments, isEnvironmentsLoading, projectId, appId } = useProjectData();
 
   const prodEnvId = useMemo(
-    () => (environments.find((e) => e.kind === "production") ?? environments.at(0))?.id,
+    () =>
+      (environments.find((e) => e.kind === ENVIRONMENT_KIND.production) ?? environments.at(0))?.id,
     [environments],
   );
 
   // This is actually guarded by fallback component at where we call this provider
-  if (isEnvironmentsLoading || !prodEnvId) {
+  if (isEnvironmentsLoading || !prodEnvId || !appId) {
     return null;
   }
 
   return (
     <OnboardingEnvironmentSettingsInner
+      projectId={projectId}
+      appId={appId}
       prodEnvId={prodEnvId}
       environments={environments}
       onSettingsReady={onSettingsReady}

@@ -1,0 +1,38 @@
+---
+title: "start-deployment"
+description: "Start deployment with the Unkey API CLI"
+---
+
+Start a stopped deployment.
+
+## Usage
+
+```bash
+unkey api deployments start-deployment [flags]
+```
+
+## Flags
+
+<ParamField body="--deployment-id" type="string" required>
+Unique deployment identifier.
+</ParamField>
+
+## Global Flags
+
+| Flag | Type | Description |
+|------|------|-------------|
+| `--root-key` | string | Override root key (`$UNKEY_ROOT_KEY`) |
+| `--api-url` | string | Override API base URL (default: `https://api.unkey.com`) |
+| `--config` | string | Path to config file (default: `~/.unkey/config.toml`) |
+| `--output` | string | Output format - use `json` for raw JSON |
+| `--body` | string | Send this JSON string as the request body. You cannot combine it with request-building flags. |
+
+## Examples
+
+<CodeGroup>
+```bash Basic
+unkey api deployments start-deployment --deployment-id=dep_1234abcd
+```
+</CodeGroup>
+
+See the [Start deployment API reference](https://www.unkey.com/docs/api-reference/v2/deployments/start-deployment).
