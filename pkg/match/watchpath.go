@@ -13,7 +13,7 @@ import (
 // so it returns the fault from ValidateWatchPaths instead of reporting no match.
 // Empty patterns match everything; empty changedFiles match nothing.
 func MatchWatchPaths(patterns []string, changedFiles []string) (bool, error) {
-	// We catch broken patterns below at `doublestar.Match`, but this is just a fail-fast version
+	// We also catch broken patterns below at `doublestar.Match`, but this is the fail-fast version.
 	if err := ValidateWatchPaths(patterns); err != nil {
 		return false, err
 	}
