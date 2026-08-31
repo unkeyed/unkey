@@ -74,7 +74,7 @@ func BenchmarkGenerateKeyV1Random(b *testing.B) {
 
 // BenchmarkValidateKeyV1Prefix compares direct byte checks with a precompiled regex.
 func BenchmarkValidateKeyV1Prefix(b *testing.B) {
-	pattern := regexp.MustCompile(`^[A-Za-z0-9_]{0,6}[A-Za-z0-9]$`)
+	pattern := regexp.MustCompile(`^[A-Za-z0-9_]{0,7}[A-Za-z0-9]$`)
 	methods := []struct {
 		name     string
 		validate func(string) bool
@@ -82,7 +82,7 @@ func BenchmarkValidateKeyV1Prefix(b *testing.B) {
 		{
 			name: "byte_checks",
 			validate: func(prefix string) bool {
-				valid := len(prefix) >= 1 && len(prefix) <= 7
+				valid := len(prefix) >= 1 && len(prefix) <= 8
 				for i := 0; valid && i < len(prefix); i++ {
 					character := prefix[i]
 					isLetter := character >= 'A' && character <= 'Z' || character >= 'a' && character <= 'z'

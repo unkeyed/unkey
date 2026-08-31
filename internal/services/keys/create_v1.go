@@ -26,15 +26,14 @@ const (
 	keyV1ChecksumLength       = 6
 )
 
-// keyV1ChecksumTable selects CRC-32C instead of the older IEEE CRC-32 polynomial.
 var keyV1ChecksumTable = crc32.MakeTable(crc32.Castagnoli)
 
 // CreateKeyV1 generates an API key in the version 1 plaintext format. The prefix
-// must match ^[A-Za-z0-9_]{0,6}[A-Za-z0-9]$.
+// must match ^[A-Za-z0-9_]{0,7}[A-Za-z0-9]$.
 func (s *service) CreateKeyV1(_ context.Context, req CreateKeyV1Request) (CreateKeyV1Response, error) {
 	// Direct byte checks take about 20 ns for a valid prefix. A precompiled regex
 	// takes about 150 ns.
-	validPrefix := len(req.Prefix) >= 1 && len(req.Prefix) <= 7
+	validPrefix := len(req.Prefix) >= 1 && len(req.Prefix) <= 8
 	if validPrefix {
 		for i := 0; i < len(req.Prefix); i++ {
 			character := req.Prefix[i]
@@ -56,8 +55,8 @@ func (s *service) CreateKeyV1(_ context.Context, req CreateKeyV1Request) (Create
 		return CreateKeyV1Response{}, fault.New(
 			"invalid API key prefix",
 			fault.Code(codes.App.Validation.InvalidInput.URN()),
-			fault.Internal("prefix must match ^[A-Za-z0-9_]{0,6}[A-Za-z0-9]$"),
-			fault.Public("The prefix must contain 1 to 7 ASCII letters, numbers, or underscores. It must end with a letter or number."),
+			fault.Internal("prefix must match ^[A-Za-z0-9_]{0,7}[A-Za-z0-9]$"),
+			fault.Public("The prefix must contain 1 to 8 ASCII letters, numbers, or underscores. It must end with a letter or number."),
 		)
 	}
 
