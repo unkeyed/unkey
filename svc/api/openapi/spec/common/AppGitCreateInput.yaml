@@ -1,7 +1,6 @@
 type: object
 description: |
-  Connect a GitHub repository to the app on creation. Omit to create the app
-  without a repository and connect one later with apps.updateApp.
+  Connect a GitHub repository as the app source on creation.
 required:
   - repository
 properties:

@@ -6,6 +6,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
+	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_apps_create_app"
 )
 
@@ -26,6 +27,7 @@ func TestCreateAppUnauthorized(t *testing.T) {
 		Project: "payments",
 		Name:    "App",
 		Slug:    "app-slug",
+		Oci:     &openapi.AppOCIInput{Image: "nginx:stable"},
 	})
 	require.Equal(t, http.StatusUnauthorized, res.Status, "expected 401, received: %s", res.RawBody)
 }
