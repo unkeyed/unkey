@@ -2,7 +2,7 @@
 
 import { mergeProps } from "@base-ui/react/merge-props";
 import { useRender } from "@base-ui/react/use-render";
-import React from "react";
+import type React from "react";
 import { useControllableState } from "../hooks/use-controllable-state";
 import { useIsMobile } from "../hooks/use-mobile";
 import { createContext } from "../lib/create-context";
@@ -66,8 +66,8 @@ type TriggerProps = PrimitiveButtonProps & {
 };
 const TRIGGER_NAME = "Trigger";
 
-const Trigger = React.forwardRef<PrimitiveButtonElement, TriggerProps>((props, ref) => {
-  const { children, asChild = false, ...triggerProps } = props;
+function Trigger(props: TriggerProps & { ref?: React.Ref<PrimitiveButtonElement> }) {
+  const { children, asChild = false, ref, ...triggerProps } = props;
   const { isMobile } = useDroverContext(TRIGGER_NAME);
 
   // Mobile uses vaul (Radix-style `asChild`); desktop uses Base UI's Popover
@@ -96,9 +96,7 @@ const Trigger = React.forwardRef<PrimitiveButtonElement, TriggerProps>((props, r
       {children}
     </PopoverTrigger>
   );
-});
-
-Trigger.displayName = TRIGGER_NAME;
+}
 
 /* ----------------------------------------------------------------------------
  * Component Drover:Content
@@ -113,8 +111,8 @@ type ContentElement =
   | React.ElementRef<typeof Drawer.Content>;
 const CONTENT_NAME = "Content";
 
-const Content = React.forwardRef<ContentElement, ContentProps>((props, ref) => {
-  const { children, onKeyDown, className, onAnimationEnd, ...contentProps } = props;
+function Content(props: ContentProps & { ref?: React.Ref<ContentElement> }) {
+  const { children, onKeyDown, className, onAnimationEnd, ref, ...contentProps } = props;
   const { isMobile } = useDroverContext(CONTENT_NAME);
   const Component = isMobile ? Drawer.Content : PopoverContent;
 
@@ -132,9 +130,7 @@ const Content = React.forwardRef<ContentElement, ContentProps>((props, ref) => {
       {children}
     </Component>
   );
-});
-
-Content.displayName = CONTENT_NAME;
+}
 
 /* ----------------------------------------------------------------------------
  * Component Drover:Close
@@ -145,8 +141,8 @@ type CloseProps = PrimitiveButtonProps & {
 };
 const CLOSE_NAME = "Close";
 
-const Close = React.forwardRef<PrimitiveButtonElement, CloseProps>((props, ref) => {
-  const { children, asChild = false, ...closeProps } = props;
+function Close(props: CloseProps & { ref?: React.Ref<PrimitiveButtonElement> }) {
+  const { children, asChild = false, ref, ...closeProps } = props;
   const { onOpenChange } = useDroverContext(CLOSE_NAME);
 
   return useRender({
@@ -164,9 +160,7 @@ const Close = React.forwardRef<PrimitiveButtonElement, CloseProps>((props, ref) 
       asChild ? {} : ({ children } as React.ComponentProps<"button">),
     ),
   });
-});
-
-Close.displayName = CLOSE_NAME;
+}
 
 /* ----------------------------------------------------------------------------
  * Component Drover:Nested

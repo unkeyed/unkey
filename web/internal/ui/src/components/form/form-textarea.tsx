@@ -12,67 +12,64 @@ type DocumentedFormTextareaProps = DocumentedTextareaProps & {
   descriptionPosition?: "inline" | "label";
 };
 
-type FormTextareaProps = TextareaProps & DocumentedFormTextareaProps;
+type FormTextareaProps = TextareaProps &
+  DocumentedFormTextareaProps & {
+    ref?: React.Ref<HTMLTextAreaElement>;
+  };
 
-const FormTextarea = React.forwardRef<HTMLTextAreaElement, FormTextareaProps>(
-  (
-    {
-      label,
-      description,
-      error,
-      requirement,
-      id,
-      className,
-      variant,
-      leftIcon,
-      rightIcon,
-      wrapperClassName,
-      descriptionPosition = "inline",
-      ...props
-    },
-    ref,
-  ) => {
-    const descriptionAsTooltip = descriptionPosition === "label";
-    const textareaVariant = error ? "error" : variant;
-    const generatedId = React.useId();
-    const textareaId = id || generatedId;
-    const descriptionId = `${textareaId}-helper`;
-    const errorId = `${textareaId}-error`;
+function FormTextarea({
+  label,
+  description,
+  error,
+  requirement,
+  id,
+  className,
+  variant,
+  leftIcon,
+  rightIcon,
+  wrapperClassName,
+  descriptionPosition = "inline",
+  ref,
+  ...props
+}: FormTextareaProps) {
+  const descriptionAsTooltip = descriptionPosition === "label";
+  const textareaVariant = error ? "error" : variant;
+  const generatedId = React.useId();
+  const textareaId = id || generatedId;
+  const descriptionId = `${textareaId}-helper`;
+  const errorId = `${textareaId}-error`;
 
-    return (
-      <fieldset className={cn("flex flex-col gap-1.5 border-0 m-0 p-0", className)}>
-        <FormLabel
-          label={label}
-          requirement={requirement}
-          hasError={!!error}
-          htmlFor={textareaId}
-          tooltipContent={descriptionAsTooltip ? description : undefined}
-        />
+  return (
+    <fieldset className={cn("flex flex-col gap-1.5 border-0 m-0 p-0", className)}>
+      <FormLabel
+        label={label}
+        requirement={requirement}
+        hasError={!!error}
+        htmlFor={textareaId}
+        tooltipContent={descriptionAsTooltip ? description : undefined}
+      />
 
-        <Textarea
-          ref={ref}
-          id={textareaId}
-          variant={textareaVariant}
-          leftIcon={leftIcon}
-          rightIcon={rightIcon}
-          wrapperClassName={wrapperClassName}
-          aria-describedby={error ? errorId : description ? descriptionId : undefined}
-          aria-invalid={!!error}
-          aria-required={requirement === "required"}
-          {...props}
-        />
-        <FormDescription
-          description={descriptionAsTooltip ? undefined : description}
-          error={error}
-          variant={variant}
-          descriptionId={descriptionId}
-          errorId={errorId}
-        />
-      </fieldset>
-    );
-  },
-);
-
-FormTextarea.displayName = "FormTextarea";
+      <Textarea
+        ref={ref}
+        id={textareaId}
+        variant={textareaVariant}
+        leftIcon={leftIcon}
+        rightIcon={rightIcon}
+        wrapperClassName={wrapperClassName}
+        aria-describedby={error ? errorId : description ? descriptionId : undefined}
+        aria-invalid={!!error}
+        aria-required={requirement === "required"}
+        {...props}
+      />
+      <FormDescription
+        description={descriptionAsTooltip ? undefined : description}
+        error={error}
+        variant={variant}
+        descriptionId={descriptionId}
+        errorId={errorId}
+      />
+    </fieldset>
+  );
+}
 
 export { FormTextarea, type FormTextareaProps, type DocumentedFormTextareaProps };
