@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"time"
+	"unicode/utf8"
 
 	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
 
@@ -13,6 +14,7 @@ import (
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/deploy/deploygate"
+	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/match"
 	"github.com/unkeyed/unkey/pkg/uid"
@@ -173,34 +175,45 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 	}
 
 	for _, row := range contexts {
+		// The dashboard reads this reason off the skipped deployment, so every skip
+		// says why rather than leaving the push with no record at all.
+		skipDeployment := func(reason string) {
+			if err := restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
+				_, err := insertDeploymentRecord(runCtx, s.db.RW(), row, req, []byte{}, mysqltype.DeploymentsStatusSkipped, reason)
+				return err
+			}, restate.WithName("insert skipped deployment")); err != nil {
+				logger.Error("failed to insert skipped deployment", "app_id", row.AppID, "error", err)
+			}
+		}
+
 		if !row.BuildSettingsAutoDeploy {
 			logger.Info("skipping deployment: auto_deploy disabled",
 				"app_id", row.AppID,
 				"environment", row.EnvironmentSlug,
 			)
-			if err := restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
-				_, err := insertDeploymentRecord(runCtx, s.db.RW(), row, req, []byte{}, mysqltype.DeploymentsStatusSkipped)
-				return err
-			}, restate.WithName("insert skipped deployment")); err != nil {
-				logger.Error("failed to insert skipped deployment", "app_id", row.AppID, "error", err)
-			}
+			skipDeployment("Auto deploy is disabled for this environment.")
 			continue
 		}
 
-		// Watch paths: skip if configured patterns don't match changed files
-		if !match.MatchWatchPaths(row.BuildSettingsWatchPaths, changedFiles) {
+		matched, matchErr := match.MatchWatchPaths(row.BuildSettingsWatchPaths, changedFiles)
+		if matchErr != nil {
+			// A broken pattern looks exactly like a valid miss, so the reason names
+			// the pattern instead of blaming the changed files.
+			logger.Warn("skipping deployment: invalid watch path",
+				"app_id", row.AppID,
+				"watch_paths", row.BuildSettingsWatchPaths,
+				"error", matchErr,
+			)
+			skipDeployment(fault.UserFacingMessage(matchErr))
+			continue
+		}
+		if !matched {
 			logger.Info("skipping deployment: watch paths don't match changed files",
 				"app_id", row.AppID,
 				"watch_paths", row.BuildSettingsWatchPaths,
 				"changed_files", changedFiles,
 			)
-
-			if err := restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
-				_, err := insertDeploymentRecord(runCtx, s.db.RW(), row, req, []byte{}, mysqltype.DeploymentsStatusSkipped)
-				return err
-			}, restate.WithName("insert skipped deployment")); err != nil {
-				logger.Error("failed to insert skipped deployment", "app_id", row.AppID, "error", err)
-			}
+			skipDeployment("Watch paths did not match any changed files.")
 			continue
 		}
 
@@ -222,7 +235,7 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 		}
 
 		deploymentID, insertErr := restate.Run(ctx, func(runCtx restate.RunContext) (string, error) {
-			return insertDeploymentRecord(runCtx, s.db.RW(), row, req, secretsBlob, status)
+			return insertDeploymentRecord(runCtx, s.db.RW(), row, req, secretsBlob, status, "")
 		}, restate.WithName("insert deployment"))
 		if insertErr != nil {
 			logger.Error("failed to insert deployment", "appId", row.AppID, "error", insertErr)
@@ -353,6 +366,10 @@ func (s *Service) requiresApproval(
 	return false
 }
 
+// triggerReasonBytesMax mirrors the deployments.trigger_reason column width.
+// The column counts characters, so a byte budget always fits.
+const triggerReasonBytesMax = 512
+
 // insertDeploymentRecord creates a deployment and its initial queued step in a single transaction.
 func insertDeploymentRecord(
 	ctx context.Context,
@@ -361,7 +378,9 @@ func insertDeploymentRecord(
 	req *hydrav1.HandlePushRequest,
 	secretsBlob []byte,
 	status mysqltype.DeploymentsStatus,
+	triggerReason string,
 ) (string, error) {
+	triggerReason = trimLength(triggerReason, triggerReasonBytesMax)
 	deploymentID := uid.New(uid.DeploymentPrefix)
 	now := time.Now().UnixMilli()
 
@@ -403,7 +422,7 @@ func insertDeploymentRecord(
 			ForkRepositoryFullName:        sql.NullString{String: req.GetForkRepositoryFullName(), Valid: req.GetForkRepositoryFullName() != ""},
 			DeploymentTrigger:             db.DeploymentsTriggerGithub,
 			TriggeredBy:                   sql.NullString{String: req.GetSenderLogin(), Valid: req.GetSenderLogin() != ""},
-			TriggerReason:                 sql.NullString{Valid: false},
+			TriggerReason:                 sql.NullString{String: triggerReason, Valid: triggerReason != ""},
 		}); txErr != nil {
 			return txErr
 		}
@@ -453,4 +472,19 @@ func boolToInt64(b bool) int64 {
 		return 1
 	}
 	return 0
+}
+
+// trimLength truncates s to at most maxBytes bytes while preserving valid
+// UTF-8: if the byte limit lands inside a multi-byte rune, the truncation
+// happens at the previous rune boundary instead. MySQL strict mode rejects
+// malformed UTF-8, and a single invalid watch path can exceed the column width.
+func trimLength(s string, maxBytes int) string {
+	if len(s) <= maxBytes {
+		return s
+	}
+	cut := maxBytes
+	for cut > 0 && !utf8.RuneStart(s[cut]) {
+		cut--
+	}
+	return s[:cut]
 }

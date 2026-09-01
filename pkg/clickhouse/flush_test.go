@@ -20,6 +20,9 @@ func TestInsertQuery(t *testing.T) {
 	query := InsertQuery[schema.KeyVerification]()
 	require.Contains(t, query, "`source`")
 	require.Contains(t, query, "`request_id`")
+
+	auditLogQuery := InsertQuery[schema.AuditLogV1]()
+	require.NotContains(t, auditLogQuery, "`inserted_at`")
 }
 
 // staleRow simulates a binary built before the table gained a column.

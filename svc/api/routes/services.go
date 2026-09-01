@@ -11,6 +11,7 @@ import (
 	"github.com/unkeyed/unkey/internal/services/ratelimit"
 
 	"github.com/unkeyed/unkey/internal/services/usagelimiter"
+	"github.com/unkeyed/unkey/pkg/auditlog"
 	"github.com/unkeyed/unkey/pkg/auth"
 	"github.com/unkeyed/unkey/pkg/batch"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
@@ -53,9 +54,11 @@ type Services struct {
 	// RatelimitEvents buffers ratelimit events for ClickHouse.
 	RatelimitEvents *batch.BatchProcessor[schema.Ratelimit]
 
-	// KeyVerifications buffers key verification outcomes for ClickHouse. Owned
-	// by the v2 keys.verifyKey handler.
+	// KeyVerifications buffers API key outcomes and root key usage for ClickHouse.
 	KeyVerifications *batch.BatchProcessor[schema.KeyVerification]
+
+	// DirectAuditLogs buffers high-volume audit logs that bypass the MySQL outbox.
+	DirectAuditLogs *batch.BatchProcessor[auditlog.Event]
 
 	// Clock is the time source handlers read the current time from, so tests can
 	// drive time deterministically instead of racing the system clock.
