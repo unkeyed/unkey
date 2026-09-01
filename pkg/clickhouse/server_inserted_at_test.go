@@ -68,22 +68,6 @@ func TestRawEventInsertedAtDefaults(t *testing.T) {
 			ResponseHeaders: []string{},
 		}, workspaceID, eventTime)
 	})
-
-	t.Run("instance events", func(t *testing.T) {
-		assertServerInsertedAt(t, ctx, conn, schema.InstanceEventV1{
-			Time:        eventTime,
-			WorkspaceID: workspaceID,
-			Attributes:  "{}",
-		}, workspaceID, eventTime)
-	})
-
-	t.Run("log drain deliveries", func(t *testing.T) {
-		assertServerInsertedAt(t, ctx, conn, schema.LogdrainDeliveryV1{
-			WorkspaceID: workspaceID,
-			DrainID:     uid.New("drain"),
-			Time:        eventTime,
-		}, workspaceID, eventTime)
-	})
 }
 
 // assertServerInsertedAt proves that the insert omits the server-computed

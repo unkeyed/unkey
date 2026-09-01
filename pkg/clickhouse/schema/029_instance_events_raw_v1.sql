@@ -13,9 +13,6 @@ CREATE TABLE IF NOT EXISTS default.instance_events_raw_v1
     -- Same encoding as runtime_logs_raw_v1.time.
     `time` Int64 CODEC(Delta, LZ4),
 
-    -- When ClickHouse accepted the row (unix milliseconds).
-    `inserted_at` Int64 DEFAULT toUnixTimestamp64Milli(now64(3)) CODEC(Delta, ZSTD(1)),
-
     -- Customer identifiers (extracted from pod labels by krane). Column
     -- order matches the canonical hierarchy: workspace > project > app >
     -- environment > deployment.
