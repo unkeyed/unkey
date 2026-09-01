@@ -11,8 +11,10 @@ const PermissionResponse = z.object({
 
 const RootKeyResponse = z.object({
   id: z.string(),
+  keyAuthId: z.string(),
   start: z.string(),
   createdAt: z.number(),
+  lastUsedAt: z.number(),
   lastUpdatedAt: z.number().nullable(),
   expires: z.number().nullable(),
   name: z.string().nullable(),
@@ -141,6 +143,7 @@ export const queryRootKeys = workspaceProcedure
     const SORT_COLUMN_MAP = {
       name: schema.keys.name,
       createdAt: schema.keys.createdAtM,
+      lastUsedAt: schema.keys.lastUsedAt,
       lastUpdatedAt: schema.keys.updatedAtM,
     } as const;
     const sortColumn = SORT_COLUMN_MAP[input.sortBy ?? "createdAt"];
@@ -162,8 +165,10 @@ export const queryRootKeys = workspaceProcedure
           offset: (page - 1) * pageSize,
           columns: {
             id: true,
+            keyAuthId: true,
             start: true,
             createdAtM: true,
+            lastUsedAt: true,
             updatedAtM: true,
             expires: true,
             name: true,
@@ -200,8 +205,10 @@ export const queryRootKeys = workspaceProcedure
 
         return {
           id: key.id,
+          keyAuthId: key.keyAuthId,
           start: key.start,
           createdAt: key.createdAtM,
+          lastUsedAt: key.lastUsedAt,
           lastUpdatedAt: key.updatedAtM,
           expires: key.expires ? key.expires.getTime() : null,
           name: key.name,
