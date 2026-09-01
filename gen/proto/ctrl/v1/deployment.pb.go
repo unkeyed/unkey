@@ -169,8 +169,8 @@ type CreateDeploymentRequest struct {
 	ProjectId       string                 `protobuf:"bytes,1,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
 	EnvironmentSlug string                 `protobuf:"bytes,2,opt,name=environment_slug,json=environmentSlug,proto3" json:"environment_slug,omitempty"`
 	// When omitted: git-connected projects deploy HEAD of default branch;
-	// projects without a repo connection reuse the live deployment's Docker image.
-	DockerImage string `protobuf:"bytes,3,opt,name=docker_image,json=dockerImage,proto3" json:"docker_image,omitempty"`
+	// projects without a repo connection reuse the live deployment's OCI image.
+	OciImage string `protobuf:"bytes,3,opt,name=oci_image,json=ociImage,proto3" json:"oci_image,omitempty"`
 	// Git information
 	GitCommit *GitCommitInfo `protobuf:"bytes,4,opt,name=git_commit,json=gitCommit,proto3,oneof" json:"git_commit,omitempty"`
 	// Authentication
@@ -249,9 +249,9 @@ func (x *CreateDeploymentRequest) GetEnvironmentSlug() string {
 	return ""
 }
 
-func (x *CreateDeploymentRequest) GetDockerImage() string {
+func (x *CreateDeploymentRequest) GetOciImage() string {
 	if x != nil {
-		return x.DockerImage
+		return x.OciImage
 	}
 	return ""
 }
@@ -319,7 +319,7 @@ type GitCommitInfo struct {
 	AuthorHandle    string                 `protobuf:"bytes,3,opt,name=author_handle,json=authorHandle,proto3" json:"author_handle,omitempty"`
 	AuthorAvatarUrl string                 `protobuf:"bytes,4,opt,name=author_avatar_url,json=authorAvatarUrl,proto3" json:"author_avatar_url,omitempty"`
 	Timestamp       int64                  `protobuf:"varint,5,opt,name=timestamp,proto3" json:"timestamp,omitempty"` // Unix epoch milliseconds
-	Branch          string                 `protobuf:"bytes,6,opt,name=branch,proto3" json:"branch,omitempty"`        // branch metadata for docker_image deployments
+	Branch          string                 `protobuf:"bytes,6,opt,name=branch,proto3" json:"branch,omitempty"`        // branch metadata for OCI image deployments
 	// Full fork repository identifier (e.g., "contributor/repo").
 	ForkRepository string `protobuf:"bytes,7,opt,name=fork_repository,json=forkRepository,proto3" json:"fork_repository,omitempty"`
 	unknownFields  protoimpl.UnknownFields
@@ -1546,12 +1546,12 @@ var File_ctrl_v1_deployment_proto protoreflect.FileDescriptor
 
 const file_ctrl_v1_deployment_proto_rawDesc = "" +
 	"\n" +
-	"\x18ctrl/v1/deployment.proto\x12\actrl.v1\x1a\x13ctrl/v1/actor.proto\"\xe2\x03\n" +
+	"\x18ctrl/v1/deployment.proto\x12\actrl.v1\x1a\x13ctrl/v1/actor.proto\"\xdc\x03\n" +
 	"\x17CreateDeploymentRequest\x12\x1d\n" +
 	"\n" +
 	"project_id\x18\x01 \x01(\tR\tprojectId\x12)\n" +
-	"\x10environment_slug\x18\x02 \x01(\tR\x0fenvironmentSlug\x12!\n" +
-	"\fdocker_image\x18\x03 \x01(\tR\vdockerImage\x12:\n" +
+	"\x10environment_slug\x18\x02 \x01(\tR\x0fenvironmentSlug\x12\x1b\n" +
+	"\toci_image\x18\x03 \x01(\tR\bociImage\x12:\n" +
 	"\n" +
 	"git_commit\x18\x04 \x01(\v2\x16.ctrl.v1.GitCommitInfoH\x00R\tgitCommit\x88\x01\x01\x12$\n" +
 	"\vkeyspace_id\x18\x05 \x01(\tH\x01R\n" +

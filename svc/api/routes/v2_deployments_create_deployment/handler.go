@@ -124,7 +124,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		if err := imageref.Validate(req.Image.DockerImage); err != nil {
 			return err
 		}
-		ctrlReq.DockerImage = req.Image.DockerImage
+		ctrlReq.OciImage = req.Image.DockerImage
 
 	case req.Git != nil:
 		git := req.Git
@@ -158,12 +158,12 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 
 	case req.Deployment != nil:
-		gitCommit, dockerImage, err := h.resolveRedeploy(ctx, principal.WorkspaceID, environment.AppID, environment.ID, req.Deployment.DeploymentId)
+		gitCommit, ociImage, err := h.resolveRedeploy(ctx, principal.WorkspaceID, environment.AppID, environment.ID, req.Deployment.DeploymentId)
 		if err != nil {
 			return err
 		}
 		ctrlReq.GitCommit = gitCommit
-		ctrlReq.DockerImage = dockerImage
+		ctrlReq.OciImage = ociImage
 
 	default:
 		return fault.New(

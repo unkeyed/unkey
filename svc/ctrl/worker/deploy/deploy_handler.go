@@ -376,35 +376,35 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 }
 
 // buildImage resolves the container image for a deployment and persists the image
-// reference to the database. For a DockerImage source, a tag is resolved to an
-// immutable digest. For a Git source, a Docker image is built via Depot using
+// reference to the database. For an OciImage source, a tag is resolved to an
+// immutable digest. For a Git source, a container image is built via Depot using
 // [Workflow.buildDockerImageFromGit], and the build ID is saved.
 //
 // Returns a terminal error for unknown source types and build failures that
 // cannot be retried (e.g. bad Dockerfile).
 func (w *Workflow) buildImage(ctx restate.ObjectContext, req *hydrav1.DeployRequest, deployment *db.Deployment) error {
-	dockerImage := ""
+	resolvedImage := ""
 
 	switch source := req.GetSource().(type) {
-	case *hydrav1.DeployRequest_DockerImage:
-		requestedImage, err := imageref.Parse(source.DockerImage.GetImage())
+	case *hydrav1.DeployRequest_OciImage:
+		requestedImage, err := imageref.Parse(source.OciImage.GetImage())
 		if err != nil {
 			return fault.Wrap(
 				restate.TerminalError(err),
-				fault.Public("The Docker image reference is invalid."),
+				fault.Public("The OCI image reference is invalid."),
 			)
 		}
 
 		if imageref.IsDigest(requestedImage) {
-			dockerImage = requestedImage.Name()
+			resolvedImage = requestedImage.Name()
 			break
 		}
 
-		dockerImage, err = restate.Run(ctx, func(runCtx restate.RunContext) (string, error) {
+		resolvedImage, err = restate.Run(ctx, func(runCtx restate.RunContext) (string, error) {
 			return w.imageResolver.Resolve(runCtx, requestedImage.Name())
-		}, restate.WithName("resolve Docker image digest"), restate.WithMaxRetryAttempts(runMaxAttempts))
+		}, restate.WithName("resolve OCI image digest"), restate.WithMaxRetryAttempts(runMaxAttempts))
 		if err != nil {
-			return fault.Wrap(err, fault.Public("The Docker image could not be resolved."))
+			return fault.Wrap(err, fault.Public("The OCI image could not be resolved."))
 		}
 	case *hydrav1.DeployRequest_Git:
 		commitSHA := source.Git.GetCommitSha()
@@ -466,7 +466,7 @@ func (w *Workflow) buildImage(ctx restate.ObjectContext, req *hydrav1.DeployRequ
 				fault.Public(publicMsg),
 			)
 		}
-		dockerImage = build.ImageName
+		resolvedImage = build.ImageName
 
 		err = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
 			return w.db.UpdateDeploymentBuildID(runCtx, db.UpdateDeploymentBuildIDParams{
@@ -492,7 +492,7 @@ func (w *Workflow) buildImage(ctx restate.ObjectContext, req *hydrav1.DeployRequ
 	err := restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
 		return w.db.UpdateDeploymentImage(runCtx, db.UpdateDeploymentImageParams{
 			ID:        deployment.ID,
-			Image:     sql.NullString{Valid: true, String: dockerImage},
+			Image:     sql.NullString{Valid: true, String: resolvedImage},
 			UpdatedAt: sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
 		})
 	}, restate.WithName("update deployment image"), restate.WithMaxRetryAttempts(runMaxAttempts))

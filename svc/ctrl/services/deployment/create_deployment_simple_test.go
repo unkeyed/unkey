@@ -176,7 +176,7 @@ func TestCreateDeploymentTimestampValidation_InvalidSecondsFormat(t *testing.T) 
 	req := &ctrlv1.CreateDeploymentRequest{
 		ProjectId:       "proj_test456",
 		EnvironmentSlug: "production",
-		DockerImage:     "registry.example.com/app:v1.0.0",
+		OciImage:        "registry.example.com/app:v1.0.0",
 		GitCommit: &ctrlv1.GitCommitInfo{
 			CommitSha: "abc123def456",
 			Branch:    "main",
@@ -274,7 +274,7 @@ func TestCreateDeploymentFieldMapping(t *testing.T) {
 			request: &ctrlv1.CreateDeploymentRequest{
 				ProjectId:       "proj_test456",
 				EnvironmentSlug: "production",
-				DockerImage:     "registry.example.com/app:v1.0.0",
+				OciImage:        "registry.example.com/app:v1.0.0",
 				GitCommit: &ctrlv1.GitCommitInfo{
 					CommitSha:       "abc123def456789",
 					CommitMessage:   "feat: implement new feature",
@@ -317,7 +317,7 @@ func TestCreateDeploymentFieldMapping(t *testing.T) {
 			request: &ctrlv1.CreateDeploymentRequest{
 				ProjectId:       "proj_test456",
 				EnvironmentSlug: "production",
-				DockerImage:     "registry.example.com/app:v1.0.0",
+				OciImage:        "registry.example.com/app:v1.0.0",
 				GitCommit: &ctrlv1.GitCommitInfo{
 					CommitSha:       "",
 					CommitMessage:   "",
@@ -360,7 +360,7 @@ func TestCreateDeploymentFieldMapping(t *testing.T) {
 			request: &ctrlv1.CreateDeploymentRequest{
 				ProjectId:       "proj_test456",
 				EnvironmentSlug: "production",
-				DockerImage:     "registry.example.com/app:v1.0.0",
+				OciImage:        "registry.example.com/app:v1.0.0",
 				GitCommit: &ctrlv1.GitCommitInfo{
 					CommitSha:       "xyz789abc123",
 					CommitMessage:   "fix: critical security issue",

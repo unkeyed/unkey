@@ -60,7 +60,7 @@ type commitFields struct {
 // CreateDeployment creates a new deployment record and initiates an async Restate
 // workflow. When source is omitted, the handler auto-detects: git-connected
 // apps deploy HEAD of their default branch, non-git apps reuse the live
-// deployment's Docker image.
+// deployment's OCI image.
 //
 // The workflow runs asynchronously keyed by {app, environment}, so different
 // environments (e.g. prod vs preview) for the same app deploy in parallel while
@@ -94,7 +94,7 @@ func (s *Service) CreateDeployment(
 	deploymentID, err := s.createAndDeploy(ctx, createParams{
 		context:       ctxLoad,
 		action:        "create",
-		dockerImage:   req.Msg.GetDockerImage(),
+		ociImage:      req.Msg.GetOciImage(),
 		gitCommit:     req.Msg.GetGitCommit(),
 		command:       req.Msg.GetCommand(),
 		trigger:       triggerFromProto(req.Msg.GetTrigger()),
@@ -335,12 +335,12 @@ type createParams struct {
 	context deploymentContext
 	action  string
 
-	// Source overrides. dockerImage wins if set; otherwise we auto-detect
+	// Source overrides. ociImage wins if set; otherwise we auto-detect
 	// from git repo connection (using gitCommit.commit_sha if provided) or
 	// fall back to the live deployment's image.
-	dockerImage string
-	gitCommit   *ctrlv1.GitCommitInfo
-	command     []string
+	ociImage  string
+	gitCommit *ctrlv1.GitCommitInfo
+	command   []string
 
 	// Attribution persisted on the deployment row.
 	trigger       db.DeploymentsTrigger
@@ -350,7 +350,7 @@ type createParams struct {
 
 // createAndDeploy is the shared path used by both CreateDeployment and
 // RebuildDeployment. It checks workspace access and environment deployability,
-// resolves the source (docker image / git / fallback), inserts the deployment
+// resolves the source (OCI image / git / fallback), inserts the deployment
 // row, kicks off the Restate workflow, persists the invocation id, and cancels
 // superseded siblings.
 func (s *Service) createAndDeploy(ctx context.Context, p createParams) (string, error) {
@@ -379,7 +379,7 @@ func (s *Service) createAndDeploy(ctx context.Context, p createParams) (string, 
 
 	// Populate caller-provided commit metadata. Branch defaulting and GitHub
 	// fill-in happen later, only when we're actually building from git — we
-	// don't want to synthesize git metadata on docker-image redeploys.
+	// don't want to synthesize git metadata on OCI-image redeploys.
 	var commit commitFields
 	gc := p.gitCommit
 	explicitGit := gc != nil
@@ -394,7 +394,7 @@ func (s *Service) createAndDeploy(ctx context.Context, p createParams) (string, 
 	}
 
 	// Look up the GitHub repo connection once. Used both to decide source type
-	// (git vs docker) and to resolve missing commit metadata synchronously.
+	// (git vs OCI) and to resolve missing commit metadata synchronously.
 	repoConn, repoErr := s.db.FindGithubRepoConnectionByAppId(ctx, c.app.ID)
 	hasRepoConnection := repoErr == nil
 	if repoErr != nil && !db.IsNotFound(repoErr) {
@@ -404,8 +404,8 @@ func (s *Service) createAndDeploy(ctx context.Context, p createParams) (string, 
 
 	useGit := false
 	switch {
-	case p.dockerImage != "":
-		imageReference, imageErr := imageref.Normalize(p.dockerImage)
+	case p.ociImage != "":
+		imageReference, imageErr := imageref.Normalize(p.ociImage)
 		if imageErr != nil {
 			return "", connect.NewError(connect.CodeInvalidArgument, imageErr)
 		}
@@ -421,8 +421,8 @@ func (s *Service) createAndDeploy(ctx context.Context, p createParams) (string, 
 		deployReq = &hydrav1.DeployRequest{
 			DeploymentId: deploymentID,
 			Command:      command,
-			Source: &hydrav1.DeployRequest_DockerImage{
-				DockerImage: &hydrav1.DockerImage{
+			Source: &hydrav1.DeployRequest_OciImage{
+				OciImage: &hydrav1.OciImage{
 					Image: requestedImage,
 				},
 			},
@@ -430,7 +430,7 @@ func (s *Service) createAndDeploy(ctx context.Context, p createParams) (string, 
 
 	case explicitGit && c.app.SourceType == db.AppsSourceTypeOci:
 		return "", connect.NewError(connect.CodeFailedPrecondition,
-			fmt.Errorf("Docker-sourced app %q cannot deploy a Git commit", c.app.ID))
+			fmt.Errorf("OCI-sourced app %q cannot deploy a Git commit", c.app.ID))
 
 	case explicitGit && !hasRepoConnection:
 		return "", connect.NewError(connect.CodeFailedPrecondition,
@@ -451,7 +451,7 @@ func (s *Service) createAndDeploy(ctx context.Context, p createParams) (string, 
 		if ociErr != nil {
 			if db.IsNotFound(ociErr) {
 				return "", connect.NewError(connect.CodeFailedPrecondition,
-					fmt.Errorf("Docker-sourced app %q has no source configuration", c.app.ID))
+					fmt.Errorf("OCI-sourced app %q has no source configuration", c.app.ID))
 			}
 			return "", connect.NewError(connect.CodeInternal,
 				fmt.Errorf("failed to load OCI source: %w", ociErr))
@@ -459,7 +459,7 @@ func (s *Service) createAndDeploy(ctx context.Context, p createParams) (string, 
 		imageReference, imageErr := imageref.Normalize(ociSource.ImageReference)
 		if imageErr != nil {
 			return "", connect.NewError(connect.CodeFailedPrecondition,
-				fmt.Errorf("Docker source for app %q is invalid: %w", c.app.ID, imageErr))
+				fmt.Errorf("OCI source for app %q is invalid: %w", c.app.ID, imageErr))
 		}
 		commit = commitFields{ //nolint:exhaustruct
 		}
@@ -468,8 +468,8 @@ func (s *Service) createAndDeploy(ctx context.Context, p createParams) (string, 
 		deployReq = &hydrav1.DeployRequest{
 			DeploymentId: deploymentID,
 			Command:      command,
-			Source: &hydrav1.DeployRequest_DockerImage{
-				DockerImage: &hydrav1.DockerImage{Image: requestedImage},
+			Source: &hydrav1.DeployRequest_OciImage{
+				OciImage: &hydrav1.OciImage{Image: requestedImage},
 			},
 		}
 
@@ -488,8 +488,8 @@ func (s *Service) createAndDeploy(ctx context.Context, p createParams) (string, 
 		deployReq = &hydrav1.DeployRequest{
 			DeploymentId: deploymentID,
 			Command:      command,
-			Source: &hydrav1.DeployRequest_DockerImage{
-				DockerImage: &hydrav1.DockerImage{Image: requestedImage},
+			Source: &hydrav1.DeployRequest_OciImage{
+				OciImage: &hydrav1.OciImage{Image: requestedImage},
 			},
 		}
 	}
@@ -722,7 +722,7 @@ func buildOciSource(
 	resolvedImage := resolvedDeploymentImage(currentDeployment)
 	if !resolvedImage.Valid || resolvedImage.String == "" {
 		return "", connect.NewError(connect.CodeFailedPrecondition,
-			fmt.Errorf("current deployment %q has no Docker image; cannot redeploy without git connection",
+			fmt.Errorf("current deployment %q has no OCI image; cannot redeploy without git connection",
 				currentDeploymentID.String))
 	}
 
@@ -734,7 +734,7 @@ func buildOciSource(
 	imageReference, err := imageref.NormalizeHistorical(resolvedImage.String)
 	if err != nil {
 		return "", connect.NewError(connect.CodeFailedPrecondition,
-			fmt.Errorf("current deployment %q has an invalid Docker image: %w", currentDeploymentID.String, err))
+			fmt.Errorf("current deployment %q has an invalid OCI image: %w", currentDeploymentID.String, err))
 	}
 	return imageReference, nil
 }
