@@ -21,6 +21,7 @@ before:
 
 builds:
   - id: unkey
+    main: ./build/cli
     env:
       - CGO_ENABLED=0
     goos:
@@ -31,20 +32,17 @@ builds:
       - arm64
     binary: unkey
 
+    flags:
+      - -trimpath
+
+    tags:
+      - cli_release
+
     ldflags:
       - -s -w
       - -X 'github.com/unkeyed/unkey/pkg/buildinfo.Version={{.Version}}'
       - -X 'github.com/unkeyed/unkey/pkg/buildinfo.Revision={{.FullCommit}}'
       - -X 'github.com/unkeyed/unkey/pkg/buildinfo.BuildTime={{.Date}}'
-
-upx:
-  - enabled: true
-    ids:
-      - unkey
-    goos:
-      - linux # UPX doesn't support macOS
-    compress: best
-    lzma: true
 
 archives:
   - id: unkey

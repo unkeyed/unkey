@@ -1,235 +1,167 @@
 "use client";
 
-import * as React from "react";
-import { createPortal } from "react-dom";
-import { createContext } from "../lib/create-context";
+import { Dialog as DialogPrimitive } from "@base-ui/react/dialog";
+import { XMark } from "@unkey/icons";
+import type * as React from "react";
 import { cn } from "../lib/utils";
 
-type SlidePanelContextValue = {
-  isOpen: boolean;
-  onClose: () => void;
-};
+type SlidePanelBackdrop = "blur" | "dim" | "none";
 
-const [SlidePanelProvider, useSlidePanelContext] =
-  createContext<SlidePanelContextValue>("SlidePanel");
-
-type SlidePanelRootProps = {
+export type SlidePanelProps = {
   children: React.ReactNode;
   isOpen: boolean;
   onClose: () => void;
+  onExitComplete?: () => void;
   side?: "left" | "right";
-  topOffset?: number;
   widthClassName?: string;
   className?: string;
-  backdrop?: boolean | "blur" | "dim";
+  backdrop?: SlidePanelBackdrop;
   fitContent?: boolean;
 };
 
-const SlidePanelRoot = ({
+export function SlidePanel({
   children,
   isOpen,
   onClose,
+  onExitComplete,
   side = "right",
-  topOffset = 0,
   widthClassName = "w-175",
   className,
   backdrop = "blur",
   fitContent = false,
-}: SlidePanelRootProps) => {
-  React.useEffect(
-    function closeOnEscape() {
-      if (!isOpen) {
-        return;
-      }
-      const handler = (e: KeyboardEvent) => {
-        if (e.key === "Escape") {
+}: SlidePanelProps) {
+  return (
+    <DialogPrimitive.Root
+      open={isOpen}
+      modal={false}
+      disablePointerDismissal
+      onOpenChange={(open) => {
+        if (!open) {
           onClose();
         }
-      };
-      document.addEventListener("keydown", handler);
-      return () => document.removeEventListener("keydown", handler);
-    },
-    [isOpen, onClose],
-  );
-
-  React.useEffect(
-    function markBodyWhileOpen() {
-      if (!isOpen) {
-        return;
-      }
-      // Signal to global CSS that a SlidePanel is open so portaled
-      // floating UI (tooltips) can be lifted above the panel.
-      // Reference-counted to handle nested/sibling panels correctly.
-      const prev = document.body.dataset.slidePanelOpen;
-      const count = prev ? Number.parseInt(prev, 10) + 1 : 1;
-      document.body.dataset.slidePanelOpen = String(count);
-      return () => {
-        const next = Number.parseInt(document.body.dataset.slidePanelOpen ?? "1", 10) - 1;
-        if (next <= 0) {
-          delete document.body.dataset.slidePanelOpen;
-        } else {
-          document.body.dataset.slidePanelOpen = String(next);
+      }}
+      onOpenChangeComplete={(open) => {
+        if (!open) {
+          onExitComplete?.();
         }
-      };
-    },
-    [isOpen],
-  );
-
-  const panel = (
-    <SlidePanelProvider isOpen={isOpen} onClose={onClose}>
-      {/* Backdrop */}
-      {backdrop !== false && (
-        // biome-ignore lint/a11y/useKeyWithClickEvents: backdrop dismiss doesn't need keyboard equivalent
-        <div
-          className={cn(
-            "fixed inset-0 z-50 transition-opacity duration-300",
-            backdrop === "blur" && "bg-background/5",
-            backdrop === "dim" && "bg-background/20",
-            backdrop === true && "bg-background/5",
-            isOpen
-              ? cn("opacity-100", backdrop === "blur" && "backdrop-blur-[2px]")
-              : "opacity-0 pointer-events-none",
-          )}
-          onClick={onClose}
-          aria-hidden="true"
-        />
-      )}
-      {/* Panel */}
-      <div
-        aria-hidden={!isOpen}
-        inert={!isOpen || undefined}
-        className={cn(
-          "fixed dark:bg-black bg-white border border-gray-4 rounded-xl overflow-hidden z-51",
-          "transition-transform duration-350 ease-[cubic-bezier(0.32,0.72,0,1)]",
-          "shadow-md",
-          "flex flex-col",
-          side === "right" ? "right-3" : "left-3",
-          isOpen
-            ? "translate-x-0"
-            : side === "right"
-              ? "translate-x-[calc(100%+0.75rem)]"
-              : "-translate-x-[calc(100%+0.75rem)]",
-          widthClassName,
-          className,
-        )}
-        style={{
-          top: `${topOffset + 12}px`,
-          ...(fitContent
-            ? { maxHeight: `calc(100vh - ${topOffset + 24}px)` }
-            : { height: `calc(100vh - ${topOffset + 24}px)` }),
-          willChange: isOpen ? "transform, opacity" : "auto",
-        }}
-      >
-        {children}
-      </div>
-    </SlidePanelProvider>
-  );
-
-  return createPortal(panel, document.body);
-};
-
-SlidePanelRoot.displayName = "SlidePanelRoot";
-
-type SlidePanelHeaderProps = {
-  children: React.ReactNode;
-  className?: string;
-};
-
-const SlidePanelHeader = ({ children, className }: SlidePanelHeaderProps) => (
-  <div
-    className={cn(
-      "flex items-start justify-between border-b border-gray-4 px-8 py-5 bg-white dark:bg-black ",
-      className,
-    )}
-  >
-    {children}
-  </div>
-);
-
-SlidePanelHeader.displayName = "SlidePanelHeader";
-
-type SlidePanelContentProps = {
-  children: React.ReactNode;
-  className?: string;
-  stagger?: boolean;
-  staggerDelay?: number;
-};
-
-const SlidePanelContent = ({
-  children,
-  className,
-  stagger = true,
-  staggerDelay = 150,
-}: SlidePanelContentProps) => {
-  const { isOpen } = useSlidePanelContext("SlidePanelContent");
-
-  return (
-    <div
-      className={cn(
-        "flex-1 min-h-0",
-        stagger && "transition-[transform,opacity] duration-500 ease-out",
-        stagger && (isOpen ? "translate-x-0 opacity-100" : "translate-x-6 opacity-0"),
-        className,
-      )}
-      style={stagger ? { transitionDelay: isOpen ? `${staggerDelay}ms` : "0ms" } : undefined}
+      }}
     >
+      <DialogPrimitive.Portal>
+        {backdrop !== "none" && (
+          <DialogPrimitive.Backdrop
+            onClick={onClose}
+            className={cn(
+              "fixed inset-0 z-50 transition-opacity duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] motion-reduce:transition-none",
+              "data-starting-style:opacity-0 data-ending-style:opacity-0",
+              backdrop === "blur" ? "bg-background/5 backdrop-blur-[2px]" : "bg-background/20",
+            )}
+          />
+        )}
+        <DialogPrimitive.Popup
+          data-slide-panel-open=""
+          className={cn(
+            "[--slide-panel-inset:0.75rem] [--slide-panel-radius:0.75rem]",
+            "fixed z-51 flex flex-col p-px shadow-lg",
+            "rounded-(--slide-panel-radius) bg-grayA-4",
+            "top-(--slide-panel-inset) bottom-(--slide-panel-inset)",
+            "max-w-[calc(100dvw_-_var(--slide-panel-inset)_*_2)]",
+            side === "right" ? "right-(--slide-panel-inset)" : "left-(--slide-panel-inset)",
+            fitContent && "bottom-auto max-h-[calc(100dvh_-_var(--slide-panel-inset)_*_2)]",
+            "transition-[opacity,translate] duration-200 ease-[cubic-bezier(0.4,0,0.2,1)] motion-reduce:transition-none",
+            "data-starting-style:opacity-0 data-ending-style:opacity-0",
+            side === "right"
+              ? "data-starting-style:translate-x-5 data-ending-style:translate-x-10"
+              : "data-starting-style:-translate-x-5 data-ending-style:-translate-x-10",
+            widthClassName,
+            className,
+          )}
+        >
+          <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[calc(var(--slide-panel-radius)_-_1px)] bg-background">
+            {children}
+          </div>
+        </DialogPrimitive.Popup>
+      </DialogPrimitive.Portal>
+    </DialogPrimitive.Root>
+  );
+}
+
+export type SlidePanelHeaderProps = {
+  children: React.ReactNode;
+  className?: string;
+};
+
+export function SlidePanelHeader({ children, className }: SlidePanelHeaderProps) {
+  return (
+    <div className={cn("flex items-start justify-between px-6 pt-6 pb-2", className)}>
       {children}
     </div>
   );
+}
+
+export type SlidePanelTitleProps = DialogPrimitive.Title.Props & {
+  ref?: React.Ref<HTMLHeadingElement>;
 };
 
-SlidePanelContent.displayName = "SlidePanelContent";
+export function SlidePanelTitle({ className, ...props }: SlidePanelTitleProps) {
+  return (
+    <DialogPrimitive.Title
+      className={cn(
+        "text-[18px] font-semibold leading-tight tracking-tight text-gray-12",
+        className,
+      )}
+      {...props}
+    />
+  );
+}
 
-type SlidePanelFooterProps = {
+export type SlidePanelDescriptionProps = DialogPrimitive.Description.Props & {
+  ref?: React.Ref<HTMLParagraphElement>;
+};
+
+export function SlidePanelDescription({ className, ...props }: SlidePanelDescriptionProps) {
+  return (
+    <DialogPrimitive.Description
+      className={cn("text-[13px] leading-5 text-gray-11", className)}
+      {...props}
+    />
+  );
+}
+
+export type SlidePanelContentProps = {
   children: React.ReactNode;
   className?: string;
 };
 
-const SlidePanelFooter = ({ children, className }: SlidePanelFooterProps) => (
-  <div className={cn("bg-white dark:bg-black border-t border-gray-4 px-8 py-5", className)}>
-    {children}
-  </div>
-);
+export function SlidePanelContent({ children, className }: SlidePanelContentProps) {
+  return <div className={cn("min-h-0 flex-1", className)}>{children}</div>;
+}
 
-SlidePanelFooter.displayName = "SlidePanelFooter";
-
-type SlidePanelCloseProps = React.ComponentPropsWithoutRef<"button">;
-
-const SlidePanelClose = React.forwardRef<HTMLButtonElement, SlidePanelCloseProps>(
-  ({ onClick, ...props }, ref) => {
-    const { onClose } = useSlidePanelContext("SlidePanelClose");
-
-    const handleClick = React.useCallback(
-      (e: React.MouseEvent<HTMLButtonElement>) => {
-        onClick?.(e);
-        if (!e.defaultPrevented) {
-          onClose();
-        }
-      },
-      [onClick, onClose],
-    );
-
-    return <button ref={ref} type="button" {...props} onClick={handleClick} />;
-  },
-);
-
-SlidePanelClose.displayName = "SlidePanelClose";
-
-export const SlidePanel = Object.assign(
-  {},
-  {
-    Root: SlidePanelRoot,
-    Header: SlidePanelHeader,
-    Content: SlidePanelContent,
-    Footer: SlidePanelFooter,
-    Close: SlidePanelClose,
-  },
-);
-
-export type {
-  SlidePanelRootProps,
-  SlidePanelHeaderProps,
-  SlidePanelContentProps,
-  SlidePanelFooterProps,
-  SlidePanelCloseProps,
+export type SlidePanelFooterProps = {
+  children: React.ReactNode;
+  className?: string;
 };
+
+export function SlidePanelFooter({ children, className }: SlidePanelFooterProps) {
+  return <div className={cn("border-t border-gray-4 px-6 py-4", className)}>{children}</div>;
+}
+
+export type SlidePanelCloseButtonProps = DialogPrimitive.Close.Props & {
+  ref?: React.Ref<HTMLButtonElement>;
+};
+
+export function SlidePanelCloseButton({ className, ...props }: SlidePanelCloseButtonProps) {
+  return (
+    <DialogPrimitive.Close
+      aria-label="Close panel"
+      className={cn(
+        "inline-flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-md text-gray-10 transition-colors hover:bg-grayA-3 hover:text-gray-12",
+        className,
+      )}
+      {...props}
+    >
+      <XMark iconSize="lg-medium" />
+    </DialogPrimitive.Close>
+  );
+}
+
+export type { SlidePanelBackdrop };

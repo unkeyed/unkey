@@ -1,7 +1,14 @@
 "use client";
 import type { MetadataFormValues } from "@/lib/schemas/metadata";
 import { Code } from "@unkey/icons";
-import { Button, FormTextarea, toast } from "@unkey/ui";
+import {
+  Button,
+  FormField,
+  InputGroup,
+  InputGroupAddon,
+  InputGroupTextarea,
+  toast,
+} from "@unkey/ui";
 import { useController, useFormContext, useWatch } from "react-hook-form";
 import { ProtectionSwitch } from "./protection-switch";
 
@@ -110,35 +117,45 @@ export const MetadataSetup = ({ overrideEnabled = false, entityType }: MetadataS
         />
       )}
       <div className="flex flex-col gap-2 h-fit duration-300">
-        <FormTextarea
-          placeholder={JSON.stringify(EXAMPLE_JSON, null, 2)}
-          label="Metadata"
+        <FormField
           className="[&_textarea:first-of-type]:font-mono h-full"
-          rightIcon={
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={formatJSON}
-              disabled={!metadataEnabled || Boolean(errors.metadata?.data?.message)}
-              type="button"
-            >
-              <div className="text-[13px]">Format</div>
-            </Button>
-          }
+          label="Metadata"
           description={descriptions.textarea}
           error={errors.metadata?.data?.message}
-          disabled={!metadataEnabled}
-          readOnly={!metadataEnabled}
-          rows={15}
-          {...register("metadata.data", {
-            validate: (value) => {
-              if (metadataEnabled && (!value || !validateJSON(value as string))) {
-                return "Must be valid JSON";
-              }
-              return true;
-            },
-          })}
-        />
+        >
+          {(field) => (
+            <InputGroup variant={field.variant} className="items-start">
+              <InputGroupTextarea
+                id={field.id}
+                placeholder={JSON.stringify(EXAMPLE_JSON, null, 2)}
+                aria-describedby={field.describedBy}
+                aria-invalid={field.invalid}
+                disabled={!metadataEnabled}
+                readOnly={!metadataEnabled}
+                rows={15}
+                {...register("metadata.data", {
+                  validate: (value) => {
+                    if (metadataEnabled && (!value || !validateJSON(value as string))) {
+                      return "Must be valid JSON";
+                    }
+                    return true;
+                  },
+                })}
+              />
+              <InputGroupAddon align="inline-end" className="pt-3">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={formatJSON}
+                  disabled={!metadataEnabled || field.invalid}
+                  type="button"
+                >
+                  <div className="text-[13px]">Format</div>
+                </Button>
+              </InputGroupAddon>
+            </InputGroup>
+          )}
+        </FormField>
       </div>
     </div>
   );

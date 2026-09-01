@@ -21,6 +21,25 @@ vi.mock("@/components/ui/chart", () => ({
 }));
 
 describe("AreaTimeseriesChart axis configuration", () => {
+  it("renders a flat line for zero values when requested", () => {
+    const { container, queryByText } = render(
+      <AreaTimeseriesChart
+        data={[
+          { originalTimestamp: 1_000, errors: 0 },
+          { originalTimestamp: 2_000, errors: 0 },
+        ]}
+        config={{ errors: { label: "Errors", color: "red" } }}
+        axis={null}
+        showZeroLine
+      />,
+    );
+
+    expect(queryByText("No activity yet")).toBeNull();
+    expect(container.querySelector('[data-testid="y-axis"]')?.getAttribute("data-domain")).toBe(
+      "[0,1]",
+    );
+  });
+
   it("adds ten percent headroom to the observed maximum by default", () => {
     const { container } = render(
       <AreaTimeseriesChart

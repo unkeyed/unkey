@@ -332,19 +332,21 @@ func (s *Seeder) CreateEnvironment(ctx context.Context, req CreateEnvironmentReq
 }
 
 type CreateCustomDomainRequest struct {
-	ID                 string
-	WorkspaceID        string
-	ProjectID          string
-	AppID              string
-	EnvironmentID      string
-	Domain             string
-	VerificationStatus db.CustomDomainsVerificationStatus
-	VerificationToken  string
-	TargetCname        string
-	OwnershipVerified  bool
-	CnameVerified      bool
-	VerificationError  string
-	LastCheckedAt      int64
+	ID                    string
+	WorkspaceID           string
+	ProjectID             string
+	AppID                 string
+	EnvironmentID         string
+	Domain                string
+	VerificationStatus    db.CustomDomainsVerificationStatus
+	VerificationToken     string
+	TargetCname           string
+	OwnershipVerified     bool
+	CnameVerified         bool
+	VerificationError     string
+	LastCheckedAt         int64
+	DomainConnectProvider string
+	DomainConnectURL      string
 }
 
 // CreateCustomDomain attaches a custom domain to an environment. Production writes go
@@ -371,21 +373,23 @@ func (s *Seeder) CreateCustomDomain(ctx context.Context, req CreateCustomDomainR
 
 	now := time.Now().UnixMilli()
 	err := db.Query.InsertCustomDomain(ctx, s.DB.RW(), db.InsertCustomDomainParams{
-		ID:                 req.ID,
-		WorkspaceID:        req.WorkspaceID,
-		ProjectID:          req.ProjectID,
-		AppID:              req.AppID,
-		EnvironmentID:      req.EnvironmentID,
-		Domain:             req.Domain,
-		ChallengeType:      db.CustomDomainsChallengeTypeHTTP01,
-		VerificationStatus: status,
-		VerificationToken:  verificationToken,
-		OwnershipVerified:  req.OwnershipVerified,
-		CnameVerified:      req.CnameVerified,
-		TargetCname:        targetCname,
-		VerificationError:  sql.NullString{String: req.VerificationError, Valid: req.VerificationError != ""},
-		LastCheckedAt:      sql.NullInt64{Int64: req.LastCheckedAt, Valid: req.LastCheckedAt != 0},
-		CreatedAt:          now,
+		ID:                    req.ID,
+		WorkspaceID:           req.WorkspaceID,
+		ProjectID:             req.ProjectID,
+		AppID:                 req.AppID,
+		EnvironmentID:         req.EnvironmentID,
+		Domain:                req.Domain,
+		ChallengeType:         db.CustomDomainsChallengeTypeHTTP01,
+		VerificationStatus:    status,
+		VerificationToken:     verificationToken,
+		OwnershipVerified:     req.OwnershipVerified,
+		CnameVerified:         req.CnameVerified,
+		TargetCname:           targetCname,
+		VerificationError:     sql.NullString{String: req.VerificationError, Valid: req.VerificationError != ""},
+		DomainConnectProvider: sql.NullString{String: req.DomainConnectProvider, Valid: req.DomainConnectProvider != ""},
+		DomainConnectUrl:      sql.NullString{String: req.DomainConnectURL, Valid: req.DomainConnectURL != ""},
+		LastCheckedAt:         sql.NullInt64{Int64: req.LastCheckedAt, Valid: req.LastCheckedAt != 0},
+		CreatedAt:             now,
 	})
 	require.NoError(s.t, err)
 
@@ -883,4 +887,59 @@ func (s *Seeder) CreatePermission(ctx context.Context, req CreatePermissionReque
 		CreatedAtM:  createdAt,
 		UpdatedAtM:  sql.NullInt64{Valid: false, Int64: 0},
 	}
+}
+
+// CreatePortalRequest configures the portal to create.
+//
+// Exactly one of AppID or KeyAuthID is expected: a portal maps to one app or one
+// keyspace. The seeder does not enforce that, so a test can deliberately write an
+// invariant-violating row to prove a handler refuses to serve it.
+type CreatePortalRequest struct {
+	ID           string
+	WorkspaceID  string
+	Slug         string
+	DisplayName  string
+	AppID        sql.NullString
+	KeyAuthID    sql.NullString
+	Enabled      bool
+	LogoUrl      sql.NullString
+	PrimaryColor sql.NullString
+}
+
+// CreatePortal creates a portal. When ID is empty a new one is minted, so a test
+// that does not care about the id can leave it unset.
+func (s *Seeder) CreatePortal(ctx context.Context, req CreatePortalRequest) db.Portal {
+	portalID := req.ID
+	if portalID == "" {
+		portalID = uid.New(uid.PortalPrefix)
+	}
+	now := time.Now().UnixMilli()
+
+	displayName := req.DisplayName
+	if displayName == "" {
+		displayName = req.Slug
+	}
+
+	err := db.Query.InsertPortal(ctx, s.DB.RW(), db.InsertPortalParams{
+		ID:           portalID,
+		WorkspaceID:  req.WorkspaceID,
+		Slug:         req.Slug,
+		DisplayName:  displayName,
+		AppID:        req.AppID,
+		KeyAuthID:    req.KeyAuthID,
+		Enabled:      req.Enabled,
+		LogoUrl:      req.LogoUrl,
+		PrimaryColor: req.PrimaryColor,
+		CreatedAt:    now,
+		UpdatedAt:    sql.NullInt64{Valid: false, Int64: 0},
+	})
+	require.NoError(s.t, err)
+
+	portal, err := db.Query.FindPortalByIdOrSlug(ctx, s.DB.RO(), db.FindPortalByIdOrSlugParams{
+		Portal:      portalID,
+		WorkspaceID: req.WorkspaceID,
+	})
+	require.NoError(s.t, err)
+
+	return portal
 }

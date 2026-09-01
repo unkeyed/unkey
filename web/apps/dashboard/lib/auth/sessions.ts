@@ -3,7 +3,7 @@
 import { env } from "@/lib/env";
 import type { NextRequest } from "next/server";
 import { getAuthCookieOptions } from "./cookie-security";
-import { getCookie, getCookieOptionsAsString, setSessionCookie } from "./cookies";
+import { type CookieOptions, getCookie, getSetCookieHeaders, setSessionCookie } from "./cookies";
 import { auth } from "./server";
 import { UNKEY_SESSION_COOKIE, type User } from "./types";
 
@@ -23,6 +23,22 @@ type SessionResult = {
   } | null;
   headers: Headers;
 };
+
+// appendSessionCookieHeaders preserves one Set-Cookie field per session part.
+async function appendSessionCookieHeaders(
+  headers: Headers,
+  token: string,
+  options: CookieOptions,
+): Promise<void> {
+  const cookieHeaders = await getSetCookieHeaders({
+    name: UNKEY_SESSION_COOKIE,
+    value: token,
+    options,
+  });
+  for (const cookieHeader of cookieHeaders) {
+    headers.append("Set-Cookie", cookieHeader);
+  }
+}
 
 export async function updateSession(request?: NextRequest): Promise<SessionResult> {
   const UNKEY_SESSION_HEADER = `x-${UNKEY_SESSION_COOKIE}`;
@@ -49,12 +65,10 @@ export async function updateSession(request?: NextRequest): Promise<SessionResul
 
         await setSessionCookie({ token: localSessionToken, expiresAt });
       } catch (_error) {
-        headers.append(
-          "Set-Cookie",
-          `${UNKEY_SESSION_COOKIE}=${localSessionToken}; Path=/; SameSite=Lax; Max-Age=${
-            60 * 60 * 24 * 365 * 10
-          }`,
-        );
+        await appendSessionCookieHeaders(headers, localSessionToken, {
+          ...getAuthCookieOptions(),
+          maxAge: 60 * 60 * 24 * 365 * 10,
+        });
       }
     }
 
@@ -123,15 +137,10 @@ export async function updateSession(request?: NextRequest): Promise<SessionResul
           // Use different methods to set cookies based on whether we have a request
           if (request) {
             // For middleware/trpc routes with request object
-            headers.append(
-              "Set-Cookie",
-              `${UNKEY_SESSION_COOKIE}=${
-                refreshedSession.newToken
-              }; ${await getCookieOptionsAsString({
-                ...getAuthCookieOptions(),
-                expiresAt: refreshedSession.expiresAt,
-              })}`,
-            );
+            await appendSessionCookieHeaders(headers, refreshedSession.newToken, {
+              ...getAuthCookieOptions(),
+              expiresAt: refreshedSession.expiresAt,
+            });
           } else {
             // For client-side or RSC or when no request is available
             // Only use cookies() API when NOT in middleware context
@@ -142,15 +151,10 @@ export async function updateSession(request?: NextRequest): Promise<SessionResul
               });
             } catch (_cookieError) {
               // Fall back to headers approach if cookie setting fails
-              headers.append(
-                "Set-Cookie",
-                `${UNKEY_SESSION_COOKIE}=${
-                  refreshedSession.newToken
-                }; ${await getCookieOptionsAsString({
-                  ...getAuthCookieOptions(),
-                  expiresAt: refreshedSession.expiresAt,
-                })}`,
-              );
+              await appendSessionCookieHeaders(headers, refreshedSession.newToken, {
+                ...getAuthCookieOptions(),
+                expiresAt: refreshedSession.expiresAt,
+              });
             }
           }
 

@@ -14,6 +14,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/deploy/deployfail"
+	"github.com/unkeyed/unkey/pkg/deploy/imageref"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/rbac"
@@ -120,6 +121,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	switch {
 	case req.Image != nil:
+		if err := imageref.Validate(req.Image.DockerImage); err != nil {
+			return err
+		}
 		ctrlReq.DockerImage = req.Image.DockerImage
 
 	case req.Git != nil:
@@ -273,7 +277,7 @@ func (h *Handler) ensureEnvironmentDeployable(ctx context.Context, environment d
 	if db.IsNotFound(err) {
 		problems = append(problems, "runtime settings are not configured")
 	} else {
-		s := runtime.AppRuntimeSetting
+		s := runtime
 		for _, v := range deployfail.RuntimeViolations(s.Port, s.CpuMillicores, s.MemoryMib) {
 			problems = append(problems, fmt.Sprintf("%s (is %d)", v.Message, v.Actual))
 		}

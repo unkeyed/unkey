@@ -24,11 +24,10 @@ func TestDeployWorkspaceGate_BlocksCreateAndRebuild(t *testing.T) {
 	ctx := h.Context()
 
 	// Scaffolding: a project/app/env plus a source deployment to rebuild from.
-	created := h.CreateDeployment(ctx, CreateDeploymentRequest{
+	dep := h.CreateDeployment(ctx, CreateDeploymentRequest{
 		Region:       "us-east-1",
 		DesiredState: mysqltype.DeploymentsDesiredStateRunning,
 	})
-	dep := created.Deployment
 	region, err := h.DB.FindRegionByPlatformAndName(ctx, db.FindRegionByPlatformAndNameParams{
 		Platform: "test",
 		Name:     "us-east-1",

@@ -234,6 +234,14 @@ paths:
     $ref: "./spec/paths/v2/ratelimit/deleteOverride/index.yaml"
 
   # Portal Endpoints
+  /v2/portal.createPortal:
+    $ref: "./spec/paths/v2/portal/createPortal/index.yaml"
+  /v2/portal.getPortal:
+    $ref: "./spec/paths/v2/portal/getPortal/index.yaml"
+  /v2/portal.updatePortal:
+    $ref: "./spec/paths/v2/portal/updatePortal/index.yaml"
+  /v2/portal.deletePortal:
+    $ref: "./spec/paths/v2/portal/deletePortal/index.yaml"
   /v2/portal.createSession:
     $ref: "./spec/paths/v2/portal/createSession/index.yaml"
   /v2/portal.exchangeCode:

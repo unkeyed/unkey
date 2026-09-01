@@ -22,6 +22,7 @@ import (
 	"github.com/unkeyed/unkey/internal/services/ratelimit"
 
 	"github.com/unkeyed/unkey/internal/services/usagelimiter"
+	"github.com/unkeyed/unkey/pkg/auditlog"
 	"github.com/unkeyed/unkey/pkg/auth"
 	"github.com/unkeyed/unkey/pkg/auth/portal_session"
 	rootkey "github.com/unkeyed/unkey/pkg/auth/root_key"
@@ -75,6 +76,7 @@ type Harness struct {
 	UsageLimiter               usagelimiter.Service
 	Auditlogs                  auditlogs.AuditLogService
 	ClickHouse                 clickhouse.ClickHouse
+	DirectAuditLogs            *batch.BatchProcessor[auditlog.Event]
 	KeyVerifications           *batch.BatchProcessor[schema.KeyVerification]
 	RatelimitEvents            *batch.BatchProcessor[schema.Ratelimit]
 	FrontlineRequests          *batch.BatchProcessor[schema.FrontlineRequest]
@@ -135,8 +137,7 @@ func NewHarness(t *testing.T, configs ...HarnessConfig) *Harness {
 	require.NoError(t, err)
 
 	caches, err := caches.New(caches.Config{
-		NodeID: "",
-		Clock:  clk,
+		Clock: clk,
 	})
 	require.NoError(t, err)
 
@@ -154,6 +155,7 @@ func NewHarness(t *testing.T, configs ...HarnessConfig) *Harness {
 	require.NoError(t, err)
 
 	var ch clickhouse.ClickHouse
+	var directAuditLogs *batch.BatchProcessor[auditlog.Event]
 	var keyVerifications *batch.BatchProcessor[schema.KeyVerification]
 	var ratelimitsfer *batch.BatchProcessor[schema.Ratelimit]
 	var frontlineRequests *batch.BatchProcessor[schema.FrontlineRequest]
@@ -165,6 +167,19 @@ func NewHarness(t *testing.T, configs ...HarnessConfig) *Harness {
 		require.NoError(t, err)
 		t.Cleanup(func() { require.NoError(t, chClient.Close()) })
 		ch = chClient
+
+		// Small test batches flush quickly. Production uses 10,000-row batches
+		// and a 20,000-row buffer for request traffic.
+		directAuditLogs = clickhouse.NewAuditLogBuffer(chClient, clickhouse.BufferConfig{
+			Name:          "direct_audit_logs",
+			BatchSize:     10,
+			BufferSize:    100,
+			FlushInterval: 100 * time.Millisecond,
+			Consumers:     2,
+			Drop:          true,
+			OnFlushError:  nil,
+		})
+		t.Cleanup(directAuditLogs.Close)
 
 		keyVerifications = clickhouse.NewBuffer[schema.KeyVerification](chClient, clickhouse.BufferConfig{
 			Name:          "key_verifications",
@@ -199,6 +214,8 @@ func NewHarness(t *testing.T, configs ...HarnessConfig) *Harness {
 		})
 		t.Cleanup(frontlineRequests.Close)
 	} else {
+		directAuditLogs = batch.NewNoop[auditlog.Event]()
+		t.Cleanup(directAuditLogs.Close)
 		keyVerifications = batch.NewNoop[schema.KeyVerification]()
 		t.Cleanup(keyVerifications.Close)
 		ratelimitsfer = batch.NewNoop[schema.Ratelimit]()
@@ -306,6 +323,7 @@ func NewHarness(t *testing.T, configs ...HarnessConfig) *Harness {
 		Ratelimit:                  ratelimitService,
 		Vault:                      v,
 		ClickHouse:                 ch,
+		DirectAuditLogs:            directAuditLogs,
 		KeyVerifications:           keyVerifications,
 		RatelimitEvents:            ratelimitsfer,
 		FrontlineRequests:          frontlineRequests,
@@ -330,10 +348,12 @@ func NewHarness(t *testing.T, configs ...HarnessConfig) *Harness {
 		middleware.WithErrorHandling(),
 		zen.WithValidation(validator),
 		middleware.WithAuthentication(middleware.AuthenticationConfig{
-			Auth:        authService,
-			Database:    database,
-			LimitsCache: caches.WorkspaceLimits,
-			Ratelimit:   ratelimitService,
+			Auth:             authService,
+			KeyVerifications: keyVerifications,
+			Region:           "test",
+			Database:         database,
+			LimitsCache:      caches.WorkspaceLimits,
+			Ratelimit:        ratelimitService,
 		}),
 	}
 	h.portalMiddleware = []zen.Middleware{
@@ -342,10 +362,12 @@ func NewHarness(t *testing.T, configs ...HarnessConfig) *Harness {
 		middleware.WithErrorHandling(),
 		zen.WithValidation(validator),
 		middleware.WithAuthentication(middleware.AuthenticationConfig{
-			Auth:        portalAuthService,
-			Database:    database,
-			LimitsCache: caches.WorkspaceLimits,
-			Ratelimit:   ratelimitService,
+			Auth:             portalAuthService,
+			KeyVerifications: nil,
+			Region:           "",
+			Database:         database,
+			LimitsCache:      caches.WorkspaceLimits,
+			Ratelimit:        ratelimitService,
 		}),
 	}
 
@@ -393,6 +415,28 @@ func (h *Harness) PortalMiddleware() []zen.Middleware {
 func (h *Harness) CreatePortalSession(workspaceID, externalID string, keyspaceIDs, scopes []string) http.Header {
 	h.t.Helper()
 
+	return h.CreatePortalSessionForPortal("", workspaceID, externalID, keyspaceIDs, scopes)
+}
+
+// CreatePortalSessionForPortal is [Harness.CreatePortalSession] bound to a
+// specific portal.
+//
+// Session rows carry the portal they were minted from, and operations on a portal
+// can affect them — deleting a portal, or re-pointing which resource it serves,
+// revokes its sessions. Proving that requires a session that actually belongs to
+// the portal under test, which the unbound helper cannot give: it mints a
+// throwaway portal id, so a test using it would assert against a session no
+// operation could ever reach.
+//
+// An empty portalID mints a throwaway one, which is what the unbound helper
+// wants and what every caller that does not care about the portal gets.
+func (h *Harness) CreatePortalSessionForPortal(portalID, workspaceID, externalID string, keyspaceIDs, scopes []string) http.Header {
+	h.t.Helper()
+
+	if portalID == "" {
+		portalID = uid.New(uid.PortalPrefix)
+	}
+
 	sessionID := uid.New(uid.PortalSessionPrefix)
 	// Credentials are minted the way the handlers mint them (crypto/rand), so
 	// tests exercise realistic values rather than math/rand ids.
@@ -414,7 +458,7 @@ func (h *Harness) CreatePortalSession(workspaceID, externalID string, keyspaceID
 	err = db.Query.InsertPortalSession(ctx, h.DB.RW(), db.InsertPortalSessionParams{
 		ID:                    sessionID,
 		WorkspaceID:           workspaceID,
-		PortalID:              uid.New(uid.PortalPrefix),
+		PortalID:              portalID,
 		ExternalID:            externalID,
 		Scopes:                scopesJSON,
 		Preview:               false,
@@ -497,6 +541,12 @@ func (h *Harness) CreateProject(req seed.CreateProjectRequest) db.Project {
 // CreateApp creates an app within a project.
 func (h *Harness) CreateApp(req seed.CreateAppRequest) db.App {
 	return h.seeder.CreateApp(context.Background(), req)
+}
+
+// CreatePortal creates a portal. See [seed.CreatePortalRequest] for why it does
+// not enforce the one-mapping invariant.
+func (h *Harness) CreatePortal(req seed.CreatePortalRequest) db.Portal {
+	return h.seeder.CreatePortal(context.Background(), req)
 }
 
 // CreateEnvironment creates an environment within a project.

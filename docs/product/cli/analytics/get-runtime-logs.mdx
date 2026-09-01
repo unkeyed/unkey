@@ -1,0 +1,49 @@
+---
+title: "get-runtime-logs"
+description: "Query deployment runtime logs with the Unkey CLI"
+---
+
+Run SQL queries against deployment stdout and stderr logs. Queries use the
+`runtime_logs_v1` table and are restricted to the authenticated workspace.
+
+## Usage
+
+```bash
+unkey api analytics get-runtime-logs [flags]
+```
+
+## Flags
+
+<ParamField body="--query" type="string" required>
+SQL query to execute against `runtime_logs_v1`. Add a filter on `project_id`,
+`app_id`, `environment_id`, or `deployment_id` to restrict the results.
+</ParamField>
+
+## Global flags
+
+| Flag | Type | Description |
+|------|------|-------------|
+| `--root-key` | string | Override root key (`$UNKEY_ROOT_KEY`) |
+| `--api-url` | string | Override API base URL (default: `https://api.unkey.com`) |
+| `--config` | string | Path to config file (default: `~/.unkey/config.toml`) |
+| `--output` | string | Output format. Use `json` for raw JSON |
+| `--body` | string | Send this JSON string as the request body. You cannot combine it with request-building flags. |
+
+## Examples
+
+<CodeGroup>
+
+```bash Query recent logs
+unkey api analytics get-runtime-logs \
+  --query="SELECT time, message FROM runtime_logs_v1 WHERE deployment_id = 'dpl_123' ORDER BY time DESC LIMIT 100"
+```
+
+```bash Count logs by severity
+unkey api analytics get-runtime-logs \
+  --query="SELECT severity, COUNT(*) AS total FROM runtime_logs_v1 WHERE environment_id = 'env_123' GROUP BY severity"
+```
+
+</CodeGroup>
+
+See [Query runtime logs](/platform/analytics/get-runtime-logs) for the table
+schema, query restrictions, and more examples.

@@ -24,3 +24,13 @@ export type Transaction = MySqlTransaction<
 >;
 
 export { DrizzleQueryError } from "drizzle-orm/errors";
+
+export {
+  isConnectionError,
+  isDeadlockError,
+  isDuplicateKeyError,
+  isLockWaitTimeoutError,
+  isTooManyConnectionsError,
+  isTransientError,
+} from "./errors";
+export { transactionWithRetry } from "./retry";

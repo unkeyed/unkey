@@ -28,6 +28,7 @@ export const createRootKey = workspaceProcedure
             eq(table.workspaceId, env().UNKEY_WORKSPACE_ID),
             eq(schema.apis.id, env().UNKEY_API_ID),
           ),
+        columns: { keyAuthId: true },
       })
       .catch((_err) => {
         throw new TRPCError({

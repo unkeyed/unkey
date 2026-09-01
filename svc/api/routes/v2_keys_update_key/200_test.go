@@ -81,7 +81,7 @@ func TestUpdateKeySuccess(t *testing.T) {
 
 		req := handler.Request{
 			KeyId:      keyResponse.KeyID,
-			Ratelimits: ptr.P([]openapi.RatelimitRequest{ratelimit}),
+			Ratelimits: nullable.NewNullableWithValue([]openapi.RatelimitRequest{ratelimit}),
 		}
 
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
@@ -106,7 +106,7 @@ func TestUpdateKeySuccess(t *testing.T) {
 
 		req = handler.Request{
 			KeyId:      keyResponse.KeyID,
-			Ratelimits: ptr.P([]openapi.RatelimitRequest{ratelimit}),
+			Ratelimits: nullable.NewNullableWithValue([]openapi.RatelimitRequest{ratelimit}),
 		}
 
 		res = testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
@@ -121,6 +121,26 @@ func TestUpdateKeySuccess(t *testing.T) {
 		require.Equal(t, ratelimit.AutoApply, ratelimits[0].AutoApply)
 		require.EqualValues(t, ratelimit.Duration, ratelimits[0].Duration)
 		require.EqualValues(t, ratelimit.Limit, ratelimits[0].Limit)
+
+		res = testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
+			KeyId:   keyResponse.KeyID,
+			Enabled: ptr.P(false),
+		})
+		require.Equal(t, 200, res.Status)
+
+		ratelimits, err = db.Query.ListRatelimitsByKeyID(ctx, h.DB.RO(), sql.NullString{String: keyResponse.KeyID, Valid: true})
+		require.NoError(t, err)
+		require.Len(t, ratelimits, 1, "omitting ratelimits must preserve them")
+
+		res = testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
+			KeyId:      keyResponse.KeyID,
+			Ratelimits: nullable.NewNullNullable[[]openapi.RatelimitRequest](),
+		})
+		require.Equal(t, 200, res.Status)
+
+		ratelimits, err = db.Query.ListRatelimitsByKeyID(ctx, h.DB.RO(), sql.NullString{String: keyResponse.KeyID, Valid: true})
+		require.NoError(t, err)
+		require.Empty(t, ratelimits, "null ratelimits must remove them")
 	})
 }
 
@@ -511,7 +531,7 @@ func TestUpdateKeyConcurrentRatelimits(t *testing.T) {
 			}
 			req := handler.Request{
 				KeyId:      keyResponse.KeyID,
-				Ratelimits: ptr.P(ratelimits),
+				Ratelimits: nullable.NewNullableWithValue(ratelimits),
 			}
 			res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 			if res.Status != 200 {

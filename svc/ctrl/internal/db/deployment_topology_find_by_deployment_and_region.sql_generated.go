@@ -8,12 +8,36 @@ package db
 import (
 	"context"
 	"database/sql"
+
+	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
 )
 
 const findDeploymentTopologyByDeploymentAndRegion = `-- name: FindDeploymentTopologyByDeploymentAndRegion :one
 SELECT
-    dt.pk, dt.workspace_id, dt.deployment_id, dt.region_id, dt.autoscaling_replicas_min, dt.autoscaling_replicas_max, dt.autoscaling_threshold_cpu, dt.autoscaling_threshold_memory, dt.desired_status, dt.created_at, dt.updated_at,
-    d.pk, d.id, d.k8s_name, d.workspace_id, d.project_id, d.environment_id, d.app_id, d.image, d.build_id, d.git_commit_sha, d.git_branch, d.git_commit_message, d.git_commit_author_handle, d.git_commit_author_avatar_url, d.git_commit_timestamp, d.sentinel_config, d.cpu_millicores, d.memory_mib, d.storage_mib, d.desired_state, d.encrypted_environment_variables, d.command, d.port, d.shutdown_signal, d.upstream_protocol, d.healthcheck, d.pr_number, d.fork_repository_full_name, d.github_deployment_id, d.invocation_id, d.status, d.` + "`" + `trigger` + "`" + `, d.triggered_by, d.trigger_reason, d.created_at, d.updated_at,
+    dt.desired_status,
+    dt.autoscaling_replicas_min,
+    dt.autoscaling_replicas_max,
+    dt.autoscaling_threshold_cpu,
+    dt.autoscaling_threshold_memory,
+    d.id,
+    d.k8s_name,
+    d.workspace_id,
+    d.project_id,
+    d.environment_id,
+    d.app_id,
+    d.image,
+    d.build_id,
+    d.git_commit_sha,
+    d.git_branch,
+    d.git_commit_message,
+    d.cpu_millicores,
+    d.memory_mib,
+    d.storage_mib,
+    d.encrypted_environment_variables,
+    d.command,
+    d.port,
+    d.shutdown_signal,
+    d.healthcheck,
     w.k8s_namespace,
     e.slug AS environment_slug,
     r.name AS region_name,
@@ -34,20 +58,64 @@ type FindDeploymentTopologyByDeploymentAndRegionParams struct {
 }
 
 type FindDeploymentTopologyByDeploymentAndRegionRow struct {
-	DeploymentTopology DeploymentTopology `db:"deployment_topology"`
-	Deployment         Deployment         `db:"deployment"`
-	K8sNamespace       sql.NullString     `db:"k8s_namespace"`
-	EnvironmentSlug    string             `db:"environment_slug"`
-	RegionName         string             `db:"region_name"`
-	GitRepo            sql.NullString     `db:"git_repo"`
+	DesiredStatus                 DeploymentTopologyDesiredStatus `db:"desired_status"`
+	AutoscalingReplicasMin        uint32                          `db:"autoscaling_replicas_min"`
+	AutoscalingReplicasMax        uint32                          `db:"autoscaling_replicas_max"`
+	AutoscalingThresholdCpu       sql.NullInt16                   `db:"autoscaling_threshold_cpu"`
+	AutoscalingThresholdMemory    sql.NullInt16                   `db:"autoscaling_threshold_memory"`
+	ID                            string                          `db:"id"`
+	K8sName                       string                          `db:"k8s_name"`
+	WorkspaceID                   string                          `db:"workspace_id"`
+	ProjectID                     string                          `db:"project_id"`
+	EnvironmentID                 string                          `db:"environment_id"`
+	AppID                         string                          `db:"app_id"`
+	Image                         sql.NullString                  `db:"image"`
+	BuildID                       sql.NullString                  `db:"build_id"`
+	GitCommitSha                  sql.NullString                  `db:"git_commit_sha"`
+	GitBranch                     sql.NullString                  `db:"git_branch"`
+	GitCommitMessage              sql.NullString                  `db:"git_commit_message"`
+	CpuMillicores                 int32                           `db:"cpu_millicores"`
+	MemoryMib                     int32                           `db:"memory_mib"`
+	StorageMib                    uint32                          `db:"storage_mib"`
+	EncryptedEnvironmentVariables []byte                          `db:"encrypted_environment_variables"`
+	Command                       mysqltype.StringSlice           `db:"command"`
+	Port                          int32                           `db:"port"`
+	ShutdownSignal                DeploymentsShutdownSignal       `db:"shutdown_signal"`
+	Healthcheck                   mysqltype.NullHealthcheck       `db:"healthcheck"`
+	K8sNamespace                  sql.NullString                  `db:"k8s_namespace"`
+	EnvironmentSlug               string                          `db:"environment_slug"`
+	RegionName                    string                          `db:"region_name"`
+	GitRepo                       sql.NullString                  `db:"git_repo"`
 }
 
 // FindDeploymentTopologyByDeploymentAndRegion returns a single deployment topology with all
 // joined data needed for the Watch stream. Used by the unified WatchDeploymentChanges RPC.
 //
 //	SELECT
-//	    dt.pk, dt.workspace_id, dt.deployment_id, dt.region_id, dt.autoscaling_replicas_min, dt.autoscaling_replicas_max, dt.autoscaling_threshold_cpu, dt.autoscaling_threshold_memory, dt.desired_status, dt.created_at, dt.updated_at,
-//	    d.pk, d.id, d.k8s_name, d.workspace_id, d.project_id, d.environment_id, d.app_id, d.image, d.build_id, d.git_commit_sha, d.git_branch, d.git_commit_message, d.git_commit_author_handle, d.git_commit_author_avatar_url, d.git_commit_timestamp, d.sentinel_config, d.cpu_millicores, d.memory_mib, d.storage_mib, d.desired_state, d.encrypted_environment_variables, d.command, d.port, d.shutdown_signal, d.upstream_protocol, d.healthcheck, d.pr_number, d.fork_repository_full_name, d.github_deployment_id, d.invocation_id, d.status, d.`trigger`, d.triggered_by, d.trigger_reason, d.created_at, d.updated_at,
+//	    dt.desired_status,
+//	    dt.autoscaling_replicas_min,
+//	    dt.autoscaling_replicas_max,
+//	    dt.autoscaling_threshold_cpu,
+//	    dt.autoscaling_threshold_memory,
+//	    d.id,
+//	    d.k8s_name,
+//	    d.workspace_id,
+//	    d.project_id,
+//	    d.environment_id,
+//	    d.app_id,
+//	    d.image,
+//	    d.build_id,
+//	    d.git_commit_sha,
+//	    d.git_branch,
+//	    d.git_commit_message,
+//	    d.cpu_millicores,
+//	    d.memory_mib,
+//	    d.storage_mib,
+//	    d.encrypted_environment_variables,
+//	    d.command,
+//	    d.port,
+//	    d.shutdown_signal,
+//	    d.healthcheck,
 //	    w.k8s_namespace,
 //	    e.slug AS environment_slug,
 //	    r.name AS region_name,
@@ -64,53 +132,30 @@ func (q *Queries) FindDeploymentTopologyByDeploymentAndRegion(ctx context.Contex
 	row := q.db.QueryRowContext(ctx, findDeploymentTopologyByDeploymentAndRegion, arg.DeploymentID, arg.RegionID)
 	var i FindDeploymentTopologyByDeploymentAndRegionRow
 	err := row.Scan(
-		&i.DeploymentTopology.Pk,
-		&i.DeploymentTopology.WorkspaceID,
-		&i.DeploymentTopology.DeploymentID,
-		&i.DeploymentTopology.RegionID,
-		&i.DeploymentTopology.AutoscalingReplicasMin,
-		&i.DeploymentTopology.AutoscalingReplicasMax,
-		&i.DeploymentTopology.AutoscalingThresholdCpu,
-		&i.DeploymentTopology.AutoscalingThresholdMemory,
-		&i.DeploymentTopology.DesiredStatus,
-		&i.DeploymentTopology.CreatedAt,
-		&i.DeploymentTopology.UpdatedAt,
-		&i.Deployment.Pk,
-		&i.Deployment.ID,
-		&i.Deployment.K8sName,
-		&i.Deployment.WorkspaceID,
-		&i.Deployment.ProjectID,
-		&i.Deployment.EnvironmentID,
-		&i.Deployment.AppID,
-		&i.Deployment.Image,
-		&i.Deployment.BuildID,
-		&i.Deployment.GitCommitSha,
-		&i.Deployment.GitBranch,
-		&i.Deployment.GitCommitMessage,
-		&i.Deployment.GitCommitAuthorHandle,
-		&i.Deployment.GitCommitAuthorAvatarUrl,
-		&i.Deployment.GitCommitTimestamp,
-		&i.Deployment.SentinelConfig,
-		&i.Deployment.CpuMillicores,
-		&i.Deployment.MemoryMib,
-		&i.Deployment.StorageMib,
-		&i.Deployment.DesiredState,
-		&i.Deployment.EncryptedEnvironmentVariables,
-		&i.Deployment.Command,
-		&i.Deployment.Port,
-		&i.Deployment.ShutdownSignal,
-		&i.Deployment.UpstreamProtocol,
-		&i.Deployment.Healthcheck,
-		&i.Deployment.PrNumber,
-		&i.Deployment.ForkRepositoryFullName,
-		&i.Deployment.GithubDeploymentID,
-		&i.Deployment.InvocationID,
-		&i.Deployment.Status,
-		&i.Deployment.Trigger,
-		&i.Deployment.TriggeredBy,
-		&i.Deployment.TriggerReason,
-		&i.Deployment.CreatedAt,
-		&i.Deployment.UpdatedAt,
+		&i.DesiredStatus,
+		&i.AutoscalingReplicasMin,
+		&i.AutoscalingReplicasMax,
+		&i.AutoscalingThresholdCpu,
+		&i.AutoscalingThresholdMemory,
+		&i.ID,
+		&i.K8sName,
+		&i.WorkspaceID,
+		&i.ProjectID,
+		&i.EnvironmentID,
+		&i.AppID,
+		&i.Image,
+		&i.BuildID,
+		&i.GitCommitSha,
+		&i.GitBranch,
+		&i.GitCommitMessage,
+		&i.CpuMillicores,
+		&i.MemoryMib,
+		&i.StorageMib,
+		&i.EncryptedEnvironmentVariables,
+		&i.Command,
+		&i.Port,
+		&i.ShutdownSignal,
+		&i.Healthcheck,
 		&i.K8sNamespace,
 		&i.EnvironmentSlug,
 		&i.RegionName,

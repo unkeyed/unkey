@@ -69,11 +69,15 @@ import (
 	v2AnalyticsGetRuntimeLogs "github.com/unkeyed/unkey/svc/api/routes/v2_analytics_get_runtime_logs"
 	v2AnalyticsGetVerifications "github.com/unkeyed/unkey/svc/api/routes/v2_analytics_get_verifications"
 
+	v2PortalCreatePortal "github.com/unkeyed/unkey/svc/api/routes/v2_portal_create_portal"
 	v2PortalCreateSession "github.com/unkeyed/unkey/svc/api/routes/v2_portal_create_session"
+	v2PortalDeletePortal "github.com/unkeyed/unkey/svc/api/routes/v2_portal_delete_portal"
 	v2PortalExchangeCode "github.com/unkeyed/unkey/svc/api/routes/v2_portal_exchange_code"
+	v2PortalGetPortal "github.com/unkeyed/unkey/svc/api/routes/v2_portal_get_portal"
 	v2PortalGetVerifications "github.com/unkeyed/unkey/svc/api/routes/v2_portal_get_verifications"
 	v2PortalListKeys "github.com/unkeyed/unkey/svc/api/routes/v2_portal_list_keys"
 	v2PortalRerollKey "github.com/unkeyed/unkey/svc/api/routes/v2_portal_reroll_key"
+	v2PortalUpdatePortal "github.com/unkeyed/unkey/svc/api/routes/v2_portal_update_portal"
 
 	v2AppsCreateApp "github.com/unkeyed/unkey/svc/api/routes/v2_apps_create_app"
 	v2AppsDeleteApp "github.com/unkeyed/unkey/svc/api/routes/v2_apps_delete_app"
@@ -125,16 +129,20 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 	withValidation := zen.WithValidation(svc.Validator)
 	withTimeout := zen.WithTimeout(time.Minute)
 	withAuthentication := middleware.WithAuthentication(middleware.AuthenticationConfig{
-		Auth:        svc.Auth,
-		Database:    svc.Database,
-		LimitsCache: svc.Caches.WorkspaceLimits,
-		Ratelimit:   svc.Ratelimit,
+		Auth:             svc.Auth,
+		KeyVerifications: svc.KeyVerifications,
+		Region:           info.Region,
+		Database:         svc.Database,
+		LimitsCache:      svc.Caches.WorkspaceLimits,
+		Ratelimit:        svc.Ratelimit,
 	})
 	withPortalAuthentication := middleware.WithAuthentication(middleware.AuthenticationConfig{
-		Auth:        svc.PortalAuth,
-		Database:    svc.Database,
-		LimitsCache: svc.Caches.WorkspaceLimits,
-		Ratelimit:   svc.Ratelimit,
+		Auth:             svc.PortalAuth,
+		KeyVerifications: nil,
+		Region:           "",
+		Database:         svc.Database,
+		LimitsCache:      svc.Caches.WorkspaceLimits,
+		Ratelimit:        svc.Ratelimit,
 	})
 
 	publicMiddlewares := []zen.Middleware{
@@ -202,6 +210,7 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 		&v2RatelimitLimit.Handler{
 			DB:              svc.Database,
 			RatelimitEvents: svc.RatelimitEvents,
+			DirectAuditLogs: svc.DirectAuditLogs,
 			Ratelimit:       svc.Ratelimit,
 			NamespaceCache:  svc.Caches.RatelimitNamespace,
 			Auditlogs:       svc.Auditlogs,
@@ -531,7 +540,7 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 		&v2KeysVerifyKey.Handler{
 			DB:               svc.Database,
 			Keys:             svc.Keys,
-			Auditlogs:        svc.Auditlogs,
+			DirectAuditLogs:  svc.DirectAuditLogs,
 			KeyVerifications: svc.KeyVerifications,
 		},
 	)
@@ -732,6 +741,44 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 	// ---------------------------------------------------------------------------
 	// v2/portal
 
+	// v2/portal.createPortal
+	srv.RegisterRoute(
+		protectedMiddlewares,
+		&v2PortalCreatePortal.Handler{
+			DB:        svc.Database,
+			Auditlogs: svc.Auditlogs,
+			Clock:     svc.Clock,
+		},
+	)
+
+	// v2/portal.getPortal
+	srv.RegisterRoute(
+		protectedMiddlewares,
+		&v2PortalGetPortal.Handler{
+			DB: svc.Database,
+		},
+	)
+
+	// v2/portal.updatePortal
+	srv.RegisterRoute(
+		protectedMiddlewares,
+		&v2PortalUpdatePortal.Handler{
+			DB:        svc.Database,
+			Auditlogs: svc.Auditlogs,
+			Clock:     svc.Clock,
+		},
+	)
+
+	// v2/portal.deletePortal
+	srv.RegisterRoute(
+		protectedMiddlewares,
+		&v2PortalDeletePortal.Handler{
+			DB:        svc.Database,
+			Auditlogs: svc.Auditlogs,
+			Clock:     svc.Clock,
+		},
+	)
+
 	// v2/portal.createSession
 	srv.RegisterRoute(
 		protectedMiddlewares,
@@ -739,6 +786,7 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 			DB:            svc.Database,
 			Auditlogs:     svc.Auditlogs,
 			PortalBaseURL: svc.PortalBaseURL,
+			Clock:         svc.Clock,
 		},
 	)
 

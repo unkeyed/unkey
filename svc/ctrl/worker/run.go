@@ -22,6 +22,7 @@ import (
 	"github.com/unkeyed/unkey/gen/rpc/vault"
 	"github.com/unkeyed/unkey/pkg/batch"
 	"github.com/unkeyed/unkey/pkg/buildinfo"
+	"github.com/unkeyed/unkey/pkg/buildinfo/metrics"
 	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
@@ -135,7 +136,7 @@ func Run(ctx context.Context, cfg Config) error {
 	reg.MustRegister(collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}))
 	reg.MustRegister(prometheus.NewSystemMetricsCollector())
 	lazy.SetRegistry(reg)
-	buildinfo.RegisterBuildInfoMetrics("worker")
+	buildinfometrics.Register("worker")
 
 	// Create vault client for remote vault service
 	var vaultClient vault.VaultServiceClient
@@ -464,6 +465,7 @@ func Run(ctx context.Context, cfg Config) error {
 	if domainCacheErr != nil {
 		return fmt.Errorf("failed to create domain cache: %w", domainCacheErr)
 	}
+	r.Defer(func() error { domainCache.Close(); return nil })
 
 	// Setup ACME challenge providers
 	var dnsProvider challenge.Provider
@@ -527,11 +529,20 @@ func Run(ctx context.Context, cfg Config) error {
 				"error", chAdminErr,
 			)
 		} else {
+			// ReconcileUser is awaited by a cron handler. Bound its retries so a
+			// permanently failing workspace cannot wedge the cron VO forever.
+			clickhouseUserReconcileRetry := restate.WithInvocationRetryPolicy(
+				restate.WithInitialInterval(100*time.Millisecond),
+				restate.WithExponentiationFactor(2.0),
+				restate.WithMaxInterval(5*time.Second),
+				restate.WithMaxAttempts(5),
+				restate.KillOnMaxAttempts(),
+			)
 			restateSrv.Bind(hydrav1.NewClickhouseUserServiceServer(clickhouseuser.New(clickhouseuser.Config{
 				DB:         database,
 				Vault:      vaultClient,
 				Clickhouse: chAdmin,
-			})))
+			})).ConfigureHandler("ReconcileUser", clickhouseUserReconcileRetry))
 			logger.Info("ClickhouseUserService enabled")
 		}
 	}
@@ -701,6 +712,16 @@ func Run(ctx context.Context, cfg Config) error {
 		restate.WithMaxAttempts(5),
 		restate.KillOnMaxAttempts(),
 	)
+	// The reconciler is idempotent and stores its fingerprint only after all
+	// child users succeed. Kill on exhaustion so the next scheduled tick can
+	// retry instead of remaining queued behind a paused singleton VO.
+	cronClickhouseUserReconcileRetry := restate.WithInvocationRetryPolicy(
+		restate.WithInitialInterval(100*time.Millisecond),
+		restate.WithExponentiationFactor(2.0),
+		restate.WithMaxInterval(5*time.Second),
+		restate.WithMaxAttempts(5),
+		restate.KillOnMaxAttempts(),
+	)
 	restateSrv.Bind(hydrav1.NewCronServiceServer(cronSvc).
 		ConfigureHandler("RunKeyLastUsedSync", cronKeyLastUsedRetry).
 		ConfigureHandler("RunRatelimitGlobalCountersCleanup", cronRatelimitGCCRetry).
@@ -713,7 +734,8 @@ func Run(ctx context.Context, cfg Config) error {
 		ConfigureHandler("RunDeployBillingClose", cronDeployBillingFleetCloseRetry).
 		ConfigureHandler("CloseDeployBillingWorkspace", cronDeployBillingWorkspaceCloseRetry).
 		ConfigureHandler("RunDeployBillingPush", cronDeployBillingPushRetry).
-		ConfigureHandler("RunDeploySpendCheck", cronDeploySpendCheckRetry))
+		ConfigureHandler("RunDeploySpendCheck", cronDeploySpendCheckRetry).
+		ConfigureHandler("RunClickhouseUserReconcile", cronClickhouseUserReconcileRetry))
 	logger.Info("CronService enabled")
 
 	// KeyLastUsedPartitionService is the per-partition VO fanned out from
@@ -852,9 +874,9 @@ func Run(ctx context.Context, cfg Config) error {
 
 	// Wait for signal and handle shutdown
 	logger.Info("Worker started successfully")
+	// r.Wait already logs shutdown failures; just add context and propagate.
 	if err := r.Wait(ctx); err != nil {
-		logger.Error("Shutdown failed", "error", err)
-		return err
+		return fmt.Errorf("shutdown failed: %w", err)
 	}
 
 	logger.Info("Worker shut down successfully")

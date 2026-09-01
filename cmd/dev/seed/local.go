@@ -186,7 +186,7 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 			if err != nil {
 				return fmt.Errorf("failed to find existing app: %w", err)
 			}
-			appID = existing.App.ID
+			appID = existing.ID
 		}
 
 		err = db.BulkQuery.InsertEnvironments(ctx, tx, []db.InsertEnvironmentParams{
@@ -223,7 +223,7 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 			if err != nil {
 				return fmt.Errorf("failed to find existing preview environment: %w", err)
 			}
-			previewEnvID = previewEnv.Environment.ID
+			previewEnvID = previewEnv.ID
 			productionEnv, err := db.Query.FindEnvironmentByAppIdAndSlug(ctx, tx, db.FindEnvironmentByAppIdAndSlugParams{
 				AppID: appID,
 				Slug:  "production",
@@ -231,7 +231,7 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 			if err != nil {
 				return fmt.Errorf("failed to find existing production environment: %w", err)
 			}
-			productionEnvID = productionEnv.Environment.ID
+			productionEnvID = productionEnv.ID
 		}
 
 		// Create default runtime settings for each environment
@@ -560,6 +560,7 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 				ID:           portalID,
 				WorkspaceID:  workspaceID,
 				Slug:         "awesome",
+				DisplayName:  "Awesome",
 				AppID:        sql.NullString{Valid: false},
 				KeyAuthID:    sql.NullString{Valid: true, String: userKeySpaceID},
 				Enabled:      true,

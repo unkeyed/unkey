@@ -1,0 +1,640 @@
+---
+title: 0017 SCM Provider Abstraction
+description: Make the Git integration provider agnostic, so providers like Gitlab, Bitbucket, and self-hosted Gitea/Forgejo can plug in without touching the core
+date: 2026-08-19
+authors:
+  - Oguzhan Olguncu
+---
+
+## Goals
+
+We have two goals here, first one is to make the Git flow as generic as possible so when we need new providers they become easy to add.
+Second one is the connect flow, other providers don't offer easy connect like Github does, so we design that part ourselves here and every provider goes through it, even Github.
+People can still use other Git providers through the CLI, they add `unkey deploy` as a step in their own CI and every push deploys through that. But that's not a great DX, they have to set up and maintain that pipeline themselves. Our priority as Unkey is to offer the best DX that can be offered.
+
+<Callout type="info">
+  Gitlab, Bitbucket and Gitea are not the deliverable here, we use them to prove
+  the refactor actually works.
+</Callout>
+
+### Definition of done
+
+When is this refactor actually done? When adding a new provider feels like adding a handler/endpoint
+to our API. Basically one package that implements `Provider` interface and one line in the registry,
+same process as a new endpoint in `svc/api/routes`. No need to jump between worker, webhook mux and
+connect service. The "Connect" UI needs one line too, a descriptor in the dashboard's provider map,
+but no new components, because the wizard renders from the connect style. See [How the dashboard receives the descriptor](#how-the-dashboard-receives-the-descriptor).
+
+## Background
+
+Today the Git integration is very coupled to Github. Sadly, we couldn't foresee the days we would need other providers.
+When we started building Deploy, Github was the most popular and the best answer. And, still there are alternatives but not a replacement.
+Before this RFC I did a POC to see how easy it is to add new providers into our existing setup: [POC](https://github.com/unkeyed/unkey/tree/git-provider-poc).
+Surprisingly, adding new providers wasn't really that hard, but we need to make our logic provider agnostic.
+Of course, Github will have some extra love, because compared to the others it has some unique features like fork-PR.
+
+I did three end-to-end POCs, and each provider does the same things slightly differently:
+
+| Aspect                        | GitHub                                                                                                      | GitLab           | Bitbucket                                   | Gitea                 |
+| ----------------------------- | ----------------------------------------------------------------------------------------------------------- | ---------------- | ------------------------------------------- | --------------------- |
+| Connect style                 | [App install](https://github.com/unkeyed/unkey/blob/main/svc/api/routes/v2_github_install_app/handler.go)   | OAuth            | OAuth                                       | Instance URL + token  |
+| Credential                    | [Minted per build, repo-scoped](https://github.com/unkeyed/unkey/blob/main/svc/ctrl/worker/deploy/build.go) | Long-lived token | Rotating refresh token (persist before use) | Long-lived PAT        |
+| Repo identity                 | [Numeric id](https://github.com/unkeyed/unkey/blob/main/web/internal/db/src/schema/github_app.ts)           | Numeric id       | UUID string only                            | Numeric, per-instance |
+| Host                          | [Fixed](https://github.com/unkeyed/unkey/blob/main/pkg/github/client.go)                                    | Fixed            | Fixed                                       | Per connection        |
+| Webhook                       | [App-global](https://github.com/unkeyed/unkey/blob/main/svc/ctrl/api/webhooks/github/github.go)             | Per repo         | Per repo                                    | Per repo              |
+| Changed files in push payload | [Yes](https://github.com/unkeyed/unkey/blob/main/pkg/github/interface.go)                                   | Yes              | No                                          | Yes                   |
+| Fork-PR security story        | [Yes](https://github.com/unkeyed/unkey/blob/main/svc/ctrl/worker/githubwebhook/block_deployment.go)         | No               | No                                          | No                    |
+
+<Callout type="warn">
+  For Gitea, we must be able to reach the customer's self-hosted instance from
+  the public internet.
+</Callout>
+
+See below for the existing Github setup if you need a refresher or if you haven't touched any Github related code.
+
+### Where the Github code lives
+
+- [`pkg/github`](https://github.com/unkeyed/unkey/blob/main/pkg/github/doc.go): GitHub App client, plus the [`GitHubClient`](https://github.com/unkeyed/unkey/blob/main/pkg/github/interface.go) interface every caller depends on.
+- [`pkg/webhook/verifiers/github`](https://github.com/unkeyed/unkey/blob/main/pkg/webhook/verifiers/github/github.go): Webhook signature verification.
+- [`svc/ctrl/api/webhooks/github`](https://github.com/unkeyed/unkey/blob/main/svc/ctrl/api/webhooks/github/github.go): Inbound webhook route at `POST /webhooks/github`.
+- [`svc/ctrl/worker/githubwebhook`](https://github.com/unkeyed/unkey/blob/main/svc/ctrl/worker/githubwebhook/handle_push.go): Turns a verified push into a deployment.
+- [`svc/ctrl/worker/deploy/build.go`](https://github.com/unkeyed/unkey/blob/main/svc/ctrl/worker/deploy/build.go): Mints the scoped clone token for BuildKit.
+- [`web/internal/db/src/schema/github_app.ts`](https://github.com/unkeyed/unkey/blob/main/web/internal/db/src/schema/github_app.ts): The `github_app_installations` and `github_repo_connections` tables.
+
+### Where we are coupled to Github
+
+These are the places where we assumed everything is Github, and we fix all of them with this refactor:
+
+- `fillFromGitHub` and `hasAuth` in `create_deployment.go` assume every connection is a Github
+  installation. If we pass them a Gitlab project id or a Bitbucket hash, they still call the public
+  Github API with it.
+- The worker looks up connections by `(installation_id, repository_id)` and that's a Github
+  specific identity. The query is `github_repo_connection_list_deploy_context.sql`, we call it from
+  `handle_push.go`. Bitbucket doesn't even have a numeric repo id, and Gitea ids are per-instance,
+  so two customers' self-hosted instances can collide.
+- We write connection rows in three different places: `svc/ctrl`, `svc/api`, and the dashboard
+  directly via Drizzle. So when we add a new column, it's easy to miss one of them.
+
+## Design
+
+Everything in this section is a proposal, not a final decision. Column names, signatures and RPC
+shapes are all open to discussion.
+
+Here is what we want to end up with. Every provider is its own package on the left, they all talk
+to the interface in the middle, and the rest of the system only talks to the interface. Adding a
+provider means adding one more package on the left, nothing else changes, just like adding an API
+endpoint:
+
+```mermaid
+flowchart LR
+    subgraph plugs ["one package per provider"]
+        GH[github]
+        GL[gitlab]
+        BB[bitbucket]
+        GT[gitea]
+    end
+    IF["pkg/scm<br/>Provider interface + registry"]
+    GH --> IF
+    GL --> IF
+    BB --> IF
+    GT --> IF
+    IF --> WH["webhook mux<br/>(generic handlers)"]
+    IF --> CS["ScmConnectService"]
+    IF --> WK["worker<br/>(clone creds, client)"]
+```
+
+Almost all Git providers follow these steps:
+
+- User clicks on Connect in the onboarding
+- They grant us access to their repositories on the provider's side
+- We list the granted repositories and the user selects one
+- User makes a change in the repository
+- Provider calls us via Webhook
+- We verify the webhook and parse the event
+- And route the call to our build pipeline
+
+For Github it was easy because Github already covers some of these steps, but the others, at least the ones I POCed, don't offer the connect, repo access grant, and repo selection steps. So we have to build some of these steps ourselves.
+
+To achieve this goal, the first step is to make the `github_repo_connections` table provider agnostic. Eventually we'll call it `repo_connections`, but it's fine to do it later.
+
+### Current one
+
+```sql
+github_repo_connections
+  installation_id       bigint
+  repository_id         bigint
+  repository_full_name  varchar
+  app_id (unique), project_id, workspace_id, timestamps
+  index on (installation_id)
+```
+
+### Proposed one
+
+```sql
+repo_connections
+  id                    varchar    -- uid.New("conn"), the {connection_id} in the webhook path
+  provider              ENUM('github','gitlab','bitbucket','gitea') NOT NULL,
+  provider_host         varchar    -- set for self-hosted, null for cloud providers
+  provider_repo_id      varchar    -- some providers use string compared to GH's int. GH can stringify and store it here
+  provider_hook_id      varchar    -- the hook id the provider gave us, to update or delete it later. empty for GH
+  installation_id       bigint     -- GH needs it
+  repository_full_name  varchar
+  provider_token        text       -- vault-encrypted. empty for GH, long-lived token or Bitbucket rotating refresh token
+  app_id (unique), project_id, workspace_id, timestamps
+```
+
+Most of the columns are pretty clear, but two of them need a proper explanation, `id` and `provider_token`.
+
+We need `id` because the webhook design below puts the connection id into the hook URL, and that
+URL is the only thing that tells us which connection a delivery belongs to, the payload has no
+Unkey ids in it. Since the URL sits in the customer's provider settings, the id has to be safe to expose. We can't use `pk`,
+because people can do malicious stuff and try to guess other people's webhooks. We can't use `app_id`
+either, because then we would leak people's `app_id`. That's why every connection gets a fresh `conn_` uid.
+
+`provider_token` is empty for Github on purpose. Github doesn't give us a token to keep, it gives
+us an installation, and we generate a short-lived, repo-scoped token from the App key every time we
+build a customer's deployment. The other providers give us a token once and we have to save it, so it goes there.
+For Github `CloneCredential` (will be explained below) generates a fresh token, for Gitlab and Gitea it reads the
+stored token, for Bitbucket it refreshes and persists.
+
+The webhook signing keys are a different secret and they are not on this row. `provider_token` is
+what we send to the provider to clone the repo and manage the hook, a signing key is what the
+provider sends to us so we can tell a real delivery from a forged one. They also rotate the other
+way around, the provider rotates the token on us, we rotate the signing key on the provider. And a
+connection can hold more than one key while a rotation is in flight, so the keys live in their own
+table, see [Signing keys and rotation](#signing-keys-and-rotation).
+
+After the connect and repository selection every provider behaves the same. We verify the webhook,
+parse the push, resolve a clone credential, and talk to the provider through a client.
+
+If something is provider specific it goes into `Descriptor`, like which connect UI to show or how to mount their webhooks. See below for examples.
+
+```go
+type Provider interface {
+    Descriptor() Descriptor // what the provider needs, connect style and webhook scope
+
+    // connect flow, every provider does these
+    ListRepos(ctx context.Context, sess Session) ([]Repo, error)
+    // CreateHook returns the provider's hook id, we store it so we can delete it on disconnect
+    CreateHook(ctx context.Context, sess Session, repo RepoID, hookURL, secret string) (hookID string, err error)
+    // UpdateHook rewrites the URL and the secret of a hook we already created, for key rotation
+    UpdateHook(ctx context.Context, conn Connection, hookID, hookURL, secret string) error
+    DeleteHook(ctx context.Context, conn Connection, hookID string) error
+
+    // today: pkg/webhook/verifiers/github
+    // secrets holds the connection's signing keys, newest first
+    VerifyWebhook(r *http.Request, secrets []string) (Event, error)
+    // today: the parsing half of svc/ctrl/api/webhooks/github
+    ParsePush(event Event) (PushInfo, error)
+
+    // today: GetScopedInstallationToken in worker deploy/build.go
+    CloneCredential(ctx context.Context, conn Connection) (Credential, error)
+
+    // today: the GitHubClient interface in pkg/github
+    Client(creds Credential) Client
+}
+
+// oauth providers (gitlab, bitbucket) also implement this
+type OAuthConnector interface {
+    AuthorizeURL(state string) string
+    ExchangeCode(ctx context.Context, code string) (token string, err error)
+}
+
+// token+url providers (gitea) implement this instead
+type TokenConnector interface {
+    Validate(ctx context.Context, instanceURL, token string) error
+}
+```
+
+The connect ops live on the provider too, so `ScmConnectService` stays generic and just delegates.
+Not every provider does every step though, so the oauth-only and token+url-only parts go on their
+own interfaces, and the service picks which one from `Descriptor().ConnectStyle`.
+
+`CreateHook` returns the provider's hook id (gitlab `hook_id`, bitbucket `uid`, gitea `id`) and we
+store it on the connection, so a disconnect can delete the hook again. `UpdateHook` uses the same
+id when we rotate a signing key. `CreateHook` runs inside the connect flow, so it takes the
+session. `UpdateHook` and `DeleteHook` run days or months later, so they take the connection and
+use the token stored on it.
+
+```go
+type Descriptor struct {
+    ConnectStyle        ConnectStyle
+    WebhookScope        WebhookScope
+    NeedsWorkspaceInput bool // Bitbucket: ask workspace slug
+    NeedsInstanceURL    bool // Gitea: ask "where is your server?"
+}
+```
+
+Dashboard uses `Descriptor` for connect wizard:
+
+```tsx
+switch (descriptor.connectStyle) {
+  case "app_install":
+    return <InstallRedirect provider={provider} />;
+  case "oauth":
+    return <OAuthButton provider={provider} />;
+  case "token+url":
+    return (
+      <TokenForm
+        askInstanceURL={descriptor.needsInstanceURL}
+        askWorkspace={descriptor.needsWorkspaceInput}
+      />
+    );
+}
+```
+
+The registry itself is a map in `pkg/scm`:
+
+```go
+// pkg/scm
+var registry = map[string]Provider{}
+
+func Register(name string, p Provider) {
+    registry[name] = p
+}
+
+func Registered() map[string]Provider {
+    return registry
+}
+```
+
+Ctrl fills it at startup for every provider that has config, and this is the "one line in the
+registry" from the definition of done.
+
+```go
+scm.Register("github", github.New(cfg.GitHub, store))
+scm.Register("gitlab", gitlab.New(cfg.GitLab, store))
+scm.Register("bitbucket", bitbucket.New(cfg.Bitbucket, store))
+scm.Register("gitea", gitea.New(cfg.Gitea, store))
+```
+
+And ctrl mounts webhook routes by iterating registered providers:
+
+```go
+for name, p := range scm.Registered() {
+    switch p.Descriptor().WebhookScope {
+    case scm.WebhookScopeAppGlobal: // GitHub only
+        mux.Handle("POST /webhooks/"+name, appGlobalHandler(p))
+    case scm.WebhookScopePerConnection:
+        // v1 leads the path, it is the route shape version, explained in "Webhook ingress" below
+        mux.Handle("POST /v1/webhooks/"+name+"/{connection_id}", perConnectionHandler(p))
+    }
+}
+```
+
+`ConnectStyle` and `WebhookScope` become typed string constants.
+
+```go
+type ConnectStyle string
+
+const (
+    ConnectStyleAppInstall ConnectStyle = "app_install" // Github
+    ConnectStyleOAuth      ConnectStyle = "oauth"       // GitLab, Bitbucket
+    ConnectStyleTokenURL   ConnectStyle = "token+url"   // Gitea
+)
+
+type WebhookScope string
+
+const (
+    WebhookScopeAppGlobal     WebhookScope = "app_global"     // Github only
+    WebhookScopePerConnection WebhookScope = "per_connection" // everyone else
+)
+```
+
+### How the dashboard receives the descriptor
+
+There are two ways to do it, we either let the dashboard RPC it, or we define another set of
+`ProviderDescriptor` in the dashboard.
+
+The first way, ScmConnectService on ctrl exposes a `ListProviders` RPC, and the dashboard calls it via tRPC or the API:
+
+```proto
+enum ConnectStyle {
+  CONNECT_STYLE_UNSPECIFIED = 0;
+  CONNECT_STYLE_APP_INSTALL = 1;
+  CONNECT_STYLE_OAUTH = 2;
+  CONNECT_STYLE_TOKEN_URL = 3;
+}
+
+message ProviderDescriptor {
+  string provider = 1;             // "github" | "gitlab" | "bitbucket" | "gitea"
+  ConnectStyle connect_style = 2;
+  bool needs_workspace_input = 3;
+  bool needs_instance_url = 4;
+}
+
+rpc ListProviders(ListProvidersRequest) returns (ListProvidersResponse);
+```
+
+```ts
+providers: t.procedure.query(() => ctrl.scmConnect.listProviders());
+// OR
+api.scm.listProviders(); // Not the final shape
+```
+
+The second way would look like this:
+
+```ts
+const PROVIDERS: Record<string, ProviderDescriptor> = {
+  github: {
+    connectStyle: "app_install",
+    needsWorkspaceInput: false,
+    needsInstanceURL: false,
+  },
+  gitlab: {
+    connectStyle: "oauth",
+    needsWorkspaceInput: false,
+    needsInstanceURL: false,
+  },
+  bitbucket: {
+    connectStyle: "oauth",
+    needsWorkspaceInput: true,
+    needsInstanceURL: false,
+  },
+  gitea: {
+    connectStyle: "token+url",
+    needsWorkspaceInput: false,
+    needsInstanceURL: true,
+  },
+};
+```
+
+We go with the map in the dashboard. There are four providers on the table and no reason to expect
+many more, a descriptor is a connect style plus two booleans, and the wizard already renders every
+connect style, so a new provider is one entry and no new UI.
+
+The cost is that turning on a provider needs a dashboard release next to the ctrl config.
+
+### Connect flow
+
+The connect flow is our own version of "Github Installation" in a nutshell. Github gives us the
+install page, the repository listing and the callback. The other providers don't, so we
+build those steps ourselves, once, and every provider goes through them.
+
+The dashboard just calls the new ctrl `ScmConnectService` and renders the results.
+The OAuth exchange and the repo listing are implemented on ctrl, so the dashboard holds
+no provider logic, only the descriptor map. Today the Github connect completion is a dashboard tRPC that writes to
+the DB directly, with this refactor that write moves to ctrl too.
+
+The whole service is six RPCs.
+
+```proto
+service ScmConnectService {
+  rpc Start(...)         returns (...);  // oauth: authorize URL + signed state
+  rpc Callback(...)      returns (...);  // oauth: code -> session
+  rpc Validate(...)      returns (...);  // token+url: creds -> session
+  rpc ListRepos(...)     returns (...);  // session -> picker data
+  rpc Complete(...)      returns (...);  // session + repo + app -> hook + connection row
+  rpc Disconnect(...)    returns (...);  // connectionId -> delete hook, then drop the row and its keys
+}
+```
+
+I believe we can understand these better if we map them to the Github flow we already run today:
+
+- `Start` is basically our `createGithubConnection`, it generates the authorize URL with the
+  signed state. The only difference is Github hosts the install page, here the button takes the
+  user to the provider's authorize page.
+- `Callback` is the redirect Github does back to the dashboard after the install. Same job, verify
+  the state and handle the result. Here the result is a token, so it goes into a session row and
+  never reaches the browser.
+- `ListRepos` is the "select repositories" screen of the Github install. Github renders that
+  picker for us, here we render it ourselves using the session's token.
+- `Complete` is the `connectRepo` write we already do today, plus creating the webhook on the
+  repo.
+- `Disconnect` is the delete we already do today, plus removing the webhook from the repo first.
+- `Validate` has no Github example, it replaces the whole redirect dance for token+url providers.
+
+The oauth flow (Gitlab, Bitbucket):
+
+```mermaid
+sequenceDiagram
+    participant B as Browser
+    participant C as ctrl ScmConnectService
+    participant P as Provider
+
+    B->>C: Start {provider, appId}
+    C-->>B: authorize URL + signed state (PKCE)
+    B->>P: authorize
+    P-->>B: redirect back with code
+    B->>C: Callback {code, state}
+    C->>P: exchange code for token
+    C->>C: save scm_connect_sessions row<br/>(vault-encrypted token, ~30min TTL)
+    C-->>B: session id only, token stays in ctrl
+    B->>C: ListRepos {session}
+    C->>P: list repositories
+    C-->>B: picker data
+    B->>C: Complete {session, repoId, appId}
+    C->>P: create webhook on the repo<br/>with a fresh signing key
+    C->>C: insert repo_connections and<br/>scm_webhook_keys rows,<br/>mark session consumed
+```
+
+The token+url flow (Gitea, Gitlab self-managed and Forgejo) skips the redirect process
+completely. There is no OAuth app here, the user already created a token on their own instance.
+They give us `{provider, instanceUrl, token}`, `Validate` checks if it actually works and creates
+the same session row `Callback` would. After that it goes through the same steps as the oauth flow, session then repos then complete.
+Github (app_install) touches none of this, its install flow already works and we leave it alone.
+
+One thing to be careful about here is that `instanceUrl` comes from the user, and ctrl runs inside our
+cluster, so a URL like `http://10.0.0.5:7091` would make ctrl call our own internal services for
+them. Checking the URL once isn't enough, a redirect can point it somewhere
+private after the check passes. So we have to validate every request, not just at `Validate`, refuse redirects, and only allow https.
+While researching this I found [`code.dny.dev/ssrf`](https://pkg.go.dev/code.dny.dev/ssrf), and I believe we can use something like it instead of rolling
+our own.
+
+Sessions are DB rows. For the POC I kept them in memory, for production use that won't work because
+as soon as a pod restarts we would lose all the state. It also breaks with more than one replica,
+the callback can land on pod A and the repo listing on pod B.
+So sessions get their own table.
+
+```sql
+scm_connect_sessions
+  id             varchar     -- uid.New("scs"), the only thing the browser holds
+  workspace_id   varchar
+  provider       ENUM('github','gitlab','bitbucket','gitea') NOT NULL, -- github never creates a session
+  provider_host  varchar     -- set for self-hosted, null for cloud providers
+  token          text        -- vault-encrypted, never leaves ctrl
+  consumed       boolean     -- complete is single-use
+  expires_at     bigint      -- ~30min TTL
+  created_at     bigint
+```
+
+### Webhook ingress
+
+We go with one webhook per connection, not per repo. Each connection gets its own hook and its own
+signing keys. Github is unique because its webhook is configured on the App itself, not per repo.
+
+```mermaid
+flowchart TB
+    subgraph old ["Current: app-global hook + fan-out (stays for Github)"]
+        A1[Push to repo] --> B1["Github App webhook<br/>POST /webhooks/github"]
+        B1 --> C1["Verify with static secret<br/>from ctrl config"]
+        C1 --> D1["Restate object<br/>key = installation_id:repository_id"]
+        D1 --> E1["handle_push: DB query finds<br/>ALL connections on that repo"]
+        E1 --> F1[Deploy app 1]
+        E1 --> F2[Deploy app 2]
+        E1 --> F3[Deploy app N]
+    end
+```
+
+```mermaid
+flowchart TB
+    subgraph new ["Proposed: one hook per connection (Gitlab, Bitbucket, Gitea)"]
+        A2[Push to repo] --> H1["Hook for connection 1<br/>POST /v1/webhooks/{provider}/{conn_1}"]
+        A2 --> H2["Hook for connection 2<br/>POST /v1/webhooks/{provider}/{conn_2}"]
+        H1 --> V1["Load conn_1 signing keys<br/>(cached), verify newest first"]
+        H2 --> V2["Load conn_2 signing keys<br/>(cached), verify newest first"]
+        V1 --> R1["Restate object<br/>key = conn_1"]
+        V2 --> R2["Restate object<br/>key = conn_2"]
+        R1 --> G1[Deploy app 1]
+        R2 --> G2[Deploy app 2]
+    end
+```
+
+We create one webhook per connection using the `/v1/webhooks/{provider}/{connection_id}` format. During
+the "Connect" step we generate a random secret, store it, and put it in the provider's hook config,
+so both sides hold it. On every delivery we take the conn id from the path, load that connection's
+signing keys, and verify the signature against them, newest first.
+
+All four verify the same way, with one shared secret the provider holds and uses on every
+delivery. For Github that secret is set once on the App, for the others we set it per connection.
+Only the header and the algorithm differ:
+
+| Provider  | Header                | Scheme                                   |
+| --------- | --------------------- | ---------------------------------------- |
+| Github    | `X-Hub-Signature-256` | HMAC-SHA256 over the raw body            |
+| Bitbucket | `X-Hub-Signature`     | HMAC-SHA256 over the raw body            |
+| Gitea     | `X-Gitea-Signature`   | HMAC-SHA256 over the raw body            |
+| Gitlab    | `X-Gitlab-Token`      | the secret itself, compared for equality |
+
+Gitlab is the weakest of the four, it puts the secret itself in a header on every delivery. So
+anything on the path to ctrl that logs request headers ends up holding a working secret. That is
+one more reason a leak has to be repairable for one connection on its own.
+
+Why not keep the flat `/webhooks/{provider}` routes? Because that means one shared secret per
+provider. Say customer A self-hosts Gitea. A is the admin, so the shared secret is sitting in A's
+own Gitea settings. Now A signs a fake push for customer B's repo, sends it to `/webhooks/gitea`,
+and we deploy B's app. A never touched B's Gitea or B's repo.
+
+With the conn id in the path every connection gets its own secret. If a secret leaks, the attacker
+can only forge deliveries for that one connection, which they already control, and we can rotate
+that one connection without touching anybody else. Github stays flat because no customer can read
+its App secret.
+
+#### Signing keys and rotation
+
+A connection holds a list of signing keys.
+
+```sql
+scm_webhook_keys
+  id             varchar   -- uid.New("swk")
+  connection_id  varchar   -- the repo_connections row this key belongs to
+  secret         text      -- vault-encrypted, 32 random bytes
+  created_at     bigint
+  index on (connection_id)
+```
+
+The newest key is the one that sits in the provider's hook config. The older ones stay valid until
+we delete them. We need that list because rotation is not atomic on the provider side, there is
+always a window where deliveries are still signed with the old secret. Rotating one connection
+looks like this:
+
+- Insert a new key row. Both keys verify from now on.
+- Call the provider's update-hook API with the new secret.
+- Deliveries start arriving signed with the new key.
+- Delete the old key row.
+
+Nothing breaks if step two fails, the old key still verifies, so we retry. And rotating one
+connection touches one connection, so a leaked secret on customer A's self-hosted Gitea never
+forces a rotation for customer B. This is the same shape vault already uses for workspace keys,
+encrypt with the newest key, decrypt with any of them.
+
+Verification needs the keys, so ingress does one point lookup on `conn_id`, cached in memory with a
+short TTL so a flood of forged deliveries does not become DB load. We try the keys newest first and
+compare in constant time.
+
+#### Why the version is the first segment
+
+Key rotation lives in `scm_webhook_keys` and needs no path change at all. The version is there because the hook URL sits
+in the customer's provider settings, so changing it is one API call per hook, and we can't do all
+of them at the same instant. If we later want a different shape, for example one hook per repo or
+an extra segment for the workspace, we mount `/v2/` next to `/v1/`, move hooks over in the
+background, and drop `/v1/` when its traffic reaches zero. The version comes first so everything
+after it is free to change. A version in the middle only covers the tail of the path.
+
+The Github app-global route keeps its current unversioned `/webhooks/github` path. Its secret comes
+from ctrl config and its URL is configured once on the App, not per connection.
+
+### Github moves onto the interface too
+
+Github becomes just another `Provider`. Its descriptor says `app_install` and `app_global`, and
+those two values are the only places the rest of the code learns Github is different. The fork-PR
+logic stays as a worker special case, there is no point abstracting it for one provider.
+
+Nothing about Github's behavior should change here, same routes, same secrets, same deployments,
+we just route them through `pkg/scm`. If we can't move Github onto the interface without changing
+its behavior, that means the interface design is not well thought, so we adjust the interface.
+
+## Rollout
+
+Each PR is shippable on its own. Shipping these PRs also doesn't mean launching Gitlab, Bitbucket
+and Gitea, the POCs already proved they fit the interface. A provider only turns on when we give
+ctrl its config, register it, and add its descriptor to the dashboard map, so launching each one is
+up to us. We can add them whenever customers ask for it.
+
+The refactor itself:
+
+- First make the `pkg/scm` package, the `Provider` interface, `Descriptor` and the registry.
+- Then the db changes, backfills and migration scripts. We add `provider_repo_id` and backfill it
+  from `repository_id` for the existing Github rows.
+- Then convert the existing Github code to the `pkg/scm` shapes and protos.
+- Finally rename the table to `repo_connections`.
+
+When we decide to launch the first non-Github provider:
+
+- We build the per-connection webhook ingress, the `scm_webhook_keys` table and the newest-first
+  verification. The rotation job can wait, until we need it a rotation is an insert, one
+  update-hook call and a delete.
+- We build `ScmConnectService`.
+- We build the connect wizard on the dashboard, it renders whatever the descriptor map says.
+
+## Alternatives Considered
+
+### Do nothing and point people at the CLI
+
+Everything already works today if the customer uses `unkey deploy` in their own CI, but it's not the best DX.
+
+### Flat webhook routes with one shared secret per provider
+
+This is what the POC did, the simplest possible ingress. A self-hosted Gitea admin can read the
+shared secret on their own instance and forge deliveries for every other customer. Full reasoning
+in [Webhook ingress](#webhook-ingress).
+
+### One `masterKey` with derived per-connection secrets
+
+Instead of storing a secret per connection we could derive it as `hmac(masterKey, conn_id)` and
+store nothing at all. Verification would need no DB read, which was the appeal, and the Github
+install `state` already uses that trick, see
+[`v2_github_install_app/state.go`](https://github.com/unkeyed/unkey/blob/main/svc/api/routes/v2_github_install_app/state.go).
+
+We dropped it because rotation granularity matters more than the saved read. The provider holds
+the derived secret, so swapping the `masterKey` still needs one update-hook call per connection.
+Derivation saves the DB writes, not the fan-out. Worse, a single leaked secret, and Gitlab sends
+its secret in a header on every delivery, can't be repaired for one connection without moving
+every other connection to a new key. The read we avoided is one cached point lookup, and the
+worker loads the connection row a moment later anyway to resolve the app.
+
+### A `ListProviders` RPC for the descriptors
+
+Ctrl owns the providers, so it could serve their descriptors and the dashboard would need no
+provider knowledge at all, not even one line per provider. We skipped it because the payload is
+four static rows that change about never, and the proto, the ctrl handler and the tRPC hop cost
+more than the entry in the map they replace. Full reasoning in
+[How the dashboard receives the descriptor](#how-the-dashboard-receives-the-descriptor).
+
+### A separate `scm_credentials` table
+
+This would move the tokens into their own table instead of a column on the connection. But every
+connection gets its own token from the provider and two connections can never share one,
+especially the rotating Bitbucket tokens, so the extra table and join don't give us anything.
+Webhook signing keys are the opposite case, one connection can hold several of them at once during
+a rotation, which is why those do get their own table.

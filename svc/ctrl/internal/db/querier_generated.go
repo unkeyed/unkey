@@ -203,32 +203,32 @@ type Querier interface {
 	// infra certificate provisioning: once a challenge exists the renewal cron owns
 	// issuance, so provisioning is a no-op.
 	//
-	//  SELECT ac.pk, ac.domain_id, ac.workspace_id, ac.token, ac.challenge_type, ac.authorization, ac.status, ac.expires_at, ac.created_at, ac.updated_at FROM acme_challenges ac
+	//  SELECT ac.domain_id, ac.status FROM acme_challenges ac
 	//  JOIN custom_domains cd ON ac.domain_id = cd.id
 	//  WHERE cd.domain = ?
-	FindAcmeChallengeByDomain(ctx context.Context, domain string) (AcmeChallenge, error)
+	FindAcmeChallengeByDomain(ctx context.Context, domain string) (FindAcmeChallengeByDomainRow, error)
 	//FindAcmeChallengeByToken
 	//
-	//  SELECT pk, domain_id, workspace_id, token, challenge_type, authorization, status, expires_at, created_at, updated_at FROM acme_challenges WHERE workspace_id = ? AND domain_id = ? AND token = ?
+	//  SELECT acme_challenges.pk, acme_challenges.domain_id, acme_challenges.workspace_id, acme_challenges.token, acme_challenges.challenge_type, acme_challenges.authorization, acme_challenges.status, acme_challenges.expires_at, acme_challenges.created_at, acme_challenges.updated_at FROM acme_challenges WHERE workspace_id = ? AND domain_id = ? AND token = ?
 	FindAcmeChallengeByToken(ctx context.Context, arg FindAcmeChallengeByTokenParams) (AcmeChallenge, error)
 	//FindAcmeUserByWorkspaceID
 	//
-	//  SELECT pk, id, workspace_id, encrypted_key, registration_uri, created_at, updated_at FROM acme_users WHERE workspace_id = ? LIMIT 1
+	//  SELECT acme_users.pk, acme_users.id, acme_users.workspace_id, acme_users.encrypted_key, acme_users.registration_uri, acme_users.created_at, acme_users.updated_at FROM acme_users WHERE workspace_id = ? LIMIT 1
 	FindAcmeUserByWorkspaceID(ctx context.Context, workspaceID string) (AcmeUser, error)
 	//FindApiByID
 	//
-	//  SELECT pk, id, name, workspace_id, project_id, ip_whitelist, auth_type, key_auth_id, created_at_m, updated_at_m, deleted_at_m, delete_protection FROM apis WHERE id = ?
+	//  SELECT apis.pk, apis.id, apis.name, apis.workspace_id, apis.project_id, apis.ip_whitelist, apis.auth_type, apis.key_auth_id, apis.created_at_m, apis.updated_at_m, apis.deleted_at_m, apis.delete_protection FROM apis WHERE id = ?
 	FindApiByID(ctx context.Context, id string) (Api, error)
 	//FindAppBuildSettingByAppEnv
 	//
-	//  SELECT pk, workspace_id, app_id, environment_id, dockerfile, docker_context, build_command, watch_paths, auto_deploy, created_at, updated_at
+	//  SELECT app_build_settings.pk, app_build_settings.workspace_id, app_build_settings.app_id, app_build_settings.environment_id, app_build_settings.dockerfile, app_build_settings.docker_context, app_build_settings.build_command, app_build_settings.watch_paths, app_build_settings.auto_deploy, app_build_settings.created_at, app_build_settings.updated_at
 	//  FROM `app_build_settings`
 	//  WHERE app_id = ?
 	//    AND environment_id = ?
 	FindAppBuildSettingByAppEnv(ctx context.Context, arg FindAppBuildSettingByAppEnvParams) (AppBuildSetting, error)
 	//FindAppById
 	//
-	//  SELECT pk, id, workspace_id, project_id, name, slug, default_branch, current_deployment_id, is_rolled_back, delete_protection, created_at, updated_at
+	//  SELECT apps.pk, apps.id, apps.workspace_id, apps.project_id, apps.name, apps.slug, apps.default_branch, apps.current_deployment_id, apps.is_rolled_back, apps.delete_protection, apps.created_at, apps.updated_at
 	//  FROM apps
 	//  WHERE id = ?
 	FindAppById(ctx context.Context, id string) (App, error)
@@ -260,17 +260,30 @@ type Querier interface {
 	FindAppRegionalSettingsByAppAndEnv(ctx context.Context, arg FindAppRegionalSettingsByAppAndEnvParams) ([]FindAppRegionalSettingsByAppAndEnvRow, error)
 	//FindAppRuntimeSettingsByAppAndEnv
 	//
-	//  SELECT app_runtime_settings.pk, app_runtime_settings.workspace_id, app_runtime_settings.app_id, app_runtime_settings.environment_id, app_runtime_settings.port, app_runtime_settings.cpu_millicores, app_runtime_settings.memory_mib, app_runtime_settings.storage_mib, app_runtime_settings.command, app_runtime_settings.healthcheck, app_runtime_settings.shutdown_signal, app_runtime_settings.upstream_protocol, app_runtime_settings.sentinel_config, app_runtime_settings.openapi_spec_path, app_runtime_settings.created_at, app_runtime_settings.updated_at
+	//  SELECT app_runtime_settings.openapi_spec_path
 	//  FROM app_runtime_settings
 	//  WHERE app_id = ?
 	//    AND environment_id = ?
-	FindAppRuntimeSettingsByAppAndEnv(ctx context.Context, arg FindAppRuntimeSettingsByAppAndEnvParams) (FindAppRuntimeSettingsByAppAndEnvRow, error)
+	FindAppRuntimeSettingsByAppAndEnv(ctx context.Context, arg FindAppRuntimeSettingsByAppAndEnvParams) (sql.NullString, error)
 	//FindAppWithSettings
 	//
 	//  SELECT
-	//      a.pk, a.id, a.workspace_id, a.project_id, a.name, a.slug, a.default_branch, a.current_deployment_id, a.is_rolled_back, a.delete_protection, a.created_at, a.updated_at,
-	//      abs.pk, abs.workspace_id, abs.app_id, abs.environment_id, abs.dockerfile, abs.docker_context, abs.build_command, abs.watch_paths, abs.auto_deploy, abs.created_at, abs.updated_at,
-	//      ars.pk, ars.workspace_id, ars.app_id, ars.environment_id, ars.port, ars.cpu_millicores, ars.memory_mib, ars.storage_mib, ars.command, ars.healthcheck, ars.shutdown_signal, ars.upstream_protocol, ars.sentinel_config, ars.openapi_spec_path, ars.created_at, ars.updated_at
+	//      a.id AS app_id,
+	//      a.project_id AS app_project_id,
+	//      a.default_branch AS app_default_branch,
+	//      a.current_deployment_id AS app_current_deployment_id,
+	//      abs.dockerfile AS build_settings_dockerfile,
+	//      abs.docker_context AS build_settings_docker_context,
+	//      abs.build_command AS build_settings_build_command,
+	//      ars.port AS runtime_settings_port,
+	//      ars.cpu_millicores AS runtime_settings_cpu_millicores,
+	//      ars.memory_mib AS runtime_settings_memory_mib,
+	//      ars.storage_mib AS runtime_settings_storage_mib,
+	//      ars.command AS runtime_settings_command,
+	//      ars.healthcheck AS runtime_settings_healthcheck,
+	//      ars.shutdown_signal AS runtime_settings_shutdown_signal,
+	//      ars.upstream_protocol AS runtime_settings_upstream_protocol,
+	//      ars.sentinel_config AS runtime_settings_sentinel_config
 	//  FROM apps a
 	//  INNER JOIN app_build_settings abs ON abs.app_id = a.id AND abs.environment_id = ?
 	//  INNER JOIN app_runtime_settings ars ON ars.app_id = a.id AND ars.environment_id = ?
@@ -278,7 +291,7 @@ type Querier interface {
 	FindAppWithSettings(ctx context.Context, arg FindAppWithSettingsParams) (FindAppWithSettingsRow, error)
 	//FindCertificateByHostname
 	//
-	//  SELECT pk, id, workspace_id, hostname, certificate, encrypted_private_key, created_at, updated_at FROM certificates WHERE hostname = ?
+	//  SELECT certificates.pk, certificates.id, certificates.workspace_id, certificates.hostname, certificates.certificate, certificates.encrypted_private_key, certificates.created_at, certificates.updated_at FROM certificates WHERE hostname = ?
 	FindCertificateByHostname(ctx context.Context, hostname string) (Certificate, error)
 	// FindClickhouseOutboxBatch returns the next batch of unprocessed outbox
 	// rows for a known set of payload versions. Must be called inside a
@@ -308,8 +321,16 @@ type Querier interface {
 	//FindClickhouseWorkspaceSettingsByWorkspaceID
 	//
 	//  SELECT
-	//      c.pk, c.workspace_id, c.username, c.password_encrypted, c.quota_duration_seconds, c.max_queries_per_window, c.max_execution_time_per_window, c.max_query_execution_time, c.max_query_memory_bytes, c.max_query_result_rows, c.created_at, c.updated_at,
-	//      l.pk, l.workspace_id, l.api_billable_operations_count_max_per_month, l.api_requests_count_max_per_minute, l.logs_retention_days_max, l.logs_audit_retention_days_max, l.team_enabled, l.cpu_cores_max, l.cpu_cores_max_per_instance, l.memory_mib_max, l.memory_mib_max_per_instance, l.storage_mib_max, l.storage_mib_max_per_instance, l.builds_concurrent_max, l.custom_domains_max, l.autoscaling_replicas_max
+	//      c.workspace_id AS clickhouse_workspace_id,
+	//      c.username AS clickhouse_username,
+	//      c.password_encrypted AS clickhouse_password_encrypted,
+	//      c.quota_duration_seconds AS clickhouse_quota_duration_seconds,
+	//      c.max_queries_per_window AS clickhouse_max_queries_per_window,
+	//      c.max_execution_time_per_window AS clickhouse_max_execution_time_per_window,
+	//      c.max_query_execution_time AS clickhouse_max_query_execution_time,
+	//      c.max_query_memory_bytes AS clickhouse_max_query_memory_bytes,
+	//      c.max_query_result_rows AS clickhouse_max_query_result_rows,
+	//      l.logs_retention_days_max AS quota_logs_retention_days
 	//  FROM `clickhouse_workspace_settings` c
 	//  JOIN `limits` l ON l.workspace_id = c.workspace_id
 	//  WHERE c.workspace_id = ?
@@ -318,8 +339,16 @@ type Querier interface {
 	// supplied by Krane on cluster-scoped RPCs.
 	//
 	//  SELECT
-	//      c.pk, c.id, c.cell_id, c.region_id, c.last_heartbeat_at,
-	//      r.pk, r.id, r.name, r.platform, r.can_schedule
+	//      c.pk AS cluster_pk,
+	//      c.id AS cluster_id,
+	//      c.cell_id AS cluster_cell_id,
+	//      c.region_id AS cluster_region_id,
+	//      c.last_heartbeat_at AS cluster_last_heartbeat_at,
+	//      r.pk AS region_pk,
+	//      r.id AS region_id,
+	//      r.name AS region_name,
+	//      r.platform AS region_platform,
+	//      r.can_schedule AS region_can_schedule
 	//  FROM clusters c
 	//  INNER JOIN regions r ON r.id = c.region_id
 	//  WHERE c.cell_id = ?
@@ -329,13 +358,13 @@ type Querier interface {
 	FindCluster(ctx context.Context, arg FindClusterParams) (FindClusterRow, error)
 	//FindCustomDomainByDomain
 	//
-	//  SELECT pk, id, workspace_id, project_id, app_id, environment_id, domain, challenge_type, verification_status, verification_token, ownership_verified, cname_verified, target_cname, last_checked_at, check_attempts, verification_error, domain_connect_provider, domain_connect_url, invocation_id, created_at, updated_at
+	//  SELECT custom_domains.pk, custom_domains.id, custom_domains.workspace_id, custom_domains.project_id, custom_domains.app_id, custom_domains.environment_id, custom_domains.domain, custom_domains.challenge_type, custom_domains.verification_status, custom_domains.verification_token, custom_domains.ownership_verified, custom_domains.cname_verified, custom_domains.target_cname, custom_domains.last_checked_at, custom_domains.check_attempts, custom_domains.verification_error, custom_domains.domain_connect_provider, custom_domains.domain_connect_url, custom_domains.invocation_id, custom_domains.created_at, custom_domains.updated_at
 	//  FROM custom_domains
 	//  WHERE domain = ?
 	FindCustomDomainByDomain(ctx context.Context, domain string) (CustomDomain, error)
 	//FindCustomDomainByDomainOrWildcard
 	//
-	//  SELECT pk, id, workspace_id, project_id, app_id, environment_id, domain, challenge_type, verification_status, verification_token, ownership_verified, cname_verified, target_cname, last_checked_at, check_attempts, verification_error, domain_connect_provider, domain_connect_url, invocation_id, created_at, updated_at FROM custom_domains
+	//  SELECT custom_domains.pk, custom_domains.id, custom_domains.workspace_id, custom_domains.project_id, custom_domains.app_id, custom_domains.environment_id, custom_domains.domain, custom_domains.challenge_type, custom_domains.verification_status, custom_domains.verification_token, custom_domains.ownership_verified, custom_domains.cname_verified, custom_domains.target_cname, custom_domains.last_checked_at, custom_domains.check_attempts, custom_domains.verification_error, custom_domains.domain_connect_provider, custom_domains.domain_connect_url, custom_domains.invocation_id, custom_domains.created_at, custom_domains.updated_at FROM custom_domains
 	//  WHERE domain IN (?, ?)
 	//  ORDER BY
 	//      CASE WHEN domain = ? THEN 0 ELSE 1 END
@@ -343,7 +372,7 @@ type Querier interface {
 	FindCustomDomainByDomainOrWildcard(ctx context.Context, arg FindCustomDomainByDomainOrWildcardParams) (CustomDomain, error)
 	//FindCustomDomainById
 	//
-	//  SELECT pk, id, workspace_id, project_id, app_id, environment_id, domain, challenge_type, verification_status, verification_token, ownership_verified, cname_verified, target_cname, last_checked_at, check_attempts, verification_error, domain_connect_provider, domain_connect_url, invocation_id, created_at, updated_at
+	//  SELECT custom_domains.pk, custom_domains.id, custom_domains.workspace_id, custom_domains.project_id, custom_domains.app_id, custom_domains.environment_id, custom_domains.domain, custom_domains.challenge_type, custom_domains.verification_status, custom_domains.verification_token, custom_domains.ownership_verified, custom_domains.cname_verified, custom_domains.target_cname, custom_domains.last_checked_at, custom_domains.check_attempts, custom_domains.verification_error, custom_domains.domain_connect_provider, custom_domains.domain_connect_url, custom_domains.invocation_id, custom_domains.created_at, custom_domains.updated_at
 	//  FROM custom_domains
 	//  WHERE id = ?
 	FindCustomDomainById(ctx context.Context, id string) (CustomDomain, error)
@@ -395,11 +424,11 @@ type Querier interface {
 	FindDeployWorkspaceByStripeCustomerID(ctx context.Context, stripeCustomerID sql.NullString) (FindDeployWorkspaceByStripeCustomerIDRow, error)
 	//FindDeploymentById
 	//
-	//  SELECT pk, id, k8s_name, workspace_id, project_id, environment_id, app_id, image, build_id, git_commit_sha, git_branch, git_commit_message, git_commit_author_handle, git_commit_author_avatar_url, git_commit_timestamp, sentinel_config, cpu_millicores, memory_mib, storage_mib, desired_state, encrypted_environment_variables, command, port, shutdown_signal, upstream_protocol, healthcheck, pr_number, fork_repository_full_name, github_deployment_id, invocation_id, status, `trigger`, triggered_by, trigger_reason, created_at, updated_at FROM `deployments` WHERE id = ?
+	//  SELECT deployments.pk, deployments.id, deployments.k8s_name, deployments.workspace_id, deployments.project_id, deployments.environment_id, deployments.app_id, deployments.image, deployments.build_id, deployments.git_commit_sha, deployments.git_branch, deployments.git_commit_message, deployments.git_commit_author_handle, deployments.git_commit_author_avatar_url, deployments.git_commit_timestamp, deployments.sentinel_config, deployments.cpu_millicores, deployments.memory_mib, deployments.storage_mib, deployments.desired_state, deployments.encrypted_environment_variables, deployments.command, deployments.port, deployments.shutdown_signal, deployments.upstream_protocol, deployments.healthcheck, deployments.pr_number, deployments.fork_repository_full_name, deployments.github_deployment_id, deployments.invocation_id, deployments.status, deployments.`trigger`, deployments.triggered_by, deployments.trigger_reason, deployments.created_at, deployments.updated_at FROM `deployments` WHERE id = ?
 	FindDeploymentById(ctx context.Context, id string) (Deployment, error)
 	//FindDeploymentByK8sName
 	//
-	//  SELECT pk, id, k8s_name, workspace_id, project_id, environment_id, app_id, image, build_id, git_commit_sha, git_branch, git_commit_message, git_commit_author_handle, git_commit_author_avatar_url, git_commit_timestamp, sentinel_config, cpu_millicores, memory_mib, storage_mib, desired_state, encrypted_environment_variables, command, port, shutdown_signal, upstream_protocol, healthcheck, pr_number, fork_repository_full_name, github_deployment_id, invocation_id, status, `trigger`, triggered_by, trigger_reason, created_at, updated_at FROM `deployments` WHERE k8s_name = ?
+	//  SELECT deployments.pk, deployments.id, deployments.k8s_name, deployments.workspace_id, deployments.project_id, deployments.environment_id, deployments.app_id, deployments.image, deployments.build_id, deployments.git_commit_sha, deployments.git_branch, deployments.git_commit_message, deployments.git_commit_author_handle, deployments.git_commit_author_avatar_url, deployments.git_commit_timestamp, deployments.sentinel_config, deployments.cpu_millicores, deployments.memory_mib, deployments.storage_mib, deployments.desired_state, deployments.encrypted_environment_variables, deployments.command, deployments.port, deployments.shutdown_signal, deployments.upstream_protocol, deployments.healthcheck, deployments.pr_number, deployments.fork_repository_full_name, deployments.github_deployment_id, deployments.invocation_id, deployments.status, deployments.`trigger`, deployments.triggered_by, deployments.trigger_reason, deployments.created_at, deployments.updated_at FROM `deployments` WHERE k8s_name = ?
 	FindDeploymentByK8sName(ctx context.Context, k8sName string) (Deployment, error)
 	// Returns all regions where a deployment is configured.
 	// Used for fan-out: when a deployment changes, emit state_change to each region.
@@ -413,8 +442,30 @@ type Querier interface {
 	// joined data needed for the Watch stream. Used by the unified WatchDeploymentChanges RPC.
 	//
 	//  SELECT
-	//      dt.pk, dt.workspace_id, dt.deployment_id, dt.region_id, dt.autoscaling_replicas_min, dt.autoscaling_replicas_max, dt.autoscaling_threshold_cpu, dt.autoscaling_threshold_memory, dt.desired_status, dt.created_at, dt.updated_at,
-	//      d.pk, d.id, d.k8s_name, d.workspace_id, d.project_id, d.environment_id, d.app_id, d.image, d.build_id, d.git_commit_sha, d.git_branch, d.git_commit_message, d.git_commit_author_handle, d.git_commit_author_avatar_url, d.git_commit_timestamp, d.sentinel_config, d.cpu_millicores, d.memory_mib, d.storage_mib, d.desired_state, d.encrypted_environment_variables, d.command, d.port, d.shutdown_signal, d.upstream_protocol, d.healthcheck, d.pr_number, d.fork_repository_full_name, d.github_deployment_id, d.invocation_id, d.status, d.`trigger`, d.triggered_by, d.trigger_reason, d.created_at, d.updated_at,
+	//      dt.desired_status,
+	//      dt.autoscaling_replicas_min,
+	//      dt.autoscaling_replicas_max,
+	//      dt.autoscaling_threshold_cpu,
+	//      dt.autoscaling_threshold_memory,
+	//      d.id,
+	//      d.k8s_name,
+	//      d.workspace_id,
+	//      d.project_id,
+	//      d.environment_id,
+	//      d.app_id,
+	//      d.image,
+	//      d.build_id,
+	//      d.git_commit_sha,
+	//      d.git_branch,
+	//      d.git_commit_message,
+	//      d.cpu_millicores,
+	//      d.memory_mib,
+	//      d.storage_mib,
+	//      d.encrypted_environment_variables,
+	//      d.command,
+	//      d.port,
+	//      d.shutdown_signal,
+	//      d.healthcheck,
 	//      w.k8s_namespace,
 	//      e.slug AS environment_slug,
 	//      r.name AS region_name,
@@ -446,45 +497,31 @@ type Querier interface {
 	FindDeploymentWithEnvironmentAndApp(ctx context.Context, id string) (FindDeploymentWithEnvironmentAndAppRow, error)
 	//FindEnvironmentByAppIdAndSlug
 	//
-	//  SELECT environments.pk, environments.id, environments.workspace_id, environments.project_id, environments.app_id, environments.slug, environments.description, environments.kind, environments.delete_protection, environments.created_at, environments.updated_at FROM environments
+	//  SELECT
+	//    environments.id,
+	//    environments.project_id
+	//  FROM environments
 	//  WHERE app_id = ? AND slug = ?
 	FindEnvironmentByAppIdAndSlug(ctx context.Context, arg FindEnvironmentByAppIdAndSlugParams) (FindEnvironmentByAppIdAndSlugRow, error)
 	//FindEnvironmentById
 	//
-	//  SELECT pk, id, workspace_id, project_id, app_id, slug, description, kind, delete_protection, created_at, updated_at
+	//  SELECT environments.pk, environments.id, environments.workspace_id, environments.project_id, environments.app_id, environments.slug, environments.description, environments.kind, environments.delete_protection, environments.created_at, environments.updated_at
 	//  FROM environments
 	//  WHERE id = ?
 	FindEnvironmentById(ctx context.Context, id string) (Environment, error)
 	//FindFrontlineRouteByDeploymentIDAndSticky
 	//
-	//  SELECT pk, id, project_id, app_id, deployment_id, environment_id, fully_qualified_domain_name, sticky, created_at, updated_at FROM frontline_routes WHERE deployment_id = ? AND sticky = ?
+	//  SELECT frontline_routes.pk, frontline_routes.id, frontline_routes.project_id, frontline_routes.app_id, frontline_routes.deployment_id, frontline_routes.environment_id, frontline_routes.fully_qualified_domain_name, frontline_routes.sticky, frontline_routes.created_at, frontline_routes.updated_at FROM frontline_routes WHERE deployment_id = ? AND sticky = ?
 	FindFrontlineRouteByDeploymentIDAndSticky(ctx context.Context, arg FindFrontlineRouteByDeploymentIDAndStickyParams) (FrontlineRoute, error)
 	//FindFrontlineRouteByFQDN
 	//
-	//  SELECT pk, id, project_id, app_id, deployment_id, environment_id, fully_qualified_domain_name, sticky, created_at, updated_at FROM frontline_routes WHERE fully_qualified_domain_name = ?
+	//  SELECT frontline_routes.pk, frontline_routes.id, frontline_routes.project_id, frontline_routes.app_id, frontline_routes.deployment_id, frontline_routes.environment_id, frontline_routes.fully_qualified_domain_name, frontline_routes.sticky, frontline_routes.created_at, frontline_routes.updated_at FROM frontline_routes WHERE fully_qualified_domain_name = ?
 	FindFrontlineRouteByFQDN(ctx context.Context, fullyQualifiedDomainName string) (FrontlineRoute, error)
-	//FindFrontlineRouteForPromotion
-	//
-	//  SELECT
-	//      id,
-	//      project_id,
-	//      environment_id,
-	//      fully_qualified_domain_name,
-	//      deployment_id,
-	//      sticky,
-	//      created_at,
-	//      updated_at
-	//  FROM frontline_routes
-	//  WHERE
-	//    environment_id = ?
-	//    AND sticky IN (/*SLICE:sticky*/?)
-	//  ORDER BY created_at ASC
-	FindFrontlineRouteForPromotion(ctx context.Context, arg FindFrontlineRouteForPromotionParams) ([]FindFrontlineRouteForPromotionRow, error)
 	//FindFrontlineRoutesByDeploymentID
 	//
-	//  SELECT pk, id, project_id, app_id, deployment_id, environment_id, fully_qualified_domain_name, sticky, created_at, updated_at FROM frontline_routes WHERE deployment_id = ?
+	//  SELECT frontline_routes.pk, frontline_routes.id, frontline_routes.project_id, frontline_routes.app_id, frontline_routes.deployment_id, frontline_routes.environment_id, frontline_routes.fully_qualified_domain_name, frontline_routes.sticky, frontline_routes.created_at, frontline_routes.updated_at FROM frontline_routes WHERE deployment_id = ?
 	FindFrontlineRoutesByDeploymentID(ctx context.Context, deploymentID string) ([]FrontlineRoute, error)
-	//FindFrontlineRoutesForRollback
+	//FindFrontlineRoutesByEnvironmentAndSticky
 	//
 	//  SELECT
 	//      id,
@@ -500,7 +537,7 @@ type Querier interface {
 	//    environment_id = ?
 	//    AND sticky IN (/*SLICE:sticky*/?)
 	//  ORDER BY created_at ASC
-	FindFrontlineRoutesForRollback(ctx context.Context, arg FindFrontlineRoutesForRollbackParams) ([]FindFrontlineRoutesForRollbackRow, error)
+	FindFrontlineRoutesByEnvironmentAndSticky(ctx context.Context, arg FindFrontlineRoutesByEnvironmentAndStickyParams) ([]FindFrontlineRoutesByEnvironmentAndStickyRow, error)
 	//FindGithubRepoConnectionByAppId
 	//
 	//  SELECT
@@ -562,7 +599,7 @@ type Querier interface {
 	FindKeyIDByHash(ctx context.Context, hash string) (string, error)
 	//FindKeySpaceByID
 	//
-	//  SELECT pk, id, workspace_id, project_id, created_at_m, updated_at_m, deleted_at_m, store_encrypted_keys, default_prefix, default_bytes, size_approx, size_last_updated_at FROM `key_auth` WHERE id = ?
+	//  SELECT key_auth.pk, key_auth.id, key_auth.workspace_id, key_auth.project_id, key_auth.created_at_m, key_auth.updated_at_m, key_auth.deleted_at_m, key_auth.store_encrypted_keys, key_auth.default_prefix, key_auth.default_bytes, key_auth.size_approx, key_auth.size_last_updated_at FROM `key_auth` WHERE id = ?
 	FindKeySpaceByID(ctx context.Context, id string) (KeyAuth, error)
 	//FindLatestReadyDeploymentByAppAndEnv
 	//
@@ -583,11 +620,11 @@ type Querier interface {
 	FindLimitsByWorkspaceID(ctx context.Context, workspaceID string) (Limit, error)
 	//FindOpenApiSpecByDeploymentID
 	//
-	//  SELECT pk, id, workspace_id, deployment_id, portal_id, content, created_at, updated_at FROM openapi_specs WHERE deployment_id = ?
+	//  SELECT openapi_specs.pk, openapi_specs.id, openapi_specs.workspace_id, openapi_specs.deployment_id, openapi_specs.portal_id, openapi_specs.content, openapi_specs.created_at, openapi_specs.updated_at FROM openapi_specs WHERE deployment_id = ?
 	FindOpenApiSpecByDeploymentID(ctx context.Context, deploymentID sql.NullString) (OpenapiSpec, error)
 	//FindPermissionByNameAndWorkspaceID
 	//
-	//  SELECT pk, id, workspace_id, project_id, name, slug, description, created_at_m, updated_at_m
+	//  SELECT permissions.pk, permissions.id, permissions.workspace_id, permissions.project_id, permissions.name, permissions.slug, permissions.description, permissions.created_at_m, permissions.updated_at_m
 	//  FROM permissions
 	//  WHERE name = ?
 	//  AND workspace_id = ?
@@ -595,13 +632,13 @@ type Querier interface {
 	FindPermissionByNameAndWorkspaceID(ctx context.Context, arg FindPermissionByNameAndWorkspaceIDParams) (Permission, error)
 	//FindProjectById
 	//
-	//  SELECT pk, id, workspace_id, name, slug, depot_project_id, delete_protection, created_at, updated_at
+	//  SELECT projects.pk, projects.id, projects.workspace_id, projects.name, projects.slug, projects.depot_project_id, projects.delete_protection, projects.created_at, projects.updated_at
 	//  FROM projects
 	//  WHERE id = ?
 	FindProjectById(ctx context.Context, id string) (Project, error)
 	//FindRatelimitNamespace
 	//
-	//  SELECT pk, id, workspace_id, project_id, name, created_at_m, updated_at_m, deleted_at_m,
+	//  SELECT ns.pk, ns.id, ns.workspace_id, ns.project_id, ns.name, ns.created_at_m, ns.updated_at_m, ns.deleted_at_m,
 	//         coalesce(
 	//                 (select json_arrayagg(
 	//                                 json_object(
@@ -627,7 +664,7 @@ type Querier interface {
 	FindRegionByPlatformAndName(ctx context.Context, arg FindRegionByPlatformAndNameParams) (Region, error)
 	//FindVerifiedCustomDomainByDomainExcludingWorkspace
 	//
-	//  SELECT pk, id, workspace_id, project_id, app_id, environment_id, domain, challenge_type, verification_status, verification_token, ownership_verified, cname_verified, target_cname, last_checked_at, check_attempts, verification_error, domain_connect_provider, domain_connect_url, invocation_id, created_at, updated_at FROM custom_domains
+	//  SELECT custom_domains.pk, custom_domains.id, custom_domains.workspace_id, custom_domains.project_id, custom_domains.app_id, custom_domains.environment_id, custom_domains.domain, custom_domains.challenge_type, custom_domains.verification_status, custom_domains.verification_token, custom_domains.ownership_verified, custom_domains.cname_verified, custom_domains.target_cname, custom_domains.last_checked_at, custom_domains.check_attempts, custom_domains.verification_error, custom_domains.domain_connect_provider, custom_domains.domain_connect_url, custom_domains.invocation_id, custom_domains.created_at, custom_domains.updated_at FROM custom_domains
 	//  WHERE domain = ?
 	//    AND workspace_id != ?
 	//    AND verification_status = 'verified'
@@ -664,7 +701,7 @@ type Querier interface {
 	FindWorkspaceBillingByWorkspaceID(ctx context.Context, workspaceID string) (FindWorkspaceBillingByWorkspaceIDRow, error)
 	//FindWorkspaceByID
 	//
-	//  SELECT pk, id, org_id, name, slug, k8s_namespace, beta_features, subscriptions, enabled, delete_protection, created_at_m, updated_at_m, deleted_at_m FROM `workspaces`
+	//  SELECT workspaces.pk, workspaces.id, workspaces.org_id, workspaces.name, workspaces.slug, workspaces.k8s_namespace, workspaces.beta_features, workspaces.subscriptions, workspaces.enabled, workspaces.delete_protection, workspaces.created_at_m, workspaces.updated_at_m, workspaces.deleted_at_m FROM `workspaces`
 	//  WHERE id = ?
 	FindWorkspaceByID(ctx context.Context, id string) (Workspace, error)
 	// Reads the Unkey Deploy entitlement signals for the project- and
@@ -674,8 +711,8 @@ type Querier interface {
 	// workspace's compute). The gates treat either plan column being set as
 	// entitled; deployment creation additionally refuses while suspended. Read by
 	// ctrl-api outside the billing hot path, so a single lookup by id is fine.
-	// Explicit columns (not SELECT *) so the read is insensitive to workspace
-	// column ordering.
+	// The explicit projection keeps the read insensitive to workspace column
+	// ordering.
 	//
 	//  SELECT
 	//     b.plan,
@@ -1385,8 +1422,31 @@ type Querier interface {
 	// Used by SyncDesiredState to reconcile krane agents with current desired state.
 	//
 	//  SELECT
-	//      dt.pk, dt.workspace_id, dt.deployment_id, dt.region_id, dt.autoscaling_replicas_min, dt.autoscaling_replicas_max, dt.autoscaling_threshold_cpu, dt.autoscaling_threshold_memory, dt.desired_status, dt.created_at, dt.updated_at,
-	//      d.pk, d.id, d.k8s_name, d.workspace_id, d.project_id, d.environment_id, d.app_id, d.image, d.build_id, d.git_commit_sha, d.git_branch, d.git_commit_message, d.git_commit_author_handle, d.git_commit_author_avatar_url, d.git_commit_timestamp, d.sentinel_config, d.cpu_millicores, d.memory_mib, d.storage_mib, d.desired_state, d.encrypted_environment_variables, d.command, d.port, d.shutdown_signal, d.upstream_protocol, d.healthcheck, d.pr_number, d.fork_repository_full_name, d.github_deployment_id, d.invocation_id, d.status, d.`trigger`, d.triggered_by, d.trigger_reason, d.created_at, d.updated_at,
+	//      dt.pk AS topology_pk,
+	//      dt.autoscaling_replicas_min AS topology_autoscaling_replicas_min,
+	//      dt.autoscaling_replicas_max AS topology_autoscaling_replicas_max,
+	//      dt.autoscaling_threshold_cpu AS topology_autoscaling_threshold_cpu,
+	//      dt.autoscaling_threshold_memory AS topology_autoscaling_threshold_memory,
+	//      dt.desired_status AS topology_desired_status,
+	//      d.id AS deployment_id,
+	//      d.k8s_name AS deployment_k8s_name,
+	//      d.workspace_id AS deployment_workspace_id,
+	//      d.project_id AS deployment_project_id,
+	//      d.environment_id AS deployment_environment_id,
+	//      d.app_id AS deployment_app_id,
+	//      d.image AS deployment_image,
+	//      d.build_id AS deployment_build_id,
+	//      d.git_commit_sha AS deployment_git_commit_sha,
+	//      d.git_branch AS deployment_git_branch,
+	//      d.git_commit_message AS deployment_git_commit_message,
+	//      d.cpu_millicores AS deployment_cpu_millicores,
+	//      d.memory_mib AS deployment_memory_mib,
+	//      d.storage_mib AS deployment_storage_mib,
+	//      d.encrypted_environment_variables AS deployment_encrypted_environment_variables,
+	//      d.command AS deployment_command,
+	//      d.port AS deployment_port,
+	//      d.shutdown_signal AS deployment_shutdown_signal,
+	//      d.healthcheck AS deployment_healthcheck,
 	//      w.k8s_namespace,
 	//      e.slug AS environment_slug,
 	//      r.name AS region_name,
@@ -1415,9 +1475,15 @@ type Querier interface {
 	//  WHERE workspace_id = ?
 	//  ORDER BY pk
 	ListClickhouseOutboxByWorkspace(ctx context.Context, workspaceID string) ([]ListClickhouseOutboxByWorkspaceRow, error)
+	//ListClickhouseWorkspaceIDs
+	//
+	//  SELECT workspace_id
+	//  FROM clickhouse_workspace_settings
+	//  ORDER BY workspace_id
+	ListClickhouseWorkspaceIDs(ctx context.Context) ([]string, error)
 	//ListCustomDomainsByEnvironmentID
 	//
-	//  SELECT pk, id, workspace_id, project_id, app_id, environment_id, domain, challenge_type, verification_status, verification_token, ownership_verified, cname_verified, target_cname, last_checked_at, check_attempts, verification_error, domain_connect_provider, domain_connect_url, invocation_id, created_at, updated_at
+	//  SELECT custom_domains.pk, custom_domains.id, custom_domains.workspace_id, custom_domains.project_id, custom_domains.app_id, custom_domains.environment_id, custom_domains.domain, custom_domains.challenge_type, custom_domains.verification_status, custom_domains.verification_token, custom_domains.ownership_verified, custom_domains.cname_verified, custom_domains.target_cname, custom_domains.last_checked_at, custom_domains.check_attempts, custom_domains.verification_error, custom_domains.domain_connect_provider, custom_domains.domain_connect_url, custom_domains.invocation_id, custom_domains.created_at, custom_domains.updated_at
 	//  FROM custom_domains
 	//  WHERE environment_id = ?
 	ListCustomDomainsByEnvironmentID(ctx context.Context, environmentID string) ([]CustomDomain, error)
@@ -1462,7 +1528,7 @@ type Querier interface {
 	// ListDeploymentChangesByRegionAll returns all deployment changes for a region with version > after_version.
 	// Used by the unified WatchDeploymentChanges stream. Does not filter by resource_type.
 	//
-	//  SELECT pk, resource_type, resource_id, region_id, created_at
+	//  SELECT deployment_changes.pk, deployment_changes.resource_type, deployment_changes.resource_id, deployment_changes.region_id, deployment_changes.created_at
 	//  FROM `deployment_changes`
 	//  WHERE pk > ? AND region_id = ?
 	//  ORDER BY pk ASC
@@ -1470,7 +1536,7 @@ type Querier interface {
 	ListDeploymentChangesByRegionAll(ctx context.Context, arg ListDeploymentChangesByRegionAllParams) ([]DeploymentChange, error)
 	//ListDeploymentsByEnvironmentIdAndStatus
 	//
-	//  SELECT pk, id, k8s_name, workspace_id, project_id, environment_id, app_id, image, build_id, git_commit_sha, git_branch, git_commit_message, git_commit_author_handle, git_commit_author_avatar_url, git_commit_timestamp, sentinel_config, cpu_millicores, memory_mib, storage_mib, desired_state, encrypted_environment_variables, command, port, shutdown_signal, upstream_protocol, healthcheck, pr_number, fork_repository_full_name, github_deployment_id, invocation_id, status, `trigger`, triggered_by, trigger_reason, created_at, updated_at FROM `deployments`
+	//  SELECT deployments.pk, deployments.id, deployments.k8s_name, deployments.workspace_id, deployments.project_id, deployments.environment_id, deployments.app_id, deployments.image, deployments.build_id, deployments.git_commit_sha, deployments.git_branch, deployments.git_commit_message, deployments.git_commit_author_handle, deployments.git_commit_author_avatar_url, deployments.git_commit_timestamp, deployments.sentinel_config, deployments.cpu_millicores, deployments.memory_mib, deployments.storage_mib, deployments.desired_state, deployments.encrypted_environment_variables, deployments.command, deployments.port, deployments.shutdown_signal, deployments.upstream_protocol, deployments.healthcheck, deployments.pr_number, deployments.fork_repository_full_name, deployments.github_deployment_id, deployments.invocation_id, deployments.status, deployments.`trigger`, deployments.triggered_by, deployments.trigger_reason, deployments.created_at, deployments.updated_at FROM `deployments`
 	//  WHERE environment_id = ?
 	//    AND status = ?
 	//    AND created_at < ?
@@ -1548,7 +1614,7 @@ type Querier interface {
 	ListOlderActiveDeploymentsForDedup(ctx context.Context, arg ListOlderActiveDeploymentsForDedupParams) ([]ListOlderActiveDeploymentsForDedupRow, error)
 	//ListPreviewEnvironments
 	//
-	//  SELECT pk, id, workspace_id, project_id, app_id, slug, description, kind, delete_protection, created_at, updated_at
+	//  SELECT environments.pk, environments.id, environments.workspace_id, environments.project_id, environments.app_id, environments.slug, environments.description, environments.kind, environments.delete_protection, environments.created_at, environments.updated_at
 	//  FROM environments
 	//  WHERE kind = 'preview'
 	//  AND pk > ?
@@ -1575,12 +1641,27 @@ type Querier interface {
 	//ListRepoConnectionDeployContexts
 	//
 	//  SELECT
-	//      gc.pk, gc.workspace_id, gc.project_id, gc.app_id, gc.installation_id, gc.repository_id, gc.repository_full_name, gc.created_at, gc.updated_at,
-	//      p.pk, p.id, p.workspace_id, p.name, p.slug, p.depot_project_id, p.delete_protection, p.created_at, p.updated_at,
-	//      e.pk, e.id, e.workspace_id, e.project_id, e.app_id, e.slug, e.description, e.kind, e.delete_protection, e.created_at, e.updated_at,
-	//      a.pk, a.id, a.workspace_id, a.project_id, a.name, a.slug, a.default_branch, a.current_deployment_id, a.is_rolled_back, a.delete_protection, a.created_at, a.updated_at,
-	//      abs.pk, abs.workspace_id, abs.app_id, abs.environment_id, abs.dockerfile, abs.docker_context, abs.build_command, abs.watch_paths, abs.auto_deploy, abs.created_at, abs.updated_at,
-	//      ars.pk, ars.workspace_id, ars.app_id, ars.environment_id, ars.port, ars.cpu_millicores, ars.memory_mib, ars.storage_mib, ars.command, ars.healthcheck, ars.shutdown_signal, ars.upstream_protocol, ars.sentinel_config, ars.openapi_spec_path, ars.created_at, ars.updated_at
+	//      gc.installation_id AS connection_installation_id,
+	//      gc.repository_full_name AS connection_repository_full_name,
+	//      p.id AS project_id,
+	//      p.workspace_id AS project_workspace_id,
+	//      e.id AS environment_id,
+	//      e.slug AS environment_slug,
+	//      a.id AS app_id,
+	//      abs.auto_deploy AS build_settings_auto_deploy,
+	//      abs.watch_paths AS build_settings_watch_paths,
+	//      abs.docker_context AS build_settings_docker_context,
+	//      abs.dockerfile AS build_settings_dockerfile,
+	//      abs.build_command AS build_settings_build_command,
+	//      ars.port AS runtime_settings_port,
+	//      ars.cpu_millicores AS runtime_settings_cpu_millicores,
+	//      ars.memory_mib AS runtime_settings_memory_mib,
+	//      ars.storage_mib AS runtime_settings_storage_mib,
+	//      ars.command AS runtime_settings_command,
+	//      ars.healthcheck AS runtime_settings_healthcheck,
+	//      ars.shutdown_signal AS runtime_settings_shutdown_signal,
+	//      ars.upstream_protocol AS runtime_settings_upstream_protocol,
+	//      ars.sentinel_config AS runtime_settings_sentinel_config
 	//  FROM github_repo_connections gc
 	//  INNER JOIN apps a ON a.id = gc.app_id
 	//  INNER JOIN projects p ON p.id = gc.project_id
@@ -1682,9 +1763,8 @@ type Querier interface {
 	// insert is confirmed. Called inside the same transaction that selected
 	// them, so the row locks held by FOR UPDATE SKIP LOCKED are released as
 	// part of commit. A crash between the CH insert and this UPDATE leaves the
-	// rows with deleted_at IS NULL; the next batch picks them up and CH's
-	// non_replicated_deduplication_window collapses the identical re-insert
-	// into a noop.
+	// rows with deleted_at IS NULL. The next batch picks them up again, which can
+	// create duplicate ClickHouse rows under the at-least-once delivery contract.
 	//
 	// We mark instead of hard-delete so ops can re-queue events (clear
 	// deleted_at) without re-reading the original payload from somewhere else,

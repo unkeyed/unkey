@@ -1,17 +1,24 @@
 package proxy
 
+import "strings"
+
 // Header constants for frontline debugging and tracing
 const (
-	// Headers set on BOTH response (to client) AND request (to downstream service)
-	// These identify which frontline processed the request
+	// unkeyHeaderPrefix identifies headers reserved for Frontline.
+	unkeyHeaderPrefix = "X-Unkey-"
+
+	// These headers identify the Frontline that handled the request. Frontline
+	// sets them on responses and requests to deployment instances.
 	HeaderFrontlineID = "X-Unkey-Frontline-Id" // ID of the frontline instance
 	HeaderRegion      = "X-Unkey-Region"       // Region of the frontline instance
 	HeaderRequestID   = "X-Unkey-Request-Id"   // Request ID for tracing
 
-	// Headers set ONLY on requests to a peer frontline in another region.
-	// They provide additional context about the forwarding chain so the peer
-	// can attribute the request and we can detect routing loops.
-	HeaderParentFrontlineID = "X-Unkey-Parent-Frontline-Id" // Frontline that forwarded this request
-	HeaderParentRequestID   = "X-Unkey-Parent-Request-Id"   // Original request ID from parent frontline
-	HeaderFrontlineHops     = "X-Unkey-Frontline-Hops"      // Number of frontline hops (loop prevention)
+	// HeaderFrontlineMeta carries signed metadata between Frontline regions.
+	HeaderFrontlineMeta = "X-Unkey-Frontline-Meta"
 )
+
+// IsUnkeyHeader reports whether a canonical HTTP header name is reserved for
+// Frontline.
+func IsUnkeyHeader(name string) bool {
+	return strings.HasPrefix(name, unkeyHeaderPrefix)
+}

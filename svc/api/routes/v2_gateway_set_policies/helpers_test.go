@@ -114,7 +114,7 @@ func readStoredBlob(t *testing.T, h *testutil.Harness, env seededEnv) string {
 		EnvironmentID: env.environmentID,
 	})
 	require.NoError(t, err)
-	return string(stored.AppRuntimeSetting.SentinelConfig)
+	return string(stored.SentinelConfig)
 }
 
 // readStoredPolicies returns the raw policy documents currently stored for the

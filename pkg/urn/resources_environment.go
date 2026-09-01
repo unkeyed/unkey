@@ -41,11 +41,18 @@ func (e Environment) Deployment(deploymentID string) Deployment {
 //
 //	environments/{environment_id}
 //	└── domains/{domain_id}
-func (e Environment) Domain(domainID string) V1 {
-	return V1{
-		WorkspaceID: e.workspaceID,
-		Resource:    fmt.Sprintf("%s/domains/%s", e.path, domainID),
-	}
+func (e Environment) Domain(domainID string) Domain {
+	return Domain{workspaceID: e.workspaceID, path: fmt.Sprintf("%s/domains/%s", e.path, domainID)}
+}
+
+// Gateway returns builders for gateway resource paths.
+//
+// Subresource:
+//
+//	environments/{environment_id}
+//	└── gateway
+func (e Environment) Gateway() gateway {
+	return gateway{workspaceID: e.workspaceID, path: e.path + "/gateway"}
 }
 
 // Variable returns a variable resource path.

@@ -17,6 +17,7 @@ SET access_token_hash = ?,
     access_token_expires_at = ?
 WHERE exchange_code_hash = ?
   AND access_token_hash IS NULL
+  AND revoked_at IS NULL
   AND exchange_code_expires_at > ?
 `
 
@@ -43,6 +44,7 @@ type ExchangePortalSessionCodeParams struct {
 //	    access_token_expires_at = ?
 //	WHERE exchange_code_hash = ?
 //	  AND access_token_hash IS NULL
+//	  AND revoked_at IS NULL
 //	  AND exchange_code_expires_at > ?
 func (q *Queries) ExchangePortalSessionCode(ctx context.Context, db DBTX, arg ExchangePortalSessionCodeParams) (sql.Result, error) {
 	return db.ExecContext(ctx, exchangePortalSessionCode,

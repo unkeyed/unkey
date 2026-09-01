@@ -21,6 +21,7 @@ const (
 	KeyRerollEvent AuditLogEvent = "key.reroll"
 	KeyUpdateEvent AuditLogEvent = "key.update"
 	KeyDeleteEvent AuditLogEvent = "key.delete"
+	KeyVerifyEvent AuditLogEvent = "key.verify"
 
 	// Ratelimit namespace events
 	RatelimitNamespaceCreateEvent AuditLogEvent = "ratelimitNamespace.create"
@@ -54,6 +55,7 @@ const (
 	RatelimitCreateEvent         AuditLogEvent = "ratelimit.create"
 	RatelimitUpdateEvent         AuditLogEvent = "ratelimit.update"
 	RatelimitDeleteEvent         AuditLogEvent = "ratelimit.delete"
+	RatelimitLimitEvent          AuditLogEvent = "ratelimit.limit"
 	RatelimitSetOverrideEvent    AuditLogEvent = "ratelimit.set_override"
 	RatelimitReadOverrideEvent   AuditLogEvent = "ratelimit.read_override"
 	RatelimitDeleteOverrideEvent AuditLogEvent = "ratelimit.delete_override"
@@ -62,6 +64,9 @@ const (
 	AuditLogBucketCreateEvent AuditLogEvent = "auditLogBucket.create"
 
 	// Portal events
+	PortalCreateEvent          AuditLogEvent = "portal.create"
+	PortalUpdateEvent          AuditLogEvent = "portal.update"
+	PortalDeleteEvent          AuditLogEvent = "portal.delete"
 	PortalSessionCreateEvent   AuditLogEvent = "portal.session.create"
 	PortalSessionExchangeEvent AuditLogEvent = "portal.session.exchange"
 
