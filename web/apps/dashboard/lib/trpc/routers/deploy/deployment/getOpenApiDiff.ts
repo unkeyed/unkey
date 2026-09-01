@@ -23,6 +23,7 @@ export const getOpenApiDiff = workspaceProcedure
             eq(table.workspaceId, ctx.workspace.id),
             inArray(table.id, [input.oldDeploymentId, input.newDeploymentId]),
           ),
+        columns: { projectId: true },
       });
       if (deployments.length !== 2) {
         throw new TRPCError({

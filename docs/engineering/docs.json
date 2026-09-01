@@ -170,6 +170,10 @@
                 ]
               },
               {
+                "group": "Logdrain",
+                "pages": ["architecture/services/logdrain/overview"]
+              },
+              {
                 "group": "Vault",
                 "pages": [
                   "architecture/services/vault/overview",
