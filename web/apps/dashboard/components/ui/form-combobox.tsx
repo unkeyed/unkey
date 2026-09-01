@@ -2,7 +2,7 @@
 
 import { Combobox, CopyButton, FormField } from "@unkey/ui";
 import type { Requirement } from "@unkey/ui/src/components/form/form-helpers";
-import * as React from "react";
+import type * as React from "react";
 
 // Documented props type for FormCombobox
 export type DocumentedFormComboboxProps = {
