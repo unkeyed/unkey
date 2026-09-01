@@ -67,7 +67,7 @@ func TestValidateMessages(t *testing.T) {
 
 	err := Validate("ghcr.io/acme/api:v1 KEBAP")
 	require.Equal(t,
-		`The docker image reference "ghcr.io/acme/api:v1 KEBAP" is not valid. Expected [registry/]repository[:tag][@digest], for example ghcr.io/acme/api:v1.2.3.`,
+		`The OCI image reference "ghcr.io/acme/api:v1 KEBAP" is not valid. Expected [registry/]repository[:tag][@digest], for example ghcr.io/acme/api:v1.2.3.`,
 		fault.UserFacingMessage(err))
 	require.NotContains(t, fault.UserFacingMessage(err), "could not parse reference")
 	require.ErrorIs(t, err, reference.ErrReferenceInvalidFormat)
@@ -76,9 +76,9 @@ func TestValidateMessages(t *testing.T) {
 	require.True(t, ok)
 	require.Equal(t, codes.App.Validation.InvalidInput.URN(), code)
 
-	require.Equal(t, "The docker image reference is required.", fault.UserFacingMessage(Validate("")))
+	require.Equal(t, "The OCI image reference is required.", fault.UserFacingMessage(Validate("")))
 	require.Equal(t,
-		"The docker image reference must not be more than 256 characters.",
+		"The OCI image reference must not be more than 256 characters.",
 		fault.UserFacingMessage(Validate(strings.Repeat("a", imageLengthMax+1))))
 }
 
