@@ -286,6 +286,67 @@ func TestRedeployDeploymentWithoutBuiltImage(t *testing.T) {
 	require.Equal(t, http.StatusPreconditionFailed, res.Status, "expected 412, received: %s", res.RawBody)
 }
 
+// TestIdempotencyKeyReturnsOneDeployment is the point of the header: the same
+// key sent twice must name one deployment, not two. The id is derived from the
+// key, so both attempts address the same Restate object, and Restate replays
+// the first invocation instead of running a second create.
+func TestIdempotencyKeyReturnsOneDeployment(t *testing.T) {
+	h := testutil.NewHarness(t)
+	restate, creates := newRecordingRestate(t)
+	route := newRoute(h, restate)
+	h.Register(route)
+
+	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
+		Permissions: []string{"environment.*.create_deployment"},
+	})
+	seedDeployableRegion(t, h, setup)
+
+	headers := authHeaders(setup.RootKey)
+	headers.Set("Idempotency-Key", "KEBAP-"+uid.New("idem"))
+
+	req := imageRequest(t, setup.Project.Slug, setup.App.Slug, setup.Environment.Slug, "nginx:latest")
+
+	first := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
+	require.Equal(t, http.StatusCreated, first.Status, "expected 201, received: %s", first.RawBody)
+
+	observed := testutil.Receive(t, creates, 10*time.Second)
+	require.Equal(t, first.Body.Data.DeploymentId, observed.virtualObjectKey)
+
+	second := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
+	require.Equal(t, http.StatusCreated, second.Status, "a repeat must succeed, not conflict")
+	require.Equal(t, first.Body.Data.DeploymentId, second.Body.Data.DeploymentId,
+		"the same key must name the same deployment")
+
+	testutil.RequireNoReceive(t, creates, 2*time.Second)
+}
+
+// TestWithoutIdempotencyKeyEachCallIsItsOwnDeployment pins the other half of the
+// contract: a caller that does not ask for idempotency gets a new deployment per
+// call, because the id is then random.
+func TestWithoutIdempotencyKeyEachCallIsItsOwnDeployment(t *testing.T) {
+	h := testutil.NewHarness(t)
+	restate, creates := newRecordingRestate(t)
+	route := newRoute(h, restate)
+	h.Register(route)
+
+	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
+		Permissions: []string{"environment.*.create_deployment"},
+	})
+	seedDeployableRegion(t, h, setup)
+
+	req := imageRequest(t, setup.Project.Slug, setup.App.Slug, setup.Environment.Slug, "nginx:latest")
+
+	first := testutil.CallRoute[handler.Request, handler.Response](h, route, authHeaders(setup.RootKey), req)
+	second := testutil.CallRoute[handler.Request, handler.Response](h, route, authHeaders(setup.RootKey), req)
+	require.Equal(t, http.StatusCreated, first.Status)
+	require.Equal(t, http.StatusCreated, second.Status)
+	require.NotEqual(t, first.Body.Data.DeploymentId, second.Body.Data.DeploymentId)
+
+	firstCreate := testutil.Receive(t, creates, 10*time.Second)
+	secondCreate := testutil.Receive(t, creates, 10*time.Second)
+	require.NotEqual(t, firstCreate.virtualObjectKey, secondCreate.virtualObjectKey)
+}
+
 func TestSpecificEnvironmentPermission(t *testing.T) {
 	h := testutil.NewHarness(t)
 	restate, creates := newRecordingRestate(t)

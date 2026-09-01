@@ -2,12 +2,37 @@ package deployment
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/deploy/deploygate"
 	"github.com/unkeyed/unkey/pkg/fault"
 )
+
+// IdempotencyKeyHeader is the header a caller repeats to retry a create without
+// producing a second deployment. Both create routes read the same name, so it
+// lives here rather than as a literal in each of them.
+const IdempotencyKeyHeader = "Idempotency-Key"
+
+// idempotencyKeyBytesMax matches the bound the email client applies to the same
+// kind of key (pkg/email/resend_send.go).
+const idempotencyKeyBytesMax = 256
+
+// ValidateIdempotencyKey rejects a key too long to be worth hashing. An absent
+// key is valid: it means the caller is not asking for idempotency.
+func ValidateIdempotencyKey(key string) error {
+	if len(key) <= idempotencyKeyBytesMax {
+		return nil
+	}
+
+	return fault.New(
+		"idempotency key too long",
+		fault.Code(codes.App.Validation.InvalidInput.URN()),
+		fault.Internal("idempotency key exceeds the byte bound"),
+		fault.Public(fmt.Sprintf("%s must be at most %d bytes.", IdempotencyKeyHeader, idempotencyKeyBytesMax)),
+	)
+}
 
 // EnsureWorkspaceCanDeploy refuses an action that creates or activates compute
 // for a workspace with no Compute plan or one stopped by its spend cap. The

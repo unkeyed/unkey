@@ -177,8 +177,23 @@ type SwapLiveDeploymentRequest struct {
 	// If true, sets apps.is_rolled_back = true (rollback semantics).
 	// If false, clears apps.is_rolled_back to false (deploy / promote semantics).
 	SetRollbackFlag bool `protobuf:"varint,3,opt,name=set_rollback_flag,json=setRollbackFlag,proto3" json:"set_rollback_flag,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
+	// AllowOlder permits moving traffic to a deployment older than the one
+	// already live. Unset refuses that swap and returns the current pointer
+	// unchanged.
+	//
+	// Unset is the safe default because the dangerous caller is the one that
+	// never thinks about this: two builds for the same app run concurrently as
+	// soon as the first leaves `pending`, since sibling dedup only supersedes
+	// queued rows. Both then reach here, and without the guard the pointer
+	// belongs to whichever build finished last, so an older commit can end up
+	// serving traffic.
+	//
+	// Promote and rollback set it. Both are explicit intent to move traffic to a
+	// specific deployment, and confirm-rollback in particular targets one that is
+	// older than the live pointer.
+	AllowOlder    bool `protobuf:"varint,4,opt,name=allow_older,json=allowOlder,proto3" json:"allow_older,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *SwapLiveDeploymentRequest) Reset() {
@@ -228,6 +243,13 @@ func (x *SwapLiveDeploymentRequest) GetFrontlineRouteIds() []string {
 func (x *SwapLiveDeploymentRequest) GetSetRollbackFlag() bool {
 	if x != nil {
 		return x.SetRollbackFlag
+	}
+	return false
+}
+
+func (x *SwapLiveDeploymentRequest) GetAllowOlder() bool {
+	if x != nil {
+		return x.AllowOlder
 	}
 	return false
 }
@@ -291,11 +313,13 @@ const file_hydra_v1_routing_proto_rawDesc = "" +
 	"\x11reassigned_routes\x18\x01 \x03(\v2\".hydra.v1.ReassignedFrontlineRouteR\x10reassignedRoutes\"~\n" +
 	"\x18ReassignedFrontlineRoute\x12,\n" +
 	"\x12frontline_route_id\x18\x01 \x01(\tR\x10frontlineRouteId\x124\n" +
-	"\x16previous_deployment_id\x18\x02 \x01(\tR\x14previousDeploymentId\"\x9c\x01\n" +
+	"\x16previous_deployment_id\x18\x02 \x01(\tR\x14previousDeploymentId\"\xbd\x01\n" +
 	"\x19SwapLiveDeploymentRequest\x12#\n" +
 	"\rdeployment_id\x18\x01 \x01(\tR\fdeploymentId\x12.\n" +
 	"\x13frontline_route_ids\x18\x02 \x03(\tR\x11frontlineRouteIds\x12*\n" +
-	"\x11set_rollback_flag\x18\x03 \x01(\bR\x0fsetRollbackFlag\"R\n" +
+	"\x11set_rollback_flag\x18\x03 \x01(\bR\x0fsetRollbackFlag\x12\x1f\n" +
+	"\vallow_older\x18\x04 \x01(\bR\n" +
+	"allowOlder\"R\n" +
 	"\x1aSwapLiveDeploymentResponse\x124\n" +
 	"\x16previous_deployment_id\x18\x01 \x01(\tR\x14previousDeploymentId2\xe5\x01\n" +
 	"\x0eRoutingService\x12j\n" +

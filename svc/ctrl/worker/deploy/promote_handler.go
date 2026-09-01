@@ -132,6 +132,7 @@ func (w *Workflow) Promote(ctx restate.ObjectContext, req *hydrav1.PromoteReques
 		DeploymentId:      targetDeployment.ID,
 		FrontlineRouteIds: routeIDs,
 		SetRollbackFlag:   false,
+		AllowOlder:        true,
 	})
 	if err != nil {
 		return nil, fault.Wrap(err, fault.Public("Failed to swap live deployment"))

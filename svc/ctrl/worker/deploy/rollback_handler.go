@@ -151,6 +151,7 @@ func (w *Workflow) Rollback(ctx restate.ObjectContext, req *hydrav1.RollbackRequ
 		DeploymentId:      targetDeployment.ID,
 		FrontlineRouteIds: routeIDs,
 		SetRollbackFlag:   true,
+		AllowOlder:        true,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to swap live deployment: %w", err)

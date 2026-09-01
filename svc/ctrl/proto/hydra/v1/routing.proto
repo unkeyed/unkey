@@ -44,6 +44,22 @@ message SwapLiveDeploymentRequest {
   // If true, sets apps.is_rolled_back = true (rollback semantics).
   // If false, clears apps.is_rolled_back to false (deploy / promote semantics).
   bool set_rollback_flag = 3;
+
+  // AllowOlder permits moving traffic to a deployment older than the one
+  // already live. Unset refuses that swap and returns the current pointer
+  // unchanged.
+  //
+  // Unset is the safe default because the dangerous caller is the one that
+  // never thinks about this: two builds for the same app run concurrently as
+  // soon as the first leaves `pending`, since sibling dedup only supersedes
+  // queued rows. Both then reach here, and without the guard the pointer
+  // belongs to whichever build finished last, so an older commit can end up
+  // serving traffic.
+  //
+  // Promote and rollback set it. Both are explicit intent to move traffic to a
+  // specific deployment, and confirm-rollback in particular targets one that is
+  // older than the live pointer.
+  bool allow_older = 4;
 }
 
 message SwapLiveDeploymentResponse {

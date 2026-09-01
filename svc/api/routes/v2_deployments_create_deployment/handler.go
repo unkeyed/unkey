@@ -7,6 +7,7 @@ import (
 	"slices"
 	"strings"
 
+	restate "github.com/restatedev/sdk-go"
 	restateingress "github.com/restatedev/sdk-go/ingress"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
@@ -111,7 +112,28 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	// The id is minted here because it is the Restate object key the create
 	// runs on, so the response can name the deployment without waiting.
+	//
+	// With an Idempotency-Key the id is derived from it instead of random, so a
+	// retry lands on the same object and finds the row the first attempt wrote.
+	// The key also goes to Restate, which replays the first response inside its
+	// retention window rather than running the create again. Without the header
+	// a retry is simply a second deployment, which is what a caller that did
+	// not ask for idempotency gets.
+	idempotencyKey := s.Request().Header.Get(deployment.IdempotencyKeyHeader)
+	if err = deployment.ValidateIdempotencyKey(idempotencyKey); err != nil {
+		return err
+	}
+
 	deploymentID := uid.New(uid.DeploymentPrefix)
+	var sendOpts []restate.IngressSendOption
+	if idempotencyKey != "" {
+		// The tenant and the target are in the scope, so one key cannot derive
+		// the same id for two apps. That is what lets Create refuse a row
+		// belonging to another target instead of replaying it as this caller's.
+		deploymentID = uid.Derived(uid.DeploymentPrefix,
+			principal.WorkspaceID, environment.AppID, environment.ID, idempotencyKey)
+		sendOpts = append(sendOpts, restate.WithIdempotencyKey(idempotencyKey))
+	}
 
 	// nolint: exhaustruct // the source oneof is set per case below
 	createReq := &hydrav1.DeployCreateRequest{
@@ -219,7 +241,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	// entitlement between here and there is still refused, just asynchronously.
 	if _, err := hydrav1.NewDeployServiceIngressClient(h.Restate, deploymentID).
 		Create().
-		Send(ctx, createReq); err != nil {
+		Send(ctx, createReq, sendOpts...); err != nil {
 		return fault.Wrap(
 			err,
 			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),

@@ -931,6 +931,9 @@ func (w *Workflow) swapLiveDeployment(
 		SwapLiveDeployment().Request(&hydrav1.SwapLiveDeploymentRequest{
 		DeploymentId:    deployment.ID,
 		SetRollbackFlag: false,
+		// AllowOlder stays unset: a slower build must not take traffic from a
+		// newer one that already finished.
+		AllowOlder: false,
 	})
 	if err != nil {
 		return fault.Wrap(err, fault.Public("App live deployment could not be updated."))

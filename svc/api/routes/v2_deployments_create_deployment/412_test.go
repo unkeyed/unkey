@@ -2,6 +2,7 @@ package handler_test
 
 import (
 	"net/http"
+	"strings"
 	"testing"
 	"time"
 
@@ -55,6 +56,29 @@ func TestCreateDeploymentRequiresComputePlan(t *testing.T) {
 	res := testutil.CallRoute[handler.Request, openapi.PreconditionFailedErrorResponse](h, route, authHeaders(setup.RootKey), req)
 	require.Equal(t, http.StatusPreconditionFailed, res.Status, "expected 412, received: %s", res.RawBody)
 	require.Equal(t, "The workspace has no active Compute plan.", res.Body.Error.Detail)
+}
+
+// TestCreateDeploymentRejectsOversizedIdempotencyKey pins the bound, because a
+// key is hashed into the deployment id and an unbounded header should not reach
+// that far.
+func TestCreateDeploymentRejectsOversizedIdempotencyKey(t *testing.T) {
+	h := testutil.NewHarness(t)
+	route := newRoute(h, newUncalledRestate(t))
+	h.Register(route)
+
+	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
+		Permissions: []string{"environment.*.create_deployment"},
+	})
+	seedDeployableRegion(t, h, setup)
+
+	headers := authHeaders(setup.RootKey)
+	headers.Set("Idempotency-Key", strings.Repeat("k", 257))
+
+	req := imageRequest(t, setup.Project.Slug, setup.App.Slug, setup.Environment.Slug, "nginx:latest")
+
+	res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
+	require.Equal(t, http.StatusBadRequest, res.Status, "expected 400, received: %s", res.RawBody)
+	require.Contains(t, res.Body.Error.Detail, "Idempotency-Key")
 }
 
 func TestCreateDeploymentSpendSuspended(t *testing.T) {
