@@ -2,15 +2,14 @@ package handler
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"net/http"
 	"slices"
 	"strings"
 
-	"connectrpc.com/connect"
+	restateingress "github.com/restatedev/sdk-go/ingress"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
-	"github.com/unkeyed/unkey/gen/rpc/ctrl"
+	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/deploy/deployfail"
@@ -18,9 +17,11 @@ import (
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/rbac/permissions"
+	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/internal/ctrlclient"
+	"github.com/unkeyed/unkey/svc/api/internal/deployment"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
@@ -30,8 +31,8 @@ type (
 )
 
 type Handler struct {
-	DB         db.Database
-	CtrlClient ctrl.DeployServiceClient
+	DB      db.Database
+	Restate *restateingress.Client
 }
 
 func (h *Handler) Path() string {
@@ -108,19 +109,32 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	// nolint: exhaustruct // optional proto fields are set per source below
-	ctrlReq := &ctrlv1.CreateDeploymentRequest{
-		ProjectId:       environment.ProjectID,
-		AppId:           environment.AppID,
-		EnvironmentSlug: environment.Slug,
-		Trigger:         trigger,
-		TriggeredBy:     principal.Subject.ID,
-		Actor:           actorInfo,
+	// The id is minted here because it is the Restate object key the create
+	// runs on, so the response can name the deployment without waiting.
+	deploymentID := uid.New(uid.DeploymentPrefix)
+
+	// nolint: exhaustruct // the source oneof is set per case below
+	createReq := &hydrav1.DeployCreateRequest{
+		ProjectId:   environment.ProjectID,
+		AppId:       environment.AppID,
+		Environment: environment.ID,
+		Decision:    hydrav1.CreateDecision_CREATE_DECISION_DEPLOY,
+		Command:     nil,
+		// Zero lets the worker stamp created_at from its own clock. Only the
+		// GitHub webhook needs to pin an ordering timestamp, to keep push order
+		// across its per-app sends.
+		OrderingTimestamp: 0,
+		Trigger:           trigger,
+		TriggeredBy:       principal.Subject.ID,
+		TriggerReason:     "",
+		Actor:             actorInfo,
 	}
 
 	switch {
 	case req.Image != nil:
-		ctrlReq.DockerImage = req.Image.DockerImage
+		createReq.Source = &hydrav1.DeployCreateRequest_Image{
+			Image: &hydrav1.CreateImageSource{Image: req.Image.DockerImage},
+		}
 
 	case req.Git != nil:
 		git := req.Git
@@ -146,11 +160,16 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			}
 			return fault.Wrap(err, fault.Internal("failed to check repo connection"))
 		}
-		// nolint: exhaustruct // ctrl fills the commit metadata it resolves from git
-		ctrlReq.GitCommit = &ctrlv1.GitCommitInfo{
-			Branch:         ptr.SafeDeref(git.Branch),
-			CommitSha:      ptr.SafeDeref(git.CommitSha),
-			ForkRepository: ptr.SafeDeref(git.Repository),
+		createReq.Source = &hydrav1.DeployCreateRequest_Git{
+			// nolint: exhaustruct // the worker fills the commit metadata it resolves from git
+			Git: &hydrav1.CreateGitSource{
+				Commit: &ctrlv1.GitCommitInfo{
+					Branch:         ptr.SafeDeref(git.Branch),
+					CommitSha:      ptr.SafeDeref(git.CommitSha),
+					ForkRepository: ptr.SafeDeref(git.Repository),
+				},
+				PrNumber: 0,
+			},
 		}
 
 	case req.Deployment != nil:
@@ -158,8 +177,18 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		if err != nil {
 			return err
 		}
-		ctrlReq.GitCommit = gitCommit
-		ctrlReq.DockerImage = dockerImage
+		// resolveRedeploy returns the source deployment's commit when the app is
+		// still git-connected, otherwise its image, so exactly one of the two is
+		// set and the redeploy runs as a plain git or image create.
+		if gitCommit != nil {
+			createReq.Source = &hydrav1.DeployCreateRequest_Git{
+				Git: &hydrav1.CreateGitSource{Commit: gitCommit, PrNumber: 0},
+			}
+		} else {
+			createReq.Source = &hydrav1.DeployCreateRequest_Image{
+				Image: &hydrav1.CreateImageSource{Image: dockerImage},
+			}
+		}
 
 	default:
 		return fault.New(
@@ -177,20 +206,26 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	ctrlResp, err := h.CtrlClient.CreateDeployment(ctx, ctrlReq)
-	if err != nil {
-		// Map ctrl's precondition failure to a 412 instead of a 500. Keep its
-		// message in the internal error but return a fixed public reason so callers can't probe upstream state.
-		var connectErr *connect.Error
-		if errors.As(err, &connectErr) && connectErr.Code() == connect.CodeFailedPrecondition {
-			return fault.Wrap(
-				err,
-				fault.Code(codes.App.Precondition.PreconditionFailed.URN()),
-				fault.Internal("ctrl reported a precondition failure: "+connectErr.Message()),
-				fault.Public("The deployment could not be started because a precondition was not met. Verify the app's repository connection, branch, commit, and current deployment, then try again."),
-			)
-		}
-		return ctrlclient.HandleError(err, "create deployment")
+	// The create is submitted one-way below, so this is the only place a caller
+	// can be told its workspace may not deploy.
+	if err := deployment.EnsureWorkspaceCanDeploy(ctx, h.DB, principal.WorkspaceID); err != nil {
+		return err
+	}
+
+	// Send, not Request: everything the caller has to see is settled above, and
+	// the create itself resolves commits against GitHub and retries transient
+	// failures for minutes, which no HTTP caller should wait through. The worker
+	// re-checks these gates when it runs, so a workspace that loses its
+	// entitlement between here and there is still refused, just asynchronously.
+	if _, err := hydrav1.NewDeployServiceIngressClient(h.Restate, deploymentID).
+		Create().
+		Send(ctx, createReq); err != nil {
+		return fault.Wrap(
+			err,
+			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+			fault.Internal("failed to submit deployment create to Restate"),
+			fault.Public("Failed to create deployment."),
+		)
 	}
 
 	return s.JSON(http.StatusCreated, Response{
@@ -198,7 +233,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			RequestId: s.RequestID(),
 		},
 		Data: openapi.V2DeploymentsCreateDeploymentResponseData{
-			DeploymentId: ctrlResp.GetDeploymentId(),
+			DeploymentId: deploymentID,
 		},
 	})
 }

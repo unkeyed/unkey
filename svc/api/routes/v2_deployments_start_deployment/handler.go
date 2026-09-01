@@ -81,14 +81,12 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	// A missing billing row means the workspace was never linked to billing and
 	// is not suspended.
-	billing, err := db.Query.FindWorkspaceBillingByWorkspaceID(ctx, h.DB.RW(), principal.WorkspaceID)
-	if err != nil && !db.IsNotFound(err) {
-		return fault.Wrap(
-			err,
-			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-			fault.Internal("database error loading workspace billing"),
-			fault.Public("Failed to retrieve workspace billing state."),
-		)
+	// LoadBilling rather than EnsureWorkspaceCanDeploy: the spend check belongs
+	// after the lifecycle gate below, so a deployment that cannot be started at
+	// all reports that rather than a billing reason.
+	billing, err := deployment.LoadBilling(ctx, h.DB, principal.WorkspaceID)
+	if err != nil {
+		return err
 	}
 
 	if err := deploygate.CheckWorkspacePlan(billing.Plan, billing.PlanOverride); err != nil {
