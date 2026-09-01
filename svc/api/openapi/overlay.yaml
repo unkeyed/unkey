@@ -83,10 +83,6 @@ actions:
   - target: $["components"]["schemas"]["V2EnvironmentsUpdateSettingsRequestBody"]["properties"]["buildCommand"]
     update:
       nullable: true
-  # Exact source cardinality is validated against the public schema before the
-  # handler runs. The handler repeats the check before constructing the proto.
-  - target: $["components"]["schemas"]["V2AppsCreateAppRequestBody"]["oneOf"]
-    remove: true
   - target: $["components"]["schemas"]["V2AppsUpdateAppRequestBody"]["properties"]["git"]["anyOf"]
     remove: true
   - target: $["components"]["schemas"]["V2AppsUpdateAppRequestBody"]["properties"]["git"]

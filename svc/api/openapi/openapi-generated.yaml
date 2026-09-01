@@ -443,13 +443,9 @@ components:
                 oci:
                     "$ref": "#/components/schemas/AppOCIInput"
             additionalProperties: false
-            oneOf:
-                - required:
-                    - git
-                - required:
-                    - oci
             description: |
-                Create an app with exactly one source: `git` or `oci`.
+                Create an app with exactly one source: `git` or `oci`. Requests that omit a
+                source or provide both sources are rejected.
         V2AppsCreateAppResponseBody:
             type: object
             required:
