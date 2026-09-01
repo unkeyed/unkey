@@ -434,15 +434,22 @@ components:
                     type: string
                     minLength: 1
                     maxLength: 256
-                    description: |
-                        Human-readable name for this app.
-                        Use a descriptive name like 'Payments API' to identify its purpose.
+                    description: Human-readable name for this app.
                     example: Payments API
                 slug:
                     "$ref": "#/components/schemas/ResourceIdentifier"
                 git:
                     "$ref": "#/components/schemas/AppGitCreateInput"
+                oci:
+                    "$ref": "#/components/schemas/AppOCIInput"
             additionalProperties: false
+            oneOf:
+                - required:
+                    - git
+                - required:
+                    - oci
+            description: |
+                Create an app with exactly one source: `git` or `oci`.
         V2AppsCreateAppResponseBody:
             type: object
             required:
@@ -4296,8 +4303,7 @@ components:
         AppGitCreateInput:
             type: object
             description: |
-                Connect a GitHub repository to the app on creation. Omit to create the app
-                without a repository and connect one later with apps.updateApp.
+                Connect a GitHub repository as the app source on creation.
             required:
                 - repository
             properties:
@@ -4317,6 +4323,21 @@ components:
                         The branch this app's deployments track. Omit to adopt the repository's
                         default branch on GitHub.
                     example: main
+            additionalProperties: false
+        AppOCIInput:
+            type: object
+            description: |
+                Configure an OCI image as the app source.
+            required:
+                - image
+            properties:
+                image:
+                    type: string
+                    minLength: 1
+                    maxLength: 256
+                    pattern: "\\S"
+                    description: The default OCI image reference for new deployments. It must include an explicit tag or digest.
+                    example: ghcr.io/acme/api:v1.2.3
             additionalProperties: false
         V2AppsCreateAppResponseData:
             type: object
@@ -4359,13 +4380,29 @@ components:
                         URL-safe handle for this app, unique within its project.
                         Chosen at creation time.
                     example: payments-api
+                sourceType:
+                    type: string
+                    enum:
+                        - git
+                        - oci
+                    description: |
+                        The configured source used to create deployments. Omitted for historical
+                        apps whose source could not be classified.
+                    example: oci
+                    x-go-type-skip-optional-pointer: true
+                    x-go-type-skip-optional-pointer-with-omitzero: true
                 git:
                     description: |
                         The connected GitHub repository and the branch its deployments track.
                         Omitted when the app has no repository connected (for example a
-                        Docker-based app).
+                        prebuilt OCI image app).
                     allOf:
                         - "$ref": "#/components/schemas/AppGit"
+                oci:
+                    description: |
+                        The configured OCI image source. Omitted when the app is not OCI-sourced.
+                    allOf:
+                        - "$ref": "#/components/schemas/AppOCI"
                 currentDeploymentId:
                     type: string
                     description: |
@@ -4422,6 +4459,16 @@ components:
                     maxLength: 256
                     description: The branch this app's deployments track.
                     example: main
+            additionalProperties: false
+        AppOCI:
+            type: object
+            required:
+                - image
+            properties:
+                image:
+                    type: string
+                    description: The configured default OCI image reference for new deployments.
+                    example: ghcr.io/acme/api:v1.2.3
             additionalProperties: false
         AppGitUpdateInput:
             type: object
@@ -7947,6 +7994,8 @@ paths:
             description: |
                 Create an app within a project. The app is created with default `production` and `preview` environments.
 
+                Set exactly one source. Use `git` to create a GitHub-sourced app and connect its repository. Use `oci` to create an app from a prebuilt OCI image.
+
                 The slug you provide is the stable, caller-defined handle used to reference this app. It must be unique within the project.
 
                 **Important**: The slug cannot collide with an existing app in the same project. A duplicate slug returns a 409 conflict.
@@ -7961,11 +8010,22 @@ paths:
                 content:
                     application/json:
                         examples:
-                            basic:
-                                description: Create an app within a project
-                                summary: Basic app creation
+                            git:
+                                description: Create an app connected to a GitHub repository
+                                summary: GitHub app
+                                value:
+                                    git:
+                                        repository: unkeyed/unkey
+                                    name: Payments API
+                                    project: payments
+                                    slug: payments-api
+                            ociImage:
+                                description: Create an app from an OCI image
+                                summary: OCI image app
                                 value:
                                     name: Payments API
+                                    oci:
+                                        image: ghcr.io/acme/payments:v1.2.3
                                     project: payments
                                     slug: payments-api
                         schema:

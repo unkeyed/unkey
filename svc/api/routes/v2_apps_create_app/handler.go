@@ -60,6 +60,22 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	if err != nil {
 		return err
 	}
+	if req.Git != nil && req.Oci != nil {
+		return fault.New(
+			"multiple app sources provided",
+			fault.Code(codes.App.Validation.InvalidInput.URN()),
+			fault.Internal("git and OCI are mutually exclusive"),
+			fault.Public("Provide at most one of git or oci."),
+		)
+	}
+	if req.Git == nil && req.Oci == nil {
+		return fault.New(
+			"app source is required",
+			fault.Code(codes.App.Validation.InvalidInput.URN()),
+			fault.Internal("neither git nor OCI source was provided"),
+			fault.Public("Provide exactly one of git or oci."),
+		)
+	}
 
 	// Tag the repository-connect audit event with a correlation id so it can be
 	// traced back to this request. The app.create event is emitted separately by
@@ -146,12 +162,22 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	if err != nil {
 		return err
 	}
+	var source ctrlv1.IsCreateAppRequest_Source
+	switch {
+	case req.Git != nil:
+		source = &ctrlv1.CreateAppRequest_Git{Git: &ctrlv1.GitSource{}}
+	case req.Oci != nil:
+		source = &ctrlv1.CreateAppRequest_Oci{
+			Oci: &ctrlv1.OciSource{ImageReference: req.Oci.Image},
+		}
+	}
 	res, err := h.CtrlClient.CreateApp(ctx, &ctrlv1.CreateAppRequest{
 		WorkspaceId: principal.AuthorizedWorkspaceID,
 		ProjectId:   project.ID,
 		Name:        req.Name,
 		Slug:        req.Slug,
 		Actor:       actor,
+		Source:      source,
 	})
 	if err != nil {
 		if connect.CodeOf(err) == connect.CodeAlreadyExists {
@@ -184,7 +210,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				InstallationID:     resolved.InstallationID,
 				RepositoryID:       resolved.Repository.ID,
 				RepositoryFullName: resolved.Repository.FullName,
-				DefaultBranch:      sql.NullString{String: defaultBranch, Valid: true},
+				DefaultBranch:      sql.NullString{String: defaultBranch, Valid: defaultBranch != ""},
 				CreatedAt:          now,
 				UpdatedAt:          sql.NullInt64{Valid: true, Int64: now},
 			}); txErr != nil {
