@@ -22,12 +22,17 @@ const (
 )
 
 type CreateAppRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	WorkspaceId   string                 `protobuf:"bytes,1,opt,name=workspace_id,json=workspaceId,proto3" json:"workspace_id,omitempty"`
-	ProjectId     string                 `protobuf:"bytes,2,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
-	Name          string                 `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
-	Slug          string                 `protobuf:"bytes,4,opt,name=slug,proto3" json:"slug,omitempty"`
-	Actor         *ActorInfo             `protobuf:"bytes,5,opt,name=actor,proto3" json:"actor,omitempty"`
+	state       protoimpl.MessageState `protogen:"open.v1"`
+	WorkspaceId string                 `protobuf:"bytes,1,opt,name=workspace_id,json=workspaceId,proto3" json:"workspace_id,omitempty"`
+	ProjectId   string                 `protobuf:"bytes,2,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
+	Name        string                 `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
+	Slug        string                 `protobuf:"bytes,4,opt,name=slug,proto3" json:"slug,omitempty"`
+	Actor       *ActorInfo             `protobuf:"bytes,5,opt,name=actor,proto3" json:"actor,omitempty"`
+	// Types that are valid to be assigned to Source:
+	//
+	//	*CreateAppRequest_Git
+	//	*CreateAppRequest_Oci
+	Source        isCreateAppRequest_Source `protobuf_oneof:"source"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -97,6 +102,47 @@ func (x *CreateAppRequest) GetActor() *ActorInfo {
 	return nil
 }
 
+func (x *CreateAppRequest) GetSource() isCreateAppRequest_Source {
+	if x != nil {
+		return x.Source
+	}
+	return nil
+}
+
+func (x *CreateAppRequest) GetGit() *GitSource {
+	if x != nil {
+		if x, ok := x.Source.(*CreateAppRequest_Git); ok {
+			return x.Git
+		}
+	}
+	return nil
+}
+
+func (x *CreateAppRequest) GetOci() *OciSource {
+	if x != nil {
+		if x, ok := x.Source.(*CreateAppRequest_Oci); ok {
+			return x.Oci
+		}
+	}
+	return nil
+}
+
+type isCreateAppRequest_Source interface {
+	isCreateAppRequest_Source()
+}
+
+type CreateAppRequest_Git struct {
+	Git *GitSource `protobuf:"bytes,6,opt,name=git,proto3,oneof"`
+}
+
+type CreateAppRequest_Oci struct {
+	Oci *OciSource `protobuf:"bytes,7,opt,name=oci,proto3,oneof"`
+}
+
+func (*CreateAppRequest_Git) isCreateAppRequest_Source() {}
+
+func (*CreateAppRequest_Oci) isCreateAppRequest_Source() {}
+
 type CreateAppResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
@@ -141,6 +187,198 @@ func (x *CreateAppResponse) GetId() string {
 	return ""
 }
 
+type GitSource struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GitSource) Reset() {
+	*x = GitSource{}
+	mi := &file_ctrl_v1_app_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GitSource) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GitSource) ProtoMessage() {}
+
+func (x *GitSource) ProtoReflect() protoreflect.Message {
+	mi := &file_ctrl_v1_app_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GitSource.ProtoReflect.Descriptor instead.
+func (*GitSource) Descriptor() ([]byte, []int) {
+	return file_ctrl_v1_app_proto_rawDescGZIP(), []int{2}
+}
+
+type OciSource struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	ImageReference string                 `protobuf:"bytes,1,opt,name=image_reference,json=imageReference,proto3" json:"image_reference,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *OciSource) Reset() {
+	*x = OciSource{}
+	mi := &file_ctrl_v1_app_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *OciSource) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*OciSource) ProtoMessage() {}
+
+func (x *OciSource) ProtoReflect() protoreflect.Message {
+	mi := &file_ctrl_v1_app_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use OciSource.ProtoReflect.Descriptor instead.
+func (*OciSource) Descriptor() ([]byte, []int) {
+	return file_ctrl_v1_app_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *OciSource) GetImageReference() string {
+	if x != nil {
+		return x.ImageReference
+	}
+	return ""
+}
+
+type UpdateOciImageSourceRequest struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	WorkspaceId    string                 `protobuf:"bytes,1,opt,name=workspace_id,json=workspaceId,proto3" json:"workspace_id,omitempty"`
+	AppId          string                 `protobuf:"bytes,2,opt,name=app_id,json=appId,proto3" json:"app_id,omitempty"`
+	ImageReference string                 `protobuf:"bytes,3,opt,name=image_reference,json=imageReference,proto3" json:"image_reference,omitempty"`
+	Actor          *ActorInfo             `protobuf:"bytes,4,opt,name=actor,proto3" json:"actor,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *UpdateOciImageSourceRequest) Reset() {
+	*x = UpdateOciImageSourceRequest{}
+	mi := &file_ctrl_v1_app_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateOciImageSourceRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateOciImageSourceRequest) ProtoMessage() {}
+
+func (x *UpdateOciImageSourceRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_ctrl_v1_app_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateOciImageSourceRequest.ProtoReflect.Descriptor instead.
+func (*UpdateOciImageSourceRequest) Descriptor() ([]byte, []int) {
+	return file_ctrl_v1_app_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *UpdateOciImageSourceRequest) GetWorkspaceId() string {
+	if x != nil {
+		return x.WorkspaceId
+	}
+	return ""
+}
+
+func (x *UpdateOciImageSourceRequest) GetAppId() string {
+	if x != nil {
+		return x.AppId
+	}
+	return ""
+}
+
+func (x *UpdateOciImageSourceRequest) GetImageReference() string {
+	if x != nil {
+		return x.ImageReference
+	}
+	return ""
+}
+
+func (x *UpdateOciImageSourceRequest) GetActor() *ActorInfo {
+	if x != nil {
+		return x.Actor
+	}
+	return nil
+}
+
+type UpdateOciImageSourceResponse struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	ImageReference string                 `protobuf:"bytes,1,opt,name=image_reference,json=imageReference,proto3" json:"image_reference,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *UpdateOciImageSourceResponse) Reset() {
+	*x = UpdateOciImageSourceResponse{}
+	mi := &file_ctrl_v1_app_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateOciImageSourceResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateOciImageSourceResponse) ProtoMessage() {}
+
+func (x *UpdateOciImageSourceResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_ctrl_v1_app_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateOciImageSourceResponse.ProtoReflect.Descriptor instead.
+func (*UpdateOciImageSourceResponse) Descriptor() ([]byte, []int) {
+	return file_ctrl_v1_app_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *UpdateOciImageSourceResponse) GetImageReference() string {
+	if x != nil {
+		return x.ImageReference
+	}
+	return ""
+}
+
 type DeleteAppRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	AppId         string                 `protobuf:"bytes,1,opt,name=app_id,json=appId,proto3" json:"app_id,omitempty"`
@@ -151,7 +389,7 @@ type DeleteAppRequest struct {
 
 func (x *DeleteAppRequest) Reset() {
 	*x = DeleteAppRequest{}
-	mi := &file_ctrl_v1_app_proto_msgTypes[2]
+	mi := &file_ctrl_v1_app_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -163,7 +401,7 @@ func (x *DeleteAppRequest) String() string {
 func (*DeleteAppRequest) ProtoMessage() {}
 
 func (x *DeleteAppRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ctrl_v1_app_proto_msgTypes[2]
+	mi := &file_ctrl_v1_app_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -176,7 +414,7 @@ func (x *DeleteAppRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteAppRequest.ProtoReflect.Descriptor instead.
 func (*DeleteAppRequest) Descriptor() ([]byte, []int) {
-	return file_ctrl_v1_app_proto_rawDescGZIP(), []int{2}
+	return file_ctrl_v1_app_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *DeleteAppRequest) GetAppId() string {
@@ -201,7 +439,7 @@ type DeleteAppResponse struct {
 
 func (x *DeleteAppResponse) Reset() {
 	*x = DeleteAppResponse{}
-	mi := &file_ctrl_v1_app_proto_msgTypes[3]
+	mi := &file_ctrl_v1_app_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -213,7 +451,7 @@ func (x *DeleteAppResponse) String() string {
 func (*DeleteAppResponse) ProtoMessage() {}
 
 func (x *DeleteAppResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_ctrl_v1_app_proto_msgTypes[3]
+	mi := &file_ctrl_v1_app_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -226,30 +464,44 @@ func (x *DeleteAppResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteAppResponse.ProtoReflect.Descriptor instead.
 func (*DeleteAppResponse) Descriptor() ([]byte, []int) {
-	return file_ctrl_v1_app_proto_rawDescGZIP(), []int{3}
+	return file_ctrl_v1_app_proto_rawDescGZIP(), []int{7}
 }
 
 var File_ctrl_v1_app_proto protoreflect.FileDescriptor
 
 const file_ctrl_v1_app_proto_rawDesc = "" +
 	"\n" +
-	"\x11ctrl/v1/app.proto\x12\actrl.v1\x1a\x13ctrl/v1/actor.proto\"\xa6\x01\n" +
+	"\x11ctrl/v1/app.proto\x12\actrl.v1\x1a\x13ctrl/v1/actor.proto\"\x80\x02\n" +
 	"\x10CreateAppRequest\x12!\n" +
 	"\fworkspace_id\x18\x01 \x01(\tR\vworkspaceId\x12\x1d\n" +
 	"\n" +
 	"project_id\x18\x02 \x01(\tR\tprojectId\x12\x12\n" +
 	"\x04name\x18\x03 \x01(\tR\x04name\x12\x12\n" +
 	"\x04slug\x18\x04 \x01(\tR\x04slug\x12(\n" +
-	"\x05actor\x18\x05 \x01(\v2\x12.ctrl.v1.ActorInfoR\x05actor\"#\n" +
+	"\x05actor\x18\x05 \x01(\v2\x12.ctrl.v1.ActorInfoR\x05actor\x12&\n" +
+	"\x03git\x18\x06 \x01(\v2\x12.ctrl.v1.GitSourceH\x00R\x03git\x12&\n" +
+	"\x03oci\x18\a \x01(\v2\x12.ctrl.v1.OciSourceH\x00R\x03ociB\b\n" +
+	"\x06source\"#\n" +
 	"\x11CreateAppResponse\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\"S\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\"\v\n" +
+	"\tGitSource\"4\n" +
+	"\tOciSource\x12'\n" +
+	"\x0fimage_reference\x18\x01 \x01(\tR\x0eimageReference\"\xaa\x01\n" +
+	"\x1bUpdateOciImageSourceRequest\x12!\n" +
+	"\fworkspace_id\x18\x01 \x01(\tR\vworkspaceId\x12\x15\n" +
+	"\x06app_id\x18\x02 \x01(\tR\x05appId\x12'\n" +
+	"\x0fimage_reference\x18\x03 \x01(\tR\x0eimageReference\x12(\n" +
+	"\x05actor\x18\x04 \x01(\v2\x12.ctrl.v1.ActorInfoR\x05actor\"G\n" +
+	"\x1cUpdateOciImageSourceResponse\x12'\n" +
+	"\x0fimage_reference\x18\x01 \x01(\tR\x0eimageReference\"S\n" +
 	"\x10DeleteAppRequest\x12\x15\n" +
 	"\x06app_id\x18\x01 \x01(\tR\x05appId\x12(\n" +
 	"\x05actor\x18\x02 \x01(\v2\x12.ctrl.v1.ActorInfoR\x05actor\"\x13\n" +
-	"\x11DeleteAppResponse2\x98\x01\n" +
+	"\x11DeleteAppResponse2\xff\x01\n" +
 	"\n" +
 	"AppService\x12D\n" +
-	"\tCreateApp\x12\x19.ctrl.v1.CreateAppRequest\x1a\x1a.ctrl.v1.CreateAppResponse\"\x00\x12D\n" +
+	"\tCreateApp\x12\x19.ctrl.v1.CreateAppRequest\x1a\x1a.ctrl.v1.CreateAppResponse\"\x00\x12e\n" +
+	"\x14UpdateOciImageSource\x12$.ctrl.v1.UpdateOciImageSourceRequest\x1a%.ctrl.v1.UpdateOciImageSourceResponse\"\x00\x12D\n" +
 	"\tDeleteApp\x12\x19.ctrl.v1.DeleteAppRequest\x1a\x1a.ctrl.v1.DeleteAppResponse\"\x00B\x87\x01\n" +
 	"\vcom.ctrl.v1B\bAppProtoP\x01Z1github.com/unkeyed/unkey/gen/proto/ctrl/v1;ctrlv1\xa2\x02\x03CXX\xaa\x02\aCtrl.V1\xca\x02\aCtrl\\V1\xe2\x02\x13Ctrl\\V1\\GPBMetadata\xea\x02\bCtrl::V1b\x06proto3"
 
@@ -265,26 +517,35 @@ func file_ctrl_v1_app_proto_rawDescGZIP() []byte {
 	return file_ctrl_v1_app_proto_rawDescData
 }
 
-var file_ctrl_v1_app_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
+var file_ctrl_v1_app_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
 var file_ctrl_v1_app_proto_goTypes = []any{
-	(*CreateAppRequest)(nil),  // 0: ctrl.v1.CreateAppRequest
-	(*CreateAppResponse)(nil), // 1: ctrl.v1.CreateAppResponse
-	(*DeleteAppRequest)(nil),  // 2: ctrl.v1.DeleteAppRequest
-	(*DeleteAppResponse)(nil), // 3: ctrl.v1.DeleteAppResponse
-	(*ActorInfo)(nil),         // 4: ctrl.v1.ActorInfo
+	(*CreateAppRequest)(nil),             // 0: ctrl.v1.CreateAppRequest
+	(*CreateAppResponse)(nil),            // 1: ctrl.v1.CreateAppResponse
+	(*GitSource)(nil),                    // 2: ctrl.v1.GitSource
+	(*OciSource)(nil),                    // 3: ctrl.v1.OciSource
+	(*UpdateOciImageSourceRequest)(nil),  // 4: ctrl.v1.UpdateOciImageSourceRequest
+	(*UpdateOciImageSourceResponse)(nil), // 5: ctrl.v1.UpdateOciImageSourceResponse
+	(*DeleteAppRequest)(nil),             // 6: ctrl.v1.DeleteAppRequest
+	(*DeleteAppResponse)(nil),            // 7: ctrl.v1.DeleteAppResponse
+	(*ActorInfo)(nil),                    // 8: ctrl.v1.ActorInfo
 }
 var file_ctrl_v1_app_proto_depIdxs = []int32{
-	4, // 0: ctrl.v1.CreateAppRequest.actor:type_name -> ctrl.v1.ActorInfo
-	4, // 1: ctrl.v1.DeleteAppRequest.actor:type_name -> ctrl.v1.ActorInfo
-	0, // 2: ctrl.v1.AppService.CreateApp:input_type -> ctrl.v1.CreateAppRequest
-	2, // 3: ctrl.v1.AppService.DeleteApp:input_type -> ctrl.v1.DeleteAppRequest
-	1, // 4: ctrl.v1.AppService.CreateApp:output_type -> ctrl.v1.CreateAppResponse
-	3, // 5: ctrl.v1.AppService.DeleteApp:output_type -> ctrl.v1.DeleteAppResponse
-	4, // [4:6] is the sub-list for method output_type
-	2, // [2:4] is the sub-list for method input_type
-	2, // [2:2] is the sub-list for extension type_name
-	2, // [2:2] is the sub-list for extension extendee
-	0, // [0:2] is the sub-list for field type_name
+	8, // 0: ctrl.v1.CreateAppRequest.actor:type_name -> ctrl.v1.ActorInfo
+	2, // 1: ctrl.v1.CreateAppRequest.git:type_name -> ctrl.v1.GitSource
+	3, // 2: ctrl.v1.CreateAppRequest.oci:type_name -> ctrl.v1.OciSource
+	8, // 3: ctrl.v1.UpdateOciImageSourceRequest.actor:type_name -> ctrl.v1.ActorInfo
+	8, // 4: ctrl.v1.DeleteAppRequest.actor:type_name -> ctrl.v1.ActorInfo
+	0, // 5: ctrl.v1.AppService.CreateApp:input_type -> ctrl.v1.CreateAppRequest
+	4, // 6: ctrl.v1.AppService.UpdateOciImageSource:input_type -> ctrl.v1.UpdateOciImageSourceRequest
+	6, // 7: ctrl.v1.AppService.DeleteApp:input_type -> ctrl.v1.DeleteAppRequest
+	1, // 8: ctrl.v1.AppService.CreateApp:output_type -> ctrl.v1.CreateAppResponse
+	5, // 9: ctrl.v1.AppService.UpdateOciImageSource:output_type -> ctrl.v1.UpdateOciImageSourceResponse
+	7, // 10: ctrl.v1.AppService.DeleteApp:output_type -> ctrl.v1.DeleteAppResponse
+	8, // [8:11] is the sub-list for method output_type
+	5, // [5:8] is the sub-list for method input_type
+	5, // [5:5] is the sub-list for extension type_name
+	5, // [5:5] is the sub-list for extension extendee
+	0, // [0:5] is the sub-list for field type_name
 }
 
 func init() { file_ctrl_v1_app_proto_init() }
@@ -293,13 +554,17 @@ func file_ctrl_v1_app_proto_init() {
 		return
 	}
 	file_ctrl_v1_actor_proto_init()
+	file_ctrl_v1_app_proto_msgTypes[0].OneofWrappers = []any{
+		(*CreateAppRequest_Git)(nil),
+		(*CreateAppRequest_Oci)(nil),
+	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ctrl_v1_app_proto_rawDesc), len(file_ctrl_v1_app_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   4,
+			NumMessages:   8,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
