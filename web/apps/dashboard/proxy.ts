@@ -2,6 +2,7 @@ import { expireLegacySession } from "@/lib/auth/legacy-session";
 import { sanitizeRedirectPath } from "@/lib/auth/redirect-utils";
 import { logManagedAuthOutcome } from "@/lib/auth/telemetry";
 import { env, workosAuthEnv } from "@/lib/env";
+import { getBaseUrl } from "@/lib/utils";
 import { NextRequest, NextResponse } from "next/server";
 
 const PUBLIC_PATHS = [
@@ -74,7 +75,9 @@ export default async function proxy(req: NextRequest) {
         headers: req.headers,
       })
     : req;
+  const redirectUri = new URL("/auth/sso-callback", getBaseUrl()).toString();
   const { session, headers, authorizationUrl } = await authkit(authkitRequest, {
+    redirectUri,
     screenHint: url.pathname.startsWith("/auth/sign-up") ? "sign-up" : "sign-in",
     onSessionRefreshSuccess: () => {
       logManagedAuthOutcome("session_refresh", "success");

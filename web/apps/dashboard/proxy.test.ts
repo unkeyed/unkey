@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 type AuthkitOptions = {
+  redirectUri?: string;
   screenHint: "sign-up" | "sign-in";
   onSessionRefreshSuccess: () => void;
   onSessionRefreshError: () => void;
@@ -22,6 +23,7 @@ type HeaderOptions = {
 
 const mocks = vi.hoisted(() => ({
   authProvider: "workos" as "workos" | "local",
+  dashboardBaseUrl: "http://localhost:3000",
   authkit: vi.fn<[NextRequest, AuthkitOptions], Promise<AuthkitResult>>(),
   handleAuthkitHeaders: vi.fn<[NextRequest, Headers, HeaderOptions?], NextResponse>(),
   logManagedAuthOutcome: vi.fn(),
@@ -34,6 +36,10 @@ vi.mock("@/lib/env", () => ({
 
 vi.mock("@/lib/auth/telemetry", () => ({
   logManagedAuthOutcome: mocks.logManagedAuthOutcome,
+}));
+
+vi.mock("@/lib/utils", () => ({
+  getBaseUrl: () => mocks.dashboardBaseUrl,
 }));
 
 vi.mock("@workos-inc/authkit-nextjs", () => ({
@@ -55,6 +61,7 @@ describe("proxy auth mode split", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.authProvider = "workos";
+    mocks.dashboardBaseUrl = "http://localhost:3000";
     mocks.authkit.mockResolvedValue({
       session: { user: null },
       headers: new Headers(),
@@ -142,6 +149,16 @@ describe("proxy auth mode split", () => {
       expect.any(NextRequest),
       expect.any(Headers),
       { redirect: "https://authkit.example.com/authorize" },
+    );
+  });
+
+  it("uses the current deployment for the WorkOS callback", async () => {
+    mocks.dashboardBaseUrl = "https://unkey-git-auth-no-custom.vercel.app";
+
+    await proxy(new NextRequest("https://untrusted.example.com/apis"));
+
+    expect(currentAuthkitOptions().redirectUri).toBe(
+      "https://unkey-git-auth-no-custom.vercel.app/auth/sso-callback",
     );
   });
 
