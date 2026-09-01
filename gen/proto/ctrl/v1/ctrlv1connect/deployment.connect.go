@@ -64,9 +64,11 @@ type DeployServiceClient interface {
 	Promote(context.Context, *connect.Request[v1.PromoteRequest]) (*connect.Response[v1.PromoteResponse], error)
 	// Authorize deployment for an external contributor's push on a branch
 	AuthorizeDeployment(context.Context, *connect.Request[v1.AuthorizeDeploymentRequest]) (*connect.Response[v1.AuthorizeDeploymentResponse], error)
-	// Cancel a running or queued deployment. Cancels the underlying Restate
-	// Deploy invocation, which triggers the workflow's compensation stack to
-	// transition the deployment to failed and release any held build slot.
+	// Cancel a running or queued deployment. Marks the deployment cancelled,
+	// then cancels the underlying Restate Deploy invocation; the workflow's
+	// compensation stack releases any held build slot and unwinds partial state
+	// but cannot overwrite the cancelled status. Audited with the request's
+	// actor; a request without an actor is not audited.
 	// Idempotent: returns success if the deployment is already terminal.
 	CancelDeployment(context.Context, *connect.Request[v1.CancelDeploymentRequest]) (*connect.Response[v1.CancelDeploymentResponse], error)
 	// Stop a ready non-production deployment by scaling it down.
@@ -192,9 +194,11 @@ type DeployServiceHandler interface {
 	Promote(context.Context, *connect.Request[v1.PromoteRequest]) (*connect.Response[v1.PromoteResponse], error)
 	// Authorize deployment for an external contributor's push on a branch
 	AuthorizeDeployment(context.Context, *connect.Request[v1.AuthorizeDeploymentRequest]) (*connect.Response[v1.AuthorizeDeploymentResponse], error)
-	// Cancel a running or queued deployment. Cancels the underlying Restate
-	// Deploy invocation, which triggers the workflow's compensation stack to
-	// transition the deployment to failed and release any held build slot.
+	// Cancel a running or queued deployment. Marks the deployment cancelled,
+	// then cancels the underlying Restate Deploy invocation; the workflow's
+	// compensation stack releases any held build slot and unwinds partial state
+	// but cannot overwrite the cancelled status. Audited with the request's
+	// actor; a request without an actor is not audited.
 	// Idempotent: returns success if the deployment is already terminal.
 	CancelDeployment(context.Context, *connect.Request[v1.CancelDeploymentRequest]) (*connect.Response[v1.CancelDeploymentResponse], error)
 	// Stop a ready non-production deployment by scaling it down.

@@ -95,16 +95,17 @@
 //
 // Users can manually cancel an in-flight deployment via the CancelDeployment
 // RPC on the control API ([services/deployment.Service.CancelDeployment]).
-// The RPC stamps any active deployment steps with "Cancelled by user" (via
-// [db.Queries.EndActiveDeploymentStepsWithError]) and calls
+// Every cancel path (user cancel, sibling dedup, environment deletion) runs
+// through the shared internal/deploycancel helper: stamp active steps with the
+// reason, transition the rows, then call
 // [restateadmin.Client.CancelInvocation] on the stored invocation_id. Restate
 // injects a TerminalError at the handler's next SDK call, which triggers the
 // deferred compensation stack to release the build slot, mark the deployment
 // as failed (via the conditional [db.Queries.UpdateDeploymentStatusIfActive]
 // which never overwrites terminal statuses), and unwind partial state.
 //
-// Sibling cancellation (dedup) uses the same mechanism but stamps
-// "Superseded by newer commit" and transitions the status to superseded.
+// Sibling cancellation (dedup) stamps "Superseded by newer commit" and
+// transitions the status to superseded.
 //
 // # Image Builds
 //

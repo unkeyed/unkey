@@ -11,6 +11,7 @@ import (
 	"connectrpc.com/connect"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
+	"github.com/unkeyed/unkey/pkg/auditlog"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/auth"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
@@ -160,18 +161,37 @@ func (s *Service) AuthorizeDeployment(ctx context.Context, req *connect.Request[
 		)
 	}
 
-	// Update commit status on GitHub
+	// Replace the failing "awaiting authorization" commit status that Create
+	// posted. GitHubStatusService owns the status context string, so both
+	// writes land on the same check instead of stacking a second one. Send,
+	// not Request: the status is best-effort by design and the handler logs
+	// its own GitHub failures, so an unreachable GitHub cannot fail an
+	// authorization that already dispatched the build.
 	if commitSHA != "" {
-		if statusErr := s.github.CreateCommitStatus(
-			repoConn.InstallationID,
-			repoConn.RepositoryFullName,
-			commitSHA,
-			"success",
-			"",
-			"Deployment authorized and started",
-			"Unkey Deploy Authorization",
-		); statusErr != nil {
+		if _, statusErr := hydrav1.NewGitHubStatusServiceIngressClient(s.restate, deploymentID).
+			SetCommitStatus().
+			Send(ctx, &hydrav1.GitHubStatusCommitStatusRequest{
+				InstallationId: repoConn.InstallationID,
+				Repo:           repoConn.RepositoryFullName,
+				CommitSha:      commitSHA,
+				State:          hydrav1.GitHubCommitStatusState_GITHUB_COMMIT_STATUS_STATE_SUCCESS,
+				TargetUrl:      "",
+				Description:    "Deployment authorized and started",
+			}); statusErr != nil {
 			logger.Error("failed to update commit status to success", "error", statusErr)
+		}
+	}
+
+	if a := req.Msg.GetActor(); a != nil {
+		if auditErr := s.recordLifecycleAudit(ctx,
+			auditlog.DeploymentAuthorizeEvent,
+			fmt.Sprintf("Authorized deployment %s", deploymentID),
+			deployment.WorkspaceID,
+			deploymentID,
+			lifecycleAuditMeta(deployment.ProjectID, deployment.AppID, deployment.EnvironmentID),
+			a,
+		); auditErr != nil {
+			return nil, connect.NewError(connect.CodeInternal, auditFailure("authorize deployment", auditErr))
 		}
 	}
 

@@ -1,9 +1,7 @@
 package environment
 
 import (
-	"database/sql"
 	"fmt"
-	"time"
 
 	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
 
@@ -13,6 +11,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/audit"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/deploycancel"
 )
 
 // envDeletedMessage is stamped onto in-flight deployment steps when an
@@ -27,7 +26,7 @@ const envDeletedMessage = "Environment deleted"
 // This handler is the single chokepoint for deployment row deletion;
 // project and app deletes fan out to here via the virtual object cascade.
 //
-// Key: environment_id
+// Key: environment_id.
 func (s *Service) Delete(
 	ctx restate.ObjectContext,
 	req *hydrav1.DeleteEnvironmentRequest,
@@ -44,7 +43,7 @@ func (s *Service) Delete(
 		return nil, fmt.Errorf("find environment: %w", err)
 	}
 
-	if err := s.cancelProgressingDeployments(ctx, envID); err != nil {
+	if err := s.cancelProgressingDeployments(ctx, env, req); err != nil {
 		return nil, fmt.Errorf("cancel progressing deployments: %w", err)
 	}
 
@@ -141,16 +140,24 @@ func (s *Service) Delete(
 	return &hydrav1.DeleteEnvironmentResponse{}, nil
 }
 
-// cancelProgressingDeployments aborts in-flight Restate invocations, then
-// marks the deployments cancelled. Cancel must happen first: if we flipped
-// status up front and a CancelInvocation later failed, the retry's
-// ListProgressingDeploymentsByEnvironmentId would skip the now-terminal row
-// and the invocation would leak. DB errors are non-fatal since the cascade
-// drops the rows anyway.
-func (s *Service) cancelProgressingDeployments(ctx restate.ObjectContext, envID string) error {
+// cancelProgressingDeployments aborts in-flight deployments through
+// deploycancel.Cancel, audited per deployment with the deletion's actor.
+//
+// The whole call is one journaled step. That is what makes it safe for the
+// helper to flip statuses before cancelling invocations: the row set was
+// journaled by the list step, so a retry after a failed cancel re-runs the
+// helper against the SAME rows rather than re-listing and skipping the ones
+// already flipped terminal. A cancel failure therefore retries until every
+// invocation is dead, and the audit entries (written last inside the helper)
+// land exactly once, on the pass where nothing fails anymore.
+func (s *Service) cancelProgressingDeployments(
+	ctx restate.ObjectContext,
+	env db.Environment,
+	req *hydrav1.DeleteEnvironmentRequest,
+) error {
 	active, err := restate.Run(ctx, func(runCtx restate.RunContext) ([]db.ListProgressingDeploymentsByEnvironmentIdRow, error) {
 		return s.db.ListProgressingDeploymentsByEnvironmentId(runCtx, db.ListProgressingDeploymentsByEnvironmentIdParams{
-			EnvironmentID:       envID,
+			EnvironmentID:       env.ID,
 			ProgressingStatuses: mysqltype.ProgressingDeploymentStatuses,
 		})
 	}, restate.WithName("list progressing deployments"))
@@ -162,66 +169,38 @@ func (s *Service) cancelProgressingDeployments(ctx restate.ObjectContext, envID 
 		return nil
 	}
 
-	deploymentIDs := make([]string, 0, len(active))
+	targets := make([]deploycancel.Target, 0, len(active))
 	for _, d := range active {
-		deploymentIDs = append(deploymentIDs, d.ID)
+		invocationID := ""
+		if d.InvocationID.Valid {
+			invocationID = d.InvocationID.String
+		}
+		targets = append(targets, deploycancel.Target{ID: d.ID, InvocationID: invocationID})
 	}
 
 	logger.Info("cancelling in-flight deployments for environment deletion",
-		"environment_id", envID,
-		"count", len(deploymentIDs),
+		"environment_id", env.ID,
+		"count", len(targets),
 	)
 
-	// DB errors below are non-fatal: even if we fail to flip the row state
-	// here, the cascade below (DeleteDeploymentsByEnvironmentId) drops the
-	// row anyway. We continue so the Restate-side cancel still fires.
-	if err := restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
-		now := sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()}
-		return s.db.EndActiveDeploymentStepsForDeployments(runCtx, db.EndActiveDeploymentStepsForDeploymentsParams{
-			EndedAt:       now,
-			Error:         sql.NullString{Valid: true, String: envDeletedMessage},
-			DeploymentIds: deploymentIDs,
+	return restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
+		return deploycancel.Cancel(runCtx, s.db, s.admin, deploycancel.Params{
+			Targets: targets,
+			Reason:  envDeletedMessage,
+			Status:  mysqltype.DeploymentsStatusCancelled,
+			Audit: &deploycancel.Audit{
+				Service:       s.auditlogs,
+				Actor:         req.GetActor(),
+				CorrelationID: req.GetCorrelationId(),
+				WorkspaceID:   env.WorkspaceID,
+				Meta: map[string]any{
+					"projectId":     env.ProjectID,
+					"appId":         env.AppID,
+					"environmentId": env.ID,
+				},
+			},
 		})
-	}, restate.WithName("stamp cancelled marker on steps")); err != nil {
-		logger.Warn("failed to stamp env-deleted marker on deployment steps",
-			"environment_id", envID,
-			"error", err,
-		)
-	}
-
-	for _, d := range active {
-		if !d.InvocationID.Valid || d.InvocationID.String == "" {
-			continue
-		}
-
-		invocationID := d.InvocationID.String
-		deploymentID := d.ID
-
-		if err := restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
-			return s.admin.CancelInvocation(runCtx, invocationID)
-		}, restate.WithName("cancel invocation "+deploymentID)); err != nil {
-			return fmt.Errorf("cancel invocation %s for deployment %s: %w", invocationID, deploymentID, err)
-		}
-	}
-
-	// Status flip is best-effort: invocations are already cancelled, and the
-	// cascade below drops these rows entirely. Propagating would deadlock the
-	// handler because Restate journals the error and replays it on every retry.
-	if err := restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
-		now := sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()}
-		return s.db.UpdateDeploymentStatusBatch(runCtx, db.UpdateDeploymentStatusBatchParams{
-			Status:    mysqltype.DeploymentsStatusCancelled,
-			UpdatedAt: now,
-			Ids:       deploymentIDs,
-		})
-	}, restate.WithName("mark deployments cancelled")); err != nil {
-		logger.Warn("failed to batch-mark deployments cancelled",
-			"environment_id", envID,
-			"error", err,
-		)
-	}
-
-	return nil
+	}, restate.WithName("cancel progressing deployments"))
 }
 
 // cancelDomainVerifications aborts in-flight custom domain verification

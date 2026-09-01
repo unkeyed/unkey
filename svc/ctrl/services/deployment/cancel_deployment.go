@@ -2,9 +2,7 @@ package deployment
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
-	"time"
 
 	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
 
@@ -13,6 +11,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/auth"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/deploycancel"
 )
 
 // cancelledByUserMessage is the error message stamped onto any in-flight
@@ -23,13 +22,11 @@ import (
 // shows "Cancelled by user" instead of something like "build interrupted".
 const cancelledByUserMessage = "Cancelled by user"
 
-// CancelDeployment aborts an in-flight deployment. It stamps any active
-// steps with "Cancelled by user", transitions the deployment to the
-// cancelled status, then asks Restate to cancel the invocation. The
-// compensation stack will try to set status=failed, but
-// UpdateDeploymentStatusIfActive protects the cancelled status so the
-// compensation is a no-op for the status field while still cleaning up
-// partial state (build slots, topologies, routes).
+// CancelDeployment aborts an in-flight deployment through
+// [deploycancel.Cancel]: it stamps any active steps with "Cancelled by user",
+// transitions the deployment to cancelled, asks Restate to cancel the
+// invocation, and audits the cancel with the actor the request carries (a
+// request without an actor is not audited).
 //
 // Idempotent:
 //   - Deployments already in a terminal status (ready/failed/skipped/stopped)
@@ -73,69 +70,46 @@ func (s *Service) CancelDeployment(
 		return connect.NewResponse(&ctrlv1.CancelDeploymentResponse{}), nil
 	}
 
-	hasInvocation := deployment.InvocationID.Valid && deployment.InvocationID.String != ""
-	if hasInvocation && s.restateAdmin == nil {
+	invocationID := ""
+	if deployment.InvocationID.Valid {
+		invocationID = deployment.InvocationID.String
+	}
+	if invocationID != "" && s.restateAdmin == nil {
 		return nil, connect.NewError(connect.CodeFailedPrecondition,
 			fmt.Errorf("restate admin client is not configured"))
 	}
 
-	// Stamp any in-flight deployment steps with "Cancelled by user" BEFORE
-	// asking Restate to cancel. This way the step error the UI shows is the
-	// reason the user actually triggered, not whatever error the cancellation
-	// caused deeper in the workflow (e.g. "build interrupted" or "not enough
-	// regions became healthy"). EndDeploymentStep is first-write-wins
-	// (WHERE ended_at IS NULL), so the Deploy handler's later attempt to
-	// end the same step is a no-op.
-	if err := s.db.EndActiveDeploymentStepsWithError(ctx, db.EndActiveDeploymentStepsWithErrorParams{
-		DeploymentID: deploymentID,
-		EndedAt:      sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
-		Error:        sql.NullString{Valid: true, String: cancelledByUserMessage},
+	// The nil check cannot move into the helper: a nil *Client in a non-nil
+	// interface value would pass its admin != nil guard and panic.
+	var canceler deploycancel.InvocationCanceler
+	if s.restateAdmin != nil {
+		canceler = s.restateAdmin
+	}
+
+	if err := deploycancel.Cancel(ctx, s.db, canceler, deploycancel.Params{
+		Targets: []deploycancel.Target{{ID: deploymentID, InvocationID: invocationID}},
+		Reason:  cancelledByUserMessage,
+		Status:  mysqltype.DeploymentsStatusCancelled,
+		Audit: &deploycancel.Audit{
+			Service:       s.auditlogs,
+			Actor:         req.Msg.GetActor(),
+			CorrelationID: "",
+			WorkspaceID:   deployment.WorkspaceID,
+			Meta:          lifecycleAuditMeta(deployment.ProjectID, deployment.AppID, deployment.EnvironmentID),
+		},
 	}); err != nil {
-		// Non-fatal: we still want to cancel the invocation even if this
-		// cosmetic update fails. Worst case the UI shows the underlying
-		// error instead of "Cancelled by user".
-		logger.Warn("failed to mark in-flight steps as cancelled",
+		logger.Error("failed to cancel deployment",
 			"deployment_id", deploymentID,
-			"error", err,
-		)
-	}
-
-	// Set the status to cancelled before cancelling the invocation. The
-	// compensation stack will try UpdateDeploymentStatusIfActive(failed),
-	// but cancelled is in the NOT IN list so that update is a no-op.
-	if err := s.db.UpdateDeploymentStatusIfActive(ctx, db.UpdateDeploymentStatusIfActiveParams{
-		ID:               deploymentID,
-		Status:           mysqltype.DeploymentsStatusCancelled,
-		UpdatedAt:        sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
-		TerminalStatuses: mysqltype.TerminalDeploymentStatuses,
-	}); err != nil {
-		logger.Warn("failed to set deployment status to cancelled",
-			"deployment_id", deploymentID,
-			"error", err,
-		)
-	}
-
-	if !hasInvocation {
-		logger.Info("cancelled a deployment with no invocation id yet",
-			"deployment_id", deploymentID,
-		)
-		return connect.NewResponse(&ctrlv1.CancelDeploymentResponse{}), nil
-	}
-
-	logger.Info("cancelling deployment via restate admin",
-		"deployment_id", deploymentID,
-		"invocation_id", deployment.InvocationID.String,
-	)
-
-	// CancelInvocation treats 404 as success (workflow already finished).
-	// Any other error propagates — the caller can retry.
-	if err := s.restateAdmin.CancelInvocation(ctx, deployment.InvocationID.String); err != nil {
-		logger.Error("failed to cancel restate invocation",
-			"deployment_id", deploymentID,
-			"invocation_id", deployment.InvocationID.String,
+			"invocation_id", invocationID,
 			"error", err,
 		)
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to cancel: %w", err))
+	}
+
+	if invocationID == "" {
+		logger.Info("cancelled a deployment with no invocation id yet",
+			"deployment_id", deploymentID,
+		)
 	}
 
 	return connect.NewResponse(&ctrlv1.CancelDeploymentResponse{}), nil

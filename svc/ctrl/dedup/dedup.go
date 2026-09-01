@@ -8,13 +8,13 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"time"
 
 	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
 
 	"github.com/unkeyed/unkey/pkg/logger"
 	restateadmin "github.com/unkeyed/unkey/pkg/restate/admin"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/deploycancel"
 )
 
 // SupersededByNewerCommitMessage is stamped onto the in-flight deployment
@@ -48,15 +48,18 @@ type Newer struct {
 // CancelOlderSiblings finds deployments for the same (app, environment,
 // branch) that were created before newer and are still in the build queue
 // (status `pending` or `awaiting_approval` -- haven't acquired a build slot
-// yet), then marks them superseded and cancels their Restate invocations.
+// yet), then hands them to deploycancel: superseded status, no audit entries
+// (machine-initiated, the customer never asked for it).
 //
 // Once a deployment transitions out of `pending` (acquired a build slot and
 // moved to `starting`/`building`/etc), it is committed and will not be
 // superseded by a newer commit. This avoids the pathological "rapid pushes
 // keep cancelling builds and nothing ever finishes" scenario.
 //
-// Best-effort: returns an error only when the initial DB lookup fails.
-// Per-deployment errors are logged but don't stop the loop.
+// Best-effort: failed invocation cancels don't stop the remaining siblings;
+// they come back joined in the returned error for the caller to log. The rows
+// are superseded either way, and Deploy refuses to build a terminal row, so a
+// missed cancel cannot resurrect a sibling.
 //
 // Only git-sourced deployments with a branch are deduplicated -- docker
 // image redeploys are manual and should never cancel siblings.
@@ -88,58 +91,26 @@ func (s *Service) CancelOlderSiblings(ctx context.Context, newer Newer) error {
 		"branch", newer.GitBranch,
 	)
 
-	now := sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()}
-
-	deploymentIDs := make([]string, 0, len(older))
+	targets := make([]deploycancel.Target, 0, len(older))
 	for _, old := range older {
-		deploymentIDs = append(deploymentIDs, old.ID)
-	}
-
-	// ONE query to stamp all in-flight steps with the superseded marker.
-	// First-write-wins (WHERE ended_at IS NULL) so the Deploy handler's
-	// own step-end is a no-op and our marker wins.
-	err = s.db.EndActiveDeploymentStepsForDeployments(ctx, db.EndActiveDeploymentStepsForDeploymentsParams{
-		EndedAt:       now,
-		Error:         sql.NullString{Valid: true, String: SupersededByNewerCommitMessage},
-		DeploymentIds: deploymentIDs,
-	})
-	if err != nil {
-		logger.Warn("failed to batch-stamp superseded marker on deployment steps",
-			"deployment_ids", deploymentIDs,
-			"error", err,
-		)
-	}
-
-	// ONE query to transition all siblings to superseded.
-	err = s.db.UpdateDeploymentStatusBatch(ctx, db.UpdateDeploymentStatusBatchParams{
-		Status:    mysqltype.DeploymentsStatusSuperseded,
-		UpdatedAt: now,
-		Ids:       deploymentIDs,
-	})
-	if err != nil {
-		logger.Error("failed to batch-mark deployments as superseded",
-			"deployment_ids", deploymentIDs,
-			"error", err,
-		)
-	}
-
-	// Cancel each Restate invocation. Deployments without an invocation ID
-	// (orphans -- workflow never started) are already marked superseded
-	// above, so there's nothing else to do for them.
-	for _, old := range older {
-		if !old.InvocationID.Valid || old.InvocationID.String == "" || s.admin == nil {
-			continue
+		invocationID := ""
+		if old.InvocationID.Valid {
+			invocationID = old.InvocationID.String
 		}
-
-		err = s.admin.CancelInvocation(ctx, old.InvocationID.String)
-		if err != nil {
-			logger.Error("failed to cancel superseded deployment invocation",
-				"deployment_id", old.ID,
-				"invocation_id", old.InvocationID.String,
-				"error", err,
-			)
-		}
+		targets = append(targets, deploycancel.Target{ID: old.ID, InvocationID: invocationID})
 	}
 
-	return nil
+	// The nil check cannot move into the helper: a nil *Client in a non-nil
+	// interface value would pass its admin != nil guard and panic.
+	var canceler deploycancel.InvocationCanceler
+	if s.admin != nil {
+		canceler = s.admin
+	}
+
+	return deploycancel.Cancel(ctx, s.db, canceler, deploycancel.Params{
+		Targets: targets,
+		Reason:  SupersededByNewerCommitMessage,
+		Status:  mysqltype.DeploymentsStatusSuperseded,
+		Audit:   nil,
+	})
 }

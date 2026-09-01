@@ -1988,12 +1988,17 @@ type Querier interface {
 	//  SET status = ?, updated_at = ?
 	//  WHERE id = ?
 	UpdateDeploymentStatus(ctx context.Context, arg UpdateDeploymentStatusParams) error
-	//UpdateDeploymentStatusBatch
+	// Batch form of UpdateDeploymentStatusIfActive: transition deployments only
+	// while their current status is still active, so a cancel arriving after a
+	// deployment finished (or after the dedup path already superseded it) never
+	// rewrites a terminal status. Callers pass db.TerminalDeploymentStatuses so
+	// the terminal set has a single source of truth.
 	//
 	//  UPDATE deployments
 	//  SET status = ?, updated_at = ?
 	//  WHERE id IN (/*SLICE:ids*/?)
-	UpdateDeploymentStatusBatch(ctx context.Context, arg UpdateDeploymentStatusBatchParams) error
+	//    AND status NOT IN (/*SLICE:terminal_statuses*/?)
+	UpdateDeploymentStatusBatchIfActive(ctx context.Context, arg UpdateDeploymentStatusBatchIfActiveParams) error
 	// Transition a deployment's status only when its current status is still
 	// "active" (non-terminal). Prevents the Deploy handler's compensation
 	// stack from overwriting a status that was set intentionally by the dedup

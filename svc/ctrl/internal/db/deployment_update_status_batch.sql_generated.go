@@ -13,25 +13,32 @@ import (
 	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
 )
 
-const updateDeploymentStatusBatch = `-- name: UpdateDeploymentStatusBatch :exec
+const updateDeploymentStatusBatchIfActive = `-- name: UpdateDeploymentStatusBatchIfActive :exec
 UPDATE deployments
 SET status = ?, updated_at = ?
 WHERE id IN (/*SLICE:ids*/?)
+  AND status NOT IN (/*SLICE:terminal_statuses*/?)
 `
 
-type UpdateDeploymentStatusBatchParams struct {
-	Status    mysqltype.DeploymentsStatus `db:"status"`
-	UpdatedAt sql.NullInt64               `db:"updated_at"`
-	Ids       []string                    `db:"ids"`
+type UpdateDeploymentStatusBatchIfActiveParams struct {
+	Status           mysqltype.DeploymentsStatus   `db:"status"`
+	UpdatedAt        sql.NullInt64                 `db:"updated_at"`
+	Ids              []string                      `db:"ids"`
+	TerminalStatuses []mysqltype.DeploymentsStatus `db:"terminal_statuses"`
 }
 
-// UpdateDeploymentStatusBatch
+// Batch form of UpdateDeploymentStatusIfActive: transition deployments only
+// while their current status is still active, so a cancel arriving after a
+// deployment finished (or after the dedup path already superseded it) never
+// rewrites a terminal status. Callers pass db.TerminalDeploymentStatuses so
+// the terminal set has a single source of truth.
 //
 //	UPDATE deployments
 //	SET status = ?, updated_at = ?
 //	WHERE id IN (/*SLICE:ids*/?)
-func (q *Queries) UpdateDeploymentStatusBatch(ctx context.Context, arg UpdateDeploymentStatusBatchParams) error {
-	query := updateDeploymentStatusBatch
+//	  AND status NOT IN (/*SLICE:terminal_statuses*/?)
+func (q *Queries) UpdateDeploymentStatusBatchIfActive(ctx context.Context, arg UpdateDeploymentStatusBatchIfActiveParams) error {
+	query := updateDeploymentStatusBatchIfActive
 	var queryParams []interface{}
 	queryParams = append(queryParams, arg.Status)
 	queryParams = append(queryParams, arg.UpdatedAt)
@@ -42,6 +49,14 @@ func (q *Queries) UpdateDeploymentStatusBatch(ctx context.Context, arg UpdateDep
 		query = strings.Replace(query, "/*SLICE:ids*/?", strings.Repeat(",?", len(arg.Ids))[1:], 1)
 	} else {
 		query = strings.Replace(query, "/*SLICE:ids*/?", "NULL", 1)
+	}
+	if len(arg.TerminalStatuses) > 0 {
+		for _, v := range arg.TerminalStatuses {
+			queryParams = append(queryParams, v)
+		}
+		query = strings.Replace(query, "/*SLICE:terminal_statuses*/?", strings.Repeat(",?", len(arg.TerminalStatuses))[1:], 1)
+	} else {
+		query = strings.Replace(query, "/*SLICE:terminal_statuses*/?", "NULL", 1)
 	}
 	_, err := q.db.ExecContext(ctx, query, queryParams...)
 	return err

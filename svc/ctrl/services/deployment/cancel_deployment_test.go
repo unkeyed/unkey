@@ -8,11 +8,13 @@ import (
 	"connectrpc.com/connect"
 	"github.com/stretchr/testify/require"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
+	"github.com/unkeyed/unkey/pkg/auditlog"
 	"github.com/unkeyed/unkey/pkg/mysql/sqlcomment"
 	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/ctrl/integration/seed"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/auditlogs"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
 
@@ -72,6 +74,79 @@ func TestCancelDeploymentTerminalIsNoop(t *testing.T) {
 	require.Equal(t, mysqltype.DeploymentsStatusReady, after.Status)
 }
 
+// TestCancelDeploymentAuditsWithRequestActor pins the single-writer contract
+// from the dedup-audit consolidation: the dashboard no longer inserts its own
+// deployment.cancel entry, so the ctrl RPC must write it from the actor the
+// request carries.
+func TestCancelDeploymentAuditsWithRequestActor(t *testing.T) {
+	ctx := context.Background()
+	svc, database, resources := newCancelTestService(t, ctx)
+
+	deployment := resources.seeder.CreateDeployment(ctx, seed.CreateDeploymentRequest{
+		ID:            uid.New(uid.DeploymentPrefix),
+		WorkspaceID:   resources.workspaceID,
+		ProjectID:     resources.projectID,
+		AppID:         resources.appID,
+		EnvironmentID: resources.environmentID,
+		Status:        mysqltype.DeploymentsStatusPending,
+	})
+
+	actorID := uid.New("user")
+	req := connect.NewRequest(&ctrlv1.CancelDeploymentRequest{
+		DeploymentId: deployment.ID,
+		Actor:        &ctrlv1.ActorInfo{Id: actorID, Type: ctrlv1.ActorType_ACTOR_TYPE_USER},
+	})
+	req.Header().Set("Authorization", "Bearer "+testBearer)
+
+	_, err := svc.CancelDeployment(ctx, req)
+	require.NoError(t, err)
+
+	require.Equal(t, 1, countCancelAudits(t, ctx, database, resources.workspaceID, deployment.ID, actorID))
+}
+
+// TestCancelDeploymentWithoutActorWritesNoAudit keeps out-of-band callers from
+// fabricating a system-actor entry the customer never triggered.
+func TestCancelDeploymentWithoutActorWritesNoAudit(t *testing.T) {
+	ctx := context.Background()
+	svc, database, resources := newCancelTestService(t, ctx)
+
+	deployment := resources.seeder.CreateDeployment(ctx, seed.CreateDeploymentRequest{
+		ID:            uid.New(uid.DeploymentPrefix),
+		WorkspaceID:   resources.workspaceID,
+		ProjectID:     resources.projectID,
+		AppID:         resources.appID,
+		EnvironmentID: resources.environmentID,
+		Status:        mysqltype.DeploymentsStatusPending,
+	})
+
+	req := connect.NewRequest(&ctrlv1.CancelDeploymentRequest{DeploymentId: deployment.ID})
+	req.Header().Set("Authorization", "Bearer "+testBearer)
+
+	_, err := svc.CancelDeployment(ctx, req)
+	require.NoError(t, err)
+
+	rows, err := database.ListClickhouseOutboxByWorkspace(ctx, resources.workspaceID)
+	require.NoError(t, err)
+	require.Empty(t, rows)
+}
+
+func countCancelAudits(t *testing.T, ctx context.Context, database db.Database, workspaceID, deploymentID, actorID string) int {
+	t.Helper()
+	rows, err := database.ListClickhouseOutboxByWorkspace(ctx, workspaceID)
+	require.NoError(t, err)
+
+	count := 0
+	for _, row := range rows {
+		payload := string(row.Payload)
+		if strings.Contains(payload, string(auditlog.DeploymentCancelEvent)) &&
+			strings.Contains(payload, deploymentID) &&
+			strings.Contains(payload, actorID) {
+			count++
+		}
+	}
+	return count
+}
+
 const testBearer = "KEBAP"
 
 // cancelTestResources is the seeded hierarchy a deployment row needs.
@@ -118,17 +193,18 @@ func newCancelTestService(t *testing.T, ctx context.Context) (*Service, db.Datab
 		Kind:        mysqltype.EnvironmentKindProduction,
 	})
 
+	auditlogSvc, err := auditlogs.New(auditlogs.Config{DB: database})
+	require.NoError(t, err)
+
 	// RestateAdmin stays nil: these cases never reach the invocation cancel,
 	// and a nil client is what proves it.
 	svc := New(Config{
-		Database:                        database,
-		Restate:                         nil,
-		RestateAdmin:                    nil,
-		GitHub:                          nil,
-		Auditlogs:                       nil,
-		AllowUnauthenticatedDeployments: false,
-		Bearer:                          testBearer,
-		EnforceDeployGate:               false,
+		Database:          database,
+		Restate:           nil,
+		RestateAdmin:      nil,
+		Auditlogs:         auditlogSvc,
+		Bearer:            testBearer,
+		EnforceDeployGate: false,
 	})
 
 	return svc, database, cancelTestResources{
