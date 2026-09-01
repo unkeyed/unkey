@@ -17,6 +17,8 @@ const listRunningDeploymentsByWorkspaceId = `-- name: ListRunningDeploymentsByWo
 SELECT
   d.id,
   d.app_id,
+  d.status,
+  d.invocation_id,
   a.current_deployment_id
 FROM deployments d
 JOIN apps a ON a.id = d.app_id
@@ -34,9 +36,11 @@ type ListRunningDeploymentsByWorkspaceIdParams struct {
 }
 
 type ListRunningDeploymentsByWorkspaceIdRow struct {
-	ID                  string         `db:"id"`
-	AppID               string         `db:"app_id"`
-	CurrentDeploymentID sql.NullString `db:"current_deployment_id"`
+	ID                  string                      `db:"id"`
+	AppID               string                      `db:"app_id"`
+	Status              mysqltype.DeploymentsStatus `db:"status"`
+	InvocationID        sql.NullString              `db:"invocation_id"`
+	CurrentDeploymentID sql.NullString              `db:"current_deployment_id"`
 }
 
 // Running deployments for a workspace that still have (or will soon have) live
@@ -50,11 +54,14 @@ type ListRunningDeploymentsByWorkspaceIdRow struct {
 // cleared before its desired state can change. Callers pass
 // db.ActiveComputeDeploymentStatuses so the status set has a single source of
 // truth (deployment_status.go) instead of a SQL literal that can drift from the
-// enum.
+// enum. Status and invocation_id let Teardown cancel the in-flight Deploy of a
+// still-progressing deployment before scheduling its stop.
 //
 //	SELECT
 //	  d.id,
 //	  d.app_id,
+//	  d.status,
+//	  d.invocation_id,
 //	  a.current_deployment_id
 //	FROM deployments d
 //	JOIN apps a ON a.id = d.app_id
@@ -84,7 +91,13 @@ func (q *Queries) ListRunningDeploymentsByWorkspaceId(ctx context.Context, arg L
 	var items []ListRunningDeploymentsByWorkspaceIdRow
 	for rows.Next() {
 		var i ListRunningDeploymentsByWorkspaceIdRow
-		if err := rows.Scan(&i.ID, &i.AppID, &i.CurrentDeploymentID); err != nil {
+		if err := rows.Scan(
+			&i.ID,
+			&i.AppID,
+			&i.Status,
+			&i.InvocationID,
+			&i.CurrentDeploymentID,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)

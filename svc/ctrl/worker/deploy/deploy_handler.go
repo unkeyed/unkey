@@ -892,9 +892,12 @@ func (w *Workflow) spinDownPreviousDeployments(
 	if err != nil {
 		return err
 	}
+	// Send, not Request: two concurrent same-branch Deploys each requesting
+	// the other's busy key would wait on each other with nothing to detect
+	// the cycle. The schedule is fire-and-forget either way.
 	for _, previousDeploymentID := range previousDeploymentIDs {
-		_, err := hydrav1.NewDeploymentServiceClient(ctx, previousDeploymentID).
-			ScheduleDesiredStateChange().Request(
+		hydrav1.NewDeployServiceClient(ctx, previousDeploymentID).
+			ScheduleDesiredStateChange().Send(
 			&hydrav1.ScheduleDesiredStateChangeRequest{
 				DelayMillis: time.Minute.Milliseconds(), // give frontline a graceperiod to clear their caches
 				State:       hydrav1.DeploymentDesiredState_DEPLOYMENT_DESIRED_STATE_STOPPED,
@@ -902,9 +905,6 @@ func (w *Workflow) spinDownPreviousDeployments(
 			},
 			restate.WithIdempotencyKey(previousDeploymentID),
 		)
-		if err != nil {
-			return fault.Wrap(err, fault.Public("Previous live deployment could not be scheduled for standby."))
-		}
 	}
 
 	return nil
@@ -936,9 +936,11 @@ func (w *Workflow) swapLiveDeployment(
 		return fault.Wrap(err, fault.Public("App live deployment could not be updated."))
 	}
 
+	// Send, not Request: the previous deployment's key can be busy for many
+	// minutes, and this deploy must not block on it to finish.
 	if swapResp.GetPreviousDeploymentId() != "" {
-		_, err = hydrav1.NewDeploymentServiceClient(ctx, swapResp.GetPreviousDeploymentId()).
-			ScheduleDesiredStateChange().Request(
+		hydrav1.NewDeployServiceClient(ctx, swapResp.GetPreviousDeploymentId()).
+			ScheduleDesiredStateChange().Send(
 			&hydrav1.ScheduleDesiredStateChangeRequest{
 				DelayMillis: (30 * time.Minute).Milliseconds(),
 				State:       hydrav1.DeploymentDesiredState_DEPLOYMENT_DESIRED_STATE_STOPPED,
@@ -946,9 +948,6 @@ func (w *Workflow) swapLiveDeployment(
 			},
 			restate.WithIdempotencyKey(swapResp.GetPreviousDeploymentId()),
 		)
-		if err != nil {
-			return fault.Wrap(err, fault.Public("Previous live deployment could not be scheduled for standby."))
-		}
 	}
 
 	return nil

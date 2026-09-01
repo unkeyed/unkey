@@ -31,11 +31,12 @@ const (
 // drain. The workspace id is the virtual object key.
 //
 // For each deployment that is its app's current deployment it first clears
-// apps.current_deployment_id: the DeploymentService guard refuses to change the
-// current deployment, and a torn-down app genuinely has no current deployment,
-// so clearing it makes the guard's precondition honestly true instead of
-// punching a hole in it. Frontline routes off frontline_routes + desired_state
-// and ignores current_deployment_id, so clearing it does not disturb routing.
+// apps.current_deployment_id: the DeployService state-change guard refuses to
+// change the current deployment, and a torn-down app genuinely has no current
+// deployment, so clearing it makes the guard's precondition honestly true
+// instead of punching a hole in it. Frontline routes off frontline_routes +
+// desired_state and ignores current_deployment_id, so clearing it does not
+// disturb routing.
 //
 // The stop itself is fire-and-forget: ScheduleDesiredStateChange records the
 // transition on each deployment's own virtual object and self-sends the apply,
@@ -91,6 +92,23 @@ func (v *VirtualObject) Teardown(
 			}
 		}
 
+		// A still-progressing deployment has a live Deploy invocation holding
+		// its key, so the stop Send below queues behind the whole build: the
+		// workspace keeps buying compute until the build finishes, and the
+		// drain poll cannot account for instances that appear afterwards.
+		// Admin cancellation is the one signal that reaches a running
+		// invocation instead of its inbox: Deploy aborts at its next journaled
+		// step and its compensations unwind the build. CancelInvocation
+		// treats 404 as success, so a build that just finished is harmless.
+		if v.admin != nil && !d.Status.IsTerminal() && d.InvocationID.Valid && d.InvocationID.String != "" {
+			invocationID := d.InvocationID.String
+			if err := restate.RunVoid(ctx, func(rc restate.RunContext) error {
+				return v.admin.CancelInvocation(rc, invocationID)
+			}, restate.WithName("cancel invocation "+d.ID)); err != nil {
+				return nil, fmt.Errorf("cancel invocation %s for deployment %s: %w", invocationID, d.ID, err)
+			}
+		}
+
 		// Send (not Request): the per-deployment object owns the state change,
 		// its retries, and the krane handoff. A replay does not re-dispatch.
 		//
@@ -100,7 +118,7 @@ func (v *VirtualObject) Teardown(
 		// the teardown entirely: still running, but with current_deployment_id
 		// already cleared above and, for cancel, no entitlement left. Teardown
 		// is authoritative, so it supersedes whatever was in flight.
-		hydrav1.NewDeploymentServiceClient(ctx, d.ID).
+		hydrav1.NewDeployServiceClient(ctx, d.ID).
 			ScheduleDesiredStateChange().
 			Send(&hydrav1.ScheduleDesiredStateChangeRequest{
 				DelayMillis: 0,

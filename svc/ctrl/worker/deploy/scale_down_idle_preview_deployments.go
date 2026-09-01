@@ -83,13 +83,10 @@ func (w *Workflow) ScaleDownIdlePreviewDeployments(ctx restate.ObjectContext, re
 				}
 
 				if requests == 0 {
-					_, err = hydrav1.NewDeploymentServiceClient(ctx, deployment.ID).ScheduleDesiredStateChange().Request(&hydrav1.ScheduleDesiredStateChangeRequest{
+					hydrav1.NewDeployServiceClient(ctx, deployment.ID).ScheduleDesiredStateChange().Send(&hydrav1.ScheduleDesiredStateChangeRequest{
 						DelayMillis: 0,
 						State:       hydrav1.DeploymentDesiredState_DEPLOYMENT_DESIRED_STATE_STOPPED,
 					})
-					if err != nil {
-						return nil, err
-					}
 				}
 			}
 

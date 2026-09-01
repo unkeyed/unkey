@@ -12,7 +12,7 @@ import (
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
-	"github.com/unkeyed/unkey/svc/ctrl/worker/deployment"
+	"github.com/unkeyed/unkey/svc/ctrl/worker/deploy"
 )
 
 // restoreCheck is the journaled verdict on whether a suspension-record entry
@@ -36,8 +36,8 @@ type restoreCheck struct {
 // current, which nothing would tear down again.
 //
 // The wake writes the running desired state directly via
-// deployment.ApplyDesiredState rather than routing through
-// DeploymentService.ScheduleDesiredStateChange: the latter applies
+// deploy.ApplyDesiredState rather than routing through
+// DeployService.ScheduleDesiredStateChange: the latter applies
 // asynchronously and its guard would refuse a desired-state change on a
 // now-current deployment. ApplyDesiredState performs the same writes without
 // that guard, which is safe here because current already points back at the
@@ -145,7 +145,7 @@ func (v *VirtualObject) Resume(ctx restate.ObjectContext, _ *hydrav1.ResumeReque
 		// Now current again, so wake its compute. ApplyDesiredState has no
 		// current-deployment guard (unlike ScheduleDesiredStateChange), so the
 		// write goes through even though the deployment is current.
-		if err := deployment.ApplyDesiredState(
+		if err := deploy.ApplyDesiredState(
 			ctx,
 			v.db,
 			deploymentID,

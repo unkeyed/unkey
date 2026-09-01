@@ -1,7 +1,7 @@
 -- name: ClearAppCurrentDeployment :exec
 -- Clears apps.current_deployment_id when it still points at the given
 -- deployment. Teardown calls this before stopping an app's current deployment so
--- the DeploymentService current-deployment guard permits the change; gating on
+-- the DeployService current-deployment guard permits the change; gating on
 -- the deployment id makes it a safe no-op if a concurrent deploy already
 -- re-pointed current_deployment_id at something else.
 UPDATE apps

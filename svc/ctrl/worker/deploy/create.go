@@ -109,9 +109,11 @@ func (w *Workflow) Create(ctx restate.ObjectContext, req *hydrav1.DeployCreateRe
 	// A derived id can only come back if its row is gone, and the only thing
 	// that deletes deployment rows is an environment cascade, which takes the
 	// environment id feeding the derived hash with it. So this object should
-	// have no history. Clearing the awakeable costs nothing and keeps a
-	// half-torn-down object from parking a fresh deployment on a stale wait.
+	// have no history. Clearing the awakeable and any pending desired-state
+	// transition costs nothing and keeps a half-torn-down object from parking
+	// a fresh deployment on a stale wait or stopping it with a stale schedule.
 	restate.Clear(ctx, instancesReadyAwakeableKey)
+	restate.Clear(ctx, transitionKey)
 
 	resolution, err := restate.Run(ctx, func(runCtx restate.RunContext) (createResolution, error) {
 		return w.resolveCreate(runCtx, req)

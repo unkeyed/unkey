@@ -12,7 +12,7 @@ import (
 type Querier interface {
 	// Clears apps.current_deployment_id when it still points at the given
 	// deployment. Teardown calls this before stopping an app's current deployment so
-	// the DeploymentService current-deployment guard permits the change; gating on
+	// the DeployService current-deployment guard permits the change; gating on
 	// the deployment id makes it a safe no-op if a concurrent deploy already
 	// re-pointed current_deployment_id at something else.
 	//
@@ -1649,11 +1649,14 @@ type Querier interface {
 	// cleared before its desired state can change. Callers pass
 	// db.ActiveComputeDeploymentStatuses so the status set has a single source of
 	// truth (deployment_status.go) instead of a SQL literal that can drift from the
-	// enum.
+	// enum. Status and invocation_id let Teardown cancel the in-flight Deploy of a
+	// still-progressing deployment before scheduling its stop.
 	//
 	//  SELECT
 	//    d.id,
 	//    d.app_id,
+	//    d.status,
+	//    d.invocation_id,
 	//    a.current_deployment_id
 	//  FROM deployments d
 	//  JOIN apps a ON a.id = d.app_id

@@ -9,16 +9,54 @@ import (
 
 	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
 
+	sdk_go "github.com/restatedev/sdk-go"
 	restatetest "github.com/restatedev/sdk-go/testing"
 	"github.com/stretchr/testify/require"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
+	"github.com/unkeyed/unkey/pkg/batch"
+	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/auditlogs"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
-	"github.com/unkeyed/unkey/svc/ctrl/worker/deployment"
+	"github.com/unkeyed/unkey/svc/ctrl/worker/deploy"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/deployteardown"
 )
 
-// startTeardown wires the DeploymentService (which applies the desired-state
+// deployServiceDefinition binds the real deploy workflow so Teardown's
+// ScheduleDesiredStateChange sends have a target. Build and vault
+// dependencies stay nil: these tests only exercise the state handlers.
+func deployServiceDefinition(t *testing.T, database db.Database) sdk_go.ServiceDefinition {
+	t.Helper()
+
+	auditlogSvc, err := auditlogs.New(auditlogs.Config{DB: database})
+	require.NoError(t, err)
+
+	workflow, err := deploy.New(deploy.Config{
+		DB:            database,
+		Auditlogs:     auditlogSvc,
+		DefaultDomain: "test.example.com",
+		DashboardURL:  "https://app.unkey.com",
+		Vault:         nil,
+		GitHub:        nil,
+		Build: deploy.BuildConfig{
+			Backend:    deploy.BuildBackendDepot,
+			Depot:      deploy.DepotConfig{APIUrl: "", ProjectRegion: "", ProjectPrefix: "builds-test"},
+			Kubernetes: deploy.KubernetesBuildConfig{Namespace: "", Image: ""},
+		},
+		K8s:                             nil,
+		RegistryConfig:                  deploy.RegistryConfig{Repository: "", Username: "", Password: "", Insecure: false},
+		BuildPlatform:                   deploy.BuildPlatform{Platform: "", Architecture: ""},
+		Clickhouse:                      nil,
+		BuildSteps:                      batch.NewNoop[schema.BuildStepV1](),
+		BuildStepLogs:                   batch.NewNoop[schema.BuildStepLogV1](),
+		AllowUnauthenticatedDeployments: false,
+	})
+	require.NoError(t, err)
+
+	return hydrav1.NewDeployServiceServer(workflow)
+}
+
+// startTeardown wires the DeployService (which applies the desired-state
 // change) and the DeployTeardownService under a real Restate server, with a
 // short drain poll/grace so tests don't wait on the production 5-minute timeout.
 func startTeardown(t *testing.T, database db.Database) *restatetest.TestEnvironment {
@@ -32,7 +70,7 @@ func startTeardown(t *testing.T, database db.Database) *restatetest.TestEnvironm
 	require.NoError(t, err)
 
 	return restatetest.Start(t,
-		hydrav1.NewDeploymentServiceServer(deployment.New(deployment.Config{DB: database})),
+		deployServiceDefinition(t, database),
 		hydrav1.NewDeployTeardownServiceServer(teardownSvc),
 	)
 }
@@ -57,7 +95,7 @@ func TestDeployTeardown_NoRunningDeployments(t *testing.T) {
 // TestDeployTeardown_ClearsCurrentAndStops verifies the core teardown behavior:
 // the running deployment is stopped even though it is the app's current
 // deployment. Teardown clears apps.current_deployment_id first, so the
-// DeploymentService guard (which refuses to touch the current deployment) passes
+// DeployService guard (which refuses to touch the current deployment) passes
 // on its own and the desired-state change applies.
 //
 // The deployment has a live instance and there is no krane in the test to
@@ -120,7 +158,7 @@ func TestDeployTeardown_ClearsCurrentAndStops(t *testing.T) {
 	require.NoError(t, err)
 	require.False(t, app.CurrentDeploymentID.Valid, "current_deployment_id should be cleared")
 
-	// The desired-state change is applied asynchronously by the DeploymentService
+	// The desired-state change is applied asynchronously by the DeployService
 	// VO, so poll for it. ARCHIVE maps to desired_state 'stopped'.
 	require.Eventually(t, func() bool {
 		got, getErr := h.DB.FindDeploymentById(ctx, dep.ID)

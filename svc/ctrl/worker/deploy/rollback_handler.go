@@ -109,11 +109,13 @@ func (w *Workflow) Rollback(ctx restate.ObjectContext, req *hydrav1.RollbackRequ
 		return nil, gatefault.Terminal(err)
 	}
 
-	// ensure the rolled back deployment does not get spun down from existing scheduled actions
-	_, err = hydrav1.NewDeploymentServiceClient(ctx, targetDeployment.ID).ClearScheduledStateChanges().Request(&hydrav1.ClearScheduledStateChangesRequest{})
-	if err != nil {
-		return nil, err
-	}
+	// Clear any pending standby stop on the target so it is not spun down
+	// while serving live traffic. Rollback runs on the source's key, so this
+	// is cross-key and must be a Send: the target can be busy for many
+	// minutes and a Request would park the rollback behind it. The Send
+	// enqueues now; a pending delayed transition only reaches the target's
+	// inbox when its delay elapses, so the clear wins.
+	hydrav1.NewDeployServiceClient(ctx, targetDeployment.ID).ClearScheduledStateChanges().Send(&hydrav1.ClearScheduledStateChangesRequest{})
 
 	frontlineRoutes, err := restate.Run(ctx, func(stepCtx restate.RunContext) ([]db.FindFrontlineRoutesForRollbackRow, error) {
 		return w.db.FindFrontlineRoutesForRollback(stepCtx, db.FindFrontlineRoutesForRollbackParams{

@@ -36,7 +36,6 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/deploybilling"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/deploy"
-	"github.com/unkeyed/unkey/svc/ctrl/worker/deployment"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/deployteardown"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/keylastusedsync"
 	vaulttestutil "github.com/unkeyed/unkey/svc/vault/testutil"
@@ -286,8 +285,16 @@ func New(t *testing.T, opts ...Option) *Harness {
 	})
 	require.NoError(t, err)
 
-	deploymentSvc := deployment.New(deployment.Config{
-		DB: database,
+	// The build slot service audits slot occupancy against the Restate
+	// admin API, and Teardown cancels in-flight Deploy invocations through
+	// it, but the admin URL is only known after containers.Restate starts
+	// below, and that start needs the constructed services. The lazy
+	// adapter breaks the cycle: it is set directly after the container is
+	// up, and no handler runs before that.
+	lazyAdmin := &lazyInvocationLiveness{mu: sync.Mutex{}, client: nil}
+	buildSlotSvc := buildslot.New(buildslot.Config{
+		DB:           database,
+		RestateAdmin: lazyAdmin,
 	})
 
 	// CheckWorkspaceSpend sends Teardown/Resume to this service. Restate
@@ -295,21 +302,11 @@ func New(t *testing.T, opts ...Option) *Harness {
 	// registered here or a dispatched check never completes.
 	teardownSvc, err := deployteardown.New(deployteardown.Config{
 		DB:                database,
+		Admin:             lazyAdmin,
 		DrainPollInterval: 200 * time.Millisecond,
 		DrainGraceTimeout: 2 * time.Second,
 	})
 	require.NoError(t, err)
-
-	// The build slot service audits slot occupancy against the Restate
-	// admin API, but the admin URL is only known after containers.Restate
-	// starts below, and that start needs the constructed services. The
-	// lazy adapter breaks the cycle: it is set directly after the
-	// container is up, and no handler runs before that.
-	buildSlotLiveness := &lazyInvocationLiveness{mu: sync.Mutex{}, client: nil}
-	buildSlotSvc := buildslot.New(buildslot.Config{
-		DB:           database,
-		RestateAdmin: buildSlotLiveness,
-	})
 
 	// Register every worker service as one deployment on this test's own
 	// Restate. Use the proto-generated wrappers (same as run.go) to get
@@ -324,11 +321,10 @@ func New(t *testing.T, opts ...Option) *Harness {
 		hydrav1.NewClickhouseUserServiceServer(clickhouseUserSvc),
 		hydrav1.NewKeyLastUsedPartitionServiceServer(keyLastUsedPartitionSvc),
 		hydrav1.NewDeployServiceServer(deploySvc),
-		hydrav1.NewDeploymentServiceServer(deploymentSvc),
 		hydrav1.NewDeployTeardownServiceServer(teardownSvc),
 		hydrav1.NewBuildSlotServiceServer(buildSlotSvc),
 	)
-	buildSlotLiveness.set(restateadmin.New(restateadmin.Config{
+	lazyAdmin.set(restateadmin.New(restateadmin.Config{
 		BaseURL: restateCfg.AdminURL,
 		APIKey:  "",
 	}))
@@ -364,6 +360,7 @@ type lazyInvocationLiveness struct {
 }
 
 var _ buildslot.InvocationLiveness = (*lazyInvocationLiveness)(nil)
+var _ deployteardown.InvocationCanceler = (*lazyInvocationLiveness)(nil)
 
 func (l *lazyInvocationLiveness) set(client *restateadmin.Client) {
 	l.mu.Lock()
@@ -379,4 +376,14 @@ func (l *lazyInvocationLiveness) FindLiveInvocations(ctx context.Context, invoca
 		return nil, errors.New("restate admin client not initialized yet")
 	}
 	return client.FindLiveInvocations(ctx, invocationIDs)
+}
+
+func (l *lazyInvocationLiveness) CancelInvocation(ctx context.Context, invocationID string) error {
+	l.mu.Lock()
+	client := l.client
+	l.mu.Unlock()
+	if client == nil {
+		return errors.New("restate admin client not initialized yet")
+	}
+	return client.CancelInvocation(ctx, invocationID)
 }
