@@ -141,15 +141,12 @@ func (w *Workflow) resolveGitSource(
 	commit commitFields,
 	prNumber int64,
 ) (sourceResult, error) {
-	repoConn, err := w.db.FindGithubRepoConnectionByAppId(ctx, target.AppID)
-	if err != nil {
-		if db.IsNotFound(err) {
-			return blockedSource(newBlockf(
-				hydrav1.CreateBlockedReason_CREATE_BLOCKED_REASON_NO_REPO_CONNECTION,
-				"app %s has no GitHub repo connection", target.AppID,
-			)), nil
-		}
-		return sourceResult{}, err //nolint:exhaustruct // zero value unused on error
+	// The target carries the connection, so there is no lookup here.
+	if !target.GithubRepositoryFullName.Valid {
+		return blockedSource(newBlockf(
+			hydrav1.CreateBlockedReason_CREATE_BLOCKED_REASON_NO_REPO_CONNECTION,
+			"app %s has no GitHub repo connection", target.AppID,
+		)), nil
 	}
 
 	// Only default the branch when the caller named neither a commit nor a
@@ -161,28 +158,28 @@ func (w *Workflow) resolveGitSource(
 	}
 
 	if fillErr := commit.fillFromGitHub(
-		w.github, repoConn.InstallationID, repoConn.RepositoryFullName,
+		w.github, target.GithubInstallationID.Int64, target.GithubRepositoryFullName.String,
 		w.allowUnauthenticatedDeployments,
 	); fillErr != nil {
 		// The GitHub error can carry a raw response body. Log the detail and
 		// block with a reason, so nothing upstream echoes it back.
 		logger.Error("failed to resolve git commit metadata",
 			"app_id", target.AppID,
-			"repository", repoConn.RepositoryFullName,
+			"repository", target.GithubRepositoryFullName.String,
 			"error", fillErr.Error(),
 		)
 		return blockedSource(newBlockf(
 			hydrav1.CreateBlockedReason_CREATE_BLOCKED_REASON_COMMIT_NOT_RESOLVED,
 			"could not resolve branch %q or commit %q in %s",
-			commit.Branch, commit.SHA, repoConn.RepositoryFullName,
+			commit.Branch, commit.SHA, target.GithubRepositoryFullName.String,
 		)), nil
 	}
 
 	return newSourceResult(buildSource{
 		Image: "",
 		Git: &gitBuild{
-			InstallationID: repoConn.InstallationID,
-			Repository:     repoConn.RepositoryFullName,
+			InstallationID: target.GithubInstallationID.Int64,
+			Repository:     target.GithubRepositoryFullName.String,
 			ContextPath:    target.DockerContext,
 			DockerfilePath: target.Dockerfile.String,
 			BuildCommand:   target.BuildCommand.String,
@@ -238,12 +235,8 @@ func (w *Workflow) resolveExistingDeployment(
 	// A commit is only rebuildable while the app still has the connection to
 	// fetch it from. Without one, fall back to the image the source produced.
 	if commit.SHA != "" {
-		_, repoErr := w.db.FindGithubRepoConnectionByAppId(ctx, target.AppID)
-		switch {
-		case repoErr == nil:
+		if target.GithubRepositoryFullName.Valid {
 			return w.resolveGitSource(ctx, target, commit, src.PrNumber.Int64)
-		case !db.IsNotFound(repoErr):
-			return sourceResult{}, repoErr //nolint:exhaustruct // zero value unused on error
 		}
 	}
 

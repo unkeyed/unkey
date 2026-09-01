@@ -388,7 +388,15 @@ type Querier interface {
 	//      ars.healthcheck AS healthcheck,
 	//      ars.shutdown_signal AS shutdown_signal,
 	//      ars.upstream_protocol AS upstream_protocol,
-	//      ars.sentinel_config AS sentinel_config
+	//      ars.sentinel_config AS sentinel_config,
+	//      -- The repository connection rides along so a caller that has the target
+	//      -- does not look it up again. LEFT JOIN because an app with no connection is
+	//      -- a normal image-only app, not an error, and the join is by app_id because
+	//      -- github_repo_connections is UNIQUE(app_id) while one project can hold
+	//      -- several apps pointing at different repositories.
+	//      grc.installation_id AS github_installation_id,
+	//      grc.repository_id AS github_repository_id,
+	//      grc.repository_full_name AS github_repository_full_name
 	//  FROM apps a
 	//  INNER JOIN projects p ON p.id = a.project_id
 	//  INNER JOIN workspaces w ON w.id = p.workspace_id
@@ -404,6 +412,7 @@ type Querier interface {
 	//  ) AS env_lookup ON env_lookup.id = e.id
 	//  INNER JOIN app_build_settings abs ON abs.app_id = a.id AND abs.environment_id = e.id
 	//  INNER JOIN app_runtime_settings ars ON ars.app_id = a.id AND ars.environment_id = e.id
+	//  LEFT JOIN github_repo_connections grc ON grc.app_id = a.id
 	//  WHERE a.id = ?
 	//    AND a.project_id = ?
 	//  LIMIT 1

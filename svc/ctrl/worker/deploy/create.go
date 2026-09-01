@@ -341,12 +341,20 @@ func (w *Workflow) insertDeployment(
 		secrets = deploytarget.WithoutSecrets
 	}
 
+	// Loaded again rather than carried from resolveCreate, because only this
+	// step needs the secrets blob and the resolution crosses the Restate
+	// journal. Passing the target through would put a workspace's environment
+	// variables in journal storage.
 	target, loadErr := deploytarget.Load(ctx, w.db, req.GetProjectId(), req.GetAppId(), req.GetEnvironment(), secrets)
-	var terminal *deploytarget.TerminalError
-	if errors.As(loadErr, &terminal) {
-		return 0, restate.TerminalError(loadErr)
-	}
 	if loadErr != nil {
+		// The target existed when resolveCreate read it, so a miss here means an
+		// environment cascade deleted it mid-create. Terminal on purpose: no
+		// retry brings it back, and a plain error would retry until an operator
+		// intervened.
+		var terminal *deploytarget.TerminalError
+		if errors.As(loadErr, &terminal) {
+			return 0, restate.TerminalError(loadErr)
+		}
 		return 0, loadErr
 	}
 

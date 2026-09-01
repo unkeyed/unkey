@@ -33,7 +33,15 @@ SELECT
     ars.healthcheck AS healthcheck,
     ars.shutdown_signal AS shutdown_signal,
     ars.upstream_protocol AS upstream_protocol,
-    ars.sentinel_config AS sentinel_config
+    ars.sentinel_config AS sentinel_config,
+    -- The repository connection rides along so a caller that has the target
+    -- does not look it up again. LEFT JOIN because an app with no connection is
+    -- a normal image-only app, not an error, and the join is by app_id because
+    -- github_repo_connections is UNIQUE(app_id) while one project can hold
+    -- several apps pointing at different repositories.
+    grc.installation_id AS github_installation_id,
+    grc.repository_id AS github_repository_id,
+    grc.repository_full_name AS github_repository_full_name
 FROM apps a
 INNER JOIN projects p ON p.id = a.project_id
 INNER JOIN workspaces w ON w.id = p.workspace_id
@@ -49,6 +57,7 @@ INNER JOIN (
 ) AS env_lookup ON env_lookup.id = e.id
 INNER JOIN app_build_settings abs ON abs.app_id = a.id AND abs.environment_id = e.id
 INNER JOIN app_runtime_settings ars ON ars.app_id = a.id AND ars.environment_id = e.id
+LEFT JOIN github_repo_connections grc ON grc.app_id = a.id
 WHERE a.id = ?
   AND a.project_id = ?
 LIMIT 1
@@ -61,26 +70,29 @@ type FindDeployTargetParams struct {
 }
 
 type FindDeployTargetRow struct {
-	WorkspaceID         string                             `db:"workspace_id"`
-	WorkspaceSlug       string                             `db:"workspace_slug"`
-	ProjectID           string                             `db:"project_id"`
-	AppID               string                             `db:"app_id"`
-	DefaultBranch       string                             `db:"default_branch"`
-	CurrentDeploymentID sql.NullString                     `db:"current_deployment_id"`
-	EnvironmentID       string                             `db:"environment_id"`
-	EnvironmentSlug     string                             `db:"environment_slug"`
-	Dockerfile          sql.NullString                     `db:"dockerfile"`
-	DockerContext       string                             `db:"docker_context"`
-	BuildCommand        sql.NullString                     `db:"build_command"`
-	Port                int32                              `db:"port"`
-	CpuMillicores       int32                              `db:"cpu_millicores"`
-	MemoryMib           int32                              `db:"memory_mib"`
-	StorageMib          uint32                             `db:"storage_mib"`
-	Command             mysqltype.StringSlice              `db:"command"`
-	Healthcheck         mysqltype.NullHealthcheck          `db:"healthcheck"`
-	ShutdownSignal      AppRuntimeSettingsShutdownSignal   `db:"shutdown_signal"`
-	UpstreamProtocol    AppRuntimeSettingsUpstreamProtocol `db:"upstream_protocol"`
-	SentinelConfig      []byte                             `db:"sentinel_config"`
+	WorkspaceID              string                             `db:"workspace_id"`
+	WorkspaceSlug            string                             `db:"workspace_slug"`
+	ProjectID                string                             `db:"project_id"`
+	AppID                    string                             `db:"app_id"`
+	DefaultBranch            string                             `db:"default_branch"`
+	CurrentDeploymentID      sql.NullString                     `db:"current_deployment_id"`
+	EnvironmentID            string                             `db:"environment_id"`
+	EnvironmentSlug          string                             `db:"environment_slug"`
+	Dockerfile               sql.NullString                     `db:"dockerfile"`
+	DockerContext            string                             `db:"docker_context"`
+	BuildCommand             sql.NullString                     `db:"build_command"`
+	Port                     int32                              `db:"port"`
+	CpuMillicores            int32                              `db:"cpu_millicores"`
+	MemoryMib                int32                              `db:"memory_mib"`
+	StorageMib               uint32                             `db:"storage_mib"`
+	Command                  mysqltype.StringSlice              `db:"command"`
+	Healthcheck              mysqltype.NullHealthcheck          `db:"healthcheck"`
+	ShutdownSignal           AppRuntimeSettingsShutdownSignal   `db:"shutdown_signal"`
+	UpstreamProtocol         AppRuntimeSettingsUpstreamProtocol `db:"upstream_protocol"`
+	SentinelConfig           []byte                             `db:"sentinel_config"`
+	GithubInstallationID     sql.NullInt64                      `db:"github_installation_id"`
+	GithubRepositoryID       sql.NullInt64                      `db:"github_repository_id"`
+	GithubRepositoryFullName sql.NullString                     `db:"github_repository_full_name"`
 }
 
 // FindDeployTarget
@@ -105,7 +117,15 @@ type FindDeployTargetRow struct {
 //	    ars.healthcheck AS healthcheck,
 //	    ars.shutdown_signal AS shutdown_signal,
 //	    ars.upstream_protocol AS upstream_protocol,
-//	    ars.sentinel_config AS sentinel_config
+//	    ars.sentinel_config AS sentinel_config,
+//	    -- The repository connection rides along so a caller that has the target
+//	    -- does not look it up again. LEFT JOIN because an app with no connection is
+//	    -- a normal image-only app, not an error, and the join is by app_id because
+//	    -- github_repo_connections is UNIQUE(app_id) while one project can hold
+//	    -- several apps pointing at different repositories.
+//	    grc.installation_id AS github_installation_id,
+//	    grc.repository_id AS github_repository_id,
+//	    grc.repository_full_name AS github_repository_full_name
 //	FROM apps a
 //	INNER JOIN projects p ON p.id = a.project_id
 //	INNER JOIN workspaces w ON w.id = p.workspace_id
@@ -121,6 +141,7 @@ type FindDeployTargetRow struct {
 //	) AS env_lookup ON env_lookup.id = e.id
 //	INNER JOIN app_build_settings abs ON abs.app_id = a.id AND abs.environment_id = e.id
 //	INNER JOIN app_runtime_settings ars ON ars.app_id = a.id AND ars.environment_id = e.id
+//	LEFT JOIN github_repo_connections grc ON grc.app_id = a.id
 //	WHERE a.id = ?
 //	  AND a.project_id = ?
 //	LIMIT 1
@@ -155,6 +176,9 @@ func (q *Queries) FindDeployTarget(ctx context.Context, arg FindDeployTargetPara
 		&i.ShutdownSignal,
 		&i.UpstreamProtocol,
 		&i.SentinelConfig,
+		&i.GithubInstallationID,
+		&i.GithubRepositoryID,
+		&i.GithubRepositoryFullName,
 	)
 	return i, err
 }

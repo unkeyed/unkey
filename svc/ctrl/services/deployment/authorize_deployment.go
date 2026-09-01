@@ -3,6 +3,7 @@ package deployment
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"time"
 
@@ -16,6 +17,7 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/internal/actor"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/auth"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/deploytarget"
 )
 
 // AuthorizeDeployment authorizes a deployment that is awaiting approval.
@@ -48,19 +50,23 @@ func (s *Service) AuthorizeDeployment(ctx context.Context, req *connect.Request[
 		return nil, err
 	}
 
-	// Look up build settings and repo connection before changing status,
-	// so a lookup failure doesn't leave the deployment stuck as pending.
-	buildSetting, err := s.db.FindAppBuildSettingByAppEnv(ctx, db.FindAppBuildSettingByAppEnvParams{
-		AppID:         deployment.AppID,
-		EnvironmentID: deployment.EnvironmentID,
-	})
+	// One load for the build settings and the repository connection, before the
+	// status changes, so a lookup failure does not leave the deployment stuck as
+	// pending. The target is scoped to this app, which is what the connection
+	// is unique by; looking it up per project would pick an arbitrary row for a
+	// project whose apps point at different repositories.
+	target, err := deploytarget.Load(ctx, s.db,
+		deployment.ProjectID, deployment.AppID, deployment.EnvironmentID, deploytarget.WithoutSecrets)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to find build settings: %w", err))
+		var terminal *deploytarget.TerminalError
+		if errors.As(err, &terminal) {
+			return nil, connect.NewError(terminal.Code, errors.New(terminal.Message))
+		}
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to load deploy target: %w", err))
 	}
-
-	repoConn, err := s.db.FindGithubRepoConnectionByProjectId(ctx, deployment.ProjectID)
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to find repo connection: %w", err))
+	if !target.GithubRepositoryFullName.Valid {
+		return nil, connect.NewError(connect.CodeFailedPrecondition,
+			fmt.Errorf("app %s has no GitHub repo connection", deployment.AppID))
 	}
 
 	// Atomically transition from awaiting_approval → pending to prevent
@@ -112,12 +118,12 @@ func (s *Service) AuthorizeDeployment(ctx context.Context, req *connect.Request[
 		Command:      deployment.Command,
 		Source: &hydrav1.DeployRequest_Git{
 			Git: &hydrav1.GitSource{
-				InstallationId: repoConn.InstallationID,
-				Repository:     repoConn.RepositoryFullName,
+				InstallationId: target.GithubInstallationID.Int64,
+				Repository:     target.GithubRepositoryFullName.String,
 				CommitSha:      commitSHA,
-				ContextPath:    buildSetting.DockerContext,
-				DockerfilePath: buildSetting.Dockerfile.String,
-				BuildCommand:   buildSetting.BuildCommand.String,
+				ContextPath:    target.DockerContext,
+				DockerfilePath: target.Dockerfile.String,
+				BuildCommand:   target.BuildCommand.String,
 				Branch:         branch,
 				PrNumber:       prNumber,
 				ForkRepository: forkRepository,
@@ -172,8 +178,8 @@ func (s *Service) AuthorizeDeployment(ctx context.Context, req *connect.Request[
 		if _, statusErr := hydrav1.NewGitHubStatusServiceIngressClient(s.restate, deploymentID).
 			SetCommitStatus().
 			Send(ctx, &hydrav1.GitHubStatusCommitStatusRequest{
-				InstallationId: repoConn.InstallationID,
-				Repo:           repoConn.RepositoryFullName,
+				InstallationId: target.GithubInstallationID.Int64,
+				Repo:           target.GithubRepositoryFullName.String,
 				CommitSha:      commitSHA,
 				State:          hydrav1.GitHubCommitStatusState_GITHUB_COMMIT_STATUS_STATE_SUCCESS,
 				TargetUrl:      "",
