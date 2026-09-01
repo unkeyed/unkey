@@ -105,7 +105,6 @@ func WithMetrics(apiRequestBuffer ApiRequestBuffer, info InstanceInfo, redactor 
 					WorkspaceID:     workspaceID,
 					RequestID:       s.RequestID(),
 					Time:            start.UnixMilli(),
-					InsertedAt:      0,
 					Host:            s.r.Host,
 					Method:          s.r.Method,
 					Path:            s.r.URL.Path,

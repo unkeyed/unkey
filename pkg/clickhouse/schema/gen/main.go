@@ -4,11 +4,9 @@
 // table and columns statically (see the Row interface).
 //
 // Column derivation mirrors clickhouse-go's struct mapping (struct_map.go):
-// the `ch` tag overrides the field name, `ch:"-"`, `chinsert:"-"`, and
-// unexported fields are skipped. The chinsert tag keeps server-computed fields
-// available for reads while omitting them from INSERT column lists. Embedded
-// fields are rejected because no schema struct uses them; support flattening
-// here if that changes.
+// the `ch` tag overrides the field name, `ch:"-"` and unexported fields are
+// skipped. Embedded fields are rejected because no schema struct uses them;
+// support flattening here if that changes.
 //
 // Structs without a directive are ignored: they are scan targets or typed
 // JSON payloads, not insertable rows.
@@ -140,22 +138,18 @@ func deriveColumns(structType *ast.StructType) ([]string, error) {
 		if len(field.Names) == 0 {
 			return nil, fmt.Errorf("embedded fields are not supported")
 		}
-		var chTag string
+		var tag string
 		if field.Tag != nil {
-			structTag := reflect.StructTag(strings.Trim(field.Tag.Value, "`"))
-			if structTag.Get("chinsert") == "-" {
-				continue
-			}
-			chTag = structTag.Get("ch")
+			tag = reflect.StructTag(strings.Trim(field.Tag.Value, "`")).Get("ch")
 		}
-		if chTag == "-" {
+		if tag == "-" {
 			continue
 		}
 		for _, ident := range field.Names {
 			if !ident.IsExported() {
 				continue
 			}
-			name := chTag
+			name := tag
 			if name == "" {
 				name = ident.Name
 			}

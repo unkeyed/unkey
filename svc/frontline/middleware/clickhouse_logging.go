@@ -98,7 +98,6 @@ func WithClickHouseLogging(buf *batch.BatchProcessor[schema.FrontlineRequest], c
 			buf.Buffer(schema.FrontlineRequest{
 				RequestID:       tracking.RequestID,
 				Time:            tracking.StartTime.UnixMilli(),
-				InsertedAt:      0,
 				WorkspaceID:     tracking.WorkspaceID,
 				ProjectID:       tracking.ProjectID,
 				AppID:           tracking.AppID,

@@ -247,7 +247,6 @@ func (s *FrontlineSeeder) generateRequests(
 		s.frontlineRequests.Buffer(schema.FrontlineRequest{
 			RequestID:       uid.New("req"),
 			Time:            timestamp.UnixMilli(),
-			InsertedAt:      0,
 			WorkspaceID:     deployment.WorkspaceID,
 			ProjectID:       deployment.ProjectID,
 			AppID:           deployment.AppID,

@@ -37,12 +37,11 @@ func parseType(t *testing.T, src string) (*ast.GenDecl, *ast.TypeSpec, *ast.Stru
 }
 
 func TestDeriveColumns(t *testing.T) {
-	t.Run("ch tag wins, omitted and unexported fields skipped", func(t *testing.T) {
+	t.Run("ch tag wins, dash and unexported skipped", func(t *testing.T) {
 		_, _, structType := parseType(t, `
 type row struct {
 	RequestID string `+"`ch:\"request_id\"`"+`
 	Disabled  string `+"`ch:\"-\"`"+`
-	Computed  int64  `+"`ch:\"computed\" chinsert:\"-\"`"+`
 	NoTag     string
 	hidden    string
 }`)

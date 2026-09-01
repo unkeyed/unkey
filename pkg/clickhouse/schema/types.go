@@ -15,13 +15,11 @@ const (
 // KeyVerification represents the v2 key verification raw table structure.
 // This matches the key_verifications_raw_v2 table schema with additional
 // fields like spent_credits and latency compared to v1.
-// ClickHouse assigns InsertedAt when it accepts the row; writers omit it.
 //
 //unkey:table default.key_verifications_raw_v2
 type KeyVerification struct {
 	RequestID   string `ch:"request_id" json:"request_id"`
 	Time        int64  `ch:"time" json:"time"`
-	InsertedAt  int64  `ch:"inserted_at" chinsert:"-" json:"inserted_at,omitempty"`
 	WorkspaceID string `ch:"workspace_id" json:"workspace_id"`
 	KeySpaceID  string `ch:"key_space_id" json:"key_space_id"`
 	IdentityID  string `ch:"identity_id" json:"identity_id"`
@@ -43,13 +41,11 @@ type KeyVerification struct {
 // Ratelimit represents the v2 ratelimit raw table structure.
 // This matches the ratelimits_raw_v2 table schema with additional
 // latency field compared to v1.
-// ClickHouse assigns InsertedAt when it accepts the row; writers omit it.
 //
 //unkey:table default.ratelimits_raw_v2
 type Ratelimit struct {
 	RequestID   string  `ch:"request_id" json:"request_id"`
 	Time        int64   `ch:"time" json:"time"`
-	InsertedAt  int64   `ch:"inserted_at" chinsert:"-" json:"inserted_at,omitempty"`
 	WorkspaceID string  `ch:"workspace_id" json:"workspace_id"`
 	NamespaceID string  `ch:"namespace_id" json:"namespace_id"`
 	Identifier  string  `ch:"identifier" json:"identifier"`
@@ -68,13 +64,11 @@ type Ratelimit struct {
 // ApiRequest represents the v2 API request raw table structure.
 // This matches the api_requests_raw_v2 table schema with query parameters
 // and region field compared to v1.
-// ClickHouse assigns InsertedAt when it accepts the row; writers omit it.
 //
 //unkey:table default.api_requests_raw_v2
 type ApiRequest struct {
 	RequestID       string              `ch:"request_id" json:"request_id"`
 	Time            int64               `ch:"time" json:"time"`
-	InsertedAt      int64               `ch:"inserted_at" chinsert:"-" json:"inserted_at,omitempty"`
 	WorkspaceID     string              `ch:"workspace_id" json:"workspace_id"`
 	Host            string              `ch:"host" json:"host"`
 	Method          string              `ch:"method" json:"method"`
@@ -275,12 +269,10 @@ func (a InstanceCheckpointAttributes) Marshal() string {
 // waiting (CrashLoopBackOff, ImagePullBackOff, …) transitions. Mirrors
 // corev1.ContainerState; the proto wire format uses a oneof, the CH table
 // is the flat materialized view ctrl writes from that oneof.
-// ClickHouse assigns InsertedAt when it accepts the row; writers omit it.
 //
 //unkey:table default.instance_events_raw_v1
 type InstanceEventV1 struct {
 	Time          int64  `ch:"time" json:"time"`
-	InsertedAt    int64  `ch:"inserted_at" chinsert:"-" json:"inserted_at,omitempty"`
 	WorkspaceID   string `ch:"workspace_id" json:"workspace_id"`
 	ProjectID     string `ch:"project_id" json:"project_id"`
 	AppID         string `ch:"app_id" json:"app_id"`
@@ -318,13 +310,11 @@ type InstanceEventV1 struct {
 // FrontlineRequest represents the v1 frontline request raw table structure.
 // This tracks requests routed through frontline proxy to deployment instances
 // with deployment routing, performance breakdown, and error categorization.
-// ClickHouse assigns InsertedAt when it accepts the row; writers omit it.
 //
 //unkey:table default.frontline_requests_raw_v1
 type FrontlineRequest struct {
 	RequestID       string              `ch:"request_id" json:"request_id"`
 	Time            int64               `ch:"time" json:"time"`
-	InsertedAt      int64               `ch:"inserted_at" chinsert:"-" json:"inserted_at,omitempty"`
 	WorkspaceID     string              `ch:"workspace_id" json:"workspace_id"`
 	ProjectID       string              `ch:"project_id" json:"project_id"`
 	AppID           string              `ch:"app_id" json:"app_id"`
@@ -400,7 +390,6 @@ type AuditLogV1 struct {
 }
 
 // LogdrainDeliveryV1 represents one customer endpoint delivery attempt.
-// ClickHouse assigns InsertedAt when it accepts the row; writers omit it.
 //
 //unkey:table default.logdrain_deliveries_raw_v1
 type LogdrainDeliveryV1 struct {
@@ -408,7 +397,6 @@ type LogdrainDeliveryV1 struct {
 	DrainID           string `ch:"drain_id" json:"drain_id"`
 	Stream            string `ch:"stream" json:"stream"`
 	Time              int64  `ch:"time" json:"time"`
-	InsertedAt        int64  `ch:"inserted_at" chinsert:"-" json:"inserted_at,omitempty"`
 	Outcome           string `ch:"outcome" json:"outcome"`
 	Events            int64  `ch:"events" json:"events"`
 	WebhookDurationMs int64  `ch:"webhook_duration_ms" json:"webhook_duration_ms"`

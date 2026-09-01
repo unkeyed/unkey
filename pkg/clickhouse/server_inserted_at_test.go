@@ -34,7 +34,6 @@ func TestRawEventInsertedAtDefaults(t *testing.T) {
 		assertServerInsertedAt(t, ctx, conn, schema.KeyVerification{
 			RequestID:   uid.New(uid.RequestPrefix),
 			Time:        eventTime,
-			InsertedAt:  1,
 			WorkspaceID: workspaceID,
 			Tags:        []string{},
 		}, workspaceID, eventTime)
@@ -44,7 +43,6 @@ func TestRawEventInsertedAtDefaults(t *testing.T) {
 		assertServerInsertedAt(t, ctx, conn, schema.Ratelimit{
 			RequestID:   uid.New(uid.RequestPrefix),
 			Time:        eventTime,
-			InsertedAt:  1,
 			WorkspaceID: workspaceID,
 		}, workspaceID, eventTime)
 	})
@@ -53,7 +51,6 @@ func TestRawEventInsertedAtDefaults(t *testing.T) {
 		assertServerInsertedAt(t, ctx, conn, schema.ApiRequest{
 			RequestID:       uid.New(uid.RequestPrefix),
 			Time:            eventTime,
-			InsertedAt:      1,
 			WorkspaceID:     workspaceID,
 			QueryParams:     map[string][]string{},
 			RequestHeaders:  []string{},
@@ -65,7 +62,6 @@ func TestRawEventInsertedAtDefaults(t *testing.T) {
 		assertServerInsertedAt(t, ctx, conn, schema.FrontlineRequest{
 			RequestID:       uid.New(uid.RequestPrefix),
 			Time:            eventTime,
-			InsertedAt:      1,
 			WorkspaceID:     workspaceID,
 			QueryParams:     map[string][]string{},
 			RequestHeaders:  []string{},
@@ -76,7 +72,6 @@ func TestRawEventInsertedAtDefaults(t *testing.T) {
 	t.Run("instance events", func(t *testing.T) {
 		assertServerInsertedAt(t, ctx, conn, schema.InstanceEventV1{
 			Time:        eventTime,
-			InsertedAt:  1,
 			WorkspaceID: workspaceID,
 			Attributes:  "{}",
 		}, workspaceID, eventTime)
@@ -87,13 +82,12 @@ func TestRawEventInsertedAtDefaults(t *testing.T) {
 			WorkspaceID: workspaceID,
 			DrainID:     uid.New("drain"),
 			Time:        eventTime,
-			InsertedAt:  1,
 		}, workspaceID, eventTime)
 	})
 }
 
-// assertServerInsertedAt proves that the row's sentinel value does not reach
-// storage and that the database-generated timestamp falls within the insert.
+// assertServerInsertedAt proves that the insert omits the server-computed
+// column and that the generated timestamp falls within the insert.
 func assertServerInsertedAt[T schema.Row](
 	t *testing.T,
 	ctx context.Context,
