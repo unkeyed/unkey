@@ -26,7 +26,7 @@ The **Compute** card then lists the budget and the alert it sends at each thresh
 
 ## Alerts
 
-Unkey checks spend about every 15 minutes and emails the workspace admins when spend crosses 50%, 75%, and 100% of the budget.
+Unkey checks spend every few minutes and emails the workspace admins when spend crosses 50%, 75%, and 100% of the budget.
 
 Each threshold emails at most once per month. Raising the budget re-arms any threshold you drop back under. Lowering it does not send emails for thresholds you already passed. With **Stop workloads at the budget** on, the 100% email is replaced by a message that your workloads have stopped.
 
@@ -45,4 +45,4 @@ When the budget has stopped your workloads, the dashboard shows a banner on ever
 - You turn **Stop workloads at the budget** off
 - A new calendar month starts and usage resets
 
-Removing the budget or turning off **Stop workloads at the budget** resumes on the next spend check. Raising the budget or entering a new month resumes after two consecutive checks under budget, so a single noisy usage reading can't restart and stop your workloads in a loop. In both cases, expect the workloads back within about 30 minutes.
+Removing the budget or turning off **Stop workloads at the budget** resumes on the next spend check. Raising the budget or entering a new month resumes after two consecutive checks under budget, so a single noisy usage reading can't restart and stop your workloads in a loop. In both cases, expect the workloads back within a few minutes.
