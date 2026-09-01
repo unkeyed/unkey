@@ -4,12 +4,19 @@ import (
 	"encoding/json"
 )
 
-// Source values for [KeyVerification.Source]: where a verification originated.
-// Billing rollups exclude SourceGateway (gateway traffic is metered
-// separately); analytics keep both.
+// Source values identify where a [KeyVerification] originated. Billing
+// rollups exclude SourceGateway because gateway traffic is metered separately.
 const (
 	SourceAPI     = "api"
 	SourceGateway = "gateway"
+)
+
+const (
+	// OutcomeValid records successful key authentication.
+	OutcomeValid = "VALID"
+
+	// OutcomeInsufficientPermissions records a later authorization denial.
+	OutcomeInsufficientPermissions = "INSUFFICIENT_PERMISSIONS"
 )
 
 // KeyVerification represents the v2 key verification raw table structure.

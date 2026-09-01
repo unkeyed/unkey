@@ -16,21 +16,23 @@ import (
 
 // ratelimitAuditLogRow contains the persisted fields that the test guarantees.
 type ratelimitAuditLogRow struct {
-	Time        int64    `ch:"time"`
-	InsertedAt  int64    `ch:"inserted_at"`
-	Event       string   `ch:"event"`
-	Description string   `ch:"description"`
-	ActorType   string   `ch:"actor_type"`
-	ActorID     string   `ch:"actor_id"`
-	ActorName   string   `ch:"actor_name"`
-	UserAgent   string   `ch:"user_agent"`
-	TargetTypes []string `ch:"target_types"`
-	TargetIDs   []string `ch:"target_ids"`
-	TargetNames []string `ch:"target_names"`
+	Time            int64    `ch:"time"`
+	InsertedAt      int64    `ch:"inserted_at"`
+	Event           string   `ch:"event"`
+	Description     string   `ch:"description"`
+	ActorType       string   `ch:"actor_type"`
+	ActorID         string   `ch:"actor_id"`
+	ActorName       string   `ch:"actor_name"`
+	UserAgent       string   `ch:"user_agent"`
+	MetaText        string   `ch:"meta_text"`
+	TargetTypes     []string `ch:"target_types"`
+	TargetIDs       []string `ch:"target_ids"`
+	TargetNames     []string `ch:"target_names"`
+	TargetsMetaText string   `ch:"targets_meta_text"`
 }
 
-// TestLimit_WritesRootKeyAuditLog guarantees that limit audit logs flush from
-// the API buffer directly to ClickHouse without creating a MySQL outbox row.
+// TestLimit_WritesRootKeyAuditLog guarantees that metrics opt-out does not stop
+// direct audit logs. The event bypasses MySQL and excludes the identifier.
 func TestLimit_WritesRootKeyAuditLog(t *testing.T) {
 	h := testutil.NewHarness(t, testutil.HarnessConfig{ClickHouse: true})
 	route := &handler.Handler{
@@ -49,9 +51,10 @@ func TestLimit_WritesRootKeyAuditLog(t *testing.T) {
 	identifier := uid.New("sensitive")
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, http.Header{
-		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
-		"Content-Type":  {"application/json"},
-		"User-Agent":    {"audit-log-test"},
+		"Authorization":   {fmt.Sprintf("Bearer %s", rootKey)},
+		"Content-Type":    {"application/json"},
+		"User-Agent":      {"audit-log-test"},
+		"X-Unkey-Metrics": {"disabled"},
 	}, handler.Request{
 		Namespace:  namespaceName,
 		Identifier: identifier,
@@ -64,9 +67,9 @@ func TestLimit_WritesRootKeyAuditLog(t *testing.T) {
 	require.Empty(t, h.FindAuditLogsByTargetID(ctx, t, namespaceID))
 
 	rows := make([]ratelimitAuditLogRow, 0)
-	query := "SELECT time, inserted_at, event, description, actor_type, actor_id, actor_name, user_agent, " +
-		"`targets.type` AS target_types, `targets.id` AS target_ids, `targets.name` AS target_names " +
-		"FROM default.audit_logs_raw_v1 WHERE workspace_id = ? AND event = ?"
+	query := "SELECT time, inserted_at, event, description, actor_type, actor_id, actor_name, user_agent, meta_text, " +
+		"`targets.type` AS target_types, `targets.id` AS target_ids, `targets.name` AS target_names, targets_meta_text " +
+		"FROM default.audit_logs_raw_v1 WHERE workspace_id = ? AND event = ? LIMIT 1"
 	require.Eventually(t, func() bool {
 		rows = rows[:0]
 		err := h.ClickHouse.Conn().Select(ctx, &rows, query,
@@ -88,4 +91,8 @@ func TestLimit_WritesRootKeyAuditLog(t *testing.T) {
 	require.Equal(t, []string{string(auditlog.RatelimitNamespaceResourceType)}, row.TargetTypes)
 	require.Equal(t, []string{namespaceID}, row.TargetIDs)
 	require.Equal(t, []string{namespaceName}, row.TargetNames)
+	require.JSONEq(t, `{}`, row.MetaText)
+	require.JSONEq(t, `{}`, row.TargetsMetaText)
+	require.NotContains(t, row.MetaText, identifier)
+	require.NotContains(t, row.TargetsMetaText, identifier)
 }

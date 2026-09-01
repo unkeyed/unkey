@@ -30,7 +30,7 @@ type auditLogRow struct {
 }
 
 // TestVerifyKey_WritesRootKeyAuditLog guarantees that verification audit logs
-// flush from the API buffer directly to ClickHouse.
+// flush directly to ClickHouse without creating a MySQL outbox row.
 func TestVerifyKey_WritesRootKeyAuditLog(t *testing.T) {
 	h := testutil.NewHarness(t, testutil.HarnessConfig{ClickHouse: true})
 	route := &handler.Handler{
@@ -62,10 +62,12 @@ func TestVerifyKey_WritesRootKeyAuditLog(t *testing.T) {
 	require.Equal(t, http.StatusOK, res.Status)
 
 	ctx := context.Background()
+	require.Empty(t, h.FindAuditLogsByTargetID(ctx, t, key.KeyID))
+
 	rows := make([]auditLogRow, 0)
 	query := "SELECT time, inserted_at, event, description, actor_type, actor_id, actor_name, user_agent, " +
 		"`targets.type` AS target_types, `targets.id` AS target_ids, `targets.name` AS target_names " +
-		"FROM default.audit_logs_raw_v1 WHERE workspace_id = ? AND event = ?"
+		"FROM default.audit_logs_raw_v1 WHERE workspace_id = ? AND event = ? LIMIT 1"
 	require.Eventually(t, func() bool {
 		rows = rows[:0]
 		err := h.ClickHouse.Conn().Select(ctx, &rows, query,

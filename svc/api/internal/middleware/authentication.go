@@ -10,7 +10,10 @@ import (
 	keysdb "github.com/unkeyed/unkey/internal/services/keys/db"
 	"github.com/unkeyed/unkey/internal/services/ratelimit"
 	"github.com/unkeyed/unkey/pkg/auth"
+	principalauth "github.com/unkeyed/unkey/pkg/auth/principal"
+	"github.com/unkeyed/unkey/pkg/batch"
 	"github.com/unkeyed/unkey/pkg/cache"
+	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
@@ -24,6 +27,12 @@ const workspaceRatelimitNamespace = "workspace.ratelimit"
 type AuthenticationConfig struct {
 	// Auth resolves request credentials into a session principal.
 	Auth auth.Authenticator
+
+	// KeyVerifications records root key authentication and authorization outcomes.
+	KeyVerifications *batch.BatchProcessor[schema.KeyVerification]
+
+	// Region identifies the API region that authenticated the root key.
+	Region string
 
 	// Database loads workspace limit rows when they are not cached.
 	Database db.Database
@@ -40,16 +49,46 @@ type AuthenticationConfig struct {
 // Handlers behind this middleware can call [zen.Session.GetPrincipal] and then
 // perform route-specific authorization. Workspace rate limiting lives here so
 // every credential source is checked consistently after authentication resolves
-// the workspace and before business logic runs.
+// the workspace and before business logic runs. Root key usage is recorded at
+// this boundary because later route authorization can have multiple outcomes.
 func WithAuthentication(config AuthenticationConfig) zen.Middleware {
 	return func(next zen.HandleFunc) zen.HandleFunc {
 		return func(ctx context.Context, sess *zen.Session) error {
-			principal, err := config.Auth.Authenticate(ctx, sess)
+			startedAt := time.Now()
+			p, err := config.Auth.Authenticate(ctx, sess)
 			if err != nil {
 				return err
 			}
 
-			if err := checkWorkspaceRateLimit(ctx, sess, config, principal.WorkspaceID); err != nil {
+			if p.Subject.Type == principalauth.SubjectTypeRootKey && config.KeyVerifications != nil {
+				keySource, _ := p.Source.(principalauth.KeySource)
+
+				verification := schema.KeyVerification{
+					RequestID:    sess.RequestID(),
+					Time:         time.Now().UnixMilli(),
+					WorkspaceID:  p.WorkspaceID,
+					KeySpaceID:   keySource.KeySpaceID,
+					IdentityID:   "",
+					ExternalID:   "",
+					KeyID:        p.Subject.ID,
+					Region:       config.Region,
+					Source:       schema.SourceAPI,
+					AppID:        "",
+					Outcome:      schema.OutcomeValid,
+					Tags:         []string{},
+					SpentCredits: 0,
+					Latency:      float64(time.Since(startedAt).Milliseconds()),
+				}
+
+				defer func() {
+					if principalauth.AuthorizationError(p) != nil {
+						verification.Outcome = schema.OutcomeInsufficientPermissions
+					}
+					config.KeyVerifications.Buffer(verification)
+				}()
+			}
+
+			if err := checkWorkspaceRateLimit(ctx, sess, config, p.WorkspaceID); err != nil {
 				return err
 			}
 
