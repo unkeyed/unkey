@@ -16,7 +16,9 @@ import (
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_permissions_delete_role"
 )
 
-func TestPermissionErrors(t *testing.T) {
+// TestDeleteRoleMasksInsufficientPermissions guarantees that callers cannot find
+// or delete roles without delete access.
+func TestDeleteRoleMasksInsufficientPermissions(t *testing.T) {
 	ctx := context.Background()
 	h := testutil.NewHarness(t)
 
@@ -56,7 +58,7 @@ func TestPermissionErrors(t *testing.T) {
 			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
 		}
 
-		res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](
+		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](
 			h,
 			route,
 			headers,
@@ -65,10 +67,11 @@ func TestPermissionErrors(t *testing.T) {
 			},
 		)
 
-		require.Equal(t, 403, res.Status)
+		require.Equal(t, http.StatusNotFound, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
-		require.Contains(t, res.Body.Error.Detail, "permission")
+		require.Equal(t, "https://unkey.com/docs/errors/unkey/data/role_not_found", res.Body.Error.Type)
+		require.Equal(t, "The requested role does not exist.", res.Body.Error.Detail)
 	})
 
 	t.Run("no permissions", func(t *testing.T) {
@@ -80,7 +83,7 @@ func TestPermissionErrors(t *testing.T) {
 			"Authorization": {fmt.Sprintf("Bearer %s", rootKeyNoPerms)},
 		}
 
-		res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](
+		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](
 			h,
 			route,
 			headers,
@@ -89,9 +92,13 @@ func TestPermissionErrors(t *testing.T) {
 			},
 		)
 
-		require.Equal(t, 403, res.Status)
+		require.Equal(t, http.StatusNotFound, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
-		require.Contains(t, res.Body.Error.Detail, "permission")
+		require.Equal(t, "https://unkey.com/docs/errors/unkey/data/role_not_found", res.Body.Error.Type)
+		require.Equal(t, "The requested role does not exist.", res.Body.Error.Detail)
 	})
+
+	_, err = db.Query.FindRoleByID(ctx, h.DB.RO(), roleID)
+	require.NoError(t, err)
 }

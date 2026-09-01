@@ -112,3 +112,30 @@ func TestAuthorizationErrors(t *testing.T) {
 		}
 	})
 }
+
+// TestAuthorizationFailureDoesNotCreateDefaultProject guarantees that a denied
+// list request cannot mutate project state.
+func TestAuthorizationFailureDoesNotCreateDefaultProject(t *testing.T) {
+	h := testutil.NewHarness(t)
+	route := &handler.Handler{DB: h.DB}
+	h.Register(route)
+
+	workspace := h.CreateWorkspace()
+	rootKey := h.CreateRootKey(workspace.ID, "rbac.*.create_role")
+	headers := http.Header{
+		"Content-Type":  {"application/json"},
+		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+	}
+
+	res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](
+		h,
+		route,
+		headers,
+		handler.Request{},
+	)
+
+	require.Equal(t, http.StatusForbidden, res.Status, res.RawBody)
+	_, found, err := projects.FindDefaultProject(t.Context(), h.DB.RW(), workspace.ID)
+	require.NoError(t, err)
+	require.False(t, found)
+}

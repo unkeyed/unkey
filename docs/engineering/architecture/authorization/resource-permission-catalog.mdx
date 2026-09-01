@@ -100,9 +100,11 @@ Use `write` with a wildcard key ID because the key does not exist yet.
 unkey:v1:ws_123:projects/proj_123/keyspaces/ks_123/keys/*#write
 ```
 
-### Change an environment
+### Promote or roll back a deployment
 
-Environment `write` covers settings changes, promotion, and rollback.
+Promoting or rolling back a deployment changes which deployment serves the
+environment. Both actions require `write` on the environment. A deployment
+permission does not grant either action.
 
 ```plaintext
 unkey:v1:ws_123:projects/proj_123/apps/app_123/environments/env_123#write

@@ -55,9 +55,37 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	p := pagination.Parse(req.Limit, req.Cursor, 100)
 	search := mysql.SearchContains(strings.TrimSpace(ptr.SafeDeref(req.Search)))
 
-	projectID, err := projects.EnsureDefaultProject(ctx, h.DB.RW(), principal.WorkspaceID)
+	projectID, projectFound, err := projects.FindDefaultProject(ctx, h.DB.RW(), principal.WorkspaceID)
 	if err != nil {
 		return err
+	}
+
+	projectIDRequired := projectID
+	if !projectFound {
+		// A missing default project has no concrete ID to authorize. Require a
+		// grant that covers every project before creating the default project.
+		projectIDRequired = "*"
+	}
+	err = principal.Authorize(rbac.Or(
+		rbac.U(
+			urn.New().Workspace(principal.WorkspaceID).Project(projectIDRequired).RBAC().Permission("*"),
+			permissions.Read,
+		),
+		rbac.T(rbac.Tuple{
+			ResourceType: rbac.Rbac,
+			ResourceID:   "*",
+			Action:       rbac.ReadPermission,
+		}),
+	))
+	if err != nil {
+		return err
+	}
+
+	if !projectFound {
+		projectID, err = projects.EnsureDefaultProject(ctx, h.DB.RW(), principal.WorkspaceID)
+		if err != nil {
+			return err
+		}
 	}
 
 	rows, err := db.Query.ListPermissions(
@@ -77,22 +105,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
 			fault.Internal("database error"), fault.Public("Failed to retrieve permissions."),
 		)
-	}
-
-	readPermissions := rbac.U(
-		urn.New().Workspace(principal.WorkspaceID).Project(projectID).RBAC().Permission("*"),
-		permissions.Read,
-	)
-	err = principal.Authorize(rbac.Or(
-		readPermissions,
-		rbac.T(rbac.Tuple{
-			ResourceType: rbac.Rbac,
-			ResourceID:   "*",
-			Action:       rbac.ReadPermission,
-		}),
-	))
-	if err != nil {
-		return err
 	}
 
 	rows, pg := pagination.Paginate(rows, p, func(r db.Permission) string { return r.ID })

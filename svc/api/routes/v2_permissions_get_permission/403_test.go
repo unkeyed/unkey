@@ -17,7 +17,9 @@ import (
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_permissions_get_permission"
 )
 
-func TestPermissionErrors(t *testing.T) {
+// TestGetPermissionMasksInsufficientPermissions guarantees that callers cannot
+// use the response to find permissions that they cannot read.
+func TestGetPermissionMasksInsufficientPermissions(t *testing.T) {
 	ctx := context.Background()
 	h := testutil.NewHarness(t)
 
@@ -61,17 +63,18 @@ func TestPermissionErrors(t *testing.T) {
 			Permission: permissionID,
 		}
 
-		res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](
+		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](
 			h,
 			route,
 			headers,
 			req,
 		)
 
-		require.Equal(t, 403, res.Status)
+		require.Equal(t, http.StatusNotFound, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
-		require.Contains(t, res.Body.Error.Detail, "permission")
+		require.Equal(t, "https://unkey.com/docs/errors/unkey/data/permission_not_found", res.Body.Error.Type)
+		require.Equal(t, "The requested permission does not exist.", res.Body.Error.Detail)
 	})
 
 	// Test case for no permissions
@@ -88,16 +91,17 @@ func TestPermissionErrors(t *testing.T) {
 			Permission: permissionID,
 		}
 
-		res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](
+		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](
 			h,
 			route,
 			headers,
 			req,
 		)
 
-		require.Equal(t, 403, res.Status)
+		require.Equal(t, http.StatusNotFound, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
-		require.Contains(t, res.Body.Error.Detail, "permission")
+		require.Equal(t, "https://unkey.com/docs/errors/unkey/data/permission_not_found", res.Body.Error.Type)
+		require.Equal(t, "The requested permission does not exist.", res.Body.Error.Detail)
 	})
 }
