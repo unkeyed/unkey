@@ -46,7 +46,7 @@ import { Result } from "../types/fp.js";
  */
 export function appsUpdateApp(
   client: UnkeyCore,
-  request: components.V2AppsUpdateAppRequestBodyUnion,
+  request: components.V2AppsUpdateAppRequestBody,
   options?: RequestOptions,
 ): APIPromise<
   Result<
@@ -77,7 +77,7 @@ export function appsUpdateApp(
 
 async function $do(
   client: UnkeyCore,
-  request: components.V2AppsUpdateAppRequestBodyUnion,
+  request: components.V2AppsUpdateAppRequestBody,
   options?: RequestOptions,
 ): Promise<
   [
@@ -105,7 +105,7 @@ async function $do(
   const parsed = safeParse(
     request,
     (value) =>
-      components.V2AppsUpdateAppRequestBodyUnion$outboundSchema.parse(value),
+      components.V2AppsUpdateAppRequestBody$outboundSchema.parse(value),
     "Input validation failed",
   );
   if (!parsed.ok) {
