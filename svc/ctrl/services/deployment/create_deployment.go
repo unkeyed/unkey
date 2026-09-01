@@ -335,9 +335,6 @@ type createParams struct {
 	context deploymentContext
 	action  string
 
-	// Source overrides. ociImage wins if set; otherwise we auto-detect
-	// from git repo connection (using gitCommit.commit_sha if provided) or
-	// fall back to the live deployment's image.
 	ociImage  string
 	gitCommit *ctrlv1.GitCommitInfo
 	command   []string
@@ -348,12 +345,12 @@ type createParams struct {
 	triggerReason string
 }
 
-// createAndDeploy is the shared path used by both CreateDeployment and
-// RebuildDeployment. It checks workspace access and environment deployability,
-// resolves the source (OCI image / git / fallback), inserts the deployment
-// row, kicks off the Restate workflow, persists the invocation id, and cancels
-// superseded siblings.
 func (s *Service) createAndDeploy(ctx context.Context, p createParams) (string, error) {
+	if p.ociImage != "" && p.gitCommit != nil {
+		return "", connect.NewError(connect.CodeInvalidArgument,
+			fmt.Errorf("oci_image and git_commit are mutually exclusive"))
+	}
+
 	c := p.context
 	if err := s.ensureWorkspaceCanDeploy(ctx, c.workspaceID, p.action); err != nil {
 		return "", err
@@ -377,9 +374,6 @@ func (s *Service) createAndDeploy(ctx context.Context, p createParams) (string, 
 	deploymentSource := db.DeploymentsSourceUnknown
 	requestedImage := ""
 
-	// Populate caller-provided commit metadata. Branch defaulting and GitHub
-	// fill-in happen later, only when we're actually building from git — we
-	// don't want to synthesize git metadata on OCI-image redeploys.
 	var commit commitFields
 	gc := p.gitCommit
 	explicitGit := gc != nil
@@ -393,8 +387,6 @@ func (s *Service) createAndDeploy(ctx context.Context, p createParams) (string, 
 		commit.ForkRepository = gc.GetForkRepository()
 	}
 
-	// Look up the GitHub repo connection once. Used both to decide source type
-	// (git vs OCI) and to resolve missing commit metadata synchronously.
 	repoConn, repoErr := s.db.FindGithubRepoConnectionByAppId(ctx, c.app.ID)
 	hasRepoConnection := repoErr == nil
 	if repoErr != nil && !db.IsNotFound(repoErr) {
@@ -695,8 +687,6 @@ func defaultBranch(connectionDefault sql.NullString) string {
 	return "main"
 }
 
-// buildOciSource looks up the app's current deployment's OCI image for a
-// legacy app that has no declared source.
 func buildOciSource(
 	ctx context.Context,
 	database db.Database,

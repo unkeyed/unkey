@@ -109,18 +109,10 @@ func (s *Service) Rebuild(ctx context.Context, sourceDeploymentID, reason string
 	}
 
 	params := createParams{
-		context:  depCtx,
-		action:   "rebuild",
-		ociImage: "",
-		gitCommit: &ctrlv1.GitCommitInfo{
-			CommitSha:       src.GitCommitSha.String,
-			Branch:          src.GitBranch.String,
-			CommitMessage:   src.GitCommitMessage.String,
-			AuthorHandle:    src.GitCommitAuthorHandle.String,
-			AuthorAvatarUrl: src.GitCommitAuthorAvatarUrl.String,
-			Timestamp:       src.GitCommitTimestamp.Int64,
-			ForkRepository:  src.ForkRepositoryFullName.String,
-		},
+		context:       depCtx,
+		action:        "rebuild",
+		ociImage:      "",
+		gitCommit:     nil,
 		command:       nil,
 		trigger:       db.DeploymentsTriggerUnkey,
 		triggeredBy:   "",
@@ -128,6 +120,15 @@ func (s *Service) Rebuild(ctx context.Context, sourceDeploymentID, reason string
 	}
 
 	if useGit {
+		params.gitCommit = &ctrlv1.GitCommitInfo{
+			CommitSha:       src.GitCommitSha.String,
+			Branch:          src.GitBranch.String,
+			CommitMessage:   src.GitCommitMessage.String,
+			AuthorHandle:    src.GitCommitAuthorHandle.String,
+			AuthorAvatarUrl: src.GitCommitAuthorAvatarUrl.String,
+			Timestamp:       src.GitCommitTimestamp.Int64,
+			ForkRepository:  src.ForkRepositoryFullName.String,
+		}
 		logger.Info("rebuilding deployment from git",
 			"source_deployment_id", sourceDeploymentID,
 			"app_id", src.AppID,
