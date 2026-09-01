@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/internal/services/keys"
 	keysdb "github.com/unkeyed/unkey/internal/services/keys/db"
 	"github.com/unkeyed/unkey/internal/services/ratelimit"
 	"github.com/unkeyed/unkey/pkg/auth/principal"
@@ -123,7 +124,7 @@ func TestWithAuthentication_RecordsRootKeyUsage(t *testing.T) {
 				return nil
 			},
 			wantKeySpaceID: "ks_123",
-			wantOutcome:    schema.OutcomeValid,
+			wantOutcome:    string(keys.StatusValid),
 			wantError:      false,
 		},
 		{
@@ -142,7 +143,7 @@ func TestWithAuthentication_RecordsRootKeyUsage(t *testing.T) {
 				}))
 			},
 			wantKeySpaceID: "ks_123",
-			wantOutcome:    schema.OutcomeInsufficientPermissions,
+			wantOutcome:    string(keys.StatusInsufficientPermissions),
 			wantError:      true,
 		},
 		{
@@ -165,7 +166,7 @@ func TestWithAuthentication_RecordsRootKeyUsage(t *testing.T) {
 				return nil
 			},
 			wantKeySpaceID: "ks_123",
-			wantOutcome:    schema.OutcomeInsufficientPermissions,
+			wantOutcome:    string(keys.StatusInsufficientPermissions),
 			wantError:      false,
 		},
 		{
@@ -179,7 +180,7 @@ func TestWithAuthentication_RecordsRootKeyUsage(t *testing.T) {
 				return nil
 			},
 			wantKeySpaceID: "",
-			wantOutcome:    schema.OutcomeValid,
+			wantOutcome:    string(keys.StatusValid),
 			wantError:      false,
 		},
 	}
@@ -331,7 +332,7 @@ func TestWithAuthentication_EnforcesWorkspaceRateLimit(t *testing.T) {
 	select {
 	case rows := <-flushed:
 		require.Len(t, rows, 1)
-		require.Equal(t, schema.OutcomeValid, rows[0].Outcome)
+		require.Equal(t, string(keys.StatusValid), rows[0].Outcome)
 	case <-time.After(time.Second):
 		t.Fatal("root key usage did not flush")
 	}

@@ -168,6 +168,8 @@ func NewHarness(t *testing.T, configs ...HarnessConfig) *Harness {
 		t.Cleanup(func() { require.NoError(t, chClient.Close()) })
 		ch = chClient
 
+		// Small test batches flush quickly. Production uses 10,000-row batches
+		// and a 20,000-row buffer for request traffic.
 		directAuditLogs = clickhouse.NewAuditLogBuffer(chClient, clickhouse.BufferConfig{
 			Name:          "direct_audit_logs",
 			BatchSize:     10,

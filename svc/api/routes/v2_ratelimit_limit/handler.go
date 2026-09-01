@@ -123,7 +123,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	// Apply override if found, otherwise use request values
-	limit, duration, overrideID, err := getLimitAndDuration(req, ns)
+	limit, duration, override, err := getLimitAndDuration(req, ns)
 	if err != nil {
 		return fault.Wrap(err,
 			fault.Code(codes.App.Internal.UnexpectedError.URN()),
@@ -177,14 +177,14 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			Identifier:  req.Identifier,
 			Passed:      result.Success,
 			Latency:     float64(latency),
-			OverrideID:  overrideID,
+			OverrideID:  override.ID,
 			Limit:       uint64(result.Limit),
 			Remaining:   uint64(result.Remaining),
 			ResetAt:     result.Reset.UnixMilli(),
 			Tokens:      uint64(cost),
 		})
 	}
-	h.bufferAuditLog(s, principal, ns, nowMillis)
+	h.bufferAuditLog(s, principal, ns, override, nowMillis)
 
 	res := Response{
 		Meta: openapi.Meta{
@@ -195,7 +195,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			Limit:      limit,
 			Remaining:  result.Remaining,
 			Reset:      result.Reset.UnixMilli(),
-			OverrideId: overrideID,
+			OverrideId: override.ID,
 		},
 	}
 
@@ -209,10 +209,28 @@ func (h *Handler) bufferAuditLog(
 	s *zen.Session,
 	p *principal.Principal,
 	namespace db.FindRatelimitNamespace,
+	override db.FindRatelimitNamespaceLimitOverride,
 	timeMillis int64,
 ) {
 	if p.Subject.Type != principal.SubjectTypeRootKey {
 		return
+	}
+
+	targets := []auditlog.EventTarget{
+		{
+			Type: string(auditlog.RatelimitNamespaceResourceType),
+			ID:   namespace.ID,
+			Name: namespace.Name,
+			Meta: nil,
+		},
+	}
+	if override.ID != "" {
+		targets = append(targets, auditlog.EventTarget{
+			Type: string(auditlog.RatelimitOverrideResourceType),
+			ID:   override.ID,
+			Name: override.Identifier,
+			Meta: nil,
+		})
 	}
 
 	h.DirectAuditLogs.Buffer(auditlog.Event{
@@ -229,17 +247,10 @@ func (h *Handler) bufferAuditLog(
 			Name: p.Subject.Name,
 			Meta: nil,
 		},
-		RemoteIP:  s.Location(),
-		UserAgent: s.UserAgent(),
-		Meta:      nil,
-		Targets: []auditlog.EventTarget{
-			{
-				Type: string(auditlog.RatelimitNamespaceResourceType),
-				ID:   namespace.ID,
-				Name: namespace.Name,
-				Meta: nil,
-			},
-		},
+		RemoteIP:      s.Location(),
+		UserAgent:     s.UserAgent(),
+		Meta:          nil,
+		Targets:       targets,
 		CorrelationID: "",
 	})
 }
@@ -371,17 +382,20 @@ func (h *Handler) createNamespace(ctx context.Context, s *zen.Session, principal
 	})
 }
 
-func getLimitAndDuration(req Request, namespace db.FindRatelimitNamespace) (int64, int64, string, error) {
+func getLimitAndDuration(
+	req Request,
+	namespace db.FindRatelimitNamespace,
+) (int64, int64, db.FindRatelimitNamespaceLimitOverride, error) {
 	override, found, err := matchOverride(req.Identifier, namespace)
 	if err != nil {
-		return 0, 0, "", err
+		return 0, 0, override, err
 	}
 
 	if found {
-		return override.Limit, override.Duration, override.ID, nil
+		return override.Limit, override.Duration, override, nil
 	}
 
-	return req.Limit, req.Duration, "", nil
+	return req.Limit, req.Duration, override, nil
 }
 
 func matchOverride(identifier string, namespace db.FindRatelimitNamespace) (db.FindRatelimitNamespaceLimitOverride, bool, error) {

@@ -9,6 +9,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/auditlog"
+	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_ratelimit_limit"
@@ -32,7 +33,7 @@ type ratelimitAuditLogRow struct {
 }
 
 // TestLimit_WritesRootKeyAuditLog guarantees that metrics opt-out does not stop
-// direct audit logs. The event bypasses MySQL and excludes the identifier.
+// direct audit logs. The event bypasses MySQL and names an applied override.
 func TestLimit_WritesRootKeyAuditLog(t *testing.T) {
 	h := testutil.NewHarness(t, testutil.HarnessConfig{ClickHouse: true})
 	route := &handler.Handler{
@@ -49,6 +50,18 @@ func TestLimit_WritesRootKeyAuditLog(t *testing.T) {
 	namespaceID, namespaceName := createNamespace(t, h)
 	rootKey := h.CreateRootKey(workspace.ID, fmt.Sprintf("ratelimit.%s.limit", namespaceID))
 	identifier := uid.New("sensitive")
+	overrideID := uid.New(uid.RatelimitOverridePrefix)
+	ctx := context.Background()
+	err := db.Query.InsertRatelimitOverride(ctx, h.DB.RW(), db.InsertRatelimitOverrideParams{
+		ID:          overrideID,
+		WorkspaceID: workspace.ID,
+		NamespaceID: namespaceID,
+		Identifier:  identifier,
+		Limit:       10,
+		Duration:    uint64(time.Minute.Milliseconds()),
+		CreatedAt:   h.Clock.Now().UnixMilli(),
+	})
+	require.NoError(t, err)
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, http.Header{
 		"Authorization":   {fmt.Sprintf("Bearer %s", rootKey)},
@@ -62,9 +75,10 @@ func TestLimit_WritesRootKeyAuditLog(t *testing.T) {
 		Duration:   time.Minute.Milliseconds(),
 	})
 	require.Equal(t, http.StatusOK, res.Status)
+	require.Equal(t, overrideID, res.Body.Data.OverrideId)
 
-	ctx := context.Background()
 	require.Empty(t, h.FindAuditLogsByTargetID(ctx, t, namespaceID))
+	require.Empty(t, h.FindAuditLogsByTargetID(ctx, t, overrideID))
 
 	rows := make([]ratelimitAuditLogRow, 0)
 	query := "SELECT time, inserted_at, event, description, actor_type, actor_id, actor_name, user_agent, meta_text, " +
@@ -88,11 +102,14 @@ func TestLimit_WritesRootKeyAuditLog(t *testing.T) {
 	require.NotEmpty(t, row.ActorID)
 	require.NotEmpty(t, row.ActorName)
 	require.Equal(t, "audit-log-test", row.UserAgent)
-	require.Equal(t, []string{string(auditlog.RatelimitNamespaceResourceType)}, row.TargetTypes)
-	require.Equal(t, []string{namespaceID}, row.TargetIDs)
-	require.Equal(t, []string{namespaceName}, row.TargetNames)
+	require.Equal(t, []string{
+		string(auditlog.RatelimitNamespaceResourceType),
+		string(auditlog.RatelimitOverrideResourceType),
+	}, row.TargetTypes)
+	require.Equal(t, []string{namespaceID, overrideID}, row.TargetIDs)
+	require.Equal(t, []string{namespaceName, identifier}, row.TargetNames)
 	require.JSONEq(t, `{}`, row.MetaText)
-	require.JSONEq(t, `{}`, row.TargetsMetaText)
+	require.Equal(t, "{} {}", row.TargetsMetaText)
 	require.NotContains(t, row.MetaText, identifier)
 	require.NotContains(t, row.TargetsMetaText, identifier)
 }

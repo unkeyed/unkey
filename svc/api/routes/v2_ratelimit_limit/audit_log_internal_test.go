@@ -68,5 +68,10 @@ func TestBufferAuditLog_SkipsNonRootPrincipal(t *testing.T) {
 		Name:        "namespace",
 	}
 
-	h.bufferAuditLog(sess, p, namespace, 0)
+	h.bufferAuditLog(sess, p, namespace, db.FindRatelimitNamespaceLimitOverride{
+		ID:         "",
+		Identifier: "",
+		Limit:      0,
+		Duration:   0,
+	}, 0)
 }

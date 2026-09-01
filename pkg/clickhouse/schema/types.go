@@ -11,14 +11,6 @@ const (
 	SourceGateway = "gateway"
 )
 
-const (
-	// OutcomeValid records successful key authentication.
-	OutcomeValid = "VALID"
-
-	// OutcomeInsufficientPermissions records a later authorization denial.
-	OutcomeInsufficientPermissions = "INSUFFICIENT_PERMISSIONS"
-)
-
 // KeyVerification represents the v2 key verification raw table structure.
 // This matches the key_verifications_raw_v2 table schema with additional
 // fields like spent_credits and latency compared to v1.

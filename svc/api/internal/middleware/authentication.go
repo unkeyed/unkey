@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/unkeyed/unkey/internal/services/caches"
+	"github.com/unkeyed/unkey/internal/services/keys"
 	keysdb "github.com/unkeyed/unkey/internal/services/keys/db"
 	"github.com/unkeyed/unkey/internal/services/ratelimit"
 	"github.com/unkeyed/unkey/pkg/auth"
@@ -74,7 +75,7 @@ func WithAuthentication(config AuthenticationConfig) zen.Middleware {
 					Region:       config.Region,
 					Source:       schema.SourceAPI,
 					AppID:        "",
-					Outcome:      schema.OutcomeValid,
+					Outcome:      string(keys.StatusValid),
 					Tags:         []string{},
 					SpentCredits: 0,
 					Latency:      float64(time.Since(startedAt).Milliseconds()),
@@ -82,7 +83,7 @@ func WithAuthentication(config AuthenticationConfig) zen.Middleware {
 
 				defer func() {
 					if principalauth.AuthorizationError(p) != nil {
-						verification.Outcome = schema.OutcomeInsufficientPermissions
+						verification.Outcome = string(keys.StatusInsufficientPermissions)
 					}
 					config.KeyVerifications.Buffer(verification)
 				}()
