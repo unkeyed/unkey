@@ -4,10 +4,17 @@ description: "How the logdrain service streams audit logs to customer destinatio
 ---
 
 The logdrain service (`svc/logdrain`) streams audit logs from ClickHouse to
-customer-owned destinations: generic HTTP endpoints and Axiom.
-Under one valid lease, it sends events in cursor order. It provides
-at-least-once delivery. MySQL stores configuration and delivery progress. The
-service does not use an external queue or workflow engine.
+customer-owned destinations: generic HTTPS endpoints and Axiom datasets. It
+exists because customers need audit events in their own SIEM and archival
+tools, and polling our API for them does not scale past toy volumes.
+
+The service provides at-least-once delivery in cursor order. MySQL stores
+drain configuration and delivery progress. There is no external queue or
+workflow engine: drain configuration, the delivery cursor, and the failure
+state already live in MySQL, and coordinating through the same datastore
+means one failure story instead of two. Drain counts are small (a few per
+workspace), so a queue would add an infrastructure dependency without
+removing any failure mode.
 
 ## How the service works
 
@@ -23,14 +30,17 @@ acknowledges the batch, the worker advances the cursor in MySQL. A failed
 delivery leaves the cursor unchanged.
 
 MySQL stores the destination configuration as a serialized
-`logdrain.v1.Config` protobuf. Its provider `oneof` keeps HTTP and Axiom fields
-separate. Secret fields contain Vault ciphertext, so MySQL does not store
-plaintext credentials. The Vault ciphertext includes the key ID that the
-service needs for decryption. HTTP header names stay in plaintext. Each HTTP
-header value has separate Vault ciphertext.
+`logdrain.v1.Config` protobuf. Its provider `oneof` keeps HTTP and Axiom
+fields separate. Secret fields contain Vault ciphertext, so MySQL never
+stores plaintext credentials. HTTP header names stay in plaintext; each HTTP
+header value has separate Vault ciphertext. Workers decrypt through a
+10-minute in-memory cache keyed by ciphertext, so a credential change (which
+writes new ciphertext) can never serve a stale plaintext.
 
 The worker does not hold a MySQL transaction while it calls the customer
-destination. A fencing token protects each state read and write instead.
+destination. A fencing token protects each state read and write instead,
+because holding a row lock across an external HTTP call would tie MySQL
+health to customer endpoint latency.
 
 ```plaintext
 svc/logdrain process
@@ -47,21 +57,22 @@ svc/logdrain process
 
 ## Delivery cycle
 
-On each poll, the delivery engine finds enabled, active drains assigned to its
+On each poll, the delivery engine finds `running` drains assigned to its
 lease ID that have reached `next_attempt_at`. It passes the drain ID and
-fencing token to a worker. The worker reads the drain only if that token still
-identifies a valid lease. If the lease expired or another process acquired it,
-the worker stops.
+fencing token to a worker. The worker reads the drain only if that token
+still identifies a valid lease. If the lease expired or another process
+acquired it, the worker stops.
 
 For a valid lease, the worker reads events between the committed cursor and a
-safe upper time boundary. It sends the events as one batch. After a successful
-request, a fenced write advances the cursor only if the lease is still valid.
-An unacknowledged response records its status and body in delivery telemetry.
-An unexpected delivery failure records its error in delivery telemetry. Both
-cases schedule a retry without advancing the cursor. If a full batch succeeds,
-the worker reads the next batch immediately. A short or empty batch means the
-worker reached the safe upper time boundary. The worker commits that boundary,
-schedules the next attempt after `PollInterval`, and returns to the pool.
+safe upper time boundary. It sends the events as one batch. After a
+successful request, a fenced write advances the cursor only if the lease is
+still valid. A rejected response records its status and body in delivery
+telemetry. An unexpected delivery failure records its error in delivery
+telemetry. Both cases schedule a retry without advancing the cursor. If a
+full batch succeeds, the worker reads the next batch immediately. A short or
+empty batch means the worker reached the safe upper time boundary. The worker
+commits that boundary, schedules the next attempt after `poll_interval`, and
+returns to the pool.
 
 ```plaintext
 poll due leases
@@ -82,7 +93,7 @@ send batch to destination ── rejected or error ──▶ retry or pause
 advance cursor with fencing token
       │
       ├── full batch ──▶ read next batch
-      └── short or empty batch ──▶ wait PollInterval
+      └── short or empty batch ──▶ wait poll_interval
 ```
 
 ## Cursor and watermark
@@ -118,32 +129,36 @@ advances the cursor to the safe upper time boundary with an empty event ID.
 The empty event ID keeps events at that exact boundary eligible for the next
 cycle.
 
-The upper boundary stays behind the process clock by `WatermarkLag`. This
-settling period gives late ClickHouse inserts time to arrive before the cursor
-passes their timestamp.
+The upper boundary stays behind the process clock by `watermark_lag`. This
+settling period gives late ClickHouse inserts time to arrive before the
+cursor passes their timestamp. Without it, an insert that commits a few
+seconds late would land behind an already-committed cursor and never export.
 
 ## Leasing and fencing
 
 Leases divide drains between service processes. Each process creates one
-startup-unique `lease_id`. The lease service acquires expired leases for that
+startup-unique lease ID. The lease service acquires expired leases for that
 ID and refreshes them before they expire. Database time controls acquisition,
-refresh, and expiry.
+refresh, and expiry, so process clock skew cannot create two simultaneous
+owners.
 
-Each acquisition also creates a new `fencing_token`. The token identifies one
-specific ownership period, even if the same process loses and later reacquires
-the drain. The poller includes this token with each work item. Every delivery
-state read and write requires the same token and a lease that is still valid.
-As a result, stale workers cannot change the cursor, retry time, or failure
-state.
+Each acquisition also creates a new fencing token. The token identifies one
+specific ownership period, even if the same process loses and later
+reacquires the drain. The poller includes this token with each work item.
+Every delivery state read and write requires the same token and a lease that
+is still valid. As a result, stale workers cannot change the cursor, retry
+time, or failure state.
 
 Fencing protects durable state. It cannot cancel a customer request that
 started before the lease expired.
 
-## Disablement, retries, and pauses
+## Status, retries, and pauses
 
-The `logdrains.enabled` Boolean records whether the user enabled the drain.
-The `logdrains.status` field is `active` or `paused_by_failure`. The engine
-processes a drain only when it is enabled and active.
+The `logdrains.status` field is `running`, `paused_by_user`, or
+`paused_by_failure`. Every engine and lease query filters on `running`: a
+paused drain is never leased, never polled, and never written by a worker.
+The failure update also requires `running`, so an in-flight failure cannot
+overwrite a pause the user set moments earlier.
 
 A destination rejection, such as HTTP 400 or HTTP 500, leaves the cursor
 unchanged. An unexpected delivery error, such as a timeout or DNS failure,
@@ -151,27 +166,30 @@ also leaves the cursor unchanged. The engine retries both cases.
 
 The engine calculates an exponential delay from `consecutive_failures`. The
 first retry waits 1 minute. Each later failure doubles the delay through 128
-minutes. Later retries wait 4 hours. With the default failure threshold of 50,
-the 49 retry waits span 7 days and 15 minutes.
+minutes. Later retries wait 4 hours. With the default failure threshold of
+50, the 49 retry waits span 7 days and 15 minutes.
 
 A destination can request a longer delay. The HTTP sink reads the standard
-`Retry-After` response header. The Axiom sink reads `Retry-After` first. If that
-header is not valid, it reads `X-RateLimit-Reset` as a UTC Unix timestamp in
-seconds. The engine uses the longer of the local delay and the destination
-delay. It limits a destination delay to 24 hours.
+`Retry-After` response header. The Axiom sink reads `Retry-After` first. If
+that header is not valid, it reads `X-RateLimit-Reset` as a UTC Unix
+timestamp in seconds. The engine uses the longer of the local delay and the
+destination delay. It limits a destination delay to 24 hours so one bad
+response cannot suppress delivery for longer than a day.
 
 The failure update query increments `consecutive_failures` and writes an
 absolute retry time to `next_attempt_at`. It calculates that timestamp from
-MySQL time, not process time. The due-drain queries return the drain only after
-`next_attempt_at` has passed. A successful cursor update resets the failure
-count. A full batch remains due immediately. A short or empty batch becomes due
-after `PollInterval`.
+MySQL time, not process time. The due-drain queries return the drain only
+after `next_attempt_at` has passed. A successful cursor update resets the
+failure count. A full batch remains due immediately. A short or empty batch
+becomes due after `poll_interval`.
 
-The engine pauses the drain only after it reaches the configured failure
-threshold. Re-enabling a drain or changing its destination makes it active. The
-change resets its failure count and retry time. It preserves the cursor.
-Delivery resumes from that cursor, subject to the 90-day ClickHouse retention
-period for audit logs.
+The engine moves a drain to `paused_by_failure` when it reaches the
+configured failure threshold. The dashboard resumes a drain by setting its
+status to `running`; changing the destination of a `paused_by_failure` drain
+also resumes it. Either change resets the failure count and retry time and
+expires the current lease, so a worker holding the old fencing token can no
+longer write state. The cursor is preserved. Delivery resumes from that
+cursor, subject to the 90-day ClickHouse retention of audit logs.
 
 ## Delivery guarantees
 
@@ -179,12 +197,14 @@ The cursor, lease, and fencing token define the delivery semantics:
 
 - Deliver-then-commit gives at-least-once delivery. If the process crashes
   after the destination acknowledges a batch but before the cursor update,
-  the next cycle sends that batch again.
-- A failure never advances the cursor. The drain retries the same events until
-  the destination accepts them or the drain pauses.
+  the next cycle sends that batch again. Commit-then-deliver would silently
+  drop events on the same crash, which is the worse failure for an audit
+  stream.
+- A failure never advances the cursor. The drain retries the same events
+  until the destination accepts them or the drain pauses.
 - Fencing prevents stale workers from changing durable state after lease
-  expiry, configuration changes, deletion, or reacquisition. It cannot cancel
-  an external request after a worker completes its fenced read.
+  expiry, configuration changes, or reacquisition. It cannot cancel an
+  external request after a worker completes its fenced read.
 
 Customers must handle duplicate events. They can use the audit log event `id`
 as a deduplication key.
@@ -194,11 +214,12 @@ as a deduplication key.
 Each destination attempt writes one row to the ClickHouse table
 `logdrain_deliveries_raw_v1`. The row contains the outcome (`success` or
 `error`), event count, `webhook_duration_ms`, `request_body_bytes`, and a
-truncated error message. `request_body_bytes` contains the uncompressed encoded
-body size. It does not include request headers. A rejected HTTP response also
-includes the response status and up to 4 KiB of the response body. The duration
-measures only the destination request. The dashboard reads this table for the
-drain health charts and delivery errors.
+truncated error message. `request_body_bytes` contains the uncompressed
+encoded body size without request headers. A rejected HTTP response also
+includes the response status and up to 4 KiB of the response body. The
+duration covers the destination request only, not source reads or state
+writes. The dashboard reads this table for the drain health charts and
+delivery errors.
 
 ### Prometheus metrics
 
@@ -217,3 +238,10 @@ the service.
 | `unkey_logdrain_delivery_duration_seconds` | Histogram | `kind`, `stream`, `outcome` | Delivery attempt latency. |
 | `unkey_logdrain_drain_failures_total` | Counter | `stream` | Failures recorded by the engine. |
 | `unkey_logdrain_drains_paused_total` | Counter | `stream` | Drains paused after they reach the failure threshold. |
+
+## Related pages
+
+- [Configuration](/architecture/services/logdrain/configuration) for every
+  setting, default, and constraint
+- [Operations](/architecture/services/logdrain/operations) for deployment,
+  scaling, health, and failure recovery
