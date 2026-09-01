@@ -13,6 +13,7 @@ import (
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/auditlog"
 	"github.com/unkeyed/unkey/pkg/logger"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/actor"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/auth"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
@@ -182,16 +183,35 @@ func (s *Service) AuthorizeDeployment(ctx context.Context, req *connect.Request[
 		}
 	}
 
+	// Written here rather than in the dashboard: ctrl is the single writer for
+	// this event, so an authorization from any caller is audited once. A
+	// request without an actor is not audited at all, because a fabricated
+	// system actor would be worse than a missing entry.
 	if a := req.Msg.GetActor(); a != nil {
-		if auditErr := s.recordLifecycleAudit(ctx,
-			auditlog.DeploymentAuthorizeEvent,
-			fmt.Sprintf("Authorized deployment %s", deploymentID),
-			deployment.WorkspaceID,
-			deploymentID,
-			lifecycleAuditMeta(deployment.ProjectID, deployment.AppID, deployment.EnvironmentID),
-			a,
-		); auditErr != nil {
-			return nil, connect.NewError(connect.CodeInternal, auditFailure("authorize deployment", auditErr))
+		if auditErr := s.auditlogs.Insert(ctx, nil, []auditlog.AuditLog{
+			{
+				Event:         auditlog.DeploymentAuthorizeEvent,
+				WorkspaceID:   deployment.WorkspaceID,
+				Display:       fmt.Sprintf("Authorized deployment %s", deploymentID),
+				ActorID:       a.GetId(),
+				ActorType:     actor.AuditType(a.GetType()),
+				ActorName:     a.GetName(),
+				ActorMeta:     actor.Meta(a.GetMeta()),
+				RemoteIP:      a.GetRemoteIp(),
+				UserAgent:     a.GetUserAgent(),
+				CorrelationID: "",
+				Resources: []auditlog.AuditLogResource{
+					{
+						Type:        auditlog.DeploymentResourceType,
+						ID:          deploymentID,
+						Name:        "",
+						DisplayName: deploymentID,
+						Meta:        deploymentAuditMeta(deployment.ProjectID, deployment.AppID, deployment.EnvironmentID),
+					},
+				},
+			},
+		}); auditErr != nil {
+			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to audit authorize deployment: %w", auditErr))
 		}
 	}
 

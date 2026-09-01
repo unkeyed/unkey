@@ -36,19 +36,12 @@ const (
 	// DeployServiceGetDeploymentProcedure is the fully-qualified name of the DeployService's
 	// GetDeployment RPC.
 	DeployServiceGetDeploymentProcedure = "/ctrl.v1.DeployService/GetDeployment"
-	// DeployServiceRollbackProcedure is the fully-qualified name of the DeployService's Rollback RPC.
-	DeployServiceRollbackProcedure = "/ctrl.v1.DeployService/Rollback"
-	// DeployServicePromoteProcedure is the fully-qualified name of the DeployService's Promote RPC.
-	DeployServicePromoteProcedure = "/ctrl.v1.DeployService/Promote"
 	// DeployServiceAuthorizeDeploymentProcedure is the fully-qualified name of the DeployService's
 	// AuthorizeDeployment RPC.
 	DeployServiceAuthorizeDeploymentProcedure = "/ctrl.v1.DeployService/AuthorizeDeployment"
 	// DeployServiceCancelDeploymentProcedure is the fully-qualified name of the DeployService's
 	// CancelDeployment RPC.
 	DeployServiceCancelDeploymentProcedure = "/ctrl.v1.DeployService/CancelDeployment"
-	// DeployServiceStopDeploymentProcedure is the fully-qualified name of the DeployService's
-	// StopDeployment RPC.
-	DeployServiceStopDeploymentProcedure = "/ctrl.v1.DeployService/StopDeployment"
 	// DeployServiceDeprovisionComputeProcedure is the fully-qualified name of the DeployService's
 	// DeprovisionCompute RPC.
 	DeployServiceDeprovisionComputeProcedure = "/ctrl.v1.DeployService/DeprovisionCompute"
@@ -58,10 +51,6 @@ const (
 type DeployServiceClient interface {
 	// Get deployment details
 	GetDeployment(context.Context, *connect.Request[v1.GetDeploymentRequest]) (*connect.Response[v1.GetDeploymentResponse], error)
-	// Reassign the sticky domains of the projects live deployment to the target deployment
-	Rollback(context.Context, *connect.Request[v1.RollbackRequest]) (*connect.Response[v1.RollbackResponse], error)
-	// Promote the deployment to the live environment
-	Promote(context.Context, *connect.Request[v1.PromoteRequest]) (*connect.Response[v1.PromoteResponse], error)
 	// Authorize deployment for an external contributor's push on a branch
 	AuthorizeDeployment(context.Context, *connect.Request[v1.AuthorizeDeploymentRequest]) (*connect.Response[v1.AuthorizeDeploymentResponse], error)
 	// Cancel a running or queued deployment. Marks the deployment cancelled,
@@ -71,8 +60,6 @@ type DeployServiceClient interface {
 	// actor; a request without an actor is not audited.
 	// Idempotent: returns success if the deployment is already terminal.
 	CancelDeployment(context.Context, *connect.Request[v1.CancelDeploymentRequest]) (*connect.Response[v1.CancelDeploymentResponse], error)
-	// Stop a ready non-production deployment by scaling it down.
-	StopDeployment(context.Context, *connect.Request[v1.StopDeploymentRequest]) (*connect.Response[v1.StopDeploymentResponse], error)
 	// DeprovisionCompute tears down a workspace's Compute: it stops all running
 	// compute via DeployTeardownService.Teardown(ARCHIVE) and clears the local
 	// deploy_plan entitlement so the workspace can no longer deploy. The dashboard
@@ -99,18 +86,6 @@ func NewDeployServiceClient(httpClient connect.HTTPClient, baseURL string, opts 
 			connect.WithSchema(deployServiceMethods.ByName("GetDeployment")),
 			connect.WithClientOptions(opts...),
 		),
-		rollback: connect.NewClient[v1.RollbackRequest, v1.RollbackResponse](
-			httpClient,
-			baseURL+DeployServiceRollbackProcedure,
-			connect.WithSchema(deployServiceMethods.ByName("Rollback")),
-			connect.WithClientOptions(opts...),
-		),
-		promote: connect.NewClient[v1.PromoteRequest, v1.PromoteResponse](
-			httpClient,
-			baseURL+DeployServicePromoteProcedure,
-			connect.WithSchema(deployServiceMethods.ByName("Promote")),
-			connect.WithClientOptions(opts...),
-		),
 		authorizeDeployment: connect.NewClient[v1.AuthorizeDeploymentRequest, v1.AuthorizeDeploymentResponse](
 			httpClient,
 			baseURL+DeployServiceAuthorizeDeploymentProcedure,
@@ -121,12 +96,6 @@ func NewDeployServiceClient(httpClient connect.HTTPClient, baseURL string, opts 
 			httpClient,
 			baseURL+DeployServiceCancelDeploymentProcedure,
 			connect.WithSchema(deployServiceMethods.ByName("CancelDeployment")),
-			connect.WithClientOptions(opts...),
-		),
-		stopDeployment: connect.NewClient[v1.StopDeploymentRequest, v1.StopDeploymentResponse](
-			httpClient,
-			baseURL+DeployServiceStopDeploymentProcedure,
-			connect.WithSchema(deployServiceMethods.ByName("StopDeployment")),
 			connect.WithClientOptions(opts...),
 		),
 		deprovisionCompute: connect.NewClient[v1.DeprovisionComputeRequest, v1.DeprovisionComputeResponse](
@@ -141,27 +110,14 @@ func NewDeployServiceClient(httpClient connect.HTTPClient, baseURL string, opts 
 // deployServiceClient implements DeployServiceClient.
 type deployServiceClient struct {
 	getDeployment       *connect.Client[v1.GetDeploymentRequest, v1.GetDeploymentResponse]
-	rollback            *connect.Client[v1.RollbackRequest, v1.RollbackResponse]
-	promote             *connect.Client[v1.PromoteRequest, v1.PromoteResponse]
 	authorizeDeployment *connect.Client[v1.AuthorizeDeploymentRequest, v1.AuthorizeDeploymentResponse]
 	cancelDeployment    *connect.Client[v1.CancelDeploymentRequest, v1.CancelDeploymentResponse]
-	stopDeployment      *connect.Client[v1.StopDeploymentRequest, v1.StopDeploymentResponse]
 	deprovisionCompute  *connect.Client[v1.DeprovisionComputeRequest, v1.DeprovisionComputeResponse]
 }
 
 // GetDeployment calls ctrl.v1.DeployService.GetDeployment.
 func (c *deployServiceClient) GetDeployment(ctx context.Context, req *connect.Request[v1.GetDeploymentRequest]) (*connect.Response[v1.GetDeploymentResponse], error) {
 	return c.getDeployment.CallUnary(ctx, req)
-}
-
-// Rollback calls ctrl.v1.DeployService.Rollback.
-func (c *deployServiceClient) Rollback(ctx context.Context, req *connect.Request[v1.RollbackRequest]) (*connect.Response[v1.RollbackResponse], error) {
-	return c.rollback.CallUnary(ctx, req)
-}
-
-// Promote calls ctrl.v1.DeployService.Promote.
-func (c *deployServiceClient) Promote(ctx context.Context, req *connect.Request[v1.PromoteRequest]) (*connect.Response[v1.PromoteResponse], error) {
-	return c.promote.CallUnary(ctx, req)
 }
 
 // AuthorizeDeployment calls ctrl.v1.DeployService.AuthorizeDeployment.
@@ -174,11 +130,6 @@ func (c *deployServiceClient) CancelDeployment(ctx context.Context, req *connect
 	return c.cancelDeployment.CallUnary(ctx, req)
 }
 
-// StopDeployment calls ctrl.v1.DeployService.StopDeployment.
-func (c *deployServiceClient) StopDeployment(ctx context.Context, req *connect.Request[v1.StopDeploymentRequest]) (*connect.Response[v1.StopDeploymentResponse], error) {
-	return c.stopDeployment.CallUnary(ctx, req)
-}
-
 // DeprovisionCompute calls ctrl.v1.DeployService.DeprovisionCompute.
 func (c *deployServiceClient) DeprovisionCompute(ctx context.Context, req *connect.Request[v1.DeprovisionComputeRequest]) (*connect.Response[v1.DeprovisionComputeResponse], error) {
 	return c.deprovisionCompute.CallUnary(ctx, req)
@@ -188,10 +139,6 @@ func (c *deployServiceClient) DeprovisionCompute(ctx context.Context, req *conne
 type DeployServiceHandler interface {
 	// Get deployment details
 	GetDeployment(context.Context, *connect.Request[v1.GetDeploymentRequest]) (*connect.Response[v1.GetDeploymentResponse], error)
-	// Reassign the sticky domains of the projects live deployment to the target deployment
-	Rollback(context.Context, *connect.Request[v1.RollbackRequest]) (*connect.Response[v1.RollbackResponse], error)
-	// Promote the deployment to the live environment
-	Promote(context.Context, *connect.Request[v1.PromoteRequest]) (*connect.Response[v1.PromoteResponse], error)
 	// Authorize deployment for an external contributor's push on a branch
 	AuthorizeDeployment(context.Context, *connect.Request[v1.AuthorizeDeploymentRequest]) (*connect.Response[v1.AuthorizeDeploymentResponse], error)
 	// Cancel a running or queued deployment. Marks the deployment cancelled,
@@ -201,8 +148,6 @@ type DeployServiceHandler interface {
 	// actor; a request without an actor is not audited.
 	// Idempotent: returns success if the deployment is already terminal.
 	CancelDeployment(context.Context, *connect.Request[v1.CancelDeploymentRequest]) (*connect.Response[v1.CancelDeploymentResponse], error)
-	// Stop a ready non-production deployment by scaling it down.
-	StopDeployment(context.Context, *connect.Request[v1.StopDeploymentRequest]) (*connect.Response[v1.StopDeploymentResponse], error)
 	// DeprovisionCompute tears down a workspace's Compute: it stops all running
 	// compute via DeployTeardownService.Teardown(ARCHIVE) and clears the local
 	// deploy_plan entitlement so the workspace can no longer deploy. The dashboard
@@ -225,18 +170,6 @@ func NewDeployServiceHandler(svc DeployServiceHandler, opts ...connect.HandlerOp
 		connect.WithSchema(deployServiceMethods.ByName("GetDeployment")),
 		connect.WithHandlerOptions(opts...),
 	)
-	deployServiceRollbackHandler := connect.NewUnaryHandler(
-		DeployServiceRollbackProcedure,
-		svc.Rollback,
-		connect.WithSchema(deployServiceMethods.ByName("Rollback")),
-		connect.WithHandlerOptions(opts...),
-	)
-	deployServicePromoteHandler := connect.NewUnaryHandler(
-		DeployServicePromoteProcedure,
-		svc.Promote,
-		connect.WithSchema(deployServiceMethods.ByName("Promote")),
-		connect.WithHandlerOptions(opts...),
-	)
 	deployServiceAuthorizeDeploymentHandler := connect.NewUnaryHandler(
 		DeployServiceAuthorizeDeploymentProcedure,
 		svc.AuthorizeDeployment,
@@ -249,12 +182,6 @@ func NewDeployServiceHandler(svc DeployServiceHandler, opts ...connect.HandlerOp
 		connect.WithSchema(deployServiceMethods.ByName("CancelDeployment")),
 		connect.WithHandlerOptions(opts...),
 	)
-	deployServiceStopDeploymentHandler := connect.NewUnaryHandler(
-		DeployServiceStopDeploymentProcedure,
-		svc.StopDeployment,
-		connect.WithSchema(deployServiceMethods.ByName("StopDeployment")),
-		connect.WithHandlerOptions(opts...),
-	)
 	deployServiceDeprovisionComputeHandler := connect.NewUnaryHandler(
 		DeployServiceDeprovisionComputeProcedure,
 		svc.DeprovisionCompute,
@@ -265,16 +192,10 @@ func NewDeployServiceHandler(svc DeployServiceHandler, opts ...connect.HandlerOp
 		switch r.URL.Path {
 		case DeployServiceGetDeploymentProcedure:
 			deployServiceGetDeploymentHandler.ServeHTTP(w, r)
-		case DeployServiceRollbackProcedure:
-			deployServiceRollbackHandler.ServeHTTP(w, r)
-		case DeployServicePromoteProcedure:
-			deployServicePromoteHandler.ServeHTTP(w, r)
 		case DeployServiceAuthorizeDeploymentProcedure:
 			deployServiceAuthorizeDeploymentHandler.ServeHTTP(w, r)
 		case DeployServiceCancelDeploymentProcedure:
 			deployServiceCancelDeploymentHandler.ServeHTTP(w, r)
-		case DeployServiceStopDeploymentProcedure:
-			deployServiceStopDeploymentHandler.ServeHTTP(w, r)
 		case DeployServiceDeprovisionComputeProcedure:
 			deployServiceDeprovisionComputeHandler.ServeHTTP(w, r)
 		default:
@@ -290,24 +211,12 @@ func (UnimplementedDeployServiceHandler) GetDeployment(context.Context, *connect
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ctrl.v1.DeployService.GetDeployment is not implemented"))
 }
 
-func (UnimplementedDeployServiceHandler) Rollback(context.Context, *connect.Request[v1.RollbackRequest]) (*connect.Response[v1.RollbackResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ctrl.v1.DeployService.Rollback is not implemented"))
-}
-
-func (UnimplementedDeployServiceHandler) Promote(context.Context, *connect.Request[v1.PromoteRequest]) (*connect.Response[v1.PromoteResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ctrl.v1.DeployService.Promote is not implemented"))
-}
-
 func (UnimplementedDeployServiceHandler) AuthorizeDeployment(context.Context, *connect.Request[v1.AuthorizeDeploymentRequest]) (*connect.Response[v1.AuthorizeDeploymentResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ctrl.v1.DeployService.AuthorizeDeployment is not implemented"))
 }
 
 func (UnimplementedDeployServiceHandler) CancelDeployment(context.Context, *connect.Request[v1.CancelDeploymentRequest]) (*connect.Response[v1.CancelDeploymentResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ctrl.v1.DeployService.CancelDeployment is not implemented"))
-}
-
-func (UnimplementedDeployServiceHandler) StopDeployment(context.Context, *connect.Request[v1.StopDeploymentRequest]) (*connect.Response[v1.StopDeploymentResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ctrl.v1.DeployService.StopDeployment is not implemented"))
 }
 
 func (UnimplementedDeployServiceHandler) DeprovisionCompute(context.Context, *connect.Request[v1.DeprovisionComputeRequest]) (*connect.Response[v1.DeprovisionComputeResponse], error) {

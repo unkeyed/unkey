@@ -12,7 +12,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ctrl/v1/deployment.proto.
  */
 export const file_ctrl_v1_deployment: GenFile = /*@__PURE__*/
-  fileDesc("ChhjdHJsL3YxL2RlcGxveW1lbnQucHJvdG8SB2N0cmwudjEiqQEKDUdpdENvbW1pdEluZm8SEgoKY29tbWl0X3NoYRgBIAEoCRIWCg5jb21taXRfbWVzc2FnZRgCIAEoCRIVCg1hdXRob3JfaGFuZGxlGAMgASgJEhkKEWF1dGhvcl9hdmF0YXJfdXJsGAQgASgJEhEKCXRpbWVzdGFtcBgFIAEoAxIOCgZicmFuY2gYBiABKAkSFwoPZm9ya19yZXBvc2l0b3J5GAcgASgJIi0KFEdldERlcGxveW1lbnRSZXF1ZXN0EhUKDWRlcGxveW1lbnRfaWQYASABKAkiQAoVR2V0RGVwbG95bWVudFJlc3BvbnNlEicKCmRlcGxveW1lbnQYASABKAsyEy5jdHJsLnYxLkRlcGxveW1lbnQimAUKCkRlcGxveW1lbnQSCgoCaWQYASABKAkSFAoMd29ya3NwYWNlX2lkGAIgASgJEhIKCnByb2plY3RfaWQYAyABKAkSFgoOZW52aXJvbm1lbnRfaWQYBCABKAkSDgoGYXBwX2lkGBUgASgJEhYKDmdpdF9jb21taXRfc2hhGAUgASgJEhIKCmdpdF9icmFuY2gYBiABKAkSKQoGc3RhdHVzGAcgASgOMhkuY3RybC52MS5EZXBsb3ltZW50U3RhdHVzEhUKDWVycm9yX21lc3NhZ2UYCCABKAkSTAoVZW52aXJvbm1lbnRfdmFyaWFibGVzGAkgAygLMi0uY3RybC52MS5EZXBsb3ltZW50LkVudmlyb25tZW50VmFyaWFibGVzRW50cnkSIwoIdG9wb2xvZ3kYCiABKAsyES5jdHJsLnYxLlRvcG9sb2d5EhIKCmNyZWF0ZWRfYXQYCyABKAMSEgoKdXBkYXRlZF9hdBgMIAEoAxIRCglob3N0bmFtZXMYDSADKAkSFwoPcm9vdGZzX2ltYWdlX2lkGA4gASgJEhAKCGJ1aWxkX2lkGA8gASgJEiYKBXN0ZXBzGBAgAygLMhcuY3RybC52MS5EZXBsb3ltZW50U3RlcBIaChJnaXRfY29tbWl0X21lc3NhZ2UYESABKAkSIAoYZ2l0X2NvbW1pdF9hdXRob3JfaGFuZGxlGBIgASgJEiQKHGdpdF9jb21taXRfYXV0aG9yX2F2YXRhcl91cmwYEyABKAkSHAoUZ2l0X2NvbW1pdF90aW1lc3RhbXAYFCABKAMaOwoZRW52aXJvbm1lbnRWYXJpYWJsZXNFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBIlwKDkRlcGxveW1lbnRTdGVwEg4KBnN0YXR1cxgBIAEoCRIPCgdtZXNzYWdlGAIgASgJEhUKDWVycm9yX21lc3NhZ2UYAyABKAkSEgoKY3JlYXRlZF9hdBgEIAEoAyL4AQoIVG9wb2xvZ3kSFgoOY3B1X21pbGxpY29yZXMYASABKAUSEgoKbWVtb3J5X21pYhgCIAEoBRIoCgdyZWdpb25zGAMgAygLMhcuY3RybC52MS5SZWdpb25hbENvbmZpZxIcChRpZGxlX3RpbWVvdXRfc2Vjb25kcxgEIAEoBRIZChFoZWFsdGhfY2hlY2tfcGF0aBgFIAEoCRIMCgRwb3J0GAYgASgFEjkKEWVwaGVtZXJhbF9zdG9yYWdlGAcgASgLMhkuY3RybC52MS5FcGhlbWVyYWxTdG9yYWdlSACIAQFCFAoSX2VwaGVtZXJhbF9zdG9yYWdlIiQKEEVwaGVtZXJhbFN0b3JhZ2USEAoIc2l6ZV9taWIYASABKAMiTgoOUmVnaW9uYWxDb25maWcSDgoGcmVnaW9uGAEgASgJEhUKDW1pbl9pbnN0YW5jZXMYAiABKAUSFQoNbWF4X2luc3RhbmNlcxgDIAEoBSJwCg9Sb2xsYmFja1JlcXVlc3QSHAoUc291cmNlX2RlcGxveW1lbnRfaWQYASABKAkSHAoUdGFyZ2V0X2RlcGxveW1lbnRfaWQYAiABKAkSIQoFYWN0b3IYAyABKAsyEi5jdHJsLnYxLkFjdG9ySW5mbyISChBSb2xsYmFja1Jlc3BvbnNlIlEKDlByb21vdGVSZXF1ZXN0EhwKFHRhcmdldF9kZXBsb3ltZW50X2lkGAEgASgJEiEKBWFjdG9yGAIgASgLMhIuY3RybC52MS5BY3RvckluZm8iEQoPUHJvbW90ZVJlc3BvbnNlIlYKGkF1dGhvcml6ZURlcGxveW1lbnRSZXF1ZXN0EhUKDWRlcGxveW1lbnRfaWQYASABKAkSIQoFYWN0b3IYAiABKAsyEi5jdHJsLnYxLkFjdG9ySW5mbyIdChtBdXRob3JpemVEZXBsb3ltZW50UmVzcG9uc2UiUwoXQ2FuY2VsRGVwbG95bWVudFJlcXVlc3QSFQoNZGVwbG95bWVudF9pZBgBIAEoCRIhCgVhY3RvchgCIAEoCzISLmN0cmwudjEuQWN0b3JJbmZvIhoKGENhbmNlbERlcGxveW1lbnRSZXNwb25zZSJRChVTdG9wRGVwbG95bWVudFJlcXVlc3QSFQoNZGVwbG95bWVudF9pZBgBIAEoCRIhCgVhY3RvchgCIAEoCzISLmN0cmwudjEuQWN0b3JJbmZvIhgKFlN0b3BEZXBsb3ltZW50UmVzcG9uc2UiMQoZRGVwcm92aXNpb25Db21wdXRlUmVxdWVzdBIUCgx3b3Jrc3BhY2VfaWQYASABKAkiHAoaRGVwcm92aXNpb25Db21wdXRlUmVzcG9uc2Uq2wMKEERlcGxveW1lbnRTdGF0dXMSIQodREVQTE9ZTUVOVF9TVEFUVVNfVU5TUEVDSUZJRUQQABIdChlERVBMT1lNRU5UX1NUQVRVU19QRU5ESU5HEAESHgoaREVQTE9ZTUVOVF9TVEFUVVNfU1RBUlRJTkcQBxIeChpERVBMT1lNRU5UX1NUQVRVU19CVUlMRElORxACEh8KG0RFUExPWU1FTlRfU1RBVFVTX0RFUExPWUlORxADEh0KGURFUExPWU1FTlRfU1RBVFVTX05FVFdPUksQBBIgChxERVBMT1lNRU5UX1NUQVRVU19GSU5BTElaSU5HEAgSGwoXREVQTE9ZTUVOVF9TVEFUVVNfUkVBRFkQBRIcChhERVBMT1lNRU5UX1NUQVRVU19GQUlMRUQQBhIdChlERVBMT1lNRU5UX1NUQVRVU19TS0lQUEVEEAkSJwojREVQTE9ZTUVOVF9TVEFUVVNfQVdBSVRJTkdfQVBQUk9WQUwQChIdChlERVBMT1lNRU5UX1NUQVRVU19TVE9QUEVEEAsSIAocREVQTE9ZTUVOVF9TVEFUVVNfU1VQRVJTRURFRBAMEh8KG0RFUExPWU1FTlRfU1RBVFVTX0NBTkNFTExFRBANKs4BChFEZXBsb3ltZW50VHJpZ2dlchIiCh5ERVBMT1lNRU5UX1RSSUdHRVJfVU5TUEVDSUZJRUQQABIdChlERVBMT1lNRU5UX1RSSUdHRVJfR0lUSFVCEAESGgoWREVQTE9ZTUVOVF9UUklHR0VSX0FQSRACEhoKFkRFUExPWU1FTlRfVFJJR0dFUl9DTEkQAxIgChxERVBMT1lNRU5UX1RSSUdHRVJfREFTSEJPQVJEEAQSHAoYREVQTE9ZTUVOVF9UUklHR0VSX1VOS0VZEAUy2QQKDURlcGxveVNlcnZpY2USUAoNR2V0RGVwbG95bWVudBIdLmN0cmwudjEuR2V0RGVwbG95bWVudFJlcXVlc3QaHi5jdHJsLnYxLkdldERlcGxveW1lbnRSZXNwb25zZSIAEkEKCFJvbGxiYWNrEhguY3RybC52MS5Sb2xsYmFja1JlcXVlc3QaGS5jdHJsLnYxLlJvbGxiYWNrUmVzcG9uc2UiABI+CgdQcm9tb3RlEhcuY3RybC52MS5Qcm9tb3RlUmVxdWVzdBoYLmN0cmwudjEuUHJvbW90ZVJlc3BvbnNlIgASYgoTQXV0aG9yaXplRGVwbG95bWVudBIjLmN0cmwudjEuQXV0aG9yaXplRGVwbG95bWVudFJlcXVlc3QaJC5jdHJsLnYxLkF1dGhvcml6ZURlcGxveW1lbnRSZXNwb25zZSIAElkKEENhbmNlbERlcGxveW1lbnQSIC5jdHJsLnYxLkNhbmNlbERlcGxveW1lbnRSZXF1ZXN0GiEuY3RybC52MS5DYW5jZWxEZXBsb3ltZW50UmVzcG9uc2UiABJTCg5TdG9wRGVwbG95bWVudBIeLmN0cmwudjEuU3RvcERlcGxveW1lbnRSZXF1ZXN0Gh8uY3RybC52MS5TdG9wRGVwbG95bWVudFJlc3BvbnNlIgASXwoSRGVwcm92aXNpb25Db21wdXRlEiIuY3RybC52MS5EZXByb3Zpc2lvbkNvbXB1dGVSZXF1ZXN0GiMuY3RybC52MS5EZXByb3Zpc2lvbkNvbXB1dGVSZXNwb25zZSIAQo4BCgtjb20uY3RybC52MUIPRGVwbG95bWVudFByb3RvUAFaMWdpdGh1Yi5jb20vdW5rZXllZC91bmtleS9nZW4vcHJvdG8vY3RybC92MTtjdHJsdjGiAgNDWFiqAgdDdHJsLlYxygIHQ3RybFxWMeICE0N0cmxcVjFcR1BCTWV0YWRhdGHqAghDdHJsOjpWMWIGcHJvdG8z", [file_ctrl_v1_actor]);
+  fileDesc("ChhjdHJsL3YxL2RlcGxveW1lbnQucHJvdG8SB2N0cmwudjEiqQEKDUdpdENvbW1pdEluZm8SEgoKY29tbWl0X3NoYRgBIAEoCRIWCg5jb21taXRfbWVzc2FnZRgCIAEoCRIVCg1hdXRob3JfaGFuZGxlGAMgASgJEhkKEWF1dGhvcl9hdmF0YXJfdXJsGAQgASgJEhEKCXRpbWVzdGFtcBgFIAEoAxIOCgZicmFuY2gYBiABKAkSFwoPZm9ya19yZXBvc2l0b3J5GAcgASgJIi0KFEdldERlcGxveW1lbnRSZXF1ZXN0EhUKDWRlcGxveW1lbnRfaWQYASABKAkiQAoVR2V0RGVwbG95bWVudFJlc3BvbnNlEicKCmRlcGxveW1lbnQYASABKAsyEy5jdHJsLnYxLkRlcGxveW1lbnQimAUKCkRlcGxveW1lbnQSCgoCaWQYASABKAkSFAoMd29ya3NwYWNlX2lkGAIgASgJEhIKCnByb2plY3RfaWQYAyABKAkSFgoOZW52aXJvbm1lbnRfaWQYBCABKAkSDgoGYXBwX2lkGBUgASgJEhYKDmdpdF9jb21taXRfc2hhGAUgASgJEhIKCmdpdF9icmFuY2gYBiABKAkSKQoGc3RhdHVzGAcgASgOMhkuY3RybC52MS5EZXBsb3ltZW50U3RhdHVzEhUKDWVycm9yX21lc3NhZ2UYCCABKAkSTAoVZW52aXJvbm1lbnRfdmFyaWFibGVzGAkgAygLMi0uY3RybC52MS5EZXBsb3ltZW50LkVudmlyb25tZW50VmFyaWFibGVzRW50cnkSIwoIdG9wb2xvZ3kYCiABKAsyES5jdHJsLnYxLlRvcG9sb2d5EhIKCmNyZWF0ZWRfYXQYCyABKAMSEgoKdXBkYXRlZF9hdBgMIAEoAxIRCglob3N0bmFtZXMYDSADKAkSFwoPcm9vdGZzX2ltYWdlX2lkGA4gASgJEhAKCGJ1aWxkX2lkGA8gASgJEiYKBXN0ZXBzGBAgAygLMhcuY3RybC52MS5EZXBsb3ltZW50U3RlcBIaChJnaXRfY29tbWl0X21lc3NhZ2UYESABKAkSIAoYZ2l0X2NvbW1pdF9hdXRob3JfaGFuZGxlGBIgASgJEiQKHGdpdF9jb21taXRfYXV0aG9yX2F2YXRhcl91cmwYEyABKAkSHAoUZ2l0X2NvbW1pdF90aW1lc3RhbXAYFCABKAMaOwoZRW52aXJvbm1lbnRWYXJpYWJsZXNFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBIlwKDkRlcGxveW1lbnRTdGVwEg4KBnN0YXR1cxgBIAEoCRIPCgdtZXNzYWdlGAIgASgJEhUKDWVycm9yX21lc3NhZ2UYAyABKAkSEgoKY3JlYXRlZF9hdBgEIAEoAyL4AQoIVG9wb2xvZ3kSFgoOY3B1X21pbGxpY29yZXMYASABKAUSEgoKbWVtb3J5X21pYhgCIAEoBRIoCgdyZWdpb25zGAMgAygLMhcuY3RybC52MS5SZWdpb25hbENvbmZpZxIcChRpZGxlX3RpbWVvdXRfc2Vjb25kcxgEIAEoBRIZChFoZWFsdGhfY2hlY2tfcGF0aBgFIAEoCRIMCgRwb3J0GAYgASgFEjkKEWVwaGVtZXJhbF9zdG9yYWdlGAcgASgLMhkuY3RybC52MS5FcGhlbWVyYWxTdG9yYWdlSACIAQFCFAoSX2VwaGVtZXJhbF9zdG9yYWdlIiQKEEVwaGVtZXJhbFN0b3JhZ2USEAoIc2l6ZV9taWIYASABKAMiTgoOUmVnaW9uYWxDb25maWcSDgoGcmVnaW9uGAEgASgJEhUKDW1pbl9pbnN0YW5jZXMYAiABKAUSFQoNbWF4X2luc3RhbmNlcxgDIAEoBSJWChpBdXRob3JpemVEZXBsb3ltZW50UmVxdWVzdBIVCg1kZXBsb3ltZW50X2lkGAEgASgJEiEKBWFjdG9yGAIgASgLMhIuY3RybC52MS5BY3RvckluZm8iHQobQXV0aG9yaXplRGVwbG95bWVudFJlc3BvbnNlIlMKF0NhbmNlbERlcGxveW1lbnRSZXF1ZXN0EhUKDWRlcGxveW1lbnRfaWQYASABKAkSIQoFYWN0b3IYAiABKAsyEi5jdHJsLnYxLkFjdG9ySW5mbyIaChhDYW5jZWxEZXBsb3ltZW50UmVzcG9uc2UiMQoZRGVwcm92aXNpb25Db21wdXRlUmVxdWVzdBIUCgx3b3Jrc3BhY2VfaWQYASABKAkiHAoaRGVwcm92aXNpb25Db21wdXRlUmVzcG9uc2Uq2wMKEERlcGxveW1lbnRTdGF0dXMSIQodREVQTE9ZTUVOVF9TVEFUVVNfVU5TUEVDSUZJRUQQABIdChlERVBMT1lNRU5UX1NUQVRVU19QRU5ESU5HEAESHgoaREVQTE9ZTUVOVF9TVEFUVVNfU1RBUlRJTkcQBxIeChpERVBMT1lNRU5UX1NUQVRVU19CVUlMRElORxACEh8KG0RFUExPWU1FTlRfU1RBVFVTX0RFUExPWUlORxADEh0KGURFUExPWU1FTlRfU1RBVFVTX05FVFdPUksQBBIgChxERVBMT1lNRU5UX1NUQVRVU19GSU5BTElaSU5HEAgSGwoXREVQTE9ZTUVOVF9TVEFUVVNfUkVBRFkQBRIcChhERVBMT1lNRU5UX1NUQVRVU19GQUlMRUQQBhIdChlERVBMT1lNRU5UX1NUQVRVU19TS0lQUEVEEAkSJwojREVQTE9ZTUVOVF9TVEFUVVNfQVdBSVRJTkdfQVBQUk9WQUwQChIdChlERVBMT1lNRU5UX1NUQVRVU19TVE9QUEVEEAsSIAocREVQTE9ZTUVOVF9TVEFUVVNfU1VQRVJTRURFRBAMEh8KG0RFUExPWU1FTlRfU1RBVFVTX0NBTkNFTExFRBANKs4BChFEZXBsb3ltZW50VHJpZ2dlchIiCh5ERVBMT1lNRU5UX1RSSUdHRVJfVU5TUEVDSUZJRUQQABIdChlERVBMT1lNRU5UX1RSSUdHRVJfR0lUSFVCEAESGgoWREVQTE9ZTUVOVF9UUklHR0VSX0FQSRACEhoKFkRFUExPWU1FTlRfVFJJR0dFUl9DTEkQAxIgChxERVBMT1lNRU5UX1RSSUdHRVJfREFTSEJPQVJEEAQSHAoYREVQTE9ZTUVOVF9UUklHR0VSX1VOS0VZEAUygQMKDURlcGxveVNlcnZpY2USUAoNR2V0RGVwbG95bWVudBIdLmN0cmwudjEuR2V0RGVwbG95bWVudFJlcXVlc3QaHi5jdHJsLnYxLkdldERlcGxveW1lbnRSZXNwb25zZSIAEmIKE0F1dGhvcml6ZURlcGxveW1lbnQSIy5jdHJsLnYxLkF1dGhvcml6ZURlcGxveW1lbnRSZXF1ZXN0GiQuY3RybC52MS5BdXRob3JpemVEZXBsb3ltZW50UmVzcG9uc2UiABJZChBDYW5jZWxEZXBsb3ltZW50EiAuY3RybC52MS5DYW5jZWxEZXBsb3ltZW50UmVxdWVzdBohLmN0cmwudjEuQ2FuY2VsRGVwbG95bWVudFJlc3BvbnNlIgASXwoSRGVwcm92aXNpb25Db21wdXRlEiIuY3RybC52MS5EZXByb3Zpc2lvbkNvbXB1dGVSZXF1ZXN0GiMuY3RybC52MS5EZXByb3Zpc2lvbkNvbXB1dGVSZXNwb25zZSIAQo4BCgtjb20uY3RybC52MUIPRGVwbG95bWVudFByb3RvUAFaMWdpdGh1Yi5jb20vdW5rZXllZC91bmtleS9nZW4vcHJvdG8vY3RybC92MTtjdHJsdjGiAgNDWFiqAgdDdHJsLlYxygIHQ3RybFxWMeICE0N0cmxcVjFcR1BCTWV0YWRhdGHqAghDdHJsOjpWMWIGcHJvdG8z", [file_ctrl_v1_actor]);
 
 /**
  * @generated from message ctrl.v1.GitCommitInfo
@@ -378,81 +378,6 @@ export const RegionalConfigSchema: GenMessage<RegionalConfig> = /*@__PURE__*/
   messageDesc(file_ctrl_v1_deployment, 7);
 
 /**
- * @generated from message ctrl.v1.RollbackRequest
- */
-export type RollbackRequest = Message<"ctrl.v1.RollbackRequest"> & {
-  /**
-   * @generated from field: string source_deployment_id = 1;
-   */
-  sourceDeploymentId: string;
-
-  /**
-   * @generated from field: string target_deployment_id = 2;
-   */
-  targetDeploymentId: string;
-
-  /**
-   * @generated from field: ctrl.v1.ActorInfo actor = 3;
-   */
-  actor?: ActorInfo;
-};
-
-/**
- * Describes the message ctrl.v1.RollbackRequest.
- * Use `create(RollbackRequestSchema)` to create a new message.
- */
-export const RollbackRequestSchema: GenMessage<RollbackRequest> = /*@__PURE__*/
-  messageDesc(file_ctrl_v1_deployment, 8);
-
-/**
- * @generated from message ctrl.v1.RollbackResponse
- */
-export type RollbackResponse = Message<"ctrl.v1.RollbackResponse"> & {
-};
-
-/**
- * Describes the message ctrl.v1.RollbackResponse.
- * Use `create(RollbackResponseSchema)` to create a new message.
- */
-export const RollbackResponseSchema: GenMessage<RollbackResponse> = /*@__PURE__*/
-  messageDesc(file_ctrl_v1_deployment, 9);
-
-/**
- * @generated from message ctrl.v1.PromoteRequest
- */
-export type PromoteRequest = Message<"ctrl.v1.PromoteRequest"> & {
-  /**
-   * @generated from field: string target_deployment_id = 1;
-   */
-  targetDeploymentId: string;
-
-  /**
-   * @generated from field: ctrl.v1.ActorInfo actor = 2;
-   */
-  actor?: ActorInfo;
-};
-
-/**
- * Describes the message ctrl.v1.PromoteRequest.
- * Use `create(PromoteRequestSchema)` to create a new message.
- */
-export const PromoteRequestSchema: GenMessage<PromoteRequest> = /*@__PURE__*/
-  messageDesc(file_ctrl_v1_deployment, 10);
-
-/**
- * @generated from message ctrl.v1.PromoteResponse
- */
-export type PromoteResponse = Message<"ctrl.v1.PromoteResponse"> & {
-};
-
-/**
- * Describes the message ctrl.v1.PromoteResponse.
- * Use `create(PromoteResponseSchema)` to create a new message.
- */
-export const PromoteResponseSchema: GenMessage<PromoteResponse> = /*@__PURE__*/
-  messageDesc(file_ctrl_v1_deployment, 11);
-
-/**
  * @generated from message ctrl.v1.AuthorizeDeploymentRequest
  */
 export type AuthorizeDeploymentRequest = Message<"ctrl.v1.AuthorizeDeploymentRequest"> & {
@@ -472,7 +397,7 @@ export type AuthorizeDeploymentRequest = Message<"ctrl.v1.AuthorizeDeploymentReq
  * Use `create(AuthorizeDeploymentRequestSchema)` to create a new message.
  */
 export const AuthorizeDeploymentRequestSchema: GenMessage<AuthorizeDeploymentRequest> = /*@__PURE__*/
-  messageDesc(file_ctrl_v1_deployment, 12);
+  messageDesc(file_ctrl_v1_deployment, 8);
 
 /**
  * @generated from message ctrl.v1.AuthorizeDeploymentResponse
@@ -485,7 +410,7 @@ export type AuthorizeDeploymentResponse = Message<"ctrl.v1.AuthorizeDeploymentRe
  * Use `create(AuthorizeDeploymentResponseSchema)` to create a new message.
  */
 export const AuthorizeDeploymentResponseSchema: GenMessage<AuthorizeDeploymentResponse> = /*@__PURE__*/
-  messageDesc(file_ctrl_v1_deployment, 13);
+  messageDesc(file_ctrl_v1_deployment, 9);
 
 /**
  * @generated from message ctrl.v1.CancelDeploymentRequest
@@ -507,7 +432,7 @@ export type CancelDeploymentRequest = Message<"ctrl.v1.CancelDeploymentRequest">
  * Use `create(CancelDeploymentRequestSchema)` to create a new message.
  */
 export const CancelDeploymentRequestSchema: GenMessage<CancelDeploymentRequest> = /*@__PURE__*/
-  messageDesc(file_ctrl_v1_deployment, 14);
+  messageDesc(file_ctrl_v1_deployment, 10);
 
 /**
  * @generated from message ctrl.v1.CancelDeploymentResponse
@@ -520,42 +445,7 @@ export type CancelDeploymentResponse = Message<"ctrl.v1.CancelDeploymentResponse
  * Use `create(CancelDeploymentResponseSchema)` to create a new message.
  */
 export const CancelDeploymentResponseSchema: GenMessage<CancelDeploymentResponse> = /*@__PURE__*/
-  messageDesc(file_ctrl_v1_deployment, 15);
-
-/**
- * @generated from message ctrl.v1.StopDeploymentRequest
- */
-export type StopDeploymentRequest = Message<"ctrl.v1.StopDeploymentRequest"> & {
-  /**
-   * @generated from field: string deployment_id = 1;
-   */
-  deploymentId: string;
-
-  /**
-   * @generated from field: ctrl.v1.ActorInfo actor = 2;
-   */
-  actor?: ActorInfo;
-};
-
-/**
- * Describes the message ctrl.v1.StopDeploymentRequest.
- * Use `create(StopDeploymentRequestSchema)` to create a new message.
- */
-export const StopDeploymentRequestSchema: GenMessage<StopDeploymentRequest> = /*@__PURE__*/
-  messageDesc(file_ctrl_v1_deployment, 16);
-
-/**
- * @generated from message ctrl.v1.StopDeploymentResponse
- */
-export type StopDeploymentResponse = Message<"ctrl.v1.StopDeploymentResponse"> & {
-};
-
-/**
- * Describes the message ctrl.v1.StopDeploymentResponse.
- * Use `create(StopDeploymentResponseSchema)` to create a new message.
- */
-export const StopDeploymentResponseSchema: GenMessage<StopDeploymentResponse> = /*@__PURE__*/
-  messageDesc(file_ctrl_v1_deployment, 17);
+  messageDesc(file_ctrl_v1_deployment, 11);
 
 /**
  * @generated from message ctrl.v1.DeprovisionComputeRequest
@@ -574,7 +464,7 @@ export type DeprovisionComputeRequest = Message<"ctrl.v1.DeprovisionComputeReque
  * Use `create(DeprovisionComputeRequestSchema)` to create a new message.
  */
 export const DeprovisionComputeRequestSchema: GenMessage<DeprovisionComputeRequest> = /*@__PURE__*/
-  messageDesc(file_ctrl_v1_deployment, 18);
+  messageDesc(file_ctrl_v1_deployment, 12);
 
 /**
  * @generated from message ctrl.v1.DeprovisionComputeResponse
@@ -587,7 +477,7 @@ export type DeprovisionComputeResponse = Message<"ctrl.v1.DeprovisionComputeResp
  * Use `create(DeprovisionComputeResponseSchema)` to create a new message.
  */
 export const DeprovisionComputeResponseSchema: GenMessage<DeprovisionComputeResponse> = /*@__PURE__*/
-  messageDesc(file_ctrl_v1_deployment, 19);
+  messageDesc(file_ctrl_v1_deployment, 13);
 
 /**
  * Deployment status enum
@@ -731,26 +621,6 @@ export const DeployService: GenService<{
     output: typeof GetDeploymentResponseSchema;
   },
   /**
-   * Reassign the sticky domains of the projects live deployment to the target deployment
-   *
-   * @generated from rpc ctrl.v1.DeployService.Rollback
-   */
-  rollback: {
-    methodKind: "unary";
-    input: typeof RollbackRequestSchema;
-    output: typeof RollbackResponseSchema;
-  },
-  /**
-   * Promote the deployment to the live environment
-   *
-   * @generated from rpc ctrl.v1.DeployService.Promote
-   */
-  promote: {
-    methodKind: "unary";
-    input: typeof PromoteRequestSchema;
-    output: typeof PromoteResponseSchema;
-  },
-  /**
    * Authorize deployment for an external contributor's push on a branch
    *
    * @generated from rpc ctrl.v1.DeployService.AuthorizeDeployment
@@ -774,16 +644,6 @@ export const DeployService: GenService<{
     methodKind: "unary";
     input: typeof CancelDeploymentRequestSchema;
     output: typeof CancelDeploymentResponseSchema;
-  },
-  /**
-   * Stop a ready non-production deployment by scaling it down.
-   *
-   * @generated from rpc ctrl.v1.DeployService.StopDeployment
-   */
-  stopDeployment: {
-    methodKind: "unary";
-    input: typeof StopDeploymentRequestSchema;
-    output: typeof StopDeploymentResponseSchema;
   },
   /**
    * DeprovisionCompute tears down a workspace's Compute: it stops all running

@@ -148,6 +148,85 @@ func TestAuthorizeDeploymentDispatchesAuditsAndUnblocksGitHub(t *testing.T) {
 		30*time.Second, 100*time.Millisecond, "Deploy must be dispatched for the authorized row")
 }
 
+// TestAuthorizeDeploymentRequiresComputePlan keeps the billing gate on the
+// authorize path covered after the ctrl lifecycle RPCs were deleted with the
+// integration suite that used to assert it. Authorize is the last ctrl RPC that
+// starts compute, so it is the last one that has to refuse a workspace with no
+// Compute plan. The gate runs before the status CAS, so a blocked call leaves
+// the deployment reusable once the workspace subscribes.
+func TestAuthorizeDeploymentRequiresComputePlan(t *testing.T) {
+	ctx := context.Background()
+
+	mysqlCfg := containers.MySQL(t)
+	database, err := db.New(mysqlCfg.DSN, sqlcomment.Disabled())
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, database.Close()) })
+
+	seeder := seed.New(t, database, nil)
+	seeder.Seed(ctx)
+	workspaceID := seeder.Resources.UserWorkspace.ID
+
+	project := seeder.CreateProject(ctx, seed.CreateProjectRequest{
+		ID:          uid.New(uid.ProjectPrefix),
+		WorkspaceID: workspaceID,
+		Name:        "KEBAP",
+		Slug:        testSlug(uid.ProjectPrefix),
+	})
+	app := seeder.CreateApp(ctx, seed.CreateAppRequest{
+		ID:            uid.New(uid.AppPrefix),
+		WorkspaceID:   workspaceID,
+		ProjectID:     project.ID,
+		Name:          "KEBAP",
+		Slug:          testSlug(uid.AppPrefix),
+		DefaultBranch: "main",
+	})
+	environment := seeder.CreateEnvironment(ctx, seed.CreateEnvironmentRequest{
+		ID:          uid.New(uid.EnvironmentPrefix),
+		WorkspaceID: workspaceID,
+		ProjectID:   project.ID,
+		AppID:       app.ID,
+		Slug:        "preview",
+		Kind:        mysqltype.EnvironmentKindPreview,
+	})
+	deployment := seeder.CreateDeployment(ctx, seed.CreateDeploymentRequest{
+		ID:            uid.New(uid.DeploymentPrefix),
+		WorkspaceID:   workspaceID,
+		ProjectID:     project.ID,
+		AppID:         app.ID,
+		EnvironmentID: environment.ID,
+		Status:        mysqltype.DeploymentsStatusAwaitingApproval,
+	})
+
+	auditlogSvc, err := auditlogs.New(auditlogs.Config{DB: database})
+	require.NoError(t, err)
+	// The seeded workspace has a billing row with no plan and no override, and
+	// Restate stays nil: the gate has to reject before anything is dispatched.
+	svc := New(Config{
+		Database:          database,
+		Restate:           nil,
+		RestateAdmin:      nil,
+		Auditlogs:         auditlogSvc,
+		Bearer:            testBearer,
+		EnforceDeployGate: true,
+	})
+
+	req := connect.NewRequest(&ctrlv1.AuthorizeDeploymentRequest{
+		DeploymentId: deployment.ID,
+		Actor:        &ctrlv1.ActorInfo{Id: uid.New("user"), Type: ctrlv1.ActorType_ACTOR_TYPE_USER},
+	})
+	req.Header().Set("Authorization", "Bearer "+testBearer)
+
+	_, err = svc.AuthorizeDeployment(ctx, req)
+	require.Error(t, err)
+	require.Equal(t, connect.CodeFailedPrecondition, connect.CodeOf(err), "err: %v", err)
+	require.ErrorContains(t, err, "no active Compute plan")
+
+	after, err := database.FindDeploymentById(ctx, deployment.ID)
+	require.NoError(t, err)
+	require.Equal(t, mysqltype.DeploymentsStatusAwaitingApproval, after.Status,
+		"a blocked authorization must not consume the awaiting_approval state")
+}
+
 func countAuthorizeAudits(t *testing.T, ctx context.Context, database db.Database, workspaceID, deploymentID, actorID string) int {
 	t.Helper()
 	rows, err := database.ListClickhouseOutboxByWorkspace(ctx, workspaceID)

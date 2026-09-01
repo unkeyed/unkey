@@ -95,7 +95,7 @@ func (s *Service) CancelDeployment(
 			Actor:         req.Msg.GetActor(),
 			CorrelationID: "",
 			WorkspaceID:   deployment.WorkspaceID,
-			Meta:          lifecycleAuditMeta(deployment.ProjectID, deployment.AppID, deployment.EnvironmentID),
+			Meta:          deploymentAuditMeta(deployment.ProjectID, deployment.AppID, deployment.EnvironmentID),
 		},
 	}); err != nil {
 		logger.Error("failed to cancel deployment",

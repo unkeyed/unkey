@@ -119,13 +119,13 @@ sequenceDiagram
 ```mermaid
 sequenceDiagram
   actor Client
-  participant CtrlAPI as Control API
+  participant PublicAPI as Public API
   participant Restate as Restate
   participant Worker as DeployService<br/>(deployment_id key)
   participant Routing as RoutingService<br/>(env_id key)
 
-  Client->>CtrlAPI: Promote(deployment_id)
-  CtrlAPI->>Restate: DeployService.Promote (key: target deployment_id)
+  Client->>PublicAPI: POST /v2/deployments.promoteDeployment
+  PublicAPI->>Restate: DeployService.Promote (key: target deployment_id)
   Restate->>Worker: Execute promote workflow
   Worker->>Routing: SwapLiveDeployment(target, routes, set_rollback_flag=false)
   Routing-->>Worker: previous_deployment_id (atomically swapped)
@@ -137,13 +137,13 @@ sequenceDiagram
 ```mermaid
 sequenceDiagram
   actor Client
-  participant CtrlAPI as Control API
+  participant PublicAPI as Public API
   participant Restate as Restate
   participant Worker as DeployService<br/>(deployment_id key)
   participant Routing as RoutingService<br/>(env_id key)
 
-  Client->>CtrlAPI: Rollback(source_id, target_id)
-  CtrlAPI->>Restate: DeployService.Rollback (key: source deployment_id)
+  Client->>PublicAPI: POST /v2/deployments.rollbackDeployment
+  PublicAPI->>Restate: DeployService.Rollback (key: source deployment_id)
   Restate->>Worker: Execute rollback workflow
   Worker->>Routing: SwapLiveDeployment(target, sticky_routes, set_rollback_flag=true)
   Routing-->>Worker: previous_deployment_id (atomically swapped)

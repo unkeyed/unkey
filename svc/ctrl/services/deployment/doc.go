@@ -1,51 +1,39 @@
-// Package deployment provides the control-plane deployment service for managing
-// application deployments, promotions, and rollbacks.
+// Package deployment provides the control-plane deployment service.
 //
-// This package implements a ConnectRPC service that orchestrates deployment
-// workflows through Restate for durable execution. It acts as the API layer
-// between clients (CLI, dashboard) and the underlying Hydra deployment workflows.
+// This is a ConnectRPC service on the internal control API, authenticated with
+// a preshared bearer token. It is what callers that are not the public API use
+// to reach a deployment: the dashboard authorizes and cancels through it, the
+// dashboard's Stripe webhook deprovisions Compute through it, and the ops
+// service rebuilds through it. Public-API deployment lifecycle calls (stop,
+// start, promote, rollback) do not come here at all; they go straight to the
+// worker's Restate handlers.
 //
-// # Concurrency Model
+// # What lives here
 //
-// All operations use Restate virtual objects keyed by project ID, ensuring only
-// one deployment operation runs per project at a time. This prevents race
-// conditions when multiple deployments, promotions, or rollbacks are triggered
-// simultaneously for the same project.
+//   - [Service.GetDeployment] reads a deployment and its instances.
+//   - [Service.AuthorizeDeployment] approves a deployment that is waiting for a
+//     maintainer, dispatches the build, and replaces the blocking GitHub commit
+//     status.
+//   - [Service.CancelDeployment] aborts a build in flight.
+//   - [Service.DeprovisionCompute] tears down a workspace's compute and clears
+//     its Deploy entitlement.
+//   - [Service.Rebuild] is a plain method, not an RPC: the ops service wraps it.
 //
-// # Deployment Sources
+// Rows are never written here. Every deployment row is created by the worker's
+// DeployService.Create, so this service validates, changes status, and hands
+// work to Restate.
 //
-// [CreateDeployment] supports two deployment sources:
+// # Concurrency model
 //
-//   - Build from source: provide a build context path (S3 key to a tar.gz archive)
-//     and optionally a Dockerfile path (defaults to "./Dockerfile")
-//   - Prebuilt image: provide a Docker image reference directly
+// Restate invocations are keyed by deployment_id, so deployments in the same
+// project and environment build in parallel. The one contended resource
+// (apps.current_deployment_id) is serialized inside RoutingService, which is
+// keyed by environment.
 //
-// # Workflow Lifecycle
+// # Error handling
 //
-// Deployments follow this lifecycle:
-//
-//  1. [CreateDeployment] validates the request, stores metadata in the database
-//     with status "pending", and triggers an async Restate workflow
-//  2. The Hydra workflow (separate service) builds the image, deploys containers,
-//     and configures networking
-//  3. [GetDeployment] retrieves current deployment status and metadata
-//  4. [Promote] switches traffic to the target deployment
-//  5. [Rollback] reverts traffic to a previous deployment
-//
-// # Error Handling
-//
-// All methods return Connect error codes following standard conventions:
-// [connect.CodeInvalidArgument] for validation errors, [connect.CodeNotFound]
-// for missing resources, and [connect.CodeInternal] for system failures.
-//
-// # Usage
-//
-// Creating the deployment service:
-//
-//	svc := deployment.New(deployment.Config{
-//		Database:         db,
-//		Restate:          restateClient,
-
-//		BuildStorage:     s3Storage,
-//	})
+// Methods return Connect codes: [connect.CodeInvalidArgument] for validation,
+// [connect.CodeNotFound] for missing resources,
+// [connect.CodeFailedPrecondition] for a state or billing gate that refuses the
+// action, and [connect.CodeInternal] for system failures.
 package deployment

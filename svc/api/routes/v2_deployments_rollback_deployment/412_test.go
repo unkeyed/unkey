@@ -3,11 +3,13 @@ package handler_test
 import (
 	"net/http"
 	"testing"
+	"time"
 
 	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/deploy/deploygate"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
@@ -226,4 +228,44 @@ func TestRollbackDeploymentSourceMustShareEnvironment(t *testing.T) {
 	res := testutil.CallRoute[handler.Request, openapi.PreconditionFailedErrorResponse](h, route, authHeaders(setup.RootKey), handler.Request{DeploymentId: target.ID})
 	require.Equal(t, http.StatusPreconditionFailed, res.Status, "expected 412, received: %s", res.RawBody)
 	require.Contains(t, res.Body.Error.Detail, "same app and environment")
+}
+
+// A rollback restarts the target's compute, so the spend cap blocks it here.
+// This route is the only gate on that: the ctrl RPC that used to re-check
+// billing is gone, and the worker's rollback handler checks the deployment's
+// state, not the workspace's bill.
+func TestRollbackDeploymentSpendSuspended(t *testing.T) {
+	h := testutil.NewHarness(t)
+	route := newRoute(h, newUncalledRestate(t))
+	h.Register(route)
+	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
+		Permissions: []string{"environment.*.rollback_deployment"},
+	})
+	live := h.CreateDeployment(seed.CreateDeploymentRequest{
+		ID:            uid.New(uid.DeploymentPrefix),
+		WorkspaceID:   setup.Workspace.ID,
+		ProjectID:     setup.Project.ID,
+		AppID:         setup.App.ID,
+		EnvironmentID: setup.Environment.ID,
+		Status:        mysqltype.DeploymentsStatusReady,
+	})
+	setCurrentDeployment(t, h, setup.App.ID, live.ID)
+	target := h.CreateDeployment(seed.CreateDeploymentRequest{
+		ID:            uid.New(uid.DeploymentPrefix),
+		WorkspaceID:   setup.Workspace.ID,
+		ProjectID:     setup.Project.ID,
+		AppID:         setup.App.ID,
+		EnvironmentID: setup.Environment.ID,
+		Status:        mysqltype.DeploymentsStatusReady,
+	})
+
+	require.NoError(t, db.Query.UpsertWorkspaceBillingSpendSuspended(t.Context(), h.DB.RW(), db.UpsertWorkspaceBillingSpendSuspendedParams{
+		WorkspaceID:    setup.Workspace.ID,
+		SpendSuspended: true,
+		CreatedAtM:     time.Now().UnixMilli(),
+	}))
+
+	res := testutil.CallRoute[handler.Request, openapi.PreconditionFailedErrorResponse](h, route, authHeaders(setup.RootKey), handler.Request{DeploymentId: target.ID})
+	require.Equal(t, http.StatusPreconditionFailed, res.Status, "expected 412, received: %s", res.RawBody)
+	require.Equal(t, deploygate.StartSpendSuspended.Message(), res.Body.Error.Detail)
 }

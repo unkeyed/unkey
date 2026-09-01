@@ -132,21 +132,6 @@ message RegionalConfig {
   int32 max_instances = 3;
 }
 
-message RollbackRequest {
-  string source_deployment_id = 1;
-  string target_deployment_id = 2;
-  ActorInfo actor = 3;
-}
-
-message RollbackResponse {}
-
-message PromoteRequest {
-  string target_deployment_id = 1;
-  ActorInfo actor = 2;
-}
-
-message PromoteResponse {}
-
 message AuthorizeDeploymentRequest {
   string deployment_id = 1;
   ActorInfo actor = 2;
@@ -161,13 +146,6 @@ message CancelDeploymentRequest {
 
 message CancelDeploymentResponse {}
 
-message StopDeploymentRequest {
-  string deployment_id = 1;
-  ActorInfo actor = 2;
-}
-
-message StopDeploymentResponse {}
-
 message DeprovisionComputeRequest {
   // WorkspaceId is the workspace whose Compute plan is being deprovisioned.
   string workspace_id = 1;
@@ -179,12 +157,6 @@ service DeployService {
   // Get deployment details
   rpc GetDeployment(GetDeploymentRequest) returns (GetDeploymentResponse) {}
 
-  // Reassign the sticky domains of the projects live deployment to the target deployment
-  rpc Rollback(RollbackRequest) returns (RollbackResponse) {}
-
-  // Promote the deployment to the live environment
-  rpc Promote(PromoteRequest) returns (PromoteResponse) {}
-
   // Authorize deployment for an external contributor's push on a branch
   rpc AuthorizeDeployment(AuthorizeDeploymentRequest) returns (AuthorizeDeploymentResponse) {}
 
@@ -195,9 +167,6 @@ service DeployService {
   // actor; a request without an actor is not audited.
   // Idempotent: returns success if the deployment is already terminal.
   rpc CancelDeployment(CancelDeploymentRequest) returns (CancelDeploymentResponse) {}
-
-  // Stop a ready non-production deployment by scaling it down.
-  rpc StopDeployment(StopDeploymentRequest) returns (StopDeploymentResponse) {}
 
   // DeprovisionCompute tears down a workspace's Compute: it stops all running
   // compute via DeployTeardownService.Teardown(ARCHIVE) and clears the local
