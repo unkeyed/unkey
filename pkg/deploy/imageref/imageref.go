@@ -57,19 +57,19 @@ func IsDigest(reference name.Reference) bool {
 func Validate(image string) error {
 	if image == "" {
 		return fault.New(
-			"docker image reference is empty",
+			"OCI image reference is empty",
 			fault.Code(codes.App.Validation.InvalidInput.URN()),
 			fault.Internal("imageref rejected reference: empty"),
-			fault.Public("The docker image reference is required."),
+			fault.Public("The OCI image reference is required."),
 		)
 	}
 
 	if len(image) > imageLengthMax {
 		return fault.New(
-			"docker image reference is too long",
+			"OCI image reference is too long",
 			fault.Code(codes.App.Validation.InvalidInput.URN()),
 			fault.Internal(fmt.Sprintf("imageref rejected reference: %d characters", len(image))),
-			fault.Public(fmt.Sprintf("The docker image reference must not be more than %d characters.", imageLengthMax)),
+			fault.Public(fmt.Sprintf("The OCI image reference must not be more than %d characters.", imageLengthMax)),
 		)
 	}
 
@@ -78,7 +78,7 @@ func Validate(image string) error {
 			err,
 			fault.Code(codes.App.Validation.InvalidInput.URN()),
 			fault.Internal(fmt.Sprintf("imageref rejected reference: %q", image)),
-			fault.Public(fmt.Sprintf("The docker image reference %q is not valid. Expected [registry/]repository[:tag][@digest], for example ghcr.io/acme/api:v1.2.3.", image)),
+			fault.Public(fmt.Sprintf("The OCI image reference %q is not valid. Expected [registry/]repository[:tag][@digest], for example ghcr.io/acme/api:v1.2.3.", image)),
 		)
 	}
 
