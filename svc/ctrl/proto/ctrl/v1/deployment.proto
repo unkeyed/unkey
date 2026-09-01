@@ -38,8 +38,8 @@ message CreateDeploymentRequest {
   string project_id = 1;
   string environment_slug = 2;
 
-  // When omitted: git-connected projects deploy HEAD of default branch;
-  // projects without a repo connection reuse the live deployment's OCI image.
+  // Optional source overrides. Set at most one of oci_image or git_commit.
+  // Omit both to use the app's default Git branch or OCI image.
   string oci_image = 3;
 
   // Git information

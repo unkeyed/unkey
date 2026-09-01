@@ -168,8 +168,8 @@ type CreateDeploymentRequest struct {
 	state           protoimpl.MessageState `protogen:"open.v1"`
 	ProjectId       string                 `protobuf:"bytes,1,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
 	EnvironmentSlug string                 `protobuf:"bytes,2,opt,name=environment_slug,json=environmentSlug,proto3" json:"environment_slug,omitempty"`
-	// When omitted: git-connected projects deploy HEAD of default branch;
-	// projects without a repo connection reuse the live deployment's OCI image.
+	// Optional source overrides. Set at most one of oci_image or git_commit.
+	// Omit both to use the app's default Git branch or OCI image.
 	OciImage string `protobuf:"bytes,3,opt,name=oci_image,json=ociImage,proto3" json:"oci_image,omitempty"`
 	// Git information
 	GitCommit *GitCommitInfo `protobuf:"bytes,4,opt,name=git_commit,json=gitCommit,proto3,oneof" json:"git_commit,omitempty"`
