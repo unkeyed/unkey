@@ -46,7 +46,11 @@ const Dialog = ({ children, onOpenChange, ...props }: DialogProps) => {
         // outside the dialog DOM subtree, so Base UI treats them as outside).
         if (isOutside) {
           const target = eventDetails.event?.target as HTMLElement | null;
-          if (target?.closest('[role="listbox"]') || target?.closest("[cmdk-root]")) {
+          if (
+            target?.closest('[role="listbox"]') ||
+            target?.closest("[data-combobox-popup]") ||
+            target?.closest("[cmdk-root]")
+          ) {
             eventDetails.cancel();
             return;
           }

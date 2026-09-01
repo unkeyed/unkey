@@ -1,6 +1,7 @@
+// biome-ignore lint/style/useImportType: this package compiles JSX with the classic runtime, so React must stay a value import
 import * as React from "react";
-import { cn } from "../../lib/utils";
-import { FormDescription, FormLabel, type Requirement } from "./form-helpers";
+import { FormField } from "./form-field";
+import type { Requirement } from "./form-helpers";
 import { type DocumentedInputProps, Input, type InputProps } from "./input";
 
 // Hack to populate fumadocs' AutoTypeTable
@@ -29,39 +30,29 @@ function FormInput({
   ref,
   ...props
 }: FormInputProps) {
-  const descriptionAsTooltip = descriptionPosition === "label";
-  const inputVariant = error ? "error" : variant;
-  const generatedId = React.useId();
-  const inputId = id || generatedId;
-  const descriptionId = `${inputId}-helper`;
-  const errorId = `${inputId}-error`;
-
   return (
-    <fieldset className={cn("flex flex-col gap-1.5 border-0 m-0 p-0", className)}>
-      <FormLabel
-        label={label}
-        requirement={requirement}
-        hasError={Boolean(error)}
-        htmlFor={inputId}
-        tooltipContent={descriptionAsTooltip ? description : undefined}
-      />
-      <Input
-        ref={ref}
-        id={inputId}
-        variant={inputVariant}
-        aria-describedby={error ? errorId : description ? descriptionId : undefined}
-        aria-invalid={!!error}
-        aria-required={requirement === "required"}
-        {...props}
-      />
-      <FormDescription
-        description={descriptionAsTooltip ? undefined : description}
-        error={error}
-        variant={variant}
-        descriptionId={descriptionId}
-        errorId={errorId}
-      />
-    </fieldset>
+    <FormField
+      label={label}
+      description={description}
+      error={error}
+      requirement={requirement}
+      id={id}
+      className={className}
+      variant={variant}
+      descriptionPosition={descriptionPosition}
+    >
+      {(control) => (
+        <Input
+          ref={ref}
+          id={control.id}
+          variant={control.variant ?? variant}
+          aria-describedby={control.describedBy}
+          aria-invalid={control.invalid}
+          aria-required={requirement === "required"}
+          {...props}
+        />
+      )}
+    </FormField>
   );
 }
 

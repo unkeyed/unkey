@@ -1,6 +1,7 @@
-import React from "react";
-import { cn } from "../../lib/utils";
-import { FormDescription, FormLabel, type Requirement } from "./form-helpers";
+// biome-ignore lint/style/useImportType: this package compiles JSX with the classic runtime, so React must stay a value import
+import * as React from "react";
+import { FormField } from "./form-field";
+import type { Requirement } from "./form-helpers";
 import { type DocumentedTextareaProps, Textarea, type TextareaProps } from "./textarea";
 
 // Hack to populate fumadocs' AutoTypeTable
@@ -25,50 +26,33 @@ function FormTextarea({
   id,
   className,
   variant,
-  leftIcon,
-  rightIcon,
-  wrapperClassName,
   descriptionPosition = "inline",
   ref,
   ...props
 }: FormTextareaProps) {
-  const descriptionAsTooltip = descriptionPosition === "label";
-  const textareaVariant = error ? "error" : variant;
-  const generatedId = React.useId();
-  const textareaId = id || generatedId;
-  const descriptionId = `${textareaId}-helper`;
-  const errorId = `${textareaId}-error`;
-
   return (
-    <fieldset className={cn("flex flex-col gap-1.5 border-0 m-0 p-0", className)}>
-      <FormLabel
-        label={label}
-        requirement={requirement}
-        hasError={!!error}
-        htmlFor={textareaId}
-        tooltipContent={descriptionAsTooltip ? description : undefined}
-      />
-
-      <Textarea
-        ref={ref}
-        id={textareaId}
-        variant={textareaVariant}
-        leftIcon={leftIcon}
-        rightIcon={rightIcon}
-        wrapperClassName={wrapperClassName}
-        aria-describedby={error ? errorId : description ? descriptionId : undefined}
-        aria-invalid={!!error}
-        aria-required={requirement === "required"}
-        {...props}
-      />
-      <FormDescription
-        description={descriptionAsTooltip ? undefined : description}
-        error={error}
-        variant={variant}
-        descriptionId={descriptionId}
-        errorId={errorId}
-      />
-    </fieldset>
+    <FormField
+      label={label}
+      description={description}
+      error={error}
+      requirement={requirement}
+      id={id}
+      className={className}
+      variant={variant}
+      descriptionPosition={descriptionPosition}
+    >
+      {(control) => (
+        <Textarea
+          ref={ref}
+          id={control.id}
+          variant={control.variant ?? variant}
+          aria-describedby={control.describedBy}
+          aria-invalid={control.invalid}
+          aria-required={requirement === "required"}
+          {...props}
+        />
+      )}
+    </FormField>
   );
 }
 
