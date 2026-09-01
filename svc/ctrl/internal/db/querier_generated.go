@@ -752,7 +752,7 @@ type Querier interface {
 	// 'ready' — if a newer commit is already deployed there is no reason to build
 	// an older one.
 	//
-	// Uses MySQL's NULL-safe equal (<=>) on git_branch so docker-image-only
+	// Uses MySQL's NULL-safe equal (<=>) on git_branch so OCI-only
 	// deployments (where git_branch IS NULL on both rows) still detect each other
 	// as siblings. Standard `=` returns UNKNOWN for NULL=NULL, which would silently
 	// bypass the guardrail for non-git apps.
