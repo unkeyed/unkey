@@ -13,7 +13,7 @@ export const EmptyPermissions = () => {
         </Empty.Description>
         <Empty.Actions className="mt-4 justify-start">
           <a
-            href="https://www.unkey.com/docs/apis/features/authorization/introduction"
+            href="https://www.unkey.com/docs/platform/apis/features/authorization/introduction"
             target="_blank"
             rel="noopener noreferrer"
           >
