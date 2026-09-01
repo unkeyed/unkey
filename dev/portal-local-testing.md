@@ -236,10 +236,10 @@ drives all generated IDs.
 
 ### Portal resources (only with `--portal`)
 
-- **Portal config** (`portal_<slug>`) linked to:
-  - The user workspace (`ws_<slug>`)
-  - The app created above (keyspaces resolve from its deployment policy)
-  - The user keyspace (`ks_<slug>`) for legacy compatibility
+- **Portal config** (`portal_<slug>`) in the user workspace (`ws_<slug>`),
+  keyspace-mapped to the user keyspace (`ks_<slug>`) with no `app_id`. A portal
+  references exactly one of `key_auth_id` or `app_id`; app mapping would resolve
+  its keyspaces from the app's current deployment, which this seed never creates.
 - **Portal branding** (Unkey logo, blue color scheme)
 
 ### Output (`dev/.env.seed`)
