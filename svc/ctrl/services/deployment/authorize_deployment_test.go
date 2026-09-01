@@ -97,6 +97,9 @@ func TestAuthorizeDeploymentDispatchesAuditsAndUnblocksGitHub(t *testing.T) {
 	github := &commitStatusRecorder{Noop: githubclient.NewNoop()}
 	restateCfg := containers.Restate(t,
 		hydrav1.NewDeployServiceServer(deploys),
+		// Bound with the same options as production (worker run.go): no
+		// ingress-private flag, or this RPC's Send would be refused. Proven
+		// by running this test with the flag: the status never arrives.
 		hydrav1.NewGitHubStatusServiceServer(githubstatus.New(githubstatus.Config{
 			GitHub:                          github,
 			DB:                              database,

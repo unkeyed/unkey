@@ -358,11 +358,14 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 	restateSrv.Bind(hydrav1.NewDeployTeardownServiceServer(teardownSvc))
 
+	// Ingress-public on purpose: ctrl's AuthorizeDeployment sends the
+	// authorized commit status through the ingress. Worker-internal callers
+	// (Create, Deploy) use service-to-service calls either way.
 	restateSrv.Bind(hydrav1.NewGitHubStatusServiceServer(githubstatus.New(githubstatus.Config{
 		GitHub:                          ghClient,
 		DB:                              database,
 		AllowUnauthenticatedDeployments: ptr.SafeDeref(cfg.GitHub).AllowUnauthenticatedDeployments,
-	}), restate.WithIngressPrivate(true)))
+	})))
 
 	restateSrv.Bind(hydrav1.NewRoutingServiceServer(routing.New(routing.Config{
 		DB:            database,
