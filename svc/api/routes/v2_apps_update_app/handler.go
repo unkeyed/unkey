@@ -196,11 +196,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			return openapi.App{}, err
 		}
 
-		// appColumnsChanged tracks user-facing app fields (an `app.update` event).
 		appColumnsChanged := update.NameSpecified == 1 || update.SlugSpecified == 1 || update.DeleteProtectionSpecified == 1
 
-		// Persist the app row only when one of its own fields changed.
-		// updatedAt is reflected in the response only when a write actually happened.
 		responseUpdatedAt := app.UpdatedAt.Int64
 		if appColumnsChanged {
 			if err = db.Query.UpdateApp(ctx, tx, update); err != nil {
@@ -355,8 +352,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	})
 }
 
-// applyGitChange applies the `git` field to the app's repository connection and
-// returns the connection state to reflect in the response.
 func (h *Handler) applyGitChange(
 	ctx context.Context,
 	tx db.DBTX,
@@ -382,7 +377,6 @@ func (h *Handler) applyGitChange(
 	}
 
 	if git.IsNull() {
-		// Disconnect: drop the connection and its source-owned branch.
 		if err := db.Query.DeleteGithubRepoConnectionsByAppId(ctx, tx, app.ID); err != nil {
 			return nil, fault.Wrap(
 				err,
