@@ -98,6 +98,7 @@ import { searchKeysRoles } from "./key/rbac/roles/search-keys-roles";
 import { rerollRootKey } from "./key/reroll";
 import { updateRootKeyName } from "./key/updateRootKeyName";
 import { updateRootKeyPermissions } from "./key/updateRootKeyPermissions";
+import { logdrain } from "./logdrain";
 import { llmSearch } from "./logs/llm-search";
 import { queryLogs } from "./logs/query-logs";
 import { queryTimeseries } from "./logs/query-timeseries";
@@ -168,6 +169,7 @@ import { getCurrentWorkspace } from "./workspace/getCurrent";
 import { onboardingKeyCreation } from "./workspace/onboarding";
 
 export const router = t.router({
+  logdrain,
   share: t.router({
     create: createSharedSecret,
     reveal: revealSharedSecret,

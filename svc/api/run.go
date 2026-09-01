@@ -27,6 +27,7 @@ import (
 	promclient "github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/collectors"
 	"github.com/unkeyed/unkey/internal/services/usagelimiter"
+	"github.com/unkeyed/unkey/pkg/auditlog"
 	"github.com/unkeyed/unkey/pkg/auth"
 	authjwt "github.com/unkeyed/unkey/pkg/auth/jwt"
 	portalsession "github.com/unkeyed/unkey/pkg/auth/portal_session"
@@ -168,6 +169,7 @@ func Run(ctx context.Context, cfg Config) error {
 
 	var ch clickhouse.ClickHouse = clickhouse.NewNoop()
 	apiRequests := batch.NewNoop[schema.ApiRequest]()
+	directAuditLogs := batch.NewNoop[auditlog.Event]()
 	keyVerifications := batch.NewNoop[schema.KeyVerification]()
 	ratelimits := batch.NewNoop[schema.Ratelimit]()
 
@@ -182,6 +184,15 @@ func Run(ctx context.Context, cfg Config) error {
 
 		apiRequests = clickhouse.NewBuffer[schema.ApiRequest](chClient, clickhouse.BufferConfig{
 			Name:          "api_requests",
+			BatchSize:     10_000,
+			BufferSize:    20_000,
+			FlushInterval: 5 * time.Second,
+			Consumers:     2,
+			Drop:          true,
+			OnFlushError:  nil,
+		})
+		directAuditLogs = clickhouse.NewAuditLogBuffer(chClient, clickhouse.BufferConfig{
+			Name:          "direct_audit_logs",
 			BatchSize:     10_000,
 			BufferSize:    20_000,
 			FlushInterval: 5 * time.Second,
@@ -208,11 +219,12 @@ func Run(ctx context.Context, cfg Config) error {
 			OnFlushError:  nil,
 		})
 
-		// Close buffers before connection (LIFO)
+		// Close buffers before the connection (LIFO).
+		r.Defer(chClient.Close)
 		r.Defer(func() error { apiRequests.Close(); return nil })
+		r.Defer(func() error { directAuditLogs.Close(); return nil })
 		r.Defer(func() error { keyVerifications.Close(); return nil })
 		r.Defer(func() error { ratelimits.Close(); return nil })
-		r.Defer(chClient.Close)
 	}
 
 	// Caches will be created after invalidation consumer is set up
@@ -507,6 +519,7 @@ func Run(ctx context.Context, cfg Config) error {
 		Database:             database,
 		ClickHouse:           ch,
 		ApiRequests:          apiRequests,
+		DirectAuditLogs:      directAuditLogs,
 		RatelimitEvents:      ratelimits,
 		KeyVerifications:     keyVerifications,
 		Clock:                clk,

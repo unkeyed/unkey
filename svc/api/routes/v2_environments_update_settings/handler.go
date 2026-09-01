@@ -19,6 +19,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/db"
 	dbtype "github.com/unkeyed/unkey/pkg/db/types"
 	"github.com/unkeyed/unkey/pkg/fault"
+	"github.com/unkeyed/unkey/pkg/match"
 	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/rbac/permissions"
 	"github.com/unkeyed/unkey/pkg/uid"
@@ -288,6 +289,9 @@ func (h *Handler) applyBuildSettings(ctx context.Context, tx db.DBTX, workspaceI
 		}
 	}
 	if req.WatchPaths != nil {
+		if err := match.ValidateWatchPaths(*req.WatchPaths); err != nil {
+			return err
+		}
 		params.WatchPathsSpecified = 1
 		params.WatchPaths = dbtype.StringSlice(*req.WatchPaths)
 	}

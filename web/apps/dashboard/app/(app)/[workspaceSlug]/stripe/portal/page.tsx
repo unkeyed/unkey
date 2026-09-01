@@ -34,7 +34,12 @@ export default async function StripeRedirect() {
 
   const ws = await db.query.workspaces.findFirst({
     where: (table, { and, eq, isNull }) => and(eq(table.orgId, orgId), isNull(table.deletedAtM)),
-    with: { billing: true },
+    columns: { id: true, slug: true },
+    with: {
+      billing: {
+        columns: { stripeCustomerId: true },
+      },
+    },
   });
 
   if (!ws) {

@@ -29,6 +29,15 @@ export default function AlertBannerVariants() {
       <AlertBanner variant="error">
         <TriangleWarning2 iconSize="md-regular" />
         <AlertBannerTitle>Deployment failed</AlertBannerTitle>
+        <AlertBannerActions>
+          <Button variant="outline" size="md">
+            View logs
+          </Button>
+        </AlertBannerActions>
+      </AlertBanner>
+      <AlertBanner variant="error">
+        <TriangleWarning2 iconSize="md-regular" />
+        <AlertBannerTitle>Deployment failed</AlertBannerTitle>
         <AlertBannerDescription>
           The build could not resolve the git branch for this project.
         </AlertBannerDescription>
