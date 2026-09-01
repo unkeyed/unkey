@@ -38,15 +38,9 @@ properties:
       Omit this field to leave the current setting unchanged.
     example: true
 additionalProperties: false
-oneOf:
-  - required: [oci]
-  - anyOf:
-      - required: [name]
-      - required: [slug]
-      - required: [git]
-      - required: [deleteProtection]
 description: |
-  Update app settings, or change an OCI app's image in a standalone request.
+  Provide at least one field to update. Change an OCI app's image in a
+  standalone request; it cannot be combined with other changes.
 examples:
   rename:
     summary: Rename an app by ID

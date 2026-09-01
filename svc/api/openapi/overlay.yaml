@@ -83,10 +83,6 @@ actions:
   - target: $["components"]["schemas"]["V2EnvironmentsUpdateSettingsRequestBody"]["properties"]["buildCommand"]
     update:
       nullable: true
-  # Update operation constraints are enforced by the public schema. The
-  # handler rejects OCI image updates combined with other changes as well.
-  - target: $["components"]["schemas"]["V2AppsUpdateAppRequestBody"]["oneOf"]
-    remove: true
   - target: $["components"]["schemas"]["V2AppsUpdateAppRequestBody"]["properties"]["git"]["anyOf"]
     remove: true
   - target: $["components"]["schemas"]["V2AppsUpdateAppRequestBody"]["properties"]["git"]
