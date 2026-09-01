@@ -11,7 +11,6 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/auditlog"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
-	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
@@ -189,14 +188,19 @@ func TestLimitSuccessfully(t *testing.T) {
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 		require.Equal(t, 200, res.Status, "expected 200, received: %v", res.Body)
 
+		type ratelimitEvent struct {
+			RequestID  string `ch:"request_id"`
+			Identifier string `ch:"identifier"`
+			Passed     bool   `ch:"passed"`
+		}
 		// Check both namespace events are logged
 		for i, nsID := range []string{ns1ID, ns2ID} {
-			row := schema.Ratelimit{}
+			row := ratelimitEvent{}
 			require.Eventually(t, func() bool {
-				data, err := clickhouse.Select[schema.Ratelimit](
+				data, err := clickhouse.Select[ratelimitEvent](
 					ctx,
 					h.ClickHouse.Conn(),
-					"SELECT * FROM default.ratelimits_raw_v2 WHERE workspace_id = {workspace_id:String} AND namespace_id = {namespace_id:String}",
+					"SELECT request_id, identifier, passed FROM default.ratelimits_raw_v2 WHERE workspace_id = {workspace_id:String} AND namespace_id = {namespace_id:String}",
 					map[string]string{
 						"workspace_id": h.Resources().UserWorkspace.ID,
 						"namespace_id": nsID,
