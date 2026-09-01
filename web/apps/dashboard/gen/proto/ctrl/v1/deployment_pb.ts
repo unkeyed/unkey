@@ -29,8 +29,8 @@ export type CreateDeploymentRequest = Message<"ctrl.v1.CreateDeploymentRequest">
   environmentSlug: string;
 
   /**
-   * When omitted: git-connected projects deploy HEAD of default branch;
-   * projects without a repo connection reuse the live deployment's OCI image.
+   * Optional source overrides. Set at most one of oci_image or git_commit.
+   * Omit both to use the app's default Git branch or OCI image.
    *
    * @generated from field: string oci_image = 3;
    */

@@ -58,9 +58,9 @@ type commitFields struct {
 }
 
 // CreateDeployment creates a new deployment record and initiates an async Restate
-// workflow. When source is omitted, the handler auto-detects: git-connected
-// apps deploy HEAD of their default branch, non-git apps reuse the live
-// deployment's OCI image.
+// workflow. When source is omitted, Git apps deploy HEAD of their default branch,
+// OCI apps deploy their configured default image, and historical untyped apps
+// infer a source from their repository or current deployment.
 //
 // The workflow runs asynchronously keyed by {app, environment}, so different
 // environments (e.g. prod vs preview) for the same app deploy in parallel while
