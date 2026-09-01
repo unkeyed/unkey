@@ -33,7 +33,7 @@ export class Apps extends ClientSDK {
    * - `project.<project_id>.create_app` (to create apps in a specific project)
    */
   async createApp(
-    request: components.V2AppsCreateAppRequestBodyUnion,
+    request: components.V2AppsCreateAppRequestBody,
     options?: RequestOptions,
   ): Promise<components.V2AppsCreateAppResponseBody> {
     return unwrapAsync(appsCreateApp(
@@ -138,7 +138,7 @@ export class Apps extends ClientSDK {
    * - `app.<app_id>.update_app` (to update a specific app)
    */
   async updateApp(
-    request: components.V2AppsUpdateAppRequestBodyUnion,
+    request: components.V2AppsUpdateAppRequestBody,
     options?: RequestOptions,
   ): Promise<components.V2AppsUpdateAppResponseBody> {
     return unwrapAsync(appsUpdateApp(
