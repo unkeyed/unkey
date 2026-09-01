@@ -33,7 +33,7 @@ func TestImageSource(t *testing.T) {
 	require.NotEmpty(t, res.Body.Data.DeploymentId)
 
 	require.True(t, capture.called)
-	require.Equal(t, "nginx:latest", capture.req.DockerImage)
+	require.Equal(t, "nginx:latest", capture.req.OciImage)
 	require.Equal(t, setup.Project.ID, capture.req.ProjectId)
 	require.Equal(t, setup.App.ID, capture.req.AppId)
 	require.Equal(t, setup.Environment.Slug, capture.req.EnvironmentSlug)
@@ -88,7 +88,7 @@ func TestGitSource(t *testing.T) {
 	require.NotNil(t, capture.req.GitCommit)
 	require.Equal(t, "main", capture.req.GitCommit.Branch)
 	require.Equal(t, "abc123", capture.req.GitCommit.CommitSha)
-	require.Empty(t, capture.req.DockerImage)
+	require.Empty(t, capture.req.OciImage)
 }
 
 func TestGitSourceWithFork(t *testing.T) {
@@ -144,7 +144,7 @@ func TestRedeployGitApp(t *testing.T) {
 	require.True(t, capture.called)
 	require.NotNil(t, capture.req.GitCommit, "git-connected app rebuilds from the recorded commit")
 	require.Equal(t, "main", capture.req.GitCommit.Branch)
-	require.Empty(t, capture.req.DockerImage)
+	require.Empty(t, capture.req.OciImage)
 }
 
 func TestRedeployImageReuse(t *testing.T) {
@@ -217,7 +217,7 @@ func TestRedeployForkDeployment(t *testing.T) {
 	require.Equal(t, "add KEBAP endpoint", capture.req.GitCommit.CommitMessage)
 	require.Equal(t, "contributor", capture.req.GitCommit.AuthorHandle)
 	require.Equal(t, int64(1700000000), capture.req.GitCommit.Timestamp)
-	require.Empty(t, capture.req.DockerImage)
+	require.Empty(t, capture.req.OciImage)
 }
 
 // TestRedeployImageDeploymentOnConnectedApp covers an image-origin deployment
@@ -252,7 +252,7 @@ func TestRedeployImageDeploymentOnConnectedApp(t *testing.T) {
 	require.Equal(t, http.StatusCreated, res.Status, "expected 201, received: %s", res.RawBody)
 	require.True(t, capture.called)
 	require.Nil(t, capture.req.GitCommit, "an image-origin deployment has no commit to rebuild even on a connected app")
-	require.Equal(t, "nginx:latest", capture.req.DockerImage, "must reuse the recorded image")
+	require.Equal(t, "nginx:latest", capture.req.OciImage, "must reuse the recorded image")
 }
 
 // TestRedeployDeploymentWithoutBuiltImage covers a deployment that never produced

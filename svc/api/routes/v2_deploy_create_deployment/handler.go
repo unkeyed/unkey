@@ -97,7 +97,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		ProjectId:       row.ProjectID,
 		AppId:           row.AppID,
 		EnvironmentSlug: req.EnvironmentSlug,
-		DockerImage:     req.DockerImage,
+		OciImage:        req.DockerImage,
 		GitCommit: &ctrlv1.GitCommitInfo{
 			Branch: req.Branch,
 		},

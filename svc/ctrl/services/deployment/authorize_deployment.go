@@ -47,25 +47,25 @@ func (s *Service) AuthorizeDeployment(ctx context.Context, req *connect.Request[
 	}
 
 	commitSHA := deployment.GitCommitSha.String
-	useDocker := deployment.Source == db.DeploymentsSourceOci ||
+	useOCI := deployment.Source == db.DeploymentsSourceOci ||
 		((deployment.Source == db.DeploymentsSourceUnknown || deployment.Source == "") && commitSHA == "")
 
 	var deployReq *hydrav1.DeployRequest
 	var repoConn *db.GithubRepoConnection
-	if useDocker {
+	if useOCI {
 		image := deployment.ImageRequested.String
 		if image == "" {
 			image = resolvedDeploymentImage(deployment).String
 		}
 		if image == "" {
 			return nil, connect.NewError(connect.CodeFailedPrecondition,
-				fmt.Errorf("Docker deployment %s has no image reference", deploymentID))
+				fmt.Errorf("OCI deployment %s has no image reference", deploymentID))
 		}
 		deployReq = &hydrav1.DeployRequest{
 			DeploymentId: deploymentID,
 			Command:      deployment.Command,
-			Source: &hydrav1.DeployRequest_DockerImage{
-				DockerImage: &hydrav1.DockerImage{Image: image},
+			Source: &hydrav1.DeployRequest_OciImage{
+				OciImage: &hydrav1.OciImage{Image: image},
 			},
 		}
 	} else {

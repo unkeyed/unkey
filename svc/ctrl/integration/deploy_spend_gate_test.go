@@ -59,7 +59,7 @@ func TestDeployWorkspaceGate_BlocksCreateAndRebuild(t *testing.T) {
 			ProjectId:       dep.ProjectID,
 			AppId:           dep.AppID,
 			EnvironmentSlug: "production",
-			DockerImage:     "nginx:latest",
+			OciImage:        "nginx:latest",
 		})
 		req.Header().Set("Authorization", "Bearer "+bearer)
 
@@ -93,7 +93,7 @@ func TestDeployWorkspaceGate_BlocksCreateAndRebuild(t *testing.T) {
 			ProjectId:       dep.ProjectID,
 			AppId:           dep.AppID,
 			EnvironmentSlug: "production",
-			DockerImage:     "nginx:latest",
+			OciImage:        "nginx:latest",
 		})
 		req.Header().Set("Authorization", "Bearer "+bearer)
 

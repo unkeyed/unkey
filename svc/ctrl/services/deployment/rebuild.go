@@ -25,7 +25,7 @@ const (
 
 // Rebuild creates a new deployment cloning the source's project, app, and
 // environment, then kicks off the deploy workflow. Explicit provenance decides
-// whether to rebuild the pinned Git commit or reuse the resolved Docker digest;
+// whether to rebuild the pinned Git commit or reuse the resolved OCI digest;
 // historical unknown rows retain the legacy Git-SHA inference.
 //
 // The new deployment inherits the app's *current* runtime settings and env
@@ -94,7 +94,7 @@ func (s *Service) Rebuild(ctx context.Context, sourceDeploymentID, reason string
 	}
 	if !requiresGit && !hasImage {
 		return "", connect.NewError(connect.CodeFailedPrecondition,
-			fmt.Errorf("source deployment %q has no resolved Docker image; nothing to rebuild from", sourceDeploymentID))
+			fmt.Errorf("source deployment %q has no resolved OCI image; nothing to rebuild from", sourceDeploymentID))
 	}
 
 	env, err := s.db.FindEnvironmentById(ctx, src.EnvironmentID)
@@ -109,8 +109,8 @@ func (s *Service) Rebuild(ctx context.Context, sourceDeploymentID, reason string
 	}
 
 	params := createParams{
-		context:     depCtx,
-		dockerImage: "",
+		context:  depCtx,
+		ociImage: "",
 		gitCommit: &ctrlv1.GitCommitInfo{
 			CommitSha:       src.GitCommitSha.String,
 			Branch:          src.GitBranch.String,
@@ -136,15 +136,15 @@ func (s *Service) Rebuild(ctx context.Context, sourceDeploymentID, reason string
 		)
 	} else {
 		// Reuse the source deployment's immutable image digest.
-		// Passing dockerImage explicitly short-circuits createAndDeploy's
+		// Passing ociImage explicitly short-circuits createAndDeploy's
 		// auto-detect, so we don't accidentally pick up the app's current
 		// deployment image (which may be a different one).
 		imageReference, imageErr := imageref.NormalizeHistorical(resolvedImage.String)
 		if imageErr != nil {
 			return "", connect.NewError(connect.CodeFailedPrecondition,
-				fmt.Errorf("source deployment %q has an invalid Docker image: %w", sourceDeploymentID, imageErr))
+				fmt.Errorf("source deployment %q has an invalid OCI image: %w", sourceDeploymentID, imageErr))
 		}
-		params.dockerImage = imageReference
+		params.ociImage = imageReference
 		logger.Info("rebuilding deployment by reusing source image",
 			"source_deployment_id", sourceDeploymentID,
 			"app_id", src.AppID,
