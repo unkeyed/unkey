@@ -38,16 +38,30 @@ function isPublicRouteHandler(path: string): boolean {
   );
 }
 
+function getWorkosRedirectUri(requestUrl: URL, vercelUrl: string | undefined): string {
+  const configuredBaseUrl = new URL(getBaseUrl());
+  const trustedOrigins = new Set([configuredBaseUrl.origin]);
+  if (vercelUrl) {
+    trustedOrigins.add(new URL(`https://${vercelUrl}`).origin);
+  }
+
+  const callbackOrigin = trustedOrigins.has(requestUrl.origin)
+    ? requestUrl.origin
+    : configuredBaseUrl.origin;
+  return new URL("/auth/sso-callback", callbackOrigin).toString();
+}
+
 // biome-ignore lint/style/noDefaultExport: required by Next.js
 export default async function proxy(req: NextRequest) {
   const url = req.nextUrl;
+  const environment = env();
 
   // Preserve the retired domain and route for inbound compatibility.
   if (url.host === "sentinel.new") {
     return NextResponse.redirect("https://app.unkey.com/sentinel-new");
   }
 
-  if (env().AUTH_PROVIDER === "local") {
+  if (environment.AUTH_PROVIDER === "local") {
     if (url.pathname === "/auth/join") {
       const joinUrl = new URL("/join", url);
       joinUrl.search = url.search;
@@ -75,7 +89,7 @@ export default async function proxy(req: NextRequest) {
         headers: req.headers,
       })
     : req;
-  const redirectUri = new URL("/auth/sso-callback", getBaseUrl()).toString();
+  const redirectUri = getWorkosRedirectUri(url, environment.VERCEL_URL);
   const { session, headers, authorizationUrl } = await authkit(authkitRequest, {
     redirectUri,
     screenHint: url.pathname.startsWith("/auth/sign-up") ? "sign-up" : "sign-in",

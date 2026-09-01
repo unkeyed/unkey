@@ -24,13 +24,14 @@ type HeaderOptions = {
 const mocks = vi.hoisted(() => ({
   authProvider: "workos" as "workos" | "local",
   dashboardBaseUrl: "http://localhost:3000",
+  vercelUrl: undefined as string | undefined,
   authkit: vi.fn<[NextRequest, AuthkitOptions], Promise<AuthkitResult>>(),
   handleAuthkitHeaders: vi.fn<[NextRequest, Headers, HeaderOptions?], NextResponse>(),
   logManagedAuthOutcome: vi.fn(),
 }));
 
 vi.mock("@/lib/env", () => ({
-  env: () => ({ AUTH_PROVIDER: mocks.authProvider }),
+  env: () => ({ AUTH_PROVIDER: mocks.authProvider, VERCEL_URL: mocks.vercelUrl }),
   workosAuthEnv: vi.fn(),
 }));
 
@@ -62,6 +63,7 @@ describe("proxy auth mode split", () => {
     vi.clearAllMocks();
     mocks.authProvider = "workos";
     mocks.dashboardBaseUrl = "http://localhost:3000";
+    mocks.vercelUrl = undefined;
     mocks.authkit.mockResolvedValue({
       session: { user: null },
       headers: new Headers(),
@@ -152,7 +154,18 @@ describe("proxy auth mode split", () => {
     );
   });
 
-  it("uses the current deployment for the WorkOS callback", async () => {
+  it("uses the current Vercel deployment for the WorkOS callback", async () => {
+    mocks.dashboardBaseUrl = "https://unkey-git-auth-no-custom.vercel.app";
+    mocks.vercelUrl = "unkey-dpl_123.unkey.vercel.app";
+
+    await proxy(new NextRequest("https://unkey-dpl_123.unkey.vercel.app/apis"));
+
+    expect(currentAuthkitOptions().redirectUri).toBe(
+      "https://unkey-dpl_123.unkey.vercel.app/auth/sso-callback",
+    );
+  });
+
+  it("falls back to the configured callback origin for an untrusted host", async () => {
     mocks.dashboardBaseUrl = "https://unkey-git-auth-no-custom.vercel.app";
 
     await proxy(new NextRequest("https://untrusted.example.com/apis"));
