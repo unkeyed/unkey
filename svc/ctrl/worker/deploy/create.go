@@ -80,29 +80,15 @@ func (w *Workflow) Create(ctx restate.ObjectContext, req *hydrav1.DeployCreateRe
 		return nil, err
 	}
 
-	existing, err := restate.Run(ctx, func(runCtx restate.RunContext) (backstop, error) {
-		return w.findExistingDeployment(runCtx, deploymentID)
+	// Restate's idempotency key stops replaying once its retention window
+	// passes. The row is what keeps a repeat idempotent after that.
+	replayed, err := restate.Run(ctx, func(runCtx restate.RunContext) (bool, error) {
+		return w.findExistingDeployment(runCtx, deploymentID, req)
 	}, restate.WithName("check for existing deployment"), restate.WithMaxRetryAttempts(runMaxAttempts))
 	if err != nil {
 		return nil, err
 	}
-	if existing.Found {
-		// The idempotency key stops replaying once its retention window passes.
-		// The row is what keeps a repeat idempotent after that.
-		if existing.ProjectID != req.GetProjectId() || existing.AppID != req.GetAppId() {
-			// A derived id hashes the workspace, app, and environment, so two
-			// targets cannot produce one id. If they somehow did, answering
-			// would hand this caller someone else's deployment.
-			return nil, restate.TerminalError(fmt.Errorf(
-				"deployment %s belongs to project %s app %s, not project %s app %s",
-				deploymentID, existing.ProjectID, existing.AppID, req.GetProjectId(), req.GetAppId(),
-			))
-		}
-
-		logger.Info("deployment create replayed an existing row",
-			"deployment_id", deploymentID,
-			"status", string(existing.Status),
-		)
+	if replayed {
 		return createResponse(hydrav1.CreateOutcome_CREATE_OUTCOME_REPLAYED, nil), nil
 	}
 
@@ -176,23 +162,38 @@ func createResponse(outcome hydrav1.CreateOutcome, block *createBlock) *hydrav1.
 	return resp
 }
 
-// backstop is the journaled answer to whether the row already exists.
-type backstop struct {
-	Found     bool                        `json:"found"`
-	Status    mysqltype.DeploymentsStatus `json:"status"`
-	ProjectID string                      `json:"project_id"`
-	AppID     string                      `json:"app_id"`
-}
-
-func (w *Workflow) findExistingDeployment(ctx context.Context, deploymentID string) (backstop, error) {
+// findExistingDeployment reports whether this object already wrote its row, so
+// a repeat returns REPLAYED instead of creating a second deployment.
+//
+// A row belonging to another target is a terminal error rather than a replay. A
+// derived id hashes the workspace, app, and environment, so two targets cannot
+// produce one id; if they somehow did, answering would hand this caller someone
+// else's deployment.
+func (w *Workflow) findExistingDeployment(
+	ctx context.Context,
+	deploymentID string,
+	req *hydrav1.DeployCreateRequest,
+) (bool, error) {
 	row, err := w.db.FindDeploymentById(ctx, deploymentID)
 	if err != nil {
 		if db.IsNotFound(err) {
-			return backstop{Found: false, Status: "", ProjectID: "", AppID: ""}, nil
+			return false, nil
 		}
-		return backstop{}, err //nolint:exhaustruct // zero value unused on error
+		return false, err
 	}
-	return backstop{Found: true, Status: row.Status, ProjectID: row.ProjectID, AppID: row.AppID}, nil
+
+	if row.ProjectID != req.GetProjectId() || row.AppID != req.GetAppId() {
+		return false, restate.TerminalError(fmt.Errorf(
+			"deployment %s belongs to project %s app %s, not project %s app %s",
+			deploymentID, row.ProjectID, row.AppID, req.GetProjectId(), req.GetAppId(),
+		))
+	}
+
+	logger.Info("deployment create replayed an existing row",
+		"deployment_id", deploymentID,
+		"status", string(row.Status),
+	)
+	return true, nil
 }
 
 // createResolution is what [Workflow.resolveCreate] decided, flattened to
