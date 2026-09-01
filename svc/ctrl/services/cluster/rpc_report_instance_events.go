@@ -72,6 +72,7 @@ func (s *Service) ReportInstanceEvents(ctx context.Context, req *connect.Request
 		when := eventTime(event)
 		row := schema.InstanceEventV1{
 			Time:          when,
+			InsertedAt:    0,
 			WorkspaceID:   event.GetWorkspaceId(),
 			ProjectID:     event.GetProjectId(),
 			AppID:         event.GetAppId(),

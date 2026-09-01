@@ -131,6 +131,7 @@ func (k *KeyVerifier) TelemetrySnapshot() schema.KeyVerification {
 		RequestID:    k.session.RequestID(),
 		WorkspaceID:  k.Key.WorkspaceID,
 		Time:         time.Now().UnixMilli(),
+		InsertedAt:   0,
 		Outcome:      string(k.Status),
 		KeySpaceID:   k.Key.KeyAuthID,
 		KeyID:        k.Key.ID,

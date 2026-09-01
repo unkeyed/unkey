@@ -12,6 +12,8 @@ CREATE TABLE IF NOT EXISTS default.logdrain_deliveries_raw_v1
 
     -- Wall-clock completion time of the customer endpoint call.
     `time`         Int64 CODEC(Delta, ZSTD(1)),
+    -- When ClickHouse accepted the row (unix milliseconds).
+    `inserted_at`  Int64 DEFAULT toUnixTimestamp64Milli(now64(3)) CODEC(Delta, ZSTD(1)),
     -- 'success' | 'error'.
     `outcome`      LowCardinality(String),
     `events`       Int64,

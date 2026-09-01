@@ -11,9 +11,10 @@ package schema
 // the table's full column list) keeps writers compatible with tables that
 // have gained columns the binary does not know about yet: omitted columns
 // fall back to their server-side DEFAULT instead of failing AppendStruct
-// with "missing destination name". The reverse direction still needs
-// ordering: a column must exist in every environment before a binary that
-// lists it is deployed.
+// with "missing destination name". A field tagged chinsert:"-" remains
+// available for scans but is omitted from inserts so the server always
+// computes its DEFAULT. The reverse direction still needs ordering: a column
+// must exist in every environment before a binary that lists it is deployed.
 type Row interface {
 	// Table returns the fully qualified table this row is inserted into,
 	// e.g. "default.key_verifications_raw_v2".

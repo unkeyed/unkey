@@ -208,6 +208,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				RequestID:   s.RequestID(),
 				WorkspaceID: principal.WorkspaceID,
 				Time:        startMillis,
+				InsertedAt:  0,
 				NamespaceID: meta.namespaceID,
 				Identifier:  meta.identifier,
 				Passed:      result.Success,

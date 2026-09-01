@@ -172,6 +172,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			RequestID:   s.RequestID(),
 			WorkspaceID: principal.WorkspaceID,
 			Time:        nowMillis,
+			InsertedAt:  0,
 			NamespaceID: ns.ID,
 			Identifier:  req.Identifier,
 			Passed:      result.Success,

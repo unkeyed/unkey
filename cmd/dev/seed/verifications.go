@@ -485,6 +485,7 @@ func (s *Seeder) generateVerifications(_ context.Context, workspaceID string, ke
 		s.keyVerifications.Buffer(schema.KeyVerification{
 			RequestID:    uid.New("req"),
 			Time:         timestamp.UnixMilli(),
+			InsertedAt:   0,
 			WorkspaceID:  workspaceID,
 			KeySpaceID:   keyAuthID,
 			KeyID:        key.ID,

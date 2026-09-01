@@ -410,6 +410,7 @@ func (e *Engine) recordDelivery(drain db.GetLeasedAndDueLogdrainRow, stream db.L
 		DrainID:           drain.ID,
 		Stream:            string(stream),
 		Time:              completed.UnixMilli(),
+		InsertedAt:        0,
 		Outcome:           outcome,
 		Events:            int64(events),
 		WebhookDurationMs: duration.Milliseconds(),

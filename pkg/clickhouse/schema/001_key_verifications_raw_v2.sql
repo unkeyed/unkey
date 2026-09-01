@@ -6,6 +6,9 @@ CREATE TABLE key_verifications_raw_v2
   -- unix milli
   time Int64 CODEC(Delta, ZSTD(1)),
 
+  -- Unix milliseconds when ClickHouse accepted the row.
+  inserted_at Int64 DEFAULT toUnixTimestamp64Milli(now64(3)) CODEC(Delta, ZSTD(1)),
+
   workspace_id String CODEC(ZSTD(1)),
   key_space_id String CODEC(ZSTD(1)),
   -- Empty string if the key has no identity

@@ -38,6 +38,7 @@ func (s *ClickHouseSeeder) InsertVerifications(ctx context.Context, workspaceID 
 				AppID:        "",
 				RequestID:    uid.New(uid.RequestPrefix),
 				Time:         timestamp.Add(time.Duration(i+j) * time.Millisecond).UnixMilli(),
+				InsertedAt:   0,
 				WorkspaceID:  workspaceID,
 				KeySpaceID:   uid.New(uid.KeySpacePrefix),
 				IdentityID:   "",
@@ -79,6 +80,7 @@ func (s *ClickHouseSeeder) InsertRatelimits(ctx context.Context, workspaceID str
 			ratelimits[j] = schema.Ratelimit{
 				RequestID:   uid.New(uid.RequestPrefix),
 				Time:        timestamp.Add(time.Duration(i+j) * time.Millisecond).UnixMilli(),
+				InsertedAt:  0,
 				WorkspaceID: workspaceID,
 				NamespaceID: uid.New(uid.RatelimitNamespacePrefix),
 				Identifier:  uid.New(uid.IdentityPrefix),
@@ -225,6 +227,7 @@ func (s *ClickHouseSeeder) insertVerificationsForKeyChunk(
 					AppID:        "",
 					RequestID:    fmt.Sprintf("perf-%d-%d", i+keyIdx, j),
 					Time:         baseTime + int64(j),
+					InsertedAt:   0,
 					WorkspaceID:  workspaceID,
 					KeySpaceID:   keySpaceID,
 					KeyID:        keyID,
@@ -259,6 +262,7 @@ func (s *ClickHouseSeeder) InsertFrontlineRequests(ctx context.Context, workspac
 			requests[j] = schema.FrontlineRequest{
 				RequestID:       uid.New(uid.RequestPrefix),
 				Time:            timestamp.Add(time.Duration(i+j) * time.Millisecond).UnixMilli(),
+				InsertedAt:      0,
 				WorkspaceID:     workspaceID,
 				ProjectID:       projectID,
 				AppID:           appID,

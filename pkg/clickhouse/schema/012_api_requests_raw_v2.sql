@@ -2,6 +2,8 @@ CREATE TABLE api_requests_raw_v2 (
   request_id String CODEC(ZSTD(3)),
   -- unix milli
   time Int64 CODEC(Delta, ZSTD(3)),
+  -- Unix milliseconds when ClickHouse accepted the row.
+  inserted_at Int64 DEFAULT toUnixTimestamp64Milli(now64(3)) CODEC(Delta, ZSTD(1)),
   workspace_id String CODEC(ZSTD(3)),
   host String CODEC(ZSTD(3)),
   -- Upper case HTTP method

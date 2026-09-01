@@ -3,6 +3,8 @@ CREATE TABLE ratelimits_raw_v2 (
   request_id String,
   -- unix milli
   time Int64 CODEC (Delta, LZ4),
+  -- Unix milliseconds when ClickHouse accepted the row.
+  inserted_at Int64 DEFAULT toUnixTimestamp64Milli(now64(3)) CODEC(Delta, ZSTD(1)),
   workspace_id String,
   namespace_id String,
   identifier String,
