@@ -19,8 +19,13 @@ type KeyService interface {
 	// If migration is pending, it performs on-demand migration and returns a KeyVerifier for further validation.
 	GetMigrated(ctx context.Context, sess *zen.Session, rawKey string, migrationID string) (*KeyVerifier, error)
 
-	// CreateKey generates a new secure API key
+	// CreateKey generates a key for legacy API routes.
+	//
+	// Deprecated: Use [KeyService.CreateKeyV1] for new key creation paths.
 	CreateKey(ctx context.Context, req CreateKeyRequest) (CreateKeyResponse, error)
+
+	// CreateKeyV1 generates an API key in the version 1 plaintext format.
+	CreateKeyV1(ctx context.Context, req CreateKeyV1Request) (CreateKeyV1Response, error)
 }
 
 // VerifyResponse contains the result of a successful key verification.
@@ -29,15 +34,33 @@ type VerifyResponse struct {
 	KeyID                 string // The unique identifier of the key
 }
 
-// CreateKeyRequest specifies the parameters for creating a new API key.
+// CreateKeyRequest specifies the parameters for creating a legacy API key.
+//
+// Deprecated: Use [CreateKeyV1Request] for new key creation paths.
 type CreateKeyRequest struct {
 	Prefix     string // Optional prefix to prepend to the key (e.g., "test_", "prod_")
 	ByteLength int    // Length of the random bytes to generate (16-255)
 }
 
-// CreateKeyResponse contains the generated key and its metadata.
+// CreateKeyResponse contains a generated legacy key and its metadata.
+//
+// Deprecated: Use [CreateKeyV1Response] for new key creation paths.
 type CreateKeyResponse struct {
 	Key   string // The complete plaintext key (prefix + encoded random bytes)
 	Hash  string // SHA-256 hash of the key for secure storage
 	Start string // The first four encoded random characters.
+}
+
+// CreateKeyV1Request specifies the prefix for a version 1 plaintext key.
+type CreateKeyV1Request struct {
+	Prefix string // Prefix must match ^[A-Za-z0-9_]{0,15}[A-Za-z0-9]$.
+}
+
+// CreateKeyV1Response contains a version 1 plaintext key and its storage metadata.
+type CreateKeyV1Response struct {
+	Key    string // Complete plaintext key.
+	Hash   string // SHA-256 hash of Key.
+	Prefix string // Validated user-controlled prefix.
+	Start  string // First four characters of the random field.
+	End    string // Final four characters of Key.
 }
