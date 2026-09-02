@@ -96,7 +96,7 @@ export const FilterItem = ({
   return (
     <Drover.Nested open={open} onOpenChange={handleOpenChange}>
       <Drover.Trigger asChild>
-        {/* biome-ignore lint/a11y/useKeyWithClickEvents: <explanation> */}
+        {/* biome-ignore lint/a11y/useKeyWithClickEvents: wrapper only intercepts pointer events */}
         <div
           ref={itemRef}
           className={cn(

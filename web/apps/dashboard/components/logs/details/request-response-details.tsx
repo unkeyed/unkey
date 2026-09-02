@@ -100,6 +100,7 @@ export const RequestResponseDetails = <T extends unknown[]>({ fields, className 
       {fields.map(
         (field, index) =>
           isNonEmpty(field.content) && (
+            // biome-ignore lint/suspicious/noArrayIndexKey: composite key, the index only disambiguates repeats
             <div key={`${field.label}-${index}`}>{renderField(field, index)}</div>
           ),
       )}

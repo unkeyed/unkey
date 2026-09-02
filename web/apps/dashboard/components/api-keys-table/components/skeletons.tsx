@@ -36,7 +36,7 @@ export const UsageColumnSkeleton = ({ maxBars = 30 }: { maxBars?: number }) => (
       .map((_, index) => (
         <div
           key={`loading-${
-            // biome-ignore lint/suspicious/noArrayIndexKey: <explanation>
+            // biome-ignore lint/suspicious/noArrayIndexKey: index is the stable identity for this list
             index
           }`}
           className="flex flex-col"
