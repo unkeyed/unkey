@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/svc/api/internal/projects"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_identities_list_identities"
@@ -40,6 +41,8 @@ func TestForbidden(t *testing.T) {
 	}()
 
 	workspaceID := h.Resources().UserWorkspace.ID
+	projectID, err := projects.EnsureDefaultProject(ctx, tx, workspaceID)
+	require.NoError(t, err)
 
 	// Insert identity in default environment
 	defaultIdentityID := uid.New(uid.IdentityPrefix)
@@ -47,6 +50,7 @@ func TestForbidden(t *testing.T) {
 		ID:          defaultIdentityID,
 		ExternalID:  "test_user_default",
 		WorkspaceID: workspaceID,
+		ProjectID:   projectID,
 		Environment: "default",
 		CreatedAt:   time.Now().UnixMilli(),
 		Meta:        []byte("{}"),
@@ -59,6 +63,7 @@ func TestForbidden(t *testing.T) {
 		ID:          prodIdentityID,
 		ExternalID:  "test_user_prod",
 		WorkspaceID: workspaceID,
+		ProjectID:   projectID,
 		Environment: "production",
 		CreatedAt:   time.Now().UnixMilli(),
 		Meta:        []byte("{}"),
@@ -71,6 +76,7 @@ func TestForbidden(t *testing.T) {
 		ID:          stagingIdentityID,
 		ExternalID:  "test_user_staging",
 		WorkspaceID: workspaceID,
+		ProjectID:   projectID,
 		Environment: "staging",
 		CreatedAt:   time.Now().UnixMilli(),
 		Meta:        []byte("{}"),
@@ -90,6 +96,18 @@ func TestForbidden(t *testing.T) {
 		require.Equal(t, http.StatusForbidden, res.Status)
 		require.Equal(t, "https://unkey.com/docs/errors/unkey/authorization/insufficient_permissions", res.Body.Error.Type)
 		require.Contains(t, res.Body.Error.Detail, "Missing one of these permissions")
+	})
+
+	t.Run("no permission to read an empty result", func(t *testing.T) {
+		search := uid.New(uid.TestPrefix)
+		res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](
+			h,
+			route,
+			headers,
+			handler.Request{Search: &search},
+		)
+		require.Equal(t, http.StatusForbidden, res.Status)
+		require.Equal(t, "https://unkey.com/docs/errors/unkey/authorization/insufficient_permissions", res.Body.Error.Type)
 	})
 
 	// Create a new key with specific permissions for certain environments

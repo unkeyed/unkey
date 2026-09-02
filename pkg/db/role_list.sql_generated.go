@@ -28,6 +28,7 @@ SELECT r.pk, r.id, r.workspace_id, r.project_id, r.name, r.description, r.create
 ) as permissions
 FROM roles r
 WHERE r.workspace_id = ?
+AND r.project_id = ?
 AND r.id >= ?
 AND (? IS NULL OR LOWER(r.id) LIKE LOWER(?) OR LOWER(r.name) LIKE LOWER(?) OR LOWER(r.description) LIKE LOWER(?))
 ORDER BY r.id
@@ -36,6 +37,7 @@ LIMIT ?
 
 type ListRolesParams struct {
 	WorkspaceID string         `db:"workspace_id"`
+	ProjectID   string         `db:"project_id"`
 	IDCursor    string         `db:"id_cursor"`
 	Search      sql.NullString `db:"search"`
 	Limit       int32          `db:"limit"`
@@ -53,6 +55,7 @@ type ListRolesRow struct {
 	Permissions interface{}    `db:"permissions"`
 }
 
+// ListRoles returns one page of roles and their permissions from one project.
 // search is a pre-escaped LIKE pattern built by mysql.SearchContains; NULL disables the filter
 //
 //	SELECT r.pk, r.id, r.workspace_id, r.project_id, r.name, r.description, r.created_at_m, r.updated_at_m, COALESCE(
@@ -72,6 +75,7 @@ type ListRolesRow struct {
 //	) as permissions
 //	FROM roles r
 //	WHERE r.workspace_id = ?
+//	AND r.project_id = ?
 //	AND r.id >= ?
 //	AND (? IS NULL OR LOWER(r.id) LIKE LOWER(?) OR LOWER(r.name) LIKE LOWER(?) OR LOWER(r.description) LIKE LOWER(?))
 //	ORDER BY r.id
@@ -79,6 +83,7 @@ type ListRolesRow struct {
 func (q *Queries) ListRoles(ctx context.Context, db DBTX, arg ListRolesParams) ([]ListRolesRow, error) {
 	rows, err := db.QueryContext(ctx, listRoles,
 		arg.WorkspaceID,
+		arg.ProjectID,
 		arg.IDCursor,
 		arg.Search,
 		arg.Search,

@@ -17,6 +17,8 @@ SELECT
     k.remaining_requests AS key_remaining_requests,
     k.last_used_at AS key_last_used_at,
     a.id AS api_id,
+    ka.id AS key_auth_id,
+    ka.project_id AS key_auth_project_id,
     ka.store_encrypted_keys AS key_auth_store_encrypted_keys,
     i.id as identity_table_id,
     i.external_id as identity_external_id,

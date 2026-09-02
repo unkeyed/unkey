@@ -99,8 +99,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			Action:       rbac.UpdateKey,
 		}),
 		rbac.U(
-			urn.New().Workspace(principal.WorkspaceID).Keyspace(keyData.Key.KeyAuthID).Key(req.KeyId),
-			permissions.UpdateKey{},
+			urn.New().Workspace(principal.WorkspaceID).Project(keyData.KeyAuth.ProjectID).Keyspace(keyData.Key.KeyAuthID).Key(req.KeyId),
+			permissions.Write,
 		),
 	))
 	if err != nil {

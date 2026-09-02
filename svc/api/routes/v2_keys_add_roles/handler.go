@@ -81,8 +81,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	err = principal.Authorize(
 		rbac.Or(
 			rbac.U(
-				urn.New().Workspace(principal.WorkspaceID).Keyspace(key.Key.KeyAuthID).Key(key.Key.ID),
-				permissions.UpdateKey{},
+				urn.New().Workspace(principal.WorkspaceID).Project(key.KeyAuth.ProjectID).Keyspace(key.Key.KeyAuthID).Key(key.Key.ID),
+				permissions.Write,
 			),
 			rbac.And(
 				rbac.Or(
@@ -119,6 +119,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	foundRoles, err := db.Query.FindManyRolesByNamesWithPerms(ctx, h.DB.RO(), db.FindManyRolesByNamesWithPermsParams{
 		WorkspaceID: principal.WorkspaceID,
+		ProjectID:   key.KeyAuth.ProjectID,
 		Names:       req.Roles,
 	})
 	if err != nil {

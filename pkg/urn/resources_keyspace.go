@@ -7,10 +7,10 @@ import "fmt"
 // Hierarchy:
 //
 //	workspace
-//	└── keyspaces/{keyspace_id}
-//
-// A keyspace can also produce a descendant pattern for grants covering every
-// key and future keyspace child.
+//	└── projects/{project_id}
+//	    └── keyspaces/{keyspace_id}
+//	        ├── logs
+//	        └── keys/{key_id}
 type Keyspace struct {
 	workspaceID string
 	path        string
@@ -24,6 +24,16 @@ type Keyspace struct {
 //	└── keyspaces/{keyspace_id}
 func (k Keyspace) String() string {
 	return V1{WorkspaceID: k.workspaceID, Resource: k.path}.String()
+}
+
+// Logs returns the keyspace log resource path.
+//
+// Subresource:
+//
+//	keyspaces/{keyspace_id}
+//	└── logs
+func (k Keyspace) Logs() KeyspaceLogs {
+	return KeyspaceLogs{workspaceID: k.workspaceID, path: k.path + "/logs"}
 }
 
 // Key is a key resource path.
@@ -58,4 +68,22 @@ func (k Keyspace) Any() V1 {
 		WorkspaceID: k.workspaceID,
 		Resource:    k.path + "/**",
 	}
+}
+
+// KeyspaceLogs builds keyspace log resource paths.
+//
+// Hierarchy:
+//
+//	workspace
+//	└── projects/{project_id}
+//	    └── keyspaces/{keyspace_id}
+//	        └── logs
+type KeyspaceLogs struct {
+	workspaceID string
+	path        string
+}
+
+// String returns this keyspace log resource path.
+func (k KeyspaceLogs) String() string {
+	return V1{WorkspaceID: k.workspaceID, Resource: k.path}.String()
 }

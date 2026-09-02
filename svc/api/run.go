@@ -404,12 +404,8 @@ func Run(ctx context.Context, cfg Config) error {
 			if jwtErr != nil {
 				return fmt.Errorf("unable to create JWT auth resolver from auth[%d]: %w", i, jwtErr)
 			}
-			// A WorkOS entry carries provider permission slugs that must be
-			// translated into canonical Unkey permissions after verification.
-			// This is selected by the explicit provider field, not by the
-			// issuer, so custom auth domains translate the same way.
 			if authConfig.Provider == jwtProviderWorkOS {
-				jwtResolver = authworkos.NewPermissionTranslatingResolver(jwtResolver)
+				jwtResolver = authworkos.NewRoleMappingResolver(jwtResolver)
 			}
 			authResolvers = append(authResolvers, jwtResolver)
 		case PortalSessionAuthConfig:

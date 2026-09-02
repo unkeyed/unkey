@@ -252,4 +252,40 @@ func TestNotFoundErrors(t *testing.T) {
 		require.NotNil(t, res.Body)
 		require.Contains(t, res.Body.Error.Detail, "key was not found")
 	})
+
+	t.Run("permission from another project", func(t *testing.T) {
+		api := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspace.ID})
+		key := h.CreateKey(seed.CreateKeyRequest{
+			WorkspaceID: workspace.ID,
+			KeySpaceID:  api.KeyAuthID.String,
+		})
+		otherProject := h.CreateProject(seed.CreateProjectRequest{
+			ID:          uid.New(uid.ProjectPrefix),
+			WorkspaceID: workspace.ID,
+			Name:        "Other Permission Project",
+			Slug:        uid.New("other-permission-project"),
+		})
+		permissionID := uid.New(uid.PermissionPrefix)
+		err := db.Query.InsertPermission(ctx, h.DB.RW(), db.InsertPermissionParams{
+			PermissionID: permissionID,
+			WorkspaceID:  workspace.ID,
+			ProjectID:    otherProject.ID,
+			Name:         "other.project.permission",
+			Slug:         "other.project.permission",
+			Description:  dbtype.NullString{Valid: true, String: "Other project permission"},
+			CreatedAtM:   time.Now().UnixMilli(),
+		})
+		require.NoError(t, err)
+
+		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, handler.Request{
+			KeyId:       key.KeyID,
+			Permissions: []string{"other.project.permission"},
+		})
+
+		require.Equal(t, http.StatusNotFound, res.Status)
+		require.Equal(t, "https://unkey.com/docs/errors/unkey/data/permission_not_found", res.Body.Error.Type)
+		permissions, err := db.Query.ListDirectPermissionsByKeyID(ctx, h.DB.RO(), key.KeyID)
+		require.NoError(t, err)
+		require.Empty(t, permissions)
+	})
 }
