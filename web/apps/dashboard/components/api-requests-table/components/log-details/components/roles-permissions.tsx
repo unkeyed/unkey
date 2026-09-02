@@ -35,7 +35,7 @@ export const RolesSection: React.FC<RolesSectionProps> = ({ roles }) => {
               key={role.name}
               className="relative group p-2 rounded-md border border-gray-4 bg-gray-2 hover:border-gray-5 transition-colors"
             >
-              <div className="text-accent-12 font-normal text-xs">{role.name}</div>
+              <div className="text-accent-12 font-[450] text-xs">{role.name}</div>
               {role.description ? (
                 <div className="text-accent-10 mt-1 text-xs">{role.description}</div>
               ) : (
@@ -109,7 +109,7 @@ export const PermissionsSection = ({ permissions }: PermissionsSectionProps) => 
               key={permission.name}
               className="relative group p-2 rounded-md border border-gray-4 bg-gray-2 hover:border-gray-5 transition-colors"
             >
-              <div className="text-accent-12 font-normal text-xs">{permission.name}</div>
+              <div className="text-accent-12 font-[450] text-xs">{permission.name}</div>
               {permission.description ? (
                 <div className="text-accent-10 mt-1 text-xs">{permission.description}</div>
               ) : (

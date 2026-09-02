@@ -46,7 +46,7 @@ export function createRoleOptions({
                 </div>
                 <div className="flex gap-1 flex-col truncate">
                   <div className="flex gap-2 items-center">
-                    <span className="font-normal text-accent-12 text-left">{role.name}</span>
+                    <span className="font-[450] text-accent-12 text-left">{role.name}</span>
                     {(previouslySelectedRoleNames.includes(role.name) ||
                       role.keys.find((item) => item.id === keyId)) && (
                       <StatusBadge

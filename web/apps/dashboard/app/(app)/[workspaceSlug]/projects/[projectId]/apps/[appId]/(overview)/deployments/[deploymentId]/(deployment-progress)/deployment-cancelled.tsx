@@ -114,7 +114,7 @@ export function DeploymentCancelled({ deployment, stepsData, reason }: Deploymen
       <div className="border border-grayA-4 bg-grayA-2 rounded-lg p-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="flex flex-col gap-0.5">
-            <span className="text-sm font-normal text-gray-12">{copy.title}</span>
+            <span className="text-sm font-[450] text-gray-12">{copy.title}</span>
             <span className="text-xs text-gray-11">{copy.description}</span>
           </div>
         </div>

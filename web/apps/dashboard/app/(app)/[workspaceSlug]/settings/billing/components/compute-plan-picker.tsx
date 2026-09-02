@@ -119,7 +119,7 @@ function Row({
       </span>
 
       <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-        <span className="font-normal text-[15px] text-gray-12">{plan.name}</span>
+        <span className="font-[450] text-[15px] text-gray-12">{plan.name}</span>
         {blurb ? <span className="text-[13px] text-gray-11">{blurb}</span> : null}
       </span>
 
@@ -201,7 +201,7 @@ export function ComputePlanFeatures() {
         <div key={title}>
           <div className="flex items-center gap-[9px]">
             <Icon className="size-4 shrink-0 text-gray-12" />
-            <span className="font-normal text-[13px] text-gray-12">{title}</span>
+            <span className="font-[450] text-[13px] text-gray-12">{title}</span>
           </div>
           <p className="mt-1 text-[12.5px] text-gray-11 leading-relaxed">{description}</p>
         </div>

@@ -331,7 +331,7 @@ function SettingsZoneRow({
   return (
     <div className="flex items-center justify-between p-4">
       <div className="space-y-1">
-        <p className="font-normal text-gray-12 text-sm">{title}</p>
+        <p className="font-[450] text-gray-12 text-sm">{title}</p>
         <p className="text-gray-11 text-[13px]">{description}</p>
       </div>
       <Button
