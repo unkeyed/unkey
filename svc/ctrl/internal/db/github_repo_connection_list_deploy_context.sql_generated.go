@@ -7,16 +7,34 @@ package db
 
 import (
 	"context"
+	"database/sql"
+
+	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
 )
 
 const listRepoConnectionDeployContexts = `-- name: ListRepoConnectionDeployContexts :many
 SELECT
-    gc.pk, gc.workspace_id, gc.project_id, gc.app_id, gc.installation_id, gc.repository_id, gc.repository_full_name, gc.created_at, gc.updated_at,
-    p.pk, p.id, p.workspace_id, p.name, p.slug, p.depot_project_id, p.delete_protection, p.created_at, p.updated_at,
-    e.pk, e.id, e.workspace_id, e.project_id, e.app_id, e.slug, e.description, e.kind, e.delete_protection, e.created_at, e.updated_at,
-    a.pk, a.id, a.workspace_id, a.project_id, a.name, a.slug, a.default_branch, a.current_deployment_id, a.is_rolled_back, a.delete_protection, a.created_at, a.updated_at,
-    abs.pk, abs.workspace_id, abs.app_id, abs.environment_id, abs.dockerfile, abs.docker_context, abs.build_command, abs.watch_paths, abs.auto_deploy, abs.created_at, abs.updated_at,
-    ars.pk, ars.workspace_id, ars.app_id, ars.environment_id, ars.port, ars.cpu_millicores, ars.memory_mib, ars.storage_mib, ars.command, ars.healthcheck, ars.shutdown_signal, ars.upstream_protocol, ars.sentinel_config, ars.openapi_spec_path, ars.created_at, ars.updated_at
+    gc.installation_id AS connection_installation_id,
+    gc.repository_full_name AS connection_repository_full_name,
+    p.id AS project_id,
+    p.workspace_id AS project_workspace_id,
+    e.id AS environment_id,
+    e.slug AS environment_slug,
+    a.id AS app_id,
+    abs.auto_deploy AS build_settings_auto_deploy,
+    abs.watch_paths AS build_settings_watch_paths,
+    abs.docker_context AS build_settings_docker_context,
+    abs.dockerfile AS build_settings_dockerfile,
+    abs.build_command AS build_settings_build_command,
+    ars.port AS runtime_settings_port,
+    ars.cpu_millicores AS runtime_settings_cpu_millicores,
+    ars.memory_mib AS runtime_settings_memory_mib,
+    ars.storage_mib AS runtime_settings_storage_mib,
+    ars.command AS runtime_settings_command,
+    ars.healthcheck AS runtime_settings_healthcheck,
+    ars.shutdown_signal AS runtime_settings_shutdown_signal,
+    ars.upstream_protocol AS runtime_settings_upstream_protocol,
+    ars.sentinel_config AS runtime_settings_sentinel_config
 FROM github_repo_connections gc
 INNER JOIN apps a ON a.id = gc.app_id
 INNER JOIN projects p ON p.id = gc.project_id
@@ -41,23 +59,53 @@ type ListRepoConnectionDeployContextsParams struct {
 }
 
 type ListRepoConnectionDeployContextsRow struct {
-	GithubRepoConnection GithubRepoConnection `db:"github_repo_connection"`
-	Project              Project              `db:"project"`
-	Environment          Environment          `db:"environment"`
-	App                  App                  `db:"app"`
-	AppBuildSetting      AppBuildSetting      `db:"app_build_setting"`
-	AppRuntimeSetting    AppRuntimeSetting    `db:"app_runtime_setting"`
+	ConnectionInstallationID        int64                              `db:"connection_installation_id"`
+	ConnectionRepositoryFullName    string                             `db:"connection_repository_full_name"`
+	ProjectID                       string                             `db:"project_id"`
+	ProjectWorkspaceID              string                             `db:"project_workspace_id"`
+	EnvironmentID                   string                             `db:"environment_id"`
+	EnvironmentSlug                 string                             `db:"environment_slug"`
+	AppID                           string                             `db:"app_id"`
+	BuildSettingsAutoDeploy         bool                               `db:"build_settings_auto_deploy"`
+	BuildSettingsWatchPaths         mysqltype.StringSlice              `db:"build_settings_watch_paths"`
+	BuildSettingsDockerContext      string                             `db:"build_settings_docker_context"`
+	BuildSettingsDockerfile         sql.NullString                     `db:"build_settings_dockerfile"`
+	BuildSettingsBuildCommand       sql.NullString                     `db:"build_settings_build_command"`
+	RuntimeSettingsPort             int32                              `db:"runtime_settings_port"`
+	RuntimeSettingsCpuMillicores    int32                              `db:"runtime_settings_cpu_millicores"`
+	RuntimeSettingsMemoryMib        int32                              `db:"runtime_settings_memory_mib"`
+	RuntimeSettingsStorageMib       uint32                             `db:"runtime_settings_storage_mib"`
+	RuntimeSettingsCommand          mysqltype.StringSlice              `db:"runtime_settings_command"`
+	RuntimeSettingsHealthcheck      mysqltype.NullHealthcheck          `db:"runtime_settings_healthcheck"`
+	RuntimeSettingsShutdownSignal   AppRuntimeSettingsShutdownSignal   `db:"runtime_settings_shutdown_signal"`
+	RuntimeSettingsUpstreamProtocol AppRuntimeSettingsUpstreamProtocol `db:"runtime_settings_upstream_protocol"`
+	RuntimeSettingsSentinelConfig   []byte                             `db:"runtime_settings_sentinel_config"`
 }
 
 // ListRepoConnectionDeployContexts
 //
 //	SELECT
-//	    gc.pk, gc.workspace_id, gc.project_id, gc.app_id, gc.installation_id, gc.repository_id, gc.repository_full_name, gc.created_at, gc.updated_at,
-//	    p.pk, p.id, p.workspace_id, p.name, p.slug, p.depot_project_id, p.delete_protection, p.created_at, p.updated_at,
-//	    e.pk, e.id, e.workspace_id, e.project_id, e.app_id, e.slug, e.description, e.kind, e.delete_protection, e.created_at, e.updated_at,
-//	    a.pk, a.id, a.workspace_id, a.project_id, a.name, a.slug, a.default_branch, a.current_deployment_id, a.is_rolled_back, a.delete_protection, a.created_at, a.updated_at,
-//	    abs.pk, abs.workspace_id, abs.app_id, abs.environment_id, abs.dockerfile, abs.docker_context, abs.build_command, abs.watch_paths, abs.auto_deploy, abs.created_at, abs.updated_at,
-//	    ars.pk, ars.workspace_id, ars.app_id, ars.environment_id, ars.port, ars.cpu_millicores, ars.memory_mib, ars.storage_mib, ars.command, ars.healthcheck, ars.shutdown_signal, ars.upstream_protocol, ars.sentinel_config, ars.openapi_spec_path, ars.created_at, ars.updated_at
+//	    gc.installation_id AS connection_installation_id,
+//	    gc.repository_full_name AS connection_repository_full_name,
+//	    p.id AS project_id,
+//	    p.workspace_id AS project_workspace_id,
+//	    e.id AS environment_id,
+//	    e.slug AS environment_slug,
+//	    a.id AS app_id,
+//	    abs.auto_deploy AS build_settings_auto_deploy,
+//	    abs.watch_paths AS build_settings_watch_paths,
+//	    abs.docker_context AS build_settings_docker_context,
+//	    abs.dockerfile AS build_settings_dockerfile,
+//	    abs.build_command AS build_settings_build_command,
+//	    ars.port AS runtime_settings_port,
+//	    ars.cpu_millicores AS runtime_settings_cpu_millicores,
+//	    ars.memory_mib AS runtime_settings_memory_mib,
+//	    ars.storage_mib AS runtime_settings_storage_mib,
+//	    ars.command AS runtime_settings_command,
+//	    ars.healthcheck AS runtime_settings_healthcheck,
+//	    ars.shutdown_signal AS runtime_settings_shutdown_signal,
+//	    ars.upstream_protocol AS runtime_settings_upstream_protocol,
+//	    ars.sentinel_config AS runtime_settings_sentinel_config
 //	FROM github_repo_connections gc
 //	INNER JOIN apps a ON a.id = gc.app_id
 //	INNER JOIN projects p ON p.id = gc.project_id
@@ -87,74 +135,27 @@ func (q *Queries) ListRepoConnectionDeployContexts(ctx context.Context, arg List
 	for rows.Next() {
 		var i ListRepoConnectionDeployContextsRow
 		if err := rows.Scan(
-			&i.GithubRepoConnection.Pk,
-			&i.GithubRepoConnection.WorkspaceID,
-			&i.GithubRepoConnection.ProjectID,
-			&i.GithubRepoConnection.AppID,
-			&i.GithubRepoConnection.InstallationID,
-			&i.GithubRepoConnection.RepositoryID,
-			&i.GithubRepoConnection.RepositoryFullName,
-			&i.GithubRepoConnection.CreatedAt,
-			&i.GithubRepoConnection.UpdatedAt,
-			&i.Project.Pk,
-			&i.Project.ID,
-			&i.Project.WorkspaceID,
-			&i.Project.Name,
-			&i.Project.Slug,
-			&i.Project.DepotProjectID,
-			&i.Project.DeleteProtection,
-			&i.Project.CreatedAt,
-			&i.Project.UpdatedAt,
-			&i.Environment.Pk,
-			&i.Environment.ID,
-			&i.Environment.WorkspaceID,
-			&i.Environment.ProjectID,
-			&i.Environment.AppID,
-			&i.Environment.Slug,
-			&i.Environment.Description,
-			&i.Environment.Kind,
-			&i.Environment.DeleteProtection,
-			&i.Environment.CreatedAt,
-			&i.Environment.UpdatedAt,
-			&i.App.Pk,
-			&i.App.ID,
-			&i.App.WorkspaceID,
-			&i.App.ProjectID,
-			&i.App.Name,
-			&i.App.Slug,
-			&i.App.DefaultBranch,
-			&i.App.CurrentDeploymentID,
-			&i.App.IsRolledBack,
-			&i.App.DeleteProtection,
-			&i.App.CreatedAt,
-			&i.App.UpdatedAt,
-			&i.AppBuildSetting.Pk,
-			&i.AppBuildSetting.WorkspaceID,
-			&i.AppBuildSetting.AppID,
-			&i.AppBuildSetting.EnvironmentID,
-			&i.AppBuildSetting.Dockerfile,
-			&i.AppBuildSetting.DockerContext,
-			&i.AppBuildSetting.BuildCommand,
-			&i.AppBuildSetting.WatchPaths,
-			&i.AppBuildSetting.AutoDeploy,
-			&i.AppBuildSetting.CreatedAt,
-			&i.AppBuildSetting.UpdatedAt,
-			&i.AppRuntimeSetting.Pk,
-			&i.AppRuntimeSetting.WorkspaceID,
-			&i.AppRuntimeSetting.AppID,
-			&i.AppRuntimeSetting.EnvironmentID,
-			&i.AppRuntimeSetting.Port,
-			&i.AppRuntimeSetting.CpuMillicores,
-			&i.AppRuntimeSetting.MemoryMib,
-			&i.AppRuntimeSetting.StorageMib,
-			&i.AppRuntimeSetting.Command,
-			&i.AppRuntimeSetting.Healthcheck,
-			&i.AppRuntimeSetting.ShutdownSignal,
-			&i.AppRuntimeSetting.UpstreamProtocol,
-			&i.AppRuntimeSetting.SentinelConfig,
-			&i.AppRuntimeSetting.OpenapiSpecPath,
-			&i.AppRuntimeSetting.CreatedAt,
-			&i.AppRuntimeSetting.UpdatedAt,
+			&i.ConnectionInstallationID,
+			&i.ConnectionRepositoryFullName,
+			&i.ProjectID,
+			&i.ProjectWorkspaceID,
+			&i.EnvironmentID,
+			&i.EnvironmentSlug,
+			&i.AppID,
+			&i.BuildSettingsAutoDeploy,
+			&i.BuildSettingsWatchPaths,
+			&i.BuildSettingsDockerContext,
+			&i.BuildSettingsDockerfile,
+			&i.BuildSettingsBuildCommand,
+			&i.RuntimeSettingsPort,
+			&i.RuntimeSettingsCpuMillicores,
+			&i.RuntimeSettingsMemoryMib,
+			&i.RuntimeSettingsStorageMib,
+			&i.RuntimeSettingsCommand,
+			&i.RuntimeSettingsHealthcheck,
+			&i.RuntimeSettingsShutdownSignal,
+			&i.RuntimeSettingsUpstreamProtocol,
+			&i.RuntimeSettingsSentinelConfig,
 		); err != nil {
 			return nil, err
 		}

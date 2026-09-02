@@ -106,7 +106,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 	runtimeByEnv := make(map[string]db.AppRuntimeSetting, len(runtimeRows))
 	for _, r := range runtimeRows {
-		runtimeByEnv[r.AppRuntimeSetting.EnvironmentID] = r.AppRuntimeSetting
+		runtimeByEnv[r.EnvironmentID] = r
 	}
 
 	buildRows, err := db.Query.ListAppBuildSettingsByApp(ctx, h.DB.RO(), app.ID)

@@ -11,6 +11,7 @@ import (
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/deploy/imageref"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/rbac"
@@ -74,7 +75,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}),
 		rbac.T(rbac.Tuple{
 			ResourceType: rbac.Project,
-			ResourceID:   row.Project.ID,
+			ResourceID:   row.ProjectID,
 			Action:       rbac.CreateDeployment,
 		}),
 	))
@@ -109,6 +110,12 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		trigger = ctrlv1.DeploymentTrigger_DEPLOYMENT_TRIGGER_CLI
 	}
 
+	// ctrl rejects a malformed reference too, but the create is submitted
+	// one-way, so the reason only reaches the caller if the check also runs here.
+	if err := imageref.Validate(req.DockerImage); err != nil {
+		return err
+	}
+
 	// The id is minted here because it is the Restate object key the create
 	// runs on, so the response can name the deployment without waiting.
 	//
@@ -125,14 +132,14 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	var sendOpts []restate.IngressSendOption
 	if idempotencyKey != "" {
 		deploymentID = uid.Derived(uid.DeploymentPrefix,
-			principal.WorkspaceID, row.App.ID, environment.ID, idempotencyKey)
+			principal.WorkspaceID, row.AppID, environment.ID, idempotencyKey)
 		sendOpts = append(sendOpts, restate.WithIdempotencyKey(idempotencyKey))
 	}
 
 	// nolint: exhaustruct // the source oneof is set below
 	createReq := &hydrav1.DeployCreateRequest{
-		ProjectId:      row.Project.ID,
-		AppId:          row.App.ID,
+		ProjectId:      row.ProjectID,
+		AppId:          row.AppID,
 		Environment:    environment.ID,
 		Decision:       hydrav1.CreateDecision_CREATE_DECISION_DEPLOY,
 		Command:        nil,

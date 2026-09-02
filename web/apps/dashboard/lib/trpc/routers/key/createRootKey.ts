@@ -28,6 +28,7 @@ export const createRootKey = workspaceProcedure
             eq(table.workspaceId, env().UNKEY_WORKSPACE_ID),
             eq(schema.apis.id, env().UNKEY_API_ID),
           ),
+        columns: { keyAuthId: true },
       })
       .catch((_err) => {
         throw new TRPCError({
@@ -51,7 +52,7 @@ export const createRootKey = workspaceProcedure
     }
 
     const keyId = newId("key");
-    const { key, hash, start } = await newKey({
+    const { key, hash, prefix, start, end } = await newKey({
       prefix: "unkey",
       byteLength: 16,
     });
@@ -64,7 +65,9 @@ export const createRootKey = workspaceProcedure
           keyAuthId,
           name: input?.name,
           hash,
+          prefix,
           start,
+          end,
           workspaceId: env().UNKEY_WORKSPACE_ID,
           forWorkspaceId: ctx.workspace.id,
           expires: null,

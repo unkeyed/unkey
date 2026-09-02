@@ -9,6 +9,11 @@ describe("settings-scoped paths", () => {
     expect(routes.settings.general(scope)).toBe("/acme/settings/general");
     expect(routes.settings.team(scope)).toBe("/acme/settings/team");
     expect(routes.settings.rootKeys(scope)).toBe("/acme/settings/root-keys");
+    expect(routes.settings.logdrains.list(scope)).toBe("/acme/settings/logdrains");
+    expect(routes.settings.logdrains.new(scope)).toBe("/acme/settings/logdrains/new");
+    expect(routes.settings.logdrains.detail({ ...scope, drainId: "ld_123" })).toBe(
+      "/acme/settings/logdrains/ld_123",
+    );
     expect(routes.settings.billing(scope)).toBe("/acme/settings/billing");
     expect(routes.settings.usage(scope)).toBe("/acme/settings/usage");
     expect(routes.settings.limits(scope)).toBe("/acme/settings/limits");

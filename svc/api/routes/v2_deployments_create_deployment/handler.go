@@ -14,6 +14,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/deploy/deployfail"
+	"github.com/unkeyed/unkey/pkg/deploy/imageref"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/rbac"
@@ -153,6 +154,12 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	switch {
 	case req.Image != nil:
+		// The reference is validated here because the create is submitted
+		// one-way: a malformed one would otherwise surface as a failed pull
+		// long after the caller got its 201.
+		if err := imageref.Validate(req.Image.DockerImage); err != nil {
+			return err
+		}
 		createReq.Source = &hydrav1.DeployCreateRequest_Image{
 			Image: &hydrav1.CreateImageSource{Image: req.Image.DockerImage},
 		}
@@ -329,7 +336,7 @@ func (h *Handler) ensureEnvironmentDeployable(ctx context.Context, environment d
 	if db.IsNotFound(err) {
 		problems = append(problems, "runtime settings are not configured")
 	} else {
-		s := runtime.AppRuntimeSetting
+		s := runtime
 		for _, v := range deployfail.RuntimeViolations(s.Port, s.CpuMillicores, s.MemoryMib) {
 			problems = append(problems, fmt.Sprintf("%s (is %d)", v.Message, v.Actual))
 		}

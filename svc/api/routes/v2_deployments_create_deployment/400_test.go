@@ -2,6 +2,7 @@ package handler_test
 
 import (
 	"net/http"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -41,6 +42,10 @@ func TestValidationErrors(t *testing.T) {
 	}{
 		{"image missing dockerImage", body(map[string]any{"image": map[string]any{}})},
 		{"image whitespace dockerImage", body(map[string]any{"image": map[string]any{"dockerImage": "   "}})},
+		{"image uppercase name", body(map[string]any{"image": map[string]any{"dockerImage": "Acme/Api:v1"}})},
+		{"image empty tag", body(map[string]any{"image": map[string]any{"dockerImage": "acme/api:"}})},
+		{"image truncated digest", body(map[string]any{"image": map[string]any{"dockerImage": "acme/api@sha256:abc123"}})},
+		{"image over the column width", body(map[string]any{"image": map[string]any{"dockerImage": "ghcr.io/acme/" + strings.Repeat("a", 244)}})},
 		{"git fork without commitSha", body(map[string]any{"git": map[string]any{"repository": "contributor/acme-api"}})},
 		{"git fork bad charset", body(map[string]any{"git": map[string]any{"commitSha": "abc123", "repository": "bad repo!"}})},
 		{"git fork path traversal", body(map[string]any{"git": map[string]any{"commitSha": "abc123", "repository": "../../etc/passwd"}})},

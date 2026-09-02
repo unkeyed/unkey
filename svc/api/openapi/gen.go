@@ -442,7 +442,7 @@ type DeploymentSourceGit struct {
 
 // DeploymentSourceImage Deploy a prebuilt Docker image as-is.
 type DeploymentSourceImage struct {
-	// DockerImage Docker image to deploy as-is.
+	// DockerImage Full image reference to deploy as-is. Qualify the version with a tag (ghcr.io/acme/api:v1.2.3) or with a digest (ghcr.io/acme/api@sha256:...). Without either, the registry serves the latest tag.
 	DockerImage string `json:"dockerImage"`
 }
 
@@ -1970,7 +1970,7 @@ type V2DeployCreateDeploymentRequestBody struct {
 	// Branch Git branch name
 	Branch string `json:"branch"`
 
-	// DockerImage Docker image reference to deploy
+	// DockerImage Full image reference to deploy. Qualify the version with a tag (ghcr.io/user/app:v1.0.0) or with a digest (ghcr.io/user/app@sha256:...). Without either, the registry serves the latest tag.
 	DockerImage string `json:"dockerImage"`
 
 	// EnvironmentSlug Environment slug (e.g., "production", "staging")
@@ -2614,8 +2614,11 @@ type V2EnvironmentsUpdateSettingsRequestBody struct {
 	// Omit to leave unchanged.
 	VCpus *float64 `json:"vCpus,omitempty"`
 
-	// WatchPaths Glob paths that trigger auto-deploys when changed.
-	// Omit to leave unchanged.
+	// WatchPaths Glob patterns that trigger auto-deploys when matching files change.
+	// Do not start a pattern with "/" or "./".
+	// Use "src/**" for everything under a directory and "**/*.go" for a file type.
+	// A pattern with no wildcard matches only that exact file, so "src" is not "src/**".
+	// Omit to leave unchanged. Invalid patterns are rejected with a 400.
 	WatchPaths *[]string `json:"watchPaths,omitempty"`
 }
 

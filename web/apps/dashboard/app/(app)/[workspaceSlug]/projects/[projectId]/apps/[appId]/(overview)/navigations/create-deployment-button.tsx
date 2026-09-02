@@ -6,6 +6,7 @@ import { NavbarActionButton } from "@/components/navigation/action-button";
 import { collection } from "@/lib/collections";
 import { queryClient } from "@/lib/collections/client";
 import { UnsupportedDeployRefError, parseDeployRef } from "@/lib/deploy-ref";
+import { sanitizeImageRef, validateImageRef } from "@/lib/docker-image-ref";
 import { githubUrl } from "@/lib/github-url";
 import { routes } from "@/lib/navigation/routes";
 import { trpc } from "@/lib/trpc/client";
@@ -60,8 +61,12 @@ function createFormSchema(repoName?: string, imageMode = false) {
       name: z
         .string()
         .trim()
-        .min(1, "An image reference is required")
-        .regex(/^\S+$/, "Image reference cannot contain spaces"),
+        .superRefine((value, ctx) => {
+          const result = validateImageRef(sanitizeImageRef(value));
+          if (!result.ok) {
+            ctx.addIssue({ code: "custom", message: result.error });
+          }
+        }),
     });
   }
   return z.object({
@@ -179,6 +184,8 @@ export const CreateDeploymentButton = ({
   });
 
   const nameValue = watch("name") ?? "";
+  const imageRef = sanitizeImageRef(nameValue);
+  const imageValidation = validateImageRef(imageRef);
   const detectedFork = parseForkRef(nameValue);
   const forkRepoName = detectedFork && repo ? `${detectedFork.forkOwner}/${repo}` : null;
 
@@ -224,7 +231,7 @@ export const CreateDeploymentButton = ({
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     if (isCliApp) {
-      createDeployment.mutate({ environment: values.environment, image: values.name });
+      createDeployment.mutate({ environment: values.environment, image: imageRef });
       return;
     }
 
@@ -368,7 +375,20 @@ export const CreateDeploymentButton = ({
                       : "Paste a valid commit, branch reference, or PR URL to create a new deployment."
                 }
                 error={errors.name?.message}
-                {...register("name")}
+                {...register("name", {
+                  onBlur: isCliApp
+                    ? () => setValue("name", imageRef, { shouldValidate: true })
+                    : undefined,
+                })}
+                onPaste={
+                  isCliApp
+                    ? (e) => {
+                        const cleaned = sanitizeImageRef(e.clipboardData.getData("text"));
+                        e.preventDefault();
+                        setValue("name", cleaned, { shouldValidate: true });
+                      }
+                    : undefined
+                }
                 placeholder={
                   isCliApp
                     ? "registry.example.com/my-app:v1.2.3"
@@ -377,6 +397,9 @@ export const CreateDeploymentButton = ({
                       : "Enter a commit SHA, branch, or PR URL"
                 }
               />
+              {isCliApp && imageValidation.ok && imageValidation.warning ? (
+                <output className="text-warning-11 text-[13px]">{imageValidation.warning}</output>
+              ) : null}
               {forkRepoName && (
                 <div className="flex items-center gap-1.5 bg-amber-3 border border-amber-6 rounded-md px-2.5 py-1.5 w-fit">
                   <CodeBranch iconSize="sm-regular" className="shrink-0 text-amber-11" />

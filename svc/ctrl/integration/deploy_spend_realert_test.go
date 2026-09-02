@@ -90,7 +90,7 @@ func TestDeploySpendCheck_ReAlertAfterBudgetChange(t *testing.T) {
 	dep := h.CreateDeployment(ctx, CreateDeploymentRequest{
 		Region:       "us-east-1",
 		DesiredState: mysqltype.DeploymentsDesiredStateRunning,
-	}).Deployment
+	})
 
 	// Make the deployment its app's current deployment so suspend/resume have
 	// something to act on, mirroring the suspend/resume test.
@@ -175,7 +175,7 @@ func TestDeploySpendCheck_BudgetChurnDoesNotSpam(t *testing.T) {
 	dep := h.CreateDeployment(ctx, CreateDeploymentRequest{
 		Region:       "us-east-1",
 		DesiredState: mysqltype.DeploymentsDesiredStateRunning,
-	}).Deployment
+	})
 
 	sender := email.NewCapture()
 	tEnv := startSpendCheckCapturing(t, h.DB, sender)
@@ -225,7 +225,7 @@ func TestDeploySpendCheck_SuspendedDoesNotWarn(t *testing.T) {
 	dep := h.CreateDeployment(ctx, CreateDeploymentRequest{
 		Region:       "us-east-1",
 		DesiredState: mysqltype.DeploymentsDesiredStateStopped,
-	}).Deployment
+	})
 
 	// Column says suspended, but the VO carries no high-water state (fresh key),
 	// exactly the torn state a killed suspend tick would leave behind.

@@ -519,6 +519,9 @@ importers:
       typescript:
         specifier: 5.5.3
         version: 5.5.3
+      vitest:
+        specifier: 1.6.1
+        version: 1.6.1(@types/node@20.14.9)(@vitest/ui@3.2.4(vitest@3.2.4))(jsdom@26.0.0)(lightningcss@1.33.0)(terser@5.47.1)
 
   internal/encoding:
     devDependencies:

@@ -117,8 +117,8 @@ func (w *Workflow) Rollback(ctx restate.ObjectContext, req *hydrav1.RollbackRequ
 	// inbox when its delay elapses, so the clear wins.
 	hydrav1.NewDeployServiceClient(ctx, targetDeployment.ID).ClearScheduledStateChanges().Send(&hydrav1.ClearScheduledStateChangesRequest{})
 
-	frontlineRoutes, err := restate.Run(ctx, func(stepCtx restate.RunContext) ([]db.FindFrontlineRoutesForRollbackRow, error) {
-		return w.db.FindFrontlineRoutesForRollback(stepCtx, db.FindFrontlineRoutesForRollbackParams{
+	frontlineRoutes, err := restate.Run(ctx, func(stepCtx restate.RunContext) ([]db.FindFrontlineRoutesByEnvironmentAndStickyRow, error) {
+		return w.db.FindFrontlineRoutesByEnvironmentAndSticky(stepCtx, db.FindFrontlineRoutesByEnvironmentAndStickyParams{
 			EnvironmentID: sourceDeployment.EnvironmentID,
 			Sticky: []db.FrontlineRoutesSticky{
 				db.FrontlineRoutesStickyLive,

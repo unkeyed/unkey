@@ -34,11 +34,6 @@ SELECT
     ars.shutdown_signal AS shutdown_signal,
     ars.upstream_protocol AS upstream_protocol,
     ars.sentinel_config AS sentinel_config,
-    -- The repository connection rides along so a caller that has the target
-    -- does not look it up again. LEFT JOIN because an app with no connection is
-    -- a normal image-only app, not an error, and the join is by app_id because
-    -- github_repo_connections is UNIQUE(app_id) while one project can hold
-    -- several apps pointing at different repositories.
     grc.installation_id AS github_installation_id,
     grc.repository_id AS github_repository_id,
     grc.repository_full_name AS github_repository_full_name
@@ -118,11 +113,6 @@ type FindDeployTargetRow struct {
 //	    ars.shutdown_signal AS shutdown_signal,
 //	    ars.upstream_protocol AS upstream_protocol,
 //	    ars.sentinel_config AS sentinel_config,
-//	    -- The repository connection rides along so a caller that has the target
-//	    -- does not look it up again. LEFT JOIN because an app with no connection is
-//	    -- a normal image-only app, not an error, and the join is by app_id because
-//	    -- github_repo_connections is UNIQUE(app_id) while one project can hold
-//	    -- several apps pointing at different repositories.
 //	    grc.installation_id AS github_installation_id,
 //	    grc.repository_id AS github_repository_id,
 //	    grc.repository_full_name AS github_repository_full_name

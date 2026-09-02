@@ -640,21 +640,6 @@ type AppRuntimeSetting struct {
 	UpdatedAt        sql.NullInt64                      `db:"updated_at"`
 }
 
-type ClickhouseWorkspaceSetting struct {
-	Pk                        uint64        `db:"pk"`
-	WorkspaceID               string        `db:"workspace_id"`
-	Username                  string        `db:"username"`
-	PasswordEncrypted         string        `db:"password_encrypted"`
-	QuotaDurationSeconds      int32         `db:"quota_duration_seconds"`
-	MaxQueriesPerWindow       int32         `db:"max_queries_per_window"`
-	MaxExecutionTimePerWindow int32         `db:"max_execution_time_per_window"`
-	MaxQueryExecutionTime     int32         `db:"max_query_execution_time"`
-	MaxQueryMemoryBytes       int64         `db:"max_query_memory_bytes"`
-	MaxQueryResultRows        int32         `db:"max_query_result_rows"`
-	CreatedAt                 int64         `db:"created_at"`
-	UpdatedAt                 sql.NullInt64 `db:"updated_at"`
-}
-
 type CustomDomain struct {
 	Pk                    uint64                          `db:"pk"`
 	ID                    string                          `db:"id"`
@@ -798,7 +783,9 @@ type Key struct {
 	ID                 string         `db:"id"`
 	KeyAuthID          string         `db:"key_auth_id"`
 	Hash               string         `db:"hash"`
+	Prefix             string         `db:"prefix"`
 	Start              string         `db:"start"`
+	End                string         `db:"end"`
 	WorkspaceID        string         `db:"workspace_id"`
 	ForWorkspaceID     sql.NullString `db:"for_workspace_id"`
 	Name               sql.NullString `db:"name"`
@@ -840,25 +827,6 @@ type KeysRole struct {
 	WorkspaceID string        `db:"workspace_id"`
 	CreatedAtM  int64         `db:"created_at_m"`
 	UpdatedAtM  sql.NullInt64 `db:"updated_at_m"`
-}
-
-type Limit struct {
-	Pk                                    uint64        `db:"pk"`
-	WorkspaceID                           string        `db:"workspace_id"`
-	ApiBillableOperationsCountMaxPerMonth uint64        `db:"api_billable_operations_count_max_per_month"`
-	ApiRequestsCountMaxPerMinute          sql.NullInt32 `db:"api_requests_count_max_per_minute"`
-	LogsRetentionDaysMax                  uint16        `db:"logs_retention_days_max"`
-	LogsAuditRetentionDaysMax             uint16        `db:"logs_audit_retention_days_max"`
-	TeamEnabled                           bool          `db:"team_enabled"`
-	CpuCoresMax                           uint32        `db:"cpu_cores_max"`
-	CpuCoresMaxPerInstance                uint32        `db:"cpu_cores_max_per_instance"`
-	MemoryMibMax                          uint32        `db:"memory_mib_max"`
-	MemoryMibMaxPerInstance               uint32        `db:"memory_mib_max_per_instance"`
-	StorageMibMax                         uint32        `db:"storage_mib_max"`
-	StorageMibMaxPerInstance              uint32        `db:"storage_mib_max_per_instance"`
-	BuildsConcurrentMax                   uint16        `db:"builds_concurrent_max"`
-	CustomDomainsMax                      uint32        `db:"custom_domains_max"`
-	AutoscalingReplicasMax                uint16        `db:"autoscaling_replicas_max"`
 }
 
 type Permission struct {

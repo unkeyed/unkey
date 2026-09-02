@@ -545,11 +545,20 @@ func Run(ctx context.Context, cfg Config) error {
 				"error", chAdminErr,
 			)
 		} else {
+			// ReconcileUser is awaited by a cron handler. Bound its retries so a
+			// permanently failing workspace cannot wedge the cron VO forever.
+			clickhouseUserReconcileRetry := restate.WithInvocationRetryPolicy(
+				restate.WithInitialInterval(100*time.Millisecond),
+				restate.WithExponentiationFactor(2.0),
+				restate.WithMaxInterval(5*time.Second),
+				restate.WithMaxAttempts(5),
+				restate.KillOnMaxAttempts(),
+			)
 			restateSrv.Bind(hydrav1.NewClickhouseUserServiceServer(clickhouseuser.New(clickhouseuser.Config{
 				DB:         database,
 				Vault:      vaultClient,
 				Clickhouse: chAdmin,
-			})))
+			})).ConfigureHandler("ReconcileUser", clickhouseUserReconcileRetry))
 			logger.Info("ClickhouseUserService enabled")
 		}
 	}
@@ -719,6 +728,16 @@ func Run(ctx context.Context, cfg Config) error {
 		restate.WithMaxAttempts(5),
 		restate.KillOnMaxAttempts(),
 	)
+	// The reconciler is idempotent and stores its fingerprint only after all
+	// child users succeed. Kill on exhaustion so the next scheduled tick can
+	// retry instead of remaining queued behind a paused singleton VO.
+	cronClickhouseUserReconcileRetry := restate.WithInvocationRetryPolicy(
+		restate.WithInitialInterval(100*time.Millisecond),
+		restate.WithExponentiationFactor(2.0),
+		restate.WithMaxInterval(5*time.Second),
+		restate.WithMaxAttempts(5),
+		restate.KillOnMaxAttempts(),
+	)
 	restateSrv.Bind(hydrav1.NewCronServiceServer(cronSvc).
 		ConfigureHandler("RunKeyLastUsedSync", cronKeyLastUsedRetry).
 		ConfigureHandler("RunRatelimitGlobalCountersCleanup", cronRatelimitGCCRetry).
@@ -731,7 +750,8 @@ func Run(ctx context.Context, cfg Config) error {
 		ConfigureHandler("RunDeployBillingClose", cronDeployBillingFleetCloseRetry).
 		ConfigureHandler("CloseDeployBillingWorkspace", cronDeployBillingWorkspaceCloseRetry).
 		ConfigureHandler("RunDeployBillingPush", cronDeployBillingPushRetry).
-		ConfigureHandler("RunDeploySpendCheck", cronDeploySpendCheckRetry))
+		ConfigureHandler("RunDeploySpendCheck", cronDeploySpendCheckRetry).
+		ConfigureHandler("RunClickhouseUserReconcile", cronClickhouseUserReconcileRetry))
 	logger.Info("CronService enabled")
 
 	// KeyLastUsedPartitionService is the per-partition VO fanned out from

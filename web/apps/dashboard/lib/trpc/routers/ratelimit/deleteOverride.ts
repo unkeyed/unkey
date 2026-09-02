@@ -20,6 +20,10 @@ export const deleteOverride = workspaceProcedure
             eq(table.id, input.id),
             isNull(table.deletedAtM),
           ),
+        columns: {
+          id: true,
+          identifier: true,
+        },
         with: {
           namespace: {
             columns: {

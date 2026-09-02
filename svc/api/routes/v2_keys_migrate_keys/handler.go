@@ -107,7 +107,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	// Check if API belongs to the authorized workspace
-	if api.WorkspaceID != principal.WorkspaceID {
+	if api.ApiWorkspaceID != principal.WorkspaceID {
 		return fault.New("wrong workspace",
 			fault.Code(codes.Data.Api.NotFound.URN()),
 			fault.Internal("wrong workspace, masking as 404"),
@@ -179,8 +179,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			newKey := db.InsertKeyParams{
 				ID:                 uid.New(uid.KeyPrefix),
 				Hash:               key.Hash,
-				KeySpaceID:         api.KeyAuth.ID,
+				KeySpaceID:         api.KeyAuthID,
+				Prefix:             "",
 				Start:              "", // Unknown at this point
+				End:                "",
 				WorkspaceID:        principal.WorkspaceID,
 				Name:               sql.NullString{Valid: name != "", String: name},
 				Meta:               sql.NullString{Valid: false, String: ""},
@@ -544,8 +546,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 					{
 						Type:        auditlog.APIResourceType,
 						ID:          req.ApiId,
-						DisplayName: api.Name,
-						Name:        api.Name,
+						DisplayName: api.ApiName,
+						Name:        api.ApiName,
 						Meta:        map[string]any{},
 					},
 				},

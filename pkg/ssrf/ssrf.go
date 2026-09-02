@@ -51,11 +51,8 @@ func FollowRedirects(redirectsMax int) Option {
 // New returns an HTTP client hardened for customer-supplied endpoints.
 func New(opts ...Option) *http.Client {
 	cfg := applyOptions(opts)
-	dialer := new(net.Dialer)
-	dialer.Timeout = 30 * time.Second
-	dialer.KeepAlive = 30 * time.Second
 	transport := &http.Transport{
-		DialContext:            dialContext(dialer, cfg),
+		DialContext:            dialContext(cfg),
 		ForceAttemptHTTP2:      false,
 		MaxIdleConns:           100,
 		IdleConnTimeout:        90 * time.Second,
@@ -78,6 +75,12 @@ func ValidateEndpoint(raw string, opts ...Option) error {
 	}
 	if endpoint.Host == "" || (endpoint.Scheme != "https" && !(cfg.unsafeAllowAll && endpoint.Scheme == "http")) {
 		return errors.New("endpoint must be an absolute https URL")
+	}
+	// Userinfo smuggles credentials into the URL. Those credentials would be
+	// stored and echoed as plain configuration, so we reject them and require
+	// explicit auth headers or tokens instead.
+	if endpoint.User != nil {
+		return errors.New("endpoint must not contain userinfo credentials")
 	}
 	return nil
 }
@@ -102,7 +105,9 @@ func applyOptions(opts []Option) config {
 // dialContext returns the transport dial function that enforces the SSRF
 // guard. It resolves the host itself and dials resolved IPs directly, so the
 // address that passed the check is exactly the address that is dialed.
-func dialContext(dialer *net.Dialer, cfg config) func(context.Context, string, string) (net.Conn, error) {
+func dialContext(cfg config) func(context.Context, string, string) (net.Conn, error) {
+	//nolint:exhaustruct
+	dialer := &net.Dialer{Timeout: 30 * time.Second, KeepAlive: 30 * time.Second}
 	return func(ctx context.Context, network, address string) (net.Conn, error) {
 		host, port, err := net.SplitHostPort(address)
 		if err != nil {

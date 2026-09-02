@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 	"testing"
 	"time"
 
@@ -140,20 +141,20 @@ func TestRerollKeySuccess(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, rolledKeyRow)
 
-		require.NotEqual(t, createdKeyRow.ID, rolledKeyRow.ID)
-		require.Equal(t, createdKeyRow.Name.String, rolledKeyRow.Name.String)
-		require.Equal(t, createdKeyRow.IdentityID.String, rolledKeyRow.IdentityID.String)
-		require.Equal(t, createdKeyRow.Meta, rolledKeyRow.Meta)
-		require.Equal(t, createdKeyRow.RefillDay.Int16, rolledKeyRow.RefillDay.Int16)
-		require.Equal(t, createdKeyRow.RefillAmount.Int64, rolledKeyRow.RefillAmount.Int64)
-		require.Equal(t, createdKeyRow.RemainingRequests.Int64, rolledKeyRow.RemainingRequests.Int64)
+		require.NotEqual(t, createdKeyRow.KeyID, rolledKeyRow.KeyID)
+		require.Equal(t, createdKeyRow.KeyName.String, rolledKeyRow.KeyName.String)
+		require.Equal(t, createdKeyRow.KeyIdentityID.String, rolledKeyRow.KeyIdentityID.String)
+		require.Equal(t, createdKeyRow.KeyMeta, rolledKeyRow.KeyMeta)
+		require.Equal(t, createdKeyRow.KeyRefillDay.Int16, rolledKeyRow.KeyRefillDay.Int16)
+		require.Equal(t, createdKeyRow.KeyRefillAmount.Int64, rolledKeyRow.KeyRefillAmount.Int64)
+		require.Equal(t, createdKeyRow.KeyRemainingRequests.Int64, rolledKeyRow.KeyRemainingRequests.Int64)
 
 		// The first key should expire
-		require.True(t, createdKeyRow.Expires.Valid)
+		require.True(t, createdKeyRow.KeyExpires.Valid)
 		require.True(t, createdKeyRow.EncryptedKey.Valid)
 		require.True(t, createdKeyRow.EncryptionKeyID.Valid)
 
-		require.False(t, rolledKeyRow.Expires.Valid)
+		require.False(t, rolledKeyRow.KeyExpires.Valid)
 		require.True(t, rolledKeyRow.EncryptedKey.Valid)
 		require.True(t, rolledKeyRow.EncryptionKeyID.Valid)
 
@@ -217,6 +218,47 @@ func TestRerollKeySuccess(t *testing.T) {
 		require.Equal(t, createdRatelimitMap, rolledRatelimitMap, "ratelimit maps should be equal")
 	})
 
+	t.Run("preserves stored and legacy prefixes", func(t *testing.T) {
+		testCases := []struct {
+			name   string
+			prefix string
+			start  string
+		}{
+			{name: "stored prefix", prefix: "prod_sk", start: "abcd"},
+			{name: "legacy start", prefix: "", start: "prod_sk_abcd"},
+		}
+
+		for _, testCase := range testCases {
+			t.Run(testCase.name, func(t *testing.T) {
+				key := h.CreateKey(seed.CreateKeyRequest{
+					WorkspaceID: workspace.ID,
+					KeySpaceID:  api.KeyAuthID.String,
+				})
+				_, err := h.DB.RW().ExecContext(
+					t.Context(),
+					"UPDATE `keys` SET `prefix` = ?, `start` = ? WHERE `id` = ?",
+					testCase.prefix,
+					testCase.start,
+					key.KeyID,
+				)
+				require.NoError(t, err)
+
+				res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
+					KeyId:      key.KeyID,
+					Expiration: 0,
+				})
+				require.Equal(t, http.StatusOK, res.Status, "response: %s", res.RawBody)
+				require.True(t, strings.HasPrefix(res.Body.Data.Key, "prod_sk_"))
+
+				rolledKey, err := db.Query.FindLiveKeyByID(t.Context(), h.DB.RO(), res.Body.Data.KeyId)
+				require.NoError(t, err)
+				require.Equal(t, "prod_sk", rolledKey.KeyPrefix)
+				require.Equal(t, strings.TrimPrefix(res.Body.Data.Key, "prod_sk_")[:4], rolledKey.KeyStart)
+				require.Equal(t, res.Body.Data.Key[len(res.Body.Data.Key)-4:], rolledKey.KeyEnd)
+			})
+		}
+	})
+
 	t.Run("reroll sets TTL on original key when expiration is provided", func(t *testing.T) {
 		t.Parallel()
 
@@ -243,9 +285,9 @@ func TestRerollKeySuccess(t *testing.T) {
 		// Verify original key has expiration set
 		createdKeyRow, err := db.Query.FindLiveKeyByID(ctx, h.DB.RW(), key.KeyID)
 		require.NoError(t, err)
-		require.True(t, createdKeyRow.Expires.Valid, "original key should have expiration set")
+		require.True(t, createdKeyRow.KeyExpires.Valid, "original key should have expiration set")
 
-		expMs := createdKeyRow.Expires.Time.UnixMilli()
+		expMs := createdKeyRow.KeyExpires.Time.UnixMilli()
 		// Account for minute alignment in the handler (tolerate up to 60 seconds)
 		require.True(t, expMs >= now && expMs <= now+ttlMs+60000,
 			"original key expiration should be between now and now+TTL+1min for rounding (got %d, expected between %d and %d)",
@@ -254,7 +296,7 @@ func TestRerollKeySuccess(t *testing.T) {
 		// Verify rolled key has no expiration
 		rolledKeyRow, err := db.Query.FindLiveKeyByID(ctx, h.DB.RW(), res.Body.Data.KeyId)
 		require.NoError(t, err)
-		require.False(t, rolledKeyRow.Expires.Valid, "rolled key should not have expiration set but its set to %s %t", rolledKeyRow.Expires.Time.String(), rolledKeyRow.Expires.Valid)
+		require.False(t, rolledKeyRow.KeyExpires.Valid, "rolled key should not have expiration set but its set to %s %t", rolledKeyRow.KeyExpires.Time.String(), rolledKeyRow.KeyExpires.Valid)
 	})
 }
 

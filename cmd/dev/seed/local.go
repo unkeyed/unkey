@@ -186,7 +186,7 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 			if err != nil {
 				return fmt.Errorf("failed to find existing app: %w", err)
 			}
-			appID = existing.App.ID
+			appID = existing.ID
 		}
 
 		err = db.BulkQuery.InsertEnvironments(ctx, tx, []db.InsertEnvironmentParams{
@@ -223,7 +223,7 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 			if err != nil {
 				return fmt.Errorf("failed to find existing preview environment: %w", err)
 			}
-			previewEnvID = previewEnv.Environment.ID
+			previewEnvID = previewEnv.ID
 			productionEnv, err := db.Query.FindEnvironmentByAppIdAndSlug(ctx, tx, db.FindEnvironmentByAppIdAndSlugParams{
 				AppID: appID,
 				Slug:  "production",
@@ -231,7 +231,7 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 			if err != nil {
 				return fmt.Errorf("failed to find existing production environment: %w", err)
 			}
-			productionEnvID = productionEnv.Environment.ID
+			productionEnvID = productionEnv.ID
 		}
 
 		// Create default runtime settings for each environment
@@ -448,7 +448,9 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 			ID:                 rootKeyID,
 			KeySpaceID:         rootKeySpaceID,
 			Hash:               keyResult.Hash,
+			Prefix:             "unkey",
 			Start:              keyResult.Start,
+			End:                keyResult.Key[len(keyResult.Key)-4:],
 			WorkspaceID:        rootWorkspaceID,
 			ForWorkspaceID:     sql.NullString{String: workspaceID, Valid: true},
 			Name:               sql.NullString{String: fmt.Sprintf("%s Dev Root Key", titleCase), Valid: true},

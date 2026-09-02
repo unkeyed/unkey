@@ -34,6 +34,7 @@ export const createWorkspace = protectedProcedure
           // Check if this user already has a workspace
           const existingWorkspaces = await tx.query.workspaces.findMany({
             where: (workspaces, { eq }) => eq(workspaces.orgId, ctx.tenant.id),
+            columns: { id: true },
           });
 
           if (existingWorkspaces.length > 0) {
@@ -47,6 +48,7 @@ export const createWorkspace = protectedProcedure
 
         const duplicateSlug = await tx.query.workspaces.findFirst({
           where: (workspaces, { eq }) => eq(workspaces.slug, input.slug),
+          columns: { id: true },
         });
 
         if (duplicateSlug) {

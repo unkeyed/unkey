@@ -8,6 +8,7 @@ import (
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/deploy/deploygate"
+	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/match"
 	"github.com/unkeyed/unkey/pkg/restate/restateutil"
@@ -91,33 +92,46 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 
 	decisions := make([]pushDecision, 0, len(contexts))
 	for _, row := range contexts {
-		buildSettings := row.AppBuildSetting
-
-		switch {
-		case !buildSettings.AutoDeploy:
-			logger.Info("skipping deployment: auto_deploy disabled",
-				"app_id", row.App.ID,
-				"environment", row.Environment.Slug,
-			)
+		skip := func(reason string) {
 			decisions = append(decisions, pushDecision{
 				row:      row,
 				decision: hydrav1.CreateDecision_CREATE_DECISION_SKIP,
+				reason:   reason,
 			})
+		}
 
-		case !match.MatchWatchPaths(buildSettings.WatchPaths, changedFiles):
+		if !row.BuildSettingsAutoDeploy {
+			logger.Info("skipping deployment: auto_deploy disabled",
+				"app_id", row.AppID,
+				"environment", row.EnvironmentSlug,
+			)
+			skip("Auto deploy is disabled for this environment.")
+			continue
+		}
+
+		matched, matchErr := match.MatchWatchPaths(row.BuildSettingsWatchPaths, changedFiles)
+		if matchErr != nil {
+			// A broken pattern looks exactly like a valid miss, so the reason names
+			// the pattern instead of blaming the changed files.
+			logger.Warn("skipping deployment: invalid watch path",
+				"app_id", row.AppID,
+				"watch_paths", row.BuildSettingsWatchPaths,
+				"error", matchErr,
+			)
+			skip(fault.UserFacingMessage(matchErr))
+			continue
+		}
+		if !matched {
 			logger.Info("skipping deployment: watch paths don't match changed files",
-				"app_id", row.App.ID,
-				"watch_paths", buildSettings.WatchPaths,
+				"app_id", row.AppID,
+				"watch_paths", row.BuildSettingsWatchPaths,
 				"changed_files", changedFiles,
 			)
-			decisions = append(decisions, pushDecision{
-				row:      row,
-				decision: hydrav1.CreateDecision_CREATE_DECISION_SKIP,
-			})
-
-		default:
-			decisions = append(decisions, pushDecision{row: row, decision: matchedDecision})
+			skip("Watch paths did not match any changed files.")
+			continue
 		}
+
+		decisions = append(decisions, pushDecision{row: row, decision: matchedDecision, reason: ""})
 	}
 
 	// Mint every id in one journaled step. uid.New outside a Run would produce
@@ -140,9 +154,9 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 		row := d.row
 
 		hydrav1.NewDeployServiceClient(ctx, deploymentID).Create().Send(&hydrav1.DeployCreateRequest{
-			ProjectId:   row.Project.ID,
-			AppId:       row.App.ID,
-			Environment: row.Environment.ID,
+			ProjectId:   row.ProjectID,
+			AppId:       row.AppID,
+			Environment: row.EnvironmentID,
 			Source: &hydrav1.DeployCreateRequest_Git{
 				Git: &hydrav1.CreateGitSource{
 					Commit: &ctrlv1.GitCommitInfo{
@@ -162,7 +176,7 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 			PushReceivedAt: receivedAt.UnixMilli(),
 			Trigger:        ctrlv1.DeploymentTrigger_DEPLOYMENT_TRIGGER_GITHUB,
 			TriggeredBy:    req.GetSenderLogin(),
-			TriggerReason:  "",
+			TriggerReason:  d.reason,
 			Actor: &ctrlv1.ActorInfo{
 				Id:        req.GetSenderLogin(),
 				Name:      req.GetSenderLogin(),
@@ -176,9 +190,9 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 		logger.Info("requested deployment create",
 			"deployment_id", deploymentID,
 			"delivery_id", req.GetDeliveryId(),
-			"project_id", row.Project.ID,
-			"app_id", row.App.ID,
-			"environment", row.Environment.Slug,
+			"project_id", row.ProjectID,
+			"app_id", row.AppID,
+			"environment", row.EnvironmentSlug,
 			"decision", d.decision.String(),
 		)
 	}
@@ -190,6 +204,9 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 type pushDecision struct {
 	row      db.ListRepoConnectionDeployContextsRow
 	decision hydrav1.CreateDecision
+	// reason is empty for a deploy. A skip always carries one: the dashboard
+	// reads it off the row, so a push that builds nothing still says why.
+	reason string
 }
 
 // eligibleContexts drops the apps whose workspace may not deploy.
@@ -208,13 +225,10 @@ func (s *Service) eligibleContexts(
 	eligible := make([]db.ListRepoConnectionDeployContextsRow, 0, len(contexts))
 
 	for _, row := range contexts {
-		project := row.Project
-		app := row.App
-
-		entitlement, ok := entitlements[project.WorkspaceID]
+		entitlement, ok := entitlements[row.ProjectWorkspaceID]
 		if !ok {
 			loaded, err := restate.Run(ctx, func(runCtx restate.RunContext) (db.FindWorkspaceDeployEntitlementRow, error) {
-				found, loadErr := s.db.FindWorkspaceDeployEntitlement(runCtx, project.WorkspaceID)
+				found, loadErr := s.db.FindWorkspaceDeployEntitlement(runCtx, row.ProjectWorkspaceID)
 				if db.IsNotFound(loadErr) {
 					return db.FindWorkspaceDeployEntitlementRow{
 						Plan:           sql.NullString{},
@@ -223,12 +237,12 @@ func (s *Service) eligibleContexts(
 					}, nil
 				}
 				return found, loadErr
-			}, restate.WithName("load workspace deploy entitlement "+project.WorkspaceID))
+			}, restate.WithName("load workspace deploy entitlement "+row.ProjectWorkspaceID))
 			if err != nil {
 				return nil, err
 			}
 			entitlement = loaded
-			entitlements[project.WorkspaceID] = entitlement
+			entitlements[row.ProjectWorkspaceID] = entitlement
 		}
 
 		if !deploygate.Entitled(entitlement.Plan, entitlement.PlanOverride) {
@@ -236,18 +250,18 @@ func (s *Service) eligibleContexts(
 				logger.Info("skipping deployment: workspace has no Compute plan",
 					"event", "deploy_gate.blocked",
 					"reason", "no_plan",
-					"workspace_id", project.WorkspaceID,
-					"project_id", project.ID,
-					"app_id", app.ID,
+					"workspace_id", row.ProjectWorkspaceID,
+					"project_id", row.ProjectID,
+					"app_id", row.AppID,
 					"delivery_id", req.GetDeliveryId(),
 				)
 				continue
 			}
 			logger.Warn("deploy gate would block GitHub deployment",
 				"event", "deploy_gate.would_block",
-				"workspaceId", project.WorkspaceID,
-				"projectId", project.ID,
-				"appId", app.ID,
+				"workspaceId", row.ProjectWorkspaceID,
+				"projectId", row.ProjectID,
+				"appId", row.AppID,
 			)
 		}
 
@@ -255,9 +269,9 @@ func (s *Service) eligibleContexts(
 			logger.Info("skipping deployment: workspace is spend suspended",
 				"event", "deploy_gate.blocked",
 				"reason", "spend_suspended",
-				"workspace_id", project.WorkspaceID,
-				"project_id", project.ID,
-				"app_id", app.ID,
+				"workspace_id", row.ProjectWorkspaceID,
+				"project_id", row.ProjectID,
+				"app_id", row.AppID,
 				"delivery_id", req.GetDeliveryId(),
 			)
 			continue
@@ -348,3 +362,4 @@ func boolToInt64(b bool) int64 {
 	}
 	return 0
 }
+

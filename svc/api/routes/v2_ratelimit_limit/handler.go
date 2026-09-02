@@ -39,6 +39,7 @@ type (
 type Handler struct {
 	DB              db.Database
 	RatelimitEvents *batch.BatchProcessor[schema.Ratelimit]
+	DirectAuditLogs *batch.BatchProcessor[auditlog.Event]
 	Ratelimit       ratelimit.Service
 	NamespaceCache  cache.Cache[cache.ScopedKey, db.FindRatelimitNamespace]
 	Auditlogs       auditlogs.AuditLogService
@@ -122,7 +123,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	// Apply override if found, otherwise use request values
-	limit, duration, overrideID, err := getLimitAndDuration(req, ns)
+	limit, duration, override, err := getLimitAndDuration(req, ns)
 	if err != nil {
 		return fault.Wrap(err,
 			fault.Code(codes.App.Internal.UnexpectedError.URN()),
@@ -166,8 +167,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 	latency := time.Since(t0).Milliseconds()
+	nowMillis := time.Now().UnixMilli()
 	if s.ShouldLogRequestToClickHouse() {
-		nowMillis := time.Now().UnixMilli()
 		h.RatelimitEvents.Buffer(schema.Ratelimit{
 			RequestID:   s.RequestID(),
 			WorkspaceID: principal.WorkspaceID,
@@ -176,13 +177,14 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			Identifier:  req.Identifier,
 			Passed:      result.Success,
 			Latency:     float64(latency),
-			OverrideID:  overrideID,
+			OverrideID:  override.ID,
 			Limit:       uint64(result.Limit),
 			Remaining:   uint64(result.Remaining),
 			ResetAt:     result.Reset.UnixMilli(),
 			Tokens:      uint64(cost),
 		})
 	}
+	h.bufferAuditLog(s, principal, ns, override, nowMillis)
 
 	res := Response{
 		Meta: openapi.Meta{
@@ -193,12 +195,64 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			Limit:      limit,
 			Remaining:  result.Remaining,
 			Reset:      result.Reset.UnixMilli(),
-			OverrideId: overrideID,
+			OverrideId: override.ID,
 		},
 	}
 
 	// Return success response
 	return s.JSON(http.StatusOK, res)
+}
+
+// bufferAuditLog keeps MySQL out of the high-volume rate limit path by sending
+// the action to the direct ClickHouse buffer.
+func (h *Handler) bufferAuditLog(
+	s *zen.Session,
+	p *principal.Principal,
+	namespace db.FindRatelimitNamespace,
+	override db.FindRatelimitNamespaceLimitOverride,
+	timeMillis int64,
+) {
+	if p.Subject.Type != principal.SubjectTypeRootKey {
+		return
+	}
+
+	targets := []auditlog.EventTarget{
+		{
+			Type: string(auditlog.RatelimitNamespaceResourceType),
+			ID:   namespace.ID,
+			Name: namespace.Name,
+			Meta: nil,
+		},
+	}
+	if override.ID != "" {
+		targets = append(targets, auditlog.EventTarget{
+			Type: string(auditlog.RatelimitOverrideResourceType),
+			ID:   override.ID,
+			Name: override.Identifier,
+			Meta: nil,
+		})
+	}
+
+	h.DirectAuditLogs.Buffer(auditlog.Event{
+		EventID:     uid.New(uid.AuditLogPrefix),
+		Time:        timeMillis,
+		WorkspaceID: p.WorkspaceID,
+		Bucket:      auditlogs.DefaultBucket,
+		Source:      auditlog.EventSourcePlatform,
+		Event:       string(auditlog.RatelimitLimitEvent),
+		Description: "Applied rate limit to namespace " + namespace.ID,
+		Actor: auditlog.EventActor{
+			Type: string(p.Subject.Type),
+			ID:   p.Subject.ID,
+			Name: p.Subject.Name,
+			Meta: nil,
+		},
+		RemoteIP:      s.Location(),
+		UserAgent:     s.UserAgent(),
+		Meta:          nil,
+		Targets:       targets,
+		CorrelationID: "",
+	})
 }
 
 func (h *Handler) getNamespace(ctx context.Context, workspaceID, nameOrID string) (db.FindRatelimitNamespace, bool, error) {
@@ -328,17 +382,20 @@ func (h *Handler) createNamespace(ctx context.Context, s *zen.Session, principal
 	})
 }
 
-func getLimitAndDuration(req Request, namespace db.FindRatelimitNamespace) (int64, int64, string, error) {
+func getLimitAndDuration(
+	req Request,
+	namespace db.FindRatelimitNamespace,
+) (int64, int64, db.FindRatelimitNamespaceLimitOverride, error) {
 	override, found, err := matchOverride(req.Identifier, namespace)
 	if err != nil {
-		return 0, 0, "", err
+		return 0, 0, override, err
 	}
 
 	if found {
-		return override.Limit, override.Duration, override.ID, nil
+		return override.Limit, override.Duration, override, nil
 	}
 
-	return req.Limit, req.Duration, "", nil
+	return req.Limit, req.Duration, override, nil
 }
 
 func matchOverride(identifier string, namespace db.FindRatelimitNamespace) (db.FindRatelimitNamespaceLimitOverride, bool, error) {

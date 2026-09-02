@@ -1,0 +1,40 @@
+syntax = "proto3";
+
+package logdrain.v1;
+
+option go_package = "github.com/unkeyed/unkey/gen/proto/logdrain/v1;logdrainv1";
+
+// Config contains the complete destination configuration for one log drain.
+// Exactly one destination must be set. Secret fields contain Vault ciphertext.
+message Config {
+  oneof destination {
+    HttpConfig http = 1;
+    AxiomConfig axiom = 2;
+  }
+}
+
+// HttpConfig configures a generic HTTPS destination.
+message HttpConfig {
+  string url = 1;
+  HttpBodyFormat format = 2;
+  repeated HttpHeader headers = 3;
+}
+
+// HttpHeader contains one header name and its Vault-encrypted value.
+message HttpHeader {
+  string name = 1;
+  string encrypted_value = 2;
+}
+
+// HttpBodyFormat selects the HTTP request body encoding.
+enum HttpBodyFormat {
+  HTTP_BODY_FORMAT_UNSPECIFIED = 0;
+  HTTP_BODY_FORMAT_JSON = 1;
+  HTTP_BODY_FORMAT_NDJSON = 2;
+}
+
+// AxiomConfig configures an Axiom dataset destination.
+message AxiomConfig {
+  string dataset = 1;
+  string encrypted_token = 3;
+}

@@ -19,7 +19,7 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
 
-// Resources represents seed data created for tests
+// Resources represents seed data created for tests.
 type Resources struct {
 	RootWorkspace db.Workspace
 	RootKeySpace  db.KeyAuth
@@ -27,7 +27,7 @@ type Resources struct {
 	UserWorkspace db.Workspace
 }
 
-// Seeder provides methods to seed test data
+// Seeder provides methods to seed test data.
 type Seeder struct {
 	t         *testing.T
 	DB        db.Database
@@ -39,7 +39,7 @@ type Seeder struct {
 	workspaceIDs []string
 }
 
-// New creates a new Seeder instance
+// New creates a new Seeder instance.
 func New(t *testing.T, database db.Database, vault vault.VaultServiceClient) *Seeder {
 	s := &Seeder{
 		t:            t,
@@ -127,7 +127,7 @@ func (s *Seeder) CreateWorkspace(ctx context.Context) db.Workspace {
 	return ws
 }
 
-// Seed initializes the database with test data
+// Seed initializes the database with test data.
 func (s *Seeder) Seed(ctx context.Context) {
 	s.Resources.UserWorkspace = s.CreateWorkspace(ctx)
 	s.Resources.RootWorkspace = s.CreateWorkspace(ctx)
@@ -458,17 +458,19 @@ func (s *Seeder) CreateDeployment(ctx context.Context, req CreateDeploymentReque
 	return deployment
 }
 
-// CreateRootKey creates a root key with optional permissions
+// CreateRootKey creates a root key with optional permissions.
 func (s *Seeder) CreateRootKey(ctx context.Context, workspaceID string, permissions ...string) string {
 	key := uid.New("test_root_key")
 
 	insertKeyParams := db.InsertKeyParams{
 		ID:                 uid.New("test_root_key"),
 		Hash:               hash.Sha256(key),
+		Prefix:             "",
 		WorkspaceID:        s.Resources.RootWorkspace.ID,
 		ForWorkspaceID:     sql.NullString{String: workspaceID, Valid: true},
 		KeySpaceID:         s.Resources.RootKeySpace.ID,
 		Start:              key[:4],
+		End:                key[len(key)-4:],
 		CreatedAtM:         time.Now().UnixMilli(),
 		Enabled:            true,
 		Name:               sql.NullString{String: "", Valid: false},
@@ -567,8 +569,10 @@ func (s *Seeder) CreateKey(ctx context.Context, req CreateKeyRequest) CreateKeyR
 		WorkspaceID:        req.WorkspaceID,
 		CreatedAtM:         time.Now().UnixMilli(),
 		Hash:               hash.Sha256(key),
+		Prefix:             "",
 		Enabled:            !req.Disabled,
 		Start:              start,
+		End:                key[len(key)-4:],
 		Name:               sql.NullString{String: ptr.SafeDeref(req.Name, "test-key"), Valid: true},
 		ForWorkspaceID:     sql.NullString{String: ptr.SafeDeref(req.ForWorkspaceID, ""), Valid: req.ForWorkspaceID != nil},
 		Meta:               sql.NullString{String: ptr.SafeDeref(req.Meta, ""), Valid: req.Meta != nil},
