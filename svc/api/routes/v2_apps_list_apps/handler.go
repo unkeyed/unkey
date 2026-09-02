@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/unkeyed/unkey/pkg/array"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
@@ -100,31 +99,27 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	rows, pg := pagination.Paginate(rows, p, func(r db.ListAppsByProjectRow) string { return r.ID })
-	for _, row := range rows {
-		if row.SourceType == db.AppsSourceTypeOci && !row.OciImageReference.Valid {
-			return fault.New(
-				"OCI app source is missing",
-				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-				fault.Internal("OCI app has no configured image source"),
-				fault.Public("Failed to retrieve apps."),
-			)
-		}
-	}
-
-	data := array.Map(rows, func(row db.ListAppsByProjectRow) openapi.App {
+	data := make([]openapi.App, len(rows))
+	for i, row := range rows {
 		var oci *openapi.AppOCI
-		if row.SourceType == db.AppsSourceTypeOci {
-			oci = &openapi.AppOCI{Image: row.OciImageReference.String}
-		}
 		sourceType := openapi.AppSourceType("")
 		switch row.SourceType {
 		case db.AppsSourceTypeGit:
 			sourceType = openapi.Git
 		case db.AppsSourceTypeOci:
+			if !row.OciImageReference.Valid {
+				return fault.New(
+					"OCI app source is missing",
+					fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+					fault.Internal("OCI app has no configured image source"),
+					fault.Public("Failed to retrieve apps."),
+				)
+			}
 			sourceType = openapi.Oci
+			oci = &openapi.AppOCI{Image: row.OciImageReference.String}
 		case db.AppsSourceTypeUnknown:
 		}
-		return openapi.App{
+		data[i] = openapi.App{
 			Id:                  row.ID,
 			Name:                row.Name,
 			Slug:                row.Slug,
@@ -137,7 +132,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			CreatedAt:           row.CreatedAt,
 			UpdatedAt:           row.UpdatedAt.Int64,
 		}
-	})
+	}
 
 	return s.JSON(http.StatusOK, Response{
 		Meta: openapi.Meta{
