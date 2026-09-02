@@ -655,10 +655,11 @@ components:
                     example: "production"
                 dockerImage:
                     type: string
+                    deprecated: true
                     minLength: 1
                     maxLength: 256
                     description: >-
-                        Full image reference to deploy. Qualify the version with a tag (ghcr.io/user/app:v1.0.0) or with a digest (ghcr.io/user/app@sha256:...). Without either, the registry serves the latest tag.
+                        Deprecated. Use `oci.image` in v3 instead. This field is the full image reference to deploy. Qualify the version with a tag (ghcr.io/user/app:v1.0.0) or a digest (ghcr.io/user/app@sha256:...). Without either, the registry serves the latest tag.
                     example: "ghcr.io/user/app:v1.0.0"
                 gitCommit:
                     $ref: "#/components/schemas/V2DeployGitCommit"
@@ -3845,31 +3846,6 @@ components:
                 - project
                 - app
                 - environment
-            dependentSchemas:
-                git:
-                    allOf:
-                        - not:
-                            required:
-                                - oci
-                        - not:
-                            required:
-                                - deployment
-                oci:
-                    allOf:
-                        - not:
-                            required:
-                                - git
-                        - not:
-                            required:
-                                - deployment
-                deployment:
-                    allOf:
-                        - not:
-                            required:
-                                - git
-                        - not:
-                            required:
-                                - oci
             properties:
                 project:
                     "$ref": "#/components/schemas/ResourceIdentifier"
@@ -4655,11 +4631,12 @@ components:
             properties:
                 dockerImage:
                     type: string
+                    deprecated: true
                     minLength: 1
                     maxLength: 256
                     pattern: "\\S"
                     description: >-
-                        Full image reference to deploy as-is. Qualify the version with a tag (ghcr.io/acme/api:v1.2.3) or with a digest (ghcr.io/acme/api@sha256:...). Without either, the registry serves the latest tag.
+                        Deprecated. Use `oci.image` in v3 instead. This field is the full image reference to deploy as-is. Qualify the version with a tag (ghcr.io/acme/api:v1.2.3) or a digest (ghcr.io/acme/api@sha256:...). Without either, the registry serves the latest tag.
                     example: "ghcr.io/acme/api:v1.2.3"
             description: Deploy a prebuilt Docker image as-is.
         DeploymentSourceDeployment:
@@ -8867,6 +8844,7 @@ paths:
             x-speakeasy-name-override: getDeployment
     /v2/deployments.createDeployment:
         post:
+            deprecated: true
             description: |
                 Create a deployment for an app in a project.
 
