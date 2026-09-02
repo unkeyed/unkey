@@ -37,7 +37,7 @@ func TestCreateKeyStoresVersion1Format(t *testing.T) {
 	})
 	rootKey := h.CreateRootKey(
 		h.Resources().UserWorkspace.ID,
-		createKeyPermission(api.ID),
+		createKeyPermission(h.Resources().UserWorkspace.ID, api.KeyAuthID.String),
 	)
 
 	res := testutil.CallRoute[handler.Request, handler.Response](
@@ -85,7 +85,7 @@ func TestCreateKeyUsesKeyspacePrefix(t *testing.T) {
 	})
 	rootKey := h.CreateRootKey(
 		h.Resources().UserWorkspace.ID,
-		createAnyKeyPermission(),
+		createAnyKeyPermission(h.Resources().UserWorkspace.ID),
 	)
 
 	res := testutil.CallRoute[handler.Request, handler.Response](
@@ -114,7 +114,7 @@ func TestCreateKeyUsesEmptyRequestPrefix(t *testing.T) {
 	})
 	rootKey := h.CreateRootKey(
 		h.Resources().UserWorkspace.ID,
-		createKeyPermission(api.ID),
+		createKeyPermission(h.Resources().UserWorkspace.ID, api.KeyAuthID.String),
 	)
 
 	res := testutil.CallRoute[handler.Request, handler.Response](
@@ -146,7 +146,7 @@ func TestCreateKeyWithoutDefaultPrefix(t *testing.T) {
 	api := h.CreateApi(seed.CreateApiRequest{WorkspaceID: h.Resources().UserWorkspace.ID})
 	rootKey := h.CreateRootKey(
 		h.Resources().UserWorkspace.ID,
-		createKeyPermission(api.ID),
+		createKeyPermission(h.Resources().UserWorkspace.ID, api.KeyAuthID.String),
 	)
 
 	res := testutil.CallRoute[handler.Request, handler.Response](
@@ -168,9 +168,45 @@ func TestCreateKeyWithoutDefaultPrefix(t *testing.T) {
 	require.Equal(t, res.Body.Data.Key[:4], key.Start)
 }
 
-// TestCreateRecoverableKeyUsesLegacyPermissions guarantees that API-scoped
-// create and encrypt permissions authorize recoverable V3 key creation.
-func TestCreateRecoverableKeyUsesLegacyPermissions(t *testing.T) {
+// TestCreateKeyUsesOnlyURNPermissions guarantees that V3 accepts the canonical
+// keyspace permission and rejects the legacy API permission.
+func TestCreateKeyUsesOnlyURNPermissions(t *testing.T) {
+	t.Parallel()
+
+	h := testutil.NewHarness(t)
+	route := newRoute(t, h)
+	h.Register(route)
+
+	workspaceID := h.Resources().UserWorkspace.ID
+	api := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspaceID})
+	req := handler.Request{Keyspace: api.KeyAuthID.String}
+
+	urnRootKey := h.CreateRootKey(
+		workspaceID,
+		fmt.Sprintf("unkey:v1:%s:keyspaces/%s#create_key", workspaceID, api.KeyAuthID.String),
+	)
+	urnRes := testutil.CallRoute[handler.Request, map[string]any](
+		h,
+		route,
+		authorizedHeaders(urnRootKey),
+		req,
+	)
+
+	legacyRootKey := h.CreateRootKey(workspaceID, fmt.Sprintf("api.%s.create_key", api.ID))
+	legacyRes := testutil.CallRoute[handler.Request, map[string]any](
+		h,
+		route,
+		authorizedHeaders(legacyRootKey),
+		req,
+	)
+
+	require.Equal(t, http.StatusOK, urnRes.Status, "response: %s", urnRes.RawBody)
+	require.Equal(t, http.StatusNotFound, legacyRes.Status, "response: %s", legacyRes.RawBody)
+}
+
+// TestCreateRecoverableKeyUsesURNPermissions guarantees that V3 requires the
+// canonical encrypt permission for recoverable keys.
+func TestCreateRecoverableKeyUsesURNPermissions(t *testing.T) {
 	t.Parallel()
 
 	h := testutil.NewHarness(t)
@@ -183,8 +219,8 @@ func TestCreateRecoverableKeyUsesLegacyPermissions(t *testing.T) {
 	})
 	rootKey := h.CreateRootKey(
 		h.Resources().UserWorkspace.ID,
-		createKeyPermission(api.ID),
-		encryptKeyPermission(api.ID),
+		createKeyPermission(h.Resources().UserWorkspace.ID, api.KeyAuthID.String),
+		encryptKeyPermission(h.Resources().UserWorkspace.ID, api.KeyAuthID.String),
 	)
 
 	res := testutil.CallRoute[handler.Request, handler.Response](
@@ -201,6 +237,22 @@ func TestCreateRecoverableKeyUsesLegacyPermissions(t *testing.T) {
 	encryption, err := db.Query.FindKeyEncryptionByKeyID(t.Context(), h.DB.RO(), res.Body.Data.KeyId)
 	require.NoError(t, err)
 	require.Equal(t, res.Body.Data.KeyId, encryption.KeyID)
+
+	legacyEncryptRootKey := h.CreateRootKey(
+		h.Resources().UserWorkspace.ID,
+		createKeyPermission(h.Resources().UserWorkspace.ID, api.KeyAuthID.String),
+		fmt.Sprintf("api.%s.encrypt_key", api.ID),
+	)
+	legacyEncryptRes := testutil.CallRoute[handler.Request, map[string]any](
+		h,
+		route,
+		authorizedHeaders(legacyEncryptRootKey),
+		handler.Request{
+			Keyspace:    api.KeyAuthID.String,
+			Recoverable: ptr.P(true),
+		},
+	)
+	require.Equal(t, http.StatusNotFound, legacyEncryptRes.Status, "response: %s", legacyEncryptRes.RawBody)
 }
 
 // TestCreateKeyRejectsInvalidFormatOptions guarantees that v3 requires a
@@ -215,7 +267,7 @@ func TestCreateKeyRejectsInvalidFormatOptions(t *testing.T) {
 	api := h.CreateApi(seed.CreateApiRequest{WorkspaceID: h.Resources().UserWorkspace.ID})
 	rootKey := h.CreateRootKey(
 		h.Resources().UserWorkspace.ID,
-		createKeyPermission(api.ID),
+		createKeyPermission(h.Resources().UserWorkspace.ID, api.KeyAuthID.String),
 	)
 
 	testCases := []struct {
@@ -290,7 +342,7 @@ func TestCreateKeyMasksUnauthorizedKeyspaces(t *testing.T) {
 		{
 			name:       "different workspace",
 			keyspaceID: otherAPI.KeyAuthID.String,
-			rootKey:    h.CreateRootKey(workspaceID, createAnyKeyPermission()),
+			rootKey:    h.CreateRootKey(workspaceID, createAnyKeyPermission(workspaceID)),
 		},
 	}
 
@@ -336,7 +388,7 @@ func TestCreateKeyRejectsDeletedResources(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	rootKey := h.CreateRootKey(workspaceID, createAnyKeyPermission())
+	rootKey := h.CreateRootKey(workspaceID, createAnyKeyPermission(workspaceID))
 	testCases := []struct {
 		name       string
 		keyspaceID string
@@ -375,14 +427,14 @@ func authorizedHeaders(rootKey string) http.Header {
 	}
 }
 
-func createKeyPermission(apiID string) string {
-	return fmt.Sprintf("api.%s.create_key", apiID)
+func createKeyPermission(workspaceID, keyspaceID string) string {
+	return fmt.Sprintf("unkey:v1:%s:keyspaces/%s#create_key", workspaceID, keyspaceID)
 }
 
-func createAnyKeyPermission() string {
-	return "api.*.create_key"
+func createAnyKeyPermission(workspaceID string) string {
+	return fmt.Sprintf("unkey:v1:%s:keyspaces/*#create_key", workspaceID)
 }
 
-func encryptKeyPermission(apiID string) string {
-	return fmt.Sprintf("api.%s.encrypt_key", apiID)
+func encryptKeyPermission(workspaceID, keyspaceID string) string {
+	return fmt.Sprintf("unkey:v1:%s:keyspaces/%s/keys/*#encrypt_key", workspaceID, keyspaceID)
 }
