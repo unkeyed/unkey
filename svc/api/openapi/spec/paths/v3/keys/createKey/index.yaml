@@ -25,7 +25,6 @@ post:
       application/json:
         schema:
           "$ref": "./V3KeysCreateKeyRequestBody.yaml"
-    required: true
   responses:
     "200":
       content:
