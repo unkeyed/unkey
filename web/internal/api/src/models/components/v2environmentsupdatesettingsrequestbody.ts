@@ -67,10 +67,13 @@ export type V2EnvironmentsUpdateSettingsRequestBody = {
    */
   buildCommand?: string | null | undefined;
   /**
-   * Glob paths that trigger auto-deploys when changed.
+   * Glob patterns that trigger auto-deploys when matching files change.
    *
    * @remarks
-   * Omit to leave unchanged.
+   * Do not start a pattern with "/" or "./".
+   * Use "src/**" for everything under a directory and "** /*.go" for a file type.
+   * A pattern with no wildcard matches only that exact file, so "src" is not "src/**".
+   * Omit to leave unchanged. Invalid patterns are rejected with a 400.
    */
   watchPaths?: Array<string> | undefined;
   /**

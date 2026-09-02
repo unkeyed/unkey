@@ -56,6 +56,7 @@ export function useIdentities({ search = "" }: { search?: string } = {}) {
       } satisfies IdentityPage;
     },
     getNextPageParam: (lastPage) => lastPage.cursor,
+    keepPreviousData: true,
     ...(normalizedSearch && { cacheTime: 0 }),
   });
 

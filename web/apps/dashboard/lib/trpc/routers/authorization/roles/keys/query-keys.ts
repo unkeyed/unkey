@@ -29,6 +29,7 @@ export const queryKeys = workspaceProcedure
         orderBy: (keys, { desc }) => desc(keys.id),
         with: {
           roles: {
+            columns: { roleId: true },
             with: {
               role: {
                 columns: {
