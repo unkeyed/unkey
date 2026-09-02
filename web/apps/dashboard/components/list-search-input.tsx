@@ -170,7 +170,7 @@ export const ListSearchInput = <T extends BaseFilter = BaseFilter>({
           <IconMagnifierOutline18 className="text-accent-9 size-4" />
         </InputGroupAddon>
         <InputGroupInput
-          className="truncate text-accent-12 font-medium text-[13px] h-8 placeholder:text-accent-12 selection:bg-gray-6"
+          className="truncate text-accent-12 font-normal text-[13px] h-8 placeholder:text-grayA-8 selection:bg-gray-6"
           ref={inputRef}
           type="text"
           value={searchText}
