@@ -568,6 +568,10 @@ components:
             required:
                 - project
                 - app
+            minProperties: 3
+            dependentSchemas:
+                oci:
+                    maxProperties: 3
             properties:
                 project:
                     "$ref": "#/components/schemas/ResourceIdentifier"

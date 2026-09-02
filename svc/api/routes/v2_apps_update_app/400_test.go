@@ -42,6 +42,7 @@ func TestUpdateAppBadRequest(t *testing.T) {
 		{name: "missing project and app", req: handler.Request{}},
 		{name: "missing app", req: handler.Request{Project: validProject}},
 		{name: "missing project", req: handler.Request{App: validID}},
+		{name: "no updates", req: handler.Request{Project: validProject, App: validID}},
 		{name: "app with invalid chars", req: handler.Request{Project: validProject, App: "app.1234"}},
 		{name: "app too long", req: handler.Request{Project: validProject, App: strings.Repeat("a", 256)}},
 		{name: "project with invalid chars", req: handler.Request{Project: "pay.ments", App: validID}},
@@ -64,6 +65,15 @@ func TestUpdateAppBadRequest(t *testing.T) {
 		{name: "git repository too long", req: handler.Request{Project: validProject, App: validID, Git: nullable.NewNullableWithValue(openapi.AppGitUpdateInput{Repository: ptr.P(strings.Repeat("a", 256))})}},
 		{name: "git default branch empty", req: handler.Request{Project: validProject, App: validID, Git: nullable.NewNullableWithValue(openapi.AppGitUpdateInput{Repository: ptr.P("unkeyed/unkey"), DefaultBranch: ptr.P("")})}},
 		{name: "git default branch too long", req: handler.Request{Project: validProject, App: validID, Git: nullable.NewNullableWithValue(openapi.AppGitUpdateInput{Repository: ptr.P("unkeyed/unkey"), DefaultBranch: ptr.P(strings.Repeat("a", 257))})}},
+		{
+			name: "OCI image combined with another update",
+			req: handler.Request{
+				Project: validProject,
+				App:     validID,
+				Name:    ptr.P("App"),
+				Oci:     &openapi.AppOCI{Image: "nginx:stable"},
+			},
+		},
 	}
 
 	for _, tc := range testCases {
@@ -74,35 +84,6 @@ func TestUpdateAppBadRequest(t *testing.T) {
 			require.Equal(t, "Bad Request", res.Body.Error.Title)
 			require.Equal(t, http.StatusBadRequest, res.Body.Error.Status)
 			require.Greater(t, len(res.Body.Error.Errors), 0)
-		})
-	}
-
-	runtimeTestCases := []struct {
-		name   string
-		req    handler.Request
-		detail string
-	}{
-		{
-			name:   "no updates",
-			req:    handler.Request{Project: validProject, App: validID},
-			detail: "Provide at least one field to update.",
-		},
-		{
-			name: "OCI image combined with another update",
-			req: handler.Request{
-				Project: validProject,
-				App:     validID,
-				Name:    ptr.P("App"),
-				Oci:     &openapi.AppOCI{Image: "nginx:stable"},
-			},
-			detail: "Update the OCI image in a separate request.",
-		},
-	}
-	for _, tc := range runtimeTestCases {
-		t.Run(tc.name, func(t *testing.T) {
-			res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, tc.req)
-			require.Equal(t, http.StatusBadRequest, res.Status, "expected 400, sent: %+v, received: %s", tc.req, res.RawBody)
-			require.Equal(t, tc.detail, res.Body.Error.Detail)
 		})
 	}
 
