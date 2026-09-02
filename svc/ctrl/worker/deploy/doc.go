@@ -1,9 +1,13 @@
 // Package deploy orchestrates the deployment lifecycle for user applications.
 //
-// Deployments move through a multi-step pipeline that builds container images,
-// provisions infrastructure across regions, waits for health, and configures
-// domain routing — all durably, so a crash at any point resumes from the last
-// completed step rather than restarting from scratch.
+// [Workflow.Create] is the entry point: it writes the deployment row and starts
+// the pipeline. Callers name a target and a decision rather than a row, so the
+// GitHub webhook and the public API produce identical deployments.
+//
+// From there deployments move through a multi-step pipeline that builds
+// container images, provisions infrastructure across regions, waits for health,
+// and configures domain routing, all durably, so a crash at any point resumes
+// from the last completed step rather than restarting from scratch.
 //
 // # Virtual Object Keying
 //
@@ -38,8 +42,8 @@
 //     either immediately (slot available or the environment is production) or
 //     later when a held slot is released. Production deployments bypass the limit.
 //
-// On the creation side, [dedup.CancelOlderSiblings] runs right after the
-// deployment row is inserted: it batch-stamps older siblings with the
+// On the creation side, [Workflow.Create] calls [dedup.CancelOlderSiblings]
+// right after it inserts the deployment row: it batch-stamps older siblings with the
 // "Superseded by newer commit" marker, batch-transitions them to
 // status=superseded, and cancels their Restate invocations via the admin API.
 //
