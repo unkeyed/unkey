@@ -1724,14 +1724,11 @@ type Querier interface {
 	// cleared before its desired state can change. Callers pass
 	// db.ActiveComputeDeploymentStatuses so the status set has a single source of
 	// truth (deployment_status.go) instead of a SQL literal that can drift from the
-	// enum. Status and invocation_id let Teardown cancel the in-flight Deploy of a
-	// still-progressing deployment before scheduling its stop.
+	// enum.
 	//
 	//  SELECT
 	//    d.id,
 	//    d.app_id,
-	//    d.status,
-	//    d.invocation_id,
 	//    a.current_deployment_id
 	//  FROM deployments d
 	//  JOIN apps a ON a.id = d.app_id
