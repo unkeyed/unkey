@@ -44,7 +44,7 @@ type EmptyTitleProps = React.HTMLAttributes<HTMLHeadingElement>;
 Empty.Title = function EmptyTitle({ className, ...props }: EmptyTitleProps) {
   return (
     <h2
-      className={cn("text-accent-12 mt-3 font-semibold text-[15px] leading-6", className)}
+      className={cn("text-accent-12 mt-3 font-medium text-[15px] leading-6", className)}
       {...props}
     />
   );

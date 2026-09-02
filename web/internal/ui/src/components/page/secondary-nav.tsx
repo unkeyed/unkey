@@ -25,7 +25,7 @@ function SecondaryNavTitle({ className, ...props }: React.ComponentProps<"h2">) 
   return (
     <h2
       className={cn(
-        "hidden md:block px-2 text-[15px] font-semibold tracking-tight leading-tight text-accent-12 m-0",
+        "hidden md:block px-2 text-[15px] font-medium tracking-tight leading-tight text-accent-12 m-0",
         className,
       )}
       {...props}
