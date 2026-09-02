@@ -14,7 +14,9 @@ const findLiveKeyByHash = `-- name: FindLiveKeyByHash :one
 SELECT
     k.id AS key_id,
     k.key_auth_id AS key_key_auth_id,
+    k.prefix AS key_prefix,
     k.start AS key_start,
+    k.end AS key_end,
     k.workspace_id AS key_workspace_id,
     k.name AS key_name,
     k.meta AS key_meta,
@@ -123,7 +125,9 @@ WHERE k.hash = ?
 type FindLiveKeyByHashRow struct {
 	KeyID                     string         `db:"key_id"`
 	KeyKeyAuthID              string         `db:"key_key_auth_id"`
+	KeyPrefix                 string         `db:"key_prefix"`
 	KeyStart                  string         `db:"key_start"`
+	KeyEnd                    string         `db:"key_end"`
 	KeyWorkspaceID            string         `db:"key_workspace_id"`
 	KeyName                   sql.NullString `db:"key_name"`
 	KeyMeta                   sql.NullString `db:"key_meta"`
@@ -153,7 +157,9 @@ type FindLiveKeyByHashRow struct {
 //	SELECT
 //	    k.id AS key_id,
 //	    k.key_auth_id AS key_key_auth_id,
+//	    k.prefix AS key_prefix,
 //	    k.start AS key_start,
+//	    k.end AS key_end,
 //	    k.workspace_id AS key_workspace_id,
 //	    k.name AS key_name,
 //	    k.meta AS key_meta,
@@ -263,7 +269,9 @@ func (q *Queries) FindLiveKeyByHash(ctx context.Context, db DBTX, hash string) (
 	err := row.Scan(
 		&i.KeyID,
 		&i.KeyKeyAuthID,
+		&i.KeyPrefix,
 		&i.KeyStart,
+		&i.KeyEnd,
 		&i.KeyWorkspaceID,
 		&i.KeyName,
 		&i.KeyMeta,

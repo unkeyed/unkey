@@ -15,7 +15,9 @@ SELECT
     k.id AS key_id,
     k.key_auth_id AS key_key_auth_id,
     k.hash AS key_hash,
+    k.prefix AS key_prefix,
     k.start AS key_start,
+    k.end AS key_end,
     k.workspace_id AS key_workspace_id,
     k.for_workspace_id AS key_for_workspace_id,
     k.name AS key_name,
@@ -125,7 +127,9 @@ type FindLiveKeyByIDRow struct {
 	KeyID                     string         `db:"key_id"`
 	KeyKeyAuthID              string         `db:"key_key_auth_id"`
 	KeyHash                   string         `db:"key_hash"`
+	KeyPrefix                 string         `db:"key_prefix"`
 	KeyStart                  string         `db:"key_start"`
+	KeyEnd                    string         `db:"key_end"`
 	KeyWorkspaceID            string         `db:"key_workspace_id"`
 	KeyForWorkspaceID         sql.NullString `db:"key_for_workspace_id"`
 	KeyName                   sql.NullString `db:"key_name"`
@@ -162,7 +166,9 @@ type FindLiveKeyByIDRow struct {
 //	    k.id AS key_id,
 //	    k.key_auth_id AS key_key_auth_id,
 //	    k.hash AS key_hash,
+//	    k.prefix AS key_prefix,
 //	    k.start AS key_start,
+//	    k.end AS key_end,
 //	    k.workspace_id AS key_workspace_id,
 //	    k.for_workspace_id AS key_for_workspace_id,
 //	    k.name AS key_name,
@@ -273,7 +279,9 @@ func (q *Queries) FindLiveKeyByID(ctx context.Context, db DBTX, id string) (Find
 		&i.KeyID,
 		&i.KeyKeyAuthID,
 		&i.KeyHash,
+		&i.KeyPrefix,
 		&i.KeyStart,
+		&i.KeyEnd,
 		&i.KeyWorkspaceID,
 		&i.KeyForWorkspaceID,
 		&i.KeyName,
