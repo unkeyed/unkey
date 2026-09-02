@@ -142,14 +142,13 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		Environment: environment.ID,
 		Decision:    hydrav1.CreateDecision_CREATE_DECISION_DEPLOY,
 		Command:     nil,
-		// Zero lets the worker stamp created_at from its own clock. Only the
-		// GitHub webhook needs to pin an ordering timestamp, to keep push order
-		// across its per-app sends.
-		OrderingTimestamp: 0,
-		Trigger:           trigger,
-		TriggeredBy:       principal.Subject.ID,
-		TriggerReason:     "",
-		Actor:             actorInfo,
+		// Zero lets the worker stamp created_at from its own clock. There is no
+		// push behind an API create, so there is no push time to pin.
+		PushReceivedAt: 0,
+		Trigger:        trigger,
+		TriggeredBy:    principal.Subject.ID,
+		TriggerReason:  "",
+		Actor:          actorInfo,
 	}
 
 	switch {

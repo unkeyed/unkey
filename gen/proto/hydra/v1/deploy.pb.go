@@ -1249,11 +1249,12 @@ type DeployCreateRequest struct {
 	Command []string `protobuf:"bytes,7,rep,name=command,proto3" json:"command,omitempty"`
 	// Decision the caller already reached. See CreateDecision.
 	Decision CreateDecision `protobuf:"varint,8,opt,name=decision,proto3,enum=hydra.v1.CreateDecision" json:"decision,omitempty"`
-	// OrderingTimestamp is the row's created_at, in unix milliseconds. The
-	// webhook passes the time it received the push so sibling dedup and the
-	// supersede check keep push order even when its per-app sends land out of
-	// order. Zero uses the worker's clock.
-	OrderingTimestamp int64 `protobuf:"varint,9,opt,name=ordering_timestamp,json=orderingTimestamp,proto3" json:"ordering_timestamp,omitempty"`
+	// PushReceivedAt is when the webhook received the push, in unix
+	// milliseconds, and it becomes the row's created_at. Every Create in one
+	// push carries the same value so sibling dedup and the supersede check keep
+	// push order even when the per-app sends land out of order. Zero means the
+	// caller has no push behind it, and the worker's clock is used instead.
+	PushReceivedAt int64 `protobuf:"varint,9,opt,name=push_received_at,json=pushReceivedAt,proto3" json:"push_received_at,omitempty"`
 	// Attribution persisted on the deployment row.
 	Trigger       v1.DeploymentTrigger `protobuf:"varint,10,opt,name=trigger,proto3,enum=ctrl.v1.DeploymentTrigger" json:"trigger,omitempty"`
 	TriggeredBy   string               `protobuf:"bytes,11,opt,name=triggered_by,json=triggeredBy,proto3" json:"triggered_by,omitempty"`
@@ -1363,9 +1364,9 @@ func (x *DeployCreateRequest) GetDecision() CreateDecision {
 	return CreateDecision_CREATE_DECISION_UNSPECIFIED
 }
 
-func (x *DeployCreateRequest) GetOrderingTimestamp() int64 {
+func (x *DeployCreateRequest) GetPushReceivedAt() int64 {
 	if x != nil {
-		return x.OrderingTimestamp
+		return x.PushReceivedAt
 	}
 	return 0
 }
@@ -2055,7 +2056,7 @@ const file_hydra_v1_deploy_proto_rawDesc = "" +
 	"\x05image\x18\x01 \x01(\tR\x05image\"o\n" +
 	"\x1eCreateExistingDeploymentSource\x12#\n" +
 	"\rdeployment_id\x18\x01 \x01(\tR\fdeploymentId\x12(\n" +
-	"\x10require_no_newer\x18\x02 \x01(\bR\x0erequireNoNewer\"\xe1\x04\n" +
+	"\x10require_no_newer\x18\x02 \x01(\bR\x0erequireNoNewer\"\xdc\x04\n" +
 	"\x13DeployCreateRequest\x12\x1d\n" +
 	"\n" +
 	"project_id\x18\x01 \x01(\tR\tprojectId\x12\x15\n" +
@@ -2065,8 +2066,8 @@ const file_hydra_v1_deploy_proto_rawDesc = "" +
 	"\x05image\x18\x05 \x01(\v2\x1b.hydra.v1.CreateImageSourceH\x00R\x05image\x12[\n" +
 	"\x13existing_deployment\x18\x06 \x01(\v2(.hydra.v1.CreateExistingDeploymentSourceH\x00R\x12existingDeployment\x12\x18\n" +
 	"\acommand\x18\a \x03(\tR\acommand\x124\n" +
-	"\bdecision\x18\b \x01(\x0e2\x18.hydra.v1.CreateDecisionR\bdecision\x12-\n" +
-	"\x12ordering_timestamp\x18\t \x01(\x03R\x11orderingTimestamp\x124\n" +
+	"\bdecision\x18\b \x01(\x0e2\x18.hydra.v1.CreateDecisionR\bdecision\x12(\n" +
+	"\x10push_received_at\x18\t \x01(\x03R\x0epushReceivedAt\x124\n" +
 	"\atrigger\x18\n" +
 	" \x01(\x0e2\x1a.ctrl.v1.DeploymentTriggerR\atrigger\x12!\n" +
 	"\ftriggered_by\x18\v \x01(\tR\vtriggeredBy\x12%\n" +

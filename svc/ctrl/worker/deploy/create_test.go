@@ -241,18 +241,18 @@ func TestCreateBlocks(t *testing.T) {
 	})
 }
 
-// TestCreateOrderingTimestampBecomesCreatedAt pins what keeps push order. The
+// TestCreatePushReceivedAtBecomesCreatedAt pins what keeps push order. The
 // webhook sends one Create per app asynchronously, so they can land in any
 // order; created_at is what sibling dedup and the supersede check compare, so it
 // has to be the moment the push arrived rather than the moment the row was
 // written.
-func TestCreateOrderingTimestampBecomesCreatedAt(t *testing.T) {
+func TestCreatePushReceivedAtBecomesCreatedAt(t *testing.T) {
 	ctx := context.Background()
 	h := newCreateHarness(t, ctx, createHarnessOptions{})
 
 	pushedAt := time.Now().Add(-90 * time.Second).UnixMilli()
 	req := h.imageRequest()
-	req.OrderingTimestamp = pushedAt
+	req.PushReceivedAt = pushedAt
 
 	deploymentID := uid.New(uid.DeploymentPrefix)
 	h.create(t, ctx, deploymentID, req)
@@ -531,12 +531,12 @@ func (h *createHarness) imageRequest() *hydrav1.DeployCreateRequest {
 		Source: &hydrav1.DeployCreateRequest_Image{
 			Image: &hydrav1.CreateImageSource{Image: fixtureImage},
 		},
-		Command:           nil,
-		Decision:          hydrav1.CreateDecision_CREATE_DECISION_DEPLOY,
-		OrderingTimestamp: 0,
-		Trigger:           ctrlv1.DeploymentTrigger_DEPLOYMENT_TRIGGER_API,
-		TriggeredBy:       "root_KEBAP",
-		TriggerReason:     "",
+		Command:        nil,
+		Decision:       hydrav1.CreateDecision_CREATE_DECISION_DEPLOY,
+		PushReceivedAt: 0,
+		Trigger:        ctrlv1.DeploymentTrigger_DEPLOYMENT_TRIGGER_API,
+		TriggeredBy:    "root_KEBAP",
+		TriggerReason:  "",
 		Actor: &ctrlv1.ActorInfo{
 			Id:        "root_KEBAP",
 			Name:      "KEBAP key",

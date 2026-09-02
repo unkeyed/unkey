@@ -348,11 +348,12 @@ message DeployCreateRequest {
   // Decision the caller already reached. See CreateDecision.
   CreateDecision decision = 8;
 
-  // OrderingTimestamp is the row's created_at, in unix milliseconds. The
-  // webhook passes the time it received the push so sibling dedup and the
-  // supersede check keep push order even when its per-app sends land out of
-  // order. Zero uses the worker's clock.
-  int64 ordering_timestamp = 9;
+  // PushReceivedAt is when the webhook received the push, in unix
+  // milliseconds, and it becomes the row's created_at. Every Create in one
+  // push carries the same value so sibling dedup and the supersede check keep
+  // push order even when the per-app sends land out of order. Zero means the
+  // caller has no push behind it, and the worker's clock is used instead.
+  int64 push_received_at = 9;
 
   // Attribution persisted on the deployment row.
   ctrl.v1.DeploymentTrigger trigger = 10;

@@ -24,7 +24,7 @@ import (
 // to GitHub that would need the answers.
 //
 // Because those sends can land out of order, every Create in one push carries
-// the same ordering timestamp: the moment this handler received the push. That
+// the same push_received_at: the moment this handler received the push. That
 // timestamp becomes the row's created_at, which is what sibling dedup and the
 // supersede check compare. Without it a push that lands late would look newer
 // than the commit that followed it and could cancel it.
@@ -157,12 +157,12 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 					PrNumber: req.GetPrNumber(),
 				},
 			},
-			Command:           nil,
-			Decision:          d.decision,
-			OrderingTimestamp: receivedAt.UnixMilli(),
-			Trigger:           ctrlv1.DeploymentTrigger_DEPLOYMENT_TRIGGER_GITHUB,
-			TriggeredBy:       req.GetSenderLogin(),
-			TriggerReason:     "",
+			Command:        nil,
+			Decision:       d.decision,
+			PushReceivedAt: receivedAt.UnixMilli(),
+			Trigger:        ctrlv1.DeploymentTrigger_DEPLOYMENT_TRIGGER_GITHUB,
+			TriggeredBy:    req.GetSenderLogin(),
+			TriggerReason:  "",
 			Actor: &ctrlv1.ActorInfo{
 				Id:        req.GetSenderLogin(),
 				Name:      req.GetSenderLogin(),

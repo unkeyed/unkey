@@ -131,16 +131,16 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	// nolint: exhaustruct // the source oneof is set below
 	createReq := &hydrav1.DeployCreateRequest{
-		ProjectId:         row.Project.ID,
-		AppId:             row.App.ID,
-		Environment:       environment.ID,
-		Decision:          hydrav1.CreateDecision_CREATE_DECISION_DEPLOY,
-		Command:           nil,
-		OrderingTimestamp: 0,
-		Trigger:           trigger,
-		TriggeredBy:       principal.Subject.ID,
-		TriggerReason:     "",
-		Actor:             nil,
+		ProjectId:      row.Project.ID,
+		AppId:          row.App.ID,
+		Environment:    environment.ID,
+		Decision:       hydrav1.CreateDecision_CREATE_DECISION_DEPLOY,
+		Command:        nil,
+		PushReceivedAt: 0,
+		Trigger:        trigger,
+		TriggeredBy:    principal.Subject.ID,
+		TriggerReason:  "",
+		Actor:          nil,
 	}
 
 	// Verify an optional keyspace belongs to the caller's workspace. Nothing

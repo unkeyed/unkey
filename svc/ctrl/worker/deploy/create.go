@@ -358,10 +358,10 @@ func (w *Workflow) insertDeployment(
 		return 0, loadErr
 	}
 
-	// The caller's ordering timestamp wins so sibling dedup keeps push order even
-	// when async sends land out of order. Reading the clock here rather than in
-	// the handler keeps it inside the journaled step.
-	createdAt := req.GetOrderingTimestamp()
+	// The push time wins so sibling dedup keeps push order even when async sends
+	// land out of order. Reading the clock here rather than in the handler keeps
+	// it inside the journaled step.
+	createdAt := req.GetPushReceivedAt()
 	if createdAt == 0 {
 		createdAt = time.Now().UnixMilli()
 	}
