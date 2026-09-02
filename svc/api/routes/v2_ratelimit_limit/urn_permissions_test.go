@@ -21,11 +21,12 @@ func TestLimitAuthorizesCanonicalRatelimitNamespacePermissions(t *testing.T) {
 	workspaceID := h.Resources().UserWorkspace.ID
 	projectID := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspaceID}).ProjectID
 	route := &handler.Handler{
-		DB:              h.DB,
-		RatelimitEvents: h.RatelimitEvents,
-		Ratelimit:       h.Ratelimit,
-		NamespaceCache:  h.Caches.RatelimitNamespace,
-		Auditlogs:       h.Auditlogs,
+		DB:               h.DB,
+		RatelimitEvents:  h.RatelimitEvents,
+		DirectAuditLogs:  h.DirectAuditLogs,
+		Ratelimit:        h.Ratelimit,
+		NamespaceCache:   h.Caches.RatelimitNamespace,
+		Auditlogs:        h.Auditlogs,
 	}
 	h.Register(route)
 
