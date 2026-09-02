@@ -42,7 +42,6 @@ export const DeployImageCard = ({
         project: projectId,
         app: appId,
         environment,
-        oci: { image: imageRef },
       });
       return { deploymentId: response.data.deploymentId };
     },
