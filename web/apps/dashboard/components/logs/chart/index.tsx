@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/chart";
 import { formatNumber } from "@/lib/fmt";
 import type { TimeseriesGranularity } from "@/lib/trpc/routers/utils/granularity";
-import { Grid } from "@unkey/icons";
+import { IconGridOutline18 } from "nucleo-ui-outline-18";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Bar, BarChart, ReferenceArea, YAxis } from "recharts";
 import { parseTimestamp } from "../parse-timestamp";
@@ -265,7 +265,7 @@ export function LogsTimeseriesBarChart({
                   bottomExplainer={
                     <div className="grid gap-1.5 pt-2 border-t border-gray-4">
                       <div className="flex w-full [&>svg]:size-4 gap-4 px-4 items-center">
-                        <Grid className="text-gray-6" />
+                        <IconGridOutline18 className="text-gray-6" />
                         <div className="flex gap-4 leading-none justify-between w-full py-1 items-center">
                           <div className="flex gap-4 items-center min-w-[80px]">
                             <span className="capitalize text-accent-9 text-xs w-[2ch] inline-block">

@@ -1,6 +1,5 @@
 "use client";
 import type { MetadataFormValues } from "@/lib/schemas/metadata";
-import { Code } from "@unkey/icons";
 import {
   Button,
   FormField,
@@ -9,6 +8,7 @@ import {
   InputGroupTextarea,
   toast,
 } from "@unkey/ui";
+import { IconCodeOutline18 } from "nucleo-ui-outline-18";
 import { useController, useFormContext, useWatch } from "react-hook-form";
 import { ProtectionSwitch } from "./protection-switch";
 
@@ -111,7 +111,7 @@ export const MetadataSetup = ({ overrideEnabled = false, entityType }: MetadataS
         <ProtectionSwitch
           description={descriptions.switch}
           title="Metadata"
-          icon={<Code className="text-gray-12" iconSize="sm-regular" />}
+          icon={<IconCodeOutline18 className="text-gray-12" />}
           checked={metadataEnabled}
           onCheckedChange={handleSwitchChange}
         />

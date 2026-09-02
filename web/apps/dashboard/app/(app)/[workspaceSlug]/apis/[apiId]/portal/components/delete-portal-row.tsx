@@ -2,8 +2,8 @@
 
 import { useDeletePortal } from "@/lib/portal/use-portal";
 import type { Portal } from "@unkey/api/models/components";
-import { TriangleWarning2 } from "@unkey/icons";
 import { Button, DialogContainer, Input, SettingsZoneRow, toast } from "@unkey/ui";
+import { IconTriangleWarningOutline12 } from "nucleo-ui-outline-12";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 
@@ -89,7 +89,7 @@ export function DeletePortalRow({ portal, keyAuthId }: { portal: Portal; keyAuth
       >
         <div className="flex items-center gap-4 rounded-xl border border-errorA-3 bg-errorA-2 px-[22px] py-6 dark:bg-black">
           <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-error-9">
-            <TriangleWarning2 iconSize="sm-regular" className="text-white" />
+            <IconTriangleWarningOutline12 className="text-white" />
           </div>
           <div className="text-[13px] leading-6 text-error-12">
             <span className="font-medium">Warning:</span> deleting{" "}

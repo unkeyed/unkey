@@ -1,6 +1,6 @@
 import { cn } from "@/lib/utils";
-import { ChevronRight } from "@unkey/icons";
 import { Badge, InfoTooltip } from "@unkey/ui";
+import { IconChevronRightOutline12 } from "nucleo-ui-outline-12";
 import { HighlightMatch } from "../shared/highlight-match";
 import { EnvVarBaseRow } from "./env-var-base-row";
 import { EnvVarGroupActionMenu } from "./env-var-group-action-menu";
@@ -70,8 +70,7 @@ export function GroupRow({
       valueCell={
         <span className="flex items-center gap-1.5 text-[13px] text-gray-11 transition-colors pl-2">
           {row.items.length} values
-          <ChevronRight
-            iconSize="sm-thin"
+          <IconChevronRightOutline12
             className={cn(
               "size-[12px] transition-transform duration-200",
               isExpanded && "rotate-90",

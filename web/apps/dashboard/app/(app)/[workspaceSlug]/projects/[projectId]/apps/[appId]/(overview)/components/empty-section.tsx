@@ -1,8 +1,8 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { Link4 } from "@unkey/icons";
 import { Empty } from "@unkey/ui";
+import { IconLink4Outline18 } from "nucleo-ui-outline-18";
 import type { PropsWithChildren, ReactNode } from "react";
 
 type EmptySectionProps = PropsWithChildren<{
@@ -16,7 +16,7 @@ export const EmptySection = ({
   title,
   description,
   children,
-  icon = <Link4 className="size-6" />,
+  icon = <IconLink4Outline18 className="size-6" />,
   className,
 }: EmptySectionProps) => (
   <Empty

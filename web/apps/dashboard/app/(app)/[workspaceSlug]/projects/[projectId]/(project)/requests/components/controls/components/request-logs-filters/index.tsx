@@ -4,9 +4,9 @@ import { useAppEnvironmentSearchItems } from "@/app/(app)/[workspaceSlug]/projec
 import { useRequestLogsFilters } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/(project)/requests/hooks/use-request-logs-filters";
 import { type FilterItemConfig, FiltersPopover } from "@/components/logs/checkbox/filters-popover";
 import type { RequestLogsFilterValue } from "@/lib/schemas/request-logs.filter.schema";
-import { BarsFilter } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
+import { IconBarsFilterOutline18 } from "nucleo-ui-outline-18";
 import { RequestAppFilter } from "./components/request-logs-app-filter";
 import { RequestDeploymentFilter } from "./components/request-logs-deployment-filter";
 import { RequestMethodsFilter } from "./components/request-logs-methods-filter";
@@ -124,7 +124,7 @@ export const RequestLogsFilters = () => {
           aria-haspopup="true"
           title="Press 'F' to toggle filters"
         >
-          <BarsFilter className="text-accent-9 size-4" />
+          <IconBarsFilterOutline18 className="text-accent-9 size-4" />
           <span className="text-accent-12 font-medium text-[13px]">Filter</span>
           {filterCount > 0 && (
             <div className="bg-gray-7 rounded-sm h-4 px-1 text-[11px] font-medium text-accent-12 text-center flex items-center justify-center">

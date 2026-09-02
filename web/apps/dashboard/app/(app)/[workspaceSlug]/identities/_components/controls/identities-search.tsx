@@ -1,7 +1,7 @@
 "use client";
 
-import { Magnifier, XMark } from "@unkey/icons";
 import { Button, InputGroup, InputGroupAddon, InputGroupInput } from "@unkey/ui";
+import { IconMagnifierOutline18, IconXmarkOutline18 } from "nucleo-ui-outline-18";
 import { parseAsString, useQueryState } from "nuqs";
 
 export const IdentitiesSearch = () => {
@@ -18,7 +18,7 @@ export const IdentitiesSearch = () => {
     <div className="flex h-8 w-full items-center md:w-80">
       <InputGroup className="h-8">
         <InputGroupAddon className="pointer-events-none">
-          <Magnifier className="text-accent-9 size-4" />
+          <IconMagnifierOutline18 className="text-accent-9 size-4" />
         </InputGroupAddon>
         <InputGroupInput
           aria-label="Search identities"
@@ -43,7 +43,7 @@ export const IdentitiesSearch = () => {
               aria-label="Clear search"
               onClick={() => setSearch(null)}
             >
-              <XMark className="size-4" />
+              <IconXmarkOutline18 className="size-4" />
             </Button>
           </InputGroupAddon>
         ) : null}

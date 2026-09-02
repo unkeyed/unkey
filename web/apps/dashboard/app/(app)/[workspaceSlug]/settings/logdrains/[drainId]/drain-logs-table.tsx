@@ -1,7 +1,7 @@
 "use client";
 
-import { CircleXMark } from "@unkey/icons";
 import { Badge, Button, Card, CopyButton, Skeleton, TimestampInfo, cn } from "@unkey/ui";
+import { IconCircleXmarkOutline18 } from "nucleo-ui-outline-18";
 import type { ReactNode } from "react";
 import { type Delivery, detailText, isFailure, useDeliveries } from "./use-deliveries";
 
@@ -166,7 +166,7 @@ function ResponseCell({ delivery }: { delivery: Delivery }) {
   return (
     <div className="flex items-center gap-2">
       {isFailure(delivery) ? (
-        <CircleXMark iconSize="sm-medium" className="size-3.5 shrink-0 text-error-11" />
+        <IconCircleXmarkOutline18 className="size-3.5 shrink-0 text-error-11" />
       ) : null}
       <span className="min-w-0 flex-1 truncate font-mono text-xs text-gray-12">{text}</span>
       <CopyButton value={text} variant="ghost" size="sm" className="shrink-0" />

@@ -2,7 +2,7 @@ import { useRoleLimits } from "@/components/roles-table/hooks/use-role-limits";
 import { SelectedItemsList } from "@/components/selected-item-list";
 import { FormCombobox } from "@/components/ui/form-combobox";
 import type { RoleKey } from "@/lib/trpc/routers/authorization/roles/connected-keys-and-perms";
-import { Key2 } from "@unkey/icons";
+import { IconKey2Outline12 } from "nucleo-ui-outline-12";
 import { useMemo, useState } from "react";
 import { RoleWarningCallout } from "../warning-callout";
 import { createKeyOptions } from "./create-key-options";
@@ -176,7 +176,7 @@ export const KeyField = ({
           }))}
           disabled={disabled}
           onRemoveItem={handleRemoveKey}
-          renderIcon={() => <Key2 iconSize="sm-regular" className="text-grayA-11" />}
+          renderIcon={() => <IconKey2Outline12 className="text-grayA-11" />}
           enableTransitions
           renderPrimaryText={(key) =>
             key.id.length > 15 ? `${key.id.slice(0, 8)}...${key.id.slice(-4)}` : key.id

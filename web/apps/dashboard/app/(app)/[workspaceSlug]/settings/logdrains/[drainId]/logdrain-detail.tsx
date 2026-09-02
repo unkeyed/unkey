@@ -3,7 +3,6 @@
 import { type MenuItem, TableActionPopover } from "@/components/logs/table-action.popover";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { routes } from "@/lib/navigation/routes";
-import { Bolt, ChevronLeft, Dots, Gear, MediaPause, Trash } from "@unkey/icons";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -23,6 +22,16 @@ import {
 } from "@unkey/ui";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import {
+  IconChevronLeftOutline12,
+  IconDotsOutline12,
+  IconGearOutline12,
+} from "nucleo-ui-outline-12";
+import {
+  IconBoltOutline18,
+  IconMediaPauseOutline18,
+  IconTrashOutline18,
+} from "nucleo-ui-outline-18";
 import { useState } from "react";
 import { DrainErrorBanner } from "../drain-error-banner";
 import type { DrainDetail } from "../drain-schema";
@@ -50,14 +59,14 @@ export function LogdrainDetail({ drain }: { drain: DrainDetail }) {
     {
       id: "pause",
       label: running ? "Pause deliveries" : "Resume deliveries",
-      icon: running ? <MediaPause iconSize="md-regular" /> : <Bolt iconSize="md-regular" />,
+      icon: running ? <IconMediaPauseOutline18 /> : <IconBoltOutline18 />,
       disabled: setStatus.isLoading,
       onClick: () => toggleStatus(),
     },
     {
       id: "delete",
       label: "Delete log drain",
-      icon: <Trash iconSize="md-regular" />,
+      icon: <IconTrashOutline18 />,
       onClick: () => setConfirmDelete(true),
     },
   ];
@@ -70,7 +79,7 @@ export function LogdrainDetail({ drain }: { drain: DrainDetail }) {
             href={listHref}
             className="-ml-1 flex w-fit items-center gap-1 rounded-md px-1 py-0.5 text-[13px] text-gray-10 transition-colors hover:text-gray-12 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-grayA-7"
           >
-            <ChevronLeft iconSize="sm-regular" />
+            <IconChevronLeftOutline12 />
             Log Drains
           </Link>
           <div className="flex min-w-0 items-center gap-3">
@@ -80,12 +89,12 @@ export function LogdrainDetail({ drain }: { drain: DrainDetail }) {
         </PageHeaderContent>
         <PageHeaderActions>
           <Button variant="outline" onClick={() => setIsSettingsOpen(true)}>
-            <Gear iconSize="sm-regular" />
+            <IconGearOutline12 />
             Settings
           </Button>
           <TableActionPopover items={menuItems}>
             <Button variant="outline" className="w-7 p-0" aria-label="Open actions">
-              <Dots iconSize="sm-regular" />
+              <IconDotsOutline12 />
             </Button>
           </TableActionPopover>
         </PageHeaderActions>

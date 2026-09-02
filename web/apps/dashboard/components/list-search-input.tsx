@@ -1,7 +1,6 @@
-import { Magnifier, XMark } from "@unkey/icons";
 import { Button, InputGroup, InputGroupAddon, InputGroupInput } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
-// import { Search, XMark } from "@unkey/icons";
+import { IconMagnifierOutline18, IconXmarkOutline18 } from "nucleo-ui-outline-18";
 import { useEffect, useRef, useState } from "react";
 
 // Generic filter type that can work with any filter structure
@@ -146,7 +145,7 @@ export const ListSearchInput = <T extends BaseFilter = BaseFilter>({
         >
           <div className="flex items-center gap-2 w-full flex-1">
             <div className="shrink-0">
-              <Magnifier className="text-accent-9 size-4" />
+              <IconMagnifierOutline18 className="text-accent-9 size-4" />
             </div>
             <div className="flex-1">
               <div className="text-accent-11 text-[13px] animate-pulse">Loading...</div>
@@ -168,7 +167,7 @@ export const ListSearchInput = <T extends BaseFilter = BaseFilter>({
         )}
       >
         <InputGroupAddon className="pointer-events-none">
-          <Magnifier className="text-accent-9 size-4" />
+          <IconMagnifierOutline18 className="text-accent-9 size-4" />
         </InputGroupAddon>
         <InputGroupInput
           className="truncate text-accent-12 font-medium text-[13px] h-8 placeholder:text-accent-12 selection:bg-gray-6"
@@ -189,7 +188,7 @@ export const ListSearchInput = <T extends BaseFilter = BaseFilter>({
               size="icon"
               aria-label="Clear search"
             >
-              <XMark className="size-4 cursor-pointer" />
+              <IconXmarkOutline18 className="size-4 cursor-pointer" />
             </Button>
           </InputGroupAddon>
         )}

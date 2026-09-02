@@ -7,21 +7,21 @@ import { imageRefTag } from "@/lib/docker-image-ref";
 import { githubUrl } from "@/lib/github-url";
 import { shortenId } from "@/lib/shorten-id";
 import { cn } from "@/lib/utils";
-import {
-  BracketsCurly,
-  CircleQuestion,
-  CodeBranch,
-  CodeCommit,
-  Github,
-  Laptop2,
-  Layers2,
-  SquareTerminal,
-} from "@unkey/icons";
-import type { IconProps } from "@unkey/icons/src/props";
+import { Github } from "@unkey/icons";
 import { InfoTooltip, TimestampInfo } from "@unkey/ui";
 import type { Route } from "next";
 import dynamic from "next/dynamic";
 import Link from "next/link";
+import type { IconProps } from "nucleo-ui-outline-18";
+import {
+  IconBracketsCurlyOutline18,
+  IconCircleQuestionOutline18,
+  IconCodeBranchOutline18,
+  IconCodeCommitOutline18,
+  IconLaptop2Outline18,
+  IconLayers2Outline18,
+  IconSquareTerminalOutline18,
+} from "nucleo-ui-outline-18";
 import type { FC, ReactNode } from "react";
 import { DeploymentStatusIndicator } from "../../../components/deployment-status-dot";
 import { ActionColumnSkeleton } from "./table/components/skeletons";
@@ -70,10 +70,26 @@ type Origin = { icon: FC<IconProps>; label: string; tooltip: string };
 const ORIGINS: Record<Deployment["trigger"], Origin | "git"> = {
   github: "git",
   unknown: "git",
-  cli: { icon: SquareTerminal, label: "Unkey CLI", tooltip: "Deployed via the Unkey CLI" },
-  api: { icon: BracketsCurly, label: "Unkey API", tooltip: "Deployed via API (root key)" },
-  dashboard: { icon: Laptop2, label: "via Dashboard", tooltip: "Deployed via dashboard" },
-  unkey: { icon: CircleQuestion, label: "Unkey Team", tooltip: "Deployed by the Unkey team" },
+  cli: {
+    icon: IconSquareTerminalOutline18,
+    label: "Unkey CLI",
+    tooltip: "Deployed via the Unkey CLI",
+  },
+  api: {
+    icon: IconBracketsCurlyOutline18,
+    label: "Unkey API",
+    tooltip: "Deployed via API (root key)",
+  },
+  dashboard: {
+    icon: IconLaptop2Outline18,
+    label: "via Dashboard",
+    tooltip: "Deployed via dashboard",
+  },
+  unkey: {
+    icon: IconCircleQuestionOutline18,
+    label: "Unkey Team",
+    tooltip: "Deployed by the Unkey team",
+  },
 };
 
 function nonGitOrigin(deployment: Deployment): Origin | undefined {
@@ -95,7 +111,7 @@ export function OriginCell({ deployment }: { deployment: Deployment }) {
       position={{ side: "top" }}
       triggerClassName="relative z-20 flex min-w-0 items-center gap-2"
     >
-      <Icon iconSize="sm-regular" className="shrink-0 text-gray-9" />
+      <Icon className="shrink-0 text-gray-9" />
       <span className="truncate font-mono text-[13px] text-accent-12">{origin.label}</span>
     </InfoTooltip>
   );
@@ -118,7 +134,7 @@ export function SourceChip({
         position={{ side: "top" }}
         triggerClassName={cn(CHIP_CLASS, "relative z-20")}
       >
-        <Icon iconSize="sm-regular" className="shrink-0 text-gray-9" />
+        <Icon className="shrink-0 text-gray-9" />
         <span className="truncate font-mono">{origin.label}</span>
       </InfoTooltip>
     );
@@ -147,7 +163,7 @@ export function SourceChip({
         rel="noopener noreferrer"
         className={cn(CHIP_CLASS, "transition-colors hover:bg-grayA-2")}
       >
-        <Github iconSize="sm-regular" className="shrink-0 text-gray-9" />
+        <Github className="shrink-0 text-gray-9" />
         <span className="truncate" title={label}>
           {label}
         </span>
@@ -172,7 +188,7 @@ export function BranchCell({
 
   return (
     <span className="flex min-w-0 items-center gap-2">
-      <CodeBranch iconSize="sm-regular" className="shrink-0 text-gray-9" />
+      <IconCodeBranchOutline18 className="shrink-0 text-gray-9" />
       {href ? (
         <Interactive className="min-w-0">
           <a
@@ -207,7 +223,7 @@ export function CommitSha({
   );
   const body = (
     <>
-      <CodeCommit iconSize="sm-regular" className="shrink-0 text-gray-9" />
+      <IconCodeCommitOutline18 className="shrink-0 text-gray-9" />
       <span className="font-mono text-xs text-accent-12">
         {deployment.gitCommitSha.slice(0, 7)}
       </span>
@@ -235,7 +251,7 @@ export function CommitSha({
 export function ImageRef({ image }: { image: string }) {
   return (
     <span className="flex min-w-0 items-center gap-1.5" title={image}>
-      <Layers2 iconSize="sm-regular" className="shrink-0 text-gray-9" />
+      <IconLayers2Outline18 className="shrink-0 text-gray-9" />
       <span className="truncate font-mono text-xs text-accent-12">{imageRefTag(image)}</span>
     </span>
   );

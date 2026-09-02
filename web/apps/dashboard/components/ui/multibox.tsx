@@ -2,7 +2,11 @@
 
 import { cn } from "@/lib/utils";
 import { Combobox as ComboboxPrimitive } from "@base-ui/react/combobox";
-import { Check, ChevronExpandY, XMark } from "@unkey/icons";
+import {
+  IconCheckOutline12,
+  IconChevronExpandYOutline12,
+  IconXmarkOutline12,
+} from "nucleo-ui-outline-12";
 import * as React from "react";
 
 /**
@@ -68,7 +72,7 @@ export function MultiboxChipRemove({
       aria-label="Remove"
       {...props}
     >
-      {children ?? <XMark iconSize="sm-regular" />}
+      {children ?? <IconXmarkOutline12 />}
     </ComboboxPrimitive.ChipRemove>
   );
 }
@@ -99,7 +103,7 @@ export function MultiboxTrigger({
       aria-label="Open list"
       {...props}
     >
-      {children ?? <ChevronExpandY iconSize="sm-regular" />}
+      {children ?? <IconChevronExpandYOutline12 />}
     </ComboboxPrimitive.Trigger>
   );
 }
@@ -152,7 +156,7 @@ export function MultiboxItem({ className, children, ...props }: ComboboxPrimitiv
     >
       {children}
       <ComboboxPrimitive.ItemIndicator className="ml-auto shrink-0">
-        <Check iconSize="sm-regular" />
+        <IconCheckOutline12 />
       </ComboboxPrimitive.ItemIndicator>
     </ComboboxPrimitive.Item>
   );

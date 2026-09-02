@@ -4,8 +4,13 @@ import { type MenuItem, TableActionPopover } from "@/components/logs/table-actio
 import { Switch } from "@/components/ui/switch";
 import type { Policy } from "@/lib/collections/deploy/policies.schema";
 import { cn } from "@/lib/utils";
-import { Dots, GripDotsVertical, PenWriting3, Trash } from "@unkey/icons";
 import { Button, ConfirmPopover } from "@unkey/ui";
+import {
+  IconDotsOutline18,
+  IconGripDotsVerticalOutline18,
+  IconPenWriting3Outline18,
+  IconTrashOutline18,
+} from "nucleo-ui-outline-18";
 import { useRef, useState } from "react";
 
 type MergedPolicyRow = {
@@ -69,7 +74,7 @@ export function PolicyRow({
     {
       id: "edit",
       label: "Edit",
-      icon: <PenWriting3 iconSize="md-regular" />,
+      icon: <IconPenWriting3Outline18 className="size-4" />,
       divider: true,
       onClick: (e) => {
         e.stopPropagation();
@@ -82,7 +87,7 @@ export function PolicyRow({
     {
       id: "delete",
       label: "Delete",
-      icon: <Trash iconSize="md-regular" />,
+      icon: <IconTrashOutline18 className="size-4" />,
       onClick: (e) => {
         e.stopPropagation();
         setIsDeleteConfirmOpen(true);
@@ -171,7 +176,7 @@ export function PolicyRow({
             }}
             onClick={(e) => e.stopPropagation()}
           >
-            <GripDotsVertical iconSize="lg-medium" className="opacity-40 hover:opacity-70" />
+            <IconGripDotsVerticalOutline18 className="size-4 opacity-40 hover:opacity-70" />
           </button>
 
           {/* Name */}
@@ -220,7 +225,7 @@ export function PolicyRow({
                 className="size-5 [&_svg]:size-3 rounded-sm border-transparent group-hover:border-grayA-6"
                 onClick={(e) => e.stopPropagation()}
               >
-                <Dots className="group-hover:text-gray-12 text-gray-11" iconSize="sm-regular" />
+                <IconDotsOutline18 className="group-hover:text-gray-12 text-gray-11" />
               </Button>
             </TableActionPopover>
 

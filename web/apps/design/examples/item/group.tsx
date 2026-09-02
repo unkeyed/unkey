@@ -1,4 +1,3 @@
-import { ChartUsage, Gauge } from "@unkey/icons";
 import {
   Button,
   Item,
@@ -11,6 +10,7 @@ import {
   ItemSeparator,
   ItemTitle,
 } from "@unkey/ui";
+import { IconChartUsageOutline18, IconGaugeOutline18 } from "nucleo-ui-outline-18";
 
 export default function ItemGroupExample() {
   return (
@@ -27,7 +27,7 @@ export default function ItemGroupExample() {
       <ItemSeparator />
       <Item>
         <ItemMedia>
-          <ChartUsage />
+          <IconChartUsageOutline18 />
         </ItemMedia>
         <ItemContent>
           <ItemTitle>Key verifications</ItemTitle>
@@ -37,7 +37,7 @@ export default function ItemGroupExample() {
       </Item>
       <Item>
         <ItemMedia>
-          <Gauge />
+          <IconGaugeOutline18 />
         </ItemMedia>
         <ItemContent>
           <ItemTitle>Compute</ItemTitle>

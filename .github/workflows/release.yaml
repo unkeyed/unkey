@@ -26,6 +26,7 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           install: "true"
+          nucleo_license_key: ${{ secrets.NUCLEO_LICENSE_KEY }}
       - name: Setup Go
         uses: ./.depot/actions/setup-go
         with:

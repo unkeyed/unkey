@@ -1,6 +1,5 @@
 import type { RoleBasic } from "@/lib/trpc/routers/authorization/roles/query";
 import { cn } from "@/lib/utils";
-import { Key2, Tag } from "@unkey/icons";
 import type { DataTableColumnDef } from "@unkey/ui";
 import {
   ActionColumnSkeleton,
@@ -9,6 +8,7 @@ import {
   NameColumnSkeleton,
   PermissionsColumnSkeleton,
 } from "@unkey/ui";
+import { IconKey2Outline18, IconTagOutline18 } from "nucleo-ui-outline-18";
 import { ROLE_COLUMN_IDS } from "../../columns/create-roles-columns";
 
 type RenderRolesSkeletonRowProps = {
@@ -24,13 +24,11 @@ export const renderRolesSkeletonRow = ({ columns, rowHeight }: RenderRolesSkelet
       style={{ height: `${rowHeight}px` }}
     >
       {column.id === ROLE_COLUMN_IDS.ROLE.id && (
-        <NameColumnSkeleton
-          icon={<Tag iconSize="sm-regular" className="text-gray-12 opacity-50" />}
-        />
+        <NameColumnSkeleton icon={<IconTagOutline18 className="text-gray-12 opacity-50" />} />
       )}
       {column.id === ROLE_COLUMN_IDS.ASSIGNED_KEYS.id && (
         <DashedBadgeSkeleton
-          icon={<Key2 iconSize="md-medium" className="opacity-50" />}
+          icon={<IconKey2Outline18 className="size-4 opacity-50" />}
           barWidthClass="w-20"
           className="animate-in fade-in duration-300"
         />

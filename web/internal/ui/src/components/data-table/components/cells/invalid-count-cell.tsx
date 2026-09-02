@@ -1,5 +1,5 @@
 "use client";
-import { Ban } from "@unkey/icons";
+import { IconBanOutline12 } from "nucleo-ui-outline-12";
 import type * as React from "react";
 import { cn } from "../../../../lib/utils";
 import { Badge } from "../../../badge";
@@ -33,7 +33,7 @@ export function InvalidCountCell({
           title={title}
         >
           <span className="mr-1.5 shrink-0">
-            <Ban iconSize="sm-regular" />
+            <IconBanOutline12 />
           </span>
           <span className="overflow-hidden text-ellipsis whitespace-nowrap w-11.25">
             {formatCompactNumber(count)}

@@ -1,7 +1,6 @@
 "use client";
 
 import { formatDollars, formatNumber, formatPrice } from "@/lib/fmt";
-import { Gauge, Key2, Nodes } from "@unkey/icons";
 import {
   Item,
   ItemActions,
@@ -20,6 +19,7 @@ import {
   MeterValue,
   Skeleton,
 } from "@unkey/ui";
+import { IconGaugeOutline18, IconKey2Outline18, IconNodesOutline18 } from "nucleo-ui-outline-18";
 import { Fragment, type ReactNode } from "react";
 
 type ApiCardProps = {
@@ -39,8 +39,8 @@ function fee(feeCents: number | null): string | null {
 
 export function ApiCard({ verifications, ratelimits, quota, feeCents, isLoading }: ApiCardProps) {
   const rows: Array<{ icon: ReactNode; title: string; value: number | null }> = [
-    { icon: <Key2 />, title: "Key verifications", value: verifications },
-    { icon: <Gauge />, title: "Rate limit operations", value: ratelimits },
+    { icon: <IconKey2Outline18 />, title: "Key verifications", value: verifications },
+    { icon: <IconGaugeOutline18 />, title: "Rate limit operations", value: ratelimits },
   ];
   const used = verifications === null || ratelimits === null ? null : verifications + ratelimits;
 
@@ -48,7 +48,7 @@ export function ApiCard({ verifications, ratelimits, quota, feeCents, isLoading 
     <ItemGroup variant="outline">
       <ItemHeader>
         <ItemMedia className="bg-infoA-3 text-info-11">
-          <Nodes />
+          <IconNodesOutline18 />
         </ItemMedia>
         <ItemContent>
           <ItemTitle>API management</ItemTitle>

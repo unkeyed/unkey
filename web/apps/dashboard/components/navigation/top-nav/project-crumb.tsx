@@ -4,7 +4,7 @@ import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { collection } from "@/lib/collections";
 import { routes } from "@/lib/navigation/routes";
 import { useLiveQuery } from "@tanstack/react-db";
-import { Cube, Plus } from "@unkey/icons";
+import { IconCubeOutline18, IconPlusOutline18 } from "nucleo-ui-outline-18";
 import { Crumb } from "./crumb";
 import type { CrumbPopoverItem } from "./crumb-popover";
 
@@ -28,7 +28,7 @@ export function ProjectCrumb({ projectId }: { projectId: string }) {
 
   return (
     <Crumb
-      icon={<Cube className="size-3.5 text-accent-11" iconSize="sm-regular" />}
+      icon={<IconCubeOutline18 className="size-3.5 text-accent-11" />}
       label={current?.name ?? projectId}
       loading={loading}
       href={routes.projects.detail({ workspaceSlug: workspace.slug, projectId })}
@@ -37,7 +37,7 @@ export function ProjectCrumb({ projectId }: { projectId: string }) {
       searchPlaceholder="Find project..."
       emptyText="No projects found"
       footer={{
-        icon: Plus,
+        icon: IconPlusOutline18,
         label: "New project",
         href: routes.projects.list({ workspaceSlug: workspace.slug, new: true }),
       }}

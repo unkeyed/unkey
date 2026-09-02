@@ -4,8 +4,9 @@ import { Switch } from "@/components/ui/switch";
 import { collection } from "@/lib/collections";
 import { envVarKeySchema, envVarValueSchema } from "@/lib/schemas/env-var";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { CircleInfo, Plus } from "@unkey/icons";
 import { Button, FormInput, FormTextarea, InfoTooltip } from "@unkey/ui";
+import { IconPlusOutline12 } from "nucleo-ui-outline-12";
+import { IconCircleInfoOutline18 } from "nucleo-ui-outline-18";
 import { type ClipboardEvent, useCallback } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
@@ -145,10 +146,7 @@ export function EnvVarEditRow({
         <details className="group" open={Boolean(note)}>
           <summary className="w-fit text-[13px] text-gray-11 hover:text-gray-12 transition-colors cursor-pointer list-none [&::-webkit-details-marker]:hidden flex items-center gap-1.5 group">
             <span className="group-open:hidden flex items-center gap-2">
-              <Plus
-                iconSize="sm-medium"
-                className="text-gray-9 group-hover:text-gray-12 transition-colors"
-              />
+              <IconPlusOutline12 className="text-gray-9 group-hover:text-gray-12 transition-colors" />
               Add Note
             </span>
             <span className="hidden group-open:inline">Note</span>
@@ -178,7 +176,7 @@ export function EnvVarEditRow({
               asChild
             >
               <span className="text-grayA-9">
-                <CircleInfo iconSize="md-regular" />
+                <IconCircleInfoOutline18 className="size-4" />
               </span>
             </InfoTooltip>
           </div>

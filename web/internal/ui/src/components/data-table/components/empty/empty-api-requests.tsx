@@ -1,4 +1,4 @@
-import { BookBookmark } from "@unkey/icons";
+import { IconBookBookmarkOutline18 } from "nucleo-ui-outline-18";
 import { buttonVariants } from "../../../buttons/button";
 import { Empty } from "../../../empty";
 
@@ -19,7 +19,7 @@ export function EmptyApiRequests() {
             rel="noopener noreferrer"
             className={buttonVariants({ size: "md" })}
           >
-            <BookBookmark />
+            <IconBookBookmarkOutline18 />
             Documentation
           </a>
         </Empty.Actions>

@@ -1,6 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Hammer2 } from "@unkey/icons";
 import { FormInput } from "@unkey/ui";
+import { IconHammer2Outline18 } from "nucleo-ui-outline-18";
 import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
 import { useEnvironmentSettings } from "../../environment-provider";
@@ -59,7 +59,7 @@ export const BuildCommand = () => {
 
   return (
     <FormSettingCard
-      icon={<Hammer2 className="text-gray-12" iconSize="xl-medium" />}
+      icon={<IconHammer2Outline18 className="text-gray-12" />}
       title="Build command"
       description="Override the auto-detected build command. Useful for monorepos, e.g. pnpm build --filter api. Only applies when no Dockerfile is set."
       displayValue={

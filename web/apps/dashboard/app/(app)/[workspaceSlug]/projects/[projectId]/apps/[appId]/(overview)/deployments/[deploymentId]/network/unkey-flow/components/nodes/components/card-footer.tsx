@@ -1,6 +1,10 @@
 import { RegionFlag } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/region-flag";
 import { formatCpuParts, formatMemoryParts } from "@/lib/utils/deployment-formatters";
-import { ChartActivity, Microchip, Ram } from "@unkey/icons";
+import {
+  IconChartActivityOutline18,
+  IconMicrochipOutline18,
+  IconRamOutline18,
+} from "nucleo-ui-outline-18";
 import type { RegionNode } from "../types";
 import { MetricPill } from "./metric-pill";
 
@@ -32,7 +36,7 @@ export function CardFooter(props: CardFooterProps) {
       {flagCode && <RegionFlag flagCode={flagCode} size="sm" shape="circle" className="mr-1.5" />}
       {rps !== undefined && (
         <MetricPill
-          icon={<ChartActivity iconSize="sm-medium" className="shrink-0" />}
+          icon={<IconChartActivityOutline18 className="shrink-0" />}
           value={formatRps(rps)}
           tooltip="Avg. RPS over last 15 min (updated every 5s)"
         />
@@ -43,7 +47,7 @@ export function CardFooter(props: CardFooterProps) {
             const parts = formatCpuParts(cpu);
             return (
               <MetricPill
-                icon={<Microchip iconSize="sm-medium" className="shrink-0" />}
+                icon={<IconMicrochipOutline18 className="size-3 shrink-0" />}
                 value={
                   <>
                     <span className="font-medium">{parts.value}</span> {parts.unit}
@@ -58,7 +62,7 @@ export function CardFooter(props: CardFooterProps) {
             const parts = formatMemoryParts(memory);
             return (
               <MetricPill
-                icon={<Ram iconSize="sm-regular" className="shrink-0" />}
+                icon={<IconRamOutline18 className="size-3 shrink-0" />}
                 value={
                   <>
                     <span className="font-medium">{parts.value}</span> {parts.unit}

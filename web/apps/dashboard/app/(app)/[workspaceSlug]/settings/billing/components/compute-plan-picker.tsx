@@ -4,7 +4,6 @@ import { formatDollars } from "@/lib/fmt";
 import type { DeployPlan } from "@/lib/stripe/deployPlan";
 import type { DeployPlanOption } from "@/lib/trpc/routers/stripe/getDeployPlans";
 import { cn } from "@/lib/utils";
-import { ArrowRight, ArrowUpRight, Check, CircleInfo } from "@unkey/icons";
 import {
   Button,
   Dialog,
@@ -13,6 +12,12 @@ import {
   DialogDescription,
   DialogTitle,
 } from "@unkey/ui";
+import { IconArrowUpRightOutline12 } from "nucleo-ui-outline-12";
+import {
+  IconArrowRightOutline18,
+  IconCheckOutline18,
+  IconCircleInfoOutline18,
+} from "nucleo-ui-outline-18";
 import {
   ALL_PLANS_INCLUDE,
   COMPUTE_PLANS_LINK_HREF,
@@ -167,10 +172,7 @@ function Row({
             ) : (
               <>
                 {label}
-                <ArrowRight
-                  iconSize="md-regular"
-                  className="transition-transform group-hover:translate-x-0.5"
-                />
+                <IconArrowRightOutline18 className="size-4 transition-transform group-hover:translate-x-0.5" />
               </>
             )}
           </span>
@@ -198,7 +200,7 @@ export function ComputePlanFeatures() {
       {FEATURES.map(({ Icon, title, description }) => (
         <div key={title}>
           <div className="flex items-center gap-[9px]">
-            <Icon iconSize="lg-regular" className="shrink-0 text-gray-12" />
+            <Icon className="size-4 shrink-0 text-gray-12" />
             <span className="font-medium text-[13px] text-gray-12">{title}</span>
           </div>
           <p className="mt-1 text-[12.5px] text-gray-11 leading-relaxed">{description}</p>
@@ -232,7 +234,7 @@ export function AllPlansInclude() {
       <ul className="mt-3 grid grid-cols-2 gap-x-5 gap-y-2.5">
         {ALL_PLANS_INCLUDE.map((feature) => (
           <li key={feature} className="flex items-center gap-2.5 text-[13px] text-gray-11">
-            <Check iconSize="md-regular" className="shrink-0 text-gray-10" />
+            <IconCheckOutline18 className="size-4 shrink-0 text-gray-10" />
             {feature}
           </li>
         ))}
@@ -244,7 +246,7 @@ export function AllPlansInclude() {
 export function CreditsInfoStrip() {
   return (
     <div className="flex items-start gap-2.5 rounded-[11px] border border-gray-4 bg-gray-1 px-3.5 py-3">
-      <CircleInfo iconSize="lg-regular" className="mt-px shrink-0 text-info-9" />
+      <IconCircleInfoOutline18 className="size-4 mt-px shrink-0 text-info-9" />
       <p className="text-[12.5px] text-gray-11 leading-relaxed">
         {CREDITS_INFO} {/* @dh todo - add docs */}
         <a
@@ -254,7 +256,7 @@ export function CreditsInfoStrip() {
           className="inline-flex items-center gap-0.5 whitespace-nowrap font-medium text-info-11 hover:underline"
         >
           {CREDITS_LINK_LABEL}
-          <ArrowUpRight iconSize="sm-regular" className="size-3" />
+          <IconArrowUpRightOutline12 />
         </a>
       </p>
     </div>

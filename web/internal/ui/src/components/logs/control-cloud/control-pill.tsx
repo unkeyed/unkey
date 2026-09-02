@@ -1,7 +1,7 @@
 // biome-ignore lint: React in this context is used throughout, so biome will change to types because no APIs are used even though React is needed.
 import * as React from "react";
 import { cn } from "../../../lib/utils";
-import { XMark } from "@unkey/icons";
+import { IconXmarkOutline18 } from "nucleo-ui-outline-18";
 import { TimestampInfo } from "../../timestamp-info";
 import { Button } from "../../buttons/button";
 import type { FilterValue } from "../../../validation/filter.types";
@@ -84,7 +84,7 @@ export const ControlPill = <TFilter extends FilterValue>({
             isFocused && "bg-gray-4",
           )}
         >
-          <XMark className={cn("text-gray-9", isFocused && "text-gray-11")} />
+          <IconXmarkOutline18 className={cn("text-gray-9", isFocused && "text-gray-11")} />
         </Button>
       </div>
     </div>

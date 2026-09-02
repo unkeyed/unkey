@@ -1,5 +1,8 @@
 "use client";
-import { ArrowsToAllDirections, ArrowsToCenter } from "@unkey/icons";
+import {
+  IconArrowsAllDirectionsOutline18,
+  IconArrowsToCenterOutline18,
+} from "nucleo-ui-outline-18";
 import { useCallback, useState } from "react";
 import { cn } from "../../../../lib/utils";
 import { Button } from "../../../buttons/button";
@@ -72,7 +75,7 @@ export function LoadMoreFooter({
               aria-hidden="true"
               className="inline-flex items-center justify-center [&_svg]:size-[14px] transition-all duration-200 rounded transform hover:scale-110"
             >
-              <ArrowsToAllDirections iconSize="sm-regular" />
+              <IconArrowsAllDirectionsOutline18 className="size-3" />
             </span>
           </div>
         </button>
@@ -137,7 +140,7 @@ export function LoadMoreFooter({
                   onClick={handleClose}
                   title="Minimize"
                 >
-                  <ArrowsToCenter iconSize="lg-regular" />
+                  <IconArrowsToCenterOutline18 className="size-4" />
                 </Button>
               </div>
             </div>

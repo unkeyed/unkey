@@ -3,7 +3,12 @@
 import { type MenuItem, TableActionPopover } from "@/components/logs/table-action.popover";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { routes } from "@/lib/navigation/routes";
-import { ArrowOppositeDirectionY, Clone, Gear, Layers3 } from "@unkey/icons";
+import {
+  IconArrowsOppositeDirectionYOutline18,
+  IconCloneOutline18,
+  IconGearOutline18,
+  IconLayers3Outline18,
+} from "nucleo-ui-outline-18";
 
 import { toast } from "@unkey/ui";
 import { useRouter } from "next/navigation";
@@ -21,7 +26,7 @@ export const ProjectActions = ({ projectId, children }: PropsWithChildren<Projec
     {
       id: "copy-project-id",
       label: "Copy project ID",
-      icon: <Clone iconSize="md-medium" />,
+      icon: <IconCloneOutline18 className="size-4" />,
       onClick: () => {
         navigator.clipboard
           .writeText(projectId)
@@ -38,7 +43,7 @@ export const ProjectActions = ({ projectId, children }: PropsWithChildren<Projec
     {
       id: "view-requests",
       label: "View requests",
-      icon: <ArrowOppositeDirectionY iconSize="md-medium" />,
+      icon: <IconArrowsOppositeDirectionYOutline18 className="size-4" />,
       onClick: () => {
         router.push(routes.projects.requests({ workspaceSlug: workspace.slug, projectId }));
       },
@@ -46,7 +51,7 @@ export const ProjectActions = ({ projectId, children }: PropsWithChildren<Projec
     {
       id: "view-logs",
       label: "View logs",
-      icon: <Layers3 iconSize="md-medium" />,
+      icon: <IconLayers3Outline18 className="size-4" />,
       onClick: () => {
         router.push(routes.projects.logs({ workspaceSlug: workspace.slug, projectId }));
       },
@@ -54,7 +59,7 @@ export const ProjectActions = ({ projectId, children }: PropsWithChildren<Projec
     {
       id: "project-settings",
       label: "Project settings",
-      icon: <Gear iconSize="md-medium" />,
+      icon: <IconGearOutline18 className="size-4" />,
       onClick: () => {
         router.push(routes.projects.settings({ workspaceSlug: workspace.slug, projectId }));
       },

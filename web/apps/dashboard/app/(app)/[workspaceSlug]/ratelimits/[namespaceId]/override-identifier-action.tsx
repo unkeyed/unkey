@@ -1,8 +1,8 @@
 "use client";
 
 import { NavbarActionButton } from "@/components/navigation/action-button";
-import { Plus } from "@unkey/icons";
 import dynamic from "next/dynamic";
+import { IconPlusOutline18 } from "nucleo-ui-outline-18";
 import { useState } from "react";
 
 const IdentifierDialog = dynamic(
@@ -19,7 +19,7 @@ export function OverrideIdentifierAction({ namespaceId }: { namespaceId: string 
   return (
     <>
       <NavbarActionButton title="Override Identifier" onClick={() => setOpen(true)}>
-        <Plus />
+        <IconPlusOutline18 />
         Override Identifier
       </NavbarActionButton>
       {open && (

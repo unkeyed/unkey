@@ -91,7 +91,7 @@ export function useQueries() {
 }
 
 import type { QuerySearchParams } from "@/lib/schemas/logs.filter.schema";
-import { ChartActivity2 } from "@unkey/icons";
+import { IconChartActivity2Outline18 } from "nucleo-ui-outline-18";
 import React from "react";
 import { iconsPerField } from "./utils";
 // These functions can be overridden by passing custom formatValue and filterRowIcon props to QueriesProvider
@@ -174,10 +174,9 @@ export const defaultFormatValues = (
 };
 
 export const defaultGetIcon = (field: string): React.ReactNode => {
-  const Icon = iconsPerField[field] || ChartActivity2;
+  const Icon = iconsPerField[field] || IconChartActivity2Outline18;
   return React.createElement(Icon, {
-    iconSize: "md-regular",
-    className: "justify-center",
+    className: "size-4 justify-center",
   });
 };
 

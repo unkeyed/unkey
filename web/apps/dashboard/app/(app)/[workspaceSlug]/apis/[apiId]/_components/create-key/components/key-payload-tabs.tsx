@@ -1,8 +1,8 @@
 "use client";
 
 import { trpc } from "@/lib/trpc/client";
-import { Clock, Clone, Link4 } from "@unkey/icons";
 import { CopyButton, Skeleton, Tabs, TabsContent, TabsList, TabsTrigger, toast } from "@unkey/ui";
+import { IconClockOutline12, IconCloneOutline12, IconLink4Outline12 } from "nucleo-ui-outline-12";
 import { useState } from "react";
 import { KeySecret } from "./key-secret-section";
 
@@ -48,11 +48,11 @@ export function KeyPayloadTabs({ keyValue }: KeyPayloadTabsProps) {
     >
       <TabsList className="w-full bg-grayA-3 h-10">
         <TabsTrigger value="copy-secret" className="flex-1 gap-2 hover:bg-grayA-3">
-          <Clone iconSize="sm-regular" />
+          <IconCloneOutline12 />
           Key secret
         </TabsTrigger>
         <TabsTrigger value="secure-link" className="flex-1 gap-2 hover:bg-grayA-3">
-          <Link4 iconSize="sm-regular" />
+          <IconLink4Outline12 />
           Secure link
         </TabsTrigger>
       </TabsList>
@@ -81,7 +81,7 @@ export function KeyPayloadTabs({ keyValue }: KeyPayloadTabsProps) {
             <>
               <div className="w-full px-4 py-2 bg-white dark:bg-black border rounded-xl border-grayA-5">
                 <div className="flex items-center justify-between w-full gap-3">
-                  <Link4 iconSize="sm-regular" className="text-gray-12 shrink-0" />
+                  <IconLink4Outline12 className="text-gray-12 shrink-0" />
                   <p className="flex-1 min-w-0 truncate font-mono text-[13px] text-grayA-12">
                     {link}
                   </p>
@@ -91,7 +91,7 @@ export function KeyPayloadTabs({ keyValue }: KeyPayloadTabsProps) {
                 </div>
               </div>
               <div className="text-gray-9 text-[13px] flex items-center gap-1.5 self-center">
-                <Clock className="text-primary" iconSize="sm-regular" />
+                <IconClockOutline12 className="text-primary" />
                 <span>
                   Expires after 72hrs.
                   <button

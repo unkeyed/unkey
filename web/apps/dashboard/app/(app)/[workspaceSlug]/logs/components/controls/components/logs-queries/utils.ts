@@ -1,7 +1,7 @@
 import { iconsPerField } from "@/components/logs/queries/utils";
 import type { QuerySearchParams } from "@/lib/schemas/logs.filter.schema";
-import { ChartActivity2 } from "@unkey/icons";
 import { format } from "date-fns";
+import { IconChartActivity2Outline18 } from "nucleo-ui-outline-18";
 import React, { type JSX } from "react";
 
 export function formatFilterValues(
@@ -89,10 +89,9 @@ export function formatFilterValues(
 }
 
 export function getFilterFieldIcon(field: string): JSX.Element {
-  const Icon = iconsPerField[field] || ChartActivity2;
+  const Icon = iconsPerField[field] || IconChartActivity2Outline18;
   return React.createElement(Icon, {
-    iconSize: "md-regular",
-    className: "justify-center",
+    className: "size-4 justify-center",
   });
 }
 

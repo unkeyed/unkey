@@ -19,9 +19,14 @@ import { cn } from "@/lib/utils";
 import { formatLatency } from "@/lib/utils/metric-formatters";
 import { eq, useLiveQuery } from "@tanstack/react-db";
 import type { RequestLogsResponse } from "@unkey/clickhouse/src/frontline";
-import { CodeBranch, CodeCommit, Layers2, User } from "@unkey/icons";
 import { match } from "@unkey/match";
 import { Badge, CopyButton } from "@unkey/ui";
+import { IconUserOutline12 } from "nucleo-ui-outline-12";
+import {
+  IconCodeBranchOutline18,
+  IconCodeCommitOutline18,
+  IconLayers2Outline18,
+} from "nucleo-ui-outline-18";
 import type React from "react";
 
 type Props = {
@@ -289,7 +294,7 @@ const formatDeploymentInfo = (
             <div className="flex items-center justify-between">
               <span className="text-gray-11">Branch:</span>
               <div className="flex items-center gap-1.5">
-                <CodeBranch iconSize="sm-regular" className="text-grayA-10 shrink-0" />
+                <IconCodeBranchOutline18 className="text-grayA-10 shrink-0" />
                 {branchUrl ? (
                   <DottedLink href={branchUrl} copyValue={deployment.gitBranch} external>
                     <span className="font-mono truncate max-w-50">{deployment.gitBranch}</span>
@@ -305,7 +310,7 @@ const formatDeploymentInfo = (
             <div className="flex items-center justify-between">
               <span className="text-gray-11">Commit:</span>
               <div className="flex items-center gap-1.5">
-                <CodeCommit iconSize="sm-regular" className="text-grayA-10 shrink-0" />
+                <IconCodeCommitOutline18 className="text-grayA-10 shrink-0" />
                 {commitUrl ? (
                   <DottedLink href={commitUrl} copyValue={deployment.gitCommitSha} external>
                     <span className="font-mono">{shortSha}</span>
@@ -328,7 +333,7 @@ const formatDeploymentInfo = (
                     className="w-4 h-4 rounded-full shrink-0"
                   />
                 ) : (
-                  <User iconSize="sm-regular" className="text-grayA-10 shrink-0" />
+                  <IconUserOutline12 className="text-grayA-10 shrink-0" />
                 )}
                 <span className="truncate max-w-[200px]">{deployment.gitCommitAuthorHandle}</span>
               </div>
@@ -354,7 +359,7 @@ const formatDeploymentInfo = (
         <div className="flex items-center justify-between gap-4">
           <span className="text-gray-11 shrink-0">Requested Image:</span>
           <div className="flex items-center gap-1.5 min-w-0">
-            <Layers2 iconSize="sm-regular" className="text-grayA-10 shrink-0" />
+            <IconLayers2Outline18 className="text-grayA-10 shrink-0" />
             <span className="font-mono truncate max-w-[250px]">
               {deployment.requestedImage ?? deployment.resolvedImage ?? "Unknown"}
             </span>
@@ -374,7 +379,7 @@ const formatDeploymentInfo = (
       <div className="flex items-center justify-between">
         <span className="text-gray-11">Source:</span>
         <div className="flex items-center gap-1.5 text-grayA-10">
-          <Layers2 iconSize="sm-regular" className="shrink-0" />
+          <IconLayers2Outline18 className="shrink-0" />
           <span>Unknown</span>
         </div>
       </div>
@@ -446,7 +451,7 @@ const formatMetaInfo = (log: RequestLogsResponse): React.ReactNode => {
         </div>
       </div>
       <div className="flex items-center justify-between">
-        <span className="text-gray-11">User Agent:</span>
+        <span className="text-gray-11">IconUserOutline12 Agent:</span>
         <span className="font-mono truncate max-w-[250px]" title={log.user_agent}>
           {log.user_agent}
         </span>

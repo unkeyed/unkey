@@ -1,7 +1,6 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { CircleInfo } from "@unkey/icons";
 import { P, match } from "@unkey/match";
 import {
   Badge,
@@ -16,6 +15,7 @@ import {
   MeterValue,
   Skeleton,
 } from "@unkey/ui";
+import { IconCircleInfoOutline12 } from "nucleo-ui-outline-12";
 import type { ReactNode } from "react";
 import type { LimitRow } from "./limit-groups";
 
@@ -27,7 +27,7 @@ export function LimitItem({ row }: { row: LimitRow }) {
           <ItemTitle>{row.name}</ItemTitle>
           {row.description ? (
             <InfoTooltip content={row.description} position={{ side: "right" }}>
-              <CircleInfo iconSize="sm-regular" className="shrink-0 text-gray-9" />
+              <IconCircleInfoOutline12 className="shrink-0 text-gray-9" />
             </InfoTooltip>
           ) : null}
           {row.status === "ok" ? null : (

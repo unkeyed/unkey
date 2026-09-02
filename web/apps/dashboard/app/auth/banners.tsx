@@ -1,4 +1,4 @@
-import { TriangleWarning } from "@unkey/icons";
+import { IconTriangleWarningOutline18 } from "nucleo-ui-outline-18";
 import type React from "react";
 import type { PropsWithChildren } from "react";
 
@@ -10,7 +10,7 @@ export const ErrorBanner: React.FC<PropsWithChildren> = ({ children }) => (
 
 export const WarnBanner: React.FC<PropsWithChildren> = ({ children }) => (
   <div className="border border-[#FFD55D]/15 text-[#FFD55D] p-4 rounded-lg bg-[#FFD55D]/15 flex items-center gap-4 text-sm">
-    <TriangleWarning className="w-4 h-4" />
+    <IconTriangleWarningOutline18 className="w-4 h-4" />
 
     {children}
   </div>

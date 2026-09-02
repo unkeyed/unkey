@@ -1,5 +1,10 @@
 "use client";
-import { ChevronLeft, ChevronRight, Maximize, Minimize } from "@unkey/icons";
+import {
+  IconChevronLeftOutline18,
+  IconChevronRightOutline18,
+  IconMaximizeWindowOutline18,
+  IconMinimizeWindowOutline18,
+} from "nucleo-ui-outline-18";
 import { memo, useMemo, useState } from "react";
 import { cn } from "../../../../lib/utils";
 import { Button } from "../../../buttons/button";
@@ -63,7 +68,7 @@ export const PaginationFooter = memo(function PaginationFooter({
                 </span>
               </>
             )}
-            <Maximize iconSize="lg-thin" />
+            <IconMaximizeWindowOutline18 className="size-4" />
           </div>
         </button>
       </div>
@@ -111,7 +116,7 @@ export const PaginationFooter = memo(function PaginationFooter({
                     aria-label="Go to previous page"
                     className="border-none text-grayA-9 hover:text-grayA-11 disabled:pointer-events-none disabled:opacity-80 focus:ring-0"
                   >
-                    <ChevronLeft iconSize="sm-regular" />
+                    <IconChevronLeftOutline18 />
                   </Button>
                 )}
                 {/* Page number segmented group */}
@@ -170,7 +175,7 @@ export const PaginationFooter = memo(function PaginationFooter({
                     aria-label="Go to next page"
                     className="border-none text-grayA-9 hover:text-grayA-11 disabled:pointer-events-none disabled:opacity-80 focus:ring-0 mr-2"
                   >
-                    <ChevronRight iconSize="sm-regular" />
+                    <IconChevronRightOutline18 />
                   </Button>
                 )}
               </nav>
@@ -187,7 +192,7 @@ export const PaginationFooter = memo(function PaginationFooter({
                   aria-label="Minimize"
                   title="Minimize"
                 >
-                  <Minimize />
+                  <IconMinimizeWindowOutline18 />
                 </Button>
               </div>
             </div>

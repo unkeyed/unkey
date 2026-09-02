@@ -1,4 +1,4 @@
-import { CircleLock } from "@unkey/icons";
+import { IconCircleLockOutline18 } from "nucleo-ui-outline-18";
 import { cn } from "../../../../lib/utils";
 import { toast } from "../../../toaster";
 
@@ -36,7 +36,7 @@ export const HiddenValueCell = ({ value, title = "Value", selected }: HiddenValu
         onClick={(e) => handleClick(e)}
       >
         <div>
-          <CircleLock iconSize="sm-regular" className="text-gray-9" />
+          <IconCircleLockOutline18 className="size-3 text-gray-9" />
         </div>
         <div>{displayValue}</div>
       </div>

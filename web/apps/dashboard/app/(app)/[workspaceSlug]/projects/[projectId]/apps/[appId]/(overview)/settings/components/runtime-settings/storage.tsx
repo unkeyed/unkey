@@ -1,7 +1,7 @@
 "use client";
 
 import { formatStorageParts } from "@/lib/utils/deployment-formatters";
-import { Database } from "@unkey/icons";
+import { IconDatabaseOutline18 } from "nucleo-ui-outline-18";
 import { ResourceSliderSetting, defineResourceSlider } from "../shared/resource-slider";
 
 // Storage tiers on the slider. resolveStrategy bounds these to the workspace
@@ -18,7 +18,7 @@ const STORAGE_OPTIONS = [
 ] as const;
 
 const storageConfig = defineResourceSlider({
-  icon: <Database className="text-gray-12" iconSize="xl-medium" />,
+  icon: <IconDatabaseOutline18 className="text-gray-12" />,
   title: "Storage",
   description: "Ephemeral disk space per instance",
   settingDescription:

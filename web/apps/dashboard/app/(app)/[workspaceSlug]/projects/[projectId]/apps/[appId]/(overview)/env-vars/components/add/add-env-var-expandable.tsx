@@ -9,7 +9,6 @@ import {
 } from "@/lib/collections/deploy/env-vars";
 import { getErrorMessage } from "@/lib/unkey-client";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ChevronDown, CircleInfo, CloudUp, Plus } from "@unkey/icons";
 import {
   Button,
   InfoTooltip,
@@ -27,6 +26,12 @@ import {
   toast,
 } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
+import {
+  IconChevronDownOutline18,
+  IconCircleInfoOutline18,
+  IconCloudUploadOutline18,
+  IconPlusOutline18,
+} from "nucleo-ui-outline-18";
 import { type ChangeEvent, useCallback, useEffect, useRef } from "react";
 import { Controller, useFieldArray } from "react-hook-form";
 import { useDropZone } from "../../hooks/use-drop-zone";
@@ -262,7 +267,7 @@ export const AddEnvVarExpandable = ({
               )}
             >
               <div className="size-12 rounded-xl bg-successA-3 flex items-center justify-center">
-                <CloudUp className="text-success-11" />
+                <IconCloudUploadOutline18 className="text-success-11" />
               </div>
               <div className="flex flex-col items-center gap-1">
                 <span className="text-sm font-medium text-success-11">Drop your .env file</span>
@@ -299,7 +304,7 @@ export const AddEnvVarExpandable = ({
                 className="font-medium"
                 onClick={() => append(createEmptyEntry())}
               >
-                <Plus iconSize="sm-regular" />
+                <IconPlusOutline18 />
                 Add Another
               </Button>
             </div>
@@ -326,9 +331,7 @@ export const AddEnvVarExpandable = ({
                       <SelectTrigger
                         id="environment-select"
                         className="capitalize"
-                        rightIcon={
-                          <ChevronDown className="absolute right-2" iconSize="md-medium" />
-                        }
+                        rightIcon={<IconChevronDownOutline18 className="size-4 absolute right-2" />}
                       >
                         <SelectValue placeholder="Select environment" />
                       </SelectTrigger>
@@ -364,7 +367,7 @@ export const AddEnvVarExpandable = ({
                   asChild
                 >
                   <span className="text-grayA-9">
-                    <CircleInfo iconSize="md-regular" />
+                    <IconCircleInfoOutline18 className="size-4" />
                   </span>
                 </InfoTooltip>
               </div>
@@ -386,7 +389,7 @@ export const AddEnvVarExpandable = ({
                 size="sm"
                 onClick={() => fileInputRef.current?.click()}
               >
-                <CloudUp iconSize="sm-regular" />
+                <IconCloudUploadOutline18 className="size-3" />
                 Import <span className="font-medium">.env</span>
               </Button>
               <span className="text-[13px] text-gray-11">

@@ -4,7 +4,7 @@ import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { collection } from "@/lib/collections";
 import { routes } from "@/lib/navigation/routes";
 import { useLiveQuery } from "@tanstack/react-db";
-import { Gauge, Plus } from "@unkey/icons";
+import { IconGaugeOutline18, IconPlusOutline18 } from "nucleo-ui-outline-18";
 import { Crumb } from "./crumb";
 import type { CrumbPopoverItem } from "./crumb-popover";
 
@@ -28,7 +28,7 @@ export function NamespaceCrumb({ namespaceId }: { namespaceId: string }) {
 
   return (
     <Crumb
-      icon={<Gauge className="size-3.5 text-accent-11" iconSize="sm-regular" />}
+      icon={<IconGaugeOutline18 className="size-3.5 text-accent-11" />}
       label={current?.name ?? namespaceId}
       loading={loading}
       href={routes.ratelimits.detail({ workspaceSlug: workspace.slug, namespaceId })}
@@ -37,7 +37,7 @@ export function NamespaceCrumb({ namespaceId }: { namespaceId: string }) {
       searchPlaceholder="Find namespace..."
       emptyText="No namespaces found"
       footer={{
-        icon: Plus,
+        icon: IconPlusOutline18,
         label: "All namespaces",
         href: routes.ratelimits.list({ workspaceSlug: workspace.slug }),
       }}

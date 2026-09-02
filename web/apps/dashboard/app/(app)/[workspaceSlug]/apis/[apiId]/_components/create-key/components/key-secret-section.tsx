@@ -1,7 +1,7 @@
 "use client";
 
 import { SecretKey } from "@/components/secret-key";
-import { CircleInfo } from "@unkey/icons";
+import { IconCircleInfoOutline12 } from "nucleo-ui-outline-12";
 
 type KeySecretProps = {
   keyValue: string;
@@ -13,7 +13,7 @@ export const KeySecret = ({ keyValue, title = "API Key" }: KeySecretProps) => {
     <div className="flex flex-col gap-2 items-start w-full">
       <SecretKey value={keyValue} title={title} />
       <div className="text-gray-9 text-[13px] flex items-center gap-1.5 self-center">
-        <CircleInfo className="text-accent-9" iconSize="sm-regular" />
+        <IconCircleInfoOutline12 className="text-accent-9" />
         <span>
           Copy and save this key secret as it won't be shown again.{" "}
           <a

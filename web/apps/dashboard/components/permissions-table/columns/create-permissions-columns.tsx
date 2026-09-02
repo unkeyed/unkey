@@ -1,5 +1,4 @@
 import type { Permission } from "@/lib/trpc/routers/authorization/permissions/query";
-import { Key2, Page2, Tag } from "@unkey/icons";
 import type { DataTableColumnDef } from "@unkey/ui";
 import {
   AssignedCountCell,
@@ -9,6 +8,7 @@ import {
   SortableHeader,
 } from "@unkey/ui";
 import dynamic from "next/dynamic";
+import { IconKey2Outline18, IconPage2Outline18, IconTagOutline18 } from "nucleo-ui-outline-18";
 import { SlugCell } from "../components/slug-cell";
 
 const PermissionsTableActions = dynamic(
@@ -74,7 +74,7 @@ export const createPermissionsColumns = ({
         <SelectableNameCell
           name={permission.name}
           description={permission.description}
-          icon={<Page2 iconSize="sm-regular" className="text-gray-12 cursor-pointer" />}
+          icon={<IconPage2Outline18 className="text-gray-12 cursor-pointer" />}
           isSelected={selectedPermissions.has(permission.permissionId)}
           isHovered={hoveredPermissionName === permission.name}
           onMouseEnter={() => onHoverPermission(permission.name)}
@@ -126,7 +126,7 @@ export const createPermissionsColumns = ({
       return (
         <AssignedCountCell
           count={permission.totalConnectedRoles}
-          icon={<Tag iconSize="md-medium" className="opacity-50" />}
+          icon={<IconTagOutline18 className="size-4 opacity-50" />}
           singularLabel="Role"
           isSelected={permission.permissionId === selectedPermissionId}
         />
@@ -154,7 +154,7 @@ export const createPermissionsColumns = ({
       return (
         <AssignedCountCell
           count={permission.totalConnectedKeys}
-          icon={<Key2 iconSize="md-medium" className="opacity-50" />}
+          icon={<IconKey2Outline18 className="size-4 opacity-50" />}
           singularLabel="Key"
           isSelected={permission.permissionId === selectedPermissionId}
         />

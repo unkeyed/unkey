@@ -1,8 +1,8 @@
 "use client";
 
 import { useFeedback } from "@/components/dashboard/feedback-component";
-import { Chats } from "@unkey/icons";
 import { Button } from "@unkey/ui";
+import { IconChatsOutline18 } from "nucleo-ui-outline-18";
 
 export function TopNavFeedbackButton({ className }: { className?: string }) {
   const { openFeedback } = useFeedback();
@@ -13,7 +13,7 @@ export function TopNavFeedbackButton({ className }: { className?: string }) {
       onClick={() => openFeedback(true, "feedback")}
       className={className}
     >
-      <Chats className="size-4" />
+      <IconChatsOutline18 className="size-4" />
       Feedback
     </Button>
   );

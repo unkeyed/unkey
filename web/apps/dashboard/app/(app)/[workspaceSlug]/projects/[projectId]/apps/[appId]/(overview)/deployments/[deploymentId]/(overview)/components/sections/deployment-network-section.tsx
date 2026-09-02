@@ -6,7 +6,13 @@ import {
   formatTooltipPercent,
 } from "@/lib/utils/deployment-formatters";
 import type { PERCENTILE_VALUES } from "@unkey/clickhouse/src/frontline";
-import { ChartActivity, Layers2, Microchip, Ram, TimeClock } from "@unkey/icons";
+import {
+  IconChartActivityOutline18,
+  IconClockOutline18,
+  IconLayers2Outline18,
+  IconMicrochipOutline18,
+  IconRamOutline18,
+} from "nucleo-ui-outline-18";
 import { useMemo, useState } from "react";
 import { Section, SectionHeader } from "../../../../../../components/section";
 import { Card } from "../../../../../components/card";
@@ -61,7 +67,7 @@ export function DeploymentNetworkSection() {
   return (
     <Section>
       <SectionHeader
-        icon={<Layers2 iconSize="md-regular" className="text-gray-9" />}
+        icon={<IconLayers2Outline18 className="size-4 text-gray-9" />}
         title="Network"
       />
       <div className="flex gap-2 flex-col">
@@ -70,7 +76,7 @@ export function DeploymentNetworkSection() {
         </Card>
         <div className="flex gap-2">
           <MetricCard
-            icon={ChartActivity}
+            icon={IconChartActivityOutline18}
             metricType="rps"
             currentValue={currentRps}
             chartData={{
@@ -85,7 +91,7 @@ export function DeploymentNetworkSection() {
             formatTooltipValue={(v) => ({ value: v.toFixed(1), unit: "req/s" })}
           />
           <MetricCard
-            icon={TimeClock}
+            icon={IconClockOutline18}
             metricType="latency"
             currentValue={currentLatency}
             percentile={latencyPercentile}
@@ -106,7 +112,7 @@ export function DeploymentNetworkSection() {
             }}
           />
           <MetricCard
-            icon={Microchip}
+            icon={IconMicrochipOutline18}
             metricType="cpu"
             currentValue={cpuPercent}
             chartData={{
@@ -128,7 +134,7 @@ export function DeploymentNetworkSection() {
             }}
           />
           <MetricCard
-            icon={Ram}
+            icon={IconRamOutline18}
             metricType="memory"
             currentValue={memoryPercent}
             secondaryValue={{

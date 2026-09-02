@@ -3,8 +3,8 @@ import type {
   RatelimitOverviewFilterValue,
 } from "@/app/(app)/[workspaceSlug]/ratelimits/[namespaceId]/_overview/filters.schema";
 import { useFilters } from "@/app/(app)/[workspaceSlug]/ratelimits/[namespaceId]/_overview/hooks/use-filters";
-import { BarsFilter } from "@unkey/icons";
 import { InfoTooltip } from "@unkey/ui";
+import { IconBarsFilterOutline18 } from "nucleo-ui-outline-18";
 
 type FilterPair = {
   status?: "blocked" | "passed";
@@ -55,10 +55,7 @@ export const InlineFilter = ({
         }}
         type="button"
       >
-        <BarsFilter
-          className="text-gray-12 invisible group-hover/identifier:visible"
-          iconSize="md-medium"
-        />
+        <IconBarsFilterOutline18 className="size-4 text-gray-12 invisible group-hover/identifier:visible" />
       </button>
     </InfoTooltip>
   );

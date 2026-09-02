@@ -1,5 +1,5 @@
-import { ChevronLeft, ChevronRight } from "@unkey/icons";
 import { format } from "date-fns";
+import { IconChevronLeftOutline12, IconChevronRightOutline12 } from "nucleo-ui-outline-12";
 // biome-ignore lint/correctness/noUnusedImports: Biome is not happy
 import React, { useRef } from "react";
 import { type DateRange, DayPicker, type Matcher, useDayPicker } from "react-day-picker";
@@ -18,7 +18,7 @@ function CustomMonthCaptionComponent({ calendarMonth }: { calendarMonth: { date:
         disabled={!previousMonth}
         onClick={() => previousMonth && goToMonth(previousMonth)}
       >
-        <ChevronLeft className="text-gray-12 size-3" />
+        <IconChevronLeftOutline12 className="text-gray-12" />
       </button>
       <div className="flex w-full text-gray-12 justify-center items-center font-medium calendar-header">
         {format(displayMonth, "MMMM yyy")}
@@ -29,7 +29,7 @@ function CustomMonthCaptionComponent({ calendarMonth }: { calendarMonth: { date:
         disabled={!nextMonth}
         onClick={() => nextMonth && goToMonth(nextMonth)}
       >
-        <ChevronRight className="text-gray-12 size-3" />
+        <IconChevronRightOutline12 className="text-gray-12" />
       </button>
     </div>
   );

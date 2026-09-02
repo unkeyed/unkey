@@ -4,8 +4,12 @@ import { DeleteDialog } from "@/app/(app)/[workspaceSlug]/ratelimits/[namespaceI
 import { IdentifierDialog } from "@/app/(app)/[workspaceSlug]/ratelimits/[namespaceId]/_components/identifier-dialog";
 import type { OverrideDetails } from "@/app/(app)/[workspaceSlug]/ratelimits/[namespaceId]/types";
 import { type MenuItem, TableActionPopover } from "@/components/logs/table-action.popover";
-import { Clone, PenWriting3, Trash } from "@unkey/icons";
 import { Loading, toast } from "@unkey/ui";
+import {
+  IconCloneOutline18,
+  IconPenWriting3Outline18,
+  IconTrashOutline18,
+} from "nucleo-ui-outline-18";
 import { Suspense } from "react";
 
 export const OverridesTableAction = ({
@@ -22,7 +26,7 @@ export const OverridesTableAction = ({
       {
         id: "copy",
         label: "Copy identifier",
-        icon: <Clone iconSize="md-medium" />,
+        icon: <IconCloneOutline18 className="size-4" />,
         onClick: (e) => {
           e.stopPropagation();
           navigator.clipboard
@@ -41,7 +45,7 @@ export const OverridesTableAction = ({
       {
         id: "override",
         label: "Override Identifier",
-        icon: <PenWriting3 iconSize="md-medium" className="text-orange-11" />,
+        icon: <IconPenWriting3Outline18 className="size-4 text-orange-11" />,
         className: "text-orange-11 hover:bg-orange-2 focus:bg-orange-3",
         ActionComponent: (props) => (
           <IdentifierDialog
@@ -57,7 +61,7 @@ export const OverridesTableAction = ({
       {
         id: "delete",
         label: "Delete Override",
-        icon: <Trash iconSize="md-medium" className="text-error-11" />,
+        icon: <IconTrashOutline18 className="size-4 text-error-11" />,
         className: "text-error-11 hover:bg-error-3 focus:bg-error-3",
         ActionComponent: (props) =>
           overrideDetails?.overrideId ? (

@@ -1,7 +1,7 @@
 "use client";
 import { trpc } from "@/lib/trpc/client";
-import { Layers3, XMark } from "@unkey/icons";
 import { Button } from "@unkey/ui";
+import { IconLayers3Outline18, IconXmarkOutline18 } from "nucleo-ui-outline-18";
 import { useState } from "react";
 import type { DeploymentNode, HealthStatus } from "../nodes/types";
 
@@ -113,7 +113,7 @@ export function InternalDevTreeGenerator({ onGenerate, onReset }: DevTreeGenerat
         className="pointer-events-auto fixed bottom-4 right-4 rounded-full shadow-lg transition-colors"
         title="Tree Generator"
       >
-        <Layers3 iconSize="sm-medium" />
+        <IconLayers3Outline18 className="size-3" />
       </Button>
     );
   }
@@ -122,11 +122,11 @@ export function InternalDevTreeGenerator({ onGenerate, onReset }: DevTreeGenerat
     <div className="pointer-events-auto fixed bottom-4 right-4 z-50 w-80 bg-gray-1 border border-grayA-6 rounded-lg shadow-xl">
       <div className="flex items-center justify-between p-3 border-b border-grayA-4">
         <div className="flex items-center gap-2">
-          <Layers3 iconSize="sm-medium" className="text-accent-9" />
+          <IconLayers3Outline18 className="size-3 text-accent-9" />
           <span className="font-medium text-sm">Tree Generator</span>
         </div>
         <Button onClick={() => setIsOpen(false)}>
-          <XMark iconSize="sm-medium" />
+          <IconXmarkOutline18 />
         </Button>
       </div>
       <div className="flex flex-col gap-3 max-h-150 overflow-y-auto p-3">

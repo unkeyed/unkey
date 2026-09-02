@@ -1,5 +1,5 @@
 "use client";
-import { TaskChecked, TaskUnchecked } from "@unkey/icons";
+import { IconClipboardCheckOutline18, IconClipboardOutline18 } from "nucleo-ui-outline-18";
 import * as React from "react";
 import { cn } from "../../lib/utils";
 import { toast } from "../toaster";
@@ -79,7 +79,7 @@ export function CopyButton({
       aria-label="Copy to clipboard"
     >
       <span className="sr-only">Copy</span>
-      {copied ? <TaskChecked /> : <TaskUnchecked />}
+      {copied ? <IconClipboardCheckOutline18 /> : <IconClipboardOutline18 />}
     </Button>
   );
 }

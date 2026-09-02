@@ -2,8 +2,12 @@
 
 import { type MenuItem, TableActionPopover } from "@/components/logs/table-action.popover";
 import { collection } from "@/lib/collections";
-import { Dots, PenWriting3, Trash } from "@unkey/icons";
 import { Button, ConfirmPopover } from "@unkey/ui";
+import {
+  IconDotsOutline18,
+  IconPenWriting3Outline18,
+  IconTrashOutline18,
+} from "nucleo-ui-outline-18";
 import { useRef, useState } from "react";
 import { EnvVarGroupRenameDialog } from "./env-var-group-rename-dialog";
 import type { EnvVarItem } from "./env-var-item-row";
@@ -23,7 +27,7 @@ export function EnvVarGroupActionMenu({ groupKey, items }: EnvVarGroupActionMenu
     {
       id: "rename",
       label: "Rename in all environments",
-      icon: <PenWriting3 iconSize="md-regular" />,
+      icon: <IconPenWriting3Outline18 className="size-4" />,
       ActionComponent: (props) => (
         <EnvVarGroupRenameDialog {...props} groupKey={groupKey} items={items} />
       ),
@@ -31,7 +35,7 @@ export function EnvVarGroupActionMenu({ groupKey, items }: EnvVarGroupActionMenu
     {
       id: "delete",
       label: "Delete from all environments",
-      icon: <Trash iconSize="md-regular" />,
+      icon: <IconTrashOutline18 className="size-4" />,
       onClick: (e) => {
         e.stopPropagation();
         setIsDeleteConfirmOpen(true);
@@ -48,7 +52,7 @@ export function EnvVarGroupActionMenu({ groupKey, items }: EnvVarGroupActionMenu
           className="size-5 [&_svg]:size-3 rounded-sm border-transparent group-hover:border-grayA-6"
           onClick={(e) => e.stopPropagation()}
         >
-          <Dots className="group-hover:text-gray-12 text-gray-11" iconSize="sm-regular" />
+          <IconDotsOutline18 className="group-hover:text-gray-12 text-gray-11" />
         </Button>
       </TableActionPopover>
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { formatCpuParts } from "@/lib/utils/deployment-formatters";
-import { Microchip } from "@unkey/icons";
+import { IconMicrochipOutline18 } from "nucleo-ui-outline-18";
 import { ResourceSliderSetting, defineResourceSlider } from "../shared/resource-slider";
 
 // CPU tiers on the slider. resolveStrategy bounds these to the workspace limit
@@ -17,7 +17,7 @@ const CPU_OPTIONS = [
 ] as const;
 
 const cpuConfig = defineResourceSlider({
-  icon: <Microchip className="text-gray-12" iconSize="xl-medium" />,
+  icon: <IconMicrochipOutline18 className="text-gray-12" />,
   title: "Max CPU",
   description: "Maximum CPU limit per instance. You are only charged for actual usage.",
   settingDescription:

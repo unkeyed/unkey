@@ -1,6 +1,6 @@
 import { trpc } from "@/lib/trpc/client";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { Check, Clock, Github, Magnifier, XMark } from "@unkey/icons";
+import { Github } from "@unkey/icons";
 import {
   Button,
   Combobox,
@@ -10,6 +10,12 @@ import {
   toast,
   useStepWizard,
 } from "@unkey/ui";
+import {
+  IconCheckOutline12,
+  IconMagnifierOutline12,
+  IconXmarkOutline12,
+} from "nucleo-ui-outline-12";
+import { IconClockOutline18 } from "nucleo-ui-outline-18";
 import { useMemo, useRef, useState } from "react";
 import { OnboardingLinks } from "../../onboarding-links";
 import { OnboardingStepHint, OnboardingStepHintHighlight } from "../../onboarding-step-hint";
@@ -149,7 +155,7 @@ export const SelectRepo = ({
     >
       {!isBannerDismissed && (
         <div className="absolute top-2 left-2 right-2 z-50 rounded-[10px] p-3 gap-2.5 flex items-center shadow-[inset_0_0_0_0.75px_rgba(0,0,0,0.10)] bg-linear-to-r from-successA-4 via-successA-1 to-success-1">
-          <Check iconSize="sm-regular" className="text-successA-12" />
+          <IconCheckOutline12 className="text-successA-12" />
           <div className="flex items-center gap-1">
             <span className="font-medium text-[13px] text-success-12">
               GitHub connected successfully.
@@ -159,7 +165,7 @@ export const SelectRepo = ({
             </span>
           </div>
           <button type="button" onClick={() => setIsBannerDismissed(true)} className="ml-auto">
-            <XMark iconSize="sm-regular" />
+            <IconXmarkOutline12 />
           </button>
         </div>
       )}
@@ -196,7 +202,7 @@ export const SelectRepo = ({
             />
             <InputGroup className="flex-1 min-w-0 bg-transparent h-9 border-grayA-4">
               <InputGroupAddon>
-                <Magnifier iconSize="sm-regular" className="text-gray-12 shrink-0 size-3" />
+                <IconMagnifierOutline12 className="text-gray-12 shrink-0" />
               </InputGroupAddon>
               <InputGroupInput
                 value={searchQuery}
@@ -254,7 +260,7 @@ export const SelectRepo = ({
       {onSkip && (
         <div className="mt-3 border border-grayA-5 rounded-lg flex justify-start items-center gap-4 py-[18px] px-4 min-w-[var(--repo-list-w)]">
           <div className="size-8 rounded-[10px] grid place-items-center ring-1 ring-grayA-4 shadow-sm shadow-grayA-8/20 dark:shadow-none">
-            <Clock className="size-[18px] text-gray-12" iconSize="md-medium" />
+            <IconClockOutline18 className="text-gray-12" />
           </div>
           <div className="flex flex-col gap-3">
             <span className="font-medium text-gray-12 text-[13px] leading-[9px]">

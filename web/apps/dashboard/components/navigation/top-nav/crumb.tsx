@@ -1,8 +1,8 @@
 "use client";
 
-import { ChevronExpandY } from "@unkey/icons";
 import type { Route } from "next";
 import Link from "next/link";
+import { IconChevronExpandYOutline12 } from "nucleo-ui-outline-12";
 import type { ReactNode } from "react";
 import { CrumbPopover, type CrumbPopoverFooter, type CrumbPopoverItem } from "./crumb-popover";
 
@@ -55,7 +55,7 @@ export function Crumb({
           className="hidden size-6 shrink-0 items-center justify-center rounded-md text-gray-11 hover:bg-grayA-3 hover:text-accent-12 md:flex"
           aria-label={`Switch ${label}`}
         >
-          <ChevronExpandY className="size-3" iconSize="sm-regular" />
+          <IconChevronExpandYOutline12 />
         </button>
       </CrumbPopover>
     </div>

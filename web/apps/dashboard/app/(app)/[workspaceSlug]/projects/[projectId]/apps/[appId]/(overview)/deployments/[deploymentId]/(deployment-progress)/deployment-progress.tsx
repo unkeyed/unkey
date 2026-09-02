@@ -4,10 +4,17 @@ import { routes } from "@/lib/navigation/routes";
 import { trpc } from "@/lib/trpc/client";
 import type { Router } from "@/lib/trpc/routers";
 import type { inferRouterOutputs } from "@trpc/server";
-import { CloudUp, Earth, Hammer2, LayerFront, Pulse, Sparkle3 } from "@unkey/icons";
 import { P, match } from "@unkey/match";
 import { SettingCardGroup } from "@unkey/ui";
 import { useParams, usePathname, useRouter } from "next/navigation";
+import {
+  IconChartActivityOutline18,
+  IconCloudUploadOutline18,
+  IconEarthOutline18,
+  IconHammer2Outline18,
+  IconLayerFrontOutline18,
+  IconSparkle3Outline18,
+} from "nucleo-ui-outline-18";
 import { useEffect, useRef, useState } from "react";
 import { DeploymentDomainsCard } from "../../../../components/deployment-domains-card";
 import { useProjectData } from "../../../data-provider";
@@ -170,18 +177,18 @@ export function DeploymentProgress({ stepsData }: { stepsData?: StepsData }) {
     <div className="flex flex-col gap-5">
       <SettingCardGroup>
         <DeploymentStep
-          icon={<LayerFront iconSize="sm-medium" className="size-[18px]" />}
+          icon={<IconLayerFrontOutline18 />}
           title="Deployment Queued"
           {...queuedStep}
         />
         <DeploymentStep
-          icon={<Pulse iconSize="sm-medium" className="size-[18px]" />}
+          icon={<IconChartActivityOutline18 />}
           title="Deployment Starting"
           {...startingStep}
         />
         <DeploymentStep
           key={isPrebuilt ? "prebuilt" : "building"}
-          icon={<Hammer2 iconSize="sm-medium" className="size-[18px]" />}
+          icon={<IconHammer2Outline18 />}
           title="Building Image"
           truncateDescription={!building?.error}
           description={match(building)
@@ -231,7 +238,7 @@ export function DeploymentProgress({ stepsData }: { stepsData?: StepsData }) {
         />
         <DeploymentStep
           key={deploying ? "deploying-active" : "deploying-pending"}
-          icon={<CloudUp iconSize="sm-medium" className="size-[18px]" />}
+          icon={<IconCloudUploadOutline18 />}
           title="Deploying Containers"
           {...deployingStep}
           expandable={
@@ -245,13 +252,9 @@ export function DeploymentProgress({ stepsData }: { stepsData?: StepsData }) {
             ) : null
           }
         />
+        <DeploymentStep icon={<IconEarthOutline18 />} title="Assigning Domains" {...networkStep} />
         <DeploymentStep
-          icon={<Earth iconSize="sm-medium" className="size-[18px]" />}
-          title="Assigning Domains"
-          {...networkStep}
-        />
-        <DeploymentStep
-          icon={<Sparkle3 iconSize="sm-medium" className="size-[18px]" />}
+          icon={<IconSparkle3Outline18 />}
           title="Deployment finalizing"
           {...finalizingStep}
         />

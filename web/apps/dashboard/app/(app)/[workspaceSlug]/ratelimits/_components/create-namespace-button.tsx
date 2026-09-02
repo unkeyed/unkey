@@ -2,8 +2,8 @@
 
 import { queryClient, trpcClient } from "@/lib/collections/client";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Plus } from "@unkey/icons";
 import { Button, DialogContainer, FormInput, toast } from "@unkey/ui";
+import { IconPlusOutline18 } from "nucleo-ui-outline-18";
 import { useState, useTransition } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -75,7 +75,7 @@ export const CreateNamespaceButton = () => {
   return (
     <>
       <Button size="md" variant="primary" onClick={() => setIsOpen(true)}>
-        <Plus iconSize="sm-regular" />
+        <IconPlusOutline18 />
         Create namespace
       </Button>
 

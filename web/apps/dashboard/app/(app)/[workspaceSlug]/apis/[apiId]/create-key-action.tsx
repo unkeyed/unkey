@@ -2,7 +2,7 @@
 
 import { NavbarActionButton } from "@/components/navigation/action-button";
 import { trpc } from "@/lib/trpc/client";
-import { Plus } from "@unkey/icons";
+import { IconPlusOutline18 } from "nucleo-ui-outline-18";
 import { CreateKeyDialog } from "./_components/create-key";
 
 export function CreateKeyAction({ apiId }: { apiId: string }) {
@@ -14,7 +14,7 @@ export function CreateKeyAction({ apiId }: { apiId: string }) {
   if (!data?.keyAuth) {
     return (
       <NavbarActionButton disabled>
-        <Plus />
+        <IconPlusOutline18 />
         Create key
       </NavbarActionButton>
     );

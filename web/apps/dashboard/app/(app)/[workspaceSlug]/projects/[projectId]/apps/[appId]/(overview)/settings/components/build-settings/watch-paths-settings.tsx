@@ -3,8 +3,8 @@
 import { FormCombobox } from "@/components/ui/form-combobox";
 import { cn } from "@/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Eye, Plus } from "@unkey/icons";
 import { FormInput } from "@unkey/ui";
+import { IconEyeOutline18, IconPlusOutline18 } from "nucleo-ui-outline-18";
 import { useCallback, useRef } from "react";
 import { useFieldArray, useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
@@ -172,7 +172,7 @@ export const WatchPaths = () => {
 
   return (
     <FormSettingCard
-      icon={<Eye className="text-gray-12" iconSize="xl-medium" />}
+      icon={<IconEyeOutline18 className="text-gray-12" />}
       title="Watch paths"
       description="Only trigger deployments when files matching these glob patterns change. Leave empty to deploy on all changes."
       displayValue={displayValue}
@@ -217,7 +217,7 @@ export const WatchPaths = () => {
           value=""
           onSelect={addWatchPath}
           creatable
-          leftIcon={<Plus iconSize="sm-regular" />}
+          leftIcon={<IconPlusOutline18 />}
           searchPlaceholder="Search suggestions or enter a glob..."
           emptyMessage={<div className="mt-2">No suggested watch paths detected</div>}
           placeholder={<span className="text-grayA-8">Add a watch path...</span>}

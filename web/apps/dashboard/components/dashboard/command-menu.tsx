@@ -7,10 +7,10 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
-import { Chats } from "@unkey/icons";
-import { BookOpen, type IconProps } from "@unkey/icons";
 import type { Route } from "next";
 import { useRouter } from "next/navigation";
+import type { IconProps } from "nucleo-ui-outline-18";
+import { IconBookOpenOutline18, IconChatsOutline18 } from "nucleo-ui-outline-18";
 import React from "react";
 import { useFeedback } from "./feedback-component";
 
@@ -40,7 +40,7 @@ export function CommandMenu() {
             close={() => setOpen(false)}
             href="https://www.unkey.com/docs"
             label="Documentation"
-            icon={BookOpen}
+            icon={IconBookOpenOutline18}
           />
           <FeedbackCommand />
         </CommandGroup>
@@ -94,7 +94,7 @@ const FeedbackCommand: React.FC = () => {
 
   return (
     <CommandItem onSelect={() => openFeedback(true)}>
-      <Chats className="size-4 mr-2" />
+      <IconChatsOutline18 className="size-4 mr-2" />
       <span>Feedback</span>
     </CommandItem>
   );

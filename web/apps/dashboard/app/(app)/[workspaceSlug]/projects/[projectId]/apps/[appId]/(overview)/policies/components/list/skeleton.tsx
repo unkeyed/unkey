@@ -1,5 +1,5 @@
-import { Dots, GripDotsVertical } from "@unkey/icons";
 import { Button } from "@unkey/ui";
+import { IconDotsOutline18, IconGripDotsVerticalOutline18 } from "nucleo-ui-outline-18";
 
 /**
  * Loading skeleton for PoliciesList. Mirrors the row layout in
@@ -31,7 +31,7 @@ function PolicyRowSkeleton({ index, isLast }: { index: number; isLast: boolean }
 
         {/* Drag handle */}
         <div className="w-10 shrink-0 flex items-center justify-center py-5">
-          <GripDotsVertical iconSize="lg-medium" className="opacity-20" />
+          <IconGripDotsVerticalOutline18 className="size-4 opacity-20" />
         </div>
 
         {/* Name */}
@@ -57,7 +57,7 @@ function PolicyRowSkeleton({ index, isLast }: { index: number; isLast: boolean }
             className="size-5 [&_svg]:size-3 rounded-sm border-transparent"
             disabled
           >
-            <Dots className="text-gray-11 opacity-30" iconSize="sm-regular" />
+            <IconDotsOutline18 className="text-gray-11 opacity-30" />
           </Button>
         </div>
       </div>

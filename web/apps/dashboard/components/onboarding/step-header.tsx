@@ -1,7 +1,14 @@
 "use client";
-import { ChevronLeft, CloudUp, Harddrive, HeartPulse, Location2, Nodes2 } from "@unkey/icons";
 import { Button, useStepWizard } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
+import {
+  IconChevronLeftOutline18,
+  IconCloudUploadOutline18,
+  IconHardDriveOutline18,
+  IconHeartPulseOutline18,
+  IconLocation2Outline18,
+  IconNodes2Outline18,
+} from "nucleo-ui-outline-18";
 import type { ReactNode } from "react";
 
 type IconBoxProps = {
@@ -24,11 +31,11 @@ const IconBox = ({ children, large, className }: IconBoxProps) => (
 
 const iconItems: { icon: ReactNode; large?: boolean; opacity: string }[] = [
   { icon: null, opacity: "opacity-60" },
-  { icon: <Harddrive className="size-[18px]" iconSize="md-medium" />, opacity: "opacity-75" },
-  { icon: <Location2 className="size-[18px]" iconSize="md-medium" />, opacity: "opacity-80" },
-  { icon: <CloudUp className="size-9" iconSize="md-thin" />, large: true, opacity: "opacity-90" },
-  { icon: <HeartPulse className="size-[18px]" iconSize="md-medium" />, opacity: "opacity-80" },
-  { icon: <Nodes2 className="size-[18px]" iconSize="md-medium" />, opacity: "opacity-75" },
+  { icon: <IconHardDriveOutline18 />, opacity: "opacity-75" },
+  { icon: <IconLocation2Outline18 />, opacity: "opacity-80" },
+  { icon: <IconCloudUploadOutline18 className="size-9" />, large: true, opacity: "opacity-90" },
+  { icon: <IconHeartPulseOutline18 />, opacity: "opacity-80" },
+  { icon: <IconNodes2Outline18 />, opacity: "opacity-75" },
   { icon: null, opacity: "opacity-60" },
 ];
 
@@ -76,7 +83,7 @@ export const OnboardingStepHeader = ({
           onClick={back}
           className="absolute top-3 left-3 z-50 flex items-center gap-1 hover:text-gray-11 group text-[13px] transition-colors text-gray-10"
         >
-          <ChevronLeft className="size-3! group-hover:text-gray-11" iconSize="sm-regular" />
+          <IconChevronLeftOutline18 className="! group-hover:text-gray-11" />
           Back
         </Button>
       )}

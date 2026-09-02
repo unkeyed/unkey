@@ -1,7 +1,7 @@
 "use client";
 
-import { Earth } from "@unkey/icons";
 import { ItemMedia } from "@unkey/ui";
+import { IconEarthOutline18 } from "nucleo-ui-outline-18";
 import type { ReactNode } from "react";
 import { AxiomLogo } from "./axiom-logo";
 import type { DrainKind } from "./drain-schema";
@@ -16,7 +16,7 @@ export const DESTINATIONS: ReadonlyArray<{
     kind: "http",
     title: "HTTP",
     description: "POST batches to an HTTPS endpoint",
-    icon: <Earth className="size-[18px]" iconSize="md-medium" />,
+    icon: <IconEarthOutline18 className="size-[18px]" />,
   },
   {
     kind: "axiom",

@@ -1,9 +1,17 @@
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { useFlag } from "@/lib/flags/provider";
-import { ArrowRight, BookBookmark, Code, Cube, Earth, Github, HeartPulse } from "@unkey/icons";
+import { Github } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 import { useSearchParams } from "next/navigation";
+import {
+  IconArrowRightOutline18,
+  IconBookBookmarkOutline18,
+  IconCodeOutline18,
+  IconCubeOutline18,
+  IconEarthOutline18,
+  IconHeartPulseOutline18,
+} from "nucleo-ui-outline-18";
 import { type ReactNode, useState } from "react";
 import { CreateProjectDialog } from "../create-project-dialog";
 import { DeployPlanGateDialog } from "../deploy-plan-gate-dialog";
@@ -28,11 +36,11 @@ const IconBox = ({ children, large, className }: IconBoxProps) => (
 );
 
 const flankItems: { icon: ReactNode; large?: boolean; opacity: string }[] = [
-  { icon: <Earth className="size-[18px]" iconSize="md-medium" />, opacity: "opacity-50" },
-  { icon: <Github className="size-[18px]" iconSize="md-medium" />, opacity: "opacity-75" },
-  { icon: <Cube className="size-9" iconSize="md-thin" />, large: true, opacity: "opacity-90" },
-  { icon: <Code className="size-[18px]" iconSize="md-medium" />, opacity: "opacity-75" },
-  { icon: <HeartPulse className="size-[18px]" iconSize="md-medium" />, opacity: "opacity-50" },
+  { icon: <IconEarthOutline18 />, opacity: "opacity-50" },
+  { icon: <Github className="size-[18px]" />, opacity: "opacity-75" },
+  { icon: <IconCubeOutline18 className="size-9" />, large: true, opacity: "opacity-90" },
+  { icon: <IconCodeOutline18 />, opacity: "opacity-75" },
+  { icon: <IconHeartPulseOutline18 />, opacity: "opacity-50" },
 ];
 
 const ProjectIconRow = () => (
@@ -82,7 +90,7 @@ export function EmptyProjects() {
             className="w-full max-w-[200px] sm:w-auto sm:max-w-none"
           >
             Create your first project
-            <ArrowRight />
+            <IconArrowRightOutline18 />
           </Button>
           <a
             href="https://www.unkey.com/docs/quickstart/deploy"
@@ -91,7 +99,7 @@ export function EmptyProjects() {
             className="w-full max-w-[200px] sm:w-auto sm:max-w-none"
           >
             <Button variant="outline" size="md" className="w-full sm:w-auto">
-              <BookBookmark />
+              <IconBookBookmarkOutline18 />
               Read the docs
             </Button>
           </a>

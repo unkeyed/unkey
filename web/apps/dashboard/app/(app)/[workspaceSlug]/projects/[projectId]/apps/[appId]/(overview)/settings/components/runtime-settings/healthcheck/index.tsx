@@ -1,7 +1,6 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ChevronDown, HeartPulse } from "@unkey/icons";
 import {
   FormInput,
   Select,
@@ -10,6 +9,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@unkey/ui";
+import { IconChevronDownOutline18, IconHeartPulseOutline18 } from "nucleo-ui-outline-18";
 import { useEffect } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { useEnvironmentSettings } from "../../../environment-provider";
@@ -80,7 +80,7 @@ export const Healthcheck = () => {
 
   return (
     <FormSettingCard
-      icon={<HeartPulse className="text-gray-12" iconSize="xl-medium" />}
+      icon={<IconHeartPulseOutline18 className="text-gray-12" />}
       title="Healthcheck"
       description="Endpoint used to verify the service is healthy"
       displayValue={
@@ -111,12 +111,7 @@ export const Healthcheck = () => {
                 <SelectTrigger
                   wrapperClassName="w-24"
                   variant={errors.method ? "error" : "default"}
-                  rightIcon={
-                    <ChevronDown
-                      className="absolute right-3 size-3 text-gray-11"
-                      iconSize="sm-medium"
-                    />
-                  }
+                  rightIcon={<IconChevronDownOutline18 className="absolute right-3 text-gray-11" />}
                 >
                   <SelectValue placeholder={<MethodBadge method={"GET"} />}>
                     <MethodBadge method={field.value} />

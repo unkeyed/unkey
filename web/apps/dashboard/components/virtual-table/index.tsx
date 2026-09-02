@@ -1,6 +1,7 @@
 import { cn } from "@/lib/utils";
-import { CaretDown, CaretExpandY, CaretUp, CircleCaretRight } from "@unkey/icons";
 import { useIsMobile } from "@unkey/ui";
+import { IconCaretDownOutline12, IconCaretUpOutline12 } from "nucleo-ui-outline-12";
+import { IconCaretExpandYOutline18, IconCircleCaretRightOutline18 } from "nucleo-ui-outline-18";
 import {
   Fragment,
   type Ref,
@@ -311,7 +312,7 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
                   // tables that only ever insert one separator at the top.
                   const defaultContent = (
                     <div className="h-[26px] bg-info-2 font-mono text-xs text-info-11 rounded-md flex items-center gap-3 px-2">
-                      <CircleCaretRight className="size-3" />
+                      <IconCircleCaretRightOutline18 className="size-3" />
                       Live
                     </div>
                   );
@@ -506,12 +507,12 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
 
 function SortIcon({ direction }: { direction?: SortDirection | null }) {
   if (!direction) {
-    return <CaretExpandY className="color-gray-9" />;
+    return <IconCaretExpandYOutline18 className="color-gray-9" />;
   }
   return direction === "asc" ? (
-    <CaretUp className="color-gray-9" iconSize="sm-thin" />
+    <IconCaretUpOutline12 className="color-gray-9" />
   ) : (
-    <CaretDown className="color-gray-9" iconSize="sm-thin" />
+    <IconCaretDownOutline12 className="color-gray-9" />
   );
 }
 

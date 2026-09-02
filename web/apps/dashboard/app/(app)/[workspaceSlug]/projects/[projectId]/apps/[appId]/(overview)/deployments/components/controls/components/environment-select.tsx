@@ -1,7 +1,7 @@
 "use client";
 
-import { ChevronDown, Layers3 } from "@unkey/icons";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@unkey/ui";
+import { IconChevronDownOutline18, IconLayers3Outline18 } from "nucleo-ui-outline-18";
 import { useProjectData } from "../../../../data-provider";
 import { useFilters } from "../../../hooks/use-filters";
 
@@ -48,8 +48,8 @@ export function EnvironmentSelect() {
     >
       <SelectTrigger
         className="h-9 w-full bg-gray-1"
-        leftIcon={<Layers3 iconSize="md-medium" className="text-gray-9" />}
-        rightIcon={<ChevronDown className="absolute right-2" iconSize="md-medium" />}
+        leftIcon={<IconLayers3Outline18 className="size-4 text-gray-9" />}
+        rightIcon={<IconChevronDownOutline18 className="size-4 absolute right-2" />}
       >
         <SelectValue placeholder="All Environments" />
       </SelectTrigger>

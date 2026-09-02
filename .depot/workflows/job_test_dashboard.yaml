@@ -14,6 +14,7 @@ jobs:
         uses: ./.depot/actions/setup-node
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
+          nucleo_license_key: ${{ secrets.NUCLEO_LICENSE_KEY }}
       - name: Test
         run: pnpm turbo run test --filter=@unkey/dashboard
         env:

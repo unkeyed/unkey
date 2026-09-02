@@ -6,8 +6,8 @@ import { usePersistedForm } from "@/hooks/use-persisted-form";
 import { trpc } from "@/lib/trpc/client";
 import type { KeyPermission, KeyRole } from "@/lib/trpc/routers/key/rbac/connected-roles-and-perms";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { PenWriting3 } from "@unkey/icons";
 import { Button, DialogContainer } from "@unkey/ui";
+import { IconPenWriting3Outline18 } from "nucleo-ui-outline-18";
 import { useEffect, useState } from "react";
 import { Controller, FormProvider } from "react-hook-form";
 import { GrantedAccess } from "../../../rbac/granted-access";
@@ -169,7 +169,7 @@ export const KeyRbacDialog = ({
 
   const defaultTrigger = (
     <NavbarActionButton title={DIALOG_CONFIG.triggerTitle} onClick={() => setIsDialogOpen(true)}>
-      <PenWriting3 />
+      <IconPenWriting3Outline18 />
       {DIALOG_CONFIG.triggerTitle}
     </NavbarActionButton>
   );

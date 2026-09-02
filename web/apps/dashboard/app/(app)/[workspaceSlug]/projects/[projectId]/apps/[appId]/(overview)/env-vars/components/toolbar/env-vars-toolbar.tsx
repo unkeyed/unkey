@@ -1,6 +1,5 @@
 "use client";
 
-import { BarsFilter, ChevronDown, Layers3, Magnifier } from "@unkey/icons";
 import {
   InputGroup,
   InputGroupAddon,
@@ -11,6 +10,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@unkey/ui";
+import {
+  IconBarsFilterOutline18,
+  IconChevronDownOutline18,
+  IconLayers3Outline18,
+  IconMagnifierOutline18,
+} from "nucleo-ui-outline-18";
 
 const SORT_OPTIONS = ["last-updated", "name-asc"] as const;
 export type SortOption = (typeof SORT_OPTIONS)[number];
@@ -44,7 +49,7 @@ export function EnvVarsToolbar({
       <div className="flex-[50%]">
         <InputGroup className="h-9 w-full bg-gray-1">
           <InputGroupAddon className="pointer-events-none">
-            <Magnifier iconSize="lg-medium" className="text-gray-9" />
+            <IconMagnifierOutline18 className="size-4 text-gray-9" />
           </InputGroupAddon>
           <InputGroupInput
             placeholder="Search..."
@@ -69,8 +74,8 @@ export function EnvVarsToolbar({
         >
           <SelectTrigger
             className="h-9 w-full bg-gray-1"
-            leftIcon={<Layers3 iconSize="md-medium" className="text-gray-9" />}
-            rightIcon={<ChevronDown className="absolute right-2" iconSize="md-medium" />}
+            leftIcon={<IconLayers3Outline18 className="size-4 text-gray-9" />}
+            rightIcon={<IconChevronDownOutline18 className="size-4 absolute right-2" />}
           >
             <SelectValue placeholder="All Environments" />
           </SelectTrigger>
@@ -99,8 +104,8 @@ export function EnvVarsToolbar({
         >
           <SelectTrigger
             className="h-9 w-full bg-gray-1"
-            leftIcon={<BarsFilter iconSize="md-medium" className="text-gray-9" />}
-            rightIcon={<ChevronDown className="absolute right-2" iconSize="md-medium" />}
+            leftIcon={<IconBarsFilterOutline18 className="size-4 text-gray-9" />}
+            rightIcon={<IconChevronDownOutline18 className="size-4 absolute right-2" />}
           >
             <SelectValue />
           </SelectTrigger>

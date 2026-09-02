@@ -6,8 +6,8 @@ import {
   getSelectedClassName,
   useRequestLogsQuery,
 } from "@/components/request-logs-table";
-import { BookBookmark } from "@unkey/icons";
 import { Button, DataTable, Empty, PaginationFooter } from "@unkey/ui";
+import { IconBookBookmarkOutline18 } from "nucleo-ui-outline-18";
 import { useMemo } from "react";
 import { useRequestLogsContext } from "../../context/request-logs-provider";
 
@@ -78,7 +78,7 @@ const EmptyState = () => (
       <Empty.Actions className="mt-4 justify-start">
         <a href="https://www.unkey.com/docs/introduction" target="_blank" rel="noopener noreferrer">
           <Button size="md">
-            <BookBookmark />
+            <IconBookBookmarkOutline18 />
             Documentation
           </Button>
         </a>

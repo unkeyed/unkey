@@ -1,6 +1,5 @@
 import type { RootKey } from "@/lib/trpc/routers/settings/root-keys/query";
 import { cn } from "@/lib/utils";
-import { ChartActivity2, Page2 } from "@unkey/icons";
 import type { DataTableColumnDef } from "@unkey/ui";
 import {
   AssignedCountCell,
@@ -14,6 +13,8 @@ import {
 } from "@unkey/ui";
 import { InfoTooltip, TimestampInfo } from "@unkey/ui";
 import dynamic from "next/dynamic";
+import { IconChartActivity2Outline12 } from "nucleo-ui-outline-12";
+import { IconPage2Outline18 } from "nucleo-ui-outline-18";
 
 const RootKeysTableActions = dynamic(
   () =>
@@ -117,7 +118,7 @@ export const createRootKeyColumns = ({
       return (
         <AssignedCountCell
           count={rootKey.permissionSummary.total}
-          icon={<Page2 iconSize="md-medium" className="opacity-50" />}
+          icon={<IconPage2Outline18 className="opacity-50" />}
           singularLabel="Permission"
           isSelected={rootKey.id === selectedRootKeyId}
         />
@@ -170,7 +171,7 @@ export const createRootKeyColumns = ({
         <BadgeTimestampCell
           isSelected={rootKey.id === selectedRootKeyId}
           timestamp={rootKey.lastUsedAt > 0 ? rootKey.lastUsedAt : null}
-          icon={<ChartActivity2 iconSize="sm-regular" />}
+          icon={<IconChartActivity2Outline12 />}
           emptyText={ROOT_KEY_COLUMN_IDS.LAST_USED.emptyText}
         />
       );

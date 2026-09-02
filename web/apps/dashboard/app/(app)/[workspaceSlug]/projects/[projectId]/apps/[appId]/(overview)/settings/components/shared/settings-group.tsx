@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronRight } from "@unkey/icons";
+import { IconChevronRightOutline12 } from "nucleo-ui-outline-12";
 import React, { useEffect, useState } from "react";
 
 type SettingsGroupProps = {
@@ -43,9 +43,8 @@ export const SettingsGroup = ({
           {!hideChevron && (
             <>
               {expanded ? "Hide" : "Show"}
-              <ChevronRight
+              <IconChevronRightOutline12
                 className="text-gray-10 group-hover:text-gray-11 transition-all duration-300 shrink-0"
-                iconSize="sm-medium"
                 style={{
                   transitionTimingFunction: "cubic-bezier(.62,.16,.13,1.01)",
                   transform: expanded ? "rotate(270deg)" : "rotate(90deg)",

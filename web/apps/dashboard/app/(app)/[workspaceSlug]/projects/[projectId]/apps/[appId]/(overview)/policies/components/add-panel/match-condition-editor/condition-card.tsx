@@ -1,7 +1,7 @@
 "use client";
 
-import { ChevronDown, Trash } from "@unkey/icons";
 import { Button, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@unkey/ui";
+import { IconChevronDownOutline18, IconTrashOutline18 } from "nucleo-ui-outline-18";
 import { useFormContext, useFormState, useWatch } from "react-hook-form";
 import {
   type MatchConditionFormValues,
@@ -41,7 +41,7 @@ export function MatchConditionCard({
           >
             <SelectTrigger
               aria-label="Condition type"
-              rightIcon={<ChevronDown className="absolute right-2" iconSize="md-medium" />}
+              rightIcon={<IconChevronDownOutline18 className="size-4 absolute right-2" />}
             >
               <SelectValue />
             </SelectTrigger>
@@ -62,7 +62,7 @@ export function MatchConditionCard({
           className="size-9 shrink-0 px-0 justify-center text-gray-11 hover:text-gray-12 hover:bg-grayA-3 rounded-lg"
           onClick={onRemove}
         >
-          <Trash iconSize="sm-regular" />
+          <IconTrashOutline18 />
         </Button>
       </div>
       <ConditionFields index={index} errors={conditionErrors} />

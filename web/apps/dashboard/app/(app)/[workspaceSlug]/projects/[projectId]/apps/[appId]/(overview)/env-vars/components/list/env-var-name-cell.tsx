@@ -1,7 +1,7 @@
 "use client";
 
-import { Note3 } from "@unkey/icons";
 import { Badge, InfoTooltip, toast } from "@unkey/ui";
+import { IconNote3Outline18 } from "nucleo-ui-outline-18";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { HighlightMatch } from "../shared/highlight-match";
 
@@ -87,7 +87,7 @@ export const EnvVarNameCell = ({
           {note && (
             <InfoTooltip content={note} position={{ side: "top" }}>
               <span className="shrink-0 text-gray-10">
-                <Note3 iconSize="md-medium" className="mt-0.5" />
+                <IconNote3Outline18 className="size-4 mt-0.5" />
               </span>
             </InfoTooltip>
           )}

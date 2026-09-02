@@ -3,13 +3,12 @@ import { mapRegionToFlag } from "@/lib/trpc/routers/deploy/network/utils";
 import { cn } from "@/lib/utils";
 import { formatLatency } from "@/lib/utils/metric-formatters";
 import type { RequestLogsResponse } from "@unkey/clickhouse/src/frontline";
-import { TriangleWarning2 } from "@unkey/icons";
 import { Badge, type DataTableColumnDef, TimestampInfo } from "@unkey/ui";
+import { IconTriangleWarningOutline18 } from "nucleo-ui-outline-18";
 import { WARNING_ICON_STYLES, getStatusStyle } from "../utils/get-row-class";
 
 const WarningIcon = ({ status }: { status: number }) => (
-  <TriangleWarning2
-    iconSize="md-regular"
+  <IconTriangleWarningOutline18
     className={cn(
       WARNING_ICON_STYLES.base,
       status < 400 && "invisible",

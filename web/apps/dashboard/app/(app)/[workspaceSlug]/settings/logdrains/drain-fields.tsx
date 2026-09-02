@@ -17,7 +17,6 @@ import { trpc } from "@/lib/trpc/client";
 import { Radio } from "@base-ui/react/radio";
 import { RadioGroup } from "@base-ui/react/radio-group";
 import { KEY_VERIFICATION_OUTCOMES } from "@unkey/clickhouse/src/keys/keys";
-import { CaretRight, Check, Magnifier, Minus, Plus, Trash } from "@unkey/icons";
 import { match } from "@unkey/match";
 import { unkeyAuditLogEvents } from "@unkey/schema/src/auditlog";
 import {
@@ -34,6 +33,14 @@ import {
   FormSelect,
   cn,
 } from "@unkey/ui";
+import {
+  IconCaretRightOutline12,
+  IconCheckOutline12,
+  IconMagnifierOutline12,
+  IconMinusOutline12,
+  IconPlusOutline12,
+  IconTrashOutline12,
+} from "nucleo-ui-outline-12";
 import { type ReactNode, useId, useState } from "react";
 import { Controller, useFieldArray, useFormContext, useWatch } from "react-hook-form";
 import { DrainEndpointRow } from "./drain-endpoint-row";
@@ -337,7 +344,7 @@ function SourcesField({ stream }: { stream: "gateway_requests" | "runtime_logs" 
       {sourceMode === "some" ? (
         <div className="mt-1.5 overflow-hidden rounded-lg border border-gray-5">
           <div className="flex items-center gap-2 border-b border-gray-4 px-2.5 py-2">
-            <Magnifier iconSize="sm-regular" className="shrink-0 text-gray-9" />
+            <IconMagnifierOutline12 className="shrink-0 text-gray-9" />
             <input
               value={query}
               onChange={(event) => setQuery(event.target.value)}
@@ -538,8 +545,7 @@ function SourceRow({
           onClick={onExpand}
           className="flex size-4 shrink-0 items-center justify-center text-gray-9 hover:text-accent-12"
         >
-          <CaretRight
-            iconSize="sm-regular"
+          <IconCaretRightOutline12
             className={cn("transition-transform duration-150 ease-out", expanded && "rotate-90")}
           />
         </button>
@@ -563,8 +569,8 @@ function SourceRow({
               : "border-accent-12 bg-accent-12 text-white dark:text-black",
           )}
         >
-          {checked === "on" ? <Check iconSize="sm-regular" /> : null}
-          {checked === "some" ? <Minus iconSize="sm-regular" /> : null}
+          {checked === "on" ? <IconCheckOutline12 /> : null}
+          {checked === "some" ? <IconMinusOutline12 /> : null}
         </span>
         <span
           className={cn("truncate text-[13px]", depth === 0 ? "text-accent-12" : "text-gray-11")}
@@ -761,7 +767,7 @@ function AuditEventTypesField() {
         <div className="mt-1.5 flex flex-col gap-1.5 duration-200 ease-out animate-in fade-in motion-reduce:animate-none">
           <div className="overflow-hidden rounded-lg border border-gray-5">
             <div className="flex items-center gap-2 border-b border-gray-4 px-2.5 py-2">
-              <Magnifier iconSize="sm-regular" className="shrink-0 text-gray-9" />
+              <IconMagnifierOutline12 className="shrink-0 text-gray-9" />
               <input
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
@@ -1002,7 +1008,7 @@ export function HeaderFields() {
               aria-label={`Remove header ${index + 1}`}
               onClick={() => remove(index)}
             >
-              <Trash iconSize="sm-regular" />
+              <IconTrashOutline12 />
             </Button>
           </div>
         ))}
@@ -1013,7 +1019,7 @@ export function HeaderFields() {
           disabled={fields.length >= 32}
           onClick={() => append({ ...emptyHeaderRow })}
         >
-          <Plus iconSize="sm-regular" />
+          <IconPlusOutline12 />
           Add header
         </Button>
       </div>

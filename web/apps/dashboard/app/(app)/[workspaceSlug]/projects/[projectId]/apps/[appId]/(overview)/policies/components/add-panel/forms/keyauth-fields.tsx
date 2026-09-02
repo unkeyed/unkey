@@ -4,7 +4,6 @@ import { FormCombobox } from "@/components/ui/form-combobox";
 import { Switch } from "@/components/ui/switch";
 import { POLICY_LIMITS } from "@/lib/collections/deploy/policies.schema";
 import { trpc } from "@/lib/trpc/client";
-import { ChevronDown, Plus, Trash, XMark } from "@unkey/icons";
 import { match } from "@unkey/match";
 import {
   Button,
@@ -18,6 +17,12 @@ import {
   SelectValue,
 } from "@unkey/ui";
 import { FormLabel } from "@unkey/ui/src/components/form/form-helpers";
+import { IconXmarkOutline12 } from "nucleo-ui-outline-12";
+import {
+  IconChevronDownOutline18,
+  IconPlusOutline18,
+  IconTrashOutline18,
+} from "nucleo-ui-outline-18";
 import type { ReactNode } from "react";
 import { useController, useFormContext, useFormState, useWatch } from "react-hook-form";
 import type {
@@ -187,7 +192,7 @@ export function KeyAuthFields() {
                       }}
                       className="p-0.5 hover:bg-grayA-4 rounded text-grayA-9 hover:text-accent-12 transition-colors cursor-pointer"
                     >
-                      <XMark iconSize="sm-regular" />
+                      <IconXmarkOutline12 />
                     </span>
                   </span>
                 ))}
@@ -214,7 +219,7 @@ export function KeyAuthFields() {
               className="font-medium"
               onClick={addLocation}
             >
-              <Plus iconSize="sm-regular" />
+              <IconPlusOutline18 />
               Add
             </Button>
           )}
@@ -238,7 +243,7 @@ export function KeyAuthFields() {
                   <SelectTrigger
                     aria-label="Location type"
                     className="shrink-0 whitespace-pre"
-                    rightIcon={<ChevronDown className="absolute right-2" iconSize="md-medium" />}
+                    rightIcon={<IconChevronDownOutline18 className="size-4 absolute right-2" />}
                   >
                     <SelectValue />
                   </SelectTrigger>
@@ -281,7 +286,7 @@ export function KeyAuthFields() {
                 className="size-9 shrink-0 px-0 justify-center text-gray-11 hover:text-gray-12 hover:bg-grayA-3 rounded-lg"
                 onClick={removeLocation}
               >
-                <Trash iconSize="sm-regular" />
+                <IconTrashOutline18 />
               </Button>
             </div>
             <FormDescription
@@ -324,7 +329,7 @@ export function KeyAuthFields() {
               className="font-medium"
               onClick={() => setCredits(0)}
             >
-              <Plus iconSize="sm-regular" />
+              <IconPlusOutline18 />
               Add
             </Button>
           )}
@@ -353,7 +358,7 @@ export function KeyAuthFields() {
                 className="size-9 shrink-0 px-0 justify-center text-gray-11 hover:text-gray-12 hover:bg-grayA-3 rounded-lg"
                 onClick={() => setCredits(undefined)}
               >
-                <Trash iconSize="sm-regular" />
+                <IconTrashOutline18 />
               </Button>
             </div>
             <FormDescription
@@ -381,7 +386,7 @@ export function KeyAuthFields() {
               className="font-medium"
               onClick={addRatelimit}
             >
-              <Plus iconSize="sm-regular" />
+              <IconPlusOutline18 />
               Add
             </Button>
           )}
@@ -422,7 +427,7 @@ export function KeyAuthFields() {
                   className="size-9 shrink-0 px-0 justify-center text-gray-11 hover:text-gray-12 hover:bg-grayA-3 rounded-lg"
                   onClick={() => removeRatelimit(rl.id)}
                 >
-                  <Trash iconSize="sm-regular" />
+                  <IconTrashOutline18 />
                 </Button>
               </div>
               {rl.override && (

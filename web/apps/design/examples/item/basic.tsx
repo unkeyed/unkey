@@ -1,4 +1,3 @@
-import { BookOpen, ChartUsage, ChevronRight } from "@unkey/icons";
 import {
   Button,
   Item,
@@ -8,6 +7,11 @@ import {
   ItemMedia,
   ItemTitle,
 } from "@unkey/ui";
+import {
+  IconBookOpenOutline18,
+  IconChartUsageOutline18,
+  IconChevronRightOutline18,
+} from "nucleo-ui-outline-18";
 
 export default function BasicItem() {
   return (
@@ -26,14 +30,14 @@ export default function BasicItem() {
         render={
           <a href="/primitives/item">
             <ItemMedia>
-              <ChartUsage />
+              <IconChartUsageOutline18 />
             </ItemMedia>
             <ItemContent>
               <ItemTitle>Usage</ItemTitle>
               <ItemDescription>Track your spend and usage across Unkey.</ItemDescription>
             </ItemContent>
             <ItemActions>
-              <ChevronRight />
+              <IconChevronRightOutline18 />
             </ItemActions>
           </a>
         }
@@ -43,14 +47,14 @@ export default function BasicItem() {
         render={
           <a href="/primitives/item">
             <ItemMedia>
-              <BookOpen />
+              <IconBookOpenOutline18 />
             </ItemMedia>
             <ItemContent>
               <ItemTitle>Docs</ItemTitle>
               <ItemDescription>How plans, usage and invoices work.</ItemDescription>
             </ItemContent>
             <ItemActions>
-              <ChevronRight />
+              <IconChevronRightOutline18 />
             </ItemActions>
           </a>
         }

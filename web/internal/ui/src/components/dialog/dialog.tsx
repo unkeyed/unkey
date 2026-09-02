@@ -1,7 +1,7 @@
 "use client";
 
 import { Dialog as DialogPrimitive } from "@base-ui/react/dialog";
-import { XMark } from "@unkey/icons";
+import { IconXmarkOutline18 } from "nucleo-ui-outline-18";
 import * as React from "react";
 
 import { cn } from "../../lib/utils";
@@ -178,7 +178,7 @@ function DialogContent({
             className={buttonClassNames}
             aria-label="Close dialog with confirmation"
           >
-            <XMark iconSize="md-medium" />
+            <IconXmarkOutline18 className="size-4" />
           </button>
         ) : (
           // Use DialogPrimitive.Close for standard behavior
@@ -191,7 +191,7 @@ function DialogContent({
                 className={buttonClassNames}
                 aria-label="Close dialog"
               >
-                <XMark iconSize="md-medium" />
+                <IconXmarkOutline18 className="size-4" />
               </Button>
             }
           />

@@ -7,9 +7,9 @@ import {
 } from "@/components/logs/controls-container";
 import { formatNumber } from "@/lib/fmt";
 import { trpc } from "@/lib/trpc/client";
-import { Coins } from "@unkey/icons";
 import { Separator } from "@unkey/ui";
 import { AnimatePresence, motion } from "framer-motion";
+import { IconCoinsOutline18 } from "nucleo-ui-outline-18";
 import { LogsDateTime } from "./components/logs-datetime";
 import { LogsFilters } from "./components/logs-filters";
 import { LogsLiveSwitch } from "./components/logs-live-switch";
@@ -84,7 +84,7 @@ export function KeysDetailsLogsControls({
                       className="text-xs"
                       variant="enabled"
                       text={formatNumber(data?.remainingCredit ?? 0)}
-                      icon={<Coins iconSize="sm-thin" />}
+                      icon={<IconCoinsOutline18 className="size-3" />}
                     />
                   </motion.div>
                 ) : (
@@ -105,7 +105,7 @@ export function KeysDetailsLogsControls({
                       className="text-xs"
                       variant="disabled"
                       text="0"
-                      icon={<Coins iconSize="sm-thin" />}
+                      icon={<IconCoinsOutline18 className="size-3" />}
                     />
                   </motion.div>
                 )}

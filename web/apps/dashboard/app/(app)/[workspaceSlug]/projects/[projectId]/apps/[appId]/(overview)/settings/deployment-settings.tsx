@@ -7,7 +7,6 @@ import { getErrorMessage, getUnkeyClient } from "@/lib/unkey-client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { and, eq, useLiveQuery } from "@tanstack/react-db";
 import { useMutation } from "@tanstack/react-query";
-import { CircleHalfDottedClock, Gear, Layers2 } from "@unkey/icons";
 import { match } from "@unkey/match";
 import { FormInput, SettingCardGroup, toast } from "@unkey/ui";
 import { useEffect } from "react";
@@ -30,6 +29,11 @@ import { Port } from "./components/runtime-settings/port-settings";
 import { Regions } from "./components/runtime-settings/regions";
 import { Storage } from "./components/runtime-settings/storage";
 
+import {
+  IconCircleHalfDottedClockOutline18,
+  IconGearOutline18,
+  IconLayers2Outline18,
+} from "nucleo-ui-outline-18";
 import { CustomDomains } from "./components/advanced-settings/custom-domains";
 import { OpenapiSpecPath } from "./components/advanced-settings/openapi-spec-path";
 import { UpstreamProtocol } from "./components/advanced-settings/upstream-protocol";
@@ -112,7 +116,7 @@ export const DeploymentSettings = ({
         ) : null}
       </SettingCardGroup>
       <SettingsGroup
-        icon={<CircleHalfDottedClock iconSize="md-medium" />}
+        icon={<IconCircleHalfDottedClockOutline18 />}
         title="Runtime settings"
         defaultExpanded={Boolean(sections.runtime)}
       >
@@ -130,7 +134,7 @@ export const DeploymentSettings = ({
         </SettingCardGroup>
       </SettingsGroup>
       <SettingsGroup
-        icon={<Gear iconSize="md-medium" />}
+        icon={<IconGearOutline18 />}
         title="Advanced configurations"
         defaultExpanded={Boolean(sections.advanced)}
       >
@@ -202,7 +206,7 @@ const OCIImage = ({
 
   return (
     <FormSettingCard
-      icon={<Layers2 className="text-gray-12" iconSize="xl-regular" />}
+      icon={<IconLayers2Outline18 className="text-gray-12" />}
       title="Image"
       description="Default image reference for new deployments"
       displayValue={<span className="font-mono text-xs">{imageReference}</span>}

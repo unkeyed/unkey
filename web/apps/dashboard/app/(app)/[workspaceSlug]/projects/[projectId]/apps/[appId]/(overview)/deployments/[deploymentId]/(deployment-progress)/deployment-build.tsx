@@ -2,10 +2,10 @@
 
 import { routes } from "@/lib/navigation/routes";
 import { trpc } from "@/lib/trpc/client";
-import { Hammer2 } from "@unkey/icons";
 import { Button, SettingCardGroup } from "@unkey/ui";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
+import { IconHammer2Outline18 } from "nucleo-ui-outline-18";
 import { useProjectData } from "../../../data-provider";
 import { useDeployment } from "../layout-provider";
 import { DeploymentBuildStepsTable } from "./build-steps-table/deployment-build-steps-table";
@@ -40,7 +40,7 @@ export function DeploymentBuild() {
     <div className="flex flex-col gap-5">
       <SettingCardGroup>
         <DeploymentStep
-          icon={<Hammer2 iconSize="sm-medium" className="size-4.5" />}
+          icon={<IconHammer2Outline18 className="size-4.5" />}
           title="Build Logs"
           description="Explore the build output for this deployment"
           status="completed"

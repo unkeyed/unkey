@@ -3,7 +3,7 @@
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { useIdentities } from "@/lib/identities-query";
 import { routes } from "@/lib/navigation/routes";
-import { Fingerprint, Plus } from "@unkey/icons";
+import { IconFingerprintOutline18, IconPlusOutline18 } from "nucleo-ui-outline-18";
 import { Crumb } from "./crumb";
 import type { CrumbPopoverItem } from "./crumb-popover";
 
@@ -19,7 +19,7 @@ export function IdentityCrumb({ identityId }: { identityId: string }) {
 
   return (
     <Crumb
-      icon={<Fingerprint className="size-3.5 text-accent-11" iconSize="sm-regular" />}
+      icon={<IconFingerprintOutline18 className="size-3.5 text-accent-11" />}
       label={identityId}
       href={routes.identities.detail({ workspaceSlug: workspace.slug, identityId })}
       items={items}
@@ -27,7 +27,7 @@ export function IdentityCrumb({ identityId }: { identityId: string }) {
       searchPlaceholder="Find identity..."
       emptyText="No identities found"
       footer={{
-        icon: Plus,
+        icon: IconPlusOutline18,
         label: "All identities",
         href: routes.identities.list({ workspaceSlug: workspace.slug }),
       }}

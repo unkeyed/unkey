@@ -1,6 +1,5 @@
 import type { Permission } from "@/lib/trpc/routers/authorization/permissions/query";
 import { cn } from "@/lib/utils";
-import { Key2, Page2, Tag } from "@unkey/icons";
 import type { DataTableColumnDef } from "@unkey/ui";
 import {
   ActionColumnSkeleton,
@@ -8,6 +7,7 @@ import {
   LastUpdatedColumnSkeleton,
   NameColumnSkeleton,
 } from "@unkey/ui";
+import { IconKey2Outline18, IconPage2Outline18, IconTagOutline18 } from "nucleo-ui-outline-18";
 import { PERMISSION_COLUMN_IDS } from "../../columns/create-permissions-columns";
 
 type RenderPermissionsSkeletonRowProps = {
@@ -26,18 +26,16 @@ export const renderPermissionsSkeletonRow = ({
       style={{ height: `${rowHeight}px` }}
     >
       {column.id === PERMISSION_COLUMN_IDS.PERMISSION.id && (
-        <NameColumnSkeleton
-          icon={<Page2 iconSize="sm-regular" className="text-gray-12 opacity-50" />}
-        />
+        <NameColumnSkeleton icon={<IconPage2Outline18 className="text-gray-12 opacity-50" />} />
       )}
       {column.id === PERMISSION_COLUMN_IDS.SLUG.id && (
-        <DashedBadgeSkeleton icon={<Page2 iconSize="md-medium" className="opacity-50" />} />
+        <DashedBadgeSkeleton icon={<IconPage2Outline18 className="size-4 opacity-50" />} />
       )}
       {column.id === PERMISSION_COLUMN_IDS.USED_IN_ROLES.id && (
-        <DashedBadgeSkeleton icon={<Tag iconSize="md-medium" className="opacity-50" />} />
+        <DashedBadgeSkeleton icon={<IconTagOutline18 className="size-4 opacity-50" />} />
       )}
       {column.id === PERMISSION_COLUMN_IDS.ASSIGNED_TO_KEYS.id && (
-        <DashedBadgeSkeleton icon={<Key2 iconSize="md-medium" className="opacity-50" />} />
+        <DashedBadgeSkeleton icon={<IconKey2Outline18 className="size-4 opacity-50" />} />
       )}
       {column.id === PERMISSION_COLUMN_IDS.LAST_UPDATED.id && <LastUpdatedColumnSkeleton />}
       {column.id === PERMISSION_COLUMN_IDS.ACTION.id && <ActionColumnSkeleton />}

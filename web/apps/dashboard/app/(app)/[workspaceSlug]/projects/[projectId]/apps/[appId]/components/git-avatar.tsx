@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils";
-import { User } from "@unkey/icons";
+import { IconUserOutline18 } from "nucleo-ui-outline-18";
 import { useState } from "react";
 
 type AvatarProps = {
@@ -14,7 +14,7 @@ export function Avatar({ src, alt, className }: AvatarProps) {
   if (!src || hasError) {
     return (
       <div className="size-5  border rounded-full border-grayA-5 items-center flex justify-center">
-        <User iconSize="md-medium" />
+        <IconUserOutline18 className="size-4" />
       </div>
     );
   }
