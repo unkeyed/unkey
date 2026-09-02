@@ -1,55 +1,42 @@
 ---
 title: Icons
-description: Where icons come from, and the sizes and strokes they are allowed to take.
+description: How to use Icons when designing interfaces on Unkey.
 ---
 
-## Where icons come from
+Unkey uses [Nucleo](https://nucleoapp.com) icons for its product iconography.
 
-Icons ship as three npm packages from Nucleo: `nucleo-ui-outline-18`,
-`nucleo-ui-outline-12` and `nucleo-ui-fill-18`. Import an icon directly from the
-package that holds it, under its raw Nucleo name. There is no wrapper and no
-re-export.
+To browse the icons available, head to [The Nucleo Web App](https://nucleoapp.com/app) and sign in. 
+If you are a member of the Unkey team and require a license key to use Nucleo, please ask in Slack.
+
+## Usage
+
+Some common rules and do's and dont's for working with icons inside Unkey:
+
+- We use icons from the `UI` family of Nucleo icons.
+- We use the `Outline` variety of icons at all times.
+- We tend to use their `18px` sized icons as much as possible.
+- Where appropriate, if icons have a corresponding `12px` variant, we'll use those when our icons are being sized lower than `size-3`.
+- In extremely rare cases, we'll also make use of the `Filled` family of icons, but usage of this is discouraged and should be easily justifiable to the team during review.
+
+
 
 ```tsx
 import { IconEarthOutline18 } from "nucleo-ui-outline-18";
 ```
 
-`@unkey/icons` still exists, but it now holds only the brand marks Nucleo does
-not ship: GitHub, Discord, Docker, the Unkey logo, and the language logos.
-Everything else comes from Nucleo.
+## Linting
 
-## Sizes
+A lint rule has been set up to discourage the use of the following things:
 
-<Component path="icons/sizes" />
+1. Modifying the size prop of an icon directly. Instead - use `className` to define your icon sizes.
+2. Modifying the `strokeWidth` of an icon. This causes inconsistencies within the dashboard, and is banned.
+3. Rendering an `18px` icon at `size-3` or smaller when a `12px` variant of it exists. If there is no `12px` variant, the `18px` icon is fine.
+4. Sizing an icon with `h-` and `w-` classes. Icons are always square, so pass `size-` only.
 
-There are three sizes, and each one has a single correct source:
+## Buttons
 
-- **12px** comes from `nucleo-ui-outline-12` at its natural size.
-- **16px** comes from `nucleo-ui-outline-18` with `size-4`.
-- **18px** comes from `nucleo-ui-outline-18` at its natural size.
 
-Never render an 18 grid drawing at 12px. The two grids are different drawings,
-not one drawing at two scales, and the 18 grid loses its detail when it is
-squeezed that far. If a glyph is missing from the 12 package, use 16px instead.
-
-## Stroke
-
-Stroke is locked to Nucleo's default of 1.5 on the 18 grid. Do not pass
-`strokeWidth`. Do not pass `size`, `width` or `height` either: size and colour
-are set with `className` only, so an icon inherits `currentColor` and sits on the
-Tailwind size scale like everything else.
-
-```tsx
-<IconGearOutline18 className="size-4 text-gray-11" />
-```
-
-A lint rule enforces this, so a stray `strokeWidth` or `size` prop is caught
-before review.
-
-## Icons in buttons
-
-`Button` forces every svg inside it to 16px. Icons in a button therefore always
-come from the 18 package, with no size class of their own.
+The `Button` button component is set to display all icons at 16px. You should not need to size or edit the height of your button unless it's to do specifically break out of the established pattern.
 
 ```tsx
 <Button>
@@ -58,31 +45,4 @@ come from the 18 package, with no size class of their own.
 </Button>
 ```
 
-## Scaled hero icons
 
-<Component path="icons/hero" />
-
-Empty states and onboarding steps show an icon at 28px to 36px. At that scale
-Nucleo's 1.5 stroke scales up with the drawing and reads as heavy, so the stroke
-is scaled back down to keep the same 1.5px on screen:
-
-- `size-9` with `[&_[stroke-width]]:[stroke-width:0.75]` on the icon itself.
-- `[&_svg_[stroke-width]]:[stroke-width:1]` on a wrapper that forces `size-7`.
-
-This is the only sanctioned stroke override. Do not reach for it at 16px or
-18px, where the default stroke is already correct.
-
-## Fill and outline
-
-<Component path="icons/fill-and-outline" />
-
-Outline is the default. Fill marks a toggled state, such as a bookmark that has
-been bookmarked or a star that has been starred. Use the two as a pair from the
-same icon family, so the shape stays put and only the weight changes.
-
-## Finding an icon
-
-Browse the UI set on [nucleoapp.com](https://nucleoapp.com). The export name is
-`Icon`, then the icon name in PascalCase, then the package suffix: `Outline18`,
-`Outline12` or `Fill18`. So "earth" in the 18 outline set is
-`IconEarthOutline18`.
