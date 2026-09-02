@@ -32,6 +32,14 @@ import (
 // manage traffic switching between deployments by reassigning sticky frontline
 // routes atomically through the routing service.
 type DeployServiceClient interface {
+	// Create is the only writer of deployment rows in this service. It resolves
+	// the build source, runs the entitlement gates, writes the row with its
+	// queued step and audit log in one transaction, and starts Deploy.
+	//
+	// The object key is the deployment id, so a caller that derives the same id
+	// from an idempotency key lands on the same object and an existing row
+	// answers REPLAYED.
+	Create(opts ...sdk_go.ClientOption) sdk_go.Client[*DeployCreateRequest, *DeployCreateResponse]
 	// Deploy executes the full deployment workflow: build (if git source), provision
 	// containers across regions, wait for health, configure domain routing, and
 	// update the project's live deployment pointer for production environments.
@@ -72,6 +80,14 @@ func NewDeployServiceClient(ctx sdk_go.Context, key string, opts ...sdk_go.Clien
 		cOpts,
 	}
 }
+func (c *deployServiceClient) Create(opts ...sdk_go.ClientOption) sdk_go.Client[*DeployCreateRequest, *DeployCreateResponse] {
+	cOpts := c.options
+	if len(opts) > 0 {
+		cOpts = append(append([]sdk_go.ClientOption{}, cOpts...), opts...)
+	}
+	return sdk_go.WithRequestType[*DeployCreateRequest](sdk_go.Object[*DeployCreateResponse](c.ctx, "hydra.v1.DeployService", c.key, "Create", cOpts...))
+}
+
 func (c *deployServiceClient) Deploy(opts ...sdk_go.ClientOption) sdk_go.Client[*DeployRequest, *DeployResponse] {
 	cOpts := c.options
 	if len(opts) > 0 {
@@ -124,6 +140,14 @@ func (c *deployServiceClient) NotifyInstancesReady(opts ...sdk_go.ClientOption) 
 //
 // This client is used to call the service from outside of a Restate context.
 type DeployServiceIngressClient interface {
+	// Create is the only writer of deployment rows in this service. It resolves
+	// the build source, runs the entitlement gates, writes the row with its
+	// queued step and audit log in one transaction, and starts Deploy.
+	//
+	// The object key is the deployment id, so a caller that derives the same id
+	// from an idempotency key lands on the same object and an existing row
+	// answers REPLAYED.
+	Create() ingress.Requester[*DeployCreateRequest, *DeployCreateResponse]
 	// Deploy executes the full deployment workflow: build (if git source), provision
 	// containers across regions, wait for health, configure domain routing, and
 	// update the project's live deployment pointer for production environments.
@@ -162,6 +186,11 @@ func NewDeployServiceIngressClient(client *ingress.Client, key string) DeploySer
 		"hydra.v1.DeployService",
 		key,
 	}
+}
+
+func (c *deployServiceIngressClient) Create() ingress.Requester[*DeployCreateRequest, *DeployCreateResponse] {
+	codec := encoding.ProtoJSONCodec
+	return ingress.NewRequester[*DeployCreateRequest, *DeployCreateResponse](c.client, c.serviceName, "Create", &c.key, &codec)
 }
 
 func (c *deployServiceIngressClient) Deploy() ingress.Requester[*DeployRequest, *DeployResponse] {
@@ -215,6 +244,14 @@ func (c *deployServiceIngressClient) NotifyInstancesReady() ingress.Requester[*N
 // manage traffic switching between deployments by reassigning sticky frontline
 // routes atomically through the routing service.
 type DeployServiceServer interface {
+	// Create is the only writer of deployment rows in this service. It resolves
+	// the build source, runs the entitlement gates, writes the row with its
+	// queued step and audit log in one transaction, and starts Deploy.
+	//
+	// The object key is the deployment id, so a caller that derives the same id
+	// from an idempotency key lands on the same object and an existing row
+	// answers REPLAYED.
+	Create(ctx sdk_go.ObjectContext, req *DeployCreateRequest) (*DeployCreateResponse, error)
 	// Deploy executes the full deployment workflow: build (if git source), provision
 	// containers across regions, wait for health, configure domain routing, and
 	// update the project's live deployment pointer for production environments.
@@ -248,6 +285,9 @@ type DeployServiceServer interface {
 // pointer dereference when methods are called.
 type UnimplementedDeployServiceServer struct{}
 
+func (UnimplementedDeployServiceServer) Create(ctx sdk_go.ObjectContext, req *DeployCreateRequest) (*DeployCreateResponse, error) {
+	return nil, sdk_go.TerminalError(fmt.Errorf("method Create not implemented"), 501)
+}
 func (UnimplementedDeployServiceServer) Deploy(ctx sdk_go.ObjectContext, req *DeployRequest) (*DeployResponse, error) {
 	return nil, sdk_go.TerminalError(fmt.Errorf("method Deploy not implemented"), 501)
 }
@@ -285,6 +325,7 @@ func NewDeployServiceServer(srv DeployServiceServer, opts ...sdk_go.ServiceDefin
 	}
 	sOpts := append([]sdk_go.ServiceDefinitionOption{sdk_go.WithProtoJSON}, opts...)
 	router := sdk_go.NewObject("hydra.v1.DeployService", sOpts...)
+	router = router.Handler("Create", sdk_go.NewObjectHandler(srv.Create))
 	router = router.Handler("Deploy", sdk_go.NewObjectHandler(srv.Deploy))
 	router = router.Handler("Rollback", sdk_go.NewObjectHandler(srv.Rollback))
 	router = router.Handler("Promote", sdk_go.NewObjectHandler(srv.Promote))
