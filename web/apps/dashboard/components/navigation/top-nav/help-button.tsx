@@ -32,7 +32,7 @@ export function HelpButton() {
   return (
     <DropdownMenu open={open} onOpenChange={setOpen}>
       <DropdownMenuTrigger
-        aria-label="Help Options"
+        aria-label="Help options"
         className="group/help w-8 h-8 rounded-lg flex justify-center items-center shrink-0 hover:bg-grayA-4 cursor-pointer"
       >
         <CircleQuestion className="text-gray-9 group-hover/help:text-gray-12 size-5" />
@@ -45,7 +45,7 @@ export function HelpButton() {
               className="h-8 cursor-pointer gap-2 px-2 text-[13px] font-medium text-accent-12"
               render={
                 <Link href={href} target="_blank" rel="noreferrer">
-                  <Icon className="size-4 shrink-0 text-gray-11" />
+                  <Icon className="size-4 shrink-0 text-gray-11" iconSize="sm-regular" />
                   {label}
                 </Link>
               }
@@ -58,7 +58,7 @@ export function HelpButton() {
               openFeedback(true);
             }}
           >
-            <Chats className="size-4 shrink-0 text-gray-11" />
+            <Chats className="size-4 shrink-0 text-gray-11" iconSize="sm-regular" />
             Support
           </DropdownMenuItem>
         </DropdownMenuGroup>

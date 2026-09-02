@@ -31,8 +31,7 @@ export function SidebarBody() {
       case "identity":
       // Settings and Authorization keep the top-level workspace nav in the
       // global sidebar; their sub-pages live in a SecondaryNav rail (see the
-      // settings/authorization layouts). Account has no sub-pages, so it keeps
-      // the workspace nav and shows no rail at all.
+      // settings/authorization layouts).
       case "account":
       case "settings":
       case "authorization":

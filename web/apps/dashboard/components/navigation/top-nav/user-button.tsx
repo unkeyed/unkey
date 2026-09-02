@@ -41,6 +41,7 @@ export function UserButton({ isCollapsed = false, className }: UserButtonProps) 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
+        aria-label="Account menu"
         className={cn(
           "px-2 py-1 flex hover:bg-grayA-4 rounded-lg min-w-0 cursor-pointer",
           isCollapsed ? "justify-center size-8 p-0" : "justify-between gap-2 grow h-8",
@@ -56,14 +57,14 @@ export function UserButton({ isCollapsed = false, className }: UserButtonProps) 
       </DropdownMenuTrigger>
       <DropdownMenuContent side="bottom" align="end" className="w-56 p-0">
         {user?.email && (
-          <div className="border-b border-grayA-4 px-3 py-2">
-            <span
+          <DropdownMenuGroup className="border-b border-grayA-4 px-2 py-2">
+            <DropdownMenuLabel
               title={user.email}
-              className="secret block truncate text-[13px] font-medium text-accent-12"
+              className="secret block truncate px-0 py-0 text-[13px] text-accent-12"
             >
               {user.email}
-            </span>
-          </div>
+            </DropdownMenuLabel>
+          </DropdownMenuGroup>
         )}
         <DropdownMenuGroup className="p-1">
           <DropdownMenuItem
@@ -79,7 +80,11 @@ export function UserButton({ isCollapsed = false, className }: UserButtonProps) 
         <DropdownMenuSeparator className="mx-0" />
         <DropdownMenuGroup className="p-1">
           <DropdownMenuLabel className="px-2">Theme</DropdownMenuLabel>
-          <DropdownMenuRadioGroup value={theme ?? "system"} onValueChange={setTheme}>
+          <DropdownMenuRadioGroup
+            aria-label="Theme"
+            value={theme ?? "system"}
+            onValueChange={setTheme}
+          >
             {THEMES.map(({ value, label, icon: Icon }) => (
               <DropdownMenuRadioItem
                 key={value}
