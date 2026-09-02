@@ -258,7 +258,7 @@ function FullChartLoader({
               {labelsWithDefaults.rangeLabel}
             </div>
           </div>
-          <div className="text-accent-12 text-[18px] font-medium leading-7 bg-accent-4 rounded-sm w-full">
+          <div className="text-accent-12 text-[18px] font-[450] leading-7 bg-accent-4 rounded-sm w-full">
             &nbsp;
           </div>
         </div>
@@ -275,7 +275,7 @@ function FullChartLoader({
                   />
                   <div className="text-accent-10 text-[11px] leading-4">{metric.label}</div>
                 </div>
-                <div className="text-accent-12 text-[18px] font-medium leading-7 bg-accent-4 rounded-sm w-full">
+                <div className="text-accent-12 text-[18px] font-[450] leading-7 bg-accent-4 rounded-sm w-full">
                   &nbsp;
                 </div>
               </div>

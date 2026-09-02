@@ -94,7 +94,7 @@ export const InviteButton = ({ user, organization, ...rest }: InviteButtonProps)
         onClick={() => {
           setDialogOpen(!dialogOpen);
         }}
-        className="flex-row items-center gap-1 font-medium h-[38px]"
+        className="flex-row items-center gap-1 font-normal h-[38px]"
         {...rest}
         color="default"
       >

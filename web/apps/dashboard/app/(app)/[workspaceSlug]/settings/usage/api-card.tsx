@@ -63,7 +63,7 @@ export function ApiCard({ verifications, ratelimits, quota, feeCents, isLoading 
         <Quota used={used} quota={quota} />
       </div>
 
-      <div className="flex items-center gap-3 border-grayA-4 border-b bg-grayA-2 px-4 py-2 font-medium text-[10px] text-gray-9 uppercase tracking-wider">
+      <div className="flex items-center gap-3 border-grayA-4 border-b bg-grayA-2 px-4 py-2 font-normal text-[10px] text-gray-9 uppercase tracking-wider">
         <div className="min-w-0 flex-1">Operation</div>
         <div className="w-28 text-right">Requests</div>
       </div>

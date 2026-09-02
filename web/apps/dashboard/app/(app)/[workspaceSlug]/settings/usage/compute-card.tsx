@@ -162,7 +162,7 @@ function ProjectRow({
         <ItemContent>
           <ItemTitle className="truncate">{project.name}</ItemTitle>
         </ItemContent>
-        <ItemActions className="w-20 justify-end font-medium tabular-nums">
+        <ItemActions className="w-20 justify-end font-normal tabular-nums">
           {formatPrice(microCentsToDisplayCents(project.microCents))}
         </ItemActions>
       </Item>
@@ -239,7 +239,7 @@ function AppRows({ app }: { app: UsageApp }) {
 
 function Band({ children }: { children: ReactNode }) {
   return (
-    <div className="flex items-center gap-3 border-grayA-4 border-y bg-grayA-2 px-4 py-2 font-medium text-[10px] text-gray-9 uppercase tracking-wider">
+    <div className="flex items-center gap-3 border-grayA-4 border-y bg-grayA-2 px-4 py-2 font-normal text-[10px] text-gray-9 uppercase tracking-wider">
       {children}
     </div>
   );

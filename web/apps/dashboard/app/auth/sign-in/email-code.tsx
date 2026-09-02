@@ -146,7 +146,7 @@ export function EmailCode({ invitationToken }: { invitationToken?: string }) {
 
         <button
           type="submit"
-          className="flex items-center cursor-pointer disabled:cursor-not-allowed justify-center h-10 gap-2 px-4 text-sm font-medium text-black duration-200 bg-white border border-white rounded-lg hover:border-white/30 hover:bg-black hover:text-white"
+          className="flex items-center cursor-pointer disabled:cursor-not-allowed justify-center h-10 gap-2 px-4 text-sm font-normal text-black duration-200 bg-white border border-white rounded-lg hover:border-white/30 hover:bg-black hover:text-white"
           disabled={isLoading || otp.length !== 6}
           onClick={() => verifyCode(otp)}
         >

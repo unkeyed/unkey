@@ -156,7 +156,7 @@ export default function DiffPage() {
                   </div>
                 </div>
                 <div className="flex flex-col gap-2">
-                  <h3 className="text-grayA-12 font-medium text-sm">No deployments selected</h3>
+                  <h3 className="text-grayA-12 font-[450] text-sm">No deployments selected</h3>
                   <p className="text-grayA-9 text-xs max-w-70 leading-relaxed">
                     Select two deployments above to compare their OpenAPI specifications and see
                     what changed between versions.

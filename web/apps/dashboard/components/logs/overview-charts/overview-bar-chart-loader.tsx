@@ -28,7 +28,7 @@ export const OverviewChartLoader = ({
       <div className="pl-5 pt-4 py-3 pr-10 w-full flex justify-between font-sans items-start gap-10">
         <div className="flex flex-col gap-1">
           <div className="text-accent-10 text-[11px] leading-4">{labels.title}</div>
-          <div className="text-accent-12 text-[18px] font-medium leading-7 bg-accent-4 rounded-sm w-full">
+          <div className="text-accent-12 text-[18px] font-[450] leading-7 bg-accent-4 rounded-sm w-full">
             &nbsp;
           </div>
         </div>
@@ -38,7 +38,7 @@ export const OverviewChartLoader = ({
               <div className="bg-accent-8 rounded-sm h-[10px] w-1" />
               <div className="text-accent-10 text-[11px] leading-4">{labels.primaryLabel}</div>
             </div>
-            <div className="text-accent-12 text-[18px] font-medium leading-7 bg-accent-4 rounded-sm -w-full">
+            <div className="text-accent-12 text-[18px] font-[450] leading-7 bg-accent-4 rounded-sm -w-full">
               &nbsp;
             </div>
           </div>
@@ -47,7 +47,7 @@ export const OverviewChartLoader = ({
               <div className="bg-orange-9 rounded-sm h-[10px] w-1" />
               <div className="text-accent-10 text-[11px] leading-4">{labels.secondaryLabel}</div>
             </div>
-            <div className="text-accent-12 text-[18px] font-medium leading-7 bg-accent-4 rounded-sm w-full">
+            <div className="text-accent-12 text-[18px] font-[450] leading-7 bg-accent-4 rounded-sm w-full">
               &nbsp;
             </div>
           </div>

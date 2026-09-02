@@ -126,13 +126,13 @@ function Row({
       <span className="shrink-0 text-right">
         {plan.amount !== null ? (
           <>
-            <span className="font-medium text-[15px] text-gray-12 tabular-nums">
+            <span className="font-[450] text-[15px] text-gray-12 tabular-nums">
               {formatDollars(plan.amount)}
             </span>
             <span className="text-[12px] text-gray-11">{intervalSuffix(plan.interval)}</span>
           </>
         ) : (
-          <span className="font-medium text-[15px] text-gray-12">Contact us</span>
+          <span className="font-[450] text-[15px] text-gray-12">Contact us</span>
         )}
       </span>
     </>

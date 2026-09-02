@@ -99,7 +99,7 @@ export const Usage: React.FC<{
       contentWidth="w-full lg:w-[320px]"
     >
       <div className="w-full flex h-full items-center justify-end gap-4">
-        <p className="text-sm font-medium text-gray-12">
+        <p className="text-sm font-normal text-gray-12">
           {formatNumber(current)} / {formatNumber(max)} ({percent}%)
         </p>
       </div>

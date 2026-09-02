@@ -95,7 +95,7 @@ export const SelectRepo = ({
       value: owner,
       label: <span className="text-[13px] text-gray-12 font-normal">{owner}</span>,
       searchValue: owner,
-      selectedLabel: <span className="text-[13px] text-gray-12 font-medium">{owner}</span>,
+      selectedLabel: <span className="text-[13px] text-gray-12 font-[450]">{owner}</span>,
     }));
   }, [reposData?.repositories]);
 
@@ -175,7 +175,7 @@ export const SelectRepo = ({
           <SelectRepoSkeleton />
         ) : reposError ? (
           <div className="mt-3 flex flex-col items-center justify-center min-w-[var(--repo-list-w)] h-[462px] gap-3 border border-dashed rounded-lg border-grayA-5">
-            <p className="text-[15px] text-accent-12 font-medium">Failed to load repositories</p>
+            <p className="text-[15px] text-accent-12 font-[450]">Failed to load repositories</p>
             <p className="text-[13px] text-accent-11 text-center whitespace-pre-line w-[350px]">
               {reposError.message}
             </p>
@@ -253,7 +253,7 @@ export const SelectRepo = ({
           </div>
         ) : (
           <div className="mt-3 flex flex-col items-center justify-center min-w-[var(--repo-list-w)] h-[462px] gap-3 border border-dashed rounded-lg border-grayA-5">
-            <p className="text-[15px] text-accent-12 font-medium">No repositories found</p>
+            <p className="text-[15px] text-accent-12 font-[450]">No repositories found</p>
           </div>
         ))}
 

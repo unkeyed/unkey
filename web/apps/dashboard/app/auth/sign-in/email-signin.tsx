@@ -60,7 +60,7 @@ export function EmailSignIn() {
       </div>
       <button
         type="submit"
-        className="relative flex items-center cursor-pointer justify-center h-10 gap-2 px-4 text-sm font-medium text-black duration-200 bg-white border border-white rounded-lg hover:border-white/30 hover:bg-black hover:text-white disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white disabled:hover:text-black"
+        className="relative flex items-center cursor-pointer justify-center h-10 gap-2 px-4 text-sm font-normal text-black duration-200 bg-white border border-white rounded-lg hover:border-white/30 hover:bg-black hover:text-white disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white disabled:hover:text-black"
         disabled={isLoading || !isFormValid}
       >
         {clientReady && isLoading ? (

@@ -86,7 +86,7 @@ export function DrainShell({
           </div>
         </PageHeaderContent>
         <PageHeaderActions>
-          <span className="flex items-center gap-2 whitespace-nowrap text-[13px] font-medium text-accent-12">
+          <span className="flex items-center gap-2 whitespace-nowrap text-[13px] font-normal text-accent-12">
             <SinkType kind={drain.kind} />
           </span>
         </PageHeaderActions>

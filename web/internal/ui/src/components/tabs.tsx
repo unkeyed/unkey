@@ -37,7 +37,7 @@ function TabsTrigger({
     <TabsPrimitive.Tab
       ref={ref}
       className={cn(
-        "inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1 text-sm font-medium ring-offset-0 transition-all duration-150 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-gray-5 disabled:cursor-not-allowed disabled:opacity-50 aria-disabled:cursor-not-allowed aria-disabled:opacity-50 hover:bg-grayA-2 data-active:bg-white dark:data-active:bg-black data-active:text-grayA-12 data-active:shadow-sm",
+        "inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1 text-sm font-[450] ring-offset-0 transition-all duration-150 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-gray-5 disabled:cursor-not-allowed disabled:opacity-50 aria-disabled:cursor-not-allowed aria-disabled:opacity-50 hover:bg-grayA-2 data-active:bg-white dark:data-active:bg-black data-active:text-grayA-12 data-active:shadow-sm",
         className,
       )}
       {...props}
