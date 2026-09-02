@@ -56,7 +56,7 @@ func TestUpdateAppBadRequest(t *testing.T) {
 			req: handler.Request{
 				Project: validProject,
 				App:     validID,
-				Oci:     &openapi.AppOCIInput{Image: strings.Repeat("a", 253) + ":tag"},
+				Oci:     &openapi.AppOCI{Image: strings.Repeat("a", 253) + ":tag"},
 			},
 		},
 		{name: "git empty object", req: handler.Request{Project: validProject, App: validID, Git: nullable.NewNullableWithValue(openapi.AppGitUpdateInput{})}},
@@ -93,7 +93,7 @@ func TestUpdateAppBadRequest(t *testing.T) {
 				Project: validProject,
 				App:     validID,
 				Name:    ptr.P("App"),
-				Oci:     &openapi.AppOCIInput{Image: "nginx:stable"},
+				Oci:     &openapi.AppOCI{Image: "nginx:stable"},
 			},
 			detail: "Update the OCI image in a separate request.",
 		},

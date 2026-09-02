@@ -603,7 +603,7 @@ components:
                         create a deployment. Image updates cannot be combined with other changes,
                         and source switching is not supported.
                     allOf:
-                        - "$ref": "#/components/schemas/AppOCIInput"
+                        - "$ref": "#/components/schemas/AppOCI"
                 deleteProtection:
                     type: boolean
                     description: |
