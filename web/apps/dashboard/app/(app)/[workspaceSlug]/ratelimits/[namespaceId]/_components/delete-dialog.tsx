@@ -9,7 +9,7 @@ import { z } from "zod";
 const formSchema = z.object({
   identifier: z
     .string()
-    // biome-ignore lint/suspicious/noSelfCompare: <explanation>
+    // biome-ignore lint/suspicious/noSelfCompare: refine always passes, it only carries the message
     .refine((v) => v === v, "Please confirm the identifier"),
 });
 
