@@ -20,6 +20,7 @@ func TestDeploymentRowToState_Running(t *testing.T) {
 		EnvironmentID:          "env_1",
 		AppID:                  "app_1",
 		Image:                  sql.NullString{Valid: true, String: "registry.io/app:v1"},
+		ImageResolved:          sql.NullString{Valid: false, String: "registry.io/invalid:v2"},
 		CpuMillicores:          250,
 		MemoryMib:              256,
 		Port:                   8080,

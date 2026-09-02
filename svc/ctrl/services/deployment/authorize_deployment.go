@@ -53,11 +53,11 @@ func (s *Service) AuthorizeDeployment(ctx context.Context, req *connect.Request[
 	var deployReq *hydrav1.DeployRequest
 	var repoConn *db.GithubRepoConnection
 	if useOCI {
-		image := deployment.ImageRequested.String
-		if image == "" {
-			image = resolvedDeploymentImage(deployment).String
+		image := deployment.ImageRequested
+		if !image.Valid || image.String == "" {
+			image = resolvedDeploymentImage(deployment)
 		}
-		if image == "" {
+		if !image.Valid || image.String == "" {
 			return nil, connect.NewError(connect.CodeFailedPrecondition,
 				fmt.Errorf("OCI deployment %s has no image reference", deploymentID))
 		}
@@ -65,7 +65,7 @@ func (s *Service) AuthorizeDeployment(ctx context.Context, req *connect.Request[
 			DeploymentId: deploymentID,
 			Command:      deployment.Command,
 			Source: &hydrav1.DeployRequest_OciImage{
-				OciImage: &hydrav1.OciImage{Image: image},
+				OciImage: &hydrav1.OciImage{Image: image.String},
 			},
 		}
 	} else {
