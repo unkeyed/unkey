@@ -568,10 +568,38 @@ components:
             required:
                 - project
                 - app
-            minProperties: 3
+            not:
+                allOf:
+                    - not:
+                        required:
+                            - name
+                    - not:
+                        required:
+                            - slug
+                    - not:
+                        required:
+                            - git
+                    - not:
+                        required:
+                            - oci
+                    - not:
+                        required:
+                            - deleteProtection
             dependentSchemas:
                 oci:
-                    maxProperties: 3
+                    allOf:
+                        - not:
+                            required:
+                                - name
+                        - not:
+                            required:
+                                - slug
+                        - not:
+                            required:
+                                - git
+                        - not:
+                            required:
+                                - deleteProtection
             properties:
                 project:
                     "$ref": "#/components/schemas/ResourceIdentifier"
