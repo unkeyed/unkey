@@ -3,7 +3,6 @@
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { routes } from "@/lib/navigation/routes";
 import { trpc } from "@/lib/trpc/client";
-import { CloudUp, Database, Earth, Layers3, ShareUpRight } from "@unkey/icons";
 import {
   Button,
   EmptyHero,
@@ -15,6 +14,13 @@ import {
 } from "@unkey/ui";
 import { formatDistanceToNow } from "date-fns";
 import Link from "next/link";
+import {
+  IconCloudUploadOutline18,
+  IconDatabaseOutline18,
+  IconEarthOutline18,
+  IconLayers3Outline18,
+  IconShareUpRightOutline18,
+} from "nucleo-ui-outline-18";
 import { CreateLogdrainButton } from "./create-logdrain-button";
 import { DrainMedia } from "./drain-destinations";
 import type { DrainListItem } from "./drain-schema";
@@ -100,11 +106,11 @@ export function LogdrainsList({ onCreate }: { onCreate: () => void }) {
     return (
       <EmptyHero>
         <EmptyHero.Icons>
-          <Layers3 iconSize="md-medium" />
-          <ShareUpRight iconSize="md-medium" />
-          <CloudUp iconSize="md-thin" />
-          <Earth iconSize="md-medium" />
-          <Database iconSize="md-medium" />
+          <IconLayers3Outline18 />
+          <IconShareUpRightOutline18 />
+          <IconCloudUploadOutline18 />
+          <IconEarthOutline18 />
+          <IconDatabaseOutline18 />
         </EmptyHero.Icons>
         <EmptyHero.Title>Create your first log drain</EmptyHero.Title>
         <EmptyHero.Description>

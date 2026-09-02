@@ -19,9 +19,9 @@ import type { EnvironmentSettings } from "@/lib/collections/deploy/environment-s
 import { trpc } from "@/lib/trpc/client";
 import { mapRegionToFlag } from "@/lib/trpc/routers/deploy/network/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Location2 } from "@unkey/icons";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@unkey/ui";
 import { FormLabel } from "@unkey/ui/src/components/form/form-helpers";
+import { IconLocation2Outline18 } from "nucleo-ui-outline-18";
 import { useContext, useEffect, useId, useMemo } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
@@ -229,7 +229,7 @@ const RegionsSingle = () => {
 
   return (
     <FormSettingCard
-      icon={<Location2 className="text-gray-12" iconSize="xl-medium" />}
+      icon={<IconLocation2Outline18 className="text-gray-12" />}
       title="Regions"
       description="Geographic regions where your app will run"
       displayValue={<RegionDisplayValue regions={defaultRegions} />}
@@ -374,7 +374,7 @@ const RegionsDualInner = ({ production, preview }: RegionsDualInnerProps) => {
 
   return (
     <FormSettingCard
-      icon={<Location2 className="text-gray-12" iconSize="xl-medium" />}
+      icon={<IconLocation2Outline18 className="text-gray-12" />}
       title="Regions"
       description="Geographic regions where your app will run"
       displayValue={

@@ -1,5 +1,5 @@
 "use client";
-import type { IconProps } from "@unkey/icons/src/props";
+import type { IconProps } from "nucleo-ui-outline-18";
 // biome-ignore lint: React in this context is used throughout, so biome will change to types because no APIs are used even though React is needed.
 import * as React from "react";
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
@@ -196,8 +196,8 @@ const NavigableDialogNav = <TStepName extends string>({
             {IconComponent && (
               <div>
                 <IconComponent
-                  iconSize="md-medium"
                   className={cn(
+                    "size-4",
                     isDisabled ? "text-gray-7" : isActive ? "text-gray-12" : "text-gray-9",
                   )}
                 />

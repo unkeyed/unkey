@@ -1,8 +1,12 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { EyeSlash, Trash, XMark } from "@unkey/icons";
 import { Button, ConfirmPopover } from "@unkey/ui";
+import {
+  IconEyeSlashOutline18,
+  IconTrashOutline18,
+  IconXmarkOutline18,
+} from "nucleo-ui-outline-18";
 import { useRef, useState } from "react";
 
 type EnvVarSelectionBarProps = {
@@ -49,7 +53,7 @@ export function EnvVarSelectionBar({
                 onClick={() => setIsSensitiveConfirmOpen(true)}
                 ref={sensitiveButtonRef}
               >
-                <EyeSlash iconSize="sm-medium" />
+                <IconEyeSlashOutline18 className="size-3" />
                 Make Sensitive
               </Button>
               <Button
@@ -59,11 +63,11 @@ export function EnvVarSelectionBar({
                 onClick={() => setIsDeleteConfirmOpen(true)}
                 ref={deleteButtonRef}
               >
-                <Trash iconSize="sm-medium" />
+                <IconTrashOutline18 />
                 Delete
               </Button>
               <Button variant="ghost" className="[&_svg]:size-3.5 ml-3" onClick={onClearSelection}>
-                <XMark iconSize="sm-medium" />
+                <IconXmarkOutline18 />
               </Button>
             </div>
           </div>

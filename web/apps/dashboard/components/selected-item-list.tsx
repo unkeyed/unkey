@@ -1,6 +1,6 @@
 import { cn } from "@/lib/utils";
-import { XMark } from "@unkey/icons";
 import { AnimatePresence, motion } from "framer-motion";
+import { IconXmarkOutline12 } from "nucleo-ui-outline-12";
 
 interface BaseItem {
   id: string;
@@ -106,14 +106,14 @@ export function SelectedItemsList<T extends BaseItem>({
                     className="p-0.5 hover:bg-grayA-4 rounded-sm text-grayA-11 hover:text-accent-12 transition-colors shrink-0 ml-auto"
                     aria-label={`Remove ${renderPrimaryText(item)}`}
                   >
-                    <XMark iconSize="sm-regular" />
+                    <IconXmarkOutline12 />
                   </button>
                 ) : (
                   <div
                     className="p-0.5 rounded-sm text-grayA-6 shrink-0 ml-auto opacity-50"
                     title="Cannot remove - inherited from selected role"
                   >
-                    <XMark iconSize="sm-regular" />
+                    <IconXmarkOutline12 />
                   </div>
                 )}
               </ItemComponent>

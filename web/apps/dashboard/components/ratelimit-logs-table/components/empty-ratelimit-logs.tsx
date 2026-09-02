@@ -1,5 +1,5 @@
-import { BookBookmark } from "@unkey/icons";
 import { Button, Empty } from "@unkey/ui";
+import { IconBookBookmarkOutline18 } from "nucleo-ui-outline-18";
 
 export const EmptyRatelimitLogs = () => (
   <div className="w-full flex justify-center items-center h-full">
@@ -13,7 +13,7 @@ export const EmptyRatelimitLogs = () => (
       <Empty.Actions className="mt-4 justify-start">
         <a href="https://www.unkey.com/docs/introduction" target="_blank" rel="noopener noreferrer">
           <Button size="md">
-            <BookBookmark />
+            <IconBookBookmarkOutline18 />
             Documentation
           </Button>
         </a>

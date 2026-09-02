@@ -1,8 +1,8 @@
 import { DEFAULT_OPTIONS } from "@/components/logs/datetime/constants";
 import { DatetimePopover } from "@/components/logs/datetime/datetime-popover";
 import { cn } from "@/lib/utils";
-import { Calendar } from "@unkey/icons";
 import { Button } from "@unkey/ui";
+import { IconCalendarOutline18 } from "nucleo-ui-outline-18";
 import { useEffect, useState } from "react";
 import { useFilters } from "../../../../hooks/use-filters";
 
@@ -87,7 +87,7 @@ export const LogsDateTime = () => {
         title="Press 'T' to toggle filters"
         disabled={displayTitle === "Loading..."}
       >
-        <Calendar className="text-gray-9 size-4" />
+        <IconCalendarOutline18 className="text-gray-9 size-4" />
         <span className="text-gray-12 font-medium text-[13px] max-md:hidden">{displayTitle}</span>
       </Button>
     </DatetimePopover>

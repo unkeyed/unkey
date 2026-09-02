@@ -1,5 +1,9 @@
-import { Book2, Bookmark, ClockRotateClockwise } from "@unkey/icons";
 import { Button, Empty } from "@unkey/ui";
+import {
+  IconBook2Outline18,
+  IconBookmarkOutline18,
+  IconClockRotateClockwiseOutline18,
+} from "nucleo-ui-outline-18";
 
 type EmptyQueriesProps = {
   selectedTab: number;
@@ -11,9 +15,9 @@ export const EmptyQueries = ({ selectedTab, isEmpty }: EmptyQueriesProps) => {
       <Empty>
         <Empty.Icon>
           {selectedTab === 0 ? (
-            <ClockRotateClockwise iconSize="2xl-thin" className="p-0 text-accent-12" />
+            <IconClockRotateClockwiseOutline18 className="size-7.5 p-0 text-accent-12" />
           ) : (
-            <Bookmark iconSize="2xl-thin" className="w-full h-full p-0 m-0 text-accent-12" />
+            <IconBookmarkOutline18 className="size-7.5 w-full h-full p-0 m-0 text-accent-12" />
           )}
         </Empty.Icon>
         <Empty.Title className="mt-5">
@@ -31,7 +35,7 @@ export const EmptyQueries = ({ selectedTab, isEmpty }: EmptyQueriesProps) => {
             rel="noopener noreferrer"
           >
             <Button variant="outline" size="md" className="flex items-center justify-center px-2">
-              <Book2 iconSize="sm-regular" className="py-0.5" />
+              <IconBook2Outline18 className="py-0.5" />
               Documentation
             </Button>
           </a>

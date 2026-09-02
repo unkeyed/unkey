@@ -1,7 +1,7 @@
 "use client";
 
-import { Plus, Trash } from "@unkey/icons";
 import { Button, FormInput } from "@unkey/ui";
+import { IconPlusOutline12, IconTrashOutline12 } from "nucleo-ui-outline-12";
 import { Controller, useFieldArray, useFormContext, useWatch } from "react-hook-form";
 import { DrainEndpointRow } from "./drain-endpoint-row";
 import { type DrainFormValues, emptyHeaderRow } from "./drain-schema";
@@ -103,7 +103,7 @@ export function HeaderFields() {
               aria-label={`Remove header ${index + 1}`}
               onClick={() => remove(index)}
             >
-              <Trash iconSize="sm-regular" />
+              <IconTrashOutline12 />
             </Button>
           </div>
         ))}
@@ -114,7 +114,7 @@ export function HeaderFields() {
           disabled={fields.length >= 32}
           onClick={() => append({ ...emptyHeaderRow })}
         >
-          <Plus iconSize="sm-regular" />
+          <IconPlusOutline12 />
           Add header
         </Button>
       </div>

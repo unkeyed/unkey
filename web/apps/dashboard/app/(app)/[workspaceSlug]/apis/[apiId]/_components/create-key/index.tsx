@@ -3,7 +3,6 @@ import { NavbarActionButton } from "@/components/navigation/action-button";
 import { CopyableIDButton } from "@/components/navigation/copyable-id-button";
 import { usePersistedForm } from "@/hooks/use-persisted-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Plus } from "@unkey/icons";
 import {
   Button,
   Loading,
@@ -15,6 +14,7 @@ import {
   NavigableDialogRoot,
   toast,
 } from "@unkey/ui";
+import { IconPlusOutline18 } from "nucleo-ui-outline-18";
 import { Suspense, useEffect, useState } from "react";
 import { FormProvider, type Resolver } from "react-hook-form";
 import { KeyCreatedSuccessDialog } from "./components/key-created-success-dialog";
@@ -147,7 +147,7 @@ export const CreateKeyDialog = ({
   return (
     <>
       <NavbarActionButton title="Create key" onClick={() => setIsSettingsOpen(true)}>
-        <Plus />
+        <IconPlusOutline18 />
         Create key
       </NavbarActionButton>
       <CopyableIDButton value={copyIdValue ?? apiId} />

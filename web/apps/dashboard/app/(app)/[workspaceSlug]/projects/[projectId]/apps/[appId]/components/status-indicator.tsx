@@ -1,6 +1,6 @@
-import { Cloud } from "@unkey/icons";
 import { InfoTooltip } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
+import { IconCloudOutline12 } from "nucleo-ui-outline-12";
 
 export type DiffStatus = "breaking" | "warning" | "safe" | "loading";
 
@@ -57,7 +57,7 @@ export function StatusIndicator({
             className,
           )}
         >
-          <Cloud iconSize="sm-regular" className="text-gray-12" />
+          <IconCloudOutline12 className="text-gray-12" />
         </div>
         {withSignal && !isLoading && (
           <div className="absolute -top-0.5 -right-0.5">

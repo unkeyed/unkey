@@ -4,7 +4,7 @@ import { Switch } from "@/components/ui/switch";
 import { collection } from "@/lib/collections";
 import type { EnvironmentSettings } from "@/lib/collections/deploy/environment-settings";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { HalfDottedCirclePlay } from "@unkey/icons";
+import { IconHalfDottedCirclePlayOutline18 } from "nucleo-ui-outline-18";
 import { useEffect } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
@@ -85,7 +85,7 @@ const AutoDeployInner = ({
 
   return (
     <FormSettingCard
-      icon={<HalfDottedCirclePlay className="text-gray-12" iconSize="xl-medium" />}
+      icon={<IconHalfDottedCirclePlayOutline18 className="text-gray-12" />}
       title="Auto deploy"
       description="Automatically trigger deployments when code is pushed to GitHub."
       displayValue={

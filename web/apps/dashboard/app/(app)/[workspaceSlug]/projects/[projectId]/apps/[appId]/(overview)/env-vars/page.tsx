@@ -1,6 +1,5 @@
 "use client";
 
-import { Plus } from "@unkey/icons";
 import {
   Button,
   PageBody,
@@ -11,6 +10,7 @@ import {
   PageHeaderDescription,
   PageHeaderTitle,
 } from "@unkey/ui";
+import { IconPlusOutline18 } from "nucleo-ui-outline-18";
 import { useState } from "react";
 import { EnvVarsBody } from "./deployment-env-vars";
 
@@ -32,7 +32,7 @@ export default function EnvVarsPage() {
             onClick={() => setIsAddOpen((prev) => !prev)}
             variant={isAddOpen ? "outline" : "primary"}
           >
-            <Plus iconSize="sm-regular" />
+            <IconPlusOutline18 />
             Add environment variable
           </Button>
         </PageHeaderActions>

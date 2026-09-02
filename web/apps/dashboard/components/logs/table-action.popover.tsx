@@ -1,4 +1,3 @@
-import { Dots } from "@unkey/icons";
 import {
   Button,
   Popover,
@@ -12,6 +11,7 @@ import {
 import { cn } from "@unkey/ui/src/lib/utils";
 import type { Route } from "next";
 import Link from "next/link";
+import { IconDotsOutline18 } from "nucleo-ui-outline-18";
 import { type FC, type PropsWithChildren, forwardRef, useEffect, useRef, useState } from "react";
 
 export type ActionComponentProps = {
@@ -236,7 +236,7 @@ export const TableActionPopoverDefaultTrigger = forwardRef<
       aria-label="Open actions"
       {...buttonProps}
     >
-      <Dots className="group-hover:text-gray-12 text-gray-11" iconSize="sm-regular" />
+      <IconDotsOutline18 className="group-hover:text-gray-12 text-gray-11" />
     </Button>
   );
 });

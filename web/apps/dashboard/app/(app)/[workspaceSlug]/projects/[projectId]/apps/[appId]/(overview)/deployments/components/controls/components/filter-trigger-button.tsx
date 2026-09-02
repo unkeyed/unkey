@@ -1,7 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { ChevronDown } from "@unkey/icons";
+import { IconChevronDownOutline18 } from "nucleo-ui-outline-18";
 import { type ButtonHTMLAttributes, type ReactNode, forwardRef } from "react";
 
 type Props = ButtonHTMLAttributes<HTMLButtonElement> & {
@@ -37,7 +37,7 @@ export const FilterTriggerButton = forwardRef<HTMLButtonElement, Props>(
           </span>
         )}
       </span>
-      <ChevronDown className="ml-auto shrink-0" iconSize="md-medium" />
+      <IconChevronDownOutline18 className="size-4 ml-auto shrink-0" />
     </button>
   ),
 );

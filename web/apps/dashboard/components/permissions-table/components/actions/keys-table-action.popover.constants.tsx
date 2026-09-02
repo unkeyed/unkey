@@ -1,8 +1,12 @@
 "use client";
 import { type MenuItem, TableActionPopover } from "@/components/logs/table-action.popover";
 import type { Permission } from "@/lib/trpc/routers/authorization/permissions/query";
-import { Clone, PenWriting3, Trash } from "@unkey/icons";
 import { toast } from "@unkey/ui";
+import {
+  IconCloneOutline18,
+  IconPenWriting3Outline18,
+  IconTrashOutline18,
+} from "nucleo-ui-outline-18";
 import { DeletePermission } from "./components/delete-permission";
 import { EditPermission } from "./components/edit-permission";
 
@@ -10,14 +14,14 @@ export const getPermissionsTableActionItems = (permission: Permission): MenuItem
   {
     id: "edit-permission",
     label: "Edit permission...",
-    icon: <PenWriting3 iconSize="md-medium" />,
+    icon: <IconPenWriting3Outline18 className="size-4" />,
     ActionComponent: (props) => <EditPermission permission={permission} {...props} />,
   },
   {
     id: "copy",
     label: "Copy permission",
     className: "mt-1",
-    icon: <Clone iconSize="md-medium" />,
+    icon: <IconCloneOutline18 className="size-4" />,
     onClick: () => {
       navigator.clipboard
         .writeText(JSON.stringify(permission))
@@ -34,7 +38,7 @@ export const getPermissionsTableActionItems = (permission: Permission): MenuItem
   {
     id: "delete-permission",
     label: "Delete permission",
-    icon: <Trash iconSize="md-medium" />,
+    icon: <IconTrashOutline18 className="size-4" />,
     ActionComponent: (props) => <DeletePermission {...props} permissionDetails={permission} />,
   },
 ];

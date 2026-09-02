@@ -1,5 +1,5 @@
 "use client";
-import { TaskChecked, TaskUnchecked } from "@unkey/icons";
+import { IconClipboardCheckOutline18, IconClipboardOutline18 } from "nucleo-ui-outline-18";
 import * as React from "react";
 import { cn } from "../lib/utils";
 import { InfoTooltip } from "./info-tooltip";
@@ -58,9 +58,9 @@ export const Id: React.FC<IdProps> = ({ className, value, truncate, ...props }) 
       <InfoTooltip position={{ side: "bottom" }} content={value}>
         <div className=" flex justify-end border w-full border-none h-full bg-accent-1">
           {isCopied ? (
-            <TaskChecked className="item-end my-auto mr-2 bg-gray-1" />
+            <IconClipboardCheckOutline18 className="item-end my-auto mr-2 bg-gray-1" />
           ) : (
-            <TaskUnchecked className="item-end my-auto mr-2 bg-gray-1" />
+            <IconClipboardOutline18 className="item-end my-auto mr-2 bg-gray-1" />
           )}
         </div>
       </InfoTooltip>

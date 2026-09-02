@@ -3,8 +3,8 @@ import { NavbarActionButton } from "@/components/navigation/action-button";
 import { Navbar } from "@/components/navigation/navbar";
 import { usePersistedForm } from "@/hooks/use-persisted-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { PenWriting3, Plus } from "@unkey/icons";
 import { Button, DialogContainer, FormInput, FormTextarea } from "@unkey/ui";
+import { IconPenWriting3Outline18, IconPlusOutline18 } from "nucleo-ui-outline-18";
 import { useEffect, useState } from "react";
 import { FormProvider } from "react-hook-form";
 import { useUpsertPermission } from "./hooks/use-upsert-permission";
@@ -139,7 +139,7 @@ export const UpsertPermissionDialog = ({
 
   const defaultTrigger = (
     <NavbarActionButton title={dialogConfig.triggerTitle} onClick={() => setIsDialogOpen(true)}>
-      {isEditMode ? <PenWriting3 /> : <Plus />}
+      {isEditMode ? <IconPenWriting3Outline18 /> : <IconPlusOutline18 />}
       {dialogConfig.triggerTitle}
     </NavbarActionButton>
   );

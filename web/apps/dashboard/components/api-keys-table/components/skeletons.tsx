@@ -1,5 +1,5 @@
-import { Dots } from "@unkey/icons";
 import { cn } from "@unkey/ui/src/lib/utils";
+import { IconDotsOutline12 } from "nucleo-ui-outline-12";
 
 export const KeyColumnSkeleton = () => (
   <div className="flex flex-col items-start w-auto">
@@ -77,6 +77,6 @@ export const ActionColumnSkeleton = () => (
       "border border-gray-6",
     )}
   >
-    <Dots className="text-gray-11" iconSize="sm-regular" />
+    <IconDotsOutline12 className="text-gray-11" />
   </button>
 );

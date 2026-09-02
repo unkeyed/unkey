@@ -2,7 +2,6 @@
 
 import { useKeyboardShortcut } from "@/hooks/use-keyboard-shortcut";
 import { cn, processTimeFilters } from "@/lib/utils";
-import { ChevronDown } from "@unkey/icons";
 import { useIsMobile } from "@unkey/ui";
 import {
   Button,
@@ -15,6 +14,7 @@ import {
   type Range,
   type TimeUnit,
 } from "@unkey/ui";
+import { IconChevronDownOutline18 } from "nucleo-ui-outline-18";
 import {
   type PropsWithChildren,
   type ReactElement,
@@ -237,7 +237,7 @@ export const DatetimePopover = ({
                 <span className="text-gray-9 text-[13px]">
                   {singleDateMode ? "Select a date" : "Filter by time range"}
                 </span>
-                <ChevronDown
+                <IconChevronDownOutline18
                   className={cn("transition-transform duration-150 ease-out", {
                     "rotate-180": timeRangeOpen,
                   })}

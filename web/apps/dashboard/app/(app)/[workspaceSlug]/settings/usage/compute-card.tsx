@@ -3,7 +3,6 @@
 import { DEPLOY_METER_RATES } from "@/lib/billing/deployPricing";
 import { formatCompactQuantity, formatPrice } from "@/lib/fmt";
 import { trpc } from "@/lib/trpc/client";
-import { ChevronRight, Cube } from "@unkey/icons";
 import {
   InfoTooltip,
   Item,
@@ -17,6 +16,8 @@ import {
   ItemTitle,
   Skeleton,
 } from "@unkey/ui";
+import { IconChevronRightOutline12 } from "nucleo-ui-outline-12";
+import { IconCubeOutline18 } from "nucleo-ui-outline-18";
 import { Fragment, type ReactNode, useMemo, useState } from "react";
 import {
   type ComputeTree,
@@ -96,7 +97,7 @@ export function ComputeCardShell({
     <ItemGroup variant="outline">
       <ItemHeader>
         <ItemMedia className="bg-orangeA-3 text-orange-11">
-          <Cube />
+          <IconCubeOutline18 />
         </ItemMedia>
         <ItemContent>
           <ItemTitle>Compute</ItemTitle>
@@ -132,7 +133,7 @@ export function ComputeCardSkeleton() {
         <Fragment key={row}>
           {index === 0 ? null : <ItemSeparator />}
           <Item className="gap-2">
-            <ChevronRight iconSize="sm-regular" className="shrink-0 text-gray-6" />
+            <IconChevronRightOutline12 className="shrink-0 text-gray-6" />
             <Skeleton className="size-2 shrink-0 rounded-full" />
             <ItemContent>
               <Skeleton className="h-4 w-40" />
@@ -238,8 +239,7 @@ function ProjectRow({
         className="gap-2"
         render={<button type="button" aria-expanded={open} onClick={onToggle} />}
       >
-        <ChevronRight
-          iconSize="sm-regular"
+        <IconChevronRightOutline12
           className={`shrink-0 text-gray-9 transition-transform duration-150 ease-out motion-reduce:transition-none ${open ? "rotate-90" : ""}`}
         />
         <span

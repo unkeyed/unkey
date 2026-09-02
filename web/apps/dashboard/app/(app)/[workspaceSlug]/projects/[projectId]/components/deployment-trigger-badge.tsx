@@ -1,5 +1,7 @@
-import { BracketsCurly, Github, Laptop2, SquareTerminal, Unkey } from "@unkey/icons";
+import { Github, Unkey } from "@unkey/icons";
 import { InfoTooltip } from "@unkey/ui";
+import { IconBracketsCurlyOutline12 } from "nucleo-ui-outline-12";
+import { IconLaptop2Outline18, IconSquareTerminalOutline18 } from "nucleo-ui-outline-18";
 import type { ReactNode } from "react";
 
 type DeploymentTrigger = "unknown" | "github" | "api" | "cli" | "dashboard" | "unkey";
@@ -17,11 +19,11 @@ type DeploymentTriggerBadgeProps = {
 type Spec = { label: string; icon: ReactNode };
 
 const SPECS: Record<Exclude<DeploymentTrigger, "unknown">, Spec> = {
-  github: { label: "GitHub", icon: <Github iconSize="sm-regular" /> },
-  dashboard: { label: "Dashboard", icon: <Laptop2 iconSize="sm-regular" /> },
-  api: { label: "API", icon: <BracketsCurly iconSize="sm-regular" /> },
-  cli: { label: "CLI", icon: <SquareTerminal iconSize="sm-regular" /> },
-  unkey: { label: "Unkey", icon: <Unkey iconSize="sm-regular" /> },
+  github: { label: "GitHub", icon: <Github className="size-3" /> },
+  dashboard: { label: "Dashboard", icon: <IconLaptop2Outline18 className="size-3" /> },
+  api: { label: "API", icon: <IconBracketsCurlyOutline12 /> },
+  cli: { label: "CLI", icon: <IconSquareTerminalOutline18 className="size-3" /> },
+  unkey: { label: "Unkey", icon: <Unkey className="size-3" /> },
 };
 
 // Prefix `triggered_by` into a readable tooltip line, per trigger semantics.

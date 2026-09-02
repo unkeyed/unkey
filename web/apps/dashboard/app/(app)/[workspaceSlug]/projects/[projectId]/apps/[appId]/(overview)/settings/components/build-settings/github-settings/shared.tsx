@@ -12,7 +12,7 @@ export const GitHubSettingCard = ({
 }) => (
   <SettingCard
     className="px-4 py-[18px] "
-    icon={<Github className="text-gray-12" iconSize="xl-regular" />}
+    icon={<Github className="text-gray-12" />}
     title="Repository"
     description="Source repository for this deployment"
     border="top"

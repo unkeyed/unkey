@@ -1,8 +1,8 @@
 import { useRequestLogsFilters } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/(project)/requests/hooks/use-request-logs-filters";
 import { DatetimePopover } from "@/components/logs/datetime/datetime-popover";
 import { cn } from "@/lib/utils";
-import { Calendar } from "@unkey/icons";
 import { Button } from "@unkey/ui";
+import { IconCalendarOutline18 } from "nucleo-ui-outline-18";
 import { useEffect, useState } from "react";
 
 export const RequestLogsDateTime = () => {
@@ -83,7 +83,7 @@ export const RequestLogsDateTime = () => {
         title="Press 'T' to toggle filters"
         disabled={displayTitle === "Loading..."}
       >
-        <Calendar className="text-gray-9 size-4" />
+        <IconCalendarOutline18 className="text-gray-9 size-4" />
         <span className="text-gray-12 font-medium text-[13px]">{displayTitle}</span>
       </Button>
     </DatetimePopover>
