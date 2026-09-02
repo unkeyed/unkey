@@ -108,6 +108,17 @@ func TestToResponseSource(t *testing.T) {
 		require.Equal(t, "ghcr.io/acme/api@sha256:resolved", got.Docker.Image)
 	})
 
+	t.Run("invalid requested image falls back to resolved image", func(t *testing.T) {
+		got := ToResponse(Input{Deployment: db.Deployment{
+			ID:             uid.New(uid.DeploymentPrefix),
+			Source:         db.DeploymentsSourceOci,
+			ImageRequested: sql.NullString{Valid: false, String: "ghcr.io/acme/api:invalid"},
+			ImageResolved:  sql.NullString{Valid: true, String: "ghcr.io/acme/api@sha256:resolved"},
+		}})
+		require.NotNil(t, got.Docker)
+		require.Equal(t, "ghcr.io/acme/api@sha256:resolved", got.Docker.Image)
+	})
+
 	t.Run("git without branch omits branch", func(t *testing.T) {
 		got := ToResponse(Input{Deployment: db.Deployment{
 			ID:           uid.New(uid.DeploymentPrefix),
