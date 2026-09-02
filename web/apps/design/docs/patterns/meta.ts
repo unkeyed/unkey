@@ -3,6 +3,6 @@ import { defineMeta } from "blume";
 export default defineMeta({
   title: "Patterns",
   icon: "layout-template",
-  order: 3,
+  order: 4,
   pages: ["layout", "resource-list-page", "settings-group"],
 });
