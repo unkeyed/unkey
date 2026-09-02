@@ -795,3 +795,9 @@ code .line::before {
 body:has([data-slide-panel-open]) [data-radix-popper-content-wrapper] {
   z-index: 60 !important;
 }
+
+/* Throwaway comparison B: thin every Nucleo stroke to 1.0 (today's feedback-button look). */
+svg[viewBox="0 0 18 18"] [stroke-width],
+svg[viewBox="0 0 12 12"] [stroke-width] {
+  stroke-width: 1;
+}
