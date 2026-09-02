@@ -35,6 +35,13 @@ const (
 	jwksIssuer      = "https://api.workos.com"
 )
 
+type claimsWithIgnoredFields struct {
+	Claims
+	Permissions      []string `json:"permissions"`
+	Role             string   `json:"role"`
+	UnkeyPermissions []string `json:"perms"`
+}
+
 func testWorkspaceLookup(workspaceID string) WorkspaceLookup {
 	return WorkspaceLookupFunc(func(_ context.Context, _ string) (string, error) {
 		return workspaceID, nil
@@ -51,27 +58,32 @@ func testWorkspaceLookupForOrg(t *testing.T, orgID string, workspaceID string) W
 }
 
 // TestResolver_ResolveJWT guarantees a dashboard proxy JWT becomes the same
-// principal shape downstream middleware expects for workspace-scoped auth.
+// principal shape downstream middleware expects and ignores unsupported claims.
 func TestResolver_ResolveJWT(t *testing.T) {
 	t.Parallel()
 
 	secret := []byte("local-test-secret-with-at-least-32-bytes")
-	signer, err := tokenjwt.NewHS256Signer[Claims](secret)
+	signer, err := tokenjwt.NewHS256Signer[claimsWithIgnoredFields](secret)
 	require.NoError(t, err)
 
 	now := time.Now()
-	token, err := signer.Sign(Claims{
-		RegisteredClaims: tokenjwt.RegisteredClaims{
-			Issuer:    dashboardIssuer,
-			Subject:   "user_123",
-			Audience:  []string{Audience},
-			ExpiresAt: now.Add(time.Minute).Unix(),
-			NotBefore: now.Add(-time.Second).Unix(),
-			IssuedAt:  now.Unix(),
+	token, err := signer.Sign(claimsWithIgnoredFields{
+		Claims: Claims{
+			RegisteredClaims: tokenjwt.RegisteredClaims{
+				Issuer:    dashboardIssuer,
+				Subject:   "user_123",
+				Audience:  []string{Audience},
+				ExpiresAt: now.Add(time.Minute).Unix(),
+				NotBefore: now.Add(-time.Second).Unix(),
+				IssuedAt:  now.Unix(),
+			},
+			Org:   OrganizationClaims{ID: "org_123"},
+			Name:  "Dashboard User",
+			Roles: []string{"viewer"},
 		},
-		Org:         OrganizationClaims{ID: "org_123"},
-		Name:        "Dashboard User",
-		Permissions: []string{"deployments:create", "deployments:create"},
+		Permissions:      []string{"admin:*"},
+		Role:             "admin",
+		UnkeyPermissions: []string{"unkey:v1:ws_123:**#*"},
 	})
 	require.NoError(t, err)
 
@@ -98,8 +110,9 @@ func TestResolver_ResolveJWT(t *testing.T) {
 	source, ok := principal.Source.(authprincipal.JWTSource)
 	require.True(t, ok)
 	require.Equal(t, map[string]any{"id": "org_123"}, source.Payload["org"])
+	require.Equal(t, []string{"viewer"}, source.Roles)
 	require.NotEmpty(t, source.Signature)
-	require.Equal(t, []string{"deployments:create", "deployments:create"}, principal.Permissions)
+	require.Empty(t, principal.Permissions)
 }
 
 // TestResolver_ResolveJWTWithJWKSURL guarantees RS256 tokens signed by a JWKS
@@ -128,9 +141,9 @@ func TestResolver_ResolveJWTWithJWKSURL(t *testing.T) {
 			NotBefore: now.Add(-time.Second).Unix(),
 			IssuedAt:  now.Unix(),
 		},
-		Org:         OrganizationClaims{ID: "org_123"},
-		Name:        "JWKS User",
-		Permissions: []string{"deployments:create"},
+		Org:   OrganizationClaims{ID: "org_123"},
+		Name:  "JWKS User",
+		Roles: []string{"developer"},
 	})
 	require.NoError(t, err)
 
@@ -157,11 +170,12 @@ func TestResolver_ResolveJWTWithJWKSURL(t *testing.T) {
 	require.True(t, ok)
 	require.Equal(t, "RS256", source.Header["alg"])
 	require.Equal(t, map[string]any{"id": "org_123"}, source.Payload["org"])
-	require.Equal(t, []string{"deployments:create"}, principal.Permissions)
+	require.Equal(t, []string{"developer"}, source.Roles)
+	require.Empty(t, principal.Permissions)
 }
 
-// TestResolver_ResolveWorkOSAccessTokenClaims guarantees WorkOS JWT-template
-// claim names populate the principal subject, workspace lookup, and permissions.
+// TestResolver_ResolveWorkOSAccessTokenClaims guarantees the generic resolver
+// preserves WorkOS identity and role claims without assigning permissions.
 func TestResolver_ResolveWorkOSAccessTokenClaims(t *testing.T) {
 	t.Parallel()
 
@@ -176,9 +190,9 @@ func TestResolver_ResolveWorkOSAccessTokenClaims(t *testing.T) {
 			ExpiresAt: now.Add(time.Minute).Unix(),
 			IssuedAt:  now.Unix(),
 		},
-		Org:               OrganizationClaims{ID: "org_123"},
-		User:              UserClaims{ID: "user_123", Email: "user@example.test"},
-		WorkOSPermissions: []string{"deployments:create"},
+		Org:   OrganizationClaims{ID: "org_123"},
+		User:  UserClaims{ID: "user_123", Email: "user@example.test"},
+		Roles: []string{"basic_member", "admin"},
 	})
 	require.NoError(t, err)
 
@@ -206,7 +220,8 @@ func TestResolver_ResolveWorkOSAccessTokenClaims(t *testing.T) {
 	org, ok := source.Payload["org"].(map[string]any)
 	require.True(t, ok)
 	require.Equal(t, "org_123", org["id"])
-	require.Equal(t, []string{"deployments:create"}, principal.Permissions)
+	require.Equal(t, []string{"basic_member", "admin"}, source.Roles)
+	require.Empty(t, principal.Permissions)
 }
 
 // TestResolver_ResolveJWTWithRotatedSecret guarantees the resolver accepts
@@ -229,8 +244,7 @@ func TestResolver_ResolveJWTWithRotatedSecret(t *testing.T) {
 			NotBefore: now.Add(-time.Second).Unix(),
 			IssuedAt:  now.Unix(),
 		},
-		Org:         OrganizationClaims{ID: "org_123"},
-		Permissions: []string{"deployments:create"},
+		Org: OrganizationClaims{ID: "org_123"},
 	})
 	require.NoError(t, err)
 
@@ -268,8 +282,7 @@ func TestResolver_RejectsJWTWithUnexpectedIssuer(t *testing.T) {
 			NotBefore: now.Add(-time.Second).Unix(),
 			IssuedAt:  now.Unix(),
 		},
-		Org:         OrganizationClaims{ID: "org_123"},
-		Permissions: []string{"deployments:create"},
+		Org: OrganizationClaims{ID: "org_123"},
 	})
 	require.NoError(t, err)
 
@@ -388,8 +401,7 @@ func TestResolver_RejectsJWTWithWrongAudience(t *testing.T) {
 			NotBefore: now.Add(-time.Second).Unix(),
 			IssuedAt:  now.Unix(),
 		},
-		Org:         OrganizationClaims{ID: "org_123"},
-		Permissions: []string{"deployments:create"},
+		Org: OrganizationClaims{ID: "org_123"},
 	})
 	require.NoError(t, err)
 
@@ -425,8 +437,7 @@ func TestResolver_RejectsExpiredJWT(t *testing.T) {
 			NotBefore: now.Add(-2 * time.Minute).Unix(),
 			IssuedAt:  now.Add(-2 * time.Minute).Unix(),
 		},
-		Org:         OrganizationClaims{ID: "org_123"},
-		Permissions: []string{"deployments:create"},
+		Org: OrganizationClaims{ID: "org_123"},
 	})
 	require.NoError(t, err)
 
@@ -1213,8 +1224,8 @@ func TestResolver_RejectsIncompleteClaims(t *testing.T) {
 	}
 }
 
-// TestResolver_ClaimPrecedence guarantees the dashboard subject and permission
-// shapes win over provider fallback shapes when a token carries both.
+// TestResolver_ClaimPrecedence guarantees dashboard subject and name claims win
+// over provider fallback shapes when a token carries both.
 func TestResolver_ClaimPrecedence(t *testing.T) {
 	t.Parallel()
 
@@ -1232,11 +1243,9 @@ func TestResolver_ClaimPrecedence(t *testing.T) {
 			NotBefore: now.Add(-time.Second).Unix(),
 			IssuedAt:  now.Unix(),
 		},
-		Org:               OrganizationClaims{ID: "org_dashboard"},
-		User:              UserClaims{ID: "user_workos", Email: "workos@acme.com"},
-		Name:              "Dashboard Name",
-		Permissions:       []string{"dashboard:perm"},
-		WorkOSPermissions: []string{"workos:perm"},
+		Org:  OrganizationClaims{ID: "org_dashboard"},
+		User: UserClaims{ID: "user_workos", Email: "workos@acme.com"},
+		Name: "Dashboard Name",
 	})
 	require.NoError(t, err)
 
@@ -1252,7 +1261,7 @@ func TestResolver_ClaimPrecedence(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, "user_dashboard", principal.Subject.ID)
 	require.Equal(t, "Dashboard Name", principal.Subject.Name)
-	require.Equal(t, []string{"dashboard:perm"}, principal.Permissions)
+	require.Empty(t, principal.Permissions)
 }
 
 // TestResolver_UnusableJWKSDocuments guarantees documents the verifier cannot

@@ -11,12 +11,15 @@ import (
 	"github.com/unkeyed/unkey/pkg/db"
 	dbtype "github.com/unkeyed/unkey/pkg/db/types"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/svc/api/internal/projects"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_permissions_delete_permission"
 )
 
-func TestAuthorizationErrors(t *testing.T) {
+// TestDeletePermissionMasksInsufficientPermissions guarantees that callers cannot
+// find or delete permissions without delete access.
+func TestDeletePermissionMasksInsufficientPermissions(t *testing.T) {
 	ctx := context.Background()
 	h := testutil.NewHarness(t)
 
@@ -29,14 +32,17 @@ func TestAuthorizationErrors(t *testing.T) {
 
 	// Create a workspace
 	workspace := h.Resources().UserWorkspace
+	projectID, err := projects.EnsureDefaultProject(ctx, h.DB.RW(), workspace.ID)
+	require.NoError(t, err)
 
 	// Create a test permission to try to delete
 	permissionID := uid.New(uid.PermissionPrefix)
 	permissionName := "test.permission.delete.auth"
 
-	err := db.Query.InsertPermission(ctx, h.DB.RW(), db.InsertPermissionParams{
+	err = db.Query.InsertPermission(ctx, h.DB.RW(), db.InsertPermissionParams{
 		PermissionID: permissionID,
 		WorkspaceID:  workspace.ID,
+		ProjectID:    projectID,
 		Name:         permissionName,
 		Slug:         "test-permission-delete-auth",
 		Description:  dbtype.NullString{Valid: true, String: "Test permission for authorization tests"},
@@ -58,17 +64,18 @@ func TestAuthorizationErrors(t *testing.T) {
 			Permission: permissionID,
 		}
 
-		res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](
+		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](
 			h,
 			route,
 			headers,
 			req,
 		)
 
-		require.Equal(t, 403, res.Status)
+		require.Equal(t, http.StatusNotFound, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
-		require.Contains(t, res.Body.Error.Detail, "Missing one of these permissions")
+		require.Equal(t, "https://unkey.com/docs/errors/unkey/data/permission_not_found", res.Body.Error.Type)
+		require.Equal(t, "The requested permission does not exist.", res.Body.Error.Detail)
 
 		// Verify the permission still exists (wasn't deleted)
 		perm, err := db.Query.FindPermissionByID(ctx, h.DB.RO(), permissionID)

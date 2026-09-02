@@ -1,6 +1,11 @@
 import { rootKeysQueryPayload } from "@/components/root-keys-table/schema/query-logs.schema";
 import { and, asc, count, db, desc, eq, exists, gt, isNull, or, schema, sql } from "@/lib/db";
-import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
+import {
+  ratelimit,
+  requireWorkspaceAdmin,
+  withRatelimit,
+  workspaceProcedure,
+} from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
@@ -38,6 +43,7 @@ export const LIMIT = 50;
 export const MAX_LIMIT = 200;
 
 export const queryRootKeys = workspaceProcedure
+  .use(requireWorkspaceAdmin)
   .use(withRatelimit(ratelimit.read))
   .input(rootKeysQueryPayload)
   .output(RootKeysResponse)

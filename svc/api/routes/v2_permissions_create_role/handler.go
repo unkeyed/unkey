@@ -18,7 +18,9 @@ import (
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/rbac"
+	rbacpermissions "github.com/unkeyed/unkey/pkg/rbac/permissions"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/internal/projects"
 	"github.com/unkeyed/unkey/svc/api/openapi"
@@ -54,26 +56,12 @@ func (h *Handler) Path() string {
 func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	logger.Debug("handling request", "requestId", s.RequestID(), "path", "/v2/permissions.createRole")
 
-	// 1. Authentication
 	principal, err := s.GetPrincipal()
 	if err != nil {
 		return err
 	}
 
-	// 2. Request validation
 	req, err := zen.BindBody[Request](s)
-	if err != nil {
-		return err
-	}
-
-	// 3. Permission check
-	err = principal.Authorize(rbac.Or(
-		rbac.T(rbac.Tuple{
-			ResourceType: rbac.Rbac,
-			ResourceID:   "*",
-			Action:       rbac.CreateRole,
-		}),
-	))
 	if err != nil {
 		return err
 	}
@@ -92,23 +80,40 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 	slices.Sort(permissionSlugs)
 
-	if len(permissionSlugs) > 0 {
-		err = principal.Authorize(rbac.T(rbac.Tuple{
-			ResourceType: rbac.Rbac,
-			ResourceID:   "*",
-			Action:       rbac.AddPermissionToRole,
-		}))
-		if err != nil {
-			return err
-		}
-	}
-
-	// 4. Prepare role creation
 	roleID := uid.New(uid.RolePrefix)
 	description := ptr.SafeDeref(req.Description)
 
-	// 5. Create role and permissions in a transaction with audit logs
 	err = db.TxRetry(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
+		projectID, resolveErr := projects.EnsureDefaultProject(ctx, tx, principal.WorkspaceID)
+		if resolveErr != nil {
+			return resolveErr
+		}
+
+		legacyAuthorization := rbac.T(rbac.Tuple{
+			ResourceType: rbac.Rbac,
+			ResourceID:   "*",
+			Action:       rbac.CreateRole,
+		})
+		if len(permissionSlugs) > 0 {
+			legacyAuthorization = rbac.And(
+				legacyAuthorization,
+				rbac.T(rbac.Tuple{
+					ResourceType: rbac.Rbac,
+					ResourceID:   "*",
+					Action:       rbac.AddPermissionToRole,
+				}),
+			)
+		}
+		if authorizeErr := principal.Authorize(rbac.Or(
+			rbac.U(
+				urn.New().Workspace(principal.WorkspaceID).Project(projectID).RBAC().Role("*"),
+				rbacpermissions.Write,
+			),
+			legacyAuthorization,
+		)); authorizeErr != nil {
+			return authorizeErr
+		}
+
 		permissions := make([]rolePermission, 0, len(permissionSlugs))
 		createdPermissions := make([]rolePermission, 0)
 		var missingSlugs []string
@@ -116,6 +121,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		if len(permissionSlugs) > 0 {
 			foundPermissions, findErr := db.Query.FindPermissionsBySlugsForUpdate(ctx, tx, db.FindPermissionsBySlugsForUpdateParams{
 				WorkspaceID: principal.WorkspaceID,
+				ProjectID:   projectID,
 				Slugs:       permissionSlugs,
 			})
 			if findErr != nil {
@@ -140,17 +146,18 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			}
 
 			if len(missingSlugs) > 0 {
-				if authorizeErr := principal.Authorize(rbac.T(rbac.Tuple{
-					ResourceType: rbac.Rbac,
-					ResourceID:   "*",
-					Action:       rbac.CreatePermission,
-				})); authorizeErr != nil {
+				if authorizeErr := principal.Authorize(rbac.Or(
+					rbac.U(
+						urn.New().Workspace(principal.WorkspaceID).Project(projectID).RBAC().Permission("*"),
+						rbacpermissions.Write,
+					),
+					rbac.T(rbac.Tuple{
+						ResourceType: rbac.Rbac,
+						ResourceID:   "*",
+						Action:       rbac.CreatePermission,
+					}),
+				)); authorizeErr != nil {
 					return authorizeErr
-				}
-
-				projectID, projectErr := projects.EnsureDefaultProject(ctx, tx, principal.WorkspaceID)
-				if projectErr != nil {
-					return projectErr
 				}
 
 				candidates := make(map[string]db.UpsertPermissionParams, len(missingSlugs))
@@ -175,6 +182,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 				foundPermissions, findErr = db.Query.FindPermissionsBySlugsForUpdate(ctx, tx, db.FindPermissionsBySlugsForUpdateParams{
 					WorkspaceID: principal.WorkspaceID,
+					ProjectID:   projectID,
 					Slugs:       permissionSlugs,
 				})
 				if findErr != nil {
@@ -198,17 +206,19 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 			permissions = permissions[:0]
 			for _, slug := range permissionSlugs {
-				permissions = append(permissions, permissionsBySlug[strings.ToLower(slug)])
+				permission, ok := permissionsBySlug[strings.ToLower(slug)]
+				if !ok {
+					return fault.New("permission not found",
+						fault.Code(codes.Data.Permission.NotFound.URN()),
+						fault.Internal("permission belongs to a different project"),
+						fault.Public(fmt.Sprintf("Permission '%s' was not found.", slug)),
+					)
+				}
+				permissions = append(permissions, permission)
 			}
-		}
-
-		projectID, resolveErr := projects.EnsureDefaultProject(ctx, tx, principal.WorkspaceID)
-		if resolveErr != nil {
-			return resolveErr
 		}
 		now := time.Now().UnixMilli()
 
-		// Insert the role
 		err = db.Query.InsertRole(ctx, tx, db.InsertRoleParams{
 			RoleID:      roleID,
 			WorkspaceID: principal.WorkspaceID,
@@ -246,7 +256,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			)
 		}
 
-		// Create audit logs
 		metaData := map[string]interface{}{
 			"name":        req.Name,
 			"description": description,
@@ -345,7 +354,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	// 7. Return success response
 	return s.JSON(http.StatusOK, Response{
 		Meta: openapi.Meta{
 			RequestId: s.RequestID(),

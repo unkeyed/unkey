@@ -15,73 +15,83 @@ type stubResolver struct {
 	err       error
 }
 
+// Resolve returns the configured principal and error.
 func (s stubResolver) Resolve(context.Context, *zen.Session) (*principal.Principal, error) {
 	return s.principal, s.err
 }
 
-// TestResolverWithPermissionsTranslatesPermissionStrings guarantees WorkOS JWT
-// principals expose canonical Unkey permissions before handlers authorize them.
-func TestResolverWithPermissionsTranslatesPermissionStrings(t *testing.T) {
+// TestResolverWithRolesMapsRoles guarantees configured WorkOS JWT resolvers
+// build API permissions only from the verified roles claim.
+func TestResolverWithRolesMapsRoles(t *testing.T) {
 	t.Parallel()
 
-	resolver := resolverWithPermissions{
+	resolver := resolverWithRoles{
 		resolver: stubResolver{
 			principal: &principal.Principal{
 				Type:        principal.TypeJWT,
 				WorkspaceID: "ws_123",
-				Permissions: []string{
-					"keys:create",
-					"keys:create",
-					"keys:encrypt",
-					"malformed",
-					"",
+				Source: principal.JWTSource{
+					Roles: []string{"viewer", "admin"},
 				},
 			},
 		},
 	}
 
-	principal, err := resolver.Resolve(context.Background(), nil)
+	p, err := resolver.Resolve(context.Background(), nil)
 	require.NoError(t, err)
-	require.Equal(t, []string{
-		"unkey:v1:ws_123:keyspaces/*#create_key",
-		"unkey:v1:ws_123:keyspaces/*#create_key",
-		"unkey:v1:ws_123:keyspaces/*/keys/*#encrypt_key",
-	}, principal.Permissions)
+	require.Contains(t, p.Permissions, "unkey:v1:ws_123:projects/*#read")
+	require.Contains(t, p.Permissions, "unkey:v1:ws_123:**#*")
 }
 
-// TestResolverWithPermissionsLeavesNonJWTPrincipalsAlone guarantees the WorkOS
-// wrapper cannot rewrite root-key or portal-session permissions.
-func TestResolverWithPermissionsLeavesNonJWTPrincipalsAlone(t *testing.T) {
+// TestResolverWithRolesLeavesNonJWTPrincipalsAlone guarantees provider role
+// mapping cannot change root-key or portal-session permissions.
+func TestResolverWithRolesLeavesNonJWTPrincipalsAlone(t *testing.T) {
 	t.Parallel()
 
-	resolver := resolverWithPermissions{
+	resolver := resolverWithRoles{
 		resolver: stubResolver{
 			principal: &principal.Principal{
 				Type:        principal.TypeAPIKey,
 				WorkspaceID: "ws_123",
-				Permissions: []string{"keys:create"},
+				Permissions: []string{"api.*.read_api"},
 			},
 		},
 	}
 
-	principal, err := resolver.Resolve(context.Background(), nil)
+	p, err := resolver.Resolve(context.Background(), nil)
 	require.NoError(t, err)
-	require.Equal(t, []string{"keys:create"}, principal.Permissions)
+	require.Equal(t, []string{"api.*.read_api"}, p.Permissions)
 }
 
-// TestResolverWithPermissionsYieldsAndPropagatesErrors guarantees the wrapper
-// preserves resolver nil-principal and error behavior before translation.
-func TestResolverWithPermissionsYieldsAndPropagatesErrors(t *testing.T) {
+// TestResolverWithRolesYieldsAndPropagatesErrors guarantees provider role
+// mapping preserves nil-principal and error behavior from token verification.
+func TestResolverWithRolesYieldsAndPropagatesErrors(t *testing.T) {
 	t.Parallel()
 
-	resolver := resolverWithPermissions{resolver: stubResolver{}}
-	principal, err := resolver.Resolve(context.Background(), nil)
+	resolver := resolverWithRoles{resolver: stubResolver{}}
+	p, err := resolver.Resolve(context.Background(), nil)
 	require.NoError(t, err)
-	require.Nil(t, principal)
+	require.Nil(t, p)
 
 	wantErr := errors.New("boom")
-	resolver = resolverWithPermissions{resolver: stubResolver{err: wantErr}}
-	principal, err = resolver.Resolve(context.Background(), nil)
+	resolver = resolverWithRoles{resolver: stubResolver{err: wantErr}}
+	p, err = resolver.Resolve(context.Background(), nil)
 	require.ErrorIs(t, err, wantErr)
-	require.Nil(t, principal)
+	require.Nil(t, p)
+}
+
+// TestResolverWithRolesRejectsInvalidJWTPrincipal guarantees an internal JWT
+// principal without JWT source data fails instead of receiving no permissions.
+func TestResolverWithRolesRejectsInvalidJWTPrincipal(t *testing.T) {
+	t.Parallel()
+
+	resolver := resolverWithRoles{
+		resolver: stubResolver{
+			principal: &principal.Principal{Type: principal.TypeJWT},
+		},
+	}
+
+	p, err := resolver.Resolve(context.Background(), nil)
+	require.Error(t, err)
+	require.Nil(t, p)
 }

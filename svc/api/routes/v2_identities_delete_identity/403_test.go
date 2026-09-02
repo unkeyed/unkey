@@ -6,13 +6,17 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
+	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_identities_delete_identity"
 )
 
-func TestDeleteIdentityForbidden(t *testing.T) {
+// TestDeleteIdentityMasksInsufficientPermissions guarantees that callers cannot
+// find or delete identities without delete access.
+func TestDeleteIdentityMasksInsufficientPermissions(t *testing.T) {
 	h := testutil.NewHarness(t)
 
 	route := &handler.Handler{
@@ -21,6 +25,11 @@ func TestDeleteIdentityForbidden(t *testing.T) {
 	}
 
 	h.Register(route)
+	externalID := uid.New(uid.TestPrefix)
+	identity := h.CreateIdentity(seed.CreateIdentityRequest{
+		WorkspaceID: h.Resources().UserWorkspace.ID,
+		ExternalID:  externalID,
+	})
 
 	t.Run("insufficient permissions - no permissions", func(t *testing.T) {
 		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID) // No permissions
@@ -29,15 +38,15 @@ func TestDeleteIdentityForbidden(t *testing.T) {
 			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
 		}
 
-		req := handler.Request{Identity: uid.New("test")}
-		res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, headers, req)
-		require.Equal(t, http.StatusForbidden, res.Status, "expected 403, sent: %+v, received: %s", req, res.RawBody)
+		req := handler.Request{Identity: externalID}
+		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, req)
+		require.Equal(t, http.StatusNotFound, res.Status, "expected 404, sent: %+v, received: %s", req, res.RawBody)
 		require.NotNil(t, res.Body)
 
-		require.Equal(t, "https://unkey.com/docs/errors/unkey/authorization/insufficient_permissions", res.Body.Error.Type)
-		require.Contains(t, res.Body.Error.Detail, "permission")
-		require.Equal(t, http.StatusForbidden, res.Body.Error.Status)
-		require.Equal(t, "Insufficient Permissions", res.Body.Error.Title)
+		require.Equal(t, "https://unkey.com/docs/errors/unkey/data/identity_not_found", res.Body.Error.Type)
+		require.Equal(t, "This identity does not exist.", res.Body.Error.Detail)
+		require.Equal(t, http.StatusNotFound, res.Body.Error.Status)
+		require.Equal(t, "Not Found", res.Body.Error.Title)
 		require.NotEmpty(t, res.Body.Meta.RequestId)
 	})
 
@@ -48,15 +57,15 @@ func TestDeleteIdentityForbidden(t *testing.T) {
 			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
 		}
 
-		req := handler.Request{Identity: uid.New("test")}
-		res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, headers, req)
-		require.Equal(t, http.StatusForbidden, res.Status, "expected 403, sent: %+v, received: %s", req, res.RawBody)
+		req := handler.Request{Identity: externalID}
+		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, req)
+		require.Equal(t, http.StatusNotFound, res.Status, "expected 404, sent: %+v, received: %s", req, res.RawBody)
 		require.NotNil(t, res.Body)
 
-		require.Equal(t, "https://unkey.com/docs/errors/unkey/authorization/insufficient_permissions", res.Body.Error.Type)
-		require.Contains(t, res.Body.Error.Detail, "permission")
-		require.Equal(t, http.StatusForbidden, res.Body.Error.Status)
-		require.Equal(t, "Insufficient Permissions", res.Body.Error.Title)
+		require.Equal(t, "https://unkey.com/docs/errors/unkey/data/identity_not_found", res.Body.Error.Type)
+		require.Equal(t, "This identity does not exist.", res.Body.Error.Detail)
+		require.Equal(t, http.StatusNotFound, res.Body.Error.Status)
+		require.Equal(t, "Not Found", res.Body.Error.Title)
 		require.NotEmpty(t, res.Body.Meta.RequestId)
 	})
 
@@ -67,15 +76,15 @@ func TestDeleteIdentityForbidden(t *testing.T) {
 			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
 		}
 
-		req := handler.Request{Identity: uid.New("test")}
-		res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, headers, req)
-		require.Equal(t, http.StatusForbidden, res.Status, "expected 403, sent: %+v, received: %s", req, res.RawBody)
+		req := handler.Request{Identity: externalID}
+		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, req)
+		require.Equal(t, http.StatusNotFound, res.Status, "expected 404, sent: %+v, received: %s", req, res.RawBody)
 		require.NotNil(t, res.Body)
 
-		require.Equal(t, "https://unkey.com/docs/errors/unkey/authorization/insufficient_permissions", res.Body.Error.Type)
-		require.Contains(t, res.Body.Error.Detail, "permission")
-		require.Equal(t, http.StatusForbidden, res.Body.Error.Status)
-		require.Equal(t, "Insufficient Permissions", res.Body.Error.Title)
+		require.Equal(t, "https://unkey.com/docs/errors/unkey/data/identity_not_found", res.Body.Error.Type)
+		require.Equal(t, "This identity does not exist.", res.Body.Error.Detail)
+		require.Equal(t, http.StatusNotFound, res.Body.Error.Status)
+		require.Equal(t, "Not Found", res.Body.Error.Title)
 		require.NotEmpty(t, res.Body.Meta.RequestId)
 	})
 
@@ -86,15 +95,15 @@ func TestDeleteIdentityForbidden(t *testing.T) {
 			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
 		}
 
-		req := handler.Request{Identity: uid.New("test")}
-		res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, headers, req)
-		require.Equal(t, http.StatusForbidden, res.Status, "expected 403, sent: %+v, received: %s", req, res.RawBody)
+		req := handler.Request{Identity: externalID}
+		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, req)
+		require.Equal(t, http.StatusNotFound, res.Status, "expected 404, sent: %+v, received: %s", req, res.RawBody)
 		require.NotNil(t, res.Body)
 
-		require.Equal(t, "https://unkey.com/docs/errors/unkey/authorization/insufficient_permissions", res.Body.Error.Type)
-		require.Contains(t, res.Body.Error.Detail, "permission")
-		require.Equal(t, http.StatusForbidden, res.Body.Error.Status)
-		require.Equal(t, "Insufficient Permissions", res.Body.Error.Title)
+		require.Equal(t, "https://unkey.com/docs/errors/unkey/data/identity_not_found", res.Body.Error.Type)
+		require.Equal(t, "This identity does not exist.", res.Body.Error.Detail)
+		require.Equal(t, http.StatusNotFound, res.Body.Error.Status)
+		require.Equal(t, "Not Found", res.Body.Error.Title)
 		require.NotEmpty(t, res.Body.Meta.RequestId)
 	})
 
@@ -105,15 +114,15 @@ func TestDeleteIdentityForbidden(t *testing.T) {
 			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
 		}
 
-		req := handler.Request{Identity: uid.New("test")}
-		res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, headers, req)
-		require.Equal(t, http.StatusForbidden, res.Status, "expected 403, sent: %+v, received: %s", req, res.RawBody)
+		req := handler.Request{Identity: externalID}
+		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, req)
+		require.Equal(t, http.StatusNotFound, res.Status, "expected 404, sent: %+v, received: %s", req, res.RawBody)
 		require.NotNil(t, res.Body)
 
-		require.Equal(t, "https://unkey.com/docs/errors/unkey/authorization/insufficient_permissions", res.Body.Error.Type)
-		require.Contains(t, res.Body.Error.Detail, "permission")
-		require.Equal(t, http.StatusForbidden, res.Body.Error.Status)
-		require.Equal(t, "Insufficient Permissions", res.Body.Error.Title)
+		require.Equal(t, "https://unkey.com/docs/errors/unkey/data/identity_not_found", res.Body.Error.Type)
+		require.Equal(t, "This identity does not exist.", res.Body.Error.Detail)
+		require.Equal(t, http.StatusNotFound, res.Body.Error.Status)
+		require.Equal(t, "Not Found", res.Body.Error.Title)
 		require.NotEmpty(t, res.Body.Meta.RequestId)
 	})
 
@@ -128,16 +137,16 @@ func TestDeleteIdentityForbidden(t *testing.T) {
 		}
 
 		req := handler.Request{
-			Identity: uid.New("test"),
+			Identity: externalID,
 		}
-		res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, headers, req)
-		require.Equal(t, http.StatusForbidden, res.Status, "expected 403, sent: %+v, received: %s", req, res.RawBody)
+		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, req)
+		require.Equal(t, http.StatusNotFound, res.Status, "expected 404, sent: %+v, received: %s", req, res.RawBody)
 		require.NotNil(t, res.Body)
 
-		require.Equal(t, "https://unkey.com/docs/errors/unkey/authorization/insufficient_permissions", res.Body.Error.Type)
-		require.Contains(t, res.Body.Error.Detail, "permission")
-		require.Equal(t, http.StatusForbidden, res.Body.Error.Status)
-		require.Equal(t, "Insufficient Permissions", res.Body.Error.Title)
+		require.Equal(t, "https://unkey.com/docs/errors/unkey/data/identity_not_found", res.Body.Error.Type)
+		require.Equal(t, "This identity does not exist.", res.Body.Error.Detail)
+		require.Equal(t, http.StatusNotFound, res.Body.Error.Status)
+		require.Equal(t, "Not Found", res.Body.Error.Title)
 		require.NotEmpty(t, res.Body.Meta.RequestId)
 	})
 
@@ -148,15 +157,22 @@ func TestDeleteIdentityForbidden(t *testing.T) {
 			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
 		}
 
-		req := handler.Request{Identity: uid.New("test")}
-		res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, headers, req)
-		require.Equal(t, http.StatusForbidden, res.Status, "expected 403, sent: %+v, received: %s", req, res.RawBody)
+		req := handler.Request{Identity: externalID}
+		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, req)
+		require.Equal(t, http.StatusNotFound, res.Status, "expected 404, sent: %+v, received: %s", req, res.RawBody)
 		require.NotNil(t, res.Body)
 
-		require.Equal(t, "https://unkey.com/docs/errors/unkey/authorization/insufficient_permissions", res.Body.Error.Type)
-		require.Contains(t, res.Body.Error.Detail, "permission")
-		require.Equal(t, http.StatusForbidden, res.Body.Error.Status)
-		require.Equal(t, "Insufficient Permissions", res.Body.Error.Title)
+		require.Equal(t, "https://unkey.com/docs/errors/unkey/data/identity_not_found", res.Body.Error.Type)
+		require.Equal(t, "This identity does not exist.", res.Body.Error.Detail)
+		require.Equal(t, http.StatusNotFound, res.Body.Error.Status)
+		require.Equal(t, "Not Found", res.Body.Error.Title)
 		require.NotEmpty(t, res.Body.Meta.RequestId)
 	})
+
+	_, err := db.Query.FindIdentityByID(t.Context(), h.DB.RO(), db.FindIdentityByIDParams{
+		WorkspaceID: h.Resources().UserWorkspace.ID,
+		IdentityID:  identity.ID,
+		Deleted:     false,
+	})
+	require.NoError(t, err)
 }

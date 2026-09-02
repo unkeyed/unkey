@@ -1,11 +1,12 @@
 import { insertAuditLogs } from "@/lib/audit";
 import { and, db, eq, inArray, schema } from "@/lib/db";
 import { env } from "@/lib/env";
-import { workspaceProcedure } from "@/lib/trpc/trpc";
+import { requireWorkspaceAdmin, workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
 export const deleteRootKeys = workspaceProcedure
+  .use(requireWorkspaceAdmin)
   .input(
     z.object({
       keyIds: z

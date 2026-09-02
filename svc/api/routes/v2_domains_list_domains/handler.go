@@ -85,7 +85,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}),
 		rbac.U(
 			urn.New().Workspace(principal.WorkspaceID).Project(env.ProjectID).App(env.AppID).Environment(env.ID).Domain("*"),
-			permissions.ReadDomain{},
+			permissions.Read,
 		),
 	)); err != nil {
 		return apierrors.MaskInsufficientPermissionsAsNotFound(
