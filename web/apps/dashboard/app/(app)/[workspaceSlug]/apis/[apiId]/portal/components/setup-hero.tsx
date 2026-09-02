@@ -33,7 +33,7 @@ const flankItems: { icon: ReactNode; large?: boolean; opacity: string }[] = [
   { icon: <IconEarthOutline18 />, opacity: "opacity-50" },
   { icon: <IconUserOutline18 />, opacity: "opacity-75" },
   {
-    icon: <IconWindowLayoutOutline18 className="size-9" />,
+    icon: <IconWindowLayoutOutline18 className="size-9 [&_[stroke-width]]:[stroke-width:0.75]" />,
     large: true,
     opacity: "opacity-90",
   },
