@@ -28,6 +28,23 @@ func TestCreateKeyV1_Format(t *testing.T) {
 	require.Equal(t, hash.Sha256(response.Key), response.Hash)
 }
 
+// TestCreateKeyV1_WithoutPrefix guarantees that an empty prefix does not add a separator.
+func TestCreateKeyV1_WithoutPrefix(t *testing.T) {
+	t.Parallel()
+
+	service := &service{}
+	response, err := service.CreateKeyV1(context.Background(), CreateKeyV1Request{})
+	require.NoError(t, err)
+
+	pattern := regexp.MustCompile(`^[1-9A-HJ-NP-Za-km-z]{8}unkeyv1[1-9A-HJ-NP-Za-km-z]{42}$`)
+	require.Regexp(t, pattern, response.Key)
+	require.Len(t, response.Key, 57)
+	require.Empty(t, response.Prefix)
+	require.Equal(t, response.Key[:4], response.Start)
+	require.Equal(t, response.Key[len(response.Key)-4:], response.End)
+	require.Equal(t, hash.Sha256(response.Key), response.Hash)
+}
+
 func TestCreateKeyV1_PrefixValidation(t *testing.T) {
 	t.Parallel()
 
@@ -36,12 +53,13 @@ func TestCreateKeyV1_PrefixValidation(t *testing.T) {
 		name      string
 		prefix    string
 		wantValid bool
+		keyLength int
 	}{
-		{name: "one character", prefix: "a", wantValid: true},
-		{name: "embedded underscores", prefix: "prod_sk", wantValid: true},
-		{name: "empty", prefix: "", wantValid: false},
+		{name: "one character", prefix: "a", wantValid: true, keyLength: 59},
+		{name: "embedded underscores", prefix: "prod_sk", wantValid: true, keyLength: 65},
+		{name: "empty", prefix: "", wantValid: true, keyLength: 57},
 		{name: "ends with underscore", prefix: "prod_", wantValid: false},
-		{name: "sixteen characters", prefix: "abcdefghijklmnop", wantValid: true},
+		{name: "sixteen characters", prefix: "abcdefghijklmnop", wantValid: true, keyLength: 74},
 		{name: "seventeen characters", prefix: "abcdefghijklmnopq", wantValid: false},
 		{name: "hyphen", prefix: "prod-sk", wantValid: false},
 		{name: "non ASCII", prefix: "prød", wantValid: false},
@@ -57,7 +75,7 @@ func TestCreateKeyV1_PrefixValidation(t *testing.T) {
 			)
 			if testCase.wantValid {
 				require.NoError(t, err)
-				require.Len(t, response.Key, len(testCase.prefix)+58)
+				require.Len(t, response.Key, testCase.keyLength)
 				return
 			}
 
