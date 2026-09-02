@@ -94,6 +94,7 @@ function LogRows({
       <tbody className="divide-y divide-gray-4">
         {deliveries.map((delivery, index) => (
           <tr
+            // biome-ignore lint/suspicious/noArrayIndexKey: deliveries carry no id and never reorder
             key={`${delivery.time}-${index}`}
             className="group transition-colors hover:bg-grayA-2"
           >

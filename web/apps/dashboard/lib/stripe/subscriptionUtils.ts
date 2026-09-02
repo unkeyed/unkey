@@ -110,7 +110,7 @@ export function isAutomatedBillingRenewal(
   // Check if items changed and verify only period dates changed
   if (changedKeys.includes("items")) {
     const itemsChange = previousAttributes.items;
-    if (!itemsChange || !itemsChange.data || !itemsChange.data[0] || !sub.items?.data?.[0]) {
+    if (!itemsChange?.data?.[0] || !sub.items?.data?.[0]) {
       return false;
     }
 

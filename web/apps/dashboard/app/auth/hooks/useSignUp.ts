@@ -26,7 +26,7 @@ export function useSignUp() {
     invitationToken?: string,
   ): Promise<VerificationResult> => {
     // Validate userData exists and has email
-    if (!userData || !userData.email) {
+    if (!userData?.email) {
       throw new Error("User email is required for code verification.");
     }
 
@@ -45,7 +45,7 @@ export function useSignUp() {
 
   const handleResendCode = async (): Promise<EmailAuthResult> => {
     // Validate userData exists and has email
-    if (!userData || !userData.email) {
+    if (!userData?.email) {
       throw new Error("User email is required to resend authentication code.");
     }
 
