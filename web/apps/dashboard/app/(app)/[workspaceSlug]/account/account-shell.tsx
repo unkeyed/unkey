@@ -13,7 +13,7 @@ export function AccountShell({ children }: { children: React.ReactNode }) {
     <PageContainer>
       <PageHeader>
         <PageHeaderContent>
-          <PageHeaderTitle>Account settings</PageHeaderTitle>
+          <PageHeaderTitle>Account settings </PageHeaderTitle>
           <PageHeaderDescription>Manage your profile and sign-in security.</PageHeaderDescription>
         </PageHeaderContent>
       </PageHeader>
