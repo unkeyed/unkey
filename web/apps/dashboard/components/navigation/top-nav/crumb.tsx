@@ -62,6 +62,28 @@ export function Crumb({
   );
 }
 
+/** A crumb with nothing to switch between, so it renders without the popover. */
+export function StaticCrumb({
+  icon,
+  label,
+  href,
+}: {
+  icon: ReactNode;
+  label: string;
+  href: string;
+}) {
+  return (
+    <Link
+      href={href as Route}
+      aria-label={label}
+      className="flex min-w-0 items-center gap-1.5 px-1 py-1 text-[13px] font-medium text-accent-12"
+    >
+      {icon}
+      <span className="truncate max-w-[120px] md:max-w-[180px]">{label}</span>
+    </Link>
+  );
+}
+
 export function CrumbSeparator() {
   return <span className="select-none px-0.5 text-gray-7">/</span>;
 }
