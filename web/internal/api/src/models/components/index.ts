@@ -7,7 +7,6 @@ export * from "./appgit.js";
 export * from "./appgitcreateinput.js";
 export * from "./appgitupdateinput.js";
 export * from "./appoci.js";
-export * from "./appociinput.js";
 export * from "./authenticatedsubjectkey.js";
 export * from "./badrequesterrordetails.js";
 export * from "./baseerror.js";

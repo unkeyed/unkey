@@ -7,9 +7,12 @@ import { safeParse } from "../../lib/schemas.js";
 import { Result as SafeParseResult } from "../../types/fp.js";
 import { SDKValidationError } from "../errors/sdkvalidationerror.js";
 
+/**
+ * An app's OCI image source.
+ */
 export type AppOCI = {
   /**
-   * The configured default OCI image reference for new deployments.
+   * The configured default OCI image reference for new deployments. It must include an explicit tag or digest.
    */
   image: string;
 };
@@ -19,7 +22,23 @@ export const AppOCI$inboundSchema: z.ZodType<AppOCI, z.ZodTypeDef, unknown> = z
   .object({
     image: z.string(),
   });
+/** @internal */
+export type AppOCI$Outbound = {
+  image: string;
+};
 
+/** @internal */
+export const AppOCI$outboundSchema: z.ZodType<
+  AppOCI$Outbound,
+  z.ZodTypeDef,
+  AppOCI
+> = z.object({
+  image: z.string(),
+});
+
+export function appOCIToJSON(appOCI: AppOCI): string {
+  return JSON.stringify(AppOCI$outboundSchema.parse(appOCI));
+}
 export function appOCIFromJSON(
   jsonString: string,
 ): SafeParseResult<AppOCI, SDKValidationError> {

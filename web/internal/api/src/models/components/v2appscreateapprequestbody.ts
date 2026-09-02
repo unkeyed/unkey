@@ -8,17 +8,13 @@ import {
   AppGitCreateInput$Outbound,
   AppGitCreateInput$outboundSchema,
 } from "./appgitcreateinput.js";
-import {
-  AppOCIInput,
-  AppOCIInput$Outbound,
-  AppOCIInput$outboundSchema,
-} from "./appociinput.js";
+import { AppOCI, AppOCI$Outbound, AppOCI$outboundSchema } from "./appoci.js";
 
 /**
- * Create an app with exactly one source: `git` or `oci`. Requests that omit a
+ * Create an app with at most one source: `git` or `oci`. Omit both to create an
  *
  * @remarks
- * source or provide both sources are rejected.
+ * app without a configured source. Requests that provide both are rejected.
  */
 export type V2AppsCreateAppRequestBody = {
   /**
@@ -46,11 +42,9 @@ export type V2AppsCreateAppRequestBody = {
    */
   git?: AppGitCreateInput | undefined;
   /**
-   * Configure an OCI image as the app source.
-   *
-   * @remarks
+   * An app's OCI image source.
    */
-  oci?: AppOCIInput | undefined;
+  oci?: AppOCI | undefined;
 };
 
 /** @internal */
@@ -59,7 +53,7 @@ export type V2AppsCreateAppRequestBody$Outbound = {
   name: string;
   slug: string;
   git?: AppGitCreateInput$Outbound | undefined;
-  oci?: AppOCIInput$Outbound | undefined;
+  oci?: AppOCI$Outbound | undefined;
 };
 
 /** @internal */
@@ -72,7 +66,7 @@ export const V2AppsCreateAppRequestBody$outboundSchema: z.ZodType<
   name: z.string(),
   slug: z.string(),
   git: AppGitCreateInput$outboundSchema.optional(),
-  oci: AppOCIInput$outboundSchema.optional(),
+  oci: AppOCI$outboundSchema.optional(),
 });
 
 export function v2AppsCreateAppRequestBodyToJSON(
