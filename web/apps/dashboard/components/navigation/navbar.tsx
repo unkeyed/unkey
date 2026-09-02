@@ -89,7 +89,7 @@ const BreadcrumbsEllipsis = React.forwardRef<HTMLLIElement, React.HTMLAttributes
   ({ className, ...props }, ref) => (
     <li ref={ref} className={cn("flex gap-3 items-end", className)} {...props}>
       <span className="text-sm text-accent-10" aria-label="More pages">
-        <IconDotsOutline18 className="h-4 w-4 text-accent-10" />
+        <IconDotsOutline18 className="size-4 text-accent-10" />
       </span>
       <div className="text-accent-10" aria-hidden="true">
         /

@@ -10,7 +10,7 @@ export const ErrorBanner: React.FC<PropsWithChildren> = ({ children }) => (
 
 export const WarnBanner: React.FC<PropsWithChildren> = ({ children }) => (
   <div className="border border-[#FFD55D]/15 text-[#FFD55D] p-4 rounded-lg bg-[#FFD55D]/15 flex items-center gap-4 text-sm">
-    <IconTriangleWarningOutline18 className="w-4 h-4" />
+    <IconTriangleWarningOutline18 className="size-4" />
 
     {children}
   </div>
