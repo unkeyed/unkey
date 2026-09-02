@@ -34,7 +34,7 @@ export function Crumb({
       <Link
         href={href as Route}
         aria-label={label}
-        className="flex min-w-0 items-center gap-1.5 px-1 py-1 text-[13px] font-normal text-accent-12"
+        className="flex min-w-0 items-center gap-1.5 px-1 py-1 text-[13px] font-medium text-accent-12"
       >
         {icon}
         {loading ? (

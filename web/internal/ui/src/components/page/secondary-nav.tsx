@@ -42,7 +42,7 @@ const secondaryNavItemVariants = cva(
   {
     variants: {
       active: {
-        true: "bg-grayA-3 text-accent-12 font-normal tracking-tight",
+        true: "bg-grayA-3 text-accent-12 font-medium tracking-tight",
         false: "text-accent-11 hover:bg-grayA-3 hover:text-accent-12",
       },
     },

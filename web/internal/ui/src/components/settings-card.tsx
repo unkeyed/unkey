@@ -176,7 +176,7 @@ function SettingCard({
             </div>
           )}
           <div className="flex flex-col gap-1 text-sm w-fit">
-            <div className="font-normal text-gray-12 text-[13px] leading-4 tracking-normal">
+            <div className="font-[450] text-gray-12 text-[13px] leading-4 tracking-normal">
               {title}
             </div>
             <InfoTooltip

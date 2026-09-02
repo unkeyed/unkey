@@ -33,7 +33,7 @@ export const SettingsGroup = ({
           onClick={() => setExpanded((prev) => !prev)}
         >
           <div className="text-gray-9">{icon}</div>
-          <span className="font-normal text-gray-12 text-sm leading-4">{title}</span>
+          <span className="font-[450] text-gray-12 text-sm leading-4">{title}</span>
         </button>
         <button
           type="button"
