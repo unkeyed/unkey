@@ -29,18 +29,21 @@ func TestCreateKeyStoresVersion1Format(t *testing.T) {
 	route := newRoute(t, h)
 	h.Register(route)
 
-	api := h.CreateApi(seed.CreateApiRequest{WorkspaceID: h.Resources().UserWorkspace.ID})
+	prefix := "abcdefghijklmnop"
+	api := h.CreateApi(seed.CreateApiRequest{
+		WorkspaceID:   h.Resources().UserWorkspace.ID,
+		DefaultPrefix: &prefix,
+	})
 	rootKey := h.CreateRootKey(
 		h.Resources().UserWorkspace.ID,
 		createKeyPermission(api.ID),
 	)
-	prefix := "abcdefghijklmnop"
 
 	res := testutil.CallRoute[handler.Request, handler.Response](
 		h,
 		route,
 		authorizedHeaders(rootKey),
-		handler.Request{Keyspace: api.KeyAuthID.String, Prefix: &prefix},
+		handler.Request{Keyspace: api.KeyAuthID.String},
 	)
 	require.Equal(t, http.StatusOK, res.Status, "response: %s", res.RawBody)
 	require.NotNil(t, res.Body)
@@ -66,8 +69,7 @@ func TestCreateKeyStoresVersion1Format(t *testing.T) {
 	})
 }
 
-// TestCreateKeyUsesKeyspacePrefix guarantees that the keyspace prefix is used
-// when the request does not include one.
+// TestCreateKeyUsesKeyspacePrefix guarantees that the route uses the keyspace default prefix.
 func TestCreateKeyUsesKeyspacePrefix(t *testing.T) {
 	t.Parallel()
 
@@ -95,6 +97,39 @@ func TestCreateKeyUsesKeyspacePrefix(t *testing.T) {
 	require.True(t, strings.HasPrefix(res.Body.Data.Key, defaultPrefix+"_"))
 }
 
+// TestCreateKeyWithoutDefaultPrefix guarantees that a keyspace does not need a prefix.
+func TestCreateKeyWithoutDefaultPrefix(t *testing.T) {
+	t.Parallel()
+
+	h := testutil.NewHarness(t)
+	route := newRoute(t, h)
+	h.Register(route)
+
+	api := h.CreateApi(seed.CreateApiRequest{WorkspaceID: h.Resources().UserWorkspace.ID})
+	rootKey := h.CreateRootKey(
+		h.Resources().UserWorkspace.ID,
+		createKeyPermission(api.ID),
+	)
+
+	res := testutil.CallRoute[handler.Request, handler.Response](
+		h,
+		route,
+		authorizedHeaders(rootKey),
+		handler.Request{Keyspace: api.KeyAuthID.String},
+	)
+	require.Equal(t, http.StatusOK, res.Status, "response: %s", res.RawBody)
+	require.Regexp(
+		t,
+		regexp.MustCompile(`^[1-9A-HJ-NP-Za-km-z]{8}unkeyv1[1-9A-HJ-NP-Za-km-z]{42}$`),
+		res.Body.Data.Key,
+	)
+
+	key, err := db.Query.FindKeyByID(t.Context(), h.DB.RO(), res.Body.Data.KeyId)
+	require.NoError(t, err)
+	require.Empty(t, key.Prefix)
+	require.Equal(t, res.Body.Data.Key[:4], key.Start)
+}
+
 // TestCreateRecoverableKeyUsesLegacyPermissions guarantees that API-scoped
 // create and encrypt permissions authorize recoverable V3 key creation.
 func TestCreateRecoverableKeyUsesLegacyPermissions(t *testing.T) {
@@ -120,7 +155,6 @@ func TestCreateRecoverableKeyUsesLegacyPermissions(t *testing.T) {
 		authorizedHeaders(rootKey),
 		handler.Request{
 			Keyspace:    api.KeyAuthID.String,
-			Prefix:      ptr.P("prod"),
 			Recoverable: ptr.P(true),
 		},
 	)
@@ -132,7 +166,7 @@ func TestCreateRecoverableKeyUsesLegacyPermissions(t *testing.T) {
 }
 
 // TestCreateKeyRejectsInvalidFormatOptions guarantees that v3 requires a
-// keyspace and valid prefix and does not accept the v2 byteLength option.
+// keyspace and does not accept per-key format options.
 func TestCreateKeyRejectsInvalidFormatOptions(t *testing.T) {
 	t.Parallel()
 
@@ -150,12 +184,10 @@ func TestCreateKeyRejectsInvalidFormatOptions(t *testing.T) {
 		name string
 		req  map[string]any
 	}{
-		{name: "missing keyspace", req: map[string]any{"prefix": "prod"}},
-		{name: "keyspaceId", req: map[string]any{"keyspaceId": api.KeyAuthID.String, "prefix": "prod"}},
-		{name: "missing prefix", req: map[string]any{"keyspace": api.KeyAuthID.String}},
-		{name: "trailing underscore", req: map[string]any{"keyspace": api.KeyAuthID.String, "prefix": "prod_"}},
-		{name: "prefix too long", req: map[string]any{"keyspace": api.KeyAuthID.String, "prefix": "abcdefghijklmnopq"}},
-		{name: "byte length", req: map[string]any{"keyspace": api.KeyAuthID.String, "prefix": "prod", "byteLength": 32}},
+		{name: "missing keyspace", req: map[string]any{}},
+		{name: "keyspaceId", req: map[string]any{"keyspaceId": api.KeyAuthID.String}},
+		{name: "prefix", req: map[string]any{"keyspace": api.KeyAuthID.String, "prefix": "prod"}},
+		{name: "byte length", req: map[string]any{"keyspace": api.KeyAuthID.String, "byteLength": 32}},
 	}
 
 	for _, testCase := range testCases {
@@ -187,7 +219,7 @@ func TestCreateKeyRequiresAuthentication(t *testing.T) {
 			"Content-Type":  {"application/json"},
 			"Authorization": {"Bearer invalid"},
 		},
-		handler.Request{Keyspace: "ks_123", Prefix: ptr.P("prod")},
+		handler.Request{Keyspace: "ks_123"},
 	)
 	require.Equal(t, http.StatusUnauthorized, res.Status, "response: %s", res.RawBody)
 }
@@ -229,7 +261,7 @@ func TestCreateKeyMasksUnauthorizedKeyspaces(t *testing.T) {
 				h,
 				route,
 				authorizedHeaders(testCase.rootKey),
-				handler.Request{Keyspace: testCase.keyspaceID, Prefix: ptr.P("prod")},
+				handler.Request{Keyspace: testCase.keyspaceID},
 			)
 			require.Equal(t, http.StatusNotFound, res.Status, "response: %s", res.RawBody)
 			require.NotContains(t, res.RawBody, testCase.keyspaceID)
@@ -279,7 +311,7 @@ func TestCreateKeyRejectsDeletedResources(t *testing.T) {
 				h,
 				route,
 				authorizedHeaders(rootKey),
-				handler.Request{Keyspace: testCase.keyspaceID, Prefix: ptr.P("prod")},
+				handler.Request{Keyspace: testCase.keyspaceID},
 			)
 			require.Equal(t, http.StatusNotFound, res.Status, "response: %s", res.RawBody)
 		})

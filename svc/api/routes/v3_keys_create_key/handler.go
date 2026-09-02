@@ -146,11 +146,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 	actor := auditactor.FromPrincipal(principal)
 
-	var prefix string
-	switch {
-	case req.Prefix != nil:
-		prefix = *req.Prefix
-	case keySpace.DefaultPrefix.Valid:
+	prefix := ""
+	if keySpace.DefaultPrefix.Valid {
 		prefix = keySpace.DefaultPrefix.String
 	}
 

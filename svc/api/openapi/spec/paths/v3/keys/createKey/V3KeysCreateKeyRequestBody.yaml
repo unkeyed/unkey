@@ -11,16 +11,6 @@ properties:
       The ID of the keyspace that will contain this key.
       Keys in different keyspaces cannot access each other.
     example: ks_1234abcd
-  prefix:
-    type: string
-    minLength: 1
-    maxLength: 16
-    pattern: "^[A-Za-z0-9_]{0,15}[A-Za-z0-9]$"
-    description: |
-      Adds a visual identifier to the beginning of the generated key.
-      Use 1 to 16 ASCII letters, numbers, or underscores.
-      End the prefix with a letter or number.
-    example: prod_sk
   name:
     "$ref": "../../../v2/keys/createKey/V2KeysCreateKeyRequestBody.yaml#/properties/name"
   externalId:

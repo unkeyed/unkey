@@ -4821,11 +4821,6 @@ type V3KeysCreateKeyRequestBody struct {
 	// Direct permissions supplement any permissions inherited from assigned roles.
 	Permissions *[]string `json:"permissions,omitempty"`
 
-	// Prefix Adds a visual identifier to the beginning of the generated key.
-	// Use 1 to 16 ASCII letters, numbers, or underscores.
-	// End the prefix with a letter or number.
-	Prefix *string `json:"prefix,omitempty"`
-
 	// Ratelimits Defines the time-based rate limits for this key.
 	Ratelimits *[]RatelimitRequest `json:"ratelimits,omitempty"`
 
