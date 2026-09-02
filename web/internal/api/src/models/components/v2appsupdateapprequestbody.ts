@@ -8,11 +8,7 @@ import {
   AppGitUpdateInput$Outbound,
   AppGitUpdateInput$outboundSchema,
 } from "./appgitupdateinput.js";
-import {
-  AppOCIInput,
-  AppOCIInput$Outbound,
-  AppOCIInput$outboundSchema,
-} from "./appociinput.js";
+import { AppOCI, AppOCI$Outbound, AppOCI$outboundSchema } from "./appoci.js";
 
 /**
  * Provide at least one field to update. Change an OCI app's image in a
@@ -65,7 +61,7 @@ export type V2AppsUpdateAppRequestBody = {
    * create a deployment. Image updates cannot be combined with other changes,
    * and source switching is not supported.
    */
-  oci?: AppOCIInput | undefined;
+  oci?: AppOCI | undefined;
   /**
    * Enable or disable delete protection for the app.
    *
@@ -82,7 +78,7 @@ export type V2AppsUpdateAppRequestBody$Outbound = {
   name?: string | undefined;
   slug?: string | undefined;
   git?: AppGitUpdateInput$Outbound | null | undefined;
-  oci?: AppOCIInput$Outbound | undefined;
+  oci?: AppOCI$Outbound | undefined;
   deleteProtection?: boolean | undefined;
 };
 
@@ -97,7 +93,7 @@ export const V2AppsUpdateAppRequestBody$outboundSchema: z.ZodType<
   name: z.string().optional(),
   slug: z.string().optional(),
   git: z.nullable(AppGitUpdateInput$outboundSchema).optional(),
-  oci: AppOCIInput$outboundSchema.optional(),
+  oci: AppOCI$outboundSchema.optional(),
   deleteProtection: z.boolean().optional(),
 });
 
