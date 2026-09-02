@@ -3838,7 +3838,6 @@ components:
                     pattern: "^[a-zA-Z0-9_]+$"
                     description: |
                         The ID of the keyspace that will contain this key.
-                        Keys in different keyspaces cannot access each other.
                     example: ks_1234abcd
                 prefix:
                     type: string

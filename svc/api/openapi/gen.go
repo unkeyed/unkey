@@ -4802,7 +4802,6 @@ type V3KeysCreateKeyRequestBody struct {
 	ExternalId *string `json:"externalId,omitempty"`
 
 	// Keyspace The ID of the keyspace that will contain this key.
-	// Keys in different keyspaces cannot access each other.
 	Keyspace string `json:"keyspace"`
 
 	// Meta Stores arbitrary JSON metadata returned during key verification for contextual information.
