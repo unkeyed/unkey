@@ -242,6 +242,7 @@ func Run(ctx context.Context, cfg Config) error {
 
 	deploymentSvc := deployment.New(deployment.Config{
 		Database:     database,
+		Auditlogs:    auditlogSvc,
 		Restate:      restateClient,
 		RestateAdmin: restateAdminClient,
 		GitHub:       ghClient,
