@@ -50,6 +50,7 @@ func TestCreateAppSuccessfully(t *testing.T) {
 		Project: projectSlug,
 		Name:    "Payments API",
 		Slug:    "payments-api",
+		Oci:     &openapi.AppOCI{Image: "nginx:stable"},
 	})
 	require.Equal(t, 200, res.Status, "expected 200, received: %s", res.RawBody)
 	require.NotEmpty(t, res.Body.Meta.RequestId)
@@ -66,7 +67,7 @@ func TestCreateAppSuccessfully(t *testing.T) {
 	require.Equal(t, "Payments API", call.GetName())
 	require.Equal(t, "payments-api", call.GetSlug())
 	require.Equal(t, ctrlv1.ActorType_ACTOR_TYPE_ROOT_KEY, call.GetActor().GetType())
-	require.Nil(t, call.GetSource())
+	require.Equal(t, "nginx:stable", call.GetOci().GetImageReference())
 }
 
 func TestCreateAppByProjectId(t *testing.T) {
@@ -103,6 +104,7 @@ func TestCreateAppByProjectId(t *testing.T) {
 		Project: project.ID,
 		Name:    "Payments API",
 		Slug:    "payments-api",
+		Oci:     &openapi.AppOCI{Image: "nginx:stable"},
 	})
 	require.Equal(t, 200, res.Status, "expected 200, received: %s", res.RawBody)
 	require.Equal(t, appID, res.Body.Data.AppId)

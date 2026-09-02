@@ -1844,8 +1844,8 @@ type V2ApisListKeysResponseBody struct {
 // V2ApisListKeysResponseData Array of API keys with complete configuration and metadata.
 type V2ApisListKeysResponseData = []KeyResponseData
 
-// V2AppsCreateAppRequestBody Create an app with at most one source: `git` or `oci`. Omit both to create an
-// app without a configured source. Requests that provide both are rejected.
+// V2AppsCreateAppRequestBody Create an app with exactly one source: `git` or `oci`. Requests that omit a
+// source or provide both sources are rejected.
 type V2AppsCreateAppRequestBody struct {
 	// Git Connect a GitHub repository as the app source on creation.
 	Git *AppGitCreateInput `json:"git,omitempty"`
