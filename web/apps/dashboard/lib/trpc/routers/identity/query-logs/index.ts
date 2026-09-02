@@ -121,8 +121,8 @@ export const queryIdentityLogs = workspaceProcedure
         ...log,
         keyId: log.keyId,
         keyName: key?.name || null,
-        apiId: !key || !key.keyAuth?.api ? "—" : key.keyAuth.api.id,
-        apiName: !key || !key.keyAuth?.api ? "—" : key.keyAuth.api.name,
+        apiId: !key?.keyAuth?.api ? "—" : key.keyAuth.api.id,
+        apiName: !key?.keyAuth?.api ? "—" : key.keyAuth.api.name,
       };
     });
 

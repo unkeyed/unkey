@@ -74,7 +74,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(DASHBOARD_URL);
   }
 
-  if (!invitation || invitation.state !== "pending") {
+  if (invitation?.state !== "pending") {
     return NextResponse.redirect(DASHBOARD_URL);
   }
 

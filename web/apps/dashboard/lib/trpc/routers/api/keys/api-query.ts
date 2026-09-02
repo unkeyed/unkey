@@ -113,7 +113,7 @@ export async function queryApiKeys({
   identities: identitiesFromInput,
 }: QueryApiKeysInput): Promise<QueryApiKeysResult> {
   const api = await getApi(apiId, workspaceId);
-  if (!api || !api.keyAuth?.id) {
+  if (!api?.keyAuth?.id) {
     throw new TRPCError({
       code: "NOT_FOUND",
       message: "API not found or does not have key authentication enabled",

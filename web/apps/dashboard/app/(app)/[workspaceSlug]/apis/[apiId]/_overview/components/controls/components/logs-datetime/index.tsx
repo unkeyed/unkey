@@ -70,9 +70,7 @@ export const LogsDateTime = () => {
       }}
       initialTitle={displayTitle}
       onSuggestionChange={setTitle}
-      customOptions={DEFAULT_OPTIONS.filter(
-        (option) => !option.value || !option.value.endsWith("m"),
-      )}
+      customOptions={DEFAULT_OPTIONS.filter((option) => !option.value?.endsWith("m"))}
     >
       <Button
         variant="ghost"
