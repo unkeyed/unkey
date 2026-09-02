@@ -11,8 +11,7 @@ import (
 
 func TestInsufficientPermissions(t *testing.T) {
 	h := testutil.NewHarness(t)
-	capture := &ctrlCapture{}
-	route := newRoute(h, capture)
+	route := newRoute(h, newUncalledRestate(t))
 	h.Register(route)
 
 	// A key with an unrelated permission on the project.
@@ -24,5 +23,4 @@ func TestInsufficientPermissions(t *testing.T) {
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, authHeaders(setup.RootKey), req)
 	require.Equal(t, http.StatusForbidden, res.Status, "expected 403, received: %s", res.RawBody)
-	require.False(t, capture.called, "ctrl must not be called without create_deployment")
 }

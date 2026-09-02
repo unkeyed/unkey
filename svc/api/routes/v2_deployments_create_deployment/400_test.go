@@ -13,8 +13,7 @@ import (
 
 func TestValidationErrors(t *testing.T) {
 	h := testutil.NewHarness(t)
-	capture := &ctrlCapture{}
-	route := newRoute(h, capture)
+	route := newRoute(h, newUncalledRestate(t))
 	h.Register(route)
 
 	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
@@ -62,7 +61,6 @@ func TestValidationErrors(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			capture.called = false
 
 			res := testutil.CallRoute[map[string]any, openapi.BadRequestErrorResponse](h, route, headers, tc.body)
 			require.Equal(t, http.StatusBadRequest, res.Status, "expected 400, sent: %+v, received: %s", tc.body, res.RawBody)
@@ -70,7 +68,6 @@ func TestValidationErrors(t *testing.T) {
 			require.Equal(t, "https://unkey.com/docs/errors/unkey/application/invalid_input", res.Body.Error.Type)
 			require.Equal(t, http.StatusBadRequest, res.Body.Error.Status)
 			require.NotEmpty(t, res.Body.Meta.RequestId)
-			require.False(t, capture.called, "ctrl must not be called on a validation failure")
 		})
 	}
 }
@@ -83,8 +80,7 @@ func TestInvalidEnvironmentSettings(t *testing.T) {
 
 	t.Run("no schedulable region", func(t *testing.T) {
 		h := testutil.NewHarness(t)
-		capture := &ctrlCapture{}
-		route := newRoute(h, capture)
+		route := newRoute(h, newUncalledRestate(t))
 		h.Register(route)
 
 		// The seeder gives sane runtime settings but never configures a region.
@@ -98,13 +94,11 @@ func TestInvalidEnvironmentSettings(t *testing.T) {
 		require.Equal(t, http.StatusBadRequest, res.Status, "expected 400, received: %s", res.RawBody)
 		require.Equal(t, docsURL, res.Body.Error.Type)
 		require.Contains(t, res.Body.Error.Detail, "no schedulable regions")
-		require.False(t, capture.called, "ctrl must not be called for an undeployable environment")
 	})
 
 	t.Run("invalid runtime bounds reports every field", func(t *testing.T) {
 		h := testutil.NewHarness(t)
-		capture := &ctrlCapture{}
-		route := newRoute(h, capture)
+		route := newRoute(h, newUncalledRestate(t))
 		h.Register(route)
 
 		setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
@@ -123,6 +117,5 @@ func TestInvalidEnvironmentSettings(t *testing.T) {
 		require.Contains(t, res.Body.Error.Detail, "CPU millicores must be at least 250")
 		require.Contains(t, res.Body.Error.Detail, "MemoryMib must be at least 256")
 		require.NotContains(t, res.Body.Error.Detail, "region", "a configured region must not be reported")
-		require.False(t, capture.called, "ctrl must not be called for an undeployable environment")
 	})
 }
