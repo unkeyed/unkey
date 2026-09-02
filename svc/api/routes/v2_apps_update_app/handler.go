@@ -58,22 +58,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	if err != nil {
 		return err
 	}
-	if req.Oci == nil && !req.Git.IsSpecified() && req.Name == nil && req.Slug == nil && req.DeleteProtection == nil {
-		return fault.New(
-			"empty update",
-			fault.Code(codes.App.Validation.InvalidInput.URN()),
-			fault.Internal("no updatable fields in request"),
-			fault.Public("Provide at least one field to update."),
-		)
-	}
-	if req.Oci != nil && (req.Git.IsSpecified() || req.Name != nil || req.Slug != nil || req.DeleteProtection != nil) {
-		return fault.New(
-			"OCI image update combined with other changes",
-			fault.Code(codes.App.Validation.InvalidInput.URN()),
-			fault.Internal("image updates must be standalone"),
-			fault.Public("Update the OCI image in a separate request."),
-		)
-	}
 
 	// Group the app.update and repository connect/disconnect events this request
 	// emits under one correlation id.
