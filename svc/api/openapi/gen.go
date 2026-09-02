@@ -470,6 +470,12 @@ type DeploymentSourceImage struct {
 	DockerImage string `json:"dockerImage"`
 }
 
+// DeploymentSourceOCI Deploy a prebuilt OCI image without a build.
+type DeploymentSourceOCI struct {
+	// Image OCI image to deploy. Mutable tags are resolved to immutable digests before rollout.
+	Image string `json:"image"`
+}
+
 // DeploymentStatus Current lifecycle status of the deployment. Poll until it reaches a
 // terminal state: ready (serving), failed, skipped, superseded, stopped,
 // or cancelled.
@@ -4825,6 +4831,44 @@ type V2RatelimitSetOverrideResponseData struct {
 	OverrideId string `json:"overrideId"`
 }
 
+// V3DeploymentsCreateDeploymentRequestBody Create a deployment. Omit the source to use the app default, or provide one source override.
+type V3DeploymentsCreateDeploymentRequestBody struct {
+	// App Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	App ResourceIdentifier `json:"app"`
+
+	// Deployment Re-run an existing deployment.
+	Deployment *DeploymentSourceDeployment `json:"deployment,omitempty"`
+
+	// Environment Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	Environment ResourceIdentifier `json:"environment"`
+
+	// Git Build from the app's connected GitHub repository.
+	Git *DeploymentSourceGit `json:"git,omitempty"`
+
+	// Oci Deploy a prebuilt OCI image without a build.
+	Oci *DeploymentSourceOCI `json:"oci,omitempty"`
+
+	// Project Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	Project ResourceIdentifier `json:"project"`
+}
+
+// V3DeploymentsCreateDeploymentResponseBody defines model for V3DeploymentsCreateDeploymentResponseBody.
+type V3DeploymentsCreateDeploymentResponseBody struct {
+	Data V3DeploymentsCreateDeploymentResponseData `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
+// V3DeploymentsCreateDeploymentResponseData defines model for V3DeploymentsCreateDeploymentResponseData.
+type V3DeploymentsCreateDeploymentResponseData struct {
+	// DeploymentId Unique deployment identifier
+	DeploymentId string `json:"deploymentId"`
+}
+
 // ValidationError Individual validation error details. Each validation error provides precise information about what failed, where it failed, and how to fix it, enabling efficient error resolution.
 type ValidationError struct {
 	// Fix A human-readable suggestion describing how to fix the error. This provides practical guidance on what changes would satisfy the validation requirements. Not all validation errors include fix suggestions, but when present, they offer specific remediation advice.
@@ -5124,6 +5168,9 @@ type RatelimitMultiLimitJSONRequestBody = V2RatelimitMultiLimitRequestBody
 
 // RatelimitSetOverrideJSONRequestBody defines body for RatelimitSetOverride for application/json ContentType.
 type RatelimitSetOverrideJSONRequestBody = V2RatelimitSetOverrideRequestBody
+
+// DeploymentsCreateDeploymentV3JSONRequestBody defines body for DeploymentsCreateDeploymentV3 for application/json ContentType.
+type DeploymentsCreateDeploymentV3JSONRequestBody = V3DeploymentsCreateDeploymentRequestBody
 
 // AsV2AppsCreateAppRequestBody0 returns the union data inside the V2AppsCreateAppRequestBody as a V2AppsCreateAppRequestBody0
 func (t V2AppsCreateAppRequestBody) AsV2AppsCreateAppRequestBody0() (V2AppsCreateAppRequestBody0, error) {

@@ -1,0 +1,39 @@
+type: object
+required:
+  - project
+  - app
+  - environment
+dependentSchemas:
+  git:
+    allOf:
+      - not:
+          required: [oci]
+      - not:
+          required: [deployment]
+  oci:
+    allOf:
+      - not:
+          required: [git]
+      - not:
+          required: [deployment]
+  deployment:
+    allOf:
+      - not:
+          required: [git]
+      - not:
+          required: [oci]
+properties:
+  project:
+    "$ref": "../../../../common/ResourceIdentifier.yaml"
+  app:
+    "$ref": "../../../../common/ResourceIdentifier.yaml"
+  environment:
+    "$ref": "../../../../common/ResourceIdentifier.yaml"
+  git:
+    "$ref": "../../../v2/deployments/createDeployment/DeploymentSourceGit.yaml"
+  oci:
+    "$ref": "./DeploymentSourceOCI.yaml"
+  deployment:
+    "$ref": "../../../v2/deployments/createDeployment/DeploymentSourceDeployment.yaml"
+additionalProperties: false
+description: Create a deployment. Omit the source to use the app default, or provide one source override.
