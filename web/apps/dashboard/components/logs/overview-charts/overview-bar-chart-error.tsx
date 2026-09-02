@@ -44,7 +44,7 @@ export const OverviewChartError = ({ labels }: GenericChartErrorProps) => {
         {Array(5)
           .fill(0)
           .map((_, i) => (
-            // biome-ignore lint/suspicious/noArrayIndexKey: <explanation>
+            // biome-ignore lint/suspicious/noArrayIndexKey: index is the stable identity for this list
             <div key={i} className="z-10">
               --:--
             </div>

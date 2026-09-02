@@ -1020,7 +1020,7 @@ function createLatencyTimeseriesQuerier(interval: TimeInterval) {
       ...args,
       ...(args.identifiers?.reduce(
         (acc, i, index) => ({
-          // biome-ignore lint/performance/noAccumulatingSpread: <explanation>
+          // biome-ignore lint/performance/noAccumulatingSpread: the accumulated filter set is small
           ...acc,
           [`identifierValue_${index}`]: i.value,
         }),

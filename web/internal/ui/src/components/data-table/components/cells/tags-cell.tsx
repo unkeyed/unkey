@@ -108,6 +108,7 @@ export const TagsCell = ({ tags, isSelected, maxVisible = 3, shortenOptions }: T
                 {tags.length - maxVisible} more tags:
               </div>
               {tags.slice(maxVisible).map((tag, idx) => (
+                // biome-ignore lint/suspicious/noArrayIndexKey: composite key, the index only disambiguates repeats
                 <div key={idx + tag} className="text-xs">
                   <TagTooltipContent tag={tag} />
                 </div>

@@ -52,7 +52,7 @@ function Slider({
           />
           {Array.from({ length: thumbCount }).map((_, i) => (
             <SliderPrimitive.Thumb
-              // biome-ignore lint/suspicious/noArrayIndexKey: <explanation>
+              // biome-ignore lint/suspicious/noArrayIndexKey: index is the stable identity for this list
               key={i}
               index={i}
               getAriaLabel={getAriaLabel ?? ((index) => `Value ${index + 1}`)}

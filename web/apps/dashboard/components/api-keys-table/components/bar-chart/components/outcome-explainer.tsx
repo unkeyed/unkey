@@ -128,7 +128,7 @@ export function OutcomeExplainer({ children, timeseries }: OutcomeExplainerProps
           <div className="flex flex-col">
             {errorTypes.map((error, index) => (
               <div
-                // biome-ignore lint/suspicious/noArrayIndexKey: <explanation>
+                // biome-ignore lint/suspicious/noArrayIndexKey: index is the stable identity for this list
                 key={index}
                 className="flex justify-between w-full items-center"
               >

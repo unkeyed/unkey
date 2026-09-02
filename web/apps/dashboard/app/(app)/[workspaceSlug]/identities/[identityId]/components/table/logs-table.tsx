@@ -318,7 +318,7 @@ export const IdentityDetailsLogsTable = ({ identityId, selectedLog, onLogSelect 
                             <div className="break-all max-w-[300px] truncate">{tag}</div>
                             <div className="flex items-center justify-between mt-1.5">
                               <div className="text-xs opacity-60">({tag.length} characters)</div>
-                              {/* biome-ignore lint/a11y/useKeyWithClickEvents: <explanation> */}
+                              {/* biome-ignore lint/a11y/useKeyWithClickEvents: wrapper only intercepts pointer events */}
                               <div
                                 className="pointer-events-auto"
                                 onClick={(e) => e.stopPropagation()}
@@ -330,7 +330,7 @@ export const IdentityDetailsLogsTable = ({ identityId, selectedLog, onLogSelect 
                         ) : (
                           <div className="flex justify-between items-center gap-1.5">
                             <div className="break-all max-w-[300px] truncate">{tag}</div>
-                            {/* biome-ignore lint/a11y/useKeyWithClickEvents: <explanation> */}
+                            {/* biome-ignore lint/a11y/useKeyWithClickEvents: wrapper only intercepts pointer events */}
                             <div
                               className="pointer-events-auto shrink-0"
                               onClick={(e) => e.stopPropagation()}
@@ -372,13 +372,14 @@ export const IdentityDetailsLogsTable = ({ identityId, selectedLog, onLogSelect 
                         {log.tags.length - 3} more tags:
                       </div>
                       {log.tags.slice(3).map((tag, idx) => (
+                        // biome-ignore lint/suspicious/noArrayIndexKey: composite key, the index only disambiguates repeats
                         <div key={idx + tag} className="text-xs">
                           {tag.length > 60 ? (
                             <div>
                               <div className="break-all max-w-[300px] truncate">{tag}</div>
                               <div className="flex items-center justify-between mt-1.5">
                                 <div className="text-xs opacity-60">({tag.length} characters)</div>
-                                {/* biome-ignore lint/a11y/useKeyWithClickEvents: <explanation> */}
+                                {/* biome-ignore lint/a11y/useKeyWithClickEvents: wrapper only intercepts pointer events */}
                                 <div
                                   className="pointer-events-auto"
                                   onClick={(e) => e.stopPropagation()}
@@ -390,7 +391,7 @@ export const IdentityDetailsLogsTable = ({ identityId, selectedLog, onLogSelect 
                           ) : (
                             <div className="flex justify-between items-start gap-1.5">
                               <div className="break-all max-w-[300px] truncate">{tag}</div>
-                              {/* biome-ignore lint/a11y/useKeyWithClickEvents: <explanation> */}
+                              {/* biome-ignore lint/a11y/useKeyWithClickEvents: wrapper only intercepts pointer events */}
                               <div
                                 className="pointer-events-auto shrink-0"
                                 onClick={(e) => e.stopPropagation()}

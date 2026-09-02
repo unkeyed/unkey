@@ -233,7 +233,7 @@ export function useKeyboardShortcut(
   const { preventDefault, ignoreInputs, ignoreContentEditable, disabled } = mergedOptions;
 
   // Memoize callback for stability in the useEffect dependency array
-  // biome-ignore lint/correctness/useExhaustiveDependencies: <explanation>
+  // biome-ignore lint/correctness/useExhaustiveDependencies: callback is the only dependency
   const memoizedCallback = useCallback(callback, [callback]);
 
   useEffect(() => {

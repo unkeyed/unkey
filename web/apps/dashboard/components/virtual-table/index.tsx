@@ -529,7 +529,7 @@ function HeaderCell<T>({ column }: { column: Column<T> }) {
   };
 
   return (
-    // biome-ignore lint/a11y/useKeyWithClickEvents: <explanation>
+    // biome-ignore lint/a11y/useKeyWithClickEvents: wrapper only intercepts pointer events
     <div
       className={cn(
         "flex items-center gap-1 truncate text-accent-12",

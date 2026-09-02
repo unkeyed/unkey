@@ -76,7 +76,7 @@ export const OverviewChartLoader = ({
       {/* Time labels footer */}
       <div className="border-t border-b border-gray-4 px-1 py-2 text-accent-9 font-mono text-xxs w-full flex justify-between">
         {calculateTimePoints(currentTime, currentTime).map((time, i) => (
-          // biome-ignore lint/suspicious/noArrayIndexKey: <explanation>
+          // biome-ignore lint/suspicious/noArrayIndexKey: index is the stable identity for this list
           <div key={i} className="z-10">
             {formatTimestampLabel(time)}
           </div>

@@ -418,7 +418,7 @@ export const OverviewAreaChart = ({
                   ? parseTimestamp(lastItem.originalTimestamp)
                   : Date.now(),
               ).map((time, i) => (
-                // biome-ignore lint/suspicious/noArrayIndexKey: <explanation>
+                // biome-ignore lint/suspicious/noArrayIndexKey: index is the stable identity for this list
                 <div key={i} className="z-10 text-center">
                   {formatTimestampLabel(time)}
                 </div>

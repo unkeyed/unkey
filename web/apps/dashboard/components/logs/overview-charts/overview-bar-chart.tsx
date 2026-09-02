@@ -349,6 +349,7 @@ export function OverviewBarChart({
                         {/* Dynamic tooltip items */}
                         {tooltipItems.map((item, index) => (
                           <div
+                            // biome-ignore lint/suspicious/noArrayIndexKey: composite key, the index only disambiguates repeats
                             key={`${item.label}-${index}`}
                             className="flex w-full [&>svg]:size-4 gap-4 px-4 items-center"
                           >
@@ -415,7 +416,7 @@ export function OverviewBarChart({
               data[0]?.originalTimestamp ?? Date.now(),
               data.at(-1)?.originalTimestamp ?? Date.now(),
             ).map((time, i) => (
-              // biome-ignore lint/suspicious/noArrayIndexKey: <explanation>
+              // biome-ignore lint/suspicious/noArrayIndexKey: index is the stable identity for this list
               <div key={i} className="z-10 text-center">
                 {formatTimestampLabel(time)}
               </div>

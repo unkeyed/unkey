@@ -286,6 +286,7 @@ export const DiffViewerContent: React.FC<DiffViewerContentProps> = ({
                           <div className="flex flex-col gap-1">
                             {changes.map((change, index) => (
                               <div
+                                // biome-ignore lint/suspicious/noArrayIndexKey: composite key, the index only disambiguates repeats
                                 key={`${change.id}-${index}`}
                                 className={cn(
                                   "px-2 py-1.5 rounded-sm",

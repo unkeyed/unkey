@@ -25,10 +25,13 @@ export function BuildStepLogsExpanded({ step }: { step: BuildStepRow }) {
         <td colSpan={6} className={cn("border-l-2 p-0", borderClass, bgClass)} />
       </tr>
       {step.logs.map((log, idx) => (
+        // biome-ignore lint/suspicious/noArrayIndexKey: composite key, the index only disambiguates repeats
         <Fragment key={`row-group-${log.time}-${idx}`}>
+          {/* biome-ignore lint/suspicious/noArrayIndexKey: composite key, the index only disambiguates repeats */}
           <tr key={`spacer-${log.time}-${idx}`} style={{ height: "4px" }}>
             <td colSpan={6} className={cn("border-l-2 p-0", borderClass, bgClass)} />
           </tr>
+          {/* biome-ignore lint/suspicious/noArrayIndexKey: composite key, the index only disambiguates repeats */}
           <tr key={`${log.time}-${idx}`}>
             <td className={cn("border-l-2 py-0", borderClass, bgClass)} />
             <td className={cn("py-0", bgClass)}>

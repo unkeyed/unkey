@@ -128,7 +128,7 @@ export const TableActionPopover = ({
           }}
           finalFocus={false}
         >
-          {/* biome-ignore lint/a11y/useKeyWithClickEvents: <explanation> */}
+          {/* biome-ignore lint/a11y/useKeyWithClickEvents: wrapper only intercepts pointer events */}
           <div role="menu" onClick={(e) => e.stopPropagation()} className="py-2">
             {items.map((item, index) => {
               const disabled = isItemDisabled(item);
