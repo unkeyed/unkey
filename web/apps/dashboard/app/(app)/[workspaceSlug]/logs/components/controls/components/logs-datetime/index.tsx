@@ -84,7 +84,7 @@ export const LogsDateTime = () => {
         disabled={displayTitle === "Loading..."}
       >
         <IconCalendarOutline18 className="text-gray-9 size-4" />
-        <span className="text-gray-12 font-medium text-[13px]">{displayTitle}</span>
+        <span className="text-gray-12 font-normal text-[13px]">{displayTitle}</span>
       </Button>
     </DatetimePopover>
   );

@@ -88,7 +88,7 @@ export const GitHub = ({ readOnly = false, onBeforeNavigate }: GitHubProps) => {
         <ManageGitHubAppLink
           onInstall={install}
           variant="outline"
-          className="px-2.5 py-3 text-gray-12 font-medium text-[13px] hover:bg-grayA-2"
+          className="px-2.5 py-3 text-gray-12 font-normal text-[13px] hover:bg-grayA-2"
         />
       </GitHubSettingCard>
     ))

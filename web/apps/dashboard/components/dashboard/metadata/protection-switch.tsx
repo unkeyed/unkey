@@ -22,7 +22,7 @@ export const ProtectionSwitch = forwardRef<HTMLDivElement, FeatureCardProps>(
         <div className="flex flex-col gap-4">
           <div className="flex gap-3">
             <div className="p-1.5 bg-grayA-3 rounded-md border border-grayA-3">{icon}</div>
-            <div className="text-sm font-medium text-gray-12">{title}</div>
+            <div className="text-sm font-normal text-gray-12">{title}</div>
           </div>
           <div className="text-gray-9 text-xs">{description}</div>
         </div>

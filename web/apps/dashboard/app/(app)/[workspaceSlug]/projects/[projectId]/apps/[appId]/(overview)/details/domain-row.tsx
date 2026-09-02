@@ -25,7 +25,7 @@ export function DomainRow({ domain, className }: DomainRowProps) {
           rel="noopener noreferrer"
           className="flex items-center ml-3 transition-all hover:underline decoration-dashed underline-offset-2"
         >
-          <div className="text-gray-12 font-medium text-xs mr-2">{domain}</div>
+          <div className="text-gray-12 font-normal text-xs mr-2">{domain}</div>
           <IconShareUpRightOutline18 className="size-4 text-gray-9 shrink-0" />
         </Link>
         <div className="ml-3" />

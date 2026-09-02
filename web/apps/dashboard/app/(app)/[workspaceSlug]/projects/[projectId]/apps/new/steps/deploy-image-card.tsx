@@ -92,7 +92,7 @@ export const DeployImageCard = ({
           <Docker className="size-[18px] text-gray-12" />
         </div>
         <div className="flex flex-col gap-3">
-          <span className="font-medium text-gray-12 text-[13px] leading-[9px]">
+          <span className="font-normal text-gray-12 text-[13px] leading-[9px]">
             Deploy an image
           </span>
           {expanded ? null : (
@@ -108,7 +108,7 @@ export const DeployImageCard = ({
             onClick={() => onExpandedChange(false)}
           >
             <IconChevronLeftOutline18 className="size-[14px]! text-gray-12 shrink-0" />
-            <span className="text-[13px] text-gray-12 font-medium">Back</span>
+            <span className="text-[13px] text-gray-12 font-normal">Back</span>
           </Button>
         ) : (
           <Button
@@ -117,7 +117,7 @@ export const DeployImageCard = ({
             onClick={() => onExpandedChange(true)}
           >
             <Docker className="size-[18px]! text-gray-12 shrink-0" />
-            <span className="text-[13px] text-gray-12 font-medium">Use a Docker image</span>
+            <span className="text-[13px] text-gray-12 font-normal">Use a Docker image</span>
           </Button>
         )}
       </div>

@@ -270,7 +270,7 @@ export const AddEnvVarExpandable = ({
                 <IconCloudUploadOutline18 className="text-success-11" />
               </div>
               <div className="flex flex-col items-center gap-1">
-                <span className="text-sm font-medium text-success-11">Drop your .env file</span>
+                <span className="text-sm font-normal text-success-11">Drop your .env file</span>
                 <span className="text-xs text-success-10">
                   We'll parse and import your variables
                 </span>
@@ -301,7 +301,7 @@ export const AddEnvVarExpandable = ({
                 type="button"
                 variant="outline"
                 size="md"
-                className="font-medium"
+                className="font-normal"
                 onClick={() => append(createEmptyEntry())}
               >
                 <IconPlusOutline18 />
@@ -359,7 +359,7 @@ export const AddEnvVarExpandable = ({
                     <Switch checked={field.value} onCheckedChange={field.onChange} />
                   )}
                 />
-                <span className="text-[13px] text-gray-12 font-medium">Sensitive</span>
+                <span className="text-[13px] text-gray-12 font-normal">Sensitive</span>
                 <InfoTooltip
                   content="Permanently hides values after saving. Use for API keys and secrets."
                   position={{ side: "top" }}

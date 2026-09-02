@@ -54,7 +54,7 @@ function IdentityRow({
         <IconFingerprintOutline18 className="size-4 text-brandA-11" />
       </div>
       <div className="flex min-w-0 flex-1 flex-col gap-1">
-        <span className="truncate font-medium text-accent-12 text-sm" title={identity.externalId}>
+        <span className="truncate font-normal text-accent-12 text-sm" title={identity.externalId}>
           {identity.externalId}
         </span>
         <span className="truncate font-mono text-gray-9 text-xs" title={identity.id}>

@@ -52,7 +52,7 @@ function AlertBannerTitle({ className, ...props }: React.ComponentProps<"div">) 
   return (
     <div
       data-slot="alert-banner-title"
-      className={cn("col-start-2 min-w-0 text-sm font-medium leading-5", linkStyles, className)}
+      className={cn("col-start-2 min-w-0 text-sm font-normal leading-5", linkStyles, className)}
       {...props}
     />
   );

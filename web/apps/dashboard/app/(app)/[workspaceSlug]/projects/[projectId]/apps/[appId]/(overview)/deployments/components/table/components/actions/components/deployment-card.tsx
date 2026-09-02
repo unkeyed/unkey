@@ -13,7 +13,7 @@ export const DeploymentCard = ({ deployment, isCurrent }: DeploymentCardProps) =
     <div className="flex items-center justify-between">
       <div>
         <div className="flex items-center gap-2">
-          <span className="text-xs text-accent-12 font-semibold font-mono">{deployment.id}</span>
+          <span className="text-xs text-accent-12 font-medium font-mono">{deployment.id}</span>
           <Badge
             variant={isCurrent ? "success" : "primary"}
             className={`px-1.5 capitalize ${isCurrent ? "text-successA-11" : "text-grayA-11"}`}

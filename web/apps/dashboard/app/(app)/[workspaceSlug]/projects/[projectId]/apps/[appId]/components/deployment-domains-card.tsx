@@ -62,7 +62,7 @@ export function DeploymentDomainsCard({
   return (
     <SettingsGroup
       icon={<IconEarthOutline18 className="size-4" />}
-      title={<span className="font-medium text-gray-12 text-[13px] leading-4">Domains</span>}
+      title={<span className="font-normal text-gray-12 text-[13px] leading-4">Domains</span>}
       hideChevron
     >
       <SettingCardGroup>
@@ -111,7 +111,7 @@ export function DeploymentDomainsCard({
                   <PopoverTrigger
                     render={
                       <Button
-                        className="text-gray-12 font-medium bg-grayA-2 rounded-[8px]"
+                        className="text-gray-12 font-normal bg-grayA-2 rounded-[8px]"
                         variant="outline"
                       >
                         Show URLs
@@ -130,7 +130,7 @@ export function DeploymentDomainsCard({
                           href={d.url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="transition-all hover:underline decoration-dashed underline-offset-2 w-[250px] max-w-[250px] truncate font-medium text-xs"
+                          className="transition-all hover:underline decoration-dashed underline-offset-2 w-[250px] max-w-[250px] truncate font-normal text-xs"
                         >
                           {d.hostname}
                         </a>

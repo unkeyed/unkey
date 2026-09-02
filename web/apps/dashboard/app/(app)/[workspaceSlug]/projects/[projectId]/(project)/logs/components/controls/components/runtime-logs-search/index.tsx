@@ -47,7 +47,7 @@ export const RuntimeLogsSearch = () => {
         style: {
           whiteSpace: "pre-line",
         },
-        className: "font-medium",
+        className: "font-normal",
       });
     },
   });

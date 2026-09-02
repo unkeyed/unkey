@@ -341,7 +341,7 @@ const SidebarGroupLabel = React.forwardRef<HTMLDivElement, useRender.ComponentPr
         {
           "data-sidebar": "group-label",
           className: cn(
-            "flex h-8 shrink-0 items-center rounded-md px-2 text-xs font-medium text-sidebar-foreground/70 outline-hidden ring-sidebar-ring transition-[margin,opacity] duration-200 ease-linear focus-visible:ring-2 [&>svg]:size-4 [&>svg]:shrink-0",
+            "flex h-8 shrink-0 items-center rounded-md px-2 text-xs font-normal text-sidebar-foreground/70 outline-hidden ring-sidebar-ring transition-[margin,opacity] duration-200 ease-linear focus-visible:ring-2 [&>svg]:size-4 [&>svg]:shrink-0",
             "group-data-[collapsible=icon]:-mt-8 group-data-[collapsible=icon]:opacity-0",
             className,
           ),
@@ -485,7 +485,7 @@ const SidebarMenuButton = React.forwardRef<
       <Tooltip>
         <TooltipTrigger render={button as React.ReactElement} />
         <TooltipContent
-          className="dark:bg-white bg-black text-gray-1 px-2 py-1 border border-accent-6 shadow-md font-medium text-xs"
+          className="dark:bg-white bg-black text-gray-1 px-2 py-1 border border-accent-6 shadow-md font-normal text-xs"
           side="right"
           align="center"
           hidden={state !== "collapsed" || isMobile}

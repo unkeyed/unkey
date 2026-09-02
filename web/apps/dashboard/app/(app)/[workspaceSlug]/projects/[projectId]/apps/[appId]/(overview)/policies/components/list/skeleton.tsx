@@ -24,7 +24,7 @@ function PolicyRowSkeleton({ index, isLast }: { index: number; isLast: boolean }
       <div className="flex items-center">
         {/* Step number */}
         <div className="w-10 shrink-0 py-5 pl-4 flex items-center">
-          <div className="size-6 rounded-full border bg-grayA-2 border-grayA-5 text-gray-10 flex items-center justify-center text-[11px] font-medium">
+          <div className="size-6 rounded-full border bg-grayA-2 border-grayA-5 text-gray-10 flex items-center justify-center text-[11px] font-normal">
             {index + 1}
           </div>
         </div>

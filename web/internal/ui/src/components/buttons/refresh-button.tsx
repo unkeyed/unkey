@@ -68,7 +68,7 @@ const RefreshButton = ({ onRefresh, isEnabled, isLive, toggleLive }: RefreshButt
           className="flex w-full items-center justify-center rounded-lg border border-gray-4 group overflow-hidden"
         >
           <IconRefresh3Outline18 className="size-4" />
-          <span className="font-medium text-[13px] relative z-10">Refresh</span>
+          <span className="font-normal text-[13px] relative z-10">Refresh</span>
           <div className="max-w-0 opacity-0 group-hover:max-w-[100px] group-hover:opacity-100 transition-all duration-300 ease-in-out overflow-hidden">
             <KeyboardButton shortcut="⌥+⇧+W" className="ml-1" />
           </div>

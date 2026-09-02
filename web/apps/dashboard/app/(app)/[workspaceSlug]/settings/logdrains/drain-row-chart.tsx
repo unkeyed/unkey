@@ -53,7 +53,7 @@ export function DrainRowChart({ drainId }: { drainId: string }) {
       content={
         <div className="flex min-w-56 flex-col gap-3 px-4 py-3">
           <div>
-            <div className="text-[13px] font-medium text-gray-12">Delivery activity</div>
+            <div className="text-[13px] font-normal text-gray-12">Delivery activity</div>
             <div className="text-xs font-normal text-grayA-9">Past 7 days</div>
           </div>
           <div className="flex flex-col gap-2">
@@ -152,9 +152,9 @@ function ChartTotal({
     <div className="flex items-center justify-between gap-6">
       <div className="flex items-center gap-3">
         <div className={`h-5 w-0.5 rounded-full ${colorClassName}`} />
-        <span className="text-[13px] font-medium text-gray-12">{label}</span>
+        <span className="text-[13px] font-normal text-gray-12">{label}</span>
       </div>
-      <span className="text-[13px] font-medium text-gray-9">{formatNumber(value)}</span>
+      <span className="text-[13px] font-normal text-gray-9">{formatNumber(value)}</span>
     </div>
   );
 }

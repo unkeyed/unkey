@@ -163,7 +163,7 @@ export const PlanChangeModal: React.FC<PlanChangeModalProps> = ({
                   >
                     {isSelected ? <div className="size-2 rounded-full bg-white" /> : null}
                   </div>
-                  <span className="min-w-[120px] font-medium text-[15px] text-gray-12">
+                  <span className="min-w-[120px] font-normal text-[15px] text-gray-12">
                     {option.name}
                   </span>
                   <span className="truncate text-[12px] text-gray-11">{option.detail}</span>
@@ -173,7 +173,7 @@ export const PlanChangeModal: React.FC<PlanChangeModalProps> = ({
                     </span>
                   ) : null}
                 </div>
-                <span className="shrink-0 font-medium text-[15px] text-gray-12 tabular-nums">
+                <span className="shrink-0 font-normal text-[15px] text-gray-12 tabular-nums">
                   {option.amount !== null ? (
                     <>
                       {formatDollars(option.amount)}

@@ -67,7 +67,7 @@ export function DeploymentTriggerBadge({
 
   const content = (
     <span
-      className={`inline-flex w-fit items-center rounded-md text-xs font-medium leading-none ${iconOnly ? "h-5.5 w-5.5 justify-center p-1" : "h-5.5 gap-1.5 px-1.5 py-1"} ${isUnkey ? "bg-warningA-3 text-warningA-11" : "bg-grayA-3 text-gray-12"}`}
+      className={`inline-flex w-fit items-center rounded-md text-xs font-normal leading-none ${iconOnly ? "h-5.5 w-5.5 justify-center p-1" : "h-5.5 gap-1.5 px-1.5 py-1"} ${isUnkey ? "bg-warningA-3 text-warningA-11" : "bg-grayA-3 text-gray-12"}`}
       aria-label={iconOnly ? `Triggered via ${spec.label}` : undefined}
     >
       <span className="shrink-0">{spec.icon}</span>

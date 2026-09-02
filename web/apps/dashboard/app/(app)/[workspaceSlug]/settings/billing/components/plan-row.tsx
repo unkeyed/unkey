@@ -7,7 +7,7 @@ import { AdminGate } from "./admin-gate";
 
 export function PlanTableHeader() {
   return (
-    <div className="flex items-center gap-3 bg-grayA-2 px-4 py-2 font-semibold text-[10px] text-gray-9 uppercase tracking-wider">
+    <div className="flex items-center gap-3 bg-grayA-2 px-4 py-2 font-medium text-[10px] text-gray-9 uppercase tracking-wider">
       <div className="min-w-0 flex-1">Product</div>
       <div className="w-28">Plan</div>
       <div className="w-36">Price</div>

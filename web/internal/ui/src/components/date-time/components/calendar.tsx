@@ -20,7 +20,7 @@ function CustomMonthCaptionComponent({ calendarMonth }: { calendarMonth: { date:
       >
         <IconChevronLeftOutline12 className="text-gray-12" />
       </button>
-      <div className="flex w-full text-gray-12 justify-center items-center font-medium calendar-header">
+      <div className="flex w-full text-gray-12 justify-center items-center font-normal calendar-header">
         {format(displayMonth, "MMMM yyy")}
       </div>
       <button
@@ -41,7 +41,7 @@ const styleClassNames = {
   months: "flex flex-col w-full sm:flex-row sm:space-x-4 sm:space-y-0",
   month: "w-full p-0 mt-0 ",
   month_caption: "flex justify-between relative items-center",
-  caption_label: "text-sm font-medium",
+  caption_label: "text-sm font-normal",
   nav: "flex items-center",
   button: cn(
     buttonVariants({ variant: "default" }),

@@ -57,13 +57,13 @@ export const PaginationFooter = memo(function PaginationFooter({
           title={`Page ${page} of ${totalPages} • ${start}-${end} of ${totalCount} ${itemLabel}`}
         >
           <div className="flex items-center gap-2">
-            <span className="text-[11px] font-medium">
+            <span className="text-[11px] font-normal">
               {start}-{end} of {totalCount}
             </span>
             {totalPages === 1 ? null : (
               <>
                 <div className="w-px h-3 bg-gray-6" />
-                <span className="text-[12px] font-medium mr-2">
+                <span className="text-[12px] font-normal mr-2">
                   Page {page}/{totalPages}
                 </span>
               </>
@@ -152,7 +152,7 @@ export const PaginationFooter = memo(function PaginationFooter({
                           aria-label={`Page ${pageNum}`}
                           aria-current={isCurrentPage ? "page" : undefined}
                           className={cn(
-                            "w-7 h-7 flex items-center justify-center rounded-md text-xs font-medium cursor-pointer",
+                            "w-7 h-7 flex items-center justify-center rounded-md text-xs font-normal cursor-pointer",
                             isCurrentPage
                               ? "text-gray-12 pointer-events-none ring-0 border border-grayA-4 bg-grayA-4 text-sm transition-all duration-300"
                               : "text-grayA-9 hover:text-gray-12 hover:bg-grayA-3",

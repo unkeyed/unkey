@@ -216,7 +216,7 @@ export function KeyAuthFields() {
               type="button"
               variant="outline"
               size="md"
-              className="font-medium"
+              className="font-normal"
               onClick={addLocation}
             >
               <IconPlusOutline18 />
@@ -326,7 +326,7 @@ export function KeyAuthFields() {
               type="button"
               variant="outline"
               size="md"
-              className="font-medium"
+              className="font-normal"
               onClick={() => setCredits(0)}
             >
               <IconPlusOutline18 />
@@ -383,7 +383,7 @@ export function KeyAuthFields() {
               type="button"
               variant="outline"
               size="md"
-              className="font-medium"
+              className="font-normal"
               onClick={addRatelimit}
             >
               <IconPlusOutline18 />

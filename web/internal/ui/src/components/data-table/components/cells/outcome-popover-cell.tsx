@@ -70,7 +70,7 @@ export function OutcomePopoverCell({
     return null;
   }
 
-  const containerStyle = "h-[22px] rounded-md px-2 text-xs font-medium w-[110px] flex items-center";
+  const containerStyle = "h-[22px] rounded-md px-2 text-xs font-normal w-[110px] flex items-center";
 
   if (nonValidOutcomes.length === 1) {
     const [outcome, count] = nonValidOutcomes[0];
@@ -121,7 +121,7 @@ export function OutcomePopoverCell({
         >
           <div className="px-3 pt-3">
             <div className="flex items-center justify-between">
-              <div className="text-xs font-medium text-gray-9">Outcomes</div>
+              <div className="text-xs font-normal text-gray-9">Outcomes</div>
               <div className="text-xs text-gray-9">
                 {nonValidOutcomes.length} {nonValidOutcomes.length === 1 ? "type" : "types"}
               </div>
@@ -141,7 +141,7 @@ export function OutcomePopoverCell({
                         getOutcomeColor(outcome),
                       )}
                     />
-                    <span className="text-accent-12 text-xs font-medium">
+                    <span className="text-accent-12 text-xs font-normal">
                       {formatOutcomeName(outcome)}
                     </span>
                   </div>

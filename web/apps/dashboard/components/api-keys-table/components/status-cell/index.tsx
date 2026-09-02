@@ -52,11 +52,10 @@ export const StatusDisplay = ({ keyAuthId, keyData, isSelected }: StatusDisplayP
           {statuses && statuses.length > 1 && (
             <div className="border-b border-grayA-3">
               <div className="flex flex-col px-px py-px gap-1 w-65 p-1">
-                <div className="text-accent-12 font-medium text-[13px]">Key status overview</div>
+                <div className="text-accent-12 font-normal text-[13px]">Key status overview</div>
                 <div className="text-accent-10 text-xs ">
-                  This key has{" "}
-                  <span className="font-semibold text-accent-12">{statuses.length}</span> active
-                  flags{" "}
+                  This key has <span className="font-medium text-accent-12">{statuses.length}</span>{" "}
+                  active flags{" "}
                 </div>
               </div>
             </div>
@@ -101,7 +100,7 @@ export const StatusDisplay = ({ keyAuthId, keyData, isSelected }: StatusDisplayP
                         disabled={enableKeyMutation.isLoading}
                         className={cn(
                           "bg-transparent border-none p-0 m-0 text-left",
-                          "font-medium",
+                          "font-normal",
                           "text-xs",
                           "transition-colors duration-150 ease-in-out",
                           enableKeyMutation.isLoading

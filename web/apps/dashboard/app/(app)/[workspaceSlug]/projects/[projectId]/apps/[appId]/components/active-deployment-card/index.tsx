@@ -97,7 +97,7 @@ export function ActiveDeploymentCard({
       <div className="px-4 pt-3 pb-2.5">
         <div className="flex w-full justify-between items-center gap-4">
           <div className="flex items-baseline gap-2">
-            <span className="font-mono text-[13px] text-accent-12 font-semibold shrink-0">
+            <span className="font-mono text-[13px] text-accent-12 font-medium shrink-0">
               {deployment.id}
             </span>
             {isCurrent && (
@@ -133,7 +133,7 @@ export function ActiveDeploymentCard({
               <Avatar src={deployment.gitCommitAuthorAvatarUrl} alt="Author" />
               {deployment.gitCommitAuthorHandle && (
                 <>
-                  <span className="font-medium text-accent-12 text-xs">
+                  <span className="font-normal text-accent-12 text-xs">
                     {deployment.gitCommitAuthorHandle}
                   </span>
                   <span className="text-gray-9 text-xs">·</span>
@@ -240,7 +240,7 @@ export function ActiveDeploymentCard({
           </MetadataCell>
 
           <MetadataCell label="Instances">
-            <span className="font-medium text-gray-12 text-xs">
+            <span className="font-normal text-gray-12 text-xs">
               {`${runningCount} of ${targetCount}`}
             </span>
           </MetadataCell>
@@ -311,7 +311,7 @@ function explainExit(
   if (reason === "CrashLoopBackOff") {
     return (
       <div className="flex flex-col gap-1.5 max-w-[280px]">
-        <div className="font-medium">App keeps crashing on startup</div>
+        <div className="font-normal">App keeps crashing on startup</div>
         <div>
           Your app has exited too many times in a row, so we're slowing down restart attempts to
           give it room to recover.
@@ -371,7 +371,7 @@ function explainExit(
     <div className="flex flex-col gap-1.5 max-w-[280px]">
       {lines.map((line) => (
         <div key={line.label} className="flex flex-col gap-0.5">
-          <div className="font-medium">{line.label}</div>
+          <div className="font-normal">{line.label}</div>
           <div>{line.body}</div>
         </div>
       ))}

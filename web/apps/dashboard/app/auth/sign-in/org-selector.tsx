@@ -185,7 +185,7 @@ export const OrgSelector: React.FC<OrgSelectorProps> = ({ organizations, lastOrg
             <div className="dark flex flex-col gap-4 focus:outline-none!">
               <label
                 htmlFor="workspace-selector"
-                className="dark text-sm font-medium text-gray-300 focus:outline-none!"
+                className="dark text-sm font-normal text-gray-300 focus:outline-none!"
               >
                 Workspace
               </label>

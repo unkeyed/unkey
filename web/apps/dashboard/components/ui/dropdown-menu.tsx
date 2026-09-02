@@ -169,7 +169,7 @@ const DropdownMenuLabel = React.forwardRef<
 >(({ className, inset, ...props }, ref) => (
   <DropdownMenuPrimitive.GroupLabel
     ref={ref}
-    className={cn("px-2 py-1.5 text-xs font-medium text-gray-11", inset && "pl-8", className)}
+    className={cn("px-2 py-1.5 text-xs font-normal text-gray-11", inset && "pl-8", className)}
     {...props}
   />
 ));

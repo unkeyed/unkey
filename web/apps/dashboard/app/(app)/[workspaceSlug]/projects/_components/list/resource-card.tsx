@@ -65,7 +65,7 @@ export const ResourceCard = ({
           <InfoTooltip content={name} asChild position={{ align: "start", side: "top" }}>
             <Link
               href={href}
-              className="font-medium text-sm leading-[14px] text-accent-12 truncate hover:underline"
+              className="font-normal text-sm leading-[14px] text-accent-12 truncate hover:underline"
             >
               {name}
             </Link>
@@ -77,7 +77,7 @@ export const ResourceCard = ({
                 href={`https://${domain}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="relative font-medium text-xs leading-[12px] text-gray-11 truncate max-w-[150px] hover:text-accent-12 transition-colors hover:underline"
+                className="relative font-normal text-xs leading-[12px] text-gray-11 truncate max-w-[150px] hover:text-accent-12 transition-colors hover:underline"
               >
                 {domain}
               </a>
@@ -100,12 +100,12 @@ export const ResourceCard = ({
                 href={sourceUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-[13px] font-medium text-accent-12 leading-5 min-w-0 truncate cursor-pointer hover:underline"
+                className="text-[13px] font-normal text-accent-12 leading-5 min-w-0 truncate cursor-pointer hover:underline"
               >
                 {commitTitle}
               </a>
             ) : (
-              <span className="text-[13px] font-medium text-accent-12 leading-5 min-w-0 truncate">
+              <span className="text-[13px] font-normal text-accent-12 leading-5 min-w-0 truncate">
                 {commitTitle}
               </span>
             )}
@@ -135,7 +135,7 @@ export const ResourceCard = ({
               <span className="text-xs text-gray-10">by</span>
               <Avatar alt="Author avatar" src={authorAvatar} />
               <InfoTooltip content={author} asChild position={{ align: "start", side: "top" }}>
-                <span className="text-xs text-gray-12 font-medium truncate max-w-[90px]">
+                <span className="text-xs text-gray-12 font-normal truncate max-w-[90px]">
                   {author}
                 </span>
               </InfoTooltip>

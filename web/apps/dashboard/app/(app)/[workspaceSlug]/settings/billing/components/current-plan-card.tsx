@@ -44,7 +44,7 @@ export const CurrentPlanCard = ({
           <span>
             <Button
               variant="outline"
-              className="px-2.5 py-3 text-gray-12 font-medium text-sm bg-grayA-2 hover:bg-grayA-3"
+              className="px-2.5 py-3 text-gray-12 font-normal text-sm bg-grayA-2 hover:bg-grayA-3"
               onClick={handleChangePlan}
               disabled={disabled}
             >

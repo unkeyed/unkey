@@ -34,7 +34,7 @@ function CardTitle({
   return (
     <h2
       ref={ref}
-      className={cn("text-2xl font-semibold leading-none tracking-tight pb-1", className)}
+      className={cn("text-2xl font-medium leading-none tracking-tight pb-1", className)}
       {...props}
     />
   );

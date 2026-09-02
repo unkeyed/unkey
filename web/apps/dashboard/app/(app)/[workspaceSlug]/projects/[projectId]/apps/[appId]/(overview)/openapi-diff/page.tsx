@@ -105,7 +105,7 @@ export default function DiffPage() {
           <div className="px-4 pt-6 pb-4">
             <div className="flex gap-3">
               <div className="flex flex-col gap-1.5 flex-1">
-                <span className="text-[11px] font-medium text-grayA-9">Baseline</span>
+                <span className="text-[11px] font-normal text-grayA-9">Baseline</span>
                 <DeploymentSelect
                   value={selectedFromDeployment}
                   onValueChange={(value) => {
@@ -124,7 +124,7 @@ export default function DiffPage() {
               <IconArrowRightOutline18 className="shrink-0 text-gray-9 size-[14px] mt-8.5" />
 
               <div className="flex flex-col gap-1.5 flex-1">
-                <span className="text-[11px] font-medium text-grayA-9">Comparison</span>
+                <span className="text-[11px] font-normal text-grayA-9">Comparison</span>
                 <DeploymentSelect
                   value={selectedToDeployment}
                   onValueChange={(value) => {
@@ -170,7 +170,7 @@ export default function DiffPage() {
                 {diffLoading && (
                   <div className="text-center py-12 px-8">
                     <Loading className="w-6 h-6 mx-auto mb-3 text-grayA-9" />
-                    <p className="text-[13px] text-grayA-11 font-medium">Analyzing changes...</p>
+                    <p className="text-[13px] text-grayA-11 font-normal">Analyzing changes...</p>
                     <p className="text-xs text-grayA-9 mt-1">Comparing API specifications</p>
                   </div>
                 )}

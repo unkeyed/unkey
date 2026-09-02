@@ -41,7 +41,7 @@ export const LogsSearch = ({ apiId }: { apiId: string }) => {
         style: {
           whiteSpace: "pre-line",
         },
-        className: "font-medium",
+        className: "font-normal",
       });
     },
   });

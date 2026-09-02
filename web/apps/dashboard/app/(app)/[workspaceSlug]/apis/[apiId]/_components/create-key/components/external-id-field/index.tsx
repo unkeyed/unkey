@@ -275,7 +275,7 @@ export const ExternalIdField = ({
                 >
                   <IconTriangleWarningOutline12 />
                 </div>
-                <div className="font-medium text-[13px] leading-7 text-gray-12">
+                <div className="font-normal text-[13px] leading-7 text-gray-12">
                   {externalIdValidation.success ? "External ID not found" : "Invalid external ID"}
                 </div>
               </div>

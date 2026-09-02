@@ -214,7 +214,7 @@ export function PortalConfig({ portal, keyAuthId }: Props) {
       {portal.enabled ? (
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-grayA-4 p-4">
           <div className="space-y-1">
-            <p className="text-sm font-medium text-gray-12">Disable portal</p>
+            <p className="text-sm font-normal text-gray-12">Disable portal</p>
             <p className="text-[13px] text-gray-11">
               By disabling this users will lose access to the portal immediately. Their keys will
               keep working.

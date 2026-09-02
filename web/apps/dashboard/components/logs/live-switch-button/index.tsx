@@ -29,7 +29,7 @@ export const LiveSwitchButton = ({ isLive, onToggle }: LiveSwitchProps) => {
         </div>
       )}
       <IconCircleCaretRightOutline18 className="size-4 relative z-10" />
-      <span className="font-medium text-[13px]">Live</span>
+      <span className="font-normal text-[13px]">Live</span>
       <div className="max-w-0 opacity-0 group-hover:max-w-[100px] group-hover:opacity-100 transition-all duration-300 ease-in-out overflow-hidden">
         <KeyboardButton shortcut="⌥+⇧+Q" className="ml-1" />
       </div>

@@ -71,14 +71,14 @@ export const EnvVarNameCell = ({
             <button
               type="button"
               onClick={handleCopy}
-              className="font-mono font-medium text-[13px] text-accent-12 truncate leading-4 cursor-pointer hover:text-accent-11 transition-colors max-w-[250px] "
+              className="font-mono font-normal text-[13px] text-accent-12 truncate leading-4 cursor-pointer hover:text-accent-11 transition-colors max-w-[250px] "
             >
               <HighlightMatch text={variableKey} query={searchQuery} />
             </button>
           </InfoTooltip>
           {type === "writeonly" && (
             <Badge
-              className="px-1.5 py-0 rounded-md h-5 text-[11px] font-medium pointer-events-none"
+              className="px-1.5 py-0 rounded-md h-5 text-[11px] font-normal pointer-events-none"
               variant="warning"
             >
               Sensitive

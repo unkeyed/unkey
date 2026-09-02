@@ -43,7 +43,7 @@ export function createPermissionOptions({
                   <div className="flex gap-2 items-center min-w-0">
                     <div className="flex flex-col gap-0.5 truncate min-w-0">
                       <div className="flex items-center  gap-2">
-                        <span className="font-medium text-accent-12 text-left truncate">
+                        <span className="font-normal text-accent-12 text-left truncate">
                           {permission.name}
                         </span>
                         {permission.roles.find((item) => item.id === roleId) && (
@@ -76,32 +76,32 @@ export function createPermissionOptions({
           >
             <div className="flex flex-col h-full">
               {/* Header */}
-              <div className="px-4 py-2 border-b border-grayA-4 text-gray-10 text-xs font-medium bg-grayA-2">
+              <div className="px-4 py-2 border-b border-grayA-4 text-gray-10 text-xs font-normal bg-grayA-2">
                 Permission Details
               </div>
               {/* Content */}
               <div className="flex flex-col px-4 py-3 gap-3">
                 <div>
-                  <div className="text-xs font-medium text-gray-11 mb-1">Permission ID</div>
+                  <div className="text-xs font-normal text-gray-11 mb-1">Permission ID</div>
                   <div className="text-xs text-gray-12 font-mono break-all">{permission.id}</div>
                 </div>
                 <div>
-                  <div className="text-xs font-medium text-gray-11 mb-1">Name</div>
+                  <div className="text-xs font-normal text-gray-11 mb-1">Name</div>
                   <div className="text-xs text-gray-12">{permission.name}</div>
                 </div>
                 <div>
-                  <div className="text-xs font-medium text-gray-11 mb-1">Slug</div>
+                  <div className="text-xs font-normal text-gray-11 mb-1">Slug</div>
                   <div className="text-xs text-gray-12 font-mono">{permission.slug}</div>
                 </div>
                 {permission.description && (
                   <div>
-                    <div className="text-xs font-medium text-gray-11 mb-1">Description</div>
+                    <div className="text-xs font-normal text-gray-11 mb-1">Description</div>
                     <div className="text-xs text-gray-12">{permission.description}</div>
                   </div>
                 )}
                 {permission.roles.length > 0 && (
                   <div>
-                    <div className="text-xs font-medium text-gray-11 mb-2">Roles</div>
+                    <div className="text-xs font-normal text-gray-11 mb-2">Roles</div>
                     <div className="flex flex-wrap gap-1">
                       {permission.roles.map((role) => (
                         <Badge key={role.id} variant="secondary" className="text-xs">
@@ -123,7 +123,7 @@ export function createPermissionOptions({
           <div className="border rounded-full flex items-center justify-center border-grayA-6 size-5">
             <IconPage2Outline12 className="text-grayA-11" />
           </div>
-          <span className="text-accent-12 font-medium text-xs w-[120px] truncate text-left">
+          <span className="text-accent-12 font-normal text-xs w-[120px] truncate text-left">
             {permission.id.length > 15
               ? `${permission.id.slice(0, 8)}...${permission.id.slice(-4)}`
               : permission.id}
@@ -150,7 +150,7 @@ export function createPermissionOptions({
             e.stopPropagation();
             loadMore();
           }}
-          className="text-xs text-accent-12 px-2 py-0.5 hover:bg-grayA-3 rounded-sm w-full bg-transparent hover:bg-transparent focus:ring-0 font-medium"
+          className="text-xs text-accent-12 px-2 py-0.5 hover:bg-grayA-3 rounded-sm w-full bg-transparent hover:bg-transparent focus:ring-0 font-normal"
         >
           Load more...
         </Button>

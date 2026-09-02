@@ -21,14 +21,12 @@ function DomainHero() {
           href={primaryDomain.url}
           target="_blank"
           rel="noopener noreferrer"
-          className="font-mono tracking-tight text-base font-semibold text-accent-12 truncate hover:underline decoration-dashed underline-offset-3"
+          className="font-mono tracking-tight text-base font-medium text-accent-12 truncate hover:underline decoration-dashed underline-offset-3"
         >
           {primaryDomain.hostname}
         </a>
       ) : (
-        <span className="font-mono text-base font-semibold text-gray-9 truncate">
-          No domain yet
-        </span>
+        <span className="font-mono text-base font-medium text-gray-9 truncate">No domain yet</span>
       )}
       {additionalDomains.length > 0 && (
         <Popover>

@@ -412,7 +412,7 @@ function InstancesSection({
         </div>
         <span className="text-gray-12 text-[13px]">Active instances</span>
         <div className="ml-auto">
-          <span className="text-gray-12 font-medium text-[13px] tabular-nums">
+          <span className="text-gray-12 font-normal text-[13px] tabular-nums">
             {currentCount}
             <span className="font-normal text-grayA-10"> vm</span>
           </span>

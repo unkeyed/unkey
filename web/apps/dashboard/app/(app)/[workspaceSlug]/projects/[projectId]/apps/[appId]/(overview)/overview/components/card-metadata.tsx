@@ -161,7 +161,7 @@ export function ProductionCardMetadata() {
         <div className="flex items-center gap-2">
           <Avatar src={deployment.gitCommitAuthorAvatarUrl} alt="Author" />
           {deployment.gitCommitAuthorHandle && (
-            <span className="font-medium text-accent-12 text-[13px] truncate">
+            <span className="font-normal text-accent-12 text-[13px] truncate">
               {deployment.gitCommitAuthorHandle}
             </span>
           )}

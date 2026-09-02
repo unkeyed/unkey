@@ -59,7 +59,7 @@ export function KeysDetailsLogsControls({
               />
               <div className="items-center flex justify-center gap-2">
                 <motion.div
-                  className="text-gray-12 font-medium text-[13px] max-md:hidden pl-4"
+                  className="text-gray-12 font-normal text-[13px] max-md:hidden pl-4"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ delay: 0.05, duration: 0.2 }}

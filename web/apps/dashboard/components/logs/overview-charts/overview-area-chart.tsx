@@ -274,7 +274,7 @@ export const OverviewAreaChart = ({
               {labelsWithDefaults.rangeLabel}
             </div>
           </div>
-          <div className="text-accent-12 text-[18px] font-semibold leading-7">
+          <div className="text-accent-12 text-[18px] font-medium leading-7">
             {primaryMetric.formatter
               ? `${primaryMetric.formatter(
                   ranges[primaryMetric.key].min,
@@ -296,7 +296,7 @@ export const OverviewAreaChart = ({
                   />
                   <div className="text-accent-10 text-[11px] leading-4">{metric.label}</div>
                 </div>
-                <div className="text-accent-12 text-[18px] font-semibold leading-7">
+                <div className="text-accent-12 text-[18px] font-medium leading-7">
                   {metric.formatter
                     ? metric.formatter(ranges[metric.key].avg)
                     : formatNumber(ranges[metric.key].avg)}

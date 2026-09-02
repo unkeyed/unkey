@@ -88,7 +88,7 @@ export function SelectedItemsList<T extends BaseItem>({
                 <div className="flex flex-col gap-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <span
-                      className="font-medium text-accent-12 text-left truncate max-w-[60px]"
+                      className="font-normal text-accent-12 text-left truncate max-w-[60px]"
                       title={item.name}
                     >
                       {renderPrimaryText(item)}

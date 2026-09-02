@@ -16,9 +16,7 @@ export function OnboardingCardTitle({
   className,
   ...props
 }: React.HTMLAttributes<HTMLHeadingElement>) {
-  return (
-    <h2 className={cn("text-gray-12 font-semibold text-lg leading-8", className)} {...props} />
-  );
+  return <h2 className={cn("text-gray-12 font-medium text-lg leading-8", className)} {...props} />;
 }
 
 export function OnboardingCardDescription({

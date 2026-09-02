@@ -19,7 +19,7 @@ export function DnsRecordRow({ type, name, value, verified, isLast }: DnsRecordR
         verified && "text-gray-8",
       )}
     >
-      <span className={cn("font-medium", verified ? "text-gray-8" : "text-gray-11")}>{type}</span>
+      <span className={cn("font-normal", verified ? "text-gray-8" : "text-gray-11")}>{type}</span>
       <span className="flex items-center gap-1.5 min-w-0">
         <code className="font-mono truncate max-w-[200px]">{name}</code>
         {!verified && <CopyButton value={name} className="size-5 shrink-0" variant="ghost" />}

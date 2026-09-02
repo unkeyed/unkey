@@ -78,7 +78,7 @@ export const StatusWidget = forwardRef<HTMLAnchorElement, StatusWidgetProps>(fun
       rel="noreferrer"
       aria-label={`${meta.label}. View status page`}
       className={cn(
-        "group/status flex w-full items-center gap-3 text-sm font-medium text-accent-12",
+        "group/status flex w-full items-center gap-3 text-sm font-normal text-accent-12",
         className,
       )}
       {...props}

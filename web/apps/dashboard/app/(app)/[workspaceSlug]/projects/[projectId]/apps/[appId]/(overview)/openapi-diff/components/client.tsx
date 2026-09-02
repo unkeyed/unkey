@@ -131,7 +131,7 @@ export const DiffViewerContent: React.FC<DiffViewerContentProps> = ({
       <div className="px-6 pt-5 pb-4">
         <div className="flex justify-between items-center">
           <div className="flex flex-col gap-1">
-            <div className="text-grayA-12 font-medium text-[13px]">API Changes</div>
+            <div className="text-grayA-12 font-normal text-[13px]">API Changes</div>
             <div className="text-grayA-9 text-xs">
               {stats.total} changes • {stats.paths.length} endpoints
             </div>
@@ -140,7 +140,7 @@ export const DiffViewerContent: React.FC<DiffViewerContentProps> = ({
             {stats.breaking > 0 && (
               <Badge variant="error" className="gap-1.5">
                 <IconTriangleWarningOutline12 className="shrink-0" />
-                <span className="text-xs font-medium">{stats.breaking} breaking</span>
+                <span className="text-xs font-normal">{stats.breaking} breaking</span>
               </Badge>
             )}
             {stats.warning > 0 && (
@@ -267,7 +267,7 @@ export const DiffViewerContent: React.FC<DiffViewerContentProps> = ({
                       <code className="font-mono text-xs text-grayA-12 truncate">{path}</code>
                     </div>
                     <div className="flex items-center gap-2.5 shrink-0">
-                      <span className="text-xs text-grayA-9 font-medium tabular-nums">
+                      <span className="text-xs text-grayA-9 font-normal tabular-nums">
                         {Object.values(operations).flat().length} changes
                       </span>
                       <div className="flex items-center gap-1.5">

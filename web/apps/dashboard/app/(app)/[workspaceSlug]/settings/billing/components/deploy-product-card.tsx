@@ -363,7 +363,7 @@ export const DeployProductCard: React.FC<DeployProductCardProps> = ({
                         {stat.label}
                       </p>
                     </InfoTooltip>
-                    <p className="font-medium text-[13px] text-gray-12 tabular-nums">
+                    <p className="font-normal text-[13px] text-gray-12 tabular-nums">
                       {stat.value}
                     </p>
                     <p className="text-[12px] text-gray-10 tabular-nums">
@@ -446,7 +446,7 @@ export const DeployProductCard: React.FC<DeployProductCardProps> = ({
                       content={
                         <div className="flex max-w-[240px] flex-col gap-2 text-[12px]">
                           <div className="flex flex-col gap-0.5">
-                            <p className="font-medium text-gray-12">How this is calculated</p>
+                            <p className="font-normal text-gray-12">How this is calculated</p>
                             <p className="text-gray-11">
                               This period's {formatDollars(periodFeeCents)} fee is already invoiced
                               and covers {formatDollars(includedCreditCents)} of usage. The next
@@ -459,7 +459,7 @@ export const DeployProductCard: React.FC<DeployProductCardProps> = ({
                             </p>
                           </div>
                           <div className="flex flex-col gap-1 border-grayA-4 border-t pt-2">
-                            <p className="font-medium text-gray-12">Usage rates</p>
+                            <p className="font-normal text-gray-12">Usage rates</p>
                             <ul className="flex flex-col gap-0.5">
                               {DEPLOY_METER_RATE_LABELS.map((r) => (
                                 <li
@@ -493,7 +493,7 @@ export const DeployProductCard: React.FC<DeployProductCardProps> = ({
                       </span>
                     ) : null}
                   </span>
-                  <span className="font-medium text-[15px] text-gray-12 tabular-nums">
+                  <span className="font-normal text-[15px] text-gray-12 tabular-nums">
                     {nextInvoiceCents !== null ? formatPrice(nextInvoiceCents) : "—"}
                   </span>
                 </div>

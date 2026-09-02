@@ -86,7 +86,7 @@ export const UserButton: React.FC<UserButtonProps> = ({ isCollapsed = false, cla
 
         <DropdownMenuGroup className="w-full">
           <DropdownMenuItem
-            render={<span className="text-accent-12 text-sm font-medium">Sign out</span>}
+            render={<span className="text-accent-12 text-sm font-normal">Sign out</span>}
             className="cursor-pointer"
             onClick={async () => {
               queryClient.clear();

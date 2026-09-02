@@ -26,10 +26,10 @@ export function ComputePausedBanner() {
       : undefined;
 
   return (
-    <div className="flex h-9 w-full shrink-0 items-center justify-center gap-2 bg-warning-9 px-4 text-center font-medium text-[13px] text-black">
+    <div className="flex h-9 w-full shrink-0 items-center justify-center gap-2 bg-warning-9 px-4 text-center font-normal text-[13px] text-black">
       <IconTriangleWarningOutline12 className="shrink-0" />
       <span>
-        <span className="font-semibold">Compute paused.</span> {pausedBody(budgetLabel)}{" "}
+        <span className="font-medium">Compute paused.</span> {pausedBody(budgetLabel)}{" "}
         <Link
           href={routes.settings.billing({ workspaceSlug: workspace.slug })}
           className="underline underline-offset-2 hover:opacity-80"

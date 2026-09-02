@@ -54,7 +54,7 @@ export function ApiCard({ verifications, ratelimits, quota, feeCents, isLoading 
           <ItemTitle>API management</ItemTitle>
           <ItemDescription>Valid requests this period</ItemDescription>
         </ItemContent>
-        <ItemActions className="font-semibold text-2xl text-gray-12 leading-tight tracking-tight tabular-nums">
+        <ItemActions className="font-medium text-2xl text-gray-12 leading-tight tracking-tight tabular-nums">
           <Figure value={fee(feeCents)} isLoading={isLoading} skeletonClassName="h-6 w-16" />
         </ItemActions>
       </ItemHeader>
@@ -63,7 +63,7 @@ export function ApiCard({ verifications, ratelimits, quota, feeCents, isLoading 
         <Quota used={used} quota={quota} />
       </div>
 
-      <div className="flex items-center gap-3 border-grayA-4 border-b bg-grayA-2 px-4 py-2 font-semibold text-[10px] text-gray-9 uppercase tracking-wider">
+      <div className="flex items-center gap-3 border-grayA-4 border-b bg-grayA-2 px-4 py-2 font-medium text-[10px] text-gray-9 uppercase tracking-wider">
         <div className="min-w-0 flex-1">Operation</div>
         <div className="w-28 text-right">Requests</div>
       </div>

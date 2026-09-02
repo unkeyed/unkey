@@ -87,7 +87,7 @@ export const RepoListItem = ({
     <div className="flex px-4 py-5 items-center">
       <LanguageIcon language={repo.language} />
       <div className="flex flex-col gap-1 w-52">
-        <div className="font-medium text-[13px] text-gray-12 leading-4 truncate max-w-40">
+        <div className="font-normal text-[13px] text-gray-12 leading-4 truncate max-w-40">
           {repoName}
         </div>
         <div className="flex items-center gap-0 text-[13px] text-gray-10 leading-3 max-w-52">
@@ -127,7 +127,7 @@ export const RepoListItem = ({
                   <IconMagnifierOutline12 className="text-gray-9" />
                 )
               }
-              className="min-h-7! h-7! rounded-lg border-grayA-4 text-[13px] bg-transparent font-medium shadow-md"
+              className="min-h-7! h-7! rounded-lg border-grayA-4 text-[13px] bg-transparent font-normal shadow-md"
               wrapperClassName="w-full"
               popoverClassName="w-[400px]"
             />
@@ -140,7 +140,7 @@ export const RepoListItem = ({
           loading={loading}
           onClick={() => onSelect(repo, selectedBranch)}
         >
-          <span className="text-[13px] text-gray-12 font-medium">Select</span>
+          <span className="text-[13px] text-gray-12 font-normal">Select</span>
         </Button>
       </div>
     </div>

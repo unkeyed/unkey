@@ -64,7 +64,7 @@ export const Command = () => {
       displayValue={
         defaultCommand ? (
           <InfoTooltip content={defaultCommand} asChild position={{ side: "bottom" }}>
-            <span className="font-medium text-gray-12 font-mono text-xs truncate max-w-[100px]">
+            <span className="font-normal text-gray-12 font-mono text-xs truncate max-w-[100px]">
               {defaultCommand}
             </span>
           </InfoTooltip>

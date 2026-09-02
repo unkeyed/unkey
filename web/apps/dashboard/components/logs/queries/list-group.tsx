@@ -107,7 +107,7 @@ export function ListGroup({
               <div className="inline-flex w-full gap-2">
                 <span className="font-mono text-xs font-normal text-gray-9">from</span>
                 <IconLayers2Outline18 className="size-3 mt-px" />
-                <span className="font-mono text-xs font-medium">Logs</span>
+                <span className="font-mono text-xs font-normal">Logs</span>
               </div>
             </div>
 

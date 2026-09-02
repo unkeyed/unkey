@@ -75,7 +75,7 @@ export function ProjectCard({ name, projectId, appCount, apps, actions }: Projec
         <InfoTooltip content={name} asChild position={{ align: "start", side: "top" }}>
           <Link
             href={projectPath}
-            className="font-medium text-sm leading-5 text-accent-12 truncate min-w-0"
+            className="font-normal text-sm leading-5 text-accent-12 truncate min-w-0"
           >
             {name}
           </Link>
@@ -139,7 +139,7 @@ function AppIconStack({
                   projectId,
                 })}
                 aria-label={`View all ${appCount} apps`}
-                className={`${BLOB_BASE} text-[10px] font-medium text-gray-11`}
+                className={`${BLOB_BASE} text-[10px] font-normal text-gray-11`}
               >
                 +{overflow}
               </Link>

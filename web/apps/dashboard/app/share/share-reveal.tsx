@@ -41,7 +41,7 @@ function CardGlyph({ children }: { children: React.ReactNode }) {
 function CardText({ title, description }: { title: string; description: string }) {
   return (
     <div className="flex flex-col items-center gap-1">
-      <h1 className="font-semibold text-gray-12 text-[16px] leading-[24px]">{title}</h1>
+      <h1 className="font-medium text-gray-12 text-[16px] leading-[24px]">{title}</h1>
       <p className="text-gray-10 text-[13px] leading-[20px]">{description}</p>
     </div>
   );

@@ -21,7 +21,7 @@ export const SearchExampleTooltip: React.FC<SearchExampleTooltipProps> = ({
     <InfoTooltip
       content={
         <div>
-          <div className="font-medium mb-2 flex items-center gap-2 text-[13px]">
+          <div className="font-normal mb-2 flex items-center gap-2 text-[13px]">
             <span>Try queries like:</span>
             <span className="text-[11px] text-gray-11">(click to use)</span>
           </div>

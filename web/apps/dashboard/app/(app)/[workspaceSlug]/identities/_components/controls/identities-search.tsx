@@ -26,7 +26,7 @@ export const IdentitiesSearch = () => {
           value={search}
           maxLength={256}
           placeholder="Search identities by ID or external ID..."
-          className="h-8 text-[13px] font-medium"
+          className="h-8 text-[13px] font-normal"
           onChange={(event) => setSearch(event.target.value || null)}
           onKeyDown={(event) => {
             if (event.key === "Escape") {

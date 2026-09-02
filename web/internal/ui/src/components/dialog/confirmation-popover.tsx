@@ -98,7 +98,7 @@ export const ConfirmPopover = ({
             >
               <Icon className="size-3" />
             </div>
-            <div className="font-medium text-[13px] leading-7 text-gray-12">{title}</div>
+            <div className="font-normal text-[13px] leading-7 text-gray-12">{title}</div>
           </div>
         </div>
         <div className="w-full">

@@ -157,7 +157,7 @@ export function PolicyRow({
           <div className="w-10 shrink-0 py-5 pl-4 flex items-center">
             <div
               className={cn(
-                "size-6 rounded-full border flex items-center justify-center text-[11px] font-medium",
+                "size-6 rounded-full border flex items-center justify-center text-[11px] font-normal",
                 isActiveAnywhere
                   ? "bg-info-3 border-info-7 text-info-11"
                   : "bg-grayA-2 border-grayA-5 text-gray-10",

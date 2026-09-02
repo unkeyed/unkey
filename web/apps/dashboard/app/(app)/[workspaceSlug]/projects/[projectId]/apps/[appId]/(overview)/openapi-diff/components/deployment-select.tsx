@@ -106,7 +106,7 @@ export function DeploymentSelect({
             asChild
           >
             <div className="flex items-center gap-2.5 text-[13px]">
-              <span className="text-grayA-12 font-medium truncate">{shortenId(deployment.id)}</span>
+              <span className="text-grayA-12 font-normal truncate">{shortenId(deployment.id)}</span>
               <span className="text-grayA-9">•</span>
               <span className="text-grayA-9">{deployedAt}</span>
               {isCurrent && <PulseIndicator />}

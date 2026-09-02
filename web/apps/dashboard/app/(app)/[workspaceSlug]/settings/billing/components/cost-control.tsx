@@ -115,7 +115,7 @@ function ComputeBudget({ isAdmin }: { isAdmin: boolean | undefined }) {
               </AlertBanner>
             ))
             .with({ budgetCents: P.number }, ({ budgetCents }) => (
-              <span className="font-semibold text-3xl text-gray-12 tabular-nums tracking-tight">
+              <span className="font-medium text-3xl text-gray-12 tabular-nums tracking-tight">
                 {formatDollars(budgetCents)}
               </span>
             ))
@@ -129,7 +129,7 @@ function ComputeBudget({ isAdmin }: { isAdmin: boolean | undefined }) {
         {budgetCents !== null ? (
           <>
             <ItemSeparator />
-            <div className="bg-grayA-2 px-4 py-2 font-semibold text-[10px] text-gray-9 uppercase tracking-wider">
+            <div className="bg-grayA-2 px-4 py-2 font-medium text-[10px] text-gray-9 uppercase tracking-wider">
               Alerts
             </div>
             {/* The deployspendcheck worker sends the stopped email instead of the 100% warning when stopping is on. */}

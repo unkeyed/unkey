@@ -261,7 +261,7 @@ export const PlanSelectionModal = ({
                   </div>
                 </div>
                 <div className="text-right mt-[2px]">
-                  <div className="font-medium text-[15px] text-gray-12">
+                  <div className="font-normal text-[15px] text-gray-12">
                     ${product.dollar}
                     <span className="text-[12px] font-normal text-gray-11">/mo</span>
                   </div>

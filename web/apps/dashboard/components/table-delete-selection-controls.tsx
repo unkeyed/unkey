@@ -64,7 +64,7 @@ export const TableDeleteSelectionControls = ({
                 <Button
                   variant="outline"
                   size="sm"
-                  className="text-gray-12 font-medium text-[13px]"
+                  className="text-gray-12 font-normal text-[13px]"
                   disabled={isDeleting}
                   loading={isDeleting}
                   onClick={() => setIsDeleteConfirmOpen(true)}

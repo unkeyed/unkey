@@ -191,7 +191,7 @@ export function RateLimitFields() {
             type="button"
             variant="outline"
             size="md"
-            className="font-medium"
+            className="font-normal"
             disabled={fields.length >= POLICY_LIMITS.maxIdentifiersPerRatelimit}
             onClick={() => append({ id: crypto.randomUUID(), source: "path", value: "" })}
           >

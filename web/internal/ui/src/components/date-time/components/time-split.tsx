@@ -107,7 +107,7 @@ const TimeSplitInput: React.FC<TimeSplitInputProps> = ({ type }) => {
     bg-transparent
     outline-hidden ring-0 focus:ring-0
     text-center
-    text-gray-12 leading-6 tracking-normal font-medium text-[13px]
+    text-gray-12 leading-6 tracking-normal font-normal text-[13px]
   `;
 
   const TimeInput: React.FC<{ field: TimeField; ariaLabel: string }> = (props) => (
@@ -132,11 +132,11 @@ const TimeSplitInput: React.FC<TimeSplitInputProps> = ({ type }) => {
     >
       <IconClockOutline18 className="text-gray-9 m-3" />
       <TimeInput field="HH" ariaLabel="Hours" />
-      <span className="text-gray-12 leading-6 tracking-normal font-medium text-[13px]">:</span>
+      <span className="text-gray-12 leading-6 tracking-normal font-normal text-[13px]">:</span>
       <TimeInput field="mm" ariaLabel="Minutes" />
-      <span className="text-gray-12 leading-6 font-medium text-[13px]">:</span>
+      <span className="text-gray-12 leading-6 font-normal text-[13px]">:</span>
       <TimeInput field="ss" ariaLabel="Seconds" />
-      <span className="text-gray-12 leading-6 font-medium text-[13px]"> </span>
+      <span className="text-gray-12 leading-6 font-normal text-[13px]"> </span>
       {/* AM/PM and timezone still needs to be implemented */}
       {/* {renderTimeInput("")} */}
     </div>

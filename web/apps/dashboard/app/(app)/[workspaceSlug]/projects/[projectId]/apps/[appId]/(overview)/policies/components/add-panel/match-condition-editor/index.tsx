@@ -39,7 +39,7 @@ export function MatchConditionEditorBody() {
           type="button"
           variant="outline"
           size="md"
-          className="font-medium"
+          className="font-normal"
           disabled={atCap}
           onClick={() => append(getDefaultCondition("path"))}
         >

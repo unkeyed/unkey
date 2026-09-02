@@ -114,7 +114,7 @@ export const EditMetadataDialog: FC<EditMetadataDialogProps> = ({ identity, isOp
                   aria-live="polite"
                   className="w-full rounded-lg border border-success-7 bg-successA-2 p-4 text-success-11"
                 >
-                  <span className="block font-medium leading-none">Metadata Updated</span>
+                  <span className="block font-normal leading-none">Metadata Updated</span>
                   <span className="mt-1 block text-sm">Your changes are now active.</span>
                 </output>
               ) : null}

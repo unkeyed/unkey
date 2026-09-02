@@ -115,7 +115,7 @@ export const FilterOperatorInput = <T extends string>({
               className={cn(
                 "w-full inline-flex items-center justify-between",
                 "px-2 py-1.5 rounded-lg",
-                "text-[13px] font-medium text-accent-12 text-left",
+                "text-[13px] font-normal text-accent-12 text-left",
                 "hover:bg-gray-3",
                 "focus:outline-hidden focus:ring-2 focus:ring-accent-7",
                 "focus:bg-gray-3",

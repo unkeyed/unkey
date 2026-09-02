@@ -263,15 +263,15 @@ export const IdentityDetailsLogsTable = ({ identityId, selectedLog, onLogSelect 
               variant="inverted"
               content={
                 <div className="flex flex-col gap-1">
-                  <div className="text-xs font-medium">Key ID:</div>
+                  <div className="text-xs font-normal">Key ID:</div>
                   <div className="font-mono text-xs break-all">{log.keyId}</div>
                   {log.keyName && (
                     <>
-                      <div className="text-xs font-medium mt-1">Key Name:</div>
+                      <div className="text-xs font-normal mt-1">Key Name:</div>
                       <div className="text-xs">{log.keyName}</div>
                     </>
                   )}
-                  <div className="text-xs font-medium mt-1">API:</div>
+                  <div className="text-xs font-normal mt-1">API:</div>
                   <div className="text-xs">{log.apiName || log.apiId}</div>
                 </div>
               }
@@ -368,7 +368,7 @@ export const IdentityDetailsLogsTable = ({ identityId, selectedLog, onLogSelect 
                   variant="inverted"
                   content={
                     <div className="flex flex-col gap-2 py-1 max-w-xs max-h-[300px] overflow-y-auto">
-                      <div className="text-xs opacity-75 font-medium">
+                      <div className="text-xs opacity-75 font-normal">
                         {log.tags.length - 3} more tags:
                       </div>
                       {log.tags.slice(3).map((tag, idx) => (

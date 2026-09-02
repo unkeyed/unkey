@@ -195,13 +195,13 @@ export const RatelimitSetup = ({
 
       <div className="flex w-full justify-between items-center px-1">
         <div className="flex gap-2 items-center">
-          <span className="font-medium text-sm text-gray-12">Ratelimits</span>
+          <span className="font-normal text-sm text-gray-12">Ratelimits</span>
           <span className="rounded-full border border-grayA-3 justify-center items-center flex bg-grayA-3 w-[22px] h-[18px] text-gray-12 text-[11px]">
             {fields.length}
           </span>
         </div>
         <Button
-          className="rounded-lg bg-white dark:bg-black text-gray-12 font-medium"
+          className="rounded-lg bg-white dark:bg-black text-gray-12 font-normal"
           variant="outline"
           onClick={handleAddRatelimit}
           type="button"

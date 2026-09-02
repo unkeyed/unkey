@@ -202,7 +202,7 @@ function ComboboxGroupLabel({
   return (
     <ComboboxPrimitive.GroupLabel
       ref={ref}
-      className={cn("px-2 py-1.5 text-xs font-medium text-grayA-9", className)}
+      className={cn("px-2 py-1.5 text-xs font-normal text-grayA-9", className)}
       {...props}
     />
   );

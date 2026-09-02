@@ -79,9 +79,9 @@ export function RecentDeliveryErrors({
             </colgroup>
             <thead className="bg-grayA-2">
               <tr className="border-b border-grayA-4">
-                <th className="px-4 py-2 text-xs font-medium text-gray-10">Time</th>
-                <th className="px-4 py-2 text-xs font-medium text-gray-10">Result</th>
-                <th className="px-4 py-2 text-xs font-medium text-gray-10">Details</th>
+                <th className="px-4 py-2 text-xs font-normal text-gray-10">Time</th>
+                <th className="px-4 py-2 text-xs font-normal text-gray-10">Result</th>
+                <th className="px-4 py-2 text-xs font-normal text-gray-10">Details</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-grayA-4">
@@ -111,7 +111,7 @@ export function RecentDeliveryErrors({
                       />
                     </td>
                     <td className="px-4 py-3">
-                      <span className="inline-flex rounded-md border border-errorA-4 bg-errorA-2 px-2 py-1 font-mono text-xs font-medium text-error-11">
+                      <span className="inline-flex rounded-md border border-errorA-4 bg-errorA-2 px-2 py-1 font-mono text-xs font-normal text-error-11">
                         {status}
                       </span>
                     </td>

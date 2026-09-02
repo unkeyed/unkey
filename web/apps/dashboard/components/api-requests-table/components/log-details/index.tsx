@@ -79,7 +79,7 @@ export const KeysOverviewLogDetails = ({ distanceToTop, log, setSelectedLog, api
           keyId: log.key_id,
         })}
       >
-        <div className="font-mono font-medium truncate">{log.key_id}</div>
+        <div className="font-mono font-normal truncate">{log.key_id}</div>
       </Link>
     ),
     Name: log.key_details.name || "N/A",

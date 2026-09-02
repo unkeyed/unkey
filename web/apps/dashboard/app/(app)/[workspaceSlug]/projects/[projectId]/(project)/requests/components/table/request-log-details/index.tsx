@@ -233,7 +233,7 @@ const formatLatencyMetrics = (log: RequestLogsResponse): React.ReactNode => {
     <div className="flex flex-col gap-2">
       <div className="flex items-center justify-between">
         <span className="text-gray-11">Total Latency:</span>
-        <span className="font-mono font-semibold">{formatLatency(log.total_latency)}</span>
+        <span className="font-mono font-medium">{formatLatency(log.total_latency)}</span>
       </div>
       <div className="flex items-center justify-between">
         <span className="text-gray-11">Instance Latency:</span>

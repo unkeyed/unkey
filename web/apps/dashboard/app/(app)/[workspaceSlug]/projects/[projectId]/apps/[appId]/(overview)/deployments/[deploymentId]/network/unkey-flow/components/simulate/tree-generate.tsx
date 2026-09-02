@@ -123,7 +123,7 @@ export function InternalDevTreeGenerator({ onGenerate, onReset }: DevTreeGenerat
       <div className="flex items-center justify-between p-3 border-b border-grayA-4">
         <div className="flex items-center gap-2">
           <IconLayers3Outline18 className="size-3 text-accent-9" />
-          <span className="font-medium text-sm">Tree Generator</span>
+          <span className="font-normal text-sm">Tree Generator</span>
         </div>
         <Button onClick={() => setIsOpen(false)}>
           <IconXmarkOutline18 />
@@ -139,7 +139,7 @@ export function InternalDevTreeGenerator({ onGenerate, onReset }: DevTreeGenerat
 
         {/* Presets */}
         <div className="flex flex-col gap-2">
-          <div className="text-xs font-medium text-gray-11">Presets</div>
+          <div className="text-xs font-normal text-gray-11">Presets</div>
           <div className="grid grid-cols-1 gap-2">
             {Object.entries(PRESETS).map(([key, preset]) => (
               <Button
@@ -159,7 +159,7 @@ export function InternalDevTreeGenerator({ onGenerate, onReset }: DevTreeGenerat
 
         {/* Custom Configuration */}
         <div className="flex flex-col gap-3 pt-3 border-t border-grayA-4">
-          <div className="text-xs font-medium text-gray-11">Custom</div>
+          <div className="text-xs font-normal text-gray-11">Custom</div>
 
           {/* Regions */}
           <div className="flex flex-col gap-1">
@@ -268,7 +268,7 @@ export function InternalDevTreeGenerator({ onGenerate, onReset }: DevTreeGenerat
           <Button
             onClick={() => handleGenerate(customConfig)}
             disabled={generateMutation.isLoading}
-            className="w-full px-3 py-2 rounded-sm text-xs font-medium transition-colors"
+            className="w-full px-3 py-2 rounded-sm text-xs font-normal transition-colors"
           >
             Generate Custom Tree
           </Button>
@@ -278,7 +278,7 @@ export function InternalDevTreeGenerator({ onGenerate, onReset }: DevTreeGenerat
         <Button
           onClick={onReset}
           disabled={generateMutation.isLoading}
-          className="w-full px-3 py-2 rounded-sm text-xs font-medium transition-colors border border-grayA-4"
+          className="w-full px-3 py-2 rounded-sm text-xs font-normal transition-colors border border-grayA-4"
         >
           Reset to Original
         </Button>

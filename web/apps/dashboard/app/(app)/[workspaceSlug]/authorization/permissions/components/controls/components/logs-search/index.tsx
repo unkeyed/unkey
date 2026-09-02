@@ -41,7 +41,7 @@ export const PermissionSearch = () => {
         style: {
           whiteSpace: "pre-line",
         },
-        className: "font-medium",
+        className: "font-normal",
       });
     },
   });

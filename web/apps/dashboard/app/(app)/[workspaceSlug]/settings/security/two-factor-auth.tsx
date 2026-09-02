@@ -51,7 +51,7 @@ export function TwoFactorAuth() {
               className="flex items-center justify-between w-full gap-2 border border-grayA-4 rounded-lg px-3 py-2"
             >
               <div className="flex flex-col">
-                <span className="text-accent-12 text-[13px] font-medium">Authenticator app</span>
+                <span className="text-accent-12 text-[13px] font-normal">Authenticator app</span>
                 <span className="text-gray-9 text-xs">
                   Added {new Date(factor.createdAt).toLocaleDateString()}
                 </span>

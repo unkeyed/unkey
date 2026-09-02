@@ -13,7 +13,7 @@ export const QueriesPill = ({ value, className, color }: QueriesPillType) => {
       )}
     >
       {color && <div className={cn("w-2 h-2 rounded-[2px]", color)} />}
-      <span className="font-mono text-xs font-medium truncate text-gray-12">{value}</span>
+      <span className="font-mono text-xs font-normal truncate text-gray-12">{value}</span>
     </div>
   );
 };

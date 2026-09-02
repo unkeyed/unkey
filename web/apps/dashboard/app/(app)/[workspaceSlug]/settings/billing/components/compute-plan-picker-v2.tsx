@@ -49,7 +49,7 @@ export function ComputePlanDialog({
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="flex max-h-[90vh] w-[90%] max-w-[560px] flex-col gap-0 overflow-hidden rounded-2xl! border-gray-4 bg-gray-1 p-0">
         <div className="flex flex-col gap-1.5 px-[22px] pt-6 pb-3.5">
-          <DialogTitle className="font-semibold text-[22px] text-gray-12 leading-none tracking-[-0.03em]">
+          <DialogTitle className="font-medium text-[22px] text-gray-12 leading-none tracking-[-0.03em]">
             {title}
           </DialogTitle>
           {subTitle ? (
@@ -130,20 +130,20 @@ function Row({
       </span>
 
       <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-        <span className="font-medium text-[15px] text-gray-12">{plan.name}</span>
+        <span className="font-normal text-[15px] text-gray-12">{plan.name}</span>
         {blurb ? <span className="text-[13px] text-gray-11">{blurb}</span> : null}
       </span>
 
       <span className="shrink-0 text-right">
         {plan.amount !== null ? (
           <>
-            <span className="font-semibold text-[15px] text-gray-12 tabular-nums">
+            <span className="font-medium text-[15px] text-gray-12 tabular-nums">
               {formatDollars(plan.amount)}
             </span>
             <span className="text-[12px] text-gray-11">{intervalSuffix(plan.interval)}</span>
           </>
         ) : (
-          <span className="font-semibold text-[15px] text-gray-12">Contact us</span>
+          <span className="font-medium text-[15px] text-gray-12">Contact us</span>
         )}
       </span>
     </>
@@ -217,7 +217,7 @@ export function ComputePlanFeatures() {
         <div key={title}>
           <div className="flex items-center gap-[9px]">
             <Icon className="size-4 shrink-0 text-gray-12" />
-            <span className="font-medium text-[13px] text-gray-12">{title}</span>
+            <span className="font-normal text-[13px] text-gray-12">{title}</span>
           </div>
           <p className="mt-1 text-[12.5px] text-gray-11 leading-relaxed">{description}</p>
         </div>
@@ -234,7 +234,7 @@ export function ComputePlansMoreInfo() {
         href={COMPUTE_PLANS_LINK_HREF}
         target="_blank"
         rel="noopener noreferrer"
-        className="font-medium text-info-11 hover:underline"
+        className="font-normal text-info-11 hover:underline"
       >
         Compute plans
       </a>
@@ -246,7 +246,7 @@ export function ComputePlansMoreInfo() {
 export function AllPlansInclude() {
   return (
     <div className="rounded-[11px] border border-gray-4 bg-gray-1 px-4 py-3.5">
-      <span className="font-medium text-[13px] text-gray-12">Included in every plan</span>
+      <span className="font-normal text-[13px] text-gray-12">Included in every plan</span>
       <ul className="mt-3 grid grid-cols-2 gap-x-5 gap-y-2.5">
         {ALL_PLANS_INCLUDE.map((feature) => (
           <li key={feature} className="flex items-center gap-2.5 text-[13px] text-gray-11">
@@ -269,7 +269,7 @@ export function CreditsInfoStrip() {
           href={CREDITS_LINK_HREF}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex items-center gap-0.5 whitespace-nowrap font-medium text-info-11 hover:underline"
+          className="inline-flex items-center gap-0.5 whitespace-nowrap font-normal text-info-11 hover:underline"
         >
           {CREDITS_LINK_LABEL}
           <IconArrowUpRightOutline12 />

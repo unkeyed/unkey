@@ -39,7 +39,7 @@ export const RepoNameLabel = ({ fullName }: { fullName: string }) => {
   return (
     // This max-w-[185px] and w-[185px] in ComboboxSkeleton should match
     <div className="max-w-[185px] truncate">
-      <span className="text-[13px] text-gray-12 font-medium">{handle}</span>
+      <span className="text-[13px] text-gray-12 font-normal">{handle}</span>
       <span className="text-[13px] text-gray-11">/{repoName}</span>
     </div>
   );

@@ -129,7 +129,7 @@ export const Client: React.FC = () => {
                     <span>
                       <Button
                         variant="outline"
-                        className="py-2 px-3 text-gray-12 font-medium text-sm bg-grayA-2 hover:bg-grayA-3"
+                        className="py-2 px-3 text-gray-12 font-normal text-sm bg-grayA-2 hover:bg-grayA-3"
                         aria-label="Open billing portal"
                         disabled={!isAdmin}
                         onClick={() => {
@@ -168,7 +168,7 @@ export const Client: React.FC = () => {
                     <span>
                       <Button
                         variant="outline"
-                        className="px-3 py-2 text-gray-12 font-medium text-[13px] bg-grayA-2 shadow-md hover:bg-grayA-3"
+                        className="px-3 py-2 text-gray-12 font-normal text-[13px] bg-grayA-2 shadow-md hover:bg-grayA-3"
                         aria-label="Add payment method"
                         disabled={!isAdmin}
                         onClick={() => {

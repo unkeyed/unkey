@@ -113,7 +113,7 @@ export const SelectionControls = ({
                 <Button
                   variant="outline"
                   size="sm"
-                  className="text-gray-12 font-medium text-[13px]"
+                  className="text-gray-12 font-normal text-[13px]"
                   onClick={() => setIsBatchEditExternalIdOpen(true)}
                 >
                   <IconArrowsOppositeDirectionYOutline18 /> Change External ID
@@ -121,7 +121,7 @@ export const SelectionControls = ({
                 <Button
                   variant="outline"
                   size="sm"
-                  className="text-gray-12 font-medium text-[13px]"
+                  className="text-gray-12 font-normal text-[13px]"
                   disabled={getSelectedKeysState() !== "all-disabled" || updateKeyStatus.isLoading}
                   loading={updateKeyStatus.isLoading}
                   onClick={() => {
@@ -141,7 +141,7 @@ export const SelectionControls = ({
                 <Button
                   variant="outline"
                   size="sm"
-                  className="text-gray-12 font-medium text-[13px]"
+                  className="text-gray-12 font-normal text-[13px]"
                   disabled={getSelectedKeysState() !== "all-enabled" || updateKeyStatus.isLoading}
                   loading={updateKeyStatus.isLoading}
                   onClick={handleDisableButtonClick}
@@ -153,7 +153,7 @@ export const SelectionControls = ({
                 <Button
                   variant="outline"
                   size="sm"
-                  className="text-gray-12 font-medium text-[13px]"
+                  className="text-gray-12 font-normal text-[13px]"
                   disabled={deleteKey.isLoading}
                   loading={deleteKey.isLoading}
                   onClick={handleDeleteButtonClick}
@@ -223,7 +223,7 @@ export const AnimatedCounter = ({ value }: { value: number }) => {
       initial={{ opacity: 0, scale: 0.5 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.4, ease: "easeOut" }}
-      className="size-[18px] text-[11px] leading-6 ring-2 ring-gray-6 flex items-center justify-center font-medium overflow-hidden p-2 text-white dark:text-black bg-accent-12 hover:bg-accent-12/90 focus:hover:bg-accent-12 rounded-md border border-grayA-4"
+      className="size-[18px] text-[11px] leading-6 ring-2 ring-gray-6 flex items-center justify-center font-normal overflow-hidden p-2 text-white dark:text-black bg-accent-12 hover:bg-accent-12/90 focus:hover:bg-accent-12 rounded-md border border-grayA-4"
     >
       <span className="flex items-center justify-center">{value}</span>
     </motion.div>

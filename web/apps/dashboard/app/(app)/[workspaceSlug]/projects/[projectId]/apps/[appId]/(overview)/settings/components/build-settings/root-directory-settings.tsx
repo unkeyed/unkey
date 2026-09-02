@@ -96,7 +96,7 @@ export const RootDirectory = () => {
           Did you mean{" "}
           <button
             type="button"
-            className="underline font-medium hover:text-warning-12"
+            className="underline font-normal hover:text-warning-12"
             onClick={() => setValue("dockerContext", caseMatch, { shouldValidate: true })}
           >
             {caseMatch}

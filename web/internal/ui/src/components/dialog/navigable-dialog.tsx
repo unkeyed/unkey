@@ -205,7 +205,7 @@ const NavigableDialogNav = <TStepName extends string>({
             )}
             <span
               className={cn(
-                "font-medium text-[13px] leading-[24px] w-full text-start",
+                "font-normal text-[13px] leading-[24px] w-full text-start",
                 isDisabled ? "text-gray-7" : "text-gray-12",
               )}
             >

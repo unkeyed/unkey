@@ -61,7 +61,7 @@ export const GrantedAccess = ({
       transition={{ duration: 0.3, ease: "easeInOut" }}
     >
       <motion.div layout className="flex gap-2 items-center">
-        <div className="font-medium text-sm text-gray-12">Granted Access</div>
+        <div className="font-normal text-sm text-gray-12">Granted Access</div>
         <motion.div
           key={totalCount}
           initial={{ scale: 0.8, opacity: 0 }}
@@ -69,7 +69,7 @@ export const GrantedAccess = ({
           transition={{ type: "spring", stiffness: 400, damping: 25 }}
           className={`
             rounded-full border bg-grayA-3 border-grayA-3 w-[22px] h-[18px]
-            flex items-center justify-center font-medium text-[11px] text-grayA-12
+            flex items-center justify-center font-normal text-[11px] text-grayA-12
             ${isLoading ? "animate-pulse" : ""}
           `}
         >

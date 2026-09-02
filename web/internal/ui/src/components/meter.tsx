@@ -81,7 +81,7 @@ export function MeterIndicator({ className, ...props }: MeterPrimitive.Indicator
 export function MeterValue({ className, ...props }: MeterPrimitive.Value.Props) {
   return (
     <MeterPrimitive.Value
-      className={cn("font-medium text-[13px] text-gray-12 tabular-nums", className)}
+      className={cn("font-normal text-[13px] text-gray-12 tabular-nums", className)}
       data-slot="meter-value"
       {...props}
     />

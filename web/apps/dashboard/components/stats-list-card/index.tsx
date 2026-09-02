@@ -72,7 +72,7 @@ export function StatsListCard({
     >
       <div className="flex flex-col w-full gap-2 min-w-0">
         <InfoTooltip content={title} asChild position={{ align: "start", side: "top" }}>
-          <span className="font-medium text-sm leading-[14px] text-accent-12 truncate">
+          <span className="font-normal text-sm leading-[14px] text-accent-12 truncate">
             {title}
           </span>
         </InfoTooltip>
@@ -257,7 +257,7 @@ function StatsSparkline({
               }
               return (
                 <div className="px-2.5 py-2 bg-gray-12 text-gray-1 text-[11px] rounded shadow-lg whitespace-nowrap">
-                  <div className="font-medium opacity-80 mb-1.5">{point.displayX}</div>
+                  <div className="font-normal opacity-80 mb-1.5">{point.displayX}</div>
                   <div className="flex flex-col gap-1">
                     <div className="flex items-center justify-between gap-4">
                       <span className="flex items-center gap-1.5">

@@ -58,7 +58,7 @@ function JoinSuccessContent() {
         )}
 
         <div className="mb-6">
-          <h1 className="text-2xl font-semibold mb-3">
+          <h1 className="text-2xl font-medium mb-3">
             {fromInvite ? "Successfully joined!" : "Authentication complete"}
           </h1>
 
@@ -86,7 +86,7 @@ export default function JoinSuccessPage() {
             <div className="mb-6">
               <div className="w-16 h-16 border-4 border-gray-800 border-t-white rounded-full animate-spin mx-auto" />
             </div>
-            <h1 className="text-2xl font-semibold mb-3">Loading...</h1>
+            <h1 className="text-2xl font-medium mb-3">Loading...</h1>
           </div>
         </div>
       }

@@ -24,7 +24,7 @@ export function OpenApiFields() {
           {"Using auto-scraped spec. "}
           <Link
             href={routes.projects.settings({ workspaceSlug, projectId })}
-            className="text-accent-12 decoration-dotted underline underline-offset-3 font-medium"
+            className="text-accent-12 decoration-dotted underline underline-offset-3 font-normal"
           >
             Configure scrape path
           </Link>

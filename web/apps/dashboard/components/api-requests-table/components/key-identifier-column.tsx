@@ -106,14 +106,14 @@ export const KeyIdentifierColumn = ({ log, apiId, onNavigate }: KeyIdentifierCol
           href={keyHref}
           onClick={handleLinkClick}
         >
-          <div className="font-mono font-medium truncate flex items-center">
+          <div className="font-mono font-normal truncate flex items-center">
             {shortenId(log.key_id)}
           </div>
         </Link>
       ) : (
         <div
           title={`${log.key_id} (deleted)`}
-          className="font-mono font-medium truncate flex items-center text-grayA-9"
+          className="font-mono font-normal truncate flex items-center text-grayA-9"
         >
           {shortenId(log.key_id)}
         </div>

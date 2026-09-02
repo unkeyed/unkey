@@ -133,7 +133,7 @@ export function AppEnvironmentFilter<TFilter extends FilterLike>({
                       className="size-4 shrink-0 rounded-sm border-gray-5 [&_svg]:size-3"
                       aria-label={`Select all environments in ${app.name}`}
                     />
-                    <span className="truncate text-xs font-medium text-accent-12">{app.name}</span>
+                    <span className="truncate text-xs font-normal text-accent-12">{app.name}</span>
                   </label>
 
                   {allAppEnvironments.length > 0 ? (

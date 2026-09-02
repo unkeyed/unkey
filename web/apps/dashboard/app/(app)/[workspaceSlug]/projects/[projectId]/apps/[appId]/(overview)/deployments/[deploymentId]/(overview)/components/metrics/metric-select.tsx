@@ -31,7 +31,7 @@ export function MetricSelect({ label, value, options, onValueChange }: MetricSel
           <SelectItem
             key={option}
             value={option}
-            className="cursor-pointer hover:bg-grayA-3 data-highlighted:bg-grayA-2 font-mono font-medium text-xs"
+            className="cursor-pointer hover:bg-grayA-3 data-highlighted:bg-grayA-2 font-mono font-normal text-xs"
           >
             {option}
           </SelectItem>

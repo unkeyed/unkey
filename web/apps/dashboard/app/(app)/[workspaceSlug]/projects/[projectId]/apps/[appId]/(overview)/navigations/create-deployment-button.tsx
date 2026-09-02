@@ -310,7 +310,7 @@ export const CreateDeploymentButton = ({
             <div className="flex items-start gap-2 flex-col">
               <RepoDisplay
                 url={githubUrl.repo(repositoryFullName) ?? ""}
-                className="bg-grayA-4 px-1.5 font-medium text-xs text-gray-12 rounded-full min-h-[22px]"
+                className="bg-grayA-4 px-1.5 font-normal text-xs text-gray-12 rounded-full min-h-[22px]"
               />
               {repoDetails.data?.pushedAt ? (
                 <span className="text-xs text-gray-10">
@@ -318,7 +318,7 @@ export const CreateDeploymentButton = ({
                   <TimestampInfo
                     value={repoDetails.data.pushedAt}
                     displayType="relative"
-                    className="font-medium underline decoration-dotted text-gray-12"
+                    className="font-normal underline decoration-dotted text-gray-12"
                   />
                 </span>
               ) : repoDetails.isLoading ? (
@@ -408,7 +408,7 @@ export const CreateDeploymentButton = ({
                   <IconCodeBranchOutline18 className="size-3 shrink-0 text-amber-11" />
                   <span className="text-xs text-amber-11">
                     Deploying from fork:{" "}
-                    <span className="font-medium text-amber-12">{forkRepoName}</span>
+                    <span className="font-normal text-amber-12">{forkRepoName}</span>
                   </span>
                 </div>
               )}

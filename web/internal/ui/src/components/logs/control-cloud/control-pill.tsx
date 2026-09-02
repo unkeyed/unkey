@@ -47,19 +47,19 @@ export const ControlPill = <TFilter extends FilterValue>({
   return (
     <div className="flex gap-0.5 font-mono group" data-pill-index={index}>
       {formatFieldName(field) === "" ? null : (
-        <div className="bg-gray-3 px-2 rounded-l-md text-accent-12 font-medium py-[2px]">
+        <div className="bg-gray-3 px-2 rounded-l-md text-accent-12 font-normal py-[2px]">
           {formatFieldName(field)}
         </div>
       )}
       <div
         className={cn(
-          "bg-gray-3 px-2 text-accent-12 font-medium py-[2px] flex gap-1 items-center",
+          "bg-gray-3 px-2 text-accent-12 font-normal py-[2px] flex gap-1 items-center",
           formatFieldName(field) === "" ? "rounded-l-md" : "",
         )}
       >
         {formatOperator(operator, field)}
       </div>
-      <div className="bg-gray-3 px-2 text-accent-12 font-medium py-[2px] flex gap-1 items-center">
+      <div className="bg-gray-3 px-2 text-accent-12 font-normal py-[2px] flex gap-1 items-center">
         {metadata?.colorClass && (
           <div className={cn("size-2 rounded-[2px]", metadata.colorClass)} />
         )}

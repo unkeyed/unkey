@@ -202,7 +202,7 @@ function Section({
           onClick={() => toggle(id)}
           className="flex-1 min-w-0 px-6 py-3 flex items-center justify-between gap-4 cursor-pointer"
         >
-          <span className="flex items-center gap-2 text-[13px] text-gray-11 font-medium">
+          <span className="flex items-center gap-2 text-[13px] text-gray-11 font-normal">
             <IconChevronDownOutline12
               className={cn("transition-transform duration-200", isActive ? "" : "-rotate-90")}
             />

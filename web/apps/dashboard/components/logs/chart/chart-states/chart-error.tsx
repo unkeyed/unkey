@@ -103,7 +103,7 @@ export const ChartError = ({
                 {labelsWithDefaults.rangeLabel}
               </div>
             </div>
-            <div className="text-accent-12 text-[18px] font-semibold leading-7">--</div>
+            <div className="text-accent-12 text-[18px] font-medium leading-7">--</div>
           </div>
 
           {/* Right side section shown conditionally */}
@@ -118,7 +118,7 @@ export const ChartError = ({
                     />
                     <div className="text-accent-10 text-[11px] leading-4">{metric.label}</div>
                   </div>
-                  <div className="text-accent-12 text-[18px] font-semibold leading-7">--</div>
+                  <div className="text-accent-12 text-[18px] font-medium leading-7">--</div>
                 </div>
               ))}
             </div>

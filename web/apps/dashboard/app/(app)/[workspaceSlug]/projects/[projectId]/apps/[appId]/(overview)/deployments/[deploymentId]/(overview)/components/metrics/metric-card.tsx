@@ -126,12 +126,12 @@ export function MetricCard({
           )}
         </div>
         <div className="ml-auto flex items-baseline gap-1">
-          <span className="text-gray-12 font-medium text-[13px] tabular-nums">{valueText}</span>
+          <span className="text-gray-12 font-normal text-[13px] tabular-nums">{valueText}</span>
           <span className="text-grayA-10 text-[11px]">{parts.unit}</span>
           {secondaryValue && (
             <>
               <span className="text-grayA-9 text-[11px]">·</span>
-              <span className="text-gray-12 font-medium text-[12px] tabular-nums">
+              <span className="text-gray-12 font-normal text-[12px] tabular-nums">
                 {secondaryText}
               </span>
               <span className="text-grayA-10 text-[11px]">{secondaryValue.unit}</span>

@@ -76,7 +76,7 @@ export function EmptyProjects() {
       <div className="flex flex-col items-center text-center">
         <ProjectIconRow />
 
-        <h2 className="text-accent-12 font-semibold text-2xl leading-8 mb-1">Projects</h2>
+        <h2 className="text-accent-12 font-medium text-2xl leading-8 mb-1">Projects</h2>
         <p className="text-accent-11 text-sm leading-6 max-w-md text-balance mb-6">
           Build, deploy and scale your API inside Unkey. Create a project to get started
           {deployBillingEnabled ? "." : ", free during beta."}

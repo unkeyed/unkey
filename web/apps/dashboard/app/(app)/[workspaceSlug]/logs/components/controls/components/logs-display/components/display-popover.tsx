@@ -55,7 +55,7 @@ const DisplayPropertyItem = ({
 }) => (
   <div
     data-item-index={index}
-    className={`font-medium text-xs p-1.5 rounded-md hover:bg-gray-4 cursor-pointer whitespace-nowrap
+    className={`font-normal text-xs p-1.5 rounded-md hover:bg-gray-4 cursor-pointer whitespace-nowrap
       ${selected ? "bg-gray-4 text-gray-12" : "text-gray-9"}
       ${isFocused ? "ring-2 ring-accent-7" : ""}`}
     onClick={onClick}

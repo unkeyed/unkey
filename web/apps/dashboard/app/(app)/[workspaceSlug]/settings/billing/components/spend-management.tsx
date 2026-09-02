@@ -52,7 +52,7 @@ export function SpendManagement({ usageCents, isAdmin }: SpendManagementProps) {
       <div className="-mx-5 flex flex-col gap-4 border-grayA-3 border-t px-5 pt-4">
         <div className="flex items-start justify-between gap-4">
           <div className="flex flex-col gap-0.5">
-            <span className="font-medium text-[13px] text-gray-12">Spend management</span>
+            <span className="font-normal text-[13px] text-gray-12">Spend management</span>
             <span className="text-[12px] text-gray-10">
               Manage what happens when your usage spend reaches a monthly limit.
             </span>
@@ -67,7 +67,7 @@ export function SpendManagement({ usageCents, isAdmin }: SpendManagementProps) {
                 <span className="text-[13px] text-gray-11">Spend limit</span>
                 {suspended ? <ComputePausedBadge /> : null}
               </div>
-              <span className="font-medium text-[13px] text-gray-12 tabular-nums">
+              <span className="font-normal text-[13px] text-gray-12 tabular-nums">
                 {usageCents !== null ? formatPrice(usageCents) : "—"} of{" "}
                 {formatDollars(currentBudget)}
                 {percent !== null ? ` (${percent}%)` : ""}

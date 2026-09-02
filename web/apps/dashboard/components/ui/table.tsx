@@ -37,7 +37,7 @@ const TableFooter = React.forwardRef<
   HTMLTableSectionElement,
   React.HTMLAttributes<HTMLTableSectionElement>
 >(({ className, ...props }, ref) => (
-  <tfoot ref={ref} className={cn("bg-background font-medium text-content", className)} {...props} />
+  <tfoot ref={ref} className={cn("bg-background font-normal text-content", className)} {...props} />
 ));
 TableFooter.displayName = "TableFooter";
 
@@ -56,7 +56,7 @@ const TableRow = React.forwardRef<HTMLTableRowElement, React.HTMLAttributes<HTML
 TableRow.displayName = "TableRow";
 
 const tableHeadVariant = cva(
-  "h-8 px-4 text-left align-middle font-medium text-xs text-content [&:has([role=checkbox])]:pr-0",
+  "h-8 px-4 text-left align-middle font-normal text-xs text-content [&:has([role=checkbox])]:pr-0",
   {
     variants: {
       variant: {

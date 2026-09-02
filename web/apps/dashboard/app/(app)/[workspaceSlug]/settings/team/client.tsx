@@ -70,7 +70,7 @@ export function TeamPageClient({ team }: { team: boolean }) {
   return (
     <div className="flex flex-col gap-8 w-full">
       <div className="flex flex-col gap-2">
-        <h1 className="text-2xl font-semibold text-content">Members</h1>
+        <h1 className="text-2xl font-medium text-content">Members</h1>
         <p className="text-sm text-content-subtle">Manage team members and invitations</p>
       </div>
 

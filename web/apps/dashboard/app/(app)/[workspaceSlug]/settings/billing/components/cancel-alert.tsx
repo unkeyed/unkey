@@ -45,12 +45,12 @@ export const CancelAlert: React.FC<{
     ) : (
       <>
         Your subscription ends in
-        <span className="text-warning-12 font-medium">
+        <span className="text-warning-12 font-normal">
           {" "}
           {formatMs(timeRemaining, { long: true })}
         </span>{" "}
         on{" "}
-        <span className="text-warning-12 font-medium">
+        <span className="text-warning-12 font-normal">
           {new Date(props.cancelAt).toLocaleDateString()}
         </span>
         .

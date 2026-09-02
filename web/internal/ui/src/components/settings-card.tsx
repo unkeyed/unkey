@@ -176,7 +176,7 @@ function SettingCard({
             </div>
           )}
           <div className="flex flex-col gap-1 text-sm w-fit">
-            <div className="font-medium text-gray-12 text-[13px] leading-4 tracking-normal">
+            <div className="font-normal text-gray-12 text-[13px] leading-4 tracking-normal">
               {title}
             </div>
             <InfoTooltip
@@ -276,7 +276,7 @@ function SettingsZone({
   return (
     <SettingsZoneContext.Provider value={variant}>
       <div className={cn("w-full", className)}>
-        <h2 className={cn("font-semibold text-lg mb-4", styles.heading)}>{title}</h2>
+        <h2 className={cn("font-medium text-lg mb-4", styles.heading)}>{title}</h2>
         <div className={cn("rounded-lg border overflow-hidden divide-y", styles.border)}>
           {children}
         </div>
@@ -331,7 +331,7 @@ function SettingsZoneRow({
   return (
     <div className="flex items-center justify-between p-4">
       <div className="space-y-1">
-        <p className="font-medium text-gray-12 text-sm">{title}</p>
+        <p className="font-normal text-gray-12 text-sm">{title}</p>
         <p className="text-gray-11 text-[13px]">{description}</p>
       </div>
       <Button

@@ -120,11 +120,11 @@ export const FilterItem = ({
                 title={`Press '${shortcut?.toUpperCase()}' to toggle ${label} options`}
               />
             )}
-            <span className="text-[13px] text-accent-12 font-medium select-none">{label}</span>
+            <span className="text-[13px] text-accent-12 font-normal select-none">{label}</span>
           </div>
           <div className="flex items-center gap-1.5 pointer-events-none">
             {filterCount > 0 && (
-              <div className="bg-gray-6 rounded-sm size-4 text-[11px] font-medium text-accent-12 text-center flex items-center justify-center">
+              <div className="bg-gray-6 rounded-sm size-4 text-[11px] font-normal text-accent-12 text-center flex items-center justify-center">
                 {filterCount}
               </div>
             )}

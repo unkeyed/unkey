@@ -402,7 +402,7 @@ export const FiltersPopover = ({
                             <IconCaretRightOutline12 className="size-2 shrink-0 text-gray-7" />
                           </React.Fragment>
                         ))}
-                        <span className="truncate font-medium text-accent-12">{item.label}</span>
+                        <span className="truncate font-normal text-accent-12">{item.label}</span>
                       </span>
                       {item.description ? (
                         <span className="ml-auto max-w-28 shrink-0 truncate font-mono text-[10px] text-gray-8">

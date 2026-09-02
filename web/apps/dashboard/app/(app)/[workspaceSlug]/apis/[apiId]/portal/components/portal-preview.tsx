@@ -63,7 +63,7 @@ export function PortalPreview({
               className="size-6 shrink-0 rounded-md object-contain"
             />
           )}
-          <span className="truncate text-[13px] font-semibold" style={{ color: onColor }}>
+          <span className="truncate text-[13px] font-medium" style={{ color: onColor }}>
             {displayName}
           </span>
         </div>
@@ -77,7 +77,7 @@ export function PortalPreview({
             <div className="h-2 w-44 max-w-full rounded bg-[hsl(0_0%_91%)]" />
           </div>
           <div
-            className="shrink-0 rounded-md px-3 py-1.5 text-[11px] font-medium"
+            className="shrink-0 rounded-md px-3 py-1.5 text-[11px] font-normal"
             style={{ backgroundColor: color }}
           >
             <div className="h-2 w-8 rounded-sm" style={{ backgroundColor: `${onColor}33` }} />

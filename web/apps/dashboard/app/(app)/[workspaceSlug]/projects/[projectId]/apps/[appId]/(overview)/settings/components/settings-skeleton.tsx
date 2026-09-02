@@ -147,7 +147,7 @@ function CardRows({ rows }: { rows: Row[] }) {
                 className="bg-gray-3 size-8 rounded-[10px] shrink-0 animate-pulse dark:ring-1 dark:ring-gray-4 dark:shadow-none shadow-sm shadow-grayA-8/20"
               />
               <div className="flex flex-col gap-1 text-sm w-fit">
-                <div className="font-medium text-gray-12 text-[13px] leading-4 tracking-normal">
+                <div className="font-normal text-gray-12 text-[13px] leading-4 tracking-normal">
                   {row.title}
                 </div>
                 <div className="font-normal text-gray-11 text-xs leading-4 tracking-normal max-w-[600px]">

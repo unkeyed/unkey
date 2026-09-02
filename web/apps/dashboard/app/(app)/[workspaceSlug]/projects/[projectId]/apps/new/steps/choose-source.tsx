@@ -50,7 +50,7 @@ export const ChooseSourceStep = ({ projectId, appId, onBeforeNavigate }: ChooseS
               <IconCodeBranchOutline18 className="text-gray-12" />
             </div>
             <div className="flex flex-col gap-3">
-              <span className="font-medium text-gray-12 text-[13px] leading-[9px]">
+              <span className="font-normal text-gray-12 text-[13px] leading-[9px]">
                 Connect a repo
               </span>
               <span className="text-gray-10 text-[13px] leading-[9px]">
@@ -64,7 +64,7 @@ export const ChooseSourceStep = ({ projectId, appId, onBeforeNavigate }: ChooseS
               loading={isPreparing}
             >
               <Github className="size-[18px]! text-gray-12 shrink-0" />
-              <span className="text-[13px] text-gray-12 font-medium">Import from GitHub</span>
+              <span className="text-[13px] text-gray-12 font-normal">Import from GitHub</span>
             </Button>
           </div>
         )}

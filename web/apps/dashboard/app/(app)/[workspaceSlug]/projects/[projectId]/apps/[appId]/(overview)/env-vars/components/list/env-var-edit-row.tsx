@@ -168,7 +168,7 @@ export function EnvVarEditRow({
                 <Switch checked={field.value} onCheckedChange={field.onChange} />
               )}
             />
-            <span className="text-[13px] text-gray-12 font-medium">Sensitive</span>
+            <span className="text-[13px] text-gray-12 font-normal">Sensitive</span>
             <InfoTooltip
               content="Permanently hides values after saving. This cannot be undone."
               position={{ side: "top" }}

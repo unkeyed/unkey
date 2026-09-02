@@ -32,7 +32,7 @@ export const CanvasBoundary = ({ children }: PropsWithChildren) => {
                   <IconTriangleWarningOutline18 className="size-4 text-red-11" />
                 </div>
                 {/* Title */}
-                <span className="text-sm font-medium text-gray-12">
+                <span className="text-sm font-normal text-gray-12">
                   Failed to render network tree
                 </span>
                 {/* Status dot */}
@@ -49,7 +49,7 @@ export const CanvasBoundary = ({ children }: PropsWithChildren) => {
 
               {/* Error message */}
               <div className="flex flex-col p-4 gap-2">
-                <div className="text-xs font-medium text-gray-11">{error.message}</div>
+                <div className="text-xs font-normal text-gray-11">{error.message}</div>
                 <div className="text-xs text-gray-9">Check console for details</div>
               </div>
 
@@ -58,7 +58,7 @@ export const CanvasBoundary = ({ children }: PropsWithChildren) => {
                 <Button
                   onClick={reset}
                   variant="outline"
-                  className="w-full h-8 px-3 bg-grayA-3 hover:bg-grayA-4 border border-grayA-5 text-gray-12 text-xs font-medium rounded-lg transition-all duration-200 ease-out hover:ring-1 hover:ring-gray-7 flex items-center justify-center gap-2"
+                  className="w-full h-8 px-3 bg-grayA-3 hover:bg-grayA-4 border border-grayA-5 text-gray-12 text-xs font-normal rounded-lg transition-all duration-200 ease-out hover:ring-1 hover:ring-gray-7 flex items-center justify-center gap-2"
                 >
                   <IconArrowDottedRotateAnticlockwiseOutline18 />
                   Retry Layout

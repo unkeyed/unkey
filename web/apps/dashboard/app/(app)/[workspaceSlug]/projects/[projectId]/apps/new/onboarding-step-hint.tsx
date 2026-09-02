@@ -11,7 +11,7 @@ export const OnboardingStepHint = ({ children }: OnboardingStepHintProps) => (
 );
 
 export const OnboardingStepHintHighlight = ({ children }: OnboardingStepHintProps) => (
-  <span className="font-medium text-gray-12 underline underline-offset-2 decoration-grayA-6 group-hover:decoration-gray-12 transition-colors decoration-dotted">
+  <span className="font-normal text-gray-12 underline underline-offset-2 decoration-grayA-6 group-hover:decoration-gray-12 transition-colors decoration-dotted">
     {children}
   </span>
 );

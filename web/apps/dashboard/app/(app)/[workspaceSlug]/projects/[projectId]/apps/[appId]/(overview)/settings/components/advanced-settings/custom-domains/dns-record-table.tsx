@@ -52,7 +52,7 @@ export function DnsRecordTable({ records, isLoading }: DnsRecordTableProps) {
 
 function TableHeader() {
   return (
-    <div className="grid grid-cols-[64px_1fr_1fr_48px] px-3 py-1.5 text-[11px] text-gray-9 font-medium uppercase tracking-wider bg-grayA-2">
+    <div className="grid grid-cols-[64px_1fr_1fr_48px] px-3 py-1.5 text-[11px] text-gray-9 font-normal uppercase tracking-wider bg-grayA-2">
       <span>Type</span>
       <span>Name</span>
       <span>Value</span>

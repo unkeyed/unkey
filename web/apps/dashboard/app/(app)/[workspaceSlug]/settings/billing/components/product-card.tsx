@@ -59,9 +59,9 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           </div>
           <div className="min-w-0">
             <div className="flex items-center gap-2">
-              <span className="font-medium text-gray-12 text-sm">{name}</span>
+              <span className="font-normal text-gray-12 text-sm">{name}</span>
               {tag ? (
-                <span className="rounded-full bg-grayA-3 px-2 py-0.5 font-medium text-[11px] text-gray-11">
+                <span className="rounded-full bg-grayA-3 px-2 py-0.5 font-normal text-[11px] text-gray-11">
                   {tag}
                 </span>
               ) : null}

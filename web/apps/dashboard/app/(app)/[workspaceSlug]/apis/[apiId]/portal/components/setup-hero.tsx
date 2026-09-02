@@ -67,7 +67,7 @@ export function SetupHero({ onEnable }: { onEnable: () => void }) {
       <div className="flex flex-col items-center text-center">
         <PortalIconRow />
 
-        <h2 className="text-accent-12 font-semibold text-2xl leading-8 mb-1">Customer portal</h2>
+        <h2 className="text-accent-12 font-medium text-2xl leading-8 mb-1">Customer portal</h2>
         <p className="text-accent-11 text-sm leading-6 max-w-md text-balance mb-6">
           An Unkey-hosted portal that allows your customers to manage their keys themselves.
         </p>

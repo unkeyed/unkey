@@ -16,7 +16,7 @@ export function SectionHeader({
     <div className="flex items-center justify-between gap-2.5 mb-4 px-2">
       <div className="flex items-center gap-2.5 min-w-0">
         {icon}
-        <div className="text-accent-12 font-medium text-[13px] leading-4">{title}</div>
+        <div className="text-accent-12 font-normal text-[13px] leading-4">{title}</div>
       </div>
       {rightAction}
     </div>

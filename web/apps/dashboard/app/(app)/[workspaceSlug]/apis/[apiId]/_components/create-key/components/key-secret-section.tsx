@@ -44,7 +44,7 @@ export const KeySecretSection = ({
   return (
     <div className={className}>
       <div className="flex flex-col gap-2 items-start w-full">
-        <div className="text-gray-12 text-sm font-semibold">Key Secret</div>
+        <div className="text-gray-12 text-sm font-medium">Key Secret</div>
         <KeySecret keyValue={keyValue} title={title} />
       </div>
     </div>

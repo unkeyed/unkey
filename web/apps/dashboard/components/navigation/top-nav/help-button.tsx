@@ -38,19 +38,19 @@ export const HelpButton: React.FC = () => {
           <Link href="https://unkey.com/docs" target="_blank">
             <DropdownMenuItem className="cursor-pointer w-full">
               <IconBook2Outline18 className="size-4 mr-3 text-gray-9" />
-              <span className="text-accent-12 text-sm font-medium">Docs</span>
+              <span className="text-accent-12 text-sm font-normal">Docs</span>
             </DropdownMenuItem>
           </Link>
           <Link href="https://unkey.com/docs/api-reference/overview" target="_blank">
             <DropdownMenuItem className="cursor-pointer w-full">
               <IconBracketsCurlyOutline18 className="size-4 mr-3 text-gray-9" />
-              <span className="text-accent-12 text-sm font-medium">API Reference</span>
+              <span className="text-accent-12 text-sm font-normal">API Reference</span>
             </DropdownMenuItem>
           </Link>
           <Link href="https://unkey.com/discord" target="_blank">
             <DropdownMenuItem className="cursor-pointer w-full">
               <DiscordIcon className="size-4 mr-3 text-gray-9" />
-              <span className="text-accent-12 text-sm font-medium">Community</span>
+              <span className="text-accent-12 text-sm font-normal">Community</span>
             </DropdownMenuItem>
           </Link>
           <DropdownMenuItem
@@ -60,7 +60,7 @@ export const HelpButton: React.FC = () => {
             }}
           >
             <IconChatsOutline18 className="size-4 mr-3 text-gray-9" />
-            <span className="text-accent-12 text-sm font-medium">Support</span>
+            <span className="text-accent-12 text-sm font-normal">Support</span>
           </DropdownMenuItem>
         </DropdownMenuGroup>
         <DropdownMenuSeparator className="my-1" />

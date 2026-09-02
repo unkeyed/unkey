@@ -42,7 +42,7 @@ export const LogsSearch = ({ keyspaceId }: { keyspaceId: string }) => {
         style: {
           whiteSpace: "pre-line",
         },
-        className: "font-medium",
+        className: "font-normal",
       });
     },
   });

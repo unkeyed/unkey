@@ -128,7 +128,7 @@ const KeyIdCell = ({
             delayDuration={100}
             variant="muted"
             position={{ side: "right" }}
-            className="bg-gray-1 px-4 py-2 border border-gray-4 shadow-md font-medium text-xs text-accent-12"
+            className="bg-gray-1 px-4 py-2 border border-gray-4 shadow-md font-normal text-xs text-accent-12"
             content={
               <>
                 This key is associated with the identity:{" "}
@@ -172,7 +172,7 @@ const KeyIdCell = ({
               onNavigate(keyData.id);
             }}
           >
-            <div className="font-mono font-medium truncate text-brand-12">
+            <div className="font-mono font-normal truncate text-brand-12">
               {shortenId(keyData.id)}
             </div>
           </Link>

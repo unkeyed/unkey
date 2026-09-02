@@ -8,10 +8,10 @@ import { IconShieldAlertOutline18 } from "nucleo-ui-outline-18";
 import { useProjectData } from "../../../data-provider";
 
 const chipClass =
-  "font-mono text-xs bg-gray-3 px-1.5 py-0.5 rounded-[5px] text-gray-12 font-medium";
+  "font-mono text-xs bg-gray-3 px-1.5 py-0.5 rounded-[5px] text-gray-12 font-normal";
 
 const chipLinkClass =
-  "font-mono text-xs bg-gray-3 px-1.5 py-0.5 rounded-[5px] text-gray-12 font-medium decoration-dotted underline underline-offset-2 hover:bg-gray-4 transition-colors";
+  "font-mono text-xs bg-gray-3 px-1.5 py-0.5 rounded-[5px] text-gray-12 font-normal decoration-dotted underline underline-offset-2 hover:bg-gray-4 transition-colors";
 
 type DeploymentApprovalProps = {
   isOpen: boolean;
@@ -61,7 +61,7 @@ export function DeploymentApproval({ isOpen, onClose, deployment }: DeploymentAp
             <IconShieldAlertOutline18 className="text-white dark:text-black size-[22px]" />
           </div>
 
-          <h1 className="text-[22px] font-bold tracking-tight text-gray-12 mb-2">
+          <h1 className="text-[22px] font-medium tracking-tight text-gray-12 mb-2">
             {isFork ? "Authorize Fork Deployment" : "Authorize Deployment"}
           </h1>
 
@@ -93,7 +93,7 @@ export function DeploymentApproval({ isOpen, onClose, deployment }: DeploymentAp
               <code className={chipClass}>{branchName}</code>
             )}{" "}
             {isFork ? "targeting" : "is awaiting approval before deploying to"} the{" "}
-            <span className="font-semibold text-gray-12">{environment}</span> environment.
+            <span className="font-medium text-gray-12">{environment}</span> environment.
           </p>
 
           <div className="flex gap-4 mt-0">

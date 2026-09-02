@@ -5,7 +5,7 @@ import type { Route } from "next";
 import Link from "next/link";
 
 const DEFAULT_LINK_CLASS =
-  "text-accent-12 text-xs decoration-dotted underline underline-offset-3 transition-all font-medium";
+  "text-accent-12 text-xs decoration-dotted underline underline-offset-3 transition-all font-normal";
 
 type DottedLinkProps = {
   href: string;

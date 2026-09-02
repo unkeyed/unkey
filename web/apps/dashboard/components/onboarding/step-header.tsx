@@ -88,7 +88,7 @@ export const OnboardingStepHeader = ({
         </Button>
       )}
       <div className="flex flex-col items-center justify-center gap-2">
-        <div className="font-semibold text-lg text-gray-12">{title}</div>
+        <div className="font-medium text-lg text-gray-12">{title}</div>
         {subtitle && <div className="text-[13px] text-gray-11 text-center">{subtitle}</div>}
       </div>
     </div>

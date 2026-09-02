@@ -49,7 +49,7 @@ export function EnvVarSelectionBar({
               <Button
                 variant="outline"
                 size="sm"
-                className="font-medium text-[13px] [&_svg]:size-3.5"
+                className="font-normal text-[13px] [&_svg]:size-3.5"
                 onClick={() => setIsSensitiveConfirmOpen(true)}
                 ref={sensitiveButtonRef}
               >
@@ -59,7 +59,7 @@ export function EnvVarSelectionBar({
               <Button
                 variant="outline"
                 size="sm"
-                className="font-medium text-[13px] [&_svg]:size-3.5"
+                className="font-normal text-[13px] [&_svg]:size-3.5"
                 onClick={() => setIsDeleteConfirmOpen(true)}
                 ref={deleteButtonRef}
               >
@@ -106,7 +106,7 @@ function AnimatedCounter({ value }: { value: number }) {
     <div
       key={`counter-${value}`}
       className={cn(
-        "size-[18px] text-[11px] leading-6 ring-2 ring-gray-6 flex items-center justify-center font-medium overflow-hidden p-2 text-white dark:text-black bg-accent-12 hover:bg-accent-12/90 focus:hover:bg-accent-12 rounded-md border border-grayA-4",
+        "size-[18px] text-[11px] leading-6 ring-2 ring-gray-6 flex items-center justify-center font-normal overflow-hidden p-2 text-white dark:text-black bg-accent-12 hover:bg-accent-12/90 focus:hover:bg-accent-12 rounded-md border border-grayA-4",
         "animate-bounce-in",
       )}
     >

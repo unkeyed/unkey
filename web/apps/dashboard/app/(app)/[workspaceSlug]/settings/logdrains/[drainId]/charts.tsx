@@ -71,7 +71,7 @@ function MetricChart({
         </div>
         <span className="text-[13px] text-gray-12">{label}</span>
         <div className="ml-auto flex items-baseline gap-1">
-          <span className="text-[13px] font-medium tabular-nums text-gray-12">
+          <span className="text-[13px] font-normal tabular-nums text-gray-12">
             {loading || error ? "‒" : value}
           </span>
           {unit && <span className="text-[11px] text-grayA-10">{unit}</span>}

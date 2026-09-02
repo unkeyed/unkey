@@ -108,16 +108,16 @@ export function OutcomeExplainer({ children, timeseries }: OutcomeExplainerProps
       position={{ side: "bottom" }}
       content={
         <div className="flex flex-col gap-1 min-w-64 justify-start ">
-          <div className="text-gray-12 font-medium text-[13px] pr-2">API Key Activity</div>
+          <div className="text-gray-12 font-normal text-[13px] pr-2">API Key Activity</div>
           <div className="text-xs text-grayA-9 pr-2 font-normal">Last 36 hours</div>
 
           {/* Valid count */}
           <div className="flex justify-between w-full items-center mt-3">
             <div className="flex gap-3 items-center">
               <div className="bg-gray-7 h-6 w-0.5 rounded-t rounded-b" />
-              <div className="text-gray-12 font-medium text-[13px]">Valid</div>
+              <div className="text-gray-12 font-normal text-[13px]">Valid</div>
             </div>
-            <div className="text-gray-9 font-medium text-[13px]">
+            <div className="text-gray-9 font-normal text-[13px]">
               {formatNumber(aggregatedData.valid)}
             </div>
           </div>
@@ -134,9 +134,9 @@ export function OutcomeExplainer({ children, timeseries }: OutcomeExplainerProps
               >
                 <div className="flex gap-3 items-center">
                   <div className={`${error.color} h-6 w-0.5 rounded-t rounded-b`} />
-                  <div className="text-gray-12 font-medium text-[13px]">{error.type}</div>
+                  <div className="text-gray-12 font-normal text-[13px]">{error.type}</div>
                 </div>
-                <div className="text-gray-9 font-medium text-[13px]">{error.value}</div>
+                <div className="text-gray-9 font-normal text-[13px]">{error.value}</div>
               </div>
             ))}
 

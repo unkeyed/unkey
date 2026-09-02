@@ -46,7 +46,7 @@ export function createRoleOptions({
                 </div>
                 <div className="flex gap-1 flex-col truncate">
                   <div className="flex gap-2 items-center">
-                    <span className="font-medium text-accent-12 text-left">{role.name}</span>
+                    <span className="font-normal text-accent-12 text-left">{role.name}</span>
                     {(previouslySelectedRoleNames.includes(role.name) ||
                       role.keys.find((item) => item.id === keyId)) && (
                       <StatusBadge
@@ -71,28 +71,28 @@ export function createRoleOptions({
           >
             <div className="flex flex-col h-full">
               {/* Header */}
-              <div className="px-4 py-2 border-b border-grayA-4 text-gray-10 text-xs font-medium bg-grayA-2">
+              <div className="px-4 py-2 border-b border-grayA-4 text-gray-10 text-xs font-normal bg-grayA-2">
                 Role Details
               </div>
               {/* Content */}
               <div className="flex flex-col px-4 py-3 gap-3">
                 <div>
-                  <div className="text-xs font-medium text-gray-11 mb-1">Role Name</div>
+                  <div className="text-xs font-normal text-gray-11 mb-1">Role Name</div>
                   <div className="text-xs text-gray-12 break-all">{role.name}</div>
                 </div>
                 {role.description && (
                   <div>
-                    <div className="text-xs font-medium text-gray-11 mb-1">Description</div>
+                    <div className="text-xs font-normal text-gray-11 mb-1">Description</div>
                     <div className="text-xs text-gray-12">{role.description}</div>
                   </div>
                 )}
                 <div>
-                  <div className="text-xs font-medium text-gray-11 mb-1">Role ID</div>
+                  <div className="text-xs font-normal text-gray-11 mb-1">Role ID</div>
                   <div className="text-xs text-gray-12 font-mono break-all">{role.id}</div>
                 </div>
                 {role.permissions.length > 0 && (
                   <div>
-                    <div className="text-xs font-medium text-gray-11 mb-2">Permissions</div>
+                    <div className="text-xs font-normal text-gray-11 mb-2">Permissions</div>
                     <div className="flex flex-wrap gap-1">
                       {role.permissions.map((permission) => (
                         <Badge key={permission.id} variant="secondary" className="text-xs">
@@ -114,7 +114,7 @@ export function createRoleOptions({
           <div className="border rounded-full flex items-center justify-center border-grayA-6 size-5">
             <IconTagOutline12 className="text-grayA-11" />
           </div>
-          <span className="text-accent-12 font-medium text-xs w-[120px] truncate text-left">
+          <span className="text-accent-12 font-normal text-xs w-[120px] truncate text-left">
             {role.name}
           </span>
         </div>
@@ -139,7 +139,7 @@ export function createRoleOptions({
             e.stopPropagation();
             loadMore();
           }}
-          className="text-xs text-accent-12 px-2 py-0.5 hover:bg-grayA-3 rounded-sm w-full bg-transparent hover:bg-transparent focus:ring-0 font-medium"
+          className="text-xs text-accent-12 px-2 py-0.5 hover:bg-grayA-3 rounded-sm w-full bg-transparent hover:bg-transparent focus:ring-0 font-normal"
         >
           Load more...
         </Button>

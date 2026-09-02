@@ -52,7 +52,7 @@ function DeployPlanGateDialogView({
           <Link
             href={billingHref}
             onClick={() => onOpenChange(false)}
-            className="mt-2 inline-block font-medium text-[13px] text-info-11 hover:underline"
+            className="mt-2 inline-block font-normal text-[13px] text-info-11 hover:underline"
           >
             Go to billing
           </Link>

@@ -50,7 +50,7 @@ function LegendStat({
     <span className="flex items-center gap-1.5 whitespace-nowrap tabular-nums">
       <span className="size-2 shrink-0 rounded-full" style={{ backgroundColor: color }} />
       <span className="text-gray-9">{label}</span>
-      <span className={cn("font-medium", alert ? "text-error-11" : "text-accent-12")}>{value}</span>
+      <span className={cn("font-normal", alert ? "text-error-11" : "text-accent-12")}>{value}</span>
     </span>
   );
 }
@@ -93,7 +93,7 @@ export function ProductionCardChart() {
     <div className="flex flex-col gap-2 p-4 md:border-r border-gray-4">
       <div className="flex items-start justify-between gap-2">
         <div className="flex flex-col">
-          <span className="text-2xl font-semibold text-accent-12 tabular-nums leading-tight">
+          <span className="text-2xl font-medium text-accent-12 tabular-nums leading-tight">
             {formatNumber(pulse.cumulative)}
           </span>
           <span className="text-[13px] text-gray-9">requests {pulse.windowLabel}</span>

@@ -103,12 +103,12 @@ export function LogdrainsList() {
                 aria-label={`Log drain ${drain.name}`}
               />
               <div className="flex min-w-0 flex-col gap-1 md:w-[30%] md:shrink-0">
-                <span className="truncate text-[13px] font-semibold text-accent-12">
+                <span className="truncate text-[13px] font-medium text-accent-12">
                   {drain.name}
                 </span>
                 <span className="text-xs text-gray-9">Audit logs</span>
               </div>
-              <div className="flex items-center gap-2 text-[13px] font-medium text-accent-12 md:w-[20%] md:shrink-0">
+              <div className="flex items-center gap-2 text-[13px] font-normal text-accent-12 md:w-[20%] md:shrink-0">
                 <SinkType kind={drain.kind} />
               </div>
               <div className="md:w-[20%] md:shrink-0">

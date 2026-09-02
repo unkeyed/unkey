@@ -36,7 +36,7 @@ export function createIdentityOptions({
                   <div className="border rounded-full flex items-center justify-center border-grayA-6 size-5">
                     <IconUserOutline12 className="text-grayA-11" />
                   </div>
-                  <span className="max-w-[200px] truncate font-medium text-accent-12 text-left">
+                  <span className="max-w-[200px] truncate font-normal text-accent-12 text-left">
                     {identity.externalId.length > 15
                       ? `${identity.externalId.slice(0, 4)}...${identity.externalId.slice(-4)}`
                       : identity.externalId}
@@ -53,7 +53,7 @@ export function createIdentityOptions({
           >
             <div className="flex flex-col h-full">
               {/* Header - Always shown */}
-              <div className="px-4 py-2 border-b border-grayA-4 text-gray-10 text-xs font-medium bg-grayA-2">
+              <div className="px-4 py-2 border-b border-grayA-4 text-gray-10 text-xs font-normal bg-grayA-2">
                 Metadata
               </div>
               {/* Content - Different based on metadata presence */}
@@ -101,7 +101,7 @@ export function createIdentityOptions({
           <div className="border rounded-full flex items-center justify-center border-grayA-6 size-5">
             <IconUserOutline12 className="text-grayA-11" />
           </div>
-          <span className="text-accent-12 font-medium text-xs max-w-[200px] truncate text-left">
+          <span className="text-accent-12 font-normal text-xs max-w-[200px] truncate text-left">
             {identity.externalId}
           </span>
         </div>
@@ -116,7 +116,7 @@ export function createIdentityOptions({
       label: (
         <div className="flex w-full flex-col gap-1 px-2 py-1 text-left">
           <span className="text-xs text-error-11">{queryError}</span>
-          <span className="text-xs font-medium text-accent-11">Select to retry</span>
+          <span className="text-xs font-normal text-accent-11">Select to retry</span>
         </div>
       ),
       value: "__retry_identities__",
@@ -126,7 +126,7 @@ export function createIdentityOptions({
   } else if (hasNextPage) {
     options.push({
       label: (
-        <div className="w-full px-2 py-0.5 text-left text-xs font-medium text-accent-12">
+        <div className="w-full px-2 py-0.5 text-left text-xs font-normal text-accent-12">
           {isFetchingNextPage ? "Loading more..." : "Load more..."}
         </div>
       ),

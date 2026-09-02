@@ -148,7 +148,7 @@ function SelectLabel({
   return (
     <SelectPrimitive.GroupLabel
       ref={ref}
-      className={cn("py-1.5 pl-2 pr-2 text-[13px] font-medium text-gray-11", className)}
+      className={cn("py-1.5 pl-2 pr-2 text-[13px] font-normal text-gray-11", className)}
       {...props}
     />
   );

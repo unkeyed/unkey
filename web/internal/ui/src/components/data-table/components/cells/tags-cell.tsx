@@ -104,7 +104,7 @@ export const TagsCell = ({ tags, isSelected, maxVisible = 3, shortenOptions }: T
           variant="inverted"
           content={
             <div className="flex flex-col gap-2 py-1 max-w-xs max-h-[300px] overflow-y-auto">
-              <div className="text-xs opacity-75 font-medium">
+              <div className="text-xs opacity-75 font-normal">
                 {tags.length - maxVisible} more tags:
               </div>
               {tags.slice(maxVisible).map((tag, idx) => (

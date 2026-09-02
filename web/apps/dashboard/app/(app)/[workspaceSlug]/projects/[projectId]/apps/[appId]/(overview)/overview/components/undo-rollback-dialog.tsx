@@ -127,7 +127,7 @@ function DeploymentOption({ deployment, isCurrent, selected, onSelect }: Deploym
         <div className="min-w-0 flex-1">
           <div className="flex items-center justify-between gap-2">
             <div className="min-w-0 flex items-baseline gap-2">
-              <span className="font-mono text-xs font-semibold text-accent-12 shrink-0">
+              <span className="font-mono text-xs font-medium text-accent-12 shrink-0">
                 {deployment.gitCommitSha ? shortenId(deployment.gitCommitSha) : deployment.id}
               </span>
               {deployment.gitCommitMessage && (

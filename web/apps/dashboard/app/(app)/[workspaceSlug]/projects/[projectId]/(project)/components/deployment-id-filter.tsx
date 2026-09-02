@@ -133,7 +133,7 @@ export function DeploymentIdFilter<T extends DeploymentFilter>({
                   onCheckedChange={() => toggle(row.id)}
                 />
                 {row.gitBranch && (
-                  <span className="text-accent-12 text-xs font-medium truncate">
+                  <span className="text-accent-12 text-xs font-normal truncate">
                     {row.gitBranch}
                   </span>
                 )}
