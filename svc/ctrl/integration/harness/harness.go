@@ -303,7 +303,6 @@ func New(t *testing.T, opts ...Option) *Harness {
 	// registered here or a dispatched check never completes.
 	teardownSvc, err := deployteardown.New(deployteardown.Config{
 		DB:                database,
-		Admin:             lazyAdmin,
 		DrainPollInterval: 200 * time.Millisecond,
 		DrainGraceTimeout: 2 * time.Second,
 	})
@@ -361,7 +360,6 @@ type lazyInvocationLiveness struct {
 }
 
 var _ buildslot.InvocationLiveness = (*lazyInvocationLiveness)(nil)
-var _ deployteardown.InvocationCanceler = (*lazyInvocationLiveness)(nil)
 
 func (l *lazyInvocationLiveness) set(client *restateadmin.Client) {
 	l.mu.Lock()
@@ -377,14 +375,4 @@ func (l *lazyInvocationLiveness) FindLiveInvocations(ctx context.Context, invoca
 		return nil, errors.New("restate admin client not initialized yet")
 	}
 	return client.FindLiveInvocations(ctx, invocationIDs)
-}
-
-func (l *lazyInvocationLiveness) CancelInvocation(ctx context.Context, invocationID string) error {
-	l.mu.Lock()
-	client := l.client
-	l.mu.Unlock()
-	if client == nil {
-		return errors.New("restate admin client not initialized yet")
-	}
-	return client.CancelInvocation(ctx, invocationID)
 }
