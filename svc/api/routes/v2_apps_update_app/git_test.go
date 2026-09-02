@@ -382,7 +382,7 @@ func TestUpdateAppOCIImage(t *testing.T) {
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
 		Project: project.ID,
 		App:     app.ID,
-		Oci: &openapi.AppOCIInput{
+		Oci: &openapi.AppOCI{
 			Image: "nginx:1.27",
 		},
 	})
@@ -449,7 +449,7 @@ func TestUpdateAppRejectsSourceSwitching(t *testing.T) {
 			res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, handler.Request{
 				Project: project.ID,
 				App:     app.ID,
-				Oci:     &openapi.AppOCIInput{Image: "ghcr.io/acme/api:v2"},
+				Oci:     &openapi.AppOCI{Image: "ghcr.io/acme/api:v2"},
 			})
 			require.Equal(t, http.StatusBadRequest, res.Status, "expected 400, received: %s", res.RawBody)
 		})
@@ -461,7 +461,7 @@ func TestUpdateAppRejectsSourceSwitching(t *testing.T) {
 			Project: project.ID,
 			App:     app.ID,
 			Git:     nullable.NewNullNullable[openapi.AppGitUpdateInput](),
-			Oci:     &openapi.AppOCIInput{Image: "ghcr.io/acme/api:v2"},
+			Oci:     &openapi.AppOCI{Image: "ghcr.io/acme/api:v2"},
 		})
 		require.Equal(t, http.StatusBadRequest, res.Status, "expected 400, received: %s", res.RawBody)
 	})
@@ -474,7 +474,7 @@ func TestUpdateAppRejectsSourceSwitching(t *testing.T) {
 			Project: project.ID,
 			App:     app.ID,
 			Name:    &newName,
-			Oci:     &openapi.AppOCIInput{Image: "ghcr.io/acme/api:v2"},
+			Oci:     &openapi.AppOCI{Image: "ghcr.io/acme/api:v2"},
 		})
 		require.Equal(t, http.StatusBadRequest, res.Status, "expected 400, received: %s", res.RawBody)
 		reloaded, err := db.Query.FindAppById(context.Background(), h.DB.RO(), app.ID)

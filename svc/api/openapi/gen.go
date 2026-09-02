@@ -1973,7 +1973,7 @@ type V2AppsUpdateAppRequestBody struct {
 	// Oci Change the default image reference for an OCI-sourced app. This does not
 	// create a deployment. Image updates cannot be combined with other changes,
 	// and source switching is not supported.
-	Oci *AppOCIInput `json:"oci,omitempty"`
+	Oci *AppOCI `json:"oci,omitempty"`
 
 	// Project Identifies a resource by either its unique ID or its slug.
 	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
