@@ -17,21 +17,19 @@ import { routes } from "@/lib/navigation/routes";
 import { trpc } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";
 import { useQueryClient } from "@tanstack/react-query";
-import { User } from "@unkey/icons";
+import { Laptop2, MoonStars, Sun, User } from "@unkey/icons";
 import { useTheme } from "next-themes";
 import Link from "next/link";
 
 type UserButtonProps = {
   isCollapsed?: boolean;
-  isMobile?: boolean;
-  isMobileSidebarOpen?: boolean;
   className?: string;
 };
 
 const THEMES = [
-  { value: "system", label: "System" },
-  { value: "light", label: "Light" },
-  { value: "dark", label: "Dark" },
+  { value: "system", label: "System", icon: Laptop2 },
+  { value: "light", label: "Light", icon: Sun },
+  { value: "dark", label: "Dark", icon: MoonStars },
 ] as const;
 
 export function UserButton({ isCollapsed = false, className }: UserButtonProps) {
@@ -56,9 +54,9 @@ export function UserButton({ isCollapsed = false, className }: UserButtonProps) 
           </Avatar>
         </div>
       </DropdownMenuTrigger>
-      <DropdownMenuContent side="bottom" align="end" className="w-60 p-0">
+      <DropdownMenuContent side="bottom" align="end" className="w-56 p-0">
         {user?.email && (
-          <div className="border-b border-grayA-4 px-3 py-2.5">
+          <div className="border-b border-grayA-4 px-3 py-2">
             <span
               title={user.email}
               className="secret block truncate text-[13px] font-medium text-accent-12"
@@ -69,7 +67,7 @@ export function UserButton({ isCollapsed = false, className }: UserButtonProps) 
         )}
         <DropdownMenuGroup className="p-1">
           <DropdownMenuItem
-            className="cursor-pointer gap-2 px-2 py-1.5 font-medium text-accent-12"
+            className="h-8 cursor-pointer gap-2 px-2 text-[13px] font-medium text-accent-12"
             render={
               <Link href={routes.account.overview({ workspaceSlug: workspace.slug })}>
                 <User className="size-4 shrink-0 text-gray-11" iconSize="sm-regular" />
@@ -82,13 +80,14 @@ export function UserButton({ isCollapsed = false, className }: UserButtonProps) 
         <DropdownMenuGroup className="p-1">
           <DropdownMenuLabel className="px-2">Theme</DropdownMenuLabel>
           <DropdownMenuRadioGroup value={theme ?? "system"} onValueChange={setTheme}>
-            {THEMES.map((option) => (
+            {THEMES.map(({ value, label, icon: Icon }) => (
               <DropdownMenuRadioItem
-                key={option.value}
-                value={option.value}
-                className="cursor-pointer rounded-md py-1.5 pl-8 font-medium text-accent-12"
+                key={value}
+                value={value}
+                className="h-8 cursor-pointer px-2 text-[13px] font-medium text-accent-12"
               >
-                {option.label}
+                <Icon className="size-4 shrink-0 text-gray-11" iconSize="sm-regular" />
+                {label}
               </DropdownMenuRadioItem>
             ))}
           </DropdownMenuRadioGroup>
@@ -96,7 +95,7 @@ export function UserButton({ isCollapsed = false, className }: UserButtonProps) 
         <DropdownMenuSeparator className="mx-0" />
         <DropdownMenuGroup className="p-1">
           <DropdownMenuItem
-            className="cursor-pointer gap-2 px-2 py-1.5 font-medium text-accent-12"
+            className="h-8 cursor-pointer gap-2 px-2 text-[13px] font-medium text-accent-12"
             onClick={async () => {
               queryClient.clear();
               await signOut();
