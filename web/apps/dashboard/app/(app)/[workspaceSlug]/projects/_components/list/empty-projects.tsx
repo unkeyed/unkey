@@ -38,7 +38,7 @@ const IconBox = ({ children, large, className }: IconBoxProps) => (
 const flankItems: { icon: ReactNode; large?: boolean; opacity: string }[] = [
   { icon: <IconEarthOutline18 />, opacity: "opacity-50" },
   { icon: <Github className="size-[18px]" />, opacity: "opacity-75" },
-  { icon: <IconCubeOutline18 className="size-9" />, large: true, opacity: "opacity-90" },
+  { icon: <IconCubeOutline18 className="size-9 [&_[stroke-width]]:[stroke-width:0.75]" />, large: true, opacity: "opacity-90" },
   { icon: <IconCodeOutline18 />, opacity: "opacity-75" },
   { icon: <IconHeartPulseOutline18 />, opacity: "opacity-50" },
 ];

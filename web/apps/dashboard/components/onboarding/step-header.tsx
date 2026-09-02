@@ -33,7 +33,7 @@ const iconItems: { icon: ReactNode; large?: boolean; opacity: string }[] = [
   { icon: null, opacity: "opacity-60" },
   { icon: <IconHardDriveOutline18 />, opacity: "opacity-75" },
   { icon: <IconLocation2Outline18 />, opacity: "opacity-80" },
-  { icon: <IconCloudUploadOutline18 className="size-9" />, large: true, opacity: "opacity-90" },
+  { icon: <IconCloudUploadOutline18 className="size-9 [&_[stroke-width]]:[stroke-width:0.75]" />, large: true, opacity: "opacity-90" },
   { icon: <IconHeartPulseOutline18 />, opacity: "opacity-80" },
   { icon: <IconNodes2Outline18 />, opacity: "opacity-75" },
   { icon: null, opacity: "opacity-60" },
