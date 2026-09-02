@@ -10,7 +10,7 @@ import {
 } from "./v2deploygitcommit.js";
 
 /**
- * Create a deployment from a prebuilt OCI image
+ * Create a deployment from a pre-built Docker image
  */
 export type V2DeployCreateDeploymentRequestBody = {
   /**
@@ -34,9 +34,7 @@ export type V2DeployCreateDeploymentRequestBody = {
    */
   environmentSlug: string;
   /**
-   * Deprecated compatibility field. Use the v3 `oci.image` source instead. Full OCI image reference to deploy. Qualify the version with a tag (ghcr.io/user/app:v1.0.0) or with a digest (ghcr.io/user/app@sha256:...). Without either, the registry serves the latest tag.
-   *
-   * @deprecated field: This will be removed in a future release, please migrate away from it as soon as possible.
+   * Full image reference to deploy. Qualify the version with a tag (ghcr.io/user/app:v1.0.0) or with a digest (ghcr.io/user/app@sha256:...). Without either, the registry serves the latest tag.
    */
   dockerImage: string;
   /**
