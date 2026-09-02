@@ -5,19 +5,15 @@ post:
   description: |
     Create a new key in a keyspace.
 
-    The endpoint generates a secure key.
-
     Pass the returned key to your user. If `recoverable` is `true`, use `/v2/keys.getKey` with the key ID to retrieve it later.
 
     **Required permissions**
 
-    Your credential needs one of:
-    - `api.*.create_key`
-    - `api.<api_id>.create_key`
+    Your credential needs:
+    - `unkey:v1:<workspace_id>:keyspaces/<keyspace_id>#create_key`
 
-    If `recoverable` is `true`, your credential also needs one of:
-    - `api.*.encrypt_key`
-    - `api.<api_id>.encrypt_key`
+    If `recoverable` is `true`, your credential also needs:
+    - `unkey:v1:<workspace_id>:keyspaces/<keyspace_id>/keys/*#encrypt_key`
   operationId: keys.createKeyV3
 
   requestBody:

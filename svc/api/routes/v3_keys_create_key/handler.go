@@ -23,8 +23,10 @@ import (
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
 	"github.com/unkeyed/unkey/pkg/retry"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/internal/auditactor"
 	apierrors "github.com/unkeyed/unkey/svc/api/internal/errors"
@@ -102,19 +104,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	if len(liveAPIs) == 0 {
 		return keyspaceNotFound("keyspace does not belong to a live API")
 	}
-	apiID := liveAPIs[0].ApiID
 
-	err = principal.Authorize(rbac.Or(
-		rbac.T(rbac.Tuple{
-			ResourceType: rbac.Api,
-			ResourceID:   "*",
-			Action:       rbac.CreateKey,
-		}),
-		rbac.T(rbac.Tuple{
-			ResourceType: rbac.Api,
-			ResourceID:   apiID,
-			Action:       rbac.CreateKey,
-		}),
+	err = principal.Authorize(rbac.U(
+		urn.New().Workspace(principal.WorkspaceID).Keyspace(keySpace.ID),
+		permissions.CreateKey{},
 	))
 	if err != nil {
 		return apierrors.MaskInsufficientPermissionsAsNotFound(
@@ -171,17 +164,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			)
 		}
 
-		err = principal.Authorize(rbac.Or(
-			rbac.T(rbac.Tuple{
-				ResourceType: rbac.Api,
-				ResourceID:   "*",
-				Action:       rbac.EncryptKey,
-			}),
-			rbac.T(rbac.Tuple{
-				ResourceType: rbac.Api,
-				ResourceID:   apiID,
-				Action:       rbac.EncryptKey,
-			}),
+		err = principal.Authorize(rbac.U(
+			urn.New().Workspace(principal.WorkspaceID).Keyspace(keySpace.ID).Key("*"),
+			permissions.EncryptKey{},
 		))
 		if err != nil {
 			return apierrors.MaskInsufficientPermissionsAsNotFound(
