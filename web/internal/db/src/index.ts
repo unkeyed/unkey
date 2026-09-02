@@ -1,4 +1,5 @@
 export * from "./types";
+
 import type { ExtractTablesWithRelations } from "drizzle-orm";
 import type { MySqlTransaction } from "drizzle-orm/mysql-core";
 import type {
@@ -7,12 +8,13 @@ import type {
   MySql2QueryResultHKT,
 } from "drizzle-orm/mysql2";
 import * as schema from "./schema";
-export { schema };
+
 export * from "drizzle-orm";
 export { drizzle } from "drizzle-orm/mysql2";
-export { annotateSql, staticTagsFromEnv } from "./sqlcomment";
-export type { SqlCommentDynamicTags, SqlCommentStaticTags } from "./sqlcomment";
 export { createCommentedPool, dynamicTagsFromStore, runWithSqlCommentTags } from "./commented-pool";
+export type { SqlCommentDynamicTags, SqlCommentStaticTags } from "./sqlcomment";
+export { annotateSql, staticTagsFromEnv } from "./sqlcomment";
+export { schema };
 
 export type Database = MySql2Database<typeof schema>;
 

@@ -1,9 +1,9 @@
 "use client";
 
-import { formatNumber } from "@/lib/fmt";
-import { trpc } from "@/lib/trpc/client";
 import { InfoTooltip, Skeleton } from "@unkey/ui";
 import { useMemo } from "react";
+import { formatNumber } from "@/lib/fmt";
+import { trpc } from "@/lib/trpc/client";
 
 const HOURS = 168;
 const MAX_BARS = 30;

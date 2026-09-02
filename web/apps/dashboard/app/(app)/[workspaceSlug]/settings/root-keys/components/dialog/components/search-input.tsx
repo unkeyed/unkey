@@ -1,7 +1,7 @@
 "use client";
-import { cn } from "@/lib/utils";
 import { Input } from "@unkey/ui";
 import type { ChangeEvent, RefObject } from "react";
+import { cn } from "@/lib/utils";
 
 export const SEARCH_MODES = {
   ALLOW_TYPE: "allowTypeDuringSearch",

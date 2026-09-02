@@ -14,8 +14,8 @@ import { ratelimitRoutes } from "./ratelimits";
 import { settingsRoutes } from "./settings";
 import { workspaceRoutes } from "./workspaces";
 
-export { buildRoute } from "./shared";
 export type { CheckoutIntent, DeployCheckoutOrigin, DeployCheckoutPlan } from "./settings";
+export { buildRoute } from "./shared";
 
 export const routes = {
   projects: projectRoutes,

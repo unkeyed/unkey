@@ -1,5 +1,5 @@
-import { trpc } from "@/lib/trpc/client";
 import { useEffect, useMemo, useState } from "react";
+import { trpc } from "@/lib/trpc/client";
 
 type SearchBranchesParams = {
   projectId: string;

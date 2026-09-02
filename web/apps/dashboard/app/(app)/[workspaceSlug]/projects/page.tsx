@@ -1,10 +1,5 @@
 "use client";
 
-import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
-import { collection } from "@/lib/collections";
-import { type DeployCheckoutOrigin, routes } from "@/lib/navigation/routes";
-import { DEPLOY_PLANS } from "@/lib/stripe/deployPlan";
-import { trpc } from "@/lib/trpc/client";
 import { useLiveQuery } from "@tanstack/react-db";
 import {
   PageBody,
@@ -17,6 +12,11 @@ import {
 } from "@unkey/ui";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
+import { collection } from "@/lib/collections";
+import { type DeployCheckoutOrigin, routes } from "@/lib/navigation/routes";
+import { DEPLOY_PLANS } from "@/lib/stripe/deployPlan";
+import { trpc } from "@/lib/trpc/client";
 import { CreateProjectButton } from "./_components/create-project-button";
 import { CreateProjectDialog } from "./_components/create-project-dialog";
 import { ProjectsList } from "./_components/list";

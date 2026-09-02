@@ -1,7 +1,7 @@
+import { useMemo } from "react";
 import type { DeploymentStatus } from "@/lib/collections/deploy/deployment-status";
 import type { Deployment } from "@/lib/collections/deploy/deployments";
 import { trpc } from "@/lib/trpc/client";
-import { useMemo } from "react";
 import { deriveStatusFromSteps } from "./deployment-utils";
 
 // Steps stop changing once the deployment authorizes (awaiting_approval) or

@@ -1,11 +1,5 @@
 "use client";
 
-import { DeleteDialog } from "@/app/(app)/[workspaceSlug]/ratelimits/[namespaceId]/_components/delete-dialog";
-import { IdentifierDialog } from "@/app/(app)/[workspaceSlug]/ratelimits/[namespaceId]/_components/identifier-dialog";
-import type { OverrideDetails } from "@/app/(app)/[workspaceSlug]/ratelimits/[namespaceId]/types";
-import { type MenuItem, TableActionPopover } from "@/components/logs/table-action.popover";
-import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
-import { routes } from "@/lib/navigation/routes";
 import { Loading, toast } from "@unkey/ui";
 import { useRouter } from "next/navigation";
 import {
@@ -15,6 +9,12 @@ import {
   IconTrashOutline18,
 } from "nucleo-ui-outline-18";
 import { Suspense } from "react";
+import { DeleteDialog } from "@/app/(app)/[workspaceSlug]/ratelimits/[namespaceId]/_components/delete-dialog";
+import { IdentifierDialog } from "@/app/(app)/[workspaceSlug]/ratelimits/[namespaceId]/_components/identifier-dialog";
+import type { OverrideDetails } from "@/app/(app)/[workspaceSlug]/ratelimits/[namespaceId]/types";
+import { type MenuItem, TableActionPopover } from "@/components/logs/table-action.popover";
+import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
+import { routes } from "@/lib/navigation/routes";
 import { useFilters } from "../../../../hooks/use-filters";
 
 export const LogsTableAction = ({

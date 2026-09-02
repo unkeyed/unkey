@@ -3,8 +3,8 @@
 import { useRuntimeLogsFilters } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/(project)/logs/hooks/use-runtime-logs-filters";
 import { FilterOperatorInput } from "@/components/logs/filter-operator-input";
 import {
-  type RuntimeLogsFilterOperator,
   parseRuntimeLogsAttributeMatch,
+  type RuntimeLogsFilterOperator,
 } from "@/lib/schemas/runtime-logs.filter.schema";
 
 const MESSAGE_OPTIONS = [{ id: "contains" as const, label: "contains" }];

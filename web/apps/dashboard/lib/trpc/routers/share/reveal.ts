@@ -1,8 +1,8 @@
+import { z } from "zod";
 import { VaultService } from "@/gen/proto/vault/v1/service_pb";
 import { insertAuditLogs } from "@/lib/audit";
 import { db, eq, schema } from "@/lib/db";
 import { createVaultClient } from "@/lib/vault-client";
-import { z } from "zod";
 import { publicProcedure } from "../../trpc";
 
 const vault = createVaultClient(VaultService);

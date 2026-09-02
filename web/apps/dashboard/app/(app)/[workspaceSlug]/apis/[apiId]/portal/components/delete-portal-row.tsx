@@ -1,11 +1,11 @@
 "use client";
 
-import { useDeletePortal } from "@/lib/portal/use-portal";
 import type { Portal } from "@unkey/api/models/components";
 import { Button, DialogContainer, Input, SettingsZoneRow, toast } from "@unkey/ui";
 import { IconTriangleWarningOutline12 } from "nucleo-ui-outline-12";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
+import { useDeletePortal } from "@/lib/portal/use-portal";
 
 type ConfirmationForm = { confirmation: string };
 

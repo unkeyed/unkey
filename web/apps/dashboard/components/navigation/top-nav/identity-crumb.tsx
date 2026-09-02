@@ -1,9 +1,9 @@
 "use client";
 
+import { IconFingerprintOutline18, IconPlusOutline18 } from "nucleo-ui-outline-18";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { useIdentities } from "@/lib/identities-query";
 import { routes } from "@/lib/navigation/routes";
-import { IconFingerprintOutline18, IconPlusOutline18 } from "nucleo-ui-outline-18";
 import { Crumb } from "./crumb";
 import type { CrumbPopoverItem } from "./crumb-popover";
 

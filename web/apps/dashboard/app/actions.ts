@@ -1,6 +1,6 @@
 "use server";
-import { getAuth } from "@/lib/auth/get-auth";
 import { revalidatePath } from "next/cache";
+import { getAuth } from "@/lib/auth/get-auth";
 
 export async function revalidate(path: string, segment?: "page" | "layout") {
   // Server Actions are publicly callable POST endpoints. Without this check,

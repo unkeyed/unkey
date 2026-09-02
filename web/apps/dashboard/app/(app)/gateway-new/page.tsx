@@ -8,11 +8,11 @@
  * 4. The user is redirected to create their API
  */
 import { randomInt } from "node:crypto";
+import { dns1035, newId } from "@unkey/id";
+import { redirect } from "next/navigation";
 import { getAuth } from "@/lib/auth";
 import { db, schema } from "@/lib/db";
 import { freeTierLimits } from "@/lib/limits";
-import { dns1035, newId } from "@unkey/id";
-import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 

@@ -1,8 +1,8 @@
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { cn } from "@/lib/utils";
 import { IconCheckOutline18 } from "nucleo-ui-outline-18";
 import type { KeyboardEvent, PropsWithChildren } from "react";
 import { useEffect, useRef, useState } from "react";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { cn } from "@/lib/utils";
 import type { SuggestionOption } from "./types";
 
 type SuggestionsProps = PropsWithChildren<{

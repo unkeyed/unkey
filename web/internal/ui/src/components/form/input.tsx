@@ -1,6 +1,6 @@
 "use client";
 
-import { type VariantProps, cva } from "class-variance-authority";
+import { cva, type VariantProps } from "class-variance-authority";
 // biome-ignore lint/style/useImportType: Biome wants this
 import React from "react";
 import { cn } from "../../lib/utils";
@@ -34,4 +34,4 @@ function Input({ className, variant, ref, ...props }: InputProps) {
   return <input ref={ref} className={cn(inputVariants({ variant }), className)} {...props} />;
 }
 
-export { Input, inputVariants, type InputProps, type DocumentedInputProps };
+export { type DocumentedInputProps, Input, type InputProps, inputVariants };

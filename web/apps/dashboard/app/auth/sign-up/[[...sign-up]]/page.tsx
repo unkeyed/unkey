@@ -1,10 +1,10 @@
 "use client";
-import { FadeIn } from "@/components/landing/fade-in";
 import { Loading } from "@unkey/ui";
 import type { Route } from "next";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { FadeIn } from "@/components/landing/fade-in";
 import { SignUpProvider } from "../../context/signup-context";
 import { useSignUp } from "../../hooks";
 import { EmailCode } from "../email-code";

@@ -1,8 +1,8 @@
-import { useRequestLogsFilters } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/(project)/requests/hooks/use-request-logs-filters";
-import type { RequestLogsFilterValue } from "@/lib/schemas/request-logs.filter.schema";
 import { Button, Checkbox } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 import { useCallback, useState } from "react";
+import { useRequestLogsFilters } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/(project)/requests/hooks/use-request-logs-filters";
+import type { RequestLogsFilterValue } from "@/lib/schemas/request-logs.filter.schema";
 
 type StatusOption = {
   id: number;

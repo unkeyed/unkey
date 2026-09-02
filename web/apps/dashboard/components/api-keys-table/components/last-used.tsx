@@ -1,8 +1,7 @@
-import { cn } from "@/lib/utils";
-import { Badge, TimestampInfo } from "@unkey/ui";
-import { STATUS_STYLES } from "@unkey/ui";
+import { Badge, STATUS_STYLES, TimestampInfo } from "@unkey/ui";
 import { IconChartActivity2Outline12 } from "nucleo-ui-outline-12";
 import { useRef, useState } from "react";
+import { cn } from "@/lib/utils";
 
 export const LastUsedCell = ({
   lastUsedAt,

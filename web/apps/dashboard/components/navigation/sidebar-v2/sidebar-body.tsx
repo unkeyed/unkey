@@ -1,5 +1,6 @@
 "use client";
 
+import { useSelectedLayoutSegments } from "next/navigation";
 import { useApiKeyAuthId } from "@/hooks/use-api-key-auth-id";
 import { useSectionContext } from "@/hooks/use-section-context";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
@@ -11,7 +12,6 @@ import {
   buildProjectLinks,
   buildWorkspaceSections,
 } from "@/lib/navigation/leaves";
-import { useSelectedLayoutSegments } from "next/navigation";
 import { NavLinkList } from "./nav-link-list";
 
 export function SidebarBody() {

@@ -1,5 +1,4 @@
 "use client";
-import { CopyableIDButton } from "@/components/navigation/copyable-id-button";
 import {
   PageContainer,
   PageHeader,
@@ -8,12 +7,11 @@ import {
   PageHeaderTitle,
 } from "@unkey/ui";
 import { use } from "react";
+import { CopyableIDButton } from "@/components/navigation/copyable-id-button";
 import { OverrideIdentifierAction } from "../override-identifier-action";
 import { OverridesTable } from "./overrides-table";
 
-export default function OverridePage(props: {
-  params: Promise<{ namespaceId: string }>;
-}) {
+export default function OverridePage(props: { params: Promise<{ namespaceId: string }> }) {
   const params = use(props.params);
   const { namespaceId } = params;
 

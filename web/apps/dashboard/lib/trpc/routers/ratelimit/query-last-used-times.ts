@@ -1,6 +1,6 @@
-import { clickhouse } from "@/lib/clickhouse";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
+import { clickhouse } from "@/lib/clickhouse";
 import { ratelimit, withRatelimit, workspaceProcedure } from "../../trpc";
 
 const getLastUsedInput = z.object({

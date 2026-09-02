@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { fromPolicy, policyFormSchema, toPolicy } from "./schema";
 import type { Policy, PolicyFormValues } from "./schema";
+import { fromPolicy, policyFormSchema, toPolicy } from "./schema";
 
 // Exercises the keyauth ratelimit override validation. The Go verify path honors
 // three override shapes (cost alone, inline limit+duration, and limit+duration+cost)

@@ -1,9 +1,9 @@
 "use client";
 
-import { type Deployment, collection } from "@/lib/collections";
-import { getErrorMessage, getUnkeyClient } from "@/lib/unkey-client";
 import { useMutation } from "@tanstack/react-query";
 import { Button, DialogContainer, toast } from "@unkey/ui";
+import { collection, type Deployment } from "@/lib/collections";
+import { getErrorMessage, getUnkeyClient } from "@/lib/unkey-client";
 import { DeploymentCard } from "./components/deployment-card";
 
 type StopDialogProps = {

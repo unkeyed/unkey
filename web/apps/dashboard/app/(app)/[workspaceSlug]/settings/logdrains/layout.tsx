@@ -1,7 +1,7 @@
-import { logdrains } from "@/lib/flags";
-import { routes } from "@/lib/navigation/routes";
 import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
+import { logdrains } from "@/lib/flags";
+import { routes } from "@/lib/navigation/routes";
 
 // Server-side gate for the log drains settings area. The flag defaults to off
 // so the pages are unreachable until logdrains is enabled for the workspace or

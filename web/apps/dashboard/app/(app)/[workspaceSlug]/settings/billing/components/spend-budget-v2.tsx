@@ -1,8 +1,5 @@
 "use client";
 
-import { Switch } from "@/components/ui/switch";
-import { formatDollars } from "@/lib/fmt";
-import { trpc } from "@/lib/trpc/client";
 import {
   Button,
   DialogContainer,
@@ -13,6 +10,9 @@ import {
   toast,
 } from "@unkey/ui";
 import { useState } from "react";
+import { Switch } from "@/components/ui/switch";
+import { formatDollars } from "@/lib/fmt";
+import { trpc } from "@/lib/trpc/client";
 import { ALERT_STEPS } from "./constants";
 
 const ALERT_STEPS_LABEL = ALERT_STEPS.map((step) => `${step * 100}%`).join(", ");

@@ -1,6 +1,5 @@
-import { describe, expect, test } from "vitest";
-
 import { SchemaError } from "@unkey/error";
+import { describe, expect, test } from "vitest";
 import { type BillingTier, calculateTieredPrices } from "./tiers";
 
 describe("calculateTieredPrices", () => {

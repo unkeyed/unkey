@@ -1,5 +1,5 @@
-import { trpc } from "@/lib/trpc/client";
 import { RefreshButton } from "@unkey/ui";
+import { trpc } from "@/lib/trpc/client";
 import { useRequestLogsContext } from "../../../context/request-logs-provider";
 
 export const RequestLogsRefresh = () => {

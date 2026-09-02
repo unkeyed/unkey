@@ -1,9 +1,9 @@
 import * as Sentry from "@sentry/nextjs";
 import {
-  DENY_URLS,
-  IGNORE_ERRORS,
   createClientErrorFilter,
   createTracesSampler,
+  DENY_URLS,
+  IGNORE_ERRORS,
   replayPrivacyOptions,
   scrubLog,
   scrubReplayFrame,

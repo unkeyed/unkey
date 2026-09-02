@@ -1,11 +1,4 @@
 "use client";
-import { VerificationBarChart } from "@/components/api-keys-table/components/bar-chart";
-import { LastUsedCell } from "@/components/api-keys-table/components/last-used";
-import { StatusDisplay } from "@/components/api-keys-table/components/status-cell";
-import { routes } from "@/lib/navigation/routes";
-import { shortenId } from "@/lib/shorten-id";
-import type { KeyDetails } from "@/lib/trpc/routers/api/keys/query-api-keys/schema";
-import { cn } from "@/lib/utils";
 import type { DataTableColumnDef } from "@unkey/ui";
 import {
   Checkbox,
@@ -20,6 +13,13 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { IconFocusOutline18, IconKeyOutline18 } from "nucleo-ui-outline-18";
 import { useState } from "react";
+import { VerificationBarChart } from "@/components/api-keys-table/components/bar-chart";
+import { LastUsedCell } from "@/components/api-keys-table/components/last-used";
+import { StatusDisplay } from "@/components/api-keys-table/components/status-cell";
+import { routes } from "@/lib/navigation/routes";
+import { shortenId } from "@/lib/shorten-id";
+import type { KeyDetails } from "@/lib/trpc/routers/api/keys/query-api-keys/schema";
+import { cn } from "@/lib/utils";
 
 const KeysTableActionPopover = dynamic(
   () =>

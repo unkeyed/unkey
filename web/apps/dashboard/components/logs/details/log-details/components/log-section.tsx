@@ -2,13 +2,7 @@ import { CopyButton } from "@unkey/ui";
 
 type LogSectionDetails = string | string[] | React.ReactNode;
 
-export const LogSection = ({
-  details,
-  title,
-}: {
-  details: LogSectionDetails;
-  title: string;
-}) => {
+export const LogSection = ({ details, title }: { details: LogSectionDetails; title: string }) => {
   const copyValue = getFormattedContent(details);
 
   return (

@@ -1,5 +1,5 @@
-import type { KeyPermission } from "@/lib/trpc/routers/key/rbac/connected-roles-and-perms";
 import { z } from "zod";
+import type { KeyPermission } from "@/lib/trpc/routers/key/rbac/connected-roles-and-perms";
 
 export const updateKeyRbacSchema = z.object({
   keyId: z.string().min(1, "Key ID is required"),

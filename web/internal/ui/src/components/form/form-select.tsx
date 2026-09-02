@@ -98,4 +98,4 @@ function FormSelect({
 
 FormSelect.displayName = "FormSelect";
 
-export { FormSelect, type FormSelectProps, type DocumentedFormSelectProps };
+export { type DocumentedFormSelectProps, FormSelect, type FormSelectProps };

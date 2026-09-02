@@ -1,11 +1,11 @@
+import { KEY_VERIFICATION_OUTCOMES } from "@unkey/clickhouse/src/keys/keys";
+import { z } from "zod";
 import type {
   FilterValue,
   NumberConfig,
   StringConfig,
 } from "@/components/logs/validation/filter.types";
 import { createFilterOutputSchema } from "@/components/logs/validation/utils/structured-output-schema-generator";
-import { KEY_VERIFICATION_OUTCOMES } from "@unkey/clickhouse/src/keys/keys";
-import { z } from "zod";
 import { getOutcomeColor } from "../../../_overview/utils";
 
 export const ALLOWED_OPERATOR = ["is"] as const;

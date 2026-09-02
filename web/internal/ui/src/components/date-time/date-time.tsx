@@ -1,7 +1,6 @@
 "use client";
-import { createContext, useContext, useState } from "react";
 // biome-ignore lint: React in this context is used throughout
-import React from "react";
+import React, { createContext, useContext, useState } from "react";
 import type { DateRange } from "react-day-picker";
 import { DateTimeActions } from "./components/actions";
 import { Calendar } from "./components/calendar";

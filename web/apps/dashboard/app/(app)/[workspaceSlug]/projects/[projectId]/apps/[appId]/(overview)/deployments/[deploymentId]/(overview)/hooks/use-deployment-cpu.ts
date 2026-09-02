@@ -1,5 +1,5 @@
 import { trpc } from "@/lib/trpc/client";
-import { type TimeseriesData, downsample } from "./downsample";
+import { downsample, type TimeseriesData } from "./downsample";
 
 type UseDeploymentCpuResult = {
   cpuPercent: number;

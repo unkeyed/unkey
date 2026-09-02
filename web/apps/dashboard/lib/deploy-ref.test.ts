@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { UnsupportedDeployRefError, parseDeployRef } from "./deploy-ref";
+import { parseDeployRef, UnsupportedDeployRefError } from "./deploy-ref";
 
 describe("parseDeployRef", () => {
   it("returns a plain branch", () => {

@@ -1,14 +1,13 @@
-import type { UnkeyAuditLog } from "@/lib/audit";
-import { db, schema } from "@/lib/db";
-import { env } from "@/lib/env";
 import { TRPCError } from "@trpc/server";
 import { newId } from "@unkey/id";
 import { newKey } from "@unkey/keys";
 import { unkeyPermissionValidation } from "@unkey/rbac";
 import { z } from "zod";
-import { workspaceProcedure } from "../../trpc";
-
+import type { UnkeyAuditLog } from "@/lib/audit";
 import { insertAuditLogs } from "@/lib/audit";
+import { db, schema } from "@/lib/db";
+import { env } from "@/lib/env";
+import { workspaceProcedure } from "../../trpc";
 import { upsertPermissions } from "../rbac";
 
 export const createRootKey = workspaceProcedure

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { NonExhaustiveError, P, match } from "./index";
+import { match, NonExhaustiveError, P } from "./index";
 
 describe("match", () => {
   describe(".with()", () => {

@@ -1,8 +1,7 @@
-import { Resend as Client } from "resend";
-
 import { render } from "@react-email/render";
 // biome-ignore lint/correctness/noUnusedImports: React UMD bypass
 import React from "react";
+import { Resend as Client } from "resend";
 import { ApiV1Migration } from "../emails/api_v1_migration";
 import { PaymentIssue } from "../emails/payment_issue";
 import { SecretScanningKeyDetected } from "../emails/secret_scanning_key_detected";

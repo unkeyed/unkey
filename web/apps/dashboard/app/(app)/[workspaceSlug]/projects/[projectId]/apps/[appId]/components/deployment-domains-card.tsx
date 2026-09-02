@@ -1,6 +1,5 @@
 "use client";
 
-import type { Domain } from "@/lib/collections";
 import {
   Button,
   CopyButton,
@@ -17,6 +16,7 @@ import {
   IconEarthOutline18,
 } from "nucleo-ui-outline-18";
 import { type ReactNode, useState } from "react";
+import type { Domain } from "@/lib/collections";
 import { useProjectData } from "../(overview)/data-provider";
 import { useDeployment } from "../(overview)/deployments/[deploymentId]/layout-provider";
 import { SettingsGroup } from "../(overview)/settings/components/shared/settings-group";
@@ -28,7 +28,11 @@ export function DeploymentDomainsCard({
   emptyState,
   glow,
   domainFilter,
-}: { emptyState?: ReactNode; glow?: boolean; domainFilter?: (d: Domain) => boolean }) {
+}: {
+  emptyState?: ReactNode;
+  glow?: boolean;
+  domainFilter?: (d: Domain) => boolean;
+}) {
   const [urlsOpen, setUrlsOpen] = useState(false);
   const { deployment } = useDeployment();
   const {

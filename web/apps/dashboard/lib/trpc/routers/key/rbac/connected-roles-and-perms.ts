@@ -1,5 +1,3 @@
-import { and, db, eq } from "@/lib/db";
-import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
 import {
   keys,
@@ -10,6 +8,8 @@ import {
   rolesPermissions,
 } from "@unkey/db/src/schema";
 import { z } from "zod";
+import { and, db, eq } from "@/lib/db";
+import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 
 const keyDetailsInput = z.object({
   keyId: z.string().min(1, "Key ID is required"),

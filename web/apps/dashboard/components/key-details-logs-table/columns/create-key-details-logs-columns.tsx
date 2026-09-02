@@ -1,7 +1,7 @@
-import { cn } from "@/lib/utils";
 import type { KeyDetailsLog } from "@unkey/clickhouse/src/verifications";
 import type { DataTableColumnDef } from "@unkey/ui";
 import { RegionCell, TagsCell, TimestampInfo } from "@unkey/ui";
+import { cn } from "@/lib/utils";
 import { OutcomeCell } from "../components/outcome-cell";
 
 export const createKeyDetailsLogsColumns = (): DataTableColumnDef<KeyDetailsLog>[] => [

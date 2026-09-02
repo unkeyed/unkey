@@ -1,10 +1,4 @@
 "use client";
-import { useProjectData } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/data-provider";
-import { useDeployActionGate } from "@/app/(app)/[workspaceSlug]/projects/_components/hooks/use-deploy-action-gate";
-import { type MenuItem, TableActionPopover } from "@/components/logs/table-action.popover";
-import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
-import type { Deployment, Environment } from "@/lib/collections";
-import { routes } from "@/lib/navigation/routes";
 import { useRouter } from "next/navigation";
 import {
   IconArrowDottedRotateAnticlockwiseOutline18,
@@ -17,6 +11,12 @@ import {
   IconLayers3Outline18,
 } from "nucleo-ui-outline-18";
 import { useMemo } from "react";
+import { useDeployActionGate } from "@/app/(app)/[workspaceSlug]/projects/_components/hooks/use-deploy-action-gate";
+import { useProjectData } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/data-provider";
+import { type MenuItem, TableActionPopover } from "@/components/logs/table-action.popover";
+import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
+import type { Deployment, Environment } from "@/lib/collections";
+import { routes } from "@/lib/navigation/routes";
 import { CancelDialog } from "./cancel-dialog";
 import { getDeploymentActionEligibility } from "./deployment-action-eligibility";
 import { PromotionDialog } from "./promotion-dialog";

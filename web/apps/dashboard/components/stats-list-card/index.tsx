@@ -1,11 +1,11 @@
 "use client";
 
-import { formatNumber } from "@/lib/fmt";
 import { InfoTooltip } from "@unkey/ui";
 import type { Route } from "next";
 import Link from "next/link";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { Bar, BarChart, Tooltip as RechartsTooltip, ResponsiveContainer, YAxis } from "recharts";
+import { formatNumber } from "@/lib/fmt";
 
 const CURSOR_WIDTH = 14;
 const EMPTY_TICK_COUNT = 12;

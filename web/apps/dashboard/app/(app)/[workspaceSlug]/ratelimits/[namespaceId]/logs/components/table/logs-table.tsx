@@ -1,17 +1,17 @@
 "use client";
 
+import type { RowSelectionState } from "@tanstack/react-table";
+import { DataTable, PaginationFooter } from "@unkey/ui";
+import { useCallback, useMemo } from "react";
 import {
+  createRatelimitLogsColumns,
   EmptyRatelimitLogs,
   type EnrichedRatelimitLog,
-  createRatelimitLogsColumns,
   getRowClassName,
   renderRatelimitLogsSkeletonRow,
   useRatelimitLogsQuery,
 } from "@/components/ratelimit-logs-table";
 import { cn } from "@/lib/utils";
-import type { RowSelectionState } from "@tanstack/react-table";
-import { DataTable, PaginationFooter } from "@unkey/ui";
-import { useCallback, useMemo } from "react";
 import { useRatelimitLogsContext } from "../../context/logs";
 
 export const RatelimitLogsTable = () => {

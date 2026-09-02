@@ -1,7 +1,7 @@
-import { getErrorMessage, getUnkeyClient } from "@/lib/unkey-client";
 import { useMutation } from "@tanstack/react-query";
 import type { Unkey } from "@unkey/api";
 import { toast } from "@unkey/ui";
+import { getErrorMessage, getUnkeyClient } from "@/lib/unkey-client";
 
 type RotateKeyInput = Parameters<Unkey["keys"]["rerollKey"]>[0];
 type RotateKeyResult = Awaited<ReturnType<Unkey["keys"]["rerollKey"]>>["data"];

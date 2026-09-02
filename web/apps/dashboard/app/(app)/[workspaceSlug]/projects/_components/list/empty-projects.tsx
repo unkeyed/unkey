@@ -1,5 +1,3 @@
-import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
-import { useFlag } from "@/lib/flags/provider";
 import { Github } from "@unkey/icons";
 import { Button, EmptyHero } from "@unkey/ui";
 import { useSearchParams } from "next/navigation";
@@ -12,6 +10,8 @@ import {
   IconHeartPulseOutline18,
 } from "nucleo-ui-outline-18";
 import { useState } from "react";
+import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
+import { useFlag } from "@/lib/flags/provider";
 import { CreateProjectDialog } from "../create-project-dialog";
 import { DeployPlanGateDialog } from "../deploy-plan-gate-dialog";
 import { useDeployGate } from "../hooks/use-deploy-gate";

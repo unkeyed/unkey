@@ -1,5 +1,13 @@
 "use client";
 
+import { Popover, PopoverContent, PopoverTrigger } from "@unkey/ui";
+import type { Route } from "next";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { IconCheckOutline12 } from "nucleo-ui-outline-12";
+import type { IconProps } from "nucleo-ui-outline-18";
+import type * as React from "react";
+import { type ComponentType, type ReactNode, useState } from "react";
 import {
   Command,
   CommandEmpty,
@@ -10,14 +18,6 @@ import {
   CommandSeparator,
 } from "@/components/ui/command";
 import { cn } from "@/lib/utils";
-import { Popover, PopoverContent, PopoverTrigger } from "@unkey/ui";
-import type { Route } from "next";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { IconCheckOutline12 } from "nucleo-ui-outline-12";
-import type { IconProps } from "nucleo-ui-outline-18";
-import type * as React from "react";
-import { type ComponentType, type ReactNode, useState } from "react";
 
 export type CrumbPopoverItem = {
   id: string;
@@ -127,13 +127,7 @@ export function CrumbPopover({
   );
 }
 
-function FooterRow({
-  footer,
-  onSelect,
-}: {
-  footer: CrumbPopoverFooter;
-  onSelect: () => void;
-}) {
+function FooterRow({ footer, onSelect }: { footer: CrumbPopoverFooter; onSelect: () => void }) {
   const Icon = footer.icon;
   const body = (
     <>

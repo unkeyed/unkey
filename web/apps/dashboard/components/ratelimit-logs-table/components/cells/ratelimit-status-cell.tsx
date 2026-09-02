@@ -1,5 +1,5 @@
-import { cn } from "@/lib/utils";
 import { Badge } from "@unkey/ui";
+import { cn } from "@/lib/utils";
 import type { EnrichedRatelimitLog } from "../../hooks/use-ratelimit-logs-query";
 import { BLOCKED_STATUS, getStatusStyle } from "../../utils/get-row-class";
 

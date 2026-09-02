@@ -1,6 +1,4 @@
 "use client";
-import { formatNumber } from "@/lib/fmt";
-import { cn } from "@/lib/utils";
 import type { KeysOverviewLog } from "@unkey/clickhouse/src/keys/keys";
 import {
   Badge,
@@ -9,9 +7,11 @@ import {
   SortableHeader,
   TimestampInfo,
 } from "@unkey/ui";
+import { formatNumber } from "@/lib/fmt";
+import { cn } from "@/lib/utils";
 import { KeyIdentifierColumn } from "../components/key-identifier-column";
 import { getErrorPercentage, getSuccessPercentage } from "../utils/calculate-blocked-percentage";
-import { SEVERITY_STYLES, getStatusStyle } from "../utils/get-row-class";
+import { getStatusStyle, SEVERITY_STYLES } from "../utils/get-row-class";
 
 const TruncatedTextCell = ({ value }: { value: string }) => (
   <div className="flex items-center font-mono">

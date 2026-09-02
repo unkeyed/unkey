@@ -1,12 +1,8 @@
-import { trpc } from "@/lib/trpc/client";
 import { toast } from "@unkey/ui";
+import { trpc } from "@/lib/trpc/client";
 
 export const useUpsertRole = (
-  onSuccess: (data: {
-    roleId?: string;
-    isUpdate: boolean;
-    message: string;
-  }) => void,
+  onSuccess: (data: { roleId?: string; isUpdate: boolean; message: string }) => void,
 ) => {
   const trpcUtils = trpc.useUtils();
 

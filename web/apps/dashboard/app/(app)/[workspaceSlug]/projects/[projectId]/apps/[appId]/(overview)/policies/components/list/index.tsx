@@ -1,8 +1,8 @@
 "use client";
 
+import { useCallback, useState } from "react";
 import type { PolicyRow as PolicyRowData } from "@/lib/collections/deploy/policies";
 import type { Policy } from "@/lib/collections/deploy/policies.schema";
-import { useCallback, useState } from "react";
 import type { Env, MergedPolicy } from "./merge";
 import { PolicyRow } from "./row";
 

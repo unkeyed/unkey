@@ -1,7 +1,7 @@
 import { AsyncLocalStorage } from "node:async_hooks";
 import type { Pool, PoolConnection, PoolOptions } from "mysql2/promise";
 import mysql from "mysql2/promise";
-import { type SqlCommentDynamicTags, type SqlCommentStaticTags, annotateSql } from "./sqlcomment";
+import { annotateSql, type SqlCommentDynamicTags, type SqlCommentStaticTags } from "./sqlcomment";
 
 type Queryable = Pick<PoolConnection, "query" | "execute">;
 

@@ -1,16 +1,3 @@
-import { useFilters } from "@/app/(app)/[workspaceSlug]/ratelimits/[namespaceId]/logs/hooks/use-filters";
-import { HISTORICAL_DATA_WINDOW } from "@/components/logs/constants";
-import {
-  PAGINATED_LIST_PREFETCH_OPTIONS,
-  PAGINATED_LIST_QUERY_OPTIONS,
-  computeTotalPages,
-  paginationFilterKey,
-  useFallbackTotalPages,
-  usePaginatedNavigation,
-  usePaginatedPage,
-} from "@/hooks/use-paginated-list-query";
-import { trpc } from "@/lib/trpc/client";
-import { useQueryTime } from "@/providers/query-time-provider";
 import type { SortingState } from "@tanstack/react-table";
 import type {
   RatelimitLog,
@@ -19,6 +6,19 @@ import type {
 } from "@unkey/clickhouse/src/ratelimits";
 import { createParser, useQueryState } from "nuqs";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useFilters } from "@/app/(app)/[workspaceSlug]/ratelimits/[namespaceId]/logs/hooks/use-filters";
+import { HISTORICAL_DATA_WINDOW } from "@/components/logs/constants";
+import {
+  computeTotalPages,
+  PAGINATED_LIST_PREFETCH_OPTIONS,
+  PAGINATED_LIST_QUERY_OPTIONS,
+  paginationFilterKey,
+  useFallbackTotalPages,
+  usePaginatedNavigation,
+  usePaginatedPage,
+} from "@/hooks/use-paginated-list-query";
+import { trpc } from "@/lib/trpc/client";
+import { useQueryTime } from "@/providers/query-time-provider";
 import type { RatelimitQueryLogsPayload } from "../schema/query-logs.schema";
 
 // Maps TanStack column ids (set in create-ratelimit-logs-columns) to the

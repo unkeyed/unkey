@@ -1,16 +1,5 @@
 "use client";
 
-import { useDeployActionGate } from "@/app/(app)/[workspaceSlug]/projects/_components/hooks/use-deploy-action-gate";
-import { RepoDisplay } from "@/app/(app)/[workspaceSlug]/projects/_components/list/repo-display";
-import { NavbarActionButton } from "@/components/navigation/action-button";
-import { collection } from "@/lib/collections";
-import { queryClient } from "@/lib/collections/client";
-import { UnsupportedDeployRefError, parseDeployRef } from "@/lib/deploy-ref";
-import { sanitizeImageRef, validateImageRef } from "@/lib/docker-image-ref";
-import { githubUrl } from "@/lib/github-url";
-import { routes } from "@/lib/navigation/routes";
-import { trpc } from "@/lib/trpc/client";
-import { getErrorMessage, getUnkeyClient } from "@/lib/unkey-client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { and, eq, useLiveQuery } from "@tanstack/react-db";
 import { useMutation } from "@tanstack/react-query";
@@ -36,6 +25,17 @@ import type React from "react";
 import { useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
+import { useDeployActionGate } from "@/app/(app)/[workspaceSlug]/projects/_components/hooks/use-deploy-action-gate";
+import { RepoDisplay } from "@/app/(app)/[workspaceSlug]/projects/_components/list/repo-display";
+import { NavbarActionButton } from "@/components/navigation/action-button";
+import { collection } from "@/lib/collections";
+import { queryClient } from "@/lib/collections/client";
+import { parseDeployRef, UnsupportedDeployRefError } from "@/lib/deploy-ref";
+import { sanitizeImageRef, validateImageRef } from "@/lib/docker-image-ref";
+import { githubUrl } from "@/lib/github-url";
+import { routes } from "@/lib/navigation/routes";
+import { trpc } from "@/lib/trpc/client";
+import { getErrorMessage, getUnkeyClient } from "@/lib/unkey-client";
 import { useAppId, useProjectData } from "../data-provider";
 import { parseForkRef } from "./parse-fork-ref";
 

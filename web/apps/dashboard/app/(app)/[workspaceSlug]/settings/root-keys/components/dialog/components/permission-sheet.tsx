@@ -1,5 +1,8 @@
 "use client";
 
+import type { UnkeyPermission } from "@unkey/rbac";
+import { Button } from "@unkey/ui";
+import { useMemo, useRef } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Sheet,
@@ -9,9 +12,6 @@ import {
   SheetPortal,
   SheetTitle,
 } from "@/components/ui/sheet";
-import type { UnkeyPermission } from "@unkey/rbac";
-import { Button } from "@unkey/ui";
-import { useMemo, useRef } from "react";
 import { ROOT_KEY_MESSAGES } from "../constants";
 import { usePermissionSheet } from "../hooks/use-permission-sheet";
 import { WORKSPACE_SCOPE } from "../permissions";

@@ -4,20 +4,14 @@ import { Button, Select, SelectContent, SelectItem, SelectTrigger, SelectValue }
 import { IconChevronDownOutline18, IconTrashOutline18 } from "nucleo-ui-outline-18";
 import { useFormContext, useFormState, useWatch } from "react-hook-form";
 import {
+  getDefaultCondition,
   type MatchConditionFormValues,
   type PolicyFormValues,
-  getDefaultCondition,
 } from "../schema";
 import { ConditionFields } from "./condition-fields";
 import { MATCH_TYPE_OPTIONS } from "./constants";
 
-export function MatchConditionCard({
-  index,
-  onRemove,
-}: {
-  index: number;
-  onRemove: () => void;
-}) {
+export function MatchConditionCard({ index, onRemove }: { index: number; onRemove: () => void }) {
   const { control, setValue } = useFormContext<PolicyFormValues>();
   const allConditions = useWatch({ control, name: "matchConditions" });
   const condition = allConditions?.[index];

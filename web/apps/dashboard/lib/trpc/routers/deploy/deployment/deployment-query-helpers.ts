@@ -1,7 +1,7 @@
+import { apps, type ContainerStatus, deployments } from "@unkey/db/src/schema";
 import type { InstanceStatus } from "@/lib/collections/deploy/instance-status";
 import { and, db, eq } from "@/lib/db";
 import type { LastExit } from "@/lib/types/deploy";
-import { type ContainerStatus, apps, deployments } from "@unkey/db/src/schema";
 import { mapRegionToFlag } from "../network/utils";
 
 export const deploymentSelectFields = {

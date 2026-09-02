@@ -1,7 +1,7 @@
-import { getAuth } from "@/lib/auth/get-auth";
 import { vercelAdapter } from "@flags-sdk/vercel";
 import type { Adapter } from "flags";
 import { dedupe } from "flags/next";
+import { getAuth } from "@/lib/auth/get-auth";
 
 // Entities contains only stable targeting identifiers. Avoid adding session
 // details here unless the flag provider needs them for evaluation.

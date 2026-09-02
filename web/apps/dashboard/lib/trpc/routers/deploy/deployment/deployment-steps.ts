@@ -1,8 +1,8 @@
-import { db } from "@/lib/db";
-import { workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
 import { deploymentSteps } from "@unkey/db/src/schema";
 import { z } from "zod";
+import { db } from "@/lib/db";
+import { workspaceProcedure } from "@/lib/trpc/trpc";
 
 const stepSchema = z.object({
   startedAt: z.number(),

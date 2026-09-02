@@ -1,10 +1,7 @@
 import { sha256 } from "@unkey/hash";
 import { KeyV1 } from "./v1";
 
-export async function newKey(opts: {
-  prefix?: string;
-  byteLength: number;
-}): Promise<{
+export async function newKey(opts: { prefix?: string; byteLength: number }): Promise<{
   key: string;
   hash: string;
   start: string;

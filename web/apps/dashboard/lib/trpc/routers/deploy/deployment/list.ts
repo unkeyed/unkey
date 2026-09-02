@@ -1,6 +1,3 @@
-import { and, db, desc, eq, gte, inArray, lte, sql } from "@/lib/db";
-import { workspaceProcedure } from "@/lib/trpc/trpc";
-import type { LastExit } from "@/lib/types/deploy";
 import { TRPCError } from "@trpc/server";
 import {
   appRegionalSettings,
@@ -11,6 +8,9 @@ import {
   regions,
 } from "@unkey/db/src/schema";
 import { z } from "zod";
+import { and, db, desc, eq, gte, inArray, lte, sql } from "@/lib/db";
+import { workspaceProcedure } from "@/lib/trpc/trpc";
+import type { LastExit } from "@/lib/types/deploy";
 import { type FlagCode, mapRegionToFlag } from "../network/utils";
 import {
   computeLastExit,

@@ -1,10 +1,9 @@
 "use client";
 
-import * as React from "react";
-
-import { AuthErrorCode, errorMessages } from "@/lib/auth/types";
 import { FormInput, Loading, toast } from "@unkey/ui";
 import { useSearchParams } from "next/navigation";
+import * as React from "react";
+import { AuthErrorCode, errorMessages } from "@/lib/auth/types";
 import { useSignUp } from "../hooks/useSignUp";
 
 interface Props {

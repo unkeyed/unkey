@@ -1,7 +1,8 @@
 import { ClickHouse } from "@unkey/clickhouse";
-import { type Workspace, drizzle, schema } from "@unkey/db";
+import { drizzle, schema, type Workspace } from "@unkey/db";
 import mysql from "mysql2/promise";
 import { z } from "zod";
+
 async function main() {
   const ch = new ClickHouse({
     url: process.env.CLICKHOUSE_URL,

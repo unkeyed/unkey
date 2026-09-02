@@ -1,8 +1,8 @@
 "use client";
 
-import { type Deployment, collection } from "@/lib/collections";
-import { trpc } from "@/lib/trpc/client";
 import { Button, DialogContainer, toast } from "@unkey/ui";
+import { collection, type Deployment } from "@/lib/collections";
+import { trpc } from "@/lib/trpc/client";
 import { DeploymentCard } from "./components/deployment-card";
 
 type CancelDialogProps = {

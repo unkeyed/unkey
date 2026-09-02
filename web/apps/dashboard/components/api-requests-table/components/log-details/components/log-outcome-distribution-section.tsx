@@ -1,6 +1,6 @@
+import { CopyButton, formatOutcomeName, getOutcomeColor } from "@unkey/ui";
 import { formatNumber } from "@/lib/fmt";
 import { cn } from "@/lib/utils";
-import { CopyButton, formatOutcomeName, getOutcomeColor } from "@unkey/ui";
 
 export const OutcomeDistributionSection = ({
   outcomeCounts,

@@ -4,11 +4,7 @@ import type { Querier } from "./client";
 // get the billable ratelimits for a workspace in a specific month.
 // month is not zero-indexed -> January = 1
 export function getBillableRatelimits(ch: Querier) {
-  return async (args: {
-    workspaceId: string;
-    year: number;
-    month: number;
-  }): Promise<number> => {
+  return async (args: { workspaceId: string; year: number; month: number }): Promise<number> => {
     const query = ch.query({
       query: `
     SELECT
@@ -39,11 +35,7 @@ export function getBillableRatelimits(ch: Querier) {
 // get the billable verifications for a workspace in a specific month.
 // month is not zero-indexed -> January = 1
 export function getBillableVerifications(ch: Querier) {
-  return async (args: {
-    workspaceId: string;
-    year: number;
-    month: number;
-  }): Promise<number> => {
+  return async (args: { workspaceId: string; year: number; month: number }): Promise<number> => {
     const query = ch.query({
       query: `
     SELECT

@@ -1,10 +1,10 @@
+import { Toaster } from "@unkey/ui";
+import { GeistMono } from "geist/font/mono";
+import { GeistSans } from "geist/font/sans";
 import { CommandMenu } from "@/components/dashboard/command-menu";
 import { FlagsProvider } from "@/lib/flags/provider";
 import { resolveAll } from "@/lib/flags/resolve";
 import { WorkspaceProvider } from "@/providers/workspace-provider";
-import { Toaster } from "@unkey/ui";
-import { GeistMono } from "geist/font/mono";
-import { GeistSans } from "geist/font/sans";
 import "@unkey/ui/css";
 import "@/styles/tailwind.css";
 import * as Sentry from "@sentry/nextjs";
@@ -73,11 +73,7 @@ const Feedback = dynamic(() =>
   import("@/components/dashboard/feedback-component").then((mod) => mod.Feedback),
 );
 
-export default async function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const flags = await resolveAll();
   return (
     <html

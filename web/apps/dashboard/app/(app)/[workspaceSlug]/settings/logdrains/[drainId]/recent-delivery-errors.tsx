@@ -1,6 +1,5 @@
 "use client";
 
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
   AlertBanner,
   AlertBannerActions,
@@ -13,6 +12,7 @@ import {
 import { IconChevronDownOutline12 } from "nucleo-ui-outline-12";
 import { IconTriangleWarningOutline18 } from "nucleo-ui-outline-18";
 import { useState } from "react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import type { RecentError } from "./types";
 
 export function RecentDeliveryErrors({

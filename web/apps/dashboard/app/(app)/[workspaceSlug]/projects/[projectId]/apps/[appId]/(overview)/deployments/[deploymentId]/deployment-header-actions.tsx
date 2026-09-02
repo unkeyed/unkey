@@ -1,11 +1,4 @@
 "use client";
-import { useProjectData } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/data-provider";
-import { useDeployActionGate } from "@/app/(app)/[workspaceSlug]/projects/_components/hooks/use-deploy-action-gate";
-import type { MenuItem } from "@/components/logs/table-action.popover";
-import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
-import type { Deployment, Environment } from "@/lib/collections";
-import type { DeploymentStatus } from "@/lib/collections/deploy/deployment-status";
-import { routes } from "@/lib/navigation/routes";
 import dynamic from "next/dynamic";
 import {
   IconArrowDottedRotateAnticlockwiseOutline18,
@@ -17,6 +10,13 @@ import {
   IconLayers3Outline18,
 } from "nucleo-ui-outline-18";
 import { useMemo } from "react";
+import { useDeployActionGate } from "@/app/(app)/[workspaceSlug]/projects/_components/hooks/use-deploy-action-gate";
+import { useProjectData } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/data-provider";
+import type { MenuItem } from "@/components/logs/table-action.popover";
+import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
+import type { Deployment, Environment } from "@/lib/collections";
+import type { DeploymentStatus } from "@/lib/collections/deploy/deployment-status";
+import { routes } from "@/lib/navigation/routes";
 import { getDeploymentActionEligibility } from "../components/table/components/actions/deployment-action-eligibility";
 
 const PromotionDialog = dynamic(

@@ -73,13 +73,9 @@ vi.mock("@unkey/ui", () => {
       ...props
     }: HTMLAttributes<HTMLDivElement> & { variant?: string }) => <div {...props}>{children}</div>,
     InputGroupInput,
-    InputGroupAddon: ({
-      children,
-      align: _align,
-    }: {
-      children?: ReactNode;
-      align?: string;
-    }) => <span>{children}</span>,
+    InputGroupAddon: ({ children, align: _align }: { children?: ReactNode; align?: string }) => (
+      <span>{children}</span>
+    ),
     FormLabel: ({
       label,
       htmlFor,

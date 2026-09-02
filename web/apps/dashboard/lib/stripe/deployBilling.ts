@@ -1,6 +1,6 @@
+import type Stripe from "stripe";
 import { stripeEnv } from "@/lib/env";
 import { getStripeClient } from "@/lib/stripe";
-import type Stripe from "stripe";
 import { DEPLOY_PLANS, type DeployPlan } from "./deployPlan";
 
 /**

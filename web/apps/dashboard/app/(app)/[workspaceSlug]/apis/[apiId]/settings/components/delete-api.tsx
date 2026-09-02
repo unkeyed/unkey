@@ -1,7 +1,4 @@
 "use client";
-import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
-import { routes } from "@/lib/navigation/routes";
-import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button, DialogContainer, Input, SettingsZoneRow } from "@unkey/ui";
 import { useRouter } from "next/navigation";
@@ -10,6 +7,9 @@ import type React from "react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
+import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
+import { routes } from "@/lib/navigation/routes";
+import { trpc } from "@/lib/trpc/client";
 import { createApiFormConfig, createMutationHandlers } from "./key-settings-form-helper";
 import { StatusBadge } from "./status-badge";
 

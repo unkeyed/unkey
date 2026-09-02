@@ -1,9 +1,9 @@
 "use client";
 
-import { useSidebar } from "@/components/ui/sidebar";
 import { Drawer } from "@unkey/ui";
 import { usePathname } from "next/navigation";
 import { useEffect } from "react";
+import { useSidebar } from "@/components/ui/sidebar";
 import { SidebarBody } from "./sidebar-body";
 
 export function MobileNavDrawer() {

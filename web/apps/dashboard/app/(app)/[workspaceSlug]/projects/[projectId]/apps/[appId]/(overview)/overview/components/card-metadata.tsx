@@ -1,9 +1,9 @@
 "use client";
 
-import { githubUrl } from "@/lib/github-url";
 import { Badge, TimestampInfo } from "@unkey/ui";
 import { IconCodeBranchOutline18, IconCodeCommitOutline18 } from "nucleo-ui-outline-18";
 import type { ReactNode } from "react";
+import { githubUrl } from "@/lib/github-url";
 import { MetadataCell } from "../../../components/active-deployment-card/components/metadata-cell";
 import { DeploymentStatusBadge } from "../../../components/deployment-status-badge";
 import { DottedLink } from "../../../components/dotted-link";

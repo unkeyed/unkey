@@ -1,6 +1,6 @@
+import { type Database, type InsertLimits, schema, type Transaction } from "@unkey/db";
 import { limitsByPlan } from "@/lib/limits";
-import { type Database, type InsertLimits, type Transaction, schema } from "@unkey/db";
-import { type DeployPlan, computeLimitUpdateForPlan } from "./deployPlan";
+import { computeLimitUpdateForPlan, type DeployPlan } from "./deployPlan";
 
 type LimitUpdate = Partial<Omit<InsertLimits, "workspaceId" | "pk">>;
 
@@ -19,8 +19,7 @@ export async function setWorkspaceLimits(
     ...params.limitUpdate,
   };
   const planLimits = limitsByPlan[params.plan ?? "free"];
-  const hasRequestedLimit = (key: keyof LimitUpdate) =>
-    Object.prototype.hasOwnProperty.call(requestedLimits, key);
+  const hasRequestedLimit = (key: keyof LimitUpdate) => Object.hasOwn(requestedLimits, key);
   const fromUpdate = <K extends keyof LimitUpdate>(key: K): LimitUpdate[K] =>
     hasRequestedLimit(key) ? requestedLimits[key] : planLimits[key];
 

@@ -1,8 +1,8 @@
 "use client";
 
+import { type PropsWithChildren, useMemo } from "react";
 import { useProjectData } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/data-provider";
 import { ENVIRONMENT_KIND } from "@/lib/collections/deploy/environments";
-import { type PropsWithChildren, useMemo } from "react";
 import { OnboardingEnvironmentSettingsInner } from "./environment-inner";
 
 /**

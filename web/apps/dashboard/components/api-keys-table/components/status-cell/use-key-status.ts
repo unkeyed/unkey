@@ -1,5 +1,5 @@
-import type { KeyDetails } from "@/lib/trpc/routers/api/keys/query-api-keys/schema";
 import { useMemo } from "react";
+import type { KeyDetails } from "@/lib/trpc/routers/api/keys/query-api-keys/schema";
 import {
   type ProcessedTimeseriesDataPoint,
   useFetchVerificationTimeseries,

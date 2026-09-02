@@ -1,7 +1,7 @@
+import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth/server";
 import { db } from "@/lib/db";
 import { routes } from "@/lib/navigation/routes";
-import { redirect } from "next/navigation";
 
 export const getWorkspace = async (orgId: string) => {
   try {

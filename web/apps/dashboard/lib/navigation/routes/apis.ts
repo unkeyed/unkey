@@ -10,7 +10,7 @@
  * query args.
  */
 import type { Route } from "next";
-import { type WorkspaceScope, buildRoute } from "./shared";
+import { buildRoute, type WorkspaceScope } from "./shared";
 
 type ApiScope = WorkspaceScope & { apiId: string };
 type KeyspaceScope = ApiScope & { keyAuthId: string };

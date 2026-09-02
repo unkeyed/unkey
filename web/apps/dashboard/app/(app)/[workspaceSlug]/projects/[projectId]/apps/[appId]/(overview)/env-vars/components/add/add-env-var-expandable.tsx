@@ -1,13 +1,3 @@
-import { useProjectData } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/data-provider";
-import { Switch } from "@/components/ui/switch";
-import { usePersistedForm } from "@/hooks/use-persisted-form";
-import { collection } from "@/lib/collections";
-import {
-  type VariableInput,
-  listExistingKeys,
-  setVariables,
-} from "@/lib/collections/deploy/env-vars";
-import { getErrorMessage } from "@/lib/unkey-client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
   Button,
@@ -34,12 +24,21 @@ import {
 } from "nucleo-ui-outline-18";
 import { type ChangeEvent, useCallback, useEffect, useRef } from "react";
 import { Controller, useFieldArray } from "react-hook-form";
+import { useProjectData } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/data-provider";
+import { Switch } from "@/components/ui/switch";
+import { usePersistedForm } from "@/hooks/use-persisted-form";
+import { usePreventLeave } from "@/hooks/use-prevent-leave";
+import { collection } from "@/lib/collections";
+import {
+  listExistingKeys,
+  setVariables,
+  type VariableInput,
+} from "@/lib/collections/deploy/env-vars";
+import { trackSave } from "@/lib/collections/deploy/environment-settings";
+import { getErrorMessage } from "@/lib/unkey-client";
 import { useDropZone } from "../../hooks/use-drop-zone";
 import { EnvVarRow } from "./env-var-row";
-import { type EnvVarsFormValues, createEmptyEntry, envVarsSchema, findConflicts } from "./schema";
-
-import { usePreventLeave } from "@/hooks/use-prevent-leave";
-import { trackSave } from "@/lib/collections/deploy/environment-settings";
+import { createEmptyEntry, type EnvVarsFormValues, envVarsSchema, findConflicts } from "./schema";
 
 type AddEnvVarExpandableProps = {
   projectId: string;

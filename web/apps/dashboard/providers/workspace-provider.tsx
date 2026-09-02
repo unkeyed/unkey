@@ -1,22 +1,22 @@
 "use client";
 
-import type { AuthenticatedUser } from "@/lib/auth/types";
-import { trpc } from "@/lib/trpc/client";
-import type { Router } from "@/lib/trpc/routers";
-import { baseQueryOptions, createRetryFn, isAuthError } from "@/lib/utils/trpc";
 import type { TRPCClientErrorLike } from "@trpc/client";
 import type { inferRouterOutputs } from "@trpc/server";
 import type { Limits } from "@unkey/db";
 import { usePathname } from "next/navigation";
 import type React from "react";
 import {
-  type PropsWithChildren,
   createContext,
+  type PropsWithChildren,
   useCallback,
   useContext,
   useEffect,
   useMemo,
 } from "react";
+import type { AuthenticatedUser } from "@/lib/auth/types";
+import { trpc } from "@/lib/trpc/client";
+import type { Router } from "@/lib/trpc/routers";
+import { baseQueryOptions, createRetryFn, isAuthError } from "@/lib/utils/trpc";
 
 // Billing state (tier, stripe ids, deploy plan/spend) lives on the
 // workspace_billing relation, not the workspaces row. getCurrent re-surfaces it

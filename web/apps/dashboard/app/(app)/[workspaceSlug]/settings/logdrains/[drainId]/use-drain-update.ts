@@ -1,9 +1,9 @@
 "use client";
 
-import { trpc } from "@/lib/trpc/client";
-import type { Router } from "@/lib/trpc/routers";
 import type { inferRouterInputs } from "@trpc/server";
 import { toast } from "@unkey/ui";
+import { trpc } from "@/lib/trpc/client";
+import type { Router } from "@/lib/trpc/routers";
 
 type UpdateInput = inferRouterInputs<Router>["logdrain"]["update"];
 

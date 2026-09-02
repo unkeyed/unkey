@@ -1,6 +1,6 @@
-import { ratelimitFilterOperatorEnum } from "@/app/(app)/[workspaceSlug]/ratelimits/[namespaceId]/logs/filters.schema";
 import { ratelimitLogsSort } from "@unkey/clickhouse/src/ratelimits";
 import { z } from "zod";
+import { ratelimitFilterOperatorEnum } from "@/app/(app)/[workspaceSlug]/ratelimits/[namespaceId]/logs/filters.schema";
 
 export const ratelimitQueryLogsPayload = z.object({
   limit: z.int().min(1).max(100),

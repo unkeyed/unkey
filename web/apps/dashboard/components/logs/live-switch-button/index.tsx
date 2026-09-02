@@ -1,7 +1,7 @@
-import { useKeyboardShortcut } from "@/hooks/use-keyboard-shortcut";
 import { Button, KeyboardButton } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 import { IconCircleCaretRightOutline18 } from "nucleo-ui-outline-18";
+import { useKeyboardShortcut } from "@/hooks/use-keyboard-shortcut";
 
 type LiveSwitchProps = {
   isLive: boolean;

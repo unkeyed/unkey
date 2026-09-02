@@ -1,9 +1,9 @@
 "use client";
 
+import { Input } from "@unkey/ui";
 import type { PortalFormValues } from "@/lib/portal/build-update";
 import { isHexColor } from "@/lib/portal/validation";
 import { cn } from "@/lib/utils";
-import { Input } from "@unkey/ui";
 
 export type PortalBrandingValue = Pick<PortalFormValues, "logoUrl" | "primaryColor">;
 

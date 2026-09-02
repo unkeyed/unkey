@@ -1,11 +1,11 @@
-import {
-  filterOutputSchema,
-  keysOverviewFilterFieldConfig,
-} from "@/app/(app)/[workspaceSlug]/apis/[apiId]/_overview/filters.schema";
 import { TRPCError } from "@trpc/server";
 import { KEY_VERIFICATION_OUTCOMES } from "@unkey/clickhouse/src/keys/keys";
 import type OpenAI from "openai";
 import z from "zod";
+import {
+  filterOutputSchema,
+  keysOverviewFilterFieldConfig,
+} from "@/app/(app)/[workspaceSlug]/apis/[apiId]/_overview/filters.schema";
 
 /**
  * Creates a Zod schema for validating LLM-generated structured filter output for keys.

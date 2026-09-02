@@ -1,5 +1,5 @@
-import { cn } from "@/lib/utils";
 import type { RatelimitOverviewLog } from "@unkey/clickhouse/src/ratelimits";
+import { cn } from "@/lib/utils";
 import { isMostlyBlocked } from "./calculate-blocked-percentage";
 
 type StatusStyle = {

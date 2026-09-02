@@ -1,11 +1,11 @@
 "use client";
 
-import { SUPPORT_MAILTO } from "@/lib/support";
 import { match } from "@unkey/match";
 import { AlertBanner, AlertBannerDescription, AlertBannerTitle } from "@unkey/ui";
 import type { Route } from "next";
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { SUPPORT_MAILTO } from "@/lib/support";
 import type { BreachKey } from "./limit-groups";
 
 export function BreachBanner({

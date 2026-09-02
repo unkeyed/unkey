@@ -1,6 +1,6 @@
+import { createContext, type ReactNode, useContext } from "react";
 import type { QuerySearchParams as AuditSearchParams } from "@/app/(app)/[workspaceSlug]/audit/filters.schema";
 import type { RatelimitQuerySearchParams } from "@/app/(app)/[workspaceSlug]/ratelimits/[namespaceId]/logs/filters.schema";
-import { type ReactNode, createContext, useContext } from "react";
 import { type SavedFiltersGroup, useBookmarkedFilters } from "../hooks/use-bookmarked-filters";
 import type { FilterValue } from "../validation/filter.types";
 
@@ -90,9 +90,9 @@ export function useQueries() {
   return context;
 }
 
-import type { QuerySearchParams } from "@/lib/schemas/logs.filter.schema";
 import { IconChartActivity2Outline18 } from "nucleo-ui-outline-18";
 import React from "react";
+import type { QuerySearchParams } from "@/lib/schemas/logs.filter.schema";
 import { iconsPerField } from "./utils";
 // These functions can be overridden by passing custom formatValue and filterRowIcon props to QueriesProvider
 export const defaultFormatValues = (

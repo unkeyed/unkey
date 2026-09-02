@@ -1,6 +1,6 @@
 import crypto from "node:crypto";
-import { githubAppEnv, githubOAuthEnv } from "@/lib/env";
 import { z } from "zod";
+import { githubAppEnv, githubOAuthEnv } from "@/lib/env";
 
 const gitHubRepositorySchema = z.object({
   id: z.number(),

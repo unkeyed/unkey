@@ -1,7 +1,7 @@
 "use client";
 
-import { useProjectData } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/data-provider";
 import { useMemo } from "react";
+import { useProjectData } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/data-provider";
 import { useAppNameById } from "./app-filter-options";
 
 // Logs and requests are project-wide and every app has e.g. a "production"

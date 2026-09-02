@@ -1,10 +1,10 @@
+import type { V2KeysCreateKeyRequestBody } from "@unkey/api/models/components";
 import { metadataSchema } from "@/lib/schemas/metadata";
 import { deepMerge } from "@/lib/utils";
-import type { V2KeysCreateKeyRequestBody } from "@unkey/api/models/components";
 import {
-  type FormValues,
   creditsSchema,
   expirationSchema,
+  type FormValues,
   generalSchema,
   ratelimitSchema,
   rbacSchema,

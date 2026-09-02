@@ -5,22 +5,12 @@ import { useRatelimitLogsContext } from "../../context/logs";
 import { useFilters } from "../../hooks/use-filters";
 import { useFetchRatelimitTimeseries } from "./hooks/use-fetch-timeseries";
 
-export function RatelimitLogsChart({
-  onMount,
-}: {
-  onMount: (distanceToTop: number) => void;
-}) {
+export function RatelimitLogsChart({ onMount }: { onMount: (distanceToTop: number) => void }) {
   const { namespaceId } = useRatelimitLogsContext();
   const { filters, updateFilters } = useFilters();
   const { timeseries, isLoading, isError, granularity } = useFetchRatelimitTimeseries(namespaceId);
 
-  const handleSelectionChange = ({
-    start,
-    end,
-  }: {
-    start: number;
-    end: number;
-  }) => {
+  const handleSelectionChange = ({ start, end }: { start: number; end: number }) => {
     const activeFilters = filters.filter(
       (f) => !["startTime", "endTime", "since"].includes(f.field),
     );

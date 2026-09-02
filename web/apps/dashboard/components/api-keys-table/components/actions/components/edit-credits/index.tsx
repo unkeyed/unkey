@@ -1,3 +1,8 @@
+import { zodResolver } from "@hookform/resolvers/zod";
+import type { V2KeysUpdateKeyRequestBody } from "@unkey/api/models/components";
+import { Button, DialogContainer } from "@unkey/ui";
+import { useEffect } from "react";
+import { FormProvider } from "react-hook-form";
 import { UsageSetup } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/_components/create-key/components/credits-setup";
 import {
   type CreditsFormValues,
@@ -8,11 +13,6 @@ import { usePersistedForm } from "@/hooks/use-persisted-form";
 import type { DiscriminatedUnionResolver } from "@/lib/schemas/resolver-types";
 import { trpc } from "@/lib/trpc/client";
 import type { KeyDetails } from "@/lib/trpc/routers/api/keys/query-api-keys/schema";
-import { zodResolver } from "@hookform/resolvers/zod";
-import type { V2KeysUpdateKeyRequestBody } from "@unkey/api/models/components";
-import { Button, DialogContainer } from "@unkey/ui";
-import { useEffect } from "react";
-import { FormProvider } from "react-hook-form";
 import { useEditCredits } from "../hooks/use-edit-credits";
 import { KeyInfo } from "../key-info";
 import { getKeyLimitDefaults } from "./utils";

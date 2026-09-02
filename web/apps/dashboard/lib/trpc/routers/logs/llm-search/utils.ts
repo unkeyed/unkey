@@ -1,8 +1,8 @@
-import { METHODS } from "@/app/(app)/[workspaceSlug]/logs/constants";
-import { filterOutputSchema, logsFilterFieldConfig } from "@/lib/schemas/logs.filter.schema";
 import { TRPCError } from "@trpc/server";
 import type OpenAI from "openai";
 import { zodResponseFormat } from "openai/helpers/zod";
+import { METHODS } from "@/app/(app)/[workspaceSlug]/logs/constants";
+import { filterOutputSchema, logsFilterFieldConfig } from "@/lib/schemas/logs.filter.schema";
 
 export async function getStructuredSearchFromLLM(
   openai: OpenAI | null,

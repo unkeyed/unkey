@@ -1,6 +1,6 @@
+import type { GetLogsClickhousePayload } from "@unkey/clickhouse/src/logs";
 import type { LogsRequestSchema } from "@/lib/schemas/logs.schema";
 import { getTimestampFromRelative } from "@/lib/utils";
-import type { GetLogsClickhousePayload } from "@unkey/clickhouse/src/logs";
 
 export function transformFilters(
   params: LogsRequestSchema,

@@ -4,21 +4,11 @@ import { getTimeBufferForGranularity } from "@/lib/trpc/routers/utils/granularit
 import { useFilters } from "../../hooks/use-filters";
 import { useFetchTimeseries } from "./hooks/use-fetch-timeseries";
 
-export function LogsChart({
-  onMount,
-}: {
-  onMount: (distanceToTop: number) => void;
-}) {
+export function LogsChart({ onMount }: { onMount: (distanceToTop: number) => void }) {
   const { filters, updateFilters } = useFilters();
   const { timeseries, isLoading, isError, granularity } = useFetchTimeseries();
 
-  const handleSelectionChange = ({
-    start,
-    end,
-  }: {
-    start: number;
-    end: number;
-  }) => {
+  const handleSelectionChange = ({ start, end }: { start: number; end: number }) => {
     const activeFilters = filters.filter(
       (f) => !["startTime", "endTime", "since"].includes(f.field),
     );

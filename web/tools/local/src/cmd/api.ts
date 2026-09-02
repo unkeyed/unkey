@@ -6,10 +6,7 @@ import { marshalEnv } from "../env";
 const appPath = path.join(__dirname, "../../../../apps/api");
 const envPath = path.join(appPath, ".dev.vars");
 
-export async function bootstrapApi(resources: {
-  workspace: { id: string };
-  api: { id: string };
-}) {
+export async function bootstrapApi(resources: { workspace: { id: string }; api: { id: string } }) {
   const env = marshalEnv({
     Database: {
       DATABASE_HOST: "localhost:3306",

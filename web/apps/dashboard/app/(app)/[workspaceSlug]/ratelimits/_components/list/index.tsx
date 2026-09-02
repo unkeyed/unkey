@@ -1,9 +1,9 @@
-import { StatsListCardSkeleton } from "@/components/stats-list-card/skeleton";
-import { collection } from "@/lib/collections";
 import { ilike, useLiveQuery } from "@tanstack/react-db";
 import { Button, CopyButton, Empty, ResourceListContent } from "@unkey/ui";
 import { IconBookmarkOutline18 } from "nucleo-ui-outline-18";
 import { useMemo } from "react";
+import { StatsListCardSkeleton } from "@/components/stats-list-card/skeleton";
+import { collection } from "@/lib/collections";
 import { useBatchRatelimitTimeseries } from "../hooks/use-batch-timeseries";
 import { useNamespaceListFilters } from "../hooks/use-namespace-list-filters";
 import { NamespaceCard } from "./namespace-card";

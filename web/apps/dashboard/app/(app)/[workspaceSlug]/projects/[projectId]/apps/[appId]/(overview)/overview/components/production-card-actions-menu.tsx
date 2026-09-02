@@ -1,8 +1,5 @@
 "use client";
 
-import { useDeployActionGate } from "@/app/(app)/[workspaceSlug]/projects/_components/hooks/use-deploy-action-gate";
-import { type MenuItem, TableActionPopover } from "@/components/logs/table-action.popover";
-import type { Deployment } from "@/lib/collections";
 import { Github } from "@unkey/icons";
 import { Button, toast } from "@unkey/ui";
 import type { Route } from "next";
@@ -18,6 +15,9 @@ import {
   IconLayers3Outline18,
 } from "nucleo-ui-outline-18";
 import { useMemo } from "react";
+import { useDeployActionGate } from "@/app/(app)/[workspaceSlug]/projects/_components/hooks/use-deploy-action-gate";
+import { type MenuItem, TableActionPopover } from "@/components/logs/table-action.popover";
+import type { Deployment } from "@/lib/collections";
 import { isRedeployableDeploymentStatus } from "../../deployments/components/table/components/actions/deployment-action-eligibility";
 import type { DeploymentDisplayStatus } from "./status";
 

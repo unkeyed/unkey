@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { type PermissionQuery, buildQuery } from "./queries";
+import { buildQuery, type PermissionQuery } from "./queries";
 import { RBAC } from "./rbac";
 
 describe("evaluating a query", () => {

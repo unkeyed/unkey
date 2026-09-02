@@ -1,9 +1,9 @@
 "use client";
-import { cn } from "@/lib/utils";
 import { Button } from "@unkey/ui";
 import { IconPlusOutline18 } from "nucleo-ui-outline-18";
 import type { RefObject } from "react";
 import { useState } from "react";
+import { cn } from "@/lib/utils";
 import { ROOT_KEY_MESSAGES } from "./constants";
 import { RootKeyDialog } from "./root-key-dialog";
 

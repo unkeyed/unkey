@@ -28,7 +28,7 @@ export function AlertDialogContent({ className, ...props }: AlertDialogPrimitive
       <AlertDialogOverlay />
       <AlertDialogPrimitive.Popup
         className={cn(
-          "-translate-x-1/2 -translate-y-1/2 fixed top-1/2 left-1/2 z-50 w-full max-w-md",
+          "fixed top-1/2 left-1/2 z-50 w-full max-w-md -translate-x-1/2 -translate-y-1/2",
           "rounded-2xl border border-primary/20 bg-background p-5 shadow-2xl",
           "transition-[opacity,scale] duration-200 data-ending-style:scale-95 data-starting-style:scale-95 data-ending-style:opacity-0 data-starting-style:opacity-0",
           "focus:outline-none",

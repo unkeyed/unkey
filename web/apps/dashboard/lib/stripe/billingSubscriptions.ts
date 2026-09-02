@@ -1,4 +1,4 @@
-import { type Database, type Transaction, and, eq, schema } from "@unkey/db";
+import { and, type Database, eq, schema, type Transaction } from "@unkey/db";
 
 /**
  * A Stripe subscription belongs to exactly one Unkey product. After the billing

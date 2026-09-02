@@ -1,10 +1,9 @@
-import type { unkeyAuditLogEvents } from "@unkey/schema/src/auditlog";
-import type { z } from "zod";
-
-import type { MaybeArray } from "@/lib/types";
-import { type Database, type Transaction, schema } from "@unkey/db";
+import { type Database, schema, type Transaction } from "@unkey/db";
 import type { clickhouseOutbox } from "@unkey/db/src/schema";
 import { newId } from "@unkey/id";
+import type { unkeyAuditLogEvents } from "@unkey/schema/src/auditlog";
+import type { z } from "zod";
+import type { MaybeArray } from "@/lib/types";
 
 export const AUDIT_LOG_BUCKET = "unkey_mutations";
 

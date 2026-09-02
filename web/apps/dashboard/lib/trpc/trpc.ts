@@ -1,10 +1,10 @@
-import { env } from "@/lib/env";
 import * as Sentry from "@sentry/nextjs";
-import { TRPCError, initTRPC } from "@trpc/server";
+import { initTRPC, TRPCError } from "@trpc/server";
 import { runWithSqlCommentTags } from "@unkey/db";
 import { Ratelimit } from "@unkey/ratelimit";
 import superjson from "superjson";
 import { z } from "zod";
+import { env } from "@/lib/env";
 import {
   generateRequestId,
   logOperation,

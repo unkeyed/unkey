@@ -1,10 +1,10 @@
+import { TRPCError } from "@trpc/server";
+import type OpenAI from "openai";
+import { zodResponseFormat } from "openai/helpers/zod";
 import {
   filterOutputSchema,
   ratelimitFilterFieldConfig,
 } from "@/app/(app)/[workspaceSlug]/ratelimits/[namespaceId]/logs/filters.schema";
-import { TRPCError } from "@trpc/server";
-import type OpenAI from "openai";
-import { zodResponseFormat } from "openai/helpers/zod";
 
 /**
  * Creates a Zod schema for validating LLM-generated structured filter output.

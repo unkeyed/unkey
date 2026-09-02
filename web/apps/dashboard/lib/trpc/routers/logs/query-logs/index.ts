@@ -1,3 +1,4 @@
+import { TRPCError } from "@trpc/server";
 import { clickhouse } from "@/lib/clickhouse";
 import {
   type LogsResponseSchema,
@@ -5,7 +6,6 @@ import {
   logsResponseSchema,
 } from "@/lib/schemas/logs.schema";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
-import { TRPCError } from "@trpc/server";
 import { transformFilters } from "./utils";
 
 export const queryLogs = workspaceProcedure

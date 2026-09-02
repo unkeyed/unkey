@@ -27,12 +27,12 @@ vi.mock("@/lib/db", () => ({
   },
 }));
 
+import { jwtVerify } from "jose";
 import { getAuth } from "@/lib/auth/get-auth";
 import { auth as authProvider } from "@/lib/auth/server";
 import { LOCAL_AUTH_PERMISSIONS } from "@/lib/auth/types";
 import { db } from "@/lib/db";
 import { env } from "@/lib/env";
-import { jwtVerify } from "jose";
 import { POST } from "./route";
 
 const mockedGetAuth = vi.mocked(getAuth);

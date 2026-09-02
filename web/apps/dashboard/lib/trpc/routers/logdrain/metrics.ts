@@ -1,7 +1,7 @@
-import { clickhouse } from "@/lib/clickhouse";
-import { and, db, eq, schema } from "@/lib/db";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
+import { clickhouse } from "@/lib/clickhouse";
+import { and, db, eq, schema } from "@/lib/db";
 import { workspaceProcedure } from "../../trpc";
 
 /**

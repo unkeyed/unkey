@@ -1,7 +1,7 @@
-import type { Deployment } from "@/lib/collections";
-import { shortenId } from "@/lib/shorten-id";
 import { Badge } from "@unkey/ui";
 import { IconCodeBranchOutline18, IconCodeCommitOutline18 } from "nucleo-ui-outline-18";
+import type { Deployment } from "@/lib/collections";
+import { shortenId } from "@/lib/shorten-id";
 
 type DeploymentCardProps = {
   deployment: Deployment;

@@ -1,5 +1,5 @@
-import { getAuth } from "@/lib/auth";
 import { PageBody, PageContainer, PageHeader, PageHeaderContent, PageHeaderTitle } from "@unkey/ui";
+import { getAuth } from "@/lib/auth";
 import { getWorkspace } from "./actions";
 import { LogsClient } from "./components/logs-client";
 export const dynamic = "force-dynamic";

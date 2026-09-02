@@ -1,3 +1,4 @@
+import { z } from "zod";
 import type { PermissionsFilterOperator } from "@/app/(app)/[workspaceSlug]/authorization/permissions/filters.schema";
 import {
   type PermissionsSortField,
@@ -6,7 +7,6 @@ import {
 } from "@/components/permissions-table/schema/permissions.schema";
 import { db, sql } from "@/lib/db";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
-import { z } from "zod";
 
 export const DEFAULT_LIMIT = 50;
 

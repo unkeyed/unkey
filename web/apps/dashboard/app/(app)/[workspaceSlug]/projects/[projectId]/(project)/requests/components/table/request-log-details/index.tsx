@@ -1,4 +1,10 @@
 "use client";
+import { eq, useLiveQuery } from "@tanstack/react-db";
+import type { RequestLogsResponse } from "@unkey/clickhouse/src/frontline";
+import { Badge, CopyButton } from "@unkey/ui";
+import { IconUserOutline12 } from "nucleo-ui-outline-12";
+import { IconCodeBranchOutline18, IconCodeCommitOutline18 } from "nucleo-ui-outline-18";
+import type React from "react";
 import { safeParseJson } from "@/app/(app)/[workspaceSlug]/logs/utils";
 import { useRequestLogsContext } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/(project)/requests/context/request-logs-provider";
 import { useProjectData } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/data-provider";
@@ -16,12 +22,6 @@ import { shortenId } from "@/lib/shorten-id";
 import { mapRegionToFlag } from "@/lib/trpc/routers/deploy/network/utils";
 import { cn } from "@/lib/utils";
 import { formatLatency } from "@/lib/utils/metric-formatters";
-import { eq, useLiveQuery } from "@tanstack/react-db";
-import type { RequestLogsResponse } from "@unkey/clickhouse/src/frontline";
-import { Badge, CopyButton } from "@unkey/ui";
-import { IconUserOutline12 } from "nucleo-ui-outline-12";
-import { IconCodeBranchOutline18, IconCodeCommitOutline18 } from "nucleo-ui-outline-18";
-import type React from "react";
 
 type Props = {
   distanceToTop: number;
@@ -119,11 +119,7 @@ export const RequestLogDetails = ({ distanceToTop }: Props) => {
 };
 
 // Custom header for request logs
-const RequestLogHeader = ({
-  log,
-}: {
-  log: RequestLogsResponse;
-}) => {
+const RequestLogHeader = ({ log }: { log: RequestLogsResponse }) => {
   const { onClose } = LogDetails.useContext();
   return (
     <div className="border-b flex justify-between items-center border-gray-4 h-[45px] px-4 py-2">

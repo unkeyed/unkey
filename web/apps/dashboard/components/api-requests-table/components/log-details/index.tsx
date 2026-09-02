@@ -1,11 +1,11 @@
 "use client";
-import { LogDetails } from "@/components/logs/details/log-details";
-import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
-import { routes } from "@/lib/navigation/routes";
 import type { KeysOverviewLog } from "@unkey/clickhouse/src/keys/keys";
 import { TimestampInfo, toast } from "@unkey/ui";
 import Link from "next/link";
 import { useEffect, useRef } from "react";
+import { LogDetails } from "@/components/logs/details/log-details";
+import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
+import { routes } from "@/lib/navigation/routes";
 import { LogHeader } from "./components/log-header";
 import { OutcomeDistributionSection } from "./components/log-outcome-distribution-section";
 import { LogSection } from "./components/log-section";

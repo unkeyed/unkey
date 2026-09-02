@@ -1,10 +1,10 @@
 "use client";
-import { cn } from "@/lib/utils";
 import type { CheckedState } from "@unkey/ui";
 import { Checkbox, InfoTooltip } from "@unkey/ui";
 import { IconChevronRightOutline12 } from "nucleo-ui-outline-12";
 import type React from "react";
 import { forwardRef, useId } from "react";
+import { cn } from "@/lib/utils";
 
 type PermissionToggleProps = React.HTMLAttributes<HTMLDivElement> & {
   category: string | React.ReactNode;

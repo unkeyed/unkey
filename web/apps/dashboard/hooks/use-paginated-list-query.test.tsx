@@ -13,9 +13,7 @@ vi.mock("nuqs", async (importOriginal) => {
   const useQueryState = (key: string, parser?: { defaultValue?: unknown }) => {
     const [, force] = useState(0);
     const read = () =>
-      Object.prototype.hasOwnProperty.call(urlStore, key)
-        ? urlStore[key]
-        : (parser?.defaultValue ?? null);
+      Object.hasOwn(urlStore, key) ? urlStore[key] : (parser?.defaultValue ?? null);
     // biome-ignore lint/correctness/useExhaustiveDependencies: test-only fake; `read` closes over the stable `key`/`parser`.
     const setValue = useCallback(
       (next: unknown) => {

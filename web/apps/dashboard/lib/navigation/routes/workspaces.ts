@@ -5,7 +5,7 @@
  * onboarding entry (/new) used to create the first or a new workspace.
  */
 import type { Route } from "next";
-import { type WorkspaceScope, buildRoute } from "./shared";
+import { buildRoute, type WorkspaceScope } from "./shared";
 
 export const workspaceRoutes = {
   root(): Route {

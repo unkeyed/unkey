@@ -1,9 +1,5 @@
 "use client";
 
-import { type MenuItem, TableActionPopover } from "@/components/logs/table-action.popover";
-import { trpc } from "@/lib/trpc/client";
-import type { Router } from "@/lib/trpc/routers";
-import { cn } from "@/lib/utils";
 import type { inferRouterOutputs } from "@trpc/server";
 import { match } from "@unkey/match";
 import { Button, DialogContainer, toast } from "@unkey/ui";
@@ -14,6 +10,10 @@ import {
   IconTrashOutline18,
 } from "nucleo-ui-outline-18";
 import { useState } from "react";
+import { type MenuItem, TableActionPopover } from "@/components/logs/table-action.popover";
+import { trpc } from "@/lib/trpc/client";
+import type { Router } from "@/lib/trpc/routers";
+import { cn } from "@/lib/utils";
 import { AxiomLogo } from "./axiom-logo";
 
 export type DrainKind = inferRouterOutputs<Router>["logdrain"]["list"][number]["kind"];

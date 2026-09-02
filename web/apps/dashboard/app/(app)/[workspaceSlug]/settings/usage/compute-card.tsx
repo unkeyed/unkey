@@ -1,6 +1,5 @@
 "use client";
 
-import { formatCompactQuantity, formatPrice } from "@/lib/fmt";
 import {
   Item,
   ItemActions,
@@ -16,12 +15,13 @@ import {
 import { IconChevronRightOutline12 } from "nucleo-ui-outline-12";
 import { IconCubeOutline18 } from "nucleo-ui-outline-18";
 import { Fragment, type ReactNode, useState } from "react";
+import { formatCompactQuantity, formatPrice } from "@/lib/fmt";
 import {
   type ComputeTree,
+  microCentsToDisplayCents,
   type UsageApp,
   type UsageProject,
   type UsageQuantities,
-  microCentsToDisplayCents,
 } from "./compute-tree";
 
 const QUANTITY_COLUMNS: ReadonlyArray<{

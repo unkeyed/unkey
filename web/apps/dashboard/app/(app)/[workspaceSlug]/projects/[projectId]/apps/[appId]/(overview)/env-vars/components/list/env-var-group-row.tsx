@@ -1,6 +1,6 @@
-import { cn } from "@/lib/utils";
 import { Badge, InfoTooltip } from "@unkey/ui";
 import { IconChevronRightOutline12 } from "nucleo-ui-outline-12";
+import { cn } from "@/lib/utils";
 import { HighlightMatch } from "../shared/highlight-match";
 import { EnvVarBaseRow } from "./env-var-base-row";
 import { EnvVarGroupActionMenu } from "./env-var-group-action-menu";

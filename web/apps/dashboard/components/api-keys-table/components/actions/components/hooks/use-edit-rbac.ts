@@ -1,7 +1,7 @@
-import { trpc } from "@/lib/trpc/client";
-import { getErrorMessage, getUnkeyClient } from "@/lib/unkey-client";
 import { useMutation } from "@tanstack/react-query";
 import { toast } from "@unkey/ui";
+import { trpc } from "@/lib/trpc/client";
+import { getErrorMessage, getUnkeyClient } from "@/lib/unkey-client";
 import type { FormValues } from "../edit-rbac/update-key-rbac.schema";
 
 type UpdateKeyRbacResult = {

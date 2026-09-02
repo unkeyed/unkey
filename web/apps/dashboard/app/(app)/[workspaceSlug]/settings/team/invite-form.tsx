@@ -1,7 +1,5 @@
 "use client";
 
-import type { Organization } from "@/lib/auth/types";
-import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
   Button,
@@ -19,6 +17,8 @@ import { IconPlusOutline18, IconXmarkOutline18 } from "nucleo-ui-outline-18";
 import { useState } from "react";
 import { Controller, useFieldArray, useForm } from "react-hook-form";
 import { z } from "zod";
+import type { Organization } from "@/lib/auth/types";
+import { trpc } from "@/lib/trpc/client";
 
 const inviteSchema = z.object({
   invites: z.array(

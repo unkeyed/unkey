@@ -1,7 +1,7 @@
-import { trpc } from "@/lib/trpc/client";
 import type { UnkeyPermission } from "@unkey/rbac";
 import { toast } from "@unkey/ui";
 import { useCallback, useMemo, useRef, useState } from "react";
+import { trpc } from "@/lib/trpc/client";
 import { ROOT_KEY_CONSTANTS, ROOT_KEY_MESSAGES } from "../constants";
 
 // Utility function for robust permission array comparison using Set-based equality check

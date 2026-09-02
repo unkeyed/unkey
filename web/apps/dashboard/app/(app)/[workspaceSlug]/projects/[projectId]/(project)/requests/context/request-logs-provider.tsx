@@ -1,6 +1,6 @@
 "use client";
 import type { RequestLogsResponse } from "@unkey/clickhouse/src/frontline";
-import { type PropsWithChildren, createContext, useCallback, useContext, useState } from "react";
+import { createContext, type PropsWithChildren, useCallback, useContext, useState } from "react";
 
 type RequestLogsContextType = {
   selectedLog: RequestLogsResponse | null;

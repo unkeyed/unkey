@@ -1,5 +1,9 @@
 "use client";
 
+import { eq, useLiveQuery } from "@tanstack/react-db";
+import { match } from "@unkey/match";
+import { Badge, InfoTooltip, TimestampInfo } from "@unkey/ui";
+import { IconCodeBranchOutline18, IconCodeCommitOutline18 } from "nucleo-ui-outline-18";
 import { EnvStatusBadge } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/deployments/components/table/components/env-status-badge";
 import { collection } from "@/lib/collections";
 import type { Deployment } from "@/lib/collections/deploy/deployments";
@@ -10,13 +14,9 @@ import {
   formatMemoryParts,
   formatStorageParts,
 } from "@/lib/utils/deployment-formatters";
-import { eq, useLiveQuery } from "@tanstack/react-db";
-import { match } from "@unkey/match";
-import { Badge, InfoTooltip, TimestampInfo } from "@unkey/ui";
-import { IconCodeBranchOutline18, IconCodeCommitOutline18 } from "nucleo-ui-outline-18";
+import { DeploymentTriggerBadge } from "../../../../components/deployment-trigger-badge";
 import { Card } from "../../(overview)/components/card";
 import { useProjectData } from "../../(overview)/data-provider";
-import { DeploymentTriggerBadge } from "../../../../components/deployment-trigger-badge";
 import { Avatar } from "../../components/git-avatar";
 import { RegionFlag } from "../../components/region-flag";
 import { DottedLink } from "../dotted-link";

@@ -1,6 +1,6 @@
+import type { z } from "zod";
 import { getDefaultValues } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/_components/create-key/create-key.utils";
 import type { KeyDetails } from "@/lib/trpc/routers/api/keys/query-api-keys/schema";
-import type { z } from "zod";
 
 // biome-ignore format: the comma after z.infer is incorrect syntax
 type Refill = z.infer<

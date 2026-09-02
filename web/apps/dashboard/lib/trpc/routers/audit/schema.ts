@@ -1,5 +1,5 @@
-import { AUDIT_LOG_BUCKET } from "@/lib/audit";
 import { z } from "zod";
+import { AUDIT_LOG_BUCKET } from "@/lib/audit";
 
 export const auditLog = z.object({
   user: z

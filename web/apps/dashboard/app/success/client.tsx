@@ -1,8 +1,8 @@
 "use client";
-import { routes } from "@/lib/navigation/routes";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { routes } from "@/lib/navigation/routes";
 
 const PlanSelectionModal = dynamic(
   () =>

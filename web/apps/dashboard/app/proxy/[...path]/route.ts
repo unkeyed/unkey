@@ -1,10 +1,10 @@
+import { SignJWT } from "jose";
+import type { NextRequest } from "next/server";
+import { NextResponse } from "next/server";
 import { getAuth } from "@/lib/auth/get-auth";
 import { auth as authProvider } from "@/lib/auth/server";
 import { db } from "@/lib/db";
 import { env } from "@/lib/env";
-import { SignJWT } from "jose";
-import type { NextRequest } from "next/server";
-import { NextResponse } from "next/server";
 
 type RouteContext = {
   params: Promise<{

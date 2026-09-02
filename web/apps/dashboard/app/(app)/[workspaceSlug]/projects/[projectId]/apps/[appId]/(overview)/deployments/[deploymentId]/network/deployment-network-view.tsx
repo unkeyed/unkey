@@ -1,12 +1,16 @@
 "use client";
-import { trpc } from "@/lib/trpc/client";
 import { useState } from "react";
+import { trpc } from "@/lib/trpc/client";
 import { useDeployment } from "../layout-provider";
 import {
   type DeploymentNode,
   InfiniteCanvas,
   InstanceNode,
   InternalDevTreeGenerator,
+  isInstanceNode,
+  isOriginNode,
+  isRegionNode,
+  isSkeletonNode,
   LiveIndicator,
   NodeDetailsPanel,
   OriginNode,
@@ -15,10 +19,6 @@ import {
   SkeletonNode,
   TreeConnectionLine,
   TreeLayout,
-  isInstanceNode,
-  isOriginNode,
-  isRegionNode,
-  isSkeletonNode,
 } from "./unkey-flow";
 
 interface DeploymentNetworkViewProps {

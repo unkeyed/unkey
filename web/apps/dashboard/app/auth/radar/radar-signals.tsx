@@ -1,7 +1,7 @@
 "use client";
 
 import { RadarSignalsProvider, useRadarToken } from "@workos/radar-signals/react";
-import { type ReactNode, createContext, useCallback, useContext, useMemo } from "react";
+import { createContext, type ReactNode, useCallback, useContext, useMemo } from "react";
 
 type RadarSignals = {
   /**

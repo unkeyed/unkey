@@ -7,14 +7,13 @@ import {
   IconKey2Outline18,
   IconShieldKeyOutline18,
 } from "nucleo-ui-outline-18";
-import type { SectionState } from "./types";
-
 import { MetadataSetup } from "@/components/dashboard/metadata/metadata-setup";
 import { RatelimitSetup } from "@/components/dashboard/ratelimits/ratelimit-setup";
 import { UsageSetup } from "./components/credits-setup";
 import { ExpirationSetup } from "./components/expiration-setup";
 import { GeneralSetup } from "./components/general-setup";
 import { RbacSetup } from "./components/rbac-setup";
+import type { SectionState } from "./types";
 
 export const UNNAMED_KEY = "Unnamed Key" as const;
 export const SECTIONS = [

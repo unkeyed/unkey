@@ -1,3 +1,6 @@
+import { TRPCError } from "@trpc/server";
+import { newId } from "@unkey/id";
+import { newKey } from "@unkey/keys";
 import {
   type CreateKeyInput,
   createKeyInputSchema,
@@ -6,9 +9,6 @@ import { VaultService } from "@/gen/proto/vault/v1/service_pb";
 import { insertAuditLogs } from "@/lib/audit";
 import { db, schema } from "@/lib/db";
 import { createVaultClient } from "@/lib/vault-client";
-import { TRPCError } from "@trpc/server";
-import { newId } from "@unkey/id";
-import { newKey } from "@unkey/keys";
 import { ratelimit, withRatelimit, workspaceProcedure } from "../../trpc";
 
 const vault = createVaultClient(VaultService);

@@ -1,11 +1,10 @@
 "use client";
 
+import { Button, Card, CardContent, Empty, Loading, toast } from "@unkey/ui";
+import { memo, useState } from "react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import type { Organization } from "@/lib/auth/types";
 import { trpc } from "@/lib/trpc/client";
-import { Card, CardContent } from "@unkey/ui";
-import { Button, Empty, Loading, toast } from "@unkey/ui";
-import { memo, useState } from "react";
 import { StatusBadge } from "./status-badge";
 
 type InvitationsProps = {

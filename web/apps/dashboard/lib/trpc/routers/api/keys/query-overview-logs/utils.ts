@@ -1,6 +1,6 @@
+import type { KeysOverviewLogsParams } from "@unkey/clickhouse/src/keys/keys";
 import type { KeysQueryOverviewLogsPayload } from "@/components/api-requests-table/schema/keys-overview.schema";
 import { getTimestampFromRelative } from "@/lib/utils";
-import type { KeysOverviewLogsParams } from "@unkey/clickhouse/src/keys/keys";
 
 export function transformKeysFilters(
   params: KeysQueryOverviewLogsPayload,

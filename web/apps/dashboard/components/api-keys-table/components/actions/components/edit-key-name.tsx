@@ -1,13 +1,13 @@
-import { nameSchema } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/_components/create-key/create-key.schema";
-import type { ActionComponentProps } from "@/components/logs/table-action.popover";
-import { usePersistedForm } from "@/hooks/use-persisted-form";
-import type { KeyDetails } from "@/lib/trpc/routers/api/keys/query-api-keys/schema";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button, DialogContainer, FormInput } from "@unkey/ui";
 import { useEffect } from "react";
 import type { Resolver } from "react-hook-form";
 import { FormProvider } from "react-hook-form";
 import { z } from "zod";
+import { nameSchema } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/_components/create-key/create-key.schema";
+import type { ActionComponentProps } from "@/components/logs/table-action.popover";
+import { usePersistedForm } from "@/hooks/use-persisted-form";
+import type { KeyDetails } from "@/lib/trpc/routers/api/keys/query-api-keys/schema";
 import { useEditKeyName } from "./hooks/use-edit-key";
 import { KeyInfo } from "./key-info";
 

@@ -103,5 +103,5 @@ const STATUS_CONFIG: Record<HealthStatus, StatusConfig> = {
   },
 };
 
+export type { HealthStatus, StatusConfig };
 export { STATUS_CONFIG };
-export type { StatusConfig, HealthStatus };

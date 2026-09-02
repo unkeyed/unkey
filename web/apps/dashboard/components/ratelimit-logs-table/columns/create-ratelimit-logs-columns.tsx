@@ -1,6 +1,6 @@
-import { cn } from "@/lib/utils";
 import type { DataTableColumnDef } from "@unkey/ui";
 import { SortableHeader, TimestampInfo } from "@unkey/ui";
+import { cn } from "@/lib/utils";
 import { LogsTableAction } from "../components/actions/logs-table-action";
 import { DurationCell } from "../components/cells/duration-cell";
 import { LimitCell } from "../components/cells/limit-cell";

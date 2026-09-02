@@ -1,9 +1,9 @@
 "use client";
 
-import { trpc } from "@/lib/trpc/client";
 import { CopyButton, Skeleton, Tabs, TabsContent, TabsList, TabsTrigger, toast } from "@unkey/ui";
 import { IconClockOutline12, IconCloneOutline12, IconLink4Outline12 } from "nucleo-ui-outline-12";
 import { useState } from "react";
+import { trpc } from "@/lib/trpc/client";
 import { KeySecret } from "./key-secret-section";
 
 type KeyPayloadTabsProps = {

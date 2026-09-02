@@ -1,3 +1,6 @@
+import { TRPCError } from "@trpc/server";
+import Stripe from "stripe";
+import { z } from "zod";
 import { getStripeClient } from "@/lib/stripe";
 import {
   expandableId,
@@ -10,9 +13,6 @@ import {
   withRatelimit,
   workspaceProcedure,
 } from "@/lib/trpc/trpc";
-import { TRPCError } from "@trpc/server";
-import Stripe from "stripe";
-import { z } from "zod";
 
 const updateCustomerInputSchema = z.object({
   // No customer id from the client: it is derived from this session, which is

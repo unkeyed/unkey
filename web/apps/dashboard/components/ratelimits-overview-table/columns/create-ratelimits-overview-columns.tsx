@@ -1,14 +1,14 @@
 "use client";
 
-import { LogsTableAction } from "@/app/(app)/[workspaceSlug]/ratelimits/[namespaceId]/_overview/components/table/components/logs-actions";
-import { formatNumber } from "@/lib/fmt";
-import { cn } from "@/lib/utils";
 import type { RatelimitOverviewLog } from "@unkey/clickhouse/src/ratelimits";
 import { Badge, type DataTableColumnDef, SortableHeader, TimestampInfo } from "@unkey/ui";
 import { IconBanOutline12 } from "nucleo-ui-outline-12";
+import { LogsTableAction } from "@/app/(app)/[workspaceSlug]/ratelimits/[namespaceId]/_overview/components/table/components/logs-actions";
+import { formatNumber } from "@/lib/fmt";
+import { cn } from "@/lib/utils";
 import { IdentifierColumn } from "../components/identifier-column";
 import { InlineFilter } from "../components/inline-filter";
-import { STATUS_STYLES, getStatusStyle } from "../utils/get-row-class";
+import { getStatusStyle, STATUS_STYLES } from "../utils/get-row-class";
 
 type CreateColumnsOptions = {
   namespaceId: string;

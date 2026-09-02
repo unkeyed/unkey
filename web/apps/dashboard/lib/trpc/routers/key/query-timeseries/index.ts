@@ -1,8 +1,8 @@
+import { TRPCError } from "@trpc/server";
 import { keyDetailsQueryTimeseriesPayload } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/keys/[keyAuthId]/[keyId]/components/charts/bar-chart/query-timeseries.schema";
 import { clickhouse } from "@/lib/clickhouse";
 import { db } from "@/lib/db";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
-import { TRPCError } from "@trpc/server";
 import { transformVerificationFilters } from "../../api/keys/timeseries.utils";
 
 export const keyDetailsVerificationsTimeseries = workspaceProcedure

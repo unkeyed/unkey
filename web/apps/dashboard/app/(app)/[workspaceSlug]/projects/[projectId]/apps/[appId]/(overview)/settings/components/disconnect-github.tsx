@@ -1,7 +1,7 @@
 "use client";
 
-import { trpc } from "@/lib/trpc/client";
 import { SettingsZoneRow, toast } from "@unkey/ui";
+import { trpc } from "@/lib/trpc/client";
 import { useAppId, useProjectData } from "../../data-provider";
 
 export function DisconnectGitHub() {

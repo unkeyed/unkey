@@ -1,3 +1,4 @@
+import { z } from "zod";
 import type {
   FilterValue,
   NumberConfig,
@@ -5,7 +6,6 @@ import type {
 } from "@/components/logs/validation/filter.types";
 import { parseAsFilterValueArray } from "@/components/logs/validation/utils/nuqs-parsers";
 import { createFilterOutputSchema } from "@/components/logs/validation/utils/structured-output-schema-generator";
-import { z } from "zod";
 
 export const GROUPED_DEPLOYMENT_STATUSES = [
   "pending",

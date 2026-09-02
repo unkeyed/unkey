@@ -1,14 +1,5 @@
 "use client";
 
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from "@/components/ui/command";
-import { cn } from "@/lib/utils";
 import { Popover, PopoverContent, PopoverTrigger } from "@unkey/ui";
 import {
   AsYouType,
@@ -19,6 +10,15 @@ import {
 import { IconChevronDownOutline12 } from "nucleo-ui-outline-12";
 import { IconCheckOutline18, IconCircleCheckOutline18 } from "nucleo-ui-outline-18";
 import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import { cn } from "@/lib/utils";
 
 // Country flag emoji from an ISO 3166-1 alpha-2 code (regional indicators),
 // so we don't ship a flag asset set.

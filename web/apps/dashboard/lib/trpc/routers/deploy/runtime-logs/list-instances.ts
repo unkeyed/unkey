@@ -1,6 +1,6 @@
+import { z } from "zod";
 import { and, db, eq, schema } from "@/lib/db";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
-import { z } from "zod";
 
 export const listInstances = workspaceProcedure
   .use(withRatelimit(ratelimit.read))

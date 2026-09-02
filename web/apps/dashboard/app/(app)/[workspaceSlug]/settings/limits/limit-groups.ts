@@ -1,5 +1,5 @@
-import { CUSTOM_DOMAINS_UNLIMITED } from "@/lib/limits";
 import type { Limits } from "@unkey/db";
+import { CUSTOM_DOMAINS_UNLIMITED } from "@/lib/limits";
 
 export type LimitStatus = "ok" | "at-limit" | "over";
 

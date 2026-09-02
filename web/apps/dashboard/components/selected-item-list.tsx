@@ -1,6 +1,6 @@
-import { cn } from "@/lib/utils";
 import { AnimatePresence, motion } from "framer-motion";
 import { IconXmarkOutline12 } from "nucleo-ui-outline-12";
+import { cn } from "@/lib/utils";
 
 interface BaseItem {
   id: string;

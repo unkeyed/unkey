@@ -1,12 +1,13 @@
 // biome-ignore lint: React in this context is used throughout, so biome will change to types because no APIs are used even though React is needed.
-import * as React from "react";
-import { cn } from "../../../lib/utils";
+
 import { IconXmarkOutline18 } from "nucleo-ui-outline-18";
-import { TimestampInfo } from "../../timestamp-info";
-import { Button } from "../../buttons/button";
-import type { FilterValue } from "../../../validation/filter.types";
-import { formatOperator } from "./utils";
+import type * as React from "react";
 import { useEffect, useRef } from "react";
+import { cn } from "../../../lib/utils";
+import type { FilterValue } from "../../../validation/filter.types";
+import { Button } from "../../buttons/button";
+import { TimestampInfo } from "../../timestamp-info";
+import { formatOperator } from "./utils";
 
 type ControlPillProps<T extends FilterValue> = {
   filter: T;

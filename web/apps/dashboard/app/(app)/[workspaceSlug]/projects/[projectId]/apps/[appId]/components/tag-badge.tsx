@@ -1,6 +1,6 @@
-import { cn } from "@/lib/utils";
 import { cva } from "class-variance-authority";
 import type { HTMLAttributes, ReactNode } from "react";
+import { cn } from "@/lib/utils";
 
 const tagBadgeVariants = cva(
   "inline-flex items-center rounded-md px-2 text-xs leading-5 gap-1 shrink-0",

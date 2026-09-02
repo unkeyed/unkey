@@ -1,10 +1,10 @@
+import { TRPCError } from "@trpc/server";
+import type OpenAI from "openai";
+import z from "zod";
 import {
   requestLogsFilterFieldConfig,
   requestLogsFilterOutputSchema,
 } from "@/lib/schemas/request-logs.filter.schema";
-import { TRPCError } from "@trpc/server";
-import type OpenAI from "openai";
-import z from "zod";
 
 export async function getStructuredSearchFromLLM(
   openai: OpenAI | null,

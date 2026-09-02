@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { fromPolicy, policyFormSchema, toPolicy } from "./schema";
 import type { Policy } from "./schema";
+import { fromPolicy, policyFormSchema, toPolicy } from "./schema";
 
 // Exercises the keyauth credits override: the form accepts 0 and positive
 // integers, rejects negatives, and round-trips the value to/from the wire.

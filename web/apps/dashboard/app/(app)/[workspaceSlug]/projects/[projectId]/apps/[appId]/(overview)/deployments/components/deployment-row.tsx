@@ -1,10 +1,5 @@
 "use client";
 
-import { LastExitBadge } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/active-deployment-card";
-import { DeploymentStatusBadge } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/deployment-status-badge";
-import { Avatar } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/git-avatar";
-import type { Deployment, Environment } from "@/lib/collections";
-import { shortenId } from "@/lib/shorten-id";
 import { ResourceListItem, TimestampInfo } from "@unkey/ui";
 import type { Route } from "next";
 import dynamic from "next/dynamic";
@@ -15,6 +10,11 @@ import {
   IconLayers2Outline18,
 } from "nucleo-ui-outline-18";
 import { useState } from "react";
+import { LastExitBadge } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/active-deployment-card";
+import { DeploymentStatusBadge } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/deployment-status-badge";
+import { Avatar } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/git-avatar";
+import type { Deployment, Environment } from "@/lib/collections";
+import { shortenId } from "@/lib/shorten-id";
 import { DeploymentTriggerBadge } from "../../../../../components/deployment-trigger-badge";
 import { DeploymentApproval } from "../[deploymentId]/(deployment-progress)/deployment-approval";
 import { DeploymentDuration } from "./deployment-duration";

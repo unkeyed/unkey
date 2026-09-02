@@ -1,9 +1,9 @@
 "use client";
 
+import type { Route } from "next";
 import { routes } from "@/lib/navigation/routes";
 import { trpc } from "@/lib/trpc/client";
 import { useWorkspace } from "@/providers/workspace-provider";
-import type { Route } from "next";
 
 export type Measured<T> = { state: "loading" } | { state: "error" } | { state: "ready"; value: T };
 

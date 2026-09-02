@@ -1,10 +1,10 @@
+import type { LogsTimeseriesParams } from "@unkey/clickhouse/src/logs";
 import type { TimeseriesRequestSchema } from "@/lib/schemas/logs.schema";
 import { getTimestampFromRelative } from "@/lib/utils";
-import type { LogsTimeseriesParams } from "@unkey/clickhouse/src/logs";
 import {
+  getTimeseriesGranularity,
   type TimeseriesConfig,
   type TimeseriesGranularity,
-  getTimeseriesGranularity,
 } from "../../utils/granularity";
 
 export function transformFilters(params: TimeseriesRequestSchema): {

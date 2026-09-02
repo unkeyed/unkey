@@ -1,4 +1,4 @@
-import { type VariantProps, cva } from "class-variance-authority";
+import { cva, type VariantProps } from "class-variance-authority";
 import type * as React from "react";
 import { cn } from "../lib/utils";
 
@@ -86,4 +86,4 @@ function AlertBannerActions({ className, ...props }: React.ComponentProps<"div">
   );
 }
 
-export { AlertBanner, AlertBannerTitle, AlertBannerDescription, AlertBannerActions };
+export { AlertBanner, AlertBannerActions, AlertBannerDescription, AlertBannerTitle };

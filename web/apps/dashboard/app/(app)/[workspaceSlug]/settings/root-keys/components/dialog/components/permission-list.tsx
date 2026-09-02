@@ -1,9 +1,9 @@
 "use client";
 
-import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible";
 import { match } from "@unkey/match";
 import type { UnkeyPermission } from "@unkey/rbac";
 import { type ReactNode, useCallback, useEffect, useState } from "react";
+import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible";
 import { ROOT_KEY_MESSAGES } from "../constants";
 import { usePermissions } from "../hooks/use-permissions";
 import type { PermissionScope, UnkeyPermissions } from "../permissions";

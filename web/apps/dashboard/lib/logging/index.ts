@@ -5,24 +5,23 @@
  * with consistent attribute naming and Sentry integration.
  */
 
+// Re-export error classification utilities for convenience
 export {
-  logTRPCError,
-  logUserAction,
-  logOperation,
+  classifyError,
+  type ErrorClassification,
+  extractTRPCErrorInfo,
+  getErrorLogLevel,
+  isExpectedTRPCError,
+  type TRPCErrorInfo,
+} from "../utils/error-classification";
+export {
   type BaseLogAttributes,
-  type TRPCLogAttributes,
-  type UserActionAttributes,
   type LogAttributes,
   type LogContext,
   type LogLevel,
+  logOperation,
+  logTRPCError,
+  logUserAction,
+  type TRPCLogAttributes,
+  type UserActionAttributes,
 } from "./structured-logger";
-
-// Re-export error classification utilities for convenience
-export {
-  isExpectedTRPCError,
-  extractTRPCErrorInfo,
-  getErrorLogLevel,
-  classifyError,
-  type TRPCErrorInfo,
-  type ErrorClassification,
-} from "../utils/error-classification";

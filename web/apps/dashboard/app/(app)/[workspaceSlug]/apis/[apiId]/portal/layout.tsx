@@ -1,7 +1,7 @@
-import { portalManagement } from "@/lib/flags";
-import { routes } from "@/lib/navigation/routes";
 import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
+import { portalManagement } from "@/lib/flags";
+import { routes } from "@/lib/navigation/routes";
 
 // Server-side gate mirroring the workspace-level portal layout: the flag
 // defaults to off, so this route is unreachable until portal-management is

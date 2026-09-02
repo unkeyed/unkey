@@ -1,5 +1,5 @@
-import type { DeploymentStatus } from "@/lib/collections";
 import { match } from "@unkey/match";
+import type { DeploymentStatus } from "@/lib/collections";
 import type { StepsData } from "./(deployment-progress)/deployment-progress";
 
 const DEPLOYMENT_STATUSES: ReadonlySet<string> = new Set<DeploymentStatus>([

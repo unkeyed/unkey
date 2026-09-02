@@ -1,5 +1,15 @@
 "use client";
 
+import type { TimeWindow } from "@unkey/clickhouse";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@unkey/ui";
+import { IconArrowsOppositeDirectionYOutline12, IconGridOutline12 } from "nucleo-ui-outline-12";
+import {
+  IconChevronExpandYOutline18,
+  IconHardDriveOutline18,
+  IconMicrochipOutline18,
+  IconRamOutline18,
+} from "nucleo-ui-outline-18";
+import { useEffect, useRef, useState } from "react";
 import {
   type AreaChartPoint,
   AreaTimeseriesChart,
@@ -14,16 +24,6 @@ import {
   formatStorageParts,
   formatTooltipPercent,
 } from "@/lib/utils/deployment-formatters";
-import type { TimeWindow } from "@unkey/clickhouse";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@unkey/ui";
-import { IconArrowsOppositeDirectionYOutline12, IconGridOutline12 } from "nucleo-ui-outline-12";
-import {
-  IconChevronExpandYOutline18,
-  IconHardDriveOutline18,
-  IconMicrochipOutline18,
-  IconRamOutline18,
-} from "nucleo-ui-outline-18";
-import { useEffect, useRef, useState } from "react";
 import { useDeployment } from "../../../../../../layout-provider";
 
 // Dashboard panel refreshes every 3s. The chart's live tip reads from raw

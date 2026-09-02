@@ -65,4 +65,5 @@ const InfoTooltip = ({
 };
 
 InfoTooltip.displayName = "InfoTooltip";
+
 export { InfoTooltip };

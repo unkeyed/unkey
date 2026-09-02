@@ -1,9 +1,9 @@
 "use client";
 
+import { and, eq, useLiveQuery } from "@tanstack/react-db";
 import { collection } from "@/lib/collections";
 import type { EnvironmentSettings } from "@/lib/collections/deploy/environment-settings";
 import { ENVIRONMENT_KIND } from "@/lib/collections/deploy/environments";
-import { and, eq, useLiveQuery } from "@tanstack/react-db";
 import { useAppId, useProjectData } from "../../data-provider";
 
 type MultiEnvironmentSettings = {

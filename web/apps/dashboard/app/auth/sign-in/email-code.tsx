@@ -1,9 +1,9 @@
 "use client";
 
-import { cn } from "@/lib/utils";
 import { Loading, toast } from "@unkey/ui";
 import { OTPInput, type SlotProps } from "input-otp";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { cn } from "@/lib/utils";
 import { useSignIn } from "../hooks";
 
 export function EmailCode({ invitationToken }: { invitationToken?: string }) {

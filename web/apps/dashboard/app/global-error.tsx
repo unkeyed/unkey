@@ -5,11 +5,7 @@ import NextError from "next/error";
 import { useEffect } from "react";
 
 // biome-ignore lint/style/noDefaultExport: This is a global error component and is how nextjs handles errors in the app router
-export default function GlobalError({
-  error,
-}: {
-  error: Error & { digest?: string };
-}) {
+export default function GlobalError({ error }: { error: Error & { digest?: string } }) {
   useEffect(() => {
     Sentry.captureException(error);
   }, [error]);

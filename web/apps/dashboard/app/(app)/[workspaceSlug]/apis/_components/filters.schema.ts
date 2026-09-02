@@ -1,9 +1,9 @@
+import { z } from "zod";
 import type {
   FilterValue,
   NumberConfig,
   StringConfig,
 } from "@/components/logs/validation/filter.types";
-import { z } from "zod";
 
 // Configuration
 export const apiListFilterFieldConfig: FilterFieldConfigs = {

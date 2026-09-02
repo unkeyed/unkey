@@ -1,6 +1,6 @@
+import { TRPCError } from "@trpc/server";
 import { db, sql } from "@/lib/db";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
-import { TRPCError } from "@trpc/server";
 import {
   LIMIT,
   RolesSearchResponse,

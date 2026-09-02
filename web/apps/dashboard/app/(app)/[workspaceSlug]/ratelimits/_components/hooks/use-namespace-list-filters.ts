@@ -1,6 +1,6 @@
-import { parseAsRelativeTime } from "@/components/logs/validation/utils/nuqs-parsers";
 import { parseAsInteger, useQueryStates } from "nuqs";
 import { useCallback, useMemo } from "react";
+import { parseAsRelativeTime } from "@/components/logs/validation/utils/nuqs-parsers";
 import {
   type NamespaceListFilterUrlValue,
   type NamespaceListFilterValue,

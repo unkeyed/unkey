@@ -1,12 +1,13 @@
-import { insertAuditLogs } from "@/lib/audit";
-import { db, eq, schema } from "@/lib/db";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
+import { insertAuditLogs } from "@/lib/audit";
+import { db, eq, schema } from "@/lib/db";
 import { workspaceProcedure } from "../../trpc";
+
 const nameSchema = z
   .string()
   .min(3)
-  .regex(/^[a-zA-Z0-9_:\-\.\*]+$/, {
+  .regex(/^[a-zA-Z0-9_:\-.*]+$/, {
     error:
       "Must be at least 3 characters long and only contain alphanumeric, colons, periods, dashes and underscores",
   });

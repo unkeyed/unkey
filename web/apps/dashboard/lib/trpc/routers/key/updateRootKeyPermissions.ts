@@ -1,12 +1,11 @@
-import type { UnkeyAuditLog } from "@/lib/audit";
-import { and, db, eq, inArray, schema } from "@/lib/db";
 import { TRPCError } from "@trpc/server";
 import { unkeyPermissionValidation } from "@unkey/rbac";
 import { z } from "zod";
-import { workspaceProcedure } from "../../trpc";
-
+import type { UnkeyAuditLog } from "@/lib/audit";
 import { insertAuditLogs } from "@/lib/audit";
+import { and, db, eq, inArray, schema } from "@/lib/db";
 import { env } from "@/lib/env";
+import { workspaceProcedure } from "../../trpc";
 import { upsertPermissions } from "../rbac";
 
 /**

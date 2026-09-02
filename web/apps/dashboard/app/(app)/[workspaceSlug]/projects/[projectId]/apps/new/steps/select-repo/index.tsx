@@ -1,4 +1,3 @@
-import { trpc } from "@/lib/trpc/client";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { Github } from "@unkey/icons";
 import {
@@ -17,6 +16,7 @@ import {
 } from "nucleo-ui-outline-12";
 import { IconClockOutline18 } from "nucleo-ui-outline-18";
 import { useMemo, useRef, useState } from "react";
+import { trpc } from "@/lib/trpc/client";
 import { OnboardingLinks } from "../../onboarding-links";
 import { OnboardingStepHint, OnboardingStepHintHighlight } from "../../onboarding-step-hint";
 import { RepoListItem } from "./repo-list-item";

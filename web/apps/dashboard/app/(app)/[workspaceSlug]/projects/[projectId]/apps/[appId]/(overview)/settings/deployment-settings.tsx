@@ -1,16 +1,18 @@
 "use client";
 
-import { trpc } from "@/lib/trpc/client";
 import { SettingCardGroup } from "@unkey/ui";
 import { IconCircleHalfDottedClockOutline18, IconGearOutline18 } from "nucleo-ui-outline-18";
+import { trpc } from "@/lib/trpc/client";
 import { useAppId, useProjectData } from "../data-provider";
+import { CustomDomains } from "./components/advanced-settings/custom-domains";
+import { OpenapiSpecPath } from "./components/advanced-settings/openapi-spec-path";
+import { UpstreamProtocol } from "./components/advanced-settings/upstream-protocol";
 import { AutoDeploy } from "./components/build-settings/auto-deploy-settings";
 import { BuildCommand } from "./components/build-settings/build-command-settings";
 import { Dockerfile } from "./components/build-settings/dockerfile-settings";
 import { GitHub } from "./components/build-settings/github-settings";
 import { RootDirectory } from "./components/build-settings/root-directory-settings";
 import { WatchPaths } from "./components/build-settings/watch-paths-settings";
-
 import { Command } from "./components/runtime-settings/command";
 import { Cpu } from "./components/runtime-settings/cpu";
 import { Healthcheck } from "./components/runtime-settings/healthcheck";
@@ -19,10 +21,6 @@ import { Memory } from "./components/runtime-settings/memory";
 import { Port } from "./components/runtime-settings/port-settings";
 import { Regions } from "./components/runtime-settings/regions";
 import { Storage } from "./components/runtime-settings/storage";
-
-import { CustomDomains } from "./components/advanced-settings/custom-domains";
-import { OpenapiSpecPath } from "./components/advanced-settings/openapi-spec-path";
-import { UpstreamProtocol } from "./components/advanced-settings/upstream-protocol";
 import { SettingsGroup } from "./components/shared/settings-group";
 
 // build is only required to invalidate other defaults. E.g onboarding settings, passes build=true to prevent expanding other sections.

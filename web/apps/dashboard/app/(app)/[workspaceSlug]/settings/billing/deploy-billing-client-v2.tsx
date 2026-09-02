@@ -1,10 +1,5 @@
 "use client";
 
-import { useConsumedSearchParam } from "@/hooks/use-consumed-search-param";
-import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
-import { routes } from "@/lib/navigation/routes";
-import { SUPPORT_MAILTO } from "@/lib/support";
-import { trpc } from "@/lib/trpc/client";
 import {
   Button,
   Empty,
@@ -19,6 +14,11 @@ import {
 import Link from "next/link";
 import { IconPhoneOutline18 } from "nucleo-ui-outline-18";
 import type { ReactNode } from "react";
+import { useConsumedSearchParam } from "@/hooks/use-consumed-search-param";
+import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
+import { routes } from "@/lib/navigation/routes";
+import { SUPPORT_MAILTO } from "@/lib/support";
+import { trpc } from "@/lib/trpc/client";
 import { currentApiProduct } from "./components/api-plan";
 import { BillingNotices } from "./components/billing-notices";
 import { CostControl } from "./components/cost-control";

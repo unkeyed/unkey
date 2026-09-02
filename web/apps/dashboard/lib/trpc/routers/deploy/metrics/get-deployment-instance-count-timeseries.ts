@@ -1,9 +1,9 @@
-import { clickhouse } from "@/lib/clickhouse";
-import { db } from "@/lib/db";
-import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
 import { TIME_WINDOWS } from "@unkey/clickhouse";
 import { z } from "zod";
+import { clickhouse } from "@/lib/clickhouse";
+import { db } from "@/lib/db";
+import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 
 export const getDeploymentInstanceCountTimeseries = workspaceProcedure
   .use(withRatelimit(ratelimit.read))

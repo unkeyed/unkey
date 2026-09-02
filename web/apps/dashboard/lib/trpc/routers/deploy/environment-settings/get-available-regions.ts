@@ -1,5 +1,5 @@
-import { db } from "@/lib/db";
 import { TRPCError } from "@trpc/server";
+import { db } from "@/lib/db";
 import { workspaceProcedure } from "../../../trpc";
 
 export const getAvailableRegions = workspaceProcedure.query(async () => {

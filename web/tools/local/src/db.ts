@@ -122,7 +122,7 @@ export async function prepareDatabase(): Promise<{
 
 async function connectDatabase() {
   return await task("Connecting to database", async (s) => {
-    let err: Error | undefined = undefined;
+    let err: Error | undefined;
     for (let i = 1; i <= 10; i++) {
       try {
         const conn = await mysql.createConnection("mysql://unkey:password@localhost:3306/unkey");

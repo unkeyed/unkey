@@ -1,5 +1,5 @@
 import { flag } from "flags/next";
-import { type Entities, adapter, identify } from "./plumbing";
+import { adapter, type Entities, identify } from "./plumbing";
 
 // Feature flag registry. To add a flag: declare it here with `flag<T, Entities>({...})`,
 // then register it in ./resolve.ts so the FlagsProvider exposes it to client components.

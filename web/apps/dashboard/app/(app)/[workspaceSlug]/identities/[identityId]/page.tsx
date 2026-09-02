@@ -1,7 +1,4 @@
 "use client";
-import { CopyableIDButton } from "@/components/navigation/copyable-id-button";
-import { useIdentity } from "@/lib/identities-query";
-import { shortenId } from "@/lib/shorten-id";
 import {
   PageContainer,
   PageHeader,
@@ -10,12 +7,13 @@ import {
   PageHeaderTitle,
 } from "@unkey/ui";
 import { use } from "react";
+import { CopyableIDButton } from "@/components/navigation/copyable-id-button";
+import { useIdentity } from "@/lib/identities-query";
+import { shortenId } from "@/lib/shorten-id";
 import { IdentitySettingsDialog } from "./components/identity-settings-dialog";
 import { IdentityDetailsLogsClient } from "./logs-client";
 
-export default function IdentityDetailsPage(props: {
-  params: Promise<{ identityId: string }>;
-}) {
+export default function IdentityDetailsPage(props: { params: Promise<{ identityId: string }> }) {
   const { identityId } = use(props.params);
 
   const { data: identity } = useIdentity(identityId);
