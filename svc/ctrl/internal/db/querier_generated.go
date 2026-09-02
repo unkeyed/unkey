@@ -2160,23 +2160,27 @@ type Querier interface {
 	//  SET status = ?, updated_at = ?
 	//  WHERE id = ?
 	UpdateDeploymentStatus(ctx context.Context, arg UpdateDeploymentStatusParams) error
-	//UpdateDeploymentStatusBatch
+	// Batch form of UpdateDeploymentStatusIfActive: transition deployments only
+	// while they are still progressing, so a cancel arriving after a deployment
+	// finished (or after the dedup path already superseded it) never rewrites a
+	// terminal status.
 	//
 	//  UPDATE deployments
 	//  SET status = ?, updated_at = ?
 	//  WHERE id IN (/*SLICE:ids*/?)
-	UpdateDeploymentStatusBatch(ctx context.Context, arg UpdateDeploymentStatusBatchParams) error
-	// Transition a deployment's status only when its current status is still
-	// "active" (non-terminal). Prevents the Deploy handler's compensation
-	// stack from overwriting a status that was set intentionally by the dedup
-	// path (e.g. superseded) or by a successful completion (ready). Callers
-	// pass db.TerminalDeploymentStatuses so the terminal set has a single
-	// source of truth.
+	//    AND status IN (/*SLICE:progressing_statuses*/?)
+	UpdateDeploymentStatusBatchIfActive(ctx context.Context, arg UpdateDeploymentStatusBatchIfActiveParams) error
+	// Transition a deployment's status only while it is still progressing, so the
+	// Deploy handler's compensation stack cannot overwrite a status set on purpose
+	// by the dedup path (superseded), by a cancel, or by a successful completion
+	// (ready). Callers pass db.ProgressingDeploymentStatuses so the set has a
+	// single source of truth (deployment_status.go), which also classifies every
+	// status as either progressing or terminal.
 	//
 	//  UPDATE deployments
 	//  SET status = ?, updated_at = ?
 	//  WHERE id = ?
-	//    AND status NOT IN (/*SLICE:terminal_statuses*/?)
+	//    AND status IN (/*SLICE:progressing_statuses*/?)
 	UpdateDeploymentStatusIfActive(ctx context.Context, arg UpdateDeploymentStatusIfActiveParams) error
 	// UpdateDeploymentTopologyDesiredStatus updates the desired_status of a topology entry.
 	//

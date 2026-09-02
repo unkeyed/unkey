@@ -6,6 +6,7 @@ import (
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	githubclient "github.com/unkeyed/unkey/pkg/github"
 	restateadmin "github.com/unkeyed/unkey/pkg/restate/admin"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/auditlogs"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
 
@@ -15,6 +16,7 @@ import (
 type Service struct {
 	ctrlv1connect.UnimplementedDeployServiceHandler
 	db           db.Database
+	auditlogs    auditlogs.AuditLogService
 	restate      *restateingress.Client
 	restateAdmin *restateadmin.Client
 	github       githubclient.GitHubClient
@@ -34,6 +36,8 @@ func (s *Service) deploymentClient(deploymentID string) hydrav1.DeployServiceIng
 type Config struct {
 	// Database provides read/write access to deployment metadata.
 	Database db.Database
+	// Auditlogs writes the deployment.cancel entry a user cancel produces.
+	Auditlogs auditlogs.AuditLogService
 	// Restate is the ingress client for triggering durable workflows.
 	Restate *restateingress.Client
 	// RestateAdmin is used to cancel in-flight invocations when a user
@@ -51,6 +55,7 @@ func New(cfg Config) *Service {
 	return &Service{
 		UnimplementedDeployServiceHandler: ctrlv1connect.UnimplementedDeployServiceHandler{},
 		db:                                cfg.Database,
+		auditlogs:                         cfg.Auditlogs,
 		restate:                           cfg.Restate,
 		restateAdmin:                      cfg.RestateAdmin,
 		github:                            cfg.GitHub,
