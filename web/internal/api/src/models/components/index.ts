@@ -116,7 +116,7 @@ export * from "./v2deploygetdeploymentrequestbody.js";
 export * from "./v2deploygetdeploymentresponsebody.js";
 export * from "./v2deploygetdeploymentresponsedata.js";
 export * from "./v2deploygitcommit.js";
-export * from "./v2deploymentscreatedeploymentrequestbody.js";
+export * from "./v2deploymentscreatedeploymentrequestbodyunion.js";
 export * from "./v2deploymentscreatedeploymentresponsebody.js";
 export * from "./v2deploymentscreatedeploymentresponsedata.js";
 export * from "./v2deploymentsgetdeploymentrequestbody.js";
