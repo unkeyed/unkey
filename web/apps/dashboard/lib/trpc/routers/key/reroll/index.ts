@@ -11,7 +11,7 @@ import { TRPCError } from "@trpc/server";
 import { newId } from "@unkey/id";
 import { newKey } from "@unkey/keys";
 import { z } from "zod";
-import { ratelimit, withRatelimit, workspaceProcedure } from "../../../trpc";
+import { ratelimit, requireWorkspaceAdmin, withRatelimit, workspaceProcedure } from "../../../trpc";
 import { capGracePeriodAtSourceExpiry } from "./cap-grace-period-at-source-expiry";
 
 const vault = createVaultClient(VaultService);
@@ -34,6 +34,7 @@ const rerollInputSchema = z.object({
 // the Unkey workspace AND `forWorkspaceId` must match the caller's
 // workspace, so a tenant can only rotate their own root keys.
 export const rerollRootKey = workspaceProcedure
+  .use(requireWorkspaceAdmin)
   .use(withRatelimit(ratelimit.create))
   .input(rerollInputSchema)
   .mutation(async ({ input, ctx }) => {

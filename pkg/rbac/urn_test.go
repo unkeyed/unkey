@@ -196,7 +196,7 @@ func TestPermissionCovers_GrantedWildcardCoversExactRequiredResource(t *testing.
 			want: true,
 		},
 		{
-			name: "workos wildcard permission",
+			name: "catalog wildcard permission",
 			granted: UnkeyPermission{
 				Resource: urn.V1{WorkspaceID: "ws_123", Resource: "projects/*/ratelimits/namespaces/*/overrides/*"},
 				Action:   ActionType(permissions.Read.String()),
@@ -296,7 +296,7 @@ func TestUrnPermissionEvaluation_MatchesThroughRBACEvaluator(t *testing.T) {
 			wantValid: true,
 		},
 		{
-			name: "workos wildcard namespace permission",
+			name: "catalog wildcard namespace permission",
 			permissions: []string{
 				"unkey:v1:ws_123:projects/*/ratelimits/namespaces/*/overrides/*#read",
 			},

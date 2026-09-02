@@ -37,10 +37,9 @@ func TestUpdatePortalAuthorizesAdminURN(t *testing.T) {
 // any grant on the target.
 //
 // The grant here is deliberately the bare admin URN, with no legacy tuple beside
-// it. That is exactly what a dashboard operator carries — the local proxy and the
-// WorkOS permission translator both render `admin:*` as `unkey:v1:{ws}:**#*` and
-// neither emits a tuple — so a target check that read tuples only would deny the
-// only caller this route has.
+// it. That is exactly what a dashboard operator carries. The JWT admin role
+// produces `unkey:v1:{ws}:**#*` without a tuple, so a target check that read
+// tuples only would deny the only caller this route has.
 func TestUpdatePortalAuthorizesURNGrantOnRemap(t *testing.T) {
 	h := testutil.NewHarness(t)
 	route := &handler.Handler{DB: h.DB, Auditlogs: h.Auditlogs, Clock: h.Clock}

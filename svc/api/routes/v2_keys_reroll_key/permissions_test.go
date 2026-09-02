@@ -126,7 +126,7 @@ func TestRerollQueryShapeParity(t *testing.T) {
 		{},
 		{"api." + permTestAPIID + ".create_key"},
 		{"api.*.create_key"},
-		{permKeyURNGrant("write_key")},
+		{permKeyURNGrant("write")},
 		{"api." + permTestAPIID + ".create_key", "api." + permTestAPIID + ".encrypt_key"},
 		{"api.*.create_key", "api.*.encrypt_key"},
 		{"api." + permTestAPIID + ".encrypt_key"},

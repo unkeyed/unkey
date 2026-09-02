@@ -90,8 +90,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	// Only a wildcard grant can authorize a create because the portal ID is
 	// minted below. Portals are not in the canonical URN catalog, so scoped
-	// access uses the legacy tuple. The exact admin grant lets the dashboard use
-	// this route because its proxy translates admin:* to this URN.
+	// access uses the legacy tuple. The exact admin permission lets the dashboard
+	// use this route. The JWT admin role produces it.
 	err = principal.Authorize(rbac.Or(
 		rbac.T(rbac.Tuple{
 			ResourceType: rbac.Portal,

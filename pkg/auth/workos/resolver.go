@@ -3,29 +3,25 @@ package workos
 import (
 	"context"
 
+	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/auth"
 	"github.com/unkeyed/unkey/pkg/auth/principal"
 	"github.com/unkeyed/unkey/pkg/zen"
 )
 
-// NewPermissionTranslatingResolver decorates a JWT resolver so WorkOS
-// permission slugs in the verified token are translated into canonical Unkey
-// permissions before authorization. The wrapped resolver owns verification
-// (issuer, audience, signature); this decorator only rewrites the permission
-// set, so it composes with any issuer the operator configures for the entry.
-func NewPermissionTranslatingResolver(inner auth.Resolver) auth.Resolver {
-	return resolverWithPermissions{resolver: inner}
+// NewRoleMappingResolver adds WorkOS role mapping to a verified JWT resolver.
+// The provider config selects this behavior without inferring it from the issuer.
+func NewRoleMappingResolver(inner auth.Resolver) auth.Resolver {
+	return resolverWithRoles{resolver: inner}
 }
 
-// resolverWithPermissions decorates a JWT resolver so WorkOS permission slugs
-// are translated into canonical Unkey permissions before authorization.
-type resolverWithPermissions struct {
+// resolverWithRoles maps verified WorkOS roles to API permissions.
+type resolverWithRoles struct {
 	resolver auth.Resolver
 }
 
-// Resolve delegates to the wrapped resolver and rewrites the principal
-// permission set; non-JWT principals pass through untouched.
-func (r resolverWithPermissions) Resolve(ctx context.Context, sess *zen.Session) (*principal.Principal, error) {
+// Resolve delegates token verification and then maps roles for JWT principals.
+func (r resolverWithRoles) Resolve(ctx context.Context, sess *zen.Session) (*principal.Principal, error) {
 	p, err := r.resolver.Resolve(ctx, sess)
 	if err != nil || p == nil {
 		return p, err
@@ -34,6 +30,11 @@ func (r resolverWithPermissions) Resolve(ctx context.Context, sess *zen.Session)
 		return p, nil
 	}
 
-	p.Permissions = translatePermissions(p.WorkspaceID, p.Permissions)
+	source, ok := p.Source.(principal.JWTSource)
+	if err := assert.True(ok, "JWT principal must have a JWT source"); err != nil {
+		return nil, err
+	}
+
+	p.Permissions = permissionsForRoles(p.WorkspaceID, source.Roles)
 	return p, nil
 }

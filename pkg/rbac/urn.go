@@ -79,7 +79,7 @@ func evaluateUnkeyPermission(required UnkeyPermission, granted []string) bool {
 //
 //	unkey:v1:ws_1:ratelimits/namespaces/ns_1/overrides/ov_1#read
 //	unkey:v1:ws_1:keyspaces/*/keys/*#read    wildcard grant
-//	unkey:v1:ws_1:**#*                           admin grant (translated from admin:*)
+//	unkey:v1:ws_1:**#*                           global admin permission
 //
 // Rejected with errInvalidURNPermission:
 //

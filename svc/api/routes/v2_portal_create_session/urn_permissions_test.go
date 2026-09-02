@@ -16,7 +16,7 @@ import (
 // This file pins the inverse of what most urn_permissions_test.go files assert.
 // Elsewhere a canonical URN grant is expected to authorize a route. Portal
 // session minting evaluates legacy tuples only, so a URN grant -- including the
-// admin form WorkOS admin:* translates to -- is denied here.
+// global permission produced by the JWT admin role -- is denied here.
 //
 // That is a deliberate, accepted consequence rather than an oversight: a
 // separate migration moves all of authorization to URN-only, and half-converting
@@ -65,8 +65,8 @@ func TestCreateSessionDeniesURNGrants(t *testing.T) {
 		slug := "urn-admin-portal"
 		_, _ = urnDenialFixture(t, h, slug)
 
-		// This is exactly what WorkOS admin:* translates to, so this case is
-		// also the assertion that dashboard JWT principals cannot mint.
+		// This is exactly what the JWT admin role expands to, so this case
+		// also asserts that dashboard JWT principals cannot mint.
 		rootKey := h.CreateRootKey(workspaceID, fmt.Sprintf("unkey:v1:%s:**#*", workspaceID))
 		headers := http.Header{
 			"Content-Type":  {"application/json"},

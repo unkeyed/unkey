@@ -157,8 +157,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		// literally and does not expand.
 		//
 		// Portals are not in the canonical URN catalog, so scoped access uses legacy
-		// tuples. The exact admin grant lets the dashboard use this route because
-		// its proxy translates admin:* to this URN.
+		// tuples. The exact admin permission lets the dashboard use this route. The
+		// JWT admin role produces it.
 		err = principal.Authorize(rbac.Or(
 			rbac.T(rbac.Tuple{
 				ResourceType: rbac.Portal,

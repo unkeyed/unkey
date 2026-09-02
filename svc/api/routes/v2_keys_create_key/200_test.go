@@ -69,8 +69,8 @@ func TestCreateKeySuccess(t *testing.T) {
 	require.True(t, key.Enabled)
 }
 
-// TestCreateKeyWithURNPermission guarantees WorkOS-translated `keys:write`
-// permissions authorize basic key creation without legacy API tuple grants.
+// TestCreateKeyWithURNPermission guarantees a workspace-wide key write
+// permission authorizes basic key creation without legacy API permissions.
 func TestCreateKeyWithURNPermission(t *testing.T) {
 	t.Parallel()
 
@@ -284,9 +284,8 @@ func TestCreateKeyWithEncryption(t *testing.T) {
 	require.Equal(t, keyEncryption.WorkspaceID, h.Resources().UserWorkspace.ID)
 }
 
-// TestCreateRecoverableKeyWithURNPermissions guarantees WorkOS-translated
-// `keys:write` permissions authorize recoverable key
-// creation without legacy API tuple grants.
+// TestCreateRecoverableKeyWithURNPermissions guarantees workspace-wide key
+// permissions authorize recoverable key creation without legacy API permissions.
 func TestCreateRecoverableKeyWithURNPermissions(t *testing.T) {
 	t.Parallel()
 

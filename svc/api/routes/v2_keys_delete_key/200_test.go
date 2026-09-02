@@ -150,8 +150,8 @@ func TestKeyDeleteSuccess(t *testing.T) {
 	})
 }
 
-// TestKeyDeleteWithURNPermission guarantees WorkOS-translated `keys:delete`
-// permissions authorize key revocation without legacy API tuple grants.
+// TestKeyDeleteWithURNPermission guarantees a workspace-wide key delete
+// permission authorizes key revocation without legacy API permissions.
 func TestKeyDeleteWithURNPermission(t *testing.T) {
 	t.Parallel()
 

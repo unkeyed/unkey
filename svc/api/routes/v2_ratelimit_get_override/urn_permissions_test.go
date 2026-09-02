@@ -63,7 +63,7 @@ func TestGetOverride_AuthorizesURNPermissions(t *testing.T) {
 			),
 		},
 		{
-			name: "workos wildcard namespace permission",
+			name: "catalog wildcard namespace permission",
 			permission: fmt.Sprintf(
 				"unkey:v1:%s:projects/*/ratelimits/namespaces/*/overrides/*#read",
 				setup.workspaceID,

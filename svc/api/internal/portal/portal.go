@@ -389,11 +389,10 @@ func AuthorizeMappingTarget(
 		apiID := rows[0].ApiID
 		// The URN arm is what makes this reachable from the dashboard. A
 		// dashboard operator authenticates with a JWT whose only grant is the
-		// workspace-wide admin URN — `admin:*` becomes `unkey:v1:{ws}:**#*`,
-		// minted by the proxy locally and by the WorkOS permission translator in
-		// production, neither of which emits a legacy tuple. URN wildcards expand
-		// for URN queries only, so a tuple-only check can never pass for the one
-		// caller this operator route exists to serve.
+		// workspace-wide admin URN. The JWT admin role produces
+		// `unkey:v1:{ws}:**#*` without a legacy tuple. URN wildcards expand for
+		// URN queries only, so a tuple-only check can never pass for the one caller
+		// this operator route exists to serve.
 		err = principal.Authorize(rbac.Or(
 			rbac.T(rbac.Tuple{ResourceType: rbac.Api, ResourceID: "*", Action: rbac.ReadAPI}),
 			rbac.T(rbac.Tuple{ResourceType: rbac.Api, ResourceID: apiID, Action: rbac.ReadAPI}),
