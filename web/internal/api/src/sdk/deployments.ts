@@ -31,6 +31,8 @@ export class Deployments extends ClientSDK {
    * Returns immediately with a `deploymentId`. The build and rollout run asynchronously — poll `deployments.getDeployment` to watch status until it is ready.
    *
    * **Authentication**: requires a root key with permission to create deployments.
+   *
+   * @deprecated method: This will be removed in a future release, please migrate away from it as soon as possible.
    */
   async createDeployment(
     request: components.V2DeploymentsCreateDeploymentRequestBodyUnion,
