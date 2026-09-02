@@ -573,38 +573,6 @@ components:
             required:
                 - project
                 - app
-            not:
-                allOf:
-                    - not:
-                        required:
-                            - name
-                    - not:
-                        required:
-                            - slug
-                    - not:
-                        required:
-                            - git
-                    - not:
-                        required:
-                            - oci
-                    - not:
-                        required:
-                            - deleteProtection
-            dependentSchemas:
-                oci:
-                    allOf:
-                        - not:
-                            required:
-                                - name
-                        - not:
-                            required:
-                                - slug
-                        - not:
-                            required:
-                                - git
-                        - not:
-                            required:
-                                - deleteProtection
             properties:
                 project:
                     "$ref": "#/components/schemas/ResourceIdentifier"

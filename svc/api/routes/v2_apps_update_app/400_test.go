@@ -36,13 +36,14 @@ func TestUpdateAppBadRequest(t *testing.T) {
 	longName := strings.Repeat("a", 257)
 
 	testCases := []struct {
-		name string
-		req  handler.Request
+		name       string
+		req        handler.Request
+		wantDetail string
 	}{
 		{name: "missing project and app", req: handler.Request{}},
 		{name: "missing app", req: handler.Request{Project: validProject}},
 		{name: "missing project", req: handler.Request{App: validID}},
-		{name: "no updates", req: handler.Request{Project: validProject, App: validID}},
+		{name: "no updates", req: handler.Request{Project: validProject, App: validID}, wantDetail: "Provide at least one field to update."},
 		{name: "app with invalid chars", req: handler.Request{Project: validProject, App: "app.1234"}},
 		{name: "app too long", req: handler.Request{Project: validProject, App: strings.Repeat("a", 256)}},
 		{name: "project with invalid chars", req: handler.Request{Project: "pay.ments", App: validID}},
@@ -73,6 +74,7 @@ func TestUpdateAppBadRequest(t *testing.T) {
 				Name:    ptr.P("App"),
 				Oci:     &openapi.AppOCI{Image: "nginx:stable"},
 			},
+			wantDetail: "Update the OCI image in a separate request.",
 		},
 		{
 			name: "OCI image combined with slug update",
@@ -82,6 +84,7 @@ func TestUpdateAppBadRequest(t *testing.T) {
 				Slug:    ptr.P(openapi.ResourceIdentifier("new-slug")),
 				Oci:     &openapi.AppOCI{Image: "nginx:stable"},
 			},
+			wantDetail: "Update the OCI image in a separate request.",
 		},
 		{
 			name: "OCI image combined with git update",
@@ -91,6 +94,7 @@ func TestUpdateAppBadRequest(t *testing.T) {
 				Git:     nullable.NewNullNullable[openapi.AppGitUpdateInput](),
 				Oci:     &openapi.AppOCI{Image: "nginx:stable"},
 			},
+			wantDetail: "Update the OCI image in a separate request.",
 		},
 		{
 			name: "OCI image combined with delete protection update",
@@ -100,6 +104,7 @@ func TestUpdateAppBadRequest(t *testing.T) {
 				Oci:              &openapi.AppOCI{Image: "nginx:stable"},
 				DeleteProtection: ptr.P(true),
 			},
+			wantDetail: "Update the OCI image in a separate request.",
 		},
 	}
 
@@ -110,7 +115,12 @@ func TestUpdateAppBadRequest(t *testing.T) {
 			require.NotEmpty(t, res.Body.Meta.RequestId)
 			require.Equal(t, "Bad Request", res.Body.Error.Title)
 			require.Equal(t, http.StatusBadRequest, res.Body.Error.Status)
-			require.Greater(t, len(res.Body.Error.Errors), 0)
+			if tc.wantDetail == "" {
+				require.Greater(t, len(res.Body.Error.Errors), 0)
+			} else {
+				require.Equal(t, tc.wantDetail, res.Body.Error.Detail)
+				require.Empty(t, res.Body.Error.Errors)
+			}
 		})
 	}
 
