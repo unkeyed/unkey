@@ -12,7 +12,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
-	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_apps_create_app"
 )
 
@@ -69,7 +68,6 @@ func TestCreateAppForbidden(t *testing.T) {
 				Project: projectSlug,
 				Name:    "App",
 				Slug:    "app-slug",
-				Oci:     &openapi.AppOCIInput{Image: "nginx:stable"},
 			})
 			if tc.shouldPass {
 				require.Equal(t, 200, res.Status, "expected 200 for %v, got: %s", tc.permissions, res.RawBody)

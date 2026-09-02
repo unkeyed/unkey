@@ -1,9 +1,13 @@
 type: object
+description: An app's OCI image source.
 required:
   - image
 properties:
   image:
     type: string
-    description: The configured default OCI image reference for new deployments.
+    minLength: 1
+    maxLength: 256
+    pattern: "\\S"
+    description: The configured default OCI image reference for new deployments. It must include an explicit tag or digest.
     example: ghcr.io/acme/api:v1.2.3
 additionalProperties: false

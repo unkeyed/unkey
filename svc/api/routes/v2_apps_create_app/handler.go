@@ -65,15 +65,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			"multiple app sources provided",
 			fault.Code(codes.App.Validation.InvalidInput.URN()),
 			fault.Internal("git and OCI are mutually exclusive"),
-			fault.Public("Provide exactly one of git or oci."),
-		)
-	}
-	if req.Git == nil && req.Oci == nil {
-		return fault.New(
-			"app source is required",
-			fault.Code(codes.App.Validation.InvalidInput.URN()),
-			fault.Internal("neither git nor OCI source was provided"),
-			fault.Public("Provide exactly one of git or oci."),
+			fault.Public("Provide only one of git or oci."),
 		)
 	}
 
