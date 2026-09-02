@@ -62,9 +62,11 @@ func TestGetKeyByKey(t *testing.T) {
 
 	// Create test key with identity and encryption using testutil helper
 	keyName := "test-key"
+	prefix := "prod_sk"
 	key := h.CreateKey(seed.CreateKeyRequest{
 		WorkspaceID: workspace.ID,
 		KeySpaceID:  api.KeyAuthID.String,
+		Prefix:      prefix,
 		Name:        &keyName,
 		IdentityID:  &identity.ID,
 	})
@@ -102,6 +104,7 @@ func TestGetKeyByKey(t *testing.T) {
 		require.Equal(t, 200, res.Status, "Expected status code 200, got %s", res.RawBody)
 		require.NotNil(t, res.Body)
 		require.Equal(t, res.Body.Data.KeyId, keyID)
+		require.Equal(t, key.Key[:len(prefix)+5], res.Body.Data.Start)
 	})
 
 }
@@ -139,6 +142,7 @@ func TestWhoamiWithURNPermission(t *testing.T) {
 	require.Equal(t, 200, res.Status, "Expected status code 200, got %s", res.RawBody)
 	require.NotNil(t, res.Body)
 	require.Equal(t, key.KeyID, res.Body.Data.KeyId)
+	require.Equal(t, key.Key[:4], res.Body.Data.Start)
 }
 
 func TestGetKey_AdditionalScenarios(t *testing.T) {

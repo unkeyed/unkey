@@ -415,10 +415,12 @@ func (s *Seeder) CreateRootKey(ctx context.Context, workspaceID string, permissi
 	insertKeyParams := db.InsertKeyParams{
 		ID:                 uid.New("test_root_key"),
 		Hash:               hash.Sha256(key),
+		Prefix:             "",
 		WorkspaceID:        s.Resources.RootWorkspace.ID,
 		ForWorkspaceID:     sql.NullString{String: workspaceID, Valid: true},
 		KeySpaceID:         s.Resources.RootKeySpace.ID,
 		Start:              key[:4],
+		End:                key[len(key)-4:],
 		CreatedAtM:         time.Now().UnixMilli(),
 		Enabled:            true,
 		Name:               sql.NullString{String: "", Valid: false},
@@ -481,6 +483,7 @@ type CreateKeyRequest struct {
 	Disabled       bool
 	WorkspaceID    string
 	KeySpaceID     string
+	Prefix         string
 	Remaining      *int64
 	IdentityID     *string
 	Meta           *string
@@ -515,8 +518,11 @@ type CreateKeyResponse struct {
 // Vault service is configured, the key is encrypted and stored for recovery.
 func (s *Seeder) CreateKey(ctx context.Context, req CreateKeyRequest) CreateKeyResponse {
 	keyID := uid.New(uid.KeyPrefix)
-	key := uid.New("")
-	start := key[:4]
+	random := uid.New("")
+	key := random
+	if req.Prefix != "" {
+		key = req.Prefix + "_" + random
+	}
 
 	err := db.Query.InsertKey(ctx, s.DB.RW(), db.InsertKeyParams{
 		ID:                 keyID,
@@ -524,8 +530,10 @@ func (s *Seeder) CreateKey(ctx context.Context, req CreateKeyRequest) CreateKeyR
 		WorkspaceID:        req.WorkspaceID,
 		CreatedAtM:         time.Now().UnixMilli(),
 		Hash:               hash.Sha256(key),
+		Prefix:             req.Prefix,
 		Enabled:            !req.Disabled,
-		Start:              start,
+		Start:              random[:4],
+		End:                key[len(key)-4:],
 		Name:               sql.NullString{String: ptr.SafeDeref(req.Name, "test-key"), Valid: true},
 		ForWorkspaceID:     sql.NullString{String: ptr.SafeDeref(req.ForWorkspaceID, ""), Valid: req.ForWorkspaceID != nil},
 		Meta:               sql.NullString{String: ptr.SafeDeref(req.Meta, ""), Valid: req.Meta != nil},

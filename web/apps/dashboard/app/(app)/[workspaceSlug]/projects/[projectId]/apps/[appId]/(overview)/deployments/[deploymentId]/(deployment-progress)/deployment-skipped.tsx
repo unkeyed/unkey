@@ -6,10 +6,12 @@ import { Button, SettingCardGroup } from "@unkey/ui";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useProjectData } from "../../../data-provider";
+import { useDeployment } from "../layout-provider";
 import { DeploymentStep } from "./deployment-step";
 
 export function DeploymentSkipped() {
   const { projectId } = useProjectData();
+  const { deployment } = useDeployment();
   const params = useParams();
   const workspaceSlug = params.workspaceSlug as string;
 
@@ -66,7 +68,8 @@ export function DeploymentSkipped() {
           <div className="flex flex-col gap-0.5">
             <span className="text-sm font-medium text-gray-12">Deployment skipped</span>
             <span className="text-xs text-gray-11">
-              This deployment was skipped. Check your watch paths and auto deploy settings.
+              {deployment.triggerReason ??
+                "This deployment was skipped. Check your watch paths and auto deploy settings."}
             </span>
           </div>
         </div>

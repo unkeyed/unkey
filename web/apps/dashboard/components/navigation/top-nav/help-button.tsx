@@ -36,7 +36,7 @@ export const HelpButton: React.FC = () => {
               <span className="text-accent-12 text-sm font-medium">Docs</span>
             </DropdownMenuItem>
           </Link>
-          <Link href="https://unkey.com/docs/api-reference/v2/overview" target="_blank">
+          <Link href="https://unkey.com/docs/api-reference/overview" target="_blank">
             <DropdownMenuItem className="cursor-pointer w-full">
               <BracketsCurly className="size-4 mr-3 text-gray-9" />
               <span className="text-accent-12 text-sm font-medium">API Reference</span>

@@ -12,6 +12,9 @@ import (
 	"github.com/unkeyed/unkey/pkg/hash"
 )
 
+// CreateKey generates a key for legacy API routes.
+//
+// Deprecated: Use [service.CreateKeyV1] for new key creation paths.
 func (s *service) CreateKey(ctx context.Context, req CreateKeyRequest) (CreateKeyResponse, error) {
 	// Validate input parameters
 	err := assert.InRange(req.ByteLength, 16, 255, "byte length must be between 16 and 255")
@@ -40,7 +43,6 @@ func (s *service) CreateKey(ctx context.Context, req CreateKeyRequest) (CreateKe
 	// Add prefix if provided and not empty
 	if req.Prefix != "" {
 		fullKey = fmt.Sprintf("%s_%s", req.Prefix, encodedKey)
-		start = fmt.Sprintf("%s_%s", req.Prefix, encodedKey[:4])
 	}
 
 	return CreateKeyResponse{

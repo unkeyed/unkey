@@ -11,7 +11,9 @@ import {
 import {
   Badge,
   Button,
-  Input,
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
   Select,
   SelectContent,
   SelectItem,
@@ -156,14 +158,19 @@ export const DiffViewerContent: React.FC<DiffViewerContentProps> = ({
 
       {/* Filters */}
       <div className="px-4 pb-4 flex gap-2.5 items-center">
-        <Input
-          type="text"
-          value={filters.searchQuery}
-          onChange={(e) => setFilters((p) => ({ ...p, searchQuery: e.target.value }))}
-          placeholder="Search changes..."
-          leftIcon={<InputSearch iconSize="sm-regular" className="text-grayA-9" />}
-          rightIcon={
-            filters.searchQuery ? (
+        <InputGroup className="flex-1 h-9 rounded-md">
+          <InputGroupAddon className="pointer-events-none">
+            <InputSearch iconSize="sm-regular" className="text-grayA-9" />
+          </InputGroupAddon>
+          <InputGroupInput
+            type="text"
+            value={filters.searchQuery}
+            onChange={(e) => setFilters((p) => ({ ...p, searchQuery: e.target.value }))}
+            placeholder="Search changes..."
+            className="text-xs h-9"
+          />
+          {filters.searchQuery ? (
+            <InputGroupAddon align="inline-end">
               <button
                 type="button"
                 onClick={() => setFilters((p) => ({ ...p, searchQuery: "" }))}
@@ -171,11 +178,9 @@ export const DiffViewerContent: React.FC<DiffViewerContentProps> = ({
               >
                 <CircleXMark iconSize="sm-regular" className="text-grayA-9 hover:text-grayA-12" />
               </button>
-            ) : null
-          }
-          wrapperClassName="flex-1"
-          className="text-xs h-9 rounded-md"
-        />
+            </InputGroupAddon>
+          ) : null}
+        </InputGroup>
         <Select
           value={filters.level?.toString() || "all"}
           onValueChange={(value) =>

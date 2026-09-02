@@ -10,7 +10,7 @@ import * as React from "react";
  * shadcn's "multiple" pattern: selected values render as removable chips
  * inside the trigger surface alongside an inline filter input.
  *
- * For single-select, use `Combobox` from `./combobox` instead.
+ * For single-select, use `Combobox` from `@unkey/ui` instead.
  */
 export function Multibox<Value>(
   props: Omit<ComboboxPrimitive.Root.Props<Value, true>, "multiple">,
@@ -31,7 +31,7 @@ export function MultiboxChips({ className, ...props }: ComboboxPrimitive.Chips.P
   return (
     <ComboboxPrimitive.Chips
       className={cn(
-        "relative flex min-h-9 w-full flex-wrap items-center gap-1.5 rounded-lg border border-gray-5 bg-gray-2 px-1.5 py-1 pr-8 text-[13px] leading-5 text-grayA-12 transition-colors duration-300 dark:bg-black",
+        "relative flex min-h-9 w-full flex-wrap items-center gap-1.5 rounded-lg border border-gray-5 bg-white px-1.5 py-1 pr-8 text-[13px] leading-5 text-grayA-12 transition-colors duration-300 dark:bg-black",
         "hover:border-gray-8",
         "focus-within:border-accent-12 focus-within:ring-2 focus-within:ring-gray-5",
         "data-disabled:cursor-not-allowed data-disabled:opacity-50",
