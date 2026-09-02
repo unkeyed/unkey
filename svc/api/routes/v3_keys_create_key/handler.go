@@ -106,8 +106,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	err = principal.Authorize(rbac.U(
-		urn.New().Workspace(principal.WorkspaceID).Keyspace(keySpace.ID),
-		permissions.CreateKey{},
+		urn.New().Workspace(principal.WorkspaceID).Project(keySpace.ProjectID).Keyspace(keySpace.ID).Key("*"),
+		permissions.Write,
 	))
 	if err != nil {
 		return apierrors.MaskInsufficientPermissionsAsNotFound(
@@ -161,18 +161,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			return fault.New("vault missing",
 				fault.Code(codes.App.Precondition.PreconditionFailed.URN()),
 				fault.Public("Vault hasn't been set up."),
-			)
-		}
-
-		err = principal.Authorize(rbac.U(
-			urn.New().Workspace(principal.WorkspaceID).Keyspace(keySpace.ID).Key("*"),
-			permissions.EncryptKey{},
-		))
-		if err != nil {
-			return apierrors.MaskInsufficientPermissionsAsNotFound(
-				err,
-				codes.Data.KeyAuth.NotFound.URN(),
-				"The specified keyspace was not found.",
 			)
 		}
 
@@ -391,6 +379,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				var existingPermissions []db.Permission
 				existingPermissions, err = db.Query.FindPermissionsBySlugs(ctx, tx, db.FindPermissionsBySlugsParams{
 					WorkspaceID: principal.WorkspaceID,
+					ProjectID:   projectID,
 					Slugs:       *req.Permissions,
 				})
 				if err != nil {
@@ -507,6 +496,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				var existingRoles []db.FindRolesByNamesRow
 				existingRoles, err = db.Query.FindRolesByNames(ctx, tx, db.FindRolesByNamesParams{
 					WorkspaceID: principal.WorkspaceID,
+					ProjectID:   projectID,
 					Names:       *req.Roles,
 				})
 				if err != nil {
