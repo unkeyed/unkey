@@ -7,7 +7,7 @@ post:
 
     The endpoint generates a secure key.
 
-    Pass the returned key to your user. You can retrieve it later only if `recoverable` is `true`.
+    Pass the returned key to your user. If `recoverable` is `true`, use `/v2/keys.getKey` with the key ID to retrieve it later.
 
     **Required permissions**
 
