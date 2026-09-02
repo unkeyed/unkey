@@ -31,7 +31,7 @@ export function UsagePanel({ summary }: { summary: UsageSummary }) {
           !folded && "px-2.5 pt-2 pb-1.5",
         )}
       >
-        {folded ? null : <span className="min-w-0 truncate text-gray-12">Usage</span>}
+        {folded ? null : <span className="min-w-0 truncate font-medium text-gray-12">Usage</span>}
         {summary.atRisk ? null : (
           <button
             type="button"
@@ -46,7 +46,7 @@ export function UsagePanel({ summary }: { summary: UsageSummary }) {
                 : "-mr-1 ml-auto size-5 justify-center",
             )}
           >
-            {folded ? <span className="flex-1 truncate text-gray-12">Usage</span> : null}
+            {folded ? <span className="flex-1 truncate font-medium text-gray-12">Usage</span> : null}
             <Toggle rotated={!folded} />
           </button>
         )}
