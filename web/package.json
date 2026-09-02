@@ -15,7 +15,9 @@
     "test": "turbo run test --concurrency=1",
     "bootstrap": "turbo run bootstrap",
     "up": "docker compose -f ./dev/docker-compose.yaml up",
-    "migrate": "pnpm turbo run migrate"
+    "migrate": "pnpm turbo run migrate",
+    "lint:icons": "biome check --config-path=biome/plugins/fixtures/biome.fixture.json biome/plugins/fixtures/nucleo-icons.tsx",
+    "lint:icons:generate": "node biome/plugins/generate-nucleo-undersized.mjs"
   },
   "author": "Andreas Thomas",
   "license": "AGPL-3.0",

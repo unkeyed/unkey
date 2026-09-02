@@ -1,5 +1,6 @@
 {
   "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
+  "plugins": ["./biome/plugins/nucleo-icons.grit", "./biome/plugins/nucleo-undersized-18.grit"],
   "files": {
     "maxSize": 1572864
   },
@@ -99,6 +100,7 @@
     },
     "includes": [
       "**",
+      "!biome/plugins/fixtures/**",
       "!**/.vitest",
       "!**/node_modules",
       "!**/.next",
