@@ -28,7 +28,7 @@ export const SettingsClient = ({ apiId }: { apiId: string }) => {
     throw new Error(`Failed to fetch settings data: ${error.message}`);
   }
 
-  if (!layoutData || !layoutData.keyAuth) {
+  if (!layoutData?.keyAuth) {
     throw new Error("KeyAuth configuration not found");
   }
 

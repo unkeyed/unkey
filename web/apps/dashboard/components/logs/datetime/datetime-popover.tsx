@@ -175,7 +175,7 @@ export const DatetimePopover = ({
   };
 
   const getInitialRange = (): Range => {
-    let fromDate;
+    let fromDate: Date | undefined;
     if (startTime) {
       const date = new Date(startTime);
       // Only use if valid, otherwise start clean
@@ -184,7 +184,7 @@ export const DatetimePopover = ({
       }
     }
 
-    let toDate;
+    let toDate: Date | undefined;
     if (!singleDateMode && endTime) {
       const date = new Date(endTime);
       if (isDateInRange(date)) {

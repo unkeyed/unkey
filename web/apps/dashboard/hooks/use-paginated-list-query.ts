@@ -446,7 +446,7 @@ export function usePaginatedListQuery<
         continue;
       }
       const fieldConfig = filterFieldConfig[filter.field];
-      if (!fieldConfig || !fieldConfig.operators.includes(filter.operator)) {
+      if (!fieldConfig?.operators.includes(filter.operator)) {
         continue;
       }
       if (typeof filter.value === "string") {
