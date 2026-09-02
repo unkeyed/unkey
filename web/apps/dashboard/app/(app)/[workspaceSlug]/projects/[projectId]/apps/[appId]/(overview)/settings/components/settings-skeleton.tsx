@@ -1,8 +1,8 @@
 import { collection } from "@/lib/collections";
 import { and, eq, useLiveQuery } from "@tanstack/react-db";
-import { CircleHalfDottedClock, Gear } from "@unkey/icons";
 import { SettingCardGroup } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
+import { IconCircleHalfDottedClockOutline18, IconGearOutline18 } from "nucleo-ui-outline-18";
 import { useAppId, useProjectData } from "../../data-provider";
 import { SettingsGroup } from "./shared/settings-group";
 
@@ -142,7 +142,7 @@ export function SettingsSkeleton() {
         </SettingCardGroup>
       ) : null}
       <SettingsGroup
-        icon={<CircleHalfDottedClock iconSize="md-medium" />}
+        icon={<IconCircleHalfDottedClockOutline18 />}
         title="Runtime settings"
         hideChevron
       >
@@ -150,11 +150,7 @@ export function SettingsSkeleton() {
           <CardRows rows={RUNTIME_ROWS} />
         </SettingCardGroup>
       </SettingsGroup>
-      <SettingsGroup
-        icon={<Gear iconSize="md-medium" />}
-        title="Advanced configurations"
-        hideChevron
-      >
+      <SettingsGroup icon={<IconGearOutline18 />} title="Advanced configurations" hideChevron>
         <SettingCardGroup>
           <CardRows rows={ADVANCED_ROWS} />
         </SettingCardGroup>

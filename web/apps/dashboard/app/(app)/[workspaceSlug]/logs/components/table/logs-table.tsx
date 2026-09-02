@@ -4,8 +4,12 @@ import { VirtualTable } from "@/components/virtual-table/index";
 import type { Column } from "@/components/virtual-table/types";
 import { cn } from "@/lib/utils";
 import type { Log } from "@unkey/clickhouse/src/logs";
-import { BookBookmark, CircleXMark, TriangleWarning2 } from "@unkey/icons";
 import { Badge, Button, Empty, TimestampInfo } from "@unkey/ui";
+import {
+  IconBookBookmarkOutline18,
+  IconCircleXmarkOutline18,
+  IconTriangleWarningOutline18,
+} from "nucleo-ui-outline-18";
 import { useMemo } from "react";
 import { isDisplayProperty, useLogsContext } from "../../context/logs";
 import { extractResponseField } from "../../utils";
@@ -84,10 +88,9 @@ const StatusIcon = ({ status }: { status: number }) => {
     return <span className={cn(STATUS_ICON_STYLES.base, "invisible")} />;
   }
   const isError = status >= 500;
-  const Icon = isError ? CircleXMark : TriangleWarning2;
+  const Icon = isError ? IconCircleXmarkOutline18 : IconTriangleWarningOutline18;
   return (
     <Icon
-      iconSize="lg-medium"
       className={cn(
         STATUS_ICON_STYLES.base,
         isError ? STATUS_ICON_STYLES.error : STATUS_ICON_STYLES.warning,
@@ -290,7 +293,7 @@ export const LogsTable = () => {
                 rel="noopener noreferrer"
               >
                 <Button size="md">
-                  <BookBookmark />
+                  <IconBookBookmarkOutline18 />
                   Documentation
                 </Button>
               </a>

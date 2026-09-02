@@ -1,6 +1,6 @@
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
-import { Check } from "@unkey/icons";
+import { IconCheckOutline18 } from "nucleo-ui-outline-18";
 import type { KeyboardEvent, PropsWithChildren } from "react";
 import { useEffect, useRef, useState } from "react";
 import type { SuggestionOption } from "./types";
@@ -111,7 +111,7 @@ export const DateTimeSuggestions = ({ className, options, onChange }: Suggestion
                 <span>{display}</span>
                 {checked && (
                   <div className="size-4" aria-hidden="true">
-                    <Check className="text-gray-12/90 size-4" />
+                    <IconCheckOutline18 className="text-gray-12/90 size-4" />
                   </div>
                 )}
               </button>

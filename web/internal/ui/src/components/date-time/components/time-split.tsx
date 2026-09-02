@@ -1,6 +1,6 @@
 import { format } from "date-fns";
 
-import { Clock } from "@unkey/icons";
+import { IconClockOutline18 } from "nucleo-ui-outline-18";
 import { useState } from "react";
 // biome-ignore lint: React in this context is used throughout, so biome will change to types because no APIs are used even though React is needed.
 import * as React from "react";
@@ -130,7 +130,7 @@ const TimeSplitInput: React.FC<TimeSplitInputProps> = ({ type }) => {
         focus ? " border-gray-10" : "border-grayA-4",
       )}
     >
-      <Clock className="text-gray-9 m-3 " />
+      <IconClockOutline18 className="text-gray-9 m-3" />
       <TimeInput field="HH" ariaLabel="Hours" />
       <span className="text-gray-12 leading-6 tracking-normal font-medium text-[13px]">:</span>
       <TimeInput field="mm" ariaLabel="Minutes" />

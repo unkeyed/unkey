@@ -1,6 +1,6 @@
 import { LastExitBadge } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/active-deployment-card";
 import { trpc } from "@/lib/trpc/client";
-import { Layers3 } from "@unkey/icons";
+import { IconLayers3Outline18 } from "nucleo-ui-outline-18";
 import { CardFooter } from "./components/card-footer";
 import { CardHeader } from "./components/card-header";
 import { NodeWrapper } from "./node-wrapper/node-wrapper";
@@ -59,7 +59,7 @@ export function InstanceNode({ node, flagCode, deploymentId }: InstanceNodeProps
         type="instance"
         icon={
           <div className="border rounded-[10px] size-9 flex items-center justify-center border-grayA-5 bg-grayA-2">
-            <Layers3 iconSize="lg-medium" className="text-gray-11" />
+            <IconLayers3Outline18 className="size-4 text-gray-11" />
           </div>
         }
         title={node.label}

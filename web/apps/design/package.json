@@ -18,6 +18,9 @@
     "@unkey/tsconfig": "workspace:^",
     "@unkey/ui": "workspace:^",
     "blume": "1.3.1",
+    "nucleo-ui-fill-18": "1.5.0",
+    "nucleo-ui-outline-12": "1.5.0",
+    "nucleo-ui-outline-18": "1.5.0",
     "react": "19.2.3",
     "react-dom": "19.2.3"
   }

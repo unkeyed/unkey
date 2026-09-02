@@ -4,7 +4,7 @@ import { StatsListCard } from "@/components/stats-list-card";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { formatMs } from "@/lib/ms";
 import { routes } from "@/lib/navigation/routes";
-import { Clock } from "@unkey/icons";
+import { IconClockOutline18 } from "nucleo-ui-outline-18";
 import type { NamespaceTimeseries } from "../hooks/use-batch-timeseries";
 
 type Props = {
@@ -40,7 +40,7 @@ export function NamespaceCard({ namespace, timeseries, isLoading, isError }: Pro
       labels={{ success: "Passed", error: "Blocked" }}
       footerLeft={
         <span className="flex items-center gap-1.5 min-w-0">
-          <Clock className="shrink-0" />
+          <IconClockOutline18 className="shrink-0" />
           <span className="truncate">
             {lastRatelimit
               ? `${formatMs(Date.now() - lastRatelimit.originalTimestamp, { long: true })} ago`

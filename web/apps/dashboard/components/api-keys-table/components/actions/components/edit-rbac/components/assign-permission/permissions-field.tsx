@@ -2,8 +2,8 @@ import { StatusBadge } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/settings/c
 import { SelectedItemsList } from "@/components/selected-item-list";
 import { FormCombobox } from "@/components/ui/form-combobox";
 import type { KeyPermission, KeyRole } from "@/lib/trpc/routers/key/rbac/connected-roles-and-perms";
-import { Page2 } from "@unkey/icons";
 import { InfoTooltip } from "@unkey/ui";
+import { IconPage2Outline12 } from "nucleo-ui-outline-12";
 import { useMemo, useState } from "react";
 import { useWatch } from "react-hook-form";
 import { createPermissionOptions } from "./create-permission-options";
@@ -230,7 +230,7 @@ export const PermissionField = ({
         disabled={disabled}
         onRemoveItem={handleRemovePermission}
         isItemRemovable={(permission) => !permission.isInherited}
-        renderIcon={() => <Page2 iconSize="sm-regular" className="text-grayA-11" />}
+        renderIcon={() => <IconPage2Outline12 className="text-grayA-11" />}
         renderPrimaryText={(permission) => permission.name}
         enableTransitions
         renderSecondaryText={(permission) => permission.slug}

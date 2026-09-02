@@ -1,6 +1,6 @@
 import { cn } from "@/lib/utils";
-import { XMark } from "@unkey/icons";
 import { Badge, Button } from "@unkey/ui";
+import { IconXmarkOutline18 } from "nucleo-ui-outline-18";
 import type { StandardLogTypes } from "..";
 
 type Props = {
@@ -33,7 +33,7 @@ export const LogHeader = ({ onClose, log }: Props) => {
       <div className="flex gap-1 items-center shrink-0">
         <div className="flex gap-3">
           <Button size="icon" variant="ghost" onClick={onClose} className="[&_svg]:size-3">
-            <XMark className="text-grayA-9 stroke-2" iconSize="sm-regular" />
+            <IconXmarkOutline18 className="text-grayA-9 stroke-2" />
           </Button>
         </div>
       </div>

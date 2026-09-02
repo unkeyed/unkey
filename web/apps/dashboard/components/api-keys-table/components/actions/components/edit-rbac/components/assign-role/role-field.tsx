@@ -1,7 +1,7 @@
 import { SelectedItemsList } from "@/components/selected-item-list";
 import { FormCombobox } from "@/components/ui/form-combobox";
 import type { KeyRole } from "@/lib/trpc/routers/key/rbac/connected-roles-and-perms";
-import { Tag } from "@unkey/icons";
+import { IconTagOutline12 } from "nucleo-ui-outline-12";
 import { useMemo, useState } from "react";
 import { createRoleOptions } from "./create-key-options";
 import { useFetchKeysRoles } from "./hooks/use-fetch-keys-roles";
@@ -163,7 +163,7 @@ export const RoleField = ({
         }))}
         disabled={disabled}
         onRemoveItem={handleRemoveRole}
-        renderIcon={() => <Tag iconSize="sm-regular" className="text-grayA-11" />}
+        renderIcon={() => <IconTagOutline12 className="text-grayA-11" />}
         enableTransitions
         renderPrimaryText={(role) => role.name || "Unnamed Role"}
         renderSecondaryText={(role) => ("description" in role && role.description) || role.id}

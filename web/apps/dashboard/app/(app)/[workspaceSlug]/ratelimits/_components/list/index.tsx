@@ -1,8 +1,8 @@
 import { StatsListCardSkeleton } from "@/components/stats-list-card/skeleton";
 import { collection } from "@/lib/collections";
 import { ilike, useLiveQuery } from "@tanstack/react-db";
-import { Bookmark } from "@unkey/icons";
 import { Button, CopyButton, Empty, ResourceListContent } from "@unkey/ui";
+import { IconBookmarkOutline18 } from "nucleo-ui-outline-18";
 import { useMemo } from "react";
 import { useBatchRatelimitTimeseries } from "../hooks/use-batch-timeseries";
 import { useNamespaceListFilters } from "../hooks/use-namespace-list-filters";
@@ -74,7 +74,7 @@ export const NamespaceList = () => {
                 rel="noopener noreferrer"
               >
                 <Button className="flex items-center gap-2">
-                  <Bookmark className="w-4 h-4" />
+                  <IconBookmarkOutline18 className="w-4 h-4" />
                   Read the docs
                 </Button>
               </a>

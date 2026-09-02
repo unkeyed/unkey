@@ -1,7 +1,14 @@
 "use client";
 
-import { BookBookmark, Fingerprint, Gauge, Key, Nodes, ShieldKey } from "@unkey/icons";
 import { Button, EmptyHero } from "@unkey/ui";
+import {
+  IconBookBookmarkOutline18,
+  IconFingerprintOutline18,
+  IconGaugeOutline18,
+  IconKeyOutline18,
+  IconNodesOutline18,
+  IconShieldKeyOutline18,
+} from "nucleo-ui-outline-18";
 import { CreateApiButton } from "./create-api-button";
 
 export function EmptyKeyspaces({
@@ -14,11 +21,11 @@ export function EmptyKeyspaces({
   return (
     <EmptyHero>
       <EmptyHero.Icons>
-        <Gauge iconSize="md-medium" />
-        <Fingerprint iconSize="md-medium" />
-        <Key iconSize="md-thin" />
-        <ShieldKey iconSize="md-medium" />
-        <Nodes iconSize="md-medium" />
+        <IconGaugeOutline18 className="size-4" />
+        <IconFingerprintOutline18 className="size-4" />
+        <IconKeyOutline18 className="size-4" />
+        <IconShieldKeyOutline18 className="size-4" />
+        <IconNodesOutline18 className="size-4" />
       </EmptyHero.Icons>
       <EmptyHero.Title>Create your first keyspace</EmptyHero.Title>
       <EmptyHero.Description>
@@ -32,7 +39,7 @@ export function EmptyKeyspaces({
           rel="noopener noreferrer"
         >
           <Button variant="outline" size="md">
-            <BookBookmark />
+            <IconBookBookmarkOutline18 />
             Read the docs
           </Button>
         </a>

@@ -6,8 +6,8 @@ import { freeTierLimits } from "@/lib/limits";
 import { mapRegionToFlag } from "@/lib/trpc/routers/deploy/network/utils";
 import { useWorkspace } from "@/providers/workspace-provider";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Connections3 } from "@unkey/icons";
 import { Slider } from "@unkey/ui";
+import { IconConnections3Outline18 } from "nucleo-ui-outline-18";
 import { useContext, useEffect, useMemo } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
@@ -173,7 +173,7 @@ const SingleMode = () => {
 
   return (
     <FormSettingCard
-      icon={<Connections3 className="text-gray-12" iconSize="xl-medium" />}
+      icon={<IconConnections3Outline18 className="text-gray-12" />}
       title="Instances"
       description={description}
       displayValue={<span className="font-medium text-gray-12">{displayParts.value}</span>}
@@ -368,7 +368,7 @@ const DualInner = ({ production, preview }: DualInnerProps) => {
 
   return (
     <FormSettingCard
-      icon={<Connections3 className="text-gray-12" iconSize="xl-medium" />}
+      icon={<IconConnections3Outline18 className="text-gray-12" />}
       title="Instances"
       description={description}
       displayValue={

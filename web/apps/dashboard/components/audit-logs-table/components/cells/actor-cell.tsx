@@ -1,5 +1,5 @@
 import type { AuditLog } from "@/lib/trpc/routers/audit/schema";
-import { Key, MathFunction } from "@unkey/icons";
+import { IconKeyOutline18, IconMathFunctionOutline18 } from "nucleo-ui-outline-18";
 
 type ActorCellProps = {
   log: AuditLog;
@@ -21,7 +21,11 @@ export const ActorCell = ({ log }: ActorCellProps) => {
           </span>
         ) : (
           <>
-            {isKey ? <Key iconSize="sm-thin" /> : <MathFunction iconSize="sm-thin" />}
+            {isKey ? (
+              <IconKeyOutline18 className="size-3" />
+            ) : (
+              <IconMathFunctionOutline18 className="size-3" />
+            )}
             <span className="font-mono text-xs truncate secret">{log.auditLog.actor.id}</span>
           </>
         )}

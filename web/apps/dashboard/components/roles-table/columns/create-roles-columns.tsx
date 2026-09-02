@@ -1,5 +1,4 @@
 import type { RoleBasic } from "@/lib/trpc/routers/authorization/roles/query";
-import { Key2, Page2, Tag } from "@unkey/icons";
 import type { DataTableColumnDef } from "@unkey/ui";
 import {
   AssignedCountCell,
@@ -9,6 +8,7 @@ import {
   SortableHeader,
 } from "@unkey/ui";
 import dynamic from "next/dynamic";
+import { IconKey2Outline18, IconPage2Outline18, IconTagOutline18 } from "nucleo-ui-outline-18";
 
 const RolesTableActions = dynamic(
   () =>
@@ -69,9 +69,7 @@ export const createRolesColumns = ({
         <SelectableNameCell
           name={role.name}
           description={role.description}
-          icon={
-            <Tag iconSize="sm-regular" className="text-gray-12 cursor-pointer w-[12px] h-[12px]" />
-          }
+          icon={<IconTagOutline18 className="text-gray-12 cursor-pointer w-[12px] h-[12px]" />}
           isSelected={selectedRoles.has(role.roleId)}
           isHovered={hoveredRoleName === role.name}
           onMouseEnter={() => onHoverRole(role.name)}
@@ -102,7 +100,7 @@ export const createRolesColumns = ({
       return (
         <AssignedCountCell
           count={role.assignedKeys}
-          icon={<Key2 iconSize="md-medium" className="opacity-50" />}
+          icon={<IconKey2Outline18 className="size-4 opacity-50" />}
           singularLabel="Key"
           isSelected={role.roleId === selectedRoleId}
         />
@@ -130,7 +128,7 @@ export const createRolesColumns = ({
       return (
         <AssignedCountCell
           count={role.assignedPermissions}
-          icon={<Page2 iconSize="md-medium" className="opacity-50" />}
+          icon={<IconPage2Outline18 className="size-4 opacity-50" />}
           singularLabel="Permission"
           isSelected={role.roleId === selectedRoleId}
         />

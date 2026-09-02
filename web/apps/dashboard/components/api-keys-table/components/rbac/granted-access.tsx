@@ -1,5 +1,5 @@
-import { Page2 } from "@unkey/icons";
 import { AnimatePresence, motion } from "framer-motion";
+import { IconPage2Outline12 } from "nucleo-ui-outline-12";
 import { useEffect, useMemo, useState } from "react";
 
 export const GrantedAccess = ({
@@ -45,7 +45,7 @@ export const GrantedAccess = ({
         }}
         className="flex gap-2 items-center bg-grayA-3 rounded-md p-1.5"
       >
-        <Page2 iconSize="sm-regular" className="text-grayA-11" />
+        <IconPage2Outline12 className="text-grayA-11" />
         <span className="text-gray-11 text-xs font-mono">{slug}</span>
       </motion.div>
     ));

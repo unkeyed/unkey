@@ -4,7 +4,6 @@ import { TableActionPopover } from "@/components/logs/table-action.popover";
 import type { Deployment } from "@/lib/collections/deploy/deployments";
 import { imageRefDisplay } from "@/lib/docker-image-ref";
 import { shortenId } from "@/lib/shorten-id";
-import { ArrowDottedRotateAnticlockwise, Ban, Dots } from "@unkey/icons";
 import { match } from "@unkey/match";
 import {
   Button,
@@ -14,6 +13,11 @@ import {
   PageHeaderTitle,
 } from "@unkey/ui";
 import dynamic from "next/dynamic";
+import {
+  IconArrowDottedRotateAnticlockwiseOutline18,
+  IconBanOutline18,
+  IconDotsOutline18,
+} from "nucleo-ui-outline-18";
 import { useState } from "react";
 import { useProjectData } from "../../data-provider";
 import {
@@ -80,12 +84,12 @@ function DeploymentDetailHeaderContent({ deployment }: { deployment: Deployment 
       <PageHeaderActions>
         <TableActionPopover items={items}>
           <Button variant="outline" className="w-7 p-0" aria-label="Open actions">
-            <Dots iconSize="sm-regular" />
+            <IconDotsOutline18 />
           </Button>
         </TableActionPopover>
         {canCancel && (
           <Button variant="outline" onClick={() => setIsCancelOpen(true)}>
-            <Ban iconSize="sm-medium" />
+            <IconBanOutline18 />
             Cancel deployment
           </Button>
         )}
@@ -94,7 +98,7 @@ function DeploymentDetailHeaderContent({ deployment }: { deployment: Deployment 
             variant="outline"
             onClick={() => (gated ? openPaywall() : setIsRedeployOpen(true))}
           >
-            <ArrowDottedRotateAnticlockwise iconSize="sm-regular" />
+            <IconArrowDottedRotateAnticlockwiseOutline18 />
             Redeploy
           </Button>
         )}

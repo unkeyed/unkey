@@ -1,6 +1,6 @@
 import type { Identity } from "@unkey/api/models/components";
-import { User } from "@unkey/icons";
 import { CopyButton, Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@unkey/ui";
+import { IconUserOutline12 } from "nucleo-ui-outline-12";
 
 type IdentitySelectorProps = {
   identities: Identity[];
@@ -34,7 +34,7 @@ export function createIdentityOptions({
               <div className="flex w-full text-accent-8 text-xs gap-1.5 py-0.5 items-center group">
                 <div className="flex items-center justify-center gap-2">
                   <div className="border rounded-full flex items-center justify-center border-grayA-6 size-5">
-                    <User iconSize="sm-regular" className="text-grayA-11" />
+                    <IconUserOutline12 className="text-grayA-11" />
                   </div>
                   <span className="max-w-[200px] truncate font-medium text-accent-12 text-left">
                     {identity.externalId.length > 15
@@ -99,7 +99,7 @@ export function createIdentityOptions({
       <div className="flex w-full text-accent-8 text-xs gap-1.5 py-0.5 items-center">
         <div className="flex items-center justify-center gap-2">
           <div className="border rounded-full flex items-center justify-center border-grayA-6 size-5">
-            <User iconSize="sm-regular" className="text-grayA-11" />
+            <IconUserOutline12 className="text-grayA-11" />
           </div>
           <span className="text-accent-12 font-medium text-xs max-w-[200px] truncate text-left">
             {identity.externalId}
