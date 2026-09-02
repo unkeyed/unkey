@@ -124,8 +124,8 @@ export const FilterOperatorInput = <T extends string>({
             >
               <span>{option.label}</span>
               {selectedOption === option.id && (
-                <div className="h-4 w-4" aria-hidden="true">
-                  <IconCheckOutline18 className="text-gray-12/90 h-4 w-4" />
+                <div className="size-4" aria-hidden="true">
+                  <IconCheckOutline18 className="text-gray-12/90 size-4" />
                 </div>
               )}
             </button>

@@ -17,7 +17,7 @@ export const EmptyQueries = ({ selectedTab, isEmpty }: EmptyQueriesProps) => {
           {selectedTab === 0 ? (
             <IconClockRotateClockwiseOutline18 className="size-7.5 p-0 text-accent-12" />
           ) : (
-            <IconBookmarkOutline18 className="size-7.5 w-full h-full p-0 m-0 text-accent-12" />
+            <IconBookmarkOutline18 className="size-7.5 p-0 m-0 text-accent-12" />
           )}
         </Empty.Icon>
         <Empty.Title className="mt-5">

@@ -7,7 +7,8 @@ import {
   SortableHeader,
 } from "@unkey/ui";
 import dynamic from "next/dynamic";
-import { IconKey2Outline18, IconPage2Outline18, IconTagOutline18 } from "nucleo-ui-outline-18";
+import { IconTagOutline12 } from "nucleo-ui-outline-12";
+import { IconKey2Outline18, IconPage2Outline18 } from "nucleo-ui-outline-18";
 import type { RoleBasic } from "@/lib/trpc/routers/authorization/roles/query";
 
 const RolesTableActions = dynamic(
@@ -69,7 +70,7 @@ export const createRolesColumns = ({
         <SelectableNameCell
           name={role.name}
           description={role.description}
-          icon={<IconTagOutline18 className="text-gray-12 cursor-pointer w-[12px] h-[12px]" />}
+          icon={<IconTagOutline12 className="text-gray-12 cursor-pointer size-3" />}
           isSelected={selectedRoles.has(role.roleId)}
           isHovered={hoveredRoleName === role.name}
           onMouseEnter={() => onHoverRole(role.name)}
