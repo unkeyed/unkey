@@ -25,7 +25,7 @@ export const RedeployDialog = ({ isOpen, onClose, selectedDeployment }: Redeploy
 
   const redeploy = useMutation({
     mutationFn: async () => {
-      const res = await getUnkeyClient().deployments.createDeployment({
+      const res = await getUnkeyClient().deployments.createDeploymentV3({
         project: selectedDeployment.projectId,
         app: selectedDeployment.appId,
         environment: selectedDeployment.environmentId,

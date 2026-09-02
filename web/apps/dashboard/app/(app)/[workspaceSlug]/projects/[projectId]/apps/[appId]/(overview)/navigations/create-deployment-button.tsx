@@ -223,19 +223,12 @@ export const CreateDeploymentButton = ({
       git?: ReturnType<typeof parseDeployRef>;
       oci?: string;
     }) => {
-      const response = source.oci
-        ? await getUnkeyClient().deployments.createDeploymentV3({
-            project: projectId,
-            app: appId,
-            environment: source.environment,
-            oci: { image: source.oci },
-          })
-        : await getUnkeyClient().deployments.createDeployment({
-            project: projectId,
-            app: appId,
-            environment: source.environment,
-            git: source.git ?? {},
-          });
+      const response = await getUnkeyClient().deployments.createDeploymentV3({
+        project: projectId,
+        app: appId,
+        environment: source.environment,
+        ...(source.oci ? { oci: { image: source.oci } } : { git: source.git ?? {} }),
+      });
       return { deploymentId: response.data.deploymentId };
     },
     async onSuccess(data) {
