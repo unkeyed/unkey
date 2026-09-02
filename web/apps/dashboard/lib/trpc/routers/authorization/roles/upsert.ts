@@ -89,6 +89,10 @@ export const upsertRole = workspaceProcedure
         const existingRole = await tx.query.roles.findFirst({
           where: (table, { and, eq }) =>
             and(eq(table.id, updateRoleId), eq(table.workspaceId, ctx.workspace.id)),
+          columns: {
+            id: true,
+            name: true,
+          },
         });
 
         if (!existingRole) {
@@ -114,6 +118,7 @@ export const upsertRole = workspaceProcedure
                 eq(table.name, input.roleName),
                 ne(table.id, updateRoleId),
               ),
+            columns: { id: true },
           });
 
           if (nameConflict) {
@@ -274,6 +279,7 @@ export const upsertRole = workspaceProcedure
         const nameConflict = await tx.query.roles.findFirst({
           where: (table, { and, eq }) =>
             and(eq(table.workspaceId, ctx.workspace.id), eq(table.name, input.roleName)),
+          columns: { id: true },
         });
 
         if (nameConflict) {

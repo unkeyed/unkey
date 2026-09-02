@@ -1,4 +1,6 @@
 "use client";
+import { OnboardingStepContainer } from "@/components/onboarding/step-container";
+import { OnboardingStepHeader } from "@/components/onboarding/step-header";
 import { usePreventLeave } from "@/hooks/use-prevent-leave";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { routes } from "@/lib/navigation/routes";
@@ -6,8 +8,6 @@ import { trpc } from "@/lib/trpc/client";
 import { StepWizard } from "@unkey/ui";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
-import { OnboardingStepContainer } from "./onboarding-step-container";
-import { OnboardingStepHeader } from "./onboarding-step-header";
 import { ChooseSourceStep } from "./steps/choose-source";
 import { ConfigureDeploymentStep } from "./steps/configure-deployment";
 import { CreateAppStep } from "./steps/create-app";

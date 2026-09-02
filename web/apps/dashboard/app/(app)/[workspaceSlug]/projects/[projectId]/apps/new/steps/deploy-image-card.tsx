@@ -141,8 +141,7 @@ export const DeployImageCard = ({
               placeholder="ghcr.io/acme/mcp-server:v1.4.2"
               aria-label="Image reference"
               aria-describedby={hintId}
-              className="h-9 bg-transparent border-grayA-4 font-mono text-xs"
-              wrapperClassName="flex-1 min-w-0"
+              className="h-9 bg-transparent border-grayA-4 font-mono text-xs flex-1 min-w-0"
               data-1p-ignore
             />
             <Button

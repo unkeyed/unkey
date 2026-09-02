@@ -1,7 +1,6 @@
-import { Combobox } from "@/components/ui/combobox";
 import { trpc } from "@/lib/trpc/client";
 import { CodeBranch, Magnifier } from "@unkey/icons";
-import { Button, TimestampInfo } from "@unkey/ui";
+import { Button, Combobox, TimestampInfo } from "@unkey/ui";
 import { useMemo, useState } from "react";
 import { LanguageIcon } from "./language-icon";
 import { useSearchBranches } from "./use-search-branches";

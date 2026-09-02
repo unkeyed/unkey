@@ -26,6 +26,7 @@ export const queryKeysRoles = workspaceProcedure
         orderBy: (roles, { desc }) => desc(roles.id),
         with: {
           permissions: {
+            columns: { permissionId: true },
             with: {
               permission: {
                 columns: {

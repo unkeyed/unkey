@@ -1,14 +1,8 @@
 "use client";
 
-import { cn } from "@/lib/utils";
-import { CopyButton } from "@unkey/ui";
-import {
-  FormDescription,
-  FormLabel,
-  type Requirement,
-} from "@unkey/ui/src/components/form/form-helpers";
-import * as React from "react";
-import { Combobox } from "./combobox";
+import { Combobox, CopyButton, FormField } from "@unkey/ui";
+import type { Requirement } from "@unkey/ui/src/components/form/form-helpers";
+import type * as React from "react";
 
 // Documented props type for FormCombobox
 export type DocumentedFormComboboxProps = {
@@ -29,10 +23,6 @@ export type DocumentedFormComboboxProps = {
    */
   requirement?: Requirement;
   /**
-   * Whether to show indicator for loading
-   */
-  loading?: boolean;
-  /**
    * Tooltip text displayed on hover
    */
   title?: string;
@@ -49,48 +39,44 @@ export type DocumentedFormComboboxProps = {
 };
 
 // Props type combining Combobox props with form props
-export type FormComboboxProps = React.ComponentProps<typeof Combobox> & DocumentedFormComboboxProps;
+export type FormComboboxProps = React.ComponentProps<typeof Combobox> &
+  DocumentedFormComboboxProps & {
+    ref?: React.Ref<HTMLDivElement>;
+  };
 
-export const FormCombobox = React.forwardRef<HTMLDivElement, FormComboboxProps>(
-  (
-    {
-      label,
-      description,
-      error,
-      requirement,
-      className,
-      wrapperClassName,
-      variant,
-      copyValue,
-      id: propId,
-      descriptionPosition = "inline",
-      ...props
-    },
-    ref,
-  ) => {
-    const generatedId = React.useId();
-    const inputVariant = error ? "error" : variant;
-    const inputId = propId || generatedId;
-    const descriptionId = `${inputId}-helper`;
-    const errorId = `${inputId}-error`;
-    const descriptionAsTooltip = descriptionPosition === "label";
-
-    return (
-      <fieldset className={cn("flex flex-col gap-1.5 border-0 m-0 p-0", className)}>
-        <FormLabel
-          label={label}
-          requirement={requirement}
-          hasError={!!error}
-          htmlFor={inputId}
-          tooltipContent={descriptionAsTooltip ? description : undefined}
-        />
+export function FormCombobox({
+  label,
+  description,
+  error,
+  requirement,
+  className,
+  wrapperClassName,
+  variant,
+  copyValue,
+  id,
+  descriptionPosition = "inline",
+  ref,
+  ...props
+}: FormComboboxProps) {
+  return (
+    <FormField
+      label={label}
+      description={description}
+      error={error}
+      requirement={requirement}
+      id={id}
+      className={className}
+      variant={variant}
+      descriptionPosition={descriptionPosition}
+    >
+      {(control) => (
         <div ref={ref} className="relative">
           <Combobox
-            id={inputId}
-            variant={inputVariant}
+            id={control.id}
+            variant={control.variant ?? variant}
             wrapperClassName={wrapperClassName}
-            aria-describedby={error ? errorId : description ? descriptionId : undefined}
-            aria-invalid={!!error}
+            aria-describedby={control.describedBy}
+            aria-invalid={control.invalid}
             aria-required={requirement === "required"}
             {...props}
           />
@@ -103,18 +89,7 @@ export const FormCombobox = React.forwardRef<HTMLDivElement, FormComboboxProps>(
             />
           )}
         </div>
-        {((description && !descriptionAsTooltip) || error) && (
-          <FormDescription
-            description={descriptionAsTooltip ? undefined : description}
-            error={error}
-            variant={variant}
-            descriptionId={descriptionId}
-            errorId={errorId}
-          />
-        )}
-      </fieldset>
-    );
-  },
-);
-
-FormCombobox.displayName = "FormCombobox";
+      )}
+    </FormField>
+  );
+}

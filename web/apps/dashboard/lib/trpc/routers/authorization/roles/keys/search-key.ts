@@ -39,6 +39,7 @@ export const searchKeys = workspaceProcedure
         ],
         with: {
           roles: {
+            columns: { roleId: true },
             with: {
               role: {
                 columns: {
