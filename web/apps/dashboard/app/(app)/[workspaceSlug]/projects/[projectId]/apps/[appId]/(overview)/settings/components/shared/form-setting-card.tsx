@@ -1,6 +1,6 @@
-import { cn } from "@/lib/utils";
 import { Button, InfoTooltip, SettingCard, type SettingCardBorder } from "@unkey/ui";
 import type React from "react";
+import { cn } from "@/lib/utils";
 import { SelectedConfig } from "./selected-config";
 
 type EditableSettingCardProps = {

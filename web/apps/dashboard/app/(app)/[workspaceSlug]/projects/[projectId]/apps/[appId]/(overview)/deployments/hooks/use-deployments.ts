@@ -1,8 +1,8 @@
+import { useMemo } from "react";
 import type { Deployment } from "@/lib/collections";
 import { isDeploymentSettling } from "@/lib/collections/deploy/deployment-status";
 import type { Environment } from "@/lib/collections/deploy/environments";
 import { trpc } from "@/lib/trpc/client";
-import { useMemo } from "react";
 import { useAppId, useProjectData } from "../../data-provider";
 import { buildDeploymentListInput } from "./deployment-list-input";
 import { useFilters } from "./use-filters";

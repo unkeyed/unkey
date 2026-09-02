@@ -1,5 +1,5 @@
-import type { AuditLog } from "@/lib/trpc/routers/audit/schema";
 import { IconKeyOutline18, IconMathFunctionOutline18 } from "nucleo-ui-outline-18";
+import type { AuditLog } from "@/lib/trpc/routers/audit/schema";
 
 type ActorCellProps = {
   log: AuditLog;

@@ -1,5 +1,5 @@
-import type { Router } from "@/lib/trpc/routers";
 import type { inferRouterOutputs } from "@trpc/server";
+import type { Router } from "@/lib/trpc/routers";
 
 type BillingInfo = inferRouterOutputs<Router>["stripe"]["getBillingInfo"];
 

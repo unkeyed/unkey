@@ -1,6 +1,6 @@
-import { formatNumber } from "@/lib/fmt";
 import { InlineLink } from "@unkey/ui";
 import { IconTriangleWarningOutline18 } from "nucleo-ui-outline-18";
+import { formatNumber } from "@/lib/fmt";
 
 interface RoleWarningCalloutProps {
   count: number;

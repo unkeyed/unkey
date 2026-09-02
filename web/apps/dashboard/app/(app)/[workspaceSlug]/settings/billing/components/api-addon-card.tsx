@@ -1,10 +1,5 @@
 "use client";
 
-import { formatNumber } from "@/lib/fmt";
-import { formatMs } from "@/lib/ms";
-import { routes } from "@/lib/navigation/routes";
-import { trpc } from "@/lib/trpc/client";
-import type { Router } from "@/lib/trpc/routers";
 import type { inferRouterOutputs } from "@trpc/server";
 import {
   Button,
@@ -22,6 +17,11 @@ import { useRouter } from "next/navigation";
 import { IconTriangleWarningOutline12 } from "nucleo-ui-outline-12";
 import { IconNodesOutline18, IconTriangleWarningOutline18 } from "nucleo-ui-outline-18";
 import { useState } from "react";
+import { formatNumber } from "@/lib/fmt";
+import { formatMs } from "@/lib/ms";
+import { routes } from "@/lib/navigation/routes";
+import { trpc } from "@/lib/trpc/client";
+import type { Router } from "@/lib/trpc/routers";
 import { ADMIN_ONLY_TOOLTIP } from "./constants";
 import { PlanChangeModal } from "./plan-change-modal";
 import { ProductCard } from "./product-card";

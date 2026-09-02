@@ -1,6 +1,3 @@
-import type { App } from "@/lib/collections/deploy/apps";
-import { and, db, desc, eq, inArray, sql } from "@/lib/db";
-import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import {
   appSourceOci,
   apps,
@@ -9,6 +6,9 @@ import {
   githubRepoConnections,
 } from "@unkey/db/src/schema";
 import { z } from "zod";
+import type { App } from "@/lib/collections/deploy/apps";
+import { and, db, desc, eq, inArray, sql } from "@/lib/db";
+import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 
 export const listApps = workspaceProcedure
   .input(z.object({ projectId: z.string() }))

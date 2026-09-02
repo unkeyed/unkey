@@ -1,3 +1,5 @@
+import { TRPCError } from "@trpc/server";
+import { z } from "zod";
 import { rootKeysQueryPayload } from "@/components/root-keys-table/schema/query-logs.schema";
 import { and, asc, count, db, desc, eq, exists, gt, isNull, or, schema, sql } from "@/lib/db";
 import {
@@ -6,8 +8,6 @@ import {
   withRatelimit,
   workspaceProcedure,
 } from "@/lib/trpc/trpc";
-import { TRPCError } from "@trpc/server";
-import { z } from "zod";
 
 const PermissionResponse = z.object({
   id: z.string(),

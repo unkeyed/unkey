@@ -1,7 +1,7 @@
 "use client";
 
-import { LoadingState } from "@/components/loading-state";
 import { Suspense } from "react";
+import { LoadingState } from "@/components/loading-state";
 
 interface WorkspaceLayoutProps {
   children: React.ReactNode;

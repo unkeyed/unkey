@@ -1,22 +1,22 @@
+import { newUid } from "@unkey/id";
+import { match, P } from "@unkey/match";
+import { z } from "zod";
+import type { Policy } from "@/lib/collections/deploy/policies.schema";
 import {
   type FirewallPolicy,
+  firewallActionSchema,
   type KeyauthPolicy,
   type LoggingPolicy,
   type MatchExpr,
+  matchExprSchema,
   type OpenapiPolicy,
   POLICY_LIMITS,
   type RateLimitIdentifier,
   type RatelimitPolicy,
   type StringMatch,
-  firewallActionSchema,
-  matchExprSchema,
   stringMatchModeSchema,
 } from "@/lib/collections/deploy/policies.schema";
-import { newUid } from "@unkey/id";
-import { P, match } from "@unkey/match";
-import { z } from "zod";
 
-import type { Policy } from "@/lib/collections/deploy/policies.schema";
 export type { Policy } from "@/lib/collections/deploy/policies.schema";
 
 const pathConditionSchema = z.object({

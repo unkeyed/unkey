@@ -1,6 +1,6 @@
-import { cn } from "@/lib/utils";
 import type { KeysOverviewLog } from "@unkey/clickhouse/src/keys/keys";
 import type { StatusStyle } from "@unkey/ui";
+import { cn } from "@/lib/utils";
 import { getErrorSeverity } from "./calculate-blocked-percentage";
 
 export const SEVERITY_STYLES = {

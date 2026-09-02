@@ -1,8 +1,8 @@
 "use client";
-import { cn } from "@/lib/utils";
 import { Button } from "@unkey/ui";
 import { IconBookmarkOutline18, IconClockRotateClockwiseOutline18 } from "nucleo-ui-outline-18";
 import { useEffect, useState } from "react";
+import { cn } from "@/lib/utils";
 
 type QueriesTabsProps = {
   selectedTab: number;

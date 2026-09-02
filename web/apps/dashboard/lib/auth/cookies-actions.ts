@@ -30,10 +30,7 @@ export async function getCookie(name: string): Promise<string | null> {
   return getCookieInternal(name);
 }
 
-export async function setSessionCookie(params: {
-  token: string;
-  expiresAt: Date;
-}): Promise<void> {
+export async function setSessionCookie(params: { token: string; expiresAt: Date }): Promise<void> {
   // The token is validated by the WorkOS sealed-session check on the next
   // request that reads the session cookie; an attacker who calls this action
   // can only plant a value into their own browser, where it will fail
@@ -42,8 +39,6 @@ export async function setSessionCookie(params: {
   await setSessionCookieInternal(params);
 }
 
-export async function setLastUsedOrgCookie(params: {
-  orgId: string;
-}): Promise<void> {
+export async function setLastUsedOrgCookie(params: { orgId: string }): Promise<void> {
   await setLastUsedOrgCookieInternal(params);
 }

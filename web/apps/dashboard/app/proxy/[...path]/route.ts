@@ -1,9 +1,9 @@
-import { getAuth } from "@/lib/auth/get-auth";
-import { auth as authProvider } from "@/lib/auth/server";
-import { env } from "@/lib/env";
 import { SignJWT } from "jose";
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
+import { getAuth } from "@/lib/auth/get-auth";
+import { auth as authProvider } from "@/lib/auth/server";
+import { env } from "@/lib/env";
 
 type RouteContext = {
   params: Promise<{

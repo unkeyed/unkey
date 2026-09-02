@@ -1,10 +1,10 @@
 "use client";
 
-import { ErrorBoundary } from "@/components/error-boundary";
-import type { IdentityLog } from "@/lib/trpc/routers/identity/query-logs";
 import { Button } from "@unkey/ui";
 import { IconRefresh3Outline18, IconTriangleWarningOutline18 } from "nucleo-ui-outline-18";
 import { useCallback, useState } from "react";
+import { ErrorBoundary } from "@/components/error-boundary";
+import type { IdentityLog } from "@/lib/trpc/routers/identity/query-logs";
 import { IdentityDetailsLogsChart } from "./components/charts";
 import { IdentityDetailsLogsControlCloud } from "./components/control-cloud";
 import { IdentityDetailsLogsControls } from "./components/controls";
@@ -12,11 +12,7 @@ import { IdentityDetailsDrawer } from "./components/table/components/log-details
 import { IdentityDetailsLogsTable } from "./components/table/logs-table";
 import { IdentityDetailsLogsProvider } from "./context/logs";
 
-export const IdentityDetailsLogsClient = ({
-  identityId,
-}: {
-  identityId: string;
-}) => {
+export const IdentityDetailsLogsClient = ({ identityId }: { identityId: string }) => {
   const [selectedLog, setSelectedLog] = useState<IdentityLog | null>(null);
   const [tableDistanceToTop, setTableDistanceToTop] = useState(0);
 

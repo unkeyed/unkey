@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { type RuntimeLogsRequest, getRuntimeLogs, runtimeLogsRequestSchema } from "./runtime-logs";
+import { getRuntimeLogs, type RuntimeLogsRequest, runtimeLogsRequestSchema } from "./runtime-logs";
 import { CapturingQuerier } from "./test-utils";
 
 const baseRequest: RuntimeLogsRequest = {

@@ -1,6 +1,6 @@
-import { cn } from "@/lib/utils";
 import { IconUserOutline18 } from "nucleo-ui-outline-18";
 import { useState } from "react";
+import { cn } from "@/lib/utils";
 
 type AvatarProps = {
   src: string | null | undefined;

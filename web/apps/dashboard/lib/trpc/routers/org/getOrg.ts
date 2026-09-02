@@ -1,6 +1,6 @@
-import { auth as authProvider } from "@/lib/auth/server";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
+import { auth as authProvider } from "@/lib/auth/server";
 import { workspaceProcedure } from "../../trpc";
 
 export const getOrg = workspaceProcedure.input(z.string()).query(async ({ ctx, input: orgId }) => {

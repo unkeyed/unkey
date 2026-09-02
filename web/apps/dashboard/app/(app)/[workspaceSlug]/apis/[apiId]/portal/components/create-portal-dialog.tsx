@@ -1,17 +1,5 @@
 "use client";
 
-import { getPortalByKeyspace } from "@/lib/portal/client";
-import {
-  AMBIGUOUS_CONFLICT_DETAIL,
-  CONFLICT_UNRESOLVED_MESSAGE,
-  MAPPING_CONFLICT_MESSAGE,
-  SLUG_CONFLICT_DETAIL,
-  portalConflict,
-} from "@/lib/portal/conflicts";
-import { slugifyPortalName } from "@/lib/portal/slugify";
-import { type PortalQueryResult, portalQueryKey, useCreatePortal } from "@/lib/portal/use-portal";
-import { portalDisplayNameSchema, portalSlugSchema } from "@/lib/portal/validation";
-import { getErrorMessage } from "@/lib/unkey-client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQueryClient } from "@tanstack/react-query";
 import type { Portal } from "@unkey/api/models/components";
@@ -20,6 +8,18 @@ import { Button, DialogContainer, FormInput } from "@unkey/ui";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
+import { getPortalByKeyspace } from "@/lib/portal/client";
+import {
+  AMBIGUOUS_CONFLICT_DETAIL,
+  CONFLICT_UNRESOLVED_MESSAGE,
+  MAPPING_CONFLICT_MESSAGE,
+  portalConflict,
+  SLUG_CONFLICT_DETAIL,
+} from "@/lib/portal/conflicts";
+import { slugifyPortalName } from "@/lib/portal/slugify";
+import { type PortalQueryResult, portalQueryKey, useCreatePortal } from "@/lib/portal/use-portal";
+import { portalDisplayNameSchema, portalSlugSchema } from "@/lib/portal/validation";
+import { getErrorMessage } from "@/lib/unkey-client";
 
 const formSchema = z.object({ displayName: portalDisplayNameSchema, slug: portalSlugSchema });
 

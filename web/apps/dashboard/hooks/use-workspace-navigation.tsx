@@ -1,5 +1,5 @@
-import { useWorkspace } from "@/providers/workspace-provider";
 import { redirect } from "next/navigation";
+import { useWorkspace } from "@/providers/workspace-provider";
 
 /**
  * Custom React hook for handling workspace navigation and access control.

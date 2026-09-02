@@ -1,12 +1,12 @@
 "use client";
 
-import { queryClient, trpcClient } from "@/lib/collections/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button, DialogContainer, FormInput, toast } from "@unkey/ui";
 import { IconPlusOutline18 } from "nucleo-ui-outline-18";
 import { useState, useTransition } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
+import { queryClient, trpcClient } from "@/lib/collections/client";
 
 const formSchema = z.object({
   name: z
@@ -15,7 +15,7 @@ const formSchema = z.object({
     .min(1, "Name must not be empty")
     .max(512, "Name must not exceed 512 characters")
     .regex(
-      /^[a-zA-Z0-9_\-\.]+$/,
+      /^[a-zA-Z0-9_\-.]+$/,
       "Only alphanumeric characters, underscores, hyphens, and periods are allowed",
     ),
 });

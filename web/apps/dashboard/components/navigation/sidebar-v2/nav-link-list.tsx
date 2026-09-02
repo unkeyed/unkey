@@ -1,5 +1,6 @@
 "use client";
 
+import { Fragment } from "react";
 import {
   SidebarGroup,
   SidebarGroupContent,
@@ -7,7 +8,6 @@ import {
   SidebarSeparator,
 } from "@/components/ui/sidebar";
 import type { ResolvedNavLink } from "@/lib/navigation/types";
-import { Fragment } from "react";
 import { NavRow } from "./nav-row";
 
 export function NavLinkList({ links }: { links: ResolvedNavLink[] }) {

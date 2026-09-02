@@ -1,10 +1,10 @@
 "use client";
 
-import { collection } from "@/lib/collections";
-import { trpc } from "@/lib/trpc/client";
 import { and, eq, useLiveQuery } from "@tanstack/react-db";
 import { match } from "@unkey/match";
 import { SettingsZoneRow, toast } from "@unkey/ui";
+import { collection } from "@/lib/collections";
+import { trpc } from "@/lib/trpc/client";
 import { useAppId, useProjectData } from "../../data-provider";
 
 export function DisconnectGitHub() {

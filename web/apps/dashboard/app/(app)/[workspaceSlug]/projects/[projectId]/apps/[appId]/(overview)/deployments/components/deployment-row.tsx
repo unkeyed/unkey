@@ -1,5 +1,9 @@
 "use client";
 
+import { ResourceListItem } from "@unkey/ui";
+import type { Route } from "next";
+import Link from "next/link";
+import { useState } from "react";
 import { LastExitBadge } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/active-deployment-card";
 import { DeploymentStatusDot } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/deployment-status-dot";
 import {
@@ -10,10 +14,6 @@ import type { Deployment, Environment } from "@/lib/collections";
 import { DEPLOYMENT_STATUS_LABELS } from "@/lib/collections/deploy/deployment-status";
 import { imageRefDisplay } from "@/lib/docker-image-ref";
 import { shortenId } from "@/lib/shorten-id";
-import { ResourceListItem } from "@unkey/ui";
-import type { Route } from "next";
-import Link from "next/link";
-import { useState } from "react";
 import { DeploymentApproval } from "../[deploymentId]/(deployment-progress)/deployment-approval";
 import { DeploymentDuration } from "./deployment-duration";
 import {

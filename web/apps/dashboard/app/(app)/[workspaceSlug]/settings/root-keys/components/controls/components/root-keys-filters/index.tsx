@@ -1,8 +1,8 @@
+import { Button } from "@unkey/ui";
+import { IconBarsFilterOutline18 } from "nucleo-ui-outline-18";
 import { FiltersPopover } from "@/components/logs/checkbox/filters-popover";
 import { FilterOperatorInput } from "@/components/logs/filter-operator-input";
 import { cn } from "@/lib/utils";
-import { Button } from "@unkey/ui";
-import { IconBarsFilterOutline18 } from "nucleo-ui-outline-18";
 
 import {
   type RootKeysFilterField,

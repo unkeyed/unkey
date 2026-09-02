@@ -1,9 +1,9 @@
+import { z } from "zod";
 import {
   permissionsFilterOperatorEnum,
   permissionsListFilterFieldNames,
 } from "@/app/(app)/[workspaceSlug]/authorization/permissions/filters.schema";
 import { createPaginatedListQueryPayload } from "@/lib/schemas/paginated-list.schema";
-import { z } from "zod";
 
 const permissionsSortByEnum = z.enum([
   "name",

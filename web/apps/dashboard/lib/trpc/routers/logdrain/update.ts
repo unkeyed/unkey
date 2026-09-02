@@ -1,13 +1,13 @@
+import { TRPCError } from "@trpc/server";
+import { z } from "zod";
 import { VaultService } from "@/gen/proto/vault/v1/service_pb";
 import { insertAuditLogs } from "@/lib/audit";
 import { and, db, eq, schema } from "@/lib/db";
 import { createVaultClient } from "@/lib/vault-client";
-import { TRPCError } from "@trpc/server";
-import { z } from "zod";
 import { workspaceProcedure } from "../../trpc";
 import {
-  type EncryptedHttpHeader,
   decodeLogdrainConfig,
+  type EncryptedHttpHeader,
   encodeLogdrainConfig,
   encryptHttpHeaders,
 } from "./config";

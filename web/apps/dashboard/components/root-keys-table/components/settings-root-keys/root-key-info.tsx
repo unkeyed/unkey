@@ -1,11 +1,7 @@
-import type { RootKey } from "@/lib/trpc/routers/settings/root-keys/query";
 import { IconKey2Outline12 } from "nucleo-ui-outline-12";
+import type { RootKey } from "@/lib/trpc/routers/settings/root-keys/query";
 
-export const RootKeyInfo = ({
-  rootKeyDetails,
-}: {
-  rootKeyDetails: RootKey;
-}) => {
+export const RootKeyInfo = ({ rootKeyDetails }: { rootKeyDetails: RootKey }) => {
   return (
     <div className="flex gap-5 items-center bg-white dark:bg-black border border-grayA-5 rounded-xl py-5 pl-[18px] pr-[26px]">
       <div className="bg-grayA-5 text-gray-12 size-5 flex items-center justify-center rounded-sm ">

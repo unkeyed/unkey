@@ -1,12 +1,12 @@
-import { useAppHomeHref } from "@/hooks/use-app-home-href";
-import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
-import { routes } from "@/lib/navigation/routes";
 import { Github } from "@unkey/icons";
 import { match } from "@unkey/match";
 import { HoverCard, HoverCardContent, HoverCardTrigger, InfoTooltip } from "@unkey/ui";
 import Link from "next/link";
 import { IconLayers2Outline18, IconTerminalOutline18 } from "nucleo-ui-outline-18";
 import type { ReactNode } from "react";
+import { useAppHomeHref } from "@/hooks/use-app-home-href";
+import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
+import { routes } from "@/lib/navigation/routes";
 
 export type ProjectCardApp = {
   id: string;
@@ -31,7 +31,10 @@ const BLOB_BASE =
 function AppSourceIcon({
   source,
   className,
-}: { source: ProjectCardApp["source"]; className: string }) {
+}: {
+  source: ProjectCardApp["source"];
+  className: string;
+}) {
   return match(source)
     .with("github", () => <Github className={className} />)
     .with("oci", () => <IconLayers2Outline18 className={className} />)
@@ -99,7 +102,11 @@ function AppIconStack({
   apps,
   appCount,
   projectId,
-}: { apps: ProjectCardApp[]; appCount: number; projectId: string }) {
+}: {
+  apps: ProjectCardApp[];
+  appCount: number;
+  projectId: string;
+}) {
   const workspace = useWorkspaceNavigation();
   const appHomeHref = useAppHomeHref();
   const visible = apps.slice(0, MAX_VISIBLE_APPS);

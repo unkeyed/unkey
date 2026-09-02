@@ -1,7 +1,7 @@
+import { type ContainerStatus, deployments } from "@unkey/db/src/schema";
 import type { InstanceStatus } from "@/lib/collections/deploy/instance-status";
 import { type InferSelectModel, ne, sql } from "@/lib/db";
 import type { LastExit } from "@/lib/types/deploy";
-import { type ContainerStatus, deployments } from "@unkey/db/src/schema";
 import { mapRegionToFlag } from "../network/utils";
 
 // A skipped row records a push the platform declined to build at all (watch

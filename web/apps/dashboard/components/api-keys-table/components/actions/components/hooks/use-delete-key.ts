@@ -1,5 +1,3 @@
-import { trpc } from "@/lib/trpc/client";
-import { getUnkeyClient } from "@/lib/unkey-client";
 import { useMutation } from "@tanstack/react-query";
 import type { Unkey } from "@unkey/api";
 import {
@@ -10,6 +8,8 @@ import {
   UnauthorizedErrorResponse,
 } from "@unkey/api/models/errors";
 import { toast } from "@unkey/ui";
+import { trpc } from "@/lib/trpc/client";
+import { getUnkeyClient } from "@/lib/unkey-client";
 
 type DeleteKeyRequest = Parameters<Unkey["keys"]["deleteKey"]>[0];
 

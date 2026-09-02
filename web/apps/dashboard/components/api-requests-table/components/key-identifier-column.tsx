@@ -1,4 +1,10 @@
 "use client";
+import type { KeysOverviewLog } from "@unkey/clickhouse/src/keys/keys";
+import { InfoTooltip, Loading } from "@unkey/ui";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { IconTriangleWarningOutline18 } from "nucleo-ui-outline-18";
+import { useCallback, useState } from "react";
 import {
   getErrorPercentage,
   getErrorSeverity,
@@ -7,12 +13,6 @@ import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { routes } from "@/lib/navigation/routes";
 import { shortenId } from "@/lib/shorten-id";
 import { cn } from "@/lib/utils";
-import type { KeysOverviewLog } from "@unkey/clickhouse/src/keys/keys";
-import { InfoTooltip, Loading } from "@unkey/ui";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { IconTriangleWarningOutline18 } from "nucleo-ui-outline-18";
-import { useCallback, useState } from "react";
 
 type KeyIdentifierColumnProps = {
   log: KeysOverviewLog;

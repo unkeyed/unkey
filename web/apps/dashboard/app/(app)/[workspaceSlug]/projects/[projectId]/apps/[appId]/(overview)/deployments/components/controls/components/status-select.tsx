@@ -1,7 +1,7 @@
 "use client";
 
-import { cn } from "@/lib/utils";
 import { Checkbox, Popover, PopoverContent, PopoverTrigger } from "@unkey/ui";
+import { cn } from "@/lib/utils";
 import { DEPLOYMENT_STATUS_META, GROUPED_DEPLOYMENT_STATUSES } from "../../../filters.schema";
 import { useFilters } from "../../../hooks/use-filters";
 import { FilterTriggerButton } from "./filter-trigger-button";

@@ -1,6 +1,5 @@
 "use client";
 
-import type { Deployment } from "@/lib/collections/deploy/deployments";
 import { match } from "@unkey/match";
 import { Button, SettingCardGroup } from "@unkey/ui";
 import {
@@ -13,6 +12,7 @@ import {
   IconSparkle3Outline18,
 } from "nucleo-ui-outline-18";
 import { useState } from "react";
+import type { Deployment } from "@/lib/collections/deploy/deployments";
 import { RedeployDialog } from "../../components/table/components/actions/redeploy-dialog";
 import type { StepsData } from "./deployment-progress";
 import { DeploymentStep } from "./deployment-step";

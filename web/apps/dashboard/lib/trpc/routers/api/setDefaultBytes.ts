@@ -1,8 +1,8 @@
+import { TRPCError } from "@trpc/server";
+import { z } from "zod";
 import { keyBytesSchema } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/_components/create-key/create-key.schema";
 import { insertAuditLogs } from "@/lib/audit";
 import { db, eq, schema } from "@/lib/db";
-import { TRPCError } from "@trpc/server";
-import { z } from "zod";
 import { workspaceProcedure } from "../../trpc";
 
 export const setDefaultApiBytes = workspaceProcedure

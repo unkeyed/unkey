@@ -1,9 +1,9 @@
 import { format } from "date-fns";
 
 import { IconClockOutline18 } from "nucleo-ui-outline-18";
-import { useState } from "react";
 // biome-ignore lint: React in this context is used throughout, so biome will change to types because no APIs are used even though React is needed.
 import * as React from "react";
+import { useState } from "react";
 import { cn } from "../../../lib/utils";
 import { useDateTimeContext } from "../date-time";
 

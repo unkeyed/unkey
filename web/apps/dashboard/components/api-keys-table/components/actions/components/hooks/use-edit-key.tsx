@@ -1,9 +1,9 @@
-import { UNNAMED_KEY } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/_components/create-key/create-key.constants";
-import { trpc } from "@/lib/trpc/client";
-import { getErrorMessage, getUnkeyClient } from "@/lib/unkey-client";
 import { useMutation } from "@tanstack/react-query";
 import type { Unkey } from "@unkey/api";
 import { toast } from "@unkey/ui";
+import { UNNAMED_KEY } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/_components/create-key/create-key.constants";
+import { trpc } from "@/lib/trpc/client";
+import { getErrorMessage, getUnkeyClient } from "@/lib/unkey-client";
 
 type UpdateKeyRequest = Parameters<Unkey["keys"]["updateKey"]>[0];
 

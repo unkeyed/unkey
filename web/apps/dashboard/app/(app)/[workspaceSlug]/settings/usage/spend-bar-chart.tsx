@@ -1,10 +1,10 @@
 "use client";
 
+import { Skeleton } from "@unkey/ui";
+import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts";
 import { ChartError } from "@/components/charts/components/chart-error";
 import { ChartContainer, ChartTooltip } from "@/components/ui/chart";
 import { formatPrice } from "@/lib/fmt";
-import { Skeleton } from "@unkey/ui";
-import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts";
 
 export type SpendBarSeries = { key: string; label: string; color: string };
 export type SpendBarPoint = { time: number } & Record<string, number>;

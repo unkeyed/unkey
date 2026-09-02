@@ -1,5 +1,5 @@
-import { envVarKeySchema, envVarValueSchema } from "@/lib/schemas/env-var";
 import { z } from "zod";
+import { envVarKeySchema, envVarValueSchema } from "@/lib/schemas/env-var";
 
 export const envVarEntrySchema = z.object({
   key: envVarKeySchema,

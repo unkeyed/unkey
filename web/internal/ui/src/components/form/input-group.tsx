@@ -1,6 +1,6 @@
 "use client";
 
-import { type VariantProps, cva } from "class-variance-authority";
+import { cva, type VariantProps } from "class-variance-authority";
 // biome-ignore lint/style/useImportType: Biome wants this
 import React from "react";
 import { cn } from "../../lib/utils";
@@ -148,20 +148,20 @@ function InputGroupText({ className, ref, ...props }: InputGroupTextProps) {
 }
 
 export {
-  InputGroup,
-  InputGroupAddon,
-  InputGroupInput,
-  InputGroupText,
-  InputGroupTextarea,
+  type DocumentedInputGroupAddonProps,
+  type DocumentedInputGroupProps,
   fieldBaseClasses,
   fieldGroupSurfaceClasses,
   fieldInvalidClasses,
   fieldSurfaceClasses,
-  type DocumentedInputGroupAddonProps,
-  type DocumentedInputGroupProps,
+  InputGroup,
+  InputGroupAddon,
   type InputGroupAddonProps,
+  InputGroupInput,
   type InputGroupInputProps,
   type InputGroupProps,
-  type InputGroupTextProps,
+  InputGroupText,
+  InputGroupTextarea,
   type InputGroupTextareaProps,
+  type InputGroupTextProps,
 };

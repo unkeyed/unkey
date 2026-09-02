@@ -1,10 +1,10 @@
 "use client";
 
-import { PageLoading } from "@/components/dashboard/page-loading";
-import { trpc } from "@/lib/trpc/client";
 import { Empty } from "@unkey/ui";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
+import { PageLoading } from "@/components/dashboard/page-loading";
+import { trpc } from "@/lib/trpc/client";
 import { SuccessClient } from "./client";
 
 const SUPPORT_SUFFIX = "Please contact support@unkey.com if this issue persists.";

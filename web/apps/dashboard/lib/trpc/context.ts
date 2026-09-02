@@ -77,8 +77,7 @@ export async function createContext({ req }: FetchCreateContextFnOptions) {
   const authResult = await getAuth(req as NextRequest);
   const { userId, orgId } = authResult;
 
-  let ws: Awaited<ReturnType<typeof db.query.workspaces.findFirst<typeof workspaceProjection>>> =
-    undefined;
+  let ws: Awaited<ReturnType<typeof db.query.workspaces.findFirst<typeof workspaceProjection>>>;
 
   // Only attempt workspace query if we have both userId and orgId
   // This prevents unnecessary queries during auth setup phase

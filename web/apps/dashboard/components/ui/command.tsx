@@ -1,11 +1,10 @@
 "use client";
 
-import { Command as CommandPrimitive } from "cmdk";
-import * as React from "react";
-
-import { cn } from "@/lib/utils";
 import { Dialog, DialogContent, type DialogProps } from "@unkey/ui";
+import { Command as CommandPrimitive } from "cmdk";
 import { IconMagnifierOutline18 } from "nucleo-ui-outline-18";
+import * as React from "react";
+import { cn } from "@/lib/utils";
 
 const Command = React.forwardRef<
   React.ElementRef<typeof CommandPrimitive>,
@@ -139,11 +138,11 @@ CommandShortcut.displayName = "CommandShortcut";
 export {
   Command,
   CommandDialog,
-  CommandInput,
-  CommandList,
   CommandEmpty,
   CommandGroup,
+  CommandInput,
   CommandItem,
-  CommandShortcut,
+  CommandList,
   CommandSeparator,
+  CommandShortcut,
 };

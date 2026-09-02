@@ -7,7 +7,7 @@
  */
 import type { Route } from "next";
 import type { DeployCheckoutOrigin, DeployCheckoutPlan } from "./settings";
-import { type WorkspaceScope, buildRoute } from "./shared";
+import { buildRoute, type WorkspaceScope } from "./shared";
 
 type ProjectScope = WorkspaceScope & { projectId: string };
 type AppScope = ProjectScope & { appId: string };

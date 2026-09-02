@@ -1,4 +1,6 @@
 "use client";
+import { DataTable, PaginationFooter } from "@unkey/ui";
+import { useCallback, useMemo, useState } from "react";
 import {
   createApiKeyColumns,
   getRowClassName,
@@ -9,8 +11,6 @@ import { EmptyApiKeys } from "@/components/api-keys-table/components/empty-api-k
 import { SelectionControls } from "@/components/api-keys-table/components/selection-controls";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import type { KeyDetails } from "@/lib/trpc/routers/api/keys/query-api-keys/schema";
-import { DataTable, PaginationFooter } from "@unkey/ui";
-import { useCallback, useMemo, useState } from "react";
 
 const TABLE_CONFIG = {
   rowHeight: 52,
@@ -19,13 +19,7 @@ const TABLE_CONFIG = {
   containerPadding: "px-0",
 };
 
-export const KeysList = ({
-  keyspaceId,
-  apiId,
-}: {
-  keyspaceId: string;
-  apiId: string;
-}) => {
+export const KeysList = ({ keyspaceId, apiId }: { keyspaceId: string; apiId: string }) => {
   const workspace = useWorkspaceNavigation();
 
   const {

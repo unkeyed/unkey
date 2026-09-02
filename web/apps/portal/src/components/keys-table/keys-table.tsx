@@ -1,13 +1,13 @@
 import {
   type ColumnFiltersState,
-  type Header,
-  type OnChangeFn,
-  type SortingState,
   flexRender,
   getCoreRowModel,
   getFilteredRowModel,
   getPaginationRowModel,
   getSortedRowModel,
+  type Header,
+  type OnChangeFn,
+  type SortingState,
   useReactTable,
 } from "@tanstack/react-table";
 import { ArrowDown, ArrowUp, ArrowUpDown, KeyRound, Plus } from "lucide-react";

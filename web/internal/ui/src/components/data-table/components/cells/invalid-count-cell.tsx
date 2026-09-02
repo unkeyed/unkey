@@ -3,7 +3,7 @@ import { IconBanOutline12 } from "nucleo-ui-outline-12";
 import type * as React from "react";
 import { cn } from "../../../../lib/utils";
 import { Badge } from "../../../badge";
-import { OutcomePopoverCell, formatCompactNumber } from "./outcome-popover-cell";
+import { formatCompactNumber, OutcomePopoverCell } from "./outcome-popover-cell";
 
 export interface InvalidCountCellProps {
   count: number;

@@ -1,6 +1,6 @@
-import { useAppNameById } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/(project)/components/app-filter-options";
 import { ControlCloud } from "@unkey/ui";
 import { format } from "date-fns";
+import { useAppNameById } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/(project)/components/app-filter-options";
 import { useRequestLogsFilters } from "../../hooks/use-request-logs-filters";
 
 const formatFieldName = (field: string): string => {

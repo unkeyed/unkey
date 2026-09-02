@@ -1,6 +1,5 @@
 "use client";
 
-import { trpc } from "@/lib/trpc/client";
 import {
   Button,
   CopyButton,
@@ -11,6 +10,7 @@ import {
   toast,
 } from "@unkey/ui";
 import { useState } from "react";
+import { trpc } from "@/lib/trpc/client";
 
 export function TwoFactorAuth() {
   const utils = trpc.useUtils();

@@ -1,8 +1,8 @@
 import type Stripe from "stripe";
 import { describe, expect, it, vi } from "vitest";
 import {
-  SubscriptionScheduleConflictError,
   releaseScheduledApiPlanDowngrade,
+  SubscriptionScheduleConflictError,
   scheduleApiPlanDowngrade,
 } from "./scheduleApiPlanDowngrade";
 

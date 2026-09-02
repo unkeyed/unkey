@@ -1,8 +1,8 @@
 "use client";
-import { HelpButton } from "@/components/navigation/top-nav/help-button";
-import { signOut } from "@/lib/auth/utils";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button, FullScreenContent, FullScreenLayout, Logo } from "@unkey/ui";
+import { HelpButton } from "@/components/navigation/top-nav/help-button";
+import { signOut } from "@/lib/auth/utils";
 import { useWorkspaceStep } from "../hooks/use-workspace-step";
 import {
   OnboardingCard,

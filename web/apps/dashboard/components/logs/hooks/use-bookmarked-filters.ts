@@ -1,6 +1,6 @@
-import { type QuerySearchParams, logsFilterFieldConfig } from "@/lib/schemas/logs.filter.schema";
-import { isBrowser } from "@/lib/utils";
 import { useCallback, useEffect, useState } from "react";
+import { logsFilterFieldConfig, type QuerySearchParams } from "@/lib/schemas/logs.filter.schema";
+import { isBrowser } from "@/lib/utils";
 import type { FilterValue } from "../validation/filter.types";
 
 export type SavedFiltersGroup<T> = {

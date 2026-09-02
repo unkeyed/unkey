@@ -1,7 +1,7 @@
+import { z } from "zod";
 import { getStripeClient } from "@/lib/stripe";
 import { expandableId, retrieveWorkspaceCheckoutSession } from "@/lib/trpc/routers/utils/stripe";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
-import { z } from "zod";
 
 const checkoutSessionSchema = z.object({
   id: z.string(),

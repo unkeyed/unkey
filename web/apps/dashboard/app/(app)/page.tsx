@@ -1,9 +1,9 @@
 "use client";
 
-import { routes } from "@/lib/navigation/routes";
-import { useWorkspace } from "@/providers/workspace-provider";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
+import { routes } from "@/lib/navigation/routes";
+import { useWorkspace } from "@/providers/workspace-provider";
 
 export default function AppHomePage() {
   const { workspace } = useWorkspace();

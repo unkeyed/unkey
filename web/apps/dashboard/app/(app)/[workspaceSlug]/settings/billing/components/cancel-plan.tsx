@@ -1,9 +1,9 @@
 "use client";
-import { trpc } from "@/lib/trpc/client";
 import { Button, DialogContainer, SettingsZoneRow, toast } from "@unkey/ui";
 import { useRouter } from "next/navigation";
 import { IconTriangleWarningOutline12 } from "nucleo-ui-outline-12";
 import { useState } from "react";
+import { trpc } from "@/lib/trpc/client";
 
 type CancelPlanProps = {
   disabled?: boolean;

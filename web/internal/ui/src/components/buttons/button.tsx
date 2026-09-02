@@ -1,7 +1,7 @@
 "use client";
 import { Button as ButtonPrimitive } from "@base-ui/react/button";
 import { useRender } from "@base-ui/react/use-render";
-import { type VariantProps, cva } from "class-variance-authority";
+import { cva, type VariantProps } from "class-variance-authority";
 import * as React from "react";
 import { cn } from "../../lib/utils";
 import { AnimatedLoadingSpinner } from "../animated-loading-spinner";

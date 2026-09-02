@@ -1,6 +1,6 @@
+import { describe, expect, it } from "vitest";
 import type { PolicyRow } from "@/lib/collections/deploy/policies";
 import { policyMatchKey } from "@/lib/collections/deploy/policies.schema";
-import { describe, expect, it } from "vitest";
 import { mergePolicies, policyInEnv } from "./merge";
 
 function firewall(id: string, name: string): PolicyRow {

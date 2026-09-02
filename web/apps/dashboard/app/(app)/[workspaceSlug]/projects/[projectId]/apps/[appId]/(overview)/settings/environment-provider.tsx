@@ -1,11 +1,11 @@
 "use client";
 
+import { and, eq, useLiveQuery } from "@tanstack/react-db";
+import { useSearchParams } from "next/navigation";
+import { createContext, type PropsWithChildren, useContext, useMemo } from "react";
 import { collection } from "@/lib/collections";
 import type { EnvironmentSettings } from "@/lib/collections/deploy/environment-settings";
 import { ENVIRONMENT_KIND } from "@/lib/collections/deploy/environments";
-import { and, eq, useLiveQuery } from "@tanstack/react-db";
-import { useSearchParams } from "next/navigation";
-import { type PropsWithChildren, createContext, useContext, useMemo } from "react";
 import { useProjectData } from "../data-provider";
 import { SettingsSkeleton } from "./components/settings-skeleton";
 

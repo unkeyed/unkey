@@ -1,8 +1,8 @@
-import { insertAuditLogs } from "@/lib/audit";
-import { type Permission, db, schema } from "@/lib/db";
-import { ensureDefaultProjectId } from "@/lib/projects/ensure-default-project-id";
 import { TRPCError } from "@trpc/server";
 import { newId } from "@unkey/id";
+import { insertAuditLogs } from "@/lib/audit";
+import { db, type Permission, schema } from "@/lib/db";
+import { ensureDefaultProjectId } from "@/lib/projects/ensure-default-project-id";
 import type { Context } from "../../context";
 
 export async function upsertPermission(

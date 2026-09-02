@@ -1,6 +1,6 @@
+import { TRPCError } from "@trpc/server";
 import { db } from "@/lib/db";
 import { subscriptionIdsByProduct } from "@/lib/stripe/billingSubscriptions";
-import { TRPCError } from "@trpc/server";
 import { protectedProcedure } from "../../trpc";
 
 const workspaceProjection = {

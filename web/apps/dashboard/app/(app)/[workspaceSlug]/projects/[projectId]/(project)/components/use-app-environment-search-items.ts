@@ -1,5 +1,6 @@
 "use client";
 
+import { useCallback, useMemo } from "react";
 import { useProjectData } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/data-provider";
 import {
   type AppEnvironmentSelection,
@@ -11,7 +12,6 @@ import {
   toggleEnvironmentSelection,
 } from "@/components/deploy/app-environment-selection";
 import type { FilterSearchItem } from "@/components/logs/checkbox/filters-popover";
-import { useCallback, useMemo } from "react";
 import { useAppFilterOptions } from "./app-filter-options";
 
 type FilterLike = {

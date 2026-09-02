@@ -1,5 +1,5 @@
-import { DomainRow } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/details/domain-row";
 import { IconCircleInfoOutline12 } from "nucleo-ui-outline-12";
+import { DomainRow } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/details/domain-row";
 
 type DomainsSectionProps = {
   domains: Array<{ id: string; fullyQualifiedDomainName: string }>;

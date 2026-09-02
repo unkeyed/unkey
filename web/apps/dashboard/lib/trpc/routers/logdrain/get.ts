@@ -1,6 +1,6 @@
-import { and, db, eq, schema } from "@/lib/db";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
+import { and, db, eq, schema } from "@/lib/db";
 import { workspaceProcedure } from "../../trpc";
 import { decodeLogdrainConfig } from "./config";
 

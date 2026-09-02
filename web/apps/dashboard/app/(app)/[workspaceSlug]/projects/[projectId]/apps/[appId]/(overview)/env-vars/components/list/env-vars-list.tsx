@@ -1,9 +1,9 @@
 "use client";
 
-import { collection } from "@/lib/collections";
-import type { Environment } from "@/lib/collections/deploy/environments";
 import { and, eq, useLiveQuery } from "@tanstack/react-db";
 import { useCallback, useDeferredValue, useEffect, useMemo, useState } from "react";
+import { collection } from "@/lib/collections";
+import type { Environment } from "@/lib/collections/deploy/environments";
 import { useRowSelection } from "../../hooks/use-row-selection";
 import { useVirtualList } from "../../hooks/use-virtual-list";
 import { EnvVarsEmpty } from "../shared/env-vars-empty";

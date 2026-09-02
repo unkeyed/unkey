@@ -1,11 +1,11 @@
+import { TRPCError } from "@trpc/server";
+import type { Transaction } from "@unkey/db";
+import { newId } from "@unkey/id";
 import { rbacRoleSchema } from "@/app/(app)/[workspaceSlug]/authorization/roles/components/upsert-role/upsert-role.schema";
 import { insertAuditLogs } from "@/lib/audit";
 import { and, db, eq, schema } from "@/lib/db";
 import { ensureDefaultProjectId } from "@/lib/projects/ensure-default-project-id";
 import { workspaceProcedure } from "@/lib/trpc/trpc";
-import { TRPCError } from "@trpc/server";
-import type { Transaction } from "@unkey/db";
-import { newId } from "@unkey/id";
 
 // Without these checks the caller could attach a role to keys or permissions
 // owned by another workspace, which leaks role permissions into a victim's

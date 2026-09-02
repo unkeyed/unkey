@@ -1,6 +1,6 @@
 import * as clack from "@clack/prompts";
 import type mysql from "mysql2/promise";
-import { type DrizzleReturnType, createProgressBar, formatDuration } from "./utils";
+import { createProgressBar, type DrizzleReturnType, formatDuration } from "./utils";
 
 export type BatchInsertionOptions = {
   count: number;

@@ -1,9 +1,9 @@
 "use client";
 
-import { GitHub, Google } from "@/components/ui/icons";
-import type { OAuthStrategy } from "@/lib/auth/types";
 import { Loading, toast } from "@unkey/ui";
 import * as React from "react";
+import { GitHub, Google } from "@/components/ui/icons";
+import type { OAuthStrategy } from "@/lib/auth/types";
 import { signInViaOAuth } from "../actions";
 import { OAuthButton } from "../oauth-button";
 import { useRadarSignals } from "../radar/radar-signals";

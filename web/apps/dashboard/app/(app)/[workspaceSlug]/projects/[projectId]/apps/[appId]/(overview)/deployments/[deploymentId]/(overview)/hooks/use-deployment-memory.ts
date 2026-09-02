@@ -1,6 +1,6 @@
 import { trpc } from "@/lib/trpc/client";
 import { formatMemoryParts } from "@/lib/utils/deployment-formatters";
-import { type TimeseriesData, downsample } from "./downsample";
+import { downsample, type TimeseriesData } from "./downsample";
 
 type UseDeploymentMemoryResult = {
   memoryPercent: number;

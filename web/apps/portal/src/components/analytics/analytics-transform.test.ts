@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
-  type RawVerificationDataPoint,
   computeMetrics,
   mapVerificationsResponse,
+  type RawVerificationDataPoint,
 } from "./analytics-transform";
 
 describe("mapVerificationsResponse", () => {

@@ -1,7 +1,5 @@
 "use client";
 
-import { type MenuItem, TableActionPopover } from "@/components/logs/table-action.popover";
-import { collection } from "@/lib/collections";
 import { Button, ConfirmPopover } from "@unkey/ui";
 import {
   IconDotsOutline18,
@@ -9,6 +7,8 @@ import {
   IconTrashOutline18,
 } from "nucleo-ui-outline-18";
 import { useRef, useState } from "react";
+import { type MenuItem, TableActionPopover } from "@/components/logs/table-action.popover";
+import { collection } from "@/lib/collections";
 import { EnvVarGroupRenameDialog } from "./env-var-group-rename-dialog";
 import type { EnvVarItem } from "./env-var-item-row";
 

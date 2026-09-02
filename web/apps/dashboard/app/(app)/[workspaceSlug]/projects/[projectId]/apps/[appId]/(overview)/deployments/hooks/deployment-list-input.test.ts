@@ -1,5 +1,5 @@
-import type { Environment } from "@/lib/collections/deploy/environments";
 import { describe, expect, test } from "vitest";
+import type { Environment } from "@/lib/collections/deploy/environments";
 import type { DeploymentListFilterValue } from "../filters.schema";
 import { buildDeploymentListInput } from "./deployment-list-input";
 

@@ -1,20 +1,21 @@
-import type { RootKey } from "@/lib/trpc/routers/settings/root-keys/query";
-import { cn } from "@/lib/utils";
 import type { DataTableColumnDef } from "@unkey/ui";
 import {
   AssignedCountCell,
   BadgeTimestampCell,
   ExpiresCell,
   HiddenValueCell,
+  InfoTooltip,
   LastUpdatedCell,
   RootKeyNameCell,
   RowActionSkeleton,
   SortableHeader,
+  TimestampInfo,
 } from "@unkey/ui";
-import { InfoTooltip, TimestampInfo } from "@unkey/ui";
 import dynamic from "next/dynamic";
 import { IconChartActivity2Outline12 } from "nucleo-ui-outline-12";
 import { IconPage2Outline18 } from "nucleo-ui-outline-18";
+import type { RootKey } from "@/lib/trpc/routers/settings/root-keys/query";
+import { cn } from "@/lib/utils";
 
 const RootKeysTableActions = dynamic(
   () =>

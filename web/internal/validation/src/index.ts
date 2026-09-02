@@ -9,7 +9,7 @@ const identifier = z
   .min(3)
   .max(256)
   .regex(
-    /^[a-zA-Z0-9_\.:\-]*$/,
+    /^[a-zA-Z0-9_.:-]*$/,
     "Only alphanumeric, underscores, periods, colons and hyphens are allowed",
   );
 

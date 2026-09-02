@@ -1,6 +1,4 @@
 "use client";
-import type { Deployment } from "@/lib/collections";
-import { shortenId } from "@/lib/shorten-id";
 import {
   InfoTooltip,
   Select,
@@ -10,6 +8,8 @@ import {
   SelectValue,
 } from "@unkey/ui";
 import { format } from "date-fns";
+import type { Deployment } from "@/lib/collections";
+import { shortenId } from "@/lib/shorten-id";
 import { PulseIndicator } from "../../../components/status-indicator";
 import { useProjectData } from "../../data-provider";
 

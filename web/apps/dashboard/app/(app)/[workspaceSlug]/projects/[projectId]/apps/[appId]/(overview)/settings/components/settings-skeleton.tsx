@@ -1,8 +1,8 @@
-import { collection } from "@/lib/collections";
 import { and, eq, useLiveQuery } from "@tanstack/react-db";
 import { SettingCardGroup } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 import { IconCircleHalfDottedClockOutline18, IconGearOutline18 } from "nucleo-ui-outline-18";
+import { collection } from "@/lib/collections";
 import { useAppId, useProjectData } from "../../data-provider";
 import { SettingsGroup } from "./shared/settings-group";
 

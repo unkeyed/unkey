@@ -1,12 +1,4 @@
 "use client";
-import { useDeployActionGate } from "@/app/(app)/[workspaceSlug]/projects/_components/hooks/use-deploy-action-gate";
-import { ResourceCard } from "@/app/(app)/[workspaceSlug]/projects/_components/list/resource-card";
-import { ResourceCardSkeleton } from "@/app/(app)/[workspaceSlug]/projects/_components/list/resource-card-skeleton";
-import { useAppHomeHref } from "@/hooks/use-app-home-href";
-import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
-import { collection } from "@/lib/collections";
-import { githubUrl } from "@/lib/github-url";
-import { routes } from "@/lib/navigation/routes";
 import { eq, useLiveQuery } from "@tanstack/react-db";
 import { Github } from "@unkey/icons";
 import { match } from "@unkey/match";
@@ -18,6 +10,14 @@ import {
   IconPlusOutline18,
   IconTerminalOutline18,
 } from "nucleo-ui-outline-18";
+import { useDeployActionGate } from "@/app/(app)/[workspaceSlug]/projects/_components/hooks/use-deploy-action-gate";
+import { ResourceCard } from "@/app/(app)/[workspaceSlug]/projects/_components/list/resource-card";
+import { ResourceCardSkeleton } from "@/app/(app)/[workspaceSlug]/projects/_components/list/resource-card-skeleton";
+import { useAppHomeHref } from "@/hooks/use-app-home-href";
+import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
+import { collection } from "@/lib/collections";
+import { githubUrl } from "@/lib/github-url";
+import { routes } from "@/lib/navigation/routes";
 import { AppActions } from "./app-actions";
 
 // One row at the 3-column desktop width so loading doesn't tower over the

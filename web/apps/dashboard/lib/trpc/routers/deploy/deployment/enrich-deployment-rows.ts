@@ -1,5 +1,3 @@
-import { and, db, eq, inArray, sql } from "@/lib/db";
-import type { LastExit } from "@/lib/types/deploy";
 import {
   appRegionalSettings,
   deploymentSteps,
@@ -7,10 +5,12 @@ import {
   openapiSpecs,
   regions,
 } from "@unkey/db/src/schema";
+import { and, db, eq, inArray, sql } from "@/lib/db";
+import type { LastExit } from "@/lib/types/deploy";
 import { type FlagCode, mapRegionToFlag } from "../network/utils";
 import {
-  type DeploymentListSelection,
   computeLastExit,
+  type DeploymentListSelection,
   mapInstanceRow,
   normalizeDeploymentRow,
 } from "./deployment-query-helpers";

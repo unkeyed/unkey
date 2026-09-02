@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { type PermissionQuery, and, or } from "./queries";
+import { and, or, type PermissionQuery } from "./queries";
 
 describe("serialising the schema", () => {
   const testCases: {

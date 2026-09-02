@@ -1,9 +1,9 @@
-import { AppService } from "@/gen/proto/ctrl/v1/app_pb";
-import { ProjectService } from "@/gen/proto/ctrl/v1/project_pb";
-import { env } from "@/lib/env";
 import { createClient } from "@connectrpc/connect";
 import { createConnectTransport } from "@connectrpc/connect-web";
 import { TRPCError } from "@trpc/server";
+import { AppService } from "@/gen/proto/ctrl/v1/app_pb";
+import { ProjectService } from "@/gen/proto/ctrl/v1/project_pb";
+import { env } from "@/lib/env";
 
 function getTransport() {
   const { CTRL_URL, CTRL_API_KEY } = env();

@@ -1,7 +1,3 @@
-import { setLastUsedOrgCookie, setSessionCookie } from "@/lib/auth/cookies-actions";
-import { routes } from "@/lib/navigation/routes";
-import { slugify } from "@/lib/slugify";
-import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
   Button,
@@ -16,6 +12,10 @@ import { useRouter } from "next/navigation";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
+import { setLastUsedOrgCookie, setSessionCookie } from "@/lib/auth/cookies-actions";
+import { routes } from "@/lib/navigation/routes";
+import { slugify } from "@/lib/slugify";
+import { trpc } from "@/lib/trpc/client";
 
 type WorkspaceStep = {
   body: ReactNode;

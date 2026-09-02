@@ -1,6 +1,5 @@
 "use client";
 
-import { collection } from "@/lib/collections";
 import { eq, useLiveQuery } from "@tanstack/react-db";
 import {
   Button,
@@ -14,6 +13,7 @@ import {
   toast,
 } from "@unkey/ui";
 import { useEffect, useState } from "react";
+import { collection } from "@/lib/collections";
 import { CreateNamespaceButton } from "../../../_components/create-namespace-button";
 import { DeleteNamespaceDialog } from "../../_components/namespace-delete-dialog";
 import { SettingsClientSkeleton } from "./skeleton";

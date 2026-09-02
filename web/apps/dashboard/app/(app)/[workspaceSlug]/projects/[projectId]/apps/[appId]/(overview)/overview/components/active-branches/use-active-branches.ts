@@ -1,6 +1,6 @@
+import { useMemo } from "react";
 import { isDeploymentSettling } from "@/lib/collections/deploy/deployment-status";
 import { trpc } from "@/lib/trpc/client";
-import { useMemo } from "react";
 import { useAppId, useProjectData } from "../../../data-provider";
 
 const PAGE_SIZE = 10;

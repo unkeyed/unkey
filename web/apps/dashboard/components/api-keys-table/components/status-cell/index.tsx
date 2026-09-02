@@ -1,6 +1,6 @@
+import { InfoTooltip, toast } from "@unkey/ui";
 import type { KeyDetails } from "@/lib/trpc/routers/api/keys/query-api-keys/schema";
 import { cn } from "@/lib/utils";
-import { InfoTooltip, toast } from "@unkey/ui";
 import { useUpdateKeyStatus } from "../actions/components/hooks/use-update-key-status";
 import { StatusBadge } from "./components/status-badge";
 import { useKeyStatus } from "./use-key-status";

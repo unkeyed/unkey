@@ -1,9 +1,9 @@
+import type { Log } from "@unkey/clickhouse/src/logs";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { HISTORICAL_DATA_WINDOW } from "@/components/logs/constants";
 import type { LogsRequestSchema } from "@/lib/schemas/logs.schema";
 import { trpc } from "@/lib/trpc/client";
 import { useQueryTime } from "@/providers/query-time-provider";
-import type { Log } from "@unkey/clickhouse/src/logs";
-import { useCallback, useEffect, useMemo, useState } from "react";
 import { useFilters } from "../../../hooks/use-filters";
 
 // Duration in milliseconds for historical data fetch window (12 hours)

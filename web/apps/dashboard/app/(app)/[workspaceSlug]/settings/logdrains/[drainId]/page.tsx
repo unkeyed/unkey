@@ -1,6 +1,5 @@
 "use client";
 
-import { trpc } from "@/lib/trpc/client";
 import {
   Button,
   Card,
@@ -12,6 +11,7 @@ import {
   Skeleton,
 } from "@unkey/ui";
 import { use } from "react";
+import { trpc } from "@/lib/trpc/client";
 import { LogdrainDetail } from "./logdrain-detail";
 
 export default function LogdrainDetailPage(props: { params: Promise<{ drainId: string }> }) {

@@ -17,10 +17,10 @@ vi.mock("@/lib/env", () => ({
   env: vi.fn(),
 }));
 
+import { jwtVerify } from "jose";
 import { getAuth } from "@/lib/auth/get-auth";
 import { auth as authProvider } from "@/lib/auth/server";
 import { env } from "@/lib/env";
-import { jwtVerify } from "jose";
 import { POST } from "./route";
 
 const mockedGetAuth = vi.mocked(getAuth);

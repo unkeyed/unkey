@@ -1,6 +1,6 @@
-import { trpc } from "@/lib/trpc/client";
 import { Combobox, toast } from "@unkey/ui";
 import { useMemo } from "react";
+import { trpc } from "@/lib/trpc/client";
 import { ComboboxSkeleton, GitHubSettingCard, ManageGitHubAppLink, RepoNameLabel } from "./shared";
 
 export const GitHubConnected = ({

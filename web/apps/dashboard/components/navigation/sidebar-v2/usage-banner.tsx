@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { ProgressCircle } from "@/app/(app)/[workspaceSlug]/settings/billing/components/usage";
 import { getButtonStyles } from "@/components/navigation/sidebar/app-sidebar/components/nav-items/utils";
 import {
@@ -12,7 +13,6 @@ import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { routes } from "@/lib/navigation/routes";
 import { trpc } from "@/lib/trpc/client";
 import { useWorkspace } from "@/providers/workspace-provider";
-import Link from "next/link";
 
 export function UsageBanner() {
   const workspace = useWorkspaceNavigation();

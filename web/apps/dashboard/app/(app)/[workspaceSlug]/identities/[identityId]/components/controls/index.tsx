@@ -10,11 +10,7 @@ import { LogsLiveSwitch } from "./components/logs-live-switch";
 import { LogsRefresh } from "./components/logs-refresh";
 import { LogsSearch } from "./components/logs-search";
 
-export function IdentityDetailsLogsControls({
-  identityId,
-}: {
-  identityId: string;
-}) {
+export function IdentityDetailsLogsControls({ identityId }: { identityId: string }) {
   return (
     <ControlsContainer>
       <ControlsLeft>

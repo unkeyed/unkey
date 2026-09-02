@@ -1,7 +1,7 @@
 "use client";
 
 import type { RatelimitLog } from "@unkey/clickhouse/src/ratelimits";
-import { type PropsWithChildren, createContext, useContext, useState } from "react";
+import { createContext, type PropsWithChildren, useContext, useState } from "react";
 
 type LogsContextType = {
   isLive: boolean;

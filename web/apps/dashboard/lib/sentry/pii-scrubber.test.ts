@@ -4,13 +4,13 @@ import {
   type ReplayFrameEvent,
   type SentryLog,
   type SpanJson,
-  type TransactionEvent,
   scrubEventPii,
   scrubLog,
   scrubReplayFrame,
   scrubSpanPii,
   scrubTransactionPii,
   scrubUrl,
+  type TransactionEvent,
 } from "./pii-scrubber";
 
 const ROOT_KEY = "unkey_3ZZ8gT8vQk2mN4pXwYbCdEf";

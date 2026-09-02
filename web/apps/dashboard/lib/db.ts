@@ -1,5 +1,5 @@
-import { dbEnv } from "@/lib/env";
 import { createCommentedPool, drizzle, schema, staticTagsFromEnv } from "@unkey/db";
+import { dbEnv } from "@/lib/env";
 
 const { DATABASE_HOST, DATABASE_USERNAME, DATABASE_PASSWORD } = dbEnv();
 const isLocal = DATABASE_HOST.includes("localhost") || DATABASE_HOST.includes("127.0.0.1");

@@ -1,6 +1,5 @@
 "use client";
 
-import { trpc } from "@/lib/trpc/client";
 import {
   Checkbox,
   InputGroup,
@@ -12,6 +11,7 @@ import {
 } from "@unkey/ui";
 import { IconCodeBranchOutline18, IconMagnifierOutline18 } from "nucleo-ui-outline-18";
 import { useState } from "react";
+import { trpc } from "@/lib/trpc/client";
 import { useAppId, useProjectData } from "../../../../data-provider";
 import { useFilters } from "../../../hooks/use-filters";
 import { FilterTriggerButton } from "./filter-trigger-button";

@@ -1,9 +1,9 @@
 "use client";
 
+import { CopyButton } from "@unkey/ui";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { routes } from "@/lib/navigation/routes";
 import { shortenId } from "@/lib/shorten-id";
-import { CopyButton } from "@unkey/ui";
 import { useProjectData } from "../(overview)/data-provider";
 import { DottedLink } from "./dotted-link";
 

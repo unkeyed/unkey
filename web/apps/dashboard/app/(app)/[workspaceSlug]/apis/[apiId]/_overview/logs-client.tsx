@@ -1,8 +1,8 @@
 "use client";
 
-import { KeysOverviewLogDetails } from "@/components/api-requests-table/components/log-details";
 import type { KeysOverviewLog } from "@unkey/clickhouse/src/keys/keys";
 import { useCallback, useState } from "react";
+import { KeysOverviewLogDetails } from "@/components/api-requests-table/components/log-details";
 import { KeysOverviewLogsCharts } from "./components/charts";
 import { KeysOverviewLogsControlCloud } from "./components/control-cloud";
 import { KeysOverviewLogsControls } from "./components/controls";

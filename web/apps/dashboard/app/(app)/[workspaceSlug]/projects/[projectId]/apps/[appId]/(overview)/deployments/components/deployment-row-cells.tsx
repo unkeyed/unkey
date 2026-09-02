@@ -1,12 +1,5 @@
 "use client";
 
-import { Avatar } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/git-avatar";
-import type { Deployment, Environment } from "@/lib/collections";
-import { DEPLOYMENT_STATUS_LABELS } from "@/lib/collections/deploy/deployment-status";
-import { imageRefTag } from "@/lib/docker-image-ref";
-import { githubUrl } from "@/lib/github-url";
-import { shortenId } from "@/lib/shorten-id";
-import { cn } from "@/lib/utils";
 import { Github } from "@unkey/icons";
 import { InfoTooltip, TimestampInfo } from "@unkey/ui";
 import type { Route } from "next";
@@ -23,6 +16,13 @@ import {
   IconSquareTerminalOutline18,
 } from "nucleo-ui-outline-18";
 import type { FC, ReactNode } from "react";
+import { Avatar } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/git-avatar";
+import type { Deployment, Environment } from "@/lib/collections";
+import { DEPLOYMENT_STATUS_LABELS } from "@/lib/collections/deploy/deployment-status";
+import { imageRefTag } from "@/lib/docker-image-ref";
+import { githubUrl } from "@/lib/github-url";
+import { shortenId } from "@/lib/shorten-id";
+import { cn } from "@/lib/utils";
 import { DeploymentStatusIndicator } from "../../../components/deployment-status-dot";
 import { ActionColumnSkeleton } from "./table/components/skeletons";
 

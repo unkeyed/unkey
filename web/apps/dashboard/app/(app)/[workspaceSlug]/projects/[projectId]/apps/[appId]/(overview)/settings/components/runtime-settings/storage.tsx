@@ -1,8 +1,8 @@
 "use client";
 
-import { formatStorageParts } from "@/lib/utils/deployment-formatters";
 import { IconDatabaseOutline18 } from "nucleo-ui-outline-18";
-import { ResourceSliderSetting, defineResourceSlider } from "../shared/resource-slider";
+import { formatStorageParts } from "@/lib/utils/deployment-formatters";
+import { defineResourceSlider, ResourceSliderSetting } from "../shared/resource-slider";
 
 // Storage tiers on the slider. resolveStrategy bounds these to the workspace
 // limit and adds the exact limit value as a stop when it is not one of these tiers.

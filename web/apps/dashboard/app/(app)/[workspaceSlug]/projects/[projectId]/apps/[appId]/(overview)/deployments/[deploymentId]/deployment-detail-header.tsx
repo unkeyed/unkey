@@ -1,9 +1,5 @@
 "use client";
 
-import { TableActionPopover } from "@/components/logs/table-action.popover";
-import type { Deployment } from "@/lib/collections/deploy/deployments";
-import { imageRefDisplay } from "@/lib/docker-image-ref";
-import { shortenId } from "@/lib/shorten-id";
 import { match } from "@unkey/match";
 import {
   Button,
@@ -19,6 +15,10 @@ import {
   IconDotsOutline18,
 } from "nucleo-ui-outline-18";
 import { useState } from "react";
+import { TableActionPopover } from "@/components/logs/table-action.popover";
+import type { Deployment } from "@/lib/collections/deploy/deployments";
+import { imageRefDisplay } from "@/lib/docker-image-ref";
+import { shortenId } from "@/lib/shorten-id";
 import { useProjectData } from "../../data-provider";
 import {
   isCancellableDeploymentStatus,

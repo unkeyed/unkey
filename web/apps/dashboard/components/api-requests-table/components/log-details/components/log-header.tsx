@@ -1,15 +1,9 @@
-import { cn } from "@/lib/utils";
 import type { KeysOverviewLog } from "@unkey/clickhouse/src/keys/keys";
 import { Badge, Button } from "@unkey/ui";
 import { IconXmarkOutline18 } from "nucleo-ui-outline-18";
+import { cn } from "@/lib/utils";
 
-export const LogHeader = ({
-  onClose,
-  log,
-}: {
-  onClose: () => void;
-  log: KeysOverviewLog;
-}) => {
+export const LogHeader = ({ onClose, log }: { onClose: () => void; log: KeysOverviewLog }) => {
   return (
     <div className="border-b flex justify-between items-center border-gray-4 h-[50px] px-4 py-2">
       <div className="flex gap-2 items-center flex-1 min-w-0">
