@@ -1,8 +1,7 @@
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { useFlag } from "@/lib/flags/provider";
 import { Github } from "@unkey/icons";
-import { Button } from "@unkey/ui";
-import { cn } from "@unkey/ui/src/lib/utils";
+import { Button, EmptyHero } from "@unkey/ui";
 import { useSearchParams } from "next/navigation";
 import {
   IconArrowRightOutline18,
@@ -12,56 +11,10 @@ import {
   IconEarthOutline18,
   IconHeartPulseOutline18,
 } from "nucleo-ui-outline-18";
-import { type ReactNode, useState } from "react";
+import { useState } from "react";
 import { CreateProjectDialog } from "../create-project-dialog";
 import { DeployPlanGateDialog } from "../deploy-plan-gate-dialog";
 import { useDeployGate } from "../hooks/use-deploy-gate";
-
-type IconBoxProps = {
-  children?: ReactNode;
-  large?: boolean;
-  className?: string;
-};
-
-const IconBox = ({ children, large, className }: IconBoxProps) => (
-  <div
-    className={cn(
-      "shrink-0 flex items-center justify-center rounded-[10px] bg-transparent ring-1 ring-grayA-4 shadow-sm shadow-grayA-8/20 dark:shadow-none",
-      large ? "size-16" : "size-9",
-      className,
-    )}
-  >
-    {children}
-  </div>
-);
-
-const flankItems: { icon: ReactNode; large?: boolean; opacity: string }[] = [
-  { icon: <IconEarthOutline18 />, opacity: "opacity-50" },
-  { icon: <Github className="size-[18px]" />, opacity: "opacity-75" },
-  { icon: <IconCubeOutline18 className="size-9 [&_[stroke-width]]:[stroke-width:0.75]" />, large: true, opacity: "opacity-90" },
-  { icon: <IconCodeOutline18 />, opacity: "opacity-75" },
-  { icon: <IconHeartPulseOutline18 />, opacity: "opacity-50" },
-];
-
-const ProjectIconRow = () => (
-  <div
-    aria-hidden="true"
-    className="p-2 mb-8"
-    style={{
-      maskImage: "linear-gradient(to right, transparent, black 20%, black 80%, transparent)",
-      WebkitMaskImage: "linear-gradient(to right, transparent, black 20%, black 80%, transparent)",
-    }}
-  >
-    <div className="flex gap-6 items-center justify-center text-gray-12">
-      {flankItems.map((item, i) => (
-        // biome-ignore lint/suspicious/noArrayIndexKey: static row, index is stable
-        <IconBox key={i} large={item.large} className={item.opacity}>
-          {item.icon}
-        </IconBox>
-      ))}
-    </div>
-  </div>
-);
 
 export function EmptyProjects() {
   const workspace = useWorkspaceNavigation();
@@ -74,7 +27,13 @@ export function EmptyProjects() {
   return (
     <div className="grow w-full flex justify-center items-center p-12">
       <div className="flex flex-col items-center text-center">
-        <ProjectIconRow />
+        <EmptyHero.Icons className="mb-8">
+          <IconEarthOutline18 />
+          <Github />
+          <IconCubeOutline18 />
+          <IconCodeOutline18 />
+          <IconHeartPulseOutline18 />
+        </EmptyHero.Icons>
 
         <h2 className="text-accent-12 font-semibold text-2xl leading-8 mb-1">Projects</h2>
         <p className="text-accent-11 text-sm leading-6 max-w-md text-balance mb-6">
