@@ -82,7 +82,7 @@ function SelectTrigger({
         <SelectPrimitive.Icon
           render={
             (rightIcon as React.ReactElement) || (
-              <IconChevronDownOutline18 className="absolute text-gray-11 right-3 w-4 h-4" />
+              <IconChevronDownOutline18 className="absolute text-gray-11 right-3 size-4" />
             )
           }
         />

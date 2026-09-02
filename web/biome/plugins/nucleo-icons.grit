@@ -1,0 +1,59 @@
+language js
+
+// Nucleo icons ship one stroke weight per package and one intrinsic size.
+// The stroke is locked, the size comes from a single className utility, and
+// hero-scale icons get their stroke thinned by Empty.Icon or EmptyHero.Icons,
+// never by the call site. Undersized 18px glyphs live in the generated
+// nucleo-undersized-18.grit, because that rule needs the list of 12px names.
+
+pattern nucleo_locked_attribute() {
+  or {
+    `strokeWidth={$_}`,
+    `strokeWidth="$_"`,
+    `size={$_}`,
+    `size="$_"`,
+    `width={$_}`,
+    `width="$_"`,
+    `height={$_}`,
+    `height="$_"`
+  }
+}
+
+pattern nucleo_element($tag, $props) {
+  or {
+    `<$tag $props />`,
+    `<$tag $props>$_</$tag>`
+  }
+}
+
+pattern nucleo_locked_prop() {
+  bubble nucleo_element($tag, $props) where {
+    $tag <: r"Icon[A-Za-z0-9]+(?:Outline|Fill)(?:12|18)",
+    $props <: contains nucleo_locked_attribute(),
+    register_diagnostic(span=$tag, message="Stroke weight is locked to the Nucleo package default and size comes from className. Remove the strokeWidth, size, width or height attribute and use a size utility such as `size-4`.", severity="error")
+  }
+}
+
+pattern nucleo_box_class() {
+  bubble nucleo_element($tag, $props) where {
+    $tag <: r"Icon[A-Za-z0-9]+(?:Outline|Fill)(?:12|18)",
+    $props <: contains `className="$cls"`,
+    $cls <: r"(?:^|.*\s)[hw]-[^\s]+(?:\s.*)?",
+    register_diagnostic(span=$tag, message="Icons are square. Replace the h- and w- utilities with one size utility such as `size-4`.", severity="error")
+  }
+}
+
+pattern nucleo_stroke_class() {
+  bubble nucleo_element($tag, $props) where {
+    $tag <: r"Icon[A-Za-z0-9]+(?:Outline|Fill)(?:12|18)",
+    $props <: contains `className="$cls"`,
+    $cls <: r".*stroke-width.*",
+    register_diagnostic(span=$tag, message="Do not override stroke-width on an icon. Hero-scale icons belong inside Empty.Icon or EmptyHero.Icons, which thin the stroke for you.", severity="error")
+  }
+}
+
+or {
+  nucleo_locked_prop(),
+  nucleo_box_class(),
+  nucleo_stroke_class()
+}

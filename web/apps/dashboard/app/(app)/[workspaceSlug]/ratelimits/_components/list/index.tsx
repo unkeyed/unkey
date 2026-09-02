@@ -74,7 +74,7 @@ export const NamespaceList = () => {
                 rel="noopener noreferrer"
               >
                 <Button className="flex items-center gap-2">
-                  <IconBookmarkOutline18 className="w-4 h-4" />
+                  <IconBookmarkOutline18 className="size-4" />
                   Read the docs
                 </Button>
               </a>

@@ -1,0 +1,7 @@
+{
+  "$schema": "../../../node_modules/@biomejs/biome/configuration_schema.json",
+  "plugins": ["../nucleo-icons.grit", "../nucleo-undersized-18.grit"],
+  "linter": { "enabled": true, "rules": { "preset": "none" } },
+  "formatter": { "enabled": false },
+  "assist": { "enabled": false }
+}

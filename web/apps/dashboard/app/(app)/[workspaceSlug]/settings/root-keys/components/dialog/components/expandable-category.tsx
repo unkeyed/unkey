@@ -47,7 +47,7 @@ const ExpandableCategory = forwardRef<
           ) : null}
         </div>
         <IconCaretRightOutline18
-          className="w-4 h-4 transition-transform duration-200 ml-auto text-grayA-7"
+          className="size-4 transition-transform duration-200 ml-auto text-grayA-7"
           aria-hidden="true"
         />
       </CollapsibleTrigger>
