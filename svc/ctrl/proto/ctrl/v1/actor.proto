@@ -9,6 +9,11 @@ enum ActorType {
   ACTOR_TYPE_USER = 1;
   ACTOR_TYPE_ROOT_KEY = 2;
   ACTOR_TYPE_SYSTEM = 3;
+
+  // GITHUB is a GitHub event rather than a person using Unkey, and the actor id
+  // is the pusher's GitHub login. Separate from SYSTEM so work a contributor
+  // caused is not attributed to Unkey itself.
+  ACTOR_TYPE_GITHUB = 4;
 }
 
 // ActorInfo carries audit-relevant caller identity and request origin so ctrl

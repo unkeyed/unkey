@@ -11,6 +11,7 @@ import (
 	"connectrpc.com/connect"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
+	githubclient "github.com/unkeyed/unkey/pkg/github"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/auth"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
@@ -173,7 +174,7 @@ func (s *Service) AuthorizeDeployment(ctx context.Context, req *connect.Request[
 			"success",
 			"",
 			"Deployment authorized and started",
-			"Unkey Deploy Authorization",
+			githubclient.DeployAuthorizationContext,
 		); statusErr != nil {
 			logger.Error("failed to update commit status to success", "error", statusErr)
 		}

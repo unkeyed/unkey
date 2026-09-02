@@ -3,6 +3,12 @@ package github
 import "time"
 
 // GitHubClient defines the interface for GitHub API operations.
+// DeployAuthorizationContext is the commit-status context for the approval a
+// fork PR waits on. GitHub keys a status by its context, so the failing status
+// that requests approval and the success that resolves it have to agree on this
+// value or the PR keeps a stuck check forever.
+const DeployAuthorizationContext = "Unkey Deploy Authorization"
+
 type GitHubClient interface {
 	// GetInstallationToken retrieves an access token for a specific installation.
 	GetInstallationToken(installationID int64) (InstallationToken, error)
@@ -52,8 +58,10 @@ type GitHubClient interface {
 	IsCollaborator(installationID int64, repo string, username string) (bool, error)
 
 	// CreateCommitStatus creates a commit status on a SHA. The "Details" link
-	// in the PR goes directly to targetURL. context is the label shown (e.g.
-	// "Unkey Deploy Authorization"). state: pending|success|error|failure.
+	// in the PR goes directly to targetURL. context is the label shown, and
+	// GitHub keys a status by it, so posting a status and later resolving it must
+	// pass the same value: see [DeployAuthorizationContext].
+	// state: pending|success|error|failure.
 	CreateCommitStatus(installationID int64, repo string, sha string, state string, targetURL string, description string, context string) error
 
 	// ListCommitFiles returns the list of filenames changed in a specific commit.

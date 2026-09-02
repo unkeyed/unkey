@@ -423,6 +423,7 @@ type Querier interface {
 	//
 	//  SELECT
 	//      p.workspace_id AS workspace_id,
+	//      w.slug AS workspace_slug,
 	//      p.id AS project_id,
 	//      a.id AS app_id,
 	//      a.source_type AS source_type,
@@ -460,6 +461,7 @@ type Querier interface {
 	//      ) AS has_schedulable_region
 	//  FROM apps a
 	//  INNER JOIN projects p ON p.id = a.project_id
+	//  INNER JOIN workspaces w ON w.id = p.workspace_id
 	//  INNER JOIN environments e ON e.app_id = a.id AND e.project_id = a.project_id
 	//  INNER JOIN (
 	//      SELECT e1.id
@@ -1648,22 +1650,6 @@ type Querier interface {
 	//    AND created_at < ?
 	//    AND (updated_at IS null OR updated_at < ? )
 	ListDeploymentsByEnvironmentIdAndStatus(ctx context.Context, arg ListDeploymentsByEnvironmentIdAndStatusParams) ([]Deployment, error)
-	//ListEnvVarsForRepoConnections
-	//
-	//  SELECT aev.app_id, aev.`key`, aev.value
-	//  FROM app_environment_variables aev
-	//  INNER JOIN apps a ON aev.app_id = a.id
-	//  INNER JOIN environments e ON a.id = e.app_id AND e.id = aev.environment_id
-	//  INNER JOIN github_repo_connections gc ON gc.app_id = a.id
-	//  WHERE gc.installation_id = ?
-	//    AND gc.repository_id = ?
-	//    AND CASE
-	//      WHEN CAST(? AS SIGNED) = 1 THEN e.kind = 'preview'
-	//      WHEN ? = COALESCE(NULLIF(gc.default_branch, ''), 'main')
-	//      THEN e.kind = 'production'
-	//      ELSE e.kind = 'preview'
-	//    END
-	ListEnvVarsForRepoConnections(ctx context.Context, arg ListEnvVarsForRepoConnectionsParams) ([]ListEnvVarsForRepoConnectionsRow, error)
 	//ListEnvironmentIdsByApp
 	//
 	//  SELECT id FROM environments WHERE app_id = ?
@@ -1825,6 +1811,22 @@ type Querier interface {
 	//      OR EXISTS (SELECT 1 FROM instances i WHERE i.deployment_id = d.id)
 	//    )
 	ListRunningDeploymentsByWorkspaceId(ctx context.Context, arg ListRunningDeploymentsByWorkspaceIdParams) ([]ListRunningDeploymentsByWorkspaceIdRow, error)
+	// Batched form of FindWorkspaceDeployEntitlement, for a caller holding several
+	// workspaces at once: one GitHub push can match apps across workspaces, and
+	// looking each up separately would cost a Restate journal round trip per app.
+	// The LEFT JOIN keeps the single-row form's semantics, so a workspace with no
+	// billing row comes back with NULL plan columns rather than being dropped, and
+	// an unbilled workspace reads the same either way.
+	//
+	//  SELECT
+	//     w.id AS workspace_id,
+	//     b.plan,
+	//     b.plan_override,
+	//     b.spend_suspended
+	//  FROM `workspaces` w
+	//  LEFT JOIN `workspace_billing` b ON b.workspace_id = w.id
+	//  WHERE w.id IN (/*SLICE:workspace_ids*/?)
+	ListWorkspaceDeployEntitlements(ctx context.Context, workspaceIds []string) ([]ListWorkspaceDeployEntitlementsRow, error)
 	// Fetches the Stripe customer identity for a batch of workspaces, used by the
 	// hourly Deploy billing push to decide where each workspace's month-to-date
 	// usage gets reported. The Stripe Billing Meters map usage to a customer by

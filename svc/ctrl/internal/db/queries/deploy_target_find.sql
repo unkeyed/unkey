@@ -1,6 +1,7 @@
 -- name: FindDeployTarget :one
 SELECT
     p.workspace_id AS workspace_id,
+    w.slug AS workspace_slug,
     p.id AS project_id,
     a.id AS app_id,
     a.source_type AS source_type,
@@ -38,6 +39,7 @@ SELECT
     ) AS has_schedulable_region
 FROM apps a
 INNER JOIN projects p ON p.id = a.project_id
+INNER JOIN workspaces w ON w.id = p.workspace_id
 INNER JOIN environments e ON e.app_id = a.id AND e.project_id = a.project_id
 INNER JOIN (
     SELECT e1.id
