@@ -537,10 +537,11 @@ type Querier interface {
 	//FindKeyByID
 	//
 	//  SELECT
-	//      k.pk, k.id, k.key_auth_id, k.hash, k.start, k.workspace_id, k.for_workspace_id,
-	//      k.name, k.identity_id, k.meta, k.expires, k.created_at_m, k.updated_at_m,
-	//      k.deleted_at_m, k.refill_day, k.refill_amount, k.last_refill_at, k.enabled,
-	//      k.remaining_requests, k.environment, k.last_used_at, k.pending_migration_id
+	//      k.pk, k.id, k.key_auth_id, k.hash, k.prefix, k.start, k.end, k.workspace_id,
+	//      k.for_workspace_id, k.name, k.identity_id, k.meta, k.expires, k.created_at_m,
+	//      k.updated_at_m, k.deleted_at_m, k.refill_day, k.refill_amount,
+	//      k.last_refill_at, k.enabled, k.remaining_requests, k.environment,
+	//      k.last_used_at, k.pending_migration_id
 	//  FROM `keys` k
 	//  WHERE k.id = ?
 	FindKeyByID(ctx context.Context, db DBTX, id string) (Key, error)
@@ -604,7 +605,9 @@ type Querier interface {
 	//  SELECT
 	//      k.id AS key_id,
 	//      k.key_auth_id AS key_key_auth_id,
+	//      k.prefix AS key_prefix,
 	//      k.start AS key_start,
+	//      k.end AS key_end,
 	//      k.workspace_id AS key_workspace_id,
 	//      k.name AS key_name,
 	//      k.meta AS key_meta,
@@ -715,7 +718,9 @@ type Querier interface {
 	//      k.id AS key_id,
 	//      k.key_auth_id AS key_key_auth_id,
 	//      k.hash AS key_hash,
+	//      k.prefix AS key_prefix,
 	//      k.start AS key_start,
+	//      k.end AS key_end,
 	//      k.workspace_id AS key_workspace_id,
 	//      k.for_workspace_id AS key_for_workspace_id,
 	//      k.name AS key_name,
@@ -1560,13 +1565,16 @@ type Querier interface {
 	//      auto_apply = VALUES(auto_apply),
 	//      updated_at = VALUES(created_at)
 	InsertIdentityRatelimit(ctx context.Context, db DBTX, arg InsertIdentityRatelimitParams) error
-	//InsertKey
+	// InsertKey writes the plaintext key parts and hash in one statement so they stay consistent.
+	// Callers that do not know these parts pass empty prefix and end values.
 	//
 	//  INSERT INTO `keys` (
 	//      id,
 	//      key_auth_id,
 	//      hash,
+	//      prefix,
 	//      start,
+	//      end,
 	//      workspace_id,
 	//      for_workspace_id,
 	//      name,
@@ -1580,6 +1588,8 @@ type Querier interface {
 	//      refill_amount,
 	//      pending_migration_id
 	//  ) VALUES (
+	//      ?,
+	//      ?,
 	//      ?,
 	//      ?,
 	//      ?,
@@ -2165,8 +2175,8 @@ type Querier interface {
 	ListIdentityRatelimitsByID(ctx context.Context, db DBTX, identityID sql.NullString) ([]Ratelimit, error)
 	//ListLiveKeysByKeySpaceID
 	//
-	//  SELECT k.pk, k.id, k.key_auth_id, k.hash, k.start, k.workspace_id, k.for_workspace_id,
-	//         k.name, k.identity_id, k.meta, k.expires, k.created_at_m, k.updated_at_m,
+	//  SELECT k.pk, k.id, k.key_auth_id, k.hash, k.prefix, k.start, k.end, k.workspace_id,
+	//         k.for_workspace_id, k.name, k.identity_id, k.meta, k.expires, k.created_at_m, k.updated_at_m,
 	//         k.deleted_at_m, k.refill_day, k.refill_amount, k.last_refill_at, k.enabled,
 	//         k.remaining_requests, k.environment, k.last_used_at, k.pending_migration_id,
 	//         i.id                 as identity_table_id,
@@ -2260,8 +2270,8 @@ type Querier interface {
 	ListLiveKeysByKeySpaceID(ctx context.Context, db DBTX, arg ListLiveKeysByKeySpaceIDParams) ([]ListLiveKeysByKeySpaceIDRow, error)
 	//ListLiveKeysByKeySpaceIDs
 	//
-	//  SELECT k.pk, k.id, k.key_auth_id, k.hash, k.start, k.workspace_id, k.for_workspace_id,
-	//         k.name, k.identity_id, k.meta, k.expires, k.created_at_m, k.updated_at_m,
+	//  SELECT k.pk, k.id, k.key_auth_id, k.hash, k.prefix, k.start, k.end, k.workspace_id,
+	//         k.for_workspace_id, k.name, k.identity_id, k.meta, k.expires, k.created_at_m, k.updated_at_m,
 	//         k.deleted_at_m, k.refill_day, k.refill_amount, k.last_refill_at, k.enabled,
 	//         k.remaining_requests, k.environment, k.last_used_at, k.pending_migration_id,
 	//         i.id                 as identity_table_id,

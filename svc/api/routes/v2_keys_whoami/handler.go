@@ -106,6 +106,11 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
+	start := keyData.Key.Start
+	if keyData.Key.Prefix != "" {
+		start = keyData.Key.Prefix + "_" + start
+	}
+
 	response := openapi.KeyResponseData{
 		Meta:        nil,
 		Ratelimits:  nil,
@@ -119,7 +124,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		CreatedAt:   keyData.Key.CreatedAtM,
 		Enabled:     keyData.Key.Enabled,
 		KeyId:       keyData.Key.ID,
-		Start:       keyData.Key.Start,
+		Start:       start,
 		Plaintext:   "",
 		LastUsedAt:  int64(keyData.Key.LastUsedAt),
 	}
