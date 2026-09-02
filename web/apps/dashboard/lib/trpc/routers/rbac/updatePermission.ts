@@ -23,6 +23,7 @@ export const updatePermission = workspaceProcedure
     const permission = await db.query.permissions.findFirst({
       where: (table, { and, eq }) =>
         and(eq(table.workspaceId, ctx.workspace.id), eq(table.id, input.id)),
+      columns: { id: true },
     });
 
     if (!permission) {

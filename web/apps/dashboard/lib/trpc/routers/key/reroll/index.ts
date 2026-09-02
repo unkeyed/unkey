@@ -124,14 +124,38 @@ async function rerollKeyCore({
         },
         with: {
           keyAuth: {
+            columns: {
+              storeEncryptedKeys: true,
+              defaultBytes: true,
+            },
             with: {
-              api: true,
+              api: {
+                columns: {
+                  id: true,
+                  name: true,
+                },
+              },
             },
           },
-          encrypted: true,
-          ratelimits: true,
-          roles: true,
-          permissions: true,
+          encrypted: {
+            columns: { keyId: true },
+          },
+          ratelimits: {
+            columns: {
+              keyId: true,
+              identityId: true,
+              name: true,
+              limit: true,
+              duration: true,
+              autoApply: true,
+            },
+          },
+          roles: {
+            columns: { roleId: true },
+          },
+          permissions: {
+            columns: { permissionId: true },
+          },
         },
       });
 

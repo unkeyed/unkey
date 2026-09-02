@@ -54,6 +54,7 @@ export const queryRatelimitTimeseriesBatch = workspaceProcedure
             inArray(table.id, input.namespaceIds),
             isNull(table.deletedAtM),
           ),
+        columns: { id: true },
       })
       .catch((_err) => {
         throw new TRPCError({

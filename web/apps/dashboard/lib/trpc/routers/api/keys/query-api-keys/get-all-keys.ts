@@ -55,6 +55,7 @@ export async function getAllKeys({
           },
         },
       },
+      columns: { id: true },
     });
     if (!keyAuth) {
       throw new TRPCError({

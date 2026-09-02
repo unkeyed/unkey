@@ -15,7 +15,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/auditlog"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
-	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/healthcheck"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
@@ -141,9 +140,8 @@ func (h *Handler) Handle(
 //   - CH insert fails: tx rolls back, row locks released, rows stay
 //     unmarked, next cron tick retries.
 //   - MySQL commit fails after a successful CH insert: rows stay
-//     unmarked, next cron re-reads the same set in the same order, re-
-//     inserts an identical block, CH's non_replicated_deduplication_window
-//     collapses it to a noop, then commits.
+//     unmarked, and the next cron tick inserts them again. This can create
+//     duplicate ClickHouse rows under the at-least-once delivery contract.
 func (h *Handler) exportBatch(ctx context.Context) (batchResult, error) {
 	return db.TxWithResult(ctx, h.db.RW(), func(txCtx context.Context, tx db.DBTX) (batchResult, error) {
 		q := db.NewQueries(tx)
@@ -167,9 +165,9 @@ func (h *Handler) exportBatch(ctx context.Context) (batchResult, error) {
 			pks[i] = row.Pk
 		}
 
-		chRows, err := buildCHRows(events)
+		chRows, err := clickhouse.EncodeAuditLogEvents(events)
 		if err != nil {
-			return batchResult{EventsExported: 0}, fmt.Errorf("build clickhouse rows: %w", err)
+			return batchResult{EventsExported: 0}, fmt.Errorf("encode clickhouse rows: %w", err)
 		}
 
 		if err := h.clickhouse.InsertAuditLogs(txCtx, chRows); err != nil {
@@ -185,83 +183,4 @@ func (h *Handler) exportBatch(ctx context.Context) (batchResult, error) {
 
 		return batchResult{EventsExported: int32(len(events))}, nil
 	})
-}
-
-// buildCHRows maps decoded outbox events to ClickHouse rows. Targets
-// are fanned into parallel arrays so a single event lands as a single
-// CH row with Nested target columns; this avoids GROUP BY
-// reconstruction the previous (one-row-per-target) layout required on
-// read.
-//
-// expires_at is NOT set here — the CH table has it as a MATERIALIZED
-// column derived from `time + dictGet('workspace_quota_dict', ...)` so
-// retention is computed inside CH at INSERT, no per-workspace lookup
-// needed in this writer.
-func buildCHRows(events []auditlog.Event) ([]schema.AuditLogV1, error) {
-	nowMillis := time.Now().UnixMilli()
-	out := make([]schema.AuditLogV1, len(events))
-	for i, e := range events {
-		actorMeta, err := marshalMeta(e.Actor.Meta)
-		if err != nil {
-			return nil, fmt.Errorf("encode actor_meta event_id=%s: %w", e.EventID, err)
-		}
-		topMeta, err := marshalMeta(e.Meta)
-		if err != nil {
-			return nil, fmt.Errorf("encode meta event_id=%s: %w", e.EventID, err)
-		}
-
-		targetTypes := make([]string, len(e.Targets))
-		targetIDs := make([]string, len(e.Targets))
-		targetNames := make([]string, len(e.Targets))
-		targetMetas := make([]json.RawMessage, len(e.Targets))
-		for j, t := range e.Targets {
-			targetTypes[j] = t.Type
-			targetIDs[j] = t.ID
-			targetNames[j] = t.Name
-			tm, err := marshalMeta(t.Meta)
-			if err != nil {
-				return nil, fmt.Errorf("encode target_meta event_id=%s target_id=%s: %w", e.EventID, t.ID, err)
-			}
-			targetMetas[j] = tm
-		}
-
-		source := e.Source
-		if source == "" {
-			source = auditlog.EventSourcePlatform
-		}
-
-		out[i] = schema.AuditLogV1{
-			EventID:       e.EventID,
-			Time:          e.Time,
-			InsertedAt:    nowMillis,
-			WorkspaceID:   e.WorkspaceID,
-			Bucket:        e.Bucket,
-			Source:        source,
-			Event:         e.Event,
-			Description:   e.Description,
-			ActorType:     e.Actor.Type,
-			ActorID:       e.Actor.ID,
-			ActorName:     e.Actor.Name,
-			ActorMeta:     actorMeta,
-			RemoteIP:      e.RemoteIP,
-			UserAgent:     e.UserAgent,
-			Meta:          topMeta,
-			TargetTypes:   targetTypes,
-			TargetIDs:     targetIDs,
-			TargetNames:   targetNames,
-			TargetMetas:   targetMetas,
-			CorrelationID: e.CorrelationID,
-		}
-	}
-	return out, nil
-}
-
-// marshalMeta returns a JSON object for the CH JSON column. Empty/nil
-// maps collapse to {} so the column always holds a parseable JSON value
-// (the CH JSON type rejects raw nulls in some configurations).
-func marshalMeta(m map[string]any) (json.RawMessage, error) {
-	if len(m) == 0 {
-		return json.RawMessage("{}"), nil
-	}
-	return json.Marshal(m)
 }

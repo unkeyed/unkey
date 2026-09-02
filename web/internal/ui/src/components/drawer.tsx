@@ -4,7 +4,7 @@
  * Imports
  * ----------------------------------------------------------------------------*/
 
-import * as React from "react";
+import type * as React from "react";
 import { Drawer as Vaul } from "vaul";
 import { cn } from "../lib/utils";
 
@@ -24,13 +24,11 @@ const DrawerNested = Vaul.NestedRoot;
  * Drawer - Content
  * ---------------------------------------------------------------------------*/
 
-const CONTENT_NAME = "DrawerContent";
-
 type DrawerContentElement = React.ElementRef<typeof Vaul.Content>;
 type DrawerContentProps = React.ComponentPropsWithoutRef<typeof Vaul.Content>;
 
-const DrawerContent = React.forwardRef<DrawerContentElement, DrawerContentProps>((props, ref) => {
-  const { className, children, ...contentProps } = props;
+function DrawerContent(props: DrawerContentProps & { ref?: React.Ref<DrawerContentElement> }) {
+  const { className, children, ref, ...contentProps } = props;
 
   return (
     <DrawerPortal>
@@ -47,9 +45,7 @@ const DrawerContent = React.forwardRef<DrawerContentElement, DrawerContentProps>
       </Vaul.Content>
     </DrawerPortal>
   );
-});
-
-DrawerContent.displayName = CONTENT_NAME;
+}
 
 /* ----------------------------------------------------------------------------
  * Exports
