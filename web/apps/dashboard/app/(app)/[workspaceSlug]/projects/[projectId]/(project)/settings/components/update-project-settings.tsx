@@ -9,8 +9,8 @@ import {
 import { collection } from "@/lib/collections";
 import { type Project, createProjectRequestSchema } from "@/lib/collections/deploy/projects";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Cube } from "@unkey/icons";
 import { FormInput, SettingCardGroup } from "@unkey/ui";
+import { IconCubeOutline18 } from "nucleo-ui-outline-18";
 import { useForm, useWatch } from "react-hook-form";
 import type { z } from "zod";
 
@@ -58,7 +58,7 @@ function ProjectNameCard({ project }: { project: Project }) {
 
   return (
     <FormSettingCard
-      icon={<Cube className="text-gray-12" iconSize="xl-medium" />}
+      icon={<IconCubeOutline18 className="text-gray-12" />}
       title="Project name"
       description="A descriptive name for your project."
       displayValue={project.name}

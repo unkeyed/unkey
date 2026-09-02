@@ -11,7 +11,7 @@ export function NavRow({ link }: { link: ResolvedNavLink }) {
   const tooltip = typeof link.label === "string" ? link.label : undefined;
   const contents = (
     <>
-      {Icon ? <Icon iconSize="xl-medium" /> : null}
+      {Icon ? <Icon /> : null}
       <span>{link.label}</span>
       {link.tag ? <div className="ml-auto">{link.tag}</div> : null}
     </>

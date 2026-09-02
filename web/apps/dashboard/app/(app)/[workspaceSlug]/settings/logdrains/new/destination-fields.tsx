@@ -1,8 +1,8 @@
 "use client";
 
-import { Plus, Trash } from "@unkey/icons";
 import { match } from "@unkey/match";
 import { Button, FormInput } from "@unkey/ui";
+import { IconPlusOutline18, IconTrashOutline18 } from "nucleo-ui-outline-18";
 import type { Control, FieldErrors, UseFormRegister } from "react-hook-form";
 import { useFieldArray } from "react-hook-form";
 import { emptyHeader } from "../header-fields";
@@ -89,7 +89,7 @@ function HttpFields({
                 aria-label={`Remove header ${index + 1}`}
                 onClick={() => remove(index)}
               >
-                <Trash iconSize="sm-regular" />
+                <IconTrashOutline18 />
               </Button>
             ) : null}
           </div>
@@ -101,7 +101,7 @@ function HttpFields({
           disabled={fields.length >= 32}
           onClick={() => append({ ...emptyHeader })}
         >
-          <Plus iconSize="sm-regular" />
+          <IconPlusOutline18 />
           Add header
         </Button>
       </fieldset>

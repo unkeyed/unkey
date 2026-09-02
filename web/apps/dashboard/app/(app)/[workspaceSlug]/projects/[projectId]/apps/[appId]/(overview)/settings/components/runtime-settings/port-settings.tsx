@@ -1,6 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { NumberInput } from "@unkey/icons";
 import { FormInput } from "@unkey/ui";
+import { IconNumberInputOutline18 } from "nucleo-ui-outline-18";
 import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
 import { useEnvironmentSettings } from "../../environment-provider";
@@ -44,7 +44,7 @@ export const Port = () => {
 
   return (
     <FormSettingCard
-      icon={<NumberInput className="text-gray-12" iconSize="xl-medium" />}
+      icon={<IconNumberInputOutline18 className="text-gray-12" />}
       title="Port"
       description="Port your application listens on"
       displayValue={String(defaultValue)}

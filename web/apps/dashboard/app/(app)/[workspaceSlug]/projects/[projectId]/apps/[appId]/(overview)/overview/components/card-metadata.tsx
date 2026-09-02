@@ -1,8 +1,8 @@
 "use client";
 
 import { githubUrl } from "@/lib/github-url";
-import { CodeBranch, CodeCommit } from "@unkey/icons";
 import { Badge, TimestampInfo } from "@unkey/ui";
+import { IconCodeBranchOutline18, IconCodeCommitOutline18 } from "nucleo-ui-outline-18";
 import type { ReactNode } from "react";
 import { MetadataCell } from "../../../components/active-deployment-card/components/metadata-cell";
 import { DeploymentStatusBadge } from "../../../components/deployment-status-badge";
@@ -54,7 +54,7 @@ function SourceCell() {
       {deployment.gitBranch && (
         <GitHubLink href={githubUrl.branch(sourceRepo, deployment.gitBranch)}>
           <span className="flex items-center gap-1.5">
-            <CodeBranch iconSize="sm-regular" className="text-accent-12 shrink-0" />
+            <IconCodeBranchOutline18 className="size-3 text-accent-12 shrink-0" />
             <span className="font-mono text-[13px] text-accent-12 truncate max-w-40">
               {deployment.gitBranch}
             </span>
@@ -65,7 +65,7 @@ function SourceCell() {
         <div className="flex items-center gap-1.5 min-w-0">
           <GitHubLink href={githubUrl.commit(sourceRepo, deployment.gitCommitSha)}>
             <span className="flex items-center gap-1.5">
-              <CodeCommit iconSize="sm-regular" className="text-accent-12 shrink-0" />
+              <IconCodeCommitOutline18 className="size-3 text-accent-12 shrink-0" />
               <span className="font-mono text-[13px] text-accent-12">
                 {deployment.gitCommitSha.slice(0, 7)}
               </span>
@@ -80,7 +80,7 @@ function SourceCell() {
       )}
       {isRolledBack && rolledBackFrom && (
         <div className="flex items-center gap-1.5 min-w-0 text-gray-9">
-          <CodeCommit iconSize="sm-regular" className="text-gray-9 shrink-0" />
+          <IconCodeCommitOutline18 className="size-3 text-gray-9 shrink-0" />
           <span className="font-mono text-[13px] line-through shrink-0">
             {rolledBackFrom.commitSha ? rolledBackFrom.commitSha.slice(0, 7) : "—"}
           </span>

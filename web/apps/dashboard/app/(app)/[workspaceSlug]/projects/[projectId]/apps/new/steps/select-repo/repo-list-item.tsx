@@ -1,6 +1,7 @@
 import { trpc } from "@/lib/trpc/client";
-import { CodeBranch, Magnifier } from "@unkey/icons";
 import { Button, Combobox, TimestampInfo } from "@unkey/ui";
+import { IconMagnifierOutline12 } from "nucleo-ui-outline-12";
+import { IconCodeBranchOutline18 } from "nucleo-ui-outline-18";
 import { useMemo, useState } from "react";
 import { LanguageIcon } from "./language-icon";
 import { useSearchBranches } from "./use-search-branches";
@@ -112,7 +113,7 @@ export const RepoListItem = ({
               onChange={(e) => setSearchValue(e.currentTarget.value)}
               placeholder={
                 <span className="flex items-center gap-1.5 text-gray-9 text-[13px]">
-                  <CodeBranch className="size-3 shrink-0" iconSize="sm-regular" />
+                  <IconCodeBranchOutline18 className="size-3 shrink-0" />
                   <span className="truncate">{repo.defaultBranch}</span>
                 </span>
               }
@@ -123,7 +124,7 @@ export const RepoListItem = ({
                 isSearching ? (
                   <div className="animate-spin h-3 w-3 border border-gray-6 border-t-gray-11 rounded-full" />
                 ) : (
-                  <Magnifier className="text-gray-9 size-3" iconSize="sm-regular" />
+                  <IconMagnifierOutline12 className="text-gray-9" />
                 )
               }
               className="min-h-7! h-7! rounded-lg border-grayA-4 text-[13px] bg-transparent font-medium shadow-md"

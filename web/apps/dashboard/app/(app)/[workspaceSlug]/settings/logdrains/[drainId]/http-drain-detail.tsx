@@ -1,7 +1,7 @@
 "use client";
 
-import { Plus, Trash } from "@unkey/icons";
 import { Button, Input, SettingCard, toast } from "@unkey/ui";
+import { IconPlusOutline18, IconTrashOutline18 } from "nucleo-ui-outline-18";
 import { useEffect, useRef, useState } from "react";
 import { type HeaderUpdateField, emptyHeader, headerUpdateFieldsSchema } from "../header-fields";
 import { DrainShell } from "./drain-shell";
@@ -131,7 +131,7 @@ export function HttpDrainDetail({ drain, ...telemetry }: { drain: HttpDrain } & 
                     setHeaders((current) => current.filter((_, itemIndex) => itemIndex !== index))
                   }
                 >
-                  <Trash iconSize="sm-regular" />
+                  <IconTrashOutline18 />
                 </Button>
               ) : null}
             </div>
@@ -146,7 +146,7 @@ export function HttpDrainDetail({ drain, ...telemetry }: { drain: HttpDrain } & 
                 setHeaders((current) => [...current, { id, source: "new", ...emptyHeader }]);
               }}
             >
-              <Plus iconSize="sm-regular" />
+              <IconPlusOutline18 />
               Add header
             </Button>
             <Button

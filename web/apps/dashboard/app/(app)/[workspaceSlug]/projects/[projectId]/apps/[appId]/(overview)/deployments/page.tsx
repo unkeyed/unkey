@@ -1,7 +1,6 @@
 "use client";
 import { collection } from "@/lib/collections";
 import { useCollectionPolling } from "@/lib/collections/use-collection-polling";
-import { Plus } from "@unkey/icons";
 import {
   Button,
   PageBody,
@@ -12,6 +11,7 @@ import {
   PageHeaderTitle,
   ResourceList,
 } from "@unkey/ui";
+import { IconPlusOutline18 } from "nucleo-ui-outline-18";
 import { CreateDeploymentButton } from "../navigations/create-deployment-button";
 import { DeploymentsListControls } from "./components/controls";
 import { DeploymentsCardList } from "./components/deployments-card-list";
@@ -32,7 +32,7 @@ export default function Deployments() {
           <CreateDeploymentButton
             renderTrigger={({ onClick }) => (
               <Button size="md" variant="primary" onClick={onClick}>
-                <Plus iconSize="sm-regular" />
+                <IconPlusOutline18 />
                 Create deployment
               </Button>
             )}

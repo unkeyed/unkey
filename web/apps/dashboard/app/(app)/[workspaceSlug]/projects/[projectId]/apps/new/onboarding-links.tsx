@@ -1,5 +1,6 @@
-import { BookBookmark, Discord } from "@unkey/icons";
+import { Discord } from "@unkey/icons";
 import { Button } from "@unkey/ui";
+import { IconBookBookmarkOutline18 } from "nucleo-ui-outline-18";
 
 export const OnboardingLinks = () => (
   <div className="flex gap-3 items-center">
@@ -13,7 +14,7 @@ export const OnboardingLinks = () => (
         rel="noopener noreferrer"
         className="flex items-center  w-full gap-2"
       >
-        <BookBookmark className="text-gray-12 shrink-0 size-[18px]" iconSize="sm-regular" />
+        <IconBookBookmarkOutline18 className="text-gray-12 shrink-0" />
         View documentation
       </a>
     </Button>
@@ -28,11 +29,7 @@ export const OnboardingLinks = () => (
         className="flex items-center  w-full gap-2"
       >
         <div className="size-[18px] overflow-hidden flex items-center justify-center">
-          <Discord
-            className="text-feature-11 shrink-0"
-            style={{ width: 18, height: 18 }}
-            iconSize="sm-regular"
-          />
+          <Discord className="size-3 text-feature-11 shrink-0" style={{ width: 18, height: 18 }} />
         </div>
         Join community
       </a>

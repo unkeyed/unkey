@@ -13,17 +13,19 @@ import type { IdentityLog } from "@/lib/trpc/routers/identity/query-logs";
 import { cn } from "@/lib/utils";
 import { useQueryTime } from "@/providers/query-time-provider";
 import type { KEY_VERIFICATION_OUTCOMES } from "@unkey/clickhouse/src/keys/keys";
-import {
-  Ban,
-  BookBookmark,
-  CircleCheck,
-  Key,
-  Lock,
-  ShieldKey,
-  TimeClock,
-  TriangleWarning2,
-} from "@unkey/icons";
 import { Badge, Button, CopyButton, Empty, InfoTooltip, TimestampInfo } from "@unkey/ui";
+import {
+  IconBanOutline12,
+  IconCircleCheckOutline12,
+  IconClockOutline12,
+  IconLockOutline12,
+  IconTriangleWarningOutline12,
+} from "nucleo-ui-outline-12";
+import {
+  IconBookBookmarkOutline18,
+  IconKeyOutline18,
+  IconShieldKeyOutline18,
+} from "nucleo-ui-outline-18";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useIdentityDetailsLogsContext } from "../../context/logs";
 import { useIdentityLogsQuery } from "./hooks/use-logs-query";
@@ -40,49 +42,49 @@ const LOG_OUTCOME_DEFINITIONS: Record<LogOutcomeType, LogOutcomeInfo> = {
   VALID: {
     type: "VALID",
     label: "Valid",
-    icon: <CircleCheck iconSize="sm-regular" />,
+    icon: <IconCircleCheckOutline12 />,
     tooltip: "The key was successfully verified.",
   },
   INSUFFICIENT_PERMISSIONS: {
     type: "INSUFFICIENT_PERMISSIONS",
     label: "Unauthorized",
-    icon: <Lock iconSize="sm-regular" className="text-errorA-11" />,
+    icon: <IconLockOutline12 className="text-errorA-11" />,
     tooltip: "The key doesn't have sufficient permissions for this operation.",
   },
   RATE_LIMITED: {
     type: "RATE_LIMITED",
     label: "Ratelimited",
-    icon: <TriangleWarning2 iconSize="sm-regular" className="text-warningA-11" />,
+    icon: <IconTriangleWarningOutline12 className="text-warningA-11" />,
     tooltip: "The key has exceeded its rate limit.",
   },
   FORBIDDEN: {
     type: "FORBIDDEN",
     label: "Forbidden",
-    icon: <Ban iconSize="sm-regular" className="text-errorA-11" />,
+    icon: <IconBanOutline12 className="text-errorA-11" />,
     tooltip: "The key is not authorized for this operation.",
   },
   DISABLED: {
     type: "DISABLED",
     label: "Disabled",
-    icon: <ShieldKey iconSize="sm-regular" className="text-orangeA-11" />,
+    icon: <IconShieldKeyOutline18 className="size-3 text-orangeA-11" />,
     tooltip: "The key has been disabled.",
   },
   EXPIRED: {
     type: "EXPIRED",
     label: "Expired",
-    icon: <TimeClock iconSize="sm-regular" className="text-orangeA-11" />,
+    icon: <IconClockOutline12 className="text-orangeA-11" />,
     tooltip: "The key has expired and is no longer valid.",
   },
   USAGE_EXCEEDED: {
     type: "USAGE_EXCEEDED",
     label: "Usage Exceeded",
-    icon: <TriangleWarning2 iconSize="sm-regular" className="text-errorA-11" />,
+    icon: <IconTriangleWarningOutline12 className="text-errorA-11" />,
     tooltip: "The key has exceeded its usage limit.",
   },
   "": {
     type: "",
     label: "Unknown",
-    icon: <ShieldKey iconSize="sm-regular" />,
+    icon: <IconShieldKeyOutline18 className="size-3" />,
     tooltip: "Unknown verification status.",
   },
 };
@@ -256,7 +258,7 @@ export const IdentityDetailsLogsTable = ({ identityId, selectedLog, onLogSelect 
         width: "25%", // Increased significantly for key display
         render: (log) => (
           <div className="flex items-center gap-2">
-            <Key iconSize="sm-regular" className="text-gray-9" />
+            <IconKeyOutline18 className="size-3 text-gray-9" />
             <InfoTooltip
               variant="inverted"
               content={
@@ -470,7 +472,7 @@ export const IdentityDetailsLogsTable = ({ identityId, selectedLog, onLogSelect 
                   rel="noopener noreferrer"
                 >
                   <Button size="md">
-                    <BookBookmark />
+                    <IconBookBookmarkOutline18 />
                     Documentation
                   </Button>
                 </a>

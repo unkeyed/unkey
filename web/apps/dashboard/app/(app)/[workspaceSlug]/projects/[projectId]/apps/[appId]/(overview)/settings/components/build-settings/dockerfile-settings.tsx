@@ -1,6 +1,6 @@
 import { FormCombobox } from "@/components/ui/form-combobox";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { FileSettings } from "@unkey/icons";
+import { IconFileSettingsOutline18 } from "nucleo-ui-outline-18";
 import { useMemo } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
@@ -107,7 +107,7 @@ export const Dockerfile = () => {
 
   return (
     <FormSettingCard
-      icon={<FileSettings className="text-gray-12" iconSize="xl-medium" />}
+      icon={<IconFileSettingsOutline18 className="text-gray-12" />}
       title="Dockerfile"
       description="Dockerfile location used for docker build. Leave empty and Unkey builds your app automatically without a Dockerfile."
       displayValue={defaultValue || "Automatic (no Dockerfile)"}

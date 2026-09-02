@@ -1,5 +1,5 @@
-import { Page2 } from "@unkey/icons";
 import { Button, Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@unkey/ui";
+import { IconPage2Outline12 } from "nucleo-ui-outline-12";
 
 type Permission = {
   id: string;
@@ -29,7 +29,7 @@ export function createPermissionOptions({
             render={
               <div className="flex w-full text-accent-8 text-xs gap-4 py-0.5 items-center group flex-row">
                 <div className="border rounded-full flex items-center justify-center border-grayA-6 size-5">
-                  <Page2 iconSize="sm-regular" className="text-grayA-11" />
+                  <IconPage2Outline12 className="text-grayA-11" />
                 </div>
                 <div className="flex gap-1 flex-col truncate min-w-0 flex-1">
                   <div className="flex gap-2 items-center min-w-0">
@@ -94,7 +94,7 @@ export function createPermissionOptions({
       <div className="flex w-full text-accent-8 text-xs gap-1.5 py-0.5 items-center">
         <div className="flex items-center justify-center gap-2">
           <div className="border rounded-full flex items-center justify-center border-grayA-6 size-5">
-            <Page2 iconSize="sm-regular" className="text-grayA-11" />
+            <IconPage2Outline12 className="text-grayA-11" />
           </div>
           <span className="text-accent-12 font-medium text-xs w-[120px] truncate text-left">
             {permission.slug}

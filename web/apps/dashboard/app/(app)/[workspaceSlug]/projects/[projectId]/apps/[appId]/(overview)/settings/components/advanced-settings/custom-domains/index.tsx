@@ -10,7 +10,6 @@ import { useBillingUIUpgrades } from "@/lib/flags/use-billing-ui-upgrades";
 import { routes } from "@/lib/navigation/routes";
 import { getErrorMessage } from "@/lib/unkey-client";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ChevronDown, Link4 } from "@unkey/icons";
 import {
   AlertBanner,
   AlertBannerActions,
@@ -25,6 +24,7 @@ import {
   SelectValue,
 } from "@unkey/ui";
 import Link from "next/link";
+import { IconChevronDownOutline18, IconLink4Outline18 } from "nucleo-ui-outline-18";
 import { useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { useProjectData } from "../../../../data-provider";
@@ -144,7 +144,7 @@ const CustomDomainSettings: React.FC<CustomDomainSettingsProps> = ({
 
   return (
     <FormSettingCard
-      icon={<Link4 className="text-gray-12" iconSize="xl-medium" />}
+      icon={<IconLink4Outline18 className="text-gray-12" />}
       title="Custom Domains"
       description="Serve your deployment from your own domain name"
       displayValue={displayValue}
@@ -168,7 +168,7 @@ const CustomDomainSettings: React.FC<CustomDomainSettingsProps> = ({
                 <SelectTrigger
                   wrapperClassName="w-[140px]"
                   variant={errors.environmentId ? "error" : "default"}
-                  rightIcon={<ChevronDown className="absolute right-3 size-3 opacity-70" />}
+                  rightIcon={<IconChevronDownOutline18 className="absolute right-3 opacity-70" />}
                 >
                   <SelectValue placeholder="Environment">
                     {environments.find((e) => e.id === field.value)?.slug ?? ""}

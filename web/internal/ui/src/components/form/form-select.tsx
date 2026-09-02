@@ -1,4 +1,4 @@
-import { ChevronDown } from "@unkey/icons";
+import { IconChevronDownOutline18 } from "nucleo-ui-outline-18";
 // biome-ignore lint/style/useImportType: this package compiles JSX with the classic runtime, so React must stay a value import
 import * as React from "react";
 import { FormField } from "./form-field";
@@ -78,7 +78,7 @@ function FormSelect({
             aria-invalid={control.invalid}
             aria-required={requirement === "required"}
             rightIcon={
-              rightIcon ?? <ChevronDown className="absolute right-2" iconSize="md-medium" />
+              rightIcon ?? <IconChevronDownOutline18 className="size-4 absolute right-2" />
             }
           >
             <SelectValue placeholder={placeholder} />

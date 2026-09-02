@@ -1,7 +1,7 @@
 "use client";
 
-import { ArrowUpRight } from "@unkey/icons";
 import Link from "next/link";
+import { IconArrowUpRightOutline12 } from "nucleo-ui-outline-12";
 
 export const PAUSED_DOCS_URL =
   "https://unkey.com/docs/platform/workspaces/billing#while-compute-is-paused";
@@ -28,7 +28,7 @@ export function PausedDocsLink() {
       className="inline-flex items-center gap-0.5 font-medium text-gray-12 underline decoration-grayA-6 underline-offset-2 hover:decoration-grayA-8"
     >
       Learn more
-      <ArrowUpRight iconSize="sm-regular" />
+      <IconArrowUpRightOutline12 />
     </Link>
   );
 }

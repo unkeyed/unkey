@@ -4,8 +4,8 @@ import { formatDollars, formatPrice } from "@/lib/fmt";
 import { routes } from "@/lib/navigation/routes";
 import type { DeployPlan } from "@/lib/stripe/deployPlan";
 import { trpc } from "@/lib/trpc/client";
-import { Cube } from "@unkey/icons";
 import { Item, ItemActions, ItemContent, ItemMedia, ItemTitle, Skeleton, toast } from "@unkey/ui";
+import { IconCubeOutline18 } from "nucleo-ui-outline-18";
 import { useState } from "react";
 import { CancelComputeDialog, CancelPlanLink } from "./cancel-actions";
 import {
@@ -25,7 +25,7 @@ function ProductCell() {
   return (
     <>
       <ItemMedia className="bg-orangeA-3 text-orange-11">
-        <Cube />
+        <IconCubeOutline18 />
       </ItemMedia>
       <ItemContent>
         <ItemTitle className="truncate">Compute</ItemTitle>

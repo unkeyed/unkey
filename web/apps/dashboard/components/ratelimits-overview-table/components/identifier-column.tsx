@@ -2,8 +2,12 @@ import { formatNumber } from "@/lib/fmt";
 import { formatMs } from "@/lib/ms";
 import { cn } from "@/lib/utils";
 import type { RatelimitOverviewLog } from "@unkey/clickhouse/src/ratelimits";
-import { ArrowDotAntiClockwise, Focus, TriangleWarning2 } from "@unkey/icons";
 import { InfoTooltip } from "@unkey/ui";
+import {
+  IconArrowDotRotateAnticlockwiseOutline18,
+  IconFocusOutline18,
+  IconTriangleWarningOutline18,
+} from "nucleo-ui-outline-18";
 import { getBlockedPercentage, isMostlyBlocked } from "../utils/calculate-blocked-percentage";
 import { getStatusStyle } from "../utils/get-row-class";
 
@@ -36,7 +40,7 @@ export const IdentifierColumn = ({ log }: IdentifierColumnProps) => {
         }
       >
         <div className={cn(hasMoreBlocked ? "flex items-center shrink-0" : "invisible shrink-0")}>
-          <TriangleWarning2 iconSize="md-medium" />
+          <IconTriangleWarningOutline18 className="size-4" />
         </div>
       </InfoTooltip>
       <div className="flex gap-3 items-center min-w-0">
@@ -48,11 +52,10 @@ export const IdentifierColumn = ({ log }: IdentifierColumnProps) => {
           )}
         >
           {log.override ? (
-            <ArrowDotAntiClockwise iconSize="md-medium" />
+            <IconArrowDotRotateAnticlockwiseOutline18 className="size-4" />
           ) : (
-            <Focus
-              iconSize="md-medium"
-              className={cn(hasMoreBlocked ? "" : "group-hover:text-accent-12")}
+            <IconFocusOutline18
+              className={cn("size-4", hasMoreBlocked ? "" : "group-hover:text-accent-12")}
             />
           )}
         </div>
@@ -96,7 +99,7 @@ const OverrideIndicator = ({ log, style, hasMoreBlocked }: OverrideIndicatorProp
             "bg-accent-4 text-accent-12 group-hover:bg-accent-5",
           )}
         >
-          <ArrowDotAntiClockwise iconSize="md-medium" />
+          <IconArrowDotRotateAnticlockwiseOutline18 className="size-4" />
         </div>
         <div className="flex flex-col gap-1">
           <div className="text-sm flex gap-[10px] items-center">

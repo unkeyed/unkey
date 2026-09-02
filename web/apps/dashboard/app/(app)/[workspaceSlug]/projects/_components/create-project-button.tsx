@@ -1,7 +1,7 @@
 "use client";
 
-import { Plus } from "@unkey/icons";
 import { Button } from "@unkey/ui";
+import { IconPlusOutline18 } from "nucleo-ui-outline-18";
 import { useState } from "react";
 import { CreateProjectDialog } from "./create-project-dialog";
 import { DeployPlanGateDialog } from "./deploy-plan-gate-dialog";
@@ -26,7 +26,7 @@ export function CreateProjectButton({ defaultOpen, workspaceSlug }: Props) {
         loading={isLoading}
         onClick={() => (gated ? setIsPlanOpen(true) : setIsOpen(true))}
       >
-        <Plus iconSize="sm-regular" />
+        <IconPlusOutline18 />
         Create project
       </Button>
 

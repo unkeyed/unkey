@@ -2,8 +2,8 @@
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import type { AuditLog } from "@/lib/trpc/routers/audit/schema";
-import { Key, MathFunction } from "@unkey/icons";
 import { TimestampInfo } from "@unkey/ui";
+import { IconKeyOutline18, IconMathFunctionOutline18 } from "nucleo-ui-outline-18";
 import { LogSection } from "./log-section";
 
 type Props = {
@@ -22,12 +22,12 @@ export const LogFooter = ({ log }: Props) => {
       </div>
     ) : log.auditLog.actor.type === "key" ? (
       <div className="flex items-center gap-2">
-        <Key iconSize="sm-thin" />
+        <IconKeyOutline18 className="size-3" />
         <span className="font-mono text-xs">{log.auditLog.actor.id}</span>
       </div>
     ) : (
       <div className="flex items-center gap-2">
-        <MathFunction iconSize="sm-thin" />
+        <IconMathFunctionOutline18 className="size-3" />
         <span className="font-mono text-xs">{log.auditLog.actor.id}</span>
       </div>
     );

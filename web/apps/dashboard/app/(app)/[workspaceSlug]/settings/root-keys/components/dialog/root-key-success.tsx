@@ -1,8 +1,9 @@
 "use client";
 
 import { KeySecretSection } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/_components/create-key/components/key-secret-section";
-import { Check, Key2 } from "@unkey/icons";
 import { ConfirmPopover, Dialog, DialogContent, DialogTitle } from "@unkey/ui";
+import { IconCheckOutline12 } from "nucleo-ui-outline-12";
+import { IconKey2Outline18 } from "nucleo-ui-outline-18";
 import { ROOT_KEY_MESSAGES } from "./constants";
 import { useRootKeySuccess } from "./hooks/use-root-key-success";
 
@@ -46,9 +47,9 @@ export const RootKeySuccess = ({ keyValue, onClose }: RootKeySuccessProps) => {
                 <div className="border border-grayA-4 rounded-full border-dashed size-[24px] absolute right-0 top-0" />
                 <div className="border border-grayA-4 rounded-full border-dashed size-[24px] absolute right-0 bottom-0" />
                 <div className="border border-grayA-4 rounded-full border-dashed size-[24px] absolute left-0 bottom-0" />
-                <Key2 iconSize="2xl-thin" aria-hidden="true" focusable={false} />
+                <IconKey2Outline18 className="size-7.5" aria-hidden="true" focusable={false} />
                 <div className="flex items-center justify-center border border-grayA-3 rounded-full bg-success-9 text-white size-[22px] absolute right-[-10px] top-[-10px]">
-                  <Check iconSize="sm-bold" aria-hidden="true" focusable={false} />
+                  <IconCheckOutline12 aria-hidden="true" focusable={false} />
                 </div>
               </div>
               <div className="border border-grayA-4 rounded-[14px] size-14" />

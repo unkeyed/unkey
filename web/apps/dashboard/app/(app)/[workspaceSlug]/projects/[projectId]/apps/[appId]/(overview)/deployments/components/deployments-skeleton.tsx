@@ -1,7 +1,7 @@
 "use client";
 
-import { Dots } from "@unkey/icons";
 import { ResourceListBody, ResourceListContent, ResourceListItem } from "@unkey/ui";
+import { IconDotsOutline12 } from "nucleo-ui-outline-12";
 
 export function DeploymentsSkeleton() {
   return (
@@ -42,7 +42,7 @@ export function DeploymentsSkeleton() {
             <div className="md:w-[30%] md:shrink-0 flex items-center md:justify-end gap-3">
               <div className="h-[14px] w-12 bg-grayA-3 rounded-sm animate-pulse" />
               <div className="size-5 bg-grayA-3 rounded-full animate-pulse" />
-              <Dots iconSize="sm-regular" className="text-gray-11 opacity-50" />
+              <IconDotsOutline12 className="text-gray-11 opacity-50" />
             </div>
           </ResourceListItem>
         ))}

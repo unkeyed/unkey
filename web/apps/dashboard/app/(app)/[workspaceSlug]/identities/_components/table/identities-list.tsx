@@ -6,7 +6,6 @@ import { routes } from "@/lib/navigation/routes";
 import { shortenId } from "@/lib/shorten-id";
 import { getErrorMessage } from "@/lib/unkey-client";
 import type { Identity } from "@unkey/api/models/components";
-import { BookBookmark, Fingerprint } from "@unkey/icons";
 import {
   Button,
   Empty,
@@ -17,6 +16,7 @@ import {
 } from "@unkey/ui";
 import dynamic from "next/dynamic";
 import Link from "next/link";
+import { IconBookBookmarkOutline18, IconFingerprintOutline18 } from "nucleo-ui-outline-18";
 import { parseAsString, useQueryState } from "nuqs";
 import { useState } from "react";
 
@@ -51,7 +51,7 @@ function IdentityRow({
         aria-label={`Identity ${identity.externalId}`}
       />
       <div className="flex size-8 shrink-0 items-center justify-center rounded-md bg-brandA-3">
-        <Fingerprint iconSize="md-medium" className="text-brandA-11" />
+        <IconFingerprintOutline18 className="size-4 text-brandA-11" />
       </div>
       <div className="flex min-w-0 flex-1 flex-col gap-1">
         <span className="truncate font-medium text-accent-12 text-sm" title={identity.externalId}>
@@ -180,7 +180,7 @@ function IdentityResults({ search }: { search: string }) {
                     />
                   }
                 >
-                  <BookBookmark />
+                  <IconBookBookmarkOutline18 />
                   Learn about Identities
                 </Button>
               </Empty.Actions>

@@ -8,7 +8,6 @@ import {
 } from "@/lib/portal/use-portal";
 import { useQueryClient } from "@tanstack/react-query";
 import type { Portal } from "@unkey/api/models/components";
-import { BookBookmark, CircleWarning, TriangleWarning2 } from "@unkey/icons";
 import { match } from "@unkey/match";
 import {
   AlertBanner,
@@ -24,6 +23,11 @@ import {
   PageHeaderTitle,
   Skeleton,
 } from "@unkey/ui";
+import {
+  IconBookBookmarkOutline18,
+  IconCircleWarningOutline18,
+  IconTriangleWarningOutline18,
+} from "nucleo-ui-outline-18";
 import type { ReactNode } from "react";
 import { useState } from "react";
 import { CreatePortalDialog } from "./create-portal-dialog";
@@ -84,7 +88,7 @@ function PortalLoading() {
 function PortalErrorPanel({ message, onRetry }: { message: string; onRetry?: () => void }) {
   return (
     <AlertBanner variant="error">
-      <CircleWarning iconSize="md-regular" />
+      <IconCircleWarningOutline18 className="size-4" />
       <AlertBannerTitle>Couldn't load the customer portal</AlertBannerTitle>
       <AlertBannerDescription>{message}</AlertBannerDescription>
       {onRetry ? (
@@ -101,7 +105,7 @@ function PortalErrorPanel({ message, onRetry }: { message: string; onRetry?: () 
 function DisabledBanner({ onEnable, enabling }: { onEnable: () => void; enabling: boolean }) {
   return (
     <AlertBanner variant="warning">
-      <TriangleWarning2 iconSize="md-regular" />
+      <IconTriangleWarningOutline18 className="size-4" />
       <AlertBannerTitle>Portal disabled</AlertBannerTitle>
       <AlertBannerDescription>
         Your users can't sign in right now, but you can still change the settings below.
@@ -189,7 +193,7 @@ export function PortalLifecyclePage({
           </PageHeaderContent>
           <PageHeaderActions>
             <Button variant="outline" onClick={() => setIntegrateOpen(true)}>
-              <BookBookmark />
+              <IconBookBookmarkOutline18 />
               Integration docs
             </Button>
           </PageHeaderActions>

@@ -1,9 +1,9 @@
-import { CircleDotted } from "@unkey/icons";
+import { IconCircleDottedOutline12 } from "nucleo-ui-outline-12";
 
 export const RepoListItemSkeleton = () => (
   <div className="flex px-4 py-5 items-center h-20">
     <div className="size-[26px] grid place-content-center p-[7px] rounded-lg ring-1 ring-grayA-4 shadow-sm shadow-grayA-8/20 dark:shadow-none mr-11">
-      <CircleDotted iconSize="sm-medium" className="text-gray-9 opacity-30" />
+      <IconCircleDottedOutline12 className="text-gray-9 opacity-30" />
     </div>
     <div className="flex flex-col gap-1 w-[160px]">
       <div className="h-4 w-24 bg-grayA-3 rounded animate-pulse" />

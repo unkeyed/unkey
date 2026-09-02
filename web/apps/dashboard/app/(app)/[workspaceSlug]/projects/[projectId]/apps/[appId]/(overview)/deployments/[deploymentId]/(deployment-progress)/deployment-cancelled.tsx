@@ -1,8 +1,16 @@
 "use client";
 
 import type { Deployment } from "@/lib/collections/deploy/deployments";
-import { Ban, CloudUp, Earth, Hammer2, LayerFront, Pulse, Sparkle3 } from "@unkey/icons";
 import { Button, SettingCardGroup } from "@unkey/ui";
+import {
+  IconBanOutline18,
+  IconChartActivityOutline18,
+  IconCloudUploadOutline18,
+  IconEarthOutline18,
+  IconHammer2Outline18,
+  IconLayerFrontOutline18,
+  IconSparkle3Outline18,
+} from "nucleo-ui-outline-18";
 import { useState } from "react";
 import { RedeployDialog } from "../../components/table/components/actions/redeploy-dialog";
 import type { StepsData } from "./deployment-progress";
@@ -15,32 +23,32 @@ const STEP_ORDER: Array<{
 }> = [
   {
     key: "queued",
-    icon: <LayerFront iconSize="sm-medium" className="size-[18px]" />,
+    icon: <IconLayerFrontOutline18 />,
     title: "Deployment Queued",
   },
   {
     key: "starting",
-    icon: <Pulse iconSize="sm-medium" className="size-[18px]" />,
+    icon: <IconChartActivityOutline18 />,
     title: "Deployment Starting",
   },
   {
     key: "building",
-    icon: <Hammer2 iconSize="sm-medium" className="size-[18px]" />,
+    icon: <IconHammer2Outline18 />,
     title: "Building Image",
   },
   {
     key: "deploying",
-    icon: <CloudUp iconSize="sm-medium" className="size-[18px]" />,
+    icon: <IconCloudUploadOutline18 />,
     title: "Deploying Containers",
   },
   {
     key: "network",
-    icon: <Earth iconSize="sm-medium" className="size-[18px]" />,
+    icon: <IconEarthOutline18 />,
     title: "Assigning Domains",
   },
   {
     key: "finalizing",
-    icon: <Sparkle3 iconSize="sm-medium" className="size-[18px]" />,
+    icon: <IconSparkle3Outline18 />,
     title: "Deployment Finalizing",
   },
 ];
@@ -96,7 +104,7 @@ export function DeploymentCancelled({ deployment, stepsData, reason }: Deploymen
               duration={step?.duration ?? undefined}
               status="skipped"
               statusIcon={
-                isStoppedHere ? <Ban className="text-gray-9" iconSize="md-regular" /> : undefined
+                isStoppedHere ? <IconBanOutline18 className="size-4 text-gray-9" /> : undefined
               }
             />
           );

@@ -5,8 +5,8 @@ import {
   type ValueParts,
 } from "@/components/charts/area-timeseries";
 import { LogsTimeseriesBarChart } from "@/components/charts/logs-timeseries-bar";
-import type { IconProps } from "@unkey/icons";
 import { cn } from "@unkey/ui/src/lib/utils";
+import type { IconProps } from "nucleo-ui-outline-18";
 import type { ComponentType } from "react";
 import { MetricSelect } from "./metric-select";
 
@@ -111,7 +111,7 @@ export function MetricCard({
             config.iconText,
           )}
         >
-          <Icon iconSize="sm-regular" className="shrink-0" />
+          <Icon className="size-3 shrink-0" />
         </div>
         <div className="flex flex-col">
           {config.percentiles && percentile ? (

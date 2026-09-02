@@ -12,19 +12,20 @@ import React from "react";
 
 import { auditLogsFilterFieldEnum } from "@/app/(app)/[workspaceSlug]/audit/filters.schema";
 import { ratelimitFilterFieldEnum } from "@/app/(app)/[workspaceSlug]/ratelimits/[namespaceId]/logs/filters.schema";
+import type { IconProps } from "nucleo-ui-outline-18";
 import {
-  Bucket,
-  CalendarEvent,
-  ChartActivity2,
-  Clock,
-  Conversion,
-  Fingerprint,
-  Focus,
-  FolderCloud,
-  Key,
-  Link4,
-  UserSearch,
-} from "@unkey/icons";
+  IconBucketOutline18,
+  IconCalendarEventOutline18,
+  IconChartActivity2Outline18,
+  IconClockOutline18,
+  IconConversionOutline18,
+  IconFingerprintOutline18,
+  IconFocusOutline18,
+  IconFolderCloudOutline18,
+  IconKeyOutline18,
+  IconLink4Outline18,
+  IconUserSearchOutline18,
+} from "nucleo-ui-outline-18";
 
 import type { AuditLogsFilterField } from "@/app/(app)/[workspaceSlug]/audit/filters.schema";
 import type { RatelimitFilterField } from "@/app/(app)/[workspaceSlug]/ratelimits/[namespaceId]/logs/filters.schema";
@@ -34,25 +35,24 @@ import {
   type QuerySearchParams,
   logsFilterFieldEnum,
 } from "@/lib/schemas/logs.filter.schema";
-import type { IconProps } from "@unkey/icons/src/props";
 import type { FC } from "react";
 
 export const iconsPerField: Record<string, FC<IconProps>> = {
-  status: ChartActivity2,
-  methods: Conversion,
-  paths: Link4,
-  time: Clock,
-  startTime: Clock,
-  endTime: Clock,
-  since: Clock,
-  bucket: Bucket,
-  events: CalendarEvent,
-  users: UserSearch,
-  rootKeys: Key,
-  host: FolderCloud,
-  requestId: Fingerprint,
-  identifiers: Focus,
-  requestIds: Fingerprint,
+  status: IconChartActivity2Outline18,
+  methods: IconConversionOutline18,
+  paths: IconLink4Outline18,
+  time: IconClockOutline18,
+  startTime: IconClockOutline18,
+  endTime: IconClockOutline18,
+  since: IconClockOutline18,
+  bucket: IconBucketOutline18,
+  events: IconCalendarEventOutline18,
+  users: IconUserSearchOutline18,
+  rootKeys: IconKeyOutline18,
+  host: IconFolderCloudOutline18,
+  requestId: IconFingerprintOutline18,
+  identifiers: IconFocusOutline18,
+  requestIds: IconFingerprintOutline18,
 };
 
 export function parseValue(value: string) {
@@ -165,10 +165,9 @@ export function formatFilterValue(
 }
 
 export function getFilterFieldIcon(field: string): React.ReactElement {
-  const Icon = iconsPerField[field] || ChartActivity2;
+  const Icon = iconsPerField[field] || IconChartActivity2Outline18;
   return React.createElement(Icon, {
-    iconSize: "md-regular",
-    className: "justify-center",
+    className: "size-4 justify-center",
   });
 }
 

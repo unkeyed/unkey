@@ -3,20 +3,20 @@
 import { useDeployActionGate } from "@/app/(app)/[workspaceSlug]/projects/_components/hooks/use-deploy-action-gate";
 import { type MenuItem, TableActionPopover } from "@/components/logs/table-action.popover";
 import type { Deployment } from "@/lib/collections";
-import {
-  ArrowOppositeDirectionY,
-  Ban,
-  Bolt,
-  Clone,
-  Dots,
-  Github,
-  Hammer2,
-  Layers3,
-} from "@unkey/icons";
+import { Github } from "@unkey/icons";
 import { Button, toast } from "@unkey/ui";
 import type { Route } from "next";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
+import {
+  IconArrowsOppositeDirectionYOutline18,
+  IconBanOutline18,
+  IconBoltOutline18,
+  IconCloneOutline18,
+  IconDotsOutline18,
+  IconHammer2Outline18,
+  IconLayers3Outline18,
+} from "nucleo-ui-outline-18";
 import { useMemo } from "react";
 import { isRedeployableDeploymentStatus } from "../../deployments/components/table/components/actions/deployment-action-eligibility";
 import type { DeploymentDisplayStatus } from "./status";
@@ -53,14 +53,18 @@ export function ProductionCardActionsMenu({
       {
         id: "stop-wake",
         label: stopped ? "Wake" : "Stop",
-        icon: stopped ? <Bolt iconSize="md-regular" /> : <Ban iconSize="md-regular" />,
+        icon: stopped ? (
+          <IconBoltOutline18 className="size-4" />
+        ) : (
+          <IconBanOutline18 className="size-4" />
+        ),
         disabled: true,
         tooltip: "Available soon",
       },
       {
         id: "redeploy",
         label: "Redeploy",
-        icon: <Hammer2 iconSize="md-regular" />,
+        icon: <IconHammer2Outline18 className="size-4" />,
         disabled: !canRedeploy,
         // Without a Compute plan, redeploy opens the paywall instead of building.
         ...(gated && canRedeploy
@@ -75,20 +79,20 @@ export function ProductionCardActionsMenu({
       {
         id: "view-logs",
         label: "Go to logs",
-        icon: <Layers3 iconSize="md-regular" />,
+        icon: <IconLayers3Outline18 className="size-4" />,
         onClick: () => router.push(logsHref),
       },
       {
         id: "view-requests",
         label: "Go to requests",
-        icon: <ArrowOppositeDirectionY iconSize="md-regular" />,
+        icon: <IconArrowsOppositeDirectionYOutline18 className="size-4" />,
         onClick: () => router.push(requestsHref),
         divider: true,
       },
       {
         id: "copy-deployment-id",
         label: "Copy deployment ID",
-        icon: <Clone iconSize="md-regular" />,
+        icon: <IconCloneOutline18 className="size-4" />,
         onClick: () => {
           navigator.clipboard
             .writeText(deployment.id)
@@ -99,7 +103,7 @@ export function ProductionCardActionsMenu({
       {
         id: "view-commit",
         label: "View commit on GitHub",
-        icon: <Github iconSize="md-regular" />,
+        icon: <Github className="size-4" />,
         disabled: !commitUrl,
         onClick: () => {
           if (commitUrl) {
@@ -120,7 +124,7 @@ export function ProductionCardActionsMenu({
           className="w-7 p-0"
           onClick={(e) => e.stopPropagation()}
         >
-          <Dots iconSize="sm-regular" />
+          <IconDotsOutline18 />
         </Button>
       </TableActionPopover>
       {planGate}

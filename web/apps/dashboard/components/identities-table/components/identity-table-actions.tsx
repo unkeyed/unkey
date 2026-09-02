@@ -4,8 +4,13 @@ import { DeleteIdentityDialog } from "@/app/(app)/[workspaceSlug]/identities/_co
 import { EditRatelimitDialog } from "@/app/(app)/[workspaceSlug]/identities/_components/dialogs/edit-ratelimit-dialog";
 import { type MenuItem, TableActionPopover } from "@/components/logs/table-action.popover";
 import type { Identity } from "@unkey/api/models/components";
-import { Clone, Code, Gauge, Trash } from "@unkey/icons";
 import { toast } from "@unkey/ui";
+import {
+  IconCloneOutline18,
+  IconCodeOutline18,
+  IconGaugeOutline18,
+  IconTrashOutline18,
+} from "nucleo-ui-outline-18";
 import { type PropsWithChildren, createContext, useContext, useMemo } from "react";
 import { EditMetadataDialog } from "./edit-metadata-dialog";
 
@@ -49,20 +54,20 @@ export const IdentityTableActions = ({
       {
         id: "edit-ratelimit",
         label: "Edit ratelimit...",
-        icon: <Gauge iconSize="md-medium" />,
+        icon: <IconGaugeOutline18 className="size-4" />,
         ActionComponent: EditRatelimitAction,
       },
       {
         id: "edit-metadata",
         label: "Edit metadata...",
-        icon: <Code iconSize="md-medium" />,
+        icon: <IconCodeOutline18 className="size-4" />,
         ActionComponent: EditMetadataAction,
         divider: true,
       },
       {
         id: "copy-identity-id",
         label: "Copy identity ID",
-        icon: <Clone iconSize="md-medium" />,
+        icon: <IconCloneOutline18 className="size-4" />,
         onClick: () => {
           navigator.clipboard
             .writeText(identity.id)
@@ -78,7 +83,7 @@ export const IdentityTableActions = ({
       {
         id: "copy-external-id",
         label: "Copy external ID",
-        icon: <Clone iconSize="md-medium" />,
+        icon: <IconCloneOutline18 className="size-4" />,
         onClick: () => {
           navigator.clipboard
             .writeText(identity.externalId)
@@ -95,7 +100,7 @@ export const IdentityTableActions = ({
       {
         id: "delete-identity",
         label: "Delete identity",
-        icon: <Trash iconSize="md-medium" />,
+        icon: <IconTrashOutline18 className="size-4" />,
         ActionComponent: DeleteIdentityAction,
       },
     ],

@@ -2,7 +2,6 @@
 import { useDeployActionGate } from "@/app/(app)/[workspaceSlug]/projects/_components/hooks/use-deploy-action-gate";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { routes } from "@/lib/navigation/routes";
-import { Plus } from "@unkey/icons";
 import {
   Button,
   PageBody,
@@ -14,6 +13,7 @@ import {
 } from "@unkey/ui";
 import Link from "next/link";
 import { useParams } from "next/navigation";
+import { IconPlusOutline18 } from "nucleo-ui-outline-18";
 import { AppsList } from "./_components/apps-list";
 
 export default function ProjectPage() {
@@ -33,7 +33,7 @@ export default function ProjectPage() {
               new-app wizard. */}
           {gated ? (
             <Button size="md" variant="primary" onClick={openPaywall}>
-              <Plus iconSize="sm-regular" />
+              <IconPlusOutline18 />
               Create app
             </Button>
           ) : (
@@ -46,7 +46,7 @@ export default function ProjectPage() {
                 />
               }
             >
-              <Plus iconSize="sm-regular" />
+              <IconPlusOutline18 />
               Create app
             </Button>
           )}

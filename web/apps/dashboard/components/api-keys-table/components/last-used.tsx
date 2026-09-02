@@ -1,7 +1,7 @@
 import { cn } from "@/lib/utils";
-import { ChartActivity2 } from "@unkey/icons";
 import { Badge, TimestampInfo } from "@unkey/ui";
 import { STATUS_STYLES } from "@unkey/ui";
+import { IconChartActivity2Outline12 } from "nucleo-ui-outline-12";
 import { useRef, useState } from "react";
 
 export const LastUsedCell = ({
@@ -29,7 +29,7 @@ export const LastUsedCell = ({
       }}
     >
       <div>
-        <ChartActivity2 iconSize="sm-regular" />
+        <IconChartActivity2Outline12 />
       </div>
       <div className="truncate">
         {lastUsedAt > 0 ? (

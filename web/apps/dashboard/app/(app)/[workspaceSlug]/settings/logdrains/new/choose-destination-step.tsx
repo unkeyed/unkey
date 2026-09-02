@@ -1,6 +1,5 @@
 "use client";
 
-import { Earth } from "@unkey/icons";
 import {
   Button,
   Item,
@@ -11,6 +10,7 @@ import {
   ItemTitle,
   useStepWizard,
 } from "@unkey/ui";
+import { IconEarthOutline18 } from "nucleo-ui-outline-18";
 import type { ReactNode } from "react";
 import { AxiomLogo } from "../axiom-logo";
 import { DestinationStepContainer } from "./destination-step-container";
@@ -26,7 +26,7 @@ const OPTIONS: Array<{
     kind: "http",
     title: "HTTP",
     description: "Send audit logs to an HTTPS endpoint.",
-    icon: <Earth className="size-[18px] text-gray-12" iconSize="md-medium" />,
+    icon: <IconEarthOutline18 className="text-gray-12" />,
   },
   {
     kind: "axiom",

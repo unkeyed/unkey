@@ -1,7 +1,13 @@
 import type { KeyDetails } from "@/lib/trpc/routers/api/keys/query-api-keys/schema";
-import { ArrowOppositeDirectionY, Ban, CircleCheck, Trash, XMark } from "@unkey/icons";
 import { Button, ConfirmPopover } from "@unkey/ui";
 import { AnimatePresence, motion } from "framer-motion";
+import {
+  IconArrowsOppositeDirectionYOutline18,
+  IconBanOutline18,
+  IconCircleCheckOutline18,
+  IconTrashOutline18,
+  IconXmarkOutline18,
+} from "nucleo-ui-outline-18";
 import { useEffect, useRef, useState } from "react";
 import { useDeleteKey } from "../actions/components/hooks/use-delete-key";
 import { useBatchUpdateKeyStatus } from "../actions/components/hooks/use-update-key-status";
@@ -110,7 +116,7 @@ export const SelectionControls = ({
                   className="text-gray-12 font-medium text-[13px]"
                   onClick={() => setIsBatchEditExternalIdOpen(true)}
                 >
-                  <ArrowOppositeDirectionY iconSize="sm-regular" /> Change External ID
+                  <IconArrowsOppositeDirectionYOutline18 /> Change External ID
                 </Button>
                 <Button
                   variant="outline"
@@ -129,7 +135,7 @@ export const SelectionControls = ({
                     });
                   }}
                 >
-                  <CircleCheck iconSize="sm-regular" />
+                  <IconCircleCheckOutline18 />
                   Enable key
                 </Button>
                 <Button
@@ -141,7 +147,7 @@ export const SelectionControls = ({
                   onClick={handleDisableButtonClick}
                   ref={disableButtonRef}
                 >
-                  <Ban iconSize="sm-regular" />
+                  <IconBanOutline18 />
                   Disable key
                 </Button>
                 <Button
@@ -153,7 +159,7 @@ export const SelectionControls = ({
                   onClick={handleDeleteButtonClick}
                   ref={deleteButtonRef}
                 >
-                  <Trash iconSize="sm-regular" />
+                  <IconTrashOutline18 />
                   Delete key
                 </Button>
                 <Button
@@ -162,7 +168,7 @@ export const SelectionControls = ({
                   className="[&_svg]:size-[14px] ml-3"
                   onClick={() => setSelectedKeys(new Set())}
                 >
-                  <XMark />
+                  <IconXmarkOutline18 />
                 </Button>
               </div>
             </div>

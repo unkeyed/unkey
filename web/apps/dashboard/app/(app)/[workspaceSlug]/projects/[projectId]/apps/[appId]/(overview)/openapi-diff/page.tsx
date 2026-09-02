@@ -2,7 +2,6 @@
 
 import { shortenId } from "@/lib/shorten-id";
 import { trpc } from "@/lib/trpc/client";
-import { ArrowRight, Magnifier } from "@unkey/icons";
 import {
   Loading,
   PageBody,
@@ -13,6 +12,7 @@ import {
   PageHeaderTitle,
 } from "@unkey/ui";
 import { useSearchParams } from "next/navigation";
+import { IconArrowRightOutline18, IconMagnifierOutline18 } from "nucleo-ui-outline-18";
 import { useCallback, useEffect, useState } from "react";
 import { Card } from "../components/card";
 import { useProjectData } from "../data-provider";
@@ -121,10 +121,7 @@ export default function DiffPage() {
                 />
               </div>
 
-              <ArrowRight
-                className="shrink-0 text-gray-9 size-[14px] mt-8.5"
-                iconSize="sm-regular"
-              />
+              <IconArrowRightOutline18 className="shrink-0 text-gray-9 size-[14px] mt-8.5" />
 
               <div className="flex flex-col gap-1.5 flex-1">
                 <span className="text-[11px] font-medium text-grayA-9">Comparison</span>
@@ -152,7 +149,7 @@ export default function DiffPage() {
                 <div className="relative">
                   <div className="absolute inset-0 bg-linear-to-r from-accent-4 to-accent-3 rounded-full blur-xl opacity-20 transition-opacity duration-300 animate-pulse" />
                   <div className="relative bg-gray-3 rounded-full p-3 transition-all duration-200">
-                    <Magnifier
+                    <IconMagnifierOutline18
                       className="text-grayA-9 size-6 transition-all duration-200 animate-pulse"
                       style={{ animationDuration: "2s" }}
                     />
@@ -184,7 +181,7 @@ export default function DiffPage() {
                       <div className="relative">
                         <div className="absolute inset-0 bg-linear-to-r from-error-4 to-error-3 rounded-full blur-xl opacity-20 transition-opacity duration-300 animate-pulse" />
                         <div className="relative bg-error-3 rounded-full p-3 transition-all duration-200">
-                          <Magnifier
+                          <IconMagnifierOutline18
                             className="text-error-9 size-6 transition-all duration-200 animate-pulse"
                             style={{ animationDuration: "2s" }}
                           />

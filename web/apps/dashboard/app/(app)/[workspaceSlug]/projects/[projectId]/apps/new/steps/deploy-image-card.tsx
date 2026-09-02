@@ -8,9 +8,10 @@ import { routes } from "@/lib/navigation/routes";
 import { trpc } from "@/lib/trpc/client";
 import { getErrorMessage, getUnkeyClient } from "@/lib/unkey-client";
 import { useMutation } from "@tanstack/react-query";
-import { ChevronLeft, Docker } from "@unkey/icons";
+import { Docker } from "@unkey/icons";
 import { Button, Input, toast } from "@unkey/ui";
 import { useRouter } from "next/navigation";
+import { IconChevronLeftOutline18 } from "nucleo-ui-outline-18";
 import { useId, useState } from "react";
 
 type DeployImageCardProps = {
@@ -88,7 +89,7 @@ export const DeployImageCard = ({
     <div className="border border-grayA-5 rounded-lg flex flex-col gap-4 py-[18px] px-4">
       <div className="flex justify-start items-center gap-4">
         <div className="size-8 rounded-[10px] grid place-items-center ring-1 ring-grayA-4 shadow-sm shadow-grayA-8/20 dark:shadow-none shrink-0">
-          <Docker className="size-[18px] text-gray-12" iconSize="md-medium" />
+          <Docker className="size-[18px] text-gray-12" />
         </div>
         <div className="flex flex-col gap-3">
           <span className="font-medium text-gray-12 text-[13px] leading-[9px]">
@@ -106,7 +107,7 @@ export const DeployImageCard = ({
             className="ml-auto rounded-lg"
             onClick={() => onExpandedChange(false)}
           >
-            <ChevronLeft className="size-[14px]! text-gray-12 shrink-0" />
+            <IconChevronLeftOutline18 className="size-[14px]! text-gray-12 shrink-0" />
             <span className="text-[13px] text-gray-12 font-medium">Back</span>
           </Button>
         ) : (

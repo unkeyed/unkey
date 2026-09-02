@@ -1,8 +1,9 @@
 "use client";
 
 import { Select as SelectPrimitive } from "@base-ui/react/select";
-import { Check, ChevronDown } from "@unkey/icons";
 import { type VariantProps, cva } from "class-variance-authority";
+import { IconCheckOutline12 } from "nucleo-ui-outline-12";
+import { IconChevronDownOutline18 } from "nucleo-ui-outline-18";
 import type * as React from "react";
 import { cn } from "../../lib/utils";
 import { fieldBaseClasses, fieldInvalidClasses, fieldSurfaceClasses } from "./input-group";
@@ -81,7 +82,7 @@ function SelectTrigger({
         <SelectPrimitive.Icon
           render={
             (rightIcon as React.ReactElement) || (
-              <ChevronDown className="absolute text-gray-11 right-3 w-4 h-4" iconSize="sm-medium" />
+              <IconChevronDownOutline18 className="absolute text-gray-11 right-3 w-4 h-4" />
             )
           }
         />
@@ -173,7 +174,7 @@ function SelectItem({
     >
       <span className="absolute right-2 flex h-3.5 w-3.5 items-center justify-center">
         <SelectPrimitive.ItemIndicator>
-          <Check iconSize="sm-medium" className="text-gray-12" />
+          <IconCheckOutline12 className="text-gray-12" />
         </SelectPrimitive.ItemIndicator>
       </span>
 

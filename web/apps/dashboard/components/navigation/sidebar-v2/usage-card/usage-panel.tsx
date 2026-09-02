@@ -1,9 +1,9 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { Plus } from "@unkey/icons";
 import { motion } from "framer-motion";
 import Link from "next/link";
+import { IconPlusOutline12 } from "nucleo-ui-outline-12";
 import { useId } from "react";
 import { ApiRow, ComputeRow } from "./usage-rows";
 import { useMinimised } from "./use-minimised";
@@ -31,7 +31,7 @@ export function UsagePanel({ summary }: { summary: UsageSummary }) {
           !folded && "px-2.5 pt-2 pb-1.5",
         )}
       >
-        {folded ? null : <span className="min-w-0 truncate text-gray-12">Usage</span>}
+        {folded ? null : <span className="min-w-0 truncate font-medium text-gray-12">Usage</span>}
         {summary.atRisk ? null : (
           <button
             type="button"
@@ -46,7 +46,7 @@ export function UsagePanel({ summary }: { summary: UsageSummary }) {
                 : "-mr-1 ml-auto size-5 justify-center",
             )}
           >
-            {folded ? <span className="flex-1 truncate text-gray-12">Usage</span> : null}
+            {folded ? <span className="flex-1 truncate font-medium text-gray-12">Usage</span> : null}
             <Toggle rotated={!folded} />
           </button>
         )}
@@ -77,7 +77,7 @@ function Toggle({ rotated }: { rotated: boolean }) {
       animate={{ rotate: rotated ? 45 : 0 }}
       transition={TOGGLE}
     >
-      <Plus iconSize="sm-regular" />
+      <IconPlusOutline12 />
     </motion.span>
   );
 }

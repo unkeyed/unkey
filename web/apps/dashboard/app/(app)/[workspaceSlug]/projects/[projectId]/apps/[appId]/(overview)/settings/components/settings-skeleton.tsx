@@ -1,6 +1,6 @@
-import { CircleHalfDottedClock, Gear } from "@unkey/icons";
 import { SettingCardGroup } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
+import { IconCircleHalfDottedClockOutline18, IconGearOutline18 } from "nucleo-ui-outline-18";
 import { SettingsGroup } from "./shared/settings-group";
 
 type Row = { title: string; description: string; controlW: string };
@@ -113,7 +113,7 @@ export function SettingsSkeleton() {
         <CardRows rows={BUILD_ROWS} />
       </SettingCardGroup>
       <SettingsGroup
-        icon={<CircleHalfDottedClock iconSize="md-medium" />}
+        icon={<IconCircleHalfDottedClockOutline18 className="size-4" />}
         title="Runtime settings"
         hideChevron
       >
@@ -122,7 +122,7 @@ export function SettingsSkeleton() {
         </SettingCardGroup>
       </SettingsGroup>
       <SettingsGroup
-        icon={<Gear iconSize="md-medium" />}
+        icon={<IconGearOutline18 className="size-4" />}
         title="Advanced configurations"
         hideChevron
       >

@@ -1,7 +1,7 @@
 "use client";
 
 import { Dialog as DialogPrimitive } from "@base-ui/react/dialog";
-import { XMark } from "@unkey/icons";
+import { IconXmarkOutline18 } from "nucleo-ui-outline-18";
 import type * as React from "react";
 import { cn } from "../lib/utils";
 
@@ -159,7 +159,7 @@ export function SlidePanelCloseButton({ className, ...props }: SlidePanelCloseBu
       )}
       {...props}
     >
-      <XMark iconSize="lg-medium" />
+      <IconXmarkOutline18 className="size-4" />
     </DialogPrimitive.Close>
   );
 }

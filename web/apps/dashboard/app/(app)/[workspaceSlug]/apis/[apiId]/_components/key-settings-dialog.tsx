@@ -5,7 +5,7 @@ import { TableActionPopover } from "@/components/logs/table-action.popover";
 import { NavbarActionButton } from "@/components/navigation/action-button";
 import { trpc } from "@/lib/trpc/client";
 import type { KeyDetails } from "@/lib/trpc/routers/api/keys/query-api-keys/schema";
-import { Gear } from "@unkey/icons";
+import { IconGearOutline18 } from "nucleo-ui-outline-18";
 
 interface KeySettingsDialogProps {
   keyData: KeyDetails;
@@ -20,7 +20,7 @@ export const KeySettingsDialog = ({ keyData, apiId, keyspaceId }: KeySettingsDia
   return (
     <TableActionPopover items={items}>
       <NavbarActionButton>
-        <Gear />
+        <IconGearOutline18 />
         Settings
       </NavbarActionButton>
     </TableActionPopover>

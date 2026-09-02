@@ -18,8 +18,9 @@ import { cn } from "@/lib/utils";
 import { formatLatency } from "@/lib/utils/metric-formatters";
 import { eq, useLiveQuery } from "@tanstack/react-db";
 import type { RequestLogsResponse } from "@unkey/clickhouse/src/frontline";
-import { CodeBranch, CodeCommit, User } from "@unkey/icons";
 import { Badge, CopyButton } from "@unkey/ui";
+import { IconUserOutline12 } from "nucleo-ui-outline-12";
+import { IconCodeBranchOutline18, IconCodeCommitOutline18 } from "nucleo-ui-outline-18";
 import type React from "react";
 
 type Props = {
@@ -310,7 +311,7 @@ const formatDeploymentInfo = (
         <div className="flex items-center justify-between">
           <span className="text-gray-11">Branch:</span>
           <div className="flex items-center gap-1.5">
-            <CodeBranch iconSize="sm-regular" className="text-grayA-10 shrink-0" />
+            <IconCodeBranchOutline18 className="size-3 text-grayA-10 shrink-0" />
             {branchUrl ? (
               <DottedLink href={branchUrl} copyValue={deployment.gitBranch} external>
                 <span className="font-mono truncate max-w-50">{deployment.gitBranch}</span>
@@ -326,7 +327,7 @@ const formatDeploymentInfo = (
         <div className="flex items-center justify-between">
           <span className="text-gray-11">Commit:</span>
           <div className="flex items-center gap-1.5">
-            <CodeCommit iconSize="sm-regular" className="text-grayA-10 shrink-0" />
+            <IconCodeCommitOutline18 className="size-3 text-grayA-10 shrink-0" />
             {commitUrl ? (
               <DottedLink href={commitUrl} copyValue={deployment.gitCommitSha} external>
                 <span className="font-mono">{shortSha}</span>
@@ -349,7 +350,7 @@ const formatDeploymentInfo = (
                 className="w-4 h-4 rounded-full shrink-0"
               />
             ) : (
-              <User iconSize="sm-regular" className="text-grayA-10 shrink-0" />
+              <IconUserOutline12 className="text-grayA-10 shrink-0" />
             )}
             <span className="truncate max-w-[200px]">{deployment.gitCommitAuthorHandle}</span>
           </div>

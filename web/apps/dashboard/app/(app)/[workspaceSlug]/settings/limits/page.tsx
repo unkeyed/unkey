@@ -6,7 +6,6 @@ import { routes } from "@/lib/navigation/routes";
 import { SUPPORT_MAILTO } from "@/lib/support";
 import { trpc } from "@/lib/trpc/client";
 import { useWorkspace } from "@/providers/workspace-provider";
-import { Cube, Layers3, Nodes } from "@unkey/icons";
 import {
   Button,
   Empty,
@@ -26,6 +25,7 @@ import {
 } from "@unkey/ui";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { IconCubeOutline18, IconLayers3Outline18, IconNodesOutline18 } from "nucleo-ui-outline-18";
 import { Fragment, type ReactNode } from "react";
 import { BreachBanner } from "./breach-banner";
 import {
@@ -38,9 +38,9 @@ import {
 import { LimitItem } from "./limit-item";
 
 const CHIPS: Record<GroupKey, { icon: ReactNode; className: string }> = {
-  api: { icon: <Nodes />, className: "bg-infoA-3 text-info-11" },
-  logs: { icon: <Layers3 />, className: "bg-grayA-3 text-gray-11" },
-  compute: { icon: <Cube />, className: "bg-orangeA-3 text-orange-11" },
+  api: { icon: <IconNodesOutline18 />, className: "bg-infoA-3 text-info-11" },
+  logs: { icon: <IconLayers3Outline18 />, className: "bg-grayA-3 text-gray-11" },
+  compute: { icon: <IconCubeOutline18 />, className: "bg-orangeA-3 text-orange-11" },
 };
 
 function measured<T>(query: { data: T | undefined; isError: boolean }): Measured<T> {

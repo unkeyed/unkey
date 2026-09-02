@@ -1,14 +1,6 @@
 "use client";
 import type { ChangelogEntry } from "@/gen/proto/ctrl/v1/openapi_pb";
 import {
-  ChevronDown,
-  CircleInfo,
-  CircleWarning,
-  CircleXMark,
-  InputSearch,
-  TriangleWarning,
-} from "@unkey/icons";
-import {
   Badge,
   Button,
   InputGroup,
@@ -22,6 +14,13 @@ import {
 } from "@unkey/ui";
 import type { BadgeProps } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
+import {
+  IconChevronDownOutline12,
+  IconCircleWarningOutline12,
+  IconCircleXmarkOutline12,
+  IconTriangleWarningOutline12,
+} from "nucleo-ui-outline-12";
+import { IconCircleInfoOutline18, IconInputSearchOutline18 } from "nucleo-ui-outline-18";
 import type React from "react";
 import { useMemo, useState } from "react";
 
@@ -109,7 +108,7 @@ export const DiffViewerContent: React.FC<DiffViewerContentProps> = ({
         <div className="relative">
           <div className="absolute inset-0 bg-linear-to-r from-accent-4 to-accent-3 rounded-full blur-xl opacity-20 transition-opacity duration-300 animate-pulse" />
           <div className="relative bg-gray-3 rounded-full p-3 transition-all duration-200">
-            <CircleInfo
+            <IconCircleInfoOutline18
               className="text-grayA-9 size-6 transition-all duration-200 animate-pulse"
               style={{ animationDuration: "2s" }}
             />
@@ -140,13 +139,13 @@ export const DiffViewerContent: React.FC<DiffViewerContentProps> = ({
           <div className="flex items-center gap-2">
             {stats.breaking > 0 && (
               <Badge variant="error" className="gap-1.5">
-                <TriangleWarning iconSize="sm-regular" className="shrink-0" />
+                <IconTriangleWarningOutline12 className="shrink-0" />
                 <span className="text-xs font-medium">{stats.breaking} breaking</span>
               </Badge>
             )}
             {stats.warning > 0 && (
               <Badge variant="warning" className="gap-1.5">
-                <CircleWarning iconSize="sm-regular" className="shrink-0" />
+                <IconCircleWarningOutline12 className="shrink-0" />
                 <span className="text-xs">
                   {stats.warning} warning{stats.warning !== 1 ? "s" : ""}
                 </span>
@@ -160,7 +159,7 @@ export const DiffViewerContent: React.FC<DiffViewerContentProps> = ({
       <div className="px-4 pb-4 flex gap-2.5 items-center">
         <InputGroup className="flex-1 h-9 rounded-md">
           <InputGroupAddon className="pointer-events-none">
-            <InputSearch iconSize="sm-regular" className="text-grayA-9" />
+            <IconInputSearchOutline18 className="size-3 text-grayA-9" />
           </InputGroupAddon>
           <InputGroupInput
             type="text"
@@ -176,7 +175,7 @@ export const DiffViewerContent: React.FC<DiffViewerContentProps> = ({
                 onClick={() => setFilters((p) => ({ ...p, searchQuery: "" }))}
                 className="cursor-pointer"
               >
-                <CircleXMark iconSize="sm-regular" className="text-grayA-9 hover:text-grayA-12" />
+                <IconCircleXmarkOutline12 className="text-grayA-9 hover:text-grayA-12" />
               </button>
             </InputGroupAddon>
           ) : null}
@@ -259,8 +258,7 @@ export const DiffViewerContent: React.FC<DiffViewerContentProps> = ({
                     className="w-full flex items-center justify-between py-3 px-4 text-left bg-grayA-1 hover:bg-grayA-2 transition-colors cursor-pointer"
                   >
                     <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                      <ChevronDown
-                        iconSize="sm-regular"
+                      <IconChevronDownOutline12
                         className={cn(
                           "text-grayA-9 shrink-0 transition-transform duration-200",
                           !isExpanded && "-rotate-90",

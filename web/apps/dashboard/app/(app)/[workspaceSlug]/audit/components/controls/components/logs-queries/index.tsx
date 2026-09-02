@@ -1,7 +1,7 @@
 import { QueriesPopover } from "@/components/logs/queries/queries-popover";
 import { cn } from "@/lib/utils";
-import { ChartBarAxisY } from "@unkey/icons";
 import { Button } from "@unkey/ui";
+import { IconChartBarAxisYOutline18 } from "nucleo-ui-outline-18";
 import { useFilters } from "../../../../hooks/use-filters";
 import { formatFilterValues, getFilterFieldIcon, shouldTruncateRow } from "./utils";
 export const LogsQueries = () => {
@@ -24,7 +24,7 @@ export const LogsQueries = () => {
         aria-haspopup="true"
         title="Press 'Q' to toggle queries"
       >
-        <ChartBarAxisY iconSize="md-medium" className="mt-1 ml-[3px] text-gray-9" />
+        <IconChartBarAxisYOutline18 className="size-4 mt-1 ml-[3px] text-gray-9" />
         <span className="text-gray-12 font-medium text-[13px] leading-4">Queries</span>
       </Button>
     </QueriesPopover>

@@ -1,9 +1,9 @@
 "use client";
 
 import { Checkbox as CheckboxPrimitive } from "@base-ui/react/checkbox";
-import { Check, Minus } from "@unkey/icons";
-import type { IconProps } from "@unkey/icons/src/props";
 import { type VariantProps, cva } from "class-variance-authority";
+import { IconCheckOutline12, IconMinusOutline12 } from "nucleo-ui-outline-12";
+import { IconCheckOutline18, IconMinusOutline18 } from "nucleo-ui-outline-18";
 import type * as React from "react";
 import { cn } from "../../lib/utils";
 
@@ -198,21 +198,6 @@ const VARIANT_MAP: Record<string, { variant: CheckboxVariant; color?: CheckboxCo
   destructive: { variant: "primary", color: "danger" },
 };
 
-const getIconSize = (size: CheckboxSize | undefined): IconProps["iconSize"] => {
-  switch (size) {
-    case "sm":
-      return "sm-regular";
-    case "md":
-      return "sm-regular";
-    case "lg":
-      return "md-regular";
-    case "xlg":
-      return "lg-regular";
-    default:
-      return "sm-regular";
-  }
-};
-
 export type DocumentedCheckboxProps = VariantProps<typeof checkboxVariants> & {
   /**
    * The variant style to use for the checkbox
@@ -317,8 +302,6 @@ function Checkbox({
     mappedVariant = variant as CheckboxVariant;
   }
 
-  const iconSize = getIconSize(size);
-
   const checkmarkColor =
     mappedColor === "default" && mappedVariant === "primary"
       ? "text-white dark:text-black"
@@ -343,8 +326,17 @@ function Checkbox({
       {...props}
     >
       <CheckboxPrimitive.Indicator className={cn(checkmarkVariants(), checkmarkColor)}>
-        <Check iconSize={iconSize} className="hidden group-data-checked:block" />
-        <Minus iconSize={iconSize} className="hidden group-data-indeterminate:block" />
+        {size === "lg" || size === "xlg" ? (
+          <>
+            <IconCheckOutline18 className="size-4 hidden group-data-checked:block" />
+            <IconMinusOutline18 className="size-4 hidden group-data-indeterminate:block" />
+          </>
+        ) : (
+          <>
+            <IconCheckOutline12 className="hidden group-data-checked:block" />
+            <IconMinusOutline12 className="hidden group-data-indeterminate:block" />
+          </>
+        )}
       </CheckboxPrimitive.Indicator>
     </CheckboxPrimitive.Root>
   );

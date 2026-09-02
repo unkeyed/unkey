@@ -3,7 +3,6 @@
 import type { StringMatchMode } from "@/lib/collections/deploy/policies.schema";
 import { trpc } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";
-import { ChevronDown, Sparkle3 } from "@unkey/icons";
 import { match } from "@unkey/match";
 import {
   Button,
@@ -16,6 +15,7 @@ import {
   toast,
 } from "@unkey/ui";
 import { FormDescription, FormLabel } from "@unkey/ui/src/components/form/form-helpers";
+import { IconChevronDownOutline18, IconSparkle3Outline18 } from "nucleo-ui-outline-18";
 import { useState } from "react";
 import { useFormContext, useWatch } from "react-hook-form";
 import type { MatchConditionFormValues, PolicyFormValues } from "../schema";
@@ -59,7 +59,7 @@ export function ConditionFields({
               >
                 <SelectTrigger
                   id={`path-mode-${c.id}`}
-                  rightIcon={<ChevronDown className="absolute right-2" iconSize="md-medium" />}
+                  rightIcon={<IconChevronDownOutline18 className="size-4 absolute right-2" />}
                 >
                   <SelectValue />
                 </SelectTrigger>
@@ -186,9 +186,7 @@ export function ConditionFields({
                     >
                       <SelectTrigger
                         id={`hq-mode-${c.id}`}
-                        rightIcon={
-                          <ChevronDown className="absolute right-2" iconSize="md-medium" />
-                        }
+                        rightIcon={<IconChevronDownOutline18 className="size-4 absolute right-2" />}
                       >
                         <SelectValue />
                       </SelectTrigger>
@@ -281,7 +279,7 @@ function RegexGenerateInput({
         loading={generateRegex.isLoading}
         onClick={() => generateRegex.mutate({ query: prompt, conditionType })}
       >
-        <Sparkle3 iconSize="sm-regular" />
+        <IconSparkle3Outline18 />
         Generate
       </Button>
     </div>

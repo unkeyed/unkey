@@ -1,5 +1,5 @@
 import { Avatar, AvatarImage } from "@/components/ui/avatar";
-import { CircleHalfDottedClock } from "@unkey/icons";
+import { IconCircleHalfDottedClockOutline18 } from "nucleo-ui-outline-18";
 
 type QueriesMadeByProps = {
   userName?: string;
@@ -24,7 +24,7 @@ export const QueriesMadeBy = ({ userName, userImageSrc, createdString }: Queries
           <span className="font-mono text-xs font-medium leading-4 text-gray-12">{userName}</span>
         </>
       )}
-      <CircleHalfDottedClock className="size-3.5 text-gray-12 mb-[2px] ml-[2px]" />
+      <IconCircleHalfDottedClockOutline18 className="size-3.5 text-gray-12 mb-[2px] ml-[2px]" />
       <span className="font-mono text-xs font-normal leading-4 text-gray-9">{createdString}</span>
     </div>
   );

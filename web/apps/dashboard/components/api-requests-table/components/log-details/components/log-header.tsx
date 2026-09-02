@@ -1,7 +1,7 @@
 import { cn } from "@/lib/utils";
 import type { KeysOverviewLog } from "@unkey/clickhouse/src/keys/keys";
-import { XMark } from "@unkey/icons";
 import { Badge, Button } from "@unkey/ui";
+import { IconXmarkOutline18 } from "nucleo-ui-outline-18";
 
 export const LogHeader = ({
   onClose,
@@ -27,7 +27,7 @@ export const LogHeader = ({
       </div>
       <div className="flex gap-1 items-center shrink-0">
         <Button size="icon" variant="ghost" onClick={onClose} className="[&_svg]:size-3">
-          <XMark className="text-grayA-9 stroke-2" iconSize="sm-regular" />
+          <IconXmarkOutline18 className="text-grayA-9 stroke-2" />
         </Button>
       </div>
     </div>

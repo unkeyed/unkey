@@ -1,8 +1,8 @@
 import type { ActionComponentProps } from "@/components/logs/table-action.popover";
 import type { RoleBasic } from "@/lib/trpc/routers/authorization/roles/query";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { TriangleWarning2 } from "@unkey/icons";
 import { Button, ConfirmPopover, DialogContainer, FormCheckbox } from "@unkey/ui";
+import { IconTriangleWarningOutline12 } from "nucleo-ui-outline-12";
 import { useRef, useState } from "react";
 import { Controller, FormProvider, useForm } from "react-hook-form";
 import { z } from "zod";
@@ -114,7 +114,7 @@ export const DeleteRole = ({ roleDetails, isOpen, onClose }: DeleteRoleProps) =>
             </div>
             <div className="rounded-xl bg-errorA-2 dark:bg-black border border-errorA-3 flex items-center gap-4 px-[22px] py-6">
               <div className="bg-error-9 size-8 rounded-full flex items-center justify-center shrink-0">
-                <TriangleWarning2 iconSize="sm-regular" className="text-white" />
+                <IconTriangleWarningOutline12 className="text-white" />
               </div>
               <div className="text-error-12 text-[13px] leading-6">
                 <span className="font-medium">Warning:</span> deleting this role will detach it from

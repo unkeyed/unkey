@@ -1,7 +1,7 @@
-import { CodeBranch, Cube } from "@unkey/icons";
 import { InfoTooltip, Loading, TimestampInfo } from "@unkey/ui";
 import type { Route } from "next";
 import Link from "next/link";
+import { IconCodeBranchOutline18, IconCubeOutline18 } from "nucleo-ui-outline-18";
 import type { ReactNode } from "react";
 import { useCallback, useState } from "react";
 import { Avatar } from "../../[projectId]/apps/[appId]/components/git-avatar";
@@ -57,7 +57,7 @@ export const ResourceCard = ({
           {isNavigating ? (
             <Loading size={20} className="text-grayA-11" />
           ) : (
-            (icon ?? <Cube iconSize="xl-medium" className="shrink-0 size-5" />)
+            (icon ?? <IconCubeOutline18 className="shrink-0 size-5" />)
           )}
         </div>
         <div className="flex flex-col w-full gap-2 py-[5px] min-w-0">
@@ -124,7 +124,7 @@ export const ResourceCard = ({
               <span className="sr-only">No deployments</span>
             )}
             <div className="flex items-center gap-1">
-              <CodeBranch className="text-gray-12 shrink-0" iconSize="sm-regular" />
+              <IconCodeBranchOutline18 className="size-3 text-gray-12 shrink-0" />
               <InfoTooltip content={branch} asChild position={{ align: "start", side: "top" }}>
                 <span className="text-xs text-gray-12 truncate max-w-[70px]">{branch}</span>
               </InfoTooltip>

@@ -11,9 +11,9 @@ import {
   formatStorageParts,
 } from "@/lib/utils/deployment-formatters";
 import { eq, useLiveQuery } from "@tanstack/react-db";
-import { CodeBranch, CodeCommit } from "@unkey/icons";
 import { match } from "@unkey/match";
 import { Badge, InfoTooltip, TimestampInfo } from "@unkey/ui";
+import { IconCodeBranchOutline18, IconCodeCommitOutline18 } from "nucleo-ui-outline-18";
 import { Card } from "../../(overview)/components/card";
 import { useProjectData } from "../../(overview)/data-provider";
 import { DeploymentTriggerBadge } from "../../../../components/deployment-trigger-badge";
@@ -111,7 +111,7 @@ export function ActiveDeploymentCard({
             {deployment.gitCommitMessage && (
               <GitHubLink href={githubUrl.commit(sourceRepo, deployment.gitCommitSha)}>
                 <div className="flex items-center gap-1.5 min-w-0">
-                  <CodeCommit iconSize="sm-regular" className="text-accent-12 shrink-0" />
+                  <IconCodeCommitOutline18 className="size-3 text-accent-12 shrink-0" />
                   <span className="text-xs text-accent-12 truncate">
                     {deployment.gitCommitMessage}
                   </span>
@@ -157,7 +157,7 @@ export function ActiveDeploymentCard({
               {deployment.gitBranch && (
                 <GitHubLink href={githubUrl.branch(sourceRepo, deployment.gitBranch)}>
                   <span className="flex items-center gap-1">
-                    <CodeBranch iconSize="sm-regular" className="text-accent-12 shrink-0" />
+                    <IconCodeBranchOutline18 className="size-3 text-accent-12 shrink-0" />
                     <span className="font-mono text-xs text-accent-12 truncate max-w-32">
                       {deployment.gitBranch}
                     </span>
@@ -170,7 +170,7 @@ export function ActiveDeploymentCard({
                   <GitHubLink href={githubUrl.commit(sourceRepo, deployment.gitCommitSha)}>
                     <span className="flex items-center gap-1">
                       {!deployment.gitBranch && (
-                        <CodeCommit iconSize="sm-regular" className="text-accent-12 shrink-0" />
+                        <IconCodeCommitOutline18 className="size-3 text-accent-12 shrink-0" />
                       )}
                       <span className="font-mono text-xs text-accent-12">
                         {deployment.gitCommitSha.slice(0, 7)}
