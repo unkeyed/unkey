@@ -191,7 +191,7 @@ export function DataTable<TData>(props: DataTableProps<TData> & { ref?: Ref<Data
                 <th
                   key={header.id}
                   className={cn(
-                    "text-sm font-normal text-accent-11 py-1 text-left",
+                    "text-xs font-normal text-accent-11 py-1 text-left",
                     header.column.columnDef.meta?.headerClassName,
                     header.column.columnDef.meta?.cellClassName,
                   )}
@@ -243,7 +243,7 @@ export function DataTable<TData>(props: DataTableProps<TData> & { ref?: Ref<Data
                   <th
                     key={header.id}
                     className={cn(
-                      "text-sm font-normal text-accent-11 py-1 text-left relative",
+                      "text-xs font-normal text-accent-11 py-1 text-left relative",
                       header.column.columnDef.meta?.headerClassName,
                       header.column.columnDef.meta?.cellClassName,
                     )}
