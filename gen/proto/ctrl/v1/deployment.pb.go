@@ -164,195 +164,6 @@ func (DeploymentTrigger) EnumDescriptor() ([]byte, []int) {
 	return file_ctrl_v1_deployment_proto_rawDescGZIP(), []int{1}
 }
 
-type CreateDeploymentRequest struct {
-	state           protoimpl.MessageState `protogen:"open.v1"`
-	ProjectId       string                 `protobuf:"bytes,1,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
-	EnvironmentSlug string                 `protobuf:"bytes,2,opt,name=environment_slug,json=environmentSlug,proto3" json:"environment_slug,omitempty"`
-	// Deprecated compatibility field for v2 API callers.
-	//
-	// Deprecated: Marked as deprecated in ctrl/v1/deployment.proto.
-	DockerImage string `protobuf:"bytes,3,opt,name=docker_image,json=dockerImage,proto3" json:"docker_image,omitempty"`
-	// Omit the source override to use the app's default Git branch or OCI image.
-	//
-	// Types that are valid to be assigned to Source:
-	//
-	//	*CreateDeploymentRequest_OciImage
-	//	*CreateDeploymentRequest_GitCommit
-	Source isCreateDeploymentRequest_Source `protobuf_oneof:"source"`
-	// Authentication
-	KeyspaceId *string `protobuf:"bytes,5,opt,name=keyspace_id,json=keyspaceId,proto3,oneof" json:"keyspace_id,omitempty"`
-	// Container command override (e.g., ["./app", "serve"])
-	// If not specified, the container's default entrypoint/cmd is used
-	Command []string `protobuf:"bytes,6,rep,name=command,proto3" json:"command,omitempty"`
-	// App ID to deploy. Required.
-	AppId string `protobuf:"bytes,7,opt,name=app_id,json=appId,proto3" json:"app_id,omitempty"`
-	// Which surface triggered this deployment.
-	Trigger DeploymentTrigger `protobuf:"varint,8,opt,name=trigger,proto3,enum=ctrl.v1.DeploymentTrigger" json:"trigger,omitempty"`
-	// Polymorphic actor id, interpretation depends on `trigger`:
-	//
-	//	dashboard -> user_id
-	//	api / cli -> root_key_id
-	//	github    -> github sender_login (the user who pushed; not necessarily
-	//	             the commit author — for that, see git_commit_author_handle
-	//	             on the deployment row)
-	//	unkey     -> internal user_id
-	//
-	// Trusted by ctrl because the bearer token is the auth boundary — only
-	// trusted backends can reach this RPC.
-	TriggeredBy string `protobuf:"bytes,10,opt,name=triggered_by,json=triggeredBy,proto3" json:"triggered_by,omitempty"`
-	// Free-form reason. Stored alongside the deployment for audit purposes.
-	// Populated mostly by internal tooling (e.g. "rebuild after image loss").
-	TriggerReason string `protobuf:"bytes,9,opt,name=trigger_reason,json=triggerReason,proto3" json:"trigger_reason,omitempty"`
-	// Caller identity for the audit log ctrl writes. Carries actor type, name,
-	// and request origin. When unset, the deployment is attributed to the system
-	// actor. Preferred over triggered_by for attribution.
-	Actor         *ActorInfo `protobuf:"bytes,11,opt,name=actor,proto3" json:"actor,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *CreateDeploymentRequest) Reset() {
-	*x = CreateDeploymentRequest{}
-	mi := &file_ctrl_v1_deployment_proto_msgTypes[0]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *CreateDeploymentRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*CreateDeploymentRequest) ProtoMessage() {}
-
-func (x *CreateDeploymentRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ctrl_v1_deployment_proto_msgTypes[0]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use CreateDeploymentRequest.ProtoReflect.Descriptor instead.
-func (*CreateDeploymentRequest) Descriptor() ([]byte, []int) {
-	return file_ctrl_v1_deployment_proto_rawDescGZIP(), []int{0}
-}
-
-func (x *CreateDeploymentRequest) GetProjectId() string {
-	if x != nil {
-		return x.ProjectId
-	}
-	return ""
-}
-
-func (x *CreateDeploymentRequest) GetEnvironmentSlug() string {
-	if x != nil {
-		return x.EnvironmentSlug
-	}
-	return ""
-}
-
-// Deprecated: Marked as deprecated in ctrl/v1/deployment.proto.
-func (x *CreateDeploymentRequest) GetDockerImage() string {
-	if x != nil {
-		return x.DockerImage
-	}
-	return ""
-}
-
-func (x *CreateDeploymentRequest) GetSource() isCreateDeploymentRequest_Source {
-	if x != nil {
-		return x.Source
-	}
-	return nil
-}
-
-func (x *CreateDeploymentRequest) GetOciImage() string {
-	if x != nil {
-		if x, ok := x.Source.(*CreateDeploymentRequest_OciImage); ok {
-			return x.OciImage
-		}
-	}
-	return ""
-}
-
-func (x *CreateDeploymentRequest) GetGitCommit() *GitCommitInfo {
-	if x != nil {
-		if x, ok := x.Source.(*CreateDeploymentRequest_GitCommit); ok {
-			return x.GitCommit
-		}
-	}
-	return nil
-}
-
-func (x *CreateDeploymentRequest) GetKeyspaceId() string {
-	if x != nil && x.KeyspaceId != nil {
-		return *x.KeyspaceId
-	}
-	return ""
-}
-
-func (x *CreateDeploymentRequest) GetCommand() []string {
-	if x != nil {
-		return x.Command
-	}
-	return nil
-}
-
-func (x *CreateDeploymentRequest) GetAppId() string {
-	if x != nil {
-		return x.AppId
-	}
-	return ""
-}
-
-func (x *CreateDeploymentRequest) GetTrigger() DeploymentTrigger {
-	if x != nil {
-		return x.Trigger
-	}
-	return DeploymentTrigger_DEPLOYMENT_TRIGGER_UNSPECIFIED
-}
-
-func (x *CreateDeploymentRequest) GetTriggeredBy() string {
-	if x != nil {
-		return x.TriggeredBy
-	}
-	return ""
-}
-
-func (x *CreateDeploymentRequest) GetTriggerReason() string {
-	if x != nil {
-		return x.TriggerReason
-	}
-	return ""
-}
-
-func (x *CreateDeploymentRequest) GetActor() *ActorInfo {
-	if x != nil {
-		return x.Actor
-	}
-	return nil
-}
-
-type isCreateDeploymentRequest_Source interface {
-	isCreateDeploymentRequest_Source()
-}
-
-type CreateDeploymentRequest_OciImage struct {
-	OciImage string `protobuf:"bytes,12,opt,name=oci_image,json=ociImage,proto3,oneof"`
-}
-
-type CreateDeploymentRequest_GitCommit struct {
-	GitCommit *GitCommitInfo `protobuf:"bytes,4,opt,name=git_commit,json=gitCommit,proto3,oneof"`
-}
-
-func (*CreateDeploymentRequest_OciImage) isCreateDeploymentRequest_Source() {}
-
-func (*CreateDeploymentRequest_GitCommit) isCreateDeploymentRequest_Source() {}
-
 type GitCommitInfo struct {
 	state           protoimpl.MessageState `protogen:"open.v1"`
 	CommitSha       string                 `protobuf:"bytes,1,opt,name=commit_sha,json=commitSha,proto3" json:"commit_sha,omitempty"`
@@ -369,7 +180,7 @@ type GitCommitInfo struct {
 
 func (x *GitCommitInfo) Reset() {
 	*x = GitCommitInfo{}
-	mi := &file_ctrl_v1_deployment_proto_msgTypes[1]
+	mi := &file_ctrl_v1_deployment_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -381,7 +192,7 @@ func (x *GitCommitInfo) String() string {
 func (*GitCommitInfo) ProtoMessage() {}
 
 func (x *GitCommitInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_ctrl_v1_deployment_proto_msgTypes[1]
+	mi := &file_ctrl_v1_deployment_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -394,7 +205,7 @@ func (x *GitCommitInfo) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GitCommitInfo.ProtoReflect.Descriptor instead.
 func (*GitCommitInfo) Descriptor() ([]byte, []int) {
-	return file_ctrl_v1_deployment_proto_rawDescGZIP(), []int{1}
+	return file_ctrl_v1_deployment_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *GitCommitInfo) GetCommitSha() string {
@@ -446,58 +257,6 @@ func (x *GitCommitInfo) GetForkRepository() string {
 	return ""
 }
 
-type CreateDeploymentResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	DeploymentId  string                 `protobuf:"bytes,1,opt,name=deployment_id,json=deploymentId,proto3" json:"deployment_id,omitempty"`
-	Status        DeploymentStatus       `protobuf:"varint,2,opt,name=status,proto3,enum=ctrl.v1.DeploymentStatus" json:"status,omitempty"` // Will be PENDING or DEPLOYING
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *CreateDeploymentResponse) Reset() {
-	*x = CreateDeploymentResponse{}
-	mi := &file_ctrl_v1_deployment_proto_msgTypes[2]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *CreateDeploymentResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*CreateDeploymentResponse) ProtoMessage() {}
-
-func (x *CreateDeploymentResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_ctrl_v1_deployment_proto_msgTypes[2]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use CreateDeploymentResponse.ProtoReflect.Descriptor instead.
-func (*CreateDeploymentResponse) Descriptor() ([]byte, []int) {
-	return file_ctrl_v1_deployment_proto_rawDescGZIP(), []int{2}
-}
-
-func (x *CreateDeploymentResponse) GetDeploymentId() string {
-	if x != nil {
-		return x.DeploymentId
-	}
-	return ""
-}
-
-func (x *CreateDeploymentResponse) GetStatus() DeploymentStatus {
-	if x != nil {
-		return x.Status
-	}
-	return DeploymentStatus_DEPLOYMENT_STATUS_UNSPECIFIED
-}
-
 type GetDeploymentRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	DeploymentId  string                 `protobuf:"bytes,1,opt,name=deployment_id,json=deploymentId,proto3" json:"deployment_id,omitempty"`
@@ -507,7 +266,7 @@ type GetDeploymentRequest struct {
 
 func (x *GetDeploymentRequest) Reset() {
 	*x = GetDeploymentRequest{}
-	mi := &file_ctrl_v1_deployment_proto_msgTypes[3]
+	mi := &file_ctrl_v1_deployment_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -519,7 +278,7 @@ func (x *GetDeploymentRequest) String() string {
 func (*GetDeploymentRequest) ProtoMessage() {}
 
 func (x *GetDeploymentRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ctrl_v1_deployment_proto_msgTypes[3]
+	mi := &file_ctrl_v1_deployment_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -532,7 +291,7 @@ func (x *GetDeploymentRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetDeploymentRequest.ProtoReflect.Descriptor instead.
 func (*GetDeploymentRequest) Descriptor() ([]byte, []int) {
-	return file_ctrl_v1_deployment_proto_rawDescGZIP(), []int{3}
+	return file_ctrl_v1_deployment_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *GetDeploymentRequest) GetDeploymentId() string {
@@ -551,7 +310,7 @@ type GetDeploymentResponse struct {
 
 func (x *GetDeploymentResponse) Reset() {
 	*x = GetDeploymentResponse{}
-	mi := &file_ctrl_v1_deployment_proto_msgTypes[4]
+	mi := &file_ctrl_v1_deployment_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -563,7 +322,7 @@ func (x *GetDeploymentResponse) String() string {
 func (*GetDeploymentResponse) ProtoMessage() {}
 
 func (x *GetDeploymentResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_ctrl_v1_deployment_proto_msgTypes[4]
+	mi := &file_ctrl_v1_deployment_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -576,7 +335,7 @@ func (x *GetDeploymentResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetDeploymentResponse.ProtoReflect.Descriptor instead.
 func (*GetDeploymentResponse) Descriptor() ([]byte, []int) {
-	return file_ctrl_v1_deployment_proto_rawDescGZIP(), []int{4}
+	return file_ctrl_v1_deployment_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *GetDeploymentResponse) GetDeployment() *Deployment {
@@ -624,7 +383,7 @@ type Deployment struct {
 
 func (x *Deployment) Reset() {
 	*x = Deployment{}
-	mi := &file_ctrl_v1_deployment_proto_msgTypes[5]
+	mi := &file_ctrl_v1_deployment_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -636,7 +395,7 @@ func (x *Deployment) String() string {
 func (*Deployment) ProtoMessage() {}
 
 func (x *Deployment) ProtoReflect() protoreflect.Message {
-	mi := &file_ctrl_v1_deployment_proto_msgTypes[5]
+	mi := &file_ctrl_v1_deployment_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -649,7 +408,7 @@ func (x *Deployment) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Deployment.ProtoReflect.Descriptor instead.
 func (*Deployment) Descriptor() ([]byte, []int) {
-	return file_ctrl_v1_deployment_proto_rawDescGZIP(), []int{5}
+	return file_ctrl_v1_deployment_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *Deployment) GetId() string {
@@ -811,7 +570,7 @@ type DeploymentStep struct {
 
 func (x *DeploymentStep) Reset() {
 	*x = DeploymentStep{}
-	mi := &file_ctrl_v1_deployment_proto_msgTypes[6]
+	mi := &file_ctrl_v1_deployment_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -823,7 +582,7 @@ func (x *DeploymentStep) String() string {
 func (*DeploymentStep) ProtoMessage() {}
 
 func (x *DeploymentStep) ProtoReflect() protoreflect.Message {
-	mi := &file_ctrl_v1_deployment_proto_msgTypes[6]
+	mi := &file_ctrl_v1_deployment_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -836,7 +595,7 @@ func (x *DeploymentStep) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeploymentStep.ProtoReflect.Descriptor instead.
 func (*DeploymentStep) Descriptor() ([]byte, []int) {
-	return file_ctrl_v1_deployment_proto_rawDescGZIP(), []int{6}
+	return file_ctrl_v1_deployment_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *DeploymentStep) GetStatus() string {
@@ -885,7 +644,7 @@ type Topology struct {
 
 func (x *Topology) Reset() {
 	*x = Topology{}
-	mi := &file_ctrl_v1_deployment_proto_msgTypes[7]
+	mi := &file_ctrl_v1_deployment_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -897,7 +656,7 @@ func (x *Topology) String() string {
 func (*Topology) ProtoMessage() {}
 
 func (x *Topology) ProtoReflect() protoreflect.Message {
-	mi := &file_ctrl_v1_deployment_proto_msgTypes[7]
+	mi := &file_ctrl_v1_deployment_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -910,7 +669,7 @@ func (x *Topology) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Topology.ProtoReflect.Descriptor instead.
 func (*Topology) Descriptor() ([]byte, []int) {
-	return file_ctrl_v1_deployment_proto_rawDescGZIP(), []int{7}
+	return file_ctrl_v1_deployment_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *Topology) GetCpuMillicores() int32 {
@@ -975,7 +734,7 @@ type EphemeralStorage struct {
 
 func (x *EphemeralStorage) Reset() {
 	*x = EphemeralStorage{}
-	mi := &file_ctrl_v1_deployment_proto_msgTypes[8]
+	mi := &file_ctrl_v1_deployment_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -987,7 +746,7 @@ func (x *EphemeralStorage) String() string {
 func (*EphemeralStorage) ProtoMessage() {}
 
 func (x *EphemeralStorage) ProtoReflect() protoreflect.Message {
-	mi := &file_ctrl_v1_deployment_proto_msgTypes[8]
+	mi := &file_ctrl_v1_deployment_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1000,7 +759,7 @@ func (x *EphemeralStorage) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EphemeralStorage.ProtoReflect.Descriptor instead.
 func (*EphemeralStorage) Descriptor() ([]byte, []int) {
-	return file_ctrl_v1_deployment_proto_rawDescGZIP(), []int{8}
+	return file_ctrl_v1_deployment_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *EphemeralStorage) GetSizeMib() int64 {
@@ -1021,7 +780,7 @@ type RegionalConfig struct {
 
 func (x *RegionalConfig) Reset() {
 	*x = RegionalConfig{}
-	mi := &file_ctrl_v1_deployment_proto_msgTypes[9]
+	mi := &file_ctrl_v1_deployment_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1033,7 +792,7 @@ func (x *RegionalConfig) String() string {
 func (*RegionalConfig) ProtoMessage() {}
 
 func (x *RegionalConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_ctrl_v1_deployment_proto_msgTypes[9]
+	mi := &file_ctrl_v1_deployment_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1046,7 +805,7 @@ func (x *RegionalConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RegionalConfig.ProtoReflect.Descriptor instead.
 func (*RegionalConfig) Descriptor() ([]byte, []int) {
-	return file_ctrl_v1_deployment_proto_rawDescGZIP(), []int{9}
+	return file_ctrl_v1_deployment_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *RegionalConfig) GetRegion() string {
@@ -1070,190 +829,6 @@ func (x *RegionalConfig) GetMaxInstances() int32 {
 	return 0
 }
 
-type RollbackRequest struct {
-	state              protoimpl.MessageState `protogen:"open.v1"`
-	SourceDeploymentId string                 `protobuf:"bytes,1,opt,name=source_deployment_id,json=sourceDeploymentId,proto3" json:"source_deployment_id,omitempty"`
-	TargetDeploymentId string                 `protobuf:"bytes,2,opt,name=target_deployment_id,json=targetDeploymentId,proto3" json:"target_deployment_id,omitempty"`
-	Actor              *ActorInfo             `protobuf:"bytes,3,opt,name=actor,proto3" json:"actor,omitempty"`
-	unknownFields      protoimpl.UnknownFields
-	sizeCache          protoimpl.SizeCache
-}
-
-func (x *RollbackRequest) Reset() {
-	*x = RollbackRequest{}
-	mi := &file_ctrl_v1_deployment_proto_msgTypes[10]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *RollbackRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*RollbackRequest) ProtoMessage() {}
-
-func (x *RollbackRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ctrl_v1_deployment_proto_msgTypes[10]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use RollbackRequest.ProtoReflect.Descriptor instead.
-func (*RollbackRequest) Descriptor() ([]byte, []int) {
-	return file_ctrl_v1_deployment_proto_rawDescGZIP(), []int{10}
-}
-
-func (x *RollbackRequest) GetSourceDeploymentId() string {
-	if x != nil {
-		return x.SourceDeploymentId
-	}
-	return ""
-}
-
-func (x *RollbackRequest) GetTargetDeploymentId() string {
-	if x != nil {
-		return x.TargetDeploymentId
-	}
-	return ""
-}
-
-func (x *RollbackRequest) GetActor() *ActorInfo {
-	if x != nil {
-		return x.Actor
-	}
-	return nil
-}
-
-type RollbackResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *RollbackResponse) Reset() {
-	*x = RollbackResponse{}
-	mi := &file_ctrl_v1_deployment_proto_msgTypes[11]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *RollbackResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*RollbackResponse) ProtoMessage() {}
-
-func (x *RollbackResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_ctrl_v1_deployment_proto_msgTypes[11]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use RollbackResponse.ProtoReflect.Descriptor instead.
-func (*RollbackResponse) Descriptor() ([]byte, []int) {
-	return file_ctrl_v1_deployment_proto_rawDescGZIP(), []int{11}
-}
-
-type PromoteRequest struct {
-	state              protoimpl.MessageState `protogen:"open.v1"`
-	TargetDeploymentId string                 `protobuf:"bytes,1,opt,name=target_deployment_id,json=targetDeploymentId,proto3" json:"target_deployment_id,omitempty"`
-	Actor              *ActorInfo             `protobuf:"bytes,2,opt,name=actor,proto3" json:"actor,omitempty"`
-	unknownFields      protoimpl.UnknownFields
-	sizeCache          protoimpl.SizeCache
-}
-
-func (x *PromoteRequest) Reset() {
-	*x = PromoteRequest{}
-	mi := &file_ctrl_v1_deployment_proto_msgTypes[12]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *PromoteRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*PromoteRequest) ProtoMessage() {}
-
-func (x *PromoteRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ctrl_v1_deployment_proto_msgTypes[12]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use PromoteRequest.ProtoReflect.Descriptor instead.
-func (*PromoteRequest) Descriptor() ([]byte, []int) {
-	return file_ctrl_v1_deployment_proto_rawDescGZIP(), []int{12}
-}
-
-func (x *PromoteRequest) GetTargetDeploymentId() string {
-	if x != nil {
-		return x.TargetDeploymentId
-	}
-	return ""
-}
-
-func (x *PromoteRequest) GetActor() *ActorInfo {
-	if x != nil {
-		return x.Actor
-	}
-	return nil
-}
-
-type PromoteResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *PromoteResponse) Reset() {
-	*x = PromoteResponse{}
-	mi := &file_ctrl_v1_deployment_proto_msgTypes[13]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *PromoteResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*PromoteResponse) ProtoMessage() {}
-
-func (x *PromoteResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_ctrl_v1_deployment_proto_msgTypes[13]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use PromoteResponse.ProtoReflect.Descriptor instead.
-func (*PromoteResponse) Descriptor() ([]byte, []int) {
-	return file_ctrl_v1_deployment_proto_rawDescGZIP(), []int{13}
-}
-
 type AuthorizeDeploymentRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	DeploymentId  string                 `protobuf:"bytes,1,opt,name=deployment_id,json=deploymentId,proto3" json:"deployment_id,omitempty"`
@@ -1263,7 +838,7 @@ type AuthorizeDeploymentRequest struct {
 
 func (x *AuthorizeDeploymentRequest) Reset() {
 	*x = AuthorizeDeploymentRequest{}
-	mi := &file_ctrl_v1_deployment_proto_msgTypes[14]
+	mi := &file_ctrl_v1_deployment_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1275,7 +850,7 @@ func (x *AuthorizeDeploymentRequest) String() string {
 func (*AuthorizeDeploymentRequest) ProtoMessage() {}
 
 func (x *AuthorizeDeploymentRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ctrl_v1_deployment_proto_msgTypes[14]
+	mi := &file_ctrl_v1_deployment_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1288,7 +863,7 @@ func (x *AuthorizeDeploymentRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AuthorizeDeploymentRequest.ProtoReflect.Descriptor instead.
 func (*AuthorizeDeploymentRequest) Descriptor() ([]byte, []int) {
-	return file_ctrl_v1_deployment_proto_rawDescGZIP(), []int{14}
+	return file_ctrl_v1_deployment_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *AuthorizeDeploymentRequest) GetDeploymentId() string {
@@ -1306,7 +881,7 @@ type AuthorizeDeploymentResponse struct {
 
 func (x *AuthorizeDeploymentResponse) Reset() {
 	*x = AuthorizeDeploymentResponse{}
-	mi := &file_ctrl_v1_deployment_proto_msgTypes[15]
+	mi := &file_ctrl_v1_deployment_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1318,7 +893,7 @@ func (x *AuthorizeDeploymentResponse) String() string {
 func (*AuthorizeDeploymentResponse) ProtoMessage() {}
 
 func (x *AuthorizeDeploymentResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_ctrl_v1_deployment_proto_msgTypes[15]
+	mi := &file_ctrl_v1_deployment_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1331,7 +906,7 @@ func (x *AuthorizeDeploymentResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AuthorizeDeploymentResponse.ProtoReflect.Descriptor instead.
 func (*AuthorizeDeploymentResponse) Descriptor() ([]byte, []int) {
-	return file_ctrl_v1_deployment_proto_rawDescGZIP(), []int{15}
+	return file_ctrl_v1_deployment_proto_rawDescGZIP(), []int{9}
 }
 
 type CancelDeploymentRequest struct {
@@ -1343,7 +918,7 @@ type CancelDeploymentRequest struct {
 
 func (x *CancelDeploymentRequest) Reset() {
 	*x = CancelDeploymentRequest{}
-	mi := &file_ctrl_v1_deployment_proto_msgTypes[16]
+	mi := &file_ctrl_v1_deployment_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1355,7 +930,7 @@ func (x *CancelDeploymentRequest) String() string {
 func (*CancelDeploymentRequest) ProtoMessage() {}
 
 func (x *CancelDeploymentRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ctrl_v1_deployment_proto_msgTypes[16]
+	mi := &file_ctrl_v1_deployment_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1368,7 +943,7 @@ func (x *CancelDeploymentRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CancelDeploymentRequest.ProtoReflect.Descriptor instead.
 func (*CancelDeploymentRequest) Descriptor() ([]byte, []int) {
-	return file_ctrl_v1_deployment_proto_rawDescGZIP(), []int{16}
+	return file_ctrl_v1_deployment_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *CancelDeploymentRequest) GetDeploymentId() string {
@@ -1386,7 +961,7 @@ type CancelDeploymentResponse struct {
 
 func (x *CancelDeploymentResponse) Reset() {
 	*x = CancelDeploymentResponse{}
-	mi := &file_ctrl_v1_deployment_proto_msgTypes[17]
+	mi := &file_ctrl_v1_deployment_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1398,7 +973,7 @@ func (x *CancelDeploymentResponse) String() string {
 func (*CancelDeploymentResponse) ProtoMessage() {}
 
 func (x *CancelDeploymentResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_ctrl_v1_deployment_proto_msgTypes[17]
+	mi := &file_ctrl_v1_deployment_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1411,95 +986,7 @@ func (x *CancelDeploymentResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CancelDeploymentResponse.ProtoReflect.Descriptor instead.
 func (*CancelDeploymentResponse) Descriptor() ([]byte, []int) {
-	return file_ctrl_v1_deployment_proto_rawDescGZIP(), []int{17}
-}
-
-type StopDeploymentRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	DeploymentId  string                 `protobuf:"bytes,1,opt,name=deployment_id,json=deploymentId,proto3" json:"deployment_id,omitempty"`
-	Actor         *ActorInfo             `protobuf:"bytes,2,opt,name=actor,proto3" json:"actor,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *StopDeploymentRequest) Reset() {
-	*x = StopDeploymentRequest{}
-	mi := &file_ctrl_v1_deployment_proto_msgTypes[18]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *StopDeploymentRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*StopDeploymentRequest) ProtoMessage() {}
-
-func (x *StopDeploymentRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ctrl_v1_deployment_proto_msgTypes[18]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use StopDeploymentRequest.ProtoReflect.Descriptor instead.
-func (*StopDeploymentRequest) Descriptor() ([]byte, []int) {
-	return file_ctrl_v1_deployment_proto_rawDescGZIP(), []int{18}
-}
-
-func (x *StopDeploymentRequest) GetDeploymentId() string {
-	if x != nil {
-		return x.DeploymentId
-	}
-	return ""
-}
-
-func (x *StopDeploymentRequest) GetActor() *ActorInfo {
-	if x != nil {
-		return x.Actor
-	}
-	return nil
-}
-
-type StopDeploymentResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *StopDeploymentResponse) Reset() {
-	*x = StopDeploymentResponse{}
-	mi := &file_ctrl_v1_deployment_proto_msgTypes[19]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *StopDeploymentResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*StopDeploymentResponse) ProtoMessage() {}
-
-func (x *StopDeploymentResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_ctrl_v1_deployment_proto_msgTypes[19]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use StopDeploymentResponse.ProtoReflect.Descriptor instead.
-func (*StopDeploymentResponse) Descriptor() ([]byte, []int) {
-	return file_ctrl_v1_deployment_proto_rawDescGZIP(), []int{19}
+	return file_ctrl_v1_deployment_proto_rawDescGZIP(), []int{11}
 }
 
 type DeprovisionComputeRequest struct {
@@ -1512,7 +999,7 @@ type DeprovisionComputeRequest struct {
 
 func (x *DeprovisionComputeRequest) Reset() {
 	*x = DeprovisionComputeRequest{}
-	mi := &file_ctrl_v1_deployment_proto_msgTypes[20]
+	mi := &file_ctrl_v1_deployment_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1524,7 +1011,7 @@ func (x *DeprovisionComputeRequest) String() string {
 func (*DeprovisionComputeRequest) ProtoMessage() {}
 
 func (x *DeprovisionComputeRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ctrl_v1_deployment_proto_msgTypes[20]
+	mi := &file_ctrl_v1_deployment_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1537,7 +1024,7 @@ func (x *DeprovisionComputeRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeprovisionComputeRequest.ProtoReflect.Descriptor instead.
 func (*DeprovisionComputeRequest) Descriptor() ([]byte, []int) {
-	return file_ctrl_v1_deployment_proto_rawDescGZIP(), []int{20}
+	return file_ctrl_v1_deployment_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *DeprovisionComputeRequest) GetWorkspaceId() string {
@@ -1555,7 +1042,7 @@ type DeprovisionComputeResponse struct {
 
 func (x *DeprovisionComputeResponse) Reset() {
 	*x = DeprovisionComputeResponse{}
-	mi := &file_ctrl_v1_deployment_proto_msgTypes[21]
+	mi := &file_ctrl_v1_deployment_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1567,7 +1054,7 @@ func (x *DeprovisionComputeResponse) String() string {
 func (*DeprovisionComputeResponse) ProtoMessage() {}
 
 func (x *DeprovisionComputeResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_ctrl_v1_deployment_proto_msgTypes[21]
+	mi := &file_ctrl_v1_deployment_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1580,33 +1067,14 @@ func (x *DeprovisionComputeResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeprovisionComputeResponse.ProtoReflect.Descriptor instead.
 func (*DeprovisionComputeResponse) Descriptor() ([]byte, []int) {
-	return file_ctrl_v1_deployment_proto_rawDescGZIP(), []int{21}
+	return file_ctrl_v1_deployment_proto_rawDescGZIP(), []int{13}
 }
 
 var File_ctrl_v1_deployment_proto protoreflect.FileDescriptor
 
 const file_ctrl_v1_deployment_proto_rawDesc = "" +
 	"\n" +
-	"\x18ctrl/v1/deployment.proto\x12\actrl.v1\x1a\x13ctrl/v1/actor.proto\"\xfd\x03\n" +
-	"\x17CreateDeploymentRequest\x12\x1d\n" +
-	"\n" +
-	"project_id\x18\x01 \x01(\tR\tprojectId\x12)\n" +
-	"\x10environment_slug\x18\x02 \x01(\tR\x0fenvironmentSlug\x12%\n" +
-	"\fdocker_image\x18\x03 \x01(\tB\x02\x18\x01R\vdockerImage\x12\x1d\n" +
-	"\toci_image\x18\f \x01(\tH\x00R\bociImage\x127\n" +
-	"\n" +
-	"git_commit\x18\x04 \x01(\v2\x16.ctrl.v1.GitCommitInfoH\x00R\tgitCommit\x12$\n" +
-	"\vkeyspace_id\x18\x05 \x01(\tH\x01R\n" +
-	"keyspaceId\x88\x01\x01\x12\x18\n" +
-	"\acommand\x18\x06 \x03(\tR\acommand\x12\x15\n" +
-	"\x06app_id\x18\a \x01(\tR\x05appId\x124\n" +
-	"\atrigger\x18\b \x01(\x0e2\x1a.ctrl.v1.DeploymentTriggerR\atrigger\x12!\n" +
-	"\ftriggered_by\x18\n" +
-	" \x01(\tR\vtriggeredBy\x12%\n" +
-	"\x0etrigger_reason\x18\t \x01(\tR\rtriggerReason\x12(\n" +
-	"\x05actor\x18\v \x01(\v2\x12.ctrl.v1.ActorInfoR\x05actorB\b\n" +
-	"\x06sourceB\x0e\n" +
-	"\f_keyspace_id\"\x85\x02\n" +
+	"\x18ctrl/v1/deployment.proto\x12\actrl.v1\x1a\x13ctrl/v1/actor.proto\"\x85\x02\n" +
 	"\rGitCommitInfo\x12\x1d\n" +
 	"\n" +
 	"commit_sha\x18\x01 \x01(\tR\tcommitSha\x12%\n" +
@@ -1615,10 +1083,7 @@ const file_ctrl_v1_deployment_proto_rawDesc = "" +
 	"\x11author_avatar_url\x18\x04 \x01(\tR\x0fauthorAvatarUrl\x12\x1c\n" +
 	"\ttimestamp\x18\x05 \x01(\x03R\ttimestamp\x12\x16\n" +
 	"\x06branch\x18\x06 \x01(\tR\x06branch\x12'\n" +
-	"\x0ffork_repository\x18\a \x01(\tR\x0eforkRepository\"r\n" +
-	"\x18CreateDeploymentResponse\x12#\n" +
-	"\rdeployment_id\x18\x01 \x01(\tR\fdeploymentId\x121\n" +
-	"\x06status\x18\x02 \x01(\x0e2\x19.ctrl.v1.DeploymentStatusR\x06status\";\n" +
+	"\x0ffork_repository\x18\a \x01(\tR\x0eforkRepository\";\n" +
 	"\x14GetDeploymentRequest\x12#\n" +
 	"\rdeployment_id\x18\x01 \x01(\tR\fdeploymentId\"L\n" +
 	"\x15GetDeploymentResponse\x123\n" +
@@ -1677,26 +1142,13 @@ const file_ctrl_v1_deployment_proto_rawDesc = "" +
 	"\x0eRegionalConfig\x12\x16\n" +
 	"\x06region\x18\x01 \x01(\tR\x06region\x12#\n" +
 	"\rmin_instances\x18\x02 \x01(\x05R\fminInstances\x12#\n" +
-	"\rmax_instances\x18\x03 \x01(\x05R\fmaxInstances\"\x9f\x01\n" +
-	"\x0fRollbackRequest\x120\n" +
-	"\x14source_deployment_id\x18\x01 \x01(\tR\x12sourceDeploymentId\x120\n" +
-	"\x14target_deployment_id\x18\x02 \x01(\tR\x12targetDeploymentId\x12(\n" +
-	"\x05actor\x18\x03 \x01(\v2\x12.ctrl.v1.ActorInfoR\x05actor\"\x12\n" +
-	"\x10RollbackResponse\"l\n" +
-	"\x0ePromoteRequest\x120\n" +
-	"\x14target_deployment_id\x18\x01 \x01(\tR\x12targetDeploymentId\x12(\n" +
-	"\x05actor\x18\x02 \x01(\v2\x12.ctrl.v1.ActorInfoR\x05actor\"\x11\n" +
-	"\x0fPromoteResponse\"A\n" +
+	"\rmax_instances\x18\x03 \x01(\x05R\fmaxInstances\"A\n" +
 	"\x1aAuthorizeDeploymentRequest\x12#\n" +
 	"\rdeployment_id\x18\x01 \x01(\tR\fdeploymentId\"\x1d\n" +
 	"\x1bAuthorizeDeploymentResponse\">\n" +
 	"\x17CancelDeploymentRequest\x12#\n" +
 	"\rdeployment_id\x18\x01 \x01(\tR\fdeploymentId\"\x1a\n" +
-	"\x18CancelDeploymentResponse\"f\n" +
-	"\x15StopDeploymentRequest\x12#\n" +
-	"\rdeployment_id\x18\x01 \x01(\tR\fdeploymentId\x12(\n" +
-	"\x05actor\x18\x02 \x01(\v2\x12.ctrl.v1.ActorInfoR\x05actor\"\x18\n" +
-	"\x16StopDeploymentResponse\">\n" +
+	"\x18CancelDeploymentResponse\">\n" +
 	"\x19DeprovisionComputeRequest\x12!\n" +
 	"\fworkspace_id\x18\x01 \x01(\tR\vworkspaceId\"\x1c\n" +
 	"\x1aDeprovisionComputeResponse*\xdb\x03\n" +
@@ -1722,15 +1174,11 @@ const file_ctrl_v1_deployment_proto_rawDesc = "" +
 	"\x16DEPLOYMENT_TRIGGER_API\x10\x02\x12\x1a\n" +
 	"\x16DEPLOYMENT_TRIGGER_CLI\x10\x03\x12 \n" +
 	"\x1cDEPLOYMENT_TRIGGER_DASHBOARD\x10\x04\x12\x1c\n" +
-	"\x18DEPLOYMENT_TRIGGER_UNKEY\x10\x052\xb4\x05\n" +
-	"\rDeployService\x12Y\n" +
-	"\x10CreateDeployment\x12 .ctrl.v1.CreateDeploymentRequest\x1a!.ctrl.v1.CreateDeploymentResponse\"\x00\x12P\n" +
-	"\rGetDeployment\x12\x1d.ctrl.v1.GetDeploymentRequest\x1a\x1e.ctrl.v1.GetDeploymentResponse\"\x00\x12A\n" +
-	"\bRollback\x12\x18.ctrl.v1.RollbackRequest\x1a\x19.ctrl.v1.RollbackResponse\"\x00\x12>\n" +
-	"\aPromote\x12\x17.ctrl.v1.PromoteRequest\x1a\x18.ctrl.v1.PromoteResponse\"\x00\x12b\n" +
+	"\x18DEPLOYMENT_TRIGGER_UNKEY\x10\x052\x81\x03\n" +
+	"\rDeployService\x12P\n" +
+	"\rGetDeployment\x12\x1d.ctrl.v1.GetDeploymentRequest\x1a\x1e.ctrl.v1.GetDeploymentResponse\"\x00\x12b\n" +
 	"\x13AuthorizeDeployment\x12#.ctrl.v1.AuthorizeDeploymentRequest\x1a$.ctrl.v1.AuthorizeDeploymentResponse\"\x00\x12Y\n" +
-	"\x10CancelDeployment\x12 .ctrl.v1.CancelDeploymentRequest\x1a!.ctrl.v1.CancelDeploymentResponse\"\x00\x12S\n" +
-	"\x0eStopDeployment\x12\x1e.ctrl.v1.StopDeploymentRequest\x1a\x1f.ctrl.v1.StopDeploymentResponse\"\x00\x12_\n" +
+	"\x10CancelDeployment\x12 .ctrl.v1.CancelDeploymentRequest\x1a!.ctrl.v1.CancelDeploymentResponse\"\x00\x12_\n" +
 	"\x12DeprovisionCompute\x12\".ctrl.v1.DeprovisionComputeRequest\x1a#.ctrl.v1.DeprovisionComputeResponse\"\x00B\x8e\x01\n" +
 	"\vcom.ctrl.v1B\x0fDeploymentProtoP\x01Z1github.com/unkeyed/unkey/gen/proto/ctrl/v1;ctrlv1\xa2\x02\x03CXX\xaa\x02\aCtrl.V1\xca\x02\aCtrl\\V1\xe2\x02\x13Ctrl\\V1\\GPBMetadata\xea\x02\bCtrl::V1b\x06proto3"
 
@@ -1747,71 +1195,47 @@ func file_ctrl_v1_deployment_proto_rawDescGZIP() []byte {
 }
 
 var file_ctrl_v1_deployment_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_ctrl_v1_deployment_proto_msgTypes = make([]protoimpl.MessageInfo, 23)
+var file_ctrl_v1_deployment_proto_msgTypes = make([]protoimpl.MessageInfo, 15)
 var file_ctrl_v1_deployment_proto_goTypes = []any{
 	(DeploymentStatus)(0),               // 0: ctrl.v1.DeploymentStatus
 	(DeploymentTrigger)(0),              // 1: ctrl.v1.DeploymentTrigger
-	(*CreateDeploymentRequest)(nil),     // 2: ctrl.v1.CreateDeploymentRequest
-	(*GitCommitInfo)(nil),               // 3: ctrl.v1.GitCommitInfo
-	(*CreateDeploymentResponse)(nil),    // 4: ctrl.v1.CreateDeploymentResponse
-	(*GetDeploymentRequest)(nil),        // 5: ctrl.v1.GetDeploymentRequest
-	(*GetDeploymentResponse)(nil),       // 6: ctrl.v1.GetDeploymentResponse
-	(*Deployment)(nil),                  // 7: ctrl.v1.Deployment
-	(*DeploymentStep)(nil),              // 8: ctrl.v1.DeploymentStep
-	(*Topology)(nil),                    // 9: ctrl.v1.Topology
-	(*EphemeralStorage)(nil),            // 10: ctrl.v1.EphemeralStorage
-	(*RegionalConfig)(nil),              // 11: ctrl.v1.RegionalConfig
-	(*RollbackRequest)(nil),             // 12: ctrl.v1.RollbackRequest
-	(*RollbackResponse)(nil),            // 13: ctrl.v1.RollbackResponse
-	(*PromoteRequest)(nil),              // 14: ctrl.v1.PromoteRequest
-	(*PromoteResponse)(nil),             // 15: ctrl.v1.PromoteResponse
-	(*AuthorizeDeploymentRequest)(nil),  // 16: ctrl.v1.AuthorizeDeploymentRequest
-	(*AuthorizeDeploymentResponse)(nil), // 17: ctrl.v1.AuthorizeDeploymentResponse
-	(*CancelDeploymentRequest)(nil),     // 18: ctrl.v1.CancelDeploymentRequest
-	(*CancelDeploymentResponse)(nil),    // 19: ctrl.v1.CancelDeploymentResponse
-	(*StopDeploymentRequest)(nil),       // 20: ctrl.v1.StopDeploymentRequest
-	(*StopDeploymentResponse)(nil),      // 21: ctrl.v1.StopDeploymentResponse
-	(*DeprovisionComputeRequest)(nil),   // 22: ctrl.v1.DeprovisionComputeRequest
-	(*DeprovisionComputeResponse)(nil),  // 23: ctrl.v1.DeprovisionComputeResponse
-	nil,                                 // 24: ctrl.v1.Deployment.EnvironmentVariablesEntry
-	(*ActorInfo)(nil),                   // 25: ctrl.v1.ActorInfo
+	(*GitCommitInfo)(nil),               // 2: ctrl.v1.GitCommitInfo
+	(*GetDeploymentRequest)(nil),        // 3: ctrl.v1.GetDeploymentRequest
+	(*GetDeploymentResponse)(nil),       // 4: ctrl.v1.GetDeploymentResponse
+	(*Deployment)(nil),                  // 5: ctrl.v1.Deployment
+	(*DeploymentStep)(nil),              // 6: ctrl.v1.DeploymentStep
+	(*Topology)(nil),                    // 7: ctrl.v1.Topology
+	(*EphemeralStorage)(nil),            // 8: ctrl.v1.EphemeralStorage
+	(*RegionalConfig)(nil),              // 9: ctrl.v1.RegionalConfig
+	(*AuthorizeDeploymentRequest)(nil),  // 10: ctrl.v1.AuthorizeDeploymentRequest
+	(*AuthorizeDeploymentResponse)(nil), // 11: ctrl.v1.AuthorizeDeploymentResponse
+	(*CancelDeploymentRequest)(nil),     // 12: ctrl.v1.CancelDeploymentRequest
+	(*CancelDeploymentResponse)(nil),    // 13: ctrl.v1.CancelDeploymentResponse
+	(*DeprovisionComputeRequest)(nil),   // 14: ctrl.v1.DeprovisionComputeRequest
+	(*DeprovisionComputeResponse)(nil),  // 15: ctrl.v1.DeprovisionComputeResponse
+	nil,                                 // 16: ctrl.v1.Deployment.EnvironmentVariablesEntry
 }
 var file_ctrl_v1_deployment_proto_depIdxs = []int32{
-	3,  // 0: ctrl.v1.CreateDeploymentRequest.git_commit:type_name -> ctrl.v1.GitCommitInfo
-	1,  // 1: ctrl.v1.CreateDeploymentRequest.trigger:type_name -> ctrl.v1.DeploymentTrigger
-	25, // 2: ctrl.v1.CreateDeploymentRequest.actor:type_name -> ctrl.v1.ActorInfo
-	0,  // 3: ctrl.v1.CreateDeploymentResponse.status:type_name -> ctrl.v1.DeploymentStatus
-	7,  // 4: ctrl.v1.GetDeploymentResponse.deployment:type_name -> ctrl.v1.Deployment
-	0,  // 5: ctrl.v1.Deployment.status:type_name -> ctrl.v1.DeploymentStatus
-	24, // 6: ctrl.v1.Deployment.environment_variables:type_name -> ctrl.v1.Deployment.EnvironmentVariablesEntry
-	9,  // 7: ctrl.v1.Deployment.topology:type_name -> ctrl.v1.Topology
-	8,  // 8: ctrl.v1.Deployment.steps:type_name -> ctrl.v1.DeploymentStep
-	11, // 9: ctrl.v1.Topology.regions:type_name -> ctrl.v1.RegionalConfig
-	10, // 10: ctrl.v1.Topology.ephemeral_storage:type_name -> ctrl.v1.EphemeralStorage
-	25, // 11: ctrl.v1.RollbackRequest.actor:type_name -> ctrl.v1.ActorInfo
-	25, // 12: ctrl.v1.PromoteRequest.actor:type_name -> ctrl.v1.ActorInfo
-	25, // 13: ctrl.v1.StopDeploymentRequest.actor:type_name -> ctrl.v1.ActorInfo
-	2,  // 14: ctrl.v1.DeployService.CreateDeployment:input_type -> ctrl.v1.CreateDeploymentRequest
-	5,  // 15: ctrl.v1.DeployService.GetDeployment:input_type -> ctrl.v1.GetDeploymentRequest
-	12, // 16: ctrl.v1.DeployService.Rollback:input_type -> ctrl.v1.RollbackRequest
-	14, // 17: ctrl.v1.DeployService.Promote:input_type -> ctrl.v1.PromoteRequest
-	16, // 18: ctrl.v1.DeployService.AuthorizeDeployment:input_type -> ctrl.v1.AuthorizeDeploymentRequest
-	18, // 19: ctrl.v1.DeployService.CancelDeployment:input_type -> ctrl.v1.CancelDeploymentRequest
-	20, // 20: ctrl.v1.DeployService.StopDeployment:input_type -> ctrl.v1.StopDeploymentRequest
-	22, // 21: ctrl.v1.DeployService.DeprovisionCompute:input_type -> ctrl.v1.DeprovisionComputeRequest
-	4,  // 22: ctrl.v1.DeployService.CreateDeployment:output_type -> ctrl.v1.CreateDeploymentResponse
-	6,  // 23: ctrl.v1.DeployService.GetDeployment:output_type -> ctrl.v1.GetDeploymentResponse
-	13, // 24: ctrl.v1.DeployService.Rollback:output_type -> ctrl.v1.RollbackResponse
-	15, // 25: ctrl.v1.DeployService.Promote:output_type -> ctrl.v1.PromoteResponse
-	17, // 26: ctrl.v1.DeployService.AuthorizeDeployment:output_type -> ctrl.v1.AuthorizeDeploymentResponse
-	19, // 27: ctrl.v1.DeployService.CancelDeployment:output_type -> ctrl.v1.CancelDeploymentResponse
-	21, // 28: ctrl.v1.DeployService.StopDeployment:output_type -> ctrl.v1.StopDeploymentResponse
-	23, // 29: ctrl.v1.DeployService.DeprovisionCompute:output_type -> ctrl.v1.DeprovisionComputeResponse
-	22, // [22:30] is the sub-list for method output_type
-	14, // [14:22] is the sub-list for method input_type
-	14, // [14:14] is the sub-list for extension type_name
-	14, // [14:14] is the sub-list for extension extendee
-	0,  // [0:14] is the sub-list for field type_name
+	5,  // 0: ctrl.v1.GetDeploymentResponse.deployment:type_name -> ctrl.v1.Deployment
+	0,  // 1: ctrl.v1.Deployment.status:type_name -> ctrl.v1.DeploymentStatus
+	16, // 2: ctrl.v1.Deployment.environment_variables:type_name -> ctrl.v1.Deployment.EnvironmentVariablesEntry
+	7,  // 3: ctrl.v1.Deployment.topology:type_name -> ctrl.v1.Topology
+	6,  // 4: ctrl.v1.Deployment.steps:type_name -> ctrl.v1.DeploymentStep
+	9,  // 5: ctrl.v1.Topology.regions:type_name -> ctrl.v1.RegionalConfig
+	8,  // 6: ctrl.v1.Topology.ephemeral_storage:type_name -> ctrl.v1.EphemeralStorage
+	3,  // 7: ctrl.v1.DeployService.GetDeployment:input_type -> ctrl.v1.GetDeploymentRequest
+	10, // 8: ctrl.v1.DeployService.AuthorizeDeployment:input_type -> ctrl.v1.AuthorizeDeploymentRequest
+	12, // 9: ctrl.v1.DeployService.CancelDeployment:input_type -> ctrl.v1.CancelDeploymentRequest
+	14, // 10: ctrl.v1.DeployService.DeprovisionCompute:input_type -> ctrl.v1.DeprovisionComputeRequest
+	4,  // 11: ctrl.v1.DeployService.GetDeployment:output_type -> ctrl.v1.GetDeploymentResponse
+	11, // 12: ctrl.v1.DeployService.AuthorizeDeployment:output_type -> ctrl.v1.AuthorizeDeploymentResponse
+	13, // 13: ctrl.v1.DeployService.CancelDeployment:output_type -> ctrl.v1.CancelDeploymentResponse
+	15, // 14: ctrl.v1.DeployService.DeprovisionCompute:output_type -> ctrl.v1.DeprovisionComputeResponse
+	11, // [11:15] is the sub-list for method output_type
+	7,  // [7:11] is the sub-list for method input_type
+	7,  // [7:7] is the sub-list for extension type_name
+	7,  // [7:7] is the sub-list for extension extendee
+	0,  // [0:7] is the sub-list for field type_name
 }
 
 func init() { file_ctrl_v1_deployment_proto_init() }
@@ -1820,18 +1244,14 @@ func file_ctrl_v1_deployment_proto_init() {
 		return
 	}
 	file_ctrl_v1_actor_proto_init()
-	file_ctrl_v1_deployment_proto_msgTypes[0].OneofWrappers = []any{
-		(*CreateDeploymentRequest_OciImage)(nil),
-		(*CreateDeploymentRequest_GitCommit)(nil),
-	}
-	file_ctrl_v1_deployment_proto_msgTypes[7].OneofWrappers = []any{}
+	file_ctrl_v1_deployment_proto_msgTypes[5].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ctrl_v1_deployment_proto_rawDesc), len(file_ctrl_v1_deployment_proto_rawDesc)),
 			NumEnums:      2,
-			NumMessages:   23,
+			NumMessages:   15,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

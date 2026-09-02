@@ -1,14 +1,12 @@
 package handler_test
 
 import (
-	"context"
 	"fmt"
 	"net/http"
 	"testing"
+	"time"
 
-	"connectrpc.com/connect"
 	"github.com/stretchr/testify/require"
-	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	"github.com/unkeyed/unkey/svc/api/openapi"
@@ -22,14 +20,7 @@ func TestProjectNotFound(t *testing.T) {
 		Permissions: []string{"project.*.create_deployment"},
 	})
 
-	route := &handler.Handler{
-		DB: h.DB,
-		CtrlClient: &testutil.MockDeploymentClient{
-			CreateDeploymentFunc: func(ctx context.Context, req *ctrlv1.CreateDeploymentRequest) (*ctrlv1.CreateDeploymentResponse, error) {
-				return &ctrlv1.CreateDeploymentResponse{DeploymentId: "test-deployment-id"}, nil
-			},
-		},
-	}
+	route := newRoute(h, newUncalledRestate(t))
 	h.Register(route)
 
 	headers := http.Header{
@@ -70,16 +61,8 @@ func TestCrossWorkspaceProjectIsolation(t *testing.T) {
 		Permissions: []string{"project.*.create_deployment"},
 	})
 
-	var capturedProjectID string
-	route := &handler.Handler{
-		DB: h.DB,
-		CtrlClient: &testutil.MockDeploymentClient{
-			CreateDeploymentFunc: func(ctx context.Context, req *ctrlv1.CreateDeploymentRequest) (*ctrlv1.CreateDeploymentResponse, error) {
-				capturedProjectID = req.ProjectId
-				return &ctrlv1.CreateDeploymentResponse{DeploymentId: "test-deployment-id"}, nil
-			},
-		},
-	}
+	restate, creates := newRecordingRestate(t)
+	route := newRoute(h, restate)
 	h.Register(route)
 
 	headers := http.Header{
@@ -100,7 +83,8 @@ func TestCrossWorkspaceProjectIsolation(t *testing.T) {
 	require.Equal(t, http.StatusCreated, res.Status, "expected 201, received: %s", res.RawBody)
 
 	// The resolved project ID must be the attacker's, not the victim's.
-	require.Equal(t, attackerSetup.Project.ID, capturedProjectID,
+	observed := testutil.Receive(t, creates, 10*time.Second)
+	require.Equal(t, attackerSetup.Project.ID, observed.request.GetProjectId(),
 		"slug resolved to wrong workspace's project")
 }
 
@@ -119,16 +103,7 @@ func TestCrossWorkspaceKeyspaceIsolation(t *testing.T) {
 	})
 	victimKeyspaceID := victimApi.KeyAuthID.String
 
-	var ctrlCalled bool
-	route := &handler.Handler{
-		DB: h.DB,
-		CtrlClient: &testutil.MockDeploymentClient{
-			CreateDeploymentFunc: func(ctx context.Context, req *ctrlv1.CreateDeploymentRequest) (*ctrlv1.CreateDeploymentResponse, error) {
-				ctrlCalled = true
-				return &ctrlv1.CreateDeploymentResponse{DeploymentId: "test-deployment-id"}, nil
-			},
-		},
-	}
+	route := newRoute(h, newUncalledRestate(t))
 	h.Register(route)
 
 	headers := http.Header{
@@ -150,7 +125,6 @@ func TestCrossWorkspaceKeyspaceIsolation(t *testing.T) {
 	require.Equal(t, http.StatusNotFound, res.Status, "expected 404, received: %s", res.RawBody)
 	require.NotNil(t, res.Body)
 	require.Equal(t, "https://unkey.com/docs/errors/unkey/data/key_auth_not_found", res.Body.Error.Type)
-	require.False(t, ctrlCalled, "ctrl CreateDeployment must not be called for a foreign keyspace")
 }
 
 func TestKeyspaceNotFound(t *testing.T) {
@@ -160,16 +134,7 @@ func TestKeyspaceNotFound(t *testing.T) {
 		Permissions: []string{"project.*.create_deployment"},
 	})
 
-	var ctrlCalled bool
-	route := &handler.Handler{
-		DB: h.DB,
-		CtrlClient: &testutil.MockDeploymentClient{
-			CreateDeploymentFunc: func(ctx context.Context, req *ctrlv1.CreateDeploymentRequest) (*ctrlv1.CreateDeploymentResponse, error) {
-				ctrlCalled = true
-				return &ctrlv1.CreateDeploymentResponse{DeploymentId: "test-deployment-id"}, nil
-			},
-		},
-	}
+	route := newRoute(h, newUncalledRestate(t))
 	h.Register(route)
 
 	headers := http.Header{
@@ -191,7 +156,6 @@ func TestKeyspaceNotFound(t *testing.T) {
 	require.Equal(t, http.StatusNotFound, res.Status, "expected 404, received: %s", res.RawBody)
 	require.NotNil(t, res.Body)
 	require.Equal(t, "https://unkey.com/docs/errors/unkey/data/key_auth_not_found", res.Body.Error.Type)
-	require.False(t, ctrlCalled, "ctrl CreateDeployment must not be called for an unknown keyspace")
 }
 
 func TestEnvironmentNotFound(t *testing.T) {
@@ -201,14 +165,7 @@ func TestEnvironmentNotFound(t *testing.T) {
 		Permissions: []string{"project.*.create_deployment"},
 	})
 
-	route := &handler.Handler{
-		DB: h.DB,
-		CtrlClient: &testutil.MockDeploymentClient{
-			CreateDeploymentFunc: func(ctx context.Context, req *ctrlv1.CreateDeploymentRequest) (*ctrlv1.CreateDeploymentResponse, error) {
-				return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("environment not found"))
-			},
-		},
-	}
+	route := newRoute(h, newUncalledRestate(t))
 	h.Register(route)
 
 	headers := http.Header{
