@@ -77,6 +77,7 @@ func buildKeyDataFromID(r *FindLiveKeyByIDRow) *KeyData {
 		Api: Api{ID: r.ApiID, Name: r.ApiName},
 		KeyAuth: KeyAuth{
 			ID:                 r.KeyAuthID,
+			ProjectID:          r.KeyAuthProjectID,
 			StoreEncryptedKeys: r.KeyAuthStoreEncryptedKeys,
 			DefaultPrefix:      r.KeyAuthDefaultPrefix,
 			DefaultBytes:       r.KeyAuthDefaultBytes,
@@ -181,8 +182,12 @@ func buildKeyData(r *FindLiveKeyByHashRow) *KeyData {
 			RemainingRequests: r.KeyRemainingRequests,
 			LastUsedAt:        r.KeyLastUsedAt,
 		},
-		Api:             Api{ID: r.ApiID},
-		KeyAuth:         KeyAuth{StoreEncryptedKeys: r.KeyAuthStoreEncryptedKeys},
+		Api: Api{ID: r.ApiID},
+		KeyAuth: KeyAuth{
+			ID:                 r.KeyAuthID,
+			ProjectID:          r.KeyAuthProjectID,
+			StoreEncryptedKeys: r.KeyAuthStoreEncryptedKeys,
+		},
 		Workspace:       Workspace{},
 		EncryptedKey:    r.EncryptedKey,
 		EncryptionKeyID: r.EncryptionKeyID,

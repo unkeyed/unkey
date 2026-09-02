@@ -117,8 +117,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			Action:       rbac.VerifyKey,
 		}),
 		rbac.U(
-			urn.New().Workspace(principal.WorkspaceID).Keyspace(key.Key.KeyAuthID).Key(key.Key.ID),
-			permissions.VerifyKey{},
+			urn.New().Workspace(principal.WorkspaceID).Project(key.Key.ProjectID).Keyspace(key.Key.KeyAuthID).Key(key.Key.ID),
+			permissions.Verify,
 		),
 	))
 	if err != nil {

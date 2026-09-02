@@ -8,241 +8,165 @@ import (
 	"github.com/unkeyed/unkey/pkg/fuzz"
 )
 
-// TestParseV1 guarantees concrete v1 resource names round-trip
-// through parsing.
+// TestParseV1 guarantees a concrete v1 resource name round-trips through parsing.
 func TestParseV1(t *testing.T) {
 	t.Parallel()
 
-	resource, err := ParseV1("unkey:v1:ws_123:projects/proj_123/apps/app_456")
+	value := "unkey:v1:ws_123:projects/proj_123/apps/app_456"
+	resource, err := ParseV1(value)
 	require.NoError(t, err)
 	require.Equal(t, V1{
 		WorkspaceID: "ws_123",
 		Resource:    "projects/proj_123/apps/app_456",
 	}, resource)
-	require.Equal(t, "unkey:v1:ws_123:projects/proj_123/apps/app_456", resource.String())
+	require.Equal(t, value, resource.String())
 }
 
-// TestParseV1_AllowsResourcePatterns guarantees RBAC grants can use resource
-// wildcards in the shared resource-name grammar.
-func TestParseV1_AllowsResourcePatterns(t *testing.T) {
+// TestParseV1AllowsCanonicalPatterns guarantees canonical resource patterns use
+// wildcards only in supported positions.
+func TestParseV1AllowsCanonicalPatterns(t *testing.T) {
 	t.Parallel()
 
+	for _, value := range []string{
+		"unkey:v1:ws_123:github/apps/*",
+		"unkey:v1:ws_123:projects/*",
+		"unkey:v1:ws_123:projects/*/apps/*/environments/*/deployments/*/logs",
+		"unkey:v1:ws_123:projects/*/apps/*/environments/*/gateway/logs",
+		"unkey:v1:ws_123:projects/*/keyspaces/*/logs",
+		"unkey:v1:ws_123:projects/*/ratelimits/namespaces/*/logs",
+		"unkey:v1:ws_123:projects/*/rbac/permissions/*",
+		"unkey:v1:ws_123:projects/proj_123/**",
+		"unkey:v1:ws_123:projects/proj_123/apps/app_123/environments/env_123/gateway/**",
+		"unkey:v1:ws_123:projects/proj_123/rbac/**",
+		"unkey:v1:ws_123:**",
+	} {
+		value := value
+		t.Run(value, func(t *testing.T) {
+			t.Parallel()
+
+			got, err := ParseV1(value)
+			require.NoError(t, err)
+			require.Equal(t, value, got.String())
+		})
+	}
+}
+
+// TestParseV1RejectsInvalidValues guarantees malformed and non-canonical values
+// cannot be treated as resource names.
+func TestParseV1RejectsInvalidValues(t *testing.T) {
+	t.Parallel()
+
+	for _, value := range []string{
+		"",
+		"urn:unkey:v1:ws_123:projects/proj_123",
+		"unkey:v1:ws_123",
+		"unkey:v2:ws_123:projects/proj_123",
+		"unkey:v1::projects/proj_123",
+		"unkey:v1:ws_123:projects/proj_123#read",
+		"unkey:v1:ws_123:/projects/proj_123",
+		"unkey:v1:ws_123:projects/proj_123/",
+		"unkey:v1:ws_123:projects//proj_123",
+		"unkey:v1:ws_123:keyspaces/ks_123",
+		"unkey:v1:ws_123:ratelimits/namespaces/ns_123",
+		"unkey:v1:ws_123:rbac/roles/role_123",
+		"unkey:v1:ws_123:portals/portal_123",
+		"unkey:v1:ws_123:projects/proj_123/unknown/value",
+		"unkey:v1:ws_123:projects/proj_123/apps/app_123/environments/env_123/gateway",
+		"unkey:v1:ws_123:projects/proj_123/rbac",
+		"unkey:v1:ws_123:projects/*/apps/app_123",
+		"unkey:v1:ws_123:projects/proj_123/apps/*/environments/env_123",
+		"unkey:v1:ws_123:projects/proj_123/keyspaces/*/keys/key_123",
+		"unkey:v1:ws_123:projects/proj_123/apps/**/environments/*",
+		"unkey:v1:ws_123:projects/proj_*/apps/*",
+		"unkey:v1:ws_123:projects/*/apps/**",
+		"unkey:v1:ws_123:*",
+	} {
+		value := value
+		t.Run(value, func(t *testing.T) {
+			t.Parallel()
+
+			_, err := ParseV1(value)
+			require.ErrorIs(t, err, ErrInvalidResourceName)
+		})
+	}
+}
+
+// TestResourceCatalogBuilders guarantees every typed builder produces a
+// canonical resource path.
+func TestResourceCatalogBuilders(t *testing.T) {
+	t.Parallel()
+
+	workspace := New().Workspace("ws_123")
+	project := workspace.Project("proj_123")
+	app := project.App("app_123")
+	environment := app.Environment("env_123")
+	deployment := environment.Deployment("dep_123")
+	keyspace := project.Keyspace("ks_123")
+	namespace := project.RatelimitNamespace("ns_123")
+
 	tests := []struct {
-		name  string
-		value string
-		want  V1
+		name string
+		got  string
+		want string
 	}{
-		{
-			name:  "segment wildcard",
-			value: "unkey:v1:ws_123:ratelimits/namespaces/*/overrides/*",
-			want: V1{
-				WorkspaceID: "ws_123",
-				Resource:    "ratelimits/namespaces/*/overrides/*",
-			},
-		},
-		{
-			name:  "nested segment wildcards",
-			value: "unkey:v1:ws_123:projects/*/apps/*/environments/*/deployments/*",
-			want: V1{
-				WorkspaceID: "ws_123",
-				Resource:    "projects/*/apps/*/environments/*/deployments/*",
-			},
-		},
-		{
-			name:  "concrete app below wildcard project",
-			value: "unkey:v1:ws_123:projects/*/apps/app_123",
-			want: V1{
-				WorkspaceID: "ws_123",
-				Resource:    "projects/*/apps/app_123",
-			},
-		},
-		{
-			name:  "concrete environment below wildcard app",
-			value: "unkey:v1:ws_123:projects/proj_123/apps/*/environments/env_123",
-			want: V1{
-				WorkspaceID: "ws_123",
-				Resource:    "projects/proj_123/apps/*/environments/env_123",
-			},
-		},
-		{
-			name:  "concrete deployment below nested wildcard hierarchy",
-			value: "unkey:v1:ws_123:projects/proj_123/apps/*/environments/*/deployments/dep_123",
-			want: V1{
-				WorkspaceID: "ws_123",
-				Resource:    "projects/proj_123/apps/*/environments/*/deployments/dep_123",
-			},
-		},
-		{
-			name:  "concrete override below wildcard namespace",
-			value: "unkey:v1:ws_123:ratelimits/namespaces/*/overrides/override_123",
-			want: V1{
-				WorkspaceID: "ws_123",
-				Resource:    "ratelimits/namespaces/*/overrides/override_123",
-			},
-		},
-		{
-			name:  "project ratelimit namespaces",
-			value: "unkey:v1:ws_123:projects/*/ratelimits/namespaces/*",
-			want: V1{
-				WorkspaceID: "ws_123",
-				Resource:    "projects/*/ratelimits/namespaces/*",
-			},
-		},
-		{
-			name:  "project RBAC roles",
-			value: "unkey:v1:ws_123:projects/*/rbac/roles/*",
-			want: V1{
-				WorkspaceID: "ws_123",
-				Resource:    "projects/*/rbac/roles/*",
-			},
-		},
-		{
-			name:  "project app environment gateway policies",
-			value: "unkey:v1:ws_123:projects/*/apps/*/environments/*/gateway/policies/*",
-			want: V1{
-				WorkspaceID: "ws_123",
-				Resource:    "projects/*/apps/*/environments/*/gateway/policies/*",
-			},
-		},
-		{
-			name:  "wildcard project apps descendant scope",
-			value: "unkey:v1:ws_123:projects/*/apps/**",
-			want: V1{
-				WorkspaceID: "ws_123",
-				Resource:    "projects/*/apps/**",
-			},
-		},
-		{
-			name:  "wildcard keyspace keys descendant scope",
-			value: "unkey:v1:ws_123:keyspaces/*/keys/**",
-			want: V1{
-				WorkspaceID: "ws_123",
-				Resource:    "keyspaces/*/keys/**",
-			},
-		},
-		{
-			name:  "wildcard ratelimit overrides descendant scope",
-			value: "unkey:v1:ws_123:ratelimits/namespaces/*/overrides/**",
-			want: V1{
-				WorkspaceID: "ws_123",
-				Resource:    "ratelimits/namespaces/*/overrides/**",
-			},
-		},
-		{
-			name:  "descendant wildcard",
-			value: "unkey:v1:ws_123:ratelimits/**",
-			want: V1{
-				WorkspaceID: "ws_123",
-				Resource:    "ratelimits/**",
-			},
-		},
-		{
-			name:  "single segment wildcard",
-			value: "unkey:v1:ws_123:*",
-			want: V1{
-				WorkspaceID: "ws_123",
-				Resource:    "*",
-			},
-		},
-		{
-			name:  "global wildcard",
-			value: "unkey:v1:ws_123:**",
-			want: V1{
-				WorkspaceID: "ws_123",
-				Resource:    "**",
-			},
-		},
+		{name: "GitHub app", got: workspace.GitHubApp("github_123").String(), want: "unkey:v1:ws_123:github/apps/github_123"},
+		{name: "project", got: project.String(), want: "unkey:v1:ws_123:projects/proj_123"},
+		{name: "app", got: app.String(), want: "unkey:v1:ws_123:projects/proj_123/apps/app_123"},
+		{name: "environment", got: environment.String(), want: "unkey:v1:ws_123:projects/proj_123/apps/app_123/environments/env_123"},
+		{name: "deployment", got: deployment.String(), want: "unkey:v1:ws_123:projects/proj_123/apps/app_123/environments/env_123/deployments/dep_123"},
+		{name: "deployment logs", got: deployment.Logs().String(), want: "unkey:v1:ws_123:projects/proj_123/apps/app_123/environments/env_123/deployments/dep_123/logs"},
+		{name: "domain", got: environment.Domain("dom_123").String(), want: "unkey:v1:ws_123:projects/proj_123/apps/app_123/environments/env_123/domains/dom_123"},
+		{name: "environment variable", got: environment.Variable("var_123").String(), want: "unkey:v1:ws_123:projects/proj_123/apps/app_123/environments/env_123/variables/var_123"},
+		{name: "gateway logs", got: environment.Gateway().Logs().String(), want: "unkey:v1:ws_123:projects/proj_123/apps/app_123/environments/env_123/gateway/logs"},
+		{name: "gateway policy", got: environment.Gateway().Policy("pol_123").String(), want: "unkey:v1:ws_123:projects/proj_123/apps/app_123/environments/env_123/gateway/policies/pol_123"},
+		{name: "identity", got: project.Identity("id_123").String(), want: "unkey:v1:ws_123:projects/proj_123/identities/id_123"},
+		{name: "keyspace", got: keyspace.String(), want: "unkey:v1:ws_123:projects/proj_123/keyspaces/ks_123"},
+		{name: "keyspace logs", got: keyspace.Logs().String(), want: "unkey:v1:ws_123:projects/proj_123/keyspaces/ks_123/logs"},
+		{name: "key", got: keyspace.Key("key_123").String(), want: "unkey:v1:ws_123:projects/proj_123/keyspaces/ks_123/keys/key_123"},
+		{name: "rate limit namespace", got: namespace.String(), want: "unkey:v1:ws_123:projects/proj_123/ratelimits/namespaces/ns_123"},
+		{name: "rate limit logs", got: namespace.Logs().String(), want: "unkey:v1:ws_123:projects/proj_123/ratelimits/namespaces/ns_123/logs"},
+		{name: "rate limit override", got: namespace.Override("ov_123").String(), want: "unkey:v1:ws_123:projects/proj_123/ratelimits/namespaces/ns_123/overrides/ov_123"},
+		{name: "role", got: project.RBAC().Role("role_123").String(), want: "unkey:v1:ws_123:projects/proj_123/rbac/roles/role_123"},
+		{name: "permission", got: project.RBAC().Permission("perm_123").String(), want: "unkey:v1:ws_123:projects/proj_123/rbac/permissions/perm_123"},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			got, err := ParseV1(tt.value)
+			require.Equal(t, tt.want, tt.got)
+			parsed, err := ParseV1(tt.got)
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.got, parsed.String())
 		})
 	}
 }
 
-// TestParseV1RejectsInvalidValues guarantees malformed values cannot be
-// treated as resource names.
-func TestParseV1RejectsInvalidValues(t *testing.T) {
+// TestResourceCatalogDescendantBuilders guarantees resource builders produce
+// valid descendant patterns.
+func TestResourceCatalogDescendantBuilders(t *testing.T) {
 	t.Parallel()
 
+	project := New().Workspace("ws_123").Project("proj_123")
+	app := project.App("app_123")
+	environment := app.Environment("env_123")
+
 	for _, value := range []string{
-		"",
-		"urn:unkey:v1:ws_123:keyspaces/ks_123",
-		"unkey:v1:ws_123",
-		"unkey:v2:ws_123:keyspaces/ks_123",
-		"unkey:v1::keyspaces/ks_123",
-		"unkey:v1:ws_123:keyspaces/ks_123#read_keyspace",
-		"unkey:v1:ws_123:/keyspaces/ks_123",
-		"unkey:v1:ws_123:keyspaces/ks_123/",
-		"unkey:v1:ws_123:keyspaces//ks_123",
+		project.Any().String(),
+		app.Any().String(),
+		environment.Any().String(),
+		environment.Deployment("dep_123").Any().String(),
+		project.Keyspace("ks_123").Any().String(),
+		project.RatelimitNamespace("ns_123").Any().String(),
 	} {
 		_, err := ParseV1(value)
-		require.ErrorIs(t, err, ErrInvalidResourceName, value)
+		require.NoError(t, err, value)
 	}
 }
 
-// TestParseV1_RejectsAmbiguousPatterns guarantees "*" only expands as
-// a full path segment and "**" only appears at the end of a resource path.
-func TestParseV1_RejectsAmbiguousPatterns(t *testing.T) {
-	t.Parallel()
-
-	for _, value := range []string{
-		"unkey:v1:ws_123:ratelimits/**/overrides/*",
-		"unkey:v1:ws_123:ratelimits/namespaces/ns_*",
-		"unkey:v1:ws_123:/ratelimits/*",
-		"unkey:v1:ws_123:ratelimits//namespaces/*",
-		"unkey:v1:ws_123:ratelimits/*/",
-	} {
-		_, err := ParseV1(value)
-		require.ErrorIs(t, err, ErrInvalidResourceName, value)
-	}
-}
-
-// TestResourceCatalogHelpers guarantees the typed builders produce the resource
-// paths documented for API handlers and permission grants.
-func TestResourceCatalogHelpers(t *testing.T) {
-	t.Parallel()
-
-	workspace := New().Workspace("ws_123")
-	require.Equal(t, "unkey:v1:ws_123:team/memberships/mbr_123", workspace.Team.Membership("mbr_123").String())
-	require.Equal(t, "unkey:v1:ws_123:team/invitations/inv_123", workspace.Team.Invitation("inv_123").String())
-	require.Equal(t, "unkey:v1:ws_123:billing/invoices/inv_123", workspace.Billing().Invoice("inv_123").String())
-	require.Equal(t, "unkey:v1:ws_123:billing/quotas", workspace.Billing().Quotas().String())
-	require.Equal(t, "unkey:v1:ws_123:keyspaces/ks_123", workspace.Keyspace("ks_123").String())
-	require.Equal(t, "unkey:v1:ws_123:keyspaces/ks_123/keys/key_123", workspace.Keyspace("ks_123").Key("key_123").String())
-	require.Equal(t, "unkey:v1:ws_123:keyspaces/ks_123/**", workspace.Keyspace("ks_123").Any().String())
-	require.Equal(t, "unkey:v1:ws_123:ratelimits/namespaces/ns_123/overrides/ov_123", workspace.RatelimitNamespace("ns_123").Override("ov_123").String())
-	require.Equal(t, "unkey:v1:ws_123:ratelimits/namespaces/ns_123", workspace.RatelimitNamespace("ns_123").String())
-	require.Equal(t, "unkey:v1:ws_123:ratelimits/namespaces/ns_123/**", workspace.RatelimitNamespace("ns_123").Any().String())
-	require.Equal(t, "unkey:v1:ws_123:rbac/roles/role_123", workspace.RBAC.Role("role_123").String())
-	require.Equal(t, "unkey:v1:ws_123:rbac/permissions/perm_123", workspace.RBAC.Permission("perm_123").String())
-	require.Equal(t, "unkey:v1:ws_123:projects/proj_123", workspace.Project("proj_123").String())
-	require.Equal(t, "unkey:v1:ws_123:projects/proj_123/**", workspace.Project("proj_123").Any().String())
-	require.Equal(t, "unkey:v1:ws_123:projects/proj_123/identities/id_123", workspace.Project("proj_123").Identity("id_123").String())
-	require.Equal(t, "unkey:v1:ws_123:projects/proj_123/apps/app_123", workspace.Project("proj_123").App("app_123").String())
-	require.Equal(t, "unkey:v1:ws_123:projects/proj_123/apps/app_123/**", workspace.Project("proj_123").App("app_123").Any().String())
-	require.Equal(t, "unkey:v1:ws_123:projects/proj_123/apps/app_123/environments/env_123", workspace.Project("proj_123").App("app_123").Environment("env_123").String())
-	require.Equal(t, "unkey:v1:ws_123:projects/proj_123/apps/app_123/environments/env_123/**", workspace.Project("proj_123").App("app_123").Environment("env_123").Any().String())
-	require.Equal(t, "unkey:v1:ws_123:projects/proj_123/apps/app_123/environments/env_123/deployments/dep_123/instances/inst_123", workspace.Project("proj_123").App("app_123").Environment("env_123").Deployment("dep_123").Instance("inst_123").String())
-	require.Equal(t, "unkey:v1:ws_123:projects/proj_123/apps/app_123/environments/env_123/deployments/dep_123", workspace.Project("proj_123").App("app_123").Environment("env_123").Deployment("dep_123").String())
-	require.Equal(t, "unkey:v1:ws_123:projects/proj_123/apps/app_123/environments/env_123/deployments/dep_123/**", workspace.Project("proj_123").App("app_123").Environment("env_123").Deployment("dep_123").Any().String())
-	require.Equal(t, "unkey:v1:ws_123:projects/proj_123/apps/app_123/environments/env_123/domains/dom_123", workspace.Project("proj_123").App("app_123").Environment("env_123").Domain("dom_123").String())
-	require.Equal(t, "unkey:v1:ws_123:projects/proj_123/apps/app_123/environments/env_123/variables/var_123", workspace.Project("proj_123").App("app_123").Environment("env_123").Variable("var_123").String())
-	require.Equal(t, "unkey:v1:ws_123:projects/proj_123/apps/app_123/environments/env_123/gateway/policies/pol_123", workspace.Project("proj_123").App("app_123").Environment("env_123").Gateway().Policy("pol_123").String())
-	require.Equal(t, "unkey:v1:ws_123:portals/portal_123/sessions/session_123", workspace.Portal("portal_123").Session("session_123").String())
-	require.Equal(t, "unkey:v1:ws_123:portals/portal_123", workspace.Portal("portal_123").String())
-	require.Equal(t, "unkey:v1:ws_123:portals/portal_123/**", workspace.Portal("portal_123").Any().String())
-}
-
-// TestV1Covers_OnlySupportedWildcardsExpandScope guarantees "*" matches one
-// path segment, trailing "**" is the only descendant wildcard, and workspaces
-// must match exactly.
-func TestV1Covers_OnlySupportedWildcardsExpandScope(t *testing.T) {
+// TestV1Covers guarantees exact paths and supported wildcards expand scope as
+// documented.
+func TestV1Covers(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
@@ -251,19 +175,16 @@ func TestV1Covers_OnlySupportedWildcardsExpandScope(t *testing.T) {
 		target  string
 		want    bool
 	}{
-		{name: "global wildcard", pattern: "**", target: "ratelimits/namespaces/ns_123", want: true},
-		{name: "global wildcard covers single segment", pattern: "**", target: "settings", want: true},
-		{name: "single segment wildcard matches one segment", pattern: "*", target: "settings", want: true},
-		{name: "single segment wildcard does not match nested paths", pattern: "*", target: "ratelimits/namespaces/ns_123", want: false},
-		{name: "exact", pattern: "ratelimits/namespaces/ns_123", target: "ratelimits/namespaces/ns_123", want: true},
-		{name: "segment wildcard", pattern: "ratelimits/namespaces/*", target: "ratelimits/namespaces/ns_123", want: true},
-		{name: "descendant wildcard", pattern: "ratelimits/**", target: "ratelimits/namespaces/ns_123", want: true},
-		{name: "descendant wildcard covers base", pattern: "ratelimits/**", target: "ratelimits", want: true},
-		{name: "descendant wildcard target shorter than base", pattern: "ratelimits/namespaces/**", target: "ratelimits", want: false},
-		{name: "descendant wildcard wrong prefix", pattern: "identities/**", target: "ratelimits/namespaces/ns_123", want: false},
-		{name: "segment wildcard does not cross segments", pattern: "ratelimits/*", target: "ratelimits/namespaces/ns_123", want: false},
-		{name: "exact shorter", pattern: "ratelimits", target: "ratelimits/namespaces/ns_123", want: false},
-		{name: "exact longer", pattern: "ratelimits/namespaces/ns_123", target: "ratelimits", want: false},
+		{name: "global wildcard", pattern: "**", target: "projects/proj_123/keyspaces/ks_123", want: true},
+		{name: "exact", pattern: "projects/proj_123/keyspaces/ks_123", target: "projects/proj_123/keyspaces/ks_123", want: true},
+		{name: "segment wildcard", pattern: "projects/*/keyspaces/*", target: "projects/proj_123/keyspaces/ks_123", want: true},
+		{name: "descendant wildcard", pattern: "projects/proj_123/**", target: "projects/proj_123/keyspaces/ks_123/keys/key_123", want: true},
+		{name: "descendant wildcard covers base", pattern: "projects/proj_123/**", target: "projects/proj_123", want: true},
+		{name: "descendant wildcard target shorter than base", pattern: "projects/proj_123/keyspaces/ks_123/**", target: "projects/proj_123", want: false},
+		{name: "descendant wildcard wrong prefix", pattern: "projects/proj_123/keyspaces/**", target: "projects/proj_123/apps/app_123", want: false},
+		{name: "segment wildcard does not cross segments", pattern: "projects/*", target: "projects/proj_123/keyspaces/ks_123", want: false},
+		{name: "exact shorter", pattern: "projects/proj_123", target: "projects/proj_123/keyspaces/ks_123", want: false},
+		{name: "exact longer", pattern: "projects/proj_123/keyspaces/ks_123", target: "projects/proj_123", want: false},
 	}
 
 	for _, tt := range tests {
@@ -277,28 +198,28 @@ func TestV1Covers_OnlySupportedWildcardsExpandScope(t *testing.T) {
 	}
 }
 
-// TestV1Covers_RequiresMatchingWorkspace guarantees no resource pattern, even
-// the global wildcard, crosses workspace boundaries.
-func TestV1Covers_RequiresMatchingWorkspace(t *testing.T) {
+// TestV1CoversRequiresMatchingWorkspace guarantees no resource pattern crosses
+// a workspace boundary.
+func TestV1CoversRequiresMatchingWorkspace(t *testing.T) {
 	t.Parallel()
 
 	pattern := V1{WorkspaceID: "ws_123", Resource: "**"}
-	target := V1{WorkspaceID: "ws_456", Resource: "ratelimits/namespaces/ns_123"}
+	target := V1{WorkspaceID: "ws_456", Resource: "projects/proj_123"}
 	require.False(t, pattern.Covers(target))
 }
 
-// FuzzV1Covers_ExactAndGlobalWildcardInvariants guarantees fuzzed matcher
-// inputs preserve the two smallest invariants every caller relies on.
-func FuzzV1Covers_ExactAndGlobalWildcardInvariants(f *testing.F) {
+// FuzzV1CoversExactAndGlobalWildcardInvariants guarantees fuzzed matcher inputs
+// preserve exact-match and global-wildcard behavior.
+func FuzzV1CoversExactAndGlobalWildcardInvariants(f *testing.F) {
 	fuzz.Seed(f)
 	for _, seed := range []struct {
 		pattern string
 		target  string
 	}{
-		{pattern: "**", target: "ratelimits/namespaces/ns_123"},
-		{pattern: "ratelimits/**", target: "ratelimits/namespaces/ns_123/overrides/ov_123"},
-		{pattern: "ratelimits/namespaces/*", target: "ratelimits/namespaces/ns_123"},
-		{pattern: "ratelimits/namespaces/ns_123", target: "ratelimits/namespaces/ns_123"},
+		{pattern: "**", target: "projects/proj_123/ratelimits/namespaces/ns_123"},
+		{pattern: "projects/proj_123/**", target: "projects/proj_123/keyspaces/ks_123/keys/key_123"},
+		{pattern: "projects/*/keyspaces/*", target: "projects/proj_123/keyspaces/ks_123"},
+		{pattern: "projects/proj_123", target: "projects/proj_123"},
 	} {
 		f.Add(fuzzStringSeed(seed.pattern, seed.target))
 	}

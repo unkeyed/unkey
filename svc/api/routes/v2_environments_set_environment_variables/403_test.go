@@ -23,10 +23,15 @@ func TestSetEnvironmentVariablesForbidden(t *testing.T) {
 	testCases := []struct {
 		name        string
 		permissions []string
+		prune       bool
 		shouldPass  bool
 	}{
 		{name: "wildcard permission", permissions: []string{"environment.*.set_environment_variables"}, shouldPass: true},
 		{name: "specific permission", permissions: []string{fmt.Sprintf("environment.%s.set_environment_variables", env.environmentID)}, shouldPass: true},
+		{name: "canonical write", permissions: []string{fmt.Sprintf("unkey:v1:%s:projects/%s/apps/%s/environments/%s/variables/*#write", env.workspaceID, env.projectID, env.appID, env.environmentID)}, shouldPass: true},
+		{name: "canonical write and delete can prune", permissions: []string{fmt.Sprintf("unkey:v1:%s:projects/%s/apps/%s/environments/%s/variables/*#write", env.workspaceID, env.projectID, env.appID, env.environmentID), fmt.Sprintf("unkey:v1:%s:projects/%s/apps/%s/environments/%s/variables/*#delete", env.workspaceID, env.projectID, env.appID, env.environmentID)}, prune: true, shouldPass: true},
+		{name: "canonical write cannot prune", permissions: []string{fmt.Sprintf("unkey:v1:%s:projects/%s/apps/%s/environments/%s/variables/*#write", env.workspaceID, env.projectID, env.appID, env.environmentID)}, prune: true, shouldPass: false},
+		{name: "canonical delete cannot write", permissions: []string{fmt.Sprintf("unkey:v1:%s:projects/%s/apps/%s/environments/%s/variables/*#delete", env.workspaceID, env.projectID, env.appID, env.environmentID)}, shouldPass: false},
 		{name: "permission and more", permissions: []string{"some.other.permission", "environment.*.set_environment_variables"}, shouldPass: true},
 		{name: "update action is not enough", permissions: []string{"environment.*.update_environment"}, shouldPass: false},
 		{name: "read action is not enough", permissions: []string{"environment.*.read_environment"}, shouldPass: false},
@@ -40,9 +45,11 @@ func TestSetEnvironmentVariablesForbidden(t *testing.T) {
 			rootKey := h.CreateRootKey(env.workspaceID, tc.permissions...)
 			headers := authHeaders(rootKey)
 
-			res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, makeRequest(env, []openapi.EnvironmentVariableInput{
+			req := makeRequest(env, []openapi.EnvironmentVariableInput{
 				{Key: "KEY", Value: "value"},
-			}))
+			})
+			req.Prune = ptr(tc.prune)
+			res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 			if tc.shouldPass {
 				require.Equal(t, 200, res.Status, "expected 200 for %v, got: %s", tc.permissions, res.RawBody)
 				return

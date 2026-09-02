@@ -3,8 +3,8 @@
 //
 // The package provides helpers to define fine-grained permission requirements
 // and evaluate whether a set of granted permissions satisfies them. New code
-// should prefer resource permissions built from [UnkeyPermission] and
-// [github.com/unkeyed/unkey/pkg/urn.V1].
+// should prefer resource permission queries built with [U] and the typed
+// builders in [github.com/unkeyed/unkey/pkg/urn].
 // The older [Tuple] format remains supported for existing root-key permissions
 // while handlers migrate to canonical Unkey resource names.
 //
@@ -30,14 +30,16 @@
 //
 //	// Define permissions a user has
 //	userPermissions := []string{
-//	    "api:api1:read_api",
-//	    "api:api1:update_api",
-//	    "ratelimit:ns1:create_namespace",
+//	    "unkey:v1:ws_123:projects/proj_123/keyspaces/ks_123/keys/key_123#read",
+//	    "api.api1.update_api",
 //	}
 //
 //	// Create a permission query using helper functions
 //	query := rbac.And(
-//	    rbac.U(urn.New().Workspace("ws_123").RatelimitNamespace("ns_123").Override("ov_123"), permissions.ReadOverride{}),
+//	    rbac.U(
+//	        urn.New().Workspace("ws_123").Project("proj_123").Keyspace("ks_123").Key("key_123"),
+//	        permissions.Read,
+//	    ),
 //	    rbac.T(rbac.Tuple{
 //	        ResourceType: rbac.Api,
 //	        ResourceID:   "api1",

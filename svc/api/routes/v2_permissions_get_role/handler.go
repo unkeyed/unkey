@@ -2,14 +2,18 @@ package handler
 
 import (
 	"context"
+	"net/http"
+
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/pkg/zen"
+	apierrors "github.com/unkeyed/unkey/svc/api/internal/errors"
 	"github.com/unkeyed/unkey/svc/api/openapi"
-	"net/http"
 )
 
 type (
@@ -36,24 +40,12 @@ func (h *Handler) Path() string {
 func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	logger.Debug("handling request", "requestId", s.RequestID(), "path", "/v2/permissions.getRole")
 
-	// 1. Authentication
 	principal, err := s.GetPrincipal()
 	if err != nil {
 		return err
 	}
 
 	req, err := zen.BindBody[Request](s)
-	if err != nil {
-		return err
-	}
-
-	err = principal.Authorize(rbac.Or(
-		rbac.T(rbac.Tuple{
-			ResourceType: rbac.Rbac,
-			ResourceID:   "*",
-			Action:       rbac.ReadRole,
-		}),
-	))
 	if err != nil {
 		return err
 	}
@@ -73,6 +65,26 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return fault.Wrap(err,
 			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
 			fault.Internal("database error"), fault.Public("Failed to retrieve role information."),
+		)
+	}
+
+	readRole := rbac.U(
+		urn.New().Workspace(principal.WorkspaceID).Project(role.ProjectID).RBAC().Role(role.ID),
+		permissions.Read,
+	)
+	err = principal.Authorize(rbac.Or(
+		readRole,
+		rbac.T(rbac.Tuple{
+			ResourceType: rbac.Rbac,
+			ResourceID:   "*",
+			Action:       rbac.ReadRole,
+		}),
+	))
+	if err != nil {
+		return apierrors.MaskInsufficientPermissionsAsNotFound(
+			err,
+			codes.Data.Role.NotFound.URN(),
+			"The requested role does not exist.",
 		)
 	}
 

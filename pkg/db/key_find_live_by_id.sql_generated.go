@@ -34,6 +34,7 @@ SELECT
     a.id AS api_id,
     a.name AS api_name,
     ka.id AS key_auth_id,
+    ka.project_id AS key_auth_project_id,
     ka.store_encrypted_keys AS key_auth_store_encrypted_keys,
     ka.default_prefix AS key_auth_default_prefix,
     ka.default_bytes AS key_auth_default_bytes,
@@ -146,6 +147,7 @@ type FindLiveKeyByIDRow struct {
 	ApiID                     string         `db:"api_id"`
 	ApiName                   string         `db:"api_name"`
 	KeyAuthID                 string         `db:"key_auth_id"`
+	KeyAuthProjectID          string         `db:"key_auth_project_id"`
 	KeyAuthStoreEncryptedKeys bool           `db:"key_auth_store_encrypted_keys"`
 	KeyAuthDefaultPrefix      sql.NullString `db:"key_auth_default_prefix"`
 	KeyAuthDefaultBytes       sql.NullInt32  `db:"key_auth_default_bytes"`
@@ -185,6 +187,7 @@ type FindLiveKeyByIDRow struct {
 //	    a.id AS api_id,
 //	    a.name AS api_name,
 //	    ka.id AS key_auth_id,
+//	    ka.project_id AS key_auth_project_id,
 //	    ka.store_encrypted_keys AS key_auth_store_encrypted_keys,
 //	    ka.default_prefix AS key_auth_default_prefix,
 //	    ka.default_bytes AS key_auth_default_bytes,
@@ -298,6 +301,7 @@ func (q *Queries) FindLiveKeyByID(ctx context.Context, db DBTX, id string) (Find
 		&i.ApiID,
 		&i.ApiName,
 		&i.KeyAuthID,
+		&i.KeyAuthProjectID,
 		&i.KeyAuthStoreEncryptedKeys,
 		&i.KeyAuthDefaultPrefix,
 		&i.KeyAuthDefaultBytes,

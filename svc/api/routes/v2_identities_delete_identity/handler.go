@@ -15,6 +15,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/rbac/permissions"
 	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/pkg/zen"
+	apierrors "github.com/unkeyed/unkey/svc/api/internal/errors"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
@@ -57,25 +58,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	err = principal.Authorize(
-		rbac.Or(
-			rbac.T(
-				rbac.Tuple{
-					ResourceType: rbac.Identity,
-					ResourceID:   "*",
-					Action:       rbac.DeleteIdentity,
-				},
-			),
-			rbac.U(
-				urn.New().Workspace(principal.WorkspaceID).Project("*").Identity("*"),
-				permissions.DeleteIdentity{},
-			),
-		),
-	)
-	if err != nil {
-		return err
-	}
-
 	identity, err := db.Query.FindIdentity(ctx, h.DB.RO(), db.FindIdentityParams{
 		WorkspaceID: principal.WorkspaceID,
 		Identity:    req.Identity,
@@ -92,6 +74,29 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return fault.Wrap(err,
 			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
 			fault.Internal("database failed to find the identity"), fault.Public("Error finding the identity."),
+		)
+	}
+
+	err = principal.Authorize(
+		rbac.Or(
+			rbac.T(
+				rbac.Tuple{
+					ResourceType: rbac.Identity,
+					ResourceID:   "*",
+					Action:       rbac.DeleteIdentity,
+				},
+			),
+			rbac.U(
+				urn.New().Workspace(principal.WorkspaceID).Project(identity.ProjectID).Identity(identity.ID),
+				permissions.Delete,
+			),
+		),
+	)
+	if err != nil {
+		return apierrors.MaskInsufficientPermissionsAsNotFound(
+			err,
+			codes.Data.Identity.NotFound.URN(),
+			"This identity does not exist.",
 		)
 	}
 
