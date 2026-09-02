@@ -14,8 +14,7 @@ import (
 
 func TestEnvironmentNotFound(t *testing.T) {
 	h := testutil.NewHarness(t)
-	capture := &ctrlCapture{}
-	route := newRoute(h, capture)
+	route := newRoute(h, newUncalledRestate(t))
 	h.Register(route)
 
 	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
@@ -23,30 +22,25 @@ func TestEnvironmentNotFound(t *testing.T) {
 	})
 
 	t.Run("unknown environment", func(t *testing.T) {
-		capture.called = false
 		req := imageRequest(t, setup.Project.Slug, setup.App.Slug, "does-not-exist", "nginx:latest")
 
 		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, authHeaders(setup.RootKey), req)
 		require.Equal(t, http.StatusNotFound, res.Status, "expected 404, received: %s", res.RawBody)
 		require.Equal(t, "https://unkey.com/docs/errors/unkey/data/environment_not_found", res.Body.Error.Type)
-		require.False(t, capture.called)
 	})
 
 	t.Run("unknown project resolves to environment not found", func(t *testing.T) {
-		capture.called = false
 		req := imageRequest(t, "does-not-exist", setup.App.Slug, setup.Environment.Slug, "nginx:latest")
 
 		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, authHeaders(setup.RootKey), req)
 		require.Equal(t, http.StatusNotFound, res.Status, "expected 404, received: %s", res.RawBody)
 		require.Equal(t, "https://unkey.com/docs/errors/unkey/data/environment_not_found", res.Body.Error.Type)
-		require.False(t, capture.called)
 	})
 }
 
 func TestRedeployDeploymentNotFound(t *testing.T) {
 	h := testutil.NewHarness(t)
-	capture := &ctrlCapture{}
-	route := newRoute(h, capture)
+	route := newRoute(h, newUncalledRestate(t))
 	h.Register(route)
 
 	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
@@ -58,7 +52,6 @@ func TestRedeployDeploymentNotFound(t *testing.T) {
 	res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, authHeaders(setup.RootKey), req)
 	require.Equal(t, http.StatusNotFound, res.Status, "expected 404, received: %s", res.RawBody)
 	require.Equal(t, "https://unkey.com/docs/errors/unkey/data/deployment_not_found", res.Body.Error.Type)
-	require.False(t, capture.called)
 }
 
 // TestRedeployCrossWorkspaceMasked verifies a deployment owned by another
@@ -66,8 +59,7 @@ func TestRedeployDeploymentNotFound(t *testing.T) {
 // confirm the existence of another tenant's deployment.
 func TestRedeployCrossWorkspaceMasked(t *testing.T) {
 	h := testutil.NewHarness(t)
-	capture := &ctrlCapture{}
-	route := newRoute(h, capture)
+	route := newRoute(h, newUncalledRestate(t))
 	h.Register(route)
 
 	victim := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
@@ -92,7 +84,6 @@ func TestRedeployCrossWorkspaceMasked(t *testing.T) {
 	res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, authHeaders(attacker.RootKey), req)
 	require.Equal(t, http.StatusNotFound, res.Status, "expected 404, received: %s", res.RawBody)
 	require.Equal(t, "https://unkey.com/docs/errors/unkey/data/deployment_not_found", res.Body.Error.Type)
-	require.False(t, capture.called, "ctrl must not be called for a foreign deployment")
 }
 
 // TestRedeployWrongAppOrEnvironmentMasked verifies a deployment in the caller's
@@ -101,8 +92,7 @@ func TestRedeployCrossWorkspaceMasked(t *testing.T) {
 // caller may not have access to.
 func TestRedeployWrongAppOrEnvironmentMasked(t *testing.T) {
 	h := testutil.NewHarness(t)
-	capture := &ctrlCapture{}
-	route := newRoute(h, capture)
+	route := newRoute(h, newUncalledRestate(t))
 	h.Register(route)
 
 	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
@@ -141,5 +131,4 @@ func TestRedeployWrongAppOrEnvironmentMasked(t *testing.T) {
 	res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, authHeaders(setup.RootKey), req)
 	require.Equal(t, http.StatusNotFound, res.Status, "expected 404, received: %s", res.RawBody)
 	require.Equal(t, "https://unkey.com/docs/errors/unkey/data/deployment_not_found", res.Body.Error.Type)
-	require.False(t, capture.called, "ctrl must not be called for a mismatched app or environment")
 }

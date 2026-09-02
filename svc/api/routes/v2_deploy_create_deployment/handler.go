@@ -5,15 +5,18 @@ import (
 	"net/http"
 	"strings"
 
+	restateingress "github.com/restatedev/sdk-go/ingress"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
-	"github.com/unkeyed/unkey/gen/rpc/ctrl"
+	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/deploy/imageref"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/internal/ctrlclient"
+	"github.com/unkeyed/unkey/svc/api/internal/deployment"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
@@ -23,8 +26,8 @@ type (
 )
 
 type Handler struct {
-	DB         db.Database
-	CtrlClient ctrl.DeployServiceClient
+	DB      db.Database
+	Restate *restateingress.Client
 }
 
 func (h *Handler) Path() string {
@@ -63,6 +66,23 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return fault.Wrap(err, fault.Internal("failed to find project and app"))
 	}
 
+	environment, err := db.Query.FindEnvironmentByIdentifiers(ctx, h.DB.RO(), db.FindEnvironmentByIdentifiersParams{
+		WorkspaceID: principal.AuthorizedWorkspaceID,
+		Project:     req.Project,
+		App:         req.App,
+		Environment: req.EnvironmentSlug,
+	})
+	if err != nil {
+		if db.IsNotFound(err) {
+			return fault.New("environment not found",
+				fault.Code(codes.Data.Environment.NotFound.URN()),
+				fault.Internal("environment did not resolve"),
+				fault.Public("The requested environment does not exist."),
+			)
+		}
+		return fault.Wrap(err, fault.Internal("failed to resolve environment"))
+	}
+
 	err = principal.Authorize(rbac.Or(
 		rbac.T(rbac.Tuple{
 			ResourceType: rbac.Project,
@@ -92,19 +112,28 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	// nolint: exhaustruct // optional proto fields, only setting whats provided
-	ctrlReq := &ctrlv1.CreateDeploymentRequest{
-		ProjectId:       row.ProjectID,
-		AppId:           row.AppID,
-		EnvironmentSlug: req.EnvironmentSlug,
-		DockerImage:     req.DockerImage,
-		Source: &ctrlv1.CreateDeploymentRequest_GitCommit{
-			GitCommit: &ctrlv1.GitCommitInfo{
-				Branch: req.Branch,
-			},
+	actorInfo, err := ctrlclient.Actor(s)
+	if err != nil {
+		return err
+	}
+
+	// The id is the Restate object key the create runs on, so minting it here
+	// lets the response name the deployment without waiting on the worker.
+	deploymentID := uid.New(uid.DeploymentPrefix)
+
+	// nolint: exhaustruct // the source oneof is set below
+	createReq := &hydrav1.DeployCreateRequest{
+		ProjectId:   row.ProjectID,
+		AppId:       row.AppID,
+		Environment: environment.ID,
+		Source: &hydrav1.DeployCreateRequest_Image{
+			Image: &hydrav1.CreateImageSource{Image: req.DockerImage},
 		},
-		Trigger:     trigger,
-		TriggeredBy: principal.Subject.ID,
+		Decision:      hydrav1.CreateDecision_CREATE_DECISION_DEPLOY,
+		Trigger:       trigger,
+		TriggeredBy:   principal.Subject.ID,
+		TriggerReason: "",
+		Actor:         actorInfo,
 	}
 
 	// Add optional keyspace ID for authentication. Verify the keyspace belongs
@@ -131,8 +160,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				fault.Public("The specified keyspace was not found."),
 			)
 		}
-
-		ctrlReq.KeyspaceId = req.KeyspaceId
 	}
 
 	// Handle optional git commit info
@@ -156,12 +183,28 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		if req.GitCommit.Timestamp != nil {
 			gitCommit.Timestamp = *req.GitCommit.Timestamp
 		}
-		ctrlReq.Source = &ctrlv1.CreateDeploymentRequest_GitCommit{GitCommit: gitCommit}
+		createReq.Source = &hydrav1.DeployCreateRequest_Git{
+			Git: &hydrav1.CreateGitSource{Commit: gitCommit, PrNumber: 0},
+		}
 	}
 
-	ctrlResp, err := h.CtrlClient.CreateDeployment(ctx, ctrlReq)
-	if err != nil {
-		return ctrlclient.HandleError(err, "create deployment")
+	// The create is submitted one-way, so this is the only place a caller can be
+	// told its workspace may not deploy.
+	if err := deployment.EnsureWorkspaceCanDeploy(ctx, h.DB, principal.AuthorizedWorkspaceID); err != nil {
+		return err
+	}
+
+	// Send, not Request: the create resolves commits against GitHub and retries
+	// transient failures for minutes, which no HTTP caller should wait through.
+	if _, err := hydrav1.NewDeployServiceIngressClient(h.Restate, deploymentID).
+		Create().
+		Send(ctx, createReq); err != nil {
+		return fault.Wrap(
+			err,
+			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+			fault.Internal("failed to submit deployment create to Restate"),
+			fault.Public("Failed to create deployment."),
+		)
 	}
 
 	return s.JSON(http.StatusCreated, Response{
@@ -169,7 +212,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			RequestId: s.RequestID(),
 		},
 		Data: openapi.V2DeployCreateDeploymentResponseData{
-			DeploymentId: ctrlResp.GetDeploymentId(),
+			DeploymentId: deploymentID,
 		},
 	})
 }

@@ -34,53 +34,6 @@ enum DeploymentTrigger {
   DEPLOYMENT_TRIGGER_UNKEY = 5;
 }
 
-message CreateDeploymentRequest {
-  string project_id = 1;
-  string environment_slug = 2;
-
-  // Deprecated compatibility field for v2 API callers.
-  string docker_image = 3 [deprecated = true];
-
-  // Omit the source override to use the app's default Git branch or OCI image.
-  oneof source {
-    string oci_image = 12;
-    GitCommitInfo git_commit = 4;
-  }
-
-  // Authentication
-  optional string keyspace_id = 5;
-
-  // Container command override (e.g., ["./app", "serve"])
-  // If not specified, the container's default entrypoint/cmd is used
-  repeated string command = 6;
-
-  // App ID to deploy. Required.
-  string app_id = 7;
-
-  // Which surface triggered this deployment.
-  DeploymentTrigger trigger = 8;
-
-  // Polymorphic actor id, interpretation depends on `trigger`:
-  //   dashboard -> user_id
-  //   api / cli -> root_key_id
-  //   github    -> github sender_login (the user who pushed; not necessarily
-  //                the commit author — for that, see git_commit_author_handle
-  //                on the deployment row)
-  //   unkey     -> internal user_id
-  // Trusted by ctrl because the bearer token is the auth boundary — only
-  // trusted backends can reach this RPC.
-  string triggered_by = 10;
-
-  // Free-form reason. Stored alongside the deployment for audit purposes.
-  // Populated mostly by internal tooling (e.g. "rebuild after image loss").
-  string trigger_reason = 9;
-
-  // Caller identity for the audit log ctrl writes. Carries actor type, name,
-  // and request origin. When unset, the deployment is attributed to the system
-  // actor. Preferred over triggered_by for attribution.
-  ActorInfo actor = 11;
-}
-
 message GitCommitInfo {
   string commit_sha = 1;
   string commit_message = 2;
@@ -90,11 +43,6 @@ message GitCommitInfo {
   string branch = 6; // branch metadata for Git deployments
   // Full fork repository identifier (e.g., "contributor/repo").
   string fork_repository = 7;
-}
-
-message CreateDeploymentResponse {
-  string deployment_id = 1;
-  DeploymentStatus status = 2; // Will be PENDING or DEPLOYING
 }
 
 message GetDeploymentRequest {
@@ -184,21 +132,6 @@ message RegionalConfig {
   int32 max_instances = 3;
 }
 
-message RollbackRequest {
-  string source_deployment_id = 1;
-  string target_deployment_id = 2;
-  ActorInfo actor = 3;
-}
-
-message RollbackResponse {}
-
-message PromoteRequest {
-  string target_deployment_id = 1;
-  ActorInfo actor = 2;
-}
-
-message PromoteResponse {}
-
 message AuthorizeDeploymentRequest {
   string deployment_id = 1;
 }
@@ -211,13 +144,6 @@ message CancelDeploymentRequest {
 
 message CancelDeploymentResponse {}
 
-message StopDeploymentRequest {
-  string deployment_id = 1;
-  ActorInfo actor = 2;
-}
-
-message StopDeploymentResponse {}
-
 message DeprovisionComputeRequest {
   // WorkspaceId is the workspace whose Compute plan is being deprovisioned.
   string workspace_id = 1;
@@ -226,18 +152,8 @@ message DeprovisionComputeRequest {
 message DeprovisionComputeResponse {}
 
 service DeployService {
-  // Create a new deployment from an OCI image or by auto-detecting
-  // the appropriate source for the project.
-  rpc CreateDeployment(CreateDeploymentRequest) returns (CreateDeploymentResponse) {}
-
   // Get deployment details
   rpc GetDeployment(GetDeploymentRequest) returns (GetDeploymentResponse) {}
-
-  // Reassign the sticky domains of the projects live deployment to the target deployment
-  rpc Rollback(RollbackRequest) returns (RollbackResponse) {}
-
-  // Promote the deployment to the live environment
-  rpc Promote(PromoteRequest) returns (PromoteResponse) {}
 
   // Authorize deployment for an external contributor's push on a branch
   rpc AuthorizeDeployment(AuthorizeDeploymentRequest) returns (AuthorizeDeploymentResponse) {}
@@ -247,9 +163,6 @@ service DeployService {
   // transition the deployment to failed and release any held build slot.
   // Idempotent: returns success if the deployment is already terminal.
   rpc CancelDeployment(CancelDeploymentRequest) returns (CancelDeploymentResponse) {}
-
-  // Stop a ready non-production deployment by scaling it down.
-  rpc StopDeployment(StopDeploymentRequest) returns (StopDeploymentResponse) {}
 
   // DeprovisionCompute tears down a workspace's Compute: it stops all running
   // compute via DeployTeardownService.Teardown(ARCHIVE) and clears the local
