@@ -20,8 +20,8 @@ properties:
     "$ref": "../../../../common/AppOCI.yaml"
 additionalProperties: false
 description: |
-  Create an app with at most one source: `git` or `oci`. Omit both to create an
-  app without a configured source. Requests that provide both are rejected.
+  Create an app with exactly one source: `git` or `oci`. Requests that omit a
+  source or provide both sources are rejected.
 examples:
   byProjectSlug:
     summary: Create within a project by slug
@@ -30,6 +30,8 @@ examples:
       project: payments
       name: Payments API
       slug: payments-api
+      oci:
+        image: ghcr.io/acme/payments:v1.2.3
   byProjectId:
     summary: Create within a project by ID
     description: Create an app, locating the parent project by its ID
@@ -37,6 +39,8 @@ examples:
       project: proj_1234abcd
       name: Payments API
       slug: payments-api
+      oci:
+        image: ghcr.io/acme/payments:v1.2.3
   connectRepo:
     summary: Create and connect a GitHub repository
     description: Create an app and connect it to a GitHub repository in one request. The workspace must have the Unkey GitHub App installed with access to the repository.
