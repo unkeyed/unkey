@@ -466,7 +466,8 @@ type DeploymentSourceGit struct {
 
 // DeploymentSourceImage Deploy a prebuilt Docker image as-is.
 type DeploymentSourceImage struct {
-	// DockerImage Full image reference to deploy as-is. Qualify the version with a tag (ghcr.io/acme/api:v1.2.3) or with a digest (ghcr.io/acme/api@sha256:...). Without either, the registry serves the latest tag.
+	// DockerImage Deprecated. Use `oci.image` in v3 instead. This field is the full image reference to deploy as-is. Qualify the version with a tag (ghcr.io/acme/api:v1.2.3) or a digest (ghcr.io/acme/api@sha256:...). Without either, the registry serves the latest tag.
+	// Deprecated: this property has been marked as deprecated upstream, but no `x-deprecated-reason` was set
 	DockerImage string `json:"dockerImage"`
 }
 
@@ -2015,7 +2016,8 @@ type V2DeployCreateDeploymentRequestBody struct {
 	// Branch Git branch name
 	Branch string `json:"branch"`
 
-	// DockerImage Full image reference to deploy. Qualify the version with a tag (ghcr.io/user/app:v1.0.0) or with a digest (ghcr.io/user/app@sha256:...). Without either, the registry serves the latest tag.
+	// DockerImage Deprecated. Use `oci.image` in v3 instead. This field is the full image reference to deploy. Qualify the version with a tag (ghcr.io/user/app:v1.0.0) or a digest (ghcr.io/user/app@sha256:...). Without either, the registry serves the latest tag.
+	// Deprecated: this property has been marked as deprecated upstream, but no `x-deprecated-reason` was set
 	DockerImage string `json:"dockerImage"`
 
 	// EnvironmentSlug Environment slug (e.g., "production", "staging")

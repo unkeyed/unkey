@@ -3,25 +3,6 @@ required:
   - project
   - app
   - environment
-dependentSchemas:
-  git:
-    allOf:
-      - not:
-          required: [oci]
-      - not:
-          required: [deployment]
-  oci:
-    allOf:
-      - not:
-          required: [git]
-      - not:
-          required: [deployment]
-  deployment:
-    allOf:
-      - not:
-          required: [git]
-      - not:
-          required: [oci]
 properties:
   project:
     "$ref": "../../../../common/ResourceIdentifier.yaml"

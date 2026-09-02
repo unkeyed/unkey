@@ -52,6 +52,24 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	if err != nil {
 		return err
 	}
+	sourceCount := 0
+	if req.Git != nil {
+		sourceCount++
+	}
+	if req.Oci != nil {
+		sourceCount++
+	}
+	if req.Deployment != nil {
+		sourceCount++
+	}
+	if sourceCount > 1 {
+		return fault.New(
+			"multiple deployment sources provided",
+			fault.Code(codes.App.Validation.InvalidInput.URN()),
+			fault.Internal("request contains more than one source override"),
+			fault.Public("Provide at most one of git, oci, or deployment."),
+		)
+	}
 
 	environment, err := db.Query.FindEnvironmentByIdentifiers(ctx, h.DB.RO(), db.FindEnvironmentByIdentifiersParams{
 		WorkspaceID: principal.WorkspaceID,
