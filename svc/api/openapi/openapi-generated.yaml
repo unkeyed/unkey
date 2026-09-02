@@ -16304,7 +16304,6 @@ paths:
                     application/json:
                         schema:
                             $ref: '#/components/schemas/V3KeysCreateKeyRequestBody'
-                required: true
             responses:
                 "200":
                     content:

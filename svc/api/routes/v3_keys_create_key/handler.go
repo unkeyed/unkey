@@ -55,10 +55,7 @@ func (h *Handler) Path() string {
 
 // Handle resolves the keyspace and creates its key.
 func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
-	// Mint a correlation ID for this user action so the dashboard can drill
-	// from any one of the audit events (key.create + N permission binds + N
-	// role binds) to the rest. Nested helpers that call Auditlogs.Insert
-	// pick this up via auditlog.CorrelationFrom(ctx).
+	// Use one correlation ID for all audit logs from this request.
 	ctx = auditlog.WithCorrelation(ctx, auditlog.NewCorrelationID())
 
 	principal, err := s.GetPrincipal()
