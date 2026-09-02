@@ -51,6 +51,10 @@ func (s *stubKeyService) CreateKey(_ context.Context, _ keys.CreateKeyRequest) (
 	return keys.CreateKeyResponse{}, errors.New("not implemented")
 }
 
+func (s *stubKeyService) CreateKeyV1(_ context.Context, _ keys.CreateKeyV1Request) (keys.CreateKeyV1Response, error) {
+	return keys.CreateKeyV1Response{}, errors.New("not implemented")
+}
+
 // TestResolver_ResolveRootKeyPrincipal verifies a verified root key normalizes
 // into the shared principal shape used by the API. The stubbed key service
 // returns the post-verification object so this test focuses on the resolver's
