@@ -38,9 +38,12 @@ message CreateDeploymentRequest {
   string project_id = 1;
   string environment_slug = 2;
 
+  // Deprecated compatibility field for v2 API callers.
+  string docker_image = 3 [deprecated = true];
+
   // Optional source overrides. Set at most one of oci_image or git_commit.
   // Omit both to use the app's default Git branch or OCI image.
-  string oci_image = 3;
+  string oci_image = 12;
 
   // Git information
   optional GitCommitInfo git_commit = 4;

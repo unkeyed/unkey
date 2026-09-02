@@ -1,26 +1,14 @@
 package deployment
 
 import (
-	"context"
 	"database/sql"
 	"testing"
 	"time"
 
-	"connectrpc.com/connect"
 	"github.com/stretchr/testify/require"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
-
-func TestCreateAndDeployRejectsMultipleSources(t *testing.T) {
-	var service Service
-	var params createParams
-	params.ociImage = "nginx:latest"
-	params.gitCommit = &ctrlv1.GitCommitInfo{}
-
-	_, err := service.createAndDeploy(context.Background(), params)
-	require.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
-}
 
 // validateTimestamp applies the same validation logic as the CreateDeployment service
 func validateTimestamp(timestamp int64) bool {

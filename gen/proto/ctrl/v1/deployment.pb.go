@@ -168,9 +168,13 @@ type CreateDeploymentRequest struct {
 	state           protoimpl.MessageState `protogen:"open.v1"`
 	ProjectId       string                 `protobuf:"bytes,1,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
 	EnvironmentSlug string                 `protobuf:"bytes,2,opt,name=environment_slug,json=environmentSlug,proto3" json:"environment_slug,omitempty"`
+	// Deprecated compatibility field for v2 API callers.
+	//
+	// Deprecated: Marked as deprecated in ctrl/v1/deployment.proto.
+	DockerImage string `protobuf:"bytes,3,opt,name=docker_image,json=dockerImage,proto3" json:"docker_image,omitempty"`
 	// Optional source overrides. Set at most one of oci_image or git_commit.
 	// Omit both to use the app's default Git branch or OCI image.
-	OciImage string `protobuf:"bytes,3,opt,name=oci_image,json=ociImage,proto3" json:"oci_image,omitempty"`
+	OciImage string `protobuf:"bytes,12,opt,name=oci_image,json=ociImage,proto3" json:"oci_image,omitempty"`
 	// Git information
 	GitCommit *GitCommitInfo `protobuf:"bytes,4,opt,name=git_commit,json=gitCommit,proto3,oneof" json:"git_commit,omitempty"`
 	// Authentication
@@ -245,6 +249,14 @@ func (x *CreateDeploymentRequest) GetProjectId() string {
 func (x *CreateDeploymentRequest) GetEnvironmentSlug() string {
 	if x != nil {
 		return x.EnvironmentSlug
+	}
+	return ""
+}
+
+// Deprecated: Marked as deprecated in ctrl/v1/deployment.proto.
+func (x *CreateDeploymentRequest) GetDockerImage() string {
+	if x != nil {
+		return x.DockerImage
 	}
 	return ""
 }
@@ -1546,12 +1558,13 @@ var File_ctrl_v1_deployment_proto protoreflect.FileDescriptor
 
 const file_ctrl_v1_deployment_proto_rawDesc = "" +
 	"\n" +
-	"\x18ctrl/v1/deployment.proto\x12\actrl.v1\x1a\x13ctrl/v1/actor.proto\"\xdc\x03\n" +
+	"\x18ctrl/v1/deployment.proto\x12\actrl.v1\x1a\x13ctrl/v1/actor.proto\"\x83\x04\n" +
 	"\x17CreateDeploymentRequest\x12\x1d\n" +
 	"\n" +
 	"project_id\x18\x01 \x01(\tR\tprojectId\x12)\n" +
-	"\x10environment_slug\x18\x02 \x01(\tR\x0fenvironmentSlug\x12\x1b\n" +
-	"\toci_image\x18\x03 \x01(\tR\bociImage\x12:\n" +
+	"\x10environment_slug\x18\x02 \x01(\tR\x0fenvironmentSlug\x12%\n" +
+	"\fdocker_image\x18\x03 \x01(\tB\x02\x18\x01R\vdockerImage\x12\x1b\n" +
+	"\toci_image\x18\f \x01(\tR\bociImage\x12:\n" +
 	"\n" +
 	"git_commit\x18\x04 \x01(\v2\x16.ctrl.v1.GitCommitInfoH\x00R\tgitCommit\x88\x01\x01\x12$\n" +
 	"\vkeyspace_id\x18\x05 \x01(\tH\x01R\n" +

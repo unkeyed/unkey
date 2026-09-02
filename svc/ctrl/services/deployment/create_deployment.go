@@ -91,9 +91,22 @@ func (s *Service) CreateDeployment(
 		return nil, err
 	}
 
+	ociImage := req.Msg.GetOciImage()
+	if ociImage != "" && req.Msg.GetDockerImage() != "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument,
+			fmt.Errorf("oci_image and deprecated docker_image are mutually exclusive"))
+	}
+	if ociImage != "" && req.Msg.GetGitCommit() != nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument,
+			fmt.Errorf("oci_image and git_commit are mutually exclusive"))
+	}
+	if ociImage == "" {
+		ociImage = req.Msg.GetDockerImage()
+	}
+
 	deploymentID, err := s.createAndDeploy(ctx, createParams{
 		context:       ctxLoad,
-		ociImage:      req.Msg.GetOciImage(),
+		ociImage:      ociImage,
 		gitCommit:     req.Msg.GetGitCommit(),
 		command:       req.Msg.GetCommand(),
 		trigger:       triggerFromProto(req.Msg.GetTrigger()),
@@ -344,11 +357,6 @@ type createParams struct {
 }
 
 func (s *Service) createAndDeploy(ctx context.Context, p createParams) (string, error) {
-	if p.ociImage != "" && p.gitCommit != nil {
-		return "", connect.NewError(connect.CodeInvalidArgument,
-			fmt.Errorf("oci_image and git_commit are mutually exclusive"))
-	}
-
 	c := p.context
 	if err := s.ensureWorkspaceCanDeploy(ctx, c.workspaceID); err != nil {
 		return "", err
@@ -398,8 +406,6 @@ func (s *Service) createAndDeploy(ctx context.Context, p createParams) (string, 
 		imageReference, imageErr := imageref.Normalize(p.ociImage)
 		if imageErr != nil {
 			return "", connect.NewError(connect.CodeInvalidArgument, imageErr)
-		}
-		commit = commitFields{ //nolint:exhaustruct
 		}
 		deploymentSource = db.DeploymentsSourceOci
 		requestedImage = imageReference
