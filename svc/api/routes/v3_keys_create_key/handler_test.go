@@ -30,9 +30,10 @@ func TestCreateKeyStoresVersion1Format(t *testing.T) {
 	h.Register(route)
 
 	prefix := "abcdefghijklmnop"
+	defaultPrefix := "default"
 	api := h.CreateApi(seed.CreateApiRequest{
 		WorkspaceID:   h.Resources().UserWorkspace.ID,
-		DefaultPrefix: &prefix,
+		DefaultPrefix: &defaultPrefix,
 	})
 	rootKey := h.CreateRootKey(
 		h.Resources().UserWorkspace.ID,
@@ -43,7 +44,7 @@ func TestCreateKeyStoresVersion1Format(t *testing.T) {
 		h,
 		route,
 		authorizedHeaders(rootKey),
-		handler.Request{Keyspace: api.KeyAuthID.String},
+		handler.Request{Keyspace: api.KeyAuthID.String, Prefix: &prefix},
 	)
 	require.Equal(t, http.StatusOK, res.Status, "response: %s", res.RawBody)
 	require.NotNil(t, res.Body)
@@ -95,6 +96,43 @@ func TestCreateKeyUsesKeyspacePrefix(t *testing.T) {
 	)
 	require.Equal(t, http.StatusOK, res.Status, "response: %s", res.RawBody)
 	require.True(t, strings.HasPrefix(res.Body.Data.Key, defaultPrefix+"_"))
+}
+
+// TestCreateKeyUsesEmptyRequestPrefix guarantees that an explicit empty prefix
+// overrides the keyspace default prefix.
+func TestCreateKeyUsesEmptyRequestPrefix(t *testing.T) {
+	t.Parallel()
+
+	h := testutil.NewHarness(t)
+	route := newRoute(t, h)
+	h.Register(route)
+
+	defaultPrefix := "prod"
+	api := h.CreateApi(seed.CreateApiRequest{
+		WorkspaceID:   h.Resources().UserWorkspace.ID,
+		DefaultPrefix: &defaultPrefix,
+	})
+	rootKey := h.CreateRootKey(
+		h.Resources().UserWorkspace.ID,
+		createKeyPermission(api.ID),
+	)
+
+	res := testutil.CallRoute[handler.Request, handler.Response](
+		h,
+		route,
+		authorizedHeaders(rootKey),
+		handler.Request{Keyspace: api.KeyAuthID.String, Prefix: ptr.P("")},
+	)
+	require.Equal(t, http.StatusOK, res.Status, "response: %s", res.RawBody)
+	require.Regexp(
+		t,
+		regexp.MustCompile(`^[1-9A-HJ-NP-Za-km-z]{8}unkeyv1[1-9A-HJ-NP-Za-km-z]{42}$`),
+		res.Body.Data.Key,
+	)
+
+	key, err := db.Query.FindKeyByID(t.Context(), h.DB.RO(), res.Body.Data.KeyId)
+	require.NoError(t, err)
+	require.Empty(t, key.Prefix)
 }
 
 // TestCreateKeyWithoutDefaultPrefix guarantees that a keyspace does not need a prefix.
@@ -166,7 +204,7 @@ func TestCreateRecoverableKeyUsesLegacyPermissions(t *testing.T) {
 }
 
 // TestCreateKeyRejectsInvalidFormatOptions guarantees that v3 requires a
-// keyspace and does not accept per-key format options.
+// keyspace and valid prefix and does not accept the v2 byteLength option.
 func TestCreateKeyRejectsInvalidFormatOptions(t *testing.T) {
 	t.Parallel()
 
@@ -186,7 +224,8 @@ func TestCreateKeyRejectsInvalidFormatOptions(t *testing.T) {
 	}{
 		{name: "missing keyspace", req: map[string]any{}},
 		{name: "keyspaceId", req: map[string]any{"keyspaceId": api.KeyAuthID.String}},
-		{name: "prefix", req: map[string]any{"keyspace": api.KeyAuthID.String, "prefix": "prod"}},
+		{name: "trailing underscore", req: map[string]any{"keyspace": api.KeyAuthID.String, "prefix": "prod_"}},
+		{name: "prefix too long", req: map[string]any{"keyspace": api.KeyAuthID.String, "prefix": "abcdefghijklmnopq"}},
 		{name: "byte length", req: map[string]any{"keyspace": api.KeyAuthID.String, "byteLength": 32}},
 	}
 

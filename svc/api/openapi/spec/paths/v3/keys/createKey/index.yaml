@@ -7,7 +7,8 @@ post:
 
     The endpoint generates a secure key. You cannot set a custom byte length.
 
-    The endpoint uses the keyspace default prefix. If the keyspace has no default prefix, the generated key has no prefix.
+    Set `prefix` to override the keyspace default prefix. Set it to an empty string to create a key without a prefix.
+    If you omit `prefix`, the endpoint uses the keyspace default prefix. If the keyspace has no default prefix, the generated key has no prefix.
 
     Store the returned key immediately. You can retrieve it later only if `recoverable` is `true`.
 
