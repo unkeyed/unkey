@@ -13,9 +13,8 @@ import (
 )
 
 // commitFields holds the git metadata a deployment row records. An empty field
-// means "unknown" and is eligible to be filled from GitHub. Plain scalars only:
-// this crosses a Restate journal boundary, so it has to survive a JSON round
-// trip, which a proto oneof would not.
+// means unknown and is eligible to be filled from GitHub. It crosses the Restate
+// journal as JSON, so it holds plain scalars.
 type commitFields struct {
 	SHA             string `json:"sha"`
 	Branch          string `json:"branch"`
@@ -26,8 +25,8 @@ type commitFields struct {
 	ForkRepository  string `json:"fork_repository"`
 }
 
-// buildSource is what the deployment builds from, flattened for the same
-// journal reason as [commitFields]. Exactly one of Image and Git is set.
+// buildSource is what the deployment builds from, flattened for the journal
+// like [commitFields]. Exactly one of Image and Git is set.
 type buildSource struct {
 	Image string    `json:"image"`
 	Git   *gitBuild `json:"git"`
@@ -45,9 +44,7 @@ type gitBuild struct {
 }
 
 // sourceResult is what [Workflow.resolveSource] decided: a source with the
-// commit metadata it completed, or a block. Bundled rather than returned as a
-// tuple, because three values travelling together through four functions is
-// what a struct is for.
+// commit metadata it completed, or a block.
 type sourceResult struct {
 	Source buildSource  `json:"source"`
 	Commit commitFields `json:"commit"`
@@ -59,8 +56,8 @@ func newSourceResult(source buildSource, commit commitFields) sourceResult {
 	return sourceResult{Source: source, Commit: commit, Block: nil}
 }
 
-// blockedSource is a refusal carrying no source. The commit goes with it:
-// nothing is written, so nothing needs it.
+// blockedSource is a refusal. Nothing is written, so it carries no source and
+// no commit.
 func blockedSource(block *createBlock) sourceResult {
 	return sourceResult{
 		Source: buildSource{Image: "", Git: nil},
@@ -104,10 +101,9 @@ func (s buildSource) deployRequest(deploymentID string, command []string, commit
 // metadata that goes on the row, so the row is whole at insert time and the
 // build needs no further GitHub lookups.
 //
-// A refusal comes back as a block, not an error: these are caller preconditions
-// (no connected repository, an unresolvable branch, a source deployment with no
-// artifact), and the caller has to tell them apart from a broken GitHub. Only
-// genuine failures return an error, so Restate retries those.
+// A refusal comes back as a block, not an error: no connected repository, an
+// unresolvable branch, a source deployment with no artifact. The caller has to
+// tell those apart from a broken GitHub, which returns an error and is retried.
 func (w *Workflow) resolveSource(
 	ctx context.Context,
 	target deploytarget.Target,
@@ -116,9 +112,8 @@ func (w *Workflow) resolveSource(
 ) (sourceResult, error) {
 	switch source := req.GetSource().(type) {
 	case *hydrav1.DeployCreateRequest_Image:
-		// Prebuilt image: redeploy it as it is, and leave git metadata alone.
-		// Synthesizing a commit would label the row with code the image may not
-		// contain.
+		// A prebuilt image redeploys as it is. Synthesizing a commit would label
+		// the row with code the image may not contain.
 		return newSourceResult(buildSource{Image: source.Image.GetImage(), Git: nil}, commit), nil
 
 	case *hydrav1.DeployCreateRequest_Git:
@@ -141,7 +136,6 @@ func (w *Workflow) resolveGitSource(
 	commit commitFields,
 	prNumber int64,
 ) (sourceResult, error) {
-	// The target carries the connection, so there is no lookup here.
 	if !target.GithubRepositoryFullName.Valid {
 		return blockedSource(newBlockf(
 			hydrav1.CreateBlockedReason_CREATE_BLOCKED_REASON_NO_REPO_CONNECTION,
@@ -266,7 +260,7 @@ func defaultBranch(appDefault string) string {
 
 // commitFromProto maps caller-supplied commit metadata onto [commitFields],
 // normalizing whitespace only. GitHub fill-in happens in resolveSource, so an
-// image redeploy never synthesizes git metadata, and column-width truncation
+// image redeploy never synthesizes git metadata; truncation to the column widths
 // happens at the database boundary.
 func commitFromProto(gc *ctrlv1.GitCommitInfo) commitFields {
 	if gc == nil {
@@ -305,9 +299,8 @@ func (cf *commitFields) fillFromGitHub(
 	repo string,
 	allowUnauth bool,
 ) error {
-	// Use the authenticated path whenever a real installation is available; only
-	// fall back to the public API when unauth is explicitly enabled and there is
-	// no installation to authenticate with.
+	// The public API is only for a repository with no installation, and only when
+	// unauthenticated deployments are enabled.
 	hasAuth := !allowUnauth || installationID != noInstallationID
 
 	resolveRepo := repo

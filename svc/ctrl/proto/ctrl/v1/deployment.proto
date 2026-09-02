@@ -160,11 +160,11 @@ service DeployService {
   // Authorize deployment for an external contributor's push on a branch
   rpc AuthorizeDeployment(AuthorizeDeploymentRequest) returns (AuthorizeDeploymentResponse) {}
 
-  // Cancel a running or queued deployment. Marks the deployment cancelled,
-  // then cancels the underlying Restate Deploy invocation; the workflow's
-  // compensation stack releases any held build slot and unwinds partial state
-  // but cannot overwrite the cancelled status. Audited with the request's
-  // actor; a request without an actor is not audited.
+  // Cancel a running or queued deployment. It marks the deployment cancelled,
+  // then cancels the underlying Restate Deploy invocation. The workflow's
+  // compensation stack releases any held build slot and unwinds partial state,
+  // but it cannot overwrite the cancelled status. The cancel is audited with
+  // the actor on the request; a request without an actor is not audited.
   // Idempotent: returns success if the deployment is already terminal.
   rpc CancelDeployment(CancelDeploymentRequest) returns (CancelDeploymentResponse) {}
 

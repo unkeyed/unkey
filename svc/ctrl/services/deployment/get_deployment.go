@@ -101,8 +101,8 @@ func (s *Service) GetDeployment(
 	return res, nil
 }
 
-// convertDbStatusToProto maps a stored deployment status onto the wire enum. An
-// unknown status maps to unspecified rather than guessing.
+// convertDbStatusToProto maps a stored deployment status onto the wire enum.
+// An unknown status maps to unspecified.
 func convertDbStatusToProto(status mysqltype.DeploymentsStatus) ctrlv1.DeploymentStatus {
 	switch status {
 	case mysqltype.DeploymentsStatusPending:

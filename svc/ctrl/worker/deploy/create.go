@@ -23,9 +23,8 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/internal/deploytarget"
 )
 
-// Column widths for the commit metadata a row records. MySQL strict mode
-// rejects an overlong value, so an unbounded commit message would surface as a
-// 500 instead of a deployment.
+// Byte limits for the commit metadata columns. MySQL strict mode rejects a
+// value wider than its column, so an untrimmed commit message fails the insert.
 const (
 	commitMessageBytesMax         = 10240
 	commitAuthorHandleBytesMax    = 256
@@ -36,18 +35,15 @@ const (
 // createBlock is a caller precondition no retry can fix: no plan, no repository
 // connection, an unresolvable commit.
 //
-// It travels back as a successful response rather than a terminal error because
-// the Restate ingress collapses a handler failure into unstructured text. svc/api
-// has to answer 412 with its own message, and it cannot parse a reason out of
-// prose. The webhook benefits too: a policy block stops producing failed
-// invocations on a repository that will never be eligible.
+// It comes back as a successful response rather than a terminal error, because
+// the Restate ingress collapses a handler failure into unstructured text and
+// svc/api needs a machine-readable reason for the 412 it answers with.
 type createBlock struct {
 	Reason hydrav1.CreateBlockedReason `json:"reason"`
 	Detail string                      `json:"detail"`
 }
 
-// newBlockf builds a [createBlock] with a formatted detail. The f suffix follows
-// fmt.Errorf: it takes a format string.
+// newBlockf builds a [createBlock] whose detail is formatted like fmt.Errorf.
 func newBlockf(reason hydrav1.CreateBlockedReason, format string, args ...any) *createBlock {
 	return &createBlock{Reason: reason, Detail: fmt.Sprintf(format, args...)}
 }
@@ -55,16 +51,10 @@ func newBlockf(reason hydrav1.CreateBlockedReason, format string, args ...any) *
 // Create is the only writer of deployment rows. See the proto for the contract.
 //
 // Every step is journaled, so a crash resumes instead of leaving a half-written
-// deployment:
-//
-//  1. row-exists backstop, which keeps a repeat idempotent past the idempotency
-//     key's retention window
-//  2. load the target, run the gates, resolve the build source
-//  3. insert the row, its queued step, and its audit log in one transaction
-//  4. pending only: record the invocation id, send Deploy, supersede siblings
+// deployment.
 func (w *Workflow) Create(ctx restate.ObjectContext, req *hydrav1.DeployCreateRequest) (*hydrav1.DeployCreateResponse, error) {
-	// Always the object key, never the payload. The row this writes and the lock
-	// it holds have to be the same id for anything below to hold.
+	// The object key, never the payload: the row this writes has to be the id
+	// whose object lock serializes the write.
 	deploymentID := restate.Key(ctx)
 
 	if err := assert.All(
@@ -92,12 +82,9 @@ func (w *Workflow) Create(ctx restate.ObjectContext, req *hydrav1.DeployCreateRe
 		return createResponse(hydrav1.CreateOutcome_CREATE_OUTCOME_REPLAYED, nil), nil
 	}
 
-	// A derived id can only come back if its row is gone, and the only thing
-	// that deletes deployment rows is an environment cascade, which takes the
-	// environment id feeding the derived hash with it. So this object should
-	// have no history. Clearing the awakeable and any pending desired-state
-	// transition costs nothing and keeps a half-torn-down object from parking
-	// a fresh deployment on a stale wait or stopping it with a stale schedule.
+	// A derived id reaches this point only when its row is gone, which happens on
+	// an environment cascade. Object state left behind by that deployment would
+	// park this one on a dead awakeable or stop it on a stale schedule.
 	restate.Clear(ctx, instancesReadyAwakeableKey)
 	restate.Clear(ctx, transitionKey)
 
@@ -140,7 +127,7 @@ func (w *Workflow) Create(ctx restate.ObjectContext, req *hydrav1.DeployCreateRe
 	case hydrav1.CreateDecision_CREATE_DECISION_AWAIT_APPROVAL:
 		w.requestAuthorization(ctx, deploymentID, req, resolution)
 	case hydrav1.CreateDecision_CREATE_DECISION_SKIP:
-		// Nothing to do: the row is the whole point.
+		// The row is the whole point of a skip.
 	case hydrav1.CreateDecision_CREATE_DECISION_UNSPECIFIED:
 		// Rejected before anything was written. See statusForDecision.
 	}
@@ -148,9 +135,8 @@ func (w *Workflow) Create(ctx restate.ObjectContext, req *hydrav1.DeployCreateRe
 	return createResponse(hydrav1.CreateOutcome_CREATE_OUTCOME_CREATED, nil), nil
 }
 
-// createResponse builds the handler's answer: what happened, and why not if it
-// did not. A nil block leaves the reason unset, so a BLOCKED outcome cannot ship
-// without one.
+// createResponse builds the handler's answer. A nil block leaves the blocked
+// reason unspecified.
 func createResponse(outcome hydrav1.CreateOutcome, block *createBlock) *hydrav1.DeployCreateResponse {
 	resp := &hydrav1.DeployCreateResponse{
 		Outcome:       outcome,
@@ -165,10 +151,9 @@ func createResponse(outcome hydrav1.CreateOutcome, block *createBlock) *hydrav1.
 // findExistingDeployment reports whether this object already wrote its row, so
 // a repeat returns REPLAYED instead of creating a second deployment.
 //
-// A row belonging to another target is a terminal error rather than a replay. A
-// derived id hashes the workspace, app, and environment, so two targets cannot
-// produce one id; if they somehow did, answering would hand this caller someone
-// else's deployment.
+// A row belonging to another target is a terminal error, not a replay. Derived
+// ids hash the workspace, app, and environment, so two targets cannot produce
+// one id, and answering anyway would hand this caller someone else's deployment.
 func (w *Workflow) findExistingDeployment(
 	ctx context.Context,
 	deploymentID string,
@@ -196,9 +181,9 @@ func (w *Workflow) findExistingDeployment(
 	return true, nil
 }
 
-// createResolution is what [Workflow.resolveCreate] decided, flattened to
-// scalars: the journal round-trips through JSON, which a proto oneof does not
-// survive.
+// createResolution is what [Workflow.resolveCreate] decided. It crosses the
+// Restate journal as JSON, so it holds plain scalars: a proto oneof does not
+// survive that round trip.
 type createResolution struct {
 	// Block set means nothing was written and nothing should be.
 	Block *createBlock `json:"block"`
@@ -210,7 +195,7 @@ type createResolution struct {
 	// disagree about what the container runs.
 	Command []string `json:"command"`
 
-	// PRNumber goes on the row for every decision, including a skip, which has
+	// PRNumber is recorded for every decision, including a skip, which resolves
 	// no source to carry it.
 	PRNumber int64 `json:"pr_number"`
 
@@ -219,8 +204,8 @@ type createResolution struct {
 }
 
 // resolveCreate loads the target, runs the gates, and resolves the build source.
-// One journaled step because all three share the target, and the target itself
-// does not survive the journal's JSON round trip.
+// All three need the loaded target, so they share one journaled step instead of
+// carrying it through the journal.
 func (w *Workflow) resolveCreate(ctx context.Context, req *hydrav1.DeployCreateRequest) (createResolution, error) {
 	target, loadErr := deploytarget.Load(ctx, w.db, req.GetProjectId(), req.GetAppId(), req.GetEnvironment(), deploytarget.WithoutSecrets)
 	var terminal *deploytarget.TerminalError
@@ -248,10 +233,8 @@ func (w *Workflow) resolveCreate(ctx context.Context, req *hydrav1.DeployCreateR
 	prNumber := req.GetGit().GetPrNumber()
 	source := buildSource{Image: "", Git: nil}
 
-	// A skipped row never builds, so it has no source to resolve. Resolving one
-	// anyway would make recording the skip depend on the app's repository
-	// connection and on GitHub answering, and the whole point of the row is that
-	// it survives to say this commit was seen and deliberately not built.
+	// A skipped row never builds. Resolving a source anyway would make recording
+	// the skip depend on the repository connection and on GitHub answering.
 	if req.GetDecision() != hydrav1.CreateDecision_CREATE_DECISION_SKIP {
 		resolved, resolveErr := w.resolveSource(ctx, target, req, commit)
 		if resolveErr != nil {
@@ -271,8 +254,8 @@ func (w *Workflow) resolveCreate(ctx context.Context, req *hydrav1.DeployCreateR
 		}
 	}
 
-	// A per-request override (e.g. `unkey deploy --command`) wins over the app's
-	// stored default, so the row records what actually runs.
+	// A per-request command wins over the app's stored default, so the row records
+	// what actually runs.
 	command := target.Command
 	if len(req.GetCommand()) > 0 {
 		command = req.GetCommand()
@@ -290,10 +273,10 @@ func (w *Workflow) resolveCreate(ctx context.Context, req *hydrav1.DeployCreateR
 }
 
 // checkDeployGate is the billing gate every create passes. A workspace with no
-// billing row reads as having no plan rather than as an error: that is the
+// billing row reads as having no plan rather than as an error, which is the
 // normal state before anyone subscribes.
 //
-// Plan enforcement honours the rollout flag; the spend cap always blocks.
+// Plan enforcement follows enforceDeployGate; the spend cap always blocks.
 func (w *Workflow) checkDeployGate(ctx context.Context, workspaceID string) (*createBlock, error) {
 	entitlement, err := w.db.FindWorkspaceDeployEntitlement(ctx, workspaceID)
 	if err != nil && !db.IsNotFound(err) {
@@ -325,9 +308,6 @@ func (w *Workflow) checkDeployGate(ctx context.Context, workspaceID string) (*cr
 
 // insertDeployment writes the row, its queued step, and its audit log in one
 // transaction, and returns the created_at it settled on.
-//
-// The target is loaded again, with secrets this time, so the row records the
-// settings current when the create runs rather than when it was asked for.
 func (w *Workflow) insertDeployment(
 	ctx context.Context,
 	req *hydrav1.DeployCreateRequest,
@@ -341,16 +321,14 @@ func (w *Workflow) insertDeployment(
 		secrets = deploytarget.WithoutSecrets
 	}
 
-	// Loaded again rather than carried from resolveCreate, because only this
-	// step needs the secrets blob and the resolution crosses the Restate
-	// journal. Passing the target through would put a workspace's environment
-	// variables in journal storage.
+	// Loaded again rather than carried from resolveCreate: only this step needs
+	// the secrets blob, and the resolution crosses the Restate journal, which
+	// would put a workspace's environment variables in journal storage.
 	target, loadErr := deploytarget.Load(ctx, w.db, req.GetProjectId(), req.GetAppId(), req.GetEnvironment(), secrets)
 	if loadErr != nil {
-		// The target existed when resolveCreate read it, so a miss here means an
-		// environment cascade deleted it mid-create. Terminal on purpose: no
-		// retry brings it back, and a plain error would retry until an operator
-		// intervened.
+		// The target existed when resolveCreate read it, so a miss now means an
+		// environment cascade deleted it mid-create. Terminal, because no retry
+		// brings it back.
 		var terminal *deploytarget.TerminalError
 		if errors.As(loadErr, &terminal) {
 			return 0, restate.TerminalError(loadErr)
@@ -359,8 +337,8 @@ func (w *Workflow) insertDeployment(
 	}
 
 	// The push time wins so sibling dedup keeps push order even when async sends
-	// land out of order. Reading the clock here rather than in the handler keeps
-	// it inside the journaled step.
+	// land out of order. The clock is read inside this journaled step, so a replay
+	// reuses the recorded value.
 	createdAt := req.GetPushReceivedAt()
 	if createdAt == 0 {
 		createdAt = time.Now().UnixMilli()
@@ -409,8 +387,8 @@ func (w *Workflow) insertDeployment(
 			return err
 		}
 
-		// Deploy ends this step and never inserts it, so a row without it shows
-		// no queue time and starts visibly at Starting.
+		// Deploy ends this step but never inserts it, so without this write the row
+		// shows no queue time.
 		if err := db.NewQueries(tx).InsertDeploymentStep(txCtx, db.InsertDeploymentStepParams{
 			WorkspaceID:   target.WorkspaceID,
 			ProjectID:     target.ProjectID,
@@ -445,9 +423,9 @@ func (w *Workflow) insertDeployment(
 // createAuditLogs builds the audit entry for a new row. A skipped row gets none:
 // nothing happened that a customer needs to see.
 //
-// An operator rebuild is recorded as deployment.rebuild with both deployments as
-// resources. The trigger marks it: UNKEY means Unkey itself asked for the
-// deployment, which is only ever a rebuild.
+// A rebuild is recorded as deployment.rebuild with both deployments as
+// resources. The UNKEY trigger identifies it, because Unkey itself only ever
+// asks for rebuilds.
 func (w *Workflow) createAuditLogs(
 	req *hydrav1.DeployCreateRequest,
 	target deploytarget.Target,
@@ -509,13 +487,13 @@ func (w *Workflow) createAuditLogs(
 	return []auditlog.AuditLog{entry}
 }
 
-// startDeploy records the invocation id, sends Deploy to this same object, and
-// supersedes older queued siblings on the branch.
+// startDeploy sends Deploy to this same object, records the invocation id it
+// returns, and supersedes older queued siblings on the branch.
 //
-// Send, not Request: Deploy is another exclusive handler on this key and could
-// not start until this one returned. The invocation id is written straight after
-// so a cancel arriving next instant has something to cancel; Deploy re-persists
-// it because that write still races the send.
+// Send, not Request: Deploy is another exclusive handler on this key and cannot
+// start until this handler returns. The id is written straight after the send so
+// a cancel arriving next instant has something to cancel. Deploy writes it again
+// because this write still races that cancel.
 func (w *Workflow) startDeploy(
 	ctx restate.ObjectContext,
 	deploymentID string,
@@ -602,8 +580,7 @@ func (w *Workflow) requestAuthorization(
 }
 
 // statusForDecision maps the caller's decision onto the status the row starts
-// in. The two vocabularies are separate on purpose: a decision is what the
-// caller wants, a status is what the deployment is.
+// in. A decision is what the caller wants; a status is what the deployment is.
 //
 // An unset decision is a caller bug, not a default. Reading it as DEPLOY would
 // build a commit whose watch paths said to skip it.

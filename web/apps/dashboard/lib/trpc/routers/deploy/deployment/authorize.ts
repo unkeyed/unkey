@@ -32,8 +32,8 @@ export const authorizeDeployment = workspaceProcedure
     const ctrl = createCtrlClient(DeployService);
 
     try {
-      // ctrl writes the deployment.authorize audit entry from this actor, so
-      // an authorization is audited if and only if it actually happened.
+      // ctrl writes the deployment.authorize audit entry from this actor, so an
+      // authorization is audited only when it actually happened.
       await ctrl.authorizeDeployment({
         deploymentId: input.deploymentId,
         actor: {

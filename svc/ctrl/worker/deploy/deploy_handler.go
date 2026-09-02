@@ -117,16 +117,10 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 		})
 	})
 
-	// Whoever dispatched this Deploy persists the invocation id too, so this is
-	// a backstop rather than the only writer. It still earns its place:
-	// AuthorizeDeployment sends from outside the object and writes the id
-	// afterwards, so that write races this invocation starting and the row can
-	// read NULL when a user cancels in between. Create cannot race it, being
-	// another exclusive handler on this key, but it costs nothing to cover both.
-	//
-	// Safe to write unconditionally: the value is this invocation either way, so
-	// whichever write lands last is the same id. Request().ID is stable across
-	// retries and suspensions.
+	// AuthorizeDeployment writes the invocation id from outside the object, so
+	// that write can race this handler starting and leave the row NULL for a
+	// cancel arriving in between. Rewriting it here is safe: same value either
+	// way, and Request().ID survives retries and suspensions.
 	err = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
 		return w.db.UpdateDeploymentInvocationID(runCtx, db.UpdateDeploymentInvocationIDParams{
 			ID:           req.GetDeploymentId(),
@@ -145,10 +139,10 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 		return nil, fault.Wrap(err, fault.Public("Failed to read from database. Please try again."))
 	}
 
-	// A cancel landing in the window above marks the row cancelled without an
-	// invocation to cancel, and it counts on this check to stop the build.
-	// Returning nil rather than an error keeps the compensation stack out of it:
-	// the terminal status is the intended one, not a failure to record.
+	// A cancel landing in the window above marks the row terminal without an
+	// invocation to cancel, so this check is what stops the build. Returning nil
+	// keeps the compensation stack out of it: the status is the intended one, not
+	// a failure.
 	if deployment.Status.IsTerminal() {
 		logger.Info("deployment is already terminal, not building",
 			"deployment_id", deployment.ID,
@@ -161,9 +155,9 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 	//
 	// The VO key is the deployment id, so same-app deploys do not serialize and
 	// this check races a concurrent newer create. Both directions are covered:
-	// the newer create cancels older siblings, and this reads the row state a
-	// moment later. A commit that loses both races still ends up superseded by
-	// the newer deployment's own swap.
+	// the newer create cancels older siblings, and this reads the row a moment
+	// later. A commit that loses both races is still superseded by the newer
+	// deployment's own swap.
 	if deployment.GitBranch.Valid {
 		skipped, skipErr := w.skipIfSuperseded(ctx, deployment)
 		if skipErr != nil {
@@ -892,9 +886,9 @@ func (w *Workflow) spinDownPreviousDeployments(
 	if err != nil {
 		return err
 	}
-	// Send, not Request: two concurrent same-branch Deploys each requesting
-	// the other's busy key would wait on each other with nothing to detect
-	// the cycle. The schedule is fire-and-forget either way.
+	// Send, not Request: two concurrent same-branch Deploys could each request
+	// the other's busy key and wait on each other forever. Nothing here needs the
+	// response.
 	for _, previousDeploymentID := range previousDeploymentIDs {
 		hydrav1.NewDeployServiceClient(ctx, previousDeploymentID).
 			ScheduleDesiredStateChange().Send(
@@ -931,8 +925,8 @@ func (w *Workflow) swapLiveDeployment(
 		SwapLiveDeployment().Request(&hydrav1.SwapLiveDeploymentRequest{
 		DeploymentId:    deployment.ID,
 		SetRollbackFlag: false,
-		// AllowOlder stays unset: a slower build must not take traffic from a
-		// newer one that already finished.
+		// A slower build must not take traffic from a newer one that already
+		// finished.
 		AllowOlder: false,
 	})
 	if err != nil {
@@ -940,7 +934,7 @@ func (w *Workflow) swapLiveDeployment(
 	}
 
 	// Send, not Request: the previous deployment's key can be busy for many
-	// minutes, and this deploy must not block on it to finish.
+	// minutes, and this deploy must not wait on it.
 	if swapResp.GetPreviousDeploymentId() != "" {
 		hydrav1.NewDeployServiceClient(ctx, swapResp.GetPreviousDeploymentId()).
 			ScheduleDesiredStateChange().Send(

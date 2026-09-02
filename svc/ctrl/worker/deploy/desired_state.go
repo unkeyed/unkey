@@ -28,7 +28,6 @@ func (w *Workflow) ScheduleDesiredStateChange(ctx restate.ObjectContext, req *hy
 			return nil, err
 		}
 		if t != nil {
-			// This is a noop, since we don't overwrite
 			return &hydrav1.ScheduleDesiredStateChangeResponse{}, nil
 		}
 	}
@@ -66,11 +65,9 @@ func (w *Workflow) ChangeDesiredState(ctx restate.ObjectContext, req *hydrav1.Ch
 		return nil, err
 	}
 	if t == nil {
-		// This is a noop, since the request was removed
 		return &hydrav1.ChangeDesiredStateResponse{}, nil
 	}
 	if t.Nonce != req.GetNonce() {
-		// This is a noop, since the request is outdated
 		return &hydrav1.ChangeDesiredStateResponse{}, nil
 	}
 
@@ -91,11 +88,10 @@ func (w *Workflow) ClearScheduledStateChanges(ctx restate.ObjectContext, req *hy
 	return &hydrav1.ClearScheduledStateChangesResponse{}, nil
 }
 
-// ApplyDesiredState writes the desired state and propagates it to every
-// region's topology, without the current-deployment guard. Only for callers
-// that legitimately mutate the current deployment: Resume uses it to wake a
-// deployment it just made current again. Everything else goes through the
-// guarded paths.
+// ApplyDesiredState writes the desired state and propagates it to every region's
+// topology, without the current-deployment guard. It is for callers that
+// legitimately mutate the current deployment, such as Resume waking a deployment
+// it just made current again. Everything else uses the guarded paths.
 func ApplyDesiredState(ctx restate.ObjectContext, database db.Database, deploymentID string, desiredState mysqltype.DeploymentsDesiredState, topologyStatus db.DeploymentTopologyDesiredStatus) error {
 	err := restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
 		return database.UpdateDeploymentDesiredState(runCtx, db.UpdateDeploymentDesiredStateParams{
@@ -123,13 +119,12 @@ type transition struct {
 }
 
 // applyDesiredStateNow is what same-key handlers (stop, wake) use instead of
-// ScheduleDesiredStateChange: supersede any pending transition, then apply
-// the new state before returning.
+// [Workflow.ScheduleDesiredStateChange]: supersede any pending transition, then
+// apply the new state before returning.
 //
-// The order is load-bearing, and the shared object is what makes it airtight:
-// this handler holds the deployment's one inbox, so nothing runs between the
-// clear and the apply, and a pending delayed stop later finds no transition
-// record and no-ops instead of stopping a deployment a user just woke.
+// The handler holds the deployment's only inbox, so nothing runs between the
+// clear and the apply. A pending delayed stop then finds no transition record
+// and no-ops instead of stopping a deployment a user just woke.
 func (w *Workflow) applyDesiredStateNow(ctx restate.ObjectContext, deploymentID string, state hydrav1.DeploymentDesiredState) error {
 	restate.Clear(ctx, transitionKey)
 	return w.applyDesiredStateGuarded(ctx, deploymentID, state)

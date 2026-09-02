@@ -55,9 +55,9 @@ func (w *Workflow) WakeDeployment(ctx restate.ObjectContext, req *hydrav1.WakeDe
 		return nil, gatefault.Terminal(err)
 	}
 
-	// Same-key, so the state change applies before returning. The clear inside
-	// it also supersedes any pending standby stop that would otherwise fire
-	// later and stop the deployment this wake is bringing up.
+	// Same key, so the state change applies before this handler returns. It also
+	// supersedes any pending standby stop that would otherwise fire later and stop
+	// the deployment this wake is bringing up.
 	if err := w.applyDesiredStateNow(ctx, deploymentID, hydrav1.DeploymentDesiredState_DEPLOYMENT_DESIRED_STATE_RUNNING); err != nil {
 		return nil, fmt.Errorf("wake deployment workflow failed: %w", err)
 	}

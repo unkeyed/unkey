@@ -138,8 +138,8 @@ func (w *Workflow) Promote(ctx restate.ObjectContext, req *hydrav1.PromoteReques
 		return nil, fault.Wrap(err, fault.Public("Failed to swap live deployment"))
 	}
 
-	// Promote runs on the target's own key, so clearing any pending standby
-	// stop from its earlier demotion is a local state operation.
+	// Promote runs on the target's own key, so a standby stop pending from its
+	// earlier demotion is local state.
 	restate.Clear(ctx, transitionKey)
 
 	// Schedule the deployment that just got demoted for standby. For
@@ -162,9 +162,8 @@ func (w *Workflow) Promote(ctx restate.ObjectContext, req *hydrav1.PromoteReques
 		oldDeploymentID = swapResp.GetPreviousDeploymentId()
 	}
 
-	// Cross-key: the demoted deployment is a different virtual object (this
-	// handler runs on the target's key), so its state is only reachable
-	// through a Restate call, and a Send because that key may be busy.
+	// The demoted deployment is a different virtual object, so its schedule is
+	// only reachable through a Restate call. Send, because that key may be busy.
 	if oldDeploymentID != "" {
 		hydrav1.NewDeployServiceClient(ctx, oldDeploymentID).ScheduleDesiredStateChange().Send(&hydrav1.ScheduleDesiredStateChangeRequest{
 			State:       hydrav1.DeploymentDesiredState_DEPLOYMENT_DESIRED_STATE_STOPPED,

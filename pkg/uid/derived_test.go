@@ -31,8 +31,7 @@ func TestDerived(t *testing.T) {
 		require.NotEqual(t, mine, theirs, "the same key in another workspace must not collide")
 	})
 
-	// Joining on a separator no id can contain is what keeps the boundaries
-	// unambiguous: without it these two scopes would hash the same bytes.
+	// Without the separator these two scopes would hash the same bytes.
 	t.Run("part boundaries are significant", func(t *testing.T) {
 		t.Parallel()
 		require.NotEqual(t,

@@ -19,9 +19,9 @@ import (
 )
 
 // TestCancelDeploymentWithoutInvocationID covers the window between the create
-// sending Deploy and persisting the invocation id: the column still reads NULL,
-// there is nothing to cancel in Restate, and a success that left the row pending
-// would let the build run to completion after the user cancelled it.
+// sending Deploy and persisting the invocation id. The column still reads NULL
+// and there is nothing to cancel in Restate, but a success that left the row
+// pending would let the build finish after the user cancelled it.
 func TestCancelDeploymentWithoutInvocationID(t *testing.T) {
 	ctx := context.Background()
 	svc, database, resources := newCancelTestService(t, ctx)
@@ -48,8 +48,8 @@ func TestCancelDeploymentWithoutInvocationID(t *testing.T) {
 		"a cancel arriving before the invocation id lands must still stop the deployment")
 }
 
-// TestCancelDeploymentTerminalIsNoop pins the existing short-circuit: a
-// deployment that already finished is left exactly as it is.
+// TestCancelDeploymentTerminalIsNoop pins the short-circuit: a deployment that
+// already finished is left exactly as it is.
 func TestCancelDeploymentTerminalIsNoop(t *testing.T) {
 	ctx := context.Background()
 	svc, database, resources := newCancelTestService(t, ctx)
@@ -74,10 +74,8 @@ func TestCancelDeploymentTerminalIsNoop(t *testing.T) {
 	require.Equal(t, mysqltype.DeploymentsStatusReady, after.Status)
 }
 
-// TestCancelDeploymentAuditsWithRequestActor pins the single-writer contract
-// from the dedup-audit consolidation: the dashboard no longer inserts its own
-// deployment.cancel entry, so the ctrl RPC must write it from the actor the
-// request carries.
+// TestCancelDeploymentAuditsWithRequestActor pins the single-writer contract:
+// ctrl writes the deployment.cancel entry from the actor the request carries.
 func TestCancelDeploymentAuditsWithRequestActor(t *testing.T) {
 	ctx := context.Background()
 	svc, database, resources := newCancelTestService(t, ctx)
@@ -104,8 +102,8 @@ func TestCancelDeploymentAuditsWithRequestActor(t *testing.T) {
 	require.Equal(t, 1, countCancelAudits(t, ctx, database, resources.workspaceID, deployment.ID, actorID))
 }
 
-// TestCancelDeploymentWithoutActorWritesNoAudit keeps out-of-band callers from
-// fabricating a system-actor entry the customer never triggered.
+// TestCancelDeploymentWithoutActorWritesNoAudit keeps an out-of-band caller
+// from fabricating a system-actor entry the customer never triggered.
 func TestCancelDeploymentWithoutActorWritesNoAudit(t *testing.T) {
 	ctx := context.Background()
 	svc, database, resources := newCancelTestService(t, ctx)

@@ -21,15 +21,14 @@ service GitHubStatusService {
   // Fire-and-forget — errors are logged, never propagated.
   rpc ReportStatus(GitHubStatusReportRequest) returns (GitHubStatusReportResponse) {}
 
-  // SetCommitStatus posts a commit status on the deployment's commit. This is
-  // the authorization channel and it is deliberately separate from the
-  // Deployments API reporting above: Create posts the failing status that tells
-  // a contributor their fork PR is waiting for a project member, and
-  // AuthorizeDeployment replaces it once someone approves. Both write the same
-  // status context so the second call replaces the first rather than stacking
-  // another check on the PR.
+  // SetCommitStatus posts a commit status on the deployment's commit. It is the
+  // authorization channel, separate from the Deployments API reporting above:
+  // Create posts the failing status that tells a contributor their fork PR is
+  // waiting for a project member, and AuthorizeDeployment replaces it once
+  // someone approves. Every call writes the same status context, so the second
+  // one replaces the first instead of adding another check to the PR.
   //
-  // Independent of Init: it reads no object state, so it works on a deployment
+  // It reads no object state, so it needs no Init and works on a deployment
   // that never reached a build.
   rpc SetCommitStatus(GitHubStatusCommitStatusRequest) returns (GitHubStatusCommitStatusResponse) {}
 }
@@ -53,7 +52,7 @@ message GitHubStatusCommitStatusRequest {
   GitHubCommitStatusState state = 4;
 
   // TargetUrl is where the PR's "Details" link goes, normally the deployment's
-  // dashboard page. The caller builds it because only the caller knows the
+  // dashboard page. The caller builds it, because only the caller knows the
   // workspace slug.
   string target_url = 5;
 

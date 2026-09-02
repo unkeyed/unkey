@@ -1,16 +1,15 @@
 // Package deployment provides the control-plane deployment service.
 //
 // This is a ConnectRPC service on the internal control API, authenticated with
-// a preshared bearer token. It is what callers that are not the public API use
-// to reach a deployment: the dashboard authorizes and cancels through it, the
-// dashboard's Stripe webhook deprovisions Compute through it, and the ops
-// service rebuilds through it. Public-API deployment lifecycle calls (stop,
-// start, promote, rollback) do not come here at all; they go straight to the
-// worker's Restate handlers.
+// a preshared bearer token. Callers other than the public API reach a
+// deployment through it: the dashboard authorizes and cancels, the dashboard's
+// Stripe webhook deprovisions Compute, and the ops service rebuilds. Public-API
+// lifecycle calls (stop, start, promote, rollback) skip this service and go
+// straight to the worker's Restate handlers.
 //
 // # What lives here
 //
-//   - [Service.GetDeployment] reads a deployment and its instances.
+//   - [Service.GetDeployment] reads a deployment and its hostnames.
 //   - [Service.AuthorizeDeployment] approves a deployment that is waiting for a
 //     maintainer, dispatches the build, and replaces the blocking GitHub commit
 //     status.
@@ -19,9 +18,9 @@
 //     its Deploy entitlement.
 //   - [Service.Rebuild] is a plain method, not an RPC: the ops service wraps it.
 //
-// Rows are never written here. Every deployment row is created by the worker's
-// DeployService.Create, so this service validates, changes status, and hands
-// work to Restate.
+// No deployment row is created here. The worker's DeployService.Create writes
+// them all, so this service validates, changes status, and hands work to
+// Restate.
 //
 // # Concurrency model
 //

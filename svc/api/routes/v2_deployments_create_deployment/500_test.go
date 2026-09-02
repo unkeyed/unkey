@@ -12,9 +12,8 @@ import (
 )
 
 // TestCreateRestateFailure pins what a caller sees when the create cannot be
-// submitted at all. The ServiceUnavailable code maps to a 500 in the api error
-// middleware rather than a 503, and no deployment id is handed out for work that
-// was never accepted.
+// submitted. The ServiceUnavailable code maps to a 500 in the api error
+// middleware rather than a 503, and no deployment id is handed out.
 func TestCreateRestateFailure(t *testing.T) {
 	t.Run("submission rejected", func(t *testing.T) {
 		assertCreateRestateFailure(t, testutil.NewRestateIngressClient(t, http.StatusInternalServerError))

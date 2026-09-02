@@ -66,9 +66,9 @@
 // Scheduled changes use nonces because Restate timers cannot be cancelled:
 // [Workflow.ScheduleDesiredStateChange] stores a nonce and self-sends a
 // delayed [Workflow.ChangeDesiredState], which applies only if its nonce
-// still matches; [Workflow.ClearScheduledStateChanges] removes the record so
-// an in-flight delayed call no-ops. Same-key handlers (stop, wake) apply the
-// change themselves via applyDesiredStateNow; see desired_state.go.
+// still matches; [Workflow.ClearScheduledStateChanges] removes the record so an
+// in-flight delayed call no-ops. Same-key handlers (stop, wake) apply the change
+// themselves, without a nonce; see desired_state.go.
 //
 // [Workflow.Rollback] switches sticky frontline routes (environment and live)
 // from the current live deployment to a previous one, atomically through

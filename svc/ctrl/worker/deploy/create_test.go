@@ -28,19 +28,16 @@ import (
 )
 
 const (
-	// A commit is only complete enough to skip the GitHub lookup when both the
-	// sha and the message are present. Every fixture sends both, so these tests
-	// never depend on GitHub answering.
+	// A commit skips the GitHub lookup only when both the sha and the message
+	// are present. Every fixture sends both.
 	fixtureCommitSHA     = "9f2c1a7"
 	fixtureCommitMessage = "add the KEBAP endpoint"
 	fixtureImage         = "ghcr.io/unkey/kebap:v1"
 	fixtureRepo          = "acme/api"
 )
 
-// TestCreateWritesRowAndStartsDeploy is the happy path, and it pins the whole
-// contract of a single create: one row, its queued step, its audit entry, a
-// Deploy dispatched to the same object, and the invocation id recorded so the
-// deployment can be cancelled.
+// TestCreateWritesRowAndStartsDeploy is the happy path. The recorded
+// invocation id is what makes the deployment cancellable afterwards.
 func TestCreateWritesRowAndStartsDeploy(t *testing.T) {
 	ctx := context.Background()
 	h := newCreateHarness(t, ctx, createHarnessOptions{})
@@ -56,8 +53,6 @@ func TestCreateWritesRowAndStartsDeploy(t *testing.T) {
 	require.Equal(t, h.environmentID, row.EnvironmentID)
 	require.Equal(t, db.DeploymentsTriggerApi, row.Trigger)
 
-	// Deploy ends the queued step it never inserts, so a row without an open one
-	// reports no queue time at all.
 	step := h.queuedStep(t, ctx, deploymentID)
 	require.Nil(t, step, "the queued step must still be open when Deploy has not run")
 
@@ -74,10 +69,10 @@ func TestCreateWritesRowAndStartsDeploy(t *testing.T) {
 	require.Equal(t, 1, h.countAudits(t, ctx, auditlog.DeploymentCreateEvent, deploymentID))
 }
 
-// TestCreateReplaysAnExistingRow pins the permanent half of the idempotency
-// contract. The invocation key only replays inside its retention window; after
-// that the row itself is what stops a repeated create from deploying twice, and
-// it has to keep doing so for as long as the deployment exists.
+// TestCreateReplaysAnExistingRow pins the permanent half of idempotency.
+// Restate replays an invocation key only inside its retention window. Past
+// that, the existing row is the only thing stopping a repeated create from
+// deploying twice.
 func TestCreateReplaysAnExistingRow(t *testing.T) {
 	ctx := context.Background()
 	h := newCreateHarness(t, ctx, createHarnessOptions{})
@@ -90,9 +85,8 @@ func TestCreateReplaysAnExistingRow(t *testing.T) {
 	h.awaitDeploy(t, deploymentID)
 	h.deploys.forget(deploymentID)
 
-	// A different payload under the same id. The answer is still the original
-	// row: a caller reusing a key gets the deployment that key created, not a
-	// silent overwrite of it with whatever they asked for the second time.
+	// A different payload under the same id must still answer with the original
+	// row instead of overwriting it.
 	second := h.imageRequest()
 	second.Source = &hydrav1.DeployCreateRequest_Image{
 		Image: &hydrav1.CreateImageSource{Image: "ghcr.io/unkey/other:v9"},
@@ -109,10 +103,10 @@ func TestCreateReplaysAnExistingRow(t *testing.T) {
 	h.requireNoDeploy(t, deploymentID)
 }
 
-// TestCreateRefusesAForeignRow covers a collision that should be impossible: a
-// derived id hashes the workspace, app and environment, so two targets cannot
-// produce one id. If they ever did, answering with the row that is there would
-// hand the caller someone else's deployment, so the create fails instead.
+// TestCreateRefusesAForeignRow covers a collision that derived ids rule out:
+// the id hashes the workspace, app and environment. If one ever collided,
+// answering with the row that is there would hand the caller someone else's
+// deployment.
 func TestCreateRefusesAForeignRow(t *testing.T) {
 	ctx := context.Background()
 	h := newCreateHarness(t, ctx, createHarnessOptions{})
@@ -132,10 +126,10 @@ func TestCreateRefusesAForeignRow(t *testing.T) {
 	require.Error(t, err, "a row belonging to another app must not be answered as this caller's")
 }
 
-// TestCreateBlocks covers every refusal. Each one is a successful invocation
+// TestCreateBlocks covers the refusals. Each is a successful invocation
 // carrying a reason rather than a failure: the GitHub webhook sends Create
-// one-way, and a workspace that will never be eligible must not leave a trail of
-// failed invocations behind every push.
+// one-way, so a workspace that will never be eligible must not leave a failed
+// invocation behind every push.
 func TestCreateBlocks(t *testing.T) {
 	t.Run("workspace has no Compute plan", func(t *testing.T) {
 		ctx := context.Background()
@@ -149,8 +143,7 @@ func TestCreateBlocks(t *testing.T) {
 	})
 
 	// Observe mode is how the plan gate rolls out: it reports what it would have
-	// stopped without stopping anything. The spend cap is not part of that and
-	// always blocks, which the next case covers.
+	// stopped without stopping anything.
 	t.Run("no plan passes while the gate only observes", func(t *testing.T) {
 		ctx := context.Background()
 		h := newCreateHarness(t, ctx, createHarnessOptions{observeGateOnly: true})
@@ -242,10 +235,8 @@ func TestCreateBlocks(t *testing.T) {
 }
 
 // TestCreatePushReceivedAtBecomesCreatedAt pins what keeps push order. The
-// webhook sends one Create per app asynchronously, so they can land in any
-// order; created_at is what sibling dedup and the supersede check compare, so it
-// has to be the moment the push arrived rather than the moment the row was
-// written.
+// webhook sends one Create per app asynchronously, so they land in any order,
+// and created_at is what sibling dedup and the supersede check compare.
 func TestCreatePushReceivedAtBecomesCreatedAt(t *testing.T) {
 	ctx := context.Background()
 	h := newCreateHarness(t, ctx, createHarnessOptions{})
@@ -260,10 +251,8 @@ func TestCreatePushReceivedAtBecomesCreatedAt(t *testing.T) {
 	require.Equal(t, pushedAt, h.deployment(t, ctx, deploymentID).CreatedAt)
 }
 
-// TestCreateFromExistingDeployment covers the source arm operator rebuilds and
-// redeploys use. What it reproduces depends on what is still reachable: the
-// commit while the app has a repository connection, otherwise the image the
-// source produced.
+// TestCreateFromExistingDeployment covers the source arm behind operator
+// rebuilds and redeploys.
 func TestCreateFromExistingDeployment(t *testing.T) {
 	t.Run("rebuilds the commit while the repository is connected", func(t *testing.T) {
 		ctx := context.Background()
@@ -311,8 +300,8 @@ func TestCreateFromExistingDeployment(t *testing.T) {
 	})
 
 	// An operator rebuild is audited as deployment.rebuild naming both
-	// deployments, so a customer's feed shows which deployment replaced which
-	// and why. The trigger is what marks it: Unkey asked for this one.
+	// deployments, so a customer's feed shows which deployment replaced which.
+	// The trigger is what marks it as Unkey's doing.
 	t.Run("an operator rebuild is audited as a rebuild", func(t *testing.T) {
 		ctx := context.Background()
 		h := newCreateHarness(t, ctx, createHarnessOptions{})
@@ -344,10 +333,9 @@ func TestCreateFromExistingDeployment(t *testing.T) {
 	})
 }
 
-// TestCreateSkipWritesRowWithoutBuilding pins the skipped row. It exists to
-// record that a commit was seen and deliberately not built, so it must survive
-// conditions that would refuse a real deployment: it has no build source, so
-// nothing about resolving one may stand in its way.
+// TestCreateSkipWritesRowWithoutBuilding pins the skipped row: it records a
+// commit that was seen and deliberately not built, so conditions that refuse a
+// real deployment, such as a missing repository connection, must not refuse it.
 func TestCreateSkipWritesRowWithoutBuilding(t *testing.T) {
 	ctx := context.Background()
 	h := newCreateHarness(t, ctx, createHarnessOptions{})
@@ -374,9 +362,9 @@ func TestCreateSkipWritesRowWithoutBuilding(t *testing.T) {
 	h.requireNoDeploy(t, deploymentID)
 }
 
-// TestCreateAwaitApprovalDoesNotBuild pins the fork-PR row: it is written and
-// left alone. Only AuthorizeDeployment may start it building, and until then
-// external code must not run.
+// TestCreateAwaitApprovalDoesNotBuild pins the fork-PR row: only
+// AuthorizeDeployment may start it building, so until then no external code
+// runs.
 func TestCreateAwaitApprovalDoesNotBuild(t *testing.T) {
 	ctx := context.Background()
 	h := newCreateHarness(t, ctx, createHarnessOptions{})

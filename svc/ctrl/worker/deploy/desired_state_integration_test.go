@@ -21,9 +21,9 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/worker/deploy"
 )
 
-// TestChangeDesiredStateNoOpsWhenDeploymentDeleted: a delayed
-// ChangeDesiredState whose deployment row was cascade-deleted after
-// scheduling must succeed as a no-op instead of retrying forever.
+// TestChangeDesiredStateNoOpsWhenDeploymentDeleted pins that a delayed
+// ChangeDesiredState whose deployment row was cascade-deleted after scheduling
+// succeeds as a no-op instead of retrying forever.
 func TestChangeDesiredStateNoOpsWhenDeploymentDeleted(t *testing.T) {
 	ctx := context.Background()
 	h := newDesiredStateHarness(t, ctx)
@@ -55,9 +55,8 @@ func TestChangeDesiredStateNoOpsWhenDeploymentDeleted(t *testing.T) {
 	require.NoError(t, err)
 }
 
-// TestStopDeploymentAppliesStateInline pins the stop contract: when the
-// request returns, the deployment's desired state, its topology rows, and the
-// change feed all record the stop. The apply is inline, so no waiting.
+// TestStopDeploymentAppliesStateInline pins that the stop is applied before
+// the request returns, so nothing here waits on an asynchronous apply.
 func TestStopDeploymentAppliesStateInline(t *testing.T) {
 	ctx := context.Background()
 	h := newDesiredStateHarness(t, ctx)
@@ -83,9 +82,9 @@ func TestStopDeploymentAppliesStateInline(t *testing.T) {
 }
 
 // TestWakeDeploymentSupersedesPendingStop is the scenario the inline apply
-// exists for: a stop is already scheduled when a user wakes the deployment.
-// The wake supersedes the pending transition, so the delayed
-// ChangeDesiredState fires, finds nothing, and the deployment stays running.
+// exists for: a user wakes a deployment that already has a stop scheduled. The
+// wake supersedes the pending transition, so the delayed ChangeDesiredState
+// fires, finds nothing, and the deployment stays running.
 func TestWakeDeploymentSupersedesPendingStop(t *testing.T) {
 	ctx := context.Background()
 	h := newDesiredStateHarness(t, ctx)

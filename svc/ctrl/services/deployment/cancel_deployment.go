@@ -23,18 +23,18 @@ import (
 const cancelledByUserMessage = "Cancelled by user"
 
 // CancelDeployment aborts an in-flight deployment through
-// [deploycancel.Cancel]: it stamps any active steps with "Cancelled by user",
-// transitions the deployment to cancelled, asks Restate to cancel the
-// invocation, and audits the cancel with the actor the request carries (a
-// request without an actor is not audited).
+// [deploycancel.Cancel]: active steps are stamped with "Cancelled by user", the
+// row transitions to cancelled, Restate is asked to cancel the invocation, and
+// the cancel is audited with the actor the request carries. A request without
+// an actor is not audited.
 //
 // Idempotent:
 //   - Deployments already in a terminal status (ready/failed/skipped/stopped)
 //     return success without calling Restate.
-//   - Deployments without a stored invocation ID are still marked cancelled;
-//     the create persists the id just after sending Deploy, so a cancel can
-//     land while the column reads NULL. Deploy re-persists the id and checks
-//     for a terminal status before building, so the cancelled row stops it.
+//   - Deployments without a stored invocation ID are still marked cancelled:
+//     the id is persisted just after Deploy is sent, so a cancel can land
+//     while the column reads NULL, and Deploy checks for a terminal status
+//     before it builds.
 //   - Restate returning 404 is treated as success — the workflow already
 //     finished in the gap between lookup and cancel.
 func (s *Service) CancelDeployment(
@@ -79,8 +79,8 @@ func (s *Service) CancelDeployment(
 			fmt.Errorf("restate admin client is not configured"))
 	}
 
-	// The nil check cannot move into the helper: a nil *Client in a non-nil
-	// interface value would pass its admin != nil guard and panic.
+	// This check stays out of [deploycancel.Cancel]: a nil *Client wrapped in a
+	// non-nil interface value passes its admin != nil guard and then panics.
 	var canceler deploycancel.InvocationCanceler
 	if s.restateAdmin != nil {
 		canceler = s.restateAdmin

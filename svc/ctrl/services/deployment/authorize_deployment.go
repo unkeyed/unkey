@@ -50,11 +50,9 @@ func (s *Service) AuthorizeDeployment(ctx context.Context, req *connect.Request[
 		return nil, err
 	}
 
-	// One load for the build settings and the repository connection, before the
-	// status changes, so a lookup failure does not leave the deployment stuck as
-	// pending. The target is scoped to this app, which is what the connection
-	// is unique by; looking it up per project would pick an arbitrary row for a
-	// project whose apps point at different repositories.
+	// Loaded before the status changes, so a lookup failure does not leave the
+	// deployment stuck as pending. The target is scoped to the app because a
+	// repository connection is unique per app, not per project.
 	target, err := deploytarget.Load(ctx, s.db,
 		deployment.ProjectID, deployment.AppID, deployment.EnvironmentID, deploytarget.WithoutSecrets)
 	if err != nil {
@@ -168,12 +166,11 @@ func (s *Service) AuthorizeDeployment(ctx context.Context, req *connect.Request[
 		)
 	}
 
-	// Replace the failing "awaiting authorization" commit status that Create
-	// posted. GitHubStatusService owns the status context string, so both
-	// writes land on the same check instead of stacking a second one. Send,
-	// not Request: the status is best-effort by design and the handler logs
-	// its own GitHub failures, so an unreachable GitHub cannot fail an
-	// authorization that already dispatched the build.
+	// Replace the blocking "awaiting authorization" commit status that Create
+	// posted. GitHubStatusService owns the status context string, so this write
+	// updates that same check instead of adding a second one. Send, not Request:
+	// the build is already dispatched, so an unreachable GitHub must not fail
+	// the call.
 	if commitSHA != "" {
 		if _, statusErr := hydrav1.NewGitHubStatusServiceIngressClient(s.restate, deploymentID).
 			SetCommitStatus().
@@ -189,10 +186,9 @@ func (s *Service) AuthorizeDeployment(ctx context.Context, req *connect.Request[
 		}
 	}
 
-	// Written here rather than in the dashboard: ctrl is the single writer for
-	// this event, so an authorization from any caller is audited once. A
-	// request without an actor is not audited at all, because a fabricated
-	// system actor would be worse than a missing entry.
+	// ctrl is the single writer of this event, so an authorization from any
+	// caller is audited exactly once. A request without an actor writes nothing:
+	// a fabricated system actor would be worse than a missing entry.
 	if a := req.Msg.GetActor(); a != nil {
 		if auditErr := s.auditlogs.Insert(ctx, nil, []auditlog.AuditLog{
 			{

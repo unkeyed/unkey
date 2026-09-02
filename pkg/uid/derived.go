@@ -8,24 +8,21 @@ import (
 )
 
 // derivedBytes is how much of the digest feeds the identifier. Sixteen bytes
-// encode to 22 base58 characters, so a derived deployment id is 24 characters
-// including its prefix and fits the varchar(48) id columns. It also leaves the
-// collision probability far below the point where a tenant could reach it: the
-// scope already contains the workspace, so a collision would have to happen
-// inside one customer's own keys.
+// encode to 22 base58 characters, so a prefixed deployment id is 24 characters
+// and fits the varchar(48) id columns. Sixteen bytes also keep a collision out
+// of reach inside the single workspace a scope covers.
 const derivedBytes = 16
 
-// Derived builds a deterministic identifier from scope parts, so a caller that
+// Derived builds a deterministic identifier from scope parts. A caller that
 // repeats the same request computes the same id and lands on the same Restate
-// virtual object. Order matters and the parts are joined with a separator that
-// cannot appear inside an id, so ("a", "bc") and ("ab", "c") differ.
+// virtual object. The parts are joined with a separator no id can contain, so
+// order and boundaries matter: ("a", "bc") and ("ab", "c") differ.
 //
-// Always include the tenant in the scope. Without it two workspaces sending the
-// same idempotency key would derive one id and collide across the tenant
-// boundary.
+// Always put the tenant in the scope. Without it, two workspaces that send the
+// same idempotency key derive one id and collide across the tenant boundary.
 //
-// This is a hash, not a secret: it is derived from values the caller already
-// knows, so it must never be used where an id has to be unguessable.
+// The result is a hash of values the caller already knows, so never use it
+// where an id has to be unguessable.
 func Derived(prefix Prefix, scope ...string) string {
 	digest := sha256.Sum256([]byte(strings.Join(scope, "\x00")))
 	encoded := base58.Encode(digest[:derivedBytes])

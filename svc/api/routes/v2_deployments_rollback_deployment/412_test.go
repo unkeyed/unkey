@@ -230,10 +230,9 @@ func TestRollbackDeploymentSourceMustShareEnvironment(t *testing.T) {
 	require.Contains(t, res.Body.Error.Detail, "same app and environment")
 }
 
-// A rollback restarts the target's compute, so the spend cap blocks it here.
-// This route is the only gate on that: the ctrl RPC that used to re-check
-// billing is gone, and the worker's rollback handler checks the deployment's
-// state, not the workspace's bill.
+// TestRollbackDeploymentSpendSuspended pins the spend cap on rollback, which
+// restarts the target's compute. This route is the only gate: the worker's
+// rollback handler checks the deployment's state, not the workspace's bill.
 func TestRollbackDeploymentSpendSuspended(t *testing.T) {
 	h := testutil.NewHarness(t)
 	route := newRoute(h, newUncalledRestate(t))

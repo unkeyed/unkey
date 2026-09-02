@@ -17,9 +17,8 @@ import (
 	"google.golang.org/protobuf/encoding/protojson"
 )
 
-// Target bundles everything a deployment create needs to know about where it
-// deploys to. The embedded row carries only the columns the create writes or
-// branches on, so a create needing another one adds it to the query.
+// Target bundles what a deployment create needs to know about where it deploys
+// to. The embedded row carries only the columns a create writes or branches on.
 type Target struct {
 	db.FindDeployTargetRow
 
@@ -29,8 +28,8 @@ type Target struct {
 }
 
 // TerminalError marks a load failure no retry can fix: the request names
-// resources that do not exist or do not belong together. Transient failures
-// (a broken read, a marshal error) come back as plain errors instead. Code is
+// resources that do not exist or do not belong together. Transient failures, a
+// broken read or a marshal error, come back as plain errors instead. Code is
 // the connect code ctrl answers with; the create worker ignores it and fails
 // terminally on any TerminalError.
 type TerminalError struct {
@@ -47,9 +46,8 @@ func terminal(code connect.Code, format string, args ...any) error {
 }
 
 // SecretsMode selects whether Load fetches the environment's variables and
-// marshals the secrets blob. Only the create worker consumes the blob, on
-// the deployment row; ctrl validates targets without it, which saves the
-// env var query on every create.
+// marshals the secrets blob. Only the create worker consumes the blob, on the
+// deployment row; ctrl validates targets without it.
 type SecretsMode bool
 
 const (

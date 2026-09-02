@@ -7,7 +7,7 @@ import (
 )
 
 // Service implements the GitHubWebhookService virtual object for processing
-// GitHub push events durably via Restate. Keyed by "{installation_id}/{repo_id}"
+// GitHub push events durably via Restate. Keyed by "{installation_id}:{repo_id}"
 // to serialize webhook processing per repository.
 type Service struct {
 	hydrav1.UnimplementedGitHubWebhookServiceServer

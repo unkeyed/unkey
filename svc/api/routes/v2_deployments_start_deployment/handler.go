@@ -81,9 +81,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	// A missing billing row means the workspace was never linked to billing and
 	// is not suspended.
-	// LoadBilling rather than EnsureWorkspaceCanDeploy: the spend check belongs
-	// after the lifecycle gate below, so a deployment that cannot be started at
-	// all reports that rather than a billing reason.
+	// LoadBilling rather than EnsureWorkspaceCanDeploy: CheckStartTarget below
+	// runs the spend check last, so a deployment that cannot be started at all
+	// reports that instead of a billing reason.
 	billing, err := deployment.LoadBilling(ctx, h.DB, principal.WorkspaceID)
 	if err != nil {
 		return err

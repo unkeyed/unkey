@@ -50,9 +50,8 @@ func newRecordingRestate(t *testing.T) (*restateingress.Client, <-chan observedC
 	return restateingress.NewClient(restateConfig.IngressURL), recorder.creates
 }
 
-// newUncalledRestate fails during cleanup if Create was invoked, which is how
-// the validation, authorization, and gate tests prove the request never reached
-// the control plane.
+// newUncalledRestate fails during cleanup if Create was invoked. The validation,
+// authorization, and gate tests use it to prove they refuse before submitting.
 func newUncalledRestate(t *testing.T) *restateingress.Client {
 	t.Helper()
 

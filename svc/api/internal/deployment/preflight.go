@@ -11,8 +11,7 @@ import (
 )
 
 // IdempotencyKeyHeader is the header a caller repeats to retry a create without
-// producing a second deployment. Both create routes read the same name, so it
-// lives here rather than as a literal in each of them.
+// producing a second deployment.
 const IdempotencyKeyHeader = "Idempotency-Key"
 
 // idempotencyKeyBytesMax matches the bound the email client applies to the same
@@ -36,11 +35,10 @@ func ValidateIdempotencyKey(key string) error {
 
 // EnsureWorkspaceCanDeploy refuses an action that creates or activates compute
 // for a workspace with no Compute plan or one stopped by its spend cap. The
-// faults it returns already carry precondition codes, so a handler returns them
-// as they are.
+// faults carry precondition codes, so a handler returns them unchanged.
 //
-// Callers whose own state gate has to be reported first, such as the start
-// route, use [LoadBilling] and order the checks themselves.
+// A caller that has to report its own state gate first, such as the start
+// route, uses [LoadBilling] and orders the checks itself.
 func EnsureWorkspaceCanDeploy(ctx context.Context, database db.Database, workspaceID string) error {
 	billing, err := LoadBilling(ctx, database, workspaceID)
 	if err != nil {
@@ -53,11 +51,10 @@ func EnsureWorkspaceCanDeploy(ctx context.Context, database db.Database, workspa
 	return deploygate.CheckWorkspaceSpend(billing.SpendSuspended)
 }
 
-// LoadBilling reads a workspace's Compute billing state from the PRIMARY: a
+// LoadBilling reads a workspace's Compute billing state from the primary: a
 // workspace suspended moments ago must not slip an action through on a stale
-// replica. A workspace with no billing row reads as the zero value, which is
-// the normal state before anyone subscribes and means "no plan, not
-// suspended".
+// replica. A workspace with no billing row reads as the zero value, meaning no
+// plan and not suspended, which is the normal state before anyone subscribes.
 func LoadBilling(ctx context.Context, database db.Database, workspaceID string) (db.FindWorkspaceBillingByWorkspaceIDRow, error) {
 	billing, err := db.Query.FindWorkspaceBillingByWorkspaceID(ctx, database.RW(), workspaceID)
 	if err != nil && !db.IsNotFound(err) {

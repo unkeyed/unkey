@@ -10,9 +10,9 @@ enum ActorType {
   ACTOR_TYPE_ROOT_KEY = 2;
   ACTOR_TYPE_SYSTEM = 3;
 
-  // GITHUB is a GitHub event, not a person using Unkey: the id is the pusher's
-  // GitHub login. Distinct from SYSTEM so a deployment a contributor caused is
-  // not attributed to Unkey itself.
+  // GITHUB is a GitHub event rather than a person using Unkey, and the actor id
+  // is the pusher's GitHub login. Separate from SYSTEM so work a contributor
+  // caused is not attributed to Unkey itself.
   ACTOR_TYPE_GITHUB = 4;
 }
 

@@ -48,18 +48,18 @@ type Newer struct {
 // CancelOlderSiblings finds deployments for the same (app, environment,
 // branch) that were created before newer and are still in the build queue
 // (status `pending` or `awaiting_approval` -- haven't acquired a build slot
-// yet), then hands them to deploycancel: superseded status, no audit entries
-// (machine-initiated, the customer never asked for it).
+// yet), then hands them to deploycancel with the superseded status and no
+// audit entries: the cancel is machine-initiated and has no actor.
 //
 // Once a deployment transitions out of `pending` (acquired a build slot and
 // moved to `starting`/`building`/etc), it is committed and will not be
 // superseded by a newer commit. This avoids the pathological "rapid pushes
 // keep cancelling builds and nothing ever finishes" scenario.
 //
-// Best-effort: failed invocation cancels don't stop the remaining siblings;
-// they come back joined in the returned error for the caller to log. The rows
-// are superseded either way, and Deploy refuses to build a terminal row, so a
-// missed cancel cannot resurrect a sibling.
+// Best-effort. A failed invocation cancel does not stop the remaining siblings;
+// the failures come back joined in the returned error for the caller to log.
+// The rows are superseded either way, and Deploy refuses to build a terminal
+// row, so a missed cancel cannot resurrect a sibling.
 //
 // Only git-sourced deployments with a branch are deduplicated -- docker
 // image redeploys are manual and should never cancel siblings.
@@ -100,8 +100,8 @@ func (s *Service) CancelOlderSiblings(ctx context.Context, newer Newer) error {
 		targets = append(targets, deploycancel.Target{ID: old.ID, InvocationID: invocationID})
 	}
 
-	// The nil check cannot move into the helper: a nil *Client in a non-nil
-	// interface value would pass its admin != nil guard and panic.
+	// The nil check cannot move into deploycancel: a nil *Client wrapped in a
+	// non-nil interface value passes its admin == nil guard and then panics.
 	var canceler deploycancel.InvocationCanceler
 	if s.admin != nil {
 		canceler = s.admin

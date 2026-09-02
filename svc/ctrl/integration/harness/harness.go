@@ -272,8 +272,9 @@ func New(t *testing.T, opts ...Option) *Harness {
 		RegistryConfig:                  deploy.RegistryConfig{Repository: "", Username: "", Password: "", Insecure: false},
 		BuildPlatform:                   deploy.BuildPlatform{Platform: "", Architecture: ""},
 		AllowUnauthenticatedDeployments: false,
-		// Nil admin: a superseded sibling's row is still marked, its invocation
-		// just keeps running. Enforcement off matches production's rollout state.
+		// With a nil admin a superseded sibling's row is still marked; only its
+		// invocation keeps running. The deploy gate stays off so fixtures without
+		// a billing plan still deploy.
 		RestateAdmin:      nil,
 		EnforceDeployGate: false,
 	})

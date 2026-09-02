@@ -9,9 +9,8 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
 
-// InvocationCanceler cancels a running Restate invocation by id. Satisfied by
-// pkg/restate/admin.Client; an interface so tests can observe cancels without
-// a live admin API.
+// InvocationCanceler cancels a running Restate invocation by id.
+// pkg/restate/admin.Client satisfies it, and tests substitute a recorder.
 type InvocationCanceler interface {
 	CancelInvocation(ctx context.Context, invocationID string) error
 }

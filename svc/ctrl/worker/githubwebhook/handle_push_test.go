@@ -32,10 +32,9 @@ import (
 	"google.golang.org/protobuf/encoding/protojson"
 )
 
-// The build and runtime settings every fixture app carries. They are
-// deliberately unlike the seeder's defaults, so an assertion on a deployment
-// row proves the row was filled from this app's settings instead of from a
-// default that happened to match.
+// The build and runtime settings every fixture app carries. They differ from
+// the seeder's defaults, so an assertion on a deployment row proves the row was
+// filled from this app's settings and not from a default that happened to match.
 const (
 	fixtureDockerfile               = "docker/KEBAP.Dockerfile"
 	fixtureDockerContext            = "services/kebap"
@@ -57,9 +56,9 @@ const (
 var fixtureCommand = mysqltype.StringSlice{"./KEBAP", "serve"}
 
 // TestHandlePushSkipsWhenNotDeployable pins the two reasons a matched app
-// records the push but builds nothing. Both leave a row behind on purpose: the
-// dashboard reads deployments to show that a commit arrived, so dropping the
-// push silently would make the commit invisible to the user.
+// records the push but builds nothing. Both leave a row behind: the dashboard
+// reads deployments to show that a commit arrived, so a silent drop would make
+// the commit invisible to the user.
 func TestHandlePushSkipsWhenNotDeployable(t *testing.T) {
 	ctx := context.Background()
 	h := newPushHarness(t, ctx)
@@ -74,8 +73,8 @@ func TestHandlePushSkipsWhenNotDeployable(t *testing.T) {
 		require.Equal(t, app.productionEnvID, row.environmentID,
 			"a push to the default branch belongs to the production environment")
 
-		// Nothing may reach the deploy workflow: auto_deploy off is the user
-		// asking for manual control, and a build here would spend their money.
+		// auto_deploy off is the user asking for manual control, so a build here
+		// would spend their money.
 		h.requireNoDeploy(t, row.id)
 	})
 
@@ -91,10 +90,9 @@ func TestHandlePushSkipsWhenNotDeployable(t *testing.T) {
 	})
 }
 
-// TestHandlePushQueuesGitDeployment pins the whole successful path: what the
-// row says, that the deploy workflow was handed the commit, and that the
-// invocation id came back onto the row. The invocation id is what a later
-// cancel needs; a deployment created without it can never be stopped.
+// TestHandlePushQueuesGitDeployment pins the successful path. The part easiest
+// to lose is the invocation id landing back on the row: a cancel needs it, so a
+// deployment created without one can never be stopped.
 func TestHandlePushQueuesGitDeployment(t *testing.T) {
 	ctx := context.Background()
 	h := newPushHarness(t, ctx)
@@ -109,9 +107,8 @@ func TestHandlePushQueuesGitDeployment(t *testing.T) {
 		row := h.awaitDeployment(t, ctx, app.id, hasStatus(mysqltype.DeploymentsStatusPending))
 		require.Equal(t, app.productionEnvID, row.environmentID)
 
-		// The git columns are the deployment's provenance. The dashboard shows
-		// them and a rebuild resolves the source from them, so a lost field is
-		// a deployment nobody can trace back to a commit.
+		// A rebuild resolves the source from these columns, so a lost field is a
+		// deployment nobody can trace back to a commit.
 		require.Equal(t, push.GetAfter(), row.commitSHA.String)
 		require.Equal(t, push.GetBranch(), row.branch.String)
 		require.Equal(t, push.GetCommitMessage(), row.commitMessage.String)
@@ -124,14 +121,14 @@ func TestHandlePushQueuesGitDeployment(t *testing.T) {
 		require.False(t, row.prNumber.Valid)
 		require.False(t, row.forkRepository.Valid)
 
-		// Attribution: billing and the audit trail both distinguish a webhook
-		// deployment from a CLI or dashboard one.
+		// Billing and the audit trail both distinguish a webhook deployment from
+		// a CLI or dashboard one.
 		require.Equal(t, string(db.DeploymentsTriggerGithub), row.trigger)
 		require.Equal(t, push.GetSenderLogin(), row.triggeredBy.String)
 
-		// The row, not the app settings, is what provisions the container, so
-		// the runtime shape has to be copied at creation time. A later edit to
-		// the app must not retroactively change a running deployment.
+		// The row, not the app settings, provisions the container, so the runtime
+		// shape is copied at creation time. A later edit to the app must not
+		// change a running deployment.
 		require.Equal(t, fixtureCPUMillicores, row.cpuMillicores)
 		require.Equal(t, fixtureMemoryMiB, row.memoryMib)
 		require.Equal(t, fixturePort, row.port)
@@ -142,9 +139,8 @@ func TestHandlePushQueuesGitDeployment(t *testing.T) {
 		// Deploy only ends the queued step and never inserts one.
 		h.requireOpenQueuedStep(t, ctx, row.id)
 
-		// The Deploy payload is the entire build instruction. Everything the
-		// builder needs to fetch and build the code has to be in it, because
-		// the workflow gets no other input.
+		// The Deploy payload is the whole build instruction. The workflow gets no
+		// other input, so a field missing here is a field the builder never sees.
 		sent := h.awaitDeploy(t, row.id)
 		require.Equal(t, row.id, sent.GetDeploymentId())
 		git := sent.GetGit()
@@ -173,9 +169,9 @@ func TestHandlePushQueuesGitDeployment(t *testing.T) {
 
 		h.push(t, ctx, target.newPush(fixtureDefaultBranch, []string{fixtureMatchingFile}))
 
-		// The blob is the only copy of the secrets the container will start
-		// with: the deploy workflow never re-reads app_environment_variables,
-		// so a variable missing here is a variable missing at runtime.
+		// The blob is the only copy of the secrets the container starts with. The
+		// deploy workflow never re-reads app_environment_variables, so a variable
+		// missing here is a variable missing at runtime.
 		row := h.awaitDeployment(t, ctx, app.id, hasStatus(mysqltype.DeploymentsStatusPending))
 		requireSecrets(t, row.envVars, map[string]string{"MEAL": "KEBAP", "SIDE": "ayran"})
 	})
@@ -195,9 +191,9 @@ func TestHandlePushForkPRAwaitsApproval(t *testing.T) {
 		previewEnvVars:    map[string]string{"MEAL": "preview-KEBAP"},
 	})
 
-	// The head ref is the default branch on purpose: a fork PR opened from the
-	// contributor's own main must still resolve to preview, so this proves the
-	// fork flag decides the environment rather than the branch name.
+	// The head ref is the default branch: a fork PR opened from the contributor's
+	// own main must still resolve to preview, so the fork flag and not the branch
+	// name decides the environment.
 	push := target.newPush(fixtureDefaultBranch, nil)
 	push.IsForkPr = true
 	push.PrNumber = nextGitHubID()%9000 + 1000
@@ -271,8 +267,7 @@ func TestHandlePushDropsIneligibleWorkspaces(t *testing.T) {
 
 // TestHandlePushDecidesEachMatchedAppSeparately pins the monorepo case: one
 // repository feeds several apps, and watch paths are what keeps a commit in one
-// service from rebuilding all of them. One push therefore has to produce a
-// different verdict per app.
+// service from rebuilding all of them.
 func TestHandlePushDecidesEachMatchedAppSeparately(t *testing.T) {
 	ctx := context.Background()
 	h := newPushHarness(t, ctx)
@@ -318,9 +313,8 @@ func newPushHarness(t *testing.T, ctx context.Context) *pushHarness {
 	auditlogSvc, err := auditlogs.New(auditlogs.Config{DB: database})
 	require.NoError(t, err)
 
-	// The real Create, so a push produces a real row. EnforceDeployGate is on
-	// here too: Create runs the same gate the webhook does, and a fixture that
-	// only satisfied one of them would prove less than it looks.
+	// The real Create, so a push produces a real deployment row. It applies the
+	// same deploy gate the webhook does, and both are enforced here.
 	workflow, err := deploy.New(deploy.Config{
 		DB:            database,
 		Auditlogs:     auditlogSvc,
@@ -350,9 +344,8 @@ func newPushHarness(t *testing.T, ctx context.Context) *pushHarness {
 		requests: make(map[string]*hydrav1.DeployRequest),
 	}
 
-	// EnforceDeployGate is on for every test so the entitlement each fixture
-	// seeds is what decides the outcome. In warn-only mode an unentitled
-	// workspace deploys anyway and the gate scenarios would prove nothing.
+	// EnforceDeployGate is on so the entitlement each fixture seeds decides the
+	// outcome. In warn-only mode an unentitled workspace deploys anyway.
 	svc := githubwebhook.New(githubwebhook.Config{
 		DB:                              database,
 		GitHub:                          gh,
@@ -361,9 +354,9 @@ func newPushHarness(t *testing.T, ctx context.Context) *pushHarness {
 	})
 
 	// Restate retries a call to an unregistered service indefinitely, so every
-	// service reachable from this push has to be bound. GitHubStatusService is
-	// reachable: Create sends it the awaiting-authorization commit status for a
-	// fork PR, and an unbound one would hang that test rather than fail it.
+	// service reachable from this push has to be bound. Create sends
+	// GitHubStatusService the awaiting-authorization commit status for a fork PR,
+	// and leaving it unbound would hang that test rather than fail it.
 	ingressCfg := containers.Restate(t,
 		hydrav1.NewGitHubWebhookServiceServer(svc),
 		hydrav1.NewDeployServiceServer(deploys),
@@ -599,8 +592,8 @@ func (target deployTarget) newPush(branch string, changedFiles []string) *hydrav
 func (h *pushHarness) push(t *testing.T, ctx context.Context, req *hydrav1.HandlePushRequest) {
 	t.Helper()
 
-	// ctrl-api builds the object key with a colon, not the slash the service
-	// comment shows, because Restate reads a slash as a path separator.
+	// Restate reads a slash in an object key as a path separator, so ctrl-api
+	// joins the installation and repository ids with a colon.
 	key := fmt.Sprintf("%d:%d", req.GetInstallationId(), req.GetRepositoryId())
 	_, err := hydrav1.NewGitHubWebhookServiceIngressClient(h.ingress.IngressClient, key).
 		HandlePush().
@@ -608,7 +601,7 @@ func (h *pushHarness) push(t *testing.T, ctx context.Context, req *hydrav1.Handl
 	require.NoError(t, err)
 }
 
-// deploymentRow is the part of a deployments row HandlePush is responsible for
+// deploymentRow is the part of a deployments row a push is responsible for
 // filling in.
 type deploymentRow struct {
 	id              string
@@ -661,8 +654,8 @@ func (h *pushHarness) listDeployments(ctx context.Context, appID string) ([]depl
 }
 
 // awaitDeployment polls for the single deployments row of an app that satisfies
-// ready. Polling rather than reading once keeps the assertion true for an
-// implementation that writes the row from somewhere off the request path.
+// ready. The push only sends to Create, so the row is not there yet when the
+// push returns.
 func (h *pushHarness) awaitDeployment(
 	t *testing.T,
 	ctx context.Context,
@@ -689,8 +682,8 @@ func hasStatus(want mysqltype.DeploymentsStatus) func(deploymentRow) bool {
 	return func(row deploymentRow) bool { return row.status == string(want) }
 }
 
-// requireNoDeployment holds the window open long enough that a row written off
-// the request path would have landed, then fails if one appeared.
+// requireNoDeployment holds the window open long enough that a row from an
+// asynchronous Create would have landed, then fails if one appeared.
 func (h *pushHarness) requireNoDeployment(t *testing.T, ctx context.Context, appID string) {
 	t.Helper()
 
@@ -723,17 +716,13 @@ func requireSecrets(t *testing.T, blob []byte, want map[string]string) {
 	require.Equal(t, want, secrets.GetSecrets())
 }
 
-// deployRecorder stands in for the deploy workflow. Invocations are indexed by
-// deployment id rather than queued: a Send lands asynchronously, so a deploy
-// from an earlier scenario can arrive during a later one and must not be
-// mistaken for it.
-// deployRecorder is the real DeployService with only Deploy stubbed out.
+// deployRecorder is the real DeployService with only Deploy stubbed out, since
+// building is not what these tests observe. Every other handler, Create above
+// all, keeps its real behavior through the embedded workflow.
 //
-// The webhook no longer writes deployment rows: it sends Create, and Create
-// writes the row and then sends Deploy to itself. So the real Create has to run
-// for these tests to observe anything, while Deploy stays a stand-in because
-// building is not what is under test. Embedding the workflow gives every other
-// handler its real behavior.
+// Invocations are indexed by deployment id rather than queued: a Send lands
+// asynchronously, so a Deploy from an earlier scenario can arrive during a
+// later one and must not be mistaken for it.
 type deployRecorder struct {
 	*deploy.Workflow
 	mu       sync.Mutex
@@ -775,9 +764,9 @@ func (h *pushHarness) requireNoDeploy(t *testing.T, deploymentID string) {
 	}, 5*time.Second, 100*time.Millisecond, "deployment %s must not have been handed to Deploy", deploymentID)
 }
 
-// fakeGitHub answers the two calls HandlePush can make. Embedding Noop covers
-// the rest of the interface with methods that return errors, so an unexpected
-// call fails loudly instead of passing silently.
+// fakeGitHub answers the GitHub calls a push reaches. Embedding Noop covers the
+// rest of the interface with methods that return errors, so an unexpected call
+// fails loudly instead of passing silently.
 type fakeGitHub struct {
 	*githubclient.Noop
 	mu          sync.Mutex

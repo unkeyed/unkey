@@ -13,36 +13,32 @@ import (
 )
 
 const (
-	// rebuildActorID and rebuildActorName are the synthetic actor recorded on an
-	// operator rebuild. There is no human user id at this boundary: the bearer
-	// token is the auth boundary, so every rebuild is attributed to the same
-	// actor and the reason on the new row carries the incident detail.
+	// rebuildActorID and rebuildActorName name the synthetic actor recorded on an
+	// operator rebuild. The bearer token is the only identity at this boundary,
+	// so every rebuild shares one actor and the reason carries the detail.
 	rebuildActorID   = "unkey-ops"
 	rebuildActorName = "Unkey Ops"
 )
 
 // Rebuild creates a new deployment that re-runs what the source deployment ran:
 // its commit when the app still has a repository connection, otherwise its
-// image. The new deployment inherits the app's current runtime settings and
-// environment variables, so configuration drift since the source applies, which
-// is the point for a hotfix or a settings rollout as much as for image-loss
-// recovery.
+// image. The new deployment takes the app's current runtime settings and
+// environment variables, so any configuration drift since the source applies.
 //
 // Unless force is set, it refuses when a newer active deployment exists on the
-// same app, environment, and branch: resurrecting an older deployment past
-// something already shipped is almost never what an operator meant.
+// same app, environment, and branch, because resurrecting a deployment past
+// something already shipped is rarely what an operator meant.
 //
-// The row is written by DeployService.Create, which also records the
-// deployment.rebuild audit entry. No idempotency key: an operator asking twice
-// means twice.
+// DeployService.Create writes the row and the deployment.rebuild audit entry.
+// There is no idempotency key: asking twice rebuilds twice.
 func (s *Service) Rebuild(ctx context.Context, sourceDeploymentID, reason string, force bool) (string, error) {
 	if sourceDeploymentID == "" {
 		return "", connect.NewError(connect.CodeInvalidArgument,
 			fmt.Errorf("deployment_id is required"))
 	}
 
-	// The source row supplies the target. Create resolves the source deployment
-	// again for the artifact; this read is for project, app, and environment.
+	// This read supplies the project, app, and environment only. Create resolves
+	// the source deployment again for the artifact.
 	src, err := s.db.FindDeploymentById(ctx, sourceDeploymentID)
 	if err != nil {
 		if db.IsNotFound(err) {
@@ -95,8 +91,8 @@ func (s *Service) Rebuild(ctx context.Context, sourceDeploymentID, reason string
 	}
 
 	if resp.GetOutcome() == hydrav1.CreateOutcome_CREATE_OUTCOME_BLOCKED {
-		// The text explaining the reason is in the worker's logs, filed under the
-		// deployment id above.
+		// Only the enum crosses the wire. The worker logs the explanation under
+		// the deployment id above.
 		return "", connect.NewError(connect.CodeFailedPrecondition,
 			fmt.Errorf("rebuild blocked: %s", resp.GetBlockedReason().String()))
 	}

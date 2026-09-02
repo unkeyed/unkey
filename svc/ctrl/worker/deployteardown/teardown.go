@@ -92,14 +92,13 @@ func (v *VirtualObject) Teardown(
 			}
 		}
 
-		// A still-progressing deployment has a live Deploy invocation holding
-		// its key, so the stop Send below queues behind the whole build: the
-		// workspace keeps buying compute until the build finishes, and the
-		// drain poll cannot account for instances that appear afterwards.
-		// Admin cancellation is the one signal that reaches a running
-		// invocation instead of its inbox: Deploy aborts at its next journaled
-		// step and its compensations unwind the build. CancelInvocation
-		// treats 404 as success, so a build that just finished is harmless.
+		// A progressing deployment holds its own key with a live Deploy
+		// invocation, so the stop Send below queues behind the whole build while
+		// the workspace keeps buying compute. Admin cancellation is the one
+		// signal that reaches a running invocation instead of its inbox: Deploy
+		// aborts at its next journaled step and its compensations unwind the
+		// build. CancelInvocation treats 404 as success, so a build that just
+		// finished is harmless.
 		if v.admin != nil && !d.Status.IsTerminal() && d.InvocationID.Valid && d.InvocationID.String != "" {
 			invocationID := d.InvocationID.String
 			if err := restate.RunVoid(ctx, func(rc restate.RunContext) error {

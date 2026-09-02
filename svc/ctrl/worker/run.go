@@ -303,18 +303,18 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("failed to create deploy workflow: %w", err)
 	}
 
-	// Exponential backoff 2s..30s, 15 attempts (~5 min): short intervals keep
-	// user cancels responsive (a cancel lands at the next attempt boundary),
-	// and persistent failures surface fast. PauseOnMaxAttempts, not Kill:
-	// KILL tears the invocation down without re-entering the handler, so the
-	// deferred compensations never run.
+	// A cancel only lands at the next attempt boundary, so short intervals keep
+	// cancels responsive, and the ~5 minute ceiling makes a persistent failure
+	// surface fast. PauseOnMaxAttempts rather than Kill: KILL tears the
+	// invocation down without re-entering the handler, so the deferred
+	// compensations never run.
 	//
-	// Bound per handler, not on the service, so the desired-state handlers
-	// (ScheduleDesiredStateChange, ChangeDesiredState,
-	// ClearScheduledStateChanges) keep the server default of retrying
-	// indefinitely. They only fail while the database is away, and a paused
-	// transition would park the deployment key and leave compute in the
-	// wrong state until an operator noticed.
+	// The policy binds per handler, not on the service, so the desired-state
+	// handlers (ScheduleDesiredStateChange, ChangeDesiredState,
+	// ClearScheduledStateChanges) keep the server default of retrying forever.
+	// They only fail while the database is away, and a paused transition would
+	// park the deployment key and leave compute in the wrong state until an
+	// operator noticed.
 	deployLifecycleRetry := restate.WithInvocationRetryPolicy(
 		restate.WithInitialInterval(2*time.Second),
 		restate.WithExponentiationFactor(2.0),
@@ -323,15 +323,15 @@ func Run(ctx context.Context, cfg Config) error {
 		restate.PauseOnMaxAttempts(),
 	)
 	restateSrv.Bind(hydrav1.NewDeployServiceServer(deployWorkflow,
-		// Create is the one handler here callers submit with an idempotency
-		// key, and this retention is that key's caller-facing lifetime. It
-		// costs nothing on the other handlers: Restate only stores a result
-		// for an invocation that carried a key. Requires a Restate server
-		// that accepts retention from service discovery.
+		// Create is the one handler callers submit with an idempotency key, and
+		// this is that key's caller-facing lifetime. Restate keeps a result only
+		// for an invocation that carried a key, so the other handlers are
+		// unaffected. Needs a Restate server that accepts retention from service
+		// discovery.
 		//
-		// Past this window the key stops replaying and the deployment row
-		// takes over as the dedup record, which is why Create checks for the
-		// row before doing anything else.
+		// Past this window the key stops replaying and the deployment row takes
+		// over as the dedup record, which is why Create looks for the row before
+		// doing anything else.
 		restate.WithIdempotencyRetention(12*time.Hour),
 	).
 		ConfigureHandler("Create", deployLifecycleRetry).
@@ -358,9 +358,9 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 	restateSrv.Bind(hydrav1.NewDeployTeardownServiceServer(teardownSvc))
 
-	// Ingress-public on purpose: ctrl's AuthorizeDeployment sends the
-	// authorized commit status through the ingress. Worker-internal callers
-	// (Create, Deploy) use service-to-service calls either way.
+	// ctrl's AuthorizeDeployment sends the authorized commit status through the
+	// ingress, so this service cannot be ingress-private. Worker-internal callers
+	// (Create, Deploy) reach it service to service.
 	restateSrv.Bind(hydrav1.NewGitHubStatusServiceServer(githubstatus.New(githubstatus.Config{
 		GitHub:                          ghClient,
 		DB:                              database,

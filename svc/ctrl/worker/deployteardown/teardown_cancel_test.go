@@ -23,12 +23,10 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/worker/deployteardown"
 )
 
-// TestTeardownCancelsInFlightDeploy pins the cancel-first contract: a
-// deployment still progressing when its workspace is torn down gets its
-// Deploy invocation cancelled before the stop is scheduled, while a
-// deployment whose build already finished is only stopped. Without the
-// cancel, the in-flight build keeps provisioning compute for a workspace
-// that must not run any.
+// TestTeardownCancelsInFlightDeploy pins the cancel-first contract: only a
+// deployment still progressing when its workspace is torn down gets its Deploy
+// invocation cancelled. Without the cancel, that build keeps provisioning
+// compute for a workspace that must not run any.
 func TestTeardownCancelsInFlightDeploy(t *testing.T) {
 	ctx := context.Background()
 
@@ -134,8 +132,8 @@ func TestTeardownCancelsInFlightDeploy(t *testing.T) {
 	require.Equal(t, []string{buildingInvocation}, recorder.calls(),
 		"exactly the progressing deployment's invocation must be cancelled")
 
-	// The scheduled stops land asynchronously on DeployService; both rows must
-	// end up with desired_state stopped, which proves the retargeted send.
+	// The stops are sent, not requested, so the rows only reach desired_state
+	// stopped once DeployService has processed them.
 	require.Eventually(t, func() bool {
 		buildingAfter, findErr := database.FindDeploymentById(ctx, building.ID)
 		if findErr != nil {

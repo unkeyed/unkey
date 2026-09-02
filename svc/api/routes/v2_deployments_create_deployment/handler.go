@@ -111,15 +111,11 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	// The id is minted here because it is the Restate object key the create
-	// runs on, so the response can name the deployment without waiting.
-	//
-	// With an Idempotency-Key the id is derived from it instead of random, so a
-	// retry lands on the same object and finds the row the first attempt wrote.
-	// The key also goes to Restate, which replays the first response inside its
-	// retention window rather than running the create again. Without the header
-	// a retry is simply a second deployment, which is what a caller that did
-	// not ask for idempotency gets.
+	// The id is the Restate object key the create runs on, so minting it here
+	// lets the response name the deployment without waiting. An Idempotency-Key
+	// derives that id rather than randomizing it, so a retry addresses the same
+	// object and finds the row the first attempt wrote. Restate also replays the
+	// first response for a key inside its retention window.
 	idempotencyKey := s.Request().Header.Get(deployment.IdempotencyKeyHeader)
 	if err = deployment.ValidateIdempotencyKey(idempotencyKey); err != nil {
 		return err
@@ -128,11 +124,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	deploymentID := uid.New(uid.DeploymentPrefix)
 	var sendOpts []restate.IngressSendOption
 	if idempotencyKey != "" {
-		// The tenant and the target are in the scope, so one key cannot derive
-		// the same id for two apps. That is what lets Create refuse a row
-		// belonging to another target instead of replaying it as this caller's.
 		deploymentID = uid.Derived(uid.DeploymentPrefix,
-			principal.WorkspaceID, environment.AppID, environment.ID, idempotencyKey)
+			principal.WorkspaceID, environment.ID, idempotencyKey)
 		sendOpts = append(sendOpts, restate.WithIdempotencyKey(idempotencyKey))
 	}
 
@@ -143,8 +136,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		Environment: environment.ID,
 		Decision:    hydrav1.CreateDecision_CREATE_DECISION_DEPLOY,
 		Command:     nil,
-		// Zero lets the worker stamp created_at from its own clock. There is no
-		// push behind an API create, so there is no push time to pin.
+		// No push behind an API create, so the worker stamps created_at from its
+		// own clock.
 		PushReceivedAt: 0,
 		Trigger:        trigger,
 		TriggeredBy:    principal.Subject.ID,
@@ -154,9 +147,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	switch {
 	case req.Image != nil:
-		// The reference is validated here because the create is submitted
-		// one-way: a malformed one would otherwise surface as a failed pull
-		// long after the caller got its 201.
+		// The create is submitted one-way, so a malformed reference has to be
+		// caught here: downstream it would only surface as a failed pull, long
+		// after the caller got its 201.
 		if err := imageref.Validate(req.Image.DockerImage); err != nil {
 			return err
 		}
@@ -206,8 +199,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			return err
 		}
 		// resolveRedeploy returns the source deployment's commit when the app is
-		// still git-connected, otherwise its image, so exactly one of the two is
-		// set and the redeploy runs as a plain git or image create.
+		// still git-connected and its image otherwise, so exactly one of the two
+		// is set here.
 		if gitCommit != nil {
 			createReq.Source = &hydrav1.DeployCreateRequest_Git{
 				Git: &hydrav1.CreateGitSource{Commit: gitCommit, PrNumber: 0},
@@ -240,11 +233,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	// Send, not Request: everything the caller has to see is settled above, and
-	// the create itself resolves commits against GitHub and retries transient
-	// failures for minutes, which no HTTP caller should wait through. The worker
-	// re-checks these gates when it runs, so a workspace that loses its
-	// entitlement between here and there is still refused, just asynchronously.
+	// Send, not Request: the create resolves commits against GitHub and retries
+	// transient failures for minutes, which no HTTP caller should wait through.
+	// The worker re-checks the gates above, so a workspace that loses its
+	// entitlement in between is still refused, asynchronously.
 	if _, err := hydrav1.NewDeployServiceIngressClient(h.Restate, deploymentID).
 		Create().
 		Send(ctx, createReq, sendOpts...); err != nil {

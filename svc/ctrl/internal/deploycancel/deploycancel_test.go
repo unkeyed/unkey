@@ -19,10 +19,9 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
 
-// TestCancelAbortsTargets pins the whole contract of one Cancel call: active
-// steps carry the reason, active rows transition while terminal rows are left
-// alone, only targets with an invocation id reach the canceler, and one audit
-// entry lands per target with the caller's actor.
+// TestCancelAbortsTargets covers one Cancel call over a mix of rows: the
+// in-flight step carries the reason, active rows transition while a terminal
+// row is left alone, and each transitioned target gets one audit entry.
 func TestCancelAbortsTargets(t *testing.T) {
 	ctx := context.Background()
 	f := newCancelFixture(t, ctx)
@@ -65,9 +64,9 @@ func TestCancelAbortsTargets(t *testing.T) {
 	f.requireStatus(t, ctx, finished.ID, mysqltype.DeploymentsStatusReady,
 		"a terminal row must never be rewritten by a late cancel")
 
-	// The ready row's invocation is still cancelled: its terminal STATUS is
-	// what the guard protects, while the invocation may be a compensation
-	// still unwinding, and killing it is the caller's explicit intent.
+	// The ready row's invocation is cancelled too: the guard protects the
+	// terminal status, not the invocation, which may be a compensation still
+	// unwinding.
 	require.Len(t, canceler.cancelled, 2)
 	require.Contains(t, canceler.cancelled, buildingInvocation)
 
@@ -76,9 +75,9 @@ func TestCancelAbortsTargets(t *testing.T) {
 }
 
 // TestCancelReturnsInvocationErrorsBeforeAuditing pins the retry story: a
-// failed invocation cancel surfaces as an error and suppresses the audit
-// entries, so the caller's retry (which re-runs the whole call) writes them
-// exactly once, after every invocation is actually dead.
+// failed invocation cancel surfaces as an error and writes no audit entries, so
+// the caller's retry, which re-runs the whole call, writes them exactly once
+// after every invocation is dead.
 func TestCancelReturnsInvocationErrorsBeforeAuditing(t *testing.T) {
 	ctx := context.Background()
 	f := newCancelFixture(t, ctx)
@@ -109,8 +108,8 @@ func TestCancelReturnsInvocationErrorsBeforeAuditing(t *testing.T) {
 	require.Equal(t, 1, f.countAudits(t, ctx, deployment.ID, actorID))
 }
 
-// TestCancelWithoutActorWritesNoAudit: sibling dedup passes no audit spec, and
-// a caller whose request carried no actor must not fabricate a system entry.
+// TestCancelWithoutActorWritesNoAudit pins that a cancel carrying no actor
+// writes no entry, rather than fabricating a system one.
 func TestCancelWithoutActorWritesNoAudit(t *testing.T) {
 	ctx := context.Background()
 	f := newCancelFixture(t, ctx)

@@ -19,7 +19,7 @@ Rollback and Promote are themselves workflows but they don't need their own env-
 Key components:
 
 - Control API deployment service — [`svc/ctrl/services/deployment`](https://github.com/unkeyed/unkey/blob/main/svc/ctrl/services/deployment)
-- `DeploymentCreateService` durable create handler: [`svc/ctrl/worker/deploymentcreate`](https://github.com/unkeyed/unkey/blob/main/svc/ctrl/worker/deploymentcreate)
+- `DeployService.Create`, the only writer of deployment rows: [`svc/ctrl/worker/deploy/create.go`](https://github.com/unkeyed/unkey/blob/main/svc/ctrl/worker/deploy/create.go)
 - `DeployService` Restate workflow — [`svc/ctrl/worker/deploy`](https://github.com/unkeyed/unkey/blob/main/svc/ctrl/worker/deploy)
 - `RoutingService` (route assignment + live swap) — [`svc/ctrl/worker/routing`](https://github.com/unkeyed/unkey/blob/main/svc/ctrl/worker/routing)
 - `DeploymentService` VO for delayed desired-state transitions — [`svc/ctrl/worker/deployment`](https://github.com/unkeyed/unkey/blob/main/svc/ctrl/worker/deployment)
@@ -37,24 +37,23 @@ sequenceDiagram
   participant BuildSlot as BuildSlotService<br/>(keyed by workspace)
   participant Worker as DeployService<br/>(keyed by deployment_id)
   participant Dedup as dedup.CancelOlderSiblings
+  participant Create as DeployService.Create<br/>(same deployment_id key)
 
-  participant Create as DeploymentCreateService<br/>(plain service, journaled)
-
-  Client->>CtrlAPI: CreateDeployment(project_id, source, env, idempotency_key?)
-  CtrlAPI->>DB: Load target (project + environment + app + settings)
-  CtrlAPI->>CtrlAPI: Gates: plan, deployability
-  CtrlAPI->>CtrlAPI: Resolve build source (GitHub if git)
-  CtrlAPI->>Restate: DeploymentCreateService.Create (sync,<br/>idempotency key: workspace/app/env/key)
-  Restate->>Create: Execute Create (a keyed retry attaches instead)
-  Create->>DB: Insert deployment (status=pending) + create audit (one tx)
+  Client->>CtrlAPI: Create deployment (source, env, optional Idempotency-Key)
+  CtrlAPI->>CtrlAPI: Mint deployment id<br/>(derived from the idempotency key when sent)
+  CtrlAPI->>DB: Check permissions, target, source, plan
+  CtrlAPI->>Restate: DeployService.Create (one-way, key: deployment_id,<br/>idempotency key when the header was sent)
+  CtrlAPI-->>Client: deployment id, without waiting for the create
+  Restate->>Create: Execute Create (a keyed retry replays instead)
+  Create->>DB: Row already there? answer REPLAYED
+  Create->>DB: Load target, run gates, resolve build source
+  Create->>DB: Insert deployment (status=pending), queued step,<br/>and create audit in one transaction
   Create->>Restate: DeployService.Deploy (key: deployment_id, async)
   Create->>DB: UpdateDeploymentInvocationID
   Create->>Dedup: Cancel older queued siblings (status=pending|awaiting_approval)
   Dedup->>DB: Batch stamp "Superseded by newer commit" on sibling steps
   Dedup->>DB: Batch UPDATE siblings to status=superseded
   Dedup->>Restate: CancelInvocation for each older sibling
-  Restate-->>CtrlAPI: journaled response (nonce echo, deployment_id)
-  CtrlAPI->>CtrlAPI: Post-check: nonce mismatch = replayed
   Restate->>Worker: Execute Deploy workflow for newest commit
   Worker->>Dedup: skipIfSuperseded (defensive self-skip check)
   Worker->>BuildSlot: AcquireOrWait(deployment_id, awakeable_id, is_production)
@@ -69,28 +68,21 @@ sequenceDiagram
 
 ## Idempotent create
 
-`CreateDeployment` accepts an optional caller-supplied idempotency key. Restate owns deduplication: ctrl calls `DeploymentCreateService.Create` synchronously with an invocation idempotency key of `workspace_id/app_id/environment_id/caller key`. A retry inside the retention window attaches to the original invocation and receives its journaled response instead of creating anything.
+`DeployService.Create` is the only writer of deployment rows. The public API, the GitHub webhook, and operator rebuilds all reach it, and the object key is always the deployment id.
 
-There is no idempotency key table in MySQL. Restate's journal is the key store: it maps the idempotency key to its response for the retention window, so caller keys never persist.
+**Deriving the id.** The caller mints the id before it calls, which is how the public API can answer with a deployment id without waiting for the create. Without an `Idempotency-Key` header the id is random, so a retry is simply a second deployment, which is what a caller that did not ask for idempotency gets. With the header the id is derived from `workspace_id`, `app_id`, `environment_id`, and the caller's key, so a retry computes the same id and lands on the same virtual object. The workspace is in the scope because it is the trust boundary: callers send human-readable keys or client-generated UUIDs, and without it two tenants sending one key would collide. The app and the environment are in the scope because they are the target: one key can deploy the same commit to production and to staging, and a reused key can never answer with another target's deployment.
 
-Key structure follows one rule, trust boundary plus target identity:
+**Two dedup layers.** The header also travels to Restate as the invocation idempotency key. Inside the retention window Restate replays the first invocation's journaled response and runs nothing. The service registers a 12 hour retention, which is the caller-facing lifetime of the key. There is no idempotency key table in MySQL; past that window the deployment row takes over, so `Create` looks the row up before doing anything else and answers `REPLAYED` when it finds one. A row belonging to another project or app is a terminal error rather than a replay.
 
-- `workspace_id` is the trust boundary. Callers send human-readable keys or client-generated UUIDs, and without the workspace two tenants sending the same key would share one invocation.
-- `app_id` and `environment_id` are the deployment's target identity. The same caller key in another app or environment runs its own invocation, so one key can deploy the same commit to prod and staging, and a reused key can never answer with another target's deployment.
+**Durable execution.** Every step is journaled: the row lookup, the target load with its gates and build source resolution, the insert of the row plus its queued step plus its `deployment.create` audit in one MySQL transaction, then the `Deploy` send, the invocation id write, and the sibling dedup. A worker crash resumes from the journal, so an accepted create always completes and a row can never end up inserted but never sent.
 
-**Key lifetime.** The service registers with an idempotency retention of 12 hours, which is the caller-facing key lifetime: a retry inside the window replays, a retry after it creates a new deployment.
+**Decisions.** The caller says what should happen to the row. `DEPLOY` builds it, `SKIP` records that a commit was seen and deliberately not built, and `AWAIT_APPROVAL` parks a fork PR until a project member authorizes it. Every decision writes a row.
 
-**Durable execution.** The handler journals every step: insert plus create audit in one transaction, the `Deploy` send, the invocation id write, and the sibling dedup. A worker crash resumes the invocation from the journal, so an accepted create always completes: a row can never end up inserted but never sent. The in-handler `Deploy` send is itself a journal entry, so it happens exactly once and needs no invocation-level idempotency key of its own.
+**Target reload.** The request carries ids only. `Create` loads the project, app, environment, and their settings itself, so the row records the settings and secrets current when the create runs and not when it was requested. A target deleted in between comes back as `TARGET_NOT_FOUND`.
 
-**Gates run before the key.** The plan gate, the deployability check, and build source resolution (including GitHub commit lookup) run in ctrl before the Restate call. A request they reject never reaches Restate, so it never consumes its key: the caller fixes the request and retries with the same key, which is why the dashboard can keep one key across a corrected resubmit. The flip side is that every retry passes the gates again before it can replay. The checks run concurrently, so when a request violates more than one, the caller sees whichever error finished first.
+**Refusals are responses.** A caller precondition no retry can fix, such as no Compute plan, a spend cap, a missing repository connection, or an unresolvable commit, returns outcome `BLOCKED` with a `CreateBlockedReason` instead of failing the invocation. The Restate ingress collapses a handler failure into unstructured text, which svc/api cannot turn back into a 412 with its own message, and a webhook on a repository that will never be eligible would keep producing failed invocations. The text behind the reason stays in the worker's logs, because it names repositories and deployments the caller may not be allowed to read.
 
-**Replay detection.** Ctrl sends a per-request nonce and the handler returns the nonce of the request whose execution produced the response. A retry that attached reads back a different nonce, reports `replayed=true`, and answers with the row's current status instead of the journaled pending.
-
-**Target reload.** The create request carries only ids; the worker resolves the target itself when it runs. A snapshot in the request would be journaled and could go stale. Reloading means the row always records the settings and secrets current at insert time, and a target deleted mid-create fails the invocation instead of leaving an orphan row.
-
-**Audit.** The `deployment.create` audit log commits in the same MySQL transaction as the deployment insert, inside the create worker, so a row created through this handler always has its create audit.
-
-**Caller timeout.** Ctrl limits the synchronous call to 30 seconds. When the timeout expires, the caller gets `Unavailable`, but the invocation continues to completion. A retry with the same idempotency key attaches to the running invocation and receives its response. A retry without an idempotency key cannot attach, so it creates a second deployment. For that reason, the error tells callers without a key to check the named deployment and not retry.
+**One-way submission.** The public API and the GitHub webhook `Send` the create and read no response. Everything a caller must be told synchronously is therefore checked before the send: permissions, a malformed image reference, an undeployable environment, and a workspace that may not deploy. `Create` re-checks the entitlement gates when it runs, so a workspace that loses its entitlement in between is still refused, just asynchronously. Operator rebuilds use `Request` and read the outcome.
 
 ## Flow: cancel deployment
 

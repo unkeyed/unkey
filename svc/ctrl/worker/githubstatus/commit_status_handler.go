@@ -9,17 +9,16 @@ import (
 )
 
 // authorizationStatusContext is the status check name GitHub groups these
-// updates under. Both callers write it: Create posts the block, Authorize
-// replaces it. Changing the string on one side without the other would leave a
-// failing check on the PR forever, so it lives here rather than on the wire.
+// updates under. Create posts the block and Authorize replaces it, so the two
+// must agree: a mismatch leaves a failing check on the PR forever. It lives
+// here rather than on the wire so neither caller can pick its own.
 const authorizationStatusContext = "Unkey Deploy Authorization"
 
 // SetCommitStatus posts a commit status on the deployment's commit.
 //
-// Best-effort by design: a GitHub outage must not hold up a deployment that is
-// otherwise ready to run, so a failure is logged and the handler still
-// succeeds. The retry bound keeps a caller's Send from queueing behind a long
-// GitHub backoff on this object's key.
+// A failure is logged and the handler still succeeds: a GitHub outage must not
+// hold up a deployment that is otherwise ready to run. The retry bound keeps a
+// caller's Send from queueing behind a long GitHub backoff on this object's key.
 func (s *Service) SetCommitStatus(
 	ctx restate.ObjectContext,
 	req *hydrav1.GitHubStatusCommitStatusRequest,

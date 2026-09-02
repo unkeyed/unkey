@@ -36,10 +36,9 @@ func TestGitSourceWithoutRepoConnection(t *testing.T) {
 }
 
 // TestCreateDeploymentRequiresComputePlan and TestCreateDeploymentSpendSuspended
-// cover the billing gate this route runs before submitting anything. The create
-// is submitted one-way, so a caller only ever learns about a refusal if it
-// happens here: the worker re-checks both, but by then the response has been
-// sent. Both cases must therefore reject before Restate is called at all.
+// cover the billing gate. This route is the only gate a caller sees: the create
+// is submitted one-way, so the worker's own re-check lands long after the
+// response. Both must reject before Restate is called at all.
 func TestCreateDeploymentRequiresComputePlan(t *testing.T) {
 	h := testutil.NewHarness(t)
 	route := newRoute(h, newUncalledRestate(t))
@@ -58,9 +57,8 @@ func TestCreateDeploymentRequiresComputePlan(t *testing.T) {
 	require.Equal(t, "The workspace has no active Compute plan.", res.Body.Error.Detail)
 }
 
-// TestCreateDeploymentRejectsOversizedIdempotencyKey pins the bound, because a
-// key is hashed into the deployment id and an unbounded header should not reach
-// that far.
+// TestCreateDeploymentRejectsOversizedIdempotencyKey pins the bound: the key is
+// hashed into the deployment id, so an unbounded header must be refused first.
 func TestCreateDeploymentRejectsOversizedIdempotencyKey(t *testing.T) {
 	h := testutil.NewHarness(t)
 	route := newRoute(h, newUncalledRestate(t))

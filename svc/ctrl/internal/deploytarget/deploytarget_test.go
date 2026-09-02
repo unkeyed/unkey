@@ -20,8 +20,8 @@ import (
 )
 
 // fixture is one workspace holding two projects, each with an app. The second
-// project exists so the cross-project cases have a real mismatched id to pass
-// rather than a random one, which would fail as "not found" instead.
+// project gives the cross-project cases a real mismatched id to pass, so they
+// exercise the join scoping instead of plain non-existence.
 type fixture struct {
 	database db.Database
 	seeder   *seed.Seeder
@@ -103,9 +103,9 @@ func TestLoadResolvesTarget(t *testing.T) {
 	require.Equal(t, "production", target.EnvironmentSlug)
 	require.Equal(t, "main", target.DefaultBranch)
 
-	// Settings the seeder writes for every (app, environment) pair. They are
-	// what the create copies onto the deployment row, so a join that dropped
-	// one of the settings tables would still pass every id assertion above.
+	// The seeder writes these settings for every (app, environment) pair, and a
+	// create copies them onto the deployment row. A join that dropped one of the
+	// settings tables would still pass every id assertion above.
 	require.Equal(t, "Dockerfile", target.Dockerfile.String)
 	require.Equal(t, ".", target.DockerContext)
 	require.Equal(t, int32(8080), target.Port)
@@ -169,7 +169,7 @@ func TestLoadRejectsMismatchedTriples(t *testing.T) {
 	}))
 
 	// An environment hanging off the right app but stamped with the other
-	// project, which only a bug or a half-finished move could produce.
+	// project, which only a bug or a half-finished move produces.
 	strayEnvSlug := "stray"
 	require.NoError(t, f.database.InsertEnvironment(ctx, db.InsertEnvironmentParams{
 		ID:          uid.New(uid.EnvironmentPrefix),

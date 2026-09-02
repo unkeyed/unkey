@@ -1,6 +1,6 @@
 package auditlog
 
-// AuditLog represents an pretty struct of an audit log entry that we will write into the db.
+// AuditLog is the input shape for one audit log entry to write to the database.
 type AuditLog struct {
 	Event       AuditLogEvent
 	WorkspaceID string

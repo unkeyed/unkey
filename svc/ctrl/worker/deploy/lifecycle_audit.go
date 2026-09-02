@@ -8,13 +8,10 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
 
-// insertLifecycleAudit records a stop, wake, promote, or rollback. This is the
-// only writer for these events: the public API's lifecycle routes are the only
-// callers of those handlers and every one of them sends an actor.
-//
-// A nil actor therefore means a caller forgot one. Skip the write instead of
-// recording an entry nobody can be held to, and instead of failing a handler
-// whose state change has already applied.
+// insertLifecycleAudit records a stop, wake, promote, or rollback. Every caller
+// of those handlers sends an actor, so a nil actor means a caller forgot one.
+// The entry is skipped rather than failing a handler whose state change has
+// already applied.
 func (w *Workflow) insertLifecycleAudit(
 	ctx restate.ObjectContext,
 	actor *ctrlv1.ActorInfo,

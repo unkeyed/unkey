@@ -26,11 +26,10 @@ import (
 )
 
 // TestAuthorizeDeploymentDispatchesAuditsAndUnblocksGitHub covers the full
-// authorize contract after the single-writer consolidation: the CAS flips the
-// row to pending, Deploy is dispatched and its invocation id persisted, the
-// audit entry is written here (the dashboard no longer inserts its own), and
-// the blocking commit status is replaced through GitHubStatusService so both
-// writers share one status context string.
+// authorize contract: the CAS flips the row to pending, Deploy is dispatched
+// and its invocation id persisted, ctrl writes the audit entry, and the blocking
+// commit status is replaced through GitHubStatusService, which owns the status
+// context string both writes share.
 func TestAuthorizeDeploymentDispatchesAuditsAndUnblocksGitHub(t *testing.T) {
 	ctx := context.Background()
 
@@ -97,9 +96,9 @@ func TestAuthorizeDeploymentDispatchesAuditsAndUnblocksGitHub(t *testing.T) {
 	github := &commitStatusRecorder{Noop: githubclient.NewNoop()}
 	restateCfg := containers.Restate(t,
 		hydrav1.NewDeployServiceServer(deploys),
-		// Bound with the same options as production (worker run.go): no
-		// ingress-private flag, or this RPC's Send would be refused. Proven
-		// by running this test with the flag: the status never arrives.
+		// Bound with the same options as production (worker run.go). With the
+		// ingress-private flag set, this RPC's Send is refused and the status
+		// never arrives.
 		hydrav1.NewGitHubStatusServiceServer(githubstatus.New(githubstatus.Config{
 			GitHub:                          github,
 			DB:                              database,
@@ -148,12 +147,10 @@ func TestAuthorizeDeploymentDispatchesAuditsAndUnblocksGitHub(t *testing.T) {
 		30*time.Second, 100*time.Millisecond, "Deploy must be dispatched for the authorized row")
 }
 
-// TestAuthorizeDeploymentRequiresComputePlan keeps the billing gate on the
-// authorize path covered after the ctrl lifecycle RPCs were deleted with the
-// integration suite that used to assert it. Authorize is the last ctrl RPC that
-// starts compute, so it is the last one that has to refuse a workspace with no
-// Compute plan. The gate runs before the status CAS, so a blocked call leaves
-// the deployment reusable once the workspace subscribes.
+// TestAuthorizeDeploymentRequiresComputePlan covers the billing gate: a
+// workspace with no Compute plan cannot start a build. The gate runs before the
+// status CAS, so a blocked call leaves the deployment authorizable once the
+// workspace subscribes.
 func TestAuthorizeDeploymentRequiresComputePlan(t *testing.T) {
 	ctx := context.Background()
 

@@ -286,10 +286,9 @@ func TestRedeployDeploymentWithoutBuiltImage(t *testing.T) {
 	require.Equal(t, http.StatusPreconditionFailed, res.Status, "expected 412, received: %s", res.RawBody)
 }
 
-// TestIdempotencyKeyReturnsOneDeployment is the point of the header: the same
-// key sent twice must name one deployment, not two. The id is derived from the
-// key, so both attempts address the same Restate object, and Restate replays
-// the first invocation instead of running a second create.
+// TestIdempotencyKeyReturnsOneDeployment pins the header's contract: the same
+// key sent twice names one deployment. Both calls derive the same id, so they
+// address one Restate object and Restate replays the first invocation.
 func TestIdempotencyKeyReturnsOneDeployment(t *testing.T) {
 	h := testutil.NewHarness(t)
 	restate, creates := newRecordingRestate(t)
@@ -320,9 +319,8 @@ func TestIdempotencyKeyReturnsOneDeployment(t *testing.T) {
 	testutil.RequireNoReceive(t, creates, 2*time.Second)
 }
 
-// TestWithoutIdempotencyKeyEachCallIsItsOwnDeployment pins the other half of the
-// contract: a caller that does not ask for idempotency gets a new deployment per
-// call, because the id is then random.
+// TestWithoutIdempotencyKeyEachCallIsItsOwnDeployment pins the other half: with
+// no key the id is random, so each call is its own deployment.
 func TestWithoutIdempotencyKeyEachCallIsItsOwnDeployment(t *testing.T) {
 	h := testutil.NewHarness(t)
 	restate, creates := newRecordingRestate(t)

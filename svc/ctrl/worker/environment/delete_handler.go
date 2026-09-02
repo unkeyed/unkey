@@ -143,13 +143,10 @@ func (s *Service) Delete(
 // cancelProgressingDeployments aborts in-flight deployments through
 // deploycancel.Cancel, audited per deployment with the deletion's actor.
 //
-// The whole call is one journaled step. That is what makes it safe for the
-// helper to flip statuses before cancelling invocations: the row set was
-// journaled by the list step, so a retry after a failed cancel re-runs the
-// helper against the SAME rows rather than re-listing and skipping the ones
-// already flipped terminal. A cancel failure therefore retries until every
-// invocation is dead, and the audit entries (written last inside the helper)
-// land exactly once, on the pass where nothing fails anymore.
+// The list step journals the row set and the cancel runs as one further step,
+// so a retry after a failed cancel re-runs against the same rows instead of
+// re-listing and skipping the ones already flipped terminal. The audit entries
+// are written last inside the helper, on the pass where nothing fails.
 func (s *Service) cancelProgressingDeployments(
 	ctx restate.ObjectContext,
 	env db.Environment,

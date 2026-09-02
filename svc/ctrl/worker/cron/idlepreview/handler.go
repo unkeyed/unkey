@@ -115,10 +115,10 @@ func (h *Handler) Handle(
 					return nil, err
 				}
 
-				// Send, not Request: a deployment mid-wake holds its key
-				// for up to 15 minutes, and one busy deployment must not
-				// stall the whole scan.
 				if requests == 0 {
+					// Send, not Request: a deployment mid-wake holds its key for
+					// up to 15 minutes, and one busy deployment must not stall
+					// the whole scan.
 					hydrav1.NewDeployServiceClient(ctx, deployment.ID).
 						ScheduleDesiredStateChange().
 						Send(&hydrav1.ScheduleDesiredStateChangeRequest{

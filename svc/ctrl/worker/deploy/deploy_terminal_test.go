@@ -20,14 +20,11 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/worker/deploy"
 )
 
-// TestDeployStopsOnTerminalStatus covers the other half of a cancel that lands
-// before the invocation id does: the row is cancelled with no invocation to
-// cancel, so Deploy itself has to refuse to build. Without the status check the
-// handler walks on into the build slot and the Starting step, and the user's
-// cancel produces a deployment anyway.
-//
-// Nothing else in this test can succeed: the workflow has no GitHub client, no
-// registry, and no cluster, so reaching any step past the guard fails loudly.
+// TestDeployStopsOnTerminalStatus covers a cancel that lands before the
+// invocation id does: the row is already cancelled and there is no invocation
+// to cancel, so Deploy itself has to refuse to build. The workflow here has no
+// GitHub client, no registry, and no cluster, so any step past the guard fails
+// loudly.
 func TestDeployStopsOnTerminalStatus(t *testing.T) {
 	ctx := context.Background()
 	database, resources := newDeployFixture(t, ctx)

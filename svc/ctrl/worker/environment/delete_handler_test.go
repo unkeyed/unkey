@@ -23,11 +23,9 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/worker/environment"
 )
 
-// TestDeleteCancelsProgressingDeploymentsAndAuditsThem pins the deletion
-// contract after the deploycancel consolidation: the cascade drops every
-// deployment row, and each PROGRESSING deployment gets a deployment.cancel
-// audit entry carrying the deletion's actor, while an already-terminal
-// deployment is deleted without one.
+// TestDeleteCancelsProgressingDeploymentsAndAuditsThem pins that the cascade
+// drops every deployment row, while only a progressing deployment gets a
+// deployment.cancel audit entry carrying the deletion's actor.
 func TestDeleteCancelsProgressingDeploymentsAndAuditsThem(t *testing.T) {
 	ctx := context.Background()
 

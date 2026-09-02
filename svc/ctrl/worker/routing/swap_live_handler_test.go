@@ -18,17 +18,13 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/worker/routing"
 )
 
-// TestSwapLiveDeploymentRefusesOlderUnlessAllowed covers the race two
-// concurrent production builds create. Sibling dedup only supersedes
-// deployments still queued (`deployment_list_older_active_for_dedup.sql`
-// matches pending and awaiting_approval), so once the first build acquires a
-// slot the second one cannot cancel it and both run to completion. Each then
-// swaps the live pointer, and the pointer belongs to whichever build finishes
-// last, not to whichever commit is newer.
-//
-// So refusing a backwards swap is the default, and a caller that means it says
-// so. Promote and rollback mean it: confirm-rollback in particular targets a
-// deployment older than the live pointer.
+// TestSwapLiveDeploymentRefusesOlderUnlessAllowed covers the race between two
+// concurrent production builds. Sibling dedup only supersedes deployments still
+// queued (`deployment_list_older_active_for_dedup.sql` matches pending and
+// awaiting_approval), so both builds run to completion and each swaps the live
+// pointer, which would then belong to whichever finished last. Promote and
+// rollback opt out, because confirm-rollback deliberately targets a deployment
+// older than the live pointer.
 func TestSwapLiveDeploymentRefusesOlderUnlessAllowed(t *testing.T) {
 	t.Run("a build does not take traffic from a newer live deployment", func(t *testing.T) {
 		h := newSwapFixture(t)
@@ -106,11 +102,9 @@ type swapFixture struct {
 }
 
 // newSwapFixture builds one app in a production environment with two ready
-// deployments a second apart.
-//
-// The service is reached through the ingress for convenience. Production binds
-// RoutingService ingress-private and calls it service-to-service, which the
-// flag does not change.
+// deployments a second apart. The tests drive the service through the ingress;
+// production binds RoutingService ingress-private and calls it
+// service-to-service.
 func newSwapFixture(t *testing.T) *swapFixture {
 	t.Helper()
 	ctx := context.Background()

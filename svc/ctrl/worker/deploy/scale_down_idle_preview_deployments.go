@@ -14,7 +14,7 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
 
-// how long a deployment must be idle for before we scale it down to 0.
+// idleTime is how long a deployment must be idle before it is scaled down to 0.
 var idleTime = 6 * time.Hour
 
 // ScaleDownIdlePreviewDeployments reclaims resources from preview deployments
@@ -24,10 +24,8 @@ var idleTime = 6 * time.Hour
 // all preview environments and transitions idle deployments to archived by
 // checking request counts in ClickHouse.
 //
-// Superseded and unreachable: cron/idlepreview runs the live scan on a 1h idle
-// window, and DeployService's router binds no ScaleDownIdlePreviewDeployments
-// handler, so nothing can invoke this. It stays as the reference for the
-// paginate-environments-then-check-ClickHouse shape.
+// Unreachable: DeployService binds no handler for it, and cron/idlepreview runs
+// the live scan.
 func (w *Workflow) ScaleDownIdlePreviewDeployments(ctx restate.ObjectContext, req *hydrav1.RunScaleDownIdlePreviewDeploymentsRequest) (*hydrav1.RunScaleDownIdlePreviewDeploymentsResponse, error) {
 	now, err := restateutil.Now(ctx)
 	if err != nil {

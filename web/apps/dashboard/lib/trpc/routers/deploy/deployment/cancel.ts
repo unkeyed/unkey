@@ -46,7 +46,7 @@ export const cancelDeployment = workspaceProcedure
 
     try {
       // ctrl writes the deployment.cancel audit entry from this actor, so a
-      // cancel is audited if and only if it actually happened.
+      // cancel is audited only when it actually happened.
       await ctrl.cancelDeployment({
         deploymentId: input.deploymentId,
         actor: {

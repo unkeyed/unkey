@@ -83,9 +83,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	// Resolve the environment here so an unknown slug is a 404 from this
-	// endpoint. The worker refuses an unresolvable target as a blocked create,
-	// which is a precondition failure and would read as the wrong error.
+	// Resolving here makes an unknown slug a 404. The worker would only refuse
+	// it as a blocked create, long after this response was sent.
 	environment, err := db.Query.FindEnvironmentByIdentifiers(ctx, h.DB.RO(), db.FindEnvironmentByIdentifiersParams{
 		WorkspaceID: principal.WorkspaceID,
 		Project:     req.Project,
@@ -110,19 +109,17 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		trigger = ctrlv1.DeploymentTrigger_DEPLOYMENT_TRIGGER_CLI
 	}
 
-	// ctrl rejects a malformed reference too, but the create is submitted
-	// one-way, so the reason only reaches the caller if the check also runs here.
+	// The create is submitted one-way, so a malformed reference has to be caught
+	// here: downstream it would only surface as a failed pull.
 	if err := imageref.Validate(req.DockerImage); err != nil {
 		return err
 	}
 
-	// The id is minted here because it is the Restate object key the create
-	// runs on, so the response can name the deployment without waiting.
-	//
-	// With an Idempotency-Key the id is derived from it instead of random, so a
-	// retry lands on the same object and finds the row the first attempt wrote.
-	// The key also goes to Restate, which replays the first response inside its
-	// retention window rather than running the create again.
+	// The id is the Restate object key the create runs on, so minting it here
+	// lets the response name the deployment without waiting. An Idempotency-Key
+	// derives that id rather than randomizing it, so a retry addresses the same
+	// object and finds the row the first attempt wrote. Restate also replays the
+	// first response for a key inside its retention window.
 	idempotencyKey := s.Request().Header.Get(deployment.IdempotencyKeyHeader)
 	if err = deployment.ValidateIdempotencyKey(idempotencyKey); err != nil {
 		return err
@@ -132,7 +129,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	var sendOpts []restate.IngressSendOption
 	if idempotencyKey != "" {
 		deploymentID = uid.Derived(uid.DeploymentPrefix,
-			principal.WorkspaceID, row.AppID, environment.ID, idempotencyKey)
+			principal.WorkspaceID, environment.ID, idempotencyKey)
 		sendOpts = append(sendOpts, restate.WithIdempotencyKey(idempotencyKey))
 	}
 
@@ -150,10 +147,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		Actor:          nil,
 	}
 
-	// Verify an optional keyspace belongs to the caller's workspace. Nothing
-	// downstream consumes the id, so this only decides whether the request is
-	// refused: a root key for one workspace must not be able to name another
-	// workspace's keyspace and learn from the response that it exists.
+	// Nothing downstream consumes the keyspace id, so this check only decides
+	// whether to refuse the request: a root key must not learn from the response
+	// that another workspace's keyspace exists.
 	if req.KeyspaceId != nil {
 		keySpace, err := db.Query.FindKeySpaceByID(ctx, h.DB.RO(), *req.KeyspaceId)
 		if err != nil {
@@ -176,9 +172,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 	}
 
-	// An explicit image deploys as it is and wins over git metadata, which is
-	// what the old control-plane RPC did with a request carrying both.
-	// Otherwise this is a git build: an empty branch and sha let the worker fall
+	// An explicit image wins over git metadata and deploys as it is. Otherwise
+	// this is a git build, where an empty branch and sha let the worker fall
 	// back to the app's default branch.
 	if req.DockerImage != "" {
 		createReq.Source = &hydrav1.DeployCreateRequest_Image{
@@ -207,11 +202,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	// Send, not Request: everything the caller has to see is settled above, and
-	// the create itself resolves commits against GitHub and retries transient
-	// failures for minutes, which no HTTP caller should wait through. The worker
-	// re-checks these gates when it runs, so a workspace that loses its
-	// entitlement between here and there is still refused, just asynchronously.
+	// Send, not Request: the create resolves commits against GitHub and retries
+	// transient failures for minutes, which no HTTP caller should wait through.
+	// The worker re-checks the gates above, so a workspace that loses its
+	// entitlement in between is still refused, asynchronously.
 	if _, err := hydrav1.NewDeployServiceIngressClient(h.Restate, deploymentID).
 		Create().
 		Send(ctx, createReq, sendOpts...); err != nil {

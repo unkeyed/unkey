@@ -18,17 +18,15 @@ import (
 
 // HandlePush turns one GitHub push into one deployment per matching app.
 //
-// It decides what should happen to each app and hands the writing to
-// DeployService.Create, which owns every deployment row. The sends are
-// asynchronous: a push touching several apps must not have one slow app's
-// GitHub lookup hold up the others, and the webhook has nothing to report back
-// to GitHub that would need the answers.
+// It decides what happens to each app and hands the writing to
+// DeployService.Create, which owns every deployment row. The sends are one-way,
+// so a slow Create for one app does not hold up the others.
 //
-// Because those sends can land out of order, every Create in one push carries
-// the same push_received_at: the moment this handler received the push. That
-// timestamp becomes the row's created_at, which is what sibling dedup and the
-// supersede check compare. Without it a push that lands late would look newer
-// than the commit that followed it and could cancel it.
+// Those sends can land out of order, so every Create in one push carries the
+// same push_received_at, the moment this handler received the push. That
+// timestamp becomes the row's created_at, which sibling dedup and the supersede
+// check compare. Without it a push that lands late would look newer than the
+// commit that followed it and could cancel it.
 func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushRequest) (*hydrav1.HandlePushResponse, error) {
 	logger.Info("handling GitHub push in Restate",
 		"delivery_id", req.GetDeliveryId(),
@@ -45,9 +43,8 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 
 	branch := req.GetBranch()
 
-	// Single query: connections + apps + projects + environments + build/runtime
-	// settings. Picks the production environment for the default branch and
-	// preview for everything else; a fork PR always goes to preview.
+	// The query picks the production environment for the default branch and
+	// preview for every other branch. A fork PR always resolves to preview.
 	contexts, err := restate.Run(ctx, func(runCtx restate.RunContext) ([]db.ListRepoConnectionDeployContextsRow, error) {
 		return s.db.ListRepoConnectionDeployContexts(runCtx, db.ListRepoConnectionDeployContextsParams{
 			InstallationID: req.GetInstallationId(),
@@ -134,10 +131,9 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 		decisions = append(decisions, pushDecision{row: row, decision: matchedDecision, reason: ""})
 	}
 
-	// Mint every id in one journaled step. uid.New outside a Run would produce
-	// different ids on a retry, and the sends below are journaled individually:
-	// a crash midway through the loop would then send a second create for the
-	// apps it had already reached.
+	// uid.New is not deterministic, so the ids have to come from a journaled
+	// step. A retry replays the recorded ids and addresses the same Create
+	// objects instead of a fresh set.
 	ids, err := restate.Run(ctx, func(_ restate.RunContext) ([]string, error) {
 		minted := make([]string, len(decisions))
 		for i := range minted {
@@ -204,18 +200,18 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 type pushDecision struct {
 	row      db.ListRepoConnectionDeployContextsRow
 	decision hydrav1.CreateDecision
-	// reason is empty for a deploy. A skip always carries one: the dashboard
+	// reason is empty for a deploy and always set for a skip. The dashboard
 	// reads it off the row, so a push that builds nothing still says why.
 	reason string
 }
 
 // eligibleContexts drops the apps whose workspace may not deploy.
 //
-// The gate runs here, before any GitHub call and before a single row is
-// written, because a rejection has to be a successful no-op: a workspace that
-// will never be eligible would otherwise fail this invocation on every push and
-// stall the repository behind Restate's retries. Create runs the same gate for
-// its own callers, so this is the short-circuit rather than the enforcement.
+// The gate runs before any GitHub call and before any row is written, because a
+// rejection has to be a successful no-op. Failing the invocation instead would
+// leave a permanently ineligible workspace retrying on every push, and the
+// virtual object key would stall every later push for that repository. Create
+// runs the same gate, so this is a short-circuit and not the enforcement point.
 func (s *Service) eligibleContexts(
 	ctx restate.ObjectContext,
 	req *hydrav1.HandlePushRequest,
@@ -286,15 +282,15 @@ func (s *Service) eligibleContexts(
 // resolveChangedFiles returns the files this push touched, fetching them from
 // GitHub when the payload carries none.
 //
-// Webhook payloads do not always include per-commit file lists: a fork PR
+// Webhook payloads do not always include per-commit file lists. A fork PR
 // arrives through the pull_request event, which has no commits, and a
 // created-branch push pointing at an already-reachable commit arrives with an
 // empty commits array. Without the diff, watch-path matching would skip apps
-// that should have deployed, so an empty list is worth a round trip.
+// that should have deployed.
 //
 // A failed fetch is not fatal. It falls back to no files, which matches nothing
-// and skips the deployment, and that is the safer of the two errors: a skipped
-// row is visible and re-pushable, a wrongly built one is already running.
+// and skips the deployment. A skipped row stays visible and can be re-pushed,
+// while a wrongly built one is already running.
 func (s *Service) resolveChangedFiles(ctx restate.ObjectContext, req *hydrav1.HandlePushRequest) ([]string, error) {
 	changedFiles := req.GetChangedFiles()
 	if len(changedFiles) > 0 || req.GetAfter() == "" || s.allowUnauthenticatedDeployments {
@@ -362,4 +358,3 @@ func boolToInt64(b bool) int64 {
 	}
 	return 0
 }
-

@@ -193,10 +193,10 @@ func TestPromoteDeploymentRequiresComputePlan(t *testing.T) {
 	require.Equal(t, "The workspace has no active Compute plan.", res.Body.Error.Detail)
 }
 
-// Promoting swaps live traffic onto compute this workspace is no longer allowed
-// to run, so the spend cap blocks it here. This route is the only gate on that:
-// the ctrl RPC that used to re-check billing is gone, and the worker's promote
-// handler checks the deployment's state, not the workspace's bill.
+// TestPromoteDeploymentSpendSuspended pins the spend cap on promote, which
+// swaps live traffic onto compute the workspace may no longer run. This route
+// is the only gate: the worker's promote handler checks the deployment's state,
+// not the workspace's bill.
 func TestPromoteDeploymentSpendSuspended(t *testing.T) {
 	h := testutil.NewHarness(t)
 	route := newRoute(h, newUncalledRestate(t))
