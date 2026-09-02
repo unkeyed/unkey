@@ -57,12 +57,21 @@ type Principal struct {
 
 	// Permissions is the flat set of exact or resource-scoped authorization grants.
 	Permissions []string
+
+	// authorizationError records the latest authorization denial for this request.
+	authorizationError error
+}
+
+// AuthorizationError returns the latest error from [Principal.Authorize].
+func AuthorizationError(p *Principal) error {
+	return p.authorizationError
 }
 
 // Authorize evaluates this principal's permissions against the query.
 func (p *Principal) Authorize(query rbac.PermissionQuery) error {
 	err := rbac.Check(query, p.Permissions)
 	if err != nil {
+		p.authorizationError = err
 		logger.Warn("principal authorization denied",
 			slog.String("workspace_id", p.WorkspaceID),
 			slog.String("principal_type", string(p.Type)),

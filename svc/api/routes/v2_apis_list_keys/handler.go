@@ -307,6 +307,11 @@ func (h *Handler) decryptKeys(ctx context.Context, req Request, keys []db.ListLi
 // is exported so the portal listKeys route can reuse the exact response shape
 // without depending on the rest of this handler.
 func BuildKeyResponseData(keyData *db.KeyData, plaintext string) openapi.KeyResponseData {
+	start := keyData.Key.Start
+	if keyData.Key.Prefix != "" {
+		start = keyData.Key.Prefix + "_" + start
+	}
+
 	response := openapi.KeyResponseData{
 		Meta:        nil,
 		Ratelimits:  nil,
@@ -322,7 +327,7 @@ func BuildKeyResponseData(keyData *db.KeyData, plaintext string) openapi.KeyResp
 		CreatedAt:   keyData.Key.CreatedAtM,
 		Enabled:     keyData.Key.Enabled,
 		KeyId:       keyData.Key.ID,
-		Start:       keyData.Key.Start,
+		Start:       start,
 	}
 
 	if keyData.Key.Expires.Valid {

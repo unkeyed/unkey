@@ -108,6 +108,7 @@ async function rerollKeyCore({
         columns: {
           id: true,
           keyAuthId: true,
+          prefix: true,
           start: true,
           workspaceId: true,
           forWorkspaceId: true,
@@ -188,14 +189,10 @@ async function rerollKeyCore({
         });
       }
 
-      // Preserve the source key's prefix exactly. Falling back to the
-      // current keyAuth default would silently add a prefix when the
-      // default has been changed after the key was created. Prefixes may
-      // contain underscores (e.g. "pk_test"), so we split on the *last*
-      // underscore — the base58 alphabet has no `_`, so every underscore
-      // in `start` came from a prefix separator.
+      // New rows store the prefix directly. Legacy rows keep it in `start`.
       const lastUnderscore = source.start.lastIndexOf("_");
-      const prefix = lastUnderscore === -1 ? "" : source.start.slice(0, lastUnderscore);
+      const prefix =
+        source.prefix || (lastUnderscore === -1 ? "" : source.start.slice(0, lastUnderscore));
 
       // Byte length falls back to the workspace's current default because
       // the original per-key length was never persisted (no column on
@@ -205,7 +202,7 @@ async function rerollKeyCore({
       // migration to record it at creation time.
       const byteLength = source.keyAuth.defaultBytes ?? 16;
 
-      const { key: plaintext, hash, start } = await newKey({ prefix, byteLength });
+      const { key: plaintext, hash, start, end } = await newKey({ prefix, byteLength });
 
       // Encrypt inside the tx so the decision uses the locked source
       // state. The lock is held for the duration of this RPC, but key
@@ -226,7 +223,9 @@ async function rerollKeyCore({
         id: newKeyId,
         keyAuthId: source.keyAuthId,
         hash,
+        prefix,
         start,
+        end,
         workspaceId: source.workspaceId,
         forWorkspaceId: source.forWorkspaceId,
         name: source.name,

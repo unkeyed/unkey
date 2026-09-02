@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 	"testing"
 	"time"
 
@@ -215,6 +216,47 @@ func TestRerollKeySuccess(t *testing.T) {
 		}
 
 		require.Equal(t, createdRatelimitMap, rolledRatelimitMap, "ratelimit maps should be equal")
+	})
+
+	t.Run("preserves stored and legacy prefixes", func(t *testing.T) {
+		testCases := []struct {
+			name   string
+			prefix string
+			start  string
+		}{
+			{name: "stored prefix", prefix: "prod_sk", start: "abcd"},
+			{name: "legacy start", prefix: "", start: "prod_sk_abcd"},
+		}
+
+		for _, testCase := range testCases {
+			t.Run(testCase.name, func(t *testing.T) {
+				key := h.CreateKey(seed.CreateKeyRequest{
+					WorkspaceID: workspace.ID,
+					KeySpaceID:  api.KeyAuthID.String,
+				})
+				_, err := h.DB.RW().ExecContext(
+					t.Context(),
+					"UPDATE `keys` SET `prefix` = ?, `start` = ? WHERE `id` = ?",
+					testCase.prefix,
+					testCase.start,
+					key.KeyID,
+				)
+				require.NoError(t, err)
+
+				res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
+					KeyId:      key.KeyID,
+					Expiration: 0,
+				})
+				require.Equal(t, http.StatusOK, res.Status, "response: %s", res.RawBody)
+				require.True(t, strings.HasPrefix(res.Body.Data.Key, "prod_sk_"))
+
+				rolledKey, err := db.Query.FindLiveKeyByID(t.Context(), h.DB.RO(), res.Body.Data.KeyId)
+				require.NoError(t, err)
+				require.Equal(t, "prod_sk", rolledKey.KeyPrefix)
+				require.Equal(t, strings.TrimPrefix(res.Body.Data.Key, "prod_sk_")[:4], rolledKey.KeyStart)
+				require.Equal(t, res.Body.Data.Key[len(res.Body.Data.Key)-4:], rolledKey.KeyEnd)
+			})
+		}
 	})
 
 	t.Run("reroll sets TTL on original key when expiration is provided", func(t *testing.T) {

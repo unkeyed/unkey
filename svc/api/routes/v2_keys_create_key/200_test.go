@@ -500,6 +500,11 @@ func TestCreateKeyAppliesKeySpaceDefaults(t *testing.T) {
 		require.Equal(t, 200, res.Status)
 		require.True(t, strings.HasPrefix(res.Body.Data.Key, defaultPrefix+"_"),
 			"key %q should start with keyspace default_prefix %q", res.Body.Data.Key, defaultPrefix)
+
+		storedKey, err := db.Query.FindKeyByID(t.Context(), h.DB.RO(), res.Body.Data.KeyId)
+		require.NoError(t, err)
+		require.Equal(t, defaultPrefix, storedKey.Prefix)
+		require.Equal(t, strings.TrimPrefix(res.Body.Data.Key, defaultPrefix+"_")[:4], storedKey.Start)
 	})
 
 	t.Run("default bytes is applied when request omits byteLength", func(t *testing.T) {

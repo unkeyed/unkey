@@ -2,7 +2,9 @@
 SELECT
     k.id AS key_id,
     k.key_auth_id AS key_key_auth_id,
+    k.prefix AS key_prefix,
     k.start AS key_start,
+    k.end AS key_end,
     k.workspace_id AS key_workspace_id,
     k.name AS key_name,
     k.meta AS key_meta,
