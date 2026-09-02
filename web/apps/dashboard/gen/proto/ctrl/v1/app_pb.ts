@@ -86,6 +86,8 @@ export const CreateAppResponseSchema: GenMessage<CreateAppResponse> = /*@__PURE_
   messageDesc(file_ctrl_v1_app, 1);
 
 /**
+ * GitSource has no fields because repository connections have a separate lifecycle.
+ *
  * @generated from message ctrl.v1.GitSource
  */
 export type GitSource = Message<"ctrl.v1.GitSource"> & {

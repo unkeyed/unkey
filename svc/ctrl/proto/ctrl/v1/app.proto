@@ -33,6 +33,7 @@ message CreateAppResponse {
   string id = 1;
 }
 
+// GitSource has no fields because repository connections have a separate lifecycle.
 message GitSource {}
 
 message OciSource {

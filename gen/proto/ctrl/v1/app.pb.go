@@ -187,6 +187,7 @@ func (x *CreateAppResponse) GetId() string {
 	return ""
 }
 
+// GitSource has no fields because repository connections have a separate lifecycle.
 type GitSource struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
