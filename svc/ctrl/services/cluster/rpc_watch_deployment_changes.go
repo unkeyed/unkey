@@ -251,8 +251,10 @@ func deploymentRowToState[T deploymentStateRow](row T, version uint64) (*ctrlv1.
 		if deployment.BuildID.Valid {
 			buildID = &deployment.BuildID.String
 		}
-		image := deployment.ImageResolved.String
-		if image == "" {
+		image := ""
+		if deployment.ImageResolved.Valid && deployment.ImageResolved.String != "" {
+			image = deployment.ImageResolved.String
+		} else if deployment.Image.Valid {
 			image = deployment.Image.String
 		}
 
