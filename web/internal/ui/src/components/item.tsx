@@ -117,7 +117,7 @@ export function ItemContent({ className, ...props }: React.HTMLAttributes<HTMLDi
 
 export function ItemTitle({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
   return (
-    <div className={cn("text-[13px] font-normal leading-4 text-gray-12", className)} {...props} />
+    <div className={cn("text-[13px] font-[450] leading-4 text-gray-12", className)} {...props} />
   );
 }
 
