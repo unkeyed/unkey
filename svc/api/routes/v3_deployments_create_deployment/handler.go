@@ -102,7 +102,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}),
 		rbac.U(
 			urn.New().Workspace(principal.WorkspaceID).Project(environment.ProjectID).App(environment.AppID).Environment(environment.ID).Deployment("*"),
-			permissions.CreateDeployment{},
+			permissions.Write,
 		),
 	))
 	if err != nil {
