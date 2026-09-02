@@ -20,7 +20,7 @@ export class Apps extends ClientSDK {
    * @remarks
    * Create an app within a project. The app is created with default `production` and `preview` environments.
    *
-   * Set at most one source. Use `git` to create a GitHub-sourced app and connect its repository. Use `oci` to create an app from a prebuilt OCI image. Omit both to create an app without a configured source.
+   * Set exactly one source. Use `git` to create a GitHub-sourced app and connect its repository. Use `oci` to create an app from a prebuilt OCI image.
    *
    * The slug you provide is the stable, caller-defined handle used to reference this app. It must be unique within the project.
    *

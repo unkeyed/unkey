@@ -11,10 +11,10 @@ import {
 import { AppOCI, AppOCI$Outbound, AppOCI$outboundSchema } from "./appoci.js";
 
 /**
- * Create an app with at most one source: `git` or `oci`. Omit both to create an
+ * Create an app with exactly one source: `git` or `oci`. Requests that omit a
  *
  * @remarks
- * app without a configured source. Requests that provide both are rejected.
+ * source or provide both sources are rejected.
  */
 export type V2AppsCreateAppRequestBody = {
   /**
