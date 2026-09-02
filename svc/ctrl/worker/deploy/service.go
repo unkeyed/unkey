@@ -10,6 +10,8 @@ import (
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	githubclient "github.com/unkeyed/unkey/pkg/github"
+	restateadmin "github.com/unkeyed/unkey/pkg/restate/admin"
+	"github.com/unkeyed/unkey/svc/ctrl/dedup"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/auditlogs"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
@@ -76,10 +78,10 @@ type RegistryConfig struct {
 // between container orchestration (Krane), database updates, and domain routing to ensure
 // consistent deployment state.
 //
-// The workflow uses Restate virtual objects keyed by app ID to ensure that only one
-// deployment operation runs per app at any time, preventing race conditions during
-// concurrent deploy/rollback/promote operations while allowing parallel deploys
-// across different apps within the same project.
+// The workflow is a Restate virtual object keyed by deployment id, so operations
+// on one deployment serialize while deployments proceed in parallel. Two deploys
+// of the same app run concurrently; the ordering they need comes from the dedup
+// and supersede checks.
 type Workflow struct {
 	hydrav1.UnimplementedDeployServiceServer
 	db        db.Database
@@ -101,6 +103,15 @@ type Workflow struct {
 	imageResolver                   ImageResolver
 	allowUnauthenticatedDeployments bool
 	dashboardURL                    string
+
+	// dedup supersedes older queued deployments on a branch when Create starts
+	// a newer one.
+	dedup *dedup.Service
+
+	// enforceDeployGate hard-blocks a create for a workspace with no Compute
+	// entitlement. False runs the plan check in observe mode; the spend cap
+	// always blocks.
+	enforceDeployGate bool
 }
 
 var _ hydrav1.DeployServiceServer = (*Workflow)(nil)
@@ -154,6 +165,16 @@ type Config struct {
 	// DashboardURL is the base URL of the dashboard for constructing log URLs
 	// in GitHub deployment statuses (e.g., "https://app.unkey.com").
 	DashboardURL string
+
+	// RestateAdmin cancels the in-flight Deploy invocations of deployments a
+	// newer create supersedes. Optional: when nil, superseded rows are still
+	// marked but their invocations keep running.
+	RestateAdmin *restateadmin.Client
+
+	// EnforceDeployGate hard-blocks creates for workspaces with no Compute
+	// entitlement (the same switch as project creation). False runs the plan
+	// check in observe mode. Spend-cap suspension is always enforced.
+	EnforceDeployGate bool
 }
 
 // New creates a new deployment workflow instance.
@@ -189,5 +210,7 @@ func New(cfg Config) (*Workflow, error) {
 		imageResolver:                   cfg.ImageResolver,
 		allowUnauthenticatedDeployments: cfg.AllowUnauthenticatedDeployments,
 		dashboardURL:                    cfg.DashboardURL,
+		dedup:                           dedup.New(cfg.DB, cfg.RestateAdmin),
+		enforceDeployGate:               cfg.EnforceDeployGate,
 	}, nil
 }
