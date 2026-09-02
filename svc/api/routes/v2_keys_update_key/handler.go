@@ -14,6 +14,7 @@ import (
 	"github.com/unkeyed/unkey/internal/services/usagelimiter"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 
+	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/auditlog"
 	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/codes"
@@ -407,6 +408,13 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 					fault.Internal("database error"),
 					fault.Public("Failed to retrieve permissions."),
 				)
+			}
+			if err := assert.LessOrEqual(
+				len(existingPermissions),
+				len(*req.Permissions),
+				"permission query returned more rows than requested",
+			); err != nil {
+				return err
 			}
 
 			existingPermMap := make(map[string]db.Permission, len(existingPermissions))

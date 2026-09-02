@@ -54,3 +54,27 @@ func TestListRolesAuthorizesCanonicalReadRole(t *testing.T) {
 	require.Len(t, res.Body.Data, 1)
 	require.Equal(t, role.ID, res.Body.Data[0].Id)
 }
+
+// TestListRolesAuthorizesCanonicalReadBeforeDefaultProjectCreation guarantees
+// that a project-wildcard grant can authorize a missing default project before
+// the route creates it.
+func TestListRolesAuthorizesCanonicalReadBeforeDefaultProjectCreation(t *testing.T) {
+	h := testutil.NewHarness(t)
+	route := &handler.Handler{DB: h.DB}
+	h.Register(route)
+
+	workspace := h.CreateWorkspace()
+	rootKey := h.CreateRootKey(
+		workspace.ID,
+		fmt.Sprintf("unkey:v1:%s:projects/*/rbac/roles/*#read", workspace.ID),
+	)
+	headers := http.Header{
+		"Content-Type":  {"application/json"},
+		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+	}
+
+	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{})
+
+	require.Equal(t, http.StatusOK, res.Status, res.RawBody)
+	require.Empty(t, res.Body.Data)
+}
