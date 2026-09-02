@@ -441,11 +441,11 @@ components:
                 git:
                     "$ref": "#/components/schemas/AppGitCreateInput"
                 oci:
-                    "$ref": "#/components/schemas/AppOCIInput"
+                    "$ref": "#/components/schemas/AppOCI"
             additionalProperties: false
             description: |
-                Create an app with exactly one source: `git` or `oci`. Requests that omit a
-                source or provide both sources are rejected.
+                Create an app with at most one source: `git` or `oci`. Omit both to create an
+                app without a configured source. Requests that provide both are rejected.
         V2AppsCreateAppResponseBody:
             type: object
             required:
@@ -4303,10 +4303,9 @@ components:
                         default branch on GitHub.
                     example: main
             additionalProperties: false
-        AppOCIInput:
+        AppOCI:
             type: object
-            description: |
-                Configure an OCI image as the app source.
+            description: An app's OCI image source.
             required:
                 - image
             properties:
@@ -4315,7 +4314,7 @@ components:
                     minLength: 1
                     maxLength: 256
                     pattern: "\\S"
-                    description: The default OCI image reference for new deployments. It must include an explicit tag or digest.
+                    description: The configured default OCI image reference for new deployments. It must include an explicit tag or digest.
                     example: ghcr.io/acme/api:v1.2.3
             additionalProperties: false
         V2AppsCreateAppResponseData:
@@ -4438,16 +4437,6 @@ components:
                     maxLength: 256
                     description: The branch this app's deployments track.
                     example: main
-            additionalProperties: false
-        AppOCI:
-            type: object
-            required:
-                - image
-            properties:
-                image:
-                    type: string
-                    description: The configured default OCI image reference for new deployments.
-                    example: ghcr.io/acme/api:v1.2.3
             additionalProperties: false
         AppGitUpdateInput:
             type: object
@@ -7973,7 +7962,7 @@ paths:
             description: |
                 Create an app within a project. The app is created with default `production` and `preview` environments.
 
-                Set exactly one source. Use `git` to create a GitHub-sourced app and connect its repository. Use `oci` to create an app from a prebuilt OCI image.
+                Set at most one source. Use `git` to create a GitHub-sourced app and connect its repository. Use `oci` to create an app from a prebuilt OCI image. Omit both to create an app without a configured source.
 
                 The slug you provide is the stable, caller-defined handle used to reference this app. It must be unique within the project.
 

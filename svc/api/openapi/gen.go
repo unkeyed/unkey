@@ -264,15 +264,9 @@ type AppGitUpdateInput struct {
 	Repository *string `json:"repository,omitempty"`
 }
 
-// AppOCI defines model for AppOCI.
+// AppOCI An app's OCI image source.
 type AppOCI struct {
-	// Image The configured default OCI image reference for new deployments.
-	Image string `json:"image"`
-}
-
-// AppOCIInput Configure an OCI image as the app source.
-type AppOCIInput struct {
-	// Image The default OCI image reference for new deployments. It must include an explicit tag or digest.
+	// Image The configured default OCI image reference for new deployments. It must include an explicit tag or digest.
 	Image string `json:"image"`
 }
 
@@ -1850,8 +1844,8 @@ type V2ApisListKeysResponseBody struct {
 // V2ApisListKeysResponseData Array of API keys with complete configuration and metadata.
 type V2ApisListKeysResponseData = []KeyResponseData
 
-// V2AppsCreateAppRequestBody Create an app with exactly one source: `git` or `oci`. Requests that omit a
-// source or provide both sources are rejected.
+// V2AppsCreateAppRequestBody Create an app with at most one source: `git` or `oci`. Omit both to create an
+// app without a configured source. Requests that provide both are rejected.
 type V2AppsCreateAppRequestBody struct {
 	// Git Connect a GitHub repository as the app source on creation.
 	Git *AppGitCreateInput `json:"git,omitempty"`
@@ -1859,8 +1853,8 @@ type V2AppsCreateAppRequestBody struct {
 	// Name Human-readable name for this app.
 	Name string `json:"name"`
 
-	// Oci Configure an OCI image as the app source.
-	Oci *AppOCIInput `json:"oci,omitempty"`
+	// Oci An app's OCI image source.
+	Oci *AppOCI `json:"oci,omitempty"`
 
 	// Project Identifies a resource by either its unique ID or its slug.
 	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
