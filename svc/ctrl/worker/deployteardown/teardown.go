@@ -92,22 +92,6 @@ func (v *VirtualObject) Teardown(
 			}
 		}
 
-		// A progressing deployment holds its own key with a live Deploy
-		// invocation, so the stop Send below queues behind the whole build while
-		// the workspace keeps buying compute. Admin cancellation is the one
-		// signal that reaches a running invocation instead of its inbox: Deploy
-		// aborts at its next journaled step and its compensations unwind the
-		// build. CancelInvocation treats 404 as success, so a build that just
-		// finished is harmless.
-		if v.admin != nil && !d.Status.IsTerminal() && d.InvocationID.Valid && d.InvocationID.String != "" {
-			invocationID := d.InvocationID.String
-			if err := restate.RunVoid(ctx, func(rc restate.RunContext) error {
-				return v.admin.CancelInvocation(rc, invocationID)
-			}, restate.WithName("cancel invocation "+d.ID)); err != nil {
-				return nil, fmt.Errorf("cancel invocation %s for deployment %s: %w", invocationID, d.ID, err)
-			}
-		}
-
 		// Send (not Request): the per-deployment object owns the state change,
 		// its retries, and the krane handoff. A replay does not re-dispatch.
 		//

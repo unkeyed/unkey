@@ -1,19 +1,12 @@
 package deployteardown
 
 import (
-	"context"
 	"time"
 
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
-
-// InvocationCanceler cancels a running Restate invocation by id.
-// pkg/restate/admin.Client satisfies it, and tests substitute a recorder.
-type InvocationCanceler interface {
-	CancelInvocation(ctx context.Context, invocationID string) error
-}
 
 // VirtualObject implements DeployTeardownService. It serializes teardowns per
 // workspace (the virtual object key is the workspace id) and drives the
@@ -22,7 +15,6 @@ type InvocationCanceler interface {
 type VirtualObject struct {
 	hydrav1.UnimplementedDeployTeardownServiceServer
 	db                db.Database
-	admin             InvocationCanceler
 	drainPollInterval time.Duration
 	drainGraceTimeout time.Duration
 }
@@ -35,12 +27,6 @@ type Config struct {
 	// deployments, clear current-deployment pointers, and poll for drain. Must
 	// not be nil.
 	DB db.Database
-
-	// Admin cancels the in-flight Deploy invocation of a deployment that is
-	// still progressing when its workspace is torn down. Optional: when nil,
-	// progressing deployments only get their stop scheduled and the build
-	// keeps running until it finishes on its own.
-	Admin InvocationCanceler
 
 	// DrainPollInterval is how long Teardown sleeps between drain checks. Zero
 	// uses the production default (defaultDrainPollInterval). Tests set a short
@@ -68,7 +54,6 @@ func New(cfg Config) (*VirtualObject, error) {
 	return &VirtualObject{
 		UnimplementedDeployTeardownServiceServer: hydrav1.UnimplementedDeployTeardownServiceServer{},
 		db:                                       cfg.DB,
-		admin:                                    cfg.Admin,
 		drainPollInterval:                        cfg.DrainPollInterval,
 		drainGraceTimeout:                        cfg.DrainGraceTimeout,
 	}, nil
