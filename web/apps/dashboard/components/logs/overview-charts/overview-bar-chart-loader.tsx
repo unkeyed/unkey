@@ -1,6 +1,6 @@
+import { Bar, BarChart, ResponsiveContainer, YAxis } from "recharts";
 import { calculateTimePoints } from "@/components/logs/chart/utils/calculate-timepoints";
 import { formatTimestampLabel } from "@/components/logs/chart/utils/format-timestamp";
-import { Bar, BarChart, ResponsiveContainer, YAxis } from "recharts";
 import { useWaveAnimation } from "./hooks";
 import type { ChartLabels } from "./types";
 

@@ -1,19 +1,18 @@
 // Subscription utilities
-export {
-  isPaymentFailureRelatedUpdate,
-  isAutomatedBillingRenewal,
-  type PreviousAttributes,
-} from "./subscriptionUtils";
 
 // Payment utilities
 export {
-  isPaymentRecoveryUpdate,
   checkRecentPaymentSuccess,
-  PaymentRecoveryDetector,
   createPaymentRecoveryDetector,
   isPaymentRecovery,
+  isPaymentRecoveryUpdate,
   type PaymentContext,
+  PaymentRecoveryDetector,
 } from "./paymentUtils";
-
 // Product utilities
 export { validateAndParseQuotas } from "./productUtils";
+export {
+  isAutomatedBillingRenewal,
+  isPaymentFailureRelatedUpdate,
+  type PreviousAttributes,
+} from "./subscriptionUtils";

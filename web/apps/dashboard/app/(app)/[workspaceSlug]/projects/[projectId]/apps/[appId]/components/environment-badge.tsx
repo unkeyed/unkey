@@ -1,7 +1,5 @@
 "use client";
 
-import { ENVIRONMENT_KIND, type Environment } from "@/lib/collections/deploy/environments";
-import { cn } from "@/lib/utils";
 import { match } from "@unkey/match";
 import { InfoTooltip } from "@unkey/ui";
 import { format } from "date-fns";
@@ -11,6 +9,8 @@ import {
   IconCircleXmarkOutline18,
   IconCloudOutline18,
 } from "nucleo-ui-outline-18";
+import { ENVIRONMENT_KIND, type Environment } from "@/lib/collections/deploy/environments";
+import { cn } from "@/lib/utils";
 
 export type EnvironmentBadgeRollout = "none" | "live" | "liveAfterRollback" | "rolledBackFrom";
 

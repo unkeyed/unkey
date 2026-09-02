@@ -1,6 +1,6 @@
-import { auth as authProvider } from "@/lib/auth/server";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
+import { auth as authProvider } from "@/lib/auth/server";
 import { protectedProcedure, requireSelf } from "../../trpc";
 
 export const listMemberships = protectedProcedure

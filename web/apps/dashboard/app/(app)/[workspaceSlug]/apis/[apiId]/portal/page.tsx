@@ -1,8 +1,8 @@
 "use client";
 
+import { use } from "react";
 import { useApiKeyAuthId } from "@/hooks/use-api-key-auth-id";
 import { useApiName } from "@/hooks/use-api-name";
-import { use } from "react";
 import { PortalLifecyclePage } from "./components/portal-lifecycle-page";
 
 type Props = {

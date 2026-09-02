@@ -1,9 +1,5 @@
 "use client";
 
-import { DeleteDialog } from "@/app/(app)/[workspaceSlug]/ratelimits/[namespaceId]/_components/delete-dialog";
-import { IdentifierDialog } from "@/app/(app)/[workspaceSlug]/ratelimits/[namespaceId]/_components/identifier-dialog";
-import type { OverrideDetails } from "@/app/(app)/[workspaceSlug]/ratelimits/[namespaceId]/types";
-import { type MenuItem, TableActionPopover } from "@/components/logs/table-action.popover";
 import { Loading, toast } from "@unkey/ui";
 import {
   IconCloneOutline18,
@@ -11,6 +7,10 @@ import {
   IconTrashOutline18,
 } from "nucleo-ui-outline-18";
 import { Suspense } from "react";
+import { DeleteDialog } from "@/app/(app)/[workspaceSlug]/ratelimits/[namespaceId]/_components/delete-dialog";
+import { IdentifierDialog } from "@/app/(app)/[workspaceSlug]/ratelimits/[namespaceId]/_components/identifier-dialog";
+import type { OverrideDetails } from "@/app/(app)/[workspaceSlug]/ratelimits/[namespaceId]/types";
+import { type MenuItem, TableActionPopover } from "@/components/logs/table-action.popover";
 
 export const OverridesTableAction = ({
   identifier,

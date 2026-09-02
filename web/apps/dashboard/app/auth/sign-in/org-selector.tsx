@@ -1,7 +1,5 @@
 "use client";
 
-import type { Organization } from "@/lib/auth/types";
-import { AuthErrorCode, SIGN_IN_URL } from "@/lib/auth/types";
 import {
   Button,
   DialogContainer,
@@ -18,6 +16,8 @@ import type { Route } from "next";
 import { useRouter, useSearchParams } from "next/navigation";
 import type React from "react";
 import { useCallback, useContext, useMemo, useState } from "react";
+import type { Organization } from "@/lib/auth/types";
+import { AuthErrorCode, SIGN_IN_URL } from "@/lib/auth/types";
 import { clearPendingAuth, completeOrgSelection } from "../actions";
 import { SignInContext } from "../context/signin-context";
 import { consumeRedirectUrl, resolveRedirectUrl } from "./redirect-utils";

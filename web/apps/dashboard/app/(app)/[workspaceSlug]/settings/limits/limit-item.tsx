@@ -1,7 +1,6 @@
 "use client";
 
-import { cn } from "@/lib/utils";
-import { P, match } from "@unkey/match";
+import { match, P } from "@unkey/match";
 import {
   Badge,
   InfoTooltip,
@@ -17,6 +16,7 @@ import {
 } from "@unkey/ui";
 import { IconCircleInfoOutline12 } from "nucleo-ui-outline-12";
 import type { ReactNode } from "react";
+import { cn } from "@/lib/utils";
 import type { LimitRow } from "./limit-groups";
 
 export function LimitItem({ row }: { row: LimitRow }) {

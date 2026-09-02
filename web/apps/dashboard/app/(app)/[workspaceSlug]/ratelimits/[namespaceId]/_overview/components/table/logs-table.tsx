@@ -1,18 +1,18 @@
 "use client";
 
-import { useSort } from "@/components/logs/hooks/use-sort";
-import {
-  RATELIMITS_OVERVIEW_PAGE_SIZE,
-  createRatelimitsOverviewColumns,
-  getRowClassName,
-  renderRatelimitsOverviewSkeletonRow,
-  useRatelimitsOverviewListPaginated,
-} from "@/components/ratelimits-overview-table";
 import type { RowSelectionState, SortingState } from "@tanstack/react-table";
 import type { RatelimitOverviewLog } from "@unkey/clickhouse/src/ratelimits";
 import { Button, DataTable, type DataTableConfig, Empty, PaginationFooter } from "@unkey/ui";
 import { IconBookBookmarkOutline18 } from "nucleo-ui-outline-18";
 import { useCallback, useMemo, useRef, useState } from "react";
+import { useSort } from "@/components/logs/hooks/use-sort";
+import {
+  createRatelimitsOverviewColumns,
+  getRowClassName,
+  RATELIMITS_OVERVIEW_PAGE_SIZE,
+  renderRatelimitsOverviewSkeletonRow,
+  useRatelimitsOverviewListPaginated,
+} from "@/components/ratelimits-overview-table";
 import { type SortFields, sortFields } from "./query-logs.schema";
 
 const TABLE_CONFIG: Partial<DataTableConfig> = {
@@ -23,11 +23,7 @@ const TABLE_CONFIG: Partial<DataTableConfig> = {
   loadingRows: RATELIMITS_OVERVIEW_PAGE_SIZE,
 };
 
-export const RatelimitOverviewLogsTable = ({
-  namespaceId,
-}: {
-  namespaceId: string;
-}) => {
+export const RatelimitOverviewLogsTable = ({ namespaceId }: { namespaceId: string }) => {
   const [selectedLog, setSelectedLog] = useState<RatelimitOverviewLog | null>(null);
   const { sorts, setSorts } = useSort<SortFields>();
 

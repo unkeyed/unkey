@@ -1,7 +1,7 @@
-import { QueriesPopover } from "@/components/logs/queries/queries-popover";
-import { cn } from "@/lib/utils";
 import { Button } from "@unkey/ui";
 import { IconChartBarAxisYOutline18 } from "nucleo-ui-outline-18";
+import { QueriesPopover } from "@/components/logs/queries/queries-popover";
+import { cn } from "@/lib/utils";
 import { useFilters } from "../../../../hooks/use-filters";
 import { formatFilterValues, getFilterFieldIcon, shouldTruncateRow } from "./utils";
 export const LogsQueries = () => {

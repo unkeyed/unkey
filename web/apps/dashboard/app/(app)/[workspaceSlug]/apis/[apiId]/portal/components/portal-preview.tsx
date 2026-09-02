@@ -1,9 +1,9 @@
 "use client";
 
-import { isHexColor, logoUrlSchema } from "@/lib/portal/validation";
-import { cn } from "@/lib/utils";
 import { onPrimaryColor } from "@unkey/ui/src/lib/branding";
 import { useState } from "react";
+import { isHexColor, logoUrlSchema } from "@/lib/portal/validation";
+import { cn } from "@/lib/utils";
 import { DEFAULT_BRAND_COLOR, type PortalBrandingValue } from "./portal-branding";
 
 // Generic because the dashboard is not told the deployment's `portal_base_url`.

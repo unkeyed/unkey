@@ -1,8 +1,5 @@
 "use client";
 
-import { type MenuItem, TableActionPopover } from "@/components/logs/table-action.popover";
-import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
-import { routes } from "@/lib/navigation/routes";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -33,6 +30,9 @@ import {
   IconTrashOutline18,
 } from "nucleo-ui-outline-18";
 import { useState } from "react";
+import { type MenuItem, TableActionPopover } from "@/components/logs/table-action.popover";
+import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
+import { routes } from "@/lib/navigation/routes";
 import { DrainErrorBanner } from "../drain-error-banner";
 import type { DrainDetail } from "../drain-schema";
 import { DrainStatusBadge } from "../drain-status-badge";

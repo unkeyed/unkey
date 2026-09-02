@@ -1,8 +1,8 @@
 "use client";
 
-import { formatNumber } from "@/lib/fmt";
 import { Button, Card } from "@unkey/ui";
-import { WINDOW_HOURS, useDeliveryTotals } from "./use-deliveries";
+import { formatNumber } from "@/lib/fmt";
+import { useDeliveryTotals, WINDOW_HOURS } from "./use-deliveries";
 
 const NO_VALUE = "‒";
 

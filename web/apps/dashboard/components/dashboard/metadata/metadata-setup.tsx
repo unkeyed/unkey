@@ -1,5 +1,4 @@
 "use client";
-import type { MetadataFormValues } from "@/lib/schemas/metadata";
 import {
   Button,
   FormField,
@@ -10,6 +9,7 @@ import {
 } from "@unkey/ui";
 import { IconCodeOutline18 } from "nucleo-ui-outline-18";
 import { useController, useFormContext, useWatch } from "react-hook-form";
+import type { MetadataFormValues } from "@/lib/schemas/metadata";
 import { ProtectionSwitch } from "./protection-switch";
 
 export const EXAMPLE_JSON = {

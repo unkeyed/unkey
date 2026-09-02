@@ -1,5 +1,5 @@
-import { type PlanLimits, limitsByPlan } from "@/lib/limits";
 import type Stripe from "stripe";
+import { limitsByPlan, type PlanLimits } from "@/lib/limits";
 
 /**
  * The Unkey Deploy plans we recognize, lowest to highest. Mirrored into

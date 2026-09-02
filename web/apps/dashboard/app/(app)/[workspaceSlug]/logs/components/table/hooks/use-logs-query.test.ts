@@ -1,6 +1,6 @@
-import { trpc } from "@/lib/trpc/client";
 import { act, renderHook } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { trpc } from "@/lib/trpc/client";
 import { useLogsQuery } from "./use-logs-query";
 
 let mockFilters: any[] = [];

@@ -1,8 +1,8 @@
 "use client";
 
+import { Loading } from "@unkey/ui";
 import type { DeploymentStatus } from "@/lib/collections/deploy/deployment-status";
 import { cn } from "@/lib/utils";
-import { Loading } from "@unkey/ui";
 
 const SPINNING = new Set<DeploymentStatus>([
   "starting",

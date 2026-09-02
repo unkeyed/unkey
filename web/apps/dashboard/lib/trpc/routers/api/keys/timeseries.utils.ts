@@ -1,10 +1,10 @@
+import type { VerificationTimeseriesParams } from "@unkey/clickhouse/src/verifications";
 import type { KeysOverviewQueryTimeseriesPayload } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/_overview/components/charts/bar-chart/query-timeseries.schema";
 import { getTimestampFromRelative } from "@/lib/utils";
-import type { VerificationTimeseriesParams } from "@unkey/clickhouse/src/verifications";
 import {
+  getTimeseriesGranularity,
   type TimeseriesConfig,
   type TimeseriesGranularity,
-  getTimeseriesGranularity,
 } from "../../utils/granularity";
 export function transformVerificationFilters(params: KeysOverviewQueryTimeseriesPayload): {
   params: Omit<VerificationTimeseriesParams, "workspaceId" | "keyspaceId" | "keyId" | "apiId">;

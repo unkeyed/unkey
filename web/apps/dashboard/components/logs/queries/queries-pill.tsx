@@ -1,4 +1,5 @@
 import { cn } from "@/lib/utils";
+
 type QueriesPillType = {
   value: string;
   className?: string;

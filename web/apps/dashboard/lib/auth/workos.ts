@@ -1,4 +1,3 @@
-import { env } from "@/lib/env";
 import {
   AuthenticateWithSessionCookieFailureReason,
   AuthenticationException,
@@ -10,6 +9,7 @@ import {
   type Invitation as WorkOSInvitation,
   type Organization as WorkOSOrganization,
 } from "@workos-inc/node";
+import { env } from "@/lib/env";
 import { getClientIp } from "../client-ip";
 import { getBaseUrl } from "../utils";
 import { BaseAuthProvider } from "./base-provider";
@@ -25,6 +25,7 @@ import {
   AuthErrorCode,
   type AuthErrorResponse,
   type EmailAuthResult,
+  errorMessages,
   type Invitation,
   type InvitationListResponse,
   type Membership,
@@ -32,9 +33,9 @@ import {
   type MfaEnrollmentStart,
   type MfaFactor,
   type OAuthResult,
-  type OrgInviteParams,
   type Organization,
   OrganizationScopeError,
+  type OrgInviteParams,
   PENDING_SESSION_COOKIE,
   type PendingAuthChallengeResponse,
   RADAR_ATTEMPT_COOKIE,
@@ -47,7 +48,6 @@ import {
   type User,
   type UserData,
   type VerificationResult,
-  errorMessages,
 } from "./types";
 
 // Shape of `rawData.user` on AuthenticationException (snake_case wire format)
@@ -484,10 +484,7 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
   }
 
   // Organization Management
-  async createTenant(params: {
-    name: string;
-    userId: string;
-  }): Promise<string> {
+  async createTenant(params: { name: string; userId: string }): Promise<string> {
     const { name, userId } = params;
     if (!name || !userId) {
       throw new Error("Organization name and userId are required.");
@@ -1154,10 +1151,7 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
     );
   }
 
-  async beginMfaEnrollment(params: {
-    userId: string;
-    email: string;
-  }): Promise<MfaEnrollmentStart> {
+  async beginMfaEnrollment(params: { userId: string; email: string }): Promise<MfaEnrollmentStart> {
     // Clean up orphans from abandoned enrollments so they don't accumulate in
     // WorkOS. An enrolled-but-unverified factor comes back from the list
     // without its `totp` metadata; a verified, in-use factor always has it.
@@ -1194,10 +1188,7 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
     };
   }
 
-  async verifyMfaEnrollment(params: {
-    challengeId: string;
-    code: string;
-  }): Promise<boolean> {
+  async verifyMfaEnrollment(params: { challengeId: string; code: string }): Promise<boolean> {
     const response = await this.provider.multiFactorAuth.verifyChallenge({
       authenticationChallengeId: params.challengeId,
       code: params.code,

@@ -1,8 +1,8 @@
+import type { PermissionsFilterValue } from "@/app/(app)/[workspaceSlug]/authorization/permissions/filters.schema";
 import {
   permissionsFilterFieldConfig,
   permissionsListFilterFieldNames,
 } from "@/app/(app)/[workspaceSlug]/authorization/permissions/filters.schema";
-import type { PermissionsFilterValue } from "@/app/(app)/[workspaceSlug]/authorization/permissions/filters.schema";
 import { useFilters } from "@/app/(app)/[workspaceSlug]/authorization/permissions/hooks/use-filters";
 import {
   PAGINATED_LIST_PREFETCH_OPTIONS,

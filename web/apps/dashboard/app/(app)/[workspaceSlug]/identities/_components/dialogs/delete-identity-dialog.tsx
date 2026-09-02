@@ -1,8 +1,5 @@
 "use client";
 
-import type { ActionComponentProps } from "@/components/logs/table-action.popover";
-import { useDeleteIdentityMutation } from "@/lib/identities-query";
-import { getErrorMessage } from "@/lib/unkey-client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { Identity } from "@unkey/api/models/components";
 import {
@@ -18,6 +15,9 @@ import { IconTriangleWarningOutline12 } from "nucleo-ui-outline-12";
 import { useId, useRef, useState } from "react";
 import { Controller, FormProvider, useForm } from "react-hook-form";
 import { z } from "zod";
+import type { ActionComponentProps } from "@/components/logs/table-action.popover";
+import { useDeleteIdentityMutation } from "@/lib/identities-query";
+import { getErrorMessage } from "@/lib/unkey-client";
 import { IdentityInfo } from "./identity-info";
 
 const deleteIdentityFormSchema = z.object({

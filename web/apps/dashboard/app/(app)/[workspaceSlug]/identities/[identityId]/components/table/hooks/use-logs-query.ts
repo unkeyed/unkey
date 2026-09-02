@@ -1,9 +1,9 @@
+import { KEY_VERIFICATION_OUTCOMES } from "@unkey/clickhouse/src/keys/keys";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { HISTORICAL_DATA_WINDOW } from "@/components/logs/constants";
 import { trpc } from "@/lib/trpc/client";
 import type { IdentityLog } from "@/lib/trpc/routers/identity/query-logs";
 import { useQueryTime } from "@/providers/query-time-provider";
-import { KEY_VERIFICATION_OUTCOMES } from "@unkey/clickhouse/src/keys/keys";
-import { useCallback, useEffect, useMemo, useState } from "react";
 import { identityDetailsFilterFieldConfig } from "../../../filters.schema";
 import { useFilters } from "../../../hooks/use-filters";
 import type { IdentityLogsPayload } from "../query-logs.schema";

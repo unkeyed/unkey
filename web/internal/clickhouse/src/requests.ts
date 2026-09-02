@@ -1,6 +1,5 @@
-import type { Inserter } from "./client/interface";
-
 import { z } from "zod";
+import type { Inserter } from "./client/interface";
 
 export function insertApiRequest(ch: Inserter) {
   return ch.insert({

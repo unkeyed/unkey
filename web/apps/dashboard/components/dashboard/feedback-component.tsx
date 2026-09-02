@@ -1,6 +1,5 @@
 "use client";
 
-import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
   Button,
@@ -18,6 +17,7 @@ import { parseAsBoolean, parseAsStringLiteral, useQueryStates } from "nuqs";
 import { useCallback, useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
+import { trpc } from "@/lib/trpc/client";
 
 const ISSUE_TYPES = ["bug", "feature", "security", "payment", "question", "feedback"] as const;
 type IssueType = (typeof ISSUE_TYPES)[number];

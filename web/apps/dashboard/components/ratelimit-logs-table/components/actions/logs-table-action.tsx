@@ -1,9 +1,9 @@
 "use client";
 
-import { useFilters } from "@/app/(app)/[workspaceSlug]/ratelimits/[namespaceId]/logs/hooks/use-filters";
-import { type MenuItem, TableActionPopover } from "@/components/logs/table-action.popover";
 import { toast } from "@unkey/ui";
 import { IconCloneOutline18, IconInputSearchOutline18 } from "nucleo-ui-outline-18";
+import { useFilters } from "@/app/(app)/[workspaceSlug]/ratelimits/[namespaceId]/logs/hooks/use-filters";
+import { type MenuItem, TableActionPopover } from "@/components/logs/table-action.popover";
 
 export const LogsTableAction = ({ identifier }: { identifier: string }) => {
   const { filters, updateFilters } = useFilters();

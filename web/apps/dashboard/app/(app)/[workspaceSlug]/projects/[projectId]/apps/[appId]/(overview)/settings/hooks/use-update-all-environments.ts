@@ -1,8 +1,8 @@
 "use client";
 
+import { useCallback } from "react";
 import { collection } from "@/lib/collections";
 import type { EnvironmentSettings } from "@/lib/collections/deploy/environment-settings";
-import { useCallback } from "react";
 import { useProjectData } from "../../data-provider";
 
 /**

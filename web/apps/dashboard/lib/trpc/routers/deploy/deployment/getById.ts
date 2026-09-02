@@ -1,8 +1,8 @@
-import { and, db, eq } from "@/lib/db";
-import { workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
 import { deployments } from "@unkey/db/src/schema";
 import { z } from "zod";
+import { and, db, eq } from "@/lib/db";
+import { workspaceProcedure } from "@/lib/trpc/trpc";
 import { deploymentListSelect } from "./deployment-query-helpers";
 import { enrichDeploymentRows } from "./enrich-deployment-rows";
 

@@ -1,14 +1,14 @@
 "use client";
 
+import { Button, DataTable, Empty, PaginationFooter } from "@unkey/ui";
+import { IconBookBookmarkOutline18 } from "nucleo-ui-outline-18";
+import { useMemo } from "react";
 import {
   createRequestLogsColumns,
   getRowClassName,
   getSelectedClassName,
   useRequestLogsQuery,
 } from "@/components/request-logs-table";
-import { Button, DataTable, Empty, PaginationFooter } from "@unkey/ui";
-import { IconBookBookmarkOutline18 } from "nucleo-ui-outline-18";
-import { useMemo } from "react";
 import { useRequestLogsContext } from "../../context/request-logs-provider";
 
 export const RequestLogsTable = () => {

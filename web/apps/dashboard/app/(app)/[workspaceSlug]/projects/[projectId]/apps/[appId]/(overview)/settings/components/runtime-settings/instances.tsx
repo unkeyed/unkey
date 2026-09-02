@@ -1,22 +1,22 @@
 "use client";
 
-import { collection } from "@/lib/collections";
-import type { EnvironmentSettings } from "@/lib/collections/deploy/environment-settings";
-import { freeTierLimits } from "@/lib/limits";
-import { mapRegionToFlag } from "@/lib/trpc/routers/deploy/network/utils";
-import { useWorkspace } from "@/providers/workspace-provider";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Slider } from "@unkey/ui";
 import { IconConnections3Outline18 } from "nucleo-ui-outline-18";
 import { useContext, useEffect, useMemo } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
+import { collection } from "@/lib/collections";
+import type { EnvironmentSettings } from "@/lib/collections/deploy/environment-settings";
+import { freeTierLimits } from "@/lib/limits";
+import { mapRegionToFlag } from "@/lib/trpc/routers/deploy/network/utils";
+import { useWorkspace } from "@/providers/workspace-provider";
 import { RegionFlag } from "../../../../components/region-flag";
 import { EnvironmentContext, useEnvironmentSettings } from "../../environment-provider";
 import { useMultiEnvironmentSettings } from "../../hooks/use-multi-environment-settings";
 import { useUpdateAllEnvironments } from "../../hooks/use-update-all-environments";
 import { SettingDescription, WideContent } from "../shared/form-blocks";
-import { FormSettingCard, type SaveState, resolveSaveState } from "../shared/form-setting-card";
+import { FormSettingCard, resolveSaveState, type SaveState } from "../shared/form-setting-card";
 import { EnvironmentDisplayValue } from "../shared/resource-slider/environment-display-value";
 import { EnvironmentSliderSection } from "../shared/resource-slider/environment-slider-section";
 

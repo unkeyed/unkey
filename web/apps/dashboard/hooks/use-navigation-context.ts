@@ -2,7 +2,7 @@
 
 import { useParams, useSelectedLayoutSegments } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-import { STORAGE_EVENT, STORAGE_KEY, getCurrentProduct } from "./use-product-selection";
+import { getCurrentProduct, STORAGE_EVENT, STORAGE_KEY } from "./use-product-selection";
 
 export type NavigationContext =
   | { type: "product"; product: "api-management" | "deploy" }

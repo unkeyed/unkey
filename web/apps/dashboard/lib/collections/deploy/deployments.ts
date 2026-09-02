@@ -1,12 +1,12 @@
 "use client";
-import { flagCodes } from "@/lib/trpc/routers/deploy/network/utils";
 import { parseLoadSubsetOptions, queryCollectionOptions } from "@tanstack/query-db-collection";
 import { createCollection } from "@tanstack/react-db";
 import { z } from "zod";
+import { flagCodes } from "@/lib/trpc/routers/deploy/network/utils";
 import { queryClient, trpcClient } from "../client";
 import { DEPLOYMENT_STATUSES } from "./deployment-status";
 import { INSTANCE_STATUSES } from "./instance-status";
-import { type ParsedFilter, extractStringFilter, validateProjectIdInQuery } from "./utils";
+import { extractStringFilter, type ParsedFilter, validateProjectIdInQuery } from "./utils";
 
 export const deploymentSchema = z.object({
   id: z.string(),

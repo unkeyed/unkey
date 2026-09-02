@@ -1,8 +1,8 @@
-import type { KeyDetails } from "@/lib/trpc/routers/api/keys/query-api-keys/schema";
-import { cn } from "@/lib/utils";
 import type { DataTableColumnDef } from "@unkey/ui";
 import { KeyColumnSkeleton } from "@unkey/ui";
 import { IconDotsOutline12 } from "nucleo-ui-outline-12";
+import type { KeyDetails } from "@/lib/trpc/routers/api/keys/query-api-keys/schema";
+import { cn } from "@/lib/utils";
 import { API_KEY_COLUMN_IDS } from "../../columns/create-api-key-columns";
 import { UsageColumnSkeleton } from "../skeletons";
 

@@ -1,7 +1,5 @@
 "use client";
 
-import { cn } from "@/lib/utils";
-import { formatCompoundDuration } from "@/lib/utils/metric-formatters";
 import { match } from "@unkey/match";
 import { Badge, Loading, SettingCard } from "@unkey/ui";
 import {
@@ -9,6 +7,8 @@ import {
   IconCircleHalfDottedClockOutline18,
   IconTriangleWarningOutline18,
 } from "nucleo-ui-outline-18";
+import { cn } from "@/lib/utils";
+import { formatCompoundDuration } from "@/lib/utils/metric-formatters";
 import { GlowIcon } from "../../../../components/glow-icon";
 
 type DeploymentStepProps = {

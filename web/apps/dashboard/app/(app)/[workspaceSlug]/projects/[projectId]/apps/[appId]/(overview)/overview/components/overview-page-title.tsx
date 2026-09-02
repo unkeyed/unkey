@@ -1,7 +1,7 @@
 "use client";
 
-import { collection } from "@/lib/collections";
 import { eq, useLiveQuery } from "@tanstack/react-db";
+import { collection } from "@/lib/collections";
 import { useProjectData } from "../../data-provider";
 
 export function OverviewPageTitle() {

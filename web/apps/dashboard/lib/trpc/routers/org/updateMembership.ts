@@ -1,8 +1,8 @@
+import { TRPCError } from "@trpc/server";
+import { z } from "zod";
 import { ORGANIZATION_ROLES } from "@/lib/auth/roles";
 import { auth as authProvider } from "@/lib/auth/server";
 import { OrganizationScopeError } from "@/lib/auth/types";
-import { TRPCError } from "@trpc/server";
-import { z } from "zod";
 import { requireOrgAdmin, workspaceProcedure } from "../../trpc";
 
 export const updateMembership = workspaceProcedure

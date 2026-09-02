@@ -1,16 +1,15 @@
 import { relations } from "drizzle-orm";
 import { mysqlTable, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
 import { apps } from "./apps";
-import { deleteProtection } from "./util/delete_protection";
-import { lifecycleDates } from "./util/lifecycle_dates";
-import { workspaces } from "./workspaces";
-
 import { deployments } from "./deployments";
 import { environments } from "./environments";
 import { frontlineRoutes } from "./frontline_routes";
 import { githubRepoConnections } from "./github_app";
+import { deleteProtection } from "./util/delete_protection";
 import { id } from "./util/id";
+import { lifecycleDates } from "./util/lifecycle_dates";
 import { primaryKey } from "./util/primary_key";
+import { workspaces } from "./workspaces";
 export const projects = mysqlTable(
   "projects",
   {

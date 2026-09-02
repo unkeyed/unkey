@@ -1,8 +1,8 @@
-import { and, db, eq, isNull } from "@/lib/db";
-import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
 import { apis } from "@unkey/db/src/schema";
 import { z } from "zod";
+import { and, db, eq, isNull } from "@/lib/db";
+import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 
 const queryApiLayoutPayload = z.object({
   apiId: z.string().min(1, "API ID is required"),

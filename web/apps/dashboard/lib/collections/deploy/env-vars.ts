@@ -1,11 +1,10 @@
 "use client";
 import { parseLoadSubsetOptions, queryCollectionOptions } from "@tanstack/query-db-collection";
 import { createCollection } from "@tanstack/react-db";
-
-import { getErrorToast, getUnkeyClient } from "@/lib/unkey-client";
 import type { EnvironmentVariable } from "@unkey/api/models/components";
 import { toast } from "@unkey/ui";
 import { z } from "zod";
+import { getErrorToast, getUnkeyClient } from "@/lib/unkey-client";
 import { queryClient, trpcClient } from "../client";
 import { trackSave } from "./environment-settings";
 import { extractStringFilter } from "./utils";

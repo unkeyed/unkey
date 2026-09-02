@@ -1,9 +1,9 @@
-import { db } from "@/lib/db";
-import { env } from "@/lib/env";
-import { withLlmAccess, workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
 import OpenAI from "openai";
 import { z } from "zod";
+import { db } from "@/lib/db";
+import { env } from "@/lib/env";
+import { withLlmAccess, workspaceProcedure } from "@/lib/trpc/trpc";
 import { getKeysStructuredSearchFromLLM } from "./utils";
 
 const openai = env().OPENAI_API_KEY

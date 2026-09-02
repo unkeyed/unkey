@@ -1,12 +1,8 @@
-import { trpc } from "@/lib/trpc/client";
 import { toast } from "@unkey/ui";
+import { trpc } from "@/lib/trpc/client";
 
 export const useUpsertPermission = (
-  onSuccess: (data: {
-    permissionId?: string;
-    isUpdate: boolean;
-    message: string;
-  }) => void,
+  onSuccess: (data: { permissionId?: string; isUpdate: boolean; message: string }) => void,
 ) => {
   const trpcUtils = trpc.useUtils();
   const permission = trpc.authorization.permissions.upsert.useMutation({

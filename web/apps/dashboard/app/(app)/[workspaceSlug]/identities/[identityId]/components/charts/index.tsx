@@ -1,8 +1,8 @@
 import { createOutcomeChartConfig } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/keys/[keyAuthId]/[keyId]/components/charts/bar-chart/utils";
 import { OverviewBarChart } from "@/components/logs/overview-charts/overview-bar-chart";
 import {
-  type TimeseriesGranularity,
   getTimeBufferForGranularity,
+  type TimeseriesGranularity,
 } from "@/lib/trpc/routers/utils/granularity";
 import { useFilters } from "../../hooks/use-filters";
 import { useFetchIdentityTimeseries } from "./bar-chart/hooks/use-fetch-timeseries";
@@ -43,13 +43,7 @@ export const IdentityDetailsLogsChart = ({
 
   const mappedGranularity = granularity ? granularityMap[granularity] : undefined;
 
-  const handleSelectionChange = ({
-    start,
-    end,
-  }: {
-    start: number;
-    end: number;
-  }) => {
+  const handleSelectionChange = ({ start, end }: { start: number; end: number }) => {
     const activeFilters = filters.filter(
       (f) => !["startTime", "endTime", "since"].includes(f.field),
     );

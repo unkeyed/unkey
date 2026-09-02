@@ -1,9 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { DAY_IN_MS, HOUR_IN_MS, MONTH_IN_MS, QUARTER_IN_MS, WEEK_IN_MS } from "./constants";
 import {
+  getTimeseriesGranularity,
   type TimeseriesConfig,
   type TimeseriesGranularity,
-  getTimeseriesGranularity,
 } from "./granularity";
 
 describe("getTimeseriesGranularity", () => {

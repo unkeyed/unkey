@@ -1,5 +1,5 @@
-import { cn } from "@/lib/utils";
 import { STATUS_STYLES, type StatusStyle } from "@unkey/ui";
+import { cn } from "@/lib/utils";
 import type { EnrichedRatelimitLog } from "../hooks/use-ratelimit-logs-query";
 
 // A blocked ratelimit request is encoded as status === 0.

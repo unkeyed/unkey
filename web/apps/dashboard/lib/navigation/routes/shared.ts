@@ -2,8 +2,9 @@
  * Scope types shared across route-builder areas. Each area (projects, apis,
  * ratelimits) extends WorkspaceScope with its own ids.
  */
-import type { AppRoutes, ParamMap } from "@/.next/types/routes";
+
 import type { Route } from "next";
+import type { AppRoutes, ParamMap } from "@/.next/types/routes";
 import { type QueryParams, withQuery } from "../url";
 
 export type WorkspaceScope = { workspaceSlug: string };

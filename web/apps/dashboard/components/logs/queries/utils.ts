@@ -8,10 +8,6 @@ import {
   differenceInYears,
   format,
 } from "date-fns";
-import React from "react";
-
-import { auditLogsFilterFieldEnum } from "@/app/(app)/[workspaceSlug]/audit/filters.schema";
-import { ratelimitFilterFieldEnum } from "@/app/(app)/[workspaceSlug]/ratelimits/[namespaceId]/logs/filters.schema";
 import type { IconProps } from "nucleo-ui-outline-18";
 import {
   IconBucketOutline18,
@@ -26,16 +22,18 @@ import {
   IconLink4Outline18,
   IconUserSearchOutline18,
 } from "nucleo-ui-outline-18";
-
+import type { FC } from "react";
+import React from "react";
 import type { AuditLogsFilterField } from "@/app/(app)/[workspaceSlug]/audit/filters.schema";
-import type { RatelimitFilterField } from "@/app/(app)/[workspaceSlug]/ratelimits/[namespaceId]/logs/filters.schema";
+import { auditLogsFilterFieldEnum } from "@/app/(app)/[workspaceSlug]/audit/filters.schema";
 import { namespaceListFilterFieldEnum } from "@/app/(app)/[workspaceSlug]/ratelimits/_components/namespace-list-filters.schema";
+import type { RatelimitFilterField } from "@/app/(app)/[workspaceSlug]/ratelimits/[namespaceId]/logs/filters.schema";
+import { ratelimitFilterFieldEnum } from "@/app/(app)/[workspaceSlug]/ratelimits/[namespaceId]/logs/filters.schema";
 import {
   type LogsFilterField,
-  type QuerySearchParams,
   logsFilterFieldEnum,
+  type QuerySearchParams,
 } from "@/lib/schemas/logs.filter.schema";
-import type { FC } from "react";
 
 export const iconsPerField: Record<string, FC<IconProps>> = {
   status: IconChartActivity2Outline18,

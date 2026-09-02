@@ -1,9 +1,9 @@
 "use client";
 
-import { trpc } from "@/lib/trpc/client";
-import type { Router } from "@/lib/trpc/routers";
 import type { inferRouterOutputs } from "@trpc/server";
 import { useMemo } from "react";
+import { trpc } from "@/lib/trpc/client";
+import type { Router } from "@/lib/trpc/routers";
 
 export type Delivery = inferRouterOutputs<Router>["logdrain"]["recentDeliveries"][number];
 export const WINDOW_HOURS = 24;

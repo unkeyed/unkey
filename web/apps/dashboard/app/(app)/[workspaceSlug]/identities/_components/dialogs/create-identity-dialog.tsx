@@ -1,11 +1,5 @@
 "use client";
 
-import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
-import { useCreateIdentityMutation } from "@/lib/identities-query";
-import { routes } from "@/lib/navigation/routes";
-import { parseIdentityMetadata } from "@/lib/schemas/metadata";
-import type { DiscriminatedUnionResolver } from "@/lib/schemas/resolver-types";
-import { getErrorMessage } from "@/lib/unkey-client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ConflictErrorResponse } from "@unkey/api/models/errors";
 import {
@@ -24,6 +18,12 @@ import { useRouter } from "next/navigation";
 import { IconPlusOutline18 } from "nucleo-ui-outline-18";
 import { useState, useTransition } from "react";
 import { FormProvider, useForm } from "react-hook-form";
+import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
+import { useCreateIdentityMutation } from "@/lib/identities-query";
+import { routes } from "@/lib/navigation/routes";
+import { parseIdentityMetadata } from "@/lib/schemas/metadata";
+import type { DiscriminatedUnionResolver } from "@/lib/schemas/resolver-types";
+import { getErrorMessage } from "@/lib/unkey-client";
 import { SECTIONS } from "./create-identity.constants";
 import { type FormValues, formSchema, getDefaultValues } from "./create-identity.schema";
 

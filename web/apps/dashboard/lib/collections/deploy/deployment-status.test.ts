@@ -1,9 +1,9 @@
 import { describe, expect, test } from "vitest";
 import {
   DEFAULT_DEPLOYMENT_STATUS_GROUPS,
-  DEPLOYMENT_STATUSES,
-  DEPLOYMENT_STATUS_GROUPS,
   DEPLOYMENT_STATUS_GROUP_NAMES,
+  DEPLOYMENT_STATUS_GROUPS,
+  DEPLOYMENT_STATUSES,
   expandDeploymentStatusGroups,
 } from "./deployment-status";
 

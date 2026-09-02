@@ -8,7 +8,10 @@ import { useState } from "react";
 export function ImageSource({
   image,
   copyValue = image,
-}: { image: string | null; copyValue?: string | null }) {
+}: {
+  image: string | null;
+  copyValue?: string | null;
+}) {
   const [copied, setCopied] = useState(false);
 
   if (!image) {

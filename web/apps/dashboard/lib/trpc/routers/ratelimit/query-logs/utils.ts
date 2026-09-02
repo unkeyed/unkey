@@ -1,6 +1,6 @@
+import type { RatelimitLogsParams } from "@unkey/clickhouse/src/ratelimits";
 import type { RatelimitQueryLogsPayload } from "@/components/ratelimit-logs-table/schema/query-logs.schema";
 import { getTimestampFromRelative } from "@/lib/utils";
-import type { RatelimitLogsParams } from "@unkey/clickhouse/src/ratelimits";
 
 export function transformFilters(
   params: RatelimitQueryLogsPayload,

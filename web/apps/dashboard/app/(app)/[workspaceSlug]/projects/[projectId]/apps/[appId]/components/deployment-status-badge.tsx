@@ -1,8 +1,4 @@
 "use client";
-import {
-  DEPLOYMENT_STATUS_LABELS,
-  type DeploymentStatus,
-} from "@/lib/collections/deploy/deployment-status";
 import { cn } from "@unkey/ui/src/lib/utils";
 import type { IconProps } from "nucleo-ui-outline-18";
 import {
@@ -19,6 +15,10 @@ import {
   IconSparkle3Outline18,
 } from "nucleo-ui-outline-18";
 import type { FC } from "react";
+import {
+  DEPLOYMENT_STATUS_LABELS,
+  type DeploymentStatus,
+} from "@/lib/collections/deploy/deployment-status";
 
 type StatusConfig = {
   icon: FC<IconProps>;

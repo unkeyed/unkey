@@ -1,12 +1,12 @@
+import type { Route } from "next";
+import { headers } from "next/headers";
+import { redirect } from "next/navigation";
+import type { NextRequest } from "next/server";
 import { setLastUsedOrgCookie, setSessionCookie } from "@/lib/auth/cookies";
 import { getAuth as getBaseAuth } from "@/lib/auth/get-auth";
 import { auth } from "@/lib/auth/server";
 import type { AuthenticatedUser } from "@/lib/auth/types";
 import { routes } from "@/lib/navigation/routes";
-import type { Route } from "next";
-import { headers } from "next/headers";
-import { redirect } from "next/navigation";
-import type { NextRequest } from "next/server";
 
 type GetAuthResult = {
   userId: string;

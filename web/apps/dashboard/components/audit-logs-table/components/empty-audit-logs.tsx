@@ -1,4 +1,4 @@
-import { Empty, buttonVariants } from "@unkey/ui";
+import { buttonVariants, Empty } from "@unkey/ui";
 import { IconBookBookmarkOutline18 } from "nucleo-ui-outline-18";
 
 export const EmptyAuditLogs = () => {

@@ -1,4 +1,7 @@
 "use client";
+import { Separator } from "@unkey/ui";
+import { AnimatePresence, motion } from "framer-motion";
+import { IconCoinsOutline18 } from "nucleo-ui-outline-18";
 import { StatusBadge } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/settings/components/status-badge";
 import {
   ControlsContainer,
@@ -7,9 +10,6 @@ import {
 } from "@/components/logs/controls-container";
 import { formatNumber } from "@/lib/fmt";
 import { trpc } from "@/lib/trpc/client";
-import { Separator } from "@unkey/ui";
-import { AnimatePresence, motion } from "framer-motion";
-import { IconCoinsOutline18 } from "nucleo-ui-outline-18";
 import { LogsDateTime } from "./components/logs-datetime";
 import { LogsFilters } from "./components/logs-filters";
 import { LogsLiveSwitch } from "./components/logs-live-switch";

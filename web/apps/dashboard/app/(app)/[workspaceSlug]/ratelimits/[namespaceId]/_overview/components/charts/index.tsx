@@ -8,11 +8,7 @@ import { useFetchRatelimitOverviewTimeseries } from "./bar-chart/hooks/use-fetch
 //   minimumFractionDigits: 2,
 // });
 
-export const RatelimitOverviewLogsCharts = ({
-  namespaceId,
-}: {
-  namespaceId: string;
-}) => {
+export const RatelimitOverviewLogsCharts = ({ namespaceId }: { namespaceId: string }) => {
   const { filters, updateFilters } = useFilters();
 
   const { isError, isLoading, timeseries, tokensTimeseries, granularity } =
@@ -24,13 +20,7 @@ export const RatelimitOverviewLogsCharts = ({
   //   timeseries: latencyTimeseries,
   // } = useFetchRatelimitOverviewLatencyTimeseries(namespaceId);
 
-  const handleSelectionChange = ({
-    start,
-    end,
-  }: {
-    start: number;
-    end: number;
-  }) => {
+  const handleSelectionChange = ({ start, end }: { start: number; end: number }) => {
     const activeFilters = filters.filter(
       (f) => !["startTime", "endTime", "since"].includes(f.field),
     );

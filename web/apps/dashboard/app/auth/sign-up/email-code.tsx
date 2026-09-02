@@ -1,11 +1,10 @@
 "use client";
 
-import * as React from "react";
-
-import { AuthErrorCode, errorMessages } from "@/lib/auth/types";
-import { cn } from "@/lib/utils";
 import { Loading, toast } from "@unkey/ui";
 import { OTPInput, type SlotProps } from "input-otp";
+import * as React from "react";
+import { AuthErrorCode, errorMessages } from "@/lib/auth/types";
+import { cn } from "@/lib/utils";
 import { applyVerificationResult } from "../challenge/handle-result";
 import { useSignUp } from "../hooks/useSignUp";
 

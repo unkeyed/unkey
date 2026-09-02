@@ -1,7 +1,7 @@
 "use client";
-import { trpc } from "@/lib/trpc/client";
 import { Button, SettingCard, toast } from "@unkey/ui";
 import type { Stripe } from "stripe";
+import { trpc } from "@/lib/trpc/client";
 
 export const SubscriptionStatus: React.FC<{
   status: Stripe.Subscription.Status;

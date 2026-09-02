@@ -1,8 +1,8 @@
 "use client";
 
-import type { Deployment } from "@/lib/collections";
 import type { Route } from "next";
 import { createContext, use } from "react";
+import type { Deployment } from "@/lib/collections";
 import type { Pulse } from "./g-pulse";
 import type { DeploymentDisplayStatus } from "./status";
 

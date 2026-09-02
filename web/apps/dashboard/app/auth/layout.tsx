@@ -9,11 +9,7 @@ import { RadarProvider } from "./radar/radar-signals";
 // a redirect("/apis") from here races ahead of the action's own navigation
 // (e.g. the invite flow's /join/success) and flashes the dashboard. The
 // signed-in bounce lives in proxy.ts, where it only applies to document GETs.
-export default function AuthenticatedLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
   return (
     <FullScreenLayout className="overflow-x-hidden bg-black">
       <nav className="container flex items-center justify-between h-16 w-full shrink-0">

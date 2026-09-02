@@ -1,8 +1,8 @@
 "use client";
 
+import { RefreshButton } from "@unkey/ui";
 import { useRuntimeLogs } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/(project)/logs/context/runtime-logs-provider";
 import { trpc } from "@/lib/trpc/client";
-import { RefreshButton } from "@unkey/ui";
 
 export function RuntimeLogsRefresh() {
   const { isLive, toggleLive, refresh } = useRuntimeLogs();

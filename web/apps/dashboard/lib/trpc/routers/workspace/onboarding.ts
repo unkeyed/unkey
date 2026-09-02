@@ -1,7 +1,7 @@
-import { createKeyInputSchema } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/_components/create-key/create-key.schema";
-import { db } from "@/lib/db";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
+import { createKeyInputSchema } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/_components/create-key/create-key.schema";
+import { db } from "@/lib/db";
 import { workspaceProcedure } from "../../trpc";
 import { createApiCore } from "../api/create";
 import { createKeyCore } from "../key/create";

@@ -56,4 +56,4 @@ function FormTextarea({
   );
 }
 
-export { FormTextarea, type FormTextareaProps, type DocumentedFormTextareaProps };
+export { type DocumentedFormTextareaProps, FormTextarea, type FormTextareaProps };

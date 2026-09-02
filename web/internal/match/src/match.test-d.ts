@@ -1,5 +1,5 @@
 import { describe, expectTypeOf, it } from "vitest";
-import { P, match } from "./index";
+import { match, P } from "./index";
 
 describe("type: discriminated union narrowing", () => {
   type Shape = { kind: "circle"; r: number } | { kind: "rect"; w: number; h: number };

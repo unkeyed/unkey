@@ -1,3 +1,4 @@
+import { z } from "zod";
 import type {
   FilterValue,
   NumberConfig,
@@ -10,7 +11,6 @@ import {
   type DeploymentStatusGroup,
   isDeploymentStatusGroup,
 } from "@/lib/collections/deploy/deployment-status";
-import { z } from "zod";
 
 export const GROUPED_DEPLOYMENT_STATUSES = DEPLOYMENT_STATUS_GROUP_NAMES;
 export type GroupedDeploymentStatus = DeploymentStatusGroup;

@@ -1,3 +1,4 @@
+import { TRPCError } from "@trpc/server";
 import { clickhouse } from "@/lib/clickhouse";
 import { and, db, eq, inArray, schema } from "@/lib/db";
 import {
@@ -6,7 +7,6 @@ import {
   runtimeLogsResponseSchema,
 } from "@/lib/schemas/runtime-logs.schema";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
-import { TRPCError } from "@trpc/server";
 import {
   resolveK8sNamesToInstanceIds,
   toInstanceKey,

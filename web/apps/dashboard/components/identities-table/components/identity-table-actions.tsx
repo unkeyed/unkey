@@ -1,8 +1,5 @@
 "use client";
 
-import { DeleteIdentityDialog } from "@/app/(app)/[workspaceSlug]/identities/_components/dialogs/delete-identity-dialog";
-import { EditRatelimitDialog } from "@/app/(app)/[workspaceSlug]/identities/_components/dialogs/edit-ratelimit-dialog";
-import { type MenuItem, TableActionPopover } from "@/components/logs/table-action.popover";
 import type { Identity } from "@unkey/api/models/components";
 import { toast } from "@unkey/ui";
 import {
@@ -11,7 +8,10 @@ import {
   IconGaugeOutline18,
   IconTrashOutline18,
 } from "nucleo-ui-outline-18";
-import { type PropsWithChildren, createContext, useContext, useMemo } from "react";
+import { createContext, type PropsWithChildren, useContext, useMemo } from "react";
+import { DeleteIdentityDialog } from "@/app/(app)/[workspaceSlug]/identities/_components/dialogs/delete-identity-dialog";
+import { EditRatelimitDialog } from "@/app/(app)/[workspaceSlug]/identities/_components/dialogs/edit-ratelimit-dialog";
+import { type MenuItem, TableActionPopover } from "@/components/logs/table-action.popover";
 import { EditMetadataDialog } from "./edit-metadata-dialog";
 
 type IdentityActionsContextValue = {

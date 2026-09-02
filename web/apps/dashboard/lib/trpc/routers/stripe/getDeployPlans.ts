@@ -1,7 +1,7 @@
+import type Stripe from "stripe";
 import { getStripeClient } from "@/lib/stripe";
 import { deployBillingConfig } from "@/lib/stripe/deployBilling";
 import { DEPLOY_PLANS, type DeployPlan } from "@/lib/stripe/deployPlan";
-import type Stripe from "stripe";
 import { workspaceProcedure } from "../../trpc";
 
 export type DeployPlanOption = {

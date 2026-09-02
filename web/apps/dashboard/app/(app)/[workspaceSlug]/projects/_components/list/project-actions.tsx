@@ -1,18 +1,17 @@
 "use client";
 
-import { type MenuItem, TableActionPopover } from "@/components/logs/table-action.popover";
-import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
-import { routes } from "@/lib/navigation/routes";
+import { toast } from "@unkey/ui";
+import { useRouter } from "next/navigation";
 import {
   IconArrowsOppositeDirectionYOutline18,
   IconCloneOutline18,
   IconGearOutline18,
   IconLayers3Outline18,
 } from "nucleo-ui-outline-18";
-
-import { toast } from "@unkey/ui";
-import { useRouter } from "next/navigation";
 import type { PropsWithChildren } from "react";
+import { type MenuItem, TableActionPopover } from "@/components/logs/table-action.popover";
+import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
+import { routes } from "@/lib/navigation/routes";
 
 type ProjectActionsProps = {
   projectId: string;

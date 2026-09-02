@@ -1,6 +1,6 @@
 import type { UnkeyPermission } from "@unkey/rbac";
-import { useCallback, useMemo, useState } from "react";
 import type { ChangeEvent } from "react";
+import { useCallback, useMemo, useState } from "react";
 import {
   apiPermissions,
   appPermissions,

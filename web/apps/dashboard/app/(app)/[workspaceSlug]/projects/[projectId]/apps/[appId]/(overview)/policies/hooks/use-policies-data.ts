@@ -1,10 +1,10 @@
 "use client";
 
+import { and, eq, useLiveQuery } from "@tanstack/react-db";
+import { useMemo } from "react";
 import { collection } from "@/lib/collections";
 import { ENVIRONMENT_KIND } from "@/lib/collections/deploy/environments";
 import type { PolicyRow } from "@/lib/collections/deploy/policies";
-import { and, eq, useLiveQuery } from "@tanstack/react-db";
-import { useMemo } from "react";
 import { useAppId, useProjectData } from "../../data-provider";
 import { type Env, type MergedPolicy, mergePolicies } from "../components/list/merge";
 

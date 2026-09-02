@@ -8,7 +8,7 @@
  */
 
 import * as Sentry from "@sentry/nextjs";
-import { type TRPCErrorInfo, getErrorLogLevel } from "../utils/error-classification";
+import { getErrorLogLevel, type TRPCErrorInfo } from "../utils/error-classification";
 
 /**
  * Base attributes included in all structured logs

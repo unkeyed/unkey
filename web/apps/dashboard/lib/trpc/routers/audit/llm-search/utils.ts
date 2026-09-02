@@ -1,11 +1,11 @@
-import {
-  auditFilterOutputSchema,
-  auditLogsFilterFieldConfig,
-} from "@/app/(app)/[workspaceSlug]/audit/filters.schema";
 import { TRPCError } from "@trpc/server";
 import { unkeyAuditLogEvents } from "@unkey/schema/src/auditlog";
 import type OpenAI from "openai";
 import { zodResponseFormat } from "openai/helpers/zod";
+import {
+  auditFilterOutputSchema,
+  auditLogsFilterFieldConfig,
+} from "@/app/(app)/[workspaceSlug]/audit/filters.schema";
 
 export async function getStructuredAuditSearchFromLLM(
   openai: OpenAI | null,

@@ -1,6 +1,5 @@
 "use client";
 
-import { usePreventLeave } from "@/hooks/use-prevent-leave";
 import {
   PageBody,
   PageContainer,
@@ -9,6 +8,7 @@ import {
   PageHeaderTitle,
   SettingsDangerZone,
 } from "@unkey/ui";
+import { usePreventLeave } from "@/hooks/use-prevent-leave";
 import { DeleteApp } from "./components/delete-app";
 import { DisconnectGitHub } from "./components/disconnect-github";
 import { DeploymentSettings } from "./deployment-settings";

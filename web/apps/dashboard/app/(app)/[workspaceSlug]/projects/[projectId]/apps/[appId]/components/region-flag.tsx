@@ -1,6 +1,7 @@
+import BoringAvatar from "boring-avatars";
 import type { FlagCode } from "@/lib/trpc/routers/deploy/network/utils";
 import { cn } from "@/lib/utils";
-import BoringAvatar from "boring-avatars";
+
 type RegionFlagSize = "xs" | "sm" | "md" | "lg";
 type RegionFlagShape = "rounded" | "circle";
 type RegionFlagProps = {

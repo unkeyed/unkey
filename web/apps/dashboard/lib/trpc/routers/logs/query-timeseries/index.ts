@@ -1,8 +1,8 @@
+import { TRPCError } from "@trpc/server";
 import { clickhouse } from "@/lib/clickhouse";
-import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 
 import { timeseriesRequestSchema } from "@/lib/schemas/logs.schema";
-import { TRPCError } from "@trpc/server";
+import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import { assertValidTimeRange } from "../../utils/time-range";
 import { transformFilters } from "./utils";
 

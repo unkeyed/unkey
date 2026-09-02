@@ -1,9 +1,9 @@
+import { type NextRequest, NextResponse } from "next/server";
 import { isSafeRedirectPath, resolveRedirectUrl } from "@/app/auth/sign-in/redirect-utils";
 import { setCookiesOnResponse } from "@/lib/auth/cookies";
 import { auth } from "@/lib/auth/server";
 import { PENDING_SESSION_COOKIE, SIGN_IN_URL, UNKEY_LAST_ORG_COOKIE } from "@/lib/auth/types";
 import { db } from "@/lib/db";
-import { type NextRequest, NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
 

@@ -1,10 +1,10 @@
 "use client";
-import { collection } from "@/lib/collections";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button, DialogContainer, Input } from "@unkey/ui";
 import type { PropsWithChildren } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
+import { collection } from "@/lib/collections";
 
 const formSchema = z.object({
   identifier: z

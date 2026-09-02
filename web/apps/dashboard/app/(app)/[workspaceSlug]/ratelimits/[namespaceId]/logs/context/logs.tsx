@@ -1,7 +1,7 @@
 "use client";
 
+import { createContext, type PropsWithChildren, useContext, useState } from "react";
 import type { EnrichedRatelimitLog } from "@/components/ratelimit-logs-table";
-import { type PropsWithChildren, createContext, useContext, useState } from "react";
 
 type LogsContextType = {
   isLive: boolean;

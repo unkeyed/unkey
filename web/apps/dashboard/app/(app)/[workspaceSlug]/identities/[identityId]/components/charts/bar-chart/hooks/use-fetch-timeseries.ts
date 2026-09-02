@@ -1,10 +1,10 @@
+import { toast } from "@unkey/ui";
+import { useMemo } from "react";
 import { formatTimestampForChart } from "@/components/logs/chart/utils/format-timestamp";
 import { HISTORICAL_DATA_WINDOW } from "@/components/logs/constants";
 import { mapSchemaGranularity } from "@/components/logs/utils";
 import { trpc } from "@/lib/trpc/client";
 import { useQueryTime } from "@/providers/query-time-provider";
-import { toast } from "@unkey/ui";
-import { useMemo } from "react";
 import {
   type IdentityDetailsFilterValue,
   identityDetailsFilterFieldConfig,

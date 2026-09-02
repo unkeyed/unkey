@@ -1,10 +1,10 @@
+import type { VerificationTimeseriesParams } from "@unkey/clickhouse/src/verifications";
 import type { VerificationQueryTimeseriesPayload } from "@/app/(app)/[workspaceSlug]/apis/_components/hooks/query-timeseries.schema";
 import { getTimestampFromRelative } from "@/lib/utils";
-import type { VerificationTimeseriesParams } from "@unkey/clickhouse/src/verifications";
 import {
+  getTimeseriesGranularity,
   type TimeseriesConfig,
   type TimeseriesGranularity,
-  getTimeseriesGranularity,
 } from "../../../utils/granularity";
 
 export function transformVerificationFilters(params: VerificationQueryTimeseriesPayload): {

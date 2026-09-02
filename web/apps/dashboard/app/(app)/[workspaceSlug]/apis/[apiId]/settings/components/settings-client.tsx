@@ -1,7 +1,7 @@
 "use client";
 
-import { trpc } from "@/lib/trpc/client";
 import { SettingCardGroup, SettingsDangerZone } from "@unkey/ui";
+import { trpc } from "@/lib/trpc/client";
 import { CopyApiId } from "./copy-api-id";
 import { CopyKeySpaceId } from "./copy-key-space-id";
 import { DefaultBytes } from "./default-bytes";

@@ -1,22 +1,22 @@
 "use client";
 
+import { zodResolver } from "@hookform/resolvers/zod";
+import type { Identity } from "@unkey/api/models/components";
+import { Alert, AlertDescription, AlertTitle, Button, DialogContainer } from "@unkey/ui";
+import { type FC, useEffect, useId } from "react";
+import { FormProvider } from "react-hook-form";
 import { IdentityInfo } from "@/app/(app)/[workspaceSlug]/identities/_components/dialogs/identity-info";
 import { MetadataSetup } from "@/components/dashboard/metadata/metadata-setup";
 import type { ActionComponentProps } from "@/components/logs/table-action.popover";
 import { usePersistedForm } from "@/hooks/use-persisted-form";
 import { useUpdateIdentityMutation } from "@/lib/identities-query";
 import {
-  type MetadataFormValues,
   identityMetadataSchema,
+  type MetadataFormValues,
   parseIdentityMetadata,
 } from "@/lib/schemas/metadata";
 import type { DiscriminatedUnionResolver } from "@/lib/schemas/resolver-types";
 import { getErrorMessage } from "@/lib/unkey-client";
-import { zodResolver } from "@hookform/resolvers/zod";
-import type { Identity } from "@unkey/api/models/components";
-import { Alert, AlertDescription, AlertTitle, Button, DialogContainer } from "@unkey/ui";
-import { type FC, useEffect, useId } from "react";
-import { FormProvider } from "react-hook-form";
 
 type EditMetadataDialogProps = { identity: Identity } & ActionComponentProps;
 

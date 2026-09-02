@@ -1,8 +1,5 @@
 "use client";
 
-import { Switch } from "@/components/ui/switch";
-import { collection } from "@/lib/collections";
-import { envVarKeySchema, envVarValueSchema } from "@/lib/schemas/env-var";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button, FormInput, FormTextarea, InfoTooltip } from "@unkey/ui";
 import { IconPlusOutline12 } from "nucleo-ui-outline-12";
@@ -10,6 +7,9 @@ import { IconCircleInfoOutline18 } from "nucleo-ui-outline-18";
 import { type ClipboardEvent, useCallback } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
+import { Switch } from "@/components/ui/switch";
+import { collection } from "@/lib/collections";
+import { envVarKeySchema, envVarValueSchema } from "@/lib/schemas/env-var";
 import { parseEnvText } from "../../hooks/use-drop-zone";
 
 const editEnvVarSchema = z.object({

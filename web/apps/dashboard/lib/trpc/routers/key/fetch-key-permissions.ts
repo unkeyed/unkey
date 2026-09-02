@@ -1,7 +1,7 @@
-import { and, db, eq, isNull, schema } from "@/lib/db";
-import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
+import { and, db, eq, isNull, schema } from "@/lib/db";
+import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 
 // Schema for keyAuth object
 const KeyAuthSchema = z.object({

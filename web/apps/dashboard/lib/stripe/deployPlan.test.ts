@@ -1,8 +1,8 @@
 import type Stripe from "stripe";
 import { describe, expect, it, vi } from "vitest";
 import {
-  computeLimitUpdateForPlan,
   computeLimitsForPlan,
+  computeLimitUpdateForPlan,
   deployPlanGrantsTeam,
   detectDeployPlan,
   parseDeployPlan,

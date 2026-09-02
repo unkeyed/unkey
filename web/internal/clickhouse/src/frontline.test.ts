@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { type RequestLogsRequest, getRequestLogs, requestLogsRequestSchema } from "./frontline";
+import { getRequestLogs, type RequestLogsRequest, requestLogsRequestSchema } from "./frontline";
 import { CapturingQuerier } from "./test-utils";
 
 const baseRequest: RequestLogsRequest = {

@@ -1,9 +1,9 @@
 "use client";
 
-import { StreamingTable } from "@/components/streaming-table";
 import { Button, Empty } from "@unkey/ui";
 import { IconBookBookmarkOutline18 } from "nucleo-ui-outline-18";
 import { useEffect, useRef, useState } from "react";
+import { StreamingTable } from "@/components/streaming-table";
 import { BuildStepLogsExpanded } from "./build-step-logs-expanded";
 import { type BuildStepRow, buildStepsColumns } from "./columns";
 import { getBuildStepRowClass } from "./get-row-class";

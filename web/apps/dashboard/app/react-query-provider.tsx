@@ -1,11 +1,11 @@
 "use client";
 
-import { trpc } from "@/lib/trpc/client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { httpBatchLink, httpLink, splitLink } from "@trpc/client";
 import type React from "react";
 import { type PropsWithChildren, useState } from "react";
 import SuperJSON from "superjson";
+import { trpc } from "@/lib/trpc/client";
 
 export const ReactQueryProvider: React.FC<PropsWithChildren> = ({ children }) => {
   function getBaseUrl() {

@@ -1,11 +1,11 @@
 "use client";
 
-import { ManageGitHubAppLink } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/settings/components/build-settings/github-settings/shared";
-import { trpc } from "@/lib/trpc/client";
 import { Github } from "@unkey/icons";
 import { match } from "@unkey/match";
 import { Badge, SettingCard, Skeleton, toast } from "@unkey/ui";
 import { useCallback } from "react";
+import { ManageGitHubAppLink } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/settings/components/build-settings/github-settings/shared";
+import { trpc } from "@/lib/trpc/client";
 
 type GithubConnectionState =
   | { status: "loading" }

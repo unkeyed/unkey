@@ -1,6 +1,3 @@
-import type { Deployment } from "@/lib/collections";
-import { shortenId } from "@/lib/shorten-id";
-import { cn } from "@/lib/utils";
 import { match } from "@unkey/match";
 import { Badge } from "@unkey/ui";
 import {
@@ -9,6 +6,9 @@ import {
   IconLayers2Outline18,
 } from "nucleo-ui-outline-18";
 import type { ComponentProps, ReactNode } from "react";
+import type { Deployment } from "@/lib/collections";
+import { shortenId } from "@/lib/shorten-id";
+import { cn } from "@/lib/utils";
 
 type DeploymentCardProps = {
   deployment: Deployment;

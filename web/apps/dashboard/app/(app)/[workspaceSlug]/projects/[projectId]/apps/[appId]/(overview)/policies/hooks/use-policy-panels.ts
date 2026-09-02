@@ -1,7 +1,7 @@
 "use client";
 
-import type { Policy } from "@/lib/collections/deploy/policies.schema";
 import { useCallback, useState } from "react";
+import type { Policy } from "@/lib/collections/deploy/policies.schema";
 
 export function usePolicyPanels() {
   const [isAddPanelOpen, setIsAddPanelOpen] = useState(false);

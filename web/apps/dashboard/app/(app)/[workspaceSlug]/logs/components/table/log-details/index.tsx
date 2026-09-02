@@ -1,7 +1,7 @@
 "use client";
-import { useLogsContext } from "../../../context/logs";
 
 import { LogDetails as SharedLogDetails } from "@/components/logs/details/log-details";
+import { useLogsContext } from "../../../context/logs";
 
 type Props = {
   distanceToTop: number;

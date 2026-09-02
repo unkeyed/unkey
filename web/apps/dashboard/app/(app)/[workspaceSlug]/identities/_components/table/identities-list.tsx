@@ -1,10 +1,5 @@
 "use client";
 
-import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
-import { useIdentities } from "@/lib/identities-query";
-import { routes } from "@/lib/navigation/routes";
-import { shortenId } from "@/lib/shorten-id";
-import { getErrorMessage } from "@/lib/unkey-client";
 import type { Identity } from "@unkey/api/models/components";
 import {
   Button,
@@ -19,6 +14,11 @@ import Link from "next/link";
 import { IconBookBookmarkOutline18, IconFingerprintOutline18 } from "nucleo-ui-outline-18";
 import { parseAsString, useQueryState } from "nuqs";
 import { useState } from "react";
+import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
+import { useIdentities } from "@/lib/identities-query";
+import { routes } from "@/lib/navigation/routes";
+import { shortenId } from "@/lib/shorten-id";
+import { getErrorMessage } from "@/lib/unkey-client";
 
 const SKELETON_ROWS = 8;
 

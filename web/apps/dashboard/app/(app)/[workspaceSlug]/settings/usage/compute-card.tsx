@@ -1,8 +1,5 @@
 "use client";
 
-import { DEPLOY_METER_RATES } from "@/lib/billing/deployPricing";
-import { formatCompactQuantity, formatPrice } from "@/lib/fmt";
-import { trpc } from "@/lib/trpc/client";
 import {
   InfoTooltip,
   Item,
@@ -19,15 +16,18 @@ import {
 import { IconChevronRightOutline12 } from "nucleo-ui-outline-12";
 import { IconCubeOutline18 } from "nucleo-ui-outline-18";
 import { Fragment, type ReactNode, useMemo, useState } from "react";
+import { DEPLOY_METER_RATES } from "@/lib/billing/deployPricing";
+import { formatCompactQuantity, formatPrice } from "@/lib/fmt";
+import { trpc } from "@/lib/trpc/client";
 import {
   type ComputeTree,
+  microCentsToDisplayCents,
+  priceUsageQuantitiesCents,
   type UsageApp,
   type UsageCostsCents,
   type UsageGateway,
   type UsageProject,
   type UsageQuantities,
-  microCentsToDisplayCents,
-  priceUsageQuantitiesCents,
 } from "./compute-tree";
 import { SPEND_BAR_CHART_HEIGHT, SpendBarChart } from "./spend-bar-chart";
 import { buildSpendSeries } from "./spend-series";

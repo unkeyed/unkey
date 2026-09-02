@@ -45,4 +45,4 @@ function PageHeaderActions({ className, ...props }: React.ComponentProps<"div">)
   return <div className={cn("flex flex-wrap items-center gap-2 shrink-0", className)} {...props} />;
 }
 
-export { PageHeader, PageHeaderContent, PageHeaderTitle, PageHeaderDescription, PageHeaderActions };
+export { PageHeader, PageHeaderActions, PageHeaderContent, PageHeaderDescription, PageHeaderTitle };

@@ -1,8 +1,5 @@
 "use client";
 
-import { POLICY_LIMITS } from "@/lib/collections/deploy/policies.schema";
-import { parseDuration } from "@/lib/duration";
-import { formatMs } from "@/lib/ms";
 import {
   Button,
   FormDescription,
@@ -28,6 +25,9 @@ import {
   useFormState,
   useWatch,
 } from "react-hook-form";
+import { POLICY_LIMITS } from "@/lib/collections/deploy/policies.schema";
+import { parseDuration } from "@/lib/duration";
+import { formatMs } from "@/lib/ms";
 import type { RateLimitIdentifierSource, RatelimitIdentifierRowValues } from "../schema";
 import { DocsLink, Sep, Strong } from "./summary-helpers";
 

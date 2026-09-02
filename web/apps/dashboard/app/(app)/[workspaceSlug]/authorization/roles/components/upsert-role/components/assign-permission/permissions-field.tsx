@@ -1,9 +1,9 @@
+import { IconPage2Outline12 } from "nucleo-ui-outline-12";
+import { useMemo, useState } from "react";
 import { useRoleLimits } from "@/components/roles-table/hooks/use-role-limits";
 import { SelectedItemsList } from "@/components/selected-item-list";
 import { FormCombobox } from "@/components/ui/form-combobox";
 import type { RolePermission } from "@/lib/trpc/routers/authorization/roles/connected-keys-and-perms";
-import { IconPage2Outline12 } from "nucleo-ui-outline-12";
-import { useMemo, useState } from "react";
 import { RoleWarningCallout } from "../warning-callout";
 import { createPermissionOptions } from "./create-permission-options";
 import { useFetchPermissions } from "./hooks/use-fetch-permissions";

@@ -1,5 +1,7 @@
 "use client";
 
+import { toast } from "@unkey/ui";
+import { useCallback } from "react";
 import { collection } from "@/lib/collections";
 import { ENVIRONMENT_KINDS } from "@/lib/collections/deploy/environments";
 import { type PolicyRow, replacePolicyLists, rowKey } from "@/lib/collections/deploy/policies";
@@ -8,8 +10,6 @@ import {
   type Policy,
   policyMatchKey,
 } from "@/lib/collections/deploy/policies.schema";
-import { toast } from "@unkey/ui";
-import { useCallback } from "react";
 import { type Env, type MergedPolicy, policyInEnv } from "../components/list/merge";
 
 const AT_CAPACITY = `An environment holds at most ${POLICY_LIMITS.maxPolicies} policies.`;

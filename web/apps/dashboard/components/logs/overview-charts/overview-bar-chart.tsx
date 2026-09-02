@@ -1,5 +1,8 @@
 "use client";
 
+import { IconGridOutline18 } from "nucleo-ui-outline-18";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Bar, BarChart, CartesianGrid, ReferenceArea, YAxis } from "recharts";
 import { calculateTimePoints } from "@/components/logs/chart/utils/calculate-timepoints";
 import { formatTimestampLabel } from "@/components/logs/chart/utils/format-timestamp";
 import { formatTooltipInterval } from "@/components/logs/utils";
@@ -11,9 +14,6 @@ import {
 } from "@/components/ui/chart";
 import { formatNumber } from "@/lib/fmt";
 import type { TimeseriesGranularity } from "@/lib/trpc/routers/utils/granularity";
-import { IconGridOutline18 } from "nucleo-ui-outline-18";
-import { useEffect, useMemo, useRef, useState } from "react";
-import { Bar, BarChart, CartesianGrid, ReferenceArea, YAxis } from "recharts";
 import { parseTimestamp } from "../parse-timestamp";
 
 import { OverviewChartEmpty } from "./overview-bar-chart-empty";

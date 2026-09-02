@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { httpHeaderUpdatesSchema, httpHeadersSchema } from "./validation";
+import { httpHeadersSchema, httpHeaderUpdatesSchema } from "./validation";
 
 describe("HTTP header validation", () => {
   it("accepts valid headers", () => {

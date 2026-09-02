@@ -2,7 +2,7 @@ import * as clack from "@clack/prompts";
 import { and, eq, isNull, schema, sql } from "@unkey/db";
 import { promptForApiRequestGeneration, promptForBatchSize, withDatabase } from "./batch-helper";
 import { insertVerificationEvents } from "./batch-operations";
-import { type KeyInfo, generateKeyHash, generateKeyName } from "./event-generator";
+import { generateKeyHash, generateKeyName, type KeyInfo } from "./event-generator";
 import { clickhouse, connectDatabase, generateMetadata, generateRandomString } from "./utils";
 
 const DEFAULT_BATCH_SIZE = 50_000;

@@ -1,8 +1,8 @@
+import { type NextRequest, NextResponse } from "next/server";
 import { normalizeEmail, processPostAuthInvitation } from "@/lib/auth";
 import { getAuth } from "@/lib/auth/get-auth";
 import { auth } from "@/lib/auth/server";
 import type { Invitation, User } from "@/lib/auth/types";
-import { type NextRequest, NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
 export async function GET(request: NextRequest) {
