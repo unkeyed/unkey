@@ -7,7 +7,7 @@ post:
 
     The endpoint generates a secure key. You cannot set a custom byte length.
 
-    Set `prefix` in the request or configure a valid default prefix for the keyspace. The request fails if neither prefix is valid.
+    The endpoint uses the keyspace default prefix. If the keyspace has no default prefix, the generated key has no prefix.
 
     Store the returned key immediately. You can retrieve it later only if `recoverable` is `true`.
 

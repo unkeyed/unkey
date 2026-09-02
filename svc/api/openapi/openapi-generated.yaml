@@ -3840,16 +3840,6 @@ components:
                         The ID of the keyspace that will contain this key.
                         Keys in different keyspaces cannot access each other.
                     example: ks_1234abcd
-                prefix:
-                    type: string
-                    minLength: 1
-                    maxLength: 16
-                    pattern: "^[A-Za-z0-9_]{0,15}[A-Za-z0-9]$"
-                    description: |
-                        Adds a visual identifier to the beginning of the generated key.
-                        Use 1 to 16 ASCII letters, numbers, or underscores.
-                        End the prefix with a letter or number.
-                    example: prod_sk
                 name:
                     type: string
                     minLength: 1
@@ -16287,7 +16277,7 @@ paths:
 
                 The endpoint generates a secure key. You cannot set a custom byte length.
 
-                Set `prefix` in the request or configure a valid default prefix for the keyspace. The request fails if neither prefix is valid.
+                The endpoint uses the keyspace default prefix. If the keyspace has no default prefix, the generated key has no prefix.
 
                 Store the returned key immediately. You can retrieve it later only if `recoverable` is `true`.
 
