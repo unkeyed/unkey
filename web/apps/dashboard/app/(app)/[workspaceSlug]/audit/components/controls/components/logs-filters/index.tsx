@@ -1,8 +1,8 @@
-import { useFilters } from "@/app/(app)/[workspaceSlug]/audit/hooks/use-filters";
-import { FiltersPopover } from "@/components/logs/checkbox/filters-popover";
 import { Button } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 import { IconBarsFilterOutline18 } from "nucleo-ui-outline-18";
+import { useFilters } from "@/app/(app)/[workspaceSlug]/audit/hooks/use-filters";
+import { FiltersPopover } from "@/components/logs/checkbox/filters-popover";
 import type { WorkspaceProps } from "../../../logs-client";
 import { BucketFilter } from "./components/bucket-filter";
 import { EventsFilter } from "./components/events-filter";

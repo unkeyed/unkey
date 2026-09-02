@@ -1,10 +1,10 @@
 "use client";
 
+import { Controller, useFormContext, useWatch } from "react-hook-form";
 import { PermissionField } from "@/components/api-keys-table/components/actions/components/edit-rbac/components/assign-permission/permissions-field";
 import { RoleField } from "@/components/api-keys-table/components/actions/components/edit-rbac/components/assign-role/role-field";
 import { GrantedAccess } from "@/components/api-keys-table/components/rbac/granted-access";
 import { useFetchPermissionSlugs } from "@/components/api-keys-table/components/rbac/hooks/use-fetch-permission-slugs";
-import { Controller, useFormContext, useWatch } from "react-hook-form";
 import type { FormValues } from "../create-key.schema";
 
 export const RbacSetup = () => {

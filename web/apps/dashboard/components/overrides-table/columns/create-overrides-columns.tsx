@@ -1,5 +1,5 @@
-import type { RatelimitOverride } from "@/lib/collections";
 import type { DataTableColumnDef } from "@unkey/ui";
+import type { RatelimitOverride } from "@/lib/collections";
 import { OverridesTableAction } from "../components/actions/overrides-table-action";
 import { LastUsedCell } from "../components/cells/last-used-cell";
 import { OverrideIdCell } from "../components/cells/override-id-cell";

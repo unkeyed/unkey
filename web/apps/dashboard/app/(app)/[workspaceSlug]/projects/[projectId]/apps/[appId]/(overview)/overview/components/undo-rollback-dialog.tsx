@@ -1,13 +1,13 @@
 "use client";
 
-import { type Deployment, collection } from "@/lib/collections";
-import { shortenId } from "@/lib/shorten-id";
-import { getErrorMessage, getUnkeyClient } from "@/lib/unkey-client";
-import { cn } from "@/lib/utils";
 import { useMutation } from "@tanstack/react-query";
 import { Badge, Button, DialogContainer, TimestampInfo, toast } from "@unkey/ui";
 import { IconCodeBranchOutline18 } from "nucleo-ui-outline-18";
 import { useEffect, useState } from "react";
+import { collection, type Deployment } from "@/lib/collections";
+import { shortenId } from "@/lib/shorten-id";
+import { getErrorMessage, getUnkeyClient } from "@/lib/unkey-client";
+import { cn } from "@/lib/utils";
 import { Avatar } from "../../../components/git-avatar";
 
 type UndoRollbackDialogProps = {

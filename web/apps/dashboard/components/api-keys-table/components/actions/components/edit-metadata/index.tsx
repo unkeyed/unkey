@@ -1,14 +1,14 @@
 "use client";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Button, DialogContainer } from "@unkey/ui";
+import { useEffect } from "react";
+import { FormProvider } from "react-hook-form";
 import { MetadataSetup } from "@/components/dashboard/metadata/metadata-setup";
 import type { ActionComponentProps } from "@/components/logs/table-action.popover";
 import { usePersistedForm } from "@/hooks/use-persisted-form";
 import { type MetadataFormValues, metadataSchema } from "@/lib/schemas/metadata";
 import type { DiscriminatedUnionResolver } from "@/lib/schemas/resolver-types";
 import type { KeyDetails } from "@/lib/trpc/routers/api/keys/query-api-keys/schema";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { Button, DialogContainer } from "@unkey/ui";
-import { useEffect } from "react";
-import { FormProvider } from "react-hook-form";
 import { useEditMetadata } from "../hooks/use-edit-metadata";
 import { KeyInfo } from "../key-info";
 import { getKeyMetadataDefaults } from "./utils";

@@ -1,8 +1,8 @@
 "use client";
 
-import { KeyDetailsDrawer } from "@/components/key-details-logs-table/components/key-details-drawer";
 import type { KeyDetailsLog } from "@unkey/clickhouse/src/verifications";
 import { useCallback, useState } from "react";
+import { KeyDetailsDrawer } from "@/components/key-details-logs-table/components/key-details-drawer";
 import { KeyDetailsLogsChart } from "./components/charts";
 import { KeysDetailsLogsControlCloud } from "./components/control-cloud";
 import { KeysDetailsLogsControls } from "./components/controls";

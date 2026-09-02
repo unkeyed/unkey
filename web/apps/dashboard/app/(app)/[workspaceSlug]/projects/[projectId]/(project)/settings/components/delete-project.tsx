@@ -1,17 +1,16 @@
 "use client";
 
-import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
-import { collection } from "@/lib/collections";
-import { routes } from "@/lib/navigation/routes";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button, DialogContainer, Input, SettingsZoneRow } from "@unkey/ui";
-import { IconTriangleWarningOutline12 } from "nucleo-ui-outline-12";
-
-import { useProjectData } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/data-provider";
 import { useRouter } from "next/navigation";
+import { IconTriangleWarningOutline12 } from "nucleo-ui-outline-12";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
+import { useProjectData } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/data-provider";
+import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
+import { collection } from "@/lib/collections";
+import { routes } from "@/lib/navigation/routes";
 
 export function DeleteProject() {
   const { projectId, project } = useProjectData();

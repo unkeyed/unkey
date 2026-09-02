@@ -1,7 +1,7 @@
-import { HISTORICAL_DATA_WINDOW } from "@/components/logs/constants";
-import { trpc } from "@/lib/trpc/client";
 import type { VerificationTimeseriesDataPoint } from "@unkey/clickhouse/src/verifications";
 import { useMemo, useState } from "react";
+import { HISTORICAL_DATA_WINDOW } from "@/components/logs/constants";
+import { trpc } from "@/lib/trpc/client";
 
 export type ProcessedTimeseriesDataPoint = {
   valid: number;

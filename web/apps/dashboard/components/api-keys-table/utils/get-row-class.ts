@@ -1,6 +1,6 @@
+import { STATUS_STYLES } from "@unkey/ui";
 import type { KeyDetails } from "@/lib/trpc/routers/api/keys/query-api-keys/schema";
 import { cn } from "@/lib/utils";
-import { STATUS_STYLES } from "@unkey/ui";
 
 export { STATUS_STYLES };
 

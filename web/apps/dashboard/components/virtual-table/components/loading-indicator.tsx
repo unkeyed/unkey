@@ -1,10 +1,10 @@
-import { cn } from "@/lib/utils";
 import { Button } from "@unkey/ui";
 import {
   IconArrowsAllDirectionsOutline18,
   IconArrowsToCenterOutline18,
 } from "nucleo-ui-outline-18";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { cn } from "@/lib/utils";
 
 type LoadMoreFooterProps = {
   onLoadMore?: () => void;

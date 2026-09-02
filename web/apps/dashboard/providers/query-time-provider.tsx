@@ -1,6 +1,6 @@
 "use client";
 
-import { type ReactNode, createContext, useContext, useEffect, useState } from "react";
+import { createContext, type ReactNode, useContext, useEffect, useState } from "react";
 
 let queryTimestamp = Date.now();
 let subscribers: ((timestamp: number) => void)[] = [];

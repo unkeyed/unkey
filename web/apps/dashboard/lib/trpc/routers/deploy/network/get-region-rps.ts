@@ -1,8 +1,8 @@
+import { TRPCError } from "@trpc/server";
+import { z } from "zod";
 import { clickhouse } from "@/lib/clickhouse";
 import { db } from "@/lib/db";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
-import { TRPCError } from "@trpc/server";
-import { z } from "zod";
 
 // Returns the rolling average RPS across every instance of a deployment in
 // the given region. The region card shows this single number; per-instance

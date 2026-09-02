@@ -1,7 +1,7 @@
-import { env } from "@/lib/env";
 import { Resend } from "@unkey/resend";
 import { WorkOS } from "@workos-inc/node";
 import { type NextRequest, NextResponse } from "next/server";
+import { env } from "@/lib/env";
 
 export async function POST(req: NextRequest) {
   const { RESEND_API_KEY, RESEND_AUDIENCE_ID, WORKOS_API_KEY, WORKOS_WEBHOOK_SECRET } = env();

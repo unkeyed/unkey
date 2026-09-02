@@ -6,8 +6,8 @@ import { AddEnvVarExpandable } from "./components/add/add-env-var-expandable";
 import { EnvVarsList } from "./components/list/env-vars-list";
 import { EnvVarsHeader } from "./components/toolbar/env-vars-header";
 import {
-  EnvVarsToolbar,
   type EnvironmentFilter,
+  EnvVarsToolbar,
   type SortOption,
 } from "./components/toolbar/env-vars-toolbar";
 

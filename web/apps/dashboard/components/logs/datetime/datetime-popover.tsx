@@ -1,8 +1,5 @@
 "use client";
 
-import { useKeyboardShortcut } from "@/hooks/use-keyboard-shortcut";
-import { cn, processTimeFilters } from "@/lib/utils";
-import { useIsMobile } from "@unkey/ui";
 import {
   Button,
   DateTime,
@@ -13,6 +10,7 @@ import {
   PopoverTrigger,
   type Range,
   type TimeUnit,
+  useIsMobile,
 } from "@unkey/ui";
 import { IconChevronDownOutline18 } from "nucleo-ui-outline-18";
 import {
@@ -22,6 +20,8 @@ import {
   useEffect,
   useState,
 } from "react";
+import { useKeyboardShortcut } from "@/hooks/use-keyboard-shortcut";
+import { cn, processTimeFilters } from "@/lib/utils";
 import { CUSTOM_OPTION_ID, DEFAULT_OPTIONS } from "./constants";
 import { DateTimeSuggestions } from "./suggestions";
 import type { OptionsType } from "./types";
@@ -175,7 +175,7 @@ export const DatetimePopover = ({
   };
 
   const getInitialRange = (): Range => {
-    let fromDate = undefined;
+    let fromDate: Date | undefined;
     if (startTime) {
       const date = new Date(startTime);
       // Only use if valid, otherwise start clean
@@ -184,7 +184,7 @@ export const DatetimePopover = ({
       }
     }
 
-    let toDate = undefined;
+    let toDate: Date | undefined;
     if (!singleDateMode && endTime) {
       const date = new Date(endTime);
       if (isDateInRange(date)) {

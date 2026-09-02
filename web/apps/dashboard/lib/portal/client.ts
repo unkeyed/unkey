@@ -1,7 +1,7 @@
 "use client";
 
-import { getUnkeyClient } from "@/lib/unkey-client";
 import type { Unkey } from "@unkey/api";
+import { getUnkeyClient } from "@/lib/unkey-client";
 
 type GetPortalResult = Awaited<ReturnType<Unkey["portal"]["getPortal"]>>["data"];
 

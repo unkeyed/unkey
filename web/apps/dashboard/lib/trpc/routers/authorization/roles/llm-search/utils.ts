@@ -1,10 +1,10 @@
+import { TRPCError } from "@trpc/server";
+import type OpenAI from "openai";
+import { zodResponseFormat } from "openai/helpers/zod";
 import {
   filterOutputSchema,
   rolesFilterFieldConfig,
 } from "@/app/(app)/[workspaceSlug]/authorization/roles/filters.schema";
-import { TRPCError } from "@trpc/server";
-import type OpenAI from "openai";
-import { zodResponseFormat } from "openai/helpers/zod";
 
 export async function getStructuredSearchFromLLM(openai: OpenAI | null, userSearchMsg: string) {
   try {

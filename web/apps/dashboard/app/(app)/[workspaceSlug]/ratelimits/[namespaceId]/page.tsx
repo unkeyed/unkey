@@ -1,5 +1,4 @@
 "use client";
-import { CopyableIDButton } from "@/components/navigation/copyable-id-button";
 import {
   PageContainer,
   PageHeader,
@@ -8,6 +7,7 @@ import {
   PageHeaderTitle,
 } from "@unkey/ui";
 import { use } from "react";
+import { CopyableIDButton } from "@/components/navigation/copyable-id-button";
 import { LogsClient } from "./_overview/logs-client";
 import { OverrideIdentifierAction } from "./override-identifier-action";
 

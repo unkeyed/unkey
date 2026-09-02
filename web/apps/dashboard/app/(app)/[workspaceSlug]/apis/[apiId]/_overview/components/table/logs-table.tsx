@@ -1,14 +1,14 @@
 "use client";
-import { createApiRequestColumns } from "@/components/api-requests-table/columns/create-api-request-columns";
-import { useKeysOverviewLogsQuery } from "@/components/api-requests-table/hooks/use-keys-overview-query";
-import { sortFields } from "@/components/api-requests-table/schema/keys-overview.schema";
-import type { SortFields } from "@/components/api-requests-table/schema/keys-overview.schema";
-import { getRowClassName } from "@/components/api-requests-table/utils/get-row-class";
-import { useSort } from "@/components/logs/hooks/use-sort";
 import type { RowSelectionState, SortingState } from "@tanstack/react-table";
 import type { KeysOverviewLog } from "@unkey/clickhouse/src/keys/keys";
 import { DataTable, type DataTableConfig, EmptyApiRequests, PaginationFooter } from "@unkey/ui";
 import { useCallback, useMemo, useRef } from "react";
+import { createApiRequestColumns } from "@/components/api-requests-table/columns/create-api-request-columns";
+import { useKeysOverviewLogsQuery } from "@/components/api-requests-table/hooks/use-keys-overview-query";
+import type { SortFields } from "@/components/api-requests-table/schema/keys-overview.schema";
+import { sortFields } from "@/components/api-requests-table/schema/keys-overview.schema";
+import { getRowClassName } from "@/components/api-requests-table/utils/get-row-class";
+import { useSort } from "@/components/logs/hooks/use-sort";
 
 const TABLE_CONFIG: DataTableConfig = {
   rowHeight: 26, // compact rows, default is 36

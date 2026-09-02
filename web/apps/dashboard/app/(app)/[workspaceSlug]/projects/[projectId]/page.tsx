@@ -1,7 +1,4 @@
 "use client";
-import { useDeployActionGate } from "@/app/(app)/[workspaceSlug]/projects/_components/hooks/use-deploy-action-gate";
-import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
-import { routes } from "@/lib/navigation/routes";
 import {
   Button,
   PageBody,
@@ -14,6 +11,9 @@ import {
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { IconPlusOutline18 } from "nucleo-ui-outline-18";
+import { useDeployActionGate } from "@/app/(app)/[workspaceSlug]/projects/_components/hooks/use-deploy-action-gate";
+import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
+import { routes } from "@/lib/navigation/routes";
 import { AppsList } from "./_components/apps-list";
 
 export default function ProjectPage() {

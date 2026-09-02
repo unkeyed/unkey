@@ -44,7 +44,7 @@ export const RepoDisplay = ({
 
 const extractRepoName = (url: string): string => {
   try {
-    const match = url.match(/github\.com\/([^\/]+\/[^\/]+)/);
+    const match = url.match(/github\.com\/([^/]+\/[^/]+)/);
     return match?.[1] ?? url;
   } catch {
     return url;

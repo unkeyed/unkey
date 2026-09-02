@@ -1,8 +1,8 @@
+import type Stripe from "stripe";
+import { z } from "zod";
 import { getStripeClient } from "@/lib/stripe";
 import { deployBillingConfig } from "@/lib/stripe/deployBilling";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
-import type Stripe from "stripe";
-import { z } from "zod";
 
 const invoiceHalfSchema = z.object({
   /** Billing period bounds, unix millis. */

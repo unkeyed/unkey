@@ -1,7 +1,7 @@
+import { create, fromBinary, toBinary } from "@bufbuild/protobuf";
 import { ConfigSchema, HttpBodyFormat } from "@/gen/proto/logdrain/v1/config_pb";
 import { VaultService } from "@/gen/proto/vault/v1/service_pb";
 import { createVaultClient } from "@/lib/vault-client";
-import { create, fromBinary, toBinary } from "@bufbuild/protobuf";
 
 /** EncryptedHttpHeader stores one HTTP header name and its Vault ciphertext. */
 export type EncryptedHttpHeader = {

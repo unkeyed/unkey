@@ -1,7 +1,7 @@
 "use client";
-import { routes } from "@/lib/navigation/routes";
 import { Button, Empty } from "@unkey/ui";
 import { useRouter } from "next/navigation";
+import { routes } from "@/lib/navigation/routes";
 
 type NotFoundStateProps = {
   title?: string;

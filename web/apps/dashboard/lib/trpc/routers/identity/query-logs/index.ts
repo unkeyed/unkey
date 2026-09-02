@@ -1,8 +1,8 @@
+import { TRPCError } from "@trpc/server";
+import { z } from "zod";
 import { clickhouse } from "@/lib/clickhouse";
 import { db } from "@/lib/db";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
-import { TRPCError } from "@trpc/server";
-import { z } from "zod";
 import { identityLogsPayload } from "./query-logs.schema";
 import { transformIdentityLogsFilters } from "./utils";
 
@@ -121,8 +121,8 @@ export const queryIdentityLogs = workspaceProcedure
         ...log,
         keyId: log.keyId,
         keyName: key?.name || null,
-        apiId: !key || !key.keyAuth?.api ? "—" : key.keyAuth.api.id,
-        apiName: !key || !key.keyAuth?.api ? "—" : key.keyAuth.api.name,
+        apiId: !key?.keyAuth?.api ? "—" : key.keyAuth.api.id,
+        apiName: !key?.keyAuth?.api ? "—" : key.keyAuth.api.name,
       };
     });
 

@@ -1,5 +1,3 @@
-import type { KeysOverviewFilterUrlValue } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/_overview/filters.schema";
-import { type InferSelectModel, type SQL, and, db, desc, eq, inArray, isNull, sql } from "@/lib/db";
 import { TRPCError } from "@trpc/server";
 import {
   identities,
@@ -9,6 +7,8 @@ import {
   permissions,
   roles,
 } from "@unkey/db/src/schema";
+import type { KeysOverviewFilterUrlValue } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/_overview/filters.schema";
+import { and, db, desc, eq, type InferSelectModel, inArray, isNull, type SQL, sql } from "@/lib/db";
 
 type BaseKey = InferSelectModel<typeof keys>;
 type BaseRole = InferSelectModel<typeof roles>;
@@ -113,7 +113,7 @@ export async function queryApiKeys({
   identities: identitiesFromInput,
 }: QueryApiKeysInput): Promise<QueryApiKeysResult> {
   const api = await getApi(apiId, workspaceId);
-  if (!api || !api.keyAuth?.id) {
+  if (!api?.keyAuth?.id) {
     throw new TRPCError({
       code: "NOT_FOUND",
       message: "API not found or does not have key authentication enabled",

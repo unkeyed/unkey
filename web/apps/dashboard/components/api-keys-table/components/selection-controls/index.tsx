@@ -1,4 +1,3 @@
-import type { KeyDetails } from "@/lib/trpc/routers/api/keys/query-api-keys/schema";
 import { Button, ConfirmPopover } from "@unkey/ui";
 import { AnimatePresence, motion } from "framer-motion";
 import {
@@ -9,6 +8,7 @@ import {
   IconXmarkOutline18,
 } from "nucleo-ui-outline-18";
 import { useEffect, useRef, useState } from "react";
+import type { KeyDetails } from "@/lib/trpc/routers/api/keys/query-api-keys/schema";
 import { useDeleteKey } from "../actions/components/hooks/use-delete-key";
 import { useBatchUpdateKeyStatus } from "../actions/components/hooks/use-update-key-status";
 import { BatchEditExternalId } from "./components/batch-edit-external-id";

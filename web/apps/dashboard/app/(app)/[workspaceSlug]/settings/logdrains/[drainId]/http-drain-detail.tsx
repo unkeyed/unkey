@@ -3,7 +3,7 @@
 import { Button, Input, SettingCard, toast } from "@unkey/ui";
 import { IconPlusOutline18, IconTrashOutline18 } from "nucleo-ui-outline-18";
 import { useEffect, useRef, useState } from "react";
-import { type HeaderUpdateField, emptyHeader, headerUpdateFieldsSchema } from "../header-fields";
+import { emptyHeader, type HeaderUpdateField, headerUpdateFieldsSchema } from "../header-fields";
 import { DrainShell } from "./drain-shell";
 import type { DrainTelemetry, HttpDrain } from "./types";
 import { useDrainUpdate } from "./use-drain-update";

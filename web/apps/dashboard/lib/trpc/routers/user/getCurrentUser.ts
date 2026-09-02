@@ -1,6 +1,6 @@
+import { TRPCError } from "@trpc/server";
 import { auth as authProvider } from "@/lib/auth/server";
 import type { AuthenticatedUser } from "@/lib/auth/types";
-import { TRPCError } from "@trpc/server";
 import { protectedProcedure } from "../../trpc";
 
 export const getCurrentUser = protectedProcedure.query(async ({ ctx }) => {

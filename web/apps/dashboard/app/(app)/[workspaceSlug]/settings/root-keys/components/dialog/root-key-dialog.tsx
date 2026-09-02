@@ -1,13 +1,12 @@
 "use client";
 
-import { Label } from "@/components/ui/label";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import type { UnkeyPermission } from "@unkey/rbac";
-import { Button } from "@unkey/ui";
-import { FormInput } from "@unkey/ui";
+import { Button, FormInput } from "@unkey/ui";
 import dynamic from "next/dynamic";
 import { useMemo, useState } from "react";
 import { createPortal } from "react-dom";
+import { Label } from "@/components/ui/label";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { PermissionBadgeList } from "./components/permission-badge-list";
 import { PermissionSheet } from "./components/permission-sheet";
 import { ROOT_KEY_CONSTANTS, ROOT_KEY_MESSAGES } from "./constants";

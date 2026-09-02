@@ -1,8 +1,8 @@
+import { TRPCError } from "@trpc/server";
+import { z } from "zod";
 import { insertAuditLogs } from "@/lib/audit";
 import { auth as authClient } from "@/lib/auth/server";
 import { db, eq, schema, transactionWithRetry } from "@/lib/db";
-import { TRPCError } from "@trpc/server";
-import { z } from "zod";
 import { requireWorkspaceAdmin, workspaceProcedure } from "../../trpc";
 
 export const changeWorkspaceName = workspaceProcedure

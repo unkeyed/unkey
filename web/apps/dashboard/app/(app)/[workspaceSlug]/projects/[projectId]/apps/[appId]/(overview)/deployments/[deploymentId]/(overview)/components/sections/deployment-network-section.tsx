@@ -1,10 +1,5 @@
 "use client";
 
-import {
-  bytesToMib,
-  formatMemoryParts,
-  formatTooltipPercent,
-} from "@/lib/utils/deployment-formatters";
 import type { PERCENTILE_VALUES } from "@unkey/clickhouse/src/frontline";
 import {
   IconChartActivityOutline18,
@@ -14,6 +9,11 @@ import {
   IconRamOutline18,
 } from "nucleo-ui-outline-18";
 import { useMemo, useState } from "react";
+import {
+  bytesToMib,
+  formatMemoryParts,
+  formatTooltipPercent,
+} from "@/lib/utils/deployment-formatters";
 import { Section, SectionHeader } from "../../../../../../components/section";
 import { Card } from "../../../../../components/card";
 import { useDeployment } from "../../../layout-provider";
@@ -22,7 +22,7 @@ import { useDeploymentCpu } from "../../hooks/use-deployment-cpu";
 import { useDeploymentLatency } from "../../hooks/use-deployment-latency";
 import { useDeploymentMemory } from "../../hooks/use-deployment-memory";
 import { useDeploymentRps } from "../../hooks/use-deployment-rps";
-import { MetricCard, formatMetricParts } from "../metrics/metric-card";
+import { formatMetricParts, MetricCard } from "../metrics/metric-card";
 
 export function DeploymentNetworkSection() {
   const [latencyPercentile, setLatencyPercentile] = useState<keyof typeof PERCENTILE_VALUES>("p50");

@@ -1,8 +1,5 @@
 "use client";
 
-import { VirtualTable } from "@/components/virtual-table/index";
-import type { Column } from "@/components/virtual-table/types";
-import { cn } from "@/lib/utils";
 import type { Log } from "@unkey/clickhouse/src/logs";
 import { Badge, Button, Empty, TimestampInfo } from "@unkey/ui";
 import {
@@ -11,6 +8,9 @@ import {
   IconTriangleWarningOutline18,
 } from "nucleo-ui-outline-18";
 import { useMemo } from "react";
+import { VirtualTable } from "@/components/virtual-table/index";
+import type { Column } from "@/components/virtual-table/types";
+import { cn } from "@/lib/utils";
 import { isDisplayProperty, useLogsContext } from "../../context/logs";
 import { extractResponseField } from "../../utils";
 import { useLogsQuery } from "./hooks/use-logs-query";

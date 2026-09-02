@@ -258,7 +258,7 @@ function createActiveKeysTimeseriesQuerier(interval: TimeInterval) {
       ...args,
       ...(args.keyIds?.reduce(
         (acc, filter, index) => ({
-          // biome-ignore lint/performance/noAccumulatingSpread: <explanation>
+          // biome-ignore lint/performance/noAccumulatingSpread: the accumulated filter set is small
           ...acc,
           [`keyIdValue_${index}`]: filter.value,
         }),
@@ -266,7 +266,7 @@ function createActiveKeysTimeseriesQuerier(interval: TimeInterval) {
       ) ?? {}),
       ...(args.names?.reduce(
         (acc, filter, index) => ({
-          // biome-ignore lint/performance/noAccumulatingSpread: <explanation>
+          // biome-ignore lint/performance/noAccumulatingSpread: the accumulated filter set is small
           ...acc,
           [`nameValue_${index}`]: filter.value,
         }),
@@ -274,7 +274,7 @@ function createActiveKeysTimeseriesQuerier(interval: TimeInterval) {
       ) ?? {}),
       ...(args.outcomes?.reduce(
         (acc, filter, index) => ({
-          // biome-ignore lint/performance/noAccumulatingSpread: <explanation>
+          // biome-ignore lint/performance/noAccumulatingSpread: the accumulated filter set is small
           ...acc,
           [`outcomeValue_${index}`]: filter.value,
         }),

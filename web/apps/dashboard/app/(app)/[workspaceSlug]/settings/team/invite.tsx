@@ -1,7 +1,5 @@
 "use client";
 
-import type { AuthenticatedUser, Organization } from "@/lib/auth/types";
-import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
   Button,
@@ -19,6 +17,8 @@ import type React from "react";
 import { useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
+import type { AuthenticatedUser, Organization } from "@/lib/auth/types";
+import { trpc } from "@/lib/trpc/client";
 
 const formSchema = z.object({
   email: z.email(),

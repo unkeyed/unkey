@@ -1,9 +1,9 @@
+import { KEY_VERIFICATION_OUTCOMES } from "@unkey/clickhouse/src/keys/keys";
+import { useMemo } from "react";
 import { formatTimestampForChart } from "@/components/logs/chart/utils/format-timestamp";
 import { HISTORICAL_DATA_WINDOW } from "@/components/logs/constants";
 import { trpc } from "@/lib/trpc/client";
 import { useQueryTime } from "@/providers/query-time-provider";
-import { KEY_VERIFICATION_OUTCOMES } from "@unkey/clickhouse/src/keys/keys";
-import { useMemo } from "react";
 import { keysOverviewFilterFieldConfig } from "../../../../filters.schema";
 import { useFilters } from "../../../../hooks/use-filters";
 import type { KeysOverviewQueryTimeseriesPayload } from "../../bar-chart/query-timeseries.schema";

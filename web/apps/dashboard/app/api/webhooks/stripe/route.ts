@@ -1,3 +1,4 @@
+import Stripe from "stripe";
 import { DeployService } from "@/gen/proto/ctrl/v1/deployment_pb";
 import { insertAuditLogs } from "@/lib/audit";
 import { deactivateNonCreatorMemberships } from "@/lib/auth/deactivateNonCreatorMemberships";
@@ -27,14 +28,13 @@ import {
 } from "@/lib/stripe/subscriptionUtils";
 import { keepsTeamAfterDelete, stripeWebhookResponse } from "@/lib/stripe/webhookRouting";
 import {
-  type SlackPostStatus,
   alertCustomerLifecycle,
   alertInvalidProductQuotaMetadata,
   alertOrphanedDeploySubscription,
   alertPaymentFailed,
   alertPaymentRecovered,
+  type SlackPostStatus,
 } from "@/lib/utils/slackAlerts";
-import Stripe from "stripe";
 
 /**
  * Mirrors a subscription's Deploy plan onto its workspace row, writing only when

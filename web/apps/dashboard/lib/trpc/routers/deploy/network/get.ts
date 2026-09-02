@@ -1,3 +1,5 @@
+import { TRPCError } from "@trpc/server";
+import { z } from "zod";
 import type {
   DeploymentNode,
   HealthStatus,
@@ -5,8 +7,6 @@ import type {
 } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/deployments/[deploymentId]/network/unkey-flow/components/nodes/types";
 import { db } from "@/lib/db";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
-import { TRPCError } from "@trpc/server";
-import { z } from "zod";
 import { mapInstanceStatusToHealth, mapRegionToFlag } from "./utils";
 
 export const getDeploymentTree = workspaceProcedure

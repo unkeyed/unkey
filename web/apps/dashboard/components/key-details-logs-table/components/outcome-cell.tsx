@@ -2,9 +2,9 @@ import type { KeyDetailsLog } from "@unkey/clickhouse/src/verifications";
 import { InfoTooltip } from "@unkey/ui";
 import { STATUS_STYLES } from "../utils/get-row-class";
 import {
+  getStatusType,
   LOG_OUTCOME_DEFINITIONS,
   type LogOutcomeType,
-  getStatusType,
 } from "../utils/outcome-definitions";
 import { StatusBadge } from "./status-badge";
 

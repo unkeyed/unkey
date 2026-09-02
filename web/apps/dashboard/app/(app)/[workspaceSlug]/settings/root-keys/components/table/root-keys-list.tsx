@@ -1,4 +1,8 @@
 "use client";
+import type { UnkeyPermission } from "@unkey/rbac";
+import { unkeyPermissionValidation } from "@unkey/rbac";
+import { DataTable, EmptyRootKeys, PaginationFooter } from "@unkey/ui";
+import { useCallback, useMemo, useState } from "react";
 import {
   createRootKeyColumns,
   getRowClassName,
@@ -6,10 +10,6 @@ import {
   useRootKeysListPaginated,
 } from "@/components/root-keys-table";
 import type { RootKey } from "@/lib/trpc/routers/settings/root-keys/query";
-import type { UnkeyPermission } from "@unkey/rbac";
-import { unkeyPermissionValidation } from "@unkey/rbac";
-import { DataTable, EmptyRootKeys, PaginationFooter } from "@unkey/ui";
-import { useCallback, useMemo, useState } from "react";
 import { RootKeyDialog } from "../dialog/root-key-dialog";
 
 // Type guard function to check if a string is a valid UnkeyPermission

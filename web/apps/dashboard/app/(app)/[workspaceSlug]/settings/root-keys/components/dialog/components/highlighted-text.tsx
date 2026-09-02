@@ -1,7 +1,7 @@
 "use client";
 
-import { useMemo } from "react";
 import type React from "react";
+import { useMemo } from "react";
 
 type HighlightedTextProps = {
   text: string;
@@ -24,6 +24,7 @@ export function HighlightedText({ text, searchValue }: HighlightedTextProps): Re
 
   return parts.map((part, index) =>
     index % 2 === 1 ? (
+      // biome-ignore lint/suspicious/noArrayIndexKey: composite key, the index only disambiguates repeats
       <mark key={index + part} className="bg-grayA-4 rounded-[4px] py-0.5 text-grayA-12">
         {part}
       </mark>

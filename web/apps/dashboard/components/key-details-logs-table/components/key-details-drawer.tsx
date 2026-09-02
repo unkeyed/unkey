@@ -1,9 +1,8 @@
 "use client";
-import { useEffect, useRef } from "react";
-
-import { LogDetails } from "@/components/logs/details/log-details";
 import type { KeyDetailsLog } from "@unkey/clickhouse/src/verifications";
 import { toast } from "@unkey/ui";
+import { useEffect, useRef } from "react";
+import { LogDetails } from "@/components/logs/details/log-details";
 import { useFetchRequestDetails } from "../hooks/use-fetch-request-details";
 
 type Props = {

@@ -1,10 +1,11 @@
 import crypto from "node:crypto";
+import { TRPCError } from "@trpc/server";
+import { z } from "zod";
 import { insertAuditLogs } from "@/lib/audit";
 import { and, db, eq, schema } from "@/lib/db";
 import { githubAppEnv, githubOAuthEnv } from "@/lib/env";
 import {
   type BranchActivity,
-  MAX_BRANCHES,
   exchangeInstallationOAuthCode,
   getInstallationRepositories,
   getMostActiveBranches,
@@ -12,11 +13,10 @@ import {
   getRepositoryBranches,
   getRepositoryById,
   getRepositoryTree,
+  MAX_BRANCHES,
   searchBranchesByPrefix,
   userCanAccessInstallation,
 } from "@/lib/github";
-import { TRPCError } from "@trpc/server";
-import { z } from "zod";
 import { t, workspaceProcedure } from "../trpc";
 
 const STATE_TTL_MS = 15 * 60 * 1000;

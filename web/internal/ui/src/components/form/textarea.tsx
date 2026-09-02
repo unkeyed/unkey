@@ -1,4 +1,4 @@
-import { type VariantProps, cva } from "class-variance-authority";
+import { cva, type VariantProps } from "class-variance-authority";
 import type * as React from "react";
 import { cn } from "../../lib/utils";
 import { fieldBaseClasses, fieldInvalidClasses, fieldSurfaceClasses } from "./input-group";
@@ -31,4 +31,4 @@ function Textarea({ className, variant, ref, ...props }: TextareaProps) {
   return <textarea ref={ref} className={cn(textareaVariants({ variant }), className)} {...props} />;
 }
 
-export { Textarea, textareaVariants, type TextareaProps, type DocumentedTextareaProps };
+export { type DocumentedTextareaProps, Textarea, type TextareaProps, textareaVariants };

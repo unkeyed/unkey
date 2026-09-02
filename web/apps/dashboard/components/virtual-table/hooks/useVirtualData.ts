@@ -1,6 +1,6 @@
-import { throttle } from "@/lib/utils";
-import { type Virtualizer, useVirtualizer } from "@tanstack/react-virtual";
+import { useVirtualizer, type Virtualizer } from "@tanstack/react-virtual";
 import { useCallback, useEffect, useMemo } from "react";
+import { throttle } from "@/lib/utils";
 import type { TableConfig } from "../types";
 
 export const useVirtualData = ({

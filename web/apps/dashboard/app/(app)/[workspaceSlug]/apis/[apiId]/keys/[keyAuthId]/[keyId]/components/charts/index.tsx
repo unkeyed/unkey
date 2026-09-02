@@ -22,13 +22,7 @@ export const KeyDetailsLogsChart = ({
     granularity,
   } = useFetchVerificationTimeseries(keyId, keyspaceId);
 
-  const handleSelectionChange = ({
-    start,
-    end,
-  }: {
-    start: number;
-    end: number;
-  }) => {
+  const handleSelectionChange = ({ start, end }: { start: number; end: number }) => {
     const activeFilters = filters.filter(
       (f) => !["startTime", "endTime", "since"].includes(f.field),
     );

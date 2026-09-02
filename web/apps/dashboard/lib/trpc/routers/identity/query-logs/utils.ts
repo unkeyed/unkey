@@ -1,6 +1,6 @@
-import { getTimestampFromRelative } from "@/lib/utils";
 import type { KEY_VERIFICATION_OUTCOMES } from "@unkey/clickhouse/src/keys/keys";
 import type { z } from "zod";
+import { getTimestampFromRelative } from "@/lib/utils";
 import type { identityLogsPayload } from "./query-logs.schema";
 
 type IdentityLogsInput = z.infer<typeof identityLogsPayload>;

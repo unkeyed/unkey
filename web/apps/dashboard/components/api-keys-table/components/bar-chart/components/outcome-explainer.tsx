@@ -1,7 +1,6 @@
-import { formatNumber } from "@/lib/fmt";
-
 import { InfoTooltip } from "@unkey/ui";
 import { type JSX, useMemo } from "react";
+import { formatNumber } from "@/lib/fmt";
 import type { ProcessedTimeseriesDataPoint } from "../use-fetch-timeseries";
 
 type OutcomeExplainerProps = {
@@ -128,7 +127,7 @@ export function OutcomeExplainer({ children, timeseries }: OutcomeExplainerProps
           <div className="flex flex-col">
             {errorTypes.map((error, index) => (
               <div
-                // biome-ignore lint/suspicious/noArrayIndexKey: <explanation>
+                // biome-ignore lint/suspicious/noArrayIndexKey: index is the stable identity for this list
                 key={index}
                 className="flex justify-between w-full items-center"
               >

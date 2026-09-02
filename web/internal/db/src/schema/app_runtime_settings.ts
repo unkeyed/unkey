@@ -11,6 +11,7 @@ export type Healthcheck = {
   failureThreshold: number;
   initialDelaySeconds: number;
 };
+
 import { id } from "./util/id";
 import { lifecycleDates } from "./util/lifecycle_dates";
 import { longblob } from "./util/longblob";

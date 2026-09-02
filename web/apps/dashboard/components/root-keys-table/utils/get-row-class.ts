@@ -1,6 +1,6 @@
+import { STATUS_STYLES } from "@unkey/ui";
 import type { RootKey } from "@/lib/trpc/routers/settings/root-keys/query";
 import { cn } from "@/lib/utils";
-import { STATUS_STYLES } from "@unkey/ui";
 
 export { STATUS_STYLES };
 

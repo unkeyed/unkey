@@ -1,7 +1,7 @@
+import { TRPCError } from "@trpc/server";
 import { keysListQueryTimeseriesPayload } from "@/components/api-keys-table/components/bar-chart/query-timeseries.schema";
 import { clickhouse } from "@/lib/clickhouse";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
-import { TRPCError } from "@trpc/server";
 
 export const keyUsageTimeseries = workspaceProcedure
   .use(withRatelimit(ratelimit.read))

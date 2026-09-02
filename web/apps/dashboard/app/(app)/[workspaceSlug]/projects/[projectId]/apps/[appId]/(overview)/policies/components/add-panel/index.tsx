@@ -1,10 +1,10 @@
 "use client";
 
-import { type Policy, policyMatchKey } from "@/lib/collections/deploy/policies.schema";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { match } from "@unkey/match";
 import { Button, FormInput, FormSelect } from "@unkey/ui";
 import { Controller, useForm, useWatch } from "react-hook-form";
+import { type Policy, policyMatchKey } from "@/lib/collections/deploy/policies.schema";
 import { FirewallFields, FirewallPolicySummary } from "./forms/firewall-fields";
 import { KeyAuthFields, KeyauthPolicySummary } from "./forms/keyauth-fields";
 import { LoggingFields, LoggingPolicySummary } from "./forms/logging-fields";
@@ -18,11 +18,11 @@ import {
 } from "./match-condition-editor";
 import { PolicyForm } from "./policy-form";
 import {
+  fromPolicy,
+  getDefaultValues,
   POLICY_TYPE_OPTIONS,
   type PolicyFormValues,
   type PolicyType,
-  fromPolicy,
-  getDefaultValues,
   policyFormSchema,
   toPolicy,
 } from "./schema";

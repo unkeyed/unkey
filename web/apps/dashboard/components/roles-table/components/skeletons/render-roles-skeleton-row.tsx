@@ -1,5 +1,3 @@
-import type { RoleBasic } from "@/lib/trpc/routers/authorization/roles/query";
-import { cn } from "@/lib/utils";
 import type { DataTableColumnDef } from "@unkey/ui";
 import {
   ActionColumnSkeleton,
@@ -9,6 +7,8 @@ import {
   PermissionsColumnSkeleton,
 } from "@unkey/ui";
 import { IconKey2Outline18, IconTagOutline18 } from "nucleo-ui-outline-18";
+import type { RoleBasic } from "@/lib/trpc/routers/authorization/roles/query";
+import { cn } from "@/lib/utils";
 import { ROLE_COLUMN_IDS } from "../../columns/create-roles-columns";
 
 type RenderRolesSkeletonRowProps = {

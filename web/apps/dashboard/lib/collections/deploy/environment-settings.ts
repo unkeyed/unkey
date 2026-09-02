@@ -1,5 +1,4 @@
 "use client";
-import { getErrorToast, getUnkeyClient } from "@/lib/unkey-client";
 import { parseLoadSubsetOptions, queryCollectionOptions } from "@tanstack/query-db-collection";
 import { createCollection } from "@tanstack/react-db";
 import type {
@@ -9,6 +8,7 @@ import type {
 import { toast } from "@unkey/ui";
 import { useSyncExternalStore } from "react";
 import { z } from "zod";
+import { getErrorToast, getUnkeyClient } from "@/lib/unkey-client";
 import { queryClient } from "../client";
 import { extractStringFilter } from "./utils";
 

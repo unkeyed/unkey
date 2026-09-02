@@ -1,12 +1,5 @@
 "use client";
 
-import {
-  type AreaChartPoint,
-  AreaTimeseriesChart,
-  type ValueParts,
-} from "@/components/charts/area-timeseries";
-import { formatNumber } from "@/lib/fmt";
-import { cn } from "@/lib/utils";
 import type { IconProps } from "nucleo-ui-outline-18";
 import {
   IconChartActivityOutline18,
@@ -14,6 +7,13 @@ import {
   IconTriangleWarningOutline18,
 } from "nucleo-ui-outline-18";
 import type { ComponentType } from "react";
+import {
+  type AreaChartPoint,
+  AreaTimeseriesChart,
+  type ValueParts,
+} from "@/components/charts/area-timeseries";
+import { formatNumber } from "@/lib/fmt";
+import { cn } from "@/lib/utils";
 
 export type LogdrainSeries = Array<{
   ts: number;

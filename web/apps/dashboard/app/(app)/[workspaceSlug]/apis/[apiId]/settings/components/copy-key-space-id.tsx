@@ -1,5 +1,4 @@
-import { SettingCard } from "@unkey/ui";
-import { CopyButton } from "@unkey/ui";
+import { CopyButton, SettingCard } from "@unkey/ui";
 
 export const CopyKeySpaceId = ({ keySpaceId }: { keySpaceId: string }) => {
   return (

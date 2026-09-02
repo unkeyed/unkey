@@ -1,16 +1,16 @@
 "use client";
 
-import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
-import { routes } from "@/lib/navigation/routes";
-import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button, FormInput, toast } from "@unkey/ui";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
+import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
+import { routes } from "@/lib/navigation/routes";
+import { trpc } from "@/lib/trpc/client";
 import { emptyHeader, toHeaderRecord } from "../header-fields";
 import { DestinationFields } from "./destination-fields";
 import { DestinationStepContainer } from "./destination-step-container";
-import { type FormValues, type Kind, formSchema } from "./form-schema";
+import { type FormValues, formSchema, type Kind } from "./form-schema";
 
 export function ConfigureDestinationStep({ kind }: { kind: Kind }) {
   const workspace = useWorkspaceNavigation();

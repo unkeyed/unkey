@@ -1,11 +1,11 @@
 "use client";
-import { type MenuItem, TableActionPopover } from "@/components/logs/table-action.popover";
-import type { RootKey } from "@/lib/trpc/routers/settings/root-keys/query";
 import {
   IconArrowDottedRotateAnticlockwiseOutline18,
   IconPenWriting3Outline18,
   IconTrashOutline18,
 } from "nucleo-ui-outline-18";
+import { type MenuItem, TableActionPopover } from "@/components/logs/table-action.popover";
+import type { RootKey } from "@/lib/trpc/routers/settings/root-keys/query";
 import { DeleteRootKey } from "./delete-root-key";
 import { RotateRootKey } from "./rotate-root-key";
 

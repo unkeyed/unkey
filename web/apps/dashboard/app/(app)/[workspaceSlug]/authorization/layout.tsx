@@ -1,10 +1,10 @@
 "use client";
 
-import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { SecondaryNav, SecondaryNavGroup, SecondaryNavItem, SecondaryNavTitle } from "@unkey/ui";
 import Link from "next/link";
 import { useSelectedLayoutSegments } from "next/navigation";
 import type { ReactNode } from "react";
+import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { navigation } from "./constants";
 
 export default function AuthorizationLayout({ children }: { children: ReactNode }) {

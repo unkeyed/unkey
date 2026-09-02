@@ -1,9 +1,9 @@
 "use client";
 
-import { useProjectData } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/data-provider";
-import { collection } from "@/lib/collections";
 import { eq, useLiveQuery } from "@tanstack/react-db";
 import { useMemo } from "react";
+import { useProjectData } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/data-provider";
+import { collection } from "@/lib/collections";
 
 export function useAppFilterOptions(): AppFilterOption[] {
   return useAppFilterOptionsWithLoading().options;

@@ -1,6 +1,7 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import * as React from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
+
 vi.mock("@unkey/icons", () => ({
   Check: () => <span data-testid="check" />,
   ChevronExpandY: () => <span data-testid="chevron" />,

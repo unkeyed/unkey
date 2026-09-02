@@ -1,6 +1,6 @@
+import { Badge } from "@unkey/ui";
 import { formatNumber } from "@/lib/fmt";
 import { formatMs } from "@/lib/ms";
-import { Badge } from "@unkey/ui";
 
 type OverrideLimitsCellProps = {
   limit: number;

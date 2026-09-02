@@ -1,8 +1,8 @@
 import type { EnvironmentKind } from "@/lib/collections/deploy/environments";
 import type { PolicyRow } from "@/lib/collections/deploy/policies";
 import {
-  type Policy,
   normalizePolicyName,
+  type Policy,
   policyMatchKey,
 } from "@/lib/collections/deploy/policies.schema";
 

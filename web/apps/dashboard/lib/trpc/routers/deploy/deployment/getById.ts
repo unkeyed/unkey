@@ -1,5 +1,3 @@
-import { and, db, eq } from "@/lib/db";
-import { workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
 import {
   appRegionalSettings,
@@ -9,6 +7,8 @@ import {
   regions,
 } from "@unkey/db/src/schema";
 import { z } from "zod";
+import { and, db, eq } from "@/lib/db";
+import { workspaceProcedure } from "@/lib/trpc/trpc";
 import { mapRegionToFlag } from "../network/utils";
 import {
   computeLastExit,

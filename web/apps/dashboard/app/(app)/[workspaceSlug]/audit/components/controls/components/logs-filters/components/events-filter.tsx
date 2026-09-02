@@ -1,6 +1,6 @@
+import { unkeyAuditLogEvents } from "@unkey/schema/src/auditlog";
 import { useFilters } from "@/app/(app)/[workspaceSlug]/audit/hooks/use-filters";
 import { FilterCheckbox } from "@/components/logs/checkbox/filter-checkbox";
-import { unkeyAuditLogEvents } from "@unkey/schema/src/auditlog";
 
 type EventsOption = {
   id: number;

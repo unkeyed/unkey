@@ -1,6 +1,6 @@
 import { createClient } from "@clickhouse/client-web";
 import { ClickHouse } from "@unkey/clickhouse";
-import { type Identity, drizzle, schema } from "@unkey/db";
+import { drizzle, type Identity, schema } from "@unkey/db";
 import mysql from "mysql2/promise";
 import { z } from "zod";
 
@@ -196,7 +196,7 @@ async function handleRow(table: string, row: z.infer<typeof aggregatedSchema>): 
   if (externalId === null) {
     return;
   }
-  let identity: Identity | undefined = undefined;
+  let identity: Identity | undefined;
   if (!externalId) {
     identity = await db.query.identities.findFirst({
       where: (table, { eq }) => eq(table.id, row.identity_id),

@@ -1,5 +1,3 @@
-import type { Deployment } from "@/lib/collections/deploy/deployments";
-import { useBillingUIUpgrades } from "@/lib/flags/use-billing-ui-upgrades";
 import { match } from "@unkey/match";
 import {
   AlertBanner,
@@ -11,6 +9,8 @@ import {
 import type { Route } from "next";
 import Link from "next/link";
 import { type ReactNode, useState } from "react";
+import type { Deployment } from "@/lib/collections/deploy/deployments";
+import { useBillingUIUpgrades } from "@/lib/flags/use-billing-ui-upgrades";
 import { RedeployDialog } from "../../components/table/components/actions/redeploy-dialog";
 import type { StepsData } from "./deployment-progress";
 import { LIMITS_DOCS_URL, limitFailure } from "./limit-failure";

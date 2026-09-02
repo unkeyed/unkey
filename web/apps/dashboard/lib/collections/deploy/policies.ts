@@ -1,12 +1,12 @@
 "use client";
 
-import { getErrorToast, getUnkeyClient } from "@/lib/unkey-client";
 import { parseLoadSubsetOptions, queryCollectionOptions } from "@tanstack/query-db-collection";
 import { createCollection } from "@tanstack/react-db";
 import { toast } from "@unkey/ui";
+import { getErrorToast, getUnkeyClient } from "@/lib/unkey-client";
 import { queryClient } from "../client";
 import { trackSave } from "./environment-settings";
-import { type Policy, fromWirePolicy } from "./policies.schema";
+import { fromWirePolicy, type Policy } from "./policies.schema";
 import { extractStringFilter } from "./utils";
 
 /** A Policy plus the identifiers every gateway call is scoped by. */

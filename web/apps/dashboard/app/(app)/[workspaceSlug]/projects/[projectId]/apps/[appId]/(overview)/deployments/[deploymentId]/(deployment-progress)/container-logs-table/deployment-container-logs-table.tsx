@@ -1,8 +1,8 @@
 "use client";
 
-import { StreamingTable } from "@/components/streaming-table";
 import { Button, Empty } from "@unkey/ui";
 import { IconBookBookmarkOutline18 } from "nucleo-ui-outline-18";
+import { StreamingTable } from "@/components/streaming-table";
 import { type ContainerLogRow, containerLogColumns } from "./columns";
 import { getContainerLogRowClass } from "./get-row-class";
 import {

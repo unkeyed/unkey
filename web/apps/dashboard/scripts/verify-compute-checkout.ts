@@ -32,9 +32,9 @@
  */
 
 import { parseArgs } from "node:util";
+import Stripe from "stripe";
 import { deployBillingConfig, deployCheckoutLineItems } from "@/lib/stripe/deployBilling";
 import { DEPLOY_PLANS, type DeployPlan } from "@/lib/stripe/deployPlan";
-import Stripe from "stripe";
 
 function isDeployPlan(value: string): value is DeployPlan {
   return (DEPLOY_PLANS as readonly string[]).includes(value);

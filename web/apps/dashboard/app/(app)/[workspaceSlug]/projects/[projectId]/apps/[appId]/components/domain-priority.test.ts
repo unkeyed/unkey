@@ -1,5 +1,5 @@
-import type { CustomDomain, Domain } from "@/lib/collections";
 import { describe, expect, test } from "vitest";
+import type { CustomDomain, Domain } from "@/lib/collections";
 import { getDomainPriority } from "./domain-priority";
 
 function makeDomain(overrides: Partial<Domain> = {}): Domain {

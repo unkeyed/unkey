@@ -1,5 +1,3 @@
-export * from "./props";
-
 export * from "./icons/discord";
 export * from "./icons/docker";
 export * from "./icons/github";
@@ -13,3 +11,4 @@ export * from "./icons/lang-ruby";
 export * from "./icons/lang-rust";
 export * from "./icons/lang-typescript";
 export * from "./icons/unkey";
+export * from "./props";

@@ -1,9 +1,9 @@
 "use client";
 import type { IconProps } from "nucleo-ui-outline-18";
+import type { FC, ReactNode } from "react";
 // biome-ignore lint: React in this context is used throughout, so biome will change to types because no APIs are used even though React is needed.
 import * as React from "react";
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
-import type { FC, ReactNode } from "react";
 import { cn } from "../../lib/utils";
 import { Button } from "../buttons/button";
 import { Dialog, DialogContent, DialogPortal } from "./dialog";
@@ -95,13 +95,7 @@ const NavigableDialogRoot = <TStepName extends string>({
 };
 
 // Header component
-const NavigableDialogHeader = ({
-  title,
-  subTitle,
-}: {
-  title: string;
-  subTitle?: string;
-}) => {
+const NavigableDialogHeader = ({ title, subTitle }: { title: string; subTitle?: string }) => {
   return <DefaultDialogHeader title={title} subTitle={subTitle} />;
 };
 
@@ -278,11 +272,11 @@ NavigableDialogFooter.displayName = "NavigableDialogFooter";
 NavigableDialogRoot.displayName = "NavigableDialogRoot";
 
 export {
-  NavigableDialogRoot,
-  NavigableDialogHeader,
-  NavigableDialogFooter,
-  NavigableDialogNav,
-  NavigableDialogContent,
   NavigableDialogBody,
+  NavigableDialogContent,
+  NavigableDialogFooter,
+  NavigableDialogHeader,
+  NavigableDialogNav,
+  NavigableDialogRoot,
   useNavigableDialog,
 };

@@ -1,5 +1,5 @@
 import { Button as ButtonPrimitive } from "@base-ui/react/button";
-import { type VariantProps, cva } from "class-variance-authority";
+import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "~/lib/utils";
 
 const buttonVariants = cva(
@@ -33,5 +33,5 @@ export function Button({ className, variant, size, ...props }: ButtonProps) {
   );
 }
 
-export { buttonVariants };
 export type { ButtonProps };
+export { buttonVariants };

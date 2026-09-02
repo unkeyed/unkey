@@ -1,5 +1,12 @@
 "use client";
 
+import { toast } from "@unkey/ui";
+import dynamic from "next/dynamic";
+import {
+  IconCloneOutline18,
+  IconPenWriting3Outline18,
+  IconTrashOutline18,
+} from "nucleo-ui-outline-18";
 import { MAX_KEYS_FETCH_LIMIT } from "@/app/(app)/[workspaceSlug]/authorization/roles/components/upsert-role/components/assign-key/hooks/use-fetch-keys";
 import { MAX_PERMS_FETCH_LIMIT } from "@/app/(app)/[workspaceSlug]/authorization/roles/components/upsert-role/components/assign-permission/hooks/use-fetch-permissions";
 import {
@@ -8,13 +15,6 @@ import {
 } from "@/components/logs/table-action.popover";
 import { trpc } from "@/lib/trpc/client";
 import type { RoleBasic } from "@/lib/trpc/routers/authorization/roles/query";
-import { toast } from "@unkey/ui";
-import dynamic from "next/dynamic";
-import {
-  IconCloneOutline18,
-  IconPenWriting3Outline18,
-  IconTrashOutline18,
-} from "nucleo-ui-outline-18";
 import { DeleteRole } from "./components/delete-role";
 import { EditRole } from "./components/edit-role";
 

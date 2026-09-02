@@ -1,8 +1,8 @@
 "use client";
 
+import { useQuery } from "@tanstack/react-query";
 import { trpc } from "@/lib/trpc/client";
 import { getUnkeyClient } from "@/lib/unkey-client";
-import { useQuery } from "@tanstack/react-query";
 
 // Resolves a keyspace's display name from both sources: the proxied
 // apis.getApi name wins so demo/proxy keyspaces show their public name,

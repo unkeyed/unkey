@@ -1,5 +1,5 @@
-import { auth as authProvider } from "@/lib/auth/server";
 import { z } from "zod";
+import { auth as authProvider } from "@/lib/auth/server";
 import { protectedProcedure } from "../../trpc";
 
 export const switchOrg = protectedProcedure.input(z.string()).mutation(async ({ input: orgId }) => {

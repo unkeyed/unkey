@@ -1,10 +1,10 @@
 "use client";
 
-import { OnboardingStepContainer } from "@/components/onboarding/step-container";
-import { OnboardingStepHeader } from "@/components/onboarding/step-header";
 import { match } from "@unkey/match";
 import { StepWizard } from "@unkey/ui";
 import { useState } from "react";
+import { OnboardingStepContainer } from "@/components/onboarding/step-container";
+import { OnboardingStepHeader } from "@/components/onboarding/step-header";
 import { ChooseDestinationStep } from "./choose-destination-step";
 import { ConfigureDestinationStep } from "./configure-destination-step";
 import type { Kind } from "./form-schema";

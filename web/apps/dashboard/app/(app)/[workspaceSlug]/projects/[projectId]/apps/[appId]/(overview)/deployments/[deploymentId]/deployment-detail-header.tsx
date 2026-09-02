@@ -1,8 +1,5 @@
 "use client";
 
-import { TableActionPopover } from "@/components/logs/table-action.popover";
-import type { Deployment } from "@/lib/collections/deploy/deployments";
-import { shortenId } from "@/lib/shorten-id";
 import {
   Button,
   PageHeader,
@@ -17,6 +14,9 @@ import {
   IconDotsOutline18,
 } from "nucleo-ui-outline-18";
 import { useState } from "react";
+import { TableActionPopover } from "@/components/logs/table-action.popover";
+import type { Deployment } from "@/lib/collections/deploy/deployments";
+import { shortenId } from "@/lib/shorten-id";
 import { useProjectData } from "../../data-provider";
 import {
   isCancellableDeploymentStatus,

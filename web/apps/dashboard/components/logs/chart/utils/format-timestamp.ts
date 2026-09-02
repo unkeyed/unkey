@@ -1,5 +1,5 @@
-import type { TimeseriesGranularity } from "@/lib/trpc/routers/utils/granularity";
 import { format, fromUnixTime } from "date-fns";
+import type { TimeseriesGranularity } from "@/lib/trpc/routers/utils/granularity";
 
 // Memoization cache with bounded size
 // Speed improvement so we do not repeat each timeStampFormat

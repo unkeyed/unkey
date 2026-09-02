@@ -1,8 +1,8 @@
+import { Badge, type DataTableColumnDef, TimestampInfo } from "@unkey/ui";
 import { RegionFlag } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/region-flag";
 import { mapRegionToFlag } from "@/lib/trpc/routers/deploy/network/utils";
 import { cn } from "@/lib/utils";
-import { Badge, type DataTableColumnDef, TimestampInfo } from "@unkey/ui";
-import { type RuntimeLogRow, getLogKey, getSeverityStyle } from "../utils/get-row-class";
+import { getLogKey, getSeverityStyle, type RuntimeLogRow } from "../utils/get-row-class";
 
 type CreateRuntimeLogsColumnsOptions = {
   // Key of the currently selected log, or null. Drives the selected badge

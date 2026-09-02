@@ -1,5 +1,12 @@
 "use client";
 
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@unkey/ui";
+import { FormLabel } from "@unkey/ui/src/components/form/form-helpers";
+import { IconLocation2Outline18 } from "nucleo-ui-outline-18";
+import { useContext, useEffect, useId, useMemo } from "react";
+import { useForm, useWatch } from "react-hook-form";
+import { z } from "zod";
 import { RegionFlag } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/region-flag";
 import {
   Multibox,
@@ -18,13 +25,6 @@ import { collection } from "@/lib/collections";
 import type { EnvironmentSettings } from "@/lib/collections/deploy/environment-settings";
 import { trpc } from "@/lib/trpc/client";
 import { mapRegionToFlag } from "@/lib/trpc/routers/deploy/network/utils";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@unkey/ui";
-import { FormLabel } from "@unkey/ui/src/components/form/form-helpers";
-import { IconLocation2Outline18 } from "nucleo-ui-outline-18";
-import { useContext, useEffect, useId, useMemo } from "react";
-import { useForm, useWatch } from "react-hook-form";
-import { z } from "zod";
 import { EnvironmentContext, useEnvironmentSettings } from "../../environment-provider";
 import { useMultiEnvironmentSettings } from "../../hooks/use-multi-environment-settings";
 import { useUpdateAllEnvironments } from "../../hooks/use-update-all-environments";

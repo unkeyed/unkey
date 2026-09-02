@@ -1,12 +1,12 @@
 "use client";
 
-import { routes } from "@/lib/navigation/routes";
-import { BILLING_DOCS } from "@/lib/support";
 import { Item, ItemContent, ItemDescription, ItemMedia, ItemTitle } from "@unkey/ui";
 import type { Route } from "next";
 import Link from "next/link";
 import { IconBookOpenOutline18, IconChartUsageOutline18 } from "nucleo-ui-outline-18";
 import type { ReactNode } from "react";
+import { routes } from "@/lib/navigation/routes";
+import { BILLING_DOCS } from "@/lib/support";
 
 export function RelatedPages({ workspaceSlug }: { workspaceSlug: string }) {
   const pages: Array<{

@@ -1,15 +1,14 @@
 "use client";
-import { NavbarActionButton } from "@/components/navigation/action-button";
-import { Navbar } from "@/components/navigation/navbar";
-import { usePersistedForm } from "@/hooks/use-persisted-form";
-
-import { trpc } from "@/lib/trpc/client";
-import type { KeyPermission, KeyRole } from "@/lib/trpc/routers/key/rbac/connected-roles-and-perms";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button, DialogContainer } from "@unkey/ui";
 import { IconPenWriting3Outline18 } from "nucleo-ui-outline-18";
 import { useEffect, useState } from "react";
 import { Controller, FormProvider } from "react-hook-form";
+import { NavbarActionButton } from "@/components/navigation/action-button";
+import { Navbar } from "@/components/navigation/navbar";
+import { usePersistedForm } from "@/hooks/use-persisted-form";
+import { trpc } from "@/lib/trpc/client";
+import type { KeyPermission, KeyRole } from "@/lib/trpc/routers/key/rbac/connected-roles-and-perms";
 import { GrantedAccess } from "../../../rbac/granted-access";
 import { useFetchPermissionSlugs } from "../../../rbac/hooks/use-fetch-permission-slugs";
 import { useUpdateKeyRbac } from "../hooks/use-edit-rbac";

@@ -1,10 +1,10 @@
 "use client";
 
+import type { Route } from "next";
+import Link from "next/link";
 import { getButtonStyles } from "@/components/navigation/sidebar/app-sidebar/components/nav-items/utils";
 import { SidebarMenuButton, SidebarMenuItem } from "@/components/ui/sidebar";
 import type { ResolvedNavLink } from "@/lib/navigation/types";
-import type { Route } from "next";
-import Link from "next/link";
 
 export function NavRow({ link }: { link: ResolvedNavLink }) {
   const Icon = link.icon;

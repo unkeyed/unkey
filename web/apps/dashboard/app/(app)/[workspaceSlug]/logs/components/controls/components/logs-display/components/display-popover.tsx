@@ -1,5 +1,3 @@
-import { isDisplayProperty, useLogsContext } from "@/app/(app)/[workspaceSlug]/logs/context/logs";
-import { useKeyboardShortcut } from "@/hooks/use-keyboard-shortcut";
 import { KeyboardButton, Popover, PopoverContent, PopoverTrigger } from "@unkey/ui";
 import type * as React from "react";
 import {
@@ -9,6 +7,8 @@ import {
   useEffect,
   useState,
 } from "react";
+import { isDisplayProperty, useLogsContext } from "@/app/(app)/[workspaceSlug]/logs/context/logs";
+import { useKeyboardShortcut } from "@/hooks/use-keyboard-shortcut";
 
 type DisplayPropertyId =
   | "time"

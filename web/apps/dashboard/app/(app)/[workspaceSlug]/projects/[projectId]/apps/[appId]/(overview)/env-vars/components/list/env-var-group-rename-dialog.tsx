@@ -1,14 +1,14 @@
 "use client";
 
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Button, DialogContainer, FormInput, toast } from "@unkey/ui";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
 import type { ActionComponentProps } from "@/components/logs/table-action.popover";
 import { collection } from "@/lib/collections";
 import { trackSave } from "@/lib/collections/deploy/environment-settings";
 import { envVarKeySchema } from "@/lib/schemas/env-var";
 import { trpc } from "@/lib/trpc/client";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { Button, DialogContainer, FormInput, toast } from "@unkey/ui";
-import { useForm } from "react-hook-form";
-import { z } from "zod";
 import type { EnvVarItem } from "./env-var-item-row";
 
 const renameSchema = z.object({

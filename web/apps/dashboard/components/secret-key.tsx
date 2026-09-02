@@ -1,9 +1,9 @@
 "use client";
 
-import { cn } from "@/lib/utils";
 import { CopyButton, VisibleButton } from "@unkey/ui";
 import { IconCircleLockOutline18 } from "nucleo-ui-outline-18";
 import { useState } from "react";
+import { cn } from "@/lib/utils";
 
 const maskKey = (key: string): string => {
   return "•".repeat(key.length);

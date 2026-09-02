@@ -1,8 +1,8 @@
+import { useMemo } from "react";
 import { formatTimestampForChart } from "@/components/logs/chart/utils/format-timestamp";
 import { HISTORICAL_DATA_WINDOW } from "@/components/logs/constants";
 import { trpc } from "@/lib/trpc/client";
 import { useQueryTime } from "@/providers/query-time-provider";
-import { useMemo } from "react";
 import { useFilters } from "../../../hooks/use-filters";
 import type { RatelimitQueryTimeseriesPayload } from "../query-timeseries.schema";
 

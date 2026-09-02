@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import type {
   RatelimitQueryOverviewLogsPayload,
   SortFields,
@@ -6,9 +7,9 @@ import { useFilters } from "@/app/(app)/[workspaceSlug]/ratelimits/[namespaceId]
 import { HISTORICAL_DATA_WINDOW } from "@/components/logs/constants";
 import { useSort } from "@/components/logs/hooks/use-sort";
 import {
+  computeTotalPages,
   PAGINATED_LIST_PREFETCH_OPTIONS,
   PAGINATED_LIST_QUERY_OPTIONS,
-  computeTotalPages,
   paginationFilterKey,
   paginationSortKey,
   usePaginatedNavigation,
@@ -16,7 +17,6 @@ import {
 } from "@/hooks/use-paginated-list-query";
 import { trpc } from "@/lib/trpc/client";
 import { useQueryTime } from "@/providers/query-time-provider";
-import { useMemo } from "react";
 
 type UseRatelimitsOverviewListQueryParams = {
   limit?: number;

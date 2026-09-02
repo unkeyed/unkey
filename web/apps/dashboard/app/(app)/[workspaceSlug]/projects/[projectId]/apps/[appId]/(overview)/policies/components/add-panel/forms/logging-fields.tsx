@@ -1,7 +1,7 @@
 "use client";
 
-import { Switch } from "@/components/ui/switch";
 import { useController, useFormContext, useWatch } from "react-hook-form";
+import { Switch } from "@/components/ui/switch";
 import type { PolicyFormValues } from "../schema";
 import { Sep, Strong } from "./summary-helpers";
 

@@ -1,9 +1,9 @@
 // src/features/keys/filters.schema.ts
 
+import { z } from "zod";
 import type { FilterValue, StringConfig } from "@/components/logs/validation/filter.types";
 import { parseAsFilterValueArray } from "@/components/logs/validation/utils/nuqs-parsers";
 import { createFilterOutputSchema } from "@/components/logs/validation/utils/structured-output-schema-generator";
-import { z } from "zod";
 
 const commonStringOperators = ["is", "contains", "startsWith", "endsWith"] as const;
 

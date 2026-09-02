@@ -4,13 +4,13 @@ import {
   type ReplayFrameEvent,
   type SentryLog,
   type SpanJson,
-  type TransactionEvent,
   scrubEventPii,
   scrubLog,
   scrubReplayFrame,
   scrubSpanPii,
   scrubTransactionPii,
   scrubUrl,
+  type TransactionEvent,
 } from "./pii-scrubber";
 
 const ROOT_KEY = "unkey_3ZZ8gT8vQk2mN4pXwYbCdEf";
@@ -1316,7 +1316,8 @@ describe("over-redaction and encoded-form regressions", () => {
 
     const scrubbed = scrubReplayFrame(frame);
 
-    const message = (scrubbed?.data as { payload: { message: string } }).payload.message;
+    const data = scrubbed?.data as { payload: { message: string } };
+    const message = data.payload.message;
     expect(message).not.toContain("jane@acme.com");
     expect(message).toContain("div > button");
   });

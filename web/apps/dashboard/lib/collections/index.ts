@@ -20,12 +20,12 @@ export type { Deployment } from "./deploy/deployments";
 export type { Domain } from "./deploy/domains";
 export type { EnvVar } from "./deploy/env-vars";
 export type { EnvironmentSettings } from "./deploy/environment-settings";
-export type { Project } from "./deploy/projects";
+export type { Environment } from "./deploy/environments";
 export type { PolicyRow } from "./deploy/policies";
 export type { KeyauthPolicy, Policy, PolicyType } from "./deploy/policies.schema";
+export type { Project } from "./deploy/projects";
 export type { RatelimitNamespace } from "./ratelimit/namespaces";
 export type { RatelimitOverride } from "./ratelimit/overrides";
-export type { Environment } from "./deploy/environments";
 
 // Global collections
 export const collection = {

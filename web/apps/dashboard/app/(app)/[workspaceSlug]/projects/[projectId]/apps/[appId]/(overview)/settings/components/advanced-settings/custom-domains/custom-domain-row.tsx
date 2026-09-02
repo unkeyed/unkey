@@ -1,11 +1,4 @@
 "use client";
-import { collection } from "@/lib/collections";
-import {
-  type CustomDomain,
-  type VerificationStatus,
-  retryDomainVerification,
-} from "@/lib/collections/deploy/custom-domains";
-import { cn } from "@/lib/utils";
 import { Badge, Button, ConfirmPopover, Tooltip, TooltipContent, TooltipTrigger } from "@unkey/ui";
 import {
   IconCircleCheckOutline12,
@@ -15,6 +8,13 @@ import {
 } from "nucleo-ui-outline-12";
 import { IconCircleInfoOutline18, IconRefresh3Outline18 } from "nucleo-ui-outline-18";
 import { useRef, useState } from "react";
+import { collection } from "@/lib/collections";
+import {
+  type CustomDomain,
+  retryDomainVerification,
+  type VerificationStatus,
+} from "@/lib/collections/deploy/custom-domains";
+import { cn } from "@/lib/utils";
 import { RemoveButton } from "../../shared/remove-button";
 import { DnsRecordTable } from "./dns-record-table";
 

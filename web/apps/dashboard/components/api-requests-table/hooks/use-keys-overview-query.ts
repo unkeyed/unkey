@@ -1,11 +1,13 @@
+import { KEY_VERIFICATION_OUTCOMES, type KeysOverviewLog } from "@unkey/clickhouse/src/keys/keys";
+import { useMemo } from "react";
 import { keysOverviewFilterFieldConfig } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/_overview/filters.schema";
 import { useFilters } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/_overview/hooks/use-filters";
 import { HISTORICAL_DATA_WINDOW } from "@/components/logs/constants";
 import { useSort } from "@/components/logs/hooks/use-sort";
 import {
+  computeTotalPages,
   PAGINATED_LIST_PREFETCH_OPTIONS,
   PAGINATED_LIST_QUERY_OPTIONS,
-  computeTotalPages,
   paginationFilterKey,
   paginationSortKey,
   usePaginatedNavigation,
@@ -13,8 +15,6 @@ import {
 } from "@/hooks/use-paginated-list-query";
 import { trpc } from "@/lib/trpc/client";
 import { useQueryTime } from "@/providers/query-time-provider";
-import { KEY_VERIFICATION_OUTCOMES, type KeysOverviewLog } from "@unkey/clickhouse/src/keys/keys";
-import { useMemo } from "react";
 import type { KeysQueryOverviewLogsPayload, SortFields } from "../schema/keys-overview.schema";
 
 type UseLogsQueryParams = {

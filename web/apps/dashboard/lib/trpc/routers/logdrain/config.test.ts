@@ -1,9 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
 import {
-  type LogdrainConfig,
   decodeLogdrainConfig,
   encodeLogdrainConfig,
   encryptHttpHeaders,
+  type LogdrainConfig,
 } from "./config";
 
 const vault = vi.hoisted(() => ({ encryptBulk: vi.fn() }));

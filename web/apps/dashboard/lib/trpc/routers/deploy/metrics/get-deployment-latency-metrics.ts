@@ -1,13 +1,13 @@
+import { TRPCError } from "@trpc/server";
+import {
+  percentileSchema,
+  TIMESERIES_INTERVAL_MINUTES,
+  TIMESERIES_WINDOW_HOURS,
+} from "@unkey/clickhouse/src/frontline";
+import { z } from "zod";
 import { clickhouse } from "@/lib/clickhouse";
 import { db } from "@/lib/db";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
-import { TRPCError } from "@trpc/server";
-import {
-  TIMESERIES_INTERVAL_MINUTES,
-  TIMESERIES_WINDOW_HOURS,
-  percentileSchema,
-} from "@unkey/clickhouse/src/frontline";
-import { z } from "zod";
 
 const INTERVAL_MS = TIMESERIES_INTERVAL_MINUTES * 60 * 1000;
 

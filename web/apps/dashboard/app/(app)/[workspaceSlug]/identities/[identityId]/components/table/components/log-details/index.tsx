@@ -1,9 +1,8 @@
 "use client";
+import { toast } from "@unkey/ui";
 import { useEffect, useState } from "react";
-
 import { LogDetails } from "@/components/logs/details/log-details";
 import type { IdentityLog } from "@/lib/trpc/routers/identity/query-logs";
-import { toast } from "@unkey/ui";
 import { useFetchRequestDetails } from "./components/hooks/use-logs-query";
 
 type Props = {

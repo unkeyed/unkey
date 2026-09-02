@@ -1,7 +1,7 @@
-import { db, eq } from "@/lib/db";
-import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
 import { environments } from "@unkey/db/src/schema";
+import { db, eq } from "@/lib/db";
+import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 
 export const listAllEnvironments = workspaceProcedure
   .use(withRatelimit(ratelimit.read))

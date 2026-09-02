@@ -1,6 +1,6 @@
+import { LLMSearch, toast } from "@unkey/ui";
 import { transformStructuredOutputToFilters } from "@/components/logs/validation/utils/transform-structured-output-filter-format";
 import { trpc } from "@/lib/trpc/client";
-import { LLMSearch, toast } from "@unkey/ui";
 import { useFilters } from "../../../../hooks/use-filters";
 
 export const RootKeysSearch = () => {

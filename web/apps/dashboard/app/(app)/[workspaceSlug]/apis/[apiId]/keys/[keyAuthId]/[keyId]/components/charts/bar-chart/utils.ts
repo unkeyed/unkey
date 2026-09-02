@@ -1,6 +1,6 @@
+import { KEY_VERIFICATION_OUTCOMES } from "@unkey/clickhouse/src/keys/keys";
 import { OUTCOME_BACKGROUND_COLORS } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/_overview/constants";
 import { formatOutcomeName } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/_overview/utils";
-import { KEY_VERIFICATION_OUTCOMES } from "@unkey/clickhouse/src/keys/keys";
 
 /**
  * Maps CSS variables from our design system to actual color values

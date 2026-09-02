@@ -1,11 +1,11 @@
-import {
-  type SortDirection,
-  type SortUrlValue,
-  parseAsSortArray,
-} from "@/components/logs/validation/utils/nuqs-parsers";
 import { useQueryState } from "nuqs";
 import { useCallback } from "react";
 import type { z } from "zod";
+import {
+  parseAsSortArray,
+  type SortDirection,
+  type SortUrlValue,
+} from "@/components/logs/validation/utils/nuqs-parsers";
 
 export type SortField<TSortFields> = TSortFields extends z.ZodEnum<infer U> ? U : TSortFields;
 

@@ -1,6 +1,9 @@
 {
   "name": "unkey",
-  "workspaces": ["apps/*", "packages/*"],
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
   "private": true,
   "version": "1.0.0",
   "description": "",
@@ -18,7 +21,7 @@
   "license": "AGPL-3.0",
   "packageManager": "pnpm@11.5.0",
   "devDependencies": {
-    "@biomejs/biome": "1.9.4",
+    "@biomejs/biome": "2.5.11",
     "@types/node": "22.14.0",
     "@vitest/ui": "3.2.4",
     "turbo": "2.4.3",

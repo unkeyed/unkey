@@ -39,7 +39,7 @@ export function DialogContent({
       <DialogOverlay />
       <DialogPrimitive.Popup
         className={cn(
-          "-translate-x-1/2 -translate-y-1/2 fixed top-1/2 left-1/2 z-50 flex max-h-[calc(100dvh-2rem)] w-full max-w-md flex-col overflow-hidden rounded-2xl border border-primary/20 bg-background shadow-2xl",
+          "fixed top-1/2 left-1/2 z-50 flex max-h-[calc(100dvh-2rem)] w-full max-w-md -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-2xl border border-primary/20 bg-background shadow-2xl",
           "transition-[opacity,scale] duration-200 data-ending-style:scale-95 data-starting-style:scale-95 data-ending-style:opacity-0 data-starting-style:opacity-0",
           "focus:outline-none",
           className,

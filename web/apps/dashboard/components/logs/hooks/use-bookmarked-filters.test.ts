@@ -1,6 +1,6 @@
-import type { QuerySearchParams } from "@/lib/schemas/logs.filter.schema";
 import { act, renderHook } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { QuerySearchParams } from "@/lib/schemas/logs.filter.schema";
 import type { FilterValue } from "../validation/filter.types";
 import { type SavedFiltersGroup, useBookmarkedFilters } from "./use-bookmarked-filters";
 

@@ -1,6 +1,6 @@
 "use client";
-import { collection } from "@/lib/collections";
 import { and, eq, useLiveQuery } from "@tanstack/react-db";
+import { collection } from "@/lib/collections";
 import { useAppId, useProjectData } from "../../data-provider";
 export const useDiffDeployments = () => {
   const { projectId } = useProjectData();

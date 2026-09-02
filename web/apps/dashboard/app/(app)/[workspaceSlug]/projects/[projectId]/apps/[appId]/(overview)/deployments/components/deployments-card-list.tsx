@@ -1,11 +1,11 @@
 "use client";
 
-import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
-import { collection } from "@/lib/collections";
-import { routes } from "@/lib/navigation/routes";
 import { and, eq, useLiveQuery } from "@tanstack/react-db";
 import { Button, Empty, ResourceListBody, ResourceListContent } from "@unkey/ui";
 import { IconBookBookmarkOutline18 } from "nucleo-ui-outline-18";
+import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
+import { collection } from "@/lib/collections";
+import { routes } from "@/lib/navigation/routes";
 import { useAppId, useProjectData } from "../../data-provider";
 import { useDeployments } from "../hooks/use-deployments";
 import { DeploymentRow } from "./deployment-row";

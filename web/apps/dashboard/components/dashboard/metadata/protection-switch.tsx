@@ -1,6 +1,6 @@
 "use client";
-import { Switch } from "@/components/ui/switch";
 import { forwardRef } from "react";
+import { Switch } from "@/components/ui/switch";
 
 type FeatureCardProps = {
   icon: React.ReactNode;

@@ -1,4 +1,3 @@
-import type { RoleBasic } from "@/lib/trpc/routers/authorization/roles/query";
 import type { DataTableColumnDef } from "@unkey/ui";
 import {
   AssignedCountCell,
@@ -9,6 +8,7 @@ import {
 } from "@unkey/ui";
 import dynamic from "next/dynamic";
 import { IconKey2Outline18, IconPage2Outline18, IconTagOutline18 } from "nucleo-ui-outline-18";
+import type { RoleBasic } from "@/lib/trpc/routers/authorization/roles/query";
 
 const RolesTableActions = dynamic(
   () =>

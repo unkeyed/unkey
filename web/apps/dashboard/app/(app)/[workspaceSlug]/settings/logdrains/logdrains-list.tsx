@@ -1,8 +1,5 @@
 "use client";
 
-import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
-import { routes } from "@/lib/navigation/routes";
-import { trpc } from "@/lib/trpc/client";
 import {
   Empty,
   ResourceListBody,
@@ -11,6 +8,9 @@ import {
   Skeleton,
 } from "@unkey/ui";
 import Link from "next/link";
+import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
+import { routes } from "@/lib/navigation/routes";
+import { trpc } from "@/lib/trpc/client";
 import { CreateLogdrainButton } from "./create-logdrain-button";
 import { DrainRowChart } from "./drain-row-chart";
 import { DrainActions, SinkType, StatusBadge } from "./logdrain-ui";

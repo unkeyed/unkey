@@ -1,52 +1,50 @@
 export {
-  createErrorFilter,
-  createClientErrorFilter,
-  createServerErrorFilter,
-  createEdgeErrorFilter,
-  shouldReportError,
-  logFilteredError,
-  preserveErrorContext,
-  hasPreservedContext,
-  getPreservedContext,
-  type ErrorFilterOptions,
-  type BeforeSendHook,
-} from "./error-filter";
-
-export {
-  isExpectedTRPCError,
-  extractTRPCErrorInfo,
-  classifyError,
-  isExpectedErrorCode,
-  getErrorLogLevel,
-  shouldReportToSentry,
-  EXPECTED_TRPC_CODES,
-  ERROR_SEVERITY_MAP,
-  type TRPCErrorInfo,
-  type ErrorClassification,
-} from "../utils/error-classification";
-
-export {
-  logTRPCError,
-  logUserAction,
-  logOperation,
   type BaseLogAttributes,
-  type TRPCLogAttributes,
-  type UserActionAttributes,
   type LogAttributes,
   type LogContext,
   type LogLevel,
+  logOperation,
+  logTRPCError,
+  logUserAction,
+  type TRPCLogAttributes,
+  type UserActionAttributes,
 } from "../logging/structured-logger";
 
-export { createTracesSampler } from "./trace-sampler";
+export {
+  classifyError,
+  ERROR_SEVERITY_MAP,
+  type ErrorClassification,
+  EXPECTED_TRPC_CODES,
+  extractTRPCErrorInfo,
+  getErrorLogLevel,
+  isExpectedErrorCode,
+  isExpectedTRPCError,
+  shouldReportToSentry,
+  type TRPCErrorInfo,
+} from "../utils/error-classification";
+export {
+  type BeforeSendHook,
+  createClientErrorFilter,
+  createEdgeErrorFilter,
+  createErrorFilter,
+  createServerErrorFilter,
+  type ErrorFilterOptions,
+  getPreservedContext,
+  hasPreservedContext,
+  logFilteredError,
+  preserveErrorContext,
+  shouldReportError,
+} from "./error-filter";
+export { DENY_URLS, IGNORE_ERRORS } from "./noise-filters";
 
 export {
-  scrubUrl,
   scrubEventPii,
-  scrubTransactionPii,
-  scrubSpanPii,
   scrubLog,
   scrubReplayFrame,
+  scrubSpanPii,
+  scrubTransactionPii,
+  scrubUrl,
 } from "./pii-scrubber";
 
 export { replayPrivacyOptions } from "./replay-privacy";
-export { IGNORE_ERRORS, DENY_URLS } from "./noise-filters";
+export { createTracesSampler } from "./trace-sampler";

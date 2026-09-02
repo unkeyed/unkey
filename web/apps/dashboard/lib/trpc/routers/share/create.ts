@@ -1,11 +1,11 @@
 import { randomBytes } from "node:crypto";
+import { TRPCError } from "@trpc/server";
+import { z } from "zod";
 import { VaultService } from "@/gen/proto/vault/v1/service_pb";
 import { insertAuditLogs } from "@/lib/audit";
 import { db, lt, schema } from "@/lib/db";
 import { getBaseUrl } from "@/lib/utils";
 import { createVaultClient } from "@/lib/vault-client";
-import { TRPCError } from "@trpc/server";
-import { z } from "zod";
 import { withCreateRateLimit, workspaceProcedure } from "../../trpc";
 
 const vault = createVaultClient(VaultService);

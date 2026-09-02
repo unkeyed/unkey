@@ -1,6 +1,6 @@
-import { cn } from "@/lib/utils";
 import type { DataTableColumnDef } from "@unkey/ui";
 import { CreatedAtColumnSkeleton } from "@unkey/ui";
+import { cn } from "@/lib/utils";
 import { RATELIMIT_LOGS_COLUMN_IDS } from "../../columns/create-ratelimit-logs-columns";
 import type { EnrichedRatelimitLog } from "../../hooks/use-ratelimit-logs-query";
 

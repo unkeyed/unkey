@@ -1,10 +1,10 @@
 "use client";
 
+import { useParams } from "next/navigation";
+import { useMemo } from "react";
 import { useRuntimeLogsFilters } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/(project)/logs/hooks/use-runtime-logs-filters";
 import { FilterCheckbox } from "@/components/logs/checkbox/filter-checkbox";
 import { trpc } from "@/lib/trpc/client";
-import { useParams } from "next/navigation";
-import { useMemo } from "react";
 
 type InstanceOption = {
   id: number;

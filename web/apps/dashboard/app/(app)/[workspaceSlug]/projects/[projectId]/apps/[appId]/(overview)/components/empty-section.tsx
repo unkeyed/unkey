@@ -1,9 +1,9 @@
 "use client";
 
-import { cn } from "@/lib/utils";
 import { Empty } from "@unkey/ui";
 import { IconLink4Outline18 } from "nucleo-ui-outline-18";
 import type { PropsWithChildren, ReactNode } from "react";
+import { cn } from "@/lib/utils";
 
 type EmptySectionProps = PropsWithChildren<{
   title: string;

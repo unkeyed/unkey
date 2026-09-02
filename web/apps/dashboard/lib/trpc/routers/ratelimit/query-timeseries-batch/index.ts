@@ -1,9 +1,9 @@
+import { TRPCError } from "@trpc/server";
+import { z } from "zod";
 import { clickhouse } from "@/lib/clickhouse";
 import { db } from "@/lib/db";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
-import { TRPCError } from "@trpc/server";
-import { z } from "zod";
-import { TIMESERIES_GRANULARITIES, getTimeseriesGranularity } from "../../utils/granularity";
+import { getTimeseriesGranularity, TIMESERIES_GRANULARITIES } from "../../utils/granularity";
 
 const batchTimeseriesPayload = z.object({
   namespaceIds: z.array(z.string()).min(1),

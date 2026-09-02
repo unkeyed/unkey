@@ -1,7 +1,4 @@
 "use client";
-import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
-import { routes } from "@/lib/navigation/routes";
-import { trpc } from "@/lib/trpc/client";
 import {
   Button,
   Empty,
@@ -13,6 +10,9 @@ import {
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type Stripe from "stripe";
+import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
+import { routes } from "@/lib/navigation/routes";
+import { trpc } from "@/lib/trpc/client";
 import { BillingContainer } from "./billing-container";
 import { CancelAlert } from "./components/cancel-alert";
 import { CancelPlan } from "./components/cancel-plan";

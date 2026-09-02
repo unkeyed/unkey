@@ -6,7 +6,7 @@
  * the generated ParamMap.
  */
 import type { Route } from "next";
-import { type WorkspaceScope, buildRoute } from "./shared";
+import { buildRoute, type WorkspaceScope } from "./shared";
 
 type IdentityScope = WorkspaceScope & { identityId: string };
 

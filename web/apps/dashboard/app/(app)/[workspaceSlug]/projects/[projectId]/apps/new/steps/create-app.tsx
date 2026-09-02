@@ -1,4 +1,9 @@
 "use client";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { DuplicateKeyError } from "@tanstack/react-db";
+import { Button, FormInput, toast, useStepWizard } from "@unkey/ui";
+import { useForm } from "react-hook-form";
+import type { z } from "zod";
 import { useDeployActionGate } from "@/app/(app)/[workspaceSlug]/projects/_components/hooks/use-deploy-action-gate";
 import { collection } from "@/lib/collections";
 import { trpcClient } from "@/lib/collections/client";
@@ -7,11 +12,6 @@ import { applyDefaultSettings } from "@/lib/collections/deploy/environment-setti
 import { SERVER_PLACEHOLDER } from "@/lib/collections/deploy/utils";
 import { slugify } from "@/lib/slugify";
 import { trpc } from "@/lib/trpc/client";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { DuplicateKeyError } from "@tanstack/react-db";
-import { Button, FormInput, toast, useStepWizard } from "@unkey/ui";
-import { useForm } from "react-hook-form";
-import type { z } from "zod";
 import { OnboardingLinks } from "../onboarding-links";
 
 const formSchema = createAppRequestSchema.omit({ projectId: true });

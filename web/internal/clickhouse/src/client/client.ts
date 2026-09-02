@@ -70,7 +70,7 @@ export class Client implements Querier, Inserter {
     events: z.input<TSchema> | z.input<TSchema>[],
   ) => Promise<Result<{ executed: boolean; query_id: string }, InsertError>> {
     return async (events: z.input<TSchema> | z.input<TSchema>[]) => {
-      let validatedEvents: z.output<TSchema> | z.output<TSchema>[] | undefined = undefined;
+      let validatedEvents: z.output<TSchema> | z.output<TSchema>[] | undefined;
       const v = Array.isArray(events)
         ? req.schema.array().safeParse(events)
         : req.schema.safeParse(events);
@@ -93,7 +93,7 @@ export class Client implements Querier, Inserter {
   }
 
   private async retry<T>(fn: (attempt: number) => Promise<T>): Promise<T> {
-    let err: Error | undefined = undefined;
+    let err: Error | undefined;
     for (let i = 1; i <= 3; i++) {
       try {
         return fn(i);

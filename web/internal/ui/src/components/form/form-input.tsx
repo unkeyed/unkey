@@ -56,4 +56,4 @@ function FormInput({
   );
 }
 
-export { FormInput, type FormInputProps, type DocumentedFormInputProps };
+export { type DocumentedFormInputProps, FormInput, type FormInputProps };

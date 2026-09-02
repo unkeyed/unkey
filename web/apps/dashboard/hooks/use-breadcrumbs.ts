@@ -1,7 +1,7 @@
 "use client";
 
-import { routes } from "@/lib/navigation/routes";
 import { useParams } from "next/navigation";
+import { routes } from "@/lib/navigation/routes";
 import { useWorkspaceNavigation } from "./use-workspace-navigation";
 
 export type BreadcrumbDescriptor =

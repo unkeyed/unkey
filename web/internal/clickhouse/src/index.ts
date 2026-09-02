@@ -7,19 +7,23 @@ import {
   getDeployMeterUsage,
   getDeployUsageByScope,
 } from "./deploy_billing";
+
 export {
+  type ActiveKeysByApp,
   type ActiveKeysUsage,
+  activeKeysByApp,
   activeKeysUsage,
   type DeployMeterUsage,
-  deployMeterUsage,
   type DeployUsageByScope,
+  deployMeterUsage,
   deployUsageByScope,
-  type ActiveKeysByApp,
-  activeKeysByApp,
 } from "./deploy_billing";
+
 import { Client, type Inserter, Noop, type Querier } from "./client";
 import { getInstanceEvents } from "./instance-events";
-export { instanceEventKind, type InstanceEventKind } from "./instance-events";
+
+export { type InstanceEventKind, instanceEventKind } from "./instance-events";
+
 import {
   getDailyActiveKeysTimeseries,
   getFifteenMinutelyActiveKeysTimeseries,
@@ -115,7 +119,9 @@ import {
   getResourceNetworkIngressTimeseries,
   getResourceSummary,
 } from "./resources";
+
 export { TIME_WINDOWS, type TimeWindow } from "./resources";
+
 import {
   getDeploymentLatencyWithTimeseries,
   getDeploymentRpsTimeseries,

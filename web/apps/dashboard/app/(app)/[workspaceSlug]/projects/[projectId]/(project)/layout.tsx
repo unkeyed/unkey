@@ -1,5 +1,5 @@
-import { ProjectDataProvider } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/data-provider";
 import type { PropsWithChildren } from "react";
+import { ProjectDataProvider } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/data-provider";
 
 export default function ProjectScopedLayout({ children }: PropsWithChildren) {
   return (

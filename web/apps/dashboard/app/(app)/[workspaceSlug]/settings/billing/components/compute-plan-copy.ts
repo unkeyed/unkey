@@ -1,5 +1,3 @@
-import type { DeployPlan } from "@/lib/stripe/deployPlan";
-import { BILLING_DOCS } from "@/lib/support";
 import type { IconProps } from "nucleo-ui-outline-18";
 import {
   IconArrowDottedRotateAnticlockwiseOutline18,
@@ -8,6 +6,8 @@ import {
   IconEyeOutline18,
 } from "nucleo-ui-outline-18";
 import type { ComponentType } from "react";
+import type { DeployPlan } from "@/lib/stripe/deployPlan";
+import { BILLING_DOCS } from "@/lib/support";
 
 /** Marketing copy for the Compute plan picker. */
 export const PLAN_BLURBS: Record<DeployPlan, string> = {

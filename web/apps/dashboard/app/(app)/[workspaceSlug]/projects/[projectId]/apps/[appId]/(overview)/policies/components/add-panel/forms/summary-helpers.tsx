@@ -1,5 +1,5 @@
-import { cn } from "@/lib/utils";
 import type { ReactNode } from "react";
+import { cn } from "@/lib/utils";
 import { DottedLink } from "../../../../../components/dotted-link";
 
 export const Strong = ({ children, className }: { children: ReactNode; className?: string }) => (
@@ -11,4 +11,7 @@ export const Sep = () => <span className="text-gray-9 mx-1.5">·</span>;
 export const DocsLink = ({
   href,
   children = "Read more",
-}: { href: string; children?: ReactNode }) => <DottedLink href={href}>{children}</DottedLink>;
+}: {
+  href: string;
+  children?: ReactNode;
+}) => <DottedLink href={href}>{children}</DottedLink>;

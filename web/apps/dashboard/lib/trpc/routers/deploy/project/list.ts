@@ -1,6 +1,3 @@
-import type { Project } from "@/lib/collections/deploy/projects";
-import { and, db, desc, eq, inArray, not, sql } from "@/lib/db";
-import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import {
   apps,
   deployments,
@@ -8,6 +5,9 @@ import {
   githubRepoConnections,
   projects,
 } from "@unkey/db/src/schema";
+import type { Project } from "@/lib/collections/deploy/projects";
+import { and, db, desc, eq, inArray, not, sql } from "@/lib/db";
+import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 
 export const listProjects = workspaceProcedure
   .use(withRatelimit(ratelimit.read))

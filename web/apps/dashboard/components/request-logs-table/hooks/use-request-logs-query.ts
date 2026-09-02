@@ -1,19 +1,19 @@
 "use client";
 
+import type { RequestLogsResponse } from "@unkey/clickhouse/src/frontline";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRequestLogsFilters } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/(project)/requests/hooks/use-request-logs-filters";
 import { useProjectData } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/data-provider";
 import {
+  computeTotalPages,
   PAGINATED_LIST_PREFETCH_OPTIONS,
   PAGINATED_LIST_QUERY_OPTIONS,
-  computeTotalPages,
   paginationFilterKey,
   usePaginatedNavigation,
   usePaginatedPage,
 } from "@/hooks/use-paginated-list-query";
 import { trpc } from "@/lib/trpc/client";
 import { DEFAULT_LOGS_SINCE, getTimestampFromRelative } from "@/lib/utils";
-import type { RequestLogsResponse } from "@unkey/clickhouse/src/frontline";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 type UseRequestLogsQueryParams = {
   limit?: number;

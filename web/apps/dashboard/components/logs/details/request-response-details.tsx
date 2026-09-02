@@ -1,6 +1,6 @@
-import { cn } from "@/lib/utils";
 import { InfoTooltip, toast } from "@unkey/ui";
 import type { ReactNode } from "react";
+import { cn } from "@/lib/utils";
 
 type Field<T> = {
   label: string;
@@ -100,6 +100,7 @@ export const RequestResponseDetails = <T extends unknown[]>({ fields, className 
       {fields.map(
         (field, index) =>
           isNonEmpty(field.content) && (
+            // biome-ignore lint/suspicious/noArrayIndexKey: composite key, the index only disambiguates repeats
             <div key={`${field.label}-${index}`}>{renderField(field, index)}</div>
           ),
       )}

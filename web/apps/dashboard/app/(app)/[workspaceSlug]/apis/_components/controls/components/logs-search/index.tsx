@@ -1,7 +1,8 @@
-import { trpc } from "@/lib/trpc/client";
-import type { ApiOverview } from "@/lib/trpc/routers/api/overview/query-overview/schemas";
 import { LLMSearch, toast } from "@unkey/ui";
 import { useRef } from "react";
+import { trpc } from "@/lib/trpc/client";
+import type { ApiOverview } from "@/lib/trpc/routers/api/overview/query-overview/schemas";
+
 type Props = {
   apiList: ApiOverview[];
   onApiListChange: (apiList: ApiOverview[]) => void;

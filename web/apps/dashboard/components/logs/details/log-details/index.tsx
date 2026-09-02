@@ -1,13 +1,13 @@
 "use client";
+import type { RequestLogsResponse } from "@unkey/clickhouse/src/frontline";
+import type { KeysOverviewLog } from "@unkey/clickhouse/src/keys/keys";
+import type { Log } from "@unkey/clickhouse/src/logs";
+import { createContext, type ReactNode, useContext, useMemo } from "react";
 import { extractResponseField, safeParseJson } from "@/app/(app)/[workspaceSlug]/logs/utils";
 import { ResizablePanel } from "@/components/logs/details/resizable-panel";
 import type { EnrichedRatelimitLog } from "@/components/ratelimit-logs-table";
 import type { RuntimeLog } from "@/lib/schemas/runtime-logs.schema";
 import type { AuditLog } from "@/lib/trpc/routers/audit/schema";
-import type { RequestLogsResponse } from "@unkey/clickhouse/src/frontline";
-import type { KeysOverviewLog } from "@unkey/clickhouse/src/keys/keys";
-import type { Log } from "@unkey/clickhouse/src/logs";
-import { type ReactNode, createContext, useContext, useMemo } from "react";
 import { LogFooter } from "./components/log-footer";
 import { LogHeader } from "./components/log-header";
 import { LogMetaSection } from "./components/log-meta";
@@ -161,13 +161,7 @@ const Meta = () => {
   return <LogMetaSection content={content} />;
 };
 
-const Header = ({
-  onClose,
-  children,
-}: {
-  onClose?: () => void;
-  children?: ReactNode;
-}) => {
+const Header = ({ onClose, children }: { onClose?: () => void; children?: ReactNode }) => {
   const { log } = useLogDetailsContext();
 
   return (
@@ -181,11 +175,7 @@ const Header = ({
   );
 };
 
-const Footer = ({
-  children,
-}: {
-  children?: ReactNode;
-}) => {
+const Footer = ({ children }: { children?: ReactNode }) => {
   const { log } = useLogDetailsContext();
 
   return (

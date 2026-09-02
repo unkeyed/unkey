@@ -1,7 +1,7 @@
-import { and, db, eq, inArray, schema } from "@/lib/db";
-import { envVarKeySchema } from "@/lib/schemas/env-var";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
+import { and, db, eq, inArray, schema } from "@/lib/db";
+import { envVarKeySchema } from "@/lib/schemas/env-var";
 import { workspaceProcedure } from "../../../trpc";
 
 // Renames a variable across environments in one statement.

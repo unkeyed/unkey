@@ -1,14 +1,14 @@
+import { useMemo } from "react";
 import { useFilters } from "@/app/(app)/[workspaceSlug]/audit/hooks/use-filters";
 import {
+  computeTotalPages,
   PAGINATED_LIST_PREFETCH_OPTIONS,
   PAGINATED_LIST_QUERY_OPTIONS,
-  computeTotalPages,
   paginationFilterKey,
   usePaginatedNavigation,
   usePaginatedPage,
 } from "@/hooks/use-paginated-list-query";
 import { trpc } from "@/lib/trpc/client";
-import { useMemo } from "react";
 import { type AuditLogsQueryPayload, DEFAULT_BUCKET_NAME } from "../schema/audit-logs.schema";
 
 const DEFAULT_PAGE_SIZE = 50;

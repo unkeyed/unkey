@@ -1,9 +1,5 @@
 "use client";
 
-import { FormCombobox } from "@/components/ui/form-combobox";
-import { Switch } from "@/components/ui/switch";
-import { POLICY_LIMITS } from "@/lib/collections/deploy/policies.schema";
-import { trpc } from "@/lib/trpc/client";
 import { match } from "@unkey/match";
 import {
   Button,
@@ -25,10 +21,14 @@ import {
 } from "nucleo-ui-outline-18";
 import type { ReactNode } from "react";
 import { useController, useFormContext, useFormState, useWatch } from "react-hook-form";
+import { FormCombobox } from "@/components/ui/form-combobox";
+import { Switch } from "@/components/ui/switch";
+import { POLICY_LIMITS } from "@/lib/collections/deploy/policies.schema";
+import { trpc } from "@/lib/trpc/client";
 import type {
+  KeyauthRatelimitFormValues,
   KeyLocationFormValues,
   KeyLocationType,
-  KeyauthRatelimitFormValues,
   PolicyFormValues,
 } from "../schema";
 import { Sep, Strong } from "./summary-helpers";

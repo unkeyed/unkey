@@ -1,10 +1,10 @@
 "use client";
 
-import { useAppFilterOptionsWithLoading } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/(project)/components/app-filter-options";
-import { useProjectData } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/data-provider";
 import { Button, Checkbox } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 import { useMemo, useState } from "react";
+import { useAppFilterOptionsWithLoading } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/(project)/components/app-filter-options";
+import { useProjectData } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/data-provider";
 import {
   type AppEnvironmentSelection,
   createAppEnvironmentFilters,

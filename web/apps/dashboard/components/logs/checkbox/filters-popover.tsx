@@ -1,19 +1,19 @@
-import { useKeyboardShortcut } from "@/hooks/use-keyboard-shortcut";
 import { Drover, InputGroup, InputGroupAddon, InputGroupInput, KeyboardButton } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 import { IconCaretRightOutline12, IconCheckOutline12 } from "nucleo-ui-outline-12";
 import { IconMagnifierOutline18 } from "nucleo-ui-outline-18";
 import React, {
+  type Dispatch,
   type KeyboardEvent,
   type PropsWithChildren,
-  type Dispatch,
   type SetStateAction,
+  useCallback,
   useEffect,
+  useMemo,
   useRef,
   useState,
-  useCallback,
-  useMemo,
 } from "react";
+import { useKeyboardShortcut } from "@/hooks/use-keyboard-shortcut";
 import type { FilterValue } from "../validation/filter.types";
 import { FilterItem } from "./filter-item";
 

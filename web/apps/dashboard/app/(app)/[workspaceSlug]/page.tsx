@@ -1,8 +1,8 @@
 "use client";
-import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
-import { routes } from "@/lib/navigation/routes";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
+import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
+import { routes } from "@/lib/navigation/routes";
 
 export default function WorkspacePage() {
   const router = useRouter();

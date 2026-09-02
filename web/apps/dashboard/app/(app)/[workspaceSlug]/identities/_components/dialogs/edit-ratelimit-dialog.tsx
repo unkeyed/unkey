@@ -1,5 +1,10 @@
 "use client";
 
+import { zodResolver } from "@hookform/resolvers/zod";
+import type { Identity } from "@unkey/api/models/components";
+import { Alert, AlertDescription, AlertTitle, Button, DialogContainer } from "@unkey/ui";
+import { type FC, useEffect, useId } from "react";
+import { FormProvider } from "react-hook-form";
 import { RatelimitSetup } from "@/components/dashboard/ratelimits/ratelimit-setup";
 import type { ActionComponentProps } from "@/components/logs/table-action.popover";
 import { usePersistedForm } from "@/hooks/use-persisted-form";
@@ -8,11 +13,6 @@ import type { RatelimitFormValues } from "@/lib/schemas/ratelimit";
 import { ratelimitSchema } from "@/lib/schemas/ratelimit";
 import type { DiscriminatedUnionResolver } from "@/lib/schemas/resolver-types";
 import { getErrorMessage } from "@/lib/unkey-client";
-import { zodResolver } from "@hookform/resolvers/zod";
-import type { Identity } from "@unkey/api/models/components";
-import { Alert, AlertDescription, AlertTitle, Button, DialogContainer } from "@unkey/ui";
-import { type FC, useEffect, useId } from "react";
-import { FormProvider } from "react-hook-form";
 import { IdentityInfo } from "./identity-info";
 
 type EditRatelimitDialogProps = { identity: Identity } & ActionComponentProps;

@@ -1,5 +1,4 @@
 "use client";
-import { LogsClient } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/_overview/logs-client";
 import {
   PageContainer,
   PageHeader,
@@ -8,6 +7,7 @@ import {
   PageHeaderTitle,
 } from "@unkey/ui";
 import { use } from "react";
+import { LogsClient } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/_overview/logs-client";
 import { CreateKeyAction } from "./create-key-action";
 
 export default function ApiPage(props: { params: Promise<{ apiId: string }> }) {

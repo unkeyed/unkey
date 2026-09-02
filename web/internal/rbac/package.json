@@ -8,7 +8,10 @@
   "publishConfig": {
     "access": "public"
   },
-  "keywords": ["unkey", "rbac"],
+  "keywords": [
+    "unkey",
+    "rbac"
+  ],
   "bugs": {
     "url": "https://github.com/unkeyed/unkey/issues"
   },

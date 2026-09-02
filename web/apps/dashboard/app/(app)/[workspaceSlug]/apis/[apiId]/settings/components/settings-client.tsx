@@ -1,7 +1,7 @@
 "use client";
 
-import { trpc } from "@/lib/trpc/client";
 import { SettingCardGroup, SettingsDangerZone } from "@unkey/ui";
+import { trpc } from "@/lib/trpc/client";
 import { CopyApiId } from "./copy-api-id";
 import { CopyKeySpaceId } from "./copy-key-space-id";
 import { DefaultBytes } from "./default-bytes";
@@ -28,7 +28,7 @@ export const SettingsClient = ({ apiId }: { apiId: string }) => {
     throw new Error(`Failed to fetch settings data: ${error.message}`);
   }
 
-  if (!layoutData || !layoutData.keyAuth) {
+  if (!layoutData?.keyAuth) {
     throw new Error("KeyAuth configuration not found");
   }
 

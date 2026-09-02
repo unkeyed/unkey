@@ -1,6 +1,6 @@
+import { TRPCError } from "@trpc/server";
 import { clickhouse } from "@/lib/clickhouse";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
-import { TRPCError } from "@trpc/server";
 import { queryUsageResponse } from "./schemas";
 
 export const queryUsage = workspaceProcedure

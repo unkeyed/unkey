@@ -1,6 +1,6 @@
+import { format } from "date-fns";
 import type { TimeseriesGranularity } from "@/lib/trpc/routers/utils/granularity";
 import { getTimeBufferForGranularity } from "@/lib/trpc/routers/utils/granularity";
-import { format } from "date-fns";
 import type { TimeseriesData } from "./overview-charts/types";
 import { parseTimestamp } from "./parse-timestamp";
 

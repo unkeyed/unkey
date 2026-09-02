@@ -201,10 +201,7 @@ export async function getSetCookieHeaders(cookie: Cookie): Promise<string[]> {
  * Encapsulates the logic for the primary session cookie required for auth functionality
  * @param params
  */
-export async function setSessionCookie(params: {
-  token: string;
-  expiresAt: Date;
-}): Promise<void> {
+export async function setSessionCookie(params: { token: string; expiresAt: Date }): Promise<void> {
   const { token, expiresAt } = params;
 
   // The session cookie must always be SameSite=Lax, matching how sign-in
@@ -226,9 +223,7 @@ export async function setSessionCookie(params: {
  * This cookie is used for auto-selection on next login
  * @param params
  */
-export async function setLastUsedOrgCookie(params: {
-  orgId: string;
-}): Promise<void> {
+export async function setLastUsedOrgCookie(params: { orgId: string }): Promise<void> {
   const { orgId } = params;
 
   await setCookie({

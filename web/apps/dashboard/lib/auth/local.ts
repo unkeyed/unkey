@@ -16,8 +16,8 @@ import {
   type MfaEnrollmentStart,
   type MfaFactor,
   type OAuthResult,
-  type OrgInviteParams,
   type Organization,
+  type OrgInviteParams,
   type SessionRefreshResult,
   type SessionValidationResult,
   type SignInViaOAuthOptions,
@@ -156,10 +156,7 @@ export class LocalAuthProvider extends BaseAuthProvider {
   }
 
   // Organization Management
-  async createTenant(params: {
-    name: string;
-    userId: string;
-  }): Promise<string> {
+  async createTenant(params: { name: string; userId: string }): Promise<string> {
     const { name, userId } = params;
     if (!name || !userId) {
       throw new Error("Organization name and userId are required.");
@@ -444,10 +441,7 @@ export class LocalAuthProvider extends BaseAuthProvider {
     };
   }
 
-  async verifyEmail(_params: {
-    code: string;
-    token: string;
-  }): Promise<VerificationResult> {
+  async verifyEmail(_params: { code: string; token: string }): Promise<VerificationResult> {
     // always successful
     return {
       success: true,
@@ -510,10 +504,7 @@ export class LocalAuthProvider extends BaseAuthProvider {
     throw new Error("MFA is not supported in local development mode");
   }
 
-  async verifyMfaEnrollment(_params: {
-    challengeId: string;
-    code: string;
-  }): Promise<boolean> {
+  async verifyMfaEnrollment(_params: { challengeId: string; code: string }): Promise<boolean> {
     throw new Error("MFA is not supported in local development mode");
   }
 

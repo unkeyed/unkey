@@ -1,16 +1,18 @@
+import { TRPCError } from "@trpc/server";
+import { KEY_VERIFICATION_OUTCOMES } from "@unkey/clickhouse/src/keys/keys";
+import type {
+  getMinutelyIdentityTimeseries,
+  VerificationTimeseriesDataPoint,
+} from "@unkey/clickhouse/src/verifications";
+import { z } from "zod";
 import { clickhouse } from "@/lib/clickhouse";
 import { db } from "@/lib/db";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import { getTimestampFromRelative } from "@/lib/utils";
-import { TRPCError } from "@trpc/server";
-import { KEY_VERIFICATION_OUTCOMES } from "@unkey/clickhouse/src/keys/keys";
-import type { VerificationTimeseriesDataPoint } from "@unkey/clickhouse/src/verifications";
-import type { getMinutelyIdentityTimeseries } from "@unkey/clickhouse/src/verifications";
-import { z } from "zod";
 import {
+  getTimeseriesGranularity,
   type TimeseriesConfig,
   type TimeseriesGranularity,
-  getTimeseriesGranularity,
 } from "../../utils/granularity";
 
 // Input schema for identity timeseries query

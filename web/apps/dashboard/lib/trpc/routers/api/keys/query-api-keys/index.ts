@@ -1,6 +1,6 @@
+import { z } from "zod";
 import { apiKeysQueryPayload as keysQueryListPayload } from "@/components/api-keys-table/schema/api-keys.schema";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
-import { z } from "zod";
 import { getAllKeys } from "./get-all-keys";
 import { keyDetailsResponseSchema } from "./schema";
 

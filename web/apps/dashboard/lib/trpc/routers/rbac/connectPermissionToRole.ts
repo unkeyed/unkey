@@ -1,7 +1,7 @@
-import { insertAuditLogs } from "@/lib/audit";
-import { db, schema } from "@/lib/db";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
+import { insertAuditLogs } from "@/lib/audit";
+import { db, schema } from "@/lib/db";
 import { workspaceProcedure } from "../../trpc";
 
 export const connectPermissionToRole = workspaceProcedure

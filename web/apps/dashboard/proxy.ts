@@ -1,7 +1,7 @@
+import type { NextFetchEvent } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
 import { authMiddleware } from "@/lib/auth/middleware";
 import { env } from "@/lib/env";
-import { type NextRequest, NextResponse } from "next/server";
-import type { NextFetchEvent } from "next/server";
 import { SIGN_IN_URL } from "./lib/auth/types";
 
 // biome-ignore lint/style/noDefaultExport: required by next.js

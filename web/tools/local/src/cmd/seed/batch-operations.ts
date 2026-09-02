@@ -4,11 +4,11 @@ import {
   updateProgressWithETA,
 } from "./batch-helper";
 import {
-  type KeyInfo,
   biasVerificationOutcome,
   generateMatchingApiRequestForRatelimit,
   generateMatchingApiRequestForVerification,
   generateRatelimitEvent,
+  type KeyInfo,
   selectKeyWithNormalDistribution,
 } from "./event-generator";
 import { generateUuid } from "./utils";

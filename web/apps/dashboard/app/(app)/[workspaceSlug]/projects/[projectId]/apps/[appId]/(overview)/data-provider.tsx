@@ -1,5 +1,15 @@
 "use client";
 
+import { and, eq, useLiveQuery } from "@tanstack/react-db";
+import { notFound, useParams } from "next/navigation";
+import {
+  createContext,
+  type PropsWithChildren,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+} from "react";
 import { collection } from "@/lib/collections";
 import type { CustomDomain } from "@/lib/collections/deploy/custom-domains";
 import { isDeploymentInFlight } from "@/lib/collections/deploy/deployment-status";
@@ -8,16 +18,6 @@ import type { Domain } from "@/lib/collections/deploy/domains";
 import type { Environment } from "@/lib/collections/deploy/environments";
 import type { Project } from "@/lib/collections/deploy/projects";
 import { useCollectionPolling } from "@/lib/collections/use-collection-polling";
-import { and, eq, useLiveQuery } from "@tanstack/react-db";
-import { notFound, useParams } from "next/navigation";
-import {
-  type PropsWithChildren,
-  createContext,
-  useContext,
-  useEffect,
-  useMemo,
-  useRef,
-} from "react";
 
 type ProjectDataContextType = {
   projectId: string;

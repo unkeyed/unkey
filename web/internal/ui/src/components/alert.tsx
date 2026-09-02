@@ -1,4 +1,4 @@
-import { type VariantProps, cva } from "class-variance-authority";
+import { cva, type VariantProps } from "class-variance-authority";
 import type * as React from "react";
 
 import { cn } from "../lib/utils";
@@ -53,4 +53,4 @@ function AlertDescription({
   return <div ref={ref} className={cn("text-sm [&_p]:leading-relaxed ", className)} {...props} />;
 }
 
-export { Alert, AlertTitle, AlertDescription };
+export { Alert, AlertDescription, AlertTitle };
