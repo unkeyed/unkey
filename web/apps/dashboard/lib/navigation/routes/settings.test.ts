@@ -15,7 +15,6 @@ describe("settings-scoped paths", () => {
       "/acme/settings/logdrains/ld_123",
     );
     expect(routes.settings.billing(scope)).toBe("/acme/settings/billing");
-    expect(routes.settings.account(scope)).toBe("/acme/settings/account");
     expect(routes.settings.usage(scope)).toBe("/acme/settings/usage");
     expect(routes.settings.limits(scope)).toBe("/acme/settings/limits");
   });

@@ -109,7 +109,7 @@ describe("Account", () => {
     render(<ManagedAccount />);
 
     expect(screen.getByTestId("page-container")).toBeTruthy();
-    expect(screen.getByRole("heading", { name: "Account" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Account settings" })).toBeTruthy();
     expect(screen.getByRole("heading", { name: "Profile" })).toBeTruthy();
     expect(screen.getByRole("heading", { name: "Security" })).toBeTruthy();
     expect(await mocks.widgetTokenGetter?.()).toBe("access_token");

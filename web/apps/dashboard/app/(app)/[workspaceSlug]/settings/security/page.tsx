@@ -7,5 +7,5 @@ export default async function SecuritySettingsPage({
   params: Promise<{ workspaceSlug: string }>;
 }) {
   const { workspaceSlug } = await params;
-  redirect(routes.settings.account({ workspaceSlug }));
+  redirect(routes.account.overview({ workspaceSlug }));
 }

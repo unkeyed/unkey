@@ -9,7 +9,7 @@ describe("Settings widget styles", () => {
       "utf8",
     );
     const managedAccount = readFileSync(
-      resolve(process.cwd(), "app/(app)/[workspaceSlug]/settings/account/managed-account.tsx"),
+      resolve(process.cwd(), "app/(app)/[workspaceSlug]/account/managed-account.tsx"),
       "utf8",
     );
     const managedTeam = readFileSync(
