@@ -1,5 +1,5 @@
 "use client";
-import { Clipboard } from "@unkey/icons";
+import { IconClipboardOutline18 } from "nucleo-ui-outline-18";
 import { useState } from "react";
 import { cn } from "../../../../lib/utils";
 import { toast } from "../../../toaster";
@@ -40,7 +40,7 @@ export function CopyCell({ value, displayValue, className, monospace = false }: 
       title="Click to copy"
     >
       <span className="truncate">{displayValue || value}</span>
-      <Clipboard
+      <IconClipboardOutline18
         className={cn(
           "size-3 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity",
           copied && "opacity-100 text-success-11",

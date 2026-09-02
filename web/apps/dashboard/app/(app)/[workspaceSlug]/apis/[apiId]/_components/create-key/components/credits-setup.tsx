@@ -1,6 +1,5 @@
 "use client";
 import { ProtectionSwitch } from "@/components/dashboard/metadata/protection-switch";
-import { ChartPie } from "@unkey/icons";
 import {
   FormInput,
   Select,
@@ -10,6 +9,7 @@ import {
   SelectValue,
 } from "@unkey/ui";
 import { FormDescription } from "@unkey/ui/src/components/form/form-helpers";
+import { IconChartPieOutline18 } from "nucleo-ui-outline-18";
 import { Controller, useController, useFormContext, useWatch } from "react-hook-form";
 import type { CreditsFormValues } from "../create-key.schema";
 
@@ -111,7 +111,7 @@ export const UsageSetup = ({
           description="Turn on to limit how many times this key can be used. Once the limit
             is reached, the key will be disabled."
           title="Credits"
-          icon={<ChartPie className="text-gray-12" iconSize="sm-regular" />}
+          icon={<IconChartPieOutline18 className="text-gray-12" />}
           checked={limitEnabled}
           onCheckedChange={handleSwitchChange}
         />

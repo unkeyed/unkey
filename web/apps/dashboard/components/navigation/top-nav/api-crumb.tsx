@@ -4,7 +4,7 @@ import { useApiName } from "@/hooks/use-api-name";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { routes } from "@/lib/navigation/routes";
 import { trpc } from "@/lib/trpc/client";
-import { Nodes, Plus } from "@unkey/icons";
+import { IconNodesOutline18, IconPlusOutline18 } from "nucleo-ui-outline-18";
 import { Crumb } from "./crumb";
 import type { CrumbPopoverItem } from "./crumb-popover";
 
@@ -23,7 +23,7 @@ export function ApiCrumb({ apiId }: { apiId: string }) {
 
   return (
     <Crumb
-      icon={<Nodes className="size-3.5 text-accent-11" iconSize="sm-regular" />}
+      icon={<IconNodesOutline18 className="size-3.5 text-accent-11" />}
       label={name ?? apiId}
       loading={isLoading}
       href={routes.apis.detail({ workspaceSlug: workspace.slug, apiId })}
@@ -32,7 +32,7 @@ export function ApiCrumb({ apiId }: { apiId: string }) {
       searchPlaceholder="Find keyspace..."
       emptyText="No keyspaces found"
       footer={{
-        icon: Plus,
+        icon: IconPlusOutline18,
         label: "All Keyspaces (APIs)",
         href: routes.apis.list({ workspaceSlug: workspace.slug }),
       }}

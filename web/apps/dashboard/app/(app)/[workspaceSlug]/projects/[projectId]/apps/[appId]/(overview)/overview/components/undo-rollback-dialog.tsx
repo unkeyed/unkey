@@ -5,8 +5,8 @@ import { shortenId } from "@/lib/shorten-id";
 import { getErrorMessage, getUnkeyClient } from "@/lib/unkey-client";
 import { cn } from "@/lib/utils";
 import { useMutation } from "@tanstack/react-query";
-import { CodeBranch } from "@unkey/icons";
 import { Badge, Button, DialogContainer, TimestampInfo, toast } from "@unkey/ui";
+import { IconCodeBranchOutline18 } from "nucleo-ui-outline-18";
 import { useEffect, useState } from "react";
 import { Avatar } from "../../../components/git-avatar";
 
@@ -142,7 +142,7 @@ function DeploymentOption({ deployment, isCurrent, selected, onSelect }: Deploym
           </div>
           <div className="mt-1.5 flex items-center gap-3 text-xs text-grayA-9">
             <span className="flex items-center gap-1.5 min-w-0">
-              <CodeBranch iconSize="sm-regular" className="shrink-0 text-gray-12" />
+              <IconCodeBranchOutline18 className="size-3 shrink-0 text-gray-12" />
               <span className="truncate">{deployment.gitBranch}</span>
             </span>
             <span className="flex items-center gap-1.5 min-w-0">

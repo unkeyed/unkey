@@ -1,6 +1,5 @@
 "use client";
 import { policyMatchKey } from "@/lib/collections/deploy/policies.schema";
-import { Plus } from "@unkey/icons";
 import {
   Button,
   PageBody,
@@ -11,6 +10,7 @@ import {
   PageHeaderDescription,
   PageHeaderTitle,
 } from "@unkey/ui";
+import { IconPlusOutline18 } from "nucleo-ui-outline-18";
 import { useAppId, useProjectData } from "../data-provider";
 import { PolicyPanel } from "./components/add-panel";
 import { PoliciesList } from "./components/list";
@@ -82,7 +82,7 @@ export default function PoliciesPage() {
         </PageHeaderContent>
         <PageHeaderActions>
           <Button size="md" onClick={panels.openAdd} variant="primary">
-            <Plus iconSize="sm-regular" />
+            <IconPlusOutline18 />
             Add policy
           </Button>
         </PageHeaderActions>

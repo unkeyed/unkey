@@ -5,9 +5,14 @@ import { trpc } from "@/lib/trpc/client";
 import type { Router } from "@/lib/trpc/routers";
 import { cn } from "@/lib/utils";
 import type { inferRouterOutputs } from "@trpc/server";
-import { Bolt, BoltSlash, Earth, Trash } from "@unkey/icons";
 import { match } from "@unkey/match";
 import { Button, DialogContainer, toast } from "@unkey/ui";
+import {
+  IconBoltOutline18,
+  IconBoltSlashOutline18,
+  IconEarthOutline18,
+  IconTrashOutline18,
+} from "nucleo-ui-outline-18";
 import { useState } from "react";
 import { AxiomLogo } from "./axiom-logo";
 
@@ -19,7 +24,7 @@ export function SinkType({ kind }: { kind: DrainKind }) {
     .with("http", () => (
       <>
         <span className="flex size-5 shrink-0 items-center justify-center rounded-sm bg-grayA-3 text-gray-11">
-          <Earth iconSize="sm-regular" />
+          <IconEarthOutline18 className="size-3" />
         </span>
         <span>HTTP</span>
       </>
@@ -97,9 +102,9 @@ export function DrainActions({
             : "Resume delivery",
       icon:
         drain.status === "running" ? (
-          <BoltSlash iconSize="md-medium" />
+          <IconBoltSlashOutline18 className="size-4" />
         ) : (
-          <Bolt iconSize="md-medium" />
+          <IconBoltOutline18 className="size-4" />
         ),
       disabled: update.isLoading,
       divider: true,
@@ -108,7 +113,7 @@ export function DrainActions({
     {
       id: "delete",
       label: "Delete log drain",
-      icon: <Trash iconSize="md-medium" className="text-error-11" />,
+      icon: <IconTrashOutline18 className="size-4 text-error-11" />,
       className: "text-error-11 hover:bg-error-3 focus:bg-error-3",
       onClick: () => setConfirmDelete(true),
     },

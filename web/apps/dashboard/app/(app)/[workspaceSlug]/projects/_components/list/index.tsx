@@ -1,8 +1,8 @@
 import { ProximityPrefetch } from "@/components/proximity-prefetch";
 import { collection } from "@/lib/collections";
 import { useLiveQuery } from "@tanstack/react-db";
-import { Dots, TriangleWarning2 } from "@unkey/icons";
 import { Button, Empty } from "@unkey/ui";
+import { IconDotsOutline18, IconTriangleWarningOutline18 } from "nucleo-ui-outline-18";
 import { useState } from "react";
 import { DeployPlanGateDialog } from "../deploy-plan-gate-dialog";
 import { useDeployGate } from "../hooks/use-deploy-gate";
@@ -49,7 +49,7 @@ export const ProjectsList = () => {
       {gated ? (
         <div className="mb-4 flex items-center justify-between gap-4 rounded-lg border border-warningA-6 bg-warningA-2 px-4 py-3">
           <div className="flex min-w-0 items-center gap-3">
-            <TriangleWarning2 iconSize="md-regular" className="shrink-0 text-warning-11" />
+            <IconTriangleWarningOutline18 className="size-4 shrink-0 text-warning-11" />
             <p className="truncate text-[13px] text-gray-11">
               No active Compute plan. Existing projects stay visible, but creating and deploying are
               paused.
@@ -82,7 +82,7 @@ export const ProjectsList = () => {
                     className="mb-auto shrink-0"
                     title="Project actions"
                   >
-                    <Dots iconSize="sm-regular" />
+                    <IconDotsOutline18 />
                   </Button>
                 </ProjectActions>
               }

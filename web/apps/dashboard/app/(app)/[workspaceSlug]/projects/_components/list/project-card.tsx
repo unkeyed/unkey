@@ -1,9 +1,10 @@
 import { useAppHomeHref } from "@/hooks/use-app-home-href";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { routes } from "@/lib/navigation/routes";
-import { Github, Terminal } from "@unkey/icons";
+import { Github } from "@unkey/icons";
 import { HoverCard, HoverCardContent, HoverCardTrigger, InfoTooltip } from "@unkey/ui";
 import Link from "next/link";
+import { IconTerminalOutline18 } from "nucleo-ui-outline-18";
 import type { ReactNode } from "react";
 
 export type ProjectCardApp = {
@@ -33,7 +34,7 @@ function AppSourceIcon({
   return source === "github" ? (
     <Github className={className} />
   ) : (
-    <Terminal className={className} />
+    <IconTerminalOutline18 className={className} />
   );
 }
 

@@ -7,7 +7,12 @@ import {
 } from "@/components/charts/area-timeseries";
 import { formatNumber } from "@/lib/fmt";
 import { cn } from "@/lib/utils";
-import { ChartActivity, type IconProps, TimeClock, TriangleWarning2 } from "@unkey/icons";
+import type { IconProps } from "nucleo-ui-outline-18";
+import {
+  IconChartActivityOutline18,
+  IconClockOutline18,
+  IconTriangleWarningOutline18,
+} from "nucleo-ui-outline-18";
 import type { ComponentType } from "react";
 
 export type LogdrainSeries = Array<{
@@ -62,7 +67,7 @@ function MetricChart({
             iconText,
           )}
         >
-          <Icon iconSize="sm-regular" className="shrink-0" />
+          <Icon className="size-3 shrink-0" />
         </div>
         <span className="text-[13px] text-gray-12">{label}</span>
         <div className="ml-auto flex items-baseline gap-1">
@@ -135,7 +140,7 @@ export function DeliveryOverview({
       <h2 className="text-sm font-medium text-accent-12">Delivery activity</h2>
       <div className="grid grid-cols-1 gap-2 md:grid-cols-3">
         <MetricChart
-          icon={ChartActivity}
+          icon={IconChartActivityOutline18}
           label="Events delivered"
           value={formatNumber(totals.events)}
           data={areaData}
@@ -150,7 +155,7 @@ export function DeliveryOverview({
           formatTooltipValue={(value) => ({ value: value.toLocaleString() })}
         />
         <MetricChart
-          icon={TriangleWarning2}
+          icon={IconTriangleWarningOutline18}
           label="Failed attempts"
           value={formatNumber(totals.errors)}
           data={areaData}
@@ -165,7 +170,7 @@ export function DeliveryOverview({
           formatTooltipValue={(value) => ({ value: value.toLocaleString() })}
         />
         <MetricChart
-          icon={TimeClock}
+          icon={IconClockOutline18}
           label="Average attempt time"
           value={durationMs === null ? "—" : Math.round(durationMs).toLocaleString()}
           unit="ms"

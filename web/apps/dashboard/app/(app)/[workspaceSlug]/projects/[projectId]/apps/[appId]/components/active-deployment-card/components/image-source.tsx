@@ -1,7 +1,8 @@
 "use client";
 
-import { Check, Clipboard, Layers2 } from "@unkey/icons";
 import { InfoTooltip, toast } from "@unkey/ui";
+import { IconCheckOutline12, IconClipboardOutline12 } from "nucleo-ui-outline-12";
+import { IconLayers2Outline18 } from "nucleo-ui-outline-18";
 import { useState } from "react";
 
 export function ImageSource({ image }: { image: string | null }) {
@@ -15,7 +16,7 @@ export function ImageSource({ image }: { image: string | null }) {
         position={{ side: "top", align: "start" }}
       >
         <span className="flex items-center gap-1 min-w-0">
-          <Layers2 iconSize="sm-regular" className="text-accent-12 shrink-0" />
+          <IconLayers2Outline18 className="size-3 text-accent-12 shrink-0" />
           <span className="font-mono text-xs text-accent-12">unknown</span>
         </span>
       </InfoTooltip>
@@ -44,15 +45,12 @@ export function ImageSource({ image }: { image: string | null }) {
           }
         }}
       >
-        <Layers2 iconSize="sm-regular" className="text-accent-12 shrink-0" />
+        <IconLayers2Outline18 className="size-3 text-accent-12 shrink-0" />
         <span className="font-mono text-xs text-accent-12 truncate max-w-48">{image}</span>
         {copied ? (
-          <Check iconSize="sm-regular" className="text-success-11 shrink-0" />
+          <IconCheckOutline12 className="text-success-11 shrink-0" />
         ) : (
-          <Clipboard
-            iconSize="sm-regular"
-            className="text-gray-9 shrink-0 opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100"
-          />
+          <IconClipboardOutline12 className="text-gray-9 shrink-0 opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100" />
         )}
       </button>
     </InfoTooltip>

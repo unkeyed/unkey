@@ -1,4 +1,4 @@
-import { Dots } from "@unkey/icons";
+import { IconDotsOutline12 } from "nucleo-ui-outline-12";
 
 export function EnvVarsSkeleton() {
   return (
@@ -25,7 +25,7 @@ export function EnvVarsSkeleton() {
             <div className="h-[22px] w-16 bg-grayA-3 rounded-md animate-pulse" />
           </div>
           <div className="w-12 shrink-0 py-3.5 pr-4 flex items-center justify-end">
-            <Dots iconSize="sm-regular" className="text-gray-11 opacity-50" />
+            <IconDotsOutline12 className="text-gray-11 opacity-50" />
           </div>
         </div>
       ))}

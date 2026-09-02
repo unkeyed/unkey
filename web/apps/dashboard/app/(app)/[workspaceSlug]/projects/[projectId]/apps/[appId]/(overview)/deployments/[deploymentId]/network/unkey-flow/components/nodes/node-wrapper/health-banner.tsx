@@ -26,10 +26,7 @@ export function HealthBanner({ healthStatus }: HealthBannerProps) {
         )}
       >
         <div className="py-1.5 px-2.5 flex items-center">
-          <Icon
-            className={cn(config.colors.textColor, "shrink-0 mr-2 mb-0.5")}
-            iconSize="md-regular"
-          />
+          <Icon className={cn("size-4 shrink-0 mr-2 mb-0.5", config.colors.textColor)} />
           <span className={cn("text-xs font-medium mr-4", config.colors.textColor)}>
             {config.label}
           </span>

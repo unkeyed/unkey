@@ -14,7 +14,6 @@ import { getErrorMessage, getUnkeyClient } from "@/lib/unkey-client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { and, eq, useLiveQuery } from "@tanstack/react-db";
 import { useMutation } from "@tanstack/react-query";
-import { ChevronDown, CodeBranch, Plus } from "@unkey/icons";
 import {
   Button,
   FormDescription,
@@ -31,6 +30,8 @@ import {
 } from "@unkey/ui";
 import dynamic from "next/dynamic";
 import { useParams, useRouter } from "next/navigation";
+import { IconChevronDownOutline12, IconPlusOutline12 } from "nucleo-ui-outline-12";
+import { IconCodeBranchOutline18 } from "nucleo-ui-outline-18";
 import type React from "react";
 import { useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
@@ -272,7 +273,7 @@ export const CreateDeploymentButton = ({
           className="size-7"
           onClick={openDeploymentDialog}
         >
-          <Plus iconSize="sm-regular" />
+          <IconPlusOutline12 />
         </NavbarActionButton>
       )}
       {planGate}
@@ -342,7 +343,9 @@ export const CreateDeploymentButton = ({
                       id="environment-select"
                       className="capitalize"
                       variant={errors.environment ? "error" : "default"}
-                      rightIcon={<ChevronDown className="absolute right-3 size-3 opacity-70" />}
+                      rightIcon={
+                        <IconChevronDownOutline12 className="absolute right-3 opacity-70" />
+                      }
                     >
                       <SelectValue placeholder="Select environment" />
                     </SelectTrigger>
@@ -402,7 +405,7 @@ export const CreateDeploymentButton = ({
               ) : null}
               {forkRepoName && (
                 <div className="flex items-center gap-1.5 bg-amber-3 border border-amber-6 rounded-md px-2.5 py-1.5 w-fit">
-                  <CodeBranch iconSize="sm-regular" className="shrink-0 text-amber-11" />
+                  <IconCodeBranchOutline18 className="size-3 shrink-0 text-amber-11" />
                   <span className="text-xs text-amber-11">
                     Deploying from fork:{" "}
                     <span className="font-medium text-amber-12">{forkRepoName}</span>
@@ -476,7 +479,7 @@ export const CreateDeploymentButton = ({
                     onClick={() => setValue("name", branch.name, { shouldValidate: true })}
                     className="flex items-center gap-1.5 min-w-0 max-w-[300px] cursor-pointer text-left"
                   >
-                    <CodeBranch iconSize="sm-regular" className="shrink-0 text-gray-12" />
+                    <IconCodeBranchOutline18 className="size-3 shrink-0 text-gray-12" />
                     <span className="truncate">{branch.name}</span>
                   </button>
                   {branch.lastPushDate && (

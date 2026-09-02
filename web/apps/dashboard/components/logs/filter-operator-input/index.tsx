@@ -1,6 +1,6 @@
-import { Check } from "@unkey/icons";
 import { Button, Textarea } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
+import { IconCheckOutline18 } from "nucleo-ui-outline-18";
 import { useEffect, useRef, useState } from "react";
 
 type FilterOption<T extends string = string> = {
@@ -125,7 +125,7 @@ export const FilterOperatorInput = <T extends string>({
               <span>{option.label}</span>
               {selectedOption === option.id && (
                 <div className="h-4 w-4" aria-hidden="true">
-                  <Check className="text-gray-12/90 h-4 w-4" />
+                  <IconCheckOutline18 className="text-gray-12/90 h-4 w-4" />
                 </div>
               )}
             </button>

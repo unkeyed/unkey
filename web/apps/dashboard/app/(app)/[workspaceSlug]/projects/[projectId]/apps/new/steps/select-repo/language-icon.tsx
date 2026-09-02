@@ -1,6 +1,4 @@
-import type { IconProps } from "@unkey/icons";
 import {
-  BracketsCurly,
   LangElixir,
   LangGo,
   LangJava,
@@ -11,6 +9,8 @@ import {
   LangRust,
   LangTypescript,
 } from "@unkey/icons";
+import type { IconProps } from "nucleo-ui-outline-18";
+import { IconBracketsCurlyOutline18 } from "nucleo-ui-outline-18";
 
 const languageIconMap: Record<string, (props: IconProps) => React.JSX.Element> = {
   TypeScript: LangTypescript,
@@ -34,7 +34,7 @@ export const LanguageIcon = ({ language }: { language: string | null }) => {
   ) : (
     <div className="size-10 grid place-content-center mr-11">
       <div className="size-6.5 grid place-content-center rounded-md ring-1 ring-grayA-4 shadow-sm shadow-grayA-8/20 dark:shadow-none">
-        <BracketsCurly iconSize="sm-medium" className="text-gray-9 size-4" />
+        <IconBracketsCurlyOutline18 className="text-gray-9 size-4" />
       </div>
     </div>
   );

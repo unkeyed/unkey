@@ -2,9 +2,13 @@
 
 import { cn } from "@/lib/utils";
 import { formatCompoundDuration } from "@/lib/utils/metric-formatters";
-import { Check, CircleHalfDottedClock, TriangleWarning2 } from "@unkey/icons";
 import { match } from "@unkey/match";
 import { Badge, Loading, SettingCard } from "@unkey/ui";
+import {
+  IconCheckOutline18,
+  IconCircleHalfDottedClockOutline18,
+  IconTriangleWarningOutline18,
+} from "nucleo-ui-outline-18";
 import { GlowIcon } from "../../../../components/glow-icon";
 
 type DeploymentStepProps = {
@@ -90,13 +94,13 @@ export function DeploymentStep({
           </span>
           {statusIcon ??
             match(status)
-              .with("completed", () => <Check iconSize="md-regular" className="text-success-11" />)
+              .with("completed", () => <IconCheckOutline18 className="size-4 text-success-11" />)
               .with("started", () => <Loading className="size-4" />)
               .with("error", () => (
-                <TriangleWarning2 className="text-error-11" iconSize="md-regular" />
+                <IconTriangleWarningOutline18 className="size-4 text-error-11" />
               ))
               .with("pending", () => (
-                <CircleHalfDottedClock className="text-gray-9" iconSize="md-regular" />
+                <IconCircleHalfDottedClockOutline18 className="size-4 text-gray-9" />
               ))
               .with("skipped", () => null)
               .exhaustive()}

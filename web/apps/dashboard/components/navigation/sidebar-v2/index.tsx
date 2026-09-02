@@ -3,8 +3,8 @@
 import { Sidebar, SidebarContent, SidebarFooter, useSidebar } from "@/components/ui/sidebar";
 import { useBillingUIUpgrades } from "@/lib/flags/use-billing-ui-upgrades";
 import { cn } from "@/lib/utils";
-import { SidebarLeftHide, SidebarLeftShow } from "@unkey/icons";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@unkey/ui";
+import { IconSidebarLeftHideOutline18, IconSidebarLeftShowOutline18 } from "nucleo-ui-outline-18";
 import { SidebarBody } from "./sidebar-body";
 import { UsageBanner } from "./usage-banner";
 import { UsageCard } from "./usage-card";
@@ -47,7 +47,7 @@ export function SidebarV2(props: Props) {
 function CollapseButton() {
   const { state, toggleSidebar } = useSidebar();
   const collapsed = state === "collapsed";
-  const Icon = collapsed ? SidebarLeftShow : SidebarLeftHide;
+  const Icon = collapsed ? IconSidebarLeftShowOutline18 : IconSidebarLeftHideOutline18;
   const label = collapsed ? "Expand sidebar" : "Collapse sidebar";
   return (
     <Tooltip>
@@ -59,7 +59,7 @@ function CollapseButton() {
             aria-label={label}
             className="flex size-8 items-center justify-center rounded-md text-gray-11 hover:bg-grayA-3 hover:text-gray-12"
           >
-            <Icon iconSize="md-regular" className="shrink-0" />
+            <Icon className="size-4 shrink-0" />
           </button>
         }
       />

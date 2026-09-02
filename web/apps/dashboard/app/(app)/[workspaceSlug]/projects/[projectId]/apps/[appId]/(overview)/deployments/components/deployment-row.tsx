@@ -5,11 +5,15 @@ import { DeploymentStatusBadge } from "@/app/(app)/[workspaceSlug]/projects/[pro
 import { Avatar } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/git-avatar";
 import type { Deployment, Environment } from "@/lib/collections";
 import { shortenId } from "@/lib/shorten-id";
-import { CodeBranch, CodeCommit, Layers2 } from "@unkey/icons";
 import { ResourceListItem, TimestampInfo } from "@unkey/ui";
 import type { Route } from "next";
 import dynamic from "next/dynamic";
 import Link from "next/link";
+import {
+  IconCodeBranchOutline18,
+  IconCodeCommitOutline18,
+  IconLayers2Outline18,
+} from "nucleo-ui-outline-18";
 import { useState } from "react";
 import { DeploymentTriggerBadge } from "../../../../../components/deployment-trigger-badge";
 import { DeploymentApproval } from "../[deploymentId]/(deployment-progress)/deployment-approval";
@@ -123,7 +127,7 @@ export function DeploymentRow({
       <div className="md:w-[30%] md:shrink-0 flex flex-col gap-1 min-w-0">
         {deployment.gitBranch ? (
           <div className="flex items-center gap-2 min-w-0">
-            <CodeBranch iconSize="sm-regular" className="text-accent-12 shrink-0" />
+            <IconCodeBranchOutline18 className="size-3 text-accent-12 shrink-0" />
             <span
               className="font-mono text-xs text-accent-12 truncate leading-4"
               title={deployment.gitBranch}
@@ -139,7 +143,7 @@ export function DeploymentRow({
           </div>
         ) : deployment.gitCommitSha ? (
           <div className="flex items-center gap-2 min-w-0">
-            <CodeCommit iconSize="sm-regular" className="text-accent-12 shrink-0" />
+            <IconCodeCommitOutline18 className="size-3 text-accent-12 shrink-0" />
             <span className="font-mono text-xs text-accent-12 truncate leading-4">
               {deployment.gitCommitSha.slice(0, 7)}
             </span>
@@ -148,7 +152,7 @@ export function DeploymentRow({
           // Prebuilt-image deployments have no git metadata; show the image
           // reference as the source instead.
           <div className="flex items-center gap-2 min-w-0">
-            <Layers2 iconSize="sm-regular" className="text-accent-12 shrink-0" />
+            <IconLayers2Outline18 className="size-3 text-accent-12 shrink-0" />
             <span
               className="font-mono text-xs text-accent-12 truncate leading-4"
               title={deployment.image}
@@ -161,7 +165,7 @@ export function DeploymentRow({
         )}
         {deployment.gitCommitMessage ? (
           <div className="flex items-center gap-2 min-w-0">
-            <CodeCommit iconSize="sm-regular" className="text-accent-12 shrink-0" />
+            <IconCodeCommitOutline18 className="size-3 text-accent-12 shrink-0" />
             <span
               className="truncate text-xs text-accent-12 leading-4"
               title={deployment.gitCommitMessage}

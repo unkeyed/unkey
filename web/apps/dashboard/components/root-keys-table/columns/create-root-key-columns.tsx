@@ -1,6 +1,5 @@
 import type { RootKey } from "@/lib/trpc/routers/settings/root-keys/query";
 import { cn } from "@/lib/utils";
-import { Page2 } from "@unkey/icons";
 import type { DataTableColumnDef } from "@unkey/ui";
 import {
   AssignedCountCell,
@@ -13,6 +12,7 @@ import {
 } from "@unkey/ui";
 import { InfoTooltip, TimestampInfo } from "@unkey/ui";
 import dynamic from "next/dynamic";
+import { IconPage2Outline18 } from "nucleo-ui-outline-18";
 
 const RootKeysTableActions = dynamic(
   () =>
@@ -110,7 +110,7 @@ export const createRootKeyColumns = ({
       return (
         <AssignedCountCell
           count={rootKey.permissionSummary.total}
-          icon={<Page2 iconSize="md-medium" className="opacity-50" />}
+          icon={<IconPage2Outline18 className="size-4 opacity-50" />}
           singularLabel="Permission"
           isSelected={rootKey.id === selectedRootKeyId}
         />

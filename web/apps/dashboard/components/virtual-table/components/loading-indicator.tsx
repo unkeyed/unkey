@@ -1,6 +1,9 @@
 import { cn } from "@/lib/utils";
-import { ArrowsToAllDirections, ArrowsToCenter } from "@unkey/icons";
 import { Button } from "@unkey/ui";
+import {
+  IconArrowsAllDirectionsOutline18,
+  IconArrowsToCenterOutline18,
+} from "nucleo-ui-outline-18";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 type LoadMoreFooterProps = {
@@ -81,7 +84,7 @@ export const LoadMoreFooter = ({
               className="inline-flex size-6 items-center justify-center rounded-sm transition-all duration-200 hover:bg-gray-3 transform hover:scale-110 [&_svg]:size-[14px]"
               title="Maximize"
             >
-              <ArrowsToAllDirections iconSize="sm-regular" />
+              <IconArrowsAllDirectionsOutline18 className="size-3" />
             </div>
           </div>
         </button>
@@ -144,7 +147,7 @@ export const LoadMoreFooter = ({
                   onClick={handleClose}
                   title="Minimize"
                 >
-                  <ArrowsToCenter iconSize="lg-regular" />
+                  <IconArrowsToCenterOutline18 className="size-4" />
                 </Button>
               </div>
             </div>

@@ -1,8 +1,12 @@
 "use client";
 
 import { Combobox as ComboboxPrimitive } from "@base-ui/react/combobox";
-import { Check, ChevronExpandY, Magnifier } from "@unkey/icons";
 import { type VariantProps, cva } from "class-variance-authority";
+import {
+  IconCheckOutline12,
+  IconChevronExpandYOutline12,
+  IconMagnifierOutline12,
+} from "nucleo-ui-outline-12";
 import * as React from "react";
 import { cn } from "../../lib/utils";
 import {
@@ -72,7 +76,7 @@ function ComboboxIcon({
       className={cn("flex shrink-0 items-center text-gray-11", className)}
       {...props}
     >
-      {children ?? <ChevronExpandY iconSize="sm-regular" />}
+      {children ?? <IconChevronExpandYOutline12 />}
     </ComboboxPrimitive.Icon>
   );
 }
@@ -103,7 +107,7 @@ function ComboboxInput({ className, icon, wrapperClassName, ref, ...props }: Com
   return (
     <InputGroup className={cn("h-8", wrapperClassName)}>
       <InputGroupAddon className="text-gray-9">
-        {icon ?? <Magnifier iconSize="sm-regular" />}
+        {icon ?? <IconMagnifierOutline12 />}
       </InputGroupAddon>
       <ComboboxPrimitive.Input
         ref={ref}
@@ -238,7 +242,7 @@ function ComboboxItemIndicator({
       className={cn("ml-auto flex shrink-0 items-center", className)}
       {...props}
     >
-      {children ?? <Check iconSize="sm-regular" />}
+      {children ?? <IconCheckOutline12 />}
     </ComboboxPrimitive.ItemIndicator>
   );
 }

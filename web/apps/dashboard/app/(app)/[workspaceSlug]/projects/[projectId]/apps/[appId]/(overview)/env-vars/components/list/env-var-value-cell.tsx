@@ -1,7 +1,8 @@
 "use client";
 
-import { Eye, EyeSlash } from "@unkey/icons";
 import { InfoTooltip, toast } from "@unkey/ui";
+import { IconEyeOutline12 } from "nucleo-ui-outline-12";
+import { IconEyeSlashOutline18 } from "nucleo-ui-outline-18";
 import { memo, useCallback, useEffect, useRef, useState } from "react";
 
 const AUTO_HIDE_MS = 10_000;
@@ -83,7 +84,7 @@ export const EnvVarValueCell = memo(function EnvVarValueCell({
           onClick={handleToggleReveal}
           className="text-gray-10 hover:text-gray-11 transition-colors cursor-pointer hover:bg-gray-3 rounded-md px-1.5 py-0.5 h-[22px]"
         >
-          {visible ? <EyeSlash iconSize="sm-regular" /> : <Eye iconSize="sm-regular" />}
+          {visible ? <IconEyeSlashOutline18 className="size-3" /> : <IconEyeOutline12 />}
         </button>
       </div>
       {visible ? (

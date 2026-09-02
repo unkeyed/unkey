@@ -2,8 +2,8 @@
 
 import { useFilters } from "@/app/(app)/[workspaceSlug]/ratelimits/[namespaceId]/logs/hooks/use-filters";
 import { type MenuItem, TableActionPopover } from "@/components/logs/table-action.popover";
-import { Clone, InputSearch } from "@unkey/icons";
 import { toast } from "@unkey/ui";
+import { IconCloneOutline18, IconInputSearchOutline18 } from "nucleo-ui-outline-18";
 
 export const LogsTableAction = ({ identifier }: { identifier: string }) => {
   const { filters, updateFilters } = useFilters();
@@ -13,7 +13,7 @@ export const LogsTableAction = ({ identifier }: { identifier: string }) => {
       {
         id: "copy",
         label: "Copy identifier",
-        icon: <Clone iconSize="md-medium" />,
+        icon: <IconCloneOutline18 className="size-4" />,
         onClick: (e) => {
           e.stopPropagation();
           navigator.clipboard
@@ -32,7 +32,7 @@ export const LogsTableAction = ({ identifier }: { identifier: string }) => {
       {
         id: "filter",
         label: "Filter for identifier",
-        icon: <InputSearch iconSize="md-medium" />,
+        icon: <IconInputSearchOutline18 className="size-4" />,
         onClick: (e) => {
           e.stopPropagation();
           const newFilter = {

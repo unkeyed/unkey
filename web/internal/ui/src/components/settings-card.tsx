@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronRight } from "@unkey/icons";
+import { IconChevronRightOutline12 } from "nucleo-ui-outline-12";
 import * as React from "react";
 import { cn } from "../lib/utils";
 import { Button } from "./buttons/button";
@@ -201,14 +201,13 @@ function SettingCard({
         <div className={cn("flex w-full items-center gap-4", contentWidth)}>
           {children}
           {shouldShowChevron && (
-            <ChevronRight
+            <IconChevronRightOutline12
               className={cn(
                 "text-gray-10 transition-all duration-300 ease-out shrink-0",
                 isExpanded && "rotate-90",
                 effectiveChevronState !== "disabled" && "group-hover:text-gray-11",
                 effectiveChevronState === "disabled" && "opacity-40 cursor-not-allowed",
               )}
-              iconSize="sm-medium"
             />
           )}
         </div>

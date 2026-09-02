@@ -12,7 +12,12 @@ import Link from "next/link";
 import type React from "react";
 
 import { useFeedback } from "@/components/dashboard/feedback-component";
-import { Book2, BracketsCurly, Chats, CircleQuestion } from "@unkey/icons";
+import {
+  IconBook2Outline18,
+  IconBracketsCurlyOutline18,
+  IconChatsOutline18,
+  IconCircleQuestionOutline18,
+} from "nucleo-ui-outline-18";
 import { useState } from "react";
 import { StatusWidget } from "./status-widget";
 
@@ -26,19 +31,19 @@ export const HelpButton: React.FC = () => {
         aria-label="Help Options"
         className="group/help w-8 h-8 rounded-lg flex justify-center items-center shrink-0 hover:bg-grayA-4 cursor-pointer"
       >
-        <CircleQuestion className="text-gray-9 group-hover/help:text-gray-12 size-5" />
+        <IconCircleQuestionOutline18 className="text-gray-9 group-hover/help:text-gray-12 size-5" />
       </DropdownMenuTrigger>
       <DropdownMenuContent side="bottom" className="flex w-44 flex-col gap-3" align="end">
         <DropdownMenuGroup className="w-full">
           <Link href="https://unkey.com/docs" target="_blank">
             <DropdownMenuItem className="cursor-pointer w-full">
-              <Book2 className="size-4 mr-3 text-gray-9" />
+              <IconBook2Outline18 className="size-4 mr-3 text-gray-9" />
               <span className="text-accent-12 text-sm font-medium">Docs</span>
             </DropdownMenuItem>
           </Link>
           <Link href="https://unkey.com/docs/api-reference/overview" target="_blank">
             <DropdownMenuItem className="cursor-pointer w-full">
-              <BracketsCurly className="size-4 mr-3 text-gray-9" />
+              <IconBracketsCurlyOutline18 className="size-4 mr-3 text-gray-9" />
               <span className="text-accent-12 text-sm font-medium">API Reference</span>
             </DropdownMenuItem>
           </Link>
@@ -54,7 +59,7 @@ export const HelpButton: React.FC = () => {
               openFeedback(true);
             }}
           >
-            <Chats className="size-4 mr-3 text-gray-9" />
+            <IconChatsOutline18 className="size-4 mr-3 text-gray-9" />
             <span className="text-accent-12 text-sm font-medium">Support</span>
           </DropdownMenuItem>
         </DropdownMenuGroup>

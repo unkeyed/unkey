@@ -3,7 +3,6 @@
 import type { AuthenticatedUser, Organization } from "@/lib/auth/types";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Plus } from "@unkey/icons";
 import {
   Button,
   DialogContainer,
@@ -15,6 +14,7 @@ import {
   SelectValue,
   toast,
 } from "@unkey/ui";
+import { IconPlusOutline18 } from "nucleo-ui-outline-18";
 import type React from "react";
 import { useState } from "react";
 import { Controller, useForm } from "react-hook-form";
@@ -98,7 +98,7 @@ export const InviteButton = ({ user, organization, ...rest }: InviteButtonProps)
         {...rest}
         color="default"
       >
-        <Plus iconSize="lg-regular" className="w-4 h-4 " />
+        <IconPlusOutline18 className="w-4 h-4" />
         Invite Member
       </Button>
       <DialogContainer

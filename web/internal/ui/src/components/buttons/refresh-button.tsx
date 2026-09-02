@@ -1,5 +1,5 @@
 "use client";
-import { Refresh3 } from "@unkey/icons";
+import { IconRefresh3Outline18 } from "nucleo-ui-outline-18";
 // biome-ignore lint: React in this context is used throughout, so biome will change to types because no APIs are used even though React is needed.
 import * as React from "react";
 import { useState } from "react";
@@ -67,7 +67,7 @@ const RefreshButton = ({ onRefresh, isEnabled, isLive, toggleLive }: RefreshButt
           loading={isLoading}
           className="flex w-full items-center justify-center rounded-lg border border-gray-4 group overflow-hidden"
         >
-          <Refresh3 className="size-4" />
+          <IconRefresh3Outline18 className="size-4" />
           <span className="font-medium text-[13px] relative z-10">Refresh</span>
           <div className="max-w-0 opacity-0 group-hover:max-w-[100px] group-hover:opacity-100 transition-all duration-300 ease-in-out overflow-hidden">
             <KeyboardButton shortcut="⌥+⇧+W" className="ml-1" />

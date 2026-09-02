@@ -3,10 +3,16 @@
 import { type MenuItem, TableActionPopover } from "@/components/logs/table-action.popover";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { routes } from "@/lib/navigation/routes";
-import { ArrowOppositeDirectionY, Clone, Cloud, Gear, Layers3 } from "@unkey/icons";
 import { toast } from "@unkey/ui";
 import type { AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime";
 import { useRouter } from "next/navigation";
+import {
+  IconArrowsOppositeDirectionYOutline18,
+  IconCloneOutline18,
+  IconCloudOutline18,
+  IconGearOutline18,
+  IconLayers3Outline18,
+} from "nucleo-ui-outline-18";
 import type { PropsWithChildren } from "react";
 
 type AppActionsProps = {
@@ -34,7 +40,7 @@ const getAppActionItems = (
     {
       id: "copy-app-id",
       label: "Copy app ID",
-      icon: <Clone iconSize="md-medium" />,
+      icon: <IconCloneOutline18 className="size-4" />,
       onClick: () => {
         navigator.clipboard
           .writeText(appId)
@@ -51,7 +57,7 @@ const getAppActionItems = (
     {
       id: "view-logs",
       label: "View logs",
-      icon: <Layers3 iconSize="md-regular" />,
+      icon: <IconLayers3Outline18 className="size-4" />,
       onClick: () => {
         router.push(routes.projects.logs(appScope));
       },
@@ -59,7 +65,7 @@ const getAppActionItems = (
     {
       id: "view-requests",
       label: "View requests",
-      icon: <ArrowOppositeDirectionY iconSize="md-regular" />,
+      icon: <IconArrowsOppositeDirectionYOutline18 className="size-4" />,
       onClick: () => {
         router.push(routes.projects.requests({ ...appScope, since: "6h" }));
       },
@@ -67,7 +73,7 @@ const getAppActionItems = (
     {
       id: "view-deployments",
       label: "View deployments",
-      icon: <Cloud iconSize="md-regular" />,
+      icon: <IconCloudOutline18 className="size-4" />,
       onClick: () => {
         router.push(routes.projects.apps.deployments(appScope));
       },
@@ -75,7 +81,7 @@ const getAppActionItems = (
     {
       id: "app-settings",
       label: "App settings",
-      icon: <Gear iconSize="md-medium" />,
+      icon: <IconGearOutline18 className="size-4" />,
       onClick: () => {
         router.push(routes.projects.apps.settings(appScope));
       },

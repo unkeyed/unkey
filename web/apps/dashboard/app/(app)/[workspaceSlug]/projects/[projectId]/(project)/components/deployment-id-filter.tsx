@@ -1,8 +1,8 @@
 "use client";
 
 import { useProjectData } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/data-provider";
-import { Magnifier } from "@unkey/icons";
 import { Button, Checkbox } from "@unkey/ui";
+import { IconMagnifierOutline18 } from "nucleo-ui-outline-18";
 import { useCallback, useMemo, useState } from "react";
 
 const LATEST_LIMIT = 15;
@@ -147,7 +147,7 @@ export function DeploymentIdFilter<T extends DeploymentFilter>({
       </div>
 
       <div className="flex gap-[18px] items-center px-2 py-1">
-        <Magnifier className="text-accent-9 shrink-0" iconSize="lg-medium" />
+        <IconMagnifierOutline18 className="size-4 text-accent-9 shrink-0" />
         <input
           type="text"
           aria-label="Search deployments"

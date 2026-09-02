@@ -1,8 +1,8 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Connections } from "@unkey/icons";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@unkey/ui";
+import { IconConnectionsOutline18 } from "nucleo-ui-outline-18";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
 import { useEnvironmentSettings } from "../../environment-provider";
@@ -52,7 +52,7 @@ export const UpstreamProtocol = () => {
 
   return (
     <FormSettingCard
-      icon={<Connections className="text-gray-12" iconSize="xl-medium" />}
+      icon={<IconConnectionsOutline18 className="text-gray-12" />}
       title="Upstream Protocol"
       description={
         <>

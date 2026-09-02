@@ -5,8 +5,8 @@ import { NavbarActionButton } from "@/components/navigation/action-button";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { useIdentity } from "@/lib/identities-query";
 import { routes } from "@/lib/navigation/routes";
-import { Gear } from "@unkey/icons";
 import { useRouter } from "next/navigation";
+import { IconGearOutline18 } from "nucleo-ui-outline-18";
 
 export const IdentitySettingsDialog = ({ identityId }: { identityId: string }) => {
   const { data: identity, isError, refetch } = useIdentity(identityId);
@@ -23,7 +23,7 @@ export const IdentitySettingsDialog = ({ identityId }: { identityId: string }) =
           });
         }}
       >
-        <Gear />
+        <IconGearOutline18 />
         Retry Settings
       </NavbarActionButton>
     );
@@ -32,7 +32,7 @@ export const IdentitySettingsDialog = ({ identityId }: { identityId: string }) =
   if (!identity) {
     return (
       <NavbarActionButton variant="outline" disabled>
-        <Gear />
+        <IconGearOutline18 />
         Settings
       </NavbarActionButton>
     );
@@ -47,7 +47,7 @@ export const IdentitySettingsDialog = ({ identityId }: { identityId: string }) =
         }}
       >
         <NavbarActionButton variant="outline">
-          <Gear />
+          <IconGearOutline18 />
           Settings
         </NavbarActionButton>
       </IdentityTableActions>

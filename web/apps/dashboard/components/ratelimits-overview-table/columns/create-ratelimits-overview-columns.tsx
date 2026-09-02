@@ -4,8 +4,8 @@ import { LogsTableAction } from "@/app/(app)/[workspaceSlug]/ratelimits/[namespa
 import { formatNumber } from "@/lib/fmt";
 import { cn } from "@/lib/utils";
 import type { RatelimitOverviewLog } from "@unkey/clickhouse/src/ratelimits";
-import { Ban } from "@unkey/icons";
 import { Badge, type DataTableColumnDef, SortableHeader, TimestampInfo } from "@unkey/ui";
+import { IconBanOutline12 } from "nucleo-ui-outline-12";
 import { IdentifierColumn } from "../components/identifier-column";
 import { InlineFilter } from "../components/inline-filter";
 import { STATUS_STYLES, getStatusStyle } from "../utils/get-row-class";
@@ -91,7 +91,7 @@ export const createRatelimitsOverviewColumns = ({
             )}
             title={`${log.blocked_count.toLocaleString()} Blocked requests`}
           >
-            <Ban iconSize="sm-regular" />
+            <IconBanOutline12 />
             {formatNumber(log.blocked_count)}
           </Badge>
           <InlineFilter
@@ -147,7 +147,7 @@ export const createRatelimitsOverviewColumns = ({
           )}
           title={`${blockedTokens.toLocaleString()} blocked tokens`}
         >
-          <Ban iconSize="sm-regular" />
+          <IconBanOutline12 />
           {formatNumber(blockedTokens)}
         </Badge>
       );

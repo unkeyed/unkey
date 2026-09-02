@@ -2,21 +2,21 @@ import { MAX_KEYS_FETCH_LIMIT } from "@/app/(app)/[workspaceSlug]/authorization/
 import { type MenuItem, TableActionPopover } from "@/components/logs/table-action.popover";
 import { trpc } from "@/lib/trpc/client";
 import type { KeyDetails } from "@/lib/trpc/routers/api/keys/query-api-keys/schema";
-import {
-  ArrowDottedRotateAnticlockwise,
-  ArrowOppositeDirectionY,
-  Ban,
-  CalendarClock,
-  ChartPie,
-  Check,
-  Clone,
-  Code,
-  Gauge,
-  PenWriting3,
-  Tag,
-  Trash,
-} from "@unkey/icons";
 import { toast } from "@unkey/ui";
+import {
+  IconArrowDottedRotateAnticlockwiseOutline18,
+  IconArrowsOppositeDirectionYOutline18,
+  IconBanOutline18,
+  IconCalendarClockOutline18,
+  IconChartPieOutline18,
+  IconCheckOutline18,
+  IconCloneOutline18,
+  IconCodeOutline18,
+  IconGaugeOutline18,
+  IconPenWriting3Outline18,
+  IconTagOutline18,
+  IconTrashOutline18,
+} from "nucleo-ui-outline-18";
 import { DeleteKey } from "./components/delete-key";
 import { UpdateKeyStatus } from "./components/disable-key";
 import { EditCredits } from "./components/edit-credits";
@@ -47,7 +47,7 @@ export const getKeysTableActionItems = (
     {
       id: "copy",
       label: "Copy key ID",
-      icon: <Clone iconSize="md-medium" />,
+      icon: <IconCloneOutline18 className="size-4" />,
       onClick: () => {
         navigator.clipboard
           .writeText(key.id)
@@ -66,7 +66,7 @@ export const getKeysTableActionItems = (
           {
             id: "copy-external-id",
             label: "Copy External ID",
-            icon: <Clone iconSize="md-medium" />,
+            icon: <IconCloneOutline18 className="size-4" />,
             onClick: () => {
               navigator.clipboard
                 // Empty case cannot happen since this will only render if identity exists
@@ -84,43 +84,43 @@ export const getKeysTableActionItems = (
     {
       id: "override",
       label: "Edit key name...",
-      icon: <PenWriting3 iconSize="md-medium" />,
+      icon: <IconPenWriting3Outline18 className="size-4" />,
       ActionComponent: (props) => <EditKeyName {...props} keyDetails={key} />,
     },
     {
       id: "edit-external-id",
       label: "Edit External ID...",
-      icon: <ArrowOppositeDirectionY iconSize="md-medium" />,
+      icon: <IconArrowsOppositeDirectionYOutline18 className="size-4" />,
       ActionComponent: (props) => <EditExternalId {...props} keyDetails={key} />,
     },
     {
       id: "edit-credits",
       label: "Edit credits...",
-      icon: <ChartPie iconSize="md-medium" />,
+      icon: <IconChartPieOutline18 className="size-4" />,
       ActionComponent: (props) => <EditCredits {...props} keyDetails={key} />,
     },
     {
       id: "edit-ratelimit",
       label: "Edit ratelimit...",
-      icon: <Gauge iconSize="md-medium" />,
+      icon: <IconGaugeOutline18 className="size-4" />,
       ActionComponent: (props) => <EditRatelimits {...props} keyDetails={key} />,
     },
     {
       id: "edit-expiration",
       label: "Edit expiration...",
-      icon: <CalendarClock iconSize="md-medium" />,
+      icon: <IconCalendarClockOutline18 className="size-4" />,
       ActionComponent: (props) => <EditExpiration {...props} keyDetails={key} />,
     },
     {
       id: "edit-metadata",
       label: "Edit metadata...",
-      icon: <Code iconSize="md-medium" />,
+      icon: <IconCodeOutline18 className="size-4" />,
       ActionComponent: (props) => <EditMetadata {...props} keyDetails={key} />,
     },
     {
       id: "edit-rbac",
       label: "Manage roles and permissions...",
-      icon: <Tag iconSize="md-medium" />,
+      icon: <IconTagOutline18 className="size-4" />,
       ActionComponent: (props) => (
         <KeyRbacDialog
           {...props}
@@ -200,7 +200,11 @@ export const getKeysTableActionItems = (
     {
       id: key.enabled ? "disable-key" : "enable-key",
       label: key.enabled ? "Disable Key..." : "Enable Key...",
-      icon: key.enabled ? <Ban iconSize="md-medium" /> : <Check iconSize="md-medium" />,
+      icon: key.enabled ? (
+        <IconBanOutline18 className="size-4" />
+      ) : (
+        <IconCheckOutline18 className="size-4" />
+      ),
       ActionComponent: (props) => <UpdateKeyStatus {...props} keyDetails={key} />,
     },
     ...(apiId
@@ -208,7 +212,7 @@ export const getKeysTableActionItems = (
           {
             id: "rotate-key",
             label: "Rotate key...",
-            icon: <ArrowDottedRotateAnticlockwise iconSize="md-medium" />,
+            icon: <IconArrowDottedRotateAnticlockwiseOutline18 className="size-4" />,
             disabled: isExpired,
             tooltip: () => (isExpired() ? "Expired keys cannot be rotated" : undefined),
             ActionComponent: (props) => <RotateKey {...props} keyDetails={key} />,
@@ -218,7 +222,7 @@ export const getKeysTableActionItems = (
     {
       id: "delete-key",
       label: "Delete key",
-      icon: <Trash iconSize="md-medium" />,
+      icon: <IconTrashOutline18 className="size-4" />,
       ActionComponent: (props) => <DeleteKey {...props} keyDetails={key} />,
     },
   ];

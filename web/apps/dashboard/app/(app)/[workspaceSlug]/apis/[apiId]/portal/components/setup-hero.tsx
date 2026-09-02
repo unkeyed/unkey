@@ -1,8 +1,14 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { Earth, Key, ShieldKey, User, WindowLayout } from "@unkey/icons";
 import { Button } from "@unkey/ui";
+import {
+  IconEarthOutline18,
+  IconKeyOutline18,
+  IconShieldKeyOutline18,
+  IconUserOutline18,
+  IconWindowLayoutOutline18,
+} from "nucleo-ui-outline-18";
 import type { ReactNode } from "react";
 
 type IconBoxProps = {
@@ -24,15 +30,15 @@ const IconBox = ({ children, large, className }: IconBoxProps) => (
 );
 
 const flankItems: { icon: ReactNode; large?: boolean; opacity: string }[] = [
-  { icon: <Earth className="size-[18px]" iconSize="md-medium" />, opacity: "opacity-50" },
-  { icon: <User className="size-[18px]" iconSize="md-medium" />, opacity: "opacity-75" },
+  { icon: <IconEarthOutline18 />, opacity: "opacity-50" },
+  { icon: <IconUserOutline18 />, opacity: "opacity-75" },
   {
-    icon: <WindowLayout className="size-9" iconSize="md-thin" />,
+    icon: <IconWindowLayoutOutline18 className="size-9" />,
     large: true,
     opacity: "opacity-90",
   },
-  { icon: <Key className="size-[18px]" iconSize="md-medium" />, opacity: "opacity-75" },
-  { icon: <ShieldKey className="size-[18px]" iconSize="md-medium" />, opacity: "opacity-50" },
+  { icon: <IconKeyOutline18 />, opacity: "opacity-75" },
+  { icon: <IconShieldKeyOutline18 />, opacity: "opacity-50" },
 ];
 
 const PortalIconRow = () => (

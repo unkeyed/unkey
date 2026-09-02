@@ -1,8 +1,8 @@
 "use client";
 
 import { trpc } from "@/lib/trpc/client";
-import { CircleHalfDottedClock, Gear } from "@unkey/icons";
 import { SettingCardGroup } from "@unkey/ui";
+import { IconCircleHalfDottedClockOutline18, IconGearOutline18 } from "nucleo-ui-outline-18";
 import { useAppId, useProjectData } from "../data-provider";
 import { AutoDeploy } from "./components/build-settings/auto-deploy-settings";
 import { BuildCommand } from "./components/build-settings/build-command-settings";
@@ -61,7 +61,7 @@ export const DeploymentSettings = ({
         </SettingCardGroup>
       ) : null}
       <SettingsGroup
-        icon={<CircleHalfDottedClock iconSize="md-medium" />}
+        icon={<IconCircleHalfDottedClockOutline18 className="size-4" />}
         title="Runtime settings"
         defaultExpanded={Boolean(sections.runtime)}
       >
@@ -79,7 +79,7 @@ export const DeploymentSettings = ({
         </SettingCardGroup>
       </SettingsGroup>
       <SettingsGroup
-        icon={<Gear iconSize="md-medium" />}
+        icon={<IconGearOutline18 className="size-4" />}
         title="Advanced configurations"
         defaultExpanded={Boolean(sections.advanced)}
       >

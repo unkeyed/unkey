@@ -1,7 +1,6 @@
 "use client";
 
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { ChevronDown, TriangleWarning2 } from "@unkey/icons";
 import {
   AlertBanner,
   AlertBannerActions,
@@ -11,6 +10,8 @@ import {
   CopyButton,
   TimestampInfo,
 } from "@unkey/ui";
+import { IconChevronDownOutline12 } from "nucleo-ui-outline-12";
+import { IconTriangleWarningOutline18 } from "nucleo-ui-outline-18";
 import { useState } from "react";
 import type { RecentError } from "./types";
 
@@ -45,7 +46,7 @@ export function RecentDeliveryErrors({
   return (
     <Collapsible open={detailsOpen} onOpenChange={setDetailsOpen} className="flex flex-col gap-2">
       <AlertBanner variant="error">
-        <TriangleWarning2 iconSize="md-regular" aria-hidden="true" />
+        <IconTriangleWarningOutline18 className="size-4" aria-hidden="true" />
         <AlertBannerTitle>
           {entries.length === 20
             ? "At least 20 delivery attempts failed"
@@ -61,8 +62,7 @@ export function RecentDeliveryErrors({
             className="[&[data-panel-open]_.error-chevron]:rotate-180"
           >
             {detailsOpen ? "Hide details" : "View details"}
-            <ChevronDown
-              iconSize="sm-regular"
+            <IconChevronDownOutline12
               className="error-chevron text-gray-9 transition-transform duration-200"
               aria-hidden="true"
             />

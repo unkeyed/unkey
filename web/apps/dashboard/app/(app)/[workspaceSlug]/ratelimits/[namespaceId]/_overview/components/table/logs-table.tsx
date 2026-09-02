@@ -10,8 +10,8 @@ import {
 } from "@/components/ratelimits-overview-table";
 import type { RowSelectionState, SortingState } from "@tanstack/react-table";
 import type { RatelimitOverviewLog } from "@unkey/clickhouse/src/ratelimits";
-import { BookBookmark } from "@unkey/icons";
 import { Button, DataTable, type DataTableConfig, Empty, PaginationFooter } from "@unkey/ui";
+import { IconBookBookmarkOutline18 } from "nucleo-ui-outline-18";
 import { useCallback, useMemo, useRef, useState } from "react";
 import { type SortFields, sortFields } from "./query-logs.schema";
 
@@ -121,7 +121,7 @@ export const RatelimitOverviewLogsTable = ({
                   rel="noopener noreferrer"
                 >
                   <Button size="md">
-                    <BookBookmark />
+                    <IconBookBookmarkOutline18 />
                     Documentation
                   </Button>
                 </a>

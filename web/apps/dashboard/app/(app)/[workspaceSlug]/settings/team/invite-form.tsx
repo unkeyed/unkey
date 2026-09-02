@@ -3,7 +3,6 @@
 import type { Organization } from "@/lib/auth/types";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Plus, XMark } from "@unkey/icons";
 import {
   Button,
   Card,
@@ -16,6 +15,7 @@ import {
   SelectValue,
   toast,
 } from "@unkey/ui";
+import { IconPlusOutline18, IconXmarkOutline18 } from "nucleo-ui-outline-18";
 import { useState } from "react";
 import { Controller, useFieldArray, useForm } from "react-hook-form";
 import { z } from "zod";
@@ -192,7 +192,7 @@ export const InviteForm = ({ organization }: InviteFormProps) => {
                     onClick={() => remove(index)}
                     aria-label={`Remove invite ${index + 1}`}
                   >
-                    <XMark className="w-4 h-4" aria-hidden="true" />
+                    <IconXmarkOutline18 className="w-4 h-4" aria-hidden="true" />
                   </Button>
                 )}
               </div>
@@ -207,7 +207,7 @@ export const InviteForm = ({ organization }: InviteFormProps) => {
                 size="sm"
                 onClick={() => append({ email: "", role: "basic_member" as const })}
               >
-                <Plus className="w-4 h-4" />
+                <IconPlusOutline18 className="w-4 h-4" />
                 <span>Add more</span>
               </Button>
 

@@ -4,7 +4,6 @@ import { formatDate } from "@/lib/fmt";
 import { trpc } from "@/lib/trpc/client";
 import type { Router } from "@/lib/trpc/routers";
 import type { inferRouterOutputs } from "@trpc/server";
-import { TriangleWarning2 } from "@unkey/icons";
 import {
   AlertBanner,
   AlertBannerActions,
@@ -14,6 +13,7 @@ import {
   toast,
 } from "@unkey/ui";
 import { useRouter } from "next/navigation";
+import { IconTriangleWarningOutline18 } from "nucleo-ui-outline-18";
 import { AdminGate } from "./admin-gate";
 
 type BillingInfo = inferRouterOutputs<Router>["stripe"]["getBillingInfo"];
@@ -47,7 +47,7 @@ function PaymentRequired({ status }: { status: string }) {
 
   return (
     <AlertBanner variant="error">
-      <TriangleWarning2 iconSize="md-regular" />
+      <IconTriangleWarningOutline18 className="size-4" />
       <AlertBannerTitle>Payment required</AlertBannerTitle>
       <AlertBannerDescription>
         {status === "incomplete_expired"
@@ -96,7 +96,7 @@ function ScheduledCancellation({
 
   return (
     <AlertBanner variant="warning">
-      <TriangleWarning2 iconSize="md-regular" />
+      <IconTriangleWarningOutline18 className="size-4" />
       <AlertBannerDescription>
         Your API plan ends on {formatDate(cancelAt)}. Afterwards your workspace will move to the
         free tier.

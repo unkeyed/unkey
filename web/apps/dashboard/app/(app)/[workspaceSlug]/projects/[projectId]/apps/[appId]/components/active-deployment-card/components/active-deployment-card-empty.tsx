@@ -1,6 +1,6 @@
-import { Cloud, Plus } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
+import { IconCloudOutline18, IconPlusOutline18 } from "nucleo-ui-outline-18";
 import { EmptySection } from "../../../(overview)/components/empty-section";
 
 type ActiveDeploymentCardEmptyProps = {
@@ -20,12 +20,12 @@ export function ActiveDeploymentCardEmpty({
     <EmptySection
       title={title}
       description={description}
-      icon={<Cloud className="size-6" />}
+      icon={<IconCloudOutline18 className="size-6" />}
       className={cn("min-h-[200px]", className)}
     >
       {onCreateDeployment && (
         <Button onClick={onCreateDeployment} size="sm" className="mt-2">
-          <Plus className="size-4 mr-2" />
+          <IconPlusOutline18 className="size-4 mr-2" />
           Create deployment
         </Button>
       )}

@@ -8,10 +8,10 @@ import { routes } from "@/lib/navigation/routes";
 import { shortenId } from "@/lib/shorten-id";
 import { cn } from "@/lib/utils";
 import type { KeysOverviewLog } from "@unkey/clickhouse/src/keys/keys";
-import { TriangleWarning2 } from "@unkey/icons";
 import { InfoTooltip, Loading } from "@unkey/ui";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { IconTriangleWarningOutline18 } from "nucleo-ui-outline-18";
 import { useCallback, useState } from "react";
 
 type KeyIdentifierColumnProps = {
@@ -24,13 +24,13 @@ type KeyIdentifierColumnProps = {
 const getWarningIcon = (severity: string) => {
   switch (severity) {
     case "high":
-      return <TriangleWarning2 className="text-error-11" iconSize="md-medium" />;
+      return <IconTriangleWarningOutline18 className="size-4 text-error-11" />;
     case "moderate":
-      return <TriangleWarning2 className="text-orange-11" iconSize="md-medium" />;
+      return <IconTriangleWarningOutline18 className="size-4 text-orange-11" />;
     case "low":
-      return <TriangleWarning2 className="text-warning-11" iconSize="md-medium" />;
+      return <IconTriangleWarningOutline18 className="size-4 text-warning-11" />;
     default:
-      return <TriangleWarning2 className="invisible" iconSize="md-medium" />;
+      return <IconTriangleWarningOutline18 className="size-4 invisible" />;
   }
 };
 

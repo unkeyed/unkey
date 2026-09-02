@@ -1,8 +1,12 @@
 "use client";
 
 import { trpc } from "@/lib/trpc/client";
-import { Clone, ShieldKey, TriangleWarning } from "@unkey/icons";
 import { Button, toast } from "@unkey/ui";
+import {
+  IconCloneOutline18,
+  IconShieldKeyOutline18,
+  IconTriangleWarningOutline18,
+} from "nucleo-ui-outline-18";
 import type React from "react";
 import { useEffect, useRef, useState } from "react";
 
@@ -87,7 +91,7 @@ export function ShareReveal() {
     return (
       <ShareCard>
         <CardGlyph>
-          <TriangleWarning iconSize="xl-medium" aria-hidden="true" />
+          <IconTriangleWarningOutline18 aria-hidden="true" />
         </CardGlyph>
         <CardText
           title="This link has expired or was already used"
@@ -101,7 +105,7 @@ export function ShareReveal() {
     return (
       <ShareCard>
         <CardGlyph>
-          <ShieldKey iconSize="xl-medium" aria-hidden="true" />
+          <IconShieldKeyOutline18 aria-hidden="true" />
         </CardGlyph>
         <CardText
           title="Your key"
@@ -129,7 +133,7 @@ export function ShareReveal() {
             }
           }}
         >
-          <Clone iconSize="sm-regular" />
+          <IconCloneOutline18 />
           Copy key
         </Button>
       </ShareCard>
@@ -140,7 +144,7 @@ export function ShareReveal() {
   return (
     <ShareCard>
       <CardGlyph>
-        <ShieldKey iconSize="xl-medium" aria-hidden="true" />
+        <IconShieldKeyOutline18 aria-hidden="true" />
       </CardGlyph>
       <CardText
         title="You've been sent a secure key"

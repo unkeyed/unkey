@@ -2,8 +2,8 @@
 
 import { POLICY_LIMITS } from "@/lib/collections/deploy/policies.schema";
 import { cn } from "@/lib/utils";
-import { Plus } from "@unkey/icons";
 import { Button, Separator } from "@unkey/ui";
+import { IconPlusOutline18 } from "nucleo-ui-outline-18";
 import { Fragment, type ReactNode } from "react";
 import { useFieldArray, useFormContext, useFormState, useWatch } from "react-hook-form";
 import {
@@ -43,7 +43,7 @@ export function MatchConditionEditorBody() {
           disabled={atCap}
           onClick={() => append(getDefaultCondition("path"))}
         >
-          <Plus iconSize="sm-regular" />
+          <IconPlusOutline18 />
           {fields.length === 0 ? "Add First Condition" : "Add"}
         </Button>
         <span className="text-[12px] text-gray-11">

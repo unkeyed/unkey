@@ -2,8 +2,13 @@
 
 import { type MenuItem, TableActionPopover } from "@/components/logs/table-action.popover";
 import { collection } from "@/lib/collections";
-import { Clone, Dots, PenWriting3, Trash } from "@unkey/icons";
 import { Button, ConfirmPopover, toast } from "@unkey/ui";
+import {
+  IconCloneOutline18,
+  IconDotsOutline18,
+  IconPenWriting3Outline18,
+  IconTrashOutline18,
+} from "nucleo-ui-outline-18";
 import { useRef, useState } from "react";
 
 type EnvVarActionMenuProps = {
@@ -28,7 +33,7 @@ export function EnvVarActionMenu({
     {
       id: "edit",
       label: "Edit",
-      icon: <PenWriting3 iconSize="md-regular" />,
+      icon: <IconPenWriting3Outline18 className="size-4" />,
       onClick: (e) => {
         e.stopPropagation();
         onEdit();
@@ -37,7 +42,7 @@ export function EnvVarActionMenu({
     {
       id: "delete",
       label: "Delete",
-      icon: <Trash iconSize="md-regular" />,
+      icon: <IconTrashOutline18 className="size-4" />,
       divider: true,
       onClick: (e) => {
         e.stopPropagation();
@@ -47,7 +52,7 @@ export function EnvVarActionMenu({
     {
       id: "copy",
       label: "Copy to Clipboard",
-      icon: <Clone iconSize="md-regular" />,
+      icon: <IconCloneOutline18 className="size-4" />,
       disabled: type === "writeonly",
       tooltip: type === "writeonly" ? "Write-only variables cannot be copied" : undefined,
       onClick: async (e) => {
@@ -71,7 +76,7 @@ export function EnvVarActionMenu({
           className="size-5 [&_svg]:size-3 rounded-sm border-transparent group-hover:border-grayA-6"
           onClick={(e) => e.stopPropagation()}
         >
-          <Dots className="group-hover:text-gray-12 text-gray-11" iconSize="sm-regular" />
+          <IconDotsOutline18 className="group-hover:text-gray-12 text-gray-11" />
         </Button>
       </TableActionPopover>
 

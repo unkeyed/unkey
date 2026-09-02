@@ -1,7 +1,13 @@
 import type { DeployPlan } from "@/lib/stripe/deployPlan";
 import { BILLING_DOCS } from "@/lib/support";
-import { ArrowDottedRotateAnticlockwise, ChartActivity, CodeBranch, Eye } from "@unkey/icons";
-import type { IconProps } from "@unkey/icons";
+import type { IconProps } from "nucleo-ui-outline-18";
+import {
+  IconArrowDottedRotateAnticlockwiseOutline18,
+  IconChartActivityOutline18,
+  IconCodeBranchOutline18,
+  IconEyeOutline18,
+} from "nucleo-ui-outline-18";
+import type { ComponentType } from "react";
 
 /** Marketing copy for the Compute plan picker. */
 export const PLAN_BLURBS: Record<DeployPlan, string> = {
@@ -18,29 +24,29 @@ export const ALL_PLANS_INCLUDE = [
 ] as const;
 
 type ComputeFeature = {
-  Icon: (props: IconProps) => React.JSX.Element;
+  Icon: ComponentType<IconProps>;
   title: string;
   description: string;
 };
 
 export const FEATURES: ComputeFeature[] = [
   {
-    Icon: CodeBranch,
+    Icon: IconCodeBranchOutline18,
     title: "Git push to deploy",
     description: "Every commit you push deploys automatically.",
   },
   {
-    Icon: Eye,
+    Icon: IconEyeOutline18,
     title: "Preview deploy per PR",
     description: "Every pull request gets its own isolated preview URL.",
   },
   {
-    Icon: ArrowDottedRotateAnticlockwise,
+    Icon: IconArrowDottedRotateAnticlockwiseOutline18,
     title: "Instant rollback",
     description: "Roll back to any previous deploy in one click.",
   },
   {
-    Icon: ChartActivity,
+    Icon: IconChartActivityOutline18,
     title: "Auto-scaling",
     description: "Automatic scaling that follows demand.",
   },

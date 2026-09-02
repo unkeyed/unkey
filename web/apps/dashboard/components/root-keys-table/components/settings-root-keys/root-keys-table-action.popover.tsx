@@ -1,7 +1,11 @@
 "use client";
 import { type MenuItem, TableActionPopover } from "@/components/logs/table-action.popover";
 import type { RootKey } from "@/lib/trpc/routers/settings/root-keys/query";
-import { ArrowDottedRotateAnticlockwise, PenWriting3, Trash } from "@unkey/icons";
+import {
+  IconArrowDottedRotateAnticlockwiseOutline18,
+  IconPenWriting3Outline18,
+  IconTrashOutline18,
+} from "nucleo-ui-outline-18";
 import { DeleteRootKey } from "./delete-root-key";
 import { RotateRootKey } from "./rotate-root-key";
 
@@ -23,7 +27,7 @@ const getRootKeyTableActionItems = (
     {
       id: "edit-root-key",
       label: "Edit root key...",
-      icon: <PenWriting3 iconSize="md-medium" />,
+      icon: <IconPenWriting3Outline18 className="size-4" />,
       onClick: () => {
         onEditKey?.(rootKey);
       },
@@ -31,14 +35,14 @@ const getRootKeyTableActionItems = (
     {
       id: "rotate-root-key",
       label: "Rotate root key...",
-      icon: <ArrowDottedRotateAnticlockwise iconSize="md-medium" />,
+      icon: <IconArrowDottedRotateAnticlockwiseOutline18 className="size-4" />,
       ActionComponent: (props) => <RotateRootKey {...props} rootKeyDetails={rootKey} />,
       divider: true,
     },
     {
       id: "delete-root-key",
       label: "Delete root key",
-      icon: <Trash iconSize="md-medium" />,
+      icon: <IconTrashOutline18 className="size-4" />,
       ActionComponent: (props) => <DeleteRootKey {...props} rootKeyDetails={rootKey} />,
     },
   ];

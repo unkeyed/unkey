@@ -1,4 +1,4 @@
-import { Dots } from "@unkey/icons";
+import { IconDotsOutline12 } from "nucleo-ui-outline-12";
 import { cn } from "../../../../lib/utils";
 
 export const RowActionSkeleton = () => (
@@ -12,6 +12,6 @@ export const RowActionSkeleton = () => (
       "border border-gray-6 group-hover:border-gray-8 ring-2 ring-transparent focus-visible:ring-gray-7 focus-visible:border-gray-7",
     )}
   >
-    <Dots className="group-hover:text-gray-12 text-gray-11" iconSize="sm-regular" />
+    <IconDotsOutline12 className="group-hover:text-gray-12 text-gray-11" />
   </button>
 );

@@ -1,5 +1,5 @@
-import { BookBookmark } from "@unkey/icons";
 import { Button, Empty } from "@unkey/ui";
+import { IconBookBookmarkOutline18 } from "nucleo-ui-outline-18";
 
 export const EmptyKeyDetailsLogs = () => {
   return (
@@ -18,7 +18,7 @@ export const EmptyKeyDetailsLogs = () => {
             rel="noopener noreferrer"
           >
             <Button size="md">
-              <BookBookmark />
+              <IconBookBookmarkOutline18 />
               Documentation
             </Button>
           </a>

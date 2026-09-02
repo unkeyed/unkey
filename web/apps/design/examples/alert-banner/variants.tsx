@@ -1,4 +1,3 @@
-import { TriangleWarning2 } from "@unkey/icons";
 import {
   AlertBanner,
   AlertBannerActions,
@@ -6,6 +5,7 @@ import {
   AlertBannerTitle,
   Button,
 } from "@unkey/ui";
+import { IconTriangleWarningOutline18 } from "nucleo-ui-outline-18";
 
 export default function AlertBannerVariants() {
   return (
@@ -27,7 +27,7 @@ export default function AlertBannerVariants() {
         </AlertBannerActions>
       </AlertBanner>
       <AlertBanner variant="error">
-        <TriangleWarning2 iconSize="md-regular" />
+        <IconTriangleWarningOutline18 className="size-4" />
         <AlertBannerTitle>Deployment failed</AlertBannerTitle>
         <AlertBannerActions>
           <Button variant="outline" size="md">
@@ -36,7 +36,7 @@ export default function AlertBannerVariants() {
         </AlertBannerActions>
       </AlertBanner>
       <AlertBanner variant="error">
-        <TriangleWarning2 iconSize="md-regular" />
+        <IconTriangleWarningOutline18 className="size-4" />
         <AlertBannerTitle>Deployment failed</AlertBannerTitle>
         <AlertBannerDescription>
           The build could not resolve the git branch for this project.

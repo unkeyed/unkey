@@ -8,9 +8,10 @@ import { collection } from "@/lib/collections";
 import { githubUrl } from "@/lib/github-url";
 import { routes } from "@/lib/navigation/routes";
 import { eq, useLiveQuery } from "@tanstack/react-db";
-import { Dots, Github, Plus, Terminal } from "@unkey/icons";
+import { Github } from "@unkey/icons";
 import { Button, Empty } from "@unkey/ui";
 import { useParams, useRouter } from "next/navigation";
+import { IconDotsOutline18, IconPlusOutline18, IconTerminalOutline18 } from "nucleo-ui-outline-18";
 import { AppActions } from "./app-actions";
 
 // One row at the 3-column desktop width so loading doesn't tower over the
@@ -54,7 +55,7 @@ export const AppsList = () => {
             </Empty.Description>
             <Empty.Actions className="mt-4 justify-start">
               <Button size="md" onClick={openCreateApp}>
-                <Plus />
+                <IconPlusOutline18 />
                 Create app
               </Button>
             </Empty.Actions>
@@ -72,9 +73,9 @@ export const AppsList = () => {
               })}
               icon={
                 app.repositoryFullName ? (
-                  <Github iconSize="xl-medium" className="shrink-0 size-5" />
+                  <Github className="shrink-0 size-5" />
                 ) : (
-                  <Terminal iconSize="xl-medium" className="shrink-0 size-5" />
+                  <IconTerminalOutline18 className="shrink-0 size-5" />
                 )
               }
               name={app.name}
@@ -98,7 +99,7 @@ export const AppsList = () => {
                     className="mb-auto shrink-0"
                     title="App actions"
                   >
-                    <Dots iconSize="sm-regular" />
+                    <IconDotsOutline18 />
                   </Button>
                 </AppActions>
               }

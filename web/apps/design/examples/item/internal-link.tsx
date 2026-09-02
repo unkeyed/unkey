@@ -1,5 +1,5 @@
-import { ChartUsage, ChevronRight } from "@unkey/icons";
 import { Item, ItemActions, ItemContent, ItemDescription, ItemMedia, ItemTitle } from "@unkey/ui";
+import { IconChartUsageOutline18, IconChevronRightOutline18 } from "nucleo-ui-outline-18";
 
 export default function InternalLinkItem() {
   return (
@@ -8,14 +8,14 @@ export default function InternalLinkItem() {
       render={
         <a href="/primitives/item">
           <ItemMedia>
-            <ChartUsage />
+            <IconChartUsageOutline18 />
           </ItemMedia>
           <ItemContent>
             <ItemTitle>Usage</ItemTitle>
             <ItemDescription>Track your spend and usage across Unkey</ItemDescription>
           </ItemContent>
           <ItemActions>
-            <ChevronRight />
+            <IconChevronRightOutline18 />
           </ItemActions>
         </a>
       }
