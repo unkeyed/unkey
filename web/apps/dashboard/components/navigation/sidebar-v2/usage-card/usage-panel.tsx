@@ -46,7 +46,7 @@ export function UsagePanel({ summary }: { summary: UsageSummary }) {
                 : "-mr-1 ml-auto size-5 justify-center",
             )}
           >
-            {folded ? <span className="flex-1 truncate text-gray-12">Usage</span> : null}
+            {folded ? <span className="flex-1 truncate font-medium text-gray-12">Usage</span> : null}
             <Toggle rotated={!folded} />
           </button>
         )}
