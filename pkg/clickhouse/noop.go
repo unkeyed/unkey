@@ -44,6 +44,21 @@ func (n *noop) GetDeploymentRequestCount(ctx context.Context, req GetDeploymentR
 	return 0, nil
 }
 
+// GetRequestAnomalyWindows implements the Querier interface but always returns an empty slice.
+func (n *noop) GetRequestAnomalyWindows(ctx context.Context, req AnomalyWindowsRequest) ([]RequestAnomalyWindow, error) {
+	return nil, nil
+}
+
+// GetResourceAnomalyWindows implements the Querier interface but always returns an empty slice.
+func (n *noop) GetResourceAnomalyWindows(ctx context.Context, req AnomalyWindowsRequest) ([]ResourceAnomalyWindow, error) {
+	return nil, nil
+}
+
+// GetInstanceEventAnomalyWindows implements the Querier interface but always returns an empty slice.
+func (n *noop) GetInstanceEventAnomalyWindows(ctx context.Context, req AnomalyWindowsRequest) ([]InstanceEventAnomalyWindow, error) {
+	return nil, nil
+}
+
 // GetKeyLastUsedBatchPartitioned implements the Querier interface but always returns an empty slice.
 func (n *noop) GetKeyLastUsedBatchPartitioned(ctx context.Context, req GetKeyLastUsedBatchRequest) ([]KeyLastUsed, error) {
 	return nil, nil
