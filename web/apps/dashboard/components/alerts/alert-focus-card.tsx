@@ -84,17 +84,7 @@ export function AlertFocusCard({ alert }: { alert: AlertDetailData }) {
             />
             <DetailValue
               label="Distance"
-              value={formatAlertDistance(
-                alert.metric,
-                alert.observedValue,
-                alert.baselineMean,
-                alert.baselineStddev,
-              )}
-              hint={
-                hasFixedAlertThreshold(alert.metric)
-                  ? undefined
-                  : `Threshold ${alert.thresholdSigma.toFixed(1)}σ`
-              }
+              value={formatAlertDistance(alert.metric, alert.observedValue, alert.baselineMean)}
             />
           </>
         )}

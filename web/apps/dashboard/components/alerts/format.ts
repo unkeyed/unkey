@@ -30,6 +30,10 @@ const compactFormatter = new Intl.NumberFormat("en-US", {
   notation: "compact",
   maximumFractionDigits: 1,
 });
+const baselineMultipleFormatter = new Intl.NumberFormat("en-US", {
+  minimumFractionDigits: 1,
+  maximumFractionDigits: 1,
+});
 
 export function isAlertMetric(value: string): value is AlertMetric {
   return alertMetricOptions.some((option) => option.value === value);
@@ -137,12 +141,19 @@ export function formatAlertAxisValue(metric: AlertMetric, value: number): string
   }
 }
 
-export function formatSigma(observed: number, mean: number, stddev: number): string {
-  if (stddev <= 0) {
-    return "No variance";
+export function formatBaselineMultiple(observed: number, mean: number): string {
+  if (mean <= 0) {
+    return "no prior traffic";
   }
-  const sigma = (observed - mean) / stddev;
-  return `${sigma >= 0 ? "+" : ""}${sigma.toFixed(1)}σ`;
+  const multiple = observed / mean;
+  if (multiple < 1) {
+    return "below baseline";
+  }
+  const formatted =
+    multiple >= 10
+      ? quantityFormatter.format(multiple)
+      : baselineMultipleFormatter.format(multiple);
+  return `${formatted}× baseline`;
 }
 
 export function hasFixedAlertThreshold(metric: AlertMetric): boolean {
@@ -162,12 +173,7 @@ export function formatRequestsDropChange(observed: number, recentMedian: number)
   return `${sign}${formatDecimal(Math.abs(changePercent), 0)}%`;
 }
 
-export function formatAlertDistance(
-  metric: AlertMetric,
-  observed: number,
-  mean: number,
-  stddev: number,
-): string {
+export function formatAlertDistance(metric: AlertMetric, observed: number, mean: number): string {
   switch (metric) {
     case "memory_utilization":
       return `avg ${formatAlertValue(metric, observed)} · limit 90%`;
@@ -176,8 +182,15 @@ export function formatAlertDistance(
       return `${formatAlertValue(metric, observed)} events · limit 1`;
     case "requests_drop":
       return formatRequestsDropChange(observed, mean);
+    case "error_5xx":
+    case "error_4xx":
+      return mean <= 0 ? "no prior errors" : formatBaselineMultiple(observed, mean);
+    case "requests":
+    case "egress_bytes":
+    case "cpu_seconds":
+      return formatBaselineMultiple(observed, mean);
     default:
-      return formatSigma(observed, mean, stddev);
+      return metric satisfies never;
   }
 }
 
