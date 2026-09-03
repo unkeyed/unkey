@@ -1,0 +1,70 @@
+syntax = "proto3";
+
+package hydra.v1;
+
+import "dev/restate/sdk/go.proto";
+
+option go_package = "github.com/unkeyed/unkey/gen/proto/hydra/v1;hydrav1";
+
+// DeployAnomalyService owns candidate, open-alert, and quiet-window state for
+// one Deploy app and environment group. The key is
+// "<workspace_id>/<app_id>/<environment_id>" so metric transitions serialize.
+service DeployAnomalyService {
+  option (dev.restate.sdk.go.service_type) = VIRTUAL_OBJECT;
+
+  rpc Evaluate(EvaluateDeployAnomalyRequest) returns (EvaluateDeployAnomalyResponse) {}
+}
+
+enum DeployAnomalyMetricDataState {
+  DEPLOY_ANOMALY_METRIC_DATA_STATE_UNSPECIFIED = 0;
+  DEPLOY_ANOMALY_METRIC_DATA_STATE_PRESENT = 1;
+  DEPLOY_ANOMALY_METRIC_DATA_STATE_ZERO_COMPLETE = 2;
+  DEPLOY_ANOMALY_METRIC_DATA_STATE_INCOMPLETE = 3;
+}
+
+// DeployAnomalyMetricInput is one metric's ClickHouse aggregate. DataState
+// separates an observed value, a complete source with no group row, and an
+// incomplete source whose absence must not mutate alert state.
+message DeployAnomalyMetricInput {
+  string metric = 1;
+  DeployAnomalyMetricDataState data_state = 2;
+  double current = 3;
+  double baseline_mean = 4;
+  double baseline_stddev = 5;
+  int64 observed_baseline_buckets = 6;
+  // FirstBucketTime is the first observed baseline bucket in unix milliseconds.
+  int64 first_bucket_time = 7;
+  double requests_in_window = 8;
+  double recent_median_requests = 9;
+  int64 recent_active_buckets = 10;
+  // Maximum is optional secondary context, currently used for peak memory
+  // utilization while Current carries the 5-minute average.
+  double maximum = 11;
+}
+
+message EvaluateDeployAnomalyRequest {
+  // WindowStart and WindowEnd are unix milliseconds for one closed 5-minute
+  // interval. The baseline excludes this interval.
+  int64 window_start = 1;
+  int64 window_end = 2;
+
+  string workspace_id = 3;
+  string project_id = 4;
+  string app_id = 5;
+  string environment_id = 6;
+  string org_id = 7;
+  string workspace_name = 8;
+  string workspace_slug = 9;
+  string app_name = 10;
+  string environment_slug = 11;
+  string deployment_id = 12;
+  string deployment_desired_state = 13;
+
+  repeated DeployAnomalyMetricInput metrics = 14;
+  bool notifications_muted = 15;
+}
+
+message EvaluateDeployAnomalyResponse {
+  // Pending is true while any metric has a candidate or open alert.
+  bool pending = 1;
+}

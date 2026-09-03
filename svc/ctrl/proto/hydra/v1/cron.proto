@@ -108,6 +108,13 @@ service CronService {
   // singleton handlers
   rpc RunBuildLimitSync(RunBuildLimitSyncRequest) returns (RunBuildLimitSyncResponse) {}
 
+  // RunDeployAnomalyCheck evaluates one closed Deploy metrics window and fans
+  // out actionable production groups to DeployAnomalyService. Key =
+  // "deploy-anomaly-<window start unix seconds>". The scheduler chooses the
+  // last window that is at least one full 5-minute bucket old so rollups can
+  // settle before the fleet queries run.
+  rpc RunDeployAnomalyCheck(RunDeployAnomalyCheckRequest) returns (RunDeployAnomalyCheckResponse) {}
+
   // RunClickhouseUserReconcile reapplies workspace ClickHouse grants when the
   // desired allowed-table fingerprint changes. Key is the fixed slug
   // "clickhouse-user-reconcile" so Restate state survives worker releases.
@@ -197,6 +204,12 @@ message RunBuildLimitSyncRequest {}
 // RunBuildLimitSyncResponse is intentionally empty: every run writes the rules
 // and confirms them, so the invocation outcome is the whole result
 message RunBuildLimitSyncResponse {}
+
+message RunDeployAnomalyCheckRequest {}
+message RunDeployAnomalyCheckResponse {
+  // Number of production app and environment groups evaluated by their VO.
+  int32 groups_dispatched = 1;
+}
 
 message RunClickhouseUserReconcileRequest {}
 message RunClickhouseUserReconcileResponse {
