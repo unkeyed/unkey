@@ -6,7 +6,6 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/go-faster/city"
 	restate "github.com/restatedev/sdk-go"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/assert"
@@ -107,17 +106,10 @@ func (h *ShardHandler) EvaluateShard(
 		return nil, fmt.Errorf("read previous pending anomaly groups: %w", err)
 	}
 	openGroups, err := restate.Run(ctx, func(rc restate.RunContext) ([]db.ListOpenAlertEventGroupsRow, error) {
-		rows, listErr := h.db.ListOpenAlertEventGroups(rc)
-		if listErr != nil {
-			return nil, listErr
-		}
-		filtered := rows[:0]
-		for _, row := range rows {
-			if city.CH64([]byte(row.WorkspaceID))%shardCount == shard {
-				filtered = append(filtered, row)
-			}
-		}
-		return filtered, nil
+		return h.db.ListOpenAlertEventGroups(rc, db.ListOpenAlertEventGroupsParams{
+			ShardCount: shardCount,
+			Shard:      shard,
+		})
 	}, restate.WithName("list open anomaly groups for shard"))
 	if err != nil {
 		return nil, fmt.Errorf("list open anomaly groups for shard: %w", err)

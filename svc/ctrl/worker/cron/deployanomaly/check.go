@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/go-faster/city"
 	restate "github.com/restatedev/sdk-go"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/assert"
@@ -240,8 +241,10 @@ func (h *CheckHandler) open(ctx restate.ObjectContext, req *hydrav1.EvaluateDepl
 		}
 		id := uid.New(uid.AlertPrefix)
 		err := h.db.InsertAlertEvent(rc, db.InsertAlertEventParams{
-			ID: id, WorkspaceID: req.GetWorkspaceId(), ProjectID: req.GetProjectId(),
-			AppID: req.GetAppId(), EnvironmentID: req.GetEnvironmentId(),
+			ID:            id,
+			WorkspaceID:   req.GetWorkspaceId(),
+			WorkspaceHash: city.CH64([]byte(req.GetWorkspaceId())),
+			ProjectID:     req.GetProjectId(), AppID: req.GetAppId(), EnvironmentID: req.GetEnvironmentId(),
 			DeploymentID: sql.NullString{String: req.GetDeploymentId(), Valid: req.GetDeploymentId() != ""},
 			Metric:       db.AlertEventsMetric(input.Metric), FiredAt: req.GetWindowEnd(), LastSeenAt: req.GetWindowEnd(),
 			ObservedValue: result.Observed, BaselineMean: result.BaselineMean,
