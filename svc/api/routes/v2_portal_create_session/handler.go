@@ -412,7 +412,7 @@ func ValidateScopeCombination(scopes []openapi.V2PortalCreateSessionRequestBodyS
 		return fault.New("keys:reroll requires keys:read",
 			fault.Code(codes.App.Validation.InvalidInput.URN()),
 			fault.Internal("scopes contained keys:reroll without keys:read"),
-			fault.Public("The \"keys:reroll\" scope requires \"keys:read\" in the same session. The portal reaches rerolling from the keys list, so a session without \"keys:read\" has no page the end user can open."),
+			fault.Public("The \"keys:reroll\" scope requires \"keys:read\" in the same session."),
 		)
 	}
 

@@ -186,9 +186,9 @@ return Response.redirect(data.url, 302);
 The portal will:
 1. Exchange the code for a 24-hour access token
 2. Set it as an httpOnly cookie
-3. Redirect to the first visible tab based on the session's scopes
+3. Redirect to the keys page
 
-## Scopes and tabs
+## Scopes
 
 Scopes come from a fixed vocabulary. Every scope is bound to the end user in the session: `keys:*` applies only to keys that user owns within the portal's keyspace. An end user can never see another identity's keys.
 
@@ -226,10 +226,10 @@ The portal supports basic white-labeling:
 
 | Setting | Default |
 |---------|---------|
-| Primary color | `#2563eb` |
-| Logo | None |
+| Primary color | None; the header falls back to a dark neutral |
+| Logo | None; the header shows the portal's display name instead |
 
-Logo URLs must be HTTPS.
+Both are optional. `primaryColor` must be a six-digit hex value like `#6366f1`, and `logoUrl` must be an absolute `https://` URL.
 
 ## Required permissions
 
@@ -250,7 +250,7 @@ Second, a session can never carry a capability your root key does not itself hol
 | `keys:read` | `api.*.read_key` and `api.*.read_api` |
 | `keys:reroll` | `api.*.create_key`, plus `api.*.encrypt_key` if the keyspace stores encrypted keys |
 
-Requesting a scope you do not hold returns 403 for the whole request rather than a session with fewer capabilities, so a missing grant shows up immediately instead of as a portal that silently misses a tab.
+Requesting a scope you do not hold returns 403 for the whole request rather than a session with fewer capabilities, so a missing grant shows up immediately instead of as an end user who cannot do what you expected.
 
 A root key without the portal session permission gets a **404**, not a 403. That is deliberate: a caller who cannot mint for a portal is not told whether it exists, so a guessed slug reveals nothing.
 
@@ -276,6 +276,7 @@ You can grant these on the root key in the Unkey dashboard under Settings, Root 
 | Scenario | Status | Message |
 |----------|--------|---------|
 | Missing or invalid JSON body | 400 | `Bad Request` |
+| `keys:reroll` requested without `keys:read` | 400 | `The "keys:reroll" scope requires "keys:read" in the same session.` |
 | Invalid root key | 401 | `Unauthorized` |
 | Portal disabled | 403 | `Portal is disabled.` |
 | Root key lacks a permission for a requested scope | 403 | `You do not have permission to grant the "<scope>" scope to a portal session.` |
