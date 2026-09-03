@@ -59,37 +59,6 @@ func newRejectedSource(rejected *rejection) resolvedSource {
 	return refused
 }
 
-// deployRequest turns a resolved source back into the request Deploy consumes.
-func (s buildSource) deployRequest(deploymentID string, command []string, commit gitCommit) *hydrav1.DeployRequest {
-	if s.Git == nil {
-		return &hydrav1.DeployRequest{
-			DeploymentId: deploymentID,
-			Command:      command,
-			Source: &hydrav1.DeployRequest_OciImage{
-				OciImage: &hydrav1.OciImage{Image: s.Image},
-			},
-		}
-	}
-
-	return &hydrav1.DeployRequest{
-		DeploymentId: deploymentID,
-		Command:      command,
-		Source: &hydrav1.DeployRequest_Git{
-			Git: &hydrav1.GitSource{
-				InstallationId: s.Git.InstallationID,
-				Repository:     s.Git.Repository,
-				CommitSha:      commit.SHA,
-				ContextPath:    s.Git.ContextPath,
-				DockerfilePath: s.Git.DockerfilePath,
-				BuildCommand:   s.Git.BuildCommand,
-				Branch:         commit.Branch,
-				ForkRepository: commit.ForkRepository,
-				PrNumber:       s.Git.PRNumber,
-			},
-		},
-	}
-}
-
 // resolveSource picks what the deployment builds from and completes the commit
 // metadata, so the row is whole at insert time and the build needs no further
 // GitHub lookups.
@@ -173,10 +142,7 @@ func (w *Workflow) resolveGitSource(
 		}
 	}
 
-	if fillErr := commit.fillFromGitHub(
-		w.github, target.GithubInstallationID.Int64, target.GithubRepositoryFullName.String,
-		w.allowUnauthenticatedDeployments,
-	); fillErr != nil {
+	if fillErr := w.fillCommitFromGitHub(&commit, target); fillErr != nil {
 		// The GitHub error can carry a raw response body. Log it and reject with
 		// a reason, so nothing upstream echoes it back.
 		logger.Error(
@@ -308,39 +274,36 @@ func (w *Workflow) resolveExistingDeployment(
 	}, nil
 }
 
-// fillFromGitHub fills empty fields from GitHub, and is a no-op when there is
-// nothing worth fetching. The public path has no lookup-by-SHA, so that branch
-// is skipped without authentication.
-func (cf *gitCommit) fillFromGitHub(
-	gh githubclient.GitHubClient,
-	installationID int64,
-	repo string,
-	allowUnauth bool,
-) error {
+// fillCommitFromGitHub fills the commit's empty fields from GitHub, and is a
+// no-op when there is nothing worth fetching. The public path has no
+// lookup-by-SHA, so that branch is skipped without authentication.
+func (w *Workflow) fillCommitFromGitHub(commit *gitCommit, target db.FindDeployTargetRow) error {
+	installationID := target.GithubInstallationID.Int64
+
 	// The public API is only for a repository with no installation, and only when
 	// unauthenticated deployments are enabled.
-	hasAuth := !allowUnauth || installationID != noInstallationID
+	hasAuth := !w.allowUnauthenticatedDeployments || installationID != noInstallationID
 
-	resolveRepo := repo
-	if cf.ForkRepository != "" {
-		resolveRepo = cf.ForkRepository
+	resolveRepo := target.GithubRepositoryFullName.String
+	if commit.ForkRepository != "" {
+		resolveRepo = commit.ForkRepository
 	}
 
 	var info githubclient.CommitInfo
 	var err error
 
 	switch {
-	case cf.SHA == "":
-		if cf.Branch == "" {
+	case commit.SHA == "":
+		if commit.Branch == "" {
 			return nil
 		}
 		if hasAuth {
-			info, err = gh.GetBranchHeadCommit(installationID, resolveRepo, cf.Branch)
+			info, err = w.github.GetBranchHeadCommit(installationID, resolveRepo, commit.Branch)
 		} else {
-			info, err = gh.GetBranchHeadCommitPublic(resolveRepo, cf.Branch)
+			info, err = w.github.GetBranchHeadCommitPublic(resolveRepo, commit.Branch)
 		}
-	case cf.Message == "" && hasAuth:
-		info, err = gh.GetCommitBySHA(installationID, resolveRepo, cf.SHA)
+	case commit.Message == "" && hasAuth:
+		info, err = w.github.GetCommitBySHA(installationID, resolveRepo, commit.SHA)
 	default:
 		return nil
 	}
@@ -348,20 +311,20 @@ func (cf *gitCommit) fillFromGitHub(
 		return err
 	}
 
-	if cf.SHA == "" {
-		cf.SHA = info.SHA
+	if commit.SHA == "" {
+		commit.SHA = info.SHA
 	}
-	if cf.Message == "" {
-		cf.Message = info.Message
+	if commit.Message == "" {
+		commit.Message = info.Message
 	}
-	if cf.AuthorHandle == "" {
-		cf.AuthorHandle = strings.TrimSpace(info.AuthorHandle)
+	if commit.AuthorHandle == "" {
+		commit.AuthorHandle = strings.TrimSpace(info.AuthorHandle)
 	}
-	if cf.AuthorAvatarURL == "" {
-		cf.AuthorAvatarURL = strings.TrimSpace(info.AuthorAvatarURL)
+	if commit.AuthorAvatarURL == "" {
+		commit.AuthorAvatarURL = strings.TrimSpace(info.AuthorAvatarURL)
 	}
-	if cf.Timestamp == 0 && !info.Timestamp.IsZero() {
-		cf.Timestamp = info.Timestamp.UnixMilli()
+	if commit.Timestamp == 0 && !info.Timestamp.IsZero() {
+		commit.Timestamp = info.Timestamp.UnixMilli()
 	}
 	return nil
 }
