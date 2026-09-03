@@ -1,0 +1,388 @@
+---
+title: "Deploy anomaly detection"
+description: "How the control plane detects and persists unusual Deploy behavior"
+---
+
+Deploy anomaly detection evaluates telemetry for each workspace, project, app,
+and production environment. It opens durable alert records for unusual traffic,
+resource use, and instance failures. Preview environments are excluded.
+
+Alerts belong to the stable app and environment. A deployment ID is stored as
+context, but a redeploy does not close an alert or create a separate detection
+identity.
+
+## Follow the detection pipeline
+
+The pipeline separates fleet scheduling, partitioned ClickHouse scans, and
+stateful evaluation. This keeps the cron object small and serializes state
+changes only for the affected app and environment.
+
+```diagram
+┌──────────────────────┐
+│ Kubernetes CronJob   │ every 5 minutes
+└──────────┬───────────┘
+           ▼
+┌──────────────────────────────────────────┐
+│ CronService.RunDeployAnomalyCheck        │
+│ key: deploy-anomaly-<window_start_s>     │
+└──────────┬───────────────────────────────┘
+           │ fan out, 16 shards by default
+           ▼
+┌──────────────────────────────────────────┐
+│ DeployAnomalyShardService                │
+│ key: <window_start>/<shard>/<count>      │
+└──────┬──────────────┬──────────────┬─────┘
+       │              │              │
+       ▼              ▼              ▼
+  Requests        Resources       Events
+  ClickHouse      ClickHouse      ClickHouse
+  candidates      candidates      candidates
+       └──────────────┬──────────────┘
+                      │ candidate groups and open-alert groups
+                      ▼
+┌──────────────────────────────────────────┐
+│ DeployAnomalyService.Evaluate            │
+│ key: <workspace>/<app>/<environment>     │
+└──────────┬───────────────────────────────┘
+           ▼
+┌──────────────────────┐
+│ MySQL alert_events   │
+└──────────────────────┘
+```
+
+The local cron entry is in
+`dev/k8s/charts/restate-cronjobs/values.yaml`. It uses the schedule
+`*/5 * * * *`. Production declares the same job separately in the
+`unkeyed/infra` repository.
+
+## Select a closed window
+
+Each tick evaluates one aligned 5-minute UTC window. The start in Unix seconds
+is:
+
+`floor(now / 300) * 300 - 300`
+
+For example, a tick at 12:07 evaluates `[12:00, 12:05)`, not the bucket that
+started at 12:05. Waiting one complete bucket absorbs normal buffer and
+materialized-view lag.
+
+The cron virtual object key is
+`deploy-anomaly-<window_start_unix_seconds>`. The timestamp makes retries for
+one window converge on the same durable execution while a later window uses a
+different object.
+
+### Gate evaluation with watermarks
+
+`GetAnomalySourceWatermarks` reads the latest complete bucket boundary for each
+request, resource, and instance-event source. A source is incomplete when its
+watermark is earlier than the window end.
+
+Each metric input in `deploy_anomaly_check.proto` has one of these states:
+
+| State | Meaning | Evaluator behavior |
+| --- | --- | --- |
+| `PRESENT` | The source is complete and the group has a row. | Evaluate the supplied value. |
+| `ZERO_COMPLETE` | The source is complete and the group has no row. | Evaluate a real zero. |
+| `INCOMPLETE` | The source has not reached the window end. | Make no state or database change for that metric. |
+
+`INCOMPLETE` is a strict no-op. It cannot open an alert, advance a two-window
+candidate, update `last_seen_at`, increment recovery state, or resolve an
+alert. One delayed source does not stop complete metrics from other sources.
+
+## Shard the fleet scan
+
+`RunDeployAnomalyCheck` fans out to `DeployAnomalyShardService`. The default is
+16 shards. A workspace belongs to one shard according to:
+
+`cityHash64(workspace_id) % shard_count`
+
+The shard virtual object key is
+`<window_start>/<shard>/<shard_count>`. Including the count makes the partition
+scheme explicit for retries and lets operators change the count for later
+windows without changing an in-flight run.
+
+Each shard reads open alert groups from MySQL, then runs the three ClickHouse
+query families for its workspace partition. Candidate conditions run in each
+query's `HAVING` clause. ClickHouse returns only groups that meet a detector
+precondition and groups that already have an open alert. Go performs the final
+classification and supplies complete metric state to each selected group.
+
+The shard resolves group metadata from MySQL and removes preview environments
+before dispatch. It invokes `DeployAnomalyService` once per selected production
+group. All child futures are awaited. A failed child causes the parent to
+withhold its health-check heartbeat.
+
+## Understand the ClickHouse queries
+
+The query methods live in `pkg/clickhouse/anomaly_window.go`. They aggregate
+away `deployment_id` and group by `workspace_id`, `project_id`, `app_id`, and
+`environment_id`.
+
+| Method | Source | Metrics |
+| --- | --- | --- |
+| `GetRequestAnomalyWindows` | `frontline_requests_per_5m_v1` | `error_5xx`, `error_4xx`, `requests`, `requests_drop` |
+| `GetResourceAnomalyWindows` | `instance_resources_per_minute_v1` | `egress_bytes`, `cpu_seconds`, `memory_utilization` |
+| `GetInstanceEventAnomalyWindows` | `instance_events_raw_v1` | `oom_killed`, `crash_loop` |
+
+### Query request windows
+
+The request query scans the current bucket and the preceding 24 hours. Its
+inner aggregation combines status-code rows and deployments into one 5-minute
+group bucket. The outer aggregation computes current counts, request baseline
+moments, request-weighted error means, and the population standard deviation
+of per-bucket error ratios.
+
+The same query returns the first observed bucket, the number of observed
+baseline buckets, whether the current bucket exists, and an aligned array for
+the previous 12 request buckets. Missing entries in that 12-bucket array become
+zero. The final `HAVING` applies candidate thresholds or retains a group that
+has an open alert.
+
+### Query resource windows
+
+The resource query scans the per-minute rollup and forms 5-minute buckets. For
+each container incarnation, egress and CPU use non-negative counter deltas.
+Memory divides sampled bytes by allocated bytes. The query then combines
+containers into instances and computes the 5-minute average across instances.
+
+The outer aggregation returns the current egress, CPU, and memory values,
+baseline moments for egress and CPU, observed bucket count, and first bucket
+time. The per-minute source is a dashboard rollup. Its additive values can
+double-count rare insert retries, which is an accepted observability tradeoff.
+Billing does not use this query.
+
+### Query instance events
+
+The event query scans only the selected 5-minute window. It counts terminated
+events with reason `OOMKilled` and waiting events with reason
+`CrashLoopBackOff`. These metrics use fixed thresholds and need no historical
+baseline.
+
+Hourly rollups supply the dashboard's 7-day overview. Dashboard series queries
+are separate from the detector queries and do not mutate alert state.
+
+## Evaluate one group
+
+The pure functions `Detect`, `Recovered`, `ShouldResolve`,
+`BaselineWindowBuckets`, and `RecentRequestStats` live in
+`svc/ctrl/worker/cron/deployanomaly`. The
+[detector math](/architecture/services/control-plane/worker/deploy-anomaly-detection-math)
+defines every metric threshold and worked example.
+
+`DeployAnomalyService` uses the stable key
+`<workspace_id>/<app_id>/<environment_id>`. One write handler at a time can
+change a keyed virtual object's state, so overlapping cron windows cannot race
+candidate, open, or recovery transitions for the same group.
+
+```diagram
+                         INCOMPLETE
+                       ┌────────────┐
+                       │ strict     │
+                       │ no-op      │
+                       └────────────┘
+
+┌──────────────┐  first sustained window  ┌──────────────┐
+│ No alert     │──────────────────────────▶│ Candidate    │
+└──────┬───────┘                           └──────┬───────┘
+       │ one-window anomaly                       │ next consecutive anomaly
+       │                                          │
+       └────────────────────┬─────────────────────┘
+                            ▼
+                     ┌──────────────┐
+                     │ Open alert   │
+                     └───┬──────┬───┘
+              anomaly    │      │ recovered window
+              touch row  │      ▼
+                         │  ┌──────────────┐
+                         └─▶│ Quiet 1 or 2 │
+                            └──────┬───────┘
+                     anomaly resets│ third recovered window
+                                   ▼
+                            ┌──────────────┐
+                            │ Resolved     │
+                            └──────────────┘
+```
+
+Error-ratio anomalies and request drops use candidate state and require two
+consecutive anomalous windows. Other metrics open after one window. A normal or
+insufficient window clears candidate state. An ongoing anomaly resets the quiet
+counter and updates the alert's latest value.
+
+An open request-drop alert resolves immediately with `Deployment stopped` when
+there is no live deployment or `deployments.desired_state = stopped`. Without
+an open alert, the same condition clears request-drop candidate state.
+
+### Persist virtual object state
+
+The evaluator stores state per metric. `<metric>` is one of the nine MySQL and
+Go enum values.
+
+| Key | Purpose |
+| --- | --- |
+| `candidate:<metric>` | Records the first window of a sustained rule. |
+| `candidate_window:<metric>` | Proves that the next candidate window is consecutive. |
+| `open_alert:<metric>` | Stores the open `alert_events.id`. |
+| `quiet:<metric>` | Counts consecutive complete recovered windows. |
+| `snapshot:<metric>` | Stores the opening baseline and threshold for recovery. |
+| `detector_input:<metric>` | Retains the last complete detector input, including request-drop context. |
+| `open_alerts_reconciled` | Records that open MySQL rows were loaded into this object. |
+
+On first use, the evaluator reconciles open rows from MySQL. This restores the
+open alert ID and opening snapshot if the virtual object has no prior state.
+
+## Persist alerts in MySQL
+
+`alert_events` is the durable customer-facing record. The Drizzle source is
+`web/internal/db/src/schema/alert_events.ts`, and the generated schema is
+`pkg/mysql/schema/alert_events.sql`.
+
+The table stores:
+
+- Identity: `id`, `workspace_id`, `project_id`, `app_id`, `environment_id`, and
+  nullable `deployment_id`.
+- Classification: `metric` and `status` (`open` or `resolved`).
+- Detection context: `fired_at`, `last_seen_at`, `window_start`, `window_end`,
+  `observed_value`, `baseline_mean`, `baseline_stddev`, and `threshold_sigma`.
+- Resolution context: `resolved_at`, `resolved_by`, and `resolution_message`.
+- Record timestamps: `created_at` and `updated_at`.
+
+Alert IDs use the `alert_` prefix. Error metrics store their error ratio in
+`observed_value`, not the raw error count. The evaluator enforces one open alert
+per group and metric. An anomaly against an existing open row updates
+`last_seen_at` and `observed_value` instead of inserting another row.
+
+System recovery sets `status = resolved`, `resolved_by = system`, and
+`resolution_message = "Metric returned to baseline for 3 consecutive windows"`.
+A dashboard resolution requires a message, stores the user ID in `resolved_by`,
+and writes the `alert.resolve` audit log event.
+
+The detector does not send email, Slack messages, or webhooks. It only persists
+status transitions. A separate notification service can consume those
+transitions in a later phase.
+
+## Preserve Restate guarantees
+
+All ClickHouse reads, MySQL reads and writes, and heartbeat calls run in named
+`restate.Run` or `restate.RunVoid` steps. Restate service calls use durable
+clients, and virtual object state uses the Restate state API. The alert ID is
+generated inside the insert step, so a replay cannot generate a second ID for
+the same journal entry.
+
+The cron handler's retry policy kills the invocation after its maximum attempts.
+It must never pause, because a paused cron object can hold its key and hide an
+operational failure. Child failures are logged and prevent the success
+heartbeat. Operators can then distinguish a running cron from a fully
+successful fleet evaluation.
+
+Do not move database calls outside journaled steps. Do not read wall-clock time
+inside replayed handler code. The window timestamp comes from the durable object
+key.
+
+## Use the dashboard
+
+There is no separate dashboard architecture section in the engineering docs,
+so this page owns the dashboard implementation notes.
+
+The workspace inbox route is `/[workspaceSlug]/alerts`. It provides **Open** and
+**Resolved** filters, a sparkline, and inline resolution with a required
+message. `/[workspaceSlug]/alerts/[alertId]` redirects to the app focus route:
+
+`/[workspaceSlug]/projects/[projectId]/apps/[appId]/anomalies?env=<environmentId>&alert=<id>`
+
+The app-level **Anomalies** tab provides these views:
+
+- A 7-day hourly overview strip and 24-hour, 6-hour, or 7-day range selection.
+- Metric selection for 5xx, 4xx, Requests, Egress, CPU, Memory, and Health.
+- An observed line, expected mean, and expected band calculated per bucket with
+  the detector's effective-deviation rules.
+- A request lower band at 25% of the rolling 12-bucket median and a fixed 90%
+  memory line.
+- OOM and crash-loop bars in the Health view.
+- Shaded windows for every anomaly and line-attached markers for the selected
+  metric.
+- Optional deployment markers, drag-to-zoom, and a range-scoped alert list.
+- Alert focus through `?alert=<id>`, including an alert details card.
+
+The `alerts` tRPC router is in
+`web/apps/dashboard/lib/trpc/routers/alerts/`. Its procedures are `list`, `get`,
+`resolve`, `summary`, `series`, and `deployments`. Dashboard ClickHouse queries
+live in `web/internal/clickhouse/src/alerts.ts`. Shared band constants live in
+`web/internal/clickhouse/src/alert-thresholds.ts` so displayed thresholds match
+detector rules.
+
+The `series` query returns time-aligned observed values for the selected range.
+For each bucket, the dashboard calculates the trailing expected mean and
+effective deviation with the same 10% and absolute floors as the detector. It
+draws the expected band from those values. Request charts add a lower line at
+25% of the rolling 12-bucket median. Memory uses a flat 90% line, and Health
+uses OOM and crash-loop event bars. These calculations explain alerts but do
+not create or resolve them.
+
+The Vercel feature flag `deploy-anomaly-alerts` gates all alert UI. It is
+registered in `web/apps/dashboard/lib/flags/index.ts`, defaults to off, and has
+the local override `FLAGS_LOCAL_OVERRIDES=deploy-anomaly-alerts`.
+
+### Test the dashboard locally
+
+Start the dashboard and its Docker Compose MySQL and ClickHouse dependencies:
+
+```bash
+FLAGS_LOCAL_OVERRIDES=deploy-anomaly-alerts mise run dashboard
+```
+
+The dashboard task runs `bin/unkey dev seed local`. After that seed completes,
+run the alert seed in another terminal:
+
+```bash
+bin/unkey dev seed alerts
+```
+
+The alert seed writes 7 days of dense 5-minute telemetry, nine alerts, and
+deployment markers. Verify the open and resolved inbox filters, each metric
+view, focus mode, zoom, deployment toggle, and both manual and automatic
+resolution states.
+
+## Scale characteristics
+
+The fleet scan has a fixed bound of one 24-hour baseline plus the selected
+5-minute bucket. It partitions workspaces across 16 shards by default.
+ClickHouse performs candidate filtering before returning rows to Go. Restate
+creates per-group work only for candidates and existing open alerts. The stable
+group key serializes one group's state without serializing unrelated workspaces.
+
+<!-- TODO(deploy-anomaly-scale): Replace every "Pending measurement" cell with
+the measured values supplied after the sharded implementation lands. Record the
+dataset size, shard count, and measurement environment with the results. -->
+
+| Measurement | Result |
+| --- | --- |
+| Workspaces and production groups in test dataset | Pending measurement |
+| Request query p50 / p95 per shard | Pending measurement |
+| Resource query p50 / p95 per shard | Pending measurement |
+| Event query p50 / p95 per shard | Pending measurement |
+| Candidate rows returned vs. groups scanned | Pending measurement |
+| End-to-end cron p50 / p95 | Pending measurement |
+| Peak concurrent per-group evaluations | Pending measurement |
+
+## Find the implementation
+
+The implementation is split across these sources:
+
+| Source | Responsibility |
+| --- | --- |
+| `svc/ctrl/worker/cron/deployanomaly` | Detection rules, cron and shard orchestration, and per-group state. |
+| `pkg/clickhouse/anomaly_window.go` | Watermark and detector window queries. |
+| `svc/ctrl/proto/hydra/v1/cron.proto` | Cron handler contract. |
+| `svc/ctrl/proto/hydra/v1/deploy_anomaly_check.proto` | Shard and metric data-state contracts. |
+| `web/internal/db/src/schema/alert_events.ts` | MySQL schema source. |
+| `pkg/mysql/schema/alert_events.sql` | Generated MySQL schema. |
+| `dev/k8s/charts/restate-cronjobs/values.yaml` | Local cron schedule and request. |
+
+Use the [Deploy anomaly operations runbook](/infra/runbooks/deploy-anomaly-alerts)
+for failures and false-positive investigation.
+
+## Know the phase limits
+
+This phase does not include notifications, per-app mute controls, sensitivity
+UI, seasonality, a latency detector, per-region ingest watermarks, or deployment
+before-and-after comparison.
