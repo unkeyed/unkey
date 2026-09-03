@@ -72,7 +72,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	environment, err := db.Query.FindEnvironmentByIdentifiers(ctx, h.DB.RO(), db.FindEnvironmentByIdentifiersParams{
-		WorkspaceID: principal.WorkspaceID,
+		WorkspaceID: principal.AuthorizedWorkspaceID,
 		Project:     req.Project,
 		App:         req.App,
 		Environment: req.Environment,
@@ -101,7 +101,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			Action:       rbac.CreateDeployment,
 		}),
 		rbac.U(
-			urn.New().Workspace(principal.WorkspaceID).Project(environment.ProjectID).App(environment.AppID).Environment(environment.ID).Deployment("*"),
+			urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(environment.ProjectID).App(environment.AppID).Environment(environment.ID).Deployment("*"),
 			permissions.Write,
 		),
 	))
@@ -135,7 +135,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	switch {
 	case req.Oci != nil:
-		ctrlReq.OciImage = req.Oci.Image
+		ctrlReq.Source = &ctrlv1.CreateDeploymentRequest_OciImage{OciImage: req.Oci.Image}
 
 	case req.Git != nil:
 		git := req.Git
@@ -159,19 +159,24 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			return fault.Wrap(err, fault.Internal("failed to check repo connection"))
 		}
 		// nolint: exhaustruct // ctrl fills the commit metadata it resolves from git
-		ctrlReq.GitCommit = &ctrlv1.GitCommitInfo{
-			Branch:         ptr.SafeDeref(git.Branch),
-			CommitSha:      ptr.SafeDeref(git.CommitSha),
-			ForkRepository: ptr.SafeDeref(git.Repository),
+		ctrlReq.Source = &ctrlv1.CreateDeploymentRequest_GitCommit{
+			GitCommit: &ctrlv1.GitCommitInfo{
+				Branch:         ptr.SafeDeref(git.Branch),
+				CommitSha:      ptr.SafeDeref(git.CommitSha),
+				ForkRepository: ptr.SafeDeref(git.Repository),
+			},
 		}
 
 	case req.Deployment != nil:
-		gitCommit, ociImage, resolveErr := h.resolveRedeploy(ctx, principal.WorkspaceID, environment.AppID, environment.ID, req.Deployment.DeploymentId)
+		gitCommit, ociImage, resolveErr := h.resolveRedeploy(ctx, principal.AuthorizedWorkspaceID, environment.AppID, environment.ID, req.Deployment.DeploymentId)
 		if resolveErr != nil {
 			return resolveErr
 		}
-		ctrlReq.GitCommit = gitCommit
-		ctrlReq.OciImage = ociImage
+		if gitCommit != nil {
+			ctrlReq.Source = &ctrlv1.CreateDeploymentRequest_GitCommit{GitCommit: gitCommit}
+		} else {
+			ctrlReq.Source = &ctrlv1.CreateDeploymentRequest_OciImage{OciImage: ociImage}
+		}
 	}
 
 	if err = h.ensureEnvironmentDeployable(ctx, environment); err != nil {

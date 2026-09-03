@@ -46,7 +46,7 @@ func TestCreateOCIDeployment(t *testing.T) {
 	require.Equal(t, http.StatusCreated, res.Status, "received: %s", res.RawBody)
 	require.Equal(t, "d_test_generated", res.Body.Data.DeploymentId)
 	require.NotNil(t, captured)
-	require.Equal(t, "nginx:latest", captured.OciImage)
+	require.Equal(t, "nginx:latest", captured.GetOciImage())
 }
 
 func TestCreateDeploymentWithAppDefault(t *testing.T) {
@@ -75,8 +75,8 @@ func TestCreateDeploymentWithAppDefault(t *testing.T) {
 	})
 	require.Equal(t, http.StatusCreated, res.Status, "received: %s", res.RawBody)
 	require.NotNil(t, captured)
-	require.Empty(t, captured.OciImage)
-	require.Nil(t, captured.GitCommit)
+	require.Empty(t, captured.GetOciImage())
+	require.Nil(t, captured.GetGitCommit())
 }
 
 func TestCreateGitDeployment(t *testing.T) {
@@ -107,8 +107,8 @@ func TestCreateGitDeployment(t *testing.T) {
 	})
 	require.Equal(t, http.StatusCreated, res.Status, "received: %s", res.RawBody)
 	require.NotNil(t, captured)
-	require.NotNil(t, captured.GitCommit)
-	require.Equal(t, "main", captured.GitCommit.Branch)
+	require.NotNil(t, captured.GetGitCommit())
+	require.Equal(t, "main", captured.GetGitCommit().GetBranch())
 }
 
 func TestRedeployOCIUsesResolvedImage(t *testing.T) {
@@ -154,7 +154,7 @@ func TestRedeployOCIUsesResolvedImage(t *testing.T) {
 	})
 	require.Equal(t, http.StatusCreated, res.Status, "received: %s", res.RawBody)
 	require.NotNil(t, captured)
-	require.Equal(t, resolved, captured.OciImage)
+	require.Equal(t, resolved, captured.GetOciImage())
 }
 
 func authHeaders(rootKey string) http.Header {
