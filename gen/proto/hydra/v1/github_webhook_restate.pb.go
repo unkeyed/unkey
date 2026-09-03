@@ -16,16 +16,16 @@ import (
 // GitHubWebhookServiceClient is the client API for hydra.v1.GitHubWebhookService service.
 //
 // GitHubWebhookService processes GitHub push events as a Restate virtual object
-// keyed by "{installation_id}/{repo_id}". This serializes webhook processing
+// keyed by "{installation_id}:{repo_id}". This serializes webhook processing
 // per repository, preventing races from concurrent pushes to the same repo.
 //
 // The HTTP handler validates the signature, parses the payload, and sends
 // the request to this service with X-GitHub-Delivery as the idempotency key,
 // providing natural deduplication of GitHub's retried deliveries.
 type GitHubWebhookServiceClient interface {
-	// HandlePush processes a GitHub push event: looks up repo connections,
-	// resolves project/environment/app/settings, creates deployment records,
-	// and fires off DeployService.Deploy() for each deployment.
+	// HandlePush processes a GitHub push event: looks up the repo connections,
+	// gates them on the workspace entitlement and each app's watch paths, then
+	// calls DeployService.Create once per app to write the row and start it.
 	HandlePush(opts ...sdk_go.ClientOption) sdk_go.Client[*HandlePushRequest, *HandlePushResponse]
 }
 
@@ -55,9 +55,9 @@ func (c *gitHubWebhookServiceClient) HandlePush(opts ...sdk_go.ClientOption) sdk
 //
 // This client is used to call the service from outside of a Restate context.
 type GitHubWebhookServiceIngressClient interface {
-	// HandlePush processes a GitHub push event: looks up repo connections,
-	// resolves project/environment/app/settings, creates deployment records,
-	// and fires off DeployService.Deploy() for each deployment.
+	// HandlePush processes a GitHub push event: looks up the repo connections,
+	// gates them on the workspace entitlement and each app's watch paths, then
+	// calls DeployService.Create once per app to write the row and start it.
 	HandlePush() ingress.Requester[*HandlePushRequest, *HandlePushResponse]
 }
 
@@ -85,16 +85,16 @@ func (c *gitHubWebhookServiceIngressClient) HandlePush() ingress.Requester[*Hand
 // for forward compatibility.
 //
 // GitHubWebhookService processes GitHub push events as a Restate virtual object
-// keyed by "{installation_id}/{repo_id}". This serializes webhook processing
+// keyed by "{installation_id}:{repo_id}". This serializes webhook processing
 // per repository, preventing races from concurrent pushes to the same repo.
 //
 // The HTTP handler validates the signature, parses the payload, and sends
 // the request to this service with X-GitHub-Delivery as the idempotency key,
 // providing natural deduplication of GitHub's retried deliveries.
 type GitHubWebhookServiceServer interface {
-	// HandlePush processes a GitHub push event: looks up repo connections,
-	// resolves project/environment/app/settings, creates deployment records,
-	// and fires off DeployService.Deploy() for each deployment.
+	// HandlePush processes a GitHub push event: looks up the repo connections,
+	// gates them on the workspace entitlement and each app's watch paths, then
+	// calls DeployService.Create once per app to write the row and start it.
 	HandlePush(ctx sdk_go.ObjectContext, req *HandlePushRequest) (*HandlePushResponse, error)
 }
 

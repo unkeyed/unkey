@@ -7,7 +7,7 @@ import "dev/restate/sdk/go.proto";
 option go_package = "github.com/unkeyed/unkey/gen/proto/hydra/v1;hydrav1";
 
 // GitHubWebhookService processes GitHub push events as a Restate virtual object
-// keyed by "{installation_id}/{repo_id}". This serializes webhook processing
+// keyed by "{installation_id}:{repo_id}". This serializes webhook processing
 // per repository, preventing races from concurrent pushes to the same repo.
 //
 // The HTTP handler validates the signature, parses the payload, and sends
@@ -16,9 +16,9 @@ option go_package = "github.com/unkeyed/unkey/gen/proto/hydra/v1;hydrav1";
 service GitHubWebhookService {
   option (dev.restate.sdk.go.service_type) = VIRTUAL_OBJECT;
 
-  // HandlePush processes a GitHub push event: looks up repo connections,
-  // resolves project/environment/app/settings, creates deployment records,
-  // and fires off DeployService.Deploy() for each deployment.
+  // HandlePush processes a GitHub push event: looks up the repo connections,
+  // gates them on the workspace entitlement and each app's watch paths, then
+  // calls DeployService.Create once per app to write the row and start it.
   rpc HandlePush(HandlePushRequest) returns (HandlePushResponse) {}
 }
 

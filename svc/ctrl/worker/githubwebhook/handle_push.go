@@ -276,13 +276,12 @@ type pendingCreate struct {
 }
 
 // requestCreate hands one app's deployment to DeployService.Create, which owns
-// every deployment row, and returns the pending call.
+// every deployment row.
 //
-// The call is awaited rather than sent one-way, because created_at decides
-// sibling order and Create stamps it from its own clock. This object is keyed
-// per repository, so awaiting here is what keeps two pushes to one repository
-// from stamping their rows out of order. Callers start every app's create
-// before awaiting any, so the per-app GitHub lookups still overlap.
+// The result is awaited rather than sent one-way: created_at decides sibling
+// order and Create stamps it from its own clock, so awaiting inside this
+// per-repository object is what keeps two pushes to one repo from stamping
+// their rows out of order.
 func (s *Service) requestCreate(
 	ctx restate.ObjectContext,
 	deploymentID string,
