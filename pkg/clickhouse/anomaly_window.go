@@ -108,13 +108,23 @@ type ResourceAnomalyWindow struct {
 	FirstBucketTime             int64   `ch:"first_bucket_time"`
 }
 
-// AnomalySourceWatermarks reports the exclusive time through which each
-// rollup has data. A source is incomplete for a window when its watermark is
-// earlier than that window's end.
-type AnomalySourceWatermarks struct {
-	Requests  int64 `ch:"requests_watermark"`
-	Resources int64 `ch:"resources_watermark"`
+const (
+	AnomalySourceRequests       = "requests"
+	AnomalySourceResources      = "resources"
+	AnomalySourceInstanceEvents = "instance_events"
+)
+
+// AnomalySourceWatermark reports the exclusive time through which one active
+// region has data for a detector source.
+type AnomalySourceWatermark struct {
+	Source    string `ch:"source"`
+	Region    string `ch:"region"`
+	Watermark int64  `ch:"watermark"`
 }
+
+// AnomalySourceWatermarks contains one row per source and region with ingest
+// during the bounded two-hour activity window. Absent regions are inactive.
+type AnomalySourceWatermarks []AnomalySourceWatermark
 
 // InstanceEventAnomalyWindow contains current-window OOM and crash-loop counts
 // for one app and environment.
@@ -496,27 +506,27 @@ func (c *Client) GetResourceAnomalyWindows(ctx context.Context, req AnomalyWindo
 	return windows, nil
 }
 
-// GetAnomalySourceWatermarks returns fleet-wide rollup completeness. Each max
-// scan is limited to 2 hours. A fleet watermark can still hide a lagging region;
-// regional completeness requires region columns in every source and is phase 2.
+// GetAnomalySourceWatermarks returns one completeness bound per active source
+// region. Regions without ingest in the two-hour bound are inactive rather
+// than lagging, so a decommissioned region cannot block detection forever.
 func (c *Client) GetAnomalySourceWatermarks(ctx context.Context) (AnomalySourceWatermarks, error) {
 	query := `
 	SELECT
-		if(countIf(source = 'requests') = 0, 0, toInt64(toUnixTimestamp(maxIf(time, source = 'requests') + INTERVAL 5 MINUTE)) * 1000) AS requests_watermark,
-		if(countIf(source = 'resources') = 0, 0, toInt64(toUnixTimestamp(maxIf(time, source = 'resources') + INTERVAL 1 MINUTE)) * 1000) AS resources_watermark
+		source,
+		region,
+		toInt64(toUnixTimestamp(if(source = 'resources', max(time) + INTERVAL 1 MINUTE, max(time) + INTERVAL 5 MINUTE))) * 1000 AS watermark
 	FROM default.anomaly_source_watermarks_v1
 	WHERE time > now() - INTERVAL 2 HOUR
+	GROUP BY source, region
+	ORDER BY source, region
 	/*operation='GetAnomalySourceWatermarks'*/
 	`
 
-	watermarks, err := Select[AnomalySourceWatermarks](ctx, c.conn, query, nil)
+	watermarks, err := Select[AnomalySourceWatermark](ctx, c.conn, query, nil)
 	if err != nil {
-		return AnomalySourceWatermarks{}, fault.Wrap(err, fault.Internal("failed to query anomaly source watermarks"))
+		return nil, fault.Wrap(err, fault.Internal("failed to query anomaly source watermarks"))
 	}
-	if len(watermarks) == 0 {
-		return AnomalySourceWatermarks{Requests: 0, Resources: 0}, nil
-	}
-	return watermarks[0], nil
+	return watermarks, nil
 }
 
 const instanceEventAnomalyWindowsQuery = `

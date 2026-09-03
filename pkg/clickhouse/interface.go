@@ -49,8 +49,8 @@ type Querier interface {
 	// Returns 0 (not an error) when the deployment has received no traffic.
 	GetDeploymentRequestCount(ctx context.Context, req GetDeploymentRequestCountRequest) (int64, error)
 
-	// GetAnomalySourceWatermarks returns the exclusive fleet-wide completeness
-	// bounds for the request and resource rollups.
+	// GetAnomalySourceWatermarks returns exclusive completeness bounds for each
+	// source and region that had ingest during the bounded activity window.
 	GetAnomalySourceWatermarks(ctx context.Context) (AnomalySourceWatermarks, error)
 
 	// GetRequestAnomalyWindows returns per-app request and error aggregates for
