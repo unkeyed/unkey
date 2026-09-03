@@ -10,6 +10,7 @@ export async function resolveAll() {
     deployBilling,
     billingUIUpgrades,
     showDarksoulsSuccessBanner,
+    deployAnomalyAlerts,
     portalManagement,
     projectsNav,
   ] = await Promise.all([
@@ -17,6 +18,7 @@ export async function resolveAll() {
     flags.deployBilling(),
     flags.billingUIUpgrades(),
     flags.showDarksoulsSuccessBanner(),
+    flags.deployAnomalyAlerts(),
     flags.portalManagement(),
     flags.projectsNav(),
   ]);
@@ -25,6 +27,7 @@ export async function resolveAll() {
     deployBilling,
     billingUIUpgrades,
     showDarksoulsSuccessBanner,
+    deployAnomalyAlerts,
     portalManagement,
     projectsNav,
   };

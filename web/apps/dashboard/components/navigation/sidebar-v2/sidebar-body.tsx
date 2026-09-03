@@ -29,13 +29,14 @@ export function SidebarBody() {
   const { slug } = useWorkspaceNavigation();
   const { keyAuthId } = useApiKeyAuthId(context.type === "api" ? context.apiId : undefined);
   const portalManagement = useFlag("portalManagement");
+  const deployAnomalyAlerts = useFlag("deployAnomalyAlerts");
   const projectsNav = useFlag("projectsNav");
   const { user } = useWorkspace();
 
   const workspaceSections = (segs: string[]) =>
     projectsNav
       ? buildProjectsNavWorkspaceSections(slug, segs, user?.role === "admin")
-      : buildWorkspaceSections(slug, segs);
+      : buildWorkspaceSections(slug, segs, deployAnomalyAlerts);
   const projectLinks = projectsNav ? buildProjectsNavProjectLinks : buildProjectLinks;
 
   const links = (() => {
@@ -50,7 +51,7 @@ export function SidebarBody() {
         return workspaceSections(segments);
       case "project":
         return context.appId
-          ? buildAppLinks(slug, context.projectId, context.appId, segments)
+          ? buildAppLinks(slug, context.projectId, context.appId, segments, deployAnomalyAlerts)
           : projectLinks(slug, context.projectId, segments);
       case "api":
         return buildApiLinks(

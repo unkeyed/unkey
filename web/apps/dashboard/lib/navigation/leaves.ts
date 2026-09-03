@@ -21,7 +21,11 @@ import { routes } from "./routes";
 import type { ResourceScope } from "./routes/shared";
 import type { ResolvedNavLink } from "./types";
 
-export function buildWorkspaceSections(slug: string, segments: string[]): ResolvedNavLink[] {
+export function buildWorkspaceSections(
+  slug: string,
+  segments: string[],
+  deployAnomalyAlertsEnabled: boolean,
+): ResolvedNavLink[] {
   const top = segments[0];
   return [
     {
@@ -88,7 +92,7 @@ export function buildWorkspaceSections(slug: string, segments: string[]): Resolv
       icon: IconGearOutline18,
       isActive: top === "settings",
     },
-  ];
+  ].filter((link) => deployAnomalyAlertsEnabled || link.key !== "alerts");
 }
 
 export function buildProjectLinks(
@@ -135,6 +139,7 @@ export function buildAppLinks(
   projectId: string,
   appId: string,
   segments: string[],
+  deployAnomalyAlertsEnabled: boolean,
 ): ResolvedNavLink[] {
   const page = segments[4];
   const scope = { workspaceSlug: slug, projectId, appId };
@@ -204,7 +209,7 @@ export function buildAppLinks(
     //   icon: IconNodesOutline18,
     //   isActive: page === "openapi-diff",
     // },
-  ];
+  ].filter((link) => deployAnomalyAlertsEnabled || link.key !== "anomalies");
 }
 
 export function buildApiLinks(
