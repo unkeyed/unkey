@@ -36,8 +36,6 @@ export const alertEvents = mysqlTable(
     pk: primaryKey(),
     id: id("id").notNull().unique(),
     workspaceId: id("workspace_id").notNull(),
-    // CityHash64 of workspace_id matches ClickHouse and lets worker shards filter open alerts in SQL.
-    workspaceHash: bigint("workspace_hash", { mode: "bigint", unsigned: true }).notNull(),
     projectId: id("project_id").notNull(),
     appId: id("app_id").notNull(),
     environmentId: id("environment_id").notNull(),
@@ -47,7 +45,6 @@ export const alertEvents = mysqlTable(
     firedAt: bigint("fired_at", { mode: "number" }).notNull(),
     lastSeenAt: bigint("last_seen_at", { mode: "number" }).notNull(),
     resolvedAt: bigint("resolved_at", { mode: "number" }),
-    resolvedBy: varchar("resolved_by", { length: 255 }),
     resolutionMessage: varchar("resolution_message", { length: 1000 }),
     observedValue: double("observed_value").notNull(),
     // The detector copies its baseline onto each event so the dashboard can
@@ -60,7 +57,7 @@ export const alertEvents = mysqlTable(
     ...lifecycleDates,
   },
   (table) => [
-    index("status_workspace_hash_idx").on(table.status, table.workspaceHash),
+    index("status_idx").on(table.status),
     index("workspace_status_fired_at_idx").on(table.workspaceId, table.status, table.firedAt),
     index("workspace_app_environment_status_idx").on(
       table.workspaceId,
