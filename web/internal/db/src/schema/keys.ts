@@ -32,9 +32,9 @@ export const keys = mysqlTable(
     keyAuthId: id("key_auth_id").notNull(),
     hash: caseSensitiveVarchar("hash", { length: 256 }).notNull(),
     // Legacy prefixes can exceed the 16-character limit for version 1 keys.
-    prefix: varchar("prefix", { length: 256 }).notNull().default(""),
+    prefix: varchar("prefix", { length: 256 }).notNull(),
     start: varchar("start", { length: 256 }).notNull(),
-    end: varchar("end", { length: 4 }).notNull().default(""),
+    end: varchar("end", { length: 4 }).notNull(),
 
     /**
      * This is the workspace that owns the key.
