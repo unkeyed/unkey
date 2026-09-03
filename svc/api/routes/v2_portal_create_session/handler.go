@@ -228,23 +228,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	// Determine the portal URL: prefer a verified custom domain for the app,
-	// fall back to the configured base URL (e.g. https://portal.unkey.com).
-	portalBaseURL := h.PortalBaseURL
-	if portal.AppID.Valid {
-		customDomain, cdErr := db.Query.FindVerifiedCustomDomainByAppID(ctx, h.DB.RO(), portal.AppID.String)
-		if cdErr != nil && !db.IsNotFound(cdErr) {
-			return fault.Wrap(cdErr,
-				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-				fault.Internal("database error looking up custom domain for portal app"),
-				fault.Public("Failed to look up portal configuration."),
-			)
-		}
-		if cdErr == nil {
-			portalBaseURL = fmt.Sprintf("https://%s", customDomain.Domain)
-		}
-	}
-
 	now := h.Clock.Now()
 	sessionID := uid.New(uid.PortalSessionPrefix)
 
@@ -379,7 +362,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	portalURL := fmt.Sprintf("%s/?code=%s", portalBaseURL, exchangeCode)
+	portalURL := fmt.Sprintf("%s/?code=%s", h.PortalBaseURL, exchangeCode)
 
 	s.ResponseWriter().Header().Set("Cache-Control", "no-store")
 	s.ResponseWriter().Header().Set("Pragma", "no-cache")

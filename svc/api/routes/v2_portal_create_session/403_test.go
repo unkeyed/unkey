@@ -388,7 +388,7 @@ func TestCreateSessionMultiKeyspacePartialGrant(t *testing.T) {
 	appID := seedAppWithKeyspaces(t, h, workspace.ID, "multi-keyspace", []string{
 		granted.KeyAuthID.String,
 		ungranted.KeyAuthID.String,
-	})
+	}).AppID
 
 	require.NoError(t, db.Query.InsertPortal(ctx, h.DB.RW(), db.InsertPortalParams{
 		ID:          uid.New(uid.PortalPrefix),
