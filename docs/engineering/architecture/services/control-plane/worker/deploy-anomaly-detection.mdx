@@ -1,0 +1,52 @@
+---
+title: "Deploy anomaly detection"
+description: "How the control plane detects unusual Deploy traffic, resource use, and instance failures."
+---
+
+## Detection model
+
+Deploy anomaly detection evaluates closed 5-minute windows. Each sigma metric compares the current window with up to 288 buckets from the preceding 24 hours. The current bucket is never part of its own baseline.
+
+The detector uses the population mean and population standard deviation. It fires only when:
+
+`current > mean + k * max(stddev, mean * 0.1, metric floor)`
+
+Normal sensitivity uses `k = 4`. Low sensitivity uses `k = 5`, and high sensitivity uses `k = 3`. At least 12 non-empty baseline buckets are required. ClickHouse returns statistics for these observed buckets, and the detector pads the rest of the available window with zero because a missing request or usage row means no traffic.
+
+## Defaults
+
+Absolute floors prevent small changes from producing noisy alerts. Callers can override these defaults.
+
+| Metric | Standard deviation floor | Minimum activity |
+| --- | ---: | ---: |
+| 4xx or 5xx errors | 2 errors | 10 errors and 100 requests |
+| Requests | 20 requests | 200 requests |
+| Egress | 1 MiB | 100 MiB |
+| CPU | 1 second | 60 seconds |
+
+Memory utilization fires at 90%. An OOM kill or crash loop fires when its count reaches one in the window.
+
+## Grouping
+
+The grouping key is `(workspace_id, project_id, app_id, environment_id)`. A deployment ID is context, not identity. This keeps one alert active when a rollout changes deployment IDs, while the app and environment still represent the same customer workload.
+
+## Threshold metrics
+
+Memory utilization, OOM kills, and crash loops use direct thresholds instead of sigma baselines. A memory baseline can hide sustained memory pressure, while OOM and crash-loop events are actionable at the first occurrence. These metrics still produce the common detection result shape, with zero baseline statistics and zero sigma multiplier.
+
+## Confirmation and resolution
+
+4xx and 5xx anomalies require two consecutive anomalous windows. The first window becomes a candidate. The second becomes an anomaly when the per-app virtual object supplies the previous candidate state. Request, egress, CPU, memory, OOM, and crash-loop anomalies fire after one window.
+
+An open anomaly resolves after three consecutive quiet windows. This delay prevents one or two normal samples from closing an incident during an unstable period.
+
+## Code
+
+The pure detector lives in `svc/ctrl/worker/cron/deployanomaly`. Fleet queries live in `pkg/clickhouse/anomaly_window.go`. The Restate cron orchestrator and per-app virtual object own scheduling, durable candidate state, alert persistence, and delivery.
+
+Run the focused checks with:
+
+```bash
+mise exec -- rask ./svc/ctrl/worker/cron/deployanomaly/...
+mise exec -- rask ./pkg/clickhouse/...
+```
