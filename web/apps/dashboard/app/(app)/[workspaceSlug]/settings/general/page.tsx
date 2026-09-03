@@ -3,7 +3,6 @@
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { PageBody, PageContainer, PageHeader, PageHeaderContent, PageHeaderTitle } from "@unkey/ui";
 import { CopyWorkspaceId } from "./copy-workspace-id";
-import { DeployAnomalyEmails } from "./deploy-anomaly-emails";
 import { GithubConnection } from "./github-connection";
 import { UpdateWorkspaceName } from "./update-workspace-name";
 
@@ -21,7 +20,6 @@ export default function SettingsPage() {
         <div className="w-full flex flex-col">
           <UpdateWorkspaceName />
           {/* <UpdateWorkspaceImage /> */}
-          <DeployAnomalyEmails />
           <CopyWorkspaceId workspaceId={workspace.id} />
         </div>
         <div className="w-full flex flex-col">
