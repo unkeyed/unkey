@@ -28,7 +28,7 @@ import (
 // seededApp identifies the rows seedAppWithKeyspaces created. The project and
 // environment ids are here because a custom_domains row requires both.
 type seededApp struct {
-	ID            string
+	AppID         string
 	ProjectID     string
 	EnvironmentID string
 }
@@ -114,7 +114,7 @@ func seedAppWithKeyspaces(t *testing.T, h *testutil.Harness, workspaceID, slugBa
 	}))
 
 	return seededApp{
-		ID:            app.ID,
+		AppID:         app.ID,
 		ProjectID:     project.ID,
 		EnvironmentID: environment.ID,
 	}
@@ -143,7 +143,7 @@ func TestCreateSessionAppMapped(t *testing.T) {
 	api := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspaceID})
 	keySpaceID := api.KeyAuthID.String
 
-	appID := seedAppWithKeyspaces(t, h, workspaceID, "portal-app", []string{keySpaceID}).ID
+	appID := seedAppWithKeyspaces(t, h, workspaceID, "portal-app", []string{keySpaceID}).AppID
 
 	// App-mapped portal: app_id set, key_auth_id left null.
 	require.NoError(t, db.Query.InsertPortal(ctx, h.DB.RW(), db.InsertPortalParams{
@@ -213,20 +213,19 @@ func TestCreateSessionAppMappedIgnoresAppCustomDomain(t *testing.T) {
 
 	// domain and target_cname both carry unique constraints, and the test
 	// database outlives a single run.
-	suffix := uid.DNS1035()
 	require.NoError(t, db.Query.InsertCustomDomain(ctx, h.DB.RW(), db.InsertCustomDomainParams{
 		ID:                    uid.New(uid.DomainPrefix),
 		WorkspaceID:           workspaceID,
 		ProjectID:             app.ProjectID,
-		AppID:                 app.ID,
+		AppID:                 app.AppID,
 		EnvironmentID:         app.EnvironmentID,
-		Domain:                "keys-" + suffix + ".example.com",
+		Domain:                "keys-" + uid.DNS1035() + ".example.com",
 		ChallengeType:         db.CustomDomainsChallengeTypeHTTP01,
 		VerificationStatus:    db.CustomDomainsVerificationStatusVerified,
-		VerificationToken:     "tok_" + suffix,
+		VerificationToken:     "tok_" + uid.DNS1035(),
 		OwnershipVerified:     true,
 		CnameVerified:         true,
-		TargetCname:           "cname-" + suffix + ".unkey.app",
+		TargetCname:           "cname-" + uid.DNS1035() + ".unkey.app",
 		VerificationError:     sql.NullString{Valid: false, String: ""},
 		DomainConnectProvider: sql.NullString{Valid: false, String: ""},
 		DomainConnectUrl:      sql.NullString{Valid: false, String: ""},
@@ -238,7 +237,7 @@ func TestCreateSessionAppMappedIgnoresAppCustomDomain(t *testing.T) {
 		ID:          uid.New(uid.PortalPrefix),
 		WorkspaceID: workspaceID,
 		Slug:        "branded-portal",
-		AppID:       sql.NullString{Valid: true, String: app.ID},
+		AppID:       sql.NullString{Valid: true, String: app.AppID},
 		Enabled:     true,
 		CreatedAt:   time.Now().UnixMilli(),
 	}))
@@ -287,7 +286,7 @@ func TestCreateSessionAppMappedKeyspaceGrowth(t *testing.T) {
 	granted := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspaceID})
 	added := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspaceID})
 
-	appID := seedAppWithKeyspaces(t, h, workspaceID, "growth", []string{granted.KeyAuthID.String}).ID
+	appID := seedAppWithKeyspaces(t, h, workspaceID, "growth", []string{granted.KeyAuthID.String}).AppID
 	require.NoError(t, db.Query.InsertPortal(ctx, h.DB.RW(), db.InsertPortalParams{
 		ID:          uid.New(uid.PortalPrefix),
 		WorkspaceID: workspaceID,
@@ -320,7 +319,7 @@ func TestCreateSessionAppMappedKeyspaceGrowth(t *testing.T) {
 	secondAppID := seedAppWithKeyspaces(t, h, workspaceID, "growth-2", []string{
 		granted.KeyAuthID.String,
 		added.KeyAuthID.String,
-	}).ID
+	}).AppID
 	require.NoError(t, db.Query.InsertPortal(ctx, h.DB.RW(), db.InsertPortalParams{
 		ID:          uid.New(uid.PortalPrefix),
 		WorkspaceID: workspaceID,
