@@ -22,16 +22,21 @@ import (
 func insertKeyspacePortal(t *testing.T, h *testutil.Harness, workspaceID, slug, keyspaceID string) string {
 	t.Helper()
 
-	portalID := uid.New(uid.PortalPrefix)
-	require.NoError(t, db.Query.InsertPortal(context.Background(), h.DB.RW(), db.InsertPortalParams{
-		ID:          portalID,
+	projectID := ""
+	keyspace, err := db.Query.FindKeySpaceByID(context.Background(), h.DB.RO(), keyspaceID)
+	if err == nil {
+		projectID = keyspace.ProjectID
+	} else {
+		require.True(t, db.IsNotFound(err))
+	}
+
+	return h.CreatePortal(seed.CreatePortalRequest{
 		WorkspaceID: workspaceID,
+		ProjectID:   projectID,
 		Slug:        slug,
 		KeyAuthID:   sql.NullString{Valid: true, String: keyspaceID},
 		Enabled:     true,
-		CreatedAt:   time.Now().UnixMilli(),
-	}))
-	return portalID
+	}).ID
 }
 
 // countPortalSessions counts the sessions minted for one external id. The
@@ -385,7 +390,7 @@ func TestCreateSessionMultiKeyspacePartialGrant(t *testing.T) {
 
 	// A deployed app maps to exactly one keyspace today, so the multi-keyspace
 	// shape is constructed directly rather than through app provisioning.
-	appID := seedAppWithKeyspaces(t, h, workspace.ID, "multi-keyspace", []string{
+	app := seedAppWithKeyspaces(t, h, workspace.ID, "multi-keyspace", []string{
 		granted.KeyAuthID.String,
 		ungranted.KeyAuthID.String,
 	})
@@ -393,8 +398,9 @@ func TestCreateSessionMultiKeyspacePartialGrant(t *testing.T) {
 	require.NoError(t, db.Query.InsertPortal(ctx, h.DB.RW(), db.InsertPortalParams{
 		ID:          uid.New(uid.PortalPrefix),
 		WorkspaceID: workspace.ID,
+		ProjectID:   app.ProjectID,
 		Slug:        "multi-keyspace-portal",
-		AppID:       sql.NullString{Valid: true, String: appID},
+		AppID:       sql.NullString{Valid: true, String: app.ID},
 		Enabled:     true,
 		CreatedAt:   time.Now().UnixMilli(),
 	}))
@@ -437,6 +443,7 @@ func TestCreateSessionForbiddenDisabledPortal(t *testing.T) {
 	require.NoError(t, db.Query.InsertPortal(ctx, h.DB.RW(), db.InsertPortalParams{
 		ID:          uid.New(uid.PortalPrefix),
 		WorkspaceID: workspace.ID,
+		ProjectID:   api.ProjectID,
 		Slug:        "disabled-portal",
 		KeyAuthID:   sql.NullString{Valid: true, String: api.KeyAuthID.String},
 		Enabled:     false,

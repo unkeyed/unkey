@@ -911,6 +911,7 @@ func (s *Seeder) CreatePermission(ctx context.Context, req CreatePermissionReque
 type CreatePortalRequest struct {
 	ID           string
 	WorkspaceID  string
+	ProjectID    string
 	Slug         string
 	DisplayName  string
 	AppID        sql.NullString
@@ -920,12 +921,16 @@ type CreatePortalRequest struct {
 	PrimaryColor sql.NullString
 }
 
-// CreatePortal creates a portal. When ID is empty a new one is minted, so a test
-// that does not care about the id can leave it unset.
+// CreatePortal creates a portal. When ID is empty a new one is minted. When
+// ProjectID is empty, the portal uses the workspace's default project.
 func (s *Seeder) CreatePortal(ctx context.Context, req CreatePortalRequest) db.Portal {
 	portalID := req.ID
 	if portalID == "" {
 		portalID = uid.New(uid.PortalPrefix)
+	}
+	projectID := req.ProjectID
+	if projectID == "" {
+		projectID = s.defaultProjectID(ctx, req.WorkspaceID)
 	}
 	now := time.Now().UnixMilli()
 
@@ -937,6 +942,7 @@ func (s *Seeder) CreatePortal(ctx context.Context, req CreatePortalRequest) db.P
 	err := db.Query.InsertPortal(ctx, s.DB.RW(), db.InsertPortalParams{
 		ID:           portalID,
 		WorkspaceID:  req.WorkspaceID,
+		ProjectID:    projectID,
 		Slug:         req.Slug,
 		DisplayName:  displayName,
 		AppID:        req.AppID,

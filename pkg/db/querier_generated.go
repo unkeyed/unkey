@@ -194,20 +194,20 @@ type Querier interface {
 	//  FROM apps
 	//  WHERE id = ?
 	FindAppById(ctx context.Context, db DBTX, id string) (App, error)
-	// Resolves an app by id within a workspace.
+	// FindAppByIdAndWorkspace resolves an app by ID within a workspace.
 	//
 	// app_find_by_id.sql has no workspace predicate, and the project-scoped finders
-	// need a project identifier that callers holding only an app id do not have.
+	// need a project identifier that callers holding only an app ID do not have.
 	// Anything validating that a caller owns the app it named must scope the lookup,
 	// so this exists as the scoped single-app read.
 	//
-	// Selects the id alone: every caller discards the row and keeps only whether it
-	// exists, so there is no reason to carry the rest of the columns.
+	// The project ID lets callers build project-scoped resource permissions after
+	// they verify workspace ownership.
 	//
-	//  SELECT id FROM apps
+	//  SELECT id, project_id FROM apps
 	//  WHERE id = ?
 	//    AND workspace_id = ?
-	FindAppByIdAndWorkspace(ctx context.Context, db DBTX, arg FindAppByIdAndWorkspaceParams) (string, error)
+	FindAppByIdAndWorkspace(ctx context.Context, db DBTX, arg FindAppByIdAndWorkspaceParams) (FindAppByIdAndWorkspaceRow, error)
 	//FindAppByProjectAndIdOrSlug
 	//
 	//  SELECT a.pk, a.id, a.workspace_id, a.project_id, a.name, a.slug, a.default_branch, a.current_deployment_id, a.is_rolled_back, a.delete_protection, a.created_at, a.updated_at
@@ -939,7 +939,7 @@ type Querier interface {
 	// Workspace-scoped on purpose: `idx_app_id` is unique across the whole table, so
 	// an unscoped lookup would return another workspace's portal.
 	//
-	//  SELECT pk, id, workspace_id, slug, display_name, app_id, key_auth_id, enabled, logo_url, primary_color, created_at, updated_at FROM portals
+	//  SELECT pk, id, workspace_id, project_id, slug, display_name, app_id, key_auth_id, enabled, logo_url, primary_color, created_at, updated_at FROM portals
 	//  WHERE app_id = ?
 	//    AND workspace_id = ?
 	//  LIMIT 1
@@ -950,7 +950,7 @@ type Querier interface {
 	// UNION ALL of two index seeks instead of `id = ? OR slug = ?`, which would
 	// force a scan: `portals_id_unique` and `idx_workspace_slug` each serve one arm.
 	//
-	//  SELECT p.pk, p.id, p.workspace_id, p.slug, p.display_name, p.app_id, p.key_auth_id, p.enabled, p.logo_url, p.primary_color, p.created_at, p.updated_at
+	//  SELECT p.pk, p.id, p.workspace_id, p.project_id, p.slug, p.display_name, p.app_id, p.key_auth_id, p.enabled, p.logo_url, p.primary_color, p.created_at, p.updated_at
 	//  FROM portals p
 	//  JOIN (
 	//      SELECT p1.id
@@ -966,7 +966,7 @@ type Querier interface {
 	// Resolves the portal mapped to a keyspace within a workspace. See
 	// portal_find_by_app.sql for why this is workspace-scoped.
 	//
-	//  SELECT pk, id, workspace_id, slug, display_name, app_id, key_auth_id, enabled, logo_url, primary_color, created_at, updated_at FROM portals
+	//  SELECT pk, id, workspace_id, project_id, slug, display_name, app_id, key_auth_id, enabled, logo_url, primary_color, created_at, updated_at FROM portals
 	//  WHERE key_auth_id = ?
 	//    AND workspace_id = ?
 	//  LIMIT 1
@@ -1771,6 +1771,7 @@ type Querier interface {
 	//  INSERT INTO portals (
 	//      id,
 	//      workspace_id,
+	//      project_id,
 	//      slug,
 	//      display_name,
 	//      app_id,
@@ -1781,6 +1782,7 @@ type Querier interface {
 	//      created_at,
 	//      updated_at
 	//  ) VALUES (
+	//      ?,
 	//      ?,
 	//      ?,
 	//      ?,

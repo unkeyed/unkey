@@ -26,9 +26,9 @@ import (
 
 // seedAppWithKeyspaces creates a project, app, environment and current
 // deployment whose gateway policy config verifies keys against the given
-// keyspaces, and returns the app id. This is the shape an app-mapped portal
+// keyspaces, and returns the app. This is the shape an app-mapped portal
 // resolves its keyspaces from.
-func seedAppWithKeyspaces(t *testing.T, h *testutil.Harness, workspaceID, slugBase string, keyspaceIDs []string) string {
+func seedAppWithKeyspaces(t *testing.T, h *testutil.Harness, workspaceID, slugBase string, keyspaceIDs []string) db.App {
 	t.Helper()
 
 	ctx := context.Background()
@@ -104,7 +104,7 @@ func seedAppWithKeyspaces(t *testing.T, h *testutil.Harness, workspaceID, slugBa
 		AppID:               app.ID,
 	}))
 
-	return app.ID
+	return app
 }
 
 // TestCreateSessionAppMapped verifies that an app-mapped portal config resolves
@@ -130,14 +130,15 @@ func TestCreateSessionAppMapped(t *testing.T) {
 	api := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspaceID})
 	keySpaceID := api.KeyAuthID.String
 
-	appID := seedAppWithKeyspaces(t, h, workspaceID, "portal-app", []string{keySpaceID})
+	app := seedAppWithKeyspaces(t, h, workspaceID, "portal-app", []string{keySpaceID})
 
 	// App-mapped portal: app_id set, key_auth_id left null.
 	require.NoError(t, db.Query.InsertPortal(ctx, h.DB.RW(), db.InsertPortalParams{
 		ID:          uid.New(uid.PortalPrefix),
 		WorkspaceID: workspaceID,
+		ProjectID:   app.ProjectID,
 		Slug:        "app-portal",
-		AppID:       sql.NullString{Valid: true, String: appID},
+		AppID:       sql.NullString{Valid: true, String: app.ID},
 		Enabled:     true,
 		CreatedAt:   time.Now().UnixMilli(),
 	}))
@@ -195,12 +196,13 @@ func TestCreateSessionAppMappedKeyspaceGrowth(t *testing.T) {
 	granted := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspaceID})
 	added := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspaceID})
 
-	appID := seedAppWithKeyspaces(t, h, workspaceID, "growth", []string{granted.KeyAuthID.String})
+	app := seedAppWithKeyspaces(t, h, workspaceID, "growth", []string{granted.KeyAuthID.String})
 	require.NoError(t, db.Query.InsertPortal(ctx, h.DB.RW(), db.InsertPortalParams{
 		ID:          uid.New(uid.PortalPrefix),
 		WorkspaceID: workspaceID,
+		ProjectID:   app.ProjectID,
 		Slug:        "growth-portal",
-		AppID:       sql.NullString{Valid: true, String: appID},
+		AppID:       sql.NullString{Valid: true, String: app.ID},
 		Enabled:     true,
 		CreatedAt:   time.Now().UnixMilli(),
 	}))
@@ -225,15 +227,16 @@ func TestCreateSessionAppMappedKeyspaceGrowth(t *testing.T) {
 	require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
 
 	// The app now verifies a second keyspace the grant does not cover.
-	secondAppID := seedAppWithKeyspaces(t, h, workspaceID, "growth-2", []string{
+	secondApp := seedAppWithKeyspaces(t, h, workspaceID, "growth-2", []string{
 		granted.KeyAuthID.String,
 		added.KeyAuthID.String,
 	})
 	require.NoError(t, db.Query.InsertPortal(ctx, h.DB.RW(), db.InsertPortalParams{
 		ID:          uid.New(uid.PortalPrefix),
 		WorkspaceID: workspaceID,
+		ProjectID:   secondApp.ProjectID,
 		Slug:        "growth-portal-2",
-		AppID:       sql.NullString{Valid: true, String: secondAppID},
+		AppID:       sql.NullString{Valid: true, String: secondApp.ID},
 		Enabled:     true,
 		CreatedAt:   time.Now().UnixMilli(),
 	}))

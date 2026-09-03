@@ -845,6 +845,7 @@ type Portal struct {
 	Pk           uint64         `db:"pk"`
 	ID           string         `db:"id"`
 	WorkspaceID  string         `db:"workspace_id"`
+	ProjectID    string         `db:"project_id"`
 	Slug         string         `db:"slug"`
 	DisplayName  string         `db:"display_name"`
 	AppID        sql.NullString `db:"app_id"`

@@ -160,6 +160,24 @@ func TestGetPortalByIdAndSlug(t *testing.T) {
 	}
 }
 
+// TestGetPortalWithMissingMappingTarget guarantees a legacy permission can read
+// a portal after its mapping target is removed.
+func TestGetPortalWithMissingMappingTarget(t *testing.T) {
+	h := testutil.NewHarness(t)
+	route, headers := newRoute(t, h, "portal.*.read_portal")
+	workspace := h.Resources().UserWorkspace
+
+	mapping := portal.Mapping{Type: portal.MappingTypeKeyspace, ID: uid.New(uid.KeySpacePrefix)}
+	stored := h.SeedPortal(t, workspace.ID, "orphan", "orphan", mapping, nil, nil)
+
+	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
+		Portal: ptr.P(stored.ID),
+	})
+	require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
+	require.Equal(t, stored.ID, res.Body.Data.Id)
+	requireServes(t, mapping, res.Body.Data)
+}
+
 // The dashboard reaches a portal through the app or keyspace it serves and never
 // holds a portal id, so this arm is the one that unblocks it.
 func TestGetPortalByMapping(t *testing.T) {

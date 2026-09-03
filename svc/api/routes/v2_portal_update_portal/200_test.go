@@ -85,10 +85,15 @@ func requireServes(t *testing.T, want portal.Mapping, got openapi.Portal) {
 }
 
 func keyspaceMapping(t *testing.T, h *testutil.Harness, workspaceID string) portal.Mapping {
+	return keyspaceMappingInProject(t, h, workspaceID, "")
+}
+
+func keyspaceMappingInProject(t *testing.T, h *testutil.Harness, workspaceID, projectID string) portal.Mapping {
 	t.Helper()
 
 	api := h.CreateApi(seed.CreateApiRequest{
 		WorkspaceID:   workspaceID,
+		ProjectID:     projectID,
 		IpWhitelist:   "",
 		EncryptedKeys: false,
 		Name:          nil,
@@ -381,7 +386,7 @@ func TestUpdatePortalRepointsMappingAndRevokesSessions(t *testing.T) {
 
 	app := appMapping(t, h, workspace.ID, "payments")
 	stored := h.SeedPortal(t, workspace.ID, "repointed", "repointed", app, nil, nil)
-	keyspace := keyspaceMapping(t, h, workspace.ID)
+	keyspace := keyspaceMappingInProject(t, h, workspace.ID, stored.ProjectID)
 
 	h.CreatePortalSessionForPortal(stored.ID, workspace.ID, "user_1", []string{keyspace.ID}, []string{"keys.read"})
 	h.CreatePortalSessionForPortal(stored.ID, workspace.ID, "user_2", []string{keyspace.ID}, []string{"keys.read"})
@@ -401,6 +406,7 @@ func TestUpdatePortalRepointsMappingAndRevokesSessions(t *testing.T) {
 	requireServes(t, keyspace, res.Body.Data)
 
 	row := fetchPortal(t, h, workspace.ID, stored.ID)
+	require.Equal(t, stored.ProjectID, row.ProjectID, "a remap must not change the portal project")
 	require.Equal(t, keyspace.ID, row.KeyAuthID.String)
 	require.False(t, row.AppID.Valid, "the app column must be cleared in the same write")
 
@@ -487,7 +493,7 @@ func TestUpdatePortalWritesOneAuditEntry(t *testing.T) {
 
 	app := appMapping(t, h, workspace.ID, "audited")
 	stored := h.SeedPortal(t, workspace.ID, "audited-portal", "audited-portal", app, nil, nil)
-	keyspace := keyspaceMapping(t, h, workspace.ID)
+	keyspace := keyspaceMappingInProject(t, h, workspace.ID, stored.ProjectID)
 	h.CreatePortalSessionForPortal(stored.ID, workspace.ID, "user_1", []string{keyspace.ID}, []string{"keys.read"})
 
 	req := baseRequest(stored.ID)

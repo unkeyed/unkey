@@ -5,7 +5,7 @@ description: "Canonical resource hierarchy, paths, and actions"
 
 The resource permission catalog lists every canonical resource path and its
 supported actions. GitHub apps are workspace-scoped. Every other catalog
-resource is project-scoped. Portals remain outside the canonical catalog.
+resource is project-scoped.
 
 Read [Unkey Resource Names](/architecture/resources/unkey-resource-names) for
 URN format and pattern rules. Read
@@ -65,6 +65,12 @@ Workspace
     │   │
     │   └── Key [read, write, delete, decrypt, verify]
     │       projects/{project_id}/keyspaces/{keyspace_id}/keys/{key_id}
+    │
+    ├── Portal [read, write, delete]
+    │   projects/{project_id}/portals/{portal_id}
+    │   │
+    │   └── Session [write]
+    │       projects/{project_id}/portals/{portal_id}/sessions/{session_id}
     │
     ├── Rate limit namespace [read, write, delete, limit]
     │   projects/{project_id}/ratelimits/namespaces/{namespace_id}
@@ -141,6 +147,23 @@ Key verification uses `verify`, not `read`.
 
 ```plaintext
 unkey:v1:ws_123:projects/proj_123/keyspaces/ks_123/keys/key_123#verify
+```
+
+### Create a portal
+
+Use `write` with a wildcard portal ID because the portal does not exist yet.
+
+```plaintext
+unkey:v1:ws_123:projects/proj_123/portals/*#write
+```
+
+### Create a portal session
+
+Use `write` on the session resource. This permission lets the caller create a
+session without permission to change the portal.
+
+```plaintext
+unkey:v1:ws_123:projects/proj_123/portals/pc_123/sessions/*#write
 ```
 
 ## Related pages

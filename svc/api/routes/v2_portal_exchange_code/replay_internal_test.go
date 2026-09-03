@@ -12,6 +12,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/hash"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
+	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 )
 
 // TestExchangeAlreadyClaimed pins the check that keeps a retried exchange from
@@ -31,14 +32,16 @@ func TestExchangeAlreadyClaimed(t *testing.T) {
 	ctx := context.Background()
 
 	workspaceID := h.Resources().UserWorkspace.ID
+	api := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspaceID})
 	portalID := uid.New(uid.PortalPrefix)
 	now := time.Now().UnixMilli()
 
 	require.NoError(t, db.Query.InsertPortal(ctx, h.DB.RW(), db.InsertPortalParams{
 		ID:          portalID,
 		WorkspaceID: workspaceID,
+		ProjectID:   api.ProjectID,
 		Slug:        "replay-portal",
-		KeyAuthID:   sql.NullString{Valid: true, String: uid.New(uid.KeySpacePrefix)},
+		KeyAuthID:   api.KeyAuthID,
 		Enabled:     true,
 		CreatedAt:   now,
 	}))
