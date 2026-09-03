@@ -1,7 +1,10 @@
 "use client";
 
+import { AreaTimeseriesChart, type ValueParts } from "@/components/charts/area-timeseries";
 import { formatCompactQuantity, formatPrice } from "@/lib/fmt";
-import { ChevronRight, Cube } from "@unkey/icons";
+import { trpc } from "@/lib/trpc/client";
+import type { DeployUsageTimeseries } from "@unkey/clickhouse";
+import { ChartActivity, ChevronRight, Cube } from "@unkey/icons";
 import {
   Item,
   ItemActions,
@@ -14,27 +17,87 @@ import {
   ItemTitle,
   Skeleton,
 } from "@unkey/ui";
-import { Fragment, type ReactNode, useState } from "react";
+import { Fragment, type ReactNode, useMemo, useState } from "react";
 import {
   type ComputeTree,
   type UsageApp,
+  type UsageCostsCents,
   type UsageProject,
   type UsageQuantities,
   microCentsToDisplayCents,
+  priceUsageQuantitiesCents,
 } from "./compute-tree";
+import { UsageChart } from "./usage-chart";
+import { type UsageMetric, buildUsageMetricChartData } from "./usage-chart-data";
 
-const QUANTITY_COLUMNS: ReadonlyArray<{
+const RESOURCE_COLUMNS: ReadonlyArray<{
   key: keyof UsageQuantities;
+  costKey: keyof UsageCostsCents;
   label: string;
+  unit: string;
   width: string;
 }> = [
-  { key: "cpuHours", label: "CPU hrs", width: "w-16" },
-  { key: "memoryGiBHours", label: "Memory GiB-hrs", width: "w-24" },
-  { key: "egressGiB", label: "Egress GiB", width: "w-20" },
-  { key: "diskGiBHours", label: "Disk GiB-hrs", width: "w-24" },
+  { key: "cpuHours", costKey: "cpu", label: "CPU", unit: "hrs", width: "w-16" },
+  {
+    key: "memoryGiBHours",
+    costKey: "memory",
+    label: "Memory",
+    unit: "GiB-hrs",
+    width: "w-24",
+  },
+  { key: "egressGiB", costKey: "egress", label: "Egress", unit: "GiB", width: "w-20" },
+  {
+    key: "diskGiBHours",
+    costKey: "disk",
+    label: "Storage",
+    unit: "GiB-hrs",
+    width: "w-24",
+  },
 ];
 
 const SKELETON_ROWS = ["first", "second", "third"];
+const PROJECT_METRICS: ReadonlyArray<{
+  key: UsageMetric;
+  costKey: keyof UsageCostsCents;
+  label: string;
+  unit: string;
+  color: string;
+}> = [
+  {
+    key: "cpuHours",
+    costKey: "cpu",
+    label: "CPU",
+    unit: "hours",
+    color: "hsl(var(--feature-8))",
+  },
+  {
+    key: "memoryGiBHours",
+    costKey: "memory",
+    label: "Memory",
+    unit: "GiB-hours",
+    color: "hsl(var(--info-8))",
+  },
+  {
+    key: "egressGiB",
+    costKey: "egress",
+    label: "Public egress",
+    unit: "GiB",
+    color: "hsl(var(--error-8))",
+  },
+  {
+    key: "diskGiBHours",
+    costKey: "disk",
+    label: "Storage",
+    unit: "GiB-hours",
+    color: "hsl(var(--warning-8))",
+  },
+];
+const COSTS_PER_USAGE_UNIT = priceUsageQuantitiesCents({
+  cpuHours: 1,
+  memoryGiBHours: 1,
+  egressGiB: 1,
+  diskGiBHours: 1,
+});
 
 export function ComputeCardShell({
   description,
@@ -99,7 +162,30 @@ type ComputeCardProps = {
 };
 
 export function ComputeCard({ tree }: ComputeCardProps) {
+  const [usageOpen, setUsageOpen] = useState(false);
   const [open, setOpen] = useState<ReadonlySet<string>>(new Set());
+  const now = useMemo(() => new Date(), []);
+  const periodStart = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1);
+  const currentDayStart = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+  const timeseries = trpc.billing.queryDeployUsageTimeseries.useQuery(
+    {
+      interval: "day",
+      groupBy: "project",
+      scope: { projectId: "", appIds: [], environmentIds: [] },
+      monthsAgo: 0,
+    },
+    {
+      enabled: open.size > 0,
+      trpc: { context: { skipBatch: true } },
+      retry: 1,
+      staleTime: 30_000,
+    },
+  );
+  const usageByProject = useMemo(
+    () => Map.groupBy(timeseries.data ?? [], (row) => row.groupId),
+    [timeseries.data],
+  );
+  const hasComputeUsage = tree.projects.some((project) => project.apps.length > 0);
 
   const toggle = (projectId: string) =>
     setOpen((current) => {
@@ -122,16 +208,57 @@ export function ComputeCard({ tree }: ComputeCardProps) {
           </ItemContent>
         </Item>
       ) : (
-        tree.projects.map((project, index) => (
-          <Fragment key={project.projectId}>
-            {index === 0 ? null : <ItemSeparator className="bg-gray-5" />}
-            <ProjectRow
-              project={project}
-              open={open.has(project.projectId)}
-              onToggle={() => toggle(project.projectId)}
-            />
-          </Fragment>
-        ))
+        <>
+          {hasComputeUsage ? (
+            <>
+              <Item
+                className="gap-2"
+                render={
+                  <button
+                    type="button"
+                    aria-expanded={usageOpen}
+                    onClick={() => setUsageOpen((current) => !current)}
+                  />
+                }
+              >
+                <ChevronRight
+                  iconSize="sm-regular"
+                  className={`shrink-0 text-gray-9 transition-transform duration-150 ease-out motion-reduce:transition-none ${usageOpen ? "rotate-90" : ""}`}
+                />
+                <ItemMedia className="size-5 bg-blueA-3 text-blue-11">
+                  <ChartActivity />
+                </ItemMedia>
+                <ItemContent>
+                  <ItemTitle>Usage over time</ItemTitle>
+                  <ItemDescription>Filter and group instance usage</ItemDescription>
+                </ItemContent>
+              </Item>
+              {usageOpen ? (
+                <>
+                  <ItemSeparator />
+                  <UsageChart tree={tree} />
+                </>
+              ) : null}
+              <ItemSeparator className="bg-gray-5" />
+            </>
+          ) : null}
+          {tree.projects.map((project, index) => (
+            <Fragment key={project.projectId}>
+              {index === 0 ? null : <ItemSeparator className="bg-gray-5" />}
+              <ProjectRow
+                project={project}
+                open={open.has(project.projectId)}
+                onToggle={() => toggle(project.projectId)}
+                usage={usageByProject.get(project.projectId) ?? []}
+                usageStart={periodStart}
+                usageEnd={now.getTime()}
+                incompleteFrom={currentDayStart}
+                isUsageLoading={timeseries.isLoading}
+                isUsageError={timeseries.isError}
+              />
+            </Fragment>
+          ))}
+        </>
       )}
     </ComputeCardShell>
   );
@@ -141,10 +268,22 @@ function ProjectRow({
   project,
   open,
   onToggle,
+  usage,
+  usageStart,
+  usageEnd,
+  incompleteFrom,
+  isUsageLoading,
+  isUsageError,
 }: {
   project: UsageProject;
   open: boolean;
   onToggle: () => void;
+  usage: DeployUsageTimeseries[];
+  usageStart: number;
+  usageEnd: number;
+  incompleteFrom: number;
+  isUsageLoading: boolean;
+  isUsageError: boolean;
 }) {
   return (
     <div>
@@ -173,14 +312,25 @@ function ProjectRow({
         <div className="overflow-hidden">
           {project.apps.length === 0 ? null : (
             <>
+              {open ? (
+                <ProjectUsageCharts
+                  project={project}
+                  usage={usage}
+                  start={usageStart}
+                  end={usageEnd}
+                  incompleteFrom={incompleteFrom}
+                  isLoading={isUsageLoading}
+                  isError={isUsageError}
+                />
+              ) : null}
               <Band>
                 <div className="min-w-0 flex-1">App</div>
-                {QUANTITY_COLUMNS.map((column) => (
+                {RESOURCE_COLUMNS.map((column) => (
                   <div key={column.key} className={`${column.width} text-right`}>
                     {column.label}
                   </div>
                 ))}
-                <div className="w-20 text-right">Cost</div>
+                <div className="w-20 text-right">Total</div>
               </Band>
               {project.apps.map((app) => (
                 <AppRows key={app.appId} app={app} />
@@ -209,6 +359,78 @@ function ProjectRow({
   );
 }
 
+function ProjectUsageCharts({
+  project,
+  usage,
+  start,
+  end,
+  incompleteFrom,
+  isLoading,
+  isError,
+}: {
+  project: UsageProject;
+  usage: DeployUsageTimeseries[];
+  start: number;
+  end: number;
+  incompleteFrom: number;
+  isLoading: boolean;
+  isError: boolean;
+}) {
+  const costs = priceUsageQuantitiesCents(project);
+
+  return (
+    <div className="grid gap-px border-grayA-4 border-y bg-grayA-4 sm:grid-cols-2 xl:grid-cols-4">
+      {PROJECT_METRICS.map((metric) => (
+        <div key={metric.key} className="min-w-0 bg-gray-1 px-3 pt-3 pb-2">
+          <div className="mb-1 flex items-start justify-between gap-2">
+            <span className="font-medium text-gray-11 text-xs">{metric.label}</span>
+            <span className="min-w-0 text-right tabular-nums">
+              <span className="block truncate font-medium text-gray-12 text-xs">
+                {formatPrice(costs[metric.costKey])}
+              </span>
+              <span className="block truncate text-[10px] text-gray-9 leading-3">
+                {formatCompactQuantity(project[metric.key])} {metric.unit}
+              </span>
+            </span>
+          </div>
+          <AreaTimeseriesChart
+            data={buildUsageMetricChartData({
+              rows: usage,
+              metric: metric.key,
+              interval: "day",
+              start,
+              end,
+            }).map((point) => ({
+              ...point,
+              value: Number(point.value) * COSTS_PER_USAGE_UNIT[metric.costKey],
+            }))}
+            config={{ value: { label: metric.label, color: metric.color } }}
+            height={64}
+            isLoading={isLoading}
+            isError={isError}
+            incompleteFrom={incompleteFrom}
+            axis={null}
+            paleFill
+            showDateInTooltip
+            showZeroLine
+            formatTooltipValue={(value) =>
+              formatCostValue(value, metric.unit, COSTS_PER_USAGE_UNIT[metric.costKey])
+            }
+          />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function formatCostValue(costCents: number, unit: string, costPerUnitCents: number): ValueParts {
+  const usage = costCents / costPerUnitCents;
+  return {
+    value: formatPrice(costCents),
+    hint: `(${formatCompactQuantity(usage)} ${unit})`,
+  };
+}
+
 function AppRows({ app }: { app: UsageApp }) {
   return (
     <div>
@@ -216,7 +438,7 @@ function AppRows({ app }: { app: UsageApp }) {
         <span className="min-w-0 flex-1 truncate font-medium text-[13px] text-gray-12">
           {app.name}
         </span>
-        <Quantities quantities={app} className="text-[13px] text-gray-11" />
+        <ResourceCosts usage={app} className="text-[13px] text-gray-11" />
         <span className="w-20 text-right font-medium text-[13px] text-gray-12 tabular-nums">
           {formatPrice(microCentsToDisplayCents(app.microCents))}
         </span>
@@ -227,7 +449,7 @@ function AppRows({ app }: { app: UsageApp }) {
           className="flex items-center gap-3 px-4 py-1 last:pb-2.5"
         >
           <span className="min-w-0 flex-1 truncate text-gray-10 text-xs">{environment.name}</span>
-          <Quantities quantities={environment} className="text-gray-10 text-xs" />
+          <ResourceCosts usage={environment} className="text-gray-10 text-xs" />
           <span className="w-20 text-right text-gray-11 text-xs tabular-nums">
             {formatPrice(microCentsToDisplayCents(environment.microCents))}
           </span>
@@ -245,12 +467,21 @@ function Band({ children }: { children: ReactNode }) {
   );
 }
 
-function Quantities({ quantities, className }: { quantities: UsageQuantities; className: string }) {
+function ResourceCosts({ usage, className }: { usage: UsageQuantities; className: string }) {
+  const costs = priceUsageQuantitiesCents(usage);
+
   return (
     <>
-      {QUANTITY_COLUMNS.map((column) => (
-        <span key={column.key} className={`${column.width} text-right tabular-nums ${className}`}>
-          {formatCompactQuantity(quantities[column.key])}
+      {RESOURCE_COLUMNS.map((column) => (
+        <span
+          key={column.key}
+          className={`${column.width} text-right tabular-nums ${className}`}
+          aria-label={`${column.label}: ${formatPrice(costs[column.costKey])}, ${formatCompactQuantity(usage[column.key])} ${column.unit}`}
+        >
+          <span className="block">{formatPrice(costs[column.costKey])}</span>
+          <span className="block text-[10px] text-gray-9 leading-3">
+            {formatCompactQuantity(usage[column.key])} {column.unit}
+          </span>
         </span>
       ))}
     </>
