@@ -67,10 +67,34 @@ describe("getAlertSeries", () => {
 
     await getAlertSeries(ch)({ ...baseRequest, metric: "requests" });
 
-    expect(ch.queries[0]).toContain("ROWS BETWEEN 288 PRECEDING AND 1 PRECEDING");
-    expect(ch.queries[0]).toContain("expected_mean - 4 * expected_stddev");
-    expect(ch.queries[0]).toContain("expected_mean + 4 * expected_stddev");
+    const query = ch.queries[0]?.replace(/\s+/g, " ");
+    expect(query).toContain("ROWS BETWEEN 288 PRECEDING AND 1 PRECEDING");
+    expect(query).toContain("minOrNull(metric_lifetime.time)");
+    expect(query).toContain("if( time >= first_bucket_time");
+    expect(query).toContain("count(lifetime_value) OVER");
+    expect(query).toContain("lifetime_buckets < 12");
+    expect(query).toContain("greatest( expected_stddev, 0.1 * expected_mean, 5 )");
+    expect(query).toContain("expected_mean - 4 * greatest(");
+    expect(query).toContain("expected_mean + 4 * greatest(");
   });
+
+  it.each([
+    ["error_5xx", 2],
+    ["error_4xx", 2],
+    ["egress_bytes", 65_536],
+    ["cpu_seconds", 1],
+  ] as const)(
+    "uses the detector's effective standard deviation floor for %s",
+    async (metric, floor) => {
+      const ch = new CapturingQuerier();
+
+      await getAlertSeries(ch)({ ...baseRequest, metric });
+
+      expect(ch.queries[0]?.replace(/\s+/g, " ")).toContain(
+        `greatest( expected_stddev, 0.1 * expected_mean, ${floor} )`,
+      );
+    },
+  );
 
   it("returns the fixed memory limit without a sigma range", async () => {
     const ch = new CapturingQuerier();
