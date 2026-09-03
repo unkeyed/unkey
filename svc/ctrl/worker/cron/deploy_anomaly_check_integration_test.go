@@ -2,6 +2,7 @@ package cron_test
 
 import (
 	"database/sql"
+	"encoding/json"
 	"strconv"
 	"testing"
 	"time"
@@ -22,6 +23,7 @@ type anomalyTestApp struct {
 	appID         string
 	environmentID string
 	deploymentID  string
+	regionID      string
 }
 
 // TestRunDeployAnomalyCheck_Integration covers production filtering, alert
@@ -105,6 +107,7 @@ func TestRunDeployAnomalyCheck_Integration(t *testing.T) {
 	require.Equal(t, "Metric returned to baseline for 3 consecutive windows", resolutionMessage.String)
 	assertStoppedDeploymentSuppression(t, h)
 	assertBaselineAdaptedResolution(t, h)
+	assertDeploymentTopologyMetadata(t, h)
 }
 
 func assertIncompleteTelemetryNoop(
@@ -155,7 +158,8 @@ func assertIncompleteTelemetryNoop(
 			WorkspaceId: newApp.workspaceID, ProjectId: newApp.projectID,
 			AppId: newApp.appID, EnvironmentId: newApp.environmentID,
 			DeploymentId: newApp.deploymentID, DeploymentDesiredState: "running",
-			Metrics: []*hydrav1.DeployAnomalyMetricInput{incomplete},
+			DeploymentHasRunningRegion: true,
+			Metrics:                    []*hydrav1.DeployAnomalyMetricInput{incomplete},
 		})
 		require.NoError(t, err)
 	}
@@ -261,6 +265,39 @@ func assertBaselineAdaptedResolution(t *testing.T, h *harness.Harness) {
 	require.Equal(t, "Baseline adapted after 24 hours", resolutionMessage.String)
 }
 
+func assertDeploymentTopologyMetadata(t *testing.T, h *harness.Harness) {
+	t.Helper()
+	app := createAnomalyTestApp(t, h, mysqltype.EnvironmentKindProduction)
+	groupJSON, err := json.Marshal([]map[string]string{{
+		"workspace_id": app.workspaceID, "project_id": app.projectID,
+		"app_id": app.appID, "environment_id": app.environmentID,
+	}})
+	require.NoError(t, err)
+	find := func() db.FindLiveDeploymentsForEnvironmentsRow {
+		rows, findErr := h.DB.FindLiveDeploymentsForEnvironments(h.Ctx, db.FindLiveDeploymentsForEnvironmentsParams{
+			GroupKeysJson: string(groupJSON),
+		})
+		require.NoError(t, findErr)
+		require.Len(t, rows, 1)
+		return rows[0]
+	}
+
+	require.True(t, find().DeploymentHasRunningRegion)
+	secondRegion := uid.New(uid.RegionPrefix)
+	require.NoError(t, h.DB.InsertDeploymentTopology(h.Ctx, db.InsertDeploymentTopologyParams{
+		WorkspaceID: app.workspaceID, DeploymentID: app.deploymentID, RegionID: secondRegion,
+		AutoscalingReplicasMin: 1, AutoscalingReplicasMax: 1,
+		DesiredStatus: db.DeploymentTopologyDesiredStatusStopped, CreatedAt: time.Now().UnixMilli(),
+	}))
+	require.True(t, find().DeploymentHasRunningRegion, "one running region keeps drop detection active")
+	require.NoError(t, h.DB.UpdateDeploymentTopologyDesiredStatus(h.Ctx, db.UpdateDeploymentTopologyDesiredStatusParams{
+		DesiredStatus: db.DeploymentTopologyDesiredStatusStopped,
+		UpdatedAt:     sql.NullInt64{Int64: time.Now().UnixMilli(), Valid: true},
+		DeploymentID:  app.deploymentID, RegionID: app.regionID,
+	}))
+	require.False(t, find().DeploymentHasRunningRegion, "all stopped regions suppress request-drop alerts")
+}
+
 func createAnomalyTestApp(t *testing.T, h *harness.Harness, kind mysqltype.EnvironmentKind) anomalyTestApp {
 	t.Helper()
 	workspace := h.Seed.CreateWorkspace(h.Ctx)
@@ -284,9 +321,15 @@ func createAnomalyTestApp(t *testing.T, h *harness.Harness, kind mysqltype.Envir
 		CurrentDeploymentID: sql.NullString{String: deployment.ID, Valid: true},
 		IsRolledBack:        false, UpdatedAt: sql.NullInt64{Int64: time.Now().UnixMilli(), Valid: true}, AppID: app.ID,
 	}))
+	regionID := uid.New(uid.RegionPrefix)
+	require.NoError(t, h.DB.InsertDeploymentTopology(h.Ctx, db.InsertDeploymentTopologyParams{
+		WorkspaceID: workspace.ID, DeploymentID: deployment.ID, RegionID: regionID,
+		AutoscalingReplicasMin: 0, AutoscalingReplicasMax: 1,
+		DesiredStatus: db.DeploymentTopologyDesiredStatusRunning, CreatedAt: time.Now().UnixMilli(),
+	}))
 	return anomalyTestApp{
 		workspaceID: workspace.ID, projectID: project.ID, appID: app.ID,
-		environmentID: environment.ID, deploymentID: deployment.ID,
+		environmentID: environment.ID, deploymentID: deployment.ID, regionID: regionID,
 	}
 }
 
