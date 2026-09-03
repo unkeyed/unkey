@@ -79,7 +79,10 @@ func NewShardHandler(cfg ShardConfig) (*ShardHandler, error) {
 	); err != nil {
 		return nil, err
 	}
-	return &ShardHandler{db: cfg.DB, clickhouse: cfg.Clickhouse}, nil
+	return &ShardHandler{
+		UnimplementedDeployAnomalyShardServiceServer: hydrav1.UnimplementedDeployAnomalyShardServiceServer{},
+		db: cfg.DB, clickhouse: cfg.Clickhouse,
+	}, nil
 }
 
 // EvaluateShard reads only SQL candidates and explicit open or prior-pending
@@ -132,8 +135,8 @@ func (h *ShardHandler) EvaluateShard(
 
 	filter := candidateFilter(DefaultConfig(SensitivityNormal))
 	baseRequest := clickhouse.AnomalyWindowsRequest{
-		WindowStart: windowStart, GroupKeys: groupKeys,
-		Shard: shard, ShardCount: shardCount, CandidateFilter: &filter,
+		WindowStart: windowStart, WorkspaceIDs: nil, GroupKeys: groupKeys,
+		Shard: shard, ShardCount: shardCount, SkipFleet: false, CandidateFilter: &filter,
 	}
 	requestQuery := baseRequest
 	requestQuery.SkipFleet = watermarks.Requests < windowEnd
