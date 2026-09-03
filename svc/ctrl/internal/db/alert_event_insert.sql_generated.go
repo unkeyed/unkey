@@ -14,7 +14,6 @@ const insertAlertEvent = `-- name: InsertAlertEvent :exec
 INSERT INTO alert_events (
     id,
     workspace_id,
-    workspace_hash,
     project_id,
     app_id,
     environment_id,
@@ -39,7 +38,6 @@ INSERT INTO alert_events (
     ?,
     ?,
     ?,
-    ?,
     'open',
     ?,
     ?,
@@ -57,7 +55,6 @@ INSERT INTO alert_events (
 type InsertAlertEventParams struct {
 	ID             string            `db:"id"`
 	WorkspaceID    string            `db:"workspace_id"`
-	WorkspaceHash  uint64            `db:"workspace_hash"`
 	ProjectID      string            `db:"project_id"`
 	AppID          string            `db:"app_id"`
 	EnvironmentID  string            `db:"environment_id"`
@@ -82,7 +79,6 @@ type InsertAlertEventParams struct {
 //	INSERT INTO alert_events (
 //	    id,
 //	    workspace_id,
-//	    workspace_hash,
 //	    project_id,
 //	    app_id,
 //	    environment_id,
@@ -107,7 +103,6 @@ type InsertAlertEventParams struct {
 //	    ?,
 //	    ?,
 //	    ?,
-//	    ?,
 //	    'open',
 //	    ?,
 //	    ?,
@@ -124,7 +119,6 @@ func (q *Queries) InsertAlertEvent(ctx context.Context, arg InsertAlertEventPara
 	_, err := q.db.ExecContext(ctx, insertAlertEvent,
 		arg.ID,
 		arg.WorkspaceID,
-		arg.WorkspaceHash,
 		arg.ProjectID,
 		arg.AppID,
 		arg.EnvironmentID,

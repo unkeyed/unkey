@@ -4,7 +4,6 @@
 UPDATE alert_events
 SET status = 'resolved',
     resolved_at = sqlc.arg(resolved_at),
-    resolved_by = 'system',
     resolution_message = sqlc.arg(resolution_message),
     updated_at = sqlc.arg(updated_at)
 WHERE id = sqlc.arg(id)

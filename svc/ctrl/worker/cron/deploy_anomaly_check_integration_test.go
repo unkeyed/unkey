@@ -49,15 +49,15 @@ func TestRunDeployAnomalyCheck_Integration(t *testing.T) {
 	err := h.DB.RO().QueryRowContext(h.Ctx, `
 		SELECT pk, id, workspace_id, project_id, app_id, environment_id,
 			deployment_id, metric, status, fired_at, last_seen_at, resolved_at,
-			resolved_by, resolution_message, observed_value, baseline_mean,
+			resolution_message, observed_value, baseline_mean,
 			baseline_stddev, threshold_sigma, window_start, window_end,
 			created_at, updated_at
 		FROM alert_events WHERE workspace_id = ?`, production.workspaceID).
 		Scan(
 			&alert.Pk, &alert.ID, &alert.WorkspaceID, &alert.ProjectID, &alert.AppID,
 			&alert.EnvironmentID, &alert.DeploymentID, &alert.Metric, &alert.Status,
-			&alert.FiredAt, &alert.LastSeenAt, &alert.ResolvedAt, &alert.ResolvedBy,
-			&alert.ResolutionMessage, &alert.ObservedValue, &alert.BaselineMean,
+			&alert.FiredAt, &alert.LastSeenAt, &alert.ResolvedAt, &alert.ResolutionMessage,
+			&alert.ObservedValue, &alert.BaselineMean,
 			&alert.BaselineStddev, &alert.ThresholdSigma, &alert.WindowStart,
 			&alert.WindowEnd, &alert.CreatedAt, &alert.UpdatedAt,
 		)
@@ -99,16 +99,15 @@ func TestRunDeployAnomalyCheck_Integration(t *testing.T) {
 		}
 	}
 
-	var resolvedBy, resolutionMessage sql.NullString
+	var resolutionMessage sql.NullString
 	require.NoError(t, h.DB.RO().QueryRowContext(h.Ctx,
-		"SELECT resolved_by, resolution_message FROM alert_events WHERE id = ?", alert.ID).
-		Scan(&resolvedBy, &resolutionMessage))
-	require.Equal(t, "system", resolvedBy.String)
+		"SELECT resolution_message FROM alert_events WHERE id = ?", alert.ID).
+		Scan(&resolutionMessage))
 	require.Equal(t, "Metric returned to baseline for 3 consecutive windows", resolutionMessage.String)
 	assertStoppedDeploymentSuppression(t, h)
 	assertBaselineAdaptedResolution(t, h)
 	assertDeploymentTopologyMetadata(t, h)
-	assertAnomalyShardHashCompatibility(t, h)
+	assertAnomalyShardCompatibility(t, h)
 }
 
 func assertIncompleteTelemetryNoop(
@@ -177,10 +176,8 @@ func assertStoppedDeploymentSuppression(t *testing.T, h *harness.Harness) {
 	windowStart := time.Now().UTC().Truncate(5 * time.Minute)
 	alertID := uid.New(uid.AlertPrefix)
 	require.NoError(t, h.DB.InsertAlertEvent(h.Ctx, db.InsertAlertEventParams{
-		ID:            alertID,
-		WorkspaceID:   app.workspaceID,
-		WorkspaceHash: city.CH64([]byte(app.workspaceID)),
-		ProjectID:     app.projectID, AppID: app.appID, EnvironmentID: app.environmentID,
+		ID: alertID, WorkspaceID: app.workspaceID, ProjectID: app.projectID,
+		AppID: app.appID, EnvironmentID: app.environmentID,
 		DeploymentID: sql.NullString{String: app.deploymentID, Valid: true},
 		Metric:       db.AlertEventsMetricRequestsDrop, FiredAt: windowStart.UnixMilli(),
 		LastSeenAt: windowStart.UnixMilli(), ObservedValue: 0, BaselineMean: 1_000,
@@ -232,10 +229,8 @@ func assertBaselineAdaptedResolution(t *testing.T, h *harness.Harness) {
 	firedAt := windowEnd.Add(-24 * time.Hour)
 	alertID := uid.New(uid.AlertPrefix)
 	require.NoError(t, h.DB.InsertAlertEvent(h.Ctx, db.InsertAlertEventParams{
-		ID:            alertID,
-		WorkspaceID:   app.workspaceID,
-		WorkspaceHash: city.CH64([]byte(app.workspaceID)),
-		ProjectID:     app.projectID, AppID: app.appID, EnvironmentID: app.environmentID,
+		ID: alertID, WorkspaceID: app.workspaceID, ProjectID: app.projectID,
+		AppID: app.appID, EnvironmentID: app.environmentID,
 		DeploymentID: sql.NullString{String: app.deploymentID, Valid: true},
 		Metric:       db.AlertEventsMetricRequests, FiredAt: firedAt.UnixMilli(),
 		LastSeenAt: firedAt.UnixMilli(), ObservedValue: 200, BaselineMean: 100,
@@ -261,12 +256,11 @@ func assertBaselineAdaptedResolution(t *testing.T, h *harness.Harness) {
 	require.False(t, response.GetPending(), "max-age resolution must clear metric state")
 
 	var status string
-	var resolvedBy, resolutionMessage sql.NullString
+	var resolutionMessage sql.NullString
 	require.NoError(t, h.DB.RO().QueryRowContext(h.Ctx,
-		"SELECT status, resolved_by, resolution_message FROM alert_events WHERE id = ?", alertID).
-		Scan(&status, &resolvedBy, &resolutionMessage))
+		"SELECT status, resolution_message FROM alert_events WHERE id = ?", alertID).
+		Scan(&status, &resolutionMessage))
 	require.Equal(t, "resolved", status)
-	require.Equal(t, "system", resolvedBy.String)
 	require.Equal(t, "Baseline adapted after 24 hours", resolutionMessage.String)
 }
 
@@ -303,7 +297,7 @@ func assertDeploymentTopologyMetadata(t *testing.T, h *harness.Harness) {
 	require.False(t, find().DeploymentHasRunningRegion, "all stopped regions suppress request-drop alerts")
 }
 
-func assertAnomalyShardHashCompatibility(t *testing.T, h *harness.Harness) {
+func assertAnomalyShardCompatibility(t *testing.T, h *harness.Harness) {
 	t.Helper()
 	vectors := map[string]uint64{
 		"ws_test":  14_195_424_828_609_858_884,
@@ -317,7 +311,7 @@ func assertAnomalyShardHashCompatibility(t *testing.T, h *harness.Harness) {
 		require.NoError(t, h.ClickHouseConn.QueryRow(h.Ctx, "SELECT cityHash64(?)", workspaceID).Scan(&clickhouseHash))
 		require.Equal(t, hash, clickhouseHash)
 		require.NoError(t, h.DB.InsertAlertEvent(h.Ctx, db.InsertAlertEventParams{
-			ID: uid.New(uid.AlertPrefix), WorkspaceID: workspaceID, WorkspaceHash: hash,
+			ID: uid.New(uid.AlertPrefix), WorkspaceID: workspaceID,
 			ProjectID: "project", AppID: appID, EnvironmentID: "environment",
 			Metric: db.AlertEventsMetricRequests, FiredAt: 1, LastSeenAt: 1,
 			ObservedValue: 1, BaselineMean: 0, BaselineStddev: 0, ThresholdSigma: 4,
@@ -325,15 +319,16 @@ func assertAnomalyShardHashCompatibility(t *testing.T, h *harness.Harness) {
 		}))
 	}
 
+	rows, err := h.DB.ListOpenAlertEventGroups(h.Ctx)
+	require.NoError(t, err)
 	seen := make(map[string]int)
 	for shard := range uint64(16) {
-		rows, err := h.DB.ListOpenAlertEventGroups(h.Ctx, db.ListOpenAlertEventGroupsParams{
-			ShardCount: 16, Shard: shard,
-		})
-		require.NoError(t, err)
 		for _, row := range rows {
 			expectedHash, ok := vectors[row.WorkspaceID]
 			if !ok || row.AppID != appID {
+				continue
+			}
+			if city.CH64([]byte(row.WorkspaceID))%16 != shard {
 				continue
 			}
 			require.Equal(t, shard, expectedHash%16)

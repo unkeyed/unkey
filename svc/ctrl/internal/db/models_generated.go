@@ -783,7 +783,6 @@ type AlertEvent struct {
 	Pk                uint64            `db:"pk"`
 	ID                string            `db:"id"`
 	WorkspaceID       string            `db:"workspace_id"`
-	WorkspaceHash     uint64            `db:"workspace_hash"`
 	ProjectID         string            `db:"project_id"`
 	AppID             string            `db:"app_id"`
 	EnvironmentID     string            `db:"environment_id"`
@@ -793,7 +792,6 @@ type AlertEvent struct {
 	FiredAt           int64             `db:"fired_at"`
 	LastSeenAt        int64             `db:"last_seen_at"`
 	ResolvedAt        sql.NullInt64     `db:"resolved_at"`
-	ResolvedBy        sql.NullString    `db:"resolved_by"`
 	ResolutionMessage sql.NullString    `db:"resolution_message"`
 	ObservedValue     float64           `db:"observed_value"`
 	BaselineMean      float64           `db:"baseline_mean"`
