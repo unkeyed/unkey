@@ -4,9 +4,14 @@ import (
 	"testing"
 	"time"
 
+	"github.com/go-faster/city"
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/deployanomaly"
 )
+
+func TestCityHash64MatchesClickHouse(t *testing.T) {
+	require.Equal(t, uint64(14_195_424_828_609_858_884), city.CH64([]byte("ws_test")))
+}
 
 func TestGenerateAlertSeedDataset(t *testing.T) {
 	target := alertSeedTarget{
