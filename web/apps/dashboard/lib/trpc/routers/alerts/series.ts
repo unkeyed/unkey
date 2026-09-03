@@ -27,6 +27,7 @@ export const getAlertSeries = workspaceProcedure
       throw new TRPCError({
         code: "INTERNAL_SERVER_ERROR",
         message: "Failed to fetch anomaly metric series",
+        cause: result.err,
       });
     }
 

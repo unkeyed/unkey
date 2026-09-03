@@ -76,19 +76,17 @@ function frontlineQuery(
   return {
     query: denseBuckets(`
       SELECT
-        toInt64(toUnixTimestamp(time) * 1000) AS time,
+        toInt64(toUnixTimestamp(metric_source.time) * 1000) AS time,
         ${expression} AS value
-      FROM {tableName: Identifier}
-      PREWHERE workspace_id = {workspaceId: String}
-        AND app_id = {appId: String}
-        AND environment_id = {environmentId: String}
-        AND time >= fromUnixTimestamp64Milli({baselineStartMs: Int64})
-        AND time < fromUnixTimestamp64Milli({endMs: Int64})
+      FROM {tableName: Identifier} AS metric_source
+      PREWHERE metric_source.workspace_id = {workspaceId: String}
+        AND metric_source.app_id = {appId: String}
+        AND metric_source.environment_id = {environmentId: String}
+        AND metric_source.time >= fromUnixTimestamp64Milli({baselineStartMs: Int64})
+        AND metric_source.time < fromUnixTimestamp64Milli({endMs: Int64})
       GROUP BY time`),
     tableName:
-      resolution === "5m"
-        ? "default.frontline_requests_per_5m_v1"
-        : "default.frontline_requests_per_hour_v1",
+      resolution === "5m" ? "frontline_requests_per_5m_v1" : "frontline_requests_per_hour_v1",
   };
 }
 
@@ -118,33 +116,31 @@ function resourceCounterQuery(
       )
       GROUP BY bucket`),
     tableName:
-      resolution === "5m"
-        ? "default.instance_resources_per_minute_v1"
-        : "default.instance_resources_per_hour_v1",
+      resolution === "5m" ? "instance_resources_per_minute_v1" : "instance_resources_per_hour_v1",
   };
 }
 
 function memoryQuery(resolution: "5m" | "1h"): { query: string; tableName: string } {
   const bucket =
-    resolution === "5m" ? "toStartOfInterval(time, INTERVAL 5 MINUTE)" : "toStartOfHour(time)";
+    resolution === "5m"
+      ? "toStartOfInterval(metric_source.time, INTERVAL 5 MINUTE)"
+      : "toStartOfHour(metric_source.time)";
   return {
     query: denseBuckets(`
       SELECT
         toInt64(toUnixTimestamp(${bucket}) * 1000) AS time,
         if(max(memory_allocated_bytes_max) = 0, 0,
           max(memory_bytes_max) / max(memory_allocated_bytes_max)) AS value
-      FROM {tableName: Identifier}
-      PREWHERE workspace_id = {workspaceId: String}
-        AND app_id = {appId: String}
-        AND environment_id = {environmentId: String}
-        AND resource_type = 'deployment'
-        AND time >= fromUnixTimestamp64Milli({baselineStartMs: Int64})
-        AND time < fromUnixTimestamp64Milli({endMs: Int64})
+      FROM {tableName: Identifier} AS metric_source
+      PREWHERE metric_source.workspace_id = {workspaceId: String}
+        AND metric_source.app_id = {appId: String}
+        AND metric_source.environment_id = {environmentId: String}
+        AND metric_source.resource_type = 'deployment'
+        AND metric_source.time >= fromUnixTimestamp64Milli({baselineStartMs: Int64})
+        AND metric_source.time < fromUnixTimestamp64Milli({endMs: Int64})
       GROUP BY time`),
     tableName:
-      resolution === "5m"
-        ? "default.instance_resources_per_minute_v1"
-        : "default.instance_resources_per_hour_v1",
+      resolution === "5m" ? "instance_resources_per_minute_v1" : "instance_resources_per_hour_v1",
   };
 }
 
@@ -274,7 +270,7 @@ export function getAlertSeries(ch: Querier) {
       endMs: args.endMs,
       baselineStartMs: args.startMs - baselineMs,
       bucketMs,
-      tableName: tableName ?? "default.instance_events_raw_v1",
+      tableName: tableName ?? "instance_events_raw_v1",
     });
   };
 }

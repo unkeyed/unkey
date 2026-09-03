@@ -29,13 +29,17 @@ describe("getAlertSeries", () => {
     if (metric === "health") {
       expect(ch.queries[0]).toContain(table);
     } else {
-      expect(ch.params[0]).toMatchObject({ tableName: `default.${table}` });
+      expect(ch.params[0]).toMatchObject({ tableName: table });
     }
     expect(ch.queries[0]).toContain(expression);
     expect(ch.queries[0]).toContain("workspace_id = {workspaceId: String}");
     expect(ch.queries[0]).toContain("app_id = {appId: String}");
     expect(ch.queries[0]).toContain("environment_id = {environmentId: String}");
     expect(ch.queries[0]).toContain("WITH FILL");
+    if (["error_5xx", "error_4xx", "requests", "memory_utilization"].includes(metric)) {
+      expect(ch.queries[0]).toContain("AS metric_source");
+      expect(ch.queries[0]).toContain("metric_source.time");
+    }
     expect(ch.params[0]).toMatchObject({
       workspaceId: baseRequest.workspaceId,
       appId: baseRequest.appId,
@@ -55,7 +59,7 @@ describe("getAlertSeries", () => {
 
     await getAlertSeries(ch)({ ...baseRequest, metric, resolution: "1h" });
 
-    expect(ch.params[0]).toMatchObject({ tableName: `default.${table}`, bucketMs: 3_600_000 });
+    expect(ch.params[0]).toMatchObject({ tableName: table, bucketMs: 3_600_000 });
   });
 
   it("computes a trailing 24-hour expected range without the current bucket", async () => {
