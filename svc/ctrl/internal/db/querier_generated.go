@@ -744,7 +744,6 @@ type Querier interface {
 	//      pk,
 	//      id,
 	//      workspace_id,
-	//      workspace_hash,
 	//      project_id,
 	//      app_id,
 	//      environment_id,
@@ -754,7 +753,6 @@ type Querier interface {
 	//      fired_at,
 	//      last_seen_at,
 	//      resolved_at,
-	//      resolved_by,
 	//      resolution_message,
 	//      observed_value,
 	//      baseline_mean,
@@ -954,7 +952,6 @@ type Querier interface {
 	//  INSERT INTO alert_events (
 	//      id,
 	//      workspace_id,
-	//      workspace_hash,
 	//      project_id,
 	//      app_id,
 	//      environment_id,
@@ -972,7 +969,6 @@ type Querier interface {
 	//      created_at,
 	//      updated_at
 	//  ) VALUES (
-	//      ?,
 	//      ?,
 	//      ?,
 	//      ?,
@@ -1824,7 +1820,6 @@ type Querier interface {
 	ListOlderActiveDeploymentsForDedup(ctx context.Context, arg ListOlderActiveDeploymentsForDedupParams) ([]ListOlderActiveDeploymentsForDedupRow, error)
 	// ListOpenAlertEventGroups returns the durable groups that shards must keep
 	// evaluating even when ClickHouse no longer classifies them as candidates.
-	// workspace_hash uses the same CityHash64 function as ClickHouse sharding.
 	//
 	//  SELECT DISTINCT
 	//      workspace_id,
@@ -1833,9 +1828,8 @@ type Querier interface {
 	//      environment_id
 	//  FROM alert_events
 	//  WHERE status = 'open'
-	//    AND workspace_hash % ? = ?
 	//  ORDER BY workspace_id, project_id, app_id, environment_id
-	ListOpenAlertEventGroups(ctx context.Context, arg ListOpenAlertEventGroupsParams) ([]ListOpenAlertEventGroupsRow, error)
+	ListOpenAlertEventGroups(ctx context.Context) ([]ListOpenAlertEventGroupsRow, error)
 	//ListPreviewEnvironments
 	//
 	//  SELECT environments.pk, environments.id, environments.workspace_id, environments.project_id, environments.app_id, environments.slug, environments.description, environments.kind, environments.delete_protection, environments.created_at, environments.updated_at
@@ -2081,7 +2075,6 @@ type Querier interface {
 	//  UPDATE alert_events
 	//  SET status = 'resolved',
 	//      resolved_at = ?,
-	//      resolved_by = 'system',
 	//      resolution_message = ?,
 	//      updated_at = ?
 	//  WHERE id = ?

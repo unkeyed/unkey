@@ -14,7 +14,6 @@ const resolveAlertEventBySystem = `-- name: ResolveAlertEventBySystem :execrows
 UPDATE alert_events
 SET status = 'resolved',
     resolved_at = ?,
-    resolved_by = 'system',
     resolution_message = ?,
     updated_at = ?
 WHERE id = ?
@@ -34,7 +33,6 @@ type ResolveAlertEventBySystemParams struct {
 //	UPDATE alert_events
 //	SET status = 'resolved',
 //	    resolved_at = ?,
-//	    resolved_by = 'system',
 //	    resolution_message = ?,
 //	    updated_at = ?
 //	WHERE id = ?
