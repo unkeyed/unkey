@@ -72,7 +72,9 @@ type InsertAlertEventParams struct {
 	UpdatedAt      sql.NullInt64     `db:"updated_at"`
 }
 
-// InsertAlertEvent
+// InsertAlertEvent persists the opening snapshot used for alert display and
+// hysteretic recovery. The evaluator checks for an existing open metric in the
+// same journaled step before calling this query.
 //
 //	INSERT INTO alert_events (
 //	    id,

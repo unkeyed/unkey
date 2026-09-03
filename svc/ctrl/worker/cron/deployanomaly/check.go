@@ -7,11 +7,9 @@ import (
 	restate "github.com/restatedev/sdk-go"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/assert"
-	"github.com/unkeyed/unkey/pkg/email"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
-	"github.com/unkeyed/unkey/svc/ctrl/internal/workos"
 )
 
 const (
@@ -21,30 +19,20 @@ const (
 
 // CheckConfig holds the per-group evaluator dependencies.
 type CheckConfig struct {
-	DB               db.Database
-	Admins           workos.Resolver
-	Email            email.Sender
-	DashboardBaseURL string
+	DB db.Database
 }
 
 // CheckHandler owns durable anomaly state for one app and environment.
 type CheckHandler struct {
-	db               db.Database
-	admins           workos.Resolver
-	email            email.Sender
-	dashboardBaseURL string
+	db db.Database
 }
 
 // NewCheckHandler constructs the per-group anomaly evaluator.
 func NewCheckHandler(cfg CheckConfig) (*CheckHandler, error) {
-	if err := assert.All(
-		assert.NotNil(cfg.DB, "DB must not be nil"),
-		assert.NotNil(cfg.Admins, "Admins must not be nil; use workos.NewNoop()"),
-		assert.NotNil(cfg.Email, "Email must not be nil; use email.NewNoop()"),
-	); err != nil {
+	if err := assert.NotNil(cfg.DB, "DB must not be nil"); err != nil {
 		return nil, err
 	}
-	return &CheckHandler{db: cfg.DB, admins: cfg.Admins, email: cfg.Email, dashboardBaseURL: cfg.DashboardBaseURL}, nil
+	return &CheckHandler{db: cfg.DB}, nil
 }
 
 func candidateKey(metric Metric) string       { return "candidate:" + string(metric) }
@@ -188,8 +176,8 @@ func (h *CheckHandler) reconcile(ctx restate.ObjectContext, req *hydrav1.Evaluat
 			BaselineMean: row.BaselineMean, BaselineStddev: row.BaselineStddev,
 			ThresholdValue: openingThreshold(metric, row.BaselineMean, row.BaselineStddev, row.ThresholdSigma, cfg),
 			SigmaK:         row.ThresholdSigma, RawCount: 0, Requests: 0, ExpectedCount: 0,
-			Notify: shouldNotify(metric, cfg.Notifications), Catastrophic: false,
-			Reason: "reconciled from open alert",
+			Catastrophic: false,
+			Reason:       "reconciled from open alert",
 		}
 		restate.Set(ctx, openAlertKey(metric), row.ID)
 		restate.Set(ctx, snapshotKey(metric), snapshot)
@@ -217,7 +205,6 @@ func openingThreshold(metric Metric, mean, stddev, sigma float64, cfg Config) fl
 
 type openResult struct {
 	ID       string
-	Created  bool
 	Snapshot Result
 }
 
@@ -233,14 +220,14 @@ func (h *CheckHandler) open(ctx restate.ObjectContext, req *hydrav1.EvaluateDepl
 			if Metric(alert.Metric) == input.Metric {
 				cfg := DefaultConfig(SensitivityNormal)
 				return openResult{
-					ID: alert.ID, Created: false,
+					ID: alert.ID,
 					Snapshot: Result{
 						Outcome: OutcomeAnomaly, Observed: alert.ObservedValue,
 						BaselineMean: alert.BaselineMean, BaselineStddev: alert.BaselineStddev,
 						ThresholdValue: openingThreshold(input.Metric, alert.BaselineMean, alert.BaselineStddev, alert.ThresholdSigma, cfg),
 						SigmaK:         alert.ThresholdSigma, RawCount: 0, Requests: 0, ExpectedCount: 0,
-						Notify: shouldNotify(input.Metric, cfg.Notifications), Catastrophic: false,
-						Reason: "reconciled from open alert",
+						Catastrophic: false,
+						Reason:       "reconciled from open alert",
 					},
 				}, nil
 			}
@@ -256,7 +243,7 @@ func (h *CheckHandler) open(ctx restate.ObjectContext, req *hydrav1.EvaluateDepl
 			WindowStart: req.GetWindowStart(), WindowEnd: req.GetWindowEnd(), CreatedAt: req.GetWindowEnd(),
 			UpdatedAt: sql.NullInt64{},
 		})
-		return openResult{ID: id, Created: true, Snapshot: result}, err
+		return openResult{ID: id, Snapshot: result}, err
 	}, restate.WithName("insert anomaly alert"))
 	if err != nil {
 		return fmt.Errorf("insert anomaly alert for %s: %w", input.Metric, err)
@@ -278,14 +265,6 @@ func (h *CheckHandler) open(ctx restate.ObjectContext, req *hydrav1.EvaluateDepl
 		"recent_active_buckets", input.RecentActiveBuckets,
 		"sigma", result.SigmaK, "threshold", result.ThresholdValue,
 	)
-	if opened.Created && result.Notify && !req.GetNotificationsMuted() {
-		if err := h.sendAlert(ctx, req, alertID, input.Metric, result); err != nil {
-			return err
-		}
-	} else if opened.Created {
-		logger.Info("deploy anomaly email suppressed", "alert_id", alertID, "metric", input.Metric,
-			"workspace_muted", req.GetNotificationsMuted(), "metric_notify", result.Notify)
-	}
 	return nil
 }
 
@@ -309,7 +288,7 @@ func (h *CheckHandler) evaluateOpen(ctx restate.ObjectContext, req *hydrav1.Eval
 		restate.Set(ctx, quietKey(input.Metric), quiet)
 		return nil
 	}
-	return h.resolve(ctx, req, alertID, input.Metric, snapshot, autoResolveMessage)
+	return h.resolve(ctx, req, alertID, input.Metric, autoResolveMessage)
 }
 
 func (h *CheckHandler) touch(ctx restate.ObjectContext, alertID string, windowEnd int64, observed float64) error {
@@ -321,8 +300,8 @@ func (h *CheckHandler) touch(ctx restate.ObjectContext, alertID string, windowEn
 	}, restate.WithName("touch anomaly alert"))
 }
 
-func (h *CheckHandler) resolve(ctx restate.ObjectContext, req *hydrav1.EvaluateDeployAnomalyRequest, alertID string, metric Metric, snapshot Result, message string) error {
-	rows, err := restate.Run(ctx, func(rc restate.RunContext) (int64, error) {
+func (h *CheckHandler) resolve(ctx restate.ObjectContext, req *hydrav1.EvaluateDeployAnomalyRequest, alertID string, metric Metric, message string) error {
+	_, err := restate.Run(ctx, func(rc restate.RunContext) (int64, error) {
 		return h.db.ResolveAlertEventBySystem(rc, db.ResolveAlertEventBySystemParams{
 			ID:                alertID,
 			ResolvedAt:        sql.NullInt64{Int64: req.GetWindowEnd(), Valid: true},
@@ -332,11 +311,6 @@ func (h *CheckHandler) resolve(ctx restate.ObjectContext, req *hydrav1.EvaluateD
 	}, restate.WithName("resolve anomaly alert"))
 	if err != nil {
 		return fmt.Errorf("resolve anomaly alert %s: %w", alertID, err)
-	}
-	if rows > 0 && !req.GetNotificationsMuted() && snapshot.Notify {
-		if err := h.sendResolved(ctx, req, alertID, metric, snapshot); err != nil {
-			return err
-		}
 	}
 	clearMetricState(ctx, metric)
 	return nil
@@ -352,11 +326,7 @@ func (h *CheckHandler) suppressRequestDrop(ctx restate.ObjectContext, req *hydra
 		clearMetricState(ctx, MetricRequestsDrop)
 		return nil
 	}
-	snapshot, err := restate.Get[Result](ctx, snapshotKey(MetricRequestsDrop))
-	if err != nil {
-		return fmt.Errorf("get request-drop snapshot: %w", err)
-	}
-	return h.resolve(ctx, req, openID, MetricRequestsDrop, snapshot, stoppedMessage)
+	return h.resolve(ctx, req, openID, MetricRequestsDrop, stoppedMessage)
 }
 
 func requestDropSuppressed(req *hydrav1.EvaluateDeployAnomalyRequest) bool {

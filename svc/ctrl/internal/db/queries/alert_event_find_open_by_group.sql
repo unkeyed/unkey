@@ -1,4 +1,6 @@
 -- name: FindOpenAlertEventsByGroup :many
+-- FindOpenAlertEventsByGroup rebuilds one evaluator's durable state after a
+-- cold start. Metric ordering makes reconciliation deterministic.
 SELECT
     pk,
     id,

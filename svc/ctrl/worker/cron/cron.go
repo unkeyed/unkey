@@ -53,6 +53,7 @@ type Service struct {
 	auditLogExport          *auditlogexport.Handler
 	clickhouseUserReconcile *clickhouseuserreconcile.Handler
 	deployAnomaly           *deployanomaly.Handler
+	deployAnomalyShard      *deployanomaly.ShardHandler
 	deployAnomalyWork       *deployanomaly.CheckHandler
 	deployBilling           *deploybilling.Handler
 	deployBillingPush       *deploybilling.PushHandler
@@ -85,6 +86,11 @@ func (s *Service) DeploySpendCheckServer() hydrav1.DeploySpendCheckServiceServer
 // the fleet cron handler.
 func (s *Service) DeployAnomalyServer() hydrav1.DeployAnomalyServiceServer {
 	return s.deployAnomalyWork
+}
+
+// DeployAnomalyShardServer returns the per-window hash partition evaluator.
+func (s *Service) DeployAnomalyShardServer() hydrav1.DeployAnomalyShardServiceServer {
+	return s.deployAnomalyShard
 }
 
 // Heartbeats groups the per-task healthcheck pingers. Every field must
@@ -149,11 +155,8 @@ type Config struct {
 	// BillingBaseURL is the dashboard origin used to build the alert's billing
 	// link, e.g. "https://app.unkey.com".
 	BillingBaseURL string
-	// AnomalyAdmins and AnomalyEmail override WorkOS and Resend for anomaly
-	// integration tests. Production leaves them nil and uses the configured API
-	// keys.
-	AnomalyAdmins workos.Resolver
-	AnomalyEmail  email.Sender
+	// DeployAnomalyShardCount defaults to 16 when omitted.
+	DeployAnomalyShardCount uint64
 	// Heartbeats is the per-task healthcheck wiring. Every field is required.
 	Heartbeats Heartbeats
 }
@@ -327,22 +330,20 @@ func New(cfg Config) (*Service, error) {
 	if err != nil {
 		return nil, err
 	}
-	anomalySender := alertSender
-	if cfg.AnomalyEmail != nil {
-		anomalySender = cfg.AnomalyEmail
-	}
-	anomalyAdmins := admins
-	if cfg.AnomalyAdmins != nil {
-		anomalyAdmins = cfg.AnomalyAdmins
-	}
 	deployAnomalyH, err := deployanomaly.NewHandler(deployanomaly.HandlerConfig{
-		DB: cfg.DB, Clickhouse: cfg.Clickhouse, Heartbeat: cfg.Heartbeats.DeployAnomaly,
+		Heartbeat: cfg.Heartbeats.DeployAnomaly, ShardCount: cfg.DeployAnomalyShardCount,
+	})
+	if err != nil {
+		return nil, err
+	}
+	deployAnomalyShardH, err := deployanomaly.NewShardHandler(deployanomaly.ShardConfig{
+		DB: cfg.DB, Clickhouse: cfg.Clickhouse,
 	})
 	if err != nil {
 		return nil, err
 	}
 	deployAnomalyWorkH, err := deployanomaly.NewCheckHandler(deployanomaly.CheckConfig{
-		DB: cfg.DB, Admins: anomalyAdmins, Email: anomalySender, DashboardBaseURL: cfg.BillingBaseURL,
+		DB: cfg.DB,
 	})
 	if err != nil {
 		return nil, err
@@ -354,6 +355,7 @@ func New(cfg Config) (*Service, error) {
 		auditLogExport:                 auditLogExportH,
 		clickhouseUserReconcile:        clickhouseUserReconcileH,
 		deployAnomaly:                  deployAnomalyH,
+		deployAnomalyShard:             deployAnomalyShardH,
 		deployAnomalyWork:              deployAnomalyWorkH,
 		deployBilling:                  deployBillingH,
 		deployBillingPush:              deployBillingPushH,

@@ -103,20 +103,6 @@ type RecoveryThresholds struct {
 	MemoryUtilization float64
 }
 
-// Notifications selects which detected metrics send email. Detection and
-// persistence are independent from notification policy.
-type Notifications struct {
-	Error5xx          bool
-	Error4xx          bool
-	Requests          bool
-	RequestsDrop      bool
-	EgressBytes       bool
-	CPUSeconds        bool
-	MemoryUtilization bool
-	OOMKilled         bool
-	CrashLoop         bool
-}
-
 // BaselineMinimums defines the observed history required before each sigma
 // metric can alert. Request drops wait longer because short-lived test traffic
 // followed by silence is not evidence of an outage.
@@ -139,7 +125,6 @@ type Config struct {
 	RequestDrop      RequestDropRule
 	Catastrophic     CatastrophicRules
 	Recovery         RecoveryThresholds
-	Notifications    Notifications
 }
 
 // DefaultConfig returns the production defaults for a sensitivity.
@@ -181,17 +166,6 @@ func DefaultConfig(sensitivity Sensitivity) Config {
 		},
 		Recovery: RecoveryThresholds{
 			MemoryUtilization: 0.85,
-		},
-		Notifications: Notifications{
-			Error5xx:          true,
-			Error4xx:          false,
-			Requests:          true,
-			RequestsDrop:      true,
-			EgressBytes:       true,
-			CPUSeconds:        true,
-			MemoryUtilization: true,
-			OOMKilled:         true,
-			CrashLoop:         true,
 		},
 	}
 }
@@ -267,7 +241,6 @@ type Result struct {
 	RawCount       float64
 	Requests       float64
 	ExpectedCount  float64
-	Notify         bool
 	Catastrophic   bool
 	Reason         string
 }
@@ -280,11 +253,11 @@ type Result struct {
 func Detect(input Input, cfg Config) Result {
 	switch input.Metric {
 	case MetricMemoryUtilization:
-		return detectThreshold(input.Metric, input.Current, cfg.ActivityFloors.MemoryUtilization, false, "memory utilization reached threshold", cfg)
+		return detectThreshold(input.Current, cfg.ActivityFloors.MemoryUtilization, false, "memory utilization reached threshold")
 	case MetricOOMKilled:
-		return detectThreshold(input.Metric, input.Current, cfg.ActivityFloors.OOMKilled, true, "OOM kill observed", cfg)
+		return detectThreshold(input.Current, cfg.ActivityFloors.OOMKilled, true, "OOM kill observed")
 	case MetricCrashLoop:
-		return detectThreshold(input.Metric, input.Current, cfg.ActivityFloors.CrashLoop, true, "crash loop observed", cfg)
+		return detectThreshold(input.Current, cfg.ActivityFloors.CrashLoop, true, "crash loop observed")
 	case MetricRequestsDrop:
 		return detectRequestsDrop(input, cfg)
 	case MetricError5xx, MetricError4xx:
@@ -302,7 +275,6 @@ func Detect(input Input, cfg Config) Result {
 			RawCount:       0,
 			Requests:       0,
 			ExpectedCount:  0,
-			Notify:         false,
 			Catastrophic:   false,
 			Reason:         "unsupported metric",
 		}
@@ -311,7 +283,7 @@ func Detect(input Input, cfg Config) Result {
 
 // detectThreshold applies the direct threshold used by memory and instance
 // lifecycle signals, which do not need a historical baseline.
-func detectThreshold(metric Metric, observed, threshold float64, catastrophic bool, reason string, cfg Config) Result {
+func detectThreshold(observed, threshold float64, catastrophic bool, reason string) Result {
 	result := Result{
 		Outcome:        OutcomeNone,
 		Observed:       observed,
@@ -322,7 +294,6 @@ func detectThreshold(metric Metric, observed, threshold float64, catastrophic bo
 		RawCount:       0,
 		Requests:       0,
 		ExpectedCount:  0,
-		Notify:         shouldNotify(metric, cfg.Notifications),
 		Catastrophic:   false,
 		Reason:         "threshold not reached",
 	}
@@ -349,7 +320,6 @@ func detectSigma(input Input, cfg Config) Result {
 		RawCount:       0,
 		Requests:       0,
 		ExpectedCount:  0,
-		Notify:         shouldNotify(input.Metric, cfg.Notifications),
 		Catastrophic:   false,
 		Reason:         "current value did not exceed sigma threshold",
 	}
@@ -395,11 +365,16 @@ func detectError(input Input, cfg Config) Result {
 		RawCount:       input.Current,
 		Requests:       input.RequestsInWindow,
 		ExpectedCount:  expected,
-		Notify:         shouldNotify(input.Metric, cfg.Notifications),
 		Catastrophic:   false,
 		Reason:         "error ratio did not exceed sigma threshold",
 	}
 
+	if input.Metric == MetricError5xx && ratio >= cfg.Catastrophic.Error5xxRatio && input.Current >= cfg.Catastrophic.Error5xxFailures {
+		result.Outcome = OutcomeAnomaly
+		result.Catastrophic = true
+		result.Reason = "catastrophic 5xx error rate"
+		return result
+	}
 	minimum := minimumBaselineBuckets(input.Metric, cfg.BaselineMinimums)
 	if input.ObservedBaselineBuckets < minimum {
 		result.Outcome = OutcomeInsufficient
@@ -411,12 +386,6 @@ func detectError(input Input, cfg Config) Result {
 	}
 	if excess < cfg.ActivityFloors.ErrorExcessFailures {
 		result.Reason = "excess failures are below the activity floor"
-		return result
-	}
-	if input.Metric == MetricError5xx && ratio >= cfg.Catastrophic.Error5xxRatio && input.Current >= cfg.Catastrophic.Error5xxFailures {
-		result.Outcome = OutcomeAnomaly
-		result.Catastrophic = true
-		result.Reason = "catastrophic 5xx error rate"
 		return result
 	}
 	if !input.PreviousCandidate {
@@ -446,7 +415,6 @@ func detectRequestsDrop(input Input, cfg Config) Result {
 		RawCount:       0,
 		Requests:       0,
 		ExpectedCount:  0,
-		Notify:         shouldNotify(input.Metric, cfg.Notifications),
 		Catastrophic:   false,
 		Reason:         "current requests did not fall below the recent-level threshold",
 	}
@@ -539,31 +507,6 @@ func Recovered(input Input, snapshot Result, cfg Config) bool {
 		return input.Current < cfg.Recovery.MemoryUtilization
 	case MetricOOMKilled, MetricCrashLoop:
 		return input.Current < snapshot.ThresholdValue
-	default:
-		return false
-	}
-}
-
-func shouldNotify(metric Metric, notifications Notifications) bool {
-	switch metric {
-	case MetricError5xx:
-		return notifications.Error5xx
-	case MetricError4xx:
-		return notifications.Error4xx
-	case MetricRequests:
-		return notifications.Requests
-	case MetricRequestsDrop:
-		return notifications.RequestsDrop
-	case MetricEgressBytes:
-		return notifications.EgressBytes
-	case MetricCPUSeconds:
-		return notifications.CPUSeconds
-	case MetricMemoryUtilization:
-		return notifications.MemoryUtilization
-	case MetricOOMKilled:
-		return notifications.OOMKilled
-	case MetricCrashLoop:
-		return notifications.CrashLoop
 	default:
 		return false
 	}

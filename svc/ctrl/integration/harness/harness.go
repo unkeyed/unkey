@@ -22,7 +22,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/clock"
-	"github.com/unkeyed/unkey/pkg/email"
 	"github.com/unkeyed/unkey/pkg/healthcheck"
 	"github.com/unkeyed/unkey/pkg/mysql/sqlcomment"
 	restateadmin "github.com/unkeyed/unkey/pkg/restate/admin"
@@ -32,7 +31,6 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/internal/billingmeter"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/invoicecloser"
-	"github.com/unkeyed/unkey/svc/ctrl/internal/workos"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/buildslot"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/clickhouseuser"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron"
@@ -96,8 +94,6 @@ type harnessOpts struct {
 	billingUsageReader deploybilling.UsageReader
 	billingPusher      billingmeter.Pusher
 	billingCloser      invoicecloser.Closer
-	alertAdmins        workos.Resolver
-	alertEmail         email.Sender
 }
 
 // WithTimeout overrides the default harness context timeout.
@@ -130,15 +126,6 @@ func WithDeployBilling(
 		o.billingUsageReader = reader
 		o.billingPusher = pusher
 		o.billingCloser = closer
-	}
-}
-
-// WithDeployAnomalyNotifications captures anomaly notifications with the
-// supplied resolver and sender instead of calling WorkOS and Resend.
-func WithDeployAnomalyNotifications(admins workos.Resolver, sender email.Sender) Option {
-	return func(o *harnessOpts) {
-		o.alertAdmins = admins
-		o.alertEmail = sender
 	}
 }
 
@@ -243,8 +230,6 @@ func New(t *testing.T, opts ...Option) *Harness {
 		WorkOSAPIKey:   "",
 		ResendAPIKey:   "",
 		BillingBaseURL: "https://app.unkey.com",
-		AnomalyAdmins:  o.alertAdmins,
-		AnomalyEmail:   o.alertEmail,
 		Heartbeats: cron.Heartbeats{
 			QuotaCheck:         healthcheck.NewNoop(),
 			KeyRefill:          healthcheck.NewNoop(),
@@ -333,6 +318,7 @@ func New(t *testing.T, opts ...Option) *Harness {
 		// route end to end.
 		hydrav1.NewDeployBillingPushServiceServer(cronSvc.DeployBillingPushServer()),
 		hydrav1.NewDeploySpendCheckServiceServer(cronSvc.DeploySpendCheckServer()),
+		hydrav1.NewDeployAnomalyShardServiceServer(cronSvc.DeployAnomalyShardServer()),
 		hydrav1.NewDeployAnomalyServiceServer(cronSvc.DeployAnomalyServer()),
 		hydrav1.NewClickhouseUserServiceServer(clickhouseUserSvc),
 		hydrav1.NewKeyLastUsedPartitionServiceServer(keyLastUsedPartitionSvc),

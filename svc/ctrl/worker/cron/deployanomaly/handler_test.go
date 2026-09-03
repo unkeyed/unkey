@@ -6,6 +6,7 @@ import (
 	"github.com/stretchr/testify/require"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
+	"github.com/unkeyed/unkey/pkg/healthcheck"
 	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
 )
 
@@ -35,6 +36,43 @@ func TestParseWindowStart(t *testing.T) {
 			require.Equal(t, test.want, got)
 		})
 	}
+}
+
+func TestShardKey(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name    string
+		key     string
+		wantErr bool
+	}{
+		{name: "valid", key: ShardKey(1_800_000, 3, 16)},
+		{name: "unaligned window", key: "1800001/3/16", wantErr: true},
+		{name: "shard outside count", key: "1800000/16/16", wantErr: true},
+		{name: "zero shard count", key: "1800000/0/0", wantErr: true},
+		{name: "missing part", key: "1800000/0", wantErr: true},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			window, shard, count, err := ParseShardKey(test.key)
+			if test.wantErr {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+			require.Equal(t, int64(1_800_000), window)
+			require.Equal(t, uint64(3), shard)
+			require.Equal(t, uint64(16), count)
+		})
+	}
+}
+
+func TestNewHandlerDefaultsShardCount(t *testing.T) {
+	t.Parallel()
+
+	handler, err := NewHandler(HandlerConfig{Heartbeat: healthcheck.NewNoop()})
+	require.NoError(t, err)
+	require.Equal(t, defaultShardCount, handler.shardCount)
 }
 
 func TestMetricDataState(t *testing.T) {
@@ -71,7 +109,7 @@ func TestActionableGroups(t *testing.T) {
 				CurrentBucketPresent: true,
 			},
 		},
-		open:       {open: true},
+		open:       {forced: true},
 		incomplete: {request: &clickhouse.RequestAnomalyWindow{RequestsCurrent: 1_000, CurrentBucketPresent: true}},
 	}
 

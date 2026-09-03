@@ -563,13 +563,12 @@ func Run(ctx context.Context, cfg Config) error {
 		BillingUsageReader:        billingUsageReader,
 		StripeSecretKey:           cfg.Billing.StripeSecretKey,
 		// Derived from StripeSecretKey; only tests inject these directly.
-		BillingPusher:  nil,
-		BillingCloser:  nil,
-		WorkOSAPIKey:   cfg.WorkOSAPIKey,
-		ResendAPIKey:   cfg.Email.ResendAPIKey,
-		BillingBaseURL: cfg.DashboardURL,
-		AnomalyAdmins:  nil,
-		AnomalyEmail:   nil,
+		BillingPusher:           nil,
+		BillingCloser:           nil,
+		WorkOSAPIKey:            cfg.WorkOSAPIKey,
+		ResendAPIKey:            cfg.Email.ResendAPIKey,
+		BillingBaseURL:          cfg.DashboardURL,
+		DeployAnomalyShardCount: cfg.Restate.DeployAnomalyShardCount,
 		Heartbeats: cron.Heartbeats{
 			QuotaCheck:         cronHeartbeat(cfg.Heartbeat.QuotaCheckURL),
 			KeyRefill:          cronHeartbeat(cfg.Heartbeat.KeyRefillURL),
@@ -807,7 +806,20 @@ func Run(ctx context.Context, cfg Config) error {
 		ConfigureHandler("CheckWorkspaceSpend", deploySpendCheckWorkspaceRetry))
 	logger.Info("DeploySpendCheckService enabled")
 
-	// The orchestrator awaits every per-group evaluation. Bound retries prevent
+	// A shard awaits all of its per-group children. Bound retries and kill on
+	// exhaustion so one partition cannot pause the window orchestrator forever.
+	deployAnomalyShardRetry := restate.WithInvocationRetryPolicy(
+		restate.WithInitialInterval(100*time.Millisecond),
+		restate.WithExponentiationFactor(2.0),
+		restate.WithMaxInterval(5*time.Second),
+		restate.WithMaxAttempts(5),
+		restate.KillOnMaxAttempts(),
+	)
+	restateSrv.Bind(hydrav1.NewDeployAnomalyShardServiceServer(cronSvc.DeployAnomalyShardServer()).
+		ConfigureHandler("EvaluateShard", deployAnomalyShardRetry))
+	logger.Info("DeployAnomalyShardService enabled")
+
+	// The shard awaits every per-group evaluation. Bound retries prevent
 	// one permanently failing group from blocking the fleet heartbeat forever.
 	deployAnomalyGroupRetry := restate.WithInvocationRetryPolicy(
 		restate.WithInitialInterval(100*time.Millisecond),

@@ -620,7 +620,8 @@ type Querier interface {
 	//  FROM `limits`
 	//  WHERE workspace_id = ?
 	FindLimitsByWorkspaceID(ctx context.Context, workspaceID string) (Limit, error)
-	//FindLiveDeploymentForEnvironment
+	// FindLiveDeploymentForEnvironment resolves customer-facing metadata and the
+	// current deployment state used to suppress intentional request drops.
 	//
 	//  SELECT
 	//      w.org_id,
@@ -630,8 +631,7 @@ type Querier interface {
 	//      e.kind AS environment_kind,
 	//      e.slug AS environment_slug,
 	//      d.id AS deployment_id,
-	//      COALESCE(d.desired_state, '') AS deployment_desired_state,
-	//      CAST(COALESCE(JSON_UNQUOTE(JSON_EXTRACT(w.beta_features, '$.deploy_anomaly_alerts_muted')) IN ('true', '1'), FALSE) AS SIGNED) AS notifications_muted
+	//      COALESCE(d.desired_state, '') AS deployment_desired_state
 	//  FROM environments e
 	//  INNER JOIN apps a ON a.id = e.app_id
 	//  INNER JOIN workspaces w ON w.id = e.workspace_id
@@ -645,7 +645,54 @@ type Querier interface {
 	//    AND w.deleted_at_m IS NULL
 	//  LIMIT 1
 	FindLiveDeploymentForEnvironment(ctx context.Context, arg FindLiveDeploymentForEnvironmentParams) (FindLiveDeploymentForEnvironmentRow, error)
-	//FindOpenAlertEventsByGroup
+	// FindLiveDeploymentsForEnvironments resolves alert metadata in bounded
+	// batches. The JSON array preserves complete four-column group identities;
+	// ordering makes shard fan-out deterministic after missing groups are omitted.
+	//
+	//  WITH RECURSIVE group_indexes AS (
+	//      SELECT 0 AS group_index
+	//      WHERE JSON_LENGTH(?) > 0
+	//      UNION ALL
+	//      SELECT group_index + 1
+	//      FROM group_indexes
+	//      WHERE group_index + 1 < JSON_LENGTH(?)
+	//  ), requested AS (
+	//      SELECT
+	//          JSON_UNQUOTE(JSON_EXTRACT(?, CONCAT('$[', group_index, '].workspace_id'))) AS workspace_id,
+	//          JSON_UNQUOTE(JSON_EXTRACT(?, CONCAT('$[', group_index, '].project_id'))) AS project_id,
+	//          JSON_UNQUOTE(JSON_EXTRACT(?, CONCAT('$[', group_index, '].app_id'))) AS app_id,
+	//          JSON_UNQUOTE(JSON_EXTRACT(?, CONCAT('$[', group_index, '].environment_id'))) AS environment_id
+	//      FROM group_indexes
+	//  )
+	//  SELECT
+	//      e.workspace_id,
+	//      e.project_id,
+	//      e.app_id,
+	//      e.id AS environment_id,
+	//      w.org_id,
+	//      w.name AS workspace_name,
+	//      w.slug AS workspace_slug,
+	//      a.name AS app_name,
+	//      e.kind AS environment_kind,
+	//      e.slug AS environment_slug,
+	//      d.id AS deployment_id,
+	//      COALESCE(d.desired_state, '') AS deployment_desired_state
+	//  FROM requested
+	//  INNER JOIN environments e
+	//      ON BINARY e.id = BINARY requested.environment_id
+	//      AND BINARY e.workspace_id = BINARY requested.workspace_id
+	//      AND BINARY e.project_id = BINARY requested.project_id
+	//      AND BINARY e.app_id = BINARY requested.app_id
+	//  INNER JOIN apps a ON a.id = e.app_id
+	//  INNER JOIN workspaces w ON w.id = e.workspace_id
+	//  LEFT JOIN deployments d
+	//      ON d.id = a.current_deployment_id
+	//      AND d.environment_id = e.id
+	//  WHERE w.deleted_at_m IS NULL
+	//  ORDER BY requested.workspace_id, requested.project_id, requested.app_id, requested.environment_id
+	FindLiveDeploymentsForEnvironments(ctx context.Context, arg FindLiveDeploymentsForEnvironmentsParams) ([]FindLiveDeploymentsForEnvironmentsRow, error)
+	// FindOpenAlertEventsByGroup rebuilds one evaluator's durable state after a
+	// cold start. Metric ordering makes reconciliation deterministic.
 	//
 	//  SELECT
 	//      pk,
@@ -853,7 +900,9 @@ type Querier interface {
 	//  INSERT INTO acme_users (id, workspace_id, encrypted_key, created_at)
 	//  VALUES (?,?,?,?)
 	InsertAcmeUser(ctx context.Context, arg InsertAcmeUserParams) error
-	//InsertAlertEvent
+	// InsertAlertEvent persists the opening snapshot used for alert display and
+	// hysteretic recovery. The evaluator checks for an existing open metric in the
+	// same journaled step before calling this query.
 	//
 	//  INSERT INTO alert_events (
 	//      id,
@@ -1718,7 +1767,8 @@ type Querier interface {
 	//    AND id != ?
 	//  ORDER BY created_at ASC
 	ListOlderActiveDeploymentsForDedup(ctx context.Context, arg ListOlderActiveDeploymentsForDedupParams) ([]ListOlderActiveDeploymentsForDedupRow, error)
-	//ListOpenAlertEventGroups
+	// ListOpenAlertEventGroups returns the durable groups that shards must keep
+	// evaluating even when ClickHouse no longer classifies them as candidates.
 	//
 	//  SELECT DISTINCT
 	//      workspace_id,
@@ -1979,7 +2029,8 @@ type Querier interface {
 	//      updated_at = ?
 	//  WHERE id = ?
 	ResetCustomDomainVerification(ctx context.Context, arg ResetCustomDomainVerificationParams) error
-	//ResolveAlertEventBySystem
+	// ResolveAlertEventBySystem closes an alert only while it is open. The status
+	// guard makes retries and concurrent reconciliation safe no-ops.
 	//
 	//  UPDATE alert_events
 	//  SET status = 'resolved',
@@ -2045,7 +2096,8 @@ type Querier interface {
 	//  WHERE dt.`workspace_id` = ?
 	//    AND dt.`desired_status` = 'running'
 	SumAllocatedResourcesByWorkspaceID(ctx context.Context, workspaceID string) (SumAllocatedResourcesByWorkspaceIDRow, error)
-	//TouchAlertEventLastSeen
+	// TouchAlertEventLastSeen records the latest complete anomalous window without
+	// changing the baseline snapshot captured when the alert opened.
 	//
 	//  UPDATE alert_events
 	//  SET last_seen_at = ?,

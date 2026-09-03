@@ -100,7 +100,9 @@ service CronService {
   rpc RunDeploySpendCheck(RunDeploySpendCheckRequest) returns (RunDeploySpendCheckResponse) {}
 
   // RunDeployAnomalyCheck evaluates one closed Deploy metrics window and fans
-  // out actionable production groups to DeployAnomalyService. Key =
+  // out to DeployAnomalyShardService. Each shard reads only its ClickHouse
+  // candidates and fans actionable production groups to DeployAnomalyService.
+  // Key =
   // "deploy-anomaly-<window start unix seconds>". The scheduler chooses the
   // last window that is at least one full 5-minute bucket old so rollups can
   // settle before the fleet queries run.
@@ -194,6 +196,9 @@ message RunDeployAnomalyCheckRequest {}
 message RunDeployAnomalyCheckResponse {
   // Number of production app and environment groups evaluated by their VO.
   int32 groups_dispatched = 1;
+  // Number of groups retained for the next window because they have a
+  // candidate or open alert.
+  int32 groups_pending = 2;
 }
 
 message RunClickhouseUserReconcileRequest {}

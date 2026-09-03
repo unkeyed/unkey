@@ -78,7 +78,6 @@ func TestDetectErrors(t *testing.T) {
 		wantObserved     float64
 		wantThreshold    float64
 		wantCatastrophic bool
-		wantNotify       bool
 	}{
 		{
 			name: "traffic growth without rate growth stays quiet",
@@ -86,7 +85,7 @@ func TestDetectErrors(t *testing.T) {
 				Metric: MetricError5xx, Current: 100, RequestsInWindow: 10_000,
 				BaselineMean: 0.01, BaselineStddev: 0.001, ObservedBaselineBuckets: 288,
 			},
-			wantOutcome: OutcomeNone, wantObserved: 0.01, wantThreshold: 0.05, wantNotify: true,
+			wantOutcome: OutcomeNone, wantObserved: 0.01, wantThreshold: 0.05,
 		},
 		{
 			name: "moderate 5xx spike becomes candidate",
@@ -94,7 +93,7 @@ func TestDetectErrors(t *testing.T) {
 				Metric: MetricError5xx, Current: 40, RequestsInWindow: 100,
 				BaselineMean: 0.10, ObservedBaselineBuckets: 288,
 			},
-			wantOutcome: OutcomeCandidate, wantObserved: 0.40, wantThreshold: 0.14, wantNotify: true,
+			wantOutcome: OutcomeCandidate, wantObserved: 0.40, wantThreshold: 0.14,
 		},
 		{
 			name: "moderate 5xx spike confirms",
@@ -102,7 +101,7 @@ func TestDetectErrors(t *testing.T) {
 				Metric: MetricError5xx, Current: 40, RequestsInWindow: 100,
 				BaselineMean: 0.10, ObservedBaselineBuckets: 288, PreviousCandidate: true,
 			},
-			wantOutcome: OutcomeAnomaly, wantObserved: 0.40, wantThreshold: 0.14, wantNotify: true,
+			wantOutcome: OutcomeAnomaly, wantObserved: 0.40, wantThreshold: 0.14,
 		},
 		{
 			name: "99 of 99 failures are catastrophic",
@@ -110,10 +109,18 @@ func TestDetectErrors(t *testing.T) {
 				Metric: MetricError5xx, Current: 99, RequestsInWindow: 99,
 				BaselineMean: 0.01, ObservedBaselineBuckets: 288,
 			},
-			wantOutcome: OutcomeAnomaly, wantObserved: 1, wantThreshold: 0.05, wantCatastrophic: true, wantNotify: true,
+			wantOutcome: OutcomeAnomaly, wantObserved: 1, wantThreshold: 0.05, wantCatastrophic: true,
 		},
 		{
-			name: "4xx detection does not notify",
+			name: "catastrophic 5xx bypasses history and sigma",
+			input: Input{
+				Metric: MetricError5xx, Current: 50, RequestsInWindow: 100,
+				BaselineMean: 0.90, ObservedBaselineBuckets: 0,
+			},
+			wantOutcome: OutcomeAnomaly, wantObserved: 0.50, wantThreshold: 1.26, wantCatastrophic: true,
+		},
+		{
+			name: "4xx anomaly is detected",
 			input: Input{
 				Metric: MetricError4xx, Current: 40, RequestsInWindow: 100,
 				BaselineMean: 0.10, ObservedBaselineBuckets: 288, PreviousCandidate: true,
@@ -126,7 +133,7 @@ func TestDetectErrors(t *testing.T) {
 				Metric: MetricError5xx, Current: 10, RequestsInWindow: 20,
 				BaselineMean: 0.10, ObservedBaselineBuckets: 288,
 			},
-			wantOutcome: OutcomeNone, wantObserved: 0.50, wantThreshold: 0.14, wantNotify: true,
+			wantOutcome: OutcomeNone, wantObserved: 0.50, wantThreshold: 0.14,
 		},
 	}
 
@@ -137,7 +144,6 @@ func TestDetectErrors(t *testing.T) {
 			require.InDelta(t, test.wantObserved, result.Observed, 1e-9)
 			require.InDelta(t, test.wantThreshold, result.ThresholdValue, 1e-9)
 			require.Equal(t, test.wantCatastrophic, result.Catastrophic)
-			require.Equal(t, test.wantNotify, result.Notify)
 			require.Equal(t, test.input.Current, result.RawCount)
 			require.Equal(t, test.input.RequestsInWindow, result.Requests)
 		})

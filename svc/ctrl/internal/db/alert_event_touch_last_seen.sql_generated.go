@@ -26,7 +26,8 @@ type TouchAlertEventLastSeenParams struct {
 	ID            string        `db:"id"`
 }
 
-// TouchAlertEventLastSeen
+// TouchAlertEventLastSeen records the latest complete anomalous window without
+// changing the baseline snapshot captured when the alert opened.
 //
 //	UPDATE alert_events
 //	SET last_seen_at = ?,
