@@ -1,8 +1,14 @@
 package deployanomaly
 
-import "math"
+import (
+	"fmt"
+	"math"
+)
 
-const minimumBaselineBuckets = 12
+const (
+	bucketDurationMillis   = int64(5 * 60 * 1_000)
+	maximumBaselineBuckets = int64(288)
+)
 
 // Metric identifies a Deploy anomaly signal. These values are also persisted
 // in MySQL and must remain wire-compatible with the alert_events metric enum.
@@ -81,12 +87,25 @@ type ActivityFloors struct {
 	CrashLoop            float64
 }
 
+// BaselineMinimums defines the observed history required before each sigma
+// metric can alert. Request drops wait longer because short-lived test traffic
+// followed by silence is not evidence of an outage.
+type BaselineMinimums struct {
+	Error5xx     int64
+	Error4xx     int64
+	Requests     int64
+	RequestsDrop int64
+	EgressBytes  int64
+	CPUSeconds   int64
+}
+
 // Config holds tunable detection thresholds. Start with [DefaultConfig], then
 // override fields for workspace-specific alert settings.
 type Config struct {
-	SigmaK         float64
-	StddevFloors   StddevFloors
-	ActivityFloors ActivityFloors
+	SigmaK           float64
+	StddevFloors     StddevFloors
+	ActivityFloors   ActivityFloors
+	BaselineMinimums BaselineMinimums
 }
 
 // DefaultConfig returns the production defaults for a sensitivity. The
@@ -114,7 +133,25 @@ func DefaultConfig(sensitivity Sensitivity) Config {
 			OOMKilled:            1,
 			CrashLoop:            1,
 		},
+		BaselineMinimums: BaselineMinimums{
+			Error5xx:     12,
+			Error4xx:     12,
+			Requests:     12,
+			RequestsDrop: 72,
+			EgressBytes:  12,
+			CPUSeconds:   12,
+		},
 	}
+}
+
+// BaselineWindowBuckets returns the number of 5-minute buckets in the app's
+// observed lifetime inside the 24-hour lookback. Padding only this span avoids
+// treating the time before a new app emitted its first bucket as zero traffic.
+func BaselineWindowBuckets(windowStart, firstBucketTime int64) int64 {
+	if firstBucketTime <= 0 || firstBucketTime >= windowStart {
+		return 0
+	}
+	return min(maximumBaselineBuckets, (windowStart-firstBucketTime)/bucketDurationMillis)
 }
 
 // Input describes one closed 5-minute window and its trailing baseline.
@@ -214,9 +251,10 @@ func detectSigma(input Input, cfg Config) Result {
 		Reason:         "current value did not exceed sigma threshold",
 	}
 
-	if input.ObservedBaselineBuckets < minimumBaselineBuckets {
+	minimum := minimumBaselineBuckets(input.Metric, cfg.BaselineMinimums)
+	if input.ObservedBaselineBuckets < minimum {
 		result.Outcome = OutcomeInsufficient
-		result.Reason = "baseline has fewer than 12 buckets"
+		result.Reason = fmt.Sprintf("baseline has fewer than %d buckets", minimum)
 		return result
 	}
 	if !meetsActivityFloor(input, cfg.ActivityFloors) {
@@ -259,9 +297,10 @@ func detectRequestsDrop(input Input, cfg Config) Result {
 		Reason:         "current value did not fall below sigma threshold",
 	}
 
-	if input.ObservedBaselineBuckets < minimumBaselineBuckets {
+	minimum := minimumBaselineBuckets(input.Metric, cfg.BaselineMinimums)
+	if input.ObservedBaselineBuckets < minimum {
 		result.Outcome = OutcomeInsufficient
-		result.Reason = "baseline has fewer than 12 buckets"
+		result.Reason = fmt.Sprintf("baseline has fewer than %d buckets", minimum)
 		return result
 	}
 	if mean < cfg.ActivityFloors.RequestsDropBaseline {
@@ -315,6 +354,27 @@ func stddevFloor(metric Metric, floors StddevFloors) float64 {
 		return floors.EgressBytes
 	case MetricCPUSeconds:
 		return floors.CPUSeconds
+	case MetricMemoryUtilization, MetricOOMKilled, MetricCrashLoop:
+		return 0
+	default:
+		return 0
+	}
+}
+
+func minimumBaselineBuckets(metric Metric, minimums BaselineMinimums) int64 {
+	switch metric {
+	case MetricError5xx:
+		return minimums.Error5xx
+	case MetricError4xx:
+		return minimums.Error4xx
+	case MetricRequests:
+		return minimums.Requests
+	case MetricRequestsDrop:
+		return minimums.RequestsDrop
+	case MetricEgressBytes:
+		return minimums.EgressBytes
+	case MetricCPUSeconds:
+		return minimums.CPUSeconds
 	case MetricMemoryUtilization, MetricOOMKilled, MetricCrashLoop:
 		return 0
 	default:
