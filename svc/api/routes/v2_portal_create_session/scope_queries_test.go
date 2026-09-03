@@ -35,15 +35,16 @@ func TestScopeQueriesDeniesUnmappedScope(t *testing.T) {
 		require.Empty(t, queries)
 	})
 
-	// These two left the enum when the features behind them turned out to be
-	// undelivered. The request validator refuses them first, so this only pins
-	// that nothing downstream would map them if one ever got past it.
-	t.Run("retired scopes deny", func(t *testing.T) {
+	// analytics:read and keys:create were half-built features whose scopes left
+	// the enum with them, so they are now unknown values like any other. They get
+	// their own case because they are the two strings this mapping used to
+	// answer, and a stale arm would not show up as a typo would.
+	t.Run("removed scopes are unknown", func(t *testing.T) {
 		for _, s := range []openapi.V2PortalCreateSessionRequestBodyScopes{
 			"analytics:read", "keys:create",
 		} {
 			queries, ok := handler.ScopeQueries(s, apiID, false)
-			require.False(t, ok, "retired scope %q must deny", s)
+			require.False(t, ok, "scope %q is no longer in the vocabulary and must deny", s)
 			require.Empty(t, queries)
 		}
 	})

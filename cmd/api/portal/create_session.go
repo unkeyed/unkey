@@ -12,10 +12,10 @@ import (
 	"github.com/unkeyed/unkey/pkg/ptr"
 )
 
-// portalScopes is the vocabulary createSession still accepts. The SDK's Scope
-// enum is wider: keys:create and analytics:read have no portal feature behind
-// them and the API rejects them, so offering them here would only produce a 400
-// the caller cannot act on.
+// portalScopes is the vocabulary createSession accepts. The pinned SDK's Scope
+// enum is wider because it predates this cleanup: keys:create and analytics:read
+// were half-built features, and the API no longer knows those values. Offering
+// them here would only produce a 400 the caller cannot act on.
 var portalScopes = []string{
 	string(components.ScopeKeysRead), string(components.ScopeKeysReroll),
 }

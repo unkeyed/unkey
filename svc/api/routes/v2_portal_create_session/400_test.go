@@ -188,11 +188,13 @@ func TestCreateSessionBadRequest(t *testing.T) {
 	})
 }
 
-// analytics:read and keys:create left the enum because nothing in the portal
-// serves them. The refusal has to be the request validator's, not the mint-time
-// ceiling's, so this grants every permission those scopes used to require: a 400
-// here can only mean the value never reached the handler.
-func TestCreateSessionRejectsRetiredScopes(t *testing.T) {
+// analytics:read and keys:create were half-built: the scopes existed but no
+// portal route served them, so they left the vocabulary along with the rest of
+// the unfinished work. They are unknown values now, and the refusal has to come
+// from the request validator rather than the mint-time ceiling. Granting every
+// permission the two scopes used to require is what proves that: a 400 here can
+// only mean the value never reached the handler.
+func TestCreateSessionRejectsRemovedScopes(t *testing.T) {
 	h := testutil.NewHarness(t)
 
 	route := &handler.Handler{
@@ -213,7 +215,7 @@ func TestCreateSessionRejectsRetiredScopes(t *testing.T) {
 		DefaultPrefix: nil,
 		DefaultBytes:  nil,
 	})
-	insertKeyspacePortal(t, h, workspaceID, "retired-scope-portal", api.KeyAuthID.String)
+	insertKeyspacePortal(t, h, workspaceID, "removed-scope-portal", api.KeyAuthID.String)
 
 	rootKey := h.CreateRootKey(workspaceID,
 		"portal.*.create_portal_session",
@@ -231,8 +233,8 @@ func TestCreateSessionRejectsRetiredScopes(t *testing.T) {
 	call := func(t *testing.T, scopes ...openapi.V2PortalCreateSessionRequestBodyScopes) int {
 		t.Helper()
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, handler.Request{
-			Portal:     "retired-scope-portal",
-			ExternalId: "user_retired",
+			Portal:     "removed-scope-portal",
+			ExternalId: "user_removed_scope",
 			Scopes:     scopes,
 		})
 		return res.Status
@@ -258,8 +260,8 @@ func TestCreateSessionRejectsRetiredScopes(t *testing.T) {
 
 	t.Run("reroll with read is accepted", func(t *testing.T) {
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
-			Portal:     "retired-scope-portal",
-			ExternalId: "user_retired",
+			Portal:     "removed-scope-portal",
+			ExternalId: "user_removed_scope",
 			Scopes:     []openapi.V2PortalCreateSessionRequestBodyScopes{"keys:read", "keys:reroll"},
 		})
 		require.Equal(t, 200, res.Status, "got: %s", res.RawBody)
@@ -267,8 +269,8 @@ func TestCreateSessionRejectsRetiredScopes(t *testing.T) {
 
 	t.Run("read alone is accepted", func(t *testing.T) {
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
-			Portal:     "retired-scope-portal",
-			ExternalId: "user_retired",
+			Portal:     "removed-scope-portal",
+			ExternalId: "user_removed_scope",
 			Scopes:     []openapi.V2PortalCreateSessionRequestBodyScopes{"keys:read"},
 		})
 		require.Equal(t, 200, res.Status, "got: %s", res.RawBody)
@@ -278,8 +280,8 @@ func TestCreateSessionRejectsRetiredScopes(t *testing.T) {
 	// a narrowed vocabulary rather than a broken route.
 	t.Run("the delivered scopes still mint", func(t *testing.T) {
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
-			Portal:     "retired-scope-portal",
-			ExternalId: "user_retired",
+			Portal:     "removed-scope-portal",
+			ExternalId: "user_removed_scope",
 			Scopes:     []openapi.V2PortalCreateSessionRequestBodyScopes{"keys:read", "keys:reroll"},
 		})
 		require.Equal(t, 200, res.Status, "got: %s", res.RawBody)

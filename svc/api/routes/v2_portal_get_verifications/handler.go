@@ -35,11 +35,11 @@ type (
 // handler, which requires a per-workspace ClickHouse user and a query-language
 // parser that are inappropriate for an end user.
 //
-// Currently unreachable by any new session: portal.createSession no longer mints
-// analytics:read, so only sessions issued before that change can authorize here.
-// The route is kept registered for the deferred portal analytics feature, which
-// is also why its tests still pass -- they seed session rows directly rather than
-// minting through createSession.
+// Unreachable today: the portal has no analytics view, and createSession does
+// not accept the analytics:read scope this route authorizes, so nothing can
+// grant it. Half of the feature exists, so the route stays registered for
+// whoever finishes it. Its tests seed session rows directly, which is why they
+// still pass.
 type Handler struct {
 	ClickHouse  clickhouse.ClickHouse
 	DB          db.Database
