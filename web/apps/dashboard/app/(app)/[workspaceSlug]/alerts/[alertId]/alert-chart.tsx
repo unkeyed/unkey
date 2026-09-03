@@ -1,7 +1,8 @@
 "use client";
 
 import { type ChartConfig, ChartContainer } from "@/components/ui/chart";
-import { Empty, Skeleton } from "@unkey/ui";
+import { Empty, Skeleton, Tabs, TabsList, TabsTrigger } from "@unkey/ui";
+import { useMemo, useState } from "react";
 import {
   CartesianGrid,
   Line,
@@ -19,6 +20,14 @@ const chartConfig = {
   value: { label: "Observed", color: "hsl(var(--error-9))" },
 } satisfies ChartConfig;
 
+const threeHoursMs = 3 * 60 * 60 * 1000;
+
+type ChartRange = "anomaly" | "baseline";
+
+function isChartRange(value: string): value is ChartRange {
+  return value === "anomaly" || value === "baseline";
+}
+
 export function AlertChart({
   metric,
   data,
@@ -30,6 +39,18 @@ export function AlertChart({
   loading: boolean;
   error: boolean;
 }) {
+  const [range, setRange] = useState<ChartRange>("anomaly");
+  const buckets = useMemo(() => {
+    if (!data?.buckets.length || range === "baseline") {
+      return data?.buckets ?? [];
+    }
+    const availableStart = data.buckets[0]?.time ?? data.windowStart;
+    const availableEnd = data.buckets.at(-1)?.time ?? data.windowEnd;
+    const rangeStart = Math.max(availableStart, data.windowStart - threeHoursMs);
+    const rangeEnd = Math.min(availableEnd, data.windowEnd + threeHoursMs);
+    return data.buckets.filter((bucket) => bucket.time >= rangeStart && bucket.time <= rangeEnd);
+  }, [data, range]);
+
   if (loading) {
     return <Skeleton className="h-[360px] w-full rounded-lg" />;
   }
@@ -59,6 +80,19 @@ export function AlertChart({
           <h2 className="text-sm font-semibold text-gray-12">{alertMetricLabel(metric)}</h2>
           <p className="text-xs text-gray-9">Five-minute production buckets</p>
         </div>
+        <Tabs
+          value={range}
+          onValueChange={(value) => {
+            if (isChartRange(value)) {
+              setRange(value);
+            }
+          }}
+        >
+          <TabsList aria-label="Chart range">
+            <TabsTrigger value="anomaly">Around anomaly</TabsTrigger>
+            <TabsTrigger value="baseline">Full baseline</TabsTrigger>
+          </TabsList>
+        </Tabs>
         <div className="flex flex-wrap items-center gap-4 text-xs text-gray-10">
           <ChartLegend color="bg-error-9" label="Observed" />
           <ChartLegend color="border-t-2 border-dashed border-gray-10" label="Baseline mean" />
@@ -72,7 +106,7 @@ export function AlertChart({
         aria-label={`${alertMetricLabel(metric)} anomaly timeseries`}
       >
         <LineChart
-          data={data.buckets}
+          data={buckets}
           accessibilityLayer
           margin={{ top: 8, right: 16, bottom: 8, left: 8 }}
         >
@@ -121,9 +155,9 @@ export function AlertChart({
             x1={data.windowStart}
             x2={data.windowEnd}
             fill="hsl(var(--error-9))"
-            fillOpacity={0.08}
+            fillOpacity={0.2}
             stroke="hsl(var(--error-8))"
-            strokeOpacity={0.35}
+            strokeOpacity={0.8}
           />
           <ReferenceLine y={data.baselineMean} stroke="hsl(var(--gray-10))" strokeDasharray="5 5" />
           <Line

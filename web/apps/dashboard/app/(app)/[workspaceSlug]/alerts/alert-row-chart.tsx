@@ -70,8 +70,13 @@ export function AlertRowChart({
           <span
             key={bar.time}
             aria-hidden="true"
-            className={cn("flex-1 rounded-t-[1px]", bar.anomalous ? "bg-error-9" : "bg-grayA-5")}
-            style={{ height: Math.max(Math.round((bar.value / maxValue) * MAX_HEIGHT_PX), 1) }}
+            className={cn("flex-1 rounded-t-[1px]", bar.anomalous ? "bg-error-9" : "bg-grayA-6")}
+            style={{
+              height:
+                bar.value === 0
+                  ? 2
+                  : Math.max(Math.round(Math.sqrt(bar.value / maxValue) * MAX_HEIGHT_PX), 3),
+            }}
           />
         ))}
       </div>

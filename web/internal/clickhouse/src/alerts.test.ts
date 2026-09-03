@@ -33,6 +33,7 @@ describe("getAlertTimeseries", () => {
     expect(ch.queries[0]).toContain("app_id = {appId: String}");
     expect(ch.queries[0]).toContain("environment_id = {environmentId: String}");
     expect(ch.queries[0]).toContain("WITH FILL");
+    expect(ch.queries[0]).toContain("time <");
     expect(ch.params[0]).toMatchObject({ ...baseRequest, bucketMs: 300_000 });
     if (metric === "memory_utilization") {
       expect(ch.queries[0]).toContain("GROUP BY bucket");

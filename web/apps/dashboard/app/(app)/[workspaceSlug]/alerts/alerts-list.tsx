@@ -28,8 +28,10 @@ import { AlertRowChart } from "./alert-row-chart";
 import {
   alertMetricLabel,
   alertMetricOptions,
+  formatAlertDistance,
   formatAlertValue,
   formatSigma,
+  hasFixedAlertThreshold,
   isAlertMetric,
 } from "./format";
 import { ResolveAlertButton } from "./resolve-alert-button";
@@ -159,7 +161,10 @@ export function AlertsList() {
                 className="group flex flex-col gap-3 px-4 py-3 transition-colors hover:bg-grayA-2 lg:flex-row lg:items-center lg:gap-0"
               >
                 <Link
-                  href={routes.alerts.detail({ workspaceSlug: workspace.slug, alertId: alert.id })}
+                  href={routes.alerts.detail({
+                    workspaceSlug: workspace.slug,
+                    alertId: alert.id,
+                  })}
                   className="absolute inset-0 z-10 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-grayA-7"
                   aria-label={`${alertMetricLabel(alert.metric)} alert for ${alert.appName}`}
                 />
@@ -176,15 +181,28 @@ export function AlertsList() {
                 </div>
                 <div className="flex min-w-0 flex-col gap-1 lg:w-[27%] lg:shrink-0">
                   <span className="truncate text-[13px] font-medium tabular-nums text-accent-12">
-                    {formatAlertValue(alert.metric, alert.observedValue)}
-                    <span className="font-normal text-gray-9">
-                      {" "}
-                      vs {formatAlertValue(alert.metric, alert.baselineMean)} avg
+                    {hasFixedAlertThreshold(alert.metric) ? (
+                      formatAlertDistance(
+                        alert.metric,
+                        alert.observedValue,
+                        alert.baselineMean,
+                        alert.baselineStddev,
+                      )
+                    ) : (
+                      <>
+                        {formatAlertValue(alert.metric, alert.observedValue)}
+                        <span className="font-normal text-gray-9">
+                          {" "}
+                          vs {formatAlertValue(alert.metric, alert.baselineMean)} avg
+                        </span>
+                      </>
+                    )}
+                  </span>
+                  {hasFixedAlertThreshold(alert.metric) ? null : (
+                    <span className="text-xs font-medium tabular-nums text-error-11">
+                      {formatSigma(alert.observedValue, alert.baselineMean, alert.baselineStddev)}
                     </span>
-                  </span>
-                  <span className="text-xs font-medium tabular-nums text-error-11">
-                    {formatSigma(alert.observedValue, alert.baselineMean, alert.baselineStddev)}
-                  </span>
+                  )}
                 </div>
                 <div className="relative z-20 lg:w-[14%] lg:shrink-0">
                   <TimestampInfo

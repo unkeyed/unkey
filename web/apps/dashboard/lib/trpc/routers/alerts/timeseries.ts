@@ -3,9 +3,7 @@ import { and, db, eq, schema } from "@/lib/db";
 import { TRPCError } from "@trpc/server";
 import { workspaceProcedure } from "../../trpc";
 import { getAlertInput } from "./schemas";
-
-const dayMs = 24 * 60 * 60 * 1000;
-const hourMs = 60 * 60 * 1000;
+import { alertTimeseriesRange } from "./timeseries-range";
 
 export const getAlertTimeseries = workspaceProcedure
   .input(getAlertInput)
@@ -33,13 +31,17 @@ export const getAlertTimeseries = workspaceProcedure
     }
 
     const now = Date.now();
+    const range = alertTimeseriesRange({
+      firedAt: alert.firedAt,
+      resolvedAt: alert.resolvedAt,
+      now,
+    });
     const result = await clickhouse.alerts.timeseries({
       workspaceId: ctx.workspace.id,
       appId: alert.appId,
       environmentId: alert.environmentId,
       metric: alert.metric,
-      startMs: alert.firedAt - dayMs,
-      endMs: Math.min(now, (alert.resolvedAt ?? now) + hourMs),
+      ...range,
     });
     if (!result.val) {
       throw new TRPCError({
@@ -52,7 +54,12 @@ export const getAlertTimeseries = workspaceProcedure
       buckets: result.val,
       baselineMean: alert.baselineMean,
       lowerBound: Math.max(0, alert.baselineMean - alert.thresholdSigma * alert.baselineStddev),
-      upperBound: alert.baselineMean + alert.thresholdSigma * alert.baselineStddev,
+      upperBound:
+        alert.metric === "memory_utilization"
+          ? 0.9
+          : alert.metric === "oom_killed" || alert.metric === "crash_loop"
+            ? 1
+            : alert.baselineMean + alert.thresholdSigma * alert.baselineStddev,
       windowStart: alert.windowStart,
       windowEnd: alert.windowEnd,
     };

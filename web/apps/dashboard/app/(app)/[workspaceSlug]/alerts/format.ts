@@ -89,10 +89,31 @@ export function formatAlertAxisValue(metric: AlertMetric, value: number): string
 
 export function formatSigma(observed: number, mean: number, stddev: number): string {
   if (stddev <= 0) {
-    return observed > mean ? "+∞σ" : "0σ";
+    return "No variance";
   }
   const sigma = (observed - mean) / stddev;
   return `${sigma >= 0 ? "+" : ""}${sigma.toFixed(1)}σ`;
+}
+
+export function hasFixedAlertThreshold(metric: AlertMetric): boolean {
+  return metric === "memory_utilization" || metric === "oom_killed" || metric === "crash_loop";
+}
+
+export function formatAlertDistance(
+  metric: AlertMetric,
+  observed: number,
+  mean: number,
+  stddev: number,
+): string {
+  switch (metric) {
+    case "memory_utilization":
+      return `${formatAlertValue(metric, observed)} · limit 90%`;
+    case "oom_killed":
+    case "crash_loop":
+      return `${formatAlertValue(metric, observed)} events · limit 1`;
+    default:
+      return formatSigma(observed, mean, stddev);
+  }
 }
 
 function formatBytes(bytes: number): string {
