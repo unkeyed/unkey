@@ -2,7 +2,7 @@
 
 import { AlertRow } from "@/components/alerts/alert-row";
 import { alertMetricOptions, isAlertMetric } from "@/components/alerts/format";
-import type { AlertMetric, AlertStatus } from "@/components/alerts/types";
+import type { AlertMetric } from "@/components/alerts/types";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { routes } from "@/lib/navigation/routes";
 import { trpc } from "@/lib/trpc/client";
@@ -20,37 +20,26 @@ import {
   SelectTrigger,
   SelectValue,
   Skeleton,
-  Tabs,
-  TabsList,
-  TabsTrigger,
 } from "@unkey/ui";
 import { useMemo, useState } from "react";
 
-type StatusFilter = AlertStatus | "all";
 type MetricFilter = AlertMetric | "all";
 
-const STATUS_FILTERS: StatusFilter[] = ["open", "resolved", "all"];
 const SKELETON_ROWS = ["one", "two", "three", "four", "five", "six"] as const;
-
-function isStatusFilter(value: string): value is StatusFilter {
-  return STATUS_FILTERS.some((status) => status === value);
-}
 
 export function AlertsList() {
   const workspace = useWorkspaceNavigation();
-  const [status, setStatus] = useState<StatusFilter>("open");
   const [metric, setMetric] = useState<MetricFilter>("all");
   const [appId, setAppId] = useState("all");
   const query = trpc.alerts.list.useInfiniteQuery(
     {
-      status,
       metric: metric === "all" ? undefined : metric,
       appId: appId === "all" ? undefined : appId,
       limit: 20,
     },
     { getNextPageParam: (lastPage) => lastPage.nextCursor },
   );
-  const appOptionsQuery = trpc.alerts.list.useQuery({ status: "all", limit: 100 });
+  const appOptionsQuery = trpc.alerts.list.useQuery({ limit: 100 });
   const alerts = query.data?.pages.flatMap((page) => page.alerts) ?? [];
   const appOptions = useMemo(() => {
     const unique = new Map<string, string>();
@@ -64,21 +53,7 @@ export function AlertsList() {
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex flex-col justify-between gap-3 md:flex-row md:items-center">
-        <Tabs
-          value={status}
-          onValueChange={(value) => {
-            if (isStatusFilter(value)) {
-              setStatus(value);
-            }
-          }}
-        >
-          <TabsList aria-label="Alert status">
-            <TabsTrigger value="open">Open</TabsTrigger>
-            <TabsTrigger value="resolved">Resolved</TabsTrigger>
-            <TabsTrigger value="all">All</TabsTrigger>
-          </TabsList>
-        </Tabs>
+      <div className="flex justify-end">
         <div className="flex flex-col gap-2 sm:flex-row">
           <Select
             value={metric}
@@ -138,7 +113,7 @@ export function AlertsList() {
           <EmptyContent title="Unable to load alerts" description={query.error.message} />
         ) : alerts.length === 0 ? (
           <EmptyContent
-            title={status === "open" ? "No open alerts" : "No alerts found"}
+            title="No open alerts"
             description="Anomaly alerts detect unusual production errors, traffic, and resource usage against each app's recent baseline."
           />
         ) : (

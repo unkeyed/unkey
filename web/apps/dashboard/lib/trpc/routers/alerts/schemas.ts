@@ -23,7 +23,6 @@ const timeRange = z
 
 export const listAlertsInput = z
   .object({
-    status: z.enum(["open", "resolved", "all"]).default("open"),
     metric: alertMetricSchema.optional(),
     appId: z.string().min(1).optional(),
     environmentId: z.string().min(1).optional(),

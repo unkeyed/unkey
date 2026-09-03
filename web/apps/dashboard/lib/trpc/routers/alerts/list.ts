@@ -4,15 +4,13 @@ import { workspaceProcedure } from "../../trpc";
 import { listAlertsInput } from "./schemas";
 import { alertSelection } from "./selection";
 
-const statusOrder = sql<number>`CASE ${schema.alertEvents.status} WHEN 'open' THEN 0 ELSE 1 END`;
-
 export const listAlerts = workspaceProcedure
   .input(listAlertsInput)
   .query(async ({ ctx, input }) => {
-    const filters: SQL[] = [eq(schema.alertEvents.workspaceId, ctx.workspace.id)];
-    if (input.status !== "all") {
-      filters.push(eq(schema.alertEvents.status, input.status));
-    }
+    const filters: SQL[] = [
+      eq(schema.alertEvents.workspaceId, ctx.workspace.id),
+      eq(schema.alertEvents.status, "open"),
+    ];
     if (input.metric) {
       filters.push(eq(schema.alertEvents.metric, input.metric));
     }
@@ -33,7 +31,6 @@ export const listAlerts = workspaceProcedure
       const [cursor] = await db
         .select({
           pk: schema.alertEvents.pk,
-          status: schema.alertEvents.status,
           firedAt: schema.alertEvents.firedAt,
         })
         .from(schema.alertEvents)
@@ -44,17 +41,8 @@ export const listAlerts = workspaceProcedure
 
       filters.push(
         or(
-          gt(statusOrder, cursor.status === "open" ? 0 : 1),
-          and(
-            eq(schema.alertEvents.status, cursor.status),
-            or(
-              lt(schema.alertEvents.firedAt, cursor.firedAt),
-              and(
-                eq(schema.alertEvents.firedAt, cursor.firedAt),
-                lt(schema.alertEvents.pk, cursor.pk),
-              ),
-            ),
-          ),
+          lt(schema.alertEvents.firedAt, cursor.firedAt),
+          and(eq(schema.alertEvents.firedAt, cursor.firedAt), lt(schema.alertEvents.pk, cursor.pk)),
         ) ?? sql`false`,
       );
     }
@@ -66,7 +54,7 @@ export const listAlerts = workspaceProcedure
       .innerJoin(schema.environments, eq(schema.environments.id, schema.alertEvents.environmentId))
       .innerJoin(schema.projects, eq(schema.projects.id, schema.alertEvents.projectId))
       .where(and(...filters))
-      .orderBy(statusOrder, desc(schema.alertEvents.firedAt), desc(schema.alertEvents.pk))
+      .orderBy(desc(schema.alertEvents.firedAt), desc(schema.alertEvents.pk))
       .limit(input.limit + 1);
 
     const hasMore = rows.length > input.limit;
