@@ -2,17 +2,59 @@ package clickhouse
 
 import (
 	"context"
+	"sort"
 	"strconv"
+	"strings"
 
+	"github.com/go-faster/city"
 	"github.com/unkeyed/unkey/pkg/fault"
 )
 
+const anomalyGroupKeyBatchSize = 500
+
+// AnomalyGroupKey identifies the stable app and environment alert group.
+type AnomalyGroupKey struct {
+	WorkspaceID   string
+	ProjectID     string
+	AppID         string
+	EnvironmentID string
+}
+
+// AnomalyCandidateFilter carries the detector's production thresholds into
+// ClickHouse. Nil disables candidate filtering for diagnostics and tests.
+type AnomalyCandidateFilter struct {
+	SigmaK                    float64
+	ErrorRatioStddevFloor     float64
+	RequestsStddevFloor       float64
+	EgressBytesStddevFloor    float64
+	CPUSecondsStddevFloor     float64
+	ErrorExcessFailures       float64
+	RequestsActivity          float64
+	EgressBytesActivity       float64
+	CPUSecondsActivity        float64
+	MemoryUtilizationActivity float64
+	BaselineMinimum           int64
+	RequestDropBaseline       int64
+	RequestDropFraction       float64
+	RequestDropActivity       float64
+	RequestDropActiveBuckets  int64
+	RequestDropAbsoluteLoss   float64
+	Catastrophic5xxRatio      float64
+	Catastrophic5xxFailures   float64
+}
+
 // AnomalyWindowsRequest selects one closed 5-minute window. WindowStart is the
-// aligned window start in unix milliseconds. WorkspaceIDs restricts the scan
-// to those workspaces; nil or an empty slice scans the whole fleet.
+// aligned window start in unix milliseconds. Empty WorkspaceIDs scans the
+// fleet. ShardCount zero disables sharding. GroupKeys always pass the SQL
+// candidate filter so open alerts and prior candidates continue evaluation.
 type AnomalyWindowsRequest struct {
-	WindowStart  int64
-	WorkspaceIDs []string
+	WindowStart     int64
+	WorkspaceIDs    []string
+	GroupKeys       []AnomalyGroupKey
+	Shard           uint64
+	ShardCount      uint64
+	SkipFleet       bool
+	CandidateFilter *AnomalyCandidateFilter
 }
 
 // RequestAnomalyWindow contains request and error aggregates for one app and
@@ -61,6 +103,7 @@ type ResourceAnomalyWindow struct {
 
 	MemoryUtilizationCurrent    float64 `ch:"memory_utilization_current"`
 	MemoryUtilizationMaxCurrent float64 `ch:"memory_utilization_max_current"`
+	CurrentBucketPresent        bool    `ch:"current_bucket_present"`
 	BaselineBuckets             int64   `ch:"baseline_buckets"`
 	FirstBucketTime             int64   `ch:"first_bucket_time"`
 }
@@ -85,160 +128,313 @@ type InstanceEventAnomalyWindow struct {
 	CrashLoopCurrent float64 `ch:"crash_loop_current"`
 }
 
-// GetRequestAnomalyWindows computes request, 4xx, and 5xx statistics for one
-// closed window and the preceding 24 hours in one scan. Deployment IDs are
-// intentionally aggregated away because alerts belong to the stable app and
-// environment across deploy transitions. Apps with baseline traffic remain in
-// the result when the current bucket is absent, with current values set to zero,
-// so callers can detect a complete traffic drop.
-func (c *Client) GetRequestAnomalyWindows(ctx context.Context, req AnomalyWindowsRequest) ([]RequestAnomalyWindow, error) {
-	query := `
-	WITH fromUnixTimestamp64Milli({window_start_ms:Int64}) AS window_start
-	SELECT
-		workspace_id,
-		project_id,
-		app_id,
-		environment_id,
-		sumIf(error_5xx, bucket_time = window_start) AS error_5xx_current,
-		if(sumIf(requests, bucket_time < window_start) = 0, 0., sumIf(error_5xx, bucket_time < window_start) / sumIf(requests, bucket_time < window_start)) AS error_5xx_baseline_mean,
-		if(countIf(bucket_time < window_start AND requests > 0) = 0, 0., stddevPopIf(error_5xx / requests, bucket_time < window_start AND requests > 0)) AS error_5xx_baseline_stddev,
-		sumIf(error_4xx, bucket_time = window_start) AS error_4xx_current,
-		if(sumIf(requests, bucket_time < window_start) = 0, 0., sumIf(error_4xx, bucket_time < window_start) / sumIf(requests, bucket_time < window_start)) AS error_4xx_baseline_mean,
-		if(countIf(bucket_time < window_start AND requests > 0) = 0, 0., stddevPopIf(error_4xx / requests, bucket_time < window_start AND requests > 0)) AS error_4xx_baseline_stddev,
-		sumIf(requests, bucket_time = window_start) AS requests_current,
-		if(countIf(bucket_time < window_start) = 0, 0., avgIf(requests, bucket_time < window_start)) AS requests_baseline_mean,
-		if(countIf(bucket_time < window_start) = 0, 0., stddevPopIf(requests, bucket_time < window_start)) AS requests_baseline_stddev,
-		arrayMap(
-			recent_time -> arraySum(arrayMap(
-				bucket -> if(bucket.1 = recent_time, bucket.2, 0.),
-				groupArray((bucket_time, requests))
-			)),
-			arrayMap(offset -> subtractMinutes(window_start, (offset + 1) * 5), range(12))
-		) AS recent_requests,
-		countIf(bucket_time = window_start) > 0 AS current_bucket_present,
-		toInt64(countIf(bucket_time < window_start)) AS baseline_buckets,
-		toInt64(toUnixTimestamp(minIf(bucket_time, bucket_time < window_start))) * 1000 AS first_bucket_time
-	FROM (
+const requestAnomalyWindowsQuery = `
+WITH
+	fromUnixTimestamp64Milli({window_start_ms:Int64}) AS window_start,
+	bucketed AS (
 		SELECT
 			time AS bucket_time,
 			workspace_id,
 			project_id,
 			app_id,
 			environment_id,
-			toFloat64(sumIf(count, response_status >= 500 AND response_status < 600)) AS error_5xx,
-			toFloat64(sumIf(count, response_status >= 400 AND response_status < 500)) AS error_4xx,
-			toFloat64(sum(count)) AS requests
-		FROM default.frontline_requests_per_5m_v1
+			toFloat64(sum(error_5xx)) AS error_5xx,
+			toFloat64(sum(error_4xx)) AS error_4xx,
+			toFloat64(sum(requests)) AS requests
+		FROM default.frontline_requests_anomaly_per_5m_v1
 		WHERE time >= window_start - INTERVAL 24 HOUR
 		  AND time < window_start + INTERVAL 5 MINUTE
-		  AND (empty({workspace_ids:Array(String)}) OR workspace_id IN {workspace_ids:Array(String)})
+		  AND /*ANOMALY_WORKSPACE_FILTER*/
+		  AND /*ANOMALY_GROUP_FILTER*/
 		GROUP BY bucket_time, workspace_id, project_id, app_id, environment_id
+	),
+	aggregated AS (
+		SELECT
+			workspace_id,
+			project_id,
+			app_id,
+			environment_id,
+			sumIf(error_5xx, bucket_time = window_start) AS error_5xx_current,
+			if(sumIf(requests, bucket_time < window_start) = 0, 0., sumIf(error_5xx, bucket_time < window_start) / sumIf(requests, bucket_time < window_start)) AS error_5xx_baseline_mean,
+			if(countIf(bucket_time < window_start AND requests > 0) = 0, 0., stddevPopIf(error_5xx / requests, bucket_time < window_start AND requests > 0)) AS error_5xx_baseline_stddev,
+			sumIf(error_4xx, bucket_time = window_start) AS error_4xx_current,
+			if(sumIf(requests, bucket_time < window_start) = 0, 0., sumIf(error_4xx, bucket_time < window_start) / sumIf(requests, bucket_time < window_start)) AS error_4xx_baseline_mean,
+			if(countIf(bucket_time < window_start AND requests > 0) = 0, 0., stddevPopIf(error_4xx / requests, bucket_time < window_start AND requests > 0)) AS error_4xx_baseline_stddev,
+			sumIf(requests, bucket_time = window_start) AS requests_current,
+			if(countIf(bucket_time < window_start) = 0, 0., avgIf(requests, bucket_time < window_start)) AS requests_baseline_mean,
+			if(countIf(bucket_time < window_start) = 0, 0., stddevPopIf(requests, bucket_time < window_start)) AS requests_baseline_stddev,
+			sumIf(requests, bucket_time < window_start) AS requests_baseline_sum,
+			sumIf(requests * requests, bucket_time < window_start) AS requests_baseline_square_sum,
+			[
+				sumIf(requests, bucket_time = subtractMinutes(window_start, 5)),
+				sumIf(requests, bucket_time = subtractMinutes(window_start, 10)),
+				sumIf(requests, bucket_time = subtractMinutes(window_start, 15)),
+				sumIf(requests, bucket_time = subtractMinutes(window_start, 20)),
+				sumIf(requests, bucket_time = subtractMinutes(window_start, 25)),
+				sumIf(requests, bucket_time = subtractMinutes(window_start, 30)),
+				sumIf(requests, bucket_time = subtractMinutes(window_start, 35)),
+				sumIf(requests, bucket_time = subtractMinutes(window_start, 40)),
+				sumIf(requests, bucket_time = subtractMinutes(window_start, 45)),
+				sumIf(requests, bucket_time = subtractMinutes(window_start, 50)),
+				sumIf(requests, bucket_time = subtractMinutes(window_start, 55)),
+				sumIf(requests, bucket_time = subtractMinutes(window_start, 60))
+			] AS recent_requests,
+			countIf(bucket_time = window_start) > 0 AS current_bucket_present,
+			toInt64(countIf(bucket_time < window_start)) AS baseline_buckets,
+			minIf(bucket_time, bucket_time < window_start) AS first_bucket,
+			toInt64(toUnixTimestamp(minIf(bucket_time, bucket_time < window_start))) * 1000 AS first_bucket_time
+		FROM bucketed
+		GROUP BY workspace_id, project_id, app_id, environment_id
+	),
+	moments AS (
+		SELECT
+			*,
+			least(toInt64(288), intDiv(dateDiff('minute', first_bucket, window_start), 5)) AS baseline_window_buckets,
+			requests_baseline_sum / greatest(toFloat64(baseline_window_buckets), 1.) AS requests_padded_mean,
+			sqrt(greatest(0., requests_baseline_square_sum / greatest(toFloat64(baseline_window_buckets), 1.) - requests_padded_mean * requests_padded_mean)) AS requests_padded_stddev,
+			arraySort(recent_requests) AS recent_requests_sorted
+		FROM aggregated
+	),
+	scored AS (
+		SELECT
+			*,
+			if(requests_current = 0, 0., error_5xx_current / requests_current) AS error_5xx_ratio_current,
+			if(requests_current = 0, 0., error_4xx_current / requests_current) AS error_4xx_ratio_current,
+			error_5xx_current - error_5xx_baseline_mean * requests_current AS error_5xx_excess,
+			error_4xx_current - error_4xx_baseline_mean * requests_current AS error_4xx_excess,
+			greatest(requests_padded_stddev, requests_padded_mean * 0.1, {requests_stddev_floor:Float64}) AS requests_stddev_effective,
+			(recent_requests_sorted[6] + recent_requests_sorted[7]) / 2 AS recent_requests_median,
+			arrayCount(value -> value >= {request_drop_activity:Float64}, recent_requests) AS recent_active_buckets
+		FROM moments
 	)
-	GROUP BY workspace_id, project_id, app_id, environment_id
-	HAVING countIf(bucket_time < window_start) > 0 OR countIf(bucket_time = window_start) > 0
-	/*operation='GetRequestAnomalyWindows'*/
-	`
+SELECT
+	workspace_id,
+	project_id,
+	app_id,
+	environment_id,
+	error_5xx_current,
+	error_5xx_baseline_mean,
+	error_5xx_baseline_stddev,
+	error_4xx_current,
+	error_4xx_baseline_mean,
+	error_4xx_baseline_stddev,
+	requests_current,
+	requests_baseline_mean,
+	requests_baseline_stddev,
+	recent_requests,
+	current_bucket_present,
+	baseline_buckets,
+	first_bucket_time
+FROM scored
+WHERE
+	({candidate_filter_enabled:UInt8} = 0 AND {include_fleet:UInt8} = 1)
+	OR {explicit_batch:UInt8} = 1
+	OR (
+		baseline_buckets >= {baseline_minimum:Int64}
+		AND requests_current >= {requests_activity:Float64}
+		AND requests_current > requests_padded_mean + {sigma_k:Float64} * requests_stddev_effective
+	)
+	OR (
+		baseline_buckets >= {baseline_minimum:Int64}
+		AND error_5xx_ratio_current > error_5xx_baseline_mean + {sigma_k:Float64} * greatest(error_5xx_baseline_stddev, error_5xx_baseline_mean * 0.1, {error_ratio_stddev_floor:Float64})
+		AND error_5xx_excess >= {error_excess_failures:Float64}
+	)
+	OR (
+		error_5xx_ratio_current >= {catastrophic_5xx_ratio:Float64}
+		AND error_5xx_current >= {catastrophic_5xx_failures:Float64}
+	)
+	OR (
+		baseline_buckets >= {baseline_minimum:Int64}
+		AND error_4xx_ratio_current > error_4xx_baseline_mean + {sigma_k:Float64} * greatest(error_4xx_baseline_stddev, error_4xx_baseline_mean * 0.1, {error_ratio_stddev_floor:Float64})
+		AND error_4xx_excess >= {error_excess_failures:Float64}
+	)
+	OR (
+		baseline_buckets >= {request_drop_baseline:Int64}
+		AND recent_active_buckets >= {request_drop_active_buckets:Int64}
+		AND requests_current < recent_requests_median * {request_drop_fraction:Float64}
+		AND recent_requests_median - requests_current >= {request_drop_absolute_loss:Float64}
+	)
+/*operation='GetRequestAnomalyWindows'*/
+`
 
-	windows, err := Select[RequestAnomalyWindow](ctx, c.conn, query, anomalyWindowParameters(req))
+// GetRequestAnomalyWindows returns SQL candidates plus explicitly requested
+// open or pending groups. Twelve conditional aggregates replace a 288-tuple
+// groupArray, and large explicit sets are split into 500-key scans.
+func (c *Client) GetRequestAnomalyWindows(ctx context.Context, req AnomalyWindowsRequest) ([]RequestAnomalyWindow, error) {
+	windows, err := selectAnomalyWindows(ctx, c, requestAnomalyWindowsQuery, req, true, func(row RequestAnomalyWindow) AnomalyGroupKey {
+		return AnomalyGroupKey{row.WorkspaceID, row.ProjectID, row.AppID, row.EnvironmentID}
+	})
 	if err != nil {
 		return nil, fault.Wrap(err, fault.Internal("failed to query request anomaly windows"))
 	}
-
 	return windows, nil
 }
 
-// GetResourceAnomalyWindows computes egress and CPU baseline statistics plus
-// current memory utilization for one closed window. It uses the dashboard
-// rollup, whose additive columns can double-count rare insert retries. That
-// observability tradeoff is acceptable for anomaly detection and avoids a
-// high-cadence scan of raw checkpoints with FINAL.
-func (c *Client) GetResourceAnomalyWindows(ctx context.Context, req AnomalyWindowsRequest) ([]ResourceAnomalyWindow, error) {
-	query := `
-	WITH fromUnixTimestamp64Milli({window_start_ms:Int64}) AS window_start
-	SELECT
-		workspace_id,
-		project_id,
-		app_id,
-		environment_id,
-		sumIf(egress_bytes, bucket_time = window_start) AS egress_bytes_current,
-		if(countIf(bucket_time < window_start) = 0, 0., avgIf(egress_bytes, bucket_time < window_start)) AS egress_bytes_baseline_mean,
-		if(countIf(bucket_time < window_start) = 0, 0., stddevPopIf(egress_bytes, bucket_time < window_start)) AS egress_bytes_baseline_stddev,
-		sumIf(cpu_seconds, bucket_time = window_start) AS cpu_seconds_current,
-		if(countIf(bucket_time < window_start) = 0, 0., avgIf(cpu_seconds, bucket_time < window_start)) AS cpu_seconds_baseline_mean,
-		if(countIf(bucket_time < window_start) = 0, 0., stddevPopIf(cpu_seconds, bucket_time < window_start)) AS cpu_seconds_baseline_stddev,
-		maxIf(memory_utilization, bucket_time = window_start) AS memory_utilization_current,
-		maxIf(memory_utilization_max, bucket_time = window_start) AS memory_utilization_max_current,
-		toInt64(countIf(bucket_time < window_start)) AS baseline_buckets,
-		toInt64(toUnixTimestamp(minIf(bucket_time, bucket_time < window_start))) * 1000 AS first_bucket_time
-	FROM (
+const resourceAnomalyWindowsQuery = `
+WITH
+	fromUnixTimestamp64Milli({window_start_ms:Int64}) AS window_start,
+	resource_buckets AS (
 		SELECT
-			bucket_time,
+			time AS bucket_time,
 			workspace_id,
 			project_id,
 			app_id,
 			environment_id,
 			toFloat64(sum(egress_bytes)) AS egress_bytes,
 			sum(cpu_seconds) AS cpu_seconds,
-			ifNotFinite(avgIf(memory_utilization, instance_memory_valid), 0.) AS memory_utilization,
-			ifNotFinite(maxIf(memory_utilization_max, instance_memory_valid), 0.) AS memory_utilization_max
-		FROM (
-			SELECT
-				bucket_time,
-				workspace_id,
-				project_id,
-				app_id,
-				environment_id,
-				instance_id,
-				toFloat64(sum(egress_bytes)) AS egress_bytes,
-				sum(cpu_seconds) AS cpu_seconds,
-				ifNotFinite(avgIf(memory_utilization, container_memory_valid), 0.) AS memory_utilization,
-				ifNotFinite(maxIf(memory_utilization_max, container_memory_valid), 0.) AS memory_utilization_max,
-				countIf(container_memory_valid) > 0 AS instance_memory_valid
-			FROM (
-					SELECT
-						toStartOfInterval(time, INTERVAL 5 MINUTE) AS bucket_time,
-						workspace_id,
-						project_id,
-						app_id,
-						environment_id,
-						instance_id,
-						container_uid,
-						greatest(toInt64(0), max(network_egress_public_bytes_max) - min(network_egress_public_bytes_min)) AS egress_bytes,
-						toFloat64(greatest(toInt64(0), max(cpu_usage_usec_max) - min(cpu_usage_usec_min))) / 1e6 AS cpu_seconds,
-						avgIf(toFloat64(memory_bytes_max) / toFloat64(memory_allocated_bytes_max), memory_allocated_bytes_max > 0) AS memory_utilization,
-						maxIf(toFloat64(memory_bytes_max) / toFloat64(memory_allocated_bytes_max), memory_allocated_bytes_max > 0) AS memory_utilization_max,
-						countIf(memory_allocated_bytes_max > 0) > 0 AS container_memory_valid
-					FROM default.instance_resources_per_minute_v1
-					WHERE time >= window_start - INTERVAL 24 HOUR
-					  AND time < window_start + INTERVAL 5 MINUTE
-					  AND (empty({workspace_ids:Array(String)}) OR workspace_id IN {workspace_ids:Array(String)})
-					GROUP BY bucket_time, workspace_id, project_id, app_id, environment_id, instance_id, container_uid
-				)
-				GROUP BY bucket_time, workspace_id, project_id, app_id, environment_id, instance_id
-		)
+			toFloat64(0) AS memory_utilization,
+			toFloat64(0) AS memory_utilization_max,
+			toUInt8(bucket_time = window_start) AS current_bucket_present
+		FROM default.instance_resources_app_per_5m_v1
+		WHERE time >= window_start - INTERVAL 24 HOUR
+		  AND time < window_start + INTERVAL 5 MINUTE
+		  AND /*ANOMALY_WORKSPACE_FILTER*/
+		  AND /*ANOMALY_GROUP_FILTER*/
 		GROUP BY bucket_time, workspace_id, project_id, app_id, environment_id
+	),
+	container_memory AS (
+		SELECT
+			workspace_id,
+			project_id,
+			app_id,
+			environment_id,
+			instance_id,
+			container_uid,
+			if(sum(utilization_samples) = 0, 0., sum(utilization_sum) / sum(utilization_samples)) AS memory_utilization,
+			max(utilization_max) AS memory_utilization_max,
+			sum(utilization_samples) > 0 AS container_memory_valid
+		FROM default.instance_memory_container_per_5m_v1
+		WHERE time >= window_start
+		  AND time < window_start + INTERVAL 5 MINUTE
+		  AND /*ANOMALY_WORKSPACE_FILTER*/
+		  AND /*ANOMALY_GROUP_FILTER*/
+		GROUP BY workspace_id, project_id, app_id, environment_id, instance_id, container_uid
+	),
+	instance_memory AS (
+		SELECT
+			workspace_id,
+			project_id,
+			app_id,
+			environment_id,
+			instance_id,
+			ifNotFinite(avgIf(memory_utilization, container_memory_valid), 0.) AS memory_utilization,
+			ifNotFinite(maxIf(memory_utilization_max, container_memory_valid), 0.) AS memory_utilization_max,
+			countIf(container_memory_valid) > 0 AS instance_memory_valid
+		FROM container_memory
+		GROUP BY workspace_id, project_id, app_id, environment_id, instance_id
+	),
+	memory_current AS (
+		SELECT
+			window_start AS bucket_time,
+			workspace_id,
+			project_id,
+			app_id,
+			environment_id,
+			toFloat64(0) AS egress_bytes,
+			toFloat64(0) AS cpu_seconds,
+			ifNotFinite(avgIf(memory_utilization, instance_memory_valid), 0.) AS memory_utilization,
+			ifNotFinite(maxIf(memory_utilization_max, instance_memory_valid), 0.) AS memory_utilization_max,
+			toUInt8(1) AS current_bucket_present
+		FROM instance_memory
+		GROUP BY workspace_id, project_id, app_id, environment_id
+	),
+	bucketed AS (
+		SELECT * FROM resource_buckets
+		UNION ALL
+		SELECT * FROM memory_current
+	),
+	aggregated AS (
+		SELECT
+			workspace_id,
+			project_id,
+			app_id,
+			environment_id,
+			sumIf(egress_bytes, bucket_time = window_start) AS egress_bytes_current,
+			if(countIf(bucket_time < window_start) = 0, 0., avgIf(egress_bytes, bucket_time < window_start)) AS egress_bytes_baseline_mean,
+			if(countIf(bucket_time < window_start) = 0, 0., stddevPopIf(egress_bytes, bucket_time < window_start)) AS egress_bytes_baseline_stddev,
+			sumIf(egress_bytes, bucket_time < window_start) AS egress_bytes_baseline_sum,
+			sumIf(egress_bytes * egress_bytes, bucket_time < window_start) AS egress_bytes_baseline_square_sum,
+			sumIf(cpu_seconds, bucket_time = window_start) AS cpu_seconds_current,
+			if(countIf(bucket_time < window_start) = 0, 0., avgIf(cpu_seconds, bucket_time < window_start)) AS cpu_seconds_baseline_mean,
+			if(countIf(bucket_time < window_start) = 0, 0., stddevPopIf(cpu_seconds, bucket_time < window_start)) AS cpu_seconds_baseline_stddev,
+			sumIf(cpu_seconds, bucket_time < window_start) AS cpu_seconds_baseline_sum,
+			sumIf(cpu_seconds * cpu_seconds, bucket_time < window_start) AS cpu_seconds_baseline_square_sum,
+			max(memory_utilization) AS memory_utilization_current,
+			max(memory_utilization_max) AS memory_utilization_max_current,
+			max(current_bucket_present) > 0 AS current_bucket_present,
+			toInt64(countIf(bucket_time < window_start)) AS baseline_buckets,
+			minIf(bucket_time, bucket_time < window_start) AS first_bucket,
+			toInt64(toUnixTimestamp(minIf(bucket_time, bucket_time < window_start))) * 1000 AS first_bucket_time
+		FROM bucketed
+		GROUP BY workspace_id, project_id, app_id, environment_id
+	),
+	moments AS (
+		SELECT
+			*,
+			least(toInt64(288), intDiv(dateDiff('minute', first_bucket, window_start), 5)) AS baseline_window_buckets,
+			egress_bytes_baseline_sum / greatest(toFloat64(baseline_window_buckets), 1.) AS egress_bytes_padded_mean,
+			sqrt(greatest(0., egress_bytes_baseline_square_sum / greatest(toFloat64(baseline_window_buckets), 1.) - egress_bytes_padded_mean * egress_bytes_padded_mean)) AS egress_bytes_padded_stddev,
+			cpu_seconds_baseline_sum / greatest(toFloat64(baseline_window_buckets), 1.) AS cpu_seconds_padded_mean,
+			sqrt(greatest(0., cpu_seconds_baseline_square_sum / greatest(toFloat64(baseline_window_buckets), 1.) - cpu_seconds_padded_mean * cpu_seconds_padded_mean)) AS cpu_seconds_padded_stddev
+		FROM aggregated
 	)
-	GROUP BY workspace_id, project_id, app_id, environment_id
-	HAVING countIf(bucket_time = window_start) > 0
-	/*operation='GetResourceAnomalyWindows'*/
-	`
+SELECT
+	workspace_id,
+	project_id,
+	app_id,
+	environment_id,
+	egress_bytes_current,
+	egress_bytes_baseline_mean,
+	egress_bytes_baseline_stddev,
+	cpu_seconds_current,
+	cpu_seconds_baseline_mean,
+	cpu_seconds_baseline_stddev,
+	memory_utilization_current,
+	memory_utilization_max_current,
+	current_bucket_present,
+	baseline_buckets,
+	first_bucket_time
+FROM moments
+WHERE
+	({candidate_filter_enabled:UInt8} = 0 AND {include_fleet:UInt8} = 1)
+	OR {explicit_batch:UInt8} = 1
+	OR (
+		baseline_buckets >= {baseline_minimum:Int64}
+		AND egress_bytes_current >= {egress_bytes_activity:Float64}
+		AND egress_bytes_current > egress_bytes_padded_mean + {sigma_k:Float64} * greatest(egress_bytes_padded_stddev, egress_bytes_padded_mean * 0.1, {egress_bytes_stddev_floor:Float64})
+	)
+	OR (
+		baseline_buckets >= {baseline_minimum:Int64}
+		AND cpu_seconds_current >= {cpu_seconds_activity:Float64}
+		AND cpu_seconds_current > cpu_seconds_padded_mean + {sigma_k:Float64} * greatest(cpu_seconds_padded_stddev, cpu_seconds_padded_mean * 0.1, {cpu_seconds_stddev_floor:Float64})
+	)
+	OR memory_utilization_current >= {memory_utilization_activity:Float64}
+/*operation='GetResourceAnomalyWindows'*/
+`
 
-	windows, err := Select[ResourceAnomalyWindow](ctx, c.conn, query, anomalyWindowParameters(req))
+// GetResourceAnomalyWindows reads egress and CPU from the app-level 5-minute
+// rollup. Memory keeps container grain in a separate 5-minute rollup so
+// instances receive equal weight without rescanning per-minute rows.
+func (c *Client) GetResourceAnomalyWindows(ctx context.Context, req AnomalyWindowsRequest) ([]ResourceAnomalyWindow, error) {
+	windows, err := selectAnomalyWindows(ctx, c, resourceAnomalyWindowsQuery, req, true, func(row ResourceAnomalyWindow) AnomalyGroupKey {
+		return AnomalyGroupKey{row.WorkspaceID, row.ProjectID, row.AppID, row.EnvironmentID}
+	})
 	if err != nil {
 		return nil, fault.Wrap(err, fault.Internal("failed to query resource anomaly windows"))
 	}
-
 	return windows, nil
 }
 
-// GetAnomalySourceWatermarks returns fleet-wide rollup completeness. The
-// values are exclusive unix-millisecond bounds: a window ending at or before a
-// watermark can be interpreted, while a later window must not mutate alerts.
+// GetAnomalySourceWatermarks returns fleet-wide rollup completeness. Each max
+// scan is limited to 2 hours. A fleet watermark can still hide a lagging region;
+// regional completeness requires region columns in every source and is phase 2.
 func (c *Client) GetAnomalySourceWatermarks(ctx context.Context) (AnomalySourceWatermarks, error) {
 	query := `
 	SELECT
-		(SELECT toInt64(toUnixTimestamp(max(time) + INTERVAL 5 MINUTE)) * 1000 FROM default.frontline_requests_per_5m_v1) AS requests_watermark,
-		(SELECT toInt64(toUnixTimestamp(max(time) + INTERVAL 1 MINUTE)) * 1000 FROM default.instance_resources_per_minute_v1) AS resources_watermark
+		if(countIf(source = 'requests') = 0, 0, toInt64(toUnixTimestamp(maxIf(time, source = 'requests') + INTERVAL 5 MINUTE)) * 1000) AS requests_watermark,
+		if(countIf(source = 'resources') = 0, 0, toInt64(toUnixTimestamp(maxIf(time, source = 'resources') + INTERVAL 1 MINUTE)) * 1000) AS resources_watermark
+	FROM default.anomaly_source_watermarks_v1
+	WHERE time > now() - INTERVAL 2 HOUR
 	/*operation='GetAnomalySourceWatermarks'*/
 	`
 
@@ -247,45 +443,202 @@ func (c *Client) GetAnomalySourceWatermarks(ctx context.Context) (AnomalySourceW
 		return AnomalySourceWatermarks{}, fault.Wrap(err, fault.Internal("failed to query anomaly source watermarks"))
 	}
 	if len(watermarks) == 0 {
-		return AnomalySourceWatermarks{Requests: 0, Resources: 0}, nil
+		return AnomalySourceWatermarks{}, nil
 	}
 	return watermarks[0], nil
 }
 
-// GetInstanceEventAnomalyWindows counts OOM kills and crash-loop transitions in
-// one closed window. These metrics use direct thresholds, so no historical
-// baseline is returned.
-func (c *Client) GetInstanceEventAnomalyWindows(ctx context.Context, req AnomalyWindowsRequest) ([]InstanceEventAnomalyWindow, error) {
-	query := `
-	SELECT
-		workspace_id,
-		project_id,
-		app_id,
-		environment_id,
-		toFloat64(countIf(event_kind = 'terminated' AND reason = 'OOMKilled')) AS oom_killed_current,
-		toFloat64(countIf(event_kind = 'waiting' AND reason = 'CrashLoopBackOff')) AS crash_loop_current
-	FROM default.instance_events_raw_v1
-	WHERE time >= {window_start_ms:Int64}
-	  AND time < {window_start_ms:Int64} + 300000
-	  AND (empty({workspace_ids:Array(String)}) OR workspace_id IN {workspace_ids:Array(String)})
-	  AND ((event_kind = 'terminated' AND reason = 'OOMKilled') OR (event_kind = 'waiting' AND reason = 'CrashLoopBackOff'))
-	GROUP BY workspace_id, project_id, app_id, environment_id
-	/*operation='GetInstanceEventAnomalyWindows'*/
-	`
+const instanceEventAnomalyWindowsQuery = `
+SELECT
+	workspace_id,
+	project_id,
+	app_id,
+	environment_id,
+	toFloat64(countIf(event_kind = 'terminated' AND reason = 'OOMKilled')) AS oom_killed_current,
+	toFloat64(countIf(event_kind = 'waiting' AND reason = 'CrashLoopBackOff')) AS crash_loop_current
+FROM default.instance_events_raw_v1
+WHERE time >= {window_start_ms:Int64}
+  AND time < {window_start_ms:Int64} + 300000
+  AND /*ANOMALY_WORKSPACE_FILTER*/
+  AND /*ANOMALY_GROUP_FILTER*/
+  AND ((event_kind = 'terminated' AND reason = 'OOMKilled') OR (event_kind = 'waiting' AND reason = 'CrashLoopBackOff'))
+GROUP BY workspace_id, project_id, app_id, environment_id
+/*operation='GetInstanceEventAnomalyWindows'*/
+`
 
-	windows, err := Select[InstanceEventAnomalyWindow](ctx, c.conn, query, anomalyWindowParameters(req))
+// GetInstanceEventAnomalyWindows counts current OOM and crash-loop events for
+// one shard. Every returned row is actionable under the fixed threshold.
+func (c *Client) GetInstanceEventAnomalyWindows(ctx context.Context, req AnomalyWindowsRequest) ([]InstanceEventAnomalyWindow, error) {
+	windows, err := selectAnomalyWindows(ctx, c, instanceEventAnomalyWindowsQuery, req, false, func(row InstanceEventAnomalyWindow) AnomalyGroupKey {
+		return AnomalyGroupKey{row.WorkspaceID, row.ProjectID, row.AppID, row.EnvironmentID}
+	})
 	if err != nil {
 		return nil, fault.Wrap(err, fault.Internal("failed to query instance event anomaly windows"))
 	}
-
 	return windows, nil
 }
 
-// anomalyWindowParameters renders the shared server-side parameters for the
-// three anomaly query families.
-func anomalyWindowParameters(req AnomalyWindowsRequest) map[string]string {
-	return map[string]string{
-		"window_start_ms": strconv.FormatInt(req.WindowStart, 10),
-		"workspace_ids":   stringArrayParam(req.WorkspaceIDs),
+type anomalyWindowBatch struct {
+	GroupKeys    []AnomalyGroupKey
+	IncludeFleet bool
+}
+
+func anomalyWindowBatches(req AnomalyWindowsRequest) []anomalyWindowBatch {
+	capacity := (len(req.GroupKeys) + anomalyGroupKeyBatchSize - 1) / anomalyGroupKeyBatchSize
+	if !req.SkipFleet {
+		capacity++
 	}
+	batches := make([]anomalyWindowBatch, 0, capacity)
+	if !req.SkipFleet {
+		batches = append(batches, anomalyWindowBatch{IncludeFleet: true})
+	}
+	for start := 0; start < len(req.GroupKeys); start += anomalyGroupKeyBatchSize {
+		end := min(start+anomalyGroupKeyBatchSize, len(req.GroupKeys))
+		batches = append(batches, anomalyWindowBatch{
+			GroupKeys: req.GroupKeys[start:end],
+		})
+	}
+	return batches
+}
+
+func selectAnomalyWindows[T any](
+	ctx context.Context,
+	c *Client,
+	query string,
+	req AnomalyWindowsRequest,
+	physicallySharded bool,
+	key func(T) AnomalyGroupKey,
+) ([]T, error) {
+	unique := make(map[AnomalyGroupKey]T)
+	for _, batch := range anomalyWindowBatches(req) {
+		batchQuery := strings.ReplaceAll(query, "/*ANOMALY_GROUP_FILTER*/", anomalyGroupFilter(batch, physicallySharded))
+		batchQuery = strings.ReplaceAll(batchQuery, "/*ANOMALY_WORKSPACE_FILTER*/", anomalyWorkspaceFilter(req.WorkspaceIDs))
+		rows, err := Select[T](ctx, c.conn, batchQuery, anomalyWindowParameters(req, batch))
+		if err != nil {
+			return nil, err
+		}
+		for _, row := range rows {
+			unique[key(row)] = row
+		}
+	}
+
+	rows := make([]T, 0, len(unique))
+	for _, row := range unique {
+		rows = append(rows, row)
+	}
+	return rows, nil
+}
+
+func anomalyWindowParameters(req AnomalyWindowsRequest, batch anomalyWindowBatch) map[string]string {
+	filter := req.CandidateFilter
+	if filter == nil {
+		filter = &AnomalyCandidateFilter{}
+	}
+	return map[string]string{
+		"window_start_ms":             strconv.FormatInt(req.WindowStart, 10),
+		"workspace_ids":               stringArrayParam(req.WorkspaceIDs),
+		"group_keys":                  anomalyGroupKeysParam(batch.GroupKeys),
+		"include_fleet":               boolParam(batch.IncludeFleet),
+		"shard":                       strconv.FormatUint(req.Shard, 10),
+		"shard_count":                 strconv.FormatUint(req.ShardCount, 10),
+		"physical_shards":             physicalShardsParam(req.Shard, req.ShardCount),
+		"group_physical_shards":       groupPhysicalShardsParam(batch.GroupKeys),
+		"candidate_filter_enabled":    boolParam(req.CandidateFilter != nil),
+		"explicit_batch":              boolParam(!batch.IncludeFleet),
+		"sigma_k":                     strconv.FormatFloat(filter.SigmaK, 'g', -1, 64),
+		"error_ratio_stddev_floor":    strconv.FormatFloat(filter.ErrorRatioStddevFloor, 'g', -1, 64),
+		"requests_stddev_floor":       strconv.FormatFloat(filter.RequestsStddevFloor, 'g', -1, 64),
+		"egress_bytes_stddev_floor":   strconv.FormatFloat(filter.EgressBytesStddevFloor, 'g', -1, 64),
+		"cpu_seconds_stddev_floor":    strconv.FormatFloat(filter.CPUSecondsStddevFloor, 'g', -1, 64),
+		"error_excess_failures":       strconv.FormatFloat(filter.ErrorExcessFailures, 'g', -1, 64),
+		"requests_activity":           strconv.FormatFloat(filter.RequestsActivity, 'g', -1, 64),
+		"egress_bytes_activity":       strconv.FormatFloat(filter.EgressBytesActivity, 'g', -1, 64),
+		"cpu_seconds_activity":        strconv.FormatFloat(filter.CPUSecondsActivity, 'g', -1, 64),
+		"memory_utilization_activity": strconv.FormatFloat(filter.MemoryUtilizationActivity, 'g', -1, 64),
+		"baseline_minimum":            strconv.FormatInt(filter.BaselineMinimum, 10),
+		"request_drop_baseline":       strconv.FormatInt(filter.RequestDropBaseline, 10),
+		"request_drop_fraction":       strconv.FormatFloat(filter.RequestDropFraction, 'g', -1, 64),
+		"request_drop_activity":       strconv.FormatFloat(filter.RequestDropActivity, 'g', -1, 64),
+		"request_drop_active_buckets": strconv.FormatInt(filter.RequestDropActiveBuckets, 10),
+		"request_drop_absolute_loss":  strconv.FormatFloat(filter.RequestDropAbsoluteLoss, 'g', -1, 64),
+		"catastrophic_5xx_ratio":      strconv.FormatFloat(filter.Catastrophic5xxRatio, 'g', -1, 64),
+		"catastrophic_5xx_failures":   strconv.FormatFloat(filter.Catastrophic5xxFailures, 'g', -1, 64),
+	}
+}
+
+func anomalyGroupFilter(batch anomalyWindowBatch, physicallySharded bool) string {
+	if batch.IncludeFleet {
+		if !physicallySharded {
+			return "({shard_count:UInt64} = 0 OR cityHash64(workspace_id) % greatest({shard_count:UInt64}, 1) = {shard:UInt64})"
+		}
+		return "anomaly_shard IN {physical_shards:Array(UInt8)} AND ({shard_count:UInt64} = 0 OR cityHash64(workspace_id) % greatest({shard_count:UInt64}, 1) = {shard:UInt64})"
+	}
+	if physicallySharded {
+		return "anomaly_shard IN {group_physical_shards:Array(UInt8)} AND tuple(workspace_id, project_id, app_id, environment_id) IN {group_keys:Array(Tuple(String, String, String, String))}"
+	}
+	return "tuple(workspace_id, project_id, app_id, environment_id) IN {group_keys:Array(Tuple(String, String, String, String))}"
+}
+
+func anomalyWorkspaceFilter(workspaceIDs []string) string {
+	if len(workspaceIDs) == 0 {
+		return "1"
+	}
+	return "workspace_id IN {workspace_ids:Array(String)}"
+}
+
+func anomalyGroupKeysParam(keys []AnomalyGroupKey) string {
+	var b strings.Builder
+	b.WriteByte('[')
+	for i, key := range keys {
+		if i > 0 {
+			b.WriteByte(',')
+		}
+		b.WriteByte('(')
+		for j, value := range []string{key.WorkspaceID, key.ProjectID, key.AppID, key.EnvironmentID} {
+			if j > 0 {
+				b.WriteByte(',')
+			}
+			b.WriteByte('\'')
+			b.WriteString(arrayElementEscaper.Replace(value))
+			b.WriteByte('\'')
+		}
+		b.WriteByte(')')
+	}
+	b.WriteByte(']')
+	return b.String()
+}
+
+func boolParam(value bool) string {
+	if value {
+		return "1"
+	}
+	return "0"
+}
+
+func physicalShardsParam(shard, shardCount uint64) string {
+	if shardCount == 0 || 256%shardCount != 0 {
+		values := make([]string, 256)
+		for value := range 256 {
+			values[value] = strconv.Itoa(value)
+		}
+		return "[" + strings.Join(values, ",") + "]"
+	}
+	values := make([]string, 0, 256/shardCount)
+	for value := shard; value < 256; value += shardCount {
+		values = append(values, strconv.FormatUint(value, 10))
+	}
+	return "[" + strings.Join(values, ",") + "]"
+}
+
+func groupPhysicalShardsParam(keys []AnomalyGroupKey) string {
+	unique := make(map[uint64]struct{}, len(keys))
+	for _, key := range keys {
+		unique[city.CH64([]byte(key.WorkspaceID))%256] = struct{}{}
+	}
+	values := make([]string, 0, len(unique))
+	for value := range unique {
+		values = append(values, strconv.FormatUint(value, 10))
+	}
+	sort.Strings(values)
+	return "[" + strings.Join(values, ",") + "]"
 }
