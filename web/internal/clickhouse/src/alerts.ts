@@ -59,15 +59,20 @@ function frontlineQuery(metric: "error_5xx" | "error_4xx" | "requests" | "reques
 
   return fillBuckets(`
     SELECT
-      toInt64(toUnixTimestamp(time) * 1000) AS time,
-      ${expression} AS value
-    FROM default.frontline_requests_per_5m_v1
-    PREWHERE workspace_id = {workspaceId: String}
-      AND app_id = {appId: String}
-      AND environment_id = {environmentId: String}
-      AND time >= fromUnixTimestamp64Milli({startMs: Int64})
-      AND time <= fromUnixTimestamp64Milli({endMs: Int64})
-    GROUP BY time`);
+      toInt64(toUnixTimestamp(bucket) * 1000) AS time,
+      value
+    FROM (
+      SELECT
+        time AS bucket,
+        ${expression} AS value
+      FROM default.frontline_requests_per_5m_v1
+      PREWHERE workspace_id = {workspaceId: String}
+        AND app_id = {appId: String}
+        AND environment_id = {environmentId: String}
+        AND time >= fromUnixTimestamp64Milli({startMs: Int64})
+        AND time <= fromUnixTimestamp64Milli({endMs: Int64})
+      GROUP BY time
+    )`);
 }
 
 function resourceCounterQuery(expression: string, aggregate: string): string {
@@ -95,20 +100,22 @@ function resourceCounterQuery(expression: string, aggregate: string): string {
 function memoryQuery(): string {
   return fillBuckets(`
     SELECT
-      toInt64(toUnixTimestamp(toStartOfInterval(time, INTERVAL 5 MINUTE)) * 1000) AS time,
-      if(
-        max(memory_allocated_bytes_max) = 0,
-        0,
-        max(memory_bytes_max) / max(memory_allocated_bytes_max)
-      ) AS value
-    FROM default.instance_resources_per_minute_v1
-    PREWHERE workspace_id = {workspaceId: String}
-      AND app_id = {appId: String}
-      AND environment_id = {environmentId: String}
-      AND resource_type = 'deployment'
-      AND time >= fromUnixTimestamp64Milli({startMs: Int64})
-      AND time <= fromUnixTimestamp64Milli({endMs: Int64})
-    GROUP BY toStartOfInterval(time, INTERVAL 5 MINUTE)`);
+      toInt64(toUnixTimestamp(bucket) * 1000) AS time,
+      if(allocated_bytes = 0, 0, memory_bytes / allocated_bytes) AS value
+    FROM (
+      SELECT
+        toStartOfInterval(time, INTERVAL 5 MINUTE) AS bucket,
+        max(memory_allocated_bytes_max) AS allocated_bytes,
+        max(memory_bytes_max) AS memory_bytes
+      FROM default.instance_resources_per_minute_v1
+      PREWHERE workspace_id = {workspaceId: String}
+        AND app_id = {appId: String}
+        AND environment_id = {environmentId: String}
+        AND resource_type = 'deployment'
+        AND time >= fromUnixTimestamp64Milli({startMs: Int64})
+        AND time <= fromUnixTimestamp64Milli({endMs: Int64})
+      GROUP BY bucket
+    )`);
 }
 
 function instanceEventQuery(metric: "oom_killed" | "crash_loop"): string {
@@ -119,15 +126,20 @@ function instanceEventQuery(metric: "oom_killed" | "crash_loop"): string {
 
   return fillBuckets(`
     SELECT
-      intDiv(time, {bucketMs: UInt32}) * {bucketMs: UInt32} AS time,
-      countIf(${predicate}) AS value
-    FROM default.instance_events_raw_v1
-    PREWHERE workspace_id = {workspaceId: String}
-      AND app_id = {appId: String}
-      AND environment_id = {environmentId: String}
-      AND time >= {startMs: Int64}
-      AND time <= {endMs: Int64}
-    GROUP BY time`);
+      bucket AS time,
+      value
+    FROM (
+      SELECT
+        intDiv(time, {bucketMs: UInt32}) * {bucketMs: UInt32} AS bucket,
+        countIf(${predicate}) AS value
+      FROM default.instance_events_raw_v1
+      PREWHERE workspace_id = {workspaceId: String}
+        AND app_id = {appId: String}
+        AND environment_id = {environmentId: String}
+        AND time >= {startMs: Int64}
+        AND time <= {endMs: Int64}
+      GROUP BY bucket
+    )`);
 }
 
 export function getAlertTimeseries(ch: Querier) {

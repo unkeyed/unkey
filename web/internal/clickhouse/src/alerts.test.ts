@@ -34,6 +34,15 @@ describe("getAlertTimeseries", () => {
     expect(ch.queries[0]).toContain("environment_id = {environmentId: String}");
     expect(ch.queries[0]).toContain("WITH FILL");
     expect(ch.params[0]).toMatchObject({ ...baseRequest, bucketMs: 300_000 });
+    if (metric === "memory_utilization") {
+      expect(ch.queries[0]).toContain("GROUP BY bucket");
+    }
+    if (metric === "requests" || metric === "requests_drop") {
+      expect(ch.queries[0]).toContain("time AS bucket");
+    }
+    if (metric === "oom_killed" || metric === "crash_loop") {
+      expect(ch.queries[0]).toContain("AS bucket");
+    }
   });
 });
 
