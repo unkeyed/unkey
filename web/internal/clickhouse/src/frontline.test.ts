@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { type RequestLogsRequest, getRequestLogs, requestLogsRequestSchema } from "./frontline";
+import {
+  type RequestLogsRequest,
+  getRequestLogById,
+  getRequestLogs,
+  requestLogsRequestSchema,
+} from "./frontline";
 import { CapturingQuerier } from "./test-utils";
 
 const baseRequest: RequestLogsRequest = {
@@ -72,6 +77,27 @@ describe("getRequestLogs", () => {
       expect(query).not.toContain("path LIKE");
       expect(query).not.toContain("startsWith(path");
     }
+  });
+});
+
+describe("getRequestLogById", () => {
+  it("looks up one request by workspace and request id", async () => {
+    const ch = new CapturingQuerier();
+
+    await getRequestLogById(ch)({
+      workspaceId: "ws_123",
+      requestId: "req_123",
+    });
+
+    expect(ch.queries).toHaveLength(1);
+    expect(ch.queries[0]).toContain("FROM default.frontline_requests_raw_v1");
+    expect(ch.queries[0]).toContain("workspace_id = {workspaceId: String}");
+    expect(ch.queries[0]).toContain("request_id = {requestId: String}");
+    expect(ch.queries[0]).not.toContain("project_id");
+    expect(ch.params[0]).toEqual({
+      workspaceId: "ws_123",
+      requestId: "req_123",
+    });
   });
 });
 

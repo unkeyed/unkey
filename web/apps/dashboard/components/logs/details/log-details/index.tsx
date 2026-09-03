@@ -4,9 +4,11 @@ import { ResizablePanel } from "@/components/logs/details/resizable-panel";
 import type { EnrichedRatelimitLog } from "@/components/ratelimit-logs-table";
 import type { RuntimeLog } from "@/lib/schemas/runtime-logs.schema";
 import type { AuditLog } from "@/lib/trpc/routers/audit/schema";
+import type { IdentityLog } from "@/lib/trpc/routers/identity/query-logs";
 import type { RequestLogsResponse } from "@unkey/clickhouse/src/frontline";
 import type { KeysOverviewLog } from "@unkey/clickhouse/src/keys/keys";
 import type { Log } from "@unkey/clickhouse/src/logs";
+import type { KeyDetailsLog } from "@unkey/clickhouse/src/verifications";
 import { type ReactNode, createContext, useContext, useMemo } from "react";
 import { LogFooter } from "./components/log-footer";
 import { LogHeader } from "./components/log-header";
@@ -26,6 +28,8 @@ export type StandardLogTypes = Log | EnrichedRatelimitLog;
 export type SupportedLogTypes =
   | StandardLogTypes
   | KeysOverviewLog
+  | KeyDetailsLog
+  | IdentityLog
   | AuditLog
   | RuntimeLog
   | RequestLogsResponse;
@@ -45,7 +49,7 @@ const useLogDetailsContext = () => useContext(LogDetailsContext);
 const createLogSections = (log: Log | EnrichedRatelimitLog) => [
   {
     title: "Request Header",
-    content: log.request_headers.length ? log.request_headers : EMPTY_TEXT,
+    content: log.request_headers?.length ? log.request_headers : EMPTY_TEXT,
   },
   {
     title: "Request Body",
@@ -58,7 +62,7 @@ const createLogSections = (log: Log | EnrichedRatelimitLog) => [
   },
   {
     title: "Response Header",
-    content: log.response_headers.length ? log.response_headers : EMPTY_TEXT,
+    content: log.response_headers?.length ? log.response_headers : EMPTY_TEXT,
   },
   {
     title: "Response Body",

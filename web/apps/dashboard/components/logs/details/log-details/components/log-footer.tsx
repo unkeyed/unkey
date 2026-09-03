@@ -99,7 +99,7 @@ export const LogFooter = ({ log }: Props) => {
               ))}
             </div>
           ),
-          content: extractResponseField(log, "permissions"),
+          content: extractResponseField(log, "permissions") ?? [],
           tooltipContent: "Copy Permissions",
           tooltipSuccessMessage: "Permissions copied to clipboard",
         },
