@@ -12,7 +12,6 @@ export const alertSelection = {
   firedAt: schema.alertEvents.firedAt,
   lastSeenAt: schema.alertEvents.lastSeenAt,
   resolvedAt: schema.alertEvents.resolvedAt,
-  resolvedBy: schema.alertEvents.resolvedBy,
   resolutionMessage: schema.alertEvents.resolutionMessage,
   observedValue: schema.alertEvents.observedValue,
   baselineMean: schema.alertEvents.baselineMean,

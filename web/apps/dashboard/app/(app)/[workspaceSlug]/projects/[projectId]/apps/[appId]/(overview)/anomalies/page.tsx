@@ -118,7 +118,7 @@ export default function AnomaliesPage() {
     { enabled: Boolean(activeEnvironment), staleTime: 60_000 },
   );
   const alertsQuery = trpc.alerts.list.useQuery(
-    { ...queryScope, status: "all", ...range, limit: 100 },
+    { ...queryScope, ...range, limit: 100 },
     { enabled: Boolean(activeEnvironment), staleTime: 30_000 },
   );
   const deploymentsQuery = trpc.alerts.deployments.useQuery(
@@ -126,6 +126,10 @@ export default function AnomaliesPage() {
     { enabled: Boolean(activeEnvironment), staleTime: 60_000 },
   );
   const alerts = alertsQuery.data?.alerts ?? [];
+  const chartAlerts =
+    focusedAlert && alerts.every((alert) => alert.id !== focusedAlert.id)
+      ? [...alerts, focusedAlert]
+      : alerts;
 
   if (isEnvironmentsLoading || !activeEnvironment) {
     return <AnomaliesPageSkeleton />;
@@ -264,7 +268,7 @@ export default function AnomaliesPage() {
           <AnomalyChart
             metric={metric}
             data={seriesQuery.data}
-            alerts={alerts}
+            alerts={chartAlerts}
             deployments={deploymentsQuery.data ?? []}
             selectedAlertId={selectedAlertId}
             showDeployments={showDeployments}
