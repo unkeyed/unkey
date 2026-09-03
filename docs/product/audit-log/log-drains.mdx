@@ -16,7 +16,7 @@ Unkey supports generic HTTPS endpoints and
 <a href="https://axiom.co" target="_blank">Axiom</a> datasets. See [Event
 types](/audit-log/types) for the events that Unkey can send.
 
-## Understand delivery
+## How delivery works
 
 Unkey sends audit logs asynchronously in batches. A destination must accept the
 complete batch before Unkey marks the delivery as successful.
@@ -34,8 +34,8 @@ log retention](/audit-log/introduction#retention).
 
 | Destination | Use case | Configuration |
 | --- | --- | --- |
-| HTTP | Send audit logs to an HTTP collector | Public HTTPS endpoint, body format, and optional headers |
-| Axiom | Send audit logs directly to an Axiom dataset | Dataset name and an API token with ingest permission |
+| HTTP | Send audit logs to an HTTP collector | Public HTTPS URL, encoding, and optional headers |
+| Axiom | Send audit logs to an Axiom dataset | Dataset name and an API token with ingest permission |
 
 ## Configure a log drain
 
@@ -43,12 +43,12 @@ Create a log drain from your workspace settings.
 
 1. Navigate to your workspace **Settings**.
 2. Select **Log Drains**.
-3. Click **Create log drain**.
+3. Click **Create Log Drain**.
 4. Select **HTTP** or **Axiom**.
 5. Enter a descriptive name.
-6. Select **New audit logs only** or **All retained audit logs**.
-7. Enter the destination settings.
-8. Click **Create log drain**.
+6. Enter the destination settings.
+7. Select **New audit logs** or **All retained audit logs**.
+8. Click **Create Log Drain**.
 
 Delivery is asynchronous and can take several minutes.
 
@@ -63,9 +63,9 @@ Configure these fields in the dashboard:
 
 | Field | Description |
 | --- | --- |
-| **HTTPS endpoint** | The public URL that receives each batch |
+| **URL** | The public URL that receives each batch. Unkey always sends `POST`. |
+| **Encoding** | JSON (default) sends one array of events. NDJSON sends one event per line. |
 | **Headers** | Optional request headers, such as an `Authorization` header |
-| **Body format** | A JSON array (default) or NDJSON with one event per line |
 
 Unkey stores the endpoint URL in plaintext. It encrypts each custom header
 value at rest.
@@ -80,7 +80,7 @@ Process the complete request before you acknowledge it.
 - Return a `2xx` status only after you accept the complete batch.
 - Return a non-`2xx` status and a useful response body when processing fails.
 
-Unkey adds these headers to every request:
+Unkey adds these headers to every delivery request:
 
 | Header | Value |
 | --- | --- |
@@ -152,7 +152,7 @@ An Axiom log drain sends Axiom-compatible NDJSON to one dataset.
 2. Create an Axiom API token with ingest permission for that dataset.
 3. In Unkey, select **Axiom** as the destination.
 4. Enter the dataset name and API token.
-5. Click **Create log drain**.
+5. Click **Create Log Drain**.
 
 Each Axiom row contains `_time`, `stream`, and `event`. Unkey encodes each row
 as one NDJSON line. This example is formatted across lines for readability:
@@ -198,15 +198,15 @@ delay is 24 hours.
 
 Unkey encrypts the Axiom token before storing it.
 
-## Understand retry behavior
+## Retries
 
-Failed deliveries are retried. This includes `4xx` responses, `5xx` responses,
+Unkey retries failed deliveries. This includes `4xx` responses, `5xx` responses,
 timeouts, DNS failures, and connection failures. A failed delivery does not
 skip the affected events.
 
 The first retry waits 1 minute. The delay doubles after each failure, with a
 maximum wait of 4 hours between attempts. After 50 consecutive failures, Unkey
-pauses the log drain. The complete retry period spans approximately 7 days.
+pauses the log drain. Retries continue for about 7 days.
 
 A successful delivery resets the failure count. Changing the destination or
 resuming the drain also resets the failure count. Delivery continues from the
@@ -215,16 +215,21 @@ last successful batch.
 ## Debug a log drain
 
 Open a log drain from **Settings** > **Log Drains**. The detail page shows the
-delivery status and these metrics for the past 24 hours:
+drain's status and these metrics for the past 24 hours:
 
-- Delivered events.
-- Failed delivery attempts.
-- Average request duration.
+- **Delivered**, successful delivery attempts.
+- **Failed**, attempts that did not return 2xx.
+- **Success rate**, the share of attempts that succeeded.
+- **Last delivery**, time since the last successful delivery.
 
-If a delivery fails, expand **Some recent deliveries failed**. The table shows
-the failure time, response status, and response body. Unkey stores up to 4 KiB
-of the response body. If the destination did not return an HTTP response, the
-table shows the connection or timeout error instead.
+**Logs** lists the recent delivery attempts underneath, whatever their outcome.
+Each row shows the time, the response status, the number of events in the batch,
+how long the attempt took, and the response body. Unkey stores up to 4 KiB of
+the response body. If the destination did not return an HTTP response, the row
+shows the connection or timeout error instead.
+
+When Unkey pauses a drain because it exceeded the failure limit, its status
+badge reads **Failing** and the page leads with a **Deliveries are failing** banner.
 
 Return a concise error response from your endpoint. Include information that
 helps you identify invalid credentials, invalid payloads, rate limits, and
