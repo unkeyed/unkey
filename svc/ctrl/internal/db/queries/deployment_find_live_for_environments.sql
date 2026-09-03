@@ -29,7 +29,13 @@ SELECT
     e.kind AS environment_kind,
     e.slug AS environment_slug,
     d.id AS deployment_id,
-    COALESCE(d.desired_state, '') AS deployment_desired_state
+    COALESCE(d.desired_state, '') AS deployment_desired_state,
+    EXISTS (
+        SELECT 1
+        FROM deployment_topology dt
+        WHERE dt.deployment_id = d.id
+          AND dt.desired_status = 'running'
+    ) AS deployment_has_running_region
 FROM requested
 INNER JOIN environments e
     ON BINARY e.id = BINARY requested.environment_id

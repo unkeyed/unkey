@@ -93,6 +93,7 @@ message EvaluateDeployAnomalyRequest {
   string deployment_desired_state = 13;
 
   repeated DeployAnomalyMetricInput metrics = 14;
+  bool deployment_has_running_region = 15;
 }
 
 message EvaluateDeployAnomalyResponse {

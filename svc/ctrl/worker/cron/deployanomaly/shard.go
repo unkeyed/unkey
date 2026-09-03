@@ -47,15 +47,16 @@ type groupWindow struct {
 }
 
 type groupMetadata struct {
-	Group                  anomalyGroup
-	OrgID                  string
-	WorkspaceName          string
-	WorkspaceSlug          string
-	AppName                string
-	EnvironmentKind        mysqltype.EnvironmentKind
-	EnvironmentSlug        string
-	DeploymentID           string
-	DeploymentDesiredState string
+	Group                      anomalyGroup
+	OrgID                      string
+	WorkspaceName              string
+	WorkspaceSlug              string
+	AppName                    string
+	EnvironmentKind            mysqltype.EnvironmentKind
+	EnvironmentSlug            string
+	DeploymentID               string
+	DeploymentDesiredState     string
+	DeploymentHasRunningRegion bool
 }
 
 // ShardConfig holds the partition evaluator dependencies.
@@ -251,6 +252,7 @@ func (h *ShardHandler) resolveMetadata(ctx restate.ObjectContext, groups []anoma
 				WorkspaceSlug: row.WorkspaceSlug, AppName: row.AppName,
 				EnvironmentKind: row.EnvironmentKind, EnvironmentSlug: row.EnvironmentSlug,
 				DeploymentID: row.DeploymentID.String, DeploymentDesiredState: string(row.DeploymentDesiredState),
+				DeploymentHasRunningRegion: row.DeploymentHasRunningRegion,
 			})
 		}
 	}
@@ -358,8 +360,9 @@ func evaluateRequest(metadata groupMetadata, group groupWindow, windowStart, win
 		OrgId: metadata.OrgID, WorkspaceName: metadata.WorkspaceName,
 		WorkspaceSlug: metadata.WorkspaceSlug, AppName: metadata.AppName,
 		EnvironmentSlug: metadata.EnvironmentSlug, DeploymentId: metadata.DeploymentID,
-		DeploymentDesiredState: metadata.DeploymentDesiredState,
-		Metrics:                evaluateMetrics(group, windowStart, completeness),
+		DeploymentDesiredState:     metadata.DeploymentDesiredState,
+		DeploymentHasRunningRegion: metadata.DeploymentHasRunningRegion,
+		Metrics:                    evaluateMetrics(group, windowStart, completeness),
 	}
 }
 

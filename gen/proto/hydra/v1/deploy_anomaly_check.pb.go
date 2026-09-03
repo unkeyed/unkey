@@ -444,22 +444,23 @@ type EvaluateDeployAnomalyRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// WindowStart and WindowEnd are unix milliseconds for one closed 5-minute
 	// interval. The baseline excludes this interval.
-	WindowStart            int64                       `protobuf:"varint,1,opt,name=window_start,json=windowStart,proto3" json:"window_start,omitempty"`
-	WindowEnd              int64                       `protobuf:"varint,2,opt,name=window_end,json=windowEnd,proto3" json:"window_end,omitempty"`
-	WorkspaceId            string                      `protobuf:"bytes,3,opt,name=workspace_id,json=workspaceId,proto3" json:"workspace_id,omitempty"`
-	ProjectId              string                      `protobuf:"bytes,4,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
-	AppId                  string                      `protobuf:"bytes,5,opt,name=app_id,json=appId,proto3" json:"app_id,omitempty"`
-	EnvironmentId          string                      `protobuf:"bytes,6,opt,name=environment_id,json=environmentId,proto3" json:"environment_id,omitempty"`
-	OrgId                  string                      `protobuf:"bytes,7,opt,name=org_id,json=orgId,proto3" json:"org_id,omitempty"`
-	WorkspaceName          string                      `protobuf:"bytes,8,opt,name=workspace_name,json=workspaceName,proto3" json:"workspace_name,omitempty"`
-	WorkspaceSlug          string                      `protobuf:"bytes,9,opt,name=workspace_slug,json=workspaceSlug,proto3" json:"workspace_slug,omitempty"`
-	AppName                string                      `protobuf:"bytes,10,opt,name=app_name,json=appName,proto3" json:"app_name,omitempty"`
-	EnvironmentSlug        string                      `protobuf:"bytes,11,opt,name=environment_slug,json=environmentSlug,proto3" json:"environment_slug,omitempty"`
-	DeploymentId           string                      `protobuf:"bytes,12,opt,name=deployment_id,json=deploymentId,proto3" json:"deployment_id,omitempty"`
-	DeploymentDesiredState string                      `protobuf:"bytes,13,opt,name=deployment_desired_state,json=deploymentDesiredState,proto3" json:"deployment_desired_state,omitempty"`
-	Metrics                []*DeployAnomalyMetricInput `protobuf:"bytes,14,rep,name=metrics,proto3" json:"metrics,omitempty"`
-	unknownFields          protoimpl.UnknownFields
-	sizeCache              protoimpl.SizeCache
+	WindowStart                int64                       `protobuf:"varint,1,opt,name=window_start,json=windowStart,proto3" json:"window_start,omitempty"`
+	WindowEnd                  int64                       `protobuf:"varint,2,opt,name=window_end,json=windowEnd,proto3" json:"window_end,omitempty"`
+	WorkspaceId                string                      `protobuf:"bytes,3,opt,name=workspace_id,json=workspaceId,proto3" json:"workspace_id,omitempty"`
+	ProjectId                  string                      `protobuf:"bytes,4,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
+	AppId                      string                      `protobuf:"bytes,5,opt,name=app_id,json=appId,proto3" json:"app_id,omitempty"`
+	EnvironmentId              string                      `protobuf:"bytes,6,opt,name=environment_id,json=environmentId,proto3" json:"environment_id,omitempty"`
+	OrgId                      string                      `protobuf:"bytes,7,opt,name=org_id,json=orgId,proto3" json:"org_id,omitempty"`
+	WorkspaceName              string                      `protobuf:"bytes,8,opt,name=workspace_name,json=workspaceName,proto3" json:"workspace_name,omitempty"`
+	WorkspaceSlug              string                      `protobuf:"bytes,9,opt,name=workspace_slug,json=workspaceSlug,proto3" json:"workspace_slug,omitempty"`
+	AppName                    string                      `protobuf:"bytes,10,opt,name=app_name,json=appName,proto3" json:"app_name,omitempty"`
+	EnvironmentSlug            string                      `protobuf:"bytes,11,opt,name=environment_slug,json=environmentSlug,proto3" json:"environment_slug,omitempty"`
+	DeploymentId               string                      `protobuf:"bytes,12,opt,name=deployment_id,json=deploymentId,proto3" json:"deployment_id,omitempty"`
+	DeploymentDesiredState     string                      `protobuf:"bytes,13,opt,name=deployment_desired_state,json=deploymentDesiredState,proto3" json:"deployment_desired_state,omitempty"`
+	Metrics                    []*DeployAnomalyMetricInput `protobuf:"bytes,14,rep,name=metrics,proto3" json:"metrics,omitempty"`
+	DeploymentHasRunningRegion bool                        `protobuf:"varint,15,opt,name=deployment_has_running_region,json=deploymentHasRunningRegion,proto3" json:"deployment_has_running_region,omitempty"`
+	unknownFields              protoimpl.UnknownFields
+	sizeCache                  protoimpl.SizeCache
 }
 
 func (x *EvaluateDeployAnomalyRequest) Reset() {
@@ -590,6 +591,13 @@ func (x *EvaluateDeployAnomalyRequest) GetMetrics() []*DeployAnomalyMetricInput 
 	return nil
 }
 
+func (x *EvaluateDeployAnomalyRequest) GetDeploymentHasRunningRegion() bool {
+	if x != nil {
+		return x.DeploymentHasRunningRegion
+	}
+	return false
+}
+
 type EvaluateDeployAnomalyResponse struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Pending is true while any metric has a candidate or open alert.
@@ -666,7 +674,7 @@ const file_hydra_v1_deploy_anomaly_check_proto_rawDesc = "" +
 	"\x16recent_median_requests\x18\t \x01(\x01R\x14recentMedianRequests\x122\n" +
 	"\x15recent_active_buckets\x18\n" +
 	" \x01(\x03R\x13recentActiveBuckets\x12\x18\n" +
-	"\amaximum\x18\v \x01(\x01R\amaximum\"\xa8\x04\n" +
+	"\amaximum\x18\v \x01(\x01R\amaximum\"\xeb\x04\n" +
 	"\x1cEvaluateDeployAnomalyRequest\x12!\n" +
 	"\fwindow_start\x18\x01 \x01(\x03R\vwindowStart\x12\x1d\n" +
 	"\n" +
@@ -684,7 +692,8 @@ const file_hydra_v1_deploy_anomaly_check_proto_rawDesc = "" +
 	"\x10environment_slug\x18\v \x01(\tR\x0fenvironmentSlug\x12#\n" +
 	"\rdeployment_id\x18\f \x01(\tR\fdeploymentId\x128\n" +
 	"\x18deployment_desired_state\x18\r \x01(\tR\x16deploymentDesiredState\x12<\n" +
-	"\ametrics\x18\x0e \x03(\v2\".hydra.v1.DeployAnomalyMetricInputR\ametrics\"9\n" +
+	"\ametrics\x18\x0e \x03(\v2\".hydra.v1.DeployAnomalyMetricInputR\ametrics\x12A\n" +
+	"\x1ddeployment_has_running_region\x18\x0f \x01(\bR\x1adeploymentHasRunningRegion\"9\n" +
 	"\x1dEvaluateDeployAnomalyResponse\x12\x18\n" +
 	"\apending\x18\x01 \x01(\bR\apending*\xe3\x01\n" +
 	"\x1cDeployAnomalyMetricDataState\x120\n" +

@@ -36,7 +36,7 @@ The activity test applies to the baseline. Zero current traffic can be an outage
 
 Request drops need two consecutive complete windows. One empty bucket can be ingest lag through Frontline's buffer and the per-minute and per-5-minute materialized views.
 
-The per-app evaluator suppresses request-drop alerts when no live deployment exists or its desired state is `stopped`. The caller must also suppress intentionally paused or scaled-to-zero deployments when those states are available.
+The per-app evaluator suppresses request-drop alerts when no live deployment exists, its desired state is `stopped`, or every deployment topology region has desired status `stopped`. One running topology region keeps detection active. An autoscaling minimum of zero only enables scale-to-zero, so it does not suppress a traffic drop by itself.
 
 ## Resource and instance thresholds
 

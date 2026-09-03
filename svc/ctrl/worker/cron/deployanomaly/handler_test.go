@@ -160,7 +160,10 @@ func TestProductionAndRequestDropSuppression(t *testing.T) {
 	require.True(t, requestDropSuppressed(&hydrav1.EvaluateDeployAnomalyRequest{
 		DeploymentId: "dep", DeploymentDesiredState: "stopped",
 	}))
-	require.False(t, requestDropSuppressed(&hydrav1.EvaluateDeployAnomalyRequest{
+	require.True(t, requestDropSuppressed(&hydrav1.EvaluateDeployAnomalyRequest{
 		DeploymentId: "dep", DeploymentDesiredState: "running",
+	}))
+	require.False(t, requestDropSuppressed(&hydrav1.EvaluateDeployAnomalyRequest{
+		DeploymentId: "dep", DeploymentDesiredState: "running", DeploymentHasRunningRegion: true,
 	}))
 }
