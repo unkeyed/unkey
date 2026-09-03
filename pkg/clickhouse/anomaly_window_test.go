@@ -41,10 +41,10 @@ func TestAnomalyWindows(t *testing.T) {
 		environmentID := uid.New("env")
 
 		// The two baseline buckets contain (5xx, 4xx, requests) values
-		// (2, 4, 90) and (4, 6, 110). Their population statistics are
-		// therefore (3, 1), (5, 1), and (100, 10). The current bucket is
-		// (10, 20, 200), split across a different deployment to prove that
-		// deployment identity is context rather than a grouping key.
+		// (2, 4, 90) and (4, 6, 110). The weighted error means are 6/200=0.03
+		// and 10/200=0.05. The per-bucket ratio standard deviations are
+		// 0.0070707 and 0.0050505. Request mean and standard deviation are
+		// 100 and 10. The current bucket is (10, 20, 200).
 		insertRequestCounts(t, ctx, conn, windowStart.Add(-10*time.Minute), workspaceID, projectID, appID, environmentID, "dep-old", map[int32]int64{
 			200: 84,
 			404: 4,
@@ -74,14 +74,16 @@ func TestAnomalyWindows(t *testing.T) {
 		require.Equal(t, appID, row.AppID)
 		require.Equal(t, environmentID, row.EnvironmentID)
 		require.Equal(t, 10.0, row.Error5xxCurrent)
-		require.Equal(t, 3.0, row.Error5xxBaselineMean)
-		require.Equal(t, 1.0, row.Error5xxBaselineStddev)
+		require.InDelta(t, 0.03, row.Error5xxBaselineMean, 1e-12)
+		require.InDelta(t, 0.007070707070707071, row.Error5xxBaselineStddev, 1e-12)
 		require.Equal(t, 20.0, row.Error4xxCurrent)
-		require.Equal(t, 5.0, row.Error4xxBaselineMean)
-		require.Equal(t, 1.0, row.Error4xxBaselineStddev)
+		require.InDelta(t, 0.05, row.Error4xxBaselineMean, 1e-12)
+		require.InDelta(t, 0.005050505050505051, row.Error4xxBaselineStddev, 1e-12)
 		require.Equal(t, 200.0, row.RequestsCurrent)
 		require.Equal(t, 100.0, row.RequestsBaselineMean)
 		require.Equal(t, 10.0, row.RequestsBaselineStddev)
+		require.Equal(t, []float64{110, 90, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, row.RecentRequests)
+		require.True(t, row.CurrentBucketPresent)
 		require.Equal(t, int64(2), row.BaselineBuckets)
 		require.Equal(t, windowStart.Add(-10*time.Minute).UnixMilli(), row.FirstBucketTime)
 	})
@@ -113,6 +115,8 @@ func TestAnomalyWindows(t *testing.T) {
 		require.Equal(t, 0.0, row.RequestsCurrent)
 		require.Equal(t, 1_000.0, row.RequestsBaselineMean)
 		require.Equal(t, 0.0, row.RequestsBaselineStddev)
+		require.Equal(t, []float64{1_000, 1_000, 1_000, 1_000, 1_000, 1_000, 1_000, 1_000, 1_000, 1_000, 1_000, 1_000}, row.RecentRequests)
+		require.False(t, row.CurrentBucketPresent)
 		require.Equal(t, int64(288), row.BaselineBuckets)
 		require.Equal(t, windowStart.Add(-24*time.Hour).UnixMilli(), row.FirstBucketTime)
 	})
@@ -126,7 +130,8 @@ func TestAnomalyWindows(t *testing.T) {
 		// Across the two containers, baseline egress buckets are 30 and 50
 		// bytes, so mean=40 and stddevPop=10. CPU buckets are 3 and 6
 		// seconds, so mean=4.5 and stddevPop=1.5. The current bucket totals
-		// 100 bytes and 10 seconds. Its max memory ratio is 900/1000=0.9.
+		// 100 bytes and 10 seconds. Its instance memory ratios are 0.9 and
+		// 0.8, so average utilization is 0.85 and the secondary maximum is 0.9.
 		insertResourceMinute(t, ctx, conn, resourceMinute{
 			time: windowStart.Add(-10 * time.Minute), workspaceID: workspaceID, projectID: projectID,
 			appID: appID, environmentID: environmentID, containerID: "container-a", egressBytes: 10, cpuSeconds: 2,
@@ -153,6 +158,10 @@ func TestAnomalyWindows(t *testing.T) {
 			appID: appID, environmentID: environmentID, containerID: "container-b", egressBytes: 60, cpuSeconds: 6,
 			memoryBytes: 800, memoryAllocatedBytes: 1_000,
 		})
+		insertResourceMinute(t, ctx, conn, resourceMinute{
+			time: windowStart, workspaceID: workspaceID, projectID: projectID,
+			appID: appID, environmentID: environmentID, containerID: "container-without-allocation",
+		})
 
 		rows, err := client.GetResourceAnomalyWindows(ctx, clickhouse.AnomalyWindowsRequest{
 			WindowStart:  windowStart.UnixMilli(),
@@ -172,7 +181,8 @@ func TestAnomalyWindows(t *testing.T) {
 		require.Equal(t, 10.0, row.CPUSecondsCurrent)
 		require.Equal(t, 4.5, row.CPUSecondsBaselineMean)
 		require.Equal(t, 1.5, row.CPUSecondsBaselineStddev)
-		require.Equal(t, 0.9, row.MemoryUtilizationCurrent)
+		require.InDelta(t, 0.85, row.MemoryUtilizationCurrent, 1e-12)
+		require.Equal(t, 0.9, row.MemoryUtilizationMaxCurrent)
 		require.Equal(t, int64(2), row.BaselineBuckets)
 		require.Equal(t, windowStart.Add(-10*time.Minute).UnixMilli(), row.FirstBucketTime)
 	})
@@ -206,6 +216,27 @@ func TestAnomalyWindows(t *testing.T) {
 		require.Equal(t, environmentID, row.EnvironmentID)
 		require.Equal(t, 2.0, row.OOMKilledCurrent)
 		require.Equal(t, 3.0, row.CrashLoopCurrent)
+	})
+
+	t.Run("source watermarks are exclusive", func(t *testing.T) {
+		workspaceID := uid.New(uid.WorkspacePrefix)
+		projectID := uid.New(uid.ProjectPrefix)
+		appID := uid.New("app")
+		environmentID := uid.New("env")
+		prior, err := client.GetAnomalySourceWatermarks(ctx)
+		require.NoError(t, err)
+		bucket := time.UnixMilli(max(prior.Requests, prior.Resources)).UTC().Truncate(5 * time.Minute).Add(24 * time.Hour)
+
+		insertRequestCounts(t, ctx, conn, bucket, workspaceID, projectID, appID, environmentID, "deployment-watermark", map[int32]int64{200: 1})
+		insertResourceMinute(t, ctx, conn, resourceMinute{
+			time: bucket.Add(4 * time.Minute), workspaceID: workspaceID, projectID: projectID,
+			appID: appID, environmentID: environmentID, containerID: "container-watermark",
+		})
+
+		watermarks, err := client.GetAnomalySourceWatermarks(ctx)
+		require.NoError(t, err)
+		require.Equal(t, bucket.Add(5*time.Minute).UnixMilli(), watermarks.Requests)
+		require.Equal(t, bucket.Add(5*time.Minute).UnixMilli(), watermarks.Resources)
 	})
 }
 

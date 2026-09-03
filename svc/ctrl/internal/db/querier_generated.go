@@ -171,13 +171,14 @@ type Querier interface {
 	// Rows a test leaves behind are rescanned by every later run, so the seeder
 	// deletes what it created once the test finishes.
 	//
-	//  DELETE w, wb, p, a, e, d
+	//  DELETE w, wb, p, a, e, d, ae
 	//  FROM workspaces w
 	//  LEFT JOIN workspace_billing wb ON wb.workspace_id = w.id
 	//  LEFT JOIN projects p ON p.workspace_id = w.id
 	//  LEFT JOIN apps a ON a.workspace_id = w.id
 	//  LEFT JOIN environments e ON e.workspace_id = w.id
 	//  LEFT JOIN deployments d ON d.workspace_id = w.id
+	//  LEFT JOIN alert_events ae ON ae.workspace_id = w.id
 	//  WHERE w.id IN (/*SLICE:ids*/?)
 	DeleteWorkspacesWithChildren(ctx context.Context, ids []string) error
 	//EndActiveDeploymentStepsForDeployments
@@ -619,6 +620,63 @@ type Querier interface {
 	//  FROM `limits`
 	//  WHERE workspace_id = ?
 	FindLimitsByWorkspaceID(ctx context.Context, workspaceID string) (Limit, error)
+	//FindLiveDeploymentForEnvironment
+	//
+	//  SELECT
+	//      w.org_id,
+	//      w.name AS workspace_name,
+	//      w.slug AS workspace_slug,
+	//      a.name AS app_name,
+	//      e.kind AS environment_kind,
+	//      e.slug AS environment_slug,
+	//      d.id AS deployment_id,
+	//      COALESCE(d.desired_state, '') AS deployment_desired_state,
+	//      CAST(COALESCE(JSON_UNQUOTE(JSON_EXTRACT(w.beta_features, '$.deploy_anomaly_alerts_muted')) IN ('true', '1'), FALSE) AS SIGNED) AS notifications_muted
+	//  FROM environments e
+	//  INNER JOIN apps a ON a.id = e.app_id
+	//  INNER JOIN workspaces w ON w.id = e.workspace_id
+	//  LEFT JOIN deployments d
+	//      ON d.id = a.current_deployment_id
+	//      AND d.environment_id = e.id
+	//  WHERE e.workspace_id = ?
+	//    AND e.project_id = ?
+	//    AND e.app_id = ?
+	//    AND e.id = ?
+	//    AND w.deleted_at_m IS NULL
+	//  LIMIT 1
+	FindLiveDeploymentForEnvironment(ctx context.Context, arg FindLiveDeploymentForEnvironmentParams) (FindLiveDeploymentForEnvironmentRow, error)
+	//FindOpenAlertEventsByGroup
+	//
+	//  SELECT
+	//      pk,
+	//      id,
+	//      workspace_id,
+	//      project_id,
+	//      app_id,
+	//      environment_id,
+	//      deployment_id,
+	//      metric,
+	//      status,
+	//      fired_at,
+	//      last_seen_at,
+	//      resolved_at,
+	//      resolved_by,
+	//      resolution_message,
+	//      observed_value,
+	//      baseline_mean,
+	//      baseline_stddev,
+	//      threshold_sigma,
+	//      window_start,
+	//      window_end,
+	//      created_at,
+	//      updated_at
+	//  FROM alert_events
+	//  WHERE workspace_id = ?
+	//    AND app_id = ?
+	//    AND environment_id = ?
+	//    AND status = 'open'
+	//  ORDER BY metric ASC
+	FindOpenAlertEventsByGroup(ctx context.Context, arg FindOpenAlertEventsByGroupParams) ([]AlertEvent, error)
 	//FindOpenApiSpecByDeploymentID
 	//
 	//  SELECT openapi_specs.pk, openapi_specs.id, openapi_specs.workspace_id, openapi_specs.deployment_id, openapi_specs.portal_id, openapi_specs.content, openapi_specs.created_at, openapi_specs.updated_at FROM openapi_specs WHERE deployment_id = ?
@@ -795,6 +853,48 @@ type Querier interface {
 	//  INSERT INTO acme_users (id, workspace_id, encrypted_key, created_at)
 	//  VALUES (?,?,?,?)
 	InsertAcmeUser(ctx context.Context, arg InsertAcmeUserParams) error
+	//InsertAlertEvent
+	//
+	//  INSERT INTO alert_events (
+	//      id,
+	//      workspace_id,
+	//      project_id,
+	//      app_id,
+	//      environment_id,
+	//      deployment_id,
+	//      metric,
+	//      status,
+	//      fired_at,
+	//      last_seen_at,
+	//      observed_value,
+	//      baseline_mean,
+	//      baseline_stddev,
+	//      threshold_sigma,
+	//      window_start,
+	//      window_end,
+	//      created_at,
+	//      updated_at
+	//  ) VALUES (
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      'open',
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?
+	//  )
+	InsertAlertEvent(ctx context.Context, arg InsertAlertEventParams) error
 	//InsertApi
 	//
 	//  INSERT INTO apis (
@@ -1618,6 +1718,17 @@ type Querier interface {
 	//    AND id != ?
 	//  ORDER BY created_at ASC
 	ListOlderActiveDeploymentsForDedup(ctx context.Context, arg ListOlderActiveDeploymentsForDedupParams) ([]ListOlderActiveDeploymentsForDedupRow, error)
+	//ListOpenAlertEventGroups
+	//
+	//  SELECT DISTINCT
+	//      workspace_id,
+	//      project_id,
+	//      app_id,
+	//      environment_id
+	//  FROM alert_events
+	//  WHERE status = 'open'
+	//  ORDER BY workspace_id, project_id, app_id, environment_id
+	ListOpenAlertEventGroups(ctx context.Context) ([]ListOpenAlertEventGroupsRow, error)
 	//ListPreviewEnvironments
 	//
 	//  SELECT environments.pk, environments.id, environments.workspace_id, environments.project_id, environments.app_id, environments.slug, environments.description, environments.kind, environments.delete_protection, environments.created_at, environments.updated_at
@@ -1868,6 +1979,17 @@ type Querier interface {
 	//      updated_at = ?
 	//  WHERE id = ?
 	ResetCustomDomainVerification(ctx context.Context, arg ResetCustomDomainVerificationParams) error
+	//ResolveAlertEventBySystem
+	//
+	//  UPDATE alert_events
+	//  SET status = 'resolved',
+	//      resolved_at = ?,
+	//      resolved_by = 'system',
+	//      resolution_message = ?,
+	//      updated_at = ?
+	//  WHERE id = ?
+	//    AND status = 'open'
+	ResolveAlertEventBySystem(ctx context.Context, arg ResolveAlertEventBySystemParams) (int64, error)
 	// Restores an app's current deployment on resume (the inverse of
 	// ClearAppCurrentDeployment, which teardown uses on suspend). Sets only
 	// current_deployment_id and updated_at_m; leaves is_rolled_back untouched.
@@ -1923,6 +2045,15 @@ type Querier interface {
 	//  WHERE dt.`workspace_id` = ?
 	//    AND dt.`desired_status` = 'running'
 	SumAllocatedResourcesByWorkspaceID(ctx context.Context, workspaceID string) (SumAllocatedResourcesByWorkspaceIDRow, error)
+	//TouchAlertEventLastSeen
+	//
+	//  UPDATE alert_events
+	//  SET last_seen_at = ?,
+	//      observed_value = ?,
+	//      updated_at = ?
+	//  WHERE id = ?
+	//    AND status = 'open'
+	TouchAlertEventLastSeen(ctx context.Context, arg TouchAlertEventLastSeenParams) error
 	//UpdateAcmeChallengePending
 	//
 	//  UPDATE acme_challenges

@@ -3,6 +3,7 @@ package deployanomaly
 import (
 	"fmt"
 	"math"
+	"sort"
 )
 
 const (
@@ -64,27 +65,56 @@ func (s Sensitivity) SigmaK() float64 {
 // StddevFloors prevents a flat or near-flat baseline from producing an
 // unusably small sigma threshold.
 type StddevFloors struct {
-	Errors      float64
+	ErrorRatio  float64
 	Requests    float64
 	EgressBytes float64
 	CPUSeconds  float64
 }
 
 // ActivityFloors suppresses alerts whose absolute activity is too small to be
-// actionable. Error metrics must meet both ErrorCount and ErrorRequests.
+// actionable.
 type ActivityFloors struct {
-	ErrorCount    float64
-	ErrorRequests float64
-	Requests      float64
-	// RequestsDropBaseline applies to the padded baseline rather than the
-	// current window. Quiet apps commonly have zero requests, so only a drop
-	// from sustained activity indicates a likely outage.
-	RequestsDropBaseline float64
-	EgressBytes          float64
-	CPUSeconds           float64
-	MemoryUtilization    float64
-	OOMKilled            float64
-	CrashLoop            float64
+	ErrorExcessFailures float64
+	Requests            float64
+	EgressBytes         float64
+	CPUSeconds          float64
+	MemoryUtilization   float64
+	OOMKilled           float64
+	CrashLoop           float64
+}
+
+// RequestDropRule configures the robust request-loss detector. Recent activity
+// counts the last 12 complete buckets whose traffic met ActivityPerBucket.
+type RequestDropRule struct {
+	RecentLevelFraction  float64
+	ActivityPerBucket    float64
+	MinimumActiveBuckets int64
+	MinimumAbsoluteLoss  float64
+}
+
+// CatastrophicRules bypasses interval confirmation for severe failures.
+type CatastrophicRules struct {
+	Error5xxRatio    float64
+	Error5xxFailures float64
+}
+
+// RecoveryThresholds adds hysteresis to direct-threshold metrics.
+type RecoveryThresholds struct {
+	MemoryUtilization float64
+}
+
+// Notifications selects which detected metrics send email. Detection and
+// persistence are independent from notification policy.
+type Notifications struct {
+	Error5xx          bool
+	Error4xx          bool
+	Requests          bool
+	RequestsDrop      bool
+	EgressBytes       bool
+	CPUSeconds        bool
+	MemoryUtilization bool
+	OOMKilled         bool
+	CrashLoop         bool
 }
 
 // BaselineMinimums defines the observed history required before each sigma
@@ -106,32 +136,30 @@ type Config struct {
 	StddevFloors     StddevFloors
 	ActivityFloors   ActivityFloors
 	BaselineMinimums BaselineMinimums
+	RequestDrop      RequestDropRule
+	Catastrophic     CatastrophicRules
+	Recovery         RecoveryThresholds
+	Notifications    Notifications
 }
 
-// DefaultConfig returns the production defaults for a sensitivity. The
-// standard-deviation floors are 2 errors, 20 requests, 1 MiB egress, and 1 CPU
-// second. Activity floors are 10 errors with 100 requests, 200 current requests
-// for spikes, 200 baseline requests for drops, 100 MiB egress, 60 CPU seconds,
-// 90% memory, and one OOM or crash-loop event.
+// DefaultConfig returns the production defaults for a sensitivity.
 func DefaultConfig(sensitivity Sensitivity) Config {
 	return Config{
 		SigmaK: sensitivity.SigmaK(),
 		StddevFloors: StddevFloors{
-			Errors:      2,
+			ErrorRatio:  0.01,
 			Requests:    20,
 			EgressBytes: 1 << 20,
 			CPUSeconds:  1,
 		},
 		ActivityFloors: ActivityFloors{
-			ErrorCount:           10,
-			ErrorRequests:        100,
-			Requests:             200,
-			RequestsDropBaseline: 200,
-			EgressBytes:          100 << 20,
-			CPUSeconds:           60,
-			MemoryUtilization:    0.90,
-			OOMKilled:            1,
-			CrashLoop:            1,
+			ErrorExcessFailures: 20,
+			Requests:            200,
+			EgressBytes:         100 << 20,
+			CPUSeconds:          60,
+			MemoryUtilization:   0.90,
+			OOMKilled:           1,
+			CrashLoop:           1,
 		},
 		BaselineMinimums: BaselineMinimums{
 			Error5xx:     12,
@@ -140,6 +168,30 @@ func DefaultConfig(sensitivity Sensitivity) Config {
 			RequestsDrop: 72,
 			EgressBytes:  12,
 			CPUSeconds:   12,
+		},
+		RequestDrop: RequestDropRule{
+			RecentLevelFraction:  0.25,
+			ActivityPerBucket:    200,
+			MinimumActiveBuckets: 9,
+			MinimumAbsoluteLoss:  200,
+		},
+		Catastrophic: CatastrophicRules{
+			Error5xxRatio:    0.5,
+			Error5xxFailures: 50,
+		},
+		Recovery: RecoveryThresholds{
+			MemoryUtilization: 0.85,
+		},
+		Notifications: Notifications{
+			Error5xx:          true,
+			Error4xx:          false,
+			Requests:          true,
+			RequestsDrop:      true,
+			EgressBytes:       true,
+			CPUSeconds:        true,
+			MemoryUtilization: true,
+			OOMKilled:         true,
+			CrashLoop:         true,
 		},
 	}
 }
@@ -154,36 +206,69 @@ func BaselineWindowBuckets(windowStart, firstBucketTime int64) int64 {
 	return min(maximumBaselineBuckets, (windowStart-firstBucketTime)/bucketDurationMillis)
 }
 
+// RecentRequestStats returns the median and active-bucket count for the 12
+// aligned recent request values supplied by ClickHouse.
+func RecentRequestStats(requests []float64, activityFloor float64) (float64, int64) {
+	if len(requests) == 0 {
+		return 0, 0
+	}
+	ordered := append([]float64(nil), requests...)
+	sort.Float64s(ordered)
+	middle := len(ordered) / 2
+	median := ordered[middle]
+	if len(ordered)%2 == 0 {
+		median = (ordered[middle-1] + ordered[middle]) / 2
+	}
+	active := int64(0)
+	for _, value := range requests {
+		if value >= activityFloor {
+			active++
+		}
+	}
+	return median, active
+}
+
 // Input describes one closed 5-minute window and its trailing baseline.
 // BaselineMean and BaselineStddev cover only ObservedBaselineBuckets, the
 // non-empty buckets returned by ClickHouse. BaselineWindowBuckets is the number
 // of elapsed buckets represented by the baseline, including missing buckets.
-// Detect pads missing buckets with zero for sigma metrics because no aggregate
-// row means no traffic. A full trailing 24-hour window has 288 buckets.
+// Detect pads missing buckets with zero for count-like spike metrics because no
+// aggregate row means no traffic. A full trailing 24-hour window has 288
+// buckets. Error metrics use request-weighted ratios instead.
 type Input struct {
 	Metric Metric
 
-	Current          float64
-	RequestsInWindow float64
+	Current              float64
+	Maximum              float64
+	RequestsInWindow     float64
+	RecentMedianRequests float64
+	RecentActiveBuckets  int64
 
 	BaselineMean            float64
 	BaselineStddev          float64
 	ObservedBaselineBuckets int64
 	BaselineWindowBuckets   int64
+	FirstBucketTime         int64
 
 	PreviousCandidate bool
 }
 
-// Result describes how Detect classified a window. BaselineStddev is the
-// effective deviation after zero-padding and the configured variance guards.
+// Result describes how Detect classified a window. For sigma and error metrics,
+// BaselineStddev is the effective deviation after the applicable padding and
+// configured variance guards.
 type Result struct {
 	Outcome Outcome
 
 	Observed       float64
 	BaselineMean   float64
 	BaselineStddev float64
-	Threshold      float64
+	ThresholdValue float64
 	SigmaK         float64
+	RawCount       float64
+	Requests       float64
+	ExpectedCount  float64
+	Notify         bool
+	Catastrophic   bool
 	Reason         string
 }
 
@@ -195,14 +280,16 @@ type Result struct {
 func Detect(input Input, cfg Config) Result {
 	switch input.Metric {
 	case MetricMemoryUtilization:
-		return detectThreshold(input.Current, cfg.ActivityFloors.MemoryUtilization, "memory utilization reached threshold")
+		return detectThreshold(input.Metric, input.Current, cfg.ActivityFloors.MemoryUtilization, false, "memory utilization reached threshold", cfg)
 	case MetricOOMKilled:
-		return detectThreshold(input.Current, cfg.ActivityFloors.OOMKilled, "OOM kill observed")
+		return detectThreshold(input.Metric, input.Current, cfg.ActivityFloors.OOMKilled, true, "OOM kill observed", cfg)
 	case MetricCrashLoop:
-		return detectThreshold(input.Current, cfg.ActivityFloors.CrashLoop, "crash loop observed")
+		return detectThreshold(input.Metric, input.Current, cfg.ActivityFloors.CrashLoop, true, "crash loop observed", cfg)
 	case MetricRequestsDrop:
 		return detectRequestsDrop(input, cfg)
-	case MetricError5xx, MetricError4xx, MetricRequests, MetricEgressBytes, MetricCPUSeconds:
+	case MetricError5xx, MetricError4xx:
+		return detectError(input, cfg)
+	case MetricRequests, MetricEgressBytes, MetricCPUSeconds:
 		return detectSigma(input, cfg)
 	default:
 		return Result{
@@ -210,8 +297,13 @@ func Detect(input Input, cfg Config) Result {
 			Observed:       input.Current,
 			BaselineMean:   0,
 			BaselineStddev: 0,
-			Threshold:      0,
+			ThresholdValue: 0,
 			SigmaK:         0,
+			RawCount:       0,
+			Requests:       0,
+			ExpectedCount:  0,
+			Notify:         false,
+			Catastrophic:   false,
 			Reason:         "unsupported metric",
 		}
 	}
@@ -219,18 +311,24 @@ func Detect(input Input, cfg Config) Result {
 
 // detectThreshold applies the direct threshold used by memory and instance
 // lifecycle signals, which do not need a historical baseline.
-func detectThreshold(observed, threshold float64, reason string) Result {
+func detectThreshold(metric Metric, observed, threshold float64, catastrophic bool, reason string, cfg Config) Result {
 	result := Result{
 		Outcome:        OutcomeNone,
 		Observed:       observed,
 		BaselineMean:   0,
 		BaselineStddev: 0,
-		Threshold:      threshold,
+		ThresholdValue: threshold,
 		SigmaK:         0,
+		RawCount:       0,
+		Requests:       0,
+		ExpectedCount:  0,
+		Notify:         shouldNotify(metric, cfg.Notifications),
+		Catastrophic:   false,
 		Reason:         "threshold not reached",
 	}
 	if observed >= threshold {
 		result.Outcome = OutcomeAnomaly
+		result.Catastrophic = catastrophic
 		result.Reason = reason
 	}
 	return result
@@ -246,8 +344,13 @@ func detectSigma(input Input, cfg Config) Result {
 		Observed:       input.Current,
 		BaselineMean:   mean,
 		BaselineStddev: stddev,
-		Threshold:      threshold,
+		ThresholdValue: threshold,
 		SigmaK:         cfg.SigmaK,
+		RawCount:       0,
+		Requests:       0,
+		ExpectedCount:  0,
+		Notify:         shouldNotify(input.Metric, cfg.Notifications),
+		Catastrophic:   false,
 		Reason:         "current value did not exceed sigma threshold",
 	}
 
@@ -265,36 +368,36 @@ func detectSigma(input Input, cfg Config) Result {
 		return result
 	}
 
-	if input.Metric == MetricError5xx || input.Metric == MetricError4xx {
-		if !input.PreviousCandidate {
-			result.Outcome = OutcomeCandidate
-			result.Reason = "error spike needs a second consecutive window"
-			return result
-		}
-		result.Outcome = OutcomeAnomaly
-		result.Reason = "error spike confirmed in consecutive windows"
-		return result
-	}
-
 	result.Outcome = OutcomeAnomaly
 	result.Reason = "current value exceeded sigma threshold"
 	return result
 }
 
-// detectRequestsDrop applies the lower sigma bound and confirms it across two
-// windows before alerting. The baseline activity floor prevents normal zero
-// traffic on quiet apps from becoming an outage signal.
-func detectRequestsDrop(input Input, cfg Config) Result {
-	mean, stddev := effectiveBaseline(input, cfg)
-	threshold := max(0, mean-cfg.SigmaK*stddev)
+// detectError compares the current error ratio with the traffic-weighted
+// baseline ratio. The excess-failure floor makes the crossing actionable
+// without excluding small windows in which nearly every request failed.
+func detectError(input Input, cfg Config) Result {
+	ratio := 0.0
+	if input.RequestsInWindow > 0 {
+		ratio = input.Current / input.RequestsInWindow
+	}
+	stddev := max(input.BaselineStddev, input.BaselineMean*0.1, cfg.StddevFloors.ErrorRatio)
+	threshold := input.BaselineMean + cfg.SigmaK*stddev
+	expected := input.BaselineMean * input.RequestsInWindow
+	excess := input.Current - expected
 	result := Result{
 		Outcome:        OutcomeNone,
-		Observed:       input.Current,
-		BaselineMean:   mean,
+		Observed:       ratio,
+		BaselineMean:   input.BaselineMean,
 		BaselineStddev: stddev,
-		Threshold:      threshold,
+		ThresholdValue: threshold,
 		SigmaK:         cfg.SigmaK,
-		Reason:         "current value did not fall below sigma threshold",
+		RawCount:       input.Current,
+		Requests:       input.RequestsInWindow,
+		ExpectedCount:  expected,
+		Notify:         shouldNotify(input.Metric, cfg.Notifications),
+		Catastrophic:   false,
+		Reason:         "error ratio did not exceed sigma threshold",
 	}
 
 	minimum := minimumBaselineBuckets(input.Metric, cfg.BaselineMinimums)
@@ -303,11 +406,66 @@ func detectRequestsDrop(input Input, cfg Config) Result {
 		result.Reason = fmt.Sprintf("baseline has fewer than %d buckets", minimum)
 		return result
 	}
-	if mean < cfg.ActivityFloors.RequestsDropBaseline {
-		result.Reason = "baseline activity is below the request drop floor"
+	if ratio <= threshold {
+		return result
+	}
+	if excess < cfg.ActivityFloors.ErrorExcessFailures {
+		result.Reason = "excess failures are below the activity floor"
+		return result
+	}
+	if input.Metric == MetricError5xx && ratio >= cfg.Catastrophic.Error5xxRatio && input.Current >= cfg.Catastrophic.Error5xxFailures {
+		result.Outcome = OutcomeAnomaly
+		result.Catastrophic = true
+		result.Reason = "catastrophic 5xx error rate"
+		return result
+	}
+	if !input.PreviousCandidate {
+		result.Outcome = OutcomeCandidate
+		result.Reason = "error spike needs a second consecutive window"
+		return result
+	}
+
+	result.Outcome = OutcomeAnomaly
+	result.Reason = "error spike confirmed in consecutive windows"
+	return result
+}
+
+// detectRequestsDrop compares current traffic with a robust one-hour level.
+// Requiring activity in 9 of 12 recent buckets rejects bursty schedules whose
+// normal idle buckets would otherwise look like outages.
+func detectRequestsDrop(input Input, cfg Config) Result {
+	threshold := input.RecentMedianRequests * cfg.RequestDrop.RecentLevelFraction
+	loss := input.RecentMedianRequests - input.Current
+	result := Result{
+		Outcome:        OutcomeNone,
+		Observed:       input.Current,
+		BaselineMean:   input.RecentMedianRequests,
+		BaselineStddev: 0,
+		ThresholdValue: threshold,
+		SigmaK:         0,
+		RawCount:       0,
+		Requests:       0,
+		ExpectedCount:  0,
+		Notify:         shouldNotify(input.Metric, cfg.Notifications),
+		Catastrophic:   false,
+		Reason:         "current requests did not fall below the recent-level threshold",
+	}
+
+	minimum := minimumBaselineBuckets(input.Metric, cfg.BaselineMinimums)
+	if input.ObservedBaselineBuckets < minimum {
+		result.Outcome = OutcomeInsufficient
+		result.Reason = fmt.Sprintf("baseline has fewer than %d buckets", minimum)
+		return result
+	}
+	if input.RecentActiveBuckets < cfg.RequestDrop.MinimumActiveBuckets {
+		result.Reason = "recent traffic is too intermittent for request drop detection"
 		return result
 	}
 	if input.Current >= threshold {
+		return result
+	}
+	if loss < cfg.RequestDrop.MinimumAbsoluteLoss {
+		result.Reason = "absolute request loss is below the activity floor"
 		return result
 	}
 	if !input.PreviousCandidate {
@@ -322,7 +480,7 @@ func detectRequestsDrop(input Input, cfg Config) Result {
 }
 
 // effectiveBaseline returns the zero-padded mean and guarded population
-// standard deviation shared by upper and lower sigma rules.
+// standard deviation used by count-like spike rules.
 func effectiveBaseline(input Input, cfg Config) (float64, float64) {
 	mean, stddev := paddedBaseline(input)
 	return mean, max(stddev, mean*0.1, stddevFloor(input.Metric, cfg.StddevFloors))
@@ -347,7 +505,7 @@ func paddedBaseline(input Input) (float64, float64) {
 func stddevFloor(metric Metric, floors StddevFloors) float64 {
 	switch metric {
 	case MetricError5xx, MetricError4xx:
-		return floors.Errors
+		return floors.ErrorRatio
 	case MetricRequests, MetricRequestsDrop:
 		return floors.Requests
 	case MetricEgressBytes:
@@ -358,6 +516,56 @@ func stddevFloor(metric Metric, floors StddevFloors) float64 {
 		return 0
 	default:
 		return 0
+	}
+}
+
+// Recovered reports whether a complete current window is inside the recovery
+// band captured when an alert opened. Rolling baselines are intentionally not
+// used because a sustained incident would eventually teach them that the
+// regression is normal.
+func Recovered(input Input, snapshot Result, cfg Config) bool {
+	switch input.Metric {
+	case MetricError5xx, MetricError4xx:
+		ratio := 0.0
+		if input.RequestsInWindow > 0 {
+			ratio = input.Current / input.RequestsInWindow
+		}
+		return ratio <= snapshot.BaselineMean+max(0, snapshot.SigmaK-1)*snapshot.BaselineStddev
+	case MetricRequests, MetricEgressBytes, MetricCPUSeconds:
+		return input.Current <= snapshot.BaselineMean+max(0, snapshot.SigmaK-1)*snapshot.BaselineStddev
+	case MetricRequestsDrop:
+		return input.Current >= snapshot.ThresholdValue
+	case MetricMemoryUtilization:
+		return input.Current < cfg.Recovery.MemoryUtilization
+	case MetricOOMKilled, MetricCrashLoop:
+		return input.Current < snapshot.ThresholdValue
+	default:
+		return false
+	}
+}
+
+func shouldNotify(metric Metric, notifications Notifications) bool {
+	switch metric {
+	case MetricError5xx:
+		return notifications.Error5xx
+	case MetricError4xx:
+		return notifications.Error4xx
+	case MetricRequests:
+		return notifications.Requests
+	case MetricRequestsDrop:
+		return notifications.RequestsDrop
+	case MetricEgressBytes:
+		return notifications.EgressBytes
+	case MetricCPUSeconds:
+		return notifications.CPUSeconds
+	case MetricMemoryUtilization:
+		return notifications.MemoryUtilization
+	case MetricOOMKilled:
+		return notifications.OOMKilled
+	case MetricCrashLoop:
+		return notifications.CrashLoop
+	default:
+		return false
 	}
 }
 
@@ -386,15 +594,13 @@ func minimumBaselineBuckets(metric Metric, minimums BaselineMinimums) int64 {
 // to make a sigma crossing actionable.
 func meetsActivityFloor(input Input, floors ActivityFloors) bool {
 	switch input.Metric {
-	case MetricError5xx, MetricError4xx:
-		return input.Current >= floors.ErrorCount && input.RequestsInWindow >= floors.ErrorRequests
 	case MetricRequests:
 		return input.Current >= floors.Requests
 	case MetricEgressBytes:
 		return input.Current >= floors.EgressBytes
 	case MetricCPUSeconds:
 		return input.Current >= floors.CPUSeconds
-	case MetricRequestsDrop, MetricMemoryUtilization, MetricOOMKilled, MetricCrashLoop:
+	case MetricError5xx, MetricError4xx, MetricRequestsDrop, MetricMemoryUtilization, MetricOOMKilled, MetricCrashLoop:
 		return false
 	default:
 		return false
