@@ -188,5 +188,18 @@ Three consecutive complete recovered windows resolve the alert. The system sets
 before the third resets the count. An incomplete window neither increments nor
 resets it.
 
+Recovery also has a maximum open duration. `DefaultConfig` sets
+`Config.MaxOpenDuration` to 24 hours. At the first complete evaluation at or
+after that age, the detector resolves the alert with
+`Baseline adapted after 24 hours`, even if the current value has not crossed the
+snapshot recovery threshold.
+
+This limit handles a permanent level shift. After 24 hours, the entire rolling
+baseline reflects the new behavior, so the opening snapshot no longer describes
+the current operating level. The age-based resolution closes that incident and
+lets later departures from the adapted baseline create a new alert. An
+incomplete window remains a strict no-op, so it cannot perform the age-based
+resolution.
+
 See the [architecture page](/architecture/services/control-plane/worker/deploy-anomaly-detection)
 for orchestration, storage, and dashboard behavior.
