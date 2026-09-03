@@ -8,6 +8,7 @@ import { routes } from "@/lib/navigation/routes";
 import { trpc } from "@/lib/trpc/client";
 import { ChevronDown, Cube, Pulse } from "@unkey/icons";
 import {
+  Badge,
   Button,
   Empty,
   ResourceListBody,
@@ -65,20 +66,27 @@ export function AlertsList() {
   return (
     <div className="flex flex-col gap-3">
       <div className="flex flex-col justify-between gap-3 md:flex-row md:items-center">
-        <Tabs
-          value={status}
-          onValueChange={(value) => {
-            if (isStatusFilter(value)) {
-              setStatus(value);
-            }
-          }}
-        >
-          <TabsList aria-label="Alert status">
-            <TabsTrigger value="open">Open</TabsTrigger>
-            <TabsTrigger value="resolved">Resolved</TabsTrigger>
-            <TabsTrigger value="all">All</TabsTrigger>
-          </TabsList>
-        </Tabs>
+        <div className="flex items-center gap-3">
+          <Tabs
+            value={status}
+            onValueChange={(value) => {
+              if (isStatusFilter(value)) {
+                setStatus(value);
+              }
+            }}
+          >
+            <TabsList aria-label="Alert status">
+              <TabsTrigger value="open">Open</TabsTrigger>
+              <TabsTrigger value="resolved">Resolved</TabsTrigger>
+              <TabsTrigger value="all">All</TabsTrigger>
+            </TabsList>
+          </Tabs>
+          {workspace.betaFeatures.deploy_anomaly_alerts_muted ? (
+            <Badge variant="warning" size="sm">
+              Emails muted
+            </Badge>
+          ) : null}
+        </div>
         <div className="flex flex-col gap-2 sm:flex-row">
           <Select
             value={metric}
