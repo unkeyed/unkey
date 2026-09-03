@@ -1,184 +1,270 @@
 import { z } from "zod";
 import type { Querier } from "./client";
 
-const bucketMs = 5 * 60 * 1000;
+const fiveMinutesMs = 5 * 60 * 1000;
+const hourMs = 60 * 60 * 1000;
+const baselineMs = 24 * hourMs;
+const thresholdSigma = 4;
 
-export const alertMetric = z.enum([
+export const alertSeriesMetric = z.enum([
   "error_5xx",
   "error_4xx",
   "requests",
-  "requests_drop",
   "egress_bytes",
   "cpu_seconds",
   "memory_utilization",
-  "oom_killed",
-  "crash_loop",
+  "health",
 ]);
 
-const timeseriesScope = z.object({
+export const alertSeriesParams = z
+  .object({
+    workspaceId: z.string(),
+    appId: z.string(),
+    environmentId: z.string(),
+    metric: alertSeriesMetric,
+    resolution: z.enum(["5m", "1h"]),
+    startMs: z.int().nonnegative(),
+    endMs: z.int().nonnegative(),
+  })
+  .refine(({ startMs, endMs }) => startMs < endMs, {
+    message: "startMs must be before endMs",
+  });
+
+export type AlertSeriesParams = z.infer<typeof alertSeriesParams>;
+
+export const alertSeriesPoint = z.object({
+  time: z.int(),
+  value: z.number(),
+  expectedMean: z.number().nullable(),
+  lowerBound: z.number().nullable(),
+  upperBound: z.number().nullable(),
+  limit: z.number().nullable(),
+});
+
+const queryParams = z.object({
   workspaceId: z.string(),
   appId: z.string(),
   environmentId: z.string(),
   startMs: z.int(),
   endMs: z.int(),
-});
-
-const queryParams = timeseriesScope.extend({
+  baselineStartMs: z.int(),
   bucketMs: z.int().positive(),
+  tableName: z.string().optional(),
 });
 
-export const alertTimeseriesParams = timeseriesScope
-  .extend({ metric: alertMetric })
-  .refine(({ startMs, endMs }) => startMs <= endMs, { message: "startMs must not exceed endMs" });
-
-export type AlertTimeseriesParams = z.infer<typeof alertTimeseriesParams>;
-
-export const alertTimeseriesPoint = z.object({
-  time: z.int(),
-  value: z.number(),
-});
-
-function fillBuckets(query: string): string {
+function denseBuckets(query: string): string {
   return `
     SELECT time, toFloat64(value) AS value
     FROM (${query})
     ORDER BY time ASC
     WITH FILL
-      FROM intDiv({startMs: Int64}, {bucketMs: UInt32}) * {bucketMs: UInt32}
-      TO intDiv({endMs: Int64} - 1, {bucketMs: UInt32}) * {bucketMs: UInt32} + {bucketMs: UInt32}
+      FROM {baselineStartMs: Int64}
+      TO {endMs: Int64}
       STEP {bucketMs: UInt32}`;
 }
 
-function frontlineQuery(metric: "error_5xx" | "error_4xx" | "requests" | "requests_drop"): string {
+function frontlineQuery(
+  metric: "error_5xx" | "error_4xx" | "requests",
+  resolution: "5m" | "1h",
+): { query: string; tableName: string } {
   const expression = {
     error_5xx: "sumIf(count, response_status >= 500 AND response_status < 600)",
     error_4xx: "sumIf(count, response_status >= 400 AND response_status < 500)",
     requests: "sum(count)",
-    requests_drop: "sum(count)",
   }[metric];
 
-  return fillBuckets(`
-    SELECT
-      toInt64(toUnixTimestamp(bucket) * 1000) AS time,
-      value
-    FROM (
+  return {
+    query: denseBuckets(`
       SELECT
-        time AS bucket,
+        toInt64(toUnixTimestamp(time) * 1000) AS time,
         ${expression} AS value
-      FROM default.frontline_requests_per_5m_v1
+      FROM {tableName: Identifier}
       PREWHERE workspace_id = {workspaceId: String}
         AND app_id = {appId: String}
         AND environment_id = {environmentId: String}
-        AND time >= fromUnixTimestamp64Milli({startMs: Int64})
+        AND time >= fromUnixTimestamp64Milli({baselineStartMs: Int64})
         AND time < fromUnixTimestamp64Milli({endMs: Int64})
-      GROUP BY time
-    )`);
+      GROUP BY time`),
+    tableName:
+      resolution === "5m"
+        ? "default.frontline_requests_per_5m_v1"
+        : "default.frontline_requests_per_hour_v1",
+  };
 }
 
-function resourceCounterQuery(expression: string, aggregate: string): string {
-  return fillBuckets(`
-    SELECT
-      toInt64(toUnixTimestamp(bucket) * 1000) AS time,
-      ${aggregate} AS value
-    FROM (
+function resourceCounterQuery(
+  expression: string,
+  aggregate: string,
+  resolution: "5m" | "1h",
+): { query: string; tableName: string } {
+  const bucket =
+    resolution === "5m" ? "toStartOfInterval(time, INTERVAL 5 MINUTE)" : "toStartOfHour(time)";
+  return {
+    query: denseBuckets(`
+      SELECT bucket AS time, ${aggregate} AS value
+      FROM (
+        SELECT
+          toInt64(toUnixTimestamp(${bucket}) * 1000) AS bucket,
+          container_uid,
+          ${expression} AS container_value
+        FROM {tableName: Identifier}
+        PREWHERE workspace_id = {workspaceId: String}
+          AND app_id = {appId: String}
+          AND environment_id = {environmentId: String}
+          AND resource_type = 'deployment'
+          AND time >= fromUnixTimestamp64Milli({baselineStartMs: Int64})
+          AND time < fromUnixTimestamp64Milli({endMs: Int64})
+        GROUP BY bucket, container_uid
+      )
+      GROUP BY bucket`),
+    tableName:
+      resolution === "5m"
+        ? "default.instance_resources_per_minute_v1"
+        : "default.instance_resources_per_hour_v1",
+  };
+}
+
+function memoryQuery(resolution: "5m" | "1h"): { query: string; tableName: string } {
+  const bucket =
+    resolution === "5m" ? "toStartOfInterval(time, INTERVAL 5 MINUTE)" : "toStartOfHour(time)";
+  return {
+    query: denseBuckets(`
       SELECT
-        toStartOfInterval(time, INTERVAL 5 MINUTE) AS bucket,
-        container_uid,
-        ${expression} AS container_value
-      FROM default.instance_resources_per_minute_v1
+        toInt64(toUnixTimestamp(${bucket}) * 1000) AS time,
+        if(max(memory_allocated_bytes_max) = 0, 0,
+          max(memory_bytes_max) / max(memory_allocated_bytes_max)) AS value
+      FROM {tableName: Identifier}
       PREWHERE workspace_id = {workspaceId: String}
         AND app_id = {appId: String}
         AND environment_id = {environmentId: String}
         AND resource_type = 'deployment'
-        AND time >= fromUnixTimestamp64Milli({startMs: Int64})
+        AND time >= fromUnixTimestamp64Milli({baselineStartMs: Int64})
         AND time < fromUnixTimestamp64Milli({endMs: Int64})
-      GROUP BY bucket, container_uid
+      GROUP BY time`),
+    tableName:
+      resolution === "5m"
+        ? "default.instance_resources_per_minute_v1"
+        : "default.instance_resources_per_hour_v1",
+  };
+}
+
+function healthQuery(): string {
+  return denseBuckets(`
+    SELECT
+      intDiv(time, {bucketMs: UInt32}) * {bucketMs: UInt32} AS time,
+      countIf(
+        (event_kind = 'terminated' AND reason = 'OOMKilled')
+        OR (event_kind = 'waiting' AND reason = 'CrashLoopBackOff')
+      ) AS value
+    FROM default.instance_events_raw_v1
+    PREWHERE workspace_id = {workspaceId: String}
+      AND app_id = {appId: String}
+      AND environment_id = {environmentId: String}
+      AND time >= {baselineStartMs: Int64}
+      AND time < {endMs: Int64}
+    GROUP BY time`);
+}
+
+function withExpectedRange(observedQuery: string, windowBuckets: number): string {
+  return `
+    SELECT
+      time,
+      value,
+      toNullable(expected_mean) AS expectedMean,
+      toNullable(greatest(0, expected_mean - ${thresholdSigma} * expected_stddev)) AS lowerBound,
+      toNullable(expected_mean + ${thresholdSigma} * expected_stddev) AS upperBound,
+      CAST(NULL, 'Nullable(Float64)') AS limit
+    FROM (
+      SELECT
+        time,
+        value,
+        avg(value) OVER (
+          ORDER BY time ROWS BETWEEN ${windowBuckets} PRECEDING AND 1 PRECEDING
+        ) AS expected_mean,
+        stddevPop(value) OVER (
+          ORDER BY time ROWS BETWEEN ${windowBuckets} PRECEDING AND 1 PRECEDING
+        ) AS expected_stddev
+      FROM (${observedQuery})
     )
-    GROUP BY bucket`);
+    WHERE time >= {startMs: Int64} AND time < {endMs: Int64}
+    ORDER BY time ASC`;
 }
 
-function memoryQuery(): string {
-  return fillBuckets(`
+function withFixedLimit(observedQuery: string, limit: number | null): string {
+  const limitExpression =
+    limit === null ? "CAST(NULL, 'Nullable(Float64)')" : `toNullable(${limit})`;
+  return `
     SELECT
-      toInt64(toUnixTimestamp(bucket) * 1000) AS time,
-      if(allocated_bytes = 0, 0, memory_bytes / allocated_bytes) AS value
-    FROM (
-      SELECT
-        toStartOfInterval(time, INTERVAL 5 MINUTE) AS bucket,
-        max(memory_allocated_bytes_max) AS allocated_bytes,
-        max(memory_bytes_max) AS memory_bytes
-      FROM default.instance_resources_per_minute_v1
-      PREWHERE workspace_id = {workspaceId: String}
-        AND app_id = {appId: String}
-        AND environment_id = {environmentId: String}
-        AND resource_type = 'deployment'
-        AND time >= fromUnixTimestamp64Milli({startMs: Int64})
-        AND time < fromUnixTimestamp64Milli({endMs: Int64})
-      GROUP BY bucket
-    )`);
+      time,
+      value,
+      CAST(NULL, 'Nullable(Float64)') AS expectedMean,
+      CAST(NULL, 'Nullable(Float64)') AS lowerBound,
+      CAST(NULL, 'Nullable(Float64)') AS upperBound,
+      ${limitExpression} AS limit
+    FROM (${observedQuery})
+    WHERE time >= {startMs: Int64} AND time < {endMs: Int64}
+    ORDER BY time ASC`;
 }
 
-function instanceEventQuery(metric: "oom_killed" | "crash_loop"): string {
-  const predicate =
-    metric === "oom_killed"
-      ? "event_kind = 'terminated' AND reason = 'OOMKilled'"
-      : "event_kind = 'waiting' AND reason = 'CrashLoopBackOff'";
+export function getAlertSeries(ch: Querier) {
+  return (args: AlertSeriesParams) => {
+    const bucketMs = args.resolution === "5m" ? fiveMinutesMs : hourMs;
+    const windowBuckets = baselineMs / bucketMs;
+    let observedQuery: string;
+    let tableName: string | undefined;
+    let fixedLimit: number | null | undefined;
 
-  return fillBuckets(`
-    SELECT
-      bucket AS time,
-      value
-    FROM (
-      SELECT
-        intDiv(time, {bucketMs: UInt32}) * {bucketMs: UInt32} AS bucket,
-        countIf(${predicate}) AS value
-      FROM default.instance_events_raw_v1
-      PREWHERE workspace_id = {workspaceId: String}
-        AND app_id = {appId: String}
-        AND environment_id = {environmentId: String}
-        AND time >= {startMs: Int64}
-        AND time < {endMs: Int64}
-      GROUP BY bucket
-    )`);
-}
-
-export function getAlertTimeseries(ch: Querier) {
-  return (args: AlertTimeseriesParams) => {
-    let queryText: string;
     switch (args.metric) {
       case "error_5xx":
       case "error_4xx":
-      case "requests":
-      case "requests_drop":
-        queryText = frontlineQuery(args.metric);
+      case "requests": {
+        const source = frontlineQuery(args.metric, args.resolution);
+        observedQuery = source.query;
+        tableName = source.tableName;
         break;
-      case "egress_bytes":
-        queryText = resourceCounterQuery(
+      }
+      case "egress_bytes": {
+        const source = resourceCounterQuery(
           "max(network_egress_public_bytes_max) - min(network_egress_public_bytes_min)",
           "sum(container_value)",
+          args.resolution,
         );
+        observedQuery = source.query;
+        tableName = source.tableName;
         break;
-      case "cpu_seconds":
-        queryText = resourceCounterQuery(
+      }
+      case "cpu_seconds": {
+        const source = resourceCounterQuery(
           "max(cpu_usage_usec_max) - min(cpu_usage_usec_min)",
           "sum(container_value) / 1000000",
+          args.resolution,
         );
+        observedQuery = source.query;
+        tableName = source.tableName;
         break;
-      case "memory_utilization":
-        queryText = memoryQuery();
+      }
+      case "memory_utilization": {
+        const source = memoryQuery(args.resolution);
+        observedQuery = source.query;
+        tableName = source.tableName;
+        fixedLimit = 0.9;
         break;
-      case "oom_killed":
-      case "crash_loop":
-        queryText = instanceEventQuery(args.metric);
+      }
+      case "health":
+        observedQuery = healthQuery();
+        fixedLimit = null;
         break;
       default:
-        throw new Error(`Unsupported alert metric: ${args.metric satisfies never}`);
+        throw new Error(`Unsupported alert series metric: ${args.metric satisfies never}`);
     }
 
     const query = ch.query({
-      query: queryText,
+      query:
+        fixedLimit === undefined
+          ? withExpectedRange(observedQuery, windowBuckets)
+          : withFixedLimit(observedQuery, fixedLimit),
       params: queryParams,
-      schema: alertTimeseriesPoint,
+      schema: alertSeriesPoint,
     });
     return query({
       workspaceId: args.workspaceId,
@@ -186,7 +272,9 @@ export function getAlertTimeseries(ch: Querier) {
       environmentId: args.environmentId,
       startMs: args.startMs,
       endMs: args.endMs,
+      baselineStartMs: args.startMs - baselineMs,
       bucketMs,
+      tableName: tableName ?? "default.instance_events_raw_v1",
     });
   };
 }

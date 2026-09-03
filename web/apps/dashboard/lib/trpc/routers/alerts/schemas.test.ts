@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { listAlertsInput, resolveAlertInput } from "./schemas";
+import {
+  alertDeploymentsInput,
+  alertSeriesInput,
+  listAlertsInput,
+  resolveAlertInput,
+} from "./schemas";
 
 describe("alert inputs", () => {
   it("applies list defaults", () => {
@@ -14,12 +19,24 @@ describe("alert inputs", () => {
     });
   });
 
+  it("accepts an app environment and time range", () => {
+    expect(
+      listAlertsInput.parse({
+        appId: "app_1",
+        environmentId: "env_1",
+        startMs: 100,
+        endMs: 200,
+      }),
+    ).toMatchObject({ appId: "app_1", environmentId: "env_1", startMs: 100, endMs: 200 });
+  });
+
   it.each([
     { status: "active" },
     { metric: "latency" },
     { limit: 0 },
     { limit: 101 },
     { cursor: "" },
+    { startMs: 200, endMs: 100 },
   ])("rejects invalid list input", (input) => {
     expect(listAlertsInput.safeParse(input).success).toBe(false);
   });
@@ -33,5 +50,37 @@ describe("alert inputs", () => {
 
   it.each(["", " ", "a".repeat(1001)])("rejects invalid resolution message", (message) => {
     expect(resolveAlertInput.safeParse({ alertId: "alert_1", message }).success).toBe(false);
+  });
+
+  it("validates metric series input", () => {
+    expect(
+      alertSeriesInput.parse({
+        appId: "app_1",
+        environmentId: "env_1",
+        metric: "health",
+        startMs: 100,
+        endMs: 200,
+      }),
+    ).toMatchObject({ metric: "health", resolution: "5m" });
+    expect(
+      alertSeriesInput.safeParse({
+        appId: "app_1",
+        environmentId: "env_1",
+        metric: "requests_drop",
+        startMs: 100,
+        endMs: 200,
+      }).success,
+    ).toBe(false);
+  });
+
+  it("validates deployment marker ranges", () => {
+    expect(
+      alertDeploymentsInput.safeParse({
+        appId: "app_1",
+        environmentId: "env_1",
+        startMs: 200,
+        endMs: 100,
+      }).success,
+    ).toBe(false);
   });
 });
