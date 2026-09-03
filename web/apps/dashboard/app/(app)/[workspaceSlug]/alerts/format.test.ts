@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { alertMetricLabel, formatAlertAxisValue, formatAlertValue, formatSigma } from "./format";
+import {
+  alertMetricLabel,
+  formatAlertAxisValue,
+  formatAlertDistance,
+  formatAlertValue,
+  formatSigma,
+} from "./format";
 
 describe("alert metric formatting", () => {
   it("uses human-readable labels", () => {
@@ -22,6 +28,13 @@ describe("alert metric formatting", () => {
   it("formats the distance above the baseline", () => {
     expect(formatSigma(3.8, 0.4, 0.5)).toBe("+6.8σ");
     expect(formatSigma(1, 11, 2)).toBe("-5.0σ");
-    expect(formatSigma(2, 1, 0)).toBe("+∞σ");
+    expect(formatSigma(2, 1, 0)).toBe("No variance");
+  });
+
+  it("shows fixed limits instead of sigma for threshold metrics", () => {
+    expect(formatAlertDistance("memory_utilization", 0.94, 0, 0)).toBe("94% · limit 90%");
+    expect(formatAlertDistance("oom_killed", 3, 0, 0)).toBe("3 events · limit 1");
+    expect(formatAlertDistance("crash_loop", 4, 0, 0)).toBe("4 events · limit 1");
+    expect(formatAlertDistance("error_5xx", 8, 1, 1)).toBe("+7.0σ");
   });
 });

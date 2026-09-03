@@ -45,7 +45,7 @@ function fillBuckets(query: string): string {
     ORDER BY time ASC
     WITH FILL
       FROM intDiv({startMs: Int64}, {bucketMs: UInt32}) * {bucketMs: UInt32}
-      TO intDiv({endMs: Int64}, {bucketMs: UInt32}) * {bucketMs: UInt32} + {bucketMs: UInt32}
+      TO intDiv({endMs: Int64} - 1, {bucketMs: UInt32}) * {bucketMs: UInt32} + {bucketMs: UInt32}
       STEP {bucketMs: UInt32}`;
 }
 
@@ -70,7 +70,7 @@ function frontlineQuery(metric: "error_5xx" | "error_4xx" | "requests" | "reques
         AND app_id = {appId: String}
         AND environment_id = {environmentId: String}
         AND time >= fromUnixTimestamp64Milli({startMs: Int64})
-        AND time <= fromUnixTimestamp64Milli({endMs: Int64})
+        AND time < fromUnixTimestamp64Milli({endMs: Int64})
       GROUP BY time
     )`);
 }
@@ -91,7 +91,7 @@ function resourceCounterQuery(expression: string, aggregate: string): string {
         AND environment_id = {environmentId: String}
         AND resource_type = 'deployment'
         AND time >= fromUnixTimestamp64Milli({startMs: Int64})
-        AND time <= fromUnixTimestamp64Milli({endMs: Int64})
+        AND time < fromUnixTimestamp64Milli({endMs: Int64})
       GROUP BY bucket, container_uid
     )
     GROUP BY bucket`);
@@ -113,7 +113,7 @@ function memoryQuery(): string {
         AND environment_id = {environmentId: String}
         AND resource_type = 'deployment'
         AND time >= fromUnixTimestamp64Milli({startMs: Int64})
-        AND time <= fromUnixTimestamp64Milli({endMs: Int64})
+        AND time < fromUnixTimestamp64Milli({endMs: Int64})
       GROUP BY bucket
     )`);
 }
@@ -137,7 +137,7 @@ function instanceEventQuery(metric: "oom_killed" | "crash_loop"): string {
         AND app_id = {appId: String}
         AND environment_id = {environmentId: String}
         AND time >= {startMs: Int64}
-        AND time <= {endMs: Int64}
+        AND time < {endMs: Int64}
       GROUP BY bucket
     )`);
 }
