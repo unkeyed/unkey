@@ -101,15 +101,16 @@ context. For a resolved alert, it also shows the resolution message.
 
 ## Use the alerts inbox
 
-Open **Alerts** in the workspace navigation to see anomalies across production
-apps. Switch between **Open**, **Resolved**, and **All** to filter by status.
-Use the metric and app filters to narrow the list. Each row includes recent
-context and a sparkline.
+Open **Alerts** in the workspace navigation to see open anomalies across
+production apps. The inbox does not include resolved alerts. Use the metric and
+app filters to narrow the list. Each row includes recent context and a
+sparkline.
 
 Select an alert to open the affected app, environment, metric, and time range in
-focus mode.
+focus mode. When the detector resolves it, the alert leaves the workspace inbox.
+Its app-level focus URL remains available with `?alert=<id>`.
 
-<Frame caption="Workspace alerts inbox filtered to open alerts">
+<Frame caption="Workspace alerts inbox showing open alerts">
   <img
     src="/images/deploy-alerts-inbox.png"
     alt="Workspace alerts inbox showing open anomaly alerts"
@@ -135,8 +136,11 @@ baseline.
 An open request-drop alert resolves with `Deployment stopped` when there is no
 live deployment, the deployment is stopped, or every topology region is
 stopped. A normal recovery uses
-`Metric returned to baseline for 3 consecutive windows`. Use the **Resolved**
-filter to find closed alerts and read their resolution messages.
+`Metric returned to baseline for 3 consecutive windows`.
+
+Open a resolved alert through its app Anomalies deep link with `?alert=<id>`.
+The focus card shows its **Resolved** status, resolution timestamp, and
+resolution message.
 
 ## Know the beta limits
 

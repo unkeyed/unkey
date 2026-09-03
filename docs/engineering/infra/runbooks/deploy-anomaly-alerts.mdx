@@ -147,11 +147,11 @@ even if other groups succeed.
 count. Compare it with `groups_pending` in the `EvaluateShard` result. Only
 `groups_dispatched` and `groups_pending` return to the window object's journal.
 
-`ListOpenAlertEventGroups(shardCount, shard)` reads only rows that satisfy
-`status = 'open' AND workspace_hash % shardCount = shard`. The unsigned
-`workspace_hash` is computed with `city.CH64(workspace_id)` and must match
-ClickHouse `cityHash64(workspace_id)`. Use these known vectors when diagnosing a
-hash mismatch:
+`ListOpenAlertEventGroups` reads all `status = 'open'` groups through the plain
+`status_idx` index. Every shard repeats this small, cheap MySQL scan and keeps
+rows where `city.CH64(workspace_id) % shardCount == shard`. That result must
+match ClickHouse `cityHash64(workspace_id) % shard_count`. Use these known
+vectors when diagnosing a hash mismatch:
 
 | Workspace ID | CityHash64 |
 | --- | ---: |
@@ -191,7 +191,6 @@ structured opening log.
 SELECT
   id,
   workspace_id,
-  workspace_hash,
   project_id,
   app_id,
   environment_id,
@@ -207,7 +206,6 @@ SELECT
   baseline_stddev,
   threshold_sigma,
   resolved_at,
-  resolved_by,
   resolution_message
 FROM alert_events
 WHERE id = 'alert_XXX';
@@ -242,10 +240,11 @@ these conditions:
 7. The applied sensitivity and shared dashboard constants match the
    [detector math](/architecture/services/control-plane/worker/deploy-anomaly-detection-math).
 8. An older app received its backfilled baseline. If it did not, confirm that
-   migrations `043_instance_resources_app_per_5m_v1.sql`,
-   `044_anomaly_source_watermarks_v1.sql`,
-   `048_frontline_requests_anomaly_per_5m_v1.sql`, and
-   `049_instance_memory_container_per_5m_v1.sql` completed.
+   the deploy anomaly migration in `pkg/clickhouse/migrations` completed
+   for `instance_resources_app_per_5m_v1`,
+   `anomaly_source_watermarks_v1`,
+   `frontline_requests_anomaly_per_5m_v1`, and
+   `instance_memory_container_per_5m_v1`.
 
 Backfill retries are safe. Watermarks use max states, and sum rollups exclude
 keys that are already present. Investigate migration completion instead of
@@ -302,8 +301,7 @@ past that limit:
 Do not update MySQL or Restate state to close the alert. Correct the failed
 evaluation path and let the detector persist the transition.
 
-Every resolved row has `resolved_by = system`. Use `resolution_message` to
-interpret the transition:
+Use `resolution_message` to interpret a resolved row:
 
 | Message | Meaning |
 | --- | --- |
@@ -339,8 +337,8 @@ or concurrency supports the change.
 3. Verify that every shard index from zero through `shard_count - 1` is invoked.
 4. Verify that ClickHouse applies
    `cityHash64(workspace_id) % shard_count` with the same count.
-5. Verify that `ListOpenAlertEventGroups` applies
-   `workspace_hash % shardCount = shard` with the same count.
+5. Verify that the Go filter applies
+   `city.CH64(workspace_id) % shardCount == shard` with the same count.
 6. Measure candidate rows, per-shard query p95, end-to-end cron p95, and peak
    child concurrency.
 7. Deploy the code before changing any production cron assumptions.
