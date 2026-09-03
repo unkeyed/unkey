@@ -65,10 +65,6 @@ func GenerateAPIKey(opts *GenerateAPIKeyOptions) (*APIKey, error) {
 		return nil, ErrMissingKeyPrefix
 	}
 
-	if opts.ShortTokenPrefix == "" {
-		opts.ShortTokenPrefix = ""
-	}
-
 	if opts.ShortTokenLength == 0 {
 		opts.ShortTokenLength = 8
 	}
@@ -94,27 +90,19 @@ func GenerateAPIKey(opts *GenerateAPIKeyOptions) (*APIKey, error) {
 		opts.ShortTokenLength,
 		"0",
 	)
-	if len(shortToken) > opts.ShortTokenLength {
-		shortToken = shortToken[:opts.ShortTokenLength]
-	}
 
 	longToken := padStart(
 		base58.Encode(longTokenBytes),
 		opts.LongTokenLength,
 		"0",
 	)
-	if len(longToken) > opts.LongTokenLength {
-		longToken = longToken[:opts.LongTokenLength]
-	}
+	longToken = longToken[:opts.LongTokenLength]
 
 	// Hash the long token
 	longTokenHash := HashLongToken(longToken)
 
-	// Add prefix to short token and trim if necessary
-	shortToken = (opts.ShortTokenPrefix + shortToken)
-	if len(shortToken) > opts.ShortTokenLength {
-		shortToken = shortToken[:opts.ShortTokenLength]
-	}
+	// Add prefix to short token within the configured length.
+	shortToken = (opts.ShortTokenPrefix + shortToken)[:opts.ShortTokenLength]
 
 	// Construct the full token
 	token := fmt.Sprintf("%s_%s_%s", opts.KeyPrefix, shortToken, longToken)
@@ -130,10 +118,7 @@ func GenerateAPIKey(opts *GenerateAPIKeyOptions) (*APIKey, error) {
 // ExtractLongToken extracts the long token from a full API key
 func ExtractLongToken(token string) string {
 	parts := strings.Split(token, "_")
-	if len(parts) > 0 {
-		return parts[len(parts)-1]
-	}
-	return ""
+	return parts[len(parts)-1]
 }
 
 // ExtractShortToken extracts the short token from a full API key
