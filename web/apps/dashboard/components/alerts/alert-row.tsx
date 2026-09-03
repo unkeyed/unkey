@@ -9,7 +9,6 @@ import {
   alertMetricLabel,
   formatAlertDistance,
   formatAlertValue,
-  formatSigma,
   hasFixedAlertThreshold,
 } from "./format";
 import { AlertStatusBadge } from "./status-badge";
@@ -71,25 +70,14 @@ export function AlertRow({
       <div className="flex min-w-0 flex-col gap-1 lg:w-[27%] lg:shrink-0">
         <span className="truncate text-[13px] font-medium tabular-nums text-accent-12">
           {hasFixedAlertThreshold(alert.metric) ? (
-            formatAlertDistance(
-              alert.metric,
-              alert.observedValue,
-              alert.baselineMean,
-              alert.baselineStddev,
-            )
+            formatAlertDistance(alert.metric, alert.observedValue, alert.baselineMean)
           ) : alert.metric === "requests_drop" ? (
             <>
               {formatAlertValue(alert.metric, alert.observedValue)}
               <span className="font-normal text-gray-9">
                 {" "}
                 vs {formatAlertValue(alert.metric, alert.baselineMean)} recent (
-                {formatAlertDistance(
-                  alert.metric,
-                  alert.observedValue,
-                  alert.baselineMean,
-                  alert.baselineStddev,
-                )}
-                )
+                {formatAlertDistance(alert.metric, alert.observedValue, alert.baselineMean)})
               </span>
             </>
           ) : (
@@ -104,7 +92,7 @@ export function AlertRow({
         </span>
         {hasFixedAlertThreshold(alert.metric) || alert.metric === "requests_drop" ? null : (
           <span className="text-xs font-medium tabular-nums text-error-11">
-            {formatSigma(alert.observedValue, alert.baselineMean, alert.baselineStddev)}
+            {formatAlertDistance(alert.metric, alert.observedValue, alert.baselineMean)}
           </span>
         )}
       </div>

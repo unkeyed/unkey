@@ -700,28 +700,18 @@ function AnomalyWindowTooltip({
 
 function formatAlertExpectation(alert: AlertListItem): string {
   if (hasFixedAlertThreshold(alert.metric)) {
-    return formatAlertDistance(
-      alert.metric,
-      alert.observedValue,
-      alert.baselineMean,
-      alert.baselineStddev,
-    );
+    return formatAlertDistance(alert.metric, alert.observedValue, alert.baselineMean);
   }
   if (alert.metric === "requests_drop") {
     return `${formatAlertValue(alert.metric, alert.observedValue)} vs ${formatAlertValue(
       alert.metric,
       alert.baselineMean,
-    )} recent (${formatAlertDistance(
-      alert.metric,
-      alert.observedValue,
-      alert.baselineMean,
-      alert.baselineStddev,
-    )})`;
+    )} recent (${formatAlertDistance(alert.metric, alert.observedValue, alert.baselineMean)})`;
   }
   return `${formatAlertValue(alert.metric, alert.observedValue)} vs ${formatAlertValue(
     alert.metric,
     alert.baselineMean,
-  )} expected`;
+  )} expected (${formatAlertDistance(alert.metric, alert.observedValue, alert.baselineMean)})`;
 }
 
 function clamp(value: number, minimum: number, maximum: number): number {
