@@ -423,7 +423,6 @@ type Querier interface {
 	//
 	//  SELECT
 	//      p.workspace_id AS workspace_id,
-	//      w.slug AS workspace_slug,
 	//      p.id AS project_id,
 	//      a.id AS app_id,
 	//      a.default_branch AS default_branch,
@@ -443,11 +442,17 @@ type Querier interface {
 	//      ars.upstream_protocol AS upstream_protocol,
 	//      ars.sentinel_config AS sentinel_config,
 	//      grc.installation_id AS github_installation_id,
-	//      grc.repository_id AS github_repository_id,
-	//      grc.repository_full_name AS github_repository_full_name
+	//      grc.repository_full_name AS github_repository_full_name,
+	//      EXISTS (
+	//          SELECT 1
+	//          FROM app_regional_settings ars2
+	//          INNER JOIN regions r ON r.id = ars2.region_id
+	//          WHERE ars2.app_id = a.id
+	//            AND ars2.environment_id = e.id
+	//            AND r.can_schedule
+	//      ) AS has_schedulable_region
 	//  FROM apps a
 	//  INNER JOIN projects p ON p.id = a.project_id
-	//  INNER JOIN workspaces w ON w.id = p.workspace_id
 	//  INNER JOIN environments e ON e.app_id = a.id AND e.project_id = a.project_id
 	//  INNER JOIN (
 	//      SELECT e1.id

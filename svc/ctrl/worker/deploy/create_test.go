@@ -68,77 +68,20 @@ func TestCreateWritesRowAndStartsDeploy(t *testing.T) {
 	require.Equal(t, 1, h.countAudits(t, ctx, auditlog.DeploymentCreateEvent, deploymentID))
 }
 
-// TestCreateReplaysAnExistingRow pins the permanent half of idempotency.
-// Restate replays an invocation key only inside its retention window. Past
-// that, the existing row is the only thing stopping a repeated create from
-// deploying twice.
-func TestCreateReplaysAnExistingRow(t *testing.T) {
-	ctx := context.Background()
-	h := newCreateHarness(t, ctx, createHarnessOptions{})
-
-	deploymentID := uid.New(uid.DeploymentPrefix)
-	require.Equal(t, hydrav1.CreateOutcome_CREATE_OUTCOME_CREATED,
-		h.create(t, ctx, deploymentID, h.imageRequest()).GetOutcome())
-
-	first := h.deployment(t, ctx, deploymentID)
-	h.awaitDeploy(t, deploymentID)
-	h.deploys.forget(deploymentID)
-
-	// A different payload under the same id must still answer with the original
-	// row instead of overwriting it.
-	second := h.imageRequest()
-	second.Source = &hydrav1.DeployCreateRequest_Image{
-		Image: &hydrav1.CreateImageSource{Image: "ghcr.io/unkey/other:v9"},
-	}
-	resp := h.create(t, ctx, deploymentID, second)
-	require.Equal(t, hydrav1.CreateOutcome_CREATE_OUTCOME_REPLAYED, resp.GetOutcome())
-
-	after := h.deployment(t, ctx, deploymentID)
-	require.Equal(t, first.CreatedAt, after.CreatedAt, "a replay must not restamp the row")
-	require.Equal(t, 1, h.countDeployments(t, ctx), "a replay must not write a second row")
-	require.Equal(t, 1, h.countAudits(t, ctx, auditlog.DeploymentCreateEvent, deploymentID),
-		"a replay must not audit a create that did not happen")
-
-	h.requireNoDeploy(t, deploymentID)
-}
-
-// TestCreateRefusesAForeignRow covers a collision that derived ids rule out:
-// the id hashes the workspace, app and environment. If one ever collided,
-// answering with the row that is there would hand the caller someone else's
-// deployment.
-func TestCreateRefusesAForeignRow(t *testing.T) {
-	ctx := context.Background()
-	h := newCreateHarness(t, ctx, createHarnessOptions{})
-
-	other := h.newApp(t, ctx)
-	deploymentID := uid.New(uid.DeploymentPrefix)
-	h.seeder.CreateDeployment(ctx, seed.CreateDeploymentRequest{
-		ID:            deploymentID,
-		WorkspaceID:   h.workspaceID,
-		ProjectID:     h.projectID,
-		AppID:         other.appID,
-		EnvironmentID: other.environmentID,
-		Status:        mysqltype.DeploymentsStatusReady,
-	})
-
-	_, err := h.tryCreate(ctx, deploymentID, h.imageRequest())
-	require.Error(t, err, "a row belonging to another app must not be answered as this caller's")
-}
-
-// TestCreateBlocks covers the refusals. Each is a successful invocation
+// TestCreateRejections covers the refusals. Each is a successful invocation
 // carrying a reason rather than a failure: the GitHub webhook sends Create
 // one-way, so a workspace that will never be eligible must not leave a failed
 // invocation behind every push.
-func TestCreateBlocks(t *testing.T) {
+func TestCreateRejections(t *testing.T) {
 	t.Run("workspace has no Compute plan", func(t *testing.T) {
 		ctx := context.Background()
 		h := newCreateHarness(t, ctx, createHarnessOptions{})
 		h.clearComputePlan(t, ctx)
 
 		resp := h.create(t, context.Background(), uid.New(uid.DeploymentPrefix), h.imageRequest())
-		require.Equal(t, hydrav1.CreateOutcome_CREATE_OUTCOME_BLOCKED, resp.GetOutcome())
-		require.Equal(t, hydrav1.CreateBlockedReason_CREATE_BLOCKED_REASON_NO_COMPUTE_PLAN, resp.GetBlockedReason())
-		require.Zero(t, h.countDeployments(t, ctx), "a blocked create must write nothing")
+		require.Equal(t, hydrav1.CreateOutcome_CREATE_OUTCOME_REJECTED, resp.GetOutcome())
+		require.Equal(t, hydrav1.CreateRejectionReason_CREATE_REJECTION_REASON_NO_COMPUTE_PLAN, resp.GetRejectionReason())
+		require.Zero(t, h.countDeployments(t, ctx), "a rejected create must write nothing")
 	})
 
 	// Observe mode is how the plan gate rolls out: it reports what it would have
@@ -158,8 +101,8 @@ func TestCreateBlocks(t *testing.T) {
 		h.suspendSpend(t, ctx)
 
 		resp := h.create(t, ctx, uid.New(uid.DeploymentPrefix), h.imageRequest())
-		require.Equal(t, hydrav1.CreateOutcome_CREATE_OUTCOME_BLOCKED, resp.GetOutcome())
-		require.Equal(t, hydrav1.CreateBlockedReason_CREATE_BLOCKED_REASON_SPEND_SUSPENDED, resp.GetBlockedReason(),
+		require.Equal(t, hydrav1.CreateOutcome_CREATE_OUTCOME_REJECTED, resp.GetOutcome())
+		require.Equal(t, hydrav1.CreateRejectionReason_CREATE_REJECTION_REASON_SPEND_SUSPENDED, resp.GetRejectionReason(),
 			"the spend cap blocks even when plan enforcement only observes")
 	})
 
@@ -171,8 +114,8 @@ func TestCreateBlocks(t *testing.T) {
 		req.Environment = uid.New(uid.EnvironmentPrefix)
 
 		resp := h.create(t, ctx, uid.New(uid.DeploymentPrefix), req)
-		require.Equal(t, hydrav1.CreateBlockedReason_CREATE_BLOCKED_REASON_TARGET_NOT_FOUND, resp.GetBlockedReason(),
-			"an environment deleted mid-create is a block, not an error: no retry brings it back")
+		require.Equal(t, hydrav1.CreateRejectionReason_CREATE_REJECTION_REASON_TARGET_NOT_FOUND, resp.GetRejectionReason(),
+			"an environment deleted mid-create is a rejection, not an error: no retry brings it back")
 	})
 
 	// Refused rather than quietly redeployed as the current image, which would
@@ -182,7 +125,7 @@ func TestCreateBlocks(t *testing.T) {
 		h := newCreateHarness(t, ctx, createHarnessOptions{})
 
 		resp := h.create(t, ctx, uid.New(uid.DeploymentPrefix), h.gitRequest())
-		require.Equal(t, hydrav1.CreateBlockedReason_CREATE_BLOCKED_REASON_NO_REPO_CONNECTION, resp.GetBlockedReason())
+		require.Equal(t, hydrav1.CreateRejectionReason_CREATE_REJECTION_REASON_NO_REPO_CONNECTION, resp.GetRejectionReason())
 		require.Zero(t, h.countDeployments(t, ctx))
 	})
 
@@ -201,7 +144,7 @@ func TestCreateBlocks(t *testing.T) {
 		})
 
 		resp := h.create(t, ctx, uid.New(uid.DeploymentPrefix), h.existingRequest(source.ID, false))
-		require.Equal(t, hydrav1.CreateBlockedReason_CREATE_BLOCKED_REASON_NO_SOURCE_IMAGE, resp.GetBlockedReason())
+		require.Equal(t, hydrav1.CreateRejectionReason_CREATE_REJECTION_REASON_NO_SOURCE_IMAGE, resp.GetRejectionReason())
 	})
 
 	// An operator rebuild sets the guardrail; force clears it. Resurrecting a
@@ -225,11 +168,57 @@ func TestCreateBlocks(t *testing.T) {
 		})
 
 		guarded := h.create(t, ctx, uid.New(uid.DeploymentPrefix), h.existingRequest(source.ID, true))
-		require.Equal(t, hydrav1.CreateBlockedReason_CREATE_BLOCKED_REASON_NEWER_DEPLOYMENT_EXISTS, guarded.GetBlockedReason())
+		require.Equal(t, hydrav1.CreateRejectionReason_CREATE_REJECTION_REASON_NEWER_DEPLOYMENT_EXISTS, guarded.GetRejectionReason())
 
 		forced := h.create(t, ctx, uid.New(uid.DeploymentPrefix), h.existingRequest(source.ID, false))
 		require.Equal(t, hydrav1.CreateOutcome_CREATE_OUTCOME_CREATED, forced.GetOutcome(),
 			"clearing the guardrail is how an operator forces the rebuild through")
+	})
+
+	t.Run("image reference is not valid", func(t *testing.T) {
+		ctx := context.Background()
+		h := newCreateHarness(t, ctx, createHarnessOptions{})
+
+		req := h.imageRequest()
+		req.Source = &hydrav1.DeployCreateRequest_Image{
+			Image: &hydrav1.CreateImageSource{Image: "ghcr.io/unkey/KEBAP:v1"},
+		}
+
+		resp := h.create(t, ctx, uid.New(uid.DeploymentPrefix), req)
+		require.Equal(t, hydrav1.CreateRejectionReason_CREATE_REJECTION_REASON_INVALID_IMAGE, resp.GetRejectionReason())
+		require.Zero(t, h.countDeployments(t, ctx), "a reference no build could pull must not reach a row")
+	})
+
+	// The environment's own settings, not the request: a deployment written
+	// against them could only ever reach FAILED.
+	t.Run("environment has nowhere to schedule", func(t *testing.T) {
+		ctx := context.Background()
+		h := newCreateHarness(t, ctx, createHarnessOptions{})
+		h.clearRegions(t, ctx)
+
+		resp := h.create(t, ctx, uid.New(uid.DeploymentPrefix), h.imageRequest())
+		require.Equal(t, hydrav1.CreateRejectionReason_CREATE_REJECTION_REASON_ENVIRONMENT_NOT_DEPLOYABLE, resp.GetRejectionReason())
+		require.Zero(t, h.countDeployments(t, ctx))
+	})
+
+	t.Run("environment runtime settings are out of bounds", func(t *testing.T) {
+		ctx := context.Background()
+		h := newCreateHarness(t, ctx, createHarnessOptions{})
+		h.setPort(t, ctx, 0)
+
+		resp := h.create(t, ctx, uid.New(uid.DeploymentPrefix), h.imageRequest())
+		require.Equal(t, hydrav1.CreateRejectionReason_CREATE_REJECTION_REASON_ENVIRONMENT_NOT_DEPLOYABLE, resp.GetRejectionReason())
+	})
+
+	t.Run("no source named and the app never deployed", func(t *testing.T) {
+		ctx := context.Background()
+		h := newCreateHarness(t, ctx, createHarnessOptions{})
+
+		req := h.imageRequest()
+		req.Source = nil
+
+		resp := h.create(t, ctx, uid.New(uid.DeploymentPrefix), req)
+		require.Equal(t, hydrav1.CreateRejectionReason_CREATE_REJECTION_REASON_NO_SOURCE_IMAGE, resp.GetRejectionReason())
 	})
 }
 
@@ -387,6 +376,277 @@ func TestCreateAwaitApprovalDoesNotBuild(t *testing.T) {
 	h.requireNoDeploy(t, deploymentID)
 }
 
+// TestDeployTargetScoping covers every way the (project, app, environment)
+// triple can fail to line up. All of them miss: the query decides the triple as
+// a whole, so a caller never learns from the result that an app it cannot reach
+// exists, and Create turns every miss into one TARGET_NOT_FOUND rejected.
+func TestDeployTargetScoping(t *testing.T) {
+	ctx := context.Background()
+	h := newCreateHarness(t, ctx, createHarnessOptions{})
+
+	otherProject := h.seeder.CreateProject(ctx, seed.CreateProjectRequest{
+		ID:          uid.New(uid.ProjectPrefix),
+		WorkspaceID: h.workspaceID,
+		Name:        "KEBAP",
+		Slug:        deploySlug(uid.ProjectPrefix),
+	})
+	otherApp := h.seeder.CreateApp(ctx, seed.CreateAppRequest{
+		ID:            uid.New(uid.AppPrefix),
+		WorkspaceID:   h.workspaceID,
+		ProjectID:     otherProject.ID,
+		Name:          "KEBAP",
+		Slug:          deploySlug(uid.AppPrefix),
+		DefaultBranch: "main",
+	})
+	foreignEnv := h.seeder.CreateEnvironment(ctx, seed.CreateEnvironmentRequest{
+		ID:          uid.New(uid.EnvironmentPrefix),
+		WorkspaceID: h.workspaceID,
+		ProjectID:   otherProject.ID,
+		AppID:       otherApp.ID,
+		Slug:        "production",
+		Kind:        mysqltype.EnvironmentKindProduction,
+	})
+
+	// An environment on the right app carrying no settings rows, reachable only
+	// by inserting directly: the seeder always writes settings alongside.
+	bareEnvID := uid.New(uid.EnvironmentPrefix)
+	require.NoError(t, h.database.InsertEnvironment(ctx, db.InsertEnvironmentParams{
+		ID:          bareEnvID,
+		WorkspaceID: h.workspaceID,
+		ProjectID:   h.projectID,
+		AppID:       h.appID,
+		Slug:        "bare",
+		Description: "",
+		Kind:        mysqltype.EnvironmentKindPreview,
+		CreatedAt:   time.Now().UnixMilli(),
+		UpdatedAt:   sql.NullInt64{Valid: false, Int64: 0},
+	}))
+
+	// An environment hanging off the right app but stamped with another project,
+	// which only a bug or a half-finished move produces.
+	require.NoError(t, h.database.InsertEnvironment(ctx, db.InsertEnvironmentParams{
+		ID:          uid.New(uid.EnvironmentPrefix),
+		WorkspaceID: h.workspaceID,
+		ProjectID:   otherProject.ID,
+		AppID:       h.appID,
+		Slug:        "stray",
+		Description: "",
+		Kind:        mysqltype.EnvironmentKindPreview,
+		CreatedAt:   time.Now().UnixMilli(),
+		UpdatedAt:   sql.NullInt64{Valid: false, Int64: 0},
+	}))
+
+	misses := []struct {
+		name      string
+		projectID string
+		appID     string
+		env       string
+	}{
+		{name: "unknown project", projectID: uid.New(uid.ProjectPrefix), appID: h.appID, env: "production"},
+		{name: "unknown app", projectID: h.projectID, appID: uid.New(uid.AppPrefix), env: "production"},
+		{name: "app in another project", projectID: h.projectID, appID: otherApp.ID, env: "production"},
+		{name: "unknown environment slug", projectID: h.projectID, appID: h.appID, env: "staging"},
+		{name: "empty environment", projectID: h.projectID, appID: h.appID, env: ""},
+		{name: "environment in another project", projectID: h.projectID, appID: h.appID, env: "stray"},
+		{name: "environment without settings", projectID: h.projectID, appID: h.appID, env: "bare"},
+		{name: "unknown environment id", projectID: h.projectID, appID: h.appID, env: uid.New(uid.EnvironmentPrefix)},
+		{name: "environment id under another app", projectID: h.projectID, appID: h.appID, env: foreignEnv.ID},
+		{name: "environment id without settings", projectID: h.projectID, appID: h.appID, env: bareEnvID},
+	}
+
+	for _, tt := range misses {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := h.database.FindDeployTarget(ctx, db.FindDeployTargetParams{
+				ProjectID:   tt.projectID,
+				AppID:       tt.appID,
+				Environment: tt.env,
+			})
+			require.True(t, db.IsNotFound(err), "want a miss, got %v", err)
+		})
+	}
+
+	// The settings a create copies onto the row. A join that dropped one of the
+	// settings tables would still pass every miss above.
+	target, err := h.database.FindDeployTarget(ctx, db.FindDeployTargetParams{
+		ProjectID:   h.projectID,
+		AppID:       h.appID,
+		Environment: "production",
+	})
+	require.NoError(t, err)
+	require.Equal(t, h.environmentID, target.EnvironmentID)
+	require.Equal(t, "main", target.DefaultBranch)
+	require.Equal(t, "Dockerfile", target.Dockerfile.String)
+	require.Equal(t, ".", target.DockerContext)
+	require.Equal(t, int32(8080), target.Port)
+	require.Equal(t, int32(250), target.CpuMillicores)
+	require.Equal(t, int32(256), target.MemoryMib)
+
+	// A rebuild names the environment by id instead, which must land on the same
+	// row: the two lookups differ only in that predicate.
+	byID, err := h.database.FindDeployTarget(ctx, db.FindDeployTargetParams{
+		ProjectID:   h.projectID,
+		AppID:       h.appID,
+		Environment: h.environmentID,
+	})
+	require.NoError(t, err)
+	require.Equal(t, target, byID)
+}
+
+// TestCreateWithoutSource covers the arm a caller uses when it knows only that
+// it wants this app shipped again. It splits on the repository connection the
+// same way the legacy RPC did: a connected app deploys the head of its default
+// branch, and only an app without one redeploys what it runs now.
+func TestCreateWithoutSource(t *testing.T) {
+	ctx := context.Background()
+	h := newCreateHarness(t, ctx, createHarnessOptions{})
+
+	current := h.imageDeployment(t, ctx, time.Now().Add(-time.Hour).UnixMilli())
+	h.setCurrentDeployment(t, ctx, current.ID)
+
+	req := h.imageRequest()
+	req.Source = nil
+
+	deploymentID := uid.New(uid.DeploymentPrefix)
+	require.Equal(t, hydrav1.CreateOutcome_CREATE_OUTCOME_CREATED,
+		h.create(t, ctx, deploymentID, req).GetOutcome())
+
+	sent := h.awaitDeploy(t, deploymentID)
+	image, ok := sent.GetSource().(*hydrav1.DeployRequest_OciImage)
+	require.True(t, ok, "an app with no repository connection redeploys its image")
+	require.Equal(t, fixtureImage, image.OciImage.GetImage())
+}
+
+// TestCreateWithoutSourceOnConnectedAppResolvesGit is the other half, and the
+// rejection is the assertion. The harness has no GitHub, so resolving the head
+// of the default branch necessarily fails there — which is exactly what proves
+// the create took the git path. Redeploying the current deployment instead
+// would have succeeded with an image source and turned "deploy my app" into
+// "redeploy what is already running", which the legacy RPC pointedly did not do.
+func TestCreateWithoutSourceOnConnectedAppResolvesGit(t *testing.T) {
+	ctx := context.Background()
+	h := newCreateHarness(t, ctx, createHarnessOptions{})
+	h.connectRepo(t, ctx)
+
+	current := h.imageDeployment(t, ctx, time.Now().Add(-time.Hour).UnixMilli())
+	h.setCurrentDeployment(t, ctx, current.ID)
+
+	// The inference below only holds while the current deployment carries no
+	// commit: with one, the reverted path would reach GitHub too and fail the
+	// same way, and this test would pass for the wrong reason.
+	require.False(t, current.GitCommitSha.Valid, "the current deployment must have no commit to rebuild")
+
+	req := h.imageRequest()
+	req.Source = nil
+
+	deploymentID := uid.New(uid.DeploymentPrefix)
+	resp := h.create(t, ctx, deploymentID, req)
+	require.Equal(t, hydrav1.CreateRejectionReason_CREATE_REJECTION_REASON_COMMIT_NOT_RESOLVED,
+		resp.GetRejectionReason(),
+		"a connected app must resolve the branch head, not fall back to the current image")
+
+	// The current deployment carries an image, so the old behavior would have
+	// written a row and dispatched it.
+	require.Equal(t, 1, h.countDeployments(t, ctx), "only the seeded current deployment")
+	h.requireNoDeploy(t, deploymentID)
+}
+
+// TestCreateFromForeignDeploymentIsRejected pins the ownership check. The id is
+// caller-supplied and looked up by primary key alone, so without it a request
+// could rebuild another app's deployment into its own and run an image it has no
+// right to pull.
+func TestCreateFromForeignDeploymentIsRejected(t *testing.T) {
+	ctx := context.Background()
+	h := newCreateHarness(t, ctx, createHarnessOptions{})
+
+	other := h.newApp(t, ctx)
+	foreign := h.seeder.CreateDeployment(ctx, seed.CreateDeploymentRequest{
+		ID:            uid.New(uid.DeploymentPrefix),
+		WorkspaceID:   h.workspaceID,
+		ProjectID:     h.projectID,
+		AppID:         other.appID,
+		EnvironmentID: other.environmentID,
+		Status:        mysqltype.DeploymentsStatusReady,
+	})
+	require.NoError(t, h.database.UpdateDeploymentImage(ctx, db.UpdateDeploymentImageParams{
+		Image:     sql.NullString{Valid: true, String: "ghcr.io/someone-else/private:v1"},
+		UpdatedAt: sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+		ID:        foreign.ID,
+	}))
+
+	deploymentID := uid.New(uid.DeploymentPrefix)
+	resp := h.create(t, ctx, deploymentID, h.existingRequest(foreign.ID, false))
+	require.Equal(t, hydrav1.CreateOutcome_CREATE_OUTCOME_REJECTED, resp.GetOutcome())
+	require.Equal(t, hydrav1.CreateRejectionReason_CREATE_REJECTION_REASON_SOURCE_DEPLOYMENT_NOT_FOUND,
+		resp.GetRejectionReason(),
+		"a deployment under another app must answer exactly like one that does not exist")
+	require.Zero(t, h.countDeployments(t, ctx), "nothing may be written from a foreign source")
+	h.requireNoDeploy(t, deploymentID)
+}
+
+// TestCreateRejectsANegativePushTime pins the guard on the one caller-supplied
+// number that reaches an unsigned column. A negative value would write a
+// created_at that sorts before every sibling and a started_at near 1.8e19.
+func TestCreateRejectsANegativePushTime(t *testing.T) {
+	ctx := context.Background()
+	h := newCreateHarness(t, ctx, createHarnessOptions{})
+
+	req := h.imageRequest()
+	req.PushReceivedAt = -1
+
+	_, err := h.tryCreate(ctx, uid.New(uid.DeploymentPrefix), req)
+	require.Error(t, err, "a negative push time must not reach the row")
+	require.Zero(t, h.countDeployments(t, ctx))
+}
+
+// TestRecordDeploymentToleratesACommittedRow covers the recovery that keeps a
+// lost commit acknowledgement from wedging a create. TxRetry re-runs the whole
+// transaction whenever the failure looks transient, and a commit whose ack never
+// arrived looks exactly like that; the second attempt then hits a duplicate key
+// on a row that is already correct.
+func TestRecordDeploymentToleratesACommittedRow(t *testing.T) {
+	ctx := context.Background()
+	h := newCreateHarness(t, ctx, createHarnessOptions{})
+
+	deploymentID := uid.New(uid.DeploymentPrefix)
+	require.Equal(t, hydrav1.CreateOutcome_CREATE_OUTCOME_CREATED,
+		h.create(t, ctx, deploymentID, h.imageRequest()).GetOutcome())
+
+	first := h.deployment(t, ctx, deploymentID)
+
+	// A second create on the same key is what a re-executed record stage does to
+	// the database: the row is already there, and reporting that as a failure
+	// would burn every retry on an error no attempt can clear.
+	resp, err := h.tryCreate(ctx, deploymentID, h.imageRequest())
+	require.NoError(t, err, "a committed row must not fail the create")
+	require.Equal(t, hydrav1.CreateOutcome_CREATE_OUTCOME_CREATED, resp.GetOutcome())
+
+	after := h.deployment(t, ctx, deploymentID)
+	require.Equal(t, first.CreatedAt, after.CreatedAt, "the committed row wins")
+	require.Equal(t, 1, h.countDeployments(t, ctx), "no second row")
+}
+
+// TestCreateSkipIgnoresEnvironmentDeployability keeps the record of a push that
+// was deliberately not built. Refusing the skip would leave the push with no
+// record at all, which is what the reason on the row exists to prevent.
+func TestCreateSkipIgnoresEnvironmentDeployability(t *testing.T) {
+	ctx := context.Background()
+	h := newCreateHarness(t, ctx, createHarnessOptions{})
+	h.clearRegions(t, ctx)
+
+	req := h.gitRequest()
+	req.Decision = hydrav1.CreateDecision_CREATE_DECISION_SKIP
+	req.TriggerReason = "Watch paths did not match any changed files."
+
+	deploymentID := uid.New(uid.DeploymentPrefix)
+	require.Equal(t, hydrav1.CreateOutcome_CREATE_OUTCOME_CREATED,
+		h.create(t, ctx, deploymentID, req).GetOutcome())
+
+	row := h.deployment(t, ctx, deploymentID)
+	require.Equal(t, mysqltype.DeploymentsStatusSkipped, row.Status)
+	require.Equal(t, "Watch paths did not match any changed files.", row.TriggerReason.String)
+	h.requireNoDeploy(t, deploymentID)
+}
+
 // createHarness is one MySQL database and one Restate server hosting the real
 // Create next to a stand-in for Deploy.
 type createHarness struct {
@@ -479,12 +739,6 @@ func (r *createDeployRecorder) get(deploymentID string) *hydrav1.DeployRequest {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	return r.requests[deploymentID]
-}
-
-func (r *createDeployRecorder) forget(deploymentID string) {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-	delete(r.requests, deploymentID)
 }
 
 func (h *createHarness) create(t *testing.T, ctx context.Context, deploymentID string, req *hydrav1.DeployCreateRequest) *hydrav1.DeployCreateResponse {
@@ -651,6 +905,27 @@ func (h *createHarness) auditPayload(t *testing.T, ctx context.Context, event au
 	}
 	t.Fatalf("no %s audit entry for deployment %s", event, deploymentID)
 	return ""
+}
+
+func (h *createHarness) clearRegions(t *testing.T, ctx context.Context) {
+	t.Helper()
+	_, err := h.database.RW().ExecContext(ctx,
+		"DELETE FROM app_regional_settings WHERE app_id = ?", h.appID)
+	require.NoError(t, err)
+}
+
+func (h *createHarness) setPort(t *testing.T, ctx context.Context, port int32) {
+	t.Helper()
+	_, err := h.database.RW().ExecContext(ctx,
+		"UPDATE app_runtime_settings SET port = ? WHERE app_id = ?", port, h.appID)
+	require.NoError(t, err)
+}
+
+func (h *createHarness) setCurrentDeployment(t *testing.T, ctx context.Context, deploymentID string) {
+	t.Helper()
+	_, err := h.database.RW().ExecContext(ctx,
+		"UPDATE apps SET current_deployment_id = ? WHERE id = ?", deploymentID, h.appID)
+	require.NoError(t, err)
 }
 
 func (h *createHarness) grantComputePlan(t *testing.T, ctx context.Context) {

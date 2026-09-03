@@ -87,7 +87,7 @@ func (CreateDecision) EnumDescriptor() ([]byte, []int) {
 	return file_hydra_v1_deploy_proto_rawDescGZIP(), []int{0}
 }
 
-// CreateOutcome is what a create did. A refused create comes back as BLOCKED
+// CreateOutcome is what a create did. A refused create comes back as REJECTED
 // instead of as a terminal error, so a caller that can never become eligible
 // does not leave Restate retrying it.
 type CreateOutcome int32
@@ -96,10 +96,8 @@ const (
 	CreateOutcome_CREATE_OUTCOME_UNSPECIFIED CreateOutcome = 0
 	// CREATED wrote a new row.
 	CreateOutcome_CREATE_OUTCOME_CREATED CreateOutcome = 1
-	// REPLAYED found the row already there and changed nothing.
-	CreateOutcome_CREATE_OUTCOME_REPLAYED CreateOutcome = 2
-	// BLOCKED wrote nothing. See blocked_reason.
-	CreateOutcome_CREATE_OUTCOME_BLOCKED CreateOutcome = 3
+	// REJECTED wrote nothing. See rejection_reason.
+	CreateOutcome_CREATE_OUTCOME_REJECTED CreateOutcome = 2
 )
 
 // Enum value maps for CreateOutcome.
@@ -107,14 +105,12 @@ var (
 	CreateOutcome_name = map[int32]string{
 		0: "CREATE_OUTCOME_UNSPECIFIED",
 		1: "CREATE_OUTCOME_CREATED",
-		2: "CREATE_OUTCOME_REPLAYED",
-		3: "CREATE_OUTCOME_BLOCKED",
+		2: "CREATE_OUTCOME_REJECTED",
 	}
 	CreateOutcome_value = map[string]int32{
 		"CREATE_OUTCOME_UNSPECIFIED": 0,
 		"CREATE_OUTCOME_CREATED":     1,
-		"CREATE_OUTCOME_REPLAYED":    2,
-		"CREATE_OUTCOME_BLOCKED":     3,
+		"CREATE_OUTCOME_REJECTED":    2,
 	}
 )
 
@@ -145,84 +141,104 @@ func (CreateOutcome) EnumDescriptor() ([]byte, []int) {
 	return file_hydra_v1_deploy_proto_rawDescGZIP(), []int{1}
 }
 
-// CreateBlockedReason is why a create was refused, as a value a caller can
+// CreateRejectionReason is why a create was refused, as a value a caller can
 // branch on instead of a message it would have to parse.
-type CreateBlockedReason int32
+type CreateRejectionReason int32
 
 const (
-	CreateBlockedReason_CREATE_BLOCKED_REASON_UNSPECIFIED CreateBlockedReason = 0
+	CreateRejectionReason_CREATE_REJECTION_REASON_UNSPECIFIED CreateRejectionReason = 0
 	// NO_COMPUTE_PLAN: the workspace holds no Deploy entitlement and the gate is
 	// enforcing.
-	CreateBlockedReason_CREATE_BLOCKED_REASON_NO_COMPUTE_PLAN CreateBlockedReason = 1
+	CreateRejectionReason_CREATE_REJECTION_REASON_NO_COMPUTE_PLAN CreateRejectionReason = 1
 	// SPEND_SUSPENDED: the workspace is over its Compute spend cap.
-	CreateBlockedReason_CREATE_BLOCKED_REASON_SPEND_SUSPENDED CreateBlockedReason = 2
+	CreateRejectionReason_CREATE_REJECTION_REASON_SPEND_SUSPENDED CreateRejectionReason = 2
 	// TARGET_NOT_FOUND: the project, app, or environment does not exist, or they
 	// do not belong together. Reachable when a target is deleted between the
 	// caller's own lookup and this create.
-	CreateBlockedReason_CREATE_BLOCKED_REASON_TARGET_NOT_FOUND CreateBlockedReason = 3
+	CreateRejectionReason_CREATE_REJECTION_REASON_TARGET_NOT_FOUND CreateRejectionReason = 3
 	// NO_REPO_CONNECTION: a git source was requested for an app with no connected
 	// repository. Refused instead of falling back to the current image, which
 	// would ship a different artifact than the one asked for.
-	CreateBlockedReason_CREATE_BLOCKED_REASON_NO_REPO_CONNECTION CreateBlockedReason = 4
+	CreateRejectionReason_CREATE_REJECTION_REASON_NO_REPO_CONNECTION CreateRejectionReason = 4
 	// COMMIT_NOT_RESOLVED: GitHub could not resolve the requested branch or
 	// commit.
-	CreateBlockedReason_CREATE_BLOCKED_REASON_COMMIT_NOT_RESOLVED CreateBlockedReason = 5
+	CreateRejectionReason_CREATE_REJECTION_REASON_COMMIT_NOT_RESOLVED CreateRejectionReason = 5
 	// NO_SOURCE_IMAGE: the deployment being redeployed has neither a commit with
 	// a repository connection nor an image, so there is nothing to build from.
-	CreateBlockedReason_CREATE_BLOCKED_REASON_NO_SOURCE_IMAGE CreateBlockedReason = 6
+	CreateRejectionReason_CREATE_REJECTION_REASON_NO_SOURCE_IMAGE CreateRejectionReason = 6
 	// NEWER_DEPLOYMENT_EXISTS: a rebuild found a newer active deployment on the
 	// same app, environment, and branch. Clear require_no_newer to override.
-	CreateBlockedReason_CREATE_BLOCKED_REASON_NEWER_DEPLOYMENT_EXISTS CreateBlockedReason = 7
+	CreateRejectionReason_CREATE_REJECTION_REASON_NEWER_DEPLOYMENT_EXISTS CreateRejectionReason = 7
+	// INVALID_IMAGE: the requested image is not a well-formed container
+	// reference. Refused before the row is written, because a build never runs to
+	// discover it and the deployment would sit failed with no explanation.
+	CreateRejectionReason_CREATE_REJECTION_REASON_INVALID_IMAGE CreateRejectionReason = 8
+	// ENVIRONMENT_NOT_DEPLOYABLE: the environment's runtime settings are out of
+	// bounds, or it has no region that can schedule. Deploy checks these again as
+	// a backstop; refusing here keeps a deployment that cannot succeed from being
+	// written at all.
+	CreateRejectionReason_CREATE_REJECTION_REASON_ENVIRONMENT_NOT_DEPLOYABLE CreateRejectionReason = 9
+	// SOURCE_DEPLOYMENT_NOT_FOUND: existing_deployment names a deployment that
+	// does not exist, or one under a different app or environment than the
+	// request targets. The two are one reason on purpose: answering them apart
+	// would let a caller probe for deployments it cannot reach.
+	CreateRejectionReason_CREATE_REJECTION_REASON_SOURCE_DEPLOYMENT_NOT_FOUND CreateRejectionReason = 10
 )
 
-// Enum value maps for CreateBlockedReason.
+// Enum value maps for CreateRejectionReason.
 var (
-	CreateBlockedReason_name = map[int32]string{
-		0: "CREATE_BLOCKED_REASON_UNSPECIFIED",
-		1: "CREATE_BLOCKED_REASON_NO_COMPUTE_PLAN",
-		2: "CREATE_BLOCKED_REASON_SPEND_SUSPENDED",
-		3: "CREATE_BLOCKED_REASON_TARGET_NOT_FOUND",
-		4: "CREATE_BLOCKED_REASON_NO_REPO_CONNECTION",
-		5: "CREATE_BLOCKED_REASON_COMMIT_NOT_RESOLVED",
-		6: "CREATE_BLOCKED_REASON_NO_SOURCE_IMAGE",
-		7: "CREATE_BLOCKED_REASON_NEWER_DEPLOYMENT_EXISTS",
+	CreateRejectionReason_name = map[int32]string{
+		0:  "CREATE_REJECTION_REASON_UNSPECIFIED",
+		1:  "CREATE_REJECTION_REASON_NO_COMPUTE_PLAN",
+		2:  "CREATE_REJECTION_REASON_SPEND_SUSPENDED",
+		3:  "CREATE_REJECTION_REASON_TARGET_NOT_FOUND",
+		4:  "CREATE_REJECTION_REASON_NO_REPO_CONNECTION",
+		5:  "CREATE_REJECTION_REASON_COMMIT_NOT_RESOLVED",
+		6:  "CREATE_REJECTION_REASON_NO_SOURCE_IMAGE",
+		7:  "CREATE_REJECTION_REASON_NEWER_DEPLOYMENT_EXISTS",
+		8:  "CREATE_REJECTION_REASON_INVALID_IMAGE",
+		9:  "CREATE_REJECTION_REASON_ENVIRONMENT_NOT_DEPLOYABLE",
+		10: "CREATE_REJECTION_REASON_SOURCE_DEPLOYMENT_NOT_FOUND",
 	}
-	CreateBlockedReason_value = map[string]int32{
-		"CREATE_BLOCKED_REASON_UNSPECIFIED":             0,
-		"CREATE_BLOCKED_REASON_NO_COMPUTE_PLAN":         1,
-		"CREATE_BLOCKED_REASON_SPEND_SUSPENDED":         2,
-		"CREATE_BLOCKED_REASON_TARGET_NOT_FOUND":        3,
-		"CREATE_BLOCKED_REASON_NO_REPO_CONNECTION":      4,
-		"CREATE_BLOCKED_REASON_COMMIT_NOT_RESOLVED":     5,
-		"CREATE_BLOCKED_REASON_NO_SOURCE_IMAGE":         6,
-		"CREATE_BLOCKED_REASON_NEWER_DEPLOYMENT_EXISTS": 7,
+	CreateRejectionReason_value = map[string]int32{
+		"CREATE_REJECTION_REASON_UNSPECIFIED":                 0,
+		"CREATE_REJECTION_REASON_NO_COMPUTE_PLAN":             1,
+		"CREATE_REJECTION_REASON_SPEND_SUSPENDED":             2,
+		"CREATE_REJECTION_REASON_TARGET_NOT_FOUND":            3,
+		"CREATE_REJECTION_REASON_NO_REPO_CONNECTION":          4,
+		"CREATE_REJECTION_REASON_COMMIT_NOT_RESOLVED":         5,
+		"CREATE_REJECTION_REASON_NO_SOURCE_IMAGE":             6,
+		"CREATE_REJECTION_REASON_NEWER_DEPLOYMENT_EXISTS":     7,
+		"CREATE_REJECTION_REASON_INVALID_IMAGE":               8,
+		"CREATE_REJECTION_REASON_ENVIRONMENT_NOT_DEPLOYABLE":  9,
+		"CREATE_REJECTION_REASON_SOURCE_DEPLOYMENT_NOT_FOUND": 10,
 	}
 )
 
-func (x CreateBlockedReason) Enum() *CreateBlockedReason {
-	p := new(CreateBlockedReason)
+func (x CreateRejectionReason) Enum() *CreateRejectionReason {
+	p := new(CreateRejectionReason)
 	*p = x
 	return p
 }
 
-func (x CreateBlockedReason) String() string {
+func (x CreateRejectionReason) String() string {
 	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
 }
 
-func (CreateBlockedReason) Descriptor() protoreflect.EnumDescriptor {
+func (CreateRejectionReason) Descriptor() protoreflect.EnumDescriptor {
 	return file_hydra_v1_deploy_proto_enumTypes[2].Descriptor()
 }
 
-func (CreateBlockedReason) Type() protoreflect.EnumType {
+func (CreateRejectionReason) Type() protoreflect.EnumType {
 	return &file_hydra_v1_deploy_proto_enumTypes[2]
 }
 
-func (x CreateBlockedReason) Number() protoreflect.EnumNumber {
+func (x CreateRejectionReason) Number() protoreflect.EnumNumber {
 	return protoreflect.EnumNumber(x)
 }
 
-// Deprecated: Use CreateBlockedReason.Descriptor instead.
-func (CreateBlockedReason) EnumDescriptor() ([]byte, []int) {
+// Deprecated: Use CreateRejectionReason.Descriptor instead.
+func (CreateRejectionReason) EnumDescriptor() ([]byte, []int) {
 	return file_hydra_v1_deploy_proto_rawDescGZIP(), []int{2}
 }
 
@@ -911,6 +927,11 @@ type DeployCreateRequest struct {
 	AppId     string `protobuf:"bytes,2,opt,name=app_id,json=appId,proto3" json:"app_id,omitempty"`
 	// Environment named by id or slug.
 	Environment string `protobuf:"bytes,3,opt,name=environment,proto3" json:"environment,omitempty"`
+	// Leave the source unset to mean "ship this app again": a connected
+	// repository deploys the head of its default branch, and an app without one
+	// redeploys the image its current deployment runs. To deploy the head of the
+	// default branch explicitly, send git with an empty commit.
+	//
 	// Types that are valid to be assigned to Source:
 	//
 	//	*DeployCreateRequest_Git
@@ -1093,16 +1114,19 @@ func (*DeployCreateRequest_Image) isDeployCreateRequest_Source() {}
 
 func (*DeployCreateRequest_ExistingDeployment) isDeployCreateRequest_Source() {}
 
-// DeployCreateResponse says what a create did. It carries no deployment id: the
-// id is the object key, so a caller knows it before calling. Callers that send
-// Create one-way, such as the public API and the GitHub webhook, never see it.
+// DeployCreateResponse says what a create did. Callers that send Create one-way,
+// such as the public API and the GitHub webhook, never see it.
 type DeployCreateResponse struct {
 	state   protoimpl.MessageState `protogen:"open.v1"`
 	Outcome CreateOutcome          `protobuf:"varint,1,opt,name=outcome,proto3,enum=hydra.v1.CreateOutcome" json:"outcome,omitempty"`
-	// BlockedReason is set only when outcome is BLOCKED. The text explaining it
+	// RejectionReason is set only when outcome is REJECTED. The text explaining it
 	// stays in the worker's logs, because it names repositories and deployments
 	// the caller may have no right to read.
-	BlockedReason CreateBlockedReason `protobuf:"varint,2,opt,name=blocked_reason,json=blockedReason,proto3,enum=hydra.v1.CreateBlockedReason" json:"blocked_reason,omitempty"`
+	RejectionReason CreateRejectionReason `protobuf:"varint,2,opt,name=rejection_reason,json=rejectionReason,proto3,enum=hydra.v1.CreateRejectionReason" json:"rejection_reason,omitempty"`
+	// DeploymentId echoes the object key the row was written under. A caller
+	// already knows it, since it chose the key; echoing it back keeps a response
+	// readable on its own in a log or a trace.
+	DeploymentId  string `protobuf:"bytes,3,opt,name=deployment_id,json=deploymentId,proto3" json:"deployment_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1144,11 +1168,18 @@ func (x *DeployCreateResponse) GetOutcome() CreateOutcome {
 	return CreateOutcome_CREATE_OUTCOME_UNSPECIFIED
 }
 
-func (x *DeployCreateResponse) GetBlockedReason() CreateBlockedReason {
+func (x *DeployCreateResponse) GetRejectionReason() CreateRejectionReason {
 	if x != nil {
-		return x.BlockedReason
+		return x.RejectionReason
 	}
-	return CreateBlockedReason_CREATE_BLOCKED_REASON_UNSPECIFIED
+	return CreateRejectionReason_CREATE_REJECTION_REASON_UNSPECIFIED
+}
+
+func (x *DeployCreateResponse) GetDeploymentId() string {
+	if x != nil {
+		return x.DeploymentId
+	}
+	return ""
 }
 
 type DeployRequest struct {
@@ -1732,10 +1763,11 @@ const file_hydra_v1_deploy_proto_rawDesc = "" +
 	"\ftriggered_by\x18\v \x01(\tR\vtriggeredBy\x12%\n" +
 	"\x0etrigger_reason\x18\f \x01(\tR\rtriggerReason\x12(\n" +
 	"\x05actor\x18\r \x01(\v2\x12.ctrl.v1.ActorInfoR\x05actorB\b\n" +
-	"\x06source\"\x8f\x01\n" +
+	"\x06source\"\xba\x01\n" +
 	"\x14DeployCreateResponse\x121\n" +
-	"\aoutcome\x18\x01 \x01(\x0e2\x17.hydra.v1.CreateOutcomeR\aoutcome\x12D\n" +
-	"\x0eblocked_reason\x18\x02 \x01(\x0e2\x1d.hydra.v1.CreateBlockedReasonR\rblockedReason\"\xc7\x01\n" +
+	"\aoutcome\x18\x01 \x01(\x0e2\x17.hydra.v1.CreateOutcomeR\aoutcome\x12J\n" +
+	"\x10rejection_reason\x18\x02 \x01(\x0e2\x1f.hydra.v1.CreateRejectionReasonR\x0frejectionReason\x12#\n" +
+	"\rdeployment_id\x18\x03 \x01(\tR\fdeploymentId\"\xc7\x01\n" +
 	"\rDeployRequest\x12#\n" +
 	"\rdeployment_id\x18\x01 \x01(\tR\fdeploymentId\x12'\n" +
 	"\x03git\x18\x03 \x01(\v2\x13.hydra.v1.GitSourceH\x00R\x03git\x121\n" +
@@ -1766,21 +1798,24 @@ const file_hydra_v1_deploy_proto_rawDesc = "" +
 	"\x1bCREATE_DECISION_UNSPECIFIED\x10\x00\x12\x1a\n" +
 	"\x16CREATE_DECISION_DEPLOY\x10\x01\x12\x18\n" +
 	"\x14CREATE_DECISION_SKIP\x10\x02\x12\"\n" +
-	"\x1eCREATE_DECISION_AWAIT_APPROVAL\x10\x03*\x84\x01\n" +
+	"\x1eCREATE_DECISION_AWAIT_APPROVAL\x10\x03*h\n" +
 	"\rCreateOutcome\x12\x1e\n" +
 	"\x1aCREATE_OUTCOME_UNSPECIFIED\x10\x00\x12\x1a\n" +
 	"\x16CREATE_OUTCOME_CREATED\x10\x01\x12\x1b\n" +
-	"\x17CREATE_OUTCOME_REPLAYED\x10\x02\x12\x1a\n" +
-	"\x16CREATE_OUTCOME_BLOCKED\x10\x03*\xf9\x02\n" +
-	"\x13CreateBlockedReason\x12%\n" +
-	"!CREATE_BLOCKED_REASON_UNSPECIFIED\x10\x00\x12)\n" +
-	"%CREATE_BLOCKED_REASON_NO_COMPUTE_PLAN\x10\x01\x12)\n" +
-	"%CREATE_BLOCKED_REASON_SPEND_SUSPENDED\x10\x02\x12*\n" +
-	"&CREATE_BLOCKED_REASON_TARGET_NOT_FOUND\x10\x03\x12,\n" +
-	"(CREATE_BLOCKED_REASON_NO_REPO_CONNECTION\x10\x04\x12-\n" +
-	")CREATE_BLOCKED_REASON_COMMIT_NOT_RESOLVED\x10\x05\x12)\n" +
-	"%CREATE_BLOCKED_REASON_NO_SOURCE_IMAGE\x10\x06\x121\n" +
-	"-CREATE_BLOCKED_REASON_NEWER_DEPLOYMENT_EXISTS\x10\a*c\n" +
+	"\x17CREATE_OUTCOME_REJECTED\x10\x02*\xa7\x04\n" +
+	"\x15CreateRejectionReason\x12'\n" +
+	"#CREATE_REJECTION_REASON_UNSPECIFIED\x10\x00\x12+\n" +
+	"'CREATE_REJECTION_REASON_NO_COMPUTE_PLAN\x10\x01\x12+\n" +
+	"'CREATE_REJECTION_REASON_SPEND_SUSPENDED\x10\x02\x12,\n" +
+	"(CREATE_REJECTION_REASON_TARGET_NOT_FOUND\x10\x03\x12.\n" +
+	"*CREATE_REJECTION_REASON_NO_REPO_CONNECTION\x10\x04\x12/\n" +
+	"+CREATE_REJECTION_REASON_COMMIT_NOT_RESOLVED\x10\x05\x12+\n" +
+	"'CREATE_REJECTION_REASON_NO_SOURCE_IMAGE\x10\x06\x123\n" +
+	"/CREATE_REJECTION_REASON_NEWER_DEPLOYMENT_EXISTS\x10\a\x12)\n" +
+	"%CREATE_REJECTION_REASON_INVALID_IMAGE\x10\b\x126\n" +
+	"2CREATE_REJECTION_REASON_ENVIRONMENT_NOT_DEPLOYABLE\x10\t\x127\n" +
+	"3CREATE_REJECTION_REASON_SOURCE_DEPLOYMENT_NOT_FOUND\x10\n" +
+	"*c\n" +
 	"\fTeardownMode\x12\x1d\n" +
 	"\x19TEARDOWN_MODE_UNSPECIFIED\x10\x00\x12\x19\n" +
 	"\x15TEARDOWN_MODE_ARCHIVE\x10\x01\x12\x19\n" +
@@ -1815,7 +1850,7 @@ var file_hydra_v1_deploy_proto_msgTypes = make([]protoimpl.MessageInfo, 23)
 var file_hydra_v1_deploy_proto_goTypes = []any{
 	(CreateDecision)(0),                    // 0: hydra.v1.CreateDecision
 	(CreateOutcome)(0),                     // 1: hydra.v1.CreateOutcome
-	(CreateBlockedReason)(0),               // 2: hydra.v1.CreateBlockedReason
+	(CreateRejectionReason)(0),             // 2: hydra.v1.CreateRejectionReason
 	(TeardownMode)(0),                      // 3: hydra.v1.TeardownMode
 	(*StopDeploymentRequest)(nil),          // 4: hydra.v1.StopDeploymentRequest
 	(*StopDeploymentResponse)(nil),         // 5: hydra.v1.StopDeploymentResponse
@@ -1855,7 +1890,7 @@ var file_hydra_v1_deploy_proto_depIdxs = []int32{
 	29, // 7: hydra.v1.DeployCreateRequest.trigger:type_name -> ctrl.v1.DeploymentTrigger
 	27, // 8: hydra.v1.DeployCreateRequest.actor:type_name -> ctrl.v1.ActorInfo
 	1,  // 9: hydra.v1.DeployCreateResponse.outcome:type_name -> hydra.v1.CreateOutcome
-	2,  // 10: hydra.v1.DeployCreateResponse.blocked_reason:type_name -> hydra.v1.CreateBlockedReason
+	2,  // 10: hydra.v1.DeployCreateResponse.rejection_reason:type_name -> hydra.v1.CreateRejectionReason
 	11, // 11: hydra.v1.DeployRequest.git:type_name -> hydra.v1.GitSource
 	10, // 12: hydra.v1.DeployRequest.oci_image:type_name -> hydra.v1.OciImage
 	27, // 13: hydra.v1.RollbackRequest.actor:type_name -> ctrl.v1.ActorInfo

@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 	"unicode/utf8"
 
@@ -13,15 +14,25 @@ import (
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/auditlog"
+	"github.com/unkeyed/unkey/pkg/deploy/deployfail"
 	"github.com/unkeyed/unkey/pkg/deploy/deploygate"
 	"github.com/unkeyed/unkey/pkg/logger"
 	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/pkg/validation"
 	"github.com/unkeyed/unkey/svc/ctrl/dedup"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/actor"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
-	"github.com/unkeyed/unkey/svc/ctrl/internal/deploytarget"
+	"google.golang.org/protobuf/encoding/protojson"
 )
+
+// Three kinds of failure, and picking the wrong one wedges a deployment:
+//
+//   - A [rejection] is a caller precondition. Answered successfully, with a reason.
+//   - restate.TerminalError is a bug or corrupt data. Restate stops.
+//   - Anything else is assumed transient and retried runMaxAttempts times.
+//
+// Prefer a rejection whenever the caller could act on the answer.
 
 // Byte limits for the commit metadata columns. MySQL strict mode rejects a
 // value wider than its column, so an untrimmed commit message fails the insert.
@@ -32,39 +43,40 @@ const (
 	triggerReasonBytesMax         = 512
 )
 
-// createBlock is a caller precondition no retry can fix: no plan, no repository
-// connection, an unresolvable commit.
-//
-// It comes back as a successful response rather than a terminal error, because
-// the Restate ingress collapses a handler failure into unstructured text and
-// svc/api needs a machine-readable reason for the 412 it answers with.
-type createBlock struct {
-	Reason hydrav1.CreateBlockedReason `json:"reason"`
-	Detail string                      `json:"detail"`
+// rejection is a caller precondition no retry can fix: no plan, no repository
+// connection, an unresolvable commit. It answers successfully rather than
+// failing, because the Restate ingress flattens a handler failure into
+// unstructured text and svc/api needs a value to branch on for its 412.
+type rejection struct {
+	Reason hydrav1.CreateRejectionReason `json:"reason"`
+	Detail string                        `json:"detail"`
 }
 
-// newBlockf builds a [createBlock] whose detail is formatted like fmt.Errorf.
-func newBlockf(reason hydrav1.CreateBlockedReason, format string, args ...any) *createBlock {
-	return &createBlock{Reason: reason, Detail: fmt.Sprintf(format, args...)}
+// rejectf builds a [rejection] whose detail is formatted like fmt.Errorf.
+func rejectf(reason hydrav1.CreateRejectionReason, format string, args ...any) *rejection {
+	return &rejection{Reason: reason, Detail: fmt.Sprintf(format, args...)}
 }
 
 // Create writes a deployment row and starts its pipeline. See the proto for the
 // contract.
 //
+// Assert, gate, build the payload, record it, act on the decision. Every stage
+// that touches the database is journaled, so a crash resumes where it died.
+//
 // The legacy ctrl.v1.DeploymentService.CreateDeployment RPC still writes rows
 // too, until its callers move over.
-//
-// Every step is journaled, so a crash resumes instead of leaving a half-written
-// deployment.
 func (w *Workflow) Create(ctx restate.ObjectContext, req *hydrav1.DeployCreateRequest) (*hydrav1.DeployCreateResponse, error) {
-	// The object key, never the payload: the row this writes has to be the id
-	// whose object lock serializes the write.
+	// The object key, never the payload: the row has to be the id whose lock
+	// serializes the write.
 	deploymentID := restate.Key(ctx)
 
 	if err := assert.All(
 		assert.NotEmpty(req.GetProjectId(), "project_id is required"),
 		assert.NotEmpty(req.GetAppId(), "app_id is required"),
 		assert.NotEmpty(req.GetEnvironment(), "environment is required"),
+		// created_at is signed but deployment_steps.started_at is not, and both
+		// sibling dedup and the supersede check order on it.
+		assert.GreaterOrEqual(req.GetPushReceivedAt(), int64(0), "push_received_at must not be negative"),
 	); err != nil {
 		return nil, restate.TerminalError(err)
 	}
@@ -74,229 +86,168 @@ func (w *Workflow) Create(ctx restate.ObjectContext, req *hydrav1.DeployCreateRe
 		return nil, err
 	}
 
-	// The row is the dedup record. Callers mint a fresh id per request today, so
-	// this only catches a re-entered invocation; it is also what makes a derived
-	// id idempotent once callers start sending one.
-	replayed, err := restate.Run(ctx, func(runCtx restate.RunContext) (bool, error) {
-		return w.findExistingDeployment(runCtx, deploymentID, req)
-	}, restate.WithName("check for existing deployment"), restate.WithMaxRetryAttempts(runMaxAttempts))
+	// Gates: target exists, workspace entitled and not suspended, environment
+	// deployable.
+	gates, err := restate.Run(ctx, func(runCtx restate.RunContext) (gateResult, error) {
+		return w.checkGates(runCtx, req, status)
+	}, restate.WithName("check gates"), restate.WithMaxRetryAttempts(runMaxAttempts))
 	if err != nil {
 		return nil, err
 	}
-	if replayed {
-		return createResponse(hydrav1.CreateOutcome_CREATE_OUTCOME_REPLAYED, nil), nil
-	}
-
-	resolution, err := restate.Run(ctx, func(runCtx restate.RunContext) (createResolution, error) {
-		return w.resolveCreate(runCtx, req)
-	}, restate.WithName("resolve create"), restate.WithMaxRetryAttempts(runMaxAttempts))
-	if err != nil {
-		return nil, err
-	}
-	if resolution.Block != nil {
+	if gates.Rejection != nil {
+		// The detail is logged, never returned: it names repositories and
+		// deployments the caller may have no right to read.
 		logger.Info(
-			"deployment create blocked",
+			"deployment create rejected",
 			"deployment_id", deploymentID,
 			"app_id", req.GetAppId(),
-			"reason", resolution.Block.Reason.String(),
-			"detail", resolution.Block.Detail,
+			"reason", gates.Rejection.Reason.String(),
+			"detail", gates.Rejection.Detail,
 		)
-		return createResponse(hydrav1.CreateOutcome_CREATE_OUTCOME_BLOCKED, resolution.Block), nil
+		return &hydrav1.DeployCreateResponse{
+			DeploymentId:    deploymentID,
+			Outcome:         hydrav1.CreateOutcome_CREATE_OUTCOME_REJECTED,
+			RejectionReason: gates.Rejection.Reason,
+		}, nil
 	}
 
-	createdAt, err := restate.Run(ctx, func(runCtx restate.RunContext) (int64, error) {
-		return w.insertDeployment(runCtx, req, deploymentID, resolution, status)
-	}, restate.WithName("insert deployment"), restate.WithMaxRetryAttempts(runMaxAttempts))
+	// Payload. Everything the row and the Deploy request are made of.
+	payload, err := restate.Run(ctx, func(runCtx restate.RunContext) (deployPayload, error) {
+		return w.buildPayload(runCtx, req, gates.Target, status)
+	}, restate.WithName("build deploy payload"), restate.WithMaxRetryAttempts(runMaxAttempts))
 	if err != nil {
 		return nil, err
 	}
+	if payload.Rejection != nil {
+		// The detail is logged, never returned: it names repositories and
+		// deployments the caller may have no right to read.
+		logger.Info(
+			"deployment create rejected",
+			"deployment_id", deploymentID,
+			"app_id", req.GetAppId(),
+			"reason", payload.Rejection.Reason.String(),
+			"detail", payload.Rejection.Detail,
+		)
+		return &hydrav1.DeployCreateResponse{
+			DeploymentId:    deploymentID,
+			Outcome:         hydrav1.CreateOutcome_CREATE_OUTCOME_REJECTED,
+			RejectionReason: payload.Rejection.Reason,
+		}, nil
+	}
 
-	logger.Info(
-		"deployment created",
-		"deployment_id", deploymentID,
-		"app_id", req.GetAppId(),
-		"environment", req.GetEnvironment(),
-		"status", string(status),
-	)
+	// Record: the row, its queued step, and its audit log, in one transaction.
+	if err := restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
+		return w.recordDeployment(runCtx, deploymentID, gates.Target, payload, req.GetActor())
+	}, restate.WithName("record deployment"), restate.WithMaxRetryAttempts(runMaxAttempts)); err != nil {
+		return nil, err
+	}
 
-	// The row exists either way; the decision says what happens to it now.
 	switch req.GetDecision() {
 	case hydrav1.CreateDecision_CREATE_DECISION_DEPLOY:
-		if err := w.startDeploy(ctx, deploymentID, req, resolution, createdAt); err != nil {
+		if err := w.startDeploy(ctx, deploymentID, gates.Target, payload); err != nil {
 			return nil, err
 		}
 	case hydrav1.CreateDecision_CREATE_DECISION_AWAIT_APPROVAL:
-		// The row is the whole record for now. The commit status telling the
-		// contributor their push is waiting is still posted by the GitHub webhook
-		// (githubwebhook.blockDeploymentForApproval), and moves here when that
-		// caller starts sending Create.
+		// The "awaiting authorization" commit status is still posted by
+		// githubwebhook.blockDeploymentForApproval, and moves here on cutover.
 	case hydrav1.CreateDecision_CREATE_DECISION_SKIP:
 		// The row is the whole point of a skip.
 	case hydrav1.CreateDecision_CREATE_DECISION_UNSPECIFIED:
 		// Rejected before anything was written. See statusForDecision.
 	}
 
-	return createResponse(hydrav1.CreateOutcome_CREATE_OUTCOME_CREATED, nil), nil
-}
-
-// createResponse builds the handler's answer. A nil block leaves the blocked
-// reason unspecified.
-func createResponse(outcome hydrav1.CreateOutcome, block *createBlock) *hydrav1.DeployCreateResponse {
-	resp := &hydrav1.DeployCreateResponse{
-		Outcome:       outcome,
-		BlockedReason: hydrav1.CreateBlockedReason_CREATE_BLOCKED_REASON_UNSPECIFIED,
-	}
-	if block != nil {
-		resp.BlockedReason = block.Reason
-	}
-	return resp
-}
-
-// findExistingDeployment reports whether this object already wrote its row, so
-// a repeat returns REPLAYED instead of creating a second deployment.
-//
-// A row belonging to another target is a terminal error, not a replay:
-// answering anyway would hand this caller someone else's deployment.
-func (w *Workflow) findExistingDeployment(
-	ctx context.Context,
-	deploymentID string,
-	req *hydrav1.DeployCreateRequest,
-) (bool, error) {
-	row, err := w.db.FindDeploymentById(ctx, deploymentID)
-	if err != nil {
-		if db.IsNotFound(err) {
-			return false, nil
-		}
-		return false, err
-	}
-
-	if row.ProjectID != req.GetProjectId() || row.AppID != req.GetAppId() {
-		return false, restate.TerminalError(fmt.Errorf(
-			"deployment %s belongs to project %s app %s, not project %s app %s",
-			deploymentID, row.ProjectID, row.AppID, req.GetProjectId(), req.GetAppId(),
-		))
-	}
-
-	logger.Info(
-		"deployment create replayed an existing row",
-		"deployment_id", deploymentID,
-		"status", string(row.Status),
-	)
-	return true, nil
-}
-
-// createResolution is what [Workflow.resolveCreate] decided. It crosses the
-// Restate journal as JSON, so the source and commit are flattened to scalars: a
-// proto oneof does not survive that round trip.
-type createResolution struct {
-	// Block set means nothing was written and nothing should be.
-	Block *createBlock `json:"block"`
-
-	// Target is what the row is written from. Its secrets blob holds vault
-	// ciphertext, never plaintext, so the journal is a safe place to carry it.
-	Target deploytarget.Target `json:"target"`
-
-	// Command is resolved once here so the row and the Deploy request cannot
-	// disagree about what the container runs.
-	Command []string `json:"command"`
-
-	// PRNumber is recorded for every decision, including a skip, which resolves
-	// no source to carry it.
-	PRNumber int64 `json:"pr_number"`
-
-	Source buildSource  `json:"source"`
-	Commit commitFields `json:"commit"`
-}
-
-// resolveCreate loads the target, runs the gates, and resolves the build source.
-// All three need the loaded target, so they share one journaled step instead of
-// carrying it through the journal.
-func (w *Workflow) resolveCreate(ctx context.Context, req *hydrav1.DeployCreateRequest) (createResolution, error) {
-	// A skipped row never builds, so it holds no secrets at rest.
-	secrets := deploytarget.WithSecrets
-	if req.GetDecision() == hydrav1.CreateDecision_CREATE_DECISION_SKIP {
-		secrets = deploytarget.WithoutSecrets
-	}
-
-	target, loadErr := deploytarget.Load(ctx, w.db, req.GetProjectId(), req.GetAppId(), req.GetEnvironment(), secrets)
-	var terminal *deploytarget.TerminalError
-	switch {
-	case errors.As(loadErr, &terminal):
-		// The caller checked this target first, so a miss here means it was
-		// deleted mid-create. A block, not an error: no retry brings it back.
-		return createResolution{Block: newBlockf( //nolint:exhaustruct // only the block is read
-			hydrav1.CreateBlockedReason_CREATE_BLOCKED_REASON_TARGET_NOT_FOUND,
-			"%s", terminal.Message,
-		)}, nil
-	case loadErr != nil:
-		return createResolution{}, loadErr //nolint:exhaustruct // zero value unused on error
-	}
-
-	block, err := w.checkDeployGate(ctx, target.WorkspaceID)
-	if err != nil {
-		return createResolution{}, err //nolint:exhaustruct // zero value unused on error
-	}
-	if block != nil {
-		return createResolution{Block: block}, nil //nolint:exhaustruct // only the block is read
-	}
-
-	commit := commitFromProto(req.GetGit().GetCommit())
-	prNumber := req.GetGit().GetPrNumber()
-	source := buildSource{Image: "", Git: nil}
-
-	// A skipped row never builds. Resolving a source anyway would make recording
-	// the skip depend on the repository connection and on GitHub answering.
-	if req.GetDecision() != hydrav1.CreateDecision_CREATE_DECISION_SKIP {
-		resolved, resolveErr := w.resolveSource(ctx, target, req, commit)
-		if resolveErr != nil {
-			return createResolution{}, resolveErr //nolint:exhaustruct // zero value unused on error
-		}
-		if resolved.Block != nil {
-			return createResolution{Block: resolved.Block}, nil //nolint:exhaustruct // only the block is read
-		}
-		if resolved.Source.Git == nil && resolved.Source.Image == "" {
-			return createResolution{}, restate.TerminalError(errors.New("no build source: set git, image, or existing_deployment")) //nolint:exhaustruct // zero value unused on error
-		}
-		source, commit = resolved.Source, resolved.Commit
-		if source.Git != nil {
-			// A rebuild takes the PR number off the deployment it reproduces,
-			// not off the request.
-			prNumber = source.Git.PRNumber
-		}
-	}
-
-	// A per-request command wins over the app's stored default, so the row records
-	// what actually runs.
-	command := target.Command
-	if len(req.GetCommand()) > 0 {
-		command = req.GetCommand()
-	}
-
-	return createResolution{
-		Block:    nil,
-		Target:   target,
-		Command:  command,
-		PRNumber: prNumber,
-		Source:   source,
-		Commit:   commit,
+	return &hydrav1.DeployCreateResponse{
+		DeploymentId:    deploymentID,
+		Outcome:         hydrav1.CreateOutcome_CREATE_OUTCOME_CREATED,
+		RejectionReason: hydrav1.CreateRejectionReason_CREATE_REJECTION_REASON_UNSPECIFIED,
 	}, nil
 }
 
-// checkDeployGate is the billing gate every create passes. A workspace with no
-// billing row reads as having no plan rather than as an error, which is the
-// normal state before anyone subscribes.
+// gateResult is what the gate stage decided. It carries the target because the
+// first gate is proving the target exists, and it is the only place the target
+// crosses the journal: later stages take it as an argument instead.
+type gateResult struct {
+	// Rejection set means nothing was written and nothing should be.
+	Rejection *rejection `json:"rejection"`
+
+	// Target is the project, app, environment and settings, read when the create
+	// runs rather than when it was requested.
+	Target db.FindDeployTargetRow `json:"target"`
+}
+
+// checkGates proves the target exists and may deploy.
+//
+// A skip passes the deployability gate untested: it never builds, and refusing
+// it would leave the push with no record of having been seen at all.
+func (w *Workflow) checkGates(
+	ctx context.Context,
+	req *hydrav1.DeployCreateRequest,
+	status mysqltype.DeploymentsStatus,
+) (gateResult, error) {
+	var result gateResult
+
+	// One query decides the triple as a whole, so a target never mixes records
+	// from different projects and a miss never says which of the three is wrong.
+	target, err := w.db.FindDeployTarget(ctx, db.FindDeployTargetParams{
+		ProjectID:   req.GetProjectId(),
+		AppID:       req.GetAppId(),
+		Environment: req.GetEnvironment(),
+	})
+	if err != nil {
+		if !db.IsNotFound(err) {
+			return result, fmt.Errorf("failed to lookup deploy target: %w", err)
+		}
+		// The caller checked this target first, so a miss here means it was
+		// deleted mid-create. A rejection, not an error: no retry brings it back.
+		result.Rejection = rejectf(
+			hydrav1.CreateRejectionReason_CREATE_REJECTION_REASON_TARGET_NOT_FOUND,
+			"no deploy target for project '%s', app '%s', environment '%s'",
+			req.GetProjectId(), req.GetAppId(), req.GetEnvironment(),
+		)
+		return result, nil
+	}
+
+	// Entitlement first, and only the first refusal is reported: a workspace that
+	// cannot deploy at all has no use for its environment's problems. The
+	// environment gate does report all of its own at once.
+	rejected, err := w.checkDeployGate(ctx, target.WorkspaceID)
+	if err != nil {
+		return result, err
+	}
+	if rejected == nil && status != mysqltype.DeploymentsStatusSkipped {
+		rejected = checkEnvironmentDeployable(target)
+	}
+	if rejected != nil {
+		result.Rejection = rejected
+		return result, nil
+	}
+
+	result.Target = target
+	return result, nil
+}
+
+// checkDeployGate is the billing gate every create passes.
 //
 // Plan enforcement follows enforceDeployGate; the spend cap always blocks.
-func (w *Workflow) checkDeployGate(ctx context.Context, workspaceID string) (*createBlock, error) {
+func (w *Workflow) checkDeployGate(ctx context.Context, workspaceID string) (*rejection, error) {
 	entitlement, err := w.db.FindWorkspaceDeployEntitlement(ctx, workspaceID)
-	if err != nil && !db.IsNotFound(err) {
-		return nil, err
+	if err != nil {
+		if !db.IsNotFound(err) {
+			return nil, err
+		}
+		// The query left-joins billing onto the workspace, so a workspace with no
+		// billing row still answers with empty plan columns. A miss means the
+		// workspace itself is gone, which no retry and no plan change fixes.
+		return rejectf(
+			hydrav1.CreateRejectionReason_CREATE_REJECTION_REASON_TARGET_NOT_FOUND,
+			"workspace %s not found", workspaceID,
+		), nil
 	}
 
 	if !deploygate.Entitled(entitlement.Plan, entitlement.PlanOverride) {
 		if w.enforceDeployGate {
-			return newBlockf(
-				hydrav1.CreateBlockedReason_CREATE_BLOCKED_REASON_NO_COMPUTE_PLAN,
+			return rejectf(
+				hydrav1.CreateRejectionReason_CREATE_REJECTION_REASON_NO_COMPUTE_PLAN,
 				"workspace %s has no Compute plan", workspaceID,
 			), nil
 		}
@@ -308,8 +259,8 @@ func (w *Workflow) checkDeployGate(ctx context.Context, workspaceID string) (*cr
 	}
 
 	if entitlement.SpendSuspended.Bool {
-		return newBlockf(
-			hydrav1.CreateBlockedReason_CREATE_BLOCKED_REASON_SPEND_SUSPENDED,
+		return rejectf(
+			hydrav1.CreateRejectionReason_CREATE_REJECTION_REASON_SPEND_SUSPENDED,
 			"workspace %s is suspended by its Compute spend cap", workspaceID,
 		), nil
 	}
@@ -317,41 +268,166 @@ func (w *Workflow) checkDeployGate(ctx context.Context, workspaceID string) (*cr
 	return nil, nil
 }
 
-// insertDeployment writes the row, its queued step, and its audit log in one
-// transaction, and returns the created_at it settled on.
-func (w *Workflow) insertDeployment(
+// checkEnvironmentDeployable refuses an environment whose runtime or regional
+// settings the pipeline cannot satisfy. Deploy checks both again as a backstop,
+// but a row written here could only ever reach FAILED.
+func checkEnvironmentDeployable(target db.FindDeployTargetRow) *rejection {
+	// The offending value is what makes it actionable, and svc/api's own
+	// pre-flight already reports it that way.
+	messages := make([]string, 0, 2)
+	for _, violation := range deployfail.RuntimeViolations(target.Port, target.CpuMillicores, target.MemoryMib) {
+		messages = append(messages, fmt.Sprintf("%s (is %d)", violation.Message, violation.Actual))
+	}
+	if !target.HasSchedulableRegion {
+		messages = append(messages, deployfail.MsgNoSchedulableRegions)
+	}
+
+	if len(messages) == 0 {
+		return nil
+	}
+	return rejectf(
+		hydrav1.CreateRejectionReason_CREATE_REJECTION_REASON_ENVIRONMENT_NOT_DEPLOYABLE,
+		"environment %q is not deployable: %s", target.EnvironmentSlug, strings.Join(messages, "; "),
+	)
+}
+
+// deployPayload is everything the create derived that is not already on the
+// target. Nothing downstream reads the request for a column, so the row cannot
+// disagree with what gets built.
+//
+// It crosses the journal as JSON, so the source and commit are flattened to
+// scalars: a proto oneof does not survive that trip. Strings arrive trimmed to
+// their column widths.
+type deployPayload struct {
+	// Rejection set means nothing was written and nothing should be.
+	Rejection *rejection `json:"rejection"`
+
+	Status mysqltype.DeploymentsStatus `json:"status"`
+
+	// Settled in this journaled stage, so a retry reuses the first attempt's
+	// value rather than a later clock.
+	CreatedAt int64 `json:"created_at"`
+
+	// The environment's variables as a SecretsConfig. Vault ciphertext, never
+	// plaintext, so the journal is a safe place to carry it.
+	Secrets []byte `json:"secrets"`
+
+	// Resolved once so the row and the Deploy request agree on what runs.
+	Command []string `json:"command"`
+
+	// Recorded even for a skip, which resolves no source to carry it.
+	PRNumber int64 `json:"pr_number"`
+
+	Source buildSource `json:"source"`
+	Commit gitCommit   `json:"commit"`
+
+	Trigger       db.DeploymentsTrigger `json:"trigger"`
+	TriggeredBy   string                `json:"triggered_by"`
+	TriggerReason string                `json:"trigger_reason"`
+
+	// The deployment this one reproduces. Turns the audit entry into a rebuild.
+	RebuildSourceID string `json:"rebuild_source_id"`
+}
+
+// buildPayload turns a gated request into the complete [deployPayload].
+//
+// A skip resolves no source and holds no secrets: recording it must not depend
+// on the repository connection or on GitHub answering.
+func (w *Workflow) buildPayload(
 	ctx context.Context,
 	req *hydrav1.DeployCreateRequest,
-	deploymentID string,
-	resolution createResolution,
+	target db.FindDeployTargetRow,
 	status mysqltype.DeploymentsStatus,
-) (int64, error) {
-	target := resolution.Target
+) (deployPayload, error) {
+	var payload deployPayload
 
-	// The push time wins so sibling dedup keeps push order even when async sends
-	// land out of order. The clock is read inside this journaled step, so a replay
-	// reuses the recorded value.
+	willBuild := status != mysqltype.DeploymentsStatusSkipped
+
+	secrets := []byte{}
+	if willBuild {
+		var err error
+		secrets, err = w.loadSecrets(ctx, target.AppID, target.EnvironmentID)
+		if err != nil {
+			return payload, err
+		}
+	}
+
+	commit := gitCommitFromProto(req.GetGit().GetCommit())
+	prNumber := req.GetGit().GetPrNumber()
+	source := buildSource{Image: "", Git: nil}
+
+	if willBuild {
+		resolved, err := w.resolveSource(ctx, target, req, commit)
+		if err != nil {
+			return payload, err
+		}
+		if resolved.Rejection != nil {
+			payload.Rejection = resolved.Rejection
+			return payload, nil
+		}
+		if resolved.Source.Git == nil && resolved.Source.Image == "" {
+			return payload, restate.TerminalError(errors.New("no build source: set git, image, or existing_deployment"))
+		}
+		source, commit = resolved.Source, resolved.Commit
+		if source.Git != nil {
+			// A rebuild takes the PR number off the deployment it reproduces, not
+			// off the request.
+			prNumber = source.Git.PRNumber
+		}
+	}
+
+	// A per-request command wins over the app's default, so the row records what
+	// actually runs.
+	command := target.Command
+	if len(req.GetCommand()) > 0 {
+		command = req.GetCommand()
+	}
+
+	// The push time wins so dedup keeps push order when sends land out of order.
 	createdAt := req.GetPushReceivedAt()
 	if createdAt == 0 {
 		createdAt = time.Now().UnixMilli()
 	}
 
+	commit.Message = trimBytes(commit.Message, commitMessageBytesMax)
+	commit.AuthorHandle = trimBytes(commit.AuthorHandle, commitAuthorHandleBytesMax)
+	commit.AuthorAvatarURL = trimBytes(commit.AuthorAvatarURL, commitAuthorAvatarURLBytesMax)
+
+	payload.Status = status
+	payload.CreatedAt = createdAt
+	payload.Secrets = secrets
+	payload.Command = command
+	payload.PRNumber = prNumber
+	payload.Source = source
+	payload.Commit = commit
+	payload.Trigger = triggerFromProto(req.GetTrigger())
+	payload.TriggeredBy = req.GetTriggeredBy()
+	payload.TriggerReason = trimBytes(req.GetTriggerReason(), triggerReasonBytesMax)
+	payload.RebuildSourceID = req.GetExistingDeployment().GetDeploymentId()
+	return payload, nil
+}
+
+// recordDeployment writes the row, its queued step, and its audit log in one
+// transaction. Half a record is worse than none: no queued step means no queue
+// time, and no audit entry means nobody can see who asked for the deployment.
+func (w *Workflow) recordDeployment(
+	ctx context.Context,
+	deploymentID string,
+	target db.FindDeployTargetRow,
+	payload deployPayload,
+	a *ctrlv1.ActorInfo,
+) error {
+	commit := payload.Commit
+
 	// A skip resolves no source and records unknown, the same as a row that
 	// predates source tracking.
 	source := db.DeploymentsSourceUnknown
 	switch {
-	case resolution.Source.Git != nil:
+	case payload.Source.Git != nil:
 		source = db.DeploymentsSourceGit
-	case resolution.Source.Image != "":
+	case payload.Source.Image != "":
 		source = db.DeploymentsSourceOci
 	}
-
-	commit := resolution.Commit
-	commitMessage := trimBytes(commit.Message, commitMessageBytesMax)
-	authorHandle := trimBytes(commit.AuthorHandle, commitAuthorHandleBytesMax)
-	authorAvatarURL := trimBytes(commit.AuthorAvatarURL, commitAuthorAvatarURLBytesMax)
-	triggerReason := trimBytes(req.GetTriggerReason(), triggerReasonBytesMax)
-	triggeredBy := req.GetTriggeredBy()
 
 	insertErr := db.TxRetry(ctx, w.db.RW(), func(txCtx context.Context, tx db.DBTX) error {
 		if err := db.NewQueries(tx).InsertDeployment(txCtx, db.InsertDeploymentParams{
@@ -362,18 +438,18 @@ func (w *Workflow) insertDeployment(
 			AppID:                         target.AppID,
 			EnvironmentID:                 target.EnvironmentID,
 			Source:                        source,
-			ImageRequested:                sql.NullString{String: resolution.Source.Image, Valid: resolution.Source.Image != ""},
+			ImageRequested:                sql.NullString{String: payload.Source.Image, Valid: payload.Source.Image != ""},
 			SentinelConfig:                target.SentinelConfig,
-			EncryptedEnvironmentVariables: target.SecretsBlob,
-			Command:                       resolution.Command,
-			Status:                        status,
-			CreatedAt:                     createdAt,
+			EncryptedEnvironmentVariables: payload.Secrets,
+			Command:                       payload.Command,
+			Status:                        payload.Status,
+			CreatedAt:                     payload.CreatedAt,
 			UpdatedAt:                     sql.NullInt64{Valid: false, Int64: 0},
 			GitCommitSha:                  sql.NullString{String: commit.SHA, Valid: commit.SHA != ""},
 			GitBranch:                     sql.NullString{String: commit.Branch, Valid: commit.Branch != ""},
-			GitCommitMessage:              sql.NullString{String: commitMessage, Valid: commitMessage != ""},
-			GitCommitAuthorHandle:         sql.NullString{String: authorHandle, Valid: authorHandle != ""},
-			GitCommitAuthorAvatarUrl:      sql.NullString{String: authorAvatarURL, Valid: authorAvatarURL != ""},
+			GitCommitMessage:              sql.NullString{String: commit.Message, Valid: commit.Message != ""},
+			GitCommitAuthorHandle:         sql.NullString{String: commit.AuthorHandle, Valid: commit.AuthorHandle != ""},
+			GitCommitAuthorAvatarUrl:      sql.NullString{String: commit.AuthorAvatarURL, Valid: commit.AuthorAvatarURL != ""},
 			GitCommitTimestamp:            sql.NullInt64{Int64: commit.Timestamp, Valid: commit.Timestamp != 0},
 			CpuMillicores:                 target.CpuMillicores,
 			MemoryMib:                     target.MemoryMib,
@@ -382,17 +458,16 @@ func (w *Workflow) insertDeployment(
 			ShutdownSignal:                db.DeploymentsShutdownSignal(target.ShutdownSignal),
 			UpstreamProtocol:              db.DeploymentsUpstreamProtocol(target.UpstreamProtocol),
 			Healthcheck:                   target.Healthcheck,
-			PrNumber:                      sql.NullInt64{Int64: resolution.PRNumber, Valid: resolution.PRNumber != 0},
+			PrNumber:                      sql.NullInt64{Int64: payload.PRNumber, Valid: payload.PRNumber != 0},
 			ForkRepositoryFullName:        sql.NullString{String: commit.ForkRepository, Valid: commit.ForkRepository != ""},
-			DeploymentTrigger:             triggerFromProto(req.GetTrigger()),
-			TriggeredBy:                   sql.NullString{String: triggeredBy, Valid: triggeredBy != ""},
-			TriggerReason:                 sql.NullString{String: triggerReason, Valid: triggerReason != ""},
+			DeploymentTrigger:             payload.Trigger,
+			TriggeredBy:                   sql.NullString{String: payload.TriggeredBy, Valid: payload.TriggeredBy != ""},
+			TriggerReason:                 sql.NullString{String: payload.TriggerReason, Valid: payload.TriggerReason != ""},
 		}); err != nil {
 			return err
 		}
 
-		// Deploy ends this step but never inserts it, so without this write the row
-		// shows no queue time.
+		// Deploy ends this step but never inserts it.
 		if err := db.NewQueries(tx).InsertDeploymentStep(txCtx, db.InsertDeploymentStepParams{
 			WorkspaceID:   target.WorkspaceID,
 			ProjectID:     target.ProjectID,
@@ -400,47 +475,39 @@ func (w *Workflow) insertDeployment(
 			EnvironmentID: target.EnvironmentID,
 			DeploymentID:  deploymentID,
 			Step:          db.DeploymentStepsStepQueued,
-			StartedAt:     uint64(createdAt),
+			StartedAt:     uint64(payload.CreatedAt),
 		}); err != nil {
 			return err
 		}
 
-		return w.auditlogs.Insert(txCtx, tx, w.createAuditLogs(req, target, deploymentID, status))
+		return w.auditlogs.Insert(txCtx, tx, createAuditLogs(target, payload, deploymentID, a))
 	})
-	if insertErr != nil {
-		if !db.IsDuplicateKeyError(insertErr) {
-			return 0, insertErr
-		}
-		// An earlier attempt committed before the journal recorded it. Keep its
-		// created_at: sibling dedup compares against it, and this attempt's
-		// later clock would make the row look newer than it is.
-		row, findErr := w.db.FindDeploymentById(ctx, deploymentID)
-		if findErr != nil {
-			return 0, fmt.Errorf("duplicate key on insert but deployment %s not found: %w", deploymentID, findErr)
-		}
-		return row.CreatedAt, nil
-	}
 
-	return createdAt, nil
+	// A duplicate key means this already committed and we are running again:
+	// TxRetry re-runs the transaction on anything that looks transient, and a
+	// commit whose acknowledgement was lost looks exactly like that. Failing
+	// here would burn every retry on an error no attempt can clear, leaving a
+	// row that never builds and, with no invocation id, can never be cancelled.
+	if insertErr != nil && !db.IsDuplicateKeyError(insertErr) {
+		return insertErr
+	}
+	return nil
 }
 
-// createAuditLogs builds the audit entry for a new row. A skipped row gets none:
-// nothing happened that a customer needs to see.
+// createAuditLogs builds the audit entry for a new row. A skip gets none.
 //
-// A rebuild is recorded as deployment.rebuild with both deployments as
-// resources. The UNKEY trigger identifies it, because Unkey itself only ever
-// asks for rebuilds.
-func (w *Workflow) createAuditLogs(
-	req *hydrav1.DeployCreateRequest,
-	target deploytarget.Target,
+// A rebuild is recorded as deployment.rebuild naming both deployments. The UNKEY
+// trigger identifies it, because Unkey itself only ever asks for rebuilds.
+func createAuditLogs(
+	target db.FindDeployTargetRow,
+	payload deployPayload,
 	deploymentID string,
-	status mysqltype.DeploymentsStatus,
+	a *ctrlv1.ActorInfo,
 ) []auditlog.AuditLog {
-	if status == mysqltype.DeploymentsStatusSkipped {
+	if payload.Status == mysqltype.DeploymentsStatusSkipped {
 		return nil
 	}
 
-	a := req.GetActor()
 	entry := auditlog.AuditLog{
 		Event:         auditlog.DeploymentCreateEvent,
 		WorkspaceID:   target.WorkspaceID,
@@ -467,23 +534,22 @@ func (w *Workflow) createAuditLogs(
 		},
 	}
 
-	sourceID := req.GetExistingDeployment().GetDeploymentId()
-	if req.GetTrigger() != ctrlv1.DeploymentTrigger_DEPLOYMENT_TRIGGER_UNKEY || sourceID == "" {
+	if payload.Trigger != db.DeploymentsTriggerUnkey || payload.RebuildSourceID == "" {
 		return []auditlog.AuditLog{entry}
 	}
 
 	entry.Event = auditlog.DeploymentRebuildEvent
-	entry.Display = fmt.Sprintf("Unkey rebuilt deployment %s as %s", sourceID, deploymentID)
-	if reason := req.GetTriggerReason(); reason != "" {
-		entry.Display = fmt.Sprintf("%s (reason: %s)", entry.Display, reason)
+	entry.Display = fmt.Sprintf("Unkey rebuilt deployment %s as %s", payload.RebuildSourceID, deploymentID)
+	if payload.TriggerReason != "" {
+		entry.Display = fmt.Sprintf("%s (reason: %s)", entry.Display, payload.TriggerReason)
 	}
 	entry.Resources[0].Meta["role"] = "new"
 	entry.Resources = append([]auditlog.AuditLogResource{
 		{
 			Type:        auditlog.DeploymentResourceType,
-			ID:          sourceID,
+			ID:          payload.RebuildSourceID,
 			Name:        "",
-			DisplayName: sourceID,
+			DisplayName: payload.RebuildSourceID,
 			Meta:        map[string]any{"role": "source"},
 		},
 	}, entry.Resources...)
@@ -491,25 +557,30 @@ func (w *Workflow) createAuditLogs(
 	return []auditlog.AuditLog{entry}
 }
 
-// startDeploy sends Deploy to this same object, records the invocation id it
-// returns, and supersedes older queued siblings on the branch.
+// startDeploy sends Deploy, records the invocation id it returns, then
+// supersedes older queued siblings on the branch.
 //
 // Send, not Request: Deploy is another exclusive handler on this key and cannot
-// start until this handler returns. The id is written straight after the send so
-// a cancel arriving next instant has something to cancel. Deploy writes it again
+// start until this one returns. The id is written straight after the send so a
+// cancel arriving next instant has something to cancel; Deploy writes it again
 // because this write still races that cancel.
 func (w *Workflow) startDeploy(
 	ctx restate.ObjectContext,
 	deploymentID string,
-	req *hydrav1.DeployCreateRequest,
-	resolution createResolution,
-	createdAt int64,
+	target db.FindDeployTargetRow,
+	payload deployPayload,
 ) error {
 	invocation := hydrav1.NewDeployServiceClient(ctx, deploymentID).
 		Deploy().
-		Send(resolution.Source.deployRequest(deploymentID, resolution.Command, resolution.Commit))
+		Send(payload.Source.deployRequest(deploymentID, payload.Command, payload.Commit))
 
+	// Restate always answers a successful Send with an invocation id. An empty
+	// one is a bug, and it would leave a deployment no cancel can reach.
 	invocationID := invocation.GetInvocationId()
+	if invocationID == "" {
+		return fmt.Errorf("restate returned an empty invocation id for deployment %s", deploymentID)
+	}
+
 	if err := restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
 		return w.db.UpdateDeploymentInvocationID(runCtx, db.UpdateDeploymentInvocationIDParams{
 			ID:           deploymentID,
@@ -526,10 +597,10 @@ func (w *Workflow) startDeploy(
 	if runErr := restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
 		if cancelErr := w.dedup.CancelOlderSiblings(runCtx, dedup.Newer{
 			ID:            deploymentID,
-			AppID:         req.GetAppId(),
-			EnvironmentID: resolution.Target.EnvironmentID,
-			GitBranch:     resolution.Commit.Branch,
-			CreatedAt:     createdAt,
+			AppID:         target.AppID,
+			EnvironmentID: target.EnvironmentID,
+			GitBranch:     payload.Commit.Branch,
+			CreatedAt:     payload.CreatedAt,
 		}); cancelErr != nil {
 			logger.Error(
 				"failed to cancel superseded siblings",
@@ -545,7 +616,7 @@ func (w *Workflow) startDeploy(
 	logger.Info(
 		"deployment workflow started",
 		"deployment_id", deploymentID,
-		"app_id", req.GetAppId(),
+		"app_id", target.AppID,
 		"invocation_id", invocationID,
 	)
 	return nil
@@ -554,7 +625,7 @@ func (w *Workflow) startDeploy(
 // statusForDecision maps the caller's decision onto the status the row starts
 // in. A decision is what the caller wants; a status is what the deployment is.
 //
-// An unset decision is a caller bug, not a default. Reading it as DEPLOY would
+// An unset decision is a caller bug, not a default: reading it as DEPLOY would
 // build a commit whose watch paths said to skip it.
 func statusForDecision(decision hydrav1.CreateDecision) (mysqltype.DeploymentsStatus, error) {
 	switch decision {
@@ -590,6 +661,39 @@ func triggerFromProto(trigger ctrlv1.DeploymentTrigger) db.DeploymentsTrigger {
 	default:
 		return db.DeploymentsTriggerUnknown
 	}
+}
+
+// loadSecrets marshals the environment's variables into the SecretsConfig the
+// deployment row stores. The values are vault ciphertext.
+func (w *Workflow) loadSecrets(ctx context.Context, appID, environmentID string) ([]byte, error) {
+	envVars, err := w.db.FindAppEnvVarsByAppAndEnv(ctx, db.FindAppEnvVarsByAppAndEnvParams{
+		AppID:         appID,
+		EnvironmentID: environmentID,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch app environment variables: %w", err)
+	}
+	if len(envVars) == 0 {
+		return []byte{}, nil
+	}
+
+	config := &ctrlv1.SecretsConfig{Secrets: make(map[string]string, len(envVars))}
+	for _, ev := range envVars {
+		// A key that cannot be exported into a container is a defect in stored
+		// data. No retry fixes it.
+		if !validation.IsValidEnvVarKey(ev.Key) {
+			return nil, restate.TerminalError(fmt.Errorf(
+				"environment variable key %q is invalid: %s", ev.Key, validation.ErrMsgInvalidEnvVarKey,
+			))
+		}
+		config.Secrets[ev.Key] = ev.Value
+	}
+
+	marshaled, err := protojson.Marshal(config)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal secrets config: %w", err)
+	}
+	return marshaled, nil
 }
 
 // trimBytes truncates s to at most bytesMax bytes on a rune boundary. Cutting
