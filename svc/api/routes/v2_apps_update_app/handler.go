@@ -325,7 +325,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			return actorErr
 		}
 		ctrlRes, ctrlErr := h.CtrlClient.UpdateOciImageSource(ctx, &ctrlv1.UpdateOciImageSourceRequest{
-			WorkspaceId:    principal.WorkspaceID,
+			WorkspaceId:    principal.AuthorizedWorkspaceID,
 			AppId:          data.Id,
 			ImageReference: req.Oci.Image,
 			Actor:          actor,
