@@ -13,7 +13,6 @@ import {
 import { AlertStatusBadge } from "@/components/alerts/status-badge";
 import type { AlertListItem, AlertSeriesData, AlertSeriesMetric } from "@/components/alerts/types";
 import { type ChartConfig, ChartContainer } from "@/components/ui/chart";
-import { cn } from "@/lib/utils";
 import { Empty, Skeleton } from "@unkey/ui";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -21,8 +20,10 @@ import {
   Bar,
   CartesianGrid,
   ComposedChart,
+  type LabelProps,
   Line,
   ReferenceArea,
+  ReferenceDot,
   ReferenceLine,
   Tooltip,
   XAxis,
@@ -42,6 +43,19 @@ type DeploymentMarker = {
   gitSha: string | null;
   label: string;
 };
+
+type HoveredAnnotation = {
+  alerts: AlertListItem[];
+  anchorX: number;
+  anchorY: number;
+  kind: "dot" | "window";
+};
+
+const chartHeightPx = 380;
+const plotTopPx = 8;
+const plotRightPx = 16;
+const plotBottomPx = 38;
+const plotLeftPx = 80;
 
 export function AnomalyChart({
   metric,
@@ -79,7 +93,39 @@ export function AnomalyChart({
       })),
     [data?.buckets, metric],
   );
-  const [hoveredAlerts, setHoveredAlerts] = useState<AlertListItem[] | null>(null);
+  const alertDots = useMemo(
+    () =>
+      alerts.flatMap((alert) => {
+        if (seriesMetricForAlert(alert.metric) !== metric) {
+          return [];
+        }
+        const point = extremePointInAlertWindow(alert, buckets);
+        return point ? [{ alert, point }] : [];
+      }),
+    [alerts, buckets, metric],
+  );
+  const [chartWidthPx, setChartWidthPx] = useState(1_000);
+  const [hoveredAnnotation, setHoveredAnnotation] = useState<HoveredAnnotation | null>(null);
+
+  useEffect(() => {
+    const container = chartAreaRef.current;
+    if (!container) {
+      return;
+    }
+    const updateWidth = () => setChartWidthPx(container.clientWidth);
+    updateWidth();
+    const observer = new ResizeObserver(updateWidth);
+    observer.observe(container);
+    return () => observer.disconnect();
+  }, []);
+
+  const deploymentLabels = useMemo(
+    () =>
+      data
+        ? groupDeploymentLabels(deployments, data.startMs, data.endMs, chartWidthPx)
+        : new Map<string, string>(),
+    [chartWidthPx, data, deployments],
+  );
 
   if (loading) {
     return <Skeleton className="h-[430px] w-full rounded-lg" />;
@@ -143,6 +189,25 @@ export function AnomalyChart({
       onZoom({ startMs: startPoint.time, endMs: endPoint.time + fiveMinutesMs });
     }
   };
+  const showAnnotationTooltip = (
+    annotationAlerts: AlertListItem[],
+    element: SVGElement,
+    kind: HoveredAnnotation["kind"],
+  ) => {
+    const chartBounds = chartAreaRef.current?.getBoundingClientRect();
+    if (!chartBounds) {
+      return;
+    }
+    const elementBounds = element.getBoundingClientRect();
+    setHoveredAnnotation({
+      alerts: annotationAlerts,
+      anchorX: elementBounds.left + elementBounds.width / 2 - chartBounds.left,
+      anchorY:
+        (kind === "window" ? elementBounds.top : elementBounds.top + elementBounds.height / 2) -
+        chartBounds.top,
+      kind,
+    });
+  };
 
   return (
     <div className="overflow-hidden rounded-lg border border-grayA-4 bg-gray-1">
@@ -175,23 +240,15 @@ export function AnomalyChart({
           setSelection(null);
         }}
       >
-        <ChartAnnotations
-          metric={metric}
-          alerts={alerts}
-          deployments={showDeployments ? deployments : []}
-          selectedAlertId={selectedAlertId}
-          startMs={data.startMs}
-          endMs={data.endMs}
-        />
         <ChartContainer
           config={chartConfig}
-          className="h-[380px] w-full aspect-auto px-3 pt-4 pb-2"
+          className="h-[380px] w-full aspect-auto"
           aria-label={`${alertSeriesMetricLabel(metric)} anomaly chart`}
         >
           <ComposedChart
             data={buckets}
             accessibilityLayer
-            margin={{ top: 104, right: 16, bottom: 8, left: 8 }}
+            margin={{ top: plotTopPx, right: plotRightPx, bottom: 8, left: 8 }}
           >
             <CartesianGrid
               vertical={false}
@@ -238,27 +295,50 @@ export function AnomalyChart({
               tooltipType="none"
               isAnimationActive={false}
             />
-            {alerts.map((alert) => (
-              <ReferenceArea
-                key={alert.id}
-                x1={alert.windowStart}
-                x2={alert.windowEnd}
-                fill="hsl(var(--error-9))"
-                fillOpacity={alert.id === selectedAlertId ? 0.28 : 0.14}
-                stroke="hsl(var(--error-8))"
-                strokeOpacity={alert.id === selectedAlertId ? 1 : 0.45}
-              />
-            ))}
+            {alerts.map((alert) => {
+              const selectedMetric = seriesMetricForAlert(alert.metric) === metric;
+              const windowAlerts = alertsInWindow(alerts, alert);
+              return (
+                <ReferenceArea
+                  key={alert.id}
+                  x1={alert.windowStart}
+                  x2={alert.windowEnd}
+                  fill="hsl(var(--error-9))"
+                  fillOpacity={alert.id === selectedAlertId ? 0.22 : 0.1}
+                  stroke="none"
+                  label={selectedMetric ? false : <AnomalyTopTick />}
+                  style={{ pointerEvents: selectedMetric ? "none" : "auto", cursor: "help" }}
+                  onMouseEnter={(event) =>
+                    showAnnotationTooltip(windowAlerts, event.currentTarget, "window")
+                  }
+                  onMouseMove={(event) =>
+                    showAnnotationTooltip(windowAlerts, event.currentTarget, "window")
+                  }
+                  onMouseLeave={() => setHoveredAnnotation(null)}
+                />
+              );
+            })}
             {showDeployments
-              ? deployments.map((deployment) => (
-                  <ReferenceLine
-                    key={deployment.id}
-                    x={deployment.createdAt}
-                    stroke="hsl(var(--gray-9))"
-                    strokeDasharray="4 4"
-                    strokeOpacity={0.7}
-                  />
-                ))
+              ? deployments.map((deployment) => {
+                  const label = deploymentLabels.get(deployment.id);
+                  return (
+                    <ReferenceLine
+                      key={deployment.id}
+                      x={deployment.createdAt}
+                      stroke="hsl(var(--gray-9))"
+                      strokeDasharray="4 4"
+                      strokeOpacity={0.7}
+                      label={
+                        label ? (
+                          <DeploymentTagLabel label={label} chartWidthPx={chartWidthPx} />
+                        ) : (
+                          false
+                        )
+                      }
+                      style={{ pointerEvents: "none" }}
+                    />
+                  );
+                })
               : null}
             {selection ? (
               <ReferenceArea
@@ -307,146 +387,244 @@ export function AnomalyChart({
                 />
               </>
             )}
+            {alertDots.map(({ alert, point }) => (
+              <ReferenceDot
+                key={alert.id}
+                x={point.time}
+                y={point.value}
+                r={4}
+                fill="hsl(var(--error-9))"
+                stroke="white"
+                strokeWidth={2}
+                shape={
+                  <AlertDotShape
+                    label={`${alertMetricLabel(alert.metric)} anomaly`}
+                    onHover={(element) =>
+                      showAnnotationTooltip(alertsInWindow(alerts, alert), element, "dot")
+                    }
+                    onLeave={() => setHoveredAnnotation(null)}
+                  />
+                }
+                label={
+                  alert.id === selectedAlertId ? (
+                    <FocusedAlertDotLabel
+                      label={alertMetricLabel(alert.metric)}
+                      chartWidthPx={chartWidthPx}
+                    />
+                  ) : (
+                    false
+                  )
+                }
+              />
+            ))}
           </ComposedChart>
         </ChartContainer>
-        <AnomalyHoverAreas
-          alerts={alerts}
-          startMs={data.startMs}
-          endMs={data.endMs}
-          onHover={setHoveredAlerts}
-        />
-        {hoveredAlerts ? <AnomalyWindowTooltip alerts={hoveredAlerts} /> : null}
+        {hoveredAnnotation ? (
+          <AnomalyWindowTooltip hovered={hoveredAnnotation} chartWidthPx={chartWidthPx} />
+        ) : null}
       </div>
     </div>
   );
 }
 
-function ChartAnnotations({
-  metric,
-  alerts,
-  deployments,
-  selectedAlertId,
-  startMs,
-  endMs,
-}: {
-  metric: AlertSeriesMetric;
-  alerts: AlertListItem[];
-  deployments: DeploymentMarker[];
-  selectedAlertId: string | null;
-  startMs: number;
-  endMs: number;
-}) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [widthPx, setWidthPx] = useState(1_000);
-  useEffect(() => {
-    const container = containerRef.current;
-    if (!container) {
-      return;
-    }
-    const updateWidth = () => setWidthPx(container.clientWidth);
-    updateWidth();
-    const observer = new ResizeObserver(updateWidth);
-    observer.observe(container);
-    return () => observer.disconnect();
-  }, []);
-
-  const position = (time: number) =>
-    Math.max(3, Math.min(97, ((time - startMs) / (endMs - startMs)) * 100));
-  const labeledAlerts = alerts.filter(
-    (alert) => seriesMetricForAlert(alert.metric) === metric || alert.id === selectedAlertId,
+function extremePointInAlertWindow(
+  alert: AlertListItem,
+  buckets: Array<{ time: number; value: number }>,
+): { time: number; value: number } | null {
+  const points = buckets.filter(
+    (point) => point.time >= alert.windowStart && point.time < alert.windowEnd,
   );
-  const markerGroups = groupAlertMarkers(
-    alerts.filter((alert) => !labeledAlerts.includes(alert)),
-    startMs,
-    endMs,
-    widthPx,
-  );
-
   return (
-    <div
-      ref={containerRef}
-      className="pointer-events-none absolute inset-x-0 top-0 z-10 h-[116px] overflow-hidden"
-    >
-      {deployments.map((deployment) => {
-        const left = position(deployment.createdAt);
-        return (
-          <span
-            key={deployment.id}
-            className={cn(
-              "absolute top-2 rounded-full border border-grayA-5 bg-gray-2 px-1.5 py-0.5 font-mono text-[9px] text-gray-10 shadow-sm",
-              annotationAnchor(left),
-            )}
-            style={{ left: `${left}%` }}
-          >
-            {deployment.label}
-          </span>
-        );
-      })}
-      {labeledAlerts.map((alert, index) => {
-        const left = position(alert.windowStart);
-        return (
-          <span
-            key={alert.id}
-            className={cn(
-              "absolute whitespace-nowrap rounded-full border border-errorA-5 bg-error-3 px-1.5 py-0.5 text-[9px] font-medium text-error-11 shadow-sm",
-              annotationAnchor(left),
-            )}
-            style={{ left: `${left}%`, top: 34 + (index % 2) * 18 }}
-          >
-            {alert.id === selectedAlertId ? "● " : ""}
-            {alertMetricLabel(alert.metric)}
-          </span>
-        );
-      })}
-      {markerGroups.map((group) => {
-        const firstAlert = group.alerts.at(0);
-        if (!firstAlert) {
-          return null;
-        }
-        const left = position(group.time);
-        return group.alerts.length === 1 ? (
-          <span
-            key={firstAlert.id}
-            className="absolute top-[82px] size-2 -translate-x-1/2 rounded-full border border-errorA-7 bg-error-9"
-            style={{ left: `${left}%` }}
-            aria-label={`${alertMetricLabel(firstAlert.metric)} anomaly`}
-          />
-        ) : (
-          <span
-            key={group.alerts.map((alert) => alert.id).join(":")}
-            className={cn(
-              "absolute top-[76px] rounded-full border border-errorA-6 bg-error-3 px-1.5 py-0.5 text-[9px] font-medium text-error-11",
-              annotationAnchor(left),
-            )}
-            style={{ left: `${left}%` }}
-            aria-label={`${group.alerts.length} nearby anomalies`}
-          >
-            +{group.alerts.length}
-          </span>
-        );
-      })}
-    </div>
+    points.reduce<(typeof points)[number] | null>((selected, point) => {
+      if (!selected) {
+        return point;
+      }
+      const isMoreExtreme =
+        alert.metric === "requests_drop"
+          ? point.value < selected.value
+          : point.value > selected.value;
+      return isMoreExtreme ? point : selected;
+    }, null) ?? null
   );
 }
 
-function groupAlertMarkers(
-  alerts: AlertListItem[],
+function AnomalyTopTick({ viewBox }: { viewBox?: LabelProps["viewBox"] }) {
+  const box = cartesianLabelBox(viewBox);
+  if (!box) {
+    return null;
+  }
+  return (
+    <rect
+      x={box.x}
+      y={box.y}
+      width={Math.max(box.width, 3)}
+      height={3}
+      fill="hsl(var(--error-9))"
+      pointerEvents="none"
+    />
+  );
+}
+
+function AlertDotShape({
+  cx,
+  cy,
+  label,
+  onHover,
+  onLeave,
+}: {
+  cx?: number;
+  cy?: number;
+  label: string;
+  onHover: (element: SVGCircleElement) => void;
+  onLeave: () => void;
+}) {
+  if (cx === undefined || cy === undefined) {
+    return <circle />;
+  }
+  return (
+    <circle
+      cx={cx}
+      cy={cy}
+      r={4}
+      fill="hsl(var(--error-9))"
+      stroke="white"
+      strokeWidth={2}
+      aria-label={label}
+      className="cursor-help"
+      onMouseEnter={(event) => onHover(event.currentTarget)}
+      onMouseMove={(event) => onHover(event.currentTarget)}
+      onMouseLeave={onLeave}
+    />
+  );
+}
+
+function FocusedAlertDotLabel({
+  label,
+  chartWidthPx,
+  viewBox,
+}: {
+  label: string;
+  chartWidthPx: number;
+  viewBox?: LabelProps["viewBox"];
+}) {
+  const box = cartesianLabelBox(viewBox);
+  if (!box) {
+    return null;
+  }
+  const width = estimateTagWidth(label);
+  const centerX = clamp(
+    box.x + box.width / 2,
+    plotLeftPx + width / 2,
+    chartWidthPx - plotRightPx - width / 2,
+  );
+  const y = Math.max(plotTopPx + 2, box.y - 24);
+  return (
+    <g pointerEvents="none">
+      <rect
+        x={centerX - width / 2}
+        y={y}
+        width={width}
+        height={18}
+        rx={9}
+        fill="hsl(var(--error-3))"
+        stroke="hsl(var(--error-7))"
+      />
+      <text
+        x={centerX}
+        y={y + 12}
+        textAnchor="middle"
+        fontSize={9}
+        fontWeight={500}
+        fill="hsl(var(--error-11))"
+      >
+        {label}
+      </text>
+    </g>
+  );
+}
+
+function DeploymentTagLabel({
+  label,
+  chartWidthPx,
+  viewBox,
+}: {
+  label: string;
+  chartWidthPx: number;
+  viewBox?: LabelProps["viewBox"];
+}) {
+  const box = cartesianLabelBox(viewBox);
+  if (!box) {
+    return null;
+  }
+  const width = estimateTagWidth(label);
+  const centerX = clamp(
+    box.x + box.width / 2,
+    plotLeftPx + width / 2,
+    chartWidthPx - plotRightPx - width / 2,
+  );
+  return (
+    <g pointerEvents="none">
+      <rect
+        x={centerX - width / 2}
+        y={box.y + 3}
+        width={width}
+        height={18}
+        rx={9}
+        fill="hsl(var(--gray-2))"
+        stroke="hsl(var(--gray-6))"
+      />
+      <text
+        x={centerX}
+        y={box.y + 15}
+        textAnchor="middle"
+        fontFamily="var(--font-mono)"
+        fontSize={9}
+        fill="hsl(var(--gray-11))"
+      >
+        {label}
+      </text>
+    </g>
+  );
+}
+
+function groupDeploymentLabels(
+  deployments: DeploymentMarker[],
   startMs: number,
   endMs: number,
-  widthPx: number,
-): Array<{ time: number; alerts: AlertListItem[] }> {
-  const proximityMs = ((endMs - startMs) * 24) / Math.max(widthPx, 1);
-  const groups: Array<{ time: number; latestTime: number; alerts: AlertListItem[] }> = [];
-  for (const alert of [...alerts].sort((a, b) => a.windowStart - b.windowStart)) {
-    const current = groups.at(-1);
-    if (current && alert.windowStart - current.latestTime <= proximityMs) {
-      current.latestTime = alert.windowStart;
-      current.alerts.push(alert);
-    } else {
-      groups.push({ time: alert.windowStart, latestTime: alert.windowStart, alerts: [alert] });
+  chartWidthPx: number,
+): Map<string, string> {
+  const plotWidth = Math.max(chartWidthPx - plotLeftPx - plotRightPx, 1);
+  const groups: Array<{ deployment: DeploymentMarker; hidden: number; x: number; width: number }> =
+    [];
+  for (const deployment of [...deployments].sort((a, b) => a.createdAt - b.createdAt)) {
+    const x = plotLeftPx + ((deployment.createdAt - startMs) / (endMs - startMs)) * plotWidth;
+    let hidden = 0;
+    let label = deployment.label;
+    let width = estimateTagWidth(label);
+    let previous = groups.at(-1);
+    while (previous && x - previous.x < (width + previous.width) / 2 + 4) {
+      hidden += previous.hidden + 1;
+      groups.pop();
+      label = `${deployment.label} +${hidden}`;
+      width = estimateTagWidth(label);
+      previous = groups.at(-1);
     }
+    groups.push({ deployment, hidden, x, width });
   }
-  return groups;
+  return new Map(
+    groups.map(({ deployment, hidden }) => [
+      deployment.id,
+      hidden > 0 ? `${deployment.label} +${hidden}` : deployment.label,
+    ]),
+  );
+}
+
+function cartesianLabelBox(viewBox: LabelProps["viewBox"] | undefined) {
+  return viewBox && "x" in viewBox ? viewBox : null;
+}
+
+function estimateTagWidth(label: string): number {
+  return label.length * 5.5 + 16;
 }
 
 function alertsInWindow(alerts: AlertListItem[], hovered: AlertListItem): AlertListItem[] {
@@ -455,47 +633,35 @@ function alertsInWindow(alerts: AlertListItem[], hovered: AlertListItem): AlertL
   );
 }
 
-function AnomalyHoverAreas({
-  alerts,
-  startMs,
-  endMs,
-  onHover,
+function AnomalyWindowTooltip({
+  hovered,
+  chartWidthPx,
 }: {
-  alerts: AlertListItem[];
-  startMs: number;
-  endMs: number;
-  onHover: (alerts: AlertListItem[] | null) => void;
+  hovered: HoveredAnnotation;
+  chartWidthPx: number;
 }) {
-  const position = (time: number) =>
-    Math.max(0, Math.min(100, ((time - startMs) / (endMs - startMs)) * 100));
-  return (
-    <div className="pointer-events-none absolute top-[118px] right-6 bottom-10 left-[84px] z-20">
-      {alerts.map((alert) => {
-        const left = position(alert.windowStart);
-        const width = position(alert.windowEnd) - left;
-        return (
-          <div
-            key={alert.id}
-            className="pointer-events-auto absolute inset-y-0 cursor-help"
-            style={{ left: `${left}%`, width: `max(8px, ${width}%)` }}
-            onMouseEnter={() => onHover(alertsInWindow(alerts, alert))}
-            onMouseMove={() => onHover(alertsInWindow(alerts, alert))}
-            onMouseLeave={() => onHover(null)}
-          />
-        );
-      })}
-    </div>
+  const width = 256;
+  const estimatedHeight = 44 + hovered.alerts.length * 54;
+  const left = clamp(
+    hovered.anchorX,
+    plotLeftPx + width / 2,
+    chartWidthPx - plotRightPx - width / 2,
   );
-}
-
-function AnomalyWindowTooltip({ alerts }: { alerts: AlertListItem[] }) {
+  const above = hovered.anchorY - estimatedHeight - 10;
+  const top =
+    hovered.kind === "dot" && above >= plotTopPx
+      ? above
+      : Math.min(hovered.anchorY + 10, chartHeightPx - plotBottomPx - estimatedHeight);
   return (
-    <div className="pointer-events-none absolute right-4 top-[118px] z-30 w-64 overflow-hidden rounded-lg border border-grayA-5 bg-gray-2 shadow-lg">
+    <div
+      className="pointer-events-none absolute z-30 w-64 -translate-x-1/2 overflow-hidden rounded-lg border border-grayA-5 bg-gray-2 shadow-lg"
+      style={{ left, top: Math.max(plotTopPx, top) }}
+    >
       <div className="border-b border-grayA-4 px-3 py-2 text-xs font-medium text-gray-12">
-        {alerts.length === 1 ? "Anomaly in this window" : "Anomalies in this window"}
+        {hovered.alerts.length === 1 ? "Anomaly in this window" : "Anomalies in this window"}
       </div>
       <div className="divide-y divide-grayA-4">
-        {alerts.map((alert) => (
+        {hovered.alerts.map((alert) => (
           <div key={alert.id} className="flex flex-col gap-1.5 px-3 py-2.5">
             <div className="flex items-center justify-between gap-3">
               <span className="text-xs font-medium text-gray-12">
@@ -528,14 +694,8 @@ function formatAlertExpectation(alert: AlertListItem): string {
   )} expected`;
 }
 
-function annotationAnchor(positionPercent: number): string {
-  if (positionPercent < 10) {
-    return "translate-x-0";
-  }
-  if (positionPercent > 90) {
-    return "-translate-x-full";
-  }
-  return "-translate-x-1/2";
+function clamp(value: number, minimum: number, maximum: number): number {
+  return Math.max(minimum, Math.min(value, maximum));
 }
 
 function ChartLegend({ color, label }: { color: string; label: string }) {
