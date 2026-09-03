@@ -22,6 +22,7 @@ seconds.
 now=$(date -u +%s)
 window_start=$((now / 300 * 300 - 300))
 window_end=$((window_start + 300))
+window_start_ms=$((window_start * 1000))
 cron_key="deploy-anomaly-${window_start}"
 
 printf 'window=[%s, %s) key=%s\n' \
@@ -89,6 +90,8 @@ a source watermark is earlier than the selected window end. This is protective
 behavior. An incomplete metric cannot open, advance, touch, or resolve an
 alert.
 
+`GetAnomalySourceWatermarks` bounds each maximum-time scan to the latest 2 hours.
+
 Inspect the source boundaries in ClickHouse:
 
 ```sql
@@ -96,10 +99,12 @@ SELECT
   (
     SELECT max(time) + INTERVAL 5 MINUTE
     FROM default.frontline_requests_per_5m_v1
+    WHERE time >= now() - INTERVAL 2 HOUR
   ) AS requests_watermark,
   (
     SELECT max(time) + INTERVAL 1 MINUTE
     FROM default.instance_resources_per_minute_v1
+    WHERE time >= now() - INTERVAL 2 HOUR
   ) AS resources_watermark,
   (
     SELECT
@@ -108,6 +113,7 @@ SELECT
         INTERVAL 5 MINUTE
       ) + INTERVAL 5 MINUTE
     FROM default.instance_events_raw_v1
+    WHERE time >= toUnixTimestamp64Milli(now64(3) - INTERVAL 2 HOUR)
   ) AS events_watermark;
 ```
 
@@ -132,16 +138,24 @@ build the key and inspect its invocation.
 ```bash
 shard=0
 shard_count=16
-shard_key="${window_start}/${shard}/${shard_count}"
+shard_key="${window_start_ms}/${shard}/${shard_count}"
 
 restate invocations list \
   --service hydra.v1.DeployAnomalyShardService \
   --key "${shard_key}"
 ```
 
-Look for journal failures in watermark reads, candidate queries, MySQL metadata
-resolution, and per-group calls. The parent awaits every child. Any failed child
-withholds the heartbeat even if other groups succeed.
+Look for journal failures in watermark reads, candidate queries, batched MySQL
+metadata resolution, and per-group calls. Metadata batches contain at most 500
+groups. The parent awaits every child. Any failed child withholds the heartbeat
+even if other groups succeed.
+
+`DeployAnomalyShardService.GetPending` reports the shard's current pending group
+count. Compare it with `groups_pending` in the `EvaluateShard` result. Only
+`groups_dispatched` and `groups_pending` return to the window object's journal.
+
+Every shard reading the complete open-alert group list from MySQL is expected.
+The shard filters that list with the workspace hash after the read.
 
 For one group, use its stable evaluator key:
 
@@ -158,8 +172,9 @@ restate kv get hydra.v1.DeployAnomalyService "${group_key}"
 ```
 
 Expected state keys are `candidate:<metric>`, `candidate_window:<metric>`,
-`open_alert:<metric>`, `quiet:<metric>`, `snapshot:<metric>`,
-`detector_input:<metric>`, and `open_alerts_reconciled`.
+`open_alert:<metric>`, `fired_at:<metric>`, `quiet:<metric>`,
+`snapshot:<metric>`, `detector_input:<metric>`, and
+`open_alerts_reconciled`.
 
 Treat MySQL as the customer-facing source of truth and Restate as detector
 execution state. Do not use `restate kv edit` during diagnosis. A state edit can
@@ -167,8 +182,9 @@ break the one-open-alert invariant or discard the opening recovery snapshot.
 
 ## Investigate a false positive
 
-Start with the stored alert. It preserves the values used when the detector
-opened.
+Start with the stored alert. It preserves the observed ratio and baseline values
+used when the detector opened. Raw error and request counts exist only in the
+structured opening log.
 
 ```sql
 SELECT
@@ -218,9 +234,11 @@ these conditions:
 4. Zero-padding started at `first_bucket_time`, not 24 hours before a new app.
 5. Error alerts used a ratio and at least 20 excess failures.
 6. Request drops had 72 observed baseline buckets, nine active recent buckets,
-   at least 200 lost requests, and a live non-stopped deployment.
+   at least 200 lost requests, and a deployment not marked `stopped`.
 7. The applied sensitivity and shared dashboard constants match the
    [detector math](/architecture/services/control-plane/worker/deploy-anomaly-detection-math).
+8. The new rollups had accumulated 12 buckets for spike detection or 72 buckets
+   for request-drop detection. They have no historical backfill.
 
 Do not compare an open alert with the latest rolling baseline. Recovery uses
 the snapshot stored when the alert opened.
@@ -243,8 +261,8 @@ Then compare the result with source watermarks and platform incidents.
 
 - One metric and one source: inspect that telemetry producer and query change.
 - Many metrics in one region: inspect regional ingestion and workload health.
-- Request drops after a control-plane action: verify live deployment and
-  `deployments.desired_state` metadata.
+- Request drops after a control-plane action: verify
+  `deployments.desired_state`. Only `running` and `stopped` are modeled.
 - Alerts immediately after a sensitivity change: restore code and dashboard
   constants to the last reviewed values through the normal deployment process.
 
@@ -277,7 +295,7 @@ interpret the transition:
 | Message | Meaning |
 | --- | --- |
 | `Metric returned to baseline for 3 consecutive windows` | Three complete windows crossed the recovery threshold captured when the alert opened. |
-| `Deployment stopped` | A request-drop alert closed because no live deployment remained or its desired state was `stopped`. |
+| `Deployment stopped` | A request-drop alert closed because its desired state was `stopped`. |
 | `Baseline adapted after 24 hours` | The alert stayed open for 24 hours, so the rolling baseline now represents the new level. |
 
 The last message describes baseline adaptation, not proof that the new level is
@@ -304,7 +322,7 @@ The default shard count is 16. Change it only when measured shard query latency
 or concurrency supports the change.
 
 1. Update the default used by `RunDeployAnomalyCheck`.
-2. Keep `<window_start>/<shard>/<shard_count>` as the shard key format.
+2. Keep `<window_start_ms>/<shard>/<shard_count>` as the shard key format.
 3. Verify that every shard index from zero through `shard_count - 1` is invoked.
 4. Verify that ClickHouse applies
    `cityHash64(workspace_id) % shard_count` with the same count.
