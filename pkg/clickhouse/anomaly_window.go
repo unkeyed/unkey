@@ -146,7 +146,7 @@ WITH
 		  AND time < window_start + INTERVAL 5 MINUTE
 		  AND /*ANOMALY_WORKSPACE_FILTER*/
 		  AND /*ANOMALY_GROUP_FILTER*/
-		GROUP BY bucket_time, workspace_id, project_id, app_id, environment_id
+		GROUP BY anomaly_shard, workspace_id, project_id, app_id, environment_id, bucket_time
 	),
 	aggregated AS (
 		SELECT
@@ -287,6 +287,7 @@ WHERE
 		AND requests_current < recent_requests_median * {request_drop_fraction:Float64}
 		AND recent_requests_median - requests_current >= {request_drop_absolute_loss:Float64}
 	)
+SETTINGS optimize_aggregation_in_order = 1
 /*operation='GetRequestAnomalyWindows'*/
 `
 
@@ -323,7 +324,7 @@ WITH
 		  AND time < window_start + INTERVAL 5 MINUTE
 		  AND /*ANOMALY_WORKSPACE_FILTER*/
 		  AND /*ANOMALY_GROUP_FILTER*/
-		GROUP BY bucket_time, workspace_id, project_id, app_id, environment_id
+		GROUP BY anomaly_shard, workspace_id, project_id, app_id, environment_id, bucket_time
 	),
 	container_memory AS (
 		SELECT
@@ -341,7 +342,7 @@ WITH
 		  AND time < window_start + INTERVAL 5 MINUTE
 		  AND /*ANOMALY_WORKSPACE_FILTER*/
 		  AND /*ANOMALY_GROUP_FILTER*/
-		GROUP BY workspace_id, project_id, app_id, environment_id, instance_id, container_uid
+		GROUP BY anomaly_shard, workspace_id, project_id, app_id, environment_id, instance_id, container_uid
 	),
 	instance_memory AS (
 		SELECT
@@ -478,6 +479,7 @@ WHERE
 		AND cpu_seconds_current > cpu_seconds_padded_mean + {sigma_k:Float64} * greatest(cpu_seconds_padded_stddev, cpu_seconds_padded_mean * 0.1, {cpu_seconds_stddev_floor:Float64})
 	)
 	OR memory_utilization_current >= {memory_utilization_activity:Float64}
+SETTINGS optimize_aggregation_in_order = 1
 /*operation='GetResourceAnomalyWindows'*/
 `
 
