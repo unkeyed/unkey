@@ -11,10 +11,7 @@ import {
 import { AppOCI, AppOCI$Outbound, AppOCI$outboundSchema } from "./appoci.js";
 
 /**
- * Provide at least one field to update. Change an OCI app's image in a
- *
- * @remarks
- * standalone request; it cannot be combined with other changes.
+ * Provide at least one field to update. Omitted fields remain unchanged.
  */
 export type V2AppsUpdateAppRequestBody = {
   /**
@@ -58,8 +55,8 @@ export type V2AppsUpdateAppRequestBody = {
    * Change the default image reference for an OCI-sourced app. This does not
    *
    * @remarks
-   * create a deployment. Image updates cannot be combined with other changes,
-   * and source switching is not supported.
+   * create a deployment. It can be combined with other app settings. Source
+   * switching is not supported.
    */
   oci?: AppOCI | undefined;
   /**
