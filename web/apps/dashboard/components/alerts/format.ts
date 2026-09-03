@@ -1,4 +1,4 @@
-import type { AlertMetric } from "./types";
+import type { AlertMetric, AlertSeriesMetric } from "./types";
 
 export const alertMetricOptions: ReadonlyArray<{ value: AlertMetric; label: string }> = [
   { value: "error_5xx", label: "5xx errors" },
@@ -12,6 +12,19 @@ export const alertMetricOptions: ReadonlyArray<{ value: AlertMetric; label: stri
   { value: "crash_loop", label: "Crash loop" },
 ];
 
+export const alertSeriesMetricOptions: ReadonlyArray<{
+  value: AlertSeriesMetric;
+  label: string;
+}> = [
+  { value: "error_5xx", label: "5xx errors" },
+  { value: "error_4xx", label: "4xx errors" },
+  { value: "requests", label: "Requests" },
+  { value: "egress_bytes", label: "Egress" },
+  { value: "cpu_seconds", label: "CPU" },
+  { value: "memory_utilization", label: "Memory" },
+  { value: "health", label: "Health" },
+];
+
 const quantityFormatter = new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 });
 const compactFormatter = new Intl.NumberFormat("en-US", {
   notation: "compact",
@@ -20,6 +33,41 @@ const compactFormatter = new Intl.NumberFormat("en-US", {
 
 export function isAlertMetric(value: string): value is AlertMetric {
   return alertMetricOptions.some((option) => option.value === value);
+}
+
+export function seriesMetricForAlert(metric: AlertMetric): AlertSeriesMetric {
+  switch (metric) {
+    case "requests_drop":
+      return "requests";
+    case "oom_killed":
+    case "crash_loop":
+      return "health";
+    case "error_5xx":
+    case "error_4xx":
+    case "requests":
+    case "egress_bytes":
+    case "cpu_seconds":
+    case "memory_utilization":
+      return metric;
+    default:
+      return metric satisfies never;
+  }
+}
+
+export function isAlertSeriesMetric(value: string): value is AlertSeriesMetric {
+  return alertSeriesMetricOptions.some((option) => option.value === value);
+}
+
+export function alertSeriesMetricLabel(metric: AlertSeriesMetric): string {
+  return alertSeriesMetricOptions.find((option) => option.value === metric)?.label ?? metric;
+}
+
+export function formatAlertSeriesValue(metric: AlertSeriesMetric, value: number): string {
+  return formatAlertValue(metric === "health" ? "oom_killed" : metric, value);
+}
+
+export function formatAlertSeriesAxisValue(metric: AlertSeriesMetric, value: number): string {
+  return formatAlertAxisValue(metric === "health" ? "oom_killed" : metric, value);
 }
 
 export function alertMetricLabel(metric: AlertMetric): string {

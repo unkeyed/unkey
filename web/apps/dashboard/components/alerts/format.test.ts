@@ -1,10 +1,13 @@
 import { describe, expect, it } from "vitest";
 import {
   alertMetricLabel,
+  alertSeriesMetricLabel,
   formatAlertAxisValue,
   formatAlertDistance,
+  formatAlertSeriesValue,
   formatAlertValue,
   formatSigma,
+  seriesMetricForAlert,
 } from "./format";
 
 describe("alert metric formatting", () => {
@@ -12,6 +15,15 @@ describe("alert metric formatting", () => {
     expect(alertMetricLabel("error_5xx")).toBe("5xx errors");
     expect(alertMetricLabel("requests_drop")).toBe("Traffic drop");
     expect(alertMetricLabel("oom_killed")).toBe("Out of memory");
+  });
+
+  it("maps alert-only metrics to their shared chart series", () => {
+    expect(seriesMetricForAlert("requests_drop")).toBe("requests");
+    expect(seriesMetricForAlert("oom_killed")).toBe("health");
+    expect(seriesMetricForAlert("crash_loop")).toBe("health");
+    expect(seriesMetricForAlert("egress_bytes")).toBe("egress_bytes");
+    expect(alertSeriesMetricLabel("health")).toBe("Health");
+    expect(formatAlertSeriesValue("health", 3)).toBe("3");
   });
 
   it("formats each unit family", () => {
