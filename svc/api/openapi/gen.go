@@ -3973,14 +3973,19 @@ type V2PermissionsListRolesResponseBody struct {
 // V2PermissionsListRolesResponseData Array of roles with their assigned permissions.
 type V2PermissionsListRolesResponseData = []Role
 
-// V2PermissionsSetRolePermissionsRequestBody defines model for V2PermissionsSetRolePermissionsRequestBody.
+// V2PermissionsSetRolePermissionsRequestBody Provide exactly one of `role` or the deprecated `roleId`.
 type V2PermissionsSetRolePermissionsRequestBody struct {
 	// Permissions The complete set of permission slugs to assign directly to the role. Missing permissions are created when authorized. An empty array clears all direct permissions.
 	Permissions []string `json:"permissions"`
 
-	// RoleId Identifies a resource by either its unique ID or its slug.
-	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
-	RoleId ResourceIdentifier `json:"roleId"`
+	// Role The role whose directly assigned permissions will be replaced.
+	// Accepts either the generated role ID or the unique role name.
+	Role *string `json:"role,omitempty"`
+
+	// RoleId Deprecated. Use `role` instead.
+	// Accepts either the generated role ID or the unique role name.
+	// Deprecated: this property has been marked as deprecated upstream, but no `x-deprecated-reason` was set
+	RoleId *string `json:"roleId,omitempty"`
 }
 
 // V2PermissionsSetRolePermissionsResponseBody defines model for V2PermissionsSetRolePermissionsResponseBody.

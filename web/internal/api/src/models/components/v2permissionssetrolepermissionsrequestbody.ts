@@ -4,14 +4,26 @@
 
 import * as z from "zod/v3";
 
+/**
+ * Provide exactly one of `role` or the deprecated `roleId`.
+ */
 export type V2PermissionsSetRolePermissionsRequestBody = {
   /**
-   * Identifies a resource by either its unique ID or its slug.
+   * The role whose directly assigned permissions will be replaced.
    *
    * @remarks
-   * Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+   * Accepts either the generated role ID or the unique role name.
    */
-  roleId: string;
+  role?: string | undefined;
+  /**
+   * Deprecated. Use `role` instead.
+   *
+   * @remarks
+   * Accepts either the generated role ID or the unique role name.
+   *
+   * @deprecated field: This will be removed in a future release, please migrate away from it as soon as possible.
+   */
+  roleId?: string | undefined;
   /**
    * The complete set of permission slugs to assign directly to the role. Missing permissions are created when authorized. An empty array clears all direct permissions.
    */
@@ -20,7 +32,8 @@ export type V2PermissionsSetRolePermissionsRequestBody = {
 
 /** @internal */
 export type V2PermissionsSetRolePermissionsRequestBody$Outbound = {
-  roleId: string;
+  role?: string | undefined;
+  roleId?: string | undefined;
   permissions: Array<string>;
 };
 
@@ -31,7 +44,8 @@ export const V2PermissionsSetRolePermissionsRequestBody$outboundSchema:
     z.ZodTypeDef,
     V2PermissionsSetRolePermissionsRequestBody
   > = z.object({
-    roleId: z.string(),
+    role: z.string().optional(),
+    roleId: z.string().optional(),
     permissions: z.array(z.string()),
   });
 
