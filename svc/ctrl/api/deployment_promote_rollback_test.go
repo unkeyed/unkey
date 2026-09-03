@@ -81,7 +81,7 @@ func newLifecycleFixture(t *testing.T) *lifecycleFixture {
 	})
 	prodEnvID := uid.New("env")
 	app := h.CreateAppWithSettings(ctx, seed.CreateAppRequest{
-		ID: uid.New("app"), WorkspaceID: wsID, ProjectID: project.ID, Name: "default", Slug: "default", DefaultBranch: "main",
+		ID: uid.New("app"), WorkspaceID: wsID, ProjectID: project.ID, Name: "default", Slug: "default",
 	}, prodEnvID)
 	prodEnv := h.CreateEnvironment(ctx, seed.CreateEnvironmentRequest{
 		ID: prodEnvID, WorkspaceID: wsID, ProjectID: project.ID, AppID: app.ID, Slug: "production", Kind: mysqltype.EnvironmentKindProduction, SentinelConfig: []byte("{}"),

@@ -224,9 +224,6 @@ func (h *Handler) resolveRedeploy(ctx context.Context, workspaceID, appID, envir
 	resolvedImage := func() (*ctrlv1.GitCommitInfo, string, error) {
 		image := deployment.ImageResolved
 		if !image.Valid || image.String == "" {
-			image = deployment.Image
-		}
-		if !image.Valid || image.String == "" {
 			return nil, "", fault.New(
 				"deployment not redeployable",
 				fault.Code(codes.App.Precondition.PreconditionFailed.URN()),

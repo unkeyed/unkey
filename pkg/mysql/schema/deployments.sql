@@ -8,7 +8,6 @@ CREATE TABLE `deployments` (
 	`app_id` varchar(48) COLLATE utf8mb4_0900_as_cs NOT NULL,
 	`source` enum('unknown','git','oci') NOT NULL DEFAULT 'unknown',
 	`image_requested` varchar(512),
-	`image` varchar(512),
 	`image_resolved` varchar(512),
 	`build_id` varchar(128) COLLATE utf8mb4_0900_as_cs,
 	`git_commit_sha` varchar(40),

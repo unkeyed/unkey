@@ -85,7 +85,7 @@ func (s *Service) Rebuild(ctx context.Context, sourceDeploymentID, reason string
 		}
 	}
 	useGit := tryGit && hasSha && hasRepoConn
-	resolvedImage := resolvedDeploymentImage(src)
+	resolvedImage := src.ImageResolved
 	hasImage := resolvedImage.Valid && resolvedImage.String != ""
 
 	if requiresGit && !useGit {

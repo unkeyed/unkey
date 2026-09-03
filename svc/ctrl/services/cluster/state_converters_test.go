@@ -19,8 +19,7 @@ func TestDeploymentRowToState_Running(t *testing.T) {
 		ProjectID:              "prj_1",
 		EnvironmentID:          "env_1",
 		AppID:                  "app_1",
-		Image:                  sql.NullString{Valid: true, String: "registry.io/app:v1"},
-		ImageResolved:          sql.NullString{Valid: false, String: "registry.io/invalid:v2"},
+		ImageResolved:          sql.NullString{Valid: true, String: "registry.io/app:v1"},
 		CpuMillicores:          250,
 		MemoryMib:              256,
 		Port:                   8080,
@@ -41,7 +40,7 @@ func TestDeploymentRowToState_Running(t *testing.T) {
 	require.Equal(t, "deploy_123", apply.GetDeploymentId())
 	require.Equal(t, "my-app", apply.GetK8SName())
 	require.Equal(t, "ws-namespace", apply.GetK8SNamespace())
-	require.Equal(t, "registry.io/app:v1", apply.GetImage(), "legacy image remains readable during rollout")
+	require.Equal(t, "registry.io/app:v1", apply.GetImage())
 	require.Equal(t, int64(250), apply.GetCpuMillicores())
 	require.Equal(t, uint32(1), apply.GetAutoscaling().GetMinReplicas())
 	require.Equal(t, uint32(3), apply.GetAutoscaling().GetMaxReplicas())

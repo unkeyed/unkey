@@ -52,12 +52,11 @@ func seedAppWithKeyspaces(t *testing.T, h *testutil.Harness, workspaceID, slugBa
 		DeleteProtection: false,
 	})
 	app := h.CreateApp(seed.CreateAppRequest{
-		ID:            uid.New(uid.AppPrefix),
-		WorkspaceID:   workspaceID,
-		ProjectID:     project.ID,
-		Name:          slugBase + " app",
-		Slug:          slugBase + "-app-" + suffix,
-		DefaultBranch: "main",
+		ID:          uid.New(uid.AppPrefix),
+		WorkspaceID: workspaceID,
+		ProjectID:   project.ID,
+		Name:        slugBase + " app",
+		Slug:        slugBase + "-app-" + suffix,
 	})
 	environment := h.CreateEnvironment(seed.CreateEnvironmentRequest{
 		ID:          uid.New(uid.EnvironmentPrefix),
