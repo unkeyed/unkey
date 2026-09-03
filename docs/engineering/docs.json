@@ -118,6 +118,8 @@
                       "architecture/services/control-plane/worker/overview",
                       "architecture/services/control-plane/worker/configuration",
                       "architecture/services/control-plane/worker/deployment-sync",
+                      "architecture/services/control-plane/worker/deploy-anomaly-detection",
+                      "architecture/services/control-plane/worker/deploy-anomaly-detection-math",
                       {
                         "group": "Workflows",
                         "pages": [
@@ -236,6 +238,7 @@
           {
             "group": "Runbooks",
             "pages": [
+              "infra/runbooks/deploy-anomaly-alerts",
               "infra/runbooks/key-migration",
               "infra/runbooks/legacy-billing"
             ]

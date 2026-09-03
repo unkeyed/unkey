@@ -1,0 +1,322 @@
+---
+title: "Operate Deploy anomaly alerts"
+description: "Diagnose the Deploy anomaly cron, ingest watermarks, and alert state"
+---
+
+Deploy anomaly alerts depend on Kubernetes cron delivery, Restate execution,
+ClickHouse completeness, and MySQL persistence. Diagnose those layers in that
+order. Do not edit Restate state or bulk-resolve alerts to hide a failing
+detector.
+
+The [architecture page](/architecture/services/control-plane/worker/deploy-anomaly-detection)
+defines the pipeline. The
+[detector math](/architecture/services/control-plane/worker/deploy-anomaly-detection-math)
+defines every expected threshold.
+
+## Identify the expected window
+
+Calculate the window that a cron tick must evaluate. All values are UTC Unix
+seconds.
+
+```bash
+now=$(date -u +%s)
+window_start=$((now / 300 * 300 - 300))
+window_end=$((window_start + 300))
+cron_key="deploy-anomaly-${window_start}"
+
+printf 'window=[%s, %s) key=%s\n' \
+  "$(date -u -d "@${window_start}" --iso-8601=seconds)" \
+  "$(date -u -d "@${window_end}" --iso-8601=seconds)" \
+  "${cron_key}"
+```
+
+Use the exact window in logs, Restate invocations, and ClickHouse watermark
+comparisons. A later cron key does not prove that an earlier window completed.
+
+## Diagnose a cron that is not firing
+
+The first symptom is no `RunDeployAnomalyCheck` invocation for the expected
+key. Check Kubernetes before the worker.
+
+1. Confirm that the CronJob exists and uses `*/5 * * * *`.
+
+   ```bash
+   kubectl -n unkey get cronjob restate-deploy-anomaly
+   kubectl -n unkey describe cronjob restate-deploy-anomaly
+   ```
+
+2. Inspect its latest jobs and caller logs.
+
+   ```bash
+   job_name=$(
+     kubectl -n unkey get jobs \
+       --sort-by=.metadata.creationTimestamp \
+       -o custom-columns=NAME:.metadata.name \
+       --no-headers |
+       awk '/^restate-deploy-anomaly-/ { latest = $0 } END { print latest }'
+   )
+   kubectl -n unkey logs "job/${job_name}" --all-containers
+   ```
+
+3. Confirm that the request path contains the expected cron key and handler:
+   `hydra.v1.CronService/<cron_key>/RunDeployAnomalyCheck/send`.
+4. Confirm that Restate ingress and the control-plane worker are ready.
+5. Compare the local chart entry in
+   `dev/k8s/charts/restate-cronjobs/values.yaml` with the production declaration
+   in the `unkeyed/infra` repository.
+
+After configuring the Restate CLI for the affected cluster, inspect the exact
+cron object:
+
+```bash
+restate invocations list \
+  --service hydra.v1.CronService \
+  --key "${cron_key}"
+```
+
+Use `restate invocations describe <invocation_id>` to inspect the journal. A
+cron invocation that reaches its maximum attempts must be killed by its retry
+policy, not paused. If it is paused, correct the deployed retry configuration
+before relying on later ticks.
+
+Do not manually invoke production to test a fix without separate operational
+approval. A manual call creates shared state and can overlap scheduled work.
+
+## Diagnose incomplete windows
+
+Repeated `deploy anomaly metric skipped because ingest is incomplete` logs mean
+a source watermark is earlier than the selected window end. This is protective
+behavior. An incomplete metric cannot open, advance, touch, or resolve an
+alert.
+
+Inspect the source boundaries in ClickHouse:
+
+```sql
+SELECT
+  (
+    SELECT max(time) + INTERVAL 5 MINUTE
+    FROM default.frontline_requests_per_5m_v1
+  ) AS requests_watermark,
+  (
+    SELECT max(time) + INTERVAL 1 MINUTE
+    FROM default.instance_resources_per_minute_v1
+  ) AS resources_watermark,
+  (
+    SELECT
+      toStartOfInterval(
+        fromUnixTimestamp64Milli(max(time)),
+        INTERVAL 5 MINUTE
+      ) + INTERVAL 5 MINUTE
+    FROM default.instance_events_raw_v1
+  ) AS events_watermark;
+```
+
+Compare each result with the expected window end. Then inspect the producer for
+the delayed source:
+
+- Request lag: Frontline ingestion and
+  `frontline_requests_per_5m_v1` materialized views.
+- Resource lag: Heimdall checkpoints and
+  `instance_resources_per_minute_v1` materialized views.
+- Event lag: Krane instance-event reporting and `instance_events_raw_v1`.
+
+The watermarks are fleet-wide. Per-region watermarks are not part of this
+phase, so compare region-level producer health when only one region appears
+delayed. Do not reinterpret `INCOMPLETE` as `ZERO_COMPLETE`.
+
+## Diagnose a failed shard or child
+
+The cron fans out to 16 shard virtual objects by default. For an expected shard,
+build the key and inspect its invocation.
+
+```bash
+shard=0
+shard_count=16
+shard_key="${window_start}/${shard}/${shard_count}"
+
+restate invocations list \
+  --service hydra.v1.DeployAnomalyShardService \
+  --key "${shard_key}"
+```
+
+Look for journal failures in watermark reads, candidate queries, MySQL metadata
+resolution, and per-group calls. The parent awaits every child. Any failed child
+withholds the heartbeat even if other groups succeed.
+
+For one group, use its stable evaluator key:
+
+```bash
+workspace_id="ws_XXX"
+app_id="app_XXX"
+environment_id="env_XXX"
+group_key="${workspace_id}/${app_id}/${environment_id}"
+
+restate invocations list \
+  --service hydra.v1.DeployAnomalyService \
+  --key "${group_key}"
+restate kv get hydra.v1.DeployAnomalyService "${group_key}"
+```
+
+Expected state keys are `candidate:<metric>`, `candidate_window:<metric>`,
+`open_alert:<metric>`, `quiet:<metric>`, `snapshot:<metric>`,
+`detector_input:<metric>`, and `open_alerts_reconciled`.
+
+Treat MySQL as the customer-facing source of truth and Restate as detector
+execution state. Do not use `restate kv edit` during diagnosis. A state edit can
+break the one-open-alert invariant or discard the opening recovery snapshot.
+
+## Investigate a false positive
+
+Start with the stored alert. It preserves the values used when the detector
+opened.
+
+```sql
+SELECT
+  id,
+  workspace_id,
+  project_id,
+  app_id,
+  environment_id,
+  deployment_id,
+  metric,
+  status,
+  fired_at,
+  last_seen_at,
+  window_start,
+  window_end,
+  observed_value,
+  baseline_mean,
+  baseline_stddev,
+  threshold_sigma
+FROM alert_events
+WHERE id = 'alert_XXX';
+```
+
+Find the `deploy anomaly alert opened` log for the ID. Record these structured
+fields before recalculating the rule:
+
+- `alert_id`
+- `metric`
+- `current`
+- `baseline_mean`
+- `baseline_stddev`
+- `observed_buckets`
+- `first_bucket_time`
+- `sigma`
+- `threshold`
+
+Use `window_start` and `window_end` to query the metric source. Confirm all of
+these conditions:
+
+1. The source watermark had reached the window end.
+2. The environment was production.
+3. ClickHouse grouping removed deployment identity but retained the correct
+   workspace, project, app, and environment.
+4. Zero-padding started at `first_bucket_time`, not 24 hours before a new app.
+5. Error alerts used a ratio and at least 20 excess failures.
+6. Request drops had 72 observed baseline buckets, nine active recent buckets,
+   at least 200 lost requests, and a live non-stopped deployment.
+7. The applied sensitivity and shared dashboard constants match the
+   [detector math](/architecture/services/control-plane/worker/deploy-anomaly-detection-math).
+
+Do not compare an open alert with the latest rolling baseline. Recovery uses
+the snapshot stored when the alert opened.
+
+## Respond to an alert storm
+
+An alert storm is a sudden increase in open rows across many independent groups.
+Measure its scope before changing thresholds.
+
+```sql
+SELECT metric, COUNT(*) AS open_count
+FROM alert_events
+WHERE status = 'open'
+GROUP BY metric
+ORDER BY open_count DESC;
+```
+
+Group affected rows by workspace, environment, and 5-minute `window_start`.
+Then compare the result with source watermarks and platform incidents.
+
+- One metric and one source: inspect that telemetry producer and query change.
+- Many metrics in one region: inspect regional ingestion and workload health.
+- Request drops after a control-plane action: verify live deployment and
+  `deployments.desired_state` metadata.
+- Alerts immediately after a sensitivity change: restore code and dashboard
+  constants to the last reviewed values through the normal deployment process.
+
+Do not bulk-resolve before correcting the cause. Resolution hides the active
+rows but does not correct candidate generation or future windows. Notifications
+are not part of this phase, so stopping an email, Slack, or webhook integration
+cannot stop detector writes.
+
+## Resolve an alert manually
+
+Use the dashboard when the condition is understood and no longer needs to stay
+open.
+
+1. Open the workspace **Alerts** inbox or the app's **Anomalies** tab.
+2. Select the open alert.
+3. Click **Resolve**.
+4. Enter a required resolution message that states why the alert can close.
+5. Confirm the resolution.
+
+The update sets `status = resolved`, records the user ID in `resolved_by`, and
+writes an `alert.resolve` audit log event. Manual resolution does not change the
+underlying telemetry.
+
+## Change sensitivity
+
+Sensitivity is code-configured in this phase. There is no per-app sensitivity
+UI. `DefaultConfig` uses `SensitivityNormal`, where `k = 4`. Low sensitivity
+uses 5, and high sensitivity uses 3.
+
+Change the selected `Sensitivity` in
+`svc/ctrl/worker/cron/deployanomaly`, update shared values in
+`web/internal/clickhouse/src/alert-thresholds.ts`, and update tests in both
+layers. Review expected alert volume before deploying. A lower `k` increases
+alert sensitivity.
+
+Do not change the 5-minute window, minimum baseline buckets, or metric floors as
+part of a sensitivity-only change.
+
+## Change the shard count
+
+The default shard count is 16. Change it only when measured shard query latency
+or concurrency supports the change.
+
+1. Update the default used by `RunDeployAnomalyCheck`.
+2. Keep `<window_start>/<shard>/<shard_count>` as the shard key format.
+3. Verify that every shard index from zero through `shard_count - 1` is invoked.
+4. Verify that ClickHouse applies
+   `cityHash64(workspace_id) % shard_count` with the same count.
+5. Measure candidate rows, per-shard query p95, end-to-end cron p95, and peak
+   child concurrency.
+6. Deploy the code before changing any production cron assumptions.
+
+A count change affects later windows only. Do not restart an in-flight window
+with a different count.
+
+## Add the production cron
+
+The local chart is not the production source of truth. Add the equivalent job
+to the `unkeyed/infra` repository and use a fresh idempotency key for each
+window.
+
+The request must calculate the previous closed window and invoke this path:
+
+```bash
+window_start=$(($(date -u +%s) / 300 * 300 - 300))
+
+curl --fail-with-body \
+  -X POST \
+  -H 'content-type: application/json' \
+  -H "idempotency-key: deploy-anomaly-${window_start}" \
+  "${RESTATE_INGRESS_URL}/hydra.v1.CronService/deploy-anomaly-${window_start}/RunDeployAnomalyCheck/send" \
+  -d '{}'
+```
+
+Configure a 5-minute cadence, forbidden concurrent Kubernetes jobs, bounded
+caller retries, and the kill-on-max-attempts Restate policy. After deployment,
+confirm one cron invocation, all shard invocations, all child results, and a
+success heartbeat for the same window.

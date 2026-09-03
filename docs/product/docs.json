@@ -255,6 +255,7 @@
             "icon": "eye",
             "pages": [
               "observability/overview",
+              "observability/anomaly-alerts",
               "observability/logs",
               "observability/requests",
               "observability/metrics"
