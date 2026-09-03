@@ -118,7 +118,6 @@
                       "architecture/services/control-plane/worker/overview",
                       "architecture/services/control-plane/worker/configuration",
                       "architecture/services/control-plane/worker/deployment-sync",
-                      "architecture/services/control-plane/worker/deploy-anomaly-detection",
                       {
                         "group": "Workflows",
                         "pages": [
