@@ -1,10 +1,16 @@
 import { z } from "zod";
+import {
+  type SigmaAlertMetric,
+  alertMinimumLifetimeBuckets,
+  alertMinimumStddevRatio,
+  alertStddevFloors,
+  alertThresholdSigma,
+} from "./alert-thresholds";
 import type { Querier } from "./client";
 
 const fiveMinutesMs = 5 * 60 * 1000;
 const hourMs = 60 * 60 * 1000;
 const baselineMs = 24 * hourMs;
-const thresholdSigma = 4;
 
 export const alertSeriesMetric = z.enum([
   "error_5xx",
@@ -161,26 +167,80 @@ function healthQuery(): string {
     GROUP BY time`);
 }
 
-function withExpectedRange(observedQuery: string, windowBuckets: number): string {
+function firstBucketQuery(metric: SigmaAlertMetric): string {
+  const resourceFilter =
+    metric === "egress_bytes" || metric === "cpu_seconds"
+      ? "AND metric_lifetime.resource_type = 'deployment'"
+      : "";
   return `
+    SELECT coalesce(
+      toInt64(toUnixTimestamp(minOrNull(metric_lifetime.time)) * 1000),
+      {endMs: Int64}
+    )
+    FROM {tableName: Identifier} AS metric_lifetime
+    PREWHERE metric_lifetime.workspace_id = {workspaceId: String}
+      AND metric_lifetime.app_id = {appId: String}
+      AND metric_lifetime.environment_id = {environmentId: String}
+      ${resourceFilter}
+      AND metric_lifetime.time < fromUnixTimestamp64Milli({endMs: Int64})`;
+}
+
+function withExpectedRange(
+  observedQuery: string,
+  metric: SigmaAlertMetric,
+  windowBuckets: number,
+): string {
+  const effectiveStddev = `greatest(
+    expected_stddev,
+    ${alertMinimumStddevRatio} * expected_mean,
+    ${alertStddevFloors[metric]}
+  )`;
+  const lowerBound =
+    metric === "requests"
+      ? `if(
+          lifetime_buckets < ${alertMinimumLifetimeBuckets},
+          CAST(NULL, 'Nullable(Float64)'),
+          toNullable(greatest(0, expected_mean - ${alertThresholdSigma} * ${effectiveStddev}))
+        )`
+      : "CAST(NULL, 'Nullable(Float64)')";
+
+  return `
+    WITH (${firstBucketQuery(metric)}) AS first_bucket_time
     SELECT
       time,
       value,
       toNullable(expected_mean) AS expectedMean,
-      toNullable(greatest(0, expected_mean - ${thresholdSigma} * expected_stddev)) AS lowerBound,
-      toNullable(expected_mean + ${thresholdSigma} * expected_stddev) AS upperBound,
+      ${lowerBound} AS lowerBound,
+      if(
+        lifetime_buckets < ${alertMinimumLifetimeBuckets},
+        CAST(NULL, 'Nullable(Float64)'),
+        toNullable(expected_mean + ${alertThresholdSigma} * ${effectiveStddev})
+      ) AS upperBound,
       CAST(NULL, 'Nullable(Float64)') AS limit
     FROM (
       SELECT
         time,
         value,
-        avg(value) OVER (
+        avg(lifetime_value) OVER (
           ORDER BY time ROWS BETWEEN ${windowBuckets} PRECEDING AND 1 PRECEDING
         ) AS expected_mean,
-        stddevPop(value) OVER (
+        stddevPop(lifetime_value) OVER (
           ORDER BY time ROWS BETWEEN ${windowBuckets} PRECEDING AND 1 PRECEDING
-        ) AS expected_stddev
-      FROM (${observedQuery})
+        ) AS expected_stddev,
+        count(lifetime_value) OVER (
+          ORDER BY time ROWS BETWEEN ${windowBuckets} PRECEDING AND 1 PRECEDING
+        ) AS lifetime_buckets
+      FROM (
+        SELECT
+          time,
+          value,
+          if(
+            time >= first_bucket_time,
+            toNullable(value),
+            CAST(NULL, 'Nullable(Float64)')
+          ) AS lifetime_value
+        FROM (${observedQuery})
+      )
     )
     WHERE time >= {startMs: Int64} AND time < {endMs: Int64}
     ORDER BY time ASC`;
@@ -208,7 +268,8 @@ export function getAlertSeries(ch: Querier) {
     const windowBuckets = baselineMs / bucketMs;
     let observedQuery: string;
     let tableName: string | undefined;
-    let fixedLimit: number | null | undefined;
+    let sigmaMetric: SigmaAlertMetric | undefined;
+    let fixedLimit: number | null = null;
 
     switch (args.metric) {
       case "error_5xx":
@@ -217,6 +278,7 @@ export function getAlertSeries(ch: Querier) {
         const source = frontlineQuery(args.metric, args.resolution);
         observedQuery = source.query;
         tableName = source.tableName;
+        sigmaMetric = args.metric;
         break;
       }
       case "egress_bytes": {
@@ -227,6 +289,7 @@ export function getAlertSeries(ch: Querier) {
         );
         observedQuery = source.query;
         tableName = source.tableName;
+        sigmaMetric = args.metric;
         break;
       }
       case "cpu_seconds": {
@@ -237,6 +300,7 @@ export function getAlertSeries(ch: Querier) {
         );
         observedQuery = source.query;
         tableName = source.tableName;
+        sigmaMetric = args.metric;
         break;
       }
       case "memory_utilization": {
@@ -256,8 +320,8 @@ export function getAlertSeries(ch: Querier) {
 
     const query = ch.query({
       query:
-        fixedLimit === undefined
-          ? withExpectedRange(observedQuery, windowBuckets)
+        sigmaMetric !== undefined
+          ? withExpectedRange(observedQuery, sigmaMetric, windowBuckets)
           : withFixedLimit(observedQuery, fixedLimit),
       params: queryParams,
       schema: alertSeriesPoint,
