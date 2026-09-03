@@ -285,13 +285,6 @@ message DeployCreateRequest {
   // Decision the caller already reached. See CreateDecision.
   CreateDecision decision = 8;
 
-  // PushReceivedAt is when the webhook received the push, in unix milliseconds,
-  // and it becomes the row's created_at. Every Create from one push carries the
-  // same value, so sibling dedup and the supersede check keep push order even
-  // when the per-app sends land out of order. Zero means no push is behind the
-  // request, and the worker stamps created_at from its own clock.
-  int64 push_received_at = 9;
-
   // Attribution persisted on the deployment row.
   ctrl.v1.DeploymentTrigger trigger = 10;
   string triggered_by = 11;

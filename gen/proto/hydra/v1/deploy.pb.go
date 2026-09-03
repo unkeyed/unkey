@@ -87,9 +87,11 @@ func (CreateDecision) EnumDescriptor() ([]byte, []int) {
 	return file_hydra_v1_deploy_proto_rawDescGZIP(), []int{0}
 }
 
-// CreateOutcome is what a create did. A refused create comes back as REJECTED
-// instead of as a terminal error, so a caller that can never become eligible
-// does not leave Restate retrying it.
+// CreateOutcome is what a create did. A refused create answers REJECTED rather
+// than failing terminally. A terminal error is not retried either, but it
+// reaches an ingress caller as unstructured text, so svc/api could only tell
+// these reasons apart by parsing a message; and it leaves a permanently failed
+// invocation behind every push from a caller that sends Create one-way.
 type CreateOutcome int32
 
 const (
@@ -942,12 +944,6 @@ type DeployCreateRequest struct {
 	Command []string `protobuf:"bytes,7,rep,name=command,proto3" json:"command,omitempty"`
 	// Decision the caller already reached. See CreateDecision.
 	Decision CreateDecision `protobuf:"varint,8,opt,name=decision,proto3,enum=hydra.v1.CreateDecision" json:"decision,omitempty"`
-	// PushReceivedAt is when the webhook received the push, in unix milliseconds,
-	// and it becomes the row's created_at. Every Create from one push carries the
-	// same value, so sibling dedup and the supersede check keep push order even
-	// when the per-app sends land out of order. Zero means no push is behind the
-	// request, and the worker stamps created_at from its own clock.
-	PushReceivedAt int64 `protobuf:"varint,9,opt,name=push_received_at,json=pushReceivedAt,proto3" json:"push_received_at,omitempty"`
 	// Attribution persisted on the deployment row.
 	Trigger       v1.DeploymentTrigger `protobuf:"varint,10,opt,name=trigger,proto3,enum=ctrl.v1.DeploymentTrigger" json:"trigger,omitempty"`
 	TriggeredBy   string               `protobuf:"bytes,11,opt,name=triggered_by,json=triggeredBy,proto3" json:"triggered_by,omitempty"`
@@ -1057,13 +1053,6 @@ func (x *DeployCreateRequest) GetDecision() CreateDecision {
 	return CreateDecision_CREATE_DECISION_UNSPECIFIED
 }
 
-func (x *DeployCreateRequest) GetPushReceivedAt() int64 {
-	if x != nil {
-		return x.PushReceivedAt
-	}
-	return 0
-}
-
 func (x *DeployCreateRequest) GetTrigger() v1.DeploymentTrigger {
 	if x != nil {
 		return x.Trigger
@@ -1114,8 +1103,9 @@ func (*DeployCreateRequest_Image) isDeployCreateRequest_Source() {}
 
 func (*DeployCreateRequest_ExistingDeployment) isDeployCreateRequest_Source() {}
 
-// DeployCreateResponse says what a create did. Callers that send Create one-way,
-// such as the public API and the GitHub webhook, never see it.
+// DeployCreateResponse says what a create did. A caller that awaits Create with
+// Request reads it; one that dispatches with Send never sees it, and learns the
+// outcome only from the deployment row.
 type DeployCreateResponse struct {
 	state   protoimpl.MessageState `protogen:"open.v1"`
 	Outcome CreateOutcome          `protobuf:"varint,1,opt,name=outcome,proto3,enum=hydra.v1.CreateOutcome" json:"outcome,omitempty"`
@@ -1123,8 +1113,9 @@ type DeployCreateResponse struct {
 	// stays in the worker's logs, because it names repositories and deployments
 	// the caller may have no right to read.
 	RejectionReason CreateRejectionReason `protobuf:"varint,2,opt,name=rejection_reason,json=rejectionReason,proto3,enum=hydra.v1.CreateRejectionReason" json:"rejection_reason,omitempty"`
-	// DeploymentId echoes the object key the row was written under. A caller
-	// already knows it, since it chose the key; echoing it back keeps a response
+	// DeploymentId echoes the object key the create ran on, set for every
+	// outcome: it is what the caller chose, not the id of a row, so a rejection
+	// carries it too. A caller already knows it; echoing it back keeps a response
 	// readable on its own in a log or a trace.
 	DeploymentId  string `protobuf:"bytes,3,opt,name=deployment_id,json=deploymentId,proto3" json:"deployment_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
@@ -1746,7 +1737,7 @@ const file_hydra_v1_deploy_proto_rawDesc = "" +
 	"\x05image\x18\x01 \x01(\tR\x05image\"o\n" +
 	"\x1eCreateExistingDeploymentSource\x12#\n" +
 	"\rdeployment_id\x18\x01 \x01(\tR\fdeploymentId\x12(\n" +
-	"\x10require_no_newer\x18\x02 \x01(\bR\x0erequireNoNewer\"\xdc\x04\n" +
+	"\x10require_no_newer\x18\x02 \x01(\bR\x0erequireNoNewer\"\xb2\x04\n" +
 	"\x13DeployCreateRequest\x12\x1d\n" +
 	"\n" +
 	"project_id\x18\x01 \x01(\tR\tprojectId\x12\x15\n" +
@@ -1756,8 +1747,7 @@ const file_hydra_v1_deploy_proto_rawDesc = "" +
 	"\x05image\x18\x05 \x01(\v2\x1b.hydra.v1.CreateImageSourceH\x00R\x05image\x12[\n" +
 	"\x13existing_deployment\x18\x06 \x01(\v2(.hydra.v1.CreateExistingDeploymentSourceH\x00R\x12existingDeployment\x12\x18\n" +
 	"\acommand\x18\a \x03(\tR\acommand\x124\n" +
-	"\bdecision\x18\b \x01(\x0e2\x18.hydra.v1.CreateDecisionR\bdecision\x12(\n" +
-	"\x10push_received_at\x18\t \x01(\x03R\x0epushReceivedAt\x124\n" +
+	"\bdecision\x18\b \x01(\x0e2\x18.hydra.v1.CreateDecisionR\bdecision\x124\n" +
 	"\atrigger\x18\n" +
 	" \x01(\x0e2\x1a.ctrl.v1.DeploymentTriggerR\atrigger\x12!\n" +
 	"\ftriggered_by\x18\v \x01(\tR\vtriggeredBy\x12%\n" +

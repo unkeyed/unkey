@@ -222,23 +222,6 @@ func TestCreateRejections(t *testing.T) {
 	})
 }
 
-// TestCreatePushReceivedAtBecomesCreatedAt pins what keeps push order. The
-// webhook sends one Create per app asynchronously, so they land in any order,
-// and created_at is what sibling dedup and the supersede check compare.
-func TestCreatePushReceivedAtBecomesCreatedAt(t *testing.T) {
-	ctx := context.Background()
-	h := newCreateHarness(t, ctx, createHarnessOptions{})
-
-	pushedAt := time.Now().Add(-90 * time.Second).UnixMilli()
-	req := h.imageRequest()
-	req.PushReceivedAt = pushedAt
-
-	deploymentID := uid.New(uid.DeploymentPrefix)
-	h.create(t, ctx, deploymentID, req)
-
-	require.Equal(t, pushedAt, h.deployment(t, ctx, deploymentID).CreatedAt)
-}
-
 // TestCreateFromExistingDeployment covers the source arm behind operator
 // rebuilds and redeploys.
 func TestCreateFromExistingDeployment(t *testing.T) {
@@ -583,21 +566,6 @@ func TestCreateFromForeignDeploymentIsRejected(t *testing.T) {
 	h.requireNoDeploy(t, deploymentID)
 }
 
-// TestCreateRejectsANegativePushTime pins the guard on the one caller-supplied
-// number that reaches an unsigned column. A negative value would write a
-// created_at that sorts before every sibling and a started_at near 1.8e19.
-func TestCreateRejectsANegativePushTime(t *testing.T) {
-	ctx := context.Background()
-	h := newCreateHarness(t, ctx, createHarnessOptions{})
-
-	req := h.imageRequest()
-	req.PushReceivedAt = -1
-
-	_, err := h.tryCreate(ctx, uid.New(uid.DeploymentPrefix), req)
-	require.Error(t, err, "a negative push time must not reach the row")
-	require.Zero(t, h.countDeployments(t, ctx))
-}
-
 // TestRecordDeploymentToleratesACommittedRow covers the recovery that keeps a
 // lost commit acknowledgement from wedging a create. TxRetry re-runs the whole
 // transaction whenever the failure looks transient, and a commit whose ack never
@@ -762,12 +730,11 @@ func (h *createHarness) imageRequest() *hydrav1.DeployCreateRequest {
 		Source: &hydrav1.DeployCreateRequest_Image{
 			Image: &hydrav1.CreateImageSource{Image: fixtureImage},
 		},
-		Command:        nil,
-		Decision:       hydrav1.CreateDecision_CREATE_DECISION_DEPLOY,
-		PushReceivedAt: 0,
-		Trigger:        ctrlv1.DeploymentTrigger_DEPLOYMENT_TRIGGER_API,
-		TriggeredBy:    "root_KEBAP",
-		TriggerReason:  "",
+		Command:       nil,
+		Decision:      hydrav1.CreateDecision_CREATE_DECISION_DEPLOY,
+		Trigger:       ctrlv1.DeploymentTrigger_DEPLOYMENT_TRIGGER_API,
+		TriggeredBy:   "root_KEBAP",
+		TriggerReason: "",
 		Actor: &ctrlv1.ActorInfo{
 			Id:        "root_KEBAP",
 			Name:      "KEBAP key",
