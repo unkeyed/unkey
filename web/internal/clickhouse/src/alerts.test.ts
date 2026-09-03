@@ -15,6 +15,7 @@ describe("getAlertTimeseries", () => {
     ["error_5xx", "frontline_requests_per_5m_v1", "response_status >= 500"],
     ["error_4xx", "frontline_requests_per_5m_v1", "response_status >= 400"],
     ["requests", "frontline_requests_per_5m_v1", "sum(count)"],
+    ["requests_drop", "frontline_requests_per_5m_v1", "sum(count)"],
     ["egress_bytes", "instance_resources_per_minute_v1", "network_egress_public_bytes_max"],
     ["cpu_seconds", "instance_resources_per_minute_v1", "sum(container_value) / 1000000"],
     ["memory_utilization", "instance_resources_per_minute_v1", "memory_bytes_max"],

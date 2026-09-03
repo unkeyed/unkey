@@ -13,6 +13,7 @@ export const alertMetrics = [
   "error_5xx",
   "error_4xx",
   "requests",
+  "requests_drop",
   "egress_bytes",
   "cpu_seconds",
   "memory_utilization",

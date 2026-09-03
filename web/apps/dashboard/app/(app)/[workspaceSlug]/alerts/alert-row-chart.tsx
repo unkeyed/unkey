@@ -24,7 +24,12 @@ export function AlertRowChart({
   metric: AlertMetric;
 }) {
   const query = trpc.alerts.timeseries.useQuery({ alertId }, { staleTime: 60_000 });
-  const bars = useChartBars(query.data?.buckets, query.data?.windowStart, query.data?.windowEnd);
+  const bars = useChartBars(
+    query.data?.buckets,
+    query.data?.windowStart,
+    query.data?.windowEnd,
+    metric,
+  );
 
   if (query.isLoading) {
     return <Skeleton className="h-7 w-[158px] rounded-md" />;
@@ -37,7 +42,10 @@ export function AlertRowChart({
   }
 
   const maxValue = Math.max(...bars.map((bar) => bar.value), 1);
-  const peak = Math.max(...bars.map((bar) => bar.value));
+  const isTrafficDrop = metric === "requests_drop";
+  const extreme = isTrafficDrop
+    ? Math.min(...bars.map((bar) => bar.value))
+    : Math.max(...bars.map((bar) => bar.value));
 
   return (
     <InfoTooltip
@@ -48,7 +56,8 @@ export function AlertRowChart({
         <div className="flex flex-col gap-1 px-3 py-2">
           <span className="text-xs font-medium text-gray-12">Past 24 hours</span>
           <span className="text-xs text-gray-9">
-            Peak {alertMetricLabel(metric).toLowerCase()}: {formatAlertValue(metric, peak)}
+            {isTrafficDrop ? "Low" : "Peak"} {alertMetricLabel(metric).toLowerCase()}:{" "}
+            {formatAlertValue(metric, extreme)}
           </span>
         </div>
       }
@@ -74,6 +83,7 @@ function useChartBars(
   buckets: Array<{ time: number; value: number }> | undefined,
   windowStart: number | undefined,
   windowEnd: number | undefined,
+  metric: AlertMetric,
 ): ChartBar[] {
   return useMemo(() => {
     if (!buckets?.length || windowStart === undefined || windowEnd === undefined) {
@@ -84,17 +94,20 @@ function useChartBars(
     const bars: ChartBar[] = [];
     for (let index = 0; index < baselineAndAlert.length; index += groupSize) {
       const group = baselineAndAlert.slice(index, index + groupSize);
-      const peak = group.reduce((highest, point) =>
-        point.value > highest.value ? point : highest,
-      );
+      const extreme = group.reduce((selected, point) => {
+        if (metric === "requests_drop") {
+          return point.value < selected.value ? point : selected;
+        }
+        return point.value > selected.value ? point : selected;
+      });
       bars.push({
-        time: peak.time,
-        value: peak.value,
+        time: extreme.time,
+        value: extreme.value,
         anomalous: group.some((point) => point.time >= windowStart && point.time <= windowEnd),
       });
     }
     return bars;
-  }, [buckets, windowEnd, windowStart]);
+  }, [buckets, metric, windowEnd, windowStart]);
 }
 
 function ChartMessage({ children }: { children: React.ReactNode }) {

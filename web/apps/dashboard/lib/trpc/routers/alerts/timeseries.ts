@@ -51,6 +51,7 @@ export const getAlertTimeseries = workspaceProcedure
     return {
       buckets: result.val,
       baselineMean: alert.baselineMean,
+      lowerBound: Math.max(0, alert.baselineMean - alert.thresholdSigma * alert.baselineStddev),
       upperBound: alert.baselineMean + alert.thresholdSigma * alert.baselineStddev,
       windowStart: alert.windowStart,
       windowEnd: alert.windowEnd,
