@@ -57,7 +57,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	})
 	if err != nil {
 		if db.IsNotFound(err) {
-			return fault.New("project or app not found",
+			return fault.New(
+				"project or app not found",
 				fault.Code(codes.Data.Project.NotFound.URN()),
 				fault.Internal("project or app not found"),
 				fault.Public("The requested project or app does not exist."),
@@ -74,7 +75,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	})
 	if err != nil {
 		if db.IsNotFound(err) {
-			return fault.New("environment not found",
+			return fault.New(
+				"environment not found",
 				fault.Code(codes.Data.Environment.NotFound.URN()),
 				fault.Internal("environment did not resolve"),
 				fault.Public("The requested environment does not exist."),
@@ -144,7 +146,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		keySpace, err := db.Query.FindKeySpaceByID(ctx, h.DB.RO(), *req.KeyspaceId)
 		if err != nil {
 			if db.IsNotFound(err) {
-				return fault.New("keyspace not found",
+				return fault.New(
+					"keyspace not found",
 					fault.Code(codes.Data.KeyAuth.NotFound.URN()),
 					fault.Internal("keyspace not found"),
 					fault.Public("The specified keyspace was not found."),
@@ -154,7 +157,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 
 		if keySpace.WorkspaceID != principal.AuthorizedWorkspaceID {
-			return fault.New("keyspace not found",
+			return fault.New(
+				"keyspace not found",
 				fault.Code(codes.Data.KeyAuth.NotFound.URN()),
 				fault.Internal("keyspace belongs to different workspace, masking as 404"),
 				fault.Public("The specified keyspace was not found."),
