@@ -5,8 +5,8 @@ description: "Diagnose the Deploy anomaly cron, ingest watermarks, and alert sta
 
 Deploy anomaly alerts depend on Kubernetes cron delivery, Restate execution,
 ClickHouse completeness, and MySQL persistence. Diagnose those layers in that
-order. Do not edit Restate state or bulk-resolve alerts to hide a failing
-detector.
+order. Do not edit Restate state or change `alert_events.status` to hide a
+failing detector.
 
 The [architecture page](/architecture/services/control-plane/worker/deploy-anomaly-detection)
 defines the pipeline. The
@@ -187,7 +187,10 @@ SELECT
   observed_value,
   baseline_mean,
   baseline_stddev,
-  threshold_sigma
+  threshold_sigma,
+  resolved_at,
+  resolved_by,
+  resolution_message
 FROM alert_events
 WHERE id = 'alert_XXX';
 ```
@@ -245,25 +248,40 @@ Then compare the result with source watermarks and platform incidents.
 - Alerts immediately after a sensitivity change: restore code and dashboard
   constants to the last reviewed values through the normal deployment process.
 
-Do not bulk-resolve before correcting the cause. Resolution hides the active
+Do not change alert status rows before correcting the cause. That hides active
 rows but does not correct candidate generation or future windows. Notifications
 are not part of this phase, so stopping an email, Slack, or webhook integration
 cannot stop detector writes.
 
-## Resolve an alert manually
+## Diagnose an alert that stays open
 
-Use the dashboard when the condition is understood and no longer needs to stay
-open.
+Alerts are read-only in the dashboard. The detector closes an alert at the first
+complete evaluation after it has been open for 24 hours.
 
-1. Open the workspace **Alerts** inbox or the app's **Anomalies** tab.
-2. Select the open alert.
-3. Click **Resolve**.
-4. Enter a required resolution message that states why the alert can close.
-5. Confirm the resolution.
+`DefaultConfig` sets `Config.MaxOpenDuration` to 24 hours. If a row remains open
+past that limit:
 
-The update sets `status = resolved`, records the user ID in `resolved_by`, and
-writes an `alert.resolve` audit log event. Manual resolution does not change the
-underlying telemetry.
+1. Compare `fired_at` plus 24 hours with the latest selected window end.
+2. Confirm that the metric's source watermark reached that window end. An
+   `INCOMPLETE` input is a strict no-op and cannot resolve the alert.
+3. Inspect the group virtual object for `open_alert:<metric>` and its latest
+   invocation for a failed MySQL resolution step.
+4. Confirm that the deployed `Config.MaxOpenDuration` is 24 hours.
+
+Do not update MySQL or Restate state to close the alert. Correct the failed
+evaluation path and let the detector persist the transition.
+
+Every resolved row has `resolved_by = system`. Use `resolution_message` to
+interpret the transition:
+
+| Message | Meaning |
+| --- | --- |
+| `Metric returned to baseline for 3 consecutive windows` | Three complete windows crossed the recovery threshold captured when the alert opened. |
+| `Deployment stopped` | A request-drop alert closed because no live deployment remained or its desired state was `stopped`. |
+| `Baseline adapted after 24 hours` | The alert stayed open for 24 hours, so the rolling baseline now represents the new level. |
+
+The last message describes baseline adaptation, not proof that the new level is
+healthy. Continue the incident investigation when the behavior is unexpected.
 
 ## Change sensitivity
 
