@@ -43,10 +43,11 @@ Unkey evaluates closed 5-minute windows and compares them with up to 24 hours of
 earlier activity. It waits one full bucket before evaluating a window so normal
 telemetry delivery lag does not look like missing traffic.
 
-Anomaly rollups do not backfill earlier telemetry. After an app starts recording
-data in these rollups, baseline-based metrics need at least 1 hour before they
-can alert. Unkey does not treat earlier time as zero. Request-drop detection
-needs 6 hours because short test runs often end with expected silence.
+When anomaly rollups are created, Unkey replays the latest 7 days of telemetry.
+Existing apps therefore start with a full 24-hour baseline and enough history
+for request-drop detection. An app younger than 1 hour cannot create a
+baseline-based spike alert. An app younger than 6 hours cannot create a
+request-drop alert. Unkey does not treat time before the app existed as zero.
 
 Request, egress, and CPU spikes can open after one unusual window. Moderate 4xx
 and 5xx error increases must continue for two windows. Request drops must also
@@ -57,8 +58,17 @@ Error alerts use the percentage of requests that failed. They also require at
 least 20 more failures than the recent baseline predicts. This avoids an alert
 when a large percentage change affects only a few requests.
 
-Unkey does not evaluate a source until its telemetry is complete for the whole
-window. An incomplete window cannot open or resolve an alert.
+Unkey tracks telemetry completeness separately for every region active during
+the latest 2 hours. A source is complete only when every active region has
+finished the window. A region with no telemetry for 2 hours becomes inactive,
+so a decommissioned region does not block detection. A source with no active
+region is incomplete. An incomplete window cannot open or resolve an alert.
+
+Request-drop alerts require a live deployment and at least one topology region
+set to running. No live deployment, a stopped deployment, or every topology
+region being stopped suppresses the alert. Setting
+`autoscaling_replicas_min = 0` does not suppress detection. Scale-to-zero
+capability alone does not make a traffic drop expected.
 
 ## Read the Anomalies tab
 
@@ -122,8 +132,9 @@ as traffic doubling. The detector closes the old alert with
 `Baseline adapted after 24 hours` so later changes can be compared with the new
 baseline.
 
-If a deployment stops, an open request-drop alert resolves with
-`Deployment stopped`. A normal recovery uses
+An open request-drop alert resolves with `Deployment stopped` when there is no
+live deployment, the deployment is stopped, or every topology region is
+stopped. A normal recovery uses
 `Metric returned to baseline for 3 consecutive windows`. Use the **Resolved**
 filter to find closed alerts and read their resolution messages.
 
@@ -134,19 +145,16 @@ or resource change can be expected for your workload.
 
 This beta does not include:
 
-- Email, Slack, or webhook notifications, including notifications for 4xx
-  alerts.
+- A notification service. Alerts, including 4xx alerts, are persisted but do
+  not send email, Slack, or webhook notifications.
 - Per-app mute controls.
 - A sensitivity control in the dashboard.
 - Seasonal baselines for daily or weekly patterns.
 - Latency anomalies.
-- Per-region telemetry completeness. Global watermarks can hide one lagging
-  region.
-- Historical backfill for anomaly rollups.
-- Request-drop suppression for paused or scaled-to-zero deployments. Deployment
-  state supports only `running` and `stopped`.
 - Persisted raw error and request counts. Error alerts store the ratio, while raw
   counts appear only in internal logs.
+- Measured capacity results for 1 million monitored groups. Current figures are
+  extrapolated from the 100,000-group test.
 - Automatic before-and-after deployment comparison.
 
 Use [runtime logs](/observability/logs),
