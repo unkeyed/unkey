@@ -28,7 +28,8 @@ type ResolveAlertEventBySystemParams struct {
 	ID                string         `db:"id"`
 }
 
-// ResolveAlertEventBySystem
+// ResolveAlertEventBySystem closes an alert only while it is open. The status
+// guard makes retries and concurrent reconciliation safe no-ops.
 //
 //	UPDATE alert_events
 //	SET status = 'resolved',

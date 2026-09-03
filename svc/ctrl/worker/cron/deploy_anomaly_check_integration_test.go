@@ -1,17 +1,14 @@
 package cron_test
 
 import (
-	"context"
 	"database/sql"
 	"strconv"
-	"sync"
 	"testing"
 	"time"
 
 	"github.com/go-faster/city"
 	"github.com/stretchr/testify/require"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
-	"github.com/unkeyed/unkey/pkg/email"
 	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/ctrl/integration/harness"
@@ -19,43 +16,19 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
 
-type anomalyAdmins struct {
-	mu    sync.RWMutex
-	orgID string
-}
-
-func (a *anomalyAdmins) AdminEmails(_ context.Context, orgID string) ([]string, error) {
-	a.mu.RLock()
-	defer a.mu.RUnlock()
-	if orgID != a.orgID {
-		return nil, nil
-	}
-	return []string{"admin@example.com"}, nil
-}
-
-func (a *anomalyAdmins) allow(orgID string) {
-	a.mu.Lock()
-	defer a.mu.Unlock()
-	a.orgID = orgID
-}
-
 type anomalyTestApp struct {
 	workspaceID   string
 	projectID     string
 	appID         string
 	environmentID string
 	deploymentID  string
-	orgID         string
 }
 
 // TestRunDeployAnomalyCheck_Integration covers production filtering, alert
-// persistence, snapshot-based recovery, and both notification templates.
+// persistence, snapshot-based recovery, and incomplete telemetry handling.
 func TestRunDeployAnomalyCheck_Integration(t *testing.T) {
-	sender := email.NewCapture()
-	admins := &anomalyAdmins{}
-	h := harness.New(t, harness.WithDeployAnomalyNotifications(admins, sender))
+	h := harness.New(t)
 	production := createAnomalyTestApp(t, h, mysqltype.EnvironmentKindProduction)
-	admins.allow(production.orgID)
 	preview := createAnomalyTestApp(t, h, mysqltype.EnvironmentKindPreview)
 	windowStart := uniqueAnomalyWindowStart()
 
@@ -106,7 +79,6 @@ func TestRunDeployAnomalyCheck_Integration(t *testing.T) {
 		"SELECT COUNT(*) FROM alert_events WHERE workspace_id = ?", preview.workspaceID).
 		Scan(&previewAlerts))
 	require.Zero(t, previewAlerts)
-	require.Equal(t, 1, sender.CountByTemplate("deploy-anomaly-alert"))
 
 	quietStart := assertIncompleteTelemetryNoop(t, h, production, alert.ID, windowStart)
 	for i := 1; i <= 3; i++ {
@@ -131,7 +103,6 @@ func TestRunDeployAnomalyCheck_Integration(t *testing.T) {
 		Scan(&resolvedBy, &resolutionMessage))
 	require.Equal(t, "system", resolvedBy.String)
 	require.Equal(t, "Metric returned to baseline for 3 consecutive windows", resolutionMessage.String)
-	require.Equal(t, 1, sender.CountByTemplate("deploy-anomaly-resolved"))
 	assertStoppedDeploymentSuppression(t, h)
 }
 
@@ -218,7 +189,6 @@ func assertStoppedDeploymentSuppression(t *testing.T, h *harness.Harness) {
 		WorkspaceId: app.workspaceID, ProjectId: app.projectID,
 		AppId: app.appID, EnvironmentId: app.environmentID,
 		DeploymentId: app.deploymentID, DeploymentDesiredState: "stopped",
-		NotificationsMuted: true,
 		Metrics: []*hydrav1.DeployAnomalyMetricInput{{
 			Metric:    string(db.AlertEventsMetricRequestsDrop),
 			DataState: hydrav1.DeployAnomalyMetricDataState_DEPLOY_ANOMALY_METRIC_DATA_STATE_PRESENT,
@@ -272,7 +242,7 @@ func createAnomalyTestApp(t *testing.T, h *harness.Harness, kind mysqltype.Envir
 	}))
 	return anomalyTestApp{
 		workspaceID: workspace.ID, projectID: project.ID, appID: app.ID,
-		environmentID: environment.ID, deploymentID: deployment.ID, orgID: workspace.OrgID,
+		environmentID: environment.ID, deploymentID: deployment.ID,
 	}
 }
 

@@ -1,4 +1,6 @@
 -- name: FindLiveDeploymentForEnvironment :one
+-- FindLiveDeploymentForEnvironment resolves customer-facing metadata and the
+-- current deployment state used to suppress intentional request drops.
 SELECT
     w.org_id,
     w.name AS workspace_name,
@@ -7,8 +9,7 @@ SELECT
     e.kind AS environment_kind,
     e.slug AS environment_slug,
     d.id AS deployment_id,
-    COALESCE(d.desired_state, '') AS deployment_desired_state,
-    CAST(COALESCE(JSON_UNQUOTE(JSON_EXTRACT(w.beta_features, '$.deploy_anomaly_alerts_muted')) IN ('true', '1'), FALSE) AS SIGNED) AS notifications_muted
+    COALESCE(d.desired_state, '') AS deployment_desired_state
 FROM environments e
 INNER JOIN apps a ON a.id = e.app_id
 INNER JOIN workspaces w ON w.id = e.workspace_id

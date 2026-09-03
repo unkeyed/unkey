@@ -113,3 +113,124 @@ func NewDeployAnomalyServiceServer(srv DeployAnomalyServiceServer, opts ...sdk_g
 	router = router.Handler("Evaluate", sdk_go.NewObjectHandler(srv.Evaluate))
 	return router
 }
+
+// DeployAnomalyShardServiceClient is the client API for hydra.v1.DeployAnomalyShardService service.
+//
+// DeployAnomalyShardService owns one stable workspace hash partition for one
+// window. The key is "<window_start_ms>/<shard>/<shard_count>". It journals
+// only one shard's SQL candidates and fans those groups out to their evaluators.
+type DeployAnomalyShardServiceClient interface {
+	EvaluateShard(opts ...sdk_go.ClientOption) sdk_go.Client[*EvaluateDeployAnomalyShardRequest, *EvaluateDeployAnomalyShardResponse]
+	GetPending(opts ...sdk_go.ClientOption) sdk_go.Client[*GetPendingDeployAnomalyGroupsRequest, *GetPendingDeployAnomalyGroupsResponse]
+}
+
+type deployAnomalyShardServiceClient struct {
+	ctx     sdk_go.Context
+	key     string
+	options []sdk_go.ClientOption
+}
+
+func NewDeployAnomalyShardServiceClient(ctx sdk_go.Context, key string, opts ...sdk_go.ClientOption) DeployAnomalyShardServiceClient {
+	cOpts := append([]sdk_go.ClientOption{sdk_go.WithProtoJSON}, opts...)
+	return &deployAnomalyShardServiceClient{
+		ctx,
+		key,
+		cOpts,
+	}
+}
+func (c *deployAnomalyShardServiceClient) EvaluateShard(opts ...sdk_go.ClientOption) sdk_go.Client[*EvaluateDeployAnomalyShardRequest, *EvaluateDeployAnomalyShardResponse] {
+	cOpts := c.options
+	if len(opts) > 0 {
+		cOpts = append(append([]sdk_go.ClientOption{}, cOpts...), opts...)
+	}
+	return sdk_go.WithRequestType[*EvaluateDeployAnomalyShardRequest](sdk_go.Object[*EvaluateDeployAnomalyShardResponse](c.ctx, "hydra.v1.DeployAnomalyShardService", c.key, "EvaluateShard", cOpts...))
+}
+
+func (c *deployAnomalyShardServiceClient) GetPending(opts ...sdk_go.ClientOption) sdk_go.Client[*GetPendingDeployAnomalyGroupsRequest, *GetPendingDeployAnomalyGroupsResponse] {
+	cOpts := c.options
+	if len(opts) > 0 {
+		cOpts = append(append([]sdk_go.ClientOption{}, cOpts...), opts...)
+	}
+	return sdk_go.WithRequestType[*GetPendingDeployAnomalyGroupsRequest](sdk_go.Object[*GetPendingDeployAnomalyGroupsResponse](c.ctx, "hydra.v1.DeployAnomalyShardService", c.key, "GetPending", cOpts...))
+}
+
+// DeployAnomalyShardServiceIngressClient is the ingress client API for hydra.v1.DeployAnomalyShardService service.
+//
+// This client is used to call the service from outside of a Restate context.
+type DeployAnomalyShardServiceIngressClient interface {
+	EvaluateShard() ingress.Requester[*EvaluateDeployAnomalyShardRequest, *EvaluateDeployAnomalyShardResponse]
+	GetPending() ingress.Requester[*GetPendingDeployAnomalyGroupsRequest, *GetPendingDeployAnomalyGroupsResponse]
+}
+
+type deployAnomalyShardServiceIngressClient struct {
+	client      *ingress.Client
+	serviceName string
+	key         string
+}
+
+func NewDeployAnomalyShardServiceIngressClient(client *ingress.Client, key string) DeployAnomalyShardServiceIngressClient {
+	return &deployAnomalyShardServiceIngressClient{
+		client,
+		"hydra.v1.DeployAnomalyShardService",
+		key,
+	}
+}
+
+func (c *deployAnomalyShardServiceIngressClient) EvaluateShard() ingress.Requester[*EvaluateDeployAnomalyShardRequest, *EvaluateDeployAnomalyShardResponse] {
+	codec := encoding.ProtoJSONCodec
+	return ingress.NewRequester[*EvaluateDeployAnomalyShardRequest, *EvaluateDeployAnomalyShardResponse](c.client, c.serviceName, "EvaluateShard", &c.key, &codec)
+}
+
+func (c *deployAnomalyShardServiceIngressClient) GetPending() ingress.Requester[*GetPendingDeployAnomalyGroupsRequest, *GetPendingDeployAnomalyGroupsResponse] {
+	codec := encoding.ProtoJSONCodec
+	return ingress.NewRequester[*GetPendingDeployAnomalyGroupsRequest, *GetPendingDeployAnomalyGroupsResponse](c.client, c.serviceName, "GetPending", &c.key, &codec)
+}
+
+// DeployAnomalyShardServiceServer is the server API for hydra.v1.DeployAnomalyShardService service.
+// All implementations should embed UnimplementedDeployAnomalyShardServiceServer
+// for forward compatibility.
+//
+// DeployAnomalyShardService owns one stable workspace hash partition for one
+// window. The key is "<window_start_ms>/<shard>/<shard_count>". It journals
+// only one shard's SQL candidates and fans those groups out to their evaluators.
+type DeployAnomalyShardServiceServer interface {
+	EvaluateShard(ctx sdk_go.ObjectContext, req *EvaluateDeployAnomalyShardRequest) (*EvaluateDeployAnomalyShardResponse, error)
+	GetPending(ctx sdk_go.ObjectSharedContext, req *GetPendingDeployAnomalyGroupsRequest) (*GetPendingDeployAnomalyGroupsResponse, error)
+}
+
+// UnimplementedDeployAnomalyShardServiceServer should be embedded to have
+// forward compatible implementations.
+//
+// NOTE: this should be embedded by value instead of pointer to avoid a nil
+// pointer dereference when methods are called.
+type UnimplementedDeployAnomalyShardServiceServer struct{}
+
+func (UnimplementedDeployAnomalyShardServiceServer) EvaluateShard(ctx sdk_go.ObjectContext, req *EvaluateDeployAnomalyShardRequest) (*EvaluateDeployAnomalyShardResponse, error) {
+	return nil, sdk_go.TerminalError(fmt.Errorf("method EvaluateShard not implemented"), 501)
+}
+func (UnimplementedDeployAnomalyShardServiceServer) GetPending(ctx sdk_go.ObjectSharedContext, req *GetPendingDeployAnomalyGroupsRequest) (*GetPendingDeployAnomalyGroupsResponse, error) {
+	return nil, sdk_go.TerminalError(fmt.Errorf("method GetPending not implemented"), 501)
+}
+func (UnimplementedDeployAnomalyShardServiceServer) testEmbeddedByValue() {}
+
+// UnsafeDeployAnomalyShardServiceServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to DeployAnomalyShardServiceServer will
+// result in compilation errors.
+type UnsafeDeployAnomalyShardServiceServer interface {
+	mustEmbedUnimplementedDeployAnomalyShardServiceServer()
+}
+
+func NewDeployAnomalyShardServiceServer(srv DeployAnomalyShardServiceServer, opts ...sdk_go.ServiceDefinitionOption) sdk_go.ServiceDefinition {
+	// If the following call panics, it indicates UnimplementedDeployAnomalyShardServiceServer was
+	// embedded by pointer and is nil.  This will cause panics if an
+	// unimplemented method is ever invoked, so we test this at initialization
+	// time to prevent it from happening at runtime later due to I/O.
+	if t, ok := srv.(interface{ testEmbeddedByValue() }); ok {
+		t.testEmbeddedByValue()
+	}
+	sOpts := append([]sdk_go.ServiceDefinitionOption{sdk_go.WithProtoJSON}, opts...)
+	router := sdk_go.NewObject("hydra.v1.DeployAnomalyShardService", sOpts...)
+	router = router.Handler("EvaluateShard", sdk_go.NewObjectHandler(srv.EvaluateShard))
+	router = router.Handler("GetPending", sdk_go.NewObjectSharedHandler(srv.GetPending))
+	return router
+}

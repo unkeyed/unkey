@@ -76,6 +76,11 @@ type RestateConfig struct {
 	// Allows Restate to discover and invoke this worker's services.
 	// Example: "http://worker:9080".
 	RegisterAs string `toml:"register_as"`
+
+	// DeployAnomalyShardCount controls the stable workspace hash partitions
+	// evaluated by each Deploy anomaly window. More shards reduce each Restate
+	// journal entry and ClickHouse query working set.
+	DeployAnomalyShardCount uint64 `toml:"deploy_anomaly_shard_count" config:"default=16,min=1,max=256"`
 }
 
 // BuildConfig selects and configures the backend that executes container

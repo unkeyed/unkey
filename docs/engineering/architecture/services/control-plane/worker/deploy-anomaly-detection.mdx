@@ -21,7 +21,7 @@ The 4xx and 5xx signals evaluate `errors / requests`, not raw error counts. The 
 
 An error-rate crossing must cause at least 20 more failures than the baseline rate predicts. This permits a window with 99 failures from 99 requests to alert, while traffic growth at an unchanged error rate does not alert.
 
-Moderate error-rate anomalies need two consecutive complete windows. A 5xx ratio of at least 50% with at least 50 failures is catastrophic and opens after one complete window. The system persists 4xx alerts for the dashboard but does not email for them by default.
+Moderate error-rate anomalies need two consecutive complete windows. A 5xx ratio of at least 50% with at least 50 failures is catastrophic and opens after one complete window. The system also persists 4xx alerts.
 
 ## Request drops
 
@@ -78,7 +78,13 @@ The cron runs every 5 minutes. Its virtual object key is `deploy-anomaly-<window
 $(( ($(date -u +%s) / 300) * 300 - 300 ))
 ```
 
-The handler journals one fleet query for requests, resources, and instance events, plus the watermark read. It resolves MySQL metadata, drops non-production groups, sorts groups for stable journal positions, and fans out groups with a candidate or open alert.
+The window handler fans out to 16 shard virtual objects by default. A shard key is `<window_start_ms>/<shard>/<shard_count>`, and workspace assignment is `cityHash64(workspace_id) % shard_count`. The window handler receives only counts from each shard, so it never journals fleet metric rows.
+
+Each shard runs ClickHouse candidate queries and adds explicit keys for open alerts and candidates from the preceding window. SQL uses the production thresholds but may over-include. The Go detector remains authoritative. Metadata is resolved in MySQL batches of at most 500 groups. Non-production groups are dropped, and the remaining groups are sorted before fan-out to keep Restate journal positions stable. A child failure fails its shard, prevents the window heartbeat, and allows the next scheduled window to retry.
+
+Request counts use the shard-ordered `frontline_requests_anomaly_per_5m_v1` rollup. Egress and CPU use `instance_resources_app_per_5m_v1`. Memory uses `instance_memory_container_per_5m_v1`, which preserves container and instance grain while reducing the source from one-minute to five-minute rows. These rollups inherit the source tables' dashboards-only caveat and can double-count retried inserts, so they must not be used for billing.
+
+The rollups have no historical migration backfill. New installations need 12 complete buckets before spike detection and 72 complete buckets before request-drop detection.
 
 The per-group virtual object key is `<workspace_id>/<app_id>/<environment_id>`. It owns these keys for each metric:
 
@@ -90,7 +96,7 @@ The per-group virtual object key is `<workspace_id>/<app_id>/<environment_id>`. 
 
 The candidate window makes confirmation consecutive even though each cron window has a different orchestrator key. Open alerts are reconciled from MySQL when a group evaluator first runs.
 
-## Resolution and notifications
+## Resolution
 
 An open alert keeps the baseline and effective deviation snapshot used when it opened. Recovery compares complete windows with this snapshot, not the rolling baseline, because a sustained incident can raise the rolling baseline.
 
@@ -100,11 +106,50 @@ Sigma metrics recover below `mean + (k - 1) * effective_stddev`. Error ratios us
 
 A stopped deployment resolves a request-drop alert with `Deployment stopped`.
 
-Opening and resolved emails use the Resend aliases `deploy-anomaly-alert` and `deploy-anomaly-resolved`. Both aliases must exist in Resend. Email idempotency keys are `anomaly-alert/<alert_id>` and `anomaly-resolved/<alert_id>`.
+Detector inputs are written as structured log fields when an alert opens. The current `alert_events` schema has no context JSON column, so raw error and request counts are not persisted.
 
-The existing `workspaces.beta_features.deploy_anomaly_alerts_muted` boolean is the workspace mute switch. Muting suppresses emails only. Detection, persistence, and resolution continue.
+## Notifications
 
-Detector inputs are written as structured fields when an alert opens. The current `alert_events` schema has no context JSON column, so raw error and request counts are available to email and logs but are not persisted.
+This phase does not send notifications. It persists opening, `last_seen_at`, `status`, and `resolved_at` transitions in `alert_events`. A future notification service will consume those transitions. It will need the alert ID, workspace slug, app and environment, metric, observed and baseline values, and `fired_at`. Workspace, app, and environment names can be resolved from their persisted IDs.
+
+## Scale characteristics
+
+Restate's <a href="https://docs.restate.dev/server/networking" target="_blank">`networking.message-size-limit`</a> defaults to exactly 32 MiB. The invoker limit defaults to the same global setting and is clamped to it. Restate rejects an oversized `ctx.Run` result or journal request with `RT0003`. The Go SDK uses its JSON codec for these results.
+
+The original unsharded request query returned every active group. At 100,000 groups its JSON result was 57,952,008 bytes, already above the default Restate limit. Linear extrapolation gives about 580 MB at one million groups.
+
+The scale test inserts 288 request buckets with three status codes and 1,440 resource rows for each group. It makes 0.5% of current windows anomalous. Post-change query duration is the sum of 16 shard queries run sequentially by the harness. Production starts the shard calls concurrently, so this sum is not production wall time. Peak memory is the largest query, not a sum.
+
+### 10,000 groups
+
+| Query | Version | Duration | Rows and bytes read | Peak memory | Result rows and bytes | Go JSON | Largest shard JSON |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Watermark | Before | 9 ms | 14 / 313 B | 136 KB | 1 / 784 B | 52 B | N/A |
+| Watermark | After | 9 ms | 4 / 126 B | 100 KB | 1 / 272 B | 52 B | N/A |
+| Requests | Before | 484 ms | 8.67M / 1.46 GB | 1.44 GB | 10,000 / 5.95 MB | 5.77 MB | N/A |
+| Requests | After | 2,538 ms | 9.30M / 1.36 GB | 104 MB | 50 / 167 KB | 29.3 KB | 3.5 KB |
+| Resources | Before | 1,158 ms | 14.45M / 1.74 GB | 2.95 GB | 10,000 / 5.53 MB | 4.64 MB | N/A |
+| Resources | After | 2,759 ms | 9.46M / 608 MB | 111 MB | 50 / 516 KB | 25.1 KB | 3.0 KB |
+| Instance events | Before | 6 ms | 50 / 8.2 KB | 525 KB | 50 / 12.4 KB | 11.1 KB | N/A |
+| Instance events | After | 91 ms | 800 / 130 KB | 588 KB | 50 / 39.0 KB | 11.1 KB | 1.3 KB |
+
+### 100,000 groups
+
+| Query | Version | Duration | Rows and bytes read | Peak memory | Result rows | Go JSON | Largest shard JSON |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Requests | Before | 4,284 ms | 86.70M / 14.57 GB | 10.65 GB | 100,000 | 57.95 MB | N/A |
+| Requests | After | 4,311 ms | 36.38M / 6.20 GB | 826 MB | 500 | 291 KB | 24.4 KB |
+| Resources | Before | Failed at 3,545 ms | 144.50M / 16.38 GB | 14.19 GB | 0 | 0 | N/A |
+| Resources | After | 5,324 ms | 70.70M / 5.33 GB | 836 MB | 500 | 251 KB | 21.0 KB |
+| Instance events | After | 96 ms | 8,000 / 1.30 MB | 596 KB | 500 | 111 KB | 9.3 KB |
+
+The old resource query failed because its aggregation tried to spill about 15 GB with only 14 GB of temporary disk available. The app and container five-minute rollups keep the post-change peak below 1 GB in this test.
+
+The orb had 31 GiB RAM and 16 GiB free disk. One million groups, which require more than 2.3 billion generated source rows, did not fit. Linear extrapolation from 100,000 groups gives about 5,000 rows at the Go layer. It gives 2.91 MB total request JSON and 2.51 MB total resource JSON, with about 244 KB and 210 KB in the largest shard journal entries. These are estimates, not measured results.
+
+Candidate filtering, explicit open and pending group filters, and the rollups bound data returned to Go. A naive 16-shard hash predicate without shard-ordered storage scanned the request fleet 16 times: 1.387 billion rows and 24,458 ms at 100,000 groups. Shard-ordered rollups reduced that intermediate result to 36.38 million rows and 4,311 ms.
+
+Watermarks come from the two-row `anomaly_source_watermarks_v1` rollup, and the read is bounded to two hours. The watermark remains fleet-wide. A healthy region can therefore hide a lagging region, and that region's absent rows can appear as complete zero traffic. Per-region watermarks require region identity in all source rows and are deferred to phase 2.
 
 ## Code
 
@@ -115,4 +160,6 @@ Run the focused checks with:
 ```bash
 mise exec -- rask ./svc/ctrl/worker/cron/deployanomaly/...
 mise exec -- rask ./pkg/clickhouse/...
+
+UNKEY_ANOMALY_SCALE_GROUPS=10000 mise exec -- go test -run '^TestAnomalyWindowsScale$' -count=1 -v ./pkg/clickhouse
 ```
