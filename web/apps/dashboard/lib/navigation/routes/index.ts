@@ -1,3 +1,4 @@
+import { alertRoutes } from "./alerts";
 /**
  * Single entrypoint for area route builders. Import `routes` and call through
  * the hierarchy: `routes.projects.apps.deployment(scope)`. New areas register
@@ -22,6 +23,7 @@ export type { CheckoutIntent, DeployCheckoutOrigin, DeployCheckoutPlan } from ".
 export const routes = {
   account: accountRoutes,
   projects: projectRoutes,
+  alerts: alertRoutes,
   ratelimits: ratelimitRoutes,
   rootKeys: rootKeyRoutes,
   settings: settingsRoutes,

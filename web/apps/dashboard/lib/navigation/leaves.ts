@@ -1,3 +1,4 @@
+import { AlertsNavBadge } from "@/components/navigation/sidebar-v2/alerts-nav-badge";
 import {
   IconArrowDottedRotateAnticlockwiseOutline18,
   IconArrowsOppositeDirectionYOutline18,
@@ -6,6 +7,7 @@ import {
   IconFingerprintOutline18,
   IconGaugeOutline18,
   IconGearOutline18,
+  IconHeartPulseOutline18,
   IconInputSearchOutline18,
   IconKeyOutline18,
   IconLayers3Outline18,
@@ -14,6 +16,7 @@ import {
   IconSquareBulletListOutline18,
   IconWindowLayoutOutline18,
 } from "@unkey/icons";
+import { createElement } from "react";
 import { routes } from "./routes";
 import type { ResourceScope } from "./routes/shared";
 import type { ResolvedNavLink } from "./types";
@@ -55,6 +58,14 @@ export function buildWorkspaceSections(slug: string, segments: string[]): Resolv
       href: `/${slug}/logs`,
       icon: IconLayers3Outline18,
       isActive: top === "logs",
+    },
+    {
+      key: "alerts",
+      label: "Alerts",
+      href: routes.alerts.list({ workspaceSlug: slug }),
+      icon: IconHeartPulseOutline18,
+      isActive: top === "alerts",
+      tag: createElement(AlertsNavBadge),
     },
     {
       key: "identities",
