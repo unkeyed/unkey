@@ -130,27 +130,27 @@ The scale test inserts 288 request buckets with three status codes and 1,440 res
 | Watermark | Before | 9 ms | 14 / 313 B | 136 KB | 1 / 784 B | 52 B | N/A |
 | Watermark | After | 9 ms | 4 / 126 B | 100 KB | 1 / 272 B | 52 B | N/A |
 | Requests | Before | 484 ms | 8.67M / 1.46 GB | 1.44 GB | 10,000 / 5.95 MB | 5.77 MB | N/A |
-| Requests | After | 2,538 ms | 9.30M / 1.36 GB | 104 MB | 50 / 167 KB | 29.3 KB | 3.5 KB |
+| Requests | After | 3,631 ms | 9.30M / 1.36 GB | 166 MB | 50 / 167 KB | 30.7 KB | 3.7 KB |
 | Resources | Before | 1,158 ms | 14.45M / 1.74 GB | 2.95 GB | 10,000 / 5.53 MB | 4.64 MB | N/A |
-| Resources | After | 2,759 ms | 9.46M / 608 MB | 111 MB | 50 / 516 KB | 25.1 KB | 3.0 KB |
+| Resources | After | 4,021 ms | 9.46M / 608 MB | 132 MB | 50 / 516 KB | 25.1 KB | 3.0 KB |
 | Instance events | Before | 6 ms | 50 / 8.2 KB | 525 KB | 50 / 12.4 KB | 11.1 KB | N/A |
 | Instance events | After | 91 ms | 800 / 130 KB | 588 KB | 50 / 39.0 KB | 11.1 KB | 1.3 KB |
 
 ### 100,000 groups
 
-| Query | Version | Duration | Rows and bytes read | Peak memory | Result rows | Go JSON | Largest shard JSON |
+| Query | Version | Duration | Rows and bytes read | Peak memory | Result rows and bytes | Go JSON | Largest shard JSON |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| Requests | Before | 4,284 ms | 86.70M / 14.57 GB | 10.65 GB | 100,000 | 57.95 MB | N/A |
-| Requests | After | 4,311 ms | 36.38M / 6.20 GB | 826 MB | 500 | 291 KB | 24.4 KB |
-| Resources | Before | Failed at 3,545 ms | 144.50M / 16.38 GB | 14.19 GB | 0 | 0 | N/A |
-| Resources | After | 5,324 ms | 70.70M / 5.33 GB | 836 MB | 500 | 251 KB | 21.0 KB |
-| Instance events | After | 96 ms | 8,000 / 1.30 MB | 596 KB | 500 | 111 KB | 9.3 KB |
+| Requests | Before | 4,284 ms | 86.70M / 14.57 GB | 10.65 GB | 100,000 / 40.52 MB | 57.95 MB | N/A |
+| Requests | After | 8,567 ms | 35.99M / 6.14 GB | 508 MB | 500 / 1.57 MB | 307 KB | 25.8 KB |
+| Resources | Before | Failed at 3,545 ms | 144.50M / 16.38 GB | 14.19 GB | 0 / 0 | 0 | N/A |
+| Resources | After | 9,093 ms | 70.55M / 5.32 GB | 444 MB | 500 / 6.48 MB | 251 KB | 21.0 KB |
+| Instance events | After | 96 ms | 8,000 / 1.30 MB | 596 KB | 500 / 139 KB | 111 KB | 9.3 KB |
 
 The old resource query failed because its aggregation tried to spill about 15 GB with only 14 GB of temporary disk available. The app and container five-minute rollups keep the post-change peak below 1 GB in this test.
 
-The orb had 31 GiB RAM and 16 GiB free disk. One million groups, which require more than 2.3 billion generated source rows, did not fit. Linear extrapolation from 100,000 groups gives about 5,000 rows at the Go layer. It gives 2.91 MB total request JSON and 2.51 MB total resource JSON, with about 244 KB and 210 KB in the largest shard journal entries. These are estimates, not measured results.
+The orb had 31 GiB RAM and 16 GiB free disk. One million groups, which require more than 2.3 billion generated source rows, did not fit. Linear extrapolation from 100,000 groups gives about 5,000 rows at the Go layer. It gives 3.07 MB total request JSON and 2.51 MB total resource JSON, with about 258 KB and 210 KB in the largest shard journal entries. These are estimates, not measured results.
 
-Candidate filtering, explicit open and pending group filters, and the rollups bound data returned to Go. A naive 16-shard hash predicate without shard-ordered storage scanned the request fleet 16 times: 1.387 billion rows and 24,458 ms at 100,000 groups. Shard-ordered rollups reduced that intermediate result to 36.38 million rows and 4,311 ms.
+Candidate filtering, explicit open and pending group filters, and the rollups bound data returned to Go. A naive 16-shard hash predicate without shard-ordered storage scanned the request fleet 16 times: 1.387 billion rows and 24,458 ms at 100,000 groups. Shard-ordered rollups reduced that intermediate result to 35.99 million rows. Bucket grouping follows the table sort order with ClickHouse in-order aggregation, so a shard does not retain one hash-table state for every group and baseline bucket.
 
 Watermarks come from the two-row `anomaly_source_watermarks_v1` rollup, and the read is bounded to two hours. The watermark remains fleet-wide. A healthy region can therefore hide a lagging region, and that region's absent rows can appear as complete zero traffic. Per-region watermarks require region identity in all source rows and are deferred to phase 2.
 
