@@ -9,7 +9,7 @@ import (
 )
 
 // bulkInsertAlertEvent is the base query for bulk insert
-const bulkInsertAlertEvent = `INSERT INTO alert_events ( id, workspace_id, project_id, app_id, environment_id, deployment_id, metric, status, fired_at, last_seen_at, observed_value, baseline_mean, baseline_stddev, threshold_sigma, window_start, window_end, created_at, updated_at ) VALUES %s`
+const bulkInsertAlertEvent = `INSERT INTO alert_events ( id, workspace_id, workspace_hash, project_id, app_id, environment_id, deployment_id, metric, status, fired_at, last_seen_at, observed_value, baseline_mean, baseline_stddev, threshold_sigma, window_start, window_end, created_at, updated_at ) VALUES %s`
 
 // InsertAlertEvents performs bulk insert in a single query
 
@@ -22,7 +22,7 @@ func (q *BulkQueries) InsertAlertEvents(ctx context.Context, args []InsertAlertE
 	// Build the bulk insert query
 	valueClauses := make([]string, len(args))
 	for i := range args {
-		valueClauses[i] = "( ?, ?, ?, ?, ?, ?, ?, 'open', ?, ?, ?, ?, ?, ?, ?, ?, ?, ? )"
+		valueClauses[i] = "( ?, ?, ?, ?, ?, ?, ?, ?, 'open', ?, ?, ?, ?, ?, ?, ?, ?, ?, ? )"
 	}
 
 	bulkQuery := fmt.Sprintf(bulkInsertAlertEvent, strings.Join(valueClauses, ", "))
@@ -32,6 +32,7 @@ func (q *BulkQueries) InsertAlertEvents(ctx context.Context, args []InsertAlertE
 	for _, arg := range args {
 		allArgs = append(allArgs, arg.ID)
 		allArgs = append(allArgs, arg.WorkspaceID)
+		allArgs = append(allArgs, arg.WorkspaceHash)
 		allArgs = append(allArgs, arg.ProjectID)
 		allArgs = append(allArgs, arg.AppID)
 		allArgs = append(allArgs, arg.EnvironmentID)

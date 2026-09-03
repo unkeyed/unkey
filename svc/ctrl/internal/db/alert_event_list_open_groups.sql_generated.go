@@ -17,8 +17,14 @@ SELECT DISTINCT
     environment_id
 FROM alert_events
 WHERE status = 'open'
+  AND workspace_hash % ? = ?
 ORDER BY workspace_id, project_id, app_id, environment_id
 `
+
+type ListOpenAlertEventGroupsParams struct {
+	ShardCount uint64 `db:"shard_count"`
+	Shard      uint64 `db:"shard"`
+}
 
 type ListOpenAlertEventGroupsRow struct {
 	WorkspaceID   string `db:"workspace_id"`
@@ -29,6 +35,7 @@ type ListOpenAlertEventGroupsRow struct {
 
 // ListOpenAlertEventGroups returns the durable groups that shards must keep
 // evaluating even when ClickHouse no longer classifies them as candidates.
+// workspace_hash uses the same CityHash64 function as ClickHouse sharding.
 //
 //	SELECT DISTINCT
 //	    workspace_id,
@@ -37,9 +44,10 @@ type ListOpenAlertEventGroupsRow struct {
 //	    environment_id
 //	FROM alert_events
 //	WHERE status = 'open'
+//	  AND workspace_hash % ? = ?
 //	ORDER BY workspace_id, project_id, app_id, environment_id
-func (q *Queries) ListOpenAlertEventGroups(ctx context.Context) ([]ListOpenAlertEventGroupsRow, error) {
-	rows, err := q.db.QueryContext(ctx, listOpenAlertEventGroups)
+func (q *Queries) ListOpenAlertEventGroups(ctx context.Context, arg ListOpenAlertEventGroupsParams) ([]ListOpenAlertEventGroupsRow, error) {
+	rows, err := q.db.QueryContext(ctx, listOpenAlertEventGroups, arg.ShardCount, arg.Shard)
 	if err != nil {
 		return nil, err
 	}

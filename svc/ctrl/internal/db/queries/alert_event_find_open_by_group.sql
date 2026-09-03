@@ -5,6 +5,7 @@ SELECT
     pk,
     id,
     workspace_id,
+    workspace_hash,
     project_id,
     app_id,
     environment_id,
