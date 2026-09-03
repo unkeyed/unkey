@@ -80,7 +80,7 @@ with rollouts, and drag across the chart to zoom into a smaller time range.
 
 Select an alert in the range list to open focus mode. The details card shows its
 status, metric, observed value, expected baseline, detection window, deployment
-context, and resolution details.
+context. For a resolved alert, it also shows the resolution message.
 
 {/* TODO: Add the supplied anomalies-default-light.png,
 anomalies-focus-open.png, and alerts-list-open.png artifacts. Publish the chosen
@@ -111,27 +111,26 @@ focus mode.
   />
 </Frame>
 
-## Resolve an alert
+## Understand alert resolution
 
-An open alert tracks ongoing anomalous windows. When the metric returns to its
-opening baseline for three consecutive complete windows, Unkey resolves it
-automatically. Memory must fall below 85% for recovery. Unkey judges recovery
-against the baseline captured when the alert opened, so a long incident cannot
-become its own normal.
+Alerts are read-only in the dashboard. The detector resolves an alert without a
+user action and displays the reason in the alert details.
 
-You can resolve an understood alert before automatic recovery:
+An alert resolves when the metric returns to its opening baseline for three
+consecutive complete windows. Memory must fall below 85% for recovery. Unkey
+uses the baseline captured when the alert opened, so a continuing incident
+cannot satisfy this recovery rule as its rolling baseline changes.
 
-1. Open the alert from the workspace inbox or app **Anomalies** tab.
-2. Click **Resolve**.
-3. Enter a message that explains why the alert can close.
-4. Confirm the resolution.
+When behavior stays at a new level for 24 hours, the rolling baseline contains
+only that new level. This can happen after a permanent and expected change, such
+as traffic doubling. The detector closes the old alert with
+`Baseline adapted after 24 hours` so later changes can be compared with the new
+baseline.
 
-The message is required and appears in the alert details. Unkey also records
-the action in the audit log. Resolving an alert does not change your app or its
-telemetry.
-
-If a deployment is stopped, an open request-drop alert resolves with the message
-`Deployment stopped`.
+If a deployment stops, an open request-drop alert resolves with
+`Deployment stopped`. A normal recovery uses
+`Metric returned to baseline for 3 consecutive windows`. Use the **Resolved**
+filter to find closed alerts and read their resolution messages.
 
 ## Know the beta limits
 
