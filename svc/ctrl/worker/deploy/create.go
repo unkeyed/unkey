@@ -90,8 +90,6 @@ func (w *Workflow) Create(ctx restate.ObjectContext, req *hydrav1.DeployCreateRe
 		return nil, err
 	}
 	if gates.Rejection != nil {
-		// The detail is logged, never returned: it names repositories and
-		// deployments the caller may have no right to read.
 		logger.Info(
 			"deployment create rejected",
 			"deployment_id", deploymentID,
@@ -114,8 +112,6 @@ func (w *Workflow) Create(ctx restate.ObjectContext, req *hydrav1.DeployCreateRe
 		return nil, err
 	}
 	if payload.Rejection != nil {
-		// The detail is logged, never returned: it names repositories and
-		// deployments the caller may have no right to read.
 		logger.Info(
 			"deployment create rejected",
 			"deployment_id", deploymentID,
