@@ -352,7 +352,21 @@ func (w *Workflow) buildPayload(
 		}
 	}
 
-	commit := gitCommitFromProto(req.GetGit().GetCommit())
+	// Caller-supplied commit metadata, whitespace normalized. Empty fields mean
+	// unknown and are filled from GitHub in resolveSource, so an image redeploy
+	// never synthesizes git metadata.
+	var commit gitCommit
+	if gc := req.GetGit().GetCommit(); gc != nil {
+		commit = gitCommit{
+			SHA:             gc.GetCommitSha(),
+			Branch:          strings.TrimSpace(gc.GetBranch()),
+			Message:         gc.GetCommitMessage(),
+			AuthorHandle:    strings.TrimSpace(gc.GetAuthorHandle()),
+			AuthorAvatarURL: strings.TrimSpace(gc.GetAuthorAvatarUrl()),
+			Timestamp:       gc.GetTimestamp(),
+			ForkRepository:  gc.GetForkRepository(),
+		}
+	}
 	prNumber := req.GetGit().GetPrNumber()
 	source := buildSource{Image: "", Git: nil}
 

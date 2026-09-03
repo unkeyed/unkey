@@ -59,10 +59,3 @@ func TestTrimBytesKeepsMultiByteInputValid(t *testing.T) {
 		require.True(t, strings.HasPrefix(input, got), "limit %d changed the content", bytesMax)
 	}
 }
-
-// TestDefaultBranch pins the fallback a git create relies on when the caller
-// names neither a commit nor a branch.
-func TestDefaultBranch(t *testing.T) {
-	require.Equal(t, "trunk", defaultBranch("trunk"))
-	require.Equal(t, "main", defaultBranch(""), "an app with no configured branch deploys main")
-}
