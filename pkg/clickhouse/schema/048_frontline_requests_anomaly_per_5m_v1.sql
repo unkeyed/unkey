@@ -30,3 +30,25 @@ SELECT
   sum(count) AS requests
 FROM frontline_requests_per_5m_v1
 GROUP BY time, workspace_id, project_id, app_id, environment_id;
+
+-- Seven days matches the dashboard overview horizon while bounding migration
+-- cost. Aggregate sum states do not deduplicate replayed inserts, so excluding
+-- existing rollup keys makes retries fill missing keys without doubling them.
+INSERT INTO frontline_requests_anomaly_per_5m_v1
+SELECT
+  time,
+  workspace_id,
+  project_id,
+  app_id,
+  environment_id,
+  sumIf(count, response_status >= 500 AND response_status < 600) AS error_5xx,
+  sumIf(count, response_status >= 400 AND response_status < 500) AS error_4xx,
+  sum(count) AS requests
+FROM frontline_requests_per_5m_v1
+WHERE time >= now() - INTERVAL 7 DAY
+  AND (workspace_id, project_id, app_id, environment_id, time) NOT IN (
+    SELECT workspace_id, project_id, app_id, environment_id, time
+    FROM frontline_requests_anomaly_per_5m_v1
+    WHERE time >= now() - INTERVAL 7 DAY
+  )
+GROUP BY time, workspace_id, project_id, app_id, environment_id;
