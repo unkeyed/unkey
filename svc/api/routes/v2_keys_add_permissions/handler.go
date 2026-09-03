@@ -77,7 +77,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 	key := db.ToKeyData(keyRow)
 
-	if key.Key.WorkspaceID != principal.WorkspaceID {
+	if key.Key.WorkspaceID != principal.AuthorizedWorkspaceID {
 		return fault.New("key not found",
 			fault.Code(codes.Data.Key.NotFound.URN()),
 			fault.Internal("key belongs to different workspace"),
@@ -88,7 +88,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	err = principal.Authorize(
 		rbac.Or(
 			rbac.U(
-				urn.New().Workspace(principal.WorkspaceID).Project(key.KeyAuth.ProjectID).Keyspace(key.Key.KeyAuthID).Key(key.Key.ID),
+				urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(key.KeyAuth.ProjectID).Keyspace(key.Key.KeyAuthID).Key(key.Key.ID),
 				permissions.Write,
 			),
 			rbac.And(
@@ -125,7 +125,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	foundPermissions, err := db.Query.FindPermissionsBySlugs(ctx, h.DB.RO(), db.FindPermissionsBySlugsParams{
-		WorkspaceID: principal.WorkspaceID,
+		WorkspaceID: principal.AuthorizedWorkspaceID,
 		ProjectID:   key.KeyAuth.ProjectID,
 		Slugs:       req.Permissions,
 	})
@@ -166,7 +166,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	for perm := range missingPermissions {
 		err = principal.Authorize(rbac.Or(
 			rbac.U(
-				urn.New().Workspace(principal.WorkspaceID).Project(key.KeyAuth.ProjectID).RBAC().Permission("*"),
+				urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(key.KeyAuth.ProjectID).RBAC().Permission("*"),
 				permissions.Write,
 			),
 			rbac.T(rbac.Tuple{
@@ -184,7 +184,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		permissionsToInsert = append(permissionsToInsert, db.UpsertPermissionParams{
 			PermissionID: permissionID,
 			Name:         perm,
-			WorkspaceID:  principal.WorkspaceID,
+			WorkspaceID:  principal.AuthorizedWorkspaceID,
 			ProjectID:    key.KeyAuth.ProjectID,
 			Slug:         perm,
 			Description:  dbtype.NullString{String: "", Valid: false},
@@ -219,7 +219,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 
 		foundPermissions, err = db.Query.FindPermissionsBySlugs(ctx, tx, db.FindPermissionsBySlugsParams{
-			WorkspaceID: principal.WorkspaceID,
+			WorkspaceID: principal.AuthorizedWorkspaceID,
 			ProjectID:   key.KeyAuth.ProjectID,
 			Slugs:       req.Permissions,
 		})
@@ -238,7 +238,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			candidate, exists := createdPermissionIDs[normalizedSlug]
 			if exists && candidate.PermissionID == permission.ID {
 				auditLogs = append(auditLogs, auditlog.AuditLog{
-					WorkspaceID:   principal.WorkspaceID,
+					WorkspaceID:   principal.AuthorizedWorkspaceID,
 					Event:         auditlog.PermissionCreateEvent,
 					ActorType:     auditlog.AuditLogActor(principal.Subject.Type),
 					ActorID:       principal.Subject.ID,
@@ -287,13 +287,13 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				toAdd[idx] = db.InsertKeyPermissionParams{
 					KeyID:        req.KeyId,
 					PermissionID: permission.ID,
-					WorkspaceID:  principal.WorkspaceID,
+					WorkspaceID:  principal.AuthorizedWorkspaceID,
 					CreatedAt:    now,
 					UpdatedAt:    sql.NullInt64{Valid: true, Int64: now},
 				}
 
 				auditLogs = append(auditLogs, auditlog.AuditLog{
-					WorkspaceID:   principal.WorkspaceID,
+					WorkspaceID:   principal.AuthorizedWorkspaceID,
 					Event:         auditlog.AuthConnectPermissionKeyEvent,
 					ActorType:     auditlog.AuditLogActor(principal.Subject.Type),
 					ActorID:       principal.Subject.ID,

@@ -86,7 +86,7 @@ func TestResolver_ResolveRootKeyPrincipal(t *testing.T) {
 	require.Equal(t, authprincipal.SubjectTypeRootKey, p.Subject.Type)
 	require.Equal(t, "key_123", p.Subject.ID)
 	require.Equal(t, "Production root key", p.Subject.Name)
-	require.Equal(t, "ws_authorized", p.WorkspaceID)
+	require.Equal(t, "ws_authorized", p.AuthorizedWorkspaceID)
 	require.Equal(t, []string{"api.*.read_key"}, p.Permissions)
 	source, ok := p.Source.(authprincipal.KeySource)
 	require.True(t, ok)

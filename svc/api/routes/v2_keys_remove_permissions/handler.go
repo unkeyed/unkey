@@ -69,7 +69,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	// Validate key belongs to authorized workspace
 	key := db.ToKeyData(keyRow)
 
-	if key.Key.WorkspaceID != principal.WorkspaceID {
+	if key.Key.WorkspaceID != principal.AuthorizedWorkspaceID {
 		return fault.New("key not found",
 			fault.Code(codes.Data.Key.NotFound.URN()),
 			fault.Internal("key belongs to different workspace"),
@@ -80,7 +80,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	err = principal.Authorize(
 		rbac.Or(
 			rbac.U(
-				urn.New().Workspace(principal.WorkspaceID).Project(key.KeyAuth.ProjectID).Keyspace(key.Key.KeyAuthID).Key(key.Key.ID),
+				urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(key.KeyAuth.ProjectID).Keyspace(key.Key.KeyAuthID).Key(key.Key.ID),
 				permissions.Write,
 			),
 			rbac.And(
@@ -123,7 +123,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	foundPermissions, err := db.Query.FindPermissionsBySlugs(ctx, h.DB.RO(), db.FindPermissionsBySlugsParams{
-		WorkspaceID: principal.WorkspaceID,
+		WorkspaceID: principal.AuthorizedWorkspaceID,
 		ProjectID:   key.KeyAuth.ProjectID,
 		Slugs:       req.Permissions,
 	})
@@ -170,7 +170,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			for _, permission := range permissionsToRemove {
 				idsToRemove = append(idsToRemove, permission.ID)
 				auditLogs = append(auditLogs, auditlog.AuditLog{
-					WorkspaceID:   principal.WorkspaceID,
+					WorkspaceID:   principal.AuthorizedWorkspaceID,
 					Event:         auditlog.AuthDisconnectPermissionKeyEvent,
 					ActorType:     auditlog.AuditLogActor(principal.Subject.Type),
 					ActorID:       principal.Subject.ID,

@@ -283,9 +283,9 @@ func testPrincipal(workspaceID string) *principal.Principal {
 			Name: "Dashboard User",
 			Type: principal.SubjectTypeUser,
 		},
-		Type:        principal.TypeJWT,
-		Source:      principal.JWTSource{},
-		WorkspaceID: workspaceID,
-		Permissions: []string{"api.*.create_api"},
+		Type:                  principal.TypeJWT,
+		Source:                principal.JWTSource{},
+		AuthorizedWorkspaceID: workspaceID,
+		Permissions:           []string{"api.*.create_api"},
 	}
 }

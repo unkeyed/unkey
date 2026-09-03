@@ -98,7 +98,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			ResourceID:   "*",
 			Action:       rbac.CreatePortal,
 		}),
-		rbac.S(fmt.Sprintf("unkey:v1:%s:**#*", principal.WorkspaceID)),
+		rbac.S(fmt.Sprintf("unkey:v1:%s:**#*", principal.AuthorizedWorkspaceID)),
 	))
 	if err != nil {
 		// Returned as-is rather than masked as a 404: there is no portal yet whose
@@ -111,21 +111,21 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	ctx = auditlog.WithCorrelation(ctx, auditlog.NewCorrelationID())
 
 	err = db.Tx(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
-		if err := portal.VerifyMappingOwned(ctx, tx, principal.WorkspaceID, mapping); err != nil {
+		if err := portal.VerifyMappingOwned(ctx, tx, principal.AuthorizedWorkspaceID, mapping); err != nil {
 			return err
 		}
 
-		if err := portal.AuthorizeMappingTarget(ctx, tx, principal, principal.WorkspaceID, mapping); err != nil {
+		if err := portal.AuthorizeMappingTarget(ctx, tx, principal, principal.AuthorizedWorkspaceID, mapping); err != nil {
 			return err
 		}
 
-		if err := h.checkSlugAndResourceFree(ctx, tx, principal.WorkspaceID, req.Slug, mapping); err != nil {
+		if err := h.checkSlugAndResourceFree(ctx, tx, principal.AuthorizedWorkspaceID, req.Slug, mapping); err != nil {
 			return err
 		}
 
 		err := db.Query.InsertPortal(ctx, tx, db.InsertPortalParams{
 			ID:           portalID,
-			WorkspaceID:  principal.WorkspaceID,
+			WorkspaceID:  principal.AuthorizedWorkspaceID,
 			Slug:         req.Slug,
 			DisplayName:  req.DisplayName,
 			AppID:        appID,
@@ -158,7 +158,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 		return h.Auditlogs.Insert(ctx, tx, []auditlog.AuditLog{
 			{
-				WorkspaceID:   principal.WorkspaceID,
+				WorkspaceID:   principal.AuthorizedWorkspaceID,
 				Event:         auditlog.PortalCreateEvent,
 				Display:       fmt.Sprintf("Created portal %s", portalID),
 				ActorID:       principal.Subject.ID,

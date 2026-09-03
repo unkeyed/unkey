@@ -59,14 +59,14 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	// Create permission in a transaction with audit log
 	err = db.TxRetry(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
-		projectID, resolveErr := projects.EnsureDefaultProject(ctx, tx, principal.WorkspaceID)
+		projectID, resolveErr := projects.EnsureDefaultProject(ctx, tx, principal.AuthorizedWorkspaceID)
 		if resolveErr != nil {
 			return resolveErr
 		}
 
 		if authorizeErr := principal.Authorize(rbac.Or(
 			rbac.U(
-				urn.New().Workspace(principal.WorkspaceID).Project(projectID).RBAC().Permission("*"),
+				urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(projectID).RBAC().Permission("*"),
 				permissions.Write,
 			),
 			rbac.T(rbac.Tuple{
@@ -81,7 +81,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		// Insert the permission
 		err = db.Query.InsertPermission(ctx, tx, db.InsertPermissionParams{
 			PermissionID: permissionID,
-			WorkspaceID:  principal.WorkspaceID,
+			WorkspaceID:  principal.AuthorizedWorkspaceID,
 			ProjectID:    projectID,
 			Name:         req.Name,
 			Slug:         req.Slug,
@@ -105,7 +105,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		// Create audit log
 		err = h.Auditlogs.Insert(ctx, tx, []auditlog.AuditLog{
 			{
-				WorkspaceID:   principal.WorkspaceID,
+				WorkspaceID:   principal.AuthorizedWorkspaceID,
 				Event:         auditlog.PermissionCreateEvent,
 				ActorType:     auditlog.AuditLogActor(principal.Subject.Type),
 				ActorID:       principal.Subject.ID,

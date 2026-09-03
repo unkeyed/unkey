@@ -52,7 +52,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	role, err := db.Query.FindRoleByIdOrNameWithPerms(ctx, h.DB.RO(), db.FindRoleByIdOrNameWithPermsParams{
-		WorkspaceID: principal.WorkspaceID,
+		WorkspaceID: principal.AuthorizedWorkspaceID,
 		Search:      req.Role,
 	})
 	if err != nil {
@@ -69,7 +69,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	deleteRole := rbac.U(
-		urn.New().Workspace(principal.WorkspaceID).Project(role.ProjectID).RBAC().Role(role.ID),
+		urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(role.ProjectID).RBAC().Role(role.ID),
 		permissions.Delete,
 	)
 	err = principal.Authorize(rbac.Or(
@@ -115,7 +115,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 		err = h.Auditlogs.Insert(ctx, tx, []auditlog.AuditLog{
 			{
-				WorkspaceID:   principal.WorkspaceID,
+				WorkspaceID:   principal.AuthorizedWorkspaceID,
 				Event:         auditlog.RoleDeleteEvent,
 				ActorType:     auditlog.AuditLogActor(principal.Subject.Type),
 				ActorID:       principal.Subject.ID,

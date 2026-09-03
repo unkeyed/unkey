@@ -55,7 +55,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	found, err := h.resolve(ctx, principal.WorkspaceID, target)
+	found, err := h.resolve(ctx, principal.AuthorizedWorkspaceID, target)
 	if err != nil {
 		return err
 	}
@@ -81,7 +81,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			ResourceID:   found.ID,
 			Action:       rbac.ReadPortal,
 		}),
-		rbac.S(fmt.Sprintf("unkey:v1:%s:**#*", principal.WorkspaceID)),
+		rbac.S(fmt.Sprintf("unkey:v1:%s:**#*", principal.AuthorizedWorkspaceID)),
 	))
 	if err != nil {
 		// A fresh chain, not a wrap: UserFacingMessage concatenates every public

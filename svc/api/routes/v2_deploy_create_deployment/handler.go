@@ -48,7 +48,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	// Resolve project + app in a single query by workspace + slugs
 	row, err := db.Query.FindAppByWorkspaceAndSlugs(ctx, h.DB.RO(), db.FindAppByWorkspaceAndSlugsParams{
-		WorkspaceID: principal.WorkspaceID,
+		WorkspaceID: principal.AuthorizedWorkspaceID,
 		ProjectSlug: req.Project,
 		AppSlug:     req.App,
 	})
@@ -122,7 +122,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			return fault.Wrap(err, fault.Internal("failed to find keyspace"))
 		}
 
-		if keySpace.WorkspaceID != principal.WorkspaceID {
+		if keySpace.WorkspaceID != principal.AuthorizedWorkspaceID {
 			return fault.New("keyspace not found",
 				fault.Code(codes.Data.KeyAuth.NotFound.URN()),
 				fault.Internal("keyspace belongs to different workspace, masking as 404"),

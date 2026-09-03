@@ -61,7 +61,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	data, err := db.TxWithResultRetry(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) (openapi.App, error) {
 		app, err := db.Query.FindAppByProjectAndIdOrSlug(ctx, tx, db.FindAppByProjectAndIdOrSlugParams{
-			WorkspaceID: principal.WorkspaceID,
+			WorkspaceID: principal.AuthorizedWorkspaceID,
 			Project:     req.Project,
 			App:         req.App,
 		})
@@ -121,7 +121,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 		updatedAt := time.Now().UnixMilli()
 		update := db.UpdateAppParams{
-			WorkspaceID:               principal.WorkspaceID,
+			WorkspaceID:               principal.AuthorizedWorkspaceID,
 			ID:                        app.ID,
 			UpdatedAt:                 sql.NullInt64{Valid: true, Int64: updatedAt},
 			NameSpecified:             0,
@@ -194,7 +194,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		logs := make([]auditlog.AuditLog, 0, 2)
 		if appColumnsChanged {
 			logs = append(logs, auditlog.AuditLog{
-				WorkspaceID:   principal.WorkspaceID,
+				WorkspaceID:   principal.AuthorizedWorkspaceID,
 				Event:         auditlog.AppUpdateEvent,
 				Display:       fmt.Sprintf("Updated app %s", app.ID),
 				ActorID:       principal.Subject.ID,
@@ -230,7 +230,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				resourceName = gitState.Repository
 			}
 			logs = append(logs, auditlog.AuditLog{
-				WorkspaceID:   principal.WorkspaceID,
+				WorkspaceID:   principal.AuthorizedWorkspaceID,
 				Event:         event,
 				Display:       display,
 				ActorID:       principal.Subject.ID,

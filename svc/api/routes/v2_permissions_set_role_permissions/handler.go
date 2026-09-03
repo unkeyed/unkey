@@ -68,7 +68,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	result := make([]rolePermission, 0, len(requestedSlugs))
 	err = db.TxRetry(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
 		role, lockErr := db.Query.LockRoleByIDAndWorkspaceID(ctx, tx, db.LockRoleByIDAndWorkspaceIDParams{
-			RoleID: req.RoleId, WorkspaceID: principal.WorkspaceID,
+			RoleID: req.RoleId, WorkspaceID: principal.AuthorizedWorkspaceID,
 		})
 		if lockErr != nil {
 			if db.IsNotFound(lockErr) {
@@ -79,7 +79,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 		authorizeErr := principal.Authorize(rbac.Or(
 			rbac.U(
-				urn.New().Workspace(principal.WorkspaceID).Project(role.ProjectID).RBAC().Role(role.ID),
+				urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(role.ProjectID).RBAC().Role(role.ID),
 				permissions.Write,
 			),
 			rbac.And(
@@ -94,7 +94,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		found := make([]db.FindPermissionsBySlugsForUpdateRow, 0)
 		if len(requestedSlugs) > 0 {
 			found, err = db.Query.FindPermissionsBySlugsForUpdate(ctx, tx, db.FindPermissionsBySlugsForUpdateParams{
-				WorkspaceID: principal.WorkspaceID,
+				WorkspaceID: principal.AuthorizedWorkspaceID,
 				ProjectID:   role.ProjectID,
 				Slugs:       requestedSlugs,
 			})
@@ -117,7 +117,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		if len(missing) > 0 {
 			if authErr := principal.Authorize(rbac.Or(
 				rbac.U(
-					urn.New().Workspace(principal.WorkspaceID).Project(role.ProjectID).RBAC().Permission("*"),
+					urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(role.ProjectID).RBAC().Permission("*"),
 					permissions.Write,
 				),
 				rbac.T(rbac.Tuple{ResourceType: rbac.Rbac, ResourceID: "*", Action: rbac.CreatePermission}),
@@ -129,7 +129,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				now := time.Now().UnixMilli()
 				candidate := db.UpsertPermissionParams{
 					PermissionID: uid.New(uid.PermissionPrefix),
-					WorkspaceID:  principal.WorkspaceID,
+					WorkspaceID:  principal.AuthorizedWorkspaceID,
 					ProjectID:    role.ProjectID,
 					Name:         slug,
 					Slug:         slug,
@@ -143,7 +143,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			}
 
 			found, err = db.Query.FindPermissionsBySlugsForUpdate(ctx, tx, db.FindPermissionsBySlugsForUpdateParams{
-				WorkspaceID: principal.WorkspaceID,
+				WorkspaceID: principal.AuthorizedWorkspaceID,
 				ProjectID:   role.ProjectID,
 				Slugs:       requestedSlugs,
 			})
@@ -212,7 +212,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			if _, ok := currentByID[permission.ID]; ok {
 				continue
 			}
-			toAdd = append(toAdd, db.InsertRolePermissionParams{RoleID: req.RoleId, PermissionID: permission.ID, WorkspaceID: principal.WorkspaceID, CreatedAtM: time.Now().UnixMilli()})
+			toAdd = append(toAdd, db.InsertRolePermissionParams{RoleID: req.RoleId, PermissionID: permission.ID, WorkspaceID: principal.AuthorizedWorkspaceID, CreatedAtM: time.Now().UnixMilli()})
 			logs = append(logs, audit(principal, s, auditlog.AuthConnectRolePermissionEvent, fmt.Sprintf("Added permission %s to role %s", permission.Name, role.Name), roleResource(role.ID, role.Name), permissionResource(permission.ID, permission.Slug, permission.Name)))
 		}
 		if err = db.BulkQuery.InsertRolePermissions(ctx, tx, toAdd); err != nil {
@@ -242,5 +242,5 @@ func permissionResource(id, slug, name string) auditlog.AuditLogResource {
 }
 
 func audit(principal *principal.Principal, s *zen.Session, event auditlog.AuditLogEvent, display string, resources ...auditlog.AuditLogResource) auditlog.AuditLog {
-	return auditlog.AuditLog{WorkspaceID: principal.WorkspaceID, Event: event, ActorType: auditlog.AuditLogActor(principal.Subject.Type), ActorID: principal.Subject.ID, ActorName: principal.Subject.Name, ActorMeta: map[string]any{}, Display: display, RemoteIP: s.Location(), UserAgent: s.UserAgent(), CorrelationID: "", Resources: resources}
+	return auditlog.AuditLog{WorkspaceID: principal.AuthorizedWorkspaceID, Event: event, ActorType: auditlog.AuditLogActor(principal.Subject.Type), ActorID: principal.Subject.ID, ActorName: principal.Subject.Name, ActorMeta: map[string]any{}, Display: display, RemoteIP: s.Location(), UserAgent: s.UserAgent(), CorrelationID: "", Resources: resources}
 }

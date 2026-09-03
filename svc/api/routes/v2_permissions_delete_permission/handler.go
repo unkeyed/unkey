@@ -48,7 +48,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	permission, err := db.Query.FindPermissionByIdOrSlug(ctx, h.DB.RO(), db.FindPermissionByIdOrSlugParams{
-		WorkspaceID: principal.WorkspaceID,
+		WorkspaceID: principal.AuthorizedWorkspaceID,
 		Search:      req.Permission,
 	})
 	if err != nil {
@@ -67,7 +67,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	deletePermission := rbac.U(
-		urn.New().Workspace(principal.WorkspaceID).Project(permission.ProjectID).RBAC().Permission(permission.ID),
+		urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(permission.ProjectID).RBAC().Permission(permission.ID),
 		permissions.Delete,
 	)
 	err = principal.Authorize(rbac.Or(
@@ -113,7 +113,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 		err = h.Auditlogs.Insert(ctx, tx, []auditlog.AuditLog{
 			{
-				WorkspaceID:   principal.WorkspaceID,
+				WorkspaceID:   principal.AuthorizedWorkspaceID,
 				Event:         auditlog.PermissionDeleteEvent,
 				ActorType:     auditlog.AuditLogActor(principal.Subject.Type),
 				ActorID:       principal.Subject.ID,

@@ -106,7 +106,7 @@ func TestResolver_ResolveJWT(t *testing.T) {
 	require.Equal(t, authprincipal.TypeJWT, principal.Type)
 	require.Equal(t, "user_123", principal.Subject.ID)
 	require.Equal(t, "Dashboard User", principal.Subject.Name)
-	require.Equal(t, "ws_123", principal.WorkspaceID)
+	require.Equal(t, "ws_123", principal.AuthorizedWorkspaceID)
 	source, ok := principal.Source.(authprincipal.JWTSource)
 	require.True(t, ok)
 	require.Equal(t, map[string]any{"id": "org_123"}, source.Payload["org"])
@@ -165,7 +165,7 @@ func TestResolver_ResolveJWTWithJWKSURL(t *testing.T) {
 	require.Equal(t, authprincipal.TypeJWT, principal.Type)
 	require.Equal(t, "user_123", principal.Subject.ID)
 	require.Equal(t, "JWKS User", principal.Subject.Name)
-	require.Equal(t, "ws_123", principal.WorkspaceID)
+	require.Equal(t, "ws_123", principal.AuthorizedWorkspaceID)
 	source, ok := principal.Source.(authprincipal.JWTSource)
 	require.True(t, ok)
 	require.Equal(t, "RS256", source.Header["alg"])
@@ -214,7 +214,7 @@ func TestResolver_ResolveWorkOSAccessTokenClaims(t *testing.T) {
 	require.Equal(t, authprincipal.TypeJWT, principal.Type)
 	require.Equal(t, "user_123", principal.Subject.ID)
 	require.Equal(t, "user@example.test", principal.Subject.Name)
-	require.Equal(t, "ws_123", principal.WorkspaceID)
+	require.Equal(t, "ws_123", principal.AuthorizedWorkspaceID)
 	source, ok := principal.Source.(authprincipal.JWTSource)
 	require.True(t, ok)
 	org, ok := source.Payload["org"].(map[string]any)
@@ -260,7 +260,7 @@ func TestResolver_ResolveJWTWithRotatedSecret(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, authprincipal.TypeJWT, principal.Type)
 	require.Equal(t, "user_123", principal.Subject.ID)
-	require.Equal(t, "ws_123", principal.WorkspaceID)
+	require.Equal(t, "ws_123", principal.AuthorizedWorkspaceID)
 }
 
 // TestResolver_RejectsJWTWithUnexpectedIssuer guarantees a validly signed token

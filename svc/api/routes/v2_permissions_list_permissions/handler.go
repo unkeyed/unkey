@@ -55,7 +55,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	p := pagination.Parse(req.Limit, req.Cursor, 100)
 	search := mysql.SearchContains(strings.TrimSpace(ptr.SafeDeref(req.Search)))
 
-	projectID, projectFound, err := projects.FindDefaultProject(ctx, h.DB.RW(), principal.WorkspaceID)
+	projectID, projectFound, err := projects.FindDefaultProject(ctx, h.DB.RW(), principal.AuthorizedWorkspaceID)
 	if err != nil {
 		return err
 	}
@@ -68,7 +68,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 	err = principal.Authorize(rbac.Or(
 		rbac.U(
-			urn.New().Workspace(principal.WorkspaceID).Project(projectIDRequired).RBAC().Permission("*"),
+			urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(projectIDRequired).RBAC().Permission("*"),
 			permissions.Read,
 		),
 		rbac.T(rbac.Tuple{
@@ -82,7 +82,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	if !projectFound {
-		projectID, err = projects.EnsureDefaultProject(ctx, h.DB.RW(), principal.WorkspaceID)
+		projectID, err = projects.EnsureDefaultProject(ctx, h.DB.RW(), principal.AuthorizedWorkspaceID)
 		if err != nil {
 			return err
 		}
@@ -92,7 +92,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		ctx,
 		h.DB.RO(),
 		db.ListPermissionsParams{
-			WorkspaceID:       principal.WorkspaceID,
+			WorkspaceID:       principal.AuthorizedWorkspaceID,
 			ProjectID:         projectID,
 			IDCursor:          p.Cursor,
 			Search:            search,

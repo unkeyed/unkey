@@ -65,7 +65,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	result, err := db.TxWithResultRetry(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) (setOverrideResult, error) {
 		var zero setOverrideResult
 		nsRow, txErr := db.Query.FindRatelimitNamespace(ctx, tx, db.FindRatelimitNamespaceParams{
-			WorkspaceID: principal.WorkspaceID,
+			WorkspaceID: principal.AuthorizedWorkspaceID,
 			Namespace:   req.Namespace,
 		})
 		if txErr != nil {
@@ -86,7 +86,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 
 		override, txErr := db.Query.FindRatelimitOverrideByIdentifier(ctx, tx, db.FindRatelimitOverrideByIdentifierParams{
-			WorkspaceID: principal.WorkspaceID,
+			WorkspaceID: principal.AuthorizedWorkspaceID,
 			NamespaceID: nsRow.ID,
 			Identifier:  req.Identifier,
 		})
@@ -106,7 +106,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 		txErr = principal.Authorize(rbac.Or(
 			rbac.U(
-				urn.New().Workspace(principal.WorkspaceID).Project(nsRow.ProjectID).RatelimitNamespace(nsRow.ID).Override(ovrID),
+				urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(nsRow.ProjectID).RatelimitNamespace(nsRow.ID).Override(ovrID),
 				permissions.Write,
 			),
 			rbac.T(rbac.Tuple{
@@ -128,7 +128,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 		txErr = db.Query.InsertRatelimitOverride(ctx, tx, db.InsertRatelimitOverrideParams{
 			ID:          ovrID,
-			WorkspaceID: principal.WorkspaceID,
+			WorkspaceID: principal.AuthorizedWorkspaceID,
 			NamespaceID: nsRow.ID,
 			Identifier:  req.Identifier,
 			Limit:       uint64(req.Limit),    // nolint:gosec
@@ -146,7 +146,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 		txErr = h.Auditlogs.Insert(ctx, tx, []auditlog.AuditLog{
 			{
-				WorkspaceID:   principal.WorkspaceID,
+				WorkspaceID:   principal.AuthorizedWorkspaceID,
 				Event:         auditlog.RatelimitSetOverrideEvent,
 				ActorID:       principal.Subject.ID,
 				ActorType:     auditlog.AuditLogActor(principal.Subject.Type),
@@ -183,8 +183,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	// Invalidate cache for this namespace after the transaction commits
 	h.NamespaceCache.Remove(ctx,
-		cache.ScopedKey{WorkspaceID: principal.WorkspaceID, Key: result.namespaceID},
-		cache.ScopedKey{WorkspaceID: principal.WorkspaceID, Key: result.namespaceName},
+		cache.ScopedKey{WorkspaceID: principal.AuthorizedWorkspaceID, Key: result.namespaceID},
+		cache.ScopedKey{WorkspaceID: principal.AuthorizedWorkspaceID, Key: result.namespaceName},
 	)
 
 	return s.JSON(http.StatusOK, Response{

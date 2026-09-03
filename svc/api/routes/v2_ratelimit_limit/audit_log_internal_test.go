@@ -59,8 +59,8 @@ func TestBufferAuditLog_SkipsNonRootPrincipal(t *testing.T) {
 			Payload:   nil,
 			Signature: "",
 		},
-		WorkspaceID: "ws_123",
-		Permissions: nil,
+		AuthorizedWorkspaceID: "ws_123",
+		Permissions:           nil,
 	}
 	namespace := db.FindRatelimitNamespace{ //nolint:exhaustruct
 		ID:          "rlns_123",

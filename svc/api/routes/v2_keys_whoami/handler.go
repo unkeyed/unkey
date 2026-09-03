@@ -73,7 +73,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	keyData := db.ToKeyData(key)
 
 	// Validate key belongs to authorized workspace
-	if keyData.Key.WorkspaceID != principal.WorkspaceID {
+	if keyData.Key.WorkspaceID != principal.AuthorizedWorkspaceID {
 		return fault.New("key not found",
 			fault.Code(codes.Data.Key.NotFound.URN()),
 			fault.Internal("key belongs to different workspace"),
@@ -94,7 +94,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			Action:       rbac.ReadKey,
 		}),
 		rbac.U(
-			urn.New().Workspace(principal.WorkspaceID).Project(keyData.KeyAuth.ProjectID).Keyspace(keyData.Key.KeyAuthID).Key(keyData.Key.ID),
+			urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(keyData.KeyAuth.ProjectID).Keyspace(keyData.Key.KeyAuthID).Key(keyData.Key.ID),
 			permissions.Read,
 		),
 	))

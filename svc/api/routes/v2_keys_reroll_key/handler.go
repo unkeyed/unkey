@@ -67,7 +67,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	if key.KeyWorkspaceID != principal.WorkspaceID {
+	if key.KeyWorkspaceID != principal.AuthorizedWorkspaceID {
 		return fault.New("key not found",
 			fault.Code(codes.Data.Key.NotFound.URN()),
 			fault.Internal("key belongs to different workspace"),
@@ -119,7 +119,7 @@ func (h *Handler) RerollKey(
 		return err
 	}
 	if err := assert.All(
-		assert.Equal(key.KeyWorkspaceID, principal.WorkspaceID, "reroll key workspace must match principal"),
+		assert.Equal(key.KeyWorkspaceID, principal.AuthorizedWorkspaceID, "reroll key workspace must match principal"),
 		assert.Equal(key.KeyID, req.KeyId, "preloaded reroll key must match request"),
 	); err != nil {
 		return err
@@ -224,7 +224,7 @@ func (h *Handler) RerollKey(
 
 			if encryption != nil {
 				err = db.Query.InsertKeyEncryption(ctx, tx, db.InsertKeyEncryptionParams{
-					WorkspaceID:     principal.WorkspaceID,
+					WorkspaceID:     principal.AuthorizedWorkspaceID,
 					KeyID:           keyID,
 					CreatedAt:       now,
 					Encrypted:       encryption.GetEncrypted(),
@@ -341,7 +341,7 @@ func (h *Handler) RerollKey(
 
 			var auditLogs []auditlog.AuditLog
 			auditLogs = append(auditLogs, auditlog.AuditLog{
-				WorkspaceID:   principal.WorkspaceID,
+				WorkspaceID:   principal.AuthorizedWorkspaceID,
 				Event:         auditlog.KeyRerollEvent,
 				ActorType:     actor.Type,
 				ActorID:       actor.ID,

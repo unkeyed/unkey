@@ -63,7 +63,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	err = db.Tx(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
 		found, err := db.Query.FindPortalByIdOrSlug(ctx, tx, db.FindPortalByIdOrSlugParams{
 			Portal:      req.Portal,
-			WorkspaceID: principal.WorkspaceID,
+			WorkspaceID: principal.AuthorizedWorkspaceID,
 		})
 		if err != nil {
 			if db.IsNotFound(err) {
@@ -101,7 +101,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				ResourceID:   found.ID,
 				Action:       rbac.DeletePortal,
 			}),
-			rbac.S(fmt.Sprintf("unkey:v1:%s:**#*", principal.WorkspaceID)),
+			rbac.S(fmt.Sprintf("unkey:v1:%s:**#*", principal.AuthorizedWorkspaceID)),
 		))
 		if err != nil {
 			// A fresh chain, not a wrap: UserFacingMessage concatenates every public
@@ -124,7 +124,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		// a second delete here.
 		affected, err := db.Query.DeletePortal(ctx, tx, db.DeletePortalParams{
 			ID:          found.ID,
-			WorkspaceID: principal.WorkspaceID,
+			WorkspaceID: principal.AuthorizedWorkspaceID,
 		})
 		if err != nil {
 			return fault.Wrap(err,
@@ -157,7 +157,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		revoked, err := db.Query.RevokePortalSessionsByPortal(ctx, tx, db.RevokePortalSessionsByPortalParams{
 			RevokedAt:   sql.NullInt64{Valid: true, Int64: now},
 			PortalID:    found.ID,
-			WorkspaceID: principal.WorkspaceID,
+			WorkspaceID: principal.AuthorizedWorkspaceID,
 		})
 		if err != nil {
 			return fault.Wrap(err,
@@ -171,7 +171,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 		return h.Auditlogs.Insert(ctx, tx, []auditlog.AuditLog{
 			{
-				WorkspaceID:   principal.WorkspaceID,
+				WorkspaceID:   principal.AuthorizedWorkspaceID,
 				Event:         auditlog.PortalDeleteEvent,
 				Display:       fmt.Sprintf("Deleted portal %s", found.ID),
 				ActorID:       principal.Subject.ID,

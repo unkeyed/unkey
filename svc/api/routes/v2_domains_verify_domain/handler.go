@@ -54,7 +54,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	identifier := domaingate.CanonicalizeIdentifier(req.Domain)
 
 	domain, err := db.Query.FindCustomDomainByIdentifier(ctx, h.DB.RO(), db.FindCustomDomainByIdentifierParams{
-		WorkspaceID: principal.WorkspaceID,
+		WorkspaceID: principal.AuthorizedWorkspaceID,
 		Domain:      identifier,
 	})
 	if err != nil {
@@ -62,7 +62,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			return fault.Wrap(
 				err,
 				fault.Code(codes.Data.Domain.NotFound.URN()),
-				fault.Internal(fmt.Sprintf("no custom domain %q in workspace %s", identifier, principal.WorkspaceID)),
+				fault.Internal(fmt.Sprintf("no custom domain %q in workspace %s", identifier, principal.AuthorizedWorkspaceID)),
 				fault.Public("The requested domain does not exist."),
 			)
 		}
@@ -86,7 +86,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			Action:       rbac.VerifyDomain,
 		}),
 		rbac.U(
-			urn.New().Workspace(principal.WorkspaceID).Project(domain.ProjectID).App(domain.AppID).Environment(domain.EnvironmentID).Domain(domain.ID),
+			urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(domain.ProjectID).App(domain.AppID).Environment(domain.EnvironmentID).Domain(domain.ID),
 			permissions.Write,
 		),
 	)); err != nil {
@@ -107,7 +107,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	_, err = h.CtrlClient.RetryVerification(ctx, &ctrlv1.RetryVerificationRequest{
-		WorkspaceId: principal.WorkspaceID,
+		WorkspaceId: principal.AuthorizedWorkspaceID,
 		ProjectId:   domain.ProjectID,
 		Domain:      domain.Domain,
 		Actor:       actor,

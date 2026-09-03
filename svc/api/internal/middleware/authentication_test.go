@@ -390,7 +390,7 @@ func testMiddlewarePrincipal(authorizedWorkspaceID string) *principal.Principal 
 			KeySpaceID:  "ks_123",
 			WorkspaceID: "ws_root",
 		},
-		WorkspaceID: authorizedWorkspaceID,
-		Permissions: []string{"api.*.read_key"},
+		AuthorizedWorkspaceID: authorizedWorkspaceID,
+		Permissions:           []string{"api.*.read_key"},
 	}
 }

@@ -95,7 +95,7 @@ func WithAuthentication(config AuthenticationConfig) zen.Middleware {
 				}()
 			}
 
-			if err := checkWorkspaceRateLimit(ctx, sess, config, p.WorkspaceID); err != nil {
+			if err := checkWorkspaceRateLimit(ctx, sess, config, p.AuthorizedWorkspaceID); err != nil {
 				return err
 			}
 

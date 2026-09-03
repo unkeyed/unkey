@@ -71,7 +71,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	// Validate key belongs to authorized workspace
 	key := db.ToKeyData(keyRow)
 
-	if key.Key.WorkspaceID != principal.WorkspaceID {
+	if key.Key.WorkspaceID != principal.AuthorizedWorkspaceID {
 		return fault.New("key not found",
 			fault.Code(codes.Data.Key.NotFound.URN()),
 			fault.Internal("key belongs to different workspace"), fault.Public("The specified key was not found."),
@@ -81,7 +81,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	err = principal.Authorize(
 		rbac.Or(
 			rbac.U(
-				urn.New().Workspace(principal.WorkspaceID).Project(key.KeyAuth.ProjectID).Keyspace(key.Key.KeyAuthID).Key(key.Key.ID),
+				urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(key.KeyAuth.ProjectID).Keyspace(key.Key.KeyAuthID).Key(key.Key.ID),
 				permissions.Write,
 			),
 			rbac.And(
@@ -118,7 +118,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	foundRoles, err := db.Query.FindManyRolesByNamesWithPerms(ctx, h.DB.RO(), db.FindManyRolesByNamesWithPermsParams{
-		WorkspaceID: principal.WorkspaceID,
+		WorkspaceID: principal.AuthorizedWorkspaceID,
 		ProjectID:   key.KeyAuth.ProjectID,
 		Names:       req.Roles,
 	})
@@ -178,12 +178,12 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				rolesToInsert = append(rolesToInsert, db.InsertKeyRoleParams{
 					KeyID:       req.KeyId,
 					RoleID:      role.ID,
-					WorkspaceID: principal.WorkspaceID,
+					WorkspaceID: principal.AuthorizedWorkspaceID,
 					CreatedAtM:  time.Now().UnixMilli(),
 				})
 
 				auditLogs = append(auditLogs, auditlog.AuditLog{
-					WorkspaceID:   principal.WorkspaceID,
+					WorkspaceID:   principal.AuthorizedWorkspaceID,
 					Event:         auditlog.AuthConnectRoleKeyEvent,
 					ActorType:     auditlog.AuditLogActor(principal.Subject.Type),
 					ActorID:       principal.Subject.ID,

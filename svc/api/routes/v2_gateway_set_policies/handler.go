@@ -53,7 +53,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	env, err := db.Query.FindEnvironmentByIdentifiers(ctx, h.DB.RO(), db.FindEnvironmentByIdentifiersParams{
-		WorkspaceID: principal.WorkspaceID,
+		WorkspaceID: principal.AuthorizedWorkspaceID,
 		Project:     req.Project,
 		App:         req.App,
 		Environment: req.Environment,
@@ -75,7 +75,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	policyURN := urn.New().Workspace(principal.WorkspaceID).Project(env.ProjectID).App(env.AppID).Environment(env.ID).Gateway().Policy("*")
+	policyURN := urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(env.ProjectID).App(env.AppID).Environment(env.ID).Gateway().Policy("*")
 	err = principal.Authorize(rbac.Or(
 		rbac.T(rbac.Tuple{
 			ResourceType: rbac.Environment,
@@ -107,7 +107,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 	if len(keyspaceIDs) > 0 {
 		found, err := db.Query.FindKeyAuthsByIdsAndWorkspace(ctx, h.DB.RO(), db.FindKeyAuthsByIdsAndWorkspaceParams{
-			WorkspaceID: principal.WorkspaceID,
+			WorkspaceID: principal.AuthorizedWorkspaceID,
 			KeyAuthIds:  keyspaceIDs,
 		})
 		if err != nil {
@@ -134,7 +134,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	newLog := func(display string, meta map[string]any) auditlog.AuditLog {
 		return auditlog.AuditLog{
-			WorkspaceID:   principal.WorkspaceID,
+			WorkspaceID:   principal.AuthorizedWorkspaceID,
 			Event:         auditlog.EnvironmentUpdateEvent,
 			Display:       display,
 			ActorID:       principal.Subject.ID,
