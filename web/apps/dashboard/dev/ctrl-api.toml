@@ -16,5 +16,13 @@ admin_url = "http://restate:9070"
 # back to a noop and the dashboard's events panel stays empty.
 url = "clickhouse://default:password@clickhouse:9000?secure=false&skip_verify=true"
 
+[logdrain]
+# Endpoint verification runs here, so without this a locally created drain
+# cannot point at a private or plain-http address. Mirrors the logdrain
+# service's flag of the same name (svc/logdrain/config.go); that service is
+# not part of this stack. Local development only: with it on, verification
+# passes endpoints the deployed sink would refuse.
+insecure_allow_private_endpoints = true
+
 [domain_connect]
 private_key_pem = """${UNKEY_DOMAIN_CONNECT_PRIVATE_KEY}"""

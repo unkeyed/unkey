@@ -150,6 +150,18 @@ type Config struct {
 
 	// DeployGate configures the Unkey Deploy entitlement gate.
 	DeployGate DeployGateConfig `toml:"deploy_gate"`
+
+	// Logdrain configures log drain destination validation. See [LogdrainConfig].
+	Logdrain LogdrainConfig `toml:"logdrain"`
+}
+
+// LogdrainConfig configures log drain endpoint verification.
+type LogdrainConfig struct {
+	// InsecureAllowPrivateEndpoints disables the SSRF guard on endpoint
+	// verification so local development can point a drain at a private,
+	// plain-http address. It mirrors the logdrain service's own flag; both
+	// must be set or verification will pass an endpoint the sink then refuses.
+	InsecureAllowPrivateEndpoints bool `toml:"insecure_allow_private_endpoints"`
 }
 
 // DeployGateConfig gates project creation and deployment activation on a Deploy

@@ -43,6 +43,7 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/services/ctrl"
 	"github.com/unkeyed/unkey/svc/ctrl/services/customdomain"
 	"github.com/unkeyed/unkey/svc/ctrl/services/deployment"
+	"github.com/unkeyed/unkey/svc/ctrl/services/logdrain"
 	"github.com/unkeyed/unkey/svc/ctrl/services/openapi"
 	"github.com/unkeyed/unkey/svc/ctrl/services/ops"
 	"github.com/unkeyed/unkey/svc/ctrl/services/project"
@@ -254,6 +255,11 @@ func Run(ctx context.Context, cfg Config) error {
 	mux.Handle(ctrlv1connect.NewOpsServiceHandler(ops.New(ops.Config{
 		DeploymentService: deploymentSvc,
 		Bearer:            cfg.AuthToken,
+	})))
+
+	mux.Handle(ctrlv1connect.NewLogdrainServiceHandler(logdrain.New(logdrain.Config{
+		Bearer:                      cfg.AuthToken,
+		UnsafeAllowPrivateEndpoints: cfg.Logdrain.InsecureAllowPrivateEndpoints,
 	})))
 
 	mux.Handle(ctrlv1connect.NewOpenApiServiceHandler(openapi.New(openapi.Config{

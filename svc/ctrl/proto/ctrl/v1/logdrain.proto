@@ -1,0 +1,61 @@
+syntax = "proto3";
+package ctrl.v1;
+
+option go_package = "github.com/unkeyed/unkey/gen/proto/ctrl/v1;ctrlv1";
+
+// LogdrainService validates log drain destinations before a drain is created
+// or updated. The dashboard cannot probe a customer endpoint itself. The guard
+// that keeps deliveries away from loopback, private, and link-local addresses
+// lives here, and a check that skipped it would pass endpoints the real sink
+// refuses.
+service LogdrainService {
+  // VerifyLogdrainEndpoint posts an empty batch to the endpoint and reports
+  // what came back. The body is what the sink sends for a batch with no
+  // events, so verification puts nothing into the customer's log store, which
+  // means it proves the route accepts a POST and answers 2xx, not that their
+  // parser handles real events.
+  //
+  // A malformed endpoint (not https, or carrying credentials) fails with
+  // InvalidArgument. A forbidden address, an unreachable host, a timeout, or a
+  // non-2xx answer returns a response with ok=false so the caller can report
+  // why the endpoint is not usable.
+  rpc VerifyLogdrainEndpoint(VerifyLogdrainEndpointRequest) returns (VerifyLogdrainEndpointResponse) {}
+}
+
+message VerifyLogdrainEndpointRequest {
+  // The customer's HTTPS endpoint. Same validation the drain itself gets.
+  string url = 1;
+
+  // Body format, so the probe sends the Content-Type the drain would use.
+  ctrl.v1.LogdrainBodyFormat format = 2;
+
+  // Headers the drain would send, typically authentication. Sent verbatim.
+  map<string, string> headers = 3;
+}
+
+// LogdrainBodyFormat mirrors logdrain.v1.HttpBodyFormat so the dashboard does
+// not have to depend on the logdrain proto to describe one.
+enum LogdrainBodyFormat {
+  LOGDRAIN_BODY_FORMAT_UNSPECIFIED = 0;
+  LOGDRAIN_BODY_FORMAT_JSON = 1;
+  LOGDRAIN_BODY_FORMAT_NDJSON = 2;
+}
+
+message VerifyLogdrainEndpointResponse {
+  // True only for a 2xx answer, matching what acknowledges a real batch.
+  bool ok = 1;
+
+  // The status the endpoint answered with, or 0 when no response arrived.
+  int32 response_status = 2;
+
+  // The first 4 KiB of the endpoint's response body, for diagnosis.
+  string response_body = 3;
+
+  // Why the attempt failed before a usable answer: DNS failure, connection
+  // refused, timeout, or a body that could not be read. Empty when a response
+  // arrived and its body was read, whatever the status.
+  string error = 4;
+
+  // Milliseconds from the start of the request to the end of the body read.
+  int32 duration_ms = 5;
+}
