@@ -50,6 +50,34 @@ func newRecordingRestate(t *testing.T) (*restateingress.Client, <-chan observedC
 	return restateingress.NewClient(restateConfig.IngressURL), recorder.creates
 }
 
+// rejectingDeployService refuses every create with a fixed reason, standing in
+// for a worker whose gates said no.
+type rejectingDeployService struct {
+	hydrav1.UnimplementedDeployServiceServer
+	reason hydrav1.CreateRejectionReason
+}
+
+func (service *rejectingDeployService) Create(_ restate.ObjectContext, _ *hydrav1.DeployCreateRequest) (*hydrav1.DeployCreateResponse, error) {
+	return &hydrav1.DeployCreateResponse{
+		Outcome:         hydrav1.CreateOutcome_CREATE_OUTCOME_REJECTED,
+		RejectionReason: service.reason,
+	}, nil
+}
+
+// newRejectingRestate starts a Restate whose Create answers REJECTED with
+// reason. The gates themselves live in the worker and are tested there; these
+// tests pin what a caller is told when one of them refuses.
+func newRejectingRestate(t *testing.T, reason hydrav1.CreateRejectionReason) *restateingress.Client {
+	t.Helper()
+
+	restateConfig := containers.Restate(t, hydrav1.NewDeployServiceServer(&rejectingDeployService{
+		UnimplementedDeployServiceServer: hydrav1.UnimplementedDeployServiceServer{},
+		reason:                           reason,
+	}))
+
+	return restateingress.NewClient(restateConfig.IngressURL)
+}
+
 // newUncalledRestate fails during cleanup if Create was invoked. The validation,
 // authorization, and gate tests use it to prove they refuse before submitting.
 func newUncalledRestate(t *testing.T) *restateingress.Client {

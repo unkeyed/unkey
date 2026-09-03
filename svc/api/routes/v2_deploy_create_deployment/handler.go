@@ -192,23 +192,26 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 	}
 
-	// The create is submitted one-way, so this is the only place a caller can be
-	// told its workspace may not deploy.
-	if err := deployment.EnsureWorkspaceCanDeploy(ctx, h.DB, principal.AuthorizedWorkspaceID); err != nil {
-		return err
-	}
-
-	// Send, not Request: the create resolves commits against GitHub and retries
-	// transient failures for minutes, which no HTTP caller should wait through.
-	if _, err := hydrav1.NewDeployServiceIngressClient(h.Restate, deploymentID).
+	// Request, not Send: the create is the only writer of the deployment row, so
+	// awaiting it is what lets this response name a deployment a caller can
+	// immediately read back. It also carries the worker's own gates, which is
+	// where a workspace that may not deploy is refused.
+	//
+	// A timeout here does not undo the create. Restate keeps running it, so a
+	// caller that gives up may still get a deployment.
+	res, err := hydrav1.NewDeployServiceIngressClient(h.Restate, deploymentID).
 		Create().
-		Send(ctx, createReq); err != nil {
+		Request(ctx, createReq)
+	if err != nil {
 		return fault.Wrap(
 			err,
 			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
 			fault.Internal("failed to submit deployment create to Restate"),
 			fault.Public("Failed to create deployment."),
 		)
+	}
+	if res.GetOutcome() == hydrav1.CreateOutcome_CREATE_OUTCOME_REJECTED {
+		return deployment.RejectionFault(res.GetRejectionReason())
 	}
 
 	return s.JSON(http.StatusCreated, Response{

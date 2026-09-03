@@ -344,6 +344,66 @@ func TestCreateFromExistingDeployment(t *testing.T) {
 		require.Equal(t, "index.docker.io/library/nginx:latest", image.OciImage.GetImage())
 	})
 
+	// A deployment that arrived as an image has no commit to rebuild, so a
+	// repository connected to the app afterwards must not turn it into a build of
+	// that repository's default branch.
+	t.Run("reuses the image of an image-origin deployment on a connected app", func(t *testing.T) {
+		ctx := context.Background()
+		h := newCreateHarness(t, ctx)
+		h.connectRepo(t, ctx)
+
+		source := h.imageDeployment(t, ctx, 0)
+
+		deploymentID := uid.New(uid.DeploymentPrefix)
+		h.create(t, ctx, deploymentID, h.existingRequest(source.ID, false))
+
+		sent := h.awaitDeploy(t, deploymentID)
+		image, ok := sent.GetSource().(*hydrav1.DeployRequest_OciImage)
+		require.True(t, ok, "an image-origin deployment has no commit to rebuild")
+		require.Equal(t, fixtureImage, image.OciImage.GetImage())
+	})
+
+	// A fork PR's build reads refs/pull/<n>/head from the base repository, so a
+	// rebuild that loses the fork or the PR number would build the base branch
+	// instead of the contributor's code.
+	t.Run("carries the fork and PR number forward", func(t *testing.T) {
+		const forkRepo = "contributor/api"
+		const prNumber = int64(42)
+
+		ctx := context.Background()
+		h := newCreateHarness(t, ctx)
+		h.connectRepo(t, ctx)
+
+		source := h.seeder.CreateDeployment(ctx, seed.CreateDeploymentRequest{
+			ID:            uid.New(uid.DeploymentPrefix),
+			WorkspaceID:   h.workspaceID,
+			ProjectID:     h.projectID,
+			AppID:         h.appID,
+			EnvironmentID: h.environmentID,
+			Status:        mysqltype.DeploymentsStatusReady,
+			GitCommitSha:  sql.NullString{Valid: true, String: fixtureCommitSHA},
+			GitBranch:     sql.NullString{Valid: true, String: "feature"},
+			// Set so the commit needs no completion from GitHub.
+			GitCommitMessage:       sql.NullString{Valid: true, String: fixtureCommitMessage},
+			PrNumber:               sql.NullInt64{Valid: true, Int64: prNumber},
+			ForkRepositoryFullName: sql.NullString{Valid: true, String: forkRepo},
+		})
+
+		deploymentID := uid.New(uid.DeploymentPrefix)
+		h.create(t, ctx, deploymentID, h.existingRequest(source.ID, false))
+
+		sent := h.awaitDeploy(t, deploymentID)
+		git, ok := sent.GetSource().(*hydrav1.DeployRequest_Git)
+		require.True(t, ok, "a fork PR rebuild is still a git build")
+		require.Equal(t, forkRepo, git.Git.GetForkRepository())
+		require.Equal(t, prNumber, git.Git.GetPrNumber())
+		require.Equal(t, fixtureRepo, git.Git.GetRepository(), "the base repository is what BuildKit fetches the PR ref from")
+
+		row := h.deployment(t, ctx, deploymentID)
+		require.Equal(t, forkRepo, row.ForkRepositoryFullName.String)
+		require.Equal(t, prNumber, row.PrNumber.Int64)
+	})
+
 	// An operator rebuild is audited as deployment.rebuild naming both
 	// deployments, so a customer's feed shows which deployment replaced which.
 	// The trigger is what marks it as Unkey's doing.

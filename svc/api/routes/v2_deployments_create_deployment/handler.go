@@ -2,9 +2,7 @@ package handler
 
 import (
 	"context"
-	"fmt"
 	"net/http"
-	"slices"
 	"strings"
 
 	restateingress "github.com/restatedev/sdk-go/ingress"
@@ -12,8 +10,6 @@ import (
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
-	"github.com/unkeyed/unkey/pkg/deploy/deployfail"
-	"github.com/unkeyed/unkey/pkg/deploy/imageref"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/rbac"
@@ -114,7 +110,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	// lets the response name the deployment without waiting on the worker.
 	deploymentID := uid.New(uid.DeploymentPrefix)
 
-	// nolint: exhaustruct // the source oneof is set per case below
 	createReq := &hydrav1.DeployCreateRequest{
 		ProjectId:     environment.ProjectID,
 		AppId:         environment.AppID,
@@ -128,12 +123,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	switch {
 	case req.Image != nil:
-		// The create is submitted one-way, so a malformed reference has to be
-		// caught here: downstream it would only surface as a failed pull, long
-		// after the caller got its 201.
-		if err := imageref.Validate(req.Image.DockerImage); err != nil {
-			return err
-		}
 		createReq.Source = &hydrav1.DeployCreateRequest_Image{
 			Image: &hydrav1.CreateImageSource{Image: req.Image.DockerImage},
 		}
@@ -148,20 +137,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				fault.Public("repository requires commitSha."),
 			)
 		}
-		// Git builds need a connected repository. ctrl resolves branch/commit
-		// against the app's installation, so a missing connection is a caller
-		// precondition, not an internal failure.
-		if _, err = db.Query.FindGithubRepoConnectionByAppId(ctx, h.DB.RO(), environment.AppID); err != nil {
-			if db.IsNotFound(err) {
-				return fault.New(
-					"no repo connection",
-					fault.Code(codes.App.Precondition.PreconditionFailed.URN()),
-					fault.Internal("app has no github repo connection for git source"),
-					fault.Public("This app has no connected GitHub repository. Deploy a prebuilt image with the image source, or connect a repository first."),
-				)
-			}
-			return fault.Wrap(err, fault.Internal("failed to check repo connection"))
-		}
 		createReq.Source = &hydrav1.DeployCreateRequest_Git{
 			// nolint: exhaustruct // the worker fills the commit metadata it resolves from git
 			Git: &hydrav1.CreateGitSource{
@@ -175,21 +150,14 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 
 	case req.Deployment != nil:
-		gitCommit, dockerImage, err := h.resolveRedeploy(ctx, principal.AuthorizedWorkspaceID, environment.AppID, environment.ID, req.Deployment.DeploymentId)
-		if err != nil {
+		if err := h.requireRedeployableSource(ctx, principal.AuthorizedWorkspaceID, environment.AppID, environment.ID, req.Deployment.DeploymentId); err != nil {
 			return err
 		}
-		// resolveRedeploy returns the source deployment's commit when the app is
-		// still git-connected and its image otherwise, so exactly one of the two
-		// is set here.
-		if gitCommit != nil {
-			createReq.Source = &hydrav1.DeployCreateRequest_Git{
-				Git: &hydrav1.CreateGitSource{Commit: gitCommit, PrNumber: 0},
-			}
-		} else {
-			createReq.Source = &hydrav1.DeployCreateRequest_Image{
-				Image: &hydrav1.CreateImageSource{Image: dockerImage},
-			}
+		createReq.Source = &hydrav1.DeployCreateRequest_ExistingDeployment{
+			ExistingDeployment: &hydrav1.CreateExistingDeploymentSource{
+				DeploymentId:   req.Deployment.DeploymentId,
+				RequireNoNewer: false,
+			},
 		}
 
 	default:
@@ -201,32 +169,19 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	// Reject environments whose runtime/regional settings would fail the deploy
-	// pipeline before enqueuing, so callers get a synchronous 400 instead of a
-	// build that dies mid-flight. The worker keeps the same asserts as a backstop.
-	if err = h.ensureEnvironmentDeployable(ctx, environment); err != nil {
-		return err
-	}
-
-	// The create is submitted one-way below, so this is the only place a caller
-	// can be told its workspace may not deploy.
-	if err := deployment.EnsureWorkspaceCanDeploy(ctx, h.DB, principal.AuthorizedWorkspaceID); err != nil {
-		return err
-	}
-
-	// Send, not Request: the create resolves commits against GitHub and retries
-	// transient failures for minutes, which no HTTP caller should wait through.
-	// The worker re-checks the gates above, so a workspace that loses its
-	// entitlement in between is still refused, asynchronously.
-	if _, err := hydrav1.NewDeployServiceIngressClient(h.Restate, deploymentID).
+	res, err := hydrav1.NewDeployServiceIngressClient(h.Restate, deploymentID).
 		Create().
-		Send(ctx, createReq); err != nil {
+		Request(ctx, createReq)
+	if err != nil {
 		return fault.Wrap(
 			err,
 			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
 			fault.Internal("failed to submit deployment create to Restate"),
 			fault.Public("Failed to create deployment."),
 		)
+	}
+	if res.GetOutcome() == hydrav1.CreateOutcome_CREATE_OUTCOME_REJECTED {
+		return deployment.RejectionFault(res.GetRejectionReason())
 	}
 
 	return s.JSON(http.StatusCreated, Response{
@@ -239,21 +194,17 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	})
 }
 
-func (h *Handler) resolveRedeploy(ctx context.Context, workspaceID, appID, environmentID, deploymentID string) (*ctrlv1.GitCommitInfo, string, error) {
+func (h *Handler) requireRedeployableSource(ctx context.Context, workspaceID, appID, environmentID, deploymentID string) error {
 	deployment, err := db.Query.FindDeploymentById(ctx, h.DB.RO(), deploymentID)
 	if err != nil && !db.IsNotFound(err) {
-		return nil, "", fault.Wrap(err, fault.Internal("failed to find deployment"))
+		return fault.Wrap(err, fault.Internal("failed to find deployment"))
 	}
 
-	// The deployment must match the exact workspace, app, and environment being
-	// deployed to. Anything else - not found, another workspace, or another
-	// app/environment the caller may not even have access to - is masked as not
-	// found so the endpoint cannot probe for a deployment's existence.
 	if db.IsNotFound(err) ||
 		deployment.WorkspaceID != workspaceID ||
 		deployment.AppID != appID ||
 		deployment.EnvironmentID != environmentID {
-		return nil, "", fault.New(
+		return fault.New(
 			"deployment not found",
 			fault.Code(codes.Data.Deployment.NotFound.URN()),
 			fault.Internal("deployment does not exist or does not match this workspace, app, and environment"),
@@ -261,82 +212,7 @@ func (h *Handler) resolveRedeploy(ctx context.Context, workspaceID, appID, envir
 		)
 	}
 
-	_, err = db.Query.FindGithubRepoConnectionByAppId(ctx, h.DB.RO(), appID)
-	switch {
-	case err == nil:
-		if deployment.GitBranch.String == "" && deployment.GitCommitSha.String == "" {
-			if deployment.Image.String == "" {
-				return nil, "", fault.New(
-					"deployment not redeployable",
-					fault.Code(codes.App.Precondition.PreconditionFailed.URN()),
-					fault.Internal("redeploy target has neither git metadata nor image"),
-					fault.Public("This deployment cannot be redeployed because it never produced an image."),
-				)
-			}
-			return nil, deployment.Image.String, nil
-		}
-		return &ctrlv1.GitCommitInfo{
-			CommitSha:       deployment.GitCommitSha.String,
-			Branch:          deployment.GitBranch.String,
-			CommitMessage:   deployment.GitCommitMessage.String,
-			AuthorHandle:    deployment.GitCommitAuthorHandle.String,
-			AuthorAvatarUrl: deployment.GitCommitAuthorAvatarUrl.String,
-			Timestamp:       deployment.GitCommitTimestamp.Int64,
-			ForkRepository:  deployment.ForkRepositoryFullName.String,
-		}, "", nil
-	case db.IsNotFound(err):
-		return nil, deployment.Image.String, nil
-	default:
-		return nil, "", fault.Wrap(err, fault.Internal("failed to check repo connection"))
-	}
-}
-
-// ensureEnvironmentDeployable mirrors the deploy worker's runtime and region
-// preconditions (svc/ctrl/worker/deploy: port 1..65535, cpu>0, mem>0, and at
-// least one schedulable region) so an undeployable environment is rejected up
-// front rather than after a full build. It reports every failing field in one
-// message so the caller can fix them in a single pass.
-func (h *Handler) ensureEnvironmentDeployable(ctx context.Context, environment db.Environment) error {
-	runtime, err := db.Query.FindAppRuntimeSettingsByAppAndEnv(ctx, h.DB.RO(), db.FindAppRuntimeSettingsByAppAndEnvParams{
-		AppID:         environment.AppID,
-		EnvironmentID: environment.ID,
-	})
-	if err != nil && !db.IsNotFound(err) {
-		return fault.Wrap(err, fault.Internal("failed to load runtime settings"))
-	}
-
-	var problems []string
-	if db.IsNotFound(err) {
-		problems = append(problems, "runtime settings are not configured")
-	} else {
-		s := runtime
-		for _, v := range deployfail.RuntimeViolations(s.Port, s.CpuMillicores, s.MemoryMib) {
-			problems = append(problems, fmt.Sprintf("%s (is %d)", v.Message, v.Actual))
-		}
-	}
-
-	regional, err := db.Query.FindAppRegionalSettingsByAppAndEnv(ctx, h.DB.RO(), db.FindAppRegionalSettingsByAppAndEnvParams{
-		AppID:         environment.AppID,
-		EnvironmentID: environment.ID,
-	})
-	if err != nil {
-		return fault.Wrap(err, fault.Internal("failed to load regional settings"))
-	}
-	if !slices.ContainsFunc(regional, func(r db.FindAppRegionalSettingsByAppAndEnvRow) bool { return r.RegionCanSchedule }) {
-		problems = append(problems, "no schedulable regions are configured")
-	}
-
-	if len(problems) == 0 {
-		return nil
-	}
-
-	joined := strings.Join(problems, "; ")
-	return fault.New(
-		"environment not deployable",
-		fault.Code(codes.App.Validation.InvalidEnvironmentSettings.URN()),
-		fault.Internal(fmt.Sprintf("environment %s fails deploy preconditions: %s", environment.Slug, joined)),
-		fault.Public(fmt.Sprintf("Environment %q cannot be deployed: %s. Update the environment's settings before deploying.", environment.Slug, joined)),
-	)
+	return nil
 }
 
 func hasValue(p *string) bool {
