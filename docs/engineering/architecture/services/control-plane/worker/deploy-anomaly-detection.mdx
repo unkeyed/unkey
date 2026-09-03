@@ -58,7 +58,9 @@ Only production environments are evaluated.
 
 ## Telemetry completeness
 
-Before fan-out, the orchestrator reads fleet-wide watermarks for the request and resource rollups. A source is incomplete when its exclusive watermark is earlier than the evaluated window end.
+Before fan-out, each shard reads regional watermarks for request, resource, and instance-event sources. A source is incomplete when the least exclusive watermark among its active regions is earlier than the evaluated window end. A warning identifies the lagging region.
+
+A region is active when its source has ingest in the preceding two hours. Regions without ingest during that bound do not participate in completeness. This prevents a decommissioned region from blocking fleet detection forever. If no region is active for a source, that source is incomplete.
 
 Each metric input has one of three states:
 
@@ -152,7 +154,7 @@ The orb had 31 GiB RAM and 16 GiB free disk. One million groups, which require m
 
 Candidate filtering, explicit open and pending group filters, and the rollups bound data returned to Go. A naive 16-shard hash predicate without shard-ordered storage scanned the request fleet 16 times: 1.387 billion rows and 24,458 ms at 100,000 groups. Shard-ordered rollups reduced that intermediate result to 35.99 million rows. Bucket grouping follows the table sort order with ClickHouse in-order aggregation, so a shard does not retain one hash-table state for every group and baseline bucket.
 
-Watermarks come from the two-row `anomaly_source_watermarks_v1` rollup, and the read is bounded to two hours. The watermark remains fleet-wide. A healthy region can therefore hide a lagging region, and that region's absent rows can appear as complete zero traffic. Per-region watermarks require region identity in all source rows and are deferred to phase 2.
+Watermarks come from the per-source, per-region `anomaly_source_watermarks_v1` rollup, and the read is bounded to two hours. Request and resource watermarks read the raw regional sources because the downstream per-5-minute and per-minute rollups do not retain region identity. Completeness uses the least active-region watermark, so a healthy region cannot hide a lagging one.
 
 ## Code
 
