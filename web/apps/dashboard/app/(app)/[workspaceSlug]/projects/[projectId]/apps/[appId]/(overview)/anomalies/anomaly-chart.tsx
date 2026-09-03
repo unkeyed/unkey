@@ -292,6 +292,7 @@ export function AnomalyChart({
               fill="hsl(var(--info-9))"
               fillOpacity={0.1}
               stroke="none"
+              activeDot={false}
               tooltipType="none"
               isAnimationActive={false}
             />
@@ -376,13 +377,27 @@ export function AnomalyChart({
                   activeDot={false}
                   isAnimationActive={false}
                 />
+                {metric === "requests" ? (
+                  <Line
+                    type="monotone"
+                    dataKey="lowerBound"
+                    stroke="var(--color-expectedMean)"
+                    strokeWidth={1}
+                    strokeDasharray="2 4"
+                    strokeOpacity={0.7}
+                    dot={false}
+                    activeDot={false}
+                    tooltipType="none"
+                    isAnimationActive={false}
+                  />
+                ) : null}
                 <Line
                   type="monotone"
                   dataKey="value"
                   stroke="var(--color-value)"
                   strokeWidth={2}
                   dot={false}
-                  activeDot={{ r: 4, fill: "hsl(var(--info-9))" }}
+                  activeDot={false}
                   isAnimationActive={false}
                 />
               </>
@@ -687,6 +702,17 @@ function formatAlertExpectation(alert: AlertListItem): string {
       alert.baselineMean,
       alert.baselineStddev,
     );
+  }
+  if (alert.metric === "requests_drop") {
+    return `${formatAlertValue(alert.metric, alert.observedValue)} vs ${formatAlertValue(
+      alert.metric,
+      alert.baselineMean,
+    )} recent (${formatAlertDistance(
+      alert.metric,
+      alert.observedValue,
+      alert.baselineMean,
+      alert.baselineStddev,
+    )})`;
   }
   return `${formatAlertValue(alert.metric, alert.observedValue)} vs ${formatAlertValue(
     alert.metric,

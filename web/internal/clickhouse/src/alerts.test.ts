@@ -74,13 +74,15 @@ describe("getAlertSeries", () => {
     expect(query).toContain("count(lifetime_value) OVER");
     expect(query).toContain("lifetime_buckets < 12");
     expect(query).toContain("greatest( expected_stddev, 0.1 * expected_mean, 5 )");
-    expect(query).toContain("expected_mean - 4 * greatest(");
+    expect(query).toContain("quantileExact(0.5)(lifetime_value)");
+    expect(query).toContain("ROWS BETWEEN 12 PRECEDING AND 1 PRECEDING");
+    expect(query).toContain("recent_median * 0.25");
     expect(query).toContain("expected_mean + 4 * greatest(");
   });
 
   it.each([
-    ["error_5xx", 2],
-    ["error_4xx", 2],
+    ["error_5xx", 0.01],
+    ["error_4xx", 0.01],
     ["egress_bytes", 65_536],
     ["cpu_seconds", 1],
   ] as const)(
@@ -95,6 +97,29 @@ describe("getAlertSeries", () => {
       );
     },
   );
+
+  it("computes error ratios with a request-weighted mean and per-bucket deviation", async () => {
+    const ch = new CapturingQuerier();
+
+    await getAlertSeries(ch)({ ...baseRequest, metric: "error_5xx" });
+
+    const query = ch.queries[0]?.replace(/\s+/g, " ");
+    expect(query).toContain("if(requests = 0, 0, toFloat64(errors) / requests) AS value");
+    expect(query).toContain("sum(lifetime_errors) OVER");
+    expect(query).toContain("sum(lifetime_requests) OVER");
+    expect(query).toContain("stddevPop(lifetime_value) OVER");
+    expect(query).toContain("greatest( expected_stddev, 0.1 * expected_mean, 0.01 )");
+  });
+
+  it("averages memory utilization across instances", async () => {
+    const ch = new CapturingQuerier();
+
+    await getAlertSeries(ch)({ ...baseRequest, metric: "memory_utilization" });
+
+    const query = ch.queries[0]?.replace(/\s+/g, " ");
+    expect(query).toContain("avg(instance_value) AS value");
+    expect(query).toContain("GROUP BY time, metric_source.container_uid");
+  });
 
   it("returns the fixed memory limit without a sigma range", async () => {
     const ch = new CapturingQuerier();

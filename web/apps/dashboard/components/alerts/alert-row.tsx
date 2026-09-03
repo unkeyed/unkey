@@ -1,7 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { ResourceListItem, TimestampInfo } from "@unkey/ui";
+import { Badge, ResourceListItem, TimestampInfo } from "@unkey/ui";
 import type { Route } from "next";
 import Link from "next/link";
 import { AlertRowChart } from "./alert-row-chart";
@@ -59,9 +59,16 @@ export function AlertRow({
         />
       ) : null}
       <div className="flex min-w-0 flex-col gap-1 lg:w-[23%] lg:shrink-0">
-        <span className="truncate text-[13px] font-semibold text-accent-12">
-          {alertMetricLabel(alert.metric)}
-        </span>
+        <div className="flex min-w-0 items-center gap-2">
+          <span className="truncate text-[13px] font-semibold text-accent-12">
+            {alertMetricLabel(alert.metric)}
+          </span>
+          {alert.metric === "error_4xx" ? (
+            <Badge variant="secondary" size="sm" className="shrink-0 font-normal">
+              Dashboard only
+            </Badge>
+          ) : null}
+        </div>
         <span className="truncate text-xs text-gray-9">
           {alert.appName} <span aria-hidden="true">›</span> {alert.environmentName}
         </span>
@@ -78,6 +85,21 @@ export function AlertRow({
               alert.baselineMean,
               alert.baselineStddev,
             )
+          ) : alert.metric === "requests_drop" ? (
+            <>
+              {formatAlertValue(alert.metric, alert.observedValue)}
+              <span className="font-normal text-gray-9">
+                {" "}
+                vs {formatAlertValue(alert.metric, alert.baselineMean)} recent (
+                {formatAlertDistance(
+                  alert.metric,
+                  alert.observedValue,
+                  alert.baselineMean,
+                  alert.baselineStddev,
+                )}
+                )
+              </span>
+            </>
           ) : (
             <>
               {formatAlertValue(alert.metric, alert.observedValue)}
@@ -88,7 +110,7 @@ export function AlertRow({
             </>
           )}
         </span>
-        {hasFixedAlertThreshold(alert.metric) ? null : (
+        {hasFixedAlertThreshold(alert.metric) || alert.metric === "requests_drop" ? null : (
           <span className="text-xs font-medium tabular-nums text-error-11">
             {formatSigma(alert.observedValue, alert.baselineMean, alert.baselineStddev)}
           </span>
