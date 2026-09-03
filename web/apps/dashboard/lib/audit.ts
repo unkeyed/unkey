@@ -52,7 +52,8 @@ export type UnkeyAuditLog = {
       | "auditLogBucket"
       | "environment"
       | "deployment"
-      | "logdrain";
+      | "logdrain"
+      | "alert";
 
     id: string;
     name?: string;

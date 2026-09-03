@@ -1,3 +1,4 @@
+import { getAlertTimeseries } from "./alerts";
 import { getAuditLogs } from "./audit-logs";
 import { getBillableRatelimits, getBillableVerifications } from "./billing";
 import { getBuildStepLogs, getBuildSteps } from "./build-steps";
@@ -431,6 +432,11 @@ export class ClickHouse {
     return {
       metrics: getLogdrainMetrics(this.querier),
       recentErrors: getRecentLogdrainErrors(this.querier),
+    };
+  }
+  public get alerts() {
+    return {
+      timeseries: getAlertTimeseries(this.querier),
     };
   }
 }

@@ -1,4 +1,5 @@
 import { t } from "../trpc";
+import { alerts } from "./alerts";
 import { createApi } from "./api/create";
 import { deleteApi } from "./api/delete";
 import { keysLlmSearch } from "./api/keys/llm-search";
@@ -177,6 +178,7 @@ import { getCurrentWorkspace } from "./workspace/getCurrent";
 import { onboardingKeyCreation } from "./workspace/onboarding";
 
 export const router = t.router({
+  alerts,
   logdrain,
   share: t.router({
     create: createSharedSecret,
