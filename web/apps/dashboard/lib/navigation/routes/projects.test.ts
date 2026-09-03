@@ -82,6 +82,13 @@ describe("app-scoped paths", () => {
     expect(routes.projects.apps.deployments(scope)).toBe(
       "/acme/projects/proj_123/apps/app_456/deployments",
     );
+    expect(
+      routes.projects.apps.anomalies({
+        ...scope,
+        environmentId: "env_123",
+        alertId: "alert_123",
+      }),
+    ).toBe("/acme/projects/proj_123/apps/app_456/anomalies?env=env_123&alert=alert_123");
   });
 
   it("builds a deployment path", () => {

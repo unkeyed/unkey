@@ -75,6 +75,18 @@ export const projectRoutes = {
       );
     },
 
+    anomalies({
+      environmentId,
+      alertId,
+      ...scope
+    }: AppScope & { environmentId?: string; alertId?: string }): Route {
+      return buildRoute(
+        "/[workspaceSlug]/projects/[projectId]/apps/[appId]/anomalies",
+        appParams(scope),
+        { env: environmentId, alert: alertId },
+      );
+    },
+
     settings(scope: AppScope): Route {
       return buildRoute(
         "/[workspaceSlug]/projects/[projectId]/apps/[appId]/settings",

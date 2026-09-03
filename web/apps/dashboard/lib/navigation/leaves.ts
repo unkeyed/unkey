@@ -153,6 +153,13 @@ export function buildAppLinks(
       isActive: page === "deployments",
     },
     {
+      key: "anomalies",
+      label: "Anomalies",
+      href: routes.projects.apps.anomalies(scope),
+      icon: Pulse,
+      isActive: page === "anomalies",
+    },
+    {
       key: "env-vars",
       label: "Environment Variables",
       href: routes.projects.apps.envVars(scope),

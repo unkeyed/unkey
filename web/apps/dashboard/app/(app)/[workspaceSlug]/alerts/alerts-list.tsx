@@ -1,5 +1,8 @@
 "use client";
 
+import { AlertRow } from "@/components/alerts/alert-row";
+import { alertMetricOptions, isAlertMetric } from "@/components/alerts/format";
+import type { AlertMetric, AlertStatus } from "@/components/alerts/types";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { routes } from "@/lib/navigation/routes";
 import { trpc } from "@/lib/trpc/client";
@@ -20,23 +23,8 @@ import {
   Tabs,
   TabsList,
   TabsTrigger,
-  TimestampInfo,
 } from "@unkey/ui";
-import Link from "next/link";
 import { useMemo, useState } from "react";
-import { AlertRowChart } from "./alert-row-chart";
-import {
-  alertMetricLabel,
-  alertMetricOptions,
-  formatAlertDistance,
-  formatAlertValue,
-  formatSigma,
-  hasFixedAlertThreshold,
-  isAlertMetric,
-} from "./format";
-import { ResolveAlertButton } from "./resolve-alert-button";
-import { AlertStatusBadge } from "./status-badge";
-import type { AlertMetric, AlertStatus } from "./types";
 
 type StatusFilter = AlertStatus | "all";
 type MetricFilter = AlertMetric | "all";
@@ -156,68 +144,17 @@ export function AlertsList() {
         ) : (
           <ResourceListBody aria-label="Anomaly alerts">
             {alerts.map((alert) => (
-              <ResourceListItem
+              <AlertRow
                 key={alert.id}
-                className="group flex flex-col gap-3 px-4 py-3 transition-colors hover:bg-grayA-2 lg:flex-row lg:items-center lg:gap-0"
-              >
-                <Link
-                  href={routes.alerts.detail({
-                    workspaceSlug: workspace.slug,
-                    alertId: alert.id,
-                  })}
-                  className="absolute inset-0 z-10 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-grayA-7"
-                  aria-label={`${alertMetricLabel(alert.metric)} alert for ${alert.appName}`}
-                />
-                <div className="flex min-w-0 flex-col gap-1 lg:w-[23%] lg:shrink-0">
-                  <span className="truncate text-[13px] font-semibold text-accent-12">
-                    {alertMetricLabel(alert.metric)}
-                  </span>
-                  <span className="truncate text-xs text-gray-9">
-                    {alert.appName} <span aria-hidden="true">›</span> {alert.environmentName}
-                  </span>
-                </div>
-                <div className="lg:w-[13%] lg:shrink-0">
-                  <AlertStatusBadge status={alert.status} />
-                </div>
-                <div className="flex min-w-0 flex-col gap-1 lg:w-[27%] lg:shrink-0">
-                  <span className="truncate text-[13px] font-medium tabular-nums text-accent-12">
-                    {hasFixedAlertThreshold(alert.metric) ? (
-                      formatAlertDistance(
-                        alert.metric,
-                        alert.observedValue,
-                        alert.baselineMean,
-                        alert.baselineStddev,
-                      )
-                    ) : (
-                      <>
-                        {formatAlertValue(alert.metric, alert.observedValue)}
-                        <span className="font-normal text-gray-9">
-                          {" "}
-                          vs {formatAlertValue(alert.metric, alert.baselineMean)} avg
-                        </span>
-                      </>
-                    )}
-                  </span>
-                  {hasFixedAlertThreshold(alert.metric) ? null : (
-                    <span className="text-xs font-medium tabular-nums text-error-11">
-                      {formatSigma(alert.observedValue, alert.baselineMean, alert.baselineStddev)}
-                    </span>
-                  )}
-                </div>
-                <div className="relative z-20 lg:w-[14%] lg:shrink-0">
-                  <TimestampInfo
-                    value={alert.firedAt}
-                    displayType="relative"
-                    className="text-xs text-gray-9 underline decoration-dotted"
-                  />
-                </div>
-                <div className="flex items-center gap-3 lg:w-[23%] lg:shrink-0 lg:justify-end">
-                  <div className="relative z-20">
-                    <AlertRowChart alertId={alert.id} metric={alert.metric} />
-                  </div>
-                  {alert.status === "open" ? <ResolveAlertButton alertId={alert.id} /> : null}
-                </div>
-              </ResourceListItem>
+                alert={alert}
+                href={routes.projects.apps.anomalies({
+                  workspaceSlug: workspace.slug,
+                  projectId: alert.projectId,
+                  appId: alert.appId,
+                  environmentId: alert.environmentId,
+                  alertId: alert.id,
+                })}
+              />
             ))}
           </ResourceListBody>
         )}
