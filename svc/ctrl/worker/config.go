@@ -250,6 +250,10 @@ type HeartbeatConfig struct {
 	// check orchestrator. When set, a heartbeat is sent after a successful run.
 	// Optional - if empty, no heartbeat is sent.
 	DeploySpendCheckURL string `toml:"deploy_spend_check_url"`
+
+	// DeployAnomalyURL is the heartbeat URL for the Deploy anomaly orchestrator.
+	// Optional - if empty, no heartbeat is sent.
+	DeployAnomalyURL string `toml:"deploy_anomaly_url"`
 }
 
 // BillingConfig holds Stripe configuration for the hourly Deploy billing push.
