@@ -49,6 +49,7 @@ require (
 	github.com/docker/cli v29.2.0+incompatible
 	github.com/getkin/kin-openapi v0.133.0
 	github.com/go-acme/lego/v4 v4.31.0
+	github.com/go-faster/city v1.0.1
 	github.com/go-sql-driver/mysql v1.9.3
 	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510
 	github.com/maypok86/otter v1.2.4
@@ -184,7 +185,6 @@ require (
 	github.com/fxamacker/cbor/v2 v2.9.0 // indirect
 	github.com/gammazero/deque v0.2.1 // indirect
 	github.com/go-chi/chi/v5 v5.2.4 // indirect
-	github.com/go-faster/city v1.0.1 // indirect
 	github.com/go-faster/errors v0.7.1 // indirect
 	github.com/go-jose/go-jose/v4 v4.1.3 // indirect
 	github.com/go-logr/logr v1.4.3 // indirect
