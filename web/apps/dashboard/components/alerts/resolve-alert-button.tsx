@@ -14,7 +14,7 @@ export function ResolveAlertButton({ alertId }: { alertId: string }) {
         utils.alerts.list.invalidate(),
         utils.alerts.get.invalidate({ alertId }),
         utils.alerts.summary.invalidate(),
-        utils.alerts.timeseries.invalidate({ alertId }),
+        utils.alerts.series.invalidate(),
       ]);
       setMessage("");
       setIsOpen(false);

@@ -4,7 +4,7 @@ import { trpc } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";
 import { InfoTooltip, Skeleton } from "@unkey/ui";
 import { useMemo } from "react";
-import { alertMetricLabel, formatAlertValue } from "./format";
+import { alertMetricLabel, formatAlertValue, seriesMetricForAlert } from "./format";
 import type { AlertMetric } from "./types";
 
 const MAX_BARS = 48;
@@ -17,19 +17,29 @@ type ChartBar = {
 };
 
 export function AlertRowChart({
-  alertId,
+  appId,
+  environmentId,
   metric,
+  windowStart,
+  windowEnd,
 }: {
-  alertId: string;
+  appId: string;
+  environmentId: string;
   metric: AlertMetric;
+  windowStart: number;
+  windowEnd: number;
 }) {
-  const query = trpc.alerts.timeseries.useQuery({ alertId }, { staleTime: 60_000 });
-  const bars = useChartBars(
-    query.data?.buckets,
-    query.data?.windowStart,
-    query.data?.windowEnd,
-    metric,
+  const query = trpc.alerts.series.useQuery(
+    {
+      appId,
+      environmentId,
+      metric: seriesMetricForAlert(metric),
+      startMs: Math.max(0, windowStart - 24 * 60 * 60 * 1000),
+      endMs: windowEnd + 5 * 60 * 1000,
+    },
+    { staleTime: 60_000 },
   );
+  const bars = useChartBars(query.data?.buckets, windowStart, windowEnd, metric);
 
   if (query.isLoading) {
     return <Skeleton className="h-7 w-[158px] rounded-md" />;
