@@ -70,7 +70,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	env, err := db.Query.FindEnvironmentByIdentifiers(ctx, h.DB.RO(), db.FindEnvironmentByIdentifiersParams{
-		WorkspaceID: principal.WorkspaceID,
+		WorkspaceID: principal.AuthorizedWorkspaceID,
 		Project:     req.Project,
 		App:         req.App,
 		Environment: req.Environment,
@@ -92,6 +92,15 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
+	variableURN := urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(env.ProjectID).App(env.AppID).Environment(env.ID).Variable("*")
+	variablePermission := rbac.U(variableURN, permissions.Write)
+	if ptr.SafeDeref(req.Prune, false) {
+		variablePermission = rbac.And(
+			variablePermission,
+			rbac.U(variableURN, permissions.Delete),
+		)
+	}
+
 	err = principal.Authorize(rbac.Or(
 		rbac.T(rbac.Tuple{
 			ResourceType: rbac.Environment,
@@ -103,10 +112,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			ResourceID:   env.ID,
 			Action:       rbac.SetEnvironmentVariables,
 		}),
-		rbac.U(
-			urn.New().Workspace(principal.WorkspaceID).Project(env.ProjectID).App(env.AppID).Environment(env.ID),
-			permissions.SetEnvironmentVariables{},
-		),
+		variablePermission,
 	))
 	if err != nil {
 		return err
@@ -222,7 +228,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		auditLogs := make([]auditlog.AuditLog, 0, len(keys))
 		for _, key := range keys {
 			auditLogs = append(auditLogs, auditlog.AuditLog{
-				WorkspaceID:   principal.WorkspaceID,
+				WorkspaceID:   principal.AuthorizedWorkspaceID,
 				Event:         auditlog.EnvironmentUpdateEvent,
 				Display:       fmt.Sprintf("Set environment variable %s for environment %s", key, env.ID),
 				ActorID:       principal.Subject.ID,
@@ -248,7 +254,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		// logs, so record the destructive action on its own.
 		if len(auditLogs) == 0 && pruned {
 			auditLogs = append(auditLogs, auditlog.AuditLog{
-				WorkspaceID:   principal.WorkspaceID,
+				WorkspaceID:   principal.AuthorizedWorkspaceID,
 				Event:         auditlog.EnvironmentUpdateEvent,
 				Display:       fmt.Sprintf("Pruned all environment variables for environment %s", env.ID),
 				ActorID:       principal.Subject.ID,

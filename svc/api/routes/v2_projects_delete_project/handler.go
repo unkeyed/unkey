@@ -49,7 +49,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	project, err := db.Query.FindProjectByIdOrSlug(ctx, h.DB.RW(), db.FindProjectByIdOrSlugParams{
-		WorkspaceID: principal.WorkspaceID,
+		WorkspaceID: principal.AuthorizedWorkspaceID,
 		Project:     req.Project,
 	})
 	if err != nil {
@@ -91,8 +91,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			Action:       rbac.DeleteProject,
 		}),
 		rbac.U(
-			urn.New().Workspace(principal.WorkspaceID).Project(project.ID),
-			permissions.DeleteProject{},
+			urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(project.ID),
+			permissions.Delete,
 		),
 	))
 	if err != nil {

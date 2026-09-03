@@ -8,7 +8,6 @@ export type GetAuthResult = {
   userId: string | null;
   orgId: string | null;
   accessToken?: string;
-  permissions?: readonly string[];
   role: string | null;
   // Profile embedded in the sealed session cookie, when available
   user?: User | null;

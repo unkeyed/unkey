@@ -68,6 +68,7 @@
                 "pages": [
                   "architecture/resources/unkey-resource-names",
                   "architecture/authorization/resource-permissions",
+                  "architecture/authorization/resource-permission-catalog",
                   "architecture/authorization/workos-permissions"
                 ]
               },

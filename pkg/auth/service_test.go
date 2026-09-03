@@ -176,7 +176,7 @@ func TestServiceAuthenticate_PrefersInfrastructureErrorOverCredentialRejection(t
 // resolver that verified the credential and then denied it (403) outranks a
 // sibling resolver's credential rejection (401), in both orderings. With an
 // HS256 and a WorkOS JWKS jwt entry both claiming the same bearer, a valid
-// WorkOS token whose org has no workspace must surface as the WorkOS resolver's
+// WorkOS token whose org has no workspace must surface as the JWT resolver's
 // 403, not the HS256 resolver's "invalid token" 401 that would log the user out.
 func TestServiceAuthenticate_PrefersAuthorizationOverAuthentication(t *testing.T) {
 	t.Parallel()
@@ -283,9 +283,9 @@ func testPrincipal(workspaceID string) *principal.Principal {
 			Name: "Dashboard User",
 			Type: principal.SubjectTypeUser,
 		},
-		Type:        principal.TypeJWT,
-		Source:      principal.JWTSource{},
-		WorkspaceID: workspaceID,
-		Permissions: []string{"api.*.create_api"},
+		Type:                  principal.TypeJWT,
+		Source:                principal.JWTSource{},
+		AuthorizedWorkspaceID: workspaceID,
+		Permissions:           []string{"api.*.create_api"},
 	}
 }

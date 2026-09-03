@@ -14,15 +14,12 @@ import (
 // EnsureDefaultProject returns the exact default project owned by workspaceID,
 // creating it in the caller's transaction when it does not exist.
 func EnsureDefaultProject(ctx context.Context, tx db.DBTX, workspaceID string) (string, error) {
-	projectID, err := db.Query.FindDefaultProjectByWorkspaceID(ctx, tx, workspaceID)
-	if err == nil {
-		return projectID, nil
+	projectID, found, err := FindDefaultProject(ctx, tx, workspaceID)
+	if err != nil {
+		return "", err
 	}
-	if !db.IsNotFound(err) {
-		return "", fault.Wrap(err,
-			fault.Internal("unable to resolve default project"),
-			fault.Public("We're unable to resolve the workspace's default project."),
-		)
+	if found {
+		return projectID, nil
 	}
 
 	projectID = uid.New(uid.ProjectPrefix)
@@ -56,4 +53,21 @@ func EnsureDefaultProject(ctx context.Context, tx db.DBTX, workspaceID string) (
 	}
 
 	return projectID, nil
+}
+
+// FindDefaultProject returns the exact default project owned by workspaceID.
+// The found result is false when the workspace has no default project.
+func FindDefaultProject(ctx context.Context, tx db.DBTX, workspaceID string) (projectID string, found bool, err error) {
+	projectID, err = db.Query.FindDefaultProjectByWorkspaceID(ctx, tx, workspaceID)
+	if err == nil {
+		return projectID, true, nil
+	}
+	if db.IsNotFound(err) {
+		return "", false, nil
+	}
+
+	return "", false, fault.Wrap(err,
+		fault.Internal("unable to resolve default project"),
+		fault.Public("We're unable to resolve the workspace's default project."),
+	)
 }

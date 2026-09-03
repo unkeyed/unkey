@@ -37,7 +37,7 @@ func (s *service) GetMigrated(ctx context.Context, sess *zen.Session, rawKey str
 
 	migration, err := keysdb.Query.FindKeyMigrationByID(ctx, s.db.RO(), keysdb.FindKeyMigrationByIDParams{
 		ID:          migrationID,
-		WorkspaceID: principal.WorkspaceID,
+		WorkspaceID: principal.AuthorizedWorkspaceID,
 	})
 	if err != nil {
 		if mysql.IsNotFound(err) {

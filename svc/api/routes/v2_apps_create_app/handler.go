@@ -67,7 +67,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	ctx = auditlog.WithCorrelation(ctx, auditlog.NewCorrelationID())
 
 	project, err := db.Query.FindProjectByIdOrSlug(ctx, h.DB.RO(), db.FindProjectByIdOrSlugParams{
-		WorkspaceID: principal.WorkspaceID,
+		WorkspaceID: principal.AuthorizedWorkspaceID,
 		Project:     req.Project,
 	})
 	if err != nil {
@@ -99,8 +99,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			Action:       rbac.CreateApp,
 		}),
 		rbac.U(
-			urn.New().Workspace(principal.WorkspaceID).Project(project.ID).App("*"),
-			permissions.CreateApp{},
+			urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(project.ID).App("*"),
+			permissions.Write,
 		),
 	))
 	if err != nil {
@@ -126,7 +126,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			)
 		}
 
-		installations, iErr := db.Query.FindGithubAppInstallationsByWorkspaceId(ctx, h.DB.RO(), principal.WorkspaceID)
+		installations, iErr := db.Query.FindGithubAppInstallationsByWorkspaceId(ctx, h.DB.RO(), principal.AuthorizedWorkspaceID)
 		if iErr != nil {
 			return fault.Wrap(
 				iErr,
@@ -147,7 +147,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 	res, err := h.CtrlClient.CreateApp(ctx, &ctrlv1.CreateAppRequest{
-		WorkspaceId: principal.WorkspaceID,
+		WorkspaceId: principal.AuthorizedWorkspaceID,
 		ProjectId:   project.ID,
 		Name:        req.Name,
 		Slug:        req.Slug,
@@ -178,7 +178,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		err = db.TxRetry(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
 			now := time.Now().UnixMilli()
 			if txErr := db.Query.UpsertGithubRepoConnection(ctx, tx, db.UpsertGithubRepoConnectionParams{
-				WorkspaceID:        principal.WorkspaceID,
+				WorkspaceID:        principal.AuthorizedWorkspaceID,
 				ProjectID:          project.ID,
 				AppID:              appID,
 				InstallationID:     resolved.InstallationID,
@@ -196,7 +196,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			}
 
 			if txErr := db.Query.UpdateApp(ctx, tx, db.UpdateAppParams{
-				WorkspaceID:               principal.WorkspaceID,
+				WorkspaceID:               principal.AuthorizedWorkspaceID,
 				ID:                        appID,
 				UpdatedAt:                 sql.NullInt64{Valid: true, Int64: now},
 				NameSpecified:             0,
@@ -218,7 +218,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 			return h.Auditlogs.Insert(ctx, tx, []auditlog.AuditLog{
 				{
-					WorkspaceID:   principal.WorkspaceID,
+					WorkspaceID:   principal.AuthorizedWorkspaceID,
 					Event:         auditlog.AppConnectRepositoryEvent,
 					Display:       fmt.Sprintf("Connected app %s to %s", appID, resolved.Repository.FullName),
 					ActorID:       principal.Subject.ID,

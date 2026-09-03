@@ -13,6 +13,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/svc/api/internal/projects"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_identities_list_identities"
 )
@@ -42,6 +43,8 @@ func TestSuccess(t *testing.T) {
 	}()
 
 	workspaceID := h.Resources().UserWorkspace.ID
+	projectID, err := projects.EnsureDefaultProject(ctx, tx, workspaceID)
+	require.NoError(t, err)
 
 	// Create metadata
 	metaMap := map[string]interface{}{
@@ -63,6 +66,7 @@ func TestSuccess(t *testing.T) {
 			ID:          identityID,
 			ExternalID:  externalID,
 			WorkspaceID: workspaceID,
+			ProjectID:   projectID,
 			Environment: "default",
 			CreatedAt:   time.Now().UnixMilli(),
 			Meta:        metaBytes,
@@ -194,6 +198,7 @@ func TestSuccess(t *testing.T) {
 			ID:          deletedIdentityID,
 			ExternalID:  deletedExternalID,
 			WorkspaceID: workspaceID,
+			ProjectID:   projectID,
 			Environment: "default",
 			CreatedAt:   time.Now().UnixMilli(),
 			Meta:        metaBytes,
@@ -247,6 +252,7 @@ func TestSuccess(t *testing.T) {
 			ID:          unicodeIdentityID,
 			ExternalID:  unicodeExternalID,
 			WorkspaceID: workspaceID,
+			ProjectID:   projectID,
 			Environment: "default",
 			CreatedAt:   time.Now().UnixMilli(),
 			Meta:        unicodeMetaBytes,
@@ -307,11 +313,15 @@ func TestSuccess(t *testing.T) {
 		})
 		require.NoError(t, err)
 
+		singleProjectID, err := projects.EnsureDefaultProject(ctx, tx, singleWorkspaceID)
+		require.NoError(t, err)
+
 		// Create a single identity in this workspace
 		err = db.Query.InsertIdentity(ctx, tx, db.InsertIdentityParams{
 			ID:          singleIdentityID,
 			ExternalID:  singleExternalID,
 			WorkspaceID: singleWorkspaceID,
+			ProjectID:   singleProjectID,
 			Environment: "default",
 			CreatedAt:   time.Now().UnixMilli(),
 			Meta:        metaBytes,
@@ -362,6 +372,9 @@ func TestSuccess(t *testing.T) {
 		})
 		require.NoError(t, err)
 
+		searchProjectID, err := projects.EnsureDefaultProject(ctx, tx, searchWorkspaceID)
+		require.NoError(t, err)
+
 		identityIDs := make(map[string]string)
 		for _, externalID := range []string{"acme_alice", "acme_bob", "discount_100%_user"} {
 			identityID := uid.New(uid.IdentityPrefix)
@@ -370,6 +383,7 @@ func TestSuccess(t *testing.T) {
 				ID:          identityID,
 				ExternalID:  externalID,
 				WorkspaceID: searchWorkspaceID,
+				ProjectID:   searchProjectID,
 				Environment: "default",
 				CreatedAt:   time.Now().UnixMilli(),
 				Meta:        nil,

@@ -1,5 +1,6 @@
 "use client";
 
+import { ORGANIZATION_ROLES } from "@/lib/auth/roles";
 import type { Organization } from "@/lib/auth/types";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -24,7 +25,7 @@ const inviteSchema = z.object({
   invites: z.array(
     z.object({
       email: z.string().email("Invalid email address"),
-      role: z.enum(["admin", "basic_member"]),
+      role: z.enum(ORGANIZATION_ROLES),
     }),
   ),
 });
@@ -46,7 +47,7 @@ export const InviteForm = ({ organization }: InviteFormProps) => {
   } = useForm<z.infer<typeof inviteSchema>>({
     resolver: zodResolver(inviteSchema),
     defaultValues: {
-      invites: [{ email: "", role: "basic_member" as const }],
+      invites: [{ email: "", role: "developer" as const }],
     },
   });
 
@@ -118,7 +119,7 @@ export const InviteForm = ({ organization }: InviteFormProps) => {
           toast.success(`Successfully sent ${successful} invitation${successful > 1 ? "s" : ""}`);
         }
 
-        reset({ invites: [{ email: "", role: "basic_member" as const }] });
+        reset({ invites: [{ email: "", role: "developer" as const }] });
       } else {
         if (failed.length === 1) {
           toast.error(`Failed to invite ${failed[0].email}: ${failed[0].error}`);
@@ -168,7 +169,8 @@ export const InviteForm = ({ organization }: InviteFormProps) => {
                         onValueChange={roleField.onChange}
                         value={roleField.value}
                         items={[
-                          { value: "basic_member", label: "Member" },
+                          { value: "developer", label: "Developer" },
+                          { value: "viewer", label: "Viewer" },
                           { value: "admin", label: "Admin" },
                         ]}
                       >
@@ -176,7 +178,8 @@ export const InviteForm = ({ organization }: InviteFormProps) => {
                           <SelectValue placeholder="Select role" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="basic_member">Member</SelectItem>
+                          <SelectItem value="developer">Developer</SelectItem>
+                          <SelectItem value="viewer">Viewer</SelectItem>
                           <SelectItem value="admin">Admin</SelectItem>
                         </SelectContent>
                       </Select>
@@ -205,7 +208,7 @@ export const InviteForm = ({ organization }: InviteFormProps) => {
                 type="button"
                 variant="outline"
                 size="sm"
-                onClick={() => append({ email: "", role: "basic_member" as const })}
+                onClick={() => append({ email: "", role: "developer" as const })}
               >
                 <Plus className="w-4 h-4" />
                 <span>Add more</span>

@@ -13,6 +13,9 @@ func TestToKeyData_ValidCases(t *testing.T) {
 		row := FindLiveKeyByIDRow{
 			KeyID:                     "test-key-id",
 			KeyHash:                   "test-key-hash",
+			KeyPrefix:                 "prod_sk",
+			KeyStart:                  "abcd",
+			KeyEnd:                    "wxyz",
 			KeyWorkspaceID:            "test-workspace",
 			KeyForWorkspaceID:         sql.NullString{String: "root-workspace", Valid: true},
 			KeyEnabled:                true,
@@ -29,6 +32,9 @@ func TestToKeyData_ValidCases(t *testing.T) {
 		require.NotNil(t, result)
 		require.Equal(t, "test-key-id", result.Key.ID)
 		require.Equal(t, "test-key-hash", result.Key.Hash)
+		require.Equal(t, "prod_sk", result.Key.Prefix)
+		require.Equal(t, "abcd", result.Key.Start)
+		require.Equal(t, "wxyz", result.Key.End)
 		require.Equal(t, "test-workspace", result.Key.WorkspaceID)
 		require.Equal(t, "root-workspace", result.Key.ForWorkspaceID.String)
 		require.True(t, result.Key.ForWorkspaceID.Valid)
@@ -61,6 +67,9 @@ func TestToKeyData_ValidCases(t *testing.T) {
 	t.Run("FindLiveKeyByHashRow value", func(t *testing.T) {
 		row := FindLiveKeyByHashRow{
 			KeyID:                     "hash-key-id",
+			KeyPrefix:                 "prod_sk",
+			KeyStart:                  "abcd",
+			KeyEnd:                    "wxyz",
 			KeyWorkspaceID:            "hash-workspace",
 			KeyEnabled:                true,
 			ApiID:                     "hash-api-id",
@@ -72,6 +81,9 @@ func TestToKeyData_ValidCases(t *testing.T) {
 		require.NotNil(t, result)
 		require.Equal(t, "hash-key-id", result.Key.ID)
 		require.Empty(t, result.Key.Hash)
+		require.Equal(t, "prod_sk", result.Key.Prefix)
+		require.Equal(t, "abcd", result.Key.Start)
+		require.Equal(t, "wxyz", result.Key.End)
 		require.Equal(t, "hash-workspace", result.Key.WorkspaceID)
 		require.True(t, result.Key.Enabled)
 		require.Equal(t, "hash-api-id", result.Api.ID)

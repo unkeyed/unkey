@@ -104,6 +104,7 @@ func (s *Seeder) Seed(ctx context.Context) {
 	s.Resources.RootWorkspace = s.CreateWorkspace(ctx)
 	s.Resources.RootApi = s.CreateAPI(ctx, CreateApiRequest{
 		WorkspaceID:   s.Resources.RootWorkspace.ID,
+		ProjectID:     "",
 		IpWhitelist:   "",
 		EncryptedKeys: false,
 		Name:          nil,
@@ -119,6 +120,7 @@ func (s *Seeder) Seed(ctx context.Context) {
 // CreateApiRequest configures the API to create.
 type CreateApiRequest struct {
 	WorkspaceID   string
+	ProjectID     string
 	IpWhitelist   string
 	EncryptedKeys bool
 	Name          *string
@@ -128,10 +130,14 @@ type CreateApiRequest struct {
 }
 
 // CreateAPI creates an API and its associated key space. The key space is created
-// first since the API references it. Returns the created API which includes the
-// KeyAuthID linking to the key space.
+// first since the API references it. An empty ProjectID uses the workspace's
+// default project. The returned API includes the KeyAuthID that links to the key
+// space.
 func (s *Seeder) CreateAPI(ctx context.Context, req CreateApiRequest) db.Api {
-	projectID := s.defaultProjectID(ctx, req.WorkspaceID)
+	projectID := req.ProjectID
+	if projectID == "" {
+		projectID = s.defaultProjectID(ctx, req.WorkspaceID)
+	}
 	keySpaceID := uid.New(uid.KeySpacePrefix)
 	err := db.Query.InsertKeySpace(ctx, s.DB.RW(), db.InsertKeySpaceParams{
 		ID:                 keySpaceID,
@@ -409,10 +415,12 @@ func (s *Seeder) CreateRootKey(ctx context.Context, workspaceID string, permissi
 	insertKeyParams := db.InsertKeyParams{
 		ID:                 uid.New("test_root_key"),
 		Hash:               hash.Sha256(key),
+		Prefix:             "",
 		WorkspaceID:        s.Resources.RootWorkspace.ID,
 		ForWorkspaceID:     sql.NullString{String: workspaceID, Valid: true},
 		KeySpaceID:         s.Resources.RootKeySpace.ID,
 		Start:              key[:4],
+		End:                key[len(key)-4:],
 		CreatedAtM:         time.Now().UnixMilli(),
 		Enabled:            true,
 		Name:               sql.NullString{String: "", Valid: false},
@@ -475,6 +483,7 @@ type CreateKeyRequest struct {
 	Disabled       bool
 	WorkspaceID    string
 	KeySpaceID     string
+	Prefix         string
 	Remaining      *int64
 	IdentityID     *string
 	Meta           *string
@@ -509,8 +518,11 @@ type CreateKeyResponse struct {
 // Vault service is configured, the key is encrypted and stored for recovery.
 func (s *Seeder) CreateKey(ctx context.Context, req CreateKeyRequest) CreateKeyResponse {
 	keyID := uid.New(uid.KeyPrefix)
-	key := uid.New("")
-	start := key[:4]
+	random := uid.New("")
+	key := random
+	if req.Prefix != "" {
+		key = req.Prefix + "_" + random
+	}
 
 	err := db.Query.InsertKey(ctx, s.DB.RW(), db.InsertKeyParams{
 		ID:                 keyID,
@@ -518,8 +530,10 @@ func (s *Seeder) CreateKey(ctx context.Context, req CreateKeyRequest) CreateKeyR
 		WorkspaceID:        req.WorkspaceID,
 		CreatedAtM:         time.Now().UnixMilli(),
 		Hash:               hash.Sha256(key),
+		Prefix:             req.Prefix,
 		Enabled:            !req.Disabled,
-		Start:              start,
+		Start:              random[:4],
+		End:                key[len(key)-4:],
 		Name:               sql.NullString{String: ptr.SafeDeref(req.Name, "test-key"), Valid: true},
 		ForWorkspaceID:     sql.NullString{String: ptr.SafeDeref(req.ForWorkspaceID, ""), Valid: req.ForWorkspaceID != nil},
 		Meta:               sql.NullString{String: ptr.SafeDeref(req.Meta, ""), Valid: req.Meta != nil},

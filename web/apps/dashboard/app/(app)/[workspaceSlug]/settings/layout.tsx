@@ -4,6 +4,7 @@ import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { useFlag } from "@/lib/flags/provider";
 import { useBillingUIUpgrades } from "@/lib/flags/use-billing-ui-upgrades";
 import { routes } from "@/lib/navigation/routes";
+import { trpc } from "@/lib/trpc/client";
 import { SecondaryNav, SecondaryNavGroup, SecondaryNavItem, SecondaryNavTitle } from "@unkey/ui";
 import Link from "next/link";
 import { useSelectedLayoutSegments } from "next/navigation";
@@ -28,9 +29,12 @@ export default function SettingsLayout({ children }: { children: ReactNode }) {
   const active = segments[0] ?? "general";
   const billingUpgrades = useBillingUIUpgrades();
   const logdrainsEnabled = useFlag("logdrains");
+  const { data: currentUser } = trpc.user.getCurrentUser.useQuery();
   const items = ITEMS.filter(
     (item) => billingUpgrades || !BILLING_UPGRADE_SEGMENTS.has(item.segment),
-  ).filter((item) => logdrainsEnabled || item.segment !== "logdrains");
+  )
+    .filter((item) => logdrainsEnabled || item.segment !== "logdrains")
+    .filter((item) => currentUser?.role === "admin" || item.segment !== "root-keys");
   const isLogdrainCreation = segments[0] === "logdrains" && segments[1] === "new";
 
   if (isLogdrainCreation) {

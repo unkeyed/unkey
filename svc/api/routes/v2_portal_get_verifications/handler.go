@@ -85,8 +85,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	// zero-filled series. We use the same log retention limit that the protected
 	// analytics.getVerifications path uses as MaxQueryRangeDays, so the portal
 	// cannot query a wider range than the workspace itself.
-	limits, _, err := h.LimitsCache.SWR(ctx, principal.WorkspaceID, func(ctx context.Context) (keysdb.Limit, error) {
-		return keysdb.Query.FindLimitsByWorkspaceID(ctx, h.DB.RO(), principal.WorkspaceID)
+	limits, _, err := h.LimitsCache.SWR(ctx, principal.AuthorizedWorkspaceID, func(ctx context.Context) (keysdb.Limit, error) {
+		return keysdb.Query.FindLimitsByWorkspaceID(ctx, h.DB.RO(), principal.AuthorizedWorkspaceID)
 	}, caches.DefaultFindFirstOp)
 	if err != nil {
 		return fault.Wrap(err,
@@ -105,7 +105,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	points, err := h.ClickHouse.GetVerificationsByExternalID(ctx, clickhouse.VerificationTimeseriesRequest{
-		WorkspaceID: principal.WorkspaceID,
+		WorkspaceID: principal.AuthorizedWorkspaceID,
 		ExternalID:  externalID,
 		KeyID:       ptr.SafeDeref(req.KeyId),
 		StartTime:   req.StartTime,

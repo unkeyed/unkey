@@ -1,2 +1,3 @@
-// Package workos adapts WorkOS access tokens into Unkey auth principals.
+// Package workos maps WorkOS organization roles to API permissions after JWT
+// verification. The API enables this mapping through the JWT provider config.
 package workos
