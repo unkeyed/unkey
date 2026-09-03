@@ -73,10 +73,23 @@ different object.
 
 ### Gate evaluation with watermarks
 
-`GetAnomalySourceWatermarks` bounds its read to the latest 2 hours and returns
-the latest complete bucket boundary for each request, resource, and
-instance-event source. A source is incomplete when its watermark is earlier
-than the window end.
+`anomaly_source_watermarks_v1` stores the latest watermark for each
+`(source, region)` pair. Its source values are `requests`, `resources`, and
+`instance_events`. Three materialized views update the table from
+`frontline_requests_raw_v1`, `instance_checkpoints_v1`, and
+`instance_events_raw_v1`.
+
+`GetAnomalySourceWatermarks` returns `{Source, Region, Watermark}` rows. A region
+is active for a source when it received ingest during the latest 2 hours. The
+source is complete when at least one region is active and the minimum watermark
+across all active regions is at or after the window end. A source with no active
+region is incomplete. A region with no ingest for 2 hours becomes inactive and
+does not let a decommissioned region stall detection.
+
+Shard 0 logs one structured warning for each incomplete source and window. The
+warning includes `source`, `region`, `watermark`, and `window_end` so operators
+can identify the lagging region without collecting duplicate warnings from all
+shards.
 
 Each metric input in `deploy_anomaly_check.proto` has one of these states:
 
@@ -84,7 +97,7 @@ Each metric input in `deploy_anomaly_check.proto` has one of these states:
 | --- | --- | --- |
 | `PRESENT` | The source is complete and the group has a row. | Evaluate the supplied value. |
 | `ZERO_COMPLETE` | The source is complete and the group has no row. | Evaluate a real zero. |
-| `INCOMPLETE` | The source has not reached the window end. | Make no state or database change for that metric. |
+| `INCOMPLETE` | An active region has not reached the window end, or the source has no active region. | Make no state or database change for that metric. |
 
 `INCOMPLETE` is a strict no-op. It cannot open an alert, advance a two-window
 candidate, update `last_seen_at`, increment recovery state, or resolve an
@@ -104,11 +117,18 @@ milliseconds. Including the count makes the partition scheme explicit for
 retries and lets operators change the count for later windows without changing
 an in-flight run.
 
-Each shard reads every open alert group from MySQL and filters the rows with the
-same workspace hash. It then runs the three ClickHouse query families for its
-workspace partition. Candidate conditions run in each query's `HAVING` clause.
-The filter can over-include possible candidates but must not exclude one. Go
-`Detect` remains the authoritative classifier.
+`ListOpenAlertEventGroups(shardCount, shard)` reads only the shard's open alert
+groups from MySQL with `status = 'open' AND workspace_hash % shardCount = shard`.
+`workspace_hash` is the unsigned, ClickHouse-compatible CityHash64 value of
+`workspace_id`. Go computes it with `github.com/go-faster/city` `city.CH64`.
+The `(status, workspace_hash)` index keeps the open-alert reconciliation query
+on the same partition as ClickHouse's
+`cityHash64(workspace_id) % shard_count` filter.
+
+The shard then runs the three ClickHouse query families for its workspace
+partition. Candidate conditions run in each query's `HAVING` clause. The filter
+can over-include possible candidates but must not exclude one. Go `Detect`
+remains the authoritative classifier.
 
 The shard resolves group metadata in batches of at most 500 groups and removes
 preview environments before dispatch. The batch query uses a recursive JSON CTE
@@ -176,6 +196,25 @@ baseline.
 Hourly rollups supply the dashboard's 7-day overview. Dashboard series queries
 are separate from the detector queries and do not mutate alert state.
 
+### Backfill detector rollups
+
+The detector migrations replay the latest 7 days after creating each
+materialized view:
+
+| Migration | Backfilled data |
+| --- | --- |
+| `043_instance_resources_app_per_5m_v1.sql` | Per-app resource history. |
+| `044_anomaly_source_watermarks_v1.sql` | Per-region source watermarks. |
+| `048_frontline_requests_anomaly_per_5m_v1.sql` | Request and error history. |
+| `049_instance_memory_container_per_5m_v1.sql` | Per-container memory history. |
+
+Watermark max states are replay-idempotent. Sum rollups exclude keys that are
+already present, so retrying a migration cannot count the same rollup key twice.
+Existing apps therefore have the full 24-hour baseline and 72-bucket
+request-drop history when detection first runs. The 12-bucket spike minimum
+applies only to apps younger than 1 hour, and the 72-bucket request-drop minimum
+applies only to apps younger than 6 hours.
+
 ## Evaluate one group
 
 The detector API consists of `Detect(Input, Config) Result`,
@@ -232,9 +271,17 @@ evaluation at or after that duration, the evaluator resolves the alert with
 shift after the rolling baseline has absorbed the new behavior. An incomplete
 metric remains a strict no-op, including for this age check.
 
-An open request-drop alert resolves with `Deployment stopped` when
-`deployments.desired_state = stopped`. Without an open alert, the same condition
-clears request-drop candidate state.
+Request-drop metadata includes `deployment_has_running_region`, field 15 of
+`EvaluateDeployAnomalyRequest`. It is true when at least one
+`deployment_topology` row has `desired_status = 'running'`. Request-drop
+detection is suppressed when there is no live deployment,
+`deployments.desired_state = 'stopped'`, or every topology region is stopped.
+The same conditions resolve an open request-drop alert with
+`Deployment stopped` or clear candidate state when no alert is open.
+
+`autoscaling_replicas_min = 0` does not suppress request-drop detection.
+Scale-to-zero capability does not mean that a traffic drop is expected while a
+deployment and running topology region remain active.
 
 ### Persist virtual object state
 
@@ -264,8 +311,8 @@ prior state.
 
 The table stores:
 
-- Identity: `id`, `workspace_id`, `project_id`, `app_id`, `environment_id`, and
-  nullable `deployment_id`.
+- Identity: `id`, `workspace_id`, `workspace_hash`, `project_id`, `app_id`,
+  `environment_id`, and nullable `deployment_id`.
 - Classification: `metric` and `status` (`open` or `resolved`).
 - Detection context: `fired_at`, `last_seen_at`, `window_start`, `window_end`,
   `observed_value`, `baseline_mean`, `baseline_stddev`, and `threshold_sigma`.
@@ -276,6 +323,10 @@ Alert IDs use the `alert_` prefix. Error metrics store their error ratio in
 `observed_value`, not the raw error count. The evaluator enforces one open alert
 per group and metric. An anomaly against an existing open row updates
 `last_seen_at` and `observed_value` instead of inserting another row.
+
+`workspace_hash` is a `bigint unsigned NOT NULL` value populated from
+`city.CH64(workspace_id)`. The `(status, workspace_hash)` index supports the
+shard-filtered open-alert query.
 
 Raw error and request counts appear in structured detector logs but are not
 persisted in `alert_events`.
@@ -459,18 +510,13 @@ for failures and false-positive investigation.
 
 The detector has these known limits:
 
-- Watermarks are global, not per-region. A high global watermark can hide one
-  lagging region.
-- The anomaly ClickHouse rollups have no backfill. Spike metrics need 12 new
-  buckets, and request drops need 72 before they can open.
-- Every shard scans all open MySQL alert groups before filtering them by the
-  workspace hash.
-- Deployment state supports only `running` and `stopped`. Suppression for a
-  paused or scaled-to-zero deployment is future work.
+- The 1,000,000-group capacity figures are linear estimates from the measured
+  100,000-group result, not benchmark results.
 - `error_4xx` is detected and persisted, but this phase has no notification
   path.
 - Error alert rows persist ratios. Raw error and request counts exist only in
   structured logs.
+- No notification service consumes the persisted status transitions yet.
 
-This phase also excludes notifications, per-app mute controls, sensitivity UI,
-seasonality, a latency detector, and deployment before-and-after comparison.
+This phase also excludes per-app mute controls, sensitivity UI, seasonality, a
+latency detector, and deployment before-and-after comparison.
