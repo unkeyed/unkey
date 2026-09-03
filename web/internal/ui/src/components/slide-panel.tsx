@@ -35,10 +35,17 @@ export function SlidePanel({
       open={isOpen}
       modal={false}
       disablePointerDismissal
-      onOpenChange={(open) => {
-        if (!open) {
-          onClose();
+      onOpenChange={(open, eventDetails) => {
+        if (open) {
+          return;
         }
+        // Opening a dialog from inside the panel moves focus out of it, which Base UI reports
+        // as a dismissal. The panel should outlive anything it opens.
+        if (eventDetails.reason === "focus-out") {
+          eventDetails.cancel();
+          return;
+        }
+        onClose();
       }}
       onOpenChangeComplete={(open) => {
         if (!open) {
