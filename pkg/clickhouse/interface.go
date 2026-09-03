@@ -50,11 +50,13 @@ type Querier interface {
 	GetDeploymentRequestCount(ctx context.Context, req GetDeploymentRequestCountRequest) (int64, error)
 
 	// GetRequestAnomalyWindows returns per-app request and error aggregates for
-	// one closed 5-minute window and its trailing 24-hour baseline.
+	// one closed 5-minute window and its trailing 24-hour baseline, including the
+	// first observed baseline bucket used to bound zero-padding for new apps.
 	GetRequestAnomalyWindows(ctx context.Context, req AnomalyWindowsRequest) ([]RequestAnomalyWindow, error)
 
 	// GetResourceAnomalyWindows returns per-app resource aggregates for one
-	// closed 5-minute window and its trailing 24-hour baseline.
+	// closed 5-minute window and its trailing 24-hour baseline, including the
+	// first observed baseline bucket used to bound zero-padding for new apps.
 	GetResourceAnomalyWindows(ctx context.Context, req AnomalyWindowsRequest) ([]ResourceAnomalyWindow, error)
 
 	// GetInstanceEventAnomalyWindows returns per-app OOM and crash-loop counts
