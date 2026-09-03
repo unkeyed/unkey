@@ -172,11 +172,13 @@ type CreateDeploymentRequest struct {
 	//
 	// Deprecated: Marked as deprecated in ctrl/v1/deployment.proto.
 	DockerImage string `protobuf:"bytes,3,opt,name=docker_image,json=dockerImage,proto3" json:"docker_image,omitempty"`
-	// Optional source overrides. Set at most one of oci_image or git_commit.
-	// Omit both to use the app's default Git branch or OCI image.
-	OciImage string `protobuf:"bytes,12,opt,name=oci_image,json=ociImage,proto3" json:"oci_image,omitempty"`
-	// Git information
-	GitCommit *GitCommitInfo `protobuf:"bytes,4,opt,name=git_commit,json=gitCommit,proto3,oneof" json:"git_commit,omitempty"`
+	// Omit the source override to use the app's default Git branch or OCI image.
+	//
+	// Types that are valid to be assigned to Source:
+	//
+	//	*CreateDeploymentRequest_OciImage
+	//	*CreateDeploymentRequest_GitCommit
+	Source isCreateDeploymentRequest_Source `protobuf_oneof:"source"`
 	// Authentication
 	KeyspaceId *string `protobuf:"bytes,5,opt,name=keyspace_id,json=keyspaceId,proto3,oneof" json:"keyspace_id,omitempty"`
 	// Container command override (e.g., ["./app", "serve"])
@@ -261,16 +263,27 @@ func (x *CreateDeploymentRequest) GetDockerImage() string {
 	return ""
 }
 
+func (x *CreateDeploymentRequest) GetSource() isCreateDeploymentRequest_Source {
+	if x != nil {
+		return x.Source
+	}
+	return nil
+}
+
 func (x *CreateDeploymentRequest) GetOciImage() string {
 	if x != nil {
-		return x.OciImage
+		if x, ok := x.Source.(*CreateDeploymentRequest_OciImage); ok {
+			return x.OciImage
+		}
 	}
 	return ""
 }
 
 func (x *CreateDeploymentRequest) GetGitCommit() *GitCommitInfo {
 	if x != nil {
-		return x.GitCommit
+		if x, ok := x.Source.(*CreateDeploymentRequest_GitCommit); ok {
+			return x.GitCommit
+		}
 	}
 	return nil
 }
@@ -324,6 +337,22 @@ func (x *CreateDeploymentRequest) GetActor() *ActorInfo {
 	return nil
 }
 
+type isCreateDeploymentRequest_Source interface {
+	isCreateDeploymentRequest_Source()
+}
+
+type CreateDeploymentRequest_OciImage struct {
+	OciImage string `protobuf:"bytes,12,opt,name=oci_image,json=ociImage,proto3,oneof"`
+}
+
+type CreateDeploymentRequest_GitCommit struct {
+	GitCommit *GitCommitInfo `protobuf:"bytes,4,opt,name=git_commit,json=gitCommit,proto3,oneof"`
+}
+
+func (*CreateDeploymentRequest_OciImage) isCreateDeploymentRequest_Source() {}
+
+func (*CreateDeploymentRequest_GitCommit) isCreateDeploymentRequest_Source() {}
+
 type GitCommitInfo struct {
 	state           protoimpl.MessageState `protogen:"open.v1"`
 	CommitSha       string                 `protobuf:"bytes,1,opt,name=commit_sha,json=commitSha,proto3" json:"commit_sha,omitempty"`
@@ -331,7 +360,7 @@ type GitCommitInfo struct {
 	AuthorHandle    string                 `protobuf:"bytes,3,opt,name=author_handle,json=authorHandle,proto3" json:"author_handle,omitempty"`
 	AuthorAvatarUrl string                 `protobuf:"bytes,4,opt,name=author_avatar_url,json=authorAvatarUrl,proto3" json:"author_avatar_url,omitempty"`
 	Timestamp       int64                  `protobuf:"varint,5,opt,name=timestamp,proto3" json:"timestamp,omitempty"` // Unix epoch milliseconds
-	Branch          string                 `protobuf:"bytes,6,opt,name=branch,proto3" json:"branch,omitempty"`        // branch metadata for OCI image deployments
+	Branch          string                 `protobuf:"bytes,6,opt,name=branch,proto3" json:"branch,omitempty"`        // branch metadata for Git deployments
 	// Full fork repository identifier (e.g., "contributor/repo").
 	ForkRepository string `protobuf:"bytes,7,opt,name=fork_repository,json=forkRepository,proto3" json:"fork_repository,omitempty"`
 	unknownFields  protoimpl.UnknownFields
@@ -1558,15 +1587,15 @@ var File_ctrl_v1_deployment_proto protoreflect.FileDescriptor
 
 const file_ctrl_v1_deployment_proto_rawDesc = "" +
 	"\n" +
-	"\x18ctrl/v1/deployment.proto\x12\actrl.v1\x1a\x13ctrl/v1/actor.proto\"\x83\x04\n" +
+	"\x18ctrl/v1/deployment.proto\x12\actrl.v1\x1a\x13ctrl/v1/actor.proto\"\xfd\x03\n" +
 	"\x17CreateDeploymentRequest\x12\x1d\n" +
 	"\n" +
 	"project_id\x18\x01 \x01(\tR\tprojectId\x12)\n" +
 	"\x10environment_slug\x18\x02 \x01(\tR\x0fenvironmentSlug\x12%\n" +
-	"\fdocker_image\x18\x03 \x01(\tB\x02\x18\x01R\vdockerImage\x12\x1b\n" +
-	"\toci_image\x18\f \x01(\tR\bociImage\x12:\n" +
+	"\fdocker_image\x18\x03 \x01(\tB\x02\x18\x01R\vdockerImage\x12\x1d\n" +
+	"\toci_image\x18\f \x01(\tH\x00R\bociImage\x127\n" +
 	"\n" +
-	"git_commit\x18\x04 \x01(\v2\x16.ctrl.v1.GitCommitInfoH\x00R\tgitCommit\x88\x01\x01\x12$\n" +
+	"git_commit\x18\x04 \x01(\v2\x16.ctrl.v1.GitCommitInfoH\x00R\tgitCommit\x12$\n" +
 	"\vkeyspace_id\x18\x05 \x01(\tH\x01R\n" +
 	"keyspaceId\x88\x01\x01\x12\x18\n" +
 	"\acommand\x18\x06 \x03(\tR\acommand\x12\x15\n" +
@@ -1575,8 +1604,8 @@ const file_ctrl_v1_deployment_proto_rawDesc = "" +
 	"\ftriggered_by\x18\n" +
 	" \x01(\tR\vtriggeredBy\x12%\n" +
 	"\x0etrigger_reason\x18\t \x01(\tR\rtriggerReason\x12(\n" +
-	"\x05actor\x18\v \x01(\v2\x12.ctrl.v1.ActorInfoR\x05actorB\r\n" +
-	"\v_git_commitB\x0e\n" +
+	"\x05actor\x18\v \x01(\v2\x12.ctrl.v1.ActorInfoR\x05actorB\b\n" +
+	"\x06sourceB\x0e\n" +
 	"\f_keyspace_id\"\x85\x02\n" +
 	"\rGitCommitInfo\x12\x1d\n" +
 	"\n" +
@@ -1791,7 +1820,10 @@ func file_ctrl_v1_deployment_proto_init() {
 		return
 	}
 	file_ctrl_v1_actor_proto_init()
-	file_ctrl_v1_deployment_proto_msgTypes[0].OneofWrappers = []any{}
+	file_ctrl_v1_deployment_proto_msgTypes[0].OneofWrappers = []any{
+		(*CreateDeploymentRequest_OciImage)(nil),
+		(*CreateDeploymentRequest_GitCommit)(nil),
+	}
 	file_ctrl_v1_deployment_proto_msgTypes[7].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{

@@ -96,10 +96,6 @@ func (s *Service) CreateDeployment(
 		return nil, connect.NewError(connect.CodeInvalidArgument,
 			fmt.Errorf("oci_image and deprecated docker_image are mutually exclusive"))
 	}
-	if ociImage != "" && req.Msg.GetGitCommit() != nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument,
-			fmt.Errorf("oci_image and git_commit are mutually exclusive"))
-	}
 	if ociImage == "" {
 		ociImage = req.Msg.GetDockerImage()
 	}

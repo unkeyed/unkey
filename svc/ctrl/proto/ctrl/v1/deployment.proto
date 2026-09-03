@@ -41,12 +41,11 @@ message CreateDeploymentRequest {
   // Deprecated compatibility field for v2 API callers.
   string docker_image = 3 [deprecated = true];
 
-  // Optional source overrides. Set at most one of oci_image or git_commit.
-  // Omit both to use the app's default Git branch or OCI image.
-  string oci_image = 12;
-
-  // Git information
-  optional GitCommitInfo git_commit = 4;
+  // Omit the source override to use the app's default Git branch or OCI image.
+  oneof source {
+    string oci_image = 12;
+    GitCommitInfo git_commit = 4;
+  }
 
   // Authentication
   optional string keyspace_id = 5;
@@ -88,7 +87,7 @@ message GitCommitInfo {
   string author_handle = 3;
   string author_avatar_url = 4;
   int64 timestamp = 5; // Unix epoch milliseconds
-  string branch = 6; // branch metadata for OCI image deployments
+  string branch = 6; // branch metadata for Git deployments
   // Full fork repository identifier (e.g., "contributor/repo").
   string fork_repository = 7;
 }
