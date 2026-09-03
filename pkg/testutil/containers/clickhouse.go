@@ -67,6 +67,15 @@ func ClickHouse(t testing.TB) ClickHouseConfig {
 func applyClickHouseSchema(t testing.TB, ctx context.Context, conn ch.Conn) {
 	t.Helper()
 
+	project := composeProjectName()
+	const resource = "clickhouse-schema"
+	lockFile := lockComposeResource(t, project, resource)
+	defer func() { require.NoError(t, lockFile.Close()) }()
+
+	if composeResourceCompletedForRun(project, resource) {
+		return
+	}
+
 	// Enable experimental features needed by schema (e.g., JSON type)
 	experimentalSettings := []string{
 		"SET allow_experimental_json_type = 1",
@@ -80,6 +89,7 @@ func applyClickHouseSchema(t testing.TB, ctx context.Context, conn ch.Conn) {
 	// Apply schema files
 	schemaDir := clickhouseSchemaDir()
 	applySchemaFiles(t, ctx, conn, schemaDir)
+	markComposeResourceCompleted(t, project, resource)
 }
 
 func applySchemaFiles(t testing.TB, ctx context.Context, conn ch.Conn, dir string) {
