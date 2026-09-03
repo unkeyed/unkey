@@ -37,7 +37,7 @@ func RejectionFault(reason hydrav1.CreateRejectionReason) error {
 			"no repo connection",
 			fault.Code(codes.App.Precondition.PreconditionFailed.URN()),
 			fault.Internal("create rejected: app has no github repo connection"),
-			fault.Public("This app has no connected GitHub repository. Deploy a prebuilt image with the image source, or connect a repository first."),
+			fault.Public("This app has no GitHub repository connected. Connect one, or deploy a prebuilt image instead."),
 		)
 
 	case hydrav1.CreateRejectionReason_CREATE_REJECTION_REASON_COMMIT_NOT_RESOLVED:
@@ -45,7 +45,7 @@ func RejectionFault(reason hydrav1.CreateRejectionReason) error {
 			"commit not resolved",
 			fault.Code(codes.App.Precondition.PreconditionFailed.URN()),
 			fault.Internal("create rejected: github could not resolve the branch or commit"),
-			fault.Public("The requested branch or commit could not be resolved on GitHub."),
+			fault.Public("GitHub could not find that branch or commit. Check the name, and that Unkey still has access to the repository."),
 		)
 
 	case hydrav1.CreateRejectionReason_CREATE_REJECTION_REASON_NO_SOURCE_IMAGE:
@@ -53,7 +53,7 @@ func RejectionFault(reason hydrav1.CreateRejectionReason) error {
 			"no source image",
 			fault.Code(codes.App.Precondition.PreconditionFailed.URN()),
 			fault.Internal("create rejected: nothing to build from"),
-			fault.Public("This deployment cannot be redeployed because it never produced an image."),
+			fault.Public("That deployment never finished building, so there is nothing to redeploy. Choose a deployment that succeeded, or deploy an image."),
 		)
 
 	case hydrav1.CreateRejectionReason_CREATE_REJECTION_REASON_NEWER_DEPLOYMENT_EXISTS:
@@ -61,7 +61,7 @@ func RejectionFault(reason hydrav1.CreateRejectionReason) error {
 			"newer deployment exists",
 			fault.Code(codes.App.Precondition.PreconditionFailed.URN()),
 			fault.Internal("create rejected: a newer active deployment exists"),
-			fault.Public("A newer deployment already exists for this app, environment, and branch."),
+			fault.Public("A newer deployment has already shipped for this app, environment, and branch."),
 		)
 
 	case hydrav1.CreateRejectionReason_CREATE_REJECTION_REASON_ENVIRONMENT_NOT_DEPLOYABLE:
@@ -69,7 +69,7 @@ func RejectionFault(reason hydrav1.CreateRejectionReason) error {
 			"environment not deployable",
 			fault.Code(codes.App.Validation.InvalidEnvironmentSettings.URN()),
 			fault.Internal("create rejected: environment runtime or regional settings are out of bounds"),
-			fault.Public("This environment cannot be deployed. Update its runtime and region settings before deploying."),
+			fault.Public("This environment cannot be deployed yet. Check its port, CPU, memory, and region settings."),
 		)
 
 	case hydrav1.CreateRejectionReason_CREATE_REJECTION_REASON_INVALID_IMAGE:
@@ -77,7 +77,7 @@ func RejectionFault(reason hydrav1.CreateRejectionReason) error {
 			"invalid image",
 			fault.Code(codes.App.Validation.InvalidInput.URN()),
 			fault.Internal("create rejected: image is not a well-formed container reference"),
-			fault.Public("The image is not a valid container reference."),
+			fault.Public("The docker image is not valid. Expected [registry/]repository[:tag][@digest], for example ghcr.io/acme/api:v1.2.3."),
 		)
 
 	// Both mean the target vanished between this handler's own lookup and the
@@ -89,7 +89,7 @@ func RejectionFault(reason hydrav1.CreateRejectionReason) error {
 			"deployment target not found",
 			fault.Code(codes.Data.Deployment.NotFound.URN()),
 			fault.Internal("create rejected: target or source deployment does not exist"),
-			fault.Public("The requested project, app, environment, or deployment does not exist."),
+			fault.Public("The project, app, environment, or deployment does not exist."),
 		)
 
 	// A refusal the worker could name but this mapping cannot is a bug here, not
