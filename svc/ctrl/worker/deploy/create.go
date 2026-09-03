@@ -421,6 +421,40 @@ func (w *Workflow) buildPayload(
 	return payload, nil
 }
 
+// toDeployRequest assembles the request Deploy consumes. The payload already
+// holds the source, the command, and the commit, so only the id it runs under
+// comes from outside.
+func (p deployPayload) toDeployRequest(deploymentID string) *hydrav1.DeployRequest {
+	if p.Source.Git == nil {
+		return &hydrav1.DeployRequest{
+			DeploymentId: deploymentID,
+			Command:      p.Command,
+			Source: &hydrav1.DeployRequest_OciImage{
+				OciImage: &hydrav1.OciImage{Image: p.Source.Image},
+			},
+		}
+	}
+
+	git := p.Source.Git
+	return &hydrav1.DeployRequest{
+		DeploymentId: deploymentID,
+		Command:      p.Command,
+		Source: &hydrav1.DeployRequest_Git{
+			Git: &hydrav1.GitSource{
+				InstallationId: git.InstallationID,
+				Repository:     git.Repository,
+				CommitSha:      p.Commit.SHA,
+				ContextPath:    git.ContextPath,
+				DockerfilePath: git.DockerfilePath,
+				BuildCommand:   git.BuildCommand,
+				Branch:         p.Commit.Branch,
+				ForkRepository: p.Commit.ForkRepository,
+				PrNumber:       git.PRNumber,
+			},
+		},
+	}
+}
+
 // recordDeployment writes the row, its queued step, and its audit log in one
 // transaction. Half a record is worse than none: no queued step means no queue
 // time, and no audit entry means nobody can see who asked for the deployment.
@@ -586,7 +620,7 @@ func (w *Workflow) startDeploy(
 ) error {
 	invocation := hydrav1.NewDeployServiceClient(ctx, deploymentID).
 		Deploy().
-		Send(payload.Source.deployRequest(deploymentID, payload.Command, payload.Commit))
+		Send(payload.toDeployRequest(deploymentID))
 
 	// Restate always answers a successful Send with an invocation id. An empty
 	// one is a bug, and it would leave a deployment no cancel can reach.
