@@ -6,9 +6,9 @@ post:
     List custom domains in your workspace and their verification status. Use the optional
     project, app, and environment filters to narrow the results.
 
-    Results are paginated and sorted by their id. When `hasMore` is true, send the
-    returned `cursor` to get the next page. A valid scope with no domains returns an
-    empty array, not a 404.
+    Results are paginated and sorted by their ID. When `hasMore` is true, send the
+    returned `cursor` to get the next page. A workspace or filtered resource with no
+    domains returns an empty array, not a 404.
 
     `status: verified` means the domain is verified. Unkey has configured routing and requested a
     certificate. Each domain includes its full `dnsRecords`. Each record has a `verified` flag.
@@ -18,8 +18,11 @@ post:
 
     **Required Permissions**
 
-    Workspace-wide, project, and app lists require `environment.*.read_domain`.
-    An environment list also accepts `environment.<environment_id>.read_domain`.
+    The endpoint accepts a canonical `#read` permission that matches the requested domain
+    collection.
+
+    The endpoint also accepts the legacy `environment.*.read_domain` permission. An
+    environment list accepts `environment.<environment_id>.read_domain` too.
   operationId: domains.listDomains
   x-speakeasy-name-override: listDomains
   x-unkey-idempotency: idempotent
@@ -129,7 +132,7 @@ post:
                   hasMore: false
             empty:
               summary: No domains attached
-              description: A valid scope with no custom domains returns an empty array, not a 404.
+              description: A workspace or filtered resource with no custom domains returns an empty array, not a 404.
               value:
                 meta:
                   requestId: req_1234abcd
@@ -157,7 +160,7 @@ post:
                   errors:
                     - location: body.search
                       message: must be at most 256 characters
-                      fix: Shorten the search string, or omit it to return the environment's domains unfiltered
+                      fix: Shorten the search string, or omit it to return domains without a search filter
     "401":
       description: Unauthorized
       content:
@@ -177,9 +180,9 @@ post:
                   type: unauthorized
     "403":
       description: |
-        Forbidden - The root key or its workspace is disabled, or a broad list does not have
-        `environment.*.read_domain`. An environment-specific request that lacks permission receives
-        a 404, so permissions cannot reveal which environments exist.
+        Forbidden - The root key or its workspace is disabled. An unfiltered workspace list also
+        returns 403 when the root key does not have the required permission. A filtered project,
+        app, or environment list returns 404 for the same permission failure.
       content:
         application/json:
           schema:
@@ -197,8 +200,8 @@ post:
                   type: forbidden
     "404":
       description: |
-        Not Found - A filtered resource does not exist in your workspace, or your root key may not
-        read the requested environment.
+        Not Found - A requested project, app, or environment does not exist in your workspace, or
+        your root key cannot read its domains.
       content:
         application/json:
           schema:

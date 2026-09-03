@@ -16,10 +16,10 @@ export type V2DomainsListDomainsResponseBody = {
    */
   meta: Meta;
   /**
-   * The domains attached to the environment, sorted by their id.
+   * The domains that match the request filters, sorted by their ID.
    *
    * @remarks
-   * The array is empty when the environment has no domains. This is not an error.
+   * The array is empty when the workspace or filtered resource has no domains. This is not an error.
    */
   data: Array<Domain>;
   /**

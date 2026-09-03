@@ -13,7 +13,7 @@ properties:
       "$ref": "../../../../common/Domain.yaml"
     description: |
       The domains that match the request filters, sorted by their ID.
-      The array is empty when the valid scope has no domains. This is not an error.
+      The array is empty when the workspace or filtered resource has no domains. This is not an error.
   pagination:
     "$ref": "../../../../common/Pagination.yaml"
 additionalProperties: false
@@ -103,7 +103,7 @@ examples:
         hasMore: true
   empty:
     summary: No domains attached
-    description: A valid scope with no custom domains returns an empty array, not a 404.
+    description: A workspace or filtered resource with no custom domains returns an empty array, not a 404.
     value:
       meta:
         requestId: req_1234abcd

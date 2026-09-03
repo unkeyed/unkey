@@ -2329,7 +2329,7 @@ type V2DomainsGetDomainResponseBody struct {
 }
 
 // V2DomainsListDomainsRequestBody Filter domains within a workspace. All filters are optional. With no filters,
-// the endpoint returns every custom domain in the workspace.
+// the endpoint lists custom domains across the workspace.
 type V2DomainsListDomainsRequestBody struct {
 	// App Restrict results to one app, identified by its ID or slug.
 	// If `project` is omitted, the endpoint treats this opaque value only as an app ID.
@@ -2361,7 +2361,7 @@ type V2DomainsListDomainsRequestBody struct {
 // V2DomainsListDomainsResponseBody defines model for V2DomainsListDomainsResponseBody.
 type V2DomainsListDomainsResponseBody struct {
 	// Data The domains that match the request filters, sorted by their ID.
-	// The array is empty when the valid scope has no domains. This is not an error.
+	// The array is empty when the workspace or filtered resource has no domains. This is not an error.
 	Data []Domain `json:"data"`
 
 	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.

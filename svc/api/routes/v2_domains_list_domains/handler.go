@@ -49,44 +49,21 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	if req.Environment == nil {
-		if err = principal.Authorize(rbac.T(rbac.Tuple{
-			ResourceType: rbac.Environment,
-			ResourceID:   "*",
-			Action:       rbac.ReadDomain,
-		})); err != nil {
-			return err
-		}
-	}
-
 	scope, err := h.resolveScope(ctx, principal.AuthorizedWorkspaceID, req)
 	if err != nil {
 		return err
 	}
 
-	if req.Environment != nil {
-		if err = principal.Authorize(rbac.Or(
-			rbac.T(rbac.Tuple{
-				ResourceType: rbac.Environment,
-				ResourceID:   "*",
-				Action:       rbac.ReadDomain,
-			}),
-			rbac.T(rbac.Tuple{
-				ResourceType: rbac.Environment,
-				ResourceID:   scope.environmentID,
-				Action:       rbac.ReadDomain,
-			}),
-			rbac.U(
-				urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(scope.projectID).App(scope.appID).Environment(scope.environmentID).Domain("*"),
-				permissions.Read,
-			),
-		)); err != nil {
+	if err = principal.Authorize(scope.permissionQuery(principal.AuthorizedWorkspaceID)); err != nil {
+		resource, resourceCode := requestedResource(req)
+		if resource != "" {
 			return apierrors.MaskInsufficientPermissionsAsNotFound(
 				err,
-				codes.Data.Environment.NotFound.URN(),
-				"The requested environment does not exist.",
+				resourceCode,
+				"The requested "+resource+" does not exist.",
 			)
 		}
+		return err
 	}
 
 	p := pagination.Parse(req.Limit, req.Cursor, 100)
@@ -167,10 +144,48 @@ type resolvedScope struct {
 	environmentID string
 }
 
+// permissionQuery combines legacy grants with the canonical permission for the resolved collection.
+func (s resolvedScope) permissionQuery(workspaceID string) rbac.PermissionQuery {
+	projectID := s.projectID
+	if projectID == "" {
+		projectID = "*"
+	}
+	appID := s.appID
+	if appID == "" {
+		appID = "*"
+	}
+	environmentID := s.environmentID
+	if environmentID == "" {
+		environmentID = "*"
+	}
+
+	queries := []rbac.PermissionQuery{
+		rbac.T(rbac.Tuple{
+			ResourceType: rbac.Environment,
+			ResourceID:   "*",
+			Action:       rbac.ReadDomain,
+		}),
+		rbac.U(
+			urn.New().Workspace(workspaceID).Project(projectID).App(appID).Environment(environmentID).Domain("*"),
+			permissions.Read,
+		),
+	}
+	if s.environmentID != "" {
+		queries = append(queries, rbac.T(rbac.Tuple{
+			ResourceType: rbac.Environment,
+			ResourceID:   s.environmentID,
+			Action:       rbac.ReadDomain,
+		}))
+	}
+
+	return rbac.Or(queries...)
+}
+
 // resolveScope uses globally unique IDs directly and resolves slugs under their parent scope.
 // It returns not found when supplied parents do not contain the requested child.
 func (h *Handler) resolveScope(ctx context.Context, workspaceID string, req Request) (resolvedScope, error) {
 	var resolved resolvedScope
+	notFoundResource, notFoundCode := requestedResource(req)
 	if req.Project != nil {
 		project, err := db.Query.FindProjectByIdOrSlug(ctx, h.DB.RO(), db.FindProjectByIdOrSlugParams{
 			WorkspaceID: workspaceID,
@@ -178,7 +193,7 @@ func (h *Handler) resolveScope(ctx context.Context, workspaceID string, req Requ
 		})
 		if err != nil {
 			if db.IsNotFound(err) {
-				return resolvedScope{}, resourceNotFound("project", codes.Data.Project.NotFound.URN())
+				return resolvedScope{}, resourceNotFound(notFoundResource, notFoundCode)
 			}
 			return resolvedScope{}, listDatabaseError(err)
 		}
@@ -197,12 +212,12 @@ func (h *Handler) resolveScope(ctx context.Context, workspaceID string, req Requ
 		} else {
 			app, err = db.Query.FindAppById(ctx, h.DB.RO(), *req.App)
 			if err == nil && app.WorkspaceID != workspaceID {
-				return resolvedScope{}, resourceNotFound("app", codes.Data.App.NotFound.URN())
+				return resolvedScope{}, resourceNotFound(notFoundResource, notFoundCode)
 			}
 		}
 		if err != nil {
 			if db.IsNotFound(err) {
-				return resolvedScope{}, resourceNotFound("app", codes.Data.App.NotFound.URN())
+				return resolvedScope{}, resourceNotFound(notFoundResource, notFoundCode)
 			}
 			return resolvedScope{}, listDatabaseError(err)
 		}
@@ -223,12 +238,12 @@ func (h *Handler) resolveScope(ctx context.Context, workspaceID string, req Requ
 		} else {
 			environment, err = db.Query.FindEnvironmentById(ctx, h.DB.RO(), *req.Environment)
 			if err == nil && (environment.WorkspaceID != workspaceID || (resolved.projectID != "" && environment.ProjectID != resolved.projectID)) {
-				return resolvedScope{}, resourceNotFound("environment", codes.Data.Environment.NotFound.URN())
+				return resolvedScope{}, resourceNotFound(notFoundResource, notFoundCode)
 			}
 		}
 		if err != nil {
 			if db.IsNotFound(err) {
-				return resolvedScope{}, resourceNotFound("environment", codes.Data.Environment.NotFound.URN())
+				return resolvedScope{}, resourceNotFound(notFoundResource, notFoundCode)
 			}
 			return resolvedScope{}, listDatabaseError(err)
 		}
@@ -240,7 +255,21 @@ func (h *Handler) resolveScope(ctx context.Context, workspaceID string, req Requ
 	return resolved, nil
 }
 
-// resourceNotFound keeps scope lookup errors consistent across resource types.
+// requestedResource returns the most specific filter so lookup and authorization failures are indistinguishable.
+func requestedResource(req Request) (string, codes.URN) {
+	if req.Environment != nil {
+		return "environment", codes.Data.Environment.NotFound.URN()
+	}
+	if req.App != nil {
+		return "app", codes.Data.App.NotFound.URN()
+	}
+	if req.Project != nil {
+		return "project", codes.Data.Project.NotFound.URN()
+	}
+	return "", ""
+}
+
+// resourceNotFound keeps public lookup errors consistent with masked authorization failures.
 func resourceNotFound(resource string, code codes.URN) error {
 	return fault.New(
 		resource+" not found",

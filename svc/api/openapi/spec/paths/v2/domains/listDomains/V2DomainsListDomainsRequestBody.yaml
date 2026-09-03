@@ -45,7 +45,7 @@ properties:
 additionalProperties: false
 description: |
   Filter domains within a workspace. All filters are optional. With no filters,
-  the endpoint returns every custom domain in the workspace.
+  the endpoint lists custom domains across the workspace.
 examples:
   workspaceWide:
     summary: List all domains in the workspace

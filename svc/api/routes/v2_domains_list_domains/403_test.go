@@ -72,18 +72,87 @@ func TestListDomainsBroadScopesRequireWildcard(t *testing.T) {
 	rootKey := h.CreateRootKey(env.workspaceID, "environment."+env.environmentID+".read_domain")
 
 	testCases := []struct {
-		name string
-		req  handler.Request
+		name           string
+		req            handler.Request
+		expectedStatus int
 	}{
-		{name: "workspace", req: handler.Request{}},
-		{name: "project", req: handler.Request{Project: ptr.P(env.projectID)}},
-		{name: "app", req: handler.Request{Project: ptr.P(env.projectID), App: ptr.P(env.appID)}},
+		{name: "workspace", req: handler.Request{}, expectedStatus: http.StatusForbidden},
+		{name: "project", req: handler.Request{Project: ptr.P(env.projectID)}, expectedStatus: http.StatusNotFound},
+		{name: "app", req: handler.Request{Project: ptr.P(env.projectID), App: ptr.P(env.appID)}, expectedStatus: http.StatusNotFound},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, authHeaders(rootKey), tc.req)
-			require.Equal(t, http.StatusForbidden, res.Status, "expected 403, received: %s", res.RawBody)
+			require.Equal(t, tc.expectedStatus, res.Status, "unexpected status, received: %s", res.RawBody)
+		})
+	}
+}
+
+// TestListDomainsProjectScopeAcceptsCanonicalPermission guarantees that dashboard
+// roles can list all domains in a project with their canonical domain permission.
+func TestListDomainsProjectScopeAcceptsCanonicalPermission(t *testing.T) {
+	h := testutil.NewHarness(t)
+	route := &handler.Handler{DB: h.DB}
+	h.Register(route)
+
+	env := seedEnvironment(t, h)
+	attachDomain(t, h, env, nil)
+	rootKey := h.CreateRootKey(
+		env.workspaceID,
+		fmt.Sprintf("unkey:v1:%s:projects/*/apps/*/environments/*/domains/*#read", env.workspaceID),
+	)
+
+	res := testutil.CallRoute[handler.Request, handler.Response](h, route, authHeaders(rootKey), handler.Request{
+		Project: ptr.P(env.projectID),
+	})
+	require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
+}
+
+// TestListDomainsParentExistenceNotLeaked guarantees that scope resolution does
+// not let an unauthorized caller distinguish a real parent from a missing one.
+func TestListDomainsParentExistenceNotLeaked(t *testing.T) {
+	h := testutil.NewHarness(t)
+	route := &handler.Handler{DB: h.DB}
+	h.Register(route)
+
+	env := seedEnvironment(t, h)
+	rootKey := h.CreateRootKey(env.workspaceID)
+	headers := authHeaders(rootKey)
+
+	testCases := []struct {
+		name       string
+		realReq    handler.Request
+		missingReq handler.Request
+	}{
+		{
+			name:       "project",
+			realReq:    handler.Request{Project: ptr.P(env.projectID)},
+			missingReq: handler.Request{Project: ptr.P(uid.New(uid.ProjectPrefix))},
+		},
+		{
+			name:       "app",
+			realReq:    handler.Request{Project: ptr.P(env.projectID), App: ptr.P(env.appID)},
+			missingReq: handler.Request{Project: ptr.P(env.projectID), App: ptr.P(uid.New(uid.AppPrefix))},
+		},
+		{
+			name:       "app with missing project",
+			realReq:    handler.Request{Project: ptr.P(env.projectID), App: ptr.P(env.appID)},
+			missingReq: handler.Request{Project: ptr.P(uid.New(uid.ProjectPrefix)), App: ptr.P(env.appID)},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			realRes := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, tc.realReq)
+			missingRes := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, tc.missingReq)
+
+			require.Equal(t, http.StatusNotFound, realRes.Status, "expected 404, received: %s", realRes.RawBody)
+			require.Equal(t, http.StatusNotFound, missingRes.Status, "expected 404, received: %s", missingRes.RawBody)
+			require.Equal(t, missingRes.Body.Error.Detail, realRes.Body.Error.Detail)
+			require.Equal(t, missingRes.Body.Error.Type, realRes.Body.Error.Type)
+			require.Equal(t, missingRes.Body.Error.Status, realRes.Body.Error.Status)
+			require.Equal(t, missingRes.Body.Error.Title, realRes.Body.Error.Title)
 		})
 	}
 }
@@ -104,18 +173,47 @@ func TestListDomainsExistenceNotLeaked(t *testing.T) {
 	headers := authHeaders(rootKey)
 
 	realRes := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, makeRequest(env))
-	missingRes := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, handler.Request{
-		Project:     ptr.P(env.projectID),
-		App:         ptr.P(env.appID),
-		Environment: ptr.P(uid.New(uid.EnvironmentPrefix)),
-		Search:      nil,
-	})
+	missingRequests := []struct {
+		name string
+		req  handler.Request
+	}{
+		{
+			name: "environment",
+			req: handler.Request{
+				Project:     ptr.P(env.projectID),
+				App:         ptr.P(env.appID),
+				Environment: ptr.P(uid.New(uid.EnvironmentPrefix)),
+			},
+		},
+		{
+			name: "app",
+			req: handler.Request{
+				Project:     ptr.P(env.projectID),
+				App:         ptr.P(uid.New(uid.AppPrefix)),
+				Environment: ptr.P(env.environmentID),
+			},
+		},
+		{
+			name: "project",
+			req: handler.Request{
+				Project:     ptr.P(uid.New(uid.ProjectPrefix)),
+				App:         ptr.P(env.appID),
+				Environment: ptr.P(env.environmentID),
+			},
+		},
+	}
 
-	require.Equal(t, http.StatusNotFound, realRes.Status, "expected 404, received: %s", realRes.RawBody)
-	require.Equal(t, http.StatusNotFound, missingRes.Status, "expected 404, received: %s", missingRes.RawBody)
-	require.NotContains(t, realRes.RawBody, env.environmentID)
-	require.Equal(t, missingRes.Body.Error.Detail, realRes.Body.Error.Detail)
-	require.Equal(t, missingRes.Body.Error.Type, realRes.Body.Error.Type)
-	require.Equal(t, missingRes.Body.Error.Status, realRes.Body.Error.Status)
-	require.Equal(t, missingRes.Body.Error.Title, realRes.Body.Error.Title)
+	for _, tc := range missingRequests {
+		t.Run(tc.name, func(t *testing.T) {
+			missingRes := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, tc.req)
+
+			require.Equal(t, http.StatusNotFound, realRes.Status, "expected 404, received: %s", realRes.RawBody)
+			require.Equal(t, http.StatusNotFound, missingRes.Status, "expected 404, received: %s", missingRes.RawBody)
+			require.NotContains(t, realRes.RawBody, env.environmentID)
+			require.Equal(t, missingRes.Body.Error.Detail, realRes.Body.Error.Detail)
+			require.Equal(t, missingRes.Body.Error.Type, realRes.Body.Error.Type)
+			require.Equal(t, missingRes.Body.Error.Status, realRes.Body.Error.Status)
+			require.Equal(t, missingRes.Body.Error.Title, realRes.Body.Error.Title)
+		})
+	}
 }
