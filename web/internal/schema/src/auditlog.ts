@@ -35,6 +35,7 @@ export const unkeyAuditLogEvents = z.enum([
   "logdrain.create",
   "logdrain.update",
   "logdrain.delete",
+  "alert.resolve",
   "webhook.create",
   "webhook.update",
   "webhook.delete",
