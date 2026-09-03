@@ -58,8 +58,7 @@ describe("IntegrateDialog", () => {
     }
   });
 
-  // createSession rejects these two at the request boundary, so a snippet naming
-  // either one hands the customer a payload the API refuses.
+  // A snippet naming either one hands out a payload createSession refuses.
   it("offers only the scopes createSession still accepts", () => {
     renderDialog();
 

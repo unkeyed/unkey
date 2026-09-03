@@ -149,8 +149,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	// Request-shape only, so it runs before the portal lookup, matching the
-	// enum check the request validator already applies ahead of this handler.
+	// Request shape only, so it runs before the portal lookup.
 	if err = ValidateScopeCombination(req.Scopes); err != nil {
 		return err
 	}
@@ -386,17 +385,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 // ValidateScopeCombination rejects a scope set the portal cannot serve.
 //
-// keys:reroll authorizes rerolling a key the end user already owns, but the
-// portal reaches that action only from the keys page, which renders solely for
-// keys:read. A session carrying reroll alone therefore mints successfully and
-// then strands the end user: the landing resolver finds no page it may open and
-// the keys route redirects away. Refusing the pair here keeps that failure at
-// the caller's own request, where it is actionable, rather than in an end user's
-// browser.
-//
-// The OpenAPI enum cannot express this -- it constrains each item, not the
-// combination -- so the check lives in the handler alongside the vocabulary it
-// depends on.
+// The portal reaches rerolling from the keys page, so a reroll-only session
+// mints fine and then strands the end user with no page to open. The enum
+// constrains each item, not the combination, so the check lives here.
 func ValidateScopeCombination(scopes []openapi.V2PortalCreateSessionRequestBodyScopes) error {
 	var hasRead, hasReroll bool
 	for _, scope := range scopes {

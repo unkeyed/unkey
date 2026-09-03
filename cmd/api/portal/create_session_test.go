@@ -33,17 +33,14 @@ func TestCreateSessionPermissionValidation(t *testing.T) {
 	require.ErrorContains(t, err, `invalid scope "keys:delete"`)
 }
 
-// keys:create and analytics:read are in the SDK's Scope enum but not in the
-// portal's vocabulary, so the CLI has to reject them locally rather than let the
-// caller spend a request discovering the API refuses them.
+// Still in the SDK's Scope enum, so the CLI has to reject them locally.
 func TestValidatePortalScopes(t *testing.T) {
 	t.Run("accepts the delivered scopes", func(t *testing.T) {
 		require.NoError(t, validatePortalScopes("keys:read"))
 		require.NoError(t, validatePortalScopes("keys:read,keys:reroll"))
 	})
 
-	// The portal reaches rerolling from the keys page, so reroll alone mints a
-	// session with no page the end user can open.
+	// Reroll is reached from the keys page, so it cannot stand alone.
 	t.Run("rejects reroll without read", func(t *testing.T) {
 		err := validatePortalScopes("keys:reroll")
 		require.ErrorContains(t, err, "keys:reroll")

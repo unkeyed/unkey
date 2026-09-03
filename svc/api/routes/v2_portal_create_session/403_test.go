@@ -167,9 +167,8 @@ func TestCreateSessionScopeEscalation(t *testing.T) {
 		permissions []string
 		shouldPass  bool
 	}{
-		// Every reroll case also carries keys:read and its grants: the handler
-		// refuses the pair apart, so reroll alone would fail as a 400 before
-		// reaching the mint-time ceiling these cases exist to exercise.
+		// Reroll cases carry keys:read and its grants: reroll alone is a 400
+		// before it reaches the ceiling these cases exercise.
 		{
 			// The escalation regression: minting alone must not confer key
 			// rotation, which hands back plaintext key material.

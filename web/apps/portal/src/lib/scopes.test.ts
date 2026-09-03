@@ -28,8 +28,7 @@ describe("canRerollKeys", () => {
     expect(canRerollKeys(["keys:read", "keys:reroll"])).toBe(true);
   });
 
-  // The reason the gate exists: portal.rerollKey rejects this session, so the
-  // table must not offer the action.
+  // portal.rerollKey rejects this session, so the table must not offer it.
   it("is false for a read-only session", () => {
     expect(canRerollKeys(["keys:read"])).toBe(false);
   });

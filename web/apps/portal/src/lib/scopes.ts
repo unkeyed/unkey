@@ -12,9 +12,7 @@ export function canReadKeys(scopes: ReadonlyArray<string>): boolean {
 
 /**
  * Whether a session may reroll a key it owns. `portal.rerollKey` authorizes
- * `keys:reroll` server-side, so the keys table must withhold the rotate action
- * for a session without it: offering a control the API refuses turns a scope
- * the caller chose into an error the end user has to interpret.
+ * `keys:reroll`, so the table must not offer an action the API would refuse.
  */
 export function canRerollKeys(scopes: ReadonlyArray<string>): boolean {
   return scopes.includes("keys:reroll");

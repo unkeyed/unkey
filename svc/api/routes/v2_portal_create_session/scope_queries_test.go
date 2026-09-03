@@ -35,10 +35,8 @@ func TestScopeQueriesDeniesUnmappedScope(t *testing.T) {
 		require.Empty(t, queries)
 	})
 
-	// analytics:read and keys:create were half-built features whose scopes left
-	// the enum with them, so they are now unknown values like any other. They get
-	// their own case because they are the two strings this mapping used to
-	// answer, and a stale arm would not show up as a typo would.
+	// These two used to map here. A stale arm would not look like a typo, so
+	// pin them explicitly.
 	t.Run("removed scopes are unknown", func(t *testing.T) {
 		for _, s := range []openapi.V2PortalCreateSessionRequestBodyScopes{
 			"analytics:read", "keys:create",

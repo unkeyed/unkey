@@ -10,17 +10,14 @@ const (
 	// CapKeysRead lets the end user list and read their own keys.
 	CapKeysRead = "keys:read"
 
-	// CapKeysCreate was never finished: no portal route creates keys, and
-	// portal.createSession does not accept the scope, so nothing can grant it.
-	// Kept as the name to reuse if the feature is built.
+	// CapKeysCreate is unfinished: no route creates keys and createSession does
+	// not accept the scope. Kept for whoever builds it.
 	CapKeysCreate = "keys:create"
 
 	// CapKeysReroll lets the end user rotate the secret of an existing key.
 	CapKeysReroll = "keys:reroll"
 
-	// CapAnalyticsRead was only half built: v2_portal_get_verifications
-	// authorizes it, but the portal has no analytics view and
-	// portal.createSession does not accept the scope, so nothing can grant it.
-	// Kept as the name to reuse if the feature is finished.
+	// CapAnalyticsRead is half built: v2_portal_get_verifications authorizes it,
+	// but there is no analytics view and createSession does not accept the scope.
 	CapAnalyticsRead = "analytics:read"
 )

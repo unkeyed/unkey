@@ -13,9 +13,8 @@ import (
 )
 
 // portalScopes is the vocabulary createSession accepts. The pinned SDK's Scope
-// enum is wider because it predates this cleanup: keys:create and analytics:read
-// were half-built features, and the API no longer knows those values. Offering
-// them here would only produce a 400 the caller cannot act on.
+// enum is wider because it predates this cleanup; the API no longer knows those
+// values.
 var portalScopes = []string{
 	string(components.ScopeKeysRead), string(components.ScopeKeysReroll),
 }
@@ -33,10 +32,8 @@ func validatePortalScopes(value string) error {
 		scopes = append(scopes, scope)
 	}
 
-	// Mirrors the API: the portal reaches rerolling from the keys page, which
-	// renders only for keys:read, so reroll alone mints a session with no page
-	// the end user can open. Caught here so the failure lands on the command
-	// rather than a round trip later.
+	// Mirrors the API, so the failure lands on the command rather than a round
+	// trip later.
 	if slices.Contains(scopes, "keys:reroll") && !slices.Contains(scopes, "keys:read") {
 		return fmt.Errorf("scope %q requires %q in the same session", "keys:reroll", "keys:read")
 	}

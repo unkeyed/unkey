@@ -188,12 +188,8 @@ func TestCreateSessionBadRequest(t *testing.T) {
 	})
 }
 
-// analytics:read and keys:create were half-built: the scopes existed but no
-// portal route served them, so they left the vocabulary along with the rest of
-// the unfinished work. They are unknown values now, and the refusal has to come
-// from the request validator rather than the mint-time ceiling. Granting every
-// permission the two scopes used to require is what proves that: a 400 here can
-// only mean the value never reached the handler.
+// The root key holds every permission the two scopes used to require, so a 400
+// here can only be the request validator, not the mint-time ceiling.
 func TestCreateSessionRejectsRemovedScopes(t *testing.T) {
 	h := testutil.NewHarness(t)
 
@@ -246,14 +242,11 @@ func TestCreateSessionRejectsRemovedScopes(t *testing.T) {
 		})
 
 		t.Run(string(scope)+" alongside a delivered scope is rejected", func(t *testing.T) {
-			// Refused whole rather than silently reduced to the scopes that work.
 			require.Equal(t, 400, call(t, "keys:read", scope))
 		})
 	}
 
-	// keys:reroll authorizes an action the portal only reaches from the keys
-	// page, which needs keys:read. Minting the pair apart would strand the end
-	// user in the browser rather than failing the caller's own request.
+	// Reroll is reached from the keys page, so the pair cannot be split.
 	t.Run("reroll without read is rejected", func(t *testing.T) {
 		require.Equal(t, 400, call(t, "keys:reroll"))
 	})
@@ -276,8 +269,8 @@ func TestCreateSessionRejectsRemovedScopes(t *testing.T) {
 		require.Equal(t, 200, res.Status, "got: %s", res.RawBody)
 	})
 
-	// The same caller and portal still mint successfully, so the cases above pin
-	// a narrowed vocabulary rather than a broken route.
+	// Same caller and portal, so the rejections above are a narrowing, not a
+	// broken route.
 	t.Run("the delivered scopes still mint", func(t *testing.T) {
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
 			Portal:     "removed-scope-portal",
