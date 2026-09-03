@@ -28,10 +28,10 @@ changes only for the affected app and environment.
 └──────────┬───────────────────────────────┘
            │ fan out, 16 shards by default
            ▼
-┌──────────────────────────────────────────┐
-│ DeployAnomalyShardService                │
-│ key: <window_start>/<shard>/<count>      │
-└──────┬──────────────┬──────────────┬─────┘
+┌──────────────────────────────────────────────┐
+│ DeployAnomalyShardService.EvaluateShard      │
+│ key: <window_start_ms>/<shard>/<shard_count> │
+└──────┬──────────────┬──────────────┬─────────┘
        │              │              │
        ▼              ▼              ▼
   Requests        Resources       Events
@@ -73,9 +73,10 @@ different object.
 
 ### Gate evaluation with watermarks
 
-`GetAnomalySourceWatermarks` reads the latest complete bucket boundary for each
-request, resource, and instance-event source. A source is incomplete when its
-watermark is earlier than the window end.
+`GetAnomalySourceWatermarks` bounds its read to the latest 2 hours and returns
+the latest complete bucket boundary for each request, resource, and
+instance-event source. A source is incomplete when its watermark is earlier
+than the window end.
 
 Each metric input in `deploy_anomaly_check.proto` has one of these states:
 
@@ -91,32 +92,46 @@ alert. One delayed source does not stop complete metrics from other sources.
 
 ## Shard the fleet scan
 
-`RunDeployAnomalyCheck` fans out to `DeployAnomalyShardService`. The default is
-16 shards. A workspace belongs to one shard according to:
+`RunDeployAnomalyCheck` fans out to
+`DeployAnomalyShardService.EvaluateShard`. The default is 16 shards. A
+workspace belongs to one shard according to:
 
 `cityHash64(workspace_id) % shard_count`
 
 The shard virtual object key is
-`<window_start>/<shard>/<shard_count>`. Including the count makes the partition
-scheme explicit for retries and lets operators change the count for later
-windows without changing an in-flight run.
+`<window_start_ms>/<shard>/<shard_count>`. The window value is in Unix
+milliseconds. Including the count makes the partition scheme explicit for
+retries and lets operators change the count for later windows without changing
+an in-flight run.
 
-Each shard reads open alert groups from MySQL, then runs the three ClickHouse
-query families for its workspace partition. Candidate conditions run in each
-query's `HAVING` clause. ClickHouse returns only groups that meet a detector
-precondition and groups that already have an open alert. Go performs the final
-classification and supplies complete metric state to each selected group.
+Each shard reads every open alert group from MySQL and filters the rows with the
+same workspace hash. It then runs the three ClickHouse query families for its
+workspace partition. Candidate conditions run in each query's `HAVING` clause.
+The filter can over-include possible candidates but must not exclude one. Go
+`Detect` remains the authoritative classifier.
 
-The shard resolves group metadata from MySQL and removes preview environments
-before dispatch. It invokes `DeployAnomalyService` once per selected production
-group. All child futures are awaited. A failed child causes the parent to
-withhold its health-check heartbeat.
+The shard resolves group metadata in batches of at most 500 groups and removes
+preview environments before dispatch. The batch query uses a recursive JSON CTE
+because sqlc rejected `JSON_TABLE`. It invokes `DeployAnomalyService.Evaluate`
+once per selected production group. All child futures are awaited. A failed
+child causes the parent to withhold its health-check heartbeat.
+
+`DeployAnomalyShardService.GetPending` exposes a shard's pending group count for
+inspection. Each shard returns only `groups_dispatched` and `groups_pending` to
+`RunDeployAnomalyCheck`, so query results and per-group payloads do not enter the
+window virtual object's journal.
 
 ## Understand the ClickHouse queries
 
 The query methods live in `pkg/clickhouse/anomaly_window.go`. They aggregate
 away `deployment_id` and group by `workspace_id`, `project_id`, `app_id`, and
 `environment_id`.
+
+Request scans use `AnomalyWindowsRequest` with an `AnomalyCandidateFilter`.
+Candidate `HAVING` expressions intentionally may over-include. The Go detector
+applies minimum history, exact thresholds, and stateful confirmation after the
+query returns. Shard-key ordering and `optimize_aggregation_in_order` bound the
+aggregation working set for each query.
 
 | Method | Source | Metrics |
 | --- | --- | --- |
@@ -133,10 +148,10 @@ moments, request-weighted error means, and the population standard deviation
 of per-bucket error ratios.
 
 The same query returns the first observed bucket, the number of observed
-baseline buckets, whether the current bucket exists, and an aligned array for
-the previous 12 request buckets. Missing entries in that 12-bucket array become
-zero. The final `HAVING` applies candidate thresholds or retains a group that
-has an open alert.
+baseline buckets, whether the current bucket exists, and the previous 12
+request buckets through scalar `sumIf` expressions. Missing buckets become
+zero. The final `HAVING` applies the conservative candidate filter or retains a
+group that has an open alert.
 
 ### Query resource windows
 
@@ -163,8 +178,10 @@ are separate from the detector queries and do not mutate alert state.
 
 ## Evaluate one group
 
-The pure functions `Detect`, `Recovered`, `ShouldResolve`,
-`BaselineWindowBuckets`, and `RecentRequestStats` live in
+The detector API consists of `Detect(Input, Config) Result`,
+`Recovered(Input, Result, Config) bool`, `ShouldResolve(int) bool`,
+`BaselineWindowBuckets`, and `RecentRequestStats`. `DefaultConfig(Sensitivity)`
+builds the production configuration. These functions live in
 `svc/ctrl/worker/cron/deployanomaly`. The
 [detector math](/architecture/services/control-plane/worker/deploy-anomaly-detection-math)
 defines every metric threshold and worked example.
@@ -215,9 +232,9 @@ evaluation at or after that duration, the evaluator resolves the alert with
 shift after the rolling baseline has absorbed the new behavior. An incomplete
 metric remains a strict no-op, including for this age check.
 
-An open request-drop alert resolves with `Deployment stopped` when there is no
-live deployment or `deployments.desired_state = stopped`. Without an open alert,
-the same condition clears request-drop candidate state.
+An open request-drop alert resolves with `Deployment stopped` when
+`deployments.desired_state = stopped`. Without an open alert, the same condition
+clears request-drop candidate state.
 
 ### Persist virtual object state
 
@@ -229,13 +246,15 @@ Go enum values.
 | `candidate:<metric>` | Records the first window of a sustained rule. |
 | `candidate_window:<metric>` | Proves that the next candidate window is consecutive. |
 | `open_alert:<metric>` | Stores the open `alert_events.id`. |
+| `fired_at:<metric>` | Stores the opening time used by `Config.MaxOpenDuration`. |
 | `quiet:<metric>` | Counts consecutive complete recovered windows. |
 | `snapshot:<metric>` | Stores the opening baseline and threshold for recovery. |
 | `detector_input:<metric>` | Retains the last complete detector input, including request-drop context. |
 | `open_alerts_reconciled` | Records that open MySQL rows were loaded into this object. |
 
 On first use, the evaluator reconciles open rows from MySQL. This restores the
-open alert ID and opening snapshot if the virtual object has no prior state.
+open alert ID, firing time, and opening snapshot if the virtual object has no
+prior state.
 
 ## Persist alerts in MySQL
 
@@ -257,6 +276,9 @@ Alert IDs use the `alert_` prefix. Error metrics store their error ratio in
 `observed_value`, not the raw error count. The evaluator enforces one open alert
 per group and metric. An anomaly against an existing open row updates
 `last_seen_at` and `observed_value` instead of inserting another row.
+
+Raw error and request counts appear in structured detector logs but are not
+persisted in `alert_events`.
 
 Every resolution sets `status = resolved` and `resolved_by = system`. The
 resolution message records whether the metric returned to baseline for three
@@ -290,11 +312,12 @@ key.
 There is no separate dashboard architecture section in the engineering docs,
 so this page owns the dashboard implementation notes.
 
-The workspace inbox route is `/[workspaceSlug]/alerts`. It provides **Open** and
-**Resolved** filters and a sparkline. Alerts are read-only in the dashboard.
+The workspace inbox route is `/[workspaceSlug]/alerts`. It provides **Open**,
+**Resolved**, and **All** status filters, metric and app filters, and a
+sparkline. Alerts are read-only in the dashboard.
 `/[workspaceSlug]/alerts/[alertId]` redirects to the app focus route:
 
-`/[workspaceSlug]/projects/[projectId]/apps/[appId]/anomalies?env=<environmentId>&alert=<id>`
+`/[workspaceSlug]/projects/[projectId]/apps/[appId]/anomalies?env=<envId>&alert=<alertId>`
 
 The app-level **Anomalies** tab provides these views:
 
@@ -312,8 +335,9 @@ The app-level **Anomalies** tab provides these views:
   system resolution message.
 
 The `alerts` tRPC router is in
-`web/apps/dashboard/lib/trpc/routers/alerts/`. Its procedures are `list`, `get`,
-`summary`, `series`, and `deployments`. Dashboard ClickHouse queries live in
+`web/apps/dashboard/lib/trpc/routers/alerts/`. Its procedures are `alerts.list`,
+`alerts.get`, `alerts.summary`, `alerts.series`, and `alerts.deployments`. There
+is no `resolve` or `timeseries` procedure. Dashboard ClickHouse queries live in
 `web/internal/clickhouse/src/alerts.ts`. Shared band constants live in
 `web/internal/clickhouse/src/alert-thresholds.ts` so displayed thresholds match
 detector rules.
@@ -338,11 +362,12 @@ Start the dashboard and its Docker Compose MySQL and ClickHouse dependencies:
 FLAGS_LOCAL_OVERRIDES=deploy-anomaly-alerts mise run dashboard
 ```
 
-The dashboard task runs `bin/unkey dev seed local`. After that seed completes,
-run the alert seed in another terminal:
+Seed the normal local data, then seed anomaly telemetry and alerts in another
+terminal:
 
 ```bash
-bin/unkey dev seed alerts
+unkey dev seed local
+unkey dev seed alerts
 ```
 
 The alert seed writes 7 days of dense 5-minute telemetry, nine alerts, and
@@ -358,19 +383,60 @@ ClickHouse performs candidate filtering before returning rows to Go. Restate
 creates per-group work only for candidates and existing open alerts. The stable
 group key serializes one group's state without serializing unrelated workspaces.
 
-<!-- TODO(deploy-anomaly-scale): Replace every "Pending measurement" cell with
-the measured values supplied after the sharded implementation lands. Record the
-dataset size, shard count, and measurement environment with the results. -->
+These measurements came from an orb harness and ClickHouse `system.query_log`.
+In each dataset, 0.5% of groups were anomalous. Sharded durations are the sum of
+16 sequential shard queries in the harness. Production runs those shards
+concurrently. Peak memory is the maximum for one query, not the sum across
+shards.
 
-| Measurement | Result |
-| --- | --- |
-| Workspaces and production groups in test dataset | Pending measurement |
-| Request query p50 / p95 per shard | Pending measurement |
-| Resource query p50 / p95 per shard | Pending measurement |
-| Event query p50 / p95 per shard | Pending measurement |
-| Candidate rows returned vs. groups scanned | Pending measurement |
-| End-to-end cron p50 / p95 | Pending measurement |
-| Peak concurrent per-group evaluations | Pending measurement |
+### Results for 10,000 groups
+
+Sharding reduces the response and memory bounds at the cost of more total query
+work in this harness.
+
+| Query | Layout | Duration | Data read | Peak memory | Result rows | Journal JSON | Largest shard JSON |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Requests | Fleet-wide | 484 ms | 1.46 GB | 1.44 GB | 10,000 | 5.77 MB | Not applicable |
+| Requests | 16 shards with `HAVING` | 3,631 ms | 1.36 GB | 166 MB | 50 | 30.7 KB | 3.7 KB |
+| Resources | Fleet-wide | 1,158 ms | 1.74 GB | 2.95 GB | 10,000 | 4.64 MB | Not applicable |
+| Resources | 16 shards with `HAVING` | 4,021 ms | 608 MB | 132 MB | 50 | 25.1 KB | 3.0 KB |
+| Instance events | Fleet-wide | 6 ms | Not recorded | Not recorded | Not recorded | 11.1 KB | Not applicable |
+| Instance events | 16 shards | 91 ms | Not recorded | Not recorded | Not recorded | 11.1 KB | 1.3 KB |
+
+### Results for 100,000 groups
+
+The fleet-wide resource query failed before producing a result. The sharded
+queries completed with bounded response payloads.
+
+| Query | Layout | Duration | Data read | Peak memory | Result rows | Journal JSON | Largest shard JSON |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Requests | Fleet-wide | 4,284 ms | 14.57 GB | 10.65 GB | 100,000 | 57.95 MB | Not applicable |
+| Requests | 16 shards with `HAVING` | 8,567 ms | 6.14 GB | 508 MB | 500 | 307 KB | 25.8 KB |
+| Resources | Fleet-wide, failed | 3,500 ms before failure | Not recorded | 14.19 GB, with about 15 GB spilled | No result | No result | Not applicable |
+| Resources | 16 shards with `HAVING` | 9,093 ms | 5.32 GB | 444 MB | 500 | 251 KB | 21.0 KB |
+| Instance events | 16 shards | 96 ms | Not recorded | Not recorded | Not recorded | 111 KB | 9.3 KB |
+
+The fleet-wide request result is larger than Restate's default
+`networking.message-size-limit` of 32 MiB (33,554,432 bytes). Journal payloads
+above that limit fail with `RT0003`. See the
+<a href="https://docs.restate.dev/server/networking" target="_blank">Restate
+networking settings</a>.
+
+### Estimate 1,000,000 groups
+
+The 1,000,000-group case was not measured. The orb had 31 GiB of RAM, and the
+dataset would exceed 2.3 billion source rows. Linear estimates from the
+100,000-group result are:
+
+| Measurement | Estimate |
+| --- | ---: |
+| Candidate rows | About 5,000 |
+| Request journal JSON | About 3.1 MB total, with a 258 KB largest shard |
+| Resource journal JSON | About 2.5 MB total, with a 210 KB largest shard |
+| Request query peak memory with 16 shards | About 5 GB per query |
+
+Use at least 32 shards in production at this scale after measuring the real
+dataset. These values are capacity estimates, not benchmark results.
 
 ## Find the implementation
 
@@ -391,6 +457,20 @@ for failures and false-positive investigation.
 
 ## Know the phase limits
 
-This phase does not include notifications, per-app mute controls, sensitivity
-UI, seasonality, a latency detector, per-region ingest watermarks, or deployment
-before-and-after comparison.
+The detector has these known limits:
+
+- Watermarks are global, not per-region. A high global watermark can hide one
+  lagging region.
+- The anomaly ClickHouse rollups have no backfill. Spike metrics need 12 new
+  buckets, and request drops need 72 before they can open.
+- Every shard scans all open MySQL alert groups before filtering them by the
+  workspace hash.
+- Deployment state supports only `running` and `stopped`. Suppression for a
+  paused or scaled-to-zero deployment is future work.
+- `error_4xx` is detected and persisted, but this phase has no notification
+  path.
+- Error alert rows persist ratios. Raw error and request counts exist only in
+  structured logs.
+
+This phase also excludes notifications, per-app mute controls, sensitivity UI,
+seasonality, a latency detector, and deployment before-and-after comparison.

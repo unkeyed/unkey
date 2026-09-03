@@ -43,10 +43,10 @@ Unkey evaluates closed 5-minute windows and compares them with up to 24 hours of
 earlier activity. It waits one full bucket before evaluating a window so normal
 telemetry delivery lag does not look like missing traffic.
 
-New apps need at least 1 hour of observed data before baseline-based metrics can
-alert. Unkey counts only the time after the app first produced data. It does not
-treat time before the app existed as zero. Request-drop detection needs 6 hours
-because short test runs often end with expected silence.
+Anomaly rollups do not backfill earlier telemetry. After an app starts recording
+data in these rollups, baseline-based metrics need at least 1 hour before they
+can alert. Unkey does not treat earlier time as zero. Request-drop detection
+needs 6 hours because short test runs often end with expected silence.
 
 Request, egress, and CPU spikes can open after one unusual window. Moderate 4xx
 and 5xx error increases must continue for two windows. Request drops must also
@@ -82,15 +82,9 @@ Select an alert in the range list to open focus mode. The details card shows its
 status, metric, observed value, expected baseline, detection window, deployment
 context. For a resolved alert, it also shows the resolution message.
 
-{/* TODO: Add the supplied anomalies-default-light.png,
-anomalies-focus-open.png, and alerts-list-open.png artifacts. Publish the chosen
-anomaly image as docs/product/images/deploy/anomalies-overview.png and the inbox
-image as docs/product/images/deploy/alerts-inbox.png. Do not fabricate missing
-dark-mode variants. */}
-
 <Frame caption="Anomalies tab with expected ranges and alert windows">
   <img
-    src="/images/deploy/anomalies-overview.png"
+    src="/images/deploy-anomalies-overview.png"
     alt="Anomalies tab showing observed metrics, an expected band, and alert windows"
   />
 </Frame>
@@ -98,15 +92,16 @@ dark-mode variants. */}
 ## Use the alerts inbox
 
 Open **Alerts** in the workspace navigation to see anomalies across production
-apps. Switch between **Open** and **Resolved** to filter by status. Each row
-includes recent context and a sparkline.
+apps. Switch between **Open**, **Resolved**, and **All** to filter by status.
+Use the metric and app filters to narrow the list. Each row includes recent
+context and a sparkline.
 
 Select an alert to open the affected app, environment, metric, and time range in
 focus mode.
 
 <Frame caption="Workspace alerts inbox filtered to open alerts">
   <img
-    src="/images/deploy/alerts-inbox.png"
+    src="/images/deploy-alerts-inbox.png"
     alt="Workspace alerts inbox showing open anomaly alerts"
   />
 </Frame>
@@ -139,12 +134,19 @@ or resource change can be expected for your workload.
 
 This beta does not include:
 
-- Email, Slack, or webhook notifications.
+- Email, Slack, or webhook notifications, including notifications for 4xx
+  alerts.
 - Per-app mute controls.
 - A sensitivity control in the dashboard.
 - Seasonal baselines for daily or weekly patterns.
 - Latency anomalies.
-- Per-region telemetry completeness.
+- Per-region telemetry completeness. Global watermarks can hide one lagging
+  region.
+- Historical backfill for anomaly rollups.
+- Request-drop suppression for paused or scaled-to-zero deployments. Deployment
+  state supports only `running` and `stopped`.
+- Persisted raw error and request counts. Error alerts store the ratio, while raw
+  counts appear only in internal logs.
 - Automatic before-and-after deployment comparison.
 
 Use [runtime logs](/observability/logs),

@@ -29,6 +29,10 @@ least 1 hour and 12 observed buckets, the normal rules apply. This prevents a
 brand-new app's first stable traffic from looking like a spike against 23 hours
 of invented zeros.
 
+The anomaly ClickHouse rollups have no historical backfill. Apps that existed
+before the rollups were created must also collect 12 new buckets before a
+spike can fire.
+
 Request drops need 72 observed buckets, or 6 hours, before they can become a
 candidate. Their longer ramp-up avoids treating short test runs followed by
 silence as an outage.
@@ -96,7 +100,8 @@ first window becomes a candidate. A consecutive crossing in the next complete
 window opens the alert.
 
 The same numbers for `error_4xx` follow the same two-window rule and store
-`0.08` as `observed_value`.
+`0.08` as `observed_value`. Structured detector logs contain the raw error and
+request counts, but `alert_events` does not persist them.
 
 ### Work a catastrophic 5xx example
 
@@ -117,7 +122,7 @@ All of these conditions must hold:
 - At least nine of the previous 12 buckets contain 200 or more requests.
 - The absolute loss, `recent_median - current`, is at least 200 requests.
 - Two consecutive complete windows cross the rule.
-- A live deployment exists and its desired state is not `stopped`.
+- The deployment's desired state is not `stopped`.
 
 For example, assume the recent median is 1,000 requests, and 10 of the 12
 buckets have at least 200 requests. The threshold is 250. A current window with
@@ -133,6 +138,9 @@ rule models a sustained loss from a recent, active level instead.
 The alert stores the recent median in `baseline_mean` and stores zero in
 `baseline_stddev` and `threshold_sigma`. When a deployment stops, an open drop
 alert resolves with `Deployment stopped`.
+
+Deployment state has only `running` and `stopped` values. Paused and
+scaled-to-zero suppression are not part of this detector.
 
 ## Apply fixed thresholds
 
