@@ -83,6 +83,7 @@ func TestAnomalyWindows(t *testing.T) {
 		require.Equal(t, 100.0, row.RequestsBaselineMean)
 		require.Equal(t, 10.0, row.RequestsBaselineStddev)
 		require.Equal(t, int64(2), row.BaselineBuckets)
+		require.Equal(t, windowStart.Add(-10*time.Minute).UnixMilli(), row.FirstBucketTime)
 	})
 
 	t.Run("request family returns baseline-only app", func(t *testing.T) {
@@ -113,6 +114,7 @@ func TestAnomalyWindows(t *testing.T) {
 		require.Equal(t, 1_000.0, row.RequestsBaselineMean)
 		require.Equal(t, 0.0, row.RequestsBaselineStddev)
 		require.Equal(t, int64(288), row.BaselineBuckets)
+		require.Equal(t, windowStart.Add(-24*time.Hour).UnixMilli(), row.FirstBucketTime)
 	})
 
 	t.Run("resource family", func(t *testing.T) {
@@ -172,6 +174,7 @@ func TestAnomalyWindows(t *testing.T) {
 		require.Equal(t, 1.5, row.CPUSecondsBaselineStddev)
 		require.Equal(t, 0.9, row.MemoryUtilizationCurrent)
 		require.Equal(t, int64(2), row.BaselineBuckets)
+		require.Equal(t, windowStart.Add(-10*time.Minute).UnixMilli(), row.FirstBucketTime)
 	})
 
 	t.Run("instance event family", func(t *testing.T) {

@@ -148,6 +148,47 @@ func TestDetectSigma(t *testing.T) {
 	}
 }
 
+func TestDetectNewAppSteadyTraffic(t *testing.T) {
+	cfg := DefaultConfig(SensitivityNormal)
+	windowStart := int64(13 * 5 * 60 * 1_000)
+	firstBucketTime := windowStart - 12*bucketDurationMillis
+
+	result := Detect(Input{
+		Metric:                  MetricRequests,
+		Current:                 1_000,
+		BaselineMean:            1_000,
+		ObservedBaselineBuckets: 12,
+		BaselineWindowBuckets:   BaselineWindowBuckets(windowStart, firstBucketTime),
+	}, cfg)
+
+	require.Equal(t, OutcomeNone, result.Outcome)
+	require.Equal(t, 1_000.0, result.BaselineMean)
+	require.Equal(t, 100.0, result.BaselineStddev)
+	require.Equal(t, 1_400.0, result.Threshold)
+}
+
+func TestBaselineWindowBuckets(t *testing.T) {
+	const windowStart = int64(2_000_000_000)
+
+	tests := []struct {
+		name            string
+		firstBucketTime int64
+		want            int64
+	}{
+		{name: "new app lifetime", firstBucketTime: windowStart - 12*bucketDurationMillis, want: 12},
+		{name: "full lookback", firstBucketTime: windowStart - 288*bucketDurationMillis, want: 288},
+		{name: "older than lookback", firstBucketTime: windowStart - 400*bucketDurationMillis, want: 288},
+		{name: "missing first bucket", firstBucketTime: 0, want: 0},
+		{name: "current bucket", firstBucketTime: windowStart, want: 0},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			require.Equal(t, test.want, BaselineWindowBuckets(windowStart, test.firstBucketTime))
+		})
+	}
+}
+
 func TestDetectConfirmation(t *testing.T) {
 	cfg := DefaultConfig(SensitivityNormal)
 	base := Input{
@@ -253,14 +294,14 @@ func TestDetectRequestsDrop(t *testing.T) {
 				Metric:                  MetricRequestsDrop,
 				Current:                 0,
 				BaselineMean:            1_000_000,
-				ObservedBaselineBuckets: 11,
-				BaselineWindowBuckets:   11,
+				ObservedBaselineBuckets: 71,
+				BaselineWindowBuckets:   71,
 			},
 			wantOutcome:   OutcomeInsufficient,
 			wantMean:      1_000_000,
 			wantStddev:    100_000,
 			wantThreshold: 600_000,
-			wantReason:    "baseline has fewer than 12 buckets",
+			wantReason:    "baseline has fewer than 72 buckets",
 		},
 		{
 			name: "first low window becomes candidate",

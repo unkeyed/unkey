@@ -37,6 +37,7 @@ type RequestAnomalyWindow struct {
 	RequestsBaselineStddev float64 `ch:"requests_baseline_stddev"`
 
 	BaselineBuckets int64 `ch:"baseline_buckets"`
+	FirstBucketTime int64 `ch:"first_bucket_time"`
 }
 
 // ResourceAnomalyWindow contains egress, CPU, and memory aggregates for one
@@ -58,6 +59,7 @@ type ResourceAnomalyWindow struct {
 
 	MemoryUtilizationCurrent float64 `ch:"memory_utilization_current"`
 	BaselineBuckets          int64   `ch:"baseline_buckets"`
+	FirstBucketTime          int64   `ch:"first_bucket_time"`
 }
 
 // InstanceEventAnomalyWindow contains current-window OOM and crash-loop counts
@@ -95,7 +97,8 @@ func (c *Client) GetRequestAnomalyWindows(ctx context.Context, req AnomalyWindow
 		sumIf(requests, bucket_time = window_start) AS requests_current,
 		if(countIf(bucket_time < window_start) = 0, 0., avgIf(requests, bucket_time < window_start)) AS requests_baseline_mean,
 		if(countIf(bucket_time < window_start) = 0, 0., stddevPopIf(requests, bucket_time < window_start)) AS requests_baseline_stddev,
-		toInt64(countIf(bucket_time < window_start)) AS baseline_buckets
+		toInt64(countIf(bucket_time < window_start)) AS baseline_buckets,
+		toInt64(toUnixTimestamp(minIf(bucket_time, bucket_time < window_start))) * 1000 AS first_bucket_time
 	FROM (
 		SELECT
 			time AS bucket_time,
@@ -145,7 +148,8 @@ func (c *Client) GetResourceAnomalyWindows(ctx context.Context, req AnomalyWindo
 		if(countIf(bucket_time < window_start) = 0, 0., avgIf(cpu_seconds, bucket_time < window_start)) AS cpu_seconds_baseline_mean,
 		if(countIf(bucket_time < window_start) = 0, 0., stddevPopIf(cpu_seconds, bucket_time < window_start)) AS cpu_seconds_baseline_stddev,
 		maxIf(memory_utilization, bucket_time = window_start) AS memory_utilization_current,
-		toInt64(countIf(bucket_time < window_start)) AS baseline_buckets
+		toInt64(countIf(bucket_time < window_start)) AS baseline_buckets,
+		toInt64(toUnixTimestamp(minIf(bucket_time, bucket_time < window_start))) * 1000 AS first_bucket_time
 	FROM (
 		SELECT
 			bucket_time,
