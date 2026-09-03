@@ -2,7 +2,6 @@ CREATE TABLE `alert_events` (
 	`pk` bigint unsigned AUTO_INCREMENT NOT NULL,
 	`id` varchar(48) COLLATE utf8mb4_0900_as_cs NOT NULL,
 	`workspace_id` varchar(48) COLLATE utf8mb4_0900_as_cs NOT NULL,
-	`workspace_hash` bigint unsigned NOT NULL,
 	`project_id` varchar(48) COLLATE utf8mb4_0900_as_cs NOT NULL,
 	`app_id` varchar(48) COLLATE utf8mb4_0900_as_cs NOT NULL,
 	`environment_id` varchar(48) COLLATE utf8mb4_0900_as_cs NOT NULL,
@@ -12,7 +11,6 @@ CREATE TABLE `alert_events` (
 	`fired_at` bigint NOT NULL,
 	`last_seen_at` bigint NOT NULL,
 	`resolved_at` bigint,
-	`resolved_by` varchar(255),
 	`resolution_message` varchar(1000),
 	`observed_value` double NOT NULL,
 	`baseline_mean` double NOT NULL,
@@ -26,7 +24,7 @@ CREATE TABLE `alert_events` (
 	CONSTRAINT `alert_events_id_unique` UNIQUE(`id`)
 );
 
-CREATE INDEX `status_workspace_hash_idx` ON `alert_events` (`status`,`workspace_hash`);
+CREATE INDEX `status_idx` ON `alert_events` (`status`);
 
 CREATE INDEX `workspace_status_fired_at_idx` ON `alert_events` (`workspace_id`,`status`,`fired_at`);
 
