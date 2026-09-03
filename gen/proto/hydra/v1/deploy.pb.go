@@ -940,8 +940,6 @@ type DeployCreateRequest struct {
 	//	*DeployCreateRequest_Image
 	//	*DeployCreateRequest_ExistingDeployment
 	Source isDeployCreateRequest_Source `protobuf_oneof:"source"`
-	// Container command override. Empty uses the app's stored default.
-	Command []string `protobuf:"bytes,7,rep,name=command,proto3" json:"command,omitempty"`
 	// Decision the caller already reached. See CreateDecision.
 	Decision CreateDecision `protobuf:"varint,8,opt,name=decision,proto3,enum=hydra.v1.CreateDecision" json:"decision,omitempty"`
 	// Attribution persisted on the deployment row.
@@ -1035,13 +1033,6 @@ func (x *DeployCreateRequest) GetExistingDeployment() *CreateExistingDeploymentS
 		if x, ok := x.Source.(*DeployCreateRequest_ExistingDeployment); ok {
 			return x.ExistingDeployment
 		}
-	}
-	return nil
-}
-
-func (x *DeployCreateRequest) GetCommand() []string {
-	if x != nil {
-		return x.Command
 	}
 	return nil
 }
@@ -1737,7 +1728,7 @@ const file_hydra_v1_deploy_proto_rawDesc = "" +
 	"\x05image\x18\x01 \x01(\tR\x05image\"o\n" +
 	"\x1eCreateExistingDeploymentSource\x12#\n" +
 	"\rdeployment_id\x18\x01 \x01(\tR\fdeploymentId\x12(\n" +
-	"\x10require_no_newer\x18\x02 \x01(\bR\x0erequireNoNewer\"\xb2\x04\n" +
+	"\x10require_no_newer\x18\x02 \x01(\bR\x0erequireNoNewer\"\x98\x04\n" +
 	"\x13DeployCreateRequest\x12\x1d\n" +
 	"\n" +
 	"project_id\x18\x01 \x01(\tR\tprojectId\x12\x15\n" +
@@ -1745,8 +1736,7 @@ const file_hydra_v1_deploy_proto_rawDesc = "" +
 	"\venvironment\x18\x03 \x01(\tR\venvironment\x12-\n" +
 	"\x03git\x18\x04 \x01(\v2\x19.hydra.v1.CreateGitSourceH\x00R\x03git\x123\n" +
 	"\x05image\x18\x05 \x01(\v2\x1b.hydra.v1.CreateImageSourceH\x00R\x05image\x12[\n" +
-	"\x13existing_deployment\x18\x06 \x01(\v2(.hydra.v1.CreateExistingDeploymentSourceH\x00R\x12existingDeployment\x12\x18\n" +
-	"\acommand\x18\a \x03(\tR\acommand\x124\n" +
+	"\x13existing_deployment\x18\x06 \x01(\v2(.hydra.v1.CreateExistingDeploymentSourceH\x00R\x12existingDeployment\x124\n" +
 	"\bdecision\x18\b \x01(\x0e2\x18.hydra.v1.CreateDecisionR\bdecision\x124\n" +
 	"\atrigger\x18\n" +
 	" \x01(\x0e2\x1a.ctrl.v1.DeploymentTriggerR\atrigger\x12!\n" +

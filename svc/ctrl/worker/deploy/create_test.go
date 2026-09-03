@@ -730,7 +730,6 @@ func (h *createHarness) imageRequest() *hydrav1.DeployCreateRequest {
 		Source: &hydrav1.DeployCreateRequest_Image{
 			Image: &hydrav1.CreateImageSource{Image: fixtureImage},
 		},
-		Command:       nil,
 		Decision:      hydrav1.CreateDecision_CREATE_DECISION_DEPLOY,
 		Trigger:       ctrlv1.DeploymentTrigger_DEPLOYMENT_TRIGGER_API,
 		TriggeredBy:   "root_KEBAP",

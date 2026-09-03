@@ -304,7 +304,8 @@ type deployPayload struct {
 	// plaintext, so the journal is a safe place to carry it.
 	Secrets []byte `json:"secrets"`
 
-	// Resolved once so the row and the Deploy request agree on what runs.
+	// The app's command, carried so the row and the Deploy request agree on what
+	// runs.
 	Command []string `json:"command"`
 
 	// Recorded even for a skip, which resolves no source to carry it.
@@ -382,13 +383,6 @@ func (w *Workflow) buildPayload(
 		}
 	}
 
-	// A per-request command wins over the app's default, so the row records what
-	// actually runs.
-	command := target.Command
-	if len(req.GetCommand()) > 0 {
-		command = req.GetCommand()
-	}
-
 	commit.Message = trimBytes(commit.Message, commitMessageBytesMax)
 	commit.AuthorHandle = trimBytes(commit.AuthorHandle, commitAuthorHandleBytesMax)
 	commit.AuthorAvatarURL = trimBytes(commit.AuthorAvatarURL, commitAuthorAvatarURLBytesMax)
@@ -396,7 +390,7 @@ func (w *Workflow) buildPayload(
 	payload.Status = status
 	payload.CreatedAt = time.Now().UnixMilli()
 	payload.Secrets = secrets
-	payload.Command = command
+	payload.Command = target.Command
 	payload.PRNumber = prNumber
 	payload.Source = source
 	payload.Commit = commit
