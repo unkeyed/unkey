@@ -29,12 +29,13 @@ least 1 hour and 12 observed buckets, the normal rules apply. This prevents a
 brand-new app's first stable traffic from looking like a spike against 23 hours
 of invented zeros.
 
-The anomaly ClickHouse rollups have no historical backfill. Apps that existed
-before the rollups were created must also collect 12 new buckets before a
-spike can fire.
+The detector rollups replay the latest 7 days when their materialized views are
+created. Existing apps therefore have a full 24-hour baseline and enough
+request history for the drop rule on the first detector run. The minimums still
+apply to young apps: spike metrics need 12 observed buckets, or 1 hour, and
+request drops need 72 observed buckets, or 6 hours.
 
-Request drops need 72 observed buckets, or 6 hours, before they can become a
-candidate. Their longer ramp-up avoids treating short test runs followed by
+The longer request-drop ramp-up avoids treating short test runs followed by
 silence as an outage.
 
 ## Apply spike thresholds
@@ -122,7 +123,9 @@ All of these conditions must hold:
 - At least nine of the previous 12 buckets contain 200 or more requests.
 - The absolute loss, `recent_median - current`, is at least 200 requests.
 - Two consecutive complete windows cross the rule.
-- The deployment's desired state is not `stopped`.
+- A live deployment exists.
+- Its `deployments.desired_state` is not `stopped`.
+- At least one topology region has `desired_status = 'running'`.
 
 For example, assume the recent median is 1,000 requests, and 10 of the 12
 buckets have at least 200 requests. The threshold is 250. A current window with
@@ -136,11 +139,16 @@ lower bound, and a zero request bucket can also mean ingest delay. The explicit
 rule models a sustained loss from a recent, active level instead.
 
 The alert stores the recent median in `baseline_mean` and stores zero in
-`baseline_stddev` and `threshold_sigma`. When a deployment stops, an open drop
-alert resolves with `Deployment stopped`.
+`baseline_stddev` and `threshold_sigma`. The detector metadata records the last
+condition as `deployment_has_running_region`.
 
-Deployment state has only `running` and `stopped` values. Paused and
-scaled-to-zero suppression are not part of this detector.
+No live deployment, `deployments.desired_state = 'stopped'`, or every topology
+region being stopped suppresses the rule. Any of those conditions resolves an
+open drop alert with `Deployment stopped`.
+
+`autoscaling_replicas_min = 0` does not suppress the rule. A deployment that can
+scale to zero still has an unexpected request drop when its deployment and at
+least one topology region remain active.
 
 ## Apply fixed thresholds
 
