@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { canReadKeys, getDefaultTabHref } from "./scopes";
+import { canReadKeys, canRerollKeys, getDefaultTabHref } from "./scopes";
 
 describe("canReadKeys", () => {
   it("is true when keys:read is present", () => {
@@ -20,6 +20,22 @@ describe("canReadKeys", () => {
 
   it("is false for empty scopes", () => {
     expect(canReadKeys([])).toBe(false);
+  });
+});
+
+describe("canRerollKeys", () => {
+  it("is true when keys:reroll is present", () => {
+    expect(canRerollKeys(["keys:read", "keys:reroll"])).toBe(true);
+  });
+
+  // The reason the gate exists: portal.rerollKey rejects this session, so the
+  // table must not offer the action.
+  it("is false for a read-only session", () => {
+    expect(canRerollKeys(["keys:read"])).toBe(false);
+  });
+
+  it("is false for empty scopes", () => {
+    expect(canRerollKeys([])).toBe(false);
   });
 });
 
