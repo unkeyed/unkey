@@ -390,7 +390,7 @@ func TestCreateSessionMultiKeyspacePartialGrant(t *testing.T) {
 
 	// A deployed app maps to exactly one keyspace today, so the multi-keyspace
 	// shape is constructed directly rather than through app provisioning.
-	app := seedAppWithKeyspaces(t, h, workspace.ID, "multi-keyspace", []string{
+	app := seedAppWithKeyspaces(t, h, workspace.ID, granted.ProjectID, "multi-keyspace", []string{
 		granted.KeyAuthID.String,
 		ungranted.KeyAuthID.String,
 	})
@@ -421,6 +421,60 @@ func TestCreateSessionMultiKeyspacePartialGrant(t *testing.T) {
 		Scopes:     []openapi.V2PortalCreateSessionRequestBodyScopes{"keys:read"},
 	})
 	require.Equal(t, http.StatusForbidden, res.Status, "a grant on one of two keyspaces must not mint, got: %s", res.RawBody)
+}
+
+// TestCreateSessionRejectsCrossProjectKeyspace guarantees every keyspace
+// resolved through an app belongs to the portal's project.
+func TestCreateSessionRejectsCrossProjectKeyspace(t *testing.T) {
+	h := testutil.NewHarness(t)
+
+	route := &handler.Handler{
+		DB:            h.DB,
+		Auditlogs:     h.Auditlogs,
+		PortalBaseURL: "https://portal.unkey.com",
+		Clock:         h.Clock,
+	}
+	h.Register(route)
+
+	workspace := h.Resources().UserWorkspace
+	inProject := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspace.ID})
+	otherProject := h.CreateProject(seed.CreateProjectRequest{
+		ID:          uid.New(uid.ProjectPrefix),
+		WorkspaceID: workspace.ID,
+		Name:        "other project",
+		Slug:        "other-project-" + uid.DNS1035(),
+	})
+	other := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspace.ID, ProjectID: otherProject.ID})
+	app := seedAppWithKeyspaces(t, h, workspace.ID, inProject.ProjectID, "cross-project", []string{
+		inProject.KeyAuthID.String,
+		other.KeyAuthID.String,
+	})
+	stored := h.CreatePortal(seed.CreatePortalRequest{
+		WorkspaceID: workspace.ID,
+		ProjectID:   inProject.ProjectID,
+		Slug:        "cross-project-portal",
+		AppID:       sql.NullString{Valid: true, String: app.ID},
+		Enabled:     true,
+	})
+
+	rootKey := h.CreateRootKey(workspace.ID,
+		"portal.*.create_portal_session",
+		fmt.Sprintf("api.%s.read_key", inProject.ID),
+		fmt.Sprintf("api.%s.read_api", inProject.ID),
+		fmt.Sprintf("api.%s.read_key", other.ID),
+		fmt.Sprintf("api.%s.read_api", other.ID),
+	)
+	externalID := "user_cross_project"
+	res := testutil.CallRoute[handler.Request, handler.Response](h, route, http.Header{
+		"Content-Type":  {"application/json"},
+		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+	}, handler.Request{
+		Portal:     stored.ID,
+		ExternalId: externalID,
+		Scopes:     []openapi.V2PortalCreateSessionRequestBodyScopes{"keys:read"},
+	})
+	require.Equal(t, http.StatusForbidden, res.Status, "a portal must not grant access across projects: %s", res.RawBody)
+	require.Equal(t, 0, countPortalSessions(t, h, workspace.ID, externalID), "a rejected request must not insert a session")
 }
 
 // TestCreateSessionForbiddenDisabledPortal guarantees the disabled check is

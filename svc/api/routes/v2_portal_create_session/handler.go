@@ -220,8 +220,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	// The keyspaces a session is scoped to come from the portal, not the public
-	// request: the portal is already bound to this workspace, so key
-	// capabilities can never reach another workspace's keyspaces.
+	// request. The checks below reject keyspaces outside the portal's workspace
+	// or project.
 	keyspaceIDs, err := h.resolveKeyspaceIDs(ctx, workspaceID, portal)
 	if err != nil {
 		return err
@@ -230,7 +230,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	// Stage 2: a minted session may never carry a capability the calling root
 	// key does not itself hold. This precedes the exchange code, the session
 	// insert and the audit log, so a rejection writes nothing.
-	if err = h.authorizeScopes(ctx, principal, workspaceID, keyspaceIDs, req.Scopes); err != nil {
+	if err = h.authorizeScopes(ctx, principal, workspaceID, portal.ProjectID, keyspaceIDs, req.Scopes); err != nil {
 		return err
 	}
 
@@ -466,6 +466,7 @@ func (h *Handler) authorizeScopes(
 	ctx context.Context,
 	principal *authprincipal.Principal,
 	workspaceID string,
+	portalProjectID string,
 	keyspaceIDs []string,
 	scopes []openapi.V2PortalCreateSessionRequestBodyScopes,
 ) error {
@@ -480,7 +481,7 @@ func (h *Handler) authorizeScopes(
 		)
 	}
 
-	resources, err := h.resourcesByKeyspace(ctx, workspaceID, keyspaceIDs)
+	resources, err := h.resourcesByKeyspace(ctx, workspaceID, portalProjectID, keyspaceIDs)
 	if err != nil {
 		return err
 	}
@@ -576,14 +577,19 @@ type keyspaceResource struct {
 	projectID string
 }
 
-// resourcesByKeyspace maps each resolved keyspace to the API and project that
-// own it.
+// resourcesByKeyspace maps each resolved keyspace to its API and rejects a
+// keyspace outside the portal's project.
 //
 // Every stage-2 requirement is api-scoped, so a keyspace with no api admits no
 // expressible check. That is a misconfiguration rather than a caller error:
 // skipping such a keyspace would leave it unchecked, so it fails loudly and
 // names the keyspace.
-func (h *Handler) resourcesByKeyspace(ctx context.Context, workspaceID string, keyspaceIDs []string) (map[string]keyspaceResource, error) {
+func (h *Handler) resourcesByKeyspace(
+	ctx context.Context,
+	workspaceID string,
+	portalProjectID string,
+	keyspaceIDs []string,
+) (map[string]keyspaceResource, error) {
 	rows, err := db.Query.FindApisByKeyAuthIds(ctx, h.DB.RO(), db.FindApisByKeyAuthIdsParams{
 		WorkspaceID: workspaceID,
 		KeyAuthIds:  keyspaceIDs,
@@ -602,7 +608,8 @@ func (h *Handler) resourcesByKeyspace(ctx context.Context, workspaceID string, k
 	}
 
 	for _, keyspaceID := range keyspaceIDs {
-		if resources[keyspaceID].apiID == "" {
+		resource := resources[keyspaceID]
+		if resource.apiID == "" {
 			// Reachable without any misconfiguration on our side: apis.deleteApi
 			// soft-deletes the api row and leaves key_auth live, so a customer
 			// deleting their own api orphans the keyspace this portal resolves to.
@@ -613,6 +620,18 @@ func (h *Handler) resourcesByKeyspace(ctx context.Context, workspaceID string, k
 				fault.Code(codes.Auth.Authorization.Forbidden.URN()),
 				fault.Internal(fmt.Sprintf("keyspace %s has no live associated api, portal session cannot be authorized", keyspaceID)),
 				fault.Public("Portal is not available: the API it uses no longer exists."),
+			)
+		}
+		if resource.projectID != portalProjectID {
+			return nil, fault.New("portal keyspace belongs to another project",
+				fault.Code(codes.Auth.Authorization.Forbidden.URN()),
+				fault.Internal(fmt.Sprintf(
+					"keyspace %s belongs to project %s, portal belongs to project %s",
+					keyspaceID,
+					resource.projectID,
+					portalProjectID,
+				)),
+				fault.Public("Portal configuration is invalid."),
 			)
 		}
 	}
