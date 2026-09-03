@@ -219,24 +219,26 @@ func TestAnomalyWindows(t *testing.T) {
 	})
 
 	t.Run("source watermarks are exclusive", func(t *testing.T) {
-		workspaceID := uid.New(uid.WorkspacePrefix)
-		projectID := uid.New(uid.ProjectPrefix)
-		appID := uid.New("app")
-		environmentID := uid.New("env")
-		prior, err := client.GetAnomalySourceWatermarks(ctx)
-		require.NoError(t, err)
-		bucket := time.UnixMilli(max(prior.Requests, prior.Resources)).UTC().Truncate(5 * time.Minute).Add(24 * time.Hour)
-
-		insertRequestCounts(t, ctx, conn, bucket, workspaceID, projectID, appID, environmentID, "deployment-watermark", map[int32]int64{200: 1})
-		insertResourceMinute(t, ctx, conn, resourceMinute{
-			time: bucket.Add(4 * time.Minute), workspaceID: workspaceID, projectID: projectID,
-			appID: appID, environmentID: environmentID, containerID: "container-watermark",
-		})
+		region := uid.New("region")
+		bucket := time.Now().UTC().Truncate(5 * time.Minute).Add(-5 * time.Minute)
+		require.NoError(t, conn.Exec(ctx, `
+			INSERT INTO anomaly_source_watermarks_v1 (source, region, time) VALUES
+				('requests', ?, ?),
+				('resources', ?, ?),
+				('instance_events', ?, ?)
+		`, region, bucket, region, bucket.Add(4*time.Minute), region, bucket))
 
 		watermarks, err := client.GetAnomalySourceWatermarks(ctx)
 		require.NoError(t, err)
-		require.Equal(t, bucket.Add(5*time.Minute).UnixMilli(), watermarks.Requests)
-		require.Equal(t, bucket.Add(5*time.Minute).UnixMilli(), watermarks.Resources)
+		bySource := make(map[string]clickhouse.AnomalySourceWatermark)
+		for _, watermark := range watermarks {
+			if watermark.Region == region {
+				bySource[watermark.Source] = watermark
+			}
+		}
+		require.Equal(t, bucket.Add(5*time.Minute).UnixMilli(), bySource[clickhouse.AnomalySourceRequests].Watermark)
+		require.Equal(t, bucket.Add(5*time.Minute).UnixMilli(), bySource[clickhouse.AnomalySourceResources].Watermark)
+		require.Equal(t, bucket.Add(5*time.Minute).UnixMilli(), bySource[clickhouse.AnomalySourceInstanceEvents].Watermark)
 	})
 }
 

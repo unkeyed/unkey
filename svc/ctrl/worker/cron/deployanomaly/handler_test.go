@@ -113,10 +113,42 @@ func TestActionableGroups(t *testing.T) {
 		incomplete: {request: &clickhouse.RequestAnomalyWindow{RequestsCurrent: 1_000, CurrentBucketPresent: true}},
 	}
 
-	got := actionableGroups(groups, windowStart, windowEnd, clickhouse.AnomalySourceWatermarks{
-		Requests: windowEnd, Resources: 0,
+	got := actionableGroups(groups, windowStart, ingestCompleteness{
+		Requests: sourceStatus{Complete: true, Watermark: windowEnd},
 	})
 	require.Equal(t, []anomalyGroup{open, spike}, got)
+}
+
+func TestSourceCompleteness(t *testing.T) {
+	t.Parallel()
+
+	const windowEnd = int64(2_000_000)
+	t.Run("one active lagging region is incomplete", func(t *testing.T) {
+		status := sourceStatusFor(clickhouse.AnomalySourceWatermarks{
+			{Source: clickhouse.AnomalySourceRequests, Region: "us-east-1", Watermark: windowEnd},
+			{Source: clickhouse.AnomalySourceRequests, Region: "eu-west-1", Watermark: windowEnd - 1},
+		}, clickhouse.AnomalySourceRequests, windowEnd)
+
+		require.False(t, status.Complete)
+		require.Equal(t, "eu-west-1", status.LaggingRegion)
+		require.Equal(t, windowEnd-1, status.Watermark)
+	})
+
+	t.Run("inactive region is absent and does not block", func(t *testing.T) {
+		status := sourceStatusFor(clickhouse.AnomalySourceWatermarks{
+			{Source: clickhouse.AnomalySourceRequests, Region: "us-east-1", Watermark: windowEnd},
+		}, clickhouse.AnomalySourceRequests, windowEnd)
+
+		require.True(t, status.Complete)
+		require.Equal(t, "us-east-1", status.LaggingRegion)
+	})
+
+	t.Run("no active region is incomplete", func(t *testing.T) {
+		status := sourceStatusFor(nil, clickhouse.AnomalySourceRequests, windowEnd)
+
+		require.False(t, status.Complete)
+		require.Equal(t, "none-active", status.LaggingRegion)
+	})
 }
 
 func TestProductionAndRequestDropSuppression(t *testing.T) {

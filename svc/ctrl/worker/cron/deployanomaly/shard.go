@@ -11,6 +11,7 @@ import (
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
+	"github.com/unkeyed/unkey/pkg/logger"
 	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
@@ -132,6 +133,8 @@ func (h *ShardHandler) EvaluateShard(
 	if err != nil {
 		return nil, fmt.Errorf("read anomaly ingest watermarks: %w", err)
 	}
+	completeness := sourceCompleteness(watermarks, windowEnd)
+	logIncompleteSources(shard, windowEnd, completeness)
 
 	filter := candidateFilter(DefaultConfig(SensitivityNormal))
 	baseRequest := clickhouse.AnomalyWindowsRequest{
@@ -139,7 +142,7 @@ func (h *ShardHandler) EvaluateShard(
 		Shard: shard, ShardCount: shardCount, SkipFleet: false, CandidateFilter: &filter,
 	}
 	requestQuery := baseRequest
-	requestQuery.SkipFleet = watermarks.Requests < windowEnd
+	requestQuery.SkipFleet = !completeness.Requests.Complete
 	requestWindows, err := restate.Run(ctx, func(rc restate.RunContext) ([]clickhouse.RequestAnomalyWindow, error) {
 		return h.clickhouse.GetRequestAnomalyWindows(rc, requestQuery)
 	}, restate.WithName("read request anomaly candidates"))
@@ -147,22 +150,24 @@ func (h *ShardHandler) EvaluateShard(
 		return nil, fmt.Errorf("read request anomaly candidates: %w", err)
 	}
 	resourceQuery := baseRequest
-	resourceQuery.SkipFleet = watermarks.Resources < windowEnd
+	resourceQuery.SkipFleet = !completeness.Resources.Complete
 	resourceWindows, err := restate.Run(ctx, func(rc restate.RunContext) ([]clickhouse.ResourceAnomalyWindow, error) {
 		return h.clickhouse.GetResourceAnomalyWindows(rc, resourceQuery)
 	}, restate.WithName("read resource anomaly candidates"))
 	if err != nil {
 		return nil, fmt.Errorf("read resource anomaly candidates: %w", err)
 	}
+	eventQuery := baseRequest
+	eventQuery.SkipFleet = !completeness.InstanceEvents.Complete
 	eventWindows, err := restate.Run(ctx, func(rc restate.RunContext) ([]clickhouse.InstanceEventAnomalyWindow, error) {
-		return h.clickhouse.GetInstanceEventAnomalyWindows(rc, baseRequest)
+		return h.clickhouse.GetInstanceEventAnomalyWindows(rc, eventQuery)
 	}, restate.WithName("read instance event anomaly candidates"))
 	if err != nil {
 		return nil, fmt.Errorf("read instance event anomaly candidates: %w", err)
 	}
 
 	groups := mergeGroupWindows(requestWindows, resourceWindows, eventWindows, forced)
-	keys := actionableGroups(groups, windowStart, windowEnd, watermarks)
+	keys := actionableGroups(groups, windowStart, completeness)
 	metadata, err := h.resolveMetadata(ctx, keys)
 	if err != nil {
 		return nil, err
@@ -175,7 +180,7 @@ func (h *ShardHandler) EvaluateShard(
 		if !isProduction(item.EnvironmentKind) {
 			continue
 		}
-		request := evaluateRequest(item, groups[item.Group], windowStart, windowEnd, watermarks)
+		request := evaluateRequest(item, groups[item.Group], windowStart, windowEnd, completeness)
 		futures = append(futures, hydrav1.NewDeployAnomalyServiceClient(ctx, item.Group.key()).
 			Evaluate().RequestFuture(request))
 		dispatchedGroups = append(dispatchedGroups, item.Group)
@@ -302,11 +307,11 @@ func mergeGroupWindows(
 	return groups
 }
 
-func actionableGroups(groups map[anomalyGroup]groupWindow, windowStart, windowEnd int64, watermarks clickhouse.AnomalySourceWatermarks) []anomalyGroup {
+func actionableGroups(groups map[anomalyGroup]groupWindow, windowStart int64, completeness ingestCompleteness) []anomalyGroup {
 	cfg := DefaultConfig(SensitivityNormal)
 	actionable := make([]anomalyGroup, 0, len(groups))
 	for group, values := range groups {
-		if values.forced || hasCandidate(evaluateMetrics(values, windowStart, windowEnd, watermarks), windowStart, cfg) {
+		if values.forced || hasCandidate(evaluateMetrics(values, windowStart, completeness), windowStart, cfg) {
 			actionable = append(actionable, group)
 		}
 	}
@@ -345,7 +350,7 @@ func isProduction(kind mysqltype.EnvironmentKind) bool {
 	return kind == mysqltype.EnvironmentKindProduction
 }
 
-func evaluateRequest(metadata groupMetadata, group groupWindow, windowStart, windowEnd int64, watermarks clickhouse.AnomalySourceWatermarks) *hydrav1.EvaluateDeployAnomalyRequest {
+func evaluateRequest(metadata groupMetadata, group groupWindow, windowStart, windowEnd int64, completeness ingestCompleteness) *hydrav1.EvaluateDeployAnomalyRequest {
 	return &hydrav1.EvaluateDeployAnomalyRequest{
 		WindowStart: windowStart, WindowEnd: windowEnd,
 		WorkspaceId: metadata.Group.WorkspaceID, ProjectId: metadata.Group.ProjectID,
@@ -354,19 +359,16 @@ func evaluateRequest(metadata groupMetadata, group groupWindow, windowStart, win
 		WorkspaceSlug: metadata.WorkspaceSlug, AppName: metadata.AppName,
 		EnvironmentSlug: metadata.EnvironmentSlug, DeploymentId: metadata.DeploymentID,
 		DeploymentDesiredState: metadata.DeploymentDesiredState,
-		Metrics:                evaluateMetrics(group, windowStart, windowEnd, watermarks),
+		Metrics:                evaluateMetrics(group, windowStart, completeness),
 	}
 }
 
-func evaluateMetrics(group groupWindow, windowStart, windowEnd int64, watermarks clickhouse.AnomalySourceWatermarks) []*hydrav1.DeployAnomalyMetricInput {
+func evaluateMetrics(group groupWindow, windowStart int64, completeness ingestCompleteness) []*hydrav1.DeployAnomalyMetricInput {
 	requestPresent := group.request != nil && group.request.CurrentBucketPresent
-	requestState := metricDataState(requestPresent, watermarks.Requests >= windowEnd)
+	requestState := metricDataState(requestPresent, completeness.Requests.Complete)
 	resourcePresent := group.resource != nil && group.resource.CurrentBucketPresent
-	resourceState := metricDataState(resourcePresent, watermarks.Resources >= windowEnd)
-	eventState := hydrav1.DeployAnomalyMetricDataState_DEPLOY_ANOMALY_METRIC_DATA_STATE_ZERO_COMPLETE
-	if group.events != nil {
-		eventState = hydrav1.DeployAnomalyMetricDataState_DEPLOY_ANOMALY_METRIC_DATA_STATE_PRESENT
-	}
+	resourceState := metricDataState(resourcePresent, completeness.Resources.Complete)
+	eventState := metricDataState(group.events != nil, completeness.InstanceEvents.Complete)
 
 	metrics := make([]*hydrav1.DeployAnomalyMetricInput, 0, 9)
 	if row := group.request; row != nil {
@@ -410,6 +412,65 @@ func evaluateMetrics(group groupWindow, windowStart, windowEnd int64, watermarks
 		)
 	}
 	return metrics
+}
+
+type sourceStatus struct {
+	Complete      bool
+	LaggingRegion string
+	Watermark     int64
+}
+
+type ingestCompleteness struct {
+	Requests       sourceStatus
+	Resources      sourceStatus
+	InstanceEvents sourceStatus
+}
+
+func sourceCompleteness(watermarks clickhouse.AnomalySourceWatermarks, windowEnd int64) ingestCompleteness {
+	return ingestCompleteness{
+		Requests:       sourceStatusFor(watermarks, clickhouse.AnomalySourceRequests, windowEnd),
+		Resources:      sourceStatusFor(watermarks, clickhouse.AnomalySourceResources, windowEnd),
+		InstanceEvents: sourceStatusFor(watermarks, clickhouse.AnomalySourceInstanceEvents, windowEnd),
+	}
+}
+
+func sourceStatusFor(watermarks clickhouse.AnomalySourceWatermarks, source string, windowEnd int64) sourceStatus {
+	status := sourceStatus{Complete: false, LaggingRegion: "none-active", Watermark: 0}
+	found := false
+	for _, watermark := range watermarks {
+		if watermark.Source != source {
+			continue
+		}
+		if !found || watermark.Watermark < status.Watermark || (watermark.Watermark == status.Watermark && watermark.Region < status.LaggingRegion) {
+			status.LaggingRegion = watermark.Region
+			status.Watermark = watermark.Watermark
+		}
+		found = true
+	}
+	status.Complete = found && status.Watermark >= windowEnd
+	return status
+}
+
+func logIncompleteSources(shard uint64, windowEnd int64, completeness ingestCompleteness) {
+	if shard != 0 {
+		return
+	}
+	for _, item := range []struct {
+		source string
+		status sourceStatus
+	}{
+		{source: clickhouse.AnomalySourceRequests, status: completeness.Requests},
+		{source: clickhouse.AnomalySourceResources, status: completeness.Resources},
+		{source: clickhouse.AnomalySourceInstanceEvents, status: completeness.InstanceEvents},
+	} {
+		if item.status.Complete {
+			continue
+		}
+		logger.Warn("deploy anomaly source incomplete in active region",
+			"source", item.source, "region", item.status.LaggingRegion,
+			"watermark", item.status.Watermark, "window_end", windowEnd,
+		)
+	}
 }
 
 func metricDataState(present, complete bool) hydrav1.DeployAnomalyMetricDataState {
