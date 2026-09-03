@@ -5,6 +5,7 @@
 INSERT INTO alert_events (
     id,
     workspace_id,
+    workspace_hash,
     project_id,
     app_id,
     environment_id,
@@ -24,6 +25,7 @@ INSERT INTO alert_events (
 ) VALUES (
     sqlc.arg(id),
     sqlc.arg(workspace_id),
+    sqlc.arg(workspace_hash),
     sqlc.arg(project_id),
     sqlc.arg(app_id),
     sqlc.arg(environment_id),

@@ -84,6 +84,8 @@ The window handler fans out to 16 shard virtual objects by default. A shard key 
 
 Each shard runs ClickHouse candidate queries and adds explicit keys for open alerts and candidates from the preceding window. SQL uses the production thresholds but may over-include. The Go detector remains authoritative. Metadata is resolved in MySQL batches of at most 500 groups. Non-production groups are dropped, and the remaining groups are sorted before fan-out to keep Restate journal positions stable. A child failure fails its shard, prevents the window heartbeat, and allows the next scheduled window to retry.
 
+Open alerts carry `workspace_hash`, computed with the same CityHash64 implementation as ClickHouse. Each shard reads only rows selected by the indexed `(status, workspace_hash)` columns and `workspace_hash % shard_count`, rather than loading the fleet's open alerts and filtering in Go.
+
 Request counts use the shard-ordered `frontline_requests_anomaly_per_5m_v1` rollup. Egress and CPU use `instance_resources_app_per_5m_v1`. Memory uses `instance_memory_container_per_5m_v1`, which preserves container and instance grain while reducing the source from one-minute to five-minute rows. These rollups inherit the source tables' dashboards-only caveat and can double-count retried inserts, so they must not be used for billing.
 
 Each rollup migration backfills the preceding seven days, matching the dashboard overview horizon. The bounded replay gives the detector a complete 24-hour baseline and the 72 buckets required for request-drop detection on its first run. Sum rollups exclude existing keys so a migration retry does not double the aggregates.

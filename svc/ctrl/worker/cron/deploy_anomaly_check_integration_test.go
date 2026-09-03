@@ -108,6 +108,7 @@ func TestRunDeployAnomalyCheck_Integration(t *testing.T) {
 	assertStoppedDeploymentSuppression(t, h)
 	assertBaselineAdaptedResolution(t, h)
 	assertDeploymentTopologyMetadata(t, h)
+	assertAnomalyShardHashCompatibility(t, h)
 }
 
 func assertIncompleteTelemetryNoop(
@@ -176,8 +177,10 @@ func assertStoppedDeploymentSuppression(t *testing.T, h *harness.Harness) {
 	windowStart := time.Now().UTC().Truncate(5 * time.Minute)
 	alertID := uid.New(uid.AlertPrefix)
 	require.NoError(t, h.DB.InsertAlertEvent(h.Ctx, db.InsertAlertEventParams{
-		ID: alertID, WorkspaceID: app.workspaceID, ProjectID: app.projectID,
-		AppID: app.appID, EnvironmentID: app.environmentID,
+		ID:            alertID,
+		WorkspaceID:   app.workspaceID,
+		WorkspaceHash: city.CH64([]byte(app.workspaceID)),
+		ProjectID:     app.projectID, AppID: app.appID, EnvironmentID: app.environmentID,
 		DeploymentID: sql.NullString{String: app.deploymentID, Valid: true},
 		Metric:       db.AlertEventsMetricRequestsDrop, FiredAt: windowStart.UnixMilli(),
 		LastSeenAt: windowStart.UnixMilli(), ObservedValue: 0, BaselineMean: 1_000,
@@ -229,8 +232,10 @@ func assertBaselineAdaptedResolution(t *testing.T, h *harness.Harness) {
 	firedAt := windowEnd.Add(-24 * time.Hour)
 	alertID := uid.New(uid.AlertPrefix)
 	require.NoError(t, h.DB.InsertAlertEvent(h.Ctx, db.InsertAlertEventParams{
-		ID: alertID, WorkspaceID: app.workspaceID, ProjectID: app.projectID,
-		AppID: app.appID, EnvironmentID: app.environmentID,
+		ID:            alertID,
+		WorkspaceID:   app.workspaceID,
+		WorkspaceHash: city.CH64([]byte(app.workspaceID)),
+		ProjectID:     app.projectID, AppID: app.appID, EnvironmentID: app.environmentID,
 		DeploymentID: sql.NullString{String: app.deploymentID, Valid: true},
 		Metric:       db.AlertEventsMetricRequests, FiredAt: firedAt.UnixMilli(),
 		LastSeenAt: firedAt.UnixMilli(), ObservedValue: 200, BaselineMean: 100,
@@ -296,6 +301,48 @@ func assertDeploymentTopologyMetadata(t *testing.T, h *harness.Harness) {
 		DeploymentID:  app.deploymentID, RegionID: app.regionID,
 	}))
 	require.False(t, find().DeploymentHasRunningRegion, "all stopped regions suppress request-drop alerts")
+}
+
+func assertAnomalyShardHashCompatibility(t *testing.T, h *harness.Harness) {
+	t.Helper()
+	vectors := map[string]uint64{
+		"ws_test":  14_195_424_828_609_858_884,
+		"ws_local": 6_295_136_450_341_388_082,
+	}
+	appID := uid.New("app")
+	for workspaceID, expectedHash := range vectors {
+		hash := city.CH64([]byte(workspaceID))
+		require.Equal(t, expectedHash, hash)
+		var clickhouseHash uint64
+		require.NoError(t, h.ClickHouseConn.QueryRow(h.Ctx, "SELECT cityHash64(?)", workspaceID).Scan(&clickhouseHash))
+		require.Equal(t, hash, clickhouseHash)
+		require.NoError(t, h.DB.InsertAlertEvent(h.Ctx, db.InsertAlertEventParams{
+			ID: uid.New(uid.AlertPrefix), WorkspaceID: workspaceID, WorkspaceHash: hash,
+			ProjectID: "project", AppID: appID, EnvironmentID: "environment",
+			Metric: db.AlertEventsMetricRequests, FiredAt: 1, LastSeenAt: 1,
+			ObservedValue: 1, BaselineMean: 0, BaselineStddev: 0, ThresholdSigma: 4,
+			WindowStart: 0, WindowEnd: 1, CreatedAt: 1,
+		}))
+	}
+
+	seen := make(map[string]int)
+	for shard := range uint64(16) {
+		rows, err := h.DB.ListOpenAlertEventGroups(h.Ctx, db.ListOpenAlertEventGroupsParams{
+			ShardCount: 16, Shard: shard,
+		})
+		require.NoError(t, err)
+		for _, row := range rows {
+			expectedHash, ok := vectors[row.WorkspaceID]
+			if !ok || row.AppID != appID {
+				continue
+			}
+			require.Equal(t, shard, expectedHash%16)
+			seen[row.WorkspaceID]++
+		}
+	}
+	for workspaceID := range vectors {
+		require.Equal(t, 1, seen[workspaceID])
+	}
 }
 
 func createAnomalyTestApp(t *testing.T, h *harness.Harness, kind mysqltype.EnvironmentKind) anomalyTestApp {
