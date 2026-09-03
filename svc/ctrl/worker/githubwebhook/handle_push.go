@@ -19,7 +19,8 @@ import (
 // repo connections with full deploy context (project, environment, app, settings)
 // in a single query, creates deployment records, and fires off DeployService.Deploy().
 func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushRequest) (*hydrav1.HandlePushResponse, error) {
-	logger.Info("handling GitHub push in Restate",
+	logger.Info(
+		"handling GitHub push in Restate",
 		"delivery_id", req.GetDeliveryId(),
 		"repository", req.GetRepositoryFullName(),
 		"branch", req.GetBranch(),
@@ -45,7 +46,8 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 	}
 
 	if len(contexts) == 0 {
-		logger.Info("no deploy contexts found",
+		logger.Info(
+			"no deploy contexts found",
 			"installation_id", req.GetInstallationId(),
 			"repository_id", req.GetRepositoryId(),
 			"branch", req.GetBranch(),
@@ -53,17 +55,13 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 		return &hydrav1.HandlePushResponse{}, nil
 	}
 
-	// Gate before loading env vars, calling GitHub, or writing even a skipped
-	// deployment row. A policy rejection is a successful no-op so Restate does
-	// not retry a permanently ineligible workspace and stall the repository.
-	// One lookup for every workspace the push matched, not one per app: a push
-	// can span workspaces, and restate.Run steps run in sequence, so an N+1 here
-	// would cost a journal round trip per app before anything is written.
+	// Gate before calling GitHub or writing even a skipped row: an ineligible
+	// workspace is a successful no-op, not something Restate should retry.
 	workspaceIDs := make([]string, 0, len(contexts))
-	requested := make(map[string]bool, len(contexts))
+	seenWorkspace := make(map[string]bool, len(contexts))
 	for _, row := range contexts {
-		if !requested[row.ProjectWorkspaceID] {
-			requested[row.ProjectWorkspaceID] = true
+		if !seenWorkspace[row.ProjectWorkspaceID] {
+			seenWorkspace[row.ProjectWorkspaceID] = true
 			workspaceIDs = append(workspaceIDs, row.ProjectWorkspaceID)
 		}
 	}
@@ -99,7 +97,8 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 			continue
 		}
 		if entitlement.SpendSuspended.Bool {
-			logger.Info("skipping deployment: workspace is spend suspended",
+			logger.Info(
+				"skipping deployment: workspace is spend suspended",
 				"event", "deploy_gate.blocked",
 				"reason", "spend_suspended",
 				"workspace_id", row.ProjectWorkspaceID,
@@ -125,7 +124,8 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 	// matching doesn't skip deploys for lack of a diff.
 	changedFiles := req.GetChangedFiles()
 	if len(changedFiles) == 0 && req.GetAfter() != "" && !s.allowUnauthenticatedDeployments {
-		logger.Info("fetching commit files from GitHub",
+		logger.Info(
+			"fetching commit files from GitHub",
 			"commit_sha", req.GetAfter(),
 			"repo", req.GetRepositoryFullName(),
 			"installation_id", req.GetInstallationId(),
@@ -139,12 +139,14 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 			)
 		}, restate.WithName("list commit files"))
 		if filesErr != nil {
-			logger.Error("failed to list commit files, proceeding with empty changed files",
+			logger.Error(
+				"failed to list commit files, proceeding with empty changed files",
 				"commit_sha", req.GetAfter(),
 				"error", filesErr,
 			)
 		} else {
-			logger.Info("fetched commit files",
+			logger.Info(
+				"fetched commit files",
 				"commit_sha", req.GetAfter(),
 				"changed_files", files,
 			)
@@ -187,7 +189,8 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 		}
 
 		if !row.BuildSettingsAutoDeploy {
-			logger.Info("skipping deployment: auto_deploy disabled",
+			logger.Info(
+				"skipping deployment: auto_deploy disabled",
 				"app_id", row.AppID,
 				"environment", row.EnvironmentSlug,
 			)
@@ -199,7 +202,8 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 		if matchErr != nil {
 			// A broken pattern looks exactly like a valid miss, so the reason names
 			// the pattern instead of blaming the changed files.
-			logger.Warn("skipping deployment: invalid watch path",
+			logger.Warn(
+				"skipping deployment: invalid watch path",
 				"app_id", row.AppID,
 				"watch_paths", row.BuildSettingsWatchPaths,
 				"error", matchErr,
@@ -208,7 +212,8 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 			continue
 		}
 		if !matched {
-			logger.Info("skipping deployment: watch paths don't match changed files",
+			logger.Info(
+				"skipping deployment: watch paths don't match changed files",
 				"app_id", row.AppID,
 				"watch_paths", row.BuildSettingsWatchPaths,
 				"changed_files", changedFiles,
@@ -241,7 +246,8 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 		// A rejection is a successful answer, and this is the only place it is
 		// visible: nothing downstream of a rejected create writes a row to read.
 		if resp.GetOutcome() == hydrav1.CreateOutcome_CREATE_OUTCOME_REJECTED {
-			logger.Warn("deployment create rejected",
+			logger.Warn(
+				"deployment create rejected",
 				"deployment_id", create.deploymentID,
 				"delivery_id", req.GetDeliveryId(),
 				"app_id", create.appID,
@@ -250,7 +256,8 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 			continue
 		}
 
-		logger.Info("deployment created",
+		logger.Info(
+			"deployment created",
 			"deployment_id", create.deploymentID,
 			"delivery_id", req.GetDeliveryId(),
 			"app_id", create.appID,
@@ -328,7 +335,8 @@ func (s *Service) requiresApproval(
 	req *hydrav1.HandlePushRequest,
 ) bool {
 	if os.Getenv("FORCE_DEPLOYMENT_APPROVAL") == "true" {
-		logger.Info("FORCE_DEPLOYMENT_APPROVAL is set, requiring approval",
+		logger.Info(
+			"FORCE_DEPLOYMENT_APPROVAL is set, requiring approval",
 			"sender", req.GetSenderLogin(),
 		)
 		return true
@@ -336,7 +344,8 @@ func (s *Service) requiresApproval(
 
 	// Fork PRs always require approval — external code must never auto-deploy.
 	if req.GetIsForkPr() {
-		logger.Info("fork PR deployment requires approval",
+		logger.Info(
+			"fork PR deployment requires approval",
 			"sender", req.GetSenderLogin(),
 		)
 		return true

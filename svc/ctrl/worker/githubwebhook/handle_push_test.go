@@ -264,6 +264,35 @@ func TestHandlePushDropsIneligibleWorkspaces(t *testing.T) {
 	})
 }
 
+// TestHandlePushSurvivesARejectedCreate covers the one refusal HandlePush does
+// not screen for itself. Its own gate drops ineligible workspaces before Create
+// is ever called, so this uses an environment with nowhere to schedule: the
+// push is eligible, the watch paths match, and Create refuses.
+//
+// The push must still succeed. A rejection is a successful answer, and failing
+// the whole delivery over one app would leave Restate retrying a repository
+// that can never make progress.
+func TestHandlePushSurvivesARejectedCreate(t *testing.T) {
+	ctx := context.Background()
+	h := newPushHarness(t, ctx)
+
+	target := h.newTarget(t, ctx, targetOptions{})
+	app := h.newApp(t, ctx, target, appOptions{})
+
+	// Every environment is seeded with a schedulable region, which is what makes
+	// a create possible at all. Without one, Create rejects with
+	// ENVIRONMENT_NOT_DEPLOYABLE.
+	for _, environmentID := range []string{app.productionEnvID, app.previewEnvID} {
+		require.NoError(t, h.database.DeleteAppRegionalSettingsByEnvironmentId(ctx, environmentID))
+	}
+
+	// require.NoError inside push is the assertion that matters: a rejected
+	// create is logged and skipped, never propagated as a handler failure.
+	h.push(t, ctx, target.newPush(fixtureDefaultBranch, []string{fixtureMatchingFile}))
+
+	h.requireNoDeployment(t, ctx, app.id)
+}
+
 // TestHandlePushDecidesEachMatchedAppSeparately pins the monorepo case: one
 // repository feeds several apps, and watch paths are what keeps a commit in one
 // service from rebuilding all of them.
