@@ -279,8 +279,6 @@ message DeployCreateRequest {
     CreateExistingDeploymentSource existing_deployment = 6;
   }
 
-  // Container command override. Empty uses the app's stored default.
-  repeated string command = 7;
 
   // Decision the caller already reached. See CreateDecision.
   CreateDecision decision = 8;
