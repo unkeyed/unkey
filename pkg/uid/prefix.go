@@ -42,6 +42,7 @@ const (
 	FrontlineRoutePrefix      Prefix = "flr"
 	CertificatePrefix         Prefix = "cert"
 	PolicyPrefix              Prefix = "pol"
+	AlertPrefix               Prefix = "alert"
 
 	AutoscalingPolicyPrefix Prefix = "asp"
 )
