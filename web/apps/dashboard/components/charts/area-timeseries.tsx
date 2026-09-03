@@ -88,6 +88,7 @@ type Props = {
   axis?: AreaTimeseriesAxisOptions | null;
   paleFill?: boolean;
   fillColors?: Record<string, string>;
+  incompleteFrom?: number;
   onActiveChange?: (point: AreaChartPoint | null) => void;
   hideTooltip?: boolean;
   // Renders non-empty, all-zero data as a flat line instead of an empty state.
@@ -106,6 +107,7 @@ export function AreaTimeseriesChart({
   axis,
   paleFill,
   fillColors,
+  incompleteFrom,
   onActiveChange,
   hideTooltip,
   showZeroLine,
@@ -192,6 +194,22 @@ export function AreaTimeseriesChart({
         Math.round(effectiveDomain[0] + (i * (effectiveDomain[1] - effectiveDomain[0])) / 3),
       )
     : undefined;
+  const incompleteIndex =
+    incompleteFrom === undefined
+      ? -1
+      : data.findIndex((point) => point.originalTimestamp >= incompleteFrom);
+  const hasIncompleteSegment = incompleteIndex > 0;
+  const chartData = hasIncompleteSegment
+    ? data.map((point, index) => {
+        const segmentedPoint: AreaChartPoint = { ...point };
+        for (const key of configKeys) {
+          segmentedPoint[completeDataKey(key)] = index < incompleteIndex ? point[key] : undefined;
+          segmentedPoint[incompleteDataKey(key)] =
+            index >= incompleteIndex - 1 ? point[key] : undefined;
+        }
+        return segmentedPoint;
+      })
+    : data;
 
   return (
     <ChartContainer
@@ -200,7 +218,7 @@ export function AreaTimeseriesChart({
       style={{ height, width: "100%" }}
     >
       <AreaChart
-        data={data}
+        data={chartData}
         onMouseMove={handleActive}
         onMouseLeave={onActiveChange ? () => onActiveChange(null) : undefined}
         margin={
@@ -356,7 +374,7 @@ export function AreaTimeseriesChart({
           configKeys.map((key) => (
             <Area
               key={`${key}-glow`}
-              dataKey={key}
+              dataKey={hasIncompleteSegment ? completeDataKey(key) : key}
               type="monotone"
               stroke={config[key].color}
               strokeWidth={3.5}
@@ -374,9 +392,9 @@ export function AreaTimeseriesChart({
             key={key}
             dataKey={key}
             type="monotone"
-            stroke={config[key].color}
+            stroke={hasIncompleteSegment ? "none" : config[key].color}
             strokeWidth={1.5}
-            fill={`url(#${chartId}-${key})`}
+            fill={hasIncompleteSegment ? "none" : `url(#${chartId}-${key})`}
             fillOpacity={1}
             isAnimationActive={shouldAnimate}
             animationDuration={500}
@@ -402,9 +420,53 @@ export function AreaTimeseriesChart({
             }}
           />
         ))}
+        {hasIncompleteSegment &&
+          configKeys.map((key) => (
+            <Area
+              key={`${key}-complete`}
+              dataKey={completeDataKey(key)}
+              type="monotone"
+              stroke={config[key].color}
+              strokeWidth={1.5}
+              fill={`url(#${chartId}-${key})`}
+              fillOpacity={1}
+              isAnimationActive={shouldAnimate}
+              animationDuration={500}
+              animationEasing="ease-out"
+              dot={false}
+              activeDot={false}
+            />
+          ))}
+        {hasIncompleteSegment &&
+          configKeys.map((key) => (
+            <Area
+              key={`${key}-incomplete`}
+              dataKey={incompleteDataKey(key)}
+              type="monotone"
+              stroke={config[key].color}
+              strokeWidth={1.5}
+              strokeDasharray="4 4"
+              strokeLinecap="round"
+              fill={`url(#${chartId}-${key})`}
+              fillOpacity={1}
+              isAnimationActive={shouldAnimate}
+              animationDuration={500}
+              animationEasing="ease-out"
+              dot={false}
+              activeDot={false}
+            />
+          ))}
       </AreaChart>
     </ChartContainer>
   );
+}
+
+function completeDataKey(key: string): string {
+  return `__complete_${key}`;
+}
+
+function incompleteDataKey(key: string): string {
+  return `__incomplete_${key}`;
 }
 
 // Y-axis ticks use two-letter byte-scale suffixes (B / KB / MB / GB).
