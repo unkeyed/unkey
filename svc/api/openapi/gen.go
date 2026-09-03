@@ -4082,7 +4082,7 @@ type V2PortalCreateSessionRequestBody struct {
 	// keys.
 	//
 	// The portal currently exposes only the keys page, so these scopes gate
-	// what the end user can do there rather than which tabs they see. Because
+	// what the end user can do there rather than which pages they see. Because
 	// rerolling is reached from that page, `keys:reroll` requires `keys:read`
 	// in the same session; requesting it alone is rejected.
 	//
