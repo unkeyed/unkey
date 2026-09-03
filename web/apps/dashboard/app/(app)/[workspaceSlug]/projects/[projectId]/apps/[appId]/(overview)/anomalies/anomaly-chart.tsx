@@ -219,10 +219,14 @@ export function AnomalyChart({
         <div className="flex flex-wrap items-center gap-4 text-xs text-gray-10">
           <ChartLegend color="bg-info-9" label="Observed" />
           {metric === "health" ? null : metric === "memory_utilization" ? (
-            <ChartLegend color="border-t-2 border-dashed border-warning-9" label="Limit" />
+            <ChartLegend color="border-t-2 border-dashed border-warning-9" label="Limit" stroke />
           ) : (
             <>
-              <ChartLegend color="border-t-2 border-dashed border-gray-10" label="Expected" />
+              <ChartLegend
+                color="border-t-2 border-dashed border-gray-10"
+                label="Expected"
+                stroke
+              />
               <ChartLegend color="bg-infoA-3" label="Expected range" />
             </>
           )}
@@ -724,10 +728,16 @@ function clamp(value: number, minimum: number, maximum: number): number {
   return Math.max(minimum, Math.min(value, maximum));
 }
 
-function ChartLegend({ color, label }: { color: string; label: string }) {
+function ChartLegend({
+  color,
+  label,
+  stroke = false,
+}: { color: string; label: string; stroke?: boolean }) {
   return (
     <span className="inline-flex items-center gap-1.5">
-      <span className={`h-2 w-4 rounded-sm ${color}`} aria-hidden="true" />
+      <span className="inline-flex h-2 w-4 shrink-0 items-center" aria-hidden="true">
+        <span className={`${stroke ? "h-0" : "h-2"} w-full rounded-sm ${color}`} />
+      </span>
       {label}
     </span>
   );
