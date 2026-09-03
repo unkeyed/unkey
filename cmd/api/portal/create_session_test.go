@@ -39,8 +39,15 @@ func TestCreateSessionPermissionValidation(t *testing.T) {
 func TestValidatePortalScopes(t *testing.T) {
 	t.Run("accepts the delivered scopes", func(t *testing.T) {
 		require.NoError(t, validatePortalScopes("keys:read"))
-		require.NoError(t, validatePortalScopes("keys:reroll"))
 		require.NoError(t, validatePortalScopes("keys:read,keys:reroll"))
+	})
+
+	// The portal reaches rerolling from the keys page, so reroll alone mints a
+	// session with no page the end user can open.
+	t.Run("rejects reroll without read", func(t *testing.T) {
+		err := validatePortalScopes("keys:reroll")
+		require.ErrorContains(t, err, "keys:reroll")
+		require.ErrorContains(t, err, "keys:read")
 	})
 
 	for _, scope := range []string{"analytics:read", "keys:create"} {

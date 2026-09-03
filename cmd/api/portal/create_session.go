@@ -21,12 +21,26 @@ var portalScopes = []string{
 }
 
 func validatePortalScopes(value string) error {
+	var scopes []string
 	for _, scope := range strings.Split(value, ",") {
 		scope = strings.TrimSpace(scope)
-		if scope != "" && !slices.Contains(portalScopes, scope) {
+		if scope == "" {
+			continue
+		}
+		if !slices.Contains(portalScopes, scope) {
 			return fmt.Errorf("invalid scope %q; valid choices: %s", scope, strings.Join(portalScopes, ", "))
 		}
+		scopes = append(scopes, scope)
 	}
+
+	// Mirrors the API: the portal reaches rerolling from the keys page, which
+	// renders only for keys:read, so reroll alone mints a session with no page
+	// the end user can open. Caught here so the failure lands on the command
+	// rather than a round trip later.
+	if slices.Contains(scopes, "keys:reroll") && !slices.Contains(scopes, "keys:read") {
+		return fmt.Errorf("scope %q requires %q in the same session", "keys:reroll", "keys:read")
+	}
+
 	return nil
 }
 

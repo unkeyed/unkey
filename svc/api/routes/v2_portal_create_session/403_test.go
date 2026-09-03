@@ -167,13 +167,16 @@ func TestCreateSessionScopeEscalation(t *testing.T) {
 		permissions []string
 		shouldPass  bool
 	}{
+		// Every reroll case also carries keys:read and its grants: the handler
+		// refuses the pair apart, so reroll alone would fail as a 400 before
+		// reaching the mint-time ceiling these cases exist to exercise.
 		{
 			// The escalation regression: minting alone must not confer key
 			// rotation, which hands back plaintext key material.
 			name:        "reroll without create_key",
 			portal:      "escalation-portal",
-			scopes:      []openapi.V2PortalCreateSessionRequestBodyScopes{"keys:reroll"},
-			permissions: []string{mint},
+			scopes:      []openapi.V2PortalCreateSessionRequestBodyScopes{"keys:read", "keys:reroll"},
+			permissions: []string{mint, "api.*.read_key", "api.*.read_api"},
 			shouldPass:  false,
 		},
 		{
@@ -211,15 +214,15 @@ func TestCreateSessionScopeEscalation(t *testing.T) {
 			// update.
 			name:        "reroll with create_key",
 			portal:      "escalation-portal",
-			scopes:      []openapi.V2PortalCreateSessionRequestBodyScopes{"keys:reroll"},
-			permissions: []string{mint, "api.*.create_key"},
+			scopes:      []openapi.V2PortalCreateSessionRequestBodyScopes{"keys:read", "keys:reroll"},
+			permissions: []string{mint, "api.*.read_key", "api.*.read_api", "api.*.create_key"},
 			shouldPass:  true,
 		},
 		{
 			name:        "reroll with update_key only",
 			portal:      "escalation-portal",
-			scopes:      []openapi.V2PortalCreateSessionRequestBodyScopes{"keys:reroll"},
-			permissions: []string{mint, "api.*.update_key"},
+			scopes:      []openapi.V2PortalCreateSessionRequestBodyScopes{"keys:read", "keys:reroll"},
+			permissions: []string{mint, "api.*.read_key", "api.*.read_api", "api.*.update_key"},
 			shouldPass:  false,
 		},
 		{
@@ -250,8 +253,8 @@ func TestCreateSessionScopeEscalation(t *testing.T) {
 			// apply, so create_key alone is enough.
 			name:        "reroll on unencrypted keyspace needs only create_key",
 			portal:      "escalation-portal",
-			scopes:      []openapi.V2PortalCreateSessionRequestBodyScopes{"keys:reroll"},
-			permissions: []string{mint, "api.*.create_key"},
+			scopes:      []openapi.V2PortalCreateSessionRequestBodyScopes{"keys:read", "keys:reroll"},
+			permissions: []string{mint, "api.*.read_key", "api.*.read_api", "api.*.create_key"},
 			shouldPass:  true,
 		},
 		{
@@ -259,15 +262,15 @@ func TestCreateSessionScopeEscalation(t *testing.T) {
 			// encrypt_key is additionally required.
 			name:        "reroll on encrypted keyspace without encrypt_key",
 			portal:      "encrypted-portal",
-			scopes:      []openapi.V2PortalCreateSessionRequestBodyScopes{"keys:reroll"},
-			permissions: []string{mint, "api.*.create_key"},
+			scopes:      []openapi.V2PortalCreateSessionRequestBodyScopes{"keys:read", "keys:reroll"},
+			permissions: []string{mint, "api.*.read_key", "api.*.read_api", "api.*.create_key"},
 			shouldPass:  false,
 		},
 		{
 			name:        "reroll on encrypted keyspace with encrypt_key",
 			portal:      "encrypted-portal",
-			scopes:      []openapi.V2PortalCreateSessionRequestBodyScopes{"keys:reroll"},
-			permissions: []string{mint, "api.*.create_key", "api.*.encrypt_key"},
+			scopes:      []openapi.V2PortalCreateSessionRequestBodyScopes{"keys:read", "keys:reroll"},
+			permissions: []string{mint, "api.*.read_key", "api.*.read_api", "api.*.create_key", "api.*.encrypt_key"},
 			shouldPass:  true,
 		},
 	}

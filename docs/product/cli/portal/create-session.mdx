@@ -13,7 +13,7 @@ unkey api portal create-session [flags]
 ## Flags
 <ParamField body="--portal" type="string" required>Portal configuration ID or slug.</ParamField>
 <ParamField body="--external-id" type="string" required>The end user's identifier in your system.</ParamField>
-<ParamField body="--scopes" type="string[]" required>Capabilities: `keys:read` and `keys:reroll`.</ParamField>
+<ParamField body="--scopes" type="string[]" required>Capabilities: `keys:read` and `keys:reroll`. Rerolling is reached from the keys page, so `keys:reroll` requires `keys:read` in the same session.</ParamField>
 <ParamField body="--preview" type="bool" default="false">Create a preview session for testing.</ParamField>
 <ParamField body="--return-url" type="string">Absolute URL to return the end user to when they leave the portal.</ParamField>
 ## Global Flags

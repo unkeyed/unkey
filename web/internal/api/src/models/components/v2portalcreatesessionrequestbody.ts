@@ -36,7 +36,9 @@ export type V2PortalCreateSessionRequestBody = {
    * keys.
    *
    * The portal currently exposes only the keys page, so these scopes gate
-   * what the end user can do there rather than which tabs they see.
+   * what the end user can do there rather than which tabs they see. Because
+   * rerolling is reached from that page, `keys:reroll` requires `keys:read`
+   * in the same session; requesting it alone is rejected.
    *
    * Each scope requires the equivalent permission on your own root key. See
    * Required Permissions on this operation.

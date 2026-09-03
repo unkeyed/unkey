@@ -149,6 +149,12 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
+	// Request-shape only, so it runs before the portal lookup, matching the
+	// enum check the request validator already applies ahead of this handler.
+	if err = ValidateScopeCombination(req.Scopes); err != nil {
+		return err
+	}
+
 	workspaceID := principal.AuthorizedWorkspaceID
 
 	portal, err := db.Query.FindPortalByIdOrSlug(ctx, h.DB.RO(), db.FindPortalByIdOrSlugParams{
@@ -376,6 +382,41 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			Url: portalURL,
 		},
 	})
+}
+
+// ValidateScopeCombination rejects a scope set the portal cannot serve.
+//
+// keys:reroll authorizes rerolling a key the end user already owns, but the
+// portal reaches that action only from the keys page, which renders solely for
+// keys:read. A session carrying reroll alone therefore mints successfully and
+// then strands the end user: the landing resolver finds no page it may open and
+// the keys route redirects away. Refusing the pair here keeps that failure at
+// the caller's own request, where it is actionable, rather than in an end user's
+// browser.
+//
+// The OpenAPI enum cannot express this -- it constrains each item, not the
+// combination -- so the check lives in the handler alongside the vocabulary it
+// depends on.
+func ValidateScopeCombination(scopes []openapi.V2PortalCreateSessionRequestBodyScopes) error {
+	var hasRead, hasReroll bool
+	for _, scope := range scopes {
+		switch scope {
+		case openapi.KeysRead:
+			hasRead = true
+		case openapi.KeysReroll:
+			hasReroll = true
+		}
+	}
+
+	if hasReroll && !hasRead {
+		return fault.New("keys:reroll requires keys:read",
+			fault.Code(codes.App.Validation.InvalidInput.URN()),
+			fault.Internal("scopes contained keys:reroll without keys:read"),
+			fault.Public("The \"keys:reroll\" scope requires \"keys:read\" in the same session. The portal reaches rerolling from the keys list, so a session without \"keys:read\" has no page the end user can open."),
+		)
+	}
+
+	return nil
 }
 
 // ScopeQueries returns the authorization requirements the *calling* root key

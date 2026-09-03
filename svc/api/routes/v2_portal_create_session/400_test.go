@@ -249,6 +249,31 @@ func TestCreateSessionRejectsRetiredScopes(t *testing.T) {
 		})
 	}
 
+	// keys:reroll authorizes an action the portal only reaches from the keys
+	// page, which needs keys:read. Minting the pair apart would strand the end
+	// user in the browser rather than failing the caller's own request.
+	t.Run("reroll without read is rejected", func(t *testing.T) {
+		require.Equal(t, 400, call(t, "keys:reroll"))
+	})
+
+	t.Run("reroll with read is accepted", func(t *testing.T) {
+		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
+			Portal:     "retired-scope-portal",
+			ExternalId: "user_retired",
+			Scopes:     []openapi.V2PortalCreateSessionRequestBodyScopes{"keys:read", "keys:reroll"},
+		})
+		require.Equal(t, 200, res.Status, "got: %s", res.RawBody)
+	})
+
+	t.Run("read alone is accepted", func(t *testing.T) {
+		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
+			Portal:     "retired-scope-portal",
+			ExternalId: "user_retired",
+			Scopes:     []openapi.V2PortalCreateSessionRequestBodyScopes{"keys:read"},
+		})
+		require.Equal(t, 200, res.Status, "got: %s", res.RawBody)
+	})
+
 	// The same caller and portal still mint successfully, so the cases above pin
 	// a narrowed vocabulary rather than a broken route.
 	t.Run("the delivered scopes still mint", func(t *testing.T) {
