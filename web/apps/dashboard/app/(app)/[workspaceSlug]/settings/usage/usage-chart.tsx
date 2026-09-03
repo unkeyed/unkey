@@ -26,11 +26,11 @@ import { useId, useMemo, useState } from "react";
 import type { ComputeTree } from "./compute-tree";
 import { type UsageMetric, buildUsageChart } from "./usage-chart-data";
 
-const METRICS: Record<UsageMetric, { label: string; unit: string }> = {
-  egressGiB: { label: "Public egress", unit: "GiB" },
-  cpuHours: { label: "CPU", unit: "hours" },
-  memoryGiBHours: { label: "Memory", unit: "GiB-hours" },
-  diskGiBHours: { label: "Storage", unit: "GiB-hours" },
+const METRICS: Record<UsageMetric, { label: string; unit: string; axisUnit: string }> = {
+  egressGiB: { label: "Public egress", unit: "GiB", axisUnit: "GiB" },
+  cpuHours: { label: "CPU", unit: "vCPU-hours", axisUnit: "vCPU-h" },
+  memoryGiBHours: { label: "Memory", unit: "GiB-hours", axisUnit: "GiB-h" },
+  diskGiBHours: { label: "Storage", unit: "GiB-hours", axisUnit: "GiB-h" },
 };
 
 const GROUP_LABELS: Record<DeployUsageTimeseriesGroup, string> = {
@@ -445,7 +445,9 @@ export function UsageChart({ tree }: { tree: ComputeTree }) {
             x: { domain: [chartPeriod.start, chartPeriod.end], utc: true },
             y: {
               floor: 0,
-              formatTick: (value) => (value <= 0 ? "" : formatCompactQuantity(value)),
+              width: 76,
+              formatTick: (value) =>
+                value <= 0 ? "" : `${formatCompactQuantity(value)} ${metricDetails.axisUnit}`,
             },
           }}
         />
