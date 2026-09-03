@@ -49,8 +49,13 @@ vi.mock("recharts", () => ({
   XAxis: ({ domain, hide }: { domain: unknown; hide: boolean }) => (
     <g data-testid="x-axis" data-domain={JSON.stringify(domain)} data-hidden={hide} />
   ),
-  YAxis: ({ domain, hide }: { domain: unknown; hide: boolean }) => (
-    <g data-testid="y-axis" data-domain={JSON.stringify(domain)} data-hidden={hide} />
+  YAxis: ({ domain, hide, width }: { domain: unknown; hide: boolean; width: number }) => (
+    <g
+      data-testid="y-axis"
+      data-domain={JSON.stringify(domain)}
+      data-hidden={hide}
+      data-width={width}
+    />
   ),
 }));
 
@@ -87,13 +92,13 @@ describe("AreaTimeseriesChart axis configuration", () => {
           { originalTimestamp: 2_000, requests: 10 },
         ]}
         config={{ requests: { label: "Requests", color: "blue" } }}
-        axis={{ y: { floor: 0 } }}
+        axis={{ y: { floor: 0, width: 72 } }}
       />,
     );
 
-    expect(container.querySelector('[data-testid="y-axis"]')?.getAttribute("data-domain")).toBe(
-      "[0,11]",
-    );
+    const yAxis = container.querySelector('[data-testid="y-axis"]');
+    expect(yAxis?.getAttribute("data-domain")).toBe("[0,11]");
+    expect(yAxis?.getAttribute("data-width")).toBe("72");
   });
 
   it("retains configured domains when the axes are hidden", () => {

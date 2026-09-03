@@ -115,6 +115,7 @@ export type AreaTimeseriesAxisOptions = {
   y?: {
     // Minimum top-of-axis when data is tiny or idle.
     floor?: number;
+    width?: number;
     // Calculates the top-of-axis from the floored observed maximum.
     getTop?: (max: number) => number;
     formatTick?: (value: number) => string;
@@ -353,7 +354,7 @@ export function AreaTimeseriesChart({
           hide={!showAxes}
         />
         <YAxis
-          width={showAxes ? Y_GUTTER_PX : 0}
+          width={showAxes ? (axis?.y?.width ?? Y_GUTTER_PX) : 0}
           tickLine={false}
           axisLine={false}
           tickFormatter={formatYTick}
