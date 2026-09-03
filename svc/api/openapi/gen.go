@@ -4081,9 +4081,8 @@ type V2PortalCreateSessionRequestBody struct {
 	// configured on the portal. An end user can never see another identity's
 	// keys.
 	//
-	// Tab visibility is derived from the scopes:
-	// - Keys tab: any `keys:*` scope
-	// - Docs tab: visible when any scope is present
+	// The portal currently exposes only the keys page, so these scopes gate
+	// what the end user can do there rather than which tabs they see.
 	//
 	// Each scope requires the equivalent permission on your own root key. See
 	// Required Permissions on this operation.

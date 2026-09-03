@@ -68,6 +68,7 @@ describe("IntegrateDialog", () => {
       expect(snippet).not.toContain("analytics:read");
       expect(snippet).not.toContain("keys:create");
       expect(snippet).not.toContain("AnalyticsRead");
+      expect(snippet).not.toContain("KeysCreate");
     }
 
     expect(screen.queryByText(/analytics/i)).toBeNull();

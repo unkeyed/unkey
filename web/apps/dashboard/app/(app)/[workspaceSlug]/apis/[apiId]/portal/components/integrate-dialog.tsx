@@ -63,8 +63,8 @@ http.Redirect(w, r, url, http.StatusFound)`;
       <div className="flex flex-col gap-5">
         <p className="text-gray-11 text-[13px]">
           Sign the user in yourself, create a session for them, then send them to the portal. Scopes
-          pick the tabs: any <code>keys:</code> scope shows the keys tab. The two you can pass are{" "}
-          <code>keys:read</code> and <code>keys:reroll</code>.
+          decide what the user can do there. The two you can pass are <code>keys:read</code> and{" "}
+          <code>keys:reroll</code>.
         </p>
 
         <div className="flex flex-col gap-2">

@@ -191,9 +191,7 @@ func TestCreateSessionBadRequest(t *testing.T) {
 // analytics:read and keys:create left the enum because nothing in the portal
 // serves them. The refusal has to be the request validator's, not the mint-time
 // ceiling's, so this grants every permission those scopes used to require: a 400
-// here can only mean the value never reached the handler. Without those grants a
-// rejection would be indistinguishable from a caller who was simply short a
-// permission.
+// here can only mean the value never reached the handler.
 func TestCreateSessionRejectsRetiredScopes(t *testing.T) {
 	h := testutil.NewHarness(t)
 

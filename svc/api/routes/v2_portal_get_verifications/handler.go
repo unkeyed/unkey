@@ -34,6 +34,12 @@ type (
 // session's external identity. It deliberately does not reuse the analytics
 // handler, which requires a per-workspace ClickHouse user and a query-language
 // parser that are inappropriate for an end user.
+//
+// Currently unreachable by any new session: portal.createSession no longer mints
+// analytics:read, so only sessions issued before that change can authorize here.
+// The route is kept registered for the deferred portal analytics feature, which
+// is also why its tests still pass -- they seed session rows directly rather than
+// minting through createSession.
 type Handler struct {
 	ClickHouse  clickhouse.ClickHouse
 	DB          db.Database

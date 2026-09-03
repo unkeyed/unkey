@@ -10,12 +10,17 @@ const (
 	// CapKeysRead lets the end user list and read their own keys.
 	CapKeysRead = "keys:read"
 
-	// CapKeysCreate lets the end user create new keys.
+	// CapKeysCreate would let the end user create new keys. Parked: no portal
+	// route implements it and portal.createSession refuses the scope, so no
+	// session can carry it.
 	CapKeysCreate = "keys:create"
 
 	// CapKeysReroll lets the end user rotate the secret of an existing key.
 	CapKeysReroll = "keys:reroll"
 
 	// CapAnalyticsRead lets the end user read their verification analytics.
+	// Parked: v2_portal_get_verifications still authorizes it, but
+	// portal.createSession refuses the scope, so only sessions minted before
+	// that change can still satisfy it, until they expire.
 	CapAnalyticsRead = "analytics:read"
 )

@@ -1,6 +1,6 @@
 ---
 title: 'Customer Portal'
-description: "Give your end users a white-labeled self-service portal for API key management and docs, with a Stripe-style session auth flow."
+description: "Give your end users a white-labeled self-service portal for API key management, with a Stripe-style session auth flow."
 hidden: true
 noindex: true
 ---
@@ -10,7 +10,7 @@ The Customer Portal has not launched. This page is unlisted, documents an
 unreleased API, and is subject to change without notice.
 </Warning>
 
-The Customer Portal is a white-labeled web app you can offer to your end users. They get key management and API documentation, without you building any UI.
+The Customer Portal is a white-labeled web app you can offer to your end users. They get self-service key management, without you building any UI.
 
 Authentication uses a Stripe-style flow: your backend creates a session, redirects the user to a URL carrying a single-use code, and the portal exchanges that code for an access token.
 
@@ -197,12 +197,7 @@ Scopes come from a fixed vocabulary. Every scope is bound to the end user in the
 | `keys:read` | List their own keys |
 | `keys:reroll` | Roll a key they own |
 
-Tab visibility is derived from the scopes:
-
-| Tab | Shown when |
-|-----|-----------|
-| API Keys | any `keys:*` scope |
-| Documentation | any scope is present |
+The portal currently exposes only the keys page, so these scopes gate what the end user can do there rather than which pages they see.
 
 The API requires at least one scope. An empty `scopes` array is rejected with HTTP 400, as is any value outside the vocabulary above.
 
