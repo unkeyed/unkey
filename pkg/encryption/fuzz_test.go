@@ -9,132 +9,90 @@ import (
 	"github.com/unkeyed/unkey/pkg/fuzz"
 )
 
-// FuzzEncryptDecrypt tests the round-trip encryption and decryption.
+// FuzzEncryptDecrypt verifies that encryption preserves arbitrary plaintext.
 func FuzzEncryptDecrypt(f *testing.F) {
 	fuzz.Seed(f)
 
 	f.Fuzz(func(t *testing.T, data []byte) {
 		c := fuzz.New(t, data)
-
 		key := c.BytesN(32)
 		plaintext := c.Bytes()
 
-		// Encrypt the plaintext
 		nonce, ciphertext, err := encryption.Encrypt(key, plaintext)
-		require.NoError(t, err, "Encryption failed")
+		require.NoError(t, err)
+		require.Len(t, nonce, 12)
 
-		// Verify nonce length
-		require.Equal(t, 12, len(nonce), "Nonce should be 12 bytes")
-
-		// Decrypt the ciphertext
 		decrypted, err := encryption.Decrypt(key, nonce, ciphertext)
-		require.NoError(t, err, "Decryption failed")
-
-		// Verify the decrypted data matches the original plaintext
-		require.True(t, bytes.Equal(plaintext, decrypted), "Decrypted text doesn't match original plaintext")
+		require.NoError(t, err)
+		require.True(t, bytes.Equal(plaintext, decrypted))
 	})
 }
 
-// FuzzDecryptWithWrongKey tests that decryption with a different key fails.
+// FuzzDecryptWithWrongKey verifies that AES-GCM rejects every single-bit key mutation.
 func FuzzDecryptWithWrongKey(f *testing.F) {
 	fuzz.Seed(f)
 
 	f.Fuzz(func(t *testing.T, data []byte) {
 		c := fuzz.New(t, data)
-
-		// Generate two different valid AES keysi
-		key1 := c.BytesN(32)
-		key2 := c.BytesN(32)
-
-		// Skip if keys are the same
-		if bytes.Equal(key1, key2) {
-			t.Skip("Keys are identical")
-		}
-
+		key := c.BytesN(32)
 		plaintext := c.Bytes()
+		position := int(c.Uint8()) % len(key)
+		bit := byte(1 << (c.Uint8() % 8))
 
-		// Encrypt with first key
-		nonce, ciphertext, err := encryption.Encrypt(key1, plaintext)
-		require.NoError(t, err, "Encryption failed")
+		nonce, ciphertext, err := encryption.Encrypt(key, plaintext)
+		require.NoError(t, err)
 
-		// Decrypt with different key - should fail
-		_, err = encryption.Decrypt(key2, nonce, ciphertext)
-		require.Error(t, err, "Decryption should fail with wrong key")
+		wrongKey := bytes.Clone(key)
+		wrongKey[position] ^= bit
+
+		decrypted, err := encryption.Decrypt(wrongKey, nonce, ciphertext)
+		require.Error(t, err)
+		require.Nil(t, decrypted)
 	})
 }
 
-// FuzzTamperedCiphertext tests that modified ciphertext fails to decrypt correctly.
+// FuzzTamperedCiphertext verifies that AES-GCM rejects every single-bit ciphertext mutation.
 func FuzzTamperedCiphertext(f *testing.F) {
 	fuzz.Seed(f)
 
 	f.Fuzz(func(t *testing.T, data []byte) {
 		c := fuzz.New(t, data)
-
 		key := c.BytesN(32)
-
 		plaintext := c.Bytes()
-		if len(plaintext) == 0 {
-			t.Skip("Skipping empty plaintext")
-		}
-
-		tamperedByte := c.Uint8()
-		if tamperedByte == 0 {
-			t.Skip("XOR with 0 doesn't change anything")
-		}
 		position := c.Uint16()
+		bit := byte(1 << (c.Uint8() % 8))
 
-		// Encrypt the plaintext
 		nonce, ciphertext, err := encryption.Encrypt(key, plaintext)
-		require.NoError(t, err, "Encryption failed")
+		require.NoError(t, err)
 
-		if len(ciphertext) == 0 {
-			t.Skip("Ciphertext too short")
-		}
+		tamperedCiphertext := bytes.Clone(ciphertext)
+		tamperedCiphertext[int(position)%len(tamperedCiphertext)] ^= bit
 
-		// Create a copy of the ciphertext and tamper with it
-		tamperedCiphertext := make([]byte, len(ciphertext))
-		copy(tamperedCiphertext, ciphertext)
-
-		// Modify one byte
-		pos := int(position) % len(tamperedCiphertext)
-		tamperedCiphertext[pos] ^= tamperedByte
-
-		// Attempt to decrypt the tampered ciphertext
-		_, err = encryption.Decrypt(key, nonce, tamperedCiphertext)
-		require.Error(t, err, "Decryption should fail with tampered ciphertext")
+		decrypted, err := encryption.Decrypt(key, nonce, tamperedCiphertext)
+		require.Error(t, err)
+		require.Nil(t, decrypted)
 	})
 }
 
-// FuzzTamperedNonce tests that a modified nonce fails to decrypt correctly.
+// FuzzTamperedNonce verifies that AES-GCM rejects every single-bit nonce mutation.
 func FuzzTamperedNonce(f *testing.F) {
 	fuzz.Seed(f)
 
 	f.Fuzz(func(t *testing.T, data []byte) {
 		c := fuzz.New(t, data)
-
 		key := c.BytesN(32)
 		plaintext := c.Bytes()
+		position := c.Uint8()
+		bit := byte(1 << (c.Uint8() % 8))
 
-		tamperedByte := c.Uint8()
-		if tamperedByte == 0 {
-			t.Skip("XOR with 0 doesn't change anything")
-		}
-		position := c.Uint16()
-
-		// Encrypt the plaintext
 		nonce, ciphertext, err := encryption.Encrypt(key, plaintext)
-		require.NoError(t, err, "Encryption failed")
+		require.NoError(t, err)
 
-		// Create a copy of the nonce and tamper with it
-		tamperedNonce := make([]byte, len(nonce))
-		copy(tamperedNonce, nonce)
+		tamperedNonce := bytes.Clone(nonce)
+		tamperedNonce[int(position)%len(tamperedNonce)] ^= bit
 
-		// Modify one byte
-		pos := int(position) % len(tamperedNonce)
-		tamperedNonce[pos] ^= tamperedByte
-
-		// Attempt to decrypt with the tampered nonce
-		_, err = encryption.Decrypt(key, tamperedNonce, ciphertext)
-		require.Error(t, err, "Decryption should fail with tampered nonce")
+		decrypted, err := encryption.Decrypt(key, tamperedNonce, ciphertext)
+		require.Error(t, err)
+		require.Nil(t, decrypted)
 	})
 }
