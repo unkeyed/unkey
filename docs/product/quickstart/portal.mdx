@@ -1,6 +1,6 @@
 ---
 title: 'Customer Portal'
-description: "Give your end users a white-labeled self-service portal for API key management, usage analytics, and docs, with a Stripe-style session auth flow."
+description: "Give your end users a white-labeled self-service portal for API key management and docs, with a Stripe-style session auth flow."
 hidden: true
 noindex: true
 ---
@@ -10,7 +10,7 @@ The Customer Portal has not launched. This page is unlisted, documents an
 unreleased API, and is subject to change without notice.
 </Warning>
 
-The Customer Portal is a white-labeled web app you can offer to your end users. They get key management, usage analytics, and API documentation, without you building any UI.
+The Customer Portal is a white-labeled web app you can offer to your end users. They get key management and API documentation, without you building any UI.
 
 Authentication uses a Stripe-style flow: your backend creates a session, redirects the user to a URL carrying a single-use code, and the portal exchanges that code for an access token.
 
@@ -93,7 +93,7 @@ curl -X POST https://api.unkey.com/v2/portal.createSession \
   -d '{
     "portal": "my-portal",
     "externalId": "user_123",
-    "scopes": ["keys:read", "keys:reroll", "analytics:read"],
+    "scopes": ["keys:read", "keys:reroll"],
     "returnUrl": "https://app.example.com/settings/api-keys"
   }'
 ```
@@ -108,7 +108,7 @@ const response = await fetch("https://api.unkey.com/v2/portal.createSession", {
   body: JSON.stringify({
     portal: "my-portal",
     externalId: "user_123",
-    scopes: ["keys:read", "keys:reroll", "analytics:read"],
+    scopes: ["keys:read", "keys:reroll"],
     // Optional, per session: where this user goes when they leave the portal.
     returnUrl: "https://app.example.com/settings/api-keys",
   }),
@@ -124,7 +124,7 @@ const { data } = await response.json();
 body := map[string]any{
     "portal":     "my-portal",
     "externalId": "user_123",
-    "scopes":     []string{"keys:read", "keys:reroll", "analytics:read"},
+    "scopes":     []string{"keys:read", "keys:reroll"},
 }
 ```
 
@@ -169,7 +169,7 @@ curl -X POST https://api.unkey.com/v2/portal.createSession \
   -d '{
     "portal": "my-portal",
     "externalId": "user_123",
-    "scopes": ["keys:read", "analytics:read"],
+    "scopes": ["keys:read", "keys:reroll"],
     "preview": true
   }'
 ```
@@ -190,21 +190,18 @@ The portal will:
 
 ## Scopes and tabs
 
-Scopes come from a fixed vocabulary. Every scope is bound to the end user in the session: `keys:*` applies only to keys that user owns within the portal's keyspace, and `analytics:read` returns only that user's own verification events. An end user can never see another identity's keys or analytics.
+Scopes come from a fixed vocabulary. Every scope is bound to the end user in the session: `keys:*` applies only to keys that user owns within the portal's keyspace. An end user can never see another identity's keys.
 
 | Scope | Grants |
 |-------|--------|
 | `keys:read` | List their own keys |
-| `keys:create` | Create keys |
 | `keys:reroll` | Roll a key they own |
-| `analytics:read` | Their own verification analytics |
 
 Tab visibility is derived from the scopes:
 
 | Tab | Shown when |
 |-----|-----------|
 | API Keys | any `keys:*` scope |
-| Analytics | `analytics:read` |
 | Documentation | any scope is present |
 
 The API requires at least one scope. An empty `scopes` array is rejected with HTTP 400, as is any value outside the vocabulary above.
@@ -257,8 +254,6 @@ Second, a session can never carry a capability your root key does not itself hol
 |-----------------|---------------|
 | `keys:read` | `api.*.read_key` and `api.*.read_api` |
 | `keys:reroll` | `api.*.create_key`, plus `api.*.encrypt_key` if the keyspace stores encrypted keys |
-| `keys:create` | `api.*.create_key`, plus `api.*.encrypt_key` if the keyspace stores encrypted keys |
-| `analytics:read` | `api.*.read_analytics` |
 
 Requesting a scope you do not hold returns 403 for the whole request rather than a session with fewer capabilities, so a missing grant shows up immediately instead of as a portal that silently misses a tab.
 
