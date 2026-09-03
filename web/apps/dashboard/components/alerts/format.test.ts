@@ -6,6 +6,7 @@ import {
   formatAlertDistance,
   formatAlertSeriesValue,
   formatAlertValue,
+  formatRequestsDropChange,
   formatSigma,
   seriesMetricForAlert,
 } from "./format";
@@ -30,6 +31,7 @@ describe("alert metric formatting", () => {
     expect(formatAlertValue("egress_bytes", 3_250_000)).toBe("3.1 MB");
     expect(formatAlertValue("cpu_seconds", 12.345)).toBe("12.35 s");
     expect(formatAlertValue("memory_utilization", 0.873)).toBe("87.3%");
+    expect(formatAlertValue("error_5xx", 0.032)).toBe("3.2%");
     expect(formatAlertValue("requests", 1_234)).toBe("1,234");
   });
 
@@ -44,9 +46,15 @@ describe("alert metric formatting", () => {
   });
 
   it("shows fixed limits instead of sigma for threshold metrics", () => {
-    expect(formatAlertDistance("memory_utilization", 0.94, 0, 0)).toBe("94% · limit 90%");
+    expect(formatAlertDistance("memory_utilization", 0.94, 0, 0)).toBe("avg 94% · limit 90%");
     expect(formatAlertDistance("oom_killed", 3, 0, 0)).toBe("3 events · limit 1");
     expect(formatAlertDistance("crash_loop", 4, 0, 0)).toBe("4 events · limit 1");
-    expect(formatAlertDistance("error_5xx", 8, 1, 1)).toBe("+7.0σ");
+    expect(formatAlertDistance("error_5xx", 0.032, 0.004, 0.01)).toBe("+2.8σ");
+  });
+
+  it("formats traffic drops against the recent median without infinity", () => {
+    expect(formatRequestsDropChange(1, 12)).toBe("−92%");
+    expect(formatAlertDistance("requests_drop", 1, 12, 0)).toBe("−92%");
+    expect(formatRequestsDropChange(1, 0)).toBe("No recent traffic");
   });
 });

@@ -4,6 +4,7 @@ import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { routes } from "@/lib/navigation/routes";
 import { shortenId } from "@/lib/shorten-id";
 import { useWorkspace } from "@/providers/workspace-provider";
+import { requestDropMedianFraction } from "@unkey/clickhouse/src/alert-thresholds";
 import { Badge, TimestampInfo } from "@unkey/ui";
 import Link from "next/link";
 import {
@@ -11,6 +12,7 @@ import {
   formatAlertDistance,
   formatAlertValue,
   hasFixedAlertThreshold,
+  isErrorRateMetric,
 } from "./format";
 import { ResolveAlertButton } from "./resolve-alert-button";
 import { AlertStatusBadge } from "./status-badge";
@@ -39,38 +41,67 @@ export function AlertFocusCard({ alert }: { alert: AlertDetailData }) {
         </div>
         {alert.status === "open" ? <ResolveAlertButton alertId={alert.id} /> : null}
       </div>
-      <dl className="grid grid-cols-2 divide-x divide-y divide-grayA-4 md:grid-cols-4 md:divide-y-0">
-        <DetailValue label="Observed" value={formatAlertValue(alert.metric, alert.observedValue)} />
-        <DetailValue
-          label="Baseline mean"
-          value={
-            hasFixedAlertThreshold(alert.metric)
-              ? "Fixed limit"
-              : formatAlertValue(alert.metric, alert.baselineMean)
-          }
-        />
-        <DetailValue
-          label="Standard deviation"
-          value={
-            hasFixedAlertThreshold(alert.metric)
-              ? "Not used"
-              : formatAlertValue(alert.metric, alert.baselineStddev)
-          }
-        />
-        <DetailValue
-          label="Distance"
-          value={formatAlertDistance(
-            alert.metric,
-            alert.observedValue,
-            alert.baselineMean,
-            alert.baselineStddev,
-          )}
-          hint={
-            hasFixedAlertThreshold(alert.metric)
-              ? undefined
-              : `Threshold ${alert.thresholdSigma.toFixed(1)}σ`
-          }
-        />
+      <dl
+        className={
+          alert.metric === "requests_drop"
+            ? "grid grid-cols-1 divide-y divide-grayA-4 md:grid-cols-3 md:divide-x md:divide-y-0"
+            : "grid grid-cols-2 divide-x divide-y divide-grayA-4 md:grid-cols-4 md:divide-y-0"
+        }
+      >
+        {alert.metric === "requests_drop" ? (
+          <>
+            <DetailValue
+              label="Observed"
+              value={formatAlertValue(alert.metric, alert.observedValue)}
+            />
+            <DetailValue
+              label="Recent 1h median"
+              value={formatAlertValue(alert.metric, alert.baselineMean)}
+            />
+            <DetailValue
+              label="Threshold"
+              value={formatAlertValue(alert.metric, alert.baselineMean * requestDropMedianFraction)}
+              hint="25% of recent median"
+            />
+          </>
+        ) : (
+          <>
+            <DetailValue
+              label="Observed"
+              value={formatAlertValue(alert.metric, alert.observedValue)}
+            />
+            <DetailValue
+              label={isErrorRateMetric(alert.metric) ? "Baseline rate" : "Baseline mean"}
+              value={
+                hasFixedAlertThreshold(alert.metric)
+                  ? "Fixed limit"
+                  : formatAlertValue(alert.metric, alert.baselineMean)
+              }
+            />
+            <DetailValue
+              label={isErrorRateMetric(alert.metric) ? "Std dev" : "Standard deviation"}
+              value={
+                hasFixedAlertThreshold(alert.metric)
+                  ? "Not used"
+                  : formatAlertValue(alert.metric, alert.baselineStddev)
+              }
+            />
+            <DetailValue
+              label="Distance"
+              value={formatAlertDistance(
+                alert.metric,
+                alert.observedValue,
+                alert.baselineMean,
+                alert.baselineStddev,
+              )}
+              hint={
+                hasFixedAlertThreshold(alert.metric)
+                  ? undefined
+                  : `Threshold ${alert.thresholdSigma.toFixed(1)}σ`
+              }
+            />
+          </>
+        )}
       </dl>
       <div className="grid gap-5 border-t border-grayA-4 px-5 py-4 text-sm md:grid-cols-2">
         <div>
