@@ -30,6 +30,7 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/auditlogexport"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/buildlimitsync"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/clickhouseuserreconcile"
+	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/deployanomaly"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/deploybilling"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/deployspendcheck"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/idlepreview"
@@ -53,6 +54,8 @@ type Service struct {
 	auditLogExport          *auditlogexport.Handler
 	buildLimitSync          *buildlimitsync.Handler
 	clickhouseUserReconcile *clickhouseuserreconcile.Handler
+	deployAnomaly           *deployanomaly.Handler
+	deployAnomalyWork       *deployanomaly.CheckHandler
 	deployBilling           *deploybilling.Handler
 	deployBillingPush       *deploybilling.PushHandler
 	deploySpendCheck        *deployspendcheck.Handler
@@ -80,6 +83,12 @@ func (s *Service) DeploySpendCheckServer() hydrav1.DeploySpendCheckServiceServer
 	return s.deploySpendCheckWork
 }
 
+// DeployAnomalyServer returns the per-group anomaly evaluator fanned out from
+// the fleet cron handler.
+func (s *Service) DeployAnomalyServer() hydrav1.DeployAnomalyServiceServer {
+	return s.deployAnomalyWork
+}
+
 // Heartbeats groups the per-task healthcheck pingers. Every field must
 // be non-nil — use healthcheck.NewNoop() for tasks where monitoring is
 // not configured. This keeps each handler's heartbeat call unconditional
@@ -95,6 +104,7 @@ type Heartbeats struct {
 	DeployBillingPush  healthcheck.Heartbeat
 	DeployBillingClose healthcheck.Heartbeat
 	DeploySpendCheck   healthcheck.Heartbeat
+	DeployAnomaly      healthcheck.Heartbeat
 }
 
 // Config holds Service dependencies. All fields except
@@ -145,6 +155,11 @@ type Config struct {
 	// BillingBaseURL is the dashboard origin used to build the alert's billing
 	// link, e.g. "https://app.unkey.com".
 	BillingBaseURL string
+	// AnomalyAdmins and AnomalyEmail override WorkOS and Resend for anomaly
+	// integration tests. Production leaves them nil and uses the configured API
+	// keys.
+	AnomalyAdmins workos.Resolver
+	AnomalyEmail  email.Sender
 	// Heartbeats is the per-task healthcheck wiring. Every field is required.
 	Heartbeats Heartbeats
 }
@@ -167,6 +182,7 @@ func New(cfg Config) (*Service, error) {
 		assert.NotNil(cfg.Heartbeats.DeployBillingPush, "Heartbeats.DeployBillingPush must not be nil; use healthcheck.NewNoop()"),
 		assert.NotNil(cfg.Heartbeats.DeployBillingClose, "Heartbeats.DeployBillingClose must not be nil; use healthcheck.NewNoop()"),
 		assert.NotNil(cfg.Heartbeats.DeploySpendCheck, "Heartbeats.DeploySpendCheck must not be nil; use healthcheck.NewNoop()"),
+		assert.NotNil(cfg.Heartbeats.DeployAnomaly, "Heartbeats.DeployAnomaly must not be nil; use healthcheck.NewNoop()"),
 	); err != nil {
 		return nil, err
 	}
@@ -327,6 +343,26 @@ func New(cfg Config) (*Service, error) {
 	if err != nil {
 		return nil, err
 	}
+	anomalySender := alertSender
+	if cfg.AnomalyEmail != nil {
+		anomalySender = cfg.AnomalyEmail
+	}
+	anomalyAdmins := admins
+	if cfg.AnomalyAdmins != nil {
+		anomalyAdmins = cfg.AnomalyAdmins
+	}
+	deployAnomalyH, err := deployanomaly.NewHandler(deployanomaly.HandlerConfig{
+		DB: cfg.DB, Clickhouse: cfg.Clickhouse, Heartbeat: cfg.Heartbeats.DeployAnomaly,
+	})
+	if err != nil {
+		return nil, err
+	}
+	deployAnomalyWorkH, err := deployanomaly.NewCheckHandler(deployanomaly.CheckConfig{
+		DB: cfg.DB, Admins: anomalyAdmins, Email: anomalySender, DashboardBaseURL: cfg.BillingBaseURL,
+	})
+	if err != nil {
+		return nil, err
+	}
 
 	return &Service{
 		UnimplementedCronServiceServer: hydrav1.UnimplementedCronServiceServer{},
@@ -334,6 +370,8 @@ func New(cfg Config) (*Service, error) {
 		auditLogExport:                 auditLogExportH,
 		buildLimitSync:                 buildLimitSyncH,
 		clickhouseUserReconcile:        clickhouseUserReconcileH,
+		deployAnomaly:                  deployAnomalyH,
+		deployAnomalyWork:              deployAnomalyWorkH,
 		deployBilling:                  deployBillingH,
 		deployBillingPush:              deployBillingPushH,
 		deploySpendCheck:               deploySpendCheckH,
@@ -427,6 +465,13 @@ func (s *Service) RunBuildLimitSync(
 	req *hydrav1.RunBuildLimitSyncRequest,
 ) (*hydrav1.RunBuildLimitSyncResponse, error) {
 	return s.buildLimitSync.Handle(ctx, req)
+}
+
+func (s *Service) RunDeployAnomalyCheck(
+	ctx restate.ObjectContext,
+	req *hydrav1.RunDeployAnomalyCheckRequest,
+) (*hydrav1.RunDeployAnomalyCheckResponse, error) {
+	return s.deployAnomaly.Handle(ctx, req)
 }
 
 func (s *Service) RunClickhouseUserReconcile(

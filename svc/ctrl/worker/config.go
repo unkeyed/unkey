@@ -246,6 +246,10 @@ type HeartbeatConfig struct {
 	// sync. When set, a heartbeat is sent after a run confirms the rule is in
 	// the book. Optional - if empty, no heartbeat is sent
 	BuildLimitSyncURL string `toml:"build_limit_sync_url"`
+
+	// DeployAnomalyURL is the heartbeat URL for the Deploy anomaly orchestrator.
+	// Optional - if empty, no heartbeat is sent.
+	DeployAnomalyURL string `toml:"deploy_anomaly_url"`
 }
 
 // BillingConfig holds Stripe configuration for the hourly Deploy billing push.

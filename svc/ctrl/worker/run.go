@@ -582,6 +582,8 @@ func Run(ctx context.Context, cfg Config) error {
 		WorkOSAPIKey:   cfg.WorkOSAPIKey,
 		ResendAPIKey:   cfg.Email.ResendAPIKey,
 		BillingBaseURL: cfg.DashboardURL,
+		AnomalyAdmins:  nil,
+		AnomalyEmail:   nil,
 		Heartbeats: cron.Heartbeats{
 			BuildLimitSync:     cronHeartbeat(cfg.Heartbeat.BuildLimitSyncURL),
 			QuotaCheck:         cronHeartbeat(cfg.Heartbeat.QuotaCheckURL),
@@ -593,6 +595,7 @@ func Run(ctx context.Context, cfg Config) error {
 			DeployBillingPush:  cronHeartbeat(cfg.Heartbeat.DeployBillingPushURL),
 			DeployBillingClose: cronHeartbeat(cfg.Heartbeat.DeployBillingCloseURL),
 			DeploySpendCheck:   cronHeartbeat(cfg.Heartbeat.DeploySpendCheckURL),
+			DeployAnomaly:      cronHeartbeat(cfg.Heartbeat.DeployAnomalyURL),
 		},
 	})
 	if err != nil {
@@ -703,6 +706,16 @@ func Run(ctx context.Context, cfg Config) error {
 		restate.WithMaxRetryAttempts(5),
 		restate.KillOnMaxAttempts(),
 	)
+	// Each anomaly tick can be retried from its immutable closed window. Kill
+	// after bounded failures so one bad fleet read does not leave that window's
+	// CronService object paused indefinitely.
+	cronDeployAnomalyRetry := restate.WithInvocationRetryPolicy(
+		restate.WithInitialInterval(100*time.Millisecond),
+		restate.WithExponentiationFactor(2.0),
+		restate.WithMaxInterval(5*time.Second),
+		restate.WithMaxAttempts(5),
+		restate.KillOnMaxAttempts(),
+	)
 	// Without a cap the SDK default retries a failing quota check forever,
 	// parking its VO for the month. Kill on exhaustion and let the next daily
 	// tick retry; mirrors the billing-push and spend-check policies.
@@ -744,6 +757,7 @@ func Run(ctx context.Context, cfg Config) error {
 		ConfigureHandler("CloseDeployBillingWorkspace", cronDeployBillingWorkspaceCloseRetry).
 		ConfigureHandler("RunDeployBillingPush", cronDeployBillingPushRetry).
 		ConfigureHandler("RunDeploySpendCheck", deployspendcheck.RetryPolicy()).
+		ConfigureHandler("RunDeployAnomalyCheck", cronDeployAnomalyRetry).
 		ConfigureHandler("RunClickhouseUserReconcile", cronClickhouseUserReconcileRetry))
 	logger.Info("CronService enabled")
 
@@ -794,6 +808,19 @@ func Run(ctx context.Context, cfg Config) error {
 	restateSrv.Bind(hydrav1.NewDeploySpendCheckServiceServer(cronSvc.DeploySpendCheckServer()).
 		ConfigureHandler("CheckWorkspaceSpend", deployspendcheck.RetryPolicy()))
 	logger.Info("DeploySpendCheckService enabled")
+
+	// The orchestrator awaits every per-group evaluation. Bound retries prevent
+	// one permanently failing group from blocking the fleet heartbeat forever.
+	deployAnomalyGroupRetry := restate.WithInvocationRetryPolicy(
+		restate.WithInitialInterval(100*time.Millisecond),
+		restate.WithExponentiationFactor(2.0),
+		restate.WithMaxInterval(5*time.Second),
+		restate.WithMaxAttempts(5),
+		restate.KillOnMaxAttempts(),
+	)
+	restateSrv.Bind(hydrav1.NewDeployAnomalyServiceServer(cronSvc.DeployAnomalyServer()).
+		ConfigureHandler("Evaluate", deployAnomalyGroupRetry))
+	logger.Info("DeployAnomalyService enabled")
 
 	// Get the Restate handler and mount it on a mux with health endpoint
 	restateHandler, err := restateSrv.Handler()
