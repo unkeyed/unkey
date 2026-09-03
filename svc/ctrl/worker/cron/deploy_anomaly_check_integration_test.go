@@ -104,6 +104,7 @@ func TestRunDeployAnomalyCheck_Integration(t *testing.T) {
 	require.Equal(t, "system", resolvedBy.String)
 	require.Equal(t, "Metric returned to baseline for 3 consecutive windows", resolutionMessage.String)
 	assertStoppedDeploymentSuppression(t, h)
+	assertBaselineAdaptedResolution(t, h)
 }
 
 func assertIncompleteTelemetryNoop(
@@ -215,6 +216,49 @@ func assertStoppedDeploymentSuppression(t *testing.T, h *harness.Harness) {
 	require.NoError(t, h.DB.RO().QueryRowContext(h.Ctx,
 		"SELECT COUNT(*) FROM alert_events WHERE app_id = ?", app.appID).Scan(&alerts))
 	require.Equal(t, 1, alerts, "a stopped deployment must not open a replacement request-drop alert")
+}
+
+func assertBaselineAdaptedResolution(t *testing.T, h *harness.Harness) {
+	t.Helper()
+	app := createAnomalyTestApp(t, h, mysqltype.EnvironmentKindProduction)
+	windowEnd := time.Now().UTC().Truncate(5 * time.Minute)
+	firedAt := windowEnd.Add(-24 * time.Hour)
+	alertID := uid.New(uid.AlertPrefix)
+	require.NoError(t, h.DB.InsertAlertEvent(h.Ctx, db.InsertAlertEventParams{
+		ID: alertID, WorkspaceID: app.workspaceID, ProjectID: app.projectID,
+		AppID: app.appID, EnvironmentID: app.environmentID,
+		DeploymentID: sql.NullString{String: app.deploymentID, Valid: true},
+		Metric:       db.AlertEventsMetricRequests, FiredAt: firedAt.UnixMilli(),
+		LastSeenAt: firedAt.UnixMilli(), ObservedValue: 200, BaselineMean: 100,
+		BaselineStddev: 10, ThresholdSigma: 4,
+		WindowStart: firedAt.Add(-5 * time.Minute).UnixMilli(), WindowEnd: firedAt.UnixMilli(),
+		CreatedAt: firedAt.UnixMilli(), UpdatedAt: sql.NullInt64{},
+	}))
+
+	response, err := hydrav1.NewDeployAnomalyServiceIngressClient(h.Restate,
+		app.workspaceID+"-"+app.appID+"-"+app.environmentID).
+		Evaluate().Request(h.Ctx, &hydrav1.EvaluateDeployAnomalyRequest{
+		WindowStart: windowEnd.Add(-5 * time.Minute).UnixMilli(), WindowEnd: windowEnd.UnixMilli(),
+		WorkspaceId: app.workspaceID, ProjectId: app.projectID,
+		AppId: app.appID, EnvironmentId: app.environmentID,
+		DeploymentId: app.deploymentID, DeploymentDesiredState: "running",
+		Metrics: []*hydrav1.DeployAnomalyMetricInput{{
+			Metric:    string(db.AlertEventsMetricRequests),
+			DataState: hydrav1.DeployAnomalyMetricDataState_DEPLOY_ANOMALY_METRIC_DATA_STATE_PRESENT,
+			Current:   200, BaselineMean: 200, ObservedBaselineBuckets: 288,
+		}},
+	})
+	require.NoError(t, err)
+	require.False(t, response.GetPending(), "max-age resolution must clear metric state")
+
+	var status string
+	var resolvedBy, resolutionMessage sql.NullString
+	require.NoError(t, h.DB.RO().QueryRowContext(h.Ctx,
+		"SELECT status, resolved_by, resolution_message FROM alert_events WHERE id = ?", alertID).
+		Scan(&status, &resolvedBy, &resolutionMessage))
+	require.Equal(t, "resolved", status)
+	require.Equal(t, "system", resolvedBy.String)
+	require.Equal(t, "Baseline adapted after 24 hours", resolutionMessage.String)
 }
 
 func createAnomalyTestApp(t *testing.T, h *harness.Harness, kind mysqltype.EnvironmentKind) anomalyTestApp {

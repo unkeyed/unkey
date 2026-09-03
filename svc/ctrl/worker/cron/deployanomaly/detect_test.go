@@ -2,6 +2,7 @@ package deployanomaly
 
 import (
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 )
@@ -269,6 +270,18 @@ func TestRecoveredUsesOpeningSnapshot(t *testing.T) {
 	require.True(t, Recovered(Input{Metric: MetricMemoryUtilization, Current: 0.84}, snapshot, cfg))
 	require.False(t, Recovered(Input{Metric: MetricMemoryUtilization, Current: 0.85}, snapshot, cfg))
 	require.True(t, Recovered(Input{Metric: MetricRequestsDrop, Current: 125}, Result{ThresholdValue: 125}, cfg))
+}
+
+func TestSustainedLevelShiftExpiresAfterMaxOpenDuration(t *testing.T) {
+	cfg := DefaultConfig(SensitivityNormal)
+	firedAt := int64(5 * time.Minute / time.Millisecond)
+	snapshot := Result{BaselineMean: 100, BaselineStddev: 10, ThresholdValue: 140, SigmaK: 4}
+	sustained := Input{Metric: MetricRequests, Current: 200}
+	require.False(t, Recovered(sustained, snapshot, cfg))
+
+	lastWindowBeforeExpiry := firedAt + int64((cfg.MaxOpenDuration-5*time.Minute)/time.Millisecond)
+	require.False(t, maxOpenDurationReached(firedAt, lastWindowBeforeExpiry, cfg.MaxOpenDuration))
+	require.True(t, maxOpenDurationReached(firedAt, firedAt+int64(cfg.MaxOpenDuration/time.Millisecond), cfg.MaxOpenDuration))
 }
 
 func TestDetectNewAppSteadyTraffic(t *testing.T) {

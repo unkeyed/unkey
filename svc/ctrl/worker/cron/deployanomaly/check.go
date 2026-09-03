@@ -3,6 +3,7 @@ package deployanomaly
 import (
 	"database/sql"
 	"fmt"
+	"time"
 
 	restate "github.com/restatedev/sdk-go"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
@@ -13,8 +14,9 @@ import (
 )
 
 const (
-	autoResolveMessage = "Metric returned to baseline for 3 consecutive windows"
-	stoppedMessage     = "Deployment stopped"
+	autoResolveMessage     = "Metric returned to baseline for 3 consecutive windows"
+	baselineAdaptedMessage = "Baseline adapted after 24 hours"
+	stoppedMessage         = "Deployment stopped"
 )
 
 // CheckConfig holds the per-group evaluator dependencies.
@@ -38,6 +40,7 @@ func NewCheckHandler(cfg CheckConfig) (*CheckHandler, error) {
 func candidateKey(metric Metric) string       { return "candidate:" + string(metric) }
 func candidateWindowKey(metric Metric) string { return "candidate_window:" + string(metric) }
 func openAlertKey(metric Metric) string       { return "open_alert:" + string(metric) }
+func firedAtKey(metric Metric) string         { return "fired_at:" + string(metric) }
 func quietKey(metric Metric) string           { return "quiet:" + string(metric) }
 func snapshotKey(metric Metric) string        { return "snapshot:" + string(metric) }
 func detectorInputKey(metric Metric) string   { return "detector_input:" + string(metric) }
@@ -180,6 +183,7 @@ func (h *CheckHandler) reconcile(ctx restate.ObjectContext, req *hydrav1.Evaluat
 			Reason:       "reconciled from open alert",
 		}
 		restate.Set(ctx, openAlertKey(metric), row.ID)
+		restate.Set(ctx, firedAtKey(metric), row.FiredAt)
 		restate.Set(ctx, snapshotKey(metric), snapshot)
 	}
 	restate.Set(ctx, "open_alerts_reconciled", true)
@@ -205,6 +209,7 @@ func openingThreshold(metric Metric, mean, stddev, sigma float64, cfg Config) fl
 
 type openResult struct {
 	ID       string
+	FiredAt  int64
 	Snapshot Result
 }
 
@@ -214,13 +219,14 @@ func (h *CheckHandler) open(ctx restate.ObjectContext, req *hydrav1.EvaluateDepl
 			WorkspaceID: req.GetWorkspaceId(), AppID: req.GetAppId(), EnvironmentID: req.GetEnvironmentId(),
 		})
 		if findErr != nil {
-			return openResult{}, findErr
+			var empty openResult
+			return empty, findErr
 		}
 		for _, alert := range existing {
 			if Metric(alert.Metric) == input.Metric {
 				cfg := DefaultConfig(SensitivityNormal)
 				return openResult{
-					ID: alert.ID,
+					ID: alert.ID, FiredAt: alert.FiredAt,
 					Snapshot: Result{
 						Outcome: OutcomeAnomaly, Observed: alert.ObservedValue,
 						BaselineMean: alert.BaselineMean, BaselineStddev: alert.BaselineStddev,
@@ -243,7 +249,7 @@ func (h *CheckHandler) open(ctx restate.ObjectContext, req *hydrav1.EvaluateDepl
 			WindowStart: req.GetWindowStart(), WindowEnd: req.GetWindowEnd(), CreatedAt: req.GetWindowEnd(),
 			UpdatedAt: sql.NullInt64{},
 		})
-		return openResult{ID: id, Snapshot: result}, err
+		return openResult{ID: id, FiredAt: req.GetWindowEnd(), Snapshot: result}, err
 	}, restate.WithName("insert anomaly alert"))
 	if err != nil {
 		return fmt.Errorf("insert anomaly alert for %s: %w", input.Metric, err)
@@ -251,6 +257,7 @@ func (h *CheckHandler) open(ctx restate.ObjectContext, req *hydrav1.EvaluateDepl
 	alertID := opened.ID
 
 	restate.Set(ctx, openAlertKey(input.Metric), alertID)
+	restate.Set(ctx, firedAtKey(input.Metric), opened.FiredAt)
 	restate.Set(ctx, snapshotKey(input.Metric), opened.Snapshot)
 	restate.Set(ctx, detectorInputKey(input.Metric), input)
 	restate.Set(ctx, quietKey(input.Metric), 0)
@@ -269,6 +276,13 @@ func (h *CheckHandler) open(ctx restate.ObjectContext, req *hydrav1.EvaluateDepl
 }
 
 func (h *CheckHandler) evaluateOpen(ctx restate.ObjectContext, req *hydrav1.EvaluateDeployAnomalyRequest, input Input, alertID string, cfg Config) error {
+	firedAt, err := restate.Get[int64](ctx, firedAtKey(input.Metric))
+	if err != nil {
+		return fmt.Errorf("get fired time for %s: %w", input.Metric, err)
+	}
+	if maxOpenDurationReached(firedAt, req.GetWindowEnd(), cfg.MaxOpenDuration) {
+		return h.resolve(ctx, req, alertID, input.Metric, baselineAdaptedMessage)
+	}
 	snapshot, err := restate.Get[Result](ctx, snapshotKey(input.Metric))
 	if err != nil {
 		return fmt.Errorf("get opening snapshot for %s: %w", input.Metric, err)
@@ -289,6 +303,10 @@ func (h *CheckHandler) evaluateOpen(ctx restate.ObjectContext, req *hydrav1.Eval
 		return nil
 	}
 	return h.resolve(ctx, req, alertID, input.Metric, autoResolveMessage)
+}
+
+func maxOpenDurationReached(firedAt, windowEnd int64, duration time.Duration) bool {
+	return firedAt > 0 && windowEnd >= firedAt && time.Duration(windowEnd-firedAt)*time.Millisecond >= duration
 }
 
 func (h *CheckHandler) touch(ctx restate.ObjectContext, alertID string, windowEnd int64, observed float64) error {
@@ -347,6 +365,7 @@ func clearMetricState(ctx restate.ObjectContext, metric Metric) {
 	restate.Clear(ctx, candidateKey(metric))
 	restate.Clear(ctx, candidateWindowKey(metric))
 	restate.Clear(ctx, openAlertKey(metric))
+	restate.Clear(ctx, firedAtKey(metric))
 	restate.Clear(ctx, quietKey(metric))
 	restate.Clear(ctx, snapshotKey(metric))
 	restate.Clear(ctx, detectorInputKey(metric))
