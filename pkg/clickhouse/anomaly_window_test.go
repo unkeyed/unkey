@@ -85,6 +85,36 @@ func TestAnomalyWindows(t *testing.T) {
 		require.Equal(t, int64(2), row.BaselineBuckets)
 	})
 
+	t.Run("request family returns baseline-only app", func(t *testing.T) {
+		workspaceID := uid.New(uid.WorkspacePrefix)
+		projectID := uid.New(uid.ProjectPrefix)
+		appID := uid.New("app")
+		environmentID := uid.New("env")
+
+		// The 24-hour baseline contains 288 buckets of 1,000 requests. Its
+		// mean is 1,000 and population standard deviation is zero. There is
+		// no current bucket, which must produce current=0 without hiding the
+		// app from request-drop detection.
+		insertRequestBaseline(t, ctx, conn, windowStart, workspaceID, projectID, appID, environmentID, 1_000)
+
+		rows, err := client.GetRequestAnomalyWindows(ctx, clickhouse.AnomalyWindowsRequest{
+			WindowStart:  windowStart.UnixMilli(),
+			WorkspaceIDs: []string{workspaceID},
+		})
+		require.NoError(t, err)
+		require.Len(t, rows, 1)
+
+		row := rows[0]
+		require.Equal(t, workspaceID, row.WorkspaceID)
+		require.Equal(t, projectID, row.ProjectID)
+		require.Equal(t, appID, row.AppID)
+		require.Equal(t, environmentID, row.EnvironmentID)
+		require.Equal(t, 0.0, row.RequestsCurrent)
+		require.Equal(t, 1_000.0, row.RequestsBaselineMean)
+		require.Equal(t, 0.0, row.RequestsBaselineStddev)
+		require.Equal(t, int64(288), row.BaselineBuckets)
+	})
+
 	t.Run("resource family", func(t *testing.T) {
 		workspaceID := uid.New(uid.WorkspacePrefix)
 		projectID := uid.New(uid.ProjectPrefix)
@@ -195,6 +225,40 @@ func insertRequestCounts(
 		`, bucket, workspaceID, projectID, appID, environmentID, deploymentID, status, count)
 		require.NoError(t, err)
 	}
+}
+
+// insertRequestBaseline writes a complete 24-hour series in one batch so the
+// integration test covers a missing current bucket without MV timing overhead.
+func insertRequestBaseline(
+	t *testing.T,
+	ctx context.Context,
+	conn ch.Conn,
+	windowStart time.Time,
+	workspaceID, projectID, appID, environmentID string,
+	requestsPerBucket int64,
+) {
+	t.Helper()
+	batch, err := conn.PrepareBatch(ctx, `
+		INSERT INTO default.frontline_requests_per_5m_v1
+			(time, workspace_id, project_id, app_id, environment_id, deployment_id, response_status, count)
+	`)
+	require.NoError(t, err)
+
+	baselineStart := windowStart.Add(-24 * time.Hour)
+	for i := range 288 {
+		err = batch.Append(
+			baselineStart.Add(time.Duration(i)*5*time.Minute),
+			workspaceID,
+			projectID,
+			appID,
+			environmentID,
+			"deployment-baseline",
+			int32(200),
+			requestsPerBucket,
+		)
+		require.NoError(t, err)
+	}
+	require.NoError(t, batch.Send())
 }
 
 type resourceMinute struct {

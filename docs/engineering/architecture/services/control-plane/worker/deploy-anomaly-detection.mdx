@@ -7,9 +7,13 @@ description: "How the control plane detects unusual Deploy traffic, resource use
 
 Deploy anomaly detection evaluates closed 5-minute windows. Each sigma metric compares the current window with up to 288 buckets from the preceding 24 hours. The current bucket is never part of its own baseline.
 
-The detector uses the population mean and population standard deviation. It fires only when:
+The detector uses the population mean and population standard deviation. Traffic and usage spikes fire only when:
 
 `current > mean + k * max(stddev, mean * 0.1, metric floor)`
+
+Request drops use the lower side of the same distribution:
+
+`current < max(0, mean - k * max(stddev, mean * 0.1, request floor))`
 
 Normal sensitivity uses `k = 4`. Low sensitivity uses `k = 5`, and high sensitivity uses `k = 3`. At least 12 non-empty baseline buckets are required. ClickHouse returns statistics for these observed buckets, and the detector pads the rest of the available window with zero because a missing request or usage row means no traffic.
 
@@ -20,7 +24,8 @@ Absolute floors prevent small changes from producing noisy alerts. Callers can o
 | Metric | Standard deviation floor | Minimum activity |
 | --- | ---: | ---: |
 | 4xx or 5xx errors | 2 errors | 10 errors and 100 requests |
-| Requests | 20 requests | 200 requests |
+| Request spike | 20 requests | 200 current requests |
+| Request drop | 20 requests | 200 baseline requests |
 | Egress | 1 MiB | 100 MiB |
 | CPU | 1 second | 60 seconds |
 
@@ -36,9 +41,15 @@ Memory utilization, OOM kills, and crash loops use direct thresholds instead of 
 
 ## Confirmation and resolution
 
-4xx and 5xx anomalies require two consecutive anomalous windows. The first window becomes a candidate. The second becomes an anomaly when the per-app virtual object supplies the previous candidate state. Request, egress, CPU, memory, OOM, and crash-loop anomalies fire after one window.
+4xx, 5xx, and request-drop anomalies require two consecutive anomalous windows. The first window becomes a candidate. The second becomes an anomaly when the per-app virtual object supplies the previous candidate state. A single empty request window often comes from ingest lag through Frontline's 5-second buffer and the per-minute and per-5-minute materialized views, rather than an outage. Request spikes, egress, CPU, memory, OOM, and crash-loop anomalies fire after one window.
 
 An open anomaly resolves after three consecutive quiet windows. This delay prevents one or two normal samples from closing an incident during an unstable period.
+
+## Request-drop orchestration
+
+`Detect` classifies metric values without deployment lifecycle context. The orchestrator must suppress request-drop detection when the app was intentionally scaled to zero, stopped, or paused.
+
+A missing request row has metric-specific meaning after detection starts. For `requests_drop`, a missing row in a later window means traffic remains at zero and extends the candidate or open alert. For spike metrics, a missing row is a quiet window and counts toward resolution.
 
 ## Code
 

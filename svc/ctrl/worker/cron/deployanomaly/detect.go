@@ -12,6 +12,7 @@ const (
 	MetricError5xx          Metric = "error_5xx"
 	MetricError4xx          Metric = "error_4xx"
 	MetricRequests          Metric = "requests"
+	MetricRequestsDrop      Metric = "requests_drop"
 	MetricEgressBytes       Metric = "egress_bytes"
 	MetricCPUSeconds        Metric = "cpu_seconds"
 	MetricMemoryUtilization Metric = "memory_utilization"
@@ -66,14 +67,18 @@ type StddevFloors struct {
 // ActivityFloors suppresses alerts whose absolute activity is too small to be
 // actionable. Error metrics must meet both ErrorCount and ErrorRequests.
 type ActivityFloors struct {
-	ErrorCount        float64
-	ErrorRequests     float64
-	Requests          float64
-	EgressBytes       float64
-	CPUSeconds        float64
-	MemoryUtilization float64
-	OOMKilled         float64
-	CrashLoop         float64
+	ErrorCount    float64
+	ErrorRequests float64
+	Requests      float64
+	// RequestsDropBaseline applies to the padded baseline rather than the
+	// current window. Quiet apps commonly have zero requests, so only a drop
+	// from sustained activity indicates a likely outage.
+	RequestsDropBaseline float64
+	EgressBytes          float64
+	CPUSeconds           float64
+	MemoryUtilization    float64
+	OOMKilled            float64
+	CrashLoop            float64
 }
 
 // Config holds tunable detection thresholds. Start with [DefaultConfig], then
@@ -86,8 +91,9 @@ type Config struct {
 
 // DefaultConfig returns the production defaults for a sensitivity. The
 // standard-deviation floors are 2 errors, 20 requests, 1 MiB egress, and 1 CPU
-// second. Activity floors are 10 errors with 100 requests, 200 requests,
-// 100 MiB egress, 60 CPU seconds, 90% memory, and one OOM or crash-loop event.
+// second. Activity floors are 10 errors with 100 requests, 200 current requests
+// for spikes, 200 baseline requests for drops, 100 MiB egress, 60 CPU seconds,
+// 90% memory, and one OOM or crash-loop event.
 func DefaultConfig(sensitivity Sensitivity) Config {
 	return Config{
 		SigmaK: sensitivity.SigmaK(),
@@ -98,14 +104,15 @@ func DefaultConfig(sensitivity Sensitivity) Config {
 			CPUSeconds:  1,
 		},
 		ActivityFloors: ActivityFloors{
-			ErrorCount:        10,
-			ErrorRequests:     100,
-			Requests:          200,
-			EgressBytes:       100 << 20,
-			CPUSeconds:        60,
-			MemoryUtilization: 0.90,
-			OOMKilled:         1,
-			CrashLoop:         1,
+			ErrorCount:           10,
+			ErrorRequests:        100,
+			Requests:             200,
+			RequestsDropBaseline: 200,
+			EgressBytes:          100 << 20,
+			CPUSeconds:           60,
+			MemoryUtilization:    0.90,
+			OOMKilled:            1,
+			CrashLoop:            1,
 		},
 	}
 }
@@ -143,8 +150,11 @@ type Result struct {
 	Reason         string
 }
 
-// Detect classifies one closed metric window. Error-rate spikes need two
-// consecutive anomalous windows; all usage and threshold metrics fire from one.
+// Detect classifies one closed metric window. Error spikes and request drops
+// need two consecutive anomalous windows. A single empty request window often
+// reflects ingest lag through Frontline's buffer and the per-minute and
+// per-5-minute materialized views, rather than a workload outage. Other usage
+// and threshold metrics fire from one window.
 func Detect(input Input, cfg Config) Result {
 	switch input.Metric {
 	case MetricMemoryUtilization:
@@ -153,6 +163,8 @@ func Detect(input Input, cfg Config) Result {
 		return detectThreshold(input.Current, cfg.ActivityFloors.OOMKilled, "OOM kill observed")
 	case MetricCrashLoop:
 		return detectThreshold(input.Current, cfg.ActivityFloors.CrashLoop, "crash loop observed")
+	case MetricRequestsDrop:
+		return detectRequestsDrop(input, cfg)
 	case MetricError5xx, MetricError4xx, MetricRequests, MetricEgressBytes, MetricCPUSeconds:
 		return detectSigma(input, cfg)
 	default:
@@ -190,8 +202,7 @@ func detectThreshold(observed, threshold float64, reason string) Result {
 // detectSigma applies zero-padding, variance guards, activity floors, and the
 // strict sigma comparison for count-like metrics.
 func detectSigma(input Input, cfg Config) Result {
-	mean, stddev := paddedBaseline(input)
-	stddev = max(stddev, mean*0.1, stddevFloor(input.Metric, cfg.StddevFloors))
+	mean, stddev := effectiveBaseline(input, cfg)
 	threshold := mean + cfg.SigmaK*stddev
 	result := Result{
 		Outcome:        OutcomeNone,
@@ -232,6 +243,52 @@ func detectSigma(input Input, cfg Config) Result {
 	return result
 }
 
+// detectRequestsDrop applies the lower sigma bound and confirms it across two
+// windows before alerting. The baseline activity floor prevents normal zero
+// traffic on quiet apps from becoming an outage signal.
+func detectRequestsDrop(input Input, cfg Config) Result {
+	mean, stddev := effectiveBaseline(input, cfg)
+	threshold := max(0, mean-cfg.SigmaK*stddev)
+	result := Result{
+		Outcome:        OutcomeNone,
+		Observed:       input.Current,
+		BaselineMean:   mean,
+		BaselineStddev: stddev,
+		Threshold:      threshold,
+		SigmaK:         cfg.SigmaK,
+		Reason:         "current value did not fall below sigma threshold",
+	}
+
+	if input.ObservedBaselineBuckets < minimumBaselineBuckets {
+		result.Outcome = OutcomeInsufficient
+		result.Reason = "baseline has fewer than 12 buckets"
+		return result
+	}
+	if mean < cfg.ActivityFloors.RequestsDropBaseline {
+		result.Reason = "baseline activity is below the request drop floor"
+		return result
+	}
+	if input.Current >= threshold {
+		return result
+	}
+	if !input.PreviousCandidate {
+		result.Outcome = OutcomeCandidate
+		result.Reason = "request drop needs a second consecutive window"
+		return result
+	}
+
+	result.Outcome = OutcomeAnomaly
+	result.Reason = "request drop confirmed in consecutive windows"
+	return result
+}
+
+// effectiveBaseline returns the zero-padded mean and guarded population
+// standard deviation shared by upper and lower sigma rules.
+func effectiveBaseline(input Input, cfg Config) (float64, float64) {
+	mean, stddev := paddedBaseline(input)
+	return mean, max(stddev, mean*0.1, stddevFloor(input.Metric, cfg.StddevFloors))
+}
+
 // paddedBaseline reconstructs population moments after adding zero-valued
 // missing buckets without requiring ClickHouse to return every bucket to Go.
 func paddedBaseline(input Input) (float64, float64) {
@@ -252,7 +309,7 @@ func stddevFloor(metric Metric, floors StddevFloors) float64 {
 	switch metric {
 	case MetricError5xx, MetricError4xx:
 		return floors.Errors
-	case MetricRequests:
+	case MetricRequests, MetricRequestsDrop:
 		return floors.Requests
 	case MetricEgressBytes:
 		return floors.EgressBytes
@@ -277,15 +334,15 @@ func meetsActivityFloor(input Input, floors ActivityFloors) bool {
 		return input.Current >= floors.EgressBytes
 	case MetricCPUSeconds:
 		return input.Current >= floors.CPUSeconds
-	case MetricMemoryUtilization, MetricOOMKilled, MetricCrashLoop:
+	case MetricRequestsDrop, MetricMemoryUtilization, MetricOOMKilled, MetricCrashLoop:
 		return false
 	default:
 		return false
 	}
 }
 
-// shouldResolve reports whether an open anomaly has stayed quiet long enough
+// ShouldResolve reports whether an open anomaly has stayed quiet long enough
 // to resolve without flapping on one or two normal windows.
-func shouldResolve(consecutiveQuietWindows int) bool {
+func ShouldResolve(consecutiveQuietWindows int) bool {
 	return consecutiveQuietWindows >= 3
 }
