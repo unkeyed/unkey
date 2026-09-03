@@ -66,6 +66,8 @@ func TestSearchAtScale(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
 			req := handler.Request{}
 			if tc.search != "" {
 				req.Search = &tc.search
