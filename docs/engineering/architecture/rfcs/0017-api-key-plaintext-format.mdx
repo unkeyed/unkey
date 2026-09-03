@@ -25,8 +25,10 @@ This only works for root keys right now, as they have a constant `unkey_` prefix
 The general grammar is as follows. `[x]` indicates the number of characters.
 
 ```plaintext
-{prefix[1-16]}_{random[8]}unkeyv{version[1]}{depending on the version}
+{prefix[0-16]}_{random[8]}unkeyv{version[1]}{depending on the version}
 ```
+
+The separator is present only when the prefix is present.
 
 Version numbering starts at `1`. The version occupies one Base58 character and  
 increments in Base58 alphabet order. It must appear before every version-dependent  
@@ -54,21 +56,21 @@ I chose to put it after 8 chars of randomness. This works, but also means that t
 Version 1 has this exact shape:
 
 ```plaintext
-{prefix[1-16]}_{random[8]}unkeyv1{random[36]}{checksum[6]}
+{prefix[0-16]}{separator[0-1]}{random[8]}unkeyv1{random[36]}{checksum[6]}
 ```
 
 
 | Field              | Length | Contents                       |
 | ------------------ | ------: | ------------------------------ |
-| Prefix             | 1–16   | User controlled prefix         |
-| Separator          | 1      | `_`                            |
+| Prefix             | 0–16   | Optional configured prefix     |
+| Separator          | 0–1    | `_` when the prefix is present |
 | Random head        | 8      | First part of the random value |
 | Marker and version | 7      | Literal `unkeyv1`              |
 | Random tail        | 36     | Rest of the random value       |
 | Checksum           | 6      | Fixed-width Base58 CRC-32C     |
 
 
-The complete key is between 59 and 74 characters.
+The complete key is between 57 and 74 characters.
 
 The random field contains 44 independent, uniformly distributed Base58
 characters. It has about 257.75 bits of entropy.
@@ -82,12 +84,13 @@ The prefix, marker, version, and checksum add no entropy.
 Prefixes must match:
 
 ```plaintext
-^[A-Za-z0-9_]{0,15}[A-Za-z0-9]$
+^(?:[A-Za-z0-9_]{0,15}[A-Za-z0-9])?$
 ```
 
-They contain one through 16 ASCII letters, numbers, or underscores, and must
-end in an alphanumeric character. `prod_sk`, `prod_key`, and `unkey` are valid.
-`prod_sk_` and prefixes longer than 16 characters are invalid.
+The empty prefix is valid. A non-empty prefix contains one through 16 ASCII
+letters, numbers, or underscores. It must end in an alphanumeric character.
+`prod_sk`, `prod_key`, and `unkey` are valid. `prod_sk_` and prefixes longer
+than 16 characters are invalid.
 
 #### Checksum
 
@@ -95,7 +98,8 @@ GitHub [recommends](https://docs.github.com/code-security/secret-scanning/secret
 We calculate a CRC-32 checksum over the complete key up to, but excluding, the checksum:
 
 ```plaintext
-unsigned_key   = prefix + "_" + random_head + "unkeyv1" + random_tail
+key_body       = random_head + "unkeyv1" + random_tail
+unsigned_key   = prefix == "" ? key_body : prefix + "_" + key_body
 checksum_value = CRC-32C(ASCII(unsigned_key))
 checksum_text  = base58Fixed(checksum_value, 6)
 key            = unsigned_key + checksum_text
@@ -106,7 +110,7 @@ key            = unsigned_key + checksum_text
 The version 1 regex for github is:
 
 ```plaintext
-[A-Za-z0-9_]{0,15}[A-Za-z0-9]_[1-9A-HJ-NP-Za-km-z]{8}unkeyv1[1-9A-HJ-NP-Za-km-z]{42}
+(?:[A-Za-z0-9_]{0,15}[A-Za-z0-9]_)?[1-9A-HJ-NP-Za-km-z]{8}unkeyv1[1-9A-HJ-NP-Za-km-z]{42}
 ```
 
 Legacy root keys keep their existing GitHub pattern. Either we can provide 2 expressions, or we just merge them for one mega-cursed one.

@@ -1,0 +1,66 @@
+post:
+  tags:
+    - keys
+  summary: Create key
+  description: |
+    Create a new key in a keyspace.
+
+    Pass the returned key to your user. If `recoverable` is `true`, use `/v2/keys.getKey` with the key ID to retrieve it later.
+
+    **Required permissions**
+
+    Your credential needs:
+    - `unkey:v1:<workspace_id>:projects/<project_id>/keyspaces/<keyspace_id>/keys/*#write`
+
+    Replace `<workspace_id>`, `<project_id>`, and `<keyspace_id>` with their IDs.
+    Keep `*` unchanged. It matches any key ID because the new key does not have an ID yet.
+  operationId: keys.createKeyV3
+
+  requestBody:
+    content:
+      application/json:
+        schema:
+          "$ref": "./V3KeysCreateKeyRequestBody.yaml"
+  responses:
+    "200":
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../v2/keys/createKey/V2KeysCreateKeyResponseBody.yaml"
+      description: The API key was created. The response contains the complete key.
+    "400":
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/BadRequestErrorResponse.yaml"
+    "401":
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/UnauthorizedErrorResponse.yaml"
+    "403":
+      description: Forbidden
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/ForbiddenErrorResponse.yaml"
+    "404":
+      description: Not found
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/NotFoundErrorResponse.yaml"
+    "429":
+      description: Too Many Requests
+      content:
+        application/problem+json:
+          schema:
+            "$ref": "../../../../error/TooManyRequestsErrorResponse.yaml"
+    "500":
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/InternalServerErrorResponse.yaml"
+      description: Internal server error

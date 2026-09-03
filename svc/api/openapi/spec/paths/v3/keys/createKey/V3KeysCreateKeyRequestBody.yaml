@@ -1,0 +1,48 @@
+type: object
+required:
+  - keyspace
+properties:
+  keyspace:
+    type: string
+    minLength: 3
+    maxLength: 255
+    pattern: "^[a-zA-Z0-9_]+$"
+    description: |
+      The ID of the keyspace that will contain this key.
+    example: ks_1234abcd
+  prefix:
+    type: string
+    maxLength: 16
+    pattern: "^(?:[A-Za-z0-9_]{0,15}[A-Za-z0-9])?$"
+    description: |
+      Adds a visual identifier to the beginning of the generated key.
+      Omit this field to use the keyspace default prefix.
+      Set this field to an empty string to create a key without a prefix.
+      For a non-empty prefix, use up to 16 ASCII letters, numbers, or underscores, and end with a letter or number.
+    example: prod_sk
+  name:
+    "$ref": "../../../v2/keys/createKey/V2KeysCreateKeyRequestBody.yaml#/properties/name"
+  externalId:
+    "$ref": "../../../v2/keys/createKey/V2KeysCreateKeyRequestBody.yaml#/properties/externalId"
+  meta:
+    "$ref": "../../../v2/keys/createKey/V2KeysCreateKeyRequestBody.yaml#/properties/meta"
+  roles:
+    "$ref": "../../../v2/keys/createKey/V2KeysCreateKeyRequestBody.yaml#/properties/roles"
+  permissions:
+    "$ref": "../../../v2/keys/createKey/V2KeysCreateKeyRequestBody.yaml#/properties/permissions"
+  expires:
+    "$ref": "../../../v2/keys/createKey/V2KeysCreateKeyRequestBody.yaml#/properties/expires"
+  credits:
+    "$ref": "../../../../common/KeyCreditsData.yaml"
+    description: Controls the credit balance and optional refill for this key.
+  ratelimits:
+    type: array
+    maxItems: 50
+    items:
+      "$ref": "../../../../common/RatelimitRequest.yaml"
+    description: Defines the time-based rate limits for this key.
+  enabled:
+    "$ref": "../../../v2/keys/createKey/V2KeysCreateKeyRequestBody.yaml#/properties/enabled"
+  recoverable:
+    "$ref": "../../../v2/keys/createKey/V2KeysCreateKeyRequestBody.yaml#/properties/recoverable"
+additionalProperties: false
