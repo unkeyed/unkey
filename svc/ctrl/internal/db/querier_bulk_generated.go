@@ -8,6 +8,7 @@ import "context"
 type BulkQuerier interface {
 	InsertAcmeChallenges(ctx context.Context, args []InsertAcmeChallengeParams) error
 	InsertAcmeUsers(ctx context.Context, args []InsertAcmeUserParams) error
+	InsertAlertEvents(ctx context.Context, args []InsertAlertEventParams) error
 	InsertApis(ctx context.Context, args []InsertApiParams) error
 	UpsertAppBuildSettings(ctx context.Context, args []UpsertAppBuildSettingsParams) error
 	InsertAppEnvironmentVariables(ctx context.Context, args []InsertAppEnvironmentVariableParams) error
