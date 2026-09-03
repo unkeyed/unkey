@@ -44,7 +44,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	app, err := db.Query.FindAppByProjectAndIdOrSlug(ctx, h.DB.RO(), db.FindAppByProjectAndIdOrSlugParams{
-		WorkspaceID: principal.WorkspaceID,
+		WorkspaceID: principal.AuthorizedWorkspaceID,
 		Project:     req.Project,
 		App:         req.App,
 	})
@@ -72,8 +72,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			Action:       rbac.ReadEnvironment,
 		}),
 		rbac.U(
-			urn.New().Workspace(principal.WorkspaceID).Project(app.ProjectID).App(app.ID).Environment("*"),
-			permissions.ReadEnvironment{},
+			urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(app.ProjectID).App(app.ID).Environment("*"),
+			permissions.Read,
 		),
 	))
 	if err != nil {

@@ -77,7 +77,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	// Validate key belongs to authorized workspace
 	key := db.ToKeyData(keyRow)
 
-	if key.Key.WorkspaceID != principal.WorkspaceID {
+	if key.Key.WorkspaceID != principal.AuthorizedWorkspaceID {
 		return fault.New("key not found",
 			fault.Code(codes.Data.Key.NotFound.URN()),
 			fault.Internal("key belongs to different workspace"), fault.Public("The specified key was not found."),
@@ -96,8 +96,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			Action:       rbac.UpdateKey,
 		}),
 		rbac.U(
-			urn.New().Workspace(principal.WorkspaceID).Keyspace(key.Key.KeyAuthID).Key(key.Key.ID),
-			permissions.UpdateKey{},
+			urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(key.KeyAuth.ProjectID).Keyspace(key.Key.KeyAuthID).Key(key.Key.ID),
+			permissions.Write,
 		),
 	))
 	if err != nil {
@@ -125,7 +125,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		// All reads happen inside the transaction after acquiring the lock
 		// to prevent TOCTOU races with concurrent requests.
 		foundRoles, err := db.Query.FindManyRolesByNamesWithPerms(ctx, tx, db.FindManyRolesByNamesWithPermsParams{
-			WorkspaceID: principal.WorkspaceID,
+			WorkspaceID: principal.AuthorizedWorkspaceID,
+			ProjectID:   key.KeyAuth.ProjectID,
 			Names:       req.Roles,
 		})
 		if err != nil {
@@ -193,7 +194,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				roleIds = append(roleIds, role.ID)
 
 				auditLogs = append(auditLogs, auditlog.AuditLog{
-					WorkspaceID:   principal.WorkspaceID,
+					WorkspaceID:   principal.AuthorizedWorkspaceID,
 					Event:         auditlog.AuthDisconnectRoleKeyEvent,
 					ActorType:     auditlog.AuditLogActor(principal.Subject.Type),
 					ActorID:       principal.Subject.ID,
@@ -242,12 +243,12 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				keyRolesToInsert = append(keyRolesToInsert, db.InsertKeyRoleParams{
 					KeyID:       req.KeyId,
 					RoleID:      role.ID,
-					WorkspaceID: principal.WorkspaceID,
+					WorkspaceID: principal.AuthorizedWorkspaceID,
 					CreatedAtM:  time.Now().UnixMilli(),
 				})
 
 				auditLogs = append(auditLogs, auditlog.AuditLog{
-					WorkspaceID:   principal.WorkspaceID,
+					WorkspaceID:   principal.AuthorizedWorkspaceID,
 					Event:         auditlog.AuthConnectRoleKeyEvent,
 					ActorType:     auditlog.AuditLogActor(principal.Subject.Type),
 					ActorID:       principal.Subject.ID,

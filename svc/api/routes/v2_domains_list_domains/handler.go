@@ -50,7 +50,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	env, err := db.Query.FindEnvironmentByIdentifiers(ctx, h.DB.RO(), db.FindEnvironmentByIdentifiersParams{
-		WorkspaceID: principal.WorkspaceID,
+		WorkspaceID: principal.AuthorizedWorkspaceID,
 		Project:     req.Project,
 		App:         req.App,
 		Environment: req.Environment,
@@ -84,8 +84,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			Action:       rbac.ReadDomain,
 		}),
 		rbac.U(
-			urn.New().Workspace(principal.WorkspaceID).Project(env.ProjectID).App(env.AppID).Environment(env.ID).Domain("*"),
-			permissions.ReadDomain{},
+			urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(env.ProjectID).App(env.AppID).Environment(env.ID).Domain("*"),
+			permissions.Read,
 		),
 	)); err != nil {
 		return apierrors.MaskInsufficientPermissionsAsNotFound(
@@ -99,7 +99,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	search := mysql.SearchContains(strings.TrimSpace(ptr.SafeDeref(req.Search)))
 
 	rows, err := db.Query.ListCustomDomainsByEnvironment(ctx, h.DB.RO(), db.ListCustomDomainsByEnvironmentParams{
-		WorkspaceID:   principal.WorkspaceID,
+		WorkspaceID:   principal.AuthorizedWorkspaceID,
 		ProjectID:     env.ProjectID,
 		EnvironmentID: env.ID,
 		IDCursor:      p.Cursor,

@@ -2,15 +2,18 @@ package handler
 
 import (
 	"context"
+	"net/http"
+
 	"github.com/unkeyed/unkey/pkg/array"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/internal/pagination"
 	"github.com/unkeyed/unkey/svc/api/openapi"
-	"net/http"
 )
 
 type (
@@ -47,7 +50,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	// Use the namespace field directly - it can be either name or ID
 	namespace, err := db.Query.FindRatelimitNamespace(ctx, h.DB.RO(), db.FindRatelimitNamespaceParams{
-		WorkspaceID: principal.WorkspaceID,
+		WorkspaceID: principal.AuthorizedWorkspaceID,
 		Namespace:   req.Namespace,
 	})
 	if err != nil {
@@ -63,7 +66,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	if namespace.WorkspaceID != principal.WorkspaceID {
+	if namespace.WorkspaceID != principal.AuthorizedWorkspaceID {
 		return fault.New("namespace not found",
 			fault.Code(codes.Data.RatelimitNamespace.NotFound.URN()),
 			fault.Internal("namespace was deleted"), fault.Public("This namespace does not exist."),
@@ -71,6 +74,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	err = principal.Authorize(rbac.Or(
+		rbac.U(
+			urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(namespace.ProjectID).RatelimitNamespace(namespace.ID).Override("*"),
+			permissions.Read,
+		),
 		rbac.T(rbac.Tuple{
 			ResourceType: rbac.Ratelimit,
 			ResourceID:   namespace.ID,
@@ -89,7 +96,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	p := pagination.Parse(req.Limit, req.Cursor, 50)
 
 	overrides, err := db.Query.ListRatelimitOverridesByNamespaceID(ctx, h.DB.RO(), db.ListRatelimitOverridesByNamespaceIDParams{
-		WorkspaceID: principal.WorkspaceID,
+		WorkspaceID: principal.AuthorizedWorkspaceID,
 		NamespaceID: namespace.ID,
 		Limit:       p.FetchLimit(),
 		CursorID:    p.Cursor,

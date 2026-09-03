@@ -55,7 +55,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	environment, err := db.Query.FindEnvironmentByIdentifiers(ctx, h.DB.RO(), db.FindEnvironmentByIdentifiersParams{
-		WorkspaceID: principal.WorkspaceID,
+		WorkspaceID: principal.AuthorizedWorkspaceID,
 		Project:     req.Project,
 		App:         req.App,
 		Environment: req.Environment,
@@ -84,8 +84,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			Action:       rbac.CreateDeployment,
 		}),
 		rbac.U(
-			urn.New().Workspace(principal.WorkspaceID).Project(environment.ProjectID).App(environment.AppID).Environment(environment.ID).Deployment("*"),
-			permissions.CreateDeployment{},
+			urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(environment.ProjectID).App(environment.AppID).Environment(environment.ID).Deployment("*"),
+			permissions.Write,
 		),
 	))
 	if err != nil {
@@ -158,7 +158,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 
 	case req.Deployment != nil:
-		gitCommit, dockerImage, err := h.resolveRedeploy(ctx, principal.WorkspaceID, environment.AppID, environment.ID, req.Deployment.DeploymentId)
+		gitCommit, dockerImage, err := h.resolveRedeploy(ctx, principal.AuthorizedWorkspaceID, environment.AppID, environment.ID, req.Deployment.DeploymentId)
 		if err != nil {
 			return err
 		}

@@ -40,11 +40,11 @@ func TestErrorMiddleware_500_LogsRichContextAndHidesInternalDetails(t *testing.T
 
 	sess, rec := newSession(t, http.MethodPost, "/v2/keys.verifyKey?debug=1")
 	sess.SetPrincipal(&principal.Principal{
-		Version:     principal.Version,
-		Subject:     principal.Subject{ID: "key_test", Name: "Test Key", Type: principal.SubjectTypeRootKey},
-		Type:        principal.TypeAPIKey,
-		Source:      principal.KeySource{KeyID: "key_test", KeySpaceID: "ks_test"},
-		WorkspaceID: "ws_test_123",
+		Version:               principal.Version,
+		Subject:               principal.Subject{ID: "key_test", Name: "Test Key", Type: principal.SubjectTypeRootKey},
+		Type:                  principal.TypeAPIKey,
+		Source:                principal.KeySource{KeyID: "key_test", KeySpaceID: "ks_test"},
+		AuthorizedWorkspaceID: "ws_test_123",
 	})
 
 	rootErr := fault.New("db connection refused",

@@ -49,7 +49,7 @@ func TestDeleteDomainPermissions(t *testing.T) {
 				case "environment.<env>.delete_domain":
 					p = fmt.Sprintf("environment.%s.delete_domain", seeded.environmentID)
 				case "<urn>.delete_domain":
-					p = fmt.Sprintf("unkey:v1:%s:projects/%s/apps/%s/environments/%s/domains/*#delete_domain", seeded.workspaceID, seeded.projectID, seeded.appID, seeded.environmentID)
+					p = fmt.Sprintf("unkey:v1:%s:projects/%s/apps/%s/environments/%s/domains/*#delete", seeded.workspaceID, seeded.projectID, seeded.appID, seeded.environmentID)
 				}
 				permissions[i] = p
 			}

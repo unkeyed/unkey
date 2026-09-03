@@ -149,7 +149,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	workspaceID := principal.WorkspaceID
+	workspaceID := principal.AuthorizedWorkspaceID
 
 	portal, err := db.Query.FindPortalByIdOrSlug(ctx, h.DB.RO(), db.FindPortalByIdOrSlugParams{
 		WorkspaceID: workspaceID,
@@ -408,10 +408,10 @@ func ScopeQueries(
 		// key's encryption row because mint time cannot know which key a
 		// session will later reroll. That makes it a conservative proxy
 		// that can go stale, which is safe today: the reroll core gates both
-		// the encryption write and its own encrypt_key conjunct on the key
-		// itself (v2_keys_reroll_key/handler.go:161 and :418), so turning a
-		// keyspace's encryption on does not make already-existing keys
-		// recoverable and grants a live session nothing new.
+		// the encryption operation and the legacy encrypt_key check on the key
+		// itself, so turning a keyspace's encryption on does not
+		// make already-existing keys recoverable and gives a live session
+		// nothing new.
 		//
 		// Two paths would escalate once UpdateKeySpaceKeyEncryption gains a
 		// production caller: a keyspace toggled on, off, then on again around a

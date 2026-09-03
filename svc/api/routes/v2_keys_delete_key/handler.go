@@ -78,7 +78,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	// Validate key belongs to authorized workspace
 	key := db.ToKeyData(keyRow)
 
-	if key.Key.WorkspaceID != principal.WorkspaceID {
+	if key.Key.WorkspaceID != principal.AuthorizedWorkspaceID {
 		return fault.New("key not found",
 			fault.Code(codes.Data.Key.NotFound.URN()),
 			fault.Internal("key belongs to different workspace"),
@@ -132,8 +132,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			Action:       rbac.DeleteKey,
 		}),
 		rbac.U(
-			urn.New().Workspace(principal.WorkspaceID).Keyspace(key.Key.KeyAuthID).Key(req.KeyId),
-			permissions.DeleteKey{},
+			urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(key.KeyAuth.ProjectID).Keyspace(key.Key.KeyAuthID).Key(req.KeyId),
+			permissions.Delete,
 		),
 	))
 	if err != nil {
@@ -163,7 +163,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		err = h.Auditlogs.Insert(ctx, tx, []auditlog.AuditLog{
 			{
 				Event:         auditlog.KeyDeleteEvent,
-				WorkspaceID:   principal.WorkspaceID,
+				WorkspaceID:   principal.AuthorizedWorkspaceID,
 				ActorType:     actor.Type,
 				ActorID:       actor.ID,
 				ActorName:     actor.Name,
