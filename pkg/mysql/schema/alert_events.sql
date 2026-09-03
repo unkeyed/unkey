@@ -6,7 +6,7 @@ CREATE TABLE `alert_events` (
 	`app_id` varchar(48) COLLATE utf8mb4_0900_as_cs NOT NULL,
 	`environment_id` varchar(48) COLLATE utf8mb4_0900_as_cs NOT NULL,
 	`deployment_id` varchar(48) COLLATE utf8mb4_0900_as_cs,
-	`metric` enum('error_5xx','error_4xx','requests','egress_bytes','cpu_seconds','memory_utilization','oom_killed','crash_loop') NOT NULL,
+	`metric` enum('error_5xx','error_4xx','requests','requests_drop','egress_bytes','cpu_seconds','memory_utilization','oom_killed','crash_loop') NOT NULL,
 	`status` enum('open','resolved') NOT NULL DEFAULT 'open',
 	`fired_at` bigint NOT NULL,
 	`last_seen_at` bigint NOT NULL,

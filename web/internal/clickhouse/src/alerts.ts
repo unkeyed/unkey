@@ -7,6 +7,7 @@ export const alertMetric = z.enum([
   "error_5xx",
   "error_4xx",
   "requests",
+  "requests_drop",
   "egress_bytes",
   "cpu_seconds",
   "memory_utilization",
@@ -48,11 +49,12 @@ function fillBuckets(query: string): string {
       STEP {bucketMs: UInt32}`;
 }
 
-function frontlineQuery(metric: "error_5xx" | "error_4xx" | "requests"): string {
+function frontlineQuery(metric: "error_5xx" | "error_4xx" | "requests" | "requests_drop"): string {
   const expression = {
     error_5xx: "sumIf(count, response_status >= 500 AND response_status < 600)",
     error_4xx: "sumIf(count, response_status >= 400 AND response_status < 500)",
     requests: "sum(count)",
+    requests_drop: "sum(count)",
   }[metric];
 
   return fillBuckets(`
@@ -135,6 +137,7 @@ export function getAlertTimeseries(ch: Querier) {
       case "error_5xx":
       case "error_4xx":
       case "requests":
+      case "requests_drop":
         queryText = frontlineQuery(args.metric);
         break;
       case "egress_bytes":
