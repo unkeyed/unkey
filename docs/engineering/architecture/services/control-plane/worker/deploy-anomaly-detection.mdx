@@ -5,55 +5,110 @@ description: "How the control plane detects unusual Deploy traffic, resource use
 
 ## Detection model
 
-Deploy anomaly detection evaluates closed 5-minute windows. Each sigma metric compares the current window with up to 288 buckets from the preceding 24 hours. The current bucket is never part of its own baseline.
+Deploy anomaly detection evaluates closed 5-minute windows. The baseline contains up to 288 buckets from the preceding 24 hours and excludes the current bucket.
 
-The detector uses the population mean and population standard deviation. Traffic and usage spikes fire only when:
+For request, egress, and CPU spikes, the detector fires when:
 
 `current > mean + k * max(stddev, mean * 0.1, metric floor)`
 
-Request drops use the lower side of the same distribution:
+Normal sensitivity uses `k = 4`. Low sensitivity uses `k = 5`. High sensitivity uses `k = 3`. At least 12 observed baseline buckets are required.
 
-`current < max(0, mean - k * max(stddev, mean * 0.1, request floor))`
+Missing count buckets are zero. Padding starts at the app's first observed bucket, not at the start of the 24-hour lookback. This prevents a new app with steady traffic from treating time before its creation as zero and firing a false ramp-up alert.
 
-Normal sensitivity uses `k = 4`. Low sensitivity uses `k = 5`, and high sensitivity uses `k = 3`. At least 12 non-empty baseline buckets are required. ClickHouse returns statistics for these observed buckets, and the detector pads the rest of the available window with zero because a missing request or usage row means no traffic.
+## Error rates
 
-## Defaults
+The 4xx and 5xx signals evaluate `errors / requests`, not raw error counts. The baseline mean is `sum(errors) / sum(requests)`. Its standard deviation is the population standard deviation of each bucket's ratio. The effective standard deviation floor is 0.01.
 
-Absolute floors prevent small changes from producing noisy alerts. Callers can override these defaults.
+An error-rate crossing must cause at least 20 more failures than the baseline rate predicts. This permits a window with 99 failures from 99 requests to alert, while traffic growth at an unchanged error rate does not alert.
+
+Moderate error-rate anomalies need two consecutive complete windows. A 5xx ratio of at least 50% with at least 50 failures is catastrophic and opens after one complete window. The system persists 4xx alerts for the dashboard but does not email for them by default.
+
+## Request drops
+
+Request drops use a robust recent level instead of a lower z-score. The recent level is the median of the preceding 12 complete buckets. A drop is anomalous when all of these conditions are true:
+
+- Current requests are below 25% of the recent level.
+- At least 9 of the 12 recent buckets have at least 200 requests.
+- The absolute loss is at least 200 requests.
+- At least 72 observed baseline buckets, or 6 hours, exist.
+
+The activity test applies to the baseline. Zero current traffic can be an outage, but zero traffic after quiet baseline traffic is normal. Alternating burst and idle traffic does not meet the 9-of-12 test.
+
+Request drops need two consecutive complete windows. One empty bucket can be ingest lag through Frontline's buffer and the per-minute and per-5-minute materialized views.
+
+The per-app evaluator suppresses request-drop alerts when no live deployment exists or its desired state is `stopped`. The caller must also suppress intentionally paused or scaled-to-zero deployments when those states are available.
+
+## Resource and instance thresholds
 
 | Metric | Standard deviation floor | Minimum activity |
 | --- | ---: | ---: |
-| 4xx or 5xx errors | 2 errors | 10 errors and 100 requests |
-| Request spike | 20 requests | 200 current requests |
-| Request drop | 20 requests | 200 baseline requests |
+| Requests | 20 requests | 200 requests |
 | Egress | 1 MiB | 100 MiB |
 | CPU | 1 second | 60 seconds |
 
-Memory utilization fires at 90%. An OOM kill or crash loop fires when its count reaches one in the window.
+Memory opens at 90% and recovers below 85%. The current value is the 5-minute average across instances. A secondary maximum remains available for diagnosis. The average avoids one short sample from opening an alert for the whole app.
+
+OOM kills and crash loops open when the count reaches one. They are catastrophic and open after one complete window because the first occurrence is actionable.
 
 ## Grouping
 
-The grouping key is `(workspace_id, project_id, app_id, environment_id)`. A deployment ID is context, not identity. This keeps one alert active when a rollout changes deployment IDs, while the app and environment still represent the same customer workload.
+The group key is `(workspace_id, project_id, app_id, environment_id)`. Deployment ID is context. App and environment remain stable across a rollout, so an incident stays open when the deployment changes.
 
-## Threshold metrics
+Only production environments are evaluated.
 
-Memory utilization, OOM kills, and crash loops use direct thresholds instead of sigma baselines. A memory baseline can hide sustained memory pressure, while OOM and crash-loop events are actionable at the first occurrence. These metrics still produce the common detection result shape, with zero baseline statistics and zero sigma multiplier.
+## Telemetry completeness
 
-## Confirmation and resolution
+Before fan-out, the orchestrator reads fleet-wide watermarks for the request and resource rollups. A source is incomplete when its exclusive watermark is earlier than the evaluated window end.
 
-4xx, 5xx, and request-drop anomalies require two consecutive anomalous windows. The first window becomes a candidate. The second becomes an anomaly when the per-app virtual object supplies the previous candidate state. A single empty request window often comes from ingest lag through Frontline's 5-second buffer and the per-minute and per-5-minute materialized views, rather than an outage. Request spikes, egress, CPU, memory, OOM, and crash-loop anomalies fire after one window.
+Each metric input has one of three states:
 
-An open anomaly resolves after three consecutive quiet windows. This delay prevents one or two normal samples from closing an incident during an unstable period.
+- `present`: the source and group have a current bucket.
+- `zero_complete`: the source is complete but the group has no current bucket.
+- `incomplete`: the source has not completed the window.
 
-## Request-drop orchestration
+An incomplete metric is a strict no-op. It cannot create or confirm a candidate, open or touch an alert, advance recovery, or resolve an alert. Structured logs expose these skips for pipeline monitoring. Only `zero_complete` can be interpreted as zero.
 
-`Detect` classifies metric values without deployment lifecycle context. The orchestrator must suppress request-drop detection when the app was intentionally scaled to zero, stopped, or paused.
+For an active request-drop candidate or alert, `zero_complete` means traffic is still zero and the evaluator reuses the stored opening inputs. For spike metrics it is a recovered value.
 
-A missing request row has metric-specific meaning after detection starts. For `requests_drop`, a missing row in a later window means traffic remains at zero and extends the candidate or open alert. For spike metrics, a missing row is a quiet window and counts toward resolution.
+## Orchestration and state
+
+The cron runs every 5 minutes. Its virtual object key is `deploy-anomaly-<window_start_unix_seconds>`. The local schedule computes the previous aligned window with:
+
+```bash
+$(( ($(date -u +%s) / 300) * 300 - 300 ))
+```
+
+The handler journals one fleet query for requests, resources, and instance events, plus the watermark read. It resolves MySQL metadata, drops non-production groups, sorts groups for stable journal positions, and fans out groups with a candidate or open alert.
+
+The per-group virtual object key is `<workspace_id>/<app_id>/<environment_id>`. It owns these keys for each metric:
+
+- `candidate:<metric>` and `candidate_window:<metric>`
+- `open_alert:<metric>`
+- `quiet:<metric>`
+- `snapshot:<metric>`
+- `detector_input:<metric>`
+
+The candidate window makes confirmation consecutive even though each cron window has a different orchestrator key. Open alerts are reconciled from MySQL when a group evaluator first runs.
+
+## Resolution and notifications
+
+An open alert keeps the baseline and effective deviation snapshot used when it opened. Recovery compares complete windows with this snapshot, not the rolling baseline, because a sustained incident can raise the rolling baseline.
+
+Sigma metrics recover below `mean + (k - 1) * effective_stddev`. Error ratios use the same recovery band. Request drops recover at the 25% opening threshold. Three consecutive recovered complete windows resolve the alert with:
+
+`Metric returned to baseline for 3 consecutive windows`
+
+A stopped deployment resolves a request-drop alert with `Deployment stopped`.
+
+Opening and resolved emails use the Resend aliases `deploy-anomaly-alert` and `deploy-anomaly-resolved`. Both aliases must exist in Resend. Email idempotency keys are `anomaly-alert/<alert_id>` and `anomaly-resolved/<alert_id>`.
+
+The existing `workspaces.beta_features.deploy_anomaly_alerts_muted` boolean is the workspace mute switch. Muting suppresses emails only. Detection, persistence, and resolution continue.
+
+Detector inputs are written as structured fields when an alert opens. The current `alert_events` schema has no context JSON column, so raw error and request counts are available to email and logs but are not persisted.
 
 ## Code
 
-The pure detector lives in `svc/ctrl/worker/cron/deployanomaly`. Fleet queries live in `pkg/clickhouse/anomaly_window.go`. The Restate cron orchestrator and per-app virtual object own scheduling, durable candidate state, alert persistence, and delivery.
+The pure detector and Restate handlers live in `svc/ctrl/worker/cron/deployanomaly`. Fleet queries live in `pkg/clickhouse/anomaly_window.go`.
 
 Run the focused checks with:
 

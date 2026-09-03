@@ -105,3 +105,11 @@ jobs:
     schedule: "*/3 * * * *"
     urlPath: "hydra.v1.CronService/deploy-spend-check-$(date -u +%Y-%m)/RunDeploySpendCheck/send"
     idempotencyKey: "deploy-spend-check-$(date -u +%Y-%m-%dT%H:%M)"
+
+  # Deploy anomaly detection evaluates the most recent closed 5-minute bucket.
+  # The per-source ingest watermark prevents late rollups from mutating alerts.
+  # NOTE: production cron lives in the infra repo too.
+  deploy-anomaly-check:
+    schedule: "*/5 * * * *"
+    urlPath: "hydra.v1.CronService/deploy-anomaly-$(( ($(date -u +%s) / 300) * 300 - 300 ))/RunDeployAnomalyCheck/send"
+    idempotencyKey: "deploy-anomaly-$(( ($(date -u +%s) / 300) * 300 - 300 ))"
