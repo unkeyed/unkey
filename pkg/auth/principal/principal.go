@@ -52,7 +52,8 @@ type Principal struct {
 	// Source carries the method-specific authentication details.
 	Source Source
 
-	// WorkspaceID scopes all handler reads and writes for this principal.
+	// WorkspaceID is the workspace this principal can access. For root keys, it
+	// is keys.for_workspace_id, not the key owner in [KeySource.WorkspaceID].
 	WorkspaceID string
 
 	// Permissions is the flat set of exact or resource-scoped authorization grants.
@@ -109,6 +110,11 @@ type KeySource struct {
 
 	// KeySpaceID is the key space that owns the authenticated key.
 	KeySpaceID string
+
+	// WorkspaceID is the keys.workspace_id value that identifies the key owner.
+	// For root keys, it identifies Unkey's internal workspace, not the customer
+	// workspace in keys.for_workspace_id.
+	WorkspaceID string
 
 	// Permissions are the raw RBAC permission strings attached to the key.
 	Permissions []string
