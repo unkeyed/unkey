@@ -117,13 +117,11 @@ milliseconds. Including the count makes the partition scheme explicit for
 retries and lets operators change the count for later windows without changing
 an in-flight run.
 
-`ListOpenAlertEventGroups(shardCount, shard)` reads only the shard's open alert
-groups from MySQL with `status = 'open' AND workspace_hash % shardCount = shard`.
-`workspace_hash` is the unsigned, ClickHouse-compatible CityHash64 value of
-`workspace_id`. Go computes it with `github.com/go-faster/city` `city.CH64`.
-The `(status, workspace_hash)` index keeps the open-alert reconciliation query
-on the same partition as ClickHouse's
-`cityHash64(workspace_id) % shard_count` filter.
+`ListOpenAlertEventGroups` reads every group with `status = 'open'` from MySQL.
+Each shard filters those rows in Go with
+`city.CH64(workspace_id) % shardCount == shard`. This matches ClickHouse's
+`cityHash64(workspace_id) % shard_count` assignment. The open-alert scan repeats
+for each shard, but the table is small and the indexed status query is cheap.
 
 The shard then runs the three ClickHouse query families for its workspace
 partition. Candidate conditions run in each query's `HAVING` clause. The filter
@@ -198,18 +196,19 @@ are separate from the detector queries and do not mutate alert state.
 
 ### Backfill detector rollups
 
-The detector migrations replay the latest 7 days after creating each
-materialized view:
+The deploy anomaly migration in `pkg/clickhouse/migrations` creates and
+backfills these four detector rollups:
 
-| Migration | Backfilled data |
+| Rollup | Backfilled data |
 | --- | --- |
-| `043_instance_resources_app_per_5m_v1.sql` | Per-app resource history. |
-| `044_anomaly_source_watermarks_v1.sql` | Per-region source watermarks. |
-| `048_frontline_requests_anomaly_per_5m_v1.sql` | Request and error history. |
-| `049_instance_memory_container_per_5m_v1.sql` | Per-container memory history. |
+| `instance_resources_app_per_5m_v1` | Per-app resource history. |
+| `anomaly_source_watermarks_v1` | Per-region source watermarks. |
+| `frontline_requests_anomaly_per_5m_v1` | Request and error history. |
+| `instance_memory_container_per_5m_v1` | Per-container memory history. |
 
+The migration replays the latest 7 days after creating the materialized views.
 Watermark max states are replay-idempotent. Sum rollups exclude keys that are
-already present, so retrying a migration cannot count the same rollup key twice.
+already present, so retrying the migration cannot count the same rollup key twice.
 Existing apps therefore have the full 24-hour baseline and 72-bucket
 request-drop history when detection first runs. The 12-bucket spike minimum
 applies only to apps younger than 1 hour, and the 72-bucket request-drop minimum
@@ -311,12 +310,12 @@ prior state.
 
 The table stores:
 
-- Identity: `id`, `workspace_id`, `workspace_hash`, `project_id`, `app_id`,
-  `environment_id`, and nullable `deployment_id`.
+- Identity: `id`, `workspace_id`, `project_id`, `app_id`, `environment_id`, and
+  nullable `deployment_id`.
 - Classification: `metric` and `status` (`open` or `resolved`).
 - Detection context: `fired_at`, `last_seen_at`, `window_start`, `window_end`,
   `observed_value`, `baseline_mean`, `baseline_stddev`, and `threshold_sigma`.
-- Resolution context: `resolved_at`, `resolved_by`, and `resolution_message`.
+- Resolution context: `resolved_at` and `resolution_message`.
 - Record timestamps: `created_at` and `updated_at`.
 
 Alert IDs use the `alert_` prefix. Error metrics store their error ratio in
@@ -324,17 +323,14 @@ Alert IDs use the `alert_` prefix. Error metrics store their error ratio in
 per group and metric. An anomaly against an existing open row updates
 `last_seen_at` and `observed_value` instead of inserting another row.
 
-`workspace_hash` is a `bigint unsigned NOT NULL` value populated from
-`city.CH64(workspace_id)`. The `(status, workspace_hash)` index supports the
-shard-filtered open-alert query.
+The plain `status_idx` index on `status` supports open-alert reconciliation.
 
 Raw error and request counts appear in structured detector logs but are not
 persisted in `alert_events`.
 
-Every resolution sets `status = resolved` and `resolved_by = system`. The
-resolution message records whether the metric returned to baseline for three
-consecutive windows, the deployment stopped, or the baseline adapted after 24
-hours.
+Every resolution sets `status = resolved`. The resolution message records
+whether the metric returned to baseline for three consecutive windows, the
+deployment stopped, or the baseline adapted after 24 hours.
 
 The detector does not send email, Slack messages, or webhooks. It only persists
 status transitions. A separate notification service can consume those
@@ -363,9 +359,9 @@ key.
 There is no separate dashboard architecture section in the engineering docs,
 so this page owns the dashboard implementation notes.
 
-The workspace inbox route is `/[workspaceSlug]/alerts`. It provides **Open**,
-**Resolved**, and **All** status filters, metric and app filters, and a
-sparkline. Alerts are read-only in the dashboard.
+The workspace inbox route is `/[workspaceSlug]/alerts`. It shows open alerts
+only, with metric and app filters and a sparkline. Alerts are read-only in the
+dashboard.
 `/[workspaceSlug]/alerts/[alertId]` redirects to the app focus route:
 
 `/[workspaceSlug]/projects/[projectId]/apps/[appId]/anomalies?env=<envId>&alert=<alertId>`
@@ -384,6 +380,9 @@ The app-level **Anomalies** tab provides these views:
 - Optional deployment markers, drag-to-zoom, and a range-scoped alert list.
 - Alert focus through `?alert=<id>`, including an alert details card with the
   system resolution message.
+
+Resolved alerts remain available through the app focus route. Its details card
+shows the `Resolved` status, resolution timestamp, and resolution message.
 
 The `alerts` tRPC router is in
 `web/apps/dashboard/lib/trpc/routers/alerts/`. Its procedures are `alerts.list`,
@@ -422,9 +421,9 @@ unkey dev seed alerts
 ```
 
 The alert seed writes 7 days of dense 5-minute telemetry, nine alerts, and
-deployment markers. Verify the open and resolved inbox filters, each metric
-view, focus mode, zoom, deployment toggle, read-only controls, and system
-resolution messages.
+deployment markers. Verify the open-alert inbox, each metric view, resolved
+focus through `?alert=<id>`, zoom, deployment toggle, read-only controls, and
+system resolution messages.
 
 ## Scale characteristics
 
