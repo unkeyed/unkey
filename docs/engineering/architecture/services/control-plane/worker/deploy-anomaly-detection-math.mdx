@@ -198,8 +198,7 @@ Other metrics use rule-specific recovery against the opening snapshot:
 | `oom_killed` | The complete window has zero events. |
 | `crash_loop` | The complete window has zero events. |
 
-Three consecutive complete recovered windows resolve the alert. The system sets
-`resolved_by = system` and the message
+Three consecutive complete recovered windows resolve the alert with the message
 `Metric returned to baseline for 3 consecutive windows`. Any anomalous window
 before the third resets the count. An incomplete window neither increments nor
 resets it.
