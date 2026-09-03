@@ -66,8 +66,6 @@ func rejectf(reason hydrav1.CreateRejectionReason, format string, args ...any) *
 // The legacy ctrl.v1.DeploymentService.CreateDeployment RPC still writes rows
 // too, until its callers move over.
 func (w *Workflow) Create(ctx restate.ObjectContext, req *hydrav1.DeployCreateRequest) (*hydrav1.DeployCreateResponse, error) {
-	// The object key, never the payload: the row has to be the id whose lock
-	// serializes the write.
 	deploymentID := restate.Key(ctx)
 
 	if err := assert.All(
@@ -147,13 +145,16 @@ func (w *Workflow) Create(ctx restate.ObjectContext, req *hydrav1.DeployCreateRe
 		if err := w.startDeploy(ctx, deploymentID, gates.Target, payload); err != nil {
 			return nil, err
 		}
+
 	case hydrav1.CreateDecision_CREATE_DECISION_AWAIT_APPROVAL:
-		// The "awaiting authorization" commit status is still posted by
-		// githubwebhook.blockDeploymentForApproval, and moves here on cutover.
-	case hydrav1.CreateDecision_CREATE_DECISION_SKIP:
-		// The row is the whole point of a skip.
-	case hydrav1.CreateDecision_CREATE_DECISION_UNSPECIFIED:
-		// Rejected before anything was written. See statusForDecision.
+		// This gains a body when the GitHub webhook moves over: the commit status
+		// telling a contributor their push is waiting is still posted by
+		// githubwebhook.blockDeploymentForApproval today.
+
+	// Nothing to do once the row exists. Listed rather than defaulted so that a
+	// new decision fails the exhaustive linter until someone handles it here.
+	case hydrav1.CreateDecision_CREATE_DECISION_SKIP,
+		hydrav1.CreateDecision_CREATE_DECISION_UNSPECIFIED:
 	}
 
 	return &hydrav1.DeployCreateResponse{
@@ -186,8 +187,6 @@ func (w *Workflow) checkGates(
 ) (gateResult, error) {
 	var result gateResult
 
-	// One query decides the triple as a whole, so a target never mixes records
-	// from different projects and a miss never says which of the three is wrong.
 	target, err := w.db.FindDeployTarget(ctx, db.FindDeployTargetParams{
 		ProjectID:   req.GetProjectId(),
 		AppID:       req.GetAppId(),
