@@ -184,20 +184,6 @@ func TestCreateSessionScopeEscalation(t *testing.T) {
 			shouldPass:  false,
 		},
 		{
-			name:        "analytics without read_analytics",
-			portal:      "escalation-portal",
-			scopes:      []openapi.V2PortalCreateSessionRequestBodyScopes{"analytics:read"},
-			permissions: []string{mint},
-			shouldPass:  false,
-		},
-		{
-			name:        "create without create_key",
-			portal:      "escalation-portal",
-			scopes:      []openapi.V2PortalCreateSessionRequestBodyScopes{"keys:create"},
-			permissions: []string{mint},
-			shouldPass:  false,
-		},
-		{
 			name:        "read with read_key and read_api",
 			portal:      "escalation-portal",
 			scopes:      []openapi.V2PortalCreateSessionRequestBodyScopes{"keys:read"},
@@ -244,20 +230,6 @@ func TestCreateSessionScopeEscalation(t *testing.T) {
 			shouldPass:  true,
 		},
 		{
-			name:        "analytics with api scoped read_analytics",
-			portal:      "escalation-portal",
-			scopes:      []openapi.V2PortalCreateSessionRequestBodyScopes{"analytics:read"},
-			permissions: []string{mint, fmt.Sprintf("api.%s.read_analytics", plainAPI.ID)},
-			shouldPass:  true,
-		},
-		{
-			name:        "analytics with wildcard read_analytics",
-			portal:      "escalation-portal",
-			scopes:      []openapi.V2PortalCreateSessionRequestBodyScopes{"analytics:read"},
-			permissions: []string{mint, "api.*.read_analytics"},
-			shouldPass:  true,
-		},
-		{
 			// Every requested scope must be held: the caller is refused rather
 			// than handed the intersection.
 			name:        "read granted but reroll not",
@@ -269,8 +241,8 @@ func TestCreateSessionScopeEscalation(t *testing.T) {
 		{
 			name:        "all requested scopes granted",
 			portal:      "escalation-portal",
-			scopes:      []openapi.V2PortalCreateSessionRequestBodyScopes{"keys:read", "keys:reroll", "analytics:read"},
-			permissions: []string{mint, "api.*.read_key", "api.*.read_api", "api.*.create_key", "api.*.read_analytics"},
+			scopes:      []openapi.V2PortalCreateSessionRequestBodyScopes{"keys:read", "keys:reroll"},
+			permissions: []string{mint, "api.*.read_key", "api.*.read_api", "api.*.create_key"},
 			shouldPass:  true,
 		},
 		{
@@ -297,13 +269,6 @@ func TestCreateSessionScopeEscalation(t *testing.T) {
 			scopes:      []openapi.V2PortalCreateSessionRequestBodyScopes{"keys:reroll"},
 			permissions: []string{mint, "api.*.create_key", "api.*.encrypt_key"},
 			shouldPass:  true,
-		},
-		{
-			name:        "create on encrypted keyspace without encrypt_key",
-			portal:      "encrypted-portal",
-			scopes:      []openapi.V2PortalCreateSessionRequestBodyScopes{"keys:create"},
-			permissions: []string{mint, "api.*.create_key"},
-			shouldPass:  false,
 		},
 	}
 
@@ -449,7 +414,6 @@ func TestCreateSessionForbiddenDisabledPortal(t *testing.T) {
 		"api.*.read_api",
 		"api.*.create_key",
 		"api.*.encrypt_key",
-		"api.*.read_analytics",
 	)
 	headers := http.Header{
 		"Content-Type":  {"application/json"},

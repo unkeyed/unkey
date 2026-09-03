@@ -188,6 +188,82 @@ func TestCreateSessionBadRequest(t *testing.T) {
 	})
 }
 
+// analytics:read and keys:create left the enum because nothing in the portal
+// serves them. The refusal has to be the request validator's, not the mint-time
+// ceiling's, so this grants every permission those scopes used to require: a 400
+// here can only mean the value never reached the handler. Without those grants a
+// rejection would be indistinguishable from a caller who was simply short a
+// permission.
+func TestCreateSessionRejectsRetiredScopes(t *testing.T) {
+	h := testutil.NewHarness(t)
+
+	route := &handler.Handler{
+		DB:            h.DB,
+		Auditlogs:     h.Auditlogs,
+		PortalBaseURL: "https://portal.unkey.com",
+		Clock:         h.Clock,
+	}
+	h.Register(route)
+
+	workspaceID := h.Resources().UserWorkspace.ID
+	api := h.CreateApi(seed.CreateApiRequest{
+		WorkspaceID:   workspaceID,
+		IpWhitelist:   "",
+		EncryptedKeys: false,
+		Name:          nil,
+		CreatedAt:     nil,
+		DefaultPrefix: nil,
+		DefaultBytes:  nil,
+	})
+	insertKeyspacePortal(t, h, workspaceID, "retired-scope-portal", api.KeyAuthID.String)
+
+	rootKey := h.CreateRootKey(workspaceID,
+		"portal.*.create_portal_session",
+		"api.*.read_key",
+		"api.*.read_api",
+		"api.*.create_key",
+		"api.*.encrypt_key",
+		"api.*.read_analytics",
+	)
+	headers := http.Header{
+		"Content-Type":  {"application/json"},
+		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+	}
+
+	call := func(t *testing.T, scopes ...openapi.V2PortalCreateSessionRequestBodyScopes) int {
+		t.Helper()
+		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, handler.Request{
+			Portal:     "retired-scope-portal",
+			ExternalId: "user_retired",
+			Scopes:     scopes,
+		})
+		return res.Status
+	}
+
+	for _, scope := range []openapi.V2PortalCreateSessionRequestBodyScopes{"analytics:read", "keys:create"} {
+		t.Run(string(scope)+" alone is rejected", func(t *testing.T) {
+			require.Equal(t, 400, call(t, scope))
+		})
+
+		t.Run(string(scope)+" alongside a delivered scope is rejected", func(t *testing.T) {
+			// Refused whole rather than silently reduced to the scopes that work.
+			require.Equal(t, 400, call(t, "keys:read", scope))
+		})
+	}
+
+	// The same caller and portal still mint successfully, so the cases above pin
+	// a narrowed vocabulary rather than a broken route.
+	t.Run("the delivered scopes still mint", func(t *testing.T) {
+		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
+			Portal:     "retired-scope-portal",
+			ExternalId: "user_retired",
+			Scopes:     []openapi.V2PortalCreateSessionRequestBodyScopes{"keys:read", "keys:reroll"},
+		})
+		require.Equal(t, 200, res.Status, "got: %s", res.RawBody)
+		require.NotEmpty(t, res.Body.Data.Id)
+	})
+}
+
 // returnUrl ends up as an anchor href in the end-user portal, so an unchecked
 // scheme executes in that user's browser with the portal's origin. The field's
 // `format: uri` does not help: `javascript:alert(1)` is a valid URI, and the

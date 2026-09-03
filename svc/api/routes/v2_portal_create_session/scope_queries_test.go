@@ -21,7 +21,7 @@ func TestScopeQueriesDeniesUnmappedScope(t *testing.T) {
 
 	t.Run("known scopes map to a non-empty requirement", func(t *testing.T) {
 		for _, s := range []openapi.V2PortalCreateSessionRequestBodyScopes{
-			openapi.KeysRead, openapi.KeysCreate, openapi.KeysReroll, openapi.AnalyticsRead,
+			openapi.KeysRead, openapi.KeysReroll,
 		} {
 			queries, ok := handler.ScopeQueries(s, apiID, false)
 			require.True(t, ok, "scope %q must map", s)
@@ -33,6 +33,19 @@ func TestScopeQueriesDeniesUnmappedScope(t *testing.T) {
 		queries, ok := handler.ScopeQueries("keys:destroy", apiID, false)
 		require.False(t, ok, "an unmapped scope must deny, not be skipped")
 		require.Empty(t, queries)
+	})
+
+	// These two left the enum when the features behind them turned out to be
+	// undelivered. The request validator refuses them first, so this only pins
+	// that nothing downstream would map them if one ever got past it.
+	t.Run("retired scopes deny", func(t *testing.T) {
+		for _, s := range []openapi.V2PortalCreateSessionRequestBodyScopes{
+			"analytics:read", "keys:create",
+		} {
+			queries, ok := handler.ScopeQueries(s, apiID, false)
+			require.False(t, ok, "retired scope %q must deny", s)
+			require.Empty(t, queries)
+		}
 	})
 
 	t.Run("encryption adds a conjunct for key minting scopes", func(t *testing.T) {

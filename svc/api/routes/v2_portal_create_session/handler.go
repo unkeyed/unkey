@@ -398,10 +398,10 @@ func ScopeQueries(
 	case openapi.KeysRead:
 		return []rbac.PermissionQuery{listkeys.ReadKeysPermissions(apiID)}, true
 
-	case openapi.KeysCreate, openapi.KeysReroll:
+	case openapi.KeysReroll:
 		// Rerolling is a create, matching what the operator reroll route
 		// requires. The encryption conjunct is keyspace-conditional: a portal
-		// session that can mint a key in a keyspace storing recoverable key
+		// session that can reroll a key in a keyspace storing recoverable key
 		// material also hands out that material.
 		//
 		// The conjunct keys off the keyspace flag rather than an individual
@@ -413,11 +413,10 @@ func ScopeQueries(
 		// make already-existing keys recoverable and gives a live session
 		// nothing new.
 		//
-		// Two paths would escalate once UpdateKeySpaceKeyEncryption gains a
+		// One path would escalate once UpdateKeySpaceKeyEncryption gains a
 		// production caller: a keyspace toggled on, off, then on again around a
-		// mint, and a future portal create-key route where a single flip is
-		// enough. Both belong to the toggle, which must invalidate live portal
-		// sessions on a keyspace when it turns encryption on. Do not close them
+		// mint. That belongs to the toggle, which must invalidate live portal
+		// sessions on a keyspace when it turns encryption on. Do not close it
 		// here by requiring encrypt_key unconditionally: that would make this
 		// ceiling stricter than the operator route it exists to mirror.
 		queries := []rbac.PermissionQuery{rerollkey.CreateKeyPermissions(apiID)}
@@ -425,9 +424,6 @@ func ScopeQueries(
 			queries = append(queries, rerollkey.EncryptKeyPermissions(apiID))
 		}
 		return queries, true
-
-	case openapi.AnalyticsRead:
-		return []rbac.PermissionQuery{readAnalyticsPermissions(apiID)}, true
 
 	default:
 		return nil, false
