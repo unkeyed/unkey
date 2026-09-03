@@ -18,10 +18,6 @@ export type DeployCheckoutOrigin = "create" | "banner" | "billing" | "deploy";
 type LogdrainScope = WorkspaceScope & { drainId: string };
 
 export const settingsRoutes = {
-  account({ workspaceSlug }: WorkspaceScope): Route {
-    return buildRoute("/[workspaceSlug]/settings/account", { workspaceSlug });
-  },
-
   general({ workspaceSlug }: WorkspaceScope): Route {
     return buildRoute("/[workspaceSlug]/settings/general", { workspaceSlug });
   },

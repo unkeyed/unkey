@@ -8,6 +8,7 @@ import { routes } from "@/lib/navigation/routes";
 import { Menu } from "@unkey/icons";
 import Link from "next/link";
 import { Fragment } from "react";
+import { AccountCrumb } from "./account-crumb";
 import { ApiCrumb } from "./api-crumb";
 import { AppCrumb } from "./app-crumb";
 import { CrumbSeparator } from "./crumb";
@@ -68,6 +69,8 @@ function CrumbForDescriptor({ descriptor }: { descriptor: BreadcrumbDescriptor }
   switch (descriptor.type) {
     case "workspace":
       return <WorkspaceCrumb href={descriptor.href} />;
+    case "account":
+      return <AccountCrumb />;
     case "project":
       return <ProjectCrumb projectId={descriptor.projectId} />;
     case "app":
@@ -85,6 +88,8 @@ function crumbKey(descriptor: BreadcrumbDescriptor): string {
   switch (descriptor.type) {
     case "workspace":
       return "workspace";
+    case "account":
+      return "account";
     case "project":
       return `project:${descriptor.projectId}`;
     case "app":

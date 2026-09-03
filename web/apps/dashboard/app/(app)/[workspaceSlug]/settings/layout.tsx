@@ -16,7 +16,6 @@ const ITEMS = [
   { segment: "root-keys", label: "Root Keys", getHref: routes.settings.rootKeys },
   { segment: "logdrains", label: "Log Drains", getHref: routes.settings.logdrains.list },
   { segment: "billing", label: "Billing", getHref: routes.settings.billing },
-  { segment: "account", label: "Account", getHref: routes.settings.account },
   { segment: "usage", label: "Usage", getHref: routes.settings.usage },
   { segment: "limits", label: "Limits", getHref: routes.settings.limits },
 ] as const;

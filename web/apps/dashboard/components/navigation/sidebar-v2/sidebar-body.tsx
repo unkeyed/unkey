@@ -32,6 +32,7 @@ export function SidebarBody() {
       // Settings and Authorization keep the top-level workspace nav in the
       // global sidebar; their sub-pages live in a SecondaryNav rail (see the
       // settings/authorization layouts).
+      case "account":
       case "settings":
       case "authorization":
         return buildWorkspaceSections(slug, segments);

@@ -6,29 +6,33 @@ import {
   DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { signOut } from "@/lib/auth/utils";
 import { routes } from "@/lib/navigation/routes";
 import { trpc } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";
 import { useQueryClient } from "@tanstack/react-query";
-import { Laptop2, MoonStars, Sun } from "@unkey/icons";
+import { Laptop2, MoonStars, Sun, User } from "@unkey/icons";
 import { useTheme } from "next-themes";
 import Link from "next/link";
-import type React from "react";
 
 type UserButtonProps = {
   isCollapsed?: boolean;
-  isMobile?: boolean;
-  isMobileSidebarOpen?: boolean;
   className?: string;
 };
 
-export const UserButton: React.FC<UserButtonProps> = ({ isCollapsed = false, className }) => {
+const THEMES = [
+  { value: "system", label: "System", icon: Laptop2 },
+  { value: "light", label: "Light", icon: Sun },
+  { value: "dark", label: "Dark", icon: MoonStars },
+] as const;
+
+export function UserButton({ isCollapsed = false, className }: UserButtonProps) {
   const { data: user } = trpc.user.getCurrentUser.useQuery();
   const workspace = useWorkspaceNavigation();
   const { theme, setTheme } = useTheme();
@@ -37,6 +41,7 @@ export const UserButton: React.FC<UserButtonProps> = ({ isCollapsed = false, cla
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
+        aria-label="Account menu"
         className={cn(
           "px-2 py-1 flex hover:bg-grayA-4 rounded-lg min-w-0 cursor-pointer",
           isCollapsed ? "justify-center size-8 p-0" : "justify-between gap-2 grow h-8",
@@ -50,65 +55,61 @@ export const UserButton: React.FC<UserButtonProps> = ({ isCollapsed = false, cla
           </Avatar>
         </div>
       </DropdownMenuTrigger>
-      <DropdownMenuContent side="bottom" className="flex w-min-44 flex-col gap-2" align="end">
+      <DropdownMenuContent side="bottom" align="end" className="w-56 p-0">
         {user?.email && (
-          <>
-            <DropdownMenuGroup>
-              <DropdownMenuLabel className="font-normal">
-                <span
-                  title={user.email}
-                  className="text-accent-11 text-xs truncate max-w-44 secret"
-                >
-                  {user.email}
-                </span>
-              </DropdownMenuLabel>
-            </DropdownMenuGroup>
-            <DropdownMenuSeparator />
-          </>
+          <DropdownMenuGroup className="border-b border-grayA-4 px-2 py-2">
+            <DropdownMenuLabel
+              title={user.email}
+              className="secret block truncate px-0 py-0 text-[13px] text-accent-12"
+            >
+              {user.email}
+            </DropdownMenuLabel>
+          </DropdownMenuGroup>
         )}
-        <DropdownMenuGroup className="w-full">
+        <DropdownMenuGroup className="p-1">
           <DropdownMenuItem
+            className="h-8 cursor-pointer gap-2 px-2 text-[13px] font-medium text-accent-12"
             render={
-              <Link
-                href={routes.settings.account({ workspaceSlug: workspace.slug })}
-                className="text-accent-12 text-sm font-medium"
-              >
-                Account
+              <Link href={routes.account.overview({ workspaceSlug: workspace.slug })}>
+                <User className="size-4 shrink-0 text-gray-11" iconSize="sm-regular" />
+                Account settings
               </Link>
             }
-            className="cursor-pointer"
           />
         </DropdownMenuGroup>
-        <DropdownMenuSeparator />
-        <DropdownMenuGroup className="w-full">
-          <DropdownMenuLabel>Theme</DropdownMenuLabel>
-          <Tabs value={theme} onValueChange={setTheme}>
-            <TabsList className="w-full">
-              <TabsTrigger className="w-full cursor-pointer" value="light">
-                <Sun className="size-4" />
-              </TabsTrigger>
-              <TabsTrigger className="w-full cursor-pointer" value="dark">
-                <MoonStars className="size-4" />
-              </TabsTrigger>
-              <TabsTrigger className="w-full cursor-pointer" value="system">
-                <Laptop2 className="size-4" />
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
+        <DropdownMenuSeparator className="mx-0" />
+        <DropdownMenuGroup className="p-1">
+          <DropdownMenuLabel className="px-2">Theme</DropdownMenuLabel>
+          <DropdownMenuRadioGroup
+            aria-label="Theme"
+            value={theme ?? "system"}
+            onValueChange={setTheme}
+          >
+            {THEMES.map(({ value, label, icon: Icon }) => (
+              <DropdownMenuRadioItem
+                key={value}
+                value={value}
+                className="h-8 cursor-pointer px-2 text-[13px] font-medium text-accent-12"
+              >
+                <Icon className="size-4 shrink-0 text-gray-11" iconSize="sm-regular" />
+                {label}
+              </DropdownMenuRadioItem>
+            ))}
+          </DropdownMenuRadioGroup>
         </DropdownMenuGroup>
-        <DropdownMenuSeparator />
-
-        <DropdownMenuGroup className="w-full">
+        <DropdownMenuSeparator className="mx-0" />
+        <DropdownMenuGroup className="p-1">
           <DropdownMenuItem
-            render={<span className="text-accent-12 text-sm font-medium">Sign out</span>}
-            className="cursor-pointer"
+            className="h-8 cursor-pointer gap-2 px-2 text-[13px] font-medium text-accent-12"
             onClick={async () => {
               queryClient.clear();
               await signOut();
             }}
-          />
+          >
+            Sign out
+          </DropdownMenuItem>
         </DropdownMenuGroup>
       </DropdownMenuContent>
     </DropdownMenu>
   );
-};
+}
