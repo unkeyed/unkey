@@ -189,18 +189,19 @@ candidate, open, or recovery transitions for the same group.
        └────────────────────┬─────────────────────┘
                             ▼
                      ┌──────────────┐
-                     │ Open alert   │
-                     └───┬──────┬───┘
-              anomaly    │      │ recovered window
-              touch row  │      ▼
-                         │  ┌──────────────┐
-                         └─▶│ Quiet 1 or 2 │
-                            └──────┬───────┘
-                     anomaly resets│ third recovered window
-                                   ▼
-                            ┌──────────────┐
-                            │ Resolved     │
-                            └──────────────┘
+              ┌─────▶│ Open alert   │──── open 24 hours ──────┐
+              │      └──────┬───────┘                          │
+              │             │ recovered window                │
+              │             ▼                                 │
+              │      ┌──────────────┐                         │
+              │      │ Quiet 1 or 2 │──── third recovered ────┤
+              │      └──────┬───────┘                         │
+              │             │ anomalous window                │
+              └─────────────┘                                 │
+                                                              ▼
+                                                       ┌──────────────┐
+                                                       │ Resolved     │
+                                                       └──────────────┘
 ```
 
 Error-ratio anomalies and request drops use candidate state and require two
@@ -208,9 +209,15 @@ consecutive anomalous windows. Other metrics open after one window. A normal or
 insufficient window clears candidate state. An ongoing anomaly resets the quiet
 counter and updates the alert's latest value.
 
-An open request-drop alert resolves immediately with `Deployment stopped` when
-there is no live deployment or `deployments.desired_state = stopped`. Without
-an open alert, the same condition clears request-drop candidate state.
+`DefaultConfig` sets `Config.MaxOpenDuration` to 24 hours. At the first complete
+evaluation at or after that duration, the evaluator resolves the alert with
+`Baseline adapted after 24 hours`. This caps an alert for a permanent level
+shift after the rolling baseline has absorbed the new behavior. An incomplete
+metric remains a strict no-op, including for this age check.
+
+An open request-drop alert resolves with `Deployment stopped` when there is no
+live deployment or `deployments.desired_state = stopped`. Without an open alert,
+the same condition clears request-drop candidate state.
 
 ### Persist virtual object state
 
@@ -251,10 +258,10 @@ Alert IDs use the `alert_` prefix. Error metrics store their error ratio in
 per group and metric. An anomaly against an existing open row updates
 `last_seen_at` and `observed_value` instead of inserting another row.
 
-System recovery sets `status = resolved`, `resolved_by = system`, and
-`resolution_message = "Metric returned to baseline for 3 consecutive windows"`.
-A dashboard resolution requires a message, stores the user ID in `resolved_by`,
-and writes the `alert.resolve` audit log event.
+Every resolution sets `status = resolved` and `resolved_by = system`. The
+resolution message records whether the metric returned to baseline for three
+consecutive windows, the deployment stopped, or the baseline adapted after 24
+hours.
 
 The detector does not send email, Slack messages, or webhooks. It only persists
 status transitions. A separate notification service can consume those
@@ -284,8 +291,8 @@ There is no separate dashboard architecture section in the engineering docs,
 so this page owns the dashboard implementation notes.
 
 The workspace inbox route is `/[workspaceSlug]/alerts`. It provides **Open** and
-**Resolved** filters, a sparkline, and inline resolution with a required
-message. `/[workspaceSlug]/alerts/[alertId]` redirects to the app focus route:
+**Resolved** filters and a sparkline. Alerts are read-only in the dashboard.
+`/[workspaceSlug]/alerts/[alertId]` redirects to the app focus route:
 
 `/[workspaceSlug]/projects/[projectId]/apps/[appId]/anomalies?env=<environmentId>&alert=<id>`
 
@@ -301,12 +308,13 @@ The app-level **Anomalies** tab provides these views:
 - Shaded windows for every anomaly and line-attached markers for the selected
   metric.
 - Optional deployment markers, drag-to-zoom, and a range-scoped alert list.
-- Alert focus through `?alert=<id>`, including an alert details card.
+- Alert focus through `?alert=<id>`, including an alert details card with the
+  system resolution message.
 
 The `alerts` tRPC router is in
 `web/apps/dashboard/lib/trpc/routers/alerts/`. Its procedures are `list`, `get`,
-`resolve`, `summary`, `series`, and `deployments`. Dashboard ClickHouse queries
-live in `web/internal/clickhouse/src/alerts.ts`. Shared band constants live in
+`summary`, `series`, and `deployments`. Dashboard ClickHouse queries live in
+`web/internal/clickhouse/src/alerts.ts`. Shared band constants live in
 `web/internal/clickhouse/src/alert-thresholds.ts` so displayed thresholds match
 detector rules.
 
@@ -339,8 +347,8 @@ bin/unkey dev seed alerts
 
 The alert seed writes 7 days of dense 5-minute telemetry, nine alerts, and
 deployment markers. Verify the open and resolved inbox filters, each metric
-view, focus mode, zoom, deployment toggle, and both manual and automatic
-resolution states.
+view, focus mode, zoom, deployment toggle, read-only controls, and system
+resolution messages.
 
 ## Scale characteristics
 
