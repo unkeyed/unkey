@@ -188,6 +188,128 @@ func TestDetectConfirmation(t *testing.T) {
 	require.Equal(t, OutcomeAnomaly, Detect(usage, cfg).Outcome)
 }
 
+func TestDetectRequestsDrop(t *testing.T) {
+	cfg := DefaultConfig(SensitivityNormal)
+
+	tests := []struct {
+		name          string
+		input         Input
+		wantOutcome   Outcome
+		wantMean      float64
+		wantStddev    float64
+		wantThreshold float64
+		wantReason    string
+	}{
+		{
+			name: "million requests to zero confirms anomaly",
+			input: Input{
+				Metric:                  MetricRequestsDrop,
+				Current:                 0,
+				BaselineMean:            1_000_000,
+				ObservedBaselineBuckets: 288,
+				BaselineWindowBuckets:   288,
+				PreviousCandidate:       true,
+			},
+			wantOutcome:   OutcomeAnomaly,
+			wantMean:      1_000_000,
+			wantStddev:    100_000,
+			wantThreshold: 600_000,
+			wantReason:    "request drop confirmed in consecutive windows",
+		},
+		{
+			name: "baseline below activity floor stays quiet",
+			input: Input{
+				Metric:                  MetricRequestsDrop,
+				Current:                 0,
+				BaselineMean:            199,
+				ObservedBaselineBuckets: 288,
+				BaselineWindowBuckets:   288,
+			},
+			wantOutcome:   OutcomeNone,
+			wantMean:      199,
+			wantStddev:    20,
+			wantThreshold: 119,
+			wantReason:    "baseline activity is below the request drop floor",
+		},
+		{
+			name: "drop within sigma bound stays quiet",
+			input: Input{
+				Metric:                  MetricRequestsDrop,
+				Current:                 700,
+				BaselineMean:            1_000,
+				BaselineStddev:          100,
+				ObservedBaselineBuckets: 288,
+				BaselineWindowBuckets:   288,
+			},
+			wantOutcome:   OutcomeNone,
+			wantMean:      1_000,
+			wantStddev:    100,
+			wantThreshold: 600,
+			wantReason:    "current value did not fall below sigma threshold",
+		},
+		{
+			name: "short history is insufficient",
+			input: Input{
+				Metric:                  MetricRequestsDrop,
+				Current:                 0,
+				BaselineMean:            1_000_000,
+				ObservedBaselineBuckets: 11,
+				BaselineWindowBuckets:   11,
+			},
+			wantOutcome:   OutcomeInsufficient,
+			wantMean:      1_000_000,
+			wantStddev:    100_000,
+			wantThreshold: 600_000,
+			wantReason:    "baseline has fewer than 12 buckets",
+		},
+		{
+			name: "first low window becomes candidate",
+			input: Input{
+				Metric:                  MetricRequestsDrop,
+				Current:                 0,
+				BaselineMean:            1_000_000,
+				ObservedBaselineBuckets: 288,
+				BaselineWindowBuckets:   288,
+			},
+			wantOutcome:   OutcomeCandidate,
+			wantMean:      1_000_000,
+			wantStddev:    100_000,
+			wantThreshold: 600_000,
+			wantReason:    "request drop needs a second consecutive window",
+		},
+		{
+			name: "negative lower bound clamps to zero",
+			input: Input{
+				Metric:                  MetricRequestsDrop,
+				Current:                 0,
+				BaselineMean:            200,
+				BaselineStddev:          100,
+				ObservedBaselineBuckets: 288,
+				BaselineWindowBuckets:   288,
+			},
+			wantOutcome:   OutcomeNone,
+			wantMean:      200,
+			wantStddev:    100,
+			wantThreshold: 0,
+			wantReason:    "current value did not fall below sigma threshold",
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			result := Detect(test.input, cfg)
+
+			require.Equal(t, test.wantOutcome, result.Outcome)
+			require.Equal(t, test.input.Current, result.Observed)
+			require.InDelta(t, test.wantMean, result.BaselineMean, 1e-9)
+			require.InDelta(t, test.wantStddev, result.BaselineStddev, 1e-9)
+			require.InDelta(t, test.wantThreshold, result.Threshold, 1e-9)
+			require.Equal(t, cfg.SigmaK, result.SigmaK)
+			require.Equal(t, test.wantReason, result.Reason)
+		})
+	}
+}
+
 func TestDetectThresholdMetrics(t *testing.T) {
 	cfg := DefaultConfig(SensitivityNormal)
 
@@ -226,9 +348,9 @@ func TestSensitivitySigmaK(t *testing.T) {
 }
 
 func TestShouldResolve(t *testing.T) {
-	require.False(t, shouldResolve(2))
-	require.True(t, shouldResolve(3))
-	require.True(t, shouldResolve(4))
+	require.False(t, ShouldResolve(2))
+	require.True(t, ShouldResolve(3))
+	require.True(t, ShouldResolve(4))
 }
 
 func TestDetectSigmaIsScaleInvariant(t *testing.T) {
@@ -240,6 +362,29 @@ func TestDetectSigmaIsScaleInvariant(t *testing.T) {
 		BaselineStddev:          2,
 		ObservedBaselineBuckets: 288,
 		BaselineWindowBuckets:   288,
+	}
+	want := Detect(base, cfg).Outcome
+	require.Equal(t, OutcomeAnomaly, want)
+
+	for _, scale := range []float64{0.25, 2, 10, 1_000} {
+		scaled := base
+		scaled.Current *= scale
+		scaled.BaselineMean *= scale
+		scaled.BaselineStddev *= scale
+		require.Equal(t, want, Detect(scaled, cfg).Outcome, "scale %v", scale)
+	}
+}
+
+func TestDetectRequestsDropIsScaleInvariant(t *testing.T) {
+	cfg := Config{SigmaK: 4}
+	base := Input{
+		Metric:                  MetricRequestsDrop,
+		Current:                 500,
+		BaselineMean:            1_000,
+		BaselineStddev:          100,
+		ObservedBaselineBuckets: 288,
+		BaselineWindowBuckets:   288,
+		PreviousCandidate:       true,
 	}
 	want := Detect(base, cfg).Outcome
 	require.Equal(t, OutcomeAnomaly, want)

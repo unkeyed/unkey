@@ -75,7 +75,9 @@ type InstanceEventAnomalyWindow struct {
 // GetRequestAnomalyWindows computes request, 4xx, and 5xx statistics for one
 // closed window and the preceding 24 hours in one scan. Deployment IDs are
 // intentionally aggregated away because alerts belong to the stable app and
-// environment across deploy transitions.
+// environment across deploy transitions. Apps with baseline traffic remain in
+// the result when the current bucket is absent, with current values set to zero,
+// so callers can detect a complete traffic drop.
 func (c *Client) GetRequestAnomalyWindows(ctx context.Context, req AnomalyWindowsRequest) ([]RequestAnomalyWindow, error) {
 	query := `
 	WITH fromUnixTimestamp64Milli({window_start_ms:Int64}) AS window_start
@@ -111,7 +113,7 @@ func (c *Client) GetRequestAnomalyWindows(ctx context.Context, req AnomalyWindow
 		GROUP BY bucket_time, workspace_id, project_id, app_id, environment_id
 	)
 	GROUP BY workspace_id, project_id, app_id, environment_id
-	HAVING countIf(bucket_time = window_start) > 0
+	HAVING countIf(bucket_time < window_start) > 0 OR countIf(bucket_time = window_start) > 0
 	/*operation='GetRequestAnomalyWindows'*/
 	`
 
