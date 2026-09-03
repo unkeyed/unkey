@@ -188,7 +188,23 @@ WITH
 	),
 	moments AS (
 		SELECT
-			*,
+			workspace_id,
+			project_id,
+			app_id,
+			environment_id,
+			error_5xx_current,
+			error_5xx_baseline_mean,
+			error_5xx_baseline_stddev,
+			error_4xx_current,
+			error_4xx_baseline_mean,
+			error_4xx_baseline_stddev,
+			requests_current,
+			requests_baseline_mean,
+			requests_baseline_stddev,
+			recent_requests,
+			current_bucket_present,
+			baseline_buckets,
+			first_bucket_time,
 			least(toInt64(288), intDiv(dateDiff('minute', first_bucket, window_start), 5)) AS baseline_window_buckets,
 			requests_baseline_sum / greatest(toFloat64(baseline_window_buckets), 1.) AS requests_padded_mean,
 			sqrt(greatest(0., requests_baseline_square_sum / greatest(toFloat64(baseline_window_buckets), 1.) - requests_padded_mean * requests_padded_mean)) AS requests_padded_stddev,
@@ -197,7 +213,24 @@ WITH
 	),
 	scored AS (
 		SELECT
-			*,
+			workspace_id,
+			project_id,
+			app_id,
+			environment_id,
+			error_5xx_current,
+			error_5xx_baseline_mean,
+			error_5xx_baseline_stddev,
+			error_4xx_current,
+			error_4xx_baseline_mean,
+			error_4xx_baseline_stddev,
+			requests_current,
+			requests_baseline_mean,
+			requests_baseline_stddev,
+			recent_requests,
+			current_bucket_present,
+			baseline_buckets,
+			first_bucket_time,
+			requests_padded_mean,
 			if(requests_current = 0, 0., error_5xx_current / requests_current) AS error_5xx_ratio_current,
 			if(requests_current = 0, 0., error_4xx_current / requests_current) AS error_4xx_ratio_current,
 			error_5xx_current - error_5xx_baseline_mean * requests_current AS error_5xx_excess,
@@ -339,9 +372,31 @@ WITH
 		GROUP BY workspace_id, project_id, app_id, environment_id
 	),
 	bucketed AS (
-		SELECT * FROM resource_buckets
+		SELECT
+			bucket_time,
+			workspace_id,
+			project_id,
+			app_id,
+			environment_id,
+			egress_bytes,
+			cpu_seconds,
+			memory_utilization,
+			memory_utilization_max,
+			current_bucket_present
+		FROM resource_buckets
 		UNION ALL
-		SELECT * FROM memory_current
+		SELECT
+			bucket_time,
+			workspace_id,
+			project_id,
+			app_id,
+			environment_id,
+			egress_bytes,
+			cpu_seconds,
+			memory_utilization,
+			memory_utilization_max,
+			current_bucket_present
+		FROM memory_current
 	),
 	aggregated AS (
 		SELECT
@@ -370,7 +425,21 @@ WITH
 	),
 	moments AS (
 		SELECT
-			*,
+			workspace_id,
+			project_id,
+			app_id,
+			environment_id,
+			egress_bytes_current,
+			egress_bytes_baseline_mean,
+			egress_bytes_baseline_stddev,
+			cpu_seconds_current,
+			cpu_seconds_baseline_mean,
+			cpu_seconds_baseline_stddev,
+			memory_utilization_current,
+			memory_utilization_max_current,
+			current_bucket_present,
+			baseline_buckets,
+			first_bucket_time,
 			least(toInt64(288), intDiv(dateDiff('minute', first_bucket, window_start), 5)) AS baseline_window_buckets,
 			egress_bytes_baseline_sum / greatest(toFloat64(baseline_window_buckets), 1.) AS egress_bytes_padded_mean,
 			sqrt(greatest(0., egress_bytes_baseline_square_sum / greatest(toFloat64(baseline_window_buckets), 1.) - egress_bytes_padded_mean * egress_bytes_padded_mean)) AS egress_bytes_padded_stddev,
@@ -443,7 +512,7 @@ func (c *Client) GetAnomalySourceWatermarks(ctx context.Context) (AnomalySourceW
 		return AnomalySourceWatermarks{}, fault.Wrap(err, fault.Internal("failed to query anomaly source watermarks"))
 	}
 	if len(watermarks) == 0 {
-		return AnomalySourceWatermarks{}, nil
+		return AnomalySourceWatermarks{Requests: 0, Resources: 0}, nil
 	}
 	return watermarks[0], nil
 }
@@ -490,12 +559,12 @@ func anomalyWindowBatches(req AnomalyWindowsRequest) []anomalyWindowBatch {
 	}
 	batches := make([]anomalyWindowBatch, 0, capacity)
 	if !req.SkipFleet {
-		batches = append(batches, anomalyWindowBatch{IncludeFleet: true})
+		batches = append(batches, anomalyWindowBatch{GroupKeys: nil, IncludeFleet: true})
 	}
 	for start := 0; start < len(req.GroupKeys); start += anomalyGroupKeyBatchSize {
 		end := min(start+anomalyGroupKeyBatchSize, len(req.GroupKeys))
 		batches = append(batches, anomalyWindowBatch{
-			GroupKeys: req.GroupKeys[start:end],
+			GroupKeys: req.GroupKeys[start:end], IncludeFleet: false,
 		})
 	}
 	return batches
@@ -532,7 +601,7 @@ func selectAnomalyWindows[T any](
 func anomalyWindowParameters(req AnomalyWindowsRequest, batch anomalyWindowBatch) map[string]string {
 	filter := req.CandidateFilter
 	if filter == nil {
-		filter = &AnomalyCandidateFilter{}
+		filter = new(AnomalyCandidateFilter)
 	}
 	return map[string]string{
 		"window_start_ms":             strconv.FormatInt(req.WindowStart, 10),
