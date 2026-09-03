@@ -2,6 +2,7 @@ CREATE TABLE `portals` (
 	`pk` bigint unsigned AUTO_INCREMENT NOT NULL,
 	`id` varchar(48) COLLATE utf8mb4_0900_as_cs NOT NULL,
 	`workspace_id` varchar(48) COLLATE utf8mb4_0900_as_cs NOT NULL,
+	`project_id` varchar(48) COLLATE utf8mb4_0900_as_cs NOT NULL DEFAULT '',
 	`slug` varchar(64) NOT NULL,
 	`display_name` varchar(64) NOT NULL,
 	`app_id` varchar(48) COLLATE utf8mb4_0900_as_cs,

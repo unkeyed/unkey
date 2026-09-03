@@ -1,6 +1,7 @@
 package handler_test
 
 import (
+	"database/sql"
 	"fmt"
 	"net/http"
 	"strings"
@@ -158,6 +159,32 @@ func TestGetPortalByIdAndSlug(t *testing.T) {
 			require.Equal(t, "#6366f1", res.Body.Data.Branding.PrimaryColor)
 		})
 	}
+}
+
+// TestGetPortalWithMissingMappingTarget guarantees a legacy permission can read
+// a portal after its mapping target is removed.
+func TestGetPortalWithMissingMappingTarget(t *testing.T) {
+	h := testutil.NewHarness(t)
+	route, headers := newRoute(t, h, "portal.*.read_portal")
+	workspace := h.Resources().UserWorkspace
+
+	mapping := portal.Mapping{Type: portal.MappingTypeKeyspace, ID: uid.New(uid.KeySpacePrefix)}
+	projectID := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspace.ID}).ProjectID
+	stored := h.CreatePortal(seed.CreatePortalRequest{
+		WorkspaceID: workspace.ID,
+		ProjectID:   projectID,
+		Slug:        "orphan",
+		DisplayName: "orphan",
+		KeyAuthID:   sql.NullString{String: mapping.ID, Valid: true},
+		Enabled:     true,
+	})
+
+	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
+		Portal: ptr.P(stored.ID),
+	})
+	require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
+	require.Equal(t, stored.ID, res.Body.Data.Id)
+	requireServes(t, mapping, res.Body.Data)
 }
 
 // The dashboard reaches a portal through the app or keyspace it serves and never

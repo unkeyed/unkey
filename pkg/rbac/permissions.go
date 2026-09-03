@@ -38,8 +38,8 @@ const (
 	// Environment represents environment resources within an app
 	Environment ResourceType = "environment"
 
-	// Portal represents portal resources, which sit directly under the
-	// workspace rather than under a project or app
+	// Portal represents portal resources in legacy tuple permissions. Canonical
+	// portal URNs sit under a project.
 	Portal ResourceType = "portal"
 
 	// Workspace represents workspace-wide operations that are not scoped to any
@@ -294,7 +294,7 @@ const (
 // portal management, so a key can be allowed to mint portal sessions without
 // gaining the right to change the portals themselves.
 const (
-	// CreatePortal permits creating new portals in the workspace
+	// CreatePortal permits creating new portals
 	CreatePortal ActionType = "create_portal"
 
 	// ReadPortal permits reading and listing portals

@@ -58,7 +58,7 @@ func TestCreateSessionSuccess(t *testing.T) {
 	})
 	keySpaceID := api.KeyAuthID.String
 
-	portalID := insertKeyspacePortal(t, h, workspaceID, "test-portal", keySpaceID)
+	portalID := insertKeyspacePortal(t, h, workspaceID, api.ProjectID, "test-portal", keySpaceID)
 
 	// Every subtest below requests keys:read, so the caller needs the portal
 	// permission plus the read-keys conjunction the equivalent operator route
@@ -205,7 +205,7 @@ func TestCreateSessionAuditsGrantedScopesAndKeyspaces(t *testing.T) {
 		DefaultPrefix: nil,
 		DefaultBytes:  nil,
 	})
-	insertKeyspacePortal(t, h, workspaceID, "audit-portal", api.KeyAuthID.String)
+	insertKeyspacePortal(t, h, workspaceID, api.ProjectID, "audit-portal", api.KeyAuthID.String)
 
 	// Several scopes, so the assertion pins the whole granted set rather than
 	// passing on a single-element slice.

@@ -14,6 +14,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/hash"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
+	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_portal_exchange_code"
 )
 
@@ -52,14 +53,16 @@ func TestExchangeCodeSuccess(t *testing.T) {
 	h.Register(route, h.PublicMiddleware()...)
 
 	workspaceID := h.Resources().UserWorkspace.ID
+	api := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspaceID})
 	portalID := uid.New(uid.PortalPrefix)
 	now := time.Now().UnixMilli()
 
 	err := db.Query.InsertPortal(ctx, h.DB.RW(), db.InsertPortalParams{
 		ID:          portalID,
 		WorkspaceID: workspaceID,
+		ProjectID:   api.ProjectID,
 		Slug:        "test-portal",
-		KeyAuthID:   sql.NullString{Valid: true, String: uid.New(uid.KeySpacePrefix)},
+		KeyAuthID:   api.KeyAuthID,
 		Enabled:     true,
 		CreatedAt:   now,
 	})

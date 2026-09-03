@@ -8,6 +8,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
+	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_portal_create_session"
 )
@@ -65,8 +66,9 @@ func TestCreateSessionNotFoundWrongWorkspace(t *testing.T) {
 
 	// Create a portal in workspace A (the default user workspace).
 	workspaceA := h.Resources().UserWorkspace.ID
+	projectID := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspaceA}).ProjectID
 
-	portalID := insertKeyspacePortal(t, h, workspaceA, "cross-workspace-portal", uid.New(uid.KeySpacePrefix))
+	portalID := insertKeyspacePortal(t, h, workspaceA, projectID, "cross-workspace-portal", uid.New(uid.KeySpacePrefix))
 
 	// Authenticate as workspace B, holding every permission the mint would need
 	// in its own workspace. Workspace A's portal must still be indistinguishable

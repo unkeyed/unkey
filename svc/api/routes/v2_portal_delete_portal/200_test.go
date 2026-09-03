@@ -435,6 +435,7 @@ func TestDeletePortalWithInvalidMapping(t *testing.T) {
 	stored := h.CreatePortal(seed.CreatePortalRequest{
 		ID:           "",
 		WorkspaceID:  workspace.ID,
+		ProjectID:    project.ID,
 		Slug:         "broken",
 		AppID:        sql.NullString{String: app.ID, Valid: true},
 		KeyAuthID:    sql.NullString{String: keyspace.ID, Valid: true},
@@ -448,4 +449,26 @@ func TestDeletePortalWithInvalidMapping(t *testing.T) {
 	require.False(t, portalExists(t, h, workspace.ID, stored.ID))
 	require.Equal(t, "invalid", deleteAuditMeta(t, h, workspace.ID)["mappingType"],
 		"the audit entry records that the mapping could not be read")
+}
+
+// TestDeletePortalWithMissingMappingTarget guarantees a legacy permission can
+// delete a portal after its mapping target is removed.
+func TestDeletePortalWithMissingMappingTarget(t *testing.T) {
+	h := testutil.NewHarness(t)
+	route, headers := newRoute(t, h, "portal.*.delete_portal")
+	workspace := h.Resources().UserWorkspace
+
+	projectID := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspace.ID}).ProjectID
+	stored := h.CreatePortal(seed.CreatePortalRequest{
+		WorkspaceID: workspace.ID,
+		ProjectID:   projectID,
+		Slug:        "orphan",
+		DisplayName: "orphan",
+		KeyAuthID:   sql.NullString{String: uid.New(uid.KeySpacePrefix), Valid: true},
+		Enabled:     true,
+	})
+
+	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, request(stored.ID))
+	require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
+	require.False(t, portalExists(t, h, workspace.ID, stored.ID))
 }

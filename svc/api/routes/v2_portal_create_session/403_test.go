@@ -19,19 +19,16 @@ import (
 )
 
 // insertKeyspacePortal seeds an enabled portal mapped to a single keyspace.
-func insertKeyspacePortal(t *testing.T, h *testutil.Harness, workspaceID, slug, keyspaceID string) string {
+func insertKeyspacePortal(t *testing.T, h *testutil.Harness, workspaceID, projectID, slug, keyspaceID string) string {
 	t.Helper()
 
-	portalID := uid.New(uid.PortalPrefix)
-	require.NoError(t, db.Query.InsertPortal(context.Background(), h.DB.RW(), db.InsertPortalParams{
-		ID:          portalID,
+	return h.CreatePortal(seed.CreatePortalRequest{
 		WorkspaceID: workspaceID,
+		ProjectID:   projectID,
 		Slug:        slug,
 		KeyAuthID:   sql.NullString{Valid: true, String: keyspaceID},
 		Enabled:     true,
-		CreatedAt:   time.Now().UnixMilli(),
-	}))
-	return portalID
+	}).ID
 }
 
 // countPortalSessions counts the sessions minted for one external id. The
@@ -79,7 +76,7 @@ func TestCreateSessionAuthorizationMatrix(t *testing.T) {
 
 	workspace := h.Resources().UserWorkspace
 	api := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspace.ID})
-	portalID := insertKeyspacePortal(t, h, workspace.ID, "matrix-portal", api.KeyAuthID.String)
+	portalID := insertKeyspacePortal(t, h, workspace.ID, api.ProjectID, "matrix-portal", api.KeyAuthID.String)
 	otherPortalID := uid.New(uid.PortalPrefix)
 
 	// The keys:read scope requires these of the caller on the portal's api, so
@@ -153,10 +150,10 @@ func TestCreateSessionScopeEscalation(t *testing.T) {
 
 	workspace := h.Resources().UserWorkspace
 	plainAPI := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspace.ID})
-	insertKeyspacePortal(t, h, workspace.ID, "escalation-portal", plainAPI.KeyAuthID.String)
+	insertKeyspacePortal(t, h, workspace.ID, plainAPI.ProjectID, "escalation-portal", plainAPI.KeyAuthID.String)
 
 	encryptedAPI := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspace.ID, EncryptedKeys: true})
-	insertKeyspacePortal(t, h, workspace.ID, "encrypted-portal", encryptedAPI.KeyAuthID.String)
+	insertKeyspacePortal(t, h, workspace.ID, encryptedAPI.ProjectID, "encrypted-portal", encryptedAPI.KeyAuthID.String)
 
 	mint := "portal.*.create_portal_session"
 
@@ -344,7 +341,7 @@ func TestCreateSessionRejectionWritesNothing(t *testing.T) {
 
 	workspace := h.Resources().UserWorkspace
 	api := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspace.ID})
-	insertKeyspacePortal(t, h, workspace.ID, "no-write-portal", api.KeyAuthID.String)
+	insertKeyspacePortal(t, h, workspace.ID, api.ProjectID, "no-write-portal", api.KeyAuthID.String)
 
 	externalID := "user_no_write_" + uid.New(uid.TestPrefix)
 	rootKey := h.CreateRootKey(workspace.ID, "portal.*.create_portal_session", "api.*.read_key", "api.*.read_api")
@@ -385,7 +382,7 @@ func TestCreateSessionMultiKeyspacePartialGrant(t *testing.T) {
 
 	// A deployed app maps to exactly one keyspace today, so the multi-keyspace
 	// shape is constructed directly rather than through app provisioning.
-	appID := seedAppWithKeyspaces(t, h, workspace.ID, "multi-keyspace", []string{
+	app := seedAppWithKeyspaces(t, h, workspace.ID, granted.ProjectID, "multi-keyspace", []string{
 		granted.KeyAuthID.String,
 		ungranted.KeyAuthID.String,
 	})
@@ -393,8 +390,9 @@ func TestCreateSessionMultiKeyspacePartialGrant(t *testing.T) {
 	require.NoError(t, db.Query.InsertPortal(ctx, h.DB.RW(), db.InsertPortalParams{
 		ID:          uid.New(uid.PortalPrefix),
 		WorkspaceID: workspace.ID,
+		ProjectID:   app.ProjectID,
 		Slug:        "multi-keyspace-portal",
-		AppID:       sql.NullString{Valid: true, String: appID},
+		AppID:       sql.NullString{Valid: true, String: app.ID},
 		Enabled:     true,
 		CreatedAt:   time.Now().UnixMilli(),
 	}))
@@ -417,6 +415,60 @@ func TestCreateSessionMultiKeyspacePartialGrant(t *testing.T) {
 	require.Equal(t, http.StatusForbidden, res.Status, "a grant on one of two keyspaces must not mint, got: %s", res.RawBody)
 }
 
+// TestCreateSessionRejectsCrossProjectKeyspace guarantees every keyspace
+// resolved through an app belongs to the portal's project.
+func TestCreateSessionRejectsCrossProjectKeyspace(t *testing.T) {
+	h := testutil.NewHarness(t)
+
+	route := &handler.Handler{
+		DB:            h.DB,
+		Auditlogs:     h.Auditlogs,
+		PortalBaseURL: "https://portal.unkey.com",
+		Clock:         h.Clock,
+	}
+	h.Register(route)
+
+	workspace := h.Resources().UserWorkspace
+	inProject := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspace.ID})
+	otherProject := h.CreateProject(seed.CreateProjectRequest{
+		ID:          uid.New(uid.ProjectPrefix),
+		WorkspaceID: workspace.ID,
+		Name:        "other project",
+		Slug:        "other-project-" + uid.DNS1035(),
+	})
+	other := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspace.ID, ProjectID: otherProject.ID})
+	app := seedAppWithKeyspaces(t, h, workspace.ID, inProject.ProjectID, "cross-project", []string{
+		inProject.KeyAuthID.String,
+		other.KeyAuthID.String,
+	})
+	stored := h.CreatePortal(seed.CreatePortalRequest{
+		WorkspaceID: workspace.ID,
+		ProjectID:   inProject.ProjectID,
+		Slug:        "cross-project-portal",
+		AppID:       sql.NullString{Valid: true, String: app.ID},
+		Enabled:     true,
+	})
+
+	rootKey := h.CreateRootKey(workspace.ID,
+		"portal.*.create_portal_session",
+		fmt.Sprintf("api.%s.read_key", inProject.ID),
+		fmt.Sprintf("api.%s.read_api", inProject.ID),
+		fmt.Sprintf("api.%s.read_key", other.ID),
+		fmt.Sprintf("api.%s.read_api", other.ID),
+	)
+	externalID := "user_cross_project"
+	res := testutil.CallRoute[handler.Request, handler.Response](h, route, http.Header{
+		"Content-Type":  {"application/json"},
+		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+	}, handler.Request{
+		Portal:     stored.ID,
+		ExternalId: externalID,
+		Scopes:     []openapi.V2PortalCreateSessionRequestBodyScopes{"keys:read"},
+	})
+	require.Equal(t, http.StatusForbidden, res.Status, "a portal must not grant access across projects: %s", res.RawBody)
+	require.Equal(t, 0, countPortalSessions(t, h, workspace.ID, externalID), "a rejected request must not insert a session")
+}
+
 // TestCreateSessionForbiddenDisabledPortal guarantees the disabled check is
 // reached with the permission granted, so it is not shadowed by authorization.
 func TestCreateSessionForbiddenDisabledPortal(t *testing.T) {
@@ -437,6 +489,7 @@ func TestCreateSessionForbiddenDisabledPortal(t *testing.T) {
 	require.NoError(t, db.Query.InsertPortal(ctx, h.DB.RW(), db.InsertPortalParams{
 		ID:          uid.New(uid.PortalPrefix),
 		WorkspaceID: workspace.ID,
+		ProjectID:   api.ProjectID,
 		Slug:        "disabled-portal",
 		KeyAuthID:   sql.NullString{Valid: true, String: api.KeyAuthID.String},
 		Enabled:     false,
@@ -484,15 +537,22 @@ func TestCreateSessionKeyspaceWithoutAPI(t *testing.T) {
 	workspace := h.Resources().UserWorkspace
 
 	// A keyspace with no api row pointing at it.
+	project := h.CreateProject(seed.CreateProjectRequest{
+		ID:          uid.New(uid.ProjectPrefix),
+		WorkspaceID: workspace.ID,
+		Name:        "orphan keyspace",
+		Slug:        "orphan-keyspace-" + uid.DNS1035(),
+	})
 	orphanKeyspaceID := uid.New(uid.KeySpacePrefix)
 	require.NoError(t, db.Query.InsertKeySpace(ctx, h.DB.RW(), db.InsertKeySpaceParams{
 		ID:            orphanKeyspaceID,
 		WorkspaceID:   workspace.ID,
+		ProjectID:     project.ID,
 		CreatedAtM:    time.Now().UnixMilli(),
 		DefaultPrefix: sql.NullString{Valid: false},
 		DefaultBytes:  sql.NullInt32{Valid: false},
 	}))
-	insertKeyspacePortal(t, h, workspace.ID, "orphan-portal", orphanKeyspaceID)
+	insertKeyspacePortal(t, h, workspace.ID, project.ID, "orphan-portal", orphanKeyspaceID)
 
 	externalID := "user_orphan_" + uid.New(uid.TestPrefix)
 	rootKey := h.CreateRootKey(workspace.ID, "portal.*.create_portal_session", "api.*.read_key", "api.*.read_api")

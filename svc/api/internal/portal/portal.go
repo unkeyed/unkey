@@ -253,8 +253,7 @@ func DescribeMapping(p db.Portal) (mappingType string, mappingID string) {
 	}
 }
 
-// VerifyMappingOwned reports whether the mapped app or keyspace exists in this
-// workspace.
+// ProjectIDForMapping returns the project that owns a portal mapping.
 //
 // This is the check that keeps a portal from claiming another tenant's resource.
 // `idx_app_id` and `idx_key_auth_id` are unique across the whole table, so an
@@ -262,35 +261,24 @@ func DescribeMapping(p db.Portal) (mappingType string, mappingID string) {
 // never create its own portal for it, and because the verified-custom-domain
 // lookup on the session path is not workspace-scoped, a squatted app id would
 // steer session URLs onto the victim's domain.
-//
-// Runs inside the caller's transaction so the row cannot disappear between this
-// check and the write.
-func VerifyMappingOwned(ctx context.Context, tx db.DBTX, workspaceID string, m Mapping) error {
-	notFound := func(detail string) error {
-		return fault.New("portal mapping not found",
-			fault.Code(codes.Data.Portal.NotFound.URN()),
-			fault.Internal(detail),
-			fault.Public(ErrMsgMappingNotFound),
-		)
-	}
-
+func ProjectIDForMapping(ctx context.Context, tx db.DBTX, workspaceID string, m Mapping) (string, error) {
 	switch m.Type {
 	case MappingTypeApp:
-		_, err := db.Query.FindAppByIdAndWorkspace(ctx, tx, db.FindAppByIdAndWorkspaceParams{
+		app, err := db.Query.FindAppByIdAndWorkspace(ctx, tx, db.FindAppByIdAndWorkspaceParams{
 			ID:          m.ID,
 			WorkspaceID: workspaceID,
 		})
 		if err != nil {
 			if db.IsNotFound(err) {
-				return notFound(fmt.Sprintf("app %s is not in workspace %s", m.ID, workspaceID))
+				return "", mappingNotFound(fmt.Sprintf("app %s is not in workspace %s", m.ID, workspaceID))
 			}
-			return fault.Wrap(err,
+			return "", fault.Wrap(err,
 				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
 				fault.Internal("database error looking up app"),
 				fault.Public("Failed to look up the app."),
 			)
 		}
-		return nil
+		return app.ProjectID, nil
 
 	case MappingTypeKeyspace:
 		rows, err := db.Query.FindKeyAuthsByIdsAndWorkspace(ctx, tx, db.FindKeyAuthsByIdsAndWorkspaceParams{
@@ -298,26 +286,60 @@ func VerifyMappingOwned(ctx context.Context, tx db.DBTX, workspaceID string, m M
 			KeyAuthIds:  []string{m.ID},
 		})
 		if err != nil {
-			return fault.Wrap(err,
+			return "", fault.Wrap(err,
 				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
 				fault.Internal("database error looking up keyspace"),
 				fault.Public("Failed to look up the keyspace."),
 			)
 		}
 		if len(rows) == 0 {
-			return notFound(fmt.Sprintf("keyspace %s is not in workspace %s", m.ID, workspaceID))
+			return "", mappingNotFound(fmt.Sprintf("keyspace %s is not in workspace %s", m.ID, workspaceID))
 		}
-		return nil
+		return rows[0].ProjectID, nil
 
 	default:
-		return ErrUnknownMappingType(m.Type)
+		return "", ErrUnknownMappingType(m.Type)
 	}
+}
+
+// VerifyMappingInProject requires a portal mapping to belong to the portal's
+// project. A mapping update can change the served resource, but it cannot move
+// the portal to another project.
+func VerifyMappingInProject(
+	ctx context.Context,
+	tx db.DBTX,
+	workspaceID string,
+	projectID string,
+	m Mapping,
+) error {
+	mappingProjectID, err := ProjectIDForMapping(ctx, tx, workspaceID, m)
+	if err != nil {
+		return err
+	}
+	if mappingProjectID != projectID {
+		return mappingNotFound(fmt.Sprintf(
+			"mapping %s/%s belongs to project %s, portal belongs to project %s",
+			m.Type,
+			m.ID,
+			mappingProjectID,
+			projectID,
+		))
+	}
+	return nil
+}
+
+func mappingNotFound(detail string) error {
+	return fault.New("portal mapping not found",
+		fault.Code(codes.Data.Portal.NotFound.URN()),
+		fault.Internal(detail),
+		fault.Public(ErrMsgMappingNotFound),
+	)
 }
 
 // AuthorizeMappingTarget requires the caller to hold read permission on the
 // resource a portal is being pointed at.
 //
-// [VerifyMappingOwned] asks only whether the resource is in the caller's
+// [ProjectIDForMapping] asks only whether the resource is in the caller's
 // workspace, which is not the same question. Without this, a key holding nothing
 // but `update_portal` could re-point a portal at any keyspace in the workspace,
 // including ones it has no rights over: the customer's own backend then re-mints
@@ -335,6 +357,7 @@ func AuthorizeMappingTarget(
 	tx db.DBTX,
 	principal *authprincipal.Principal,
 	workspaceID string,
+	projectID string,
 	m Mapping,
 ) error {
 	denied := func(detail string) error {
@@ -350,15 +373,13 @@ func AuthorizeMappingTarget(
 
 	switch m.Type {
 	case MappingTypeApp:
-		// Legacy tuples only, unlike the keyspace arm below. An app URN is
-		// addressed as projects/{project_id}/apps/{app_id} and this function is
-		// handed an app ID alone. Resolving the project ID and adding the URN
-		// check belong to migrating v2_apps_get_app, which authorizes the same
-		// way. Until then a portal can only be pointed at an app by a caller
-		// holding a legacy grant, which is no worse than reading the app itself.
 		err := principal.Authorize(rbac.Or(
 			rbac.T(rbac.Tuple{ResourceType: rbac.App, ResourceID: "*", Action: rbac.ReadApp}),
 			rbac.T(rbac.Tuple{ResourceType: rbac.App, ResourceID: m.ID, Action: rbac.ReadApp}),
+			rbac.U(
+				urn.New().Workspace(workspaceID).Project(projectID).App(m.ID),
+				permissions.Read,
+			),
 		))
 		if err != nil {
 			return denied(fmt.Sprintf("caller may not read app %s: %s", m.ID, fault.InternalMessage(err)))
@@ -397,7 +418,7 @@ func AuthorizeMappingTarget(
 			rbac.T(rbac.Tuple{ResourceType: rbac.Api, ResourceID: "*", Action: rbac.ReadAPI}),
 			rbac.T(rbac.Tuple{ResourceType: rbac.Api, ResourceID: apiID, Action: rbac.ReadAPI}),
 			rbac.U(
-				urn.New().Workspace(workspaceID).Project(rows[0].ProjectID).Keyspace(m.ID),
+				urn.New().Workspace(workspaceID).Project(projectID).Keyspace(m.ID),
 				permissions.Read,
 			),
 		))

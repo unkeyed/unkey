@@ -911,6 +911,7 @@ func (s *Seeder) CreatePermission(ctx context.Context, req CreatePermissionReque
 type CreatePortalRequest struct {
 	ID           string
 	WorkspaceID  string
+	ProjectID    string
 	Slug         string
 	DisplayName  string
 	AppID        sql.NullString
@@ -920,9 +921,11 @@ type CreatePortalRequest struct {
 	PrimaryColor sql.NullString
 }
 
-// CreatePortal creates a portal. When ID is empty a new one is minted, so a test
-// that does not care about the id can leave it unset.
+// CreatePortal creates a portal. ProjectID must identify its owning project.
+// When ID is empty, the seeder mints one.
 func (s *Seeder) CreatePortal(ctx context.Context, req CreatePortalRequest) db.Portal {
+	require.NoError(s.t, assert.NotEmpty(req.ProjectID, "Portal ProjectID must be set"))
+
 	portalID := req.ID
 	if portalID == "" {
 		portalID = uid.New(uid.PortalPrefix)
@@ -937,6 +940,7 @@ func (s *Seeder) CreatePortal(ctx context.Context, req CreatePortalRequest) db.P
 	err := db.Query.InsertPortal(ctx, s.DB.RW(), db.InsertPortalParams{
 		ID:           portalID,
 		WorkspaceID:  req.WorkspaceID,
+		ProjectID:    req.ProjectID,
 		Slug:         req.Slug,
 		DisplayName:  displayName,
 		AppID:        req.AppID,

@@ -20,6 +20,8 @@ var ErrInvalidResourceName = errors.New("invalid resource name")
 var resourcePathShapes = [][]string{
 	{"github", "apps", resourceIDSegment},
 	{"projects", resourceIDSegment},
+	{"projects", resourceIDSegment, "portals", resourceIDSegment},
+	{"projects", resourceIDSegment, "portals", resourceIDSegment, "sessions", resourceIDSegment},
 	{"projects", resourceIDSegment, "apps", resourceIDSegment},
 	{"projects", resourceIDSegment, "apps", resourceIDSegment, "environments", resourceIDSegment},
 	{"projects", resourceIDSegment, "apps", resourceIDSegment, "environments", resourceIDSegment, "deployments", resourceIDSegment},

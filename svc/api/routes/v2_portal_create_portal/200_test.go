@@ -191,6 +191,7 @@ func TestCreatePortalWithAppMappingAndBranding(t *testing.T) {
 		db.FindPortalByIdOrSlugParams{Portal: res.Body.Data.PortalId, WorkspaceID: workspace.ID})
 	require.NoError(t, err)
 	require.Equal(t, app.ID, stored.AppID.String)
+	require.Equal(t, project.ID, stored.ProjectID)
 	require.False(t, stored.KeyAuthID.Valid, "the keyspace column stays null for an app mapping")
 	require.False(t, stored.Enabled, "enabled:false creates the portal dormant")
 	require.Equal(t, "https://cdn.example.com/logo.svg", stored.LogoUrl.String)
@@ -217,6 +218,7 @@ func TestCreatePortalAllowsSameSlugInAnotherWorkspace(t *testing.T) {
 	})
 	h.CreatePortal(seed.CreatePortalRequest{
 		WorkspaceID: other.ID,
+		ProjectID:   otherApi.ProjectID,
 		Slug:        "shared-slug",
 		KeyAuthID:   sql.NullString{String: otherApi.KeyAuthID.String, Valid: true},
 		Enabled:     true,

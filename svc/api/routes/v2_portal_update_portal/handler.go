@@ -13,6 +13,8 @@ import (
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/pkg/validation"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/internal/portal"
@@ -149,17 +151,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			)
 		}
 
-		// Resolved first, then authorized, so the query can name the concrete ID a
-		// scoped grant would carry. Safe because the resolve is workspace-scoped --
-		// a foreign portal is already absent above -- Authorize is an in-memory
-		// check over already-loaded permissions, and nothing has been written yet.
-		// The wildcard arm is spelled out separately because a stored `*` matches
-		// literally and does not expand.
-		//
-		// Portals are not in the canonical URN catalog, so scoped access uses legacy
-		// tuples. The exact admin permission lets the dashboard use this route. The
-		// JWT admin role produces it.
-		err = principal.Authorize(rbac.Or(
+		// Keep legacy permissions while callers migrate to project-scoped URNs.
+		authorization := rbac.Or(
 			rbac.T(rbac.Tuple{
 				ResourceType: rbac.Portal,
 				ResourceID:   "*",
@@ -171,7 +164,13 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				Action:       rbac.UpdatePortal,
 			}),
 			rbac.S(fmt.Sprintf("unkey:v1:%s:**#*", principal.AuthorizedWorkspaceID)),
-		))
+			rbac.U(
+				urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(found.ProjectID).Portal(found.ID),
+				permissions.Write,
+			),
+		)
+
+		err = principal.Authorize(authorization)
 		if err != nil {
 			// A fresh chain, not a wrap: UserFacingMessage concatenates every public
 			// message in the chain, so wrapping would append the rendered RBAC query
@@ -187,11 +186,11 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 
 		if repoint {
-			if err = portal.VerifyMappingOwned(ctx, tx, principal.AuthorizedWorkspaceID, mapping); err != nil {
+			if err = portal.VerifyMappingInProject(ctx, tx, principal.AuthorizedWorkspaceID, found.ProjectID, mapping); err != nil {
 				return empty, err
 			}
 
-			if err = portal.AuthorizeMappingTarget(ctx, tx, principal, principal.AuthorizedWorkspaceID, mapping); err != nil {
+			if err = portal.AuthorizeMappingTarget(ctx, tx, principal, principal.AuthorizedWorkspaceID, found.ProjectID, mapping); err != nil {
 				return empty, err
 			}
 		}

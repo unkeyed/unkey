@@ -1,7 +1,6 @@
 package handler_test
 
 import (
-	"database/sql"
 	"net/http"
 	"testing"
 
@@ -10,7 +9,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/svc/api/internal/portal"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
-	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_portal_get_portal"
 )
 
@@ -42,16 +40,7 @@ func TestGetPortalMasksEveryMiss(t *testing.T) {
 	// the keyspace it maps.
 	other := h.CreateWorkspace()
 	otherKeyspace := keyspaceMapping(t, h, other.ID)
-	otherPortal := h.CreatePortal(seed.CreatePortalRequest{
-		ID:           "",
-		WorkspaceID:  other.ID,
-		Slug:         "theirs",
-		AppID:        sql.NullString{String: "", Valid: false},
-		KeyAuthID:    sql.NullString{String: otherKeyspace.ID, Valid: true},
-		Enabled:      true,
-		LogoUrl:      sql.NullString{String: "", Valid: false},
-		PrimaryColor: sql.NullString{String: "", Valid: false},
-	})
+	otherPortal := h.SeedPortal(t, other.ID, "theirs", "theirs", otherKeyspace, nil, nil)
 
 	unknownKeyspace := portal.Mapping{Type: portal.MappingTypeKeyspace, ID: "ks_doesnotexist"}
 	unknownApp := portal.Mapping{Type: portal.MappingTypeApp, ID: "app_doesnotexist"}

@@ -4,6 +4,10 @@ unkey:v1:ws_123:github/apps/*#delete
 unkey:v1:ws_123:projects/*#read
 unkey:v1:ws_123:projects/*#write
 unkey:v1:ws_123:projects/*#delete
+unkey:v1:ws_123:projects/*/portals/*#read
+unkey:v1:ws_123:projects/*/portals/*#write
+unkey:v1:ws_123:projects/*/portals/*#delete
+unkey:v1:ws_123:projects/*/portals/*/sessions/*#write
 unkey:v1:ws_123:projects/*/apps/*#read
 unkey:v1:ws_123:projects/*/apps/*#write
 unkey:v1:ws_123:projects/*/apps/*#delete

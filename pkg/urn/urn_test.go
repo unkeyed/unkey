@@ -30,6 +30,8 @@ func TestParseV1AllowsCanonicalPatterns(t *testing.T) {
 	for _, value := range []string{
 		"unkey:v1:ws_123:github/apps/*",
 		"unkey:v1:ws_123:projects/*",
+		"unkey:v1:ws_123:projects/*/portals/*",
+		"unkey:v1:ws_123:projects/*/portals/*/sessions/*",
 		"unkey:v1:ws_123:projects/*/apps/*/environments/*/deployments/*/logs",
 		"unkey:v1:ws_123:projects/*/apps/*/environments/*/gateway/logs",
 		"unkey:v1:ws_123:projects/*/keyspaces/*/logs",
@@ -103,6 +105,7 @@ func TestResourceCatalogBuilders(t *testing.T) {
 	deployment := environment.Deployment("dep_123")
 	keyspace := project.Keyspace("ks_123")
 	namespace := project.RatelimitNamespace("ns_123")
+	portal := project.Portal("pc_123")
 
 	tests := []struct {
 		name string
@@ -126,6 +129,8 @@ func TestResourceCatalogBuilders(t *testing.T) {
 		{name: "rate limit namespace", got: namespace.String(), want: "unkey:v1:ws_123:projects/proj_123/ratelimits/namespaces/ns_123"},
 		{name: "rate limit logs", got: namespace.Logs().String(), want: "unkey:v1:ws_123:projects/proj_123/ratelimits/namespaces/ns_123/logs"},
 		{name: "rate limit override", got: namespace.Override("ov_123").String(), want: "unkey:v1:ws_123:projects/proj_123/ratelimits/namespaces/ns_123/overrides/ov_123"},
+		{name: "portal", got: portal.String(), want: "unkey:v1:ws_123:projects/proj_123/portals/pc_123"},
+		{name: "portal session", got: portal.Session("ps_123").String(), want: "unkey:v1:ws_123:projects/proj_123/portals/pc_123/sessions/ps_123"},
 		{name: "role", got: project.RBAC().Role("role_123").String(), want: "unkey:v1:ws_123:projects/proj_123/rbac/roles/role_123"},
 		{name: "permission", got: project.RBAC().Permission("perm_123").String(), want: "unkey:v1:ws_123:projects/proj_123/rbac/permissions/perm_123"},
 	}
@@ -158,6 +163,7 @@ func TestResourceCatalogDescendantBuilders(t *testing.T) {
 		environment.Deployment("dep_123").Any().String(),
 		project.Keyspace("ks_123").Any().String(),
 		project.RatelimitNamespace("ns_123").Any().String(),
+		project.Portal("pc_123").Any().String(),
 	} {
 		_, err := ParseV1(value)
 		require.NoError(t, err, value)

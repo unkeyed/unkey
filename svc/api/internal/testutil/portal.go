@@ -1,9 +1,11 @@
 package testutil
 
 import (
+	"context"
 	"database/sql"
 	"testing"
 
+	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/svc/api/internal/portal"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
@@ -36,9 +38,14 @@ func (h *Harness) SeedPortal(
 		t.Fatalf("unsupported portal mapping type %q", mapping.Type)
 	}
 
+	projectID, err := portal.ProjectIDForMapping(context.Background(), h.DB.RO(), workspaceID, mapping)
+	require.NoError(t, err)
+	require.NotEmpty(t, projectID)
+
 	return h.CreatePortal(seed.CreatePortalRequest{
 		ID:           "",
 		WorkspaceID:  workspaceID,
+		ProjectID:    projectID,
 		Slug:         slug,
 		DisplayName:  displayName,
 		AppID:        appID,

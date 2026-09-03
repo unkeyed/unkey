@@ -20,7 +20,9 @@ import (
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/hash"
 	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/pkg/zen"
 	apierrors "github.com/unkeyed/unkey/svc/api/internal/errors"
 	"github.com/unkeyed/unkey/svc/api/internal/policyconfig"
@@ -170,14 +172,13 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	// Stage 1: may this caller mint a session for *this* portal at all?
+	// Stage 1: may this caller mint a session for this portal at all?
 	//
 	// It runs before the enabled check so the tuple can name a concrete portal,
 	// and it is built from portal.ID rather than req.Portal: req.Portal accepts
 	// an id or a slug, legacy tuples match literally, and a slug-shaped tuple
 	// could never match a dashboard-granted portal.pc_*.create_portal_session.
-	// The wildcard branch is spelled out for the same reason: `*` in a stored
-	// grant is matched literally, it does not expand.
+	// The session URN uses a wildcard because the session does not exist yet.
 	if err = principal.Authorize(rbac.Or(
 		rbac.T(rbac.Tuple{
 			ResourceType: rbac.Portal,
@@ -189,6 +190,11 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			ResourceID:   portal.ID,
 			Action:       rbac.CreatePortalSession,
 		}),
+		rbac.S(fmt.Sprintf("unkey:v1:%s:**#*", workspaceID)),
+		rbac.U(
+			urn.New().Workspace(workspaceID).Project(portal.ProjectID).Portal(portal.ID).Session("*"),
+			permissions.Write,
+		),
 	)); err != nil {
 		// Masked as 404 so a caller short of the minting permission cannot tell an
 		// existing portal from an absent one, or learn the resolved portal id --
@@ -214,8 +220,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	// The keyspaces a session is scoped to come from the portal, not the public
-	// request: the portal is already bound to this workspace, so key
-	// capabilities can never reach another workspace's keyspaces.
+	// request. The checks below reject keyspaces outside the portal's workspace
+	// or project.
 	keyspaceIDs, err := h.resolveKeyspaceIDs(ctx, workspaceID, portal)
 	if err != nil {
 		return err
@@ -224,7 +230,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	// Stage 2: a minted session may never carry a capability the calling root
 	// key does not itself hold. This precedes the exchange code, the session
 	// insert and the audit log, so a rejection writes nothing.
-	if err = h.authorizeScopes(ctx, principal, workspaceID, keyspaceIDs, req.Scopes); err != nil {
+	if err = h.authorizeScopes(ctx, principal, workspaceID, portal.ProjectID, keyspaceIDs, req.Scopes); err != nil {
 		return err
 	}
 
@@ -460,6 +466,7 @@ func (h *Handler) authorizeScopes(
 	ctx context.Context,
 	principal *authprincipal.Principal,
 	workspaceID string,
+	portalProjectID string,
 	keyspaceIDs []string,
 	scopes []openapi.V2PortalCreateSessionRequestBodyScopes,
 ) error {
@@ -474,7 +481,7 @@ func (h *Handler) authorizeScopes(
 		)
 	}
 
-	apiIDs, err := h.apiIDsByKeyspace(ctx, workspaceID, keyspaceIDs)
+	resources, err := h.resourcesByKeyspace(ctx, workspaceID, portalProjectID, keyspaceIDs)
 	if err != nil {
 		return err
 	}
@@ -488,7 +495,8 @@ func (h *Handler) authorizeScopes(
 		var checks []rbac.PermissionQuery
 
 		for _, keyspaceID := range keyspaceIDs {
-			queries, ok := ScopeQueries(scope, apiIDs[keyspaceID], encrypted[keyspaceID])
+			resource := resources[keyspaceID]
+			queries, ok := ScopeQueries(scope, resource.apiID, encrypted[keyspaceID])
 			if !ok {
 				// Reaching this means the request enum and the mapping below have
 				// diverged, which is a server bug rather than a caller problem.
@@ -499,7 +507,16 @@ func (h *Handler) authorizeScopes(
 					fault.Public("Portal configuration is invalid."),
 				)
 			}
-			checks = append(checks, queries...)
+			keyspaceCheck := rbac.And(queries...)
+			if canonical, hasCanonical := canonicalScopePermission(
+				scope,
+				workspaceID,
+				resource.projectID,
+				keyspaceID,
+			); hasCanonical {
+				keyspaceCheck = rbac.Or(keyspaceCheck, canonical)
+			}
+			checks = append(checks, keyspaceCheck)
 		}
 
 		if len(checks) == 0 {
@@ -525,13 +542,54 @@ func (h *Handler) authorizeScopes(
 	return nil
 }
 
-// apiIDsByKeyspace maps each resolved keyspace to the api that owns it.
+// canonicalScopePermission returns the project-scoped permission for a portal
+// session scope. Analytics stays on legacy tuples because its operator endpoint
+// does not evaluate URNs.
+func canonicalScopePermission(
+	scope openapi.V2PortalCreateSessionRequestBodyScopes,
+	workspaceID string,
+	projectID string,
+	keyspaceID string,
+) (rbac.PermissionQuery, bool) {
+	var empty rbac.PermissionQuery
+	keyspace := urn.New().Workspace(workspaceID).Project(projectID).Keyspace(keyspaceID)
+	switch scope {
+	case openapi.KeysRead:
+		return rbac.And(
+			rbac.U(keyspace.Key("*"), permissions.Read),
+			rbac.U(keyspace, permissions.Read),
+		), true
+
+	case openapi.KeysCreate, openapi.KeysReroll:
+		return rbac.U(keyspace.Key("*"), permissions.Write), true
+
+	case openapi.AnalyticsRead:
+		return empty, false
+
+	default:
+		return empty, false
+	}
+}
+
+// keyspaceResource identifies the API and project that own a keyspace.
+type keyspaceResource struct {
+	apiID     string
+	projectID string
+}
+
+// resourcesByKeyspace maps each resolved keyspace to its API and rejects a
+// keyspace outside the portal's project.
 //
 // Every stage-2 requirement is api-scoped, so a keyspace with no api admits no
 // expressible check. That is a misconfiguration rather than a caller error:
 // skipping such a keyspace would leave it unchecked, so it fails loudly and
 // names the keyspace.
-func (h *Handler) apiIDsByKeyspace(ctx context.Context, workspaceID string, keyspaceIDs []string) (map[string]string, error) {
+func (h *Handler) resourcesByKeyspace(
+	ctx context.Context,
+	workspaceID string,
+	portalProjectID string,
+	keyspaceIDs []string,
+) (map[string]keyspaceResource, error) {
 	rows, err := db.Query.FindApisByKeyAuthIds(ctx, h.DB.RO(), db.FindApisByKeyAuthIdsParams{
 		WorkspaceID: workspaceID,
 		KeyAuthIds:  keyspaceIDs,
@@ -544,13 +602,14 @@ func (h *Handler) apiIDsByKeyspace(ctx context.Context, workspaceID string, keys
 		)
 	}
 
-	apiIDs := make(map[string]string, len(rows))
+	resources := make(map[string]keyspaceResource, len(rows))
 	for _, row := range rows {
-		apiIDs[row.KeyAuthID] = row.ApiID
+		resources[row.KeyAuthID] = keyspaceResource{apiID: row.ApiID, projectID: row.ProjectID}
 	}
 
 	for _, keyspaceID := range keyspaceIDs {
-		if apiIDs[keyspaceID] == "" {
+		resource := resources[keyspaceID]
+		if resource.apiID == "" {
 			// Reachable without any misconfiguration on our side: apis.deleteApi
 			// soft-deletes the api row and leaves key_auth live, so a customer
 			// deleting their own api orphans the keyspace this portal resolves to.
@@ -563,14 +622,26 @@ func (h *Handler) apiIDsByKeyspace(ctx context.Context, workspaceID string, keys
 				fault.Public("Portal is not available: the API it uses no longer exists."),
 			)
 		}
+		if resource.projectID != portalProjectID {
+			return nil, fault.New("portal keyspace belongs to another project",
+				fault.Code(codes.Auth.Authorization.Forbidden.URN()),
+				fault.Internal(fmt.Sprintf(
+					"keyspace %s belongs to project %s, portal belongs to project %s",
+					keyspaceID,
+					resource.projectID,
+					portalProjectID,
+				)),
+				fault.Public("Portal configuration is invalid."),
+			)
+		}
 	}
 
-	return apiIDs, nil
+	return resources, nil
 }
 
 // encryptionByKeyspace reports, per resolved keyspace, whether it stores
 // recoverable key material. A keyspace missing from the result is the same
-// misconfiguration apiIDsByKeyspace rejects, so it fails rather than defaulting
+// misconfiguration resourcesByKeyspace rejects, so it fails rather than defaulting
 // to the weaker no-encryption requirement.
 func (h *Handler) encryptionByKeyspace(ctx context.Context, workspaceID string, keyspaceIDs []string) (map[string]bool, error) {
 	rows, err := db.Query.FindKeyAuthsByIdsAndWorkspace(ctx, h.DB.RO(), db.FindKeyAuthsByIdsAndWorkspaceParams{
