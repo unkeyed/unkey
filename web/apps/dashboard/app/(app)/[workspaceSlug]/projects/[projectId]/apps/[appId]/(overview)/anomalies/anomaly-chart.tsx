@@ -3,14 +3,19 @@
 import {
   alertMetricLabel,
   alertSeriesMetricLabel,
+  formatAlertDistance,
   formatAlertSeriesAxisValue,
   formatAlertSeriesValue,
+  formatAlertValue,
+  hasFixedAlertThreshold,
+  seriesMetricForAlert,
 } from "@/components/alerts/format";
+import { AlertStatusBadge } from "@/components/alerts/status-badge";
 import type { AlertListItem, AlertSeriesData, AlertSeriesMetric } from "@/components/alerts/types";
 import { type ChartConfig, ChartContainer } from "@/components/ui/chart";
 import { cn } from "@/lib/utils";
 import { Empty, Skeleton } from "@unkey/ui";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Area,
   Bar,
@@ -67,12 +72,14 @@ export function AnomalyChart({
       (data?.buckets ?? []).map((point) => ({
         ...point,
         expectedBand:
-          point.lowerBound === null || point.upperBound === null
+          (metric === "requests" ? point.lowerBound : point.expectedMean) === null ||
+          point.upperBound === null
             ? null
-            : [point.lowerBound, point.upperBound],
+            : [metric === "requests" ? point.lowerBound : point.expectedMean, point.upperBound],
       })),
-    [data?.buckets],
+    [data?.buckets, metric],
   );
+  const [hoveredAlerts, setHoveredAlerts] = useState<AlertListItem[] | null>(null);
 
   if (loading) {
     return <Skeleton className="h-[430px] w-full rounded-lg" />;
@@ -169,6 +176,7 @@ export function AnomalyChart({
         }}
       >
         <ChartAnnotations
+          metric={metric}
           alerts={alerts}
           deployments={showDeployments ? deployments : []}
           selectedAlertId={selectedAlertId}
@@ -301,28 +309,64 @@ export function AnomalyChart({
             )}
           </ComposedChart>
         </ChartContainer>
+        <AnomalyHoverAreas
+          alerts={alerts}
+          startMs={data.startMs}
+          endMs={data.endMs}
+          onHover={setHoveredAlerts}
+        />
+        {hoveredAlerts ? <AnomalyWindowTooltip alerts={hoveredAlerts} /> : null}
       </div>
     </div>
   );
 }
 
 function ChartAnnotations({
+  metric,
   alerts,
   deployments,
   selectedAlertId,
   startMs,
   endMs,
 }: {
+  metric: AlertSeriesMetric;
   alerts: AlertListItem[];
   deployments: DeploymentMarker[];
   selectedAlertId: string | null;
   startMs: number;
   endMs: number;
 }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [widthPx, setWidthPx] = useState(1_000);
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) {
+      return;
+    }
+    const updateWidth = () => setWidthPx(container.clientWidth);
+    updateWidth();
+    const observer = new ResizeObserver(updateWidth);
+    observer.observe(container);
+    return () => observer.disconnect();
+  }, []);
+
   const position = (time: number) =>
     Math.max(3, Math.min(97, ((time - startMs) / (endMs - startMs)) * 100));
+  const labeledAlerts = alerts.filter(
+    (alert) => seriesMetricForAlert(alert.metric) === metric || alert.id === selectedAlertId,
+  );
+  const markerGroups = groupAlertMarkers(
+    alerts.filter((alert) => !labeledAlerts.includes(alert)),
+    startMs,
+    endMs,
+    widthPx,
+  );
+
   return (
-    <div className="pointer-events-none absolute inset-x-0 top-0 z-10 h-[116px] overflow-hidden">
+    <div
+      ref={containerRef}
+      className="pointer-events-none absolute inset-x-0 top-0 z-10 h-[116px] overflow-hidden"
+    >
       {deployments.map((deployment) => {
         const left = position(deployment.createdAt);
         return (
@@ -338,7 +382,7 @@ function ChartAnnotations({
           </span>
         );
       })}
-      {alerts.map((alert, index) => {
+      {labeledAlerts.map((alert, index) => {
         const left = position(alert.windowStart);
         return (
           <span
@@ -347,15 +391,141 @@ function ChartAnnotations({
               "absolute whitespace-nowrap rounded-full border border-errorA-5 bg-error-3 px-1.5 py-0.5 text-[9px] font-medium text-error-11 shadow-sm",
               annotationAnchor(left),
             )}
-            style={{ left: `${left}%`, top: 32 + (index % 5) * 16 }}
+            style={{ left: `${left}%`, top: 34 + (index % 2) * 18 }}
           >
             {alert.id === selectedAlertId ? "● " : ""}
             {alertMetricLabel(alert.metric)}
           </span>
         );
       })}
+      {markerGroups.map((group) => {
+        const firstAlert = group.alerts.at(0);
+        if (!firstAlert) {
+          return null;
+        }
+        const left = position(group.time);
+        return group.alerts.length === 1 ? (
+          <span
+            key={firstAlert.id}
+            className="absolute top-[82px] size-2 -translate-x-1/2 rounded-full border border-errorA-7 bg-error-9"
+            style={{ left: `${left}%` }}
+            aria-label={`${alertMetricLabel(firstAlert.metric)} anomaly`}
+          />
+        ) : (
+          <span
+            key={group.alerts.map((alert) => alert.id).join(":")}
+            className={cn(
+              "absolute top-[76px] rounded-full border border-errorA-6 bg-error-3 px-1.5 py-0.5 text-[9px] font-medium text-error-11",
+              annotationAnchor(left),
+            )}
+            style={{ left: `${left}%` }}
+            aria-label={`${group.alerts.length} nearby anomalies`}
+          >
+            +{group.alerts.length}
+          </span>
+        );
+      })}
     </div>
   );
+}
+
+function groupAlertMarkers(
+  alerts: AlertListItem[],
+  startMs: number,
+  endMs: number,
+  widthPx: number,
+): Array<{ time: number; alerts: AlertListItem[] }> {
+  const proximityMs = ((endMs - startMs) * 24) / Math.max(widthPx, 1);
+  const groups: Array<{ time: number; latestTime: number; alerts: AlertListItem[] }> = [];
+  for (const alert of [...alerts].sort((a, b) => a.windowStart - b.windowStart)) {
+    const current = groups.at(-1);
+    if (current && alert.windowStart - current.latestTime <= proximityMs) {
+      current.latestTime = alert.windowStart;
+      current.alerts.push(alert);
+    } else {
+      groups.push({ time: alert.windowStart, latestTime: alert.windowStart, alerts: [alert] });
+    }
+  }
+  return groups;
+}
+
+function alertsInWindow(alerts: AlertListItem[], hovered: AlertListItem): AlertListItem[] {
+  return alerts.filter(
+    (alert) => alert.windowStart < hovered.windowEnd && alert.windowEnd > hovered.windowStart,
+  );
+}
+
+function AnomalyHoverAreas({
+  alerts,
+  startMs,
+  endMs,
+  onHover,
+}: {
+  alerts: AlertListItem[];
+  startMs: number;
+  endMs: number;
+  onHover: (alerts: AlertListItem[] | null) => void;
+}) {
+  const position = (time: number) =>
+    Math.max(0, Math.min(100, ((time - startMs) / (endMs - startMs)) * 100));
+  return (
+    <div className="pointer-events-none absolute top-[118px] right-6 bottom-10 left-[84px] z-20">
+      {alerts.map((alert) => {
+        const left = position(alert.windowStart);
+        const width = position(alert.windowEnd) - left;
+        return (
+          <div
+            key={alert.id}
+            className="pointer-events-auto absolute inset-y-0 cursor-help"
+            style={{ left: `${left}%`, width: `max(8px, ${width}%)` }}
+            onMouseEnter={() => onHover(alertsInWindow(alerts, alert))}
+            onMouseMove={() => onHover(alertsInWindow(alerts, alert))}
+            onMouseLeave={() => onHover(null)}
+          />
+        );
+      })}
+    </div>
+  );
+}
+
+function AnomalyWindowTooltip({ alerts }: { alerts: AlertListItem[] }) {
+  return (
+    <div className="pointer-events-none absolute right-4 top-[118px] z-30 w-64 overflow-hidden rounded-lg border border-grayA-5 bg-gray-2 shadow-lg">
+      <div className="border-b border-grayA-4 px-3 py-2 text-xs font-medium text-gray-12">
+        {alerts.length === 1 ? "Anomaly in this window" : "Anomalies in this window"}
+      </div>
+      <div className="divide-y divide-grayA-4">
+        {alerts.map((alert) => (
+          <div key={alert.id} className="flex flex-col gap-1.5 px-3 py-2.5">
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-xs font-medium text-gray-12">
+                {alertMetricLabel(alert.metric)}
+              </span>
+              <AlertStatusBadge status={alert.status} />
+            </div>
+            <span className="text-xs tabular-nums text-gray-10">
+              {formatAlertExpectation(alert)}
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function formatAlertExpectation(alert: AlertListItem): string {
+  if (hasFixedAlertThreshold(alert.metric)) {
+    return formatAlertDistance(
+      alert.metric,
+      alert.observedValue,
+      alert.baselineMean,
+      alert.baselineStddev,
+    );
+  }
+  return `${formatAlertValue(alert.metric, alert.observedValue)} vs ${formatAlertValue(
+    alert.metric,
+    alert.baselineMean,
+  )} expected`;
 }
 
 function annotationAnchor(positionPercent: number): string {
