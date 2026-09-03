@@ -2,6 +2,8 @@ package encryption_test
 
 import (
 	"bytes"
+	"crypto/aes"
+	"crypto/cipher"
 	"encoding/hex"
 	"strconv"
 	"testing"
@@ -39,6 +41,23 @@ func TestEncryptDecrypt_RoundTrip(t *testing.T) {
 			require.True(t, bytes.Equal(test.plaintext, plaintext))
 		})
 	}
+}
+
+func TestEncrypt_ProducesStandardAES256GCMCiphertext(t *testing.T) {
+	key := bytes.Repeat([]byte{0x42}, 32)
+	want := []byte("customer secret")
+
+	nonce, ciphertext, err := encryption.Encrypt(key, want)
+	require.NoError(t, err)
+
+	block, err := aes.NewCipher(key)
+	require.NoError(t, err)
+	gcm, err := cipher.NewGCM(block)
+	require.NoError(t, err)
+
+	plaintext, err := gcm.Open(nil, nonce, ciphertext, nil)
+	require.NoError(t, err)
+	require.Equal(t, want, plaintext)
 }
 
 // TestEncrypt_UsesFreshNonces protects AES-GCM from catastrophic nonce reuse.
@@ -139,7 +158,7 @@ func TestDecrypt_RejectsInvalidNonceSizes(t *testing.T) {
 	}
 }
 
-// TestDecrypt_RejectsCiphertextMutation protects ciphertext confidentiality and authenticity.
+// TestDecrypt_RejectsCiphertextMutation protects ciphertext integrity and authenticity.
 func TestDecrypt_RejectsCiphertextMutation(t *testing.T) {
 	key, nonce, ciphertext := encryptSecret(t, []byte("customer secret"))
 	tests := []struct {
