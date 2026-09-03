@@ -176,6 +176,7 @@ import { createWorkspace } from "./workspace/create";
 import { getWorkspaceById } from "./workspace/getById";
 import { getCurrentWorkspace } from "./workspace/getCurrent";
 import { onboardingKeyCreation } from "./workspace/onboarding";
+import { updateDeployAnomalyEmails } from "./workspace/updateDeployAnomalyEmails";
 
 export const router = t.router({
   alerts,
@@ -250,6 +251,7 @@ export const router = t.router({
     getCurrent: getCurrentWorkspace,
     getById: getWorkspaceById,
     updateName: changeWorkspaceName,
+    updateDeployAnomalyEmails,
     onboarding: onboardingKeyCreation,
   }),
   stripe: t.router({
