@@ -4,7 +4,9 @@ import { AreaTimeseriesChart, type ValueParts } from "@/components/charts/area-t
 import { AppEnvironmentFilterList } from "@/components/deploy/app-environment-filter-list";
 import { getAppEnvironmentSelection } from "@/components/deploy/app-environment-selection";
 import type { ChartConfig } from "@/components/ui/chart";
+import { Switch } from "@/components/ui/switch";
 import { formatCompactQuantity } from "@/lib/fmt";
+import { shortenId } from "@/lib/shorten-id";
 import { trpc } from "@/lib/trpc/client";
 import type { DeployUsageTimeseriesGroup, DeployUsageTimeseriesInterval } from "@unkey/clickhouse";
 import { ChevronExpandY } from "@unkey/icons";
@@ -48,6 +50,7 @@ const PERIODS: MonthsAgo[] = [0, 1, 2];
 const ALL_PROJECTS = "all-projects";
 const HOUR_MS = 60 * 60 * 1000;
 const DAY_MS = 24 * 60 * 60 * 1000;
+const MAX_DEPLOYMENT_LABELS = 6;
 
 type UsageScopeFilter = {
   field: "appId" | "environmentId";
@@ -134,6 +137,7 @@ export function UsageChart({ tree }: { tree: ComputeTree }) {
   const [isScopeOpen, setIsScopeOpen] = useState(false);
   const [monthsAgo, setMonthsAgo] = useState<MonthsAgo>(0);
   const [requestedDayStart, setRequestedDayStart] = useState<number>();
+  const [showDeployments, setShowDeployments] = useState(true);
   const now = useMemo(() => new Date(), []);
   const period = billingPeriod(now, monthsAgo);
   const availableDays = useMemo(
@@ -224,6 +228,16 @@ export function UsageChart({ tree }: { tree: ComputeTree }) {
       retry: 1,
     },
   );
+  const deploymentAnnotations = trpc.billing.queryDeployUsageAnnotations.useQuery(
+    interval === "hour"
+      ? { interval, day: selectedDayStart, scope, monthsAgo }
+      : { interval, scope, monthsAgo },
+    {
+      enabled: showDeployments,
+      trpc: { context: { skipBatch: true } },
+      retry: 1,
+    },
+  );
   const latestReportedHour = timeseries.data?.reduce(
     (latest, row) => Math.max(latest, row.time),
     Number.NEGATIVE_INFINITY,
@@ -267,6 +281,13 @@ export function UsageChart({ tree }: { tree: ComputeTree }) {
       : interval === "day" || selectedDayStart === currentBucketStart(now, "day")
         ? currentBucketStart(now, interval)
         : undefined;
+  const deploymentsByTime = new Map(
+    (showDeployments ? (deploymentAnnotations.data ?? []) : []).map((annotation) => [
+      annotation.time,
+      annotation,
+    ]),
+  );
+  const showDeploymentLabels = (deploymentAnnotations.data?.length ?? 0) <= MAX_DEPLOYMENT_LABELS;
 
   return (
     <div>
@@ -364,6 +385,18 @@ export function UsageChart({ tree }: { tree: ComputeTree }) {
             }
           }}
         />
+        <div className="flex min-w-32 flex-col gap-1">
+          <span className="text-[11px] text-gray-10">Annotations</span>
+          <div className="flex h-8 items-center gap-2 text-xs text-gray-11">
+            <Switch
+              checked={showDeployments}
+              onCheckedChange={setShowDeployments}
+              size="sm"
+              aria-label="Show deployment annotations"
+            />
+            Deployments
+          </div>
+        </div>
       </div>
       <ItemSeparator />
       {interval === "hour" ? (
@@ -392,6 +425,20 @@ export function UsageChart({ tree }: { tree: ComputeTree }) {
           isLoading={timeseries.isLoading}
           isError={timeseries.isError}
           incompleteFrom={incompleteFrom}
+          annotations={
+            showDeployments
+              ? (deploymentAnnotations.data ?? []).map((annotation) => ({
+                  timestamp: annotation.time,
+                  label: showDeploymentLabels
+                    ? formatDeploymentLabel(annotation.deploymentIds[0], annotation.count)
+                    : undefined,
+                }))
+              : undefined
+          }
+          renderTooltipFooter={(point) => {
+            const annotation = deploymentsByTime.get(point.originalTimestamp);
+            return annotation ? <DeploymentAnnotation annotation={annotation} /> : null;
+          }}
           showDateInTooltip
           formatTooltipValue={(value) => formatUsageValue(value, metricDetails.unit)}
           axis={{
@@ -424,6 +471,51 @@ export function UsageChart({ tree }: { tree: ComputeTree }) {
           </p>
         ) : null}
       </div>
+    </div>
+  );
+}
+
+function formatDeploymentLabel(
+  deploymentId: string | undefined,
+  count: number,
+): string | undefined {
+  if (!deploymentId) {
+    return undefined;
+  }
+  const shortenedId = shortenId(deploymentId, {
+    startChars: 4,
+    endChars: 4,
+    separator: "…",
+  });
+  return count > 1 ? `${shortenedId} +${count - 1}` : shortenedId;
+}
+
+function DeploymentAnnotation({
+  annotation,
+}: {
+  annotation: { count: number; deploymentIds: string[] };
+}) {
+  const remaining = annotation.count - annotation.deploymentIds.length;
+  return (
+    <div className="mt-0.5 grid gap-1 border-grayA-4 border-t pt-1.5">
+      <div className="flex items-center justify-between gap-4 text-[11px]">
+        <span className="font-medium text-feature-11">Deployments</span>
+        <span className="font-mono tabular-nums text-gray-10">
+          {annotation.count.toLocaleString("en-US")}
+        </span>
+      </div>
+      {annotation.deploymentIds.map((deploymentId) => (
+        <span
+          key={deploymentId}
+          className="font-mono text-[11px] text-gray-11"
+          title={deploymentId}
+        >
+          {shortenId(deploymentId, { startChars: 8, endChars: 4 })}
+        </span>
+      ))}
+      {remaining > 0 ? (
+        <span className="text-[11px] text-gray-9">+{remaining.toLocaleString("en-US")} more</span>
+      ) : null}
     </div>
   );
 }

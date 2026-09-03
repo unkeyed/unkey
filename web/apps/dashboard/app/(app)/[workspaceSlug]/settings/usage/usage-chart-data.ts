@@ -11,15 +11,49 @@ const INTERVAL_MILLIS: Record<DeployUsageTimeseriesInterval, number> = {
   hour: 60 * 60 * 1000,
   day: 24 * 60 * 60 * 1000,
 };
-const SERIES_COLORS = [
-  "hsl(var(--blue-9))",
-  "hsl(var(--feature-9))",
-  "hsl(var(--cyan-9))",
-  "hsl(var(--warning-9))",
-  "hsl(var(--success-9))",
-  "hsl(var(--red-9))",
-  "hsl(var(--orange-9))",
+const SERIES_HUES = [
+  210, 30, 120, 300, 75, 255, 165, 345, 52, 232, 142, 322, 97, 277, 187, 7, 41, 221, 131, 311, 86,
+  266, 176, 356, 63, 243, 153, 333, 108, 288, 198, 18,
 ];
+
+function fallbackSeriesColor(groupId: string): string {
+  if (groupId === "") {
+    return "hsl(var(--blue-9))";
+  }
+  let hash = 2_166_136_261;
+  for (let index = 0; index < groupId.length; index++) {
+    hash ^= groupId.charCodeAt(index);
+    hash = Math.imul(hash, 16_777_619);
+  }
+  return `oklch(0.62 0.16 ${(hash >>> 0) % 360})`;
+}
+
+function groupColors(tree: ComputeTree, groupBy: DeployUsageTimeseriesGroup): Map<string, string> {
+  if (groupBy === "total") {
+    return new Map([["", "hsl(var(--blue-9))"]]);
+  }
+
+  const ids = tree.projects
+    .flatMap((project) => {
+      if (groupBy === "project") {
+        return [project.projectId];
+      }
+      if (groupBy === "app") {
+        return project.apps.map((app) => app.appId);
+      }
+      return project.apps.flatMap((app) =>
+        app.environments.map((environment) => environment.environmentId),
+      );
+    })
+    .sort();
+
+  return new Map(
+    ids.map((id, index) => [
+      id,
+      `oklch(${index < SERIES_HUES.length ? 0.62 : 0.7} 0.16 ${SERIES_HUES[index % SERIES_HUES.length]})`,
+    ]),
+  );
+}
 
 export type UsageMetric = Exclude<keyof DeployUsageTimeseries, "time" | "groupId">;
 
@@ -117,10 +151,11 @@ export function buildUsageChart({
   const visibleGroupIds = orderedGroupIds.slice(0, MAX_VISIBLE_GROUPS);
   const hiddenGroupIds = new Set(orderedGroupIds.slice(MAX_VISIBLE_GROUPS));
   const labels = groupLabels(tree, groupBy);
+  const colors = groupColors(tree, groupBy);
   const series = visibleGroupIds.map((groupId, index) => ({
     key: `series${index}`,
     label: labels.get(groupId) ?? groupId,
-    color: SERIES_COLORS[index % SERIES_COLORS.length],
+    color: colors.get(groupId) ?? fallbackSeriesColor(groupId),
   }));
   if (hiddenGroupIds.size > 0) {
     series.push({ key: "other", label: "Other", color: "hsl(var(--gray-9))" });

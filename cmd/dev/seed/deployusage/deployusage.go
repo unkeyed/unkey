@@ -10,6 +10,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/cli"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/db"
+	dbtype "github.com/unkeyed/unkey/pkg/db/types"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/mysql/sqlcomment"
 	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
@@ -17,15 +18,16 @@ import (
 )
 
 const (
-	resourcePrefix = "seed-deploy-usage/"
-	productionSlug = "production"
-	previewSlug    = "preview"
+	resourcePrefix      = "seed-deploy-usage/"
+	deploymentK8sPrefix = "seed-deploy-usage-"
+	productionSlug      = "production"
+	previewSlug         = "preview"
 )
 
 var Cmd = &cli.Command{
 	Name:        "deploy-usage",
 	Usage:       "Seed realistic multi-app data for the Deploy usage dashboard",
-	Description: "Creates 15 apps with production and preview environments, then writes three months of deterministic hourly usage to the dashboard rollup.",
+	Description: "Creates 15 apps with production and preview environments, deterministic deployment history, and three months of hourly usage.",
 	Flags: []cli.Flag{
 		cli.String("workspace", "Workspace ID to seed", cli.Default("ws_local")),
 		cli.String("project", "Project ID or slug to seed", cli.Default("local-api")),
@@ -64,11 +66,19 @@ func seed(ctx context.Context, cmd *cli.Command) error {
 		return fmt.Errorf("failed to find project: %w", err)
 	}
 
+	now := time.Now().UTC()
 	targets, err := db.TxWithResult(ctx, database.RW(), func(ctx context.Context, tx db.DBTX) ([]target, error) {
-		return ensureTargets(ctx, tx, workspaceID, project.ID, time.Now().UnixMilli())
+		targets, err := ensureTargets(ctx, tx, workspaceID, project.ID, now.UnixMilli())
+		if err != nil {
+			return nil, err
+		}
+		if err := replaceDeployments(ctx, tx, workspaceID, generateDeployments(now, targets)); err != nil {
+			return nil, err
+		}
+		return targets, nil
 	})
 	if err != nil {
-		return fmt.Errorf("failed to create demo apps: %w", err)
+		return fmt.Errorf("failed to create demo resources: %w", err)
 	}
 
 	ch, err := clickhouse.New(clickhouse.Config{URL: cmd.RequireString("clickhouse-url")})
@@ -77,7 +87,7 @@ func seed(ctx context.Context, cmd *cli.Command) error {
 	}
 	defer func() { _ = ch.Close() }()
 
-	if err := replaceUsage(ctx, ch, workspaceID, generateUsage(time.Now().UTC(), targets)); err != nil {
+	if err := replaceUsage(ctx, ch, workspaceID, generateUsage(now, targets)); err != nil {
 		return err
 	}
 
@@ -86,7 +96,64 @@ func seed(ctx context.Context, cmd *cli.Command) error {
 		"project_id", project.ID,
 		"apps", len(targets),
 		"environments", len(targets)*2,
+		"deployments", len(generateDeployments(now, targets)),
 	)
+	return nil
+}
+
+func replaceDeployments(
+	ctx context.Context,
+	tx db.DBTX,
+	workspaceID string,
+	deployments []deploymentSeed,
+) error {
+	_, err := tx.ExecContext(
+		ctx,
+		"DELETE FROM deployments WHERE workspace_id = ? AND k8s_name LIKE ?",
+		workspaceID,
+		deploymentK8sPrefix+"%",
+	)
+	if err != nil {
+		return fmt.Errorf("failed to clear existing demo deployments: %w", err)
+	}
+
+	for _, deployment := range deployments {
+		err = db.Query.InsertDeployment(ctx, tx, db.InsertDeploymentParams{
+			ID:                            deployment.id,
+			K8sName:                       deployment.k8sName,
+			WorkspaceID:                   deployment.workspaceID,
+			ProjectID:                     deployment.projectID,
+			AppID:                         deployment.appID,
+			EnvironmentID:                 deployment.environmentID,
+			GitCommitSha:                  sql.NullString{String: deployment.commitSHA, Valid: true},
+			GitBranch:                     sql.NullString{String: "main", Valid: true},
+			SentinelConfig:                []byte("{}"),
+			GitCommitMessage:              sql.NullString{String: deployment.message, Valid: true},
+			GitCommitAuthorHandle:         sql.NullString{String: "deploy-usage-seed", Valid: true},
+			GitCommitAuthorAvatarUrl:      sql.NullString{},
+			GitCommitTimestamp:            sql.NullInt64{Int64: deployment.createdAt, Valid: true},
+			EncryptedEnvironmentVariables: []byte{},
+			Command:                       dbtype.StringSlice{},
+			Status:                        mysqltype.DeploymentsStatusReady,
+			CpuMillicores:                 500,
+			MemoryMib:                     512,
+			StorageMib:                    1024,
+			Port:                          8080,
+			ShutdownSignal:                db.DeploymentsShutdownSignalSIGTERM,
+			UpstreamProtocol:              db.DeploymentsUpstreamProtocolHttp1,
+			Healthcheck:                   dbtype.NullHealthcheck{Healthcheck: nil, Valid: false},
+			PrNumber:                      sql.NullInt64{},
+			ForkRepositoryFullName:        sql.NullString{},
+			DeploymentTrigger:             db.DeploymentsTriggerGithub,
+			TriggeredBy:                   sql.NullString{String: "deploy-usage-seed", Valid: true},
+			TriggerReason:                 sql.NullString{},
+			CreatedAt:                     deployment.createdAt,
+			UpdatedAt:                     sql.NullInt64{},
+		})
+		if err != nil {
+			return fmt.Errorf("failed to create demo deployment %s: %w", deployment.id, err)
+		}
+	}
 	return nil
 }
 

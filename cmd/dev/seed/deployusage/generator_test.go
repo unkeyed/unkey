@@ -46,6 +46,34 @@ func TestLinkRedirectorIncidentResolves(t *testing.T) {
 	require.Less(t, after, 1.0)
 }
 
+func TestGenerateDeployments(t *testing.T) {
+	now := time.Date(2026, time.September, 3, 15, 42, 0, 0, time.UTC)
+	deployments := generateDeployments(now, testTargets())
+
+	require.Greater(t, len(deployments), len(appProfiles)*10)
+	require.Equal(t, deployments, generateDeployments(now, testTargets()))
+
+	ids := make(map[string]struct{}, len(deployments))
+	foundIncidentDeployment := false
+	for _, deployment := range deployments {
+		_, duplicate := ids[deployment.id]
+		require.False(t, duplicate)
+		ids[deployment.id] = struct{}{}
+		require.Less(t, deployment.createdAt, now.UnixMilli())
+		require.Len(t, deployment.commitSHA, 40)
+		require.NotContains(t, deployment.k8sName, "_")
+
+		createdAt := time.UnixMilli(deployment.createdAt).UTC()
+		if deployment.appID == "usage-link-redirector" &&
+			createdAt.Year() == 2026 &&
+			createdAt.Month() == time.August &&
+			createdAt.Day() == 15 {
+			foundIncidentDeployment = true
+		}
+	}
+	require.True(t, foundIncidentDeployment)
+}
+
 func testTargets() []target {
 	targets := make([]target, 0, len(appProfiles))
 	for _, profile := range appProfiles {
