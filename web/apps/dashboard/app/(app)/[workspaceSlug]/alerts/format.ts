@@ -4,6 +4,7 @@ export const alertMetricOptions: ReadonlyArray<{ value: AlertMetric; label: stri
   { value: "error_5xx", label: "5xx errors" },
   { value: "error_4xx", label: "4xx errors" },
   { value: "requests", label: "Requests" },
+  { value: "requests_drop", label: "Traffic drop" },
   { value: "egress_bytes", label: "Egress" },
   { value: "cpu_seconds", label: "CPU" },
   { value: "memory_utilization", label: "Memory" },
@@ -29,6 +30,8 @@ export function alertMetricLabel(metric: AlertMetric): string {
       return "4xx errors";
     case "requests":
       return "Requests";
+    case "requests_drop":
+      return "Traffic drop";
     case "egress_bytes":
       return "Egress";
     case "cpu_seconds":
@@ -55,6 +58,7 @@ export function formatAlertValue(metric: AlertMetric, value: number): string {
     case "error_5xx":
     case "error_4xx":
     case "requests":
+    case "requests_drop":
     case "oom_killed":
     case "crash_loop":
       return quantityFormatter.format(value);
@@ -74,6 +78,7 @@ export function formatAlertAxisValue(metric: AlertMetric, value: number): string
     case "error_5xx":
     case "error_4xx":
     case "requests":
+    case "requests_drop":
     case "oom_killed":
     case "crash_loop":
       return compactFormatter.format(value);

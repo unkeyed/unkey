@@ -50,6 +50,8 @@ export function AlertChart({
     );
   }
 
+  const thresholdBound = metric === "requests_drop" ? data.lowerBound : data.upperBound;
+
   return (
     <div className="overflow-hidden rounded-lg border border-grayA-4 bg-gray-1">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-grayA-4 px-5 py-4">
@@ -110,7 +112,7 @@ export function AlertChart({
           />
           <ReferenceArea
             y1={data.baselineMean}
-            y2={data.upperBound}
+            y2={thresholdBound}
             fill="hsl(var(--warning-9))"
             fillOpacity={0.12}
             strokeOpacity={0}

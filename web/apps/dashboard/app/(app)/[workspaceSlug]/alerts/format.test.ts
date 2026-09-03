@@ -4,6 +4,7 @@ import { alertMetricLabel, formatAlertAxisValue, formatAlertValue, formatSigma }
 describe("alert metric formatting", () => {
   it("uses human-readable labels", () => {
     expect(alertMetricLabel("error_5xx")).toBe("5xx errors");
+    expect(alertMetricLabel("requests_drop")).toBe("Traffic drop");
     expect(alertMetricLabel("oom_killed")).toBe("Out of memory");
   });
 
@@ -20,6 +21,7 @@ describe("alert metric formatting", () => {
 
   it("formats the distance above the baseline", () => {
     expect(formatSigma(3.8, 0.4, 0.5)).toBe("+6.8σ");
+    expect(formatSigma(1, 11, 2)).toBe("-5.0σ");
     expect(formatSigma(2, 1, 0)).toBe("+∞σ");
   });
 });

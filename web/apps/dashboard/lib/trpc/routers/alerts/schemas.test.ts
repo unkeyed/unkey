@@ -6,6 +6,14 @@ describe("alert inputs", () => {
     expect(listAlertsInput.parse({})).toEqual({ status: "open", limit: 50 });
   });
 
+  it("accepts traffic drop alerts", () => {
+    expect(listAlertsInput.parse({ metric: "requests_drop" })).toEqual({
+      status: "open",
+      metric: "requests_drop",
+      limit: 50,
+    });
+  });
+
   it.each([
     { status: "active" },
     { metric: "latency" },
