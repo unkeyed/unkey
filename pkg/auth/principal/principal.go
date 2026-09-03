@@ -124,6 +124,9 @@ type JWTSource struct {
 	// Payload is the decoded token payload with claims preserved by name.
 	Payload map[string]any
 
+	// Roles contains the roles claim from the token.
+	Roles []string
+
 	// Signature is the raw signature string from the token's third segment.
 	Signature string
 }

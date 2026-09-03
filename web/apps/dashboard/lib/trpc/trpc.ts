@@ -1,3 +1,4 @@
+import { canAccessWorkspace, canMutateWorkspace } from "@/lib/auth/roles";
 import { env } from "@/lib/env";
 import * as Sentry from "@sentry/nextjs";
 import { TRPCError, initTRPC } from "@trpc/server";
@@ -203,7 +204,7 @@ const requireUser = t.middleware(({ next, ctx }) => {
   return next({
     ctx: {
       user: ctx.user,
-      tenant: ctx.tenant ?? { id: ctx.user.id, role: "member" },
+      tenant: ctx.tenant ?? { id: ctx.user.id, role: "developer" },
     },
   });
 });
@@ -323,6 +324,22 @@ export const requireWorkspaceAdmin = t.middleware(({ next, ctx }) => {
     throw new TRPCError({
       code: "FORBIDDEN",
       message: "This action requires admin privileges.",
+    });
+  }
+  return next();
+});
+
+const requireWorkspaceRoleAccess = t.middleware(({ next, ctx, type }) => {
+  if (!canAccessWorkspace(ctx.tenant?.role)) {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: "Your organization role does not have workspace access.",
+    });
+  }
+  if (type === "mutation" && !canMutateWorkspace(ctx.tenant?.role)) {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: "The Viewer role has read-only access.",
     });
   }
   return next();
@@ -610,7 +627,10 @@ export const protectedProcedure = baseProcedure.use(requireUser);
  *     return { workspaceId: ctx.workspace.id };
  *   });
  */
-export const workspaceProcedure = baseProcedure.use(requireUser).use(requireWorkspace);
+export const workspaceProcedure = baseProcedure
+  .use(requireUser)
+  .use(requireWorkspace)
+  .use(requireWorkspaceRoleAccess);
 
 // =============================================================================
 // UTILITIES

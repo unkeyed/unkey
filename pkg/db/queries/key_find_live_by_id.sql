@@ -22,6 +22,7 @@ SELECT
     a.id AS api_id,
     a.name AS api_name,
     ka.id AS key_auth_id,
+    ka.project_id AS key_auth_project_id,
     ka.store_encrypted_keys AS key_auth_store_encrypted_keys,
     ka.default_prefix AS key_auth_default_prefix,
     ka.default_bytes AS key_auth_default_bytes,

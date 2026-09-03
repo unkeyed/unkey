@@ -29,6 +29,8 @@ SELECT
     k.remaining_requests AS key_remaining_requests,
     k.last_used_at AS key_last_used_at,
     a.id AS api_id,
+    ka.id AS key_auth_id,
+    ka.project_id AS key_auth_project_id,
     ka.store_encrypted_keys AS key_auth_store_encrypted_keys,
     i.id as identity_table_id,
     i.external_id as identity_external_id,
@@ -140,6 +142,8 @@ type FindLiveKeyByHashRow struct {
 	KeyRemainingRequests      sql.NullInt64  `db:"key_remaining_requests"`
 	KeyLastUsedAt             uint64         `db:"key_last_used_at"`
 	ApiID                     string         `db:"api_id"`
+	KeyAuthID                 string         `db:"key_auth_id"`
+	KeyAuthProjectID          string         `db:"key_auth_project_id"`
 	KeyAuthStoreEncryptedKeys bool           `db:"key_auth_store_encrypted_keys"`
 	IdentityTableID           sql.NullString `db:"identity_table_id"`
 	IdentityExternalID        sql.NullString `db:"identity_external_id"`
@@ -172,6 +176,8 @@ type FindLiveKeyByHashRow struct {
 //	    k.remaining_requests AS key_remaining_requests,
 //	    k.last_used_at AS key_last_used_at,
 //	    a.id AS api_id,
+//	    ka.id AS key_auth_id,
+//	    ka.project_id AS key_auth_project_id,
 //	    ka.store_encrypted_keys AS key_auth_store_encrypted_keys,
 //	    i.id as identity_table_id,
 //	    i.external_id as identity_external_id,
@@ -284,6 +290,8 @@ func (q *Queries) FindLiveKeyByHash(ctx context.Context, db DBTX, hash string) (
 		&i.KeyRemainingRequests,
 		&i.KeyLastUsedAt,
 		&i.ApiID,
+		&i.KeyAuthID,
+		&i.KeyAuthProjectID,
 		&i.KeyAuthStoreEncryptedKeys,
 		&i.IdentityTableID,
 		&i.IdentityExternalID,

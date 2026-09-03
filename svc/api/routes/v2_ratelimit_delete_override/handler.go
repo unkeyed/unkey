@@ -16,7 +16,10 @@ import (
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/pkg/zen"
+	apierrors "github.com/unkeyed/unkey/svc/api/internal/errors"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
@@ -74,7 +77,20 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
+	override, ok := ns.DirectOverrides[req.Identifier]
+	if !ok {
+		return fault.New("override not found",
+			fault.Code(codes.Data.RatelimitOverride.NotFound.URN()),
+			fault.Internal("override not found"),
+			fault.Public("This override does not exist."),
+		)
+	}
+
 	err = principal.Authorize(rbac.Or(
+		rbac.U(
+			urn.New().Workspace(principal.WorkspaceID).Project(ns.ProjectID).RatelimitNamespace(ns.ID).Override(override.ID),
+			permissions.Delete,
+		),
 		rbac.T(rbac.Tuple{
 			ResourceType: rbac.Ratelimit,
 			ResourceID:   ns.ID,
@@ -87,15 +103,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}),
 	))
 	if err != nil {
-		return err
-	}
-
-	override, ok := ns.DirectOverrides[req.Identifier]
-	if !ok {
-		return fault.New("override not found",
-			fault.Code(codes.Data.RatelimitOverride.NotFound.URN()),
-			fault.Internal("override not found"),
-			fault.Public("This override does not exist."),
+		return apierrors.MaskInsufficientPermissionsAsNotFound(
+			err,
+			codes.Data.RatelimitOverride.NotFound.URN(),
+			"This override does not exist.",
 		)
 	}
 

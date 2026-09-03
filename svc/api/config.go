@@ -68,13 +68,8 @@ const (
 	authTypeJWT           = "jwt"
 	authTypePortalSession = "portal_session"
 	authTypeRootKey       = "root_key"
+	jwtProviderWorkOS     = "workos"
 )
-
-// jwtProviderWorkOS selects WorkOS permission-slug translation for a jwt auth
-// entry. It is an explicit opt-in, decoupled from the issuer value, so WorkOS
-// custom auth domains and environment-scoped issuers select translation the
-// same way the default issuer does.
-const jwtProviderWorkOS = "workos"
 
 // AuthConfig is a discriminated union for one authentication resolver.
 // Implementations are selected from TOML auth entries by their type field.
@@ -107,12 +102,9 @@ type JWTAuthConfig struct {
 	// without a restart.
 	JWKSURL string `toml:"jwks_url"`
 
-	// Provider names the permission dialect carried by this entry's tokens.
-	// Empty means tokens already carry canonical Unkey permissions. "workos"
-	// means tokens carry WorkOS slugs that the resolver translates into Unkey
-	// permissions after verification. This is an explicit opt-in rather than
-	// an inference from the issuer, so any issuer (including custom auth
-	// domains) can be configured without changing how translation is selected.
+	// Provider selects role mapping after JWT verification. Empty leaves the
+	// principal without role-derived permissions. "workos" maps the roles claim
+	// to API permissions.
 	Provider string `toml:"provider"`
 }
 
@@ -475,12 +467,6 @@ func (c *Config) Validate() error {
 			}
 			if auth.Provider != "" && auth.Provider != jwtProviderWorkOS {
 				return fmt.Errorf("auth[%d].provider must be %q when set", i, jwtProviderWorkOS)
-			}
-			// WorkOS issues RS256 tokens verified against a JWKS endpoint, so a
-			// workos entry without jwks_url could never verify a token. Reject
-			// it at load time instead of failing every request at runtime.
-			if auth.Provider == jwtProviderWorkOS && !hasJWKSURL {
-				return fmt.Errorf("auth[%d].provider %q requires jwks_url", i, jwtProviderWorkOS)
 			}
 		case PortalSessionAuthConfig:
 		case RootKeyAuthConfig:

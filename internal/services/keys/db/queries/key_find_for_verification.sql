@@ -21,6 +21,7 @@ select k.id,
        k.pending_migration_id,
        a.ip_whitelist,
        a.workspace_id  as api_workspace_id,
+       ka.project_id   as project_id,
        a.id            as api_id,
        a.deleted_at_m  as api_deleted_at_m,
 

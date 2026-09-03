@@ -20,11 +20,8 @@ type Claims struct {
 	// Name is optional display text for audit logs. Subject is used when empty.
 	Name string `json:"name"`
 
-	// Permissions is the RBAC permission set in locally minted dashboard fallback tokens.
-	Permissions []string `json:"perms"`
-
-	// WorkOSPermissions is the built-in permission claim in WorkOS access tokens.
-	WorkOSPermissions []string `json:"permissions"`
+	// Roles contains the assigned organization roles.
+	Roles []string `json:"roles"`
 }
 
 // OrganizationClaims contains the organization identifier from a JWT.
@@ -57,13 +54,4 @@ func (c Claims) subjectName() string {
 		return c.User.Email
 	}
 	return c.subjectID()
-}
-
-// permissions returns the RBAC permission set, preferring the dashboard perms
-// claim over the WorkOS permissions claim.
-func (c Claims) permissions() []string {
-	if len(c.Permissions) > 0 {
-		return c.Permissions
-	}
-	return c.WorkOSPermissions
 }

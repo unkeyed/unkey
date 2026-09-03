@@ -82,8 +82,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			Action:       rbac.RemoveEnvironmentVariables,
 		}),
 		rbac.U(
-			urn.New().Workspace(principal.WorkspaceID).Project(env.ProjectID).App(env.AppID).Environment(env.ID),
-			permissions.RemoveEnvironmentVariables{},
+			urn.New().Workspace(principal.WorkspaceID).Project(env.ProjectID).App(env.AppID).Environment(env.ID).Variable("*"),
+			permissions.Delete,
 		),
 	))
 	if err != nil {

@@ -27,7 +27,8 @@ SELECT r.pk, r.id, r.workspace_id, r.project_id, r.name, r.description, r.create
         JSON_ARRAY()
 ) as permissions
 FROM roles r
-WHERE r.workspace_id = ? AND (
+WHERE r.workspace_id = ?
+  AND (
     r.id = ?
     OR r.name = ?
 )
@@ -50,7 +51,8 @@ type FindRoleByIdOrNameWithPermsRow struct {
 	Permissions interface{}    `db:"permissions"`
 }
 
-// FindRoleByIdOrNameWithPerms
+// FindRoleByIdOrNameWithPerms resolves a role within a workspace so the caller
+// can authorize access against the role's actual project.
 //
 //	SELECT r.pk, r.id, r.workspace_id, r.project_id, r.name, r.description, r.created_at_m, r.updated_at_m, COALESCE(
 //	        (SELECT JSON_ARRAYAGG(
@@ -68,7 +70,8 @@ type FindRoleByIdOrNameWithPermsRow struct {
 //	        JSON_ARRAY()
 //	) as permissions
 //	FROM roles r
-//	WHERE r.workspace_id = ? AND (
+//	WHERE r.workspace_id = ?
+//	  AND (
 //	    r.id = ?
 //	    OR r.name = ?
 //	)

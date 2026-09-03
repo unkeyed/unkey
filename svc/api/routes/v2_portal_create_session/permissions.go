@@ -12,9 +12,9 @@ import "github.com/unkeyed/unkey/pkg/rbac"
 // row filters, so there is nothing to import. This mirrors what that route
 // matches today, the api wildcard or the specific api.
 //
-// No permissions.ReadAnalytics URN action exists on purpose: the analytics
-// endpoint never evaluates URNs, so a keyspace-scoped URN grant would have let a
-// caller mint a capability it could not exercise itself.
+// Do not add a keyspace log URN arm here yet. The analytics endpoint evaluates
+// legacy tuples only. A keyspace log grant would otherwise let a caller mint a
+// capability it could not exercise.
 func readAnalyticsPermissions(apiID string) rbac.PermissionQuery {
 	return rbac.Or(
 		rbac.T(rbac.Tuple{

@@ -282,7 +282,7 @@ func TestListPoliciesSuccessfully(t *testing.T) {
 		h.Register(writeRoute)
 
 		env := seedEnvironment(t, h)
-		api := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspace.ID})
+		api := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspace.ID, ProjectID: env.projectID})
 		writeKey := h.CreateRootKey(workspace.ID, "environment.*.set_policies")
 
 		writeRes := testutil.CallRoute[setpolicies.Request, setpolicies.Response](h, writeRoute, authHeaders(writeKey), setpolicies.Request{

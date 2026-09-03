@@ -23,7 +23,9 @@ import (
 	"github.com/unkeyed/unkey/pkg/match"
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/internal/projects"
 	"github.com/unkeyed/unkey/svc/api/openapi"
@@ -87,18 +89,28 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	// Auto-create any missing namespaces
 	if len(missing) > 0 {
-		err = principal.Authorize(
+		projectID, resolveErr := db.TxWithResultRetry(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) (string, error) {
+			return projects.EnsureDefaultProject(ctx, tx, principal.WorkspaceID)
+		})
+		if resolveErr != nil {
+			return resolveErr
+		}
+		err = principal.Authorize(rbac.Or(
+			rbac.U(
+				urn.New().Workspace(principal.WorkspaceID).Project(projectID).RatelimitNamespace("*"),
+				permissions.Write,
+			),
 			rbac.T(rbac.Tuple{
 				ResourceType: rbac.Ratelimit,
 				ResourceID:   "*",
 				Action:       rbac.CreateNamespace,
 			}),
-		)
+		))
 		if err != nil {
 			return err
 		}
 
-		created, createErr := h.createNamespaces(ctx, s, principal, missing)
+		created, createErr := h.createNamespaces(ctx, s, principal, projectID, missing)
 		if createErr != nil {
 			return createErr
 		}
@@ -112,11 +124,17 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	requiredPerms := make([]rbac.PermissionQuery, 0, len(req))
 	for _, check := range req {
 		ns := namespaces[check.Namespace]
-		requiredPerms = append(requiredPerms, rbac.T(rbac.Tuple{
-			ResourceType: rbac.Ratelimit,
-			ResourceID:   ns.ID,
-			Action:       rbac.Limit,
-		}))
+		requiredPerms = append(requiredPerms, rbac.Or(
+			rbac.U(
+				urn.New().Workspace(principal.WorkspaceID).Project(ns.ProjectID).RatelimitNamespace(ns.ID),
+				permissions.Limit,
+			),
+			rbac.T(rbac.Tuple{
+				ResourceType: rbac.Ratelimit,
+				ResourceID:   ns.ID,
+				Action:       rbac.Limit,
+			}),
+		))
 	}
 
 	wildcardPermission := rbac.T(rbac.Tuple{
@@ -311,13 +329,8 @@ func (h *Handler) getNamespaces(ctx context.Context, workspaceID string, names [
 	return found, missing, nil
 }
 
-func (h *Handler) createNamespaces(ctx context.Context, s *zen.Session, principal *principal.Principal, names []string) (map[string]db.FindRatelimitNamespace, error) {
+func (h *Handler) createNamespaces(ctx context.Context, s *zen.Session, principal *principal.Principal, projectID string, names []string) (map[string]db.FindRatelimitNamespace, error) {
 	created, err := db.TxWithResultRetry(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) (map[string]db.FindRatelimitNamespace, error) {
-		projectID, resolveErr := projects.EnsureDefaultProject(ctx, tx, principal.WorkspaceID)
-		if resolveErr != nil {
-			return nil, resolveErr
-		}
-
 		now := time.Now().UnixMilli()
 		result := make(map[string]db.FindRatelimitNamespace, len(names))
 
@@ -375,6 +388,7 @@ func (h *Handler) createNamespaces(ctx context.Context, s *zen.Session, principa
 				result[name] = db.FindRatelimitNamespace{
 					ID:                id,
 					WorkspaceID:       principal.WorkspaceID,
+					ProjectID:         projectID,
 					Name:              name,
 					CreatedAtM:        now,
 					UpdatedAtM:        sql.NullInt64{Valid: false, Int64: 0},
