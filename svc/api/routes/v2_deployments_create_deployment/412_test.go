@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
+	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/deploy/deploygate"
 	"github.com/unkeyed/unkey/pkg/ptr"
@@ -16,7 +17,7 @@ import (
 
 func TestGitSourceWithoutRepoConnection(t *testing.T) {
 	h := testutil.NewHarness(t)
-	route := newRoute(h, newUncalledRestate(t))
+	route := newRoute(h, newRejectingRestate(t, hydrav1.CreateRejectionReason_CREATE_REJECTION_REASON_NO_REPO_CONNECTION))
 	h.Register(route)
 
 	// No repo connection attached to the app.
@@ -35,12 +36,12 @@ func TestGitSourceWithoutRepoConnection(t *testing.T) {
 }
 
 // TestCreateDeploymentRequiresComputePlan and TestCreateDeploymentSpendSuspended
-// cover the billing gate. This route is the only gate a caller sees: the create
-// is submitted one-way, so the worker's own re-check lands long after the
-// response. Both must reject before Restate is called at all.
+// cover the billing gate. The gate itself belongs to the create worker, which
+// answers a refusal as an enum; this route awaits that answer and is what turns
+// it into a 412 a caller can act on.
 func TestCreateDeploymentRequiresComputePlan(t *testing.T) {
 	h := testutil.NewHarness(t)
-	route := newRoute(h, newUncalledRestate(t))
+	route := newRoute(h, newRejectingRestate(t, hydrav1.CreateRejectionReason_CREATE_REJECTION_REASON_NO_COMPUTE_PLAN))
 	h.Register(route)
 
 	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
@@ -58,7 +59,7 @@ func TestCreateDeploymentRequiresComputePlan(t *testing.T) {
 
 func TestCreateDeploymentSpendSuspended(t *testing.T) {
 	h := testutil.NewHarness(t)
-	route := newRoute(h, newUncalledRestate(t))
+	route := newRoute(h, newRejectingRestate(t, hydrav1.CreateRejectionReason_CREATE_REJECTION_REASON_SPEND_SUSPENDED))
 	h.Register(route)
 
 	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
