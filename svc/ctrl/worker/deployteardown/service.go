@@ -11,7 +11,7 @@ import (
 // VirtualObject implements DeployTeardownService. It serializes teardowns per
 // workspace (the virtual object key is the workspace id) and drives the
 // stop-and-drain against the database, fanning out to the per-deployment
-// DeploymentService for the actual state change.
+// DeployService for the actual state change.
 type VirtualObject struct {
 	hydrav1.UnimplementedDeployTeardownServiceServer
 	db                db.Database

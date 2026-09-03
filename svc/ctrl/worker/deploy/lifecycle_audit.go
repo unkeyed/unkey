@@ -8,9 +8,10 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
 
-// insertLifecycleAudit records API-originated lifecycle operations. Calls from
-// the retained ctrl RPCs omit actor information because those RPCs still own
-// their audit insert; skipping them here prevents duplicate records.
+// insertLifecycleAudit records a stop, wake, promote, or rollback. Every caller
+// of those handlers sends an actor, so a nil actor means a caller forgot one.
+// The entry is skipped rather than failing a handler whose state change has
+// already applied.
 func (w *Workflow) insertLifecycleAudit(
 	ctx restate.ObjectContext,
 	actor *ctrlv1.ActorInfo,

@@ -1,6 +1,6 @@
 package auditlog
 
-// AuditLogResourceType represents the possible type in the audit log targets
+// AuditLogResourceType is the kind of resource an audit log entry targets.
 type AuditLogResourceType string
 
 const (

@@ -17,12 +17,11 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/internal/workos"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/deploybilling"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/deployspendcheck"
-	"github.com/unkeyed/unkey/svc/ctrl/worker/deployment"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/deployteardown"
 )
 
 // startSpendCheck wires the DeploySpendCheckService alongside the
-// DeployTeardownService + DeploymentService it dispatches to, all under a real
+// DeployTeardownService + DeployService it dispatches to, all under a real
 // Restate server with a short drain poll/grace. The check reads no usage: the
 // orchestrator prices workspaces and passes the gross in the request, so the
 // tests drive the trip/resume decision through SpendMicroCents directly.
@@ -45,7 +44,7 @@ func startSpendCheck(t *testing.T, database db.Database) *restatetest.TestEnviro
 	require.NoError(t, err)
 
 	return restatetest.Start(t,
-		hydrav1.NewDeploymentServiceServer(deployment.New(deployment.Config{DB: database})),
+		deployServiceDefinition(t, database),
 		hydrav1.NewDeployTeardownServiceServer(teardownSvc),
 		hydrav1.NewDeploySpendCheckServiceServer(checkH),
 	)
@@ -99,7 +98,7 @@ func TestDeploySpendCheck_SuspendThenResume(t *testing.T) {
 	require.True(t, suspendResp.GetSuspended(), "overage over budget with stop set should suspend")
 
 	// Teardown clears current_deployment_id synchronously; the desired-state
-	// change to stopped is applied asynchronously by the DeploymentService VO.
+	// change to stopped is applied asynchronously by the DeployService VO.
 	require.Eventually(t, func() bool {
 		app, getErr := h.DB.FindAppById(ctx, dep.AppID)
 		if getErr != nil || app.CurrentDeploymentID.Valid {
@@ -144,7 +143,7 @@ func TestDeploySpendCheck_SuspendThenResume(t *testing.T) {
 	require.False(t, resumeResp.GetSuspended(), "second under-budget tick should resume")
 
 	// Resume restores current_deployment_id and brings desired_state back to
-	// running (the latter via the DeploymentService VO, asynchronously).
+	// running.
 	require.Eventually(t, func() bool {
 		app, getErr := h.DB.FindAppById(ctx, dep.AppID)
 		if getErr != nil || !app.CurrentDeploymentID.Valid || app.CurrentDeploymentID.String != dep.ID {

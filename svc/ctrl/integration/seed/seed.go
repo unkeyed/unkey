@@ -19,7 +19,7 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
 
-// Resources represents seed data created for tests
+// Resources represents seed data created for tests.
 type Resources struct {
 	RootWorkspace db.Workspace
 	RootKeySpace  db.KeyAuth
@@ -27,7 +27,7 @@ type Resources struct {
 	UserWorkspace db.Workspace
 }
 
-// Seeder provides methods to seed test data
+// Seeder provides methods to seed test data.
 type Seeder struct {
 	t         *testing.T
 	DB        db.Database
@@ -39,7 +39,7 @@ type Seeder struct {
 	workspaceIDs []string
 }
 
-// New creates a new Seeder instance
+// New creates a new Seeder instance.
 func New(t *testing.T, database db.Database, vault vault.VaultServiceClient) *Seeder {
 	s := &Seeder{
 		t:            t,
@@ -127,7 +127,7 @@ func (s *Seeder) CreateWorkspace(ctx context.Context) db.Workspace {
 	return ws
 }
 
-// Seed initializes the database with test data
+// Seed initializes the database with test data.
 func (s *Seeder) Seed(ctx context.Context) {
 	s.Resources.UserWorkspace = s.CreateWorkspace(ctx)
 	s.Resources.RootWorkspace = s.CreateWorkspace(ctx)
@@ -400,6 +400,11 @@ type CreateDeploymentRequest struct {
 	Status        dbtype.DeploymentsStatus
 	CreatedAt     int64
 	UpdatedAt     sql.NullInt64
+
+	// Optional git metadata for tests that need the row to record a source.
+	GitCommitSha     sql.NullString
+	GitBranch        sql.NullString
+	GitCommitMessage sql.NullString
 }
 
 func (s *Seeder) CreateDeployment(ctx context.Context, req CreateDeploymentRequest) db.Deployment {
@@ -420,10 +425,10 @@ func (s *Seeder) CreateDeployment(ctx context.Context, req CreateDeploymentReque
 		ProjectID:                     req.ProjectID,
 		AppID:                         req.AppID,
 		EnvironmentID:                 req.EnvironmentID,
-		GitCommitSha:                  sql.NullString{String: "", Valid: false},
-		GitBranch:                     sql.NullString{String: "", Valid: false},
+		GitCommitSha:                  req.GitCommitSha,
+		GitBranch:                     req.GitBranch,
 		SentinelConfig:                []byte("{}"),
-		GitCommitMessage:              sql.NullString{String: "", Valid: false},
+		GitCommitMessage:              req.GitCommitMessage,
 		GitCommitAuthorHandle:         sql.NullString{String: "", Valid: false},
 		GitCommitAuthorAvatarUrl:      sql.NullString{String: "", Valid: false},
 		GitCommitTimestamp:            sql.NullInt64{Int64: 0, Valid: false},
@@ -453,7 +458,7 @@ func (s *Seeder) CreateDeployment(ctx context.Context, req CreateDeploymentReque
 	return deployment
 }
 
-// CreateRootKey creates a root key with optional permissions
+// CreateRootKey creates a root key with optional permissions.
 func (s *Seeder) CreateRootKey(ctx context.Context, workspaceID string, permissions ...string) string {
 	key := uid.New("test_root_key")
 

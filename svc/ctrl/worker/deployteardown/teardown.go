@@ -31,11 +31,12 @@ const (
 // drain. The workspace id is the virtual object key.
 //
 // For each deployment that is its app's current deployment it first clears
-// apps.current_deployment_id: the DeploymentService guard refuses to change the
-// current deployment, and a torn-down app genuinely has no current deployment,
-// so clearing it makes the guard's precondition honestly true instead of
-// punching a hole in it. Frontline routes off frontline_routes + desired_state
-// and ignores current_deployment_id, so clearing it does not disturb routing.
+// apps.current_deployment_id: the DeployService state-change guard refuses to
+// change the current deployment, and a torn-down app genuinely has no current
+// deployment, so clearing it makes the guard's precondition honestly true
+// instead of punching a hole in it. Frontline routes off frontline_routes +
+// desired_state and ignores current_deployment_id, so clearing it does not
+// disturb routing.
 //
 // The stop itself is fire-and-forget: ScheduleDesiredStateChange records the
 // transition on each deployment's own virtual object and self-sends the apply,
@@ -100,7 +101,7 @@ func (v *VirtualObject) Teardown(
 		// the teardown entirely: still running, but with current_deployment_id
 		// already cleared above and, for cancel, no entitlement left. Teardown
 		// is authoritative, so it supersedes whatever was in flight.
-		hydrav1.NewDeploymentServiceClient(ctx, d.ID).
+		hydrav1.NewDeployServiceClient(ctx, d.ID).
 			ScheduleDesiredStateChange().
 			Send(&hydrav1.ScheduleDesiredStateChangeRequest{
 				DelayMillis: 0,

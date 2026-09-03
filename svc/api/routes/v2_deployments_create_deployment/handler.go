@@ -2,15 +2,15 @@ package handler
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"net/http"
 	"slices"
 	"strings"
 
-	"connectrpc.com/connect"
+	restate "github.com/restatedev/sdk-go"
+	restateingress "github.com/restatedev/sdk-go/ingress"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
-	"github.com/unkeyed/unkey/gen/rpc/ctrl"
+	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/deploy/deployfail"
@@ -19,9 +19,11 @@ import (
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/rbac/permissions"
+	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/internal/ctrlclient"
+	"github.com/unkeyed/unkey/svc/api/internal/deployment"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
@@ -31,8 +33,8 @@ type (
 )
 
 type Handler struct {
-	DB         db.Database
-	CtrlClient ctrl.DeployServiceClient
+	DB      db.Database
+	Restate *restateingress.Client
 }
 
 func (h *Handler) Path() string {
@@ -109,22 +111,51 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	// nolint: exhaustruct // optional proto fields are set per source below
-	ctrlReq := &ctrlv1.CreateDeploymentRequest{
-		ProjectId:       environment.ProjectID,
-		AppId:           environment.AppID,
-		EnvironmentSlug: environment.Slug,
-		Trigger:         trigger,
-		TriggeredBy:     principal.Subject.ID,
-		Actor:           actorInfo,
+	// The id is the Restate object key the create runs on, so minting it here
+	// lets the response name the deployment without waiting. An Idempotency-Key
+	// derives that id rather than randomizing it, so a retry addresses the same
+	// object and finds the row the first attempt wrote. Restate also replays the
+	// first response for a key inside its retention window.
+	idempotencyKey := s.Request().Header.Get(deployment.IdempotencyKeyHeader)
+	if err = deployment.ValidateIdempotencyKey(idempotencyKey); err != nil {
+		return err
+	}
+
+	deploymentID := uid.New(uid.DeploymentPrefix)
+	var sendOpts []restate.IngressSendOption
+	if idempotencyKey != "" {
+		deploymentID = uid.Derived(uid.DeploymentPrefix,
+			principal.WorkspaceID, environment.ID, idempotencyKey)
+		sendOpts = append(sendOpts, restate.WithIdempotencyKey(idempotencyKey))
+	}
+
+	// nolint: exhaustruct // the source oneof is set per case below
+	createReq := &hydrav1.DeployCreateRequest{
+		ProjectId:   environment.ProjectID,
+		AppId:       environment.AppID,
+		Environment: environment.ID,
+		Decision:    hydrav1.CreateDecision_CREATE_DECISION_DEPLOY,
+		Command:     nil,
+		// No push behind an API create, so the worker stamps created_at from its
+		// own clock.
+		PushReceivedAt: 0,
+		Trigger:        trigger,
+		TriggeredBy:    principal.Subject.ID,
+		TriggerReason:  "",
+		Actor:          actorInfo,
 	}
 
 	switch {
 	case req.Image != nil:
+		// The create is submitted one-way, so a malformed reference has to be
+		// caught here: downstream it would only surface as a failed pull, long
+		// after the caller got its 201.
 		if err := imageref.Validate(req.Image.DockerImage); err != nil {
 			return err
 		}
-		ctrlReq.DockerImage = req.Image.DockerImage
+		createReq.Source = &hydrav1.DeployCreateRequest_Image{
+			Image: &hydrav1.CreateImageSource{Image: req.Image.DockerImage},
+		}
 
 	case req.Git != nil:
 		git := req.Git
@@ -150,11 +181,16 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			}
 			return fault.Wrap(err, fault.Internal("failed to check repo connection"))
 		}
-		// nolint: exhaustruct // ctrl fills the commit metadata it resolves from git
-		ctrlReq.GitCommit = &ctrlv1.GitCommitInfo{
-			Branch:         ptr.SafeDeref(git.Branch),
-			CommitSha:      ptr.SafeDeref(git.CommitSha),
-			ForkRepository: ptr.SafeDeref(git.Repository),
+		createReq.Source = &hydrav1.DeployCreateRequest_Git{
+			// nolint: exhaustruct // the worker fills the commit metadata it resolves from git
+			Git: &hydrav1.CreateGitSource{
+				Commit: &ctrlv1.GitCommitInfo{
+					Branch:         ptr.SafeDeref(git.Branch),
+					CommitSha:      ptr.SafeDeref(git.CommitSha),
+					ForkRepository: ptr.SafeDeref(git.Repository),
+				},
+				PrNumber: 0,
+			},
 		}
 
 	case req.Deployment != nil:
@@ -162,8 +198,18 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		if err != nil {
 			return err
 		}
-		ctrlReq.GitCommit = gitCommit
-		ctrlReq.DockerImage = dockerImage
+		// resolveRedeploy returns the source deployment's commit when the app is
+		// still git-connected and its image otherwise, so exactly one of the two
+		// is set here.
+		if gitCommit != nil {
+			createReq.Source = &hydrav1.DeployCreateRequest_Git{
+				Git: &hydrav1.CreateGitSource{Commit: gitCommit, PrNumber: 0},
+			}
+		} else {
+			createReq.Source = &hydrav1.DeployCreateRequest_Image{
+				Image: &hydrav1.CreateImageSource{Image: dockerImage},
+			}
+		}
 
 	default:
 		return fault.New(
@@ -181,20 +227,25 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	ctrlResp, err := h.CtrlClient.CreateDeployment(ctx, ctrlReq)
-	if err != nil {
-		// Map ctrl's precondition failure to a 412 instead of a 500. Keep its
-		// message in the internal error but return a fixed public reason so callers can't probe upstream state.
-		var connectErr *connect.Error
-		if errors.As(err, &connectErr) && connectErr.Code() == connect.CodeFailedPrecondition {
-			return fault.Wrap(
-				err,
-				fault.Code(codes.App.Precondition.PreconditionFailed.URN()),
-				fault.Internal("ctrl reported a precondition failure: "+connectErr.Message()),
-				fault.Public("The deployment could not be started because a precondition was not met. Verify the app's repository connection, branch, commit, and current deployment, then try again."),
-			)
-		}
-		return ctrlclient.HandleError(err, "create deployment")
+	// The create is submitted one-way below, so this is the only place a caller
+	// can be told its workspace may not deploy.
+	if err := deployment.EnsureWorkspaceCanDeploy(ctx, h.DB, principal.WorkspaceID); err != nil {
+		return err
+	}
+
+	// Send, not Request: the create resolves commits against GitHub and retries
+	// transient failures for minutes, which no HTTP caller should wait through.
+	// The worker re-checks the gates above, so a workspace that loses its
+	// entitlement in between is still refused, asynchronously.
+	if _, err := hydrav1.NewDeployServiceIngressClient(h.Restate, deploymentID).
+		Create().
+		Send(ctx, createReq, sendOpts...); err != nil {
+		return fault.Wrap(
+			err,
+			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+			fault.Internal("failed to submit deployment create to Restate"),
+			fault.Public("Failed to create deployment."),
+		)
 	}
 
 	return s.JSON(http.StatusCreated, Response{
@@ -202,7 +253,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			RequestId: s.RequestID(),
 		},
 		Data: openapi.V2DeploymentsCreateDeploymentResponseData{
-			DeploymentId: ctrlResp.GetDeploymentId(),
+			DeploymentId: deploymentID,
 		},
 	})
 }

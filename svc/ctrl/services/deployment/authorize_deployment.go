@@ -3,6 +3,7 @@ package deployment
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"time"
 
@@ -11,9 +12,12 @@ import (
 	"connectrpc.com/connect"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
+	"github.com/unkeyed/unkey/pkg/auditlog"
 	"github.com/unkeyed/unkey/pkg/logger"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/actor"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/auth"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/deploytarget"
 )
 
 // AuthorizeDeployment authorizes a deployment that is awaiting approval.
@@ -46,19 +50,21 @@ func (s *Service) AuthorizeDeployment(ctx context.Context, req *connect.Request[
 		return nil, err
 	}
 
-	// Look up build settings and repo connection before changing status,
-	// so a lookup failure doesn't leave the deployment stuck as pending.
-	buildSetting, err := s.db.FindAppBuildSettingByAppEnv(ctx, db.FindAppBuildSettingByAppEnvParams{
-		AppID:         deployment.AppID,
-		EnvironmentID: deployment.EnvironmentID,
-	})
+	// Loaded before the status changes, so a lookup failure does not leave the
+	// deployment stuck as pending. The target is scoped to the app because a
+	// repository connection is unique per app, not per project.
+	target, err := deploytarget.Load(ctx, s.db,
+		deployment.ProjectID, deployment.AppID, deployment.EnvironmentID, deploytarget.WithoutSecrets)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to find build settings: %w", err))
+		var terminal *deploytarget.TerminalError
+		if errors.As(err, &terminal) {
+			return nil, connect.NewError(terminal.Code, errors.New(terminal.Message))
+		}
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to load deploy target: %w", err))
 	}
-
-	repoConn, err := s.db.FindGithubRepoConnectionByProjectId(ctx, deployment.ProjectID)
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to find repo connection: %w", err))
+	if !target.GithubRepositoryFullName.Valid {
+		return nil, connect.NewError(connect.CodeFailedPrecondition,
+			fmt.Errorf("app %s has no GitHub repo connection", deployment.AppID))
 	}
 
 	// Atomically transition from awaiting_approval → pending to prevent
@@ -110,12 +116,12 @@ func (s *Service) AuthorizeDeployment(ctx context.Context, req *connect.Request[
 		Command:      deployment.Command,
 		Source: &hydrav1.DeployRequest_Git{
 			Git: &hydrav1.GitSource{
-				InstallationId: repoConn.InstallationID,
-				Repository:     repoConn.RepositoryFullName,
+				InstallationId: target.GithubInstallationID.Int64,
+				Repository:     target.GithubRepositoryFullName.String,
 				CommitSha:      commitSHA,
-				ContextPath:    buildSetting.DockerContext,
-				DockerfilePath: buildSetting.Dockerfile.String,
-				BuildCommand:   buildSetting.BuildCommand.String,
+				ContextPath:    target.DockerContext,
+				DockerfilePath: target.Dockerfile.String,
+				BuildCommand:   target.BuildCommand.String,
 				Branch:         branch,
 				PrNumber:       prNumber,
 				ForkRepository: forkRepository,
@@ -160,18 +166,54 @@ func (s *Service) AuthorizeDeployment(ctx context.Context, req *connect.Request[
 		)
 	}
 
-	// Update commit status on GitHub
+	// Replace the blocking "awaiting authorization" commit status that Create
+	// posted. GitHubStatusService owns the status context string, so this write
+	// updates that same check instead of adding a second one. Send, not Request:
+	// the build is already dispatched, so an unreachable GitHub must not fail
+	// the call.
 	if commitSHA != "" {
-		if statusErr := s.github.CreateCommitStatus(
-			repoConn.InstallationID,
-			repoConn.RepositoryFullName,
-			commitSHA,
-			"success",
-			"",
-			"Deployment authorized and started",
-			"Unkey Deploy Authorization",
-		); statusErr != nil {
+		if _, statusErr := hydrav1.NewGitHubStatusServiceIngressClient(s.restate, deploymentID).
+			SetCommitStatus().
+			Send(ctx, &hydrav1.GitHubStatusCommitStatusRequest{
+				InstallationId: target.GithubInstallationID.Int64,
+				Repo:           target.GithubRepositoryFullName.String,
+				CommitSha:      commitSHA,
+				State:          hydrav1.GitHubCommitStatusState_GITHUB_COMMIT_STATUS_STATE_SUCCESS,
+				TargetUrl:      "",
+				Description:    "Deployment authorized and started",
+			}); statusErr != nil {
 			logger.Error("failed to update commit status to success", "error", statusErr)
+		}
+	}
+
+	// ctrl is the single writer of this event, so an authorization from any
+	// caller is audited exactly once. A request without an actor writes nothing:
+	// a fabricated system actor would be worse than a missing entry.
+	if a := req.Msg.GetActor(); a != nil {
+		if auditErr := s.auditlogs.Insert(ctx, nil, []auditlog.AuditLog{
+			{
+				Event:         auditlog.DeploymentAuthorizeEvent,
+				WorkspaceID:   deployment.WorkspaceID,
+				Display:       fmt.Sprintf("Authorized deployment %s", deploymentID),
+				ActorID:       a.GetId(),
+				ActorType:     actor.AuditType(a.GetType()),
+				ActorName:     a.GetName(),
+				ActorMeta:     actor.Meta(a.GetMeta()),
+				RemoteIP:      a.GetRemoteIp(),
+				UserAgent:     a.GetUserAgent(),
+				CorrelationID: "",
+				Resources: []auditlog.AuditLogResource{
+					{
+						Type:        auditlog.DeploymentResourceType,
+						ID:          deploymentID,
+						Name:        "",
+						DisplayName: deploymentID,
+						Meta:        deploymentAuditMeta(deployment.ProjectID, deployment.AppID, deployment.EnvironmentID),
+					},
+				},
+			},
+		}); auditErr != nil {
+			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to audit authorize deployment: %w", auditErr))
 		}
 	}
 

@@ -117,6 +117,21 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 		})
 	})
 
+	// AuthorizeDeployment writes the invocation id from outside the object, so
+	// that write can race this handler starting and leave the row NULL for a
+	// cancel arriving in between. Rewriting it here is safe: same value either
+	// way, and Request().ID survives retries and suspensions.
+	err = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
+		return w.db.UpdateDeploymentInvocationID(runCtx, db.UpdateDeploymentInvocationIDParams{
+			ID:           req.GetDeploymentId(),
+			InvocationID: sql.NullString{Valid: true, String: ctx.Request().ID},
+			UpdatedAt:    sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+		})
+	}, restate.WithName("persist invocation id"), restate.WithMaxRetryAttempts(runMaxAttempts))
+	if err != nil {
+		return nil, fault.Wrap(err, fault.Public("Failed to write to database. Please try again."))
+	}
+
 	deployment, err := restate.Run(ctx, func(runCtx restate.RunContext) (db.Deployment, error) {
 		return w.db.FindDeploymentById(runCtx, req.GetDeploymentId())
 	}, restate.WithName("finding deployment"), restate.WithMaxRetryAttempts(runMaxAttempts))
@@ -124,11 +139,25 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 		return nil, fault.Wrap(err, fault.Public("Failed to read from database. Please try again."))
 	}
 
+	// A cancel landing in the window above marks the row terminal without an
+	// invocation to cancel, so this check is what stops the build. Returning nil
+	// keeps the compensation stack out of it: the status is the intended one, not
+	// a failure.
+	if deployment.Status.IsTerminal() {
+		logger.Info("deployment is already terminal, not building",
+			"deployment_id", deployment.ID,
+			"status", deployment.Status,
+		)
+		return &hydrav1.DeployResponse{}, nil
+	}
+
 	// --- Deduplication: skip if a newer deployment is queued for the same app+env+branch ---
 	//
-	// Because the DeployService VO is keyed by app_id, by the time we run here any
-	// subsequent deploys for the same app are already queued in the VO inbox — so a
-	// newer-pending check here is race-free.
+	// The VO key is the deployment id, so same-app deploys do not serialize and
+	// this check races a concurrent newer create. Both directions are covered:
+	// the newer create cancels older siblings, and this reads the row a moment
+	// later. A commit that loses both races is still superseded by the newer
+	// deployment's own swap.
 	if deployment.GitBranch.Valid {
 		skipped, skipErr := w.skipIfSuperseded(ctx, deployment)
 		if skipErr != nil {
@@ -857,9 +886,12 @@ func (w *Workflow) spinDownPreviousDeployments(
 	if err != nil {
 		return err
 	}
+	// Send, not Request: two concurrent same-branch Deploys could each request
+	// the other's busy key and wait on each other forever. Nothing here needs the
+	// response.
 	for _, previousDeploymentID := range previousDeploymentIDs {
-		_, err := hydrav1.NewDeploymentServiceClient(ctx, previousDeploymentID).
-			ScheduleDesiredStateChange().Request(
+		hydrav1.NewDeployServiceClient(ctx, previousDeploymentID).
+			ScheduleDesiredStateChange().Send(
 			&hydrav1.ScheduleDesiredStateChangeRequest{
 				DelayMillis: time.Minute.Milliseconds(), // give frontline a graceperiod to clear their caches
 				State:       hydrav1.DeploymentDesiredState_DEPLOYMENT_DESIRED_STATE_STOPPED,
@@ -867,9 +899,6 @@ func (w *Workflow) spinDownPreviousDeployments(
 			},
 			restate.WithIdempotencyKey(previousDeploymentID),
 		)
-		if err != nil {
-			return fault.Wrap(err, fault.Public("Previous live deployment could not be scheduled for standby."))
-		}
 	}
 
 	return nil
@@ -896,14 +925,19 @@ func (w *Workflow) swapLiveDeployment(
 		SwapLiveDeployment().Request(&hydrav1.SwapLiveDeploymentRequest{
 		DeploymentId:    deployment.ID,
 		SetRollbackFlag: false,
+		// A slower build must not take traffic from a newer one that already
+		// finished.
+		AllowOlder: false,
 	})
 	if err != nil {
 		return fault.Wrap(err, fault.Public("App live deployment could not be updated."))
 	}
 
+	// Send, not Request: the previous deployment's key can be busy for many
+	// minutes, and this deploy must not wait on it.
 	if swapResp.GetPreviousDeploymentId() != "" {
-		_, err = hydrav1.NewDeploymentServiceClient(ctx, swapResp.GetPreviousDeploymentId()).
-			ScheduleDesiredStateChange().Request(
+		hydrav1.NewDeployServiceClient(ctx, swapResp.GetPreviousDeploymentId()).
+			ScheduleDesiredStateChange().Send(
 			&hydrav1.ScheduleDesiredStateChangeRequest{
 				DelayMillis: (30 * time.Minute).Milliseconds(),
 				State:       hydrav1.DeploymentDesiredState_DEPLOYMENT_DESIRED_STATE_STOPPED,
@@ -911,9 +945,6 @@ func (w *Workflow) swapLiveDeployment(
 			},
 			restate.WithIdempotencyKey(swapResp.GetPreviousDeploymentId()),
 		)
-		if err != nil {
-			return fault.Wrap(err, fault.Public("Previous live deployment could not be scheduled for standby."))
-		}
 	}
 
 	return nil

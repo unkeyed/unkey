@@ -10,7 +10,7 @@ import (
 // This benchmark demonstrates the performance improvements achieved through:
 // - Cached timestamps via go-timecache to avoid time.Now() syscalls
 // - Using github.com/mr-tron/base58 instead of custom implementation
-// - Efficient string building without fmt.Sprintf
+// - Efficient string building without fmt.Sprintf.
 func BenchmarkComparison(b *testing.B) {
 	b.Run("New_Optimized", func(b *testing.B) {
 		b.ReportAllocs()

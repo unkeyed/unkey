@@ -11,8 +11,7 @@ import (
 
 func TestUnauthorized(t *testing.T) {
 	h := testutil.NewHarness(t)
-	capture := &ctrlCapture{}
-	route := newRoute(h, capture)
+	route := newRoute(h, newUncalledRestate(t))
 	h.Register(route)
 
 	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
@@ -28,5 +27,4 @@ func TestUnauthorized(t *testing.T) {
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 	require.Equal(t, http.StatusUnauthorized, res.Status, "expected 401, received: %s", res.RawBody)
-	require.False(t, capture.called, "ctrl must not be called for an unauthenticated request")
 }

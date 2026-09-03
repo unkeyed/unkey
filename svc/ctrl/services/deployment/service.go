@@ -4,9 +4,7 @@ import (
 	restateingress "github.com/restatedev/sdk-go/ingress"
 	"github.com/unkeyed/unkey/gen/proto/ctrl/v1/ctrlv1connect"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
-	githubclient "github.com/unkeyed/unkey/pkg/github"
 	restateadmin "github.com/unkeyed/unkey/pkg/restate/admin"
-	"github.com/unkeyed/unkey/svc/ctrl/dedup"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/auditlogs"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
@@ -16,15 +14,12 @@ import (
 // workflow execution to Restate.
 type Service struct {
 	ctrlv1connect.UnimplementedDeployServiceHandler
-	db                              db.Database
-	restate                         *restateingress.Client
-	restateAdmin                    *restateadmin.Client
-	github                          githubclient.GitHubClient
-	auditlogs                       auditlogs.AuditLogService
-	allowUnauthenticatedDeployments bool
-	bearer                          string
-	dedup                           *dedup.Service
-	enforceDeployGate               bool
+	db                db.Database
+	restate           *restateingress.Client
+	restateAdmin      *restateadmin.Client
+	auditlogs         auditlogs.AuditLogService
+	bearer            string
+	enforceDeployGate bool
 }
 
 // deploymentClient creates a typed Restate ingress client for the DeployService
@@ -46,15 +41,10 @@ type Config struct {
 	// manually aborts a deployment. Optional — when nil, CancelDeployment
 	// will fail closed.
 	RestateAdmin *restateadmin.Client
-	// GitHub is the client for GitHub API operations (fetching HEAD, etc.).
-	GitHub githubclient.GitHubClient
 	// Auditlogs records audit events for deployment operations (e.g.
 	// operator-triggered rebuilds) so they show up in the customer's audit
 	// feed. Required.
 	Auditlogs auditlogs.AuditLogService
-	// AllowUnauthenticatedDeployments toggles the public GitHub API path for
-	// local development with public repositories. Production keeps this false.
-	AllowUnauthenticatedDeployments bool
 	// Bearer is the preshared token that callers must provide in the Authorization header.
 	Bearer string
 	// EnforceDeployGate hard-blocks deployment actions that create, start, or
@@ -71,11 +61,8 @@ func New(cfg Config) *Service {
 		db:                                cfg.Database,
 		restate:                           cfg.Restate,
 		restateAdmin:                      cfg.RestateAdmin,
-		github:                            cfg.GitHub,
 		auditlogs:                         cfg.Auditlogs,
-		allowUnauthenticatedDeployments:   cfg.AllowUnauthenticatedDeployments,
 		bearer:                            cfg.Bearer,
-		dedup:                             dedup.New(cfg.Database, cfg.RestateAdmin),
 		enforceDeployGate:                 cfg.EnforceDeployGate,
 	}
 }

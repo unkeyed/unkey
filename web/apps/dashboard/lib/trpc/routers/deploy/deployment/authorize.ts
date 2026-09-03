@@ -1,8 +1,6 @@
-import { insertAuditLogs } from "@/lib/audit";
-import { createCtrlClient } from "@/lib/ctrl-client";
-
+import { ActorType } from "@/gen/proto/ctrl/v1/actor_pb";
 import { DeployService } from "@/gen/proto/ctrl/v1/deployment_pb";
-
+import { createCtrlClient } from "@/lib/ctrl-client";
 import { db } from "@/lib/db";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
@@ -21,14 +19,6 @@ export const authorizeDeployment = workspaceProcedure
         and(eq(table.id, input.deploymentId), eq(table.workspaceId, ctx.workspace.id)),
       columns: {
         id: true,
-        projectId: true,
-      },
-      with: {
-        project: {
-          columns: {
-            name: true,
-          },
-        },
       },
     });
 
@@ -42,23 +32,16 @@ export const authorizeDeployment = workspaceProcedure
     const ctrl = createCtrlClient(DeployService);
 
     try {
+      // ctrl writes the deployment.authorize audit entry from this actor, so an
+      // authorization is audited only when it actually happened.
       await ctrl.authorizeDeployment({
         deploymentId: input.deploymentId,
-      });
-
-      await insertAuditLogs(db, {
-        workspaceId: ctx.workspace.id,
-        actor: { type: "user", id: ctx.user.id },
-        event: "deployment.authorize",
-        description: `Authorized deployment ${input.deploymentId} for ${deployment.project.name}`,
-        resources: [
-          {
-            type: "project",
-            id: deployment.projectId,
-            name: deployment.project.name,
-          },
-        ],
-        context: ctx.audit,
+        actor: {
+          id: ctx.user.id,
+          type: ActorType.USER,
+          remoteIp: ctx.audit.location,
+          userAgent: ctx.audit.userAgent ?? "",
+        },
       });
 
       return {};

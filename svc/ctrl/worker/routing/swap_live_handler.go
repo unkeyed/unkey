@@ -60,6 +60,27 @@ func (s *Service) SwapLiveDeployment(
 				return sql.NullString{}, fmt.Errorf("find app: %w", findErr)
 			}
 
+			// Sibling dedup only supersedes queued rows, so two builds for one
+			// app run concurrently once the first leaves `pending`. Both reach
+			// this handler, and without the comparison the pointer would belong
+			// to whichever build finished last rather than to the newer commit.
+			// The virtual object is keyed by environment, so no other swap for
+			// this app runs while this transaction is open.
+			if !req.GetAllowOlder() && currentApp.CurrentDeploymentID.Valid {
+				live, liveErr := db.NewQueries(tx).FindDeploymentById(txCtx, currentApp.CurrentDeploymentID.String)
+				switch {
+				case liveErr != nil && !db.IsNotFound(liveErr):
+					return sql.NullString{}, fmt.Errorf("find live deployment: %w", liveErr)
+				case liveErr == nil && live.CreatedAt > deployment.CreatedAt:
+					logger.Info("refusing to swap live deployment backwards",
+						"deployment_id", deploymentID,
+						"live_deployment_id", live.ID,
+						"app_id", deployment.AppID,
+					)
+					return currentApp.CurrentDeploymentID, nil
+				}
+			}
+
 			updateErr := db.NewQueries(tx).UpdateAppDeployments(txCtx, db.UpdateAppDeploymentsParams{
 				AppID:               deployment.AppID,
 				CurrentDeploymentID: sql.NullString{Valid: true, String: deploymentID},

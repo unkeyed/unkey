@@ -49,7 +49,6 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/deploybilling"
 	workercustomdomain "github.com/unkeyed/unkey/svc/ctrl/worker/customdomain"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/deploy"
-	"github.com/unkeyed/unkey/svc/ctrl/worker/deployment"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/deployteardown"
 	workerenvironment "github.com/unkeyed/unkey/svc/ctrl/worker/environment"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/githubstatus"
@@ -297,43 +296,58 @@ func Run(ctx context.Context, cfg Config) error {
 		BuildStepLogs:                   buildStepLogs,
 		AllowUnauthenticatedDeployments: ptr.SafeDeref(cfg.GitHub).AllowUnauthenticatedDeployments,
 		DashboardURL:                    cfg.DashboardURL,
+		RestateAdmin:                    restateAdminClient,
+		EnforceDeployGate:               cfg.DeployGate.Enforce,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to create deploy workflow: %w", err)
 	}
 
+	// A cancel only lands at the next attempt boundary, so short intervals keep
+	// cancels responsive, and the ~5 minute ceiling makes a persistent failure
+	// surface fast. PauseOnMaxAttempts rather than Kill: KILL tears the
+	// invocation down without re-entering the handler, so the deferred
+	// compensations never run.
+	//
+	// The policy binds per handler, not on the service, so the desired-state
+	// handlers (ScheduleDesiredStateChange, ChangeDesiredState,
+	// ClearScheduledStateChanges) keep the server default of retrying forever.
+	// They only fail while the database is away, and a paused transition would
+	// park the deployment key and leave compute in the wrong state until an
+	// operator noticed.
+	deployLifecycleRetry := restate.WithInvocationRetryPolicy(
+		restate.WithInitialInterval(2*time.Second),
+		restate.WithExponentiationFactor(2.0),
+		restate.WithMaxInterval(30*time.Second),
+		restate.WithMaxAttempts(15),
+		restate.PauseOnMaxAttempts(),
+	)
 	restateSrv.Bind(hydrav1.NewDeployServiceServer(deployWorkflow,
-		// Retry with exponential backoff: 2s → 4s → 8s → 16s → 30s (capped),
-		// 15 attempts (~5 min total). Short backoffs keep the worst-case
-		// cancel latency low — a user-initiated cancel only lands at the
-		// next attempt boundary, so longer intervals make cancels feel
-		// stuck. 5 minutes total is enough for transient blips; persistent
-		// failures should surface fast rather than retry for half an hour.
+		// Create is the one handler callers submit with an idempotency key, and
+		// this is that key's caller-facing lifetime. Restate keeps a result only
+		// for an invocation that carried a key, so the other handlers are
+		// unaffected. Needs a Restate server that accepts retention from service
+		// discovery.
 		//
-		// PauseOnMaxAttempts (not Kill) so compensations can still run:
-		// on KILL the invocation is torn down without re-entering the
-		// handler, so the Go defer that fires compensation.Execute never
-		// runs. Individual restate.Run calls should each set
-		// WithMaxRetryDuration so they return TerminalError into Go on
-		// exhaustion — that's the normal path. This service-level policy
-		// is a safety net for failures that escape Run-level bounds.
-		restate.WithInvocationRetryPolicy(
-			restate.WithInitialInterval(2*time.Second),
-			restate.WithExponentiationFactor(2.0),
-			restate.WithMaxInterval(30*time.Second),
-			restate.WithMaxAttempts(15),
-			restate.PauseOnMaxAttempts(),
-		),
-	))
-	restateSrv.Bind(hydrav1.NewDeploymentServiceServer(deployment.New(deployment.Config{
-		DB: database,
-	}), restate.WithIngressPrivate(true)))
+		// Past this window the key stops replaying and the deployment row takes
+		// over as the dedup record, which is why Create looks for the row before
+		// doing anything else.
+		restate.WithIdempotencyRetention(12*time.Hour),
+	).
+		ConfigureHandler("Create", deployLifecycleRetry).
+		ConfigureHandler("Deploy", deployLifecycleRetry).
+		ConfigureHandler("Rollback", deployLifecycleRetry).
+		ConfigureHandler("Promote", deployLifecycleRetry).
+		ConfigureHandler("StopDeployment", deployLifecycleRetry).
+		ConfigureHandler("WakeDeployment", deployLifecycleRetry).
+		ConfigureHandler("NotifyInstancesReady", deployLifecycleRetry))
 
 	// DeployTeardownService stops all of a workspace's running Deploy compute and
 	// confirms it drained. Invoked over Restate ingress by cancel (ARCHIVE) and,
 	// later, the spend-cap check (SUSPEND).
 	teardownSvc, err := deployteardown.New(deployteardown.Config{
-		DB: database,
+		DB:    database,
+		Admin: restateAdminClient,
 		// Zero selects the production drain poll cadence and grace timeout; only
 		// tests override these to keep the drain loop fast.
 		DrainPollInterval: 0,
@@ -344,10 +358,14 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 	restateSrv.Bind(hydrav1.NewDeployTeardownServiceServer(teardownSvc))
 
+	// ctrl's AuthorizeDeployment sends the authorized commit status through the
+	// ingress, so this service cannot be ingress-private. Worker-internal callers
+	// (Create, Deploy) reach it service to service.
 	restateSrv.Bind(hydrav1.NewGitHubStatusServiceServer(githubstatus.New(githubstatus.Config{
-		GitHub: ghClient,
-		DB:     database,
-	}), restate.WithIngressPrivate(true)))
+		GitHub:                          ghClient,
+		DB:                              database,
+		AllowUnauthenticatedDeployments: ptr.SafeDeref(cfg.GitHub).AllowUnauthenticatedDeployments,
+	})))
 
 	restateSrv.Bind(hydrav1.NewRoutingServiceServer(routing.New(routing.Config{
 		DB:            database,
@@ -373,8 +391,6 @@ func Run(ctx context.Context, cfg Config) error {
 	restateSrv.Bind(hydrav1.NewGitHubWebhookServiceServer(githubwebhook.New(githubwebhook.Config{
 		DB:                              database,
 		GitHub:                          ghClient,
-		RestateAdmin:                    restateAdminClient,
-		DashboardURL:                    cfg.DashboardURL,
 		AllowUnauthenticatedDeployments: ptr.SafeDeref(cfg.GitHub).AllowUnauthenticatedDeployments,
 		EnforceDeployGate:               cfg.DeployGate.Enforce,
 	})))

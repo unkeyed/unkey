@@ -2,11 +2,71 @@ package deployment
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/deploy/deploygate"
 	"github.com/unkeyed/unkey/pkg/fault"
 )
+
+// IdempotencyKeyHeader is the header a caller repeats to retry a create without
+// producing a second deployment.
+const IdempotencyKeyHeader = "Idempotency-Key"
+
+// idempotencyKeyBytesMax matches the bound the email client applies to the same
+// kind of key (pkg/email/resend_send.go).
+const idempotencyKeyBytesMax = 256
+
+// ValidateIdempotencyKey rejects a key too long to be worth hashing. An absent
+// key is valid: it means the caller is not asking for idempotency.
+func ValidateIdempotencyKey(key string) error {
+	if len(key) <= idempotencyKeyBytesMax {
+		return nil
+	}
+
+	return fault.New(
+		"idempotency key too long",
+		fault.Code(codes.App.Validation.InvalidInput.URN()),
+		fault.Internal("idempotency key exceeds the byte bound"),
+		fault.Public(fmt.Sprintf("%s must be at most %d bytes.", IdempotencyKeyHeader, idempotencyKeyBytesMax)),
+	)
+}
+
+// EnsureWorkspaceCanDeploy refuses an action that creates or activates compute
+// for a workspace with no Compute plan or one stopped by its spend cap. The
+// faults carry precondition codes, so a handler returns them unchanged.
+//
+// A caller that has to report its own state gate first, such as the start
+// route, uses [LoadBilling] and orders the checks itself.
+func EnsureWorkspaceCanDeploy(ctx context.Context, database db.Database, workspaceID string) error {
+	billing, err := LoadBilling(ctx, database, workspaceID)
+	if err != nil {
+		return err
+	}
+
+	if err := deploygate.CheckWorkspacePlan(billing.Plan, billing.PlanOverride); err != nil {
+		return err
+	}
+	return deploygate.CheckWorkspaceSpend(billing.SpendSuspended)
+}
+
+// LoadBilling reads a workspace's Compute billing state from the primary: a
+// workspace suspended moments ago must not slip an action through on a stale
+// replica. A workspace with no billing row reads as the zero value, meaning no
+// plan and not suspended, which is the normal state before anyone subscribes.
+func LoadBilling(ctx context.Context, database db.Database, workspaceID string) (db.FindWorkspaceBillingByWorkspaceIDRow, error) {
+	billing, err := db.Query.FindWorkspaceBillingByWorkspaceID(ctx, database.RW(), workspaceID)
+	if err != nil && !db.IsNotFound(err) {
+		return db.FindWorkspaceBillingByWorkspaceIDRow{}, fault.Wrap(
+			err,
+			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+			fault.Internal("database error loading workspace billing"),
+			fault.Public("Failed to retrieve workspace billing state."),
+		)
+	}
+	return billing, nil
+}
 
 // FindDeployment loads a deployment by ID scoped to the caller's workspace. A
 // cross-workspace match is masked as not found so a caller can't probe for

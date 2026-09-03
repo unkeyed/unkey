@@ -116,18 +116,18 @@ func (h *Handler) Handle(
 				}
 
 				if requests == 0 {
-					_, err = hydrav1.NewDeploymentServiceClient(ctx, deployment.ID).
+					// Send, not Request: a deployment mid-wake holds its key for
+					// up to 15 minutes, and one busy deployment must not stall
+					// the whole scan.
+					hydrav1.NewDeployServiceClient(ctx, deployment.ID).
 						ScheduleDesiredStateChange().
-						Request(&hydrav1.ScheduleDesiredStateChangeRequest{
+						Send(&hydrav1.ScheduleDesiredStateChangeRequest{
 							DelayMillis: 0,
 							State:       hydrav1.DeploymentDesiredState_DEPLOYMENT_DESIRED_STATE_STOPPED,
 							// Never clobber a user-initiated pending transition (e.g. a
 							// manual wake): idle scaledown yields to explicit intent.
 							Overwrite: false,
 						})
-					if err != nil {
-						return nil, err
-					}
 				}
 			}
 		}

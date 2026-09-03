@@ -19,6 +19,7 @@ Rollback and Promote are themselves workflows but they don't need their own env-
 Key components:
 
 - Control API deployment service — [`svc/ctrl/services/deployment`](https://github.com/unkeyed/unkey/blob/main/svc/ctrl/services/deployment)
+- `DeployService.Create`, the only writer of deployment rows: [`svc/ctrl/worker/deploy/create.go`](https://github.com/unkeyed/unkey/blob/main/svc/ctrl/worker/deploy/create.go)
 - `DeployService` Restate workflow — [`svc/ctrl/worker/deploy`](https://github.com/unkeyed/unkey/blob/main/svc/ctrl/worker/deploy)
 - `RoutingService` (route assignment + live swap) — [`svc/ctrl/worker/routing`](https://github.com/unkeyed/unkey/blob/main/svc/ctrl/worker/routing)
 - `DeploymentService` VO for delayed desired-state transitions — [`svc/ctrl/worker/deployment`](https://github.com/unkeyed/unkey/blob/main/svc/ctrl/worker/deployment)
@@ -36,14 +37,20 @@ sequenceDiagram
   participant BuildSlot as BuildSlotService<br/>(keyed by workspace)
   participant Worker as DeployService<br/>(keyed by deployment_id)
   participant Dedup as dedup.CancelOlderSiblings
+  participant Create as DeployService.Create<br/>(same deployment_id key)
 
-  Client->>CtrlAPI: CreateDeployment(project_id, source, env)
-  CtrlAPI->>DB: Find project + environment + app
-  CtrlAPI->>DB: Insert deployment (status=pending)
-  CtrlAPI->>Restate: DeployService.Deploy (key: deployment_id, async)
-  Restate-->>CtrlAPI: invocation_id
-  CtrlAPI->>DB: UpdateDeploymentInvocationID
-  CtrlAPI->>Dedup: Cancel older queued siblings (status=pending|awaiting_approval)
+  Client->>CtrlAPI: Create deployment (source, env, optional Idempotency-Key)
+  CtrlAPI->>CtrlAPI: Mint deployment id<br/>(derived from the idempotency key when sent)
+  CtrlAPI->>DB: Check permissions, target, source, plan
+  CtrlAPI->>Restate: DeployService.Create (one-way, key: deployment_id,<br/>idempotency key when the header was sent)
+  CtrlAPI-->>Client: deployment id, without waiting for the create
+  Restate->>Create: Execute Create (a keyed retry replays instead)
+  Create->>DB: Row already there? answer REPLAYED
+  Create->>DB: Load target, run gates, resolve build source
+  Create->>DB: Insert deployment (status=pending), queued step,<br/>and create audit in one transaction
+  Create->>Restate: DeployService.Deploy (key: deployment_id, async)
+  Create->>DB: UpdateDeploymentInvocationID
+  Create->>Dedup: Cancel older queued siblings (status=pending|awaiting_approval)
   Dedup->>DB: Batch stamp "Superseded by newer commit" on sibling steps
   Dedup->>DB: Batch UPDATE siblings to status=superseded
   Dedup->>Restate: CancelInvocation for each older sibling
@@ -58,6 +65,24 @@ sequenceDiagram
   Worker->>DB: Mark deployment ready
   Worker->>BuildSlot: Release(deployment_id)
 ```
+
+## Idempotent create
+
+`DeployService.Create` is the only writer of deployment rows. The public API, the GitHub webhook, and operator rebuilds all reach it, and the object key is always the deployment id.
+
+**Deriving the id.** The caller mints the id before it calls, which is how the public API can answer with a deployment id without waiting for the create. Without an `Idempotency-Key` header the id is random, so a retry is simply a second deployment, which is what a caller that did not ask for idempotency gets. With the header the id is derived from `workspace_id`, `app_id`, `environment_id`, and the caller's key, so a retry computes the same id and lands on the same virtual object. The workspace is in the scope because it is the trust boundary: callers send human-readable keys or client-generated UUIDs, and without it two tenants sending one key would collide. The app and the environment are in the scope because they are the target: one key can deploy the same commit to production and to staging, and a reused key can never answer with another target's deployment.
+
+**Two dedup layers.** The header also travels to Restate as the invocation idempotency key. Inside the retention window Restate replays the first invocation's journaled response and runs nothing. The service registers a 12 hour retention, which is the caller-facing lifetime of the key. There is no idempotency key table in MySQL; past that window the deployment row takes over, so `Create` looks the row up before doing anything else and answers `REPLAYED` when it finds one. A row belonging to another project or app is a terminal error rather than a replay.
+
+**Durable execution.** Every step is journaled: the row lookup, the target load with its gates and build source resolution, the insert of the row plus its queued step plus its `deployment.create` audit in one MySQL transaction, then the `Deploy` send, the invocation id write, and the sibling dedup. A worker crash resumes from the journal, so an accepted create always completes and a row can never end up inserted but never sent.
+
+**Decisions.** The caller says what should happen to the row. `DEPLOY` builds it, `SKIP` records that a commit was seen and deliberately not built, and `AWAIT_APPROVAL` parks a fork PR until a project member authorizes it. Every decision writes a row.
+
+**Target reload.** The request carries ids only. `Create` loads the project, app, environment, and their settings itself, so the row records the settings and secrets current when the create runs and not when it was requested. A target deleted in between comes back as `TARGET_NOT_FOUND`.
+
+**Refusals are responses.** A caller precondition no retry can fix, such as no Compute plan, a spend cap, a missing repository connection, or an unresolvable commit, returns outcome `BLOCKED` with a `CreateBlockedReason` instead of failing the invocation. The Restate ingress collapses a handler failure into unstructured text, which svc/api cannot turn back into a 412 with its own message, and a webhook on a repository that will never be eligible would keep producing failed invocations. The text behind the reason stays in the worker's logs, because it names repositories and deployments the caller may not be allowed to read.
+
+**One-way submission.** The public API and the GitHub webhook `Send` the create and read no response. Everything a caller must be told synchronously is therefore checked before the send: permissions, a malformed image reference, an undeployable environment, and a workspace that may not deploy. `Create` re-checks the entitlement gates when it runs, so a workspace that loses its entitlement in between is still refused, just asynchronously. Operator rebuilds use `Request` and read the outcome.
 
 ## Flow: cancel deployment
 
@@ -86,13 +111,13 @@ sequenceDiagram
 ```mermaid
 sequenceDiagram
   actor Client
-  participant CtrlAPI as Control API
+  participant PublicAPI as Public API
   participant Restate as Restate
   participant Worker as DeployService<br/>(deployment_id key)
   participant Routing as RoutingService<br/>(env_id key)
 
-  Client->>CtrlAPI: Promote(deployment_id)
-  CtrlAPI->>Restate: DeployService.Promote (key: target deployment_id)
+  Client->>PublicAPI: POST /v2/deployments.promoteDeployment
+  PublicAPI->>Restate: DeployService.Promote (key: target deployment_id)
   Restate->>Worker: Execute promote workflow
   Worker->>Routing: SwapLiveDeployment(target, routes, set_rollback_flag=false)
   Routing-->>Worker: previous_deployment_id (atomically swapped)
@@ -104,13 +129,13 @@ sequenceDiagram
 ```mermaid
 sequenceDiagram
   actor Client
-  participant CtrlAPI as Control API
+  participant PublicAPI as Public API
   participant Restate as Restate
   participant Worker as DeployService<br/>(deployment_id key)
   participant Routing as RoutingService<br/>(env_id key)
 
-  Client->>CtrlAPI: Rollback(source_id, target_id)
-  CtrlAPI->>Restate: DeployService.Rollback (key: source deployment_id)
+  Client->>PublicAPI: POST /v2/deployments.rollbackDeployment
+  PublicAPI->>Restate: DeployService.Rollback (key: source deployment_id)
   Restate->>Worker: Execute rollback workflow
   Worker->>Routing: SwapLiveDeployment(target, sticky_routes, set_rollback_flag=true)
   Routing-->>Worker: previous_deployment_id (atomically swapped)

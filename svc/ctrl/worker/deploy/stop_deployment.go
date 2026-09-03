@@ -12,8 +12,9 @@ import (
 )
 
 // StopDeployment is the public Restate entrypoint for putting a running
-// deployment into stopped. The actual desired-state mutation remains serialized
-// in the private DeploymentService VO keyed by deployment_id.
+// deployment into stopped. It runs on the deployment's own virtual object and
+// applies the desired-state mutation itself, so a success response means the
+// state changed.
 func (w *Workflow) StopDeployment(ctx restate.ObjectContext, req *hydrav1.StopDeploymentRequest) (*hydrav1.StopDeploymentResponse, error) {
 	deploymentID := req.GetDeploymentId()
 	if deploymentID == "" {
@@ -48,14 +49,8 @@ func (w *Workflow) StopDeployment(ctx restate.ObjectContext, req *hydrav1.StopDe
 		return nil, gatefault.Terminal(err)
 	}
 
-	_, err = hydrav1.NewDeploymentServiceClient(ctx, deploymentID).
-		ScheduleDesiredStateChange().
-		Request(&hydrav1.ScheduleDesiredStateChangeRequest{
-			DelayMillis: 0,
-			State:       hydrav1.DeploymentDesiredState_DEPLOYMENT_DESIRED_STATE_STOPPED,
-			Overwrite:   true,
-		})
-	if err != nil {
+	// Same key, so the state change applies before this handler returns.
+	if err := w.applyDesiredStateNow(ctx, deploymentID, hydrav1.DeploymentDesiredState_DEPLOYMENT_DESIRED_STATE_STOPPED); err != nil {
 		return nil, fmt.Errorf("stop deployment workflow failed: %w", err)
 	}
 

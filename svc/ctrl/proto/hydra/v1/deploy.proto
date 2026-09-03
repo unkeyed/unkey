@@ -2,6 +2,7 @@ syntax = "proto3";
 package hydra.v1;
 
 import "ctrl/v1/actor.proto";
+import "ctrl/v1/deployment.proto";
 import "dev/restate/sdk/go.proto";
 
 option go_package = "github.com/unkeyed/unkey/gen/proto/hydra/v1;hydrav1";
@@ -10,13 +11,13 @@ option go_package = "github.com/unkeyed/unkey/gen/proto/hydra/v1;hydrav1";
 // durable Restate workflows. Each RPC is idempotent and can safely resume from
 // any step after a crash.
 //
-// Deploy, Rollback, and Promote are keyed by {app_id}:{environment_id} so
-// that lifecycle operations within a single environment are serialized
-// (preventing e.g. a rollback from racing with an in-flight deploy) while
-// different environments of the same app — e.g. production vs preview — can
-// deploy in parallel. This means a production push never waits behind a
-// preview build. Workspace-wide concurrency is separately enforced by
-// BuildSlotService.
+// The virtual object is keyed by deployment_id, and it is the only object a
+// deployment has. Pipeline operations and desired-state transitions share one
+// inbox, so a scheduled stop cannot execute while a deploy or a wake is running
+// on the same deployment. The resource that several deployments contend for,
+// apps.current_deployment_id, is serialized inside RoutingService instead,
+// keyed by environment_id, through SwapLiveDeployment. BuildSlotService
+// enforces workspace-wide build concurrency.
 //
 // Deploy handles the full pipeline from building Docker images through
 // provisioning containers and configuring domain routing. Rollback and Promote
@@ -24,6 +25,17 @@ option go_package = "github.com/unkeyed/unkey/gen/proto/hydra/v1;hydrav1";
 // routes atomically through the routing service.
 service DeployService {
   option (dev.restate.sdk.go.service_type) = VIRTUAL_OBJECT;
+
+  // Create is the only writer of deployment rows. It resolves the build source,
+  // runs the entitlement gates, writes the row with its queued step and audit
+  // log in one transaction, and starts Deploy.
+  //
+  // The object key is the deployment id, so a caller that derives the same id
+  // from an idempotency key lands on the same object. Two layers dedup a
+  // repeat: the invocation idempotency key replays the journaled response
+  // inside its retention window, and after that window an existing row answers
+  // REPLAYED.
+  rpc Create(DeployCreateRequest) returns (DeployCreateResponse) {}
 
   // Deploy executes the full deployment workflow: build (if git source), provision
   // containers across regions, wait for health, configure domain routing, and
@@ -43,11 +55,13 @@ service DeployService {
   // Target must be in ready status and not already the live deployment.
   rpc Promote(PromoteRequest) returns (PromoteResponse) {}
 
-  // StopDeployment schedules desired_state=stopped for a running deployment.
+  // StopDeployment applies desired_state=stopped for a running deployment,
+  // superseding any pending scheduled transition.
   rpc StopDeployment(StopDeploymentRequest) returns (StopDeploymentResponse) {}
 
-  // WakeDeployment schedules desired_state=running for a stopped deployment
-  // and waits until enough instances are running again.
+  // WakeDeployment applies desired_state=running for a stopped deployment,
+  // superseding any pending scheduled stop, and waits until enough instances
+  // are running again.
   rpc WakeDeployment(WakeDeploymentRequest) returns (WakeDeploymentResponse) {}
 
   // NotifyInstancesReady is called by the control plane when enough instances
@@ -56,7 +70,70 @@ service DeployService {
   rpc NotifyInstancesReady(NotifyInstancesReadyRequest) returns (NotifyInstancesReadyResponse) {
     option (dev.restate.sdk.go.handler_type) = SHARED;
   }
+
+  // ScheduleDesiredStateChange registers a delayed desired-state transition. It
+  // stores a nonce with the target state and sends itself a delayed
+  // ChangeDesiredState. Restate timers cannot be cancelled, so scheduling again
+  // replaces the nonce and the older delayed call no-ops. For cross-key callers
+  // only: a handler already running on the deployment's key applies the change
+  // itself.
+  rpc ScheduleDesiredStateChange(ScheduleDesiredStateChangeRequest) returns (ScheduleDesiredStateChangeResponse) {}
+
+  // ChangeDesiredState applies a scheduled transition. It compares the nonce
+  // against the stored transition record and persists the new desired state on
+  // a match. A missing record or a mismatch means the transition was cleared or
+  // superseded, and the call no-ops. Only the delayed call from
+  // ScheduleDesiredStateChange should invoke it.
+  rpc ChangeDesiredState(ChangeDesiredStateRequest) returns (ChangeDesiredStateResponse) {}
+
+  // ClearScheduledStateChanges removes the pending transition record, which
+  // cancels any scheduled ChangeDesiredState. The delayed call still fires, but
+  // it finds no record to match and no-ops.
+  rpc ClearScheduledStateChanges(ClearScheduledStateChangesRequest) returns (ClearScheduledStateChangesResponse) {}
 }
+
+message ClearScheduledStateChangesRequest {}
+message ClearScheduledStateChangesResponse {}
+
+// DeploymentDesiredState is the target lifecycle state for a deployment.
+// UNSPECIFIED is a terminal failure in ChangeDesiredState.
+enum DeploymentDesiredState {
+  DEPLOYMENT_DESIRED_STATE_UNSPECIFIED = 0;
+
+  // RUNNING means the deployment should have active containers serving traffic.
+  DEPLOYMENT_DESIRED_STATE_RUNNING = 1;
+
+  // STOPPED means the deployment's containers are scaled down. The deployment
+  // can be resumed without a rebuild.
+  DEPLOYMENT_DESIRED_STATE_STOPPED = 2;
+}
+
+message ScheduleDesiredStateChangeRequest {
+  // Relative delay in milliseconds before the state change should take effect.
+  // Set to 0 to execute immediately.
+  int64 delay_millis = 1;
+
+  DeploymentDesiredState state = 2;
+
+  // Overwrite replaces a transition already scheduled on this deployment. Unset
+  // makes the call a no-op when one is already scheduled.
+  bool overwrite = 3;
+}
+
+message ScheduleDesiredStateChangeResponse {}
+
+// ChangeDesiredStateRequest is sent by ScheduleDesiredStateChange through a
+// delayed Restate call. Callers should not send it directly.
+message ChangeDesiredStateRequest {
+  // Nonce minted by the ScheduleDesiredStateChange call that scheduled this
+  // transition. It gives last-writer-wins: a nonce that no longer matches the
+  // stored record belongs to a superseded transition, and the call no-ops.
+  string nonce = 1;
+
+  DeploymentDesiredState state = 2;
+}
+
+message ChangeDesiredStateResponse {}
 
 message StopDeploymentRequest {
   string deployment_id = 1;
@@ -122,6 +199,161 @@ message GitSource {
   // Railpack auto-detects the command. Lets monorepos scope the build to a
   // single app. Ignored when dockerfile_path is set.
   string build_command = 9;
+}
+
+// CreateDecision is what the caller decided should happen to this deployment.
+// Every value writes a row; they differ in what happens to it next.
+enum CreateDecision {
+  CREATE_DECISION_UNSPECIFIED = 0;
+
+  // DEPLOY writes the row and builds it.
+  CREATE_DECISION_DEPLOY = 1;
+
+  // SKIP writes the row and stops there, recording that the commit was seen
+  // and deliberately not built.
+  CREATE_DECISION_SKIP = 2;
+
+  // AWAIT_APPROVAL writes the row and waits for a project member. Only
+  // AuthorizeDeployment can start it building.
+  CREATE_DECISION_AWAIT_APPROVAL = 3;
+}
+
+// CreateOutcome is what a create did. A refused create comes back as BLOCKED
+// instead of as a terminal error, so a caller that can never become eligible
+// does not leave Restate retrying it.
+enum CreateOutcome {
+  CREATE_OUTCOME_UNSPECIFIED = 0;
+
+  // CREATED wrote a new row.
+  CREATE_OUTCOME_CREATED = 1;
+
+  // REPLAYED found the row already there and changed nothing.
+  CREATE_OUTCOME_REPLAYED = 2;
+
+  // BLOCKED wrote nothing. See blocked_reason.
+  CREATE_OUTCOME_BLOCKED = 3;
+}
+
+// CreateBlockedReason is why a create was refused, as a value a caller can
+// branch on instead of a message it would have to parse.
+enum CreateBlockedReason {
+  CREATE_BLOCKED_REASON_UNSPECIFIED = 0;
+
+  // NO_COMPUTE_PLAN: the workspace holds no Deploy entitlement and the gate is
+  // enforcing.
+  CREATE_BLOCKED_REASON_NO_COMPUTE_PLAN = 1;
+
+  // SPEND_SUSPENDED: the workspace is over its Compute spend cap.
+  CREATE_BLOCKED_REASON_SPEND_SUSPENDED = 2;
+
+  // TARGET_NOT_FOUND: the project, app, or environment does not exist, or they
+  // do not belong together. Reachable when a target is deleted between the
+  // caller's own lookup and this create.
+  CREATE_BLOCKED_REASON_TARGET_NOT_FOUND = 3;
+
+  // NO_REPO_CONNECTION: a git source was requested for an app with no connected
+  // repository. Refused instead of falling back to the current image, which
+  // would ship a different artifact than the one asked for.
+  CREATE_BLOCKED_REASON_NO_REPO_CONNECTION = 4;
+
+  // COMMIT_NOT_RESOLVED: GitHub could not resolve the requested branch or
+  // commit.
+  CREATE_BLOCKED_REASON_COMMIT_NOT_RESOLVED = 5;
+
+  // NO_SOURCE_IMAGE: the deployment being redeployed has neither a commit with
+  // a repository connection nor an image, so there is nothing to build from.
+  CREATE_BLOCKED_REASON_NO_SOURCE_IMAGE = 6;
+
+  // NEWER_DEPLOYMENT_EXISTS: a rebuild found a newer active deployment on the
+  // same app, environment, and branch. Clear require_no_newer to override.
+  CREATE_BLOCKED_REASON_NEWER_DEPLOYMENT_EXISTS = 7;
+}
+
+// CreateGitSource builds from a repository commit. The worker resolves the
+// repository connection from the app, so a caller names only the commit it
+// wants.
+message CreateGitSource {
+  // Commit metadata as far as the caller knows it. Empty fields are filled from
+  // GitHub. A request with neither a sha nor a branch gets the app's default
+  // branch. A sha without a branch keeps its empty branch, because that sha can
+  // live off the default branch and a wrong branch beside a right sha is worse
+  // than no branch.
+  ctrl.v1.GitCommitInfo commit = 1;
+
+  // PR number for fork PRs. BuildKit fetches refs/pull/<number>/head from the
+  // base repository instead of cloning the commit directly.
+  int64 pr_number = 2;
+}
+
+// CreateImageSource deploys a pre-built container image as it is, with no
+// build step and no git metadata synthesized onto the row.
+message CreateImageSource {
+  string image = 1;
+}
+
+// CreateExistingDeploymentSource rebuilds what another deployment ran: its
+// commit when the app still has a repository connection, otherwise its image.
+// The new row takes the app's current runtime settings and environment
+// variables, so any configuration change since the source applies. That is what
+// makes it usable for a hotfix, a settings rollout, or recovery from a lost
+// image.
+message CreateExistingDeploymentSource {
+  string deployment_id = 1;
+
+  // RequireNoNewer refuses the rebuild when a newer active deployment exists on
+  // the same app, environment, and branch. Leave it unset to rebuild the named
+  // deployment whatever else has shipped since.
+  bool require_no_newer = 2;
+}
+
+message DeployCreateRequest {
+  // Target. The request carries ids only. The worker loads the project, app,
+  // environment, and their settings itself, so the row records the settings
+  // current when the create runs and not when it was requested.
+  string project_id = 1;
+  string app_id = 2;
+
+  // Environment named by id or slug.
+  string environment = 3;
+
+  oneof source {
+    CreateGitSource git = 4;
+    CreateImageSource image = 5;
+    CreateExistingDeploymentSource existing_deployment = 6;
+  }
+
+  // Container command override. Empty uses the app's stored default.
+  repeated string command = 7;
+
+  // Decision the caller already reached. See CreateDecision.
+  CreateDecision decision = 8;
+
+  // PushReceivedAt is when the webhook received the push, in unix milliseconds,
+  // and it becomes the row's created_at. Every Create from one push carries the
+  // same value, so sibling dedup and the supersede check keep push order even
+  // when the per-app sends land out of order. Zero means no push is behind the
+  // request, and the worker stamps created_at from its own clock.
+  int64 push_received_at = 9;
+
+  // Attribution persisted on the deployment row.
+  ctrl.v1.DeploymentTrigger trigger = 10;
+  string triggered_by = 11;
+  string trigger_reason = 12;
+
+  // Actor attributed on the audit log. Unset falls back to the system actor.
+  ctrl.v1.ActorInfo actor = 13;
+}
+
+// DeployCreateResponse says what a create did. It carries no deployment id: the
+// id is the object key, so a caller knows it before calling. Callers that send
+// Create one-way, such as the public API and the GitHub webhook, never see it.
+message DeployCreateResponse {
+  CreateOutcome outcome = 1;
+
+  // BlockedReason is set only when outcome is BLOCKED. The text explaining it
+  // stays in the worker's logs, because it names repositories and deployments
+  // the caller may have no right to read.
+  CreateBlockedReason blocked_reason = 2;
 }
 
 message DeployRequest {

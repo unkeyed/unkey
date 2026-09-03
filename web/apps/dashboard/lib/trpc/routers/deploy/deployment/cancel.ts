@@ -1,5 +1,5 @@
+import { ActorType } from "@/gen/proto/ctrl/v1/actor_pb";
 import { DeployService } from "@/gen/proto/ctrl/v1/deployment_pb";
-import { insertAuditLogs } from "@/lib/audit";
 import { createCtrlClient } from "@/lib/ctrl-client";
 import { db } from "@/lib/db";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
@@ -25,14 +25,6 @@ export const cancelDeployment = workspaceProcedure
       columns: {
         id: true,
         status: true,
-        projectId: true,
-      },
-      with: {
-        project: {
-          columns: {
-            name: true,
-          },
-        },
       },
     });
 
@@ -53,23 +45,16 @@ export const cancelDeployment = workspaceProcedure
     const ctrl = createCtrlClient(DeployService);
 
     try {
+      // ctrl writes the deployment.cancel audit entry from this actor, so a
+      // cancel is audited only when it actually happened.
       await ctrl.cancelDeployment({
         deploymentId: input.deploymentId,
-      });
-
-      await insertAuditLogs(db, {
-        workspaceId: ctx.workspace.id,
-        actor: { type: "user", id: ctx.user.id },
-        event: "deployment.cancel",
-        description: `Cancelled deployment ${input.deploymentId} for ${deployment.project.name}`,
-        resources: [
-          {
-            type: "deployment",
-            id: deployment.id,
-            name: deployment.project.name,
-          },
-        ],
-        context: ctx.audit,
+        actor: {
+          id: ctx.user.id,
+          type: ActorType.USER,
+          remoteIp: ctx.audit.location,
+          userAgent: ctx.audit.userAgent ?? "",
+        },
       });
 
       return {};

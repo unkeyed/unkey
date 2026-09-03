@@ -36,7 +36,6 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/deploybilling"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/deploy"
-	"github.com/unkeyed/unkey/svc/ctrl/worker/deployment"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/deployteardown"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/keylastusedsync"
 	vaulttestutil "github.com/unkeyed/unkey/svc/vault/testutil"
@@ -273,6 +272,11 @@ func New(t *testing.T, opts ...Option) *Harness {
 		RegistryConfig:                  deploy.RegistryConfig{Repository: "", Username: "", Password: "", Insecure: false},
 		BuildPlatform:                   deploy.BuildPlatform{Platform: "", Architecture: ""},
 		AllowUnauthenticatedDeployments: false,
+		// With a nil admin a superseded sibling's row is still marked; only its
+		// invocation keeps running. The deploy gate stays off so fixtures without
+		// a billing plan still deploy.
+		RestateAdmin:      nil,
+		EnforceDeployGate: false,
 	})
 	require.NoError(t, err)
 
@@ -282,8 +286,16 @@ func New(t *testing.T, opts ...Option) *Harness {
 	})
 	require.NoError(t, err)
 
-	deploymentSvc := deployment.New(deployment.Config{
-		DB: database,
+	// The build slot service audits slot occupancy against the Restate
+	// admin API, and Teardown cancels in-flight Deploy invocations through
+	// it, but the admin URL is only known after containers.Restate starts
+	// below, and that start needs the constructed services. The lazy
+	// adapter breaks the cycle: it is set directly after the container is
+	// up, and no handler runs before that.
+	lazyAdmin := &lazyInvocationLiveness{mu: sync.Mutex{}, client: nil}
+	buildSlotSvc := buildslot.New(buildslot.Config{
+		DB:           database,
+		RestateAdmin: lazyAdmin,
 	})
 
 	// CheckWorkspaceSpend sends Teardown/Resume to this service. Restate
@@ -295,17 +307,6 @@ func New(t *testing.T, opts ...Option) *Harness {
 		DrainGraceTimeout: 2 * time.Second,
 	})
 	require.NoError(t, err)
-
-	// The build slot service audits slot occupancy against the Restate
-	// admin API, but the admin URL is only known after containers.Restate
-	// starts below, and that start needs the constructed services. The
-	// lazy adapter breaks the cycle: it is set directly after the
-	// container is up, and no handler runs before that.
-	buildSlotLiveness := &lazyInvocationLiveness{mu: sync.Mutex{}, client: nil}
-	buildSlotSvc := buildslot.New(buildslot.Config{
-		DB:           database,
-		RestateAdmin: buildSlotLiveness,
-	})
 
 	// Register every worker service as one deployment on this test's own
 	// Restate. Use the proto-generated wrappers (same as run.go) to get
@@ -320,11 +321,10 @@ func New(t *testing.T, opts ...Option) *Harness {
 		hydrav1.NewClickhouseUserServiceServer(clickhouseUserSvc),
 		hydrav1.NewKeyLastUsedPartitionServiceServer(keyLastUsedPartitionSvc),
 		hydrav1.NewDeployServiceServer(deploySvc),
-		hydrav1.NewDeploymentServiceServer(deploymentSvc),
 		hydrav1.NewDeployTeardownServiceServer(teardownSvc),
 		hydrav1.NewBuildSlotServiceServer(buildSlotSvc),
 	)
-	buildSlotLiveness.set(restateadmin.New(restateadmin.Config{
+	lazyAdmin.set(restateadmin.New(restateadmin.Config{
 		BaseURL: restateCfg.AdminURL,
 		APIKey:  "",
 	}))

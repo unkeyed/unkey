@@ -460,7 +460,7 @@ func triggerScaleDown(t *testing.T, h *harness.Harness) {
 // requireDeploymentStopped waits for a scheduled scale-down to reach MySQL.
 //
 // The cron handler never writes desired_state itself. It calls
-// DeploymentService.ScheduleDesiredStateChange, which records the transition on
+// DeployService.ScheduleDesiredStateChange, which records the transition on
 // the deployment's virtual object and then Sends ChangeDesiredState, and only
 // that send updates the row. The send is asynchronous, so it can still be
 // queued when triggerScaleDown returns, and the wait grows with the number of
@@ -490,7 +490,7 @@ func requireDeploymentStopped(t *testing.T, h *harness.Harness, deploymentID str
 func requireDeploymentStillRunning(t *testing.T, h *harness.Harness, deploymentID string) {
 	t.Helper()
 
-	_, err := hydrav1.NewDeploymentServiceIngressClient(h.Restate, deploymentID).
+	_, err := hydrav1.NewDeployServiceIngressClient(h.Restate, deploymentID).
 		ClearScheduledStateChanges().
 		Request(h.Ctx, &hydrav1.ClearScheduledStateChangesRequest{})
 	require.NoError(t, err)

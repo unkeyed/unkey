@@ -19,19 +19,34 @@ import (
 // durable Restate workflows. Each RPC is idempotent and can safely resume from
 // any step after a crash.
 //
-// Deploy, Rollback, and Promote are keyed by {app_id}:{environment_id} so
-// that lifecycle operations within a single environment are serialized
-// (preventing e.g. a rollback from racing with an in-flight deploy) while
-// different environments of the same app — e.g. production vs preview — can
-// deploy in parallel. This means a production push never waits behind a
-// preview build. Workspace-wide concurrency is separately enforced by
-// BuildSlotService.
+// The virtual object is keyed by deployment_id, and it is the ONLY object for
+// a deployment: pipeline operations and desired-state transitions share one
+// inbox, so a scheduled stop can never execute while a deploy or wake is
+// running the same deployment. The contended resource
+// (apps.current_deployment_id) is serialized inside RoutingService, keyed by
+// environment_id, via SwapLiveDeployment. Workspace-wide concurrency is
+// separately enforced by BuildSlotService.
 //
 // Deploy handles the full pipeline from building Docker images through
 // provisioning containers and configuring domain routing. Rollback and Promote
 // manage traffic switching between deployments by reassigning sticky frontline
 // routes atomically through the routing service.
 type DeployServiceClient interface {
+	// Create is the only writer of deployment rows. Every caller goes through
+	// it: the public API, the GitHub webhook, and operator rebuilds. It resolves
+	// the build source, runs the entitlement gates, writes the row with its
+	// queued step and audit log in one transaction, and sends Deploy to itself.
+	//
+	// The object key is the deployment id, so a caller that derives the same id
+	// from an idempotency key lands on the same object. Two dedup layers back
+	// that: the invocation idempotency key replays the journaled response within
+	// its retention window, and a row that already exists returns its id and
+	// status forever after.
+	//
+	// Sending Deploy to itself has to be a Send, never a Request: both are
+	// exclusive handlers on this key, so a Request would wait on a handler that
+	// cannot start until this one returns.
+	Create(opts ...sdk_go.ClientOption) sdk_go.Client[*DeployCreateRequest, *DeployCreateResponse]
 	// Deploy executes the full deployment workflow: build (if git source), provision
 	// containers across regions, wait for health, configure domain routing, and
 	// update the project's live deployment pointer for production environments.
@@ -47,15 +62,35 @@ type DeployServiceClient interface {
 	// the rolled-back flag, restoring normal deployment flow.
 	// Target must be in ready status and not already the live deployment.
 	Promote(opts ...sdk_go.ClientOption) sdk_go.Client[*PromoteRequest, *PromoteResponse]
-	// StopDeployment schedules desired_state=stopped for a running deployment.
+	// StopDeployment applies desired_state=stopped for a running deployment,
+	// superseding any pending scheduled transition.
 	StopDeployment(opts ...sdk_go.ClientOption) sdk_go.Client[*StopDeploymentRequest, *StopDeploymentResponse]
-	// WakeDeployment schedules desired_state=running for a stopped deployment
-	// and waits until enough instances are running again.
+	// WakeDeployment applies desired_state=running for a stopped deployment,
+	// superseding any pending scheduled stop, and waits until enough instances
+	// are running again.
 	WakeDeployment(opts ...sdk_go.ClientOption) sdk_go.Client[*WakeDeploymentRequest, *WakeDeploymentResponse]
 	// NotifyInstancesReady is called by the control plane when enough instances
 	// have become healthy across the required regions. It resolves the awakeable
 	// stored by a suspended deploy or wake workflow so it can continue.
 	NotifyInstancesReady(opts ...sdk_go.ClientOption) sdk_go.Client[*NotifyInstancesReadyRequest, *NotifyInstancesReadyResponse]
+	// ScheduleDesiredStateChange registers a delayed desired-state transition:
+	// it stores a nonce with the target state and sends a delayed
+	// ChangeDesiredState to itself. Scheduling again replaces the nonce, so the
+	// older delayed call no-ops (Restate timers cannot be cancelled). Cross-key
+	// callers only; a handler already running on the deployment's key applies
+	// the change itself.
+	ScheduleDesiredStateChange(opts ...sdk_go.ClientOption) sdk_go.Client[*ScheduleDesiredStateChangeRequest, *ScheduleDesiredStateChangeResponse]
+	// ChangeDesiredState is invoked by the delayed call from
+	// ScheduleDesiredStateChange. It verifies the nonce matches the stored
+	// transition record; a mismatch means the transition was superseded and the
+	// call no-ops. On match, it persists the new desired state to the database.
+	// Callers should not invoke this directly.
+	ChangeDesiredState(opts ...sdk_go.ClientOption) sdk_go.Client[*ChangeDesiredStateRequest, *ChangeDesiredStateResponse]
+	// ClearScheduledStateChanges removes the pending transition record from
+	// Restate state, cancelling any scheduled ChangeDesiredState call. The
+	// delayed call may still fire, but it no-ops because no stored transition
+	// remains to match against.
+	ClearScheduledStateChanges(opts ...sdk_go.ClientOption) sdk_go.Client[*ClearScheduledStateChangesRequest, *ClearScheduledStateChangesResponse]
 }
 
 type deployServiceClient struct {
@@ -72,6 +107,14 @@ func NewDeployServiceClient(ctx sdk_go.Context, key string, opts ...sdk_go.Clien
 		cOpts,
 	}
 }
+func (c *deployServiceClient) Create(opts ...sdk_go.ClientOption) sdk_go.Client[*DeployCreateRequest, *DeployCreateResponse] {
+	cOpts := c.options
+	if len(opts) > 0 {
+		cOpts = append(append([]sdk_go.ClientOption{}, cOpts...), opts...)
+	}
+	return sdk_go.WithRequestType[*DeployCreateRequest](sdk_go.Object[*DeployCreateResponse](c.ctx, "hydra.v1.DeployService", c.key, "Create", cOpts...))
+}
+
 func (c *deployServiceClient) Deploy(opts ...sdk_go.ClientOption) sdk_go.Client[*DeployRequest, *DeployResponse] {
 	cOpts := c.options
 	if len(opts) > 0 {
@@ -120,10 +163,49 @@ func (c *deployServiceClient) NotifyInstancesReady(opts ...sdk_go.ClientOption) 
 	return sdk_go.WithRequestType[*NotifyInstancesReadyRequest](sdk_go.Object[*NotifyInstancesReadyResponse](c.ctx, "hydra.v1.DeployService", c.key, "NotifyInstancesReady", cOpts...))
 }
 
+func (c *deployServiceClient) ScheduleDesiredStateChange(opts ...sdk_go.ClientOption) sdk_go.Client[*ScheduleDesiredStateChangeRequest, *ScheduleDesiredStateChangeResponse] {
+	cOpts := c.options
+	if len(opts) > 0 {
+		cOpts = append(append([]sdk_go.ClientOption{}, cOpts...), opts...)
+	}
+	return sdk_go.WithRequestType[*ScheduleDesiredStateChangeRequest](sdk_go.Object[*ScheduleDesiredStateChangeResponse](c.ctx, "hydra.v1.DeployService", c.key, "ScheduleDesiredStateChange", cOpts...))
+}
+
+func (c *deployServiceClient) ChangeDesiredState(opts ...sdk_go.ClientOption) sdk_go.Client[*ChangeDesiredStateRequest, *ChangeDesiredStateResponse] {
+	cOpts := c.options
+	if len(opts) > 0 {
+		cOpts = append(append([]sdk_go.ClientOption{}, cOpts...), opts...)
+	}
+	return sdk_go.WithRequestType[*ChangeDesiredStateRequest](sdk_go.Object[*ChangeDesiredStateResponse](c.ctx, "hydra.v1.DeployService", c.key, "ChangeDesiredState", cOpts...))
+}
+
+func (c *deployServiceClient) ClearScheduledStateChanges(opts ...sdk_go.ClientOption) sdk_go.Client[*ClearScheduledStateChangesRequest, *ClearScheduledStateChangesResponse] {
+	cOpts := c.options
+	if len(opts) > 0 {
+		cOpts = append(append([]sdk_go.ClientOption{}, cOpts...), opts...)
+	}
+	return sdk_go.WithRequestType[*ClearScheduledStateChangesRequest](sdk_go.Object[*ClearScheduledStateChangesResponse](c.ctx, "hydra.v1.DeployService", c.key, "ClearScheduledStateChanges", cOpts...))
+}
+
 // DeployServiceIngressClient is the ingress client API for hydra.v1.DeployService service.
 //
 // This client is used to call the service from outside of a Restate context.
 type DeployServiceIngressClient interface {
+	// Create is the only writer of deployment rows. Every caller goes through
+	// it: the public API, the GitHub webhook, and operator rebuilds. It resolves
+	// the build source, runs the entitlement gates, writes the row with its
+	// queued step and audit log in one transaction, and sends Deploy to itself.
+	//
+	// The object key is the deployment id, so a caller that derives the same id
+	// from an idempotency key lands on the same object. Two dedup layers back
+	// that: the invocation idempotency key replays the journaled response within
+	// its retention window, and a row that already exists returns its id and
+	// status forever after.
+	//
+	// Sending Deploy to itself has to be a Send, never a Request: both are
+	// exclusive handlers on this key, so a Request would wait on a handler that
+	// cannot start until this one returns.
+	Create() ingress.Requester[*DeployCreateRequest, *DeployCreateResponse]
 	// Deploy executes the full deployment workflow: build (if git source), provision
 	// containers across regions, wait for health, configure domain routing, and
 	// update the project's live deployment pointer for production environments.
@@ -139,15 +221,35 @@ type DeployServiceIngressClient interface {
 	// the rolled-back flag, restoring normal deployment flow.
 	// Target must be in ready status and not already the live deployment.
 	Promote() ingress.Requester[*PromoteRequest, *PromoteResponse]
-	// StopDeployment schedules desired_state=stopped for a running deployment.
+	// StopDeployment applies desired_state=stopped for a running deployment,
+	// superseding any pending scheduled transition.
 	StopDeployment() ingress.Requester[*StopDeploymentRequest, *StopDeploymentResponse]
-	// WakeDeployment schedules desired_state=running for a stopped deployment
-	// and waits until enough instances are running again.
+	// WakeDeployment applies desired_state=running for a stopped deployment,
+	// superseding any pending scheduled stop, and waits until enough instances
+	// are running again.
 	WakeDeployment() ingress.Requester[*WakeDeploymentRequest, *WakeDeploymentResponse]
 	// NotifyInstancesReady is called by the control plane when enough instances
 	// have become healthy across the required regions. It resolves the awakeable
 	// stored by a suspended deploy or wake workflow so it can continue.
 	NotifyInstancesReady() ingress.Requester[*NotifyInstancesReadyRequest, *NotifyInstancesReadyResponse]
+	// ScheduleDesiredStateChange registers a delayed desired-state transition:
+	// it stores a nonce with the target state and sends a delayed
+	// ChangeDesiredState to itself. Scheduling again replaces the nonce, so the
+	// older delayed call no-ops (Restate timers cannot be cancelled). Cross-key
+	// callers only; a handler already running on the deployment's key applies
+	// the change itself.
+	ScheduleDesiredStateChange() ingress.Requester[*ScheduleDesiredStateChangeRequest, *ScheduleDesiredStateChangeResponse]
+	// ChangeDesiredState is invoked by the delayed call from
+	// ScheduleDesiredStateChange. It verifies the nonce matches the stored
+	// transition record; a mismatch means the transition was superseded and the
+	// call no-ops. On match, it persists the new desired state to the database.
+	// Callers should not invoke this directly.
+	ChangeDesiredState() ingress.Requester[*ChangeDesiredStateRequest, *ChangeDesiredStateResponse]
+	// ClearScheduledStateChanges removes the pending transition record from
+	// Restate state, cancelling any scheduled ChangeDesiredState call. The
+	// delayed call may still fire, but it no-ops because no stored transition
+	// remains to match against.
+	ClearScheduledStateChanges() ingress.Requester[*ClearScheduledStateChangesRequest, *ClearScheduledStateChangesResponse]
 }
 
 type deployServiceIngressClient struct {
@@ -162,6 +264,11 @@ func NewDeployServiceIngressClient(client *ingress.Client, key string) DeploySer
 		"hydra.v1.DeployService",
 		key,
 	}
+}
+
+func (c *deployServiceIngressClient) Create() ingress.Requester[*DeployCreateRequest, *DeployCreateResponse] {
+	codec := encoding.ProtoJSONCodec
+	return ingress.NewRequester[*DeployCreateRequest, *DeployCreateResponse](c.client, c.serviceName, "Create", &c.key, &codec)
 }
 
 func (c *deployServiceIngressClient) Deploy() ingress.Requester[*DeployRequest, *DeployResponse] {
@@ -194,6 +301,21 @@ func (c *deployServiceIngressClient) NotifyInstancesReady() ingress.Requester[*N
 	return ingress.NewRequester[*NotifyInstancesReadyRequest, *NotifyInstancesReadyResponse](c.client, c.serviceName, "NotifyInstancesReady", &c.key, &codec)
 }
 
+func (c *deployServiceIngressClient) ScheduleDesiredStateChange() ingress.Requester[*ScheduleDesiredStateChangeRequest, *ScheduleDesiredStateChangeResponse] {
+	codec := encoding.ProtoJSONCodec
+	return ingress.NewRequester[*ScheduleDesiredStateChangeRequest, *ScheduleDesiredStateChangeResponse](c.client, c.serviceName, "ScheduleDesiredStateChange", &c.key, &codec)
+}
+
+func (c *deployServiceIngressClient) ChangeDesiredState() ingress.Requester[*ChangeDesiredStateRequest, *ChangeDesiredStateResponse] {
+	codec := encoding.ProtoJSONCodec
+	return ingress.NewRequester[*ChangeDesiredStateRequest, *ChangeDesiredStateResponse](c.client, c.serviceName, "ChangeDesiredState", &c.key, &codec)
+}
+
+func (c *deployServiceIngressClient) ClearScheduledStateChanges() ingress.Requester[*ClearScheduledStateChangesRequest, *ClearScheduledStateChangesResponse] {
+	codec := encoding.ProtoJSONCodec
+	return ingress.NewRequester[*ClearScheduledStateChangesRequest, *ClearScheduledStateChangesResponse](c.client, c.serviceName, "ClearScheduledStateChanges", &c.key, &codec)
+}
+
 // DeployServiceServer is the server API for hydra.v1.DeployService service.
 // All implementations should embed UnimplementedDeployServiceServer
 // for forward compatibility.
@@ -202,19 +324,34 @@ func (c *deployServiceIngressClient) NotifyInstancesReady() ingress.Requester[*N
 // durable Restate workflows. Each RPC is idempotent and can safely resume from
 // any step after a crash.
 //
-// Deploy, Rollback, and Promote are keyed by {app_id}:{environment_id} so
-// that lifecycle operations within a single environment are serialized
-// (preventing e.g. a rollback from racing with an in-flight deploy) while
-// different environments of the same app — e.g. production vs preview — can
-// deploy in parallel. This means a production push never waits behind a
-// preview build. Workspace-wide concurrency is separately enforced by
-// BuildSlotService.
+// The virtual object is keyed by deployment_id, and it is the ONLY object for
+// a deployment: pipeline operations and desired-state transitions share one
+// inbox, so a scheduled stop can never execute while a deploy or wake is
+// running the same deployment. The contended resource
+// (apps.current_deployment_id) is serialized inside RoutingService, keyed by
+// environment_id, via SwapLiveDeployment. Workspace-wide concurrency is
+// separately enforced by BuildSlotService.
 //
 // Deploy handles the full pipeline from building Docker images through
 // provisioning containers and configuring domain routing. Rollback and Promote
 // manage traffic switching between deployments by reassigning sticky frontline
 // routes atomically through the routing service.
 type DeployServiceServer interface {
+	// Create is the only writer of deployment rows. Every caller goes through
+	// it: the public API, the GitHub webhook, and operator rebuilds. It resolves
+	// the build source, runs the entitlement gates, writes the row with its
+	// queued step and audit log in one transaction, and sends Deploy to itself.
+	//
+	// The object key is the deployment id, so a caller that derives the same id
+	// from an idempotency key lands on the same object. Two dedup layers back
+	// that: the invocation idempotency key replays the journaled response within
+	// its retention window, and a row that already exists returns its id and
+	// status forever after.
+	//
+	// Sending Deploy to itself has to be a Send, never a Request: both are
+	// exclusive handlers on this key, so a Request would wait on a handler that
+	// cannot start until this one returns.
+	Create(ctx sdk_go.ObjectContext, req *DeployCreateRequest) (*DeployCreateResponse, error)
 	// Deploy executes the full deployment workflow: build (if git source), provision
 	// containers across regions, wait for health, configure domain routing, and
 	// update the project's live deployment pointer for production environments.
@@ -230,15 +367,35 @@ type DeployServiceServer interface {
 	// the rolled-back flag, restoring normal deployment flow.
 	// Target must be in ready status and not already the live deployment.
 	Promote(ctx sdk_go.ObjectContext, req *PromoteRequest) (*PromoteResponse, error)
-	// StopDeployment schedules desired_state=stopped for a running deployment.
+	// StopDeployment applies desired_state=stopped for a running deployment,
+	// superseding any pending scheduled transition.
 	StopDeployment(ctx sdk_go.ObjectContext, req *StopDeploymentRequest) (*StopDeploymentResponse, error)
-	// WakeDeployment schedules desired_state=running for a stopped deployment
-	// and waits until enough instances are running again.
+	// WakeDeployment applies desired_state=running for a stopped deployment,
+	// superseding any pending scheduled stop, and waits until enough instances
+	// are running again.
 	WakeDeployment(ctx sdk_go.ObjectContext, req *WakeDeploymentRequest) (*WakeDeploymentResponse, error)
 	// NotifyInstancesReady is called by the control plane when enough instances
 	// have become healthy across the required regions. It resolves the awakeable
 	// stored by a suspended deploy or wake workflow so it can continue.
 	NotifyInstancesReady(ctx sdk_go.ObjectSharedContext, req *NotifyInstancesReadyRequest) (*NotifyInstancesReadyResponse, error)
+	// ScheduleDesiredStateChange registers a delayed desired-state transition:
+	// it stores a nonce with the target state and sends a delayed
+	// ChangeDesiredState to itself. Scheduling again replaces the nonce, so the
+	// older delayed call no-ops (Restate timers cannot be cancelled). Cross-key
+	// callers only; a handler already running on the deployment's key applies
+	// the change itself.
+	ScheduleDesiredStateChange(ctx sdk_go.ObjectContext, req *ScheduleDesiredStateChangeRequest) (*ScheduleDesiredStateChangeResponse, error)
+	// ChangeDesiredState is invoked by the delayed call from
+	// ScheduleDesiredStateChange. It verifies the nonce matches the stored
+	// transition record; a mismatch means the transition was superseded and the
+	// call no-ops. On match, it persists the new desired state to the database.
+	// Callers should not invoke this directly.
+	ChangeDesiredState(ctx sdk_go.ObjectContext, req *ChangeDesiredStateRequest) (*ChangeDesiredStateResponse, error)
+	// ClearScheduledStateChanges removes the pending transition record from
+	// Restate state, cancelling any scheduled ChangeDesiredState call. The
+	// delayed call may still fire, but it no-ops because no stored transition
+	// remains to match against.
+	ClearScheduledStateChanges(ctx sdk_go.ObjectContext, req *ClearScheduledStateChangesRequest) (*ClearScheduledStateChangesResponse, error)
 }
 
 // UnimplementedDeployServiceServer should be embedded to have
@@ -248,6 +405,9 @@ type DeployServiceServer interface {
 // pointer dereference when methods are called.
 type UnimplementedDeployServiceServer struct{}
 
+func (UnimplementedDeployServiceServer) Create(ctx sdk_go.ObjectContext, req *DeployCreateRequest) (*DeployCreateResponse, error) {
+	return nil, sdk_go.TerminalError(fmt.Errorf("method Create not implemented"), 501)
+}
 func (UnimplementedDeployServiceServer) Deploy(ctx sdk_go.ObjectContext, req *DeployRequest) (*DeployResponse, error) {
 	return nil, sdk_go.TerminalError(fmt.Errorf("method Deploy not implemented"), 501)
 }
@@ -265,6 +425,15 @@ func (UnimplementedDeployServiceServer) WakeDeployment(ctx sdk_go.ObjectContext,
 }
 func (UnimplementedDeployServiceServer) NotifyInstancesReady(ctx sdk_go.ObjectSharedContext, req *NotifyInstancesReadyRequest) (*NotifyInstancesReadyResponse, error) {
 	return nil, sdk_go.TerminalError(fmt.Errorf("method NotifyInstancesReady not implemented"), 501)
+}
+func (UnimplementedDeployServiceServer) ScheduleDesiredStateChange(ctx sdk_go.ObjectContext, req *ScheduleDesiredStateChangeRequest) (*ScheduleDesiredStateChangeResponse, error) {
+	return nil, sdk_go.TerminalError(fmt.Errorf("method ScheduleDesiredStateChange not implemented"), 501)
+}
+func (UnimplementedDeployServiceServer) ChangeDesiredState(ctx sdk_go.ObjectContext, req *ChangeDesiredStateRequest) (*ChangeDesiredStateResponse, error) {
+	return nil, sdk_go.TerminalError(fmt.Errorf("method ChangeDesiredState not implemented"), 501)
+}
+func (UnimplementedDeployServiceServer) ClearScheduledStateChanges(ctx sdk_go.ObjectContext, req *ClearScheduledStateChangesRequest) (*ClearScheduledStateChangesResponse, error) {
+	return nil, sdk_go.TerminalError(fmt.Errorf("method ClearScheduledStateChanges not implemented"), 501)
 }
 func (UnimplementedDeployServiceServer) testEmbeddedByValue() {}
 
@@ -285,12 +454,16 @@ func NewDeployServiceServer(srv DeployServiceServer, opts ...sdk_go.ServiceDefin
 	}
 	sOpts := append([]sdk_go.ServiceDefinitionOption{sdk_go.WithProtoJSON}, opts...)
 	router := sdk_go.NewObject("hydra.v1.DeployService", sOpts...)
+	router = router.Handler("Create", sdk_go.NewObjectHandler(srv.Create))
 	router = router.Handler("Deploy", sdk_go.NewObjectHandler(srv.Deploy))
 	router = router.Handler("Rollback", sdk_go.NewObjectHandler(srv.Rollback))
 	router = router.Handler("Promote", sdk_go.NewObjectHandler(srv.Promote))
 	router = router.Handler("StopDeployment", sdk_go.NewObjectHandler(srv.StopDeployment))
 	router = router.Handler("WakeDeployment", sdk_go.NewObjectHandler(srv.WakeDeployment))
 	router = router.Handler("NotifyInstancesReady", sdk_go.NewObjectSharedHandler(srv.NotifyInstancesReady))
+	router = router.Handler("ScheduleDesiredStateChange", sdk_go.NewObjectHandler(srv.ScheduleDesiredStateChange))
+	router = router.Handler("ChangeDesiredState", sdk_go.NewObjectHandler(srv.ChangeDesiredState))
+	router = router.Handler("ClearScheduledStateChanges", sdk_go.NewObjectHandler(srv.ClearScheduledStateChanges))
 	return router
 }
 

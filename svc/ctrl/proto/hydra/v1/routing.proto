@@ -44,6 +44,15 @@ message SwapLiveDeploymentRequest {
   // If true, sets apps.is_rolled_back = true (rollback semantics).
   // If false, clears apps.is_rolled_back to false (deploy / promote semantics).
   bool set_rollback_flag = 3;
+
+  // AllowOlder permits moving traffic to a deployment created before the one
+  // already live. Unset refuses that swap and returns the current pointer
+  // unchanged, which stops a slow build from taking traffic back from a newer
+  // commit that finished first.
+  //
+  // Promote and rollback set it, because both name one deployment on purpose
+  // and a rollback target is older by definition.
+  bool allow_older = 4;
 }
 
 message SwapLiveDeploymentResponse {

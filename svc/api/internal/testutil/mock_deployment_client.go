@@ -19,32 +19,14 @@ var _ ctrl.DeployServiceClient = (*MockDeploymentClient)(nil)
 // This mock is safe for concurrent use. All call recording is protected by a mutex.
 type MockDeploymentClient struct {
 	mu                       sync.Mutex
-	CreateDeploymentFunc     func(context.Context, *ctrlv1.CreateDeploymentRequest) (*ctrlv1.CreateDeploymentResponse, error)
 	GetDeploymentFunc        func(context.Context, *ctrlv1.GetDeploymentRequest) (*ctrlv1.GetDeploymentResponse, error)
-	RollbackFunc             func(context.Context, *ctrlv1.RollbackRequest) (*ctrlv1.RollbackResponse, error)
-	PromoteFunc              func(context.Context, *ctrlv1.PromoteRequest) (*ctrlv1.PromoteResponse, error)
-	StopDeploymentFunc       func(context.Context, *ctrlv1.StopDeploymentRequest) (*ctrlv1.StopDeploymentResponse, error)
-	CreateDeploymentCalls    []*ctrlv1.CreateDeploymentRequest
 	GetDeploymentCalls       []*ctrlv1.GetDeploymentRequest
-	RollbackCalls            []*ctrlv1.RollbackRequest
-	PromoteCalls             []*ctrlv1.PromoteRequest
-	StopDeploymentCalls      []*ctrlv1.StopDeploymentRequest
 	AuthorizeDeploymentFunc  func(context.Context, *ctrlv1.AuthorizeDeploymentRequest) (*ctrlv1.AuthorizeDeploymentResponse, error)
 	AuthorizeDeploymentCalls []*ctrlv1.AuthorizeDeploymentRequest
 	CancelDeploymentFunc     func(context.Context, *ctrlv1.CancelDeploymentRequest) (*ctrlv1.CancelDeploymentResponse, error)
 	CancelDeploymentCalls    []*ctrlv1.CancelDeploymentRequest
 	DeprovisionComputeFunc   func(context.Context, *ctrlv1.DeprovisionComputeRequest) (*ctrlv1.DeprovisionComputeResponse, error)
 	DeprovisionComputeCalls  []*ctrlv1.DeprovisionComputeRequest
-}
-
-func (m *MockDeploymentClient) CreateDeployment(ctx context.Context, req *ctrlv1.CreateDeploymentRequest) (*ctrlv1.CreateDeploymentResponse, error) {
-	m.mu.Lock()
-	m.CreateDeploymentCalls = append(m.CreateDeploymentCalls, req)
-	m.mu.Unlock()
-	if m.CreateDeploymentFunc != nil {
-		return m.CreateDeploymentFunc(ctx, req)
-	}
-	return &ctrlv1.CreateDeploymentResponse{}, nil
 }
 
 func (m *MockDeploymentClient) GetDeployment(ctx context.Context, req *ctrlv1.GetDeploymentRequest) (*ctrlv1.GetDeploymentResponse, error) {
@@ -55,36 +37,6 @@ func (m *MockDeploymentClient) GetDeployment(ctx context.Context, req *ctrlv1.Ge
 		return m.GetDeploymentFunc(ctx, req)
 	}
 	return &ctrlv1.GetDeploymentResponse{}, nil
-}
-
-func (m *MockDeploymentClient) Rollback(ctx context.Context, req *ctrlv1.RollbackRequest) (*ctrlv1.RollbackResponse, error) {
-	m.mu.Lock()
-	m.RollbackCalls = append(m.RollbackCalls, req)
-	m.mu.Unlock()
-	if m.RollbackFunc != nil {
-		return m.RollbackFunc(ctx, req)
-	}
-	return &ctrlv1.RollbackResponse{}, nil
-}
-
-func (m *MockDeploymentClient) Promote(ctx context.Context, req *ctrlv1.PromoteRequest) (*ctrlv1.PromoteResponse, error) {
-	m.mu.Lock()
-	m.PromoteCalls = append(m.PromoteCalls, req)
-	m.mu.Unlock()
-	if m.PromoteFunc != nil {
-		return m.PromoteFunc(ctx, req)
-	}
-	return &ctrlv1.PromoteResponse{}, nil
-}
-
-func (m *MockDeploymentClient) StopDeployment(ctx context.Context, req *ctrlv1.StopDeploymentRequest) (*ctrlv1.StopDeploymentResponse, error) {
-	m.mu.Lock()
-	m.StopDeploymentCalls = append(m.StopDeploymentCalls, req)
-	m.mu.Unlock()
-	if m.StopDeploymentFunc != nil {
-		return m.StopDeploymentFunc(ctx, req)
-	}
-	return &ctrlv1.StopDeploymentResponse{}, nil
 }
 
 func (m *MockDeploymentClient) AuthorizeDeployment(ctx context.Context, req *ctrlv1.AuthorizeDeploymentRequest) (*ctrlv1.AuthorizeDeploymentResponse, error) {

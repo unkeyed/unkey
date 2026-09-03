@@ -55,9 +55,20 @@
 // RoutingService, marks the deployment ready, and — for non-rolled-back
 // production environments — updates the app's live deployment pointer.
 // The previous live deployment is scheduled to stop after 30 minutes via
-// DeploymentService.ScheduleDesiredStateChange.
+// [Workflow.ScheduleDesiredStateChange] on its own virtual object.
 // Preview deployments schedule the deployment displaced from the sticky
 // branch route to stop after a short grace period.
+//
+// # Desired State Transitions
+//
+// The same virtual object owns desired-state transitions, so pipeline
+// operations and scheduled stops share one inbox and cannot interleave.
+// Scheduled changes use nonces because Restate timers cannot be cancelled:
+// [Workflow.ScheduleDesiredStateChange] stores a nonce and self-sends a
+// delayed [Workflow.ChangeDesiredState], which applies only if its nonce
+// still matches; [Workflow.ClearScheduledStateChanges] removes the record so an
+// in-flight delayed call no-ops. Same-key handlers (stop, wake) apply the change
+// themselves, without a nonce; see desired_state.go.
 //
 // [Workflow.Rollback] switches sticky frontline routes (environment and live)
 // from the current live deployment to a previous one, atomically through
@@ -84,16 +95,17 @@
 //
 // Users can manually cancel an in-flight deployment via the CancelDeployment
 // RPC on the control API ([services/deployment.Service.CancelDeployment]).
-// The RPC stamps any active deployment steps with "Cancelled by user" (via
-// [db.Queries.EndActiveDeploymentStepsWithError]) and calls
+// Every cancel path (user cancel, sibling dedup, environment deletion) runs
+// through the shared internal/deploycancel helper: stamp active steps with the
+// reason, transition the rows, then call
 // [restateadmin.Client.CancelInvocation] on the stored invocation_id. Restate
 // injects a TerminalError at the handler's next SDK call, which triggers the
 // deferred compensation stack to release the build slot, mark the deployment
 // as failed (via the conditional [db.Queries.UpdateDeploymentStatusIfActive]
 // which never overwrites terminal statuses), and unwind partial state.
 //
-// Sibling cancellation (dedup) uses the same mechanism but stamps
-// "Superseded by newer commit" and transitions the status to superseded.
+// Sibling cancellation (dedup) stamps "Superseded by newer commit" and
+// transitions the status to superseded.
 //
 // # Image Builds
 //

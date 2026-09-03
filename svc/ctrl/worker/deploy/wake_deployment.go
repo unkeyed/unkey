@@ -18,7 +18,7 @@ import (
 )
 
 // WakeDeployment is the public Restate entrypoint for waking a stopped
-// deployment. It schedules desired_state=running, marks the visible phase as
+// deployment. It applies desired_state=running, marks the visible phase as
 // deploying, then polls instance health until the deployment can be marked
 // ready.
 func (w *Workflow) WakeDeployment(ctx restate.ObjectContext, req *hydrav1.WakeDeploymentRequest) (*hydrav1.WakeDeploymentResponse, error) {
@@ -55,16 +55,10 @@ func (w *Workflow) WakeDeployment(ctx restate.ObjectContext, req *hydrav1.WakeDe
 		return nil, gatefault.Terminal(err)
 	}
 
-	_, err = hydrav1.NewDeploymentServiceClient(ctx, deploymentID).
-		ScheduleDesiredStateChange().
-		Request(
-			&hydrav1.ScheduleDesiredStateChangeRequest{
-				DelayMillis: 0,
-				State:       hydrav1.DeploymentDesiredState_DEPLOYMENT_DESIRED_STATE_RUNNING,
-				Overwrite:   true,
-			},
-		)
-	if err != nil {
+	// Same key, so the state change applies before this handler returns. It also
+	// supersedes any pending standby stop that would otherwise fire later and stop
+	// the deployment this wake is bringing up.
+	if err := w.applyDesiredStateNow(ctx, deploymentID, hydrav1.DeploymentDesiredState_DEPLOYMENT_DESIRED_STATE_RUNNING); err != nil {
 		return nil, fmt.Errorf("wake deployment workflow failed: %w", err)
 	}
 

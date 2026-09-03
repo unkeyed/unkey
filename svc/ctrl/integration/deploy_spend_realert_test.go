@@ -16,7 +16,6 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/deploybilling"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/deployspendcheck"
-	"github.com/unkeyed/unkey/svc/ctrl/worker/deployment"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/deployteardown"
 )
 
@@ -70,7 +69,7 @@ func startSpendCheckCapturing(t *testing.T, database db.Database, sender email.S
 	require.NoError(t, err)
 
 	return restatetest.Start(t,
-		hydrav1.NewDeploymentServiceServer(deployment.New(deployment.Config{DB: database})),
+		deployServiceDefinition(t, database),
 		hydrav1.NewDeployTeardownServiceServer(teardownSvc),
 		hydrav1.NewDeploySpendCheckServiceServer(checkH),
 	)

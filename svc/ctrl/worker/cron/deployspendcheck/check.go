@@ -9,6 +9,7 @@ import (
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/billingperiod"
+	"github.com/unkeyed/unkey/pkg/deploy/deploygate"
 	"github.com/unkeyed/unkey/pkg/email"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/restate/restateutil"
@@ -129,7 +130,7 @@ func (h *CheckHandler) hasActiveDeployPlan(ctx restate.ObjectContext, workspaceI
 		}
 		return false, fmt.Errorf("read deploy entitlement: %w", err)
 	}
-	return entitlement.Plan.Valid || entitlement.PlanOverride.Valid, nil
+	return deploygate.Entitled(entitlement.Plan, entitlement.PlanOverride), nil
 }
 
 // CheckWorkspaceSpend takes the workspace's priced month-to-date usage from

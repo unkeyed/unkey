@@ -12,7 +12,7 @@ import (
 type Querier interface {
 	// Clears apps.current_deployment_id when it still points at the given
 	// deployment. Teardown calls this before stopping an app's current deployment so
-	// the DeploymentService current-deployment guard permits the change; gating on
+	// the DeployService current-deployment guard permits the change; gating on
 	// the deployment id makes it a safe no-op if a concurrent deploy already
 	// re-pointed current_deployment_id at something else.
 	//
@@ -265,30 +265,6 @@ type Querier interface {
 	//  WHERE app_id = ?
 	//    AND environment_id = ?
 	FindAppRuntimeSettingsByAppAndEnv(ctx context.Context, arg FindAppRuntimeSettingsByAppAndEnvParams) (sql.NullString, error)
-	//FindAppWithSettings
-	//
-	//  SELECT
-	//      a.id AS app_id,
-	//      a.project_id AS app_project_id,
-	//      a.default_branch AS app_default_branch,
-	//      a.current_deployment_id AS app_current_deployment_id,
-	//      abs.dockerfile AS build_settings_dockerfile,
-	//      abs.docker_context AS build_settings_docker_context,
-	//      abs.build_command AS build_settings_build_command,
-	//      ars.port AS runtime_settings_port,
-	//      ars.cpu_millicores AS runtime_settings_cpu_millicores,
-	//      ars.memory_mib AS runtime_settings_memory_mib,
-	//      ars.storage_mib AS runtime_settings_storage_mib,
-	//      ars.command AS runtime_settings_command,
-	//      ars.healthcheck AS runtime_settings_healthcheck,
-	//      ars.shutdown_signal AS runtime_settings_shutdown_signal,
-	//      ars.upstream_protocol AS runtime_settings_upstream_protocol,
-	//      ars.sentinel_config AS runtime_settings_sentinel_config
-	//  FROM apps a
-	//  INNER JOIN app_build_settings abs ON abs.app_id = a.id AND abs.environment_id = ?
-	//  INNER JOIN app_runtime_settings ars ON ars.app_id = a.id AND ars.environment_id = ?
-	//  WHERE a.id = ?
-	FindAppWithSettings(ctx context.Context, arg FindAppWithSettingsParams) (FindAppWithSettingsRow, error)
 	//FindCertificateByHostname
 	//
 	//  SELECT certificates.pk, certificates.id, certificates.workspace_id, certificates.hostname, certificates.certificate, certificates.encrypted_private_key, certificates.created_at, certificates.updated_at FROM certificates WHERE hostname = ?
@@ -406,6 +382,52 @@ type Querier interface {
 	//    AND BINARY slug = 'default'
 	//  LIMIT 1
 	FindDefaultProjectByWorkspaceID(ctx context.Context, workspaceID string) (string, error)
+	//FindDeployTarget
+	//
+	//  SELECT
+	//      p.workspace_id AS workspace_id,
+	//      w.slug AS workspace_slug,
+	//      p.id AS project_id,
+	//      a.id AS app_id,
+	//      a.default_branch AS default_branch,
+	//      a.current_deployment_id AS current_deployment_id,
+	//      e.id AS environment_id,
+	//      e.slug AS environment_slug,
+	//      abs.dockerfile AS dockerfile,
+	//      abs.docker_context AS docker_context,
+	//      abs.build_command AS build_command,
+	//      ars.port AS port,
+	//      ars.cpu_millicores AS cpu_millicores,
+	//      ars.memory_mib AS memory_mib,
+	//      ars.storage_mib AS storage_mib,
+	//      ars.command AS command,
+	//      ars.healthcheck AS healthcheck,
+	//      ars.shutdown_signal AS shutdown_signal,
+	//      ars.upstream_protocol AS upstream_protocol,
+	//      ars.sentinel_config AS sentinel_config,
+	//      grc.installation_id AS github_installation_id,
+	//      grc.repository_id AS github_repository_id,
+	//      grc.repository_full_name AS github_repository_full_name
+	//  FROM apps a
+	//  INNER JOIN projects p ON p.id = a.project_id
+	//  INNER JOIN workspaces w ON w.id = p.workspace_id
+	//  INNER JOIN environments e ON e.app_id = a.id AND e.project_id = a.project_id
+	//  INNER JOIN (
+	//      SELECT e1.id
+	//      FROM environments e1
+	//      WHERE e1.app_id = ? AND e1.id = ?
+	//      UNION ALL
+	//      SELECT e2.id
+	//      FROM environments e2
+	//      WHERE e2.app_id = ? AND e2.slug = ?
+	//  ) AS env_lookup ON env_lookup.id = e.id
+	//  INNER JOIN app_build_settings abs ON abs.app_id = a.id AND abs.environment_id = e.id
+	//  INNER JOIN app_runtime_settings ars ON ars.app_id = a.id AND ars.environment_id = e.id
+	//  LEFT JOIN github_repo_connections grc ON grc.app_id = a.id
+	//  WHERE a.id = ?
+	//    AND a.project_id = ?
+	//  LIMIT 1
+	FindDeployTarget(ctx context.Context, arg FindDeployTargetParams) (FindDeployTargetRow, error)
 	// Resolves a Stripe customer to its Deploy workspace. The ctrl Stripe webhook
 	// uses this as the relevance check for month-end invoice closing: invoices of
 	// customers without a Deploy plan are left entirely to Stripe's own
@@ -495,14 +517,6 @@ type Querier interface {
 	//  JOIN apps a ON a.id = d.app_id
 	//  WHERE d.id = ?
 	FindDeploymentWithEnvironmentAndApp(ctx context.Context, id string) (FindDeploymentWithEnvironmentAndAppRow, error)
-	//FindEnvironmentByAppIdAndSlug
-	//
-	//  SELECT
-	//    environments.id,
-	//    environments.project_id
-	//  FROM environments
-	//  WHERE app_id = ? AND slug = ?
-	FindEnvironmentByAppIdAndSlug(ctx context.Context, arg FindEnvironmentByAppIdAndSlugParams) (FindEnvironmentByAppIdAndSlugRow, error)
 	//FindEnvironmentById
 	//
 	//  SELECT environments.pk, environments.id, environments.workspace_id, environments.project_id, environments.app_id, environments.slug, environments.description, environments.kind, environments.delete_protection, environments.created_at, environments.updated_at
@@ -2045,12 +2059,17 @@ type Querier interface {
 	//  SET status = ?, updated_at = ?
 	//  WHERE id = ?
 	UpdateDeploymentStatus(ctx context.Context, arg UpdateDeploymentStatusParams) error
-	//UpdateDeploymentStatusBatch
+	// Batch form of UpdateDeploymentStatusIfActive: transition deployments only
+	// while their current status is still active, so a cancel arriving after a
+	// deployment finished (or after the dedup path already superseded it) never
+	// rewrites a terminal status. Callers pass db.TerminalDeploymentStatuses so
+	// the terminal set has a single source of truth.
 	//
 	//  UPDATE deployments
 	//  SET status = ?, updated_at = ?
 	//  WHERE id IN (/*SLICE:ids*/?)
-	UpdateDeploymentStatusBatch(ctx context.Context, arg UpdateDeploymentStatusBatchParams) error
+	//    AND status NOT IN (/*SLICE:terminal_statuses*/?)
+	UpdateDeploymentStatusBatchIfActive(ctx context.Context, arg UpdateDeploymentStatusBatchIfActiveParams) error
 	// Transition a deployment's status only when its current status is still
 	// "active" (non-terminal). Prevents the Deploy handler's compensation
 	// stack from overwriting a status that was set intentionally by the dedup
