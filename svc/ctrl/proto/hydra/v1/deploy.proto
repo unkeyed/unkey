@@ -30,9 +30,8 @@ service DeployService {
   // the build source, runs the entitlement gates, writes the row with its
   // queued step and audit log in one transaction, and starts Deploy.
   //
-  // The object key is the deployment id, so a caller that derives the same id
-  // from an idempotency key lands on the same object and an existing row
-  // answers REPLAYED.
+  // The object key is the deployment id, so every operation on one deployment
+  // serializes behind the create that wrote it.
   rpc Create(DeployCreateRequest) returns (DeployCreateResponse) {}
 
   // Deploy executes the full deployment workflow: build (if git source), provision
@@ -156,7 +155,7 @@ enum CreateDecision {
   CREATE_DECISION_AWAIT_APPROVAL = 3;
 }
 
-// CreateOutcome is what a create did. A refused create comes back as BLOCKED
+// CreateOutcome is what a create did. A refused create comes back as REJECTED
 // instead of as a terminal error, so a caller that can never become eligible
 // does not leave Restate retrying it.
 enum CreateOutcome {
@@ -165,46 +164,60 @@ enum CreateOutcome {
   // CREATED wrote a new row.
   CREATE_OUTCOME_CREATED = 1;
 
-  // REPLAYED found the row already there and changed nothing.
-  CREATE_OUTCOME_REPLAYED = 2;
-
-  // BLOCKED wrote nothing. See blocked_reason.
-  CREATE_OUTCOME_BLOCKED = 3;
+  // REJECTED wrote nothing. See rejection_reason.
+  CREATE_OUTCOME_REJECTED = 2;
 }
 
-// CreateBlockedReason is why a create was refused, as a value a caller can
+// CreateRejectionReason is why a create was refused, as a value a caller can
 // branch on instead of a message it would have to parse.
-enum CreateBlockedReason {
-  CREATE_BLOCKED_REASON_UNSPECIFIED = 0;
+enum CreateRejectionReason {
+  CREATE_REJECTION_REASON_UNSPECIFIED = 0;
 
   // NO_COMPUTE_PLAN: the workspace holds no Deploy entitlement and the gate is
   // enforcing.
-  CREATE_BLOCKED_REASON_NO_COMPUTE_PLAN = 1;
+  CREATE_REJECTION_REASON_NO_COMPUTE_PLAN = 1;
 
   // SPEND_SUSPENDED: the workspace is over its Compute spend cap.
-  CREATE_BLOCKED_REASON_SPEND_SUSPENDED = 2;
+  CREATE_REJECTION_REASON_SPEND_SUSPENDED = 2;
 
   // TARGET_NOT_FOUND: the project, app, or environment does not exist, or they
   // do not belong together. Reachable when a target is deleted between the
   // caller's own lookup and this create.
-  CREATE_BLOCKED_REASON_TARGET_NOT_FOUND = 3;
+  CREATE_REJECTION_REASON_TARGET_NOT_FOUND = 3;
 
   // NO_REPO_CONNECTION: a git source was requested for an app with no connected
   // repository. Refused instead of falling back to the current image, which
   // would ship a different artifact than the one asked for.
-  CREATE_BLOCKED_REASON_NO_REPO_CONNECTION = 4;
+  CREATE_REJECTION_REASON_NO_REPO_CONNECTION = 4;
 
   // COMMIT_NOT_RESOLVED: GitHub could not resolve the requested branch or
   // commit.
-  CREATE_BLOCKED_REASON_COMMIT_NOT_RESOLVED = 5;
+  CREATE_REJECTION_REASON_COMMIT_NOT_RESOLVED = 5;
 
   // NO_SOURCE_IMAGE: the deployment being redeployed has neither a commit with
   // a repository connection nor an image, so there is nothing to build from.
-  CREATE_BLOCKED_REASON_NO_SOURCE_IMAGE = 6;
+  CREATE_REJECTION_REASON_NO_SOURCE_IMAGE = 6;
 
   // NEWER_DEPLOYMENT_EXISTS: a rebuild found a newer active deployment on the
   // same app, environment, and branch. Clear require_no_newer to override.
-  CREATE_BLOCKED_REASON_NEWER_DEPLOYMENT_EXISTS = 7;
+  CREATE_REJECTION_REASON_NEWER_DEPLOYMENT_EXISTS = 7;
+
+  // INVALID_IMAGE: the requested image is not a well-formed container
+  // reference. Refused before the row is written, because a build never runs to
+  // discover it and the deployment would sit failed with no explanation.
+  CREATE_REJECTION_REASON_INVALID_IMAGE = 8;
+
+  // ENVIRONMENT_NOT_DEPLOYABLE: the environment's runtime settings are out of
+  // bounds, or it has no region that can schedule. Deploy checks these again as
+  // a backstop; refusing here keeps a deployment that cannot succeed from being
+  // written at all.
+  CREATE_REJECTION_REASON_ENVIRONMENT_NOT_DEPLOYABLE = 9;
+
+  // SOURCE_DEPLOYMENT_NOT_FOUND: existing_deployment names a deployment that
+  // does not exist, or one under a different app or environment than the
+  // request targets. The two are one reason on purpose: answering them apart
+  // would let a caller probe for deployments it cannot reach.
+  CREATE_REJECTION_REASON_SOURCE_DEPLOYMENT_NOT_FOUND = 10;
 }
 
 // CreateGitSource builds from a repository commit. The worker resolves the
@@ -254,6 +267,10 @@ message DeployCreateRequest {
   // Environment named by id or slug.
   string environment = 3;
 
+  // Leave the source unset to mean "ship this app again": a connected
+  // repository deploys the head of its default branch, and an app without one
+  // redeploys the image its current deployment runs. To deploy the head of the
+  // default branch explicitly, send git with an empty commit.
   oneof source {
     CreateGitSource git = 4;
     CreateImageSource image = 5;
@@ -282,16 +299,20 @@ message DeployCreateRequest {
   ctrl.v1.ActorInfo actor = 13;
 }
 
-// DeployCreateResponse says what a create did. It carries no deployment id: the
-// id is the object key, so a caller knows it before calling. Callers that send
-// Create one-way, such as the public API and the GitHub webhook, never see it.
+// DeployCreateResponse says what a create did. Callers that send Create one-way,
+// such as the public API and the GitHub webhook, never see it.
 message DeployCreateResponse {
   CreateOutcome outcome = 1;
 
-  // BlockedReason is set only when outcome is BLOCKED. The text explaining it
+  // RejectionReason is set only when outcome is REJECTED. The text explaining it
   // stays in the worker's logs, because it names repositories and deployments
   // the caller may have no right to read.
-  CreateBlockedReason blocked_reason = 2;
+  CreateRejectionReason rejection_reason = 2;
+
+  // DeploymentId echoes the object key the row was written under. A caller
+  // already knows it, since it chose the key; echoing it back keeps a response
+  // readable on its own in a log or a trace.
+  string deployment_id = 3;
 }
 
 message DeployRequest {

@@ -36,9 +36,8 @@ type DeployServiceClient interface {
 	// the build source, runs the entitlement gates, writes the row with its
 	// queued step and audit log in one transaction, and starts Deploy.
 	//
-	// The object key is the deployment id, so a caller that derives the same id
-	// from an idempotency key lands on the same object and an existing row
-	// answers REPLAYED.
+	// The object key is the deployment id, so every operation on one deployment
+	// serializes behind the create that wrote it.
 	Create(opts ...sdk_go.ClientOption) sdk_go.Client[*DeployCreateRequest, *DeployCreateResponse]
 	// Deploy executes the full deployment workflow: build (if git source), provision
 	// containers across regions, wait for health, configure domain routing, and
@@ -144,9 +143,8 @@ type DeployServiceIngressClient interface {
 	// the build source, runs the entitlement gates, writes the row with its
 	// queued step and audit log in one transaction, and starts Deploy.
 	//
-	// The object key is the deployment id, so a caller that derives the same id
-	// from an idempotency key lands on the same object and an existing row
-	// answers REPLAYED.
+	// The object key is the deployment id, so every operation on one deployment
+	// serializes behind the create that wrote it.
 	Create() ingress.Requester[*DeployCreateRequest, *DeployCreateResponse]
 	// Deploy executes the full deployment workflow: build (if git source), provision
 	// containers across regions, wait for health, configure domain routing, and
@@ -248,9 +246,8 @@ type DeployServiceServer interface {
 	// the build source, runs the entitlement gates, writes the row with its
 	// queued step and audit log in one transaction, and starts Deploy.
 	//
-	// The object key is the deployment id, so a caller that derives the same id
-	// from an idempotency key lands on the same object and an existing row
-	// answers REPLAYED.
+	// The object key is the deployment id, so every operation on one deployment
+	// serializes behind the create that wrote it.
 	Create(ctx sdk_go.ObjectContext, req *DeployCreateRequest) (*DeployCreateResponse, error)
 	// Deploy executes the full deployment workflow: build (if git source), provision
 	// containers across regions, wait for health, configure domain routing, and

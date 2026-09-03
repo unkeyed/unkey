@@ -2,8 +2,10 @@ package deploy_test
 
 import (
 	"context"
+	"database/sql"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/mysql/sqlcomment"
@@ -57,6 +59,19 @@ func newDeployFixture(t *testing.T, ctx context.Context) (db.Database, deployFix
 		Slug:        "production",
 		Kind:        mysqltype.EnvironmentKindProduction,
 	})
+
+	// A create refuses an environment with nowhere to schedule, so the fixture
+	// carries the one region a deployable app has.
+	region := seeder.CreateRegion(ctx, seed.CreateRegionRequest{Name: "kebap-1", Platform: "k8s"})
+	require.NoError(t, database.UpsertAppRegionalSettings(ctx, db.UpsertAppRegionalSettingsParams{
+		WorkspaceID:   workspaceID,
+		AppID:         app.ID,
+		EnvironmentID: environment.ID,
+		RegionID:      region.ID,
+		Replicas:      1,
+		CreatedAt:     time.Now().UnixMilli(),
+		UpdatedAt:     sql.NullInt64{Valid: false, Int64: 0},
+	}))
 
 	return database, deployFixture{
 		seeder:        seeder,
