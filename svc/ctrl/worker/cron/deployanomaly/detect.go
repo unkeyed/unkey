@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math"
 	"sort"
+	"time"
 )
 
 const (
@@ -125,6 +126,9 @@ type Config struct {
 	RequestDrop      RequestDropRule
 	Catastrophic     CatastrophicRules
 	Recovery         RecoveryThresholds
+	// MaxOpenDuration closes a sustained level shift after the rolling baseline
+	// has fully adapted, even when the opening snapshot never recovers.
+	MaxOpenDuration time.Duration
 }
 
 // DefaultConfig returns the production defaults for a sensitivity.
@@ -167,6 +171,7 @@ func DefaultConfig(sensitivity Sensitivity) Config {
 		Recovery: RecoveryThresholds{
 			MemoryUtilization: 0.85,
 		},
+		MaxOpenDuration: 24 * time.Hour,
 	}
 }
 

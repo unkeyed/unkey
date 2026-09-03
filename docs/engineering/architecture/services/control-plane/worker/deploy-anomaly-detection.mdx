@@ -90,6 +90,7 @@ The per-group virtual object key is `<workspace_id>/<app_id>/<environment_id>`. 
 
 - `candidate:<metric>` and `candidate_window:<metric>`
 - `open_alert:<metric>`
+- `fired_at:<metric>`
 - `quiet:<metric>`
 - `snapshot:<metric>`
 - `detector_input:<metric>`
@@ -105,6 +106,8 @@ Sigma metrics recover below `mean + (k - 1) * effective_stddev`. Error ratios us
 `Metric returned to baseline for 3 consecutive windows`
 
 A stopped deployment resolves a request-drop alert with `Deployment stopped`.
+
+A permanent level shift can remain outside the opening snapshot's recovery band. The evaluator therefore resolves an alert on the first complete window whose end is at least 24 hours after `fired_at`, when the rolling baseline has fully adapted. The resolution message is `Baseline adapted after 24 hours`.
 
 Detector inputs are written as structured log fields when an alert opens. The current `alert_events` schema has no context JSON column, so raw error and request counts are not persisted.
 
