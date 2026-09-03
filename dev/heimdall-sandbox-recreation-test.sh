@@ -11,10 +11,15 @@
 #   1. Creates a krane-labelled busybox pod with runtimeClassName=gvisor and a
 #      64Mi memory limit. The pod sends a little egress every second.
 #   2. Waits until heimdall writes attached checkpoints for it (baseline).
-#   3. Kills the sandbox: OOM by default (fill memory inside the container),
-#      or `crictl stopp` with TRIGGER=stopp. Under gVisor both take the whole
-#      runsc sandbox down; kubelet builds a new sandbox with a new netns under
-#      the same pod UID.
+#   3. Kills the sandbox with `crictl stopp` (StopPodSandbox). That is the
+#      containerd-level event production hits when gVisor OOM-kills a pod: the
+#      netns file is removed, the stopped sandbox record stays until GC, and
+#      kubelet builds a new sandbox with a new netns under the same pod UID.
+#      TRIGGER=oom fills memory inside the container instead. Whether that
+#      takes the whole sandbox down depends on the runsc build the minikube
+#      addon downloaded (release/latest); newer builds may kill only the
+#      process and leave the sandbox up, in which case the script reports
+#      "container restarted, sandbox kept" and fails.
 #   4. Waits for the new sandbox, then for checkpoints written after it.
 #   5. PASS if the last checkpoints have attributes.network_attached=true and
 #      the egress counter grows across them. FAIL otherwise.
@@ -23,13 +28,13 @@
 # recreation has network_attached=false until heimdall restarts.
 #
 # Env:
-#   TRIGGER=oom|stopp   how to kill the sandbox (default oom)
+#   TRIGGER=stopp|oom   how to kill the sandbox (default stopp)
 #   KEEP=1              leave the repro namespace in place after the run
 #   TIMEOUT=<seconds>   per-phase wait budget (default 180)
 
 set -euo pipefail
 
-TRIGGER="${TRIGGER:-oom}"
+TRIGGER="${TRIGGER:-stopp}"
 KEEP="${KEEP:-0}"
 TIMEOUT="${TIMEOUT:-180}"
 
@@ -71,11 +76,14 @@ newest_sandbox() {
 pod_field() { kubectl -n "$NS" get pod "$POD" -o jsonpath="$1" 2>/dev/null || true; }
 
 # wait_for <description> <predicate function>; polls until it returns 0.
+# Returns 1 on timeout, which ends the script under set -e unless the caller
+# checks it.
 wait_for() {
   local desc=$1 pred=$2 start=$SECONDS
   until "$pred"; do
     if (( SECONDS - start > TIMEOUT )); then
-      fail "timed out after ${TIMEOUT}s waiting for: $desc"
+      printf '\033[1;31mFAIL\033[0m timed out after %ss waiting for: %s\n' "$TIMEOUT" "$desc" >&2
+      return 1
     fi
     sleep 2
   done
@@ -183,15 +191,15 @@ RESTARTS_BEFORE=$(pod_field '{.status.containerStatuses[0].restartCount}')
 T_KILL=$(now_ms)
 
 case "$TRIGGER" in
-  oom)
-    log "trigger: OOM inside the container (gVisor takes the whole sandbox down)"
-    # tail buffers a newline-free stream in memory until EOF, so this grows
-    # past the 64Mi limit in a second or two. The exec dies with the sandbox.
-    kubectl -n "$NS" exec "$POD" -- sh -c 'head -c 536870912 /dev/zero | tail >/dev/null' >/dev/null 2>&1 || true
-    ;;
   stopp)
     log "trigger: crictl stopp ${SANDBOX_BEFORE:0:12}"
     minikube ssh -- "sudo crictl stopp $SANDBOX_BEFORE" >/dev/null
+    ;;
+  oom)
+    log "trigger: OOM inside the container"
+    # Doubling a string allocates exponentially: past 64Mi within ~27
+    # iterations, well under a second. The exec dies with the process.
+    kubectl -n "$NS" exec "$POD" -- awk 'BEGIN { s = "x"; while (1) s = s s }' >/dev/null 2>&1 || true
     ;;
   *)
     fail "unknown TRIGGER=$TRIGGER (want oom or stopp)"
@@ -206,8 +214,24 @@ sandbox_recreated() {
     && [[ $(pod_field '{.metadata.uid}') == "$POD_UID" ]]
 }
 
+dump_state() {
+  echo "--- diagnostics ---" >&2
+  kubectl -n "$NS" get pod "$POD" -o wide 2>&1 | sed 's/^/  /' >&2 || true
+  echo "  restartCount before=$RESTARTS_BEFORE now=$(pod_field '{.status.containerStatuses[0].restartCount}')" >&2
+  echo "  containerd sandboxes for the pod (newest first):" >&2
+  minikube ssh -- "sudo crictl pods --namespace $NS --name $POD" 2>/dev/null | tr -d '\r' | sed 's/^/    /' >&2 || true
+  echo "  recent pod events:" >&2
+  kubectl -n "$NS" get events --field-selector "involvedObject.name=$POD" --sort-by=.lastTimestamp 2>/dev/null | tail -n 8 | sed 's/^/    /' >&2 || true
+  if [[ "$TRIGGER" == oom && $(pod_field '{.status.containerStatuses[0].restartCount}') != "$RESTARTS_BEFORE" ]]; then
+    echo "  container restarted, sandbox kept: this runsc build kills the process, not the sandbox. Use TRIGGER=stopp." >&2
+  fi
+}
+
 log "waiting for kubelet to build a new sandbox under the same pod UID"
-wait_for "new sandbox" sandbox_recreated
+if ! wait_for "new sandbox" sandbox_recreated; then
+  dump_state
+  exit 1
+fi
 SANDBOX_AFTER=$(newest_sandbox)
 IP_AFTER=$(pod_field '{.status.podIP}')
 RESTARTS_AFTER=$(pod_field '{.status.containerStatuses[0].restartCount}')
