@@ -1,3 +1,3 @@
 // Package deployanomaly classifies Deploy metric windows and applies the
-// results through a fleet cron orchestrator and per-app Restate virtual object.
+// results through fleet cron, shard, and per-app Restate virtual objects.
 package deployanomaly

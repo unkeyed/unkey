@@ -47,7 +47,8 @@ type FindOpenAlertEventsByGroupParams struct {
 	EnvironmentID string `db:"environment_id"`
 }
 
-// FindOpenAlertEventsByGroup
+// FindOpenAlertEventsByGroup rebuilds one evaluator's durable state after a
+// cold start. Metric ordering makes reconciliation deterministic.
 //
 //	SELECT
 //	    pk,

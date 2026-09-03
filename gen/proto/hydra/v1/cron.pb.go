@@ -1000,8 +1000,11 @@ type RunDeployAnomalyCheckResponse struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Number of production app and environment groups evaluated by their VO.
 	GroupsDispatched int32 `protobuf:"varint,1,opt,name=groups_dispatched,json=groupsDispatched,proto3" json:"groups_dispatched,omitempty"`
-	unknownFields    protoimpl.UnknownFields
-	sizeCache        protoimpl.SizeCache
+	// Number of groups retained for the next window because they have a
+	// candidate or open alert.
+	GroupsPending int32 `protobuf:"varint,2,opt,name=groups_pending,json=groupsPending,proto3" json:"groups_pending,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *RunDeployAnomalyCheckResponse) Reset() {
@@ -1037,6 +1040,13 @@ func (*RunDeployAnomalyCheckResponse) Descriptor() ([]byte, []int) {
 func (x *RunDeployAnomalyCheckResponse) GetGroupsDispatched() int32 {
 	if x != nil {
 		return x.GroupsDispatched
+	}
+	return 0
+}
+
+func (x *RunDeployAnomalyCheckResponse) GetGroupsPending() int32 {
+	if x != nil {
+		return x.GroupsPending
 	}
 	return 0
 }
@@ -1170,9 +1180,10 @@ const file_hydra_v1_cron_proto_rawDesc = "" +
 	"\x1aRunDeploySpendCheckRequest\"R\n" +
 	"\x1bRunDeploySpendCheckResponse\x123\n" +
 	"\x15workspaces_dispatched\x18\x01 \x01(\x05R\x14workspacesDispatched\"\x1e\n" +
-	"\x1cRunDeployAnomalyCheckRequest\"L\n" +
+	"\x1cRunDeployAnomalyCheckRequest\"s\n" +
 	"\x1dRunDeployAnomalyCheckResponse\x12+\n" +
-	"\x11groups_dispatched\x18\x01 \x01(\x05R\x10groupsDispatched\"#\n" +
+	"\x11groups_dispatched\x18\x01 \x01(\x05R\x10groupsDispatched\x12%\n" +
+	"\x0egroups_pending\x18\x02 \x01(\x05R\rgroupsPending\"#\n" +
 	"!RunClickhouseUserReconcileRequest\"S\n" +
 	"\"RunClickhouseUserReconcileResponse\x12-\n" +
 	"\x12users_reconfigured\x18\x01 \x01(\x05R\x11usersReconfigured2\xb5\v\n" +

@@ -96,7 +96,9 @@ type CronServiceClient interface {
 	// cadence costs no Stripe calls.
 	RunDeploySpendCheck(opts ...sdk_go.ClientOption) sdk_go.Client[*RunDeploySpendCheckRequest, *RunDeploySpendCheckResponse]
 	// RunDeployAnomalyCheck evaluates one closed Deploy metrics window and fans
-	// out actionable production groups to DeployAnomalyService. Key =
+	// out to DeployAnomalyShardService. Each shard reads only its ClickHouse
+	// candidates and fans actionable production groups to DeployAnomalyService.
+	// Key =
 	// "deploy-anomaly-<window start unix seconds>". The scheduler chooses the
 	// last window that is at least one full 5-minute bucket old so rollups can
 	// settle before the fleet queries run.
@@ -293,7 +295,9 @@ type CronServiceIngressClient interface {
 	// cadence costs no Stripe calls.
 	RunDeploySpendCheck() ingress.Requester[*RunDeploySpendCheckRequest, *RunDeploySpendCheckResponse]
 	// RunDeployAnomalyCheck evaluates one closed Deploy metrics window and fans
-	// out actionable production groups to DeployAnomalyService. Key =
+	// out to DeployAnomalyShardService. Each shard reads only its ClickHouse
+	// candidates and fans actionable production groups to DeployAnomalyService.
+	// Key =
 	// "deploy-anomaly-<window start unix seconds>". The scheduler chooses the
 	// last window that is at least one full 5-minute bucket old so rollups can
 	// settle before the fleet queries run.
@@ -468,7 +472,9 @@ type CronServiceServer interface {
 	// cadence costs no Stripe calls.
 	RunDeploySpendCheck(ctx sdk_go.ObjectContext, req *RunDeploySpendCheckRequest) (*RunDeploySpendCheckResponse, error)
 	// RunDeployAnomalyCheck evaluates one closed Deploy metrics window and fans
-	// out actionable production groups to DeployAnomalyService. Key =
+	// out to DeployAnomalyShardService. Each shard reads only its ClickHouse
+	// candidates and fans actionable production groups to DeployAnomalyService.
+	// Key =
 	// "deploy-anomaly-<window start unix seconds>". The scheduler chooses the
 	// last window that is at least one full 5-minute bucket old so rollups can
 	// settle before the fleet queries run.
