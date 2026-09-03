@@ -155,9 +155,11 @@ enum CreateDecision {
   CREATE_DECISION_AWAIT_APPROVAL = 3;
 }
 
-// CreateOutcome is what a create did. A refused create comes back as REJECTED
-// instead of as a terminal error, so a caller that can never become eligible
-// does not leave Restate retrying it.
+// CreateOutcome is what a create did. A refused create answers REJECTED rather
+// than failing terminally. A terminal error is not retried either, but it
+// reaches an ingress caller as unstructured text, so svc/api could only tell
+// these reasons apart by parsing a message; and it leaves a permanently failed
+// invocation behind every push from a caller that sends Create one-way.
 enum CreateOutcome {
   CREATE_OUTCOME_UNSPECIFIED = 0;
 
@@ -299,8 +301,9 @@ message DeployCreateRequest {
   ctrl.v1.ActorInfo actor = 13;
 }
 
-// DeployCreateResponse says what a create did. Callers that send Create one-way,
-// such as the public API and the GitHub webhook, never see it.
+// DeployCreateResponse says what a create did. A caller that awaits Create with
+// Request reads it; one that dispatches with Send never sees it, and learns the
+// outcome only from the deployment row.
 message DeployCreateResponse {
   CreateOutcome outcome = 1;
 
@@ -309,8 +312,9 @@ message DeployCreateResponse {
   // the caller may have no right to read.
   CreateRejectionReason rejection_reason = 2;
 
-  // DeploymentId echoes the object key the row was written under. A caller
-  // already knows it, since it chose the key; echoing it back keeps a response
+  // DeploymentId echoes the object key the create ran on, set for every
+  // outcome: it is what the caller chose, not the id of a row, so a rejection
+  // carries it too. A caller already knows it; echoing it back keeps a response
   // readable on its own in a log or a trace.
   string deployment_id = 3;
 }
