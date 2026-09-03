@@ -1,7 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { Badge, ResourceListItem, TimestampInfo } from "@unkey/ui";
+import { ResourceListItem, TimestampInfo } from "@unkey/ui";
 import type { Route } from "next";
 import Link from "next/link";
 import { AlertRowChart } from "./alert-row-chart";
@@ -59,16 +59,9 @@ export function AlertRow({
         />
       ) : null}
       <div className="flex min-w-0 flex-col gap-1 lg:w-[23%] lg:shrink-0">
-        <div className="flex min-w-0 items-center gap-2">
-          <span className="truncate text-[13px] font-semibold text-accent-12">
-            {alertMetricLabel(alert.metric)}
-          </span>
-          {alert.metric === "error_4xx" ? (
-            <Badge variant="secondary" size="sm" className="shrink-0 font-normal">
-              Dashboard only
-            </Badge>
-          ) : null}
-        </div>
+        <span className="truncate text-[13px] font-semibold text-accent-12">
+          {alertMetricLabel(alert.metric)}
+        </span>
         <span className="truncate text-xs text-gray-9">
           {alert.appName} <span aria-hidden="true">›</span> {alert.environmentName}
         </span>

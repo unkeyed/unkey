@@ -49,7 +49,6 @@ export const workspaces = mysqlTable("workspaces", {
        * Can access customer billing portal
        */
       portal?: boolean;
-      deploy_anomaly_alerts_muted?: boolean;
     }>()
     .notNull(),
   /**

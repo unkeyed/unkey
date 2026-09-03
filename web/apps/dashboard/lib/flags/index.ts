@@ -83,6 +83,20 @@ export const logdrains = flag<boolean, Entities>({
   adapter: adapter(),
 });
 
+// deployAnomalyAlerts gates the workspace alerts inbox, the app Anomalies tab,
+// and their navigation. Off until the detector runs in production.
+export const deployAnomalyAlerts = flag<boolean, Entities>({
+  key: "deploy-anomaly-alerts",
+  description: "Show the deploy anomaly alerts inbox and app Anomalies tab. Off until rollout.",
+  defaultValue: false,
+  options: [
+    { value: false, label: "Off" },
+    { value: true, label: "On" },
+  ],
+  identify,
+  adapter: adapter(),
+});
+
 // portalManagement gates the portal configuration page and its sidebar nav
 // item. Off until portal GA so it can be developed and merged without being
 // visible. Enable per-workspace to roll out to internal workspaces first.
