@@ -60,8 +60,8 @@ func TestBufferAuditLog_SkipsNonRootPrincipal(t *testing.T) {
 			Payload:   nil,
 			Signature: "",
 		},
-		WorkspaceID: "ws_123",
-		Permissions: nil,
+		AuthorizedWorkspaceID: "ws_123",
+		Permissions:           nil,
 	}
 	key := &keys.KeyVerifier{ //nolint:exhaustruct
 		Key: keysdb.FindKeyForVerificationRow{ID: "key_123"}, //nolint:exhaustruct

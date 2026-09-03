@@ -54,7 +54,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			Action:       rbac.CreateProject,
 		}),
 		rbac.U(
-			urn.New().Workspace(principal.WorkspaceID).Project("*"),
+			urn.New().Workspace(principal.AuthorizedWorkspaceID).Project("*"),
 			permissions.Write,
 		),
 	))
@@ -72,7 +72,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	ctrlResp, err := h.CtrlClient.CreateProject(ctx, &ctrlv1.CreateProjectRequest{
-		WorkspaceId: principal.WorkspaceID,
+		WorkspaceId: principal.AuthorizedWorkspaceID,
 		Name:        req.Name,
 		Slug:        req.Slug,
 		Actor:       actor,

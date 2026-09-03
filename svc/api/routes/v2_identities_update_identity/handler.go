@@ -100,7 +100,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	identityRow, err := db.Query.FindIdentity(ctx, h.DB.RO(), db.FindIdentityParams{
-		WorkspaceID: principal.WorkspaceID,
+		WorkspaceID: principal.AuthorizedWorkspaceID,
 		Identity:    req.Identity,
 		Deleted:     false,
 	})
@@ -125,7 +125,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			Action:       rbac.UpdateIdentity,
 		}),
 		rbac.U(
-			urn.New().Workspace(principal.WorkspaceID).Project(identityRow.ProjectID).Identity(identityRow.ID),
+			urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(identityRow.ProjectID).Identity(identityRow.ID),
 			permissions.Write,
 		),
 	))
@@ -162,7 +162,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 		auditLogs := []auditlog.AuditLog{
 			{
-				WorkspaceID:   principal.WorkspaceID,
+				WorkspaceID:   principal.AuthorizedWorkspaceID,
 				Event:         auditlog.IdentityUpdateEvent,
 				Display:       fmt.Sprintf("Updated identity %s", identityRow.ID),
 				ActorID:       principal.Subject.ID,
@@ -229,7 +229,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 				// Add audit log for deletion
 				auditLogs = append(auditLogs, auditlog.AuditLog{
-					WorkspaceID:   principal.WorkspaceID,
+					WorkspaceID:   principal.AuthorizedWorkspaceID,
 					Event:         auditlog.RatelimitDeleteEvent,
 					Display:       fmt.Sprintf("Deleted ratelimit %s", existingRL.ID),
 					ActorID:       principal.Subject.ID,
@@ -297,7 +297,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 					}
 
 					auditLogs = append(auditLogs, auditlog.AuditLog{
-						WorkspaceID:   principal.WorkspaceID,
+						WorkspaceID:   principal.AuthorizedWorkspaceID,
 						Event:         auditlog.RatelimitUpdateEvent,
 						Display:       fmt.Sprintf("Updated ratelimit %s", existingRL.ID),
 						ActorID:       principal.Subject.ID,
@@ -329,7 +329,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 					ratelimitID = uid.New(uid.RatelimitPrefix)
 					rateLimitsToInsert = append(rateLimitsToInsert, db.InsertIdentityRatelimitParams{
 						ID:          ratelimitID,
-						WorkspaceID: principal.WorkspaceID,
+						WorkspaceID: principal.AuthorizedWorkspaceID,
 						IdentityID:  sql.NullString{String: identityRow.ID, Valid: true},
 						Name:        newRL.Name,
 						Limit:       uint64(newRL.Limit),
@@ -340,7 +340,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 					// Add audit log for creation
 					auditLogs = append(auditLogs, auditlog.AuditLog{
-						WorkspaceID:   principal.WorkspaceID,
+						WorkspaceID:   principal.AuthorizedWorkspaceID,
 						Event:         auditlog.RatelimitCreateEvent,
 						Display:       fmt.Sprintf("Created ratelimit %s", ratelimitID),
 						ActorID:       principal.Subject.ID,

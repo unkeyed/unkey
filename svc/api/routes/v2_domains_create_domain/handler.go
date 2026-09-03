@@ -55,7 +55,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	env, err := db.Query.FindEnvironmentByIdentifiers(ctx, h.DB.RO(), db.FindEnvironmentByIdentifiersParams{
-		WorkspaceID: principal.WorkspaceID,
+		WorkspaceID: principal.AuthorizedWorkspaceID,
 		Project:     req.Project,
 		App:         req.App,
 		Environment: req.Environment,
@@ -89,7 +89,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			Action:       rbac.CreateDomain,
 		}),
 		rbac.U(
-			urn.New().Workspace(principal.WorkspaceID).Project(env.ProjectID).App(env.AppID).Environment(env.ID).Domain("*"),
+			urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(env.ProjectID).App(env.AppID).Environment(env.ID).Domain("*"),
 			permissions.Write,
 		),
 	)); err != nil {
@@ -113,7 +113,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	// A found row means the domain is taken, so a nil error is the rejection here
 	// and NotFound is the path that proceeds.
 	_, err = db.Query.FindCustomDomainIDByWorkspaceAndDomain(ctx, h.DB.RO(), db.FindCustomDomainIDByWorkspaceAndDomainParams{
-		WorkspaceID: principal.WorkspaceID,
+		WorkspaceID: principal.AuthorizedWorkspaceID,
 		Domain:      domainName,
 	})
 	if err == nil {
@@ -128,8 +128,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	limits, hit, err := h.LimitsCache.SWR(ctx, principal.WorkspaceID, func(ctx context.Context) (keysdb.Limit, error) {
-		return keysdb.Query.FindLimitsByWorkspaceID(ctx, h.DB.RO(), principal.WorkspaceID)
+	limits, hit, err := h.LimitsCache.SWR(ctx, principal.AuthorizedWorkspaceID, func(ctx context.Context) (keysdb.Limit, error) {
+		return keysdb.Query.FindLimitsByWorkspaceID(ctx, h.DB.RO(), principal.AuthorizedWorkspaceID)
 	}, caches.DefaultFindFirstOp)
 	if err != nil && !db.IsNotFound(err) {
 		return fault.Wrap(
@@ -140,10 +140,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 	if db.IsNotFound(err) || hit == cache.Null {
-		return domaingate.LimitsNotConfigured(principal.WorkspaceID)
+		return domaingate.LimitsNotConfigured(principal.AuthorizedWorkspaceID)
 	}
 
-	attached, err := db.Query.CountCustomDomainsByWorkspace(ctx, h.DB.RO(), principal.WorkspaceID)
+	attached, err := db.Query.CountCustomDomainsByWorkspace(ctx, h.DB.RO(), principal.AuthorizedWorkspaceID)
 	if err != nil {
 		return fault.Wrap(
 			err,
@@ -158,7 +158,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	res, err := h.CtrlClient.AddCustomDomain(ctx, &ctrlv1.AddCustomDomainRequest{
-		WorkspaceId:   principal.WorkspaceID,
+		WorkspaceId:   principal.AuthorizedWorkspaceID,
 		ProjectId:     env.ProjectID,
 		AppId:         env.AppID,
 		EnvironmentId: env.ID,

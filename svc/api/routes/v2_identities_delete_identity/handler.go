@@ -59,7 +59,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	identity, err := db.Query.FindIdentity(ctx, h.DB.RO(), db.FindIdentityParams{
-		WorkspaceID: principal.WorkspaceID,
+		WorkspaceID: principal.AuthorizedWorkspaceID,
 		Identity:    req.Identity,
 		Deleted:     false,
 	})
@@ -87,7 +87,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				},
 			),
 			rbac.U(
-				urn.New().Workspace(principal.WorkspaceID).Project(identity.ProjectID).Identity(identity.ID),
+				urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(identity.ProjectID).Identity(identity.ID),
 				permissions.Delete,
 			),
 		),
@@ -108,7 +108,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	err = db.TxRetry(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
 		err = db.Query.SoftDeleteIdentity(ctx, tx, db.SoftDeleteIdentityParams{
-			WorkspaceID: principal.WorkspaceID,
+			WorkspaceID: principal.AuthorizedWorkspaceID,
 			IdentityID:  identity.ID,
 		})
 
@@ -117,7 +117,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		if db.IsDuplicateKeyError(err) {
 			// Check if this identity is already soft-deleted (could happen with concurrent requests)
 			alreadyDeleted, checkErr := db.Query.FindIdentityByID(ctx, tx, db.FindIdentityByIDParams{
-				WorkspaceID: principal.WorkspaceID,
+				WorkspaceID: principal.AuthorizedWorkspaceID,
 				IdentityID:  identity.ID,
 				Deleted:     true,
 			})
@@ -129,7 +129,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 			// Delete the old soft-deleted identity with the same external_id, excluding the current one
 			err = db.Query.DeleteOldIdentityByExternalID(ctx, tx, db.DeleteOldIdentityByExternalIDParams{
-				WorkspaceID:       principal.WorkspaceID,
+				WorkspaceID:       principal.AuthorizedWorkspaceID,
 				ExternalID:        identity.ExternalID,
 				CurrentIdentityID: identity.ID,
 			})
@@ -143,7 +143,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 			// Re-apply the soft delete operation
 			err = db.Query.SoftDeleteIdentity(ctx, tx, db.SoftDeleteIdentityParams{
-				WorkspaceID: principal.WorkspaceID,
+				WorkspaceID: principal.AuthorizedWorkspaceID,
 				IdentityID:  identity.ID,
 			})
 			if err != nil {
@@ -166,7 +166,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 		auditLogs := []auditlog.AuditLog{
 			{
-				WorkspaceID:   principal.WorkspaceID,
+				WorkspaceID:   principal.AuthorizedWorkspaceID,
 				Event:         auditlog.IdentityDeleteEvent,
 				Display:       fmt.Sprintf("Deleted identity %s.", identity.ID),
 				ActorID:       principal.Subject.ID,
@@ -190,7 +190,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 		for _, rl := range ratelimits {
 			auditLogs = append(auditLogs, auditlog.AuditLog{
-				WorkspaceID:   principal.WorkspaceID,
+				WorkspaceID:   principal.AuthorizedWorkspaceID,
 				Event:         auditlog.RatelimitDeleteEvent,
 				Display:       fmt.Sprintf("Deleted ratelimit %s.", rl.ID),
 				ActorID:       principal.Subject.ID,

@@ -28,8 +28,8 @@ func TestResolverWithRolesMapsRoles(t *testing.T) {
 	resolver := resolverWithRoles{
 		resolver: stubResolver{
 			principal: &principal.Principal{
-				Type:        principal.TypeJWT,
-				WorkspaceID: "ws_123",
+				Type:                  principal.TypeJWT,
+				AuthorizedWorkspaceID: "ws_123",
 				Source: principal.JWTSource{
 					Roles: []string{"viewer", "admin"},
 				},
@@ -51,9 +51,9 @@ func TestResolverWithRolesLeavesNonJWTPrincipalsAlone(t *testing.T) {
 	resolver := resolverWithRoles{
 		resolver: stubResolver{
 			principal: &principal.Principal{
-				Type:        principal.TypeAPIKey,
-				WorkspaceID: "ws_123",
-				Permissions: []string{"api.*.read_api"},
+				Type:                  principal.TypeAPIKey,
+				AuthorizedWorkspaceID: "ws_123",
+				Permissions:           []string{"api.*.read_api"},
 			},
 		},
 	}

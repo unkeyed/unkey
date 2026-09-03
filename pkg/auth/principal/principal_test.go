@@ -12,12 +12,12 @@ func TestAuthorizeChecksPrincipalPermissions(t *testing.T) {
 
 	// Authorize must accept a principal whose permissions satisfy the query.
 	p := &Principal{
-		Version:     "",
-		Subject:     Subject{ID: "", Name: "", Type: ""},
-		Type:        TypeAPIKey,
-		Source:      KeySource{},
-		WorkspaceID: "",
-		Permissions: []string{"api.*.create_api"},
+		Version:               "",
+		Subject:               Subject{ID: "", Name: "", Type: ""},
+		Type:                  TypeAPIKey,
+		Source:                KeySource{},
+		AuthorizedWorkspaceID: "",
+		Permissions:           []string{"api.*.create_api"},
 	}
 
 	err := p.Authorize(rbac.T(rbac.Tuple{
@@ -35,12 +35,12 @@ func TestAuthorizationErrorReturnsDenial(t *testing.T) {
 	t.Parallel()
 
 	p := &Principal{
-		Version:     "",
-		Subject:     Subject{ID: "", Name: "", Type: ""},
-		Type:        TypeAPIKey,
-		Source:      KeySource{},
-		WorkspaceID: "",
-		Permissions: []string{},
+		Version:               "",
+		Subject:               Subject{ID: "", Name: "", Type: ""},
+		Type:                  TypeAPIKey,
+		Source:                KeySource{},
+		AuthorizedWorkspaceID: "",
+		Permissions:           []string{},
 	}
 
 	err := p.Authorize(rbac.T(rbac.Tuple{

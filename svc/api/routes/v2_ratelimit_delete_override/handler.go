@@ -53,7 +53,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	ns, found, err := h.getNamespace(ctx, principal.WorkspaceID, req.Namespace)
+	ns, found, err := h.getNamespace(ctx, principal.AuthorizedWorkspaceID, req.Namespace)
 	if err != nil {
 		return fault.Wrap(err,
 			fault.Code(codes.App.Internal.UnexpectedError.URN()),
@@ -88,7 +88,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	err = principal.Authorize(rbac.Or(
 		rbac.U(
-			urn.New().Workspace(principal.WorkspaceID).Project(ns.ProjectID).RatelimitNamespace(ns.ID).Override(override.ID),
+			urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(ns.ProjectID).RatelimitNamespace(ns.ID).Override(override.ID),
 			permissions.Delete,
 		),
 		rbac.T(rbac.Tuple{
@@ -125,7 +125,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 		err = h.Auditlogs.Insert(ctx, tx, []auditlog.AuditLog{
 			{
-				WorkspaceID:   principal.WorkspaceID,
+				WorkspaceID:   principal.AuthorizedWorkspaceID,
 				Event:         auditlog.RatelimitDeleteOverrideEvent,
 				Display:       fmt.Sprintf("Deleted override %s.", override.ID),
 				ActorID:       principal.Subject.ID,
@@ -164,8 +164,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	h.NamespaceCache.Remove(ctx,
-		cache.ScopedKey{WorkspaceID: principal.WorkspaceID, Key: ns.ID},
-		cache.ScopedKey{WorkspaceID: principal.WorkspaceID, Key: ns.Name},
+		cache.ScopedKey{WorkspaceID: principal.AuthorizedWorkspaceID, Key: ns.ID},
+		cache.ScopedKey{WorkspaceID: principal.AuthorizedWorkspaceID, Key: ns.Name},
 	)
 
 	return s.JSON(http.StatusOK, Response{

@@ -84,7 +84,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	description := ptr.SafeDeref(req.Description)
 
 	err = db.TxRetry(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
-		projectID, resolveErr := projects.EnsureDefaultProject(ctx, tx, principal.WorkspaceID)
+		projectID, resolveErr := projects.EnsureDefaultProject(ctx, tx, principal.AuthorizedWorkspaceID)
 		if resolveErr != nil {
 			return resolveErr
 		}
@@ -106,7 +106,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 		if authorizeErr := principal.Authorize(rbac.Or(
 			rbac.U(
-				urn.New().Workspace(principal.WorkspaceID).Project(projectID).RBAC().Role("*"),
+				urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(projectID).RBAC().Role("*"),
 				rbacpermissions.Write,
 			),
 			legacyAuthorization,
@@ -120,7 +120,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 		if len(permissionSlugs) > 0 {
 			foundPermissions, findErr := db.Query.FindPermissionsBySlugsForUpdate(ctx, tx, db.FindPermissionsBySlugsForUpdateParams{
-				WorkspaceID: principal.WorkspaceID,
+				WorkspaceID: principal.AuthorizedWorkspaceID,
 				ProjectID:   projectID,
 				Slugs:       permissionSlugs,
 			})
@@ -148,7 +148,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			if len(missingSlugs) > 0 {
 				if authorizeErr := principal.Authorize(rbac.Or(
 					rbac.U(
-						urn.New().Workspace(principal.WorkspaceID).Project(projectID).RBAC().Permission("*"),
+						urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(projectID).RBAC().Permission("*"),
 						rbacpermissions.Write,
 					),
 					rbac.T(rbac.Tuple{
@@ -164,7 +164,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				for _, slug := range missingSlugs {
 					candidate := db.UpsertPermissionParams{
 						PermissionID: uid.New(uid.PermissionPrefix),
-						WorkspaceID:  principal.WorkspaceID,
+						WorkspaceID:  principal.AuthorizedWorkspaceID,
 						ProjectID:    projectID,
 						Name:         slug,
 						Slug:         slug,
@@ -181,7 +181,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				}
 
 				foundPermissions, findErr = db.Query.FindPermissionsBySlugsForUpdate(ctx, tx, db.FindPermissionsBySlugsForUpdateParams{
-					WorkspaceID: principal.WorkspaceID,
+					WorkspaceID: principal.AuthorizedWorkspaceID,
 					ProjectID:   projectID,
 					Slugs:       permissionSlugs,
 				})
@@ -221,7 +221,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 		err = db.Query.InsertRole(ctx, tx, db.InsertRoleParams{
 			RoleID:      roleID,
-			WorkspaceID: principal.WorkspaceID,
+			WorkspaceID: principal.AuthorizedWorkspaceID,
 			ProjectID:   projectID,
 			Name:        req.Name,
 			Description: sql.NullString{Valid: description != "", String: description},
@@ -245,7 +245,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			rolePermissions[i] = db.InsertRolePermissionParams{
 				RoleID:       roleID,
 				PermissionID: permission.ID,
-				WorkspaceID:  principal.WorkspaceID,
+				WorkspaceID:  principal.AuthorizedWorkspaceID,
 				CreatedAtM:   now,
 			}
 		}
@@ -263,7 +263,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 		auditLogs := []auditlog.AuditLog{
 			{
-				WorkspaceID:   principal.WorkspaceID,
+				WorkspaceID:   principal.AuthorizedWorkspaceID,
 				Event:         auditlog.RoleCreateEvent,
 				ActorType:     auditlog.AuditLogActor(principal.Subject.Type),
 				ActorID:       principal.Subject.ID,
@@ -287,7 +287,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 		for _, permission := range createdPermissions {
 			auditLogs = append(auditLogs, auditlog.AuditLog{
-				WorkspaceID:   principal.WorkspaceID,
+				WorkspaceID:   principal.AuthorizedWorkspaceID,
 				Event:         auditlog.PermissionCreateEvent,
 				ActorType:     auditlog.AuditLogActor(principal.Subject.Type),
 				ActorID:       principal.Subject.ID,
@@ -314,7 +314,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 		for _, permission := range permissions {
 			auditLogs = append(auditLogs, auditlog.AuditLog{
-				WorkspaceID:   principal.WorkspaceID,
+				WorkspaceID:   principal.AuthorizedWorkspaceID,
 				Event:         auditlog.AuthConnectRolePermissionEvent,
 				ActorType:     auditlog.AuditLogActor(principal.Subject.Type),
 				ActorID:       principal.Subject.ID,

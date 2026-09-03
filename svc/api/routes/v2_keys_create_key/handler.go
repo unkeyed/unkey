@@ -91,7 +91,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	if api.WorkspaceID != principal.WorkspaceID {
+	if api.WorkspaceID != principal.AuthorizedWorkspaceID {
 		return fault.New("api not found",
 			fault.Code(codes.Data.Api.NotFound.URN()),
 			fault.Internal("api belongs to different workspace"), fault.Public("The specified API was not found."),
@@ -126,7 +126,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			Action:       rbac.CreateKey,
 		}),
 		rbac.U(
-			urn.New().Workspace(principal.WorkspaceID).Project(keySpaceProjectID).Keyspace(api.KeyAuthID.String).Key("*"),
+			urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(keySpaceProjectID).Keyspace(api.KeyAuthID.String).Key("*"),
 			permissions.Write,
 		),
 	))
@@ -218,7 +218,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				Action:       rbac.EncryptKey,
 			}),
 			rbac.U(
-				urn.New().Workspace(principal.WorkspaceID).Project(keySpace.ProjectID).Keyspace(keySpace.ID).Key("*"),
+				urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(keySpace.ProjectID).Keyspace(keySpace.ID).Key("*"),
 				permissions.Write,
 			),
 		))
@@ -238,7 +238,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 
 		encryption, err = h.Vault.Encrypt(ctx, &vaultv1.EncryptRequest{
-			Keyring: principal.WorkspaceID,
+			Keyring: principal.AuthorizedWorkspaceID,
 			Data:    keyResult.Key,
 		})
 		if err != nil {
@@ -268,7 +268,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				Prefix:             prefix,
 				Start:              keyResult.Start,
 				End:                keyResult.Key[len(keyResult.Key)-4:],
-				WorkspaceID:        principal.WorkspaceID,
+				WorkspaceID:        principal.AuthorizedWorkspaceID,
 				ForWorkspaceID:     sql.NullString{String: "", Valid: false},
 				CreatedAtM:         now,
 				Enabled:            true,
@@ -295,7 +295,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				err = db.Query.UpsertIdentity(ctx, tx, db.UpsertIdentityParams{
 					ID:          uid.New(uid.IdentityPrefix),
 					ExternalID:  externalID,
-					WorkspaceID: principal.WorkspaceID,
+					WorkspaceID: principal.AuthorizedWorkspaceID,
 					ProjectID:   projectID,
 					Environment: "default",
 					CreatedAt:   now,
@@ -311,7 +311,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 				// Fetch the identity ID (either just created or already existed)
 				identity, err := db.Query.FindIdentityByExternalID(ctx, tx, db.FindIdentityByExternalIDParams{
-					WorkspaceID: principal.WorkspaceID,
+					WorkspaceID: principal.AuthorizedWorkspaceID,
 					ExternalID:  externalID,
 					Deleted:     false,
 				})
@@ -407,7 +407,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 			if encryption != nil {
 				err = db.Query.InsertKeyEncryption(ctx, tx, db.InsertKeyEncryptionParams{
-					WorkspaceID:     principal.WorkspaceID,
+					WorkspaceID:     principal.AuthorizedWorkspaceID,
 					KeyID:           keyID,
 					CreatedAt:       now,
 					Encrypted:       encryption.GetEncrypted(),
@@ -427,7 +427,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 					ratelimitID := uid.New(uid.RatelimitPrefix)
 					ratelimitsToInsert[i] = db.InsertKeyRatelimitParams{
 						ID:          ratelimitID,
-						WorkspaceID: principal.WorkspaceID,
+						WorkspaceID: principal.AuthorizedWorkspaceID,
 						KeyID:       sql.NullString{String: keyID, Valid: true},
 						Name:        ratelimit.Name,
 						Limit:       uint64(ratelimit.Limit),
@@ -451,7 +451,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			if req.Permissions != nil {
 				var existingPermissions []db.Permission
 				existingPermissions, err = db.Query.FindPermissionsBySlugs(ctx, tx, db.FindPermissionsBySlugsParams{
-					WorkspaceID: principal.WorkspaceID,
+					WorkspaceID: principal.AuthorizedWorkspaceID,
 					ProjectID:   projectID,
 					Slugs:       *req.Permissions,
 				})
@@ -485,7 +485,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				for _, slug := range missingSlugs {
 					err = db.Query.UpsertPermission(ctx, tx, db.UpsertPermissionParams{
 						PermissionID: uid.New(uid.PermissionPrefix),
-						WorkspaceID:  principal.WorkspaceID,
+						WorkspaceID:  principal.AuthorizedWorkspaceID,
 						ProjectID:    projectID,
 						Name:         slug,
 						Slug:         slug,
@@ -502,7 +502,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				}
 
 				existingPermissions, err = db.Query.FindPermissionsBySlugs(ctx, tx, db.FindPermissionsBySlugsParams{
-					WorkspaceID: principal.WorkspaceID,
+					WorkspaceID: principal.AuthorizedWorkspaceID,
 					ProjectID:   projectID,
 					Slugs:       *req.Permissions,
 				})
@@ -537,13 +537,13 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 					permissionsToInsert = append(permissionsToInsert, db.InsertKeyPermissionParams{
 						KeyID:        keyID,
 						PermissionID: reqPerm.ID,
-						WorkspaceID:  principal.WorkspaceID,
+						WorkspaceID:  principal.AuthorizedWorkspaceID,
 						CreatedAt:    now,
 						UpdatedAt:    sql.NullInt64{Valid: false, Int64: 0},
 					})
 
 					auditLogs = append(auditLogs, auditlog.AuditLog{
-						WorkspaceID:   principal.WorkspaceID,
+						WorkspaceID:   principal.AuthorizedWorkspaceID,
 						Event:         auditlog.AuthConnectPermissionKeyEvent,
 						ActorType:     actor.Type,
 						ActorID:       actor.ID,
@@ -587,7 +587,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			if req.Roles != nil {
 				var existingRoles []db.FindRolesByNamesRow
 				existingRoles, err = db.Query.FindRolesByNames(ctx, tx, db.FindRolesByNamesParams{
-					WorkspaceID: principal.WorkspaceID,
+					WorkspaceID: principal.AuthorizedWorkspaceID,
 					ProjectID:   projectID,
 					Names:       *req.Roles,
 				})
@@ -627,12 +627,12 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 					rolesToInsert = append(rolesToInsert, db.InsertKeyRoleParams{
 						KeyID:       keyID,
 						RoleID:      reqRole.ID,
-						WorkspaceID: principal.WorkspaceID,
+						WorkspaceID: principal.AuthorizedWorkspaceID,
 						CreatedAtM:  now,
 					})
 
 					auditLogs = append(auditLogs, auditlog.AuditLog{
-						WorkspaceID:   principal.WorkspaceID,
+						WorkspaceID:   principal.AuthorizedWorkspaceID,
 						Event:         auditlog.AuthConnectRoleKeyEvent,
 						ActorType:     actor.Type,
 						ActorID:       actor.ID,
@@ -674,7 +674,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			}
 
 			auditLogs = append(auditLogs, auditlog.AuditLog{
-				WorkspaceID:   principal.WorkspaceID,
+				WorkspaceID:   principal.AuthorizedWorkspaceID,
 				Event:         auditlog.KeyCreateEvent,
 				ActorType:     actor.Type,
 				ActorID:       actor.ID,

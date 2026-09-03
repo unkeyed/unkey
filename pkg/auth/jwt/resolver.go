@@ -205,8 +205,8 @@ func (r *Resolver) Resolve(ctx context.Context, sess *zen.Session) (*principal.P
 			Roles:     claims.Roles,
 			Signature: segments[2],
 		},
-		WorkspaceID: workspaceID,
-		Permissions: nil,
+		AuthorizedWorkspaceID: workspaceID,
+		Permissions:           nil,
 	}, nil
 }
 

@@ -78,7 +78,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	// Validate key belongs to authorized workspace
-	if key.Key.WorkspaceID != principal.WorkspaceID {
+	if key.Key.WorkspaceID != principal.AuthorizedWorkspaceID {
 		return s.JSON(http.StatusOK, Response{
 			Meta: openapi.Meta{
 				RequestId: s.RequestID(),
@@ -117,7 +117,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			Action:       rbac.VerifyKey,
 		}),
 		rbac.U(
-			urn.New().Workspace(principal.WorkspaceID).Project(key.Key.ProjectID).Keyspace(key.Key.KeyAuthID).Key(key.Key.ID),
+			urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(key.Key.ProjectID).Keyspace(key.Key.KeyAuthID).Key(key.Key.ID),
 			permissions.Verify,
 		),
 	))
@@ -311,7 +311,7 @@ func (h *Handler) bufferAuditLog(
 	h.DirectAuditLogs.Buffer(auditlog.Event{
 		EventID:     uid.New(uid.AuditLogPrefix),
 		Time:        verificationTimeMillis,
-		WorkspaceID: principal.WorkspaceID,
+		WorkspaceID: principal.AuthorizedWorkspaceID,
 		Bucket:      auditlogs.DefaultBucket,
 		Source:      auditlog.EventSourcePlatform,
 		Event:       string(auditlog.KeyVerifyEvent),

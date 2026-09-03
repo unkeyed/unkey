@@ -61,7 +61,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	api, hit, err := h.ApiCache.SWR(ctx, cache.ScopedKey{
-		WorkspaceID: principal.WorkspaceID,
+		WorkspaceID: principal.AuthorizedWorkspaceID,
 		Key:         req.ApiId,
 	}, func(ctx context.Context) (db.FindLiveApiByIDRow, error) {
 		return db.Query.FindLiveApiByID(ctx, h.DB.RO(), req.ApiId)
@@ -93,7 +93,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	// Check if API belongs to the authorized workspace
-	if api.ApiWorkspaceID != principal.WorkspaceID {
+	if api.ApiWorkspaceID != principal.AuthorizedWorkspaceID {
 		return fault.New(
 			"wrong workspace",
 			fault.Code(codes.Data.Api.NotFound.URN()),
@@ -113,11 +113,11 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	err = principal.Authorize(rbac.Or(
 		rbac.And(
 			rbac.U(
-				urn.New().Workspace(principal.WorkspaceID).Project(api.KeyAuthProjectID).Keyspace(api.ApiKeyAuthID.String).Key("*"),
+				urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(api.KeyAuthProjectID).Keyspace(api.ApiKeyAuthID.String).Key("*"),
 				permissions.Read,
 			),
 			rbac.U(
-				urn.New().Workspace(principal.WorkspaceID).Project(api.KeyAuthProjectID).Keyspace(api.ApiKeyAuthID.String),
+				urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(api.KeyAuthProjectID).Keyspace(api.ApiKeyAuthID.String),
 				permissions.Read,
 			),
 		),
@@ -156,7 +156,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				Action:       rbac.DecryptKey,
 			}),
 			rbac.U(
-				urn.New().Workspace(principal.WorkspaceID).Project(api.KeyAuthProjectID).Keyspace(api.ApiKeyAuthID.String).Key("*"),
+				urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(api.KeyAuthProjectID).Keyspace(api.ApiKeyAuthID.String).Key("*"),
 				permissions.Decrypt,
 			),
 		))
@@ -201,7 +201,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	var identityID sql.NullString
 	if req.ExternalId != nil && *req.ExternalId != "" {
 		identity, identityErr := db.Query.FindIdentityByExternalID(ctx, h.DB.RO(), db.FindIdentityByExternalIDParams{
-			WorkspaceID: principal.WorkspaceID,
+			WorkspaceID: principal.AuthorizedWorkspaceID,
 			ExternalID:  *req.ExternalId,
 			Deleted:     false,
 		})
@@ -261,7 +261,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		})
 	}
 
-	plaintextMap := h.decryptKeys(ctx, req, keyResults, principal.WorkspaceID)
+	plaintextMap := h.decryptKeys(ctx, req, keyResults, principal.AuthorizedWorkspaceID)
 
 	responseData := array.Map(keyResults, func(key db.ListLiveKeysByKeySpaceIDRow) openapi.KeyResponseData {
 		return BuildKeyResponseData(db.ToKeyData(key), plaintextMap[key.ID])

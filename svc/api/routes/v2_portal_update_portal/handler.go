@@ -132,7 +132,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 		found, err := db.Query.FindPortalByIdOrSlug(ctx, tx, db.FindPortalByIdOrSlugParams{
 			Portal:      req.Portal,
-			WorkspaceID: principal.WorkspaceID,
+			WorkspaceID: principal.AuthorizedWorkspaceID,
 		})
 		if err != nil {
 			if db.IsNotFound(err) {
@@ -170,7 +170,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				ResourceID:   found.ID,
 				Action:       rbac.UpdatePortal,
 			}),
-			rbac.S(fmt.Sprintf("unkey:v1:%s:**#*", principal.WorkspaceID)),
+			rbac.S(fmt.Sprintf("unkey:v1:%s:**#*", principal.AuthorizedWorkspaceID)),
 		))
 		if err != nil {
 			// A fresh chain, not a wrap: UserFacingMessage concatenates every public
@@ -187,21 +187,21 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 
 		if repoint {
-			if err = portal.VerifyMappingOwned(ctx, tx, principal.WorkspaceID, mapping); err != nil {
+			if err = portal.VerifyMappingOwned(ctx, tx, principal.AuthorizedWorkspaceID, mapping); err != nil {
 				return empty, err
 			}
 
-			if err = portal.AuthorizeMappingTarget(ctx, tx, principal, principal.WorkspaceID, mapping); err != nil {
+			if err = portal.AuthorizeMappingTarget(ctx, tx, principal, principal.AuthorizedWorkspaceID, mapping); err != nil {
 				return empty, err
 			}
 		}
 
-		if err = h.checkPortalConflicts(ctx, tx, principal.WorkspaceID, found, req, repoint, mapping); err != nil {
+		if err = h.checkPortalConflicts(ctx, tx, principal.AuthorizedWorkspaceID, found, req, repoint, mapping); err != nil {
 			return empty, err
 		}
 
 		params := db.UpdatePortalParams{
-			WorkspaceID:           principal.WorkspaceID,
+			WorkspaceID:           principal.AuthorizedWorkspaceID,
 			ID:                    found.ID,
 			UpdatedAt:             sql.NullInt64{Valid: true, Int64: now},
 			SlugSpecified:         0,
@@ -304,7 +304,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		if affected == 0 {
 			if _, err := db.Query.FindPortalByIdOrSlug(ctx, tx, db.FindPortalByIdOrSlugParams{
 				Portal:      found.ID,
-				WorkspaceID: principal.WorkspaceID,
+				WorkspaceID: principal.AuthorizedWorkspaceID,
 			}); err != nil {
 				if !db.IsNotFound(err) {
 					return empty, fault.Wrap(err,
@@ -332,7 +332,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			revoked, err = db.Query.RevokePortalSessionsByPortal(ctx, tx, db.RevokePortalSessionsByPortalParams{
 				RevokedAt:   sql.NullInt64{Valid: true, Int64: now},
 				PortalID:    found.ID,
-				WorkspaceID: principal.WorkspaceID,
+				WorkspaceID: principal.AuthorizedWorkspaceID,
 			})
 			if err != nil {
 				return empty, fault.Wrap(err,
@@ -348,7 +348,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 		err = h.Auditlogs.Insert(ctx, tx, []auditlog.AuditLog{
 			{
-				WorkspaceID:   principal.WorkspaceID,
+				WorkspaceID:   principal.AuthorizedWorkspaceID,
 				Event:         auditlog.PortalUpdateEvent,
 				Display:       fmt.Sprintf("Updated portal %s", found.ID),
 				ActorID:       principal.Subject.ID,

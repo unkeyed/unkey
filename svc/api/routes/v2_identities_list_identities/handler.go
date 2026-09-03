@@ -55,13 +55,13 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	p := pagination.Parse(req.Limit, req.Cursor, 100)
 	search := mysql.SearchContains(strings.TrimSpace(ptr.SafeDeref(req.Search)))
 
-	projectID, err := projects.EnsureDefaultProject(ctx, h.DB.RW(), principal.WorkspaceID)
+	projectID, err := projects.EnsureDefaultProject(ctx, h.DB.RW(), principal.AuthorizedWorkspaceID)
 	if err != nil {
 		return err
 	}
 
 	identities, err := db.Query.ListIdentities(ctx, h.DB.RO(), db.ListIdentitiesParams{
-		WorkspaceID: principal.WorkspaceID,
+		WorkspaceID: principal.AuthorizedWorkspaceID,
 		ProjectID:   projectID,
 		Deleted:     false,
 		IDCursor:    p.Cursor,
@@ -84,7 +84,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				Action:       rbac.ReadIdentity,
 			}),
 			rbac.U(
-				urn.New().Workspace(principal.WorkspaceID).Project(projectID).Identity("*"),
+				urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(projectID).Identity("*"),
 				permissions.Read,
 			),
 		))
@@ -108,7 +108,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				Action:       rbac.ReadIdentity,
 			}),
 			rbac.U(
-				urn.New().Workspace(principal.WorkspaceID).Project(id.ProjectID).Identity(id.ID),
+				urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(id.ProjectID).Identity(id.ID),
 				permissions.Read,
 			),
 		)

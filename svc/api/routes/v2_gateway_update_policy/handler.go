@@ -66,7 +66,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	env, err := db.Query.FindEnvironmentByIdentifiers(ctx, h.DB.RO(), db.FindEnvironmentByIdentifiersParams{
-		WorkspaceID: principal.WorkspaceID,
+		WorkspaceID: principal.AuthorizedWorkspaceID,
 		Project:     req.Project,
 		App:         req.App,
 		Environment: req.Environment,
@@ -100,7 +100,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			Action:       rbac.UpdatePolicy,
 		}),
 		rbac.U(
-			urn.New().Workspace(principal.WorkspaceID).Project(env.ProjectID).App(env.AppID).Environment(env.ID).Gateway().Policy(req.PolicyId),
+			urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(env.ProjectID).App(env.AppID).Environment(env.ID).Gateway().Policy(req.PolicyId),
 			permissions.Write,
 		),
 	))
@@ -220,7 +220,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		// arriving with this request need checking.
 		if req.Keyauth != nil && len(req.Keyauth.Keyspaces) > 0 {
 			found, keyspaceErr := db.Query.FindKeyAuthsByIdsAndWorkspace(ctx, tx, db.FindKeyAuthsByIdsAndWorkspaceParams{
-				WorkspaceID: principal.WorkspaceID,
+				WorkspaceID: principal.AuthorizedWorkspaceID,
 				KeyAuthIds:  req.Keyauth.Keyspaces,
 			})
 			if keyspaceErr != nil {
@@ -284,7 +284,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			)
 		}
 		return h.Auditlogs.Insert(ctx, tx, []auditlog.AuditLog{{
-			WorkspaceID:   principal.WorkspaceID,
+			WorkspaceID:   principal.AuthorizedWorkspaceID,
 			Event:         auditlog.EnvironmentUpdateEvent,
 			Display:       fmt.Sprintf("Updated policy %s (%s) for environment %s", updated.GetName(), updated.GetId(), env.ID),
 			ActorID:       principal.Subject.ID,

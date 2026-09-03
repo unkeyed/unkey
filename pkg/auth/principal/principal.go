@@ -52,9 +52,9 @@ type Principal struct {
 	// Source carries the method-specific authentication details.
 	Source Source
 
-	// WorkspaceID is the workspace this principal can access. For root keys, it
-	// is keys.for_workspace_id, not the key owner in [KeySource.WorkspaceID].
-	WorkspaceID string
+	// AuthorizedWorkspaceID is the workspace this principal can access. For root
+	// keys, it is keys.for_workspace_id, not the key owner in [KeySource.WorkspaceID].
+	AuthorizedWorkspaceID string
 
 	// Permissions is the flat set of exact or resource-scoped authorization grants.
 	Permissions []string
@@ -74,7 +74,7 @@ func (p *Principal) Authorize(query rbac.PermissionQuery) error {
 	if err != nil {
 		p.authorizationError = err
 		logger.Warn("principal authorization denied",
-			slog.String("workspace_id", p.WorkspaceID),
+			slog.String("workspace_id", p.AuthorizedWorkspaceID),
 			slog.String("principal_type", string(p.Type)),
 			slog.String("subject_type", string(p.Subject.Type)),
 			slog.String("subject_id", p.Subject.ID),
