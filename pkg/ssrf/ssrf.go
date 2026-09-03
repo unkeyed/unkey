@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"net/netip"
 	"net/url"
 	"time"
 )
@@ -16,6 +17,8 @@ type config struct {
 	timeout        time.Duration
 	unsafeAllowAll bool
 	redirectsMax   int
+	// lookupIPAddr has no exported option because only tests need controlled DNS answers.
+	lookupIPAddr func(ctx context.Context, host string) ([]net.IPAddr, error)
 }
 
 // Option configures [New] and [ValidateEndpoint].
@@ -85,12 +88,35 @@ func ValidateEndpoint(raw string, opts ...Option) error {
 	return nil
 }
 
+// These IANA special-purpose ranges fall outside Go's IsPrivate, IsLoopback,
+// and related predicates but can expose internal cloud space or embed IPv4
+// addresses that NAT64 and 6to4 translators forward without another IP check.
+var forbiddenPrefixes = []netip.Prefix{
+	netip.MustParsePrefix("100.64.0.0/10"),      // Shared address space.
+	netip.MustParsePrefix("192.0.0.0/24"),       // IETF protocol assignments.
+	netip.MustParsePrefix("198.18.0.0/15"),      // Benchmarking.
+	netip.MustParsePrefix("255.255.255.255/32"), // Limited broadcast.
+	netip.MustParsePrefix("64:ff9b::/96"),       // NAT64 well-known prefix.
+	netip.MustParsePrefix("2002::/16"),          // 6to4.
+}
+
 // IsForbiddenIP reports whether the SSRF guard rejects the resolved address.
-// It rejects nil, loopback, private (RFC 1918 and ULA), link-local,
-// unspecified, and multicast addresses.
+// It rejects nil or malformed addresses, loopback, private (RFC 1918 and ULA),
+// link-local, unspecified, multicast, and IANA special-purpose ranges such as
+// shared address space, NAT64, and 6to4.
 func IsForbiddenIP(ip net.IP) bool {
-	return ip == nil || ip.IsLoopback() || ip.IsPrivate() || ip.IsLinkLocalUnicast() ||
-		ip.IsLinkLocalMulticast() || ip.IsUnspecified() || ip.IsMulticast()
+	addr, ok := netip.AddrFromSlice(ip)
+	if !ok {
+		return true
+	}
+	addr = addr.Unmap()
+	for _, prefix := range forbiddenPrefixes {
+		if prefix.Contains(addr) {
+			return true
+		}
+	}
+	return addr.IsLoopback() || addr.IsPrivate() || addr.IsLinkLocalUnicast() ||
+		addr.IsLinkLocalMulticast() || addr.IsUnspecified() || addr.IsMulticast()
 }
 
 // applyOptions folds opts into a config, starting from the safe zero value.
@@ -108,12 +134,16 @@ func applyOptions(opts []Option) config {
 func dialContext(cfg config) func(context.Context, string, string) (net.Conn, error) {
 	//nolint:exhaustruct
 	dialer := &net.Dialer{Timeout: 30 * time.Second, KeepAlive: 30 * time.Second}
+	lookupIPAddr := cfg.lookupIPAddr
+	if lookupIPAddr == nil {
+		lookupIPAddr = net.DefaultResolver.LookupIPAddr
+	}
 	return func(ctx context.Context, network, address string) (net.Conn, error) {
 		host, port, err := net.SplitHostPort(address)
 		if err != nil {
 			return nil, fmt.Errorf("split dial address: %w", err)
 		}
-		ips, err := net.DefaultResolver.LookupIPAddr(ctx, host)
+		ips, err := lookupIPAddr(ctx, host)
 		if err != nil {
 			return nil, fmt.Errorf("resolve endpoint host: %w", err)
 		}
