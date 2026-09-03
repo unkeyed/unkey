@@ -1,3 +1,4 @@
+import { AlertsNavBadge } from "@/components/navigation/sidebar-v2/alerts-nav-badge";
 import {
   ArrowDottedRotateAnticlockwise,
   ArrowOppositeDirectionY,
@@ -10,10 +11,12 @@ import {
   Key,
   Layers3,
   Nodes,
+  Pulse,
   ShieldKey,
   SquareBulletList,
   WindowLayout,
 } from "@unkey/icons";
+import { createElement } from "react";
 import { routes } from "./routes";
 import type { ResolvedNavLink } from "./types";
 
@@ -54,6 +57,14 @@ export function buildWorkspaceSections(slug: string, segments: string[]): Resolv
       href: `/${slug}/logs`,
       icon: Layers3,
       isActive: top === "logs",
+    },
+    {
+      key: "alerts",
+      label: "Alerts",
+      href: routes.alerts.list({ workspaceSlug: slug }),
+      icon: Pulse,
+      isActive: top === "alerts",
+      tag: createElement(AlertsNavBadge),
     },
     {
       key: "identities",

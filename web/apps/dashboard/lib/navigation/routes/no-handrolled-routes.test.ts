@@ -25,6 +25,7 @@ const AREAS = [
   "authorization",
   "identities",
   "audit",
+  "alerts",
   "logs",
 ] as const;
 
