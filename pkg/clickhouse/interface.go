@@ -49,6 +49,18 @@ type Querier interface {
 	// Returns 0 (not an error) when the deployment has received no traffic.
 	GetDeploymentRequestCount(ctx context.Context, req GetDeploymentRequestCountRequest) (int64, error)
 
+	// GetRequestAnomalyWindows returns per-app request and error aggregates for
+	// one closed 5-minute window and its trailing 24-hour baseline.
+	GetRequestAnomalyWindows(ctx context.Context, req AnomalyWindowsRequest) ([]RequestAnomalyWindow, error)
+
+	// GetResourceAnomalyWindows returns per-app resource aggregates for one
+	// closed 5-minute window and its trailing 24-hour baseline.
+	GetResourceAnomalyWindows(ctx context.Context, req AnomalyWindowsRequest) ([]ResourceAnomalyWindow, error)
+
+	// GetInstanceEventAnomalyWindows returns per-app OOM and crash-loop counts
+	// for one closed 5-minute window.
+	GetInstanceEventAnomalyWindows(ctx context.Context, req AnomalyWindowsRequest) ([]InstanceEventAnomalyWindow, error)
+
 	// GetKeyLastUsedBatchPartitioned returns keys in a specific hash partition
 	// (cityHash64(key_id) % totalPartitions == partition) after the given cursor,
 	// ordered by (time, key_id). Used by the KeyLastUsedSync partition workers.
