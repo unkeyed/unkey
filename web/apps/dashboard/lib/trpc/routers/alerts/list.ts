@@ -19,6 +19,15 @@ export const listAlerts = workspaceProcedure
     if (input.appId) {
       filters.push(eq(schema.alertEvents.appId, input.appId));
     }
+    if (input.environmentId) {
+      filters.push(eq(schema.alertEvents.environmentId, input.environmentId));
+    }
+    if (input.startMs !== undefined) {
+      filters.push(gt(schema.alertEvents.windowEnd, input.startMs));
+    }
+    if (input.endMs !== undefined) {
+      filters.push(lt(schema.alertEvents.windowStart, input.endMs));
+    }
 
     if (input.cursor) {
       const [cursor] = await db
