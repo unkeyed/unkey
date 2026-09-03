@@ -4,7 +4,6 @@ import (
 	"context"
 	"strings"
 
-	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/deploy/imageref"
 	"github.com/unkeyed/unkey/pkg/fault"
@@ -50,11 +49,6 @@ type resolvedSource struct {
 	Source    buildSource `json:"source"`
 	Commit    gitCommit   `json:"commit"`
 	Rejection *rejection  `json:"rejection"`
-}
-
-// newResolvedSource is a source ready to build.
-func newResolvedSource(source buildSource, commit gitCommit) resolvedSource {
-	return resolvedSource{Source: source, Commit: commit, Rejection: nil}
 }
 
 // newRejectedSource is a refusal. Nothing is written, so it carries no source and
@@ -122,7 +116,11 @@ func (w *Workflow) resolveSource(
 				"%s", fault.UserFacingMessage(err),
 			)), nil
 		}
-		return newResolvedSource(buildSource{Image: image, Git: nil}, commit), nil
+		return resolvedSource{
+			Source:    buildSource{Image: image, Git: nil},
+			Commit:    commit,
+			Rejection: nil,
+		}, nil
 
 	case *hydrav1.DeployCreateRequest_Git:
 		return w.resolveGitSource(target, commit, source.Git.GetPrNumber())
@@ -169,7 +167,10 @@ func (w *Workflow) resolveGitSource(
 	// without a branch may live off the default branch, and a wrong branch beside
 	// a right commit is worse than none: sibling dedup keys on branch.
 	if commit.SHA == "" && commit.Branch == "" {
-		commit.Branch = defaultBranch(target.DefaultBranch)
+		commit.Branch = target.DefaultBranch
+		if commit.Branch == "" {
+			commit.Branch = "main"
+		}
 	}
 
 	if fillErr := commit.fillFromGitHub(
@@ -191,17 +192,21 @@ func (w *Workflow) resolveGitSource(
 		)), nil
 	}
 
-	return newResolvedSource(buildSource{
-		Image: "",
-		Git: &gitSource{
-			InstallationID: target.GithubInstallationID.Int64,
-			Repository:     target.GithubRepositoryFullName.String,
-			ContextPath:    target.DockerContext,
-			DockerfilePath: target.Dockerfile.String,
-			BuildCommand:   target.BuildCommand.String,
-			PRNumber:       prNumber,
+	return resolvedSource{
+		Source: buildSource{
+			Image: "",
+			Git: &gitSource{
+				InstallationID: target.GithubInstallationID.Int64,
+				Repository:     target.GithubRepositoryFullName.String,
+				ContextPath:    target.DockerContext,
+				DockerfilePath: target.Dockerfile.String,
+				BuildCommand:   target.BuildCommand.String,
+				PRNumber:       prNumber,
+			},
 		},
-	}, commit), nil
+		Commit:    commit,
+		Rejection: nil,
+	}, nil
 }
 
 // resolveExistingDeployment rebuilds what another deployment ran: its commit
@@ -265,7 +270,15 @@ func (w *Workflow) resolveExistingDeployment(
 		}
 	}
 
-	commit := gitCommitFromDeployment(src)
+	commit := gitCommit{
+		SHA:             src.GitCommitSha.String,
+		Branch:          src.GitBranch.String,
+		Message:         src.GitCommitMessage.String,
+		AuthorHandle:    src.GitCommitAuthorHandle.String,
+		AuthorAvatarURL: src.GitCommitAuthorAvatarUrl.String,
+		Timestamp:       src.GitCommitTimestamp.Int64,
+		ForkRepository:  src.ForkRepositoryFullName.String,
+	}
 
 	// A commit is only rebuildable while the app still has the connection to
 	// fetch it from. Without one, use the image the source produced.
@@ -288,49 +301,11 @@ func (w *Workflow) resolveExistingDeployment(
 		"source_deployment_id", src.ID,
 		"image", src.Image.String,
 	)
-	return newResolvedSource(buildSource{Image: src.Image.String, Git: nil}, commit), nil
-}
-
-// defaultBranch returns the app's configured default branch, falling back to
-// "main" when unset.
-func defaultBranch(appDefault string) string {
-	if appDefault != "" {
-		return appDefault
-	}
-	return "main"
-}
-
-// gitCommitFromProto maps caller-supplied commit metadata onto [gitCommit],
-// normalizing whitespace only. GitHub fill-in happens in resolveSource, so an
-// image redeploy never synthesizes git metadata.
-func gitCommitFromProto(gc *ctrlv1.GitCommitInfo) gitCommit {
-	if gc == nil {
-		// Every field empty: unknown by contract, and eligible to be filled.
-		var unknown gitCommit
-		return unknown
-	}
-	return gitCommit{
-		SHA:             gc.GetCommitSha(),
-		Branch:          strings.TrimSpace(gc.GetBranch()),
-		Message:         gc.GetCommitMessage(),
-		AuthorHandle:    strings.TrimSpace(gc.GetAuthorHandle()),
-		AuthorAvatarURL: strings.TrimSpace(gc.GetAuthorAvatarUrl()),
-		Timestamp:       gc.GetTimestamp(),
-		ForkRepository:  gc.GetForkRepository(),
-	}
-}
-
-// gitCommitFromDeployment reads the git metadata a deployment row records.
-func gitCommitFromDeployment(d db.Deployment) gitCommit {
-	return gitCommit{
-		SHA:             d.GitCommitSha.String,
-		Branch:          d.GitBranch.String,
-		Message:         d.GitCommitMessage.String,
-		AuthorHandle:    d.GitCommitAuthorHandle.String,
-		AuthorAvatarURL: d.GitCommitAuthorAvatarUrl.String,
-		Timestamp:       d.GitCommitTimestamp.Int64,
-		ForkRepository:  d.ForkRepositoryFullName.String,
-	}
+	return resolvedSource{
+		Source:    buildSource{Image: src.Image.String, Git: nil},
+		Commit:    commit,
+		Rejection: nil,
+	}, nil
 }
 
 // fillFromGitHub fills empty fields from GitHub, and is a no-op when there is
