@@ -66,12 +66,13 @@ func TestResolver_ResolveRootKeyPrincipal(t *testing.T) {
 	keyService := &stubKeyService{
 		rootKey: &keys.KeyVerifier{
 			Key: keysdb.FindKeyForVerificationRow{
-				ID:        "key_123",
-				KeyAuthID: "ks_123",
-				Name:      sql.NullString{String: "Production root key", Valid: true},
+				ID:          "key_123",
+				KeyAuthID:   "ks_123",
+				WorkspaceID: "ws_root",
+				Name:        sql.NullString{String: "Production root key", Valid: true},
 			},
 			Permissions:           []string{"api.*.read_key"},
-			AuthorizedWorkspaceID: "ws_123",
+			AuthorizedWorkspaceID: "ws_authorized",
 		},
 	}
 	resolver := NewResolver(keyService)
@@ -85,12 +86,13 @@ func TestResolver_ResolveRootKeyPrincipal(t *testing.T) {
 	require.Equal(t, authprincipal.SubjectTypeRootKey, p.Subject.Type)
 	require.Equal(t, "key_123", p.Subject.ID)
 	require.Equal(t, "Production root key", p.Subject.Name)
-	require.Equal(t, "ws_123", p.WorkspaceID)
+	require.Equal(t, "ws_authorized", p.WorkspaceID)
 	require.Equal(t, []string{"api.*.read_key"}, p.Permissions)
 	source, ok := p.Source.(authprincipal.KeySource)
 	require.True(t, ok)
 	require.Equal(t, "key_123", source.KeyID)
 	require.Equal(t, "ks_123", source.KeySpaceID)
+	require.Equal(t, "ws_root", source.WorkspaceID)
 	require.Equal(t, []string{"api.*.read_key"}, source.Permissions)
 }
 

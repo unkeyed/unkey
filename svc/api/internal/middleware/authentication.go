@@ -62,12 +62,18 @@ func WithAuthentication(config AuthenticationConfig) zen.Middleware {
 			}
 
 			if p.Subject.Type == principalauth.SubjectTypeRootKey && config.KeyVerifications != nil {
-				keySource, _ := p.Source.(principalauth.KeySource)
+				keySource, ok := p.Source.(principalauth.KeySource)
+				if !ok {
+					return fault.New(
+						"root key principal must have a key source",
+						fault.Code(codes.App.Validation.AssertionFailed.URN()),
+					)
+				}
 
 				verification := schema.KeyVerification{
 					RequestID:    sess.RequestID(),
 					Time:         time.Now().UnixMilli(),
-					WorkspaceID:  p.WorkspaceID,
+					WorkspaceID:  keySource.WorkspaceID,
 					KeySpaceID:   keySource.KeySpaceID,
 					IdentityID:   "",
 					ExternalID:   "",
