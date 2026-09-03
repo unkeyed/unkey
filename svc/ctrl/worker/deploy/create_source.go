@@ -112,8 +112,8 @@ func (w *Workflow) resolveSource(
 				target.AppID,
 			)), nil
 		}
-		// Redeploying the live deployment is never an operator resurrecting an
-		// older one, so the guardrail does not apply.
+		// Redeploying the live deployment can never resurrect an older one, so the
+		// guardrail below does not apply.
 		return w.resolveExistingDeployment(ctx, target, target.CurrentDeploymentID.String, false)
 	}
 }
@@ -214,8 +214,8 @@ func (w *Workflow) resolveExistingDeployment(
 		)), nil
 	}
 
-	// Guardrail for operator rebuilds: refuse to resurrect a deployment someone
-	// has already shipped past.
+	// Guardrail for the ops rebuild RPC: refuse to resurrect a deployment that
+	// someone has already shipped past.
 	if requireNoNewer {
 		hasNewer, newerErr := w.db.HasNewerActiveDeployment(ctx, db.HasNewerActiveDeploymentParams{
 			AppID:         src.AppID,
