@@ -39,6 +39,7 @@ describe("IntegrateDialog", () => {
     expect(curl).toContain('"externalId"');
     expect(curl).toContain('"scopes"');
     expect(curl).toContain("keys:read");
+    expect(curl).toContain("keys:reroll");
     // The prototype's field names would 400 against the real endpoint.
     expect(curl).not.toContain("permissions");
     expect(curl).not.toContain("portalId");
@@ -55,6 +56,21 @@ describe("IntegrateDialog", () => {
       expect(snippet).not.toContain("permissions");
       expect(snippet).not.toContain("portalId");
     }
+  });
+
+  // createSession rejects these two at the request boundary, so a snippet naming
+  // either one hands the customer a payload the API refuses.
+  it("offers only the scopes createSession still accepts", () => {
+    renderDialog();
+
+    for (const language of ["curl", "ts", "go"]) {
+      const snippet = screen.getByTestId(`panel-${language}`).textContent ?? "";
+      expect(snippet).not.toContain("analytics:read");
+      expect(snippet).not.toContain("keys:create");
+      expect(snippet).not.toContain("AnalyticsRead");
+    }
+
+    expect(screen.queryByText(/analytics/i)).toBeNull();
   });
 
   it("documents returnUrl with the trust caveat that stops an open redirect", () => {
