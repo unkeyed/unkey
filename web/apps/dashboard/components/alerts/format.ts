@@ -97,14 +97,15 @@ export function alertMetricLabel(metric: AlertMetric): string {
 
 export function formatAlertValue(metric: AlertMetric, value: number): string {
   switch (metric) {
+    case "error_5xx":
+    case "error_4xx":
+      return `${formatDecimal(value * 100, 1)}%`;
     case "egress_bytes":
       return formatBytes(value);
     case "cpu_seconds":
       return `${formatDecimal(value, 2)} s`;
     case "memory_utilization":
       return `${formatDecimal(value * 100, 1)}%`;
-    case "error_5xx":
-    case "error_4xx":
     case "requests":
     case "requests_drop":
     case "oom_killed":
@@ -117,14 +118,15 @@ export function formatAlertValue(metric: AlertMetric, value: number): string {
 
 export function formatAlertAxisValue(metric: AlertMetric, value: number): string {
   switch (metric) {
+    case "error_5xx":
+    case "error_4xx":
+      return `${formatDecimal(value * 100, 1)}%`;
     case "egress_bytes":
       return formatBytes(value);
     case "memory_utilization":
       return `${formatDecimal(value * 100, 0)}%`;
     case "cpu_seconds":
       return `${compactFormatter.format(value)} s`;
-    case "error_5xx":
-    case "error_4xx":
     case "requests":
     case "requests_drop":
     case "oom_killed":
@@ -147,6 +149,19 @@ export function hasFixedAlertThreshold(metric: AlertMetric): boolean {
   return metric === "memory_utilization" || metric === "oom_killed" || metric === "crash_loop";
 }
 
+export function isErrorRateMetric(metric: AlertMetric): boolean {
+  return metric === "error_5xx" || metric === "error_4xx";
+}
+
+export function formatRequestsDropChange(observed: number, recentMedian: number): string {
+  if (recentMedian <= 0) {
+    return "No recent traffic";
+  }
+  const changePercent = (observed / recentMedian - 1) * 100;
+  const sign = changePercent < 0 ? "−" : "+";
+  return `${sign}${formatDecimal(Math.abs(changePercent), 0)}%`;
+}
+
 export function formatAlertDistance(
   metric: AlertMetric,
   observed: number,
@@ -155,10 +170,12 @@ export function formatAlertDistance(
 ): string {
   switch (metric) {
     case "memory_utilization":
-      return `${formatAlertValue(metric, observed)} · limit 90%`;
+      return `avg ${formatAlertValue(metric, observed)} · limit 90%`;
     case "oom_killed":
     case "crash_loop":
       return `${formatAlertValue(metric, observed)} events · limit 1`;
+    case "requests_drop":
+      return formatRequestsDropChange(observed, mean);
     default:
       return formatSigma(observed, mean, stddev);
   }
