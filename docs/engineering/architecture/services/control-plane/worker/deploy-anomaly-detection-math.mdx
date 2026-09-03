@@ -1,0 +1,192 @@
+---
+title: "Deploy anomaly detection math"
+description: "Threshold, baseline, confirmation, and recovery rules for Deploy anomalies"
+---
+
+The Deploy anomaly detector combines historical sigma thresholds, error ratios,
+a robust request-drop rule, and fixed health thresholds. Every rule evaluates
+one closed 5-minute window for one app and production environment.
+
+## Build the trailing baseline
+
+Sigma metrics use up to 288 buckets from the preceding 24 hours. The current
+bucket is excluded. ClickHouse returns moments for non-empty buckets and the
+time of the first bucket observed for the app.
+
+`BaselineWindowBuckets` limits zero-padding to the app's observed lifetime:
+
+`min(288, (window_start - first_bucket_time) / 5 minutes)`
+
+For count-like spike metrics, the detector reconstructs the population mean and
+standard deviation after adding zero-valued missing buckets inside that
+lifetime. It does not add zeros for time before the app existed. Error metrics
+use request-weighted ratios instead of padding ratio buckets.
+
+For example, an app first observed 30 minutes before the current window has six
+possible baseline buckets, not 288. Even if all six contain steady traffic, the
+app has fewer than the minimum 12 observed buckets and cannot fire. After at
+least 1 hour and 12 observed buckets, the normal rules apply. This prevents a
+brand-new app's first stable traffic from looking like a spike against 23 hours
+of invented zeros.
+
+Request drops need 72 observed buckets, or 6 hours, before they can become a
+candidate. Their longer ramp-up avoids treating short test runs followed by
+silence as an outage.
+
+## Apply spike thresholds
+
+Request, egress, and CPU spikes use an effective population standard deviation:
+
+`sigma_effective = max(stddev, 0.1 * mean, metric_floor)`
+
+The opening threshold is:
+
+`mean + k * sigma_effective`
+
+The comparison is strict. A current value equal to the threshold does not fire.
+Sensitivity selects `k`: low is 5, normal is 4, and high is 3. Unknown or empty
+sensitivity uses normal.
+
+| Metric | Absolute deviation floor | Normal-sensitivity example |
+| --- | ---: | --- |
+| `requests` | 5 requests | Mean 100, standard deviation 8, and effective deviation 10 produce a threshold of 140. A current value of 141 fires. |
+| `egress_bytes` | 65,536 bytes | Mean 1,000,000 bytes and standard deviation 20,000 bytes produce an effective deviation of 100,000 and a threshold of 1,400,000. A current value of 1,500,000 fires. |
+| `cpu_seconds` | 1 second | Mean 10 seconds and standard deviation 0.25 seconds produce an effective deviation of 1 and a threshold of 14. A current value of 14 does not fire, but 14.1 does. |
+
+The 10% guard keeps a low-variance baseline from making tiny changes appear
+extreme. The absolute floor handles a zero or near-zero mean.
+
+## Compare error ratios
+
+`error_5xx` and `error_4xx` compare the error ratio, not the raw error count:
+
+`current_ratio = current_errors / current_requests`
+
+The baseline mean is request-weighted:
+
+`baseline_ratio = sum(baseline_errors) / sum(baseline_requests)`
+
+The standard deviation is calculated from each non-empty bucket's error ratio.
+Its effective value is:
+
+`max(ratio_stddev, 0.1 * baseline_ratio, 0.01)`
+
+An error window crosses the detector only when both conditions are true:
+
+1. `current_ratio > baseline_ratio + k * sigma_effective`.
+2. `current_errors - baseline_ratio * current_requests >= 20`.
+
+Using a ratio separates error rate from traffic volume. A raw count of 100
+errors means something different in 200 requests than in 1,000,000 requests.
+Weighting the baseline mean by requests prevents a low-volume bucket from
+having the same influence as a high-volume bucket. The excess-failure floor
+then rejects a large percentage change that affects too few requests to be
+actionable.
+
+### Work a moderate 5xx example
+
+Suppose the baseline has 100 errors in 10,000 requests. Its weighted ratio is
+1%. The per-bucket ratio standard deviation is 0.5%. The 1% absolute floor
+makes the effective deviation 1%, so normal sensitivity sets the crossing
+threshold at a ratio above 5%.
+
+The current window has 80 errors in 1,000 requests. Its ratio is 8%, expected
+failures are 10, and excess failures are 70. It crosses both conditions. The
+first window becomes a candidate. A consecutive crossing in the next complete
+window opens the alert.
+
+The same numbers for `error_4xx` follow the same two-window rule and store
+`0.08` as `observed_value`.
+
+### Work a catastrophic 5xx example
+
+A 5xx window is catastrophic when its ratio is at least 50% and it contains at
+least 50 failures. For example, 60 failures in 100 requests is a 60% ratio and
+opens after one window. The catastrophic shortcut applies only to `error_5xx`.
+
+## Detect sustained request drops
+
+`requests_drop` does not use the lower side of a sigma distribution. It compares
+the current value with the median of the preceding 12 complete buckets:
+
+`current < 0.25 * recent_median`
+
+All of these conditions must hold:
+
+- At least 72 baseline buckets have been observed.
+- At least nine of the previous 12 buckets contain 200 or more requests.
+- The absolute loss, `recent_median - current`, is at least 200 requests.
+- Two consecutive complete windows cross the rule.
+- A live deployment exists and its desired state is not `stopped`.
+
+For example, assume the recent median is 1,000 requests, and 10 of the 12
+buckets have at least 200 requests. The threshold is 250. A current window with
+100 requests loses 900 requests and becomes a candidate. If the next complete
+window also has fewer than 250 requests, the detector opens an alert.
+
+The median resists one recent spike or dip. The activity count rejects scheduled
+and bursty workloads that are normally idle. A lower sigma threshold cannot
+provide those guarantees. A variable baseline can have a negative statistical
+lower bound, and a zero request bucket can also mean ingest delay. The explicit
+rule models a sustained loss from a recent, active level instead.
+
+The alert stores the recent median in `baseline_mean` and stores zero in
+`baseline_stddev` and `threshold_sigma`. When a deployment stops, an open drop
+alert resolves with `Deployment stopped`.
+
+## Apply fixed thresholds
+
+Memory and instance health events do not need a historical baseline. Their
+stored `baseline_mean`, `baseline_stddev`, and `threshold_sigma` values are zero.
+
+| Metric | Opening rule | Example |
+| --- | --- | --- |
+| `memory_utilization` | 5-minute average across instances is at least 90%. | An average of 0.91 opens after one window. An average of 0.90 also opens. |
+| `oom_killed` | At least one `OOMKilled` terminated event. | One event opens after one window. |
+| `crash_loop` | At least one `CrashLoopBackOff` waiting event. | Two events open one alert after one window. |
+
+These thresholds apply to complete source windows. An incomplete source never
+acts like a zero and never advances recovery.
+
+## Confirm sustained conditions
+
+Moderate error spikes and request drops need two consecutive anomalous windows.
+The virtual object stores the candidate window start and verifies that the next
+start is exactly 5 minutes later. A normal, insufficient, or non-consecutive
+window clears the candidate.
+
+Request spikes, egress spikes, CPU spikes, memory pressure, OOM kills, crash
+loops, and catastrophic 5xx errors open after one complete window.
+
+## Recover against the opening snapshot
+
+When an alert opens, the detector snapshots its baseline mean, effective
+standard deviation, sigma multiplier, and opening threshold. It does not use a
+later rolling baseline for recovery. A sustained incident would otherwise enter
+the baseline and redefine the bad behavior as normal.
+
+Sigma and error metrics use a one-sigma hysteresis band:
+
+`recovery_threshold = opening_mean + (k - 1) * opening_sigma_effective`
+
+For the request-spike example, the opening threshold is 140. Recovery uses
+`100 + (4 - 1) * 10 = 130`. Values at or below 130 count as recovered. Values
+above 130 reset the quiet count and update the open alert.
+
+Other metrics use rule-specific recovery against the opening snapshot:
+
+| Metric | Recovered window |
+| --- | --- |
+| `requests_drop` | Requests return to at least the snapshotted 25% median threshold. |
+| `memory_utilization` | Utilization falls below 85%. |
+| `oom_killed` | The complete window has zero events. |
+| `crash_loop` | The complete window has zero events. |
+
+Three consecutive complete recovered windows resolve the alert. The system sets
+`resolved_by = system` and the message
+`Metric returned to baseline for 3 consecutive windows`. Any anomalous window
+before the third resets the count. An incomplete window neither increments nor
+resets it.
+
+See the [architecture page](/architecture/services/control-plane/worker/deploy-anomaly-detection)
+for orchestration, storage, and dashboard behavior.
