@@ -29,8 +29,8 @@ properties:
   oci:
     description: |
       Change the default image reference for an OCI-sourced app. This does not
-      create a deployment. Image updates cannot be combined with other changes,
-      and source switching is not supported.
+      create a deployment. It can be combined with other app settings. Source
+      switching is not supported.
     allOf:
       - "$ref": "../../../../common/AppOCI.yaml"
   deleteProtection:
@@ -40,9 +40,7 @@ properties:
       Omit this field to leave the current setting unchanged.
     example: true
 additionalProperties: false
-description: |
-  Provide at least one field to update. Change an OCI app's image in a
-  standalone request; it cannot be combined with other changes.
+description: Provide at least one field to update. Omitted fields remain unchanged.
 examples:
   rename:
     summary: Rename an app by ID

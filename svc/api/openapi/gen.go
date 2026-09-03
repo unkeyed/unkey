@@ -1959,8 +1959,7 @@ type V2AppsListAppsResponseBody struct {
 	Pagination Pagination `json:"pagination"`
 }
 
-// V2AppsUpdateAppRequestBody Provide at least one field to update. Change an OCI app's image in a
-// standalone request; it cannot be combined with other changes.
+// V2AppsUpdateAppRequestBody Provide at least one field to update. Omitted fields remain unchanged.
 type V2AppsUpdateAppRequestBody struct {
 	// App Identifies a resource by either its unique ID or its slug.
 	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
@@ -1981,8 +1980,8 @@ type V2AppsUpdateAppRequestBody struct {
 	Name *string `json:"name,omitempty"`
 
 	// Oci Change the default image reference for an OCI-sourced app. This does not
-	// create a deployment. Image updates cannot be combined with other changes,
-	// and source switching is not supported.
+	// create a deployment. It can be combined with other app settings. Source
+	// switching is not supported.
 	Oci *AppOCI `json:"oci,omitempty"`
 
 	// Project Identifies a resource by either its unique ID or its slug.

@@ -66,46 +66,6 @@ func TestUpdateAppBadRequest(t *testing.T) {
 		{name: "git repository too long", req: handler.Request{Project: validProject, App: validID, Git: nullable.NewNullableWithValue(openapi.AppGitUpdateInput{Repository: ptr.P(strings.Repeat("a", 256))})}},
 		{name: "git default branch empty", req: handler.Request{Project: validProject, App: validID, Git: nullable.NewNullableWithValue(openapi.AppGitUpdateInput{Repository: ptr.P("unkeyed/unkey"), DefaultBranch: ptr.P("")})}},
 		{name: "git default branch too long", req: handler.Request{Project: validProject, App: validID, Git: nullable.NewNullableWithValue(openapi.AppGitUpdateInput{Repository: ptr.P("unkeyed/unkey"), DefaultBranch: ptr.P(strings.Repeat("a", 257))})}},
-		{
-			name: "OCI image combined with name update",
-			req: handler.Request{
-				Project: validProject,
-				App:     validID,
-				Name:    ptr.P("App"),
-				Oci:     &openapi.AppOCI{Image: "nginx:stable"},
-			},
-			wantDetail: "Update the OCI image in a separate request.",
-		},
-		{
-			name: "OCI image combined with slug update",
-			req: handler.Request{
-				Project: validProject,
-				App:     validID,
-				Slug:    ptr.P(openapi.ResourceIdentifier("new-slug")),
-				Oci:     &openapi.AppOCI{Image: "nginx:stable"},
-			},
-			wantDetail: "Update the OCI image in a separate request.",
-		},
-		{
-			name: "OCI image combined with git update",
-			req: handler.Request{
-				Project: validProject,
-				App:     validID,
-				Git:     nullable.NewNullNullable[openapi.AppGitUpdateInput](),
-				Oci:     &openapi.AppOCI{Image: "nginx:stable"},
-			},
-			wantDetail: "Update the OCI image in a separate request.",
-		},
-		{
-			name: "OCI image combined with delete protection update",
-			req: handler.Request{
-				Project:          validProject,
-				App:              validID,
-				Oci:              &openapi.AppOCI{Image: "nginx:stable"},
-				DeleteProtection: ptr.P(true),
-			},
-			wantDetail: "Update the OCI image in a separate request.",
-		},
 	}
 
 	for _, tc := range testCases {

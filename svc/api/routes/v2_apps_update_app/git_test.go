@@ -344,7 +344,7 @@ func TestUpdateAppConnectRepositoryForbidden(t *testing.T) {
 	require.Equal(t, http.StatusForbidden, res.Status, "expected 403, received: %s", res.RawBody)
 }
 
-func TestUpdateAppOCIImage(t *testing.T) {
+func TestUpdateAppOCIImageWithAppSettings(t *testing.T) {
 	h := testutil.NewHarness(t)
 	ctrlClient := &testutil.MockAppClient{
 		UpdateOciImageSourceFunc: func(_ context.Context, _ *ctrlv1.UpdateOciImageSourceRequest) (*ctrlv1.UpdateOciImageSourceResponse, error) {
@@ -378,10 +378,15 @@ func TestUpdateAppOCIImage(t *testing.T) {
 		Slug:        appSlug(),
 		SourceType:  db.AppsSourceTypeOci,
 	})
+	updatedName := "Updated OCI app"
+	updatedSlug := appSlug()
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
-		Project: project.ID,
-		App:     app.ID,
+		Project:          project.ID,
+		App:              app.ID,
+		Name:             &updatedName,
+		Slug:             &updatedSlug,
+		DeleteProtection: ptr.P(true),
 		Oci: &openapi.AppOCI{
 			Image: "nginx:1.27",
 		},
@@ -391,12 +396,21 @@ func TestUpdateAppOCIImage(t *testing.T) {
 	require.NotNil(t, res.Body.Data.Oci)
 	require.Equal(t, "index.docker.io/library/nginx:1.27", res.Body.Data.Oci.Image)
 	require.Nil(t, res.Body.Data.Git)
+	require.Equal(t, updatedName, res.Body.Data.Name)
+	require.Equal(t, updatedSlug, res.Body.Data.Slug)
+	require.True(t, res.Body.Data.DeleteProtection)
 	require.Len(t, ctrlClient.UpdateOciImageSourceCalls, 1)
 	call := ctrlClient.UpdateOciImageSourceCalls[0]
 	require.Equal(t, workspace.ID, call.GetWorkspaceId())
 	require.Equal(t, app.ID, call.GetAppId())
 	require.Equal(t, "nginx:1.27", call.GetImageReference())
 	require.NotNil(t, call.GetActor())
+
+	updatedApp, err := db.Query.FindAppById(context.Background(), h.DB.RO(), app.ID)
+	require.NoError(t, err)
+	require.Equal(t, updatedName, updatedApp.Name)
+	require.Equal(t, updatedSlug, updatedApp.Slug)
+	require.True(t, updatedApp.DeleteProtection.Bool)
 }
 
 func TestUpdateAppRejectsSourceSwitching(t *testing.T) {
@@ -464,22 +478,6 @@ func TestUpdateAppRejectsSourceSwitching(t *testing.T) {
 			Oci:     &openapi.AppOCI{Image: "ghcr.io/acme/api:v2"},
 		})
 		require.Equal(t, http.StatusBadRequest, res.Status, "expected 400, received: %s", res.RawBody)
-	})
-
-	t.Run("metadata and image together", func(t *testing.T) {
-		app := createApp(t, db.AppsSourceTypeOci)
-		originalName := app.Name
-		newName := "New name"
-		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, handler.Request{
-			Project: project.ID,
-			App:     app.ID,
-			Name:    &newName,
-			Oci:     &openapi.AppOCI{Image: "ghcr.io/acme/api:v2"},
-		})
-		require.Equal(t, http.StatusBadRequest, res.Status, "expected 400, received: %s", res.RawBody)
-		reloaded, err := db.Query.FindAppById(context.Background(), h.DB.RO(), app.ID)
-		require.NoError(t, err)
-		require.Equal(t, originalName, reloaded.Name)
 	})
 
 	require.Empty(t, ctrlClient.UpdateOciImageSourceCalls)
