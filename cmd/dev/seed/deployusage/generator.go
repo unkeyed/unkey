@@ -1,6 +1,7 @@
 package deployusage
 
 import (
+	"fmt"
 	"math"
 	"time"
 )
@@ -57,6 +58,64 @@ type environmentTarget struct {
 	id     string
 	slug   string
 	weight float64
+}
+
+type deploymentSeed struct {
+	id            string
+	k8sName       string
+	workspaceID   string
+	projectID     string
+	appID         string
+	environmentID string
+	commitSHA     string
+	message       string
+	createdAt     int64
+}
+
+func generateDeployments(now time.Time, targets []target) []deploymentSeed {
+	start := time.Date(now.Year(), now.Month()-2, 1, 0, 0, 0, 0, time.UTC)
+	monthStarts := []time.Time{start, start.AddDate(0, 1, 0), start.AddDate(0, 2, 0)}
+	days := []int{2, 8, 14, 20, 27}
+	deployments := make([]deploymentSeed, 0, len(targets)*len(monthStarts)*len(days))
+
+	for appIndex, target := range targets {
+		for _, monthStart := range monthStarts {
+			for eventIndex, baseDay := range days {
+				createdAt := time.Date(
+					monthStart.Year(),
+					monthStart.Month(),
+					baseDay+appIndex%3,
+					9+(appIndex*3+eventIndex)%12,
+					(appIndex*7+eventIndex*11)%60,
+					0,
+					0,
+					time.UTC,
+				)
+				if !createdAt.Before(now) || createdAt.Month() != monthStart.Month() {
+					continue
+				}
+
+				id := fmt.Sprintf("d_seedusage%02d%x", appIndex, createdAt.Unix())
+				environmentID := target.productionID
+				if eventIndex%3 == 0 {
+					environmentID = target.previewID
+				}
+				deployments = append(deployments, deploymentSeed{
+					id:            id,
+					k8sName:       fmt.Sprintf("%s%02d-%x", deploymentK8sPrefix, appIndex, createdAt.Unix()),
+					workspaceID:   target.workspaceID,
+					projectID:     target.projectID,
+					appID:         target.appID,
+					environmentID: environmentID,
+					commitSHA:     fmt.Sprintf("%040x", uint64(createdAt.Unix())*100+uint64(appIndex)),
+					message:       "Deploy " + target.profile.name,
+					createdAt:     createdAt.UnixMilli(),
+				})
+			}
+		}
+	}
+
+	return deployments
 }
 
 func generateUsage(now time.Time, targets []target) []usageRow {

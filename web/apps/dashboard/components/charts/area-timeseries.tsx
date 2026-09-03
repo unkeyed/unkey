@@ -4,8 +4,16 @@ import { ChartEmpty } from "@/components/logs/chart/chart-states";
 import { type ChartConfig, ChartContainer, ChartTooltip } from "@/components/ui/chart";
 import { formatBytesPerSecondParts } from "@/lib/utils/deployment-formatters";
 import { cn } from "@unkey/ui/src/lib/utils";
-import { useEffect, useId, useState } from "react";
-import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts";
+import { type ReactNode, useEffect, useId, useState } from "react";
+import {
+  Area,
+  AreaChart,
+  CartesianGrid,
+  type LabelProps,
+  ReferenceLine,
+  XAxis,
+  YAxis,
+} from "recharts";
 import { resolveXAxisDomain } from "./chart-domain";
 import { ChartError } from "./components/chart-error";
 import { ChartWaveLoading } from "./components/chart-wave-loading";
@@ -52,6 +60,47 @@ const Y_GUTTER_PX = 36;
 // for secondary context like "(17%)" next to memory values.
 export type ValueParts = { value: string; unit?: string; hint?: string };
 
+export type AreaChartAnnotation = {
+  timestamp: number;
+  label?: string;
+};
+
+function DeploymentAnnotationLabel({ viewBox, value }: LabelProps) {
+  if (!viewBox || !("x" in viewBox) || typeof viewBox.x !== "number") {
+    return null;
+  }
+  if (!("y" in viewBox) || typeof viewBox.y !== "number" || typeof value !== "string") {
+    return null;
+  }
+
+  const width = Math.max(48, value.length * 5.5 + 16);
+  return (
+    <g transform={`translate(${viewBox.x}, ${viewBox.y + 7})`} pointerEvents="none">
+      <rect
+        x={-width / 2}
+        y={0}
+        width={width}
+        height={20}
+        rx={10}
+        fill="hsl(var(--gray-2))"
+        stroke="hsl(var(--feature-8))"
+      />
+      <text
+        x={0}
+        y={10.5}
+        dominantBaseline="middle"
+        textAnchor="middle"
+        fill="hsl(var(--gray-12))"
+        fontFamily="var(--font-mono)"
+        fontSize={9}
+        fontWeight={500}
+      >
+        {value}
+      </text>
+    </g>
+  );
+}
+
 // AreaTimeseriesAxisOptions groups axis visibility, domains, scaling, and formatting.
 export type AreaTimeseriesAxisOptions = {
   // Set false to retain configured domains while hiding both axes.
@@ -89,6 +138,8 @@ type Props = {
   paleFill?: boolean;
   fillColors?: Record<string, string>;
   incompleteFrom?: number;
+  annotations?: AreaChartAnnotation[];
+  renderTooltipFooter?: (point: AreaChartPoint) => ReactNode;
   onActiveChange?: (point: AreaChartPoint | null) => void;
   hideTooltip?: boolean;
   // Renders non-empty, all-zero data as a flat line instead of an empty state.
@@ -108,6 +159,8 @@ export function AreaTimeseriesChart({
   paleFill,
   fillColors,
   incompleteFrom,
+  annotations,
+  renderTooltipFooter,
   onActiveChange,
   hideTooltip,
   showZeroLine,
@@ -338,10 +391,11 @@ export function AreaTimeseriesChart({
             const rows = configKeys
               .map((key) => ({ key, value: Number(point[key]) || 0 }))
               .sort((a, b) => b.value - a.value);
+            const footer = renderTooltipFooter?.(point);
             return (
               <div
                 role="tooltip"
-                className="grid items-start gap-1.5 rounded-xl border border-gray-4/50 bg-gray-1/80 backdrop-blur-md px-3 py-2.5 text-xs shadow-2xl select-none w-max max-w-[240px] animate-in fade-in-0 zoom-in-95 duration-150"
+                className="grid w-max max-w-[300px] animate-in items-start gap-1.5 rounded-xl border border-gray-4/50 bg-gray-1/80 px-3 py-2.5 text-xs shadow-2xl backdrop-blur-md duration-150 fade-in-0 zoom-in-95 select-none"
               >
                 <div className="font-medium text-[11px] text-accent-11">{labelText}</div>
                 <div className="grid gap-1">
@@ -366,6 +420,7 @@ export function AreaTimeseriesChart({
                     );
                   })}
                 </div>
+                {footer}
               </div>
             );
           }}
@@ -456,6 +511,22 @@ export function AreaTimeseriesChart({
               activeDot={false}
             />
           ))}
+        {annotations?.map((annotation) => (
+          <ReferenceLine
+            key={annotation.timestamp}
+            x={annotation.timestamp}
+            stroke="hsl(var(--feature-8))"
+            strokeWidth={1}
+            strokeDasharray="4 4"
+            strokeOpacity={0.6}
+            label={
+              annotation.label
+                ? { value: annotation.label, content: DeploymentAnnotationLabel }
+                : undefined
+            }
+            zIndex={500}
+          />
+        ))}
       </AreaChart>
     </ChartContainer>
   );

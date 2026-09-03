@@ -29,6 +29,23 @@ vi.mock("recharts", () => ({
     </svg>
   ),
   CartesianGrid: () => null,
+  ReferenceLine: ({
+    x,
+    label,
+    strokeDasharray,
+  }: {
+    x: number;
+    label?: { value: string; content: unknown };
+    strokeDasharray: string;
+  }) => (
+    <line
+      data-testid="reference-line"
+      data-x={x}
+      data-label={label?.value}
+      data-has-label-content={typeof label?.content === "function"}
+      strokeDasharray={strokeDasharray}
+    />
+  ),
   XAxis: ({ domain, hide }: { domain: unknown; hide: boolean }) => (
     <g data-testid="x-axis" data-domain={JSON.stringify(domain)} data-hidden={hide} />
   ),
@@ -135,5 +152,27 @@ describe("AreaTimeseriesChart axis configuration", () => {
     });
     expect(chartData[2]).toMatchObject({ requests: 2, __incomplete_requests: 2 });
     expect(chartData[2]?.__complete_requests).toBeUndefined();
+  });
+
+  it("renders bucketed annotations", () => {
+    const { getAllByTestId } = render(
+      <AreaTimeseriesChart
+        data={[
+          { originalTimestamp: 1_000, requests: 5 },
+          { originalTimestamp: 2_000, requests: 10 },
+        ]}
+        config={{ requests: { label: "Requests", color: "blue" } }}
+        axis={{ y: { floor: 0 } }}
+        annotations={[{ timestamp: 1_000, label: "d_example" }, { timestamp: 2_000 }]}
+      />,
+    );
+
+    const lines = getAllByTestId("reference-line");
+    expect(lines).toHaveLength(2);
+    expect(lines.map((line) => line.getAttribute("data-x"))).toEqual(["1000", "2000"]);
+    expect(lines[0]?.getAttribute("stroke-dasharray")).toBe("4 4");
+    expect(lines[0]?.getAttribute("data-label")).toBe("d_example");
+    expect(lines[0]?.getAttribute("data-has-label-content")).toBe("true");
+    expect(lines[1]?.getAttribute("data-label")).toBeNull();
   });
 });
