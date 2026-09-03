@@ -16,7 +16,12 @@ import {
   TimestampInfo,
 } from "@unkey/ui";
 import Link from "next/link";
-import { alertMetricLabel, formatAlertValue, formatSigma } from "../format";
+import {
+  alertMetricLabel,
+  formatAlertDistance,
+  formatAlertValue,
+  hasFixedAlertThreshold,
+} from "../format";
 import { ResolveAlertButton } from "../resolve-alert-button";
 import { AlertStatusBadge } from "../status-badge";
 import type { AlertDetailData, AlertTimeseriesData } from "../types";
@@ -101,8 +106,17 @@ export function AlertDetail({
             />
             <DetailValue
               label="Distance"
-              value={formatSigma(alert.observedValue, alert.baselineMean, alert.baselineStddev)}
-              hint={`Threshold ${alert.thresholdSigma.toFixed(1)}σ`}
+              value={formatAlertDistance(
+                alert.metric,
+                alert.observedValue,
+                alert.baselineMean,
+                alert.baselineStddev,
+              )}
+              hint={
+                hasFixedAlertThreshold(alert.metric)
+                  ? undefined
+                  : `Threshold ${alert.thresholdSigma.toFixed(1)}σ`
+              }
             />
           </dl>
           <div className="grid gap-5 border-t border-grayA-4 px-5 py-4 text-sm md:grid-cols-3">
