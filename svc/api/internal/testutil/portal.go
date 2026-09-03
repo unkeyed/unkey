@@ -6,9 +6,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
-	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/svc/api/internal/portal"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 )
@@ -41,14 +39,8 @@ func (h *Harness) SeedPortal(
 	}
 
 	projectID, err := portal.ProjectIDForMapping(context.Background(), h.DB.RO(), workspaceID, mapping)
-	if err != nil {
-		code, ok := fault.GetCode(err)
-		require.True(t, ok)
-		require.Equal(t, codes.Data.Portal.NotFound.URN(), code)
-		// Keep orphaned-mapping tests valid. The seeder uses the workspace's
-		// default project when the mapping target does not exist.
-		projectID = ""
-	}
+	require.NoError(t, err)
+	require.NotEmpty(t, projectID)
 
 	return h.CreatePortal(seed.CreatePortalRequest{
 		ID:           "",

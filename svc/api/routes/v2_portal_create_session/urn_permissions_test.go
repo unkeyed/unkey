@@ -30,7 +30,7 @@ func urnFixture(t *testing.T, h *testutil.Harness, slug string) (string, string,
 		DefaultPrefix: nil,
 		DefaultBytes:  nil,
 	})
-	portalID := insertKeyspacePortal(t, h, workspaceID, slug, api.KeyAuthID.String)
+	portalID := insertKeyspacePortal(t, h, workspaceID, api.ProjectID, slug, api.KeyAuthID.String)
 
 	return portalID, api.ProjectID, api.KeyAuthID.String
 }

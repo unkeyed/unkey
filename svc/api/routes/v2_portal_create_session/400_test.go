@@ -40,7 +40,7 @@ func TestCreateSessionBadRequest(t *testing.T) {
 		DefaultBytes:  nil,
 	})
 
-	portalID := insertKeyspacePortal(t, h, workspaceID, "test-portal", api.KeyAuthID.String)
+	portalID := insertKeyspacePortal(t, h, workspaceID, api.ProjectID, "test-portal", api.KeyAuthID.String)
 
 	// Granted so validation failures are isolated from authorization: a 400 case
 	// must fail on the request body, not on a missing permission.
@@ -213,7 +213,7 @@ func TestCreateSessionRejectsUnsafeReturnUrl(t *testing.T) {
 		DefaultPrefix: nil,
 		DefaultBytes:  nil,
 	})
-	insertKeyspacePortal(t, h, workspaceID, "return-url-portal", api.KeyAuthID.String)
+	insertKeyspacePortal(t, h, workspaceID, api.ProjectID, "return-url-portal", api.KeyAuthID.String)
 
 	rootKey := h.CreateRootKey(workspaceID,
 		"portal.*.create_portal_session",

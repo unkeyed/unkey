@@ -1,6 +1,7 @@
 package handler_test
 
 import (
+	"database/sql"
 	"fmt"
 	"net/http"
 	"strings"
@@ -168,7 +169,15 @@ func TestGetPortalWithMissingMappingTarget(t *testing.T) {
 	workspace := h.Resources().UserWorkspace
 
 	mapping := portal.Mapping{Type: portal.MappingTypeKeyspace, ID: uid.New(uid.KeySpacePrefix)}
-	stored := h.SeedPortal(t, workspace.ID, "orphan", "orphan", mapping, nil, nil)
+	projectID := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspace.ID}).ProjectID
+	stored := h.CreatePortal(seed.CreatePortalRequest{
+		WorkspaceID: workspace.ID,
+		ProjectID:   projectID,
+		Slug:        "orphan",
+		DisplayName: "orphan",
+		KeyAuthID:   sql.NullString{String: mapping.ID, Valid: true},
+		Enabled:     true,
+	})
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
 		Portal: ptr.P(stored.ID),

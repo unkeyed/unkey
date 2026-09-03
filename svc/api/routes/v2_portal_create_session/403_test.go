@@ -19,16 +19,8 @@ import (
 )
 
 // insertKeyspacePortal seeds an enabled portal mapped to a single keyspace.
-func insertKeyspacePortal(t *testing.T, h *testutil.Harness, workspaceID, slug, keyspaceID string) string {
+func insertKeyspacePortal(t *testing.T, h *testutil.Harness, workspaceID, projectID, slug, keyspaceID string) string {
 	t.Helper()
-
-	projectID := ""
-	keyspace, err := db.Query.FindKeySpaceByID(context.Background(), h.DB.RO(), keyspaceID)
-	if err == nil {
-		projectID = keyspace.ProjectID
-	} else {
-		require.True(t, db.IsNotFound(err))
-	}
 
 	return h.CreatePortal(seed.CreatePortalRequest{
 		WorkspaceID: workspaceID,
@@ -84,7 +76,7 @@ func TestCreateSessionAuthorizationMatrix(t *testing.T) {
 
 	workspace := h.Resources().UserWorkspace
 	api := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspace.ID})
-	portalID := insertKeyspacePortal(t, h, workspace.ID, "matrix-portal", api.KeyAuthID.String)
+	portalID := insertKeyspacePortal(t, h, workspace.ID, api.ProjectID, "matrix-portal", api.KeyAuthID.String)
 	otherPortalID := uid.New(uid.PortalPrefix)
 
 	// The keys:read scope requires these of the caller on the portal's api, so
@@ -158,10 +150,10 @@ func TestCreateSessionScopeEscalation(t *testing.T) {
 
 	workspace := h.Resources().UserWorkspace
 	plainAPI := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspace.ID})
-	insertKeyspacePortal(t, h, workspace.ID, "escalation-portal", plainAPI.KeyAuthID.String)
+	insertKeyspacePortal(t, h, workspace.ID, plainAPI.ProjectID, "escalation-portal", plainAPI.KeyAuthID.String)
 
 	encryptedAPI := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspace.ID, EncryptedKeys: true})
-	insertKeyspacePortal(t, h, workspace.ID, "encrypted-portal", encryptedAPI.KeyAuthID.String)
+	insertKeyspacePortal(t, h, workspace.ID, encryptedAPI.ProjectID, "encrypted-portal", encryptedAPI.KeyAuthID.String)
 
 	mint := "portal.*.create_portal_session"
 
@@ -349,7 +341,7 @@ func TestCreateSessionRejectionWritesNothing(t *testing.T) {
 
 	workspace := h.Resources().UserWorkspace
 	api := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspace.ID})
-	insertKeyspacePortal(t, h, workspace.ID, "no-write-portal", api.KeyAuthID.String)
+	insertKeyspacePortal(t, h, workspace.ID, api.ProjectID, "no-write-portal", api.KeyAuthID.String)
 
 	externalID := "user_no_write_" + uid.New(uid.TestPrefix)
 	rootKey := h.CreateRootKey(workspace.ID, "portal.*.create_portal_session", "api.*.read_key", "api.*.read_api")
@@ -545,15 +537,22 @@ func TestCreateSessionKeyspaceWithoutAPI(t *testing.T) {
 	workspace := h.Resources().UserWorkspace
 
 	// A keyspace with no api row pointing at it.
+	project := h.CreateProject(seed.CreateProjectRequest{
+		ID:          uid.New(uid.ProjectPrefix),
+		WorkspaceID: workspace.ID,
+		Name:        "orphan keyspace",
+		Slug:        "orphan-keyspace-" + uid.DNS1035(),
+	})
 	orphanKeyspaceID := uid.New(uid.KeySpacePrefix)
 	require.NoError(t, db.Query.InsertKeySpace(ctx, h.DB.RW(), db.InsertKeySpaceParams{
 		ID:            orphanKeyspaceID,
 		WorkspaceID:   workspace.ID,
+		ProjectID:     project.ID,
 		CreatedAtM:    time.Now().UnixMilli(),
 		DefaultPrefix: sql.NullString{Valid: false},
 		DefaultBytes:  sql.NullInt32{Valid: false},
 	}))
-	insertKeyspacePortal(t, h, workspace.ID, "orphan-portal", orphanKeyspaceID)
+	insertKeyspacePortal(t, h, workspace.ID, project.ID, "orphan-portal", orphanKeyspaceID)
 
 	externalID := "user_orphan_" + uid.New(uid.TestPrefix)
 	rootKey := h.CreateRootKey(workspace.ID, "portal.*.create_portal_session", "api.*.read_key", "api.*.read_api")

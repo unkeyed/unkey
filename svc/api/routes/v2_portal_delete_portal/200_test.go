@@ -458,10 +458,15 @@ func TestDeletePortalWithMissingMappingTarget(t *testing.T) {
 	route, headers := newRoute(t, h, "portal.*.delete_portal")
 	workspace := h.Resources().UserWorkspace
 
-	stored := h.SeedPortal(t, workspace.ID, "orphan", "orphan", portal.Mapping{
-		Type: portal.MappingTypeKeyspace,
-		ID:   uid.New(uid.KeySpacePrefix),
-	}, nil, nil)
+	projectID := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspace.ID}).ProjectID
+	stored := h.CreatePortal(seed.CreatePortalRequest{
+		WorkspaceID: workspace.ID,
+		ProjectID:   projectID,
+		Slug:        "orphan",
+		DisplayName: "orphan",
+		KeyAuthID:   sql.NullString{String: uid.New(uid.KeySpacePrefix), Valid: true},
+		Enabled:     true,
+	})
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, request(stored.ID))
 	require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)

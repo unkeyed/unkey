@@ -25,12 +25,7 @@ func TestCreatePortalConflicts(t *testing.T) {
 	workspace := h.Resources().UserWorkspace
 
 	taken := keyspaceMapping(t, h, workspace.ID)
-	h.CreatePortal(seed.CreatePortalRequest{
-		WorkspaceID: workspace.ID,
-		Slug:        "taken-slug",
-		KeyAuthID:   sql.NullString{String: taken.ID, Valid: true},
-		Enabled:     true,
-	})
+	h.SeedPortal(t, workspace.ID, "taken-slug", "taken-slug", taken, nil, nil)
 
 	t.Run("duplicate slug", func(t *testing.T) {
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
@@ -76,6 +71,7 @@ func TestCreatePortalConflicts(t *testing.T) {
 		})
 		h.CreatePortal(seed.CreatePortalRequest{
 			WorkspaceID: other.ID,
+			ProjectID:   sharedApi.ProjectID,
 			Slug:        "theirs",
 			KeyAuthID:   sql.NullString{String: sharedApi.KeyAuthID.String, Valid: true},
 			Enabled:     true,

@@ -218,6 +218,7 @@ func TestCreatePortalAllowsSameSlugInAnotherWorkspace(t *testing.T) {
 	})
 	h.CreatePortal(seed.CreatePortalRequest{
 		WorkspaceID: other.ID,
+		ProjectID:   otherApi.ProjectID,
 		Slug:        "shared-slug",
 		KeyAuthID:   sql.NullString{String: otherApi.KeyAuthID.String, Valid: true},
 		Enabled:     true,
