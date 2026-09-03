@@ -28,7 +28,7 @@ func FuzzEncryptDecrypt(f *testing.F) {
 	})
 }
 
-// FuzzDecryptWithWrongKey verifies that AES-GCM rejects every single-bit key mutation.
+// FuzzDecryptWithWrongKey verifies that Decrypt rejects a key with one changed bit.
 func FuzzDecryptWithWrongKey(f *testing.F) {
 	fuzz.Seed(f)
 
@@ -51,7 +51,7 @@ func FuzzDecryptWithWrongKey(f *testing.F) {
 	})
 }
 
-// FuzzTamperedCiphertext verifies that AES-GCM rejects every single-bit ciphertext mutation.
+// FuzzTamperedCiphertext verifies that Decrypt rejects ciphertext with one changed bit.
 func FuzzTamperedCiphertext(f *testing.F) {
 	fuzz.Seed(f)
 
@@ -74,7 +74,7 @@ func FuzzTamperedCiphertext(f *testing.F) {
 	})
 }
 
-// FuzzTamperedNonce verifies that AES-GCM rejects every single-bit nonce mutation.
+// FuzzTamperedNonce verifies that Decrypt rejects a nonce with one changed bit.
 func FuzzTamperedNonce(f *testing.F) {
 	fuzz.Seed(f)
 

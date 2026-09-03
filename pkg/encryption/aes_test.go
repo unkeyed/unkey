@@ -60,7 +60,7 @@ func TestEncrypt_ProducesStandardAES256GCMCiphertext(t *testing.T) {
 	require.Equal(t, want, plaintext)
 }
 
-// TestEncrypt_UsesFreshNonces protects AES-GCM from catastrophic nonce reuse.
+// TestEncrypt_UsesFreshNonces verifies that Encrypt does not reuse a nonce.
 func TestEncrypt_UsesFreshNonces(t *testing.T) {
 	key := bytes.Repeat([]byte{0x42}, 32)
 	plaintext := []byte("customer secret")
@@ -158,7 +158,7 @@ func TestDecrypt_RejectsInvalidNonceSizes(t *testing.T) {
 	}
 }
 
-// TestDecrypt_RejectsCiphertextMutation protects ciphertext integrity and authenticity.
+// TestDecrypt_RejectsCiphertextMutation verifies that Decrypt rejects modified ciphertext.
 func TestDecrypt_RejectsCiphertextMutation(t *testing.T) {
 	key, nonce, ciphertext := encryptSecret(t, []byte("customer secret"))
 	tests := []struct {
