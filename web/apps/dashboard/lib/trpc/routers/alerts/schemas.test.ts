@@ -1,10 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  alertDeploymentsInput,
-  alertSeriesInput,
-  listAlertsInput,
-  resolveAlertInput,
-} from "./schemas";
+import { alertDeploymentsInput, alertSeriesInput, listAlertsInput } from "./schemas";
 
 describe("alert inputs", () => {
   it("applies list defaults", () => {
@@ -39,17 +34,6 @@ describe("alert inputs", () => {
     { startMs: 200, endMs: 100 },
   ])("rejects invalid list input", (input) => {
     expect(listAlertsInput.safeParse(input).success).toBe(false);
-  });
-
-  it("trims a resolution message", () => {
-    expect(resolveAlertInput.parse({ alertId: "alert_1", message: "  Fixed capacity  " })).toEqual({
-      alertId: "alert_1",
-      message: "Fixed capacity",
-    });
-  });
-
-  it.each(["", " ", "a".repeat(1001)])("rejects invalid resolution message", (message) => {
-    expect(resolveAlertInput.safeParse({ alertId: "alert_1", message }).success).toBe(false);
   });
 
   it("validates metric series input", () => {
