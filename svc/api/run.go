@@ -46,6 +46,7 @@ import (
 	githubclient "github.com/unkeyed/unkey/pkg/github"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/mysql/sqlcomment"
+	validationtypes "github.com/unkeyed/unkey/pkg/openapi/validation/types"
 	"github.com/unkeyed/unkey/pkg/otel"
 	"github.com/unkeyed/unkey/pkg/prometheus"
 	"github.com/unkeyed/unkey/pkg/prometheus/lazy"
@@ -62,7 +63,11 @@ import (
 )
 
 // nolint:gocognit
-func Run(ctx context.Context, cfg Config) error {
+func Run(
+	ctx context.Context,
+	cfg Config,
+	newValidator validationtypes.Factory,
+) error {
 	err := cfg.Validate()
 	if err != nil {
 		return fmt.Errorf("bad config: %w", err)
@@ -251,10 +256,11 @@ func Run(ctx context.Context, cfg Config) error {
 
 	r.DeferCtx(srv.Shutdown)
 
-	validator, err := validation.New()
+	requestValidator, err := newValidator(openapi.Spec)
 	if err != nil {
 		return fmt.Errorf("unable to create validator: %w", err)
 	}
+	validator := validation.New(requestValidator)
 
 	// Bodies are logged to ClickHouse verbatim apart from this, so an empty
 	// field set means every annotated secret would be persisted in the clear.

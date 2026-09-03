@@ -20,7 +20,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/db"
 	githubclient "github.com/unkeyed/unkey/pkg/github"
 	"github.com/unkeyed/unkey/pkg/redaction"
-	"github.com/unkeyed/unkey/pkg/zen/validation"
+	"github.com/unkeyed/unkey/pkg/zen"
 )
 
 // Services aggregates all dependencies required by API route handlers. It acts
@@ -64,8 +64,8 @@ type Services struct {
 	// drive time deterministically instead of racing the system clock.
 	Clock clock.Clock
 
-	// Validator performs request payload validation using struct tags.
-	Validator *validation.Validator
+	// Validator checks requests against the API's OpenAPI contract.
+	Validator zen.RequestValidator
 
 	// Redactor strips values marked x-unkey-redact in the OpenAPI spec out of
 	// the request and response bodies before they are logged to ClickHouse.
