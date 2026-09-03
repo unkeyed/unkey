@@ -377,8 +377,11 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 
 // buildImage resolves the container image for a deployment and persists the image
 // reference to the database. For an OciImage source, a tag is resolved to an
-// immutable digest. For a Git source, a container image is built via Depot using
-// [Workflow.buildDockerImageFromGit], and the build ID is saved.
+// immutable digest. For a Git source, an image is built on the configured build
+// backend and the build ID is saved.
+//
+// The commit must already be resolved: Create does that before dispatching, so a
+// request arriving here without a SHA is a bug and fails terminally.
 //
 // Returns a terminal error for unknown source types and build failures that
 // cannot be retried (e.g. bad Dockerfile).

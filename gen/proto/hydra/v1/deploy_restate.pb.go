@@ -19,13 +19,12 @@ import (
 // durable Restate workflows. Each RPC is idempotent and can safely resume from
 // any step after a crash.
 //
-// Deploy, Rollback, and Promote are keyed by {app_id}:{environment_id} so
-// that lifecycle operations within a single environment are serialized
-// (preventing e.g. a rollback from racing with an in-flight deploy) while
-// different environments of the same app — e.g. production vs preview — can
-// deploy in parallel. This means a production push never waits behind a
-// preview build. Workspace-wide concurrency is separately enforced by
-// BuildSlotService.
+// Every RPC is keyed by the deployment id, so operations on one deployment
+// serialize behind each other while separate deployments of the same app run
+// in parallel. The contended pointer, apps.current_deployment_id, is
+// serialized instead inside RoutingService.SwapLiveDeployment, which is keyed
+// by environment id. Workspace-wide build concurrency is separately enforced
+// by BuildSlotService.
 //
 // Deploy handles the full pipeline from building container images through
 // provisioning containers and configuring domain routing. Rollback and Promote
@@ -37,18 +36,20 @@ type DeployServiceClient interface {
 	Create(opts ...sdk_go.ClientOption) sdk_go.Client[*DeployCreateRequest, *DeployCreateResponse]
 	// Deploy executes the full deployment workflow: build (if git source), provision
 	// containers across regions, wait for health, configure domain routing, and
-	// update the project's live deployment pointer for production environments.
+	// update the app's live deployment pointer for production environments.
 	// Sets deployment status to failed on any error.
 	Deploy(opts ...sdk_go.ClientOption) sdk_go.Client[*DeployRequest, *DeployResponse]
 	// Rollback switches sticky frontline routes (environment and live) from the
-	// current live deployment back to a previous one. Marks the project as rolled
+	// current live deployment back to a previous one. Marks the app as rolled
 	// back so future deploys don't automatically reclaim live routes.
-	// Source must be the current live deployment; both must share the same project
+	// Source must be the current live deployment; both must share the same app
 	// and environment.
 	Rollback(opts ...sdk_go.ClientOption) sdk_go.Client[*RollbackRequest, *RollbackResponse]
 	// Promote reassigns sticky frontline routes to a target deployment and clears
 	// the rolled-back flag, restoring normal deployment flow.
-	// Target must be in ready status and not already the live deployment.
+	// Target must be in ready status. A normal promotion also requires that it is
+	// not already the live deployment; when the app is rolled back and the target
+	// is already live, Promote only clears the flag and leaves routes alone.
 	Promote(opts ...sdk_go.ClientOption) sdk_go.Client[*PromoteRequest, *PromoteResponse]
 	// StopDeployment schedules desired_state=stopped for a running deployment.
 	StopDeployment(opts ...sdk_go.ClientOption) sdk_go.Client[*StopDeploymentRequest, *StopDeploymentResponse]
@@ -57,7 +58,8 @@ type DeployServiceClient interface {
 	WakeDeployment(opts ...sdk_go.ClientOption) sdk_go.Client[*WakeDeploymentRequest, *WakeDeploymentResponse]
 	// NotifyInstancesReady is called by the control plane when enough instances
 	// have become healthy across the required regions. It resolves the awakeable
-	// stored by a suspended deploy or wake workflow so it can continue.
+	// stored by a suspended Deploy so it can continue. WakeDeployment does not use
+	// it: that handler polls instance health itself.
 	NotifyInstancesReady(opts ...sdk_go.ClientOption) sdk_go.Client[*NotifyInstancesReadyRequest, *NotifyInstancesReadyResponse]
 }
 
@@ -140,18 +142,20 @@ type DeployServiceIngressClient interface {
 	Create() ingress.Requester[*DeployCreateRequest, *DeployCreateResponse]
 	// Deploy executes the full deployment workflow: build (if git source), provision
 	// containers across regions, wait for health, configure domain routing, and
-	// update the project's live deployment pointer for production environments.
+	// update the app's live deployment pointer for production environments.
 	// Sets deployment status to failed on any error.
 	Deploy() ingress.Requester[*DeployRequest, *DeployResponse]
 	// Rollback switches sticky frontline routes (environment and live) from the
-	// current live deployment back to a previous one. Marks the project as rolled
+	// current live deployment back to a previous one. Marks the app as rolled
 	// back so future deploys don't automatically reclaim live routes.
-	// Source must be the current live deployment; both must share the same project
+	// Source must be the current live deployment; both must share the same app
 	// and environment.
 	Rollback() ingress.Requester[*RollbackRequest, *RollbackResponse]
 	// Promote reassigns sticky frontline routes to a target deployment and clears
 	// the rolled-back flag, restoring normal deployment flow.
-	// Target must be in ready status and not already the live deployment.
+	// Target must be in ready status. A normal promotion also requires that it is
+	// not already the live deployment; when the app is rolled back and the target
+	// is already live, Promote only clears the flag and leaves routes alone.
 	Promote() ingress.Requester[*PromoteRequest, *PromoteResponse]
 	// StopDeployment schedules desired_state=stopped for a running deployment.
 	StopDeployment() ingress.Requester[*StopDeploymentRequest, *StopDeploymentResponse]
@@ -160,7 +164,8 @@ type DeployServiceIngressClient interface {
 	WakeDeployment() ingress.Requester[*WakeDeploymentRequest, *WakeDeploymentResponse]
 	// NotifyInstancesReady is called by the control plane when enough instances
 	// have become healthy across the required regions. It resolves the awakeable
-	// stored by a suspended deploy or wake workflow so it can continue.
+	// stored by a suspended Deploy so it can continue. WakeDeployment does not use
+	// it: that handler polls instance health itself.
 	NotifyInstancesReady() ingress.Requester[*NotifyInstancesReadyRequest, *NotifyInstancesReadyResponse]
 }
 
@@ -221,13 +226,12 @@ func (c *deployServiceIngressClient) NotifyInstancesReady() ingress.Requester[*N
 // durable Restate workflows. Each RPC is idempotent and can safely resume from
 // any step after a crash.
 //
-// Deploy, Rollback, and Promote are keyed by {app_id}:{environment_id} so
-// that lifecycle operations within a single environment are serialized
-// (preventing e.g. a rollback from racing with an in-flight deploy) while
-// different environments of the same app — e.g. production vs preview — can
-// deploy in parallel. This means a production push never waits behind a
-// preview build. Workspace-wide concurrency is separately enforced by
-// BuildSlotService.
+// Every RPC is keyed by the deployment id, so operations on one deployment
+// serialize behind each other while separate deployments of the same app run
+// in parallel. The contended pointer, apps.current_deployment_id, is
+// serialized instead inside RoutingService.SwapLiveDeployment, which is keyed
+// by environment id. Workspace-wide build concurrency is separately enforced
+// by BuildSlotService.
 //
 // Deploy handles the full pipeline from building container images through
 // provisioning containers and configuring domain routing. Rollback and Promote
@@ -239,18 +243,20 @@ type DeployServiceServer interface {
 	Create(ctx sdk_go.ObjectContext, req *DeployCreateRequest) (*DeployCreateResponse, error)
 	// Deploy executes the full deployment workflow: build (if git source), provision
 	// containers across regions, wait for health, configure domain routing, and
-	// update the project's live deployment pointer for production environments.
+	// update the app's live deployment pointer for production environments.
 	// Sets deployment status to failed on any error.
 	Deploy(ctx sdk_go.ObjectContext, req *DeployRequest) (*DeployResponse, error)
 	// Rollback switches sticky frontline routes (environment and live) from the
-	// current live deployment back to a previous one. Marks the project as rolled
+	// current live deployment back to a previous one. Marks the app as rolled
 	// back so future deploys don't automatically reclaim live routes.
-	// Source must be the current live deployment; both must share the same project
+	// Source must be the current live deployment; both must share the same app
 	// and environment.
 	Rollback(ctx sdk_go.ObjectContext, req *RollbackRequest) (*RollbackResponse, error)
 	// Promote reassigns sticky frontline routes to a target deployment and clears
 	// the rolled-back flag, restoring normal deployment flow.
-	// Target must be in ready status and not already the live deployment.
+	// Target must be in ready status. A normal promotion also requires that it is
+	// not already the live deployment; when the app is rolled back and the target
+	// is already live, Promote only clears the flag and leaves routes alone.
 	Promote(ctx sdk_go.ObjectContext, req *PromoteRequest) (*PromoteResponse, error)
 	// StopDeployment schedules desired_state=stopped for a running deployment.
 	StopDeployment(ctx sdk_go.ObjectContext, req *StopDeploymentRequest) (*StopDeploymentResponse, error)
@@ -259,7 +265,8 @@ type DeployServiceServer interface {
 	WakeDeployment(ctx sdk_go.ObjectContext, req *WakeDeploymentRequest) (*WakeDeploymentResponse, error)
 	// NotifyInstancesReady is called by the control plane when enough instances
 	// have become healthy across the required regions. It resolves the awakeable
-	// stored by a suspended deploy or wake workflow so it can continue.
+	// stored by a suspended Deploy so it can continue. WakeDeployment does not use
+	// it: that handler polls instance health itself.
 	NotifyInstancesReady(ctx sdk_go.ObjectSharedContext, req *NotifyInstancesReadyRequest) (*NotifyInstancesReadyResponse, error)
 }
 
