@@ -72,9 +72,6 @@ func (w *Workflow) Create(ctx restate.ObjectContext, req *hydrav1.DeployCreateRe
 		assert.NotEmpty(req.GetProjectId(), "project_id is required"),
 		assert.NotEmpty(req.GetAppId(), "app_id is required"),
 		assert.NotEmpty(req.GetEnvironment(), "environment is required"),
-		// created_at is signed but deployment_steps.started_at is not, and both
-		// sibling dedup and the supersede check order on it.
-		assert.GreaterOrEqual(req.GetPushReceivedAt(), int64(0), "push_received_at must not be negative"),
 	); err != nil {
 		return nil, restate.TerminalError(err)
 	}
@@ -396,18 +393,12 @@ func (w *Workflow) buildPayload(
 		command = req.GetCommand()
 	}
 
-	// The push time wins so dedup keeps push order when sends land out of order.
-	createdAt := req.GetPushReceivedAt()
-	if createdAt == 0 {
-		createdAt = time.Now().UnixMilli()
-	}
-
 	commit.Message = trimBytes(commit.Message, commitMessageBytesMax)
 	commit.AuthorHandle = trimBytes(commit.AuthorHandle, commitAuthorHandleBytesMax)
 	commit.AuthorAvatarURL = trimBytes(commit.AuthorAvatarURL, commitAuthorAvatarURLBytesMax)
 
 	payload.Status = status
-	payload.CreatedAt = createdAt
+	payload.CreatedAt = time.Now().UnixMilli()
 	payload.Secrets = secrets
 	payload.Command = command
 	payload.PRNumber = prNumber
