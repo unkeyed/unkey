@@ -26,6 +26,18 @@ func TestAuthorizationErrors(t *testing.T) {
 
 	// Create a workspace
 	workspace := h.Resources().UserWorkspace
+	assertRoleDoesNotExist := func(t *testing.T, workspaceID string, name string) {
+		t.Helper()
+		var exists bool
+		err := h.DB.RO().QueryRowContext(
+			t.Context(),
+			"SELECT EXISTS(SELECT 1 FROM roles WHERE workspace_id = ? AND name = ?)",
+			workspaceID,
+			name,
+		).Scan(&exists)
+		require.NoError(t, err)
+		require.False(t, exists, "No role should have been created")
+	}
 
 	// Test case for insufficient permissions - missing create_role
 	t.Run("missing create_role permission", func(t *testing.T) {
@@ -53,12 +65,7 @@ func TestAuthorizationErrors(t *testing.T) {
 		require.NotNil(t, res.Body.Error)
 		require.Contains(t, res.Body.Error.Detail, "Missing one of these permissions")
 
-		// Verify no role was created
-		_, err := db.Query.FindRoleByNameAndWorkspaceID(context.Background(), h.DB.RO(), db.FindRoleByNameAndWorkspaceIDParams{
-			Name:        req.Name,
-			WorkspaceID: workspace.ID,
-		})
-		require.True(t, db.IsNotFound(err), "No role should have been created")
+		assertRoleDoesNotExist(t, workspace.ID, req.Name)
 	})
 
 	t.Run("missing add_permission_to_role permission", func(t *testing.T) {
@@ -73,10 +80,7 @@ func TestAuthorizationErrors(t *testing.T) {
 		res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, headers, req)
 
 		require.Equal(t, http.StatusForbidden, res.Status)
-		_, err := db.Query.FindRoleByNameAndWorkspaceID(context.Background(), h.DB.RO(), db.FindRoleByNameAndWorkspaceIDParams{
-			Name: req.Name, WorkspaceID: workspace.ID,
-		})
-		require.True(t, db.IsNotFound(err))
+		assertRoleDoesNotExist(t, workspace.ID, req.Name)
 	})
 
 	t.Run("missing create_permission permission", func(t *testing.T) {
@@ -96,10 +100,7 @@ func TestAuthorizationErrors(t *testing.T) {
 		res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, headers, req)
 
 		require.Equal(t, http.StatusForbidden, res.Status)
-		_, err := db.Query.FindRoleByNameAndWorkspaceID(context.Background(), h.DB.RO(), db.FindRoleByNameAndWorkspaceIDParams{
-			Name: req.Name, WorkspaceID: workspace.ID,
-		})
-		require.True(t, db.IsNotFound(err))
+		assertRoleDoesNotExist(t, workspace.ID, req.Name)
 		missing, err := db.Query.FindPermissionsBySlugs(context.Background(), h.DB.RO(), db.FindPermissionsBySlugsParams{
 			WorkspaceID: workspace.ID,
 			ProjectID:   existingPermission.ProjectID,
@@ -136,10 +137,6 @@ func TestAuthorizationErrors(t *testing.T) {
 
 		// The role should be created in the authorized workspace (the other workspace)
 		// not in the original workspace
-		_, err := db.Query.FindRoleByNameAndWorkspaceID(context.Background(), h.DB.RO(), db.FindRoleByNameAndWorkspaceIDParams{
-			Name:        req.Name,
-			WorkspaceID: workspace.ID,
-		})
-		require.True(t, db.IsNotFound(err), "No role should have been created in original workspace")
+		assertRoleDoesNotExist(t, workspace.ID, req.Name)
 	})
 }

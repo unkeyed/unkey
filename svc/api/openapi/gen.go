@@ -1119,10 +1119,9 @@ type Permission struct {
 	// Name The human-readable name for this permission that describes its purpose.
 	// Should be descriptive enough for developers to understand what access it grants.
 	// Use clear, semantic names that reflect the resources or actions being permitted.
-	// Names must be unique within your workspace to avoid confusion and conflicts.
 	Name string `json:"name"`
 
-	// Slug The unique URL-safe identifier for this permission.
+	// Slug The URL-safe identifier for this permission. It must be unique within the project.
 	Slug string `json:"slug"`
 }
 
@@ -1496,7 +1495,7 @@ type Role struct {
 	// Name The human-readable name for this role that describes its function.
 	// Should be descriptive enough for administrators to understand what access this role provides.
 	// Use clear, semantic names that reflect the job function or responsibility level.
-	// Names must be unique within your workspace to avoid confusion during role assignment.
+	// Names must be unique within the project to avoid confusion during role assignment.
 	Name string `json:"name"`
 
 	// Permissions Complete list of permissions currently assigned to this role.
@@ -3744,7 +3743,6 @@ type V2PermissionsCreatePermissionRequestBody struct {
 	Description *string `json:"description,omitempty"`
 
 	// Name Creates a permission with this human-readable name that describes its purpose.
-	// Names must be unique within your workspace to prevent conflicts during assignment.
 	// Use clear, semantic names that developers can easily understand when building authorization logic.
 	// Consider using hierarchical naming conventions like 'resource.action' for better organization.
 	//
@@ -3755,7 +3753,7 @@ type V2PermissionsCreatePermissionRequestBody struct {
 	// Must start with a letter and contain only letters, numbers, periods, underscores, and hyphens.
 	// Slugs are often used in REST endpoints, configuration files, and external integrations.
 	// Should closely match the name but in a format suitable for technical usage.
-	// Must be unique within your workspace to ensure reliable permission lookups.
+	// Must be unique within the project to ensure reliable permission lookups.
 	//
 	// Keep slugs concise but descriptive for better developer experience.
 	Slug string `json:"slug"`
@@ -3793,7 +3791,7 @@ type V2PermissionsCreateRoleRequestBody struct {
 	// - Related roles that might be used together
 	Description *string `json:"description,omitempty"`
 
-	// Name The unique name for this role. Must be unique within your workspace and clearly indicate the role's purpose. Use descriptive names like 'admin', 'editor', or 'Billing Manager'.
+	// Name The unique name for this role. Must be unique within the project and clearly indicate the role's purpose. Use descriptive names like 'admin', 'editor', or 'Billing Manager'.
 	//
 	// Examples: 'admin.billing', 'support.readonly', 'developer.api', 'Billing Manager'
 	Name string `json:"name"`

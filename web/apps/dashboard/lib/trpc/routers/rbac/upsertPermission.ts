@@ -11,10 +11,15 @@ export async function upsertPermission(
   name: string,
 ): Promise<Omit<Permission, "pk">> {
   return await db.transaction(async (tx) => {
+    const projectId = await ensureDefaultProjectId(tx, workspaceId);
     const existingPermission = await tx.query.permissions
       .findFirst({
         where: (table, { eq, and }) =>
-          and(eq(table.name, name), eq(table.workspaceId, workspaceId)),
+          and(
+            eq(table.name, name),
+            eq(table.workspaceId, workspaceId),
+            eq(table.projectId, projectId),
+          ),
         columns: {
           id: true,
           workspaceId: true,
@@ -38,7 +43,6 @@ export async function upsertPermission(
       return existingPermission;
     }
 
-    const projectId = await ensureDefaultProjectId(tx, workspaceId);
     const permission = {
       id: newId("permission"),
       workspaceId,

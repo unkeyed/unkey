@@ -2651,7 +2651,6 @@ components:
                     maxLength: 512
                     description: |
                         Creates a permission with this human-readable name that describes its purpose.
-                        Names must be unique within your workspace to prevent conflicts during assignment.
                         Use clear, semantic names that developers can easily understand when building authorization logic.
                         Consider using hierarchical naming conventions like 'resource.action' for better organization.
 
@@ -2667,7 +2666,7 @@ components:
                         Must start with a letter and contain only letters, numbers, periods, underscores, and hyphens.
                         Slugs are often used in REST endpoints, configuration files, and external integrations.
                         Should closely match the name but in a format suitable for technical usage.
-                        Must be unique within your workspace to ensure reliable permission lookups.
+                        Must be unique within the project to ensure reliable permission lookups.
 
                         Keep slugs concise but descriptive for better developer experience.
                     example: "users-read"
@@ -2708,7 +2707,7 @@ components:
                     minLength: 1
                     maxLength: 128
                     description: |
-                        The unique name for this role. Must be unique within your workspace and clearly indicate the role's purpose. Use descriptive names like 'admin', 'editor', or 'Billing Manager'.
+                        The unique name for this role. Must be unique within the project and clearly indicate the role's purpose. Use descriptive names like 'admin', 'editor', or 'Billing Manager'.
 
                         Examples: 'admin.billing', 'support.readonly', 'developer.api', 'Billing Manager'
                     example: "support.readonly"
@@ -6046,14 +6045,13 @@ components:
                         The human-readable name for this permission that describes its purpose.
                         Should be descriptive enough for developers to understand what access it grants.
                         Use clear, semantic names that reflect the resources or actions being permitted.
-                        Names must be unique within your workspace to avoid confusion and conflicts.
                     example: "users.read"
                 slug:
                     pattern: ^[a-zA-Z0-9_:\-\.\*]+$
                     type: string
                     minLength: 1
                     maxLength: 512
-                    description: The unique URL-safe identifier for this permission.
+                    description: The URL-safe identifier for this permission. It must be unique within the project.
                     example: users-read
                 description:
                     type: string
@@ -6102,7 +6100,7 @@ components:
                         The human-readable name for this role that describes its function.
                         Should be descriptive enough for administrators to understand what access this role provides.
                         Use clear, semantic names that reflect the job function or responsibility level.
-                        Names must be unique within your workspace to avoid confusion during role assignment.
+                        Names must be unique within the project to avoid confusion during role assignment.
                     example: "support.readonly"
                 description:
                     type: string
@@ -13505,7 +13503,7 @@ paths:
 
                 Use hierarchical naming patterns like `documents.read`, `admin.users.delete`, or `billing.invoices.create` for clear organization.
 
-                **Important:** Permission names must be unique within the workspace. Once created, permissions are immediately available for assignment.
+                **Important:** Permission slugs must be unique within the project. Once created, permissions are immediately available for assignment.
 
                 **Required Permissions**
 
@@ -13548,7 +13546,7 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/ConflictErrorResponse'
-                    description: Conflict - permission with that name already exists
+                    description: Conflict - permission with that slug already exists in the project
                 "429":
                     content:
                         application/problem+json:
@@ -13572,7 +13570,7 @@ paths:
             description: |
                 Create a new role to group related permissions for easier management. Roles enable consistent permission assignment across multiple API keys. Permission slugs supplied in `permissions` are attached during creation. Missing permissions are created automatically.
 
-                **Important:** Role names must be unique within the workspace. Once created, roles are immediately available for assignment.
+                **Important:** Role names must be unique within the project. Once created, roles are immediately available for assignment.
 
                 **Required Permissions**
 
@@ -13634,7 +13632,7 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/ConflictErrorResponse'
-                    description: Conflict - A role with this name already exists
+                    description: Conflict - A role with this name already exists in the project
                 "429":
                     content:
                         application/problem+json:

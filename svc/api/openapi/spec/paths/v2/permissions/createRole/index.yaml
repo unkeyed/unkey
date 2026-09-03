@@ -5,7 +5,7 @@ post:
   description: |
     Create a new role to group related permissions for easier management. Roles enable consistent permission assignment across multiple API keys. Permission slugs supplied in `permissions` are attached during creation. Missing permissions are created automatically.
 
-    **Important:** Role names must be unique within the workspace. Once created, roles are immediately available for assignment.
+    **Important:** Role names must be unique within the project. Once created, roles are immediately available for assignment.
 
     **Required Permissions**
 
@@ -66,7 +66,7 @@ post:
           schema:
             "$ref": "../../../../error/ForbiddenErrorResponse.yaml"
     "409":
-      description: Conflict - A role with this name already exists
+      description: Conflict - A role with this name already exists in the project
       content:
         application/json:
           schema:
