@@ -26,9 +26,7 @@ export const deploymentSelectFields = {
   gitCommitTimestamp: deployments.gitCommitTimestamp,
   prNumber: deployments.prNumber,
   forkRepositoryFullName: deployments.forkRepositoryFullName,
-  resolvedImage: sql<
-    string | null
-  >`COALESCE(NULLIF(${deployments.imageResolved}, ''), ${deployments.image})`,
+  resolvedImage: deployments.imageResolved,
   status: deployments.status,
   desiredState: deployments.desiredState,
   trigger: deployments.trigger,
