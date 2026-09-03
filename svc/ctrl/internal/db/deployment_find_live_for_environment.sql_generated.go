@@ -21,7 +21,13 @@ SELECT
     e.kind AS environment_kind,
     e.slug AS environment_slug,
     d.id AS deployment_id,
-    COALESCE(d.desired_state, '') AS deployment_desired_state
+    COALESCE(d.desired_state, '') AS deployment_desired_state,
+    EXISTS (
+        SELECT 1
+        FROM deployment_topology dt
+        WHERE dt.deployment_id = d.id
+          AND dt.desired_status = 'running'
+    ) AS deployment_has_running_region
 FROM environments e
 INNER JOIN apps a ON a.id = e.app_id
 INNER JOIN workspaces w ON w.id = e.workspace_id
@@ -44,14 +50,15 @@ type FindLiveDeploymentForEnvironmentParams struct {
 }
 
 type FindLiveDeploymentForEnvironmentRow struct {
-	OrgID                  string                            `db:"org_id"`
-	WorkspaceName          string                            `db:"workspace_name"`
-	WorkspaceSlug          string                            `db:"workspace_slug"`
-	AppName                string                            `db:"app_name"`
-	EnvironmentKind        mysqltype.EnvironmentKind         `db:"environment_kind"`
-	EnvironmentSlug        string                            `db:"environment_slug"`
-	DeploymentID           sql.NullString                    `db:"deployment_id"`
-	DeploymentDesiredState mysqltype.DeploymentsDesiredState `db:"deployment_desired_state"`
+	OrgID                      string                            `db:"org_id"`
+	WorkspaceName              string                            `db:"workspace_name"`
+	WorkspaceSlug              string                            `db:"workspace_slug"`
+	AppName                    string                            `db:"app_name"`
+	EnvironmentKind            mysqltype.EnvironmentKind         `db:"environment_kind"`
+	EnvironmentSlug            string                            `db:"environment_slug"`
+	DeploymentID               sql.NullString                    `db:"deployment_id"`
+	DeploymentDesiredState     mysqltype.DeploymentsDesiredState `db:"deployment_desired_state"`
+	DeploymentHasRunningRegion bool                              `db:"deployment_has_running_region"`
 }
 
 // FindLiveDeploymentForEnvironment resolves customer-facing metadata and the
@@ -65,7 +72,13 @@ type FindLiveDeploymentForEnvironmentRow struct {
 //	    e.kind AS environment_kind,
 //	    e.slug AS environment_slug,
 //	    d.id AS deployment_id,
-//	    COALESCE(d.desired_state, '') AS deployment_desired_state
+//	    COALESCE(d.desired_state, '') AS deployment_desired_state,
+//	    EXISTS (
+//	        SELECT 1
+//	        FROM deployment_topology dt
+//	        WHERE dt.deployment_id = d.id
+//	          AND dt.desired_status = 'running'
+//	    ) AS deployment_has_running_region
 //	FROM environments e
 //	INNER JOIN apps a ON a.id = e.app_id
 //	INNER JOIN workspaces w ON w.id = e.workspace_id
@@ -95,6 +108,7 @@ func (q *Queries) FindLiveDeploymentForEnvironment(ctx context.Context, arg Find
 		&i.EnvironmentSlug,
 		&i.DeploymentID,
 		&i.DeploymentDesiredState,
+		&i.DeploymentHasRunningRegion,
 	)
 	return i, err
 }

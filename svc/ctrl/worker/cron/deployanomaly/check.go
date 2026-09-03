@@ -339,6 +339,7 @@ func (h *CheckHandler) suppressRequestDrop(ctx restate.ObjectContext, req *hydra
 		"workspace_id", req.GetWorkspaceId(), "app_id", req.GetAppId(),
 		"environment_id", req.GetEnvironmentId(), "deployment_id", req.GetDeploymentId(),
 		"desired_state", req.GetDeploymentDesiredState(),
+		"has_running_region", req.GetDeploymentHasRunningRegion(),
 	)
 	if openID == "" {
 		clearMetricState(ctx, MetricRequestsDrop)
@@ -348,7 +349,9 @@ func (h *CheckHandler) suppressRequestDrop(ctx restate.ObjectContext, req *hydra
 }
 
 func requestDropSuppressed(req *hydrav1.EvaluateDeployAnomalyRequest) bool {
-	return req.GetDeploymentId() == "" || req.GetDeploymentDesiredState() == "stopped"
+	// A zero autoscaling minimum permits scale-to-zero but does not mean traffic
+	// loss is intentional. Only explicit deployment or topology stops suppress.
+	return req.GetDeploymentId() == "" || req.GetDeploymentDesiredState() == "stopped" || !req.GetDeploymentHasRunningRegion()
 }
 
 func observedValue(input Input) float64 {

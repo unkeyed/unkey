@@ -9,7 +9,13 @@ SELECT
     e.kind AS environment_kind,
     e.slug AS environment_slug,
     d.id AS deployment_id,
-    COALESCE(d.desired_state, '') AS deployment_desired_state
+    COALESCE(d.desired_state, '') AS deployment_desired_state,
+    EXISTS (
+        SELECT 1
+        FROM deployment_topology dt
+        WHERE dt.deployment_id = d.id
+          AND dt.desired_status = 'running'
+    ) AS deployment_has_running_region
 FROM environments e
 INNER JOIN apps a ON a.id = e.app_id
 INNER JOIN workspaces w ON w.id = e.workspace_id
