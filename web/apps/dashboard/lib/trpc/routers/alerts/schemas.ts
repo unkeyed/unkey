@@ -40,11 +40,6 @@ export const getAlertInput = z.object({
   alertId: z.string().min(1),
 });
 
-export const resolveAlertInput = z.object({
-  alertId: z.string().min(1),
-  message: z.string().trim().min(1).max(1000),
-});
-
 export const alertSeriesInput = timeRange.extend({
   appId: z.string().min(1),
   environmentId: z.string().min(1),

@@ -3,7 +3,6 @@
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { routes } from "@/lib/navigation/routes";
 import { shortenId } from "@/lib/shorten-id";
-import { useWorkspace } from "@/providers/workspace-provider";
 import { requestDropMedianFraction } from "@unkey/clickhouse/src/alert-thresholds";
 import { Badge, TimestampInfo } from "@unkey/ui";
 import Link from "next/link";
@@ -14,13 +13,11 @@ import {
   hasFixedAlertThreshold,
   isErrorRateMetric,
 } from "./format";
-import { ResolveAlertButton } from "./resolve-alert-button";
 import { AlertStatusBadge } from "./status-badge";
 import type { AlertDetailData } from "./types";
 
 export function AlertFocusCard({ alert }: { alert: AlertDetailData }) {
   const workspace = useWorkspaceNavigation();
-  const { user } = useWorkspace();
   const deploymentHref = alert.deploymentId
     ? routes.projects.apps.deployment({
         workspaceSlug: workspace.slug,
@@ -39,7 +36,6 @@ export function AlertFocusCard({ alert }: { alert: AlertDetailData }) {
           </h2>
           <AlertStatusBadge status={alert.status} />
         </div>
-        {alert.status === "open" ? <ResolveAlertButton alertId={alert.id} /> : null}
       </div>
       <dl
         className={
@@ -130,9 +126,6 @@ export function AlertFocusCard({ alert }: { alert: AlertDetailData }) {
         <div className="border-t border-successA-5 bg-successA-2 px-5 py-4">
           <div className="mb-2 flex flex-wrap items-center gap-2">
             <Badge variant="success">Resolved</Badge>
-            <span className="text-xs text-gray-9">
-              by {resolvedByLabel(alert.resolvedBy, user)}
-            </span>
             {alert.resolvedAt ? (
               <TimestampInfo
                 value={alert.resolvedAt}
@@ -157,17 +150,4 @@ function DetailValue({ label, value, hint }: { label: string; value: string; hin
       {hint ? <div className="mt-0.5 text-xs text-gray-9">{hint}</div> : null}
     </div>
   );
-}
-
-function resolvedByLabel(
-  resolvedBy: string | null,
-  user: { id: string; fullName: string | null; email: string } | null,
-): string {
-  if (resolvedBy === "system") {
-    return "System";
-  }
-  if (resolvedBy && user?.id === resolvedBy) {
-    return user.fullName ?? user.email;
-  }
-  return resolvedBy ?? "Unknown";
 }
