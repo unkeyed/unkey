@@ -56,6 +56,19 @@ export const showDarksoulsSuccessBanner = flag<boolean, Entities>({
   adapter: adapter(),
 });
 
+export const projectsNav = flag<boolean, Entities>({
+  key: "projects-nav",
+  description:
+    "Use the projects-first navigation (sidebar, breadcrumbs, landing redirect). Off until rollout.",
+  defaultValue: false,
+  options: [
+    { value: false, label: "Off" },
+    { value: true, label: "On" },
+  ],
+  identify,
+  adapter: adapter(),
+});
+
 // logdrains gates the log drains settings pages and their nav item. Off until
 // the logdrain service ships so the UI can merge without being visible.
 export const logdrains = flag<boolean, Entities>({

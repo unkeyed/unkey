@@ -71,9 +71,10 @@ func newLifecycleFixture(t *testing.T) *lifecycleFixture {
 
 	ctx := h.RequestContext()
 	wsID := h.Seed.Resources.UserWorkspace.ID
-	_, err := h.DB.RW().ExecContext(ctx,
-		"UPDATE workspace_billing SET plan = ? WHERE workspace_id = ?", "pro", wsID)
-	require.NoError(t, err)
+	require.NoError(t, h.DB.SetWorkspaceDeployPlan(ctx, db.SetWorkspaceDeployPlanParams{
+		Plan:        sql.NullString{String: "pro", Valid: true},
+		WorkspaceID: wsID,
+	}))
 
 	project := h.CreateProject(ctx, seed.CreateProjectRequest{
 		ID: uid.New("prj"), WorkspaceID: wsID, Name: "test-project", Slug: uid.New("slug"),

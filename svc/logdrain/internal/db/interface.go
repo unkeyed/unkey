@@ -8,6 +8,9 @@ type Replica = mysql.Replica
 // DBTX is the interface accepted by generated log drain queries.
 type DBTX = mysql.DBTX
 
+// DBTx is a transactional MySQL connection.
+type DBTx = mysql.DBTx
+
 // Database defines the single read-write database used by the log drain service.
 type Database interface {
 	Querier

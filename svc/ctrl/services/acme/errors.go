@@ -39,6 +39,10 @@ type ParsedACMEError struct {
 	OriginalError error
 }
 
+func (e *ParsedACMEError) Error() string {
+	return e.Message
+}
+
 // ParseACMEError analyzes an error from ACME operations and returns structured information.
 func ParseACMEError(err error) *ParsedACMEError {
 	if err == nil {
@@ -182,4 +186,31 @@ func AsRateLimitError(err error) (*RateLimitError, bool) {
 		return rle, true
 	}
 	return nil, false
+}
+
+// ShouldRetry returns true if the error is transient and the operation should be retried.
+func ShouldRetry(err error) bool {
+	parsed := ParseACMEError(err)
+	if parsed == nil {
+		return false
+	}
+	return parsed.IsRetryable
+}
+
+// IsRateLimited returns true if the error is a rate limit error.
+func IsRateLimited(err error) bool {
+	parsed := ParseACMEError(err)
+	if parsed == nil {
+		return false
+	}
+	return parsed.Type == ACMEErrorRateLimited
+}
+
+// IsCredentialError returns true if the error is related to bad credentials.
+func IsCredentialError(err error) bool {
+	parsed := ParseACMEError(err)
+	if parsed == nil {
+		return false
+	}
+	return parsed.Type == ACMEErrorBadCredentials
 }

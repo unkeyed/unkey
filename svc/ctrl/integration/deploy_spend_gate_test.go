@@ -78,8 +78,6 @@ func TestDeployWorkspaceGate_BlocksCreateAndRebuild(t *testing.T) {
 		require.ErrorContains(t, err, "spend cap")
 	})
 
-	// A cancelled workspace has no plan and is no longer spend-suspended. Both
-	// direct create and the ops rebuild path must remain blocked.
 	require.NoError(t, h.DB.ClearWorkspaceDeployPlan(ctx, db.ClearWorkspaceDeployPlanParams{
 		ID:        dep.WorkspaceID,
 		UpdatedAt: sql.NullInt64{Int64: h.Now(), Valid: true},

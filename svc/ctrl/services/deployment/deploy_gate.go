@@ -10,8 +10,6 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/internal/gatefault"
 )
 
-// ensureWorkspaceCanDeploy is the authoritative billing gate for every ctrl
-// action that creates, starts, or activates compute.
 func (s *Service) ensureWorkspaceCanDeploy(ctx context.Context, workspaceID string) error {
 	entitlement, err := s.db.FindWorkspaceDeployEntitlement(ctx, workspaceID)
 	if err != nil {

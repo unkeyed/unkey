@@ -43,8 +43,6 @@ func (s *Service) CreateProject(
 
 	workspaceID := req.Msg.GetWorkspaceId()
 
-	// Authoritative entitlement gate: CLI, API, and git-triggered deploys skip
-	// the dashboard, so creation is enforced here, not just in the UI.
 	entitlement, err := s.db.FindWorkspaceDeployEntitlement(ctx, workspaceID)
 	if err != nil {
 		if db.IsNotFound(err) {
