@@ -1,6 +1,3 @@
-// Package deployment maps a stored deployment row onto the openapi.Deployment
-// wire type shared by the deployment read endpoints (getDeployment,
-// listDeployments).
 package deployment
 
 import (
@@ -9,10 +6,6 @@ import (
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
-// Input is everything ToResponse needs. State carries the env/app columns the
-// wire type needs but the deployments row does not hold (slugs and the app live
-// pointer); both read handlers resolve them (per-deployment on get, batched on
-// list) so the mapper never queries.
 type Input struct {
 	Deployment db.Deployment
 	State      db.ListDeploymentEnvAndAppStateRow
@@ -43,8 +36,6 @@ func ToResponse(in Input) openapi.Deployment {
 
 	isCurrent := in.State.AppCurrentDeploymentID.String != "" && in.State.AppCurrentDeploymentID.String == d.ID
 
-	// regions is a required field, so it must marshal as [] not null when the
-	// deployment has no scheduled regions yet.
 	regions := in.Regions
 	if regions == nil {
 		regions = []string{}
@@ -98,6 +89,7 @@ func ToResponse(in Input) openapi.Deployment {
 		if image.Valid && image.String != "" {
 			dep.Docker = &openapi.DeploymentDocker{Image: image.String}
 		}
+	case db.DeploymentsSourceUnknown:
 	}
 
 	if failure := deriveError(d.Status, in.Steps); failure != nil {
