@@ -100,8 +100,8 @@ type CronServiceClient interface {
 	// candidates and fans actionable production groups to DeployAnomalyService.
 	// Key =
 	// "deploy-anomaly-<window start unix seconds>". The scheduler chooses the
-	// last window that is at least one full 5-minute bucket old so rollups can
-	// settle before the fleet queries run.
+	// window whose end is at least one full 5-minute bucket old so late rows and
+	// rollups can settle before the fleet queries run.
 	RunDeployAnomalyCheck(opts ...sdk_go.ClientOption) sdk_go.Client[*RunDeployAnomalyCheckRequest, *RunDeployAnomalyCheckResponse]
 	// RunClickhouseUserReconcile reapplies workspace ClickHouse grants when the
 	// desired allowed-table fingerprint changes. Key is the fixed slug
@@ -299,8 +299,8 @@ type CronServiceIngressClient interface {
 	// candidates and fans actionable production groups to DeployAnomalyService.
 	// Key =
 	// "deploy-anomaly-<window start unix seconds>". The scheduler chooses the
-	// last window that is at least one full 5-minute bucket old so rollups can
-	// settle before the fleet queries run.
+	// window whose end is at least one full 5-minute bucket old so late rows and
+	// rollups can settle before the fleet queries run.
 	RunDeployAnomalyCheck() ingress.Requester[*RunDeployAnomalyCheckRequest, *RunDeployAnomalyCheckResponse]
 	// RunClickhouseUserReconcile reapplies workspace ClickHouse grants when the
 	// desired allowed-table fingerprint changes. Key is the fixed slug
@@ -476,8 +476,8 @@ type CronServiceServer interface {
 	// candidates and fans actionable production groups to DeployAnomalyService.
 	// Key =
 	// "deploy-anomaly-<window start unix seconds>". The scheduler chooses the
-	// last window that is at least one full 5-minute bucket old so rollups can
-	// settle before the fleet queries run.
+	// window whose end is at least one full 5-minute bucket old so late rows and
+	// rollups can settle before the fleet queries run.
 	RunDeployAnomalyCheck(ctx sdk_go.ObjectContext, req *RunDeployAnomalyCheckRequest) (*RunDeployAnomalyCheckResponse, error)
 	// RunClickhouseUserReconcile reapplies workspace ClickHouse grants when the
 	// desired allowed-table fingerprint changes. Key is the fixed slug

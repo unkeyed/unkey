@@ -4,12 +4,15 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"time"
 
 	restate "github.com/restatedev/sdk-go"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/healthcheck"
+	"github.com/unkeyed/unkey/pkg/logger"
+	"github.com/unkeyed/unkey/pkg/restate/restateutil"
 )
 
 const (
@@ -56,6 +59,18 @@ func (h *Handler) Handle(
 	if err != nil {
 		return nil, restate.TerminalError(err)
 	}
+	now, err := restateutil.Now(ctx)
+	if err != nil {
+		return nil, fault.Wrap(err, fault.Internal("read deploy anomaly check time"))
+	}
+	if !windowReady(windowStart, now) {
+		logger.Warn("deploy anomaly window skipped before ingest settling period",
+			"window_start", windowStart,
+			"window_end", windowStart+windowDurationMillis,
+			"latest_safe_window_end", now.Add(-5*time.Minute).UnixMilli(),
+		)
+		return &hydrav1.RunDeployAnomalyCheckResponse{}, nil
+	}
 
 	type shardFuture = restate.ResponseFuture[*hydrav1.EvaluateDeployAnomalyShardResponse]
 	futures := make([]shardFuture, h.shardCount)
@@ -81,6 +96,10 @@ func (h *Handler) Handle(
 		return nil, fault.Wrap(err, fault.Internal("send heartbeat"))
 	}
 	return response, nil
+}
+
+func windowReady(windowStart int64, now time.Time) bool {
+	return windowStart+windowDurationMillis <= now.Add(-5*time.Minute).UnixMilli()
 }
 
 func ShardKey(windowStart int64, shard, shardCount uint64) string {
