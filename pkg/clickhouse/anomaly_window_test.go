@@ -108,42 +108,37 @@ func TestAnomalyWindows(t *testing.T) {
 		require.Equal(t, int64(288), row.BaselineBuckets)
 	})
 
-	t.Run("resource family", func(t *testing.T) {
+	t.Run("resource counters merge across separate raw inserts", func(t *testing.T) {
 		workspaceID := uid.New(uid.WorkspacePrefix)
 		projectID := uid.New(uid.ProjectPrefix)
 		appID := uid.New("app")
 		environmentID := uid.New("env")
 
-		insertResourceMinute(t, ctx, conn, resourceMinute{
-			time: windowStart.Add(-10 * time.Minute), workspaceID: workspaceID, projectID: projectID,
-			appID: appID, environmentID: environmentID, containerID: "container-a", egressBytes: 10, cpuSeconds: 2,
-		})
-		insertResourceMinute(t, ctx, conn, resourceMinute{
-			time: windowStart.Add(-10 * time.Minute), workspaceID: workspaceID, projectID: projectID,
-			appID: appID, environmentID: environmentID, containerID: "container-b", egressBytes: 20, cpuSeconds: 1,
-		})
-		insertResourceMinute(t, ctx, conn, resourceMinute{
-			time: windowStart.Add(-5 * time.Minute), workspaceID: workspaceID, projectID: projectID,
-			appID: appID, environmentID: environmentID, containerID: "container-a", egressBytes: 10, cpuSeconds: 2,
-		})
-		insertResourceMinute(t, ctx, conn, resourceMinute{
-			time: windowStart.Add(-5 * time.Minute), workspaceID: workspaceID, projectID: projectID,
-			appID: appID, environmentID: environmentID, containerID: "container-b", egressBytes: 40, cpuSeconds: 4,
-		})
-		insertResourceMinute(t, ctx, conn, resourceMinute{
-			time: windowStart, workspaceID: workspaceID, projectID: projectID,
-			appID: appID, environmentID: environmentID, containerID: "container-a", egressBytes: 40, cpuSeconds: 4,
-			memoryBytes: 900, memoryAllocatedBytes: 1_000,
-		})
-		insertResourceMinute(t, ctx, conn, resourceMinute{
-			time: windowStart, workspaceID: workspaceID, projectID: projectID,
-			appID: appID, environmentID: environmentID, containerID: "container-b", egressBytes: 60, cpuSeconds: 6,
-			memoryBytes: 800, memoryAllocatedBytes: 1_000,
-		})
-		insertResourceMinute(t, ctx, conn, resourceMinute{
-			time: windowStart, workspaceID: workspaceID, projectID: projectID,
-			appID: appID, environmentID: environmentID, containerID: "container-without-allocation",
-		})
+		group := anomalyResourceGroup{
+			workspaceID: workspaceID, projectID: projectID, appID: appID, environmentID: environmentID,
+		}
+		insertRawResourceSeries(t, ctx, conn, group, windowStart.Add(-10*time.Minute), "container-a", 1_000_000, 2_000_000, 100, 10, nil)
+		insertRawResourceSeries(t, ctx, conn, group, windowStart.Add(-10*time.Minute), "container-b", 1_000_000, 1_000_000, 1_000, 20, nil)
+		insertRawResourceSeries(t, ctx, conn, group, windowStart.Add(-5*time.Minute), "container-a", 3_000_000, 2_000_000, 110, 10, nil)
+		insertRawResourceSeries(t, ctx, conn, group, windowStart.Add(-5*time.Minute), "container-b", 2_000_000, 4_000_000, 1_020, 40, nil)
+		insertRawResourceSeries(t, ctx, conn, group, windowStart, "container-a", 5_000_000, 4_000_000, 120, 40, []int64{850, 900, 950})
+		insertRawResourceSeries(t, ctx, conn, group, windowStart, "container-b", 6_000_000, 6_000_000, 1_060, 60, []int64{750, 800, 850})
+
+		var baselineCPUSeconds, baselineEgressBytes float64
+		err = conn.QueryRow(ctx, `
+			SELECT sum(cpu_seconds), sum(egress_bytes)
+			FROM (
+				SELECT
+					toFloat64(greatest(toInt64(0), max(cpu_usage_usec_max) - min(cpu_usage_usec_min))) / 1e6 AS cpu_seconds,
+					toFloat64(greatest(toInt64(0), max(network_egress_public_bytes_max) - min(network_egress_public_bytes_min))) AS egress_bytes
+				FROM instance_resources_container_per_5m_v1
+				WHERE workspace_id = ? AND time >= ? AND time < ?
+				GROUP BY time, container_uid
+			)
+		`, workspaceID, windowStart.Add(-10*time.Minute), windowStart).Scan(&baselineCPUSeconds, &baselineEgressBytes)
+		require.NoError(t, err)
+		require.Equal(t, 9.0, baselineCPUSeconds)
+		require.Equal(t, 80.0, baselineEgressBytes)
 
 		rows, err := client.GetResourceAnomalyWindows(ctx, clickhouse.AnomalyWindowsRequest{
 			WindowStart:  windowStart.UnixMilli(),
@@ -164,7 +159,7 @@ func TestAnomalyWindows(t *testing.T) {
 		require.Equal(t, 4.5, row.CPUSecondsBaselineMean)
 		require.Equal(t, 1.5, row.CPUSecondsBaselineStddev)
 		require.InDelta(t, 0.85, row.MemoryUtilizationCurrent, 1e-12)
-		require.Equal(t, 0.9, row.MemoryUtilizationMaxCurrent)
+		require.Equal(t, 0.95, row.MemoryUtilizationMaxCurrent)
 		require.Equal(t, int64(2), row.BaselineBuckets)
 	})
 
@@ -272,37 +267,52 @@ func insertRequestBaseline(
 	require.NoError(t, batch.Send())
 }
 
-type resourceMinute struct {
-	time                 time.Time
-	workspaceID          string
-	projectID            string
-	appID                string
-	environmentID        string
-	containerID          string
-	egressBytes          int64
-	cpuSeconds           int64
-	memoryBytes          int64
-	memoryAllocatedBytes int64
+type anomalyResourceGroup struct {
+	workspaceID   string
+	projectID     string
+	appID         string
+	environmentID string
 }
 
-func insertResourceMinute(t *testing.T, ctx context.Context, conn ch.Conn, row resourceMinute) {
+func insertRawResourceSeries(
+	t *testing.T,
+	ctx context.Context,
+	conn ch.Conn,
+	group anomalyResourceGroup,
+	bucket time.Time,
+	containerID string,
+	cpuStart, cpuDelta, egressStart, egressDelta int64,
+	memoryBytes []int64,
+) {
 	t.Helper()
-	err := conn.Exec(ctx, `
-		INSERT INTO default.instance_resources_per_minute_v1 (
-			time, workspace_id, project_id, app_id, environment_id,
-			resource_type, resource_id, container_uid, instance_id,
-			cpu_usage_usec_min, cpu_usage_usec_max,
-			memory_bytes_max, memory_allocated_bytes_max,
-			network_egress_public_bytes_min, network_egress_public_bytes_max
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-	`,
-		row.time, row.workspaceID, row.projectID, row.appID, row.environmentID,
-		"deployment", "resource-"+row.containerID, row.containerID, "instance-"+row.containerID,
-		int64(0), row.cpuSeconds*1_000_000,
-		row.memoryBytes, row.memoryAllocatedBytes,
-		int64(0), row.egressBytes,
-	)
-	require.NoError(t, err)
+	for i := range 3 {
+		memory := int64(0)
+		allocation := int64(0)
+		if len(memoryBytes) > 0 {
+			memory = memoryBytes[i]
+			allocation = 1_000
+		}
+		insertCheckpoints(t, ctx, conn, []schema.InstanceCheckpoint{{
+			NodeID:                   "node-local",
+			WorkspaceID:              group.workspaceID,
+			ProjectID:                group.projectID,
+			AppID:                    group.appID,
+			EnvironmentID:            group.environmentID,
+			ResourceType:             "deployment",
+			ResourceID:               "resource-" + containerID,
+			PodUID:                   "pod-" + containerID,
+			InstanceID:               "instance-" + containerID,
+			ContainerUID:             containerID,
+			Ts:                       bucket.Add(time.Duration(i) * 5 * time.Second).UnixMilli(),
+			CPUUsageUsec:             cpuStart + cpuDelta*int64(i)/2,
+			MemoryBytes:              memory,
+			MemoryAllocatedBytes:     allocation,
+			NetworkEgressPublicBytes: egressStart + egressDelta*int64(i)/2,
+			Region:                   "local",
+			Platform:                 "local",
+			Attributes:               "{}",
+		}})
+	}
 }
 
 func anomalyEvent(
