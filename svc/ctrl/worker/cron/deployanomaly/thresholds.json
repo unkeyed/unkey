@@ -1,8 +1,11 @@
 {
   "sigmaK": 4,
+  "sensitivitySigmaOffsets": {
+    "low": 1,
+    "high": -1
+  },
   "minimumLifetimeBuckets": 12,
   "minimumStddevRatio": 0.1,
-  "requestDropMedianFraction": 0.25,
   "stddevFloors": {
     "error_5xx": 0.01,
     "error_4xx": 0.01,
@@ -17,5 +20,30 @@
     "requests_drop": 72,
     "egress_bytes": 12,
     "cpu_seconds": 12
-  }
+  },
+  "activityFloors": {
+    "errorExcessFailures": 20,
+    "requests": 200,
+    "egressBytes": 104857600,
+    "cpuSeconds": 60,
+    "memoryUtilization": 0.9,
+    "oomKilled": 1,
+    "crashLoop": 1
+  },
+  "requestDrop": {
+    "recentLevelFraction": 0.25,
+    "activityPerBucket": 200,
+    "minimumActiveBuckets": 9,
+    "minimumAbsoluteLoss": 200
+  },
+  "catastrophic": {
+    "error5xxRatio": 0.5,
+    "error5xxFailures": 50
+  },
+  "recovery": {
+    "memoryUtilization": 0.85,
+    "sigmaReduction": 1,
+    "consecutiveWindows": 3
+  },
+  "maxOpenDurationSeconds": 86400
 }

@@ -24,7 +24,8 @@ type AnomalyGroupKey struct {
 type AnomalyCandidateFilter struct {
 	SigmaK                    float64
 	MinimumStddevRatio        float64
-	ErrorRatioStddevFloor     float64
+	Error5xxRatioStddevFloor  float64
+	Error4xxRatioStddevFloor  float64
 	RequestsStddevFloor       float64
 	EgressBytesStddevFloor    float64
 	CPUSecondsStddevFloor     float64
@@ -279,7 +280,7 @@ WHERE
 	)
 	OR (
 		baseline_buckets >= {baseline_minimum:Int64}
-		AND error_5xx_ratio_current > error_5xx_baseline_mean + {sigma_k:Float64} * greatest(error_5xx_baseline_stddev, error_5xx_baseline_mean * {minimum_stddev_ratio:Float64}, {error_ratio_stddev_floor:Float64})
+		AND error_5xx_ratio_current > error_5xx_baseline_mean + {sigma_k:Float64} * greatest(error_5xx_baseline_stddev, error_5xx_baseline_mean * {minimum_stddev_ratio:Float64}, {error_5xx_ratio_stddev_floor:Float64})
 		AND error_5xx_excess >= {error_excess_failures:Float64}
 	)
 	OR (
@@ -288,7 +289,7 @@ WHERE
 	)
 	OR (
 		baseline_buckets >= {baseline_minimum:Int64}
-		AND error_4xx_ratio_current > error_4xx_baseline_mean + {sigma_k:Float64} * greatest(error_4xx_baseline_stddev, error_4xx_baseline_mean * {minimum_stddev_ratio:Float64}, {error_ratio_stddev_floor:Float64})
+		AND error_4xx_ratio_current > error_4xx_baseline_mean + {sigma_k:Float64} * greatest(error_4xx_baseline_stddev, error_4xx_baseline_mean * {minimum_stddev_ratio:Float64}, {error_4xx_ratio_stddev_floor:Float64})
 		AND error_4xx_excess >= {error_excess_failures:Float64}
 	)
 	OR (
@@ -634,35 +635,36 @@ func anomalyWindowParameters(req AnomalyWindowsRequest, batch anomalyWindowBatch
 		filter = new(AnomalyCandidateFilter)
 	}
 	return map[string]string{
-		"window_start_ms":             strconv.FormatInt(req.WindowStart, 10),
-		"workspace_ids":               stringArrayParam(req.WorkspaceIDs),
-		"group_keys":                  anomalyGroupKeysParam(batch.GroupKeys),
-		"include_fleet":               boolParam(batch.IncludeFleet),
-		"shard":                       strconv.FormatUint(req.Shard, 10),
-		"shard_count":                 strconv.FormatUint(req.ShardCount, 10),
-		"physical_shards":             physicalShardsParam(req.Shard, req.ShardCount),
-		"group_physical_shards":       groupPhysicalShardsParam(batch.GroupKeys),
-		"candidate_filter_enabled":    boolParam(req.CandidateFilter != nil),
-		"explicit_batch":              boolParam(!batch.IncludeFleet),
-		"sigma_k":                     strconv.FormatFloat(filter.SigmaK, 'g', -1, 64),
-		"minimum_stddev_ratio":        strconv.FormatFloat(filter.MinimumStddevRatio, 'g', -1, 64),
-		"error_ratio_stddev_floor":    strconv.FormatFloat(filter.ErrorRatioStddevFloor, 'g', -1, 64),
-		"requests_stddev_floor":       strconv.FormatFloat(filter.RequestsStddevFloor, 'g', -1, 64),
-		"egress_bytes_stddev_floor":   strconv.FormatFloat(filter.EgressBytesStddevFloor, 'g', -1, 64),
-		"cpu_seconds_stddev_floor":    strconv.FormatFloat(filter.CPUSecondsStddevFloor, 'g', -1, 64),
-		"error_excess_failures":       strconv.FormatFloat(filter.ErrorExcessFailures, 'g', -1, 64),
-		"requests_activity":           strconv.FormatFloat(filter.RequestsActivity, 'g', -1, 64),
-		"egress_bytes_activity":       strconv.FormatFloat(filter.EgressBytesActivity, 'g', -1, 64),
-		"cpu_seconds_activity":        strconv.FormatFloat(filter.CPUSecondsActivity, 'g', -1, 64),
-		"memory_utilization_activity": strconv.FormatFloat(filter.MemoryUtilizationActivity, 'g', -1, 64),
-		"baseline_minimum":            strconv.FormatInt(filter.BaselineMinimum, 10),
-		"request_drop_baseline":       strconv.FormatInt(filter.RequestDropBaseline, 10),
-		"request_drop_fraction":       strconv.FormatFloat(filter.RequestDropFraction, 'g', -1, 64),
-		"request_drop_activity":       strconv.FormatFloat(filter.RequestDropActivity, 'g', -1, 64),
-		"request_drop_active_buckets": strconv.FormatInt(filter.RequestDropActiveBuckets, 10),
-		"request_drop_absolute_loss":  strconv.FormatFloat(filter.RequestDropAbsoluteLoss, 'g', -1, 64),
-		"catastrophic_5xx_ratio":      strconv.FormatFloat(filter.Catastrophic5xxRatio, 'g', -1, 64),
-		"catastrophic_5xx_failures":   strconv.FormatFloat(filter.Catastrophic5xxFailures, 'g', -1, 64),
+		"window_start_ms":              strconv.FormatInt(req.WindowStart, 10),
+		"workspace_ids":                stringArrayParam(req.WorkspaceIDs),
+		"group_keys":                   anomalyGroupKeysParam(batch.GroupKeys),
+		"include_fleet":                boolParam(batch.IncludeFleet),
+		"shard":                        strconv.FormatUint(req.Shard, 10),
+		"shard_count":                  strconv.FormatUint(req.ShardCount, 10),
+		"physical_shards":              physicalShardsParam(req.Shard, req.ShardCount),
+		"group_physical_shards":        groupPhysicalShardsParam(batch.GroupKeys),
+		"candidate_filter_enabled":     boolParam(req.CandidateFilter != nil),
+		"explicit_batch":               boolParam(!batch.IncludeFleet),
+		"sigma_k":                      strconv.FormatFloat(filter.SigmaK, 'g', -1, 64),
+		"minimum_stddev_ratio":         strconv.FormatFloat(filter.MinimumStddevRatio, 'g', -1, 64),
+		"error_5xx_ratio_stddev_floor": strconv.FormatFloat(filter.Error5xxRatioStddevFloor, 'g', -1, 64),
+		"error_4xx_ratio_stddev_floor": strconv.FormatFloat(filter.Error4xxRatioStddevFloor, 'g', -1, 64),
+		"requests_stddev_floor":        strconv.FormatFloat(filter.RequestsStddevFloor, 'g', -1, 64),
+		"egress_bytes_stddev_floor":    strconv.FormatFloat(filter.EgressBytesStddevFloor, 'g', -1, 64),
+		"cpu_seconds_stddev_floor":     strconv.FormatFloat(filter.CPUSecondsStddevFloor, 'g', -1, 64),
+		"error_excess_failures":        strconv.FormatFloat(filter.ErrorExcessFailures, 'g', -1, 64),
+		"requests_activity":            strconv.FormatFloat(filter.RequestsActivity, 'g', -1, 64),
+		"egress_bytes_activity":        strconv.FormatFloat(filter.EgressBytesActivity, 'g', -1, 64),
+		"cpu_seconds_activity":         strconv.FormatFloat(filter.CPUSecondsActivity, 'g', -1, 64),
+		"memory_utilization_activity":  strconv.FormatFloat(filter.MemoryUtilizationActivity, 'g', -1, 64),
+		"baseline_minimum":             strconv.FormatInt(filter.BaselineMinimum, 10),
+		"request_drop_baseline":        strconv.FormatInt(filter.RequestDropBaseline, 10),
+		"request_drop_fraction":        strconv.FormatFloat(filter.RequestDropFraction, 'g', -1, 64),
+		"request_drop_activity":        strconv.FormatFloat(filter.RequestDropActivity, 'g', -1, 64),
+		"request_drop_active_buckets":  strconv.FormatInt(filter.RequestDropActiveBuckets, 10),
+		"request_drop_absolute_loss":   strconv.FormatFloat(filter.RequestDropAbsoluteLoss, 'g', -1, 64),
+		"catastrophic_5xx_ratio":       strconv.FormatFloat(filter.Catastrophic5xxRatio, 'g', -1, 64),
+		"catastrophic_5xx_failures":    strconv.FormatFloat(filter.Catastrophic5xxFailures, 'g', -1, 64),
 	}
 }
 
