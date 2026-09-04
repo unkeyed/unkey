@@ -18,12 +18,22 @@ const (
 var thresholdData []byte
 
 type thresholdFile struct {
-	SigmaK                    float64            `json:"sigmaK"`
-	MinimumLifetimeBuckets    int64              `json:"minimumLifetimeBuckets"`
-	MinimumStddevRatio        float64            `json:"minimumStddevRatio"`
-	RequestDropMedianFraction float64            `json:"requestDropMedianFraction"`
-	StddevFloors              map[Metric]float64 `json:"stddevFloors"`
-	BaselineMinimums          map[Metric]int64   `json:"baselineMinimums"`
+	SigmaK                  float64                 `json:"sigmaK"`
+	SensitivitySigmaOffsets sensitivitySigmaOffsets `json:"sensitivitySigmaOffsets"`
+	MinimumLifetimeBuckets  int64                   `json:"minimumLifetimeBuckets"`
+	MinimumStddevRatio      float64                 `json:"minimumStddevRatio"`
+	StddevFloors            map[Metric]float64      `json:"stddevFloors"`
+	BaselineMinimums        map[Metric]int64        `json:"baselineMinimums"`
+	ActivityFloors          ActivityFloors          `json:"activityFloors"`
+	RequestDrop             RequestDropRule         `json:"requestDrop"`
+	Catastrophic            CatastrophicRules       `json:"catastrophic"`
+	Recovery                RecoveryThresholds      `json:"recovery"`
+	MaxOpenDurationSeconds  int64                   `json:"maxOpenDurationSeconds"`
+}
+
+type sensitivitySigmaOffsets struct {
+	Low  float64 `json:"low"`
+	High float64 `json:"high"`
 }
 
 var productionThresholds = loadThresholds()
@@ -74,11 +84,11 @@ const (
 func (s Sensitivity) SigmaK() float64 {
 	switch s {
 	case SensitivityLow:
-		return productionThresholds.SigmaK + 1
+		return productionThresholds.SigmaK + productionThresholds.SensitivitySigmaOffsets.Low
 	case SensitivityNormal:
 		return productionThresholds.SigmaK
 	case SensitivityHigh:
-		return productionThresholds.SigmaK - 1
+		return productionThresholds.SigmaK + productionThresholds.SensitivitySigmaOffsets.High
 	default:
 		return productionThresholds.SigmaK
 	}
@@ -87,42 +97,45 @@ func (s Sensitivity) SigmaK() float64 {
 // StddevFloors prevents a flat or near-flat baseline from producing an
 // unusably small sigma threshold.
 type StddevFloors struct {
-	ErrorRatio  float64
-	Requests    float64
-	EgressBytes float64
-	CPUSeconds  float64
+	Error5xxRatio float64
+	Error4xxRatio float64
+	Requests      float64
+	EgressBytes   float64
+	CPUSeconds    float64
 }
 
 // ActivityFloors suppresses alerts whose absolute activity is too small to be
 // actionable.
 type ActivityFloors struct {
-	ErrorExcessFailures float64
-	Requests            float64
-	EgressBytes         float64
-	CPUSeconds          float64
-	MemoryUtilization   float64
-	OOMKilled           float64
-	CrashLoop           float64
+	ErrorExcessFailures float64 `json:"errorExcessFailures"`
+	Requests            float64 `json:"requests"`
+	EgressBytes         float64 `json:"egressBytes"`
+	CPUSeconds          float64 `json:"cpuSeconds"`
+	MemoryUtilization   float64 `json:"memoryUtilization"`
+	OOMKilled           float64 `json:"oomKilled"`
+	CrashLoop           float64 `json:"crashLoop"`
 }
 
 // RequestDropRule configures the robust request-loss detector. Recent activity
 // counts the last 12 complete buckets whose traffic met ActivityPerBucket.
 type RequestDropRule struct {
-	RecentLevelFraction  float64
-	ActivityPerBucket    float64
-	MinimumActiveBuckets int64
-	MinimumAbsoluteLoss  float64
+	RecentLevelFraction  float64 `json:"recentLevelFraction"`
+	ActivityPerBucket    float64 `json:"activityPerBucket"`
+	MinimumActiveBuckets int64   `json:"minimumActiveBuckets"`
+	MinimumAbsoluteLoss  float64 `json:"minimumAbsoluteLoss"`
 }
 
 // CatastrophicRules bypasses interval confirmation for severe failures.
 type CatastrophicRules struct {
-	Error5xxRatio    float64
-	Error5xxFailures float64
+	Error5xxRatio    float64 `json:"error5xxRatio"`
+	Error5xxFailures float64 `json:"error5xxFailures"`
 }
 
-// RecoveryThresholds adds hysteresis to direct-threshold metrics.
+// RecoveryThresholds adds hysteresis to open-alert resolution.
 type RecoveryThresholds struct {
-	MemoryUtilization float64
+	MemoryUtilization  float64 `json:"memoryUtilization"`
+	SigmaReduction     float64 `json:"sigmaReduction"`
+	ConsecutiveWindows int     `json:"consecutiveWindows"`
 }
 
 // BaselineMinimums defines the observed history required before each sigma
@@ -159,20 +172,13 @@ func DefaultConfig(sensitivity Sensitivity) Config {
 		SigmaK:             sensitivity.SigmaK(),
 		MinimumStddevRatio: productionThresholds.MinimumStddevRatio,
 		StddevFloors: StddevFloors{
-			ErrorRatio:  productionThresholds.StddevFloors[MetricError5xx],
-			Requests:    productionThresholds.StddevFloors[MetricRequests],
-			EgressBytes: productionThresholds.StddevFloors[MetricEgressBytes],
-			CPUSeconds:  productionThresholds.StddevFloors[MetricCPUSeconds],
+			Error5xxRatio: productionThresholds.StddevFloors[MetricError5xx],
+			Error4xxRatio: productionThresholds.StddevFloors[MetricError4xx],
+			Requests:      productionThresholds.StddevFloors[MetricRequests],
+			EgressBytes:   productionThresholds.StddevFloors[MetricEgressBytes],
+			CPUSeconds:    productionThresholds.StddevFloors[MetricCPUSeconds],
 		},
-		ActivityFloors: ActivityFloors{
-			ErrorExcessFailures: 20,
-			Requests:            200,
-			EgressBytes:         100 << 20,
-			CPUSeconds:          60,
-			MemoryUtilization:   0.90,
-			OOMKilled:           1,
-			CrashLoop:           1,
-		},
+		ActivityFloors: productionThresholds.ActivityFloors,
 		BaselineMinimums: BaselineMinimums{
 			Error5xx:     productionThresholds.BaselineMinimums[MetricError5xx],
 			Error4xx:     productionThresholds.BaselineMinimums[MetricError4xx],
@@ -181,20 +187,10 @@ func DefaultConfig(sensitivity Sensitivity) Config {
 			EgressBytes:  productionThresholds.BaselineMinimums[MetricEgressBytes],
 			CPUSeconds:   productionThresholds.BaselineMinimums[MetricCPUSeconds],
 		},
-		RequestDrop: RequestDropRule{
-			RecentLevelFraction:  productionThresholds.RequestDropMedianFraction,
-			ActivityPerBucket:    200,
-			MinimumActiveBuckets: 9,
-			MinimumAbsoluteLoss:  200,
-		},
-		Catastrophic: CatastrophicRules{
-			Error5xxRatio:    0.5,
-			Error5xxFailures: 50,
-		},
-		Recovery: RecoveryThresholds{
-			MemoryUtilization: 0.85,
-		},
-		MaxOpenDuration: 24 * time.Hour,
+		RequestDrop:     productionThresholds.RequestDrop,
+		Catastrophic:    productionThresholds.Catastrophic,
+		Recovery:        productionThresholds.Recovery,
+		MaxOpenDuration: time.Duration(productionThresholds.MaxOpenDurationSeconds) * time.Second,
 	}
 }
 
@@ -380,7 +376,7 @@ func detectError(input Input, cfg Config) Result {
 	if input.RequestsInWindow > 0 {
 		ratio = input.Current / input.RequestsInWindow
 	}
-	stddev := max(input.BaselineStddev, input.BaselineMean*cfg.MinimumStddevRatio, cfg.StddevFloors.ErrorRatio)
+	stddev := max(input.BaselineStddev, input.BaselineMean*cfg.MinimumStddevRatio, stddevFloor(input.Metric, cfg.StddevFloors))
 	threshold := input.BaselineMean + cfg.SigmaK*stddev
 	expected := input.BaselineMean * input.RequestsInWindow
 	excess := input.Current - expected
@@ -493,8 +489,10 @@ func paddedBaseline(input Input) (float64, float64) {
 
 func stddevFloor(metric Metric, floors StddevFloors) float64 {
 	switch metric {
-	case MetricError5xx, MetricError4xx:
-		return floors.ErrorRatio
+	case MetricError5xx:
+		return floors.Error5xxRatio
+	case MetricError4xx:
+		return floors.Error4xxRatio
 	case MetricRequests, MetricRequestsDrop:
 		return floors.Requests
 	case MetricEgressBytes:
@@ -519,9 +517,9 @@ func Recovered(input Input, snapshot Result, cfg Config) bool {
 		if input.RequestsInWindow > 0 {
 			ratio = input.Current / input.RequestsInWindow
 		}
-		return ratio <= snapshot.BaselineMean+max(0, snapshot.SigmaK-1)*snapshot.BaselineStddev
+		return ratio <= snapshot.BaselineMean+max(0, snapshot.SigmaK-cfg.Recovery.SigmaReduction)*snapshot.BaselineStddev
 	case MetricRequests, MetricEgressBytes, MetricCPUSeconds:
-		return input.Current <= snapshot.BaselineMean+max(0, snapshot.SigmaK-1)*snapshot.BaselineStddev
+		return input.Current <= snapshot.BaselineMean+max(0, snapshot.SigmaK-cfg.Recovery.SigmaReduction)*snapshot.BaselineStddev
 	case MetricRequestsDrop:
 		return input.Current >= snapshot.ThresholdValue
 	case MetricMemoryUtilization:
@@ -571,6 +569,6 @@ func meetsActivityFloor(input Input, floors ActivityFloors) bool {
 
 // ShouldResolve reports whether an open anomaly has stayed quiet long enough
 // to resolve without flapping on one or two normal windows.
-func ShouldResolve(consecutiveQuietWindows int) bool {
-	return consecutiveQuietWindows >= 3
+func ShouldResolve(consecutiveQuietWindows, minimumConsecutiveWindows int) bool {
+	return consecutiveQuietWindows >= minimumConsecutiveWindows
 }

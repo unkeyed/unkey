@@ -488,9 +488,12 @@ func generateAlertSeedDataset(target alertSeedTarget, now time.Time) alertSeedDa
 			mean = alertRecentMedian(series[definition.metric], definition.windowStart.UnixMilli(), 12)
 			stddev = 0
 			thresholdSigma = 0
-		case seedMetricError5xx, seedMetricError4xx:
+		case seedMetricError5xx:
 			mean = alertWeightedMean(series[definition.metric], definition.windowStart.UnixMilli())
-			stddev = max(stddev, config.MinimumStddevRatio*mean, config.StddevFloors.ErrorRatio)
+			stddev = max(stddev, config.MinimumStddevRatio*mean, config.StddevFloors.Error5xxRatio)
+		case seedMetricError4xx:
+			mean = alertWeightedMean(series[definition.metric], definition.windowStart.UnixMilli())
+			stddev = max(stddev, config.MinimumStddevRatio*mean, config.StddevFloors.Error4xxRatio)
 		case seedMetricRequests:
 			stddev = max(stddev, config.MinimumStddevRatio*mean, config.StddevFloors.Requests)
 		case seedMetricEgressBytes:

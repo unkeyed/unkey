@@ -47,20 +47,30 @@ func TestGenerateAlertSeedDataset(t *testing.T) {
 			require.Zero(t, alert.baselineMean)
 			require.Zero(t, alert.baselineStddev)
 			require.Zero(t, alert.thresholdSigma)
-			require.Greater(t, alert.observedValue, 0.9)
-		case seedMetricOOMKilled, seedMetricCrashLoop:
+			require.Greater(t, alert.observedValue, config.ActivityFloors.MemoryUtilization)
+		case seedMetricOOMKilled:
 			require.Zero(t, alert.baselineMean)
 			require.Zero(t, alert.baselineStddev)
 			require.Zero(t, alert.thresholdSigma)
-			require.Greater(t, alert.observedValue, float64(1))
+			require.Greater(t, alert.observedValue, config.ActivityFloors.OOMKilled)
+		case seedMetricCrashLoop:
+			require.Zero(t, alert.baselineMean)
+			require.Zero(t, alert.baselineStddev)
+			require.Zero(t, alert.thresholdSigma)
+			require.Greater(t, alert.observedValue, config.ActivityFloors.CrashLoop)
 		case seedMetricRequestsDrop:
 			require.Zero(t, alert.baselineStddev)
 			require.Zero(t, alert.thresholdSigma)
-			require.Less(t, alert.observedValue, 0.25*alert.baselineMean)
-		case seedMetricError5xx, seedMetricError4xx:
+			require.Less(t, alert.observedValue, config.RequestDrop.RecentLevelFraction*alert.baselineMean)
+		case seedMetricError5xx:
 			require.GreaterOrEqual(t, alert.observedValue, 0.0)
 			require.LessOrEqual(t, alert.observedValue, 1.0)
-			require.GreaterOrEqual(t, alert.baselineStddev, 0.01)
+			require.GreaterOrEqual(t, alert.baselineStddev, config.StddevFloors.Error5xxRatio)
+			require.Greater(t, alert.observedValue, alert.baselineMean+alert.thresholdSigma*alert.baselineStddev)
+		case seedMetricError4xx:
+			require.GreaterOrEqual(t, alert.observedValue, 0.0)
+			require.LessOrEqual(t, alert.observedValue, 1.0)
+			require.GreaterOrEqual(t, alert.baselineStddev, config.StddevFloors.Error4xxRatio)
 			require.Greater(t, alert.observedValue, alert.baselineMean+alert.thresholdSigma*alert.baselineStddev)
 		case seedMetricRequests:
 			require.Equal(t, config.StddevFloors.Requests, alert.baselineStddev)
