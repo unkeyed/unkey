@@ -65,8 +65,9 @@ key. Check Kubernetes before the worker.
    `hydra.v1.CronService/<cron_key>/RunDeployAnomalyCheck/send`.
 4. Confirm that Restate ingress and the control-plane worker are ready.
 5. Compare the local chart entry in
-   `dev/k8s/charts/restate-cronjobs/values.yaml` with the production declaration
-   in the `unkeyed/infra` repository.
+   `dev/k8s/charts/restate-cronjobs/values.yaml` with the production
+   `deploy-anomaly-check` job in the `unkeyed/infra` repository at
+   `eks-cluster/helm-chart/restate/environments/{canary,production001}/us-east-1.yaml`.
 
 After configuring the Restate CLI for the affected cluster, inspect the exact
 cron object:
@@ -128,17 +129,25 @@ views on these raw sources:
 | `requests` | `frontline_requests_raw_v1` |
 | `resources` | `instance_checkpoints_v1` |
 
-Confirm that only the expected watermark table and two materialized views are
-installed:
+Confirm the complete detector object set after a migration:
 
 ```sql
 SHOW TABLES FROM default LIKE 'anomaly_%watermark%';
+SHOW TABLES FROM default LIKE 'frontline_requests_anomaly_%';
+SHOW TABLES FROM default LIKE 'instance_resources_container_%';
 ```
 
-The results must include `anomaly_source_watermarks_v1`,
-`anomaly_requests_watermark_mv_v1`, and
-`anomaly_resources_watermark_mv_v1`. There is no instance-event watermark
-materialized view.
+The combined results must contain these seven objects:
+
+- `anomaly_requests_watermark_mv_v1`
+- `anomaly_resources_watermark_mv_v1`
+- `anomaly_source_watermarks_v1`
+- `frontline_requests_anomaly_per_5m_mv_v1`
+- `frontline_requests_anomaly_per_5m_v1`
+- `instance_resources_container_per_5m_mv_v1`
+- `instance_resources_container_per_5m_v1`
+
+There is no instance-event watermark materialized view.
 
 Inspect the producer and materialized view for the delayed pair. If a region is
 unexpectedly inactive, check why it has produced no ingest for 2 hours. Do not
@@ -172,6 +181,11 @@ Look for journal failures in watermark reads, candidate queries, batched MySQL
 metadata resolution, and per-group calls. Metadata batches contain at most 500
 groups. The parent awaits every child. Any failed child withholds the heartbeat
 even if other groups succeed.
+
+Metadata resolution also identifies open-alert groups whose app or environment
+no longer exists. The shard resolves each orphaned batch of at most 500 groups
+with `Deployment stopped`. Inspect that batched resolution step when a deleted
+group remains open.
 
 `DeployAnomalyShardService.GetPending` reports the shard's current pending group
 count. Compare it with `groups_pending` in the `EvaluateShard` result. Only
@@ -279,17 +293,37 @@ these conditions:
 7. The applied sensitivity and shared dashboard constants match the
    [detector math](/architecture/services/control-plane/worker/deploy-anomaly-detection-math).
 8. An older app received its backfilled baseline. If it did not, confirm that
-   the deploy anomaly migration in `pkg/clickhouse/migrations` completed
-   for `instance_resources_app_per_5m_v1`,
+   the deploy anomaly migration in `pkg/clickhouse/migrations` completed for
    `anomaly_source_watermarks_v1`,
    `frontline_requests_anomaly_per_5m_v1`, and
-   `instance_memory_container_per_5m_v1`.
+   `instance_resources_container_per_5m_v1`.
 
 Each 7-day backfill runs over closed buckets before its materialized view is
 created. At most, the in-progress 5-minute bucket at migration time can be
-absent. Backfill retries are safe. Watermarks use max states, and sum rollups
-exclude keys that are already present. Investigate migration completion instead
-of inserting replacement rollup rows.
+absent. Backfill retries are safe. Watermarks use max states, and aggregate
+rollups exclude keys that are already present. Investigate migration completion
+instead of inserting replacement rollup rows.
+
+### Investigate zero CPU or egress
+
+The resource materialized view must read raw `instance_checkpoints_v1` rows and
+preserve per-container counter bounds for each 5-minute bucket. Inspect its
+definition:
+
+```sql
+SHOW CREATE TABLE default.instance_resources_container_per_5m_mv_v1;
+```
+
+The definition must select from `instance_checkpoints_v1` and aggregate
+`cpu_usage_usec_min`, `cpu_usage_usec_max`,
+`network_egress_public_bytes_min`, and
+`network_egress_public_bytes_max`. The detector calculates a non-negative
+`max - min` per container before summing containers to the app.
+
+Do not restore a materialized view chained from a per-minute table. A live
+insert block can contain one 5-second sample. Computing a delta inside that
+block makes its minimum and maximum equal, which writes zero CPU and egress for
+live traffic.
 
 Do not compare an open alert with the latest rolling baseline. Recovery uses
 the snapshot stored when the alert opened.
@@ -340,6 +374,12 @@ past that limit:
    invocation for a failed MySQL resolution step.
 4. Confirm that the deployed `Config.MaxOpenDuration` is 24 hours.
 
+If the app or environment was deleted, inspect its deletion workflow first. It
+must durably resolve open alerts with `Deployment stopped` before deleting the
+metadata. If deletion completed without that transition, inspect the next shard
+run. Its batched orphan reconciliation must resolve any remaining open group
+whose app or environment cannot be found.
+
 Do not update MySQL or Restate state to close the alert. Correct the failed
 evaluation path and let the detector persist the transition.
 
@@ -348,7 +388,7 @@ Use `resolution_message` to interpret a resolved row:
 | Message | Meaning |
 | --- | --- |
 | `Metric returned to baseline for 3 consecutive windows` | Three complete windows crossed the recovery threshold captured when the alert opened. |
-| `Deployment stopped` | A request-drop alert closed because there was no live deployment, its desired state was `stopped`, or every topology region was stopped. |
+| `Deployment stopped` | A request-drop alert closed because its deployment stopped, or an app or environment deletion resolved the alert. Shard reconciliation uses the same message for orphaned metadata. |
 | `Baseline adapted after 24 hours` | The alert stayed open for 24 hours, so the rolling baseline now represents the new level. |
 
 The last message describes baseline adaptation, not proof that the new level is
@@ -394,11 +434,12 @@ or concurrency supports the change.
 A count change affects later windows only. Do not restart an in-flight window
 with a different count.
 
-## Add the production cron
+## Verify the production cron
 
-The local chart is not the production source of truth. Add the equivalent job
-to the `unkeyed/infra` repository and use a fresh idempotency key for each
-window.
+The local chart is not the production source of truth. The production
+`deploy-anomaly-check` job is in the `unkeyed/infra` repository at
+`eks-cluster/helm-chart/restate/environments/{canary,production001}/us-east-1.yaml`.
+Both environments use `*/5 * * * *` and a fresh idempotency key for each window.
 
 The request must calculate the window that closed one full bucket earlier and
 invoke this path:

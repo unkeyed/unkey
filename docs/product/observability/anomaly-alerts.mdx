@@ -92,20 +92,29 @@ the recent baseline and normal range for that bucket. Requests also show a
 lower traffic boundary. Memory shows a fixed 90% limit. The Health chart shows
 OOM and crash-loop events as bars.
 
-The chart follows the same calculations as the detector. Error variation
-excludes buckets with no requests. The request lower boundary uses the inclusive
-median of the previous 12 buckets, which averages the two middle values. Memory
-first averages each container's samples into its instance, then gives every
-instance equal weight.
+The chart follows the same calculations as the detector. It pads the baseline
+from the app creation time, aligned to 5 minutes and limited to the latest 24
+hours. Eligibility counts observed 5-minute buckets even on the hourly chart.
+The expected spike band needs 12 observed buckets. The request lower boundary
+needs 72 observed buckets, 9 active buckets among the previous 12, and a drop of
+at least 200 requests.
+
+Error variation excludes buckets with no requests. The request lower boundary
+uses the inclusive median of the previous 12 buckets, which averages the two
+middle values. CPU and egress use each container's non-negative 5-minute counter
+change and sum the containers. Hourly points sum those 5-minute changes. Memory
+first averages samples per container, then containers per instance, and gives
+every instance equal app-level weight.
 
 Shaded regions mark all anomaly windows. Markers attached to the line identify
 alerts for the selected metric. Toggle deployment markers to compare changes
 with rollouts, and drag across the chart to zoom into a smaller time range.
 
-The range list includes open and resolved alerts. Select an alert to open focus
-mode. The details card shows its status, metric, observed value, expected
-baseline, detection window, and deployment context. For a resolved alert, it
-also shows the resolution message.
+The range list includes open and resolved alerts. Use **Load more** to retrieve
+another page. A visible notice tells you when additional rows exist beyond the
+pages loaded so far. Select an alert to open focus mode. The details card shows
+its status, metric, observed value, expected baseline, detection window, and
+deployment context. For a resolved alert, it also shows the resolution message.
 
 <Frame caption="Anomalies tab with expected ranges and alert windows">
   <img
@@ -152,6 +161,10 @@ An open request-drop alert resolves with `Deployment stopped` when there is no
 live deployment, the deployment is stopped, or every topology region is
 stopped. A normal recovery uses
 `Metric returned to baseline for 3 consecutive windows`.
+
+Deleting an app or environment also resolves its open alerts with
+`Deployment stopped` before removing it. If metadata is already missing, the
+detector finds and resolves the orphaned alerts during a later check.
 
 Open a resolved alert through its app Anomalies deep link with `?alert=<id>`.
 The focus card shows its **Resolved** status, resolution timestamp, and
