@@ -46,6 +46,9 @@ func TestAnomalyCandidateFilterSuperset(t *testing.T) {
 		for bucket := range 72 {
 			timestamp := windowStart.Add(-time.Duration(72-bucket) * 5 * time.Minute)
 			requests := int64(300 + random.Intn(800))
+			if group >= groupCount/2 {
+				requests = 10_000_000_000_000 + int64(random.Intn(100_000))*1_000_000
+			}
 			error4xx := int64(random.Intn(20))
 			error5xx := int64(random.Intn(10))
 			if group == 2 {
@@ -58,10 +61,18 @@ func TestAnomalyCandidateFilterSuperset(t *testing.T) {
 			}
 		}
 
-		current := map[int32]int64{200: int64(300 + random.Intn(800)), 404: 5, 500: 5}
+		currentRequests := int64(300 + random.Intn(800))
+		if group >= groupCount/2 {
+			currentRequests = 10_000_000_000_000 + int64(random.Intn(100_000))*1_000_000
+		}
+		current := map[int32]int64{200: currentRequests, 404: 5, 500: 5}
 		switch group % 4 {
 		case 1:
-			current = map[int32]int64{200: int64(3_000 + random.Intn(3_000)), 404: 20, 500: 20}
+			if group >= groupCount/2 {
+				current = map[int32]int64{200: 14_000_000_000_000 + int64(random.Intn(100_000))*1_000_000, 404: 20, 500: 20}
+			} else {
+				current = map[int32]int64{200: int64(3_000 + random.Intn(3_000)), 404: 20, 500: 20}
+			}
 		case 2:
 			current = map[int32]int64{500: 99}
 		case 3:
@@ -188,6 +199,69 @@ func TestAnomalyCandidateFilterIncludesInteriorLifetimeThreshold(t *testing.T) {
 	})
 	require.NoError(t, err)
 	require.Len(t, rows, 1, "SQL candidate filtering must include every possible app lifetime")
+	require.Equal(t, ids, requestWindowKey(rows[0]))
+}
+
+func TestAnomalyCandidateFilterToleratesFloat64Cancellation(t *testing.T) {
+	t.Parallel()
+
+	cfg := containers.ClickHouse(t)
+	client, err := clickhouse.New(clickhouse.Config{URL: cfg.DSN})
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, client.Close()) })
+	opts, err := ch.ParseDSN(cfg.DSN)
+	require.NoError(t, err)
+	conn, err := ch.Open(opts)
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, conn.Close()) })
+
+	ctx := t.Context()
+	windowStart := time.Now().UTC().Truncate(5 * time.Minute).Add(-5 * time.Minute)
+	ids := candidateTestIDs(uid.New("float64"), 0)
+	batch, err := conn.PrepareBatch(ctx, `
+		INSERT INTO default.frontline_requests_per_5m_v1
+			(time, workspace_id, project_id, app_id, environment_id, deployment_id, response_status, count)
+	`)
+	require.NoError(t, err)
+	for bucket := range 99 {
+		requests := int64(10_100_000_000_000)
+		if bucket < 34 {
+			requests = 10_000_000_000_000
+		}
+		require.NoError(t, batch.Append(
+			windowStart.Add(-time.Duration(99-bucket)*5*time.Minute),
+			ids.WorkspaceID, ids.ProjectID, ids.AppID, ids.EnvironmentID, "dep", int32(200), requests,
+		))
+	}
+	const current = int64(13_975_536_123_762)
+	require.NoError(t, batch.Append(
+		windowStart, ids.WorkspaceID, ids.ProjectID, ids.AppID, ids.EnvironmentID, "dep", int32(200), current,
+	))
+	require.NoError(t, batch.Send())
+
+	all, err := client.GetRequestAnomalyWindows(ctx, clickhouse.AnomalyWindowsRequest{
+		WindowStart: windowStart.UnixMilli(), WorkspaceIDs: []string{ids.WorkspaceID},
+	})
+	require.NoError(t, err)
+	require.Len(t, all, 1)
+	detectorConfig := deployanomaly.DefaultConfig(deployanomaly.SensitivityNormal)
+	result := deployanomaly.Detect(deployanomaly.Input{
+		Metric:                  deployanomaly.MetricRequests,
+		Current:                 float64(current),
+		BaselineMean:            all[0].RequestsBaselineMean,
+		BaselineStddev:          all[0].RequestsBaselineStddev,
+		ObservedBaselineBuckets: all[0].BaselineBuckets,
+		BaselineWindowBuckets:   100,
+	}, detectorConfig)
+	require.Equal(t, deployanomaly.OutcomeAnomaly, result.Outcome)
+	require.InDelta(t, 13_975_536_123_761.945, result.ThresholdValue, 1)
+
+	filter := candidateTestFilter(detectorConfig)
+	rows, err := client.GetRequestAnomalyWindows(ctx, clickhouse.AnomalyWindowsRequest{
+		WindowStart: windowStart.UnixMilli(), WorkspaceIDs: []string{ids.WorkspaceID}, CandidateFilter: &filter,
+	})
+	require.NoError(t, err)
+	require.Len(t, rows, 1, "Float64 reconstruction error must not exclude a Go anomaly")
 	require.Equal(t, ids, requestWindowKey(rows[0]))
 }
 
