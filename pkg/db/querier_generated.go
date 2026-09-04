@@ -2576,14 +2576,14 @@ type Querier interface {
 	//  WHERE id = ?
 	//  FOR UPDATE
 	LockKeyForUpdate(ctx context.Context, db DBTX, id string) (string, error)
-	// LockRoleByIDAndWorkspaceID serializes role permission changes. It returns
-	// the project ID so authorization can use the role's project-scoped URN.
+	//LockRoleByIDOrNameAndWorkspaceID
 	//
 	//  SELECT id, project_id, name
 	//  FROM roles
-	//  WHERE id = ? AND workspace_id = ?
+	//  WHERE workspace_id = ?
+	//    AND (id = ? OR name = ?)
 	//  FOR UPDATE
-	LockRoleByIDAndWorkspaceID(ctx context.Context, db DBTX, arg LockRoleByIDAndWorkspaceIDParams) (LockRoleByIDAndWorkspaceIDRow, error)
+	LockRoleByIDOrNameAndWorkspaceID(ctx context.Context, db DBTX, arg LockRoleByIDOrNameAndWorkspaceIDParams) (LockRoleByIDOrNameAndWorkspaceIDRow, error)
 	// Clears the workspace_billing linkage on a workspace, returning it to the
 	// Free tier. Mirrors what the customer.subscription.deleted webhook writes,
 	// plus stripe_customer_id, which no webhook ever clears. Stripe subscription
