@@ -10,35 +10,48 @@ one closed 5-minute window for one app and production environment.
 ## Build the trailing baseline
 
 Sigma metrics use up to 288 buckets from the preceding 24 hours. The current
-bucket is excluded. ClickHouse returns moments for non-empty buckets and the
-time of the first bucket observed for the app.
+bucket is excluded. ClickHouse returns moments for non-empty buckets. MySQL
+supplies the app's `created_at` timestamp through `app_created_at` in the
+evaluator request.
 
-`BaselineWindowBuckets` limits zero-padding to the app's observed lifetime:
+`BaselineWindowBuckets` limits zero-padding to the app's lifetime inside the
+lookback. First, `AppLifetimeStart` aligns creation down to a 5-minute boundary
+and caps it at the start of the 24-hour lookback:
 
-`min(288, (window_start - first_bucket_time) / 5 minutes)`
+`lifetime_start = max(window_start - 24 hours, floor(app_created_at / 5 minutes) * 5 minutes)`
+
+The available lifetime bucket count is:
+
+`(window_start - lifetime_start) / 5 minutes`
 
 For count-like spike metrics, the detector reconstructs the population mean and
 standard deviation after adding zero-valued missing buckets inside that
 lifetime. It does not add zeros for time before the app existed. Error metrics
 use request-weighted ratios instead of padding ratio buckets.
 
-For example, an app first observed 30 minutes before the current window has six
+For example, an app created 30 minutes before the current window has six
 possible baseline buckets, not 288. Even if all six contain steady traffic, the
 app has fewer than the minimum 12 observed buckets and cannot fire. After at
 least 1 hour and 12 observed buckets, the normal rules apply. This prevents a
 brand-new app's first stable traffic from looking like a spike against 23 hours
 of invented zeros.
 
-The detector rollups replay the latest 7 days when their materialized views are
-created. Existing apps therefore have a full 24-hour baseline and enough
-request history for the drop rule on the first detector run. The minimums still
-apply to young apps: spike metrics need 12 observed buckets, or 1 hour, and
-request drops need 72 observed buckets, or 6 hours.
+The detector migration replays the latest 7 days of closed buckets before it
+creates each materialized view. Existing apps therefore have a full 24-hour
+baseline and enough request history for the drop rule on the first detector
+run. At most, the in-progress bucket during migration can be absent. The
+minimums still apply to young apps: spike metrics need 12 observed buckets, or
+1 hour, and request drops need 72 observed buckets, or 6 hours.
 
 The longer request-drop ramp-up avoids treating short test runs followed by
 silence as an outage.
 
 ## Apply spike thresholds
+
+`svc/ctrl/worker/cron/deployanomaly/thresholds.json` is the canonical source for
+production sigma, deviation-floor, history, and request-drop values. Go embeds
+the file for `DefaultConfig`. A dashboard contract test verifies its mirrored
+chart constants against the same values.
 
 Request, egress, and CPU spikes use an effective population standard deviation:
 
@@ -54,12 +67,16 @@ sensitivity uses normal.
 
 | Metric | Absolute deviation floor | Normal-sensitivity example |
 | --- | ---: | --- |
-| `requests` | 5 requests | Mean 100, standard deviation 8, and effective deviation 10 produce a threshold of 140. A current value of 141 fires. |
-| `egress_bytes` | 65,536 bytes | Mean 1,000,000 bytes and standard deviation 20,000 bytes produce an effective deviation of 100,000 and a threshold of 1,400,000. A current value of 1,500,000 fires. |
-| `cpu_seconds` | 1 second | Mean 10 seconds and standard deviation 0.25 seconds produce an effective deviation of 1 and a threshold of 14. A current value of 14 does not fire, but 14.1 does. |
+| `requests` | 20 requests | Mean 100 and standard deviation 8 produce an effective deviation of 20 and a threshold of 180. A current value of 201 fires. |
+| `egress_bytes` | 1,048,576 bytes | Mean 1,000,000 bytes and standard deviation 20,000 bytes produce an effective deviation of 1,048,576 and a threshold of 5,194,304. A current value of 104,857,600 fires. |
+| `cpu_seconds` | 1 second | Mean 10 seconds and standard deviation 0.25 seconds produce an effective deviation of 1 and a threshold of 14. A current value of 60 fires. |
 
 The 10% guard keeps a low-variance baseline from making tiny changes appear
-extreme. The absolute floor handles a zero or near-zero mean.
+extreme. The absolute floor handles a zero or near-zero mean. The current value
+must also reach the separate activity floor: 200 requests, 100 MiB of egress,
+or 60 CPU seconds. A value can cross the statistical threshold and remain quiet
+when its absolute activity is too small. Equality with the statistical
+threshold still does not fire.
 
 ## Compare error ratios
 
@@ -161,8 +178,12 @@ stored `baseline_mean`, `baseline_stddev`, and `threshold_sigma` values are zero
 | `oom_killed` | At least one `OOMKilled` terminated event. | One event opens after one window. |
 | `crash_loop` | At least one `CrashLoopBackOff` waiting event. | Two events open one alert after one window. |
 
-These thresholds apply to complete source windows. An incomplete source never
-acts like a zero and never advances recovery.
+Memory requires a complete resources window. An OOM or crash-loop event row is
+actionable even when the resources watermark is incomplete. When there is no
+event row, resources completeness determines whether the event count is a
+complete zero or incomplete. The instance-event ingest buffer is lossy, so a
+dropped event can cause a missed alert, but it cannot leave detection stuck on
+an incomplete event source.
 
 ## Confirm sustained conditions
 
@@ -173,6 +194,10 @@ window clears the candidate.
 
 Request spikes, egress spikes, CPU spikes, memory pressure, OOM kills, crash
 loops, and catastrophic 5xx errors open after one complete window.
+
+The virtual object also stores `last_window_end`. An evaluation with a window
+end equal to or older than that value is a strict no-op. A delayed retry cannot
+recreate an old candidate or change recovery state after a newer window.
 
 ## Recover against the opening snapshot
 
@@ -185,9 +210,9 @@ Sigma and error metrics use a one-sigma hysteresis band:
 
 `recovery_threshold = opening_mean + (k - 1) * opening_sigma_effective`
 
-For the request-spike example, the opening threshold is 140. Recovery uses
-`100 + (4 - 1) * 10 = 130`. Values at or below 130 count as recovered. Values
-above 130 reset the quiet count and update the open alert.
+For the request-spike example, the opening threshold is 180. Recovery uses
+`100 + (4 - 1) * 20 = 160`. Values at or below 160 count as recovered. Values
+above 160 reset the quiet count and update the open alert.
 
 Other metrics use rule-specific recovery against the opening snapshot:
 
