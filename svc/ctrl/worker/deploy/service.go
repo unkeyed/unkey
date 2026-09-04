@@ -73,10 +73,10 @@ type RegistryConfig struct {
 
 // Workflow orchestrates deployment lifecycle operations.
 //
-// This workflow manages the complete deployment lifecycle including deploying new versions,
-// rolling back to previous versions, and promoting deployments to live. It coordinates
-// between container orchestration (Krane), database updates, and domain routing to ensure
-// consistent deployment state.
+// This workflow creates, builds, deploys, stops, and wakes deployments. It
+// coordinates between container orchestration (Krane), database updates, and
+// domain routing to ensure consistent deployment state. Promotion and rollback
+// live on EnvironmentService.
 //
 // The workflow is a Restate virtual object keyed by deployment id, so operations
 // on one deployment serialize while deployments proceed in parallel. Two deploys

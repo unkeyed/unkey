@@ -19,9 +19,8 @@ option go_package = "github.com/unkeyed/unkey/gen/proto/hydra/v1;hydrav1";
 // by BuildSlotService.
 //
 // Deploy handles the full pipeline from building container images through
-// provisioning containers and configuring domain routing. Rollback and Promote
-// manage traffic switching between deployments by reassigning sticky frontline
-// routes atomically through the routing service.
+// provisioning containers and configuring domain routing. Promotion and
+// rollback live on EnvironmentService, keyed by environment id.
 service DeployService {
   option (dev.restate.sdk.go.service_type) = VIRTUAL_OBJECT;
 
@@ -34,20 +33,6 @@ service DeployService {
   // update the app's live deployment pointer for production environments.
   // Sets deployment status to failed on any error.
   rpc Deploy(DeployRequest) returns (DeployResponse) {}
-
-  // Rollback switches sticky frontline routes (environment and live) from the
-  // current live deployment back to a previous one. Marks the app as rolled
-  // back so future deploys don't automatically reclaim live routes.
-  // Source must be the current live deployment; both must share the same app
-  // and environment.
-  rpc Rollback(RollbackRequest) returns (RollbackResponse) {}
-
-  // Promote reassigns sticky frontline routes to a target deployment and clears
-  // the rolled-back flag, restoring normal deployment flow.
-  // Target must be in ready status. A normal promotion also requires that it is
-  // not already the live deployment; when the app is rolled back and the target
-  // is already live, Promote only clears the flag and leaves routes alone.
-  rpc Promote(PromoteRequest) returns (PromoteResponse) {}
 
   // StopDeployment schedules desired_state=stopped for a running deployment.
   rpc StopDeployment(StopDeploymentRequest) returns (StopDeploymentResponse) {}
@@ -280,30 +265,6 @@ message DeployRequest {
 }
 
 message DeployResponse {}
-
-// RollbackRequest identifies the deployment to roll back from and the
-// deployment to restore. Both must belong to the same project and environment.
-message RollbackRequest {
-  // The current live deployment to roll back from.
-  string source_deployment_id = 1;
-
-  // A previous deployment to restore traffic to.
-  string target_deployment_id = 2;
-
-  ctrl.v1.ActorInfo actor = 3;
-  string correlation_id = 4;
-}
-
-message RollbackResponse {}
-
-// PromoteRequest identifies a ready deployment to promote to live.
-message PromoteRequest {
-  string target_deployment_id = 1;
-  ctrl.v1.ActorInfo actor = 2;
-  string correlation_id = 3;
-}
-
-message PromoteResponse {}
 
 // DeployTeardownService stops a workspace's running Deploy compute and waits
 // for it to drain, keyed by workspace id so teardowns serialize per workspace.
