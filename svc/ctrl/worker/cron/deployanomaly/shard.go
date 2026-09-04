@@ -30,7 +30,11 @@ type anomalyGroup struct {
 }
 
 func (g anomalyGroup) key() string {
-	return strings.Join([]string{g.WorkspaceID, g.AppID, g.EnvironmentID}, "/")
+	return GroupKey(g.WorkspaceID, g.AppID, g.EnvironmentID)
+}
+
+func GroupKey(workspaceID, appID, environmentID string) string {
+	return strings.Join([]string{workspaceID, appID, environmentID}, "/")
 }
 
 func (g anomalyGroup) clickhouseKey() clickhouse.AnomalyGroupKey {
