@@ -566,12 +566,12 @@ func TestCreateFromForeignDeploymentIsRejected(t *testing.T) {
 	h.requireNoDeploy(t, deploymentID)
 }
 
-// TestRecordDeploymentToleratesACommittedRow covers the recovery that keeps a
+// TestInsertDeploymentToleratesACommittedRow covers the recovery that keeps a
 // lost commit acknowledgement from wedging a create. TxRetry re-runs the whole
 // transaction whenever the failure looks transient, and a commit whose ack never
 // arrived looks exactly like that; the second attempt then hits a duplicate key
 // on a row that is already correct.
-func TestRecordDeploymentToleratesACommittedRow(t *testing.T) {
+func TestInsertDeploymentToleratesACommittedRow(t *testing.T) {
 	ctx := context.Background()
 	h := newCreateHarness(t, ctx, createHarnessOptions{})
 
@@ -581,7 +581,7 @@ func TestRecordDeploymentToleratesACommittedRow(t *testing.T) {
 
 	first := h.deployment(t, ctx, deploymentID)
 
-	// A second create on the same key is what a re-executed record stage does to
+	// A second create on the same key is what a re-executed insert stage does to
 	// the database: the row is already there, and reporting that as a failure
 	// would burn every retry on an error no attempt can clear.
 	resp, err := h.tryCreate(ctx, deploymentID, h.imageRequest())

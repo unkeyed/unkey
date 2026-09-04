@@ -54,7 +54,12 @@ func (w *Workflow) Create(ctx restate.ObjectContext, req *hydrav1.DeployCreateRe
 		return nil, err
 	}
 
-	target, rejection, err := w.findDeployableTarget(ctx, req, status)
+	data, err := w.loadDeploymentData(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+
+	payload, rejection, err := w.validateAndBuildPayload(ctx, req, data, status)
 	if err != nil {
 		return nil, err
 	}
@@ -66,26 +71,14 @@ func (w *Workflow) Create(ctx restate.ObjectContext, req *hydrav1.DeployCreateRe
 		}, nil
 	}
 
-	payload, rejection, err := w.buildPayload(ctx, req, target, status)
-	if err != nil {
-		return nil, err
-	}
-	if rejection != nil {
-		return &hydrav1.DeployCreateResponse{
-			DeploymentId:    deploymentID,
-			Outcome:         hydrav1.CreateOutcome_CREATE_OUTCOME_REJECTED,
-			RejectionReason: *rejection,
-		}, nil
-	}
-
-	if err := w.recordDeployment(ctx, deploymentID, target, payload, req.GetActor()); err != nil {
+	if err := w.insertDeployment(ctx, deploymentID, payload, req.GetActor()); err != nil {
 		return nil, err
 	}
 
 	// An AWAIT_APPROVAL row gets its commit status from
 	// githubwebhook.blockDeploymentForApproval until the webhook moves over.
 	if req.GetDecision() == hydrav1.CreateDecision_CREATE_DECISION_DEPLOY {
-		if err := w.startDeploy(ctx, deploymentID, target, payload); err != nil {
+		if err := w.startDeployment(ctx, deploymentID, payload); err != nil {
 			return nil, err
 		}
 	}
@@ -97,20 +90,16 @@ func (w *Workflow) Create(ctx restate.ObjectContext, req *hydrav1.DeployCreateRe
 	}, nil
 }
 
-// targetResult is the journal shape of findDeployableTarget. Exactly one field
-// is set.
-type targetResult struct {
-	Rejection *hydrav1.CreateRejectionReason `json:"rejection"`
-	Target    db.FindDeployTargetRow         `json:"target"`
+// deploymentData is what Create reads before it decides anything. A nil field
+// is a row that does not exist.
+type deploymentData struct {
+	Target      *db.FindDeployTargetRow               `json:"target"`
+	Entitlement *db.FindWorkspaceDeployEntitlementRow `json:"entitlement"`
 }
 
-func (w *Workflow) findDeployableTarget(
-	ctx restate.Context,
-	req *hydrav1.DeployCreateRequest,
-	status mysqltype.DeploymentsStatus,
-) (db.FindDeployTargetRow, *hydrav1.CreateRejectionReason, error) {
-	result, err := restate.Run(ctx, func(runCtx restate.RunContext) (targetResult, error) {
-		var result targetResult
+func (w *Workflow) loadDeploymentData(ctx restate.Context, req *hydrav1.DeployCreateRequest) (deploymentData, error) {
+	return restate.Run(ctx, func(runCtx restate.RunContext) (deploymentData, error) {
+		var data deploymentData
 
 		target, err := w.db.FindDeployTarget(runCtx, db.FindDeployTargetParams{
 			ProjectID:   req.GetProjectId(),
@@ -118,60 +107,34 @@ func (w *Workflow) findDeployableTarget(
 			Environment: req.GetEnvironment(),
 		})
 		if err != nil {
-			if !db.IsNotFound(err) {
-				return result, fmt.Errorf("failed to lookup deploy target: %w", err)
+			if db.IsNotFound(err) {
+				return data, nil
 			}
-			// The caller already verified this target, so a miss means it was deleted
-			// mid-create.
-			result.Rejection = rejectf(
-				hydrav1.CreateRejectionReason_CREATE_REJECTION_REASON_TARGET_NOT_FOUND,
-				"no deploy target for project '%s', app '%s', environment '%s'",
-				req.GetProjectId(), req.GetAppId(), req.GetEnvironment(),
-			)
-			return result, nil
+			return data, fmt.Errorf("failed to lookup deploy target: %w", err)
 		}
+		data.Target = &target
 
-		rejection, err := w.checkWorkspacePlan(runCtx, target.WorkspaceID)
+		entitlement, err := w.db.FindWorkspaceDeployEntitlement(runCtx, target.WorkspaceID)
 		if err != nil {
-			return result, err
+			if db.IsNotFound(err) {
+				return data, nil
+			}
+			return data, fmt.Errorf("failed to lookup workspace entitlement: %w", err)
 		}
-		// A skip never builds, so it does not need a deployable environment, and
-		// refusing it would leave the push with no record at all.
-		if rejection == nil && status != mysqltype.DeploymentsStatusSkipped {
-			rejection = checkEnvironmentDeployable(target)
-		}
-		if rejection != nil {
-			result.Rejection = rejection
-			return result, nil
-		}
+		data.Entitlement = &entitlement
 
-		result.Target = target
-		return result, nil
-	}, restate.WithName("find deployable target"), restate.WithMaxRetryAttempts(runMaxAttempts))
-	if err != nil {
-		return db.FindDeployTargetRow{}, nil, err
-	}
-	return result.Target, result.Rejection, nil
+		return data, nil
+	}, restate.WithName("load deployment data"), restate.WithMaxRetryAttempts(runMaxAttempts))
 }
 
-func (w *Workflow) checkWorkspacePlan(ctx context.Context, workspaceID string) (*hydrav1.CreateRejectionReason, error) {
-	entitlement, err := w.db.FindWorkspaceDeployEntitlement(ctx, workspaceID)
-	if err != nil {
-		if !db.IsNotFound(err) {
-			return nil, err
-		}
-		return rejectf(
-			hydrav1.CreateRejectionReason_CREATE_REJECTION_REASON_TARGET_NOT_FOUND,
-			"workspace %s not found", workspaceID,
-		), nil
-	}
-
+// Only the plan check honors enforceDeployGate; the spend cap always blocks.
+func (w *Workflow) checkWorkspacePlan(workspaceID string, entitlement db.FindWorkspaceDeployEntitlementRow) *hydrav1.CreateRejectionReason {
 	if !deploygate.Entitled(entitlement.Plan, entitlement.PlanOverride) {
 		if w.enforceDeployGate {
 			return rejectf(
 				hydrav1.CreateRejectionReason_CREATE_REJECTION_REASON_NO_COMPUTE_PLAN,
 				"workspace %s has no Compute plan", workspaceID,
-			), nil
+			)
 		}
 		logger.Warn(
 			"deploy gate would block deployment create",
@@ -184,10 +147,10 @@ func (w *Workflow) checkWorkspacePlan(ctx context.Context, workspaceID string) (
 		return rejectf(
 			hydrav1.CreateRejectionReason_CREATE_REJECTION_REASON_SPEND_SUSPENDED,
 			"workspace %s is suspended by its Compute spend cap", workspaceID,
-		), nil
+		)
 	}
 
-	return nil, nil
+	return nil
 }
 
 // checkEnvironmentDeployable rejects invalid port, cpu, or memory settings and
@@ -211,11 +174,13 @@ func checkEnvironmentDeployable(target db.FindDeployTargetRow) *hydrav1.CreateRe
 	)
 }
 
-// deployPayload is what buildPayload derived from the request. It crosses the
-// Restate journal as JSON, which is why the source and commit are plain structs
-// rather than the proto oneof.
+// deployPayload is everything the deployment row and the Deploy request are
+// made of. It crosses the Restate journal as JSON, which is why the source and
+// commit are plain structs rather than the proto oneof.
 type deployPayload struct {
 	Rejection *hydrav1.CreateRejectionReason `json:"rejection"`
+
+	Target db.FindDeployTargetRow `json:"target"`
 
 	Status    mysqltype.DeploymentsStatus `json:"status"`
 	CreatedAt int64                       `json:"created_at"`
@@ -237,19 +202,42 @@ type deployPayload struct {
 	RebuildSourceID string `json:"rebuild_source_id"`
 }
 
-// buildPayload turns a gated request into the complete [deployPayload].
-func (w *Workflow) buildPayload(
+// validateAndBuildPayload decides every rejection, then resolves the source and
+// secrets into the complete [deployPayload].
+func (w *Workflow) validateAndBuildPayload(
 	ctx restate.Context,
 	req *hydrav1.DeployCreateRequest,
-	target db.FindDeployTargetRow,
+	data deploymentData,
 	status mysqltype.DeploymentsStatus,
 ) (deployPayload, *hydrav1.CreateRejectionReason, error) {
 	built, err := restate.Run(ctx, func(runCtx restate.RunContext) (deployPayload, error) {
 		var payload deployPayload
 
-		// A skip never builds, so it must not depend on the repository connection or
-		// on GitHub answering.
+		// The caller already verified the target, so a miss means it was deleted
+		// mid-create.
+		if data.Target == nil || data.Entitlement == nil {
+			payload.Rejection = rejectf(
+				hydrav1.CreateRejectionReason_CREATE_REJECTION_REASON_TARGET_NOT_FOUND,
+				"no deploy target for project '%s', app '%s', environment '%s'",
+				req.GetProjectId(), req.GetAppId(), req.GetEnvironment(),
+			)
+			return payload, nil
+		}
+		target := *data.Target
+
+		// A skip never builds: it needs no deployable environment, repository
+		// connection, or GitHub answer, and refusing it would leave the push with
+		// no record.
 		willBuild := status != mysqltype.DeploymentsStatusSkipped
+
+		rejection := w.checkWorkspacePlan(target.WorkspaceID, *data.Entitlement)
+		if rejection == nil && willBuild {
+			rejection = checkEnvironmentDeployable(target)
+		}
+		if rejection != nil {
+			payload.Rejection = rejection
+			return payload, nil
+		}
 
 		secrets := []byte{}
 		if willBuild {
@@ -299,6 +287,7 @@ func (w *Workflow) buildPayload(
 		commit.AuthorHandle = trimBytes(commit.AuthorHandle, commitAuthorHandleBytesMax)
 		commit.AuthorAvatarURL = trimBytes(commit.AuthorAvatarURL, commitAuthorAvatarURLBytesMax)
 
+		payload.Target = target
 		payload.Status = status
 		payload.CreatedAt = time.Now().UnixMilli()
 		payload.Secrets = secrets
@@ -311,7 +300,7 @@ func (w *Workflow) buildPayload(
 		payload.TriggerReason = trimBytes(req.GetTriggerReason(), triggerReasonBytesMax)
 		payload.RebuildSourceID = req.GetExistingDeployment().GetDeploymentId()
 		return payload, nil
-	}, restate.WithName("build deploy payload"), restate.WithMaxRetryAttempts(runMaxAttempts))
+	}, restate.WithName("validate and build deploy payload"), restate.WithMaxRetryAttempts(runMaxAttempts))
 	if err != nil {
 		return deployPayload{}, nil, err
 	}
@@ -349,17 +338,16 @@ func (p deployPayload) toDeployRequest(deploymentID string) *hydrav1.DeployReque
 	}
 }
 
-// recordDeployment writes the row, its queued step, and its audit log in one
+// insertDeployment writes the row, its queued step, and its audit log in one
 // transaction.
-func (w *Workflow) recordDeployment(
+func (w *Workflow) insertDeployment(
 	ctx restate.Context,
 	deploymentID string,
-	target db.FindDeployTargetRow,
 	payload deployPayload,
 	a *ctrlv1.ActorInfo,
 ) error {
 	return restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
-		commit := payload.Commit
+		target, commit := payload.Target, payload.Commit
 
 		// A skip resolves no source and records unknown, the same as a row that
 		// predates source tracking.
@@ -422,7 +410,7 @@ func (w *Workflow) recordDeployment(
 				return err
 			}
 
-			return w.auditlogs.Insert(txCtx, tx, createAuditLogs(target, payload, deploymentID, a))
+			return w.auditlogs.Insert(txCtx, tx, createAuditLogs(payload, deploymentID, a))
 		})
 
 		// A duplicate key means an earlier attempt committed but its acknowledgement
@@ -433,13 +421,12 @@ func (w *Workflow) recordDeployment(
 			return insertErr
 		}
 		return nil
-	}, restate.WithName("record deployment"), restate.WithMaxRetryAttempts(runMaxAttempts))
+	}, restate.WithName("insert deployment"), restate.WithMaxRetryAttempts(runMaxAttempts))
 }
 
 // createAuditLogs builds the audit entry for a new row. A skip gets none, and a
 // rebuild is recorded as deployment.rebuild naming both deployments.
 func createAuditLogs(
-	target db.FindDeployTargetRow,
 	payload deployPayload,
 	deploymentID string,
 	a *ctrlv1.ActorInfo,
@@ -448,6 +435,7 @@ func createAuditLogs(
 		return nil
 	}
 
+	target := payload.Target
 	entry := auditlog.AuditLog{
 		Event:         auditlog.DeploymentCreateEvent,
 		WorkspaceID:   target.WorkspaceID,
@@ -497,14 +485,14 @@ func createAuditLogs(
 	return []auditlog.AuditLog{entry}
 }
 
-// startDeploy sends Deploy, records its invocation id, then supersedes older
+// startDeployment sends Deploy, records its invocation id, then supersedes older
 // queued siblings on the branch.
-func (w *Workflow) startDeploy(
+func (w *Workflow) startDeployment(
 	ctx restate.ObjectContext,
 	deploymentID string,
-	target db.FindDeployTargetRow,
 	payload deployPayload,
 ) error {
+	target := payload.Target
 	invocation := hydrav1.NewDeployServiceClient(ctx, deploymentID).
 		Deploy().
 		Send(payload.toDeployRequest(deploymentID))
