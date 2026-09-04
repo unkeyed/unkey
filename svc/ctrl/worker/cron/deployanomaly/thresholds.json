@@ -1,0 +1,21 @@
+{
+  "sigmaK": 4,
+  "minimumLifetimeBuckets": 12,
+  "minimumStddevRatio": 0.1,
+  "requestDropMedianFraction": 0.25,
+  "stddevFloors": {
+    "error_5xx": 0.01,
+    "error_4xx": 0.01,
+    "requests": 20,
+    "egress_bytes": 1048576,
+    "cpu_seconds": 1
+  },
+  "baselineMinimums": {
+    "error_5xx": 12,
+    "error_4xx": 12,
+    "requests": 12,
+    "requests_drop": 72,
+    "egress_bytes": 12,
+    "cpu_seconds": 12
+  }
+}

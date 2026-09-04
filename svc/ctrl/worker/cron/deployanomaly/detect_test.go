@@ -326,6 +326,16 @@ func TestSensitivitySigmaK(t *testing.T) {
 	require.Equal(t, 4.0, Sensitivity("unknown").SigmaK())
 }
 
+func TestDefaultConfigMatchesSharedThresholds(t *testing.T) {
+	cfg := DefaultConfig(SensitivityNormal)
+	require.Equal(t, productionThresholds.SigmaK, cfg.SigmaK)
+	require.Equal(t, productionThresholds.MinimumStddevRatio, cfg.MinimumStddevRatio)
+	require.Equal(t, productionThresholds.MinimumLifetimeBuckets, cfg.BaselineMinimums.Requests)
+	require.Equal(t, productionThresholds.RequestDropMedianFraction, cfg.RequestDrop.RecentLevelFraction)
+	require.Equal(t, productionThresholds.StddevFloors[MetricRequests], cfg.StddevFloors.Requests)
+	require.Equal(t, productionThresholds.StddevFloors[MetricEgressBytes], cfg.StddevFloors.EgressBytes)
+}
+
 func TestDetectSigmaIsScaleInvariant(t *testing.T) {
 	cfg := Config{SigmaK: 4}
 	base := Input{
