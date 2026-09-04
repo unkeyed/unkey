@@ -9,6 +9,25 @@ describe("calculateAlertExpectedBand", () => {
     });
   });
 
+  it("hides the traffic-drop threshold until its longer baseline is eligible", () => {
+    expect(calculateAlertExpectedBand("requests", 1_000, 0, 71)).toEqual({
+      lowerBound: null,
+      upperBound: 1_400,
+    });
+    expect(calculateAlertExpectedBand("requests", 1_000, 0, 72, 1_000, 8)).toEqual({
+      lowerBound: null,
+      upperBound: 1_400,
+    });
+    expect(calculateAlertExpectedBand("requests", 1_000, 0, 72, 1_000, 9)).toEqual({
+      lowerBound: 250,
+      upperBound: 1_400,
+    });
+  });
+
+  it("applies the absolute-loss floor to the traffic-drop threshold", () => {
+    expect(calculateAlertExpectedBand("requests", 250, 0, 72, 250, 9)?.lowerBound).toBe(50);
+  });
+
   it("uses a one-percentage-point floor for error ratios", () => {
     expect(calculateAlertExpectedBand("error_5xx", 0.004, 0, 288)).toEqual({
       lowerBound: null,
