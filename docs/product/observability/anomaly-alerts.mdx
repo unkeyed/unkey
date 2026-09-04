@@ -72,11 +72,16 @@ Instance failures are sparse events. A received OOM or crash-loop event can
 open an alert immediately. When there is no event, resource completeness tells
 the detector whether the empty window is safe to use for recovery.
 
-Request-drop alerts require a live deployment and at least one topology region
-set to running. No live deployment, a stopped deployment, or every topology
-region being stopped suppresses the alert. Setting
+Request-drop alerts require an active deployment ID and at least one topology
+region set to running. No deployment ID, a stopped deployment, or every
+topology region being stopped suppresses the alert. Setting
 `autoscaling_replicas_min = 0` does not suppress detection. Scale-to-zero
 capability alone does not make a traffic drop expected.
+
+When a complete window has no requests, Unkey recalculates the drop rule from
+the latest rolling values. Old active buckets can age out of the 12-bucket
+window and remove drop eligibility. Unkey does not reuse eligibility from an
+earlier zero-request window.
 
 ## Read the Anomalies tab
 
@@ -101,20 +106,27 @@ at least 200 requests.
 
 Error variation excludes buckets with no requests. The request lower boundary
 uses the inclusive median of the previous 12 buckets, which averages the two
-middle values. CPU and egress use each container's non-negative 5-minute counter
-change and sum the containers. Hourly points sum those 5-minute changes. Memory
-first averages samples per container, then containers per instance, and gives
-every instance equal app-level weight.
+middle values. CPU and egress use non-negative counter changes from per-minute
+container samples. The chart calculates each 5-minute container change, sums
+containers into the app, and sums those app values for an hourly point. Memory
+uses 5-minute container samples. It averages containers into instances and
+instances into the app, then averages the 5-minute app values for an hourly
+point.
 
 Shaded regions mark all anomaly windows. Markers attached to the line identify
 alerts for the selected metric. Toggle deployment markers to compare changes
 with rollouts, and drag across the chart to zoom into a smaller time range.
 
-The range list includes open and resolved alerts. Use **Load more** to retrieve
-another page. A visible notice tells you when additional rows exist beyond the
-pages loaded so far. Select an alert to open focus mode. The details card shows
-its status, metric, observed value, expected baseline, detection window, and
-deployment context. For a resolved alert, it also shows the resolution message.
+The range list includes open and resolved alerts and loads 25 at a time. Use
+**Load more** to retrieve another page. A visible notice tells you when
+additional rows exist beyond the pages loaded so far. Select an alert to open
+focus mode. The details card shows its status, metric, observed value, expected
+baseline, detection window, and deployment context. For a resolved alert, it
+also shows the resolution message.
+
+Each alert row loads its chart when it comes within 150 px of the viewport. A
+row farther away shows a fixed-size skeleton and does not request series data.
+After a chart loads, it stays mounted when you scroll away.
 
 <Frame caption="Anomalies tab with expected ranges and alert windows">
   <img
@@ -128,7 +140,7 @@ deployment context. For a resolved alert, it also shows the resolution message.
 Open **Alerts** in the workspace navigation to see open anomalies across
 production apps. The inbox does not include resolved alerts. Use the metric and
 app filters to narrow the list. Each row includes recent context and a
-sparkline.
+sparkline. Inbox sparklines use the same lazy loading behavior as app alert rows.
 
 Select an alert to open the affected app, environment, metric, and time range in
 focus mode. When the detector resolves it, the alert leaves the workspace inbox.
@@ -158,8 +170,8 @@ as traffic doubling. The detector closes the old alert with
 baseline.
 
 An open request-drop alert resolves with `Deployment stopped` when there is no
-live deployment, the deployment is stopped, or every topology region is
-stopped. A normal recovery uses
+deployment ID, the deployment is stopped, or every topology region is stopped.
+A normal recovery uses
 `Metric returned to baseline for 3 consecutive windows`.
 
 Deleting an app or environment also resolves its open alerts with
