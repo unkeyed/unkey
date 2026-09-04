@@ -63,31 +63,6 @@ export type UsageChartSeries = {
   color: string;
 };
 
-export function buildUsageMetricChartData({
-  rows,
-  metric,
-  interval,
-  start,
-  end,
-}: {
-  rows: DeployUsageTimeseries[];
-  metric: UsageMetric;
-  interval: DeployUsageTimeseriesInterval;
-  start: number;
-  end: number;
-}): AreaChartPoint[] {
-  const valuesByTime = new Map<number, number>();
-  for (const row of rows) {
-    valuesByTime.set(row.time, (valuesByTime.get(row.time) ?? 0) + row[metric]);
-  }
-
-  const points: AreaChartPoint[] = [];
-  for (let time = start; time < end; time += INTERVAL_MILLIS[interval]) {
-    points.push({ originalTimestamp: time, value: valuesByTime.get(time) ?? 0 });
-  }
-  return points;
-}
-
 function groupLabels(tree: ComputeTree, groupBy: DeployUsageTimeseriesGroup): Map<string, string> {
   const labels = new Map<string, string>();
   if (groupBy === "total") {
@@ -145,8 +120,8 @@ export function buildUsageChart({
     totals.set("", 0);
   }
 
-  const orderedGroupIds = [...totals]
-    .sort(([aId, aTotal], [bId, bTotal]) => bTotal - aTotal || aId.localeCompare(bId))
+  const orderedGroupIds = Array.from(totals)
+    .toSorted(([aId, aTotal], [bId, bTotal]) => bTotal - aTotal || aId.localeCompare(bId))
     .map(([groupId]) => groupId);
   const visibleGroupIds = orderedGroupIds.slice(0, MAX_VISIBLE_GROUPS);
   const hiddenGroupIds = new Set(orderedGroupIds.slice(MAX_VISIBLE_GROUPS));
