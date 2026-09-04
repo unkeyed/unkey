@@ -42,7 +42,6 @@ func openAlertKey(metric Metric) string       { return "open_alert:" + string(me
 func firedAtKey(metric Metric) string         { return "fired_at:" + string(metric) }
 func quietKey(metric Metric) string           { return "quiet:" + string(metric) }
 func snapshotKey(metric Metric) string        { return "snapshot:" + string(metric) }
-func detectorInputKey(metric Metric) string   { return "detector_input:" + string(metric) }
 
 var allMetrics = []Metric{
 	MetricError5xx,
@@ -124,16 +123,6 @@ func (h *CheckHandler) Evaluate(
 		previousCandidate := candidate && candidateWindow == req.GetWindowStart()-windowDurationMillis
 
 		input := detectorInput(metricValue, req.GetWindowStart(), req.GetAppCreatedAt(), previousCandidate)
-		if metric == MetricRequestsDrop && metricValue.GetDataState() == hydrav1.DeployAnomalyMetricDataState_DEPLOY_ANOMALY_METRIC_DATA_STATE_ZERO_COMPLETE && (candidate || openID != "") {
-			stored, getErr := restate.Get[Input](ctx, detectorInputKey(metric))
-			if getErr != nil {
-				return nil, fault.Wrap(getErr, fault.Internal(fmt.Sprintf("get stored detector input for %s", metric)))
-			}
-			stored.Current = 0
-			stored.RequestsInWindow = 0
-			stored.PreviousCandidate = previousCandidate
-			input = stored
-		}
 
 		if openID != "" {
 			if err := h.evaluateOpen(ctx, req, input, openID, cfg); err != nil {
@@ -147,7 +136,6 @@ func (h *CheckHandler) Evaluate(
 		case OutcomeCandidate:
 			restate.Set(ctx, candidateKey(metric), true)
 			restate.Set(ctx, candidateWindowKey(metric), req.GetWindowStart())
-			restate.Set(ctx, detectorInputKey(metric), input)
 		case OutcomeAnomaly:
 			restate.Clear(ctx, candidateKey(metric))
 			restate.Clear(ctx, candidateWindowKey(metric))
@@ -157,7 +145,6 @@ func (h *CheckHandler) Evaluate(
 		case OutcomeNone, OutcomeInsufficient:
 			restate.Clear(ctx, candidateKey(metric))
 			restate.Clear(ctx, candidateWindowKey(metric))
-			restate.Clear(ctx, detectorInputKey(metric))
 		default:
 			return nil, restate.TerminalError(fault.New(fmt.Sprintf("unsupported detector outcome %q", result.Outcome)))
 		}
@@ -280,7 +267,6 @@ func (h *CheckHandler) open(ctx restate.ObjectContext, req *hydrav1.EvaluateDepl
 	restate.Set(ctx, openAlertKey(input.Metric), alertID)
 	restate.Set(ctx, firedAtKey(input.Metric), opened.FiredAt)
 	restate.Set(ctx, snapshotKey(input.Metric), opened.Snapshot)
-	restate.Set(ctx, detectorInputKey(input.Metric), input)
 	restate.Set(ctx, quietKey(input.Metric), 0)
 
 	logger.Info("deploy anomaly alert opened",
@@ -310,7 +296,6 @@ func (h *CheckHandler) evaluateOpen(ctx restate.ObjectContext, req *hydrav1.Eval
 	}
 	if !Recovered(input, snapshot, cfg) {
 		restate.Set(ctx, quietKey(input.Metric), 0)
-		restate.Set(ctx, detectorInputKey(input.Metric), input)
 		return h.touch(ctx, alertID, req.GetWindowEnd(), observedValue(input))
 	}
 
@@ -390,7 +375,6 @@ func clearMetricState(ctx restate.ObjectContext, metric Metric) {
 	restate.Clear(ctx, firedAtKey(metric))
 	restate.Clear(ctx, quietKey(metric))
 	restate.Clear(ctx, snapshotKey(metric))
-	restate.Clear(ctx, detectorInputKey(metric))
 }
 
 func hasPendingState(ctx restate.ObjectContext) (bool, error) {

@@ -115,6 +115,63 @@ func TestRunDeployAnomalyCheck_Integration(t *testing.T) {
 	assertInstanceEventRecoveryWithoutNewEvents(t, h)
 	assertOutOfOrderAnomalyWindowsIgnored(t, h)
 	assertOrphanAlertSelfHeals(t, h, windowStart.Add(2*time.Hour))
+	t.Run("ZeroRequestWindowUsesCurrentDropEligibility", func(t *testing.T) {
+		assertZeroRequestWindowUsesCurrentDropEligibility(t, h)
+	})
+	t.Run("ReconciledRequestDropExpiresAfterMaxAge", func(t *testing.T) {
+		assertReconciledRequestDropExpiresAfterMaxAge(t, h)
+	})
+}
+
+func assertZeroRequestWindowUsesCurrentDropEligibility(t *testing.T, h *harness.Harness) {
+	t.Helper()
+	app := createAnomalyTestApp(t, h, mysqltype.EnvironmentKindProduction)
+	windowStart := uniqueAnomalyWindowStart()
+
+	sendAnomalyMetric(t, h, app, windowStart, &hydrav1.DeployAnomalyMetricInput{
+		Metric:    string(db.AlertEventsMetricRequestsDrop),
+		DataState: hydrav1.DeployAnomalyMetricDataState_DEPLOY_ANOMALY_METRIC_DATA_STATE_PRESENT,
+		Current:   100, ObservedBaselineBuckets: 72,
+		RecentMedianRequests: 1_000, RecentActiveBuckets: 9,
+	})
+	sendAnomalyMetric(t, h, app, windowStart.Add(5*time.Minute), &hydrav1.DeployAnomalyMetricInput{
+		Metric:    string(db.AlertEventsMetricRequestsDrop),
+		DataState: hydrav1.DeployAnomalyMetricDataState_DEPLOY_ANOMALY_METRIC_DATA_STATE_ZERO_COMPLETE,
+		Current:   0, ObservedBaselineBuckets: 72,
+		RecentMedianRequests: 1_000, RecentActiveBuckets: 8,
+	})
+
+	var alerts int
+	require.NoError(t, h.DB.RO().QueryRowContext(h.Ctx,
+		"SELECT COUNT(*) FROM alert_events WHERE app_id = ?", app.appID).Scan(&alerts))
+	require.Zero(t, alerts, "fresh rolling eligibility must clear the stale request-drop candidate")
+}
+
+func assertReconciledRequestDropExpiresAfterMaxAge(t *testing.T, h *harness.Harness) {
+	t.Helper()
+	app := createAnomalyTestApp(t, h, mysqltype.EnvironmentKindProduction)
+	windowEnd := time.Now().UTC().Truncate(5 * time.Minute)
+	firedAt := windowEnd.Add(-24 * time.Hour)
+	alertID := uid.New(uid.AlertPrefix)
+	require.NoError(t, h.DB.InsertAlertEvent(h.Ctx, db.InsertAlertEventParams{
+		ID: alertID, WorkspaceID: app.workspaceID, ProjectID: app.projectID,
+		AppID: app.appID, EnvironmentID: app.environmentID,
+		DeploymentID: sql.NullString{String: app.deploymentID, Valid: true},
+		Metric:       db.AlertEventsMetricRequestsDrop,
+		FiredAt:      firedAt.UnixMilli(), LastSeenAt: firedAt.UnixMilli(),
+		ObservedValue: 0, BaselineMean: 1_000, BaselineStddev: 0, ThresholdSigma: 0,
+		WindowStart: firedAt.Add(-5 * time.Minute).UnixMilli(), WindowEnd: firedAt.UnixMilli(),
+		CreatedAt: firedAt.UnixMilli(), UpdatedAt: sql.NullInt64{},
+	}))
+
+	sendAnomalyMetric(t, h, app, windowEnd.Add(-5*time.Minute), &hydrav1.DeployAnomalyMetricInput{
+		Metric:    string(db.AlertEventsMetricRequestsDrop),
+		DataState: hydrav1.DeployAnomalyMetricDataState_DEPLOY_ANOMALY_METRIC_DATA_STATE_ZERO_COMPLETE,
+		Current:   0, ObservedBaselineBuckets: 72,
+		RecentMedianRequests: 0, RecentActiveBuckets: 0,
+	})
+
+	requireAnomalyAlertResolution(t, h, alertID, "Baseline adapted after 24 hours")
 }
 
 func assertOrphanAlertSelfHeals(t *testing.T, h *harness.Harness, windowStart time.Time) {
