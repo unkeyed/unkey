@@ -39,12 +39,18 @@ export const getAlertInput = z.object({
   alertId: z.string().min(1),
 });
 
-export const alertSeriesInput = timeRange.extend({
-  appId: z.string().min(1),
-  environmentId: z.string().min(1),
-  metric: alertSeriesMetricSchema,
-  resolution: z.enum(["5m", "1h"]).default("5m"),
-});
+const alertSeriesMaximumRangeMs = 8 * 24 * 60 * 60 * 1000;
+
+export const alertSeriesInput = timeRange
+  .extend({
+    appId: z.string().min(1),
+    environmentId: z.string().min(1),
+    metric: alertSeriesMetricSchema,
+    resolution: z.enum(["5m", "1h"]).default("5m"),
+  })
+  .refine(({ startMs, endMs }) => endMs - startMs <= alertSeriesMaximumRangeMs, {
+    message: "Series range must not exceed 8 days",
+  });
 
 export const alertDeploymentsInput = timeRange.extend({
   appId: z.string().min(1),
