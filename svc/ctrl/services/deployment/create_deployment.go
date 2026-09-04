@@ -101,7 +101,6 @@ func (s *Service) CreateDeployment(
 
 	deploymentID, err := s.createAndDeploy(ctx, createParams{
 		context:       ctxLoad,
-		action:        "create",
 		dockerImage:   req.Msg.GetDockerImage(),
 		gitCommit:     req.Msg.GetGitCommit(),
 		command:       req.Msg.GetCommand(),
@@ -352,7 +351,6 @@ func (s *Service) loadDeploymentContext(
 // createParams carries everything createAndDeploy needs from a caller.
 type createParams struct {
 	context deploymentContext
-	action  string
 
 	// Source overrides. dockerImage wins if set; otherwise we auto-detect
 	// from git repo connection (using gitCommit.commit_sha if provided) or
@@ -374,7 +372,7 @@ type createParams struct {
 // superseded siblings.
 func (s *Service) createAndDeploy(ctx context.Context, p createParams) (string, error) {
 	c := p.context
-	if err := s.ensureWorkspaceCanDeploy(ctx, c.workspaceID, p.action); err != nil {
+	if err := s.ensureWorkspaceCanDeploy(ctx, c.workspaceID); err != nil {
 		return "", err
 	}
 	if err := s.ensureEnvironmentDeployable(ctx, c); err != nil {
