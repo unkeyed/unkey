@@ -84,11 +84,13 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	// A missing connection is the common "no repo / OCI app" case, so absence
-	// is not an error; any other failure is. On not-found sqlc returns a
-	// zero-valued row, so RepositoryFullName is "" and GitResponse renders null.
+	repositoryFullName := ""
+	defaultBranch := ""
 	conn, err := db.Query.FindGithubRepoConnectionByAppId(ctx, h.DB.RO(), app.ID)
-	if err != nil && !db.IsNotFound(err) {
+	if err == nil {
+		repositoryFullName = conn.RepositoryFullName
+		defaultBranch = conn.DefaultBranch.String
+	} else if !db.IsNotFound(err) {
 		return fault.Wrap(
 			err,
 			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
@@ -96,7 +98,28 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			fault.Public("Failed to retrieve app."),
 		)
 	}
-	repositoryFullName := conn.RepositoryFullName
+
+	var oci *openapi.AppOCI
+	if app.SourceType == db.AppsSourceTypeOci {
+		ociSource, ociErr := db.Query.FindAppSourceOciByAppId(ctx, h.DB.RO(), app.ID)
+		if ociErr != nil {
+			return fault.Wrap(
+				ociErr,
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Internal("failed to load OCI app source"),
+				fault.Public("Failed to retrieve app."),
+			)
+		}
+		oci = &openapi.AppOCI{Image: ociSource.ImageReference}
+	}
+	sourceType := openapi.AppSourceType("")
+	switch app.SourceType {
+	case db.AppsSourceTypeGit:
+		sourceType = openapi.Git
+	case db.AppsSourceTypeOci:
+		sourceType = openapi.Oci
+	case db.AppsSourceTypeUnknown:
+	}
 
 	return s.JSON(http.StatusOK, Response{
 		Meta: openapi.Meta{
@@ -106,9 +129,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			Id:                  app.ID,
 			Name:                app.Name,
 			Slug:                app.Slug,
-			SourceType:          "",
-			Git:                 githubapp.GitResponse(repositoryFullName, app.DefaultBranch),
-			Oci:                 nil,
+			SourceType:          sourceType,
+			Git:                 githubapp.GitResponse(repositoryFullName, defaultBranch),
+			Oci:                 oci,
 			CurrentDeploymentId: app.CurrentDeploymentID.String,
 			IsRolledBack:        app.IsRolledBack,
 			DeleteProtection:    app.DeleteProtection.Bool,
