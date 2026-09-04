@@ -18,10 +18,9 @@ services:
           "--password=password",
           "--query=SELECT 1",
         ]
-      interval: 2s
+      interval: 1s
       timeout: 5s
-      retries: 30
-      start_period: 10s
+      retries: 60
 
   mysql:
     image: mysql:9.4.0
@@ -55,10 +54,9 @@ services:
         "-uunkey",
         "-ppassword",
       ]
-      interval: 2s
+      interval: 1s
       timeout: 5s
-      retries: 30
-      start_period: 10s
+      retries: 60
 
   redis:
     image: redis:8.0@sha256:ae471bdc20de180beed36e347d170ec0bdf8faa327959ea1f24692f22b05b955
@@ -74,10 +72,9 @@ services:
       - "6379"
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
-      interval: 2s
+      interval: 1s
       timeout: 5s
-      retries: 30
-      start_period: 5s
+      retries: 60
 
   restate:
     image: docker.io/restatedev/restate:1.6.0@sha256:33f227db946864b5482340a8621e32ec5eaf464f4dc41d5deccfd3282bb930ae
@@ -97,10 +94,9 @@ services:
       - "9070"
     healthcheck:
       test: ["CMD", "curl", "--fail", "http://localhost:9070/health"]
-      interval: 2s
+      interval: 1s
       timeout: 5s
-      retries: 30
-      start_period: 5s
+      retries: 60
 
   s3:
     image: quay.io/minio/minio:latest
@@ -112,10 +108,9 @@ services:
       - "9000"
     healthcheck:
       test: ["CMD", "mc", "ready", "local"]
-      interval: 2s
+      interval: 1s
       timeout: 5s
-      retries: 30
-      start_period: 5s
+      retries: 60
 
 volumes:
   clickhouse:
