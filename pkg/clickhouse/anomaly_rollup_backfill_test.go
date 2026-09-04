@@ -38,15 +38,18 @@ func TestAnomalyRollupBackfillMatchesMaterializedViews(t *testing.T) {
 	require.NoError(t, createAnomalyBackfillSources(ctx, conn))
 
 	bucket := time.Now().UTC().Truncate(5 * time.Minute).Add(-time.Hour)
+	openBucket := time.Now().UTC().Truncate(5 * time.Minute)
 	insertAnomalyBackfillSourceRows(t, ctx, conn, "backfill", bucket)
+	insertAnomalyBackfillSourceRows(t, ctx, conn, "handoff-missed", openBucket)
 	executeAnomalyRollupMigrations(t, ctx, conn, false)
 	insertAnomalyBackfillSourceRows(t, ctx, conn, "materialized", bucket)
+	insertAnomalyBackfillSourceRows(t, ctx, conn, "handoff-live", openBucket)
 
 	beforeReplay := readAnomalyRollupFixture(t, ctx, conn)
-	require.Len(t, beforeReplay.Requests, 2)
-	require.Len(t, beforeReplay.Resources, 2)
-	require.Len(t, beforeReplay.Memory, 2)
-	require.Len(t, beforeReplay.Watermarks, 4)
+	require.Len(t, beforeReplay.Requests, 3)
+	require.Len(t, beforeReplay.Resources, 3)
+	require.Len(t, beforeReplay.Memory, 3)
+	require.Len(t, beforeReplay.Watermarks, 6)
 	require.Equal(t, requestBackfillRow{Error5xx: 50, Error4xx: 50, Requests: 1_000}, beforeReplay.Requests["backfill"])
 	require.Equal(t, resourceBackfillRow{
 		Egress: 1_000, CPU: 2, UtilizationSum: 0.9,
@@ -62,6 +65,16 @@ func TestAnomalyRollupBackfillMatchesMaterializedViews(t *testing.T) {
 	require.Equal(t, beforeReplay.Memory["backfill"], beforeReplay.Memory["materialized"])
 	for _, source := range []string{"requests", "resources"} {
 		require.Equal(t, beforeReplay.Watermarks[source+"/backfill"], beforeReplay.Watermarks[source+"/materialized"])
+	}
+	require.NotContains(t, beforeReplay.Requests, "handoff-missed")
+	require.Contains(t, beforeReplay.Requests, "handoff-live")
+	require.NotContains(t, beforeReplay.Resources, "handoff-missed")
+	require.Contains(t, beforeReplay.Resources, "handoff-live")
+	require.NotContains(t, beforeReplay.Memory, "handoff-missed")
+	require.Contains(t, beforeReplay.Memory, "handoff-live")
+	for _, source := range []string{"requests", "resources"} {
+		require.NotContains(t, beforeReplay.Watermarks, source+"/handoff-missed")
+		require.Contains(t, beforeReplay.Watermarks, source+"/handoff-live")
 	}
 
 	executeAnomalyRollupMigrations(t, ctx, conn, true)
