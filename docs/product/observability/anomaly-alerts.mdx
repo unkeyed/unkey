@@ -169,6 +169,9 @@ consecutive complete windows. Memory must fall below 85% for recovery. Unkey
 uses the baseline captured when the alert opened, so a continuing incident
 cannot satisfy this recovery rule as its rolling baseline changes.
 
+A 5xx window with at least half of its requests failing and at least 50 failures
+never counts as a recovered window, even when it is inside the recovery band.
+
 When behavior stays at a new level for 24 hours, the rolling baseline contains
 only that new level. This can happen after a permanent and expected change, such
 as traffic doubling. The detector closes the old alert with
