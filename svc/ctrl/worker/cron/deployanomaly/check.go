@@ -287,6 +287,12 @@ func (h *CheckHandler) evaluateOpen(ctx restate.ObjectContext, req *hydrav1.Eval
 	if err != nil {
 		return fault.Wrap(err, fault.Internal(fmt.Sprintf("get fired time for %s", input.Metric)))
 	}
+	// Reconciliation adopts every open row, including alerts that fired after
+	// the window now being caught up. A window that ended before the alert
+	// existed carries no evidence about it and must not count as quiet.
+	if req.GetWindowEnd() < firedAt {
+		return nil
+	}
 	if maxOpenDurationReached(firedAt, req.GetWindowEnd(), cfg.MaxOpenDuration) {
 		return h.resolve(ctx, req, alertID, input.Metric, baselineAdaptedMessage)
 	}

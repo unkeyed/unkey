@@ -125,6 +125,48 @@ func TestRunDeployAnomalyCheck_Integration(t *testing.T) {
 	t.Run("ReconciledRequestDropExpiresAfterMaxAge", func(t *testing.T) {
 		assertReconciledRequestDropExpiresAfterMaxAge(t, h)
 	})
+	t.Run("ReconciledAlertIgnoresWindowsBeforeFiring", func(t *testing.T) {
+		assertReconciledAlertIgnoresWindowsBeforeFiring(t, h)
+	})
+}
+
+// A group object that lost its state and catches up over older windows adopts
+// every open row, including alerts that fired later than the window it is
+// evaluating. Those windows must not count as quiet or resolve the alert.
+func assertReconciledAlertIgnoresWindowsBeforeFiring(t *testing.T, h *harness.Harness) {
+	t.Helper()
+	app := createAnomalyTestApp(t, h, mysqltype.EnvironmentKindProduction)
+	firstWindow := uniqueAnomalyWindowStart()
+	firedAt := firstWindow.Add(4 * 5 * time.Minute)
+	alertID := uid.New(uid.AlertPrefix)
+	require.NoError(t, h.DB.InsertAlertEvent(h.Ctx, db.InsertAlertEventParams{
+		ID: alertID, WorkspaceID: app.workspaceID, ProjectID: app.projectID,
+		AppID: app.appID, EnvironmentID: app.environmentID,
+		DeploymentID: sql.NullString{String: app.deploymentID, Valid: true},
+		Metric:       db.AlertEventsMetricRequests,
+		FiredAt:      firedAt.UnixMilli(), LastSeenAt: firedAt.UnixMilli(),
+		ObservedValue: 10_000, BaselineMean: 1_000, BaselineStddev: 20, ThresholdSigma: 4,
+		WindowStart: firedAt.Add(-5 * time.Minute).UnixMilli(), WindowEnd: firedAt.UnixMilli(),
+		CreatedAt: firedAt.UnixMilli(), UpdatedAt: sql.NullInt64{},
+	}))
+	quiet := &hydrav1.DeployAnomalyMetricInput{
+		Metric:    string(db.AlertEventsMetricRequests),
+		DataState: hydrav1.DeployAnomalyMetricDataState_DEPLOY_ANOMALY_METRIC_DATA_STATE_PRESENT,
+		Current:   1_000, BaselineMean: 1_000, BaselineStddev: 20, ObservedBaselineBuckets: 288,
+	}
+
+	var status string
+	for i := range 3 {
+		sendAnomalyMetric(t, h, app, firstWindow.Add(time.Duration(i)*5*time.Minute), quiet)
+		require.NoError(t, h.DB.RO().QueryRowContext(h.Ctx,
+			"SELECT status FROM alert_events WHERE id = ?", alertID).Scan(&status))
+		require.Equal(t, "open", status, "window %d ended before the alert fired", i)
+	}
+
+	for i := range 3 {
+		sendAnomalyMetric(t, h, app, firedAt.Add(time.Duration(i)*5*time.Minute), quiet)
+	}
+	requireAnomalyAlertResolution(t, h, alertID, "Metric returned to baseline for 3 consecutive windows")
 }
 
 func assertZeroRequestWindowUsesCurrentDropEligibility(t *testing.T, h *harness.Harness) {
