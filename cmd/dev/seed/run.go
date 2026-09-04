@@ -13,6 +13,7 @@ var Cmd = &cli.Command{
 		localCmd,
 		verificationsCmd,
 		frontlineCmd,
+		alertsCmd,
 		checkpoints.Cmd,
 		deployusage.Cmd,
 	},
