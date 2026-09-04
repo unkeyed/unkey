@@ -34,7 +34,7 @@ export function deriveProductionStatus(deployment: Deployment): DeploymentDispla
 
 export const STATUS_META: Record<DeploymentDisplayStatus, { label: string; dotClass: string }> = {
   live: { label: "Live", dotClass: "bg-success-9" },
-  deploying: { label: "Deploying", dotClass: "bg-warning-9" },
+  deploying: { label: "Deploying", dotClass: "bg-info-9" },
   crashing: { label: "Crashing", dotClass: "bg-error-9" },
   failed: { label: "Failed", dotClass: "bg-error-9" },
   stopped: { label: "Stopped", dotClass: "bg-gray-9" },

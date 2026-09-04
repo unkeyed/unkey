@@ -77,6 +77,7 @@ export function ProductionCardHeader() {
     sourceRepo,
     status,
     diagnostic,
+    deploymentHref,
     logsHref,
     requestsHref,
     rollbackTarget,
@@ -109,6 +110,7 @@ export function ProductionCardHeader() {
           deployment={deployment}
           status={status}
           commitUrl={githubUrl.commit(sourceRepo, deployment.gitCommitSha)}
+          deploymentHref={deploymentHref}
           logsHref={logsHref}
           requestsHref={requestsHref}
         />

@@ -17,12 +17,7 @@ import { useFilters } from "../hooks/use-filters";
 import { DeploymentRow } from "./deployment-row";
 import { DeploymentsSkeleton } from "./deployments-skeleton";
 
-type DeploymentsCardListProps = {
-  // Caps the list at one page of this size with no Load more.
-  limit?: number;
-};
-
-export function DeploymentsCardList({ limit }: DeploymentsCardListProps = {}) {
+export function DeploymentsCardList() {
   const {
     rows,
     isLoading,
@@ -32,10 +27,10 @@ export function DeploymentsCardList({ limit }: DeploymentsCardListProps = {}) {
     hasNextPage,
     isFetchingNextPage,
     fetchNextPage,
-  } = useDeployments(limit);
+  } = useDeployments();
   const { updateFilters } = useFilters();
   const { projectId } = useProjectData();
-  const { currentDeployment, isRolledBack } = useAppCurrentDeployment();
+  const { app, currentDeployment, isRolledBack } = useAppCurrentDeployment();
   const workspace = useWorkspaceNavigation();
 
   if (isLoading) {
@@ -109,6 +104,7 @@ export function DeploymentsCardList({ limit }: DeploymentsCardListProps = {}) {
             key={deployment.id}
             deployment={deployment}
             environment={environment}
+            repoFullName={app?.repositoryFullName ?? null}
             currentDeployment={currentDeployment}
             isRolledBack={isRolledBack}
             href={routes.projects.apps.deployment({
@@ -120,7 +116,7 @@ export function DeploymentsCardList({ limit }: DeploymentsCardListProps = {}) {
           />
         ))}
       </ResourceListBody>
-      {limit === undefined && hasNextPage && (
+      {hasNextPage && (
         <ResourceListFooter>
           <Button
             size="md"

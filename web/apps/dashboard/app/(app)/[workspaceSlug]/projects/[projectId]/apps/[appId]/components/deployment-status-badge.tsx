@@ -1,5 +1,8 @@
 "use client";
-import type { DeploymentStatus } from "@/lib/collections/deploy/deployment-status";
+import {
+  DEPLOYMENT_STATUS_LABELS,
+  type DeploymentStatus,
+} from "@/lib/collections/deploy/deployment-status";
 import {
   Ban,
   BoltSlash,
@@ -19,7 +22,6 @@ import type { FC } from "react";
 
 type StatusConfig = {
   icon: FC<IconProps>;
-  label: string;
   bgColor: string;
   textColor: string;
   iconColor: string;
@@ -29,14 +31,12 @@ type StatusConfig = {
 const statusConfigs: Record<DeploymentStatus, StatusConfig> = {
   pending: {
     icon: LayerFront,
-    label: "Pending",
     bgColor: "bg-grayA-3",
     textColor: "text-grayA-11",
     iconColor: "text-gray-11",
   },
   starting: {
     icon: Pulse,
-    label: "Starting",
     bgColor: "bg-linear-to-r from-infoA-5 to-transparent",
     textColor: "text-infoA-11",
     iconColor: "text-info-11",
@@ -44,7 +44,6 @@ const statusConfigs: Record<DeploymentStatus, StatusConfig> = {
   },
   building: {
     icon: Hammer2,
-    label: "Building",
     bgColor: "bg-linear-to-r from-infoA-5 to-transparent",
     textColor: "text-infoA-11",
     iconColor: "text-info-11",
@@ -52,7 +51,6 @@ const statusConfigs: Record<DeploymentStatus, StatusConfig> = {
   },
   deploying: {
     icon: CloudUp,
-    label: "Deploying",
     bgColor: "bg-linear-to-r from-infoA-5 to-transparent",
     textColor: "text-infoA-11",
     iconColor: "text-info-11",
@@ -60,7 +58,6 @@ const statusConfigs: Record<DeploymentStatus, StatusConfig> = {
   },
   network: {
     icon: Earth,
-    label: "Assigning Domains",
     bgColor: "bg-linear-to-r from-infoA-5 to-transparent",
     textColor: "text-infoA-11",
     iconColor: "text-info-11",
@@ -68,7 +65,6 @@ const statusConfigs: Record<DeploymentStatus, StatusConfig> = {
   },
   finalizing: {
     icon: Sparkle3,
-    label: "Finalizing",
     bgColor: "bg-linear-to-r from-infoA-5 to-transparent",
     textColor: "text-infoA-11",
     iconColor: "text-info-11",
@@ -76,49 +72,42 @@ const statusConfigs: Record<DeploymentStatus, StatusConfig> = {
   },
   ready: {
     icon: CircleCheck,
-    label: "Ready",
     bgColor: "bg-successA-3",
     textColor: "text-successA-11",
     iconColor: "text-success-11",
   },
   failed: {
     icon: CircleWarning,
-    label: "Failed",
     bgColor: "bg-errorA-3",
     textColor: "text-errorA-11",
     iconColor: "text-error-11",
   },
   skipped: {
     icon: Ban,
-    label: "Skipped",
     bgColor: "bg-grayA-3",
     textColor: "text-grayA-11",
     iconColor: "text-gray-11",
   },
   awaiting_approval: {
     icon: ShieldAlert,
-    label: "Awaiting Approval",
     bgColor: "bg-warningA-3",
     textColor: "text-warningA-11",
     iconColor: "text-warning-11",
   },
   stopped: {
     icon: BoltSlash,
-    label: "Stopped",
     bgColor: "bg-grayA-3",
     textColor: "text-grayA-11",
     iconColor: "text-gray-11",
   },
   superseded: {
     icon: Ban,
-    label: "Superseded",
     bgColor: "bg-grayA-3",
     textColor: "text-grayA-11",
     iconColor: "text-gray-11",
   },
   cancelled: {
     icon: Ban,
-    label: "Cancelled",
     bgColor: "bg-grayA-3",
     textColor: "text-grayA-11",
     iconColor: "text-gray-11",
@@ -137,7 +126,8 @@ export const DeploymentStatusBadge = ({ status, className }: DeploymentStatusBad
     throw new Error(`Invalid deployment status: ${status}`);
   }
 
-  const { icon: Icon, label, bgColor, textColor, iconColor, animated } = config;
+  const { icon: Icon, bgColor, textColor, iconColor, animated } = config;
+  const label = DEPLOYMENT_STATUS_LABELS[status];
 
   return (
     <div
