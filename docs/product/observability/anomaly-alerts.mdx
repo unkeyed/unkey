@@ -41,13 +41,16 @@ separate alerts.
 
 Unkey evaluates closed 5-minute windows and compares them with up to 24 hours of
 earlier activity. It waits one full bucket before evaluating a window so normal
-telemetry delivery lag does not look like missing traffic.
+telemetry delivery lag does not look like missing traffic. An alert normally
+appears 5 to 10 minutes after the affected bucket closes.
 
-When anomaly rollups are created, Unkey replays the latest 7 days of telemetry.
-Existing apps therefore start with a full 24-hour baseline and enough history
-for request-drop detection. An app younger than 1 hour cannot create a
-baseline-based spike alert. An app younger than 6 hours cannot create a
-request-drop alert. Unkey does not treat time before the app existed as zero.
+When anomaly rollups are installed, Unkey replays the latest 7 days of closed
+telemetry before live collection starts. Only the 5-minute bucket in progress
+during setup can be absent. Existing apps therefore start with a full 24-hour
+baseline and enough history for request-drop detection. An app younger than 1
+hour cannot create a baseline-based spike alert. An app younger than 6 hours
+cannot create a request-drop alert. Unkey uses the app creation time and does
+not treat earlier time as zero.
 
 Request, egress, and CPU spikes can open after one unusual window. Moderate 4xx
 and 5xx error increases must continue for two windows. Request drops must also
@@ -58,11 +61,16 @@ Error alerts use the percentage of requests that failed. They also require at
 least 20 more failures than the recent baseline predicts. This avoids an alert
 when a large percentage change affects only a few requests.
 
-Unkey tracks telemetry completeness separately for every region active during
-the latest 2 hours. A source is complete only when every active region has
-finished the window. A region with no telemetry for 2 hours becomes inactive,
-so a decommissioned region does not block detection. A source with no active
-region is incomplete. An incomplete window cannot open or resolve an alert.
+Unkey tracks request and resource completeness separately for every region
+active during the latest 2 hours. A source is complete only when every active
+region has finished the window. A region with no telemetry for 2 hours becomes
+inactive, so a decommissioned region does not block detection. A source with no
+active region is incomplete. An incomplete window cannot open or resolve an
+alert.
+
+Instance failures are sparse events. A received OOM or crash-loop event can
+open an alert immediately. When there is no event, resource completeness tells
+the detector whether the empty window is safe to use for recovery.
 
 Request-drop alerts require a live deployment and at least one topology region
 set to running. No live deployment, a stopped deployment, or every topology
@@ -84,13 +92,20 @@ the recent baseline and normal range for that bucket. Requests also show a
 lower traffic boundary. Memory shows a fixed 90% limit. The Health chart shows
 OOM and crash-loop events as bars.
 
+The chart follows the same calculations as the detector. Error variation
+excludes buckets with no requests. The request lower boundary uses the inclusive
+median of the previous 12 buckets, which averages the two middle values. Memory
+first averages each container's samples into its instance, then gives every
+instance equal weight.
+
 Shaded regions mark all anomaly windows. Markers attached to the line identify
 alerts for the selected metric. Toggle deployment markers to compare changes
 with rollouts, and drag across the chart to zoom into a smaller time range.
 
-Select an alert in the range list to open focus mode. The details card shows its
-status, metric, observed value, expected baseline, detection window, deployment
-context. For a resolved alert, it also shows the resolution message.
+The range list includes open and resolved alerts. Select an alert to open focus
+mode. The details card shows its status, metric, observed value, expected
+baseline, detection window, and deployment context. For a resolved alert, it
+also shows the resolution message.
 
 <Frame caption="Anomalies tab with expected ranges and alert windows">
   <img
@@ -155,6 +170,9 @@ This beta does not include:
 - A sensitivity control in the dashboard.
 - Seasonal baselines for daily or weekly patterns.
 - Latency anomalies.
+- Guaranteed delivery of OOM and crash-loop events. The event buffer can drop a
+  lifecycle event under pressure, which causes a missed alert rather than a
+  stuck alert.
 - Persisted raw error and request counts. Error alerts store the ratio, while raw
   counts appear only in internal logs.
 - Measured capacity results for 1 million monitored groups. Current figures are
