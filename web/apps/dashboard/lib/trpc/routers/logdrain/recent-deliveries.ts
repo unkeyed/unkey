@@ -4,13 +4,13 @@ import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { workspaceProcedure } from "../../trpc";
 
-/** Matches the error list to the 24-hour window in the delivery overview. */
+/** Matches the delivery list to the window in the delivery overview. */
 const lookbackMs = 24 * 60 * 60 * 1000;
 
-/** Bounds the tRPC response because each failure can include a destination response body. */
-const recentErrorsLimit = 20;
+/** Bounds the tRPC response because each delivery can include a destination response body. */
+const recentDeliveriesLimit = 20;
 
-export const getRecentLogdrainErrors = workspaceProcedure
+export const getRecentLogdrainDeliveries = workspaceProcedure
   .input(z.object({ drainId: z.string().min(1) }))
   .query(async ({ ctx, input }) => {
     const drain = await db.query.logdrains.findFirst({
@@ -24,16 +24,16 @@ export const getRecentLogdrainErrors = workspaceProcedure
       throw new TRPCError({ code: "NOT_FOUND", message: "Log drain not found" });
     }
 
-    const result = await clickhouse.logdrains.recentErrors({
+    const result = await clickhouse.logdrains.recentDeliveries({
       workspaceId: ctx.workspace.id,
       drainId: input.drainId,
       startMs: Date.now() - lookbackMs,
-      limit: recentErrorsLimit,
+      limit: recentDeliveriesLimit,
     });
     if (!result.val) {
       throw new TRPCError({
         code: "INTERNAL_SERVER_ERROR",
-        message: "Failed to fetch recent log drain errors",
+        message: "Failed to fetch recent log drain deliveries",
       });
     }
 
