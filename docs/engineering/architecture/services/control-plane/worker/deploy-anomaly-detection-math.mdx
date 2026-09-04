@@ -63,7 +63,6 @@ the complete production rule inventory. Go embeds and decodes every value in
 | `sigmaK` | `4` |
 | `sensitivitySigmaOffsets.low` | `+1` |
 | `sensitivitySigmaOffsets.high` | `-1` |
-| `minimumLifetimeBuckets` | `12` |
 | `minimumStddevRatio` | `0.1` |
 | `stddevFloors.error_5xx` | `0.01` |
 | `stddevFloors.error_4xx` | `0.01` |
@@ -95,10 +94,17 @@ the complete production rule inventory. Go embeds and decodes every value in
 | `maxOpenDurationSeconds` | `86,400` |
 
 The separate 5xx and 4xx deviation floors are decoded and applied
-independently. The dashboard mirrors the complete object in
+independently. The Go decoder calls `DisallowUnknownFields`, rejects trailing
+JSON values, and validates every decoded value. Required values must be
+positive, ratios must be in range, and sensitivity offsets must be sane. An
+invalid embedded file causes a clear panic during package initialization.
+
+The dashboard mirrors the complete JSON as one typed
+`deployAnomalyThresholds` object in
 `web/internal/clickhouse/src/alert-thresholds.ts`. The strict
-`alert-thresholds-contract.test.ts` contract fails for a missing, extra, or
-different key.
+`alert-thresholds-contract.test.ts` strictly parses the JSON and compares the
+full object with `toEqual`. A mutation test proves that a nested difference
+fails.
 
 Request, egress, and CPU spikes use an effective population standard deviation:
 
@@ -130,21 +136,23 @@ threshold still does not fire.
 ClickHouse does not know the app creation time that Go uses for zero-padding.
 For request, CPU, and egress spikes, its candidate filter reconstructs the mean
 and standard deviation for every possible lifetime bucket count `L` from
-`max(observed_buckets, 1)` through 288. It uses the minimum threshold:
+`max(observed_buckets, 1)` through 288. It applies a rounding tolerance to the
+minimum threshold:
 
-`min(mean_L + k * max(stddev_L, 0.1 * mean_L, floor))`
+`min(mean_L + k * max(stddev_L, 0.1 * mean_L, floor)) * (1 - 1e-12)`
 
-This minimum is an exact lower bound across every possible lifetime. A current
-value above the Go threshold must also pass the SQL filter. SQL can return extra
-rows, but Go `Detect` remains authoritative and rejects them. Error ratios keep
-their direct threshold because the detector does not lifetime-pad ratio buckets.
+This result is a conservative lower bound with a rounding tolerance across
+every possible lifetime. Float64 cancellation in
+`sumSquares / L - (sum / L)^2` can otherwise raise the calculated threshold by
+enough to exclude a Go anomaly. The factor exceeds 4,000 machine epsilons and
+can only admit extra candidates. Go `Detect` remains authoritative and rejects
+them. Error ratios keep their direct threshold because the detector does not
+lifetime-pad ratio buckets.
 
-For the regression case, 100 observed buckets each contain 200 requests. With
-`L = 101`, one padded zero produces a mean near 198.02 and a normal-sensitivity
-threshold near 278.02. A current value of 279 is anomalous. Checking only the
-observed-lifetime and full-288-bucket endpoints would miss this interior minimum.
-`TestAnomalyCandidateFilterIncludesInteriorLifetimeThreshold` preserves this
-case.
+`TestAnomalyCandidateFilterToleratesFloat64Cancellation` covers the regression.
+Its baseline has 34 buckets of `1e13` requests and 65 buckets of `1.01e13`
+requests. The current value is `13,975,536,123,762`. The tolerance keeps this
+Go anomaly in the SQL candidate set despite Float64 cancellation.
 
 ### Aggregate resource counters
 
@@ -299,9 +307,11 @@ The virtual object stores the candidate window start and verifies that the next
 start is exactly 5 minutes later. A normal, insufficient, or non-consecutive
 window clears the candidate.
 
-Each shard waits on the prior window's exclusive `GetPending` handler before it
-dispatches groups. This chronological handoff prevents the second window from
-overtaking the first and clearing or replacing consecutive-window evidence.
+Before dispatch, each shard calls the exclusive `EvaluateShard` handler for the
+previous window. An unevaluated predecessor recursively evaluates its own
+predecessor, up to 12 windows. This guarantees chronological candidate evidence
+and catches up missed cron fires within 1 hour. A longer gap restarts the
+candidate chain.
 
 Request spikes, egress spikes, CPU spikes, memory pressure, OOM kills, crash
 loops, and catastrophic 5xx errors open after one complete window.

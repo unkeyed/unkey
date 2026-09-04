@@ -31,7 +31,7 @@ changes only for the affected app and environment.
 ┌──────────────────────────────────────────────┐
 │ DeployAnomalyShardService.EvaluateShard      │
 │ key: <window_start_ms>/<shard>/<shard_count> │
-│ waits for prior shard GetPending             │
+│ evaluates its predecessor before dispatch    │
 └──────┬──────────────┬──────────────┬─────────┘
        │              │              │
        ▼              ▼              ▼
@@ -130,22 +130,34 @@ workspace belongs to one shard according to:
 The shard virtual object key is
 `<window_start_ms>/<shard>/<shard_count>`. The window value is in Unix
 milliseconds. Including the count makes the partition scheme explicit for
-retries and lets operators change the count for later windows without changing
-an in-flight run.
+retries and keeps an in-flight run on one partition scheme.
 
-Let `W` be the window start in milliseconds. Before dispatching `W`, shard `S`
-calls the exclusive `GetPending` handler on the prior shard key,
+`EvaluateShard` is an exclusive, idempotent virtual-object handler. After an
+evaluation finishes, it stores an evaluated marker, dispatched and pending
+counts, and pending group keys. A repeated call returns that stored result
+without querying ClickHouse or MySQL.
+
+Let `W` be the window start in milliseconds. Before querying or dispatching,
+shard `S` calls `EvaluateShard` on its predecessor key,
 `<W - 300000>/<S>/<shard_count>`. At the default count, that key is
-`<W - 300000>/<S>/16`. Restate queues the exclusive call behind the prior
-object's `EvaluateShard`. The current shard cannot dispatch until the same shard
-from the previous window finishes.
+`<W - 300000>/<S>/16`. If the predecessor has finished, it returns its stored
+pending groups immediately. If it is running, the exclusive handler makes `W`
+wait. If it never ran, the predecessor evaluates and first calls its own
+predecessor.
 
-`GetPending` returns the prior window's pending group keys. The current shard
-merges those keys with open-alert groups and new SQL candidates. This
-chronological handoff prevents a later window from overtaking an earlier one
-and erasing evidence for a two-window anomaly. `EvaluateShard` uses bounded
-retries that kill the invocation on exhaustion, so a failed prior window cannot
-pause and wedge the shard chain.
+This recursive chase stops after 12 predecessors, which provides a 1-hour
+catch-up horizon. Shard chronology and missed-cron recovery are guaranteed
+within that horizon. A predecessor beyond the limit counts as absent, so a
+longer outage restarts consecutive-window candidate evidence. The group
+object's `last_window_end` guard still prevents the same or an older window from
+being evaluated twice.
+
+The current shard merges its predecessor's pending group keys with open-alert
+groups and new SQL candidates. `EvaluateShard` uses bounded retries that kill
+the invocation on exhaustion, so a failed invocation cannot pause and wedge
+the shard chain. When the shard count changes, `W` chases `W - 1` with the new
+count. An absent predecessor evaluates with the new partition, and group
+objects reject windows they already evaluated as stale.
 
 `ListOpenAlertEventGroups` reads every group with `status = 'open'` from MySQL.
 Each shard filters those rows in Go with
@@ -167,12 +179,15 @@ arrayMin(
     L -> mean_L + k * max(stddev_L, 0.1 * mean_L, floor),
     range(max(baseline_buckets, 1), 289)
   )
-)
+) * (1 - 1e-12)
 ```
 
-This is an exact lower bound for every app lifetime that Go can apply. SQL can
-over-include a row but cannot exclude a Go anomaly. Error ratios do not use this
-calculation because Go does not lifetime-pad their ratio buckets.
+This is a conservative lower bound with a rounding tolerance for every app
+lifetime that Go can apply. The multiplier protects against Float64
+cancellation in `sumSquares / L - (sum / L)^2`. Its tolerance exceeds 4,000
+machine epsilons, so it can admit extra rows but cannot exclude a Go anomaly.
+Error ratios do not use this calculation because Go does not lifetime-pad their
+ratio buckets.
 
 The shard resolves group metadata in batches of at most 500 groups and removes
 preview environments before dispatch. The batch query uses a recursive JSON CTE
@@ -185,10 +200,10 @@ of at most 500 groups, the shard uses one batched query to find missing metadata
 and resolves those orphaned alerts with `Deployment stopped`. This fallback
 self-heals an alert if its deletion workflow did not complete.
 
-Each shard returns only `groups_dispatched` and `groups_pending` to
-`RunDeployAnomalyCheck`, so pending keys, query results, and per-group payloads
-do not enter the window virtual object's journal. The pending keys move only
-between consecutive shard virtual objects through `GetPending`.
+The stored evaluated marker lets a successor or retry distinguish completed
+work from an unstarted shard. The stored dispatched and pending counts support
+fleet reporting, while the pending group keys carry work into the next window
+within the catch-up horizon.
 
 ## Understand the ClickHouse queries
 
@@ -198,11 +213,12 @@ away `deployment_id` and group by `workspace_id`, `project_id`, `app_id`, and
 
 Request scans use `AnomalyWindowsRequest` with an `AnomalyCandidateFilter`.
 Candidate `HAVING` expressions use the minimum spike threshold across all
-possible lifetime bucket counts. They may over-include, but they cannot exclude
-a Go anomaly. The Go detector applies the app's exact creation-time lifetime,
-minimum history, exact thresholds, and stateful confirmation after the query
-returns. Shard-key ordering and `optimize_aggregation_in_order` bound the
-aggregation working set for each query.
+possible lifetime bucket counts, multiplied by the rounding tolerance. They may
+over-include, but they cannot exclude a Go anomaly. The Go detector applies the
+app's exact creation-time lifetime, minimum history, exact thresholds, and
+stateful confirmation after the query returns. Shard-key ordering and
+`optimize_aggregation_in_order` bound the aggregation working set for each
+query.
 
 | Method | Source | Metrics |
 | --- | --- | --- |
@@ -223,9 +239,10 @@ current bucket exists, and the previous 12 request buckets through scalar
 `sumIf` expressions. The app creation time comes from MySQL metadata, not
 ClickHouse. Go aligns it to a 5-minute boundary and uses it to bound
 zero-padding. The final `HAVING` applies the lifetime-safe candidate lower bound
-or retains a group that has an open alert. The regression test
-`TestAnomalyCandidateFilterIncludesInteriorLifetimeThreshold` covers an
-interior lifetime of 101 buckets, where endpoint thresholds are not safe.
+with its rounding tolerance or retains a group that has an open alert. The
+regression test `TestAnomalyCandidateFilterToleratesFloat64Cancellation` uses 34
+buckets of `1e13`, 65 buckets of `1.01e13`, and a current value of
+`13,975,536,123,762` to protect the cancellation case.
 
 ### Query resource windows
 
@@ -299,8 +316,12 @@ decodes the complete production rule inventory from the embedded
 `svc/ctrl/worker/cron/deployanomaly/thresholds.json`. This includes sensitivity
 offsets, per-metric floors, activity gates, request-drop and catastrophic rules,
 recovery, and the maximum open duration. The separate `error_5xx` and
-`error_4xx` deviation floors remain distinct in `Config`. These functions live
-in `svc/ctrl/worker/cron/deployanomaly`. The
+`error_4xx` deviation floors remain distinct in `Config`. The decoder calls
+`DisallowUnknownFields`, rejects trailing JSON values, then validates values
+that must be positive, ratio ranges, and sensitivity offsets. Package
+initialization panics with a clear message when the embedded file is invalid.
+These functions live in
+`svc/ctrl/worker/cron/deployanomaly`. The
 [detector math](/architecture/services/control-plane/worker/deploy-anomaly-detection-math)
 defines every metric threshold and worked example.
 
@@ -454,10 +475,10 @@ operational failure. Child failures are logged and prevent the success
 heartbeat. Operators can then distinguish a running cron from a fully
 successful fleet evaluation.
 
-`EvaluateShard` also uses bounded retries that kill on exhaustion. The next
-window's exclusive `GetPending` call waits behind that invocation. A terminal
-failure releases the object queue, while a paused invocation would block later
-windows for that shard.
+`EvaluateShard` also uses bounded retries that kill on exhaustion. A later
+window's exclusive call to its predecessor queues behind a running invocation.
+A terminal failure releases the object queue, while a paused invocation would
+block later windows for that shard.
 
 Do not move database calls outside journaled steps. Do not read wall-clock time
 inside replayed handler code. The window timestamp comes from the durable object
@@ -500,10 +521,11 @@ The `alerts` tRPC router is in
 `web/apps/dashboard/lib/trpc/routers/alerts/`. Its procedures are `alerts.list`,
 `alerts.get`, `alerts.summary`, `alerts.series`, and `alerts.deployments`. There
 is no `resolve` or `timeseries` procedure. Dashboard ClickHouse queries live in
-`web/internal/clickhouse/src/alerts.ts`. Shared band constants live in
-`web/internal/clickhouse/src/alert-thresholds.ts`. The
-`alert-thresholds-contract.test.ts` strict Vitest contract rejects any missing,
-extra, or different key when compared with the detector's `thresholds.json`.
+`web/internal/clickhouse/src/alerts.ts`. The complete typed
+`deployAnomalyThresholds` mirror lives in
+`web/internal/clickhouse/src/alert-thresholds.ts`. The strict
+`alert-thresholds-contract.test.ts` strictly parses the JSON and uses full
+`toEqual` comparison. Its mutation test proves that a nested difference fails.
 
 The inbox uses the default `alerts.list` behavior, which returns open alerts.
 The app tab sets `includeResolved` so its range list includes both statuses.

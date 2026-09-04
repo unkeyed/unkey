@@ -183,19 +183,27 @@ restate invocations list \
   --key "${previous_shard_key}"
 
 restate kv get hydra.v1.DeployAnomalyShardService \
+  "${shard_key}"
+
+restate kv get hydra.v1.DeployAnomalyShardService \
   "${previous_shard_key}"
 ```
 
-Before the current shard dispatches, it calls the prior key's exclusive
-`GetPending` handler. Restate queues that call behind the prior key's
-`EvaluateShard`. Confirm that the prior evaluation completed or reached its
-bounded retry limit. Exhaustion must kill the invocation. A paused invocation
-would wedge this shard's chronological chain.
+Before the current shard queries or dispatches, it calls the prior key's
+exclusive `EvaluateShard` handler. If the predecessor finished, it returns its
+stored result without querying ClickHouse or MySQL. If it is running, the
+current shard waits. If it never ran, it evaluates and first calls its own
+predecessor.
 
-`GetPending` returns the prior window's pending group keys. Confirm that these
-keys are merged with current open-alert groups and SQL candidates. This handoff
-prevents a later window from overtaking an earlier one and erasing consecutive
-candidate evidence.
+The recursive chase is limited to 12 predecessors. Confirm chronological
+execution and catch-up across gaps of at most 1 hour. A predecessor beyond that
+limit counts as absent, and the current shard proceeds. A longer outage
+restarts consecutive-window candidate evidence. The group object's
+`last_window_end` guard still rejects duplicate or stale evaluations.
+
+`EvaluateShard` retries are bounded. Exhaustion must kill the invocation. A
+paused invocation would wedge the chain because a later predecessor call queues
+behind it.
 
 For the current shard, look for journal failures in watermark reads, candidate
 queries, batched MySQL metadata resolution, and per-group calls. Metadata
@@ -207,10 +215,11 @@ no longer exists. The shard resolves each orphaned batch of at most 500 groups
 with `Deployment stopped`. Inspect that batched resolution step when a deleted
 group remains open.
 
-The shard stores its group keys under `pending_groups`. Compare that list length
-with `groups_pending` in its `EvaluateShard` result. Only `groups_dispatched`
-and `groups_pending` return to the window object's journal. Pending keys pass to
-the next window through the exclusive `GetPending` response.
+Inspect the shard object's evaluated marker, stored dispatched and pending
+counts, and `pending_groups` keys. Compare the key count with `groups_pending`.
+A repeat call must return these stored results without new ClickHouse or MySQL
+steps. The next window receives the pending keys from its predecessor's
+`EvaluateShard` result.
 
 `ListOpenAlertEventGroups` reads all `status = 'open'` groups through the plain
 `status_idx` index. Every shard repeats this small, cheap MySQL scan and keeps
@@ -319,13 +328,14 @@ these conditions:
    at least 200 lost requests, a `deployment_id` whose deployment was not marked
    `stopped`, and at least one topology region with
    `desired_status = 'running'`.
-7. The applied sensitivity and shared dashboard constants match the
+7. The applied sensitivity and typed dashboard threshold mirror match the
    [detector math](/architecture/services/control-plane/worker/deploy-anomaly-detection-math).
 8. The ClickHouse candidate filter used the minimum spike threshold across
-   every lifetime from `max(observed_buckets, 1)` through 288. SQL may
-   over-include, but it must not exclude a Go anomaly. Run
-   `TestAnomalyCandidateFilterIncludesInteriorLifetimeThreshold` after changing
-   this filter.
+   every lifetime from `max(observed_buckets, 1)` through 288, multiplied by
+   `(1 - 1e-12)`. This rounding tolerance may over-include but must not exclude
+   a Go anomaly. Run
+   `TestAnomalyCandidateFilterToleratesFloat64Cancellation` after changing this
+   filter.
 9. An older app received its backfilled baseline. If it did not, confirm that
    the deploy anomaly migration in `pkg/clickhouse/migrations` completed for
    `anomaly_source_watermarks_v1`,
@@ -444,10 +454,15 @@ UI. `DefaultConfig` uses `SensitivityNormal`, where `k = 4`. Low sensitivity
 uses 5, and high sensitivity uses 3.
 
 `svc/ctrl/worker/cron/deployanomaly/thresholds.json` is the canonical source for
-the complete production rule inventory. Go embeds and decodes every key in
-`DefaultConfig(Sensitivity)`. The dashboard mirrors the object in
+the complete production rule inventory. The Go decoder calls
+`DisallowUnknownFields`, rejects trailing JSON values, and validates values that
+must be positive, ratio ranges, and sensitivity offsets. An invalid embedded
+file causes a clear panic during package initialization.
+
+The dashboard stores one complete typed `deployAnomalyThresholds` mirror in
 `web/internal/clickhouse/src/alert-thresholds.ts`. Its strict
-`alert-thresholds-contract.test.ts` fails on a missing, extra, or different key.
+`alert-thresholds-contract.test.ts` strictly parses the JSON and uses `toEqual`
+for full deep equality. A mutation test proves that a nested difference fails.
 
 To change the selected `Sensitivity`, update the detector call sites together
 and keep the dashboard's displayed sigma consistent. To change a production
@@ -489,12 +504,16 @@ or concurrency supports the change.
    `cityHash64(workspace_id) % shard_count` with the same count.
 5. Verify that the Go filter applies
    `city.CH64(workspace_id) % shardCount == shard` with the same count.
-6. Measure candidate rows, per-shard query p95, end-to-end cron p95, and peak
+6. Verify that a window calls the previous window with the new shard count. An
+   absent predecessor must evaluate under the new partition. Group objects
+   reject windows that they already evaluated under the old partition.
+7. Measure candidate rows, per-shard query p95, end-to-end cron p95, and peak
    child concurrency.
-7. Deploy the code before changing any production cron assumptions.
+8. Deploy the code before changing any production cron assumptions.
 
-A count change affects later windows only. Do not restart an in-flight window
-with a different count.
+A count change applies to the new window and any predecessor shard keys that it
+evaluates during catch-up. Do not restart an in-flight window with a different
+count.
 
 ## Verify the production cron
 
