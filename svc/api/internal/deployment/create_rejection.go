@@ -7,13 +7,10 @@ import (
 	"github.com/unkeyed/unkey/pkg/fault"
 )
 
-// RejectionFault turns a refused create into the error its caller sees.
-//
-// The worker answers a refusal with an enum and keeps the explanation in its
-// own logs, because that text names repositories and deployments the caller may
-// have no right to read. So the wording here is written from the reason alone
-// and stays deliberately coarser than a handler's own pre-flight, which can
-// name the offending field because it read it.
+// RejectionFault maps a refused create onto the error the caller sees. Only the
+// enum crosses the wire, because the worker's detail can name repositories and
+// deployments the caller may not read, so each message is written from the
+// reason alone.
 func RejectionFault(reason hydrav1.CreateRejectionReason) error {
 	switch reason {
 	case hydrav1.CreateRejectionReason_CREATE_REJECTION_REASON_NO_COMPUTE_PLAN:
@@ -80,9 +77,8 @@ func RejectionFault(reason hydrav1.CreateRejectionReason) error {
 			fault.Public("The docker image is not valid. Expected [registry/]repository[:tag][@digest], for example ghcr.io/acme/api:v1.2.3."),
 		)
 
-	// Both mean the target vanished between this handler's own lookup and the
-	// create. They answer alike so neither confirms the existence of something
-	// the caller cannot reach.
+	// One answer for both, so neither confirms that something the caller cannot
+	// reach exists.
 	case hydrav1.CreateRejectionReason_CREATE_REJECTION_REASON_TARGET_NOT_FOUND,
 		hydrav1.CreateRejectionReason_CREATE_REJECTION_REASON_SOURCE_DEPLOYMENT_NOT_FOUND:
 		return fault.New(
@@ -92,9 +88,8 @@ func RejectionFault(reason hydrav1.CreateRejectionReason) error {
 			fault.Public("The project, app, environment, or deployment does not exist."),
 		)
 
-	// A refusal the worker could name but this mapping cannot is a bug here, not
-	// a caller error: the deployment was refused and the caller deserves to know
-	// it failed rather than read a 201 for a row that will never exist.
+	// A rejection this mapping cannot name is still a rejection: answer an
+	// error, never a 201 for a row that does not exist.
 	case hydrav1.CreateRejectionReason_CREATE_REJECTION_REASON_UNSPECIFIED:
 		return fault.New(
 			"create rejected without a reason",

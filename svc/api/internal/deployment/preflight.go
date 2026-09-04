@@ -9,14 +9,10 @@ import (
 	"github.com/unkeyed/unkey/pkg/fault"
 )
 
-// EnsureWorkspaceCanDeploy refuses an action that creates or activates compute
-// for a workspace with no Compute plan or one stopped by its spend cap. The
-// faults carry precondition codes, so a handler returns them unchanged.
-//
-// The billing row is read from the primary: a workspace suspended moments ago
-// must not slip an action through on a stale replica. A workspace with no row
-// reads as the zero value, meaning no plan and not suspended, which is the
-// normal state before anyone subscribes.
+// EnsureWorkspaceCanDeploy refuses a workspace with no Compute plan or one
+// stopped by its spend cap. It reads the primary so a workspace suspended
+// moments ago cannot slip through on a stale replica. No billing row reads as
+// no plan and not suspended.
 func EnsureWorkspaceCanDeploy(ctx context.Context, database db.Database, workspaceID string) error {
 	billing, err := db.Query.FindWorkspaceBillingByWorkspaceID(ctx, database.RW(), workspaceID)
 	if err != nil && !db.IsNotFound(err) {
