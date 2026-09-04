@@ -18,6 +18,7 @@ const (
 	autoResolveMessage     = "Metric returned to baseline for 3 consecutive windows"
 	baselineAdaptedMessage = "Baseline adapted after 24 hours"
 	stoppedMessage         = "Deployment stopped"
+	lastWindowEndStateKey  = "last_window_end"
 )
 
 type CheckConfig struct {
@@ -62,11 +63,29 @@ func (h *CheckHandler) Evaluate(
 	ctx restate.ObjectContext,
 	req *hydrav1.EvaluateDeployAnomalyRequest,
 ) (*hydrav1.EvaluateDeployAnomalyResponse, error) {
+	lastWindowEnd, err := restate.Get[int64](ctx, lastWindowEndStateKey)
+	if err != nil {
+		return nil, fault.Wrap(err, fault.Internal("get last deploy anomaly window"))
+	}
+	if req.GetWindowEnd() <= lastWindowEnd {
+		logger.Warn("deploy anomaly window skipped because it is not newer",
+			"workspace_id", req.GetWorkspaceId(), "app_id", req.GetAppId(),
+			"environment_id", req.GetEnvironmentId(), "window_end", req.GetWindowEnd(),
+			"last_window_end", lastWindowEnd,
+		)
+		pending, pendingErr := hasPendingState(ctx)
+		if pendingErr != nil {
+			return nil, pendingErr
+		}
+		return &hydrav1.EvaluateDeployAnomalyResponse{Pending: pending}, nil
+	}
+
 	if err := h.reconcile(ctx, req); err != nil {
 		return nil, err
 	}
 
 	cfg := DefaultConfig(SensitivityNormal)
+	processed := false
 	for _, metricValue := range req.GetMetrics() {
 		metric := Metric(metricValue.GetMetric())
 		if !validMetric(metric) {
@@ -81,6 +100,7 @@ func (h *CheckHandler) Evaluate(
 			)
 			continue
 		}
+		processed = true
 
 		openID, err := restate.Get[string](ctx, openAlertKey(metric))
 		if err != nil {
@@ -141,6 +161,9 @@ func (h *CheckHandler) Evaluate(
 		default:
 			return nil, restate.TerminalError(fault.New(fmt.Sprintf("unsupported detector outcome %q", result.Outcome)))
 		}
+	}
+	if processed {
+		restate.Set(ctx, lastWindowEndStateKey, req.GetWindowEnd())
 	}
 
 	pending, err := hasPendingState(ctx)
