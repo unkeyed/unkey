@@ -207,8 +207,20 @@ WITH
 			recent_requests,
 			current_bucket_present,
 			baseline_buckets,
-			requests_baseline_sum / 288. AS requests_full_mean,
-			sqrt(greatest(0., requests_baseline_square_sum / 288. - requests_full_mean * requests_full_mean)) AS requests_full_stddev,
+			arrayMin(arrayMap(
+				lifetime_buckets ->
+					requests_baseline_sum / lifetime_buckets
+					+ {sigma_k:Float64} * greatest(
+						sqrt(greatest(
+							0.,
+							requests_baseline_square_sum / lifetime_buckets
+							- (requests_baseline_sum / lifetime_buckets) * (requests_baseline_sum / lifetime_buckets)
+						)),
+						(requests_baseline_sum / lifetime_buckets) * {minimum_stddev_ratio:Float64},
+						{requests_stddev_floor:Float64}
+					),
+				range(greatest(toUInt32(baseline_buckets), toUInt32(1)), toUInt32(289))
+			)) AS requests_candidate_threshold,
 			arraySort(recent_requests) AS recent_requests_sorted
 		FROM aggregated
 	),
@@ -234,10 +246,7 @@ WITH
 			if(requests_current = 0, 0., error_4xx_current / requests_current) AS error_4xx_ratio_current,
 			error_5xx_current - error_5xx_baseline_mean * requests_current AS error_5xx_excess,
 			error_4xx_current - error_4xx_baseline_mean * requests_current AS error_4xx_excess,
-			least(
-				requests_baseline_mean + {sigma_k:Float64} * greatest(requests_baseline_stddev, requests_baseline_mean * {minimum_stddev_ratio:Float64}, {requests_stddev_floor:Float64}),
-				requests_full_mean + {sigma_k:Float64} * greatest(requests_full_stddev, requests_full_mean * {minimum_stddev_ratio:Float64}, {requests_stddev_floor:Float64})
-			) AS requests_candidate_threshold,
+			requests_candidate_threshold,
 			(recent_requests_sorted[6] + recent_requests_sorted[7]) / 2 AS recent_requests_median,
 			arrayCount(value -> value >= {request_drop_activity:Float64}, recent_requests) AS recent_active_buckets
 		FROM moments
@@ -439,18 +448,34 @@ WITH
 			memory_utilization_max_current,
 			current_bucket_present,
 			baseline_buckets,
-			egress_bytes_baseline_sum / 288. AS egress_bytes_full_mean,
-			sqrt(greatest(0., egress_bytes_baseline_square_sum / 288. - egress_bytes_full_mean * egress_bytes_full_mean)) AS egress_bytes_full_stddev,
-			cpu_seconds_baseline_sum / 288. AS cpu_seconds_full_mean,
-			sqrt(greatest(0., cpu_seconds_baseline_square_sum / 288. - cpu_seconds_full_mean * cpu_seconds_full_mean)) AS cpu_seconds_full_stddev,
-			least(
-				egress_bytes_baseline_mean + {sigma_k:Float64} * greatest(egress_bytes_baseline_stddev, egress_bytes_baseline_mean * {minimum_stddev_ratio:Float64}, {egress_bytes_stddev_floor:Float64}),
-				egress_bytes_full_mean + {sigma_k:Float64} * greatest(egress_bytes_full_stddev, egress_bytes_full_mean * {minimum_stddev_ratio:Float64}, {egress_bytes_stddev_floor:Float64})
-			) AS egress_bytes_candidate_threshold,
-			least(
-				cpu_seconds_baseline_mean + {sigma_k:Float64} * greatest(cpu_seconds_baseline_stddev, cpu_seconds_baseline_mean * {minimum_stddev_ratio:Float64}, {cpu_seconds_stddev_floor:Float64}),
-				cpu_seconds_full_mean + {sigma_k:Float64} * greatest(cpu_seconds_full_stddev, cpu_seconds_full_mean * {minimum_stddev_ratio:Float64}, {cpu_seconds_stddev_floor:Float64})
-			) AS cpu_seconds_candidate_threshold
+			arrayMin(arrayMap(
+				lifetime_buckets ->
+					egress_bytes_baseline_sum / lifetime_buckets
+					+ {sigma_k:Float64} * greatest(
+						sqrt(greatest(
+							0.,
+							egress_bytes_baseline_square_sum / lifetime_buckets
+							- (egress_bytes_baseline_sum / lifetime_buckets) * (egress_bytes_baseline_sum / lifetime_buckets)
+						)),
+						(egress_bytes_baseline_sum / lifetime_buckets) * {minimum_stddev_ratio:Float64},
+						{egress_bytes_stddev_floor:Float64}
+					),
+				range(greatest(toUInt32(baseline_buckets), toUInt32(1)), toUInt32(289))
+			)) AS egress_bytes_candidate_threshold,
+			arrayMin(arrayMap(
+				lifetime_buckets ->
+					cpu_seconds_baseline_sum / lifetime_buckets
+					+ {sigma_k:Float64} * greatest(
+						sqrt(greatest(
+							0.,
+							cpu_seconds_baseline_square_sum / lifetime_buckets
+							- (cpu_seconds_baseline_sum / lifetime_buckets) * (cpu_seconds_baseline_sum / lifetime_buckets)
+						)),
+						(cpu_seconds_baseline_sum / lifetime_buckets) * {minimum_stddev_ratio:Float64},
+						{cpu_seconds_stddev_floor:Float64}
+					),
+				range(greatest(toUInt32(baseline_buckets), toUInt32(1)), toUInt32(289))
+			)) AS cpu_seconds_candidate_threshold
 		FROM aggregated
 	)
 SELECT
