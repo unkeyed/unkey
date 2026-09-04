@@ -27,10 +27,7 @@ type UpdateDeploymentStatusBatchIfActiveParams struct {
 	ProgressingStatuses []mysqltype.DeploymentsStatus `db:"progressing_statuses"`
 }
 
-// Batch form of UpdateDeploymentStatusIfActive: transition deployments only
-// while they are still progressing, so a cancel arriving after a deployment
-// finished (or after the dedup path already superseded it) never rewrites a
-// terminal status.
+// Batch form of UpdateDeploymentStatusIfActive.
 //
 //	UPDATE deployments
 //	SET status = ?, updated_at = ?

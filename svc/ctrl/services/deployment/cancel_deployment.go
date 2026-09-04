@@ -14,29 +14,17 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/internal/deploycancel"
 )
 
-// cancelledByUserMessage is the error message stamped onto any in-flight
-// deployment step when a user manually cancels a deployment. The Deploy
-// handler's DeploymentStep wrapper may try to end the same step afterwards
-// with whatever error the cancellation caused, but EndDeploymentStep only
-// updates rows where ended_at IS NULL — so our message wins and the UI
-// shows "Cancelled by user" instead of something like "build interrupted".
+// cancelledByUserMessage is stamped on the in-flight step before the invocation
+// is cancelled, so the UI shows it instead of whatever error the cancel causes
+// deeper in the workflow.
 const cancelledByUserMessage = "Cancelled by user"
 
-// CancelDeployment aborts an in-flight deployment through
-// [deploycancel.Cancel]: active steps are stamped with "Cancelled by user", the
-// row transitions to cancelled, Restate is asked to cancel the invocation, and
-// the cancel is audited with the actor the request carries. A request without
-// an actor is not audited.
+// CancelDeployment aborts an in-flight deployment through deploycancel.Cancel.
+// A request without an actor is not audited.
 //
-// Idempotent:
-//   - Deployments already in a terminal status (ready/failed/skipped/stopped)
-//     return success without calling Restate.
-//   - Deployments without a stored invocation ID are still marked cancelled:
-//     the id is persisted just after Deploy is sent, so a cancel can land
-//     while the column reads NULL, and Deploy checks for a terminal status
-//     before it builds.
-//   - Restate returning 404 is treated as success — the workflow already
-//     finished in the gap between lookup and cancel.
+// A terminal deployment returns success without touching Restate. One with no
+// invocation id yet is still marked cancelled: the id is persisted after Deploy
+// is sent, and Deploy checks for a terminal status before it builds.
 func (s *Service) CancelDeployment(
 	ctx context.Context,
 	req *connect.Request[ctrlv1.CancelDeploymentRequest],
@@ -79,8 +67,8 @@ func (s *Service) CancelDeployment(
 			fmt.Errorf("restate admin client is not configured"))
 	}
 
-	// This check stays out of [deploycancel.Cancel]: a nil *Client wrapped in a
-	// non-nil interface value passes its admin != nil guard and then panics.
+	// A nil *Client stored in the interface is not a nil interface, so
+	// deploycancel would call it and panic.
 	var canceler deploycancel.InvocationCanceler
 	if s.restateAdmin != nil {
 		canceler = s.restateAdmin

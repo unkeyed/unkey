@@ -141,12 +141,9 @@ func (s *Service) Delete(
 }
 
 // cancelProgressingDeployments aborts in-flight deployments through
-// deploycancel.Cancel, audited per deployment with the deletion's actor.
-//
-// The list step journals the row set and the cancel runs as one further step,
-// so a retry after a failed cancel re-runs against the same rows instead of
-// re-listing and skipping the ones already flipped terminal. The audit entries
-// are written last inside the helper, on the pass where nothing fails.
+// deploycancel.Cancel. The list is journaled, so a retry after a failed
+// invocation cancel runs against the same rows instead of re-listing and
+// skipping the ones already flipped terminal.
 func (s *Service) cancelProgressingDeployments(
 	ctx restate.ObjectContext,
 	env db.Environment,
