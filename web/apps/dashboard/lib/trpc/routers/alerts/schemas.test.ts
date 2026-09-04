@@ -55,6 +55,23 @@ describe("alert inputs", () => {
     ).toBe(false);
   });
 
+  it("rejects metric series ranges longer than eight days", () => {
+    const eightDaysMs = 8 * 24 * 60 * 60 * 1000;
+    const input = {
+      appId: "app_1",
+      environmentId: "env_1",
+      metric: "requests",
+      startMs: 100,
+    } as const;
+
+    expect(
+      alertSeriesInput.safeParse({ ...input, endMs: input.startMs + eightDaysMs }).success,
+    ).toBe(true);
+    expect(
+      alertSeriesInput.safeParse({ ...input, endMs: input.startMs + eightDaysMs + 1 }).success,
+    ).toBe(false);
+  });
+
   it("validates deployment marker ranges", () => {
     expect(
       alertDeploymentsInput.safeParse({
