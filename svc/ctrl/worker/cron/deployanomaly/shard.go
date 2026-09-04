@@ -11,6 +11,7 @@ import (
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
+	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/logger"
 	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
@@ -104,7 +105,7 @@ func (h *ShardHandler) EvaluateShard(
 		ShardKey(windowStart-windowDurationMillis, shard, shardCount),
 	).GetPending().Request(&hydrav1.GetPendingDeployAnomalyGroupsRequest{})
 	if err != nil {
-		return nil, fmt.Errorf("read previous pending anomaly groups: %w", err)
+		return nil, fault.Wrap(err, fault.Internal("read previous pending anomaly groups"))
 	}
 	openGroups, err := restate.Run(ctx, func(rc restate.RunContext) ([]db.ListOpenAlertEventGroupsRow, error) {
 		rows, listErr := h.db.ListOpenAlertEventGroups(rc)
@@ -120,7 +121,7 @@ func (h *ShardHandler) EvaluateShard(
 		return filtered, nil
 	}, restate.WithName("list open anomaly groups for shard"))
 	if err != nil {
-		return nil, fmt.Errorf("list open anomaly groups for shard: %w", err)
+		return nil, fault.Wrap(err, fault.Internal("list open anomaly groups for shard"))
 	}
 
 	forced := mergeForcedGroups(previous.GetGroups(), openGroups)
@@ -132,7 +133,7 @@ func (h *ShardHandler) EvaluateShard(
 		return h.clickhouse.GetAnomalySourceWatermarks(rc)
 	}, restate.WithName("read anomaly ingest watermarks"))
 	if err != nil {
-		return nil, fmt.Errorf("read anomaly ingest watermarks: %w", err)
+		return nil, fault.Wrap(err, fault.Internal("read anomaly ingest watermarks"))
 	}
 	completeness := sourceCompleteness(watermarks, windowEnd)
 	logIncompleteSources(shard, windowEnd, completeness)
@@ -148,7 +149,7 @@ func (h *ShardHandler) EvaluateShard(
 		return h.clickhouse.GetRequestAnomalyWindows(rc, requestQuery)
 	}, restate.WithName("read request anomaly candidates"))
 	if err != nil {
-		return nil, fmt.Errorf("read request anomaly candidates: %w", err)
+		return nil, fault.Wrap(err, fault.Internal("read request anomaly candidates"))
 	}
 	resourceQuery := baseRequest
 	resourceQuery.SkipFleet = !completeness.Resources.Complete
@@ -156,7 +157,7 @@ func (h *ShardHandler) EvaluateShard(
 		return h.clickhouse.GetResourceAnomalyWindows(rc, resourceQuery)
 	}, restate.WithName("read resource anomaly candidates"))
 	if err != nil {
-		return nil, fmt.Errorf("read resource anomaly candidates: %w", err)
+		return nil, fault.Wrap(err, fault.Internal("read resource anomaly candidates"))
 	}
 	eventQuery := baseRequest
 	eventQuery.SkipFleet = !completeness.InstanceEvents.Complete
@@ -164,7 +165,7 @@ func (h *ShardHandler) EvaluateShard(
 		return h.clickhouse.GetInstanceEventAnomalyWindows(rc, eventQuery)
 	}, restate.WithName("read instance event anomaly candidates"))
 	if err != nil {
-		return nil, fmt.Errorf("read instance event anomaly candidates: %w", err)
+		return nil, fault.Wrap(err, fault.Internal("read instance event anomaly candidates"))
 	}
 
 	groups := mergeGroupWindows(requestWindows, resourceWindows, eventWindows, forced)
@@ -178,7 +179,7 @@ func (h *ShardHandler) EvaluateShard(
 	futures := make([]evaluateFuture, 0, len(metadata))
 	dispatchedGroups := make([]anomalyGroup, 0, len(metadata))
 	for _, item := range metadata {
-		if !isProduction(item.EnvironmentKind) {
+		if item.EnvironmentKind != mysqltype.EnvironmentKindProduction {
 			continue
 		}
 		request := evaluateRequest(item, groups[item.Group], windowStart, windowEnd, completeness)
@@ -191,7 +192,7 @@ func (h *ShardHandler) EvaluateShard(
 	for i, future := range futures {
 		response, responseErr := future.Response()
 		if responseErr != nil {
-			return nil, fmt.Errorf("evaluate deploy anomaly group %s: %w", dispatchedGroups[i].key(), responseErr)
+			return nil, fault.Wrap(responseErr, fault.Internal(fmt.Sprintf("evaluate deploy anomaly group %s", dispatchedGroups[i].key())))
 		}
 		if response.GetPending() {
 			pending = append(pending, dispatchedGroups[i])
@@ -213,7 +214,7 @@ func (h *ShardHandler) GetPending(
 ) (*hydrav1.GetPendingDeployAnomalyGroupsResponse, error) {
 	groups, err := restate.Get[[]anomalyGroup](ctx, pendingGroupsStateKey)
 	if err != nil {
-		return nil, fmt.Errorf("get pending anomaly groups: %w", err)
+		return nil, fault.Wrap(err, fault.Internal("get pending anomaly groups"))
 	}
 	response := &hydrav1.GetPendingDeployAnomalyGroupsResponse{Groups: make([]*hydrav1.DeployAnomalyGroupKey, len(groups))}
 	for i, group := range groups {
@@ -240,7 +241,7 @@ func (h *ShardHandler) resolveMetadata(ctx restate.ObjectContext, groups []anoma
 			})
 		}, restate.WithName(fmt.Sprintf("resolve anomaly metadata batch %d", start/metadataBatchSize)))
 		if err != nil {
-			return nil, fmt.Errorf("resolve anomaly group metadata: %w", err)
+			return nil, fault.Wrap(err, fault.Internal("resolve anomaly group metadata"))
 		}
 		for _, row := range rows {
 			metadata = append(metadata, groupMetadata{
@@ -346,10 +347,6 @@ func candidateFilter(cfg Config) clickhouse.AnomalyCandidateFilter {
 		RequestDropActiveBuckets: cfg.RequestDrop.MinimumActiveBuckets, RequestDropAbsoluteLoss: cfg.RequestDrop.MinimumAbsoluteLoss,
 		Catastrophic5xxRatio: cfg.Catastrophic.Error5xxRatio, Catastrophic5xxFailures: cfg.Catastrophic.Error5xxFailures,
 	}
-}
-
-func isProduction(kind mysqltype.EnvironmentKind) bool {
-	return kind == mysqltype.EnvironmentKindProduction
 }
 
 func evaluateRequest(metadata groupMetadata, group groupWindow, windowStart, windowEnd int64, completeness ingestCompleteness) *hydrav1.EvaluateDeployAnomalyRequest {

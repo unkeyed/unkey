@@ -24,10 +24,11 @@ func TestAnomalyRollupBackfillMatchesMaterializedViews(t *testing.T) {
 	require.NoError(t, err)
 	t.Cleanup(func() { require.NoError(t, admin.Close()) })
 
-	ctx := context.Background()
+	ctx := t.Context()
+	cleanupCtx := context.WithoutCancel(ctx)
 	database := "anomaly_backfill_" + strings.ReplaceAll(uid.New("test"), "-", "_")
 	require.NoError(t, admin.Exec(ctx, "CREATE DATABASE "+database))
-	t.Cleanup(func() { require.NoError(t, admin.Exec(ctx, "DROP DATABASE "+database)) })
+	t.Cleanup(func() { require.NoError(t, admin.Exec(cleanupCtx, "DROP DATABASE "+database)) })
 
 	opts.Auth.Database = database
 	conn, err := ch.Open(opts)
