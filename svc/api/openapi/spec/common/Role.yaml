@@ -13,7 +13,7 @@ properties:
       The human-readable name for this role that describes its function.
       Should be descriptive enough for administrators to understand what access this role provides.
       Use clear, semantic names that reflect the job function or responsibility level.
-      Names must be unique within your workspace to avoid confusion during role assignment.
+      Names must be unique within the project to avoid confusion during role assignment.
     example: "support.readonly"
   description:
     type: string

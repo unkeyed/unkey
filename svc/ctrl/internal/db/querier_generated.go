@@ -625,14 +625,16 @@ type Querier interface {
 	//
 	//  SELECT openapi_specs.pk, openapi_specs.id, openapi_specs.workspace_id, openapi_specs.deployment_id, openapi_specs.portal_id, openapi_specs.content, openapi_specs.created_at, openapi_specs.updated_at FROM openapi_specs WHERE deployment_id = ?
 	FindOpenApiSpecByDeploymentID(ctx context.Context, deploymentID sql.NullString) (OpenapiSpec, error)
-	//FindPermissionByNameAndWorkspaceID
+	// FindPermissionBySlugAndProjectID resolves a duplicate insert to the existing
+	// row in the requested project. The workspace filter preserves tenant isolation.
 	//
 	//  SELECT permissions.pk, permissions.id, permissions.workspace_id, permissions.project_id, permissions.name, permissions.slug, permissions.description, permissions.created_at_m, permissions.updated_at_m
 	//  FROM permissions
-	//  WHERE name = ?
-	//  AND workspace_id = ?
+	//  WHERE slug = ?
+	//    AND workspace_id = ?
+	//    AND project_id = ?
 	//  LIMIT 1
-	FindPermissionByNameAndWorkspaceID(ctx context.Context, arg FindPermissionByNameAndWorkspaceIDParams) (Permission, error)
+	FindPermissionBySlugAndProjectID(ctx context.Context, arg FindPermissionBySlugAndProjectIDParams) (Permission, error)
 	//FindProjectById
 	//
 	//  SELECT projects.pk, projects.id, projects.workspace_id, projects.name, projects.slug, projects.depot_project_id, projects.delete_protection, projects.created_at, projects.updated_at
