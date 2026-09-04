@@ -983,17 +983,28 @@ components:
             additionalProperties: false
         V2DomainsListDomainsRequestBody:
             type: object
-            required:
-                - project
-                - app
-                - environment
             properties:
                 project:
-                    "$ref": "#/components/schemas/ResourceIdentifier"
+                    allOf:
+                        - "$ref": "#/components/schemas/ResourceIdentifier"
+                    description: |
+                        Restrict results to one project, identified by its ID or slug.
+                        Set this when an `app` filter uses a slug.
                 app:
-                    "$ref": "#/components/schemas/ResourceIdentifier"
+                    allOf:
+                        - "$ref": "#/components/schemas/ResourceIdentifier"
+                    description: |
+                        Restrict results to one app, identified by its ID or slug.
+                        If `project` is omitted, the endpoint treats this opaque value only as an app ID.
+                        Set `project` to use an app slug.
                 environment:
-                    "$ref": "#/components/schemas/ResourceIdentifier"
+                    allOf:
+                        - "$ref": "#/components/schemas/ResourceIdentifier"
+                    description: |
+                        Restrict results to one environment, identified by its ID or slug.
+                        If `app` is omitted, the endpoint treats this opaque value only as an environment ID.
+                        Set `app` to use an environment slug.
+                        If the app uses a slug, also set `project`.
                 limit:
                     type: integer
                     description: |
@@ -1014,6 +1025,9 @@ components:
                     description: Free-form text to filter domains. Returns domains whose ID or name contains the search string. Matching is case-insensitive.
                     example: acme.com
             additionalProperties: false
+            description: |
+                Filter domains within a workspace. All filters are optional. With no filters,
+                the endpoint lists custom domains across the workspace.
         V2DomainsListDomainsResponseBody:
             type: object
             required:
@@ -1029,8 +1043,8 @@ components:
                     items:
                         "$ref": "#/components/schemas/Domain"
                     description: |
-                        The domains attached to the environment, sorted by their id.
-                        The array is empty when the environment has no domains. This is not an error.
+                        The domains that match the request filters, sorted by their ID.
+                        The array is empty when the workspace or filtered resource has no domains. This is not an error.
                 pagination:
                     "$ref": "#/components/schemas/Pagination"
             additionalProperties: false
@@ -10207,11 +10221,12 @@ paths:
     /v2/domains.listDomains:
         post:
             description: |
-                List the custom domains attached to an environment and their verification status.
+                List custom domains in your workspace and their verification status. Use the optional
+                project, app, and environment filters to narrow the results.
 
-                Results are paginated and sorted by their id. When `hasMore` is true, send the
-                returned `cursor` to get the next page. An environment with no domains returns an
-                empty array, not a 404.
+                Results are paginated and sorted by their ID. When `hasMore` is true, send the
+                returned `cursor` to get the next page. A workspace or filtered resource with no
+                domains returns an empty array, not a 404.
 
                 `status: verified` means the domain is verified. Unkey has configured routing and requested a
                 certificate. Each domain includes its full `dnsRecords`. Each record has a `verified` flag.
@@ -10221,21 +10236,24 @@ paths:
 
                 **Required Permissions**
 
-                Your root key must have one of the following permissions:
-                - `environment.*.read_domain` (to read domains in any environment)
-                - `environment.<environment_id>.read_domain` (to read domains in a specific environment)
+                The endpoint accepts a canonical `#read` permission that matches the requested domain
+                collection.
+
+                The endpoint also accepts the legacy `environment.*.read_domain` permission. An
+                environment list accepts `environment.<environment_id>.read_domain` too.
             operationId: domains.listDomains
             requestBody:
                 content:
                     application/json:
                         examples:
                             byIds:
-                                description: Uses the ids returned by the corresponding list endpoints.
-                                summary: List an environment's domains by ID
+                                summary: List an environment's domains by its ID
                                 value:
-                                    app: app_1234abcd
                                     environment: env_1234abcd
-                                    project: proj_1234abcd
+                            byProject:
+                                summary: List a project's domains
+                                value:
+                                    project: payments
                             bySlugs:
                                 description: Uses the project, app, and environment slugs.
                                 summary: List an environment's domains by slugs
@@ -10260,6 +10278,9 @@ paths:
                                     environment: production
                                     project: payments
                                     search: acme.com
+                            workspaceWide:
+                                summary: List all domains in the workspace
+                                value: {}
                         schema:
                             $ref: '#/components/schemas/V2DomainsListDomainsRequestBody'
                 required: true
@@ -10320,7 +10341,7 @@ paths:
                                         pagination:
                                             hasMore: false
                                 empty:
-                                    description: An environment with no custom domains returns an empty array, not a 404.
+                                    description: A workspace or filtered resource with no custom domains returns an empty array, not a 404.
                                     summary: No domains attached
                                     value:
                                         data: []
@@ -10332,7 +10353,7 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/V2DomainsListDomainsResponseBody'
                     description: |
-                        Successfully retrieved the environment's domains.
+                        Successfully retrieved the domains that match the filters.
                 "400":
                     content:
                         application/json:
@@ -10343,7 +10364,7 @@ paths:
                                         error:
                                             detail: The search string must be at most 256 characters.
                                             errors:
-                                                - fix: Shorten the search string, or omit it to return the environment's domains unfiltered
+                                                - fix: Shorten the search string, or omit it to return domains without a search filter
                                                   location: body.search
                                                   message: must be at most 256 characters
                                             status: 400
@@ -10388,9 +10409,9 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/ForbiddenErrorResponse'
                     description: |
-                        Forbidden - The root key or its workspace is disabled. A root key that simply lacks
-                        `environment.*.read_domain` receives a 404 instead, so permissions cannot be used to discover
-                        which environments exist.
+                        Forbidden - The root key or its workspace is disabled. An unfiltered workspace list also
+                        returns 403 when the root key does not have the required permission. A filtered project,
+                        app, or environment list returns 404 for the same permission failure.
                 "404":
                     content:
                         application/json:
@@ -10408,7 +10429,8 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/NotFoundErrorResponse'
                     description: |
-                        Not Found - The environment does not exist in your workspace, or your root key may not read it.
+                        Not Found - A requested project, app, or environment does not exist in your workspace, or
+                        your root key cannot read its domains.
                 "429":
                     content:
                         application/json:

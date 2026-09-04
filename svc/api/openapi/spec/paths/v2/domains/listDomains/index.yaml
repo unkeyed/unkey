@@ -3,11 +3,12 @@ post:
     - domains
   summary: List domains
   description: |
-    List the custom domains attached to an environment and their verification status.
+    List custom domains in your workspace and their verification status. Use the optional
+    project, app, and environment filters to narrow the results.
 
-    Results are paginated and sorted by their id. When `hasMore` is true, send the
-    returned `cursor` to get the next page. An environment with no domains returns an
-    empty array, not a 404.
+    Results are paginated and sorted by their ID. When `hasMore` is true, send the
+    returned `cursor` to get the next page. A workspace or filtered resource with no
+    domains returns an empty array, not a 404.
 
     `status: verified` means the domain is verified. Unkey has configured routing and requested a
     certificate. Each domain includes its full `dnsRecords`. Each record has a `verified` flag.
@@ -17,9 +18,11 @@ post:
 
     **Required Permissions**
 
-    Your root key must have one of the following permissions:
-    - `environment.*.read_domain` (to read domains in any environment)
-    - `environment.<environment_id>.read_domain` (to read domains in a specific environment)
+    The endpoint accepts a canonical `#read` permission that matches the requested domain
+    collection.
+
+    The endpoint also accepts the legacy `environment.*.read_domain` permission. An
+    environment list accepts `environment.<environment_id>.read_domain` too.
   operationId: domains.listDomains
   x-speakeasy-name-override: listDomains
   x-unkey-idempotency: idempotent
@@ -31,6 +34,13 @@ post:
         schema:
           "$ref": "./V2DomainsListDomainsRequestBody.yaml"
         examples:
+          workspaceWide:
+            summary: List all domains in the workspace
+            value: {}
+          byProject:
+            summary: List a project's domains
+            value:
+              project: payments
           bySlugs:
             summary: List an environment's domains by slugs
             description: Uses the project, app, and environment slugs.
@@ -39,11 +49,8 @@ post:
               app: payments-api
               environment: production
           byIds:
-            summary: List an environment's domains by ID
-            description: Uses the ids returned by the corresponding list endpoints.
+            summary: List an environment's domains by its ID
             value:
-              project: proj_1234abcd
-              app: app_1234abcd
               environment: env_1234abcd
           search:
             summary: Filter by name
@@ -66,7 +73,7 @@ post:
   responses:
     "200":
       description: |
-        Successfully retrieved the environment's domains.
+        Successfully retrieved the domains that match the filters.
       content:
         application/json:
           schema:
@@ -125,7 +132,7 @@ post:
                   hasMore: false
             empty:
               summary: No domains attached
-              description: An environment with no custom domains returns an empty array, not a 404.
+              description: A workspace or filtered resource with no custom domains returns an empty array, not a 404.
               value:
                 meta:
                   requestId: req_1234abcd
@@ -153,7 +160,7 @@ post:
                   errors:
                     - location: body.search
                       message: must be at most 256 characters
-                      fix: Shorten the search string, or omit it to return the environment's domains unfiltered
+                      fix: Shorten the search string, or omit it to return domains without a search filter
     "401":
       description: Unauthorized
       content:
@@ -173,9 +180,9 @@ post:
                   type: unauthorized
     "403":
       description: |
-        Forbidden - The root key or its workspace is disabled. A root key that simply lacks
-        `environment.*.read_domain` receives a 404 instead, so permissions cannot be used to discover
-        which environments exist.
+        Forbidden - The root key or its workspace is disabled. An unfiltered workspace list also
+        returns 403 when the root key does not have the required permission. A filtered project,
+        app, or environment list returns 404 for the same permission failure.
       content:
         application/json:
           schema:
@@ -193,7 +200,8 @@ post:
                   type: forbidden
     "404":
       description: |
-        Not Found - The environment does not exist in your workspace, or your root key may not read it.
+        Not Found - A requested project, app, or environment does not exist in your workspace, or
+        your root key cannot read its domains.
       content:
         application/json:
           schema:

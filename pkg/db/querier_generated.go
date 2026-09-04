@@ -2044,35 +2044,37 @@ type Querier interface {
 	//  WHERE workspace_id = ?
 	//  ORDER BY pk
 	ListClickhouseOutboxByWorkspace(ctx context.Context, db DBTX, workspaceID string) ([]ListClickhouseOutboxByWorkspaceRow, error)
-	//ListCustomDomainsByEnvironment
+	// ListCustomDomains applies optional resource filters cumulatively. Callers resolve
+	// each supplied resource to its parent IDs before they run this query.
 	//
 	//  SELECT
-	//      id,
-	//      project_id,
-	//      app_id,
-	//      environment_id,
-	//      domain,
-	//      verification_status,
-	//      verification_token,
-	//      ownership_verified,
-	//      cname_verified,
-	//      target_cname,
-	//      verification_error,
-	//      domain_connect_provider,
-	//      domain_connect_url,
-	//      last_checked_at,
-	//      created_at,
-	//      updated_at
-	//  FROM custom_domains
-	//  WHERE workspace_id = ?
-	//    AND project_id = ?
-	//    AND environment_id = ?
-	//    AND id >= ?
+	//      cd.id,
+	//      cd.project_id,
+	//      cd.app_id,
+	//      cd.environment_id,
+	//      cd.domain,
+	//      cd.verification_status,
+	//      cd.verification_token,
+	//      cd.ownership_verified,
+	//      cd.cname_verified,
+	//      cd.target_cname,
+	//      cd.verification_error,
+	//      cd.domain_connect_provider,
+	//      cd.domain_connect_url,
+	//      cd.last_checked_at,
+	//      cd.created_at,
+	//      cd.updated_at
+	//  FROM custom_domains cd
+	//  WHERE cd.workspace_id = ?
+	//    AND (? = '' OR cd.project_id = ?)
+	//    AND (? = '' OR cd.app_id = ?)
+	//    AND (? = '' OR cd.environment_id = ?)
+	//    AND cd.id >= ?
 	//    -- search is a pre-escaped LIKE pattern built by mysql.SearchContains; NULL disables the filter
-	//    AND (? IS NULL OR LOWER(id) LIKE LOWER(?) OR LOWER(domain) LIKE LOWER(?))
-	//  ORDER BY id ASC
+	//    AND (? IS NULL OR LOWER(cd.id) LIKE LOWER(?) OR LOWER(cd.domain) LIKE LOWER(?))
+	//  ORDER BY cd.id ASC
 	//  LIMIT ?
-	ListCustomDomainsByEnvironment(ctx context.Context, db DBTX, arg ListCustomDomainsByEnvironmentParams) ([]ListCustomDomainsByEnvironmentRow, error)
+	ListCustomDomains(ctx context.Context, db DBTX, arg ListCustomDomainsParams) ([]ListCustomDomainsRow, error)
 	//ListDeploymentDomains
 	//
 	//  SELECT r.fully_qualified_domain_name AS domain
