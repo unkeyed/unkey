@@ -12,13 +12,8 @@
 //
 // Durable work is not done here. Each method validates and authorizes, then
 // hands off to Restate: authorize sends Deploy, rebuild sends Create, and
-// deprovision sends Teardown. Restate keys those on the deployment or workspace
-// id, so this service holds no locks of its own and two calls about different
-// deployments never contend.
-//
-// [Service.Rebuild] is the exception that waits for its callee. It uses Request
-// rather than Send so an operator learns immediately that a rebuild was refused,
-// which is why it maps a BLOCKED outcome onto [connect.CodeFailedPrecondition].
+// deprovision sends Teardown. [Service.Rebuild] alone waits for its callee, so
+// an operator learns immediately when a rebuild is rejected.
 //
 // Methods return Connect codes by the usual convention:
 // [connect.CodeInvalidArgument] for a malformed request,
