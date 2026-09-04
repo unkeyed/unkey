@@ -12,16 +12,12 @@ import (
 	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
 )
 
-const findAppWithSettings = `-- name: FindAppWithSettings :one
+const findAppWithRuntimeSettings = `-- name: FindAppWithRuntimeSettings :one
 SELECT
     a.id AS app_id,
     a.project_id AS app_project_id,
     a.source_type AS app_source_type,
-    a.default_branch AS app_default_branch,
     a.current_deployment_id AS app_current_deployment_id,
-    abs.dockerfile AS build_settings_dockerfile,
-    abs.docker_context AS build_settings_docker_context,
-    abs.build_command AS build_settings_build_command,
     ars.port AS runtime_settings_port,
     ars.cpu_millicores AS runtime_settings_cpu_millicores,
     ars.memory_mib AS runtime_settings_memory_mib,
@@ -32,25 +28,20 @@ SELECT
     ars.upstream_protocol AS runtime_settings_upstream_protocol,
     ars.sentinel_config AS runtime_settings_sentinel_config
 FROM apps a
-INNER JOIN app_build_settings abs ON abs.app_id = a.id AND abs.environment_id = ?
 INNER JOIN app_runtime_settings ars ON ars.app_id = a.id AND ars.environment_id = ?
 WHERE a.id = ?
 `
 
-type FindAppWithSettingsParams struct {
+type FindAppWithRuntimeSettingsParams struct {
 	EnvironmentID string `db:"environment_id"`
 	ID            string `db:"id"`
 }
 
-type FindAppWithSettingsRow struct {
+type FindAppWithRuntimeSettingsRow struct {
 	AppID                           string                             `db:"app_id"`
 	AppProjectID                    string                             `db:"app_project_id"`
 	AppSourceType                   AppsSourceType                     `db:"app_source_type"`
-	AppDefaultBranch                string                             `db:"app_default_branch"`
 	AppCurrentDeploymentID          sql.NullString                     `db:"app_current_deployment_id"`
-	BuildSettingsDockerfile         sql.NullString                     `db:"build_settings_dockerfile"`
-	BuildSettingsDockerContext      string                             `db:"build_settings_docker_context"`
-	BuildSettingsBuildCommand       sql.NullString                     `db:"build_settings_build_command"`
 	RuntimeSettingsPort             int32                              `db:"runtime_settings_port"`
 	RuntimeSettingsCpuMillicores    int32                              `db:"runtime_settings_cpu_millicores"`
 	RuntimeSettingsMemoryMib        int32                              `db:"runtime_settings_memory_mib"`
@@ -62,17 +53,13 @@ type FindAppWithSettingsRow struct {
 	RuntimeSettingsSentinelConfig   []byte                             `db:"runtime_settings_sentinel_config"`
 }
 
-// FindAppWithSettings
+// FindAppWithRuntimeSettings
 //
 //	SELECT
 //	    a.id AS app_id,
 //	    a.project_id AS app_project_id,
 //	    a.source_type AS app_source_type,
-//	    a.default_branch AS app_default_branch,
 //	    a.current_deployment_id AS app_current_deployment_id,
-//	    abs.dockerfile AS build_settings_dockerfile,
-//	    abs.docker_context AS build_settings_docker_context,
-//	    abs.build_command AS build_settings_build_command,
 //	    ars.port AS runtime_settings_port,
 //	    ars.cpu_millicores AS runtime_settings_cpu_millicores,
 //	    ars.memory_mib AS runtime_settings_memory_mib,
@@ -83,21 +70,16 @@ type FindAppWithSettingsRow struct {
 //	    ars.upstream_protocol AS runtime_settings_upstream_protocol,
 //	    ars.sentinel_config AS runtime_settings_sentinel_config
 //	FROM apps a
-//	INNER JOIN app_build_settings abs ON abs.app_id = a.id AND abs.environment_id = ?
 //	INNER JOIN app_runtime_settings ars ON ars.app_id = a.id AND ars.environment_id = ?
 //	WHERE a.id = ?
-func (q *Queries) FindAppWithSettings(ctx context.Context, arg FindAppWithSettingsParams) (FindAppWithSettingsRow, error) {
-	row := q.db.QueryRowContext(ctx, findAppWithSettings, arg.EnvironmentID, arg.EnvironmentID, arg.ID)
-	var i FindAppWithSettingsRow
+func (q *Queries) FindAppWithRuntimeSettings(ctx context.Context, arg FindAppWithRuntimeSettingsParams) (FindAppWithRuntimeSettingsRow, error) {
+	row := q.db.QueryRowContext(ctx, findAppWithRuntimeSettings, arg.EnvironmentID, arg.ID)
+	var i FindAppWithRuntimeSettingsRow
 	err := row.Scan(
 		&i.AppID,
 		&i.AppProjectID,
 		&i.AppSourceType,
-		&i.AppDefaultBranch,
 		&i.AppCurrentDeploymentID,
-		&i.BuildSettingsDockerfile,
-		&i.BuildSettingsDockerContext,
-		&i.BuildSettingsBuildCommand,
 		&i.RuntimeSettingsPort,
 		&i.RuntimeSettingsCpuMillicores,
 		&i.RuntimeSettingsMemoryMib,

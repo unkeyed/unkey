@@ -41,7 +41,7 @@ INNER JOIN projects p ON p.id = gc.project_id
 INNER JOIN environments e ON e.app_id = a.id
   AND CASE
     WHEN CAST(? AS SIGNED) = 1 THEN e.kind = 'preview'
-    WHEN ? = COALESCE(NULLIF(a.default_branch, ''), 'main')
+    WHEN ? = COALESCE(NULLIF(gc.default_branch, ''), 'main')
     THEN e.kind = 'production'
     ELSE e.kind = 'preview'
   END
@@ -52,10 +52,10 @@ WHERE gc.installation_id = ?
 `
 
 type ListRepoConnectionDeployContextsParams struct {
-	IsForkPr       int64  `db:"is_fork_pr"`
-	Branch         string `db:"branch"`
-	InstallationID int64  `db:"installation_id"`
-	RepositoryID   int64  `db:"repository_id"`
+	IsForkPr       int64          `db:"is_fork_pr"`
+	Branch         sql.NullString `db:"branch"`
+	InstallationID int64          `db:"installation_id"`
+	RepositoryID   int64          `db:"repository_id"`
 }
 
 type ListRepoConnectionDeployContextsRow struct {
@@ -112,7 +112,7 @@ type ListRepoConnectionDeployContextsRow struct {
 //	INNER JOIN environments e ON e.app_id = a.id
 //	  AND CASE
 //	    WHEN CAST(? AS SIGNED) = 1 THEN e.kind = 'preview'
-//	    WHEN ? = COALESCE(NULLIF(a.default_branch, ''), 'main')
+//	    WHEN ? = COALESCE(NULLIF(gc.default_branch, ''), 'main')
 //	    THEN e.kind = 'production'
 //	    ELSE e.kind = 'preview'
 //	  END

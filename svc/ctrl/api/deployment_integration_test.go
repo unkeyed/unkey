@@ -35,7 +35,7 @@ type mockDeploymentService struct {
 	requests chan *hydrav1.DeployRequest
 }
 
-func TestDeployment_Create_TriggersWorkflow(t *testing.T) {
+func TestDeployment_Create_UsesOCIAppDefault(t *testing.T) {
 	requests := make(chan *hydrav1.DeployRequest, 1)
 	harness := newWebhookHarness(t, webhookHarnessConfig{
 		Services: []restate.ServiceDefinition{hydrav1.NewDeployServiceServer(&mockDeployService{requests: requests})},
@@ -65,6 +65,17 @@ func TestDeployment_Create_TriggersWorkflow(t *testing.T) {
 		Slug:          "default",
 		DefaultBranch: "main",
 	}, envID)
+	_, err := harness.DB.RW().ExecContext(ctx, "UPDATE apps SET source_type = ? WHERE id = ?", db.AppsSourceTypeOci, app.ID)
+	require.NoError(t, err)
+	_, err = harness.DB.RW().ExecContext(
+		ctx,
+		"INSERT INTO app_source_oci (workspace_id, app_id, image_reference, created_at) VALUES (?, ?, ?, ?)",
+		workspaceID,
+		app.ID,
+		"nginx:latest",
+		time.Now().UnixMilli(),
+	)
+	require.NoError(t, err)
 
 	environment := harness.CreateEnvironment(ctx, seed.CreateEnvironmentRequest{
 		ID:               envID,
@@ -100,7 +111,6 @@ func TestDeployment_Create_TriggersWorkflow(t *testing.T) {
 		ProjectId:       project.ID,
 		AppId:           app.ID,
 		EnvironmentSlug: environment.Slug,
-		DockerImage:     "nginx:latest",
 	}))
 	require.NoError(t, err)
 	require.NotEmpty(t, resp.Msg.GetDeploymentId())
@@ -109,9 +119,9 @@ func TestDeployment_Create_TriggersWorkflow(t *testing.T) {
 	select {
 	case req := <-requests:
 		require.Equal(t, resp.Msg.GetDeploymentId(), req.GetDeploymentId())
-		dockerImage, ok := req.GetSource().(*hydrav1.DeployRequest_DockerImage)
-		require.True(t, ok, "expected DockerImage source")
-		require.Equal(t, "nginx:latest", dockerImage.DockerImage.GetImage())
+		ociImage, ok := req.GetSource().(*hydrav1.DeployRequest_OciImage)
+		require.True(t, ok, "expected OCI image source")
+		require.Equal(t, "index.docker.io/library/nginx:latest", ociImage.OciImage.GetImage())
 	case <-time.After(10 * time.Second):
 		t.Fatal("expected deployment workflow invocation")
 	}

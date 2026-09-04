@@ -151,10 +151,12 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			return fault.Wrap(err, fault.Internal("failed to check repo connection"))
 		}
 		// nolint: exhaustruct // ctrl fills the commit metadata it resolves from git
-		ctrlReq.GitCommit = &ctrlv1.GitCommitInfo{
-			Branch:         ptr.SafeDeref(git.Branch),
-			CommitSha:      ptr.SafeDeref(git.CommitSha),
-			ForkRepository: ptr.SafeDeref(git.Repository),
+		ctrlReq.Source = &ctrlv1.CreateDeploymentRequest_GitCommit{
+			GitCommit: &ctrlv1.GitCommitInfo{
+				Branch:         ptr.SafeDeref(git.Branch),
+				CommitSha:      ptr.SafeDeref(git.CommitSha),
+				ForkRepository: ptr.SafeDeref(git.Repository),
+			},
 		}
 
 	case req.Deployment != nil:
@@ -162,8 +164,11 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		if err != nil {
 			return err
 		}
-		ctrlReq.GitCommit = gitCommit
-		ctrlReq.DockerImage = dockerImage
+		if gitCommit != nil {
+			ctrlReq.Source = &ctrlv1.CreateDeploymentRequest_GitCommit{GitCommit: gitCommit}
+		} else {
+			ctrlReq.DockerImage = dockerImage
+		}
 
 	default:
 		return fault.New(

@@ -16,6 +16,7 @@ import (
 	vaultv1 "github.com/unkeyed/unkey/gen/proto/vault/v1"
 	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/deploy/deployfail"
+	"github.com/unkeyed/unkey/pkg/deploy/imageref"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/restate/compensation"
@@ -375,23 +376,36 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 }
 
 // buildImage resolves the container image for a deployment and persists the image
-// reference to the database. For a DockerImage source, the image name is used
-// directly. For a Git source, the branch HEAD is resolved to a commit SHA (if
-// needed), a Docker image is built on the configured build backend using
-// [Workflow.buildDockerImageFromGit], and the build ID and git metadata are saved.
-//
-// The deployment pointer is mutated in place: GitCommitSha and GitBranch are
-// updated when a branch is resolved, so the caller sees the resolved values for
-// later use in domain generation.
+// reference to the database. For an OciImage source, a tag is resolved to an
+// immutable digest. For a Git source, a container image is built via Depot using
+// [Workflow.buildDockerImageFromGit], and the build ID is saved.
 //
 // Returns a terminal error for unknown source types and build failures that
 // cannot be retried (e.g. bad Dockerfile).
 func (w *Workflow) buildImage(ctx restate.ObjectContext, req *hydrav1.DeployRequest, deployment *db.Deployment) error {
-	dockerImage := ""
+	resolvedImage := ""
 
 	switch source := req.GetSource().(type) {
-	case *hydrav1.DeployRequest_DockerImage:
-		dockerImage = source.DockerImage.GetImage()
+	case *hydrav1.DeployRequest_OciImage:
+		requestedImage, err := imageref.Parse(source.OciImage.GetImage())
+		if err != nil {
+			return fault.Wrap(
+				restate.TerminalError(err),
+				fault.Public("The OCI image reference is invalid."),
+			)
+		}
+
+		if imageref.IsDigest(requestedImage) {
+			resolvedImage = requestedImage.Name()
+			break
+		}
+
+		resolvedImage, err = restate.Run(ctx, func(runCtx restate.RunContext) (string, error) {
+			return w.imageResolver.Resolve(runCtx, requestedImage.Name())
+		}, restate.WithName("resolve OCI image digest"), restate.WithMaxRetryAttempts(runMaxAttempts))
+		if err != nil {
+			return fault.Wrap(err, fault.Public("The OCI image could not be resolved."))
+		}
 	case *hydrav1.DeployRequest_Git:
 		commitSHA := source.Git.GetCommitSha()
 		forkRepo := source.Git.GetForkRepository()
@@ -452,7 +466,7 @@ func (w *Workflow) buildImage(ctx restate.ObjectContext, req *hydrav1.DeployRequ
 				fault.Public(publicMsg),
 			)
 		}
-		dockerImage = build.ImageName
+		resolvedImage = build.ImageName
 
 		err = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
 			return w.db.UpdateDeploymentBuildID(runCtx, db.UpdateDeploymentBuildIDParams{
@@ -478,7 +492,7 @@ func (w *Workflow) buildImage(ctx restate.ObjectContext, req *hydrav1.DeployRequ
 	err := restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
 		return w.db.UpdateDeploymentImage(runCtx, db.UpdateDeploymentImageParams{
 			ID:        deployment.ID,
-			Image:     sql.NullString{Valid: true, String: dockerImage},
+			Image:     sql.NullString{Valid: true, String: resolvedImage},
 			UpdatedAt: sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
 		})
 	}, restate.WithName("update deployment image"), restate.WithMaxRetryAttempts(runMaxAttempts))

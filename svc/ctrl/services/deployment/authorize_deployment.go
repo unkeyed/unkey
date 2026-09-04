@@ -46,19 +46,65 @@ func (s *Service) AuthorizeDeployment(ctx context.Context, req *connect.Request[
 		return nil, err
 	}
 
-	// Look up build settings and repo connection before changing status,
-	// so a lookup failure doesn't leave the deployment stuck as pending.
-	buildSetting, err := s.db.FindAppBuildSettingByAppEnv(ctx, db.FindAppBuildSettingByAppEnvParams{
-		AppID:         deployment.AppID,
-		EnvironmentID: deployment.EnvironmentID,
-	})
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to find build settings: %w", err))
-	}
+	commitSHA := deployment.GitCommitSha.String
+	useOCI := deployment.Source == db.DeploymentsSourceOci ||
+		((deployment.Source == db.DeploymentsSourceUnknown || deployment.Source == "") && commitSHA == "")
 
-	repoConn, err := s.db.FindGithubRepoConnectionByProjectId(ctx, deployment.ProjectID)
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to find repo connection: %w", err))
+	var deployReq *hydrav1.DeployRequest
+	var repoConn *db.GithubRepoConnection
+	if useOCI {
+		image := deployment.ImageRequested
+		if !image.Valid || image.String == "" {
+			image = resolvedDeploymentImage(deployment)
+		}
+		if !image.Valid || image.String == "" {
+			return nil, connect.NewError(connect.CodeFailedPrecondition,
+				fmt.Errorf("OCI deployment %s has no image reference", deploymentID))
+		}
+		deployReq = &hydrav1.DeployRequest{
+			DeploymentId: deploymentID,
+			Command:      deployment.Command,
+			Source: &hydrav1.DeployRequest_OciImage{
+				OciImage: &hydrav1.OciImage{Image: image.String},
+			},
+		}
+	} else {
+		if commitSHA == "" {
+			return nil, connect.NewError(connect.CodeFailedPrecondition,
+				fmt.Errorf("Git deployment %s has no commit SHA", deploymentID))
+		}
+
+		buildSetting, buildErr := s.db.FindAppBuildSettingByAppEnv(ctx, db.FindAppBuildSettingByAppEnvParams{
+			AppID:         deployment.AppID,
+			EnvironmentID: deployment.EnvironmentID,
+		})
+		if buildErr != nil {
+			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to find build settings: %w", buildErr))
+		}
+
+		connection, connectionErr := s.db.FindGithubRepoConnectionByAppId(ctx, deployment.AppID)
+		if connectionErr != nil {
+			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to find repo connection: %w", connectionErr))
+		}
+		repoConn = &connection
+
+		deployReq = &hydrav1.DeployRequest{
+			DeploymentId: deploymentID,
+			Command:      deployment.Command,
+			Source: &hydrav1.DeployRequest_Git{
+				Git: &hydrav1.GitSource{
+					InstallationId: connection.InstallationID,
+					Repository:     connection.RepositoryFullName,
+					CommitSha:      commitSHA,
+					ContextPath:    buildSetting.DockerContext,
+					DockerfilePath: buildSetting.Dockerfile.String,
+					BuildCommand:   buildSetting.BuildCommand.String,
+					Branch:         deployment.GitBranch.String,
+					PrNumber:       deployment.PrNumber.Int64,
+					ForkRepository: deployment.ForkRepositoryFullName.String,
+				},
+			},
+		}
 	}
 
 	// Atomically transition from awaiting_approval → pending to prevent
@@ -79,48 +125,6 @@ func (s *Service) AuthorizeDeployment(ctx context.Context, req *connect.Request[
 	if rowsAffected == 0 {
 		return nil, connect.NewError(connect.CodeFailedPrecondition,
 			fmt.Errorf("deployment %s is no longer awaiting approval (concurrent update)", deploymentID))
-	}
-
-	commitSHA := ""
-	if deployment.GitCommitSha.Valid {
-		commitSHA = deployment.GitCommitSha.String
-	}
-
-	branch := ""
-	if deployment.GitBranch.Valid {
-		branch = deployment.GitBranch.String
-	}
-
-	var prNumber int64
-	if deployment.PrNumber.Valid {
-		prNumber = deployment.PrNumber.Int64
-	}
-
-	// Forward the fork so the worker classifies this as a fork build and clones
-	// the right repo. Today approval is only reached for live PRs (PrNumber > 0),
-	// which already forces the fork path, but carrying ForkRepository keeps a
-	// fork-ref-by-SHA deployment correct if it ever lands on the approval path.
-	forkRepository := ""
-	if deployment.ForkRepositoryFullName.Valid {
-		forkRepository = deployment.ForkRepositoryFullName.String
-	}
-
-	deployReq := &hydrav1.DeployRequest{
-		DeploymentId: deploymentID,
-		Command:      deployment.Command,
-		Source: &hydrav1.DeployRequest_Git{
-			Git: &hydrav1.GitSource{
-				InstallationId: repoConn.InstallationID,
-				Repository:     repoConn.RepositoryFullName,
-				CommitSha:      commitSHA,
-				ContextPath:    buildSetting.DockerContext,
-				DockerfilePath: buildSetting.Dockerfile.String,
-				BuildCommand:   buildSetting.BuildCommand.String,
-				Branch:         branch,
-				PrNumber:       prNumber,
-				ForkRepository: forkRepository,
-			},
-		},
 	}
 
 	// Keyed by deployment_id — each deployment runs as its own isolated
@@ -161,7 +165,7 @@ func (s *Service) AuthorizeDeployment(ctx context.Context, req *connect.Request[
 	}
 
 	// Update commit status on GitHub
-	if commitSHA != "" {
+	if commitSHA != "" && repoConn != nil {
 		if statusErr := s.github.CreateCommitStatus(
 			repoConn.InstallationID,
 			repoConn.RepositoryFullName,

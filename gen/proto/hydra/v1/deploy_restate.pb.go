@@ -27,7 +27,7 @@ import (
 // preview build. Workspace-wide concurrency is separately enforced by
 // BuildSlotService.
 //
-// Deploy handles the full pipeline from building Docker images through
+// Deploy handles the full pipeline from building container images through
 // provisioning containers and configuring domain routing. Rollback and Promote
 // manage traffic switching between deployments by reassigning sticky frontline
 // routes atomically through the routing service.
@@ -210,7 +210,7 @@ func (c *deployServiceIngressClient) NotifyInstancesReady() ingress.Requester[*N
 // preview build. Workspace-wide concurrency is separately enforced by
 // BuildSlotService.
 //
-// Deploy handles the full pipeline from building Docker images through
+// Deploy handles the full pipeline from building container images through
 // provisioning containers and configuring domain routing. Rollback and Promote
 // manage traffic switching between deployments by reassigning sticky frontline
 // routes atomically through the routing service.

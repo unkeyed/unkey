@@ -38,12 +38,14 @@ message CreateDeploymentRequest {
   string project_id = 1;
   string environment_slug = 2;
 
-  // When omitted: git-connected projects deploy HEAD of default branch;
-  // projects without a repo connection reuse the live deployment's Docker image.
-  string docker_image = 3;
+  // Deprecated compatibility field for v2 API callers.
+  string docker_image = 3 [deprecated = true];
 
-  // Git information
-  optional GitCommitInfo git_commit = 4;
+  // Omit the source override to use the app's default Git branch or OCI image.
+  oneof source {
+    string oci_image = 12;
+    GitCommitInfo git_commit = 4;
+  }
 
   // Authentication
   optional string keyspace_id = 5;
@@ -85,7 +87,7 @@ message GitCommitInfo {
   string author_handle = 3;
   string author_avatar_url = 4;
   int64 timestamp = 5; // Unix epoch milliseconds
-  string branch = 6; // branch metadata for docker_image deployments
+  string branch = 6; // branch metadata for Git deployments
   // Full fork repository identifier (e.g., "contributor/repo").
   string fork_repository = 7;
 }
@@ -224,7 +226,7 @@ message DeprovisionComputeRequest {
 message DeprovisionComputeResponse {}
 
 service DeployService {
-  // Create a new deployment from a docker image or by auto-detecting
+  // Create a new deployment from an OCI image or by auto-detecting
   // the appropriate source for the project.
   rpc CreateDeployment(CreateDeploymentRequest) returns (CreateDeploymentResponse) {}
 
