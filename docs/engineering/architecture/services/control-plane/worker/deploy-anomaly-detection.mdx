@@ -31,6 +31,7 @@ changes only for the affected app and environment.
 ┌──────────────────────────────────────────────┐
 │ DeployAnomalyShardService.EvaluateShard      │
 │ key: <window_start_ms>/<shard>/<shard_count> │
+│ waits for prior shard GetPending             │
 └──────┬──────────────┬──────────────┬─────────┘
        │              │              │
        ▼              ▼              ▼
@@ -38,7 +39,7 @@ changes only for the affected app and environment.
   ClickHouse      ClickHouse      ClickHouse
   candidates      candidates      candidates
        └──────────────┬──────────────┘
-                      │ candidate groups and open-alert groups
+                      │ candidates, prior pending, and open alerts
                       ▼
 ┌──────────────────────────────────────────┐
 │ DeployAnomalyService.Evaluate            │
@@ -101,7 +102,7 @@ Each metric input in `deploy_anomaly_check.proto` has one of these states:
 | State | Meaning | Evaluator behavior |
 | --- | --- | --- |
 | `PRESENT` | The group has a row. For sparse instance events, the row is actionable even when the resources source is incomplete. | Evaluate the supplied value. |
-| `ZERO_COMPLETE` | The relevant completeness source is complete and the group has no row. | Evaluate a real zero. |
+| `ZERO_COMPLETE` | The relevant completeness source is complete and the group has no row. | Evaluate the current zero with fresh rolling values. |
 | `INCOMPLETE` | An active region has not reached the window end, or the source has no active region. | Make no state or database change for that metric. |
 
 `INCOMPLETE` is a strict no-op. It cannot open an alert, advance a two-window
@@ -132,6 +133,20 @@ milliseconds. Including the count makes the partition scheme explicit for
 retries and lets operators change the count for later windows without changing
 an in-flight run.
 
+Let `W` be the window start in milliseconds. Before dispatching `W`, shard `S`
+calls the exclusive `GetPending` handler on the prior shard key,
+`<W - 300000>/<S>/<shard_count>`. At the default count, that key is
+`<W - 300000>/<S>/16`. Restate queues the exclusive call behind the prior
+object's `EvaluateShard`. The current shard cannot dispatch until the same shard
+from the previous window finishes.
+
+`GetPending` returns the prior window's pending group keys. The current shard
+merges those keys with open-alert groups and new SQL candidates. This
+chronological handoff prevents a later window from overtaking an earlier one
+and erasing evidence for a two-window anomaly. `EvaluateShard` uses bounded
+retries that kill the invocation on exhaustion, so a failed prior window cannot
+pause and wedge the shard chain.
+
 `ListOpenAlertEventGroups` reads every group with `status = 'open'` from MySQL.
 Each shard filters those rows in Go with
 `city.CH64(workspace_id) % shardCount == shard`. This matches ClickHouse's
@@ -139,9 +154,25 @@ Each shard filters those rows in Go with
 for each shard, but the table is small and the indexed status query is cheap.
 
 The shard then runs the three ClickHouse query families for its workspace
-partition. Candidate conditions run in each query's `HAVING` clause. The filter
-can over-include possible candidates but must not exclude one. Go `Detect`
-remains the authoritative classifier.
+partition. Candidate conditions run in each query's `HAVING` clause. Go
+`Detect` remains the authoritative classifier.
+
+For request, CPU, and egress spikes, SQL calculates a threshold for every
+possible lifetime bucket count from the observed count through 288. It compares
+the current value with the lowest threshold in that range:
+
+```sql
+arrayMin(
+  arrayMap(
+    L -> mean_L + k * max(stddev_L, 0.1 * mean_L, floor),
+    range(max(baseline_buckets, 1), 289)
+  )
+)
+```
+
+This is an exact lower bound for every app lifetime that Go can apply. SQL can
+over-include a row but cannot exclude a Go anomaly. Error ratios do not use this
+calculation because Go does not lifetime-pad their ratio buckets.
 
 The shard resolves group metadata in batches of at most 500 groups and removes
 preview environments before dispatch. The batch query uses a recursive JSON CTE
@@ -154,10 +185,10 @@ of at most 500 groups, the shard uses one batched query to find missing metadata
 and resolves those orphaned alerts with `Deployment stopped`. This fallback
 self-heals an alert if its deletion workflow did not complete.
 
-`DeployAnomalyShardService.GetPending` exposes a shard's pending group count for
-inspection. Each shard returns only `groups_dispatched` and `groups_pending` to
-`RunDeployAnomalyCheck`, so query results and per-group payloads do not enter the
-window virtual object's journal.
+Each shard returns only `groups_dispatched` and `groups_pending` to
+`RunDeployAnomalyCheck`, so pending keys, query results, and per-group payloads
+do not enter the window virtual object's journal. The pending keys move only
+between consecutive shard virtual objects through `GetPending`.
 
 ## Understand the ClickHouse queries
 
@@ -166,9 +197,11 @@ away `deployment_id` and group by `workspace_id`, `project_id`, `app_id`, and
 `environment_id`.
 
 Request scans use `AnomalyWindowsRequest` with an `AnomalyCandidateFilter`.
-Candidate `HAVING` expressions intentionally may over-include. The Go detector
-applies minimum history, exact thresholds, and stateful confirmation after the
-query returns. Shard-key ordering and `optimize_aggregation_in_order` bound the
+Candidate `HAVING` expressions use the minimum spike threshold across all
+possible lifetime bucket counts. They may over-include, but they cannot exclude
+a Go anomaly. The Go detector applies the app's exact creation-time lifetime,
+minimum history, exact thresholds, and stateful confirmation after the query
+returns. Shard-key ordering and `optimize_aggregation_in_order` bound the
 aggregation working set for each query.
 
 | Method | Source | Metrics |
@@ -189,8 +222,10 @@ The same query returns the number of observed baseline buckets, whether the
 current bucket exists, and the previous 12 request buckets through scalar
 `sumIf` expressions. The app creation time comes from MySQL metadata, not
 ClickHouse. Go aligns it to a 5-minute boundary and uses it to bound
-zero-padding. The final `HAVING` applies the conservative candidate filter or
-retains a group that has an open alert.
+zero-padding. The final `HAVING` applies the lifetime-safe candidate lower bound
+or retains a group that has an open alert. The regression test
+`TestAnomalyCandidateFilterIncludesInteriorLifetimeThreshold` covers an
+interior lifetime of 101 buckets, where endpoint thresholds are not safe.
 
 ### Query resource windows
 
@@ -260,10 +295,12 @@ applies only to apps younger than 6 hours.
 The detector API consists of `Detect(Input, Config) Result`,
 `Recovered(Input, Result, Config) bool`, `ShouldResolve(int) bool`,
 `BaselineWindowBuckets`, and `RecentRequestStats`. `DefaultConfig(Sensitivity)`
-builds the production configuration. The canonical production values are in
-`svc/ctrl/worker/cron/deployanomaly/thresholds.json`, which Go embeds. A
-dashboard contract test checks its mirrored values against this file. These
-functions live in `svc/ctrl/worker/cron/deployanomaly`. The
+decodes the complete production rule inventory from the embedded
+`svc/ctrl/worker/cron/deployanomaly/thresholds.json`. This includes sensitivity
+offsets, per-metric floors, activity gates, request-drop and catastrophic rules,
+recovery, and the maximum open duration. The separate `error_5xx` and
+`error_4xx` deviation floors remain distinct in `Config`. These functions live
+in `svc/ctrl/worker/cron/deployanomaly`. The
 [detector math](/architecture/services/control-plane/worker/deploy-anomaly-detection-math)
 defines every metric threshold and worked example.
 
@@ -313,13 +350,21 @@ consecutive anomalous windows. Other metrics open after one window. A normal or
 insufficient window clears candidate state. An ongoing anomaly resets the quiet
 counter and updates the alert's latest value.
 
+A `ZERO_COMPLETE` request window builds a fresh detector input from the current
+recent level and recent active-bucket count. The virtual object does not store
+or replay an earlier `Input`. This lets request-drop eligibility clear when an
+old active bucket leaves the preceding 12-bucket window. Open-alert
+reconciliation preserves the `requests_drop` metric identity, so a reconciled
+alert still receives the 24-hour maximum-open-duration resolution.
+
 After an evaluation processes at least one complete metric, the virtual object
 stores its end in `last_window_end`. Any later delivery with
 `window_end <= last_window_end` is a strict no-op. This guard prevents a retried
 or delayed older window from changing candidate, open-alert, or recovery state.
 
-`DefaultConfig` sets `Config.MaxOpenDuration` to 24 hours. At the first complete
-evaluation at or after that duration, the evaluator resolves the alert with
+`DefaultConfig` decodes `maxOpenDurationSeconds = 86400` into the 24-hour
+`Config.MaxOpenDuration`. At the first complete evaluation at or after that
+duration, the evaluator resolves the alert with
 `Baseline adapted after 24 hours`. This caps an alert for a permanent level
 shift after the rolling baseline has absorbed the new behavior. An incomplete
 metric remains a strict no-op, including for this age check.
@@ -327,7 +372,7 @@ metric remains a strict no-op, including for this age check.
 Request-drop metadata includes `deployment_has_running_region`, field 15 of
 `EvaluateDeployAnomalyRequest`. It is true when at least one
 `deployment_topology` row has `desired_status = 'running'`. Request-drop
-detection is suppressed when there is no live deployment,
+detection is suppressed when the group has no `deployment_id`,
 `deployments.desired_state = 'stopped'`, or every topology region is stopped.
 The same conditions resolve an open request-drop alert with
 `Deployment stopped` or clear candidate state when no alert is open.
@@ -354,7 +399,6 @@ and Go enum values.
 | `fired_at:<metric>` | Stores the opening time used by `Config.MaxOpenDuration`. |
 | `quiet:<metric>` | Counts consecutive complete recovered windows. |
 | `snapshot:<metric>` | Stores the opening baseline and threshold for recovery. |
-| `detector_input:<metric>` | Retains the last complete detector input, including request-drop context. |
 | `open_alerts_reconciled` | Records that open MySQL rows were loaded into this object. |
 | `last_window_end` | Rejects duplicate and out-of-order group windows. |
 
@@ -410,6 +454,11 @@ operational failure. Child failures are logged and prevent the success
 heartbeat. Operators can then distinguish a running cron from a fully
 successful fleet evaluation.
 
+`EvaluateShard` also uses bounded retries that kill on exhaustion. The next
+window's exclusive `GetPending` call waits behind that invocation. A terminal
+failure releases the object queue, while a paused invocation would block later
+windows for that shard.
+
 Do not move database calls outside journaled steps. Do not read wall-clock time
 inside replayed handler code. The window timestamp comes from the durable object
 key.
@@ -453,14 +502,19 @@ The `alerts` tRPC router is in
 is no `resolve` or `timeseries` procedure. Dashboard ClickHouse queries live in
 `web/internal/clickhouse/src/alerts.ts`. Shared band constants live in
 `web/internal/clickhouse/src/alert-thresholds.ts`. The
-`alert-thresholds-contract.test.ts` test compares them with the detector's
-`thresholds.json` source so displayed thresholds match detector rules.
+`alert-thresholds-contract.test.ts` strict Vitest contract rejects any missing,
+extra, or different key when compared with the detector's `thresholds.json`.
 
 The inbox uses the default `alerts.list` behavior, which returns open alerts.
 The app tab sets `includeResolved` so its range list includes both statuses.
-List pagination uses the immutable `(fired_at, pk)` cursor, so resolving a row
-does not move the page boundary. The `alerts.series` input limits a request to 8
-days.
+The app list loads 25 alerts per page. List pagination uses the immutable
+`(fired_at, pk)` cursor, so resolving a row does not move the page boundary. The
+`alerts.series` input limits a request to 8 days.
+
+Alert row charts in both lists mount when their row comes within 150 px of the
+viewport. A mounted chart stays mounted. A row that has not entered that range
+shows a fixed-size skeleton and does not issue an `alerts.series` query. This
+keeps long alert lists from starting one ClickHouse query per off-screen row.
 
 The `series` query returns time-aligned observed values for the selected range.
 It pads the baseline from `apps.created_at`, aligned to 5 minutes and capped at
@@ -474,12 +528,16 @@ effective deviation with the same 10% and absolute floors as the detector. It
 draws the expected band from those values. Error deviation excludes buckets
 with zero requests. Request charts use 25% of the inclusive median for the
 preceding 12 buckets. For an even set, the inclusive median averages the two
-middle values. CPU and egress use per-container 5-minute non-negative counter
-deltas summed to the app. Hourly values sum those 5-minute deltas. Memory first
-averages samples per container, then containers per instance, and finally
-instances with equal app-level weight. It uses a flat 90% line. Health uses OOM
-and crash-loop event bars. These calculations explain alerts but do not create
-or resolve them.
+middle values. CPU and egress read `instance_resources_per_minute_v1`, calculate
+non-negative counter deltas per container and 5-minute bucket, and sum the
+containers to the app. Hourly values sum those 5-minute app values.
+
+Memory reads `instance_resources_container_per_5m_v1`. It divides each
+container's `utilization_sum` by `utilization_samples`, then averages containers
+per instance and instances per app. An hourly memory point averages the
+5-minute app values. The chart uses a flat 90% line. Health uses OOM and
+crash-loop event bars. These calculations explain alerts but do not create or
+resolve them.
 
 The Vercel feature flag `deploy-anomaly-alerts` gates all alert UI. It is
 registered in `web/apps/dashboard/lib/flags/index.ts`, defaults to off, and has
@@ -501,20 +559,28 @@ unkey dev seed local
 unkey dev seed alerts
 ```
 
-The alert seed writes 7 days of dense 5-minute telemetry, nine alerts, and
-deployment markers. It reads `deployanomaly.DefaultConfig(SensitivityNormal)`
-for sigma, the minimum standard deviation ratio, and all metric floors instead
-of maintaining separate thresholds. Verify the open-alert inbox, each metric
-view, resolved focus through `?alert=<id>`, alert pagination, zoom, deployment
-toggle, read-only controls, and system resolution messages.
+The core seeder in `cmd/dev/seed/alerts.go` writes 7 days of dense 5-minute
+telemetry, nine alerts, and deployment markers. It aligns the demo app's
+`created_at` value with the start of that history. The dataset includes a
+240-request bump before the drop and a 600-request spike.
+
+The seeder reads `deployanomaly.DefaultConfig(SensitivityNormal)` for sigma, the
+minimum standard deviation ratio, and all floors. It does not maintain
+hardcoded detector thresholds.
+`TestGenerateAlertSeedDataset` verifies that the request standard deviation
+reaches its configured floor and each seeded anomaly exceeds its threshold.
+Verify the open-alert inbox, each metric view, resolved focus through
+`?alert=<id>`, alert pagination, lazy row charts, zoom, deployment toggle,
+read-only controls, and system resolution messages.
 
 ## Scale characteristics
 
 The fleet scan has a fixed bound of one 24-hour baseline plus the selected
 5-minute bucket. It partitions workspaces across 16 shards by default.
 ClickHouse performs candidate filtering before returning rows to Go. Restate
-creates per-group work only for candidates and existing open alerts. The stable
-group key serializes one group's state without serializing unrelated workspaces.
+creates per-group work only for candidates, prior pending groups, and existing
+open alerts. The stable group key serializes one group's state without
+serializing unrelated workspaces.
 
 These measurements came from an orb harness and ClickHouse `system.query_log`.
 In each dataset, 0.5% of groups were anomalous. Sharded durations are the sum of

@@ -171,25 +171,46 @@ build the key and inspect its invocation.
 shard=0
 shard_count=16
 shard_key="${window_start_ms}/${shard}/${shard_count}"
+previous_window_start_ms=$((window_start_ms - 300000))
+previous_shard_key="${previous_window_start_ms}/${shard}/${shard_count}"
 
 restate invocations list \
   --service hydra.v1.DeployAnomalyShardService \
   --key "${shard_key}"
+
+restate invocations list \
+  --service hydra.v1.DeployAnomalyShardService \
+  --key "${previous_shard_key}"
+
+restate kv get hydra.v1.DeployAnomalyShardService \
+  "${previous_shard_key}"
 ```
 
-Look for journal failures in watermark reads, candidate queries, batched MySQL
-metadata resolution, and per-group calls. Metadata batches contain at most 500
-groups. The parent awaits every child. Any failed child withholds the heartbeat
-even if other groups succeed.
+Before the current shard dispatches, it calls the prior key's exclusive
+`GetPending` handler. Restate queues that call behind the prior key's
+`EvaluateShard`. Confirm that the prior evaluation completed or reached its
+bounded retry limit. Exhaustion must kill the invocation. A paused invocation
+would wedge this shard's chronological chain.
+
+`GetPending` returns the prior window's pending group keys. Confirm that these
+keys are merged with current open-alert groups and SQL candidates. This handoff
+prevents a later window from overtaking an earlier one and erasing consecutive
+candidate evidence.
+
+For the current shard, look for journal failures in watermark reads, candidate
+queries, batched MySQL metadata resolution, and per-group calls. Metadata
+batches contain at most 500 groups. The parent awaits every child. Any failed
+child withholds the heartbeat even if other groups succeed.
 
 Metadata resolution also identifies open-alert groups whose app or environment
 no longer exists. The shard resolves each orphaned batch of at most 500 groups
 with `Deployment stopped`. Inspect that batched resolution step when a deleted
 group remains open.
 
-`DeployAnomalyShardService.GetPending` reports the shard's current pending group
-count. Compare it with `groups_pending` in the `EvaluateShard` result. Only
-`groups_dispatched` and `groups_pending` return to the window object's journal.
+The shard stores its group keys under `pending_groups`. Compare that list length
+with `groups_pending` in its `EvaluateShard` result. Only `groups_dispatched`
+and `groups_pending` return to the window object's journal. Pending keys pass to
+the next window through the exclusive `GetPending` response.
 
 `ListOpenAlertEventGroups` reads all `status = 'open'` groups through the plain
 `status_idx` index. Every shard repeats this small, cheap MySQL scan and keeps
@@ -218,8 +239,15 @@ restate kv get hydra.v1.DeployAnomalyService "${group_key}"
 
 Expected state keys are `candidate:<metric>`, `candidate_window:<metric>`,
 `open_alert:<metric>`, `fired_at:<metric>`, `quiet:<metric>`,
-`snapshot:<metric>`, `detector_input:<metric>`, and
-`open_alerts_reconciled`, plus the group-level `last_window_end`.
+`snapshot:<metric>`, and `open_alerts_reconciled`, plus the group-level
+`last_window_end`.
+
+The evaluator does not persist a prior detector `Input`. For a `ZERO_COMPLETE`
+request window, inspect the current rolling median and active-bucket count in
+the request payload. Those fresh values must clear request-drop eligibility
+when an old active bucket leaves the preceding 12 buckets. A reconciled open
+request-drop alert retains its metric identity and still resolves at the
+24-hour maximum duration.
 
 Compare the requested `window_end` with `last_window_end`. The evaluator returns
 a strict no-op when the requested end is equal to or older than the stored end.
@@ -288,11 +316,17 @@ these conditions:
    minutes, but is no earlier than the 24-hour lookback boundary.
 5. Error alerts used a ratio and at least 20 excess failures.
 6. Request drops had 72 observed baseline buckets, nine active recent buckets,
-   at least 200 lost requests, a live deployment not marked `stopped`, and at
-   least one topology region with `desired_status = 'running'`.
+   at least 200 lost requests, a `deployment_id` whose deployment was not marked
+   `stopped`, and at least one topology region with
+   `desired_status = 'running'`.
 7. The applied sensitivity and shared dashboard constants match the
    [detector math](/architecture/services/control-plane/worker/deploy-anomaly-detection-math).
-8. An older app received its backfilled baseline. If it did not, confirm that
+8. The ClickHouse candidate filter used the minimum spike threshold across
+   every lifetime from `max(observed_buckets, 1)` through 288. SQL may
+   over-include, but it must not exclude a Go anomaly. Run
+   `TestAnomalyCandidateFilterIncludesInteriorLifetimeThreshold` after changing
+   this filter.
+9. An older app received its backfilled baseline. If it did not, confirm that
    the deploy anomaly migration in `pkg/clickhouse/migrations` completed for
    `anomaly_source_watermarks_v1`,
    `frontline_requests_anomaly_per_5m_v1`, and
@@ -325,6 +359,15 @@ insert block can contain one 5-second sample. Computing a delta inside that
 block makes its minimum and maximum equal, which writes zero CPU and egress for
 live traffic.
 
+If detector values are correct but the dashboard differs, inspect
+`instance_resources_per_minute_v1`. Dashboard CPU and egress calculate
+non-negative per-container deltas in each 5-minute bucket, then sum those app
+values for hourly points. Dashboard memory instead reads
+`instance_resources_container_per_5m_v1`, divides `utilization_sum` by
+`utilization_samples` per container, averages container values into instances,
+and averages instances into the app. Hourly memory is the average of 5-minute
+app values.
+
 Do not compare an open alert with the latest rolling baseline. Recovery uses
 the snapshot stored when the alert opened.
 
@@ -346,7 +389,7 @@ Then compare the result with source watermarks and platform incidents.
 
 - One metric and one source: inspect that telemetry producer and query change.
 - Many metrics in one region: inspect regional ingestion and workload health.
-- Request drops after a control-plane action: verify the live deployment,
+- Request drops after a control-plane action: verify the `deployment_id`,
   `deployments.desired_state`, and `deployment_topology.desired_status` rows.
   The rule is suppressed when every topology region is stopped, but not only
   because `autoscaling_replicas_min = 0`.
@@ -363,8 +406,8 @@ cannot stop detector writes.
 Alerts are read-only in the dashboard. The detector closes an alert at the first
 complete evaluation after it has been open for 24 hours.
 
-`DefaultConfig` sets `Config.MaxOpenDuration` to 24 hours. If a row remains open
-past that limit:
+`DefaultConfig` decodes `maxOpenDurationSeconds = 86400` as a 24-hour
+`Config.MaxOpenDuration`. If a row remains open past that limit:
 
 1. Compare `fired_at` plus 24 hours with the latest selected window end.
 2. Confirm that the metric's request or resource watermark reached that window
@@ -401,16 +444,35 @@ UI. `DefaultConfig` uses `SensitivityNormal`, where `k = 4`. Low sensitivity
 uses 5, and high sensitivity uses 3.
 
 `svc/ctrl/worker/cron/deployanomaly/thresholds.json` is the canonical source for
-the production sigma, deviation floors, history minimums, and request-drop
-fraction. Go embeds it in `DefaultConfig`. The dashboard mirrors its values in
-`web/internal/clickhouse/src/alert-thresholds.ts`, and
-`alert-thresholds-contract.test.ts` fails if they differ.
+the complete production rule inventory. Go embeds and decodes every key in
+`DefaultConfig(Sensitivity)`. The dashboard mirrors the object in
+`web/internal/clickhouse/src/alert-thresholds.ts`. Its strict
+`alert-thresholds-contract.test.ts` fails on a missing, extra, or different key.
 
 To change the selected `Sensitivity`, update the detector call sites together
 and keep the dashboard's displayed sigma consistent. To change a production
-threshold, start with `thresholds.json`, update the dashboard mirror, and run
-the contract tests. Review expected alert volume before deploying. A lower `k`
-increases alert sensitivity.
+threshold:
+
+1. Edit `svc/ctrl/worker/cron/deployanomaly/thresholds.json`.
+2. Run the Go package tests, including
+   `TestDefaultConfigMatchesSharedThresholds`.
+
+   ```bash
+   mise exec -- rask ./svc/ctrl/worker/cron/deployanomaly
+   ```
+
+3. Run the dashboard contract test.
+
+   ```bash
+   mise exec -- pnpm --dir=web exec vitest run \
+     internal/clickhouse/src/alert-thresholds-contract.test.ts
+   ```
+
+4. Update `web/internal/clickhouse/src/alert-thresholds.ts` if the contract
+   reports a difference, then rerun both tests.
+5. Review expected alert volume before deploying.
+
+A lower `k` increases alert sensitivity.
 
 Do not change the 5-minute window, minimum baseline buckets, or metric floors as
 part of a sensitivity-only change.

@@ -54,9 +54,51 @@ request-drop band.
 ## Apply spike thresholds
 
 `svc/ctrl/worker/cron/deployanomaly/thresholds.json` is the canonical source for
-production sigma, deviation-floor, history, and request-drop values. Go embeds
-the file for `DefaultConfig`. A dashboard contract test verifies its mirrored
-chart constants against the same values.
+the complete production rule inventory. Go embeds and decodes every value in
+`DefaultConfig(Sensitivity)`. Sensitivity applies the configured offset to
+`sigmaK`. The file contains these keys and values:
+
+| Key | Value |
+| --- | --- |
+| `sigmaK` | `4` |
+| `sensitivitySigmaOffsets.low` | `+1` |
+| `sensitivitySigmaOffsets.high` | `-1` |
+| `minimumLifetimeBuckets` | `12` |
+| `minimumStddevRatio` | `0.1` |
+| `stddevFloors.error_5xx` | `0.01` |
+| `stddevFloors.error_4xx` | `0.01` |
+| `stddevFloors.requests` | `20` |
+| `stddevFloors.egress_bytes` | `1,048,576` bytes |
+| `stddevFloors.cpu_seconds` | `1` second |
+| `baselineMinimums.error_5xx` | `12` |
+| `baselineMinimums.error_4xx` | `12` |
+| `baselineMinimums.requests` | `12` |
+| `baselineMinimums.requests_drop` | `72` |
+| `baselineMinimums.egress_bytes` | `12` |
+| `baselineMinimums.cpu_seconds` | `12` |
+| `activityFloors.errorExcessFailures` | `20` |
+| `activityFloors.requests` | `200` |
+| `activityFloors.egressBytes` | `104,857,600` bytes |
+| `activityFloors.cpuSeconds` | `60` seconds |
+| `activityFloors.memoryUtilization` | `0.9` |
+| `activityFloors.oomKilled` | `1` |
+| `activityFloors.crashLoop` | `1` |
+| `requestDrop.recentLevelFraction` | `0.25` |
+| `requestDrop.activityPerBucket` | `200` |
+| `requestDrop.minimumActiveBuckets` | `9` |
+| `requestDrop.minimumAbsoluteLoss` | `200` |
+| `catastrophic.error5xxRatio` | `0.5` |
+| `catastrophic.error5xxFailures` | `50` |
+| `recovery.memoryUtilization` | `0.85` |
+| `recovery.sigmaReduction` | `1` |
+| `recovery.consecutiveWindows` | `3` |
+| `maxOpenDurationSeconds` | `86,400` |
+
+The separate 5xx and 4xx deviation floors are decoded and applied
+independently. The dashboard mirrors the complete object in
+`web/internal/clickhouse/src/alert-thresholds.ts`. The strict
+`alert-thresholds-contract.test.ts` contract fails for a missing, extra, or
+different key.
 
 Request, egress, and CPU spikes use an effective population standard deviation:
 
@@ -83,6 +125,27 @@ or 60 CPU seconds. A value can cross the statistical threshold and remain quiet
 when its absolute activity is too small. Equality with the statistical
 threshold still does not fire.
 
+### Keep SQL candidate filtering lifetime-safe
+
+ClickHouse does not know the app creation time that Go uses for zero-padding.
+For request, CPU, and egress spikes, its candidate filter reconstructs the mean
+and standard deviation for every possible lifetime bucket count `L` from
+`max(observed_buckets, 1)` through 288. It uses the minimum threshold:
+
+`min(mean_L + k * max(stddev_L, 0.1 * mean_L, floor))`
+
+This minimum is an exact lower bound across every possible lifetime. A current
+value above the Go threshold must also pass the SQL filter. SQL can return extra
+rows, but Go `Detect` remains authoritative and rejects them. Error ratios keep
+their direct threshold because the detector does not lifetime-pad ratio buckets.
+
+For the regression case, 100 observed buckets each contain 200 requests. With
+`L = 101`, one padded zero produces a mean near 198.02 and a normal-sensitivity
+threshold near 278.02. A current value of 279 is anomalous. Checking only the
+observed-lifetime and full-288-bucket endpoints would miss this interior minimum.
+`TestAnomalyCandidateFilterIncludesInteriorLifetimeThreshold` preserves this
+case.
+
 ### Aggregate resource counters
 
 The resource rollup retains each container's minimum and maximum counter values
@@ -92,9 +155,10 @@ for the complete 5-minute bucket. The detector calculates:
 
 `container_egress_bytes = greatest(0, network_egress_public_bytes_max - network_egress_public_bytes_min)`
 
-It sums every container delta to get the app value for that bucket. The
-dashboard uses the same 5-minute deltas. An hourly chart point is the sum of its
-5-minute app values, not a new difference across an hour.
+It sums every container delta to get the detector's app value for that bucket.
+The dashboard reads `instance_resources_per_minute_v1`, then applies the same
+non-negative delta per container and 5-minute bucket. An hourly chart point is
+the sum of its 5-minute app values, not a new difference across an hour.
 
 Keeping counter bounds across the whole 5-minute bucket is required. Computing
 the difference inside an insert block with one 5-second sample makes the
@@ -162,7 +226,7 @@ All of these conditions must hold:
 - At least nine of the previous 12 buckets contain 200 or more requests.
 - The absolute loss, `recent_median - current`, is at least 200 requests.
 - Two consecutive complete windows cross the rule.
-- A live deployment exists.
+- A `deployment_id` exists for the group.
 - Its `deployments.desired_state` is not `stopped`.
 - At least one topology region has `desired_status = 'running'`.
 
@@ -185,9 +249,19 @@ The alert stores the recent median in `baseline_mean` and stores zero in
 `baseline_stddev` and `threshold_sigma`. The detector metadata records the last
 condition as `deployment_has_running_region`.
 
-No live deployment, `deployments.desired_state = 'stopped'`, or every topology
+No `deployment_id`, `deployments.desired_state = 'stopped'`, or every topology
 region being stopped suppresses the rule. Any of those conditions resolves an
 open drop alert with `Deployment stopped`.
+
+A complete window with no request row is `ZERO_COMPLETE`. The evaluator builds
+a fresh `Input` with the current recent median, recent active-bucket count, and
+baseline values. It does not replay a stored detector input. When the oldest
+active bucket leaves the preceding 12-bucket window, the new input can clear
+request-drop eligibility instead of retaining stale evidence.
+
+Open-alert reconciliation preserves the `requests_drop` metric identity. A
+reconciled alert remains eligible for the 24-hour maximum-open-duration
+resolution even when its latest request value is zero.
 
 `autoscaling_replicas_min = 0` does not suppress the rule. A deployment that can
 scale to zero still has an unexpected request drop when its deployment and at
@@ -201,7 +275,9 @@ stored `baseline_mean`, `baseline_stddev`, and `threshold_sigma` values are zero
 For memory, each container's 5-minute utilization is its raw utilization sum
 divided by its valid sample count. The detector averages containers into an
 instance, then averages instances with equal weight to get the app value. The
-dashboard uses the same order at both 5-minute and hourly display resolutions.
+dashboard reads the same `instance_resources_container_per_5m_v1` values and
+uses the same order for each 5-minute point. An hourly point averages the
+5-minute app values.
 
 | Metric | Opening rule | Example |
 | --- | --- | --- |
@@ -222,6 +298,10 @@ Moderate error spikes and request drops need two consecutive anomalous windows.
 The virtual object stores the candidate window start and verifies that the next
 start is exactly 5 minutes later. A normal, insufficient, or non-consecutive
 window clears the candidate.
+
+Each shard waits on the prior window's exclusive `GetPending` handler before it
+dispatches groups. This chronological handoff prevents the second window from
+overtaking the first and clearing or replacing consecutive-window evidence.
 
 Request spikes, egress spikes, CPU spikes, memory pressure, OOM kills, crash
 loops, and catastrophic 5xx errors open after one complete window.
@@ -259,11 +339,11 @@ Three consecutive complete recovered windows resolve the alert with the message
 before the third resets the count. An incomplete window neither increments nor
 resets it.
 
-Recovery also has a maximum open duration. `DefaultConfig` sets
-`Config.MaxOpenDuration` to 24 hours. At the first complete evaluation at or
-after that age, the detector resolves the alert with
-`Baseline adapted after 24 hours`, even if the current value has not crossed the
-snapshot recovery threshold.
+Recovery also has a maximum open duration. `DefaultConfig` decodes
+`maxOpenDurationSeconds = 86400` as a 24-hour `Config.MaxOpenDuration`. At the
+first complete evaluation at or after that age, the detector resolves the alert
+with `Baseline adapted after 24 hours`, even if the current value has not
+crossed the snapshot recovery threshold.
 
 This limit handles a permanent level shift. After 24 hours, the entire rolling
 baseline reflects the new behavior, so the opening snapshot no longer describes
