@@ -172,14 +172,22 @@ func DefaultConfig(sensitivity Sensitivity) Config {
 	}
 }
 
-// BaselineWindowBuckets returns the number of 5-minute buckets in the app's
-// observed lifetime inside the 24-hour lookback. Padding only this span avoids
-// treating the time before a new app emitted its first bucket as zero traffic.
-func BaselineWindowBuckets(windowStart, firstBucketTime int64) int64 {
-	if firstBucketTime <= 0 || firstBucketTime >= windowStart {
+// BaselineWindowBuckets returns the aligned 5-minute buckets in the app's
+// lifetime inside the 24-hour lookback.
+func BaselineWindowBuckets(windowStart, appCreatedAt int64) int64 {
+	lifetimeStart := AppLifetimeStart(windowStart, appCreatedAt)
+	if lifetimeStart >= windowStart {
 		return 0
 	}
-	return min(maximumBaselineBuckets, (windowStart-firstBucketTime)/bucketDurationMillis)
+	return (windowStart - lifetimeStart) / bucketDurationMillis
+}
+
+// AppLifetimeStart aligns app creation to a detector bucket and caps it at the
+// 24-hour baseline boundary.
+func AppLifetimeStart(windowStart, appCreatedAt int64) int64 {
+	lookbackStart := windowStart - maximumBaselineBuckets*bucketDurationMillis
+	alignedCreatedAt := appCreatedAt / bucketDurationMillis * bucketDurationMillis
+	return max(lookbackStart, alignedCreatedAt)
 }
 
 // RecentRequestStats returns the median and active-bucket count for the 12
@@ -224,7 +232,7 @@ type Input struct {
 	BaselineStddev          float64
 	ObservedBaselineBuckets int64
 	BaselineWindowBuckets   int64
-	FirstBucketTime         int64
+	LifetimeStart           int64
 
 	PreviousCandidate bool
 }

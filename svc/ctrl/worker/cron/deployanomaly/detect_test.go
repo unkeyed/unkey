@@ -287,11 +287,11 @@ func TestSustainedLevelShiftExpiresAfterMaxOpenDuration(t *testing.T) {
 func TestDetectNewAppSteadyTraffic(t *testing.T) {
 	cfg := DefaultConfig(SensitivityNormal)
 	windowStart := int64(13 * 5 * 60 * 1_000)
-	firstBucketTime := windowStart - 12*bucketDurationMillis
+	appCreatedAt := windowStart - 12*bucketDurationMillis
 	result := Detect(Input{
 		Metric: MetricRequests, Current: 1_000, BaselineMean: 1_000,
 		ObservedBaselineBuckets: 12,
-		BaselineWindowBuckets:   BaselineWindowBuckets(windowStart, firstBucketTime),
+		BaselineWindowBuckets:   BaselineWindowBuckets(windowStart, appCreatedAt),
 	}, cfg)
 
 	require.Equal(t, OutcomeNone, result.Outcome)
@@ -302,20 +302,19 @@ func TestDetectNewAppSteadyTraffic(t *testing.T) {
 func TestBaselineWindowBuckets(t *testing.T) {
 	const windowStart = int64(2_000_000_000)
 	tests := []struct {
-		name            string
-		firstBucketTime int64
-		want            int64
+		name         string
+		appCreatedAt int64
+		want         int64
 	}{
-		{name: "new app lifetime", firstBucketTime: windowStart - 12*bucketDurationMillis, want: 12},
-		{name: "full lookback", firstBucketTime: windowStart - 288*bucketDurationMillis, want: 288},
-		{name: "older than lookback", firstBucketTime: windowStart - 400*bucketDurationMillis, want: 288},
-		{name: "missing first bucket", firstBucketTime: 0, want: 0},
-		{name: "current bucket", firstBucketTime: windowStart, want: 0},
+		{name: "new app lifetime aligns creation", appCreatedAt: windowStart - 12*bucketDurationMillis + time.Minute.Milliseconds(), want: 12},
+		{name: "full lookback", appCreatedAt: windowStart - 288*bucketDurationMillis, want: 288},
+		{name: "old sparse app gets full lifetime", appCreatedAt: windowStart - 400*bucketDurationMillis, want: 288},
+		{name: "current bucket", appCreatedAt: windowStart, want: 0},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			require.Equal(t, test.want, BaselineWindowBuckets(windowStart, test.firstBucketTime))
+			require.Equal(t, test.want, BaselineWindowBuckets(windowStart, test.appCreatedAt))
 		})
 	}
 }

@@ -4,6 +4,7 @@ SELECT
     w.name AS workspace_name,
     w.slug AS workspace_slug,
     a.name AS app_name,
+    a.created_at AS app_created_at,
     e.kind AS environment_kind,
     e.slug AS environment_slug,
     d.id AS deployment_id,

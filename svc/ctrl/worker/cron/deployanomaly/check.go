@@ -123,7 +123,7 @@ func (h *CheckHandler) Evaluate(
 		}
 		previousCandidate := candidate && candidateWindow == req.GetWindowStart()-windowDurationMillis
 
-		input := detectorInput(metricValue, req.GetWindowStart(), previousCandidate)
+		input := detectorInput(metricValue, req.GetWindowStart(), req.GetAppCreatedAt(), previousCandidate)
 		if metric == MetricRequestsDrop && metricValue.GetDataState() == hydrav1.DeployAnomalyMetricDataState_DEPLOY_ANOMALY_METRIC_DATA_STATE_ZERO_COMPLETE && (candidate || openID != "") {
 			stored, getErr := restate.Get[Input](ctx, detectorInputKey(metric))
 			if getErr != nil {
@@ -288,7 +288,7 @@ func (h *CheckHandler) open(ctx restate.ObjectContext, req *hydrav1.EvaluateDepl
 		"environment_id", req.GetEnvironmentId(), "metric", input.Metric,
 		"current", input.Current, "maximum", input.Maximum, "baseline_mean", input.BaselineMean,
 		"baseline_stddev", input.BaselineStddev, "observed_buckets", input.ObservedBaselineBuckets,
-		"baseline_window_buckets", input.BaselineWindowBuckets, "first_bucket_time", input.FirstBucketTime,
+		"baseline_window_buckets", input.BaselineWindowBuckets, "lifetime_start", input.LifetimeStart,
 		"requests_current", input.RequestsInWindow, "recent_median_requests", input.RecentMedianRequests,
 		"recent_active_buckets", input.RecentActiveBuckets,
 		"sigma", result.SigmaK, "threshold", result.ThresholdValue,

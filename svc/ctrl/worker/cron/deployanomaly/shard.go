@@ -57,6 +57,7 @@ type groupMetadata struct {
 	WorkspaceName              string
 	WorkspaceSlug              string
 	AppName                    string
+	AppCreatedAt               int64
 	EnvironmentKind            mysqltype.EnvironmentKind
 	EnvironmentSlug            string
 	DeploymentID               string
@@ -169,7 +170,7 @@ func (h *ShardHandler) EvaluateShard(
 	}
 
 	groups := mergeGroupWindows(requestWindows, resourceWindows, eventWindows, forced)
-	keys := actionableGroups(groups, windowStart, completeness)
+	keys := actionableGroups(groups, completeness)
 	metadata, err := h.resolveMetadata(ctx, keys)
 	if err != nil {
 		return nil, err
@@ -251,6 +252,7 @@ func (h *ShardHandler) resolveMetadata(ctx restate.ObjectContext, groups []anoma
 				},
 				OrgID: row.OrgID, WorkspaceName: row.WorkspaceName,
 				WorkspaceSlug: row.WorkspaceSlug, AppName: row.AppName,
+				AppCreatedAt:    row.AppCreatedAt,
 				EnvironmentKind: row.EnvironmentKind, EnvironmentSlug: row.EnvironmentSlug,
 				DeploymentID: row.DeploymentID.String, DeploymentDesiredState: string(row.DeploymentDesiredState),
 				DeploymentHasRunningRegion: row.DeploymentHasRunningRegion,
@@ -310,29 +312,17 @@ func mergeGroupWindows(
 	return groups
 }
 
-func actionableGroups(groups map[anomalyGroup]groupWindow, windowStart int64, completeness ingestCompleteness) []anomalyGroup {
-	cfg := DefaultConfig(SensitivityNormal)
+func actionableGroups(groups map[anomalyGroup]groupWindow, completeness ingestCompleteness) []anomalyGroup {
 	actionable := make([]anomalyGroup, 0, len(groups))
 	for group, values := range groups {
-		if values.forced || hasCandidate(evaluateMetrics(values, windowStart, completeness), windowStart, cfg) {
+		if values.forced || values.events != nil ||
+			(values.request != nil && completeness.Requests.Complete) ||
+			(values.resource != nil && completeness.Resources.Complete) {
 			actionable = append(actionable, group)
 		}
 	}
 	sortGroups(actionable)
 	return actionable
-}
-
-func hasCandidate(metrics []*hydrav1.DeployAnomalyMetricInput, windowStart int64, cfg Config) bool {
-	for _, metric := range metrics {
-		if metric.GetDataState() == hydrav1.DeployAnomalyMetricDataState_DEPLOY_ANOMALY_METRIC_DATA_STATE_INCOMPLETE {
-			continue
-		}
-		result := Detect(detectorInput(metric, windowStart, false), cfg)
-		if result.Outcome == OutcomeCandidate || result.Outcome == OutcomeAnomaly {
-			return true
-		}
-	}
-	return false
 }
 
 func candidateFilter(cfg Config) clickhouse.AnomalyCandidateFilter {
@@ -359,11 +349,12 @@ func evaluateRequest(metadata groupMetadata, group groupWindow, windowStart, win
 		EnvironmentSlug: metadata.EnvironmentSlug, DeploymentId: metadata.DeploymentID,
 		DeploymentDesiredState:     metadata.DeploymentDesiredState,
 		DeploymentHasRunningRegion: metadata.DeploymentHasRunningRegion,
-		Metrics:                    evaluateMetrics(group, windowStart, completeness),
+		AppCreatedAt:               metadata.AppCreatedAt,
+		Metrics:                    evaluateMetrics(group, completeness),
 	}
 }
 
-func evaluateMetrics(group groupWindow, windowStart int64, completeness ingestCompleteness) []*hydrav1.DeployAnomalyMetricInput {
+func evaluateMetrics(group groupWindow, completeness ingestCompleteness) []*hydrav1.DeployAnomalyMetricInput {
 	requestPresent := group.request != nil && group.request.CurrentBucketPresent
 	requestState := metricDataState(requestPresent, completeness.Requests.Complete)
 	resourcePresent := group.resource != nil && group.resource.CurrentBucketPresent
@@ -380,41 +371,41 @@ func evaluateMetrics(group groupWindow, windowStart int64, completeness ingestCo
 	if row := group.request; row != nil {
 		median, active := RecentRequestStats(row.RecentRequests, DefaultConfig(SensitivityNormal).RequestDrop.ActivityPerBucket)
 		metrics = append(metrics,
-			metricInput(MetricError5xx, requestState, row.Error5xxCurrent, row.Error5xxBaselineMean, row.Error5xxBaselineStddev, row.BaselineBuckets, row.FirstBucketTime, row.RequestsCurrent),
-			metricInput(MetricError4xx, requestState, row.Error4xxCurrent, row.Error4xxBaselineMean, row.Error4xxBaselineStddev, row.BaselineBuckets, row.FirstBucketTime, row.RequestsCurrent),
-			metricInput(MetricRequests, requestState, row.RequestsCurrent, row.RequestsBaselineMean, row.RequestsBaselineStddev, row.BaselineBuckets, row.FirstBucketTime, row.RequestsCurrent),
-			metricInput(MetricRequestsDrop, requestState, row.RequestsCurrent, row.RequestsBaselineMean, row.RequestsBaselineStddev, row.BaselineBuckets, row.FirstBucketTime, row.RequestsCurrent),
+			metricInput(MetricError5xx, requestState, row.Error5xxCurrent, row.Error5xxBaselineMean, row.Error5xxBaselineStddev, row.BaselineBuckets, row.RequestsCurrent),
+			metricInput(MetricError4xx, requestState, row.Error4xxCurrent, row.Error4xxBaselineMean, row.Error4xxBaselineStddev, row.BaselineBuckets, row.RequestsCurrent),
+			metricInput(MetricRequests, requestState, row.RequestsCurrent, row.RequestsBaselineMean, row.RequestsBaselineStddev, row.BaselineBuckets, row.RequestsCurrent),
+			metricInput(MetricRequestsDrop, requestState, row.RequestsCurrent, row.RequestsBaselineMean, row.RequestsBaselineStddev, row.BaselineBuckets, row.RequestsCurrent),
 		)
 		metrics[len(metrics)-1].RecentMedianRequests = median
 		metrics[len(metrics)-1].RecentActiveBuckets = active
 	} else {
 		for _, metric := range []Metric{MetricError5xx, MetricError4xx, MetricRequests, MetricRequestsDrop} {
-			metrics = append(metrics, metricInput(metric, requestState, 0, 0, 0, 0, 0, 0))
+			metrics = append(metrics, metricInput(metric, requestState, 0, 0, 0, 0, 0))
 		}
 	}
 
 	if row := group.resource; row != nil {
 		metrics = append(metrics,
-			metricInput(MetricEgressBytes, resourceState, row.EgressBytesCurrent, row.EgressBytesBaselineMean, row.EgressBytesBaselineStddev, row.BaselineBuckets, row.FirstBucketTime, 0),
-			metricInput(MetricCPUSeconds, resourceState, row.CPUSecondsCurrent, row.CPUSecondsBaselineMean, row.CPUSecondsBaselineStddev, row.BaselineBuckets, row.FirstBucketTime, 0),
-			metricInput(MetricMemoryUtilization, resourceState, row.MemoryUtilizationCurrent, 0, 0, 0, 0, 0),
+			metricInput(MetricEgressBytes, resourceState, row.EgressBytesCurrent, row.EgressBytesBaselineMean, row.EgressBytesBaselineStddev, row.BaselineBuckets, 0),
+			metricInput(MetricCPUSeconds, resourceState, row.CPUSecondsCurrent, row.CPUSecondsBaselineMean, row.CPUSecondsBaselineStddev, row.BaselineBuckets, 0),
+			metricInput(MetricMemoryUtilization, resourceState, row.MemoryUtilizationCurrent, 0, 0, 0, 0),
 		)
 		metrics[len(metrics)-1].Maximum = row.MemoryUtilizationMaxCurrent
 	} else {
 		for _, metric := range []Metric{MetricEgressBytes, MetricCPUSeconds, MetricMemoryUtilization} {
-			metrics = append(metrics, metricInput(metric, resourceState, 0, 0, 0, 0, 0, 0))
+			metrics = append(metrics, metricInput(metric, resourceState, 0, 0, 0, 0, 0))
 		}
 	}
 
 	if row := group.events; row != nil {
 		metrics = append(metrics,
-			metricInput(MetricOOMKilled, eventState, row.OOMKilledCurrent, 0, 0, 0, 0, 0),
-			metricInput(MetricCrashLoop, eventState, row.CrashLoopCurrent, 0, 0, 0, 0, 0),
+			metricInput(MetricOOMKilled, eventState, row.OOMKilledCurrent, 0, 0, 0, 0),
+			metricInput(MetricCrashLoop, eventState, row.CrashLoopCurrent, 0, 0, 0, 0),
 		)
 	} else {
 		metrics = append(metrics,
-			metricInput(MetricOOMKilled, eventState, 0, 0, 0, 0, 0, 0),
-			metricInput(MetricCrashLoop, eventState, 0, 0, 0, 0, 0, 0),
+			metricInput(MetricOOMKilled, eventState, 0, 0, 0, 0, 0),
+			metricInput(MetricCrashLoop, eventState, 0, 0, 0, 0, 0),
 		)
 	}
 	return metrics
@@ -486,16 +477,16 @@ func metricDataState(present, complete bool) hydrav1.DeployAnomalyMetricDataStat
 	return hydrav1.DeployAnomalyMetricDataState_DEPLOY_ANOMALY_METRIC_DATA_STATE_ZERO_COMPLETE
 }
 
-func metricInput(metric Metric, state hydrav1.DeployAnomalyMetricDataState, current, mean, stddev float64, buckets, firstBucket int64, requests float64) *hydrav1.DeployAnomalyMetricInput {
+func metricInput(metric Metric, state hydrav1.DeployAnomalyMetricDataState, current, mean, stddev float64, buckets int64, requests float64) *hydrav1.DeployAnomalyMetricInput {
 	return &hydrav1.DeployAnomalyMetricInput{
 		Metric: string(metric), DataState: state, Current: current,
 		BaselineMean: mean, BaselineStddev: stddev,
-		ObservedBaselineBuckets: buckets, FirstBucketTime: firstBucket,
-		RequestsInWindow: requests,
+		ObservedBaselineBuckets: buckets,
+		RequestsInWindow:        requests,
 	}
 }
 
-func detectorInput(metric *hydrav1.DeployAnomalyMetricInput, windowStart int64, previousCandidate bool) Input {
+func detectorInput(metric *hydrav1.DeployAnomalyMetricInput, windowStart, appCreatedAt int64, previousCandidate bool) Input {
 	return Input{
 		Metric: Metric(metric.GetMetric()), Current: metric.GetCurrent(), Maximum: metric.GetMaximum(),
 		RequestsInWindow:     metric.GetRequestsInWindow(),
@@ -503,8 +494,8 @@ func detectorInput(metric *hydrav1.DeployAnomalyMetricInput, windowStart int64, 
 		RecentActiveBuckets:  metric.GetRecentActiveBuckets(),
 		BaselineMean:         metric.GetBaselineMean(), BaselineStddev: metric.GetBaselineStddev(),
 		ObservedBaselineBuckets: metric.GetObservedBaselineBuckets(),
-		BaselineWindowBuckets:   BaselineWindowBuckets(windowStart, metric.GetFirstBucketTime()),
-		FirstBucketTime:         metric.GetFirstBucketTime(),
+		BaselineWindowBuckets:   BaselineWindowBuckets(windowStart, appCreatedAt),
+		LifetimeStart:           AppLifetimeStart(windowStart, appCreatedAt),
 		PreviousCandidate:       previousCandidate,
 	}
 }

@@ -3,6 +3,7 @@ package cron_test
 import (
 	"database/sql"
 	"encoding/json"
+	"math"
 	"net/url"
 	"strconv"
 	"testing"
@@ -26,6 +27,7 @@ type anomalyTestApp struct {
 	environmentID string
 	deploymentID  string
 	regionID      string
+	appCreatedAt  int64
 }
 
 func TestRunDeployAnomalyCheck_Integration(t *testing.T) {
@@ -65,8 +67,10 @@ func TestRunDeployAnomalyCheck_Integration(t *testing.T) {
 	require.Equal(t, db.AlertEventsMetricRequests, alert.Metric)
 	require.Equal(t, db.AlertEventsStatusOpen, alert.Status)
 	require.Equal(t, 10_000.0, alert.ObservedValue)
-	require.Equal(t, 1_000.0, alert.BaselineMean)
-	require.Equal(t, 100.0, alert.BaselineStddev)
+	expectedMean := 12_000.0 / 288
+	expectedStddev := math.Sqrt(12*1_000_000.0/288 - expectedMean*expectedMean)
+	require.InDelta(t, expectedMean, alert.BaselineMean, 1e-9)
+	require.InDelta(t, expectedStddev, alert.BaselineStddev, 1e-9)
 	require.Equal(t, 4.0, alert.ThresholdSigma)
 	require.Equal(t, windowStart.UnixMilli(), alert.WindowStart)
 	require.Equal(t, windowStart.Add(5*time.Minute).UnixMilli(), alert.WindowEnd)
@@ -85,7 +89,7 @@ func TestRunDeployAnomalyCheck_Integration(t *testing.T) {
 	quietStart := assertIncompleteTelemetryNoop(t, h, production, alert.ID, windowStart)
 	for i := 1; i <= 3; i++ {
 		quietWindow := quietStart.Add(time.Duration(i) * 5 * time.Minute)
-		insertAnomalyRequestBucket(t, h, production, quietWindow, 1_000)
+		insertAnomalyRequestBucket(t, h, production, quietWindow, 500)
 		advanceResourceWatermark(t, h, production, quietWindow)
 		runAnomalyWindow(t, h, quietWindow)
 
@@ -283,6 +287,7 @@ func assertDeploymentTopologyMetadata(t *testing.T, h *harness.Harness) {
 		return rows[0]
 	}
 
+	require.Equal(t, app.appCreatedAt, find().AppCreatedAt)
 	require.True(t, find().DeploymentHasRunningRegion)
 	secondRegion := uid.New(uid.RegionPrefix)
 	require.NoError(t, h.DB.InsertDeploymentTopology(h.Ctx, db.InsertDeploymentTopologyParams{
@@ -383,13 +388,13 @@ func assertOutOfOrderAnomalyWindowsIgnored(t *testing.T, h *harness.Harness) {
 		Metric:    string(db.AlertEventsMetricError5xx),
 		DataState: hydrav1.DeployAnomalyMetricDataState_DEPLOY_ANOMALY_METRIC_DATA_STATE_PRESENT,
 		Current:   30, RequestsInWindow: 100, BaselineMean: 0.01,
-		ObservedBaselineBuckets: 12, FirstBucketTime: windowOne.Add(-time.Hour).UnixMilli(),
+		ObservedBaselineBuckets: 12,
 	}
 	recovered := &hydrav1.DeployAnomalyMetricInput{
 		Metric:    string(db.AlertEventsMetricError5xx),
 		DataState: hydrav1.DeployAnomalyMetricDataState_DEPLOY_ANOMALY_METRIC_DATA_STATE_PRESENT,
 		Current:   1, RequestsInWindow: 100, BaselineMean: 0.01,
-		ObservedBaselineBuckets: 12, FirstBucketTime: windowOne.Add(-time.Hour).UnixMilli(),
+		ObservedBaselineBuckets: 12,
 	}
 
 	sendAnomalyMetric(t, h, app, windowOne.Add(5*time.Minute), anomalous)
@@ -432,6 +437,7 @@ func sendAnomalyMetric(
 		AppId: app.appID, EnvironmentId: app.environmentID,
 		DeploymentId: app.deploymentID, DeploymentDesiredState: "running",
 		DeploymentHasRunningRegion: true,
+		AppCreatedAt:               app.appCreatedAt,
 		Metrics:                    []*hydrav1.DeployAnomalyMetricInput{metric},
 	})
 	require.NoError(t, err)
@@ -485,6 +491,9 @@ func createAnomalyTestApp(t *testing.T, h *harness.Harness, kind mysqltype.Envir
 		ID: uid.New("app"), WorkspaceID: workspace.ID, ProjectID: project.ID,
 		Name: "anomaly-app", Slug: uid.New("slug"), DefaultBranch: "main",
 	})
+	appCreatedAt := time.Now().Add(-30 * 24 * time.Hour).UnixMilli()
+	_, err := h.DB.RW().ExecContext(h.Ctx, "UPDATE apps SET created_at = ? WHERE id = ?", appCreatedAt, app.ID)
+	require.NoError(t, err)
 	environment := h.Seed.CreateEnvironment(h.Ctx, seed.CreateEnvironmentRequest{
 		ID: uid.New("env"), WorkspaceID: workspace.ID, ProjectID: project.ID,
 		AppID: app.ID, Slug: string(kind), Kind: kind,
@@ -506,6 +515,7 @@ func createAnomalyTestApp(t *testing.T, h *harness.Harness, kind mysqltype.Envir
 	return anomalyTestApp{
 		workspaceID: workspace.ID, projectID: project.ID, appID: app.ID,
 		environmentID: environment.ID, deploymentID: deployment.ID, regionID: regionID,
+		appCreatedAt: appCreatedAt,
 	}
 }
 

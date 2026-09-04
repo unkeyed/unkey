@@ -80,7 +80,6 @@ type RequestAnomalyWindow struct {
 	CurrentBucketPresent   bool      `ch:"current_bucket_present"`
 
 	BaselineBuckets int64 `ch:"baseline_buckets"`
-	FirstBucketTime int64 `ch:"first_bucket_time"`
 }
 
 // ResourceAnomalyWindow contains egress, CPU, and memory aggregates for one
@@ -104,7 +103,6 @@ type ResourceAnomalyWindow struct {
 	MemoryUtilizationMaxCurrent float64 `ch:"memory_utilization_max_current"`
 	CurrentBucketPresent        bool    `ch:"current_bucket_present"`
 	BaselineBuckets             int64   `ch:"baseline_buckets"`
-	FirstBucketTime             int64   `ch:"first_bucket_time"`
 }
 
 const (
@@ -186,9 +184,7 @@ WITH
 				sumIf(requests, bucket_time = subtractMinutes(window_start, 60))
 			] AS recent_requests,
 			countIf(bucket_time = window_start) > 0 AS current_bucket_present,
-			toInt64(countIf(bucket_time < window_start)) AS baseline_buckets,
-			minIf(bucket_time, bucket_time < window_start) AS first_bucket,
-			toInt64(toUnixTimestamp(minIf(bucket_time, bucket_time < window_start))) * 1000 AS first_bucket_time
+			toInt64(countIf(bucket_time < window_start)) AS baseline_buckets
 		FROM bucketed
 		GROUP BY workspace_id, project_id, app_id, environment_id
 	),
@@ -210,10 +206,8 @@ WITH
 			recent_requests,
 			current_bucket_present,
 			baseline_buckets,
-			first_bucket_time,
-			least(toInt64(288), intDiv(dateDiff('minute', first_bucket, window_start), 5)) AS baseline_window_buckets,
-			requests_baseline_sum / greatest(toFloat64(baseline_window_buckets), 1.) AS requests_padded_mean,
-			sqrt(greatest(0., requests_baseline_square_sum / greatest(toFloat64(baseline_window_buckets), 1.) - requests_padded_mean * requests_padded_mean)) AS requests_padded_stddev,
+			requests_baseline_sum / 288. AS requests_full_mean,
+			sqrt(greatest(0., requests_baseline_square_sum / 288. - requests_full_mean * requests_full_mean)) AS requests_full_stddev,
 			arraySort(recent_requests) AS recent_requests_sorted
 		FROM aggregated
 	),
@@ -235,13 +229,14 @@ WITH
 			recent_requests,
 			current_bucket_present,
 			baseline_buckets,
-			first_bucket_time,
-			requests_padded_mean,
 			if(requests_current = 0, 0., error_5xx_current / requests_current) AS error_5xx_ratio_current,
 			if(requests_current = 0, 0., error_4xx_current / requests_current) AS error_4xx_ratio_current,
 			error_5xx_current - error_5xx_baseline_mean * requests_current AS error_5xx_excess,
 			error_4xx_current - error_4xx_baseline_mean * requests_current AS error_4xx_excess,
-			greatest(requests_padded_stddev, requests_padded_mean * 0.1, {requests_stddev_floor:Float64}) AS requests_stddev_effective,
+			least(
+				requests_baseline_mean + {sigma_k:Float64} * greatest(requests_baseline_stddev, requests_baseline_mean * 0.1, {requests_stddev_floor:Float64}),
+				requests_full_mean + {sigma_k:Float64} * greatest(requests_full_stddev, requests_full_mean * 0.1, {requests_stddev_floor:Float64})
+			) AS requests_candidate_threshold,
 			(recent_requests_sorted[6] + recent_requests_sorted[7]) / 2 AS recent_requests_median,
 			arrayCount(value -> value >= {request_drop_activity:Float64}, recent_requests) AS recent_active_buckets
 		FROM moments
@@ -262,8 +257,7 @@ SELECT
 	requests_baseline_stddev,
 	recent_requests,
 	current_bucket_present,
-	baseline_buckets,
-	first_bucket_time
+	baseline_buckets
 FROM scored
 WHERE
 	({candidate_filter_enabled:UInt8} = 0 AND {include_fleet:UInt8} = 1)
@@ -271,7 +265,7 @@ WHERE
 	OR (
 		baseline_buckets >= {baseline_minimum:Int64}
 		AND requests_current >= {requests_activity:Float64}
-		AND requests_current > requests_padded_mean + {sigma_k:Float64} * requests_stddev_effective
+		AND requests_current > requests_candidate_threshold
 	)
 	OR (
 		baseline_buckets >= {baseline_minimum:Int64}
@@ -424,9 +418,7 @@ WITH
 			max(memory_utilization) AS memory_utilization_current,
 			max(memory_utilization_max) AS memory_utilization_max_current,
 			max(current_bucket_present) > 0 AS current_bucket_present,
-			toInt64(countIf(bucket_time < window_start)) AS baseline_buckets,
-			minIf(bucket_time, bucket_time < window_start) AS first_bucket,
-			toInt64(toUnixTimestamp(minIf(bucket_time, bucket_time < window_start))) * 1000 AS first_bucket_time
+			toInt64(countIf(bucket_time < window_start)) AS baseline_buckets
 		FROM bucketed
 		GROUP BY workspace_id, project_id, app_id, environment_id
 	),
@@ -446,12 +438,18 @@ WITH
 			memory_utilization_max_current,
 			current_bucket_present,
 			baseline_buckets,
-			first_bucket_time,
-			least(toInt64(288), intDiv(dateDiff('minute', first_bucket, window_start), 5)) AS baseline_window_buckets,
-			egress_bytes_baseline_sum / greatest(toFloat64(baseline_window_buckets), 1.) AS egress_bytes_padded_mean,
-			sqrt(greatest(0., egress_bytes_baseline_square_sum / greatest(toFloat64(baseline_window_buckets), 1.) - egress_bytes_padded_mean * egress_bytes_padded_mean)) AS egress_bytes_padded_stddev,
-			cpu_seconds_baseline_sum / greatest(toFloat64(baseline_window_buckets), 1.) AS cpu_seconds_padded_mean,
-			sqrt(greatest(0., cpu_seconds_baseline_square_sum / greatest(toFloat64(baseline_window_buckets), 1.) - cpu_seconds_padded_mean * cpu_seconds_padded_mean)) AS cpu_seconds_padded_stddev
+			egress_bytes_baseline_sum / 288. AS egress_bytes_full_mean,
+			sqrt(greatest(0., egress_bytes_baseline_square_sum / 288. - egress_bytes_full_mean * egress_bytes_full_mean)) AS egress_bytes_full_stddev,
+			cpu_seconds_baseline_sum / 288. AS cpu_seconds_full_mean,
+			sqrt(greatest(0., cpu_seconds_baseline_square_sum / 288. - cpu_seconds_full_mean * cpu_seconds_full_mean)) AS cpu_seconds_full_stddev,
+			least(
+				egress_bytes_baseline_mean + {sigma_k:Float64} * greatest(egress_bytes_baseline_stddev, egress_bytes_baseline_mean * 0.1, {egress_bytes_stddev_floor:Float64}),
+				egress_bytes_full_mean + {sigma_k:Float64} * greatest(egress_bytes_full_stddev, egress_bytes_full_mean * 0.1, {egress_bytes_stddev_floor:Float64})
+			) AS egress_bytes_candidate_threshold,
+			least(
+				cpu_seconds_baseline_mean + {sigma_k:Float64} * greatest(cpu_seconds_baseline_stddev, cpu_seconds_baseline_mean * 0.1, {cpu_seconds_stddev_floor:Float64}),
+				cpu_seconds_full_mean + {sigma_k:Float64} * greatest(cpu_seconds_full_stddev, cpu_seconds_full_mean * 0.1, {cpu_seconds_stddev_floor:Float64})
+			) AS cpu_seconds_candidate_threshold
 		FROM aggregated
 	)
 SELECT
@@ -468,8 +466,7 @@ SELECT
 	memory_utilization_current,
 	memory_utilization_max_current,
 	current_bucket_present,
-	baseline_buckets,
-	first_bucket_time
+	baseline_buckets
 FROM moments
 WHERE
 	({candidate_filter_enabled:UInt8} = 0 AND {include_fleet:UInt8} = 1)
@@ -477,12 +474,12 @@ WHERE
 	OR (
 		baseline_buckets >= {baseline_minimum:Int64}
 		AND egress_bytes_current >= {egress_bytes_activity:Float64}
-		AND egress_bytes_current > egress_bytes_padded_mean + {sigma_k:Float64} * greatest(egress_bytes_padded_stddev, egress_bytes_padded_mean * 0.1, {egress_bytes_stddev_floor:Float64})
+		AND egress_bytes_current > egress_bytes_candidate_threshold
 	)
 	OR (
 		baseline_buckets >= {baseline_minimum:Int64}
 		AND cpu_seconds_current >= {cpu_seconds_activity:Float64}
-		AND cpu_seconds_current > cpu_seconds_padded_mean + {sigma_k:Float64} * greatest(cpu_seconds_padded_stddev, cpu_seconds_padded_mean * 0.1, {cpu_seconds_stddev_floor:Float64})
+		AND cpu_seconds_current > cpu_seconds_candidate_threshold
 	)
 	OR memory_utilization_current >= {memory_utilization_activity:Float64}
 SETTINGS optimize_aggregation_in_order = 1

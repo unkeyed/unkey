@@ -321,11 +321,9 @@ type DeployAnomalyMetricInput struct {
 	BaselineMean            float64                      `protobuf:"fixed64,4,opt,name=baseline_mean,json=baselineMean,proto3" json:"baseline_mean,omitempty"`
 	BaselineStddev          float64                      `protobuf:"fixed64,5,opt,name=baseline_stddev,json=baselineStddev,proto3" json:"baseline_stddev,omitempty"`
 	ObservedBaselineBuckets int64                        `protobuf:"varint,6,opt,name=observed_baseline_buckets,json=observedBaselineBuckets,proto3" json:"observed_baseline_buckets,omitempty"`
-	// FirstBucketTime is the first observed baseline bucket in unix milliseconds.
-	FirstBucketTime      int64   `protobuf:"varint,7,opt,name=first_bucket_time,json=firstBucketTime,proto3" json:"first_bucket_time,omitempty"`
-	RequestsInWindow     float64 `protobuf:"fixed64,8,opt,name=requests_in_window,json=requestsInWindow,proto3" json:"requests_in_window,omitempty"`
-	RecentMedianRequests float64 `protobuf:"fixed64,9,opt,name=recent_median_requests,json=recentMedianRequests,proto3" json:"recent_median_requests,omitempty"`
-	RecentActiveBuckets  int64   `protobuf:"varint,10,opt,name=recent_active_buckets,json=recentActiveBuckets,proto3" json:"recent_active_buckets,omitempty"`
+	RequestsInWindow        float64                      `protobuf:"fixed64,8,opt,name=requests_in_window,json=requestsInWindow,proto3" json:"requests_in_window,omitempty"`
+	RecentMedianRequests    float64                      `protobuf:"fixed64,9,opt,name=recent_median_requests,json=recentMedianRequests,proto3" json:"recent_median_requests,omitempty"`
+	RecentActiveBuckets     int64                        `protobuf:"varint,10,opt,name=recent_active_buckets,json=recentActiveBuckets,proto3" json:"recent_active_buckets,omitempty"`
 	// Maximum is optional secondary context, currently used for peak memory
 	// utilization while Current carries the 5-minute average.
 	Maximum       float64 `protobuf:"fixed64,11,opt,name=maximum,proto3" json:"maximum,omitempty"`
@@ -405,13 +403,6 @@ func (x *DeployAnomalyMetricInput) GetObservedBaselineBuckets() int64 {
 	return 0
 }
 
-func (x *DeployAnomalyMetricInput) GetFirstBucketTime() int64 {
-	if x != nil {
-		return x.FirstBucketTime
-	}
-	return 0
-}
-
 func (x *DeployAnomalyMetricInput) GetRequestsInWindow() float64 {
 	if x != nil {
 		return x.RequestsInWindow
@@ -459,8 +450,10 @@ type EvaluateDeployAnomalyRequest struct {
 	DeploymentDesiredState     string                      `protobuf:"bytes,13,opt,name=deployment_desired_state,json=deploymentDesiredState,proto3" json:"deployment_desired_state,omitempty"`
 	Metrics                    []*DeployAnomalyMetricInput `protobuf:"bytes,14,rep,name=metrics,proto3" json:"metrics,omitempty"`
 	DeploymentHasRunningRegion bool                        `protobuf:"varint,15,opt,name=deployment_has_running_region,json=deploymentHasRunningRegion,proto3" json:"deployment_has_running_region,omitempty"`
-	unknownFields              protoimpl.UnknownFields
-	sizeCache                  protoimpl.SizeCache
+	// AppCreatedAt bounds zero-padding to the app's actual lifetime.
+	AppCreatedAt  int64 `protobuf:"varint,16,opt,name=app_created_at,json=appCreatedAt,proto3" json:"app_created_at,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *EvaluateDeployAnomalyRequest) Reset() {
@@ -598,6 +591,13 @@ func (x *EvaluateDeployAnomalyRequest) GetDeploymentHasRunningRegion() bool {
 	return false
 }
 
+func (x *EvaluateDeployAnomalyRequest) GetAppCreatedAt() int64 {
+	if x != nil {
+		return x.AppCreatedAt
+	}
+	return 0
+}
+
 type EvaluateDeployAnomalyResponse struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Pending is true while any metric has a candidate or open alert.
@@ -660,7 +660,7 @@ const file_hydra_v1_deploy_anomaly_check_proto_rawDesc = "" +
 	"\x0egroups_pending\x18\x02 \x01(\x05R\rgroupsPending\"&\n" +
 	"$GetPendingDeployAnomalyGroupsRequest\"`\n" +
 	"%GetPendingDeployAnomalyGroupsResponse\x127\n" +
-	"\x06groups\x18\x01 \x03(\v2\x1f.hydra.v1.DeployAnomalyGroupKeyR\x06groups\"\xfb\x03\n" +
+	"\x06groups\x18\x01 \x03(\v2\x1f.hydra.v1.DeployAnomalyGroupKeyR\x06groups\"\xd5\x03\n" +
 	"\x18DeployAnomalyMetricInput\x12\x16\n" +
 	"\x06metric\x18\x01 \x01(\tR\x06metric\x12E\n" +
 	"\n" +
@@ -668,13 +668,12 @@ const file_hydra_v1_deploy_anomaly_check_proto_rawDesc = "" +
 	"\acurrent\x18\x03 \x01(\x01R\acurrent\x12#\n" +
 	"\rbaseline_mean\x18\x04 \x01(\x01R\fbaselineMean\x12'\n" +
 	"\x0fbaseline_stddev\x18\x05 \x01(\x01R\x0ebaselineStddev\x12:\n" +
-	"\x19observed_baseline_buckets\x18\x06 \x01(\x03R\x17observedBaselineBuckets\x12*\n" +
-	"\x11first_bucket_time\x18\a \x01(\x03R\x0ffirstBucketTime\x12,\n" +
+	"\x19observed_baseline_buckets\x18\x06 \x01(\x03R\x17observedBaselineBuckets\x12,\n" +
 	"\x12requests_in_window\x18\b \x01(\x01R\x10requestsInWindow\x124\n" +
 	"\x16recent_median_requests\x18\t \x01(\x01R\x14recentMedianRequests\x122\n" +
 	"\x15recent_active_buckets\x18\n" +
 	" \x01(\x03R\x13recentActiveBuckets\x12\x18\n" +
-	"\amaximum\x18\v \x01(\x01R\amaximum\"\xeb\x04\n" +
+	"\amaximum\x18\v \x01(\x01R\amaximumJ\x04\b\a\x10\b\"\x91\x05\n" +
 	"\x1cEvaluateDeployAnomalyRequest\x12!\n" +
 	"\fwindow_start\x18\x01 \x01(\x03R\vwindowStart\x12\x1d\n" +
 	"\n" +
@@ -693,7 +692,8 @@ const file_hydra_v1_deploy_anomaly_check_proto_rawDesc = "" +
 	"\rdeployment_id\x18\f \x01(\tR\fdeploymentId\x128\n" +
 	"\x18deployment_desired_state\x18\r \x01(\tR\x16deploymentDesiredState\x12<\n" +
 	"\ametrics\x18\x0e \x03(\v2\".hydra.v1.DeployAnomalyMetricInputR\ametrics\x12A\n" +
-	"\x1ddeployment_has_running_region\x18\x0f \x01(\bR\x1adeploymentHasRunningRegion\"9\n" +
+	"\x1ddeployment_has_running_region\x18\x0f \x01(\bR\x1adeploymentHasRunningRegion\x12$\n" +
+	"\x0eapp_created_at\x18\x10 \x01(\x03R\fappCreatedAt\"9\n" +
 	"\x1dEvaluateDeployAnomalyResponse\x12\x18\n" +
 	"\apending\x18\x01 \x01(\bR\apending*\xe3\x01\n" +
 	"\x1cDeployAnomalyMetricDataState\x120\n" +
