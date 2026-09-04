@@ -26,10 +26,13 @@ const baseRootKeysSchema = z.object(filterFieldsSchema);
 export const rootKeysQueryPayload = baseRootKeysSchema.extend({
   limit: z.number().min(20).optional(),
   page: z.number().int().min(1).optional().default(1),
-  sortBy: z.enum(["name", "createdAt", "lastUpdatedAt"]).optional().default("createdAt"),
+  sortBy: z
+    .enum(["name", "createdAt", "lastUsedAt", "lastUpdatedAt"])
+    .optional()
+    .default("createdAt"),
   sortOrder: z.enum(["asc", "desc"]).optional().default("desc"),
 });
 
-export type RootKeysSortField = "name" | "createdAt" | "lastUpdatedAt";
+export type RootKeysSortField = "name" | "createdAt" | "lastUsedAt" | "lastUpdatedAt";
 export type RootKeysSortOrder = "asc" | "desc";
 export type RootKeysQueryPayload = z.infer<typeof rootKeysQueryPayload>;
