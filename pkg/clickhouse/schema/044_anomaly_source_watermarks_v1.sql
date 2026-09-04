@@ -1,6 +1,3 @@
--- A per-region rollup avoids scanning fleet tables whose primary key starts
--- with workspace_id. The detector uses the least watermark among regions with
--- ingest in the last two hours, so a healthy region cannot hide a lagging one.
 CREATE TABLE anomaly_source_watermarks_v1 (
   source LowCardinality(String),
   region LowCardinality(String),
@@ -18,8 +15,6 @@ SELECT
 FROM frontline_requests_raw_v1
 GROUP BY region;
 
--- The bounded seven-day replay gives every active region an immediate
--- watermark. Replaying max aggregate states is idempotent under merges.
 INSERT INTO anomaly_source_watermarks_v1
 SELECT
   'requests' AS source,

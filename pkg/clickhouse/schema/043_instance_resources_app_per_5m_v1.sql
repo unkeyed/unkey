@@ -1,11 +1,3 @@
--- Anomaly detection reads this app-level rollup every 5 minutes. Reading the
--- per-minute dashboard table for a 24-hour baseline exceeded 14 GiB at 100,000
--- one-instance apps and could not complete on a 32 GiB worker.
---
--- The source is dashboards-only and can double-count rare retry inserts. That
--- tradeoff is acceptable for anomaly detection, but this table must not be
--- used for billing. Memory uses a separate container-grain 5-minute rollup to
--- preserve equal weighting across instances.
 CREATE TABLE instance_resources_app_per_5m_v1 (
   time DateTime,
   workspace_id String,
@@ -42,9 +34,6 @@ SELECT
 FROM instance_resources_per_minute_v1
 GROUP BY time, workspace_id, project_id, app_id, environment_id;
 
--- Seven days matches the dashboard overview horizon while bounding migration
--- cost. Aggregate sum states do not deduplicate replayed inserts, so excluding
--- existing rollup keys makes retries fill missing keys without doubling them.
 INSERT INTO instance_resources_app_per_5m_v1
 SELECT
   toStartOfInterval(time, INTERVAL 5 MINUTE) AS time,

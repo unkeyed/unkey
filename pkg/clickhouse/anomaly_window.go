@@ -12,7 +12,6 @@ import (
 
 const anomalyGroupKeyBatchSize = 500
 
-// AnomalyGroupKey identifies the stable app and environment alert group.
 type AnomalyGroupKey struct {
 	WorkspaceID   string
 	ProjectID     string
@@ -126,8 +125,6 @@ type AnomalySourceWatermark struct {
 // during the bounded two-hour activity window. Absent regions are inactive.
 type AnomalySourceWatermarks []AnomalySourceWatermark
 
-// InstanceEventAnomalyWindow contains current-window OOM and crash-loop counts
-// for one app and environment.
 type InstanceEventAnomalyWindow struct {
 	WorkspaceID   string `ch:"workspace_id"`
 	ProjectID     string `ch:"project_id"`

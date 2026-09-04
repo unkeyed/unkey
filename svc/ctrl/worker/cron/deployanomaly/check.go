@@ -20,17 +20,14 @@ const (
 	stoppedMessage         = "Deployment stopped"
 )
 
-// CheckConfig holds the per-group evaluator dependencies.
 type CheckConfig struct {
 	DB db.Database
 }
 
-// CheckHandler owns durable anomaly state for one app and environment.
 type CheckHandler struct {
 	db db.Database
 }
 
-// NewCheckHandler constructs the per-group anomaly evaluator.
 func NewCheckHandler(cfg CheckConfig) (*CheckHandler, error) {
 	if err := assert.NotNil(cfg.DB, "DB must not be nil"); err != nil {
 		return nil, err
@@ -350,8 +347,6 @@ func (h *CheckHandler) suppressRequestDrop(ctx restate.ObjectContext, req *hydra
 }
 
 func requestDropSuppressed(req *hydrav1.EvaluateDeployAnomalyRequest) bool {
-	// A zero autoscaling minimum permits scale-to-zero but does not mean traffic
-	// loss is intentional. Only explicit deployment or topology stops suppress.
 	return req.GetDeploymentId() == "" || req.GetDeploymentDesiredState() == "stopped" || !req.GetDeploymentHasRunningRegion()
 }
 

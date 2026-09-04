@@ -14,8 +14,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/uid"
 )
 
-// TestAnomalyWindows verifies that each fleet query aggregates deployment and
-// container rows into exact per-app current and population-baseline values.
 func TestAnomalyWindows(t *testing.T) {
 	t.Parallel()
 
@@ -40,11 +38,6 @@ func TestAnomalyWindows(t *testing.T) {
 		appID := uid.New("app")
 		environmentID := uid.New("env")
 
-		// The two baseline buckets contain (5xx, 4xx, requests) values
-		// (2, 4, 90) and (4, 6, 110). The weighted error means are 6/200=0.03
-		// and 10/200=0.05. The per-bucket ratio standard deviations are
-		// 0.0070707 and 0.0050505. Request mean and standard deviation are
-		// 100 and 10. The current bucket is (10, 20, 200).
 		insertRequestCounts(t, ctx, conn, windowStart.Add(-10*time.Minute), workspaceID, projectID, appID, environmentID, "dep-old", map[int32]int64{
 			200: 84,
 			404: 4,
@@ -94,10 +87,6 @@ func TestAnomalyWindows(t *testing.T) {
 		appID := uid.New("app")
 		environmentID := uid.New("env")
 
-		// The 24-hour baseline contains 288 buckets of 1,000 requests. Its
-		// mean is 1,000 and population standard deviation is zero. There is
-		// no current bucket, which must produce current=0 without hiding the
-		// app from request-drop detection.
 		insertRequestBaseline(t, ctx, conn, windowStart, workspaceID, projectID, appID, environmentID, 1_000)
 
 		rows, err := client.GetRequestAnomalyWindows(ctx, clickhouse.AnomalyWindowsRequest{
@@ -127,11 +116,6 @@ func TestAnomalyWindows(t *testing.T) {
 		appID := uid.New("app")
 		environmentID := uid.New("env")
 
-		// Across the two containers, baseline egress buckets are 30 and 50
-		// bytes, so mean=40 and stddevPop=10. CPU buckets are 3 and 6
-		// seconds, so mean=4.5 and stddevPop=1.5. The current bucket totals
-		// 100 bytes and 10 seconds. Its instance memory ratios are 0.9 and
-		// 0.8, so average utilization is 0.85 and the secondary maximum is 0.9.
 		insertResourceMinute(t, ctx, conn, resourceMinute{
 			time: windowStart.Add(-10 * time.Minute), workspaceID: workspaceID, projectID: projectID,
 			appID: appID, environmentID: environmentID, containerID: "container-a", egressBytes: 10, cpuSeconds: 2,
@@ -242,8 +226,6 @@ func TestAnomalyWindows(t *testing.T) {
 	})
 }
 
-// insertRequestCounts writes one app's status counts directly to the 5-minute
-// rollup so the test isolates the anomaly query from upstream MV timing.
 func insertRequestCounts(
 	t *testing.T,
 	ctx context.Context,
@@ -263,8 +245,6 @@ func insertRequestCounts(
 	}
 }
 
-// insertRequestBaseline writes a complete 24-hour series in one batch so the
-// integration test covers a missing current bucket without MV timing overhead.
 func insertRequestBaseline(
 	t *testing.T,
 	ctx context.Context,
@@ -310,8 +290,6 @@ type resourceMinute struct {
 	memoryAllocatedBytes int64
 }
 
-// insertResourceMinute writes one container rollup row with counters starting
-// at zero, making each max value the intended 5-minute delta.
 func insertResourceMinute(t *testing.T, ctx context.Context, conn ch.Conn, row resourceMinute) {
 	t.Helper()
 	err := conn.Exec(ctx, `
@@ -332,7 +310,6 @@ func insertResourceMinute(t *testing.T, ctx context.Context, conn ch.Conn, row r
 	require.NoError(t, err)
 }
 
-// anomalyEvent constructs the required raw event fields for one threshold signal.
 func anomalyEvent(
 	windowStart time.Time,
 	workspaceID, projectID, appID, environmentID, suffix, kind, reason string,
@@ -354,8 +331,6 @@ func anomalyEvent(
 	}
 }
 
-// insertAnomalyEvents uses the production row mapping so schema drift fails
-// the test before it can invalidate the event query.
 func insertAnomalyEvents(t *testing.T, ctx context.Context, conn ch.Conn, events []schema.InstanceEventV1) {
 	t.Helper()
 	batch, err := conn.PrepareBatch(ctx, clickhouse.InsertQuery[schema.InstanceEventV1]())

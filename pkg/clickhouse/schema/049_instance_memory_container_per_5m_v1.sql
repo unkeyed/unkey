@@ -1,7 +1,3 @@
--- Memory keeps container and instance grain so the detector can average time
--- within each container, then containers within each instance, then instances
--- within the app. A direct app average would over-weight instances with more
--- containers or samples.
 CREATE TABLE instance_memory_container_per_5m_v1 (
   time DateTime,
   workspace_id String,
@@ -36,9 +32,6 @@ SELECT
 FROM instance_resources_per_minute_v1
 GROUP BY time, workspace_id, project_id, app_id, environment_id, instance_id, container_uid;
 
--- Seven days matches the dashboard overview horizon while bounding migration
--- cost. Aggregate sum states do not deduplicate replayed inserts, so excluding
--- existing rollup keys makes retries fill missing keys without doubling them.
 INSERT INTO instance_memory_container_per_5m_v1
 SELECT
   toStartOfInterval(time, INTERVAL 5 MINUTE) AS time,

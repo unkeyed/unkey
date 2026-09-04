@@ -61,8 +61,7 @@ type FindLiveDeploymentForEnvironmentRow struct {
 	DeploymentHasRunningRegion bool                              `db:"deployment_has_running_region"`
 }
 
-// FindLiveDeploymentForEnvironment resolves customer-facing metadata and the
-// current deployment state used to suppress intentional request drops.
+// FindLiveDeploymentForEnvironment
 //
 //	SELECT
 //	    w.org_id,

@@ -82,9 +82,7 @@ type FindLiveDeploymentsForEnvironmentsRow struct {
 	DeploymentHasRunningRegion bool                              `db:"deployment_has_running_region"`
 }
 
-// FindLiveDeploymentsForEnvironments resolves alert metadata in bounded
-// batches. The JSON array preserves complete four-column group identities;
-// ordering makes shard fan-out deterministic after missing groups are omitted.
+// FindLiveDeploymentsForEnvironments
 //
 //	WITH RECURSIVE group_indexes AS (
 //	    SELECT 0 AS group_index

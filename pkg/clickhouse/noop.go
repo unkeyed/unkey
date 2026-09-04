@@ -44,22 +44,18 @@ func (n *noop) GetDeploymentRequestCount(ctx context.Context, req GetDeploymentR
 	return 0, nil
 }
 
-// GetAnomalySourceWatermarks implements the Querier interface with incomplete sources.
 func (n *noop) GetAnomalySourceWatermarks(ctx context.Context) (AnomalySourceWatermarks, error) {
 	return nil, nil
 }
 
-// GetRequestAnomalyWindows implements the Querier interface but always returns an empty slice.
 func (n *noop) GetRequestAnomalyWindows(ctx context.Context, req AnomalyWindowsRequest) ([]RequestAnomalyWindow, error) {
 	return nil, nil
 }
 
-// GetResourceAnomalyWindows implements the Querier interface but always returns an empty slice.
 func (n *noop) GetResourceAnomalyWindows(ctx context.Context, req AnomalyWindowsRequest) ([]ResourceAnomalyWindow, error) {
 	return nil, nil
 }
 
-// GetInstanceEventAnomalyWindows implements the Querier interface but always returns an empty slice.
 func (n *noop) GetInstanceEventAnomalyWindows(ctx context.Context, req AnomalyWindowsRequest) ([]InstanceEventAnomalyWindow, error) {
 	return nil, nil
 }
