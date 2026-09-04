@@ -1,7 +1,9 @@
 package app
 
 import (
+	"database/sql"
 	"fmt"
+	"time"
 
 	restate "github.com/restatedev/sdk-go"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
@@ -37,6 +39,15 @@ func (s *Service) Delete(
 	}, restate.WithName("find app"))
 	if err != nil {
 		return nil, fmt.Errorf("find app: %w", err)
+	}
+
+	if err := restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
+		now := sql.NullInt64{Int64: time.Now().UnixMilli(), Valid: true}
+		return s.db.ResolveOpenAlertEventsByApp(runCtx, db.ResolveOpenAlertEventsByAppParams{
+			ResolvedAt: now, UpdatedAt: now, AppID: appID,
+		})
+	}, restate.WithName("resolve open deploy anomaly alerts")); err != nil {
+		return nil, fmt.Errorf("resolve open deploy anomaly alerts: %w", err)
 	}
 
 	envIDs, err := restate.Run(ctx, func(runCtx restate.RunContext) ([]string, error) {

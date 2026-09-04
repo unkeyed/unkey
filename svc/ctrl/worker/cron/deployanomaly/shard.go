@@ -1,10 +1,12 @@
 package deployanomaly
 
 import (
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/go-faster/city"
 	restate "github.com/restatedev/sdk-go"
@@ -244,12 +246,15 @@ func (h *ShardHandler) resolveMetadata(ctx restate.ObjectContext, groups []anoma
 		if err != nil {
 			return nil, fault.Wrap(err, fault.Internal("resolve anomaly group metadata"))
 		}
+		found := make(map[anomalyGroup]struct{}, len(rows))
 		for _, row := range rows {
+			group := anomalyGroup{
+				WorkspaceID: row.WorkspaceID, ProjectID: row.ProjectID,
+				AppID: row.AppID, EnvironmentID: row.EnvironmentID,
+			}
+			found[group] = struct{}{}
 			metadata = append(metadata, groupMetadata{
-				Group: anomalyGroup{
-					WorkspaceID: row.WorkspaceID, ProjectID: row.ProjectID,
-					AppID: row.AppID, EnvironmentID: row.EnvironmentID,
-				},
+				Group: group,
 				OrgID: row.OrgID, WorkspaceName: row.WorkspaceName,
 				WorkspaceSlug: row.WorkspaceSlug, AppName: row.AppName,
 				AppCreatedAt:    row.AppCreatedAt,
@@ -258,6 +263,31 @@ func (h *ShardHandler) resolveMetadata(ctx restate.ObjectContext, groups []anoma
 				DeploymentHasRunningRegion: row.DeploymentHasRunningRegion,
 			})
 		}
+		missing := make([]anomalyGroup, 0, len(batch)-len(found))
+		for _, group := range batch {
+			if _, ok := found[group]; !ok {
+				missing = append(missing, group)
+			}
+		}
+		if len(missing) == 0 {
+			continue
+		}
+		if err := restate.RunVoid(ctx, func(rc restate.RunContext) error {
+			encoded, marshalErr := json.Marshal(missing)
+			if marshalErr != nil {
+				return marshalErr
+			}
+			now := sql.NullInt64{Int64: time.Now().UnixMilli(), Valid: true}
+			return h.db.ResolveOpenAlertEventsByGroups(rc, db.ResolveOpenAlertEventsByGroupsParams{
+				GroupKeysJson: string(encoded), ResolvedAt: now, UpdatedAt: now,
+			})
+		}, restate.WithName(fmt.Sprintf("resolve orphan anomaly alerts batch %d", start/metadataBatchSize))); err != nil {
+			return nil, fault.Wrap(err, fault.Internal("resolve orphan anomaly alerts"))
+		}
+		logger.Info("resolved orphan deploy anomaly alerts",
+			"groups", len(missing),
+			"metadata_batch", start/metadataBatchSize,
+		)
 	}
 	sort.Slice(metadata, func(i, j int) bool { return groupLess(metadata[i].Group, metadata[j].Group) })
 	return metadata, nil
