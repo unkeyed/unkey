@@ -164,21 +164,37 @@ function memoryQuery(resolution: "5m" | "1h"): { query: string; tableName: strin
       : "toStartOfHour(metric_source.time)";
   return {
     query: denseBuckets(`
-      SELECT time, avg(instance_value) AS value
+      SELECT time, ifNotFinite(avgIf(instance_value, instance_memory_valid), 0.) AS value
       FROM (
         SELECT
-          toInt64(toUnixTimestamp(${bucket}) * 1000) AS time,
-          metric_source.container_uid,
-          if(max(memory_allocated_bytes_max) = 0, 0,
-            max(memory_bytes_max) / max(memory_allocated_bytes_max)) AS instance_value
-        FROM {tableName: Identifier} AS metric_source
-        PREWHERE metric_source.workspace_id = {workspaceId: String}
-          AND metric_source.app_id = {appId: String}
-          AND metric_source.environment_id = {environmentId: String}
-          AND metric_source.resource_type = 'deployment'
-          AND metric_source.time >= fromUnixTimestamp64Milli({baselineStartMs: Int64})
-          AND metric_source.time < fromUnixTimestamp64Milli({endMs: Int64})
-        GROUP BY time, metric_source.container_uid
+          time,
+          instance_id,
+          ifNotFinite(avgIf(container_value, container_memory_valid), 0.) AS instance_value,
+          countIf(container_memory_valid) > 0 AS instance_memory_valid
+        FROM (
+          SELECT
+            toInt64(toUnixTimestamp(${bucket}) * 1000) AS time,
+            metric_source.instance_id,
+            metric_source.container_uid,
+            if(
+              countIf(memory_allocated_bytes_max > 0) = 0,
+              0.,
+              sumIf(
+                toFloat64(memory_bytes_max) / toFloat64(memory_allocated_bytes_max),
+                memory_allocated_bytes_max > 0
+              ) / countIf(memory_allocated_bytes_max > 0)
+            ) AS container_value,
+            countIf(memory_allocated_bytes_max > 0) > 0 AS container_memory_valid
+          FROM {tableName: Identifier} AS metric_source
+          PREWHERE metric_source.workspace_id = {workspaceId: String}
+            AND metric_source.app_id = {appId: String}
+            AND metric_source.environment_id = {environmentId: String}
+            AND metric_source.resource_type = 'deployment'
+            AND metric_source.time >= fromUnixTimestamp64Milli({baselineStartMs: Int64})
+            AND metric_source.time < fromUnixTimestamp64Milli({endMs: Int64})
+          GROUP BY time, metric_source.instance_id, metric_source.container_uid
+        )
+        GROUP BY time, instance_id
       )
       GROUP BY time`),
     tableName:
