@@ -21,23 +21,24 @@ export function useAppCurrentDeployment() {
 
   const currentDeploymentQuery = useLiveQuery(
     (q) =>
-      q
-        .from({ deployment: collection.deployments })
-        .where(({ deployment }) =>
-          and(
-            eq(deployment.projectId, projectId),
-            eq(deployment.appId, appId),
-            eq(deployment.id, currentDeploymentId ?? ""),
-          ),
-        ),
+      currentDeploymentId
+        ? q
+            .from({ deployment: collection.deployments })
+            .where(({ deployment }) =>
+              and(
+                eq(deployment.projectId, projectId),
+                eq(deployment.appId, appId),
+                eq(deployment.id, currentDeploymentId),
+              ),
+            )
+        : null,
     [projectId, appId, currentDeploymentId],
   );
 
   return {
     app,
-    currentDeployment: currentDeploymentId ? currentDeploymentQuery.data?.[0] : undefined,
+    currentDeployment: currentDeploymentQuery.data?.[0],
     isRolledBack: app?.isRolledBack ?? false,
-    isLoading:
-      appsQuery.isLoading || (currentDeploymentId !== null && currentDeploymentQuery.isLoading),
+    isLoading: appsQuery.isLoading || currentDeploymentQuery.isLoading,
   };
 }

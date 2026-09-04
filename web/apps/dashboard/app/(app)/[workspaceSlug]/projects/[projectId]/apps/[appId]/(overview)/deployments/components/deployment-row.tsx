@@ -1,44 +1,42 @@
 "use client";
 
 import { LastExitBadge } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/active-deployment-card";
-import { DeploymentStatusBadge } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/deployment-status-badge";
-import { Avatar } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/git-avatar";
+import { DeploymentStatusDot } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/deployment-status-dot";
+import { EnvironmentBadge } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/environment-badge";
 import type { Deployment, Environment } from "@/lib/collections";
+import { DEPLOYMENT_STATUS_LABELS } from "@/lib/collections/deploy/deployment-status";
 import { shortenId } from "@/lib/shorten-id";
-import { CodeBranch, CodeCommit, Layers2 } from "@unkey/icons";
-import { ResourceListItem, TimestampInfo } from "@unkey/ui";
+import { ResourceListItem } from "@unkey/ui";
 import type { Route } from "next";
-import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useState } from "react";
-import { DeploymentTriggerBadge } from "../../../../../components/deployment-trigger-badge";
 import { DeploymentApproval } from "../[deploymentId]/(deployment-progress)/deployment-approval";
 import { DeploymentDuration } from "./deployment-duration";
+import {
+  AuthorCell,
+  BranchCell,
+  CommitSha,
+  ImageRef,
+  OriginCell,
+  RowMenu,
+  RowTime,
+} from "./deployment-row-cells";
+import { imageDisplay } from "./image-reference";
 import { EnvStatusBadge } from "./table/components/env-status-badge";
-import { ActionColumnSkeleton } from "./table/components/skeletons";
-
-const DeploymentListTableActions = dynamic(
-  () =>
-    import("./table/components/actions/deployment-list-table-action.popover.constants").then(
-      (mod) => mod.DeploymentListTableActions,
-    ),
-  {
-    loading: () => <ActionColumnSkeleton />,
-    ssr: false,
-  },
-);
 
 type DeploymentRowProps = {
   deployment: Deployment;
-  environment?: Environment;
+  environment: Environment | undefined;
+  repoFullName: string | null;
   currentDeployment: Deployment | undefined;
   isRolledBack: boolean;
-  href: string;
+  href: Route;
 };
 
 export function DeploymentRow({
   deployment,
   environment,
+  repoFullName,
   currentDeployment,
   isRolledBack,
   href,
@@ -46,9 +44,14 @@ export function DeploymentRow({
   const [approvalOpen, setApprovalOpen] = useState(false);
   const needsApproval = deployment.status === "awaiting_approval";
   const isCurrent = currentDeployment?.id === deployment.id;
+  const statusLabel = DEPLOYMENT_STATUS_LABELS[deployment.status];
+  const showLastExit =
+    deployment.lastExit !== null &&
+    deployment.status !== "ready" &&
+    deployment.status !== "superseded";
 
   return (
-    <ResourceListItem className="flex flex-col gap-3 px-4 py-3 transition-colors hover:bg-grayA-2 md:flex-row md:items-center md:gap-0">
+    <ResourceListItem className="flex items-center gap-3 overflow-hidden px-4 py-2.5 transition-colors hover:bg-grayA-2">
       {needsApproval ? (
         <button
           type="button"
@@ -58,9 +61,9 @@ export function DeploymentRow({
         />
       ) : (
         <Link
-          href={href as Route}
+          href={href}
           className="absolute inset-0 z-10"
-          aria-label={`Deployment ${shortenId(deployment.id)} ${deployment.status}`}
+          aria-label={`Deployment ${shortenId(deployment.id)} ${statusLabel}`}
         />
       )}
       {needsApproval && (
@@ -70,133 +73,63 @@ export function DeploymentRow({
           deployment={deployment}
         />
       )}
-      {/* Identity + Status */}
-      <div className="flex items-center justify-between md:contents">
-        <div className="md:w-[20%] md:shrink-0 flex flex-col gap-1 min-w-0">
-          <div className="flex items-center gap-2 h-5">
-            <span className="font-mono text-[13px] text-accent-12 truncate font-semibold">
-              {shortenId(deployment.id)}
-            </span>
-            {isCurrent ? (
-              <EnvStatusBadge
-                variant={isRolledBack ? "rolledBack" : "current"}
-                text={isRolledBack ? "Rolled Back" : "Current"}
-              />
-            ) : null}
-          </div>
-          <span className="text-xs text-gray-9 capitalize">{environment?.slug}</span>
-        </div>
 
-        {/* relative z-20 so the LastExitBadge tooltip surface sits above
-            the full-row Link overlay (z-10). Without this the absolute
-            link swallows hover/focus events and the exit-reason tooltip
-            never opens. */}
-        <div className="relative z-20 md:w-[20%] md:shrink-0 flex flex-col gap-1 items-start">
-          <div className="flex items-center gap-2">
-            {/* Trigger sits before status: "this came from GitHub → it
-                failed" reads more naturally than the reverse, and the
-                small icon stays out of the way of the louder status pill. */}
-            <DeploymentTriggerBadge
-              trigger={deployment.trigger}
-              triggeredBy={deployment.triggeredBy}
-              triggerReason={deployment.triggerReason}
-              iconOnly
-            />
-            <DeploymentStatusBadge status={deployment.status} />
-          </div>
-          <DeploymentDuration
-            status={deployment.status}
-            createdAt={deployment.createdAt}
-            buildEndedAt={deployment.buildEndedAt}
-          />
-          {/* Same hide rule as the deployment-detail header — once a deploy
-              has stabilized into ready/superseded the prior crash isn't
-              relevant context for the row. Pre-ready failures (deploying
-              that crashed pre-promote, failed deploys) keep the badge so
-              users can spot why at a glance. */}
-          {deployment.lastExit &&
-            deployment.status !== "ready" &&
-            deployment.status !== "superseded" && <LastExitBadge lastExit={deployment.lastExit} />}
-        </div>
-      </div>
-
-      {/* Source */}
-      <div className="md:w-[30%] md:shrink-0 flex flex-col gap-1 min-w-0">
-        {deployment.gitBranch ? (
-          <div className="flex items-center gap-2 min-w-0">
-            <CodeBranch iconSize="sm-regular" className="text-accent-12 shrink-0" />
-            <span
-              className="font-mono text-xs text-accent-12 truncate leading-4"
-              title={deployment.gitBranch}
-            >
-              {deployment.gitBranch}
-            </span>
-            {deployment.gitCommitSha ? (
-              <span className="font-mono text-xs shrink-0 leading-4 -ml-1">
-                <span className="text-gray-9">·</span>
-                <span className="text-accent-12 ml-0.5">{deployment.gitCommitSha.slice(0, 7)}</span>
-              </span>
-            ) : null}
-          </div>
-        ) : deployment.gitCommitSha ? (
-          <div className="flex items-center gap-2 min-w-0">
-            <CodeCommit iconSize="sm-regular" className="text-accent-12 shrink-0" />
-            <span className="font-mono text-xs text-accent-12 truncate leading-4">
-              {deployment.gitCommitSha.slice(0, 7)}
-            </span>
-          </div>
-        ) : deployment.image ? (
-          // Prebuilt-image deployments have no git metadata; show the image
-          // reference as the source instead.
-          <div className="flex items-center gap-2 min-w-0">
-            <Layers2 iconSize="sm-regular" className="text-accent-12 shrink-0" />
-            <span
-              className="font-mono text-xs text-accent-12 truncate leading-4"
-              title={deployment.image}
-            >
-              {deployment.image}
-            </span>
-          </div>
-        ) : (
-          <span className="text-xs text-gray-9 leading-4">No source info</span>
-        )}
-        {deployment.gitCommitMessage ? (
-          <div className="flex items-center gap-2 min-w-0">
-            <CodeCommit iconSize="sm-regular" className="text-accent-12 shrink-0" />
-            <span
-              className="truncate text-xs text-accent-12 leading-4"
-              title={deployment.gitCommitMessage}
-            >
-              {deployment.gitCommitMessage}
-            </span>
-          </div>
-        ) : null}
-      </div>
-
-      {/* Meta */}
-      <div className="md:w-[30%] md:shrink-0 flex items-center md:justify-end gap-3">
-        <span className="relative z-20">
-          <TimestampInfo
-            value={deployment.createdAt}
-            displayType="relative"
-            side="left"
-            align="center"
-            className="text-[13px] text-gray-9"
-          />
+      <span className="flex min-w-0 flex-1 items-center gap-2">
+        <span
+          className="min-w-0 truncate text-[13px] text-accent-12"
+          title={deployment.gitCommitMessage ?? deployment.image ?? undefined}
+        >
+          {deployment.gitCommitMessage ??
+            (deployment.image ? imageDisplay(deployment.image) : shortenId(deployment.id))}
         </span>
-        <Avatar
-          src={deployment.gitCommitAuthorAvatarUrl}
-          alt={deployment.gitCommitAuthorHandle ?? "Author"}
+        {showLastExit && deployment.lastExit && (
+          <span className="relative z-20 shrink-0">
+            <LastExitBadge lastExit={deployment.lastExit} />
+          </span>
+        )}
+      </span>
+
+      <span className="flex min-w-0 shrink-0 items-center gap-2 md:w-44">
+        <DeploymentStatusDot status={deployment.status} />
+        <span className="truncate text-[13px] font-medium text-accent-12">{statusLabel}</span>
+        <DeploymentDuration
+          status={deployment.status}
+          createdAt={deployment.createdAt}
+          buildEndedAt={deployment.buildEndedAt}
         />
-        <div className="relative z-20" role="presentation">
-          <DeploymentListTableActions
-            selectedDeployment={deployment}
-            environment={environment}
-            currentDeployment={currentDeployment}
-            isRolledBack={isRolledBack}
-          />
-        </div>
-      </div>
+      </span>
+      <span className="hidden w-32 shrink-0 items-center gap-2 sm:flex">
+        {environment && <EnvironmentBadge environment={environment} isCurrent={isCurrent} />}
+        {isCurrent && isRolledBack && <EnvStatusBadge variant="rolledBack" text="Rolled Back" />}
+      </span>
+      <span className="hidden w-32 min-w-0 shrink-0 items-center md:flex">
+        {deployment.gitCommitSha ? (
+          <CommitSha deployment={deployment} repoFullName={repoFullName} />
+        ) : deployment.image ? (
+          <ImageRef image={deployment.image} />
+        ) : null}
+      </span>
+      <span className="hidden w-40 min-w-0 shrink-0 items-center lg:flex">
+        {deployment.gitBranch ? (
+          <BranchCell branch={deployment.gitBranch} repoFullName={repoFullName} />
+        ) : (
+          <OriginCell deployment={deployment} />
+        )}
+      </span>
+      <span className="ml-auto flex shrink-0 items-center gap-3">
+        <span className="hidden w-36 shrink-0 justify-end md:flex">
+          <RowTime value={deployment.createdAt} />
+        </span>
+        <span className="hidden w-5 shrink-0 justify-center md:flex">
+          <AuthorCell deployment={deployment} />
+        </span>
+        <RowMenu
+          deployment={deployment}
+          environment={environment}
+          currentDeployment={currentDeployment}
+          isRolledBack={isRolledBack}
+        />
+      </span>
     </ResourceListItem>
   );
 }

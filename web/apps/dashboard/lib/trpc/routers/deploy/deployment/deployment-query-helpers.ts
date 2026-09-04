@@ -1,4 +1,5 @@
 import type { InstanceStatus } from "@/lib/collections/deploy/instance-status";
+import type { InferSelectModel } from "@/lib/db";
 import type { LastExit } from "@/lib/types/deploy";
 import { type ContainerStatus, deployments } from "@unkey/db/src/schema";
 import { mapRegionToFlag } from "../network/utils";
@@ -31,6 +32,16 @@ export const deploymentSelectFields = {
   createdAt: deployments.createdAt,
   updatedAt: deployments.updatedAt,
 } as const;
+
+export const deploymentListSelect = {
+  ...deploymentSelectFields,
+  appId: deployments.appId,
+} as const;
+
+export type DeploymentListSelection = Pick<
+  InferSelectModel<typeof deployments>,
+  keyof typeof deploymentListSelect
+>;
 
 export function mapInstanceRow(row: {
   id: string;

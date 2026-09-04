@@ -19,6 +19,7 @@ export type ProductionCardContextValue = {
   additionalDomains: CardDomain[];
   addCustomDomainHref: { pathname: Route; hash: string } | null;
   diagnostic: { label: string; href: Route } | null;
+  deploymentHref: Route;
   logsHref: Route;
   requestsHref: Route;
   rollbackTarget: Deployment | undefined;

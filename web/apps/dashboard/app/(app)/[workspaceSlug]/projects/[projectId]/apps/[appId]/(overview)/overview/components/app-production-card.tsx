@@ -186,6 +186,12 @@ export function AppProductionCard() {
     additionalDomains: additional.map((d) => ({ hostname: d.hostname, url: d.url })),
     addCustomDomainHref,
     diagnostic,
+    deploymentHref: routes.projects.apps.deployment({
+      workspaceSlug: workspace.slug,
+      projectId,
+      appId,
+      deploymentId: deployment.id,
+    }),
     logsHref: routes.projects.logs({ workspaceSlug: workspace.slug, projectId, appId }),
     requestsHref: routes.projects.requests({
       workspaceSlug: workspace.slug,
