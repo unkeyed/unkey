@@ -123,6 +123,18 @@ describe("getAlertSeries", () => {
     expect(query).toContain("greatest( expected_stddev, 0.1 * expected_mean, 0.01 )");
   });
 
+  it("excludes sparse no-request buckets from error deviation and lifetime", async () => {
+    const ch = new CapturingQuerier();
+
+    await getAlertSeries(ch)({ ...baseRequest, metric: "error_5xx" });
+
+    const query = ch.queries[0]?.replace(/\s+/g, " ");
+    expect(query).toContain("if(time >= first_bucket_time AND requests > 0, toNullable(value)");
+    expect(query).toContain("count(lifetime_value) OVER");
+    expect(query).toContain("if(time >= first_bucket_time, toNullable(errors)");
+    expect(query).toContain("if(time >= first_bucket_time, toNullable(requests)");
+  });
+
   it("weights instances equally when their container counts differ", async () => {
     const ch = new CapturingQuerier();
 

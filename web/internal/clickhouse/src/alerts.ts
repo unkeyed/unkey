@@ -346,7 +346,7 @@ function withExpectedErrorRatioRange(
         SELECT
           time,
           value,
-          if(time >= first_bucket_time, toNullable(value), CAST(NULL, 'Nullable(Float64)')) AS lifetime_value,
+          if(time >= first_bucket_time AND requests > 0, toNullable(value), CAST(NULL, 'Nullable(Float64)')) AS lifetime_value,
           if(time >= first_bucket_time, toNullable(errors), CAST(NULL, 'Nullable(Float64)')) AS lifetime_errors,
           if(time >= first_bucket_time, toNullable(requests), CAST(NULL, 'Nullable(Float64)')) AS lifetime_requests
         FROM (${observedQuery})
