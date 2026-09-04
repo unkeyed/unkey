@@ -420,6 +420,8 @@ func (s *Seeder) CreateDeployment(ctx context.Context, req CreateDeploymentReque
 		ProjectID:                     req.ProjectID,
 		AppID:                         req.AppID,
 		EnvironmentID:                 req.EnvironmentID,
+		Source:                        db.DeploymentsSourceUnknown,
+		ImageRequested:                sql.NullString{Valid: false},
 		GitCommitSha:                  sql.NullString{String: "", Valid: false},
 		GitBranch:                     sql.NullString{String: "", Valid: false},
 		SentinelConfig:                []byte("{}"),

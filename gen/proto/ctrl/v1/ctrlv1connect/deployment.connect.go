@@ -59,7 +59,7 @@ const (
 
 // DeployServiceClient is a client for the ctrl.v1.DeployService service.
 type DeployServiceClient interface {
-	// Create a new deployment from a docker image or by auto-detecting
+	// Create a new deployment from an OCI image or by auto-detecting
 	// the appropriate source for the project.
 	CreateDeployment(context.Context, *connect.Request[v1.CreateDeploymentRequest]) (*connect.Response[v1.CreateDeploymentResponse], error)
 	// Get deployment details
@@ -202,7 +202,7 @@ func (c *deployServiceClient) DeprovisionCompute(ctx context.Context, req *conne
 
 // DeployServiceHandler is an implementation of the ctrl.v1.DeployService service.
 type DeployServiceHandler interface {
-	// Create a new deployment from a docker image or by auto-detecting
+	// Create a new deployment from an OCI image or by auto-detecting
 	// the appropriate source for the project.
 	CreateDeployment(context.Context, *connect.Request[v1.CreateDeploymentRequest]) (*connect.Response[v1.CreateDeploymentResponse], error)
 	// Get deployment details

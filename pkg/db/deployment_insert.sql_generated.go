@@ -21,6 +21,8 @@ INSERT INTO ` + "`" + `deployments` + "`" + ` (
     project_id,
     app_id,
     environment_id,
+    source,
+    image_requested,
     git_commit_sha,
     git_branch,
     sentinel_config,
@@ -76,6 +78,8 @@ VALUES (
     ?,
     ?,
     ?,
+    ?,
+    ?,
     ?
 )
 `
@@ -87,6 +91,8 @@ type InsertDeploymentParams struct {
 	ProjectID                     string                      `db:"project_id"`
 	AppID                         string                      `db:"app_id"`
 	EnvironmentID                 string                      `db:"environment_id"`
+	Source                        DeploymentsSource           `db:"source"`
+	ImageRequested                sql.NullString              `db:"image_requested"`
 	GitCommitSha                  sql.NullString              `db:"git_commit_sha"`
 	GitBranch                     sql.NullString              `db:"git_branch"`
 	SentinelConfig                []byte                      `db:"sentinel_config"`
@@ -122,6 +128,8 @@ type InsertDeploymentParams struct {
 //	    project_id,
 //	    app_id,
 //	    environment_id,
+//	    source,
+//	    image_requested,
 //	    git_commit_sha,
 //	    git_branch,
 //	    sentinel_config,
@@ -177,6 +185,8 @@ type InsertDeploymentParams struct {
 //	    ?,
 //	    ?,
 //	    ?,
+//	    ?,
+//	    ?,
 //	    ?
 //	)
 func (q *Queries) InsertDeployment(ctx context.Context, db DBTX, arg InsertDeploymentParams) error {
@@ -187,6 +197,8 @@ func (q *Queries) InsertDeployment(ctx context.Context, db DBTX, arg InsertDeplo
 		arg.ProjectID,
 		arg.AppID,
 		arg.EnvironmentID,
+		arg.Source,
+		arg.ImageRequested,
 		arg.GitCommitSha,
 		arg.GitBranch,
 		arg.SentinelConfig,

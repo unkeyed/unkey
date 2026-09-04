@@ -44,7 +44,7 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 		return s.db.ListRepoConnectionDeployContexts(runCtx, db.ListRepoConnectionDeployContextsParams{
 			InstallationID: req.GetInstallationId(),
 			RepositoryID:   req.GetRepositoryId(),
-			Branch:         branch,
+			Branch:         sql.NullString{String: branch, Valid: branch != ""},
 			IsForkPr:       boolToInt64(req.GetIsForkPr()),
 		})
 	}, restate.WithName("list deploy contexts"))
@@ -121,7 +121,7 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 		return s.db.ListEnvVarsForRepoConnections(runCtx, db.ListEnvVarsForRepoConnectionsParams{
 			InstallationID: req.GetInstallationId(),
 			RepositoryID:   req.GetRepositoryId(),
-			Branch:         branch,
+			Branch:         sql.NullString{String: branch, Valid: branch != ""},
 			IsForkPr:       boolToInt64(req.GetIsForkPr()),
 		})
 	}, restate.WithName("list env vars"))
@@ -391,6 +391,8 @@ func insertDeploymentRecord(
 			ProjectID:                     row.ProjectID,
 			AppID:                         row.AppID,
 			EnvironmentID:                 row.EnvironmentID,
+			Source:                        db.DeploymentsSourceGit,
+			ImageRequested:                sql.NullString{Valid: false},
 			SentinelConfig:                row.RuntimeSettingsSentinelConfig,
 			EncryptedEnvironmentVariables: secretsBlob,
 			Command:                       row.RuntimeSettingsCommand,

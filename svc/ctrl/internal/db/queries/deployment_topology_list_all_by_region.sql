@@ -15,6 +15,7 @@ SELECT
     d.environment_id AS deployment_environment_id,
     d.app_id AS deployment_app_id,
     d.image AS deployment_image,
+    d.image_resolved AS deployment_image_resolved,
     d.build_id AS deployment_build_id,
     d.git_commit_sha AS deployment_git_commit_sha,
     d.git_branch AS deployment_git_branch,

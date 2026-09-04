@@ -27,6 +27,7 @@ SELECT
     d.environment_id AS deployment_environment_id,
     d.app_id AS deployment_app_id,
     d.image AS deployment_image,
+    d.image_resolved AS deployment_image_resolved,
     d.build_id AS deployment_build_id,
     d.git_commit_sha AS deployment_git_commit_sha,
     d.git_branch AS deployment_git_branch,
@@ -74,6 +75,7 @@ type ListAllDeploymentTopologiesByRegionRow struct {
 	DeploymentEnvironmentID                 string                          `db:"deployment_environment_id"`
 	DeploymentAppID                         string                          `db:"deployment_app_id"`
 	DeploymentImage                         sql.NullString                  `db:"deployment_image"`
+	DeploymentImageResolved                 sql.NullString                  `db:"deployment_image_resolved"`
 	DeploymentBuildID                       sql.NullString                  `db:"deployment_build_id"`
 	DeploymentGitCommitSha                  sql.NullString                  `db:"deployment_git_commit_sha"`
 	DeploymentGitBranch                     sql.NullString                  `db:"deployment_git_branch"`
@@ -109,6 +111,7 @@ type ListAllDeploymentTopologiesByRegionRow struct {
 //	    d.environment_id AS deployment_environment_id,
 //	    d.app_id AS deployment_app_id,
 //	    d.image AS deployment_image,
+//	    d.image_resolved AS deployment_image_resolved,
 //	    d.build_id AS deployment_build_id,
 //	    d.git_commit_sha AS deployment_git_commit_sha,
 //	    d.git_branch AS deployment_git_branch,
@@ -157,6 +160,7 @@ func (q *Queries) ListAllDeploymentTopologiesByRegion(ctx context.Context, arg L
 			&i.DeploymentEnvironmentID,
 			&i.DeploymentAppID,
 			&i.DeploymentImage,
+			&i.DeploymentImageResolved,
 			&i.DeploymentBuildID,
 			&i.DeploymentGitCommitSha,
 			&i.DeploymentGitBranch,

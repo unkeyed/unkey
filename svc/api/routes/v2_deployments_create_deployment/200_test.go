@@ -37,7 +37,7 @@ func TestImageSource(t *testing.T) {
 	require.Equal(t, setup.Project.ID, capture.req.ProjectId)
 	require.Equal(t, setup.App.ID, capture.req.AppId)
 	require.Equal(t, setup.Environment.Slug, capture.req.EnvironmentSlug)
-	require.Nil(t, capture.req.GitCommit, "image source must not send git commit info")
+	require.Nil(t, capture.req.GetGitCommit(), "image source must not send git commit info")
 	require.Equal(t, ctrlv1.DeploymentTrigger_DEPLOYMENT_TRIGGER_API, capture.req.Trigger)
 }
 
@@ -85,9 +85,9 @@ func TestGitSource(t *testing.T) {
 	require.NotEmpty(t, res.Body.Data.DeploymentId)
 
 	require.True(t, capture.called)
-	require.NotNil(t, capture.req.GitCommit)
-	require.Equal(t, "main", capture.req.GitCommit.Branch)
-	require.Equal(t, "abc123", capture.req.GitCommit.CommitSha)
+	require.NotNil(t, capture.req.GetGitCommit())
+	require.Equal(t, "main", capture.req.GetGitCommit().GetBranch())
+	require.Equal(t, "abc123", capture.req.GetGitCommit().GetCommitSha())
 	require.Empty(t, capture.req.DockerImage)
 }
 
@@ -111,9 +111,9 @@ func TestGitSourceWithFork(t *testing.T) {
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, authHeaders(setup.RootKey), req)
 	require.Equal(t, http.StatusCreated, res.Status, "expected 201, received: %s", res.RawBody)
 	require.True(t, capture.called)
-	require.NotNil(t, capture.req.GitCommit)
-	require.Equal(t, "contributor/acme-api", capture.req.GitCommit.ForkRepository)
-	require.Equal(t, "9f2c1a7", capture.req.GitCommit.CommitSha)
+	require.NotNil(t, capture.req.GetGitCommit())
+	require.Equal(t, "contributor/acme-api", capture.req.GetGitCommit().GetForkRepository())
+	require.Equal(t, "9f2c1a7", capture.req.GetGitCommit().GetCommitSha())
 }
 
 func TestRedeployGitApp(t *testing.T) {
@@ -142,8 +142,8 @@ func TestRedeployGitApp(t *testing.T) {
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, authHeaders(setup.RootKey), req)
 	require.Equal(t, http.StatusCreated, res.Status, "expected 201, received: %s", res.RawBody)
 	require.True(t, capture.called)
-	require.NotNil(t, capture.req.GitCommit, "git-connected app rebuilds from the recorded commit")
-	require.Equal(t, "main", capture.req.GitCommit.Branch)
+	require.NotNil(t, capture.req.GetGitCommit(), "git-connected app rebuilds from the recorded commit")
+	require.Equal(t, "main", capture.req.GetGitCommit().GetBranch())
 	require.Empty(t, capture.req.DockerImage)
 }
 
@@ -172,7 +172,7 @@ func TestRedeployImageReuse(t *testing.T) {
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, authHeaders(setup.RootKey), req)
 	require.Equal(t, http.StatusCreated, res.Status, "expected 201, received: %s", res.RawBody)
 	require.True(t, capture.called)
-	require.Nil(t, capture.req.GitCommit, "an app without a repo connection reuses the image instead of rebuilding")
+	require.Nil(t, capture.req.GetGitCommit(), "an app without a repo connection reuses the image instead of rebuilding")
 }
 
 // TestRedeployForkDeployment covers redeploying a deployment that was built from
@@ -210,13 +210,13 @@ func TestRedeployForkDeployment(t *testing.T) {
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, authHeaders(setup.RootKey), req)
 	require.Equal(t, http.StatusCreated, res.Status, "expected 201, received: %s", res.RawBody)
 	require.True(t, capture.called)
-	require.NotNil(t, capture.req.GitCommit)
-	require.Equal(t, "contributor/acme-api", capture.req.GitCommit.ForkRepository, "fork must be carried forward")
-	require.Equal(t, "9f2c1a7", capture.req.GitCommit.CommitSha)
-	require.Equal(t, "feature", capture.req.GitCommit.Branch)
-	require.Equal(t, "add KEBAP endpoint", capture.req.GitCommit.CommitMessage)
-	require.Equal(t, "contributor", capture.req.GitCommit.AuthorHandle)
-	require.Equal(t, int64(1700000000), capture.req.GitCommit.Timestamp)
+	require.NotNil(t, capture.req.GetGitCommit())
+	require.Equal(t, "contributor/acme-api", capture.req.GetGitCommit().GetForkRepository(), "fork must be carried forward")
+	require.Equal(t, "9f2c1a7", capture.req.GetGitCommit().GetCommitSha())
+	require.Equal(t, "feature", capture.req.GetGitCommit().GetBranch())
+	require.Equal(t, "add KEBAP endpoint", capture.req.GetGitCommit().GetCommitMessage())
+	require.Equal(t, "contributor", capture.req.GetGitCommit().GetAuthorHandle())
+	require.Equal(t, int64(1700000000), capture.req.GetGitCommit().GetTimestamp())
 	require.Empty(t, capture.req.DockerImage)
 }
 
@@ -251,7 +251,7 @@ func TestRedeployImageDeploymentOnConnectedApp(t *testing.T) {
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, authHeaders(setup.RootKey), req)
 	require.Equal(t, http.StatusCreated, res.Status, "expected 201, received: %s", res.RawBody)
 	require.True(t, capture.called)
-	require.Nil(t, capture.req.GitCommit, "an image-origin deployment has no commit to rebuild even on a connected app")
+	require.Nil(t, capture.req.GetGitCommit(), "an image-origin deployment has no commit to rebuild even on a connected app")
 	require.Equal(t, "nginx:latest", capture.req.DockerImage, "must reuse the recorded image")
 }
 

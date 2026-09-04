@@ -98,8 +98,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		AppId:           row.AppID,
 		EnvironmentSlug: req.EnvironmentSlug,
 		DockerImage:     req.DockerImage,
-		GitCommit: &ctrlv1.GitCommitInfo{
-			Branch: req.Branch,
+		Source: &ctrlv1.CreateDeploymentRequest_GitCommit{
+			GitCommit: &ctrlv1.GitCommitInfo{
+				Branch: req.Branch,
+			},
 		},
 		Trigger:     trigger,
 		TriggeredBy: principal.Subject.ID,
@@ -154,7 +156,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		if req.GitCommit.Timestamp != nil {
 			gitCommit.Timestamp = *req.GitCommit.Timestamp
 		}
-		ctrlReq.GitCommit = gitCommit
+		ctrlReq.Source = &ctrlv1.CreateDeploymentRequest_GitCommit{GitCommit: gitCommit}
 	}
 
 	ctrlResp, err := h.CtrlClient.CreateDeployment(ctx, ctrlReq)
