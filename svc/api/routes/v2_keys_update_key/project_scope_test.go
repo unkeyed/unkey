@@ -18,7 +18,9 @@ import (
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_keys_update_key"
 )
 
-func TestUpdateKeyRejectsPermissionFromAnotherProject(t *testing.T) {
+// TestUpdateKeyCreatesPermissionInKeyProject guarantees that a permission slug
+// in another project does not block a project-local permission assignment.
+func TestUpdateKeyCreatesPermissionInKeyProject(t *testing.T) {
 	h := testutil.NewHarness(t)
 	route := &handler.Handler{
 		DB:           h.DB,
@@ -43,9 +45,10 @@ func TestUpdateKeyRejectsPermissionFromAnotherProject(t *testing.T) {
 		Name:        ptr.P("project-scoped-key"),
 	})
 
-	permissionSlug := "documents.read.update.wrong-project"
+	permissionSlug := "documents.read.update.shared-slug"
+	otherPermissionID := uid.New(uid.PermissionPrefix)
 	err := db.Query.InsertPermission(t.Context(), h.DB.RW(), db.InsertPermissionParams{
-		PermissionID: uid.New(uid.PermissionPrefix),
+		PermissionID: otherPermissionID,
 		WorkspaceID:  workspace.ID,
 		ProjectID:    otherProjectAPI.ProjectID,
 		Name:         permissionSlug,
@@ -57,7 +60,7 @@ func TestUpdateKeyRejectsPermissionFromAnotherProject(t *testing.T) {
 
 	writeKey := fmt.Sprintf("unkey:v1:%s:projects/%s/keyspaces/%s/keys/%s#write", workspace.ID, keyProject.ID, keyProjectAPI.KeyAuthID.String, key.KeyID)
 	rootKey := h.CreateRootKey(workspace.ID, writeKey)
-	res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, http.Header{
+	res := testutil.CallRoute[handler.Request, handler.Response](h, route, http.Header{
 		"Content-Type":  {"application/json"},
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
 	}, handler.Request{
@@ -65,12 +68,14 @@ func TestUpdateKeyRejectsPermissionFromAnotherProject(t *testing.T) {
 		Permissions: ptr.P([]string{permissionSlug}),
 	})
 
-	require.Equal(t, http.StatusNotFound, res.Status, "got: %s", res.RawBody)
-	require.Contains(t, res.Body.Error.Detail, permissionSlug)
+	require.Equal(t, http.StatusOK, res.Status, "got: %s", res.RawBody)
 
 	permissions, err := db.Query.ListDirectPermissionsByKeyID(t.Context(), h.DB.RO(), key.KeyID)
 	require.NoError(t, err)
-	require.Empty(t, permissions)
+	require.Len(t, permissions, 1)
+	require.Equal(t, keyProject.ID, permissions[0].ProjectID)
+	require.Equal(t, permissionSlug, permissions[0].Slug)
+	require.NotEqual(t, otherPermissionID, permissions[0].ID)
 }
 
 func TestUpdateKeyRejectsIdentityFromAnotherProject(t *testing.T) {

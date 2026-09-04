@@ -96,7 +96,7 @@ func TestSetRolePermissions(t *testing.T) {
 		}
 	})
 
-	t.Run("permission from another project is not attached", func(t *testing.T) {
+	t.Run("matching slug in another project creates a local permission", func(t *testing.T) {
 		role := h.CreateRole(seed.CreateRoleRequest{WorkspaceID: workspace.ID, Name: "project-role"})
 		otherProject := h.CreateProject(seed.CreateProjectRequest{
 			ID:          uid.New(uid.ProjectPrefix),
@@ -105,8 +105,9 @@ func TestSetRolePermissions(t *testing.T) {
 			Slug:        "other-role-permission-project",
 		})
 		permissionSlug := "other.project.role.permission"
+		otherPermissionID := uid.New(uid.PermissionPrefix)
 		require.NoError(t, db.Query.InsertPermission(ctx, h.DB.RW(), db.InsertPermissionParams{
-			PermissionID: uid.New(uid.PermissionPrefix),
+			PermissionID: otherPermissionID,
 			WorkspaceID:  workspace.ID,
 			ProjectID:    otherProject.ID,
 			Name:         permissionSlug,
@@ -115,13 +116,21 @@ func TestSetRolePermissions(t *testing.T) {
 			CreatedAtM:   time.Now().UnixMilli(),
 		}))
 
-		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, roleRequest(role.ID, []string{permissionSlug}))
+		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, roleRequest(role.ID, []string{permissionSlug}))
 
-		require.Equal(t, http.StatusNotFound, res.Status, res.RawBody)
-		require.Equal(t, "https://unkey.com/docs/errors/unkey/data/permission_not_found", res.Body.Error.Type)
+		require.Equal(t, http.StatusOK, res.Status, res.RawBody)
 		assigned, err := db.Query.ListDirectPermissionsByRoleID(ctx, h.DB.RO(), role.ID)
 		require.NoError(t, err)
-		require.Empty(t, assigned)
+		require.Len(t, assigned, 1)
+		require.Equal(t, permissionSlug, assigned[0].Slug)
+		require.NotEqual(t, otherPermissionID, assigned[0].ID)
+		localPermission, err := db.Query.FindPermissionBySlugAndProjectID(ctx, h.DB.RO(), db.FindPermissionBySlugAndProjectIDParams{
+			WorkspaceID: workspace.ID,
+			ProjectID:   role.ProjectID,
+			Slug:        permissionSlug,
+		})
+		require.NoError(t, err)
+		require.Equal(t, localPermission.ID, assigned[0].ID)
 	})
 
 	t.Run("requires add, remove, and create authorization", func(t *testing.T) {
