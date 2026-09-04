@@ -4,16 +4,8 @@ import { ChartEmpty } from "@/components/logs/chart/chart-states";
 import { type ChartConfig, ChartContainer, ChartTooltip } from "@/components/ui/chart";
 import { formatBytesPerSecondParts } from "@/lib/utils/deployment-formatters";
 import { cn } from "@unkey/ui/src/lib/utils";
-import { type ReactNode, useEffect, useId, useState } from "react";
-import {
-  Area,
-  AreaChart,
-  CartesianGrid,
-  type LabelProps,
-  ReferenceLine,
-  XAxis,
-  YAxis,
-} from "recharts";
+import { useEffect, useId, useState } from "react";
+import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts";
 import { resolveXAxisDomain } from "./chart-domain";
 import { ChartError } from "./components/chart-error";
 import { ChartWaveLoading } from "./components/chart-wave-loading";
@@ -23,27 +15,31 @@ export type AreaChartPoint = { originalTimestamp: number } & {
   [k: string]: number | undefined;
 };
 
-// Recharts hands the tooltip render callback an unknown `payload` shape; this
-// guard narrows it before we touch `originalTimestamp` so a future schema
-// drift surfaces as "no tooltip" rather than a runtime read of undefined.
 function isAreaChartPoint(value: unknown): value is AreaChartPoint {
   return (
     typeof value === "object" &&
     value !== null &&
-    typeof (value as { originalTimestamp?: unknown }).originalTimestamp === "number"
+    "originalTimestamp" in value &&
+    typeof value.originalTimestamp === "number"
   );
 }
 
-// Recharts v3 reports the hovered tick as `activeTooltipIndex`, not `activePayload`,
-// so look the point up by index.
 function activePointFromState(state: unknown, data: AreaChartPoint[]): AreaChartPoint | null {
   if (typeof state !== "object" || state === null) {
     return null;
   }
-  const s = state as { activeTooltipIndex?: unknown; activeIndex?: unknown };
-  const raw = s.activeTooltipIndex ?? s.activeIndex;
-  const idx =
-    typeof raw === "number" ? raw : typeof raw === "string" ? Number.parseInt(raw, 10) : Number.NaN;
+  const raw =
+    "activeTooltipIndex" in state
+      ? state.activeTooltipIndex
+      : "activeIndex" in state
+        ? state.activeIndex
+        : undefined;
+  let idx = Number.NaN;
+  if (typeof raw === "number") {
+    idx = raw;
+  } else if (typeof raw === "string") {
+    idx = Number.parseInt(raw, 10);
+  }
   if (!Number.isInteger(idx) || idx < 0 || idx >= data.length) {
     return null;
   }
@@ -51,73 +47,19 @@ function activePointFromState(state: unknown, data: AreaChartPoint[]): AreaChart
   return isAreaChartPoint(candidate) ? candidate : null;
 }
 
-// Visible Y-axes reserve a fixed gutter so plot areas align across a chart stack.
-// Hidden axes use no gutter because their cards render as standalone sparklines.
 const Y_GUTTER_PX = 36;
 
-// Tooltip row value. `value` is the primary (bold) number, `unit` the
-// immediate suffix ("MiB"), and `hint` a muted trailing annotation used
-// for secondary context like "(17%)" next to memory values.
 export type ValueParts = { value: string; unit?: string; hint?: string };
 
-export type AreaChartAnnotation = {
-  timestamp: number;
-  label?: string;
-};
-
-function DeploymentAnnotationLabel({ viewBox, value }: LabelProps) {
-  if (!viewBox || !("x" in viewBox) || typeof viewBox.x !== "number") {
-    return null;
-  }
-  if (!("y" in viewBox) || typeof viewBox.y !== "number" || typeof value !== "string") {
-    return null;
-  }
-
-  const width = Math.max(48, value.length * 5.5 + 16);
-  return (
-    <g transform={`translate(${viewBox.x}, ${viewBox.y + 7})`} pointerEvents="none">
-      <rect
-        x={-width / 2}
-        y={0}
-        width={width}
-        height={20}
-        rx={10}
-        fill="hsl(var(--gray-2))"
-        stroke="hsl(var(--feature-8))"
-      />
-      <text
-        x={0}
-        y={10.5}
-        dominantBaseline="middle"
-        textAnchor="middle"
-        fill="hsl(var(--gray-12))"
-        fontFamily="var(--font-mono)"
-        fontSize={9}
-        fontWeight={500}
-      >
-        {value}
-      </text>
-    </g>
-  );
-}
-
-// AreaTimeseriesAxisOptions groups axis visibility, domains, scaling, and formatting.
 export type AreaTimeseriesAxisOptions = {
-  // Set false to retain configured domains while hiding both axes.
   visible?: boolean;
   x?: {
-    // Forces the axis to span an explicit [start, end] range in milliseconds.
     domain?: [number, number];
-    // Contracts an explicit domain when non-zero data sparsely covers it.
     contractOnSparseData?: boolean;
     utc?: boolean;
   };
   y?: {
-    // Minimum top-of-axis when data is tiny or idle.
     floor?: number;
-    width?: number;
-    // Calculates the top-of-axis from the floored observed maximum.
-    getTop?: (max: number) => number;
     formatTick?: (value: number) => string;
   };
 };
@@ -130,20 +72,12 @@ type Props = {
   isError?: boolean;
   chartContainerClassname?: string;
   showDateInTooltip?: boolean;
-  // Renders a tooltip row value, e.g. `24.01` + ` MiB/s`. Defaults to
-  // bytes/s for network rate charts.
   formatTooltipValue?: (value: number) => ValueParts;
-  // Defaults to visible axes and a byte-oriented Y-axis with a 1 KiB floor.
-  // Pass null to hide both axes.
   axis?: AreaTimeseriesAxisOptions | null;
   paleFill?: boolean;
   fillColors?: Record<string, string>;
-  incompleteFrom?: number;
-  annotations?: AreaChartAnnotation[];
-  renderTooltipFooter?: (point: AreaChartPoint) => ReactNode;
   onActiveChange?: (point: AreaChartPoint | null) => void;
   hideTooltip?: boolean;
-  // Renders non-empty, all-zero data as a flat line instead of an empty state.
   showZeroLine?: boolean;
 };
 
@@ -159,9 +93,6 @@ export function AreaTimeseriesChart({
   axis,
   paleFill,
   fillColors,
-  incompleteFrom,
-  annotations,
-  renderTooltipFooter,
   onActiveChange,
   hideTooltip,
   showZeroLine,
@@ -197,29 +128,16 @@ export function AreaTimeseriesChart({
     );
   }
 
-  // Evenly-spaced Y-axis ticks at 0 / ⅓ / ⅔ / top. We compute them ourselves
-  // because recharts' auto-picker chooses "nice round" values (300/600/1.0K)
-  // that aren't evenly distributed on the pixel axis. Explicit ticks keep
-  // the dashed grid lines visually even regardless of data range.
   const dataMax = data.reduce(
     (m, p) => configKeys.reduce((mm, k) => Math.max(mm, Number(p[k]) || 0), m),
     0,
   );
   const yAxisFloor = axis === null ? 0 : (axis?.y?.floor ?? 1024);
   const formatYTick = axis?.y?.formatTick ?? formatYAxisCompactBytes;
-  const yAxisMax = Math.max(dataMax, yAxisFloor);
-  const top = renderZeroLine
-    ? Math.max(yAxisFloor, 1)
-    : axis?.y?.getTop
-      ? axis.y.getTop(yAxisMax)
-      : yAxisMax * 1.1;
+  const top = renderZeroLine ? Math.max(yAxisFloor, 1) : Math.max(dataMax, yAxisFloor) * 1.1;
   const yTicks = [0, top / 3, (2 * top) / 3, top];
   const yDomain: [number, number] = [0, top];
 
-  // Bounds of the non-zero samples (not the raw data extent). resolveXAxisDomain
-  // needs these to decide whether the data sparsely covers the window; we scan
-  // for non-zero because ClickHouse's WITH FILL pads every bucket, so the raw
-  // extent would always look full.
   let firstNonZeroTs: number | undefined;
   let lastNonZeroTs: number | undefined;
   for (const p of data) {
@@ -237,33 +155,11 @@ export function AreaTimeseriesChart({
   const xTickFormatter = (v: number) => formatXAxisTick(v, spanMs, axis?.x?.utc);
   const showAxes = axis !== null && axis?.visible !== false;
 
-  // Explicit ticks at 0% / 33% / 66% / 100% of the anchored domain so the
-  // user always sees the window's start and end labeled. Without this,
-  // recharts' auto-picker can place all ticks inside the data extent,
-  // leaving the leading empty portion of the axis unlabeled — which
-  // reads as "chart starts at 5:17" when the axis actually spans back
-  // to 5:00.
   const xTicks = effectiveDomain
     ? [0, 1, 2, 3].map((i) =>
         Math.round(effectiveDomain[0] + (i * (effectiveDomain[1] - effectiveDomain[0])) / 3),
       )
     : undefined;
-  const incompleteIndex =
-    incompleteFrom === undefined
-      ? -1
-      : data.findIndex((point) => point.originalTimestamp >= incompleteFrom);
-  const hasIncompleteSegment = incompleteIndex > 0;
-  const chartData = hasIncompleteSegment
-    ? data.map((point, index) => {
-        const segmentedPoint: AreaChartPoint = { ...point };
-        for (const key of configKeys) {
-          segmentedPoint[completeDataKey(key)] = index < incompleteIndex ? point[key] : undefined;
-          segmentedPoint[incompleteDataKey(key)] =
-            index >= incompleteIndex - 1 ? point[key] : undefined;
-        }
-        return segmentedPoint;
-      })
-    : data;
 
   return (
     <ChartContainer
@@ -272,7 +168,7 @@ export function AreaTimeseriesChart({
       style={{ height, width: "100%" }}
     >
       <AreaChart
-        data={chartData}
+        data={data}
         onMouseMove={handleActive}
         onMouseLeave={onActiveChange ? () => onActiveChange(null) : undefined}
         margin={
@@ -354,7 +250,7 @@ export function AreaTimeseriesChart({
           hide={!showAxes}
         />
         <YAxis
-          width={showAxes ? (axis?.y?.width ?? Y_GUTTER_PX) : 0}
+          width={showAxes ? Y_GUTTER_PX : 0}
           tickLine={false}
           axisLine={false}
           tickFormatter={formatYTick}
@@ -376,23 +272,18 @@ export function AreaTimeseriesChart({
             if (hideTooltip || !active || !payload?.length) {
               return null;
             }
-            const candidate = payload[0]?.payload;
-            if (!isAreaChartPoint(candidate)) {
+            const point: unknown = payload[0]?.payload;
+            if (!isAreaChartPoint(point)) {
               return null;
             }
-            const point = candidate;
             const labelText = formatCompactInterval(
               point.originalTimestamp,
               data,
               showDateInTooltip,
             );
-            // Sort rows by value descending so whichever series is dominating
-            // shows first — matches where the user's eye goes on a spike.
-            // Ties preserve declared order.
             const rows = configKeys
               .map((key) => ({ key, value: Number(point[key]) || 0 }))
               .sort((a, b) => b.value - a.value);
-            const footer = renderTooltipFooter?.(point);
             return (
               <div
                 role="tooltip"
@@ -421,7 +312,6 @@ export function AreaTimeseriesChart({
                     );
                   })}
                 </div>
-                {footer}
               </div>
             );
           }}
@@ -430,7 +320,7 @@ export function AreaTimeseriesChart({
           configKeys.map((key) => (
             <Area
               key={`${key}-glow`}
-              dataKey={hasIncompleteSegment ? completeDataKey(key) : key}
+              dataKey={key}
               type="monotone"
               stroke={config[key].color}
               strokeWidth={3.5}
@@ -448,9 +338,9 @@ export function AreaTimeseriesChart({
             key={key}
             dataKey={key}
             type="monotone"
-            stroke={hasIncompleteSegment ? "none" : config[key].color}
+            stroke={config[key].color}
             strokeWidth={1.5}
-            fill={hasIncompleteSegment ? "none" : `url(#${chartId}-${key})`}
+            fill={`url(#${chartId}-${key})`}
             fillOpacity={1}
             isAnimationActive={shouldAnimate}
             animationDuration={500}
@@ -476,76 +366,12 @@ export function AreaTimeseriesChart({
             }}
           />
         ))}
-        {hasIncompleteSegment &&
-          configKeys.map((key) => (
-            <Area
-              key={`${key}-complete`}
-              dataKey={completeDataKey(key)}
-              type="monotone"
-              stroke={config[key].color}
-              strokeWidth={1.5}
-              fill={`url(#${chartId}-${key})`}
-              fillOpacity={1}
-              isAnimationActive={shouldAnimate}
-              animationDuration={500}
-              animationEasing="ease-out"
-              dot={false}
-              activeDot={false}
-            />
-          ))}
-        {hasIncompleteSegment &&
-          configKeys.map((key) => (
-            <Area
-              key={`${key}-incomplete`}
-              dataKey={incompleteDataKey(key)}
-              type="monotone"
-              stroke={config[key].color}
-              strokeWidth={1.5}
-              strokeDasharray="4 4"
-              strokeLinecap="round"
-              fill={`url(#${chartId}-${key})`}
-              fillOpacity={1}
-              isAnimationActive={shouldAnimate}
-              animationDuration={500}
-              animationEasing="ease-out"
-              dot={false}
-              activeDot={false}
-            />
-          ))}
-        {annotations?.map((annotation) => (
-          <ReferenceLine
-            key={annotation.timestamp}
-            x={annotation.timestamp}
-            stroke="hsl(var(--feature-8))"
-            strokeWidth={1}
-            strokeDasharray="4 4"
-            strokeOpacity={0.6}
-            label={
-              annotation.label
-                ? { value: annotation.label, content: DeploymentAnnotationLabel }
-                : undefined
-            }
-            zIndex={500}
-          />
-        ))}
       </AreaChart>
     </ChartContainer>
   );
 }
 
-function completeDataKey(key: string): string {
-  return `__complete_${key}`;
-}
-
-function incompleteDataKey(key: string): string {
-  return `__incomplete_${key}`;
-}
-
-// Y-axis ticks use two-letter byte-scale suffixes (B / KB / MB / GB).
-// Short enough to keep the axis narrow, long enough to read as units at
-// a glance — a single "M" looks like a variable name, "MB" reads as size.
-// Full IEC units ("MiB/s") live in the tooltip.
-export function formatYAxisCompactBytes(v: number): string {
+function formatYAxisCompactBytes(v: number): string {
   if (!Number.isFinite(v) || v <= 0) {
     return "";
   }
@@ -564,10 +390,6 @@ export function formatYAxisCompactBytes(v: number): string {
   return `${Math.round(v)} B`;
 }
 
-// Rate variant used by the Network chart. The `/s` suffix on every tick
-// keeps the y-axis unit visually consistent with the headline stat
-// ("8.40 MiB/s") and prevents the user from pairing a rate tick with the
-// separate "total MiB" aggregate in the header.
 export function formatYAxisCompactBytesPerSecond(v: number): string {
   if (!Number.isFinite(v) || v <= 0) {
     return "";
@@ -580,9 +402,6 @@ export function formatYAxisCompactBytesPerSecond(v: number): string {
   return `${bytes}/s`;
 }
 
-// One decimal only when it carries information: "1.5K" yes, "7.0M" no.
-// niceCeil picks ticks that divide cleanly by the unit, so in practice
-// this nearly always renders an integer.
 function trim(n: number): string {
   if (n >= 10) {
     return `${Math.round(n)}`;
@@ -594,9 +413,6 @@ function trim(n: number): string {
   return n.toFixed(1);
 }
 
-// X-axis tick format: "HH:MM" for sub-2-day spans, "MMM d" once we're
-// looking at a multi-day window. Inferred from the data span so the chart
-// doesn't need the caller to pass the selected window explicitly.
 const TWO_DAYS_MS = 2 * 24 * 60 * 60 * 1000;
 function formatXAxisTick(v: number, spanMs: number, utc?: boolean): string {
   if (!Number.isFinite(v) || v <= 0) {
