@@ -133,6 +133,37 @@ func TestSourceCompleteness(t *testing.T) {
 	})
 }
 
+func TestInstanceEventRecoveryUsesResourceCompleteness(t *testing.T) {
+	t.Parallel()
+
+	complete := ingestCompleteness{Resources: sourceStatus{Complete: true}}
+	quiet := evaluateMetrics(groupWindow{}, 2_000_000, complete)
+	require.Equal(t,
+		hydrav1.DeployAnomalyMetricDataState_DEPLOY_ANOMALY_METRIC_DATA_STATE_ZERO_COMPLETE,
+		metricByName(t, quiet, MetricOOMKilled).GetDataState(),
+	)
+
+	incomplete := ingestCompleteness{Resources: sourceStatus{Complete: false}}
+	present := evaluateMetrics(groupWindow{events: &clickhouse.InstanceEventAnomalyWindow{
+		OOMKilledCurrent: 1,
+	}}, 2_000_000, incomplete)
+	require.Equal(t,
+		hydrav1.DeployAnomalyMetricDataState_DEPLOY_ANOMALY_METRIC_DATA_STATE_PRESENT,
+		metricByName(t, present, MetricOOMKilled).GetDataState(),
+	)
+}
+
+func metricByName(t *testing.T, metrics []*hydrav1.DeployAnomalyMetricInput, metric Metric) *hydrav1.DeployAnomalyMetricInput {
+	t.Helper()
+	for _, input := range metrics {
+		if input.GetMetric() == string(metric) {
+			return input
+		}
+	}
+	require.FailNow(t, "metric not found", string(metric))
+	return nil
+}
+
 func TestRequestDropSuppressed(t *testing.T) {
 	t.Parallel()
 

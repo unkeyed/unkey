@@ -106,6 +106,7 @@ func TestRunDeployAnomalyCheck_Integration(t *testing.T) {
 	assertBaselineAdaptedResolution(t, h)
 	assertDeploymentTopologyMetadata(t, h)
 	assertAnomalyShardCompatibility(t, h)
+	assertInstanceEventRecoveryWithoutNewEvents(t, h)
 }
 
 func assertIncompleteTelemetryNoop(
@@ -338,6 +339,71 @@ func assertAnomalyShardCompatibility(t *testing.T, h *harness.Harness) {
 	}
 }
 
+func assertInstanceEventRecoveryWithoutNewEvents(t *testing.T, h *harness.Harness) {
+	t.Helper()
+
+	recoveryApp := createAnomalyTestApp(t, h, mysqltype.EnvironmentKindProduction)
+	recoveryStart := uniqueAnomalyWindowStart()
+	insertAnomalyOOMEvent(t, h, recoveryApp, recoveryStart)
+	advanceResourceWatermark(t, h, recoveryApp, recoveryStart)
+	runAnomalyWindow(t, h, recoveryStart)
+	recoveryAlertID := findOpenAnomalyAlertID(t, h, recoveryApp, db.AlertEventsMetricOomKilled)
+	for i := 1; i <= 3; i++ {
+		window := recoveryStart.Add(time.Duration(i) * 5 * time.Minute)
+		advanceResourceWatermark(t, h, recoveryApp, window)
+		runAnomalyWindow(t, h, window)
+	}
+	requireAnomalyAlertResolution(t, h, recoveryAlertID, "Metric returned to baseline for 3 consecutive windows")
+
+	maxAgeApp := createAnomalyTestApp(t, h, mysqltype.EnvironmentKindProduction)
+	maxAgeStart := time.Now().UTC().Truncate(5 * time.Minute).Add(-25 * time.Hour)
+	insertAnomalyOOMEvent(t, h, maxAgeApp, maxAgeStart)
+	advanceResourceWatermark(t, h, maxAgeApp, maxAgeStart)
+	runAnomalyWindow(t, h, maxAgeStart)
+	maxAgeAlertID := findOpenAnomalyAlertID(t, h, maxAgeApp, db.AlertEventsMetricOomKilled)
+	maxAgeWindow := maxAgeStart.Add(24 * time.Hour)
+	advanceResourceWatermark(t, h, maxAgeApp, maxAgeWindow)
+	runAnomalyWindow(t, h, maxAgeWindow)
+	requireAnomalyAlertResolution(t, h, maxAgeAlertID, "Baseline adapted after 24 hours")
+}
+
+func insertAnomalyOOMEvent(t *testing.T, h *harness.Harness, app anomalyTestApp, windowStart time.Time) {
+	t.Helper()
+	require.NoError(t, h.ClickHouseConn.Exec(h.Ctx, `
+		INSERT INTO default.instance_events_raw_v1 (
+			time, workspace_id, project_id, app_id, environment_id, deployment_id,
+			event_kind, reason, region, event_fingerprint, attributes
+		) VALUES (?, ?, ?, ?, ?, ?, 'terminated', 'OOMKilled', 'anomaly-integration', ?, '{}')
+	`, windowStart.Add(time.Minute).UnixMilli(), app.workspaceID, app.projectID,
+		app.appID, app.environmentID, app.deploymentID, uid.New("event")))
+}
+
+func findOpenAnomalyAlertID(
+	t *testing.T,
+	h *harness.Harness,
+	app anomalyTestApp,
+	metric db.AlertEventsMetric,
+) string {
+	t.Helper()
+	var alertID string
+	require.NoError(t, h.DB.RO().QueryRowContext(h.Ctx, `
+		SELECT id FROM alert_events
+		WHERE app_id = ? AND environment_id = ? AND metric = ? AND status = 'open'
+	`, app.appID, app.environmentID, metric).Scan(&alertID))
+	return alertID
+}
+
+func requireAnomalyAlertResolution(t *testing.T, h *harness.Harness, alertID, message string) {
+	t.Helper()
+	var status string
+	var resolutionMessage sql.NullString
+	require.NoError(t, h.DB.RO().QueryRowContext(h.Ctx,
+		"SELECT status, resolution_message FROM alert_events WHERE id = ?", alertID).
+		Scan(&status, &resolutionMessage))
+	require.Equal(t, "resolved", status)
+	require.Equal(t, message, resolutionMessage.String)
+}
+
 func createAnomalyTestApp(t *testing.T, h *harness.Harness, kind mysqltype.EnvironmentKind) anomalyTestApp {
 	t.Helper()
 	workspace := h.Seed.CreateWorkspace(h.Ctx)
@@ -398,22 +464,12 @@ func advanceResourceWatermark(t *testing.T, h *harness.Harness, app anomalyTestA
 
 func runAnomalyWindow(t *testing.T, h *harness.Harness, windowStart time.Time) {
 	t.Helper()
-	require.NoError(t, h.ClickHouseConn.Exec(h.Ctx, `
-		INSERT INTO default.anomaly_source_watermarks_v1 (source, region, time)
-		SELECT
-			source,
-			region,
-			if(source = 'resources', toDateTime(?), toDateTime(?)) AS time
-		FROM default.anomaly_source_watermarks_v1
-		WHERE anomaly_source_watermarks_v1.time > now() - INTERVAL 2 HOUR
-		GROUP BY source, region
-	`, windowStart.Add(4*time.Minute), windowStart))
+	watermark := time.Now().UTC().Truncate(5 * time.Minute)
 	require.NoError(t, h.ClickHouseConn.Exec(h.Ctx, `
 		INSERT INTO default.anomaly_source_watermarks_v1 (source, region, time) VALUES
 			('requests', 'anomaly-integration', ?),
-			('resources', 'anomaly-integration', ?),
-			('instance_events', 'anomaly-integration', ?)
-	`, windowStart, windowStart.Add(4*time.Minute), windowStart))
+			('resources', 'anomaly-integration', ?)
+	`, watermark, watermark.Add(4*time.Minute)))
 	key := "deploy-anomaly-" + strconv.FormatInt(windowStart.Unix(), 10)
 	_, err := hydrav1.NewCronServiceIngressClient(h.Restate, key).
 		RunDeployAnomalyCheck().Request(h.Ctx, &hydrav1.RunDeployAnomalyCheckRequest{})
@@ -421,7 +477,6 @@ func runAnomalyWindow(t *testing.T, h *harness.Harness, windowStart time.Time) {
 }
 
 func uniqueAnomalyWindowStart() time.Time {
-	const bucketsPerYear = 365 * 24 * 12
-	offset := city.CH64([]byte(uid.New("window")))%bucketsPerYear + 1
-	return time.Now().UTC().Truncate(5 * time.Minute).Add(time.Duration(offset) * 5 * time.Minute)
+	offset := city.CH64([]byte(uid.New("window"))) % 96
+	return time.Now().UTC().Truncate(5 * time.Minute).Add(-12*time.Hour + time.Duration(offset)*5*time.Minute)
 }

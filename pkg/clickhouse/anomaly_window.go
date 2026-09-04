@@ -108,9 +108,8 @@ type ResourceAnomalyWindow struct {
 }
 
 const (
-	AnomalySourceRequests       = "requests"
-	AnomalySourceResources      = "resources"
-	AnomalySourceInstanceEvents = "instance_events"
+	AnomalySourceRequests  = "requests"
+	AnomalySourceResources = "resources"
 )
 
 // AnomalySourceWatermark reports the exclusive time through which one active
