@@ -109,6 +109,7 @@ func TestRunDeployAnomalyCheck_Integration(t *testing.T) {
 	assertDeploymentTopologyMetadata(t, h)
 	assertAnomalyShardCompatibility(t, h)
 	assertInstanceEventRecoveryWithoutNewEvents(t, h)
+	assertOutOfOrderAnomalyWindowsIgnored(t, h)
 }
 
 func assertIncompleteTelemetryNoop(
@@ -371,6 +372,69 @@ func assertInstanceEventRecoveryWithoutNewEvents(t *testing.T, h *harness.Harnes
 
 func anomalyIngressKey(app anomalyTestApp) string {
 	return url.PathEscape(deployanomaly.GroupKey(app.workspaceID, app.appID, app.environmentID))
+}
+
+func assertOutOfOrderAnomalyWindowsIgnored(t *testing.T, h *harness.Harness) {
+	t.Helper()
+
+	app := createAnomalyTestApp(t, h, mysqltype.EnvironmentKindProduction)
+	windowOne := uniqueAnomalyWindowStart()
+	anomalous := &hydrav1.DeployAnomalyMetricInput{
+		Metric:    string(db.AlertEventsMetricError5xx),
+		DataState: hydrav1.DeployAnomalyMetricDataState_DEPLOY_ANOMALY_METRIC_DATA_STATE_PRESENT,
+		Current:   30, RequestsInWindow: 100, BaselineMean: 0.01,
+		ObservedBaselineBuckets: 12, FirstBucketTime: windowOne.Add(-time.Hour).UnixMilli(),
+	}
+	recovered := &hydrav1.DeployAnomalyMetricInput{
+		Metric:    string(db.AlertEventsMetricError5xx),
+		DataState: hydrav1.DeployAnomalyMetricDataState_DEPLOY_ANOMALY_METRIC_DATA_STATE_PRESENT,
+		Current:   1, RequestsInWindow: 100, BaselineMean: 0.01,
+		ObservedBaselineBuckets: 12, FirstBucketTime: windowOne.Add(-time.Hour).UnixMilli(),
+	}
+
+	sendAnomalyMetric(t, h, app, windowOne.Add(5*time.Minute), anomalous)
+	sendAnomalyMetric(t, h, app, windowOne, recovered)
+	sendAnomalyMetric(t, h, app, windowOne.Add(10*time.Minute), anomalous)
+	alertID := findOpenAnomalyAlertID(t, h, app, db.AlertEventsMetricError5xx)
+
+	touchWindow := windowOne.Add(15 * time.Minute)
+	sendAnomalyMetric(t, h, app, touchWindow, anomalous)
+	sendAnomalyMetric(t, h, app, windowOne.Add(5*time.Minute), anomalous)
+	var lastSeenAt int64
+	require.NoError(t, h.DB.RO().QueryRowContext(h.Ctx,
+		"SELECT last_seen_at FROM alert_events WHERE id = ?", alertID).Scan(&lastSeenAt))
+	require.Equal(t, touchWindow.Add(5*time.Minute).UnixMilli(), lastSeenAt)
+
+	sendAnomalyMetric(t, h, app, windowOne.Add(20*time.Minute), recovered)
+	sendAnomalyMetric(t, h, app, touchWindow, recovered)
+	sendAnomalyMetric(t, h, app, windowOne.Add(25*time.Minute), recovered)
+	var status string
+	require.NoError(t, h.DB.RO().QueryRowContext(h.Ctx,
+		"SELECT status FROM alert_events WHERE id = ?", alertID).Scan(&status))
+	require.Equal(t, "open", status, "a stale recovery must not advance the quiet-window count")
+	sendAnomalyMetric(t, h, app, windowOne.Add(30*time.Minute), recovered)
+	requireAnomalyAlertResolution(t, h, alertID, "Metric returned to baseline for 3 consecutive windows")
+}
+
+func sendAnomalyMetric(
+	t *testing.T,
+	h *harness.Harness,
+	app anomalyTestApp,
+	windowStart time.Time,
+	metric *hydrav1.DeployAnomalyMetricInput,
+) {
+	t.Helper()
+	_, err := hydrav1.NewDeployAnomalyServiceIngressClient(h.Restate,
+		anomalyIngressKey(app)).
+		Evaluate().Request(h.Ctx, &hydrav1.EvaluateDeployAnomalyRequest{
+		WindowStart: windowStart.UnixMilli(), WindowEnd: windowStart.Add(5 * time.Minute).UnixMilli(),
+		WorkspaceId: app.workspaceID, ProjectId: app.projectID,
+		AppId: app.appID, EnvironmentId: app.environmentID,
+		DeploymentId: app.deploymentID, DeploymentDesiredState: "running",
+		DeploymentHasRunningRegion: true,
+		Metrics:                    []*hydrav1.DeployAnomalyMetricInput{metric},
+	})
+	require.NoError(t, err)
 }
 
 func insertAnomalyOOMEvent(t *testing.T, h *harness.Harness, app anomalyTestApp, windowStart time.Time) {
