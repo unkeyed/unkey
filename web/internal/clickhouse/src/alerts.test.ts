@@ -74,10 +74,22 @@ describe("getAlertSeries", () => {
     expect(query).toContain("count(lifetime_value) OVER");
     expect(query).toContain("lifetime_buckets < 12");
     expect(query).toContain("greatest( expected_stddev, 0.1 * expected_mean, 20 )");
-    expect(query).toContain("quantileExact(0.5)(lifetime_value)");
     expect(query).toContain("ROWS BETWEEN 12 PRECEDING AND 1 PRECEDING");
     expect(query).toContain("recent_median * 0.25");
     expect(query).toContain("expected_mean + 4 * greatest(");
+  });
+
+  it("averages the two middle values in an even request-drop window", async () => {
+    const recentValues = Array.from({ length: 12 }, (_, index) => index);
+    const middleValues = recentValues.slice(5, 7);
+    expect(middleValues.reduce((sum, value) => sum + value, 0) / middleValues.length).toBe(5.5);
+
+    const ch = new CapturingQuerier();
+    await getAlertSeries(ch)({ ...baseRequest, metric: "requests" });
+
+    expect(ch.queries[0]?.replace(/\s+/g, " ")).toContain(
+      "quantileExactInclusive(0.5)(lifetime_value)",
+    );
   });
 
   it.each([
