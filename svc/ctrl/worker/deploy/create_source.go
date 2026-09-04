@@ -31,8 +31,6 @@ type buildSource struct {
 	Git   *gitSource `json:"git"`
 }
 
-// gitSource is the repository a git build clones, resolved from the app's
-// connection.
 type gitSource struct {
 	InstallationID int64  `json:"installation_id"`
 	Repository     string `json:"repository"`
@@ -185,9 +183,9 @@ func (w *Workflow) resolveExistingDeployment(
 	// rebuilding another workspace's deployment. A mismatch answers like a miss
 	// so the reason never confirms that a foreign deployment exists.
 	//
-	// Environment is not compared: the unset-source path rebuilds the app's
-	// current deployment, which is only ever set for production, into any
-	// environment.
+	// Environment is not compared. A request with no source rebuilds the app's
+	// current deployment, which is always a production one, into whatever
+	// environment the request targets.
 	if src.WorkspaceID != target.WorkspaceID || src.ProjectID != target.ProjectID ||
 		src.AppID != target.AppID {
 		return newRejectedSource(rejectf(
@@ -197,8 +195,6 @@ func (w *Workflow) resolveExistingDeployment(
 		)), nil
 	}
 
-	// Guardrail for the ops rebuild RPC: refuse to resurrect a deployment that
-	// someone has already shipped past.
 	if requireNoNewer {
 		hasNewer, newerErr := w.db.HasNewerActiveDeployment(ctx, db.HasNewerActiveDeploymentParams{
 			AppID:         src.AppID,
@@ -229,12 +225,8 @@ func (w *Workflow) resolveExistingDeployment(
 		ForkRepository:  src.ForkRepositoryFullName.String,
 	}
 
-	// A commit is only rebuildable while the app still has the connection to
-	// fetch it from. Without one, use the image the source produced.
-	if commit.SHA != "" {
-		if target.GithubRepositoryFullName.Valid {
-			return w.resolveGitSource(target, commit, src.PrNumber.Int64)
-		}
+	if commit.SHA != "" && target.GithubRepositoryFullName.Valid {
+		return w.resolveGitSource(target, commit, src.PrNumber.Int64)
 	}
 
 	if !src.Image.Valid || src.Image.String == "" {
@@ -262,8 +254,6 @@ func (w *Workflow) resolveExistingDeployment(
 func (w *Workflow) fillCommitFromGitHub(commit *gitCommit, target db.FindDeployTargetRow) error {
 	installationID := target.GithubInstallationID.Int64
 
-	// The public API is used only with no installation and unauthenticated
-	// deployments allowed.
 	hasAuth := !w.allowUnauthenticatedDeployments || installationID != noInstallationID
 
 	resolveRepo := target.GithubRepositoryFullName.String
