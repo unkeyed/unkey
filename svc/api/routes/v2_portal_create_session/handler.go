@@ -150,7 +150,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	// Request shape only, so it runs before the portal lookup.
-	if err = ValidateScopeCombination(req.Scopes); err != nil {
+	if err = validateScopeCombination(req.Scopes); err != nil {
 		return err
 	}
 
@@ -383,12 +383,12 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	})
 }
 
-// ValidateScopeCombination rejects a scope set the portal cannot serve.
+// validateScopeCombination rejects a scope set the portal cannot serve.
 //
 // The portal reaches rerolling from the keys page, so a reroll-only session
 // mints fine and then strands the end user with no page to open. The enum
 // constrains each item, not the combination, so the check lives here.
-func ValidateScopeCombination(scopes []openapi.V2PortalCreateSessionRequestBodyScopes) error {
+func validateScopeCombination(scopes []openapi.V2PortalCreateSessionRequestBodyScopes) error {
 	var hasRead, hasReroll bool
 	for _, scope := range scopes {
 		switch scope {
