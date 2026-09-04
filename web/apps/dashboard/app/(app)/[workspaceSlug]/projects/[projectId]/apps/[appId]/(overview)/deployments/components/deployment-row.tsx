@@ -31,7 +31,7 @@ const DeploymentListTableActions = dynamic(
 type DeploymentRowProps = {
   deployment: Deployment;
   environment?: Environment;
-  isCurrent: boolean;
+  currentDeployment: Deployment | undefined;
   isRolledBack: boolean;
   href: string;
 };
@@ -39,12 +39,13 @@ type DeploymentRowProps = {
 export function DeploymentRow({
   deployment,
   environment,
-  isCurrent,
+  currentDeployment,
   isRolledBack,
   href,
 }: DeploymentRowProps) {
   const [approvalOpen, setApprovalOpen] = useState(false);
   const needsApproval = deployment.status === "awaiting_approval";
+  const isCurrent = currentDeployment?.id === deployment.id;
 
   return (
     <ResourceListItem className="flex flex-col gap-3 px-4 py-3 transition-colors hover:bg-grayA-2 md:flex-row md:items-center md:gap-0">
@@ -188,7 +189,12 @@ export function DeploymentRow({
           alt={deployment.gitCommitAuthorHandle ?? "Author"}
         />
         <div className="relative z-20" role="presentation">
-          <DeploymentListTableActions selectedDeployment={deployment} environment={environment} />
+          <DeploymentListTableActions
+            selectedDeployment={deployment}
+            environment={environment}
+            currentDeployment={currentDeployment}
+            isRolledBack={isRolledBack}
+          />
         </div>
       </div>
     </ResourceListItem>

@@ -14,6 +14,7 @@ import { ActiveDeploymentCardEmpty } from "../../../components/active-deployment
 import { getDomainPriority } from "../../../components/domain-priority";
 import { Card } from "../../components/card";
 import { useAppId, useProjectData } from "../../data-provider";
+import { useAppCurrentDeployment } from "../../hooks/use-app-current-deployment";
 import { CreateDeploymentButton } from "../../navigations/create-deployment-button";
 import { AppProductionCardSkeleton } from "./app-production-card-skeleton";
 import { BuildInProgressChart, ProductionCardChart } from "./card-chart";
@@ -46,31 +47,14 @@ export function AppProductionCard() {
   const [rollbackOpen, setRollbackOpen] = useState(false);
   const [undoOpen, setUndoOpen] = useState(false);
 
-  const appsQuery = useLiveQuery(
-    (q) =>
-      q
-        .from({ app: collection.apps })
-        .where(({ app }) => and(eq(app.projectId, projectId), eq(app.id, appId))),
-    [projectId, appId],
-  );
-  const app = appsQuery.data?.[0];
+  const {
+    app,
+    currentDeployment,
+    isRolledBack: appIsRolledBack,
+    isLoading: isCurrentDeploymentLoading,
+  } = useAppCurrentDeployment();
   const repoFullName = app?.repositoryFullName ?? null;
-
   const currentDeploymentId = app?.currentDeploymentId ?? null;
-  const currentDeploymentQuery = useLiveQuery(
-    (q) =>
-      q
-        .from({ deployment: collection.deployments })
-        .where(({ deployment }) =>
-          and(
-            eq(deployment.projectId, projectId),
-            eq(deployment.appId, appId),
-            eq(deployment.id, currentDeploymentId ?? ""),
-          ),
-        ),
-    [projectId, appId, currentDeploymentId],
-  );
-  const currentDeployment = currentDeploymentId ? currentDeploymentQuery.data?.[0] : undefined;
 
   const productionEnvironmentId = environments.find(
     (e) => e.kind === ENVIRONMENT_KIND.production,
@@ -102,15 +86,7 @@ export function AppProductionCard() {
     enabled: productionStatus === "live" || productionStatus === "crashing",
   });
 
-  const isResolvingCurrentDeployment =
-    currentDeploymentId != null && currentDeploymentQuery.isLoading;
-
-  if (
-    isDeploymentsLoading ||
-    appsQuery.isLoading ||
-    liveDomainsQuery.isLoading ||
-    isResolvingCurrentDeployment
-  ) {
+  if (isDeploymentsLoading || isCurrentDeploymentLoading || liveDomainsQuery.isLoading) {
     return <AppProductionCardSkeleton />;
   }
 
@@ -129,7 +105,7 @@ export function AppProductionCard() {
   }
 
   const status = productionStatus ?? deriveProductionStatus(deployment);
-  const isRolledBack = isCurrent ? (app?.isRolledBack ?? false) : false;
+  const isRolledBack = isCurrent && appIsRolledBack;
   const sourceRepo = deployment.forkRepositoryFullName || repoFullName;
 
   const { primary, additional } = getDomainPriority({
