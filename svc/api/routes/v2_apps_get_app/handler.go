@@ -84,11 +84,13 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	// A missing connection is the common "no repo / OCI app" case, so absence
-	// is not an error; any other failure is. On not-found sqlc returns a
-	// zero-valued row, so RepositoryFullName is "" and GitResponse renders null.
+	repositoryFullName := ""
+	defaultBranch := ""
 	conn, err := db.Query.FindGithubRepoConnectionByAppId(ctx, h.DB.RO(), app.ID)
-	if err != nil && !db.IsNotFound(err) {
+	if err == nil {
+		repositoryFullName = conn.RepositoryFullName
+		defaultBranch = conn.DefaultBranch.String
+	} else if !db.IsNotFound(err) {
 		return fault.Wrap(
 			err,
 			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
@@ -96,8 +98,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			fault.Public("Failed to retrieve app."),
 		)
 	}
-	repositoryFullName := conn.RepositoryFullName
-	defaultBranch := conn.DefaultBranch.String
 
 	var oci *openapi.AppOCI
 	if app.SourceType == db.AppsSourceTypeOci {
