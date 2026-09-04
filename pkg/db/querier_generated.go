@@ -716,7 +716,8 @@ type Querier interface {
 	//      AND ka.deleted_at_m IS NULL
 	//      AND ws.deleted_at_m IS NULL
 	FindLiveKeyByHash(ctx context.Context, db DBTX, hash string) (FindLiveKeyByHashRow, error)
-	//FindLiveKeyByID
+	// FindLiveKeyByID loads a live key and project-local associations for API operations.
+	// Project predicates prevent malformed associations from crossing the keyspace boundary.
 	//
 	//  SELECT
 	//      k.id AS key_id,
@@ -761,7 +762,7 @@ type Querier interface {
 	//              )
 	//          )
 	//          FROM keys_roles kr
-	//          JOIN roles r ON r.id = kr.role_id
+	//          JOIN roles r ON r.id = kr.role_id AND r.project_id = ka.project_id
 	//          WHERE k.id = kr.key_id),
 	//          JSON_ARRAY()
 	//      ) as roles,
@@ -777,7 +778,7 @@ type Querier interface {
 	//              )
 	//          )
 	//          FROM keys_permissions kp
-	//          JOIN permissions p ON kp.permission_id = p.id
+	//          JOIN permissions p ON kp.permission_id = p.id AND p.project_id = ka.project_id
 	//          WHERE k.id = kp.key_id),
 	//          JSON_ARRAY()
 	//      ) as permissions,
@@ -793,8 +794,9 @@ type Querier interface {
 	//              )
 	//          )
 	//          FROM keys_roles kr
+	//          JOIN roles r ON kr.role_id = r.id AND r.project_id = ka.project_id
 	//          JOIN roles_permissions rp ON kr.role_id = rp.role_id
-	//          JOIN permissions p ON rp.permission_id = p.id
+	//          JOIN permissions p ON rp.permission_id = p.id AND p.project_id = ka.project_id
 	//          WHERE k.id = kr.key_id),
 	//          JSON_ARRAY()
 	//      ) as role_permissions,
@@ -822,7 +824,7 @@ type Querier interface {
 	//  JOIN apis a ON a.key_auth_id = k.key_auth_id
 	//  JOIN key_auth ka ON ka.id = k.key_auth_id
 	//  JOIN workspaces ws ON k.workspace_id = ws.id
-	//  LEFT JOIN identities i ON k.identity_id = i.id AND i.deleted = false
+	//  LEFT JOIN identities i ON k.identity_id = i.id AND i.project_id = ka.project_id AND i.deleted = false
 	//  LEFT JOIN encrypted_keys ek ON k.id = ek.key_id
 	//  WHERE k.id = ?
 	//      AND k.deleted_at_m IS NULL
@@ -925,6 +927,15 @@ type Querier interface {
 	//  ORDER BY slug
 	//  FOR UPDATE
 	FindPermissionsBySlugsForUpdate(ctx context.Context, db DBTX, arg FindPermissionsBySlugsForUpdateParams) ([]FindPermissionsBySlugsForUpdateRow, error)
+	// FindPermissionsBySlugsInWorkspace returns permissions with the requested
+	// slugs from any project in one workspace. Use it to detect cross-project slug
+	// conflicts before creating project-scoped permissions.
+	//
+	//  SELECT permissions.pk, permissions.id, permissions.workspace_id, permissions.project_id, permissions.name, permissions.slug, permissions.description, permissions.created_at_m, permissions.updated_at_m
+	//  FROM permissions
+	//  WHERE workspace_id = ?
+	//    AND slug IN (/*SLICE:slugs*/?)
+	FindPermissionsBySlugsInWorkspace(ctx context.Context, db DBTX, arg FindPermissionsBySlugsInWorkspaceParams) ([]Permission, error)
 	// Resolves the portal mapped to an app within a workspace. Callers that reach a
 	// portal through its app (rather than through an id or slug) use this.
 	//
@@ -1135,6 +1146,14 @@ type Querier interface {
 	//    AND project_id = ?
 	//    AND name IN (/*SLICE:names*/?)
 	FindRolesByNames(ctx context.Context, db DBTX, arg FindRolesByNamesParams) ([]FindRolesByNamesRow, error)
+	// FindRolesByNamesInWorkspace returns roles with the requested names from any
+	// project in one workspace. Use it to detect cross-project name conflicts
+	// before creating project-scoped roles.
+	//
+	//  SELECT id, project_id, name FROM roles
+	//  WHERE workspace_id = ?
+	//    AND name IN (/*SLICE:names*/?)
+	FindRolesByNamesInWorkspace(ctx context.Context, db DBTX, arg FindRolesByNamesInWorkspaceParams) ([]FindRolesByNamesInWorkspaceRow, error)
 	// Reads a workspace's billing row directly (Stripe linkage, tier, Compute plan,
 	// spend budget and spend-cap state). Use this when only billing state is needed;
 	// when a workspace is already being fetched, prefer joining workspace_billing in

@@ -55,9 +55,7 @@ func TestCreateKeyUsesKeyspaceProjectForURN(t *testing.T) {
 	})
 }
 
-// TestCreateKeyCreatesPermissionInKeyProject guarantees that a permission slug
-// in another project does not block a project-local permission assignment.
-func TestCreateKeyCreatesPermissionInKeyProject(t *testing.T) {
+func TestCreateKeyRejectsPermissionFromAnotherProject(t *testing.T) {
 	h := testutil.NewHarness(t)
 	route := &handler.Handler{DB: h.DB, Keys: h.Keys, Auditlogs: h.Auditlogs, Vault: h.Vault}
 	h.Register(route)
@@ -73,10 +71,9 @@ func TestCreateKeyCreatesPermissionInKeyProject(t *testing.T) {
 	keyProjectAPI := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspace.ID, ProjectID: keyProject.ID})
 	require.NotEqual(t, otherProjectAPI.ProjectID, keyProjectAPI.ProjectID)
 
-	permissionSlug := "documents.read.create.shared-slug"
-	otherPermissionID := uid.New(uid.PermissionPrefix)
+	permissionSlug := "documents.read.create.wrong-project"
 	err := db.Query.InsertPermission(t.Context(), h.DB.RW(), db.InsertPermissionParams{
-		PermissionID: otherPermissionID,
+		PermissionID: uid.New(uid.PermissionPrefix),
 		WorkspaceID:  workspace.ID,
 		ProjectID:    otherProjectAPI.ProjectID,
 		Name:         permissionSlug,
@@ -87,7 +84,7 @@ func TestCreateKeyCreatesPermissionInKeyProject(t *testing.T) {
 	require.NoError(t, err)
 
 	rootKey := h.CreateRootKey(workspace.ID, createKeyPermission(workspace.ID, keyProject.ID, keyProjectAPI.KeyAuthID.String))
-	res := testutil.CallRoute[handler.Request, handler.Response](h, route, http.Header{
+	res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, http.Header{
 		"Content-Type":  {"application/json"},
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
 	}, handler.Request{
@@ -95,14 +92,16 @@ func TestCreateKeyCreatesPermissionInKeyProject(t *testing.T) {
 		Permissions: ptr.P([]string{permissionSlug}),
 	})
 
-	require.Equal(t, http.StatusOK, res.Status, "got: %s", res.RawBody)
+	require.Equal(t, http.StatusNotFound, res.Status, "got: %s", res.RawBody)
+	require.Contains(t, res.Body.Error.Detail, permissionSlug)
 
-	permissionsInKeyProject, err := db.Query.ListDirectPermissionsByKeyID(t.Context(), h.DB.RO(), res.Body.Data.KeyId)
+	permissionsInKeyProject, err := db.Query.FindPermissionsBySlugs(t.Context(), h.DB.RO(), db.FindPermissionsBySlugsParams{
+		WorkspaceID: workspace.ID,
+		ProjectID:   keyProject.ID,
+		Slugs:       []string{permissionSlug},
+	})
 	require.NoError(t, err)
-	require.Len(t, permissionsInKeyProject, 1)
-	require.Equal(t, keyProject.ID, permissionsInKeyProject[0].ProjectID)
-	require.Equal(t, permissionSlug, permissionsInKeyProject[0].Slug)
-	require.NotEqual(t, otherPermissionID, permissionsInKeyProject[0].ID)
+	require.Empty(t, permissionsInKeyProject)
 }
 
 func TestCreateKeyRejectsIdentityFromAnotherProject(t *testing.T) {

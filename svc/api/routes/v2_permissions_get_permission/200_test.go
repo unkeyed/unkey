@@ -13,7 +13,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/projects"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
-	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_permissions_get_permission"
 )
 
@@ -104,48 +103,6 @@ func TestSuccess(t *testing.T) {
 		require.Equal(t, permissionName, permission.Name)
 		require.NotNil(t, permission.Description)
 		require.Equal(t, permissionDesc, permission.Description)
-	})
-
-	t.Run("resolve duplicate slug in default project", func(t *testing.T) {
-		otherProjectID := uid.New(uid.ProjectPrefix)
-		h.CreateProject(seed.CreateProjectRequest{
-			ID:          otherProjectID,
-			WorkspaceID: workspace.ID,
-			Name:        "Other",
-			Slug:        uid.New("other"),
-		})
-
-		slug := "shared-permission-slug"
-		err := db.Query.InsertPermission(ctx, h.DB.RW(), db.InsertPermissionParams{
-			PermissionID: uid.New(uid.PermissionPrefix),
-			WorkspaceID:  workspace.ID,
-			ProjectID:    otherProjectID,
-			Name:         "Other permission",
-			Slug:         slug,
-			CreatedAtM:   time.Now().UnixMilli(),
-		})
-		require.NoError(t, err)
-
-		defaultPermissionID := uid.New(uid.PermissionPrefix)
-		err = db.Query.InsertPermission(ctx, h.DB.RW(), db.InsertPermissionParams{
-			PermissionID: defaultPermissionID,
-			WorkspaceID:  workspace.ID,
-			ProjectID:    projectID,
-			Name:         "Default permission",
-			Slug:         slug,
-			CreatedAtM:   time.Now().UnixMilli(),
-		})
-		require.NoError(t, err)
-
-		res := testutil.CallRoute[handler.Request, handler.Response](
-			h,
-			route,
-			headers,
-			handler.Request{Permission: slug},
-		)
-
-		require.Equal(t, http.StatusOK, res.Status, res.RawBody)
-		require.Equal(t, defaultPermissionID, res.Body.Data.Id)
 	})
 
 	// Test case for getting a permission without description

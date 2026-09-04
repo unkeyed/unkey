@@ -52,7 +52,11 @@ export const createRole = workspaceProcedure
         if (permissionIds.length > 0) {
           const permissions = await tx.query.permissions.findMany({
             where: (table, { and, eq, inArray }) =>
-              and(eq(table.workspaceId, ctx.workspace.id), inArray(table.id, permissionIds)),
+              and(
+                eq(table.workspaceId, ctx.workspace.id),
+                eq(table.projectId, projectId),
+                inArray(table.id, permissionIds),
+              ),
             columns: { id: true },
           });
           const foundPermissionIds = new Set(permissions.map((permission) => permission.id));
@@ -61,7 +65,7 @@ export const createRole = workspaceProcedure
           if (missingPermissionIds.length > 0) {
             throw new TRPCError({
               code: "NOT_FOUND",
-              message: `Permission(s) not found or not in this workspace: ${missingPermissionIds.join(", ")}`,
+              message: `Permission(s) not found or not in this project: ${missingPermissionIds.join(", ")}`,
             });
           }
         }
