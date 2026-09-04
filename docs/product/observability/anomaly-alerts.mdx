@@ -105,8 +105,10 @@ The chart follows the same calculations as the detector. It pads the baseline
 from the app creation time, aligned to 5 minutes and limited to the latest 24
 hours. Eligibility counts observed 5-minute buckets even on the hourly chart.
 The expected spike band needs 12 observed buckets. The request lower boundary
-needs 72 observed buckets, 9 active buckets among the previous 12, and a drop of
-at least 200 requests.
+appears after 72 observed buckets and 9 active buckets among the previous 12.
+It combines the 25% recent-level fraction and 200-request minimum loss into the
+boundary value. The chart does not inspect the current value's loss before it
+draws the line.
 
 Error variation excludes buckets with no requests. The request lower boundary
 uses the inclusive median of the previous 12 buckets, which averages the two
