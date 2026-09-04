@@ -98,11 +98,6 @@ func ToResponse(in Input) openapi.Deployment {
 		if image.Valid && image.String != "" {
 			dep.Docker = &openapi.DeploymentDocker{Image: image.String}
 		}
-	case db.DeploymentsSourceUnknown:
-		// Historical provenance is ambiguous. Do not infer it from optional
-		// Git or image metadata.
-	default:
-		// Future source variants remain neutral until mapped explicitly.
 	}
 
 	if failure := deriveError(d.Status, in.Steps); failure != nil {
