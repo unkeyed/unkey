@@ -24,7 +24,7 @@ describe("getAlertSeries", () => {
     ["requests", "frontline_requests_per_5m_v1", "sum(count)"],
     ["egress_bytes", "instance_resources_per_minute_v1", "network_egress_public_bytes_max"],
     ["cpu_seconds", "instance_resources_per_minute_v1", "cpu_usage_usec_max"],
-    ["memory_utilization", "instance_resources_per_minute_v1", "memory_bytes_max"],
+    ["memory_utilization", "instance_resources_container_per_5m_v1", "utilization_sum"],
     ["health", "instance_events_raw_v1", "reason = 'OOMKilled'"],
   ] as const)("queries the %s metric from its 5m source", async (metric, table, expression) => {
     const ch = new CapturingQuerier();
@@ -56,15 +56,18 @@ describe("getAlertSeries", () => {
     });
   });
 
-  it("uses the hourly memory rollup for the overview", async () => {
+  it("averages five-minute app memory values for the hourly overview", async () => {
     const ch = new CapturingQuerier();
 
     await getAlertSeries(ch)({ ...baseRequest, metric: "memory_utilization", resolution: "1h" });
 
     expect(ch.params[0]).toMatchObject({
-      tableName: "instance_resources_per_hour_v1",
+      tableName: "instance_resources_container_per_5m_v1",
       bucketMs: 3_600_000,
     });
+    const query = ch.queries[0]?.replace(/\s+/g, " ");
+    expect(query).toContain(`intDiv(five_minute.time, ${60 * 60 * 1000})`);
+    expect(query).toContain("avg(five_minute.value) AS value");
   });
 
   it.each([
@@ -232,7 +235,7 @@ describe("getAlertSeries", () => {
     await getAlertSeries(ch)({ ...baseRequest, metric: "memory_utilization" });
 
     const query = ch.queries[0]?.replace(/\s+/g, " ");
-    expect(query).toContain("sumIf( toFloat64(memory_bytes_max)");
+    expect(query).toContain("sum(utilization_sum) / sum(utilization_samples)");
     expect(query).toContain(
       "GROUP BY time, metric_source.instance_id, metric_source.container_uid",
     );
