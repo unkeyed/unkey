@@ -18,8 +18,6 @@ export type AlertExpectedBand = {
   upperBound: number;
 };
 
-// svc/ctrl/worker/cron/deployanomaly/detect.go owns these thresholds. Keeping
-// the chart math here prevents dashboard expectations from drifting from alerts.
 export function calculateAlertExpectedBand(
   metric: SigmaAlertMetric,
   mean: number,
