@@ -111,10 +111,10 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 		// set intentionally by the dedup path (superseded) or by a successful
 		// completion (ready). Only transitions from active statuses to failed.
 		return w.db.UpdateDeploymentStatusIfActive(runCtx, db.UpdateDeploymentStatusIfActiveParams{
-			ID:               req.GetDeploymentId(),
-			Status:           mysqltype.DeploymentsStatusFailed,
-			UpdatedAt:        sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
-			TerminalStatuses: mysqltype.TerminalDeploymentStatuses,
+			ID:                  req.GetDeploymentId(),
+			Status:              mysqltype.DeploymentsStatusFailed,
+			UpdatedAt:           sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+			ProgressingStatuses: mysqltype.ProgressingDeploymentStatuses,
 		})
 	})
 
@@ -125,11 +125,18 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 		return nil, fault.Wrap(err, fault.Public("Failed to read from database. Please try again."))
 	}
 
-	// --- Deduplication: skip if a newer deployment is queued for the same app+env+branch ---
-	//
-	// Because the DeployService VO is keyed by app_id, by the time we run here any
-	// subsequent deploys for the same app are already queued in the VO inbox — so a
-	// newer-pending check here is race-free.
+	// A cancel that landed before Deploy started had no invocation to kill, so
+	// this check is what stops the build. Returning nil keeps the compensation
+	// stack out of it: the status is the intended one, not a failure.
+	if deployment.Status.IsTerminal() {
+		logger.Info("deployment is already terminal, not building",
+			"deployment_id", deployment.ID,
+			"status", deployment.Status,
+		)
+		return &hydrav1.DeployResponse{}, nil
+	}
+
+	// --- Deduplication: bow out if a newer deployment exists for the same app+env+branch ---
 	if deployment.GitBranch.Valid {
 		skipped, skipErr := w.skipIfSuperseded(ctx, deployment)
 		if skipErr != nil {
@@ -317,11 +324,17 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 
 	// --- Finalize ---
 	err = w.DeploymentStep(ctx, db.DeploymentStepsStepFinalizing, deployment, func(stepCtx restate.ObjectContext) error {
+		// Guarded because cancels write this row from outside this object, so
+		// nothing serializes them against this handler. A cancel that flips the
+		// row while finalizing reaches Restate only at the next journal boundary,
+		// and an unguarded write here would put the row back to ready while its
+		// compute is being torn down.
 		err = restate.RunVoid(ctx, func(stepCtx restate.RunContext) error {
-			return w.db.UpdateDeploymentStatus(stepCtx, db.UpdateDeploymentStatusParams{
-				ID:        deployment.ID,
-				Status:    mysqltype.DeploymentsStatusReady,
-				UpdatedAt: sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+			return w.db.UpdateDeploymentStatusIfActive(stepCtx, db.UpdateDeploymentStatusIfActiveParams{
+				ID:                  deployment.ID,
+				Status:              mysqltype.DeploymentsStatusReady,
+				UpdatedAt:           sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+				ProgressingStatuses: mysqltype.ProgressingDeploymentStatuses,
 			})
 		}, restate.WithName("updating deployment status to ready"), restate.WithMaxRetryAttempts(runMaxAttempts))
 		if err != nil {
