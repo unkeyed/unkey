@@ -111,14 +111,19 @@ describe("getAlertSeries", () => {
     expect(query).toContain("greatest( expected_stddev, 0.1 * expected_mean, 0.01 )");
   });
 
-  it("averages memory utilization across instances", async () => {
+  it("weights instances equally when their container counts differ", async () => {
     const ch = new CapturingQuerier();
 
     await getAlertSeries(ch)({ ...baseRequest, metric: "memory_utilization" });
 
     const query = ch.queries[0]?.replace(/\s+/g, " ");
-    expect(query).toContain("avg(instance_value) AS value");
-    expect(query).toContain("GROUP BY time, metric_source.container_uid");
+    expect(query).toContain("sumIf( toFloat64(memory_bytes_max)");
+    expect(query).toContain(
+      "GROUP BY time, metric_source.instance_id, metric_source.container_uid",
+    );
+    expect(query).toContain("avgIf(container_value, container_memory_valid)");
+    expect(query).toContain("GROUP BY time, instance_id");
+    expect(query).toContain("avgIf(instance_value, instance_memory_valid)");
   });
 
   it("returns the fixed memory limit without a sigma range", async () => {
