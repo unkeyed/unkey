@@ -30,7 +30,7 @@ The key ID to add roles to. This is the database identifier returned from `creat
 </ParamField>
 
 <ParamField body="--roles" type="string[]" required>
-Comma-separated list of role names to add. Operations are idempotent, adding existing roles has no effect and causes no errors. All roles must already exist in the workspace; roles cannot be created automatically. Invalid roles cause the entire operation to fail atomically, ensuring consistent state.
+Comma-separated list of role names to add. Operations are idempotent, adding existing roles has no effect and causes no errors. All roles must already exist in the key's project. Roles cannot be created automatically. Invalid roles cause the entire operation to fail atomically, ensuring consistent state.
 </ParamField>
 
 ## Global Flags

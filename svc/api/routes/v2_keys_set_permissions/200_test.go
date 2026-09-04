@@ -466,9 +466,10 @@ func TestSuccess(t *testing.T) {
 		require.Equal(t, newPermissionSlug, finalPermissions[0].Slug)
 		require.Equal(t, newPermissionSlug, finalPermissions[0].Name) // Slug used as name too
 
-		// Verify the permission was created in the workspace
-		createdPermission, err := db.Query.FindPermissionBySlugAndWorkspaceID(ctx, h.DB.RO(), db.FindPermissionBySlugAndWorkspaceIDParams{
+		// Verify the permission was created in the key's project.
+		createdPermission, err := db.Query.FindPermissionBySlugAndProjectID(ctx, h.DB.RO(), db.FindPermissionBySlugAndProjectIDParams{
 			Slug:        newPermissionSlug,
+			ProjectID:   api.ProjectID,
 			WorkspaceID: workspace.ID,
 		})
 		require.NoError(t, err)

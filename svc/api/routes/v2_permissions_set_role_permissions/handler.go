@@ -20,6 +20,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/pkg/zen"
+	"github.com/unkeyed/unkey/svc/api/internal/projects"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
@@ -79,8 +80,13 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	result := make([]rolePermission, 0, len(requestedSlugs))
 	err = db.TxRetry(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
+		projectID, _, findProjectErr := projects.FindDefaultProject(ctx, tx, principal.AuthorizedWorkspaceID)
+		if findProjectErr != nil {
+			return findProjectErr
+		}
+
 		role, lockErr := db.Query.LockRoleByIDOrNameAndWorkspaceID(ctx, tx, db.LockRoleByIDOrNameAndWorkspaceIDParams{
-			Search: *roleRef, WorkspaceID: principal.AuthorizedWorkspaceID,
+			Search: *roleRef, WorkspaceID: principal.AuthorizedWorkspaceID, ProjectID: projectID,
 		})
 		if lockErr != nil {
 			if db.IsNotFound(lockErr) {

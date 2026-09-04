@@ -23,7 +23,7 @@ export const permissions = mysqlTable(
     updatedAtM: bigint("updated_at_m", { mode: "number" }).$onUpdateFn(() => Date.now()),
   },
   (table) => [
-    unique("unique_slug_per_workspace_idx").on(table.workspaceId, table.slug),
+    unique("unique_slug_per_project_idx").on(table.projectId, table.slug),
     index("permissions_project_id_idx").on(table.projectId),
   ],
 );
@@ -93,7 +93,7 @@ export const roles = mysqlTable(
   },
   (table) => [
     index("workspace_id_idx").on(table.workspaceId),
-    unique("unique_name_per_workspace_idx").on(table.name, table.workspaceId),
+    unique("unique_name_per_project_idx").on(table.projectId, table.name),
     index("roles_project_id_idx").on(table.projectId),
   ],
 );

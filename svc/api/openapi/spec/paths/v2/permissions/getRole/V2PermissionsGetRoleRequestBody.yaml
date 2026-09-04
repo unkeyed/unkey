@@ -11,8 +11,7 @@ properties:
     # applied to role names.
     maxLength: 128
     description: |
-      Unique identifier of the role to permanently delete from your workspace.
-      Must either be a valid role ID that begins with 'role_' or the given role name and exists within your workspace.
+      The role ID or name to retrieve. IDs can identify a role in any project in your workspace. Names resolve in the default project.
 
       Use this endpoint to verify role details, check its current permissions, or retrieve metadata.
       Returns complete role information including all assigned permissions for comprehensive access review.

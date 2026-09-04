@@ -115,7 +115,7 @@ properties:
       maxLength: 128
       description: |
         Assigns existing roles to this key for permission management through role-based access control.
-        Roles must already exist in your workspace before assignment.
+        Roles must already exist in the key's project before assignment.
         During verification, all permissions from assigned roles are checked against requested permissions.
         Roles provide a convenient way to group permissions and apply consistent access patterns across multiple keys.
     example:

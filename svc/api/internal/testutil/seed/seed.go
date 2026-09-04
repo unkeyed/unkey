@@ -437,12 +437,13 @@ func (s *Seeder) CreateRootKey(ctx context.Context, workspaceID string, permissi
 	require.NoError(s.t, err)
 
 	if len(permissions) > 0 {
+		projectID := s.defaultProjectID(ctx, s.Resources.RootWorkspace.ID)
 		for _, permission := range permissions {
 			permissionID := uid.New(uid.TestPrefix)
 			err := db.Query.InsertPermission(ctx, s.DB.RW(), db.InsertPermissionParams{
 				PermissionID: permissionID,
 				WorkspaceID:  s.Resources.RootWorkspace.ID,
-				ProjectID:    s.defaultProjectID(ctx, s.Resources.RootWorkspace.ID),
+				ProjectID:    projectID,
 				Name:         permission,
 				Slug:         permission,
 				Description:  dbtype.NullString{String: "", Valid: false},
@@ -452,9 +453,10 @@ func (s *Seeder) CreateRootKey(ctx context.Context, workspaceID string, permissi
 			mysqlErr := &mysql.MySQLError{} // nolint:exhaustruct
 			if errors.As(err, &mysqlErr) {
 				require.True(s.t, db.IsDuplicateKeyError(err), "Expected duplicate key error, got MySQL error number %d", mysqlErr.Number)
-				existing, findErr := db.Query.FindPermissionByNameAndWorkspaceID(ctx, s.DB.RO(), db.FindPermissionByNameAndWorkspaceIDParams{
+				existing, findErr := db.Query.FindPermissionBySlugAndProjectID(ctx, s.DB.RO(), db.FindPermissionBySlugAndProjectIDParams{
 					WorkspaceID: s.Resources.RootWorkspace.ID,
-					Name:        permission,
+					ProjectID:   projectID,
+					Slug:        permission,
 				})
 				require.NoError(s.t, findErr)
 				permissionID = existing.ID

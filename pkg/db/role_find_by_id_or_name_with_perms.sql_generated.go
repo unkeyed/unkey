@@ -30,13 +30,16 @@ FROM roles r
 WHERE r.workspace_id = ?
   AND (
     r.id = ?
-    OR r.name = ?
+    OR (r.project_id = ? AND r.name = ?)
 )
+ORDER BY r.id = ? DESC
+LIMIT 1
 `
 
 type FindRoleByIdOrNameWithPermsParams struct {
 	WorkspaceID string `db:"workspace_id"`
 	Search      string `db:"search"`
+	ProjectID   string `db:"project_id"`
 }
 
 type FindRoleByIdOrNameWithPermsRow struct {
@@ -51,8 +54,11 @@ type FindRoleByIdOrNameWithPermsRow struct {
 	Permissions interface{}    `db:"permissions"`
 }
 
-// FindRoleByIdOrNameWithPerms resolves a role within a workspace so the caller
-// can authorize access against the role's actual project.
+// FindRoleByIdOrNameWithPerms resolves IDs across a workspace while names
+// resolve only in the selected project because name uniqueness is project-scoped.
+// An ID match wins when search also matches a name because ORDER BY ranks IDs
+// first. For example, search "role_admin" returns the row with that ID instead
+// of a selected-project role named "role_admin".
 //
 //	SELECT r.pk, r.id, r.workspace_id, r.project_id, r.name, r.description, r.created_at_m, r.updated_at_m, COALESCE(
 //	        (SELECT JSON_ARRAYAGG(
@@ -73,10 +79,18 @@ type FindRoleByIdOrNameWithPermsRow struct {
 //	WHERE r.workspace_id = ?
 //	  AND (
 //	    r.id = ?
-//	    OR r.name = ?
+//	    OR (r.project_id = ? AND r.name = ?)
 //	)
+//	ORDER BY r.id = ? DESC
+//	LIMIT 1
 func (q *Queries) FindRoleByIdOrNameWithPerms(ctx context.Context, db DBTX, arg FindRoleByIdOrNameWithPermsParams) (FindRoleByIdOrNameWithPermsRow, error) {
-	row := db.QueryRowContext(ctx, findRoleByIdOrNameWithPerms, arg.WorkspaceID, arg.Search, arg.Search)
+	row := db.QueryRowContext(ctx, findRoleByIdOrNameWithPerms,
+		arg.WorkspaceID,
+		arg.Search,
+		arg.ProjectID,
+		arg.Search,
+		arg.Search,
+	)
 	var i FindRoleByIdOrNameWithPermsRow
 	err := row.Scan(
 		&i.Pk,

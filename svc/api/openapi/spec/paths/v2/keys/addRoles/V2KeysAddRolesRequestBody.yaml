@@ -19,10 +19,10 @@ properties:
     minItems: 1
     maxItems: 100 # Reasonable limit for role assignments per key
     description: |
-      Assigns additional roles to the key through direct assignment to existing workspace roles.
+      Assigns additional roles to the key through direct assignment to roles in the key's project.
       Operations are idempotent - adding existing roles has no effect and causes no errors.
 
-      All roles must already exist in the workspace - roles cannot be created automatically.
+      All roles must already exist in the key's project. Roles cannot be created automatically.
       Invalid roles cause the entire operation to fail atomically, ensuring consistent state.
     items:
       type: string

@@ -5,7 +5,7 @@ description: "Create a new role using the Unkey CLI to group related permissions
 
 Create a new role to group related permissions for easier management. Roles enable consistent permission assignment across multiple API keys.
 
-**Important:** Role names must be unique within the workspace. Once created, roles are immediately available for assignment.
+Role names must be unique within the default project. Once created, roles are immediately available for assignment.
 
 **Required permissions:**
 - `rbac.*.create_role`
@@ -23,7 +23,7 @@ unkey api permissions create-role [flags]
 ## Flags
 
 <ParamField body="--name" type="string" required>
-The unique name for this role. Must be unique within your workspace and clearly indicate the role's purpose. Use a descriptive name like `admin`, `content.editor`, or `Billing Manager`. Must be 1-128 characters.
+The unique name for this role. Must be unique within the default project and clearly indicate the role's purpose. Use a descriptive name such as `admin`, `content.editor`, or `Billing Manager`. Must be 1-128 characters.
 </ParamField>
 
 <ParamField body="--description" type="string">

@@ -1,15 +1,11 @@
 package handler_test
 
 import (
-	"context"
 	"fmt"
 	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"github.com/unkeyed/unkey/pkg/db"
-	dbtype "github.com/unkeyed/unkey/pkg/db/types"
-	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	"github.com/unkeyed/unkey/svc/api/openapi"
@@ -17,7 +13,6 @@ import (
 )
 
 func TestAuthenticationErrors(t *testing.T) {
-	ctx := context.Background()
 	h := testutil.NewHarness(t)
 
 	route := &handler.Handler{
@@ -50,19 +45,15 @@ func TestAuthenticationErrors(t *testing.T) {
 		Meta:        nil,
 	})
 
-	permissionID := uid.New(uid.TestPrefix)
-	err := db.Query.InsertPermission(ctx, h.DB.RW(), db.InsertPermissionParams{
-		PermissionID: permissionID,
-		WorkspaceID:  workspace.ID,
-		Name:         "documents.read.auth",
-		Slug:         "documents.read.auth",
-		Description:  dbtype.NullString{Valid: true, String: "Read documents permission"},
+	permission := h.CreatePermission(seed.CreatePermissionRequest{
+		WorkspaceID: workspace.ID,
+		Name:        "documents.read.auth",
+		Slug:        "documents.read.auth",
 	})
-	require.NoError(t, err)
 
 	req := handler.Request{
 		KeyId:       key.KeyID,
-		Permissions: []string{permissionID},
+		Permissions: []string{permission.ID},
 	}
 
 	t.Run("missing authorization header", func(t *testing.T) {

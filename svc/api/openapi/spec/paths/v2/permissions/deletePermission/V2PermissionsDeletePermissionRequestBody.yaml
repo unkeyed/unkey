@@ -12,7 +12,7 @@ properties:
     description: |
       Specifies which permission to permanently delete from your workspace.
 
-      This can be a permission ID or a permission slug.
+      This can be a permission ID or a permission slug. IDs can identify a permission in any project in your workspace. Slugs resolve in the default project.
 
       WARNING: Deleting a permission has immediate and irreversible consequences:
       - All API keys with this permission will lose that access immediately

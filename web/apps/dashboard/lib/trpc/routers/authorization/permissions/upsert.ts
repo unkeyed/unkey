@@ -41,6 +41,7 @@ export const upsertPermission = workspaceProcedure
             id: true,
             name: true,
             slug: true,
+            projectId: true,
           },
         });
 
@@ -51,32 +52,13 @@ export const upsertPermission = workspaceProcedure
           });
         }
 
-        // Check for name conflicts only if name is changing
-        if (existingPermission.name !== input.name) {
-          const nameConflict = await tx.query.permissions.findFirst({
-            where: (table, { and, eq, ne }) =>
-              and(
-                eq(table.workspaceId, ctx.workspace.id),
-                eq(table.name, input.name),
-                ne(table.id, updatePermissionId),
-              ),
-            columns: { id: true },
-          });
-
-          if (nameConflict) {
-            throw new TRPCError({
-              code: "CONFLICT",
-              message: `Permission with name '${input.name}' already exists`,
-            });
-          }
-        }
-
         // Check for slug conflicts only if slug is changing
         if (existingPermission.slug !== input.slug) {
           const slugConflict = await tx.query.permissions.findFirst({
             where: (table, { and, eq, ne }) =>
               and(
                 eq(table.workspaceId, ctx.workspace.id),
+                eq(table.projectId, existingPermission.projectId),
                 eq(table.slug, input.slug),
                 ne(table.id, updatePermissionId),
               ),
@@ -135,26 +117,15 @@ export const upsertPermission = workspaceProcedure
         });
       } else {
         const projectId = await ensureDefaultProjectId(tx, ctx.workspace.id);
-        // Create mode - check for both name and slug conflicts
-        const [nameConflict, slugConflict] = await Promise.all([
-          await tx.query.permissions.findFirst({
-            where: (table, { and, eq }) =>
-              and(eq(table.workspaceId, ctx.workspace.id), eq(table.name, input.name)),
-            columns: { id: true },
-          }),
-          await tx.query.permissions.findFirst({
-            where: (table, { and, eq }) =>
-              and(eq(table.workspaceId, ctx.workspace.id), eq(table.slug, input.slug)),
-            columns: { id: true },
-          }),
-        ]);
-
-        if (nameConflict) {
-          throw new TRPCError({
-            code: "CONFLICT",
-            message: `Permission with name '${input.name}' already exists`,
-          });
-        }
+        const slugConflict = await tx.query.permissions.findFirst({
+          where: (table, { and, eq }) =>
+            and(
+              eq(table.workspaceId, ctx.workspace.id),
+              eq(table.projectId, projectId),
+              eq(table.slug, input.slug),
+            ),
+          columns: { id: true },
+        });
 
         if (slugConflict) {
           throw new TRPCError({

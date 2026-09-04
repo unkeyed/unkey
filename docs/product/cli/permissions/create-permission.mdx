@@ -7,7 +7,7 @@ Create a new permission to define specific actions or capabilities in your RBAC 
 
 Use hierarchical naming patterns like `documents.read`, `admin.users.delete`, or `billing.invoices.create` for clear organization.
 
-**Important:** Permission names must be unique within the workspace. Once created, permissions are immediately available for assignment.
+Permission slugs must be unique within the default project. Once created, permissions are immediately available for assignment.
 
 **Required permissions:**
 - `rbac.*.create_permission`
@@ -25,11 +25,11 @@ unkey api permissions create-permission [flags]
 ## Flags
 
 <ParamField body="--name" type="string" required>
-Human-readable name describing the permission's purpose. Names must be unique within your workspace to prevent conflicts during assignment. Use clear, semantic names that developers can easily understand when building authorization logic. Consider using hierarchical naming conventions like `resource.action` for better organization. Must be 1-512 characters.
+Human-readable name describing the permission's purpose. Use a clear, semantic name that developers can understand when they build authorization logic. Consider using a hierarchical name such as `resource.action`. Must be 1-512 characters.
 </ParamField>
 
 <ParamField body="--slug" type="string" required>
-URL-safe identifier for use in APIs and integrations. Must start with a letter and contain only letters, numbers, periods, underscores, and hyphens. Slugs are often used in REST endpoints, configuration files, and external integrations. Must be unique within your workspace. Must be 1-128 characters.
+URL-safe identifier for use in APIs and integrations. Must start with a letter and contain only letters, numbers, periods, underscores, and hyphens. Must be unique within the default project. Must be 1-128 characters.
 </ParamField>
 
 <ParamField body="--description" type="string">

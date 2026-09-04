@@ -72,7 +72,6 @@ func TestConflictErrors(t *testing.T) {
 		require.NotNil(t, res2.Body)
 		require.NotNil(t, res2.Body.Error)
 
-		// Our implementation returns just "already exists" as the error detail
-		require.Contains(t, res2.Body.Error.Detail, "already exists")
+		require.Contains(t, res2.Body.Error.Detail, "already exists in this project")
 	})
 }

@@ -9,7 +9,6 @@ properties:
     maxLength: 512
     description: |
       Creates a permission with this human-readable name that describes its purpose.
-      Names must be unique within your workspace to prevent conflicts during assignment.
       Use clear, semantic names that developers can easily understand when building authorization logic.
       Consider using hierarchical naming conventions like 'resource.action' for better organization.
 
@@ -27,7 +26,7 @@ properties:
       Must start with a letter and contain only letters, numbers, periods, underscores, and hyphens.
       Slugs are often used in REST endpoints, configuration files, and external integrations.
       Should closely match the name but in a format suitable for technical usage.
-      Must be unique within your workspace to ensure reliable permission lookups.
+      Must be unique within the default project to ensure reliable permission lookups.
 
       Keep slugs concise but descriptive for better developer experience.
     example: "users-read"

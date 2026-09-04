@@ -76,7 +76,7 @@ func TestConflictErrors(t *testing.T) {
 		require.Equal(t, 409, res2.Status, "Duplicate role creation should fail with 409")
 		require.NotNil(t, res2.Body)
 		require.NotNil(t, res2.Body.Error)
-		require.Contains(t, res2.Body.Error.Detail, "already exists")
+		require.Contains(t, res2.Body.Error.Detail, "already exists in this project")
 	})
 
 	// Test case for duplicate role name with different case (if case-insensitive)

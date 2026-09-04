@@ -7,7 +7,7 @@ post:
 
     Use hierarchical naming patterns like `documents.read`, `admin.users.delete`, or `billing.invoices.create` for clear organization.
 
-    **Important:** Permission names must be unique within the workspace. Once created, permissions are immediately available for assignment.
+    **Important:** Permission slugs must be unique within the default project. Once created, permissions are immediately available for assignment.
 
     **Required Permissions**
 
@@ -49,7 +49,7 @@ post:
           schema:
             "$ref": "../../../../error/ForbiddenErrorResponse.yaml"
     "409":
-      description: Conflict - permission with that name already exists
+      description: Conflict - permission with that slug already exists in the default project
       content:
         application/json:
           schema:

@@ -13,6 +13,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/projects"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
+	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_permissions_get_permission"
 )
 
@@ -144,4 +145,59 @@ func TestSuccess(t *testing.T) {
 		require.Equal(t, permissionName, permission.Name)
 		require.Empty(t, permission.Description)
 	})
+}
+
+// TestGetPermissionScopesSlugToDefaultProject guarantees duplicate slugs can
+// exist across projects while IDs continue to address permissions in any project.
+func TestGetPermissionScopesSlugToDefaultProject(t *testing.T) {
+	h := testutil.NewHarness(t)
+	route := &handler.Handler{DB: h.DB}
+	h.Register(route)
+
+	workspace := h.Resources().UserWorkspace
+	defaultProjectID, err := projects.EnsureDefaultProject(t.Context(), h.DB.RW(), workspace.ID)
+	require.NoError(t, err)
+	otherProject := h.CreateProject(seed.CreateProjectRequest{
+		ID:          uid.New(uid.ProjectPrefix),
+		WorkspaceID: workspace.ID,
+		Name:        "Other permission project",
+		Slug:        uid.New("other-permission-project"),
+	})
+	permissionSlug := "shared.permission.slug"
+	defaultPermissionID := uid.New(uid.PermissionPrefix)
+	otherPermissionID := uid.New(uid.PermissionPrefix)
+	for _, permission := range []db.InsertPermissionParams{
+		{
+			PermissionID: defaultPermissionID,
+			WorkspaceID:  workspace.ID,
+			ProjectID:    defaultProjectID,
+			Name:         "Default project permission",
+			Slug:         permissionSlug,
+			CreatedAtM:   time.Now().UnixMilli(),
+		},
+		{
+			PermissionID: otherPermissionID,
+			WorkspaceID:  workspace.ID,
+			ProjectID:    otherProject.ID,
+			Name:         "Other project permission",
+			Slug:         permissionSlug,
+			CreatedAtM:   time.Now().UnixMilli(),
+		},
+	} {
+		require.NoError(t, db.Query.InsertPermission(t.Context(), h.DB.RW(), permission))
+	}
+
+	rootKey := h.CreateRootKey(workspace.ID, "rbac.*.read_permission")
+	headers := http.Header{
+		"Content-Type":  {"application/json"},
+		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+	}
+
+	bySlug := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{Permission: permissionSlug})
+	require.Equal(t, http.StatusOK, bySlug.Status, bySlug.RawBody)
+	require.Equal(t, defaultPermissionID, bySlug.Body.Data.Id)
+
+	byID := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{Permission: otherPermissionID})
+	require.Equal(t, http.StatusOK, byID.Status, byID.RawBody)
+	require.Equal(t, otherPermissionID, byID.Body.Data.Id)
 }

@@ -30,7 +30,7 @@ The key ID to set roles on. This is the database identifier returned from key cr
 </ParamField>
 
 <ParamField body="--roles" type="string[]" required>
-Comma-separated list of roles. Replaces all existing roles on the key with this exact set. All roles must already exist in your workspace -- invalid role references cause the entire operation to fail atomically. Providing an empty value removes all role assignments from the key.
+Comma-separated list of roles. Replaces all existing roles on the key with this exact set. All roles must already exist in the key's project. Invalid role references cause the entire operation to fail atomically. Providing an empty value removes all role assignments from the key.
 </ParamField>
 
 ## Global Flags

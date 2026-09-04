@@ -10,10 +10,10 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/db"
-	dbtype "github.com/unkeyed/unkey/pkg/db/types"
 	"github.com/unkeyed/unkey/pkg/hash"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
+	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_keys_set_permissions"
 )
@@ -64,19 +64,15 @@ func TestAuthenticationErrors(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	permissionID := uid.New(uid.TestPrefix)
-	err = db.Query.InsertPermission(ctx, h.DB.RW(), db.InsertPermissionParams{
-		PermissionID: permissionID,
-		WorkspaceID:  workspace.ID,
-		Name:         "documents.read.auth",
-		Slug:         "documents.read.auth",
-		Description:  dbtype.NullString{Valid: true, String: "Read documents permission"},
+	permission := h.CreatePermission(seed.CreatePermissionRequest{
+		WorkspaceID: workspace.ID,
+		Name:        "documents.read.auth",
+		Slug:        "documents.read.auth",
 	})
-	require.NoError(t, err)
 
 	req := handler.Request{
 		KeyId:       keyID,
-		Permissions: []string{permissionID},
+		Permissions: []string{permission.ID},
 	}
 
 	t.Run("missing authorization header", func(t *testing.T) {

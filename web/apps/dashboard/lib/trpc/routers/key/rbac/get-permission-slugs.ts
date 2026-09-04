@@ -1,4 +1,5 @@
 import { and, db, eq, inArray } from "@/lib/db";
+import { ensureDefaultProjectId } from "@/lib/projects/ensure-default-project-id";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
 import { permissions, roles, rolesPermissions } from "@unkey/db/src/schema";
@@ -40,6 +41,7 @@ export const getPermissionSlugs = workspaceProcedure
     }
 
     try {
+      const projectId = await db.transaction((tx) => ensureDefaultProjectId(tx, workspaceId));
       let rolePermissionsPromise: Promise<PermissionSlug[]> = Promise.resolve([]);
       let directPermissionsPromise: Promise<PermissionSlug[]> = Promise.resolve([]);
       let roleNamesPromise: Promise<Array<{ name: string }>> = Promise.resolve([]);
@@ -48,7 +50,13 @@ export const getPermissionSlugs = workspaceProcedure
         roleNamesPromise = db
           .select({ name: roles.name })
           .from(roles)
-          .where(and(inArray(roles.name, roleNames), eq(roles.workspaceId, workspaceId)));
+          .where(
+            and(
+              inArray(roles.name, roleNames),
+              eq(roles.projectId, projectId),
+              eq(roles.workspaceId, workspaceId),
+            ),
+          );
 
         rolePermissionsPromise = db
           .selectDistinct({ slug: permissions.slug })
@@ -59,7 +67,9 @@ export const getPermissionSlugs = workspaceProcedure
             and(
               inArray(roles.name, roleNames),
               eq(rolesPermissions.workspaceId, workspaceId),
+              eq(roles.projectId, projectId),
               eq(roles.workspaceId, workspaceId),
+              eq(permissions.projectId, projectId),
               eq(permissions.workspaceId, workspaceId),
             ),
           );
@@ -72,6 +82,7 @@ export const getPermissionSlugs = workspaceProcedure
           .where(
             and(
               inArray(permissions.slug, permissionSlugs),
+              eq(permissions.projectId, projectId),
               eq(permissions.workspaceId, workspaceId),
             ),
           );

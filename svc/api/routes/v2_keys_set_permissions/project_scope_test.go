@@ -13,13 +13,12 @@ import (
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
-	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_keys_set_permissions"
 )
 
-// TestSetPermissionsRejectsPermissionFromAnotherProject guarantees that a key
-// cannot receive a permission from a different project.
-func TestSetPermissionsRejectsPermissionFromAnotherProject(t *testing.T) {
+// TestSetPermissionsCreatesPermissionInKeyProject guarantees a slug in another
+// project does not block creation or cause a cross-project assignment.
+func TestSetPermissionsCreatesPermissionInKeyProject(t *testing.T) {
 	h := testutil.NewHarness(t)
 	route := &handler.Handler{
 		DB:        h.DB,
@@ -44,8 +43,9 @@ func TestSetPermissionsRejectsPermissionFromAnotherProject(t *testing.T) {
 	})
 
 	permissionSlug := "documents.read.set.wrong-project"
+	otherPermissionID := uid.New(uid.PermissionPrefix)
 	err := db.Query.InsertPermission(t.Context(), h.DB.RW(), db.InsertPermissionParams{
-		PermissionID: uid.New(uid.PermissionPrefix),
+		PermissionID: otherPermissionID,
 		WorkspaceID:  workspace.ID,
 		ProjectID:    otherProjectAPI.ProjectID,
 		Name:         permissionSlug,
@@ -58,7 +58,7 @@ func TestSetPermissionsRejectsPermissionFromAnotherProject(t *testing.T) {
 	writeKey := fmt.Sprintf("unkey:v1:%s:projects/%s/keyspaces/%s/keys/%s#write", workspace.ID, keyProject.ID, keyProjectAPI.KeyAuthID.String, key.KeyID)
 	writePermission := fmt.Sprintf("unkey:v1:%s:projects/%s/rbac/permissions/*#write", workspace.ID, keyProject.ID)
 	rootKey := h.CreateRootKey(workspace.ID, writeKey, writePermission)
-	res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, http.Header{
+	res := testutil.CallRoute[handler.Request, handler.Response](h, route, http.Header{
 		"Content-Type":  {"application/json"},
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
 	}, handler.Request{
@@ -66,10 +66,11 @@ func TestSetPermissionsRejectsPermissionFromAnotherProject(t *testing.T) {
 		Permissions: []string{permissionSlug},
 	})
 
-	require.Equal(t, http.StatusNotFound, res.Status, "got: %s", res.RawBody)
-	require.Contains(t, res.Body.Error.Detail, permissionSlug)
+	require.Equal(t, http.StatusOK, res.Status, "got: %s", res.RawBody)
 
 	permissions, err := db.Query.ListDirectPermissionsByKeyID(t.Context(), h.DB.RO(), key.KeyID)
 	require.NoError(t, err)
-	require.Empty(t, permissions)
+	require.Len(t, permissions, 1)
+	require.Equal(t, keyProject.ID, permissions[0].ProjectID)
+	require.NotEqual(t, otherPermissionID, permissions[0].ID)
 }

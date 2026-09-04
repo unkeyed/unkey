@@ -22,7 +22,7 @@ properties:
       This is a wholesale replacement operation, not an incremental update like add/remove operations.
 
       Providing an empty array removes all direct role assignments from the key.
-      All roles must already exist in the workspace - roles cannot be created automatically.
+      All roles must already exist in the key's project. Roles cannot be created automatically.
       Invalid role references cause the entire operation to fail atomically, ensuring consistent state.
     items:
       type: string

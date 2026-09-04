@@ -1,6 +1,6 @@
 ---
 title: "permission_already_exists"
-description: "A permission with this slug already exists in your Unkey workspace. Use the existing permission or choose a different unique slug for the new one."
+description: "A permission with this slug already exists in the project. Use the existing permission or choose a different slug."
 ---
 
 <Danger>err:unkey:data:permission_already_exists</Danger>
@@ -11,7 +11,7 @@ description: "A permission with this slug already exists in your Unkey workspace
     "requestId": "req_2c9a0jf23l4k567"
   },
   "error": {
-    "detail": "A permission with slug \"admin\" already exists in this workspace",
+    "detail": "A permission with slug \"admin\" already exists in this project",
     "status": 409,
     "title": "Conflict",
     "type": "https://unkey.com/docs/errors/unkey/data/permission/duplicate"
@@ -21,19 +21,19 @@ description: "A permission with this slug already exists in your Unkey workspace
 
 ## What Happened?
 
-This error occurs when you're trying to create a permission with a name that already exists in your Unkey workspace. Permission names must be unique within a workspace to avoid confusion and maintain proper access control.
+This error occurs when you create a permission with a slug that already exists in the target project. Permission slugs must be unique within each project. The same slug can exist in a different project.
 
 Common scenarios that trigger this error:
 
-- Creating a permission with a name that's already in use
-- Re-creating a previously deleted permission with the same name
+- Creating a permission with a slug that's already in use
+- Re-creating a previously deleted permission with the same slug
 - Migration or import processes that don't check for existing permissions
 - Duplicate API calls due to retries or network issues
 
 Here's an example of a request that would trigger this error:
 
 ```bash
-# Attempting to create a permission with a name that already exists
+# Attempting to create a permission with a slug that already exists
 curl -X POST https://api.unkey.com/v2/permissions.createPermission \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer unkey_YOUR_API_KEY" \
@@ -48,7 +48,7 @@ curl -X POST https://api.unkey.com/v2/permissions.createPermission \
 
 When you encounter this error, you have several options:
 
-1. **Use a different name**: If creating a new permission, use a unique name
+1. **Use a different slug**: If creating a new permission, use a unique slug
 2. **Get the existing permission**: If you just need the permission information, retrieve it rather than creating it
 3. **List existing permissions**: Check what permissions already exist before creating new ones
 4. **Implement idempotent creation**: Use a get-or-create pattern in your code
@@ -73,10 +73,10 @@ async function getOrCreatePermission(name, slug, description) {
   } catch (error) {
     // If it already exists (409 error), get it instead
     if (error.status === 409) {
-      // Extract the permission name from the error message and get it
+      // Extract the permission slug from the error message and get it
       const permissions = await listPermissions();
       return permissions.find(
-        (p) => p.name.toLowerCase() === name.toLowerCase(),
+        (p) => p.slug.toLowerCase() === slug.toLowerCase(),
       );
     }
     // Otherwise, rethrow the error
@@ -88,9 +88,8 @@ async function getOrCreatePermission(name, slug, description) {
 ## Common Mistakes
 
 - **Not checking for existing permissions**: Failing to check if a permission already exists before creating it
-- **Case sensitivity**: Permission names are case-insensitive - "Admin" and "admin" are the same
+- **Case sensitivity**: Permission slugs are case-insensitive - "Admin" and "admin" are the same
 - **Retry loops**: Repeatedly trying to create the same permission after a failure
-- **Cross-environment duplication**: Using the same permission names across development and production without proper namespacing
 
 ## Related Errors
 

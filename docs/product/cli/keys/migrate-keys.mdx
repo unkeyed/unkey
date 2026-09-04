@@ -56,7 +56,7 @@ Stores arbitrary JSON metadata returned during key verification for contextual i
 </ResponseField>
 
 <ResponseField name="roles" type="string[]">
-Assigns existing roles to this key for permission management through role-based access control. Roles must already exist in your workspace before assignment.
+Assigns roles to this key for permission management through role-based access control. Existing roles resolve in the target project. Missing roles are created in that project.
 </ResponseField>
 
 <ResponseField name="permissions" type="string[]">

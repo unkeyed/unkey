@@ -10,7 +10,7 @@ properties:
     maxLength: 128
     pattern: ^[a-zA-Z0-9_:\-\.\*]+$
     description: |
-      The unique identifier of the permission to retrieve. Must be a valid permission ID that begins with 'perm_' and exists within your workspace.
+      The permission ID or slug to retrieve. IDs can identify a permission in any project in your workspace. Slugs resolve in the default project.
     example: perm_1234567890abcdef
 additionalProperties: false
 examples:

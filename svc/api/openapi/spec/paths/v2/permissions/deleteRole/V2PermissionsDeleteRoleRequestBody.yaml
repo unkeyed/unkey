@@ -11,8 +11,7 @@ properties:
     # applied to role names.
     maxLength: 128
     description: |
-      Unique identifier of the role to permanently delete from your workspace.
-      Must either be a valid role ID that begins with 'role_' or the given role name and exists within your workspace.
+      The role ID or name to delete. IDs can identify a role in any project in your workspace. Names resolve in the default project.
 
       WARNING: Deletion is immediate and irreversible with significant consequences:
       - All API keys assigned this role will lose the associated permissions

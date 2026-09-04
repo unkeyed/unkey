@@ -3,6 +3,7 @@ package handler_test
 import (
 	"bytes"
 	"context"
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -78,6 +79,47 @@ func TestSetRolePermissions(t *testing.T) {
 		require.Equal(t, "service.read", assigned[0].Slug)
 	})
 
+	t.Run("scopes role names to the default project while ids work across projects", func(t *testing.T) {
+		roleName := "shared-project-role"
+		defaultRole := h.CreateRole(seed.CreateRoleRequest{WorkspaceID: workspace.ID, Name: roleName})
+		otherProject := h.CreateProject(seed.CreateProjectRequest{
+			ID:          uid.New(uid.ProjectPrefix),
+			WorkspaceID: workspace.ID,
+			Name:        "Other Shared Role Project",
+			Slug:        "other-shared-role-project",
+		})
+		otherRoleID := uid.New(uid.RolePrefix)
+		require.NoError(t, db.Query.InsertRole(ctx, h.DB.RW(), db.InsertRoleParams{
+			RoleID:      otherRoleID,
+			WorkspaceID: workspace.ID,
+			ProjectID:   otherProject.ID,
+			Name:        roleName,
+			Description: sql.NullString{},
+			CreatedAt:   time.Now().UnixMilli(),
+		}))
+
+		byName := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, roleRequest(roleName, []string{"default.project.permission"}))
+		require.Equal(t, http.StatusOK, byName.Status, byName.RawBody)
+		defaultPermissions, err := db.Query.ListDirectPermissionsByRoleID(ctx, h.DB.RO(), defaultRole.ID)
+		require.NoError(t, err)
+		require.Len(t, defaultPermissions, 1)
+		defaultPermission, err := db.Query.FindPermissionByID(ctx, h.DB.RO(), defaultPermissions[0].ID)
+		require.NoError(t, err)
+		require.Equal(t, defaultRole.ProjectID, defaultPermission.ProjectID)
+		otherPermissions, err := db.Query.ListDirectPermissionsByRoleID(ctx, h.DB.RO(), otherRoleID)
+		require.NoError(t, err)
+		require.Empty(t, otherPermissions)
+
+		byID := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, roleRequest(otherRoleID, []string{"other.project.permission"}))
+		require.Equal(t, http.StatusOK, byID.Status, byID.RawBody)
+		otherPermissions, err = db.Query.ListDirectPermissionsByRoleID(ctx, h.DB.RO(), otherRoleID)
+		require.NoError(t, err)
+		require.Len(t, otherPermissions, 1)
+		otherPermission, err := db.Query.FindPermissionByID(ctx, h.DB.RO(), otherPermissions[0].ID)
+		require.NoError(t, err)
+		require.Equal(t, otherProject.ID, otherPermission.ProjectID)
+	})
+
 	t.Run("accepts deprecated roleId", func(t *testing.T) {
 		role := h.CreateRole(seed.CreateRoleRequest{WorkspaceID: workspace.ID, Name: "legacy-role-id"})
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
@@ -96,7 +138,7 @@ func TestSetRolePermissions(t *testing.T) {
 		}
 	})
 
-	t.Run("permission from another project is not attached", func(t *testing.T) {
+	t.Run("same permission slug in another project creates a local permission", func(t *testing.T) {
 		role := h.CreateRole(seed.CreateRoleRequest{WorkspaceID: workspace.ID, Name: "project-role"})
 		otherProject := h.CreateProject(seed.CreateProjectRequest{
 			ID:          uid.New(uid.ProjectPrefix),
@@ -105,8 +147,9 @@ func TestSetRolePermissions(t *testing.T) {
 			Slug:        "other-role-permission-project",
 		})
 		permissionSlug := "other.project.role.permission"
+		otherPermissionID := uid.New(uid.PermissionPrefix)
 		require.NoError(t, db.Query.InsertPermission(ctx, h.DB.RW(), db.InsertPermissionParams{
-			PermissionID: uid.New(uid.PermissionPrefix),
+			PermissionID: otherPermissionID,
 			WorkspaceID:  workspace.ID,
 			ProjectID:    otherProject.ID,
 			Name:         permissionSlug,
@@ -115,13 +158,16 @@ func TestSetRolePermissions(t *testing.T) {
 			CreatedAtM:   time.Now().UnixMilli(),
 		}))
 
-		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, roleRequest(role.ID, []string{permissionSlug}))
+		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, roleRequest(role.ID, []string{permissionSlug}))
 
-		require.Equal(t, http.StatusNotFound, res.Status, res.RawBody)
-		require.Equal(t, "https://unkey.com/docs/errors/unkey/data/permission_not_found", res.Body.Error.Type)
+		require.Equal(t, http.StatusOK, res.Status, res.RawBody)
 		assigned, err := db.Query.ListDirectPermissionsByRoleID(ctx, h.DB.RO(), role.ID)
 		require.NoError(t, err)
-		require.Empty(t, assigned)
+		require.Len(t, assigned, 1)
+		require.NotEqual(t, otherPermissionID, assigned[0].ID)
+		assignedPermission, err := db.Query.FindPermissionByID(ctx, h.DB.RO(), assigned[0].ID)
+		require.NoError(t, err)
+		require.Equal(t, role.ProjectID, assignedPermission.ProjectID)
 	})
 
 	t.Run("requires add, remove, and create authorization", func(t *testing.T) {

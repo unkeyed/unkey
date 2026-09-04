@@ -14,6 +14,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/projects"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
+	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_permissions_get_role"
 )
 
@@ -164,4 +165,57 @@ func TestSuccess(t *testing.T) {
 		// Verify permissions array is empty
 		require.Nil(t, role.Permissions)
 	})
+}
+
+// TestGetRoleScopesNameToDefaultProject guarantees duplicate names can exist
+// across projects while IDs continue to address roles in any project.
+func TestGetRoleScopesNameToDefaultProject(t *testing.T) {
+	h := testutil.NewHarness(t)
+	route := &handler.Handler{DB: h.DB}
+	h.Register(route)
+
+	workspace := h.Resources().UserWorkspace
+	defaultProjectID, err := projects.EnsureDefaultProject(t.Context(), h.DB.RW(), workspace.ID)
+	require.NoError(t, err)
+	otherProject := h.CreateProject(seed.CreateProjectRequest{
+		ID:          uid.New(uid.ProjectPrefix),
+		WorkspaceID: workspace.ID,
+		Name:        "Other role project",
+		Slug:        uid.New("other-role-project"),
+	})
+	roleName := "shared-role-name"
+	defaultRoleID := uid.New(uid.RolePrefix)
+	otherRoleID := uid.New(uid.RolePrefix)
+	for _, role := range []db.InsertRoleParams{
+		{
+			RoleID:      defaultRoleID,
+			WorkspaceID: workspace.ID,
+			ProjectID:   defaultProjectID,
+			Name:        roleName,
+			CreatedAt:   time.Now().UnixMilli(),
+		},
+		{
+			RoleID:      otherRoleID,
+			WorkspaceID: workspace.ID,
+			ProjectID:   otherProject.ID,
+			Name:        roleName,
+			CreatedAt:   time.Now().UnixMilli(),
+		},
+	} {
+		require.NoError(t, db.Query.InsertRole(t.Context(), h.DB.RW(), role))
+	}
+
+	rootKey := h.CreateRootKey(workspace.ID, "rbac.*.read_role")
+	headers := http.Header{
+		"Content-Type":  {"application/json"},
+		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+	}
+
+	byName := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{Role: roleName})
+	require.Equal(t, http.StatusOK, byName.Status, byName.RawBody)
+	require.Equal(t, defaultRoleID, byName.Body.Data.Id)
+
+	byID := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{Role: otherRoleID})
+	require.Equal(t, http.StatusOK, byID.Status, byID.RawBody)
+	require.Equal(t, otherRoleID, byID.Body.Data.Id)
 }

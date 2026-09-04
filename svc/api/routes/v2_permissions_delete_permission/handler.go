@@ -14,6 +14,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/pkg/zen"
 	apierrors "github.com/unkeyed/unkey/svc/api/internal/errors"
+	"github.com/unkeyed/unkey/svc/api/internal/projects"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
@@ -47,8 +48,14 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
+	projectID, _, err := projects.FindDefaultProject(ctx, h.DB.RO(), principal.AuthorizedWorkspaceID)
+	if err != nil {
+		return err
+	}
+
 	permission, err := db.Query.FindPermissionByIdOrSlug(ctx, h.DB.RO(), db.FindPermissionByIdOrSlugParams{
 		WorkspaceID: principal.AuthorizedWorkspaceID,
+		ProjectID:   projectID,
 		Search:      req.Permission,
 	})
 	if err != nil {

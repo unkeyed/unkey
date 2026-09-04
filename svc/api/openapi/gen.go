@@ -1119,10 +1119,9 @@ type Permission struct {
 	// Name The human-readable name for this permission that describes its purpose.
 	// Should be descriptive enough for developers to understand what access it grants.
 	// Use clear, semantic names that reflect the resources or actions being permitted.
-	// Names must be unique within your workspace to avoid confusion and conflicts.
 	Name string `json:"name"`
 
-	// Slug The unique URL-safe identifier for this permission.
+	// Slug The URL-safe identifier for this permission. Slugs are unique within a project.
 	Slug string `json:"slug"`
 }
 
@@ -1496,7 +1495,7 @@ type Role struct {
 	// Name The human-readable name for this role that describes its function.
 	// Should be descriptive enough for administrators to understand what access this role provides.
 	// Use clear, semantic names that reflect the job function or responsibility level.
-	// Names must be unique within your workspace to avoid confusion during role assignment.
+	// Names must be unique within the role's project.
 	Name string `json:"name"`
 
 	// Permissions Complete list of permissions currently assigned to this role.
@@ -2960,10 +2959,10 @@ type V2KeysAddRolesRequestBody struct {
 	// Role assignments take effect immediately but may take up to 30 seconds to propagate across all regions.
 	KeyId string `json:"keyId"`
 
-	// Roles Assigns additional roles to the key through direct assignment to existing workspace roles.
+	// Roles Assigns additional roles to the key through direct assignment to roles in the key's project.
 	// Operations are idempotent - adding existing roles has no effect and causes no errors.
 	//
-	// All roles must already exist in the workspace - roles cannot be created automatically.
+	// All roles must already exist in the key's project. Roles cannot be created automatically.
 	// Invalid roles cause the entire operation to fail atomically, ensuring consistent state.
 	Roles []string `json:"roles"`
 }
@@ -3071,7 +3070,7 @@ type V2KeysCreateKeyRequestBody struct {
 	Recoverable *bool `json:"recoverable,omitempty"`
 
 	// Roles Assigns existing roles to this key for permission management through role-based access control.
-	// Roles must already exist in your workspace before assignment.
+	// Roles must already exist in the API's project before assignment.
 	// During verification, all permissions from assigned roles are checked against requested permissions.
 	// Roles provide a convenient way to group permissions and apply consistent access patterns across multiple keys.
 	Roles *[]string `json:"roles,omitempty"`
@@ -3200,8 +3199,8 @@ type V2KeysMigrateKeyData struct {
 	// Essential for preventing API abuse while maintaining good performance for legitimate usage.
 	Ratelimits *[]RatelimitRequest `json:"ratelimits,omitempty"`
 
-	// Roles Assigns existing roles to this key for permission management through role-based access control.
-	// Roles must already exist in your workspace before assignment.
+	// Roles Assigns roles to this key for permission management through role-based access control.
+	// Existing roles are resolved in the target project's scope. Missing roles are created in that project.
 	// During verification, all permissions from assigned roles are checked against requested permissions.
 	// Roles provide a convenient way to group permissions and apply consistent access patterns across multiple keys.
 	Roles *[]string `json:"roles,omitempty"`
@@ -3460,7 +3459,7 @@ type V2KeysSetRolesRequestBody struct {
 	// This is a wholesale replacement operation, not an incremental update like add/remove operations.
 	//
 	// Providing an empty array removes all direct role assignments from the key.
-	// All roles must already exist in the workspace - roles cannot be created automatically.
+	// All roles must already exist in the key's project. Roles cannot be created automatically.
 	// Invalid role references cause the entire operation to fail atomically, ensuring consistent state.
 	Roles []string `json:"roles"`
 }
@@ -3744,7 +3743,6 @@ type V2PermissionsCreatePermissionRequestBody struct {
 	Description *string `json:"description,omitempty"`
 
 	// Name Creates a permission with this human-readable name that describes its purpose.
-	// Names must be unique within your workspace to prevent conflicts during assignment.
 	// Use clear, semantic names that developers can easily understand when building authorization logic.
 	// Consider using hierarchical naming conventions like 'resource.action' for better organization.
 	//
@@ -3755,7 +3753,7 @@ type V2PermissionsCreatePermissionRequestBody struct {
 	// Must start with a letter and contain only letters, numbers, periods, underscores, and hyphens.
 	// Slugs are often used in REST endpoints, configuration files, and external integrations.
 	// Should closely match the name but in a format suitable for technical usage.
-	// Must be unique within your workspace to ensure reliable permission lookups.
+	// Must be unique within the default project to ensure reliable permission lookups.
 	//
 	// Keep slugs concise but descriptive for better developer experience.
 	Slug string `json:"slug"`
@@ -3793,7 +3791,7 @@ type V2PermissionsCreateRoleRequestBody struct {
 	// - Related roles that might be used together
 	Description *string `json:"description,omitempty"`
 
-	// Name The unique name for this role. Must be unique within your workspace and clearly indicate the role's purpose. Use descriptive names like 'admin', 'editor', or 'Billing Manager'.
+	// Name The unique name for this role. Must be unique within the default project and clearly indicate the role's purpose. Use descriptive names like 'admin', 'editor', or 'Billing Manager'.
 	//
 	// Examples: 'admin.billing', 'support.readonly', 'developer.api', 'Billing Manager'
 	Name string `json:"name"`
@@ -3825,7 +3823,7 @@ type V2PermissionsCreateRoleResponseData struct {
 type V2PermissionsDeletePermissionRequestBody struct {
 	// Permission Specifies which permission to permanently delete from your workspace.
 	//
-	// This can be a permission ID or a permission slug.
+	// This can be a permission ID or a permission slug. IDs can identify a permission in any project in your workspace. Slugs resolve in the default project.
 	//
 	// WARNING: Deleting a permission has immediate and irreversible consequences:
 	// - All API keys with this permission will lose that access immediately
@@ -3851,8 +3849,7 @@ type V2PermissionsDeletePermissionResponseBody struct {
 
 // V2PermissionsDeleteRoleRequestBody defines model for V2PermissionsDeleteRoleRequestBody.
 type V2PermissionsDeleteRoleRequestBody struct {
-	// Role Unique identifier of the role to permanently delete from your workspace.
-	// Must either be a valid role ID that begins with 'role_' or the given role name and exists within your workspace.
+	// Role The role ID or name to delete. IDs can identify a role in any project in your workspace. Names resolve in the default project.
 	//
 	// WARNING: Deletion is immediate and irreversible with significant consequences:
 	// - All API keys assigned this role will lose the associated permissions
@@ -3878,7 +3875,7 @@ type V2PermissionsDeleteRoleResponseBody struct {
 
 // V2PermissionsGetPermissionRequestBody defines model for V2PermissionsGetPermissionRequestBody.
 type V2PermissionsGetPermissionRequestBody struct {
-	// Permission The unique identifier of the permission to retrieve. Must be a valid permission ID that begins with 'perm_' and exists within your workspace.
+	// Permission The permission ID or slug to retrieve. IDs can identify a permission in any project in your workspace. Slugs resolve in the default project.
 	Permission string `json:"permission"`
 }
 
@@ -3892,8 +3889,7 @@ type V2PermissionsGetPermissionResponseBody struct {
 
 // V2PermissionsGetRoleRequestBody defines model for V2PermissionsGetRoleRequestBody.
 type V2PermissionsGetRoleRequestBody struct {
-	// Role Unique identifier of the role to permanently delete from your workspace.
-	// Must either be a valid role ID that begins with 'role_' or the given role name and exists within your workspace.
+	// Role The role ID or name to retrieve. IDs can identify a role in any project in your workspace. Names resolve in the default project.
 	//
 	// Use this endpoint to verify role details, check its current permissions, or retrieve metadata.
 	// Returns complete role information including all assigned permissions for comprehensive access review.
@@ -3979,11 +3975,11 @@ type V2PermissionsSetRolePermissionsRequestBody struct {
 	Permissions []string `json:"permissions"`
 
 	// Role The role whose directly assigned permissions will be replaced.
-	// Accepts either the generated role ID or the unique role name.
+	// IDs can identify a role in any project in your workspace. Names resolve in the default project.
 	Role *string `json:"role,omitempty"`
 
 	// RoleId Deprecated. Use `role` instead.
-	// Accepts either the generated role ID or the unique role name.
+	// IDs can identify a role in any project in your workspace. Names resolve in the default project.
 	// Deprecated: this property has been marked as deprecated upstream, but no `x-deprecated-reason` was set
 	RoleId *string `json:"roleId,omitempty"`
 	union  json.RawMessage

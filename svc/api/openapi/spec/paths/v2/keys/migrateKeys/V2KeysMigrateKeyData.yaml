@@ -52,8 +52,8 @@ properties:
       # See createKey for the shared role name rule.
       maxLength: 128
     description: |
-      Assigns existing roles to this key for permission management through role-based access control.
-      Roles must already exist in your workspace before assignment.
+      Assigns roles to this key for permission management through role-based access control.
+      Existing roles are resolved in the target project's scope. Missing roles are created in that project.
       During verification, all permissions from assigned roles are checked against requested permissions.
       Roles provide a convenient way to group permissions and apply consistent access patterns across multiple keys.
     example:

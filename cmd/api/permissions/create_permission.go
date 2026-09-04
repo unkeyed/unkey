@@ -17,7 +17,7 @@ func createPermissionCmd() *cli.Command {
 
 Use hierarchical naming patterns like documents.read, admin.users.delete, or billing.invoices.create for clear organization.
 
-Important: Permission names must be unique within the workspace. Once created, permissions are immediately available for assignment.
+Important: Permission slugs must be unique within the default project. Once created, permissions are immediately available for assignment.
 
 Required permissions:
 - rbac.*.create_permission
@@ -34,7 +34,7 @@ For full documentation, see https://www.unkey.com/docs/api-reference/v2/permissi
 			util.ConfigFlag(),
 			util.OutputFlag(),
 			cli.String("name", "Human-readable name describing the permission's purpose.", cli.Required(), cli.MutuallyExclusive("body")),
-			cli.String("slug", "URL-safe identifier for use in APIs and integrations.", cli.Required(), cli.MutuallyExclusive("body")),
+			cli.String("slug", "URL-safe identifier that is unique within the default project.", cli.Required(), cli.MutuallyExclusive("body")),
 			cli.String("description", "Detailed documentation of what this permission grants access to.", cli.MutuallyExclusive("body")),
 		},
 		Action: func(ctx context.Context, cmd *cli.Command) error {

@@ -13,13 +13,12 @@ import (
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
-	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_permissions_create_role"
 )
 
-// TestPermissionFromAnotherProjectIsNotAttached guarantees role creation does
-// not attach a permission owned by another project in the same workspace.
-func TestPermissionFromAnotherProjectIsNotAttached(t *testing.T) {
+// TestPermissionSlugFromAnotherProjectCreatesLocalPermission guarantees role
+// creation does not attach a permission owned by another project.
+func TestPermissionSlugFromAnotherProjectCreatesLocalPermission(t *testing.T) {
 	ctx := context.Background()
 	h := testutil.NewHarness(t)
 	route := &handler.Handler{DB: h.DB, Auditlogs: h.Auditlogs}
@@ -32,8 +31,9 @@ func TestPermissionFromAnotherProjectIsNotAttached(t *testing.T) {
 		Slug:        "other-create-role-project",
 	})
 	permissionSlug := "other.project.create.role.permission"
+	otherPermissionID := uid.New(uid.PermissionPrefix)
 	require.NoError(t, db.Query.InsertPermission(ctx, h.DB.RW(), db.InsertPermissionParams{
-		PermissionID: uid.New(uid.PermissionPrefix),
+		PermissionID: otherPermissionID,
 		WorkspaceID:  workspace.ID,
 		ProjectID:    otherProject.ID,
 		Name:         permissionSlug,
@@ -53,11 +53,17 @@ func TestPermissionFromAnotherProjectIsNotAttached(t *testing.T) {
 	}
 	permissions := []string{permissionSlug}
 
-	res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, handler.Request{
+	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
 		Name:        "role-with-other-project-permission",
 		Permissions: &permissions,
 	})
 
-	require.Equal(t, http.StatusNotFound, res.Status, res.RawBody)
-	require.Equal(t, "https://unkey.com/docs/errors/unkey/data/permission_not_found", res.Body.Error.Type)
+	require.Equal(t, http.StatusOK, res.Status, res.RawBody)
+	assigned, err := db.Query.ListDirectPermissionsByRoleID(ctx, h.DB.RO(), res.Body.Data.RoleId)
+	require.NoError(t, err)
+	require.Len(t, assigned, 1)
+	require.NotEqual(t, otherPermissionID, assigned[0].ID)
+	assignedPermission, err := db.Query.FindPermissionByID(ctx, h.DB.RO(), assigned[0].ID)
+	require.NoError(t, err)
+	require.NotEqual(t, otherProject.ID, assignedPermission.ProjectID)
 }

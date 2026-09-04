@@ -17,7 +17,7 @@ Your root key must have one of the following permissions:
 
 **Side effects:**
 
-If you specify an `externalId` that doesn't exist, a new identity will be automatically created and linked to the key. Permission updates will auto-create any permissions that don't exist in your workspace. Changes take effect immediately but may take up to 30 seconds to propagate to all regions due to cache invalidation.
+If you specify an `externalId` that doesn't exist, a new identity will be automatically created and linked to the key. Permission updates create missing permissions in the key's project. Changes take effect immediately but may take up to 30 seconds to propagate to all regions due to cache invalidation.
 
 <Note>
 See the [API reference](/api-reference/keys/update-key-settings) for the full HTTP endpoint documentation.
@@ -105,7 +105,7 @@ Controls whether the key is currently active for verification requests. When set
 </ParamField>
 
 <ParamField body="--roles" type="string[]">
-Comma-separated list of role names to assign. Roles must already exist in your workspace before assignment. During verification, all permissions from assigned roles are checked against requested permissions. **Replaces all existing roles** -- use dedicated add/remove endpoints for incremental changes.
+Comma-separated list of role names to assign. Roles must already exist in the key's project before assignment. During verification, all permissions from assigned roles are checked against requested permissions. **Replaces all existing roles** -- use dedicated add/remove endpoints for incremental changes.
 </ParamField>
 
 <ParamField body="--permissions" type="string[]">

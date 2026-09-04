@@ -13,23 +13,43 @@ const findPermissionByIdOrSlug = `-- name: FindPermissionByIdOrSlug :one
 SELECT permissions.pk, permissions.id, permissions.workspace_id, permissions.project_id, permissions.name, permissions.slug, permissions.description, permissions.created_at_m, permissions.updated_at_m
 FROM permissions
 WHERE workspace_id = ?
-  AND (id = ? OR slug = ?)
+  AND (
+    id = ?
+    OR (project_id = ? AND slug = ?)
+  )
+ORDER BY id = ? DESC
+LIMIT 1
 `
 
 type FindPermissionByIdOrSlugParams struct {
 	WorkspaceID string `db:"workspace_id"`
 	Search      string `db:"search"`
+	ProjectID   string `db:"project_id"`
 }
 
-// FindPermissionByIdOrSlug resolves a permission within a workspace so the
-// caller can authorize access against the permission's actual project.
+// FindPermissionByIdOrSlug resolves IDs across a workspace while slugs resolve
+// only in the selected project because slug uniqueness is project-scoped.
+// An ID match wins when search also matches a slug because ORDER BY ranks IDs
+// first. For example, search "perm_admin" returns the row with that ID instead
+// of a selected-project permission whose slug is "perm_admin".
 //
 //	SELECT permissions.pk, permissions.id, permissions.workspace_id, permissions.project_id, permissions.name, permissions.slug, permissions.description, permissions.created_at_m, permissions.updated_at_m
 //	FROM permissions
 //	WHERE workspace_id = ?
-//	  AND (id = ? OR slug = ?)
+//	  AND (
+//	    id = ?
+//	    OR (project_id = ? AND slug = ?)
+//	  )
+//	ORDER BY id = ? DESC
+//	LIMIT 1
 func (q *Queries) FindPermissionByIdOrSlug(ctx context.Context, db DBTX, arg FindPermissionByIdOrSlugParams) (Permission, error) {
-	row := db.QueryRowContext(ctx, findPermissionByIdOrSlug, arg.WorkspaceID, arg.Search, arg.Search)
+	row := db.QueryRowContext(ctx, findPermissionByIdOrSlug,
+		arg.WorkspaceID,
+		arg.Search,
+		arg.ProjectID,
+		arg.Search,
+		arg.Search,
+	)
 	var i Permission
 	err := row.Scan(
 		&i.Pk,
