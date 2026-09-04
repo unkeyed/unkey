@@ -3,6 +3,7 @@ package cron_test
 import (
 	"database/sql"
 	"encoding/json"
+	"net/url"
 	"strconv"
 	"testing"
 	"time"
@@ -15,6 +16,7 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/integration/harness"
 	"github.com/unkeyed/unkey/svc/ctrl/integration/seed"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
+	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/deployanomaly"
 )
 
 type anomalyTestApp struct {
@@ -118,7 +120,7 @@ func assertIncompleteTelemetryNoop(
 ) time.Time {
 	t.Helper()
 	client := hydrav1.NewDeployAnomalyServiceIngressClient(h.Restate,
-		openApp.workspaceID+"-"+openApp.appID+"-"+openApp.environmentID)
+		anomalyIngressKey(openApp))
 	incompleteOpenMetric := &hydrav1.DeployAnomalyMetricInput{
 		Metric:    string(db.AlertEventsMetricRequests),
 		DataState: hydrav1.DeployAnomalyMetricDataState_DEPLOY_ANOMALY_METRIC_DATA_STATE_INCOMPLETE,
@@ -143,7 +145,7 @@ func assertIncompleteTelemetryNoop(
 
 	newApp := createAnomalyTestApp(t, h, mysqltype.EnvironmentKindProduction)
 	newClient := hydrav1.NewDeployAnomalyServiceIngressClient(h.Restate,
-		newApp.workspaceID+"-"+newApp.appID+"-"+newApp.environmentID)
+		anomalyIngressKey(newApp))
 	incomplete := &hydrav1.DeployAnomalyMetricInput{
 		Metric:    string(db.AlertEventsMetricRequestsDrop),
 		DataState: hydrav1.DeployAnomalyMetricDataState_DEPLOY_ANOMALY_METRIC_DATA_STATE_INCOMPLETE,
@@ -186,7 +188,7 @@ func assertStoppedDeploymentSuppression(t *testing.T, h *harness.Harness) {
 	}))
 
 	client := hydrav1.NewDeployAnomalyServiceIngressClient(h.Restate,
-		app.workspaceID+"-"+app.appID+"-"+app.environmentID)
+		anomalyIngressKey(app))
 	request := &hydrav1.EvaluateDeployAnomalyRequest{
 		WindowStart: windowStart.Add(5 * time.Minute).UnixMilli(),
 		WindowEnd:   windowStart.Add(10 * time.Minute).UnixMilli(),
@@ -239,7 +241,7 @@ func assertBaselineAdaptedResolution(t *testing.T, h *harness.Harness) {
 	}))
 
 	response, err := hydrav1.NewDeployAnomalyServiceIngressClient(h.Restate,
-		app.workspaceID+"-"+app.appID+"-"+app.environmentID).
+		anomalyIngressKey(app)).
 		Evaluate().Request(h.Ctx, &hydrav1.EvaluateDeployAnomalyRequest{
 		WindowStart: windowEnd.Add(-5 * time.Minute).UnixMilli(), WindowEnd: windowEnd.UnixMilli(),
 		WorkspaceId: app.workspaceID, ProjectId: app.projectID,
@@ -365,6 +367,10 @@ func assertInstanceEventRecoveryWithoutNewEvents(t *testing.T, h *harness.Harnes
 	advanceResourceWatermark(t, h, maxAgeApp, maxAgeWindow)
 	runAnomalyWindow(t, h, maxAgeWindow)
 	requireAnomalyAlertResolution(t, h, maxAgeAlertID, "Baseline adapted after 24 hours")
+}
+
+func anomalyIngressKey(app anomalyTestApp) string {
+	return url.PathEscape(deployanomaly.GroupKey(app.workspaceID, app.appID, app.environmentID))
 }
 
 func insertAnomalyOOMEvent(t *testing.T, h *harness.Harness, app anomalyTestApp, windowStart time.Time) {
