@@ -10,31 +10,25 @@ import (
 	validatorErrors "github.com/pb33f/libopenapi-validator/errors"
 	"github.com/pb33f/libopenapi-validator/helpers"
 	"github.com/unkeyed/unkey/pkg/fault"
+	validationtypes "github.com/unkeyed/unkey/pkg/openapi/validation/types"
 )
 
 // ValidationError represents a single field-level validation failure.
-// Fix is non-nil when the validator can suggest a concrete correction.
-type ValidationError struct {
-	Message  string
-	Location string
-	Fix      *string
-}
+type ValidationError = validationtypes.ValidationError
 
 // Result holds the validation outcome when a request is invalid.
-// A nil *Result means the request passed validation.
-type Result struct {
-	Detail string
-	Errors []ValidationError
-}
+type Result = validationtypes.Result
 
 // Validator validates HTTP requests against an OpenAPI specification.
 type Validator struct {
 	validator validator.Validator
 }
 
-// NewFromBytes creates a Validator from a raw OpenAPI spec.
+var _ validationtypes.Validator = (*Validator)(nil)
+
+// NewFromBytes creates a validator from a raw OpenAPI spec.
 // Returns an error if the spec cannot be parsed or is itself invalid.
-func NewFromBytes(spec []byte) (*Validator, error) {
+func NewFromBytes(spec []byte) (validationtypes.Validator, error) {
 	document, err := libopenapi.NewDocument(spec)
 	if err != nil {
 		return nil, fault.Wrap(err, fault.Internal("failed to create OpenAPI document"))
