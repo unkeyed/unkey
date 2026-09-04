@@ -10,7 +10,6 @@ CREATE TABLE `permissions` (
 	`updated_at_m` bigint,
 	CONSTRAINT `permissions_pk` PRIMARY KEY(`pk`),
 	CONSTRAINT `permissions_id_unique` UNIQUE(`id`),
-	CONSTRAINT `unique_slug_per_workspace_idx` UNIQUE(`workspace_id`,`slug`),
 	CONSTRAINT `unique_slug_per_project_idx` UNIQUE(`project_id`,`slug`)
 );
 
