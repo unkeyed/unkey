@@ -443,7 +443,10 @@ and Go enum values.
 
 On first use, the evaluator reconciles open rows from MySQL. This restores the
 open alert ID, firing time, and opening snapshot if the virtual object has no
-prior state.
+prior state. Reconciliation can adopt an alert that fired after the window
+being caught up. A window that ended before the alert fired carries no evidence
+about it, so the evaluator leaves the alert untouched instead of counting the
+window as quiet.
 
 ## Persist alerts in MySQL
 
