@@ -2993,6 +2993,11 @@ components:
                         maxLength: 128
                         pattern: ^[a-zA-Z0-9_:\-\.\*]+$
             additionalProperties: false
+            oneOf:
+                - required:
+                    - role
+                - required:
+                    - roleId
         V2PermissionsSetRolePermissionsResponseBody:
             type: object
             required:
