@@ -10,13 +10,21 @@ const SECONDS_PER_HOUR = 3600;
 /** Same fixed-point scale as deploybilling.MicroCentsPerCent. */
 export const MICRO_CENTS_PER_CENT = 1_000_000;
 
-/** Display rates for the billing tooltip; keep in sync with the constants above. */
+/** Display rates for billing tooltips; keep in sync with the constants above. */
+export const DEPLOY_METER_RATES: Record<keyof DeployMeterCostsCents, string> = {
+  cpu: "$0.025 / vCPU-hr",
+  memory: "$0.0125 / GiB-hr",
+  egress: "$0.05 / GiB",
+  disk: "$0.00022 / GiB-hr",
+  activeKeys: "$0.002 / key",
+};
+
 export const DEPLOY_METER_RATE_LABELS = [
-  { label: "CPU", rate: "$0.025 / vCPU-hr" },
-  { label: "Memory", rate: "$0.0125 / GiB-hr" },
-  { label: "Egress", rate: "$0.05 / GiB" },
-  { label: "Disk", rate: "$0.00022 / GiB-hr" },
-  { label: "Active keys", rate: "$0.002 / key" },
+  { label: "CPU", rate: DEPLOY_METER_RATES.cpu },
+  { label: "Memory", rate: DEPLOY_METER_RATES.memory },
+  { label: "Egress", rate: DEPLOY_METER_RATES.egress },
+  { label: "Disk", rate: DEPLOY_METER_RATES.disk },
+  { label: "Active keys", rate: DEPLOY_METER_RATES.activeKeys },
 ] as const;
 
 export type DeployUsageQuantities = {
