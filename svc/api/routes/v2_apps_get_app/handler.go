@@ -84,7 +84,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	// A missing connection is the common "no repo / Docker app" case, so absence
+	// A missing connection is the common "no repo / OCI app" case, so absence
 	// is not an error; any other failure is. On not-found sqlc returns a
 	// zero-valued row, so RepositoryFullName is "" and GitResponse renders null.
 	conn, err := db.Query.FindGithubRepoConnectionByAppId(ctx, h.DB.RO(), app.ID)
@@ -106,7 +106,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			Id:                  app.ID,
 			Name:                app.Name,
 			Slug:                app.Slug,
+			SourceType:          "",
 			Git:                 githubapp.GitResponse(repositoryFullName, app.DefaultBranch),
+			Oci:                 nil,
 			CurrentDeploymentId: app.CurrentDeploymentID.String,
 			IsRolledBack:        app.IsRolledBack,
 			DeleteProtection:    app.DeleteProtection.Bool,

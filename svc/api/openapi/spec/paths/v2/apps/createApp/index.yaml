@@ -5,6 +5,8 @@ post:
   description: |
     Create an app within a project. The app is created with default `production` and `preview` environments.
 
+    Set exactly one source. Use `git` to create a GitHub-sourced app and connect its repository. Use `oci` to create an app from a prebuilt OCI image.
+
     The slug you provide is the stable, caller-defined handle used to reference this app. It must be unique within the project.
 
     **Important**: The slug cannot collide with an existing app in the same project. A duplicate slug returns a 409 conflict.
@@ -25,13 +27,24 @@ post:
         schema:
           "$ref": "./V2AppsCreateAppRequestBody.yaml"
         examples:
-          basic:
-            summary: Basic app creation
-            description: Create an app within a project
+          git:
+            summary: GitHub app
+            description: Create an app connected to a GitHub repository
             value:
               project: payments
               name: Payments API
               slug: payments-api
+              git:
+                repository: unkeyed/unkey
+          ociImage:
+            summary: OCI image app
+            description: Create an app from an OCI image
+            value:
+              project: payments
+              name: Payments API
+              slug: payments-api
+              oci:
+                image: ghcr.io/acme/payments:v1.2.3
     required: true
   responses:
     "200":

@@ -35,8 +35,8 @@ type Handler struct {
 	CtrlClient ctrl.AppServiceClient
 	Auditlogs  auditlogs.AuditLogService
 
-	// GitHubClient resolves and verifies repositories for the optional `git`
-	// connection. GitHubAppName is the App slug used to build actionable install
+	// GitHubClient resolves and verifies a repository when `git.repository` is
+	// provided. GitHubAppName is the App slug used to build actionable install
 	// URLs in error messages; empty means GitHub connection is not configured.
 	GitHubClient  github.GitHubClient
 	GitHubAppName string
@@ -59,6 +59,30 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	req, err := zen.BindBody[Request](s)
 	if err != nil {
 		return err
+	}
+	if req.Git != nil && req.Oci != nil {
+		return fault.New(
+			"multiple app sources provided",
+			fault.Code(codes.App.Validation.InvalidInput.URN()),
+			fault.Internal("git and OCI are mutually exclusive"),
+			fault.Public("Provide exactly one of git or oci."),
+		)
+	}
+	if req.Git == nil && req.Oci == nil {
+		return fault.New(
+			"app source is required",
+			fault.Code(codes.App.Validation.InvalidInput.URN()),
+			fault.Internal("neither git nor OCI source was provided"),
+			fault.Public("Provide exactly one of git or oci."),
+		)
+	}
+	if req.Git != nil && req.Git.Repository == nil && req.Git.DefaultBranch != nil {
+		return fault.New(
+			"git default branch requires a repository",
+			fault.Code(codes.App.Validation.InvalidInput.URN()),
+			fault.Internal("git.defaultBranch was provided without git.repository"),
+			fault.Public("Provide git.repository when setting git.defaultBranch."),
+		)
 	}
 
 	// Tag the repository-connect audit event with a correlation id so it can be
@@ -107,8 +131,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	var resolved githubapp.Resolved
-	if req.Git != nil {
+	var resolved *githubapp.Resolved
+	if req.Git != nil && req.Git.Repository != nil {
 		if err = principal.Authorize(rbac.T(rbac.Tuple{
 			ResourceType: rbac.App,
 			ResourceID:   "*",
@@ -136,15 +160,30 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			)
 		}
 
-		resolved, err = githubapp.Resolve(h.GitHubClient, h.GitHubAppName, installations, req.Git.Repository)
-		if err != nil {
-			return err
+		resolvedRepository, resolveErr := githubapp.Resolve(
+			h.GitHubClient,
+			h.GitHubAppName,
+			installations,
+			*req.Git.Repository,
+		)
+		if resolveErr != nil {
+			return resolveErr
 		}
+		resolved = &resolvedRepository
 	}
 
 	actor, err := ctrlclient.Actor(s)
 	if err != nil {
 		return err
+	}
+	var source ctrlv1.IsCreateAppRequest_Source
+	switch {
+	case req.Git != nil:
+		source = &ctrlv1.CreateAppRequest_Git{Git: &ctrlv1.GitSource{}}
+	case req.Oci != nil:
+		source = &ctrlv1.CreateAppRequest_Oci{
+			Oci: &ctrlv1.OciSource{ImageReference: req.Oci.Image},
+		}
 	}
 	res, err := h.CtrlClient.CreateApp(ctx, &ctrlv1.CreateAppRequest{
 		WorkspaceId: principal.AuthorizedWorkspaceID,
@@ -152,6 +191,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		Name:        req.Name,
 		Slug:        req.Slug,
 		Actor:       actor,
+		Source:      source,
 	})
 	if err != nil {
 		if connect.CodeOf(err) == connect.CodeAlreadyExists {
@@ -170,7 +210,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	// If the connection write fails, the app stays created but unconnected. That
 	// is a valid repo-less app the caller can attach later via apps.updateApp, so
 	// we surface the error rather than roll the app back.
-	if req.Git != nil {
+	if resolved != nil && req.Git != nil {
 		// A create is always a fresh connect, so it adopts the repository's GitHub
 		// default branch unless the caller passes one.
 		defaultBranch := githubapp.DefaultBranch(resolved.Repository.DefaultBranch, req.Git.DefaultBranch)
@@ -184,7 +224,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				InstallationID:     resolved.InstallationID,
 				RepositoryID:       resolved.Repository.ID,
 				RepositoryFullName: resolved.Repository.FullName,
-				DefaultBranch:      sql.NullString{String: defaultBranch, Valid: true},
+				DefaultBranch:      sql.NullString{String: defaultBranch, Valid: defaultBranch != ""},
 				CreatedAt:          now,
 				UpdatedAt:          sql.NullInt64{Valid: true, Int64: now},
 			}); txErr != nil {
@@ -192,27 +232,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 					txErr,
 					fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
 					fault.Internal("failed to upsert github repo connection"),
-					fault.Public("Failed to connect the GitHub repository."),
-				)
-			}
-
-			if txErr := db.Query.UpdateApp(ctx, tx, db.UpdateAppParams{
-				WorkspaceID:               principal.AuthorizedWorkspaceID,
-				ID:                        appID,
-				UpdatedAt:                 sql.NullInt64{Valid: true, Int64: now},
-				NameSpecified:             0,
-				Name:                      "",
-				SlugSpecified:             0,
-				Slug:                      "",
-				DefaultBranchSpecified:    1,
-				DefaultBranch:             defaultBranch,
-				DeleteProtectionSpecified: 0,
-				DeleteProtection:          sql.NullBool{Valid: false, Bool: false},
-			}); txErr != nil {
-				return fault.Wrap(
-					txErr,
-					fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-					fault.Internal("failed to set app default branch"),
 					fault.Public("Failed to connect the GitHub repository."),
 				)
 			}
