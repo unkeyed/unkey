@@ -39,7 +39,7 @@ const (
 // invocation id is what makes the deployment cancellable afterwards.
 func TestCreateWritesRowAndStartsDeploy(t *testing.T) {
 	ctx := context.Background()
-	h := newCreateHarness(t, ctx, createHarnessOptions{})
+	h := newCreateHarness(t, ctx)
 
 	deploymentID := uid.New(uid.DeploymentPrefix)
 	resp := h.create(t, ctx, deploymentID, h.imageRequest())
@@ -75,7 +75,7 @@ func TestCreateWritesRowAndStartsDeploy(t *testing.T) {
 func TestCreateRejections(t *testing.T) {
 	t.Run("workspace has no Compute plan", func(t *testing.T) {
 		ctx := context.Background()
-		h := newCreateHarness(t, ctx, createHarnessOptions{})
+		h := newCreateHarness(t, ctx)
 		h.clearComputePlan(t, ctx)
 
 		resp := h.create(t, context.Background(), uid.New(uid.DeploymentPrefix), h.imageRequest())
@@ -84,31 +84,19 @@ func TestCreateRejections(t *testing.T) {
 		require.Zero(t, h.countDeployments(t, ctx), "a rejected create must write nothing")
 	})
 
-	// Observe mode is how the plan gate rolls out: it reports what it would have
-	// stopped without stopping anything.
-	t.Run("no plan passes while the gate only observes", func(t *testing.T) {
-		ctx := context.Background()
-		h := newCreateHarness(t, ctx, createHarnessOptions{observeGateOnly: true})
-		h.clearComputePlan(t, ctx)
-
-		resp := h.create(t, ctx, uid.New(uid.DeploymentPrefix), h.imageRequest())
-		require.Equal(t, hydrav1.CreateOutcome_CREATE_OUTCOME_CREATED, resp.GetOutcome())
-	})
-
 	t.Run("workspace is spend suspended", func(t *testing.T) {
 		ctx := context.Background()
-		h := newCreateHarness(t, ctx, createHarnessOptions{observeGateOnly: true})
+		h := newCreateHarness(t, ctx)
 		h.suspendSpend(t, ctx)
 
 		resp := h.create(t, ctx, uid.New(uid.DeploymentPrefix), h.imageRequest())
 		require.Equal(t, hydrav1.CreateOutcome_CREATE_OUTCOME_REJECTED, resp.GetOutcome())
-		require.Equal(t, hydrav1.CreateRejectionReason_CREATE_REJECTION_REASON_SPEND_SUSPENDED, resp.GetRejectionReason(),
-			"the spend cap blocks even when plan enforcement only observes")
+		require.Equal(t, hydrav1.CreateRejectionReason_CREATE_REJECTION_REASON_SPEND_SUSPENDED, resp.GetRejectionReason())
 	})
 
 	t.Run("target no longer exists", func(t *testing.T) {
 		ctx := context.Background()
-		h := newCreateHarness(t, ctx, createHarnessOptions{})
+		h := newCreateHarness(t, ctx)
 
 		req := h.imageRequest()
 		req.Environment = uid.New(uid.EnvironmentPrefix)
@@ -122,7 +110,7 @@ func TestCreateRejections(t *testing.T) {
 	// build a different artifact than the caller asked for.
 	t.Run("git source without a repository connection", func(t *testing.T) {
 		ctx := context.Background()
-		h := newCreateHarness(t, ctx, createHarnessOptions{})
+		h := newCreateHarness(t, ctx)
 
 		resp := h.create(t, ctx, uid.New(uid.DeploymentPrefix), h.gitRequest())
 		require.Equal(t, hydrav1.CreateRejectionReason_CREATE_REJECTION_REASON_NO_REPO_CONNECTION, resp.GetRejectionReason())
@@ -131,7 +119,7 @@ func TestCreateRejections(t *testing.T) {
 
 	t.Run("source deployment has nothing to build from", func(t *testing.T) {
 		ctx := context.Background()
-		h := newCreateHarness(t, ctx, createHarnessOptions{})
+		h := newCreateHarness(t, ctx)
 
 		// Neither a commit nor an image: a build that never produced an artifact.
 		source := h.seeder.CreateDeployment(ctx, seed.CreateDeploymentRequest{
@@ -151,7 +139,7 @@ func TestCreateRejections(t *testing.T) {
 	// deployment someone has already shipped past is almost never intended.
 	t.Run("a newer deployment already exists", func(t *testing.T) {
 		ctx := context.Background()
-		h := newCreateHarness(t, ctx, createHarnessOptions{})
+		h := newCreateHarness(t, ctx)
 
 		// Both rows are image deployments with no branch. Siblings are matched
 		// with MySQL's NULL-safe equal, so two non-git deployments still see
@@ -177,7 +165,7 @@ func TestCreateRejections(t *testing.T) {
 
 	t.Run("image reference is not valid", func(t *testing.T) {
 		ctx := context.Background()
-		h := newCreateHarness(t, ctx, createHarnessOptions{})
+		h := newCreateHarness(t, ctx)
 
 		req := h.imageRequest()
 		req.Source = &hydrav1.DeployCreateRequest_Image{
@@ -193,7 +181,7 @@ func TestCreateRejections(t *testing.T) {
 	// against them could only ever reach FAILED.
 	t.Run("environment has nowhere to schedule", func(t *testing.T) {
 		ctx := context.Background()
-		h := newCreateHarness(t, ctx, createHarnessOptions{})
+		h := newCreateHarness(t, ctx)
 		h.clearRegions(t, ctx)
 
 		resp := h.create(t, ctx, uid.New(uid.DeploymentPrefix), h.imageRequest())
@@ -203,7 +191,7 @@ func TestCreateRejections(t *testing.T) {
 
 	t.Run("environment runtime settings are out of bounds", func(t *testing.T) {
 		ctx := context.Background()
-		h := newCreateHarness(t, ctx, createHarnessOptions{})
+		h := newCreateHarness(t, ctx)
 		h.setPort(t, ctx, 0)
 
 		resp := h.create(t, ctx, uid.New(uid.DeploymentPrefix), h.imageRequest())
@@ -212,7 +200,7 @@ func TestCreateRejections(t *testing.T) {
 
 	t.Run("no source named and the app never deployed", func(t *testing.T) {
 		ctx := context.Background()
-		h := newCreateHarness(t, ctx, createHarnessOptions{})
+		h := newCreateHarness(t, ctx)
 
 		req := h.imageRequest()
 		req.Source = nil
@@ -227,7 +215,7 @@ func TestCreateRejections(t *testing.T) {
 func TestCreateFromExistingDeployment(t *testing.T) {
 	t.Run("rebuilds the commit while the repository is connected", func(t *testing.T) {
 		ctx := context.Background()
-		h := newCreateHarness(t, ctx, createHarnessOptions{})
+		h := newCreateHarness(t, ctx)
 		h.connectRepo(t, ctx)
 
 		source := h.seeder.CreateDeployment(ctx, seed.CreateDeploymentRequest{
@@ -257,7 +245,7 @@ func TestCreateFromExistingDeployment(t *testing.T) {
 
 	t.Run("reuses the image when no repository is connected", func(t *testing.T) {
 		ctx := context.Background()
-		h := newCreateHarness(t, ctx, createHarnessOptions{})
+		h := newCreateHarness(t, ctx)
 
 		source := h.imageDeployment(t, ctx, 0)
 
@@ -275,7 +263,7 @@ func TestCreateFromExistingDeployment(t *testing.T) {
 	// The trigger is what marks it as Unkey's doing.
 	t.Run("an operator rebuild is audited as a rebuild", func(t *testing.T) {
 		ctx := context.Background()
-		h := newCreateHarness(t, ctx, createHarnessOptions{})
+		h := newCreateHarness(t, ctx)
 
 		source := h.imageDeployment(t, ctx, 0)
 
@@ -309,7 +297,7 @@ func TestCreateFromExistingDeployment(t *testing.T) {
 // real deployment, such as a missing repository connection, must not refuse it.
 func TestCreateSkipWritesRowWithoutBuilding(t *testing.T) {
 	ctx := context.Background()
-	h := newCreateHarness(t, ctx, createHarnessOptions{})
+	h := newCreateHarness(t, ctx)
 	h.seedEnvVar(t, ctx, "SECRET_TOKEN", "KEBAP")
 
 	// A git source with no repository connection, which would block a deploy.
@@ -338,7 +326,7 @@ func TestCreateSkipWritesRowWithoutBuilding(t *testing.T) {
 // runs.
 func TestCreateAwaitApprovalDoesNotBuild(t *testing.T) {
 	ctx := context.Background()
-	h := newCreateHarness(t, ctx, createHarnessOptions{})
+	h := newCreateHarness(t, ctx)
 	h.connectRepo(t, ctx)
 	h.seedEnvVar(t, ctx, "SECRET_TOKEN", "KEBAP")
 
@@ -365,7 +353,7 @@ func TestCreateAwaitApprovalDoesNotBuild(t *testing.T) {
 // exists, and Create turns every miss into one TARGET_NOT_FOUND rejected.
 func TestDeployTargetScoping(t *testing.T) {
 	ctx := context.Background()
-	h := newCreateHarness(t, ctx, createHarnessOptions{})
+	h := newCreateHarness(t, ctx)
 
 	otherProject := h.seeder.CreateProject(ctx, seed.CreateProjectRequest{
 		ID:          uid.New(uid.ProjectPrefix),
@@ -481,7 +469,7 @@ func TestDeployTargetScoping(t *testing.T) {
 // branch, and only an app without one redeploys what it runs now.
 func TestCreateWithoutSource(t *testing.T) {
 	ctx := context.Background()
-	h := newCreateHarness(t, ctx, createHarnessOptions{})
+	h := newCreateHarness(t, ctx)
 
 	current := h.imageDeployment(t, ctx, time.Now().Add(-time.Hour).UnixMilli())
 	h.setCurrentDeployment(t, ctx, current.ID)
@@ -507,7 +495,7 @@ func TestCreateWithoutSource(t *testing.T) {
 // "redeploy what is already running", which the legacy RPC pointedly did not do.
 func TestCreateWithoutSourceOnConnectedAppResolvesGit(t *testing.T) {
 	ctx := context.Background()
-	h := newCreateHarness(t, ctx, createHarnessOptions{})
+	h := newCreateHarness(t, ctx)
 	h.connectRepo(t, ctx)
 
 	current := h.imageDeployment(t, ctx, time.Now().Add(-time.Hour).UnixMilli())
@@ -539,7 +527,7 @@ func TestCreateWithoutSourceOnConnectedAppResolvesGit(t *testing.T) {
 // right to pull.
 func TestCreateFromForeignDeploymentIsRejected(t *testing.T) {
 	ctx := context.Background()
-	h := newCreateHarness(t, ctx, createHarnessOptions{})
+	h := newCreateHarness(t, ctx)
 
 	other := h.newApp(t, ctx)
 	foreign := h.seeder.CreateDeployment(ctx, seed.CreateDeploymentRequest{
@@ -573,7 +561,7 @@ func TestCreateFromForeignDeploymentIsRejected(t *testing.T) {
 // on a row that is already correct.
 func TestInsertDeploymentToleratesACommittedRow(t *testing.T) {
 	ctx := context.Background()
-	h := newCreateHarness(t, ctx, createHarnessOptions{})
+	h := newCreateHarness(t, ctx)
 
 	deploymentID := uid.New(uid.DeploymentPrefix)
 	require.Equal(t, hydrav1.CreateOutcome_CREATE_OUTCOME_CREATED,
@@ -598,7 +586,7 @@ func TestInsertDeploymentToleratesACommittedRow(t *testing.T) {
 // record at all, which is what the reason on the row exists to prevent.
 func TestCreateSkipIgnoresEnvironmentDeployability(t *testing.T) {
 	ctx := context.Background()
-	h := newCreateHarness(t, ctx, createHarnessOptions{})
+	h := newCreateHarness(t, ctx)
 	h.clearRegions(t, ctx)
 
 	req := h.gitRequest()
@@ -629,13 +617,7 @@ type createHarness struct {
 	environmentID string
 }
 
-type createHarnessOptions struct {
-	// observeGateOnly runs the plan gate in warn-only mode, which is how it
-	// rolls out. The spend cap is enforced either way.
-	observeGateOnly bool
-}
-
-func newCreateHarness(t *testing.T, ctx context.Context, opts createHarnessOptions) *createHarness {
+func newCreateHarness(t *testing.T, ctx context.Context) *createHarness {
 	t.Helper()
 
 	database, fixture := newDeployFixture(t, ctx)
@@ -663,7 +645,6 @@ func newCreateHarness(t *testing.T, ctx context.Context, opts createHarnessOptio
 		BuildStepLogs:                   batch.NewNoop[schema.BuildStepLogV1](),
 		AllowUnauthenticatedDeployments: false,
 		RestateAdmin:                    nil,
-		EnforceDeployGate:               !opts.observeGateOnly,
 	})
 	require.NoError(t, err)
 

@@ -54,12 +54,12 @@ func (w *Workflow) Create(ctx restate.ObjectContext, req *hydrav1.DeployCreateRe
 		return nil, err
 	}
 
-	data, err := w.loadDeploymentData(ctx, req)
+	target, err := w.loadDeploymentData(ctx, req)
 	if err != nil {
 		return nil, err
 	}
 
-	payload, rejection, err := w.validateAndBuildPayload(ctx, req, data, status)
+	payload, rejection, err := w.validateAndBuildPayload(ctx, req, target, status)
 	if err != nil {
 		return nil, err
 	}
@@ -90,17 +90,10 @@ func (w *Workflow) Create(ctx restate.ObjectContext, req *hydrav1.DeployCreateRe
 	}, nil
 }
 
-// deploymentData is what Create reads before it decides anything. A nil field
-// is a row that does not exist.
-type deploymentData struct {
-	Target      *db.FindDeployTargetRow               `json:"target"`
-	Entitlement *db.FindWorkspaceDeployEntitlementRow `json:"entitlement"`
-}
-
-func (w *Workflow) loadDeploymentData(ctx restate.Context, req *hydrav1.DeployCreateRequest) (deploymentData, error) {
-	return restate.Run(ctx, func(runCtx restate.RunContext) (deploymentData, error) {
-		var data deploymentData
-
+// loadDeploymentData reads the target and its workspace's billing state in one
+// query. A nil row is a target that does not exist.
+func (w *Workflow) loadDeploymentData(ctx restate.Context, req *hydrav1.DeployCreateRequest) (*db.FindDeployTargetRow, error) {
+	return restate.Run(ctx, func(runCtx restate.RunContext) (*db.FindDeployTargetRow, error) {
 		target, err := w.db.FindDeployTarget(runCtx, db.FindDeployTargetParams{
 			ProjectID:   req.GetProjectId(),
 			AppID:       req.GetAppId(),
@@ -108,49 +101,12 @@ func (w *Workflow) loadDeploymentData(ctx restate.Context, req *hydrav1.DeployCr
 		})
 		if err != nil {
 			if db.IsNotFound(err) {
-				return data, nil
+				return nil, nil
 			}
-			return data, fmt.Errorf("failed to lookup deploy target: %w", err)
+			return nil, fmt.Errorf("failed to lookup deploy target: %w", err)
 		}
-		data.Target = &target
-
-		entitlement, err := w.db.FindWorkspaceDeployEntitlement(runCtx, target.WorkspaceID)
-		if err != nil {
-			if db.IsNotFound(err) {
-				return data, nil
-			}
-			return data, fmt.Errorf("failed to lookup workspace entitlement: %w", err)
-		}
-		data.Entitlement = &entitlement
-
-		return data, nil
+		return &target, nil
 	}, restate.WithName("load deployment data"), restate.WithMaxRetryAttempts(runMaxAttempts))
-}
-
-// Only the plan check honors enforceDeployGate; the spend cap always blocks.
-func (w *Workflow) checkWorkspacePlan(workspaceID string, entitlement db.FindWorkspaceDeployEntitlementRow) *hydrav1.CreateRejectionReason {
-	if !deploygate.Entitled(entitlement.Plan, entitlement.PlanOverride) {
-		if w.enforceDeployGate {
-			return rejectf(
-				hydrav1.CreateRejectionReason_CREATE_REJECTION_REASON_NO_COMPUTE_PLAN,
-				"workspace %s has no Compute plan", workspaceID,
-			)
-		}
-		logger.Warn(
-			"deploy gate would block deployment create",
-			"event", "deploy_gate.would_block",
-			"workspaceId", workspaceID,
-		)
-	}
-
-	if entitlement.SpendSuspended.Bool {
-		return rejectf(
-			hydrav1.CreateRejectionReason_CREATE_REJECTION_REASON_SPEND_SUSPENDED,
-			"workspace %s is suspended by its Compute spend cap", workspaceID,
-		)
-	}
-
-	return nil
 }
 
 // checkEnvironmentDeployable rejects invalid port, cpu, or memory settings and
@@ -207,7 +163,7 @@ type deployPayload struct {
 func (w *Workflow) validateAndBuildPayload(
 	ctx restate.Context,
 	req *hydrav1.DeployCreateRequest,
-	data deploymentData,
+	target *db.FindDeployTargetRow,
 	status mysqltype.DeploymentsStatus,
 ) (deployPayload, *hydrav1.CreateRejectionReason, error) {
 	built, err := restate.Run(ctx, func(runCtx restate.RunContext) (deployPayload, error) {
@@ -215,7 +171,7 @@ func (w *Workflow) validateAndBuildPayload(
 
 		// The caller already verified the target, so a miss means it was deleted
 		// mid-create.
-		if data.Target == nil || data.Entitlement == nil {
+		if target == nil {
 			payload.Rejection = rejectf(
 				hydrav1.CreateRejectionReason_CREATE_REJECTION_REASON_TARGET_NOT_FOUND,
 				"no deploy target for project '%s', app '%s', environment '%s'",
@@ -223,20 +179,32 @@ func (w *Workflow) validateAndBuildPayload(
 			)
 			return payload, nil
 		}
-		target := *data.Target
+
+		if !deploygate.Entitled(target.Plan, target.PlanOverride) {
+			payload.Rejection = rejectf(
+				hydrav1.CreateRejectionReason_CREATE_REJECTION_REASON_NO_COMPUTE_PLAN,
+				"workspace %s has no Compute plan", target.WorkspaceID,
+			)
+			return payload, nil
+		}
+		if target.SpendSuspended.Bool {
+			payload.Rejection = rejectf(
+				hydrav1.CreateRejectionReason_CREATE_REJECTION_REASON_SPEND_SUSPENDED,
+				"workspace %s is suspended by its Compute spend cap", target.WorkspaceID,
+			)
+			return payload, nil
+		}
 
 		// A skip never builds: it needs no deployable environment, repository
 		// connection, or GitHub answer, and refusing it would leave the push with
 		// no record.
 		willBuild := status != mysqltype.DeploymentsStatusSkipped
 
-		rejection := w.checkWorkspacePlan(target.WorkspaceID, *data.Entitlement)
-		if rejection == nil && willBuild {
-			rejection = checkEnvironmentDeployable(target)
-		}
-		if rejection != nil {
-			payload.Rejection = rejection
-			return payload, nil
+		if willBuild {
+			if rejection := checkEnvironmentDeployable(*target); rejection != nil {
+				payload.Rejection = rejection
+				return payload, nil
+			}
 		}
 
 		secrets := []byte{}
@@ -265,7 +233,7 @@ func (w *Workflow) validateAndBuildPayload(
 		source := buildSource{Image: "", Git: nil}
 
 		if willBuild {
-			resolved, err := w.resolveSource(runCtx, target, req, commit)
+			resolved, err := w.resolveSource(runCtx, *target, req, commit)
 			if err != nil {
 				return payload, err
 			}
@@ -287,7 +255,7 @@ func (w *Workflow) validateAndBuildPayload(
 		commit.AuthorHandle = trimBytes(commit.AuthorHandle, commitAuthorHandleBytesMax)
 		commit.AuthorAvatarURL = trimBytes(commit.AuthorAvatarURL, commitAuthorAvatarURLBytesMax)
 
-		payload.Target = target
+		payload.Target = *target
 		payload.Status = status
 		payload.CreatedAt = time.Now().UnixMilli()
 		payload.Secrets = secrets

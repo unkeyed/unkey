@@ -279,10 +279,8 @@ func New(t *testing.T, opts ...Option) *Harness {
 		AllowUnauthenticatedDeployments: false,
 
 		// A nil admin client leaves a superseded deployment's row marked while its
-		// invocation keeps running. The deploy gate stays off so fixtures without
-		// a billing plan still deploy.
-		RestateAdmin:      nil,
-		EnforceDeployGate: false,
+		// invocation keeps running.
+		RestateAdmin: nil,
 	})
 	require.NoError(t, err)
 

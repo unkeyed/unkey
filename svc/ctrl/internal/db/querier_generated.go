@@ -443,6 +443,9 @@ type Querier interface {
 	//      ars.sentinel_config AS sentinel_config,
 	//      grc.installation_id AS github_installation_id,
 	//      grc.repository_full_name AS github_repository_full_name,
+	//      b.plan AS plan,
+	//      b.plan_override AS plan_override,
+	//      b.spend_suspended AS spend_suspended,
 	//      EXISTS (
 	//          SELECT 1
 	//          FROM app_regional_settings ars2
@@ -466,6 +469,7 @@ type Querier interface {
 	//  INNER JOIN app_build_settings abs ON abs.app_id = a.id AND abs.environment_id = e.id
 	//  INNER JOIN app_runtime_settings ars ON ars.app_id = a.id AND ars.environment_id = e.id
 	//  LEFT JOIN github_repo_connections grc ON grc.app_id = a.id
+	//  LEFT JOIN workspace_billing b ON b.workspace_id = p.workspace_id
 	//  WHERE a.id = ?
 	//    AND a.project_id = ?
 	//  LIMIT 1
