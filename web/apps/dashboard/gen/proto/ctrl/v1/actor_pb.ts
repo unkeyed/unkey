@@ -84,9 +84,7 @@ export enum ActorType {
   SYSTEM = 3,
 
   /**
-   * GITHUB is a GitHub event rather than a person using Unkey, and the actor id
-   * is the pusher's GitHub login. Separate from SYSTEM so work a contributor
-   * caused is not attributed to Unkey itself.
+   * GITHUB is a push or pull request. The actor id is the GitHub login.
    *
    * @generated from enum value: ACTOR_TYPE_GITHUB = 4;
    */

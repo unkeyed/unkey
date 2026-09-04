@@ -29,9 +29,7 @@ const (
 	ActorType_ACTOR_TYPE_USER        ActorType = 1
 	ActorType_ACTOR_TYPE_ROOT_KEY    ActorType = 2
 	ActorType_ACTOR_TYPE_SYSTEM      ActorType = 3
-	// GITHUB is a GitHub event rather than a person using Unkey, and the actor id
-	// is the pusher's GitHub login. Separate from SYSTEM so work a contributor
-	// caused is not attributed to Unkey itself.
+	// GITHUB is a push or pull request. The actor id is the GitHub login.
 	ActorType_ACTOR_TYPE_GITHUB ActorType = 4
 )
 
