@@ -13,31 +13,23 @@ import (
 )
 
 const (
-	// rebuildActorID and rebuildActorName name the synthetic actor recorded on an
-	// operator rebuild. The bearer token is the only identity at this boundary,
-	// so every rebuild shares one actor and the reason carries the detail.
+	// The ops bearer token is the only identity at this boundary, so every
+	// rebuild shares one actor.
 	rebuildActorID   = "unkey-ops"
 	rebuildActorName = "Unkey Ops"
 )
 
-// Rebuild creates a new deployment that re-runs what the source deployment ran:
-// its commit when the app still has a repository connection, otherwise its
-// image. The new deployment takes the app's current runtime settings and
-// environment variables, so any configuration drift since the source applies.
-//
-// Unless force is set, it refuses when a newer active deployment exists on the
-// same app, environment, and branch, because resurrecting a deployment past
-// something already shipped is rarely what an operator meant.
-//
-// DeployService.Create writes the row and the deployment.rebuild audit entry.
+// Rebuild creates a deployment that re-runs the source deployment's commit, or
+// its image when the app has no repository connection, with the app's current
+// settings. Unless force is set it refuses when a newer active deployment
+// exists on the same app, environment, and branch.
 func (s *Service) Rebuild(ctx context.Context, sourceDeploymentID, reason string, force bool) (string, error) {
 	if sourceDeploymentID == "" {
 		return "", connect.NewError(connect.CodeInvalidArgument,
 			fmt.Errorf("deployment_id is required"))
 	}
 
-	// This read supplies the project, app, and environment only. Create resolves
-	// the source deployment again for the artifact.
+	// Only the target comes from this read. Create resolves the source itself.
 	src, err := s.db.FindDeploymentById(ctx, sourceDeploymentID)
 	if err != nil {
 		if db.IsNotFound(err) {
@@ -89,8 +81,7 @@ func (s *Service) Rebuild(ctx context.Context, sourceDeploymentID, reason string
 	}
 
 	if resp.GetOutcome() == hydrav1.CreateOutcome_CREATE_OUTCOME_REJECTED {
-		// Only the enum crosses the wire. The worker logs the explanation under
-		// the deployment id above.
+		// The worker logs the detail. Only the enum crosses the wire.
 		return "", connect.NewError(connect.CodeFailedPrecondition,
 			fmt.Errorf("rebuild rejected: %s", resp.GetRejectionReason().String()))
 	}

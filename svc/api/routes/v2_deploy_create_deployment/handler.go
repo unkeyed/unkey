@@ -108,8 +108,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		trigger = ctrlv1.DeploymentTrigger_DEPLOYMENT_TRIGGER_CLI
 	}
 
-	// ctrl rejects these too, but ctrlclient.HandleError replaces its message with a
-	// generic one, so the reason reaches the caller only if the check also runs here.
+	// The worker rejects a bad image too, with a coarser message.
 	if err := imageref.Validate(req.DockerImage); err != nil {
 		return err
 	}
@@ -192,13 +191,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 	}
 
-	// Request, not Send: the create is the only writer of the deployment row, so
-	// awaiting it is what lets this response name a deployment a caller can
-	// immediately read back. It also carries the worker's own gates, which is
-	// where a workspace that may not deploy is refused.
-	//
-	// A timeout here does not undo the create. Restate keeps running it, so a
-	// caller that gives up may still get a deployment.
+	// Request, not Send: awaiting the create means the caller can read the
+	// deployment back as soon as this returns, and a rejection can be reported.
+	// A timeout does not undo the create; Restate keeps running it.
 	res, err := hydrav1.NewDeployServiceIngressClient(h.Restate, deploymentID).
 		Create().
 		Request(ctx, createReq)
