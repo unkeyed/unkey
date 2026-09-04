@@ -97,7 +97,6 @@ func TestActionableGroups(t *testing.T) {
 			request: &clickhouse.RequestAnomalyWindow{
 				RequestsCurrent: 1_000, RequestsBaselineMean: 100,
 				RequestsBaselineStddev: 0, BaselineBuckets: 12,
-				FirstBucketTime:      windowStart - 12*windowDurationMillis,
 				CurrentBucketPresent: true,
 			},
 		},
@@ -105,10 +104,10 @@ func TestActionableGroups(t *testing.T) {
 		incomplete: {request: &clickhouse.RequestAnomalyWindow{RequestsCurrent: 1_000, CurrentBucketPresent: true}},
 	}
 
-	got := actionableGroups(groups, windowStart, ingestCompleteness{
+	got := actionableGroups(groups, ingestCompleteness{
 		Requests: sourceStatus{Complete: true, Watermark: windowEnd},
 	})
-	require.Equal(t, []anomalyGroup{open, spike}, got)
+	require.Equal(t, []anomalyGroup{open, spike, incomplete}, got)
 }
 
 func TestSourceCompleteness(t *testing.T) {
@@ -147,7 +146,7 @@ func TestInstanceEventRecoveryUsesResourceCompleteness(t *testing.T) {
 	t.Parallel()
 
 	complete := ingestCompleteness{Resources: sourceStatus{Complete: true}}
-	quiet := evaluateMetrics(groupWindow{}, 2_000_000, complete)
+	quiet := evaluateMetrics(groupWindow{}, complete)
 	require.Equal(t,
 		hydrav1.DeployAnomalyMetricDataState_DEPLOY_ANOMALY_METRIC_DATA_STATE_ZERO_COMPLETE,
 		metricByName(t, quiet, MetricOOMKilled).GetDataState(),
@@ -156,7 +155,7 @@ func TestInstanceEventRecoveryUsesResourceCompleteness(t *testing.T) {
 	incomplete := ingestCompleteness{Resources: sourceStatus{Complete: false}}
 	present := evaluateMetrics(groupWindow{events: &clickhouse.InstanceEventAnomalyWindow{
 		OOMKilledCurrent: 1,
-	}}, 2_000_000, incomplete)
+	}}, incomplete)
 	require.Equal(t,
 		hydrav1.DeployAnomalyMetricDataState_DEPLOY_ANOMALY_METRIC_DATA_STATE_PRESENT,
 		metricByName(t, present, MetricOOMKilled).GetDataState(),

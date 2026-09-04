@@ -64,8 +64,7 @@ message DeployAnomalyMetricInput {
   double baseline_mean = 4;
   double baseline_stddev = 5;
   int64 observed_baseline_buckets = 6;
-  // FirstBucketTime is the first observed baseline bucket in unix milliseconds.
-  int64 first_bucket_time = 7;
+  reserved 7;
   double requests_in_window = 8;
   double recent_median_requests = 9;
   int64 recent_active_buckets = 10;
@@ -94,6 +93,8 @@ message EvaluateDeployAnomalyRequest {
 
   repeated DeployAnomalyMetricInput metrics = 14;
   bool deployment_has_running_region = 15;
+  // AppCreatedAt bounds zero-padding to the app's actual lifetime.
+  int64 app_created_at = 16;
 }
 
 message EvaluateDeployAnomalyResponse {
