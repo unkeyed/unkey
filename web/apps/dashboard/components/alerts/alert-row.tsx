@@ -5,7 +5,7 @@ import { ResourceListItem, TimestampInfo } from "@unkey/ui";
 import { formatDistanceToNowStrict } from "date-fns";
 import type { Route } from "next";
 import Link from "next/link";
-import { AlertRowChart } from "./alert-row-chart";
+import { LazyAlertRowChart } from "./alert-row-chart";
 import {
   alertMetricLabel,
   formatAlertDistance,
@@ -27,7 +27,7 @@ export function AlertRow({
   selected?: boolean;
 }) {
   const chart = (
-    <AlertRowChart
+    <LazyAlertRowChart
       appId={alert.appId}
       environmentId={alert.environmentId}
       metric={alert.metric}

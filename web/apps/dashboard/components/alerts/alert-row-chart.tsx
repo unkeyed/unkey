@@ -3,7 +3,7 @@
 import { trpc } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";
 import { InfoTooltip, Skeleton } from "@unkey/ui";
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { alertMetricLabel, formatAlertValue, seriesMetricForAlert } from "./format";
 import type { AlertMetric } from "./types";
 
@@ -16,19 +16,54 @@ type ChartBar = {
   anomalous: boolean;
 };
 
+type AlertRowChartProps = {
+  appId: string;
+  environmentId: string;
+  metric: AlertMetric;
+  windowStart: number;
+  windowEnd: number;
+};
+
+export function LazyAlertRowChart(props: AlertRowChartProps) {
+  const container = useRef<HTMLDivElement>(null);
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    if (visible || !container.current) {
+      return;
+    }
+    if (typeof IntersectionObserver === "undefined") {
+      setVisible(true);
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry?.isIntersecting) {
+          setVisible(true);
+          observer.disconnect();
+        }
+      },
+      { rootMargin: "150px 0px" },
+    );
+    observer.observe(container.current);
+    return () => observer.disconnect();
+  }, [visible]);
+
+  return (
+    <div ref={container} className="h-7 w-[158px]">
+      {visible ? <AlertRowChart {...props} /> : <Skeleton className="h-7 w-[158px] rounded-md" />}
+    </div>
+  );
+}
+
 export function AlertRowChart({
   appId,
   environmentId,
   metric,
   windowStart,
   windowEnd,
-}: {
-  appId: string;
-  environmentId: string;
-  metric: AlertMetric;
-  windowStart: number;
-  windowEnd: number;
-}) {
+}: AlertRowChartProps) {
   const query = trpc.alerts.series.useQuery(
     {
       appId,
