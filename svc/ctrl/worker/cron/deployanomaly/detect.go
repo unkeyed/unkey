@@ -14,6 +14,7 @@ import (
 const (
 	bucketDurationMillis   = int64(5 * 60 * 1_000)
 	maximumBaselineBuckets = int64(288)
+	maximumOpenDuration    = 30 * 24 * time.Hour
 )
 
 //go:embed thresholds.json
@@ -76,8 +77,13 @@ func validateThresholds(thresholds thresholdFile) error {
 	if !finite(thresholds.SensitivitySigmaOffsets.High) || thresholds.SensitivitySigmaOffsets.High >= 0 {
 		return fmt.Errorf("sensitivitySigmaOffsets.high must be finite and negative")
 	}
-	if thresholds.SigmaK+thresholds.SensitivitySigmaOffsets.High <= 0 {
-		return fmt.Errorf("sensitivitySigmaOffsets.high must keep sigmaK positive")
+	lowSigma := thresholds.SigmaK + thresholds.SensitivitySigmaOffsets.Low
+	highSigma := thresholds.SigmaK + thresholds.SensitivitySigmaOffsets.High
+	if !finite(lowSigma) || lowSigma <= 0 {
+		return fmt.Errorf("sigmaK plus sensitivitySigmaOffsets.low must be finite and positive")
+	}
+	if !finite(highSigma) || highSigma <= 0 {
+		return fmt.Errorf("sigmaK plus sensitivitySigmaOffsets.high must be finite and positive")
 	}
 	if err := ratioThreshold("minimumStddevRatio", thresholds.MinimumStddevRatio); err != nil {
 		return err
@@ -138,18 +144,27 @@ func validateThresholds(thresholds thresholdFile) error {
 			return err
 		}
 	}
+	if thresholds.Recovery.MemoryUtilization >= thresholds.ActivityFloors.MemoryUtilization {
+		return fmt.Errorf("recovery.memoryUtilization must be less than activityFloors.memoryUtilization")
+	}
 
 	if thresholds.RequestDrop.MinimumActiveBuckets <= 0 || thresholds.RequestDrop.MinimumActiveBuckets > 12 {
 		return fmt.Errorf("requestDrop.minimumActiveBuckets must be between 1 and 12")
 	}
-	if thresholds.Recovery.SigmaReduction > thresholds.SigmaK {
-		return fmt.Errorf("recovery.sigmaReduction must not exceed sigmaK")
+	if thresholds.Recovery.SigmaReduction >= min(lowSigma, highSigma) {
+		return fmt.Errorf("recovery.sigmaReduction must be less than the smallest sensitivity sigma")
 	}
 	if thresholds.Recovery.ConsecutiveWindows <= 0 {
 		return fmt.Errorf("recovery.consecutiveWindows must be positive")
 	}
 	if thresholds.MaxOpenDurationSeconds <= 0 {
 		return fmt.Errorf("maxOpenDurationSeconds must be positive")
+	}
+	if thresholds.MaxOpenDurationSeconds > math.MaxInt64/int64(time.Second) {
+		return fmt.Errorf("maxOpenDurationSeconds must fit time.Duration")
+	}
+	if time.Duration(thresholds.MaxOpenDurationSeconds)*time.Second > maximumOpenDuration {
+		return fmt.Errorf("maxOpenDurationSeconds must not exceed 30 days")
 	}
 	return nil
 }
