@@ -107,7 +107,7 @@ func TestCreateRejections(t *testing.T) {
 	})
 
 	// Refused rather than quietly redeployed as the current image, which would
-	// build a different artifact than the caller asked for.
+	// run something other than what the caller asked for.
 	t.Run("git source without a repository connection", func(t *testing.T) {
 		ctx := context.Background()
 		h := newCreateHarness(t, ctx)
@@ -121,7 +121,7 @@ func TestCreateRejections(t *testing.T) {
 		ctx := context.Background()
 		h := newCreateHarness(t, ctx)
 
-		// Neither a commit nor an image: a build that never produced an artifact.
+		// Neither a commit nor an image: a build that never produced anything.
 		source := h.seeder.CreateDeployment(ctx, seed.CreateDeploymentRequest{
 			ID:            uid.New(uid.DeploymentPrefix),
 			WorkspaceID:   h.workspaceID,
@@ -161,6 +161,22 @@ func TestCreateRejections(t *testing.T) {
 		forced := h.create(t, ctx, uid.New(uid.DeploymentPrefix), h.existingRequest(source.ID, false))
 		require.Equal(t, hydrav1.CreateOutcome_CREATE_OUTCOME_CREATED, forced.GetOutcome(),
 			"clearing the guardrail is how an operator forces the rebuild through")
+	})
+
+	// Deploy resolves a tag to a digest and refuses an implicit one, so an
+	// untagged reference would be written and then fail its first step.
+	t.Run("image reference has no tag", func(t *testing.T) {
+		ctx := context.Background()
+		h := newCreateHarness(t, ctx)
+
+		req := h.imageRequest()
+		req.Source = &hydrav1.DeployCreateRequest_Image{
+			Image: &hydrav1.CreateImageSource{Image: "ghcr.io/unkey/kebap"},
+		}
+
+		resp := h.create(t, ctx, uid.New(uid.DeploymentPrefix), req)
+		require.Equal(t, hydrav1.CreateRejectionReason_CREATE_REJECTION_REASON_INVALID_IMAGE, resp.GetRejectionReason())
+		require.Zero(t, h.countDeployments(t, ctx))
 	})
 
 	t.Run("image reference is not valid", func(t *testing.T) {
@@ -256,6 +272,76 @@ func TestCreateFromExistingDeployment(t *testing.T) {
 		image, ok := sent.GetSource().(*hydrav1.DeployRequest_OciImage)
 		require.True(t, ok, "without a connection there is no commit to rebuild")
 		require.Equal(t, fixtureImage, image.OciImage.GetImage())
+	})
+
+	// The row says it was built from git. Reusing its image would rebuild
+	// nothing, which is not what the operator asked for.
+	t.Run("a git build is not rebuilt from its image once the repository is gone", func(t *testing.T) {
+		ctx := context.Background()
+		h := newCreateHarness(t, ctx)
+
+		source := h.commitDeployment(t, ctx)
+		h.setDeploymentImages(t, ctx, source.ID, db.DeploymentsSourceGit, fixtureImage, fixtureImage)
+
+		resp := h.create(t, ctx, uid.New(uid.DeploymentPrefix), h.existingRequest(source.ID, false))
+		require.Equal(t, hydrav1.CreateRejectionReason_CREATE_REJECTION_REASON_NO_REPO_CONNECTION, resp.GetRejectionReason())
+		require.Equal(t, 1, h.countDeployments(t, ctx), "only the seeded source")
+	})
+
+	// A CLI deploy records the commit it was built from locally, but what runs
+	// is the image. Rebuilding the commit would run our build instead.
+	t.Run("an image deployment redeploys its image even with a commit and a connection", func(t *testing.T) {
+		ctx := context.Background()
+		h := newCreateHarness(t, ctx)
+		h.connectRepo(t, ctx)
+
+		source := h.commitDeployment(t, ctx)
+		h.setDeploymentImages(t, ctx, source.ID, db.DeploymentsSourceOci, fixtureImage, fixtureImage)
+
+		deploymentID := uid.New(uid.DeploymentPrefix)
+		h.create(t, ctx, deploymentID, h.existingRequest(source.ID, false))
+
+		sent := h.awaitDeploy(t, deploymentID)
+		image, ok := sent.GetSource().(*hydrav1.DeployRequest_OciImage)
+		require.True(t, ok, "the row's source decides, not the connection")
+		require.Equal(t, fixtureImage, image.OciImage.GetImage())
+	})
+
+	// Deploy pins the digest it ran into image_resolved. A rebuild reproduces
+	// that, not a tag that may since point elsewhere.
+	t.Run("a rebuild takes the resolved digest over the requested tag", func(t *testing.T) {
+		ctx := context.Background()
+		h := newCreateHarness(t, ctx)
+
+		digest := "ghcr.io/unkey/kebap@sha256:" + strings.Repeat("ab", 32)
+		source := h.imageDeployment(t, ctx, 0)
+		h.setDeploymentImages(t, ctx, source.ID, db.DeploymentsSourceOci, fixtureImage, digest)
+
+		deploymentID := uid.New(uid.DeploymentPrefix)
+		h.create(t, ctx, deploymentID, h.existingRequest(source.ID, false))
+
+		sent := h.awaitDeploy(t, deploymentID)
+		image, ok := sent.GetSource().(*hydrav1.DeployRequest_OciImage)
+		require.True(t, ok)
+		require.Equal(t, digest, image.OciImage.GetImage())
+	})
+
+	// Rows from before explicit tags were required hold references like "nginx".
+	// Deploy refuses those, so the rebuild has to make the tag explicit.
+	t.Run("a historical image gets an explicit tag", func(t *testing.T) {
+		ctx := context.Background()
+		h := newCreateHarness(t, ctx)
+
+		source := h.imageDeployment(t, ctx, 0)
+		h.setDeploymentImages(t, ctx, source.ID, db.DeploymentsSourceUnknown, "nginx", "")
+
+		deploymentID := uid.New(uid.DeploymentPrefix)
+		h.create(t, ctx, deploymentID, h.existingRequest(source.ID, false))
+
+		sent := h.awaitDeploy(t, deploymentID)
+		image, ok := sent.GetSource().(*hydrav1.DeployRequest_OciImage)
+		require.True(t, ok)
+		require.Equal(t, "index.docker.io/library/nginx:latest", image.OciImage.GetImage())
 	})
 
 	// An operator rebuild is audited as deployment.rebuild naming both
@@ -447,13 +533,13 @@ func TestDeployTargetScoping(t *testing.T) {
 	require.Equal(t, h.environmentID, target.EnvironmentID)
 	require.Equal(t, "main", target.DefaultBranch)
 	require.Equal(t, "Dockerfile", target.Dockerfile.String)
-	require.Equal(t, ".", target.DockerContext)
+	require.Equal(t, ".", target.DockerContext.String)
 	require.Equal(t, int32(8080), target.Port)
 	require.Equal(t, int32(250), target.CpuMillicores)
 	require.Equal(t, int32(256), target.MemoryMib)
 
 	// A rebuild names the environment by id instead, which must land on the same
-	// row: the two lookups differ only in that predicate.
+	// row: the two lookups differ only in that condition.
 	byID, err := h.database.FindDeployTarget(ctx, db.FindDeployTargetParams{
 		ProjectID:   h.projectID,
 		AppID:       h.appID,
@@ -464,9 +550,9 @@ func TestDeployTargetScoping(t *testing.T) {
 }
 
 // TestCreateWithoutSource covers the arm a caller uses when it knows only that
-// it wants this app shipped again. It splits on the repository connection the
-// same way the legacy RPC did: a connected app deploys the head of its default
-// branch, and only an app without one redeploys what it runs now.
+// it wants this app shipped again. For an app with no declared source it splits
+// on the repository connection the same way the legacy RPC did: connected apps
+// build the default branch, others redeploy what they run now.
 func TestCreateWithoutSource(t *testing.T) {
 	ctx := context.Background()
 	h := newCreateHarness(t, ctx)
@@ -489,7 +575,7 @@ func TestCreateWithoutSource(t *testing.T) {
 
 // TestCreateWithoutSourceOnConnectedAppResolvesGit is the other half, and the
 // rejection is the assertion. The harness has no GitHub, so resolving the head
-// of the default branch necessarily fails there — which is exactly what proves
+// of the default branch necessarily fails there, which is exactly what proves
 // the create took the git path. Redeploying the current deployment instead
 // would have succeeded with an image source and turned "deploy my app" into
 // "redeploy what is already running", which the legacy RPC pointedly did not do.
@@ -501,9 +587,9 @@ func TestCreateWithoutSourceOnConnectedAppResolvesGit(t *testing.T) {
 	current := h.imageDeployment(t, ctx, time.Now().Add(-time.Hour).UnixMilli())
 	h.setCurrentDeployment(t, ctx, current.ID)
 
-	// The inference below only holds while the current deployment carries no
-	// commit: with one, the reverted path would reach GitHub too and fail the
-	// same way, and this test would pass for the wrong reason.
+	// This only holds while the current deployment carries no commit: with one,
+	// the reverted path would reach GitHub too and fail the same way, and this
+	// test would pass for the wrong reason.
 	require.False(t, current.GitCommitSha.Valid, "the current deployment must have no commit to rebuild")
 
 	req := h.imageRequest()
@@ -555,7 +641,7 @@ func TestCreateFromForeignDeploymentIsRejected(t *testing.T) {
 }
 
 // TestInsertDeploymentToleratesACommittedRow covers the recovery that keeps a
-// lost commit acknowledgement from wedging a create. TxRetry re-runs the whole
+// lost commit acknowledgement from stalling a create. TxRetry re-runs the whole
 // transaction whenever the failure looks transient, and a commit whose ack never
 // arrived looks exactly like that; the second attempt then hits a duplicate key
 // on a row that is already correct.
@@ -601,6 +687,146 @@ func TestCreateSkipIgnoresEnvironmentDeployability(t *testing.T) {
 	require.Equal(t, mysqltype.DeploymentsStatusSkipped, row.Status)
 	require.Equal(t, "Watch paths did not match any changed files.", row.TriggerReason.String)
 	h.requireNoDeploy(t, deploymentID)
+}
+
+// TestCreateFollowsAppSource pins the app's declared source. An app created as
+// OCI has an image and no build settings; one created as Git has the reverse.
+// Guessing from the repository connection alone gets both wrong.
+func TestCreateFollowsAppSource(t *testing.T) {
+	t.Run("an OCI app deploys its configured image", func(t *testing.T) {
+		ctx := context.Background()
+		h := newCreateHarness(t, ctx)
+		h.setAppSource(t, ctx, db.AppsSourceTypeOci)
+		h.seedOciSource(t, ctx, "ghcr.io/unkey/kebap:v2")
+		h.dropBuildSettings(t, ctx)
+
+		req := h.imageRequest()
+		req.Source = nil
+
+		deploymentID := uid.New(uid.DeploymentPrefix)
+		resp := h.create(t, ctx, deploymentID, req)
+		require.Equal(t, hydrav1.CreateOutcome_CREATE_OUTCOME_CREATED, resp.GetOutcome(),
+			"an OCI app has no build settings row and must not need one")
+
+		sent := h.awaitDeploy(t, deploymentID)
+		image, ok := sent.GetSource().(*hydrav1.DeployRequest_OciImage)
+		require.True(t, ok)
+		require.Equal(t, "ghcr.io/unkey/kebap:v2", image.OciImage.GetImage())
+
+		row := h.deployment(t, ctx, deploymentID)
+		require.Equal(t, db.DeploymentsSourceOci, row.Source)
+		require.Equal(t, "ghcr.io/unkey/kebap:v2", row.ImageRequested.String)
+		require.False(t, row.GitCommitSha.Valid, "an image deploy synthesizes no commit")
+	})
+
+	t.Run("an OCI app with no image configured", func(t *testing.T) {
+		ctx := context.Background()
+		h := newCreateHarness(t, ctx)
+		h.setAppSource(t, ctx, db.AppsSourceTypeOci)
+
+		req := h.imageRequest()
+		req.Source = nil
+
+		resp := h.create(t, ctx, uid.New(uid.DeploymentPrefix), req)
+		require.Equal(t, hydrav1.CreateRejectionReason_CREATE_REJECTION_REASON_NO_SOURCE_IMAGE, resp.GetRejectionReason())
+		require.Zero(t, h.countDeployments(t, ctx))
+	})
+
+	// A connection may linger on an app switched to OCI. The declared source wins.
+	t.Run("an OCI app refuses a git commit", func(t *testing.T) {
+		ctx := context.Background()
+		h := newCreateHarness(t, ctx)
+		h.setAppSource(t, ctx, db.AppsSourceTypeOci)
+		h.connectRepo(t, ctx)
+
+		resp := h.create(t, ctx, uid.New(uid.DeploymentPrefix), h.gitRequest())
+		require.Equal(t, hydrav1.CreateRejectionReason_CREATE_REJECTION_REASON_NO_REPO_CONNECTION, resp.GetRejectionReason())
+		require.Zero(t, h.countDeployments(t, ctx))
+	})
+
+	// Falling back to the current image would turn "deploy my app" into
+	// "redeploy what is running" for an app whose repository was disconnected.
+	t.Run("a git app without a repository connection is refused", func(t *testing.T) {
+		ctx := context.Background()
+		h := newCreateHarness(t, ctx)
+		h.setAppSource(t, ctx, db.AppsSourceTypeGit)
+
+		current := h.imageDeployment(t, ctx, time.Now().Add(-time.Hour).UnixMilli())
+		h.setCurrentDeployment(t, ctx, current.ID)
+
+		req := h.imageRequest()
+		req.Source = nil
+
+		resp := h.create(t, ctx, uid.New(uid.DeploymentPrefix), req)
+		require.Equal(t, hydrav1.CreateRejectionReason_CREATE_REJECTION_REASON_NO_REPO_CONNECTION, resp.GetRejectionReason())
+		require.Equal(t, 1, h.countDeployments(t, ctx), "only the seeded current deployment")
+	})
+
+	t.Run("a git app without build settings is refused", func(t *testing.T) {
+		ctx := context.Background()
+		h := newCreateHarness(t, ctx)
+		h.setAppSource(t, ctx, db.AppsSourceTypeGit)
+		h.connectRepo(t, ctx)
+		h.dropBuildSettings(t, ctx)
+
+		resp := h.create(t, ctx, uid.New(uid.DeploymentPrefix), h.gitRequest())
+		require.Equal(t, hydrav1.CreateRejectionReason_CREATE_REJECTION_REASON_ENVIRONMENT_NOT_DEPLOYABLE, resp.GetRejectionReason())
+		require.Zero(t, h.countDeployments(t, ctx))
+	})
+}
+
+// TestCreateNormalizesImageReference pins the normalized reference on the row
+// and in the Deploy request, so the same image never appears under two spellings.
+func TestCreateNormalizesImageReference(t *testing.T) {
+	ctx := context.Background()
+	h := newCreateHarness(t, ctx)
+
+	req := h.imageRequest()
+	req.Source = &hydrav1.DeployCreateRequest_Image{
+		Image: &hydrav1.CreateImageSource{Image: "nginx:1.25"},
+	}
+
+	deploymentID := uid.New(uid.DeploymentPrefix)
+	require.Equal(t, hydrav1.CreateOutcome_CREATE_OUTCOME_CREATED, h.create(t, ctx, deploymentID, req).GetOutcome())
+
+	sent := h.awaitDeploy(t, deploymentID)
+	image, ok := sent.GetSource().(*hydrav1.DeployRequest_OciImage)
+	require.True(t, ok)
+	require.Equal(t, "index.docker.io/library/nginx:1.25", image.OciImage.GetImage())
+	require.Equal(t, "index.docker.io/library/nginx:1.25", h.deployment(t, ctx, deploymentID).ImageRequested.String)
+}
+
+// TestDeployTargetCarriesSourceColumns pins the columns the source decision
+// reads. The connection's default branch is the one GitHub reported. The app's
+// own column is a placeholder on new apps.
+func TestDeployTargetCarriesSourceColumns(t *testing.T) {
+	ctx := context.Background()
+	h := newCreateHarness(t, ctx)
+	h.setAppSource(t, ctx, db.AppsSourceTypeGit)
+	h.connectRepo(t, ctx)
+	_, err := h.database.RW().ExecContext(ctx,
+		"UPDATE github_repo_connections SET default_branch = ? WHERE app_id = ?", "release", h.appID)
+	require.NoError(t, err)
+
+	target, err := h.database.FindDeployTarget(ctx, db.FindDeployTargetParams{
+		ProjectID:   h.projectID,
+		AppID:       h.appID,
+		Environment: h.environmentID,
+	})
+	require.NoError(t, err)
+	require.Equal(t, db.AppsSourceTypeGit, target.SourceType)
+	require.Equal(t, "release", target.GithubDefaultBranch.String)
+	require.True(t, target.HasBuildSettings)
+	require.False(t, target.OciImageReference.Valid)
+
+	h.dropBuildSettings(t, ctx)
+	target, err = h.database.FindDeployTarget(ctx, db.FindDeployTargetParams{
+		ProjectID:   h.projectID,
+		AppID:       h.appID,
+		Environment: h.environmentID,
+	})
+	require.NoError(t, err, "an app without build settings is still a target")
+	require.False(t, target.HasBuildSettings)
 }
 
 // createHarness is one MySQL database and one Restate server hosting the real
@@ -950,4 +1176,64 @@ func (h *createHarness) newApp(t *testing.T, ctx context.Context) deployFixture 
 		appID:         app.ID,
 		environmentID: environment.ID,
 	}
+}
+
+// commitDeployment is a row that records the commit it was built from.
+func (h *createHarness) commitDeployment(t *testing.T, ctx context.Context) db.Deployment {
+	t.Helper()
+	return h.seeder.CreateDeployment(ctx, seed.CreateDeploymentRequest{
+		ID:               uid.New(uid.DeploymentPrefix),
+		WorkspaceID:      h.workspaceID,
+		ProjectID:        h.projectID,
+		AppID:            h.appID,
+		EnvironmentID:    h.environmentID,
+		Status:           mysqltype.DeploymentsStatusReady,
+		GitCommitSha:     sql.NullString{Valid: true, String: fixtureCommitSHA},
+		GitBranch:        sql.NullString{Valid: true, String: "main"},
+		GitCommitMessage: sql.NullString{Valid: true, String: fixtureCommitMessage},
+	})
+}
+
+// setDeploymentImages writes what Create and Deploy record about a row's image,
+// so a seeded row can stand in for one that ran. An empty resolved image leaves
+// the column NULL, as on rows from before Deploy pinned digests.
+func (h *createHarness) setDeploymentImages(
+	t *testing.T,
+	ctx context.Context,
+	deploymentID string,
+	source db.DeploymentsSource,
+	image, resolved string,
+) {
+	t.Helper()
+	_, err := h.database.RW().ExecContext(ctx,
+		"UPDATE deployments SET source = ?, image = ?, image_resolved = NULLIF(?, '') WHERE id = ?",
+		string(source), image, resolved, deploymentID)
+	require.NoError(t, err)
+}
+
+func (h *createHarness) setAppSource(t *testing.T, ctx context.Context, sourceType db.AppsSourceType) {
+	t.Helper()
+	_, err := h.database.RW().ExecContext(ctx,
+		"UPDATE apps SET source_type = ? WHERE id = ?", string(sourceType), h.appID)
+	require.NoError(t, err)
+}
+
+func (h *createHarness) seedOciSource(t *testing.T, ctx context.Context, image string) {
+	t.Helper()
+	require.NoError(t, h.database.InsertAppSourceOci(ctx, db.InsertAppSourceOciParams{
+		WorkspaceID:    h.workspaceID,
+		AppID:          h.appID,
+		ImageReference: image,
+		CreatedAt:      time.Now().UnixMilli(),
+		UpdatedAt:      sql.NullInt64{Valid: false},
+	}))
+}
+
+// dropBuildSettings makes the fixture look like an app created as OCI, which
+// gets no build settings row.
+func (h *createHarness) dropBuildSettings(t *testing.T, ctx context.Context) {
+	t.Helper()
+	_, err := h.database.RW().ExecContext(ctx,
+		"DELETE FROM app_build_settings WHERE app_id = ?", h.appID)
+	require.NoError(t, err)
 }

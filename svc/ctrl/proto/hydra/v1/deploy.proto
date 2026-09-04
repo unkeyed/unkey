@@ -232,8 +232,9 @@ message DeployCreateRequest {
   // Environment id or slug.
   string environment = 3;
 
-  // Unset means redeploy: the head of the default branch for a connected
-  // repository, otherwise the image the current deployment runs.
+  // Unset means redeploy what the app declares: the default branch head for a
+  // Git app, the configured image for an OCI app. An app with no declared source
+  // uses its repository connection, else the image its current deployment runs.
   oneof source {
     CreateGitSource git = 4;
     CreateImageSource image = 5;

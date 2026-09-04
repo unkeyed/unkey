@@ -17,6 +17,7 @@ SELECT
     p.workspace_id AS workspace_id,
     p.id AS project_id,
     a.id AS app_id,
+    a.source_type AS source_type,
     a.default_branch AS default_branch,
     a.current_deployment_id AS current_deployment_id,
     e.id AS environment_id,
@@ -35,6 +36,9 @@ SELECT
     ars.sentinel_config AS sentinel_config,
     grc.installation_id AS github_installation_id,
     grc.repository_full_name AS github_repository_full_name,
+    grc.default_branch AS github_default_branch,
+    aso.image_reference AS oci_image_reference,
+    abs.app_id IS NOT NULL AS has_build_settings,
     b.plan AS plan,
     b.plan_override AS plan_override,
     b.spend_suspended AS spend_suspended,
@@ -58,9 +62,10 @@ INNER JOIN (
     FROM environments e2
     WHERE e2.app_id = ? AND e2.slug = ?
 ) AS env_lookup ON env_lookup.id = e.id
-INNER JOIN app_build_settings abs ON abs.app_id = a.id AND abs.environment_id = e.id
 INNER JOIN app_runtime_settings ars ON ars.app_id = a.id AND ars.environment_id = e.id
+LEFT JOIN app_build_settings abs ON abs.app_id = a.id AND abs.environment_id = e.id
 LEFT JOIN github_repo_connections grc ON grc.app_id = a.id
+LEFT JOIN app_source_oci aso ON aso.app_id = a.id
 LEFT JOIN workspace_billing b ON b.workspace_id = p.workspace_id
 WHERE a.id = ?
   AND a.project_id = ?
@@ -77,12 +82,13 @@ type FindDeployTargetRow struct {
 	WorkspaceID              string                             `db:"workspace_id"`
 	ProjectID                string                             `db:"project_id"`
 	AppID                    string                             `db:"app_id"`
+	SourceType               AppsSourceType                     `db:"source_type"`
 	DefaultBranch            string                             `db:"default_branch"`
 	CurrentDeploymentID      sql.NullString                     `db:"current_deployment_id"`
 	EnvironmentID            string                             `db:"environment_id"`
 	EnvironmentSlug          string                             `db:"environment_slug"`
 	Dockerfile               sql.NullString                     `db:"dockerfile"`
-	DockerContext            string                             `db:"docker_context"`
+	DockerContext            sql.NullString                     `db:"docker_context"`
 	BuildCommand             sql.NullString                     `db:"build_command"`
 	Port                     int32                              `db:"port"`
 	CpuMillicores            int32                              `db:"cpu_millicores"`
@@ -95,6 +101,9 @@ type FindDeployTargetRow struct {
 	SentinelConfig           []byte                             `db:"sentinel_config"`
 	GithubInstallationID     sql.NullInt64                      `db:"github_installation_id"`
 	GithubRepositoryFullName sql.NullString                     `db:"github_repository_full_name"`
+	GithubDefaultBranch      sql.NullString                     `db:"github_default_branch"`
+	OciImageReference        sql.NullString                     `db:"oci_image_reference"`
+	HasBuildSettings         bool                               `db:"has_build_settings"`
 	Plan                     sql.NullString                     `db:"plan"`
 	PlanOverride             sql.NullString                     `db:"plan_override"`
 	SpendSuspended           sql.NullBool                       `db:"spend_suspended"`
@@ -107,6 +116,7 @@ type FindDeployTargetRow struct {
 //	    p.workspace_id AS workspace_id,
 //	    p.id AS project_id,
 //	    a.id AS app_id,
+//	    a.source_type AS source_type,
 //	    a.default_branch AS default_branch,
 //	    a.current_deployment_id AS current_deployment_id,
 //	    e.id AS environment_id,
@@ -125,6 +135,9 @@ type FindDeployTargetRow struct {
 //	    ars.sentinel_config AS sentinel_config,
 //	    grc.installation_id AS github_installation_id,
 //	    grc.repository_full_name AS github_repository_full_name,
+//	    grc.default_branch AS github_default_branch,
+//	    aso.image_reference AS oci_image_reference,
+//	    abs.app_id IS NOT NULL AS has_build_settings,
 //	    b.plan AS plan,
 //	    b.plan_override AS plan_override,
 //	    b.spend_suspended AS spend_suspended,
@@ -148,9 +161,10 @@ type FindDeployTargetRow struct {
 //	    FROM environments e2
 //	    WHERE e2.app_id = ? AND e2.slug = ?
 //	) AS env_lookup ON env_lookup.id = e.id
-//	INNER JOIN app_build_settings abs ON abs.app_id = a.id AND abs.environment_id = e.id
 //	INNER JOIN app_runtime_settings ars ON ars.app_id = a.id AND ars.environment_id = e.id
+//	LEFT JOIN app_build_settings abs ON abs.app_id = a.id AND abs.environment_id = e.id
 //	LEFT JOIN github_repo_connections grc ON grc.app_id = a.id
+//	LEFT JOIN app_source_oci aso ON aso.app_id = a.id
 //	LEFT JOIN workspace_billing b ON b.workspace_id = p.workspace_id
 //	WHERE a.id = ?
 //	  AND a.project_id = ?
@@ -169,6 +183,7 @@ func (q *Queries) FindDeployTarget(ctx context.Context, arg FindDeployTargetPara
 		&i.WorkspaceID,
 		&i.ProjectID,
 		&i.AppID,
+		&i.SourceType,
 		&i.DefaultBranch,
 		&i.CurrentDeploymentID,
 		&i.EnvironmentID,
@@ -187,6 +202,9 @@ func (q *Queries) FindDeployTarget(ctx context.Context, arg FindDeployTargetPara
 		&i.SentinelConfig,
 		&i.GithubInstallationID,
 		&i.GithubRepositoryFullName,
+		&i.GithubDefaultBranch,
+		&i.OciImageReference,
+		&i.HasBuildSettings,
 		&i.Plan,
 		&i.PlanOverride,
 		&i.SpendSuspended,
