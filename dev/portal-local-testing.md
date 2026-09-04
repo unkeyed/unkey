@@ -183,8 +183,8 @@ curl -s -X POST https://api.unkey.dev/v2/portal.createSession \
   -d '{"slug": "<YOUR_SLUG>", "externalId": "user_123", "permissions": ["api.*.read_key", "api.*.create_key", "api.*.read_analytics"]}'
 ```
 
-The response URL will point to the portal's deployment URL (or custom
-domain if configured). Open it in the browser.
+The response URL always points at the configured `portal_base_url`. Open it in
+the browser.
 
 ### Notes
 
@@ -236,10 +236,10 @@ drives all generated IDs.
 
 ### Portal resources (only with `--portal`)
 
-- **Portal config** (`portal_<slug>`) linked to:
-  - The user workspace (`ws_<slug>`)
-  - The app created above (enables custom domain resolution)
-  - The user keyspace (`ks_<slug>`) for legacy compatibility
+- **Portal config** (`portal_<slug>`) in the user workspace (`ws_<slug>`),
+  keyspace-mapped to the user keyspace (`ks_<slug>`) with no `app_id`. A portal
+  references exactly one of `key_auth_id` or `app_id`; app mapping would resolve
+  its keyspaces from the app's current deployment, which this seed never creates.
 - **Portal branding** (Unkey logo, blue color scheme)
 
 ### Output (`dev/.env.seed`)

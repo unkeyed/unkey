@@ -15,8 +15,6 @@ export type DeployCheckoutPlan = "starter" | "pro" | "business";
 /** Where the deploy-gate dialog was opened from, for post-subscribe routing. */
 export type DeployCheckoutOrigin = "create" | "banner" | "billing" | "deploy";
 
-type LogdrainScope = WorkspaceScope & { drainId: string };
-
 export const settingsRoutes = {
   general({ workspaceSlug }: WorkspaceScope): Route {
     return buildRoute("/[workspaceSlug]/settings/general", { workspaceSlug });
@@ -35,11 +33,7 @@ export const settingsRoutes = {
       return buildRoute("/[workspaceSlug]/settings/logdrains", { workspaceSlug });
     },
 
-    new({ workspaceSlug }: WorkspaceScope): Route {
-      return buildRoute("/[workspaceSlug]/settings/logdrains/new", { workspaceSlug });
-    },
-
-    detail({ workspaceSlug, drainId }: LogdrainScope): Route {
+    detail({ workspaceSlug, drainId }: WorkspaceScope & { drainId: string }): Route {
       return buildRoute("/[workspaceSlug]/settings/logdrains/[drainId]", {
         workspaceSlug,
         drainId,

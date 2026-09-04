@@ -43,6 +43,10 @@ func TestDeployment_Create_TriggersWorkflow(t *testing.T) {
 
 	ctx := harness.RequestContext()
 	workspaceID := harness.Seed.Resources.UserWorkspace.ID
+	require.NoError(t, harness.DB.SetWorkspaceDeployPlan(ctx, db.SetWorkspaceDeployPlanParams{
+		Plan:        sql.NullString{String: "pro", Valid: true},
+		WorkspaceID: workspaceID,
+	}))
 	project := harness.CreateProject(ctx, seed.CreateProjectRequest{
 		ID:               uid.New("prj"),
 		WorkspaceID:      workspaceID,
