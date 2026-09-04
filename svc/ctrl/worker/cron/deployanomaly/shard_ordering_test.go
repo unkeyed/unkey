@@ -1,8 +1,11 @@
 package deployanomaly_test
 
 import (
+	"context"
+	"database/sql"
 	"net/url"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -10,6 +13,9 @@ import (
 	restatetest "github.com/restatedev/sdk-go/testing"
 	"github.com/stretchr/testify/require"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
+	"github.com/unkeyed/unkey/pkg/clickhouse"
+	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/deployanomaly"
 )
 
@@ -31,32 +37,22 @@ func (h *handoffTestShard) EvaluateShard(
 	if restate.Key(ctx) == h.firstKey {
 		h.firstOnce.Do(func() { close(h.started) })
 		<-h.release
-		restate.Set(ctx, "pending", true)
-		return &hydrav1.EvaluateDeployAnomalyShardResponse{GroupsPending: 1}, nil
+		return &hydrav1.EvaluateDeployAnomalyShardResponse{
+			GroupsPending: 1,
+			PendingGroups: []*hydrav1.DeployAnomalyGroupKey{{WorkspaceId: "ws"}},
+		}, nil
 	}
 	h.secondOnce.Do(func() { close(h.secondStarted) })
 
 	previous, err := hydrav1.NewDeployAnomalyShardServiceClient(ctx, h.firstKey).
-		GetPending().Request(&hydrav1.GetPendingDeployAnomalyGroupsRequest{})
+		EvaluateShard().Request(&hydrav1.EvaluateDeployAnomalyShardRequest{})
 	if err != nil {
 		return nil, err
 	}
-	return &hydrav1.EvaluateDeployAnomalyShardResponse{GroupsPending: int32(len(previous.GetGroups()))}, nil
-}
-
-func (h *handoffTestShard) GetPending(
-	ctx restate.ObjectContext,
-	_ *hydrav1.GetPendingDeployAnomalyGroupsRequest,
-) (*hydrav1.GetPendingDeployAnomalyGroupsResponse, error) {
-	pending, err := restate.Get[bool](ctx, "pending")
-	if err != nil {
-		return nil, err
-	}
-	response := &hydrav1.GetPendingDeployAnomalyGroupsResponse{}
-	if pending {
-		response.Groups = []*hydrav1.DeployAnomalyGroupKey{{WorkspaceId: "ws"}}
-	}
-	return response, nil
+	return &hydrav1.EvaluateDeployAnomalyShardResponse{
+		GroupsPending: int32(len(previous.GetPendingGroups())),
+		PendingGroups: previous.GetPendingGroups(),
+	}, nil
 }
 
 func TestReverseDeliveryWaitsForPreviousAnomalyShard(t *testing.T) {
@@ -116,4 +112,168 @@ func TestReverseDeliveryWaitsForPreviousAnomalyShard(t *testing.T) {
 	second := <-secondResult
 	require.NoError(t, second.err)
 	require.Equal(t, int32(1), second.response.GetGroupsPending())
+}
+
+type shardTestDB struct {
+	db.Database
+
+	mu           sync.Mutex
+	inserted     []db.InsertAlertEventParams
+	listOpenRuns atomic.Int32
+}
+
+func (d *shardTestDB) ListOpenAlertEventGroups(context.Context) ([]db.ListOpenAlertEventGroupsRow, error) {
+	d.listOpenRuns.Add(1)
+	return nil, nil
+}
+
+func (d *shardTestDB) FindLiveDeploymentsForEnvironments(
+	context.Context,
+	db.FindLiveDeploymentsForEnvironmentsParams,
+) ([]db.FindLiveDeploymentsForEnvironmentsRow, error) {
+	return []db.FindLiveDeploymentsForEnvironmentsRow{{
+		WorkspaceID: "ws", ProjectID: "project", AppID: "app", EnvironmentID: "env",
+		OrgID: "org", WorkspaceName: "Workspace", WorkspaceSlug: "workspace", AppName: "App",
+		AppCreatedAt: 1, EnvironmentKind: mysqltype.EnvironmentKindProduction, EnvironmentSlug: "production",
+		DeploymentID:               sql.NullString{String: "deployment", Valid: true},
+		DeploymentDesiredState:     mysqltype.DeploymentsDesiredStateRunning,
+		DeploymentHasRunningRegion: true,
+	}}, nil
+}
+
+func (d *shardTestDB) FindOpenAlertEventsByGroup(
+	context.Context,
+	db.FindOpenAlertEventsByGroupParams,
+) ([]db.AlertEvent, error) {
+	return nil, nil
+}
+
+func (d *shardTestDB) InsertAlertEvent(_ context.Context, params db.InsertAlertEventParams) error {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	d.inserted = append(d.inserted, params)
+	return nil
+}
+
+func (d *shardTestDB) insertedAlerts() []db.InsertAlertEventParams {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	return append([]db.InsertAlertEventParams(nil), d.inserted...)
+}
+
+type shardTestClickhouse struct {
+	clickhouse.ClickHouse
+
+	returnAnomaly bool
+	queryRuns     atomic.Int32
+}
+
+func (c *shardTestClickhouse) GetAnomalySourceWatermarks(context.Context) (clickhouse.AnomalySourceWatermarks, error) {
+	c.queryRuns.Add(1)
+	return clickhouse.AnomalySourceWatermarks{
+		{Source: clickhouse.AnomalySourceRequests, Region: "test", Watermark: int64(^uint64(0) >> 1)},
+		{Source: clickhouse.AnomalySourceResources, Region: "test", Watermark: int64(^uint64(0) >> 1)},
+	}, nil
+}
+
+func (c *shardTestClickhouse) GetRequestAnomalyWindows(
+	context.Context,
+	clickhouse.AnomalyWindowsRequest,
+) ([]clickhouse.RequestAnomalyWindow, error) {
+	c.queryRuns.Add(1)
+	if !c.returnAnomaly {
+		return nil, nil
+	}
+	return []clickhouse.RequestAnomalyWindow{{
+		WorkspaceID: "ws", ProjectID: "project", AppID: "app", EnvironmentID: "env",
+		Error5xxCurrent: 40, Error5xxBaselineMean: 0.1, Error5xxBaselineStddev: 0.01,
+		RequestsCurrent: 100, BaselineBuckets: 12, CurrentBucketPresent: true,
+	}}, nil
+}
+
+func (c *shardTestClickhouse) GetResourceAnomalyWindows(
+	context.Context,
+	clickhouse.AnomalyWindowsRequest,
+) ([]clickhouse.ResourceAnomalyWindow, error) {
+	c.queryRuns.Add(1)
+	return nil, nil
+}
+
+func (c *shardTestClickhouse) GetInstanceEventAnomalyWindows(
+	context.Context,
+	clickhouse.AnomalyWindowsRequest,
+) ([]clickhouse.InstanceEventAnomalyWindow, error) {
+	c.queryRuns.Add(1)
+	return nil, nil
+}
+
+func startShardTestEnvironment(
+	t *testing.T,
+	returnAnomaly bool,
+) (*restatetest.TestEnvironment, *shardTestDB, *shardTestClickhouse) {
+	t.Helper()
+	database := &shardTestDB{}
+	ch := &shardTestClickhouse{ClickHouse: clickhouse.NewNoop(), returnAnomaly: returnAnomaly}
+	shardHandler, err := deployanomaly.NewShardHandler(deployanomaly.ShardConfig{DB: database, Clickhouse: ch})
+	require.NoError(t, err)
+	checkHandler, err := deployanomaly.NewCheckHandler(deployanomaly.CheckConfig{DB: database})
+	require.NoError(t, err)
+	testEnv := restatetest.Start(t,
+		hydrav1.NewDeployAnomalyShardServiceServer(shardHandler),
+		hydrav1.NewDeployAnomalyServiceServer(checkHandler),
+	)
+	return testEnv, database, ch
+}
+
+func invokeShard(
+	t *testing.T,
+	testEnv *restatetest.TestEnvironment,
+	windowStart int64,
+	catchUpWindowStart int64,
+) *hydrav1.EvaluateDeployAnomalyShardResponse {
+	t.Helper()
+	key := deployanomaly.ShardKey(windowStart, 0, 1)
+	response, err := hydrav1.NewDeployAnomalyShardServiceIngressClient(testEnv.Ingress(), url.PathEscape(key)).
+		EvaluateShard().Request(t.Context(), &hydrav1.EvaluateDeployAnomalyShardRequest{
+		CatchUpWindowStart: catchUpWindowStart,
+	})
+	require.NoError(t, err)
+	return response
+}
+
+func TestLaterShardEvaluatesUnsubmittedPredecessorBeforeDispatch(t *testing.T) {
+	testEnv, database, _ := startShardTestEnvironment(t, true)
+	firstWindow := time.Now().UTC().Add(-15 * time.Minute).Truncate(5 * time.Minute).UnixMilli()
+
+	response := invokeShard(t, testEnv, firstWindow+5*time.Minute.Milliseconds(), firstWindow)
+
+	require.Equal(t, int32(1), response.GetGroupsPending())
+	alerts := database.insertedAlerts()
+	require.Len(t, alerts, 1)
+	require.Equal(t, db.AlertEventsMetricError5xx, alerts[0].Metric)
+}
+
+func TestShardCatchUpStopsAtOneHourHorizon(t *testing.T) {
+	testEnv, database, ch := startShardTestEnvironment(t, false)
+	windowStart := time.Now().UTC().Add(-15 * time.Minute).Truncate(5 * time.Minute).UnixMilli()
+
+	response := invokeShard(t, testEnv, windowStart, 0)
+
+	require.Zero(t, response.GetGroupsDispatched())
+	require.Equal(t, int32(13), database.listOpenRuns.Load(), "current shard plus twelve predecessors")
+	require.Equal(t, int32(52), ch.queryRuns.Load(), "four ClickHouse reads for each evaluated shard")
+}
+
+func TestEvaluateShardReturnsStoredResultWithoutQueries(t *testing.T) {
+	testEnv, database, ch := startShardTestEnvironment(t, false)
+	windowStart := time.Now().UTC().Add(-15 * time.Minute).Truncate(5 * time.Minute).UnixMilli()
+
+	first := invokeShard(t, testEnv, windowStart, windowStart)
+	firstQueryRuns := ch.queryRuns.Load()
+	firstListOpenRuns := database.listOpenRuns.Load()
+	second := invokeShard(t, testEnv, windowStart, windowStart)
+
+	require.Equal(t, first, second)
+	require.Equal(t, firstQueryRuns, ch.queryRuns.Load())
+	require.Equal(t, firstListOpenRuns, database.listOpenRuns.Load())
 }

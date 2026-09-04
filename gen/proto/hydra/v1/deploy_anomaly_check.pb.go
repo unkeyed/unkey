@@ -143,9 +143,12 @@ func (x *DeployAnomalyGroupKey) GetEnvironmentId() string {
 }
 
 type EvaluateDeployAnomalyShardRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// CatchUpWindowStart is the inclusive unix-millisecond floor for internal
+	// predecessor evaluation. Zero starts a new one-hour catch-up chain.
+	CatchUpWindowStart int64 `protobuf:"varint,1,opt,name=catch_up_window_start,json=catchUpWindowStart,proto3" json:"catch_up_window_start,omitempty"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
 }
 
 func (x *EvaluateDeployAnomalyShardRequest) Reset() {
@@ -178,10 +181,18 @@ func (*EvaluateDeployAnomalyShardRequest) Descriptor() ([]byte, []int) {
 	return file_hydra_v1_deploy_anomaly_check_proto_rawDescGZIP(), []int{1}
 }
 
+func (x *EvaluateDeployAnomalyShardRequest) GetCatchUpWindowStart() int64 {
+	if x != nil {
+		return x.CatchUpWindowStart
+	}
+	return 0
+}
+
 type EvaluateDeployAnomalyShardResponse struct {
-	state            protoimpl.MessageState `protogen:"open.v1"`
-	GroupsDispatched int32                  `protobuf:"varint,1,opt,name=groups_dispatched,json=groupsDispatched,proto3" json:"groups_dispatched,omitempty"`
-	GroupsPending    int32                  `protobuf:"varint,2,opt,name=groups_pending,json=groupsPending,proto3" json:"groups_pending,omitempty"`
+	state            protoimpl.MessageState   `protogen:"open.v1"`
+	GroupsDispatched int32                    `protobuf:"varint,1,opt,name=groups_dispatched,json=groupsDispatched,proto3" json:"groups_dispatched,omitempty"`
+	GroupsPending    int32                    `protobuf:"varint,2,opt,name=groups_pending,json=groupsPending,proto3" json:"groups_pending,omitempty"`
+	PendingGroups    []*DeployAnomalyGroupKey `protobuf:"bytes,3,rep,name=pending_groups,json=pendingGroups,proto3" json:"pending_groups,omitempty"`
 	unknownFields    protoimpl.UnknownFields
 	sizeCache        protoimpl.SizeCache
 }
@@ -230,82 +241,9 @@ func (x *EvaluateDeployAnomalyShardResponse) GetGroupsPending() int32 {
 	return 0
 }
 
-type GetPendingDeployAnomalyGroupsRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *GetPendingDeployAnomalyGroupsRequest) Reset() {
-	*x = GetPendingDeployAnomalyGroupsRequest{}
-	mi := &file_hydra_v1_deploy_anomaly_check_proto_msgTypes[3]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *GetPendingDeployAnomalyGroupsRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*GetPendingDeployAnomalyGroupsRequest) ProtoMessage() {}
-
-func (x *GetPendingDeployAnomalyGroupsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_hydra_v1_deploy_anomaly_check_proto_msgTypes[3]
+func (x *EvaluateDeployAnomalyShardResponse) GetPendingGroups() []*DeployAnomalyGroupKey {
 	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use GetPendingDeployAnomalyGroupsRequest.ProtoReflect.Descriptor instead.
-func (*GetPendingDeployAnomalyGroupsRequest) Descriptor() ([]byte, []int) {
-	return file_hydra_v1_deploy_anomaly_check_proto_rawDescGZIP(), []int{3}
-}
-
-type GetPendingDeployAnomalyGroupsResponse struct {
-	state         protoimpl.MessageState   `protogen:"open.v1"`
-	Groups        []*DeployAnomalyGroupKey `protobuf:"bytes,1,rep,name=groups,proto3" json:"groups,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *GetPendingDeployAnomalyGroupsResponse) Reset() {
-	*x = GetPendingDeployAnomalyGroupsResponse{}
-	mi := &file_hydra_v1_deploy_anomaly_check_proto_msgTypes[4]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *GetPendingDeployAnomalyGroupsResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*GetPendingDeployAnomalyGroupsResponse) ProtoMessage() {}
-
-func (x *GetPendingDeployAnomalyGroupsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_hydra_v1_deploy_anomaly_check_proto_msgTypes[4]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use GetPendingDeployAnomalyGroupsResponse.ProtoReflect.Descriptor instead.
-func (*GetPendingDeployAnomalyGroupsResponse) Descriptor() ([]byte, []int) {
-	return file_hydra_v1_deploy_anomaly_check_proto_rawDescGZIP(), []int{4}
-}
-
-func (x *GetPendingDeployAnomalyGroupsResponse) GetGroups() []*DeployAnomalyGroupKey {
-	if x != nil {
-		return x.Groups
+		return x.PendingGroups
 	}
 	return nil
 }
@@ -333,7 +271,7 @@ type DeployAnomalyMetricInput struct {
 
 func (x *DeployAnomalyMetricInput) Reset() {
 	*x = DeployAnomalyMetricInput{}
-	mi := &file_hydra_v1_deploy_anomaly_check_proto_msgTypes[5]
+	mi := &file_hydra_v1_deploy_anomaly_check_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -345,7 +283,7 @@ func (x *DeployAnomalyMetricInput) String() string {
 func (*DeployAnomalyMetricInput) ProtoMessage() {}
 
 func (x *DeployAnomalyMetricInput) ProtoReflect() protoreflect.Message {
-	mi := &file_hydra_v1_deploy_anomaly_check_proto_msgTypes[5]
+	mi := &file_hydra_v1_deploy_anomaly_check_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -358,7 +296,7 @@ func (x *DeployAnomalyMetricInput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeployAnomalyMetricInput.ProtoReflect.Descriptor instead.
 func (*DeployAnomalyMetricInput) Descriptor() ([]byte, []int) {
-	return file_hydra_v1_deploy_anomaly_check_proto_rawDescGZIP(), []int{5}
+	return file_hydra_v1_deploy_anomaly_check_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *DeployAnomalyMetricInput) GetMetric() string {
@@ -458,7 +396,7 @@ type EvaluateDeployAnomalyRequest struct {
 
 func (x *EvaluateDeployAnomalyRequest) Reset() {
 	*x = EvaluateDeployAnomalyRequest{}
-	mi := &file_hydra_v1_deploy_anomaly_check_proto_msgTypes[6]
+	mi := &file_hydra_v1_deploy_anomaly_check_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -470,7 +408,7 @@ func (x *EvaluateDeployAnomalyRequest) String() string {
 func (*EvaluateDeployAnomalyRequest) ProtoMessage() {}
 
 func (x *EvaluateDeployAnomalyRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_hydra_v1_deploy_anomaly_check_proto_msgTypes[6]
+	mi := &file_hydra_v1_deploy_anomaly_check_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -483,7 +421,7 @@ func (x *EvaluateDeployAnomalyRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EvaluateDeployAnomalyRequest.ProtoReflect.Descriptor instead.
 func (*EvaluateDeployAnomalyRequest) Descriptor() ([]byte, []int) {
-	return file_hydra_v1_deploy_anomaly_check_proto_rawDescGZIP(), []int{6}
+	return file_hydra_v1_deploy_anomaly_check_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *EvaluateDeployAnomalyRequest) GetWindowStart() int64 {
@@ -608,7 +546,7 @@ type EvaluateDeployAnomalyResponse struct {
 
 func (x *EvaluateDeployAnomalyResponse) Reset() {
 	*x = EvaluateDeployAnomalyResponse{}
-	mi := &file_hydra_v1_deploy_anomaly_check_proto_msgTypes[7]
+	mi := &file_hydra_v1_deploy_anomaly_check_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -620,7 +558,7 @@ func (x *EvaluateDeployAnomalyResponse) String() string {
 func (*EvaluateDeployAnomalyResponse) ProtoMessage() {}
 
 func (x *EvaluateDeployAnomalyResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_hydra_v1_deploy_anomaly_check_proto_msgTypes[7]
+	mi := &file_hydra_v1_deploy_anomaly_check_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -633,7 +571,7 @@ func (x *EvaluateDeployAnomalyResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EvaluateDeployAnomalyResponse.ProtoReflect.Descriptor instead.
 func (*EvaluateDeployAnomalyResponse) Descriptor() ([]byte, []int) {
-	return file_hydra_v1_deploy_anomaly_check_proto_rawDescGZIP(), []int{7}
+	return file_hydra_v1_deploy_anomaly_check_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *EvaluateDeployAnomalyResponse) GetPending() bool {
@@ -653,14 +591,13 @@ const file_hydra_v1_deploy_anomaly_check_proto_rawDesc = "" +
 	"\n" +
 	"project_id\x18\x02 \x01(\tR\tprojectId\x12\x15\n" +
 	"\x06app_id\x18\x03 \x01(\tR\x05appId\x12%\n" +
-	"\x0eenvironment_id\x18\x04 \x01(\tR\renvironmentId\"#\n" +
-	"!EvaluateDeployAnomalyShardRequest\"x\n" +
+	"\x0eenvironment_id\x18\x04 \x01(\tR\renvironmentId\"V\n" +
+	"!EvaluateDeployAnomalyShardRequest\x121\n" +
+	"\x15catch_up_window_start\x18\x01 \x01(\x03R\x12catchUpWindowStart\"\xc0\x01\n" +
 	"\"EvaluateDeployAnomalyShardResponse\x12+\n" +
 	"\x11groups_dispatched\x18\x01 \x01(\x05R\x10groupsDispatched\x12%\n" +
-	"\x0egroups_pending\x18\x02 \x01(\x05R\rgroupsPending\"&\n" +
-	"$GetPendingDeployAnomalyGroupsRequest\"`\n" +
-	"%GetPendingDeployAnomalyGroupsResponse\x127\n" +
-	"\x06groups\x18\x01 \x03(\v2\x1f.hydra.v1.DeployAnomalyGroupKeyR\x06groups\"\xd5\x03\n" +
+	"\x0egroups_pending\x18\x02 \x01(\x05R\rgroupsPending\x12F\n" +
+	"\x0epending_groups\x18\x03 \x03(\v2\x1f.hydra.v1.DeployAnomalyGroupKeyR\rpendingGroups\"\xd5\x03\n" +
 	"\x18DeployAnomalyMetricInput\x12\x16\n" +
 	"\x06metric\x18\x01 \x01(\tR\x06metric\x12E\n" +
 	"\n" +
@@ -702,11 +639,9 @@ const file_hydra_v1_deploy_anomaly_check_proto_rawDesc = "" +
 	".DEPLOY_ANOMALY_METRIC_DATA_STATE_ZERO_COMPLETE\x10\x02\x12/\n" +
 	"+DEPLOY_ANOMALY_METRIC_DATA_STATE_INCOMPLETE\x10\x032{\n" +
 	"\x14DeployAnomalyService\x12]\n" +
-	"\bEvaluate\x12&.hydra.v1.EvaluateDeployAnomalyRequest\x1a'.hydra.v1.EvaluateDeployAnomalyResponse\"\x00\x1a\x04\x98\x80\x01\x012\x80\x02\n" +
+	"\bEvaluate\x12&.hydra.v1.EvaluateDeployAnomalyRequest\x1a'.hydra.v1.EvaluateDeployAnomalyResponse\"\x00\x1a\x04\x98\x80\x01\x012\x8f\x01\n" +
 	"\x19DeployAnomalyShardService\x12l\n" +
-	"\rEvaluateShard\x12+.hydra.v1.EvaluateDeployAnomalyShardRequest\x1a,.hydra.v1.EvaluateDeployAnomalyShardResponse\"\x00\x12o\n" +
-	"\n" +
-	"GetPending\x12..hydra.v1.GetPendingDeployAnomalyGroupsRequest\x1a/.hydra.v1.GetPendingDeployAnomalyGroupsResponse\"\x00\x1a\x04\x98\x80\x01\x01B\x9d\x01\n" +
+	"\rEvaluateShard\x12+.hydra.v1.EvaluateDeployAnomalyShardRequest\x1a,.hydra.v1.EvaluateDeployAnomalyShardResponse\"\x00\x1a\x04\x98\x80\x01\x01B\x9d\x01\n" +
 	"\fcom.hydra.v1B\x17DeployAnomalyCheckProtoP\x01Z3github.com/unkeyed/unkey/gen/proto/hydra/v1;hydrav1\xa2\x02\x03HXX\xaa\x02\bHydra.V1\xca\x02\bHydra\\V1\xe2\x02\x14Hydra\\V1\\GPBMetadata\xea\x02\tHydra::V1b\x06proto3"
 
 var (
@@ -722,30 +657,26 @@ func file_hydra_v1_deploy_anomaly_check_proto_rawDescGZIP() []byte {
 }
 
 var file_hydra_v1_deploy_anomaly_check_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_hydra_v1_deploy_anomaly_check_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
+var file_hydra_v1_deploy_anomaly_check_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
 var file_hydra_v1_deploy_anomaly_check_proto_goTypes = []any{
-	(DeployAnomalyMetricDataState)(0),             // 0: hydra.v1.DeployAnomalyMetricDataState
-	(*DeployAnomalyGroupKey)(nil),                 // 1: hydra.v1.DeployAnomalyGroupKey
-	(*EvaluateDeployAnomalyShardRequest)(nil),     // 2: hydra.v1.EvaluateDeployAnomalyShardRequest
-	(*EvaluateDeployAnomalyShardResponse)(nil),    // 3: hydra.v1.EvaluateDeployAnomalyShardResponse
-	(*GetPendingDeployAnomalyGroupsRequest)(nil),  // 4: hydra.v1.GetPendingDeployAnomalyGroupsRequest
-	(*GetPendingDeployAnomalyGroupsResponse)(nil), // 5: hydra.v1.GetPendingDeployAnomalyGroupsResponse
-	(*DeployAnomalyMetricInput)(nil),              // 6: hydra.v1.DeployAnomalyMetricInput
-	(*EvaluateDeployAnomalyRequest)(nil),          // 7: hydra.v1.EvaluateDeployAnomalyRequest
-	(*EvaluateDeployAnomalyResponse)(nil),         // 8: hydra.v1.EvaluateDeployAnomalyResponse
+	(DeployAnomalyMetricDataState)(0),          // 0: hydra.v1.DeployAnomalyMetricDataState
+	(*DeployAnomalyGroupKey)(nil),              // 1: hydra.v1.DeployAnomalyGroupKey
+	(*EvaluateDeployAnomalyShardRequest)(nil),  // 2: hydra.v1.EvaluateDeployAnomalyShardRequest
+	(*EvaluateDeployAnomalyShardResponse)(nil), // 3: hydra.v1.EvaluateDeployAnomalyShardResponse
+	(*DeployAnomalyMetricInput)(nil),           // 4: hydra.v1.DeployAnomalyMetricInput
+	(*EvaluateDeployAnomalyRequest)(nil),       // 5: hydra.v1.EvaluateDeployAnomalyRequest
+	(*EvaluateDeployAnomalyResponse)(nil),      // 6: hydra.v1.EvaluateDeployAnomalyResponse
 }
 var file_hydra_v1_deploy_anomaly_check_proto_depIdxs = []int32{
-	1, // 0: hydra.v1.GetPendingDeployAnomalyGroupsResponse.groups:type_name -> hydra.v1.DeployAnomalyGroupKey
+	1, // 0: hydra.v1.EvaluateDeployAnomalyShardResponse.pending_groups:type_name -> hydra.v1.DeployAnomalyGroupKey
 	0, // 1: hydra.v1.DeployAnomalyMetricInput.data_state:type_name -> hydra.v1.DeployAnomalyMetricDataState
-	6, // 2: hydra.v1.EvaluateDeployAnomalyRequest.metrics:type_name -> hydra.v1.DeployAnomalyMetricInput
-	7, // 3: hydra.v1.DeployAnomalyService.Evaluate:input_type -> hydra.v1.EvaluateDeployAnomalyRequest
+	4, // 2: hydra.v1.EvaluateDeployAnomalyRequest.metrics:type_name -> hydra.v1.DeployAnomalyMetricInput
+	5, // 3: hydra.v1.DeployAnomalyService.Evaluate:input_type -> hydra.v1.EvaluateDeployAnomalyRequest
 	2, // 4: hydra.v1.DeployAnomalyShardService.EvaluateShard:input_type -> hydra.v1.EvaluateDeployAnomalyShardRequest
-	4, // 5: hydra.v1.DeployAnomalyShardService.GetPending:input_type -> hydra.v1.GetPendingDeployAnomalyGroupsRequest
-	8, // 6: hydra.v1.DeployAnomalyService.Evaluate:output_type -> hydra.v1.EvaluateDeployAnomalyResponse
-	3, // 7: hydra.v1.DeployAnomalyShardService.EvaluateShard:output_type -> hydra.v1.EvaluateDeployAnomalyShardResponse
-	5, // 8: hydra.v1.DeployAnomalyShardService.GetPending:output_type -> hydra.v1.GetPendingDeployAnomalyGroupsResponse
-	6, // [6:9] is the sub-list for method output_type
-	3, // [3:6] is the sub-list for method input_type
+	6, // 5: hydra.v1.DeployAnomalyService.Evaluate:output_type -> hydra.v1.EvaluateDeployAnomalyResponse
+	3, // 6: hydra.v1.DeployAnomalyShardService.EvaluateShard:output_type -> hydra.v1.EvaluateDeployAnomalyShardResponse
+	5, // [5:7] is the sub-list for method output_type
+	3, // [3:5] is the sub-list for method input_type
 	3, // [3:3] is the sub-list for extension type_name
 	3, // [3:3] is the sub-list for extension extendee
 	0, // [0:3] is the sub-list for field type_name
@@ -762,7 +693,7 @@ func file_hydra_v1_deploy_anomaly_check_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_hydra_v1_deploy_anomaly_check_proto_rawDesc), len(file_hydra_v1_deploy_anomaly_check_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   8,
+			NumMessages:   6,
 			NumExtensions: 0,
 			NumServices:   2,
 		},

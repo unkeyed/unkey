@@ -18,14 +18,14 @@ service DeployAnomalyService {
 // DeployAnomalyShardService owns one stable workspace hash partition for one
 // window. The key is "<window_start_ms>/<shard>/<shard_count>". It journals
 // only one shard's SQL candidates and fans those groups out to their evaluators.
-// Each window calls the previous window's exclusive GetPending handler before
-// dispatch, which keeps one shard chronological. EvaluateShard retries are
-// bounded and kill on exhaustion so a failed window cannot wedge the chain.
+// EvaluateShard idempotently evaluates its predecessor before dispatch, which
+// keeps one shard chronological through up to one hour of missed cron windows.
+// A longer outage restarts the candidate chain. Retries are bounded and kill on
+// exhaustion so a failed window cannot wedge the chain.
 service DeployAnomalyShardService {
   option (dev.restate.sdk.go.service_type) = VIRTUAL_OBJECT;
 
   rpc EvaluateShard(EvaluateDeployAnomalyShardRequest) returns (EvaluateDeployAnomalyShardResponse) {}
-  rpc GetPending(GetPendingDeployAnomalyGroupsRequest) returns (GetPendingDeployAnomalyGroupsResponse) {}
 }
 
 message DeployAnomalyGroupKey {
@@ -35,17 +35,16 @@ message DeployAnomalyGroupKey {
   string environment_id = 4;
 }
 
-message EvaluateDeployAnomalyShardRequest {}
+message EvaluateDeployAnomalyShardRequest {
+  // CatchUpWindowStart is the inclusive unix-millisecond floor for internal
+  // predecessor evaluation. Zero starts a new one-hour catch-up chain.
+  int64 catch_up_window_start = 1;
+}
 
 message EvaluateDeployAnomalyShardResponse {
   int32 groups_dispatched = 1;
   int32 groups_pending = 2;
-}
-
-message GetPendingDeployAnomalyGroupsRequest {}
-
-message GetPendingDeployAnomalyGroupsResponse {
-  repeated DeployAnomalyGroupKey groups = 1;
+  repeated DeployAnomalyGroupKey pending_groups = 3;
 }
 
 enum DeployAnomalyMetricDataState {
