@@ -104,8 +104,8 @@ service CronService {
   // candidates and fans actionable production groups to DeployAnomalyService.
   // Key =
   // "deploy-anomaly-<window start unix seconds>". The scheduler chooses the
-  // last window that is at least one full 5-minute bucket old so rollups can
-  // settle before the fleet queries run.
+  // window whose end is at least one full 5-minute bucket old so late rows and
+  // rollups can settle before the fleet queries run.
   rpc RunDeployAnomalyCheck(RunDeployAnomalyCheckRequest) returns (RunDeployAnomalyCheckResponse) {}
 
   // RunClickhouseUserReconcile reapplies workspace ClickHouse grants when the
