@@ -273,6 +273,22 @@ func TestRecoveredUsesOpeningSnapshot(t *testing.T) {
 	require.True(t, Recovered(Input{Metric: MetricRequestsDrop, Current: 125}, Result{ThresholdValue: 125}, cfg))
 }
 
+func TestCatastrophicError5xxDoesNotRecoverInsideNoisyBand(t *testing.T) {
+	cfg := DefaultConfig(SensitivityNormal)
+	input := Input{
+		Metric: MetricError5xx, Current: 600, RequestsInWindow: 1_000,
+		BaselineMean: 0.2, BaselineStddev: 0.15, ObservedBaselineBuckets: 288,
+	}
+
+	snapshot := Detect(input, cfg)
+	require.Equal(t, OutcomeAnomaly, snapshot.Outcome)
+	require.True(t, snapshot.Catastrophic)
+	require.False(t, Recovered(input, snapshot, cfg))
+
+	input.Current = 490
+	require.True(t, Recovered(input, snapshot, cfg))
+}
+
 func TestSustainedLevelShiftExpiresAfterMaxOpenDuration(t *testing.T) {
 	cfg := DefaultConfig(SensitivityNormal)
 	firedAt := int64(5 * time.Minute / time.Millisecond)

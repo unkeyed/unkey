@@ -535,7 +535,7 @@ func detectError(input Input, cfg Config) Result {
 		Reason:         "error ratio did not exceed sigma threshold",
 	}
 
-	if input.Metric == MetricError5xx && ratio >= cfg.Catastrophic.Error5xxRatio && input.Current >= cfg.Catastrophic.Error5xxFailures {
+	if catastrophicError5xx(input, ratio, cfg.Catastrophic) {
 		result.Outcome = OutcomeAnomaly
 		result.Catastrophic = true
 		result.Reason = "catastrophic 5xx error rate"
@@ -563,6 +563,12 @@ func detectError(input Input, cfg Config) Result {
 	result.Outcome = OutcomeAnomaly
 	result.Reason = "error spike confirmed in consecutive windows"
 	return result
+}
+
+func catastrophicError5xx(input Input, ratio float64, rules CatastrophicRules) bool {
+	return input.Metric == MetricError5xx &&
+		ratio >= rules.Error5xxRatio &&
+		input.Current >= rules.Error5xxFailures
 }
 
 func detectRequestsDrop(input Input, cfg Config) Result {
@@ -657,6 +663,9 @@ func Recovered(input Input, snapshot Result, cfg Config) bool {
 		ratio := 0.0
 		if input.RequestsInWindow > 0 {
 			ratio = input.Current / input.RequestsInWindow
+		}
+		if catastrophicError5xx(input, ratio, cfg.Catastrophic) {
+			return false
 		}
 		return ratio <= snapshot.BaselineMean+max(0, snapshot.SigmaK-cfg.Recovery.SigmaReduction)*snapshot.BaselineStddev
 	case MetricRequests, MetricEgressBytes, MetricCPUSeconds:
