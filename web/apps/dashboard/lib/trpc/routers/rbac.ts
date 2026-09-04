@@ -18,7 +18,11 @@ export async function upsertPermissions(
     const projectId = await ensureDefaultProjectId(tx, workspaceId);
     const existingPermissions = await tx.query.permissions.findMany({
       where: (table, { inArray, and, eq }) =>
-        and(eq(table.workspaceId, workspaceId), inArray(table.slug, slugs)),
+        and(
+          eq(table.workspaceId, workspaceId),
+          eq(table.projectId, projectId),
+          inArray(table.slug, slugs),
+        ),
       columns: {
         id: true,
         workspaceId: true,

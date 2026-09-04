@@ -91,6 +91,7 @@ export const upsertRole = workspaceProcedure
             and(eq(table.id, updateRoleId), eq(table.workspaceId, ctx.workspace.id)),
           columns: {
             id: true,
+            projectId: true,
             name: true,
           },
         });
@@ -115,6 +116,7 @@ export const upsertRole = workspaceProcedure
             where: (table, { and, eq, ne }) =>
               and(
                 eq(table.workspaceId, ctx.workspace.id),
+                eq(table.projectId, existingRole.projectId),
                 eq(table.name, input.roleName),
                 ne(table.id, updateRoleId),
               ),
@@ -278,7 +280,11 @@ export const upsertRole = workspaceProcedure
         // Create mode - always check for name conflicts
         const nameConflict = await tx.query.roles.findFirst({
           where: (table, { and, eq }) =>
-            and(eq(table.workspaceId, ctx.workspace.id), eq(table.name, input.roleName)),
+            and(
+              eq(table.workspaceId, ctx.workspace.id),
+              eq(table.projectId, projectId),
+              eq(table.name, input.roleName),
+            ),
           columns: { id: true },
         });
 

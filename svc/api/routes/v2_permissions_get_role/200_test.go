@@ -14,6 +14,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/projects"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
+	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_permissions_get_role"
 )
 
@@ -163,5 +164,45 @@ func TestSuccess(t *testing.T) {
 
 		// Verify permissions array is empty
 		require.Nil(t, role.Permissions)
+	})
+
+	t.Run("resolve duplicate name in default project", func(t *testing.T) {
+		otherProjectID := uid.New(uid.ProjectPrefix)
+		h.CreateProject(seed.CreateProjectRequest{
+			ID:          otherProjectID,
+			WorkspaceID: workspace.ID,
+			Name:        "Other",
+			Slug:        uid.New("other"),
+		})
+
+		name := "shared-role-name"
+		err := db.Query.InsertRole(ctx, h.DB.RW(), db.InsertRoleParams{
+			RoleID:      uid.New(uid.RolePrefix),
+			WorkspaceID: workspace.ID,
+			ProjectID:   otherProjectID,
+			Name:        name,
+			CreatedAt:   time.Now().UnixMilli(),
+		})
+		require.NoError(t, err)
+
+		defaultRoleID := uid.New(uid.RolePrefix)
+		err = db.Query.InsertRole(ctx, h.DB.RW(), db.InsertRoleParams{
+			RoleID:      defaultRoleID,
+			WorkspaceID: workspace.ID,
+			ProjectID:   projectID,
+			Name:        name,
+			CreatedAt:   time.Now().UnixMilli(),
+		})
+		require.NoError(t, err)
+
+		res := testutil.CallRoute[handler.Request, handler.Response](
+			h,
+			route,
+			headers,
+			handler.Request{Role: name},
+		)
+
+		require.Equal(t, http.StatusOK, res.Status, res.RawBody)
+		require.Equal(t, defaultRoleID, res.Body.Data.Id)
 	})
 }

@@ -34,7 +34,11 @@ export const createRole = workspaceProcedure
         const projectId = await ensureDefaultProjectId(tx, ctx.workspace.id);
         const existing = await tx.query.roles.findFirst({
           where: (table, { and, eq }) =>
-            and(eq(table.workspaceId, ctx.workspace.id), eq(table.name, input.name)),
+            and(
+              eq(table.workspaceId, ctx.workspace.id),
+              eq(table.projectId, projectId),
+              eq(table.name, input.name),
+            ),
           columns: { id: true },
         });
         if (existing) {
