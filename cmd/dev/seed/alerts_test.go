@@ -73,7 +73,7 @@ func TestGenerateAlertSeedDataset(t *testing.T) {
 			require.GreaterOrEqual(t, alert.baselineStddev, config.StddevFloors.Error4xxRatio)
 			require.Greater(t, alert.observedValue, alert.baselineMean+alert.thresholdSigma*alert.baselineStddev)
 		case seedMetricRequests:
-			require.Equal(t, config.StddevFloors.Requests, alert.baselineStddev)
+			require.GreaterOrEqual(t, alert.baselineStddev, config.StddevFloors.Requests)
 			require.Greater(t, alert.observedValue, alert.baselineMean+alert.thresholdSigma*alert.baselineStddev)
 			require.Greater(t, alert.observedValue/alert.baselineMean, 1.0)
 		case seedMetricEgressBytes:

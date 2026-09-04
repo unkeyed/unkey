@@ -25,6 +25,7 @@ import (
 const (
 	alertBucketSize = 5 * time.Minute
 	alertBaseline   = 24 * time.Hour
+	alertHistory    = 7 * 24 * time.Hour
 )
 
 type seedAlertMetric string
@@ -116,14 +117,18 @@ func seedAlerts(ctx context.Context, cmd *cli.Command) error {
 	if err != nil {
 		return err
 	}
+	now := time.Now()
+	if err := alignAlertSeedAppLifetime(ctx, database, target, alertSeedHistoryStart(now)); err != nil {
+		return fault.Wrap(err, fault.Internal("failed to align the demo app lifetime"))
+	}
 
 	ch, err := clickhouse.New(clickhouse.Config{URL: cmd.RequireString("clickhouse-url")})
 	if err != nil {
 		return fault.Wrap(err, fault.Internal("failed to connect to ClickHouse"))
 	}
 
-	dataset := generateAlertSeedDataset(target, time.Now())
-	markerCount, err := insertAlertSeedDeployments(ctx, database, target, time.Now())
+	dataset := generateAlertSeedDataset(target, now)
+	markerCount, err := insertAlertSeedDeployments(ctx, database, target, now)
 	if err != nil {
 		return fault.Wrap(err, fault.Internal("failed to insert deployment markers"))
 	}
@@ -152,6 +157,23 @@ func seedAlerts(ctx context.Context, cmd *cli.Command) error {
 		"instance_events", len(dataset.events),
 	)
 	return nil
+}
+
+func alertSeedHistoryStart(now time.Time) time.Time {
+	return now.Truncate(alertBucketSize).Add(-alertBucketSize).Add(-alertHistory)
+}
+
+func alignAlertSeedAppLifetime(
+	ctx context.Context,
+	database db.Database,
+	target alertSeedTarget,
+	createdAt time.Time,
+) error {
+	_, err := database.RW().ExecContext(ctx, `
+		UPDATE apps
+		SET created_at = LEAST(created_at, ?)
+		WHERE workspace_id = ? AND id = ?`, createdAt.UnixMilli(), target.workspaceID, target.appID)
+	return err
 }
 
 func findAlertSeedTarget(ctx context.Context, database db.Database, workspaceID string) (alertSeedTarget, error) {
@@ -355,7 +377,7 @@ func generateAlertSeedDataset(target alertSeedTarget, now time.Time) alertSeedDa
 	for _, definition := range definitions {
 		anomalyWindows[definition.metric] = definition.windowStart.UnixMilli()
 	}
-	historyStart := endBucket.Add(-7 * 24 * time.Hour)
+	historyStart := alertSeedHistoryStart(now)
 	historyBuckets := int(endBucket.Sub(historyStart)/alertBucketSize) + 1
 
 	dataset := alertSeedDataset{
@@ -377,6 +399,10 @@ func generateAlertSeedDataset(target alertSeedTarget, now time.Time) alertSeedDa
 		}
 		if bucketIndex%20 == 0 {
 			count5xx = 1
+		}
+		requestDropWindow := anomalyWindows[seedMetricRequestsDrop]
+		if bucketMs >= requestDropWindow-int64(12*alertBucketSize/time.Millisecond) && bucketMs < requestDropWindow {
+			count2xx = 240
 		}
 		if anomalyWindows[seedMetricRequests] == bucketMs {
 			count2xx, count4xx, count5xx = 600, 1, 1
