@@ -1,7 +1,7 @@
-// Package deploycancel aborts deployments: it stamps the user-visible reason
-// onto any in-flight steps, transitions the rows to their terminal status, then
-// kills the Restate invocations driving them. The user cancel RPC, sibling
-// dedup on create, and environment deletion all go through [Cancel].
+// Package deploycancel aborts deployments: stamp the user-visible reason on the
+// in-flight step, move the rows to a terminal status, then kill the Restate
+// invocations. The user cancel RPC, sibling dedup, and environment deletion all
+// go through [Cancel].
 package deploycancel
 
 import (
@@ -21,61 +21,52 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
 
-// Target is one deployment to abort: its row id plus the Restate invocation
-// driving it. An empty InvocationID means the workflow was never dispatched
-// (or the id has not been persisted yet); the row still transitions.
+// Target is one deployment to abort. An empty InvocationID still transitions
+// the row; there is just no invocation to kill.
 type Target struct {
 	ID           string
 	InvocationID string
 }
 
-// InvocationCanceler cancels a Restate invocation by id. An implementation must
-// count 404 as success: the workflow can finish in the gap between lookup and
-// cancel. *restateadmin.Client satisfies this.
+// InvocationCanceler must treat 404 as success: the workflow can finish
+// between lookup and cancel.
 type InvocationCanceler interface {
 	CancelInvocation(ctx context.Context, invocationID string) error
 }
 
-// Audit describes the deployment.cancel entries to write, one per target. A nil
-// Audit, or a nil Actor, writes none: a machine-initiated cancel has no actor
-// to attribute and does not belong in the customer's feed.
+// Audit describes the deployment.cancel entry written per target. Nil, or a nil
+// Actor, writes none: a machine-initiated cancel has nobody to attribute.
 type Audit struct {
 	Service       auditlogs.AuditLogService
 	Actor         *ctrlv1.ActorInfo
 	CorrelationID string
 	WorkspaceID   string
-	// Meta is attached to every entry's deployment resource. All targets in one
-	// call share it.
+	// Meta is attached to every entry's deployment resource.
 	Meta map[string]any
 }
 
 // Params describes one [Cancel] call.
 type Params struct {
 	Targets []Target
-	// Reason is stamped onto in-flight deployment steps. The write is
-	// first-write-wins (WHERE ended_at IS NULL), so the Deploy handler's own
-	// step-end loses and the UI shows the cancel.
+	// Reason lands on the in-flight step. The write only hits rows with ended_at
+	// NULL, so Deploy's own step-end afterwards loses and the UI shows the cancel.
 	Reason string
-	// Status is the terminal status the rows transition to: cancelled for user
-	// and environment cancels, superseded for sibling dedup.
 	Status mysqltype.DeploymentsStatus
 	Audit  *Audit
 }
 
-// Cancel aborts every target. The order is load-bearing:
+// Cancel aborts every target. The order matters.
 //
-//  1. Stamp the reason onto active steps, then transition the rows, both
-//     guarded so a row that already reached a terminal status is left alone.
-//     The status flip must land before the invocation cancel: cancelling
-//     triggers Deploy's compensation stack, which sets status=failed through
-//     the same guard, so flipping first wins that race. Both writes are
-//     best-effort; a failure is logged and the cancel still fires, because a
-//     leaked invocation costs more than a wrong status.
-//  2. Cancel the invocations. A failure does not stop the loop; the errors are
-//     joined and returned, so the caller's retry re-runs the whole call. That
-//     is safe because every step tolerates rows already in their end state.
-//  3. Audit last, only after every invocation is dead, so a retry that still
-//     has cancelling to do cannot double-write the entries.
+// The status flip comes before the invocation cancel because cancelling fires
+// Deploy's compensation stack, which writes failed through the same
+// progressing-only guard; flipping first wins that race. The two row writes are
+// best-effort and only logged: a leaked invocation costs more than a wrong
+// status.
+//
+// Invocation errors are joined and returned so the caller retries the whole
+// call, which is safe because every write tolerates a row already in its end
+// state. Audit runs last, so a retry that still has cancelling to do cannot
+// write the entries twice.
 func Cancel(ctx context.Context, database db.Database, admin InvocationCanceler, p Params) error {
 	if len(p.Targets) == 0 {
 		return nil

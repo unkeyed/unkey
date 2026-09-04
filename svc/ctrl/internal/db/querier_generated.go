@@ -2160,22 +2160,16 @@ type Querier interface {
 	//  SET status = ?, updated_at = ?
 	//  WHERE id = ?
 	UpdateDeploymentStatus(ctx context.Context, arg UpdateDeploymentStatusParams) error
-	// Batch form of UpdateDeploymentStatusIfActive: transition deployments only
-	// while they are still progressing, so a cancel arriving after a deployment
-	// finished (or after the dedup path already superseded it) never rewrites a
-	// terminal status.
+	// Batch form of UpdateDeploymentStatusIfActive.
 	//
 	//  UPDATE deployments
 	//  SET status = ?, updated_at = ?
 	//  WHERE id IN (/*SLICE:ids*/?)
 	//    AND status IN (/*SLICE:progressing_statuses*/?)
 	UpdateDeploymentStatusBatchIfActive(ctx context.Context, arg UpdateDeploymentStatusBatchIfActiveParams) error
-	// Transition a deployment's status only while it is still progressing, so the
-	// Deploy handler's compensation stack cannot overwrite a status set on purpose
-	// by the dedup path (superseded), by a cancel, or by a successful completion
-	// (ready). Callers pass db.ProgressingDeploymentStatuses so the set has a
-	// single source of truth (deployment_status.go), which also classifies every
-	// status as either progressing or terminal.
+	// Only progressing rows transition, so a compensation cannot overwrite a status
+	// set on purpose: superseded, cancelled, or ready. Callers pass
+	// mysqltype.ProgressingDeploymentStatuses.
 	//
 	//  UPDATE deployments
 	//  SET status = ?, updated_at = ?

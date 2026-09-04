@@ -125,10 +125,9 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 		return nil, fault.Wrap(err, fault.Public("Failed to read from database. Please try again."))
 	}
 
-	// A cancel landing in the window above marks the row terminal without an
-	// invocation to cancel, so this check is what stops the build. Returning nil
-	// keeps the compensation stack out of it: the status is the intended one, not
-	// a failure.
+	// A cancel that landed before Deploy started had no invocation to kill, so
+	// this check is what stops the build. Returning nil keeps the compensation
+	// stack out of it: the status is the intended one, not a failure.
 	if deployment.Status.IsTerminal() {
 		logger.Info("deployment is already terminal, not building",
 			"deployment_id", deployment.ID,
@@ -137,11 +136,7 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 		return &hydrav1.DeployResponse{}, nil
 	}
 
-	// --- Deduplication: skip if a newer deployment is queued for the same app+env+branch ---
-	//
-	// Because the DeployService VO is keyed by app_id, by the time we run here any
-	// subsequent deploys for the same app are already queued in the VO inbox — so a
-	// newer-pending check here is race-free.
+	// --- Deduplication: bow out if a newer deployment exists for the same app+env+branch ---
 	if deployment.GitBranch.Valid {
 		skipped, skipErr := w.skipIfSuperseded(ctx, deployment)
 		if skipErr != nil {
@@ -329,19 +324,11 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 
 	// --- Finalize ---
 	err = w.DeploymentStep(ctx, db.DeploymentStepsStepFinalizing, deployment, func(stepCtx restate.ObjectContext) error {
-		// Guarded, because a cancel reaches this row from outside this virtual
-		// object and so is not serialized against this handler: dedup runs on the
-		// newer deployment's object, environment deletion on the environment's,
-		// and both write here through the database directly.
-		//
-		//  1. The canceller writes cancelled (or superseded) to this row. Its own
-		//     guard passes, because this deployment is still finalizing.
-		//  2. It calls CancelInvocation on this deployment.
-		//  3. Restate delivers that cancel only at the next journal boundary.
-		//  4. This handler is already past that point and reaches this line first.
-		//
-		// Unguarded, step 4 would put the row back to ready, leaving it claiming
-		// to serve traffic while its compute is being torn down.
+		// Guarded because cancels write this row from outside this object, so
+		// nothing serializes them against this handler. A cancel that flips the
+		// row while finalizing reaches Restate only at the next journal boundary,
+		// and an unguarded write here would put the row back to ready while its
+		// compute is being torn down.
 		err = restate.RunVoid(ctx, func(stepCtx restate.RunContext) error {
 			return w.db.UpdateDeploymentStatusIfActive(stepCtx, db.UpdateDeploymentStatusIfActiveParams{
 				ID:                  deployment.ID,

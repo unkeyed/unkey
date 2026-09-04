@@ -40,9 +40,9 @@ type Config struct {
 	Auditlogs auditlogs.AuditLogService
 	// Restate is the ingress client for triggering durable workflows.
 	Restate *restateingress.Client
-	// RestateAdmin is used to cancel in-flight invocations when a user
-	// manually aborts a deployment. Optional — when nil, CancelDeployment
-	// will fail closed.
+	// RestateAdmin cancels in-flight invocations when a user aborts a
+	// deployment. Optional. When nil, CancelDeployment fails closed for
+	// deployments that have an invocation.
 	RestateAdmin *restateadmin.Client
 	// GitHub is the client for GitHub API operations (fetching HEAD, etc.).
 	GitHub githubclient.GitHubClient

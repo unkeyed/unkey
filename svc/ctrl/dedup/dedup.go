@@ -45,24 +45,16 @@ type Newer struct {
 	CreatedAt     int64
 }
 
-// CancelOlderSiblings finds deployments for the same (app, environment,
-// branch) that were created before newer and are still in the build queue
-// (status `pending` or `awaiting_approval` -- haven't acquired a build slot
-// yet), then hands them to deploycancel with the superseded status and no
-// audit entries: the cancel is machine-initiated and has no actor.
+// CancelOlderSiblings supersedes queued deployments (pending or
+// awaiting_approval) on the same app, environment, and branch that were created
+// before newer. A deployment that already holds a build slot is left to finish,
+// so rapid pushes cannot keep cancelling builds and never ship one.
 //
-// Once a deployment transitions out of `pending` (acquired a build slot and
-// moved to `starting`/`building`/etc), it is committed and will not be
-// superseded by a newer commit. This avoids the pathological "rapid pushes
-// keep cancelling builds and nothing ever finishes" scenario.
+// No audit entries: the cancel is machine-initiated and has no actor. A failed
+// invocation cancel comes back in the error but cannot resurrect a sibling,
+// because the row is already superseded and Deploy refuses a terminal row.
 //
-// Best-effort. A failed invocation cancel does not stop the remaining siblings;
-// the failures come back joined in the returned error for the caller to log.
-// The rows are superseded either way, and Deploy refuses to build a terminal
-// row, so a missed cancel cannot resurrect a sibling.
-//
-// Only git-sourced deployments with a branch are deduplicated -- docker
-// image redeploys are manual and should never cancel siblings.
+// Deployments without a branch (image redeploys) are never deduplicated.
 func (s *Service) CancelOlderSiblings(ctx context.Context, newer Newer) error {
 	if newer.GitBranch == "" {
 		return nil
@@ -100,8 +92,8 @@ func (s *Service) CancelOlderSiblings(ctx context.Context, newer Newer) error {
 		targets = append(targets, deploycancel.Target{ID: old.ID, InvocationID: invocationID})
 	}
 
-	// The nil check cannot move into deploycancel: a nil *Client wrapped in a
-	// non-nil interface value passes its admin == nil guard and then panics.
+	// A nil *Client stored in the interface is not a nil interface, so
+	// deploycancel would call it and panic.
 	var canceler deploycancel.InvocationCanceler
 	if s.admin != nil {
 		canceler = s.admin
