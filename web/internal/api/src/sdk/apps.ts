@@ -33,7 +33,7 @@ export class Apps extends ClientSDK {
    * - `project.<project_id>.create_app` (to create apps in a specific project)
    */
   async createApp(
-    request: components.V2AppsCreateAppRequestBody,
+    request: components.V2AppsCreateAppRequestBodyUnion,
     options?: RequestOptions,
   ): Promise<components.V2AppsCreateAppResponseBody> {
     return unwrapAsync(appsCreateApp(

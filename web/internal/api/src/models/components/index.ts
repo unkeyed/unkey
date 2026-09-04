@@ -97,7 +97,7 @@ export * from "./v2apisgetapiresponsebody.js";
 export * from "./v2apisgetapiresponsedata.js";
 export * from "./v2apislistkeysrequestbody.js";
 export * from "./v2apislistkeysresponsebody.js";
-export * from "./v2appscreateapprequestbody.js";
+export * from "./v2appscreateapprequestbodyunion.js";
 export * from "./v2appscreateappresponsebody.js";
 export * from "./v2appscreateappresponsedata.js";
 export * from "./v2appsdeleteapprequestbody.js";
