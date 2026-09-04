@@ -2,13 +2,14 @@ import { z } from "zod";
 import {
   type SigmaAlertMetric,
   alertBaselineMinimums,
+  alertFixedThresholds,
   alertMinimumStddevRatio,
   alertStddevFloors,
   alertThresholdSigma,
   requestDropActivityFloor,
-  requestDropMedianFraction,
   requestDropMinimumAbsoluteLoss,
   requestDropMinimumActiveBuckets,
+  requestDropRecentLevelFraction,
 } from "./alert-thresholds";
 import type { Querier } from "./client";
 
@@ -252,7 +253,7 @@ function withExpectedRange(observedQuery: string, metric: SigmaAlertMetric): str
           toNullable(greatest(
             0,
             least(
-              recent_median * ${requestDropMedianFraction},
+              recent_median * ${requestDropRecentLevelFraction},
               recent_median - ${requestDropMinimumAbsoluteLoss}
             )
           ))
@@ -450,7 +451,7 @@ export function getAlertSeries(ch: Querier) {
         const source = memoryQuery(args.resolution);
         observedQuery = source.query;
         tableName = source.tableName;
-        fixedLimit = 0.9;
+        fixedLimit = alertFixedThresholds.memory_utilization;
         break;
       }
       case "health":
