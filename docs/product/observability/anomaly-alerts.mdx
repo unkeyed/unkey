@@ -44,6 +44,10 @@ earlier activity. It waits one full bucket before evaluating a window so normal
 telemetry delivery lag does not look like missing traffic. An alert normally
 appears 5 to 10 minutes after the affected bucket closes.
 
+If a scheduled check is missed, the next check evaluates missing windows in
+order for up to a 1-hour catch-up horizon. A longer interruption restarts the
+two-window confirmation required by moderate error and request-drop alerts.
+
 When anomaly rollups are installed, Unkey replays the latest 7 days of closed
 telemetry before live collection starts. Only the 5-minute bucket in progress
 during setup can be absent. Existing apps therefore start with a full 24-hour
