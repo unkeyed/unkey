@@ -446,7 +446,7 @@ Use `resolution_message` to interpret a resolved row:
 
 | Message | Meaning |
 | --- | --- |
-| `Metric returned to baseline for 3 consecutive windows` | Three complete windows crossed the recovery threshold captured when the alert opened. |
+| `Metric returned to baseline for 3 consecutive windows` | Three complete windows crossed the recovery threshold captured when the alert opened. A catastrophic 5xx window never counts, even when it is inside that band. |
 | `Deployment stopped` | A request-drop alert closed because its deployment stopped, or an app or environment deletion resolved the alert. Shard reconciliation uses the same message for orphaned metadata. |
 | `Baseline adapted after 24 hours` | The alert stayed open for 24 hours, so the rolling baseline now represents the new level. |
 

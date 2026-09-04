@@ -344,6 +344,10 @@ Sigma and error metrics use a one-sigma hysteresis band:
 
 `recovery_threshold = opening_mean + (k - 1) * opening_sigma_effective`
 
+`Detect` and `Recovered` use the same catastrophic 5xx predicate. A current
+window with a 5xx ratio of at least 50% and at least 50 failures is never a quiet
+window, even when its ratio is inside the snapshot recovery band.
+
 For the request-spike example, the opening threshold is 180. Recovery uses
 `100 + (4 - 1) * 20 = 160`. Values at or below 160 count as recovered. Values
 above 160 reset the quiet count and update the open alert.
@@ -359,8 +363,8 @@ Other metrics use rule-specific recovery against the opening snapshot:
 
 Three consecutive complete recovered windows resolve the alert with the message
 `Metric returned to baseline for 3 consecutive windows`. Any anomalous window
-before the third resets the count. An incomplete window neither increments nor
-resets it.
+before the third resets the count. A catastrophic 5xx window always resets this
+count. An incomplete window neither increments nor resets it.
 
 Recovery also has a maximum open duration. `DefaultConfig` decodes
 `maxOpenDurationSeconds = 86400` as a 24-hour `Config.MaxOpenDuration`. At the

@@ -385,6 +385,10 @@ consecutive anomalous windows. Other metrics open after one window. A normal or
 insufficient window clears candidate state. An ongoing anomaly resets the quiet
 counter and updates the alert's latest value.
 
+`Detect` and `Recovered` share the catastrophic 5xx predicate. A current window
+with a 5xx ratio of at least 50% and at least 50 failures is never quiet, even
+when its value is inside the opening snapshot's recovery band.
+
 A `ZERO_COMPLETE` request window builds a fresh detector input from the current
 recent level and recent active-bucket count. The virtual object does not store
 or replay an earlier `Input`. This lets request-drop eligibility clear when an
