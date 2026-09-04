@@ -113,7 +113,6 @@ async function rerollKeyCore({
           workspaceId: true,
           forWorkspaceId: true,
           name: true,
-          identityId: true,
           meta: true,
           expires: true,
           refillDay: true,
@@ -229,7 +228,8 @@ async function rerollKeyCore({
         workspaceId: source.workspaceId,
         forWorkspaceId: source.forWorkspaceId,
         name: source.name,
-        identityId: source.identityId,
+        // Root keys are system credentials. The dashboard user belongs in the audit log, not an identity.
+        identityId: null,
         meta: source.meta,
         expires: source.expires,
         createdAtM: now,
