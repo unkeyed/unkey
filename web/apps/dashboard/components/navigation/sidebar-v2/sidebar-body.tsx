@@ -4,6 +4,7 @@ import { useApiKeyAuthId } from "@/hooks/use-api-key-auth-id";
 import { useSectionContext } from "@/hooks/use-section-context";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { useFlag } from "@/lib/flags/provider";
+import { useBillingUIUpgrades } from "@/lib/flags/use-billing-ui-upgrades";
 import {
   buildApiLinks,
   buildAppLinks,
@@ -24,6 +25,7 @@ export function SidebarBody() {
   const { slug } = useWorkspaceNavigation();
   const { keyAuthId } = useApiKeyAuthId(context.type === "api" ? context.apiId : undefined);
   const portalManagement = useFlag("portalManagement");
+  const metricsEnabled = useBillingUIUpgrades();
 
   const links = (() => {
     switch (context.type) {
@@ -34,7 +36,7 @@ export function SidebarBody() {
       // settings/authorization layouts).
       case "settings":
       case "authorization":
-        return buildWorkspaceSections(slug, segments);
+        return buildWorkspaceSections(slug, segments, metricsEnabled);
       case "project":
         return context.appId
           ? buildAppLinks(slug, context.projectId, context.appId, segments)
