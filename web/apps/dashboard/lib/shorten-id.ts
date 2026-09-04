@@ -31,17 +31,12 @@ export function shortenId(
     throw new Error("At least one of startChars or endChars must be greater than 0");
   }
 
-  // Return original if too short to meaningfully shorten
-  if (id.length <= minLength) {
+  const cut = id.indexOf("_");
+  const [prefix, rest] = cut === -1 ? [null, id] : [id.slice(0, cut), id.slice(cut + 1)];
+
+  if (rest.length <= minLength || startChars + endChars >= rest.length) {
     return id;
   }
-
-  // Handle edge case where requested chars exceed ID length
-  if (startChars + endChars >= id.length) {
-    return id;
-  }
-
-  const [prefix, rest] = id.includes("_") ? id.split("_", 2) : [null, id];
   let s = "";
   if (prefix) {
     s += prefix;

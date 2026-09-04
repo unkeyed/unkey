@@ -11,6 +11,7 @@ import {
   Dots,
   Github,
   Hammer2,
+  Layers2,
   Layers3,
 } from "@unkey/icons";
 import { Button, toast } from "@unkey/ui";
@@ -33,6 +34,7 @@ type ProductionCardActionsMenuProps = {
   deployment: Deployment;
   status: DeploymentDisplayStatus;
   commitUrl?: string;
+  deploymentHref: Route;
   logsHref: Route;
   requestsHref: Route;
 };
@@ -41,6 +43,7 @@ export function ProductionCardActionsMenu({
   deployment,
   status,
   commitUrl,
+  deploymentHref,
   logsHref,
   requestsHref,
 }: ProductionCardActionsMenuProps) {
@@ -71,6 +74,12 @@ export function ProductionCardActionsMenu({
               ),
             }),
         divider: true,
+      },
+      {
+        id: "view-deployment",
+        label: "Go to deployment",
+        icon: <Layers2 iconSize="md-regular" />,
+        href: deploymentHref,
       },
       {
         id: "view-logs",
@@ -108,7 +117,17 @@ export function ProductionCardActionsMenu({
         },
       },
     ];
-  }, [deployment, status, commitUrl, gated, openPaywall, router, logsHref, requestsHref]);
+  }, [
+    deployment,
+    status,
+    commitUrl,
+    gated,
+    openPaywall,
+    router,
+    deploymentHref,
+    logsHref,
+    requestsHref,
+  ]);
 
   return (
     <>
