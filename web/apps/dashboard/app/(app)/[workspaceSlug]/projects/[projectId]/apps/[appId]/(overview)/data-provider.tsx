@@ -8,6 +8,7 @@ import type { Domain } from "@/lib/collections/deploy/domains";
 import type { Environment } from "@/lib/collections/deploy/environments";
 import type { Project } from "@/lib/collections/deploy/projects";
 import { useCollectionPolling } from "@/lib/collections/use-collection-polling";
+import { trpc } from "@/lib/trpc/client";
 import { and, eq, useLiveQuery } from "@tanstack/react-db";
 import { notFound, useParams } from "next/navigation";
 import {
@@ -67,6 +68,8 @@ export const ProjectDataProvider = ({
   if (!projectId) {
     throw new Error("ProjectDataProvider requires a projectId prop or a [projectId] route param");
   }
+
+  const trpcUtils = trpc.useUtils();
 
   const deploymentsQuery = useLiveQuery(
     (q) =>
@@ -192,11 +195,17 @@ export const ProjectDataProvider = ({
       getDeploymentById: (id: string) => deployments.find((d) => d.id === id),
 
       refetchDomains: () => collection.domains.utils.refetch(),
-      refetchDeployments: () => collection.deployments.utils.refetch(),
+      // Deployments live in two caches: the collection here and the tRPC
+      // queries behind the paged list and Active Branches.
+      refetchDeployments: () => {
+        collection.deployments.utils.refetch();
+        trpcUtils.deploy.deployment.invalidate();
+      },
       refetchCustomDomains: () => collection.customDomains.utils.refetch(),
       refetchAll: () => {
         collection.projects.utils.refetch();
         collection.deployments.utils.refetch();
+        trpcUtils.deploy.deployment.invalidate();
         collection.domains.utils.refetch();
         collection.environments.utils.refetch();
         collection.customDomains.utils.refetch();
@@ -210,6 +219,7 @@ export const ProjectDataProvider = ({
     projectQuery,
     environmentsQuery,
     customDomainsQuery,
+    trpcUtils,
   ]);
 
   // The projects collection holds every project in the workspace, so once it has
