@@ -20,9 +20,8 @@ const (
 	// system maintenance operations.
 	SystemActor AuditLogActor = "system"
 
-	// GitHubActor indicates the action was triggered by a GitHub event, a push
-	// or a pull request, rather than by anyone using Unkey directly. The actor's
-	// GitHub login is carried by the audit log's ActorID field.
+	// GitHubActor is a push or pull request rather than a person using Unkey.
+	// ActorID carries the GitHub login.
 	GitHubActor AuditLogActor = "github"
 
 	// PortalEndUserActor indicates the action was performed by an end user

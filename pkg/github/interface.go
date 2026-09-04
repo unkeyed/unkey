@@ -3,10 +3,9 @@ package github
 import "time"
 
 // GitHubClient defines the interface for GitHub API operations.
-// DeployAuthorizationContext is the commit-status context for the approval a
-// fork PR waits on. GitHub keys a status by its context, so the failing status
-// that requests approval and the success that resolves it have to agree on this
-// value or the PR keeps a stuck check forever.
+// DeployAuthorizationContext is the commit-status context for fork PR approval.
+// GitHub keys statuses by context, so the request and its resolution must share
+// this value or the check sticks.
 const DeployAuthorizationContext = "Unkey Deploy Authorization"
 
 type GitHubClient interface {

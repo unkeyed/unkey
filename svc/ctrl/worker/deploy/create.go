@@ -518,23 +518,17 @@ func (w *Workflow) startDeployment(
 	return nil
 }
 
-// requestAuthorization posts the failing commit status that tells a contributor
-// their push is waiting for a project member. The "Details" link goes to the
-// dashboard page where a member authorizes it.
-//
-// The GitHub error is swallowed inside the step: the row already records the
-// wait, so a create that has otherwise succeeded must not fail because GitHub
-// is down. The RunVoid error still propagates, since it can carry Restate
-// protocol signals.
+// requestAuthorization posts the commit status that tells a contributor their
+// push is waiting for a project member. A GitHub failure is logged, not
+// returned: the row already records the wait and the create has succeeded.
 func (w *Workflow) requestAuthorization(
 	ctx restate.ObjectContext,
 	deploymentID string,
 	req *hydrav1.DeployCreateRequest,
 	payload deployPayload,
 ) error {
-	// Only a git source has a commit to post against, and
-	// allowUnauthenticatedDeployments means there is no GitHub App to post
-	// through, which is how local development runs.
+	// An image has no commit to post against, and without a GitHub App there is
+	// nothing to post through.
 	if payload.Source.Git == nil || w.allowUnauthenticatedDeployments {
 		return nil
 	}

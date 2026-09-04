@@ -1811,12 +1811,9 @@ type Querier interface {
 	//      OR EXISTS (SELECT 1 FROM instances i WHERE i.deployment_id = d.id)
 	//    )
 	ListRunningDeploymentsByWorkspaceId(ctx context.Context, arg ListRunningDeploymentsByWorkspaceIdParams) ([]ListRunningDeploymentsByWorkspaceIdRow, error)
-	// Batched form of FindWorkspaceDeployEntitlement, for a caller holding several
-	// workspaces at once: one GitHub push can match apps across workspaces, and
-	// looking each up separately would cost a Restate journal round trip per app.
-	// The LEFT JOIN keeps the single-row form's semantics, so a workspace with no
-	// billing row comes back with NULL plan columns rather than being dropped, and
-	// an unbilled workspace reads the same either way.
+	// Batched FindWorkspaceDeployEntitlement, for a push that matches apps across
+	// workspaces. The LEFT JOIN keeps a workspace with no billing row, with NULL
+	// plan columns.
 	//
 	//  SELECT
 	//     w.id AS workspace_id,

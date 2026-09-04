@@ -15,9 +15,9 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
 
-// HandlePush processes a GitHub push event durably via Restate. It looks up
-// repo connections with full deploy context (project, environment, app, settings)
-// in a single query, creates deployment records, and fires off DeployService.Deploy().
+// HandlePush processes a GitHub push event: it looks up the repo connections,
+// gates them on the workspace entitlement and each app's watch paths, then
+// calls DeployService.Create once per app.
 func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushRequest) (*hydrav1.HandlePushResponse, error) {
 	logger.Info(
 		"handling GitHub push in Restate",
@@ -30,9 +30,8 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 
 	branch := req.GetBranch()
 
-	// Single query: connections + apps + projects + environments + build/runtime settings
-	// Selects the production environment for the default branch and preview for others.
-	// Fork PRs always go to preview via the is_fork_pr flag.
+	// The default branch resolves to production, any other branch to preview,
+	// and a fork PR always to preview.
 	contexts, err := restate.Run(ctx, func(runCtx restate.RunContext) ([]db.ListRepoConnectionDeployContextsRow, error) {
 		return s.db.ListRepoConnectionDeployContexts(runCtx, db.ListRepoConnectionDeployContextsParams{
 			InstallationID: req.GetInstallationId(),
@@ -80,9 +79,8 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 
 	eligibleContexts := make([]db.ListRepoConnectionDeployContextsRow, 0, len(contexts))
 	for _, row := range contexts {
-		// A workspace the query returned nothing for reads as the zero value: no
-		// plan and not suspended, which is what an unbilled workspace looks like
-		// to the gate.
+		// A workspace missing from the map reads as no plan and not suspended,
+		// the same as an unbilled one.
 		entitlement := entitlements[row.ProjectWorkspaceID]
 
 		if !deploygate.Entitled(entitlement.Plan, entitlement.PlanOverride) {
@@ -154,11 +152,8 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 		}
 	}
 
-	// Every context below sends exactly one Create, skipped or not, so the ids
-	// are minted in a single journaled step. uid.New is not deterministic, so it
-	// has to be journaled; doing it per app would cost a journal round trip each
-	// and serialize what the sends themselves do concurrently. A retry replays
-	// the recorded ids and addresses the same Create objects.
+	// uid.New is random, so the ids are journaled, and in one step rather than
+	// one per app.
 	ids, err := restate.Run(ctx, func(_ restate.RunContext) ([]string, error) {
 		minted := make([]string, len(contexts))
 		for i := range minted {
@@ -170,15 +165,14 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 		return nil, err
 	}
 
-	// Every create is started before any is awaited, so the per-app GitHub
-	// lookups inside them overlap instead of running one after another.
+	// All creates are started before any is awaited so their GitHub lookups
+	// overlap.
 	pending := make([]pendingCreate, 0, len(contexts))
 
 	for i, row := range contexts {
 		deploymentID := ids[i]
 
-		// The dashboard reads this reason off the skipped deployment, so every skip
-		// says why rather than leaving the push with no record at all.
+		// The dashboard shows this reason on the skipped deployment.
 		skipDeployment := func(reason string) {
 			pending = append(pending, pendingCreate{
 				deploymentID: deploymentID,
@@ -243,8 +237,7 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 			return nil, err
 		}
 
-		// A rejection is a successful answer, and this is the only place it is
-		// visible: nothing downstream of a rejected create writes a row to read.
+		// A rejected create writes no row, so this log is its only trace.
 		if resp.GetOutcome() == hydrav1.CreateOutcome_CREATE_OUTCOME_REJECTED {
 			logger.Warn(
 				"deployment create rejected",
@@ -267,21 +260,16 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 	return &hydrav1.HandlePushResponse{}, nil
 }
 
-// pendingCreate is one dispatched create and the identifiers its result is
-// logged against.
 type pendingCreate struct {
 	deploymentID string
 	appID        string
 	future       restate.ResponseFuture[*hydrav1.DeployCreateResponse]
 }
 
-// requestCreate hands one app's deployment to DeployService.Create, which owns
-// every deployment row.
-//
-// The result is awaited rather than sent one-way: created_at decides sibling
-// order and Create stamps it from its own clock, so awaiting inside this
-// per-repository object is what keeps two pushes to one repo from stamping
-// their rows out of order.
+// requestCreate asks DeployService.Create for one app's deployment. It is a
+// Request rather than a one-way Send: Create stamps created_at, which orders
+// siblings, so awaiting it inside this per-repository object keeps two pushes
+// to one repository in order.
 func (s *Service) requestCreate(
 	ctx restate.ObjectContext,
 	deploymentID string,
@@ -323,13 +311,9 @@ func (s *Service) requestCreate(
 	})
 }
 
-// requiresApproval determines whether a push needs manual approval.
-// Fork PRs always require approval. Non-fork pushes are auto-approved because
-// GitHub already enforces write access — if someone can push to the repo, they
-// are authorized.
-//
-// Set FORCE_DEPLOYMENT_APPROVAL=true to require approval for all pushes.
-// This is useful for testing the approval flow locally.
+// requiresApproval is true for a fork PR, whose code comes from someone without
+// write access. A direct push is already authorized by GitHub.
+// FORCE_DEPLOYMENT_APPROVAL=true gates every push, for testing the flow locally.
 func (s *Service) requiresApproval(
 	req *hydrav1.HandlePushRequest,
 ) bool {
@@ -341,7 +325,6 @@ func (s *Service) requiresApproval(
 		return true
 	}
 
-	// Fork PRs always require approval — external code must never auto-deploy.
 	if req.GetIsForkPr() {
 		logger.Info(
 			"fork PR deployment requires approval",
@@ -350,8 +333,6 @@ func (s *Service) requiresApproval(
 		return true
 	}
 
-	// Non-fork pushes: GitHub already verified the pusher has write access to
-	// the repo, so there is no reason to gate the deployment behind approval.
 	return false
 }
 
