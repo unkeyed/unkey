@@ -60,11 +60,16 @@ The local cron entry is in
 Each tick evaluates one aligned 5-minute UTC window. The start in Unix seconds
 is:
 
-`floor(now / 300) * 300 - 300`
+`floor(now / 300) * 300 - 600`
 
-For example, a tick at 12:07 evaluates `[12:00, 12:05)`, not the bucket that
-started at 12:05. Waiting one complete bucket absorbs normal buffer and
-materialized-view lag.
+For example, a tick at 12:07 evaluates `[11:55, 12:00)`, not `[12:00, 12:05)`.
+The selected window ended at least 5 minutes ago. This full closed bucket
+between collection and evaluation absorbs normal buffer and materialized-view
+lag. Alerts normally appear 5 to 10 minutes after the evaluated bucket closes.
+
+The cron handler also checks the window age. It returns without fan-out when
+`window_end > now - 5 minutes`. This prevents a malformed or manually invoked
+key from bypassing the settling period.
 
 The cron virtual object key is
 `deploy-anomaly-<window_start_unix_seconds>`. The timestamp makes retries for
@@ -74,10 +79,9 @@ different object.
 ### Gate evaluation with watermarks
 
 `anomaly_source_watermarks_v1` stores the latest watermark for each
-`(source, region)` pair. Its source values are `requests`, `resources`, and
-`instance_events`. Three materialized views update the table from
-`frontline_requests_raw_v1`, `instance_checkpoints_v1`, and
-`instance_events_raw_v1`.
+`(source, region)` pair. Its source values are `requests` and `resources`. Two
+materialized views update the table from
+`frontline_requests_raw_v1` and `instance_checkpoints_v1`.
 
 `GetAnomalySourceWatermarks` returns `{Source, Region, Watermark}` rows. A region
 is active for a source when it received ingest during the latest 2 hours. The
@@ -95,13 +99,23 @@ Each metric input in `deploy_anomaly_check.proto` has one of these states:
 
 | State | Meaning | Evaluator behavior |
 | --- | --- | --- |
-| `PRESENT` | The source is complete and the group has a row. | Evaluate the supplied value. |
-| `ZERO_COMPLETE` | The source is complete and the group has no row. | Evaluate a real zero. |
+| `PRESENT` | The group has a row. For sparse instance events, the row is actionable even when the resources source is incomplete. | Evaluate the supplied value. |
+| `ZERO_COMPLETE` | The relevant completeness source is complete and the group has no row. | Evaluate a real zero. |
 | `INCOMPLETE` | An active region has not reached the window end, or the source has no active region. | Make no state or database change for that metric. |
 
 `INCOMPLETE` is a strict no-op. It cannot open an alert, advance a two-window
 candidate, update `last_seen_at`, increment recovery state, or resolve an
 alert. One delayed source does not stop complete metrics from other sources.
+
+Instance events are sparse and do not have a separate watermark. An OOM or
+crash-loop row in the selected window is immediately `PRESENT`. When no event
+row exists, the resources watermark supplies the negative evidence: a complete
+resources source makes the event metric `ZERO_COMPLETE`, and an incomplete
+resources source makes it `INCOMPLETE`.
+
+The ctrl API writes instance events through a bounded buffer configured with
+`Drop: true`. A dropped event can cause a missed OOM or crash-loop alert. It
+cannot keep an event metric incomplete or stall the detector.
 
 ## Shard the fleet scan
 
@@ -165,11 +179,12 @@ group bucket. The outer aggregation computes current counts, request baseline
 moments, request-weighted error means, and the population standard deviation
 of per-bucket error ratios.
 
-The same query returns the first observed bucket, the number of observed
-baseline buckets, whether the current bucket exists, and the previous 12
-request buckets through scalar `sumIf` expressions. Missing buckets become
-zero. The final `HAVING` applies the conservative candidate filter or retains a
-group that has an open alert.
+The same query returns the number of observed baseline buckets, whether the
+current bucket exists, and the previous 12 request buckets through scalar
+`sumIf` expressions. The app creation time comes from MySQL metadata, not
+ClickHouse. Go aligns it to a 5-minute boundary and uses it to bound
+zero-padding. The final `HAVING` applies the conservative candidate filter or
+retains a group that has an open alert.
 
 ### Query resource windows
 
@@ -179,17 +194,19 @@ Memory divides sampled bytes by allocated bytes. The query then combines
 containers into instances and computes the 5-minute average across instances.
 
 The outer aggregation returns the current egress, CPU, and memory values,
-baseline moments for egress and CPU, observed bucket count, and first bucket
-time. The per-minute source is a dashboard rollup. Its additive values can
-double-count rare insert retries, which is an accepted observability tradeoff.
-Billing does not use this query.
+baseline moments for egress and CPU, and the observed bucket count. The
+per-minute source is a dashboard rollup. Its additive values can double-count
+rare insert retries, which is an accepted observability tradeoff. Billing does
+not use this query.
 
 ### Query instance events
 
 The event query scans only the selected 5-minute window. It counts terminated
 events with reason `OOMKilled` and waiting events with reason
 `CrashLoopBackOff`. These metrics use fixed thresholds and need no historical
-baseline.
+baseline. A returned row is actionable without a separate event watermark. An
+absent row uses resources completeness to distinguish a complete zero from an
+incomplete window.
 
 Hourly rollups supply the dashboard's 7-day overview. Dashboard series queries
 are separate from the detector queries and do not mutate alert state.
@@ -206,21 +223,26 @@ backfills these four detector rollups:
 | `frontline_requests_anomaly_per_5m_v1` | Request and error history. |
 | `instance_memory_container_per_5m_v1` | Per-container memory history. |
 
-The migration replays the latest 7 days after creating the materialized views.
-Watermark max states are replay-idempotent. Sum rollups exclude keys that are
-already present, so retrying the migration cannot count the same rollup key twice.
-Existing apps therefore have the full 24-hour baseline and 72-bucket
-request-drop history when detection first runs. The 12-bucket spike minimum
-applies only to apps younger than 1 hour, and the 72-bucket request-drop minimum
-applies only to apps younger than 6 hours.
+For each rollup, the migration replays the latest 7 days of closed buckets
+before it creates the corresponding materialized view. This order avoids
+double counting rows that arrive during the replay. At most, the in-progress
+5-minute bucket at migration time can be absent from the rollup. Watermark max
+states are replay-idempotent. Sum rollups exclude keys that are already present,
+so retrying the migration cannot count the same rollup key twice. Existing apps
+therefore have the full 24-hour baseline and 72-bucket request-drop history when
+detection first runs. The 12-bucket spike minimum applies only to apps younger
+than 1 hour, and the 72-bucket request-drop minimum applies only to apps younger
+than 6 hours.
 
 ## Evaluate one group
 
 The detector API consists of `Detect(Input, Config) Result`,
 `Recovered(Input, Result, Config) bool`, `ShouldResolve(int) bool`,
 `BaselineWindowBuckets`, and `RecentRequestStats`. `DefaultConfig(Sensitivity)`
-builds the production configuration. These functions live in
-`svc/ctrl/worker/cron/deployanomaly`. The
+builds the production configuration. The canonical production values are in
+`svc/ctrl/worker/cron/deployanomaly/thresholds.json`, which Go embeds. A
+dashboard contract test checks its mirrored values against this file. These
+functions live in `svc/ctrl/worker/cron/deployanomaly`. The
 [detector math](/architecture/services/control-plane/worker/deploy-anomaly-detection-math)
 defines every metric threshold and worked example.
 
@@ -229,12 +251,18 @@ defines every metric threshold and worked example.
 change a keyed virtual object's state, so overlapping cron windows cannot race
 candidate, open, or recovery transitions for the same group.
 
+The shard reads the app's `created_at` value from MySQL and passes it as
+`app_created_at` in `EvaluateDeployAnomalyRequest`. The evaluator aligns that
+timestamp to a 5-minute boundary and caps the lifetime window at 24 hours before
+it adds zero-valued missing buckets.
+
 ```diagram
-                         INCOMPLETE
-                       ┌────────────┐
-                       │ strict     │
-                       │ no-op      │
-                       └────────────┘
+          INCOMPLETE                          OUT OF ORDER
+        ┌────────────┐                 ┌──────────────────────┐
+        │ strict     │                 │ window_end <=        │
+        │ no-op      │                 │ last_window_end      │
+        └────────────┘                 │ strict no-op         │
+                                       └──────────────────────┘
 
 ┌──────────────┐  first sustained window  ┌──────────────┐
 │ No alert     │──────────────────────────▶│ Candidate    │
@@ -264,6 +292,11 @@ consecutive anomalous windows. Other metrics open after one window. A normal or
 insufficient window clears candidate state. An ongoing anomaly resets the quiet
 counter and updates the alert's latest value.
 
+After an evaluation processes at least one complete metric, the virtual object
+stores its end in `last_window_end`. Any later delivery with
+`window_end <= last_window_end` is a strict no-op. This guard prevents a retried
+or delayed older window from changing candidate, open-alert, or recovery state.
+
 `DefaultConfig` sets `Config.MaxOpenDuration` to 24 hours. At the first complete
 evaluation at or after that duration, the evaluator resolves the alert with
 `Baseline adapted after 24 hours`. This caps an alert for a permanent level
@@ -284,8 +317,8 @@ deployment and running topology region remain active.
 
 ### Persist virtual object state
 
-The evaluator stores state per metric. `<metric>` is one of the nine MySQL and
-Go enum values.
+The evaluator stores most state per metric. `<metric>` is one of the nine MySQL
+and Go enum values.
 
 | Key | Purpose |
 | --- | --- |
@@ -297,6 +330,7 @@ Go enum values.
 | `snapshot:<metric>` | Stores the opening baseline and threshold for recovery. |
 | `detector_input:<metric>` | Retains the last complete detector input, including request-drop context. |
 | `open_alerts_reconciled` | Records that open MySQL rows were loaded into this object. |
+| `last_window_end` | Rejects duplicate and out-of-order group windows. |
 
 On first use, the evaluator reconciles open rows from MySQL. This restores the
 open alert ID, firing time, and opening snapshot if the virtual object has no
@@ -377,7 +411,8 @@ The app-level **Anomalies** tab provides these views:
 - OOM and crash-loop bars in the Health view.
 - Shaded windows for every anomaly and line-attached markers for the selected
   metric.
-- Optional deployment markers, drag-to-zoom, and a range-scoped alert list.
+- Optional deployment markers, drag-to-zoom, and a range-scoped list of open
+  and resolved alerts.
 - Alert focus through `?alert=<id>`, including an alert details card with the
   system resolution message.
 
@@ -389,16 +424,26 @@ The `alerts` tRPC router is in
 `alerts.get`, `alerts.summary`, `alerts.series`, and `alerts.deployments`. There
 is no `resolve` or `timeseries` procedure. Dashboard ClickHouse queries live in
 `web/internal/clickhouse/src/alerts.ts`. Shared band constants live in
-`web/internal/clickhouse/src/alert-thresholds.ts` so displayed thresholds match
-detector rules.
+`web/internal/clickhouse/src/alert-thresholds.ts`. The
+`alert-thresholds-contract.test.ts` test compares them with the detector's
+`thresholds.json` source so displayed thresholds match detector rules.
+
+The inbox uses the default `alerts.list` behavior, which returns open alerts.
+The app tab sets `includeResolved` so its range list includes both statuses.
+List pagination uses the immutable `(fired_at, pk)` cursor, so resolving a row
+does not move the page boundary. The `alerts.series` input limits a request to 8
+days.
 
 The `series` query returns time-aligned observed values for the selected range.
 For each bucket, the dashboard calculates the trailing expected mean and
 effective deviation with the same 10% and absolute floors as the detector. It
-draws the expected band from those values. Request charts add a lower line at
-25% of the rolling 12-bucket median. Memory uses a flat 90% line, and Health
-uses OOM and crash-loop event bars. These calculations explain alerts but do
-not create or resolve them.
+draws the expected band from those values. Error deviation excludes buckets
+with zero requests. Request charts add a lower line at 25% of the inclusive
+median for the preceding 12 buckets. For an even set, the inclusive median
+averages the two middle values. Memory first averages container samples into
+each instance, then averages instances with equal weight. It uses a flat 90%
+line. Health uses OOM and crash-loop event bars. These calculations explain
+alerts but do not create or resolve them.
 
 The Vercel feature flag `deploy-anomaly-alerts` gates all alert UI. It is
 registered in `web/apps/dashboard/lib/flags/index.ts`, defaults to off, and has
