@@ -71,6 +71,8 @@ export const createRootKey = workspaceProcedure
           end,
           workspaceId: env().UNKEY_WORKSPACE_ID,
           forWorkspaceId: ctx.workspace.id,
+          // Root keys are system credentials. The dashboard user belongs in the audit log, not an identity.
+          identityId: null,
           expires: null,
           createdAtM: Date.now(),
           remaining: null,
