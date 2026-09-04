@@ -2,14 +2,14 @@
 
 import { ChartContainer, ChartTooltip } from "@/components/ui/chart";
 import { formatPrice } from "@/lib/fmt";
+import { Skeleton } from "@unkey/ui";
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts";
 import { ChartError } from "./components/chart-error";
-import { ChartWaveLoading } from "./components/chart-wave-loading";
 
 export type SpendBarSeries = { key: string; label: string; color: string };
 export type SpendBarPoint = { time: number } & Record<string, number>;
 
-const HEIGHT = 152;
+export const SPEND_BAR_CHART_HEIGHT = 152;
 const CATEGORY_GAP = "44%";
 const PARTIAL_OPACITY = 0.35;
 const TICK_COUNT = 4;
@@ -99,10 +99,10 @@ function Segment({
 
 export function SpendBarChart({ data, series, incompleteFrom, isLoading, isError }: Props) {
   if (isError) {
-    return <ChartError height={HEIGHT} />;
+    return <ChartError height={SPEND_BAR_CHART_HEIGHT} />;
   }
   if (isLoading) {
-    return <ChartWaveLoading height={HEIGHT} color={series[0]?.color} />;
+    return <Skeleton className="w-full rounded-md" style={{ height: SPEND_BAR_CHART_HEIGHT }} />;
   }
 
   const pointAt = (payload: unknown) =>
@@ -121,8 +121,10 @@ export function SpendBarChart({ data, series, incompleteFrom, isLoading, isError
   return (
     <ChartContainer
       config={{}}
+      role="img"
+      aria-label="Daily compute spend by project"
       className="!flex-col aspect-auto w-full"
-      style={{ height: HEIGHT, width: "100%" }}
+      style={{ height: SPEND_BAR_CHART_HEIGHT, width: "100%" }}
     >
       <BarChart
         data={data}
