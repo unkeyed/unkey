@@ -63,10 +63,6 @@ export const settingsRoutes = {
     return buildRoute("/[workspaceSlug]/settings/limits", { workspaceSlug });
   },
 
-  security({ workspaceSlug }: WorkspaceScope): Route {
-    return buildRoute("/[workspaceSlug]/settings/security", { workspaceSlug });
-  },
-
   stripe: {
     portal({ workspaceSlug }: WorkspaceScope): Route {
       return buildRoute("/[workspaceSlug]/stripe/portal", { workspaceSlug });

@@ -120,8 +120,14 @@ Add WorkOS credentials to `web/apps/dashboard/.env`:
 AUTH_PROVIDER="workos"
 WORKOS_CLIENT_ID=<your client ID>
 WORKOS_API_KEY=<your API key>
-WORKOS_COOKIE_PASSWORD=<your base64 password>
+WORKOS_COOKIE_PASSWORD=<a unique secret with at least 32 characters>
+NEXT_PUBLIC_WORKOS_REDIRECT_URI=http://localhost:3000/auth/sso-callback
 ```
+
+Hosted AuthKit owns sign-in, sessions, and MFA in WorkOS mode. The dashboard
+uses WorkOS User Profile and User Security for managed account settings. See
+[Dashboard authentication](/contributing/tooling/dashboard-auth) for provider
+configuration and release checks.
 
 Stripe billing:
 

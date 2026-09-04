@@ -1,0 +1,114 @@
+---
+title: "Dashboard authentication"
+description: "Configure and operate the dashboard's WorkOS AuthKit integration"
+---
+
+The hosted WorkOS AuthKit experience owns production sign-in, sign-up, email
+verification, organization selection, Radar, MFA, and session management. The
+dashboard owns workspace authorization and organization administration. The
+embedded WorkOS User Management widget owns interactive member, role, and
+invitation management.
+
+Local mode does not load AuthKit. It keeps the built-in local account,
+`unkey-session` cookie, workspace, and invitation administration stubs.
+
+## Configure an environment
+
+Set these dashboard variables when `AUTH_PROVIDER="workos"`:
+
+| Variable | Requirement |
+| --- | --- |
+| `WORKOS_API_KEY` | API key for the matching WorkOS environment |
+| `WORKOS_CLIENT_ID` | AuthKit client ID for the matching environment |
+| `WORKOS_COOKIE_PASSWORD` | Unique secret with at least 32 characters |
+| `NEXT_PUBLIC_WORKOS_REDIRECT_URI` | Exact dashboard callback URL ending in `/auth/sso-callback` |
+
+Configure each WorkOS environment independently:
+
+- Set the dashboard sign-in endpoint to `/auth/sign-in`.
+- Add the exact production, canary, preview, or staging callback URL.
+- Keep the application user invitation URL set to the default AuthKit URL.
+- Add exact dashboard origins to the User Profile, User Security, and User
+  Management widget CORS allowlist.
+- Grant `widgets:users-table:manage` to each WorkOS role that can administer
+  workspace members.
+- Configure approved Magic Auth, social OAuth, SSO, email verification, MFA,
+  Radar, session lifetime, and refresh lifetime policies.
+- Confirm User Security lets a user enroll in MFA when neither the global nor
+  organization policy requires MFA.
+- Route WorkOS-initiated sign-in and impersonation through the dashboard
+  sign-in endpoint so AuthKit creates the PKCE transaction.
+
+Do not configure wildcard widget origins. Keep production, canary, preview, and
+staging credentials in their matching WorkOS environments.
+
+## Verify a release candidate
+
+Run the complete staging matrix against the final source state after legacy
+handlers are removed:
+
+1. Verify hosted sign-in and sign-up for new, existing, one-organization,
+   multi-organization, invited, SSO, and MFA users.
+2. Verify email verification blocks a new email user from receiving a session
+   when the environment requires verification.
+3. Enroll in MFA through **Account > Security** while MFA enforcement is off,
+   then verify the next hosted sign-in requests the factor.
+4. Reset an enrolled factor through User Security and verify the managed state.
+5. Edit the profile through User Profile, return to the dashboard, and verify
+   the displayed identity refreshes.
+6. Create `basic_member` and `admin` invitations through the User Management
+   widget in **Team**. Verify acceptance, role, membership, listing, resend,
+   and revocation.
+7. Verify consumer-domain, corporate same-domain, expired, and revoked
+   invitation behavior against WorkOS.
+8. Verify a role without `widgets:users-table:manage` cannot load managed team
+   controls.
+9. Verify impersonation displays the AuthKit banner and blocks profile,
+   security, and team-management changes.
+10. Inspect `wos-session` for `HttpOnly`, `Secure`, `SameSite=Lax`, path `/`,
+   the narrowest workable domain, and the approved lifetime.
+11. Verify Account, callback error, and managed widget error states with a
+    keyboard and screen reader at mobile, tablet, and desktop widths.
+12. Run local mode with every WorkOS variable unset. Verify startup,
+    navigation, workspace switching, sign-out, and invitation administration
+    without a WorkOS request.
+
+Check logs, traces, and metrics during the matrix. They must not contain
+authorization codes, state, PKCE values, cookies, access or refresh tokens,
+invitation tokens, widget tokens, TOTP values, MFA secrets, or email addresses.
+
+## Cut over
+
+The release is a global cutover, not a percentage rollout. Record the provider
+configuration and a pre-cutover baseline before deployment.
+
+1. Capture the WorkOS configuration for every environment and note settings
+   that the prior release cannot use.
+2. Install a never-before-used `WORKOS_COOKIE_PASSWORD`.
+3. Deploy the complete release with hosted authentication, managed Profile,
+   Security, and User Management, hosted invitation acceptance, and no legacy
+   WorkOS handlers.
+4. Confirm the first authenticated response expires `unkey-session`.
+5. Run production-origin sign-in, callback, MFA, invitation, widget CORS,
+   profile, security, and style smoke checks.
+6. Compare callback failures, AuthKit session availability, refresh failures,
+   widget token failures, and invitation outcomes with the approved thresholds.
+
+Notify users before the cutover that they must sign in again, the sign-in flow
+uses the WorkOS-hosted domain, and support is available at
+`support@unkey.com`.
+
+## Roll back
+
+Rollback requires reauthentication and must not revive a cookie from an earlier
+release.
+
+1. Restore every provider setting that is incompatible with the prior release.
+2. Install another never-before-used cookie-sealing secret.
+3. Redeploy the prior complete release.
+4. Expire `wos-session` and confirm the prior release issues its expected
+   session format only after a fresh sign-in.
+5. Repeat the production-origin authentication and invitation smoke checks.
+
+Do not restore an old cookie password. A reused password can validate a session
+from an inactive release.

@@ -1,11 +1,12 @@
 "use client";
 
 import { routes } from "@/lib/navigation/routes";
-import { useParams } from "next/navigation";
+import { useParams, useSelectedLayoutSegments } from "next/navigation";
 import { useWorkspaceNavigation } from "./use-workspace-navigation";
 
 export type BreadcrumbDescriptor =
   | { type: "workspace"; href: string }
+  | { type: "account" }
   | { type: "project"; projectId: string }
   | { type: "app"; projectId: string; appId: string }
   | { type: "api"; apiId: string }
@@ -23,9 +24,13 @@ type RouteParams = {
 export function useBreadcrumbs(): BreadcrumbDescriptor[] {
   const workspace = useWorkspaceNavigation();
   const params = useParams<RouteParams>();
+  const segments = useSelectedLayoutSegments();
 
   const workspaceHref = resolveWorkspaceHref(workspace.slug, params);
   const crumbs: BreadcrumbDescriptor[] = [{ type: "workspace", href: workspaceHref }];
+  if (segments[1] === "account") {
+    crumbs.push({ type: "account" });
+  }
   if (params.projectId) {
     crumbs.push({ type: "project", projectId: params.projectId });
   }

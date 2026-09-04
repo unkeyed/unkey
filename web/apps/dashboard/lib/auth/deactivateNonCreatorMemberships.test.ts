@@ -2,9 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   getOrganizationMemberList: vi.fn(),
-  getInvitationList: vi.fn(),
   deactivateMembership: vi.fn(),
-  revokeOrgInvitation: vi.fn(),
 }));
 
 vi.mock("./server", () => ({ auth: mocks }));
@@ -15,10 +13,9 @@ describe("deactivateNonCreatorMemberships", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.getOrganizationMemberList.mockResolvedValue({ data: [], metadata: {} });
-    mocks.getInvitationList.mockResolvedValue({ data: [], metadata: {} });
   });
 
-  it("preserves the earliest member, deactivates teammates, and revokes pending invites", async () => {
+  it("preserves the earliest member and deactivates teammates", async () => {
     mocks.getOrganizationMemberList.mockResolvedValue({
       data: [
         { id: "member_2", createdAt: "2026-02-01T00:00:00.000Z" },
@@ -26,34 +23,19 @@ describe("deactivateNonCreatorMemberships", () => {
       ],
       metadata: {},
     });
-    mocks.getInvitationList.mockResolvedValue({
-      data: [
-        { id: "pending", state: "pending" },
-        { id: "expired", state: "expired" },
-      ],
-      metadata: {},
-    });
-
     await deactivateNonCreatorMemberships("org_1");
 
     expect(mocks.deactivateMembership).toHaveBeenCalledOnce();
     expect(mocks.deactivateMembership).toHaveBeenCalledWith("member_2", "org_1");
-    expect(mocks.revokeOrgInvitation).toHaveBeenCalledOnce();
-    expect(mocks.revokeOrgInvitation).toHaveBeenCalledWith("pending", "org_1");
   });
 
-  it("still revokes invitations when membership listing fails", async () => {
+  it("does not deactivate members when membership listing fails", async () => {
     mocks.getOrganizationMemberList.mockRejectedValue(new Error("unavailable"));
-    mocks.getInvitationList.mockResolvedValue({
-      data: [{ id: "pending", state: "pending" }],
-      metadata: {},
-    });
     const error = vi.spyOn(console, "error").mockImplementation(() => {});
 
     await deactivateNonCreatorMemberships("org_1");
 
     expect(mocks.deactivateMembership).not.toHaveBeenCalled();
-    expect(mocks.revokeOrgInvitation).toHaveBeenCalledWith("pending", "org_1");
     error.mockRestore();
   });
 });

@@ -1,8 +1,10 @@
+import { env } from "@/lib/env";
 import type { NextRequest } from "next/server";
-import { updateSession } from "./sessions";
+import { type WorkOSUserProfile, mapWorkOSUser } from "./map-workos-user";
 import type { User } from "./types";
+import { getWorkOSSession } from "./workos-session";
 
-type GetAuthResult = {
+export type GetAuthResult = {
   userId: string | null;
   orgId: string | null;
   accessToken?: string;
@@ -15,12 +17,57 @@ type GetAuthResult = {
   };
 };
 
-export async function getAuth(req?: NextRequest): Promise<GetAuthResult> {
-  try {
-    // Use the updateSession function which now handles both with and without request
-    const { session } = await updateSession(req);
+type AuthkitSession =
+  | {
+      sessionId: string;
+      user: WorkOSUserProfile;
+      organizationId?: string;
+      role?: string;
+      permissions?: string[];
+      accessToken: string;
+      impersonator?: {
+        email: string;
+        reason: string | null;
+      };
+    }
+  | { user: null };
 
-    if (!session) {
+export function mapAuthkitSession(session: AuthkitSession): GetAuthResult {
+  if (!session.user) {
+    return {
+      userId: null,
+      orgId: null,
+      role: null,
+      user: null,
+    };
+  }
+
+  return {
+    userId: session.user.id,
+    orgId: session.organizationId ?? null,
+    role: session.role ?? null,
+    permissions: session.permissions,
+    accessToken: session.accessToken,
+    impersonator: session.impersonator,
+    user: mapWorkOSUser(session.user),
+  };
+}
+
+export async function getAuth(req?: NextRequest): Promise<GetAuthResult> {
+  if (env().AUTH_PROVIDER === "local") {
+    try {
+      const { updateLocalSession } = await import("./sessions");
+      const { session } = await updateLocalSession(req);
+
+      return (
+        session ?? {
+          userId: null,
+          orgId: null,
+          role: null,
+          user: null,
+        }
+      );
+    } catch {
       return {
         userId: null,
         orgId: null,
@@ -28,8 +75,10 @@ export async function getAuth(req?: NextRequest): Promise<GetAuthResult> {
         user: null,
       };
     }
+  }
 
-    return session;
+  try {
+    return mapAuthkitSession(await getWorkOSSession());
   } catch (_error) {
     return {
       userId: null,
