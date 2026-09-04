@@ -2044,9 +2044,8 @@ type Querier interface {
 	//  WHERE workspace_id = ?
 	//  ORDER BY pk
 	ListClickhouseOutboxByWorkspace(ctx context.Context, db DBTX, workspaceID string) ([]ListClickhouseOutboxByWorkspaceRow, error)
-	// ListCustomDomains selects IDs through one mutually exclusive scope branch, then
-	// loads the result rows once. Each branch is covered by its scope, ID, and domain
-	// index, so UNION ALL avoids the index-blocking optional OR predicates.
+	// ListCustomDomains applies optional resource filters cumulatively. Callers resolve
+	// each supplied resource to its parent IDs before they run this query.
 	//
 	//  SELECT
 	//      cd.id,
@@ -2066,53 +2065,15 @@ type Querier interface {
 	//      cd.created_at,
 	//      cd.updated_at
 	//  FROM custom_domains cd
-	//  JOIN (
-	//      (SELECT cd_workspace.id
-	//      FROM custom_domains cd_workspace
-	//      WHERE ? = ''
-	//        AND ? = ''
-	//        AND ? = ''
-	//        AND cd_workspace.workspace_id = ?
-	//        AND cd_workspace.id >= ?
-	//        -- search is a pre-escaped LIKE pattern built by mysql.SearchContains; NULL disables the filter
-	//        AND (? IS NULL OR LOWER(cd_workspace.id) LIKE LOWER(?) OR LOWER(cd_workspace.domain) LIKE LOWER(?))
-	//      ORDER BY cd_workspace.id ASC
-	//      LIMIT ?)
-	//      UNION ALL
-	//      (SELECT cd_project.id
-	//      FROM custom_domains cd_project
-	//      WHERE ? != ''
-	//        AND ? = ''
-	//        AND ? = ''
-	//        AND cd_project.workspace_id = ?
-	//        AND cd_project.project_id = ?
-	//        AND cd_project.id >= ?
-	//        AND (? IS NULL OR LOWER(cd_project.id) LIKE LOWER(?) OR LOWER(cd_project.domain) LIKE LOWER(?))
-	//      ORDER BY cd_project.id ASC
-	//      LIMIT ?)
-	//      UNION ALL
-	//      (SELECT cd_app.id
-	//      FROM custom_domains cd_app
-	//      WHERE ? != ''
-	//        AND ? = ''
-	//        AND cd_app.workspace_id = ?
-	//        AND cd_app.app_id = ?
-	//        AND cd_app.id >= ?
-	//        AND (? IS NULL OR LOWER(cd_app.id) LIKE LOWER(?) OR LOWER(cd_app.domain) LIKE LOWER(?))
-	//      ORDER BY cd_app.id ASC
-	//      LIMIT ?)
-	//      UNION ALL
-	//      (SELECT cd_environment.id
-	//      FROM custom_domains cd_environment
-	//      WHERE ? != ''
-	//        AND cd_environment.workspace_id = ?
-	//        AND cd_environment.environment_id = ?
-	//        AND cd_environment.id >= ?
-	//        AND (? IS NULL OR LOWER(cd_environment.id) LIKE LOWER(?) OR LOWER(cd_environment.domain) LIKE LOWER(?))
-	//      ORDER BY cd_environment.id ASC
-	//      LIMIT ?)
-	//  ) scoped_domains ON scoped_domains.id = cd.id
+	//  WHERE cd.workspace_id = ?
+	//    AND (? = '' OR cd.project_id = ?)
+	//    AND (? = '' OR cd.app_id = ?)
+	//    AND (? = '' OR cd.environment_id = ?)
+	//    AND cd.id >= ?
+	//    -- search is a pre-escaped LIKE pattern built by mysql.SearchContains; NULL disables the filter
+	//    AND (? IS NULL OR LOWER(cd.id) LIKE LOWER(?) OR LOWER(cd.domain) LIKE LOWER(?))
 	//  ORDER BY cd.id ASC
+	//  LIMIT ?
 	ListCustomDomains(ctx context.Context, db DBTX, arg ListCustomDomainsParams) ([]ListCustomDomainsRow, error)
 	//ListDeploymentDomains
 	//

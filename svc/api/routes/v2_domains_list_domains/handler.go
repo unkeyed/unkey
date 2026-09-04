@@ -78,9 +78,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		IDCursor:      p.Cursor,
 		Search:        search,
 		Limit:         limit,
-		Limit_2:       limit,
-		Limit_3:       limit,
-		Limit_4:       limit,
 	})
 	if err != nil {
 		return fault.Wrap(
