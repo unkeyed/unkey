@@ -1,7 +1,7 @@
 import type { DeployUsageTimeseries } from "@unkey/clickhouse";
 import { describe, expect, it } from "vitest";
 import type { ComputeTree } from "./compute-tree";
-import { buildUsageChart, buildUsageMetricChartData } from "./usage-chart-data";
+import { buildUsageChart } from "./usage-chart-data";
 
 const tree: ComputeTree = {
   microCents: 0,
@@ -168,42 +168,5 @@ describe("buildUsageChart", () => {
     expect(result.series.at(-1)?.label).toBe("Other");
     expect(result.data[0]?.other).toBe(1);
     expect(result.total).toBe(36);
-  });
-});
-
-describe("buildUsageMetricChartData", () => {
-  it("aggregates groups and fills missing buckets", () => {
-    const day = 24 * 60 * 60 * 1000;
-    const rows: DeployUsageTimeseries[] = [
-      {
-        time: 0,
-        groupId: "app_1",
-        cpuHours: 2,
-        memoryGiBHours: 0,
-        diskGiBHours: 0,
-        egressGiB: 0,
-      },
-      {
-        time: 0,
-        groupId: "app_2",
-        cpuHours: 3,
-        memoryGiBHours: 0,
-        diskGiBHours: 0,
-        egressGiB: 0,
-      },
-    ];
-
-    expect(
-      buildUsageMetricChartData({
-        rows,
-        metric: "cpuHours",
-        interval: "day",
-        start: 0,
-        end: day * 2,
-      }),
-    ).toEqual([
-      { originalTimestamp: 0, value: 5 },
-      { originalTimestamp: day, value: 0 },
-    ]);
   });
 });
