@@ -138,6 +138,20 @@ func (l *lazyEnvironmentService) Delete(
 	return (*l.svc).Delete(ctx, req)
 }
 
+func (l *lazyEnvironmentService) PromoteDeployment(
+	ctx restate.ObjectContext,
+	req *hydrav1.PromoteDeploymentRequest,
+) (*hydrav1.PromoteDeploymentResponse, error) {
+	return (*l.svc).PromoteDeployment(ctx, req)
+}
+
+func (l *lazyEnvironmentService) RollbackDeployment(
+	ctx restate.ObjectContext,
+	req *hydrav1.RollbackDeploymentRequest,
+) (*hydrav1.RollbackDeploymentResponse, error) {
+	return (*l.svc).RollbackDeployment(ctx, req)
+}
+
 func countAudits(t *testing.T, ctx context.Context, database db.Database, workspaceID string, event auditlog.AuditLogEvent, resourceID, actorID string) int {
 	t.Helper()
 	rows, err := database.ListClickhouseOutboxByWorkspace(ctx, workspaceID)

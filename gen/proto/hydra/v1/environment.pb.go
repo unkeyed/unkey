@@ -23,6 +23,208 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+type PromoteDeploymentRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	DeploymentId  string                 `protobuf:"bytes,1,opt,name=deployment_id,json=deploymentId,proto3" json:"deployment_id,omitempty"`
+	Actor         *v1.ActorInfo          `protobuf:"bytes,2,opt,name=actor,proto3" json:"actor,omitempty"`
+	CorrelationId string                 `protobuf:"bytes,3,opt,name=correlation_id,json=correlationId,proto3" json:"correlation_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PromoteDeploymentRequest) Reset() {
+	*x = PromoteDeploymentRequest{}
+	mi := &file_hydra_v1_environment_proto_msgTypes[0]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PromoteDeploymentRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PromoteDeploymentRequest) ProtoMessage() {}
+
+func (x *PromoteDeploymentRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_hydra_v1_environment_proto_msgTypes[0]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PromoteDeploymentRequest.ProtoReflect.Descriptor instead.
+func (*PromoteDeploymentRequest) Descriptor() ([]byte, []int) {
+	return file_hydra_v1_environment_proto_rawDescGZIP(), []int{0}
+}
+
+func (x *PromoteDeploymentRequest) GetDeploymentId() string {
+	if x != nil {
+		return x.DeploymentId
+	}
+	return ""
+}
+
+func (x *PromoteDeploymentRequest) GetActor() *v1.ActorInfo {
+	if x != nil {
+		return x.Actor
+	}
+	return nil
+}
+
+func (x *PromoteDeploymentRequest) GetCorrelationId() string {
+	if x != nil {
+		return x.CorrelationId
+	}
+	return ""
+}
+
+type PromoteDeploymentResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PromoteDeploymentResponse) Reset() {
+	*x = PromoteDeploymentResponse{}
+	mi := &file_hydra_v1_environment_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PromoteDeploymentResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PromoteDeploymentResponse) ProtoMessage() {}
+
+func (x *PromoteDeploymentResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_hydra_v1_environment_proto_msgTypes[1]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PromoteDeploymentResponse.ProtoReflect.Descriptor instead.
+func (*PromoteDeploymentResponse) Descriptor() ([]byte, []int) {
+	return file_hydra_v1_environment_proto_rawDescGZIP(), []int{1}
+}
+
+// from_deployment_id is the live deployment the caller saw. The handler
+// refuses the rollback if it is no longer live.
+type RollbackDeploymentRequest struct {
+	state            protoimpl.MessageState `protogen:"open.v1"`
+	FromDeploymentId string                 `protobuf:"bytes,1,opt,name=from_deployment_id,json=fromDeploymentId,proto3" json:"from_deployment_id,omitempty"`
+	ToDeploymentId   string                 `protobuf:"bytes,2,opt,name=to_deployment_id,json=toDeploymentId,proto3" json:"to_deployment_id,omitempty"`
+	Actor            *v1.ActorInfo          `protobuf:"bytes,3,opt,name=actor,proto3" json:"actor,omitempty"`
+	CorrelationId    string                 `protobuf:"bytes,4,opt,name=correlation_id,json=correlationId,proto3" json:"correlation_id,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
+}
+
+func (x *RollbackDeploymentRequest) Reset() {
+	*x = RollbackDeploymentRequest{}
+	mi := &file_hydra_v1_environment_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RollbackDeploymentRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RollbackDeploymentRequest) ProtoMessage() {}
+
+func (x *RollbackDeploymentRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_hydra_v1_environment_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RollbackDeploymentRequest.ProtoReflect.Descriptor instead.
+func (*RollbackDeploymentRequest) Descriptor() ([]byte, []int) {
+	return file_hydra_v1_environment_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *RollbackDeploymentRequest) GetFromDeploymentId() string {
+	if x != nil {
+		return x.FromDeploymentId
+	}
+	return ""
+}
+
+func (x *RollbackDeploymentRequest) GetToDeploymentId() string {
+	if x != nil {
+		return x.ToDeploymentId
+	}
+	return ""
+}
+
+func (x *RollbackDeploymentRequest) GetActor() *v1.ActorInfo {
+	if x != nil {
+		return x.Actor
+	}
+	return nil
+}
+
+func (x *RollbackDeploymentRequest) GetCorrelationId() string {
+	if x != nil {
+		return x.CorrelationId
+	}
+	return ""
+}
+
+type RollbackDeploymentResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RollbackDeploymentResponse) Reset() {
+	*x = RollbackDeploymentResponse{}
+	mi := &file_hydra_v1_environment_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RollbackDeploymentResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RollbackDeploymentResponse) ProtoMessage() {}
+
+func (x *RollbackDeploymentResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_hydra_v1_environment_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RollbackDeploymentResponse.ProtoReflect.Descriptor instead.
+func (*RollbackDeploymentResponse) Descriptor() ([]byte, []int) {
+	return file_hydra_v1_environment_proto_rawDescGZIP(), []int{3}
+}
+
 // DeleteEnvironmentRequest carries the caller identity and correlation ID into
 // the durable workflow so the environment.delete audit log is written as part
 // of the retried deletion unit. Environment deletes are cascade-only (no direct
@@ -39,7 +241,7 @@ type DeleteEnvironmentRequest struct {
 
 func (x *DeleteEnvironmentRequest) Reset() {
 	*x = DeleteEnvironmentRequest{}
-	mi := &file_hydra_v1_environment_proto_msgTypes[0]
+	mi := &file_hydra_v1_environment_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -51,7 +253,7 @@ func (x *DeleteEnvironmentRequest) String() string {
 func (*DeleteEnvironmentRequest) ProtoMessage() {}
 
 func (x *DeleteEnvironmentRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_hydra_v1_environment_proto_msgTypes[0]
+	mi := &file_hydra_v1_environment_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -64,7 +266,7 @@ func (x *DeleteEnvironmentRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteEnvironmentRequest.ProtoReflect.Descriptor instead.
 func (*DeleteEnvironmentRequest) Descriptor() ([]byte, []int) {
-	return file_hydra_v1_environment_proto_rawDescGZIP(), []int{0}
+	return file_hydra_v1_environment_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *DeleteEnvironmentRequest) GetActor() *v1.ActorInfo {
@@ -89,7 +291,7 @@ type DeleteEnvironmentResponse struct {
 
 func (x *DeleteEnvironmentResponse) Reset() {
 	*x = DeleteEnvironmentResponse{}
-	mi := &file_hydra_v1_environment_proto_msgTypes[1]
+	mi := &file_hydra_v1_environment_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -101,7 +303,7 @@ func (x *DeleteEnvironmentResponse) String() string {
 func (*DeleteEnvironmentResponse) ProtoMessage() {}
 
 func (x *DeleteEnvironmentResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_hydra_v1_environment_proto_msgTypes[1]
+	mi := &file_hydra_v1_environment_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -114,20 +316,33 @@ func (x *DeleteEnvironmentResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteEnvironmentResponse.ProtoReflect.Descriptor instead.
 func (*DeleteEnvironmentResponse) Descriptor() ([]byte, []int) {
-	return file_hydra_v1_environment_proto_rawDescGZIP(), []int{1}
+	return file_hydra_v1_environment_proto_rawDescGZIP(), []int{5}
 }
 
 var File_hydra_v1_environment_proto protoreflect.FileDescriptor
 
 const file_hydra_v1_environment_proto_rawDesc = "" +
 	"\n" +
-	"\x1ahydra/v1/environment.proto\x12\bhydra.v1\x1a\x13ctrl/v1/actor.proto\x1a\x18dev/restate/sdk/go.proto\"k\n" +
+	"\x1ahydra/v1/environment.proto\x12\bhydra.v1\x1a\x13ctrl/v1/actor.proto\x1a\x18dev/restate/sdk/go.proto\"\x90\x01\n" +
+	"\x18PromoteDeploymentRequest\x12#\n" +
+	"\rdeployment_id\x18\x01 \x01(\tR\fdeploymentId\x12(\n" +
+	"\x05actor\x18\x02 \x01(\v2\x12.ctrl.v1.ActorInfoR\x05actor\x12%\n" +
+	"\x0ecorrelation_id\x18\x03 \x01(\tR\rcorrelationId\"\x1b\n" +
+	"\x19PromoteDeploymentResponse\"\xc4\x01\n" +
+	"\x19RollbackDeploymentRequest\x12,\n" +
+	"\x12from_deployment_id\x18\x01 \x01(\tR\x10fromDeploymentId\x12(\n" +
+	"\x10to_deployment_id\x18\x02 \x01(\tR\x0etoDeploymentId\x12(\n" +
+	"\x05actor\x18\x03 \x01(\v2\x12.ctrl.v1.ActorInfoR\x05actor\x12%\n" +
+	"\x0ecorrelation_id\x18\x04 \x01(\tR\rcorrelationId\"\x1c\n" +
+	"\x1aRollbackDeploymentResponse\"k\n" +
 	"\x18DeleteEnvironmentRequest\x12(\n" +
 	"\x05actor\x18\x01 \x01(\v2\x12.ctrl.v1.ActorInfoR\x05actor\x12%\n" +
 	"\x0ecorrelation_id\x18\x02 \x01(\tR\rcorrelationId\"\x1b\n" +
-	"\x19DeleteEnvironmentResponse2o\n" +
+	"\x19DeleteEnvironmentResponse2\xb2\x02\n" +
 	"\x12EnvironmentService\x12S\n" +
-	"\x06Delete\x12\".hydra.v1.DeleteEnvironmentRequest\x1a#.hydra.v1.DeleteEnvironmentResponse\"\x00\x1a\x04\x98\x80\x01\x01B\x96\x01\n" +
+	"\x06Delete\x12\".hydra.v1.DeleteEnvironmentRequest\x1a#.hydra.v1.DeleteEnvironmentResponse\"\x00\x12^\n" +
+	"\x11PromoteDeployment\x12\".hydra.v1.PromoteDeploymentRequest\x1a#.hydra.v1.PromoteDeploymentResponse\"\x00\x12a\n" +
+	"\x12RollbackDeployment\x12#.hydra.v1.RollbackDeploymentRequest\x1a$.hydra.v1.RollbackDeploymentResponse\"\x00\x1a\x04\x98\x80\x01\x01B\x96\x01\n" +
 	"\fcom.hydra.v1B\x10EnvironmentProtoP\x01Z3github.com/unkeyed/unkey/gen/proto/hydra/v1;hydrav1\xa2\x02\x03HXX\xaa\x02\bHydra.V1\xca\x02\bHydra\\V1\xe2\x02\x14Hydra\\V1\\GPBMetadata\xea\x02\tHydra::V1b\x06proto3"
 
 var (
@@ -142,21 +357,31 @@ func file_hydra_v1_environment_proto_rawDescGZIP() []byte {
 	return file_hydra_v1_environment_proto_rawDescData
 }
 
-var file_hydra_v1_environment_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
+var file_hydra_v1_environment_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
 var file_hydra_v1_environment_proto_goTypes = []any{
-	(*DeleteEnvironmentRequest)(nil),  // 0: hydra.v1.DeleteEnvironmentRequest
-	(*DeleteEnvironmentResponse)(nil), // 1: hydra.v1.DeleteEnvironmentResponse
-	(*v1.ActorInfo)(nil),              // 2: ctrl.v1.ActorInfo
+	(*PromoteDeploymentRequest)(nil),   // 0: hydra.v1.PromoteDeploymentRequest
+	(*PromoteDeploymentResponse)(nil),  // 1: hydra.v1.PromoteDeploymentResponse
+	(*RollbackDeploymentRequest)(nil),  // 2: hydra.v1.RollbackDeploymentRequest
+	(*RollbackDeploymentResponse)(nil), // 3: hydra.v1.RollbackDeploymentResponse
+	(*DeleteEnvironmentRequest)(nil),   // 4: hydra.v1.DeleteEnvironmentRequest
+	(*DeleteEnvironmentResponse)(nil),  // 5: hydra.v1.DeleteEnvironmentResponse
+	(*v1.ActorInfo)(nil),               // 6: ctrl.v1.ActorInfo
 }
 var file_hydra_v1_environment_proto_depIdxs = []int32{
-	2, // 0: hydra.v1.DeleteEnvironmentRequest.actor:type_name -> ctrl.v1.ActorInfo
-	0, // 1: hydra.v1.EnvironmentService.Delete:input_type -> hydra.v1.DeleteEnvironmentRequest
-	1, // 2: hydra.v1.EnvironmentService.Delete:output_type -> hydra.v1.DeleteEnvironmentResponse
-	2, // [2:3] is the sub-list for method output_type
-	1, // [1:2] is the sub-list for method input_type
-	1, // [1:1] is the sub-list for extension type_name
-	1, // [1:1] is the sub-list for extension extendee
-	0, // [0:1] is the sub-list for field type_name
+	6, // 0: hydra.v1.PromoteDeploymentRequest.actor:type_name -> ctrl.v1.ActorInfo
+	6, // 1: hydra.v1.RollbackDeploymentRequest.actor:type_name -> ctrl.v1.ActorInfo
+	6, // 2: hydra.v1.DeleteEnvironmentRequest.actor:type_name -> ctrl.v1.ActorInfo
+	4, // 3: hydra.v1.EnvironmentService.Delete:input_type -> hydra.v1.DeleteEnvironmentRequest
+	0, // 4: hydra.v1.EnvironmentService.PromoteDeployment:input_type -> hydra.v1.PromoteDeploymentRequest
+	2, // 5: hydra.v1.EnvironmentService.RollbackDeployment:input_type -> hydra.v1.RollbackDeploymentRequest
+	5, // 6: hydra.v1.EnvironmentService.Delete:output_type -> hydra.v1.DeleteEnvironmentResponse
+	1, // 7: hydra.v1.EnvironmentService.PromoteDeployment:output_type -> hydra.v1.PromoteDeploymentResponse
+	3, // 8: hydra.v1.EnvironmentService.RollbackDeployment:output_type -> hydra.v1.RollbackDeploymentResponse
+	6, // [6:9] is the sub-list for method output_type
+	3, // [3:6] is the sub-list for method input_type
+	3, // [3:3] is the sub-list for extension type_name
+	3, // [3:3] is the sub-list for extension extendee
+	0, // [0:3] is the sub-list for field type_name
 }
 
 func init() { file_hydra_v1_environment_proto_init() }
@@ -170,7 +395,7 @@ func file_hydra_v1_environment_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_hydra_v1_environment_proto_rawDesc), len(file_hydra_v1_environment_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   2,
+			NumMessages:   6,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
