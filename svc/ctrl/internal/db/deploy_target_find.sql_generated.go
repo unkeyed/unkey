@@ -15,6 +15,7 @@ import (
 const findDeployTarget = `-- name: FindDeployTarget :one
 SELECT
     p.workspace_id AS workspace_id,
+    w.slug AS workspace_slug,
     p.id AS project_id,
     a.id AS app_id,
     a.source_type AS source_type,
@@ -52,6 +53,7 @@ SELECT
     ) AS has_schedulable_region
 FROM apps a
 INNER JOIN projects p ON p.id = a.project_id
+INNER JOIN workspaces w ON w.id = p.workspace_id
 INNER JOIN environments e ON e.app_id = a.id AND e.project_id = a.project_id
 INNER JOIN (
     SELECT e1.id
@@ -80,6 +82,7 @@ type FindDeployTargetParams struct {
 
 type FindDeployTargetRow struct {
 	WorkspaceID              string                             `db:"workspace_id"`
+	WorkspaceSlug            string                             `db:"workspace_slug"`
 	ProjectID                string                             `db:"project_id"`
 	AppID                    string                             `db:"app_id"`
 	SourceType               AppsSourceType                     `db:"source_type"`
@@ -114,6 +117,7 @@ type FindDeployTargetRow struct {
 //
 //	SELECT
 //	    p.workspace_id AS workspace_id,
+//	    w.slug AS workspace_slug,
 //	    p.id AS project_id,
 //	    a.id AS app_id,
 //	    a.source_type AS source_type,
@@ -151,6 +155,7 @@ type FindDeployTargetRow struct {
 //	    ) AS has_schedulable_region
 //	FROM apps a
 //	INNER JOIN projects p ON p.id = a.project_id
+//	INNER JOIN workspaces w ON w.id = p.workspace_id
 //	INNER JOIN environments e ON e.app_id = a.id AND e.project_id = a.project_id
 //	INNER JOIN (
 //	    SELECT e1.id
@@ -181,6 +186,7 @@ func (q *Queries) FindDeployTarget(ctx context.Context, arg FindDeployTargetPara
 	var i FindDeployTargetRow
 	err := row.Scan(
 		&i.WorkspaceID,
+		&i.WorkspaceSlug,
 		&i.ProjectID,
 		&i.AppID,
 		&i.SourceType,

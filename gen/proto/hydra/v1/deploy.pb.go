@@ -620,8 +620,8 @@ type GitSource struct {
 	// Path to the Dockerfile, relative to context_path. Empty means no
 	// Dockerfile is configured and the image is built with Railpack instead.
 	DockerfilePath string `protobuf:"bytes,5,opt,name=dockerfile_path,json=dockerfilePath,proto3" json:"dockerfile_path,omitempty"`
-	// Branch name used to resolve commit_sha when it is empty. The deploy worker
-	// calls GitHub to look up the HEAD commit of this branch.
+	// Branch the commit was resolved from, carried for context only. The build
+	// reads commit_sha, which Create always resolves before sending this request.
 	Branch string `protobuf:"bytes,6,opt,name=branch,proto3" json:"branch,omitempty"`
 	// PR number for fork PRs. When set, BuildKit fetches refs/pull/<number>/head
 	// from the base repo instead of using commit_sha directly.

@@ -16,6 +16,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/auditlog"
 	"github.com/unkeyed/unkey/pkg/deploy/deployfail"
 	"github.com/unkeyed/unkey/pkg/deploy/deploygate"
+	githubclient "github.com/unkeyed/unkey/pkg/github"
 	"github.com/unkeyed/unkey/pkg/logger"
 	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
 	"github.com/unkeyed/unkey/pkg/uid"
@@ -75,12 +76,17 @@ func (w *Workflow) Create(ctx restate.ObjectContext, req *hydrav1.DeployCreateRe
 		return nil, err
 	}
 
-	// An AWAIT_APPROVAL row gets its commit status from
-	// githubwebhook.blockDeploymentForApproval until the webhook moves over.
-	if req.GetDecision() == hydrav1.CreateDecision_CREATE_DECISION_DEPLOY {
+	switch req.GetDecision() {
+	case hydrav1.CreateDecision_CREATE_DECISION_DEPLOY:
 		if err := w.startDeployment(ctx, deploymentID, payload); err != nil {
 			return nil, err
 		}
+	case hydrav1.CreateDecision_CREATE_DECISION_AWAIT_APPROVAL:
+		if err := w.requestAuthorization(ctx, deploymentID, req, payload); err != nil {
+			return nil, err
+		}
+	case hydrav1.CreateDecision_CREATE_DECISION_SKIP,
+		hydrav1.CreateDecision_CREATE_DECISION_UNSPECIFIED:
 	}
 
 	return &hydrav1.DeployCreateResponse{
@@ -508,6 +514,55 @@ func (w *Workflow) startDeployment(
 		"deployment_id", deploymentID,
 		"app_id", target.AppID,
 		"invocation_id", invocationID,
+	)
+	return nil
+}
+
+// requestAuthorization posts the commit status that tells a contributor their
+// push is waiting for a project member. A GitHub failure is logged, not
+// returned: the row already records the wait and the create has succeeded.
+func (w *Workflow) requestAuthorization(
+	ctx restate.ObjectContext,
+	deploymentID string,
+	req *hydrav1.DeployCreateRequest,
+	payload deployPayload,
+) error {
+	// An image has no commit to post against, and without a GitHub App there is
+	// nothing to post through.
+	if payload.Source.Git == nil || w.allowUnauthenticatedDeployments {
+		return nil
+	}
+
+	logURL := fmt.Sprintf("%s/%s/projects/%s/deployments/%s",
+		w.dashboardURL, payload.Target.WorkspaceSlug, req.GetProjectId(), deploymentID,
+	)
+
+	if err := restate.RunVoid(ctx, func(_ restate.RunContext) error {
+		if statusErr := w.github.CreateCommitStatus(
+			payload.Source.Git.InstallationID,
+			payload.Source.Git.Repository,
+			payload.Commit.SHA,
+			"failure",
+			logURL,
+			"Awaiting authorization from a project member",
+			githubclient.DeployAuthorizationContext,
+		); statusErr != nil {
+			logger.Error(
+				"failed to post authorization commit status",
+				"deployment_id", deploymentID,
+				"error", statusErr,
+			)
+		}
+		return nil
+	}, restate.WithName("create commit status for authorization"),
+		restate.WithMaxRetryAttempts(runMaxAttempts)); err != nil {
+		return err
+	}
+
+	logger.Info(
+		"deployment awaiting authorization",
+		"deployment_id", deploymentID,
+		"project_id", req.GetProjectId(),
 	)
 	return nil
 }
