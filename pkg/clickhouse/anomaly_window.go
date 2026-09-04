@@ -208,6 +208,9 @@ WITH
 			recent_requests,
 			current_bucket_present,
 			baseline_buckets,
+			-- Variance reconstructs Q/L - (S/L)^2, so Float64 cancellation can
+			-- raise the bound. The 1e-12 margin leaves over 4,000 machine epsilons
+			-- for these operations and can only admit extra candidates.
 			arrayMin(arrayMap(
 				lifetime_buckets ->
 					requests_baseline_sum / lifetime_buckets
@@ -221,7 +224,7 @@ WITH
 						{requests_stddev_floor:Float64}
 					),
 				range(greatest(toUInt32(baseline_buckets), toUInt32(1)), toUInt32(289))
-			)) AS requests_candidate_threshold,
+			)) * (1. - 1e-12) AS requests_candidate_threshold,
 			arraySort(recent_requests) AS recent_requests_sorted
 		FROM aggregated
 	),
@@ -449,6 +452,9 @@ WITH
 			memory_utilization_max_current,
 			current_bucket_present,
 			baseline_buckets,
+			-- Variance reconstructs Q/L - (S/L)^2, so Float64 cancellation can
+			-- raise the bound. The 1e-12 margin leaves over 4,000 machine epsilons
+			-- for these operations and can only admit extra candidates.
 			arrayMin(arrayMap(
 				lifetime_buckets ->
 					egress_bytes_baseline_sum / lifetime_buckets
@@ -462,7 +468,7 @@ WITH
 						{egress_bytes_stddev_floor:Float64}
 					),
 				range(greatest(toUInt32(baseline_buckets), toUInt32(1)), toUInt32(289))
-			)) AS egress_bytes_candidate_threshold,
+			)) * (1. - 1e-12) AS egress_bytes_candidate_threshold,
 			arrayMin(arrayMap(
 				lifetime_buckets ->
 					cpu_seconds_baseline_sum / lifetime_buckets
@@ -476,7 +482,7 @@ WITH
 						{cpu_seconds_stddev_floor:Float64}
 					),
 				range(greatest(toUInt32(baseline_buckets), toUInt32(1)), toUInt32(289))
-			)) AS cpu_seconds_candidate_threshold
+			)) * (1. - 1e-12) AS cpu_seconds_candidate_threshold
 		FROM aggregated
 	)
 SELECT
