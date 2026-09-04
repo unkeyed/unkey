@@ -15,8 +15,6 @@ import (
 )
 
 func TestAnomalyCandidateFilterSuperset(t *testing.T) {
-	t.Parallel()
-
 	cfg := containers.ClickHouse(t)
 	client, err := clickhouse.New(clickhouse.Config{URL: cfg.DSN})
 	require.NoError(t, err)
@@ -151,8 +149,6 @@ func TestAnomalyCandidateFilterSuperset(t *testing.T) {
 }
 
 func TestAnomalyCandidateFilterIncludesInteriorLifetimeThreshold(t *testing.T) {
-	t.Parallel()
-
 	cfg := containers.ClickHouse(t)
 	client, err := clickhouse.New(clickhouse.Config{URL: cfg.DSN})
 	require.NoError(t, err)
@@ -203,8 +199,6 @@ func TestAnomalyCandidateFilterIncludesInteriorLifetimeThreshold(t *testing.T) {
 }
 
 func TestAnomalyCandidateFilterToleratesFloat64Cancellation(t *testing.T) {
-	t.Parallel()
-
 	cfg := containers.ClickHouse(t)
 	client, err := clickhouse.New(clickhouse.Config{URL: cfg.DSN})
 	require.NoError(t, err)

@@ -15,8 +15,6 @@ import (
 )
 
 func TestAnomalyWindows(t *testing.T) {
-	t.Parallel()
-
 	cfg := containers.ClickHouse(t)
 	client, err := clickhouse.New(clickhouse.Config{URL: cfg.DSN})
 	require.NoError(t, err)
