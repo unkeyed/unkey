@@ -13,6 +13,7 @@ export * from "./components/code";
 export * from "./components/logs/control-cloud";
 export * from "./validation/utils/transform-structured-output-filter-format";
 export * from "./components/date-time/date-time";
+export * from "./components/dialog/alert-dialog";
 export * from "./components/dialog/dialog";
 export * from "./components/dialog/dialog-container";
 export * from "./components/dialog/confirmation-popover";
