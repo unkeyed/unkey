@@ -26,12 +26,8 @@ option go_package = "github.com/unkeyed/unkey/gen/proto/hydra/v1;hydrav1";
 service DeployService {
   option (dev.restate.sdk.go.service_type) = VIRTUAL_OBJECT;
 
-  // Create is the only writer of deployment rows in this service. It resolves
-  // the build source, runs the entitlement gates, writes the row with its
-  // queued step and audit log in one transaction, and starts Deploy.
-  //
-  // The object key is the deployment id, so every operation on one deployment
-  // serializes behind the create that wrote it.
+  // Create writes the deployment row and, for a DEPLOY decision, starts Deploy.
+  // The object key is the deployment id, so the caller chooses it up front.
   rpc Create(DeployCreateRequest) returns (DeployCreateResponse) {}
 
   // Deploy executes the full deployment workflow: build (if git source), provision
@@ -133,33 +129,24 @@ message GitSource {
   string build_command = 9;
 }
 
-// CreateDecision is what the caller decided should happen to this deployment.
-// Every value writes a row; they differ in what happens to it next.
-//
-// It carries the verdict and not the evidence, because two of the inputs behind
-// it are push-only: the files a commit touched and whether the push came from a
-// fork. Create can see neither, so unlike the entitlement gate this is the sole
-// enforcement point and Create does not re-check it.
+// CreateDecision is what happens to the row after it is written. The caller
+// decides, because the inputs (watch paths, fork pushes) are only visible to
+// the GitHub webhook. Create does not re-check it.
 enum CreateDecision {
   CREATE_DECISION_UNSPECIFIED = 0;
 
-  // DEPLOY writes the row and builds it.
   CREATE_DECISION_DEPLOY = 1;
 
-  // SKIP writes the row and stops there, recording that the commit was seen
-  // and deliberately not built.
+  // Record the commit without building it.
   CREATE_DECISION_SKIP = 2;
 
-  // AWAIT_APPROVAL writes the row and waits for a project member. Only
-  // AuthorizeDeployment can start it building.
+  // Wait for AuthorizeDeployment before building.
   CREATE_DECISION_AWAIT_APPROVAL = 3;
 }
 
-// CreateOutcome is what a create did. A refused create answers REJECTED rather
-// than failing terminally. A terminal error is not retried either, but it
-// reaches an ingress caller as unstructured text, so svc/api could only tell
-// these reasons apart by parsing a message; and it leaves a permanently failed
-// invocation behind every push from a caller that sends Create one-way.
+// CreateOutcome is what a create did. A refused create returns REJECTED instead
+// of a terminal error, because the Restate ingress flattens errors to text and a
+// one-way caller would otherwise leave a failed invocation behind.
 enum CreateOutcome {
   CREATE_OUTCOME_UNSPECIFIED = 0;
 
@@ -170,67 +157,51 @@ enum CreateOutcome {
   CREATE_OUTCOME_REJECTED = 2;
 }
 
-// CreateRejectionReason is why a create was refused, as a value a caller can
-// branch on instead of a message it would have to parse.
+// CreateRejectionReason is why a create was refused.
 enum CreateRejectionReason {
   CREATE_REJECTION_REASON_UNSPECIFIED = 0;
 
-  // NO_COMPUTE_PLAN: the workspace holds no Deploy entitlement and the gate is
-  // enforcing.
+  // The workspace has no Compute plan.
   CREATE_REJECTION_REASON_NO_COMPUTE_PLAN = 1;
 
-  // SPEND_SUSPENDED: the workspace is over its Compute spend cap.
+  // The workspace is over its Compute spend cap.
   CREATE_REJECTION_REASON_SPEND_SUSPENDED = 2;
 
-  // TARGET_NOT_FOUND: the project, app, or environment does not exist, or they
-  // do not belong together. Reachable when a target is deleted between the
-  // caller's own lookup and this create.
+  // The project, app, or environment does not exist, or they do not belong
+  // together.
   CREATE_REJECTION_REASON_TARGET_NOT_FOUND = 3;
 
-  // NO_REPO_CONNECTION: a git source was requested for an app with no connected
-  // repository. Refused instead of falling back to the current image, which
-  // would ship a different artifact than the one asked for.
+  // A git source was requested for an app with no connected repository.
   CREATE_REJECTION_REASON_NO_REPO_CONNECTION = 4;
 
-  // COMMIT_NOT_RESOLVED: GitHub could not resolve the requested branch or
-  // commit.
+  // GitHub could not resolve the requested branch or commit.
   CREATE_REJECTION_REASON_COMMIT_NOT_RESOLVED = 5;
 
-  // NO_SOURCE_IMAGE: the deployment being redeployed has neither a commit with
-  // a repository connection nor an image, so there is nothing to build from.
+  // The existing deployment has neither a buildable commit nor an image.
   CREATE_REJECTION_REASON_NO_SOURCE_IMAGE = 6;
 
-  // NEWER_DEPLOYMENT_EXISTS: a rebuild found a newer active deployment on the
-  // same app, environment, and branch. Clear require_no_newer to override.
+  // A newer active deployment exists on the same app, environment, and branch.
+  // Only with require_no_newer set.
   CREATE_REJECTION_REASON_NEWER_DEPLOYMENT_EXISTS = 7;
 
-  // INVALID_IMAGE: the requested image is not a well-formed container
-  // reference. Refused before the row is written, because a build never runs to
-  // discover it and the deployment would sit failed with no explanation.
+  // The image is not a well-formed container reference.
   CREATE_REJECTION_REASON_INVALID_IMAGE = 8;
 
-  // ENVIRONMENT_NOT_DEPLOYABLE: the environment's runtime settings are out of
-  // bounds, or it has no region that can schedule. Deploy checks these again as
-  // a backstop; refusing here keeps a deployment that cannot succeed from being
-  // written at all.
+  // The environment's port, cpu, or memory is out of bounds, or it has no
+  // schedulable region.
   CREATE_REJECTION_REASON_ENVIRONMENT_NOT_DEPLOYABLE = 9;
 
-  // SOURCE_DEPLOYMENT_NOT_FOUND: existing_deployment names a deployment that
-  // does not exist, or one under a different app or environment than the
-  // request targets. The two are one reason on purpose: answering them apart
-  // would let a caller probe for deployments it cannot reach.
+  // existing_deployment does not exist or belongs to another app or
+  // environment. One reason for both, so a caller cannot probe for deployments
+  // it cannot reach.
   CREATE_REJECTION_REASON_SOURCE_DEPLOYMENT_NOT_FOUND = 10;
 }
 
-// CreateGitSource builds from a repository commit. The worker resolves the
-// repository connection from the app, so a caller names only the commit it
-// wants.
+// CreateGitSource builds from a commit in the app's connected repository.
 message CreateGitSource {
-  // Commit metadata as far as the caller knows it. Empty fields are filled from
-  // GitHub. A request with neither a sha nor a branch gets the app's default
-  // branch. A sha without a branch keeps its empty branch, because that sha can
-  // live off the default branch and a wrong branch beside a right sha is worse
-  // than no branch.
+  // Empty fields are filled from GitHub. With neither a sha nor a branch, the
+  // app's default branch is built. A sha alone is built as is; no branch is
+  // inferred for it.
   ctrl.v1.GitCommitInfo commit = 1;
 
   // PR number for fork PRs. BuildKit fetches refs/pull/<number>/head from the
@@ -238,49 +209,37 @@ message CreateGitSource {
   int64 pr_number = 2;
 }
 
-// CreateImageSource deploys a pre-built container image as it is, with no
-// build step and no git metadata synthesized onto the row.
+// CreateImageSource deploys a pre-built container image. No build runs.
 message CreateImageSource {
   string image = 1;
 }
 
-// CreateExistingDeploymentSource rebuilds what another deployment ran: its
-// commit when the app still has a repository connection, otherwise its image.
-// The new row takes the app's current runtime settings and environment
-// variables, so any configuration change since the source applies. That is what
-// makes it usable for a hotfix, a settings rollout, or recovery from a lost
-// image.
+// CreateExistingDeploymentSource rebuilds another deployment's commit, or its
+// image when the app has no repository connection. Runtime settings and
+// environment variables come from the app as it is now, not from the source.
 message CreateExistingDeploymentSource {
   string deployment_id = 1;
 
-  // RequireNoNewer refuses the rebuild when a newer active deployment exists on
-  // the same app, environment, and branch. Leave it unset to rebuild the named
-  // deployment whatever else has shipped since.
+  // Refuse the rebuild when a newer active deployment exists on the same app,
+  // environment, and branch.
   bool require_no_newer = 2;
 }
 
 message DeployCreateRequest {
-  // Target. The request carries ids only. The worker loads the project, app,
-  // environment, and their settings itself, so the row records the settings
-  // current when the create runs and not when it was requested.
   string project_id = 1;
   string app_id = 2;
 
-  // Environment named by id or slug.
+  // Environment id or slug.
   string environment = 3;
 
-  // Leave the source unset to mean "ship this app again": a connected
-  // repository deploys the head of its default branch, and an app without one
-  // redeploys the image its current deployment runs. To deploy the head of the
-  // default branch explicitly, send git with an empty commit.
+  // Unset means redeploy: the head of the default branch for a connected
+  // repository, otherwise the image the current deployment runs.
   oneof source {
     CreateGitSource git = 4;
     CreateImageSource image = 5;
     CreateExistingDeploymentSource existing_deployment = 6;
   }
 
-
-  // Decision the caller already reached. See CreateDecision.
   CreateDecision decision = 8;
 
   // Attribution persisted on the deployment row.
@@ -288,25 +247,17 @@ message DeployCreateRequest {
   string triggered_by = 11;
   string trigger_reason = 12;
 
-  // Actor attributed on the audit log. Unset falls back to the system actor.
+  // Actor on the audit log. Unset falls back to the system actor.
   ctrl.v1.ActorInfo actor = 13;
 }
 
-// DeployCreateResponse says what a create did. A caller that awaits Create with
-// Request reads it; one that dispatches with Send never sees it, and learns the
-// outcome only from the deployment row.
 message DeployCreateResponse {
   CreateOutcome outcome = 1;
 
-  // RejectionReason is set only when outcome is REJECTED. The text explaining it
-  // stays in the worker's logs, because it names repositories and deployments
-  // the caller may have no right to read.
+  // Set only when outcome is REJECTED.
   CreateRejectionReason rejection_reason = 2;
 
-  // DeploymentId echoes the object key the create ran on, set for every
-  // outcome: it is what the caller chose, not the id of a row, so a rejection
-  // carries it too. A caller already knows it; echoing it back keeps a response
-  // readable on its own in a log or a trace.
+  // The object key the create ran on, echoed for every outcome.
   string deployment_id = 3;
 }
 

@@ -32,12 +32,8 @@ import (
 // manage traffic switching between deployments by reassigning sticky frontline
 // routes atomically through the routing service.
 type DeployServiceClient interface {
-	// Create is the only writer of deployment rows in this service. It resolves
-	// the build source, runs the entitlement gates, writes the row with its
-	// queued step and audit log in one transaction, and starts Deploy.
-	//
-	// The object key is the deployment id, so every operation on one deployment
-	// serializes behind the create that wrote it.
+	// Create writes the deployment row and, for a DEPLOY decision, starts Deploy.
+	// The object key is the deployment id, so the caller chooses it up front.
 	Create(opts ...sdk_go.ClientOption) sdk_go.Client[*DeployCreateRequest, *DeployCreateResponse]
 	// Deploy executes the full deployment workflow: build (if git source), provision
 	// containers across regions, wait for health, configure domain routing, and
@@ -139,12 +135,8 @@ func (c *deployServiceClient) NotifyInstancesReady(opts ...sdk_go.ClientOption) 
 //
 // This client is used to call the service from outside of a Restate context.
 type DeployServiceIngressClient interface {
-	// Create is the only writer of deployment rows in this service. It resolves
-	// the build source, runs the entitlement gates, writes the row with its
-	// queued step and audit log in one transaction, and starts Deploy.
-	//
-	// The object key is the deployment id, so every operation on one deployment
-	// serializes behind the create that wrote it.
+	// Create writes the deployment row and, for a DEPLOY decision, starts Deploy.
+	// The object key is the deployment id, so the caller chooses it up front.
 	Create() ingress.Requester[*DeployCreateRequest, *DeployCreateResponse]
 	// Deploy executes the full deployment workflow: build (if git source), provision
 	// containers across regions, wait for health, configure domain routing, and
@@ -242,12 +234,8 @@ func (c *deployServiceIngressClient) NotifyInstancesReady() ingress.Requester[*N
 // manage traffic switching between deployments by reassigning sticky frontline
 // routes atomically through the routing service.
 type DeployServiceServer interface {
-	// Create is the only writer of deployment rows in this service. It resolves
-	// the build source, runs the entitlement gates, writes the row with its
-	// queued step and audit log in one transaction, and starts Deploy.
-	//
-	// The object key is the deployment id, so every operation on one deployment
-	// serializes behind the create that wrote it.
+	// Create writes the deployment row and, for a DEPLOY decision, starts Deploy.
+	// The object key is the deployment id, so the caller chooses it up front.
 	Create(ctx sdk_go.ObjectContext, req *DeployCreateRequest) (*DeployCreateResponse, error)
 	// Deploy executes the full deployment workflow: build (if git source), provision
 	// containers across regions, wait for health, configure domain routing, and
