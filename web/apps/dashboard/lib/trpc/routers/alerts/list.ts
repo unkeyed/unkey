@@ -1,8 +1,27 @@
 import { type SQL, and, db, desc, eq, gt, lt, or, schema, sql } from "@/lib/db";
 import { TRPCError } from "@trpc/server";
+import { z } from "zod";
 import { workspaceProcedure } from "../../trpc";
 import { listAlertsInput } from "./schemas";
 import { alertSelection } from "./selection";
+
+const alertCursor = z.object({
+  firedAt: z.number().int().nonnegative(),
+  pk: z.number().int().positive(),
+});
+
+function encodeAlertCursor(cursor: z.infer<typeof alertCursor>): string {
+  return Buffer.from(JSON.stringify(cursor)).toString("base64url");
+}
+
+function decodeAlertCursor(cursor: string): z.infer<typeof alertCursor> {
+  try {
+    const decoded: unknown = JSON.parse(Buffer.from(cursor, "base64url").toString("utf8"));
+    return alertCursor.parse(decoded);
+  } catch {
+    throw new TRPCError({ code: "BAD_REQUEST", message: "Invalid alert cursor" });
+  }
+}
 
 export const listAlerts = workspaceProcedure
   .input(listAlertsInput)
@@ -28,16 +47,7 @@ export const listAlerts = workspaceProcedure
     }
 
     if (input.cursor) {
-      const [cursor] = await db
-        .select({
-          pk: schema.alertEvents.pk,
-          firedAt: schema.alertEvents.firedAt,
-        })
-        .from(schema.alertEvents)
-        .where(and(...filters, eq(schema.alertEvents.id, input.cursor)));
-      if (!cursor) {
-        throw new TRPCError({ code: "BAD_REQUEST", message: "Invalid alert cursor" });
-      }
+      const cursor = decodeAlertCursor(input.cursor);
 
       filters.push(
         or(
@@ -60,9 +70,12 @@ export const listAlerts = workspaceProcedure
     const hasMore = rows.length > input.limit;
     const page = hasMore ? rows.slice(0, input.limit) : rows;
     const alerts = page.map(({ pk: _, ...alert }) => alert);
+    const boundary = hasMore ? page.at(-1) : undefined;
 
     return {
       alerts,
-      nextCursor: hasMore ? alerts.at(-1)?.id : undefined,
+      nextCursor: boundary
+        ? encodeAlertCursor({ firedAt: boundary.firedAt, pk: boundary.pk })
+        : undefined,
     };
   });
