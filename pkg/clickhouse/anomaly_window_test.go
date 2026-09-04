@@ -30,7 +30,7 @@ func TestAnomalyWindows(t *testing.T) {
 	require.NoError(t, err)
 	t.Cleanup(func() { require.NoError(t, conn.Close()) })
 
-	ctx := context.Background()
+	ctx := t.Context()
 	require.NoError(t, conn.Ping(ctx))
 	windowStart := time.Now().UTC().Truncate(5 * time.Minute).Add(-5 * time.Minute)
 

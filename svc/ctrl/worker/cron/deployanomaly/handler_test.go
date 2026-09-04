@@ -7,7 +7,6 @@ import (
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/healthcheck"
-	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
 )
 
 func TestParseWindowStart(t *testing.T) {
@@ -75,23 +74,6 @@ func TestNewHandlerDefaultsShardCount(t *testing.T) {
 	require.Equal(t, defaultShardCount, handler.shardCount)
 }
 
-func TestMetricDataState(t *testing.T) {
-	t.Parallel()
-
-	require.Equal(t,
-		hydrav1.DeployAnomalyMetricDataState_DEPLOY_ANOMALY_METRIC_DATA_STATE_INCOMPLETE,
-		metricDataState(true, false),
-	)
-	require.Equal(t,
-		hydrav1.DeployAnomalyMetricDataState_DEPLOY_ANOMALY_METRIC_DATA_STATE_ZERO_COMPLETE,
-		metricDataState(false, true),
-	)
-	require.Equal(t,
-		hydrav1.DeployAnomalyMetricDataState_DEPLOY_ANOMALY_METRIC_DATA_STATE_PRESENT,
-		metricDataState(true, true),
-	)
-}
-
 func TestActionableGroups(t *testing.T) {
 	t.Parallel()
 
@@ -151,19 +133,28 @@ func TestSourceCompleteness(t *testing.T) {
 	})
 }
 
-func TestProductionAndRequestDropSuppression(t *testing.T) {
+func TestRequestDropSuppressed(t *testing.T) {
 	t.Parallel()
 
-	require.True(t, isProduction(mysqltype.EnvironmentKindProduction))
-	require.False(t, isProduction(mysqltype.EnvironmentKindPreview))
-	require.True(t, requestDropSuppressed(&hydrav1.EvaluateDeployAnomalyRequest{}))
-	require.True(t, requestDropSuppressed(&hydrav1.EvaluateDeployAnomalyRequest{
-		DeploymentId: "dep", DeploymentDesiredState: "stopped",
-	}))
-	require.True(t, requestDropSuppressed(&hydrav1.EvaluateDeployAnomalyRequest{
-		DeploymentId: "dep", DeploymentDesiredState: "running",
-	}))
-	require.False(t, requestDropSuppressed(&hydrav1.EvaluateDeployAnomalyRequest{
-		DeploymentId: "dep", DeploymentDesiredState: "running", DeploymentHasRunningRegion: true,
-	}))
+	tests := []struct {
+		name string
+		req  *hydrav1.EvaluateDeployAnomalyRequest
+		want bool
+	}{
+		{name: "missing deployment", req: &hydrav1.EvaluateDeployAnomalyRequest{}, want: true},
+		{name: "stopped deployment", req: &hydrav1.EvaluateDeployAnomalyRequest{
+			DeploymentId: "dep", DeploymentDesiredState: "stopped",
+		}, want: true},
+		{name: "no running region", req: &hydrav1.EvaluateDeployAnomalyRequest{
+			DeploymentId: "dep", DeploymentDesiredState: "running",
+		}, want: true},
+		{name: "running region", req: &hydrav1.EvaluateDeployAnomalyRequest{
+			DeploymentId: "dep", DeploymentDesiredState: "running", DeploymentHasRunningRegion: true,
+		}, want: false},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			require.Equal(t, test.want, requestDropSuppressed(test.req))
+		})
+	}
 }

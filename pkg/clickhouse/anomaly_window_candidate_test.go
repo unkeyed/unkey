@@ -1,7 +1,6 @@
 package clickhouse_test
 
 import (
-	"context"
 	"fmt"
 	"math/rand"
 	"testing"
@@ -31,7 +30,7 @@ func TestAnomalyCandidateFilterSuperset(t *testing.T) {
 	require.NoError(t, err)
 	t.Cleanup(func() { require.NoError(t, conn.Close()) })
 
-	ctx := context.Background()
+	ctx := t.Context()
 	windowStart := time.Now().UTC().Truncate(5 * time.Minute).Add(-5 * time.Minute)
 	const groupCount = 96
 	scope := uid.New("candidate")
