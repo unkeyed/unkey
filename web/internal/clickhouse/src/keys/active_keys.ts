@@ -1,5 +1,6 @@
 import { z } from "zod";
 import type { Querier } from "../client";
+import { assertOrderedTimeRange } from "../util";
 import { KEY_VERIFICATION_OUTCOMES } from "./keys";
 
 export const activeKeysTimeseriesParams = z.object({
@@ -248,6 +249,8 @@ function getActiveKeysTimeseriesWhereClause(
 // Create timeseries querier function for active keys
 function createActiveKeysTimeseriesQuerier(interval: TimeInterval) {
   return (ch: Querier) => async (args: ActiveKeysTimeseriesParams) => {
+    assertOrderedTimeRange(args.startTime, args.endTime);
+
     const { whereClause, paramSchema } = getActiveKeysTimeseriesWhereClause(args, [
       "time >= fromUnixTimestamp64Milli({startTime: Int64})",
       "time <= fromUnixTimestamp64Milli({endTime: Int64})",

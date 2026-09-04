@@ -1,6 +1,7 @@
 import { z } from "zod";
 import type { Querier } from "./client";
 import { KEY_VERIFICATION_OUTCOMES } from "./keys/keys";
+import { assertOrderedTimeRange } from "./util";
 
 // LOGS
 export const keyDetailsLogsParams = z.object({
@@ -740,6 +741,8 @@ async function batchVerificationTimeseries(
   args: VerificationTimeseriesParams,
   maxBatchSize = 15,
 ) {
+  assertOrderedTimeRange(args.startTime, args.endTime);
+
   const alignedArgs = { ...args, ...alignWindowToInterval(interval, args.startTime, args.endTime) };
 
   if (
@@ -1023,6 +1026,8 @@ function getIdentityTimeseriesWhereClause(
 
 function createIdentityTimeseriesQuerier(interval: TimeInterval) {
   return (ch: Querier) => async (args: IdentityTimeseriesParams) => {
+    assertOrderedTimeRange(args.startTime, args.endTime);
+
     if (!args.keyIds || args.keyIds.length === 0) {
       return { val: [] };
     }

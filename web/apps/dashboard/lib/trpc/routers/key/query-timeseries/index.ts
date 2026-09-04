@@ -4,11 +4,14 @@ import { db } from "@/lib/db";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
 import { transformVerificationFilters } from "../../api/keys/timeseries.utils";
+import { assertValidTimeRange } from "../../utils/time-range";
 
 export const keyDetailsVerificationsTimeseries = workspaceProcedure
   .use(withRatelimit(ratelimit.read))
   .input(keyDetailsQueryTimeseriesPayload)
   .query(async ({ ctx, input }) => {
+    assertValidTimeRange(input.startTime, input.endTime);
+
     // Verify the key belongs to this workspace
     const key = await db.query.keys
       .findFirst({

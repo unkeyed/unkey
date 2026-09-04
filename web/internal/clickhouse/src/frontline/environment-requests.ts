@@ -1,5 +1,6 @@
 import { z } from "zod";
 import type { Querier } from "../client";
+import { assertOrderedTimeRange } from "../util";
 
 // Environment-scoped Frontline request metrics: per-bucket request and error
 // counts for a single app and environment, read from the pre-aggregated
@@ -67,6 +68,8 @@ const environmentRequestsPointSchema = z.object({
 // is three rows: one with real counts and two zeroed.
 export function getEnvironmentRequests(ch: Querier) {
   return async (args: EnvironmentRequestsParams) => {
+    assertOrderedTimeRange(args.startTimeMs, args.endTimeMs);
+
     const query = ch.query({
       query: `
         SELECT
