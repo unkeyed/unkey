@@ -1,5 +1,5 @@
 import type { App } from "@/lib/collections/deploy/apps";
-import { CodeBranch, Cube, Terminal } from "@unkey/icons";
+import { CodeBranch, Cube, Layers2, Terminal } from "@unkey/icons";
 import { match } from "@unkey/match";
 import { InfoTooltip, Loading, TimestampInfo } from "@unkey/ui";
 import type { Route } from "next";
@@ -213,8 +213,8 @@ const OCISourceMetadata = ({ imageReference }: { imageReference: string | null }
       </span>
     </InfoTooltip>
     <div className="flex items-center gap-1 min-h-5">
-      <Cube className="text-gray-12 shrink-0" iconSize="sm-regular" />
-      <span className="text-xs text-gray-12">OCI image</span>
+      <Layers2 className="text-gray-12 shrink-0" iconSize="sm-regular" />
+      <span className="text-xs text-gray-12">Container image</span>
     </div>
   </div>
 );

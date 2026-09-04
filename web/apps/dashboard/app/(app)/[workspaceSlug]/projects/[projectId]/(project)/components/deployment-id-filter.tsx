@@ -1,9 +1,7 @@
 "use client";
 
 import { useProjectData } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/data-provider";
-import type { Deployment } from "@/lib/collections";
 import { Magnifier } from "@unkey/icons";
-import { match } from "@unkey/match";
 import { Button, Checkbox } from "@unkey/ui";
 import { useCallback, useMemo, useState } from "react";
 
@@ -17,18 +15,7 @@ type DeploymentIdFilterProps<T extends DeploymentFilter> = {
   createDeploymentFilter: (value: string) => T;
 };
 
-type Row = { id: string; sourceLabel: string | null };
-
-function deploymentSourceLabel(deployment: Deployment | undefined): string | null {
-  if (!deployment) {
-    return null;
-  }
-  return match(deployment.source)
-    .with("git", () => deployment.gitBranch || null)
-    .with("oci", () => deployment.requestedImage ?? deployment.resolvedImage)
-    .with("unknown", () => null)
-    .exhaustive();
-}
+type Row = { id: string; gitBranch: string | null };
 
 export function DeploymentIdFilter<T extends DeploymentFilter>({
   filters,
@@ -52,7 +39,7 @@ export function DeploymentIdFilter<T extends DeploymentFilter>({
   const rows = useMemo<Row[]>(() => {
     const latestIds = deployments.slice(0, LATEST_LIMIT).map((d) => d.id);
     const ids = new Set([...latestIds, ...checkedIds, ...activeIds]);
-    return [...ids].map((id) => ({ id, sourceLabel: deploymentSourceLabel(byId.get(id)) }));
+    return [...ids].map((id) => ({ id, gitBranch: byId.get(id)?.gitBranch ?? null }));
   }, [deployments, checkedIds, activeIds, byId]);
 
   const toggle = useCallback((id: string) => {
@@ -145,9 +132,9 @@ export function DeploymentIdFilter<T extends DeploymentFilter>({
                   className="size-4 rounded-sm border-gray-4 [&_svg]:size-3"
                   onCheckedChange={() => toggle(row.id)}
                 />
-                {row.sourceLabel && (
+                {row.gitBranch && (
                   <span className="text-accent-12 text-xs font-medium truncate">
-                    {row.sourceLabel}
+                    {row.gitBranch}
                   </span>
                 )}
                 <span className="text-accent-9 text-xs font-mono truncate">{row.id}</span>

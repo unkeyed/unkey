@@ -1,7 +1,7 @@
 "use client";
 
 import { githubUrl } from "@/lib/github-url";
-import { CodeBranch, CodeCommit, Cube, Layers2 } from "@unkey/icons";
+import { CodeBranch, CodeCommit, Layers2 } from "@unkey/icons";
 import { match } from "@unkey/match";
 import { Badge, CopyButton, InfoTooltip, TimestampInfo } from "@unkey/ui";
 import type { ReactNode } from "react";
@@ -86,7 +86,7 @@ function SourceCell() {
         ))
         .with("oci", () => (
           <span className="flex items-center gap-1.5 min-w-0">
-            <Cube iconSize="sm-regular" className="text-accent-12 shrink-0" />
+            <Layers2 iconSize="sm-regular" className="text-accent-12 shrink-0" />
             <span
               className="font-mono text-[13px] text-accent-12 truncate"
               title={deployment.requestedImage ?? deployment.resolvedImage ?? undefined}
@@ -131,7 +131,7 @@ function SourceCell() {
             ))
             .with("oci", () => (
               <>
-                <Cube iconSize="sm-regular" className="shrink-0" />
+                <Layers2 iconSize="sm-regular" className="shrink-0" />
                 <span className="font-mono text-[13px] truncate min-w-0">
                   {rolledBackFrom.requestedImage ?? rolledBackFrom.resolvedImage ?? "Unknown image"}
                 </span>

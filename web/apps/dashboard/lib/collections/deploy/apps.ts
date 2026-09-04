@@ -106,5 +106,44 @@ export const apps = createCollection<App, string>(
 
       await deleteMutation;
     },
+    onInsert: async ({ transaction }) => {
+      const { changes } = transaction.mutations[0];
+      const createInput = createAppRequestSchema.parse({
+        projectId: changes.projectId,
+        name: changes.name,
+        slug: changes.slug,
+        source:
+          changes.sourceType === "oci"
+            ? { kind: "oci", imageReference: changes.imageReference }
+            : { kind: changes.sourceType },
+      });
+      const mutation = getUnkeyClient().apps.createApp(
+        createInput.source.kind === "git"
+          ? {
+              project: createInput.projectId,
+              name: createInput.name,
+              slug: createInput.slug,
+              git: {},
+            }
+          : {
+              project: createInput.projectId,
+              name: createInput.name,
+              slug: createInput.slug,
+              oci: { image: createInput.source.imageReference },
+            },
+      );
+
+      toast.promise(mutation, {
+        loading: "Creating app...",
+        success: "App created successfully",
+        error: (err) => {
+          console.error("Failed to create app", err);
+          return getErrorToast(err, "Failed to Create App");
+        },
+      });
+
+      const result = await mutation;
+      transaction.metadata = { appId: result.data.appId };
+    },
   }),
 );

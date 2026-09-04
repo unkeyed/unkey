@@ -830,7 +830,7 @@ export const githubRouter = t.router({
         if (app.sourceType === "oci") {
           throw new TRPCError({
             code: "PRECONDITION_FAILED",
-            message: "OCI image apps cannot connect a GitHub repository",
+            message: "Container image apps cannot connect a GitHub repository",
           });
         }
         appId = app.id;
@@ -853,7 +853,7 @@ export const githubRouter = t.router({
         if (app.sourceType === "oci") {
           throw new TRPCError({
             code: "PRECONDITION_FAILED",
-            message: "OCI image apps cannot connect a GitHub repository",
+            message: "Container image apps cannot connect a GitHub repository",
           });
         }
         appId = app.id;

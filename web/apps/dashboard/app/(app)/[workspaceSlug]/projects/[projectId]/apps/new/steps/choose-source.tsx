@@ -1,11 +1,14 @@
 "use client";
-import { queryClient, trpcClient } from "@/lib/collections/client";
+import { collection } from "@/lib/collections";
 import type { CreateAppRequestSchema } from "@/lib/collections/deploy/apps";
 import { applyDefaultSettings } from "@/lib/collections/deploy/environment-settings";
+import { SERVER_PLACEHOLDER } from "@/lib/collections/deploy/utils";
 import { trpc } from "@/lib/trpc/client";
+import { eq, useLiveQuery } from "@tanstack/react-db";
 import { CodeBranch, Github } from "@unkey/icons";
 import { Button, toast, useStepWizard } from "@unkey/ui";
 import { useState } from "react";
+import { z } from "zod";
 import { OnboardingLinks } from "../onboarding-links";
 import type { AppDetails } from "./create-app";
 import { DeployImageCard } from "./deploy-image-card";
@@ -34,8 +37,13 @@ export const ChooseSourceStep = ({
   const [createdApp, setCreatedApp] = useState<CreatedApp | null>(null);
   const [selectedSource, setSelectedSource] = useState<CreatedApp["sourceKind"] | null>(null);
 
-  const { data: availableRegions } = trpc.deploy.environmentSettings.getAvailableRegions.useQuery();
-  const createApp = trpc.deploy.app.create.useMutation();
+  useLiveQuery(
+    (q) =>
+      q
+        .from({ environment: collection.environments })
+        .where(({ environment }) => eq(environment.projectId, projectId)),
+    [projectId],
+  );
 
   const ensureApp = async (source: CreateAppRequestSchema["source"]): Promise<string> => {
     if (createdApp) {
@@ -47,30 +55,46 @@ export const ChooseSourceStep = ({
 
     setSelectedSource(source.kind);
     try {
-      const app = await createApp.mutateAsync({ projectId, ...appDetails, source });
-      const nextCreatedApp = { id: app.id, sourceKind: source.kind };
+      const transaction = collection.apps.insert({
+        projectId,
+        ...appDetails,
+        sourceType: source.kind,
+        imageReference: source.kind === "oci" ? source.imageReference : null,
+        defaultBranch: "main",
+        repositoryFullName: null,
+        currentDeploymentId: null,
+        isRolledBack: false,
+        id: SERVER_PLACEHOLDER,
+        latestDeploymentId: null,
+        author: null,
+        authorAvatar: null,
+        branch: source.kind === "git" ? "main" : "",
+        commitTimestamp: null,
+        commitTitle: null,
+        commitSha: null,
+        forkRepositoryFullName: null,
+        prNumber: null,
+        domain: null,
+      });
+      await transaction.isPersisted.promise;
+      const appId = z.object({ appId: z.string() }).parse(transaction.metadata).appId;
+      const nextCreatedApp = { id: appId, sourceKind: source.kind };
       setCreatedApp(nextCreatedApp);
-      onAppCreated(app.id);
-
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["apps", projectId] }),
-        queryClient.invalidateQueries({ queryKey: ["projects"] }),
-      ]);
+      onAppCreated(appId);
+      await collection.projects.utils.refetch();
 
       if (source.kind === "git") {
         try {
-          const regions =
-            availableRegions ??
-            (await utils.deploy.environmentSettings.getAvailableRegions.fetch());
-          const environments = await trpcClient.deploy.environment.list.query({ projectId });
+          const regions = await utils.deploy.environmentSettings.getAvailableRegions.fetch();
+          await collection.environments.utils.refetch();
           const regionNames = regions
             .filter((region) => region.canSchedule)
             .map((region) => region.name);
           await Promise.all(
-            environments
-              .filter((environment) => environment.appId === app.id)
+            collection.environments.toArray
+              .filter((environment) => environment.appId === appId)
               .map((environment) =>
-                applyDefaultSettings(projectId, app.id, environment.id, regionNames),
+                applyDefaultSettings(projectId, appId, environment.id, regionNames),
               ),
           );
         } catch (error) {
@@ -80,7 +104,7 @@ export const ChooseSourceStep = ({
         }
       }
 
-      return app.id;
+      return appId;
     } catch (error) {
       setSelectedSource(null);
       throw error;
@@ -132,7 +156,7 @@ export const ChooseSourceStep = ({
               className="ml-auto rounded-lg border-grayA-4 hover:bg-grayA-2 shadow-sm hover:shadow-md transition-all"
               onClick={handleClick}
               loading={isPreparing}
-              disabled={selectedSource === "oci" || createApp.isLoading}
+              disabled={selectedSource === "oci"}
             >
               <Github className="size-[18px]! text-gray-12 shrink-0" />
               <span className="text-[13px] text-gray-12 font-medium">Import from GitHub</span>
@@ -145,7 +169,7 @@ export const ChooseSourceStep = ({
           onBeforeNavigate={onBeforeNavigate}
           expanded={imageMode}
           onExpandedChange={setImageMode}
-          disabled={selectedSource === "git" || createApp.isLoading}
+          disabled={selectedSource === "git"}
         />
       </div>
       <div className="mb-7" />

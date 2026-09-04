@@ -19,7 +19,7 @@ import { cn } from "@/lib/utils";
 import { formatLatency } from "@/lib/utils/metric-formatters";
 import { eq, useLiveQuery } from "@tanstack/react-db";
 import type { RequestLogsResponse } from "@unkey/clickhouse/src/frontline";
-import { CodeBranch, CodeCommit, Cube, Layers2, User } from "@unkey/icons";
+import { CodeBranch, CodeCommit, Layers2, User } from "@unkey/icons";
 import { match } from "@unkey/match";
 import { Badge, CopyButton } from "@unkey/ui";
 import type React from "react";
@@ -354,7 +354,7 @@ const formatDeploymentInfo = (
         <div className="flex items-center justify-between gap-4">
           <span className="text-gray-11 shrink-0">Requested Image:</span>
           <div className="flex items-center gap-1.5 min-w-0">
-            <Cube iconSize="sm-regular" className="text-grayA-10 shrink-0" />
+            <Layers2 iconSize="sm-regular" className="text-grayA-10 shrink-0" />
             <span className="font-mono truncate max-w-[250px]">
               {deployment.requestedImage ?? deployment.resolvedImage ?? "Unknown"}
             </span>

@@ -5,7 +5,7 @@ import { DeploymentStatusBadge } from "@/app/(app)/[workspaceSlug]/projects/[pro
 import { Avatar } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/git-avatar";
 import type { Deployment, Environment } from "@/lib/collections";
 import { shortenId } from "@/lib/shorten-id";
-import { CodeBranch, CodeCommit, Cube, Layers2 } from "@unkey/icons";
+import { CodeBranch, CodeCommit, Layers2 } from "@unkey/icons";
 import { match } from "@unkey/match";
 import { ResourceListItem, TimestampInfo } from "@unkey/ui";
 import type { Route } from "next";
@@ -104,13 +104,11 @@ export function DeploymentRow({
             />
             <DeploymentStatusBadge status={deployment.status} />
           </div>
-          <div className="pl-7">
-            <DeploymentDuration
-              status={deployment.status}
-              createdAt={deployment.createdAt}
-              buildEndedAt={deployment.buildEndedAt}
-            />
-          </div>
+          <DeploymentDuration
+            status={deployment.status}
+            createdAt={deployment.createdAt}
+            buildEndedAt={deployment.buildEndedAt}
+          />
           {/* Same hide rule as the deployment-detail header — once a deploy
               has stabilized into ready/superseded the prior crash isn't
               relevant context for the row. Pre-ready failures (deploying
@@ -124,73 +122,7 @@ export function DeploymentRow({
 
       {/* Source */}
       <div className="md:w-[30%] md:shrink-0 flex flex-col gap-1 min-w-0">
-        {match(deployment.source)
-          .with("git", () => (
-            <>
-              {deployment.gitBranch ? (
-                <div className="flex items-center gap-2 min-w-0">
-                  <CodeBranch iconSize="sm-regular" className="text-accent-12 shrink-0" />
-                  <span
-                    className="font-mono text-xs text-accent-12 truncate leading-4"
-                    title={deployment.gitBranch}
-                  >
-                    {deployment.gitBranch}
-                  </span>
-                  {deployment.gitCommitSha ? (
-                    <span className="font-mono text-xs shrink-0 leading-4 -ml-1">
-                      <span className="text-gray-9">·</span>
-                      <span className="text-accent-12 ml-0.5">
-                        {deployment.gitCommitSha.slice(0, 7)}
-                      </span>
-                    </span>
-                  ) : null}
-                </div>
-              ) : deployment.gitCommitSha ? (
-                <div className="flex items-center gap-2 min-w-0">
-                  <CodeCommit iconSize="sm-regular" className="text-accent-12 shrink-0" />
-                  <span className="font-mono text-xs text-accent-12 truncate leading-4">
-                    {deployment.gitCommitSha.slice(0, 7)}
-                  </span>
-                </div>
-              ) : (
-                <span className="text-xs text-gray-9 leading-4">No Git source info</span>
-              )}
-              {deployment.gitCommitMessage ? (
-                <div className="flex items-center gap-2 min-w-0">
-                  <CodeCommit iconSize="sm-regular" className="text-accent-12 shrink-0" />
-                  <span
-                    className="truncate text-xs text-accent-12 leading-4"
-                    title={deployment.gitCommitMessage}
-                  >
-                    {deployment.gitCommitMessage}
-                  </span>
-                </div>
-              ) : null}
-            </>
-          ))
-          .with("oci", () => {
-            const displayImage = deployment.requestedImage ?? deployment.resolvedImage;
-            return displayImage ? (
-              <div className="flex items-center gap-2 min-w-0">
-                <Cube iconSize="sm-regular" className="text-accent-12 shrink-0" />
-                <span
-                  className="font-mono text-xs text-accent-12 truncate leading-4"
-                  title={displayImage}
-                >
-                  {displayImage}
-                </span>
-              </div>
-            ) : (
-              <span className="text-xs text-gray-9 leading-4">No image available</span>
-            );
-          })
-          .with("unknown", () => (
-            <div className="flex items-center gap-2 min-w-0 text-gray-9">
-              <Layers2 iconSize="sm-regular" className="shrink-0" />
-              <span className="text-xs leading-4">Unknown source</span>
-            </div>
-          ))
-          .exhaustive()}
+        <DeploymentSource deployment={deployment} />
       </div>
 
       {/* Meta */}
@@ -219,4 +151,72 @@ export function DeploymentRow({
       </div>
     </ResourceListItem>
   );
+}
+
+function DeploymentSource({ deployment }: { deployment: Deployment }) {
+  return match(deployment.source)
+    .with("git", () => (
+      <>
+        {deployment.gitBranch ? (
+          <div className="flex items-center gap-2 min-w-0">
+            <CodeBranch iconSize="sm-regular" className="text-accent-12 shrink-0" />
+            <span
+              className="font-mono text-xs text-accent-12 truncate leading-4"
+              title={deployment.gitBranch}
+            >
+              {deployment.gitBranch}
+            </span>
+            {deployment.gitCommitSha ? (
+              <span className="font-mono text-xs shrink-0 leading-4 -ml-1">
+                <span className="text-gray-9">·</span>
+                <span className="text-accent-12 ml-0.5">{deployment.gitCommitSha.slice(0, 7)}</span>
+              </span>
+            ) : null}
+          </div>
+        ) : deployment.gitCommitSha ? (
+          <div className="flex items-center gap-2 min-w-0">
+            <CodeCommit iconSize="sm-regular" className="text-accent-12 shrink-0" />
+            <span className="font-mono text-xs text-accent-12 truncate leading-4">
+              {deployment.gitCommitSha.slice(0, 7)}
+            </span>
+          </div>
+        ) : (
+          <span className="text-xs text-gray-9 leading-4">No Git source info</span>
+        )}
+        {deployment.gitCommitMessage ? (
+          <div className="flex items-center gap-2 min-w-0">
+            <CodeCommit iconSize="sm-regular" className="text-accent-12 shrink-0" />
+            <span
+              className="truncate text-xs text-accent-12 leading-4"
+              title={deployment.gitCommitMessage}
+            >
+              {deployment.gitCommitMessage}
+            </span>
+          </div>
+        ) : null}
+      </>
+    ))
+    .with("oci", () => {
+      const displayImage = deployment.requestedImage ?? deployment.resolvedImage;
+      return displayImage ? (
+        <div className="flex items-center gap-2 min-w-0">
+          <Layers2 iconSize="sm-regular" className="text-accent-12 shrink-0" />
+          <span
+            className="font-mono text-xs text-accent-12 truncate leading-4"
+            title={displayImage}
+          >
+            {displayImage}
+          </span>
+        </div>
+      ) : (
+        <span className="text-xs text-gray-9 leading-4">No image available</span>
+      );
+    })
+    .with("unknown", () => (
+      <div className="flex items-center gap-2 min-w-0 text-gray-9">
+        <Layers2 iconSize="sm-regular" className="shrink-0" />
+        <span className="text-xs leading-4">Unknown source</span>
+      </div>
+    ))
+    .exhaustive();
 }

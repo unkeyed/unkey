@@ -60,7 +60,7 @@ export const RedeployDialog = ({ isOpen, onClose, selectedDeployment }: Redeploy
 
   const subtitle = match(selectedDeployment.source)
     .with("git", () => "Trigger a fresh build and deployment from the same commit")
-    .with("oci", () => "Create a deployment from the same resolved OCI image")
+    .with("oci", () => "Create a deployment from the same resolved container image")
     .with("unknown", () => "Create a new deployment from this deployment")
     .exhaustive();
 
