@@ -35,7 +35,7 @@ const METERS: ReadonlyArray<{
   key: keyof UsageQuantities;
   costKey: keyof UsageCostsCents;
   label: string;
-  columnLabel?: string;
+  spendLabel: string;
   unit: string;
   barClass: string;
   width: string;
@@ -44,6 +44,7 @@ const METERS: ReadonlyArray<{
     key: "cpuHours",
     costKey: "cpu",
     label: "CPU",
+    spendLabel: "CPU",
     unit: "vCPU-hrs",
     barClass: "bg-feature-8",
     width: "w-16",
@@ -52,6 +53,7 @@ const METERS: ReadonlyArray<{
     key: "memoryGiBHours",
     costKey: "memory",
     label: "Memory",
+    spendLabel: "Memory",
     unit: "GiB-hrs",
     barClass: "bg-info-8",
     width: "w-24",
@@ -59,8 +61,8 @@ const METERS: ReadonlyArray<{
   {
     key: "egressGiB",
     costKey: "egress",
-    label: "Public egress",
-    columnLabel: "Egress",
+    label: "Egress",
+    spendLabel: "Public egress",
     unit: "GiB",
     barClass: "bg-error-8",
     width: "w-20",
@@ -69,6 +71,7 @@ const METERS: ReadonlyArray<{
     key: "diskGiBHours",
     costKey: "disk",
     label: "Storage",
+    spendLabel: "Storage",
     unit: "GiB-hrs",
     barClass: "bg-warning-8",
     width: "w-24",
@@ -267,14 +270,16 @@ function ProjectRow({
                 <div className="min-w-0 flex-1">App</div>
                 {METERS.map((meter) => (
                   <div key={meter.key} className={`${meter.width} text-right`}>
-                    {meter.columnLabel ?? meter.label}
+                    {meter.label}
                   </div>
                 ))}
                 <div className="w-20 text-right">Total</div>
               </Band>
-              {project.apps.map((app) => (
-                <AppRows key={app.appId} app={app} />
-              ))}
+              <div className="max-h-96 overflow-y-auto overscroll-contain [scrollbar-width:thin]">
+                {project.apps.map((app) => (
+                  <AppRows key={app.appId} app={app} />
+                ))}
+              </div>
             </>
           )}
           <Band>
@@ -334,7 +339,7 @@ function ResourceBar({ usage }: { usage: UsageQuantities }) {
                 className={`size-2 shrink-0 rounded-full ${meter.barClass}`}
                 aria-hidden="true"
               />
-              <span className="text-gray-11">{meter.label}</span>
+              <span className="text-gray-11">{meter.spendLabel}</span>
               <span className="text-gray-12 tabular-nums">{formatPrice(costs[meter.costKey])}</span>
               <span className="sr-only">
                 {formatCompactQuantity(usage[meter.key])} {meter.unit} at{" "}
@@ -407,7 +412,7 @@ function MeterCosts({ usage, className }: { usage: UsageQuantities; className: s
             <span className={`${meter.width} shrink-0 text-right tabular-nums ${className}`}>
               {formatPrice(costs[meter.costKey])}
               <span className="sr-only">
-                {meter.label}, {amount}
+                {meter.spendLabel}, {amount}
               </span>
             </span>
           </InfoTooltip>
@@ -432,7 +437,7 @@ function TotalCost({
   const rows: Array<{ key: string; label: string; cents: number; amount: string }> = METERS.map(
     (meter) => ({
       key: meter.key,
-      label: meter.label,
+      label: meter.spendLabel,
       cents: costs[meter.costKey],
       amount: `${formatCompactQuantity(usage[meter.key])} ${meter.unit}`,
     }),
