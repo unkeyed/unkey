@@ -52,8 +52,9 @@ changes only for the affected app and environment.
 
 The local cron entry is in
 `dev/k8s/charts/restate-cronjobs/values.yaml`. It uses the schedule
-`*/5 * * * *`. Production declares the same job separately in the
-`unkeyed/infra` repository.
+`*/5 * * * *`. The production `deploy-anomaly-check` job uses the same schedule
+in the `unkeyed/infra` repository at
+`eks-cluster/helm-chart/restate/environments/{canary,production001}/us-east-1.yaml`.
 
 ## Select a closed window
 
@@ -148,6 +149,11 @@ because sqlc rejected `JSON_TABLE`. It invokes `DeployAnomalyService.Evaluate`
 once per selected production group. All child futures are awaited. A failed
 child causes the parent to withhold its health-check heartbeat.
 
+An open-alert group can outlive its app or environment metadata. For each batch
+of at most 500 groups, the shard uses one batched query to find missing metadata
+and resolves those orphaned alerts with `Deployment stopped`. This fallback
+self-heals an alert if its deletion workflow did not complete.
+
 `DeployAnomalyShardService.GetPending` exposes a shard's pending group count for
 inspection. Each shard returns only `groups_dispatched` and `groups_pending` to
 `RunDeployAnomalyCheck`, so query results and per-group payloads do not enter the
@@ -167,8 +173,8 @@ aggregation working set for each query.
 
 | Method | Source | Metrics |
 | --- | --- | --- |
-| `GetRequestAnomalyWindows` | `frontline_requests_per_5m_v1` | `error_5xx`, `error_4xx`, `requests`, `requests_drop` |
-| `GetResourceAnomalyWindows` | `instance_resources_per_minute_v1` | `egress_bytes`, `cpu_seconds`, `memory_utilization` |
+| `GetRequestAnomalyWindows` | `frontline_requests_anomaly_per_5m_v1` | `error_5xx`, `error_4xx`, `requests`, `requests_drop` |
+| `GetResourceAnomalyWindows` | `instance_resources_container_per_5m_v1` | `egress_bytes`, `cpu_seconds`, `memory_utilization` |
 | `GetInstanceEventAnomalyWindows` | `instance_events_raw_v1` | `oom_killed`, `crash_loop` |
 
 ### Query request windows
@@ -188,16 +194,27 @@ retains a group that has an open alert.
 
 ### Query resource windows
 
-The resource query scans the per-minute rollup and forms 5-minute buckets. For
-each container incarnation, egress and CPU use non-negative counter deltas.
-Memory divides sampled bytes by allocated bytes. The query then combines
-containers into instances and computes the 5-minute average across instances.
+`instance_resources_container_per_5m_mv_v1` reads raw samples from
+`instance_checkpoints_v1` into `instance_resources_container_per_5m_v1`. The
+rollup preserves each container's minimum and maximum CPU and public-egress
+counters with `cpu_usage_usec_min`, `cpu_usage_usec_max`,
+`network_egress_public_bytes_min`, and
+`network_egress_public_bytes_max`. The `_min` columns use
+`SimpleAggregateFunction(min, Int64)`, and the `_max` columns use
+`SimpleAggregateFunction(max, Int64)`. The rollup also stores memory
+`utilization_sum`, `utilization_samples`, and `utilization_max` from raw samples.
 
-The outer aggregation returns the current egress, CPU, and memory values,
-baseline moments for egress and CPU, and the observed bucket count. The
-per-minute source is a dashboard rollup. Its additive values can double-count
-rare insert retries, which is an accepted observability tradeoff. Billing does
+The detector calculates `greatest(0, max - min)` for each container's CPU and
+egress counters in a 5-minute bucket, then sums the container deltas to the app.
+For memory, it averages raw samples per container, then averages containers per
+instance and instances per app. The outer aggregation returns current values,
+baseline moments for egress and CPU, and the observed bucket count. Billing does
 not use this query.
+
+The materialized view must read `instance_checkpoints_v1` directly. The removed
+chained design calculated `max - min` while consuming the per-minute table. A
+live insert block normally contained one 5-second sample, so its minimum and
+maximum were equal and live CPU and egress deltas became zero.
 
 ### Query instance events
 
@@ -208,31 +225,35 @@ baseline. A returned row is actionable without a separate event watermark. An
 absent row uses resources completeness to distinguish a complete zero from an
 incomplete window.
 
-Hourly rollups supply the dashboard's 7-day overview. Dashboard series queries
-are separate from the detector queries and do not mutate alert state.
+Dashboard series queries are separate from detector queries and do not mutate
+alert state. They can group 5-minute resource deltas into hourly display buckets
+for the 7-day overview.
 
 ### Backfill detector rollups
 
-The deploy anomaly migration in `pkg/clickhouse/migrations` creates and
-backfills these four detector rollups:
+The deploy anomaly migration in `pkg/clickhouse/migrations` installs these seven
+objects:
 
-| Rollup | Backfilled data |
+| Object | Role |
 | --- | --- |
-| `instance_resources_app_per_5m_v1` | Per-app resource history. |
-| `anomaly_source_watermarks_v1` | Per-region source watermarks. |
-| `frontline_requests_anomaly_per_5m_v1` | Request and error history. |
-| `instance_memory_container_per_5m_v1` | Per-container memory history. |
+| `anomaly_requests_watermark_mv_v1` | Updates request watermarks from raw Frontline requests. |
+| `anomaly_resources_watermark_mv_v1` | Updates resource watermarks from raw instance checkpoints. |
+| `anomaly_source_watermarks_v1` | Stores per-region request and resource watermarks. |
+| `frontline_requests_anomaly_per_5m_mv_v1` | Updates request and error buckets. |
+| `frontline_requests_anomaly_per_5m_v1` | Stores 5-minute request and error history. |
+| `instance_resources_container_per_5m_mv_v1` | Updates container resource buckets from raw instance checkpoints. |
+| `instance_resources_container_per_5m_v1` | Stores counter bounds and memory samples per container and 5-minute bucket. |
 
-For each rollup, the migration replays the latest 7 days of closed buckets
-before it creates the corresponding materialized view. This order avoids
-double counting rows that arrive during the replay. At most, the in-progress
-5-minute bucket at migration time can be absent from the rollup. Watermark max
-states are replay-idempotent. Sum rollups exclude keys that are already present,
-so retrying the migration cannot count the same rollup key twice. Existing apps
-therefore have the full 24-hour baseline and 72-bucket request-drop history when
-detection first runs. The 12-bucket spike minimum applies only to apps younger
-than 1 hour, and the 72-bucket request-drop minimum applies only to apps younger
-than 6 hours.
+For each destination table, the migration replays the latest 7 days of closed
+buckets before it creates the corresponding materialized view. This order
+avoids double counting rows that arrive during the replay. At most, the
+in-progress 5-minute bucket at migration time can be absent from the rollup.
+Watermark max states are replay-idempotent. Aggregate rollups exclude keys that
+are already present, so retrying the migration cannot count the same key twice.
+Existing apps therefore have the full 24-hour baseline and 72-bucket
+request-drop history when detection first runs. The 12-bucket spike minimum
+applies only to apps younger than 1 hour, and the 72-bucket request-drop minimum
+applies only to apps younger than 6 hours.
 
 ## Evaluate one group
 
@@ -314,6 +335,11 @@ The same conditions resolve an open request-drop alert with
 `autoscaling_replicas_min = 0` does not suppress request-drop detection.
 Scale-to-zero capability does not mean that a traffic drop is expected while a
 deployment and running topology region remain active.
+
+App and environment deletion workflows resolve their open alerts with
+`Deployment stopped` in a durable step before deleting metadata. The shard's
+orphan reconciliation provides a second path: if an open group has no matching
+app or environment, it resolves the alert with the same message.
 
 ### Persist virtual object state
 
@@ -413,6 +439,8 @@ The app-level **Anomalies** tab provides these views:
   metric.
 - Optional deployment markers, drag-to-zoom, and a range-scoped list of open
   and resolved alerts.
+- Paginated alert rows with **Load more** and a visible notice when additional
+  rows exist beyond the pages loaded so far.
 - Alert focus through `?alert=<id>`, including an alert details card with the
   system resolution message.
 
@@ -435,15 +463,23 @@ does not move the page boundary. The `alerts.series` input limits a request to 8
 days.
 
 The `series` query returns time-aligned observed values for the selected range.
+It pads the baseline from `apps.created_at`, aligned to 5 minutes and capped at
+24 hours. Eligibility always counts observed 5-minute buckets, including for an
+hourly display. A spike band needs 12 observed 5-minute buckets. The
+request-drop lower band needs 72 observed buckets, at least 9 active buckets in
+the preceding 12, and an absolute loss of at least 200 requests.
+
 For each bucket, the dashboard calculates the trailing expected mean and
 effective deviation with the same 10% and absolute floors as the detector. It
 draws the expected band from those values. Error deviation excludes buckets
-with zero requests. Request charts add a lower line at 25% of the inclusive
-median for the preceding 12 buckets. For an even set, the inclusive median
-averages the two middle values. Memory first averages container samples into
-each instance, then averages instances with equal weight. It uses a flat 90%
-line. Health uses OOM and crash-loop event bars. These calculations explain
-alerts but do not create or resolve them.
+with zero requests. Request charts use 25% of the inclusive median for the
+preceding 12 buckets. For an even set, the inclusive median averages the two
+middle values. CPU and egress use per-container 5-minute non-negative counter
+deltas summed to the app. Hourly values sum those 5-minute deltas. Memory first
+averages samples per container, then containers per instance, and finally
+instances with equal app-level weight. It uses a flat 90% line. Health uses OOM
+and crash-loop event bars. These calculations explain alerts but do not create
+or resolve them.
 
 The Vercel feature flag `deploy-anomaly-alerts` gates all alert UI. It is
 registered in `web/apps/dashboard/lib/flags/index.ts`, defaults to off, and has
@@ -466,9 +502,11 @@ unkey dev seed alerts
 ```
 
 The alert seed writes 7 days of dense 5-minute telemetry, nine alerts, and
-deployment markers. Verify the open-alert inbox, each metric view, resolved
-focus through `?alert=<id>`, zoom, deployment toggle, read-only controls, and
-system resolution messages.
+deployment markers. It reads `deployanomaly.DefaultConfig(SensitivityNormal)`
+for sigma, the minimum standard deviation ratio, and all metric floors instead
+of maintaining separate thresholds. Verify the open-alert inbox, each metric
+view, resolved focus through `?alert=<id>`, alert pagination, zoom, deployment
+toggle, read-only controls, and system resolution messages.
 
 ## Scale characteristics
 
