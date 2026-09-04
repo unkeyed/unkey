@@ -6,7 +6,6 @@ import (
 
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/deploy/imageref"
-	"github.com/unkeyed/unkey/pkg/fault"
 	githubclient "github.com/unkeyed/unkey/pkg/github"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
@@ -54,7 +53,8 @@ func newRejectedSource(rejected *hydrav1.CreateRejectionReason) resolvedSource {
 }
 
 // resolveSource picks what the deployment builds from and completes the commit
-// metadata from GitHub.
+// metadata from GitHub. Without an explicit source the app's declared source
+// decides.
 func (w *Workflow) resolveSource(
 	ctx context.Context,
 	target db.FindDeployTargetRow,
@@ -63,18 +63,8 @@ func (w *Workflow) resolveSource(
 ) (resolvedSource, error) {
 	switch source := req.GetSource().(type) {
 	case *hydrav1.DeployCreateRequest_Image:
-		image := source.Image.GetImage()
-		if err := imageref.Validate(image); err != nil {
-			return newRejectedSource(rejectf(
-				hydrav1.CreateRejectionReason_CREATE_REJECTION_REASON_INVALID_IMAGE,
-				"%s", fault.UserFacingMessage(err),
-			)), nil
-		}
-		return resolvedSource{
-			Source:    buildSource{Image: image, Git: nil},
-			Commit:    commit,
-			Rejection: nil,
-		}, nil
+		// The caller's commit is recorded for display. None is looked up for an image.
+		return imageSource(source.Image.GetImage(), commit, imageref.Normalize), nil
 
 	case *hydrav1.DeployCreateRequest_Git:
 		return w.resolveGitSource(target, commit, source.Git.GetPrNumber())
@@ -84,8 +74,19 @@ func (w *Workflow) resolveSource(
 			source.ExistingDeployment.GetDeploymentId(), source.ExistingDeployment.GetRequireNoNewer())
 
 	default:
-		// No source means redeploy: the default branch head for a connected
-		// repository, otherwise the image the current deployment runs.
+		if target.SourceType == db.AppsSourceTypeGit {
+			return w.resolveGitSource(target, commit, 0)
+		}
+		if target.SourceType == db.AppsSourceTypeOci {
+			if target.OciImageReference.String == "" {
+				return newRejectedSource(rejectf(
+					hydrav1.CreateRejectionReason_CREATE_REJECTION_REASON_NO_SOURCE_IMAGE,
+					"OCI app %s has no image configured", target.AppID,
+				)), nil
+			}
+			return imageSource(target.OciImageReference.String, commit, imageref.Normalize), nil
+		}
+
 		if target.GithubRepositoryFullName.Valid {
 			return w.resolveGitSource(target, commit, 0)
 		}
@@ -97,8 +98,26 @@ func (w *Workflow) resolveSource(
 			)), nil
 		}
 		// The current deployment is the newest by definition, so requireNoNewer
-		// is moot.
+		// has nothing to check.
 		return w.resolveExistingDeployment(ctx, target, target.CurrentDeploymentID.String, false)
+	}
+}
+
+// imageSource normalizes a prebuilt image reference. Deploy refuses an implicit tag, so
+// a reference the caller chose gets [imageref.Normalize] and one read off an old
+// row gets [imageref.NormalizeHistorical].
+func imageSource(image string, commit gitCommit, normalize func(string) (string, error)) resolvedSource {
+	normalized, err := normalize(image)
+	if err != nil {
+		return newRejectedSource(rejectf(
+			hydrav1.CreateRejectionReason_CREATE_REJECTION_REASON_INVALID_IMAGE,
+			"%s", err.Error(),
+		))
+	}
+	return resolvedSource{
+		Source:    buildSource{Image: normalized, Git: nil},
+		Commit:    commit,
+		Rejection: nil,
 	}
 }
 
@@ -109,17 +128,36 @@ func (w *Workflow) resolveGitSource(
 	commit gitCommit,
 	prNumber int64,
 ) (resolvedSource, error) {
+	// A connection can outlive a switch to OCI, so the declared source wins.
+	if target.SourceType == db.AppsSourceTypeOci {
+		return newRejectedSource(rejectf(
+			hydrav1.CreateRejectionReason_CREATE_REJECTION_REASON_NO_REPO_CONNECTION,
+			"app %s deploys an OCI image and has no repository to build from", target.AppID,
+		)), nil
+	}
 	if !target.GithubRepositoryFullName.Valid {
 		return newRejectedSource(rejectf(
 			hydrav1.CreateRejectionReason_CREATE_REJECTION_REASON_NO_REPO_CONNECTION,
 			"app %s has no GitHub repo connection", target.AppID,
 		)), nil
 	}
+	// An app created as OCI gets no build settings row.
+	if !target.HasBuildSettings {
+		return newRejectedSource(rejectf(
+			hydrav1.CreateRejectionReason_CREATE_REJECTION_REASON_ENVIRONMENT_NOT_DEPLOYABLE,
+			"environment %q of app %s has no build settings", target.EnvironmentSlug, target.AppID,
+		)), nil
+	}
 
 	// A sha alone gets no default branch: it may not be on it, and sibling dedup
 	// keys on branch, so a wrong branch is worse than none.
 	if commit.SHA == "" && commit.Branch == "" {
-		commit.Branch = target.DefaultBranch
+		// GitHub reported the connection's branch. apps.default_branch is a
+		// placeholder on newer apps.
+		commit.Branch = target.GithubDefaultBranch.String
+		if commit.Branch == "" {
+			commit.Branch = target.DefaultBranch
+		}
 		if commit.Branch == "" {
 			commit.Branch = "main"
 		}
@@ -147,7 +185,7 @@ func (w *Workflow) resolveGitSource(
 			Git: &gitSource{
 				InstallationID: target.GithubInstallationID.Int64,
 				Repository:     target.GithubRepositoryFullName.String,
-				ContextPath:    target.DockerContext,
+				ContextPath:    target.DockerContext.String,
 				DockerfilePath: target.Dockerfile.String,
 				BuildCommand:   target.BuildCommand.String,
 				PRNumber:       prNumber,
@@ -158,8 +196,9 @@ func (w *Workflow) resolveGitSource(
 	}, nil
 }
 
-// resolveExistingDeployment rebuilds what another deployment ran: its commit
-// when the app still has a repository connection, otherwise its image.
+// resolveExistingDeployment reproduces what another deployment ran. The row's
+// recorded source decides: a git build is rebuilt from its commit, an image
+// deployment redeploys its image even if it recorded the commit it came from.
 func (w *Workflow) resolveExistingDeployment(
 	ctx context.Context,
 	target db.FindDeployTargetRow,
@@ -225,11 +264,28 @@ func (w *Workflow) resolveExistingDeployment(
 		ForkRepository:  src.ForkRepositoryFullName.String,
 	}
 
-	if commit.SHA != "" && target.GithubRepositoryFullName.Valid {
+	// A row from before sources were recorded is a git build if it has a commit.
+	gitBuild := src.Source == db.DeploymentsSourceGit ||
+		(src.Source == db.DeploymentsSourceUnknown && commit.SHA != "")
+	if gitBuild && commit.SHA != "" && target.GithubRepositoryFullName.Valid {
 		return w.resolveGitSource(target, commit, src.PrNumber.Int64)
 	}
+	// A rebuild that reused the image would rebuild nothing. Only a row that
+	// never recorded its source may fall back to one.
+	if src.Source == db.DeploymentsSourceGit {
+		return newRejectedSource(rejectf(
+			hydrav1.CreateRejectionReason_CREATE_REJECTION_REASON_NO_REPO_CONNECTION,
+			"git deployment %s has no commit and repository connection to rebuild from", src.ID,
+		)), nil
+	}
 
-	if !src.Image.Valid || src.Image.String == "" {
+	// Deploy pins the digest it ran into image_resolved. Rows from before that
+	// hold only image, possibly with an implicit tag.
+	image := src.ImageResolved.String
+	if image == "" {
+		image = src.Image.String
+	}
+	if image == "" {
 		return newRejectedSource(rejectf(
 			hydrav1.CreateRejectionReason_CREATE_REJECTION_REASON_NO_SOURCE_IMAGE,
 			"deployment %s has neither a rebuildable commit nor an image",
@@ -240,13 +296,9 @@ func (w *Workflow) resolveExistingDeployment(
 	logger.Info(
 		"deployment will reuse an existing deployment's image",
 		"source_deployment_id", src.ID,
-		"image", src.Image.String,
+		"image", image,
 	)
-	return resolvedSource{
-		Source:    buildSource{Image: src.Image.String, Git: nil},
-		Commit:    commit,
-		Rejection: nil,
-	}, nil
+	return imageSource(image, commit, imageref.NormalizeHistorical), nil
 }
 
 // fillCommitFromGitHub fills the commit's empty fields from GitHub. The public

@@ -896,8 +896,9 @@ type DeployCreateRequest struct {
 	AppId     string                 `protobuf:"bytes,2,opt,name=app_id,json=appId,proto3" json:"app_id,omitempty"`
 	// Environment id or slug.
 	Environment string `protobuf:"bytes,3,opt,name=environment,proto3" json:"environment,omitempty"`
-	// Unset means redeploy: the head of the default branch for a connected
-	// repository, otherwise the image the current deployment runs.
+	// Unset means redeploy what the app declares: the default branch head for a
+	// Git app, the configured image for an OCI app. An app with no declared source
+	// uses its repository connection, else the image its current deployment runs.
 	//
 	// Types that are valid to be assigned to Source:
 	//
