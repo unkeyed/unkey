@@ -2749,10 +2749,6 @@ type Querier interface {
 	//          WHEN CAST(? AS UNSIGNED) = 1 THEN ?
 	//          ELSE a.slug
 	//      END,
-	//      default_branch = CASE
-	//          WHEN CAST(? AS UNSIGNED) = 1 THEN ?
-	//          ELSE a.default_branch
-	//      END,
 	//      delete_protection = CASE
 	//          WHEN CAST(? AS UNSIGNED) = 1 THEN ?
 	//          ELSE a.delete_protection

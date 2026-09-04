@@ -26,6 +26,13 @@ properties:
     anyOf:
       - "$ref": "../../../../common/AppGitUpdateInput.yaml"
       - type: "null"
+  oci:
+    description: |
+      Change the default image reference for an OCI-sourced app. This does not
+      create a deployment. It can be combined with other app settings. Source
+      switching is not supported.
+    allOf:
+      - "$ref": "../../../../common/AppOCI.yaml"
   deleteProtection:
     type: boolean
     description: |
@@ -33,6 +40,7 @@ properties:
       Omit this field to leave the current setting unchanged.
     example: true
 additionalProperties: false
+description: Provide at least one field to update. Omitted fields remain unchanged.
 examples:
   rename:
     summary: Rename an app by ID
@@ -79,3 +87,11 @@ examples:
       project: payments
       app: app_1234abcd
       git: null
+  updateOCIImage:
+    summary: Change the default OCI image
+    description: Update an OCI-sourced app without creating a deployment
+    value:
+      project: payments
+      app: app_1234abcd
+      oci:
+        image: ghcr.io/acme/payments:v2.0.0
