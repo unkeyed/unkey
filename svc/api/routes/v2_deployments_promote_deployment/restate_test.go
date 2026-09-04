@@ -14,38 +14,38 @@ import (
 // observedPromotion contains the Restate object key and typed request.
 type observedPromotion struct {
 	virtualObjectKey string
-	request          *hydrav1.PromoteRequest
+	request          *hydrav1.PromoteDeploymentRequest
 }
 
-// recordingDeployService captures Promote invocations for assertions.
-type recordingDeployService struct {
-	hydrav1.UnimplementedDeployServiceServer
+// recordingEnvironmentService captures PromoteDeployment invocations for assertions.
+type recordingEnvironmentService struct {
+	hydrav1.UnimplementedEnvironmentServiceServer
 	promotions chan observedPromotion
 }
 
-// Promote records the object key and typed payload received through Restate.
-func (service *recordingDeployService) Promote(ctx restate.ObjectContext, request *hydrav1.PromoteRequest) (*hydrav1.PromoteResponse, error) {
+// PromoteDeployment records the object key and typed payload received through Restate.
+func (service *recordingEnvironmentService) PromoteDeployment(ctx restate.ObjectContext, request *hydrav1.PromoteDeploymentRequest) (*hydrav1.PromoteDeploymentResponse, error) {
 	service.promotions <- observedPromotion{
 		virtualObjectKey: restate.Key(ctx),
 		request:          request,
 	}
-	return &hydrav1.PromoteResponse{}, nil
+	return &hydrav1.PromoteDeploymentResponse{}, nil
 }
 
-// newRecordingRestate starts an isolated Restate server whose DeployService
-// reports each Promote invocation to the returned channel.
+// newRecordingRestate starts an isolated Restate server whose EnvironmentService
+// reports each PromoteDeployment invocation to the returned channel.
 func newRecordingRestate(t *testing.T) (*restateingress.Client, <-chan observedPromotion) {
 	t.Helper()
 
-	recorder := &recordingDeployService{
+	recorder := &recordingEnvironmentService{
 		promotions: make(chan observedPromotion, 1),
 	}
-	restateConfig := containers.Restate(t, hydrav1.NewDeployServiceServer(recorder))
+	restateConfig := containers.Restate(t, hydrav1.NewEnvironmentServiceServer(recorder))
 
 	return restateingress.NewClient(restateConfig.IngressURL), recorder.promotions
 }
 
-// newUncalledRestate fails during cleanup if DeployService was invoked.
+// newUncalledRestate fails during cleanup if EnvironmentService was invoked.
 func newUncalledRestate(t *testing.T) *restateingress.Client {
 	t.Helper()
 

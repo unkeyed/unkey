@@ -124,13 +124,13 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	_, err = hydrav1.NewDeployServiceIngressClient(h.Restate, source.ID).
-		Rollback().
-		Send(ctx, &hydrav1.RollbackRequest{
-			SourceDeploymentId: source.ID,
-			TargetDeploymentId: dep.ID,
-			Actor:              actor,
-			CorrelationId:      auditlog.NewCorrelationID(),
+	_, err = hydrav1.NewEnvironmentServiceIngressClient(h.Restate, dep.EnvironmentID).
+		RollbackDeployment().
+		Send(ctx, &hydrav1.RollbackDeploymentRequest{
+			FromDeploymentId: source.ID,
+			ToDeploymentId:   dep.ID,
+			Actor:            actor,
+			CorrelationId:    auditlog.NewCorrelationID(),
 		})
 	if err != nil {
 		return fault.Wrap(

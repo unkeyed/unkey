@@ -10,16 +10,16 @@ The control plane deployment service creates deployment records and delegates ex
 Each Restate VO uses the narrowest key that gives the serialization it needs:
 
 - **`DeployService`** is keyed by `deployment_id`. Each deployment runs as its own isolated workflow, so multiple deployments in the same environment can build in parallel.
-- **`RoutingService`** is keyed by `env_id`. All routing changes for an environment (frontline route assignment + the live-deployment swap) serialize here, so concurrent deploys/rollbacks/promotes for the same env can never race on `apps.current_deployment_id`.
+- **`EnvironmentService`** is keyed by `environment_id`. Promote and rollback run here. Both change which deployment is live in one environment, and both check the live pointer before they swap it. One key holds the check and the swap under one lock. With separate keys, two operations on the same environment can pass their checks against the same live pointer and then swap one after the other.
+- **`RoutingService`** is keyed by `env_id`. Frontline route assignment and the live-deployment swap serialize here. It is the write primitive that `DeployService` and `EnvironmentService` call.
 - **`BuildSlotService`** is keyed by `workspace_id`. Caps how many deployments build at once across the workspace and prioritises production over preview waiters.
 - **`DeploymentService`** (delayed desired-state transitions) is keyed by `deployment_id`.
-
-Rollback and Promote are themselves workflows but they don't need their own env-keyed gate — the actual mutation goes through `RoutingService.SwapLiveDeployment`, which is per-env serialized.
 
 Key components:
 
 - Control API deployment service — [`svc/ctrl/services/deployment`](https://github.com/unkeyed/unkey/blob/main/svc/ctrl/services/deployment)
 - `DeployService` Restate workflow — [`svc/ctrl/worker/deploy`](https://github.com/unkeyed/unkey/blob/main/svc/ctrl/worker/deploy)
+- `EnvironmentService` (promote, rollback, environment deletion): [`svc/ctrl/worker/environment`](https://github.com/unkeyed/unkey/blob/main/svc/ctrl/worker/environment)
 - `RoutingService` (route assignment + live swap) — [`svc/ctrl/worker/routing`](https://github.com/unkeyed/unkey/blob/main/svc/ctrl/worker/routing)
 - `DeploymentService` VO for delayed desired-state transitions — [`svc/ctrl/worker/deployment`](https://github.com/unkeyed/unkey/blob/main/svc/ctrl/worker/deployment)
 - `BuildSlotService` VO for per-workspace build concurrency — [`svc/ctrl/worker/buildslot`](https://github.com/unkeyed/unkey/blob/main/svc/ctrl/worker/buildslot)
@@ -88,13 +88,14 @@ sequenceDiagram
   actor Client
   participant CtrlAPI as Control API
   participant Restate as Restate
-  participant Worker as DeployService<br/>(deployment_id key)
+  participant Worker as EnvironmentService<br/>(environment_id key)
   participant Routing as RoutingService<br/>(env_id key)
 
   Client->>CtrlAPI: Promote(deployment_id)
-  CtrlAPI->>Restate: DeployService.Promote (key: target deployment_id)
-  Restate->>Worker: Execute promote workflow
-  Worker->>Routing: SwapLiveDeployment(target, routes, set_rollback_flag=false)
+  CtrlAPI->>Restate: EnvironmentService.PromoteDeployment (key: environment_id)
+  Restate->>Worker: Execute promote handler
+  Worker->>Worker: Load deployment with app live pointer, gate check
+  Worker->>Routing: SwapLiveDeployment(deployment, sticky_routes, set_rollback_flag=false)
   Routing-->>Worker: previous_deployment_id (atomically swapped)
   Worker->>Worker: Schedule previous to stop
 ```
@@ -106,13 +107,14 @@ sequenceDiagram
   actor Client
   participant CtrlAPI as Control API
   participant Restate as Restate
-  participant Worker as DeployService<br/>(deployment_id key)
+  participant Worker as EnvironmentService<br/>(environment_id key)
   participant Routing as RoutingService<br/>(env_id key)
 
-  Client->>CtrlAPI: Rollback(source_id, target_id)
-  CtrlAPI->>Restate: DeployService.Rollback (key: source deployment_id)
-  Restate->>Worker: Execute rollback workflow
-  Worker->>Routing: SwapLiveDeployment(target, sticky_routes, set_rollback_flag=true)
+  Client->>CtrlAPI: Rollback(deployment_id)
+  CtrlAPI->>Restate: EnvironmentService.RollbackDeployment(from=live, to=deployment_id) (key: environment_id)
+  Restate->>Worker: Execute rollback handler
+  Worker->>Worker: Load both deployments, refuse if from is no longer live, gate check
+  Worker->>Routing: SwapLiveDeployment(to, sticky_routes, set_rollback_flag=true)
   Routing-->>Worker: previous_deployment_id (atomically swapped)
 ```
 
