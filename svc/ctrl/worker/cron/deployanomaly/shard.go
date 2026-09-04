@@ -156,7 +156,7 @@ func (h *ShardHandler) EvaluateShard(
 		return nil, fault.Wrap(err, fault.Internal("read resource anomaly candidates"))
 	}
 	eventQuery := baseRequest
-	eventQuery.SkipFleet = !completeness.InstanceEvents.Complete
+	eventQuery.SkipFleet = false
 	eventWindows, err := restate.Run(ctx, func(rc restate.RunContext) ([]clickhouse.InstanceEventAnomalyWindow, error) {
 		return h.clickhouse.GetInstanceEventAnomalyWindows(rc, eventQuery)
 	}, restate.WithName("read instance event anomaly candidates"))
@@ -364,7 +364,13 @@ func evaluateMetrics(group groupWindow, windowStart int64, completeness ingestCo
 	requestState := metricDataState(requestPresent, completeness.Requests.Complete)
 	resourcePresent := group.resource != nil && group.resource.CurrentBucketPresent
 	resourceState := metricDataState(resourcePresent, completeness.Resources.Complete)
-	eventState := metricDataState(group.events != nil, completeness.InstanceEvents.Complete)
+	// Lifecycle events are sparse and their ctrl buffer is lossy. A present event
+	// is actionable; a quiet window uses the resource pipeline clock only to
+	// advance recovery, not as proof that every lifecycle event was ingested.
+	eventState := metricDataState(group.events != nil, completeness.Resources.Complete)
+	if group.events != nil {
+		eventState = hydrav1.DeployAnomalyMetricDataState_DEPLOY_ANOMALY_METRIC_DATA_STATE_PRESENT
+	}
 
 	metrics := make([]*hydrav1.DeployAnomalyMetricInput, 0, 9)
 	if row := group.request; row != nil {
@@ -417,16 +423,14 @@ type sourceStatus struct {
 }
 
 type ingestCompleteness struct {
-	Requests       sourceStatus
-	Resources      sourceStatus
-	InstanceEvents sourceStatus
+	Requests  sourceStatus
+	Resources sourceStatus
 }
 
 func sourceCompleteness(watermarks clickhouse.AnomalySourceWatermarks, windowEnd int64) ingestCompleteness {
 	return ingestCompleteness{
-		Requests:       sourceStatusFor(watermarks, clickhouse.AnomalySourceRequests, windowEnd),
-		Resources:      sourceStatusFor(watermarks, clickhouse.AnomalySourceResources, windowEnd),
-		InstanceEvents: sourceStatusFor(watermarks, clickhouse.AnomalySourceInstanceEvents, windowEnd),
+		Requests:  sourceStatusFor(watermarks, clickhouse.AnomalySourceRequests, windowEnd),
+		Resources: sourceStatusFor(watermarks, clickhouse.AnomalySourceResources, windowEnd),
 	}
 }
 
@@ -457,7 +461,6 @@ func logIncompleteSources(shard uint64, windowEnd int64, completeness ingestComp
 	}{
 		{source: clickhouse.AnomalySourceRequests, status: completeness.Requests},
 		{source: clickhouse.AnomalySourceResources, status: completeness.Resources},
-		{source: clickhouse.AnomalySourceInstanceEvents, status: completeness.InstanceEvents},
 	} {
 		if item.status.Complete {
 			continue

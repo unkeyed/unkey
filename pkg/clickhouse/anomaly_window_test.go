@@ -208,9 +208,8 @@ func TestAnomalyWindows(t *testing.T) {
 		require.NoError(t, conn.Exec(ctx, `
 			INSERT INTO anomaly_source_watermarks_v1 (source, region, time) VALUES
 				('requests', ?, ?),
-				('resources', ?, ?),
-				('instance_events', ?, ?)
-		`, region, bucket, region, bucket.Add(4*time.Minute), region, bucket))
+				('resources', ?, ?)
+		`, region, bucket, region, bucket.Add(4*time.Minute)))
 
 		watermarks, err := client.GetAnomalySourceWatermarks(ctx)
 		require.NoError(t, err)
@@ -222,7 +221,6 @@ func TestAnomalyWindows(t *testing.T) {
 		}
 		require.Equal(t, bucket.Add(5*time.Minute).UnixMilli(), bySource[clickhouse.AnomalySourceRequests].Watermark)
 		require.Equal(t, bucket.Add(5*time.Minute).UnixMilli(), bySource[clickhouse.AnomalySourceResources].Watermark)
-		require.Equal(t, bucket.Add(5*time.Minute).UnixMilli(), bySource[clickhouse.AnomalySourceInstanceEvents].Watermark)
 	})
 }
 
