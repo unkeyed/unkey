@@ -26,7 +26,7 @@ const envDeletedMessage = "Environment deleted"
 // This handler is the single chokepoint for deployment row deletion;
 // project and app deletes fan out to here via the virtual object cascade.
 //
-// Key: environment_id.
+// Key: environment_id
 func (s *Service) Delete(
 	ctx restate.ObjectContext,
 	req *hydrav1.DeleteEnvironmentRequest,
