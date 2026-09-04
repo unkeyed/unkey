@@ -355,13 +355,27 @@ func TestParseThresholdsRejectsInvalidConfiguration(t *testing.T) {
 		{name: "unknown field", old: `"sigmaK": 4`, replace: `"sigmaK": 4, "unknown": 1`, wantErr: "unknown field"},
 		{name: "zero sigma", old: `"sigmaK": 4`, replace: `"sigmaK": 0`, wantErr: "sigmaK must be"},
 		{name: "invalid sensitivity offset", old: `"low": 1`, replace: `"low": -1`, wantErr: "sensitivitySigmaOffsets.low"},
+		{
+			name: "overflowed sensitivity sigma",
+			old: `"sigmaK": 4,
+  "sensitivitySigmaOffsets": {
+    "low": 1`,
+			replace: `"sigmaK": 9e307,
+  "sensitivitySigmaOffsets": {
+    "low": 9e307`,
+			wantErr: "sigmaK plus sensitivitySigmaOffsets.low",
+		},
 		{name: "ratio above one", old: `"minimumStddevRatio": 0.1`, replace: `"minimumStddevRatio": 1.1`, wantErr: "minimumStddevRatio"},
 		{name: "missing stddev floor", old: ",\n    \"cpu_seconds\": 1", replace: "", wantErr: "stddevFloors must contain"},
 		{name: "zero baseline minimum", old: `"requests_drop": 72`, replace: `"requests_drop": 0`, wantErr: "baselineMinimums.requests_drop"},
 		{name: "zero activity floor", old: `"cpuSeconds": 60`, replace: `"cpuSeconds": 0`, wantErr: "activityFloors.cpuSeconds"},
 		{name: "invalid drop ratio", old: `"recentLevelFraction": 0.25`, replace: `"recentLevelFraction": 0`, wantErr: "requestDrop.recentLevelFraction"},
+		{name: "recovery memory reaches activity floor", old: `"memoryUtilization": 0.85`, replace: `"memoryUtilization": 0.9`, wantErr: "recovery.memoryUtilization"},
+		{name: "recovery reduction reaches sensitivity sigma", old: `"sigmaReduction": 1`, replace: `"sigmaReduction": 3`, wantErr: "recovery.sigmaReduction"},
 		{name: "invalid recovery windows", old: `"consecutiveWindows": 3`, replace: `"consecutiveWindows": 0`, wantErr: "recovery.consecutiveWindows"},
 		{name: "invalid max duration", old: `"maxOpenDurationSeconds": 86400`, replace: `"maxOpenDurationSeconds": 0`, wantErr: "maxOpenDurationSeconds"},
+		{name: "max duration exceeds policy", old: `"maxOpenDurationSeconds": 86400`, replace: `"maxOpenDurationSeconds": 2592001`, wantErr: "must not exceed 30 days"},
+		{name: "max duration overflows time duration", old: `"maxOpenDurationSeconds": 86400`, replace: `"maxOpenDurationSeconds": 9223372037`, wantErr: "must fit time.Duration"},
 	}
 
 	for _, test := range tests {
