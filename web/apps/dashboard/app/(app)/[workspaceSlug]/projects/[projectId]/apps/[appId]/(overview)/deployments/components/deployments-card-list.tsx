@@ -1,65 +1,101 @@
 "use client";
 
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
-import { collection } from "@/lib/collections";
 import { routes } from "@/lib/navigation/routes";
-import { and, eq, useLiveQuery } from "@tanstack/react-db";
 import { BookBookmark } from "@unkey/icons";
-import { Button, Empty, ResourceListBody, ResourceListContent } from "@unkey/ui";
-import { useAppId, useProjectData } from "../../data-provider";
+import {
+  Button,
+  Empty,
+  ResourceListBody,
+  ResourceListContent,
+  ResourceListFooter,
+} from "@unkey/ui";
+import { useProjectData } from "../../data-provider";
+import { useAppCurrentDeployment } from "../../hooks/use-app-current-deployment";
 import { useDeployments } from "../hooks/use-deployments";
+import { useFilters } from "../hooks/use-filters";
 import { DeploymentRow } from "./deployment-row";
 import { DeploymentsSkeleton } from "./deployments-skeleton";
 
 type DeploymentsCardListProps = {
+  // Caps the list at one page of this size with no Load more.
   limit?: number;
 };
 
 export function DeploymentsCardList({ limit }: DeploymentsCardListProps = {}) {
-  const { deployments } = useDeployments();
+  const {
+    rows,
+    isLoading,
+    isError,
+    refetch,
+    isFiltered,
+    hasNextPage,
+    isFetchingNextPage,
+    fetchNextPage,
+  } = useDeployments(limit);
+  const { updateFilters } = useFilters();
   const { projectId } = useProjectData();
-  const appId = useAppId();
-  const appsQuery = useLiveQuery(
-    (q) =>
-      q
-        .from({ app: collection.apps })
-        .where(({ app }) => and(eq(app.projectId, projectId), eq(app.id, appId))),
-    [projectId, appId],
-  );
-  const app = appsQuery.data?.[0];
-  const currentDeploymentId = app?.currentDeploymentId;
+  const { currentDeployment, isRolledBack } = useAppCurrentDeployment();
   const workspace = useWorkspaceNavigation();
 
-  if (deployments.isLoading) {
+  if (isLoading) {
     return <DeploymentsSkeleton />;
   }
 
-  const data = typeof limit === "number" ? deployments.data.slice(0, limit) : deployments.data;
+  if (isError && rows.length === 0) {
+    return (
+      <ResourceListContent>
+        <div className="flex w-full items-center justify-center gap-3 px-4 py-16">
+          <span role="alert" className="text-error-11 text-sm">
+            We couldn't load deployments.
+          </span>
+          <Button size="md" variant="outline" onClick={() => refetch()}>
+            Retry
+          </Button>
+        </div>
+      </ResourceListContent>
+    );
+  }
 
-  if (data.length === 0) {
+  if (rows.length === 0) {
     return (
       <ResourceListContent>
         <div className="flex w-full items-center justify-center px-4 py-16">
-          <Empty className="w-[400px] flex items-start">
-            <Empty.Icon className="w-auto" />
-            <Empty.Title>No Deployments Found</Empty.Title>
-            <Empty.Description className="text-left">
-              There are no deployments yet. Push to your connected repository or trigger a manual
-              deployment to get started.
-            </Empty.Description>
-            <Empty.Actions className="mt-4 justify-start">
-              <a
-                href="https://www.unkey.com/docs/build-and-deploy/deployments"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <Button size="md">
-                  <BookBookmark />
-                  Learn about Deployments
+          {isFiltered ? (
+            <Empty className="w-[400px] flex items-start">
+              <Empty.Icon className="w-auto" />
+              <Empty.Title>No deployments match these filters</Empty.Title>
+              <Empty.Description className="text-left">
+                Widen the environment, status, branch or time range to see more deployments.
+              </Empty.Description>
+              <Empty.Actions className="mt-4 justify-start">
+                <Button size="md" variant="outline" onClick={() => updateFilters([])}>
+                  Clear filters
                 </Button>
-              </a>
-            </Empty.Actions>
-          </Empty>
+              </Empty.Actions>
+            </Empty>
+          ) : (
+            <Empty className="w-[400px] flex items-start">
+              <Empty.Icon className="w-auto" />
+              <Empty.Title>No Deployments Found</Empty.Title>
+              <Empty.Description className="text-left">
+                There are no deployments yet. Push to your connected repository or trigger a manual
+                deployment to get started.
+              </Empty.Description>
+              <Empty.Actions className="mt-4 justify-start">
+                <a
+                  href="https://www.unkey.com/docs/build-and-deploy/deployments"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <Button size="md">
+                    <BookBookmark />
+                    Learn about Deployments
+                  </Button>
+                </a>
+              </Empty.Actions>
+            </Empty>
+          )}
         </div>
       </ResourceListContent>
     );
@@ -68,25 +104,35 @@ export function DeploymentsCardList({ limit }: DeploymentsCardListProps = {}) {
   return (
     <ResourceListContent>
       <ResourceListBody>
-        {data.map(({ deployment, environment }) => {
-          const isCurrent = currentDeploymentId === deployment.id;
-          return (
-            <DeploymentRow
-              key={deployment.id}
-              deployment={deployment}
-              environment={environment}
-              isCurrent={isCurrent}
-              isRolledBack={isCurrent && (app?.isRolledBack ?? false)}
-              href={routes.projects.apps.deployment({
-                workspaceSlug: workspace.slug,
-                projectId,
-                appId: deployment.appId,
-                deploymentId: deployment.id,
-              })}
-            />
-          );
-        })}
+        {rows.map(({ deployment, environment }) => (
+          <DeploymentRow
+            key={deployment.id}
+            deployment={deployment}
+            environment={environment}
+            currentDeployment={currentDeployment}
+            isRolledBack={isRolledBack}
+            href={routes.projects.apps.deployment({
+              workspaceSlug: workspace.slug,
+              projectId,
+              appId: deployment.appId,
+              deploymentId: deployment.id,
+            })}
+          />
+        ))}
       </ResourceListBody>
+      {limit === undefined && hasNextPage && (
+        <ResourceListFooter>
+          <Button
+            size="md"
+            variant="outline"
+            disabled={isFetchingNextPage}
+            loading={isFetchingNextPage}
+            onClick={() => fetchNextPage()}
+          >
+            Load more
+          </Button>
+        </ResourceListFooter>
+      )}
     </ResourceListContent>
   );
 }
