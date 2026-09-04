@@ -1,6 +1,7 @@
 package deployanomaly
 
 import (
+	"strings"
 	"testing"
 	"time"
 
@@ -330,7 +331,6 @@ func TestDefaultConfigMatchesSharedThresholds(t *testing.T) {
 	cfg := DefaultConfig(SensitivityNormal)
 	require.Equal(t, productionThresholds.SigmaK, cfg.SigmaK)
 	require.Equal(t, productionThresholds.MinimumStddevRatio, cfg.MinimumStddevRatio)
-	require.Equal(t, productionThresholds.MinimumLifetimeBuckets, cfg.BaselineMinimums.Requests)
 	require.Equal(t, productionThresholds.StddevFloors[MetricError5xx], cfg.StddevFloors.Error5xxRatio)
 	require.Equal(t, productionThresholds.StddevFloors[MetricError4xx], cfg.StddevFloors.Error4xxRatio)
 	require.Equal(t, productionThresholds.StddevFloors[MetricRequests], cfg.StddevFloors.Requests)
@@ -343,6 +343,45 @@ func TestDefaultConfigMatchesSharedThresholds(t *testing.T) {
 	require.Equal(t, time.Duration(productionThresholds.MaxOpenDurationSeconds)*time.Second, cfg.MaxOpenDuration)
 	require.False(t, ShouldResolve(cfg.Recovery.ConsecutiveWindows-1, cfg.Recovery.ConsecutiveWindows))
 	require.True(t, ShouldResolve(cfg.Recovery.ConsecutiveWindows, cfg.Recovery.ConsecutiveWindows))
+}
+
+func TestParseThresholdsRejectsInvalidConfiguration(t *testing.T) {
+	tests := []struct {
+		name    string
+		old     string
+		replace string
+		wantErr string
+	}{
+		{name: "unknown field", old: `"sigmaK": 4`, replace: `"sigmaK": 4, "unknown": 1`, wantErr: "unknown field"},
+		{name: "zero sigma", old: `"sigmaK": 4`, replace: `"sigmaK": 0`, wantErr: "sigmaK must be"},
+		{name: "invalid sensitivity offset", old: `"low": 1`, replace: `"low": -1`, wantErr: "sensitivitySigmaOffsets.low"},
+		{name: "ratio above one", old: `"minimumStddevRatio": 0.1`, replace: `"minimumStddevRatio": 1.1`, wantErr: "minimumStddevRatio"},
+		{name: "missing stddev floor", old: ",\n    \"cpu_seconds\": 1", replace: "", wantErr: "stddevFloors must contain"},
+		{name: "zero baseline minimum", old: `"requests_drop": 72`, replace: `"requests_drop": 0`, wantErr: "baselineMinimums.requests_drop"},
+		{name: "zero activity floor", old: `"cpuSeconds": 60`, replace: `"cpuSeconds": 0`, wantErr: "activityFloors.cpuSeconds"},
+		{name: "invalid drop ratio", old: `"recentLevelFraction": 0.25`, replace: `"recentLevelFraction": 0`, wantErr: "requestDrop.recentLevelFraction"},
+		{name: "invalid recovery windows", old: `"consecutiveWindows": 3`, replace: `"consecutiveWindows": 0`, wantErr: "recovery.consecutiveWindows"},
+		{name: "invalid max duration", old: `"maxOpenDurationSeconds": 86400`, replace: `"maxOpenDurationSeconds": 0`, wantErr: "maxOpenDurationSeconds"},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			data := strings.Replace(string(thresholdData), test.old, test.replace, 1)
+			require.NotEqual(t, string(thresholdData), data, "test mutation must match embedded JSON")
+			_, err := parseThresholds([]byte(data))
+			require.ErrorContains(t, err, test.wantErr)
+		})
+	}
+}
+
+func TestParseThresholdsRejectsTrailingJSONValue(t *testing.T) {
+	_, err := parseThresholds(append(append([]byte(nil), thresholdData...), []byte("\n{}")...))
+	require.ErrorContains(t, err, "multiple JSON values")
+}
+
+func TestParseThresholdsAcceptsEmbeddedConfiguration(t *testing.T) {
+	_, err := parseThresholds(thresholdData)
+	require.NoError(t, err)
 }
 
 func TestDetectSigmaIsScaleInvariant(t *testing.T) {

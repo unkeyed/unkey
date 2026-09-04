@@ -1,9 +1,11 @@
 package deployanomaly
 
 import (
+	"bytes"
 	_ "embed"
 	"encoding/json"
 	"fmt"
+	"io"
 	"math"
 	"sort"
 	"time"
@@ -20,7 +22,6 @@ var thresholdData []byte
 type thresholdFile struct {
 	SigmaK                  float64                 `json:"sigmaK"`
 	SensitivitySigmaOffsets sensitivitySigmaOffsets `json:"sensitivitySigmaOffsets"`
-	MinimumLifetimeBuckets  int64                   `json:"minimumLifetimeBuckets"`
 	MinimumStddevRatio      float64                 `json:"minimumStddevRatio"`
 	StddevFloors            map[Metric]float64      `json:"stddevFloors"`
 	BaselineMinimums        map[Metric]int64        `json:"baselineMinimums"`
@@ -39,11 +40,136 @@ type sensitivitySigmaOffsets struct {
 var productionThresholds = loadThresholds()
 
 func loadThresholds() thresholdFile {
-	var thresholds thresholdFile
-	if err := json.Unmarshal(thresholdData, &thresholds); err != nil {
-		panic(fmt.Sprintf("parse embedded deploy anomaly thresholds: %s", err))
+	thresholds, err := parseThresholds(thresholdData)
+	if err != nil {
+		panic(fmt.Sprintf("invalid embedded deploy anomaly thresholds: %s", err))
 	}
 	return thresholds
+}
+
+func parseThresholds(data []byte) (thresholdFile, error) {
+	var thresholds thresholdFile
+	decoder := json.NewDecoder(bytes.NewReader(data))
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(&thresholds); err != nil {
+		return thresholdFile{}, fmt.Errorf("decode thresholds: %w", err)
+	}
+	if err := decoder.Decode(&struct{}{}); err != io.EOF {
+		if err == nil {
+			return thresholdFile{}, fmt.Errorf("decode thresholds: multiple JSON values")
+		}
+		return thresholdFile{}, fmt.Errorf("decode trailing thresholds data: %w", err)
+	}
+	if err := validateThresholds(thresholds); err != nil {
+		return thresholdFile{}, err
+	}
+	return thresholds, nil
+}
+
+func validateThresholds(thresholds thresholdFile) error {
+	if err := positiveThreshold("sigmaK", thresholds.SigmaK); err != nil {
+		return err
+	}
+	if err := positiveThreshold("sensitivitySigmaOffsets.low", thresholds.SensitivitySigmaOffsets.Low); err != nil {
+		return err
+	}
+	if !finite(thresholds.SensitivitySigmaOffsets.High) || thresholds.SensitivitySigmaOffsets.High >= 0 {
+		return fmt.Errorf("sensitivitySigmaOffsets.high must be finite and negative")
+	}
+	if thresholds.SigmaK+thresholds.SensitivitySigmaOffsets.High <= 0 {
+		return fmt.Errorf("sensitivitySigmaOffsets.high must keep sigmaK positive")
+	}
+	if err := ratioThreshold("minimumStddevRatio", thresholds.MinimumStddevRatio); err != nil {
+		return err
+	}
+
+	stddevMetrics := []Metric{MetricError5xx, MetricError4xx, MetricRequests, MetricEgressBytes, MetricCPUSeconds}
+	if len(thresholds.StddevFloors) != len(stddevMetrics) {
+		return fmt.Errorf("stddevFloors must contain exactly %d metrics", len(stddevMetrics))
+	}
+	for _, metric := range stddevMetrics {
+		if err := positiveThreshold("stddevFloors."+string(metric), thresholds.StddevFloors[metric]); err != nil {
+			return err
+		}
+	}
+
+	baselineMetrics := append(append([]Metric(nil), stddevMetrics...), MetricRequestsDrop)
+	if len(thresholds.BaselineMinimums) != len(baselineMetrics) {
+		return fmt.Errorf("baselineMinimums must contain exactly %d metrics", len(baselineMetrics))
+	}
+	for _, metric := range baselineMetrics {
+		if thresholds.BaselineMinimums[metric] <= 0 || thresholds.BaselineMinimums[metric] > maximumBaselineBuckets {
+			return fmt.Errorf("baselineMinimums.%s must be between 1 and %d", metric, maximumBaselineBuckets)
+		}
+	}
+
+	positiveValues := []struct {
+		name  string
+		value float64
+	}{
+		{name: "activityFloors.errorExcessFailures", value: thresholds.ActivityFloors.ErrorExcessFailures},
+		{name: "activityFloors.requests", value: thresholds.ActivityFloors.Requests},
+		{name: "activityFloors.egressBytes", value: thresholds.ActivityFloors.EgressBytes},
+		{name: "activityFloors.cpuSeconds", value: thresholds.ActivityFloors.CPUSeconds},
+		{name: "activityFloors.oomKilled", value: thresholds.ActivityFloors.OOMKilled},
+		{name: "activityFloors.crashLoop", value: thresholds.ActivityFloors.CrashLoop},
+		{name: "requestDrop.activityPerBucket", value: thresholds.RequestDrop.ActivityPerBucket},
+		{name: "requestDrop.minimumAbsoluteLoss", value: thresholds.RequestDrop.MinimumAbsoluteLoss},
+		{name: "catastrophic.error5xxFailures", value: thresholds.Catastrophic.Error5xxFailures},
+		{name: "recovery.sigmaReduction", value: thresholds.Recovery.SigmaReduction},
+	}
+	for _, item := range positiveValues {
+		if err := positiveThreshold(item.name, item.value); err != nil {
+			return err
+		}
+	}
+
+	ratioValues := []struct {
+		name  string
+		value float64
+	}{
+		{name: "activityFloors.memoryUtilization", value: thresholds.ActivityFloors.MemoryUtilization},
+		{name: "requestDrop.recentLevelFraction", value: thresholds.RequestDrop.RecentLevelFraction},
+		{name: "catastrophic.error5xxRatio", value: thresholds.Catastrophic.Error5xxRatio},
+		{name: "recovery.memoryUtilization", value: thresholds.Recovery.MemoryUtilization},
+	}
+	for _, item := range ratioValues {
+		if err := ratioThreshold(item.name, item.value); err != nil {
+			return err
+		}
+	}
+
+	if thresholds.RequestDrop.MinimumActiveBuckets <= 0 || thresholds.RequestDrop.MinimumActiveBuckets > 12 {
+		return fmt.Errorf("requestDrop.minimumActiveBuckets must be between 1 and 12")
+	}
+	if thresholds.Recovery.SigmaReduction > thresholds.SigmaK {
+		return fmt.Errorf("recovery.sigmaReduction must not exceed sigmaK")
+	}
+	if thresholds.Recovery.ConsecutiveWindows <= 0 {
+		return fmt.Errorf("recovery.consecutiveWindows must be positive")
+	}
+	if thresholds.MaxOpenDurationSeconds <= 0 {
+		return fmt.Errorf("maxOpenDurationSeconds must be positive")
+	}
+	return nil
+}
+
+func positiveThreshold(name string, value float64) error {
+	if !finite(value) || value <= 0 {
+		return fmt.Errorf("%s must be finite and positive", name)
+	}
+	return nil
+}
+
+func ratioThreshold(name string, value float64) error {
+	if !finite(value) || value <= 0 || value > 1 {
+		return fmt.Errorf("%s must be finite, greater than 0, and at most 1", name)
+	}
+	return nil
+}
+
+func finite(value float64) bool {
+	return !math.IsNaN(value) && !math.IsInf(value, 0)
 }
 
 type Metric string
