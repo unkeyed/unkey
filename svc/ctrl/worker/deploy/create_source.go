@@ -12,8 +12,8 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
 
-// gitCommit holds the git metadata a deployment row records. An empty field
-// means unknown and is eligible to be filled from GitHub.
+// gitCommit is the git metadata on a deployment row. Empty fields are filled
+// from GitHub.
 type gitCommit struct {
 	SHA             string `json:"sha"`
 	Branch          string `json:"branch"`
@@ -31,9 +31,8 @@ type buildSource struct {
 	Git   *gitSource `json:"git"`
 }
 
-// gitSource is where a git build reads its code from, with the repository
-// connection already resolved from the app. The commit travels separately,
-// because a rebuild carries one the caller never sent.
+// gitSource is the repository a git build clones, resolved from the app's
+// connection.
 type gitSource struct {
 	InstallationID int64  `json:"installation_id"`
 	Repository     string `json:"repository"`
@@ -43,29 +42,21 @@ type gitSource struct {
 	PRNumber       int64  `json:"pr_number"`
 }
 
-// resolvedSource is what [Workflow.resolveSource] decided: a source with the
-// commit metadata it completed, or a rejection. Exactly one of those is set.
+// resolvedSource is a source with its completed commit, or a rejection.
 type resolvedSource struct {
-	Source    buildSource `json:"source"`
-	Commit    gitCommit   `json:"commit"`
-	Rejection *rejection  `json:"rejection"`
+	Source    buildSource                    `json:"source"`
+	Commit    gitCommit                      `json:"commit"`
+	Rejection *hydrav1.CreateRejectionReason `json:"rejection"`
 }
 
-// newRejectedSource is a refusal. Nothing is written, so it carries no source and
-// no commit.
-func newRejectedSource(rejected *rejection) resolvedSource {
+func newRejectedSource(rejected *hydrav1.CreateRejectionReason) resolvedSource {
 	var refused resolvedSource
 	refused.Rejection = rejected
 	return refused
 }
 
 // resolveSource picks what the deployment builds from and completes the commit
-// metadata, so the row is whole at insert time and the build needs no further
-// GitHub lookups.
-//
-// A refusal is a rejection, not an error: no connected repository, an
-// unresolvable branch, a source with no artifact. Those stay distinguishable
-// from a broken GitHub, which errors and is retried.
+// metadata from GitHub.
 func (w *Workflow) resolveSource(
 	ctx context.Context,
 	target db.FindDeployTargetRow,
@@ -74,12 +65,8 @@ func (w *Workflow) resolveSource(
 ) (resolvedSource, error) {
 	switch source := req.GetSource().(type) {
 	case *hydrav1.DeployCreateRequest_Image:
-		// A prebuilt image redeploys as it is. Synthesizing a commit would label
-		// the row with code the image may not contain.
 		image := source.Image.GetImage()
 		if err := imageref.Validate(image); err != nil {
-			// Otherwise the build fails on it later, leaving a row whose whole
-			// story is a pull error.
 			return newRejectedSource(rejectf(
 				hydrav1.CreateRejectionReason_CREATE_REJECTION_REASON_INVALID_IMAGE,
 				"%s", fault.UserFacingMessage(err),
@@ -99,9 +86,8 @@ func (w *Workflow) resolveSource(
 			source.ExistingDeployment.GetDeploymentId(), source.ExistingDeployment.GetRequireNoNewer())
 
 	default:
-		// No source named means "ship this app again": a connected repository
-		// answers with the head of its default branch, and only an app without
-		// one falls back to what it runs now. This mirrors the legacy RPC.
+		// No source means redeploy: the default branch head for a connected
+		// repository, otherwise the image the current deployment runs.
 		if target.GithubRepositoryFullName.Valid {
 			return w.resolveGitSource(target, commit, 0)
 		}
@@ -112,8 +98,8 @@ func (w *Workflow) resolveSource(
 				target.AppID,
 			)), nil
 		}
-		// Redeploying the live deployment can never resurrect an older one, so the
-		// guardrail below does not apply.
+		// The current deployment is the newest by definition, so requireNoNewer
+		// is moot.
 		return w.resolveExistingDeployment(ctx, target, target.CurrentDeploymentID.String, false)
 	}
 }
@@ -132,9 +118,8 @@ func (w *Workflow) resolveGitSource(
 		)), nil
 	}
 
-	// Only default the branch when the caller named neither. A commit pinned
-	// without a branch may live off the default branch, and a wrong branch beside
-	// a right commit is worse than none: sibling dedup keys on branch.
+	// A sha alone gets no default branch: it may not be on it, and sibling dedup
+	// keys on branch, so a wrong branch is worse than none.
 	if commit.SHA == "" && commit.Branch == "" {
 		commit.Branch = target.DefaultBranch
 		if commit.Branch == "" {
@@ -143,8 +128,8 @@ func (w *Workflow) resolveGitSource(
 	}
 
 	if fillErr := w.fillCommitFromGitHub(&commit, target); fillErr != nil {
-		// The GitHub error can carry a raw response body. Log it and reject with
-		// a reason, so nothing upstream echoes it back.
+		// The GitHub error can carry a raw response body, so it is logged here
+		// and never returned.
 		logger.Error(
 			"failed to resolve git commit metadata",
 			"app_id", target.AppID,
@@ -196,15 +181,13 @@ func (w *Workflow) resolveExistingDeployment(
 		return failed, err
 	}
 
-	// The id comes from the request and is looked up by primary key alone, so
-	// nothing else ties it to the app being deployed to: without this a request
-	// could rebuild another workspace's deployment and run an image it has no
-	// right to pull. A mismatch answers exactly like a miss, so the reason never
-	// confirms that an unreachable deployment exists.
+	// The lookup is by primary key alone, so this is what stops a request from
+	// rebuilding another workspace's deployment. A mismatch answers like a miss
+	// so the reason never confirms that a foreign deployment exists.
 	//
-	// Environment is deliberately excluded. Rebuilding across environments of one
-	// app is legitimate, and the unset-source path relies on it: the app's
-	// current deployment is only ever set for production.
+	// Environment is not compared: the unset-source path rebuilds the app's
+	// current deployment, which is only ever set for production, into any
+	// environment.
 	if src.WorkspaceID != target.WorkspaceID || src.ProjectID != target.ProjectID ||
 		src.AppID != target.AppID {
 		return newRejectedSource(rejectf(
@@ -274,14 +257,13 @@ func (w *Workflow) resolveExistingDeployment(
 	}, nil
 }
 
-// fillCommitFromGitHub fills the commit's empty fields from GitHub, and is a
-// no-op when there is nothing worth fetching. The public path has no
-// lookup-by-SHA, so that branch is skipped without authentication.
+// fillCommitFromGitHub fills the commit's empty fields from GitHub. The public
+// API has no lookup by sha, so a sha is only completed when authenticated.
 func (w *Workflow) fillCommitFromGitHub(commit *gitCommit, target db.FindDeployTargetRow) error {
 	installationID := target.GithubInstallationID.Int64
 
-	// The public API is only for a repository with no installation, and only when
-	// unauthenticated deployments are enabled.
+	// The public API is used only with no installation and unauthenticated
+	// deployments allowed.
 	hasAuth := !w.allowUnauthenticatedDeployments || installationID != noInstallationID
 
 	resolveRepo := target.GithubRepositoryFullName.String
