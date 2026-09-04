@@ -159,6 +159,12 @@ the shard chain. When the shard count changes, `W` chases `W - 1` with the new
 count. An absent predecessor evaluates with the new partition, and group
 objects reject windows they already evaluated as stale.
 
+The first window after a deploy or shard-count change can evaluate itself and
+up to 12 predecessors for all 16 shards. This cold start can run 208 shard
+evaluations, each with its ClickHouse queries and open-alert scan. An incomplete
+predecessor is still stored as evaluated. It is not revisited when its watermark
+later catches up, which matches the normal once-per-window policy.
+
 `ListOpenAlertEventGroups` reads every group with `status = 'open'` from MySQL.
 Each shard filters those rows in Go with
 `city.CH64(workspace_id) % shardCount == shard`. This matches ClickHouse's
@@ -298,10 +304,17 @@ objects:
 
 For each destination table, the migration replays the latest 7 days of closed
 buckets before it creates the corresponding materialized view. This order
-avoids double counting rows that arrive during the replay. At most, the
-in-progress 5-minute bucket at migration time can be absent from the rollup.
-Watermark max states are replay-idempotent. Aggregate rollups exclude keys that
-are already present, so retrying the migration cannot count the same key twice.
+keeps the `NOT IN` replay guard race-free because the materialized view cannot
+write the same source key during the backfill. At most, the in-progress 5-minute
+bucket at migration time can be absent from the rollup. The migration must be
+applied once in this order.
+
+Do not let a migration applier or operator replay a backfill statement after
+its materialized view exists while ingest continues. A source key can arrive
+between the guard snapshot and the insert, then be counted by both the
+materialized view and the replay. A rerun requires stopping ingest or
+deduplicating the affected rollup keys.
+
 Existing apps therefore have the full 24-hour baseline and 72-bucket
 request-drop history when detection first runs. The 12-bucket spike minimum
 applies only to apps younger than 1 hour, and the 72-bucket request-drop minimum
@@ -310,17 +323,18 @@ applies only to apps younger than 6 hours.
 ## Evaluate one group
 
 The detector API consists of `Detect(Input, Config) Result`,
-`Recovered(Input, Result, Config) bool`, `ShouldResolve(int) bool`,
+`Recovered(Input, Result, Config) bool`,
+`ShouldResolve(consecutiveQuietWindows, minimumConsecutiveWindows int) bool`,
 `BaselineWindowBuckets`, and `RecentRequestStats`. `DefaultConfig(Sensitivity)`
 decodes the complete production rule inventory from the embedded
 `svc/ctrl/worker/cron/deployanomaly/thresholds.json`. This includes sensitivity
 offsets, per-metric floors, activity gates, request-drop and catastrophic rules,
 recovery, and the maximum open duration. The separate `error_5xx` and
 `error_4xx` deviation floors remain distinct in `Config`. The decoder calls
-`DisallowUnknownFields`, rejects trailing JSON values, then validates values
-that must be positive, ratio ranges, and sensitivity offsets. Package
-initialization panics with a clear message when the embedded file is invalid.
-These functions live in
+`DisallowUnknownFields` and rejects trailing JSON values. It then applies
+per-value range checks and cross-field invariant checks described on the
+detector math page. Package initialization panics with a clear message when the
+embedded file is invalid. These functions live in
 `svc/ctrl/worker/cron/deployanomaly`. The
 [detector math](/architecture/services/control-plane/worker/deploy-anomaly-detection-math)
 defines every metric threshold and worked example.
@@ -502,8 +516,9 @@ The app-level **Anomalies** tab provides these views:
 - Metric selection for 5xx, 4xx, Requests, Egress, CPU, Memory, and Health.
 - An observed line, expected mean, and expected band calculated per bucket with
   the detector's effective-deviation rules.
-- A request lower band at 25% of the rolling 12-bucket median and a fixed 90%
-  memory line.
+- A request lower band that combines 25% of the rolling 12-bucket median with
+  the 200-request minimum loss.
+- A fixed 90% memory line.
 - OOM and crash-loop bars in the Health view.
 - Shaded windows for every anomaly and line-attached markers for the selected
   metric.
@@ -543,7 +558,9 @@ It pads the baseline from `apps.created_at`, aligned to 5 minutes and capped at
 24 hours. Eligibility always counts observed 5-minute buckets, including for an
 hourly display. A spike band needs 12 observed 5-minute buckets. The
 request-drop lower band needs 72 observed buckets, at least 9 active buckets in
-the preceding 12, and an absolute loss of at least 200 requests.
+the preceding 12. Once those history and activity checks pass, the band combines
+the 25% recent-level fraction and 200-request minimum absolute loss into the
+boundary value. Its visibility does not depend on the current value's loss.
 
 For each bucket, the dashboard calculates the trailing expected mean and
 effective deviation with the same 10% and absolute floors as the detector. It

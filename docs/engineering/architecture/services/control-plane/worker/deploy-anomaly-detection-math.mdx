@@ -94,10 +94,20 @@ the complete production rule inventory. Go embeds and decodes every value in
 | `maxOpenDurationSeconds` | `86,400` |
 
 The separate 5xx and 4xx deviation floors are decoded and applied
-independently. The Go decoder calls `DisallowUnknownFields`, rejects trailing
-JSON values, and validates every decoded value. Required values must be
-positive, ratios must be in range, and sensitivity offsets must be sane. An
-invalid embedded file causes a clear panic during package initialization.
+independently. Configuration loading uses strict decoding, per-value range
+checks, and cross-field invariant checks. The decoder calls
+`DisallowUnknownFields` and rejects trailing JSON values. It rejects non-finite
+numbers and enforces these derived invariants:
+
+- `maxOpenDurationSeconds` must convert to a duration without overflow and stay
+  within its upper bound.
+- `recovery.memoryUtilization` must be less than
+  `activityFloors.memoryUtilization`.
+- `sigmaK` and its result after each sensitivity offset must be finite and
+  positive.
+- `recovery.sigmaReduction` must be less than each effective sigma value.
+
+An invalid embedded file causes a clear panic during package initialization.
 
 The dashboard mirrors the complete JSON as one typed
 `deployAnomalyThresholds` object in
@@ -249,9 +259,12 @@ provide those guarantees. A variable baseline can have a negative statistical
 lower bound, and a zero request bucket can also mean ingest delay. The explicit
 rule models a sustained loss from a recent, active level instead.
 
-The dashboard draws the request-drop boundary only after the same eligibility
-checks pass: 72 observed 5-minute buckets, at least 9 of the preceding 12
-buckets with 200 or more requests, and at least 200 requests of absolute loss.
+The dashboard draws the request-drop boundary after 72 observed 5-minute
+buckets and at least 9 of the preceding 12 buckets with 200 or more requests.
+The boundary value combines the 25% recent-level fraction with the 200-request
+minimum absolute loss. It is the level below which the detector's drop rule
+would fire. The dashboard does not inspect the current value's loss before it
+draws the boundary.
 
 The alert stores the recent median in `baseline_mean` and stores zero in
 `baseline_stddev` and `threshold_sigma`. The detector metadata records the last
