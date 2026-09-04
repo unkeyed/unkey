@@ -26,6 +26,7 @@ export const PermissionField = ({
   assignedPermsDetails,
 }: PermissionFieldProps) => {
   const [searchValue, setSearchValue] = useState("");
+  const [selectedPermissionDetails, setSelectedPermissionDetails] = useState<RolePermission[]>([]);
 
   const { calculateLimits } = useRoleLimits(roleId);
   const { hasPermWarning, totalPerms } = calculateLimits(value);
@@ -91,7 +92,6 @@ export const PermissionField = ({
   const selectedPermissions = useMemo(() => {
     return value
       .map((permId) => {
-        // First: check selectedPermissionsData (for pre-loaded edit data)
         const preLoadedPerm = assignedPermsDetails.find((p) => p.id === permId);
         if (preLoadedPerm) {
           return {
@@ -101,13 +101,16 @@ export const PermissionField = ({
           };
         }
 
-        // Second: check loaded permissions (for newly added permissions)
+        const selectedPermission = selectedPermissionDetails.find((p) => p.id === permId);
+        if (selectedPermission) {
+          return selectedPermission;
+        }
+
         const loadedPerm = allPermissions.find((p) => p.id === permId);
         if (loadedPerm) {
           return loadedPerm;
         }
 
-        // Third: fallback
         return {
           id: permId,
           name: null,
@@ -115,14 +118,24 @@ export const PermissionField = ({
         };
       })
       .filter((perm): perm is NonNullable<typeof perm> => perm !== undefined);
-  }, [value, allPermissions, assignedPermsDetails]);
+  }, [value, allPermissions, assignedPermsDetails, selectedPermissionDetails]);
 
   const handleRemovePermission = (permissionId: string) => {
+    setSelectedPermissionDetails((permissions) =>
+      permissions.filter((permission) => permission.id !== permissionId),
+    );
     onChange(value.filter((id) => id !== permissionId));
   };
 
   const handleAddPermission = (permissionId: string) => {
     if (!value.includes(permissionId)) {
+      const permission = allPermissions.find((item) => item.id === permissionId);
+      if (permission) {
+        setSelectedPermissionDetails((permissions) => [
+          ...permissions.filter((item) => item.id !== permission.id),
+          permission,
+        ]);
+      }
       onChange([...value, permissionId]);
     }
     setSearchValue("");
@@ -187,7 +200,6 @@ export const PermissionField = ({
             renderIcon={() => <Page2 iconSize="sm-regular" className="text-grayA-11" />}
             renderPrimaryText={(permission) => permission.name}
             enableTransitions
-            // This can't cannot happen but we need it to make TS happy
             renderSecondaryText={(permission) => permission.slug ?? "Unnamed Slug"}
           />
         )
