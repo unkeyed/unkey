@@ -174,47 +174,48 @@ function resourceCounterQuery(expression: string): { query: string; tableName: s
 }
 
 function memoryQuery(resolution: "5m" | "1h"): { query: string; tableName: string } {
-  const bucket =
-    resolution === "5m"
-      ? "toStartOfInterval(metric_source.time, INTERVAL 5 MINUTE)"
-      : "toStartOfHour(metric_source.time)";
-  return {
-    query: denseBuckets(`
-      SELECT time, ifNotFinite(avgIf(instance_value, instance_memory_valid), 0.) AS value
+  const fiveMinuteQuery = `
+    SELECT time, ifNotFinite(avgIf(instance_value, instance_memory_valid), 0.) AS value
+    FROM (
+      SELECT
+        time,
+        instance_id,
+        ifNotFinite(avgIf(container_value, container_memory_valid), 0.) AS instance_value,
+        countIf(container_memory_valid) > 0 AS instance_memory_valid
       FROM (
         SELECT
-          time,
-          instance_id,
-          ifNotFinite(avgIf(container_value, container_memory_valid), 0.) AS instance_value,
-          countIf(container_memory_valid) > 0 AS instance_memory_valid
-        FROM (
-          SELECT
-            toInt64(toUnixTimestamp(${bucket}) * 1000) AS time,
-            metric_source.instance_id,
-            metric_source.container_uid,
-            if(
-              countIf(memory_allocated_bytes_max > 0) = 0,
-              0.,
-              sumIf(
-                toFloat64(memory_bytes_max) / toFloat64(memory_allocated_bytes_max),
-                memory_allocated_bytes_max > 0
-              ) / countIf(memory_allocated_bytes_max > 0)
-            ) AS container_value,
-            countIf(memory_allocated_bytes_max > 0) > 0 AS container_memory_valid
-          FROM {tableName: Identifier} AS metric_source
-          PREWHERE metric_source.workspace_id = {workspaceId: String}
-            AND metric_source.app_id = {appId: String}
-            AND metric_source.environment_id = {environmentId: String}
-            AND metric_source.resource_type = 'deployment'
-            AND metric_source.time >= fromUnixTimestamp64Milli({baselineStartMs: Int64})
-            AND metric_source.time < fromUnixTimestamp64Milli({endMs: Int64})
-          GROUP BY time, metric_source.instance_id, metric_source.container_uid
-        )
-        GROUP BY time, instance_id
+          toInt64(toUnixTimestamp(metric_source.time) * 1000) AS time,
+          metric_source.instance_id,
+          metric_source.container_uid,
+          if(
+            sum(utilization_samples) = 0,
+            0.,
+            sum(utilization_sum) / sum(utilization_samples)
+          ) AS container_value,
+          sum(utilization_samples) > 0 AS container_memory_valid
+        FROM {tableName: Identifier} AS metric_source
+        PREWHERE metric_source.workspace_id = {workspaceId: String}
+          AND metric_source.app_id = {appId: String}
+          AND metric_source.environment_id = {environmentId: String}
+          AND metric_source.time >= fromUnixTimestamp64Milli({baselineStartMs: Int64})
+          AND metric_source.time < fromUnixTimestamp64Milli({endMs: Int64})
+        GROUP BY time, metric_source.instance_id, metric_source.container_uid
       )
-      GROUP BY time`),
-    tableName:
-      resolution === "5m" ? "instance_resources_per_minute_v1" : "instance_resources_per_hour_v1",
+      GROUP BY time, instance_id
+    )
+    GROUP BY time`;
+  const displayQuery =
+    resolution === "5m"
+      ? fiveMinuteQuery
+      : `
+        SELECT
+          intDiv(five_minute.time, ${hourMs}) * ${hourMs} AS time,
+          avg(five_minute.value) AS value
+        FROM (${fiveMinuteQuery}) AS five_minute
+        GROUP BY time`;
+  return {
+    query: denseBuckets(displayQuery),
+    tableName: "instance_resources_container_per_5m_v1",
   };
 }
 
