@@ -499,13 +499,6 @@ func (s *Service) createAndDeploy(ctx context.Context, p createParams) (string, 
 			return "", connect.NewError(connect.CodeInternal, fmt.Errorf("failed to load build settings: %w", buildErr))
 		}
 
-		// Git-connected app: fill missing commit metadata synchronously so
-		// the deployment row is complete at insert time and buildImage can
-		// run without any GitHub calls.
-		// Only default to the app's default branch when neither SHA nor branch
-		// were provided. If the caller pinned a SHA without a branch, that SHA
-		// may live on a non-default branch: defaulting would record a wrong
-		// branch alongside the right SHA.
 		if commit.SHA == "" && commit.Branch == "" {
 			commit.Branch = defaultBranch(repoConn.DefaultBranch)
 		}
@@ -678,8 +671,6 @@ func triggerFromProto(t ctrlv1.DeploymentTrigger) db.DeploymentsTrigger {
 	}
 }
 
-// defaultBranch reads the branch owned by the repository connection. Empty
-// values default to main as a safety net for rows not yet backfilled.
 func defaultBranch(connectionDefault sql.NullString) string {
 	if connectionDefault.Valid && connectionDefault.String != "" {
 		return connectionDefault.String

@@ -74,8 +74,6 @@ func (s *Service) AuthorizeDeployment(ctx context.Context, req *connect.Request[
 				fmt.Errorf("Git deployment %s has no commit SHA", deploymentID))
 		}
 
-		// Look up Git-owned settings before changing status, so a lookup
-		// failure does not leave the deployment stuck as pending.
 		buildSetting, buildErr := s.db.FindAppBuildSettingByAppEnv(ctx, db.FindAppBuildSettingByAppEnvParams{
 			AppID:         deployment.AppID,
 			EnvironmentID: deployment.EnvironmentID,

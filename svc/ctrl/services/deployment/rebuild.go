@@ -136,10 +136,6 @@ func (s *Service) Rebuild(ctx context.Context, sourceDeploymentID, reason string
 			"reason", reason,
 		)
 	} else {
-		// Reuse the source deployment's immutable image digest.
-		// Passing ociImage explicitly short-circuits createAndDeploy's
-		// auto-detect, so we don't accidentally pick up the app's current
-		// deployment image (which may be a different one).
 		imageReference, imageErr := imageref.NormalizeHistorical(resolvedImage.String)
 		if imageErr != nil {
 			return "", connect.NewError(connect.CodeFailedPrecondition,
