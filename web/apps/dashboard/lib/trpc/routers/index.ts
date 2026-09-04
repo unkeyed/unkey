@@ -58,6 +58,12 @@ import { getAvailableKeyspaces } from "./deploy/environment-settings/get-availab
 import { getAvailableRegions } from "./deploy/environment-settings/get-available-regions";
 import { generateRegex } from "./deploy/environment-settings/policies/generate-regex";
 import { getAppRpsMetrics } from "./deploy/metrics/get-app-rps-metrics";
+import {
+  getAppDeploymentMarkers,
+  getAppLatencyTimeseries,
+  getAppRequestTimeseries,
+  getAppResourceTimeseries,
+} from "./deploy/metrics/get-app-metrics";
 import { getDeploymentCpuTimeseries } from "./deploy/metrics/get-deployment-cpu-timeseries";
 import { getDeploymentDiskTimeseries } from "./deploy/metrics/get-deployment-disk-timeseries";
 import { getDeploymentInstanceCountTimeseries } from "./deploy/metrics/get-deployment-instance-count-timeseries";
@@ -450,6 +456,10 @@ export const router = t.router({
     }),
     metrics: t.router({
       getAppRpsMetrics,
+      getAppResourceTimeseries,
+      getAppRequestTimeseries,
+      getAppLatencyTimeseries,
+      getAppDeploymentMarkers,
       getDeploymentRpsMetrics,
       getDeploymentLatencyMetrics,
       getDeploymentCpuTimeseries,
