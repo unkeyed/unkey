@@ -1,0 +1,122 @@
+---
+title: "Documenting services"
+description: "The required structure and writing standard for service architecture docs"
+---
+
+Every service under `svc/` gets the same documentation set in
+`docs/engineering/architecture/services/<name>/`. A fixed structure means an
+engineer who learned one service's docs can predict what exists for every
+other service. The logdrain pages are the reference implementation:
+[overview](/architecture/services/logdrain/overview),
+[configuration](/architecture/services/logdrain/configuration), and
+[operations](/architecture/services/logdrain/operations).
+
+## Required pages
+
+Each service has exactly three baseline pages. Deep-dive pages (for example
+frontline's policy pages) are welcome in addition to these, never instead of
+them.
+
+| Page | Must answer |
+| --- | --- |
+| `overview.mdx` | What does the service do, and why does it exist? What talks to it, and what does it talk to? What invariants does it maintain? What guarantees does it give, and where do they break? |
+| `configuration.mdx` | What are the settings, defaults, and constraints? This page is generated. Do not edit it by hand. |
+| `operations.mdx` | Where does it run? How does it scale? How does an operator know it is healthy? What breaks, in what sequence, and what is the recovery path? |
+
+Two rules keep the section trustworthy:
+
+- No stub pages. A page exists only when it has content. "Content will be
+  added later" teaches readers that the whole section is unfinished.
+- Every page needs a navigation entry in `docs/engineering/docs.json`.
+
+## Generated configuration pages
+
+`tools/configdocs` generates each `configuration.mdx` from the service's Go
+config struct. The `toml` tags name the keys, the `config` tags supply
+defaults and constraints, and the Go doc comments supply the descriptions.
+
+Add a `go:generate` directive next to the config struct:
+
+```go
+//go:generate go run github.com/unkeyed/unkey/tools/configdocs -service logdrain -type Config -out ../../docs/engineering/architecture/services/logdrain/configuration.mdx
+```
+
+`mise run generate` then rebuilds the page. When a generated description
+reads poorly, improve the doc comment in the code and regenerate. The comment
+is the single source for both the code and the docs, so fixing it fixes both.
+
+## What belongs in prose, and what does not
+
+Code is the source of truth for what the system does. Architecture docs are
+the source of truth for why it is built this way and how it behaves as a
+system. A doc may state a code-level fact only when that fact is a contract:
+a wire format, a public metric name, a delivery guarantee. Everything else
+links to the source instead of restating it, because every restated fact is a
+future lie.
+
+The test for every paragraph: does it answer a question that reading the code
+would answer more slowly? If not, delete it.
+
+## Writing standard
+
+### Narrate behavior, not structure
+
+The spine of an overview is one concrete flow walked end to end: a request, a
+delivery cycle, a deploy. Components appear when the flow reaches them, never
+as a standalone list. A parts list competes with `ls svc/<name>` and loses.
+
+Before, an inventory:
+
+```plaintext
+The service composes domain services into handlers during startup.
+- Authentication service for normalizing request credentials into principals.
+- Key service for root key verification, key authorization, and key mutations.
+```
+
+After, a behavior narrative:
+
+```plaintext
+A worker first confirms its assignment in MySQL. It then reads the drain's
+configuration and cursor, queries the next audit log batch from ClickHouse,
+and sends that batch to the customer destination. After the destination
+acknowledges the batch, the worker advances the cursor in MySQL. A failed
+delivery leaves the cursor unchanged.
+```
+
+The second passage names the same components, but the reader leaves knowing
+the order of operations and what happens on failure.
+
+### State the reason for every costly choice
+
+"Logdrain uses MySQL leases" is inventory. "Logdrain coordinates through
+MySQL because drain configuration and delivery state already live there, and
+one datastore means one failure story" is explanation. If nobody can state
+the reason for a design choice, record that as an open question instead of
+skipping the sentence.
+
+### Write failure scenarios as concrete sequences
+
+"The service is resilient to crashes" is decoration. "If the process dies
+after the destination acknowledges a batch but before the cursor commits, the
+next lease holder sends that batch again" is knowledge. Operations pages are
+built from sequences like this: the exact failure, the observable symptom,
+and the recovery path.
+
+### Use one term per concept
+
+Use the words the code uses. If the code says drain, cursor, lease, and
+fencing token, the docs use exactly those words. A synonym forces the reader
+to guess whether two words name one thing or two things.
+
+### Make every diagram claim something
+
+A diagram earns its place by showing one flow with its decision points, like
+the delivery cycle diagram in the logdrain overview. Boxes connected by
+arrows with no decisions restate the parts list.
+
+## Verify before you publish
+
+Check every claim against the code in the same working session, and re-check
+claims copied from an older page. Stale docs are worse than missing docs:
+they teach readers to distrust the entire section. When you change behavior
+that a doc describes, the doc change belongs in the same PR.
