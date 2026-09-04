@@ -18,13 +18,14 @@ service DeployAnomalyService {
 // DeployAnomalyShardService owns one stable workspace hash partition for one
 // window. The key is "<window_start_ms>/<shard>/<shard_count>". It journals
 // only one shard's SQL candidates and fans those groups out to their evaluators.
+// Each window calls the previous window's exclusive GetPending handler before
+// dispatch, which keeps one shard chronological. EvaluateShard retries are
+// bounded and kill on exhaustion so a failed window cannot wedge the chain.
 service DeployAnomalyShardService {
   option (dev.restate.sdk.go.service_type) = VIRTUAL_OBJECT;
 
   rpc EvaluateShard(EvaluateDeployAnomalyShardRequest) returns (EvaluateDeployAnomalyShardResponse) {}
-  rpc GetPending(GetPendingDeployAnomalyGroupsRequest) returns (GetPendingDeployAnomalyGroupsResponse) {
-    option (dev.restate.sdk.go.handler_type) = SHARED;
-  }
+  rpc GetPending(GetPendingDeployAnomalyGroupsRequest) returns (GetPendingDeployAnomalyGroupsResponse) {}
 }
 
 message DeployAnomalyGroupKey {

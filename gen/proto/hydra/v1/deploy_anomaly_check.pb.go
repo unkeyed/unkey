@@ -702,11 +702,11 @@ const file_hydra_v1_deploy_anomaly_check_proto_rawDesc = "" +
 	".DEPLOY_ANOMALY_METRIC_DATA_STATE_ZERO_COMPLETE\x10\x02\x12/\n" +
 	"+DEPLOY_ANOMALY_METRIC_DATA_STATE_INCOMPLETE\x10\x032{\n" +
 	"\x14DeployAnomalyService\x12]\n" +
-	"\bEvaluate\x12&.hydra.v1.EvaluateDeployAnomalyRequest\x1a'.hydra.v1.EvaluateDeployAnomalyResponse\"\x00\x1a\x04\x98\x80\x01\x012\x84\x02\n" +
+	"\bEvaluate\x12&.hydra.v1.EvaluateDeployAnomalyRequest\x1a'.hydra.v1.EvaluateDeployAnomalyResponse\"\x00\x1a\x04\x98\x80\x01\x012\x80\x02\n" +
 	"\x19DeployAnomalyShardService\x12l\n" +
-	"\rEvaluateShard\x12+.hydra.v1.EvaluateDeployAnomalyShardRequest\x1a,.hydra.v1.EvaluateDeployAnomalyShardResponse\"\x00\x12s\n" +
+	"\rEvaluateShard\x12+.hydra.v1.EvaluateDeployAnomalyShardRequest\x1a,.hydra.v1.EvaluateDeployAnomalyShardResponse\"\x00\x12o\n" +
 	"\n" +
-	"GetPending\x12..hydra.v1.GetPendingDeployAnomalyGroupsRequest\x1a/.hydra.v1.GetPendingDeployAnomalyGroupsResponse\"\x04\x98\x80\x01\x02\x1a\x04\x98\x80\x01\x01B\x9d\x01\n" +
+	"GetPending\x12..hydra.v1.GetPendingDeployAnomalyGroupsRequest\x1a/.hydra.v1.GetPendingDeployAnomalyGroupsResponse\"\x00\x1a\x04\x98\x80\x01\x01B\x9d\x01\n" +
 	"\fcom.hydra.v1B\x17DeployAnomalyCheckProtoP\x01Z3github.com/unkeyed/unkey/gen/proto/hydra/v1;hydrav1\xa2\x02\x03HXX\xaa\x02\bHydra.V1\xca\x02\bHydra\\V1\xe2\x02\x14Hydra\\V1\\GPBMetadata\xea\x02\tHydra::V1b\x06proto3"
 
 var (
