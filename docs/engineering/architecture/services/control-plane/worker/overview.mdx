@@ -34,8 +34,9 @@ The worker groups multiple Restate services into one process. Each service uses 
 
 | Service | Virtual object key | Responsibility |
 | --- | --- | --- |
-| DeployService | `project_id` | Build, deploy, promote, and rollback orchestration for a project. |
+| DeployService | `deployment_id` | Build, deploy, promote, and rollback orchestration for one deployment. |
 | DeploymentService | `deployment_id` | Serializes desired state changes with nonce-based last-writer-wins. |
+| EnvironmentService | `environment_id` | Environment deletion, and promotion and rollback of the environment's live deployment. |
 | RoutingService | `project_id` | Atomic reassignment of frontline routes to a deployment. |
 | CustomDomainService | `domain` | Domain ownership verification and post-verify actions. |
 | CertificateService | `domain` | Certificate issuance and renewal with ACME and Vault. |
