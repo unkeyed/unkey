@@ -2,6 +2,7 @@ package deployanomaly
 
 import (
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
@@ -35,6 +36,15 @@ func TestParseWindowStart(t *testing.T) {
 			require.Equal(t, test.want, got)
 		})
 	}
+}
+
+func TestWindowReadyAfterFullSettlingBucket(t *testing.T) {
+	t.Parallel()
+
+	now := time.Date(2026, time.September, 4, 12, 0, 0, 0, time.UTC)
+	require.False(t, windowReady(now.Add(-5*time.Minute).UnixMilli(), now),
+		"one late row in the bucket ending now must not make it safe")
+	require.True(t, windowReady(now.Add(-10*time.Minute).UnixMilli(), now))
 }
 
 func TestShardKey(t *testing.T) {
