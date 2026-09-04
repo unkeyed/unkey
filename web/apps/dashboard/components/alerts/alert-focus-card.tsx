@@ -3,7 +3,7 @@
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { routes } from "@/lib/navigation/routes";
 import { shortenId } from "@/lib/shorten-id";
-import { requestDropMedianFraction } from "@unkey/clickhouse/src/alert-thresholds";
+import { requestDropRecentLevelFraction } from "@unkey/clickhouse/src/alert-thresholds";
 import { Badge, TimestampInfo } from "@unkey/ui";
 import Link from "next/link";
 import {
@@ -56,8 +56,11 @@ export function AlertFocusCard({ alert }: { alert: AlertDetailData }) {
             />
             <DetailValue
               label="Threshold"
-              value={formatAlertValue(alert.metric, alert.baselineMean * requestDropMedianFraction)}
-              hint="25% of recent median"
+              value={formatAlertValue(
+                alert.metric,
+                alert.baselineMean * requestDropRecentLevelFraction,
+              )}
+              hint={`${requestDropRecentLevelFraction * 100}% of recent median`}
             />
           </>
         ) : (

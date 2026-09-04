@@ -13,6 +13,7 @@ import {
 import { AlertStatusBadge } from "@/components/alerts/status-badge";
 import type { AlertListItem, AlertSeriesData, AlertSeriesMetric } from "@/components/alerts/types";
 import { type ChartConfig, ChartContainer } from "@/components/ui/chart";
+import { alertFixedThresholds } from "@unkey/clickhouse/src/alert-thresholds";
 import { Empty, Skeleton } from "@unkey/ui";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -356,7 +357,7 @@ export function AnomalyChart({
             ) : null}
             {metric === "memory_utilization" ? (
               <ReferenceLine
-                y={0.9}
+                y={alertFixedThresholds.memory_utilization}
                 stroke="hsl(var(--warning-9))"
                 strokeWidth={1.5}
                 strokeDasharray="5 5"

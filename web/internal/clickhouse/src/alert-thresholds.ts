@@ -1,7 +1,7 @@
 export const alertThresholdSigma = 4;
 export const alertMinimumLifetimeBuckets = 12;
 export const alertMinimumStddevRatio = 0.1;
-export const requestDropMedianFraction = 0.25;
+export const requestDropRecentLevelFraction = 0.25;
 export const requestDropMinimumActiveBuckets = 9;
 export const requestDropActivityFloor = 200;
 export const requestDropMinimumAbsoluteLoss = 200;
@@ -21,6 +21,12 @@ export const alertBaselineMinimums = {
   requests_drop: 72,
   egress_bytes: 12,
   cpu_seconds: 12,
+} as const;
+
+export const alertFixedThresholds = {
+  memory_utilization: 0.9,
+  oom_killed: 1,
+  crash_loop: 1,
 } as const;
 
 export type SigmaAlertMetric = keyof typeof alertStddevFloors;
@@ -50,7 +56,7 @@ export function calculateAlertExpectedBand(
   const requestDropThreshold = Math.max(
     0,
     Math.min(
-      recentMedian * requestDropMedianFraction,
+      recentMedian * requestDropRecentLevelFraction,
       recentMedian - requestDropMinimumAbsoluteLoss,
     ),
   );
