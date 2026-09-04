@@ -1,0 +1,30 @@
+# yaml-language-server: $schema=ctlptl.schema.json
+apiVersion: ctlptl.dev/v1alpha1
+kind: Cluster
+product: minikube
+minikube:
+  startFlags:
+    - "--driver=docker"
+    - "--cpus=no-limit"
+    - "--memory=no-limit"
+    - "--container-runtime=containerd"
+    - "--docker-opt=containerd=/var/run/containerd/containerd.sock"
+    # Cursor Cloud VMs do not include the eBPF JIT required by Cilium.
+    - "--cni=bridge"
+    # Only docker0 (172.17.0.0/16) has internet NAT in Cursor Cloud.
+    # minikube's default 192.168.49.0/24 network cannot pull images or apt.
+    - "--network=bridge"
+    # Tilt pushes to the registry by docker0 IP. Allow HTTP pulls from that
+    # subnet; ctlptl only marks the ctlptl-registry hostname insecure.
+    - "--insecure-registry=172.17.0.0/16"
+    # Cursor Cloud's kernel has no xt_statistic, so kube-proxy iptables
+    # cannot program ClusterIP rules. nftables mode does not need it.
+    - "--extra-config=kube-proxy.mode=nftables"
+    # Same as Amp orb: no Cilium/eBPF, gvisor + metrics-server.
+    # Extra Cursor flags: docker0 NAT, insecure registry, kube-proxy nftables.
+    - "--addons=gvisor,metrics-server"
+    # Wait only for the API server so a slow first-time addon pull cannot
+    # hang ctlptl the way --wait=all does.
+    - "--wait=apiserver"
+registry: ctlptl-registry
+kubernetesVersion: v1.34.0

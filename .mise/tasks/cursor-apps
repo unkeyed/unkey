@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+#MISE description="Expose ready Deploy apps on localhost through Frontline"
+#MISE raw=true
+set -euo pipefail
+exec "${MISE_BIN:-$HOME/.local/bin/mise}" exec -- go run ./tools/amp-orb-services local-apps "${PORT:-19081}"
