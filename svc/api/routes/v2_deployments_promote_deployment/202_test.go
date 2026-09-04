@@ -56,8 +56,8 @@ func TestPromoteDeployment(t *testing.T) {
 	require.NoError(t, err)
 
 	observed := testutil.Receive(t, promotions, 10*time.Second)
-	require.Equal(t, target.ID, observed.virtualObjectKey)
-	require.Equal(t, target.ID, observed.request.GetTargetDeploymentId())
+	require.Equal(t, setup.Environment.ID, observed.virtualObjectKey)
+	require.Equal(t, target.ID, observed.request.GetDeploymentId())
 	require.Equal(t, ctrlv1.ActorType_ACTOR_TYPE_ROOT_KEY, observed.request.GetActor().GetType())
 	require.Equal(t, rootKeyID, observed.request.GetActor().GetId())
 	require.NotEmpty(t, observed.request.GetCorrelationId())
@@ -91,6 +91,6 @@ func TestPromoteDeploymentConfirmRollback(t *testing.T) {
 	require.Equal(t, http.StatusAccepted, res.Status, "expected 202, received: %s", res.RawBody)
 
 	observed := testutil.Receive(t, promotions, 10*time.Second)
-	require.Equal(t, live.ID, observed.virtualObjectKey)
-	require.Equal(t, live.ID, observed.request.GetTargetDeploymentId())
+	require.Equal(t, setup.Environment.ID, observed.virtualObjectKey)
+	require.Equal(t, live.ID, observed.request.GetDeploymentId())
 }
