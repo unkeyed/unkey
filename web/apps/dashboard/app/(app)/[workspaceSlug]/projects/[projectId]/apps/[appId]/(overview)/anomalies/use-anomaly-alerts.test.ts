@@ -50,7 +50,7 @@ describe("useAnomalyAlerts", () => {
         startMs: 1_000,
         endMs: 2_000,
         includeResolved: true,
-        limit: 100,
+        limit: 25,
       },
       expect.objectContaining({ enabled: true, staleTime: 30_000 }),
     );

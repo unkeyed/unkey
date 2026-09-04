@@ -10,7 +10,7 @@ type UseAnomalyAlertsParams = {
 
 export function useAnomalyAlerts({ enabled, ...range }: UseAnomalyAlertsParams) {
   const query = trpc.alerts.list.useInfiniteQuery(
-    { ...range, includeResolved: true, limit: 100 },
+    { ...range, includeResolved: true, limit: 25 },
     {
       enabled,
       staleTime: 30_000,
