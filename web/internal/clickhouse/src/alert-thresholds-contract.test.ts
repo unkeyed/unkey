@@ -2,18 +2,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
-import {
-  alertBaselineMinimums,
-  alertFixedThresholds,
-  alertMinimumLifetimeBuckets,
-  alertMinimumStddevRatio,
-  alertStddevFloors,
-  alertThresholdSigma,
-  requestDropActivityFloor,
-  requestDropMinimumAbsoluteLoss,
-  requestDropMinimumActiveBuckets,
-  requestDropRecentLevelFraction,
-} from "./alert-thresholds";
+import { deployAnomalyThresholds } from "./alert-thresholds";
 
 const detectorThresholdsSchema = z.strictObject({
   sigmaK: z.number(),
@@ -21,7 +10,6 @@ const detectorThresholdsSchema = z.strictObject({
     low: z.number(),
     high: z.number(),
   }),
-  minimumLifetimeBuckets: z.number(),
   minimumStddevRatio: z.number(),
   stddevFloors: z.strictObject({
     error_5xx: z.number(),
@@ -65,44 +53,29 @@ const detectorThresholdsSchema = z.strictObject({
   maxOpenDurationSeconds: z.number(),
 });
 
-describe("deploy anomaly threshold contract", () => {
-  it("strictly validates every detector threshold and matches dashboard values", () => {
-    const path = resolve(
-      __dirname,
-      "../../../../svc/ctrl/worker/cron/deployanomaly/thresholds.json",
-    );
-    const decoded: unknown = JSON.parse(readFileSync(path, "utf8"));
-    const detectorThresholds = detectorThresholdsSchema.parse(decoded);
+const thresholdsPath = resolve(
+  __dirname,
+  "../../../../svc/ctrl/worker/cron/deployanomaly/thresholds.json",
+);
 
-    expect({
-      sigmaK: alertThresholdSigma,
-      minimumLifetimeBuckets: alertMinimumLifetimeBuckets,
-      minimumStddevRatio: alertMinimumStddevRatio,
-      stddevFloors: alertStddevFloors,
-      baselineMinimums: alertBaselineMinimums,
-      activityFloors: {
-        memoryUtilization: alertFixedThresholds.memory_utilization,
-        oomKilled: alertFixedThresholds.oom_killed,
-        crashLoop: alertFixedThresholds.crash_loop,
+describe("deploy anomaly threshold contract", () => {
+  it("strictly validates and mirrors every detector threshold", () => {
+    const decoded: unknown = JSON.parse(readFileSync(thresholdsPath, "utf8"));
+
+    expect(deployAnomalyThresholds).toEqual(detectorThresholdsSchema.parse(decoded));
+  });
+
+  it("rejects a nested detector threshold difference", () => {
+    const decoded: unknown = JSON.parse(readFileSync(thresholdsPath, "utf8"));
+    const detectorThresholds = detectorThresholdsSchema.parse(decoded);
+    const mutatedThresholds = detectorThresholdsSchema.parse({
+      ...detectorThresholds,
+      catastrophic: {
+        ...detectorThresholds.catastrophic,
+        error5xxRatio: 0.51,
       },
-      requestDrop: {
-        recentLevelFraction: requestDropRecentLevelFraction,
-        activityPerBucket: requestDropActivityFloor,
-        minimumActiveBuckets: requestDropMinimumActiveBuckets,
-        minimumAbsoluteLoss: requestDropMinimumAbsoluteLoss,
-      },
-    }).toEqual({
-      sigmaK: detectorThresholds.sigmaK,
-      minimumLifetimeBuckets: detectorThresholds.minimumLifetimeBuckets,
-      minimumStddevRatio: detectorThresholds.minimumStddevRatio,
-      stddevFloors: detectorThresholds.stddevFloors,
-      baselineMinimums: detectorThresholds.baselineMinimums,
-      activityFloors: {
-        memoryUtilization: detectorThresholds.activityFloors.memoryUtilization,
-        oomKilled: detectorThresholds.activityFloors.oomKilled,
-        crashLoop: detectorThresholds.activityFloors.crashLoop,
-      },
-      requestDrop: detectorThresholds.requestDrop,
     });
+
+    expect(deployAnomalyThresholds).not.toEqual(mutatedThresholds);
   });
 });
