@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { createAppEnvironmentFilters } from "./app-environment-selection";
+import { createAppEnvironmentUnionFilters } from "./app-environment-selection";
 
 describe("app and environment selection", () => {
   it("expresses mixed app and environment selections as an environment union", () => {
-    const filters = createAppEnvironmentFilters(
+    const filters = createAppEnvironmentUnionFilters(
       {
         appIds: new Set(["app_1"]),
         environmentIds: new Set(["env_3"]),

@@ -1,17 +1,17 @@
 "use client";
 
 import { useProjectData } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/data-provider";
-import type { FilterSearchItem } from "@/components/logs/checkbox/filters-popover";
-import { useCallback, useMemo } from "react";
 import {
   type AppEnvironmentSelection,
-  createAppEnvironmentFilters,
+  createAppEnvironmentUnionFilters,
   getAppEnvironmentSelection,
   groupEnvironmentsByApp,
   isEntireAppSelected,
   toggleAppSelection,
   toggleEnvironmentSelection,
-} from "./app-environment-selection";
+} from "@/components/deploy/app-environment-selection";
+import type { FilterSearchItem } from "@/components/logs/checkbox/filters-popover";
+import { useCallback, useMemo } from "react";
 import { useAppFilterOptions } from "./app-filter-options";
 
 type FilterLike = {
@@ -52,7 +52,7 @@ export function useAppEnvironmentSearchItems<TFilter extends FilterLike>({
       );
       updateFilters([
         ...otherFilters,
-        ...createAppEnvironmentFilters(nextSelection, environmentIdsByApp, createFilter),
+        ...createAppEnvironmentUnionFilters(nextSelection, environmentIdsByApp, createFilter),
       ]);
     },
     [createFilter, environmentIdsByApp, filters, updateFilters],

@@ -1,4 +1,8 @@
-import { MICRO_CENTS_PER_CENT } from "@/lib/billing/deployPricing";
+import {
+  type DeployMeterCostsCents,
+  MICRO_CENTS_PER_CENT,
+  priceDeployMetersCents,
+} from "@/lib/billing/deployPricing";
 import type { DeployUsageBreakdown } from "@/lib/trpc/routers/billing/query-deploy-usage-breakdown";
 
 const SECONDS_PER_HOUR = 3600;
@@ -11,6 +15,8 @@ export type UsageQuantities = {
   egressGiB: number;
   diskGiBHours: number;
 };
+
+export type UsageCostsCents = Omit<DeployMeterCostsCents, "activeKeys">;
 
 type Priced = UsageQuantities & { microCents: number };
 
@@ -130,4 +136,21 @@ export function buildComputeTree({ usage, gateway }: DeployUsageBreakdown): Comp
 
 export function microCentsToDisplayCents(microCents: number): number {
   return Math.round(microCents / MICRO_CENTS_PER_CENT);
+}
+
+export function priceUsageQuantitiesCents(usage: UsageQuantities): UsageCostsCents {
+  const costs = priceDeployMetersCents({
+    cpuSeconds: usage.cpuHours * SECONDS_PER_HOUR,
+    memoryGiBHours: usage.memoryGiBHours,
+    egressGiB: usage.egressGiB,
+    diskGiBHours: usage.diskGiBHours,
+    activeKeys: 0,
+  });
+
+  return {
+    cpu: costs.cpu,
+    memory: costs.memory,
+    egress: costs.egress,
+    disk: costs.disk,
+  };
 }
