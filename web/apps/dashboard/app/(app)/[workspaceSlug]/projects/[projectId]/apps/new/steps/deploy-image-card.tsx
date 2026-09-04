@@ -2,15 +2,16 @@
 
 import { useDeployActionGate } from "@/app/(app)/[workspaceSlug]/projects/_components/hooks/use-deploy-action-gate";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
-import { queryClient, trpcClient } from "@/lib/collections/client";
+import { collection } from "@/lib/collections";
+import { queryClient } from "@/lib/collections/client";
 import { sanitizeImageRef, validateImageRef } from "@/lib/docker-image-ref";
 import { routes } from "@/lib/navigation/routes";
 import { getErrorMessage, getUnkeyClient } from "@/lib/unkey-client";
 import { useMutation } from "@tanstack/react-query";
-import { ChevronLeft, Cube } from "@unkey/icons";
+import { ChevronLeft, Layers2 } from "@unkey/icons";
 import { Button, Input, toast } from "@unkey/ui";
 import { useRouter } from "next/navigation";
-import { useId, useState } from "react";
+import { useId, useState, useTransition } from "react";
 
 type DeployImageCardProps = {
   projectId: string;
@@ -33,7 +34,7 @@ export const DeployImageCard = ({
   const workspace = useWorkspaceNavigation();
   const { gated, openPaywall, planGate } = useDeployActionGate();
   const [image, setImage] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSubmitting, startSubmit] = useTransition();
   const hintId = useId();
 
   const createDeployment = useMutation({
@@ -53,7 +54,7 @@ export const DeployImageCard = ({
   const warning = validation.ok ? validation.warning : undefined;
   const canDeploy = validation.ok && !disabled && !isSubmitting && !createDeployment.isLoading;
 
-  const handleSubmit = async (event: React.FormEvent) => {
+  const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
     if (!canDeploy) {
       return;
@@ -63,44 +64,45 @@ export const DeployImageCard = ({
       return;
     }
 
-    setIsSubmitting(true);
-    try {
-      const appId = await onCreateApp(imageRef);
-      const environments = await trpcClient.deploy.environment.list.query({ projectId });
-      const appEnvironments = environments.filter((environment) => environment.appId === appId);
-      const environmentSlug =
-        appEnvironments.find((environment) => environment.slug === "preview")?.slug ??
-        appEnvironments[0]?.slug;
-      if (!environmentSlug) {
-        throw new Error("No deployment environment was created for this app");
-      }
+    startSubmit(async () => {
+      try {
+        const appId = await onCreateApp(imageRef);
+        await collection.environments.utils.refetch();
+        const appEnvironments = collection.environments.toArray.filter(
+          (environment) => environment.appId === appId,
+        );
+        const environmentSlug =
+          appEnvironments.find((environment) => environment.kind === "preview")?.slug ??
+          appEnvironments[0]?.slug;
+        if (!environmentSlug) {
+          throw new Error("No deployment environment was created for this app");
+        }
 
-      const deployment = await createDeployment.mutateAsync({
-        appId,
-        environment: environmentSlug,
-      });
-      await queryClient.invalidateQueries({ queryKey: ["deployments", projectId] });
-      onBeforeNavigate?.();
-      router.push(
-        routes.projects.apps.deployment({
-          workspaceSlug: workspace.slug,
-          projectId,
+        const deployment = await createDeployment.mutateAsync({
           appId,
-          deploymentId: deployment.deploymentId,
-        }),
-      );
-    } catch (error) {
-      toast.error(getErrorMessage(error));
-    } finally {
-      setIsSubmitting(false);
-    }
+          environment: environmentSlug,
+        });
+        await queryClient.invalidateQueries({ queryKey: ["deployments", projectId] });
+        onBeforeNavigate?.();
+        router.push(
+          routes.projects.apps.deployment({
+            workspaceSlug: workspace.slug,
+            projectId,
+            appId,
+            deploymentId: deployment.deploymentId,
+          }),
+        );
+      } catch (error) {
+        toast.error(getErrorMessage(error));
+      }
+    });
   };
 
   return (
     <div className="border border-grayA-5 rounded-lg flex flex-col gap-4 py-[18px] px-4">
       <div className="flex justify-start items-center gap-4">
         <div className="size-8 rounded-[10px] grid place-items-center ring-1 ring-grayA-4 shadow-sm shadow-grayA-8/20 dark:shadow-none shrink-0">
-          <Cube className="size-[18px] text-gray-12" iconSize="md-medium" />
+          <Layers2 className="size-[18px] text-gray-12" iconSize="md-medium" />
         </div>
         <div className="flex flex-col gap-3">
           <span className="font-medium text-gray-12 text-[13px] leading-[9px]">
@@ -128,8 +130,8 @@ export const DeployImageCard = ({
             onClick={() => onExpandedChange(true)}
             disabled={disabled}
           >
-            <Cube className="size-[18px]! text-gray-12 shrink-0" />
-            <span className="text-[13px] text-gray-12 font-medium">Use an OCI image</span>
+            <Layers2 className="size-[18px]! text-gray-12 shrink-0" />
+            <span className="text-[13px] text-gray-12 font-medium">Use a container image</span>
           </Button>
         )}
       </div>

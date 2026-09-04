@@ -8,7 +8,7 @@ import { collection } from "@/lib/collections";
 import { githubUrl } from "@/lib/github-url";
 import { routes } from "@/lib/navigation/routes";
 import { eq, useLiveQuery } from "@tanstack/react-db";
-import { Cube, Dots, Github, Plus, Terminal } from "@unkey/icons";
+import { Dots, Github, Layers2, Plus, Terminal } from "@unkey/icons";
 import { match } from "@unkey/match";
 import { Button, Empty } from "@unkey/ui";
 import { useParams, useRouter } from "next/navigation";
@@ -66,7 +66,7 @@ export const AppsList = () => {
           {apps.data.map((app) => {
             const icon = match(app.sourceType)
               .with("git", () => <Github iconSize="xl-medium" className="shrink-0 size-5" />)
-              .with("oci", () => <Cube iconSize="xl-medium" className="shrink-0 size-5" />)
+              .with("oci", () => <Layers2 iconSize="xl-medium" className="shrink-0 size-5" />)
               .with("unknown", () =>
                 app.repositoryFullName ? (
                   <Github iconSize="xl-medium" className="shrink-0 size-5" />

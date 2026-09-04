@@ -404,7 +404,7 @@ export const CreateDeploymentButton = ({
                 className="min-h-9"
                 description={
                   isImageApp
-                    ? "Paste an OCI image reference to deploy, or pick a previously deployed image below."
+                    ? "Paste a container image reference to deploy, or pick a previously deployed image below."
                     : repositoryFullName
                       ? "Paste a commit, branch, PR URL, or fork reference (e.g. fork-owner:branch) to deploy."
                       : "Paste a valid commit, branch reference, or PR URL to create a new deployment."

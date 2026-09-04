@@ -1,8 +1,10 @@
 import type { Deployment } from "@/lib/collections";
 import { shortenId } from "@/lib/shorten-id";
-import { CodeBranch, CodeCommit, Cube } from "@unkey/icons";
+import { cn } from "@/lib/utils";
+import { CodeBranch, CodeCommit, Layers2 } from "@unkey/icons";
 import { match } from "@unkey/match";
 import { Badge } from "@unkey/ui";
+import type { ComponentProps, ReactNode } from "react";
 
 type DeploymentCardProps = {
   deployment: Deployment;
@@ -37,32 +39,46 @@ const DeploymentDescription = ({
 }: Pick<DeploymentCardProps, "deployment" | "isCurrent">) => {
   return match(deployment.source)
     .with("oci", () => (
-      <div className="text-xs text-grayA-9 flex items-center gap-1.5 min-w-0">
-        <Cube iconSize="sm-regular" className="shrink-0 text-gray-12" />
+      <SourceDescription>
+        <Layers2 iconSize="sm-regular" className="shrink-0 text-gray-12" />
         <span
           className="truncate"
           title={deployment.requestedImage ?? deployment.resolvedImage ?? undefined}
         >
-          {deployment.requestedImage ?? deployment.resolvedImage ?? "OCI image deployment"}
+          {deployment.requestedImage ?? deployment.resolvedImage ?? "Container image deployment"}
         </span>
-      </div>
+      </SourceDescription>
     ))
     .with("git", () => (
-      <div className="text-xs text-grayA-9 flex items-center gap-1.5 min-w-0">
+      <SourceDescription>
         <CodeCommit iconSize="sm-regular" className="shrink-0 text-gray-12" />
         <span className="truncate">
           {deployment.gitCommitMessage || `${isCurrent ? "Current active" : "Target"} deployment`}
         </span>
-      </div>
+      </SourceDescription>
     ))
     .with("unknown", () => (
-      <div className="text-xs text-grayA-9 flex items-center gap-1.5">
-        <Cube iconSize="sm-regular" className="shrink-0 text-gray-12" />
+      <SourceDescription>
+        <Layers2 iconSize="sm-regular" className="shrink-0 text-gray-12" />
         <span>{isCurrent ? "Current active deployment" : "Target deployment"}</span>
-      </div>
+      </SourceDescription>
     ))
     .exhaustive();
 };
+
+const SourceDescription = ({ children }: { children: ReactNode }) => (
+  <div className="text-xs text-grayA-9 flex items-center gap-1.5 min-w-0">{children}</div>
+);
+
+const MetadataPill = ({ className, ...props }: ComponentProps<"div">) => (
+  <div
+    className={cn(
+      "flex items-center gap-1.5 px-2 py-1 bg-gray-3 rounded-md text-xs text-grayA-11",
+      className,
+    )}
+    {...props}
+  />
+);
 
 const DeploymentMetadata = ({ deployment }: Pick<DeploymentCardProps, "deployment">) => {
   return match(deployment.source)
@@ -74,28 +90,25 @@ const DeploymentMetadata = ({ deployment }: Pick<DeploymentCardProps, "deploymen
       const digest = deployment.resolvedImage.split("@").at(-1) ?? deployment.resolvedImage;
       const digestLabel = digest.startsWith("sha256:") ? `sha256:${digest.slice(7, 19)}` : digest;
       return (
-        <div
-          className="flex items-center gap-1.5 px-2 py-1 bg-gray-3 rounded-md text-xs text-grayA-11 max-w-[180px]"
-          title={deployment.resolvedImage}
-        >
-          <Cube iconSize="sm-regular" className="shrink-0 text-gray-12" />
+        <MetadataPill className="max-w-[180px]" title={deployment.resolvedImage}>
+          <Layers2 iconSize="sm-regular" className="shrink-0 text-gray-12" />
           <span className="truncate font-mono">{digestLabel}</span>
-        </div>
+        </MetadataPill>
       );
     })
     .with("git", () => (
       <div className="flex gap-1.5">
         {deployment.gitBranch && (
-          <div className="flex items-center gap-1.5 px-2 py-1 bg-gray-3 rounded-md text-xs text-grayA-11 max-w-[100px]">
+          <MetadataPill className="max-w-[100px]">
             <CodeBranch iconSize="sm-regular" className="shrink-0 text-gray-12" />
             <span className="truncate">{deployment.gitBranch}</span>
-          </div>
+          </MetadataPill>
         )}
         {deployment.gitCommitSha && (
-          <div className="flex items-center gap-1.5 px-2 py-1 bg-gray-3 rounded-md text-xs text-grayA-11">
+          <MetadataPill>
             <CodeCommit iconSize="sm-regular" className="shrink-0 text-gray-12" />
             <span>{shortenId(deployment.gitCommitSha)}</span>
-          </div>
+          </MetadataPill>
         )}
       </div>
     ))

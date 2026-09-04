@@ -3,9 +3,11 @@
 import { collection } from "@/lib/collections";
 import { ociImageReferenceSchema } from "@/lib/collections/deploy/apps";
 import { trpc } from "@/lib/trpc/client";
+import { getErrorMessage, getUnkeyClient } from "@/lib/unkey-client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { and, eq, useLiveQuery } from "@tanstack/react-db";
-import { CircleHalfDottedClock, Cube, Gear } from "@unkey/icons";
+import { useMutation } from "@tanstack/react-query";
+import { CircleHalfDottedClock, Gear, Layers2 } from "@unkey/icons";
 import { match } from "@unkey/match";
 import { FormInput, SettingCardGroup, toast } from "@unkey/ui";
 import { useEffect } from "react";
@@ -63,8 +65,6 @@ export const DeploymentSettings = ({
     ? match(app.sourceType)
         .with("git", () => true)
         .with("oci", () => false)
-        // Legacy apps retain the old connect/disconnect flow until every
-        // caller creates an app with an explicit source.
         .with("unknown", () => true)
         .exhaustive()
     : false;
@@ -73,15 +73,6 @@ export const DeploymentSettings = ({
     { enabled: shouldLoadGitHub },
   );
 
-  const sourceSettings = app
-    ? match(app.sourceType)
-        .with("oci", () => <OCIImage appId={appId} imageReference={app.imageReference ?? ""} />)
-        .with("git", () => <GitHub readOnly={githubReadOnly} onBeforeNavigate={onBeforeNavigate} />)
-        .with("unknown", () => (
-          <GitHub readOnly={githubReadOnly} onBeforeNavigate={onBeforeNavigate} />
-        ))
-        .exhaustive()
-    : null;
   const showBuildSettings = app
     ? match(app.sourceType)
         .with("oci", () => false)
@@ -93,7 +84,23 @@ export const DeploymentSettings = ({
   return (
     <div className="flex flex-col gap-6">
       <SettingCardGroup>
-        {sourceSettings}
+        {app
+          ? match(app.sourceType)
+              .with("oci", () => (
+                <OCIImage
+                  projectId={projectId}
+                  appId={appId}
+                  imageReference={app.imageReference ?? ""}
+                />
+              ))
+              .with("git", () => (
+                <GitHub readOnly={githubReadOnly} onBeforeNavigate={onBeforeNavigate} />
+              ))
+              .with("unknown", () => (
+                <GitHub readOnly={githubReadOnly} onBeforeNavigate={onBeforeNavigate} />
+              ))
+              .exhaustive()
+          : null}
         {showBuildSettings ? (
           <>
             <RootDirectory />
@@ -143,8 +150,19 @@ const ociImageFormSchema = z.object({
   imageReference: ociImageReferenceSchema,
 });
 
-const OCIImage = ({ appId, imageReference }: { appId: string; imageReference: string }) => {
-  const updateImage = trpc.deploy.app.updateOciSource.useMutation();
+const OCIImage = ({
+  projectId,
+  appId,
+  imageReference,
+}: { projectId: string; appId: string; imageReference: string }) => {
+  const updateImage = useMutation({
+    mutationFn: (image: string) =>
+      getUnkeyClient().apps.updateApp({
+        project: projectId,
+        app: appId,
+        oci: { image },
+      }),
+  });
   const {
     register,
     handleSubmit,
@@ -173,18 +191,18 @@ const OCIImage = ({ appId, imageReference }: { appId: string; imageReference: st
 
   const onSubmit = async (values: z.infer<typeof ociImageFormSchema>) => {
     try {
-      await updateImage.mutateAsync({ appId, imageReference: values.imageReference });
+      await updateImage.mutateAsync(values.imageReference);
       reset(values);
       await collection.apps.utils.refetch();
-      toast.success("OCI image updated");
+      toast.success("Container image updated");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to update OCI image");
+      toast.error(getErrorMessage(error, "Failed to update container image"));
     }
   };
 
   return (
     <FormSettingCard
-      icon={<Cube className="text-gray-12" iconSize="xl-regular" />}
+      icon={<Layers2 className="text-gray-12" iconSize="xl-regular" />}
       title="Image"
       description="Default image reference for new deployments"
       displayValue={<span className="font-mono text-xs">{imageReference}</span>}
