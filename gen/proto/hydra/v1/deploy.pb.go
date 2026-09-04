@@ -23,24 +23,17 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// CreateDecision is what the caller decided should happen to this deployment.
-// Every value writes a row; they differ in what happens to it next.
-//
-// It carries the verdict and not the evidence, because two of the inputs behind
-// it are push-only: the files a commit touched and whether the push came from a
-// fork. Create can see neither, so unlike the entitlement gate this is the sole
-// enforcement point and Create does not re-check it.
+// CreateDecision is what happens to the row after it is written. The caller
+// decides, because the inputs (watch paths, fork pushes) are only visible to
+// the GitHub webhook. Create does not re-check it.
 type CreateDecision int32
 
 const (
 	CreateDecision_CREATE_DECISION_UNSPECIFIED CreateDecision = 0
-	// DEPLOY writes the row and builds it.
-	CreateDecision_CREATE_DECISION_DEPLOY CreateDecision = 1
-	// SKIP writes the row and stops there, recording that the commit was seen
-	// and deliberately not built.
+	CreateDecision_CREATE_DECISION_DEPLOY      CreateDecision = 1
+	// Record the commit without building it.
 	CreateDecision_CREATE_DECISION_SKIP CreateDecision = 2
-	// AWAIT_APPROVAL writes the row and waits for a project member. Only
-	// AuthorizeDeployment can start it building.
+	// Wait for AuthorizeDeployment before building.
 	CreateDecision_CREATE_DECISION_AWAIT_APPROVAL CreateDecision = 3
 )
 
@@ -87,11 +80,9 @@ func (CreateDecision) EnumDescriptor() ([]byte, []int) {
 	return file_hydra_v1_deploy_proto_rawDescGZIP(), []int{0}
 }
 
-// CreateOutcome is what a create did. A refused create answers REJECTED rather
-// than failing terminally. A terminal error is not retried either, but it
-// reaches an ingress caller as unstructured text, so svc/api could only tell
-// these reasons apart by parsing a message; and it leaves a permanently failed
-// invocation behind every push from a caller that sends Create one-way.
+// CreateOutcome is what a create did. A refused create returns REJECTED instead
+// of a terminal error, because the Restate ingress flattens errors to text and a
+// one-way caller would otherwise leave a failed invocation behind.
 type CreateOutcome int32
 
 const (
@@ -143,47 +134,35 @@ func (CreateOutcome) EnumDescriptor() ([]byte, []int) {
 	return file_hydra_v1_deploy_proto_rawDescGZIP(), []int{1}
 }
 
-// CreateRejectionReason is why a create was refused, as a value a caller can
-// branch on instead of a message it would have to parse.
+// CreateRejectionReason is why a create was refused.
 type CreateRejectionReason int32
 
 const (
 	CreateRejectionReason_CREATE_REJECTION_REASON_UNSPECIFIED CreateRejectionReason = 0
-	// NO_COMPUTE_PLAN: the workspace holds no Deploy entitlement and the gate is
-	// enforcing.
+	// The workspace has no Compute plan.
 	CreateRejectionReason_CREATE_REJECTION_REASON_NO_COMPUTE_PLAN CreateRejectionReason = 1
-	// SPEND_SUSPENDED: the workspace is over its Compute spend cap.
+	// The workspace is over its Compute spend cap.
 	CreateRejectionReason_CREATE_REJECTION_REASON_SPEND_SUSPENDED CreateRejectionReason = 2
-	// TARGET_NOT_FOUND: the project, app, or environment does not exist, or they
-	// do not belong together. Reachable when a target is deleted between the
-	// caller's own lookup and this create.
+	// The project, app, or environment does not exist, or they do not belong
+	// together.
 	CreateRejectionReason_CREATE_REJECTION_REASON_TARGET_NOT_FOUND CreateRejectionReason = 3
-	// NO_REPO_CONNECTION: a git source was requested for an app with no connected
-	// repository. Refused instead of falling back to the current image, which
-	// would ship a different artifact than the one asked for.
+	// A git source was requested for an app with no connected repository.
 	CreateRejectionReason_CREATE_REJECTION_REASON_NO_REPO_CONNECTION CreateRejectionReason = 4
-	// COMMIT_NOT_RESOLVED: GitHub could not resolve the requested branch or
-	// commit.
+	// GitHub could not resolve the requested branch or commit.
 	CreateRejectionReason_CREATE_REJECTION_REASON_COMMIT_NOT_RESOLVED CreateRejectionReason = 5
-	// NO_SOURCE_IMAGE: the deployment being redeployed has neither a commit with
-	// a repository connection nor an image, so there is nothing to build from.
+	// The existing deployment has neither a buildable commit nor an image.
 	CreateRejectionReason_CREATE_REJECTION_REASON_NO_SOURCE_IMAGE CreateRejectionReason = 6
-	// NEWER_DEPLOYMENT_EXISTS: a rebuild found a newer active deployment on the
-	// same app, environment, and branch. Clear require_no_newer to override.
+	// A newer active deployment exists on the same app, environment, and branch.
+	// Only with require_no_newer set.
 	CreateRejectionReason_CREATE_REJECTION_REASON_NEWER_DEPLOYMENT_EXISTS CreateRejectionReason = 7
-	// INVALID_IMAGE: the requested image is not a well-formed container
-	// reference. Refused before the row is written, because a build never runs to
-	// discover it and the deployment would sit failed with no explanation.
+	// The image is not a well-formed container reference.
 	CreateRejectionReason_CREATE_REJECTION_REASON_INVALID_IMAGE CreateRejectionReason = 8
-	// ENVIRONMENT_NOT_DEPLOYABLE: the environment's runtime settings are out of
-	// bounds, or it has no region that can schedule. Deploy checks these again as
-	// a backstop; refusing here keeps a deployment that cannot succeed from being
-	// written at all.
+	// The environment's port, cpu, or memory is out of bounds, or it has no
+	// schedulable region.
 	CreateRejectionReason_CREATE_REJECTION_REASON_ENVIRONMENT_NOT_DEPLOYABLE CreateRejectionReason = 9
-	// SOURCE_DEPLOYMENT_NOT_FOUND: existing_deployment names a deployment that
-	// does not exist, or one under a different app or environment than the
-	// request targets. The two are one reason on purpose: answering them apart
-	// would let a caller probe for deployments it cannot reach.
+	// existing_deployment does not exist or belongs to another app or
+	// environment. One reason for both, so a caller cannot probe for deployments
+	// it cannot reach.
 	CreateRejectionReason_CREATE_REJECTION_REASON_SOURCE_DEPLOYMENT_NOT_FOUND CreateRejectionReason = 10
 )
 
@@ -751,16 +730,12 @@ func (x *GitSource) GetBuildCommand() string {
 	return ""
 }
 
-// CreateGitSource builds from a repository commit. The worker resolves the
-// repository connection from the app, so a caller names only the commit it
-// wants.
+// CreateGitSource builds from a commit in the app's connected repository.
 type CreateGitSource struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Commit metadata as far as the caller knows it. Empty fields are filled from
-	// GitHub. A request with neither a sha nor a branch gets the app's default
-	// branch. A sha without a branch keeps its empty branch, because that sha can
-	// live off the default branch and a wrong branch beside a right sha is worse
-	// than no branch.
+	// Empty fields are filled from GitHub. With neither a sha nor a branch, the
+	// app's default branch is built. A sha alone is built as is; no branch is
+	// inferred for it.
 	Commit *v1.GitCommitInfo `protobuf:"bytes,1,opt,name=commit,proto3" json:"commit,omitempty"`
 	// PR number for fork PRs. BuildKit fetches refs/pull/<number>/head from the
 	// base repository instead of cloning the commit directly.
@@ -813,8 +788,7 @@ func (x *CreateGitSource) GetPrNumber() int64 {
 	return 0
 }
 
-// CreateImageSource deploys a pre-built container image as it is, with no
-// build step and no git metadata synthesized onto the row.
+// CreateImageSource deploys a pre-built container image. No build runs.
 type CreateImageSource struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Image         string                 `protobuf:"bytes,1,opt,name=image,proto3" json:"image,omitempty"`
@@ -859,18 +833,14 @@ func (x *CreateImageSource) GetImage() string {
 	return ""
 }
 
-// CreateExistingDeploymentSource rebuilds what another deployment ran: its
-// commit when the app still has a repository connection, otherwise its image.
-// The new row takes the app's current runtime settings and environment
-// variables, so any configuration change since the source applies. That is what
-// makes it usable for a hotfix, a settings rollout, or recovery from a lost
-// image.
+// CreateExistingDeploymentSource rebuilds another deployment's commit, or its
+// image when the app has no repository connection. Runtime settings and
+// environment variables come from the app as it is now, not from the source.
 type CreateExistingDeploymentSource struct {
 	state        protoimpl.MessageState `protogen:"open.v1"`
 	DeploymentId string                 `protobuf:"bytes,1,opt,name=deployment_id,json=deploymentId,proto3" json:"deployment_id,omitempty"`
-	// RequireNoNewer refuses the rebuild when a newer active deployment exists on
-	// the same app, environment, and branch. Leave it unset to rebuild the named
-	// deployment whatever else has shipped since.
+	// Refuse the rebuild when a newer active deployment exists on the same app,
+	// environment, and branch.
 	RequireNoNewer bool `protobuf:"varint,2,opt,name=require_no_newer,json=requireNoNewer,proto3" json:"require_no_newer,omitempty"`
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
@@ -921,32 +891,26 @@ func (x *CreateExistingDeploymentSource) GetRequireNoNewer() bool {
 }
 
 type DeployCreateRequest struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// Target. The request carries ids only. The worker loads the project, app,
-	// environment, and their settings itself, so the row records the settings
-	// current when the create runs and not when it was requested.
-	ProjectId string `protobuf:"bytes,1,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
-	AppId     string `protobuf:"bytes,2,opt,name=app_id,json=appId,proto3" json:"app_id,omitempty"`
-	// Environment named by id or slug.
+	state     protoimpl.MessageState `protogen:"open.v1"`
+	ProjectId string                 `protobuf:"bytes,1,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
+	AppId     string                 `protobuf:"bytes,2,opt,name=app_id,json=appId,proto3" json:"app_id,omitempty"`
+	// Environment id or slug.
 	Environment string `protobuf:"bytes,3,opt,name=environment,proto3" json:"environment,omitempty"`
-	// Leave the source unset to mean "ship this app again": a connected
-	// repository deploys the head of its default branch, and an app without one
-	// redeploys the image its current deployment runs. To deploy the head of the
-	// default branch explicitly, send git with an empty commit.
+	// Unset means redeploy: the head of the default branch for a connected
+	// repository, otherwise the image the current deployment runs.
 	//
 	// Types that are valid to be assigned to Source:
 	//
 	//	*DeployCreateRequest_Git
 	//	*DeployCreateRequest_Image
 	//	*DeployCreateRequest_ExistingDeployment
-	Source isDeployCreateRequest_Source `protobuf_oneof:"source"`
-	// Decision the caller already reached. See CreateDecision.
-	Decision CreateDecision `protobuf:"varint,8,opt,name=decision,proto3,enum=hydra.v1.CreateDecision" json:"decision,omitempty"`
+	Source   isDeployCreateRequest_Source `protobuf_oneof:"source"`
+	Decision CreateDecision               `protobuf:"varint,8,opt,name=decision,proto3,enum=hydra.v1.CreateDecision" json:"decision,omitempty"`
 	// Attribution persisted on the deployment row.
 	Trigger       v1.DeploymentTrigger `protobuf:"varint,10,opt,name=trigger,proto3,enum=ctrl.v1.DeploymentTrigger" json:"trigger,omitempty"`
 	TriggeredBy   string               `protobuf:"bytes,11,opt,name=triggered_by,json=triggeredBy,proto3" json:"triggered_by,omitempty"`
 	TriggerReason string               `protobuf:"bytes,12,opt,name=trigger_reason,json=triggerReason,proto3" json:"trigger_reason,omitempty"`
-	// Actor attributed on the audit log. Unset falls back to the system actor.
+	// Actor on the audit log. Unset falls back to the system actor.
 	Actor         *v1.ActorInfo `protobuf:"bytes,13,opt,name=actor,proto3" json:"actor,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -1094,20 +1058,12 @@ func (*DeployCreateRequest_Image) isDeployCreateRequest_Source() {}
 
 func (*DeployCreateRequest_ExistingDeployment) isDeployCreateRequest_Source() {}
 
-// DeployCreateResponse says what a create did. A caller that awaits Create with
-// Request reads it; one that dispatches with Send never sees it, and learns the
-// outcome only from the deployment row.
 type DeployCreateResponse struct {
 	state   protoimpl.MessageState `protogen:"open.v1"`
 	Outcome CreateOutcome          `protobuf:"varint,1,opt,name=outcome,proto3,enum=hydra.v1.CreateOutcome" json:"outcome,omitempty"`
-	// RejectionReason is set only when outcome is REJECTED. The text explaining it
-	// stays in the worker's logs, because it names repositories and deployments
-	// the caller may have no right to read.
+	// Set only when outcome is REJECTED.
 	RejectionReason CreateRejectionReason `protobuf:"varint,2,opt,name=rejection_reason,json=rejectionReason,proto3,enum=hydra.v1.CreateRejectionReason" json:"rejection_reason,omitempty"`
-	// DeploymentId echoes the object key the create ran on, set for every
-	// outcome: it is what the caller chose, not the id of a row, so a rejection
-	// carries it too. A caller already knows it; echoing it back keeps a response
-	// readable on its own in a log or a trace.
+	// The object key the create ran on, echoed for every outcome.
 	DeploymentId  string `protobuf:"bytes,3,opt,name=deployment_id,json=deploymentId,proto3" json:"deployment_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
