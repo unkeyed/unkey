@@ -2,7 +2,6 @@
 
 import { formatNumber } from "@/lib/fmt";
 import { Button, Card } from "@unkey/ui";
-import { formatDistanceToNow } from "date-fns";
 import { WINDOW_HOURS, useDeliveryTotals } from "./use-deliveries";
 
 const NO_VALUE = "‒";
@@ -26,7 +25,7 @@ export function DrainStatsCards({ drainId }: { drainId: string }) {
         )}
       </div>
 
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
         <StatCard label="Delivered" value={totals ? formatNumber(totals.delivered) : NO_VALUE} />
         <StatCard label="Failed" value={totals ? formatNumber(totals.failed) : NO_VALUE} />
         <StatCard
@@ -35,16 +34,6 @@ export function DrainStatsCards({ drainId }: { drainId: string }) {
             totals === null || totals.successRate === null
               ? NO_VALUE
               : `${totals.successRate.toFixed(1)}%`
-          }
-        />
-        <StatCard
-          label="Last delivery"
-          value={
-            totals === null
-              ? NO_VALUE
-              : totals.lastDeliveryMs
-                ? formatDistanceToNow(totals.lastDeliveryMs, { addSuffix: true })
-                : "Never"
           }
         />
       </div>
