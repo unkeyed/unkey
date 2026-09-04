@@ -46,7 +46,7 @@ func TestAnomalyRollupBackfillMatchesMaterializedViews(t *testing.T) {
 	require.Len(t, beforeReplay.Requests, 2)
 	require.Len(t, beforeReplay.Resources, 2)
 	require.Len(t, beforeReplay.Memory, 2)
-	require.Len(t, beforeReplay.Watermarks, 6)
+	require.Len(t, beforeReplay.Watermarks, 4)
 	require.Equal(t, requestBackfillRow{Error5xx: 50, Error4xx: 50, Requests: 1_000}, beforeReplay.Requests["backfill"])
 	require.Equal(t, resourceBackfillRow{
 		Egress: 1_000, CPU: 2, UtilizationSum: 0.9,
@@ -57,11 +57,10 @@ func TestAnomalyRollupBackfillMatchesMaterializedViews(t *testing.T) {
 	}, beforeReplay.Memory["backfill"])
 	require.Equal(t, bucket.Unix(), beforeReplay.Watermarks["requests/backfill"].Unix())
 	require.Equal(t, bucket.Add(4*time.Minute).Unix(), beforeReplay.Watermarks["resources/backfill"].Unix())
-	require.Equal(t, bucket.Unix(), beforeReplay.Watermarks["instance_events/backfill"].Unix())
 	require.Equal(t, beforeReplay.Requests["backfill"], beforeReplay.Requests["materialized"])
 	require.Equal(t, beforeReplay.Resources["backfill"], beforeReplay.Resources["materialized"])
 	require.Equal(t, beforeReplay.Memory["backfill"], beforeReplay.Memory["materialized"])
-	for _, source := range []string{"requests", "resources", "instance_events"} {
+	for _, source := range []string{"requests", "resources"} {
 		require.Equal(t, beforeReplay.Watermarks[source+"/backfill"], beforeReplay.Watermarks[source+"/materialized"])
 	}
 
@@ -85,8 +84,6 @@ func createAnomalyBackfillSources(ctx context.Context, conn ch.Conn) error {
 		`CREATE TABLE frontline_requests_raw_v1 (time Int64, region String)
 			ENGINE = MergeTree ORDER BY tuple()`,
 		`CREATE TABLE instance_checkpoints_v1 (ts Int64, region String)
-			ENGINE = MergeTree ORDER BY tuple()`,
-		`CREATE TABLE instance_events_raw_v1 (time Int64, region String)
 			ENGINE = MergeTree ORDER BY tuple()`,
 	} {
 		if err := conn.Exec(ctx, query); err != nil {
@@ -120,7 +117,6 @@ func insertAnomalyBackfillSourceRows(t *testing.T, ctx context.Context, conn ch.
 	`, bucket, workspaceID, projectID, appID, environmentID, instanceID, containerID))
 	require.NoError(t, conn.Exec(ctx, `INSERT INTO frontline_requests_raw_v1 VALUES (?, ?)`, bucket.UnixMilli(), suffix))
 	require.NoError(t, conn.Exec(ctx, `INSERT INTO instance_checkpoints_v1 VALUES (?, ?)`, bucket.Add(4*time.Minute).UnixMilli(), suffix))
-	require.NoError(t, conn.Exec(ctx, `INSERT INTO instance_events_raw_v1 VALUES (?, ?)`, bucket.UnixMilli(), suffix))
 }
 
 func executeAnomalyRollupMigrations(t *testing.T, ctx context.Context, conn ch.Conn, ignoreExisting bool) {
