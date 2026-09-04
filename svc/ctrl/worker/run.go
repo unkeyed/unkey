@@ -304,7 +304,6 @@ func Run(ctx context.Context, cfg Config) error {
 		AllowUnauthenticatedDeployments: ptr.SafeDeref(cfg.GitHub).AllowUnauthenticatedDeployments,
 		DashboardURL:                    cfg.DashboardURL,
 		RestateAdmin:                    restateAdminClient,
-		EnforceDeployGate:               true,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to create deploy workflow: %w", err)

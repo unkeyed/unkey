@@ -107,11 +107,6 @@ type Workflow struct {
 	// dedup supersedes older queued deployments on a branch when Create starts
 	// a newer one.
 	dedup *dedup.Service
-
-	// enforceDeployGate hard-blocks a create for a workspace with no Compute
-	// entitlement. False runs the plan check in observe mode; the spend cap
-	// always blocks.
-	enforceDeployGate bool
 }
 
 var _ hydrav1.DeployServiceServer = (*Workflow)(nil)
@@ -170,11 +165,6 @@ type Config struct {
 	// newer create supersedes. Optional: when nil, superseded rows are still
 	// marked but their invocations keep running.
 	RestateAdmin *restateadmin.Client
-
-	// EnforceDeployGate hard-blocks creates for workspaces with no Compute
-	// entitlement (the same switch as project creation). False runs the plan
-	// check in observe mode. Spend-cap suspension is always enforced.
-	EnforceDeployGate bool
 }
 
 // New creates a new deployment workflow instance.
@@ -211,6 +201,5 @@ func New(cfg Config) (*Workflow, error) {
 		allowUnauthenticatedDeployments: cfg.AllowUnauthenticatedDeployments,
 		dashboardURL:                    cfg.DashboardURL,
 		dedup:                           dedup.New(cfg.DB, cfg.RestateAdmin),
-		enforceDeployGate:               cfg.EnforceDeployGate,
 	}, nil
 }
