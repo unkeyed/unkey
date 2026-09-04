@@ -48,21 +48,17 @@ func TestAnomalyRollupBackfillMatchesMaterializedViews(t *testing.T) {
 	beforeReplay := readAnomalyRollupFixture(t, ctx, conn)
 	require.Len(t, beforeReplay.Requests, 3)
 	require.Len(t, beforeReplay.Resources, 3)
-	require.Len(t, beforeReplay.Memory, 3)
 	require.Len(t, beforeReplay.Watermarks, 6)
 	require.Equal(t, requestBackfillRow{Error5xx: 50, Error4xx: 50, Requests: 1_000}, beforeReplay.Requests["backfill"])
 	require.Equal(t, resourceBackfillRow{
-		Egress: 1_000, CPU: 2, UtilizationSum: 0.9,
-		UtilizationSample: 1, UtilizationMax: 0.9, Instances: 1,
+		CPUUsageUsecMin: 1_000_000, CPUUsageUsecMax: 3_000_000,
+		EgressBytesMin: 500, EgressBytesMax: 1_500,
+		UtilizationSum: 1.25, UtilizationSample: 2, UtilizationMax: 0.75,
 	}, beforeReplay.Resources["backfill"])
-	require.Equal(t, memoryBackfillRow{
-		UtilizationSum: 0.9, UtilizationSample: 1, UtilizationMax: 0.9,
-	}, beforeReplay.Memory["backfill"])
 	require.Equal(t, bucket.Unix(), beforeReplay.Watermarks["requests/backfill"].Unix())
 	require.Equal(t, bucket.Add(4*time.Minute).Unix(), beforeReplay.Watermarks["resources/backfill"].Unix())
 	require.Equal(t, beforeReplay.Requests["backfill"], beforeReplay.Requests["materialized"])
 	require.Equal(t, beforeReplay.Resources["backfill"], beforeReplay.Resources["materialized"])
-	require.Equal(t, beforeReplay.Memory["backfill"], beforeReplay.Memory["materialized"])
 	for _, source := range []string{"requests", "resources"} {
 		require.Equal(t, beforeReplay.Watermarks[source+"/backfill"], beforeReplay.Watermarks[source+"/materialized"])
 	}
@@ -70,8 +66,6 @@ func TestAnomalyRollupBackfillMatchesMaterializedViews(t *testing.T) {
 	require.Contains(t, beforeReplay.Requests, "handoff-live")
 	require.NotContains(t, beforeReplay.Resources, "handoff-missed")
 	require.Contains(t, beforeReplay.Resources, "handoff-live")
-	require.NotContains(t, beforeReplay.Memory, "handoff-missed")
-	require.Contains(t, beforeReplay.Memory, "handoff-live")
 	for _, source := range []string{"requests", "resources"} {
 		require.NotContains(t, beforeReplay.Watermarks, source+"/handoff-missed")
 		require.Contains(t, beforeReplay.Watermarks, source+"/handoff-live")
@@ -87,16 +81,14 @@ func createAnomalyBackfillSources(ctx context.Context, conn ch.Conn) error {
 			time DateTime, workspace_id String, project_id String, app_id String,
 			environment_id String, response_status Int32, count Int64
 		) ENGINE = MergeTree ORDER BY tuple()`,
-		`CREATE TABLE instance_resources_per_minute_v1 (
-			time DateTime, workspace_id String, project_id String, app_id String,
-			environment_id String, instance_id String, container_uid String,
-			network_egress_public_bytes_max Int64, network_egress_public_bytes_min Int64,
-			cpu_usage_usec_max Int64, cpu_usage_usec_min Int64,
-			memory_bytes_max Int64, memory_allocated_bytes_max Int64
-		) ENGINE = MergeTree ORDER BY tuple()`,
 		`CREATE TABLE frontline_requests_raw_v1 (time Int64, region String)
 			ENGINE = MergeTree ORDER BY tuple()`,
-		`CREATE TABLE instance_checkpoints_v1 (ts Int64, region String)
+		`CREATE TABLE instance_checkpoints_v1 (
+				ts Int64, region String, workspace_id String, project_id String, app_id String,
+				environment_id String, instance_id String, container_uid String,
+				cpu_usage_usec Int64, network_egress_public_bytes Int64,
+				memory_bytes Int64, memory_allocated_bytes Int64
+			)
 			ENGINE = MergeTree ORDER BY tuple()`,
 	} {
 		if err := conn.Exec(ctx, query); err != nil {
@@ -124,21 +116,21 @@ func insertAnomalyBackfillSourceRows(t *testing.T, ctx context.Context, conn ch.
 		bucket, workspaceID, projectID, appID, environmentID,
 		bucket, workspaceID, projectID, appID, environmentID,
 	))
-	require.NoError(t, conn.Exec(ctx, `
-		INSERT INTO instance_resources_per_minute_v1 VALUES
-			(?, ?, ?, ?, ?, ?, ?, 1500, 500, 3000000, 1000000, 90, 100)
-	`, bucket, workspaceID, projectID, appID, environmentID, instanceID, containerID))
 	require.NoError(t, conn.Exec(ctx, `INSERT INTO frontline_requests_raw_v1 VALUES (?, ?)`, bucket.UnixMilli(), suffix))
-	require.NoError(t, conn.Exec(ctx, `INSERT INTO instance_checkpoints_v1 VALUES (?, ?)`, bucket.Add(4*time.Minute).UnixMilli(), suffix))
+	require.NoError(t, conn.Exec(ctx, `
+		INSERT INTO instance_checkpoints_v1 VALUES
+			(?, ?, ?, ?, ?, ?, ?, ?, 1000000, 500, 50, 100),
+			(?, ?, ?, ?, ?, ?, ?, ?, 3000000, 1500, 75, 100)
+	`, bucket.UnixMilli(), suffix, workspaceID, projectID, appID, environmentID, instanceID, containerID,
+		bucket.Add(4*time.Minute).UnixMilli(), suffix, workspaceID, projectID, appID, environmentID, instanceID, containerID))
 }
 
 func executeAnomalyRollupMigrations(t *testing.T, ctx context.Context, conn ch.Conn, ignoreExisting bool) {
 	t.Helper()
 	for _, path := range []string{
-		"schema/043_instance_resources_app_per_5m_v1.sql",
 		"schema/044_anomaly_source_watermarks_v1.sql",
 		"schema/048_frontline_requests_anomaly_per_5m_v1.sql",
-		"schema/049_instance_memory_container_per_5m_v1.sql",
+		"schema/049_instance_resources_container_per_5m_v1.sql",
 	} {
 		contents, err := os.ReadFile(path)
 		require.NoError(t, err)
@@ -159,7 +151,6 @@ func executeAnomalyRollupMigrations(t *testing.T, ctx context.Context, conn ch.C
 type anomalyRollupFixture struct {
 	Requests   map[string]requestBackfillRow
 	Resources  map[string]resourceBackfillRow
-	Memory     map[string]memoryBackfillRow
 	Watermarks map[string]time.Time
 }
 
@@ -170,15 +161,10 @@ type requestBackfillRow struct {
 }
 
 type resourceBackfillRow struct {
-	Egress            int64
-	CPU               float64
-	UtilizationSum    float64
-	UtilizationSample uint64
-	UtilizationMax    float64
-	Instances         uint64
-}
-
-type memoryBackfillRow struct {
+	CPUUsageUsecMin   int64
+	CPUUsageUsecMax   int64
+	EgressBytesMin    int64
+	EgressBytesMax    int64
 	UtilizationSum    float64
 	UtilizationSample uint64
 	UtilizationMax    float64
@@ -188,7 +174,7 @@ func readAnomalyRollupFixture(t *testing.T, ctx context.Context, conn ch.Conn) a
 	t.Helper()
 	fixture := anomalyRollupFixture{
 		Requests: make(map[string]requestBackfillRow), Resources: make(map[string]resourceBackfillRow),
-		Memory: make(map[string]memoryBackfillRow), Watermarks: make(map[string]time.Time),
+		Watermarks: make(map[string]time.Time),
 	}
 
 	requestRows, err := conn.Query(ctx, `
@@ -207,36 +193,23 @@ func readAnomalyRollupFixture(t *testing.T, ctx context.Context, conn ch.Conn) a
 	require.NoError(t, requestRows.Close())
 
 	resourceRows, err := conn.Query(ctx, `
-		SELECT workspace_id, sum(egress_bytes), sum(cpu_seconds), sum(memory_utilization_sum),
-			sum(memory_utilization_samples), max(memory_utilization_max), uniqCombined64Merge(instance_ids)
-		FROM instance_resources_app_per_5m_v1
+		SELECT workspace_id, min(cpu_usage_usec_min), max(cpu_usage_usec_max),
+			min(network_egress_public_bytes_min), max(network_egress_public_bytes_max),
+			sum(utilization_sum), sum(utilization_samples), max(utilization_max)
+		FROM instance_resources_container_per_5m_v1
 		GROUP BY workspace_id
 	`)
 	require.NoError(t, err)
 	for resourceRows.Next() {
 		var workspaceID string
 		var row resourceBackfillRow
-		require.NoError(t, resourceRows.Scan(&workspaceID, &row.Egress, &row.CPU, &row.UtilizationSum,
-			&row.UtilizationSample, &row.UtilizationMax, &row.Instances))
+		require.NoError(t, resourceRows.Scan(&workspaceID, &row.CPUUsageUsecMin, &row.CPUUsageUsecMax,
+			&row.EgressBytesMin, &row.EgressBytesMax, &row.UtilizationSum,
+			&row.UtilizationSample, &row.UtilizationMax))
 		fixture.Resources[strings.TrimPrefix(workspaceID, "workspace-")] = row
 	}
 	require.NoError(t, resourceRows.Err())
 	require.NoError(t, resourceRows.Close())
-
-	memoryRows, err := conn.Query(ctx, `
-		SELECT workspace_id, sum(utilization_sum), sum(utilization_samples), max(utilization_max)
-		FROM instance_memory_container_per_5m_v1
-		GROUP BY workspace_id
-	`)
-	require.NoError(t, err)
-	for memoryRows.Next() {
-		var workspaceID string
-		var row memoryBackfillRow
-		require.NoError(t, memoryRows.Scan(&workspaceID, &row.UtilizationSum, &row.UtilizationSample, &row.UtilizationMax))
-		fixture.Memory[strings.TrimPrefix(workspaceID, "workspace-")] = row
-	}
-	require.NoError(t, memoryRows.Err())
-	require.NoError(t, memoryRows.Close())
 
 	watermarkRows, err := conn.Query(ctx, `
 		SELECT source, region, max(time)
