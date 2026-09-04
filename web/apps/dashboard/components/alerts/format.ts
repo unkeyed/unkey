@@ -1,3 +1,4 @@
+import { alertFixedThresholds } from "@unkey/clickhouse/src/alert-thresholds";
 import type { AlertMetric, AlertSeriesMetric } from "./types";
 
 export const alertMetricOptions: ReadonlyArray<{ value: AlertMetric; label: string }> = [
@@ -176,10 +177,16 @@ export function formatRequestsDropChange(observed: number, recentMedian: number)
 export function formatAlertDistance(metric: AlertMetric, observed: number, mean: number): string {
   switch (metric) {
     case "memory_utilization":
-      return `avg ${formatAlertValue(metric, observed)} · limit 90%`;
+      return `avg ${formatAlertValue(metric, observed)} · limit ${formatAlertValue(
+        metric,
+        alertFixedThresholds.memory_utilization,
+      )}`;
     case "oom_killed":
     case "crash_loop":
-      return `${formatAlertValue(metric, observed)} events · limit 1`;
+      return `${formatAlertValue(metric, observed)} events · limit ${formatAlertValue(
+        metric,
+        alertFixedThresholds[metric],
+      )}`;
     case "requests_drop":
       return formatRequestsDropChange(observed, mean);
     case "error_5xx":
