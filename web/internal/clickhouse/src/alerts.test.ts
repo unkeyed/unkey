@@ -73,7 +73,7 @@ describe("getAlertSeries", () => {
     expect(query).toContain("if( time >= first_bucket_time");
     expect(query).toContain("count(lifetime_value) OVER");
     expect(query).toContain("lifetime_buckets < 12");
-    expect(query).toContain("greatest( expected_stddev, 0.1 * expected_mean, 5 )");
+    expect(query).toContain("greatest( expected_stddev, 0.1 * expected_mean, 20 )");
     expect(query).toContain("quantileExact(0.5)(lifetime_value)");
     expect(query).toContain("ROWS BETWEEN 12 PRECEDING AND 1 PRECEDING");
     expect(query).toContain("recent_median * 0.25");
@@ -83,7 +83,7 @@ describe("getAlertSeries", () => {
   it.each([
     ["error_5xx", 0.01],
     ["error_4xx", 0.01],
-    ["egress_bytes", 65_536],
+    ["egress_bytes", 1_048_576],
     ["cpu_seconds", 1],
   ] as const)(
     "uses the detector's effective standard deviation floor for %s",
