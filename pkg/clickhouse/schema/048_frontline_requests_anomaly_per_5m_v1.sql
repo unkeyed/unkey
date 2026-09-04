@@ -1,6 +1,3 @@
--- App-level request counts avoid rebuilding groups x status-code buckets in
--- every anomaly shard. This table is dashboards-only because chained MVs can
--- double-count retried inserts before source-table deduplication.
 CREATE TABLE frontline_requests_anomaly_per_5m_v1 (
   time DateTime,
   workspace_id String,
@@ -31,9 +28,6 @@ SELECT
 FROM frontline_requests_per_5m_v1
 GROUP BY time, workspace_id, project_id, app_id, environment_id;
 
--- Seven days matches the dashboard overview horizon while bounding migration
--- cost. Aggregate sum states do not deduplicate replayed inserts, so excluding
--- existing rollup keys makes retries fill missing keys without doubling them.
 INSERT INTO frontline_requests_anomaly_per_5m_v1
 SELECT
   time,

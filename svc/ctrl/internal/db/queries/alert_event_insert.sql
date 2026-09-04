@@ -1,7 +1,4 @@
 -- name: InsertAlertEvent :exec
--- InsertAlertEvent persists the opening snapshot used for alert display and
--- hysteretic recovery. The evaluator checks for an existing open metric in the
--- same journaled step before calling this query.
 INSERT INTO alert_events (
     id,
     workspace_id,

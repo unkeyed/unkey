@@ -1,11 +1,3 @@
--- Anomaly detection reads this app-level rollup every 5 minutes. Reading the
--- per-minute dashboard table for a 24-hour baseline exceeded 14 GiB at 100,000
--- one-instance apps and could not complete on a 32 GiB worker.
---
--- The source is dashboards-only and can double-count rare retry inserts. That
--- tradeoff is acceptable for anomaly detection, but this table must not be
--- used for billing. Memory uses a separate container-grain 5-minute rollup to
--- preserve equal weighting across instances.
 CREATE TABLE instance_resources_app_per_5m_v1 (
   time DateTime,
   workspace_id String,
@@ -42,9 +34,6 @@ SELECT
 FROM instance_resources_per_minute_v1
 GROUP BY time, workspace_id, project_id, app_id, environment_id;
 
--- Seven days matches the dashboard overview horizon while bounding migration
--- cost. Aggregate sum states do not deduplicate replayed inserts, so excluding
--- existing rollup keys makes retries fill missing keys without doubling them.
 INSERT INTO instance_resources_app_per_5m_v1
 SELECT
   toStartOfInterval(time, INTERVAL 5 MINUTE) AS time,
@@ -67,9 +56,6 @@ WHERE instance_resources_per_minute_v1.time >= now() - INTERVAL 7 DAY
   )
 GROUP BY time, workspace_id, project_id, app_id, environment_id;
 
--- A per-region rollup avoids scanning fleet tables whose primary key starts
--- with workspace_id. The detector uses the least watermark among regions with
--- ingest in the last two hours, so a healthy region cannot hide a lagging one.
 CREATE TABLE anomaly_source_watermarks_v1 (
   source LowCardinality(String),
   region LowCardinality(String),
@@ -87,8 +73,6 @@ SELECT
 FROM frontline_requests_raw_v1
 GROUP BY region;
 
--- The bounded seven-day replay gives every active region an immediate
--- watermark. Replaying max aggregate states is idempotent under merges.
 INSERT INTO anomaly_source_watermarks_v1
 SELECT
   'requests' AS source,
@@ -134,9 +118,6 @@ FROM instance_events_raw_v1
 WHERE instance_events_raw_v1.time >= toUnixTimestamp64Milli(toDateTime64(now() - INTERVAL 7 DAY, 3))
 GROUP BY region;
 
--- App-level request counts avoid rebuilding groups x status-code buckets in
--- every anomaly shard. This table is dashboards-only because chained MVs can
--- double-count retried inserts before source-table deduplication.
 CREATE TABLE frontline_requests_anomaly_per_5m_v1 (
   time DateTime,
   workspace_id String,
@@ -167,9 +148,6 @@ SELECT
 FROM frontline_requests_per_5m_v1
 GROUP BY time, workspace_id, project_id, app_id, environment_id;
 
--- Seven days matches the dashboard overview horizon while bounding migration
--- cost. Aggregate sum states do not deduplicate replayed inserts, so excluding
--- existing rollup keys makes retries fill missing keys without doubling them.
 INSERT INTO frontline_requests_anomaly_per_5m_v1
 SELECT
   time,
@@ -189,10 +167,6 @@ WHERE time >= now() - INTERVAL 7 DAY
   )
 GROUP BY time, workspace_id, project_id, app_id, environment_id;
 
--- Memory keeps container and instance grain so the detector can average time
--- within each container, then containers within each instance, then instances
--- within the app. A direct app average would over-weight instances with more
--- containers or samples.
 CREATE TABLE instance_memory_container_per_5m_v1 (
   time DateTime,
   workspace_id String,
@@ -227,9 +201,6 @@ SELECT
 FROM instance_resources_per_minute_v1
 GROUP BY time, workspace_id, project_id, app_id, environment_id, instance_id, container_uid;
 
--- Seven days matches the dashboard overview horizon while bounding migration
--- cost. Aggregate sum states do not deduplicate replayed inserts, so excluding
--- existing rollup keys makes retries fill missing keys without doubling them.
 INSERT INTO instance_memory_container_per_5m_v1
 SELECT
   toStartOfInterval(time, INTERVAL 5 MINUTE) AS time,

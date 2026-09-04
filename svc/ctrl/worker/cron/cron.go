@@ -82,13 +82,10 @@ func (s *Service) DeploySpendCheckServer() hydrav1.DeploySpendCheckServiceServer
 	return s.deploySpendCheckWork
 }
 
-// DeployAnomalyServer returns the per-group anomaly evaluator fanned out from
-// the fleet cron handler.
 func (s *Service) DeployAnomalyServer() hydrav1.DeployAnomalyServiceServer {
 	return s.deployAnomalyWork
 }
 
-// DeployAnomalyShardServer returns the per-window hash partition evaluator.
 func (s *Service) DeployAnomalyShardServer() hydrav1.DeployAnomalyShardServiceServer {
 	return s.deployAnomalyShard
 }

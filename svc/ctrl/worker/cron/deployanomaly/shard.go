@@ -60,21 +60,17 @@ type groupMetadata struct {
 	DeploymentHasRunningRegion bool
 }
 
-// ShardConfig holds the partition evaluator dependencies.
 type ShardConfig struct {
 	DB         db.Database
 	Clickhouse clickhouse.ClickHouse
 }
 
-// ShardHandler queries one workspace hash partition and dispatches its
-// actionable groups.
 type ShardHandler struct {
 	hydrav1.UnimplementedDeployAnomalyShardServiceServer
 	db         db.Database
 	clickhouse clickhouse.ClickHouse
 }
 
-// NewShardHandler constructs the partition evaluator.
 func NewShardHandler(cfg ShardConfig) (*ShardHandler, error) {
 	if err := assert.All(
 		assert.NotNil(cfg.DB, "DB must not be nil"),

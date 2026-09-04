@@ -27,8 +27,7 @@ type ListOpenAlertEventGroupsRow struct {
 	EnvironmentID string `db:"environment_id"`
 }
 
-// ListOpenAlertEventGroups returns the durable groups that shards must keep
-// evaluating even when ClickHouse no longer classifies them as candidates.
+// ListOpenAlertEventGroups
 //
 //	SELECT DISTINCT
 //	    workspace_id,

@@ -1,7 +1,4 @@
 -- name: FindLiveDeploymentsForEnvironments :many
--- FindLiveDeploymentsForEnvironments resolves alert metadata in bounded
--- batches. The JSON array preserves complete four-column group identities;
--- ordering makes shard fan-out deterministic after missing groups are omitted.
 WITH RECURSIVE group_indexes AS (
     SELECT 0 AS group_index
     WHERE JSON_LENGTH(sqlc.arg(group_keys_json)) > 0
